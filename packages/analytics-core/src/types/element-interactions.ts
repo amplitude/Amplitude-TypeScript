@@ -92,6 +92,11 @@ export interface ElementInteractionsOptions {
     triggers: Trigger[];
     labeledEvents: Record<string, LabeledEvent>;
   };
+
+  /**
+   * RegExp pattern list to allow custom patterns for text masking
+   */
+  maskTextRegex?: (RegExp | { pattern: string; description: string })[];
 }
 
 type MatchingCondition = {
@@ -142,7 +147,7 @@ export type Filter = {
 export type LabeledEvent = {
   id: string;
   definition: {
-    event_type: 'click' | 'change'; // [Amplitude] Element Clicked | [Amplitude] Element Changed
+    event_type: '[Amplitude] Element Clicked' | '[Amplitude] Element Changed';
     filters: Filter[];
   }[];
 };

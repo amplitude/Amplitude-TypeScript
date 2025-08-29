@@ -3,6 +3,110 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [0.0.0-beta.27](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/segment-session-replay-plugin@0.0.0-beta.26...@amplitude/segment-session-replay-plugin@0.0.0-beta.27) (2025-08-28)
+
+**Note:** Version bump only for package @amplitude/segment-session-replay-plugin
+
+
+
+
+
+# [0.0.0-beta.26](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/segment-session-replay-plugin@0.0.0-beta.25...@amplitude/segment-session-replay-plugin@0.0.0-beta.26) (2025-08-26)
+
+**Note:** Version bump only for package @amplitude/segment-session-replay-plugin
+
+
+
+
+
+# [0.0.0-beta.25](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/segment-session-replay-plugin@0.0.0-beta.24...@amplitude/segment-session-replay-plugin@0.0.0-beta.25) (2025-08-25)
+
+**Note:** Version bump only for package @amplitude/segment-session-replay-plugin
+
+
+
+
+
+# [0.0.0-beta.24](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/segment-session-replay-plugin@0.0.0-beta.23...@amplitude/segment-session-replay-plugin@0.0.0-beta.24) (2025-08-22)
+
+**Note:** Version bump only for package @amplitude/segment-session-replay-plugin
+
+
+
+
+
+# [0.0.0-beta.23](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/segment-session-replay-plugin@0.0.0-beta.22...@amplitude/segment-session-replay-plugin@0.0.0-beta.23) (2025-08-21)
+
+**Note:** Version bump only for package @amplitude/segment-session-replay-plugin
+
+
+
+
+
+# [0.0.0-beta.22](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/segment-session-replay-plugin@0.0.0-beta.21...@amplitude/segment-session-replay-plugin@0.0.0-beta.22) (2025-08-13)
+
+**Note:** Version bump only for package @amplitude/segment-session-replay-plugin
+
+
+
+
+
+# [0.0.0-beta.21](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/segment-session-replay-plugin@0.0.0-beta.20...@amplitude/segment-session-replay-plugin@0.0.0-beta.21) (2025-08-08)
+
+**Note:** Version bump only for package @amplitude/segment-session-replay-plugin
+
+
+
+
+
+# [0.0.0-beta.20](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/segment-session-replay-plugin@0.0.0-beta.19...@amplitude/segment-session-replay-plugin@0.0.0-beta.20) (2025-08-05)
+
+**Note:** Version bump only for package @amplitude/segment-session-replay-plugin
+
+
+
+
+
+# [0.0.0-beta.19](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/segment-session-replay-plugin@0.0.0-beta.18...@amplitude/segment-session-replay-plugin@0.0.0-beta.19) (2025-07-29)
+
+**Note:** Version bump only for package @amplitude/segment-session-replay-plugin
+
+
+
+
+
+# [0.0.0-beta.18](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/segment-session-replay-plugin@0.0.0-beta.17...@amplitude/segment-session-replay-plugin@0.0.0-beta.18) (2025-07-17)
+
+**Note:** Version bump only for package @amplitude/segment-session-replay-plugin
+
+
+
+
+
+# [0.0.0-beta.17](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/segment-session-replay-plugin@0.0.0-beta.16...@amplitude/segment-session-replay-plugin@0.0.0-beta.17) (2025-07-15)
+
+**Note:** Version bump only for package @amplitude/segment-session-replay-plugin
+
+
+
+
+
+# [0.0.0-beta.16](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/segment-session-replay-plugin@0.0.0-beta.15...@amplitude/segment-session-replay-plugin@0.0.0-beta.16) (2025-07-11)
+
+**Note:** Version bump only for package @amplitude/segment-session-replay-plugin
+
+
+
+
+
+# [0.0.0-beta.15](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/segment-session-replay-plugin@0.0.0-beta.14...@amplitude/segment-session-replay-plugin@0.0.0-beta.15) (2025-07-08)
+
+**Note:** Version bump only for package @amplitude/segment-session-replay-plugin
+
+
+
+
+
 # [0.0.0-beta.14](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/segment-session-replay-plugin@0.0.0-beta.13...@amplitude/segment-session-replay-plugin@0.0.0-beta.14) (2025-06-30)
 
 **Note:** Version bump only for package @amplitude/segment-session-replay-plugin

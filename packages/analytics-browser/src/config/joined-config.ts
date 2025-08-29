@@ -1,9 +1,8 @@
-import { createRemoteConfigFetch, RemoteConfigFetch } from '@amplitude/analytics-remote-config';
 import {
-  RequestMetadata,
-  BrowserConfig as IBrowserConfig,
   AutocaptureOptions,
   type ElementInteractionsOptions,
+  BrowserConfig,
+  RemoteConfig,
 } from '@amplitude/analytics-core';
 
 export interface AutocaptureOptionsRemoteConfig extends AutocaptureOptions {
@@ -16,130 +15,182 @@ export interface ElementInteractionsOptionsRemoteConfig extends ElementInteracti
   pageUrlAllowlistRegex?: string[];
 }
 
-export type BrowserRemoteConfig = {
-  browserSDK: {
-    autocapture?: AutocaptureOptionsRemoteConfig | boolean;
-  };
+// Type alias for the remote config structure we expect (this is what comes from the filtered browserSDK config)
+type RemoteConfigBrowserSDK = {
+  autocapture?: AutocaptureOptionsRemoteConfig | boolean;
 };
 
-export class BrowserJoinedConfigGenerator {
-  // Local config before generateJoinedConfig is called
-  // Joined config after generateJoinedConfig is called
-  config: IBrowserConfig;
-  remoteConfigFetch: RemoteConfigFetch<BrowserRemoteConfig> | undefined;
-
-  constructor(localConfig: IBrowserConfig) {
-    this.config = localConfig;
-    this.config.loggerProvider.debug(
-      'Local configuration before merging with remote config',
-      JSON.stringify(this.config, null, 2),
-    );
+/**
+ * Performs a deep transformation of a remote config object so that
+ * it matches the expected schema of the local config.
+ *
+ * Specifically, it normalizes nested `enabled` flags into concise union types.
+ *
+ * ### Transformation Rules:
+ * - If an object has `enabled: true`, it is replaced by the same object without the `enabled` field.
+ * - If it has only `enabled: true`, it is replaced with `true`.
+ * - If it has `enabled: false`, it is replaced with `false` regardless of other fields.
+ *
+ * ### Examples:
+ * Input:  { prop: { enabled: true, hello: 'world' }}
+ * Output: { prop: { hello: 'world' } }
+ *
+ * Input:  { prop: { enabled: true }}
+ * Output: { prop: true }
+ *
+ * Input:  { prop: { enabled: false, hello: 'world' }}
+ * Output: { prop: false }
+ *
+ * Input:  { prop: { hello: 'world' }}
+ * Output: { prop: { hello: 'world' } } // No change
+ *
+ * @param config Remote config object to be transformed
+ * @returns Transformed config object compatible with local schema
+ */
+export function translateRemoteConfigToLocal(config?: Record<string, any>) {
+  // Disabling type checking rules because remote config comes from a remote source
+  // and this function needs to handle any unexpected values
+  /* eslint-disable @typescript-eslint/no-unsafe-member-access,
+     @typescript-eslint/no-unsafe-assignment,
+     @typescript-eslint/no-unsafe-argument
+ */
+  if (typeof config !== 'object' || config === null) {
+    return;
   }
 
-  async initialize() {
-    this.remoteConfigFetch = await createRemoteConfigFetch<BrowserRemoteConfig>({
-      localConfig: this.config,
-      configKeys: ['analyticsSDK'],
-    });
+  // translations are not applied on array properties
+  if (Array.isArray(config)) {
+    return;
   }
 
-  async generateJoinedConfig(): Promise<IBrowserConfig> {
+  const propertyNames = Object.keys(config);
+  for (const propertyName of propertyNames) {
     try {
-      const remoteConfig =
-        this.remoteConfigFetch &&
-        (await this.remoteConfigFetch.getRemoteConfig('analyticsSDK', 'browserSDK', this.config.sessionId));
-      this.config.loggerProvider.debug('Remote configuration:', JSON.stringify(remoteConfig, null, 2));
-
-      // merge remoteConfig.autocapture and this.config.autocapture
-      // if a field is in remoteConfig.autocapture, use that value
-      // if a field is not in remoteConfig.autocapture, use the value from this.config.autocapture
-      if (remoteConfig && 'autocapture' in remoteConfig) {
-        if (typeof remoteConfig.autocapture === 'boolean') {
-          this.config.autocapture = remoteConfig.autocapture;
+      const value = config[propertyName];
+      // transform objects with { enabled } property to boolean | object
+      if (typeof value?.enabled === 'boolean') {
+        if (value.enabled) {
+          // if enabled is true, set the value to the rest of the object
+          // or true if the object has no other properties
+          delete value.enabled;
+          if (Object.keys(value).length === 0) {
+            (config as any)[propertyName] = true;
+          }
+        } else {
+          // If enabled is false, set the value to false
+          (config as any)[propertyName] = false;
         }
-
-        if (typeof remoteConfig.autocapture === 'object') {
-          const transformedAutocaptureRemoteConfig = { ...remoteConfig.autocapture };
-
-          if (this.config.autocapture === undefined) {
-            this.config.autocapture = remoteConfig.autocapture;
-          }
-
-          // Handle Element Interactions config initialization
-          if (
-            typeof remoteConfig.autocapture.elementInteractions === 'object' &&
-            remoteConfig.autocapture.elementInteractions.pageUrlAllowlistRegex?.length
-          ) {
-            transformedAutocaptureRemoteConfig.elementInteractions = {
-              ...remoteConfig.autocapture.elementInteractions,
-            };
-            const transformedRcElementInteractions = transformedAutocaptureRemoteConfig.elementInteractions;
-
-            const exactAllowList = transformedRcElementInteractions.pageUrlAllowlist ?? [];
-            // Convert string patterns to RegExp objects, warn on invalid patterns and skip them
-            const regexList = [];
-            for (const pattern of remoteConfig.autocapture.elementInteractions.pageUrlAllowlistRegex) {
-              try {
-                regexList.push(new RegExp(pattern));
-              } catch (regexError) {
-                this.config.loggerProvider.warn(`Invalid regex pattern: ${pattern}`, regexError);
-              }
-            }
-
-            const combinedPageUrlAllowlist = exactAllowList.concat(regexList);
-
-            transformedRcElementInteractions.pageUrlAllowlist = combinedPageUrlAllowlist;
-            delete transformedRcElementInteractions.pageUrlAllowlistRegex;
-          }
-
-          if (typeof this.config.autocapture === 'boolean') {
-            this.config.autocapture = {
-              attribution: this.config.autocapture,
-              fileDownloads: this.config.autocapture,
-              formInteractions: this.config.autocapture,
-              pageViews: this.config.autocapture,
-              sessions: this.config.autocapture,
-              elementInteractions: this.config.autocapture,
-              ...transformedAutocaptureRemoteConfig,
-            };
-          }
-
-          if (typeof this.config.autocapture === 'object') {
-            this.config.autocapture = {
-              ...this.config.autocapture,
-              ...transformedAutocaptureRemoteConfig,
-            };
-          }
-        }
-
-        // Override default tracking options if autocapture is updated by remote config
-        this.config.defaultTracking = this.config.autocapture;
       }
 
-      this.config.loggerProvider.debug('Joined configuration: ', JSON.stringify(this.config, null, 2));
-      this.config.requestMetadata ??= new RequestMetadata();
-      if (this.remoteConfigFetch?.metrics.fetchTimeAPISuccess) {
-        this.config.requestMetadata.recordHistogram(
-          'remote_config_fetch_time_API_success',
-          this.remoteConfigFetch.metrics.fetchTimeAPISuccess,
-        );
-      }
-      if (this.remoteConfigFetch?.metrics.fetchTimeAPIFail) {
-        this.config.requestMetadata.recordHistogram(
-          'remote_config_fetch_time_API_fail',
-          this.remoteConfigFetch.metrics.fetchTimeAPIFail,
-        );
-      }
+      // recursively translate properties of the value
+      translateRemoteConfigToLocal(value as Record<string, any>);
     } catch (e) {
-      this.config.loggerProvider.error('Failed to fetch remote configuration because of error: ', e);
+      // a failure here means that an accessor threw an error
+      // so don't translate it
+      // TODO(diagnostics): add a diagnostic event for this
     }
-
-    return this.config;
   }
 }
 
-export const createBrowserJoinedConfigGenerator = async (localConfig: IBrowserConfig) => {
-  const joinedConfigGenerator = new BrowserJoinedConfigGenerator(localConfig);
-  await joinedConfigGenerator.initialize();
-  return joinedConfigGenerator;
-};
+/**
+ * Updates the browser config in place by applying remote configuration settings.
+ * Primarily merges autocapture settings from the remote config into the browser config.
+ *
+ * @param remoteConfig - The remote configuration to apply, or null if none available
+ * @param browserConfig - The browser config object to update (modified in place)
+ */
+export function updateBrowserConfigWithRemoteConfig(
+  remoteConfig: RemoteConfig | null,
+  browserConfig: BrowserConfig,
+): void {
+  if (!remoteConfig) {
+    return;
+  }
+
+  // translate remote config to local compatible format
+  translateRemoteConfigToLocal(remoteConfig);
+
+  try {
+    browserConfig.loggerProvider.debug(
+      'Update browser config with remote configuration:',
+      JSON.stringify(remoteConfig),
+    );
+
+    // type cast error will be thrown if remoteConfig is not a valid RemoteConfigBrowserSDK
+    // and it will be caught by the try-catch block
+    const typedRemoteConfig = remoteConfig as RemoteConfigBrowserSDK;
+
+    // merge remoteConfig.autocapture and browserConfig.autocapture
+    // if a field is in remoteConfig.autocapture, use that value
+    // if a field is not in remoteConfig.autocapture, use the value from browserConfig.autocapture
+    if (typedRemoteConfig && 'autocapture' in typedRemoteConfig) {
+      if (typeof typedRemoteConfig.autocapture === 'boolean') {
+        browserConfig.autocapture = typedRemoteConfig.autocapture;
+      }
+
+      if (typeof typedRemoteConfig.autocapture === 'object' && typedRemoteConfig.autocapture !== null) {
+        const transformedAutocaptureRemoteConfig = { ...typedRemoteConfig.autocapture };
+
+        if (browserConfig.autocapture === undefined) {
+          browserConfig.autocapture = typedRemoteConfig.autocapture;
+        }
+
+        // Handle Element Interactions config initialization
+        if (
+          typeof typedRemoteConfig.autocapture.elementInteractions === 'object' &&
+          typedRemoteConfig.autocapture.elementInteractions !== null &&
+          typedRemoteConfig.autocapture.elementInteractions.pageUrlAllowlistRegex?.length
+        ) {
+          transformedAutocaptureRemoteConfig.elementInteractions = {
+            ...typedRemoteConfig.autocapture.elementInteractions,
+          };
+          const transformedRcElementInteractions = transformedAutocaptureRemoteConfig.elementInteractions;
+
+          const exactAllowList = transformedRcElementInteractions.pageUrlAllowlist ?? [];
+          // Convert string patterns to RegExp objects, warn on invalid patterns and skip them
+          const regexList = [];
+          for (const pattern of typedRemoteConfig.autocapture.elementInteractions.pageUrlAllowlistRegex) {
+            try {
+              regexList.push(new RegExp(pattern));
+            } catch (regexError) {
+              browserConfig.loggerProvider.warn(`Invalid regex pattern: ${pattern}`, regexError);
+            }
+          }
+
+          const combinedPageUrlAllowlist = exactAllowList.concat(regexList);
+
+          transformedRcElementInteractions.pageUrlAllowlist = combinedPageUrlAllowlist;
+          delete transformedRcElementInteractions.pageUrlAllowlistRegex;
+        }
+
+        if (typeof browserConfig.autocapture === 'boolean') {
+          browserConfig.autocapture = {
+            attribution: browserConfig.autocapture,
+            fileDownloads: browserConfig.autocapture,
+            formInteractions: browserConfig.autocapture,
+            pageViews: browserConfig.autocapture,
+            sessions: browserConfig.autocapture,
+            elementInteractions: browserConfig.autocapture,
+            webVitals: browserConfig.autocapture,
+            frustrationInteractions: browserConfig.autocapture,
+            ...transformedAutocaptureRemoteConfig,
+          };
+        }
+
+        if (typeof browserConfig.autocapture === 'object') {
+          browserConfig.autocapture = {
+            ...browserConfig.autocapture,
+            ...transformedAutocaptureRemoteConfig,
+          };
+        }
+      }
+
+      // Override default tracking options if autocapture is updated by remote config
+      browserConfig.defaultTracking = browserConfig.autocapture;
+    }
+
+    browserConfig.loggerProvider.debug('Browser config after remote config update:', JSON.stringify(browserConfig));
+  } catch (e) {
+    browserConfig.loggerProvider.error('Failed to apply remote configuration because of error: ', e);
+  }
+}

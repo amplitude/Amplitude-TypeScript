@@ -3,6 +3,7 @@ import { defineConfig } from 'vite';
 import path from 'path';
 import fs from 'fs';
 import glob from 'fast-glob';
+import { createMockApi } from './test-server/mock-api.js';
 
 const packagesDir = path.resolve(__dirname, 'packages');
 const testServerDir = path.resolve(__dirname, 'test-server');
@@ -95,8 +96,13 @@ export default defineConfig({
       ignored: ['**/node_modules/**', '**/dist/**'],
     },
   },
+  preview: {
+    port: 5173,
+    host: true,
+  },
   plugins: [
     htmlEntriesPlugin('**/*.html', { cwd: path.resolve(__dirname, 'test-server') }),
-    fileListingPlugin()
+    fileListingPlugin(),
+    createMockApi()
   ],
 });

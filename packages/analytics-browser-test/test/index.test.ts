@@ -198,7 +198,7 @@ describe('integration', () => {
                 initial_msclkid: 'EMPTY',
                 initial_referrer: 'EMPTY',
                 initial_referring_domain: 'EMPTY',
-                initial_rtd_cid: 'EMPTY',
+                initial_rdt_cid: 'EMPTY',
                 initial_ttclid: 'EMPTY',
                 initial_twclid: 'EMPTY',
                 initial_utm_campaign: 'EMPTY',
@@ -219,7 +219,7 @@ describe('integration', () => {
                 msclkid: '-',
                 referrer: '-',
                 referring_domain: '-',
-                rtd_cid: '-',
+                rdt_cid: '-',
                 ttclid: '-',
                 twclid: '-',
                 utm_campaign: '-',
@@ -954,7 +954,7 @@ describe('integration', () => {
                     initial_msclkid: 'EMPTY',
                     initial_referrer: 'EMPTY',
                     initial_referring_domain: 'EMPTY',
-                    initial_rtd_cid: 'EMPTY',
+                    initial_rdt_cid: 'EMPTY',
                     initial_ttclid: 'EMPTY',
                     initial_twclid: 'EMPTY',
                     initial_utm_campaign: 'EMPTY',
@@ -975,7 +975,7 @@ describe('integration', () => {
                     msclkid: '-',
                     referrer: '-',
                     referring_domain: '-',
-                    rtd_cid: '-',
+                    rdt_cid: '-',
                     ttclid: '-',
                     twclid: '-',
                     utm_campaign: '-',
@@ -1162,7 +1162,7 @@ describe('integration', () => {
                     initial_msclkid: 'EMPTY',
                     initial_referrer: 'EMPTY',
                     initial_referring_domain: 'EMPTY',
-                    initial_rtd_cid: 'EMPTY',
+                    initial_rdt_cid: 'EMPTY',
                     initial_ttclid: 'EMPTY',
                     initial_twclid: 'EMPTY',
                     initial_utm_campaign: 'EMPTY',
@@ -1183,7 +1183,7 @@ describe('integration', () => {
                     msclkid: '-',
                     referrer: '-',
                     referring_domain: '-',
-                    rtd_cid: '-',
+                    rdt_cid: '-',
                     ttclid: '-',
                     twclid: '-',
                     utm_campaign: '-',
@@ -1542,7 +1542,7 @@ describe('integration', () => {
                     initial_msclkid: 'EMPTY',
                     initial_referrer: 'EMPTY',
                     initial_referring_domain: 'EMPTY',
-                    initial_rtd_cid: 'EMPTY',
+                    initial_rdt_cid: 'EMPTY',
                     initial_ttclid: 'EMPTY',
                     initial_twclid: 'EMPTY',
                     initial_utm_campaign: 'EMPTY',
@@ -1563,7 +1563,7 @@ describe('integration', () => {
                     msclkid: '-',
                     referrer: '-',
                     referring_domain: '-',
-                    rtd_cid: '-',
+                    rdt_cid: '-',
                     ttclid: '-',
                     twclid: '-',
                     utm_campaign: '-',
@@ -1950,9 +1950,9 @@ describe('integration', () => {
         expect(response.message).toBe(SUCCESS_MESSAGE);
         scope.done();
 
-        expect(logger.debug).toHaveBeenCalledTimes(4);
+        expect(logger.debug).toHaveBeenCalledTimes(12);
         /* eslint-disable */
-        const debugContext = JSON.parse(logger.debug.mock.calls[3]);
+        const debugContext = JSON.parse(logger.debug.mock.calls[11]);
         expect(debugContext.type).toBeDefined();
         expect(debugContext.name).toEqual('track');
         expect(debugContext.args).toBeDefined();
@@ -1978,9 +1978,9 @@ describe('integration', () => {
         }).promise;
         client.setOptOut(true);
 
-        expect(logger.debug).toHaveBeenCalledTimes(4);
+        expect(logger.debug).toHaveBeenCalledTimes(6);
         /* eslint-disable */
-        const debugContext = JSON.parse(logger.debug.mock.calls[3]);
+        const debugContext = JSON.parse(logger.debug.mock.calls[5]);
         expect(debugContext.type).toBeDefined();
         expect(debugContext.name).toEqual('setOptOut');
         expect(debugContext.args).toBeDefined();

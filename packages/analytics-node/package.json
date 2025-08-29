@@ -1,6 +1,6 @@
 {
   "name": "@amplitude/analytics-node",
-  "version": "2.0.0-beta.0",
+  "version": "1.5.7",
   "description": "Official Amplitude SDK for NodeJS",
   "author": "Amplitude Inc",
   "homepage": "https://github.com/amplitude/Amplitude-TypeScript",
@@ -9,9 +9,9 @@
   "module": "lib/esm/index.js",
   "types": "lib/esm/index.d.ts",
   "sideEffects": false,
-  "private": true,
   "publishConfig": {
-    "tag": "beta"
+    "access": "public",
+    "tag": "latest"
   },
   "repository": {
     "type": "git",
@@ -21,7 +21,6 @@
     "build": "yarn build:es5 & yarn build:esm",
     "build:es5": "tsc -p ./tsconfig.es5.json",
     "build:esm": "tsc -p ./tsconfig.esm.json",
-    "watch": "tsc -p ./tsconfig.esm.json --watch",
     "clean": "rimraf node_modules lib coverage",
     "fix": "yarn fix:eslint & yarn fix:prettier",
     "fix:eslint": "eslint '{src,test}/**/*.ts' --fix",
@@ -38,8 +37,7 @@
     "url": "https://github.com/amplitude/Amplitude-TypeScript/issues"
   },
   "dependencies": {
-    "@amplitude/analytics-core": "^2.10.1",
-    "@amplitude/analytics-types": "^2.0.0",
+    "@amplitude/analytics-core": "^2.22.1",
     "tslib": "^2.4.1"
   },
   "files": [

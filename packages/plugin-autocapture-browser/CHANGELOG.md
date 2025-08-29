@@ -3,6 +3,150 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.11.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.11.0...@amplitude/plugin-autocapture-browser@1.11.1) (2025-08-28)
+
+**Note:** Version bump only for package @amplitude/plugin-autocapture-browser
+
+
+
+
+
+# [1.11.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.10.2...@amplitude/plugin-autocapture-browser@1.11.0) (2025-08-26)
+
+
+### Features
+
+* **autocapture:** add maskTextRegex option to autocapture ([#1259](https://github.com/amplitude/Amplitude-TypeScript/issues/1259)) ([2f1cf07](https://github.com/amplitude/Amplitude-TypeScript/commit/2f1cf075b3e0728f4124bb5c30c8a7e7c21d5a12))
+
+
+
+
+
+## [1.10.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.10.1...@amplitude/plugin-autocapture-browser@1.10.2) (2025-08-25)
+
+
+### Bug Fixes
+
+* **plugin-autocapture-browser:** make rage click less noisy ([#1265](https://github.com/amplitude/Amplitude-TypeScript/issues/1265)) ([a31acd3](https://github.com/amplitude/Amplitude-TypeScript/commit/a31acd34f2389d12427daba776ce22a262db7874))
+
+
+
+
+
+## [1.10.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.10.0...@amplitude/plugin-autocapture-browser@1.10.1) (2025-08-22)
+
+**Note:** Version bump only for package @amplitude/plugin-autocapture-browser
+
+
+
+
+
+# [1.10.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.9.0...@amplitude/plugin-autocapture-browser@1.10.0) (2025-08-21)
+
+
+### Features
+
+* **autocapture:** add filtering for email in isNonSensitiveString ([#1257](https://github.com/amplitude/Amplitude-TypeScript/issues/1257)) ([9cdd425](https://github.com/amplitude/Amplitude-TypeScript/commit/9cdd425f039d94bb0db6f9f82cbcaa97eeb8e39d))
+
+
+
+
+
+# [1.9.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.8.3...@amplitude/plugin-autocapture-browser@1.9.0) (2025-08-13)
+
+
+### Features
+
+* **autocapture:** pass autocapture version to Visual Labeling ([#1247](https://github.com/amplitude/Amplitude-TypeScript/issues/1247)) ([f13f795](https://github.com/amplitude/Amplitude-TypeScript/commit/f13f795ba0795278d88d795a395dd9e05d9512ba))
+
+
+
+
+
+## [1.8.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.8.2...@amplitude/plugin-autocapture-browser@1.8.3) (2025-08-08)
+
+**Note:** Version bump only for package @amplitude/plugin-autocapture-browser
+
+
+
+
+
+## [1.8.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.8.1...@amplitude/plugin-autocapture-browser@1.8.2) (2025-08-05)
+
+**Note:** Version bump only for package @amplitude/plugin-autocapture-browser
+
+
+
+
+
+## [1.8.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.8.0...@amplitude/plugin-autocapture-browser@1.8.1) (2025-07-30)
+
+
+### Bug Fixes
+
+* **analytics-browser:** use pointerdown instead of click for rage clicks ([#1210](https://github.com/amplitude/Amplitude-TypeScript/issues/1210)) ([321bb0f](https://github.com/amplitude/Amplitude-TypeScript/commit/321bb0fe345b0da2e5d0101b6de5c1e5209df6c1))
+
+
+
+
+
+# [1.8.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.7.1...@amplitude/plugin-autocapture-browser@1.8.0) (2025-07-29)
+
+
+### Features
+
+* **autocapture:** fetch page actions from remote config ([#1168](https://github.com/amplitude/Amplitude-TypeScript/issues/1168)) ([da213cc](https://github.com/amplitude/Amplitude-TypeScript/commit/da213cc33c4986bcebff2b4264b2c17314f5f310))
+
+
+
+
+
+## [1.7.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.7.0...@amplitude/plugin-autocapture-browser@1.7.1) (2025-07-17)
+
+**Note:** Version bump only for package @amplitude/plugin-autocapture-browser
+
+
+
+
+
+# [1.7.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.6.1...@amplitude/plugin-autocapture-browser@1.7.0) (2025-07-15)
+
+
+### Features
+
+* **analytics-browser:** add experimental frustrationInteractions ([#1209](https://github.com/amplitude/Amplitude-TypeScript/issues/1209)) ([e321744](https://github.com/amplitude/Amplitude-TypeScript/commit/e3217444c58be15e779ff1fd54a55027c93f5db0))
+
+
+
+
+
+## [1.6.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.6.0...@amplitude/plugin-autocapture-browser@1.6.1) (2025-07-11)
+
+
+### Bug Fixes
+
+* use sliding window to capture rage clicks ([#1202](https://github.com/amplitude/Amplitude-TypeScript/issues/1202)) ([b80f09e](https://github.com/amplitude/Amplitude-TypeScript/commit/b80f09e5ed9a92a7f7d26bd6761c0cd11f306ec3))
+
+
+
+
+
+# [1.6.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.5.0...@amplitude/plugin-autocapture-browser@1.6.0) (2025-07-08)
+
+
+### Bug Fixes
+
+* **plugin-autocapture-browser:** remove cursor pointer ([#1187](https://github.com/amplitude/Amplitude-TypeScript/issues/1187)) ([6894b93](https://github.com/amplitude/Amplitude-TypeScript/commit/6894b93b713c6a2dbdb453155e6261ff7e8ddeb4))
+
+
+### Features
+
+* **analytics-browser:** change definition of rage click ([#1183](https://github.com/amplitude/Amplitude-TypeScript/issues/1183)) ([108f930](https://github.com/amplitude/Amplitude-TypeScript/commit/108f930114629fdb3d600532a2c6b8b4f6cafd01))
+
+
+
+
+
 # [1.5.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.4.0...@amplitude/plugin-autocapture-browser@1.5.0) (2025-06-30)
 
 

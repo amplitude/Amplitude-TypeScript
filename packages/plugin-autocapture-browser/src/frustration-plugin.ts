@@ -10,21 +10,16 @@ import {
 } from '@amplitude/analytics-core';
 import * as constants from './constants';
 import { fromEvent, map, Observable, Subscription, share } from 'rxjs';
-import {
-  addAdditionalEventProperties,
-  createShouldTrackEvent,
-  ElementBasedTimestampedEvent,
-  getEventProperties,
-  NavigateEvent,
-} from './helpers';
+import { createShouldTrackEvent, ElementBasedTimestampedEvent, NavigateEvent } from './helpers';
 import { trackDeadClick } from './autocapture/track-dead-click';
 import { trackRageClicks } from './autocapture/track-rage-click';
 import { AllWindowObservables, ObservablesEnum } from './autocapture-plugin';
 import { createClickObservable, createMutationObservable } from './observables';
+import { DataExtractor } from './data-extractor';
 
 type BrowserEnrichmentPlugin = EnrichmentPlugin<BrowserClient, BrowserConfig>;
 
-export const frustrationPlugin = (options: FrustrationInteractionsOptions): BrowserEnrichmentPlugin => {
+export const frustrationPlugin = (options: FrustrationInteractionsOptions = {}): BrowserEnrichmentPlugin => {
   const name = constants.FRUSTRATION_PLUGIN_NAME;
   const type = 'enrichment';
 
@@ -35,15 +30,17 @@ export const frustrationPlugin = (options: FrustrationInteractionsOptions): Brow
 
   const dataAttributePrefix = options.dataAttributePrefix ?? DEFAULT_DATA_ATTRIBUTE_PREFIX;
 
+  const dataExtractor = new DataExtractor(options);
+
   // combine the two selector lists to determine which clicked elements should be filtered
   const combinedCssSelectors = [...new Set([...rageCssSelectors, ...deadCssSelectors])];
 
   // Create observables on events on the window
   const createObservables = (): AllWindowObservables => {
     // Create Observables from direct user events
-    const clickObservable = createClickObservable().pipe(
+    const clickObservable = createClickObservable('pointerdown').pipe(
       map((click) => {
-        return addAdditionalEventProperties(
+        return dataExtractor.addAdditionalEventProperties(
           click,
           'click',
           combinedCssSelectors,
@@ -60,7 +57,7 @@ export const frustrationPlugin = (options: FrustrationInteractionsOptions): Brow
     if (window.navigation) {
       navigateObservable = fromEvent<NavigateEvent>(window.navigation, 'navigate').pipe(
         map((navigate) =>
-          addAdditionalEventProperties(navigate, 'navigate', combinedCssSelectors, dataAttributePrefix),
+          dataExtractor.addAdditionalEventProperties(navigate, 'navigate', combinedCssSelectors, dataAttributePrefix),
         ),
         share(),
       );
@@ -68,7 +65,9 @@ export const frustrationPlugin = (options: FrustrationInteractionsOptions): Brow
 
     // Track DOM Mutations
     const enrichedMutationObservable = createMutationObservable().pipe(
-      map((mutation) => addAdditionalEventProperties(mutation, 'mutation', combinedCssSelectors, dataAttributePrefix)),
+      map((mutation) =>
+        dataExtractor.addAdditionalEventProperties(mutation, 'mutation', combinedCssSelectors, dataAttributePrefix),
+      ),
       share(),
     );
 
@@ -104,7 +103,8 @@ export const frustrationPlugin = (options: FrustrationInteractionsOptions): Brow
     const deadClickSubscription = trackDeadClick({
       amplitude,
       allObservables,
-      getEventProperties: (actionType, element) => getEventProperties(actionType, element, dataAttributePrefix),
+      getEventProperties: (actionType, element) =>
+        dataExtractor.getEventProperties(actionType, element, dataAttributePrefix),
       shouldTrackDeadClick,
     });
     subscriptions.push(deadClickSubscription);

@@ -74,6 +74,7 @@ describe('context', () => {
           platform: false,
           appSetId: false,
           idfv: false,
+          country: false,
         },
         userId: 'user@amplitude.com',
       });
@@ -97,6 +98,7 @@ describe('context', () => {
       expect(firstContextEvent.adid).toBeUndefined();
       expect(firstContextEvent.android_app_set_id).toBeUndefined();
       expect(firstContextEvent.idfv).toBeUndefined();
+      expect(firstContextEvent.country).toBeUndefined();
       expect(firstContextEvent.device_id).toEqual('deviceId');
       expect(firstContextEvent.session_id).toEqual(1);
       expect(firstContextEvent.user_id).toEqual('user@amplitude.com');
@@ -129,6 +131,23 @@ describe('context', () => {
       const secondContextEvent = await context.execute(event);
       expect(secondContextEvent.insert_id).toBeDefined();
       expect(secondContextEvent.insert_id).not.toEqual(firstContextEvent.insert_id);
+    });
+
+    test('should contain app version from native module', async () => {
+      const context = new Context();
+      const config = useDefaultConfig({
+        deviceId: 'deviceId',
+        sessionId: 1,
+        userId: 'user@amplitude.com',
+      });
+      await context.setup(config);
+
+      const event = {
+        event_type: 'event_type',
+      };
+      const firstContextEvent = await context.execute(event);
+
+      expect(firstContextEvent.app_version).toEqual(isWeb() ? undefined : '1.0.0');
     });
 
     describe('ingestionMetadata config', () => {

@@ -37,6 +37,13 @@ describe('frustrationPlugin', () => {
 
   beforeEach(() => {
     instance = createMockBrowserClient();
+
+    // mock window.PointerEvent because it's not available in jsdom
+    function MockPointerEvent(type: string, init: PointerEventInit) {
+      return new Event(type, init);
+    }
+    (global.window as any).PointerEvent = MockPointerEvent;
+    (global.window as any).PointerEvent.prototype = Event.prototype;
     jest.clearAllMocks();
   });
 
@@ -105,6 +112,12 @@ describe('frustrationPlugin', () => {
   });
 
   describe('plugin lifecycle', () => {
+    it('should initialize with default options', () => {
+      plugin = frustrationPlugin();
+      expect(plugin.name).toBe('@amplitude/plugin-frustration-browser');
+      expect(plugin.type).toBe('enrichment');
+    });
+
     it('should initialize with correct name and type', () => {
       plugin = frustrationPlugin({});
       expect(plugin.name).toBe('@amplitude/plugin-frustration-browser');
@@ -236,12 +249,12 @@ describe('frustrationPlugin', () => {
       testElement.setAttribute('data-amplitude-click', 'test-click');
       document.body.appendChild(testElement);
 
-      const mockClickEvent = new MouseEvent('click', {
+      const mockPointerDownEvent = new PointerEvent('pointerdown', {
         bubbles: true,
         cancelable: true,
         view: window,
       });
-      testElement.dispatchEvent(mockClickEvent);
+      testElement.dispatchEvent(mockPointerDownEvent);
 
       // Verify click was captured
       expect(clickSpy).toHaveBeenCalled();

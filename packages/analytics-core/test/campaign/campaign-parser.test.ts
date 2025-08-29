@@ -1,6 +1,10 @@
-import { BASE_CAMPAIGN } from '../../src/attribution/constants';
-import { CampaignParser } from '../../src/attribution/campaign-parser';
-import * as queryParams from '@amplitude/analytics-core';
+/**
+ * @jest-environment jsdom
+ */
+
+import { BASE_CAMPAIGN } from '../../src/types/constants';
+import { CampaignParser } from '../../src/campaign/campaign-parser';
+import * as queryParams from '../../src/query-params';
 
 beforeAll(() => {
   Object.defineProperty(window, 'location', {

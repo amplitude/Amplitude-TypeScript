@@ -1,7 +1,2 @@
-<!--
-  Remove namespace here as it's supported in build.gradle
-  from AGP 7.3 and is required starting from AGP 8.x.
- -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-  <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 </manifest>

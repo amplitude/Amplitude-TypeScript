@@ -1,5 +1,5 @@
 import { MemoryStorage } from '@amplitude/analytics-core';
-import { ReactNativeConfig as IReactNativeConfig, ReactNativeOptions, UserSession } from '@amplitude/analytics-types';
+import { ReactNativeConfig as IReactNativeConfig, ReactNativeOptions, UserSession } from '@amplitude/analytics-core';
 
 import { ReactNativeConfig } from '../../src/config';
 
@@ -40,6 +40,7 @@ export const DEFAULT_OPTIONS: Partial<IReactNativeConfig> = {
     platform: true,
     appSetId: true,
     idfv: true,
+    country: true,
   },
   transportProvider: {
     send: () => Promise.resolve(null),

@@ -1,24 +1,40 @@
-import { Trigger } from '@amplitude/analytics-core/lib/esm/types/element-interactions';
+import type { Trigger } from '@amplitude/analytics-core/lib/esm/types/element-interactions';
 // Return which labeled events, if any, the element matches
-import type { LabeledEvent } from '@amplitude/analytics-core/lib/esm/types/element-interactions';
-import { ElementBasedTimestampedEvent, ElementBasedEvent } from 'src/helpers';
+import type {
+  ElementInteractionsOptions,
+  LabeledEvent,
+} from '@amplitude/analytics-core/lib/esm/types/element-interactions';
+import type { ElementBasedTimestampedEvent, ElementBasedEvent } from 'src/helpers';
 import { matchEventToFilter } from './matchEventToFilter';
+import { executeActions } from './actions';
+import type { DataExtractor } from '../data-extractor';
 
+const eventTypeToBrowserEventMap = {
+  '[Amplitude] Element Clicked': 'click',
+  '[Amplitude] Element Changed': 'change',
+} as const;
 // groups labeled events by event type
 // skips any labeled events with malformed definitions or unexpected event_type
-export const groupLabeledEventIdsByEventType = (labeledEvents?: LabeledEvent[] | null) => {
-  const groupedLabeledEvents = {
-    click: new Set<string>(),
-    change: new Set<string>(),
-  };
+export const groupLabeledEventIdsByEventType = (labeledEvents: LabeledEvent[] | null | undefined) => {
+  // Initialize all event types with empty sets
+  const groupedLabeledEvents = Object.values(eventTypeToBrowserEventMap).reduce((acc, browserEvent) => {
+    acc[browserEvent] = new Set<string>();
+    return acc;
+  }, {} as Record<string, Set<string>>);
+
+  // If there are no labeled events, return the initialized groupedLabeledEvents
   if (!labeledEvents) {
     return groupedLabeledEvents;
   }
 
+  // Group labeled events by event type
   for (const le of labeledEvents) {
     try {
       for (const def of le.definition) {
-        groupedLabeledEvents[def.event_type]?.add(le.id);
+        const browserEvent = eventTypeToBrowserEventMap[def.event_type];
+        if (browserEvent) {
+          groupedLabeledEvents[browserEvent].add(le.id);
+        }
       }
     } catch (e) {
       // Skip this labeled event if there is an error
@@ -64,7 +80,10 @@ export const matchEventToLabeledEvents = (
 ) => {
   return labeledEvents.filter((le) => {
     return le.definition.some((def) => {
-      return def.event_type === event.type && def.filters.every((filter) => matchEventToFilter(event, filter));
+      return (
+        eventTypeToBrowserEventMap[def.event_type] === event.type &&
+        def.filters.every((filter) => matchEventToFilter(event, filter))
+      );
     });
   });
 };
@@ -74,8 +93,59 @@ export const matchLabeledEventsToTriggers = (labeledEvents: LabeledEvent[], leTo
   for (const le of labeledEvents) {
     const triggers = leToTriggerMap.get(le.id);
     if (triggers) {
-      triggers.forEach((trigger) => matchingTriggers.add(trigger));
+      for (const trigger of triggers) {
+        matchingTriggers.add(trigger);
+      }
     }
   }
   return Array.from(matchingTriggers);
+};
+
+export class TriggerEvaluator {
+  constructor(
+    private groupedLabeledEvents: ReturnType<typeof groupLabeledEventIdsByEventType>,
+    private labeledEventToTriggerMap: ReturnType<typeof createLabeledEventToTriggerMap>,
+    private dataExtractor: DataExtractor,
+    private options: ElementInteractionsOptions,
+  ) {}
+
+  evaluate(event: ElementBasedTimestampedEvent<ElementBasedEvent>) {
+    // If there is no pageActions, return the event as is
+    const { pageActions } = this.options;
+    if (!pageActions) {
+      return event;
+    }
+
+    // Find matching labeled events
+    const matchingLabeledEvents = matchEventToLabeledEvents(
+      event,
+      Array.from(this.groupedLabeledEvents[event.type]).map((id) => pageActions.labeledEvents[id]),
+    );
+    // Find matching conditions
+    const matchingTriggers = matchLabeledEventsToTriggers(matchingLabeledEvents, this.labeledEventToTriggerMap);
+    for (const trigger of matchingTriggers) {
+      executeActions(trigger.actions, event, this.dataExtractor);
+    }
+
+    return event;
+  }
+
+  update(
+    groupedLabeledEvents: ReturnType<typeof groupLabeledEventIdsByEventType>,
+    labeledEventToTriggerMap: ReturnType<typeof createLabeledEventToTriggerMap>,
+    options: ElementInteractionsOptions,
+  ) {
+    this.groupedLabeledEvents = groupedLabeledEvents;
+    this.labeledEventToTriggerMap = labeledEventToTriggerMap;
+    this.options = options;
+  }
+}
+
+export const createTriggerEvaluator = (
+  groupedLabeledEvents: ReturnType<typeof groupLabeledEventIdsByEventType>,
+  labeledEventToTriggerMap: ReturnType<typeof createLabeledEventToTriggerMap>,
+  dataExtractor: DataExtractor,
+  options: ElementInteractionsOptions,
+) => {
+  return new TriggerEvaluator(groupedLabeledEvents, labeledEventToTriggerMap, dataExtractor, options);
 };

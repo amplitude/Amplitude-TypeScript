@@ -8,6 +8,7 @@ export const DEFAULT_SESSION_END_EVENT = 'session_end';
 export const DEFAULT_SAMPLE_RATE = 0;
 export const DEFAULT_SERVER_ZONE = ServerZone.US;
 export const DEFAULT_PERFORMANCE_CONFIG = { enabled: true };
+export const DEFAULT_URL_CHANGE_POLLING_INTERVAL = 1000;
 
 export const SESSION_REPLAY_DEBUG_PROPERTY = `${DEFAULT_EVENT_PROPERTY_PREFIX} Session Replay Debug`;
 
@@ -32,4 +33,5 @@ export enum CustomRRwebEvent {
   DEBUG_INFO = 'debug-info',
   FETCH_REQUEST = 'fetch-request',
   METADATA = 'metadata',
+  TARGETING_DECISION = 'targeting-decision',
 }

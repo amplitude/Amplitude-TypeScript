@@ -3,6 +3,168 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.22.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.22.0...@amplitude/analytics-core@2.22.1) (2025-08-28)
+
+
+### Bug Fixes
+
+* **analytics-core:** handle XHR responseType JSON ([#1276](https://github.com/amplitude/Amplitude-TypeScript/issues/1276)) ([cd35193](https://github.com/amplitude/Amplitude-TypeScript/commit/cd35193ba51cdb986b3a4b8a50989067e3f8bf5b))
+
+
+
+
+
+# [2.22.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.21.2...@amplitude/analytics-core@2.22.0) (2025-08-26)
+
+
+### Bug Fixes
+
+* **plugin-network-autocapture:** replace consumption check with cache ([#1274](https://github.com/amplitude/Amplitude-TypeScript/issues/1274)) ([9c41081](https://github.com/amplitude/Amplitude-TypeScript/commit/9c41081ce23aea51ff9c9a82f0b8b9e5e3c53061))
+
+
+### Features
+
+* **autocapture:** add maskTextRegex option to autocapture ([#1259](https://github.com/amplitude/Amplitude-TypeScript/issues/1259)) ([2f1cf07](https://github.com/amplitude/Amplitude-TypeScript/commit/2f1cf075b3e0728f4124bb5c30c8a7e7c21d5a12))
+
+
+
+
+
+## [2.21.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.21.1...@amplitude/analytics-core@2.21.2) (2025-08-25)
+
+
+### Bug Fixes
+
+* **plugin-autocapture-browser:** make rage click less noisy ([#1265](https://github.com/amplitude/Amplitude-TypeScript/issues/1265)) ([a31acd3](https://github.com/amplitude/Amplitude-TypeScript/commit/a31acd34f2389d12427daba776ce22a262db7874))
+
+
+
+
+
+## [2.21.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.21.0...@amplitude/analytics-core@2.21.1) (2025-08-22)
+
+
+### Bug Fixes
+
+* **analytics-core:** fix typo in Reddit click-id ([#1267](https://github.com/amplitude/Amplitude-TypeScript/issues/1267)) ([43e581d](https://github.com/amplitude/Amplitude-TypeScript/commit/43e581d6465546a38373f758f179eee103172755))
+
+
+
+
+
+# [2.21.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.20.2...@amplitude/analytics-core@2.21.0) (2025-08-21)
+
+
+### Features
+
+* **analytics-browser:** add urls matching attribute to network capture rules (experimental) ([#1252](https://github.com/amplitude/Amplitude-TypeScript/issues/1252)) ([c28a98c](https://github.com/amplitude/Amplitude-TypeScript/commit/c28a98c13536d3eb2472edcce6ec225539db00aa))
+* **plugin-network-capture-browser:** add ability to capture headers (experimental) ([#1253](https://github.com/amplitude/Amplitude-TypeScript/issues/1253)) ([52cfc0c](https://github.com/amplitude/Amplitude-TypeScript/commit/52cfc0c6dab309f30cfce56c091065ff95d95fc2))
+* **plugin-network-capture-browser:** add request + response body capture (experimental) ([#1256](https://github.com/amplitude/Amplitude-TypeScript/issues/1256)) ([1850c58](https://github.com/amplitude/Amplitude-TypeScript/commit/1850c58d145973b3bd104ab70368eb4e2fdbafbc))
+
+
+
+
+
+## [2.20.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.20.1...@amplitude/analytics-core@2.20.2) (2025-08-13)
+
+**Note:** Version bump only for package @amplitude/analytics-core
+
+
+
+
+
+## [2.20.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.20.0...@amplitude/analytics-core@2.20.1) (2025-08-08)
+
+
+### Bug Fixes
+
+* **analytics-core:** should abort remote config request ([#1234](https://github.com/amplitude/Amplitude-TypeScript/issues/1234)) ([394f18b](https://github.com/amplitude/Amplitude-TypeScript/commit/394f18b52c383f30fbed85cb0dcf4fa80df527b5))
+
+
+
+
+
+# [2.20.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.19.0...@amplitude/analytics-core@2.20.0) (2025-08-05)
+
+
+### Bug Fixes
+
+* **analtyics-browser): Revert "feat(analytics-browser:** add page-url-previous-page plugin" ([#1237](https://github.com/amplitude/Amplitude-TypeScript/issues/1237)) ([dfd7340](https://github.com/amplitude/Amplitude-TypeScript/commit/dfd7340f6519e647a814b3c66913b0c96b0567cf))
+* **analytics-browser:** use the new remote config client ([#1191](https://github.com/amplitude/Amplitude-TypeScript/issues/1191)) ([9af61ea](https://github.com/amplitude/Amplitude-TypeScript/commit/9af61ea1f29fa97644910f37440562e5a6d5eeba))
+* **plugin-autocapture-browser:** remove unused configurations from FrustrationInteractions ([#1229](https://github.com/amplitude/Amplitude-TypeScript/issues/1229)) ([d7af23b](https://github.com/amplitude/Amplitude-TypeScript/commit/d7af23b4b02d475475c3249d67ee6e24c49136af))
+
+
+### Features
+
+* **analytics-browser:** add page-url-previous-page plugin ([#1110](https://github.com/amplitude/Amplitude-TypeScript/issues/1110)) ([dc053ed](https://github.com/amplitude/Amplitude-TypeScript/commit/dc053ed9f0b6378fce6a49f6a6e4196f3622bd25))
+* **plugin-page-url-enrichment-browser:** AMP-130401 create Page URL Enrichment plugin for additional Page URL related properties ([#1238](https://github.com/amplitude/Amplitude-TypeScript/issues/1238)) ([4673be8](https://github.com/amplitude/Amplitude-TypeScript/commit/4673be86ab5535fdca66d1743ef4ee071d5fdef7))
+
+
+
+
+
+# [2.19.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.18.0...@amplitude/analytics-core@2.19.0) (2025-07-29)
+
+
+### Bug Fixes
+
+* **analytics-react-native:** migrate to analytics-core v2 ([#1216](https://github.com/amplitude/Amplitude-TypeScript/issues/1216)) ([76e85a1](https://github.com/amplitude/Amplitude-TypeScript/commit/76e85a1daa704a1c4c44d0176a56c8dd8d4ad3f1))
+
+
+### Features
+
+* **analytics-core:** expose unified AmplitudeContext and AnalyticsClient ([#1222](https://github.com/amplitude/Amplitude-TypeScript/issues/1222)) ([7e32712](https://github.com/amplitude/Amplitude-TypeScript/commit/7e327128b4032592897dc6bb50dedda053ad8eda))
+* **autocapture:** fetch page actions from remote config ([#1168](https://github.com/amplitude/Amplitude-TypeScript/issues/1168)) ([da213cc](https://github.com/amplitude/Amplitude-TypeScript/commit/da213cc33c4986bcebff2b4264b2c17314f5f310))
+
+
+
+
+
+# [2.18.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.17.0...@amplitude/analytics-core@2.18.0) (2025-07-17)
+
+
+### Features
+
+* **analytics-browser:** support autocapture.webVitals ([#1195](https://github.com/amplitude/Amplitude-TypeScript/issues/1195)) ([a186f52](https://github.com/amplitude/Amplitude-TypeScript/commit/a186f523a28d8a322842566b892f50bcf2643142))
+
+
+
+
+
+# [2.17.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.16.0...@amplitude/analytics-core@2.17.0) (2025-07-15)
+
+
+### Bug Fixes
+
+* **analytics-browser:** prevent infinite Amplitude network requests ([#1100](https://github.com/amplitude/Amplitude-TypeScript/issues/1100)) ([fde763c](https://github.com/amplitude/Amplitude-TypeScript/commit/fde763cd4889bda41edc55789ee18186711d825e))
+
+
+### Features
+
+* **analytics-browser:** add experimental frustrationInteractions ([#1209](https://github.com/amplitude/Amplitude-TypeScript/issues/1209)) ([e321744](https://github.com/amplitude/Amplitude-TypeScript/commit/e3217444c58be15e779ff1fd54a55027c93f5db0))
+* **analytics-node:** migrate to v2.x core  ([#1207](https://github.com/amplitude/Amplitude-TypeScript/issues/1207)) ([e1c1b28](https://github.com/amplitude/Amplitude-TypeScript/commit/e1c1b28ed2036f7ebb68173f8da2e6cbb82cb287))
+
+
+
+
+
+# [2.16.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.15.0...@amplitude/analytics-core@2.16.0) (2025-07-08)
+
+
+### Bug Fixes
+
+* **analytics-core:** more logs in timeline ([#1180](https://github.com/amplitude/Amplitude-TypeScript/issues/1180)) ([dcb6cee](https://github.com/amplitude/Amplitude-TypeScript/commit/dcb6ceee00e3587b8eaf601074940696c94a4466))
+* **analytics-core:** remote config use new schema & config group ([#1185](https://github.com/amplitude/Amplitude-TypeScript/issues/1185)) ([db54ae5](https://github.com/amplitude/Amplitude-TypeScript/commit/db54ae5ce87d5d7a4ae49c80aab5037dee3dd03c))
+
+
+### Features
+
+* **analytics-browser:** change definition of rage click ([#1183](https://github.com/amplitude/Amplitude-TypeScript/issues/1183)) ([108f930](https://github.com/amplitude/Amplitude-TypeScript/commit/108f930114629fdb3d600532a2c6b8b4f6cafd01))
+
+
+
+
+
 # [2.15.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.14.0...@amplitude/analytics-core@2.15.0) (2025-06-30)
 
 

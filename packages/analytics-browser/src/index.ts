@@ -6,6 +6,8 @@ export const {
   extendSession,
   flush,
   getDeviceId,
+  getIdentity,
+  getOptOut,
   getSessionId,
   getUserId,
   groupIdentify,

@@ -28,6 +28,7 @@ import {
   IdentityEventSender,
   CookieStorage,
   FetchTransport,
+  RemoteConfigClient,
   Identify,
   Revenue,
   getStorageKey,
@@ -36,6 +37,7 @@ import {
   DEFAULT_ACTION_CLICK_ALLOWLIST,
   DEFAULT_DEAD_CLICK_ALLOWLIST,
   DEFAULT_RAGE_CLICK_ALLOWLIST,
+  DEFAULT_RAGE_CLICK_OUT_OF_BOUNDS_THRESHOLD,
   DEFAULT_CSS_SELECTOR_ALLOWLIST,
   DEFAULT_RAGE_CLICK_THRESHOLD,
   DEFAULT_RAGE_CLICK_WINDOW_MS,
@@ -45,6 +47,11 @@ import {
   IdentifyOperation,
   SpecialEventType,
   ServerZone,
+  BASE_CAMPAIGN,
+  CampaignParser,
+  EMPTY_VALUE,
+  MKTG,
+  AmplitudeContext,
 } from '../src/index';
 
 describe('index', () => {
@@ -60,6 +67,7 @@ describe('index', () => {
     expect(typeof client.revenue).toBe('function');
     expect(typeof client.add).toBe('function');
     expect(typeof client.remove).toBe('function');
+    expect(typeof AmplitudeContext).toBe('function');
     expect(typeof Identify).toBe('function');
     expect(typeof Revenue).toBe('function');
     expect(typeof BaseTransport).toBe('function');
@@ -93,6 +101,8 @@ describe('index', () => {
     expect(() => new CookieStorage()).not.toThrow();
     expect(typeof FetchTransport).toBe('function');
     expect(() => new FetchTransport()).not.toThrow();
+    expect(typeof RemoteConfigClient).toBe('function');
+    expect(() => new RemoteConfigClient('api-key', new Logger())).not.toThrow();
     expect(OfflineDisabled).toBe(null);
     expect(typeof OfflineDisabled).toBe('object');
     expect(typeof Status).toBe('object');
@@ -105,8 +115,13 @@ describe('index', () => {
     expect(typeof IdentifyOperation).toBe('object');
     expect(typeof SpecialEventType).toBe('object');
     expect(typeof ServerZone).toBe('object');
+    expect(typeof DEFAULT_RAGE_CLICK_OUT_OF_BOUNDS_THRESHOLD).toBe('number');
     expect(DEFAULT_RAGE_CLICK_THRESHOLD).toBeGreaterThan(1);
     expect(DEFAULT_RAGE_CLICK_WINDOW_MS).toBeGreaterThan(1);
     expect(DEFAULT_DEAD_CLICK_WINDOW_MS).toBeGreaterThan(1);
+    expect(EMPTY_VALUE).toBe('EMPTY');
+    expect(typeof BASE_CAMPAIGN).toBe('object');
+    expect(typeof MKTG).toBe('string');
+    expect(typeof CampaignParser).toBe('function');
   });
 });

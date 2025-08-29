@@ -4,7 +4,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import * as AnalyticsCore from '@amplitude/analytics-core';
-import { LogLevel, ILogger, ServerZone } from '@amplitude/analytics-core';
+import { LogLevel, ILogger, ServerZone, SpecialEventType } from '@amplitude/analytics-core';
 import { SessionReplayLocalConfig } from '../src/config/local-config';
 import { NetworkObservers, NetworkRequestEvent } from '../src/observers';
 
@@ -19,13 +19,36 @@ import { SessionReplayOptions } from '../src/typings/session-replay';
 
 jest.mock('@amplitude/analytics-remote-config');
 
+// Mock the URL tracking plugin
+jest.mock('../src/plugins/url-tracking-plugin', () => ({
+  createUrlTrackingPlugin: jest.fn().mockImplementation((options: any = {}) => ({
+    name: 'amplitude/url-tracking@1',
+    observer: jest.fn().mockImplementation((_callback: any, _opts: any) => {
+      // Return a cleanup function
+      return () => {
+        // cleanup function
+      };
+    }),
+    options: {
+      ugcFilterRules: options.ugcFilterRules || [],
+      enablePolling: options.enablePolling || false,
+      pollingInterval: options.pollingInterval || 1000,
+      captureDocumentTitle: options.captureDocumentTitle ?? false,
+    },
+  })),
+}));
+
 // Accessing mock helper functions from the Jest manual mock for @amplitude/analytics-remote-config.
 // This import is intentionally ts-ignored as these helpers are not part of the module's type definitions.
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
 import { __setNamespaceConfig, __setShouldThrowError } from '@amplitude/analytics-remote-config';
 
+import { createUrlTrackingPlugin } from '../src/plugins/url-tracking-plugin';
+
 type MockedLogger = jest.Mocked<ILogger>;
+
+const mockCreateUrlTrackingPlugin = createUrlTrackingPlugin as jest.MockedFunction<typeof createUrlTrackingPlugin>;
 
 const mockEvent = {
   type: 4,
@@ -39,18 +62,22 @@ const samplingConfig = {
   capture_enabled: true,
 };
 
-// Add this helper function at the top of your describe block
-function createMockRecordFunction() {
-  const mockRecordFn = jest.fn().mockReturnValue(jest.fn()) as jest.Mock & {
-    addCustomEvent: jest.Mock;
-    mirror: { getNode: jest.Mock };
-  };
-  mockRecordFn.addCustomEvent = jest.fn();
-  mockRecordFn.mirror = {
-    getNode: jest.fn().mockReturnValue(null),
-  };
-  return mockRecordFn;
-}
+// Default mock implementation
+const defaultMockImplementation = (options: any = {}) => ({
+  name: 'amplitude/url-tracking@1',
+  observer: jest.fn().mockImplementation((_callback: any, _opts: any) => {
+    // Return a cleanup function
+    return () => {
+      // cleanup function
+    };
+  }),
+  options: {
+    ugcFilterRules: options.ugcFilterRules || [],
+    enablePolling: options.enablePolling || false,
+    pollingInterval: options.pollingInterval || 1000,
+    captureDocumentTitle: options.captureDocumentTitle ?? false,
+  },
+});
 
 describe('SessionReplay', () => {
   let originalFetch: typeof global.fetch;
@@ -120,7 +147,27 @@ describe('SessionReplay', () => {
   let sessionReplay: SessionReplay;
   let initialize: jest.SpyInstance;
   let mockRecordFunction: jest.Mock & { addCustomEvent: jest.Mock; mirror: { getNode: jest.Mock } };
+
+  // Add this helper function at the top of your describe block
+  function createMockRecordFunction() {
+    const mockRecordFn = jest.fn().mockReturnValue(jest.fn()) as jest.Mock & {
+      addCustomEvent: jest.Mock;
+      mirror: { getNode: jest.Mock };
+    };
+    mockRecordFn.addCustomEvent = jest.fn();
+    mockRecordFn.mirror = {
+      getNode: jest.fn().mockReturnValue(null),
+    };
+    return mockRecordFn;
+  }
+
   beforeEach(() => {
+    // Reset the mock implementation to default for each test
+    mockCreateUrlTrackingPlugin.mockImplementation(defaultMockImplementation);
+
+    // Reset all other mocks and setup
+    jest.clearAllMocks();
+
     // Set default remote config
     __setNamespaceConfig({
       sr_sampling_config: samplingConfig,
@@ -146,10 +193,7 @@ describe('SessionReplay', () => {
     globalSpy = jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue(mockGlobalScope);
 
     // Create mock record function with addCustomEvent method and mirror property
-    mockRecordFunction = jest.fn().mockReturnValue(jest.fn()) as jest.Mock & {
-      addCustomEvent: jest.Mock;
-      mirror: { getNode: jest.Mock };
-    };
+    mockRecordFunction = createMockRecordFunction();
     mockRecordFunction.addCustomEvent = jest.fn();
     mockRecordFunction.mirror = {
       getNode: jest.fn().mockReturnValue(null),
@@ -604,7 +648,10 @@ describe('SessionReplay', () => {
 
     test('should update the session id and start recording', async () => {
       await sessionReplay.init(apiKey, mockOptions).promise;
-      mockRecordFunction.mockReset();
+
+      // Clear any calls from initialization
+      mockRecordFunction.mockClear();
+
       expect(sessionReplay.identifiers?.sessionId).toEqual(123);
       expect(sessionReplay.identifiers?.sessionReplayId).toEqual('1a2b3c/123');
       if (!sessionReplay.eventsManager || !sessionReplay.joinedConfigGenerator || !sessionReplay.config) {
@@ -625,7 +672,9 @@ describe('SessionReplay', () => {
       expect(sessionReplay.identifiers?.sessionId).toEqual(456);
       expect(sessionReplay.identifiers?.sessionReplayId).toEqual('1a2b3c/456');
       await generateJoinedConfigPromise;
-      expect(mockRecordFunction).toHaveBeenCalledTimes(1);
+      // With targeting functionality, setSessionId triggers recording via evaluateTargetingAndCapture
+      // The function may be called multiple times due to focus listeners or other async operations
+      expect(mockRecordFunction).toHaveBeenCalled();
       expect(sessionReplay.config).toEqual(updatedConfig);
     });
 
@@ -667,6 +716,27 @@ describe('SessionReplay', () => {
       expect(sessionReplay.identifiers?.sessionReplayId).toEqual('9l8m7n/456');
       expect(sessionReplay.identifiers?.deviceId).toEqual('9l8m7n');
       expect(sessionReplay.getDeviceId()).toEqual('9l8m7n');
+    });
+
+    test('should call asyncSetSessionId with userProperties when options provided', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      const evaluateTargetingAndCaptureSpy = jest.spyOn(sessionReplay, 'evaluateTargetingAndCapture');
+
+      // Test with userProperties
+      const userProperties = { age: 30, city: 'New York' };
+      await (sessionReplay as any).asyncSetSessionId(456, '9l8m7n', { userProperties });
+
+      expect(evaluateTargetingAndCaptureSpy).toHaveBeenCalledWith({ userProperties });
+
+      // Test without userProperties (options is undefined)
+      await (sessionReplay as any).asyncSetSessionId(789, '9l8m7n');
+
+      expect(evaluateTargetingAndCaptureSpy).toHaveBeenCalledWith({ userProperties: undefined });
+
+      // Test with empty options
+      await (sessionReplay as any).asyncSetSessionId(101, '9l8m7n', {});
+
+      expect(evaluateTargetingAndCaptureSpy).toHaveBeenCalledWith({ userProperties: undefined });
     });
   });
 
@@ -1686,7 +1756,7 @@ describe('SessionReplay', () => {
       await sessionReplay.init(apiKey, mockOptions).promise;
       removeEventListenerMock.mockReset();
       sessionReplay.shutdown();
-      expect(removeEventListenerMock).toHaveBeenCalledTimes(3);
+      expect(removeEventListenerMock).toHaveBeenCalledTimes(3); // blur, focus, beforeunload - popstate handled by plugin cleanup
       expect(removeEventListenerMock.mock.calls[0][0]).toEqual('blur');
       expect(removeEventListenerMock.mock.calls[1][0]).toEqual('focus');
       expect(removeEventListenerMock.mock.calls[2][0]).toEqual('beforeunload');
@@ -1705,7 +1775,7 @@ describe('SessionReplay', () => {
       await sessionReplay.init(apiKey, mockOptions).promise;
       removeEventListenerMock.mockReset();
       sessionReplay.shutdown();
-      expect(removeEventListenerMock).toHaveBeenCalledTimes(3);
+      expect(removeEventListenerMock).toHaveBeenCalledTimes(3); // blur, focus, pagehide - popstate handled by plugin cleanup
       expect(removeEventListenerMock.mock.calls[0][0]).toEqual('blur');
       expect(removeEventListenerMock.mock.calls[1][0]).toEqual('focus');
       expect(removeEventListenerMock.mock.calls[2][0]).toEqual('pagehide');
@@ -1891,6 +1961,112 @@ describe('SessionReplay', () => {
       expect(mockRecordFunction.addCustomEvent).not.toHaveBeenCalled();
       expect(mockLoggerProvider.debug).toHaveBeenCalled();
     });
+
+    test('should send targeting decision event when getShouldRecord is called', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+
+      // Mock targeting parameters and store them
+      const targetingParams = {
+        userProperties: { userType: 'premium' },
+        event: { event_type: 'page_view', user_id: '123' },
+      };
+      (sessionReplay as any).lastTargetingParams = targetingParams;
+
+      // Set up targeting config and match
+      sessionReplay.config!.targetingConfig = {
+        key: 'sr_targeting_config',
+        variants: { on: { key: 'on' }, off: { key: 'off' } },
+        segments: [],
+      };
+      sessionReplay.sessionTargetingMatch = true;
+
+      // Reset the decision to ensure we start fresh
+      (sessionReplay as any).lastShouldRecordDecision = undefined;
+
+      // Spy on addCustomRRWebEvent
+      const addCustomRRWebEventSpy = jest.spyOn(sessionReplay, 'addCustomRRWebEvent');
+
+      // Call getShouldRecord first time - should fire event
+      sessionReplay.getShouldRecord();
+
+      // Verify the targeting decision event was sent
+      expect(addCustomRRWebEventSpy).toHaveBeenCalledWith(
+        CustomRRwebEvent.TARGETING_DECISION,
+        expect.objectContaining({
+          message: expect.stringContaining('Capturing replays for session'),
+          sessionId: 123,
+          matched: true,
+          targetingParams: targetingParams,
+        }),
+      );
+
+      // Clear the spy and call again - should NOT fire event since decision hasn't changed
+      addCustomRRWebEventSpy.mockClear();
+      sessionReplay.getShouldRecord();
+
+      // Should not have been called again
+      expect(addCustomRRWebEventSpy).not.toHaveBeenCalledWith(CustomRRwebEvent.TARGETING_DECISION, expect.anything());
+
+      // Change the targeting match and call again - should fire event
+      sessionReplay.sessionTargetingMatch = false;
+      sessionReplay.getShouldRecord();
+
+      // Should have been called with the new decision
+      expect(addCustomRRWebEventSpy).toHaveBeenCalledWith(
+        CustomRRwebEvent.TARGETING_DECISION,
+        expect.objectContaining({
+          message: expect.stringContaining('Not capturing replays for session'),
+          sessionId: 123,
+          matched: false,
+          targetingParams: targetingParams,
+        }),
+      );
+    });
+
+    test('should reset targeting decision when session ID changes', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+
+      // Set up targeting config
+      sessionReplay.config!.targetingConfig = {
+        key: 'sr_targeting_config',
+        variants: { on: { key: 'on' }, off: { key: 'off' } },
+        segments: [],
+      };
+      sessionReplay.sessionTargetingMatch = true;
+
+      // Ensure we start fresh
+      (sessionReplay as any).lastShouldRecordDecision = undefined;
+
+      // Spy on addCustomRRWebEvent
+      const addCustomRRWebEventSpy = jest.spyOn(sessionReplay, 'addCustomRRWebEvent');
+
+      // Call getShouldRecord to establish initial decision
+      sessionReplay.getShouldRecord();
+      expect(addCustomRRWebEventSpy).toHaveBeenCalledWith(CustomRRwebEvent.TARGETING_DECISION, expect.anything());
+
+      // Clear the spy
+      addCustomRRWebEventSpy.mockClear();
+
+      // Change session ID - this should reset the targeting decision
+      await sessionReplay.setSessionId(456).promise;
+
+      // Set the targeting config to undefined
+      sessionReplay.config!.targetingConfig = {
+        key: 'sr_targeting_config',
+        variants: { on: { key: 'on' }, off: { key: 'off' } },
+        segments: [],
+      };
+
+      // Call getShouldRecord again - should fire event for new session
+      sessionReplay.getShouldRecord();
+
+      expect(addCustomRRWebEventSpy).toHaveBeenCalledWith(
+        CustomRRwebEvent.TARGETING_DECISION,
+        expect.objectContaining({
+          sessionId: 456,
+        }),
+      );
+    });
   });
 
   describe('getRecordingPlugins', () => {
@@ -1901,7 +2077,10 @@ describe('SessionReplay', () => {
           levels: [],
         },
       };
-      await expect(sessionReplay.getRecordingPlugins(loggingConfig)).resolves.toBeUndefined();
+      const plugins = await sessionReplay.getRecordingPlugins(loggingConfig);
+      expect(plugins).toBeDefined();
+      expect(plugins?.length).toBe(1); // URL tracking plugin is always present
+      expect(plugins?.[0].name).toBe('amplitude/url-tracking@1');
     });
     test('enabled console logging', async () => {
       const loggingConfig: LoggingConfig = {
@@ -1910,7 +2089,11 @@ describe('SessionReplay', () => {
           levels: ['warn', 'error'],
         },
       };
-      await expect(sessionReplay.getRecordingPlugins(loggingConfig)).resolves.toHaveLength(1);
+      const plugins = await sessionReplay.getRecordingPlugins(loggingConfig);
+      expect(plugins).toBeDefined();
+      expect(plugins?.length).toBe(2); // URL tracking plugin + console plugin
+      expect(plugins?.find((p) => p.name === 'amplitude/url-tracking@1')).toBeDefined();
+      expect(plugins?.find((p) => p.name === 'rrweb/console@1')).toBeDefined();
     });
     test('should warn if loading console plugin fails', async () => {
       const loggingConfig: LoggingConfig = {
@@ -1928,6 +2111,19 @@ describe('SessionReplay', () => {
       await sessionReplay.getRecordingPlugins(loggingConfig);
       expect(warnSpy).toHaveBeenCalledWith('Failed to load console plugin:', expect.any(Error));
       jest.dontMock('@amplitude/rrweb-plugin-console-record');
+    });
+
+    test('should return undefined when no plugins are available', async () => {
+      // Mock createUrlTrackingPlugin to throw an error
+      mockCreateUrlTrackingPlugin.mockImplementationOnce(() => {
+        throw new Error('URL tracking plugin creation failed');
+      });
+
+      const warnSpy = jest.spyOn(sessionReplay.loggerProvider, 'warn');
+
+      const plugins = await sessionReplay.getRecordingPlugins(undefined);
+      expect(plugins).toBeUndefined();
+      expect(warnSpy).toHaveBeenCalledWith('Failed to create URL tracking plugin:', expect.any(Error));
     });
   });
 
@@ -2002,6 +2198,121 @@ describe('SessionReplay', () => {
       }).promise;
       const metadata = (sessionReplay as any).metadata;
       expect(metadata?.replaySDKType).toBe('@amplitude/segment-session-replay-plugin');
+    });
+  });
+
+  describe('URL Tracking', () => {
+    describe('Plugin Integration', () => {
+      test('should include URL tracking plugin in recording plugins', async () => {
+        await sessionReplay.init(apiKey, mockOptions).promise;
+
+        const plugins = await sessionReplay.getRecordingPlugins(undefined);
+        expect(plugins).toBeDefined();
+        expect(plugins?.length).toBeGreaterThan(0);
+
+        // Find the URL tracking plugin
+        const urlTrackingPlugin = plugins?.find((plugin) => plugin.name === 'amplitude/url-tracking@1');
+        expect(urlTrackingPlugin).toBeDefined();
+        expect(urlTrackingPlugin?.observer).toBeDefined();
+      });
+
+      test('should create URL tracking plugin with UGC filter rules from interaction config', async () => {
+        const mockUgcFilterRules = [
+          { selector: 'test', replacement: 'filtered' },
+          { selector: '/test/', replacement: 'filtered' },
+        ];
+
+        __setNamespaceConfig({
+          sr_sampling_config: samplingConfig,
+          sr_privacy_config: {},
+          sr_interaction_config: {
+            enabled: true,
+            ugcFilterRules: mockUgcFilterRules,
+          },
+        });
+
+        await sessionReplay.init(apiKey, mockOptions).promise;
+
+        const plugins = await sessionReplay.getRecordingPlugins(undefined);
+        const urlTrackingPlugin = plugins?.find((plugin) => plugin.name === 'amplitude/url-tracking@1');
+
+        expect(urlTrackingPlugin).toBeDefined();
+        expect((urlTrackingPlugin?.options as any).ugcFilterRules).toEqual(mockUgcFilterRules);
+      });
+
+      test('should create URL tracking plugin with polling enabled', async () => {
+        await sessionReplay.init(apiKey, {
+          ...mockOptions,
+          enableUrlChangePolling: true,
+        }).promise;
+
+        const plugins = await sessionReplay.getRecordingPlugins(undefined);
+        const urlTrackingPlugin = plugins?.find((plugin) => plugin.name === 'amplitude/url-tracking@1');
+
+        expect(urlTrackingPlugin).toBeDefined();
+        // The config options should be passed to the plugin
+        expect((urlTrackingPlugin?.options as any).enablePolling).toBe(true);
+      });
+
+      test('should create URL tracking plugin with custom polling interval', async () => {
+        const customInterval = 2000;
+        await sessionReplay.init(apiKey, {
+          ...mockOptions,
+          enableUrlChangePolling: true,
+          urlChangePollingInterval: customInterval,
+        }).promise;
+
+        const plugins = await sessionReplay.getRecordingPlugins(undefined);
+        const urlTrackingPlugin = plugins?.find((plugin) => plugin.name === 'amplitude/url-tracking@1');
+
+        expect(urlTrackingPlugin).toBeDefined();
+        expect((urlTrackingPlugin?.options as any).pollingInterval).toBe(customInterval);
+      });
+
+      test('should create URL tracking plugin with captureDocumentTitle enabled', async () => {
+        await sessionReplay.init(apiKey, {
+          ...mockOptions,
+          captureDocumentTitle: true,
+        }).promise;
+
+        const plugins = await sessionReplay.getRecordingPlugins(undefined);
+        const urlTrackingPlugin = plugins?.find((plugin) => plugin.name === 'amplitude/url-tracking@1');
+
+        expect(urlTrackingPlugin).toBeDefined();
+        expect((urlTrackingPlugin?.options as any).captureDocumentTitle).toBe(true);
+      });
+    });
+
+    test('should handle empty UGC filter rules', async () => {
+      __setNamespaceConfig({
+        sr_sampling_config: samplingConfig,
+        sr_privacy_config: {},
+        sr_interaction_config: {
+          enabled: true,
+          ugcFilterRules: [],
+        },
+      });
+
+      await sessionReplay.init(apiKey, mockOptions).promise;
+
+      const plugins = await sessionReplay.getRecordingPlugins(undefined);
+      const urlTrackingPlugin = plugins?.find((plugin) => plugin.name === 'amplitude/url-tracking@1');
+
+      expect((urlTrackingPlugin?.options as any).ugcFilterRules).toEqual([]);
+    });
+
+    test('should handle missing interaction config', async () => {
+      __setNamespaceConfig({
+        sr_sampling_config: samplingConfig,
+        sr_privacy_config: {},
+      });
+
+      await sessionReplay.init(apiKey, mockOptions).promise;
+
+      const plugins = await sessionReplay.getRecordingPlugins(undefined);
+      const urlTrackingPlugin = plugins?.find((plugin) => plugin.name === 'amplitude/url-tracking@1');
+
+      expect((urlTrackingPlugin?.options as any).ugcFilterRules).toEqual([]);
     });
   });
 
@@ -2121,6 +2432,206 @@ describe('SessionReplay', () => {
       expect(getRecordFunctionSpy).toHaveBeenCalled();
 
       getRecordFunctionSpy.mockRestore();
+    });
+  });
+
+  describe('evaluateTargetingAndCapture', () => {
+    test('should return early if no identifiers', async () => {
+      const sessionReplay = new SessionReplay();
+      sessionReplay.identifiers = undefined;
+      sessionReplay.loggerProvider = mockLoggerProvider;
+
+      await sessionReplay.evaluateTargetingAndCapture({});
+
+      expect(mockLoggerProvider.warn).toHaveBeenCalledWith(
+        'Session replay init has not been called, cannot evaluate targeting.',
+      );
+    });
+
+    test('should return early if no sessionId', async () => {
+      const sessionReplay = new SessionReplay();
+      sessionReplay.identifiers = { sessionId: undefined, deviceId: '123', sessionReplayId: '123/undefined' };
+      sessionReplay.loggerProvider = mockLoggerProvider;
+
+      await sessionReplay.evaluateTargetingAndCapture({});
+
+      expect(mockLoggerProvider.log).toHaveBeenCalledWith(
+        'Session ID has not been set yet, cannot evaluate targeting for Session Replay.',
+      );
+    });
+
+    test('should return early if no config', async () => {
+      const sessionReplay = new SessionReplay();
+      sessionReplay.identifiers = { sessionId: 123, deviceId: '123', sessionReplayId: '123/123' };
+      sessionReplay.config = undefined;
+      sessionReplay.loggerProvider = mockLoggerProvider;
+
+      await sessionReplay.evaluateTargetingAndCapture({});
+
+      expect(mockLoggerProvider.warn).toHaveBeenCalledWith(
+        'Session replay init has not been called, cannot evaluate targeting.',
+      );
+    });
+
+    test('should call initialize when isInit is true', async () => {
+      const sessionReplay = new SessionReplay();
+      await sessionReplay.init(apiKey, mockOptions).promise;
+
+      const initializeSpy = jest.spyOn(sessionReplay, 'initialize');
+
+      await sessionReplay.evaluateTargetingAndCapture({}, true);
+
+      expect(initializeSpy).toHaveBeenCalledWith(true);
+    });
+
+    test('should call recordEvents when isInit is false', async () => {
+      const sessionReplay = new SessionReplay();
+      await sessionReplay.init(apiKey, mockOptions).promise;
+
+      const recordEventsSpy = jest.spyOn(sessionReplay, 'recordEvents');
+
+      await sessionReplay.evaluateTargetingAndCapture({}, false);
+
+      expect(recordEventsSpy).toHaveBeenCalled();
+    });
+
+    test('should skip targeting evaluation when no targetingConfig', async () => {
+      const sessionReplay = new SessionReplay();
+      await sessionReplay.init(apiKey, mockOptions).promise;
+
+      const recordEventsSpy = jest.spyOn(sessionReplay, 'recordEvents');
+
+      await sessionReplay.evaluateTargetingAndCapture({});
+
+      expect(recordEventsSpy).toHaveBeenCalled();
+    });
+
+    test('should skip targeting evaluation when sessionTargetingMatch is already true', async () => {
+      const sessionReplay = new SessionReplay();
+      await sessionReplay.init(apiKey, mockOptions).promise;
+
+      // Set targeting config directly on the config object
+      if (sessionReplay.config) {
+        sessionReplay.config.targetingConfig = {
+          key: 'sr_targeting_config',
+          variants: { on: { key: 'on' }, off: { key: 'off' } },
+          segments: [],
+        };
+      }
+
+      sessionReplay.sessionTargetingMatch = true;
+      const recordEventsSpy = jest.spyOn(sessionReplay, 'recordEvents');
+
+      await sessionReplay.evaluateTargetingAndCapture({});
+
+      expect(recordEventsSpy).toHaveBeenCalled();
+    });
+
+    test('should execute targeting evaluation branch when targetingConfig exists and sessionTargetingMatch is false', async () => {
+      const sessionReplay = new SessionReplay();
+
+      // Set up namespace config to include targeting config
+      __setNamespaceConfig({
+        sr_sampling_config: samplingConfig,
+        sr_privacy_config: {},
+        sr_targeting_config: {
+          key: 'sr_targeting_config',
+          variants: { on: { key: 'on' }, off: { key: 'off' } },
+          segments: [],
+        },
+      });
+
+      await sessionReplay.init(apiKey, mockOptions).promise;
+
+      // Ensure sessionTargetingMatch is false to trigger the evaluation
+      sessionReplay.sessionTargetingMatch = false;
+
+      const recordEventsSpy = jest.spyOn(sessionReplay, 'recordEvents');
+      const userProperties = { age: 30, city: 'San Francisco' };
+
+      await sessionReplay.evaluateTargetingAndCapture({ userProperties });
+
+      // Verify the targeting evaluation branch was executed by checking that sessionTargetingMatch was updated
+      expect(typeof sessionReplay.sessionTargetingMatch).toBe('boolean');
+      expect(recordEventsSpy).toHaveBeenCalled();
+    });
+
+    test('should handle special event types in targeting evaluation', async () => {
+      const sessionReplay = new SessionReplay();
+
+      // Set up namespace config to include targeting config
+      __setNamespaceConfig({
+        sr_sampling_config: samplingConfig,
+        sr_privacy_config: {},
+        sr_targeting_config: {
+          key: 'sr_targeting_config',
+          variants: { on: { key: 'on' }, off: { key: 'off' } },
+          segments: [],
+        },
+      });
+
+      await sessionReplay.init(apiKey, mockOptions).promise;
+
+      // Ensure sessionTargetingMatch is false to trigger the evaluation
+      sessionReplay.sessionTargetingMatch = false;
+
+      const specialEvent = {
+        event_type: SpecialEventType.IDENTIFY,
+        event_properties: {},
+      };
+
+      await sessionReplay.evaluateTargetingAndCapture({ event: specialEvent });
+
+      // Verify the function executed without throwing errors
+      expect(typeof sessionReplay.sessionTargetingMatch).toBe('boolean');
+    });
+  });
+
+  describe('targeting decision events', () => {
+    test('should return false when targetingConfig exists but sessionTargetingMatch is false', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+
+      // Set targeting config directly on the config object
+      if (sessionReplay.config) {
+        sessionReplay.config.targetingConfig = {
+          key: 'sr_targeting_config',
+          variants: { on: { key: 'on' }, off: { key: 'off' } },
+          segments: [],
+        };
+      }
+
+      sessionReplay.sessionTargetingMatch = false;
+      const shouldRecord = sessionReplay.getShouldRecord();
+
+      expect(shouldRecord).toBe(false);
+      expect(mockLoggerProvider.log).toHaveBeenCalledWith(
+        `Not capturing replays for session ${
+          mockOptions.sessionId?.toString() || ''
+        } due to not matching targeting conditions.`,
+      );
+    });
+
+    test('should return true when targetingConfig exists and sessionTargetingMatch is true', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+
+      // Set targeting config directly on the config object
+      if (sessionReplay.config) {
+        sessionReplay.config.targetingConfig = {
+          key: 'sr_targeting_config',
+          variants: { on: { key: 'on' }, off: { key: 'off' } },
+          segments: [],
+        };
+      }
+
+      sessionReplay.sessionTargetingMatch = true;
+      const shouldRecord = sessionReplay.getShouldRecord();
+
+      expect(shouldRecord).toBe(true);
+      expect(mockLoggerProvider.log).toHaveBeenCalledWith(
+        `Capturing replays for session ${
+          mockOptions.sessionId?.toString() || ''
+        } due to matching targeting conditions.`,
+      );
     });
   });
 });

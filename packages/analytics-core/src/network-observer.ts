@@ -1,4 +1,4 @@
-import { getGlobalScope } from './global-scope';
+import { getGlobalScope } from './';
 import { UUID } from './utils/uuid';
 import { ILogger } from './logger';
 import {
@@ -21,6 +21,7 @@ type AmplitudeAnalyticsEvent = {
   startTime: number;
   durationStart: number;
   status?: number;
+  headers: Record<string, string>;
 };
 
 /**
@@ -48,6 +49,8 @@ type RequestUrlAndMethod = {
 type AmplitudeXMLHttpRequestSafe = {
   $$AmplitudeAnalyticsEvent: AmplitudeAnalyticsEvent;
   status: number;
+  responseText: string;
+  responseType: XMLHttpRequestResponseType;
   getAllResponseHeaders: typeof XMLHttpRequest.prototype.getAllResponseHeaders;
   getResponseHeader: typeof XMLHttpRequest.prototype.getResponseHeader;
   addEventListener: (type: 'loadend', listener: () => void) => void;
@@ -86,8 +89,11 @@ export class NetworkObserver {
       /* istanbul ignore next */
       // eslint-disable-next-line @typescript-eslint/unbound-method
       const originalXhrSend = this.globalScope?.XMLHttpRequest?.prototype?.send;
-      if (originalXhrOpen && originalXhrSend) {
-        this.observeXhr(originalXhrOpen, originalXhrSend);
+      /* istanbul ignore next */
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      const originalXhrSetRequestHeader = this.globalScope?.XMLHttpRequest?.prototype?.setRequestHeader;
+      if (originalXhrOpen && originalXhrSend && originalXhrSetRequestHeader) {
+        this.observeXhr(originalXhrOpen, originalXhrSend, originalXhrSetRequestHeader);
       }
 
       /* istanbul ignore next */
@@ -249,6 +255,46 @@ export class NetworkObserver {
     };
   }
 
+  /**
+   * Creates a function that parses the response of an XMLHttpRequest as JSON.
+   *
+   * Returns function instead of JSON object to avoid unnecessary parsing if the
+   * body is not being captured.
+   *
+   * @param xhrSafe - The XMLHttpRequest object.
+   * @param context - The NetworkObserver instance.
+   * @returns A function that parses the response of an XMLHttpRequest as JSON.
+   */
+  static createXhrJsonParser(xhrUnsafe: XMLHttpRequest, context: NetworkObserver) {
+    return () => {
+      try {
+        if (xhrUnsafe.responseType === 'json') {
+          // if response is a JS object, clone it so that subscribers can't mutate it
+          if (context.globalScope?.structuredClone) {
+            /* eslint-disable-next-line @typescript-eslint/no-unsafe-return */
+            return context.globalScope.structuredClone(xhrUnsafe.response);
+          }
+        } else if (['text', ''].includes(xhrUnsafe.responseType)) {
+          // if response is a string, parse it as JSON
+          /* eslint-disable-next-line @typescript-eslint/no-unsafe-return */
+          return JSON.parse(xhrUnsafe.responseText);
+        }
+      } catch (err) {
+        /* istanbul ignore if */
+        if (err instanceof Error && err.name === 'InvalidStateError') {
+          // https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest/responseText#exceptions
+          // if we reach here, it means we don't handle responseType correctly
+          context.logger?.error(
+            `unexpected error when retrieving responseText. responseType='${xhrUnsafe.responseType}'`,
+          );
+        }
+        // the other possible error is Json Parse error which we fail silently
+        return null;
+      }
+      return null;
+    };
+  }
+
   private observeXhr(
     originalXhrOpen:
       | ((
@@ -260,6 +306,7 @@ export class NetworkObserver {
         ) => void)
       | undefined,
     originalXhrSend: ((body?: Document | XMLHttpRequestBodyInit | null) => void) | undefined,
+    originalXhrSetRequestHeader: (headerName: string, headerValue: string) => void,
   ) {
     /* istanbul ignore next */
     if (!this.globalScope || !originalXhrOpen || !originalXhrSend) {
@@ -284,11 +331,12 @@ export class NetworkObserver {
         xhrSafe.$$AmplitudeAnalyticsEvent = {
           method,
           url: url?.toString?.(),
+          headers: {},
           ...networkObserverContext.getTimestamps(),
         } as AmplitudeAnalyticsEvent;
       } catch (err) {
         /* istanbul ignore next */
-        networkObserverContext.logger?.debug('an unexpected error occurred while calling xhr open', err);
+        networkObserverContext.logger?.error('an unexpected error occurred while calling xhr open', err);
       }
       // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       return originalXhrOpen.apply(xhrSafe, args as any);
@@ -304,7 +352,9 @@ export class NetworkObserver {
     /* eslint-disable-next-line @typescript-eslint/no-unsafe-argument */
     xhrProto.send = function (...args: any[]) {
       // eslint-disable-next-line @typescript-eslint/no-this-alias
-      const xhrSafe = this as unknown as AmplitudeXMLHttpRequestSafe;
+      const xhrUnsafe = this;
+      const xhrSafe = xhrUnsafe as unknown as AmplitudeXMLHttpRequestSafe;
+      const getJson = NetworkObserver.createXhrJsonParser(xhrUnsafe, networkObserverContext);
       const body = args[0] as XMLHttpRequestBodyInitSafe;
       const requestEvent = xhrSafe.$$AmplitudeAnalyticsEvent;
 
@@ -312,13 +362,16 @@ export class NetworkObserver {
         try {
           const responseHeaders = xhrSafe.getAllResponseHeaders();
           const responseBodySize = xhrSafe.getResponseHeader('content-length');
+
           const responseWrapper = new ResponseWrapperXhr(
             xhrSafe.status,
             responseHeaders,
             /* istanbul ignore next */
             responseBodySize ? parseInt(responseBodySize, 10) : undefined,
+            getJson,
           );
-          const requestWrapper = new RequestWrapperXhr(body);
+          const requestHeaders = xhrSafe.$$AmplitudeAnalyticsEvent.headers;
+          const requestWrapper = new RequestWrapperXhr(body, requestHeaders);
           requestEvent.status = xhrSafe.status;
           networkObserverContext.handleNetworkRequestEvent(
             'xhr',
@@ -331,11 +384,32 @@ export class NetworkObserver {
           );
         } catch (err) {
           /* istanbul ignore next */
-          networkObserverContext.logger?.debug('an unexpected error occurred while handling xhr send', err);
+          networkObserverContext.logger?.error('an unexpected error occurred while handling xhr send', err);
         }
       });
       /* eslint-disable-next-line @typescript-eslint/no-unsafe-argument */
       return originalXhrSend.apply(xhrSafe, args as any);
+    };
+
+    /**
+     * IMPORTANT: This overrides window.XMLHttpRequest.prototype.setRequestHeader
+     * You probably never need to make changes to this function.
+     * If you do, please be careful to preserve the original functionality of xhr.setRequestHeader
+     * and make sure another developer who is an expert reviews this change throughly
+     */
+    // allow "any" type for args to reflect how it's used in the browser
+    /* eslint-disable-next-line @typescript-eslint/no-unsafe-argument */
+    xhrProto.setRequestHeader = function (headerName: any, headerValue: any) {
+      const xhrSafe = this as unknown as AmplitudeXMLHttpRequestSafe;
+      try {
+        /* eslint-disable-next-line @typescript-eslint/no-unsafe-assignment */
+        xhrSafe.$$AmplitudeAnalyticsEvent.headers[headerName as string] = headerValue as string;
+      } catch (err) {
+        /* istanbul ignore next */
+        networkObserverContext.logger?.error('an unexpected error occurred while calling xhr setRequestHeader', err);
+      }
+      /* eslint-disable-next-line @typescript-eslint/no-unsafe-argument */
+      originalXhrSetRequestHeader.apply(xhrSafe, [headerName, headerValue]);
     };
   }
 }

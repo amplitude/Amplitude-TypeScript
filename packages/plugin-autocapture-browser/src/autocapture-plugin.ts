@@ -1,38 +1,35 @@
 /* eslint-disable no-restricted-globals */
 import {
-  BrowserClient,
-  BrowserConfig,
-  EnrichmentPlugin,
-  ElementInteractionsOptions,
+  type BrowserClient,
+  type BrowserConfig,
+  type EnrichmentPlugin,
+  type ElementInteractionsOptions,
   DEFAULT_CSS_SELECTOR_ALLOWLIST,
   DEFAULT_ACTION_CLICK_ALLOWLIST,
   DEFAULT_DATA_ATTRIBUTE_PREFIX,
 } from '@amplitude/analytics-core';
+import { createRemoteConfigFetch } from '@amplitude/analytics-remote-config';
 import * as constants from './constants';
-import { fromEvent, map, Observable, Subscription, share } from 'rxjs';
+import { fromEvent, map, type Observable, type Subscription, share } from 'rxjs';
 import {
-  addAdditionalEventProperties,
   createShouldTrackEvent,
-  getEventProperties,
-  ElementBasedTimestampedEvent,
-  TimestampedEvent,
-  ElementBasedEvent,
-  NavigateEvent,
+  type ElementBasedTimestampedEvent,
+  type TimestampedEvent,
+  type NavigateEvent,
 } from './helpers';
 import { WindowMessenger } from './libs/messenger';
 import { trackClicks } from './autocapture/track-click';
 import { trackChange } from './autocapture/track-change';
 import { trackActionClick } from './autocapture/track-action-click';
-import { HasEventTargetAddRemove } from 'rxjs/internal/observable/fromEvent';
+import type { HasEventTargetAddRemove } from 'rxjs/internal/observable/fromEvent';
 import { createMutationObservable, createClickObservable } from './observables';
 
 import {
   createLabeledEventToTriggerMap,
+  createTriggerEvaluator,
   groupLabeledEventIdsByEventType,
-  matchEventToLabeledEvents,
-  matchLabeledEventsToTriggers,
 } from './pageActions/triggers';
-import { executeActions } from './pageActions/actions';
+import { DataExtractor } from './data-extractor';
 
 declare global {
   interface Window {
@@ -81,12 +78,15 @@ export const autocapturePlugin = (options: ElementInteractionsOptions = {}): Bro
 
   const subscriptions: Subscription[] = [];
 
+  // Create data extractor based on options
+  const dataExtractor = new DataExtractor(options);
+
   // Create observables on events on the window
   const createObservables = (): AllWindowObservables => {
     // Create Observables from direct user events
     const clickObservable = createClickObservable().pipe(
       map((click) =>
-        addAdditionalEventProperties(
+        dataExtractor.addAdditionalEventProperties(
           click,
           'click',
           (options as AutoCaptureOptionsWithDefaults).cssSelectorAllowlist,
@@ -97,7 +97,7 @@ export const autocapturePlugin = (options: ElementInteractionsOptions = {}): Bro
     );
     const changeObservable = fromEvent<Event>(document, 'change', { capture: true }).pipe(
       map((change) =>
-        addAdditionalEventProperties(
+        dataExtractor.addAdditionalEventProperties(
           change,
           'change',
           (options as AutoCaptureOptionsWithDefaults).cssSelectorAllowlist,
@@ -113,12 +113,12 @@ export const autocapturePlugin = (options: ElementInteractionsOptions = {}): Bro
     // );
 
     // Create observable for URL changes
-    let navigateObservable;
+    let navigateObservable: Observable<TimestampedEvent<NavigateEvent>> | undefined;
     /* istanbul ignore next */
     if (window.navigation) {
       navigateObservable = fromEvent<NavigateEvent>(window.navigation, 'navigate').pipe(
         map((navigate) =>
-          addAdditionalEventProperties(
+          dataExtractor.addAdditionalEventProperties(
             navigate,
             'navigate',
             (options as AutoCaptureOptionsWithDefaults).cssSelectorAllowlist,
@@ -132,7 +132,7 @@ export const autocapturePlugin = (options: ElementInteractionsOptions = {}): Bro
     // Track DOM Mutations using shared observable
     const mutationObservable = createMutationObservable().pipe(
       map((mutation) =>
-        addAdditionalEventProperties(
+        dataExtractor.addAdditionalEventProperties(
           mutation,
           'mutation',
           (options as AutoCaptureOptionsWithDefaults).cssSelectorAllowlist,
@@ -152,38 +152,63 @@ export const autocapturePlugin = (options: ElementInteractionsOptions = {}): Bro
   };
 
   // Group labeled events by event type (eg. click, change)
-  const groupedLabeledEvents = groupLabeledEventIdsByEventType(Object.values(options.pageActions?.labeledEvents ?? {}));
+  let groupedLabeledEvents = groupLabeledEventIdsByEventType(Object.values(options.pageActions?.labeledEvents ?? {}));
 
-  const labeledEventToTriggerMap = createLabeledEventToTriggerMap(options.pageActions?.triggers ?? []);
+  let labeledEventToTriggerMap = createLabeledEventToTriggerMap(options.pageActions?.triggers ?? []);
 
   // Evaluate triggers for the given event by running the actions associated with the matching triggers
-  const evaluateTriggers = <T extends ElementBasedEvent>(
-    event: ElementBasedTimestampedEvent<T>,
-  ): ElementBasedTimestampedEvent<T> => {
-    // If there is no pageActions, return the event as is
-    const { pageActions } = options;
-    if (!pageActions) {
-      return event;
-    }
+  const evaluateTriggers = createTriggerEvaluator(
+    groupedLabeledEvents,
+    labeledEventToTriggerMap,
+    dataExtractor,
+    options,
+  );
 
-    // Find matching labeled events
-    const matchingLabeledEvents = matchEventToLabeledEvents(
-      event,
-      Array.from(groupedLabeledEvents[event.type]).map((id) => pageActions.labeledEvents[id]),
-    );
-    // Find matching conditions
-    const matchingTriggers = matchLabeledEventsToTriggers(matchingLabeledEvents, labeledEventToTriggerMap);
-    for (const trigger of matchingTriggers) {
-      executeActions(trigger.actions, event);
-    }
+  // Function to recalculate internal variables when remote config is updated
+  const recomputePageActionsData = (remotePageActions: ElementInteractionsOptions['pageActions']) => {
+    if (remotePageActions) {
+      // Merge remote config with local options
+      options.pageActions = {
+        ...options.pageActions,
+        ...remotePageActions,
+      };
 
-    return event;
+      // Recalculate internal variables
+      groupedLabeledEvents = groupLabeledEventIdsByEventType(Object.values(options.pageActions.labeledEvents ?? {}));
+      labeledEventToTriggerMap = createLabeledEventToTriggerMap(options.pageActions.triggers ?? []);
+
+      // Update evaluateTriggers function
+      evaluateTriggers.update(groupedLabeledEvents, labeledEventToTriggerMap, options);
+    }
   };
 
   const setup: BrowserEnrichmentPlugin['setup'] = async (config, amplitude) => {
     /* istanbul ignore if */
     if (typeof document === 'undefined') {
       return;
+    }
+
+    // Fetch remote config for pageActions in a non-blocking manner
+    if (config.fetchRemoteConfig) {
+      createRemoteConfigFetch({
+        localConfig: config,
+        configKeys: ['analyticsSDK.pageActions'],
+      })
+        .then(async (remoteConfigFetch) => {
+          try {
+            const remotePageActions = await remoteConfigFetch.getRemoteConfig('analyticsSDK', 'pageActions');
+            recomputePageActionsData(remotePageActions as ElementInteractionsOptions['pageActions']);
+          } catch (error) {
+            // Log error but don't fail the setup
+            /* istanbul ignore next */
+            config?.loggerProvider?.error(`Failed to fetch remote config: ${String(error)}`);
+          }
+        })
+        .catch((error) => {
+          // Log error but don't fail the setup
+          /* istanbul ignore next */
+          config?.loggerProvider?.error(`Failed to create remote config fetch: ${String(error)}`);
+        });
     }
 
     // Create should track event functions the different allowlists
@@ -205,23 +230,23 @@ export const autocapturePlugin = (options: ElementInteractionsOptions = {}): Bro
       options: options as AutoCaptureOptionsWithDefaults,
       amplitude,
       shouldTrackEvent: shouldTrackEvent,
-      evaluateTriggers,
+      evaluateTriggers: evaluateTriggers.evaluate.bind(evaluateTriggers),
     });
     subscriptions.push(clickTrackingSubscription);
 
     const changeSubscription = trackChange({
       allObservables,
-      getEventProperties: (...args) => getEventProperties(...args, dataAttributePrefix),
+      getEventProperties: (...args) => dataExtractor.getEventProperties(...args, dataAttributePrefix),
       amplitude,
       shouldTrackEvent: shouldTrackEvent,
-      evaluateTriggers,
+      evaluateTriggers: evaluateTriggers.evaluate.bind(evaluateTriggers),
     });
     subscriptions.push(changeSubscription);
 
     const actionClickSubscription = trackActionClick({
       allObservables,
       options: options as AutoCaptureOptionsWithDefaults,
-      getEventProperties: (...args) => getEventProperties(...args, dataAttributePrefix),
+      getEventProperties: (...args) => dataExtractor.getEventProperties(...args, dataAttributePrefix),
       amplitude,
       shouldTrackEvent,
       shouldTrackActionClick: shouldTrackActionClick,
@@ -238,6 +263,7 @@ export const autocapturePlugin = (options: ElementInteractionsOptions = {}): Bro
 
       /* istanbul ignore next */
       visualTaggingOptions.messenger?.setup({
+        dataExtractor: dataExtractor,
         logger: config?.loggerProvider,
         ...(config?.serverZone && { endpoint: constants.AMPLITUDE_ORIGINS_MAP[config.serverZone] }),
         isElementSelectable: createShouldTrackEvent(options, [...allowlist, ...actionClickAllowlist]),

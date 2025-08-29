@@ -1,4 +1,3 @@
-import { BASE_CAMPAIGN } from '../../src/attribution/constants';
 import {
   isNewCampaign,
   createCampaignEvent,
@@ -6,7 +5,7 @@ import {
   isExcludedReferrer,
 } from '../../src/attribution/helpers';
 
-import { getStorageKey } from '@amplitude/analytics-core';
+import { getStorageKey, BASE_CAMPAIGN } from '@amplitude/analytics-core';
 
 const loggerProvider = {
   log: jest.fn(),
@@ -213,7 +212,7 @@ describe('createCampaignEvent', () => {
           initial_wbraid: 'EMPTY',
           initial_referrer: 'EMPTY',
           initial_referring_domain: 'EMPTY',
-          initial_rtd_cid: 'EMPTY',
+          initial_rdt_cid: 'EMPTY',
           initial_ttclid: 'EMPTY',
           initial_twclid: 'EMPTY',
           initial_utm_campaign: 'utm_campaign',
@@ -234,7 +233,7 @@ describe('createCampaignEvent', () => {
           wbraid: '-',
           referrer: '-',
           referring_domain: '-',
-          rtd_cid: '-',
+          rdt_cid: '-',
           ttclid: '-',
           twclid: '-',
           utm_content: '-',
@@ -275,7 +274,7 @@ describe('createCampaignEvent', () => {
           initial_wbraid: '(none)',
           initial_referrer: '(none)',
           initial_referring_domain: '(none)',
-          initial_rtd_cid: '(none)',
+          initial_rdt_cid: '(none)',
           initial_ttclid: '(none)',
           initial_twclid: '(none)',
           initial_utm_campaign: 'utm_campaign',
@@ -296,7 +295,7 @@ describe('createCampaignEvent', () => {
           wbraid: '-',
           referrer: '-',
           referring_domain: '-',
-          rtd_cid: '-',
+          rdt_cid: '-',
           ttclid: '-',
           twclid: '-',
           utm_content: '-',

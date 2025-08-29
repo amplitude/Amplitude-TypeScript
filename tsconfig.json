@@ -6,7 +6,7 @@
     "downlevelIteration": true,
     "inlineSources": true,
     "importHelpers": true,
-    "lib": ["es6"],
+    "lib": ["es2021", "dom"],
     "module": "es2020",
     "moduleResolution": "node",
     "noEmitHelpers": true,
@@ -22,6 +22,6 @@
     "strict": true,
     "strictBindCallApply": true,
     "target": "es5",
-    "types": ["jest", "node"],
+    "types": ["jest", "node", "idb"],
   }
 }

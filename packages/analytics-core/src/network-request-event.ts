@@ -1,4 +1,6 @@
 import { getGlobalScope } from './global-scope';
+import { pruneJson } from './utils/json-query';
+import { SAFE_HEADERS, FORBIDDEN_HEADERS } from './';
 
 /* SAFE TYPE DEFINITIONS
   These type definitions expose limited properties of the original types
@@ -50,7 +52,14 @@ type HeadersInitSafe = HeadersRequestSafe | Record<string, string> | string[][];
 type ResponseSafe = {
   status: number;
   headers: HeadersResponseSafe | undefined;
+  clone(): ResponseCloneSafe;
 };
+
+type ResponseCloneSafe = {
+  text(): Promise<string>;
+};
+
+const TEXT_READ_TIMEOUT = 500;
 
 export type RequestInitSafe = {
   method?: string;
@@ -73,10 +82,16 @@ export type FetchRequestBody =
   | undefined;
 
 export interface IRequestWrapper {
-  headers?: Record<string, string>;
+  /**
+   * Get the headers of the request.
+   * @param allow - The headers to allow.
+   * @returns The pruned headers
+   */
+  headers(allow?: string[]): Record<string, string> | undefined;
   bodySize?: number;
   method?: string;
   body?: FetchRequestBody | XMLHttpRequestBodyInitSafe | null;
+  json: (allow?: string[], exclude?: string[]) => Promise<JsonObject | null>;
 }
 
 export const MAXIMUM_ENTRIES = 100;
@@ -100,32 +115,29 @@ export const MAXIMUM_ENTRIES = 100;
  *      never call any of the methods on it)
  */
 export class RequestWrapperFetch implements IRequestWrapper {
-  private _headers: Record<string, string> | undefined;
   private _bodySize: number | undefined;
   constructor(private request: RequestInitSafe) {}
 
-  get headers(): Record<string, string> | undefined {
-    if (this._headers) return this._headers;
-
+  headers(allow: string[] = []): Record<string, string> | undefined {
     const headersUnsafe = this.request.headers;
+
+    // copy the headers into a new object
+    const headersSafeCopy: Record<string, string> = {};
     if (Array.isArray(headersUnsafe)) {
-      const headers = headersUnsafe;
-      this._headers = headers.reduce((acc, [key, value]) => {
-        acc[key] = value;
-        return acc;
-      }, {} as Record<string, string>);
-    } else if (headersUnsafe instanceof Headers) {
-      const headersSafe = headersUnsafe as HeadersRequestSafe;
-      const headersObj: Record<string, string> = {};
-      headersSafe.forEach((value, key) => {
-        headersObj[key] = value;
+      headersUnsafe.forEach(([headerName, headerValue]) => {
+        headersSafeCopy[headerName] = headerValue;
       });
-      this._headers = headersObj;
-    } else if (typeof headersUnsafe === 'object') {
-      this._headers = headersUnsafe as Record<string, string>;
+    } else if (headersUnsafe instanceof Headers) {
+      headersUnsafe.forEach((value: string, key: string) => {
+        headersSafeCopy[key] = value;
+      });
+    } else if (typeof headersUnsafe === 'object' && headersUnsafe !== null) {
+      for (const [key, value] of Object.entries(headersUnsafe as Record<string, string>)) {
+        headersSafeCopy[key] = value;
+      }
     }
 
-    return this._headers;
+    return pruneHeaders(headersSafeCopy, { allow });
   }
 
   get bodySize(): number | undefined {
@@ -144,13 +156,47 @@ export class RequestWrapperFetch implements IRequestWrapper {
   get method(): string | undefined {
     return this.request.method;
   }
+
+  get body(): string | null {
+    if (typeof this.request.body === 'string') {
+      return this.request.body;
+    }
+    return null;
+  }
+
+  async json(allow: string[] = [], exclude: string[] = []): Promise<JsonObject | null> {
+    if (allow.length === 0) {
+      return null;
+    }
+    const text = this.body;
+    return safeParseAndPruneBody(text, allow, exclude);
+  }
 }
 
 export class RequestWrapperXhr implements IRequestWrapper {
-  constructor(readonly body: XMLHttpRequestBodyInitSafe | null) {}
+  constructor(readonly bodyRaw: XMLHttpRequestBodyInitSafe | null, readonly requestHeaders: Record<string, string>) {}
+
+  headers(allow: string[] = []): Record<string, string> | undefined {
+    return pruneHeaders(this.requestHeaders, { allow });
+  }
 
   get bodySize(): number | undefined {
-    return getBodySize(this.body as FetchRequestBody, MAXIMUM_ENTRIES);
+    return getBodySize(this.bodyRaw as FetchRequestBody, MAXIMUM_ENTRIES);
+  }
+
+  get body(): string | null {
+    if (typeof this.bodyRaw === 'string') {
+      return this.bodyRaw;
+    }
+    return null;
+  }
+
+  async json(allow: string[] = [], exclude: string[] = []): Promise<JsonObject | null> {
+    if (allow.length === 0) {
+      return null;
+    }
+    const text = this.body;
+    return safeParseAndPruneBody(text, allow, exclude);
   }
 }
 
@@ -214,11 +260,25 @@ function getBodySize(bodyUnsafe: FetchRequestBody, maxEntries: number): number |
   return bodySize;
 }
 
+export type JsonObject = {
+  [key: string]: JsonValue;
+};
+
+export type JsonValue = string | number | boolean | null | JsonObject | JsonArray;
+
+export type JsonArray = Array<JsonValue>;
+
 export interface IResponseWrapper {
-  headers?: Record<string, string>;
+  /**
+   * Get the headers of the response.
+   * @param allow - The headers to allow.
+   * @returns The pruned headers
+   */
+  headers(allow?: string[]): Record<string, string> | undefined;
   bodySize?: number;
   status?: number;
   body?: string | Blob | ReadableStream | ArrayBuffer | FormDataSafe | URLSearchParams | ArrayBufferView | null;
+  json: (allow?: string[], exclude?: string[]) => Promise<JsonObject | null>;
 }
 
 /**
@@ -233,20 +293,19 @@ export interface IResponseWrapper {
  *   * Do not make changes to this class without careful consideration
  *     of performance implications, memory usage and potential to mutate the customer's
  *     response.
- *   * NEVER .clone() the Response object. This will 2x's the memory overhead of the response
+ *   * Do not .clone() the Response object unless you need to access the body.
+ *     Cloning will 2x the memory overhead of the response.
  *   * NEVER consume the body's stream. This will cause the response to be consumed
  *     meaning the body will be empty when the customer tries to access it.
  *     (ie: if the body is an instanceof https://developer.mozilla.org/en-US/docs/Web/API/ReadableStream
  *      never call any of the methods on it)
  */
 export class ResponseWrapperFetch implements IResponseWrapper {
-  private _headers: Record<string, string> | undefined;
   private _bodySize: number | undefined;
+  private clonedResponse?: ResponseCloneSafe;
   constructor(private response: ResponseSafe) {}
 
-  get headers(): Record<string, string> | undefined {
-    if (this._headers) return this._headers;
-
+  headers(allow: string[] = []): Record<string, string> | undefined {
     if (this.response.headers instanceof Headers) {
       const headersSafe = this.response.headers as HeadersResponseSafe;
       const headersOut: Record<string, string> = {};
@@ -254,8 +313,7 @@ export class ResponseWrapperFetch implements IResponseWrapper {
       headersSafe?.forEach?.((value, key) => {
         headersOut[key] = value;
       });
-      this._headers = headersOut;
-      return headersOut;
+      return pruneHeaders(headersOut, { allow });
     }
 
     return;
@@ -273,10 +331,45 @@ export class ResponseWrapperFetch implements IResponseWrapper {
   get status(): number {
     return this.response.status;
   }
+
+  async text(): Promise<string | null> {
+    // !!!IMPORTANT: we clone the response to avoid mutating the original response
+    // never call .text(), .json(), etc.. on the original response always clone it first
+    if (!this.clonedResponse) {
+      this.clonedResponse = this.response.clone();
+    }
+    try {
+      const textPromise = this.clonedResponse.text();
+      const timer = new Promise<null>((resolve) =>
+        setTimeout(
+          /* istanbul ignore next */
+          () => resolve(null),
+          TEXT_READ_TIMEOUT,
+        ),
+      );
+      const text = await Promise.race<string | null>([textPromise, timer]);
+      return text;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  async json(allow: string[] = [], exclude: string[] = []): Promise<JsonObject | null> {
+    if (allow.length === 0) {
+      return null;
+    }
+    const text = await this.text();
+    return safeParseAndPruneBody(text, allow, exclude);
+  }
 }
 
 export class ResponseWrapperXhr implements IResponseWrapper {
-  constructor(readonly statusCode: number, readonly headersString: string, readonly size: number | undefined) {}
+  constructor(
+    readonly statusCode: number,
+    readonly headersString: string,
+    readonly size: number | undefined,
+    readonly getJson: () => any | null,
+  ) {}
 
   get bodySize(): number | undefined {
     return this.size;
@@ -286,9 +379,9 @@ export class ResponseWrapperXhr implements IResponseWrapper {
     return this.statusCode;
   }
 
-  get headers(): Record<string, string> | undefined {
+  headers(allow: string[] = []): Record<string, string> | undefined {
     if (!this.headersString) {
-      return;
+      return {};
     }
     const headers: Record<string, string> = {};
     const headerLines = this.headersString.split('\r\n');
@@ -298,11 +391,81 @@ export class ResponseWrapperXhr implements IResponseWrapper {
         headers[key] = value;
       }
     }
-    return headers;
+    return pruneHeaders(headers, { allow });
+  }
+
+  async json(allow: string[] = [], exclude: string[] = []): Promise<JsonObject | null> {
+    if (allow.length === 0) {
+      return null;
+    }
+    const jsonBody = this.getJson() as JsonObject | null;
+    if (jsonBody) {
+      pruneJson(jsonBody, allow, exclude);
+      return jsonBody;
+    }
+    return null;
   }
 }
 
+function safeParseAndPruneBody(text: string | null, allow: string[], exclude: string[]): JsonObject | null {
+  if (!text) return null;
+  try {
+    const json = JSON.parse(text) as JsonObject;
+    pruneJson(json, allow, exclude);
+    return json;
+  } catch (error) {
+    return null;
+  }
+}
+
+export enum PRUNE_STRATEGY {
+  REDACT = 'redact',
+  REMOVE = 'remove',
+}
+
+const REDACTED_VALUE = '[REDACTED]';
+
+/**
+ * Prune headers from a headers record object.
+ * @param headers - The headers to prune.
+ * @param options - The options to prune the headers.
+ * @param options.exclude - List of headers to delete from headers
+ * @param options.include - List of headers to keep in headers, if not provided, all headers are kept by default
+ * @returns The pruned headers.
+ */
+export const pruneHeaders = (
+  headers: Record<string, string>,
+  options: {
+    allow?: string[];
+    strategy?: PRUNE_STRATEGY;
+  },
+): Record<string, string> => {
+  const { allow = [], strategy = PRUNE_STRATEGY.REMOVE } = options;
+  const exclude = [...FORBIDDEN_HEADERS];
+  const headersPruned: Record<string, string> = {};
+
+  for (const key of Object.keys(headers)) {
+    const lowerKey = key.toLowerCase();
+
+    if (exclude.find((e) => e.toLowerCase() === lowerKey)) {
+      if (strategy === PRUNE_STRATEGY.REDACT) {
+        headersPruned[key] = REDACTED_VALUE;
+      }
+    } else if (!allow.find((i) => i.toLowerCase() === lowerKey)) {
+      if (strategy === PRUNE_STRATEGY.REDACT) {
+        headersPruned[key] = REDACTED_VALUE;
+      }
+    } else {
+      headersPruned[key] = headers[key];
+    }
+  }
+  return headersPruned;
+};
 export class NetworkRequestEvent {
+  public requestHeaders?: Record<string, string>;
+  public responseHeaders?: Record<string, string>;
+  public requestBodyJson?: Promise<JsonObject | null>;
+  public responseBodyJson?: Promise<JsonObject | null>;
   constructor(
     public readonly type: 'xhr' | 'fetch',
     public readonly method: string,
@@ -331,9 +494,9 @@ export class NetworkRequestEvent {
       error: this.error,
       startTime: this.startTime,
       endTime: this.endTime,
-      requestHeaders: this.requestWrapper?.headers,
+      requestHeaders: this.requestWrapper?.headers([...SAFE_HEADERS]),
       requestBodySize: this.requestWrapper?.bodySize,
-      responseHeaders: this.responseWrapper?.headers,
+      responseHeaders: this.responseWrapper?.headers([...SAFE_HEADERS]),
       responseBodySize: this.responseWrapper?.bodySize,
     };
 

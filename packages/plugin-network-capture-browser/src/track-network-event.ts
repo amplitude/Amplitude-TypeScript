@@ -4,10 +4,15 @@ import {
   NetworkCaptureRule,
   NetworkTrackingOptions,
   getGlobalScope,
+  JsonObject,
+  isUrlMatchAllowlist,
+  SAFE_HEADERS,
 } from '@amplitude/analytics-core';
 import { filter } from 'rxjs';
 import { AllWindowObservables, TimestampedEvent } from './network-capture-plugin';
-import { AMPLITUDE_NETWORK_REQUEST_EVENT } from './constants';
+import { AMPLITUDE_NETWORK_REQUEST_EVENT, IS_HEADER_CAPTURE_EXPERIMENTAL } from './constants';
+import { IRequestWrapper } from '@amplitude/analytics-core';
+import { BodyCaptureRule } from '@amplitude/analytics-core/lib/esm/types/network-tracking';
 
 const DEFAULT_STATUS_CODE_RANGE = '500-599';
 
@@ -34,9 +39,31 @@ function isStatusCodeInRange(statusCode: number, range: string) {
   return false;
 }
 
-function isCaptureRuleMatch(rule: NetworkCaptureRule, hostname: string, status?: number) {
+function isCaptureRuleMatch(
+  rule: NetworkCaptureRule,
+  hostname: string,
+  status?: number,
+  url?: string,
+  method?: string,
+) {
   // check if the host is in the allowed hosts
   if (rule.hosts && !rule.hosts.find((host: string) => wildcardMatch(hostname, host))) {
+    return;
+  }
+
+  // check if the URL is in the allowed URL patterns
+  if (url && rule.urls && !isUrlMatchAllowlist(url, rule.urls)) {
+    return;
+  }
+
+  // check if the method is in the allowed methods
+  if (
+    method &&
+    rule.methods &&
+    !rule.methods.find(
+      (allowedMethod: string) => method.toLowerCase() === allowedMethod.toLowerCase() || allowedMethod === '*',
+    )
+  ) {
     return;
   }
 
@@ -71,6 +98,59 @@ function parseUrl(url: string | undefined) {
     /* istanbul ignore next */
     return;
   }
+}
+
+function isAmplitudeNetworkRequestEvent(host: string, requestWrapper: IRequestWrapper): boolean {
+  if (host.includes('amplitude.com')) {
+    try {
+      const body = requestWrapper.body;
+      if (typeof body !== 'string') {
+        return false;
+      }
+      const bodyObj = JSON.parse(body) as { events: any[] };
+      const { events } = bodyObj;
+      /* eslint-disable-next-line @typescript-eslint/no-unsafe-member-access */
+      if (events.find((event: any) => event.event_type === AMPLITUDE_NETWORK_REQUEST_EVENT)) {
+        return true;
+      }
+    } catch (e) {
+      // do nothing
+    }
+  }
+  return false;
+}
+
+/**
+ * Takes a user provided header capture rule and returns a
+ * HeaderCaptureRule object that sets proper default values.
+ *
+ * @param rule - The header capture rule to parse.
+ * @returns A HeaderCaptureRule object.
+ */
+export function parseHeaderCaptureRule(rule: string[] | boolean | undefined | null): string[] | undefined {
+  if (typeof rule !== 'object' || rule === null) {
+    // if rule is truthy or undefined, return SAFE_HEADERS
+    if (rule) {
+      return [...SAFE_HEADERS];
+    } else if (rule === undefined) {
+      /* istanbul ignore next */
+      const res = IS_HEADER_CAPTURE_EXPERIMENTAL ? undefined : [...SAFE_HEADERS];
+      return res;
+    }
+    return;
+  }
+
+  // if the rule is defined but empty, return undefined
+  if (rule.length === 0) {
+    return;
+  }
+
+  return rule;
+}
+
+function isBodyCaptureRuleEmpty(rule: BodyCaptureRule) {
+  /* istanbul ignore next */
+  return !rule?.allowlist?.length && !rule?.blocklist?.length;
 }
 
 export function shouldTrackNetworkEvent(networkEvent: NetworkRequestEvent, options: NetworkTrackingOptions = {}) {
@@ -111,7 +191,43 @@ export function shouldTrackNetworkEvent(networkEvent: NetworkRequestEvent, optio
     // that is a match (true) or a miss (false)
     let isMatch: boolean | undefined;
     [...options.captureRules].reverse().find((rule) => {
-      isMatch = isCaptureRuleMatch(rule, host, networkEvent.status);
+      isMatch = isCaptureRuleMatch(rule, host, networkEvent.status, networkEvent.url, networkEvent.method);
+
+      if (isMatch) {
+        const responseHeadersRule = parseHeaderCaptureRule(rule.responseHeaders);
+        if (networkEvent.responseWrapper && responseHeadersRule) {
+          const responseHeaders = networkEvent.responseWrapper.headers(responseHeadersRule);
+          if (responseHeaders) {
+            networkEvent.responseHeaders = responseHeaders;
+          }
+        }
+
+        // if requestHeaders rule is specified, enrich the event with the request headers
+        const requestHeadersRule = parseHeaderCaptureRule(rule.requestHeaders);
+        if (networkEvent.requestWrapper && requestHeadersRule) {
+          const requestHeaders = networkEvent.requestWrapper.headers(requestHeadersRule);
+          if (requestHeaders) {
+            networkEvent.requestHeaders = requestHeaders;
+          }
+        }
+
+        // if responseBody rule is specified, enrich the event with the response body
+        if (networkEvent.responseWrapper && rule.responseBody && !isBodyCaptureRuleEmpty(rule.responseBody)) {
+          networkEvent.responseBodyJson = networkEvent.responseWrapper.json(
+            rule.responseBody.allowlist,
+            rule.responseBody.blocklist,
+          );
+        }
+
+        // if requestBody rule is specified, enrich the event with the request body
+        if (networkEvent.requestWrapper && rule.requestBody && !isBodyCaptureRuleEmpty(rule.requestBody)) {
+          networkEvent.requestBodyJson = networkEvent.requestWrapper.json(
+            rule.requestBody.allowlist,
+            rule.requestBody.blocklist,
+          );
+        }
+      }
+
       return isMatch !== undefined;
     });
 
@@ -120,6 +236,11 @@ export function shouldTrackNetworkEvent(networkEvent: NetworkRequestEvent, optio
     if (!isMatch) {
       return false;
     }
+  }
+
+  // skip Amplitude network requests to "[Amplitude] Network Request" to avoid infinite loop
+  if (networkEvent.requestWrapper && isAmplitudeNetworkRequestEvent(host, networkEvent.requestWrapper)) {
+    return false;
   }
 
   return true;
@@ -135,9 +256,31 @@ export type NetworkAnalyticsEvent = {
   ['[Amplitude] Completion Time']?: number; // unix timestamp
   ['[Amplitude] Duration']?: number; // completionTime - startTime (millis)
   ['[Amplitude] Request Body Size']?: number;
+  ['[Amplitude] Request Headers']?: Record<string, string>;
+  ['[Amplitude] Request Body']?: JsonObject;
   ['[Amplitude] Response Body Size']?: number;
+  ['[Amplitude] Response Headers']?: Record<string, string>;
+  ['[Amplitude] Response Body']?: JsonObject;
   ['[Amplitude] Request Type']?: 'xhr' | 'fetch';
 };
+
+export async function logNetworkAnalyticsEvent(
+  networkAnalyticsEvent: NetworkAnalyticsEvent,
+  request: NetworkRequestEvent,
+  amplitude: BrowserClient,
+) {
+  if (request.requestBodyJson || request.responseBodyJson) {
+    const [requestBody, responseBody] = await Promise.all([request.requestBodyJson, request.responseBodyJson]);
+    if (requestBody) {
+      networkAnalyticsEvent['[Amplitude] Request Body'] = requestBody;
+    }
+    if (responseBody) {
+      networkAnalyticsEvent['[Amplitude] Response Body'] = responseBody;
+    }
+  }
+  /* istanbul ignore next */
+  amplitude?.track(AMPLITUDE_NETWORK_REQUEST_EVENT, networkAnalyticsEvent);
+}
 
 export function trackNetworkEvents({
   allObservables,
@@ -187,9 +330,11 @@ export function trackNetworkEvents({
       ['[Amplitude] Request Body Size']: requestBodySize,
       ['[Amplitude] Response Body Size']: responseBodySize,
       ['[Amplitude] Request Type']: request.type,
+      ['[Amplitude] Request Headers']: request.requestHeaders,
+      ['[Amplitude] Response Headers']: request.responseHeaders,
     };
 
-    /* istanbul ignore next */
-    amplitude?.track(AMPLITUDE_NETWORK_REQUEST_EVENT, networkAnalyticsEvent);
+    // fire-and-forget promise that tracks the event
+    void logNetworkAnalyticsEvent(networkAnalyticsEvent, request, amplitude);
   });
 }

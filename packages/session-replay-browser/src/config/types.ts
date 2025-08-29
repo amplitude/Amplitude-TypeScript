@@ -1,5 +1,6 @@
 import { IConfig, LogLevel, ILogger } from '@amplitude/analytics-core';
 import { StoreType, ConsoleLogLevel } from '../typings/session-replay';
+import { TargetingFlag } from '@amplitude/targeting';
 
 export interface SamplingConfig {
   sample_rate: number;
@@ -26,11 +27,14 @@ export interface LoggingConfig {
   };
 }
 
+export type TargetingConfig = TargetingFlag;
+
 export type SessionReplayRemoteConfig = {
   sr_sampling_config?: SamplingConfig;
   sr_privacy_config?: PrivacyConfig;
   sr_interaction_config?: InteractionConfig;
   sr_logging_config?: LoggingConfig;
+  sr_targeting_config?: TargetingConfig;
 };
 
 export interface SessionReplayRemoteConfigAPIResponse {
@@ -141,6 +145,7 @@ export interface SessionReplayLocalConfig extends IConfig {
      */
     useWebWorker: boolean;
   };
+  userProperties?: { [key: string]: any };
 
   /**
    * Remove certain parts of the DOM from being captured. These are typically ignored when blocking by selectors.
@@ -161,6 +166,29 @@ export interface SessionReplayLocalConfig extends IConfig {
    * This helps visualize which elements are blocked from being captured.
    */
   applyBackgroundColorToBlockedElements?: boolean;
+  /**
+   * Enables URL change polling as a fallback for SPA route tracking.
+   * When enabled, the SDK will periodically check for URL changes every second
+   * in addition to patching the History API. This is useful for edge cases where
+   * route changes might bypass the standard History API methods.
+   *
+   * @defaultValue false
+   */
+  enableUrlChangePolling?: boolean;
+  /**
+   * Specifies the interval in milliseconds for URL change polling when enableUrlChangePolling is true.
+   * The SDK will check for URL changes at this interval as a fallback for SPA route tracking.
+   *
+   * @defaultValue 1000
+   */
+  urlChangePollingInterval?: number;
+  /**
+   * Whether to capture document title in URL change events.
+   * When disabled, the title field will be empty in URL change events.
+   *
+   * @defaultValue false
+   */
+  captureDocumentTitle?: boolean;
   interactionConfig?: InteractionConfig;
 }
 
@@ -168,6 +196,7 @@ export interface SessionReplayJoinedConfig extends SessionReplayLocalConfig {
   captureEnabled?: boolean;
   interactionConfig?: InteractionConfig;
   loggingConfig?: LoggingConfig;
+  targetingConfig?: TargetingConfig;
 }
 
 export interface SessionReplayRemoteConfigFetch {

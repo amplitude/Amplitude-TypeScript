@@ -64,16 +64,36 @@
         import.meta.env.VITE_AMPLITUDE_USER_ID || 'amplitude-typescript test user',
         {
           autocapture: {
-            networkTracking: true,
-          },
-          networkTrackingOptions: {
-            ignoreAmplitudeRequests: false,
-            ignoreHosts: [],
-            captureRules: [
-              { hosts: ['*.amplitude.com'], statusCodeRange: '400-599' },
-              { hosts: ['httpstat.us'], statusCodeRange: '0,400-599' },
-              { hosts: ['*'], statusCodeRange: '0,300-599' },
-            ],
+            networkTracking: {
+              ignoreAmplitudeRequests: false,
+              ignoreHosts: [],
+              captureRules: [
+                {
+                  hosts: ['*.amplitude.com'],
+                  statusCodeRange: '400-599',
+                  requestHeaders: true,
+                  responseHeaders: true,
+                },
+                {
+                  hosts: ['localhost', '127.0.0.1'],
+                  statusCodeRange: '0,400-599',
+                  requestHeaders: true,
+                  responseHeaders: true,
+                },
+                {
+                  hosts: ['*'],
+                  statusCodeRange: '0,300-599',
+                  requestHeaders: true,
+                  responseHeaders: true,
+                  responseBody: {
+                    allowlist: ['status', 'message', 'method'],
+                  },
+                  requestBody: {
+                    allowlist: ['**'],
+                  },
+                },
+              ],
+            },
           },
         }
       );
@@ -104,7 +124,13 @@
           console.log('fetching', url, options);
           const res = await fetch(url, options);
           const contentType = res.headers.get('content-type') || '';
-          let data = contentType.includes('application/json') ? await res.json() : await res.text();
+          let data = null;
+          
+          // Don't try to parse body for HEAD requests
+          if (options?.method !== 'HEAD') {
+            data = contentType.includes('application/json') ? await res.json() : await res.text();
+          }
+          
           const result = {res, data, url, options};
           displayResult(result);
           return result;
@@ -154,14 +180,20 @@
           throw new Error(`Expected status code ${expectedStatus} but got ${res.status}`);
         }
 
-        // Check that the response has content-type header
+        // For HEAD requests, don't require content-type or body
+        if (['HEAD', 'OPTIONS'].includes(result.options?.method)) {
+          return true;
+        }
+
+        // Check that the response has content-type header (except for certain status codes)
         const contentType = res.headers.get('content-type');
-        if (!contentType) {
+        console.log('contentType', contentType);
+        if (!contentType && res.status !== 204 && res.status !== 304) {
           throw new Error(`Response missing content-type header`);
         }
 
-        // Check that the response has a valid body
-        if (!res.body) {
+        // Check that the response has a valid body (except for certain status codes)
+        if (!res.body && res.status !== 204 && res.status !== 304) {
           throw new Error(`Response missing body`);
         }
 
@@ -186,7 +218,7 @@
           setTimeout(() => controller.abort(), 10); // abort after 10ms
 
           try {
-            const abortedRes = await fetch('https://httpstat.us/200', {
+            const abortedRes = await fetch('http://localhost:5173/api/status/200', {
               method: 'POST',
               body: 'This request will be aborted',
               headers: { 'Content-Type': 'text/plain' },
@@ -199,60 +231,60 @@
           }
 
           // Original test cases
-          res = await makeRequest('https://httpstat.us/500', { method: 'POST', body: 'Hello', headers: { 'Content-Type': 'text/plain' } });
+          res = await makeRequest('http://localhost:5173/api/status/500', { method: 'POST', body: 'Hello', headers: { 'Content-Type': 'text/plain' } });
           assert(res, 500);
           
-          res = await makeRequest('https://httpbin.org/status/501', { method: 'POST', body: JSON.stringify({ message: 'Hello', count: 42 }), headers: { 'Content-Type': 'application/json' } });
+          res = await makeRequest('http://localhost:5173/api/status/501', { method: 'POST', body: JSON.stringify({ message: 'Hello', count: 42 }), headers: { 'Content-Type': 'application/json' } });
           assert(res, 501);
           
           const formData = new FormData();
           formData.append('text', 'Hello from FormData');
           formData.append('file', new Blob(['Hello from Blob'], { type: 'text/plain' }));
-          res = await makeRequest('https://httpbin.org/status/502', { method: 'POST', body: formData });
+          res = await makeRequest('http://localhost:5173/api/status/502', { method: 'POST', body: formData });
           assert(res, 502);
           
           const params = new URLSearchParams();
           params.append('param1', 'value1');
           params.append('param2', 'value2');
-          res = await makeRequest('https://httpstat.us/503', { method: 'POST', body: params });
+          res = await makeRequest('http://localhost:5173/api/status/503', { method: 'POST', body: params });
           assert(res, 503);
           
-          res = await makeRequest('https://httpstat.us/504', { method: 'POST', body: new ArrayBuffer(8) });
+          res = await makeRequest('http://localhost:5173/api/status/504', { method: 'POST', body: new ArrayBuffer(8) });
           assert(res, 504);
           
-          res = await makeRequest('https://httpstat.us/505', { method: 'POST', body: new Blob(['Hello from Blob'], { type: 'text/plain' }) });
+          res = await makeRequest('http://localhost:5173/api/status/505', { method: 'POST', body: new Blob(['Hello from Blob'], { type: 'text/plain' }) });
           assert(res, 505);
           
           const encoder = new TextEncoder();
-          res = await makeRequest('https://httpstat.us/506', { method: 'POST', body: encoder.encode('Hello from Stream') });
+          res = await makeRequest('http://localhost:5173/api/status/506', { method: 'POST', body: encoder.encode('Hello from Stream') });
           assert(res, 506);
           
-          res = await makeRequest('https://httpstat.us/507', { method: 'GET' });
+          res = await makeRequest('http://localhost:5173/api/status/507', { method: 'GET' });
           assert(res, 507);
           
-          res = await makeRequest('https://httpstat.us/200', { method: 'GET' });
+          res = await makeRequest('http://localhost:5173/api/status/200', { method: 'GET' });
           assert(res, 200);
 
           // Additional test cases
-          res = await makeRequest('https://httpstat.us/200', { method: 'HEAD' });
+          res = await makeRequest('http://localhost:5173/api/status/200', { method: 'HEAD' });
           assert(res, 200);
           
-          res = await makeRequest('https://httpstat.us/200', { method: 'OPTIONS' });
+          res = await makeRequest('http://localhost:5173/api/status/200', { method: 'OPTIONS' });
           assert(res, 200);
           
-          res = await makeRequest('https://httpstat.us/200', { method: 'DELETE' });
+          res = await makeRequest('http://localhost:5173/api/status/200', { method: 'DELETE' });
           assert(res, 200);
           
-          res = await makeRequest('https://httpstat.us/200', { method: 'PUT', body: JSON.stringify({ message: 'Update' }), headers: { 'Content-Type': 'application/json' } });
+          res = await makeRequest('http://localhost:5173/api/status/200', { method: 'PUT', body: JSON.stringify({ message: 'Update' }), headers: { 'Content-Type': 'application/json' } });
           assert(res, 200);
           
           res = await makeRequest('/api/test', { method: 'GET' }); // Relative URL, expect 404 or dev server response
           assert(res, 200);
           
-          res = await makeRequest('https://invalid.domain.test'); // Unresolvable domain
+          res = await makeRequest('https://notrealdomain'); // Unresolvable domain
           assert(res, 0); // Network errors have status 0
           
-          res = await makeRequest('https://httpstat.us/200?sleep=5000'); // Slow request
+          res = await makeRequest('http://localhost:5173/api/status/200?sleep=5000'); // Slow request
           assert(res, 200);
 
           updateCompletionIndicator(true, 'All tests completed successfully!');

@@ -8,7 +8,8 @@ import type {
   LabeledEvent,
   Trigger,
 } from '@amplitude/analytics-core/lib/esm/types/element-interactions';
-import { extractDataFromDataSource, getDataSource, executeActions } from '../../src/pageActions/actions';
+import { getDataSource, executeActions } from '../../src/pageActions/actions';
+import { DataExtractor } from '../../src/data-extractor';
 import type { DataSource } from '@amplitude/analytics-core/lib/esm/types/element-interactions';
 
 const TESTING_DEBOUNCE_TIME = 4;
@@ -44,6 +45,13 @@ describe('page actions', () => {
           <span class="price">$20.00</span>
           <button class="add-to-cart-button">Add to Cart</button>
         </div>
+
+        <div class="product-card" id="product-card-3">
+          <h3 class="product-name">Product 3</h3>
+          <p class="product-category">Category 3</p>
+          <span class="price">4111111111111111</span>
+          <button class="add-to-cart-button">Add to Cart</button>
+        </div>
       </div>
     </div>
     `;
@@ -53,11 +61,11 @@ describe('page actions', () => {
       id: '123',
       definition: [
         {
-          event_type: 'click',
+          event_type: '[Amplitude] Element Clicked',
           filters: [
             {
               subprop_key: '[Amplitude] Element Text',
-              subprop_op: 'exact',
+              subprop_op: 'is',
               subprop_value: ['Add to Cart'],
             },
             {
@@ -220,6 +228,43 @@ describe('page actions', () => {
       );
     });
 
+    test('should mask credit card-like price in product-card-3', async () => {
+      const autocaptureConfig: ElementInteractionsOptions = {
+        pageActions: {
+          labeledEvents: labeledEvents,
+          triggers: triggers,
+        },
+      };
+      const config: Partial<BrowserConfig> = {
+        defaultTracking: false,
+        loggerProvider: loggerProvider,
+        autocapture: {
+          elementInteractions: autocaptureConfig,
+        },
+      };
+
+      plugin = autocapturePlugin(autocaptureConfig);
+      await plugin?.setup?.(config as BrowserConfig, instance);
+
+      const button3 = document.querySelector('#product-card-3 .add-to-cart-button');
+
+      // trigger click event on Card 3
+      button3?.dispatchEvent(new Event('click'));
+
+      await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 3));
+
+      expect(track).toHaveBeenNthCalledWith(
+        1,
+        '[Amplitude] Element Clicked',
+        expect.objectContaining({
+          '[Amplitude] Element Class': 'add-to-cart-button',
+          'product-name': 'Product 3',
+          'product-category': 'Category 3',
+          price: '*****',
+        }),
+      );
+    });
+
     test('should not change the event if no actions are triggered', async () => {
       const autocaptureConfig: ElementInteractionsOptions = {};
       const config: Partial<BrowserConfig> = {
@@ -258,6 +303,18 @@ describe('page actions', () => {
       const data = getDataSource({ sourceType: 'UNEXPECTED_TYPE' } as unknown as DataSource, document.body);
       expect(data).toBeUndefined();
     });
+
+    test('should return undefined if selector and scope are invalid CSS selectors (empty strings)', () => {
+      const data = getDataSource(
+        {
+          sourceType: 'DOM_ELEMENT',
+          selector: '$$$',
+          scope: '',
+        } as unknown as DataSource,
+        document.body,
+      );
+      expect(data).toBeUndefined();
+    });
   });
 
   describe('extractDataFromDataSource', () => {
@@ -266,9 +323,8 @@ describe('page actions', () => {
     });
 
     test('should extract data from scopingElement if no further selector is provided', () => {
-      const productCard1 = document.querySelector('#product-card-1');
       const button1 = document.querySelector('#product-card-1 .add-to-cart-button');
-      const data = extractDataFromDataSource(
+      const data = new DataExtractor({}).extractDataFromDataSource(
         {
           sourceType: 'DOM_ELEMENT',
           elementExtractType: 'TEXT',
@@ -276,12 +332,12 @@ describe('page actions', () => {
         },
         button1 as HTMLElement,
       );
-      expect(data).toBe(productCard1?.textContent);
+      expect(data).toBe('Product 1 Category 1 $10.00 Add to Cart');
     });
 
     test('should return undefined if no element source is found', () => {
       const button1 = document.querySelector('#product-card-1 .add-to-cart-button');
-      const data = extractDataFromDataSource(
+      const data = new DataExtractor({}).extractDataFromDataSource(
         {
           sourceType: 'DOM_ELEMENT',
           elementExtractType: 'TEXT',
@@ -294,7 +350,7 @@ describe('page actions', () => {
 
     test('should extract attribute from element', () => {
       const avatarImage = document.querySelector('#fixed-header-profile-avatar img');
-      const data = extractDataFromDataSource(
+      const data = new DataExtractor({}).extractDataFromDataSource(
         {
           sourceType: 'DOM_ELEMENT',
           elementExtractType: 'ATTRIBUTE',
@@ -308,7 +364,7 @@ describe('page actions', () => {
 
     test('should return undefined for unsupported elementExtractType', () => {
       const button1 = document.querySelector('#product-card-1 .add-to-cart-button');
-      const data = extractDataFromDataSource(
+      const data = new DataExtractor({}).extractDataFromDataSource(
         {
           sourceType: 'DOM_ELEMENT',
           elementExtractType: 'UNSUPPORTED_TYPE' as 'TEXT',
@@ -321,7 +377,7 @@ describe('page actions', () => {
 
     test('should return undefined for non-DOM_ELEMENT sourceType', () => {
       const button1 = document.querySelector('#product-card-1 .add-to-cart-button');
-      const data = extractDataFromDataSource(
+      const data = new DataExtractor({}).extractDataFromDataSource(
         {
           sourceType: 'UNSUPPORTED_SOURCE_TYPE' as 'DOM_ELEMENT',
           elementExtractType: 'TEXT',
@@ -346,7 +402,11 @@ describe('page actions', () => {
 
       const stringActions = ['action1', 'action2'];
 
-      executeActions(stringActions, mockEvent as unknown as ElementBasedTimestampedEvent<MouseEvent>);
+      executeActions(
+        stringActions,
+        mockEvent as unknown as ElementBasedTimestampedEvent<MouseEvent>,
+        new DataExtractor({}),
+      );
 
       // Should not add any properties since string actions are skipped
       expect(mockEvent.targetElementProperties).toEqual({});

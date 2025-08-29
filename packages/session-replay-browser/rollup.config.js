@@ -20,6 +20,7 @@ const esmConfig = {
     chunkFileNames: '[name]-min.js',
     manualChunks: {
       'console-plugin': ['@amplitude/rrweb-plugin-console-record'],
+      'targeting': ['@amplitude/targeting'],
       'rrweb-record': ['@amplitude/rrweb-record']
     }
   },

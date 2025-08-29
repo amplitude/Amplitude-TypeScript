@@ -2,6 +2,7 @@ import {
   getAttributionTrackingConfig,
   getPageViewTrackingConfig,
   getElementInteractionsConfig,
+  getFrustrationInteractionsConfig,
   isAttributionTrackingEnabled,
   isFileDownloadTrackingEnabled,
   isFormInteractionTrackingEnabled,
@@ -10,7 +11,60 @@ import {
   isElementInteractionsEnabled,
   getNetworkTrackingConfig,
   isNetworkTrackingEnabled,
+  isFrustrationInteractionsEnabled,
 } from '../src/default-tracking';
+
+describe('isFrustrationInteractionsEnabled', () => {
+  test('should return false with true parameter while frustrationInteractions is Beta', () => {
+    expect(isFrustrationInteractionsEnabled(true)).toBe(false);
+  });
+
+  test('should return true with undefined parameter', () => {
+    expect(isFrustrationInteractionsEnabled(undefined)).toBe(false);
+  });
+
+  test('should return false with false parameter', () => {
+    expect(isFrustrationInteractionsEnabled(false)).toBe(false);
+  });
+
+  test('should return true with object parameter', () => {
+    expect(isFrustrationInteractionsEnabled({ frustrationInteractions: true })).toBe(true);
+  });
+
+  test('should return false with object parameter', () => {
+    expect(isFrustrationInteractionsEnabled({ frustrationInteractions: false })).toBe(false);
+  });
+
+  test('should get frustration interactions config', () => {
+    const config = getFrustrationInteractionsConfig({
+      autocapture: {
+        frustrationInteractions: {
+          deadClicks: {
+            cssSelectorAllowlist: ['button'],
+          },
+          rageClicks: {
+            cssSelectorAllowlist: ['button'],
+          },
+        },
+      },
+    });
+    expect(config).toEqual({
+      deadClicks: {
+        cssSelectorAllowlist: ['button'],
+      },
+      rageClicks: {
+        cssSelectorAllowlist: ['button'],
+      },
+    });
+  });
+
+  test('should get undefined frustration interactions config when autocapture is true', () => {
+    const config = getFrustrationInteractionsConfig({
+      autocapture: true,
+    });
+    expect(config).toBeUndefined();
+  });
+});
 
 describe('isFileDownloadTrackingEnabled', () => {
   test('should return true with true parameter', () => {
@@ -414,6 +468,55 @@ describe('getNetworkTrackingConfig', () => {
       },
     });
     expect(config).toBeUndefined();
+  });
+
+  describe('captureRules.urls and .hosts combinations', () => {
+    const networkTracking = {
+      captureRules: [
+        { urls: ['https://example.com/path', /path\/to/], hosts: ['example.com'] },
+        { hosts: ['example.com', 'helloworld.com'] },
+      ],
+    };
+
+    test('should ignore hosts if urls are set', () => {
+      const captureRules =
+        getNetworkTrackingConfig({
+          autocapture: { networkTracking },
+        })?.captureRules || [];
+      const ruleWithBothSet = captureRules[0];
+      expect(ruleWithBothSet.hosts).toBeUndefined();
+      expect(ruleWithBothSet.urls).toEqual(['https://example.com/path', /path\/to/]);
+    });
+
+    test('should keep hosts if urls are not set', () => {
+      const captureRules =
+        getNetworkTrackingConfig({
+          autocapture: { networkTracking },
+        })?.captureRules || [];
+      const ruleWithOnlyHosts = captureRules[1];
+      expect(ruleWithOnlyHosts.hosts).toEqual(['example.com', 'helloworld.com']);
+      expect(ruleWithOnlyHosts.urls).toBeUndefined();
+    });
+
+    test('should not do anything if captureRules is not set', () => {
+      const config = getNetworkTrackingConfig({
+        autocapture: { networkTracking: {} },
+      });
+      expect(config?.captureRules).toBeUndefined();
+    });
+
+    test('should apply captureRules to networkTrackingOptions', () => {
+      const networkTrackingOptions = {
+        captureRules: [{ urls: ['https://example.com/path', /path\/to/], hosts: ['example.com'] }],
+      };
+      const config = getNetworkTrackingConfig({
+        autocapture: { networkTracking: true },
+        networkTrackingOptions,
+      });
+      const ruleWithBothSet = config?.captureRules?.[0];
+      expect(ruleWithBothSet?.urls).toEqual(['https://example.com/path', /path\/to/]);
+      expect(ruleWithBothSet?.hosts).toBeUndefined();
+    });
   });
 });
 
