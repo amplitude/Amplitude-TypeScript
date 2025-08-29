@@ -90,10 +90,8 @@ export class DataExtractor {
       if (node) {
         const redactedAttributes = parseAttributesToRedact(node.getAttribute(constants.DATA_AMP_MASK_ATTRIBUTES));
         const ancestorRedactedAttributes =
-          i === 0
-            ? new Set<string>()
-            : parseAttributesToRedact(reversedAncestors[i - 1].getAttribute(constants.DATA_AMP_MASK_ATTRIBUTES));
-        const allRedactedAttributes = new Set([...redactedAttributes, ...ancestorRedactedAttributes]);
+          i === 0 ? [] : elementToRedactedAttributesMap.get(reversedAncestors[i - 1]) ?? new Set<string>();
+        const allRedactedAttributes = new Set([...ancestorRedactedAttributes, ...redactedAttributes]);
         elementToRedactedAttributesMap.set(node, allRedactedAttributes);
       }
     }
@@ -106,7 +104,7 @@ export class DataExtractor {
     for (const hieraryNode of hierarchy) {
       if (hieraryNode?.attrs) {
         Object.entries(hieraryNode.attrs).forEach(([key, value]) => {
-          if (hieraryNode.attrs?.[key]) {
+          if (hieraryNode.attrs) {
             hieraryNode.attrs[key] = this.replaceSensitiveString(value);
           }
         });

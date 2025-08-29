@@ -1,5 +1,5 @@
 import { isNonSensitiveElement } from './helpers';
-import { DATA_AMP_MASK_ATTRIBUTES } from './constants';
+import { DATA_AMP_MASK_ATTRIBUTES, MASKED_TEXT_VALUE } from './constants';
 import type { HierarchyNode } from './typings/autocapture';
 
 const BLOCKED_ATTRIBUTES = new Set([
@@ -41,7 +41,7 @@ export const MAX_HIERARCHY_LENGTH = 1024;
 
 export function getElementProperties(
   element: Element | null,
-  userBlockedAttributeNames: Set<string>,
+  userMaskedAttributeNames: Set<string>,
 ): HierarchyNode | null {
   if (element === null) {
     return null;
@@ -75,9 +75,7 @@ export function getElementProperties(
 
   const attributes: Record<string, string> = {};
   const attributesArray = Array.from(element.attributes);
-  const filteredAttributes = attributesArray.filter(
-    (attr) => !BLOCKED_ATTRIBUTES.has(attr.name) && !userBlockedAttributeNames.has(attr.name),
-  );
+  const filteredAttributes = attributesArray.filter((attr) => !BLOCKED_ATTRIBUTES.has(attr.name));
   const isSensitiveElement = !isNonSensitiveElement(element);
 
   // if input is hidden or password or for SVGs, skip attribute collection entirely
@@ -85,6 +83,11 @@ export function getElementProperties(
     for (const attr of filteredAttributes) {
       // If sensitive element, only allow certain attributes
       if (isSensitiveElement && !SENSITIVE_ELEMENT_ATTRIBUTE_ALLOWLIST.includes(attr.name)) {
+        continue;
+      }
+
+      if (userMaskedAttributeNames.has(attr.name)) {
+        attributes[attr.name] = MASKED_TEXT_VALUE;
         continue;
       }
 
