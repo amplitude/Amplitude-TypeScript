@@ -1,5 +1,5 @@
 import { isNonSensitiveElement } from './helpers';
-import { DATA_AMP_MASK_ATTRIBUTES, MASKED_TEXT_VALUE } from './constants';
+import { DATA_AMP_MASK_ATTRIBUTES, MASKED_TEXT_VALUE, TEXT_MASK_ATTRIBUTE } from './constants';
 import type { HierarchyNode } from './typings/autocapture';
 
 const BLOCKED_ATTRIBUTES = new Set([
@@ -31,6 +31,7 @@ const BLOCKED_ATTRIBUTES = new Set([
 
   // Amplitude specific - used for redaction but should not be included in getElementProperties
   DATA_AMP_MASK_ATTRIBUTES,
+  TEXT_MASK_ATTRIBUTE,
 ]);
 const SENSITIVE_ELEMENT_ATTRIBUTE_ALLOWLIST = ['type'];
 

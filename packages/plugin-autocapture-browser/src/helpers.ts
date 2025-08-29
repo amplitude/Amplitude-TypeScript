@@ -103,17 +103,16 @@ export const isNonSensitiveElement = (element: Element) => {
  * @param attributeString - Comma-separated string of attribute names
  * @returns Array of valid attribute names, excluding 'id' and 'class'
  */
-export const parseAttributesToRedact = (attributeString: string | null): string[] => {
+export const parseAttributesToMask = (attributeString: string | null): string[] => {
   return attributeString
     ? attributeString
         .split(',')
         .map((attr) => attr.trim())
-        .filter((attr) => attr.length > 0)
-        .filter((attr) => attr !== 'id' && attr !== 'class') // Prevent 'id' and 'class' from being redacted as they're critical for element identification
+        .filter((attr) => attr.length > 0 && attr !== 'id' && attr !== 'class') // Prevent 'id' and 'class' from being redacted as they're critical for element identification
     : [];
 };
 
-export const getAttributesWithPrefix = (
+export const extractPrefixedAttributes = (
   attrs: { [key: string]: string },
   prefix: string,
 ): { [key: string]: string } => {

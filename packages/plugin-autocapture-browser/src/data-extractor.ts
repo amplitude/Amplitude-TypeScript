@@ -4,11 +4,11 @@ import type { DataSource } from '@amplitude/analytics-core/lib/esm/types/element
 import * as constants from './constants';
 import {
   removeEmptyProperties,
-  getAttributesWithPrefix,
+  extractPrefixedAttributes,
   isElementPointerCursor,
   getClosestElement,
   isElementBasedEvent,
-  parseAttributesToRedact,
+  parseAttributesToMask,
 } from './helpers';
 import type { BaseTimestampedEvent, ElementBasedTimestampedEvent, TimestampedEvent } from './helpers';
 import { getAncestors, getElementProperties } from './hierarchy';
@@ -82,25 +82,25 @@ export class DataExtractor {
     // Get list of ancestors including itself and get properties at each level in the hierarchy
     const ancestors = getAncestors(element);
 
-    const elementToRedactedAttributesMap = new Map<Element, Set<string>>();
-    const reversedAncestors = [...ancestors].reverse(); // root to target order
+    // Build attributes to mask map
+    const elementToAttributesToMaskMap = new Map<Element, Set<string>>();
 
-    for (let i = 0; i < reversedAncestors.length; i++) {
-      const node = reversedAncestors[i];
+    for (let i = ancestors.length - 1; i >= 0; i--) {
+      const node = ancestors[i];
       if (node) {
-        const redactedAttributes = parseAttributesToRedact(node.getAttribute(constants.DATA_AMP_MASK_ATTRIBUTES));
-        const ancestorRedactedAttributes =
-          i === 0 ? [] : elementToRedactedAttributesMap.get(reversedAncestors[i - 1]) ?? new Set<string>();
-        const allRedactedAttributes = new Set([...ancestorRedactedAttributes, ...redactedAttributes]);
-        elementToRedactedAttributesMap.set(node, allRedactedAttributes);
+        const attributesToMask = parseAttributesToMask(node.getAttribute(constants.DATA_AMP_MASK_ATTRIBUTES));
+        const ancestorAttributesToMask =
+          i === ancestors.length - 1 ? [] : elementToAttributesToMaskMap.get(ancestors[i + 1]) ?? new Set<string>();
+        const combinedAttributesToMask = new Set([...ancestorAttributesToMask, ...attributesToMask]);
+        elementToAttributesToMaskMap.set(node, combinedAttributesToMask);
       }
     }
 
     hierarchy = ancestors.map((el) =>
-      getElementProperties(el, elementToRedactedAttributesMap.get(el) ?? new Set<string>()),
+      getElementProperties(el, elementToAttributesToMaskMap.get(el) ?? new Set<string>()),
     );
 
-    // Mask value in attributes
+    // Search for and mask any sensitive attribute values
     for (const hierarchyNode of hierarchy) {
       if (hierarchyNode?.attrs) {
         Object.entries(hierarchyNode.attrs).forEach(([key, value]) => {
@@ -144,7 +144,7 @@ export class DataExtractor {
     const hierarchy = this.getHierarchy(element);
     const currentElementAttributes = hierarchy[0]?.attrs;
     const nearestLabel = this.getNearestLabel(element);
-    const attributes = getAttributesWithPrefix(currentElementAttributes ?? {}, dataAttributePrefix);
+    const attributes = extractPrefixedAttributes(currentElementAttributes ?? {}, dataAttributePrefix);
 
     /* istanbul ignore next */
     const properties: Record<string, any> = {
@@ -162,17 +162,16 @@ export class DataExtractor {
       [constants.AMPLITUDE_EVENT_PROP_VIEWPORT_WIDTH]: window.innerWidth,
     };
 
-    // Add non-redacted attributes conditionally
-    // id is never redacted, so always include it
+    // id is never masked, so always include it
     properties[constants.AMPLITUDE_EVENT_PROP_ELEMENT_ID] = element.getAttribute('id') || '';
 
-    // class is never redacted, so always include it
+    // class is never masked, so always include it
     properties[constants.AMPLITUDE_EVENT_PROP_ELEMENT_CLASS] = element.getAttribute('class');
 
     properties[constants.AMPLITUDE_EVENT_PROP_ELEMENT_ARIA_LABEL] = currentElementAttributes?.['aria-label'];
 
     if (tag === 'a' && actionType === 'click' && element instanceof HTMLAnchorElement) {
-      properties[constants.AMPLITUDE_EVENT_PROP_ELEMENT_HREF] = this.replaceSensitiveString(element.href);
+      properties[constants.AMPLITUDE_EVENT_PROP_ELEMENT_HREF] = this.replaceSensitiveString(element.href); // we don't use hierarchy here because we don't want href value to be changed
     }
 
     return removeEmptyProperties(properties);

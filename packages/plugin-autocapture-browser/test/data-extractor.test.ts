@@ -766,7 +766,7 @@ describe('data extractor', () => {
       expect(result).toBeDefined();
 
       // The ELEMENT_ATTRIBUTES property should be undefined because removeEmptyProperties
-      // removes empty objects, and getAttributesWithPrefix({}, 'data-') returns {}
+      // removes empty objects, and extractPrefixedAttributes({}, 'data-') returns {}
       expect(result[constants.AMPLITUDE_EVENT_PROP_ELEMENT_ATTRIBUTES]).toBeUndefined();
       expect(result[constants.AMPLITUDE_EVENT_PROP_ELEMENT_HIERARCHY]).toEqual([null, undefined]);
 
