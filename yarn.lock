@@ -7,20 +7,11 @@
   resolved "https://registry.npmjs.org/@amplitude/analytics-connector/-/analytics-connector-1.6.4.tgz"
   integrity sha512-SpIv0IQMNIq6SH3UqFGiaZyGSc7PBZwRdq7lvP0pBxW8i4Ny+8zwI0pV+VMfMHQwWY3wdIbWw5WQphNjpdq1/Q==
 
-"@amplitude/analytics-core@>=1 <2", "@amplitude/analytics-core@^1.2.7":
+"@amplitude/analytics-core@>=1 <2":
   version "1.2.7"
   resolved "https://registry.npmjs.org/@amplitude/analytics-core/-/analytics-core-1.2.7.tgz"
   integrity sha512-SM9jdQ+l2q+hy+DdCQm5vtfOTiI+53c+alSSc7fwiuFnTExllXHf9RUK6kKhw3ky+N2o6yqbo+0OGoepLhNf6w==
   dependencies:
-    "@amplitude/analytics-types" "^1.3.5"
-    tslib "^2.4.1"
-
-"@amplitude/analytics-node@^1.3.8":
-  version "1.3.8"
-  resolved "https://registry.yarnpkg.com/@amplitude/analytics-node/-/analytics-node-1.3.8.tgz#3cf41120ada97c18de1f6d9d1dc4472213edb3be"
-  integrity sha512-Dwrh7bl5PTcHmnV8PtvHZTOlIfSfJDe+mf7l/XMiBdQR2kpdpsPAjo1so08Kze+aixWPwMAIDeFCub/QHBGhgA==
-  dependencies:
-    "@amplitude/analytics-core" "^1.2.7"
     "@amplitude/analytics-types" "^1.3.5"
     tslib "^2.4.1"
 
