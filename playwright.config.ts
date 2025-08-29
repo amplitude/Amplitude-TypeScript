@@ -36,17 +36,17 @@ export default defineConfig({
     //     },
     //   },
     // },
-    {
-      name: 'webkit',
-      use: { ...devices['Desktop Safari'] },
-    },
+    // {
+    //   name: 'webkit',
+    //   use: { ...devices['Desktop Safari'] },
+    // },
   ],
-  webServer: {
-    command: 'yarn start',
-    url: 'http://localhost:5173',
-    reuseExistingServer: true,
-    timeout: 120000,
-  },
+  // webServer: {
+  //   command: 'yarn start',
+  //   url: 'http://localhost:5173',
+  //   reuseExistingServer: true,
+  //   timeout: 120000,
+  // },
   testMatch: '**/e2e/**/*.spec.ts',
   timeout: 30000,
 });

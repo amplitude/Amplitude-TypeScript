@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/amplitude.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Remote Config Test</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+        line-height: 1.6;
+      }
+      .container {
+        max-width: 800px;
+        margin: 0 auto;
+      }
+      .status {
+        padding: 10px;
+        margin: 10px 0;
+        border-radius: 4px;
+        font-weight: bold;
+      }
+      .success {
+        background-color: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+      }
+      .info {
+        background-color: #d1ecf1;
+        color: #0c5460;
+        border: 1px solid #bee5eb;
+      }
+      .warning {
+        background-color: #fff3cd;
+        color: #856404;
+        border: 1px solid #ffeaa7;
+      }
+      button {
+        background-color: #007bff;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        margin: 5px;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+      button:hover {
+        background-color: #0056b3;
+      }
+      .log {
+        background-color: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 4px;
+        padding: 10px;
+        margin: 10px 0;
+        font-family: monospace;
+        font-size: 12px;
+        max-height: 300px;
+        overflow-y: auto;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Amplitude Remote Config Test</h1>
+      <p>This page tests Amplitude initialization with <code>fetchRemoteConfig: true</code>.</p>
+      
+      <div id="status" class="status info">
+        Initializing Amplitude with remote config...
+      </div>
+      
+      <div>
+        <button id="trackEvent">Track Test Event</button>
+        <button id="clearCookies">Clear Amplitude Cookies</button>
+        <button id="clearLog">Clear Log</button>
+      </div>
+      
+      <h3>Remote Config Status</h3>
+      <div id="remoteConfigStatus" class="status warning">
+        Waiting for remote config...
+      </div>
+      
+      <h3>Event Log</h3>
+      <div id="log" class="log"></div>
+    </div>
+
+    <script type="module">
+      import * as amplitude from '@amplitude/analytics-browser';
+      import { stubPlugin } from '@amplitude/plugin-stub-browser';
+      
+      // Make amplitude available globally for debugging
+      window.amplitude = amplitude;
+      
+      // Add stub plugin for testing
+      amplitude.add(stubPlugin());
+      
+      // Logging function
+      function log(message, type = 'info') {
+        const logElement = document.getElementById('log');
+        const timestamp = new Date().toISOString();
+        const logEntry = document.createElement('div');
+        logEntry.innerHTML = `<span style="color: #666;">[${timestamp}]</span> ${message}`;
+        logElement.appendChild(logEntry);
+        logElement.scrollTop = logElement.scrollHeight;
+        console.log(`[${type.toUpperCase()}] ${message}`);
+      }
+      
+      // Update status function
+      function updateStatus(message, type = 'info') {
+        const statusElement = document.getElementById('status');
+        statusElement.textContent = message;
+        statusElement.className = `status ${type}`;
+      }
+      
+      // Update remote config status
+      function updateRemoteConfigStatus(message, type = 'warning') {
+        const statusElement = document.getElementById('remoteConfigStatus');
+        statusElement.textContent = message;
+        statusElement.className = `status ${type}`;
+      }
+      
+      log('Starting Amplitude initialization with fetchRemoteConfig: true');
+      
+      // Initialize Amplitude with fetchRemoteConfig set to true
+      amplitude.init(
+        import.meta.env.VITE_AMPLITUDE_API_KEY,
+        import.meta.env.VITE_AMPLITUDE_USER_ID || 'remote-config-test-user',
+        {
+          fetchRemoteConfig: true,
+          logLevel: 'Debug', // Enable debug logging to see remote config activity
+          autocapture: {
+            // Enable autocapture to test remote config overrides
+            elementInteractions: true,
+            pageViews: true,
+          },
+        }
+      ).promise.then(() => {
+        updateStatus('Amplitude initialized successfully with remote config enabled', 'success');
+        log('Amplitude initialization completed');
+        
+        // Track an initial event
+        amplitude.track('Remote Config Test Page Loaded', {
+          fetchRemoteConfig: true,
+          timestamp: new Date().toISOString()
+        });
+        log('Tracked initial page load event');
+        
+      }).catch((error) => {
+        updateStatus(`Amplitude initialization failed: ${error.message}`, 'warning');
+        log(`Initialization error: ${error.message}`, 'error');
+      });
+      
+      // Listen for remote config updates
+      let remoteConfigReceived = false;
+      
+      // We can't directly access the remote config client, but we can observe
+      // when autocapture settings change due to remote config
+      const originalTrack = amplitude.track;
+      amplitude.track = function(eventType, eventProperties, options) {
+        log(`Tracking event: ${eventType}`, 'info');
+        if (eventProperties) {
+          log(`Event properties: ${JSON.stringify(eventProperties)}`, 'info');
+        }
+        return originalTrack.call(this, eventType, eventProperties, options);
+      };
+      
+      // Button event handlers
+      document.getElementById('trackEvent').addEventListener('click', () => {
+        amplitude.track('Manual Test Event', {
+          source: 'button-click',
+          fetchRemoteConfig: true,
+          timestamp: new Date().toISOString()
+        });
+        log('Manual test event tracked');
+      });
+      
+      document.getElementById('clearCookies').addEventListener('click', async () => {
+        try {
+          const cookies = await cookieStore.getAll();
+          const amplitudeCookies = cookies.filter(cookie => cookie.name.startsWith('AMP_'));
+          
+          await Promise.all(
+            amplitudeCookies.map(cookie => 
+              cookieStore.delete(cookie.name)
+            )
+          );
+          
+          log('Amplitude cookies cleared successfully');
+          updateStatus('Amplitude cookies cleared!', 'success');
+        } catch (error) {
+          log(`Error clearing cookies: ${error.message}`, 'error');
+          updateStatus('Failed to clear cookies. See console for details.', 'warning');
+        }
+      });
+      
+      document.getElementById('clearLog').addEventListener('click', () => {
+        document.getElementById('log').innerHTML = '';
+        log('Log cleared');
+      });
+      
+      // Monitor for remote config changes by checking autocapture settings periodically
+      let checkCount = 0;
+      const checkRemoteConfig = () => {
+        checkCount++;
+        log(`Checking for remote config changes (attempt ${checkCount})`);
+        
+        // We can't directly access the remote config, but we can observe
+        // if the autocapture settings have been modified
+        if (checkCount >= 5) {
+          updateRemoteConfigStatus('Remote config check completed. Check browser console for detailed logs.', 'info');
+          log('Remote config monitoring completed. Check browser console for detailed remote config logs.', 'info');
+        } else {
+          setTimeout(checkRemoteConfig, 2000);
+        }
+      };
+      
+      // Start checking for remote config after a short delay
+      setTimeout(checkRemoteConfig, 1000);
+      
+      // Log when the page is fully loaded
+      window.addEventListener('load', () => {
+        log('Page fully loaded');
+      });
+    </script>
+  </body>
+</html>
