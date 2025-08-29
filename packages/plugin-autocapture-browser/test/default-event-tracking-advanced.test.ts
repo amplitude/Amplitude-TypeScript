@@ -1,5 +1,4 @@
 import { autocapturePlugin } from '../src/autocapture-plugin';
-import * as hierarchyModule from '../src/hierarchy';
 
 import { BrowserConfig, EnrichmentPlugin, ILogger, BrowserClient } from '@amplitude/analytics-core';
 import { mockWindowLocationFromURL } from './utils';
@@ -219,9 +218,6 @@ describe('autoTrackingPlugin', () => {
       };
       await plugin?.setup?.(config as BrowserConfig, instance);
 
-      // add spy to getHierarchy
-      jest.spyOn(hierarchyModule, 'getHierarchy');
-
       // trigger click event
       document.getElementById('my-link-id')?.dispatchEvent(new Event('click'));
 
@@ -262,8 +258,8 @@ describe('autoTrackingPlugin', () => {
 
       await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 3));
 
-      // assert getHierarchy was only called once since it is expensive
-      expect(hierarchyModule.getHierarchy).toHaveBeenCalledTimes(1);
+      // assert no additional event was tracked after teardown
+      expect(track).toHaveBeenCalledTimes(1);
     });
 
     // In the browser, this would happen in form elements due to named property accessors

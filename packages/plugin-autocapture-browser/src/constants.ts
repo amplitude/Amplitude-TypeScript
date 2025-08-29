@@ -39,6 +39,8 @@ export const AMPLITUDE_VISUAL_TAGGING_SELECTOR_SCRIPT_URL =
 // Should not use this class in the selector.
 export const AMPLITUDE_VISUAL_TAGGING_HIGHLIGHT_CLASS = 'amp-visual-tagging-selector-highlight';
 
+// Data attribute for specifying which attributes should be redacted from autocapture
+export const DATA_AMP_MASK_ATTRIBUTES = 'data-amp-mask-attributes';
 // Data masking constants
 export const TEXT_MASK_ATTRIBUTE = 'data-amp-mask';
 

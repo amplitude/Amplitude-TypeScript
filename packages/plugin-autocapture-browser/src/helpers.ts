@@ -92,11 +92,34 @@ export const isNonSensitiveElement = (element: Element) => {
   return !SENSITIVE_TAGS.includes(tag) && !isContentEditable;
 };
 
-export const getAttributesWithPrefix = (element: Element, prefix: string): { [key: string]: string } => {
-  return element.getAttributeNames().reduce((attributes: { [key: string]: string }, attributeName) => {
+/**
+ * Collects redacted attribute names from element and ancestor elements with data-amp-mask-attributes
+ * The 'id' and 'class' attributes cannot be redacted as they're critical for element identification
+ * @param element - The target element to check for redaction attributes
+ * @returns Set of attribute names that should be redacted
+ */
+/**
+ * Parses a comma-separated string of attribute names and filters out protected attributes
+ * @param attributeString - Comma-separated string of attribute names
+ * @returns Array of valid attribute names, excluding 'id' and 'class'
+ */
+export const parseAttributesToMask = (attributeString: string | null): string[] => {
+  return attributeString
+    ? attributeString
+        .split(',')
+        .map((attr) => attr.trim())
+        .filter((attr) => attr.length > 0 && attr !== 'id' && attr !== 'class') // Prevent 'id' and 'class' from being redacted as they're critical for element identification
+    : [];
+};
+
+export const extractPrefixedAttributes = (
+  attrs: { [key: string]: string },
+  prefix: string,
+): { [key: string]: string } => {
+  return Object.entries(attrs).reduce((attributes: { [key: string]: string }, [attributeName, attributeValue]) => {
     if (attributeName.startsWith(prefix)) {
       const attributeKey = attributeName.replace(prefix, '');
-      const attributeValue = element.getAttribute(attributeName);
+
       if (attributeKey) {
         attributes[attributeKey] = attributeValue || '';
       }
