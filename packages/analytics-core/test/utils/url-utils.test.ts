@@ -79,14 +79,62 @@ describe('isUrlMatchExcludelist', () => {
     expect(result).toEqual(true);
   });
 
-  test('should return true when url matches a pattern object in the exclude list', () => {
+  test('should return true when url matches a pattern object with exact string match', () => {
     const result = isUrlMatchExcludelist(url, [{ pattern: 'https://amplitude.com/blog' }]);
     expect(result).toEqual(true);
   });
 
-  test('should return false when url does not match a pattern object in the exclude list', () => {
+  test('should return false when url does not match a pattern object with exact string match', () => {
     const result = isUrlMatchExcludelist('https://test.com', [{ pattern: 'https://amplitude.com/blog' }]);
     expect(result).toEqual(false);
+  });
+
+  test('should return true when url matches a pattern object with regex pattern', () => {
+    const result = isUrlMatchExcludelist(url, [{ pattern: 'https://amplitude\\.com/.*' }]);
+    expect(result).toEqual(true);
+  });
+
+  test('should return true when url matches a pattern object with wildcard regex', () => {
+    const result = isUrlMatchExcludelist('https://amplitude.com/docs/api', [{ pattern: 'https://amplitude\\.com/.*' }]);
+    expect(result).toEqual(true);
+  });
+
+  test('should return false when url does not match a pattern object with regex pattern', () => {
+    const result = isUrlMatchExcludelist('https://other.com/page', [{ pattern: 'https://amplitude\\.com/.*' }]);
+    expect(result).toEqual(false);
+  });
+
+  test('should handle invalid regex patterns in pattern objects gracefully', () => {
+    const consoleSpy = jest.spyOn(console, 'warn').mockImplementation(() => {
+      // Mock implementation to suppress console output during test
+    });
+
+    const result = isUrlMatchExcludelist(url, [{ pattern: '[invalid-regex' }]);
+    expect(result).toEqual(false);
+
+    consoleSpy.mockRestore();
+  });
+
+  test('should return true for pattern object with domain wildcard', () => {
+    const result = isUrlMatchExcludelist('https://subdomain.amplitude.com/page', [
+      { pattern: 'https://.*\\.amplitude\\.com/.*' },
+    ]);
+    expect(result).toEqual(true);
+  });
+
+  test('should return true for pattern object with path wildcard', () => {
+    const result = isUrlMatchExcludelist('https://amplitude.com/any/deep/path', [
+      { pattern: 'https://amplitude\\.com/.*' },
+    ]);
+    expect(result).toEqual(true);
+  });
+
+  test('should handle multiple pattern objects in exclude list', () => {
+    const excludeList = [{ pattern: 'https://amplitude\\.com/.*' }, { pattern: 'https://test\\.com/.*' }];
+
+    expect(isUrlMatchExcludelist('https://amplitude.com/blog', excludeList)).toEqual(true);
+    expect(isUrlMatchExcludelist('https://test.com/page', excludeList)).toEqual(true);
+    expect(isUrlMatchExcludelist('https://other.com/page', excludeList)).toEqual(false);
   });
 
   test('should handle mixed exclude list with strings, regexes, and pattern objects', () => {
