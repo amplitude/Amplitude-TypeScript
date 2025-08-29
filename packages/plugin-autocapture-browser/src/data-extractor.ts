@@ -101,11 +101,11 @@ export class DataExtractor {
     );
 
     // Mask value in attributes
-    for (const hieraryNode of hierarchy) {
-      if (hieraryNode?.attrs) {
-        Object.entries(hieraryNode.attrs).forEach(([key, value]) => {
-          if (hieraryNode.attrs) {
-            hieraryNode.attrs[key] = this.replaceSensitiveString(value);
+    for (const hierarchyNode of hierarchy) {
+      if (hierarchyNode?.attrs) {
+        Object.entries(hierarchyNode.attrs).forEach(([key, value]) => {
+          if (hierarchyNode.attrs) {
+            hierarchyNode.attrs[key] = this.replaceSensitiveString(value);
           }
         });
       }
