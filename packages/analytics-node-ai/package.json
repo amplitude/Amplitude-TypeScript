@@ -40,7 +40,7 @@
   "dependencies": {
     "@amplitude/analytics-core": "^2.10.1",
     "@amplitude/analytics-types": "^2.0.0",
-    "@amplitude/analytics-node": "2.0.0-beta.0",
+    "@amplitude/analytics-node": "^1.5.7",
     "openai": "^5.0.0",
     "tslib": "^2.4.1"
   },

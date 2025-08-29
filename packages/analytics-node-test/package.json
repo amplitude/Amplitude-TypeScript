@@ -16,7 +16,7 @@
     "url": "https://github.com/amplitude/Amplitude-TypeScript/issues"
   },
   "dependencies": {
-    "@amplitude/analytics-node": "^1.3.9"
+    "@amplitude/analytics-node": "^1.5.7"
   },
   "devDependencies": {
     "nock": "^13.2.4"
