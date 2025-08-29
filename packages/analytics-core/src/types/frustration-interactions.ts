@@ -67,6 +67,11 @@ export interface FrustrationInteractionsOptions {
    * Configuration for rage clicks tracking
    */
   rageClicks?: RageClickOptions;
+
+  /**
+   * RegExp pattern list to allow custom patterns for text masking
+   */
+  maskTextRegex?: (RegExp | { pattern: string; description: string })[];
 }
 
 const CLICKABLE_ELEMENT_SELECTORS = [
@@ -114,6 +119,11 @@ export const DEFAULT_RAGE_CLICK_WINDOW_MS = 1_000;
  * Default threshold for rage clicks (4 clicks)
  */
 export const DEFAULT_RAGE_CLICK_THRESHOLD = 4;
+
+/**
+ * Default threshold for rage clicks to be considered out of bounds (50 pixels)
+ */
+export const DEFAULT_RAGE_CLICK_OUT_OF_BOUNDS_THRESHOLD = 50; // pixels
 
 // DomElement is [Element](https://developer.mozilla.org/en-US/docs/Web/API/Element) if the dom library is included in tsconfig.json
 // and never if it is not included

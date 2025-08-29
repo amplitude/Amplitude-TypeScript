@@ -3,6 +3,68 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.22.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.22.0...@amplitude/analytics-core@2.22.1) (2025-08-28)
+
+
+### Bug Fixes
+
+* **analytics-core:** handle XHR responseType JSON ([#1276](https://github.com/amplitude/Amplitude-TypeScript/issues/1276)) ([cd35193](https://github.com/amplitude/Amplitude-TypeScript/commit/cd35193ba51cdb986b3a4b8a50989067e3f8bf5b))
+
+
+
+
+
+# [2.22.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.21.2...@amplitude/analytics-core@2.22.0) (2025-08-26)
+
+
+### Bug Fixes
+
+* **plugin-network-autocapture:** replace consumption check with cache ([#1274](https://github.com/amplitude/Amplitude-TypeScript/issues/1274)) ([9c41081](https://github.com/amplitude/Amplitude-TypeScript/commit/9c41081ce23aea51ff9c9a82f0b8b9e5e3c53061))
+
+
+### Features
+
+* **autocapture:** add maskTextRegex option to autocapture ([#1259](https://github.com/amplitude/Amplitude-TypeScript/issues/1259)) ([2f1cf07](https://github.com/amplitude/Amplitude-TypeScript/commit/2f1cf075b3e0728f4124bb5c30c8a7e7c21d5a12))
+
+
+
+
+
+## [2.21.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.21.1...@amplitude/analytics-core@2.21.2) (2025-08-25)
+
+
+### Bug Fixes
+
+* **plugin-autocapture-browser:** make rage click less noisy ([#1265](https://github.com/amplitude/Amplitude-TypeScript/issues/1265)) ([a31acd3](https://github.com/amplitude/Amplitude-TypeScript/commit/a31acd34f2389d12427daba776ce22a262db7874))
+
+
+
+
+
+## [2.21.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.21.0...@amplitude/analytics-core@2.21.1) (2025-08-22)
+
+
+### Bug Fixes
+
+* **analytics-core:** fix typo in Reddit click-id ([#1267](https://github.com/amplitude/Amplitude-TypeScript/issues/1267)) ([43e581d](https://github.com/amplitude/Amplitude-TypeScript/commit/43e581d6465546a38373f758f179eee103172755))
+
+
+
+
+
+# [2.21.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.20.2...@amplitude/analytics-core@2.21.0) (2025-08-21)
+
+
+### Features
+
+* **analytics-browser:** add urls matching attribute to network capture rules (experimental) ([#1252](https://github.com/amplitude/Amplitude-TypeScript/issues/1252)) ([c28a98c](https://github.com/amplitude/Amplitude-TypeScript/commit/c28a98c13536d3eb2472edcce6ec225539db00aa))
+* **plugin-network-capture-browser:** add ability to capture headers (experimental) ([#1253](https://github.com/amplitude/Amplitude-TypeScript/issues/1253)) ([52cfc0c](https://github.com/amplitude/Amplitude-TypeScript/commit/52cfc0c6dab309f30cfce56c091065ff95d95fc2))
+* **plugin-network-capture-browser:** add request + response body capture (experimental) ([#1256](https://github.com/amplitude/Amplitude-TypeScript/issues/1256)) ([1850c58](https://github.com/amplitude/Amplitude-TypeScript/commit/1850c58d145973b3bd104ab70368eb4e2fdbafbc))
+
+
+
+
+
 ## [2.20.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.20.1...@amplitude/analytics-core@2.20.2) (2025-08-13)
 
 **Note:** Version bump only for package @amplitude/analytics-core

@@ -1,5 +1,6 @@
 import type { DataSource, PageAction } from '@amplitude/analytics-core/lib/esm/types/element-interactions';
-import { ElementBasedTimestampedEvent, ElementBasedEvent } from 'src/helpers';
+import type { DataExtractor } from '../data-extractor';
+import type { ElementBasedTimestampedEvent, ElementBasedEvent } from '../helpers';
 
 // Get DataSource
 /**
@@ -34,31 +35,11 @@ export const getDataSource = (dataSource: DataSource, contextElement: HTMLElemen
   return undefined;
 };
 
-// extract DataSource
-export const extractDataFromDataSource = (dataSource: DataSource, contextElement: HTMLElement) => {
-  // Extract from DOM Element
-  if (dataSource.sourceType === 'DOM_ELEMENT') {
-    const sourceElement = getDataSource(dataSource, contextElement);
-    if (!sourceElement) {
-      return undefined;
-    }
-
-    if (dataSource.elementExtractType === 'TEXT') {
-      return sourceElement.textContent;
-    } else if (dataSource.elementExtractType === 'ATTRIBUTE' && dataSource.attribute) {
-      return sourceElement.getAttribute(dataSource.attribute);
-    }
-    return undefined;
-  }
-
-  // TODO: Extract from other source types
-  return undefined;
-};
-
 // Execute actions for a condition and attach event properties to the event if needed
 export const executeActions = (
   actions: (string | PageAction)[],
   ev: ElementBasedTimestampedEvent<ElementBasedEvent>,
+  dataExtractor: DataExtractor,
 ) => {
   actions.forEach((action) => {
     // Skip if actions is string until action set is implemented
@@ -67,7 +48,7 @@ export const executeActions = (
     }
 
     if (action.actionType === 'ATTACH_EVENT_PROPERTY') {
-      const data = extractDataFromDataSource(action.dataSource, ev.closestTrackedAncestor as HTMLElement);
+      const data = dataExtractor.extractDataFromDataSource(action.dataSource, ev.closestTrackedAncestor as HTMLElement);
 
       // Attach data to event
       ev.targetElementProperties[action.destinationKey] = data;

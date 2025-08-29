@@ -3,6 +3,63 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.23.5](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.23.4...@amplitude/analytics-browser@2.23.5) (2025-08-28)
+
+**Note:** Version bump only for package @amplitude/analytics-browser
+
+
+
+
+
+## [2.23.4](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.23.3...@amplitude/analytics-browser@2.23.4) (2025-08-26)
+
+**Note:** Version bump only for package @amplitude/analytics-browser
+
+
+
+
+
+## [2.23.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.23.2...@amplitude/analytics-browser@2.23.3) (2025-08-25)
+
+
+### Bug Fixes
+
+* add missing BrowserClient attributes ([#1272](https://github.com/amplitude/Amplitude-TypeScript/issues/1272)) ([678be79](https://github.com/amplitude/Amplitude-TypeScript/commit/678be79a3b4864300471d433a63c000c4b098c77))
+
+
+
+
+
+## [2.23.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.23.1...@amplitude/analytics-browser@2.23.2) (2025-08-25)
+
+**Note:** Version bump only for package @amplitude/analytics-browser
+
+
+
+
+
+## [2.23.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.23.0...@amplitude/analytics-browser@2.23.1) (2025-08-22)
+
+
+### Bug Fixes
+
+* **analytics-core:** fix typo in Reddit click-id ([#1267](https://github.com/amplitude/Amplitude-TypeScript/issues/1267)) ([43e581d](https://github.com/amplitude/Amplitude-TypeScript/commit/43e581d6465546a38373f758f179eee103172755))
+
+
+
+
+
+# [2.23.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.22.2...@amplitude/analytics-browser@2.23.0) (2025-08-21)
+
+
+### Features
+
+* **analytics-browser:** add urls matching attribute to network capture rules (experimental) ([#1252](https://github.com/amplitude/Amplitude-TypeScript/issues/1252)) ([c28a98c](https://github.com/amplitude/Amplitude-TypeScript/commit/c28a98c13536d3eb2472edcce6ec225539db00aa))
+
+
+
+
+
 ## [2.22.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.22.1...@amplitude/analytics-browser@2.22.2) (2025-08-13)
 
 **Note:** Version bump only for package @amplitude/analytics-browser

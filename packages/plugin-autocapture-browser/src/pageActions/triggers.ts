@@ -7,6 +7,7 @@ import type {
 import type { ElementBasedTimestampedEvent, ElementBasedEvent } from 'src/helpers';
 import { matchEventToFilter } from './matchEventToFilter';
 import { executeActions } from './actions';
+import type { DataExtractor } from '../data-extractor';
 
 const eventTypeToBrowserEventMap = {
   '[Amplitude] Element Clicked': 'click',
@@ -104,6 +105,7 @@ export class TriggerEvaluator {
   constructor(
     private groupedLabeledEvents: ReturnType<typeof groupLabeledEventIdsByEventType>,
     private labeledEventToTriggerMap: ReturnType<typeof createLabeledEventToTriggerMap>,
+    private dataExtractor: DataExtractor,
     private options: ElementInteractionsOptions,
   ) {}
 
@@ -122,7 +124,7 @@ export class TriggerEvaluator {
     // Find matching conditions
     const matchingTriggers = matchLabeledEventsToTriggers(matchingLabeledEvents, this.labeledEventToTriggerMap);
     for (const trigger of matchingTriggers) {
-      executeActions(trigger.actions, event);
+      executeActions(trigger.actions, event, this.dataExtractor);
     }
 
     return event;
@@ -142,7 +144,8 @@ export class TriggerEvaluator {
 export const createTriggerEvaluator = (
   groupedLabeledEvents: ReturnType<typeof groupLabeledEventIdsByEventType>,
   labeledEventToTriggerMap: ReturnType<typeof createLabeledEventToTriggerMap>,
+  dataExtractor: DataExtractor,
   options: ElementInteractionsOptions,
 ) => {
-  return new TriggerEvaluator(groupedLabeledEvents, labeledEventToTriggerMap, options);
+  return new TriggerEvaluator(groupedLabeledEvents, labeledEventToTriggerMap, dataExtractor, options);
 };

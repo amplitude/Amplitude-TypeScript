@@ -1,4 +1,8 @@
-import {
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+import * as amplitude from '../src/index';
+import { FakeBrowserClient } from './utils/fake-browser-client';
+
+const {
   add,
   createInstance,
   extendSession,
@@ -24,9 +28,25 @@ import {
   setUserId,
   track,
   AmplitudeBrowser,
-} from '../src/index';
+} = amplitude;
 
 describe('index', () => {
+  test(`structural typing test, 'default export' should be  BrowserClient`, () => {
+    for (const key of Object.keys(FakeBrowserClient.prototype)) {
+      // add message for if it fails
+      if (!(amplitude as any)[key]) {
+        throw new Error(
+          `'${key}' is a required method in BrowserClient but is not defined in analytics-browser export`,
+        );
+      }
+    }
+    // sanity test a few known methods
+    expect(typeof amplitude.add).toBe('function');
+    expect(typeof amplitude.getIdentity).toBe('function');
+    expect(typeof amplitude.track).toBe('function');
+    expect(typeof (amplitude as any).foo).toBe('undefined');
+  });
+
   test('should expose apis', () => {
     expect(typeof add).toBe('function');
     expect(typeof createInstance).toBe('function');

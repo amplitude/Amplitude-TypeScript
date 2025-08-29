@@ -100,6 +100,11 @@ export interface ElementInteractionsOptions {
     triggers: Trigger[];
     labeledEvents: Record<string, LabeledEvent>;
   };
+
+  /**
+   * RegExp pattern list to allow custom patterns for text masking
+   */
+  maskTextRegex?: (RegExp | { pattern: string; description: string })[];
 }
 
 type MatchingCondition = {

@@ -1,14 +1,14 @@
 /* istanbul ignore file */
 /* eslint-disable no-restricted-globals */
-import { extractDataFromDataSource } from '../pageActions/actions';
 import {
   AMPLITUDE_ORIGIN,
   AMPLITUDE_VISUAL_TAGGING_SELECTOR_SCRIPT_URL,
   AMPLITUDE_VISUAL_TAGGING_HIGHLIGHT_CLASS,
 } from '../constants';
-import { asyncLoadScript, generateUniqueId, getEventTagProps } from '../helpers';
+import { asyncLoadScript, generateUniqueId } from '../helpers';
 import { ILogger, Messenger, ActionType } from '@amplitude/analytics-core';
 import { VERSION } from '../version';
+import { DataExtractor } from '../data-extractor';
 
 export type Action =
   | 'ping'
@@ -132,19 +132,23 @@ export class WindowMessenger implements Messenger {
     delete this.requestCallbacks[response.id];
   }
 
-  setup({
-    logger,
-    endpoint,
-    isElementSelectable,
-    cssSelectorAllowlist,
-    actionClickAllowlist,
-  }: {
-    logger?: ILogger;
-    endpoint?: string;
-    isElementSelectable?: (action: InitializeVisualTaggingSelectorData['actionType'], element: Element) => boolean;
-    cssSelectorAllowlist?: string[];
-    actionClickAllowlist?: string[];
-  } = {}) {
+  setup(
+    {
+      logger,
+      endpoint,
+      isElementSelectable,
+      cssSelectorAllowlist,
+      actionClickAllowlist,
+      dataExtractor,
+    }: {
+      logger?: ILogger;
+      endpoint?: string;
+      isElementSelectable?: (action: InitializeVisualTaggingSelectorData['actionType'], element: Element) => boolean;
+      cssSelectorAllowlist?: string[];
+      actionClickAllowlist?: string[];
+      dataExtractor: DataExtractor;
+    } = { dataExtractor: new DataExtractor({}) },
+  ) {
     this.logger = logger;
     // If endpoint is customized, don't override it.
     if (endpoint && this.endpoint === AMPLITUDE_ORIGIN) {
@@ -184,7 +188,7 @@ export class WindowMessenger implements Messenger {
             .then(() => {
               // eslint-disable-next-line
               amplitudeVisualTaggingSelectorInstance = (window as any)?.amplitudeVisualTaggingSelector?.({
-                getEventTagProps,
+                getEventTagProps: dataExtractor.getEventTagProps,
                 isElementSelectable: (element: Element) => {
                   if (isElementSelectable) {
                     return isElementSelectable(actionData?.actionType || 'click', element);
@@ -197,7 +201,8 @@ export class WindowMessenger implements Messenger {
                 messenger: this,
                 cssSelectorAllowlist,
                 actionClickAllowlist,
-                extractDataFromDataSource,
+                extractDataFromDataSource: dataExtractor.extractDataFromDataSource,
+                dataExtractor,
                 diagnostics: {
                   autocapture: {
                     version: VERSION,
