@@ -13,6 +13,7 @@ describe('trackDeadClick', () => {
   let clickObservable: Subject<any>;
   let mutationObservable: Subject<any>;
   let navigateObservable: Subject<any>;
+  let visibilityChangeObservable: Subject<any>;
   let allObservables: AllWindowObservables;
   let shouldTrackDeadClick: jest.Mock;
   let getEventProperties: jest.Mock;
@@ -30,11 +31,13 @@ describe('trackDeadClick', () => {
     clickObservable = new Subject();
     mutationObservable = new Subject();
     navigateObservable = new Subject();
+    visibilityChangeObservable = new Subject();
     allObservables = {
       [ObservablesEnum.ClickObservable]: clickObservable,
       [ObservablesEnum.ChangeObservable]: new Subject(),
       [ObservablesEnum.NavigateObservable]: navigateObservable,
       [ObservablesEnum.MutationObservable]: mutationObservable,
+      [ObservablesEnum.VisibilityChangeObservable]: visibilityChangeObservable,
     };
     shouldTrackDeadClick = jest.fn().mockReturnValue(true);
     getEventProperties = jest.fn().mockReturnValue({ id: 'test-element' });
@@ -153,6 +156,41 @@ describe('trackDeadClick', () => {
       subscription.unsubscribe();
       done();
     }, 2);
+  });
+
+  it('should not track when document visibility changes after click', (done) => {
+    const subscription = trackDeadClick({
+      amplitude: mockAmplitude,
+      allObservables,
+      getEventProperties,
+      shouldTrackDeadClick,
+    });
+
+    // Create a mock element
+    const mockElement = document.createElement('div');
+
+    // Simulate a click
+    clickObservable.next({
+      event: {
+        target: mockElement,
+        clientX: 100,
+        clientY: 100,
+      },
+      timestamp: Date.now(),
+      closestTrackedAncestor: mockElement,
+      targetElementProperties: { id: 'test-element' },
+    });
+
+    setTimeout(() => {
+      visibilityChangeObservable.next({});
+    }, 1);
+
+    // Wait for the dead click timeout
+    setTimeout(() => {
+      expect(mockAmplitude.track).not.toHaveBeenCalled();
+      subscription.unsubscribe();
+      done();
+    }, 100);
   });
 
   it('should not track elements that are not in the allowed list', (done) => {

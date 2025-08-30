@@ -10,7 +10,7 @@ import {
 } from '@amplitude/analytics-core';
 import * as constants from './constants';
 import { fromEvent, map, Observable, Subscription, share } from 'rxjs';
-import { createShouldTrackEvent, ElementBasedTimestampedEvent, NavigateEvent } from './helpers';
+import { createShouldTrackEvent, ElementBasedTimestampedEvent, NavigateEvent, TimestampedEvent } from './helpers';
 import { trackDeadClick } from './autocapture/track-dead-click';
 import { trackRageClicks } from './autocapture/track-rage-click';
 import { AllWindowObservables, ObservablesEnum } from './autocapture-plugin';
@@ -63,6 +63,15 @@ export const frustrationPlugin = (options: FrustrationInteractionsOptions = {}):
       );
     }
 
+    const visibilityChangeObservable = fromEvent<TimestampedEvent<Event>>(document, 'visibilitychange').pipe(
+      map((visibilityChange) => {
+        console.log('visibilityChange', visibilityChange);
+        dataExtractor.addAdditionalEventProperties(visibilityChange, 'visibilitychange', [], dataAttributePrefix);
+        return visibilityChange;
+      }),
+      share(),
+    );
+
     // Track DOM Mutations
     const enrichedMutationObservable = createMutationObservable().pipe(
       map((mutation) =>
@@ -76,6 +85,7 @@ export const frustrationPlugin = (options: FrustrationInteractionsOptions = {}):
       [ObservablesEnum.ChangeObservable]: new Observable<ElementBasedTimestampedEvent<Event>>(), // Empty observable since we don't need change events
       [ObservablesEnum.NavigateObservable]: navigateObservable,
       [ObservablesEnum.MutationObservable]: enrichedMutationObservable,
+      [ObservablesEnum.VisibilityChangeObservable]: visibilityChangeObservable,
     };
   };
 
