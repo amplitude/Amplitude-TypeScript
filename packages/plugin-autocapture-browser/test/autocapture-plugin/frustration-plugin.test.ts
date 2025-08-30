@@ -239,6 +239,7 @@ describe('frustrationPlugin', () => {
       expect(observables).toHaveProperty('mutationObservable');
       expect(observables).toHaveProperty('navigateObservable');
       expect(observables).toHaveProperty('changeObservable');
+      expect(observables).toHaveProperty('visibilityChangeObservable');
 
       // Test click observable
       const clickSpy = jest.fn();
@@ -282,6 +283,13 @@ describe('frustrationPlugin', () => {
 
       // Verify mutation was captured
       expect(mutationSpy).toHaveBeenCalled();
+
+      // Test visibility change observable
+      const visibilityChangeSpy = jest.fn();
+      const visibilityChangeSubscription = observables.visibilityChangeObservable.subscribe(visibilityChangeSpy);
+      document.dispatchEvent(new Event('visibilitychange'));
+      expect(visibilityChangeSpy).toHaveBeenCalled();
+      visibilityChangeSubscription.unsubscribe();
 
       // Cleanup
       mutationSubscription.unsubscribe();
