@@ -7,4 +7,4 @@
 
 # E2E Remote Config
 
-A place to write and run tests that validates Remote Config functionality. Tests against a matrix of SDK versions and API Keys.
+A place for E2E tests that test the Remote Config functionality. Tests against a matrix of SDK versions and API Keys.
