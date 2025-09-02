@@ -12,7 +12,6 @@ test.describe(`Fetch remote config sdkVersion=${amplitudeVersion || 'latest'} ap
   test('should fetch remote config', async ({ page }) => {
     // intercept the fetch request to the remote config
     await page.route(remoteConfigUrl, async (route) => {
-      console.log('route', route);
       await route.continue();
     });
     
