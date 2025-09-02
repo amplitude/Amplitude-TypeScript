@@ -10,7 +10,6 @@ export class WebAttribution {
   options: Options;
   storage: Storage<Campaign>;
   storageKey: string;
-  webExpStorageKey: string;
   previousCampaign?: Campaign;
   currentCampaign: Campaign;
   shouldTrackNewCampaign = false;
@@ -27,7 +26,6 @@ export class WebAttribution {
     };
     this.storage = config.cookieStorage as unknown as Storage<Campaign>;
     this.storageKey = getStorageKey(config.apiKey, 'MKTG');
-    this.webExpStorageKey = getStorageKey(config.apiKey, 'MKTG_ORIGINAL');
     this.currentCampaign = BASE_CAMPAIGN;
     this.sessionTimeout = config.sessionTimeout;
     this.lastEventTime = config.lastEventTime;
@@ -46,11 +44,7 @@ export class WebAttribution {
   }
 
   async fetchCampaign() {
-    const originalCampaign = await this.storage.get(this.webExpStorageKey);
-    if (originalCampaign) {
-      await this.storage.remove(this.webExpStorageKey);
-    }
-    return await Promise.all([originalCampaign || new CampaignParser().parse(), this.storage.get(this.storageKey)]);
+    return await Promise.all([new CampaignParser().parse(), this.storage.get(this.storageKey)]);
   }
 
   /**
