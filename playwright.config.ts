@@ -36,10 +36,10 @@ export default defineConfig({
     //     },
     //   },
     // },
-    // {
-    //   name: 'webkit',
-    //   use: { ...devices['Desktop Safari'] },
-    // },
+    {
+      name: 'webkit',
+      use: { ...devices['Desktop Safari'] },
+    },
   ],
   webServer: {
     command: 'yarn start',
