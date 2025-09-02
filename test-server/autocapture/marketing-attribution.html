@@ -1,0 +1,471 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/amplitude.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Marketing Attribution Test</title>
+    <script type="text/javascript">
+        // if refresh is in query params, refresh the page
+        if (window.location.search.includes('refresh')) {
+          // remove refresh from query params
+          const newSearch = window.location.search.replace('refresh', '');
+          window.location.href = window.location.origin + window.location.pathname + newSearch;
+        }
+    </script>
+    <style>
+      /* Layout */
+      .container {
+        max-width: 1000px;
+        margin: 0 auto;
+        padding: 20px;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      }
+
+      /* Common styles */
+      .border {
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+      }
+
+      .padding {
+        padding: 16px;
+      }
+
+      .padding-lg {
+        padding: 24px;
+      }
+
+      .margin {
+        margin: 8px;
+      }
+
+      .margin-lg {
+        margin: 24px 0;
+      }
+
+      /* Campaign display */
+      .campaign-section {
+        background: #f8f9fa;
+        border: 1px solid #e9ecef;
+        border-radius: 8px;
+        padding: 24px;
+        margin-bottom: 24px;
+      }
+
+      .campaign-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 16px;
+        margin-top: 16px;
+      }
+
+      .campaign-item {
+        background: white;
+        border: 1px solid #dee2e6;
+        border-radius: 6px;
+        padding: 16px;
+      }
+
+      .campaign-label {
+        font-weight: 600;
+        color: #495057;
+        font-size: 14px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 4px;
+      }
+
+      .campaign-value {
+        font-size: 16px;
+        color: #212529;
+        word-break: break-all;
+      }
+
+      .campaign-value.empty {
+        color: #6c757d;
+        font-style: italic;
+      }
+
+      /* Test section */
+      .test-section {
+        background: white;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        padding: 24px;
+        margin-bottom: 24px;
+      }
+
+      .test-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 16px;
+        margin-top: 16px;
+      }
+
+      .form-group {
+        display: flex;
+        flex-direction: column;
+      }
+
+      .form-label {
+        font-weight: 500;
+        color: #495057;
+        margin-bottom: 8px;
+      }
+
+      .form-input {
+        padding: 12px;
+        border: 1px solid #ced4da;
+        border-radius: 6px;
+        font-size: 14px;
+        transition: border-color 0.15s ease-in-out;
+      }
+
+      .form-input:focus {
+        outline: none;
+        border-color: #007bff;
+        box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+      }
+
+      .btn {
+        background: #007bff;
+        color: white;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 500;
+        transition: background-color 0.15s ease-in-out;
+      }
+
+      .btn:hover {
+        background: #0056b3;
+      }
+
+      .btn-secondary {
+        background: #6c757d;
+      }
+
+      .btn-secondary:hover {
+        background: #545b62;
+      }
+
+      /* Status section */
+      .status-section {
+        background: #e7f3ff;
+        border: 1px solid #b3d9ff;
+        border-radius: 8px;
+        padding: 16px;
+        margin-bottom: 24px;
+      }
+
+      .status-title {
+        font-weight: 600;
+        color: #0056b3;
+        margin-bottom: 8px;
+      }
+
+      .status-text {
+        color: #0056b3;
+        font-size: 14px;
+      }
+
+      /* Headers */
+      h1 {
+        color: #212529;
+        margin-bottom: 8px;
+      }
+
+      h2 {
+        color: #495057;
+        margin-bottom: 16px;
+        font-size: 20px;
+      }
+
+      .description {
+        color: #6c757d;
+        margin-bottom: 24px;
+        line-height: 1.5;
+      }
+
+      /* Loading state */
+      .loading {
+        opacity: 0.6;
+        pointer-events: none;
+      }
+
+      /* Responsive */
+      @media (max-width: 768px) {
+        .campaign-grid,
+        .test-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Marketing Attribution Test</h1>
+      <p class="description">
+        This page tests Amplitude's marketing attribution functionality. It displays the current campaign information 
+        and allows you to test different UTM parameters by updating the URL.
+      </p>
+
+      <div class="status-section">
+        <div class="status-title">Amplitude Status</div>
+        <div class="status-text" id="amplitude-status">Initializing...</div>
+      </div>
+
+      <div class="campaign-section">
+        <h2>Current Campaign Information</h2>
+        <p class="description">
+          This shows the campaign parameters that Amplitude has detected from the current URL and referrer.
+        </p>
+        <div class="campaign-grid" id="campaign-display">
+          <div class="campaign-item">
+            <div class="campaign-label">UTM Source</div>
+            <div class="campaign-value empty" id="utm-source">Loading...</div>
+          </div>
+          <div class="campaign-item">
+            <div class="campaign-label">UTM Medium</div>
+            <div class="campaign-value empty" id="utm-medium">Loading...</div>
+          </div>
+          <div class="campaign-item">
+            <div class="campaign-label">UTM Campaign</div>
+            <div class="campaign-value empty" id="utm-campaign">Loading...</div>
+          </div>
+          <div class="campaign-item">
+            <div class="campaign-label">UTM Content</div>
+            <div class="campaign-value empty" id="utm-content">Loading...</div>
+          </div>
+          <div class="campaign-item">
+            <div class="campaign-label">UTM Term</div>
+            <div class="campaign-value empty" id="utm-term">Loading...</div>
+          </div>
+          <div class="campaign-item">
+            <div class="campaign-label">UTM ID</div>
+            <div class="campaign-value empty" id="utm-id">Loading...</div>
+          </div>
+          <div class="campaign-item">
+            <div class="campaign-label">Referrer</div>
+            <div class="campaign-value empty" id="referrer">Loading...</div>
+          </div>
+          <div class="campaign-item">
+            <div class="campaign-label">Referring Domain</div>
+            <div class="campaign-value empty" id="referring-domain">Loading...</div>
+          </div>
+          <div class="campaign-item">
+            <div class="campaign-label">Google Click ID</div>
+            <div class="campaign-value empty" id="gclid">Loading...</div>
+          </div>
+          <div class="campaign-item">
+            <div class="campaign-label">Facebook Click ID</div>
+            <div class="campaign-value empty" id="fbclid">Loading...</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="test-section">
+        <h2>Test Different Campaign Parameters</h2>
+        <p class="description">
+          Add these parameters to the URL to test different campaign scenarios. 
+          Click the buttons below to test common scenarios.
+        </p>
+        
+        <div class="test-grid">
+          <div class="form-group">
+            <label class="form-label">UTM Source</label>
+            <input type="text" class="form-input" id="test-utm-source" placeholder="e.g., google, facebook, email">
+          </div>
+          <div class="form-group">
+            <label class="form-label">UTM Medium</label>
+            <input type="text" class="form-input" id="test-utm-medium" placeholder="e.g., cpc, email, social">
+          </div>
+          <div class="form-group">
+            <label class="form-label">UTM Campaign</label>
+            <input type="text" class="form-input" id="test-utm-campaign" placeholder="e.g., summer_sale, newsletter">
+          </div>
+          <div class="form-group">
+            <label class="form-label">UTM Content</label>
+            <input type="text" class="form-input" id="test-utm-content" placeholder="e.g., banner, text_link">
+          </div>
+          <div class="form-group">
+            <label class="form-label">UTM Term</label>
+            <input type="text" class="form-input" id="test-utm-term" placeholder="e.g., running+shoes">
+          </div>
+          <div class="form-group">
+            <label class="form-label">UTM ID</label>
+            <input type="text" class="form-input" id="test-utm-id" placeholder="e.g., campaign_id_123">
+          </div>
+        </div>
+
+        <div style="margin-top: 24px;">
+          <button class="btn" id="test-google-ads">Test Google Ads</button>
+          <button class="btn" id="test-facebook-ads">Test Facebook Ads</button>
+          <button class="btn" id="test-email-campaign">Test Email Campaign</button>
+          <button class="btn btn-secondary" id="clear-params">Clear Parameters</button>
+          <button class="btn btn-secondary" id="reload-with-domain">Test with local.website.com:5173</button>
+        </div>
+      </div>
+
+      <div class="test-section">
+        <h2>Current URL</h2>
+        <p class="description">
+          The current URL with all parameters. You can manually edit this to test different scenarios.
+        </p>
+        <div style="background: #f8f9fa; padding: 16px; border-radius: 6px; font-family: monospace; word-break: break-all; font-size: 14px;" id="current-url">
+          Loading...
+        </div>
+      </div>
+    </div>
+
+    <script type="module">
+      import * as amplitude from '@amplitude/analytics-browser';
+    
+      window.amplitude = amplitude;
+      
+      // Initialize Amplitude with attribution enabled
+      amplitude.init(
+        import.meta.env.VITE_AMPLITUDE_API_KEY,
+        import.meta.env.VITE_AMPLITUDE_USER_ID || 'marketing-attribution-test-user',
+        {
+          autocapture: {
+            attribution: true,
+            elementInteractions: false,
+            formInteractions: false,
+            fileDownloads: false,
+            pageViews: false,
+            sessions: false,
+            frustrationInteractions: false,
+            networkTracking: false,
+            webVitals: false,
+          },
+        }
+      );
+
+      // Update status
+      document.getElementById('amplitude-status').textContent = 'Amplitude initialized with attribution enabled';
+
+      // Function to parse URL parameters
+      function getUrlParams() {
+        const params = new URLSearchParams(window.location.search);
+        return {
+          utm_source: params.get('utm_source'),
+          utm_medium: params.get('utm_medium'),
+          utm_campaign: params.get('utm_campaign'),
+          utm_content: params.get('utm_content'),
+          utm_term: params.get('utm_term'),
+          utm_id: params.get('utm_id'),
+          referrer: document.referrer || null,
+          referring_domain: document.referrer ? new URL(document.referrer).hostname : null,
+          gclid: params.get('gclid'),
+          fbclid: params.get('fbclid'),
+        };
+      }
+
+      // Function to update campaign display
+      function updateCampaignDisplay() {
+        const params = getUrlParams();
+        
+        // Update each campaign field
+        Object.keys(params).forEach(key => {
+          const element = document.getElementById(key.replace('_', '-'));
+          if (element) {
+            const value = params[key];
+            if (value) {
+              element.textContent = value;
+              element.className = 'campaign-value';
+            } else {
+              element.textContent = 'Not set';
+              element.className = 'campaign-value empty';
+            }
+          }
+        });
+
+        // Update current URL display
+        document.getElementById('current-url').textContent = window.location.href;
+      }
+
+      // Function to update URL with new parameters
+      function updateUrl(params) {
+        const url = new URL(window.location);
+        Object.keys(params).forEach(key => {
+          if (params[key]) {
+            url.searchParams.set(key, params[key]);
+          } else {
+            url.searchParams.delete(key);
+          }
+        });
+        window.location.href = url.toString();
+      }
+
+      // Test button handlers
+      document.getElementById('test-google-ads').addEventListener('click', () => {
+        updateUrl({
+          utm_source: 'google',
+          utm_medium: 'cpc',
+          utm_campaign: 'summer_sale_2024',
+          utm_content: 'banner',
+          utm_term: 'running+shoes',
+          gclid: 'test_google_click_id_123',
+        });
+      });
+
+      document.getElementById('test-facebook-ads').addEventListener('click', () => {
+        updateUrl({
+          utm_source: 'facebook',
+          utm_medium: 'social',
+          utm_campaign: 'brand_awareness',
+          utm_content: 'video',
+          fbclid: 'test_facebook_click_id_456',
+        });
+      });
+
+      document.getElementById('test-email-campaign').addEventListener('click', () => {
+        updateUrl({
+          utm_source: 'email',
+          utm_medium: 'email',
+          utm_campaign: 'newsletter_weekly',
+          utm_content: 'text_link',
+        });
+      });
+
+      document.getElementById('clear-params').addEventListener('click', () => {
+        updateUrl({
+          utm_source: '',
+          utm_medium: '',
+          utm_campaign: '',
+          utm_content: '',
+          utm_term: '',
+          utm_id: '',
+          gclid: '',
+          fbclid: '',
+        });
+      });
+
+      document.getElementById('reload-with-domain').addEventListener('click', () => {
+        const currentUrl = new URL(window.location);
+        const newUrl = new URL('https://local.website.com:5173' + currentUrl.pathname);
+        newUrl.searchParams.set('utm_source', 'local');
+        newUrl.searchParams.set('utm_medium', 'direct');
+        newUrl.searchParams.set('utm_campaign', 'domain_test');
+        newUrl.searchParams.set('utm_content', 'button_click');
+        newUrl.searchParams.set('utm_term', 'test_domain');
+        newUrl.searchParams.set('refresh', 'true');
+        window.location.href = newUrl.toString();
+      });
+
+      // Initialize display
+      updateCampaignDisplay();
+
+      // Update display when URL changes (for browser back/forward)
+      window.addEventListener('popstate', updateCampaignDisplay);
+
+      // Log campaign information to console for debugging
+      console.log('Current campaign parameters:', getUrlParams());
+      console.log('Amplitude initialized with attribution tracking enabled');
+    </script>
+  </body>
+</html> 
