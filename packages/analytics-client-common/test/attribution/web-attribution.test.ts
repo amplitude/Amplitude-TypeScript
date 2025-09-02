@@ -82,8 +82,9 @@ describe('shouldTrackNewCampaign', () => {
       resetSessionOnNewCampaign: true,
     };
     const webAttribution = new WebAttribution(option, mockConfig);
-    await webAttribution.init();
+    jest.spyOn(webAttribution.storage, 'get').mockResolvedValue(undefined);
 
+    await webAttribution.init();
     expect(webAttribution.shouldSetSessionIdOnNewCampaign()).toBe(true);
   });
 
@@ -137,7 +138,12 @@ describe('shouldTrackNewCampaign', () => {
     };
 
     jest.spyOn(CampaignParser.prototype, 'parse').mockResolvedValue(BASE_CAMPAIGN); // Direct Traffic
-    jest.spyOn(webAttribution.storage, 'get').mockResolvedValue(previousCampaign);
+    jest.spyOn(webAttribution.storage, 'get').mockImplementation((key: string) => {
+      if (key === webAttribution.storageKey) {
+        return Promise.resolve(previousCampaign);
+      }
+      return Promise.resolve(undefined);
+    });
 
     await webAttribution.init();
     expect(webAttribution.shouldTrackNewCampaign).toBe(true);
