@@ -121,6 +121,44 @@ describe('shouldTrackNewCampaign', () => {
     expect(webAttribution.shouldTrackNewCampaign).toBe(false);
   });
 
+  test('should use original campaign from MKTG_ORIGINAL when available', async () => {
+    const webAttribution = new WebAttribution({}, mockConfig);
+    const originalCampaign = {
+      ...BASE_CAMPAIGN,
+      utm_source: 'original-source',
+      utm_campaign: 'original-campaign',
+    };
+    const previousCampaign = {
+      ...BASE_CAMPAIGN,
+      utm_source: 'previous-source',
+    };
+
+    jest.spyOn(CampaignParser.prototype, 'parse').mockResolvedValue({
+      ...BASE_CAMPAIGN,
+      utm_source: 'parsed-source',
+    });
+
+    jest.spyOn(webAttribution.storage, 'get').mockImplementation((key: string) => {
+      if (key === webAttribution.webExpStorageKey) {
+        return Promise.resolve(originalCampaign);
+      }
+      if (key === webAttribution.storageKey) {
+        return Promise.resolve(previousCampaign);
+      }
+      return Promise.resolve(undefined);
+    });
+
+    const removeSpy = jest.spyOn(webAttribution.storage, 'remove').mockResolvedValue();
+
+    await webAttribution.init();
+
+    // Should use original campaign, not parsed campaign
+    expect(webAttribution.currentCampaign).toEqual(originalCampaign);
+    expect(webAttribution.previousCampaign).toEqual(previousCampaign);
+    // Should remove the original campaign from storage
+    expect(removeSpy).toHaveBeenCalledWith(webAttribution.webExpStorageKey);
+  });
+
   test('should not ignore the campaign for direct traffic in new session', async () => {
     const lastEventTime = Date.now() - 2 * 30 * 60 * 1000;
 
