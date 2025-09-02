@@ -152,10 +152,8 @@ describe('shouldTrackNewCampaign', () => {
 
     await webAttribution.init();
 
-    // Should use original campaign, not parsed campaign
     expect(webAttribution.currentCampaign).toEqual(originalCampaign);
     expect(webAttribution.previousCampaign).toEqual(previousCampaign);
-    // Should remove the original campaign from storage
     expect(removeSpy).toHaveBeenCalledWith(webAttribution.webExpStorageKey);
   });
 
