@@ -125,7 +125,7 @@ export class NetworkObserver {
     });
   }
 
-  private handleNetworkRequestEvent(
+  handleNetworkRequestEvent(
     requestType: 'fetch' | 'xhr',
     requestInfo: RequestInfo | URL | RequestUrlAndMethod | undefined,
     requestWrapper: IRequestWrapper | undefined,
@@ -149,6 +149,18 @@ export class NetworkObserver {
       method = requestInfo['method'];
     } else {
       url = requestInfo?.toString?.();
+    }
+
+    // strip basic auth from the URL
+    if (url) {
+      try {
+        const parsedUrl = new URL(url);
+        // reconstruct the URL without the basic auth
+        url = `${parsedUrl.protocol}//${parsedUrl.host}${parsedUrl.pathname}${parsedUrl.search}${parsedUrl.hash}`;
+      } catch (err) {
+        /* istanbul ignore next */
+        this.logger?.error('an unexpected error occurred while parsing the URL', err);
+      }
     }
     method = requestWrapper?.method || method;
 
