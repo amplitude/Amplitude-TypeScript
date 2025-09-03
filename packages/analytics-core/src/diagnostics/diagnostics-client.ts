@@ -1,52 +1,79 @@
 /// <reference lib="dom" />
 import { DiagnosticsStorage } from './diagnostics-storage';
 
-// Maximum number of histogram items to store (queue size limit)
-const MAX_HISTOGRAM_ITEMS = 65000;
-
 // Flush interval: 1 hour in milliseconds
 const FLUSH_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
 
-// Interfaces for data structures
-interface DiagnosticsTag {
-  [key: string]: string;
+
+// === Core Data Types ===
+
+/**
+ * Key-value pairs for environment/context information
+ */
+type DiagnosticsTags = Record<string, string>;
+
+/**
+ * Numeric counters that can be incremented
+ */
+type DiagnosticsCounters = Record<string, number>;
+
+/**
+ * Properties for diagnostic events
+ */
+type EventProperties = Record<string, any>;
+
+/**
+ * Individual diagnostic event
+ */
+interface DiagnosticsEvent {
+  readonly event_name: string;
+  readonly time: number;
+  readonly event_properties: EventProperties;
 }
 
-interface DiagnosticsCounter {
-  [key: string]: number;
-}
+// === Histogram Types ===
 
-interface HistogramEntry {
-  name: string;
-  value: number;
-  timestamp: number;
-}
-
+/**
+ * Computed histogram statistics for final payload
+ */
 interface HistogramResult {
+  readonly count: number;
+  readonly min: number;
+  readonly max: number;
+  readonly avg: number;
+}
+
+/**
+ * Internal histogram statistics with sum for efficient incremental updates
+ */
+interface HistogramStats {
   count: number;
   min: number;
   max: number;
-  avg: number;
-  median: number;
-  p95: number;
+  sum: number; // Used for avg calculation
 }
 
-interface DiagnosticsHistogram {
-  [key: string]: HistogramResult;
-}
+/**
+ * Collection of histogram results keyed by histogram name
+ */
+type DiagnosticsHistograms = Record<string, HistogramResult>;
 
-interface DiagnosticsEvent {
-  event_name: string;
-  time: number;
-  event_properties: Record<string, any>;
-}
+/**
+ * Collection of histogram stats keyed by histogram name (internal use for memory + persistence storage)
+ */
+type DiagnosticsHistogramStats = Record<string, HistogramStats>;
 
+// === Payload Types ===
+
+/**
+ * Complete diagnostics payload sent to backend
+ */
 interface FlushPayload {
-  apiKey?: string;
-  tags: DiagnosticsTag;
-  histogram: DiagnosticsHistogram;
-  counters: DiagnosticsCounter;
-  events: DiagnosticsEvent[];
+  readonly apiKey?: string;
+  readonly tags: DiagnosticsTags;
+  readonly histogram: DiagnosticsHistograms;
+  readonly counters: DiagnosticsCounters;
+  readonly events: readonly DiagnosticsEvent[];
 }
 
 /**
@@ -57,10 +84,9 @@ interface FlushPayload {
  *
  * Key Features:
  * - IndexedDB storage
- * - Queue size management (max 65,000 histogram items)
- * - Auto-flush when histogram limit is reached (prevents data loss)
- * - Time-based flush interval (1 hour since last flush)
- * - Histogram statistics calculation (min, max, avg, median, p95)
+ * - Time-based persistent storage flush interval (1 hour since last flush)
+ * - 1 second time-based memory storage flush interval
+ * - Histogram statistics calculation (min, max, avg)
  * - Thread-safe operations through async/await
  *
  * Usage:
@@ -76,7 +102,7 @@ interface FlushPayload {
  * await diagnostics.increment('analytics.fileNotFound');
  * await diagnostics.increment('network.retry', 3);
  *
- * // Record performance metrics (auto-flushes at 65,000 items)
+ * // Record performance metrics
  * await diagnostics.recordHistogram('sr.time', 5.2);
  * await diagnostics.recordHistogram('network.latency', 150);
  *
@@ -86,7 +112,7 @@ interface FlushPayload {
  *   api_key: 'hidden'
  * });
  *
- * // Manual flush (auto-flushes every 1 hour or at 65,000 histogram items)
+ * // Manual flush (auto-flushes every 1 hour)
  * const payload = await diagnostics._flush();
  * // Send payload to diagnostics endpoint
  * ```
@@ -102,7 +128,7 @@ export interface IDiagnosticsClient {
   recordHistogram(name: string, value: number): Promise<void>;
 
   // Record an event
-  recordEvent(name: string, properties: Record<string, any>): Promise<void>;
+  recordEvent(name: string, properties: EventProperties): Promise<void>;
 
   // Hide it from consumers but be able to be hooked to SDK flush()
   // Flush buffered data
@@ -140,21 +166,6 @@ export class DiagnosticsClient implements IDiagnosticsClient {
 
   async recordHistogram(name: string, value: number): Promise<void> {
     try {
-      // Check if we've hit the maximum limit and trigger auto-flush
-      const currentCount = await this.storage.getHistogramRecordCount();
-      if (currentCount >= MAX_HISTOGRAM_ITEMS) {
-        try {
-          // Trigger auto-flush to clear data and start fresh
-          // Timer reset logic is handled inside _flush()
-          await this._flush();
-        } catch (flushError) {
-          console.error('[Amplitude] DiagnosticsClient: Auto-flush failed', flushError);
-          // If flush fails, we still need to add the record but should consider cleanup
-          // For now, we'll still add the record - in production you might want to implement
-          // a cleanup strategy here
-        }
-      }
-
       // Add the new record to IndexedDB
       await this.storage.addHistogramRecord(name, value);
     } catch (error) {
@@ -162,7 +173,7 @@ export class DiagnosticsClient implements IDiagnosticsClient {
     }
   }
 
-  async recordEvent(name: string, properties: Record<string, any>): Promise<void> {
+  async recordEvent(name: string, properties: EventProperties): Promise<void> {
     try {
       await this.storage.addEventRecord(name, properties);
     } catch (error) {
@@ -182,25 +193,18 @@ export class DiagnosticsClient implements IDiagnosticsClient {
       const eventRecords = await this.storage.getAllEventRecords();
 
       // Convert records to the expected format
-      const tags: DiagnosticsTag = {};
+      const tags: DiagnosticsTags = {};
       tagRecords.forEach((record) => {
         tags[record.key] = record.value;
       });
 
-      const counters: DiagnosticsCounter = {};
+      const counters: DiagnosticsCounters = {};
       counterRecords.forEach((record) => {
         counters[record.key] = record.value;
       });
 
-      // Convert histogram records to the legacy format for calculation
-      const histogramEntries: HistogramEntry[] = histogramRecords.map((record) => ({
-        name: record.key,
-        value: record.value,
-        timestamp: record.timestamp,
-      }));
-
-      // Calculate histogram results
-      const histogram = this.calculateHistogramResults(histogramEntries);
+      // Calculate histogram results from records
+      const histogram = this.calculateHistogramResults(histogramRecords);
 
       // Convert event records to the expected format
       const events: DiagnosticsEvent[] = eventRecords.map((record) => ({
@@ -239,19 +243,19 @@ export class DiagnosticsClient implements IDiagnosticsClient {
     }
   }
 
-  private calculateHistogramResults(entries: HistogramEntry[]): DiagnosticsHistogram {
+  private calculateHistogramResults(records: Array<{key: string, value: number}>): DiagnosticsHistograms {
     const histogramMap: { [name: string]: number[] } = {};
 
     // Group values by histogram name
-    entries.forEach((entry) => {
-      if (!histogramMap[entry.name]) {
-        histogramMap[entry.name] = [];
+    records.forEach((record) => {
+      if (!histogramMap[record.key]) {
+        histogramMap[record.key] = [];
       }
-      histogramMap[entry.name].push(entry.value);
+      histogramMap[record.key].push(record.value);
     });
 
     // Calculate statistics for each histogram
-    const results: DiagnosticsHistogram = {};
+    const results: DiagnosticsHistograms = {};
     Object.keys(histogramMap).forEach((name) => {
       const values = histogramMap[name];
       if (values.length > 0) {
@@ -264,34 +268,21 @@ export class DiagnosticsClient implements IDiagnosticsClient {
 
   private calculateStatistics(values: number[]): HistogramResult {
     if (values.length === 0) {
-      return { count: 0, min: 0, max: 0, avg: 0, median: 0, p95: 0 };
+      return { count: 0, min: 0, max: 0, avg: 0 };
     }
 
-    // Sort values for percentile calculations
     const sortedValues = [...values].sort((a, b) => a - b);
     const count = values.length;
     const min = sortedValues[0];
     const max = sortedValues[count - 1];
     const sum = values.reduce((acc, val) => acc + val, 0);
-    const avg = sum / count;
-
-    // Calculate median
-    const median =
-      count % 2 === 0
-        ? (sortedValues[Math.floor(count / 2) - 1] + sortedValues[Math.floor(count / 2)]) / 2
-        : sortedValues[Math.floor(count / 2)];
-
-    // Calculate 95th percentile
-    const p95Index = Math.ceil(count * 0.95) - 1;
-    const p95 = sortedValues[Math.max(0, p95Index)];
+    const avg = Math.round((sum / count) * 100) / 100; // Round to 2 decimal places
 
     return {
       count,
       min,
       max,
-      avg: Math.round(avg * 100) / 100, // Round to 2 decimal places
-      median,
-      p95,
+      avg,
     };
   }
 
