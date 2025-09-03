@@ -1,8 +1,3 @@
-import { Logger } from '../logger';
-
-const defaultLogger = new Logger();
-defaultLogger.enable(); // Enable with default warn level
-
 /**
  * Checks if a given URL matches any pattern in an allowlist of URLs or regex patterns.
  * @param url - The URL to check

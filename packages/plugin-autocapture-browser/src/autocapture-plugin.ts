@@ -7,7 +7,6 @@ import {
   DEFAULT_CSS_SELECTOR_ALLOWLIST,
   DEFAULT_ACTION_CLICK_ALLOWLIST,
   DEFAULT_DATA_ATTRIBUTE_PREFIX,
-  Logger,
 } from '@amplitude/analytics-core';
 import { createRemoteConfigFetch } from '@amplitude/analytics-remote-config';
 import * as constants from './constants';
@@ -32,8 +31,6 @@ import {
 } from './pageActions/triggers';
 import { DataExtractor } from './data-extractor';
 
-const defaultLogger = new Logger();
-defaultLogger.enable(); // Enable with default warn level
 declare global {
   interface Window {
     navigation: HasEventTargetAddRemove<Event>;
@@ -87,7 +84,7 @@ export const autocapturePlugin = (options: ElementInteractionsOptions = {}): Bro
       try {
         acc.push(new RegExp(excludelist.pattern));
       } catch (regexError) {
-        defaultLogger.warn(`Invalid regex pattern: ${excludelist.pattern}`, regexError);
+        console.warn(`Invalid regex pattern: ${excludelist.pattern}`, regexError);
         return acc;
       }
     }
