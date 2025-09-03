@@ -7,6 +7,7 @@ import {
   DEFAULT_CSS_SELECTOR_ALLOWLIST,
   DEFAULT_ACTION_CLICK_ALLOWLIST,
   DEFAULT_DATA_ATTRIBUTE_PREFIX,
+  Logger,
 } from '@amplitude/analytics-core';
 import { createRemoteConfigFetch } from '@amplitude/analytics-remote-config';
 import * as constants from './constants';
@@ -31,6 +32,8 @@ import {
 } from './pageActions/triggers';
 import { DataExtractor } from './data-extractor';
 
+const defaultLogger = new Logger();
+defaultLogger.enable(); // Enable with default warn level
 declare global {
   interface Window {
     navigation: HasEventTargetAddRemove<Event>;
@@ -72,6 +75,27 @@ export const autocapturePlugin = (options: ElementInteractionsOptions = {}): Bro
   options.cssSelectorAllowlist = options.cssSelectorAllowlist ?? DEFAULT_CSS_SELECTOR_ALLOWLIST;
   options.actionClickAllowlist = options.actionClickAllowlist ?? DEFAULT_ACTION_CLICK_ALLOWLIST;
   options.debounceTime = options.debounceTime ?? 0; // TODO: update this when rage clicks are added to 1000ms
+
+  options.pageUrlExcludelist = options.pageUrlExcludelist?.reduce(
+    (acc: (string | RegExp)[] | undefined, excludelist) => {
+      if (typeof excludelist === 'string') {
+        acc?.push(excludelist);
+      }
+      if (excludelist instanceof RegExp) {
+        acc?.push(excludelist);
+      }
+      if (typeof excludelist === 'object' && 'pattern' in excludelist) {
+        try {
+          acc?.push(new RegExp(excludelist.pattern));
+        } catch (regexError) {
+          defaultLogger.warn(`Invalid regex pattern: ${excludelist.pattern}`, regexError);
+          return;
+        }
+      }
+      return acc;
+    },
+    [],
+  );
 
   const name = constants.PLUGIN_NAME;
   const type = 'enrichment';

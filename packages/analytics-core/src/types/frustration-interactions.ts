@@ -40,7 +40,7 @@ export interface FrustrationInteractionsOptions {
    * Both full URLs and regex are supported.
    * This takes precedence over pageUrlAllowlist.
    */
-  pageUrlExcludelist?: (RegExp | string | { pattern: string })[];
+  pageUrlExcludelist?: (string | RegExp)[];
 
   /**
    * Function to determine whether an event should be tracked.

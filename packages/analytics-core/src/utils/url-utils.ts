@@ -20,37 +20,3 @@ export const isUrlMatchAllowlist = (url: string, allowlist: (string | RegExp)[] 
     return url.match(allowedUrl);
   });
 };
-
-/**
- * Checks if a given URL matches any pattern in an excludelist of URLs or regex patterns.
- * @param url - The URL to check
- * @param excludelist - Array of excluded URLs (strings), regex patterns, or pattern objects
- * @returns true if the URL matches any pattern in the excludelist, false otherwise
- */
-export const isUrlMatchExcludelist = (
-  url: string,
-  excludelist: (string | RegExp | { pattern: string })[] | undefined,
-): boolean => {
-  if (!excludelist || !excludelist.length) {
-    return false;
-  }
-  return excludelist.some((excludedUrl) => {
-    if (typeof excludedUrl === 'string') {
-      return url === excludedUrl;
-    }
-    if (excludedUrl instanceof RegExp) {
-      return url.match(excludedUrl);
-    }
-    // Handle { pattern: string } objects
-    if (typeof excludedUrl === 'object' && 'pattern' in excludedUrl) {
-      try {
-        const regex = new RegExp(excludedUrl.pattern);
-        return !!url.match(regex);
-      } catch (regexError) {
-        defaultLogger.warn(`Invalid regex pattern: ${excludedUrl.pattern}`, regexError);
-        return false;
-      }
-    }
-    return false;
-  });
-};

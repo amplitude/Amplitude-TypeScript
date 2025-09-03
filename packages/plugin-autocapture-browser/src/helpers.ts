@@ -1,10 +1,5 @@
 /* eslint-disable no-restricted-globals */
-import {
-  ElementInteractionsOptions,
-  ActionType,
-  isUrlMatchAllowlist,
-  isUrlMatchExcludelist,
-} from '@amplitude/analytics-core';
+import { ElementInteractionsOptions, ActionType, isUrlMatchAllowlist } from '@amplitude/analytics-core';
 
 export type JSONValue = string | number | boolean | null | { [x: string]: JSONValue } | Array<JSONValue>;
 
@@ -38,11 +33,13 @@ export const createShouldTrackEvent = (
       return shouldTrackEventResolver(actionType, element);
     }
 
+    // check if the URL is in the allow list
     if (!isUrlMatchAllowlist(window.location.href, pageUrlAllowlist)) {
       return false;
     }
 
-    if (isUrlMatchExcludelist(window.location.href, pageUrlExcludelist)) {
+    // check if the URL is in the excludelist
+    if (pageUrlExcludelist && isUrlMatchAllowlist(window.location.href, pageUrlExcludelist as (string | RegExp)[])) {
       return false;
     }
 
