@@ -54,7 +54,7 @@ const plugin = autocapturePlugin({
   ],
   pageUrlExcludelist: [
     'https://amplitude.com/admin',
-    new RegExp('https://amplitude.com/private/*')
+    new RegExp('^https:\\/\\/amplitude\\.com\\/private\\/.*$')
   ],
 });
 ```
@@ -64,7 +64,7 @@ Examples:
     - `<button amp-tracking>Click</button>`
     - `<a class="amp-tracking">Link</a>`
 - The above `pageUrlAllowlist` will only allow the elements on URL "https://amplitude.com" or any URL matching the "https://amplitude.com/blog/*" to be tracked
-- The above `pageUrlExcludelist` will block tracking on URL "https://amplitude.com/admin" or any URL matching the "https://amplitude.com/private/*" pattern, even if they match the allowlist
+- The above `pageUrlExcludelist` will block tracking on URL "https://amplitude.com/admin" or any URL matching the "^https:\\/\\/amplitude\\.com\\/private\\/.*$" pattern, even if they match the allowlist
 
 #### Options
 
