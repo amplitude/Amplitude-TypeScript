@@ -1306,3 +1306,25 @@ describe('pruneHeaders', () => {
     }
   });
 });
+
+describe('basic auth', () => {
+  test('should not capture basic auth', () => {
+    const networkObserver = new NetworkObserver();
+    const events: NetworkRequestEvent[] = [];
+    jest.spyOn(networkObserver as unknown as any, 'triggerEventCallbacks').mockImplementation((event) => {
+      events.push(event as NetworkRequestEvent);
+    });
+    networkObserver.handleNetworkRequestEvent(
+      'fetch',
+      'https://username:password@api.example.com/data',
+      undefined,
+      undefined,
+      undefined,
+      0,
+      0,
+    );
+    expect(events).toHaveLength(1);
+    console.log(events[0].url);
+    expect(events[0].url).toBe('https://api.example.com/data');
+  });
+});

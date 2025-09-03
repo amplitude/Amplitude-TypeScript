@@ -4,20 +4,19 @@ import type { DataSource } from '@amplitude/analytics-core/lib/esm/types/element
 import * as constants from './constants';
 import {
   removeEmptyProperties,
-  getAttributesWithPrefix,
+  extractPrefixedAttributes,
   isElementPointerCursor,
   getClosestElement,
   isElementBasedEvent,
+  parseAttributesToMask,
 } from './helpers';
 import type { BaseTimestampedEvent, ElementBasedTimestampedEvent, TimestampedEvent } from './helpers';
-import { getHierarchy } from './hierarchy';
+import { getAncestors, getElementProperties } from './hierarchy';
 import type { JSONValue } from './helpers';
 import { getDataSource } from './pageActions/actions';
+import { Hierarchy } from './typings/autocapture';
 
-const CC_REGEX =
-  /^(?:(4[0-9]{12}(?:[0-9]{3})?)|(5[1-5][0-9]{14})|(6(?:011|5[0-9]{2})[0-9]{12})|(3[47][0-9]{13})|(3(?:0[0-5]|[68][0-9])[0-9]{11})|((?:2131|1800|35[0-9]{3})[0-9]{11}))$/;
-const CC_REGEX_WITH_SPACES =
-  /\b(?:4[0-9]{3}[\s-]?[0-9]{4}[\s-]?[0-9]{4}[\s-]?[0-9]{4}|5[1-5][0-9]{2}[\s-]?[0-9]{4}[\s-]?[0-9]{4}[\s-]?[0-9]{4}|6(?:011|5[0-9]{2})[\s-]?[0-9]{4}[\s-]?[0-9]{4}[\s-]?[0-9]{4}|3[47][0-9]{2}[\s-]?[0-9]{6}[\s-]?[0-9]{5}|3(?:0[0-5]|[68][0-9])[0-9][\s-]?[0-9]{6}[\s-]?[0-9]{4}|(?:2131|1800|35[0-9]{2})[\s-]?[0-9]{4}[\s-]?[0-9]{4}[\s-]?[0-9]{3})\b/g;
+const CC_REGEX = /\b(?:\d[ -]*?){13,16}\b/;
 const SSN_REGEX = /(\d{3}-?\d{2}-?\d{4})/g;
 const EMAIL_REGEX = /[^\s@]+@[^\s@.]+\.[^\s@]+/g;
 
@@ -53,17 +52,7 @@ export class DataExtractor {
     let result = text;
 
     // Check for credit card number (with or without spaces/dashes)
-    result = result.replace(CC_REGEX_WITH_SPACES, constants.MASKED_TEXT_VALUE);
-
-    // Also check for credit card numbers without spaces/dashes
-    if (CC_REGEX.test(result)) {
-      const ccMatch = result.match(CC_REGEX);
-      if (ccMatch) {
-        const ccNumber = ccMatch[0];
-        const ccPattern = new RegExp(ccNumber, 'g');
-        result = result.replace(ccPattern, constants.MASKED_TEXT_VALUE);
-      }
-    }
+    result = result.replace(CC_REGEX, constants.MASKED_TEXT_VALUE);
 
     // Check for social security number
     result = result.replace(SSN_REGEX, constants.MASKED_TEXT_VALUE);
@@ -81,6 +70,48 @@ export class DataExtractor {
     }
 
     return result;
+  };
+
+  // Get the DOM hierarchy of the element, starting from the target element to the root element.
+  getHierarchy = (element: Element | null): Hierarchy => {
+    let hierarchy: Hierarchy = [];
+    if (!element) {
+      return [];
+    }
+
+    // Get list of ancestors including itself and get properties at each level in the hierarchy
+    const ancestors = getAncestors(element);
+
+    // Build attributes to mask map
+    const elementToAttributesToMaskMap = new Map<Element, Set<string>>();
+
+    for (let i = ancestors.length - 1; i >= 0; i--) {
+      const node = ancestors[i];
+      if (node) {
+        const attributesToMask = parseAttributesToMask(node.getAttribute(constants.DATA_AMP_MASK_ATTRIBUTES));
+        const ancestorAttributesToMask =
+          i === ancestors.length - 1 ? [] : elementToAttributesToMaskMap.get(ancestors[i + 1]) ?? new Set<string>();
+        const combinedAttributesToMask = new Set([...ancestorAttributesToMask, ...attributesToMask]);
+        elementToAttributesToMaskMap.set(node, combinedAttributesToMask);
+      }
+    }
+
+    hierarchy = ancestors.map((el) =>
+      getElementProperties(el, elementToAttributesToMaskMap.get(el) ?? new Set<string>()),
+    );
+
+    // Search for and mask any sensitive attribute values
+    for (const hierarchyNode of hierarchy) {
+      if (hierarchyNode?.attrs) {
+        Object.entries(hierarchyNode.attrs).forEach(([key, value]) => {
+          if (hierarchyNode.attrs) {
+            hierarchyNode.attrs[key] = this.replaceSensitiveString(value);
+          }
+        });
+      }
+    }
+
+    return hierarchy;
   };
 
   getNearestLabel = (element: Element): string => {
@@ -109,29 +140,40 @@ export class DataExtractor {
     /* istanbul ignore next */
     const rect =
       typeof element.getBoundingClientRect === 'function' ? element.getBoundingClientRect() : { left: null, top: null };
-    const ariaLabel = element.getAttribute('aria-label');
-    const attributes = getAttributesWithPrefix(element, dataAttributePrefix);
+
+    const hierarchy = this.getHierarchy(element);
+    const currentElementAttributes = hierarchy[0]?.attrs;
     const nearestLabel = this.getNearestLabel(element);
+    const attributes = extractPrefixedAttributes(currentElementAttributes ?? {}, dataAttributePrefix);
+
     /* istanbul ignore next */
-    const properties: Record<string, unknown> = {
-      [constants.AMPLITUDE_EVENT_PROP_ELEMENT_ID]: element.getAttribute('id') || '',
-      [constants.AMPLITUDE_EVENT_PROP_ELEMENT_CLASS]: element.getAttribute('class'),
-      [constants.AMPLITUDE_EVENT_PROP_ELEMENT_HIERARCHY]: getHierarchy(element),
+    const properties: Record<string, any> = {
+      [constants.AMPLITUDE_EVENT_PROP_ELEMENT_HIERARCHY]: hierarchy,
       [constants.AMPLITUDE_EVENT_PROP_ELEMENT_TAG]: tag,
       [constants.AMPLITUDE_EVENT_PROP_ELEMENT_TEXT]: this.getText(element),
       [constants.AMPLITUDE_EVENT_PROP_ELEMENT_POSITION_LEFT]: rect.left == null ? null : Math.round(rect.left),
       [constants.AMPLITUDE_EVENT_PROP_ELEMENT_POSITION_TOP]: rect.top == null ? null : Math.round(rect.top),
-      [constants.AMPLITUDE_EVENT_PROP_ELEMENT_ARIA_LABEL]: ariaLabel,
       [constants.AMPLITUDE_EVENT_PROP_ELEMENT_ATTRIBUTES]: attributes,
       [constants.AMPLITUDE_EVENT_PROP_ELEMENT_PARENT_LABEL]: nearestLabel,
       [constants.AMPLITUDE_EVENT_PROP_PAGE_URL]: window.location.href.split('?')[0],
-      [constants.AMPLITUDE_EVENT_PROP_PAGE_TITLE]: (typeof document !== 'undefined' && document.title) || '',
+      [constants.AMPLITUDE_EVENT_PROP_PAGE_TITLE]:
+        (typeof document !== 'undefined' && this.replaceSensitiveString(document.title)) || '',
       [constants.AMPLITUDE_EVENT_PROP_VIEWPORT_HEIGHT]: window.innerHeight,
       [constants.AMPLITUDE_EVENT_PROP_VIEWPORT_WIDTH]: window.innerWidth,
     };
+
+    // id is never masked, so always include it
+    properties[constants.AMPLITUDE_EVENT_PROP_ELEMENT_ID] = element.getAttribute('id') || '';
+
+    // class is never masked, so always include it
+    properties[constants.AMPLITUDE_EVENT_PROP_ELEMENT_CLASS] = element.getAttribute('class');
+
+    properties[constants.AMPLITUDE_EVENT_PROP_ELEMENT_ARIA_LABEL] = currentElementAttributes?.['aria-label'];
+
     if (tag === 'a' && actionType === 'click' && element instanceof HTMLAnchorElement) {
-      properties[constants.AMPLITUDE_EVENT_PROP_ELEMENT_HREF] = element.href;
+      properties[constants.AMPLITUDE_EVENT_PROP_ELEMENT_HREF] = this.replaceSensitiveString(element.href); // we don't use hierarchy here because we don't want href value to be changed
     }
+
     return removeEmptyProperties(properties);
   };
 
