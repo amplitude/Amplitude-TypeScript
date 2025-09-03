@@ -694,5 +694,22 @@ describe('autocapture-plugin helpers', () => {
 
       expect(shouldTrackEvent('click', element)).toEqual(false);
     });
+
+    test('should allow tracking when pageUrlExcludelist is empty', () => {
+      // Mock window.location to any URL
+      mockWindowLocationFromURL(new URL('https://www.example.com/page'));
+
+      const element = document.createElement('button');
+      element.textContent = 'Click me';
+
+      const shouldTrackEvent = createShouldTrackEvent(
+        {
+          pageUrlExcludelist: [], // Empty excludelist should not block any URLs
+        },
+        ['button'],
+      );
+
+      expect(shouldTrackEvent('click', element)).toEqual(true);
+    });
   });
 });

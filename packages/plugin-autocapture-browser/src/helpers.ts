@@ -39,7 +39,11 @@ export const createShouldTrackEvent = (
     }
 
     // check if the URL is in the excludelist
-    if (pageUrlExcludelist && isUrlMatchAllowlist(window.location.href, pageUrlExcludelist as (string | RegExp)[])) {
+    if (
+      pageUrlExcludelist &&
+      pageUrlExcludelist.length > 0 &&
+      isUrlMatchAllowlist(window.location.href, pageUrlExcludelist as (string | RegExp)[])
+    ) {
       return false;
     }
 
