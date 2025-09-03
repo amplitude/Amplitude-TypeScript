@@ -73,23 +73,26 @@ export const autocapturePlugin = (options: ElementInteractionsOptions = {}): Bro
   options.actionClickAllowlist = options.actionClickAllowlist ?? DEFAULT_ACTION_CLICK_ALLOWLIST;
   options.debounceTime = options.debounceTime ?? 0; // TODO: update this when rage clicks are added to 1000ms
 
-  options.pageUrlExcludelist = options.pageUrlExcludelist?.reduce((acc: (string | RegExp)[], excludelist) => {
-    if (typeof excludelist === 'string') {
-      acc.push(excludelist);
-    }
-    if (excludelist instanceof RegExp) {
-      acc.push(excludelist);
-    }
-    if (typeof excludelist === 'object' && excludelist !== null && 'pattern' in excludelist) {
-      try {
-        acc.push(new RegExp(excludelist.pattern));
-      } catch (regexError) {
-        console.warn(`Invalid regex pattern: ${excludelist.pattern}`, regexError);
-        return acc;
+  options.pageUrlExcludelist = options.pageUrlExcludelist?.reduce(
+    (acc: (string | RegExp | { pattern: string })[], excludePattern) => {
+      if (typeof excludePattern === 'string') {
+        acc.push(excludePattern);
       }
-    }
-    return acc;
-  }, []);
+      if (excludePattern instanceof RegExp) {
+        acc.push(excludePattern);
+      }
+      if (typeof excludePattern === 'object' && excludePattern !== null && 'pattern' in excludePattern) {
+        try {
+          acc.push(new RegExp(excludePattern.pattern));
+        } catch (regexError) {
+          console.warn(`Invalid regex pattern: ${excludePattern.pattern}`, regexError);
+          return acc;
+        }
+      }
+      return acc;
+    },
+    [],
+  );
 
   const name = constants.PLUGIN_NAME;
   const type = 'enrichment';

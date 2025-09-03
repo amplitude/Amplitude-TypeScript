@@ -13,7 +13,7 @@ import {
 import { autocapturePlugin } from '../src/autocapture-plugin';
 import { mockWindowLocationFromURL } from './utils';
 import { DATA_AMP_MASK_ATTRIBUTES } from '../src/constants';
-import { Logger } from '@amplitude/analytics-core';
+
 import type { ElementInteractionsOptions } from '@amplitude/analytics-core/lib/esm/types/element-interactions';
 
 // Mock implementations for functions that are expected by tests but don't exist in current implementation
@@ -365,15 +365,14 @@ describe('autocapture-plugin helpers', () => {
   });
 
   describe('pageUrlExcludelist processing', () => {
-    let mockLogger: jest.SpyInstance;
+    let consoleWarnSpy: jest.SpyInstance;
 
     beforeEach(() => {
-      // Mock the default logger warn method
-      mockLogger = jest.spyOn(Logger.prototype, 'warn').mockImplementation(jest.fn());
+      consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation();
     });
 
     afterEach(() => {
-      jest.clearAllMocks();
+      jest.restoreAllMocks();
     });
 
     describe('string values', () => {
@@ -475,7 +474,7 @@ describe('autocapture-plugin helpers', () => {
         autocapturePlugin(options);
 
         // Verify that warning was logged
-        expect(mockLogger).toHaveBeenCalledWith('Invalid regex pattern: [invalid-regex', expect.any(Error));
+        expect(consoleWarnSpy).toHaveBeenCalledWith('Invalid regex pattern: [invalid-regex', expect.any(Error));
 
         // Verify that valid items are still processed and invalid ones are skipped
         expect(options.pageUrlExcludelist).toEqual(['https://valid.com', 'https://another-valid.com']);
@@ -494,9 +493,9 @@ describe('autocapture-plugin helpers', () => {
         autocapturePlugin(options);
 
         // Verify that warnings were logged for both invalid patterns
-        expect(mockLogger).toHaveBeenCalledTimes(2);
-        expect(mockLogger).toHaveBeenNthCalledWith(1, 'Invalid regex pattern: [invalid1', expect.any(Error));
-        expect(mockLogger).toHaveBeenNthCalledWith(2, 'Invalid regex pattern: *invalid2', expect.any(Error));
+        expect(consoleWarnSpy).toHaveBeenCalledTimes(2);
+        expect(consoleWarnSpy).toHaveBeenNthCalledWith(1, 'Invalid regex pattern: [invalid1', expect.any(Error));
+        expect(consoleWarnSpy).toHaveBeenNthCalledWith(2, 'Invalid regex pattern: *invalid2', expect.any(Error));
 
         // Valid items should still be processed
         expect(options.pageUrlExcludelist).toHaveLength(2);
@@ -516,7 +515,7 @@ describe('autocapture-plugin helpers', () => {
 
         // Should remain undefined
         expect(options.pageUrlExcludelist).toBeUndefined();
-        expect(mockLogger).not.toHaveBeenCalled();
+        expect(consoleWarnSpy).not.toHaveBeenCalled();
       });
 
       test('should handle empty pageUrlExcludelist array', () => {
@@ -528,7 +527,7 @@ describe('autocapture-plugin helpers', () => {
 
         // Should result in empty array
         expect(options.pageUrlExcludelist).toEqual([]);
-        expect(mockLogger).not.toHaveBeenCalled();
+        expect(consoleWarnSpy).not.toHaveBeenCalled();
       });
 
       test('should handle array with only invalid regex patterns', () => {
@@ -540,7 +539,7 @@ describe('autocapture-plugin helpers', () => {
 
         // Should result in empty array since all patterns were invalid
         expect(options.pageUrlExcludelist).toEqual([]);
-        expect(mockLogger).toHaveBeenCalledTimes(2);
+        expect(consoleWarnSpy).toHaveBeenCalledTimes(2);
       });
 
       test('should handle objects without pattern property', () => {
@@ -556,7 +555,7 @@ describe('autocapture-plugin helpers', () => {
 
         // Objects without 'pattern' property should be ignored
         expect(options.pageUrlExcludelist).toEqual(['https://valid.com', 'https://another-valid.com']);
-        expect(mockLogger).not.toHaveBeenCalled();
+        expect(consoleWarnSpy).not.toHaveBeenCalled();
       });
 
       test('should handle objects with empty pattern', () => {
@@ -572,7 +571,7 @@ describe('autocapture-plugin helpers', () => {
         expect(options.pageUrlExcludelist?.[1]).toBeInstanceOf(RegExp);
         expect((options.pageUrlExcludelist?.[1] as RegExp).source).toBe('(?:)');
         expect(options.pageUrlExcludelist?.[2]).toBe('https://another-valid.com');
-        expect(mockLogger).not.toHaveBeenCalled();
+        expect(consoleWarnSpy).not.toHaveBeenCalled();
       });
     });
 
@@ -593,7 +592,7 @@ describe('autocapture-plugin helpers', () => {
 
         // Only string and valid types should be preserved
         expect(options.pageUrlExcludelist).toEqual(['https://valid.com', 'https://another-valid.com']);
-        expect(mockLogger).not.toHaveBeenCalled();
+        expect(consoleWarnSpy).not.toHaveBeenCalled();
       });
 
       test('should handle numbers and other primitive types', () => {
@@ -611,7 +610,7 @@ describe('autocapture-plugin helpers', () => {
 
         // Only string types should be preserved
         expect(options.pageUrlExcludelist).toEqual(['https://valid.com', 'https://another-valid.com']);
-        expect(mockLogger).not.toHaveBeenCalled();
+        expect(consoleWarnSpy).not.toHaveBeenCalled();
       });
     });
   });
