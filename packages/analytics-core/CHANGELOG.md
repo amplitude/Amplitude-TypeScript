@@ -3,6 +3,22 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.23.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.22.1...@amplitude/analytics-core@2.23.0) (2025-09-05)
+
+
+### Bug Fixes
+
+* **analytics-core:** strip out basic auth from url ([#1279](https://github.com/amplitude/Amplitude-TypeScript/issues/1279)) ([d9ee8af](https://github.com/amplitude/Amplitude-TypeScript/commit/d9ee8afc34537cf96c05e98bebfad94b3bc426ad))
+
+
+### Features
+
+* **autocapture:** include pageUrlExcludelist ([#1264](https://github.com/amplitude/Amplitude-TypeScript/issues/1264)) ([dd2aa7f](https://github.com/amplitude/Amplitude-TypeScript/commit/dd2aa7fbb476ead45831f2dc39a94db224131699))
+
+
+
+
+
 ## [2.22.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.22.0...@amplitude/analytics-core@2.22.1) (2025-08-28)
 
 

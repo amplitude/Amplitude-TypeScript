@@ -1,6 +1,6 @@
 {
   "name": "@amplitude/analytics-react-native",
-  "version": "1.5.8",
+  "version": "1.5.9",
   "description": "Official React Native SDK",
   "keywords": [
     "analytics",
@@ -58,7 +58,7 @@
     "url": "https://github.com/amplitude/Amplitude-TypeScript/issues"
   },
   "dependencies": {
-    "@amplitude/analytics-core": "^2.22.1",
+    "@amplitude/analytics-core": "^2.23.0",
     "@amplitude/ua-parser-js": "^0.7.31",
     "@react-native-async-storage/async-storage": "^1.17.11",
     "tslib": "^2.4.1"

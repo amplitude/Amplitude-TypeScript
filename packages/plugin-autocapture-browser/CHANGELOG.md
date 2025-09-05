@@ -3,6 +3,19 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.12.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.11.1...@amplitude/plugin-autocapture-browser@1.12.0) (2025-09-05)
+
+
+### Features
+
+* **autocapture:** attribute value mask ([#1263](https://github.com/amplitude/Amplitude-TypeScript/issues/1263)) ([54916ef](https://github.com/amplitude/Amplitude-TypeScript/commit/54916ef1ae39c2d476b256e387238c252cf2509c))
+* **autocapture:** exclude text with data-amp-mask element attribute ([#1260](https://github.com/amplitude/Amplitude-TypeScript/issues/1260)) ([07da789](https://github.com/amplitude/Amplitude-TypeScript/commit/07da78921a8cde931b9f2aae207b65263c066392))
+* **autocapture:** include pageUrlExcludelist ([#1264](https://github.com/amplitude/Amplitude-TypeScript/issues/1264)) ([dd2aa7f](https://github.com/amplitude/Amplitude-TypeScript/commit/dd2aa7fbb476ead45831f2dc39a94db224131699))
+
+
+
+
+
 ## [1.11.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.11.0...@amplitude/plugin-autocapture-browser@1.11.1) (2025-08-28)
 
 **Note:** Version bump only for package @amplitude/plugin-autocapture-browser

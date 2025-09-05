@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.23.6](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.23.5...@amplitude/analytics-browser@2.23.6) (2025-09-05)
+
+
+### Bug Fixes
+
+* Use original marketing cookies set by web experiment pre-redirect ([#1280](https://github.com/amplitude/Amplitude-TypeScript/issues/1280)) ([cb32969](https://github.com/amplitude/Amplitude-TypeScript/commit/cb329695d9654790f79aa23eaa8ba67b73e67974))
+
+
+
+
+
 ## [2.23.5](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.23.4...@amplitude/analytics-browser@2.23.5) (2025-08-28)
 
 **Note:** Version bump only for package @amplitude/analytics-browser
