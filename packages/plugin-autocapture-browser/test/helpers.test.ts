@@ -10,18 +10,22 @@ import {
   generateUniqueId,
   createShouldTrackEvent,
 } from '../src/helpers';
+import { autocapturePlugin } from '../src/autocapture-plugin';
+import { mockWindowLocationFromURL } from './utils';
 import { DATA_AMP_MASK_ATTRIBUTES } from '../src/constants';
 
+import type { ElementInteractionsOptions } from '@amplitude/analytics-core/lib/esm/types/element-interactions';
+
 // Mock implementations for functions that are expected by tests but don't exist in current implementation
-const getRedactedAttributeNames = (element: Element): Set<string> => {
+const getMaskedAttributeNames = (element: Element): Set<string> => {
   const redactedAttributeNames = new Set<string>();
   let currentElement: Element | null = element.closest(`[${DATA_AMP_MASK_ATTRIBUTES}]`);
 
   while (currentElement) {
     const redactValue = currentElement.getAttribute(DATA_AMP_MASK_ATTRIBUTES);
     if (redactValue) {
-      const attributesToRedact = parseAttributesToMask(redactValue);
-      attributesToRedact.forEach((attr) => {
+      const attributesToMask = parseAttributesToMask(redactValue);
+      attributesToMask.forEach((attr) => {
         redactedAttributeNames.add(attr);
       });
     }
@@ -31,9 +35,9 @@ const getRedactedAttributeNames = (element: Element): Set<string> => {
   return redactedAttributeNames;
 };
 
-// Mock extractPrefixedAttributes to act like getRedactedAttributeNames for the tests
+// Mock extractPrefixedAttributes to act like getMaskedAttributeNames for the tests
 const extractPrefixedAttributes = (element: Element): Set<string> => {
-  return getRedactedAttributeNames(element);
+  return getMaskedAttributeNames(element);
 };
 
 describe('autocapture-plugin helpers', () => {
@@ -360,6 +364,257 @@ describe('autocapture-plugin helpers', () => {
     });
   });
 
+  describe('pageUrlExcludelist processing', () => {
+    let consoleWarnSpy: jest.SpyInstance;
+
+    beforeEach(() => {
+      consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation();
+    });
+
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    describe('string values', () => {
+      test('should process string values correctly', () => {
+        const options: ElementInteractionsOptions = {
+          pageUrlExcludelist: ['https://example.com', 'https://test.com/admin'],
+        };
+
+        autocapturePlugin(options);
+
+        // Verify that string values are preserved in the processed array
+        expect(options.pageUrlExcludelist).toEqual(['https://example.com', 'https://test.com/admin']);
+      });
+
+      test('should handle empty string values', () => {
+        const options: ElementInteractionsOptions = {
+          pageUrlExcludelist: ['', 'https://example.com', ''],
+        };
+
+        autocapturePlugin(options);
+
+        // Empty strings should still be included
+        expect(options.pageUrlExcludelist).toEqual(['', 'https://example.com', '']);
+      });
+    });
+
+    describe('RegExp instances', () => {
+      test('should process RegExp instances correctly', () => {
+        const regex1 = new RegExp('https://example\\.com');
+        const regex2 = /https:\/\/test\.com\/admin/;
+
+        const options: ElementInteractionsOptions = {
+          pageUrlExcludelist: [regex1, regex2],
+        };
+
+        autocapturePlugin(options);
+
+        // Verify that RegExp instances are preserved
+        expect(options.pageUrlExcludelist).toEqual([regex1, regex2]);
+      });
+
+      test('should handle mix of strings and RegExp instances', () => {
+        const regex = new RegExp('https://example\\.com');
+
+        const options: ElementInteractionsOptions = {
+          pageUrlExcludelist: ['https://test.com', regex, 'https://admin.com'],
+        };
+
+        autocapturePlugin(options);
+
+        expect(options.pageUrlExcludelist).toEqual(['https://test.com', regex, 'https://admin.com']);
+      });
+    });
+
+    describe('regex pattern objects', () => {
+      test('should convert pattern objects to RegExp instances', () => {
+        const options: ElementInteractionsOptions = {
+          pageUrlExcludelist: [{ pattern: 'https://example\\.com' }, { pattern: 'https://test\\.com/admin.*' }],
+        };
+
+        autocapturePlugin(options);
+
+        // Verify that pattern objects are converted to RegExp instances
+        expect(options.pageUrlExcludelist).toHaveLength(2);
+        expect(options.pageUrlExcludelist?.[0]).toBeInstanceOf(RegExp);
+        expect(options.pageUrlExcludelist?.[1]).toBeInstanceOf(RegExp);
+        expect((options.pageUrlExcludelist?.[0] as RegExp).source).toBe('https:\\/\\/example\\.com');
+        expect((options.pageUrlExcludelist?.[1] as RegExp).source).toBe('https:\\/\\/test\\.com\\/admin.*');
+      });
+
+      test('should handle mix of all supported types', () => {
+        const regex = new RegExp('existing-regex');
+
+        const options: ElementInteractionsOptions = {
+          pageUrlExcludelist: ['https://string.com', regex, { pattern: 'https://pattern\\.com' }, 'another-string'],
+        };
+
+        autocapturePlugin(options);
+
+        expect(options.pageUrlExcludelist).toHaveLength(4);
+        expect(options.pageUrlExcludelist?.[0]).toBe('https://string.com');
+        expect(options.pageUrlExcludelist?.[1]).toBe(regex);
+        expect(options.pageUrlExcludelist?.[2]).toBeInstanceOf(RegExp);
+        expect((options.pageUrlExcludelist?.[2] as RegExp).source).toBe('https:\\/\\/pattern\\.com');
+        expect(options.pageUrlExcludelist?.[3]).toBe('another-string');
+      });
+    });
+
+    describe('invalid regex patterns', () => {
+      test('should handle invalid regex patterns gracefully and log warning', () => {
+        const options: ElementInteractionsOptions = {
+          pageUrlExcludelist: [
+            'https://valid.com',
+            { pattern: '[invalid-regex' }, // Invalid regex - unclosed bracket
+            'https://another-valid.com',
+          ],
+        };
+
+        autocapturePlugin(options);
+
+        // Verify that warning was logged
+        expect(consoleWarnSpy).toHaveBeenCalledWith('Invalid regex pattern: [invalid-regex', expect.any(Error));
+
+        // Verify that valid items are still processed and invalid ones are skipped
+        expect(options.pageUrlExcludelist).toEqual(['https://valid.com', 'https://another-valid.com']);
+      });
+
+      test('should handle multiple invalid regex patterns', () => {
+        const options: ElementInteractionsOptions = {
+          pageUrlExcludelist: [
+            { pattern: '[invalid1' },
+            'https://valid.com',
+            { pattern: '*invalid2' },
+            { pattern: 'valid\\.pattern' },
+          ],
+        };
+
+        autocapturePlugin(options);
+
+        // Verify that warnings were logged for both invalid patterns
+        expect(consoleWarnSpy).toHaveBeenCalledTimes(2);
+        expect(consoleWarnSpy).toHaveBeenNthCalledWith(1, 'Invalid regex pattern: [invalid1', expect.any(Error));
+        expect(consoleWarnSpy).toHaveBeenNthCalledWith(2, 'Invalid regex pattern: *invalid2', expect.any(Error));
+
+        // Valid items should still be processed
+        expect(options.pageUrlExcludelist).toHaveLength(2);
+        expect(options.pageUrlExcludelist?.[0]).toBe('https://valid.com');
+        expect(options.pageUrlExcludelist?.[1]).toBeInstanceOf(RegExp);
+        expect((options.pageUrlExcludelist?.[1] as RegExp).source).toBe('valid\\.pattern');
+      });
+    });
+
+    describe('edge cases', () => {
+      test('should handle undefined pageUrlExcludelist', () => {
+        const options: ElementInteractionsOptions = {
+          pageUrlExcludelist: undefined,
+        };
+
+        autocapturePlugin(options);
+
+        // Should remain undefined
+        expect(options.pageUrlExcludelist).toBeUndefined();
+        expect(consoleWarnSpy).not.toHaveBeenCalled();
+      });
+
+      test('should handle empty pageUrlExcludelist array', () => {
+        const options: ElementInteractionsOptions = {
+          pageUrlExcludelist: [],
+        };
+
+        autocapturePlugin(options);
+
+        // Should result in empty array
+        expect(options.pageUrlExcludelist).toEqual([]);
+        expect(consoleWarnSpy).not.toHaveBeenCalled();
+      });
+
+      test('should handle array with only invalid regex patterns', () => {
+        const options: ElementInteractionsOptions = {
+          pageUrlExcludelist: [{ pattern: '[invalid1' }, { pattern: '*invalid2' }],
+        };
+
+        autocapturePlugin(options);
+
+        // Should result in empty array since all patterns were invalid
+        expect(options.pageUrlExcludelist).toEqual([]);
+        expect(consoleWarnSpy).toHaveBeenCalledTimes(2);
+      });
+
+      test('should handle objects without pattern property', () => {
+        const options: ElementInteractionsOptions = {
+          pageUrlExcludelist: [
+            'https://valid.com',
+            { notPattern: 'some-value' } as any, // Object without 'pattern' property
+            'https://another-valid.com',
+          ],
+        };
+
+        autocapturePlugin(options);
+
+        // Objects without 'pattern' property should be ignored
+        expect(options.pageUrlExcludelist).toEqual(['https://valid.com', 'https://another-valid.com']);
+        expect(consoleWarnSpy).not.toHaveBeenCalled();
+      });
+
+      test('should handle objects with empty pattern', () => {
+        const options: ElementInteractionsOptions = {
+          pageUrlExcludelist: ['https://valid.com', { pattern: '' }, 'https://another-valid.com'],
+        };
+
+        autocapturePlugin(options);
+
+        // Empty pattern should create a valid regex
+        expect(options.pageUrlExcludelist).toHaveLength(3);
+        expect(options.pageUrlExcludelist?.[0]).toBe('https://valid.com');
+        expect(options.pageUrlExcludelist?.[1]).toBeInstanceOf(RegExp);
+        expect((options.pageUrlExcludelist?.[1] as RegExp).source).toBe('(?:)');
+        expect(options.pageUrlExcludelist?.[2]).toBe('https://another-valid.com');
+        expect(consoleWarnSpy).not.toHaveBeenCalled();
+      });
+    });
+
+    describe('type safety', () => {
+      test('should handle various falsy values gracefully', () => {
+        const options: ElementInteractionsOptions = {
+          pageUrlExcludelist: [
+            'https://valid.com',
+            null as any,
+            undefined as any,
+            false as any,
+            0 as any,
+            'https://another-valid.com',
+          ],
+        };
+
+        autocapturePlugin(options);
+
+        // Only string and valid types should be preserved
+        expect(options.pageUrlExcludelist).toEqual(['https://valid.com', 'https://another-valid.com']);
+        expect(consoleWarnSpy).not.toHaveBeenCalled();
+      });
+
+      test('should handle numbers and other primitive types', () => {
+        const options: ElementInteractionsOptions = {
+          pageUrlExcludelist: [
+            'https://valid.com',
+            123 as any,
+            true as any,
+            Symbol('test') as any,
+            'https://another-valid.com',
+          ],
+        };
+
+        autocapturePlugin(options);
+
+        // Only string types should be preserved
+        expect(options.pageUrlExcludelist).toEqual(['https://valid.com', 'https://another-valid.com']);
+        expect(consoleWarnSpy).not.toHaveBeenCalled();
+      });
+    });
+  });
+
   describe('createShouldTrackEvent', () => {
     test('should not fail when given window as element', () => {
       const shouldTrackEvent = createShouldTrackEvent({}, ['div']);
@@ -386,6 +641,75 @@ describe('autocapture-plugin helpers', () => {
 
       expect(shouldTrackEvent('click', element)).toEqual(true);
       document.head.removeChild(style);
+    });
+
+    test('should respect pageUrlExcludelist configuration', () => {
+      // Mock window.location to a test URL
+      mockWindowLocationFromURL(new URL('https://www.test.com/page'));
+
+      const element = document.createElement('button');
+      element.textContent = 'Click me';
+
+      const shouldTrackEvent = createShouldTrackEvent(
+        {
+          pageUrlExcludelist: [new RegExp('https://www.test.com')],
+        },
+        ['button'],
+      );
+
+      expect(shouldTrackEvent('click', element)).toEqual(true);
+    });
+
+    test('should allow tracking when URL does not match excludelist', () => {
+      // Mock window.location to a different URL
+      mockWindowLocationFromURL(new URL('https://www.different.com/page'));
+
+      const element = document.createElement('button');
+      element.textContent = 'Click me';
+
+      const shouldTrackEvent = createShouldTrackEvent(
+        {
+          pageUrlExcludelist: [new RegExp('https://www.test.com')],
+        },
+        ['button'],
+      );
+
+      expect(shouldTrackEvent('click', element)).toEqual(true);
+    });
+
+    test('should prioritize excludelist over allowlist', () => {
+      // Mock window.location to a URL that matches both lists
+      mockWindowLocationFromURL(new URL('https://www.test.com/page'));
+
+      const element = document.createElement('button');
+      element.textContent = 'Click me';
+
+      const shouldTrackEvent = createShouldTrackEvent(
+        {
+          pageUrlAllowlist: [new RegExp('https://www.test.com')],
+          pageUrlExcludelist: [new RegExp('https://www.test.com')],
+        },
+        ['button'],
+      );
+
+      expect(shouldTrackEvent('click', element)).toEqual(false);
+    });
+
+    test('should allow tracking when pageUrlExcludelist is empty', () => {
+      // Mock window.location to any URL
+      mockWindowLocationFromURL(new URL('https://www.example.com/page'));
+
+      const element = document.createElement('button');
+      element.textContent = 'Click me';
+
+      const shouldTrackEvent = createShouldTrackEvent(
+        {
+          pageUrlExcludelist: [], // Empty excludelist should not block any URLs
+        },
+        ['button'],
+      );
+
+      expect(shouldTrackEvent('click', element)).toEqual(true);
     });
   });
 });

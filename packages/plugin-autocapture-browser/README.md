@@ -52,6 +52,10 @@ const plugin = autocapturePlugin({
     'https://amplitude.com',
     new RegExp('https://amplitude.com/blog/*')
   ],
+  pageUrlExcludelist: [
+    'https://amplitude.com/admin',
+    new RegExp('^https:\\/\\/amplitude\\.com\\/private\\/.*$')
+  ],
 });
 ```
 
@@ -60,6 +64,7 @@ Examples:
     - `<button amp-tracking>Click</button>`
     - `<a class="amp-tracking">Link</a>`
 - The above `pageUrlAllowlist` will only allow the elements on URL "https://amplitude.com" or any URL matching the "https://amplitude.com/blog/*" to be tracked
+- The above `pageUrlExcludelist` will block tracking on URL "https://amplitude.com/admin" or any URL matching the "^https:\\/\\/amplitude\\.com\\/private\\/.*$" pattern, even if they match the allowlist
 
 #### Options
 
@@ -67,6 +72,7 @@ Examples:
 |-|-|-|-|
 |`cssSelectorAllowlist`|`string[]`|`['a', 'button', 'input', 'select', 'textarea', 'label', '[data-amp-default-track]', '.amp-default-track']`| When provided, only allow elements matching any selector to be tracked. |
 |`pageUrlAllowlist`|`(string\|RegExp)[]`|`undefined`| When provided, only allow elements matching URLs to be tracked. |
+|`pageUrlExcludelist`|`(string\|RegExp)[]`|`undefined`| When provided, block tracking on elements matching URLs. Takes precedence over allowlist. |
 |`shouldTrackEventResolver`|`(actionType: ActionType, element: Element) => boolean`|`undefined`| When provided, overwrite all other allowlists and configurations. |
 |`dataAttributePrefix`|`string`|`'data-amp-track-'`| Allow data attributes to be collected in event property. |
 

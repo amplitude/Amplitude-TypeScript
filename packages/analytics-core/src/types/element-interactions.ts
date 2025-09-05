@@ -51,6 +51,14 @@ export interface ElementInteractionsOptions {
   pageUrlAllowlist?: (string | RegExp)[];
 
   /**
+   * List of page URLs to exclude from auto tracking.
+   * When provided, tracking will be blocked on these URLs.
+   * Both full URLs and regex are supported.
+   * This takes precedence over pageUrlAllowlist.
+   */
+  pageUrlExcludelist?: (RegExp | string | { pattern: string })[];
+
+  /**
    * Function to determine whether an event should be tracked.
    * When provided, this function overwrites all other allowlists and configurations.
    * If the function returns true, the event will be tracked.
