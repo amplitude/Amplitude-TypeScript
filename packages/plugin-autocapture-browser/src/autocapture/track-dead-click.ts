@@ -27,7 +27,7 @@ export function trackDeadClick({
   getEventProperties: (actionType: ActionType, element: Element) => Record<string, any>;
   shouldTrackDeadClick: shouldTrackEvent;
 }) {
-  const { clickObservable, mutationObservable, navigateObservable } = allObservables;
+  const { clickObservable, mutationObservable, navigateObservable, visibilityChangeObservable } = allObservables;
 
   const filteredClickObservable = clickObservable.pipe(
     filter(filterOutNonTrackableEvents),
@@ -38,10 +38,15 @@ export function trackDeadClick({
   );
 
   const changeObservables: Array<
-    AllWindowObservables[ObservablesEnum.MutationObservable] | AllWindowObservables[ObservablesEnum.NavigateObservable]
+    | AllWindowObservables[ObservablesEnum.MutationObservable]
+    | AllWindowObservables[ObservablesEnum.NavigateObservable]
+    | AllWindowObservables[ObservablesEnum.VisibilityChangeObservable]
   > = [mutationObservable];
   if (navigateObservable) {
     changeObservables.push(navigateObservable);
+  }
+  if (visibilityChangeObservable) {
+    changeObservables.push(visibilityChangeObservable);
   }
   const mutationOrNavigate = merge(...changeObservables);
 
