@@ -265,7 +265,10 @@
         import.meta.env.VITE_AMPLITUDE_USER_ID || 'amplitude-typescript test user',
         {
           fetchRemoteConfig: false,
-          autocapture: true,
+          autocapture: {
+            elementInteractions: true,
+            frustrationInteractions,
+          },
         }
       );
 
