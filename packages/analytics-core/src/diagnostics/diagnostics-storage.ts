@@ -50,10 +50,7 @@ export interface InternalRecord {
 }
 
 export interface IDiagnosticsStorage {
-  // Check availability
-  isEnabled(): Promise<boolean>;
-
-  // Batch operations (primary interface)
+  // Setters
   setTags(tags: Record<string, string>): Promise<void>;
   setCounters(counters: Record<string, number>): Promise<void>;
   setHistogramStats(
@@ -62,16 +59,14 @@ export interface IDiagnosticsStorage {
   addEventRecords(
     events: Array<{ event_name: string; time: number; event_properties: Record<string, any> }>,
   ): Promise<void>;
+  setLastFlushTimestamp(timestamp: number): Promise<void>;
 
-  // Read operations (for flush)
+  // Getters
   getAllTags(): Promise<TagRecord[]>;
   getAllCounters(): Promise<CounterRecord[]>;
   getAllHistogramStats(): Promise<HistogramRecord[]>;
   getAllEventRecords(): Promise<EventRecord[]>;
-
-  // Internal operations
   getLastFlushTimestamp(): Promise<number | undefined>;
-  setLastFlushTimestamp(timestamp: number): Promise<void>;
 
   // Cleanup
   clearAllData(): Promise<void>;
@@ -82,23 +77,23 @@ export interface IDiagnosticsStorage {
  * Provides optimized methods for each type of diagnostics data
  */
 export class DiagnosticsStorage implements IDiagnosticsStorage {
-  private dbPromise: Promise<IDBDatabase> | null = null;
-  private dbName: string;
-  private logger?: ILogger;
+  dbPromise: Promise<IDBDatabase> | null = null;
+  dbName: string;
+  logger: ILogger;
 
-  constructor(apiKey: string, logger?: ILogger) {
+  constructor(apiKey: string, logger: ILogger) {
     this.logger = logger;
     this.dbName = `AMP_diagnostics_${apiKey.substring(0, 10)}`;
   }
 
-  private async getDB(): Promise<IDBDatabase> {
+  async getDB(): Promise<IDBDatabase> {
     if (!this.dbPromise) {
       this.dbPromise = this.openDB();
     }
     return this.dbPromise;
   }
 
-  private openDB(): Promise<IDBDatabase> {
+  openDB(): Promise<IDBDatabase> {
     return new Promise((resolve, reject) => {
       if (typeof indexedDB === 'undefined') {
         reject(new Error('IndexedDB is not supported'));
@@ -122,7 +117,7 @@ export class DiagnosticsStorage implements IDiagnosticsStorage {
     });
   }
 
-  private createTables(db: IDBDatabase): void {
+  createTables(db: IDBDatabase): void {
     // Create tags table
     if (!db.objectStoreNames.contains(TABLE_NAMES.TAGS)) {
       db.createObjectStore(TABLE_NAMES.TAGS, { keyPath: 'key' });
@@ -157,23 +152,6 @@ export class DiagnosticsStorage implements IDiagnosticsStorage {
     }
   }
 
-  /**
-   * Check if IndexedDB is available and working
-   */
-  async isEnabled(): Promise<boolean> {
-    try {
-      if (typeof indexedDB === 'undefined') {
-        return false;
-      }
-
-      // Test if we can open the database
-      const db = await this.getDB();
-      return db !== null;
-    } catch {
-      return false;
-    }
-  }
-
   // === BATCH TAG OPERATIONS ===
 
   /**
@@ -192,7 +170,7 @@ export class DiagnosticsStorage implements IDiagnosticsStorage {
         request.onerror = () => reject(new Error('Failed to get all tags'));
       });
     } catch (error) {
-      this.logger.error('DiagnosticsStorage: Failed to get all tags', error);
+      this.logger.debug('DiagnosticsStorage: Failed to get all tags', error);
       return [];
     }
   }
@@ -229,8 +207,7 @@ export class DiagnosticsStorage implements IDiagnosticsStorage {
         });
       });
     } catch (error) {
-      this.logger?.debug('DiagnosticsStorage: Failed to set tags', error);
-      throw error;
+      this.logger.debug('DiagnosticsStorage: Failed to set tags', error);
     }
   }
 
@@ -252,7 +229,7 @@ export class DiagnosticsStorage implements IDiagnosticsStorage {
         request.onerror = () => reject(new Error('Failed to get all counters'));
       });
     } catch (error) {
-      this.logger.error('DiagnosticsStorage: Failed to get all counters', error);
+      this.logger.debug('DiagnosticsStorage: Failed to get all counters', error);
       return [];
     }
   }
@@ -289,8 +266,7 @@ export class DiagnosticsStorage implements IDiagnosticsStorage {
         });
       });
     } catch (error) {
-      this.logger?.debug('DiagnosticsStorage: Failed to set counters', error);
-      throw error;
+      this.logger.debug('DiagnosticsStorage: Failed to set counters', error);
     }
   }
 
@@ -330,8 +306,7 @@ export class DiagnosticsStorage implements IDiagnosticsStorage {
         });
       });
     } catch (error) {
-      this.logger?.debug('DiagnosticsStorage: Failed to set histogram stats', error);
-      throw error;
+      this.logger.debug('DiagnosticsStorage: Failed to set histogram stats', error);
     }
   }
 
@@ -351,7 +326,7 @@ export class DiagnosticsStorage implements IDiagnosticsStorage {
         request.onerror = () => reject(new Error('Failed to get all histogram stats'));
       });
     } catch (error) {
-      this.logger.error('DiagnosticsStorage: Failed to get all histogram stats', error);
+      this.logger.debug('DiagnosticsStorage: Failed to get all histogram stats', error);
       return [];
     }
   }
@@ -374,7 +349,7 @@ export class DiagnosticsStorage implements IDiagnosticsStorage {
         request.onerror = () => reject(new Error('Failed to get all event records'));
       });
     } catch (error) {
-      this.logger?.debug('DiagnosticsStorage: Failed to get all event records', error);
+      this.logger.debug('DiagnosticsStorage: Failed to get all event records', error);
       return [];
     }
   }
@@ -416,17 +391,11 @@ export class DiagnosticsStorage implements IDiagnosticsStorage {
         });
       });
     } catch (error) {
-      this.logger?.debug('DiagnosticsStorage: Failed to add event records', error);
-      throw error;
+      this.logger.debug('DiagnosticsStorage: Failed to add event records', error);
     }
   }
 
-  // === INTERNAL OPERATIONS ===
-
-  /**
-   * Set an internal value (private helper)
-   */
-  private async setInternal(key: string, value: string): Promise<void> {
+  async setInternal(key: string, value: string): Promise<void> {
     try {
       const db = await this.getDB();
       const transaction = db.transaction([TABLE_NAMES.INTERNAL], 'readwrite');
@@ -439,15 +408,11 @@ export class DiagnosticsStorage implements IDiagnosticsStorage {
         request.onerror = () => reject(new Error('Failed to set internal value'));
       });
     } catch (error) {
-      this.logger.error('DiagnosticsStorage: Failed to set internal value', error);
-      throw error;
+      this.logger.debug('DiagnosticsStorage: Failed to set internal value', error);
     }
   }
 
-  /**
-   * Get an internal value (private helper)
-   */
-  private async getInternal(key: string): Promise<InternalRecord | undefined> {
+  async getInternal(key: string): Promise<InternalRecord | undefined> {
     try {
       const db = await this.getDB();
       const transaction = db.transaction([TABLE_NAMES.INTERNAL], 'readonly');
@@ -460,7 +425,7 @@ export class DiagnosticsStorage implements IDiagnosticsStorage {
         request.onerror = () => reject(new Error('Failed to get internal value'));
       });
     } catch (error) {
-      this.logger?.debug('DiagnosticsStorage: Failed to get internal value', error);
+      this.logger.debug('DiagnosticsStorage: Failed to get internal value', error);
       return undefined;
     }
   }
@@ -475,7 +440,7 @@ export class DiagnosticsStorage implements IDiagnosticsStorage {
       const record = await this.getInternal(INTERNAL_KEYS.LAST_FLUSH_TIMESTAMP);
       return record ? parseInt(record.value, 10) : undefined;
     } catch (error) {
-      this.logger?.debug('DiagnosticsStorage: Failed to get last flush timestamp', error);
+      this.logger.debug('DiagnosticsStorage: Failed to get last flush timestamp', error);
       return undefined;
     }
   }
@@ -487,8 +452,7 @@ export class DiagnosticsStorage implements IDiagnosticsStorage {
     try {
       await this.setInternal(INTERNAL_KEYS.LAST_FLUSH_TIMESTAMP, timestamp.toString());
     } catch (error) {
-      this.logger?.debug('DiagnosticsStorage: Failed to set last flush timestamp', error);
-      throw error;
+      this.logger.debug('DiagnosticsStorage: Failed to set last flush timestamp', error);
     }
   }
 
@@ -515,15 +479,14 @@ export class DiagnosticsStorage implements IDiagnosticsStorage {
 
       await Promise.all(promises);
     } catch (error) {
-      this.logger?.debug('DiagnosticsStorage: Failed to clear all data', error);
-      throw error;
+      this.logger.debug('DiagnosticsStorage: Failed to clear all data', error);
     }
   }
 
   /**
    * Clear a specific table
    */
-  private clearTable(transaction: IDBTransaction, tableName: string): Promise<void> {
+  clearTable(transaction: IDBTransaction, tableName: string): Promise<void> {
     return new Promise((resolve, reject) => {
       const store = transaction.objectStore(tableName);
       const request = store.clear();

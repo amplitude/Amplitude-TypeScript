@@ -150,7 +150,7 @@ export class DiagnosticsClient implements IDiagnosticsClient {
   // Global timer for 1-second persistence
   private globalSaveTimer: ReturnType<typeof setTimeout> | null = null;
 
-  constructor(apiKey: string, logger?: ILogger, serverZone: ServerZoneType = 'US') {
+  constructor(apiKey: string, logger: ILogger, serverZone: ServerZoneType = 'US') {
     this.apiKey = apiKey;
     this.logger = logger;
     this.serverUrl = serverZone === 'US' ? US_SERVER_URL : EU_SERVER_URL;
