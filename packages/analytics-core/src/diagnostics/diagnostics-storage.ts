@@ -1,13 +1,4 @@
 /// <reference lib="dom" />
-/**
- * Purpose-specific IndexedDB storage for Amplitude Diagnostics
- *
- * This storage is optimized for diagnostics data with separate tables for each type:
- * - Tags: Key-value pairs for environment/context information
- * - Counters: Numeric counters that can be incremented
- * - Histograms: Individual measurements with efficient sorting via compound index
- * - Events: Diagnostic events with timestamps and properties
- */
 
 // Database configuration
 const DB_VERSION = 1;
@@ -38,10 +29,11 @@ export interface CounterRecord {
 }
 
 export interface HistogramRecord {
-  id?: number; // Auto-increment primary key
   key: string;
-  value: number;
-  timestamp: number;
+  count: number;
+  min: number;
+  max: number;
+  sum: number;
 }
 
 export interface EventRecord {
@@ -56,11 +48,39 @@ export interface InternalRecord {
   value: string;
 }
 
+export interface IDiagnosticsStorage {
+  // Check availability
+  isEnabled(): Promise<boolean>;
+
+  // Batch operations (primary interface)
+  setTags(tags: Record<string, string>): Promise<void>;
+  setCounters(counters: Record<string, number>): Promise<void>;
+  setHistogramStats(
+    histogramStats: Record<string, { count: number; min: number; max: number; sum: number }>,
+  ): Promise<void>;
+  addEventRecords(
+    events: Array<{ event_name: string; time: number; event_properties: Record<string, any> }>,
+  ): Promise<void>;
+
+  // Read operations (for flush)
+  getAllTags(): Promise<TagRecord[]>;
+  getAllCounters(): Promise<CounterRecord[]>;
+  getAllHistogramStats(): Promise<HistogramRecord[]>;
+  getAllEventRecords(): Promise<EventRecord[]>;
+
+  // Internal operations
+  getLastFlushTimestamp(): Promise<number | undefined>;
+  setLastFlushTimestamp(timestamp: number): Promise<void>;
+
+  // Cleanup
+  clearAllData(): Promise<void>;
+}
+
 /**
  * Purpose-specific IndexedDB storage for diagnostics data
  * Provides optimized methods for each type of diagnostics data
  */
-export class DiagnosticsStorage {
+export class DiagnosticsStorage implements IDiagnosticsStorage {
   private dbPromise: Promise<IDBDatabase> | null = null;
   private dbName: string;
 
@@ -110,18 +130,11 @@ export class DiagnosticsStorage {
       db.createObjectStore(TABLE_NAMES.COUNTERS, { keyPath: 'key' });
     }
 
-    // Create histograms table with auto-increment primary key and compound index
+    // Create histograms table for storing histogram stats (count, min, max, sum)
     if (!db.objectStoreNames.contains(TABLE_NAMES.HISTOGRAMS)) {
-      const histogramsStore = db.createObjectStore(TABLE_NAMES.HISTOGRAMS, {
-        keyPath: 'id',
-        autoIncrement: true,
+      db.createObjectStore(TABLE_NAMES.HISTOGRAMS, {
+        keyPath: 'key',
       });
-
-      // Create compound index on [key, value] for efficient sorting
-      histogramsStore.createIndex('key_value_idx', ['key', 'value'], { unique: false });
-
-      // Create index on key for efficient key-based queries
-      histogramsStore.createIndex('key_idx', 'key', { unique: false });
     }
 
     // Create events table
@@ -158,49 +171,7 @@ export class DiagnosticsStorage {
     }
   }
 
-  // === TAG OPERATIONS ===
-
-  /**
-   * Set a diagnostic tag
-   */
-  async setTag(key: string, value: string): Promise<void> {
-    try {
-      const db = await this.getDB();
-      const transaction = db.transaction([TABLE_NAMES.TAGS], 'readwrite');
-      const store = transaction.objectStore(TABLE_NAMES.TAGS);
-
-      return new Promise((resolve, reject) => {
-        const request = store.put({ key, value });
-
-        request.onsuccess = () => resolve();
-        request.onerror = () => reject(new Error('Failed to set tag'));
-      });
-    } catch (error) {
-      console.error(`[Amplitude] DiagnosticsStorage: Failed to set tag`, error);
-      throw error;
-    }
-  }
-
-  /**
-   * Get a diagnostic tag
-   */
-  async getTag(key: string): Promise<TagRecord | undefined> {
-    try {
-      const db = await this.getDB();
-      const transaction = db.transaction([TABLE_NAMES.TAGS], 'readonly');
-      const store = transaction.objectStore(TABLE_NAMES.TAGS);
-
-      return new Promise((resolve, reject) => {
-        const request = store.get(key);
-
-        request.onsuccess = () => resolve(request.result as TagRecord | undefined);
-        request.onerror = () => reject(new Error('Failed to get tag'));
-      });
-    } catch (error) {
-      console.error(`[Amplitude] DiagnosticsStorage: Failed to get tag`, error);
-      return undefined;
-    }
-  }
+  // === BATCH TAG OPERATIONS ===
 
   /**
    * Get all diagnostic tags
@@ -223,49 +194,44 @@ export class DiagnosticsStorage {
     }
   }
 
-  // === COUNTER OPERATIONS ===
-
   /**
-   * Set a counter value
+   * Set multiple tags in a single transaction (batch operation)
    */
-  async setCounter(key: string, value: number): Promise<void> {
+  async setTags(tags: Record<string, string>): Promise<void> {
     try {
       const db = await this.getDB();
-      const transaction = db.transaction([TABLE_NAMES.COUNTERS], 'readwrite');
-      const store = transaction.objectStore(TABLE_NAMES.COUNTERS);
+      const transaction = db.transaction([TABLE_NAMES.TAGS], 'readwrite');
+      const store = transaction.objectStore(TABLE_NAMES.TAGS);
 
       return new Promise((resolve, reject) => {
-        const request = store.put({ key, value });
+        let completed = 0;
+        const entries = Object.entries(tags);
 
-        request.onsuccess = () => resolve();
-        request.onerror = () => reject(new Error('Failed to set counter'));
+        if (entries.length === 0) {
+          resolve();
+          return;
+        }
+
+        entries.forEach(([key, value]) => {
+          const request = store.put({ key, value });
+
+          request.onsuccess = () => {
+            completed++;
+            if (completed === entries.length) {
+              resolve();
+            }
+          };
+
+          request.onerror = () => reject(new Error('Failed to set tags'));
+        });
       });
     } catch (error) {
-      console.error(`[Amplitude] DiagnosticsStorage: Failed to set counter`, error);
+      console.error(`[Amplitude] DiagnosticsStorage: Failed to set tags`, error);
       throw error;
     }
   }
 
-  /**
-   * Get a counter value
-   */
-  async getCounter(key: string): Promise<CounterRecord | undefined> {
-    try {
-      const db = await this.getDB();
-      const transaction = db.transaction([TABLE_NAMES.COUNTERS], 'readonly');
-      const store = transaction.objectStore(TABLE_NAMES.COUNTERS);
-
-      return new Promise((resolve, reject) => {
-        const request = store.get(key);
-
-        request.onsuccess = () => resolve(request.result as CounterRecord | undefined);
-        request.onerror = () => reject(new Error('Failed to get counter'));
-      });
-    } catch (error) {
-      console.error(`[Amplitude] DiagnosticsStorage: Failed to get counter`, error);
-      return undefined;
-    }
-  }
+  // === BATCH COUNTER OPERATIONS ===
 
   /**
    * Get all counters
@@ -288,59 +254,88 @@ export class DiagnosticsStorage {
     }
   }
 
-  // === HISTOGRAM OPERATIONS ===
+  /**
+   * Set multiple counters in a single transaction (batch operation)
+   */
+  async setCounters(counters: Record<string, number>): Promise<void> {
+    try {
+      const db = await this.getDB();
+      const transaction = db.transaction([TABLE_NAMES.COUNTERS], 'readwrite');
+      const store = transaction.objectStore(TABLE_NAMES.COUNTERS);
+
+      return new Promise((resolve, reject) => {
+        let completed = 0;
+        const entries = Object.entries(counters);
+
+        if (entries.length === 0) {
+          resolve();
+          return;
+        }
+
+        entries.forEach(([key, value]) => {
+          const request = store.put({ key, value });
+
+          request.onsuccess = () => {
+            completed++;
+            if (completed === entries.length) {
+              resolve();
+            }
+          };
+
+          request.onerror = () => reject(new Error('Failed to set counters'));
+        });
+      });
+    } catch (error) {
+      console.error(`[Amplitude] DiagnosticsStorage: Failed to set counters`, error);
+      throw error;
+    }
+  }
+
+  // === BATCH HISTOGRAM OPERATIONS ===
 
   /**
-   * Add a histogram measurement
+   * Set multiple histogram stats in a single transaction (batch operation)
    */
-  async addHistogramRecord(key: string, value: number, timestamp: number = Date.now()): Promise<void> {
+  async setHistogramStats(
+    histogramStats: Record<string, { count: number; min: number; max: number; sum: number }>,
+  ): Promise<void> {
     try {
       const db = await this.getDB();
       const transaction = db.transaction([TABLE_NAMES.HISTOGRAMS], 'readwrite');
       const store = transaction.objectStore(TABLE_NAMES.HISTOGRAMS);
 
       return new Promise((resolve, reject) => {
-        const request = store.add({ key, value, timestamp });
+        let completed = 0;
+        const entries = Object.entries(histogramStats);
 
-        request.onsuccess = () => resolve();
-        request.onerror = () => reject(new Error('Failed to add histogram record'));
+        if (entries.length === 0) {
+          resolve();
+          return;
+        }
+
+        entries.forEach(([key, stats]) => {
+          const request = store.put({ key: key, count: stats.count, min: stats.min, max: stats.max, sum: stats.sum });
+
+          request.onsuccess = () => {
+            completed++;
+            if (completed === entries.length) {
+              resolve();
+            }
+          };
+
+          request.onerror = () => reject(new Error('Failed to set histogram stats'));
+        });
       });
     } catch (error) {
-      console.error(`[Amplitude] DiagnosticsStorage: Failed to add histogram record`, error);
+      console.error(`[Amplitude] DiagnosticsStorage: Failed to set histogram stats`, error);
       throw error;
     }
   }
 
   /**
-   * Get histogram records for a specific key, sorted by value (uses compound index)
+   * Get all histogram stats
    */
-  async getHistogramRecordsSortedByValue(key: string): Promise<HistogramRecord[]> {
-    try {
-      const db = await this.getDB();
-      const transaction = db.transaction([TABLE_NAMES.HISTOGRAMS], 'readonly');
-      const store = transaction.objectStore(TABLE_NAMES.HISTOGRAMS);
-      const index = store.index('key_value_idx');
-
-      return new Promise((resolve, reject) => {
-        const range = IDBKeyRange.bound([key, -Infinity], [key, Infinity]);
-        const request = index.getAll(range);
-
-        request.onsuccess = () => {
-          // Records are already sorted by value due to the compound index
-          resolve(request.result as HistogramRecord[]);
-        };
-        request.onerror = () => reject(new Error('Failed to get histogram records'));
-      });
-    } catch (error) {
-      console.error(`[Amplitude] DiagnosticsStorage: Failed to get histogram records`, error);
-      return [];
-    }
-  }
-
-  /**
-   * Get all histogram records
-   */
-  async getAllHistogramRecords(): Promise<HistogramRecord[]> {
+  async getAllHistogramStats(): Promise<HistogramRecord[]> {
     try {
       const db = await this.getDB();
       const transaction = db.transaction([TABLE_NAMES.HISTOGRAMS], 'readonly');
@@ -350,61 +345,15 @@ export class DiagnosticsStorage {
         const request = store.getAll();
 
         request.onsuccess = () => resolve(request.result as HistogramRecord[]);
-        request.onerror = () => reject(new Error('Failed to get all histogram records'));
+        request.onerror = () => reject(new Error('Failed to get all histogram stats'));
       });
     } catch (error) {
-      console.error(`[Amplitude] DiagnosticsStorage: Failed to get all histogram records`, error);
+      console.error(`[Amplitude] DiagnosticsStorage: Failed to get all histogram stats`, error);
       return [];
     }
   }
 
-  /**
-   * Get total count of histogram records
-   */
-  async getHistogramRecordCount(): Promise<number> {
-    try {
-      const db = await this.getDB();
-      const transaction = db.transaction([TABLE_NAMES.HISTOGRAMS], 'readonly');
-      const store = transaction.objectStore(TABLE_NAMES.HISTOGRAMS);
-
-      return new Promise((resolve, reject) => {
-        const request = store.count();
-
-        request.onsuccess = () => resolve(request.result);
-        request.onerror = () => reject(new Error('Failed to count histogram records'));
-      });
-    } catch (error) {
-      console.error(`[Amplitude] DiagnosticsStorage: Failed to count histogram records`, error);
-      return 0;
-    }
-  }
-
-  // === EVENT OPERATIONS ===
-
-  /**
-   * Add a diagnostic event
-   */
-  async addEventRecord(
-    event_name: string,
-    event_properties: Record<string, any>,
-    time: number = Date.now(),
-  ): Promise<void> {
-    try {
-      const db = await this.getDB();
-      const transaction = db.transaction([TABLE_NAMES.EVENTS], 'readwrite');
-      const store = transaction.objectStore(TABLE_NAMES.EVENTS);
-
-      return new Promise((resolve, reject) => {
-        const request = store.add({ event_name, event_properties, time });
-
-        request.onsuccess = () => resolve();
-        request.onerror = () => reject(new Error('Failed to add event record'));
-      });
-    } catch (error) {
-      console.error(`[Amplitude] DiagnosticsStorage: Failed to add event record`, error);
-      throw error;
-    }
-  }
+  // === BATCH EVENT OPERATIONS ===
 
   /**
    * Get all event records
@@ -427,12 +376,54 @@ export class DiagnosticsStorage {
     }
   }
 
-  // === INTERNAL STORAGE OPERATIONS ===
+  /**
+   * Add multiple event records in a single transaction (batch operation)
+   */
+  async addEventRecords(
+    events: Array<{ event_name: string; time: number; event_properties: Record<string, any> }>,
+  ): Promise<void> {
+    try {
+      const db = await this.getDB();
+      const transaction = db.transaction([TABLE_NAMES.EVENTS], 'readwrite');
+      const store = transaction.objectStore(TABLE_NAMES.EVENTS);
+
+      return new Promise((resolve, reject) => {
+        let completed = 0;
+
+        if (events.length === 0) {
+          resolve();
+          return;
+        }
+
+        events.forEach((event) => {
+          const request = store.add({
+            event_name: event.event_name,
+            event_properties: event.event_properties,
+            time: event.time,
+          });
+
+          request.onsuccess = () => {
+            completed++;
+            if (completed === events.length) {
+              resolve();
+            }
+          };
+
+          request.onerror = () => reject(new Error('Failed to add event records'));
+        });
+      });
+    } catch (error) {
+      console.error(`[Amplitude] DiagnosticsStorage: Failed to add event records`, error);
+      throw error;
+    }
+  }
+
+  // === INTERNAL OPERATIONS ===
 
   /**
-   * Set an internal value
+   * Set an internal value (private helper)
    */
-  async setInternal(key: string, value: string): Promise<void> {
+  private async setInternal(key: string, value: string): Promise<void> {
     try {
       const db = await this.getDB();
       const transaction = db.transaction([TABLE_NAMES.INTERNAL], 'readwrite');
@@ -451,9 +442,9 @@ export class DiagnosticsStorage {
   }
 
   /**
-   * Get an internal value
+   * Get an internal value (private helper)
    */
-  async getInternal(key: string): Promise<InternalRecord | undefined> {
+  private async getInternal(key: string): Promise<InternalRecord | undefined> {
     try {
       const db = await this.getDB();
       const transaction = db.transaction([TABLE_NAMES.INTERNAL], 'readonly');

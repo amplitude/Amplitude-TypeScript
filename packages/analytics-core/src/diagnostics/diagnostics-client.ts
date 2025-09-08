@@ -1,9 +1,7 @@
 /// <reference lib="dom" />
-import { DiagnosticsStorage } from './diagnostics-storage';
+import { DiagnosticsStorage, IDiagnosticsStorage } from './diagnostics-storage';
 
-// Flush interval: 1 hour in milliseconds
-const FLUSH_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
-
+const FLUSH_INTERVAL_MS = 5 * 1000; // 5 minutes
 
 // === Core Data Types ===
 
@@ -30,8 +28,6 @@ interface DiagnosticsEvent {
   readonly time: number;
   readonly event_properties: EventProperties;
 }
-
-// === Histogram Types ===
 
 /**
  * Computed histogram statistics for final payload
@@ -84,7 +80,7 @@ interface FlushPayload {
  *
  * Key Features:
  * - IndexedDB storage
- * - Time-based persistent storage flush interval (1 hour since last flush)
+ * - Time-based persistent storage flush interval (5 minutes since last flush)
  * - 1 second time-based memory storage flush interval
  * - Histogram statistics calculation (min, max, avg)
  * - Thread-safe operations through async/await
@@ -109,7 +105,6 @@ interface FlushPayload {
  * // Record diagnostic events
  * await diagnostics.recordEvent('error', {
  *   stack_trace: '...',
- *   api_key: 'hidden'
  * });
  *
  * // Manual flush (auto-flushes every 1 hour)
@@ -136,8 +131,17 @@ export interface IDiagnosticsClient {
 }
 
 export class DiagnosticsClient implements IDiagnosticsClient {
-  private storage: DiagnosticsStorage;
+  private storage: IDiagnosticsStorage;
   private flushTimer: ReturnType<typeof setTimeout> | null = null;
+
+  // In-memory storages
+  private inMemoryTags: DiagnosticsTags = {};
+  private inMemoryCounters: DiagnosticsCounters = {};
+  private inMemoryHistograms: DiagnosticsHistogramStats = {};
+  private inMemoryEvents: DiagnosticsEvent[] = [];
+
+  // Global timer for 1-second persistence
+  private globalSaveTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(apiKey: string) {
     this.storage = new DiagnosticsStorage(apiKey);
@@ -145,39 +149,77 @@ export class DiagnosticsClient implements IDiagnosticsClient {
   }
 
   async setTag(name: string, value: string): Promise<void> {
-    try {
-      await this.storage.setTag(name, value);
-    } catch (error) {
-      console.error('[Amplitude] DiagnosticsClient: Failed to set tag', error);
-    }
+    this.inMemoryTags[name] = value;
+    this.startSaveTimerIfNeeded();
   }
 
   async increment(name: string, size = 1): Promise<void> {
-    try {
-      // Get existing counter or create new one
-      const existingCounter = await this.storage.getCounter(name);
-      const currentValue = existingCounter ? existingCounter.value : 0;
-
-      await this.storage.setCounter(name, currentValue + size);
-    } catch (error) {
-      console.error('[Amplitude] DiagnosticsClient: Failed to increment counter', error);
-    }
+    this.inMemoryCounters[name] = (this.inMemoryCounters[name] || 0) + size;
+    this.startSaveTimerIfNeeded();
   }
 
   async recordHistogram(name: string, value: number): Promise<void> {
-    try {
-      // Add the new record to IndexedDB
-      await this.storage.addHistogramRecord(name, value);
-    } catch (error) {
-      console.error('[Amplitude] DiagnosticsClient: Failed to record histogram', error);
+    const existing = this.inMemoryHistograms[name];
+    if (existing) {
+      // Update existing stats incrementally
+      existing.count += 1;
+      existing.min = Math.min(existing.min, value);
+      existing.max = Math.max(existing.max, value);
+      existing.sum += value;
+    } else {
+      // Create new stats
+      this.inMemoryHistograms[name] = {
+        count: 1,
+        min: value,
+        max: value,
+        sum: value,
+      };
     }
+    this.startSaveTimerIfNeeded();
   }
 
   async recordEvent(name: string, properties: EventProperties): Promise<void> {
+    this.inMemoryEvents.push({
+      event_name: name,
+      time: Date.now(),
+      event_properties: properties,
+    });
+    this.startSaveTimerIfNeeded();
+  }
+
+  private startSaveTimerIfNeeded(): void {
+    if (!this.globalSaveTimer) {
+      this.globalSaveTimer = setTimeout(() => {
+        void this.saveAllDataToStorage();
+      }, 1000); // Save every 1 second
+    }
+  }
+
+  private async saveAllDataToStorage(): Promise<void> {
     try {
-      await this.storage.addEventRecord(name, properties);
+      // Make copies and clear immediately to avoid race conditions
+      const tagsToSave = { ...this.inMemoryTags };
+      const countersToSave = { ...this.inMemoryCounters };
+      const histogramsToSave = { ...this.inMemoryHistograms };
+      const eventsToSave = [...this.inMemoryEvents];
+
+      // Clear in-memory data immediately
+      this.inMemoryEvents = [];
+      this.inMemoryTags = {};
+      this.inMemoryCounters = {};
+      this.inMemoryHistograms = {};
+
+      // Clear the timer since we're processing the data
+      this.globalSaveTimer = null;
+
+      await Promise.all([
+        this.storage.setTags(tagsToSave),
+        this.storage.setCounters(countersToSave),
+        this.storage.setHistogramStats(histogramsToSave),
+        this.storage.addEventRecords(eventsToSave),
+      ]);
     } catch (error) {
-      console.error('[Amplitude] DiagnosticsClient: Failed to record event', error);
+      console.error('[Amplitude] DiagnosticsClient: Failed to save data to storage', error);
     }
   }
 
@@ -189,7 +231,7 @@ export class DiagnosticsClient implements IDiagnosticsClient {
       // Get all stored data from IndexedDB
       const tagRecords = await this.storage.getAllTags();
       const counterRecords = await this.storage.getAllCounters();
-      const histogramRecords = await this.storage.getAllHistogramRecords();
+      const histogramStatsRecords = await this.storage.getAllHistogramStats();
       const eventRecords = await this.storage.getAllEventRecords();
 
       // Convert records to the expected format
@@ -203,8 +245,16 @@ export class DiagnosticsClient implements IDiagnosticsClient {
         counters[record.key] = record.value;
       });
 
-      // Calculate histogram results from records
-      const histogram = this.calculateHistogramResults(histogramRecords);
+      // Convert histogram stats to histogram results
+      const histogram: DiagnosticsHistograms = {};
+      histogramStatsRecords.forEach((stats) => {
+        histogram[stats.key] = {
+          count: stats.count,
+          min: stats.min,
+          max: stats.max,
+          avg: stats.count > 0 ? Math.round((stats.sum / stats.count) * 100) / 100 : 0,
+        };
+      });
 
       // Convert event records to the expected format
       const events: DiagnosticsEvent[] = eventRecords.map((record) => ({
@@ -223,6 +273,9 @@ export class DiagnosticsClient implements IDiagnosticsClient {
 
       // Clear all data after successful flush preparation
       await this.clearAllData();
+
+      // Clear in-memory data
+      this.clearAllInMemoryData();
 
       // Update the last flush timestamp
       await this.storage.setLastFlushTimestamp(Date.now());
@@ -243,47 +296,17 @@ export class DiagnosticsClient implements IDiagnosticsClient {
     }
   }
 
-  private calculateHistogramResults(records: Array<{key: string, value: number}>): DiagnosticsHistograms {
-    const histogramMap: { [name: string]: number[] } = {};
+  private clearAllInMemoryData(): void {
+    this.inMemoryTags = {};
+    this.inMemoryCounters = {};
+    this.inMemoryHistograms = {};
+    this.inMemoryEvents = [];
 
-    // Group values by histogram name
-    records.forEach((record) => {
-      if (!histogramMap[record.key]) {
-        histogramMap[record.key] = [];
-      }
-      histogramMap[record.key].push(record.value);
-    });
-
-    // Calculate statistics for each histogram
-    const results: DiagnosticsHistograms = {};
-    Object.keys(histogramMap).forEach((name) => {
-      const values = histogramMap[name];
-      if (values.length > 0) {
-        results[name] = this.calculateStatistics(values);
-      }
-    });
-
-    return results;
-  }
-
-  private calculateStatistics(values: number[]): HistogramResult {
-    if (values.length === 0) {
-      return { count: 0, min: 0, max: 0, avg: 0 };
+    // Clear the global save timer
+    if (this.globalSaveTimer) {
+      clearTimeout(this.globalSaveTimer);
+      this.globalSaveTimer = null;
     }
-
-    const sortedValues = [...values].sort((a, b) => a - b);
-    const count = values.length;
-    const min = sortedValues[0];
-    const max = sortedValues[count - 1];
-    const sum = values.reduce((acc, val) => acc + val, 0);
-    const avg = Math.round((sum / count) * 100) / 100; // Round to 2 decimal places
-
-    return {
-      count,
-      min,
-      max,
-      avg,
-    };
   }
 
   private async clearAllData(): Promise<void> {
@@ -296,24 +319,17 @@ export class DiagnosticsClient implements IDiagnosticsClient {
 
   /**
    * Initialize flush interval logic.
-   * Check if 1 hour has passed since last flush, if so flush immediately.
+   * Check if 5 minutes has passed since last flush, if so flush immediately.
    * Otherwise set a timer to flush when the interval is reached.
    */
   private async initializeFlushInterval(): Promise<void> {
     try {
-      const lastFlushTimestamp = await this.storage.getLastFlushTimestamp();
       const now = Date.now();
-
-      if (!lastFlushTimestamp) {
-        // First time - flush immediately to establish initial timestamp
-        await this.flushAndUpdateTimestamp();
-        return;
-      }
-
+      const lastFlushTimestamp = (await this.storage.getLastFlushTimestamp()) || now;
       const timeSinceLastFlush = now - lastFlushTimestamp;
 
       if (timeSinceLastFlush >= FLUSH_INTERVAL_MS) {
-        // More than 1 hour has passed, flush immediately
+        // More than 5 minutes has passed, flush immediately
         await this.flushAndUpdateTimestamp();
       } else {
         // Set timer for remaining time
@@ -354,30 +370,28 @@ export class DiagnosticsClient implements IDiagnosticsClient {
       await this._flush();
     } catch (error) {
       console.error('[Amplitude] DiagnosticsClient: Failed to flush and update timestamp', error);
-      // Set timer for retry on error
-      this.setFlushTimer(FLUSH_INTERVAL_MS);
     }
   }
 
   // Utility method to get current data for debugging (not part of interface)
   async _getCurrentData() {
+    // Ensure latest data is saved to storage first
+    await this.saveAllDataToStorage();
+
     return {
       tags: await this.storage.getAllTags(),
       counters: await this.storage.getAllCounters(),
-      histogramEntries: await this.storage.getAllHistogramRecords(),
+      histogramStats: await this.storage.getAllHistogramStats(),
       events: await this.storage.getAllEventRecords(),
+      inMemoryTags: this.inMemoryTags,
+      inMemoryCounters: this.inMemoryCounters,
+      inMemoryHistograms: this.inMemoryHistograms,
+      inMemoryEvents: this.inMemoryEvents,
     };
   }
 
-  // Utility method to get histogram values for a specific key, sorted by value
-  // This leverages the compound index [key, value] for efficient querying
-  async _getHistogramValuesSorted(key: string): Promise<number[]> {
-    try {
-      const records = await this.storage.getHistogramRecordsSortedByValue(key);
-      return records.map((record) => record.value);
-    } catch (error) {
-      console.error('[Amplitude] DiagnosticsClient: Failed to get sorted histogram values', error);
-      return [];
-    }
+  // Utility method to get current histogram stats for a specific key
+  _getHistogramStats(key: string): HistogramStats | undefined {
+    return this.inMemoryHistograms[key];
   }
 }
