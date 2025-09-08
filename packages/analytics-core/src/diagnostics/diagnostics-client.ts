@@ -1,8 +1,11 @@
 /// <reference lib="dom" />
 import { ILogger } from 'src/logger';
 import { DiagnosticsStorage, IDiagnosticsStorage } from './diagnostics-storage';
+import { ServerZoneType } from 'src/types/server-zone';
 
 const FLUSH_INTERVAL_MS = 5 * 1000; // 5 minutes
+const US_SERVER_URL = 'https://diagnostics.prod.us-west-2.amplitude.com/v1/capture';
+const EU_SERVER_URL = 'https://diagnostics.prod.eu-central-1.amplitude.com/v1/capture';
 
 // === Core Data Types ===
 
@@ -135,6 +138,8 @@ export class DiagnosticsClient implements IDiagnosticsClient {
   private storage: IDiagnosticsStorage;
   private flushTimer: ReturnType<typeof setTimeout> | null = null;
   private logger?: ILogger;
+  private serverUrl: string;
+  private apiKey: string;
 
   // In-memory storages
   private inMemoryTags: DiagnosticsTags = {};
@@ -145,8 +150,10 @@ export class DiagnosticsClient implements IDiagnosticsClient {
   // Global timer for 1-second persistence
   private globalSaveTimer: ReturnType<typeof setTimeout> | null = null;
 
-  constructor(apiKey: string, logger?: ILogger) {
+  constructor(apiKey: string, logger?: ILogger, serverZone: ServerZoneType = 'US') {
+    this.apiKey = apiKey;
     this.logger = logger;
+    this.serverUrl = serverZone === 'US' ? US_SERVER_URL : EU_SERVER_URL;
     this.storage = new DiagnosticsStorage(apiKey, logger);
     void this.initializeFlushInterval();
   }
@@ -274,7 +281,10 @@ export class DiagnosticsClient implements IDiagnosticsClient {
         events,
       };
 
-      // Clear all data after successful flush preparation
+      // Send payload to diagnostics server
+      await this.fetch(payload);
+
+      // Clear all data after successful flush
       await this.clearAllData();
 
       // Clear in-memory data
@@ -296,6 +306,33 @@ export class DiagnosticsClient implements IDiagnosticsClient {
         counters: {},
         events: [],
       };
+    }
+  }
+
+  /**
+   * Send diagnostics data to the server
+   */
+  private async fetch(payload: FlushPayload): Promise<void> {
+    try {
+      const response = await fetch(this.serverUrl, {
+        method: 'POST',
+        headers: {
+          'X-ApiKey': this.apiKey,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        this.logger?.debug(
+          `DiagnosticsClient: Failed to send diagnostics data. HTTP ${response.status}: ${response.statusText}`,
+        );
+        return;
+      }
+
+      this.logger?.debug('DiagnosticsClient: Successfully sent diagnostics data');
+    } catch (error) {
+      this.logger?.debug('DiagnosticsClient: Failed to send diagnostics data', error);
     }
   }
 
