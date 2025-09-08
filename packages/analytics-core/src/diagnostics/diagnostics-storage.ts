@@ -59,17 +59,18 @@ export interface IDiagnosticsStorage {
   addEventRecords(
     events: Array<{ event_name: string; time: number; event_properties: Record<string, any> }>,
   ): Promise<void>;
-  setLastFlushTimestamp(timestamp: number): Promise<void>;
 
-  // Getters
-  getAllTags(): Promise<TagRecord[]>;
-  getAllCounters(): Promise<CounterRecord[]>;
-  getAllHistogramStats(): Promise<HistogramRecord[]>;
-  getAllEventRecords(): Promise<EventRecord[]>;
+  // Internal operations
+  setLastFlushTimestamp(timestamp: number): Promise<void>;
   getLastFlushTimestamp(): Promise<number | undefined>;
 
-  // Cleanup
-  clearAllData(): Promise<void>;
+  // Atomic operations
+  getAllAndClear(): Promise<{
+    tags: TagRecord[];
+    counters: CounterRecord[];
+    histogramStats: HistogramRecord[];
+    events: EventRecord[];
+  }>;
 }
 
 /**
@@ -155,27 +156,6 @@ export class DiagnosticsStorage implements IDiagnosticsStorage {
   // === BATCH TAG OPERATIONS ===
 
   /**
-   * Get all diagnostic tags
-   */
-  async getAllTags(): Promise<TagRecord[]> {
-    try {
-      const db = await this.getDB();
-      const transaction = db.transaction([TABLE_NAMES.TAGS], 'readonly');
-      const store = transaction.objectStore(TABLE_NAMES.TAGS);
-
-      return new Promise((resolve, reject) => {
-        const request = store.getAll();
-
-        request.onsuccess = () => resolve(request.result as TagRecord[]);
-        request.onerror = () => reject(new Error('Failed to get all tags'));
-      });
-    } catch (error) {
-      this.logger.debug('DiagnosticsStorage: Failed to get all tags', error);
-      return [];
-    }
-  }
-
-  /**
    * Set multiple tags in a single transaction (batch operation)
    */
   async setTags(tags: Record<string, string>): Promise<void> {
@@ -212,27 +192,6 @@ export class DiagnosticsStorage implements IDiagnosticsStorage {
   }
 
   // === BATCH COUNTER OPERATIONS ===
-
-  /**
-   * Get all counters
-   */
-  async getAllCounters(): Promise<CounterRecord[]> {
-    try {
-      const db = await this.getDB();
-      const transaction = db.transaction([TABLE_NAMES.COUNTERS], 'readonly');
-      const store = transaction.objectStore(TABLE_NAMES.COUNTERS);
-
-      return new Promise((resolve, reject) => {
-        const request = store.getAll();
-
-        request.onsuccess = () => resolve(request.result as CounterRecord[]);
-        request.onerror = () => reject(new Error('Failed to get all counters'));
-      });
-    } catch (error) {
-      this.logger.debug('DiagnosticsStorage: Failed to get all counters', error);
-      return [];
-    }
-  }
 
   /**
    * Set multiple counters in a single transaction (batch operation)
@@ -293,7 +252,7 @@ export class DiagnosticsStorage implements IDiagnosticsStorage {
         }
 
         entries.forEach(([key, stats]) => {
-          const request = store.put({ key: key, count: stats.count, min: stats.min, max: stats.max, sum: stats.sum });
+          const request = store.put({ key, count: stats.count, min: stats.min, max: stats.max, sum: stats.sum });
 
           request.onsuccess = () => {
             completed++;
@@ -310,49 +269,7 @@ export class DiagnosticsStorage implements IDiagnosticsStorage {
     }
   }
 
-  /**
-   * Get all histogram stats
-   */
-  async getAllHistogramStats(): Promise<HistogramRecord[]> {
-    try {
-      const db = await this.getDB();
-      const transaction = db.transaction([TABLE_NAMES.HISTOGRAMS], 'readonly');
-      const store = transaction.objectStore(TABLE_NAMES.HISTOGRAMS);
-
-      return new Promise((resolve, reject) => {
-        const request = store.getAll();
-
-        request.onsuccess = () => resolve(request.result as HistogramRecord[]);
-        request.onerror = () => reject(new Error('Failed to get all histogram stats'));
-      });
-    } catch (error) {
-      this.logger.debug('DiagnosticsStorage: Failed to get all histogram stats', error);
-      return [];
-    }
-  }
-
   // === BATCH EVENT OPERATIONS ===
-
-  /**
-   * Get all event records
-   */
-  async getAllEventRecords(): Promise<EventRecord[]> {
-    try {
-      const db = await this.getDB();
-      const transaction = db.transaction([TABLE_NAMES.EVENTS], 'readonly');
-      const store = transaction.objectStore(TABLE_NAMES.EVENTS);
-
-      return new Promise((resolve, reject) => {
-        const request = store.getAll();
-
-        request.onsuccess = () => resolve(request.result as EventRecord[]);
-        request.onerror = () => reject(new Error('Failed to get all event records'));
-      });
-    } catch (error) {
-      this.logger.debug('DiagnosticsStorage: Failed to get all event records', error);
-      return [];
-    }
-  }
 
   /**
    * Add multiple event records in a single transaction (batch operation)
@@ -456,36 +373,6 @@ export class DiagnosticsStorage implements IDiagnosticsStorage {
     }
   }
 
-  // === CLEANUP OPERATIONS ===
-
-  /**
-   * Clear all data from all tables
-   */
-  async clearAllData(): Promise<void> {
-    try {
-      const db = await this.getDB();
-      const transaction = db.transaction(
-        [TABLE_NAMES.TAGS, TABLE_NAMES.COUNTERS, TABLE_NAMES.HISTOGRAMS, TABLE_NAMES.EVENTS, TABLE_NAMES.INTERNAL],
-        'readwrite',
-      );
-
-      const promises = [
-        this.clearTable(transaction, TABLE_NAMES.TAGS),
-        this.clearTable(transaction, TABLE_NAMES.COUNTERS),
-        this.clearTable(transaction, TABLE_NAMES.HISTOGRAMS),
-        this.clearTable(transaction, TABLE_NAMES.EVENTS),
-        this.clearTable(transaction, TABLE_NAMES.INTERNAL),
-      ];
-
-      await Promise.all(promises);
-    } catch (error) {
-      this.logger.debug('DiagnosticsStorage: Failed to clear all data', error);
-    }
-  }
-
-  /**
-   * Clear a specific table
-   */
   clearTable(transaction: IDBTransaction, tableName: string): Promise<void> {
     return new Promise((resolve, reject) => {
       const store = transaction.objectStore(tableName);
@@ -493,6 +380,56 @@ export class DiagnosticsStorage implements IDiagnosticsStorage {
 
       request.onsuccess = () => resolve();
       request.onerror = () => reject(new Error(`Failed to clear table ${tableName}`));
+    });
+  }
+
+  // get all except internal table
+  async getAllAndClear(): Promise<{
+    tags: TagRecord[];
+    counters: CounterRecord[];
+    histogramStats: HistogramRecord[];
+    events: EventRecord[];
+  }> {
+    try {
+      const db = await this.getDB();
+      const transaction = db.transaction(
+        [TABLE_NAMES.TAGS, TABLE_NAMES.COUNTERS, TABLE_NAMES.HISTOGRAMS, TABLE_NAMES.EVENTS],
+        'readwrite',
+      );
+
+      // Get all data first
+      const [tags, counters, histogramStats, events] = await Promise.all([
+        this.getAllFromStore<TagRecord>(transaction, TABLE_NAMES.TAGS),
+        this.getAllFromStore<CounterRecord>(transaction, TABLE_NAMES.COUNTERS),
+        this.getAllFromStore<HistogramRecord>(transaction, TABLE_NAMES.HISTOGRAMS),
+        this.getAllFromStore<EventRecord>(transaction, TABLE_NAMES.EVENTS),
+      ]);
+
+      // Clear all data in the same transaction
+      await Promise.all([
+        this.clearTable(transaction, TABLE_NAMES.TAGS),
+        this.clearTable(transaction, TABLE_NAMES.COUNTERS),
+        this.clearTable(transaction, TABLE_NAMES.HISTOGRAMS),
+        this.clearTable(transaction, TABLE_NAMES.EVENTS),
+      ]);
+
+      return { tags, counters, histogramStats, events };
+    } catch (error) {
+      this.logger.debug('DiagnosticsStorage: Failed to get all and clear data', error);
+      return { tags: [], counters: [], histogramStats: [], events: [] };
+    }
+  }
+
+  /**
+   * Helper method to get all records from a store within a transaction
+   */
+  private getAllFromStore<T>(transaction: IDBTransaction, tableName: string): Promise<T[]> {
+    return new Promise((resolve, reject) => {
+      const store = transaction.objectStore(tableName);
+      const request = store.getAll();
+
+      request.onsuccess = () => resolve(request.result as T[]);
+      request.onerror = () => reject(new Error(`Failed to get all from ${tableName}`));
     });
   }
 }
