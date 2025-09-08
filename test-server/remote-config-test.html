@@ -83,6 +83,22 @@
       let queryParams = new URLSearchParams(window.location.search);
       window.AMPLITUDE_VERSION = queryParams.get('amplitudeVersion') || 'latest';
       window.API_KEY = queryParams.get('apiKey') || '77de0b7de6157d5e7ca409c81778f28e';
+      window.SERVER_ZONE = queryParams.get('serverZone') || 'US';
+
+      const REMOTE_STAGING = {
+        US: 'https://sr-client-cfg.amplitude.com/',
+        EU: 'https://sr-client-cfg.eu.amplitude.com/',
+        STAGING: 'https://sr-client-cfg.stag2.amplitude.com/',
+      };
+
+      const API_ENDPOINTS = {
+        US: 'https://api2.amplitude.com/2/httpapi',
+        EU: 'https://api.eu.amplitude.com/2/httpapi',
+        STAG: 'https://api.stag2.amplitude.com/2/httpapi',
+      };
+
+      window.SERVER_URL = API_ENDPOINTS[window.SERVER_ZONE?.toUpperCase()];
+
       if (window.AMPLITUDE_VERSION !== 'latest') {
         
         !function (window, document) {
@@ -211,6 +227,7 @@
         window.API_KEY,
         'remote-config-test-user',
         {
+          serverUrl: window.SERVER_URL,
           fetchRemoteConfig: true,
           logLevel: 'Debug', // Enable debug logging to see remote config activity
           autocapture: {

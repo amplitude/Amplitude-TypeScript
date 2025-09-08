@@ -11,10 +11,12 @@ if (!redirectedServerUrl?.endsWith('/')) {
   redirectedServerUrl += '/';
 }
 
+const LOCAL_SITE = 'https://local.website.com:5173';
+
 test.describe(`Fetch remote config sdkVersion=${amplitudeVersion || 'latest'} apiKey=${apiKey || 'default'}`, () => {
   test('should fetch remote config', async ({ page }) => {
     // intercept the fetch request to the remote config
-    await page.route(`${remoteConfigUrl}*`, async (route) => {
+    await page.route(`${remoteConfigUrl}**`, async (route) => {
       if (redirectedServerUrl) {
         // edit the request to redirect to the redirectedServerUrl
         const request = route.request();
@@ -33,7 +35,9 @@ test.describe(`Fetch remote config sdkVersion=${amplitudeVersion || 'latest'} ap
     if (apiKey) {
       queryParams.apiKey = apiKey;
     }
-    await page.goto(`http://localhost:5173/remote-config-test.html?${new URLSearchParams(queryParams).toString()}`);
+    // TODO: parameterize this
+    queryParams.serverZone = 'STAGING';
+    await page.goto(`${LOCAL_SITE}/remote-config-test.html?${new URLSearchParams(queryParams).toString()}`);
     const response = await fetchRemoteConfigPromise;
     const body = await response.json();
     expect(body.configs.analyticsSDK).toBeDefined();
