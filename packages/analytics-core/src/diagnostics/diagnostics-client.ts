@@ -4,7 +4,7 @@ import { DiagnosticsStorage, IDiagnosticsStorage } from './diagnostics-storage';
 import { ServerZoneType } from 'src/types/server-zone';
 
 const SAVE_INTERVAL_MS = 1000; // 1 second
-const FLUSH_INTERVAL_MS = 5 * 1000; // 5 minutes
+const FLUSH_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
 const US_SERVER_URL = 'https://diagnostics.prod.us-west-2.amplitude.com/v1/capture';
 const EU_SERVER_URL = 'https://diagnostics.prod.eu-central-1.amplitude.com/v1/capture';
 
