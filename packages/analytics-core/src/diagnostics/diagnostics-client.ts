@@ -1,4 +1,5 @@
 /// <reference lib="dom" />
+import { ILogger } from 'src/logger';
 import { DiagnosticsStorage, IDiagnosticsStorage } from './diagnostics-storage';
 
 const FLUSH_INTERVAL_MS = 5 * 1000; // 5 minutes
@@ -133,6 +134,7 @@ export interface IDiagnosticsClient {
 export class DiagnosticsClient implements IDiagnosticsClient {
   private storage: IDiagnosticsStorage;
   private flushTimer: ReturnType<typeof setTimeout> | null = null;
+  private logger?: ILogger;
 
   // In-memory storages
   private inMemoryTags: DiagnosticsTags = {};
@@ -143,8 +145,9 @@ export class DiagnosticsClient implements IDiagnosticsClient {
   // Global timer for 1-second persistence
   private globalSaveTimer: ReturnType<typeof setTimeout> | null = null;
 
-  constructor(apiKey: string) {
-    this.storage = new DiagnosticsStorage(apiKey);
+  constructor(apiKey: string, logger?: ILogger) {
+    this.logger = logger;
+    this.storage = new DiagnosticsStorage(apiKey, logger);
     void this.initializeFlushInterval();
   }
 
@@ -219,7 +222,7 @@ export class DiagnosticsClient implements IDiagnosticsClient {
         this.storage.addEventRecords(eventsToSave),
       ]);
     } catch (error) {
-      console.error('[Amplitude] DiagnosticsClient: Failed to save data to storage', error);
+      this.logger?.error('DiagnosticsClient: Failed to save data to storage', error);
     }
   }
 
@@ -285,7 +288,7 @@ export class DiagnosticsClient implements IDiagnosticsClient {
 
       return payload;
     } catch (error) {
-      console.error('[Amplitude] DiagnosticsClient: Failed to flush data', error);
+      this.logger?.error('DiagnosticsClient: Failed to flush data', error);
       // Return empty payload on error
       return {
         tags: {},
@@ -313,7 +316,7 @@ export class DiagnosticsClient implements IDiagnosticsClient {
     try {
       await this.storage.clearAllData();
     } catch (error) {
-      console.error('[Amplitude] DiagnosticsClient: Failed to clear data', error);
+      this.logger?.debug('DiagnosticsClient: Failed to clear data', error);
     }
   }
 
@@ -337,7 +340,7 @@ export class DiagnosticsClient implements IDiagnosticsClient {
         this.setFlushTimer(remainingTime);
       }
     } catch (error) {
-      console.error('[Amplitude] DiagnosticsClient: Failed to initialize flush interval', error);
+      this.logger?.debug('DiagnosticsClient: Failed to initialize flush interval', error);
     }
   }
 
@@ -369,7 +372,7 @@ export class DiagnosticsClient implements IDiagnosticsClient {
       // Perform the flush (timer reset logic is handled inside _flush())
       await this._flush();
     } catch (error) {
-      console.error('[Amplitude] DiagnosticsClient: Failed to flush and update timestamp', error);
+      this.logger?.debug('DiagnosticsClient: Failed to flush and update timestamp', error);
     }
   }
 

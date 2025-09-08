@@ -1,4 +1,5 @@
 /// <reference lib="dom" />
+import { ILogger } from 'src/logger';
 
 // Database configuration
 const DB_VERSION = 1;
@@ -83,8 +84,10 @@ export interface IDiagnosticsStorage {
 export class DiagnosticsStorage implements IDiagnosticsStorage {
   private dbPromise: Promise<IDBDatabase> | null = null;
   private dbName: string;
+  private logger?: ILogger;
 
-  constructor(apiKey: string) {
+  constructor(apiKey: string, logger?: ILogger) {
+    this.logger = logger;
     this.dbName = `AMP_diagnostics_${apiKey.substring(0, 10)}`;
   }
 
@@ -189,7 +192,7 @@ export class DiagnosticsStorage implements IDiagnosticsStorage {
         request.onerror = () => reject(new Error('Failed to get all tags'));
       });
     } catch (error) {
-      console.error(`[Amplitude] DiagnosticsStorage: Failed to get all tags`, error);
+      this.logger.error('DiagnosticsStorage: Failed to get all tags', error);
       return [];
     }
   }
@@ -226,7 +229,7 @@ export class DiagnosticsStorage implements IDiagnosticsStorage {
         });
       });
     } catch (error) {
-      console.error(`[Amplitude] DiagnosticsStorage: Failed to set tags`, error);
+      this.logger?.debug('DiagnosticsStorage: Failed to set tags', error);
       throw error;
     }
   }
@@ -249,7 +252,7 @@ export class DiagnosticsStorage implements IDiagnosticsStorage {
         request.onerror = () => reject(new Error('Failed to get all counters'));
       });
     } catch (error) {
-      console.error(`[Amplitude] DiagnosticsStorage: Failed to get all counters`, error);
+      this.logger.error('DiagnosticsStorage: Failed to get all counters', error);
       return [];
     }
   }
@@ -286,7 +289,7 @@ export class DiagnosticsStorage implements IDiagnosticsStorage {
         });
       });
     } catch (error) {
-      console.error(`[Amplitude] DiagnosticsStorage: Failed to set counters`, error);
+      this.logger?.debug('DiagnosticsStorage: Failed to set counters', error);
       throw error;
     }
   }
@@ -327,7 +330,7 @@ export class DiagnosticsStorage implements IDiagnosticsStorage {
         });
       });
     } catch (error) {
-      console.error(`[Amplitude] DiagnosticsStorage: Failed to set histogram stats`, error);
+      this.logger?.debug('DiagnosticsStorage: Failed to set histogram stats', error);
       throw error;
     }
   }
@@ -348,7 +351,7 @@ export class DiagnosticsStorage implements IDiagnosticsStorage {
         request.onerror = () => reject(new Error('Failed to get all histogram stats'));
       });
     } catch (error) {
-      console.error(`[Amplitude] DiagnosticsStorage: Failed to get all histogram stats`, error);
+      this.logger.error('DiagnosticsStorage: Failed to get all histogram stats', error);
       return [];
     }
   }
@@ -371,7 +374,7 @@ export class DiagnosticsStorage implements IDiagnosticsStorage {
         request.onerror = () => reject(new Error('Failed to get all event records'));
       });
     } catch (error) {
-      console.error(`[Amplitude] DiagnosticsStorage: Failed to get all event records`, error);
+      this.logger?.debug('DiagnosticsStorage: Failed to get all event records', error);
       return [];
     }
   }
@@ -413,7 +416,7 @@ export class DiagnosticsStorage implements IDiagnosticsStorage {
         });
       });
     } catch (error) {
-      console.error(`[Amplitude] DiagnosticsStorage: Failed to add event records`, error);
+      this.logger?.debug('DiagnosticsStorage: Failed to add event records', error);
       throw error;
     }
   }
@@ -436,7 +439,7 @@ export class DiagnosticsStorage implements IDiagnosticsStorage {
         request.onerror = () => reject(new Error('Failed to set internal value'));
       });
     } catch (error) {
-      console.error(`[Amplitude] DiagnosticsStorage: Failed to set internal value`, error);
+      this.logger.error('DiagnosticsStorage: Failed to set internal value', error);
       throw error;
     }
   }
@@ -457,7 +460,7 @@ export class DiagnosticsStorage implements IDiagnosticsStorage {
         request.onerror = () => reject(new Error('Failed to get internal value'));
       });
     } catch (error) {
-      console.error(`[Amplitude] DiagnosticsStorage: Failed to get internal value`, error);
+      this.logger?.debug('DiagnosticsStorage: Failed to get internal value', error);
       return undefined;
     }
   }
@@ -472,7 +475,7 @@ export class DiagnosticsStorage implements IDiagnosticsStorage {
       const record = await this.getInternal(INTERNAL_KEYS.LAST_FLUSH_TIMESTAMP);
       return record ? parseInt(record.value, 10) : undefined;
     } catch (error) {
-      console.error(`[Amplitude] DiagnosticsStorage: Failed to get last flush timestamp`, error);
+      this.logger?.debug('DiagnosticsStorage: Failed to get last flush timestamp', error);
       return undefined;
     }
   }
@@ -484,7 +487,7 @@ export class DiagnosticsStorage implements IDiagnosticsStorage {
     try {
       await this.setInternal(INTERNAL_KEYS.LAST_FLUSH_TIMESTAMP, timestamp.toString());
     } catch (error) {
-      console.error(`[Amplitude] DiagnosticsStorage: Failed to set last flush timestamp`, error);
+      this.logger?.debug('DiagnosticsStorage: Failed to set last flush timestamp', error);
       throw error;
     }
   }
@@ -512,7 +515,7 @@ export class DiagnosticsStorage implements IDiagnosticsStorage {
 
       await Promise.all(promises);
     } catch (error) {
-      console.error(`[Amplitude] DiagnosticsStorage: Failed to clear all data`, error);
+      this.logger?.debug('DiagnosticsStorage: Failed to clear all data', error);
       throw error;
     }
   }
