@@ -1,7 +1,7 @@
 /// <reference lib="dom" />
-import { ILogger } from 'src/logger';
+import { ILogger } from '../logger';
 import { DiagnosticsStorage, IDiagnosticsStorage } from './diagnostics-storage';
-import { ServerZoneType } from 'src/types/server-zone';
+import { ServerZoneType } from '../types/server-zone';
 
 const SAVE_INTERVAL_MS = 1000; // 1 second
 const FLUSH_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes

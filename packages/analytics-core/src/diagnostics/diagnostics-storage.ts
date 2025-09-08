@@ -1,5 +1,5 @@
 /// <reference lib="dom" />
-import { ILogger } from 'src/logger';
+import { ILogger } from '../logger';
 
 // Database configuration
 const DB_VERSION = 1;
