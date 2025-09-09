@@ -1,0 +1,68 @@
+name: E2E Tests
+
+on:
+  push:
+    branches:
+      - main
+      - v1.x
+  pull_request:
+    types: [opened, synchronize]
+
+jobs:
+  e2e:
+    name: E2E Tests
+    runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/playwright:v1.55.0
+
+    steps:
+      - name: Check out git repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      # - name: Setup git for nx
+      #   run: |
+      #     git config --global --add safe.directory "$GITHUB_WORKSPACE"
+      #     git fetch origin
+      #       git branch -f main origin/main
+      #     fi
+
+      - name: Cache dependencies
+        uses: actions/cache@v3
+        with:
+          path: '**/node_modules'
+          key: ${{ runner.os }}-modules-${{ hashFiles('**/yarn.lock') }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20.x'
+
+      - name: Install project dependencies
+        run: |
+          yarn install --frozen-lockfile
+
+      - name: Build all packages
+        run: |
+          yarn build
+
+      - name: Create .env file
+        run: |
+          echo "VITE_AMPLITUDE_API_KEY=${{ secrets.AMPLITUDE_API_KEY }}" > .env
+          echo "VITE_AMPLITUDE_USER_ID=github-actions-sdk-user" >> .env
+
+      - name: Start dev server
+        run: |
+          # Kill any process using port 5173
+          lsof -ti:5173 | xargs kill -9 2>/dev/null || true
+          # Start the dev server
+          yarn start --port 5173 &
+          # Wait for the server to be ready
+          sleep 10
+          # Verify the server is running
+          curl -f http://localhost:5173 || exit 1
+
+      - name: Run Playwright tests
+        run: |
+          sh packages/e2e-remote-config/remote-config-test.sh
