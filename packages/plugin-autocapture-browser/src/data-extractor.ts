@@ -35,7 +35,7 @@ export class DataExtractor {
         compiled.push(entry);
       } else if ('pattern' in entry && typeof entry.pattern === 'string') {
         try {
-          compiled.push(new RegExp(entry.pattern));
+          compiled.push(new RegExp(entry.pattern, 'i'));
         } catch {
           // ignore invalid pattern strings
         }
