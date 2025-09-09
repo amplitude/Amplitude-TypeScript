@@ -3,10 +3,10 @@ import { ILogger } from '../logger';
 import { DiagnosticsStorage, IDiagnosticsStorage } from './diagnostics-storage';
 import { ServerZoneType } from '../types/server-zone';
 
-const SAVE_INTERVAL_MS = 1000; // 1 second
-const FLUSH_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
-const US_SERVER_URL = 'https://diagnostics.prod.us-west-2.amplitude.com/v1/capture';
-const EU_SERVER_URL = 'https://diagnostics.prod.eu-central-1.amplitude.com/v1/capture';
+export const SAVE_INTERVAL_MS = 1000; // 1 second
+export const FLUSH_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
+export const DIAGNOSTICS_US_SERVER_URL = 'https://diagnostics.prod.us-west-2.amplitude.com/v1/capture';
+export const DIAGNOSTICS_EU_SERVER_URL = 'https://diagnostics.prod.eu-central-1.amplitude.com/v1/capture';
 
 // === Core Data Types ===
 
@@ -70,7 +70,6 @@ type DiagnosticsHistogramStats = Record<string, HistogramStats>;
  * Complete diagnostics payload sent to backend
  */
 interface FlushPayload {
-  readonly apiKey?: string;
   readonly tags: DiagnosticsTags;
   readonly histogram: DiagnosticsHistograms;
   readonly counters: DiagnosticsCounters;
@@ -145,7 +144,7 @@ export interface IDiagnosticsClient {
 
 export class DiagnosticsClient implements IDiagnosticsClient {
   storage: IDiagnosticsStorage;
-  logger?: ILogger;
+  logger: ILogger;
   serverUrl: string;
   apiKey: string;
 
@@ -163,7 +162,7 @@ export class DiagnosticsClient implements IDiagnosticsClient {
   constructor(apiKey: string, logger: ILogger, serverZone: ServerZoneType = 'US') {
     this.apiKey = apiKey;
     this.logger = logger;
-    this.serverUrl = serverZone === 'US' ? US_SERVER_URL : EU_SERVER_URL;
+    this.serverUrl = serverZone === 'US' ? DIAGNOSTICS_US_SERVER_URL : DIAGNOSTICS_EU_SERVER_URL;
     this.storage = new DiagnosticsStorage(apiKey, logger);
     void this.initializeFlushInterval();
   }
@@ -216,100 +215,88 @@ export class DiagnosticsClient implements IDiagnosticsClient {
 
     if (!this.flushTimer) {
       this.flushTimer = setTimeout(() => {
-        void this.flushAndUpdateTimestamp();
+        void this._flush();
       }, FLUSH_INTERVAL_MS);
     }
   }
 
   async saveAllDataToStorage() {
-    try {
-      // Make copies and clear immediately to avoid race conditions
-      const tagsToSave = { ...this.inMemoryTags };
-      const countersToSave = { ...this.inMemoryCounters };
-      const histogramsToSave = { ...this.inMemoryHistograms };
-      const eventsToSave = [...this.inMemoryEvents];
+    const tagsToSave = { ...this.inMemoryTags };
+    const countersToSave = { ...this.inMemoryCounters };
+    const histogramsToSave = { ...this.inMemoryHistograms };
+    const eventsToSave = [...this.inMemoryEvents];
 
-      // Clear in-memory data immediately
-      this.inMemoryEvents = [];
-      this.inMemoryTags = {};
-      this.inMemoryCounters = {};
-      this.inMemoryHistograms = {};
+    this.inMemoryEvents = [];
+    this.inMemoryTags = {};
+    this.inMemoryCounters = {};
+    this.inMemoryHistograms = {};
 
-      // Clear the timer since we're processing the data
-      this.saveTimer = null;
+    // Clear the timer since we're processing the data
+    this.saveTimer = null;
 
-      await Promise.all([
-        this.storage.setTags(tagsToSave),
-        this.storage.setCounters(countersToSave),
-        this.storage.setHistogramStats(histogramsToSave),
-        this.storage.addEventRecords(eventsToSave),
-      ]);
-    } catch (error) {
-      this.logger?.error('DiagnosticsClient: Failed to save data to storage', error);
-    }
+    await Promise.all([
+      this.storage.setTags(tagsToSave),
+      this.storage.setCounters(countersToSave),
+      this.storage.setHistogramStats(histogramsToSave),
+      this.storage.addEventRecords(eventsToSave),
+    ]);
   }
 
-  _flush() {
+  async _flush() {
     // Clear the current timer since we're flushing now
-    this.clearFlushTimer();
-
-    // Perform flush operations asynchronously without blocking
-    void this.performFlushOperations();
-  }
-
-  async performFlushOperations() {
-    try {
-      // Get all data from storage and clear it
-      const {
-        tags: tagRecords,
-        counters: counterRecords,
-        histogramStats: histogramStatsRecords,
-        events: eventRecords,
-      } = await this.storage.getAllAndClear();
-
-      // Update the last flush timestamp
-      void this.storage.setLastFlushTimestamp(Date.now());
-
-      // Convert metrics to the expected format
-      const tags: DiagnosticsTags = {};
-      tagRecords.forEach((record) => {
-        tags[record.key] = record.value;
-      });
-
-      const counters: DiagnosticsCounters = {};
-      counterRecords.forEach((record) => {
-        counters[record.key] = record.value;
-      });
-
-      const histogram: DiagnosticsHistograms = {};
-      histogramStatsRecords.forEach((stats) => {
-        histogram[stats.key] = {
-          count: stats.count,
-          min: stats.min,
-          max: stats.max,
-          avg: stats.count > 0 ? Math.round((stats.sum / stats.count) * 100) / 100 : 0,
-        };
-      });
-
-      const events: DiagnosticsEvent[] = eventRecords.map((record) => ({
-        event_name: record.event_name,
-        time: record.time,
-        event_properties: record.event_properties,
-      }));
-
-      // Create flush payload
-      const payload: FlushPayload = {
-        tags,
-        histogram,
-        counters,
-        events,
-      };
-
-      // Send payload to diagnostics server
-      void this.fetch(payload);
-    } catch (error) {
-      this.logger?.error('DiagnosticsClient: Failed to flush data', error);
+    if (this.flushTimer !== null) {
+      clearTimeout(this.flushTimer);
+      this.flushTimer = null;
     }
+
+    // Get all data from storage and clear it
+    const {
+      tags: tagRecords,
+      counters: counterRecords,
+      histogramStats: histogramStatsRecords,
+      events: eventRecords,
+    } = await this.storage.getAllAndClear();
+
+    // Update the last flush timestamp
+    void this.storage.setLastFlushTimestamp(Date.now());
+
+    // Convert metrics to the expected format
+    const tags: DiagnosticsTags = {};
+    tagRecords.forEach((record) => {
+      tags[record.key] = record.value;
+    });
+
+    const counters: DiagnosticsCounters = {};
+    counterRecords.forEach((record) => {
+      counters[record.key] = record.value;
+    });
+
+    const histogram: DiagnosticsHistograms = {};
+    histogramStatsRecords.forEach((stats) => {
+      histogram[stats.key] = {
+        count: stats.count,
+        min: stats.min,
+        max: stats.max,
+        avg: Math.round((stats.sum / stats.count) * 100) / 100, // round the average to 2 decimal places.
+      };
+    });
+
+    const events: DiagnosticsEvent[] = eventRecords.map((record) => ({
+      event_name: record.event_name,
+      time: record.time,
+      event_properties: record.event_properties,
+    }));
+
+    // Create flush payload
+    const payload: FlushPayload = {
+      tags,
+      histogram,
+      counters,
+      events,
+    };
+
+    // Send payload to diagnostics server
+    void this.fetch(payload);
   }
 
   /**
@@ -327,15 +314,13 @@ export class DiagnosticsClient implements IDiagnosticsClient {
       });
 
       if (!response.ok) {
-        this.logger?.debug(
-          `DiagnosticsClient: Failed to send diagnostics data. HTTP ${response.status}: ${response.statusText}`,
-        );
+        this.logger.debug('DiagnosticsClient: Failed to send diagnostics data.');
         return;
       }
 
-      this.logger?.debug('DiagnosticsClient: Successfully sent diagnostics data');
+      this.logger.debug('DiagnosticsClient: Successfully sent diagnostics data');
     } catch (error) {
-      this.logger?.debug('DiagnosticsClient: Failed to send diagnostics data', error);
+      this.logger.debug('DiagnosticsClient: Failed to send diagnostics data', error);
     }
   }
 
@@ -345,48 +330,22 @@ export class DiagnosticsClient implements IDiagnosticsClient {
    * Otherwise set a timer to flush when the interval is reached.
    */
   async initializeFlushInterval() {
-    try {
-      const now = Date.now();
-      const lastFlushTimestamp = (await this.storage.getLastFlushTimestamp()) || -1;
-      const timeSinceLastFlush = now - lastFlushTimestamp;
+    const now = Date.now();
+    const lastFlushTimestamp = (await this.storage.getLastFlushTimestamp()) || -1;
+    const timeSinceLastFlush = now - lastFlushTimestamp;
 
-      // If last flush timestamp is -1, it means this is a new client
-      if (lastFlushTimestamp === -1) {
-        return;
-      } else if (timeSinceLastFlush >= FLUSH_INTERVAL_MS) {
-        // More than 5 minutes has passed, flush immediately
-        await this.flushAndUpdateTimestamp();
-      } else {
-        // Set timer for remaining time
-        const remainingTime = FLUSH_INTERVAL_MS - timeSinceLastFlush;
-        this.flushTimer = setTimeout(() => {
-          void this.flushAndUpdateTimestamp();
-        }, remainingTime);
-      }
-    } catch (error) {
-      this.logger?.debug('DiagnosticsClient: Failed to initialize flush interval', error);
-    }
-  }
-
-  /**
-   * Clear the current flush timer
-   */
-  clearFlushTimer() {
-    if (this.flushTimer !== null) {
-      clearTimeout(this.flushTimer);
-      this.flushTimer = null;
-    }
-  }
-
-  /**
-   * Flush data and update timestamp, then set next timer
-   */
-  async flushAndUpdateTimestamp() {
-    try {
-      // Perform the flush (timer reset logic is handled inside _flush())
-      this._flush();
-    } catch (error) {
-      this.logger?.debug('DiagnosticsClient: Failed to flush and update timestamp', error);
+    // If last flush timestamp is -1, it means this is a new client
+    if (lastFlushTimestamp === -1) {
+      return;
+    } else if (timeSinceLastFlush >= FLUSH_INTERVAL_MS) {
+      // More than 5 minutes has passed, flush immediately
+      await this._flush();
+    } else {
+      // Set timer for remaining time
+      const remainingTime = FLUSH_INTERVAL_MS - timeSinceLastFlush;
+      this.flushTimer = setTimeout(() => {
+        void this._flush();
+      }, remainingTime);
     }
   }
 }
