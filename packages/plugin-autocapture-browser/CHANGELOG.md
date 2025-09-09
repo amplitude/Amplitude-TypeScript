@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.12.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.12.0...@amplitude/plugin-autocapture-browser@1.12.1) (2025-09-09)
+
+
+### Bug Fixes
+
+* **autocapture:** make the default for patterns in mask-text-regex to be case insensitive ([#1282](https://github.com/amplitude/Amplitude-TypeScript/issues/1282)) ([e4995ac](https://github.com/amplitude/Amplitude-TypeScript/commit/e4995acbeda81d3bcf11f2d97743aa844b0240d2))
+
+
+
+
+
 # [1.12.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.11.1...@amplitude/plugin-autocapture-browser@1.12.0) (2025-09-05)
 
 
