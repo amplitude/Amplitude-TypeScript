@@ -5,13 +5,13 @@ import { test, expect } from '@playwright/test';
 const remoteConfigUrl = 'https://sr-client-cfg.amplitude.com/';
 const amplitudeVersion = process.env.AMPLITUDE_VERSION;
 const apiKey = process.env.API_KEY;
-let redirectedServerUrl = process.env.REMOTE_CONFIG_URL;
+let redirectedServerUrl = process.env.REMOTE_CONFIG_URL || '';
 
-if (!redirectedServerUrl?.endsWith('/')) {
+if (redirectedServerUrl && !redirectedServerUrl?.endsWith('/')) {
   redirectedServerUrl += '/';
 }
 
-const LOCAL_SITE = 'https://local.website.com:5173';
+const LOCAL_SITE = 'http://localhost:5173';
 
 test.describe(`Fetch remote config sdkVersion=${amplitudeVersion || 'latest'} apiKey=${apiKey || 'default'}`, () => {
   test('should fetch remote config', async ({ page }) => {
