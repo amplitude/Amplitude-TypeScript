@@ -15,8 +15,10 @@ const mockLogger: ILogger = {
 const apiKey = '1234567890abcdefg';
 
 describe('DiagnosticsStorage', () => {
+  let storage: DiagnosticsStorage;
   beforeEach(() => {
     jest.clearAllMocks();
+    storage = new DiagnosticsStorage(apiKey, mockLogger);
   });
 
   afterEach(() => {
@@ -25,10 +27,23 @@ describe('DiagnosticsStorage', () => {
 
   describe('constructor', () => {
     test('should initialize with apiKey and logger', () => {
-      const storage = new DiagnosticsStorage(apiKey, mockLogger);
-
       expect(storage.dbName).toBe('AMP_diagnostics_1234567890');
       expect(storage.logger).toBe(mockLogger);
+    });
+  });
+
+  describe('getDB', () => {
+    test('should return the db', async () => {
+      await expect(storage.getDB()).resolves.toBeDefined();
+    });
+
+    test('should call openDB if dbPromise is not set', async () => {
+      storage.dbPromise = null;
+      const mockDB = {} as IDBDatabase;
+      const openDBSpy = jest.spyOn(storage, 'openDB').mockResolvedValue(mockDB);
+
+      await expect(storage.getDB()).resolves.toBeDefined();
+      expect(openDBSpy).toHaveBeenCalled();
     });
   });
 });
