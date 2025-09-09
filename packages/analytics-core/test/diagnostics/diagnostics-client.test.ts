@@ -135,6 +135,34 @@ describe('DiagnosticsClient', () => {
 
       jest.useRealTimers();
     });
+
+    test('should handle flush promise rejection and clear timer', async () => {
+      jest.useFakeTimers();
+      const pastTime = 2 * 60 * 1000;
+      const recentTimestamp = Date.now() - pastTime; // 2 minutes ago
+      const flushError = new Error('Flush operation failed');
+
+      createClientWithMockStorage(recentTimestamp);
+      flushSpy.mockRejectedValue(flushError);
+
+      await client.initializeFlushInterval();
+
+      expect(mockStorage.getLastFlushTimestamp).toHaveBeenCalled();
+      expect(flushSpy).not.toHaveBeenCalled(); // Should not flush immediately
+      expect(client.flushTimer).not.toBeNull(); // Timer should be set
+
+      // Wait for all promises to resolve
+      await jest.runAllTimersAsync();
+
+      expect(flushSpy).toHaveBeenCalled();
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockLogger.debug).toHaveBeenCalledWith('DiagnosticsClient: Failed to flush', flushError);
+
+      // Timer should be cleared even on error
+      expect(client.flushTimer).toBeNull();
+
+      jest.useRealTimers();
+    });
   });
 
   describe('setters', () => {
@@ -143,7 +171,7 @@ describe('DiagnosticsClient', () => {
 
     beforeEach(() => {
       client = new DiagnosticsClient(apiKey, mockLogger);
-      startSaveTimerIfNeededSpy = jest.spyOn(client, 'startSaveTimerIfNeeded').mockImplementation(() => {
+      startSaveTimerIfNeededSpy = jest.spyOn(client, 'startTimersIfNeeded').mockImplementation(() => {
         // Mock implementation
       });
     });
@@ -246,7 +274,7 @@ describe('DiagnosticsClient', () => {
     test('should set saveTimer if it is not set', () => {
       client.saveTimer = null;
 
-      client.startSaveTimerIfNeeded();
+      client.startTimersIfNeeded();
 
       expect(client.saveTimer).not.toBeNull();
       jest.advanceTimersByTime(SAVE_INTERVAL_MS);
@@ -259,7 +287,7 @@ describe('DiagnosticsClient', () => {
       }, 500);
       const originalTimer = client.saveTimer;
 
-      client.startSaveTimerIfNeeded();
+      client.startTimersIfNeeded();
 
       expect(client.saveTimer).toBe(originalTimer);
     });
@@ -267,7 +295,7 @@ describe('DiagnosticsClient', () => {
     test('should set flushTimer if it is not set', () => {
       client.flushTimer = null;
 
-      client.startSaveTimerIfNeeded();
+      client.startTimersIfNeeded();
 
       expect(client.flushTimer).not.toBeNull();
       jest.advanceTimersByTime(FLUSH_INTERVAL_MS);
@@ -280,9 +308,52 @@ describe('DiagnosticsClient', () => {
       }, FLUSH_INTERVAL_MS);
       const originalTimer = client.flushTimer;
 
-      client.startSaveTimerIfNeeded();
+      client.startTimersIfNeeded();
 
       expect(client.flushTimer).toBe(originalTimer);
+    });
+
+    test('should handle saveAllDataToStorage errors in timer callback and clear timer', async () => {
+      const storageError = new Error('Storage failed');
+      saveAllDataToStorageSpy.mockRejectedValue(storageError);
+      client.saveTimer = null;
+
+      client.startTimersIfNeeded();
+
+      expect(client.saveTimer).not.toBeNull();
+
+      // Wait for all promises to resolve
+      await jest.runAllTimersAsync();
+
+      expect(saveAllDataToStorageSpy).toHaveBeenCalled();
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockLogger.debug).toHaveBeenCalledWith(
+        'DiagnosticsClient: Failed to save all data to storage',
+        storageError,
+      );
+
+      // Timer should be cleared even on error
+      expect(client.saveTimer).toBeNull();
+    });
+
+    test('should handle _flush errors in timer callback and clear timer', async () => {
+      const flushError = new Error('Flush failed');
+      flushSpy.mockRejectedValue(flushError);
+      client.flushTimer = null;
+
+      client.startTimersIfNeeded();
+
+      expect(client.flushTimer).not.toBeNull();
+
+      // Wait for all promises to resolve
+      await jest.runAllTimersAsync();
+
+      expect(flushSpy).toHaveBeenCalled();
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockLogger.debug).toHaveBeenCalledWith('DiagnosticsClient: Failed to flush', flushError);
+
+      // Timer should be cleared even on error
+      expect(client.flushTimer).toBeNull();
     });
   });
 
@@ -404,7 +475,6 @@ describe('DiagnosticsClient', () => {
 
       await client._flush();
 
-      expect(client.flushTimer).toBeNull();
       expect(mockStorage.getAllAndClear).toHaveBeenCalled();
       expect(mockStorage.setLastFlushTimestamp).toHaveBeenCalled();
       // Also test histogram calculation

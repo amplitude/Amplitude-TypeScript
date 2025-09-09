@@ -169,12 +169,12 @@ export class DiagnosticsClient implements IDiagnosticsClient {
 
   setTag(name: string, value: string) {
     this.inMemoryTags[name] = value;
-    this.startSaveTimerIfNeeded();
+    this.startTimersIfNeeded();
   }
 
   increment(name: string, size = 1) {
     this.inMemoryCounters[name] = (this.inMemoryCounters[name] || 0) + size;
-    this.startSaveTimerIfNeeded();
+    this.startTimersIfNeeded();
   }
 
   recordHistogram(name: string, value: number) {
@@ -194,7 +194,7 @@ export class DiagnosticsClient implements IDiagnosticsClient {
         sum: value,
       };
     }
-    this.startSaveTimerIfNeeded();
+    this.startTimersIfNeeded();
   }
 
   recordEvent(name: string, properties: EventProperties) {
@@ -203,19 +203,31 @@ export class DiagnosticsClient implements IDiagnosticsClient {
       time: Date.now(),
       event_properties: properties,
     });
-    this.startSaveTimerIfNeeded();
+    this.startTimersIfNeeded();
   }
 
-  startSaveTimerIfNeeded() {
+  startTimersIfNeeded() {
     if (!this.saveTimer) {
       this.saveTimer = setTimeout(() => {
-        void this.saveAllDataToStorage();
+        this.saveAllDataToStorage()
+          .catch((error) => {
+            this.logger.debug('DiagnosticsClient: Failed to save all data to storage', error);
+          })
+          .finally(() => {
+            this.saveTimer = null;
+          });
       }, SAVE_INTERVAL_MS);
     }
 
     if (!this.flushTimer) {
       this.flushTimer = setTimeout(() => {
-        void this._flush();
+        this._flush()
+          .catch((error) => {
+            this.logger.debug('DiagnosticsClient: Failed to flush', error);
+          })
+          .finally(() => {
+            this.flushTimer = null;
+          });
       }, FLUSH_INTERVAL_MS);
     }
   }
@@ -231,9 +243,6 @@ export class DiagnosticsClient implements IDiagnosticsClient {
     this.inMemoryCounters = {};
     this.inMemoryHistograms = {};
 
-    // Clear the timer since we're processing the data
-    this.saveTimer = null;
-
     await Promise.all([
       this.storage.setTags(tagsToSave),
       this.storage.setCounters(countersToSave),
@@ -243,12 +252,6 @@ export class DiagnosticsClient implements IDiagnosticsClient {
   }
 
   async _flush() {
-    // Clear the current timer since we're flushing now
-    if (this.flushTimer !== null) {
-      clearTimeout(this.flushTimer);
-      this.flushTimer = null;
-    }
-
     // Get all data from storage and clear it
     const {
       tags: tagRecords,
@@ -339,12 +342,19 @@ export class DiagnosticsClient implements IDiagnosticsClient {
       return;
     } else if (timeSinceLastFlush >= FLUSH_INTERVAL_MS) {
       // More than 5 minutes has passed, flush immediately
-      await this._flush();
+      void this._flush();
+      return;
     } else {
       // Set timer for remaining time
       const remainingTime = FLUSH_INTERVAL_MS - timeSinceLastFlush;
       this.flushTimer = setTimeout(() => {
-        void this._flush();
+        this._flush()
+          .catch((error) => {
+            this.logger.debug('DiagnosticsClient: Failed to flush', error);
+          })
+          .finally(() => {
+            this.flushTimer = null;
+          });
       }, remainingTime);
     }
   }
