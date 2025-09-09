@@ -46,4 +46,10 @@ describe('DiagnosticsStorage', () => {
       expect(openDBSpy).toHaveBeenCalled();
     });
   });
+
+  describe('setTags', () => {
+    test('should set tags', async () => {
+      await expect(storage.setTags({ test: 'test' })).resolves.toBeUndefined();
+    });
+  });
 });

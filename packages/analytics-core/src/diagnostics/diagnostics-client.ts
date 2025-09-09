@@ -245,7 +245,7 @@ export class DiagnosticsClient implements IDiagnosticsClient {
 
     await Promise.all([
       this.storage.setTags(tagsToSave),
-      this.storage.setCounters(countersToSave),
+      this.storage.incrementCounters(countersToSave),
       this.storage.setHistogramStats(histogramsToSave),
       this.storage.addEventRecords(eventsToSave),
     ]);

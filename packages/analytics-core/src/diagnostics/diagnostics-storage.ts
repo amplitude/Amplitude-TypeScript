@@ -52,7 +52,7 @@ export interface InternalRecord {
 export interface IDiagnosticsStorage {
   // Setters
   setTags(tags: Record<string, string>): Promise<void>;
-  setCounters(counters: Record<string, number>): Promise<void>;
+  incrementCounters(counters: Record<string, number>): Promise<void>;
   setHistogramStats(
     histogramStats: Record<string, { count: number; min: number; max: number; sum: number }>,
   ): Promise<void>;
@@ -194,16 +194,16 @@ export class DiagnosticsStorage implements IDiagnosticsStorage {
   // === BATCH COUNTER OPERATIONS ===
 
   /**
-   * Set multiple counters in a single transaction (batch operation)
+   * Increment multiple counters in a single transaction (batch operation)
+   * Uses read-modify-write pattern to accumulate with existing values
    */
-  async setCounters(counters: Record<string, number>): Promise<void> {
+  async incrementCounters(counters: Record<string, number>): Promise<void> {
     try {
       const db = await this.getDB();
       const transaction = db.transaction([TABLE_NAMES.COUNTERS], 'readwrite');
       const store = transaction.objectStore(TABLE_NAMES.COUNTERS);
 
       return new Promise((resolve, reject) => {
-        let completed = 0;
         const entries = Object.entries(counters);
 
         if (entries.length === 0) {
@@ -211,21 +211,44 @@ export class DiagnosticsStorage implements IDiagnosticsStorage {
           return;
         }
 
-        entries.forEach(([key, value]) => {
-          const request = store.put({ key, value });
+        let pendingReads = entries.length;
+        let pendingWrites = 0;
+        const updatedCounters: Record<string, number> = {};
 
-          request.onsuccess = () => {
-            completed++;
-            if (completed === entries.length) {
-              resolve();
+        // First, read all existing values
+        entries.forEach(([key, incrementValue]) => {
+          const getRequest = store.get(key);
+
+          getRequest.onsuccess = () => {
+            const existingRecord = getRequest.result as CounterRecord | undefined;
+            const existingValue = existingRecord ? existingRecord.value : 0;
+            updatedCounters[key] = existingValue + incrementValue;
+
+            pendingReads--;
+            if (pendingReads === 0) {
+              // All reads complete, now write the updated values
+              pendingWrites = entries.length;
+
+              entries.forEach(([key]) => {
+                const putRequest = store.put({ key, value: updatedCounters[key] });
+
+                putRequest.onsuccess = () => {
+                  pendingWrites--;
+                  if (pendingWrites === 0) {
+                    resolve();
+                  }
+                };
+
+                putRequest.onerror = () => reject(new Error('Failed to increment counters'));
+              });
             }
           };
 
-          request.onerror = () => reject(new Error('Failed to set counters'));
+          getRequest.onerror = () => reject(new Error('Failed to read existing counters'));
         });
       });
     } catch (error) {
-      this.logger.debug('DiagnosticsStorage: Failed to set counters', error);
+      this.logger.debug('DiagnosticsStorage: Failed to increment counters', error);
     }
   }
 
@@ -233,6 +256,7 @@ export class DiagnosticsStorage implements IDiagnosticsStorage {
 
   /**
    * Set multiple histogram stats in a single transaction (batch operation)
+   * Uses read-modify-write pattern to accumulate count/sum and update min/max with existing values
    */
   async setHistogramStats(
     histogramStats: Record<string, { count: number; min: number; max: number; sum: number }>,
@@ -243,7 +267,6 @@ export class DiagnosticsStorage implements IDiagnosticsStorage {
       const store = transaction.objectStore(TABLE_NAMES.HISTOGRAMS);
 
       return new Promise((resolve, reject) => {
-        let completed = 0;
         const entries = Object.entries(histogramStats);
 
         if (entries.length === 0) {
@@ -251,17 +274,59 @@ export class DiagnosticsStorage implements IDiagnosticsStorage {
           return;
         }
 
-        entries.forEach(([key, stats]) => {
-          const request = store.put({ key, count: stats.count, min: stats.min, max: stats.max, sum: stats.sum });
+        let pendingReads = entries.length;
+        let pendingWrites = 0;
+        const updatedHistograms: Record<string, HistogramRecord> = {};
 
-          request.onsuccess = () => {
-            completed++;
-            if (completed === entries.length) {
-              resolve();
+        // First, read all existing values
+        entries.forEach(([key, newStats]) => {
+          const getRequest = store.get(key);
+
+          getRequest.onsuccess = () => {
+            const existingRecord = getRequest.result as HistogramRecord | undefined;
+
+            if (existingRecord) {
+              // Accumulate with existing stats
+              updatedHistograms[key] = {
+                key,
+                count: existingRecord.count + newStats.count,
+                min: Math.min(existingRecord.min, newStats.min),
+                max: Math.max(existingRecord.max, newStats.max),
+                sum: existingRecord.sum + newStats.sum,
+              };
+            } else {
+              // Create new stats
+              updatedHistograms[key] = {
+                key,
+                count: newStats.count,
+                min: newStats.min,
+                max: newStats.max,
+                sum: newStats.sum,
+              };
+            }
+
+            pendingReads--;
+            if (pendingReads === 0) {
+              // All reads complete, now write the updated values
+              pendingWrites = entries.length;
+
+              entries.forEach(([key]) => {
+                const stats = updatedHistograms[key];
+                const putRequest = store.put(stats);
+
+                putRequest.onsuccess = () => {
+                  pendingWrites--;
+                  if (pendingWrites === 0) {
+                    resolve();
+                  }
+                };
+
+                putRequest.onerror = () => reject(new Error('Failed to set histogram stats'));
+              });
             }
           };
 
-          request.onerror = () => reject(new Error('Failed to set histogram stats'));
+          getRequest.onerror = () => reject(new Error('Failed to read existing histogram stats'));
         });
       });
     } catch (error) {
