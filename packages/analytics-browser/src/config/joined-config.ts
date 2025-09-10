@@ -3,6 +3,7 @@ import {
   type ElementInteractionsOptions,
   BrowserConfig,
   RemoteConfig,
+  NetworkTrackingOptions,
 } from '@amplitude/analytics-core';
 
 export interface AutocaptureOptionsRemoteConfig extends AutocaptureOptions {
@@ -13,6 +14,13 @@ export interface ElementInteractionsOptionsRemoteConfig extends ElementInteracti
    * Related to pageUrlAllowlist but holds regex strings which will be initialized and appended to pageUrlAllowlist
    */
   pageUrlAllowlistRegex?: string[];
+}
+
+export interface NetworkTrackingOptionsRemoteConfig extends NetworkTrackingOptions {
+  /**
+   * Related to pageUrlAllowlist but holds regex strings which will be initialized and appended to pageUrlAllowlist
+   */
+  urlsRegex?: string[];
 }
 
 // Type alias for the remote config structure we expect (this is what comes from the filtered browserSDK config)
@@ -92,6 +100,20 @@ export function translateRemoteConfigToLocal(config?: Record<string, any>) {
   }
 }
 
+function mergeUrls(urlsExact: (string | RegExp)[], urlsRegex: string[], browserConfig: BrowserConfig) {
+  // Convert string patterns to RegExp objects, warn on invalid patterns and skip them
+  const regexList = [];
+  for (const pattern of urlsRegex) {
+    try {
+      regexList.push(new RegExp(pattern));
+    } catch (regexError) {
+      browserConfig.loggerProvider.warn(`Invalid regex pattern: ${pattern}`, regexError);
+    }
+  }
+
+  return urlsExact.concat(regexList);
+}
+
 /**
  * Updates the browser config in place by applying remote configuration settings.
  * Primarily merges autocapture settings from the remote config into the browser config.
@@ -146,20 +168,12 @@ export function updateBrowserConfigWithRemoteConfig(
           };
           const transformedRcElementInteractions = transformedAutocaptureRemoteConfig.elementInteractions;
 
+          // combine exact allow list and regex allow list into just 'pageUrlAllowlist'
           const exactAllowList = transformedRcElementInteractions.pageUrlAllowlist ?? [];
-          // Convert string patterns to RegExp objects, warn on invalid patterns and skip them
-          const regexList = [];
-          for (const pattern of typedRemoteConfig.autocapture.elementInteractions.pageUrlAllowlistRegex) {
-            try {
-              regexList.push(new RegExp(pattern));
-            } catch (regexError) {
-              browserConfig.loggerProvider.warn(`Invalid regex pattern: ${pattern}`, regexError);
-            }
-          }
+          const urlsRegex = typedRemoteConfig.autocapture.elementInteractions.pageUrlAllowlistRegex ?? [];
+          transformedRcElementInteractions.pageUrlAllowlist = mergeUrls(exactAllowList, urlsRegex, browserConfig);
 
-          const combinedPageUrlAllowlist = exactAllowList.concat(regexList);
-
-          transformedRcElementInteractions.pageUrlAllowlist = combinedPageUrlAllowlist;
+          // clean up the regex allow list
           delete transformedRcElementInteractions.pageUrlAllowlistRegex;
         }
 
