@@ -50,21 +50,40 @@ export interface InternalRecord {
 }
 
 export interface IDiagnosticsStorage {
-  // Setters
+  /**
+   * Set multiple tags in a single transaction (batch operation)
+   * Promise never rejects - errors are logged and operation continues gracefully
+   */
   setTags(tags: Record<string, string>): Promise<void>;
+  /**
+   * Increment multiple counters in a single transaction (batch operation)
+   * Uses read-modify-write pattern to accumulate with existing values
+   * Promise never rejects - errors are logged and operation continues gracefully
+   */
   incrementCounters(counters: Record<string, number>): Promise<void>;
+  /**
+   * Set multiple histogram stats in a single transaction (batch operation)
+   * Uses read-modify-write pattern to accumulate count/sum and update min/max with existing values
+   * Promise never rejects - errors are logged and operation continues gracefully
+   */
   setHistogramStats(
     histogramStats: Record<string, { count: number; min: number; max: number; sum: number }>,
   ): Promise<void>;
+  /**
+   * Add multiple event records in a single transaction (batch operation)
+   * Promise never rejects - errors are logged and operation continues gracefully
+   */
   addEventRecords(
     events: Array<{ event_name: string; time: number; event_properties: Record<string, any> }>,
   ): Promise<void>;
 
-  // Internal operations
   setLastFlushTimestamp(timestamp: number): Promise<void>;
+
   getLastFlushTimestamp(): Promise<number | undefined>;
 
-  // Atomic operations
+  /**
+   * Get all data except internal data from storage and clear it
+   */
   getAllAndClear(): Promise<{
     tags: TagRecord[];
     counters: CounterRecord[];
@@ -153,12 +172,6 @@ export class DiagnosticsStorage implements IDiagnosticsStorage {
     }
   }
 
-  // === BATCH TAG OPERATIONS ===
-
-  /**
-   * Set multiple tags in a single transaction (batch operation)
-   * Promise never rejects - errors are logged and operation continues gracefully
-   */
   async setTags(tags: Record<string, string>): Promise<void> {
     try {
       const db = await this.getDB();
@@ -197,13 +210,6 @@ export class DiagnosticsStorage implements IDiagnosticsStorage {
     }
   }
 
-  // === BATCH COUNTER OPERATIONS ===
-
-  /**
-   * Increment multiple counters in a single transaction (batch operation)
-   * Uses read-modify-write pattern to accumulate with existing values
-   * Promise never rejects - errors are logged and operation continues gracefully
-   */
   async incrementCounters(counters: Record<string, number>): Promise<void> {
     try {
       const db = await this.getDB();
@@ -277,13 +283,6 @@ export class DiagnosticsStorage implements IDiagnosticsStorage {
     }
   }
 
-  // === BATCH HISTOGRAM OPERATIONS ===
-
-  /**
-   * Set multiple histogram stats in a single transaction (batch operation)
-   * Uses read-modify-write pattern to accumulate count/sum and update min/max with existing values
-   * Promise never rejects - errors are logged and operation continues gracefully
-   */
   async setHistogramStats(
     histogramStats: Record<string, { count: number; min: number; max: number; sum: number }>,
   ): Promise<void> {
@@ -469,11 +468,6 @@ export class DiagnosticsStorage implements IDiagnosticsStorage {
     }
   }
 
-  // === FLUSH TIMESTAMP OPERATIONS ===
-
-  /**
-   * Get the last flush timestamp
-   */
   async getLastFlushTimestamp(): Promise<number | undefined> {
     try {
       const record = await this.getInternal(INTERNAL_KEYS.LAST_FLUSH_TIMESTAMP);
@@ -484,9 +478,6 @@ export class DiagnosticsStorage implements IDiagnosticsStorage {
     }
   }
 
-  /**
-   * Set the last flush timestamp
-   */
   async setLastFlushTimestamp(timestamp: number): Promise<void> {
     try {
       await this.setInternal(INTERNAL_KEYS.LAST_FLUSH_TIMESTAMP, timestamp.toString());
@@ -505,7 +496,6 @@ export class DiagnosticsStorage implements IDiagnosticsStorage {
     });
   }
 
-  // get all except internal table
   async getAllAndClear(): Promise<{
     tags: TagRecord[];
     counters: CounterRecord[];
