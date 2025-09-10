@@ -263,6 +263,7 @@
         import.meta.env.VITE_AMPLITUDE_API_KEY,
         import.meta.env.VITE_AMPLITUDE_USER_ID || 'amplitude-typescript test user',
         {
+          fetchRemoteConfig: false,
           autocapture: {
             elementInteractions: true,
             frustrationInteractions,

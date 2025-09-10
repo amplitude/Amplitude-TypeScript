@@ -4,10 +4,12 @@ import {
   BrowserConfig,
   RemoteConfig,
   NetworkTrackingOptions,
+  NetworkCaptureRule,
 } from '@amplitude/analytics-core';
 
 export interface AutocaptureOptionsRemoteConfig extends AutocaptureOptions {
   elementInteractions?: boolean | ElementInteractionsOptionsRemoteConfig;
+  networkTracking?: boolean | NetworkTrackingOptionsRemoteConfig;
 }
 export interface ElementInteractionsOptionsRemoteConfig extends ElementInteractionsOptions {
   /**
@@ -16,11 +18,18 @@ export interface ElementInteractionsOptionsRemoteConfig extends ElementInteracti
   pageUrlAllowlistRegex?: string[];
 }
 
+export interface NetworkCaptureRuleRemoteConfig extends NetworkCaptureRule {
+  /**
+   * Related to urls but holds regex strings which will be initialized and appended to urls
+   */
+  urlsRegex?: string[];
+}
+
 export interface NetworkTrackingOptionsRemoteConfig extends NetworkTrackingOptions {
   /**
    * Related to pageUrlAllowlist but holds regex strings which will be initialized and appended to pageUrlAllowlist
    */
-  urlsRegex?: string[];
+  captureRules?: NetworkCaptureRuleRemoteConfig[];
 }
 
 // Type alias for the remote config structure we expect (this is what comes from the filtered browserSDK config)
@@ -100,10 +109,10 @@ export function translateRemoteConfigToLocal(config?: Record<string, any>) {
   }
 }
 
-function mergeUrls(urlsExact: (string | RegExp)[], urlsRegex: string[], browserConfig: BrowserConfig) {
+function mergeUrls(urlsExact: (string | RegExp)[], urlsRegex: string[] | undefined, browserConfig: BrowserConfig) {
   // Convert string patterns to RegExp objects, warn on invalid patterns and skip them
   const regexList = [];
-  for (const pattern of urlsRegex) {
+  for (const pattern of urlsRegex ?? []) {
     try {
       regexList.push(new RegExp(pattern));
     } catch (regexError) {
@@ -170,11 +179,29 @@ export function updateBrowserConfigWithRemoteConfig(
 
           // combine exact allow list and regex allow list into just 'pageUrlAllowlist'
           const exactAllowList = transformedRcElementInteractions.pageUrlAllowlist ?? [];
-          const urlsRegex = typedRemoteConfig.autocapture.elementInteractions.pageUrlAllowlistRegex ?? [];
+          const urlsRegex = typedRemoteConfig.autocapture.elementInteractions.pageUrlAllowlistRegex;
           transformedRcElementInteractions.pageUrlAllowlist = mergeUrls(exactAllowList, urlsRegex, browserConfig);
 
           // clean up the regex allow list
           delete transformedRcElementInteractions.pageUrlAllowlistRegex;
+        }
+
+        // Handle Network Tracking config initialization
+        if (
+          typeof typedRemoteConfig.autocapture.networkTracking === 'object' &&
+          typedRemoteConfig.autocapture.networkTracking !== null &&
+          typedRemoteConfig.autocapture.networkTracking.captureRules?.length
+        ) {
+          transformedAutocaptureRemoteConfig.networkTracking = {
+            ...typedRemoteConfig.autocapture.networkTracking,
+          };
+          const transformedRcNetworkTracking = transformedAutocaptureRemoteConfig.networkTracking;
+          /* istanbul ignore next */
+          const captureRules = transformedRcNetworkTracking.captureRules ?? [];
+          for (const rule of captureRules) {
+            rule.urls = mergeUrls(rule.urls ?? [], rule.urlsRegex, browserConfig);
+            delete rule.urlsRegex;
+          }
         }
 
         if (typeof browserConfig.autocapture === 'boolean') {
