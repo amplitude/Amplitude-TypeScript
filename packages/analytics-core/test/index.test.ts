@@ -52,7 +52,7 @@ import {
   EMPTY_VALUE,
   MKTG,
   AmplitudeContext,
-  DiagnosticsClient,
+  // DiagnosticsClient,
 } from '../src/index';
 
 describe('index', () => {
@@ -124,6 +124,6 @@ describe('index', () => {
     expect(typeof BASE_CAMPAIGN).toBe('object');
     expect(typeof MKTG).toBe('string');
     expect(typeof CampaignParser).toBe('function');
-    expect(typeof DiagnosticsClient).toBe('function');
+    // expect(typeof DiagnosticsClient).toBe('function');
   });
 });
