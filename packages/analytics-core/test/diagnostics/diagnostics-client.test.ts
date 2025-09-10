@@ -361,7 +361,7 @@ describe('DiagnosticsClient', () => {
     let client: DiagnosticsClient;
     let mockStorage: {
       setTags: jest.MockedFunction<(tags: Record<string, string>) => Promise<void>>;
-      setCounters: jest.MockedFunction<(counters: Record<string, number>) => Promise<void>>;
+      incrementCounters: jest.MockedFunction<(counters: Record<string, number>) => Promise<void>>;
       setHistogramStats: jest.MockedFunction<(histograms: Record<string, any>) => Promise<void>>;
       addEventRecords: jest.MockedFunction<(events: any[]) => Promise<void>>;
     };
@@ -376,7 +376,7 @@ describe('DiagnosticsClient', () => {
       client = new DiagnosticsClient(apiKey, mockLogger);
       mockStorage = {
         setTags: jest.fn().mockResolvedValue(undefined),
-        setCounters: jest.fn().mockResolvedValue(undefined),
+        incrementCounters: jest.fn().mockResolvedValue(undefined),
         setHistogramStats: jest.fn().mockResolvedValue(undefined),
         addEventRecords: jest.fn().mockResolvedValue(undefined),
       };
@@ -399,7 +399,7 @@ describe('DiagnosticsClient', () => {
 
       // Verify storage methods were called with correct data
       expect(mockStorage.setTags).toHaveBeenCalledWith(TEST_TAGS);
-      expect(mockStorage.setCounters).toHaveBeenCalledWith(TEST_COUNTERS);
+      expect(mockStorage.incrementCounters).toHaveBeenCalledWith(TEST_COUNTERS);
       expect(mockStorage.setHistogramStats).toHaveBeenCalledWith(TEST_HISTOGRAMS);
       expect(mockStorage.addEventRecords).toHaveBeenCalledWith(TEST_EVENTS);
 

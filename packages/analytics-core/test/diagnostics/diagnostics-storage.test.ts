@@ -51,5 +51,9 @@ describe('DiagnosticsStorage', () => {
     test('should set tags', async () => {
       await expect(storage.setTags({ test: 'test' })).resolves.toBeUndefined();
     });
+
+    test('should early return if tags is empty', async () => {
+      await expect(storage.setTags({})).resolves.toBeUndefined();
+    });
   });
 });
