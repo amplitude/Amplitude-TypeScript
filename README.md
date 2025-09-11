@@ -49,6 +49,11 @@ Run `yarn dev` to run the test server. It will open up to the home page automati
 
 For more details visit the [Test Server README.md](/test-server/README.md)
 
+## Troubleshooting
+
+If you ever get cryptic SQL errors when running an Nx command (yarn test, yarn build, etc...) then
+run `npx nx reset` and try again
+
 ## Documentation
 
 See our [Typescript SDK](https://amplitude.github.io/Amplitude-TypeScript/) Reference for a list and description of all available SDK methods.

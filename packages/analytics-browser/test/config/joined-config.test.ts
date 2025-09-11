@@ -1,6 +1,11 @@
 import { translateRemoteConfigToLocal, updateBrowserConfigWithRemoteConfig } from '../../src/config/joined-config';
 import { createConfigurationMock } from '../helpers/mock';
-import { type BrowserConfig, type ElementInteractionsOptions } from '@amplitude/analytics-core';
+import {
+  AutocaptureOptions,
+  NetworkTrackingOptions,
+  type BrowserConfig,
+  type ElementInteractionsOptions,
+} from '@amplitude/analytics-core';
 
 function expectIsAutocaptureObjectWithElementInteractions(config: BrowserConfig): asserts config is BrowserConfig & {
   autocapture: BrowserConfig['autocapture'] & { elementInteractions: ElementInteractionsOptions };
@@ -320,6 +325,91 @@ describe('joined-config', () => {
 
       // Assert: Verify that the pageUrlAllowlistRegex property has been removed (even if it was undefined)
       expect(elementInteractions).not.toHaveProperty('pageUrlAllowlistRegex');
+    });
+
+    describe('networkTracking', () => {
+      test('should merge urls and urlsRegex', () => {
+        localConfig = createConfigurationMock(createConfigurationMock({}));
+
+        const remoteConfig = {
+          autocapture: {
+            networkTracking: {
+              captureRules: [
+                {
+                  urls: ['https://example.com/path', /path\/to/],
+                  urlsRegex: ['^https://.*\\.example\\.com$', '.*\\.amplitude\\.com$'],
+                },
+              ],
+            },
+          },
+        };
+
+        updateBrowserConfigWithRemoteConfig(remoteConfig, localConfig);
+
+        const autocapture = localConfig.autocapture as AutocaptureOptions;
+        const networkTracking = autocapture.networkTracking as NetworkTrackingOptions;
+        expect(networkTracking?.captureRules?.[0].urls).toEqual([
+          'https://example.com/path',
+          /path\/to/,
+          /^https:\/\/.*\.example\.com$/,
+          /.*\.amplitude\.com$/,
+        ]);
+      });
+
+      test('should merge urls if urlsRegex is undefined', () => {
+        localConfig = createConfigurationMock(createConfigurationMock({}));
+
+        const remoteConfig = {
+          autocapture: {
+            networkTracking: {
+              captureRules: [{ urls: ['https://example.com/path', /path\/to/] }],
+            },
+          },
+        };
+
+        updateBrowserConfigWithRemoteConfig(remoteConfig, localConfig);
+
+        const autocapture = localConfig.autocapture as AutocaptureOptions;
+        const networkTracking = autocapture.networkTracking as NetworkTrackingOptions;
+        expect(networkTracking?.captureRules?.[0].urls).toEqual(['https://example.com/path', /path\/to/]);
+      });
+
+      test('should merge urls if urls is undefined and urlsRegex is provided', () => {
+        localConfig = createConfigurationMock(createConfigurationMock({}));
+
+        const remoteConfig = {
+          autocapture: {
+            networkTracking: {
+              captureRules: [{ urlsRegex: ['^https://.*\\.example\\.com$', '.*\\.amplitude\\.com$'] }],
+            },
+          },
+        };
+
+        updateBrowserConfigWithRemoteConfig(remoteConfig, localConfig);
+
+        const autocapture = localConfig.autocapture as AutocaptureOptions;
+        const networkTracking = autocapture.networkTracking as NetworkTrackingOptions;
+        expect(networkTracking?.captureRules?.[0].urls).toEqual([
+          /^https:\/\/.*\.example\.com$/,
+          /.*\.amplitude\.com$/,
+        ]);
+      });
+
+      test('should not have urls if captureRules is undefined', () => {
+        localConfig = createConfigurationMock(createConfigurationMock({}));
+
+        const remoteConfig = {
+          autocapture: {
+            networkTracking: {},
+          },
+        };
+
+        updateBrowserConfigWithRemoteConfig(remoteConfig, localConfig);
+
+        const autocapture = localConfig.autocapture as AutocaptureOptions;
+        const networkTracking = autocapture.networkTracking as NetworkTrackingOptions;
+        expect(networkTracking?.captureRules).toBeUndefined();
+      });
     });
   });
 
