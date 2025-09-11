@@ -187,6 +187,34 @@ describe('trackDeadClick', () => {
     }, 100);
   });
 
+  it('should not track when target is _blank', (done) => {
+    const subscription = trackDeadClick({
+      amplitude: mockAmplitude,
+      allObservables,
+      getEventProperties,
+      shouldTrackDeadClick,
+    });
+
+    const mockElement = document.createElement('a');
+    mockElement.setAttribute('target', '_blank');
+
+    clickObservable.next({
+      event: {
+        target: mockElement,
+      },
+      timestamp: Date.now(),
+      closestTrackedAncestor: mockElement,
+      targetElementProperties: { id: 'test-element' },
+    });
+
+    // Wait for the dead click timeout
+    setTimeout(() => {
+      expect(mockAmplitude.track).not.toHaveBeenCalled();
+      subscription.unsubscribe();
+      done();
+    }, 100);
+  });
+
   it('should throttle multiple dead clicks', (done) => {
     const subscription = trackDeadClick({
       amplitude: mockAmplitude,

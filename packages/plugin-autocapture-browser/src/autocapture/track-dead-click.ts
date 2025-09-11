@@ -35,6 +35,10 @@ export function trackDeadClick({
       // Only track change on elements that should be tracked
       return shouldTrackDeadClick('click', clickEvent.closestTrackedAncestor);
     }),
+    filter((clickEvent) => {
+      const target = clickEvent.event.target as Element;
+      return target.closest('a[target="_blank"]') === null;
+    }),
   );
 
   const changeObservables: Array<
