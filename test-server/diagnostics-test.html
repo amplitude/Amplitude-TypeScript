@@ -239,7 +239,7 @@
                 logger = new UILogger();
                 logger.enable(LogLevel.Debug); // Enable debug level logging
                 
-                diagnosticsClient = new DiagnosticsClient('5b9a9510e261f9ead90865bbc5a7ad1d', logger);
+                diagnosticsClient = new DiagnosticsClient('YOUR_API_KEY', logger);
                 
                 // Update server URL display
                 document.getElementById('server-url').textContent = diagnosticsClient.serverUrl;
