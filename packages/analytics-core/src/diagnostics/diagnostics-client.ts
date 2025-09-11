@@ -137,7 +137,8 @@ export interface IDiagnosticsClient {
    * });
    * ```
    */
-  recordEvent(name: string, properties: EventProperties): void;
+  // TODO(AMP-139569)
+  // recordEvent(name: string, properties: EventProperties): void;
 
   // Flush storage
   _flush(): void;
@@ -293,6 +294,17 @@ export class DiagnosticsClient implements IDiagnosticsClient {
     //   time: record.time,
     //   event_properties: record.event_properties,
     // }));
+
+    // Early return if all data collections are empty
+    if (
+      Object.keys(tags).length === 0 &&
+      Object.keys(counters).length === 0 &&
+      Object.keys(histogram).length === 0
+      // TODO(AMP-139569)
+      // && Object.keys(events).length === 0
+    ) {
+      return;
+    }
 
     // Create flush payload
     const payload: FlushPayload = {

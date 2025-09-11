@@ -485,6 +485,33 @@ describe('DiagnosticsClient', () => {
         // events: EXPECTED_EVENTS,
       });
     });
+
+    test('should early return if all data collections are empty', async () => {
+      // Mock storage to return empty data
+      const emptyMockStorage = {
+        getAllAndClear: jest.fn().mockResolvedValue({
+          tags: [],
+          counters: [],
+          histogramStats: [],
+          events: [],
+        }),
+        setLastFlushTimestamp: jest.fn().mockResolvedValue(undefined),
+      };
+
+      // Replace the storage with empty mock
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      client.storage = emptyMockStorage as any;
+
+      // Call _flush
+      await client._flush();
+
+      // Verify that fetch was NOT called since all collections are empty
+      expect(fetchSpy).not.toHaveBeenCalled();
+
+      // Verify that storage methods were still called
+      expect(emptyMockStorage.getAllAndClear).toHaveBeenCalled();
+      expect(emptyMockStorage.setLastFlushTimestamp).toHaveBeenCalled();
+    });
   });
 
   describe('fetch', () => {
