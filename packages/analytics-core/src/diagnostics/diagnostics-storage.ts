@@ -1,4 +1,4 @@
-/// <reference lib="dom" />
+import { getGlobalScope } from '../global-scope';
 import { ILogger } from '../logger';
 
 // Database configuration
@@ -115,7 +115,8 @@ export class DiagnosticsStorage implements IDiagnosticsStorage {
 
   openDB(): Promise<IDBDatabase> {
     return new Promise((resolve, reject) => {
-      if (typeof indexedDB === 'undefined') {
+      /* istanbul ignore next */
+      if (getGlobalScope()?.indexedDB === undefined) {
         reject(new Error('IndexedDB is not supported'));
         return;
       }

@@ -1,4 +1,3 @@
-/// <reference lib="dom" />
 import { ILogger } from '../logger';
 import { DiagnosticsStorage, IDiagnosticsStorage } from './diagnostics-storage';
 import { ServerZoneType } from '../types/server-zone';
