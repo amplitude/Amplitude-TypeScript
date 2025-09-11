@@ -73,7 +73,8 @@ interface FlushPayload {
   readonly tags: DiagnosticsTags;
   readonly histogram: DiagnosticsHistograms;
   readonly counters: DiagnosticsCounters;
-  readonly events: readonly DiagnosticsEvent[];
+  // TODO(AMP-139569)
+  // readonly events: readonly DiagnosticsEvent[];
 }
 
 /**
@@ -257,7 +258,8 @@ export class DiagnosticsClient implements IDiagnosticsClient {
       tags: tagRecords,
       counters: counterRecords,
       histogramStats: histogramStatsRecords,
-      events: eventRecords,
+      // TODO(AMP-139569)
+      // events: eventRecords,
     } = await this.storage.getAllAndClear();
 
     // Update the last flush timestamp
@@ -284,18 +286,21 @@ export class DiagnosticsClient implements IDiagnosticsClient {
       };
     });
 
-    const events: DiagnosticsEvent[] = eventRecords.map((record) => ({
-      event_name: record.event_name,
-      time: record.time,
-      event_properties: record.event_properties,
-    }));
+    // TODO(AMP-139569)
+    // const events: DiagnosticsEvent[] = eventRecords.map((record) => ({
+    // const events: DiagnosticsEvent[] = [];
+    //   event_name: record.event_name,
+    //   time: record.time,
+    //   event_properties: record.event_properties,
+    // }));
 
     // Create flush payload
     const payload: FlushPayload = {
       tags,
       histogram,
       counters,
-      events,
+      // TODO(AMP-139569)
+      // events,
     };
 
     // Send payload to diagnostics server

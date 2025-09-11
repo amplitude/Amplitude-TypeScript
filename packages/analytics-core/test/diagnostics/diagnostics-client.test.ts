@@ -445,7 +445,7 @@ describe('DiagnosticsClient', () => {
     const EXPECTED_TAGS = { library: 'amplitude-typescript/2.0.0', platform: 'web' };
     const EXPECTED_COUNTERS = { 'analytics.error': 5, 'network.retry': 3 };
     const EXPECTED_HISTOGRAMS = { 'sr.time': { count: 2, min: 50, max: 100, avg: 75 } };
-    const EXPECTED_EVENTS = [{ event_name: 'error', time: 123456789, event_properties: { type: 'network' } }];
+    // const EXPECTED_EVENTS = [{ event_name: 'error', time: 123456789, event_properties: { type: 'network' } }];
 
     beforeEach(() => {
       client = new DiagnosticsClient(apiKey, mockLogger);
@@ -482,7 +482,7 @@ describe('DiagnosticsClient', () => {
         tags: EXPECTED_TAGS,
         histogram: EXPECTED_HISTOGRAMS,
         counters: EXPECTED_COUNTERS,
-        events: EXPECTED_EVENTS,
+        // events: EXPECTED_EVENTS,
       });
     });
   });
