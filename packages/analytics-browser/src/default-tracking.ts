@@ -112,10 +112,9 @@ export const isWebVitalsEnabled = (autocapture: AutocaptureOptions | boolean | u
 };
 
 export const isFrustrationInteractionsEnabled = (autocapture: AutocaptureOptions | boolean | undefined): boolean => {
-  // TODO restore this if statement when frustrationInteractions is GA
-  // if (typeof autocapture === 'boolean') {
-  //   return autocapture;
-  // }
+  if (typeof autocapture === 'boolean') {
+    return autocapture;
+  }
 
   if (
     typeof autocapture === 'object' &&

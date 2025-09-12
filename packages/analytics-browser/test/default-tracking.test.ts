@@ -15,11 +15,11 @@ import {
 } from '../src/default-tracking';
 
 describe('isFrustrationInteractionsEnabled', () => {
-  test('should return false with true parameter while frustrationInteractions is Beta', () => {
-    expect(isFrustrationInteractionsEnabled(true)).toBe(false);
+  test('should return true when autocapture=true', () => {
+    expect(isFrustrationInteractionsEnabled(true)).toBe(true);
   });
 
-  test('should return true with undefined parameter', () => {
+  test('should return false with undefined parameter', () => {
     expect(isFrustrationInteractionsEnabled(undefined)).toBe(false);
   });
 
