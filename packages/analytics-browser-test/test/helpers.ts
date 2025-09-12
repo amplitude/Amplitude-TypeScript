@@ -97,8 +97,18 @@ export const generateSessionEndEvent = (event_id: number) => {
   return generateEvent(event_id, 'session_end');
 };
 
-const generatePageViewEventProps = (pageCounter: number, urlString: string, referrerString?: string) => {
+const generatePageViewEventProps = (
+  pageCounter: number,
+  urlString: string,
+  referrerString?: string,
+  withPageURLEnrichmentProperties?: {
+    previousPageUrl?: string;
+  },
+) => {
   const referrer = getReferrerObject(referrerString);
+  const previousUrl = withPageURLEnrichmentProperties?.previousPageUrl
+    ? new URL(withPageURLEnrichmentProperties.previousPageUrl)
+    : { href: '' };
 
   const url = new URL(urlString);
   const campaign = parseQueryString(urlString);
@@ -110,14 +120,30 @@ const generatePageViewEventProps = (pageCounter: number, urlString: string, refe
     '[Amplitude] Page Path': url.pathname,
     '[Amplitude] Page Title': '',
     '[Amplitude] Page URL': url.href.split('?')[0],
+    ...(withPageURLEnrichmentProperties
+      ? addPageUrlEnrichmentPreviousPageProperties(url.href, previousUrl.href || '')
+      : {}),
     ...campaign,
     ...referrer,
   };
 };
 
-export const generatePageViewEvent = (event_id: number, pageCounter: number, url: string, referrer?: string) => {
+export const generatePageViewEvent = (
+  event_id: number,
+  pageCounter: number,
+  url: string,
+  referrer?: string,
+  withPageURLEnrichmentProperties?: {
+    previousPageUrl?: string;
+  },
+) => {
   const generatePageViewEvent = generateEvent(event_id, '[Amplitude] Page Viewed');
-  generatePageViewEvent.event_properties = generatePageViewEventProps(pageCounter, url, referrer);
+  generatePageViewEvent.event_properties = generatePageViewEventProps(
+    pageCounter,
+    url,
+    referrer,
+    withPageURLEnrichmentProperties,
+  );
   return generatePageViewEvent;
 };
 
@@ -137,4 +163,39 @@ export const navigateTo = (urlString: string, referrer?: string) => {
     },
     writable: true,
   });
+};
+
+export const addPageUrlEnrichmentProperties = (event: BaseEvent, urlString: string, previousPageUrl?: string) => {
+  const url = new URL(urlString);
+  const previousUrl = previousPageUrl ? new URL(previousPageUrl) : { href: '' };
+
+  event.event_properties = {
+    ...event.event_properties,
+    '[Amplitude] Page Domain': url.hostname,
+    '[Amplitude] Page Location': url.href,
+    '[Amplitude] Page Path': url.pathname,
+    '[Amplitude] Page Title': '',
+    '[Amplitude] Page URL': url.href.split('?')[0],
+    ...addPageUrlEnrichmentPreviousPageProperties(url.href, previousUrl.href),
+  };
+  return event;
+};
+
+export const addPageUrlEnrichmentPreviousPageProperties = (current: string, previous: string) => {
+  // note that the five duplicate properties with the page viewed are skipped here
+  return {
+    '[Amplitude] Previous Page Location': previous,
+    '[Amplitude] Previous Page Type': getPreviousPageType(current, previous),
+  };
+};
+
+export const getPreviousPageType = (current: string, previous: string) => {
+  if (!previous) {
+    return 'direct';
+  }
+
+  const currentUrl = new URL(current);
+  const previousUrl = new URL(previous);
+
+  return previousUrl.hostname === currentUrl.hostname ? 'internal' : 'external';
 };
