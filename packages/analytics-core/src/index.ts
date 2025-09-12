@@ -28,6 +28,8 @@ export { getStorageKey } from './storage/helpers';
 
 export { BrowserStorage } from './storage/browser-storage';
 
+// export { DiagnosticsClient, IDiagnosticsClient } from './diagnostics/diagnostics-client';
+
 export { BaseTransport } from './transports/base';
 export { FetchTransport } from './transports/fetch';
 
