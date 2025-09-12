@@ -178,6 +178,12 @@ export interface AutocaptureOptions {
    * @experimental This feature is experimental and may not be stable
    */
   webVitals?: boolean;
+  /**
+   * Enables/disables page url enrichment.
+   * @defaultValue `true`
+   * @experimental This feature is experimental and may not be stable
+   */
+  pageUrlEnrichment?: boolean;
 }
 
 export interface TrackingOptions {
