@@ -236,3 +236,21 @@ export const getAttributionTrackingConfig = (config: BrowserOptions): Attributio
 
   return {};
 };
+
+/**
+ * Returns false if
+ * 1. autocapture === false
+ * 2. if autocapture.pageUrlEnrichment === false
+ * otherwise returns true
+ */
+export const isPageUrlEnrichmentEnabled = (autocapture: AutocaptureOptions | boolean | undefined) => {
+  if (typeof autocapture === 'boolean') {
+    return autocapture;
+  }
+
+  if (typeof autocapture === 'object' && autocapture.pageUrlEnrichment === false) {
+    return false;
+  }
+
+  return true;
+};

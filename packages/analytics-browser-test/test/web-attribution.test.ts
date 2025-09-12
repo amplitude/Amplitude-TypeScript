@@ -14,6 +14,7 @@ import {
   generateSessionEndEvent,
   generatePageViewEvent,
   navigateTo,
+  addPageUrlEnrichmentProperties,
 } from './helpers';
 
 describe('Web attribution', () => {
@@ -34,6 +35,11 @@ describe('Web attribution', () => {
   beforeEach(() => {
     client = amplitude.createInstance();
     apiKey = UUID();
+  });
+
+  afterEach(() => {
+    // clear url info in session storage from page url enrichment plugin
+    window.sessionStorage.setItem('AMP_URL_INFO', '{}');
   });
 
   describe('Page load', () => {
@@ -75,7 +81,7 @@ describe('Web attribution', () => {
               events: [
                 generateAttributionEvent(++eventId, url, referrer),
                 generateSessionStartEvent(++eventId),
-                generatePageViewEvent(++eventId, 1, url, referrer),
+                generatePageViewEvent(++eventId, 1, url, referrer, { previousPageUrl: referrer }),
               ],
               options: {
                 min_id_length: undefined,
@@ -114,7 +120,7 @@ describe('Web attribution', () => {
               events: [
                 generateAttributionEvent(++eventId, url),
                 generateSessionStartEvent(++eventId),
-                generatePageViewEvent(++eventId, 1, url),
+                generatePageViewEvent(++eventId, 1, url, undefined, { previousPageUrl: '' }),
               ],
               options: {
                 min_id_length: undefined,
@@ -157,7 +163,10 @@ describe('Web attribution', () => {
             expect(payload).toEqual({
               api_key: apiKey,
               client_upload_time: event_upload_time,
-              events: [generateSessionStartEvent(++eventId), generatePageViewEvent(++eventId, 1, url, referrer)],
+              events: [
+                generateSessionStartEvent(++eventId),
+                generatePageViewEvent(++eventId, 1, url, referrer, { previousPageUrl: referrer }),
+              ],
               options: {
                 min_id_length: undefined,
               },
@@ -226,8 +235,8 @@ describe('Web attribution', () => {
               events: [
                 generateAttributionEvent(++eventId, url),
                 generateSessionStartEvent(++eventId),
-                generatePageViewEvent(++eventId, 1, url),
-                generatePageViewEvent(++eventId, 2, directUrl),
+                generatePageViewEvent(++eventId, 1, url, undefined, { previousPageUrl: '' }),
+                generatePageViewEvent(++eventId, 2, directUrl, undefined, { previousPageUrl: '' }),
               ],
               options: {
                 min_id_length: undefined,
@@ -286,9 +295,9 @@ describe('Web attribution', () => {
               events: [
                 generateAttributionEvent(++eventId, url),
                 generateSessionStartEvent(++eventId),
-                generatePageViewEvent(++eventId, 1, url),
+                generatePageViewEvent(++eventId, 1, url, undefined, { previousPageUrl: '' }),
                 generateAttributionEvent(++eventId, newCampaignURL),
-                generatePageViewEvent(++eventId, 2, newCampaignURL),
+                generatePageViewEvent(++eventId, 2, newCampaignURL, undefined, { previousPageUrl: '' }),
               ],
               options: {
                 min_id_length: undefined,
@@ -358,11 +367,11 @@ describe('Web attribution', () => {
               events: [
                 generateAttributionEvent(++eventId, url),
                 generateSessionStartEvent(++eventId),
-                generatePageViewEvent(++eventId, 1, url),
+                generatePageViewEvent(++eventId, 1, url, undefined, { previousPageUrl: '' }),
                 generateSessionEndEvent(++eventId),
                 generateAttributionEvent(++eventId, directUrl),
                 generateSessionStartEvent(++eventId),
-                generatePageViewEvent(++eventId, 1, directUrl),
+                generatePageViewEvent(++eventId, 1, directUrl, undefined, { previousPageUrl: '' }),
               ],
               options: {
                 min_id_length: undefined,
@@ -423,10 +432,13 @@ describe('Web attribution', () => {
               events: [
                 generateAttributionEvent(++eventId, url),
                 generateSessionStartEvent(++eventId),
-                generatePageViewEvent(++eventId, 1, url),
+                generatePageViewEvent(++eventId, 1, url, undefined, { previousPageUrl: '' }),
                 generateSessionEndEvent(++eventId),
                 generateSessionStartEvent(++eventId),
-                generateEvent(++eventId, 'test event after session timeout'),
+                addPageUrlEnrichmentProperties(
+                  generateEvent(++eventId, 'test event after session timeout'),
+                  newCampaignURL,
+                ),
               ],
               options: {
                 min_id_length: undefined,
@@ -480,10 +492,14 @@ describe('Web attribution', () => {
               client_upload_time: event_upload_time,
               events: [
                 generateSessionStartEvent(++eventId),
-                generatePageViewEvent(++eventId, 1, url, referrer),
+                generatePageViewEvent(++eventId, 1, url, referrer, { previousPageUrl: referrer }),
                 generateSessionEndEvent(++eventId),
                 generateSessionStartEvent(++eventId),
-                generateEvent(++eventId, 'test event after session timeout'),
+                addPageUrlEnrichmentProperties(
+                  generateEvent(++eventId, 'test event after session timeout'),
+                  newCampaignURL,
+                  referrer,
+                ),
               ],
               options: {
                 min_id_length: undefined,
@@ -540,8 +556,11 @@ describe('Web attribution', () => {
               events: [
                 generateAttributionEvent(++eventId, url),
                 generateSessionStartEvent(++eventId),
-                generatePageViewEvent(++eventId, 1, url),
-                generateEvent(++eventId, 'test event in the same session'),
+                generatePageViewEvent(++eventId, 1, url, undefined, { previousPageUrl: '' }),
+                addPageUrlEnrichmentProperties(
+                  generateEvent(++eventId, 'test event in the same session'),
+                  newCampaignURL,
+                ),
               ],
               options: {
                 min_id_length: undefined,
@@ -592,8 +611,8 @@ describe('Web attribution', () => {
               events: [
                 generateAttributionEvent(++eventId, url),
                 generateSessionStartEvent(++eventId),
-                generatePageViewEvent(++eventId, 1, url),
-                generateEvent(++eventId, 'test event in same session'),
+                generatePageViewEvent(++eventId, 1, url, undefined, { previousPageUrl: '' }),
+                addPageUrlEnrichmentProperties(generateEvent(++eventId, 'test event in same session'), directUrl),
               ],
               options: {
                 min_id_length: undefined,
@@ -606,8 +625,10 @@ describe('Web attribution', () => {
       });
 
       test('should not drop campaign without reinitializing the SDK after unsetting the referrer', async () => {
-        const url = 'https://www.example.com?utm_source=test_utm_source';
         const initReferrer = 'https://www.test.com/';
+
+        const url = 'https://www.example.com?utm_source=test_utm_source';
+
         navigateTo(url, initReferrer);
         expect(document.referrer).toEqual(initReferrer);
 
@@ -644,8 +665,8 @@ describe('Web attribution', () => {
               events: [
                 generateAttributionEvent(++eventId, url, initReferrer),
                 generateSessionStartEvent(++eventId),
-                generatePageViewEvent(++eventId, 1, url, initReferrer),
-                generatePageViewEvent(++eventId, 2, newURL),
+                generatePageViewEvent(++eventId, 1, url, initReferrer, { previousPageUrl: '' }),
+                generatePageViewEvent(++eventId, 2, newURL, undefined, { previousPageUrl: '' }),
               ],
               options: {
                 min_id_length: undefined,

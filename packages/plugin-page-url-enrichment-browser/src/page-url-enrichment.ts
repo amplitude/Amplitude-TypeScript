@@ -14,13 +14,20 @@ import {
 
 export const CURRENT_PAGE_STORAGE_KEY = 'AMP_CURRENT_PAGE';
 export const PREVIOUS_PAGE_STORAGE_KEY = 'AMP_PREVIOUS_PAGE';
-
 export const URL_INFO_STORAGE_KEY = 'AMP_URL_INFO';
 
 export type URLInfo = {
   [CURRENT_PAGE_STORAGE_KEY]?: string;
   [PREVIOUS_PAGE_STORAGE_KEY]?: string;
 };
+
+export const EXCLUDED_DEFAULT_EVENT_TYPES = new Set([
+  '$identify',
+  '$groupidentify',
+  'revenue_amount',
+  'session_start',
+  'session_end',
+]);
 
 enum PreviousPageType {
   Direct = 'direct', // for no prev page or referrer
@@ -153,6 +160,11 @@ export const pageUrlEnrichmentPlugin = (): EnrichmentPlugin => {
       }
     },
     execute: async (event: Event) => {
+      // do not add additional properties if the event is one of the default event types ot be excluded
+      if (EXCLUDED_DEFAULT_EVENT_TYPES.has(event.event_type)) {
+        return event;
+      }
+
       const locationHREF = getDecodeURI((typeof location !== 'undefined' && location.href) || '');
 
       let previousPage = '';
