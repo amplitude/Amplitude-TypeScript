@@ -163,7 +163,6 @@ export interface AutocaptureOptions {
   elementInteractions?: boolean | ElementInteractionsOptions;
   /**
    * Enables/disables frustration interactions tracking.
-   * @experimental This feature is experimental and may not be stable
    * @defaultValue `false`
    */
   frustrationInteractions?: boolean | FrustrationInteractionsOptions;
