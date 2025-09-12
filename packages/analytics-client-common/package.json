@@ -1,6 +1,6 @@
 {
   "name": "@amplitude/analytics-client-common",
-  "version": "2.3.40",
+  "version": "2.3.41",
   "description": "",
   "author": "Amplitude Inc",
   "homepage": "https://github.com/amplitude/Amplitude-TypeScript",
@@ -37,7 +37,7 @@
   },
   "dependencies": {
     "@amplitude/analytics-connector": "^1.4.8",
-    "@amplitude/analytics-core": "^2.23.0",
+    "@amplitude/analytics-core": "^2.24.0",
     "@amplitude/analytics-types": "^2.10.0",
     "tslib": "^2.4.1"
   },

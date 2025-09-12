@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.24.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.23.7...@amplitude/analytics-browser@2.24.0) (2025-09-12)
+
+
+### Features
+
+* **analytics-browser:** add urlsRegex to remote capture rule for network tracking ([#1284](https://github.com/amplitude/Amplitude-TypeScript/issues/1284)) ([04392c9](https://github.com/amplitude/Amplitude-TypeScript/commit/04392c96844f5328e8d04d7c3840ad273ce38a43))
+* **analytics-browser:** make frustrationInteractions GA ([#1286](https://github.com/amplitude/Amplitude-TypeScript/issues/1286)) ([40d62be](https://github.com/amplitude/Amplitude-TypeScript/commit/40d62be5e1713a3756464f83bd15d25fe1294956))
+
+
+
+
+
 ## [2.23.7](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.23.6...@amplitude/analytics-browser@2.23.7) (2025-09-09)
 
 **Note:** Version bump only for package @amplitude/analytics-browser

@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.24.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.23.0...@amplitude/analytics-core@2.24.0) (2025-09-12)
+
+
+### Features
+
+* **analytics-browser:** make frustrationInteractions GA ([#1286](https://github.com/amplitude/Amplitude-TypeScript/issues/1286)) ([40d62be](https://github.com/amplitude/Amplitude-TypeScript/commit/40d62be5e1713a3756464f83bd15d25fe1294956))
+
+
+
+
+
 # [2.23.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.22.1...@amplitude/analytics-core@2.23.0) (2025-09-05)
 
 

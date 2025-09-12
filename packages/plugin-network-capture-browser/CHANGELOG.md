@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.6.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-network-capture-browser@1.5.5...@amplitude/plugin-network-capture-browser@1.6.0) (2025-09-12)
+
+
+### Features
+
+* **analytics-browser:** add urlsRegex to remote capture rule for network tracking ([#1284](https://github.com/amplitude/Amplitude-TypeScript/issues/1284)) ([04392c9](https://github.com/amplitude/Amplitude-TypeScript/commit/04392c96844f5328e8d04d7c3840ad273ce38a43))
+
+
+
+
+
 ## [1.5.5](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-network-capture-browser@1.5.4...@amplitude/plugin-network-capture-browser@1.5.5) (2025-09-05)
 
 **Note:** Version bump only for package @amplitude/plugin-network-capture-browser

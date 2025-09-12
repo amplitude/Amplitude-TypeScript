@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.12.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.12.1...@amplitude/plugin-autocapture-browser@1.12.2) (2025-09-12)
+
+
+### Bug Fixes
+
+* **plugin-autocapture-browser:** no dead click on target=_blank ([#1285](https://github.com/amplitude/Amplitude-TypeScript/issues/1285)) ([f2758a1](https://github.com/amplitude/Amplitude-TypeScript/commit/f2758a173e53a09781ae7ad4687e8a8f9e16f243))
+
+
+
+
+
 ## [1.12.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.12.0...@amplitude/plugin-autocapture-browser@1.12.1) (2025-09-09)
 
 
