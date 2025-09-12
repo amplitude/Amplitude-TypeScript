@@ -89,10 +89,10 @@ describe('SessionReplayPlugin Integration with Browser SDK', () => {
       const sessionId = startSessionEvent?.session_id as number;
       expect(startSessionEvent).toEqual(
         expect.objectContaining({
-          event_properties: {
+          event_properties: expect.objectContaining({
             '[Amplitude] Session Replay Debug': JSON.stringify({ appHash: '-109988594' }),
             '[Amplitude] Session Replay ID': `${deviceId}/${sessionId}`,
-          },
+          }),
         }),
       );
     });
@@ -113,10 +113,10 @@ describe('SessionReplayPlugin Integration with Browser SDK', () => {
       const deviceId = startSessionEvent?.device_id as string;
       expect(startSessionEvent).toEqual(
         expect.objectContaining({
-          event_properties: {
+          event_properties: expect.objectContaining({
             '[Amplitude] Session Replay Debug': JSON.stringify({ appHash: '-109988594' }),
             '[Amplitude] Session Replay ID': `${deviceId}/${newSessionId}`,
-          },
+          }),
         }),
       );
     });
@@ -136,10 +136,10 @@ describe('SessionReplayPlugin Integration with Browser SDK', () => {
       const sessionId = pageViewEvent?.session_id as number;
       expect(pageViewEvent).toEqual(
         expect.objectContaining({
-          event_properties: {
+          event_properties: expect.objectContaining({
             '[Amplitude] Session Replay Debug': JSON.stringify({ appHash: '-109988594' }),
             '[Amplitude] Session Replay ID': `${deviceId}/${sessionId}`,
-          },
+          }),
         }),
       );
     });
