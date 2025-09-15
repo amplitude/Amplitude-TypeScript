@@ -117,10 +117,7 @@ export function translateRemoteConfigToLocal(config?: Record<string, any>) {
         if (!captureSafeHeaders && !allowlist) {
           continue;
         }
-        rule[header] = [
-          ...(captureSafeHeaders ? SAFE_HEADERS : []),
-          ...(allowlist ?? []),
-        ];
+        rule[header] = [...(captureSafeHeaders ? SAFE_HEADERS : []), ...(allowlist ?? [])];
       }
     }
   }
