@@ -114,12 +114,13 @@ export function translateRemoteConfigToLocal(config?: Record<string, any>) {
     for (const rule of config.autocapture.networkTracking.captureRules) {
       for (const header of ['responseHeaders', 'requestHeaders']) {
         const { captureSafeHeaders, allowlist } = rule[header] ?? {};
-        if (captureSafeHeaders) {
-          rule[header] = [...SAFE_HEADERS];
+        if (!captureSafeHeaders && !allowlist) {
+          continue;
         }
-        if (allowlist) {
-          rule[header] = [...(rule[header] ?? []), ...allowlist];
-        }
+        rule[header] = [
+          ...(captureSafeHeaders ? SAFE_HEADERS : []),
+          ...(allowlist ?? []),
+        ];
       }
     }
   }
