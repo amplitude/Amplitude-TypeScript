@@ -1079,6 +1079,36 @@ describe('data extractor', () => {
         writable: true,
       });
     });
+
+    test('should return empty string when document is undefined (server-side scenario)', () => {
+      // Create a new test that mocks the global document to be undefined
+      // We'll temporarily replace the global document with undefined
+      const globalWithDocument = global as typeof global & { document?: Document };
+      const originalDescriptor = Object.getOwnPropertyDescriptor(globalWithDocument, 'document');
+
+      // Define document as undefined
+      Object.defineProperty(globalWithDocument, 'document', {
+        value: undefined,
+        writable: true,
+        configurable: true,
+      });
+
+      // Create a new DataExtractor instance in this environment
+      const serverSideExtractor = new DataExtractor({});
+
+      try {
+        const result = serverSideExtractor.getPageTitle();
+        expect(result).toBe('');
+      } finally {
+        // Restore the original document property
+        if (originalDescriptor) {
+          Object.defineProperty(globalWithDocument, 'document', originalDescriptor);
+        } else {
+          // Use Reflect.deleteProperty to avoid TypeScript linting issues
+          Reflect.deleteProperty(globalWithDocument, 'document');
+        }
+      }
+    });
   });
 
   describe('getEventProperties with title masking', () => {
