@@ -1006,4 +1006,129 @@ describe('data extractor', () => {
       });
     });
   });
+
+  describe('getPageTitle', () => {
+    beforeEach(() => {
+      // Reset document title
+      Object.defineProperty(document, 'title', {
+        value: 'Test Page Title',
+        writable: true,
+      });
+    });
+
+    afterEach(() => {
+      // Clean up any title elements added during tests
+      const titleElements = document.querySelectorAll('title');
+      titleElements.forEach((el) => el.remove());
+    });
+
+    test('should return document title when no title element has data-amp-mask', () => {
+      const result = dataExtractor.getPageTitle();
+      expect(result).toBe('Test Page Title');
+    });
+
+    test('should return MASKED_TEXT_VALUE when title element has data-amp-mask attribute', () => {
+      // Create and add title element with data-amp-mask
+      const titleElement = document.createElement('title');
+      titleElement.setAttribute('data-amp-mask', 'true');
+      titleElement.textContent = 'Sensitive Title';
+      document.head.appendChild(titleElement);
+
+      const result = dataExtractor.getPageTitle();
+      expect(result).toBe(MASKED_TEXT_VALUE);
+    });
+
+    test('should return document title when title element exists but does not have data-amp-mask', () => {
+      // Create and add title element without data-amp-mask
+      const titleElement = document.createElement('title');
+      titleElement.textContent = 'Regular Title';
+      document.head.appendChild(titleElement);
+
+      const result = dataExtractor.getPageTitle();
+      expect(result).toBe('Test Page Title');
+    });
+
+    test('should still apply sensitive string masking when title element does not have data-amp-mask', () => {
+      // Set a title with email that should be masked by replaceSensitiveString
+      Object.defineProperty(document, 'title', {
+        value: 'Contact us at test@example.com',
+        writable: true,
+      });
+
+      const titleElement = document.createElement('title');
+      titleElement.textContent = 'Contact us at test@example.com';
+      document.head.appendChild(titleElement);
+
+      const result = dataExtractor.getPageTitle();
+      expect(result).toBe('Contact us at *****');
+    });
+
+    test('should handle edge case when document title is null or undefined', () => {
+      // Test the code path where document.title might be null/undefined
+      Object.defineProperty(document, 'title', {
+        value: null,
+        writable: true,
+      });
+
+      const result = dataExtractor.getPageTitle();
+      expect(result).toBe(''); // replaceSensitiveString returns empty string for null
+
+      // Restore document title
+      Object.defineProperty(document, 'title', {
+        value: 'Test Page Title',
+        writable: true,
+      });
+    });
+  });
+
+  describe('getEventProperties with title masking', () => {
+    beforeEach(() => {
+      // Mock window.location
+      mockWindowLocationFromURL(new URL('https://test.com'));
+      // Mock document.title
+      Object.defineProperty(document, 'title', {
+        value: 'Test Page Title',
+        writable: true,
+      });
+      // Mock window.innerHeight and innerWidth
+      Object.defineProperty(window, 'innerHeight', { value: 800 });
+      Object.defineProperty(window, 'innerWidth', { value: 1200 });
+    });
+
+    afterEach(() => {
+      // Clean up any title elements added during tests
+      const titleElements = document.querySelectorAll('title');
+      titleElements.forEach((el) => el.remove());
+    });
+
+    test('should include masked page title when title element has data-amp-mask', () => {
+      // Create and add title element with data-amp-mask
+      const titleElement = document.createElement('title');
+      titleElement.setAttribute('data-amp-mask', 'true');
+      titleElement.textContent = 'Sensitive Page Title';
+      document.head.appendChild(titleElement);
+
+      const element = document.createElement('button');
+      element.textContent = 'Click me';
+      document.body.appendChild(element);
+
+      const result = dataExtractor.getEventProperties('click', element, 'data-amp-track-');
+
+      expect(result[constants.AMPLITUDE_EVENT_PROP_PAGE_TITLE]).toBe(MASKED_TEXT_VALUE);
+
+      document.body.removeChild(element);
+    });
+
+    test('should include normal page title when title element does not have data-amp-mask', () => {
+      const element = document.createElement('button');
+      element.textContent = 'Click me';
+      document.body.appendChild(element);
+
+      const result = dataExtractor.getEventProperties('click', element, 'data-amp-track-');
+
+      expect(result[constants.AMPLITUDE_EVENT_PROP_PAGE_TITLE]).toBe('Test Page Title');
+
+      document.body.removeChild(element);
+    });
+  });
 });
