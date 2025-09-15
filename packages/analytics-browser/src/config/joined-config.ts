@@ -117,6 +117,11 @@ export function translateRemoteConfigToLocal(config?: Record<string, any>) {
         if (!captureSafeHeaders && !allowlist) {
           continue;
         }
+        // if allowlist is not an array, remote config contract is violated, remove it
+        if (allowlist !== undefined && !Array.isArray(allowlist)) {
+          delete rule[header];
+          continue;
+        }
         rule[header] = [...(captureSafeHeaders ? SAFE_HEADERS : []), ...(allowlist ?? [])];
       }
     }

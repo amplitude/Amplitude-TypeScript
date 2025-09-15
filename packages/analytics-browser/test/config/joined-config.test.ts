@@ -432,6 +432,21 @@ describe('joined-config', () => {
           expect(networkTracking?.captureRules?.[0].responseHeaders).toBeUndefined();
           expect(networkTracking?.captureRules?.[0].requestHeaders).toBeUndefined();
         });
+
+        test('should not fail if headers are malformed', () => {
+          localConfig = createConfigurationMock(createConfigurationMock({}));
+
+          const remoteConfig = {
+            autocapture: { networkTracking: { captureRules: [{ responseHeaders: { allowlist: { wrong: 'type' } } }] } },
+          };
+
+          updateBrowserConfigWithRemoteConfig(remoteConfig, localConfig);
+
+          const autocapture = localConfig.autocapture as AutocaptureOptions;
+          const networkTracking = autocapture.networkTracking as NetworkTrackingOptions;
+          expect(networkTracking?.captureRules?.[0].responseHeaders).toBeUndefined();
+          expect(networkTracking?.captureRules?.[0].requestHeaders).toBeUndefined();
+        });
       });
 
       test('should merge urls and urlsRegex', () => {
