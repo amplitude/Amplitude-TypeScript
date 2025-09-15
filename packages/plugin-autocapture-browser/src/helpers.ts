@@ -29,6 +29,12 @@ export const createShouldTrackEvent = (
       return false;
     }
 
+    // Exclude elements with amp-block class (used by session replay for privacy)
+    // This check takes precedence over custom resolvers for privacy/security reasons
+    if (element.classList.contains('amp-block')) {
+      return false;
+    }
+
     if (shouldTrackEventResolver) {
       return shouldTrackEventResolver(actionType, element);
     }
