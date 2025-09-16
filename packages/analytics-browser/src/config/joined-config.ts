@@ -110,21 +110,26 @@ export function translateRemoteConfigToLocal(config?: Record<string, any>) {
   }
 
   // translate remote responseHeaders and requestHeaders to local responseHeaders and requestHeaders
-  if (config.autocapture?.networkTracking?.captureRules?.length) {
-    for (const rule of config.autocapture.networkTracking.captureRules) {
-      for (const header of ['responseHeaders', 'requestHeaders']) {
-        const { captureSafeHeaders, allowlist } = rule[header] ?? {};
-        if (!captureSafeHeaders && !allowlist) {
-          continue;
+  try {
+    if (config.autocapture?.networkTracking?.captureRules?.length) {
+      for (const rule of config.autocapture.networkTracking.captureRules) {
+        for (const header of ['responseHeaders', 'requestHeaders']) {
+          const { captureSafeHeaders, allowlist } = rule[header] ?? {};
+          if (!captureSafeHeaders && !allowlist) {
+            continue;
+          }
+          // if allowlist is not an array, remote config contract is violated, remove it
+          if (allowlist !== undefined && !Array.isArray(allowlist)) {
+            delete rule[header];
+            continue;
+          }
+          rule[header] = [...(captureSafeHeaders ? SAFE_HEADERS : []), ...(allowlist ?? [])];
         }
-        // if allowlist is not an array, remote config contract is violated, remove it
-        if (allowlist !== undefined && !Array.isArray(allowlist)) {
-          delete rule[header];
-          continue;
-        }
-        rule[header] = [...(captureSafeHeaders ? SAFE_HEADERS : []), ...(allowlist ?? [])];
       }
     }
+  } catch (e) {
+    /* istanbul ignore next */
+    // surprise exception, so don't translate it
   }
 }
 
