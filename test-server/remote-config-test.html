@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/amplitude.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Remote Config Test</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+        line-height: 1.6;
+      }
+      .container {
+        max-width: 800px;
+        margin: 0 auto;
+      }
+      .status {
+        padding: 10px;
+        margin: 10px 0;
+        border-radius: 4px;
+        font-weight: bold;
+      }
+      .success {
+        background-color: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+      }
+      .info {
+        background-color: #d1ecf1;
+        color: #0c5460;
+        border: 1px solid #bee5eb;
+      }
+      .warning {
+        background-color: #fff3cd;
+        color: #856404;
+        border: 1px solid #ffeaa7;
+      }
+      button {
+        background-color: #007bff;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        margin: 5px;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+      button:hover {
+        background-color: #0056b3;
+      }
+      .log {
+        background-color: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 4px;
+        padding: 10px;
+        margin: 10px 0;
+        font-family: monospace;
+        font-size: 12px;
+        max-height: 300px;
+        overflow-y: auto;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Amplitude Remote Config Test</h1>
+      <p>This page tests Amplitude initialization with <code>fetchRemoteConfig: true</code>.</p>
+      
+      <div id="interactive-section">
+        <h3>Interactive Section</h3>
+        <div id="interactive-content">
+          <p>This is the interactive section.</p>
+        </div>
+        <button id="interactive-button">Interactive Button</button>
+      </div>
+    </div>
+    <script type="module">
+      let queryParams = new URLSearchParams(window.location.search);
+      window.AMPLITUDE_VERSION = queryParams.get('amplitudeVersion') || 'latest';
+      window.API_KEY = queryParams.get('apiKey') || '77de0b7de6157d5e7ca409c81778f28e';
+      window.SERVER_ZONE = queryParams.get('serverZone') || 'US';
+
+      const REMOTE_STAGING = {
+        US: 'https://sr-client-cfg.amplitude.com/',
+        EU: 'https://sr-client-cfg.eu.amplitude.com/',
+        STAGING: 'https://sr-client-cfg.stag2.amplitude.com/',
+      };
+
+      const API_ENDPOINTS = {
+        US: 'https://api2.amplitude.com/2/httpapi',
+        EU: 'https://api.eu.amplitude.com/2/httpapi',
+        STAGING: 'https://api.stag2.amplitude.com/2/httpapi',
+      };
+
+      window.SERVER_URL = API_ENDPOINTS[window.SERVER_ZONE?.toUpperCase()];
+
+      if (window.AMPLITUDE_VERSION !== 'latest') {
+        
+        !function (window, document) {
+          var amplitude = window.amplitude || {
+            _q: [],
+            _iq: {}
+          };
+          if (amplitude.invoked) window.console && console.error && console.error('Amplitude snippet has been loaded.');else {
+            var proxy = function proxy(obj, fn) {
+              obj.prototype[fn] = function () {
+                this._q.push({
+                  name: fn,
+                  args: Array.prototype.slice.call(arguments, 0)
+                });
+                return this;
+              };
+            };
+            var getPromiseResult = function getPromiseResult(instance, fn, args) {
+              return function (resolve) {
+                instance._q.push({
+                  name: fn,
+                  args: Array.prototype.slice.call(args, 0),
+                  resolve: resolve
+                });
+              };
+            };
+            var proxyInstance = function proxyInstance(instance, fn, args) {
+              instance._q.push({
+                name: fn,
+                args: Array.prototype.slice.call(args, 0)
+              });
+            };
+            var proxyMain = function proxyMain(instance, fn, isPromise) {
+              instance[fn] = function () {
+                if (isPromise) return {
+                  promise: new Promise(getPromiseResult(instance, fn, Array.prototype.slice.call(arguments)))
+                };
+                proxyInstance(instance, fn, Array.prototype.slice.call(arguments));
+              };
+            };
+            var setUpProxy = function setUpProxy(instance) {
+              for (var k = 0; k < funcs.length; k++) {
+                proxyMain(instance, funcs[k], false);
+              }
+              for (var l = 0; l < funcsWithPromise.length; l++) {
+                proxyMain(instance, funcsWithPromise[l], true);
+              }
+            };
+            amplitude.invoked = true;
+            var as = document.createElement('script');
+            as.type = 'text/javascript';
+            as.crossOrigin = 'anonymous';
+            as.async = true;
+            as.src = `https://cdn.amplitude.com/libs/analytics-browser-${AMPLITUDE_VERSION}-min.js.gz`;
+            console.log('[Amplitude] Loading SDK from', as.src);
+            as.onload = function () {
+              console.log('[Amplitude] SDK loaded');
+              if (!window.amplitude.runQueuedFunctions) {
+                console.log('[Amplitude] Error: could not load SDK');
+              }
+            };
+            var s = document.getElementsByTagName('script')[0];
+            s.parentNode.insertBefore(as, s);
+            var Identify = function Identify() {
+              this._q = [];
+              return this;
+            };
+            var identifyFuncs = ['add', 'append', 'clearAll', 'prepend', 'set', 'setOnce', 'unset', 'preInsert', 'postInsert', 'remove', 'getUserProperties'];
+            for (var i = 0; i < identifyFuncs.length; i++) {
+              proxy(Identify, identifyFuncs[i]);
+            }
+            amplitude.Identify = Identify;
+            var Revenue = function Revenue() {
+              this._q = [];
+              return this;
+            };
+            var revenueFuncs = ['getEventProperties', 'setProductId', 'setQuantity', 'setPrice', 'setRevenue', 'setRevenueType', 'setReceipt', 'setReceiptSig', 'setCurrency', 'setEventProperties'];
+            for (var j = 0; j < revenueFuncs.length; j++) {
+              proxy(Revenue, revenueFuncs[j]);
+            }
+            amplitude.Revenue = Revenue;
+            var funcs = ['getDeviceId', 'setDeviceId', 'getSessionId', 'setSessionId', 'getUserId', 'setUserId', 'setOptOut', 'setTransport', 'reset', 'extendSession'];
+            var funcsWithPromise = ['init', 'add', 'remove', 'track', 'logEvent', 'identify', 'groupIdentify', 'setGroup', 'revenue', 'flush'];
+            setUpProxy(amplitude);
+            amplitude.createInstance = function (instanceName) {
+              amplitude._iq[instanceName] = {
+                _q: []
+              };
+              setUpProxy(amplitude._iq[instanceName]);
+              return amplitude._iq[instanceName];
+            };
+            window.amplitude = amplitude;
+          }
+        }(window, document);
+      }
+    </script>
+
+    <script type="module">
+      import * as amplitudeModule from '@amplitude/analytics-browser';
+      
+      if (window.AMPLITUDE_VERSION === 'latest') {
+        window.amplitude = amplitudeModule;
+      }
+      console.log('Starting Amplitude initialization with fetchRemoteConfig: true');
+      
+      // Initialize Amplitude with fetchRemoteConfig set to true
+      window.amplitude.init(
+        window.API_KEY,
+        'remote-config-test-user',
+        {
+          serverUrl: window.SERVER_URL,
+          fetchRemoteConfig: true,
+          logLevel: 'Debug', // Enable debug logging to see remote config activity
+          autocapture: {
+            // Enable autocapture to test remote config overrides
+            elementInteractions: true,
+            pageViews: true,
+          },
+        }
+      ).promise.then(() => {
+        console.log('Amplitude initialized successfully with remote config enabled');
+        
+        // Track an initial event
+        amplitude.track('Remote Config Test Page Loaded', {
+          fetchRemoteConfig: true,
+          timestamp: new Date().toISOString()
+        });
+        console.log('Tracked initial page load event');
+        
+      }).catch((error) => {
+        console.error(`Amplitude initialization failed: ${error.message}`);
+        console.error(`Initialization error: ${error.message}`);
+      });
+      
+      // Listen for remote config updates
+      let remoteConfigReceived = false;
+      
+      document.getElementById('interactive-button').addEventListener('click', () => {
+        document.getElementById('interactive-content').innerHTML = 'Interactive content has been changed.';
+      });
+    </script>
+  </body>
+</html>

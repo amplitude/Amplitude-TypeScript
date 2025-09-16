@@ -156,8 +156,7 @@ export class DataExtractor {
       [constants.AMPLITUDE_EVENT_PROP_ELEMENT_ATTRIBUTES]: attributes,
       [constants.AMPLITUDE_EVENT_PROP_ELEMENT_PARENT_LABEL]: nearestLabel,
       [constants.AMPLITUDE_EVENT_PROP_PAGE_URL]: window.location.href.split('?')[0],
-      [constants.AMPLITUDE_EVENT_PROP_PAGE_TITLE]:
-        (typeof document !== 'undefined' && this.replaceSensitiveString(document.title)) || '',
+      [constants.AMPLITUDE_EVENT_PROP_PAGE_TITLE]: this.getPageTitle(),
       [constants.AMPLITUDE_EVENT_PROP_VIEWPORT_HEIGHT]: window.innerHeight,
       [constants.AMPLITUDE_EVENT_PROP_VIEWPORT_WIDTH]: window.innerWidth,
     };
@@ -260,6 +259,23 @@ export class DataExtractor {
       output = clonedTree.innerText || '';
     }
     return this.replaceSensitiveString(output.substring(0, 255)).replace(/\s+/g, ' ').trim();
+  };
+
+  /**
+   * Gets the page title, checking if the title element has data-amp-mask attribute
+   * @returns The page title, masked if the title element has data-amp-mask attribute
+   */
+  getPageTitle = (): string => {
+    if (typeof document === 'undefined') {
+      return '';
+    }
+
+    const titleElement = document.querySelector('title');
+    if (titleElement && titleElement.hasAttribute(constants.TEXT_MASK_ATTRIBUTE)) {
+      return constants.MASKED_TEXT_VALUE;
+    }
+
+    return this.replaceSensitiveString(document.title);
   };
 
   // Returns the element properties for the given element in Visual Labeling.
