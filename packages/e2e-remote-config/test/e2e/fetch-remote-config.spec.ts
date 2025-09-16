@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/test';
 
 /* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-return, no-restricted-globals */
 
+// parse query params
 const remoteConfigUrl = 'https://sr-client-cfg.amplitude.com/';
 const amplitudeVersion = process.env.AMPLITUDE_VERSION;
 const apiKey = process.env.API_KEY;
@@ -13,7 +14,6 @@ if (serverZone === 'STAGING') {
 } else if (serverZone === 'EU') {
   redirectedServerUrl = 'https://sr-client-cfg.eu.amplitude.com/';
 }
-console.log(`Redirecting to server URL: ${redirectedServerUrl}`);
 
 if (redirectedServerUrl && !redirectedServerUrl?.endsWith('/')) {
   redirectedServerUrl += '/';
@@ -39,6 +39,8 @@ test.describe(`Fetch remote config: remoteConfigUrl=${redirectedServerUrl} sdkVe
     });
     const responsePattern = redirectedServerUrl ? `${redirectedServerUrl}**` : `${remoteConfigUrl}**`;
     const fetchRemoteConfigPromise = page.waitForResponse(responsePattern);
+
+    // open the page with parameters to define version, api key and server zone
     let queryParams: Record<string, string> = {};
     if (amplitudeVersion) {
       queryParams.amplitudeVersion = amplitudeVersion;
@@ -50,7 +52,13 @@ test.describe(`Fetch remote config: remoteConfigUrl=${redirectedServerUrl} sdkVe
     await page.goto(`${LOCAL_SITE}/remote-config-test.html?${new URLSearchParams(queryParams).toString()}`);
     const response = await fetchRemoteConfigPromise;
     const body = await response.json();
-    console.log('body', body);
     expect(body.configs.analyticsSDK).toBeDefined();
+
+    // perform an interaction on the page to confirm it's still interactable
+    const interactiveButton = page.locator('#interactive-button');
+    const interactiveContent = page.locator('#interactive-content');
+    await expect(interactiveContent).toHaveText('This is the interactive section.');
+    await interactiveButton.click();
+    await expect(interactiveContent).toHaveText('Interactive content has been changed.');
   });
 });

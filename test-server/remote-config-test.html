@@ -66,18 +66,13 @@
       <h1>Amplitude Remote Config Test</h1>
       <p>This page tests Amplitude initialization with <code>fetchRemoteConfig: true</code>.</p>
       
-      <div id="status" class="status info">
-        Initializing Amplitude with remote config...
+      <div id="interactive-section">
+        <h3>Interactive Section</h3>
+        <div id="interactive-content">
+          <p>This is the interactive section.</p>
+        </div>
+        <button id="interactive-button">Interactive Button</button>
       </div>
-      
-      <div>
-        <button id="trackEvent">Track Test Event</button>
-        <button id="clearCookies">Clear Amplitude Cookies</button>
-        <button id="clearLog">Clear Log</button>
-      </div>
-      
-      <h3>Event Log</h3>
-      <div id="log" class="log"></div>
     </div>
     <script type="module">
       let queryParams = new URLSearchParams(window.location.search);
@@ -198,29 +193,11 @@
 
     <script type="module">
       import * as amplitudeModule from '@amplitude/analytics-browser';
+      
       if (window.AMPLITUDE_VERSION === 'latest') {
         window.amplitude = amplitudeModule;
       }
-      
-      // Logging function
-      function log(message, type = 'info') {
-        const logElement = document.getElementById('log');
-        const timestamp = new Date().toISOString();
-        const logEntry = document.createElement('div');
-        logEntry.innerHTML = `<span style="color: #666;">[${timestamp}]</span> ${message}`;
-        logElement.appendChild(logEntry);
-        logElement.scrollTop = logElement.scrollHeight;
-        console.log(`[${type.toUpperCase()}] ${message}`);
-      }
-      
-      // Update status function
-      function updateStatus(message, type = 'info') {
-        const statusElement = document.getElementById('status');
-        statusElement.textContent = message;
-        statusElement.className = `status ${type}`;
-      }
-            
-      log('Starting Amplitude initialization with fetchRemoteConfig: true');
+      console.log('Starting Amplitude initialization with fetchRemoteConfig: true');
       
       // Initialize Amplitude with fetchRemoteConfig set to true
       window.amplitude.init(
@@ -237,91 +214,25 @@
           },
         }
       ).promise.then(() => {
-        updateStatus('Amplitude initialized successfully with remote config enabled', 'success');
-        log('Amplitude initialization completed');
+        console.log('Amplitude initialized successfully with remote config enabled');
         
         // Track an initial event
         amplitude.track('Remote Config Test Page Loaded', {
           fetchRemoteConfig: true,
           timestamp: new Date().toISOString()
         });
-        log('Tracked initial page load event');
+        console.log('Tracked initial page load event');
         
       }).catch((error) => {
-        updateStatus(`Amplitude initialization failed: ${error.message}`, 'warning');
-        log(`Initialization error: ${error.message}`, 'error');
+        console.error(`Amplitude initialization failed: ${error.message}`);
+        console.error(`Initialization error: ${error.message}`);
       });
       
       // Listen for remote config updates
       let remoteConfigReceived = false;
       
-      // We can't directly access the remote config client, but we can observe
-      // when autocapture settings change due to remote config
-      const originalTrack = amplitude.track;
-      amplitude.track = function(eventType, eventProperties, options) {
-        log(`Tracking event: ${eventType}`, 'info');
-        if (eventProperties) {
-          log(`Event properties: ${JSON.stringify(eventProperties)}`, 'info');
-        }
-        return originalTrack.call(this, eventType, eventProperties, options);
-      };
-      
-      // Button event handlers
-      document.getElementById('trackEvent').addEventListener('click', () => {
-        amplitude.track('Manual Test Event', {
-          source: 'button-click',
-          fetchRemoteConfig: true,
-          timestamp: new Date().toISOString()
-        });
-        log('Manual test event tracked');
-      });
-      
-      document.getElementById('clearCookies').addEventListener('click', async () => {
-        try {
-          const cookies = await cookieStore.getAll();
-          const amplitudeCookies = cookies.filter(cookie => cookie.name.startsWith('AMP_'));
-          
-          await Promise.all(
-            amplitudeCookies.map(cookie => 
-              cookieStore.delete(cookie.name)
-            )
-          );
-          
-          log('Amplitude cookies cleared successfully');
-          updateStatus('Amplitude cookies cleared!', 'success');
-        } catch (error) {
-          log(`Error clearing cookies: ${error.message}`, 'error');
-          updateStatus('Failed to clear cookies. See console for details.', 'warning');
-        }
-      });
-      
-      document.getElementById('clearLog').addEventListener('click', () => {
-        document.getElementById('log').innerHTML = '';
-        log('Log cleared');
-      });
-      
-      // Monitor for remote config changes by checking autocapture settings periodically
-      let checkCount = 0;
-      const checkRemoteConfig = () => {
-        checkCount++;
-        log(`Checking for remote config changes (attempt ${checkCount})`);
-        
-        // We can't directly access the remote config, but we can observe
-        // if the autocapture settings have been modified
-        if (checkCount >= 5) {
-          updateRemoteConfigStatus('Remote config check completed. Check browser console for detailed logs.', 'info');
-          log('Remote config monitoring completed. Check browser console for detailed remote config logs.', 'info');
-        } else {
-          setTimeout(checkRemoteConfig, 2000);
-        }
-      };
-      
-      // Start checking for remote config after a short delay
-      setTimeout(checkRemoteConfig, 1000);
-      
-      // Log when the page is fully loaded
-      window.addEventListener('load', () => {
-        log('Page fully loaded');
+      document.getElementById('interactive-button').addEventListener('click', () => {
+        document.getElementById('interactive-content').innerHTML = 'Interactive content has been changed.';
       });
     </script>
   </body>
