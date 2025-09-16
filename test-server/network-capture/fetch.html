@@ -66,7 +66,7 @@
           autocapture: {
             networkTracking: {
               ignoreAmplitudeRequests: false,
-              ignoreHosts: ['hello.com', '*.world.com'],
+              ignoreHosts: [],
               captureRules: [
                 {
                   hosts: ['*.amplitude.com'],
@@ -81,19 +81,12 @@
                   responseHeaders: true,
                 },
                 {
-                  //hosts: ['*'],
-                  // filters
-                  urls: [/$hello/,'https://hello.com/api/secret', 'https://world.com/api/secret'],
-                  statusCodeRange: '0,300-599', // default '500-599'
-                  methods: ['GET', 'POST'],
-
-                  // what gets captured
-                  // https://www.baeldung.com/json-pointer
-                  requestHeaders: ['content-type', 'alt-svc'],
+                  hosts: ['*'],
+                  statusCodeRange: '0,300-599',
+                  requestHeaders: true,
                   responseHeaders: true,
                   responseBody: {
-                    allowlist: ['**'],
-                    excludelist: ['secret'],
+                    allowlist: ['status', 'message', 'method'],
                   },
                   requestBody: {
                     allowlist: ['**'],
