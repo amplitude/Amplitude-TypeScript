@@ -107,6 +107,14 @@ export class DiagnosticsStorage implements IDiagnosticsStorage {
     this.dbName = `AMP_diagnostics_${apiKey.substring(0, 10)}`;
   }
 
+  /**
+   * Check if IndexedDB is supported in the current environment
+   * @returns true if IndexedDB is available, false otherwise
+   */
+  static isSupported(): boolean {
+    return getGlobalScope()?.indexedDB !== undefined;
+  }
+
   async getDB(): Promise<IDBDatabase> {
     if (!this.dbPromise) {
       this.dbPromise = this.openDB();

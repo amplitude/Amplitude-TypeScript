@@ -145,7 +145,7 @@ export interface IDiagnosticsClient {
 }
 
 export class DiagnosticsClient implements IDiagnosticsClient {
-  storage: IDiagnosticsStorage;
+  storage?: IDiagnosticsStorage;
   logger: ILogger;
   serverUrl: string;
   apiKey: string;
@@ -165,21 +165,34 @@ export class DiagnosticsClient implements IDiagnosticsClient {
     this.apiKey = apiKey;
     this.logger = logger;
     this.serverUrl = serverZone === 'US' ? DIAGNOSTICS_US_SERVER_URL : DIAGNOSTICS_EU_SERVER_URL;
-    this.storage = new DiagnosticsStorage(apiKey, logger);
+    if (DiagnosticsStorage.isSupported()) {
+      this.storage = new DiagnosticsStorage(apiKey, logger);
+    } else {
+      this.logger.debug('DiagnosticsClient: IndexedDB is not supported');
+    }
     void this.initializeFlushInterval();
   }
 
   setTag(name: string, value: string) {
+    if (!this.storage) {
+      return;
+    }
     this.inMemoryTags[name] = value;
     this.startTimersIfNeeded();
   }
 
   increment(name: string, size = 1) {
+    if (!this.storage) {
+      return;
+    }
     this.inMemoryCounters[name] = (this.inMemoryCounters[name] || 0) + size;
     this.startTimersIfNeeded();
   }
 
   recordHistogram(name: string, value: number) {
+    if (!this.storage) {
+      return;
+    }
     const existing = this.inMemoryHistograms[name];
     if (existing) {
       // Update existing stats incrementally
@@ -235,6 +248,9 @@ export class DiagnosticsClient implements IDiagnosticsClient {
   }
 
   async saveAllDataToStorage() {
+    if (!this.storage) {
+      return;
+    }
     const tagsToSave = { ...this.inMemoryTags };
     const countersToSave = { ...this.inMemoryCounters };
     const histogramsToSave = { ...this.inMemoryHistograms };
@@ -254,6 +270,9 @@ export class DiagnosticsClient implements IDiagnosticsClient {
   }
 
   async _flush() {
+    if (!this.storage) {
+      return;
+    }
     // Get all data from storage and clear it
     const {
       tags: tagRecords,
@@ -350,6 +369,9 @@ export class DiagnosticsClient implements IDiagnosticsClient {
    * Otherwise set a timer to flush when the interval is reached.
    */
   async initializeFlushInterval() {
+    if (!this.storage) {
+      return;
+    }
     const now = Date.now();
     const lastFlushTimestamp = (await this.storage.getLastFlushTimestamp()) || -1;
     const timeSinceLastFlush = now - lastFlushTimestamp;
