@@ -8,6 +8,10 @@ export const FLUSH_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
 export const DIAGNOSTICS_US_SERVER_URL = 'https://diagnostics.prod.us-west-2.amplitude.com/v1/capture';
 export const DIAGNOSTICS_EU_SERVER_URL = 'https://diagnostics.prod.eu-central-1.amplitude.com/v1/capture';
 
+// In-memory storage limits
+export const MAX_MEMORY_STORAGE_COUNT = 100; // for tags, counters, histograms separately
+export const MAX_MEMORY_STORAGE_EVENTS_COUNT = 10;
+
 // === Core Data Types ===
 
 /**
@@ -177,6 +181,12 @@ export class DiagnosticsClient implements IDiagnosticsClient {
     if (!this.storage) {
       return;
     }
+
+    if (Object.keys(this.inMemoryTags).length >= MAX_MEMORY_STORAGE_COUNT) {
+      return;
+      this.logger.debug('DiagnosticsClient: Early return setTags as reaching memory limit');
+    }
+
     this.inMemoryTags[name] = value;
     this.startTimersIfNeeded();
   }
@@ -185,6 +195,12 @@ export class DiagnosticsClient implements IDiagnosticsClient {
     if (!this.storage) {
       return;
     }
+
+    if (Object.keys(this.inMemoryCounters).length >= MAX_MEMORY_STORAGE_COUNT) {
+      return;
+      this.logger.debug('DiagnosticsClient: Early return increment as reaching memory limit');
+    }
+
     this.inMemoryCounters[name] = (this.inMemoryCounters[name] || 0) + size;
     this.startTimersIfNeeded();
   }
@@ -193,6 +209,12 @@ export class DiagnosticsClient implements IDiagnosticsClient {
     if (!this.storage) {
       return;
     }
+
+    if (Object.keys(this.inMemoryHistograms).length >= MAX_MEMORY_STORAGE_COUNT) {
+      return;
+      this.logger.debug('DiagnosticsClient: Early return recordHistogram as reaching memory limit');
+    }
+
     const existing = this.inMemoryHistograms[name];
     if (existing) {
       // Update existing stats incrementally
@@ -213,6 +235,15 @@ export class DiagnosticsClient implements IDiagnosticsClient {
   }
 
   recordEvent(name: string, properties: EventProperties) {
+    if (!this.storage) {
+      return;
+    }
+
+    if (this.inMemoryEvents.length >= MAX_MEMORY_STORAGE_EVENTS_COUNT) {
+      return;
+      this.logger.debug('DiagnosticsClient: Early return recordEvent as reaching memory limit');
+    }
+
     this.inMemoryEvents.push({
       event_name: name,
       time: Date.now(),
