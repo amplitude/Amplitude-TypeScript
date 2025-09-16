@@ -1,5 +1,12 @@
+# STAGING
+API_KEY="52fbe5356dc7490756a9c26591f2bb37"
+AMPLITUDE_VERSION="2.22.2"
+SERVER_ZONE="STAGING"
+SERVER_ZONE=$SERVER_ZONE API_KEY=$API_KEY AMPLITUDE_VERSION=$AMPLITUDE_VERSION npx playwright test packages/e2e-remote-config/test/e2e/fetch-remote-config.spec.ts
+
 # API_KEY empty
 API_KEY="657954c4c37e22e8dc2af0413ac01e2b"
+SERVER_ZONE="US"
 API_KEY=$API_KEY AMPLITUDE_VERSION=$AMPLITUDE_VERSION npx playwright test packages/e2e-remote-config/test/e2e/fetch-remote-config.spec.ts
 
 # 2.11.0 -- first mionor version to support remote config for autocapture
