@@ -1,6 +1,7 @@
 import { ILogger } from '../logger';
 import { DiagnosticsStorage, IDiagnosticsStorage } from './diagnostics-storage';
 import { ServerZoneType } from '../types/server-zone';
+import { getGlobalScope } from '../global-scope';
 
 export const SAVE_INTERVAL_MS = 1000; // 1 second
 export const FLUSH_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
@@ -46,7 +47,7 @@ interface HistogramResult {
 /**
  * Internal histogram statistics with sum for efficient incremental updates
  */
-interface HistogramStats {
+export interface HistogramStats {
   count: number;
   min: number;
   max: number;
@@ -323,7 +324,7 @@ export class DiagnosticsClient implements IDiagnosticsClient {
    */
   async fetch(payload: FlushPayload) {
     try {
-      const response = await fetch(this.serverUrl, {
+      const response = await getGlobalScope()?.fetch(this.serverUrl, {
         method: 'POST',
         headers: {
           'X-ApiKey': this.apiKey,
@@ -332,7 +333,7 @@ export class DiagnosticsClient implements IDiagnosticsClient {
         body: JSON.stringify(payload),
       });
 
-      if (!response.ok) {
+      if (!response?.ok) {
         this.logger.debug('DiagnosticsClient: Failed to send diagnostics data.');
         return;
       }

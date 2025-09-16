@@ -1,5 +1,6 @@
 import { getGlobalScope } from '../global-scope';
 import { ILogger } from '../logger';
+import { HistogramStats } from './diagnostics-client';
 
 // Database configuration
 const DB_VERSION = 1;
@@ -176,35 +177,31 @@ export class DiagnosticsStorage implements IDiagnosticsStorage {
 
   async setTags(tags: Record<string, string>): Promise<void> {
     try {
+      if (Object.entries(tags).length === 0) {
+        return;
+      }
+
       const db = await this.getDB();
       const transaction = db.transaction([TABLE_NAMES.TAGS], 'readwrite');
       const store = transaction.objectStore(TABLE_NAMES.TAGS);
 
       return new Promise((resolve) => {
-        let completed = 0;
         const entries = Object.entries(tags);
 
-        if (entries.length === 0) {
+        transaction.oncomplete = () => {
           resolve();
-          return;
-        }
+        };
 
-        const handleCompletion = () => {
-          completed++;
-          if (completed === entries.length) {
-            resolve();
-          }
+        transaction.onabort = (event) => {
+          this.logger.debug('DiagnosticsStorage: Failed to set tags', event);
+          resolve();
         };
 
         entries.forEach(([key, value]) => {
-          const request = store.put({ key, value });
+          const putRequest = store.put({ key, value });
 
-          request.onsuccess = handleCompletion;
-
-          /* istanbul ignore next */
-          request.onerror = () => {
-            this.logger.debug('DiagnosticsStorage: Failed to set tag', key, value);
-            handleCompletion();
+          putRequest.onerror = (event) => {
+            this.logger.debug('DiagnosticsStorage: Failed to set tag', key, value, event);
           };
         });
       });
@@ -216,6 +213,10 @@ export class DiagnosticsStorage implements IDiagnosticsStorage {
 
   async incrementCounters(counters: Record<string, number>): Promise<void> {
     try {
+      if (Object.entries(counters).length === 0) {
+        return;
+      }
+
       const db = await this.getDB();
       const transaction = db.transaction([TABLE_NAMES.COUNTERS], 'readwrite');
       const store = transaction.objectStore(TABLE_NAMES.COUNTERS);
@@ -223,40 +224,16 @@ export class DiagnosticsStorage implements IDiagnosticsStorage {
       return new Promise((resolve) => {
         const entries = Object.entries(counters);
 
-        if (entries.length === 0) {
+        transaction.oncomplete = () => {
           resolve();
-          return;
-        }
-
-        let pendingReads = entries.length;
-        let pendingWrites = 0;
-        const updatedCounters: Record<string, number> = {};
-
-        const handleWriteCompletion = () => {
-          pendingWrites--;
-          if (pendingWrites === 0) {
-            resolve();
-          }
         };
 
-        const startWritePhase = () => {
-          // All reads complete, now write the updated values
-          pendingWrites = entries.length;
-
-          entries.forEach(([key]) => {
-            const putRequest = store.put({ key, value: updatedCounters[key] });
-
-            putRequest.onsuccess = handleWriteCompletion;
-
-            /* istanbul ignore next */
-            putRequest.onerror = () => {
-              this.logger.debug('DiagnosticsStorage: Failed to increment counter', key);
-              handleWriteCompletion();
-            };
-          });
+        transaction.onabort = (event) => {
+          this.logger.debug('DiagnosticsStorage: Failed to increment counters', event);
+          resolve();
         };
 
-        // First, read all existing values
+        // Read existing values and update them
         entries.forEach(([key, incrementValue]) => {
           const getRequest = store.get(key);
 
@@ -264,24 +241,20 @@ export class DiagnosticsStorage implements IDiagnosticsStorage {
             const existingRecord = getRequest.result as CounterRecord | undefined;
             /* istanbul ignore next */
             const existingValue = existingRecord ? existingRecord.value : 0;
-            updatedCounters[key] = existingValue + incrementValue;
+            const putRequest = store.put({ key, value: existingValue + incrementValue });
 
-            pendingReads--;
-            if (pendingReads === 0) {
-              startWritePhase();
-            }
+            // Prevent the whole transaction from being rolled back.
+            // Only the failed request will be rolled back.
+            putRequest.onerror = (event) => {
+              this.logger.debug('DiagnosticsStorage: Failed to update counter', key, event);
+            };
           };
 
+          // Prevent the whole transaction from being rolled back.
+          // Only the failed request will be rolled back.
           /* istanbul ignore next */
-          getRequest.onerror = () => {
-            this.logger.debug('DiagnosticsStorage: Failed to read existing counter', key);
-            // Use fallback value for this counter
-            updatedCounters[key] = incrementValue;
-
-            pendingReads--;
-            if (pendingReads === 0) {
-              startWritePhase();
-            }
+          getRequest.onerror = (event) => {
+            this.logger.debug('DiagnosticsStorage: Failed to read existing counter', key, event);
           };
         });
       });
@@ -291,10 +264,12 @@ export class DiagnosticsStorage implements IDiagnosticsStorage {
     }
   }
 
-  async setHistogramStats(
-    histogramStats: Record<string, { count: number; min: number; max: number; sum: number }>,
-  ): Promise<void> {
+  async setHistogramStats(histogramStats: Record<string, HistogramStats>): Promise<void> {
     try {
+      if (Object.entries(histogramStats).length === 0) {
+        return;
+      }
+
       const db = await this.getDB();
       const transaction = db.transaction([TABLE_NAMES.HISTOGRAMS], 'readwrite');
       const store = transaction.objectStore(TABLE_NAMES.HISTOGRAMS);
@@ -302,51 +277,27 @@ export class DiagnosticsStorage implements IDiagnosticsStorage {
       return new Promise((resolve) => {
         const entries = Object.entries(histogramStats);
 
-        if (entries.length === 0) {
+        transaction.oncomplete = () => {
           resolve();
-          return;
-        }
-
-        let pendingReads = entries.length;
-        let pendingWrites = 0;
-        const updatedHistograms: Record<string, HistogramRecord> = {};
-
-        const handleWriteCompletion = () => {
-          pendingWrites--;
-          if (pendingWrites === 0) {
-            resolve();
-          }
         };
 
-        const startWritePhase = () => {
-          // All reads complete, now write the updated values
-          pendingWrites = entries.length;
-
-          entries.forEach(([key]) => {
-            const stats = updatedHistograms[key];
-            const putRequest = store.put(stats);
-
-            putRequest.onsuccess = handleWriteCompletion;
-
-            /* istanbul ignore next */
-            putRequest.onerror = () => {
-              this.logger.debug('DiagnosticsStorage: Failed to set histogram stats', key);
-              handleWriteCompletion();
-            };
-          });
+        transaction.onabort = (event) => {
+          this.logger.debug('DiagnosticsStorage: Failed to set histogram stats', event);
+          resolve();
         };
 
-        // First, read all existing values
+        // Read existing values and update them
         entries.forEach(([key, newStats]) => {
           const getRequest = store.get(key);
 
           getRequest.onsuccess = () => {
             const existingRecord = getRequest.result as HistogramRecord | undefined;
+            let updatedStats: HistogramRecord;
 
             /* istanbul ignore next */
             if (existingRecord) {
               // Accumulate with existing stats
-              updatedHistograms[key] = {
+              updatedStats = {
                 key,
                 count: existingRecord.count + newStats.count,
                 min: Math.min(existingRecord.min, newStats.min),
@@ -355,7 +306,7 @@ export class DiagnosticsStorage implements IDiagnosticsStorage {
               };
             } else {
               // Create new stats
-              updatedHistograms[key] = {
+              updatedStats = {
                 key,
                 count: newStats.count,
                 min: newStats.min,
@@ -364,28 +315,20 @@ export class DiagnosticsStorage implements IDiagnosticsStorage {
               };
             }
 
-            pendingReads--;
-            if (pendingReads === 0) {
-              startWritePhase();
-            }
+            const putRequest = store.put(updatedStats);
+
+            putRequest.onerror = (event) => {
+              // Prevent the whole transaction from being rolled back.
+              // Only the failed request will be rolled back.
+              this.logger.debug('DiagnosticsStorage: Failed to set histogram stats', key, event);
+            };
           };
 
           /* istanbul ignore next */
-          getRequest.onerror = () => {
-            this.logger.debug('DiagnosticsStorage: Failed to read existing histogram stats', key);
-            // Use new stats as fallback
-            updatedHistograms[key] = {
-              key,
-              count: newStats.count,
-              min: newStats.min,
-              max: newStats.max,
-              sum: newStats.sum,
-            };
-
-            pendingReads--;
-            if (pendingReads === 0) {
-              startWritePhase();
-            }
+          getRequest.onerror = (event) => {
+            // Prevent the whole transaction from being rolled back.
+            // Only the failed request will be rolled back.
+            this.logger.debug('DiagnosticsStorage: Failed to read existing histogram stats', key, event);
           };
         });
       });
