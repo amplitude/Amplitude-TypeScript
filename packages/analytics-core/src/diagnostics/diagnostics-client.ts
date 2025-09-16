@@ -169,11 +169,13 @@ export class DiagnosticsClient implements IDiagnosticsClient {
     this.apiKey = apiKey;
     this.logger = logger;
     this.serverUrl = serverZone === 'US' ? DIAGNOSTICS_US_SERVER_URL : DIAGNOSTICS_EU_SERVER_URL;
+
     if (DiagnosticsStorage.isSupported()) {
       this.storage = new DiagnosticsStorage(apiKey, logger);
     } else {
       this.logger.debug('DiagnosticsClient: IndexedDB is not supported');
     }
+
     void this.initializeFlushInterval();
   }
 

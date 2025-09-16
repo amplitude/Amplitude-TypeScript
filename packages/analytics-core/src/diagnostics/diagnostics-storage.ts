@@ -251,15 +251,11 @@ export class DiagnosticsStorage implements IDiagnosticsStorage {
             const existingValue = existingRecord ? existingRecord.value : 0;
             const putRequest = store.put({ key, value: existingValue + incrementValue });
 
-            // Prevent the whole transaction from being rolled back.
-            // Only the failed request will be rolled back.
             putRequest.onerror = (event) => {
               this.logger.debug('DiagnosticsStorage: Failed to update counter', key, event);
             };
           };
 
-          // Prevent the whole transaction from being rolled back.
-          // Only the failed request will be rolled back.
           /* istanbul ignore next */
           getRequest.onerror = (event) => {
             this.logger.debug('DiagnosticsStorage: Failed to read existing counter', key, event);
@@ -326,16 +322,12 @@ export class DiagnosticsStorage implements IDiagnosticsStorage {
             const putRequest = store.put(updatedStats);
 
             putRequest.onerror = (event) => {
-              // Prevent the whole transaction from being rolled back.
-              // Only the failed request will be rolled back.
               this.logger.debug('DiagnosticsStorage: Failed to set histogram stats', key, event);
             };
           };
 
           /* istanbul ignore next */
           getRequest.onerror = (event) => {
-            // Prevent the whole transaction from being rolled back.
-            // Only the failed request will be rolled back.
             this.logger.debug('DiagnosticsStorage: Failed to read existing histogram stats', key, event);
           };
         });
@@ -488,7 +480,6 @@ export class DiagnosticsStorage implements IDiagnosticsStorage {
 
       // Clear all data in the same transaction
       await Promise.all([
-        this.clearTable(transaction, TABLE_NAMES.TAGS),
         this.clearTable(transaction, TABLE_NAMES.COUNTERS),
         this.clearTable(transaction, TABLE_NAMES.HISTOGRAMS),
         this.clearTable(transaction, TABLE_NAMES.EVENTS),
