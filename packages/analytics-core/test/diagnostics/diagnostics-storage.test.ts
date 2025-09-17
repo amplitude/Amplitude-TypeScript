@@ -199,6 +199,22 @@ describe('DiagnosticsStorage', () => {
       // Restore spy
       getDBSpy.mockRestore();
     });
+
+    test('should handle error when openDB promise rejects', async () => {
+      const testTags = { test: 'test' };
+      const testError = new Error('Failed to open IndexedDB');
+      const openDBSpy = jest.spyOn(storage, 'openDB').mockRejectedValue(testError);
+
+      // The setTags should handle the error gracefully
+      await expect(storage.setTags(testTags)).resolves.toBeUndefined();
+
+      // Verify error was logged
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockLogger.debug).toHaveBeenCalledWith('DiagnosticsStorage: Failed to set tags', testError);
+
+      // Restore spy
+      openDBSpy.mockRestore();
+    });
   });
 
   describe('incrementCounters', () => {
@@ -290,6 +306,90 @@ describe('DiagnosticsStorage', () => {
       // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockLogger.debug).toHaveBeenCalledWith(
         'DiagnosticsStorage: Failed to increment counters',
+        expect.any(Event),
+      );
+
+      // Restore spy
+      getDBSpy.mockRestore();
+    });
+
+    test('should handle error when openDB promise rejects', async () => {
+      const testCounters = { clicks: 5 };
+      const testError = new Error('Failed to open IndexedDB');
+      const openDBSpy = jest.spyOn(storage, 'openDB').mockRejectedValue(testError);
+
+      // The incrementCounters should handle the error gracefully
+      await expect(storage.incrementCounters(testCounters)).resolves.toBeUndefined();
+
+      // Verify error was logged
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockLogger.debug).toHaveBeenCalledWith('DiagnosticsStorage: Failed to increment counters', testError);
+
+      // Restore spy
+      openDBSpy.mockRestore();
+    });
+
+    test('should handle get request error when reading existing counter', async () => {
+      const testCounters = { clicks: 5 };
+
+      // Create mock requests
+      const mockGetRequest = {
+        onsuccess: null as ((event: Event) => void) | null,
+        onerror: null as ((event: Event) => void) | null,
+        result: undefined,
+      };
+
+      // Mock the transaction first so we can reference it
+      const mockTransaction = {
+        oncomplete: null as ((event: Event) => void) | null,
+        onabort: null as ((event: Event) => void) | null,
+        objectStore: jest.fn(),
+      };
+
+      // Mock the store get method to return a request that will fail
+      const mockStore = {
+        get: jest.fn().mockImplementation(() => {
+          // Simulate async error by triggering onerror after handlers are set
+          setTimeout(() => {
+            if (mockGetRequest.onerror) {
+              const errorEvent = new Event('error');
+              mockGetRequest.onerror(errorEvent);
+            }
+            // Also trigger transaction complete to resolve the Promise
+            if (mockTransaction.oncomplete) {
+              mockTransaction.oncomplete(new Event('complete'));
+            }
+          }, 0);
+          return mockGetRequest;
+        }),
+        put: jest.fn().mockReturnValue({ onerror: null }),
+      };
+
+      // Set up the mock store reference
+      mockTransaction.objectStore.mockReturnValue(mockStore);
+
+      // Mock the database
+      const mockDB = {
+        transaction: jest.fn().mockReturnValue(mockTransaction),
+      };
+
+      // Spy on getDB and make it return our mock database
+      const getDBSpy = jest.spyOn(storage, 'getDB').mockResolvedValue(mockDB as unknown as IDBDatabase);
+
+      // The incrementCounters should handle the error gracefully
+      await expect(storage.incrementCounters(testCounters)).resolves.toBeUndefined();
+
+      // Give time for async error to be processed
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      // Verify the get request was attempted
+      expect(mockStore.get).toHaveBeenCalledWith('clicks');
+
+      // Verify get error was logged
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockLogger.debug).toHaveBeenCalledWith(
+        'DiagnosticsStorage: Failed to read existing counter',
+        'clicks',
         expect.any(Event),
       );
 
@@ -400,6 +500,90 @@ describe('DiagnosticsStorage', () => {
       // Restore spy
       getDBSpy.mockRestore();
     });
+
+    test('should handle error when openDB promise rejects', async () => {
+      const testHistogramStats = { responseTime: { count: 10, min: 50, max: 500, sum: 2500 } };
+      const testError = new Error('Failed to open IndexedDB');
+      const openDBSpy = jest.spyOn(storage, 'openDB').mockRejectedValue(testError);
+
+      // The setHistogramStats should handle the error gracefully
+      await expect(storage.setHistogramStats(testHistogramStats)).resolves.toBeUndefined();
+
+      // Verify error was logged
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockLogger.debug).toHaveBeenCalledWith('DiagnosticsStorage: Failed to set histogram stats', testError);
+
+      // Restore spy
+      openDBSpy.mockRestore();
+    });
+
+    test('should handle get request error when reading existing histogram', async () => {
+      const testHistogramStats = { responseTime: { count: 10, min: 50, max: 500, sum: 2500 } };
+
+      // Create mock requests
+      const mockGetRequest = {
+        onsuccess: null as ((event: Event) => void) | null,
+        onerror: null as ((event: Event) => void) | null,
+        result: undefined,
+      };
+
+      // Mock the transaction first so we can reference it
+      const mockTransaction = {
+        oncomplete: null as ((event: Event) => void) | null,
+        onabort: null as ((event: Event) => void) | null,
+        objectStore: jest.fn(),
+      };
+
+      // Mock the store get method to return a request that will fail
+      const mockStore = {
+        get: jest.fn().mockImplementation(() => {
+          // Simulate async error by triggering onerror after handlers are set
+          setTimeout(() => {
+            if (mockGetRequest.onerror) {
+              const errorEvent = new Event('error');
+              mockGetRequest.onerror(errorEvent);
+            }
+            // Also trigger transaction complete to resolve the Promise
+            if (mockTransaction.oncomplete) {
+              mockTransaction.oncomplete(new Event('complete'));
+            }
+          }, 0);
+          return mockGetRequest;
+        }),
+        put: jest.fn().mockReturnValue({ onerror: null }),
+      };
+
+      // Set up the mock store reference
+      mockTransaction.objectStore.mockReturnValue(mockStore);
+
+      // Mock the database
+      const mockDB = {
+        transaction: jest.fn().mockReturnValue(mockTransaction),
+      };
+
+      // Spy on getDB and make it return our mock database
+      const getDBSpy = jest.spyOn(storage, 'getDB').mockResolvedValue(mockDB as unknown as IDBDatabase);
+
+      // The setHistogramStats should handle the error gracefully
+      await expect(storage.setHistogramStats(testHistogramStats)).resolves.toBeUndefined();
+
+      // Give time for async error to be processed
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      // Verify the get request was attempted
+      expect(mockStore.get).toHaveBeenCalledWith('responseTime');
+
+      // Verify get error was logged
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockLogger.debug).toHaveBeenCalledWith(
+        'DiagnosticsStorage: Failed to read existing histogram stats',
+        'responseTime',
+        expect.any(Event),
+      );
+
+      // Restore spy
+      getDBSpy.mockRestore();
+    });
   });
 
   describe('addEventRecords', () => {
@@ -473,6 +657,22 @@ describe('DiagnosticsStorage', () => {
       // Restore spy
       getDBSpy.mockRestore();
     });
+
+    test('should handle error when openDB promise rejects', async () => {
+      const testEvents = [{ event_name: 'page_view', time: Date.now(), event_properties: { page: '/home' } }];
+      const testError = new Error('Failed to open IndexedDB');
+      const openDBSpy = jest.spyOn(storage, 'openDB').mockRejectedValue(testError);
+
+      // The addEventRecords should handle the error gracefully
+      await expect(storage.addEventRecords(testEvents)).resolves.toBeUndefined();
+
+      // Verify error was logged
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockLogger.debug).toHaveBeenCalledWith('DiagnosticsStorage: Failed to add event records', testError);
+
+      // Restore spy
+      openDBSpy.mockRestore();
+    });
   });
 
   describe('setInternal', () => {
@@ -496,6 +696,19 @@ describe('DiagnosticsStorage', () => {
       // Then get it back
       const result = await storage.getInternal(key);
       expect(result).toEqual({ key, value });
+    });
+
+    test('should return undefined when openDB promise rejects', async () => {
+      const testError = new Error('Failed to open IndexedDB');
+      const openDBSpy = jest.spyOn(storage, 'openDB').mockRejectedValue(testError);
+
+      const result = await storage.getInternal('testKey');
+
+      expect(result).toBeUndefined();
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockLogger.debug).toHaveBeenCalledWith('DiagnosticsStorage: Failed to get internal value', testError);
+
+      openDBSpy.mockRestore();
     });
   });
 

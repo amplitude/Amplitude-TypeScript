@@ -207,7 +207,6 @@ export class DiagnosticsStorage implements IDiagnosticsStorage {
         });
       });
     } catch (error) {
-      /* istanbul ignore next */
       this.logger.debug('DiagnosticsStorage: Failed to set tags', error);
     }
   }
@@ -249,14 +248,12 @@ export class DiagnosticsStorage implements IDiagnosticsStorage {
             };
           };
 
-          /* istanbul ignore next */
           getRequest.onerror = (event) => {
             this.logger.debug('DiagnosticsStorage: Failed to read existing counter', key, event);
           };
         });
       });
     } catch (error) {
-      /* istanbul ignore next */
       this.logger.debug('DiagnosticsStorage: Failed to increment counters', error);
     }
   }
@@ -319,14 +316,12 @@ export class DiagnosticsStorage implements IDiagnosticsStorage {
             };
           };
 
-          /* istanbul ignore next */
           getRequest.onerror = (event) => {
             this.logger.debug('DiagnosticsStorage: Failed to read existing histogram stats', key, event);
           };
         });
       });
     } catch (error) {
-      /* istanbul ignore next */
       this.logger.debug('DiagnosticsStorage: Failed to set histogram stats', error);
     }
   }
@@ -371,7 +366,6 @@ export class DiagnosticsStorage implements IDiagnosticsStorage {
         });
       });
     } catch (error) {
-      /* istanbul ignore next */
       this.logger.debug('DiagnosticsStorage: Failed to add event records', error);
     }
   }
@@ -411,9 +405,7 @@ export class DiagnosticsStorage implements IDiagnosticsStorage {
         request.onerror = () => reject(new Error('Failed to get internal value'));
       });
     } catch (error) {
-      /* istanbul ignore next */
       this.logger.debug('DiagnosticsStorage: Failed to get internal value', error);
-
       return undefined;
     }
   }
