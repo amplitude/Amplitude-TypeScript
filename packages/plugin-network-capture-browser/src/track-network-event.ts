@@ -4,7 +4,6 @@ import {
   NetworkCaptureRule,
   NetworkTrackingOptions,
   getGlobalScope,
-  JsonObject,
   isUrlMatchAllowlist,
   SAFE_HEADERS,
 } from '@amplitude/analytics-core';
@@ -257,10 +256,10 @@ export type NetworkAnalyticsEvent = {
   ['[Amplitude] Duration']?: number; // completionTime - startTime (millis)
   ['[Amplitude] Request Body Size']?: number;
   ['[Amplitude] Request Headers']?: Record<string, string>;
-  ['[Amplitude] Request Body']?: JsonObject;
+  ['[Amplitude] Request Body']?: string;
   ['[Amplitude] Response Body Size']?: number;
   ['[Amplitude] Response Headers']?: Record<string, string>;
-  ['[Amplitude] Response Body']?: JsonObject;
+  ['[Amplitude] Response Body']?: string;
   ['[Amplitude] Request Type']?: 'xhr' | 'fetch';
 };
 
@@ -272,10 +271,18 @@ export async function logNetworkAnalyticsEvent(
   if (request.requestBodyJson || request.responseBodyJson) {
     const [requestBody, responseBody] = await Promise.all([request.requestBodyJson, request.responseBodyJson]);
     if (requestBody) {
-      networkAnalyticsEvent['[Amplitude] Request Body'] = requestBody;
+      try {
+        networkAnalyticsEvent['[Amplitude] Request Body'] = JSON.stringify(requestBody);
+      } catch (e) {
+        amplitude.logEvent('Failed to stringify request body');
+      }
     }
     if (responseBody) {
-      networkAnalyticsEvent['[Amplitude] Response Body'] = responseBody;
+      try {
+        networkAnalyticsEvent['[Amplitude] Response Body'] = JSON.stringify(responseBody);
+      } catch (e) {
+        amplitude.logEvent('Failed to stringify response body');
+      }
     }
   }
   /* istanbul ignore next */
