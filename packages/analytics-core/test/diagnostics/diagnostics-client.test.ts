@@ -7,6 +7,7 @@ import {
   SAVE_INTERVAL_MS,
 } from '../../src/diagnostics/diagnostics-client';
 import { DiagnosticsStorage } from '../../src/diagnostics/diagnostics-storage';
+import { getGlobalScope } from '../../src/global-scope';
 
 // Mock logger
 const mockLogger: ILogger = {
@@ -21,6 +22,7 @@ const apiKey = '1234567890abcdefg';
 
 // Mock the DiagnosticsStorage module
 jest.mock('../../src/diagnostics/diagnostics-storage');
+jest.mock('../../src/global-scope');
 
 describe('DiagnosticsClient', () => {
   let initializeFlushIntervalSpy: jest.SpyInstance;
@@ -124,6 +126,15 @@ describe('DiagnosticsClient', () => {
       client.storage = mockStorage as any;
       return client;
     };
+
+    test('should early return if storage is not supported', async () => {
+      createClientWithMockStorage(undefined);
+      client.storage = undefined;
+
+      await client.initializeFlushInterval();
+
+      expect(mockStorage.getLastFlushTimestamp).not.toHaveBeenCalled();
+    });
 
     test('should early return for new client', async () => {
       createClientWithMockStorage(undefined);
@@ -236,6 +247,20 @@ describe('DiagnosticsClient', () => {
       expect(client.inMemoryTags).toEqual({});
     });
 
+    test('setTag should early return if exceeding memory limit', () => {
+      for (let i = 0; i < 100; i++) {
+        client.inMemoryTags[`tag${i}`] = `value${i}`;
+      }
+
+      expect(Object.keys(client.inMemoryTags).length).toBe(100);
+
+      client.setTag('library', 'amplitude-typescript/2.0.0');
+
+      expect(Object.keys(client.inMemoryTags).length).toBe(100);
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockLogger.debug).toHaveBeenCalledWith('DiagnosticsClient: Early return setTags as reaching memory limit');
+    });
+
     test('increment', () => {
       const key = 'analytics.fileNotFound';
       const size = 3;
@@ -255,6 +280,31 @@ describe('DiagnosticsClient', () => {
       expect(startSaveTimerIfNeededSpy).toHaveBeenCalled();
     });
 
+    test('increment should early return if storage is not supported', () => {
+      (DiagnosticsStorage.isSupported as jest.Mock).mockReturnValue(false);
+      const client = new DiagnosticsClient(apiKey, mockLogger);
+
+      client.increment('analytics.fileNotFound', 5);
+
+      expect(client.inMemoryCounters).toEqual({});
+    });
+
+    test('increment should early return if exceeding memory limit', () => {
+      for (let i = 0; i < 100; i++) {
+        client.inMemoryCounters[`counter${i}`] = i;
+      }
+
+      expect(Object.keys(client.inMemoryCounters).length).toBe(100);
+
+      client.increment('analytics.fileNotFound', 5);
+
+      expect(Object.keys(client.inMemoryCounters).length).toBe(100);
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockLogger.debug).toHaveBeenCalledWith(
+        'DiagnosticsClient: Early return increment as reaching memory limit',
+      );
+    });
+
     test('recordHistogram', () => {
       client.recordHistogram('sr.time', 50);
       client.recordHistogram('sr.time', 100);
@@ -272,6 +322,33 @@ describe('DiagnosticsClient', () => {
       expect(startSaveTimerIfNeededSpy).toHaveBeenCalled();
     });
 
+    test('recordHistogram should early return if storage is not supported', () => {
+      (DiagnosticsStorage.isSupported as jest.Mock).mockReturnValue(false);
+      const client = new DiagnosticsClient(apiKey, mockLogger);
+
+      client.recordHistogram('sr.time', 50);
+
+      expect(client.inMemoryHistograms).toEqual({});
+    });
+
+    test('recordHistogram should early return if exceeding memory limit', () => {
+      for (let i = 0; i < 100; i++) {
+        client.inMemoryHistograms[`histogram${i}`] = {
+          count: 1,
+          min: i,
+          max: i,
+          sum: i,
+        };
+      }
+
+      expect(Object.keys(client.inMemoryHistograms).length).toBe(100);
+
+      client.recordHistogram('sr.time', 50);
+
+      expect(Object.keys(client.inMemoryHistograms).length).toBe(100);
+      expect(client.inMemoryHistograms['sr.time']).toBeUndefined();
+    });
+
     test('recordEvent', () => {
       const eventName = 'error';
       const properties = { stack_trace: 'test stack trace' };
@@ -285,6 +362,35 @@ describe('DiagnosticsClient', () => {
         event_properties: properties,
       });
       expect(startSaveTimerIfNeededSpy).toHaveBeenCalled();
+    });
+
+    test('recordEvent should early return if storage is not supported', () => {
+      (DiagnosticsStorage.isSupported as jest.Mock).mockReturnValue(false);
+      const client = new DiagnosticsClient(apiKey, mockLogger);
+
+      client.recordEvent('error', { stack_trace: 'test stack trace' });
+
+      expect(client.inMemoryEvents).toEqual([]);
+    });
+
+    test('recordEvent should early return if exceeding memory limit', () => {
+      for (let i = 0; i < 10; i++) {
+        client.inMemoryEvents.push({
+          event_name: `event${i}`,
+          time: Date.now(),
+          event_properties: { index: i },
+        });
+      }
+
+      expect(client.inMemoryEvents).toHaveLength(10);
+
+      client.recordEvent('error', { stack_trace: 'test stack trace' });
+
+      expect(client.inMemoryEvents).toHaveLength(10);
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockLogger.debug).toHaveBeenCalledWith(
+        'DiagnosticsClient: Early return recordEvent as reaching memory limit',
+      );
     });
   });
 
@@ -424,6 +530,15 @@ describe('DiagnosticsClient', () => {
       jest.clearAllMocks();
     });
 
+    test('should early return if storage is not supported', async () => {
+      (DiagnosticsStorage.isSupported as jest.Mock).mockReturnValue(false);
+      const client = new DiagnosticsClient(apiKey, mockLogger);
+
+      await client.saveAllDataToStorage();
+
+      expect(mockStorage.setTags).not.toHaveBeenCalled();
+    });
+
     test('should save all in-memory data to storage and clear memory', async () => {
       // Set up in-memory data
       client.inMemoryTags = { ...TEST_TAGS };
@@ -504,6 +619,15 @@ describe('DiagnosticsClient', () => {
       fetchSpy.mockRestore();
     });
 
+    test('should early return if storage is not supported', async () => {
+      (DiagnosticsStorage.isSupported as jest.Mock).mockReturnValue(false);
+      const client = new DiagnosticsClient(apiKey, mockLogger);
+
+      await client._flush();
+
+      expect(mockStorage.getAllAndClear).not.toHaveBeenCalled();
+    });
+
     test('should call necessary APIs', async () => {
       client.flushTimer = setTimeout(() => {
         // Mock timer callback
@@ -565,11 +689,25 @@ describe('DiagnosticsClient', () => {
     beforeEach(() => {
       client = new DiagnosticsClient(apiKey, mockLogger);
       mockFetch = jest.spyOn(global, 'fetch');
+      (getGlobalScope as jest.Mock).mockReturnValue(globalThis);
     });
 
     afterEach(() => {
       mockFetch.mockRestore();
       jest.clearAllMocks();
+    });
+
+    test('should early return if fetch is not supported', async () => {
+      (getGlobalScope as jest.Mock).mockReturnValue(undefined);
+      const client = new DiagnosticsClient(apiKey, mockLogger);
+
+      await client.fetch(TEST_PAYLOAD);
+
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockLogger.debug).toHaveBeenCalledWith(
+        'DiagnosticsClient: Failed to send diagnostics data. ',
+        expect.any(Error),
+      );
     });
 
     test('should send POST request with correct parameters', async () => {
@@ -627,7 +765,7 @@ describe('DiagnosticsClient', () => {
       await client.fetch(TEST_PAYLOAD);
 
       // eslint-disable-next-line @typescript-eslint/unbound-method
-      expect(mockLogger.debug).toHaveBeenCalledWith('DiagnosticsClient: Failed to send diagnostics data', error);
+      expect(mockLogger.debug).toHaveBeenCalledWith('DiagnosticsClient: Failed to send diagnostics data. ', error);
     });
 
     test('should use US server URL by default', async () => {

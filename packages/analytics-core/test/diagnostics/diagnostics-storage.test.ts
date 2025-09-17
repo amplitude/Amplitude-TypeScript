@@ -1,6 +1,9 @@
 import 'fake-indexeddb/auto';
 import { DiagnosticsStorage } from '../../src/diagnostics/diagnostics-storage';
 import { ILogger } from '../../src/logger';
+import { getGlobalScope } from '../../src/global-scope';
+
+jest.mock('../../src/global-scope');
 
 // Mock logger
 const mockLogger: ILogger = {
@@ -19,16 +22,28 @@ describe('DiagnosticsStorage', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     storage = new DiagnosticsStorage(apiKey, mockLogger);
+    (getGlobalScope as jest.Mock).mockReturnValue(globalThis);
   });
 
   afterEach(() => {
     jest.resetAllMocks();
+    (getGlobalScope as jest.Mock).mockRestore();
   });
 
   describe('constructor', () => {
     test('should initialize with apiKey and logger', () => {
       expect(storage.dbName).toBe('AMP_diagnostics_1234567890');
       expect(storage.logger).toBe(mockLogger);
+    });
+  });
+
+  describe('isSupported', () => {
+    test('should return true if IndexedDB is supported', () => {
+      expect(DiagnosticsStorage.isSupported()).toBe(true);
+    });
+    test('should return false if IndexedDB is not supported', () => {
+      (getGlobalScope as jest.Mock).mockReturnValue(undefined);
+      expect(DiagnosticsStorage.isSupported()).toBe(false);
     });
   });
 

@@ -185,8 +185,8 @@ export class DiagnosticsClient implements IDiagnosticsClient {
     }
 
     if (Object.keys(this.inMemoryTags).length >= MAX_MEMORY_STORAGE_COUNT) {
-      return;
       this.logger.debug('DiagnosticsClient: Early return setTags as reaching memory limit');
+      return;
     }
 
     this.inMemoryTags[name] = value;
@@ -199,8 +199,8 @@ export class DiagnosticsClient implements IDiagnosticsClient {
     }
 
     if (Object.keys(this.inMemoryCounters).length >= MAX_MEMORY_STORAGE_COUNT) {
-      return;
       this.logger.debug('DiagnosticsClient: Early return increment as reaching memory limit');
+      return;
     }
 
     this.inMemoryCounters[name] = (this.inMemoryCounters[name] || 0) + size;
@@ -213,8 +213,8 @@ export class DiagnosticsClient implements IDiagnosticsClient {
     }
 
     if (Object.keys(this.inMemoryHistograms).length >= MAX_MEMORY_STORAGE_COUNT) {
-      return;
       this.logger.debug('DiagnosticsClient: Early return recordHistogram as reaching memory limit');
+      return;
     }
 
     const existing = this.inMemoryHistograms[name];
@@ -242,8 +242,8 @@ export class DiagnosticsClient implements IDiagnosticsClient {
     }
 
     if (this.inMemoryEvents.length >= MAX_MEMORY_STORAGE_EVENTS_COUNT) {
-      return;
       this.logger.debug('DiagnosticsClient: Early return recordEvent as reaching memory limit');
+      return;
     }
 
     this.inMemoryEvents.push({
@@ -376,7 +376,11 @@ export class DiagnosticsClient implements IDiagnosticsClient {
    */
   async fetch(payload: FlushPayload) {
     try {
-      const response = await getGlobalScope()?.fetch(this.serverUrl, {
+      if (!getGlobalScope()) {
+        throw new Error('DiagnosticsClient: Fetch is not supported');
+      }
+
+      const response = await fetch(this.serverUrl, {
         method: 'POST',
         headers: {
           'X-ApiKey': this.apiKey,
@@ -385,14 +389,14 @@ export class DiagnosticsClient implements IDiagnosticsClient {
         body: JSON.stringify(payload),
       });
 
-      if (!response?.ok) {
+      if (!response.ok) {
         this.logger.debug('DiagnosticsClient: Failed to send diagnostics data.');
         return;
       }
 
       this.logger.debug('DiagnosticsClient: Successfully sent diagnostics data');
     } catch (error) {
-      this.logger.debug('DiagnosticsClient: Failed to send diagnostics data', error);
+      this.logger.debug('DiagnosticsClient: Failed to send diagnostics data. ', error);
     }
   }
 

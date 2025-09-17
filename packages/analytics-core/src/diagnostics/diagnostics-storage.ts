@@ -124,12 +124,6 @@ export class DiagnosticsStorage implements IDiagnosticsStorage {
 
   openDB(): Promise<IDBDatabase> {
     return new Promise((resolve, reject) => {
-      /* istanbul ignore next */
-      if (getGlobalScope()?.indexedDB === undefined) {
-        reject(new Error('IndexedDB is not supported'));
-        return;
-      }
-
       const request = indexedDB.open(this.dbName, DB_VERSION);
 
       /* istanbul ignore next */
