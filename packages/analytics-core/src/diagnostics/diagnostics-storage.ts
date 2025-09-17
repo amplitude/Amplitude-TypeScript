@@ -331,6 +331,7 @@ export class DiagnosticsStorage implements IDiagnosticsStorage {
     }
   }
 
+  // TODO(AMP-139569) - should save at most 10 events
   async addEventRecords(
     events: Array<{ event_name: string; time: number; event_properties: Record<string, any> }>,
   ): Promise<void> {
