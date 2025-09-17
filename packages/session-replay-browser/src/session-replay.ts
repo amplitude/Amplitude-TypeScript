@@ -291,7 +291,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
     targetingParams: Pick<TargetingParameters, 'event' | 'userProperties'>,
     isInit = false,
   ) => {
-    if (!this.identifiers || !this.identifiers.sessionId || !this.config) {
+    if (!this.identifiers || !this.identifiers.sessionId || !this.config || !this.config.targetingConfig) {
       if (this.identifiers && !this.identifiers.sessionId) {
         this.loggerProvider.log('Session ID has not been set yet, cannot evaluate targeting for Session Replay.');
       } else {
