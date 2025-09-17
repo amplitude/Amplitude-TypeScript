@@ -1204,12 +1204,20 @@ describe('SessionReplay', () => {
       expect(currentSequenceEvents).toEqual(undefined);
     });
 
-    test('should stop recording before starting anew', async () => {
+    test('should not stop recording if already recording', async () => {
       await sessionReplay.init(apiKey, mockOptions).promise;
       const stopRecordingMock = jest.fn();
       sessionReplay.recordCancelCallback = stopRecordingMock;
       await sessionReplay.recordEvents();
-      expect(stopRecordingMock).toHaveBeenCalled();
+      expect(stopRecordingMock).not.toHaveBeenCalled();
+    });
+
+    test('should stop recording before starting anew if not already recording', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      const stopRecordingEventsSpy = jest.spyOn(sessionReplay, 'stopRecordingEvents');
+      sessionReplay.recordCancelCallback = null; // No active recording
+      await sessionReplay.recordEvents();
+      expect(stopRecordingEventsSpy).toHaveBeenCalled();
     });
 
     test('should stop recording and send events if user opts out during recording', async () => {
