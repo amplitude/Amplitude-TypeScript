@@ -225,7 +225,12 @@ export class SessionReplay implements AmplitudeSessionReplay {
       const { joinedConfig } = await this.joinedConfigGenerator.generateJoinedConfig(this.identifiers.sessionId);
       this.config = joinedConfig;
     }
-    await this.evaluateTargetingAndCapture({ userProperties: options?.userProperties });
+
+    if (this.config?.targetingConfig) {
+      await this.evaluateTargetingAndCapture({ userProperties: options?.userProperties });
+    } else {
+      await this.recordEvents();
+    }
   }
 
   getSessionReplayProperties() {
@@ -298,6 +303,17 @@ export class SessionReplay implements AmplitudeSessionReplay {
         this.loggerProvider.warn('Session replay init has not been called, cannot evaluate targeting.');
       }
       return;
+    }
+
+    // If there's no targeting config and this is not initialization, skip initialize/recordEvents
+    if (!this.config.targetingConfig && !isInit) {
+      this.loggerProvider.log('No targeting config set, skipping initialization/recording for event.');
+      return;
+    }
+
+    // If there's no targeting config but this is initialization, log and continue
+    if (!this.config.targetingConfig) {
+      this.loggerProvider.log('Targeting config has not been set yet, cannot evaluate targeting.');
     }
 
     // Store targeting parameters for use in getShouldRecord
