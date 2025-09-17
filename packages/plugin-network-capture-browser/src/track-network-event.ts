@@ -6,6 +6,7 @@ import {
   getGlobalScope,
   isUrlMatchAllowlist,
   SAFE_HEADERS,
+  ILogger,
 } from '@amplitude/analytics-core';
 import { filter } from 'rxjs';
 import { AllWindowObservables, TimestampedEvent } from './network-capture-plugin';
@@ -267,6 +268,7 @@ export async function logNetworkAnalyticsEvent(
   networkAnalyticsEvent: NetworkAnalyticsEvent,
   request: NetworkRequestEvent,
   amplitude: BrowserClient,
+  loggerProvider?: ILogger,
 ) {
   if (request.requestBodyJson || request.responseBodyJson) {
     const [requestBody, responseBody] = await Promise.all([request.requestBodyJson, request.responseBodyJson]);
@@ -275,7 +277,7 @@ export async function logNetworkAnalyticsEvent(
         networkAnalyticsEvent['[Amplitude] Request Body'] = JSON.stringify(requestBody);
       } catch (e) {
         /* istanbul ignore next */
-        amplitude.logEvent('Failed to stringify request body');
+        loggerProvider?.debug('Failed to stringify request body', e);
       }
     }
     if (responseBody) {
@@ -283,7 +285,7 @@ export async function logNetworkAnalyticsEvent(
         networkAnalyticsEvent['[Amplitude] Response Body'] = JSON.stringify(responseBody);
       } catch (e) {
         /* istanbul ignore next */
-        amplitude.logEvent('Failed to stringify response body');
+        loggerProvider?.debug('Failed to stringify response body');
       }
     }
   }
@@ -295,10 +297,12 @@ export function trackNetworkEvents({
   allObservables,
   networkTrackingOptions,
   amplitude,
+  loggerProvider,
 }: {
   allObservables: AllWindowObservables;
   networkTrackingOptions: NetworkTrackingOptions;
   amplitude: BrowserClient;
+  loggerProvider?: ILogger;
 }) {
   const { networkObservable } = allObservables;
 
@@ -344,6 +348,6 @@ export function trackNetworkEvents({
     };
 
     // fire-and-forget promise that tracks the event
-    void logNetworkAnalyticsEvent(networkAnalyticsEvent, request, amplitude);
+    void logNetworkAnalyticsEvent(networkAnalyticsEvent, request, amplitude, loggerProvider);
   });
 }
