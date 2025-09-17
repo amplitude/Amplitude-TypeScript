@@ -19,29 +19,8 @@ const mockLogger: ILogger = {
 };
 const apiKey = '1234567890abcdefg';
 
-jest.mock('../../src/diagnostics/diagnostics-storage', () => {
-  const MockDiagnosticsStorage = jest.fn().mockImplementation(() => ({
-    // Mock instance methods
-    setTags: jest.fn(),
-    incrementCounters: jest.fn(),
-    setHistogramStats: jest.fn(),
-    addEventRecords: jest.fn(),
-    setLastFlushTimestamp: jest.fn(),
-    getLastFlushTimestamp: jest.fn(),
-    getAllAndClear: jest.fn(),
-  }));
-
-  // Add static methods to the constructor function
-  Object.defineProperty(MockDiagnosticsStorage, 'isSupported', {
-    value: jest.fn(),
-    writable: true,
-    configurable: true,
-  });
-
-  return {
-    DiagnosticsStorage: MockDiagnosticsStorage,
-  };
-});
+// Mock the DiagnosticsStorage module
+jest.mock('../../src/diagnostics/diagnostics-storage');
 
 describe('DiagnosticsClient', () => {
   let initializeFlushIntervalSpy: jest.SpyInstance;
@@ -54,7 +33,20 @@ describe('DiagnosticsClient', () => {
       .spyOn(DiagnosticsClient.prototype, 'initializeFlushInterval')
       .mockImplementation(() => Promise.resolve());
 
+    // Set up DiagnosticsStorage mock
     (DiagnosticsStorage.isSupported as jest.Mock).mockReturnValue(true);
+    (DiagnosticsStorage as jest.MockedClass<typeof DiagnosticsStorage>).mockImplementation(
+      () =>
+        ({
+          setTags: jest.fn(),
+          incrementCounters: jest.fn(),
+          setHistogramStats: jest.fn(),
+          addEventRecords: jest.fn(),
+          setLastFlushTimestamp: jest.fn(),
+          getLastFlushTimestamp: jest.fn(),
+          getAllAndClear: jest.fn(),
+        } as unknown as DiagnosticsStorage),
+    );
   });
 
   afterEach(() => {
