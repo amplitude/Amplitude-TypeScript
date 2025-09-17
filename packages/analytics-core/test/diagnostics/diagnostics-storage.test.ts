@@ -62,13 +62,142 @@ describe('DiagnosticsStorage', () => {
     });
   });
 
+  describe('openDB', () => {
+    test('should reject on open DB request errors', async () => {
+      // Mock indexedDB.open to simulate an error
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      const originalOpen = indexedDB.open;
+      const mockRequest = {
+        onerror: null as ((event: Event) => void) | null,
+        onsuccess: null as ((event: Event) => void) | null,
+        onupgradeneeded: null as ((event: Event) => void) | null,
+      };
+
+      indexedDB.open = jest.fn().mockReturnValue(mockRequest);
+
+      // Start the openDB operation
+      const openDBPromise = storage.openDB();
+
+      // Simulate the error event
+      if (mockRequest.onerror) {
+        mockRequest.onerror(new Event('error'));
+      }
+
+      // Verify the promise rejects with the correct error
+      await expect(openDBPromise).rejects.toThrow('Failed to open IndexedDB');
+
+      // Restore the original method
+      indexedDB.open = originalOpen;
+    });
+  });
+
   describe('setTags', () => {
     test('should set tags', async () => {
-      await expect(storage.setTags({ test: 'test' })).resolves.toBeUndefined();
+      const testTags = { test: 'test', library: 'amplitude-typescript' };
+
+      await expect(storage.setTags(testTags)).resolves.toBeUndefined();
+
+      // Verify the tags were actually stored in IndexedDB by reading directly
+      const dbName = `AMP_diagnostics_${apiKey.substring(0, 10)}`;
+      const db = await new Promise<IDBDatabase>((resolve, reject) => {
+        const request = indexedDB.open(dbName, 1);
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+
+      const transaction = db.transaction(['tags'], 'readonly');
+      const store = transaction.objectStore('tags');
+
+      const allRecords = await new Promise<any[]>((resolve, reject) => {
+        const request = store.getAll();
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+
+      expect(allRecords).toHaveLength(2);
+      expect(allRecords).toEqual(
+        expect.arrayContaining([
+          { key: 'test', value: 'test' },
+          { key: 'library', value: 'amplitude-typescript' },
+        ]),
+      );
+
+      db.close();
     });
 
     test('should early return if tags is empty', async () => {
+      const getDBSpy = jest.spyOn(storage, 'getDB');
+
       await expect(storage.setTags({})).resolves.toBeUndefined();
+
+      expect(getDBSpy).not.toHaveBeenCalled();
+      getDBSpy.mockRestore();
+    });
+
+    test('should handle put request errors', async () => {
+      const testTags = { test: 'test' };
+
+      // Create a mock put request that will automatically trigger error
+      const mockPutRequest = {
+        onerror: null as ((event: Event) => void) | null,
+      };
+
+      // Mock the store.put to return a request that will fail
+      const mockStore = {
+        put: jest.fn().mockImplementation(() => {
+          // Simulate async error by triggering onerror after handlers are set
+          setTimeout(() => {
+            if (mockPutRequest.onerror) {
+              const errorEvent = new Event('error');
+              mockPutRequest.onerror(errorEvent);
+            }
+            // Also trigger transaction abort
+            if (mockTransaction.onabort) {
+              const abortEvent = new Event('abort');
+              mockTransaction.onabort(abortEvent);
+            }
+          }, 0);
+          return mockPutRequest;
+        }),
+      };
+
+      // Mock the transaction that will abort due to put error
+      const mockTransaction = {
+        oncomplete: null as ((event: Event) => void) | null,
+        onabort: null as ((event: Event) => void) | null,
+        objectStore: jest.fn().mockReturnValue(mockStore),
+      };
+
+      // Mock the database
+      const mockDB = {
+        transaction: jest.fn().mockReturnValue(mockTransaction),
+      };
+
+      // Spy on getDB and make it return our mock database
+      const getDBSpy = jest.spyOn(storage, 'getDB').mockResolvedValue(mockDB as unknown as IDBDatabase);
+
+      // The setTags should handle the error gracefully
+      await expect(storage.setTags(testTags)).resolves.toBeUndefined();
+
+      // Give time for async error to be processed
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      // Verify the put request was attempted
+      expect(mockStore.put).toHaveBeenCalledWith({ key: 'test', value: 'test' });
+
+      // Verify both put error and transaction abort were logged
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockLogger.debug).toHaveBeenCalledWith(
+        'DiagnosticsStorage: Failed to set tag',
+        'test',
+        'test',
+        expect.any(Event),
+      );
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockLogger.debug).toHaveBeenCalledWith('DiagnosticsStorage: Failed to set tags', expect.any(Event));
+
+      // Restore spy
+      getDBSpy.mockRestore();
     });
   });
 

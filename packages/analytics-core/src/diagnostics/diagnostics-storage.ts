@@ -126,7 +126,6 @@ export class DiagnosticsStorage implements IDiagnosticsStorage {
     return new Promise((resolve, reject) => {
       const request = indexedDB.open(this.dbName, DB_VERSION);
 
-      /* istanbul ignore next */
       request.onerror = () => {
         reject(new Error('Failed to open IndexedDB'));
       };
