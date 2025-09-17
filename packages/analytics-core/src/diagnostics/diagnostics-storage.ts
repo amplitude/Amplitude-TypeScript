@@ -344,6 +344,7 @@ export class DiagnosticsStorage implements IDiagnosticsStorage {
           resolve();
         };
 
+        /* istanbul ignore next */
         transaction.onabort = (event) => {
           this.logger.debug('DiagnosticsStorage: Failed to add event records', event);
           resolve();
@@ -373,6 +374,9 @@ export class DiagnosticsStorage implements IDiagnosticsStorage {
       const store = transaction.objectStore(TABLE_NAMES.INTERNAL);
 
       return new Promise((resolve, reject) => {
+        /* istanbul ignore next */
+        transaction.onabort = () => reject(new Error('Failed to set internal value'));
+
         const request = store.put({ key, value });
 
         request.onsuccess = () => resolve();
@@ -393,6 +397,9 @@ export class DiagnosticsStorage implements IDiagnosticsStorage {
       const store = transaction.objectStore(TABLE_NAMES.INTERNAL);
 
       return new Promise((resolve, reject) => {
+        /* istanbul ignore next */
+        transaction.onabort = () => reject(new Error('Failed to get internal value'));
+
         const request = store.get(key);
 
         request.onsuccess = () => resolve(request.result as InternalRecord | undefined);
