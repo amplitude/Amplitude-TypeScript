@@ -274,6 +274,7 @@ export async function logNetworkAnalyticsEvent(
       try {
         networkAnalyticsEvent['[Amplitude] Request Body'] = JSON.stringify(requestBody);
       } catch (e) {
+        /* istanbul ignore next */
         amplitude.logEvent('Failed to stringify request body');
       }
     }
@@ -281,6 +282,7 @@ export async function logNetworkAnalyticsEvent(
       try {
         networkAnalyticsEvent['[Amplitude] Response Body'] = JSON.stringify(responseBody);
       } catch (e) {
+        /* istanbul ignore next */
         amplitude.logEvent('Failed to stringify response body');
       }
     }
