@@ -209,6 +209,93 @@ describe('DiagnosticsStorage', () => {
     test('should early return if counters is empty', async () => {
       await expect(storage.incrementCounters({})).resolves.toBeUndefined();
     });
+
+    test('should handle put request errors', async () => {
+      const testCounters = { clicks: 5 };
+
+      // Create mock requests
+      const mockGetRequest = {
+        onsuccess: null as ((event: Event) => void) | null,
+        onerror: null as ((event: Event) => void) | null,
+        result: undefined, // No existing value
+      };
+
+      const mockPutRequest = {
+        onerror: null as ((event: Event) => void) | null,
+      };
+
+      // Mock the store get and put methods (incrementCounters uses read-modify-write)
+      const mockStore = {
+        get: jest.fn().mockImplementation(() => {
+          // Simulate successful get (no existing value)
+          setTimeout(() => {
+            if (mockGetRequest.onsuccess) {
+              mockGetRequest.onsuccess(new Event('success'));
+            }
+          }, 0);
+          return mockGetRequest;
+        }),
+        put: jest.fn().mockImplementation(() => {
+          // Simulate async error by triggering onerror after handlers are set
+          setTimeout(() => {
+            if (mockPutRequest.onerror) {
+              const errorEvent = new Event('error');
+              mockPutRequest.onerror(errorEvent);
+            }
+            // Also trigger transaction abort
+            if (mockTransaction.onabort) {
+              const abortEvent = new Event('abort');
+              mockTransaction.onabort(abortEvent);
+            }
+          }, 0);
+          return mockPutRequest;
+        }),
+      };
+
+      // Mock the transaction that will abort due to put error
+      const mockTransaction = {
+        oncomplete: null as ((event: Event) => void) | null,
+        onabort: null as ((event: Event) => void) | null,
+        objectStore: jest.fn().mockReturnValue(mockStore),
+      };
+
+      // Mock the database
+      const mockDB = {
+        transaction: jest.fn().mockReturnValue(mockTransaction),
+      };
+
+      // Spy on getDB and make it return our mock database
+      const getDBSpy = jest.spyOn(storage, 'getDB').mockResolvedValue(mockDB as unknown as IDBDatabase);
+
+      // The incrementCounters should handle the error gracefully
+      await expect(storage.incrementCounters(testCounters)).resolves.toBeUndefined();
+
+      // Give time for async error to be processed
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      // Verify the put request was attempted
+      expect(mockStore.put).toHaveBeenCalledWith({ key: 'clicks', value: 5 });
+
+      // Verify both get and put were called
+      expect(mockStore.get).toHaveBeenCalledWith('clicks');
+      expect(mockStore.put).toHaveBeenCalledWith({ key: 'clicks', value: 5 });
+
+      // Verify both put error and transaction abort were logged
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockLogger.debug).toHaveBeenCalledWith(
+        'DiagnosticsStorage: Failed to update counter',
+        'clicks',
+        expect.any(Event),
+      );
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockLogger.debug).toHaveBeenCalledWith(
+        'DiagnosticsStorage: Failed to increment counters',
+        expect.any(Event),
+      );
+
+      // Restore spy
+      getDBSpy.mockRestore();
+    });
   });
 
   describe('setHistogramStats', () => {
@@ -223,6 +310,96 @@ describe('DiagnosticsStorage', () => {
     test('should early return if histogram stats is empty', async () => {
       await expect(storage.setHistogramStats({})).resolves.toBeUndefined();
     });
+
+    test('should handle put request errors', async () => {
+      const testHistogramStats = { responseTime: { count: 10, min: 50, max: 500, sum: 2500 } };
+
+      // Create mock requests
+      const mockGetRequest = {
+        onsuccess: null as ((event: Event) => void) | null,
+        onerror: null as ((event: Event) => void) | null,
+        result: undefined, // No existing value
+      };
+
+      const mockPutRequest = {
+        onerror: null as ((event: Event) => void) | null,
+      };
+
+      // Mock the store get and put methods (setHistogramStats uses read-modify-write)
+      const mockStore = {
+        get: jest.fn().mockImplementation(() => {
+          // Simulate successful get (no existing value)
+          setTimeout(() => {
+            if (mockGetRequest.onsuccess) {
+              mockGetRequest.onsuccess(new Event('success'));
+            }
+          }, 0);
+          return mockGetRequest;
+        }),
+        put: jest.fn().mockImplementation(() => {
+          // Simulate async error by triggering onerror after handlers are set
+          setTimeout(() => {
+            if (mockPutRequest.onerror) {
+              const errorEvent = new Event('error');
+              mockPutRequest.onerror(errorEvent);
+            }
+            // Also trigger transaction abort
+            if (mockTransaction.onabort) {
+              const abortEvent = new Event('abort');
+              mockTransaction.onabort(abortEvent);
+            }
+          }, 0);
+          return mockPutRequest;
+        }),
+      };
+
+      // Mock the transaction that will abort due to put error
+      const mockTransaction = {
+        oncomplete: null as ((event: Event) => void) | null,
+        onabort: null as ((event: Event) => void) | null,
+        objectStore: jest.fn().mockReturnValue(mockStore),
+      };
+
+      // Mock the database
+      const mockDB = {
+        transaction: jest.fn().mockReturnValue(mockTransaction),
+      };
+
+      // Spy on getDB and make it return our mock database
+      const getDBSpy = jest.spyOn(storage, 'getDB').mockResolvedValue(mockDB as unknown as IDBDatabase);
+
+      // The setHistogramStats should handle the error gracefully
+      await expect(storage.setHistogramStats(testHistogramStats)).resolves.toBeUndefined();
+
+      // Give time for async error to be processed
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      // Verify both get and put were called
+      expect(mockStore.get).toHaveBeenCalledWith('responseTime');
+      expect(mockStore.put).toHaveBeenCalledWith({
+        key: 'responseTime',
+        count: 10,
+        min: 50,
+        max: 500,
+        sum: 2500,
+      });
+
+      // Verify both put error and transaction abort were logged
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockLogger.debug).toHaveBeenCalledWith(
+        'DiagnosticsStorage: Failed to set histogram stats',
+        'responseTime',
+        expect.any(Event),
+      );
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockLogger.debug).toHaveBeenCalledWith(
+        'DiagnosticsStorage: Failed to set histogram stats',
+        expect.any(Event),
+      );
+
+      // Restore spy
+      getDBSpy.mockRestore();
+    });
   });
 
   describe('addEventRecords', () => {
@@ -236,6 +413,65 @@ describe('DiagnosticsStorage', () => {
 
     test('should early return if events is empty', async () => {
       await expect(storage.addEventRecords([])).resolves.toBeUndefined();
+    });
+
+    test('should handle add request errors', async () => {
+      const testEvents = [{ event_name: 'page_view', time: Date.now(), event_properties: { page: '/home' } }];
+
+      // Create a mock add request that will automatically trigger error
+      const mockAddRequest = {
+        onerror: null as ((event: Event) => void) | null,
+        onsuccess: null as ((event: Event) => void) | null,
+      };
+
+      // Mock the store.add to return a request that will fail
+      const mockStore = {
+        add: jest.fn().mockImplementation(() => {
+          // Simulate async error by triggering onerror after handlers are set
+          setTimeout(() => {
+            if (mockAddRequest.onerror) {
+              const errorEvent = new Event('error');
+              mockAddRequest.onerror(errorEvent);
+            }
+          }, 0);
+          return mockAddRequest;
+        }),
+      };
+
+      // Mock the transaction
+      const mockTransaction = {
+        oncomplete: null as ((event: Event) => void) | null,
+        onabort: null as ((event: Event) => void) | null,
+        objectStore: jest.fn().mockReturnValue(mockStore),
+      };
+
+      // Mock the database
+      const mockDB = {
+        transaction: jest.fn().mockReturnValue(mockTransaction),
+      };
+
+      // Spy on getDB and make it return our mock database
+      const getDBSpy = jest.spyOn(storage, 'getDB').mockResolvedValue(mockDB as unknown as IDBDatabase);
+
+      // The addEventRecords should handle the error gracefully
+      await expect(storage.addEventRecords(testEvents)).resolves.toBeUndefined();
+
+      // Give time for async error to be processed
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      // Verify the add request was attempted
+      expect(mockStore.add).toHaveBeenCalledWith({
+        event_name: 'page_view',
+        event_properties: { page: '/home' },
+        time: expect.any(Number) as number,
+      });
+
+      // Verify error was logged
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockLogger.debug).toHaveBeenCalledWith('DiagnosticsStorage: Failed to add event record', 'page_view');
+
+      // Restore spy
+      getDBSpy.mockRestore();
     });
   });
 
@@ -284,6 +520,16 @@ describe('DiagnosticsStorage', () => {
       // Then get it back
       const result = await storage.getLastFlushTimestamp();
       expect(result).toBe(timestamp);
+      expect(spy).toHaveBeenCalledWith('last_flush_timestamp');
+      spy.mockRestore();
+    });
+
+    test('should return undefined when getInternal returns undefined', async () => {
+      const spy = jest.spyOn(storage, 'getInternal').mockResolvedValue(undefined);
+
+      const result = await storage.getLastFlushTimestamp();
+
+      expect(result).toBeUndefined();
       expect(spy).toHaveBeenCalledWith('last_flush_timestamp');
       spy.mockRestore();
     });

@@ -363,7 +363,6 @@ export class DiagnosticsStorage implements IDiagnosticsStorage {
 
           request.onsuccess = handleCompletion;
 
-          /* istanbul ignore next */
           request.onerror = () => {
             this.logger.debug('DiagnosticsStorage: Failed to add event record', event.event_name);
             handleCompletion();
@@ -413,6 +412,7 @@ export class DiagnosticsStorage implements IDiagnosticsStorage {
     } catch (error) {
       /* istanbul ignore next */
       this.logger.debug('DiagnosticsStorage: Failed to get internal value', error);
+
       return undefined;
     }
   }
