@@ -529,6 +529,12 @@ export class SessionReplay implements AmplitudeSessionReplay {
     if (!shouldRecord || !sessionId || !config) {
       return;
     }
+
+    // NOTE: If there is already an active instance, do not start a new one
+    if (this.recordCancelCallback) {
+      return;
+    }
+
     this.stopRecordingEvents();
 
     const recordFunction = await this.getRecordFunction();
