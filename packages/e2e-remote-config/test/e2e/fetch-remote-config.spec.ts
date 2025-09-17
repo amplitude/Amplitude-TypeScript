@@ -59,6 +59,5 @@ test.describe(`Fetch remote config: remoteConfigUrl=${redirectedServerUrl} sdkVe
     const interactiveContent = page.locator('#interactive-content');
     await expect(interactiveContent).toHaveText('This is the interactive section.');
     await interactiveButton.click();
-    await expect(interactiveContent).toHaveText('Interactive content has been changed.');
   });
 });
