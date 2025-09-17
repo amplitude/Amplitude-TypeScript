@@ -331,23 +331,22 @@ export class DiagnosticsStorage implements IDiagnosticsStorage {
     events: Array<{ event_name: string; time: number; event_properties: Record<string, any> }>,
   ): Promise<void> {
     try {
+      if (events.length === 0) {
+        return;
+      }
+
       const db = await this.getDB();
       const transaction = db.transaction([TABLE_NAMES.EVENTS], 'readwrite');
       const store = transaction.objectStore(TABLE_NAMES.EVENTS);
 
       return new Promise((resolve) => {
-        let completed = 0;
-
-        if (events.length === 0) {
+        transaction.oncomplete = () => {
           resolve();
-          return;
-        }
+        };
 
-        const handleCompletion = () => {
-          completed++;
-          if (completed === events.length) {
-            resolve();
-          }
+        transaction.onabort = (event) => {
+          this.logger.debug('DiagnosticsStorage: Failed to add event records', event);
+          resolve();
         };
 
         events.forEach((event) => {
@@ -357,11 +356,8 @@ export class DiagnosticsStorage implements IDiagnosticsStorage {
             time: event.time,
           });
 
-          request.onsuccess = handleCompletion;
-
-          request.onerror = () => {
-            this.logger.debug('DiagnosticsStorage: Failed to add event record', event.event_name);
-            handleCompletion();
+          request.onerror = (event) => {
+            this.logger.debug('DiagnosticsStorage: Failed to add event record', event);
           };
         });
       });

@@ -605,7 +605,6 @@ describe('DiagnosticsStorage', () => {
       // Create a mock add request that will automatically trigger error
       const mockAddRequest = {
         onerror: null as ((event: Event) => void) | null,
-        onsuccess: null as ((event: Event) => void) | null,
       };
 
       // Mock the store.add to return a request that will fail
@@ -616,6 +615,11 @@ describe('DiagnosticsStorage', () => {
             if (mockAddRequest.onerror) {
               const errorEvent = new Event('error');
               mockAddRequest.onerror(errorEvent);
+            }
+            // Also trigger transaction completion (even with errors, transaction can complete)
+            if (mockTransaction.oncomplete) {
+              const completeEvent = new Event('complete');
+              mockTransaction.oncomplete(completeEvent);
             }
           }, 0);
           return mockAddRequest;
@@ -652,7 +656,10 @@ describe('DiagnosticsStorage', () => {
 
       // Verify error was logged
       // eslint-disable-next-line @typescript-eslint/unbound-method
-      expect(mockLogger.debug).toHaveBeenCalledWith('DiagnosticsStorage: Failed to add event record', 'page_view');
+      expect(mockLogger.debug).toHaveBeenCalledWith(
+        'DiagnosticsStorage: Failed to add event record',
+        expect.any(Event),
+      );
 
       // Restore spy
       getDBSpy.mockRestore();
