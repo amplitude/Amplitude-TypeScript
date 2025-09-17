@@ -6,6 +6,7 @@ import {
   FLUSH_INTERVAL_MS,
   SAVE_INTERVAL_MS,
 } from '../../src/diagnostics/diagnostics-client';
+import { DiagnosticsStorage } from '../../src/diagnostics/diagnostics-storage';
 
 // Mock logger
 const mockLogger: ILogger = {
@@ -18,6 +19,30 @@ const mockLogger: ILogger = {
 };
 const apiKey = '1234567890abcdefg';
 
+jest.mock('../../src/diagnostics/diagnostics-storage', () => {
+  const MockDiagnosticsStorage = jest.fn().mockImplementation(() => ({
+    // Mock instance methods
+    setTags: jest.fn(),
+    incrementCounters: jest.fn(),
+    setHistogramStats: jest.fn(),
+    addEventRecords: jest.fn(),
+    setLastFlushTimestamp: jest.fn(),
+    getLastFlushTimestamp: jest.fn(),
+    getAllAndClear: jest.fn(),
+  }));
+
+  // Add static methods to the constructor function
+  Object.defineProperty(MockDiagnosticsStorage, 'isSupported', {
+    value: jest.fn(),
+    writable: true,
+    configurable: true,
+  });
+
+  return {
+    DiagnosticsStorage: MockDiagnosticsStorage,
+  };
+});
+
 describe('DiagnosticsClient', () => {
   let initializeFlushIntervalSpy: jest.SpyInstance;
 
@@ -28,6 +53,8 @@ describe('DiagnosticsClient', () => {
     initializeFlushIntervalSpy = jest
       .spyOn(DiagnosticsClient.prototype, 'initializeFlushInterval')
       .mockImplementation(() => Promise.resolve());
+
+    (DiagnosticsStorage.isSupported as jest.Mock).mockReturnValue(true);
   });
 
   afterEach(() => {
@@ -57,6 +84,14 @@ describe('DiagnosticsClient', () => {
       const client = new DiagnosticsClient(apiKey, mockLogger, 'EU');
 
       expect(client.serverUrl).toBe(DIAGNOSTICS_EU_SERVER_URL);
+    });
+
+    test('should debug log when storage is not supported', () => {
+      (DiagnosticsStorage.isSupported as jest.Mock).mockReturnValue(false);
+      const client = new DiagnosticsClient(apiKey, mockLogger);
+
+      expect(client.storage).toBeUndefined();
+      expect(mockLogger['debug']).toHaveBeenCalledWith('DiagnosticsClient: IndexedDB is not supported');
     });
   });
 
@@ -198,6 +233,15 @@ describe('DiagnosticsClient', () => {
 
       expect(client.inMemoryTags).toEqual({ [key]: value });
       expect(startSaveTimerIfNeededSpy).toHaveBeenCalled();
+    });
+
+    test('setTag should early return if storage is not supported', () => {
+      (DiagnosticsStorage.isSupported as jest.Mock).mockReturnValue(false);
+      const client = new DiagnosticsClient(apiKey, mockLogger);
+
+      client.setTag('library', 'amplitude-typescript/2.0.0');
+
+      expect(client.inMemoryTags).toEqual({});
     });
 
     test('increment', () => {
