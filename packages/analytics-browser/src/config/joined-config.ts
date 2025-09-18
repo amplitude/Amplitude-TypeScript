@@ -5,6 +5,7 @@ import {
   RemoteConfig,
   NetworkTrackingOptions,
   NetworkCaptureRule,
+  SAFE_HEADERS,
 } from '@amplitude/analytics-core';
 
 export interface AutocaptureOptionsRemoteConfig extends AutocaptureOptions {
@@ -106,6 +107,29 @@ export function translateRemoteConfigToLocal(config?: Record<string, any>) {
       // so don't translate it
       // TODO(diagnostics): add a diagnostic event for this
     }
+  }
+
+  // translate remote responseHeaders and requestHeaders to local responseHeaders and requestHeaders
+  try {
+    if (config.autocapture?.networkTracking?.captureRules?.length) {
+      for (const rule of config.autocapture.networkTracking.captureRules) {
+        for (const header of ['responseHeaders', 'requestHeaders']) {
+          const { captureSafeHeaders, allowlist } = rule[header] ?? {};
+          if (!captureSafeHeaders && !allowlist) {
+            continue;
+          }
+          // if allowlist is not an array, remote config contract is violated, remove it
+          if (allowlist !== undefined && !Array.isArray(allowlist)) {
+            delete rule[header];
+            continue;
+          }
+          rule[header] = [...(captureSafeHeaders ? SAFE_HEADERS : []), ...(allowlist ?? [])];
+        }
+      }
+    }
+  } catch (e) {
+    /* istanbul ignore next */
+    // surprise exception, so don't translate it
   }
 }
 
