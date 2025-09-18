@@ -306,6 +306,11 @@ export class DiagnosticsClient implements IDiagnosticsClient {
     if (!this.storage) {
       return;
     }
+
+    await this.saveAllDataToStorage();
+    this.saveTimer = null;
+    this.flushTimer = null;
+
     // Get all data from storage and clear it
     const {
       tags: tagRecords,
