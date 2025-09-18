@@ -61,7 +61,7 @@ export const webVitalsPlugin = (): BrowserEnrichmentPlugin => {
     if (doc === undefined) {
       return;
     }
-    const locationHref = getDecodeURI(/* istanbul ignore next */ location?.href || '');
+    const locationHref = getDecodeURI(/* istanbul ignore next */ location?.href || '', config.loggerProvider);
     const webVitalsPayload: WebVitalsEventPayload = {
       '[Amplitude] Page Domain': /* istanbul ignore next */ location?.hostname || '',
       '[Amplitude] Page Location': locationHref,
