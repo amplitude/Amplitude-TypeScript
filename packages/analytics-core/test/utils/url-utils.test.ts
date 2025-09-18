@@ -41,8 +41,8 @@ describe('isUrlMatchAllowlist', () => {
 });
 
 describe('getDecodeURI', () => {
-  test('should return the original string if decoding fails', () => {
-    const result = getDecodeURI('https://amplitude.com/blog');
-    expect(result).toEqual('https://amplitude.com/blog');
+  test('should decode URI', () => {
+    const result = getDecodeURI('https://www.topps.com/products/2025-bowman-chrome%C2%AE-baseball-mega-box');
+    expect(result).toEqual('https://www.topps.com/products/2025-bowman-chrome®-baseball-mega-box');
   });
 });

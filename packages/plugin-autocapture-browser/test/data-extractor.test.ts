@@ -1164,7 +1164,7 @@ describe('data extractor', () => {
 
   describe('getEventProperties with page URL', () => {
     test('should escape special characters in page URL', () => {
-      mockWindowLocationFromURL(new URL('https://www.topps.com/products/2025-bowman-chrome®-baseball-mega-box'));
+      mockWindowLocationFromURL(new URL('https://www.topps.com/products/2025-bowman-chrome%C2%AE-baseball-mega-box'));
       const element = document.createElement('button');
       element.textContent = 'Click me';
       document.body.appendChild(element);
