@@ -9,7 +9,7 @@ export const DIAGNOSTICS_US_SERVER_URL = 'https://diagnostics.prod.us-west-2.amp
 export const DIAGNOSTICS_EU_SERVER_URL = 'https://diagnostics.prod.eu-central-1.amplitude.com/v1/capture';
 
 // In-memory storage limits
-export const MAX_MEMORY_STORAGE_COUNT = 100; // for tags, counters, histograms separately
+export const MAX_MEMORY_STORAGE_COUNT = 10000; // for tags, counters, histograms separately
 export const MAX_MEMORY_STORAGE_EVENTS_COUNT = 10;
 
 // === Core Data Types ===
