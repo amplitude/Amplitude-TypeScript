@@ -127,11 +127,19 @@ export class DiagnosticsStorage implements IDiagnosticsStorage {
       const request = indexedDB.open(this.dbName, DB_VERSION);
 
       request.onerror = () => {
+        // Clear dbPromise when it rejects for the first time
+        this.dbPromise = null;
         reject(new Error('Failed to open IndexedDB'));
       };
 
       request.onsuccess = () => {
-        resolve(request.result);
+        const db = request.result;
+        // Clear dbPromise when connection was on but went off later
+        db.onclose = () => {
+          this.dbPromise = null;
+          this.logger.debug('DiagnosticsStorage: DB connection closed.');
+        };
+        resolve(db);
       };
 
       request.onupgradeneeded = (event) => {
