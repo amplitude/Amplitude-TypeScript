@@ -67,7 +67,7 @@ export const webVitalsPlugin = (): BrowserEnrichmentPlugin => {
       '[Amplitude] Page Location': locationHref,
       '[Amplitude] Page Path': getDecodeURI(/* istanbul ignore next */ location?.pathname || '', config.loggerProvider),
       '[Amplitude] Page Title': /* istanbul ignore next */ (typeof document !== 'undefined' && document.title) || '',
-      '[Amplitude] Page URL': locationHref.split('?')[0],
+      '[Amplitude] Page URL': getDecodeURI(locationHref.split('?')[0], config.loggerProvider),
     };
 
     onLCP((metric) => {
