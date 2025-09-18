@@ -1,5 +1,5 @@
 /* eslint-disable no-restricted-globals */
-import type { ElementInteractionsOptions, ActionType } from '@amplitude/analytics-core';
+import { ElementInteractionsOptions, ActionType, getDecodeURI } from '@amplitude/analytics-core';
 import type { DataSource } from '@amplitude/analytics-core/lib/esm/types/element-interactions';
 import * as constants from './constants';
 import {
@@ -155,7 +155,7 @@ export class DataExtractor {
       [constants.AMPLITUDE_EVENT_PROP_ELEMENT_POSITION_TOP]: rect.top == null ? null : Math.round(rect.top),
       [constants.AMPLITUDE_EVENT_PROP_ELEMENT_ATTRIBUTES]: attributes,
       [constants.AMPLITUDE_EVENT_PROP_ELEMENT_PARENT_LABEL]: nearestLabel,
-      [constants.AMPLITUDE_EVENT_PROP_PAGE_URL]: window.location.href.split('?')[0],
+      [constants.AMPLITUDE_EVENT_PROP_PAGE_URL]: getDecodeURI(window.location.href.split('?')[0]),
       [constants.AMPLITUDE_EVENT_PROP_PAGE_TITLE]: this.getPageTitle(),
       [constants.AMPLITUDE_EVENT_PROP_VIEWPORT_HEIGHT]: window.innerHeight,
       [constants.AMPLITUDE_EVENT_PROP_VIEWPORT_WIDTH]: window.innerWidth,
