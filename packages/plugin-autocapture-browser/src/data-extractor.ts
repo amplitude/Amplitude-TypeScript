@@ -275,7 +275,7 @@ export class DataExtractor {
       return constants.MASKED_TEXT_VALUE;
     }
 
-    return this.replaceSensitiveString(document.title); // document.title is always synced to the first title element
+    return this.replaceSensitiveString(document.title);
   };
 
   // Returns the element properties for the given element in Visual Labeling.
