@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.6.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-network-capture-browser@1.6.0...@amplitude/plugin-network-capture-browser@1.6.1) (2025-09-18)
+
+
+### Bug Fixes
+
+* **analytics-browser:** stringify request/response bodies in Network Request Event ([#1292](https://github.com/amplitude/Amplitude-TypeScript/issues/1292)) ([a5dd03c](https://github.com/amplitude/Amplitude-TypeScript/commit/a5dd03cf19328e5d0bef5192480cea58db304da0))
+
+
+
+
+
 # [1.6.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-network-capture-browser@1.5.5...@amplitude/plugin-network-capture-browser@1.6.0) (2025-09-12)
 
 

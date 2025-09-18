@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.2.10](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-page-url-enrichment-browser@0.2.9...@amplitude/plugin-page-url-enrichment-browser@0.2.10) (2025-09-18)
+
+
+### Bug Fixes
+
+* **analytics-browser:** add URI decoding to Element Clicked event attribute ([#1297](https://github.com/amplitude/Amplitude-TypeScript/issues/1297)) ([ebb2120](https://github.com/amplitude/Amplitude-TypeScript/commit/ebb212080948e8acbaeadbdc410580e04202f818))
+
+
+
+
+
 ## [0.2.9](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-page-url-enrichment-browser@0.2.8...@amplitude/plugin-page-url-enrichment-browser@0.2.9) (2025-09-12)
 
 **Note:** Version bump only for package @amplitude/plugin-page-url-enrichment-browser

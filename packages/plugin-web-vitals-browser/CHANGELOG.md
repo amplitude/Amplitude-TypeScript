@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [0.1.0-beta.23](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-web-vitals-browser@0.1.0-beta.22...@amplitude/plugin-web-vitals-browser@0.1.0-beta.23) (2025-09-18)
+
+
+### Bug Fixes
+
+* **analytics-browser:** add URI decoding to Element Clicked event attribute ([#1297](https://github.com/amplitude/Amplitude-TypeScript/issues/1297)) ([ebb2120](https://github.com/amplitude/Amplitude-TypeScript/commit/ebb212080948e8acbaeadbdc410580e04202f818))
+
+
+
+
+
 # [0.1.0-beta.22](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-web-vitals-browser@0.1.0-beta.21...@amplitude/plugin-web-vitals-browser@0.1.0-beta.22) (2025-09-12)
 
 **Note:** Version bump only for package @amplitude/plugin-web-vitals-browser

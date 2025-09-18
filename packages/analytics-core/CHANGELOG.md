@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.24.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.24.0...@amplitude/analytics-core@2.24.1) (2025-09-18)
+
+
+### Bug Fixes
+
+* **analytics-browser:** add URI decoding to Element Clicked event attribute ([#1297](https://github.com/amplitude/Amplitude-TypeScript/issues/1297)) ([ebb2120](https://github.com/amplitude/Amplitude-TypeScript/commit/ebb212080948e8acbaeadbdc410580e04202f818))
+
+
+
+
+
 # [2.24.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.23.0...@amplitude/analytics-core@2.24.0) (2025-09-12)
 
 

@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.24.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.24.0...@amplitude/analytics-browser@2.24.1) (2025-09-18)
+
+
+### Bug Fixes
+
+* networkTracking support remote config headers ([#1288](https://github.com/amplitude/Amplitude-TypeScript/issues/1288)) ([1d0b476](https://github.com/amplitude/Amplitude-TypeScript/commit/1d0b476b5e5afc56e542961a63857696b9f47a04))
+
+
+
+
+
 # [2.24.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.23.7...@amplitude/analytics-browser@2.24.0) (2025-09-12)
 
 
