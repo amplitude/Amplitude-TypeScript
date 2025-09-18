@@ -1,5 +1,11 @@
 /* eslint-disable no-restricted-globals */
-import { BrowserClient, BrowserConfig, EnrichmentPlugin, getGlobalScope } from '@amplitude/analytics-core';
+import {
+  BrowserClient,
+  BrowserConfig,
+  EnrichmentPlugin,
+  getGlobalScope,
+  getDecodeURI,
+} from '@amplitude/analytics-core';
 import { PLUGIN_NAME, WEB_VITALS_EVENT_NAME } from './constants';
 import { onLCP, onINP, onCLS, onFCP, onTTFB, Metric } from 'web-vitals';
 
@@ -52,30 +58,14 @@ export const webVitalsPlugin = (): BrowserEnrichmentPlugin => {
   const doc = globalScope?.document;
   const location = globalScope?.location;
   const setup: BrowserEnrichmentPlugin['setup'] = async (config, amplitude) => {
-    const getDecodeURI = (locationStr?: string): string => {
-      /* istanbul ignore next */
-      if (!locationStr) {
-        return '';
-      }
-      let decodedLocationStr = locationStr;
-      try {
-        decodedLocationStr = decodeURI(locationStr);
-      } catch (e) {
-        /* istanbul ignore next */
-        config.loggerProvider?.error('Malformed URI sequence: ', e);
-      }
-
-      return decodedLocationStr;
-    };
-
     if (doc === undefined) {
       return;
     }
-    const locationHref = getDecodeURI(/* istanbul ignore next */ location?.href);
+    const locationHref = getDecodeURI(/* istanbul ignore next */ location?.href || '');
     const webVitalsPayload: WebVitalsEventPayload = {
       '[Amplitude] Page Domain': /* istanbul ignore next */ location?.hostname || '',
       '[Amplitude] Page Location': locationHref,
-      '[Amplitude] Page Path': getDecodeURI(/* istanbul ignore next */ location?.pathname),
+      '[Amplitude] Page Path': getDecodeURI(/* istanbul ignore next */ location?.pathname || '', config.loggerProvider),
       '[Amplitude] Page Title': /* istanbul ignore next */ (typeof document !== 'undefined' && document.title) || '',
       '[Amplitude] Page URL': locationHref.split('?')[0],
     };

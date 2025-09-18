@@ -1,4 +1,4 @@
-import { isUrlMatchAllowlist } from '../../src/';
+import { getDecodeURI, isUrlMatchAllowlist } from '../../src/';
 
 describe('isUrlMatchAllowlist', () => {
   const url = 'https://amplitude.com/blog';
@@ -37,5 +37,12 @@ describe('isUrlMatchAllowlist', () => {
   test('should return true when url is matching an item in the allow list with regex wildcard', () => {
     const result = isUrlMatchAllowlist(url, [new RegExp('http.?://amplitude.*'), new RegExp('http.?://test.*')]);
     expect(result).toEqual(true);
+  });
+});
+
+describe('getDecodeURI', () => {
+  test('should return the original string if decoding fails', () => {
+    const result = getDecodeURI('https://amplitude.com/blog');
+    expect(result).toEqual('https://amplitude.com/blog');
   });
 });

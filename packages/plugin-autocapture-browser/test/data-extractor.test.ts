@@ -1161,4 +1161,21 @@ describe('data extractor', () => {
       document.body.removeChild(element);
     });
   });
+
+  describe('getEventProperties with page URL', () => {
+    test('should escape special characters in page URL', () => {
+      mockWindowLocationFromURL(new URL('https://www.topps.com/products/2025-bowman-chrome®-baseball-mega-box'));
+      const element = document.createElement('button');
+      element.textContent = 'Click me';
+      document.body.appendChild(element);
+
+      const result = dataExtractor.getEventProperties('click', element, 'data-amp-track-');
+
+      expect(result[constants.AMPLITUDE_EVENT_PROP_PAGE_URL]).toBe(
+        'https://www.topps.com/products/2025-bowman-chrome%C2%AE-baseball-mega-box',
+      );
+
+      document.body.removeChild(element);
+    });
+  });
 });
