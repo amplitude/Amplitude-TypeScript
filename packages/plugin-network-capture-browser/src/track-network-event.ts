@@ -4,9 +4,9 @@ import {
   NetworkCaptureRule,
   NetworkTrackingOptions,
   getGlobalScope,
-  JsonObject,
   isUrlMatchAllowlist,
   SAFE_HEADERS,
+  ILogger,
 } from '@amplitude/analytics-core';
 import { filter } from 'rxjs';
 import { AllWindowObservables, TimestampedEvent } from './network-capture-plugin';
@@ -257,10 +257,10 @@ export type NetworkAnalyticsEvent = {
   ['[Amplitude] Duration']?: number; // completionTime - startTime (millis)
   ['[Amplitude] Request Body Size']?: number;
   ['[Amplitude] Request Headers']?: Record<string, string>;
-  ['[Amplitude] Request Body']?: JsonObject;
+  ['[Amplitude] Request Body']?: string;
   ['[Amplitude] Response Body Size']?: number;
   ['[Amplitude] Response Headers']?: Record<string, string>;
-  ['[Amplitude] Response Body']?: JsonObject;
+  ['[Amplitude] Response Body']?: string;
   ['[Amplitude] Request Type']?: 'xhr' | 'fetch';
 };
 
@@ -268,14 +268,25 @@ export async function logNetworkAnalyticsEvent(
   networkAnalyticsEvent: NetworkAnalyticsEvent,
   request: NetworkRequestEvent,
   amplitude: BrowserClient,
+  loggerProvider?: ILogger,
 ) {
   if (request.requestBodyJson || request.responseBodyJson) {
     const [requestBody, responseBody] = await Promise.all([request.requestBodyJson, request.responseBodyJson]);
     if (requestBody) {
-      networkAnalyticsEvent['[Amplitude] Request Body'] = requestBody;
+      try {
+        networkAnalyticsEvent['[Amplitude] Request Body'] = JSON.stringify(requestBody);
+      } catch (e) {
+        /* istanbul ignore next */
+        loggerProvider?.debug('Failed to stringify request body', e);
+      }
     }
     if (responseBody) {
-      networkAnalyticsEvent['[Amplitude] Response Body'] = responseBody;
+      try {
+        networkAnalyticsEvent['[Amplitude] Response Body'] = JSON.stringify(responseBody);
+      } catch (e) {
+        /* istanbul ignore next */
+        loggerProvider?.debug('Failed to stringify response body');
+      }
     }
   }
   /* istanbul ignore next */
@@ -286,10 +297,12 @@ export function trackNetworkEvents({
   allObservables,
   networkTrackingOptions,
   amplitude,
+  loggerProvider,
 }: {
   allObservables: AllWindowObservables;
   networkTrackingOptions: NetworkTrackingOptions;
   amplitude: BrowserClient;
+  loggerProvider?: ILogger;
 }) {
   const { networkObservable } = allObservables;
 
@@ -335,6 +348,6 @@ export function trackNetworkEvents({
     };
 
     // fire-and-forget promise that tracks the event
-    void logNetworkAnalyticsEvent(networkAnalyticsEvent, request, amplitude);
+    void logNetworkAnalyticsEvent(networkAnalyticsEvent, request, amplitude, loggerProvider);
   });
 }
