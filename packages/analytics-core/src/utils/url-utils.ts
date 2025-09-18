@@ -1,3 +1,5 @@
+import { ILogger } from '../logger';
+
 /**
  * Checks if a given URL matches any pattern in an allowlist of URLs or regex patterns.
  * @param url - The URL to check
@@ -14,4 +16,16 @@ export const isUrlMatchAllowlist = (url: string, allowlist: (string | RegExp)[] 
     }
     return url.match(allowedUrl);
   });
+};
+
+export const getDecodeURI = (locationStr: string, loggerProvider?: ILogger): string => {
+  let decodedLocationStr = locationStr;
+  try {
+    decodedLocationStr = decodeURI(locationStr);
+  } catch (e) {
+    /* istanbul ignore next */
+    loggerProvider?.error('Malformed URI sequence: ', e);
+  }
+
+  return decodedLocationStr;
 };

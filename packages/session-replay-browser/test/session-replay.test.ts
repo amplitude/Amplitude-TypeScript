@@ -720,6 +720,26 @@ describe('SessionReplay', () => {
 
     test('should call asyncSetSessionId with userProperties when options provided', async () => {
       await sessionReplay.init(apiKey, mockOptions).promise;
+
+      // Create a mock config with targeting config that will be returned by generateJoinedConfig
+      const mockConfigWithTargeting = new SessionReplayLocalConfig(apiKey, mockOptions);
+      (mockConfigWithTargeting as SessionReplayJoinedConfig).targetingConfig = {
+        key: 'sr_targeting_config',
+        variants: { on: { key: 'on' }, off: { key: 'off' } },
+        segments: [],
+      };
+
+      // Mock generateJoinedConfig to return config with targeting
+      const mockSessionReplayConfigs = {
+        joinedConfig: mockConfigWithTargeting,
+        localConfig: mockConfigWithTargeting,
+        remoteConfig: undefined,
+      };
+
+      jest
+        .spyOn(sessionReplay.joinedConfigGenerator!, 'generateJoinedConfig')
+        .mockResolvedValue(mockSessionReplayConfigs);
+
       const evaluateTargetingAndCaptureSpy = jest.spyOn(sessionReplay, 'evaluateTargetingAndCapture');
 
       // Test with userProperties
@@ -737,6 +757,15 @@ describe('SessionReplay', () => {
       await (sessionReplay as any).asyncSetSessionId(101, '9l8m7n', {});
 
       expect(evaluateTargetingAndCaptureSpy).toHaveBeenCalledWith({ userProperties: undefined });
+    });
+
+    test('should call recordEvents when no targetingConfig', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      const recordEventsSpy = jest.spyOn(sessionReplay, 'recordEvents');
+
+      await (sessionReplay as any).asyncSetSessionId(456, '9l8m7n');
+
+      expect(recordEventsSpy).toHaveBeenCalled();
     });
   });
 
@@ -2487,7 +2516,13 @@ describe('SessionReplay', () => {
     test('should call recordEvents when isInit is false', async () => {
       const sessionReplay = new SessionReplay();
       await sessionReplay.init(apiKey, mockOptions).promise;
-
+      if (sessionReplay.config) {
+        sessionReplay.config.targetingConfig = {
+          key: 'sr_targeting_config',
+          variants: { on: { key: 'on' }, off: { key: 'off' } },
+          segments: [],
+        };
+      }
       const recordEventsSpy = jest.spyOn(sessionReplay, 'recordEvents');
 
       await sessionReplay.evaluateTargetingAndCapture({}, false);
@@ -2503,7 +2538,7 @@ describe('SessionReplay', () => {
 
       await sessionReplay.evaluateTargetingAndCapture({});
 
-      expect(recordEventsSpy).toHaveBeenCalled();
+      expect(recordEventsSpy).not.toHaveBeenCalled();
     });
 
     test('should skip targeting evaluation when sessionTargetingMatch is already true', async () => {

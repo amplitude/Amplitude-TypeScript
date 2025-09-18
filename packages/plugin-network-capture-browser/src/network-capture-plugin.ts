@@ -96,15 +96,17 @@ export const networkCapturePlugin = (options: NetworkTrackingOptions = {}): Brow
     // Create observables for events on the window
     const allObservables = createObservables();
 
+    /* istanbul ignore next */
+    logger = config?.loggerProvider;
+
     const networkRequestSubscription = trackNetworkEvents({
       allObservables,
       networkTrackingOptions: options,
       amplitude,
+      loggerProvider: logger,
     });
     subscriptions.push(networkRequestSubscription);
 
-    /* istanbul ignore next */
-    logger = config?.loggerProvider;
     /* istanbul ignore next */
     logger?.log(`${name} has been successfully added.`);
   };

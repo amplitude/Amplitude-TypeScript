@@ -1,4 +1,4 @@
-import { isUrlMatchAllowlist } from '../../src/';
+import { getDecodeURI, isUrlMatchAllowlist } from '../../src/';
 
 describe('isUrlMatchAllowlist', () => {
   const url = 'https://amplitude.com/blog';
@@ -37,5 +37,12 @@ describe('isUrlMatchAllowlist', () => {
   test('should return true when url is matching an item in the allow list with regex wildcard', () => {
     const result = isUrlMatchAllowlist(url, [new RegExp('http.?://amplitude.*'), new RegExp('http.?://test.*')]);
     expect(result).toEqual(true);
+  });
+});
+
+describe('getDecodeURI', () => {
+  test('should decode URI', () => {
+    const result = getDecodeURI('https://www.topps.com/products/2025-bowman-chrome%C2%AE-baseball-mega-box');
+    expect(result).toEqual('https://www.topps.com/products/2025-bowman-chrome®-baseball-mega-box');
   });
 });

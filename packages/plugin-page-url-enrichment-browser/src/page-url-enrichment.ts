@@ -1,5 +1,5 @@
 import type { BrowserClient, BrowserConfig, EnrichmentPlugin, Event, Logger } from '@amplitude/analytics-types';
-import { getGlobalScope, BrowserStorage } from '@amplitude/analytics-core';
+import { getGlobalScope, BrowserStorage, getDecodeURI } from '@amplitude/analytics-core';
 import { getPageTitle } from '@amplitude/analytics-client-common';
 
 export const CURRENT_PAGE_STORAGE_KEY = 'AMP_CURRENT_PAGE';
@@ -37,23 +37,11 @@ export const pageUrlEnrichmentPlugin = (): EnrichmentPlugin => {
   let isProxied = false;
   let isTracking = false;
 
-  const getDecodeURI = (locationStr: string): string => {
-    let decodedLocationStr = locationStr;
-    try {
-      decodedLocationStr = decodeURI(locationStr);
-    } catch (e) {
-      /* istanbul ignore next */
-      loggerProvider?.error('Malformed URI sequence: ', e);
-    }
-
-    return decodedLocationStr;
-  };
-
   const getHostname = (url: string): string | undefined => {
     let hostname: string | undefined;
 
     try {
-      const decodedUrl = getDecodeURI(url);
+      const decodedUrl = getDecodeURI(url, loggerProvider);
       hostname = new URL(decodedUrl).hostname;
     } catch (e) {
       /* istanbul ignore next */

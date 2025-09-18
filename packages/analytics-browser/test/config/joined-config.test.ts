@@ -3,6 +3,7 @@ import { createConfigurationMock } from '../helpers/mock';
 import {
   AutocaptureOptions,
   NetworkTrackingOptions,
+  SAFE_HEADERS,
   type BrowserConfig,
   type ElementInteractionsOptions,
 } from '@amplitude/analytics-core';
@@ -328,6 +329,126 @@ describe('joined-config', () => {
     });
 
     describe('networkTracking', () => {
+      describe('headers', () => {
+        test('should translate responseHeaders and requestHeaders to local responseHeaders and requestHeaders', () => {
+          localConfig = createConfigurationMock(createConfigurationMock({}));
+
+          const remoteConfig = {
+            autocapture: {
+              networkTracking: {
+                captureRules: [
+                  {
+                    responseHeaders: {
+                      captureSafeHeaders: true,
+                      allowlist: ['content-type', 'x-fake-response-header'],
+                    },
+                    requestHeaders: {
+                      captureSafeHeaders: true,
+                      allowlist: ['content-type', 'x-fake-request-header'],
+                    },
+                  },
+                ],
+              },
+            },
+          };
+
+          updateBrowserConfigWithRemoteConfig(remoteConfig, localConfig);
+
+          const autocapture = localConfig.autocapture as AutocaptureOptions;
+          const networkTracking = autocapture.networkTracking as NetworkTrackingOptions;
+          expect(networkTracking?.captureRules?.[0].responseHeaders).toEqual([
+            ...SAFE_HEADERS,
+            'content-type',
+            'x-fake-response-header',
+          ]);
+          expect(networkTracking?.captureRules?.[0].requestHeaders).toEqual([
+            ...SAFE_HEADERS,
+            'content-type',
+            'x-fake-request-header',
+          ]);
+        });
+
+        test('should translate captureSafeHeaders to local captureSafeHeaders', () => {
+          localConfig = createConfigurationMock(createConfigurationMock({}));
+
+          const remoteConfig = {
+            autocapture: {
+              networkTracking: {
+                captureRules: [
+                  { responseHeaders: { captureSafeHeaders: true }, requestHeaders: { captureSafeHeaders: true } },
+                ],
+              },
+            },
+          };
+
+          updateBrowserConfigWithRemoteConfig(remoteConfig, localConfig);
+
+          const autocapture = localConfig.autocapture as AutocaptureOptions;
+          const networkTracking = autocapture.networkTracking as NetworkTrackingOptions;
+          expect(networkTracking?.captureRules?.[0].responseHeaders).toEqual([...SAFE_HEADERS]);
+          expect(networkTracking?.captureRules?.[0].requestHeaders).toEqual([...SAFE_HEADERS]);
+        });
+
+        test('should translate allowlist to local allowlist', () => {
+          localConfig = createConfigurationMock(createConfigurationMock({}));
+
+          const remoteConfig = {
+            autocapture: {
+              networkTracking: {
+                captureRules: [
+                  {
+                    responseHeaders: { allowlist: ['content-type', 'x-fake-response-header'] },
+                    requestHeaders: { allowlist: ['content-type', 'x-fake-request-header'] },
+                  },
+                ],
+              },
+            },
+          };
+
+          updateBrowserConfigWithRemoteConfig(remoteConfig, localConfig);
+
+          const autocapture = localConfig.autocapture as AutocaptureOptions;
+          const networkTracking = autocapture.networkTracking as NetworkTrackingOptions;
+          expect(networkTracking?.captureRules?.[0].responseHeaders).toEqual([
+            'content-type',
+            'x-fake-response-header',
+          ]);
+          expect(networkTracking?.captureRules?.[0].requestHeaders).toEqual(['content-type', 'x-fake-request-header']);
+        });
+
+        test('if undefined, should not translate', () => {
+          localConfig = createConfigurationMock(createConfigurationMock({}));
+
+          const remoteConfig = {
+            autocapture: {
+              networkTracking: { captureRules: [{ responseHeaders: undefined, requestHeaders: undefined }] },
+            },
+          };
+
+          updateBrowserConfigWithRemoteConfig(remoteConfig, localConfig);
+
+          const autocapture = localConfig.autocapture as AutocaptureOptions;
+          const networkTracking = autocapture.networkTracking as NetworkTrackingOptions;
+          expect(networkTracking?.captureRules?.[0].responseHeaders).toBeUndefined();
+          expect(networkTracking?.captureRules?.[0].requestHeaders).toBeUndefined();
+        });
+
+        test('should not fail if headers are malformed', () => {
+          localConfig = createConfigurationMock(createConfigurationMock({}));
+
+          const remoteConfig = {
+            autocapture: { networkTracking: { captureRules: [{ responseHeaders: { allowlist: { wrong: 'type' } } }] } },
+          };
+
+          updateBrowserConfigWithRemoteConfig(remoteConfig, localConfig);
+
+          const autocapture = localConfig.autocapture as AutocaptureOptions;
+          const networkTracking = autocapture.networkTracking as NetworkTrackingOptions;
+          expect(networkTracking?.captureRules?.[0].responseHeaders).toBeUndefined();
+          expect(networkTracking?.captureRules?.[0].requestHeaders).toBeUndefined();
+        });
+      });
+
       test('should merge urls and urlsRegex', () => {
         localConfig = createConfigurationMock(createConfigurationMock({}));
 

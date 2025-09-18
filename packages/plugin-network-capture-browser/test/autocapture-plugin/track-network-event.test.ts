@@ -772,7 +772,7 @@ describe('track-network-event', () => {
       request.requestBodyJson = Promise.resolve({ message: 'hello' });
       request.responseBodyJson = Promise.resolve({ message: 'world' });
       const amplitude = createMockBrowserClient();
-      await logNetworkAnalyticsEvent(networkAnalyticsEvent, request, amplitude);
+      await logNetworkAnalyticsEvent(networkAnalyticsEvent, request, amplitude, new Logger());
       /* eslint-disable-next-line @typescript-eslint/unbound-method */
       expect(amplitude.track).toHaveBeenCalledWith(AMPLITUDE_NETWORK_REQUEST_EVENT, networkAnalyticsEvent);
     });

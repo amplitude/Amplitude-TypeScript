@@ -1,5 +1,5 @@
 /* eslint-disable no-restricted-globals */
-import type { ElementInteractionsOptions, ActionType } from '@amplitude/analytics-core';
+import { ElementInteractionsOptions, ActionType, getDecodeURI } from '@amplitude/analytics-core';
 import type { DataSource } from '@amplitude/analytics-core/lib/esm/types/element-interactions';
 import * as constants from './constants';
 import {

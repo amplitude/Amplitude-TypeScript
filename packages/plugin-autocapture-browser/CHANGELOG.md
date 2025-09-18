@@ -3,6 +3,22 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.13.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.12.2...@amplitude/plugin-autocapture-browser@1.13.0) (2025-09-18)
+
+
+### Bug Fixes
+
+* **analytics-browser:** add URI decoding to Element Clicked event attribute ([#1297](https://github.com/amplitude/Amplitude-TypeScript/issues/1297)) ([ebb2120](https://github.com/amplitude/Amplitude-TypeScript/commit/ebb212080948e8acbaeadbdc410580e04202f818))
+
+
+### Features
+
+* **autocapture:** add data masking in title ([#1289](https://github.com/amplitude/Amplitude-TypeScript/issues/1289)) ([6b8d1eb](https://github.com/amplitude/Amplitude-TypeScript/commit/6b8d1eb3c72d0b49f86153c9b7a5b25efd2b771b))
+
+
+
+
+
 ## [1.12.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.12.1...@amplitude/plugin-autocapture-browser@1.12.2) (2025-09-12)
 
 

@@ -20,7 +20,7 @@ export { returnWrapper, AmplitudeReturn } from './utils/return-wrapper';
 export { debugWrapper, getClientLogConfig, getClientStates } from './utils/debug';
 export { UUID } from './utils/uuid';
 export { createIdentifyEvent } from './utils/event-builder';
-export { isUrlMatchAllowlist } from './utils/url-utils';
+export { isUrlMatchAllowlist, getDecodeURI } from './utils/url-utils';
 
 export { MemoryStorage } from './storage/memory';
 export { CookieStorage } from './storage/cookie';
