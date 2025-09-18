@@ -139,6 +139,11 @@ export class DiagnosticsStorage implements IDiagnosticsStorage {
           this.dbPromise = null;
           this.logger.debug('DiagnosticsStorage: DB connection closed.');
         };
+
+        db.onerror = (event) => {
+          this.logger.debug('DiagnosticsStorage: A global database error occurred.', event);
+          db.close();
+        };
         resolve(db);
       };
 
