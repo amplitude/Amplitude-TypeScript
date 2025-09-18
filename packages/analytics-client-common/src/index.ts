@@ -6,9 +6,10 @@ export {
   isExcludedReferrer,
   createCampaignEvent,
   getDefaultExcludedReferrers,
+  getPageTitle,
 } from './attribution/helpers';
 export { WebAttribution } from './attribution/web-attribution';
-export { BASE_CAMPAIGN } from './attribution/constants';
+export { BASE_CAMPAIGN, TEXT_MASK_ATTRIBUTE, MASKED_TEXT_VALUE } from './attribution/constants';
 export { getQueryParams } from './query-params';
 export { isNewSession } from './session';
 export { getCookieName, getOldCookieName } from './cookie-name';
