@@ -305,15 +305,14 @@ export class SessionReplay implements AmplitudeSessionReplay {
       return;
     }
 
-    // If there's no targeting config and this is not initialization, skip initialize/recordEvents
-    if (!this.config.targetingConfig && !isInit) {
-      this.loggerProvider.log('No targeting config set, skipping initialization/recording for event.');
-      return;
-    }
-
-    // If there's no targeting config but this is initialization, log and continue
+    // Handle cases where there's no targeting config
     if (!this.config.targetingConfig) {
-      this.loggerProvider.log('Targeting config has not been set yet, cannot evaluate targeting.');
+      if (isInit) {
+        this.loggerProvider.log('Targeting config has not been set yet, cannot evaluate targeting.');
+      } else {
+        this.loggerProvider.log('No targeting config set, skipping initialization/recording for event.');
+        return;
+      }
     }
 
     // Store targeting parameters for use in getShouldRecord
