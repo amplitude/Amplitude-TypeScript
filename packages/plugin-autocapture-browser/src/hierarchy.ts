@@ -1,6 +1,7 @@
 import { isNonSensitiveElement } from './helpers';
-import { DATA_AMP_MASK_ATTRIBUTES, MASKED_TEXT_VALUE, TEXT_MASK_ATTRIBUTE } from './constants';
+import { DATA_AMP_MASK_ATTRIBUTES } from './constants';
 import type { HierarchyNode } from './typings/autocapture';
+import { MASKED_TEXT_VALUE, TEXT_MASK_ATTRIBUTE } from '@amplitude/analytics-client-common';
 
 const BLOCKED_ATTRIBUTES = new Set([
   // Already captured elsewhere in the hierarchy object

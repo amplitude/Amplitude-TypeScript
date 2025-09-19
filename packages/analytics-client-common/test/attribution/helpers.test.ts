@@ -1,9 +1,10 @@
-import { BASE_CAMPAIGN } from '../../src/attribution/constants';
+import { BASE_CAMPAIGN, MASKED_TEXT_VALUE } from '../../src/attribution/constants';
 import {
   isNewCampaign,
   createCampaignEvent,
   getDefaultExcludedReferrers,
   isExcludedReferrer,
+  getPageTitle,
 } from '../../src/attribution/helpers';
 
 import { getStorageKey } from '../../src/storage/helpers';
@@ -324,5 +325,96 @@ describe('getDefaultExcludedReferrers', () => {
   test('should return array with regex 2', () => {
     const excludedReferrers = getDefaultExcludedReferrers('.amplitude.com');
     expect(excludedReferrers).toEqual([new RegExp('amplitude\\.com$')]);
+  });
+});
+
+describe('getPageTitle', () => {
+  beforeEach(() => {
+    Object.defineProperty(document, 'title', {
+      value: 'Test Page Title',
+      writable: true,
+    });
+  });
+
+  afterEach(() => {
+    const titleElements = document.querySelectorAll('title');
+    titleElements.forEach((el) => el.remove());
+  });
+
+  test('should return document title when no title element has data-amp-mask', () => {
+    const result = getPageTitle();
+    expect(result).toBe('Test Page Title');
+  });
+
+  test('should return MASKED_TEXT_VALUE when title element has data-amp-mask attribute', () => {
+    const titleElement = document.createElement('title');
+    titleElement.setAttribute('data-amp-mask', 'true');
+    titleElement.textContent = 'Sensitive Title';
+    document.head.appendChild(titleElement);
+
+    const result = getPageTitle();
+    expect(result).toBe(MASKED_TEXT_VALUE);
+  });
+
+  test('should return document title when title element exists but does not have data-amp-mask', () => {
+    const titleElement = document.createElement('title');
+    titleElement.textContent = 'Regular Title';
+    document.head.appendChild(titleElement);
+
+    const result = getPageTitle();
+    expect(result).toBe('Test Page Title');
+  });
+
+  test('should still apply sensitive string masking when title element does not have data-amp-mask', () => {
+    Object.defineProperty(document, 'title', {
+      value: 'Contact us at test@example.com',
+      writable: true,
+    });
+
+    const titleElement = document.createElement('title');
+    titleElement.textContent = 'Contact us at test@example.com';
+    document.head.appendChild(titleElement);
+
+    const maskSensitiveEmail = (title: string) => title.replace(/[^\s@]+@[^\s@.]+\.[^\s@]+/g, MASKED_TEXT_VALUE);
+
+    const result = getPageTitle(maskSensitiveEmail);
+    expect(result).toBe('Contact us at *****');
+  });
+
+  test('should handle edge case when document title is null or undefined', () => {
+    Object.defineProperty(document, 'title', {
+      value: null,
+      writable: true,
+    });
+
+    const result = getPageTitle();
+    expect(result).toBe('');
+
+    Object.defineProperty(document, 'title', {
+      value: 'Test Page Title',
+      writable: true,
+    });
+  });
+
+  test('should return empty string when document is undefined (server-side scenario)', () => {
+    const globalWithDocument = global as typeof global & { document?: Document };
+    const originalDescriptor = Object.getOwnPropertyDescriptor(globalWithDocument, 'document');
+
+    Object.defineProperty(globalWithDocument, 'document', {
+      value: undefined,
+      writable: true,
+      configurable: true,
+    });
+
+    try {
+      const result = getPageTitle();
+      expect(result).toBe('');
+    } finally {
+      if (originalDescriptor) {
+        Object.defineProperty(globalWithDocument, 'document', originalDescriptor);
+      } else {
+        Reflect.deleteProperty(globalWithDocument, 'document');
+      }
+    }
   });
 });
