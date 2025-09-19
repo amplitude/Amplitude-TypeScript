@@ -130,8 +130,15 @@ export const gaEventsForwarderPlugin = ({ measurementIds = [] }: Options = {}): 
    * 3b. Sends events to Amplitude after Amplitude SDK is initialized
    */
   const intercept = (requestUrl: string | URL, data: BodyInit | null | undefined): boolean => {
+    let url: URL;
     try {
-      const url = new URL(requestUrl);
+      url = new URL(requestUrl);
+    } catch (e) {
+      // it's a relative URL, therefore not a GA4 event
+      return false;
+    }
+
+    try {
       if (
         GA_SERVICE_ROOT_DOMAIN_VALUES.some((rootDomain) => url.hostname.endsWith(rootDomain)) &&
         url.pathname === GA_PAYLOAD_PATHNAME_VALUE &&
@@ -152,6 +159,7 @@ export const gaEventsForwarderPlugin = ({ measurementIds = [] }: Options = {}): 
     } catch (e) {
       /* istanbul ignore next */
       logger?.error(e);
+      /* istanbul ignore next */
       return false;
     }
   };

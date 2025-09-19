@@ -395,7 +395,7 @@ describe('gaEventsForwarderPlugin', () => {
         // 1. Setup is called when Amplitude SDK is initialized
         await plugin?.setup(config as BrowserConfig, amplitude as BrowserClient);
         // 2.Send event to Google Analytics
-        expect(() => window.navigator.sendBeacon('🤷‍♂️')).not.toThrow();
+        expect(() => window.navigator.sendBeacon('relative/url')).not.toThrow();
 
         expect(amplitude.track).toHaveBeenCalledTimes(0);
       });
