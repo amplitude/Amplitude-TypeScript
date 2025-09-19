@@ -89,6 +89,105 @@ describe('DiagnosticsStorage', () => {
       // Restore the original method
       indexedDB.open = originalOpen;
     });
+
+    test('should handle database close event', async () => {
+      // Mock indexedDB.open to simulate a successful open
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      const originalOpen = indexedDB.open;
+      const mockDB = {
+        onclose: null as ((event: Event) => void) | null,
+        onerror: null as ((event: Event) => void) | null,
+        close: jest.fn(),
+      };
+      const mockRequest = {
+        onerror: null as ((event: Event) => void) | null,
+        onsuccess: null as ((event: Event) => void) | null,
+        onupgradeneeded: null as ((event: Event) => void) | null,
+        result: mockDB,
+      };
+
+      indexedDB.open = jest.fn().mockReturnValue(mockRequest);
+
+      // Call getDB to trigger the openDB and set dbPromise
+      const getDBPromise = storage.getDB();
+
+      // Simulate the success event
+      if (mockRequest.onsuccess) {
+        mockRequest.onsuccess(new Event('success'));
+      }
+
+      // Wait for the promise to resolve
+      const db = await getDBPromise;
+      expect(db).toBe(mockDB);
+
+      // Verify dbPromise is set
+      expect(storage.dbPromise).toBeTruthy();
+
+      // Simulate the database close event
+      if (mockDB.onclose) {
+        mockDB.onclose(new Event('close'));
+      }
+
+      // Verify that dbPromise is cleared when connection closes
+      expect(storage.dbPromise).toBeNull();
+
+      // Verify that the debug message was logged
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockLogger.debug).toHaveBeenCalledWith('DiagnosticsStorage: DB connection closed.');
+
+      // Restore the original method
+      indexedDB.open = originalOpen;
+    });
+
+    test('should handle database error event', async () => {
+      // Mock indexedDB.open to simulate a successful open
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      const originalOpen = indexedDB.open;
+      const mockDB = {
+        onclose: null as ((event: Event) => void) | null,
+        onerror: null as ((event: Event) => void) | null,
+        close: jest.fn(),
+      };
+      const mockRequest = {
+        onerror: null as ((event: Event) => void) | null,
+        onsuccess: null as ((event: Event) => void) | null,
+        onupgradeneeded: null as ((event: Event) => void) | null,
+        result: mockDB,
+      };
+
+      indexedDB.open = jest.fn().mockReturnValue(mockRequest);
+
+      // Call getDB to trigger the openDB and set dbPromise
+      const getDBPromise = storage.getDB();
+
+      // Simulate the success event
+      if (mockRequest.onsuccess) {
+        mockRequest.onsuccess(new Event('success'));
+      }
+
+      // Wait for the promise to resolve
+      const db = await getDBPromise;
+      expect(db).toBe(mockDB);
+
+      // Simulate the database error event
+      const errorEvent = new Event('error');
+      if (mockDB.onerror) {
+        mockDB.onerror(errorEvent);
+      }
+
+      // Verify that the error was logged
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockLogger.debug).toHaveBeenCalledWith(
+        'DiagnosticsStorage: A global database error occurred.',
+        errorEvent,
+      );
+
+      // Verify that db.close() was called
+      expect(mockDB.close).toHaveBeenCalled();
+
+      // Restore the original method
+      indexedDB.open = originalOpen;
+    });
   });
 
   describe('setTags', () => {

@@ -5,6 +5,7 @@ import {
   DIAGNOSTICS_EU_SERVER_URL,
   FLUSH_INTERVAL_MS,
   SAVE_INTERVAL_MS,
+  MAX_MEMORY_STORAGE_COUNT,
 } from '../../src/diagnostics/diagnostics-client';
 import { DiagnosticsStorage } from '../../src/diagnostics/diagnostics-storage';
 import { getGlobalScope } from '../../src/global-scope';
@@ -248,15 +249,15 @@ describe('DiagnosticsClient', () => {
     });
 
     test('setTag should early return if exceeding memory limit', () => {
-      for (let i = 0; i < 100; i++) {
+      for (let i = 0; i < MAX_MEMORY_STORAGE_COUNT; i++) {
         client.inMemoryTags[`tag${i}`] = `value${i}`;
       }
 
-      expect(Object.keys(client.inMemoryTags).length).toBe(100);
+      expect(Object.keys(client.inMemoryTags).length).toBe(MAX_MEMORY_STORAGE_COUNT);
 
       client.setTag('library', 'amplitude-typescript/2.0.0');
 
-      expect(Object.keys(client.inMemoryTags).length).toBe(100);
+      expect(Object.keys(client.inMemoryTags).length).toBe(MAX_MEMORY_STORAGE_COUNT);
       // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockLogger.debug).toHaveBeenCalledWith('DiagnosticsClient: Early return setTags as reaching memory limit');
     });
@@ -290,15 +291,15 @@ describe('DiagnosticsClient', () => {
     });
 
     test('increment should early return if exceeding memory limit', () => {
-      for (let i = 0; i < 100; i++) {
+      for (let i = 0; i < MAX_MEMORY_STORAGE_COUNT; i++) {
         client.inMemoryCounters[`counter${i}`] = i;
       }
 
-      expect(Object.keys(client.inMemoryCounters).length).toBe(100);
+      expect(Object.keys(client.inMemoryCounters).length).toBe(MAX_MEMORY_STORAGE_COUNT);
 
       client.increment('analytics.fileNotFound', 5);
 
-      expect(Object.keys(client.inMemoryCounters).length).toBe(100);
+      expect(Object.keys(client.inMemoryCounters).length).toBe(MAX_MEMORY_STORAGE_COUNT);
       // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockLogger.debug).toHaveBeenCalledWith(
         'DiagnosticsClient: Early return increment as reaching memory limit',
@@ -332,7 +333,7 @@ describe('DiagnosticsClient', () => {
     });
 
     test('recordHistogram should early return if exceeding memory limit', () => {
-      for (let i = 0; i < 100; i++) {
+      for (let i = 0; i < MAX_MEMORY_STORAGE_COUNT; i++) {
         client.inMemoryHistograms[`histogram${i}`] = {
           count: 1,
           min: i,
@@ -341,11 +342,11 @@ describe('DiagnosticsClient', () => {
         };
       }
 
-      expect(Object.keys(client.inMemoryHistograms).length).toBe(100);
+      expect(Object.keys(client.inMemoryHistograms).length).toBe(MAX_MEMORY_STORAGE_COUNT);
 
       client.recordHistogram('sr.time', 50);
 
-      expect(Object.keys(client.inMemoryHistograms).length).toBe(100);
+      expect(Object.keys(client.inMemoryHistograms).length).toBe(MAX_MEMORY_STORAGE_COUNT);
       expect(client.inMemoryHistograms['sr.time']).toBeUndefined();
     });
 
@@ -629,12 +630,14 @@ describe('DiagnosticsClient', () => {
     });
 
     test('should call necessary APIs', async () => {
+      const saveAllDataToStorageSpy = jest.spyOn(client, 'saveAllDataToStorage').mockResolvedValue();
       client.flushTimer = setTimeout(() => {
         // Mock timer callback
       }, 1000);
 
       await client._flush();
 
+      expect(saveAllDataToStorageSpy).toHaveBeenCalled();
       expect(mockStorage.getAllAndClear).toHaveBeenCalled();
       expect(mockStorage.setLastFlushTimestamp).toHaveBeenCalled();
       // Also test histogram calculation
@@ -656,6 +659,10 @@ describe('DiagnosticsClient', () => {
           events: [],
         }),
         setLastFlushTimestamp: jest.fn().mockResolvedValue(undefined),
+        setTags: jest.fn().mockResolvedValue(undefined),
+        incrementCounters: jest.fn().mockResolvedValue(undefined),
+        setHistogramStats: jest.fn().mockResolvedValue(undefined),
+        addEventRecords: jest.fn().mockResolvedValue(undefined),
       };
 
       // Replace the storage with empty mock
