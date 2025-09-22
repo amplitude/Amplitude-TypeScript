@@ -43,19 +43,15 @@ describe('compression', () => {
       },
     };
 
-    // Create a String object (not primitive) so we can add properties to it
+    // Simulate the actual behavior: JSON.stringify produces a primitive string
     const jsonData = JSON.stringify({
       event: testEvent,
       sessionId: 5678,
     });
 
-    const stringObject = new String(jsonData);
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    (stringObject as any).type = 'string';
-
-    // Pass this String object that has a type property
+    // Pass the primitive string as e.data (this is what actually happens with JSON.stringify fallback)
     (compressionOnMessage as (_: unknown) => void)({
-      data: stringObject,
+      data: jsonData,
     });
 
     expect(global.postMessage).toHaveBeenCalledWith({
