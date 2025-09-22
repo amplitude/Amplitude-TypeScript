@@ -144,6 +144,11 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
     await super._init(browserOptions);
     this.logBrowserOptions(browserOptions);
 
+    // if an identify object is provided, call it on init
+    if (this.config.identify) {
+      this.identify(this.config.identify);
+    }
+
     // Add web attribution plugin
     if (isAttributionTrackingEnabled(this.config.defaultTracking)) {
       const attributionTrackingOptions = getAttributionTrackingConfig(this.config);

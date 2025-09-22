@@ -7,6 +7,7 @@ import { ServerZoneType } from '../server-zone';
 import { Transport } from '../transport';
 import { Storage } from '../storage';
 import { Event } from '../event/event';
+import { IIdentify } from '../../identify';
 
 export interface IConfig {
   /**
@@ -86,6 +87,10 @@ export interface IConfig {
    * Metrics of the SDK.
    */
   requestMetadata?: IRequestMetadata;
+  /**
+   * Identify object to be called on init.
+   */
+  identify?: IIdentify;
 }
 
 export interface IRequestMetadata {
