@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.22.14-fixwebworkerscript.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@1.22.13...@amplitude/plugin-session-replay-browser@1.22.14-fixwebworkerscript.0) (2025-09-22)
+
+**Note:** Version bump only for package @amplitude/plugin-session-replay-browser
+
+
+
+
+
 ## [1.22.13](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@1.22.12...@amplitude/plugin-session-replay-browser@1.22.13) (2025-09-12)
 
 **Note:** Version bump only for package @amplitude/plugin-session-replay-browser

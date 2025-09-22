@@ -3,6 +3,22 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.29.0-fixwebworkerscript.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.28.10...@amplitude/session-replay-browser@1.29.0-fixwebworkerscript.0) (2025-09-22)
+
+
+### Bug Fixes
+
+* **session-replay-browser:** correct string detection in compression worker ([452e1e9](https://github.com/amplitude/Amplitude-TypeScript/commit/452e1e9862bc06520b19e711b07fd00be1d14a36))
+
+
+### Features
+
+* **session-replay-browser:** add webworker support with proper build configuration ([19a5e02](https://github.com/amplitude/Amplitude-TypeScript/commit/19a5e02a66ad5efd6ad30c04d1f8e6eccdca1136))
+
+
+
+
+
 ## [1.28.10](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.28.9...@amplitude/session-replay-browser@1.28.10) (2025-09-12)
 
 **Note:** Version bump only for package @amplitude/session-replay-browser
