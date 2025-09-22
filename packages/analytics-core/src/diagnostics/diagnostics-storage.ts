@@ -381,11 +381,7 @@ export class DiagnosticsStorage implements IDiagnosticsStorage {
 
           // Only add events up to the available slots (take the least recent ones)
           events.slice(0, availableSlots).forEach((event) => {
-            const request = store.add({
-              event_name: event.event_name,
-              event_properties: event.event_properties,
-              time: event.time,
-            });
+            const request = store.add(event);
 
             request.onerror = (event) => {
               this.logger.debug('DiagnosticsStorage: Failed to add event record', event);
