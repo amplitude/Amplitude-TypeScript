@@ -645,7 +645,7 @@ describe('DiagnosticsClient', () => {
         tags: EXPECTED_TAGS,
         histogram: EXPECTED_HISTOGRAMS,
         counters: EXPECTED_COUNTERS,
-        // events: EXPECTED_EVENTS,
+        events: [{ event_name: 'error', time: 123456789, event_properties: { type: 'network' } }],
       });
     });
 

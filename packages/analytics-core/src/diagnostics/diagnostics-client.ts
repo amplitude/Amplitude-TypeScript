@@ -77,8 +77,7 @@ interface FlushPayload {
   readonly tags: DiagnosticsTags;
   readonly histogram: DiagnosticsHistograms;
   readonly counters: DiagnosticsCounters;
-  // TODO(AMP-139569)
-  // readonly events: readonly DiagnosticsEvent[];
+  readonly events: readonly DiagnosticsEvent[];
 }
 
 /**
@@ -141,8 +140,7 @@ export interface IDiagnosticsClient {
    * });
    * ```
    */
-  // TODO(AMP-139569)
-  // recordEvent(name: string, properties: EventProperties): void;
+  recordEvent(name: string, properties: EventProperties): void;
 
   // Flush storage
   _flush(): void;
@@ -316,8 +314,7 @@ export class DiagnosticsClient implements IDiagnosticsClient {
       tags: tagRecords,
       counters: counterRecords,
       histogramStats: histogramStatsRecords,
-      // TODO(AMP-139569)
-      // events: eventRecords,
+      events: eventRecords,
     } = await this.storage.getAllAndClear();
 
     // Update the last flush timestamp
@@ -344,21 +341,18 @@ export class DiagnosticsClient implements IDiagnosticsClient {
       };
     });
 
-    // TODO(AMP-139569)
-    // const events: DiagnosticsEvent[] = eventRecords.map((record) => ({
-    // const events: DiagnosticsEvent[] = [];
-    //   event_name: record.event_name,
-    //   time: record.time,
-    //   event_properties: record.event_properties,
-    // }));
+    const events: DiagnosticsEvent[] = eventRecords.map((record) => ({
+      event_name: record.event_name,
+      time: record.time,
+      event_properties: record.event_properties,
+    }));
 
     // Early return if all data collections are empty
     if (
       Object.keys(tags).length === 0 &&
       Object.keys(counters).length === 0 &&
-      Object.keys(histogram).length === 0
-      // TODO(AMP-139569)
-      // && Object.keys(events).length === 0
+      Object.keys(histogram).length === 0 &&
+      events.length === 0
     ) {
       return;
     }
@@ -368,8 +362,7 @@ export class DiagnosticsClient implements IDiagnosticsClient {
       tags,
       histogram,
       counters,
-      // TODO(AMP-139569)
-      // events,
+      events,
     };
 
     // Send payload to diagnostics server
