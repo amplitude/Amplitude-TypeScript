@@ -686,12 +686,179 @@ describe('DiagnosticsStorage', () => {
   });
 
   describe('addEventRecords', () => {
+    // Helper function to clear events table after each test
+    afterEach(async () => {
+      try {
+        const dbName = `AMP_diagnostics_${apiKey.substring(0, 10)}`;
+        const db = await new Promise<IDBDatabase>((resolve, reject) => {
+          const request = indexedDB.open(dbName, 1);
+          request.onsuccess = () => resolve(request.result);
+          request.onerror = () => reject(request.error);
+          request.onupgradeneeded = (event) => {
+            const db = (event.target as IDBOpenDBRequest).result;
+            // Create the events table if it doesn't exist
+            if (!db.objectStoreNames.contains('events')) {
+              const eventsStore = db.createObjectStore('events', {
+                keyPath: 'id',
+                autoIncrement: true,
+              });
+              eventsStore.createIndex('time_idx', 'time', { unique: false });
+            }
+          };
+        });
+
+        // Only clear if the events table exists
+        if (db.objectStoreNames.contains('events')) {
+          const transaction = db.transaction(['events'], 'readwrite');
+          const store = transaction.objectStore('events');
+
+          await new Promise<void>((resolve, reject) => {
+            const clearRequest = store.clear();
+            clearRequest.onsuccess = () => resolve();
+            clearRequest.onerror = () => reject(clearRequest.error);
+          });
+        }
+
+        db.close();
+      } catch (error) {
+        // Ignore errors - the database might not exist yet for early return tests
+      }
+    });
+
     test('should add event records', async () => {
       const events = [
         { event_name: 'page_view', time: Date.now(), event_properties: { page: '/home' } },
         { event_name: 'button_click', time: Date.now() + 1000, event_properties: { button_id: 'submit' } },
       ];
       await expect(storage.addEventRecords(events)).resolves.toBeUndefined();
+    });
+
+    test('should limit to at most 10 events in database', async () => {
+      // First, add exactly 10 events
+      const firstBatch = [];
+      const baseTime = Date.now();
+      for (let i = 0; i < 10; i++) {
+        firstBatch.push({
+          event_name: `event_${i}`,
+          time: baseTime + i * 1000,
+          event_properties: { index: i },
+        });
+      }
+
+      await expect(storage.addEventRecords(firstBatch)).resolves.toBeUndefined();
+
+      // Clear previous debug calls to focus on the limit-exceeding call
+      jest.clearAllMocks();
+
+      // Try to add 2 more events - these should be rejected
+      const secondBatch = [
+        { event_name: 'event_10', time: baseTime + 10000, event_properties: { index: 10 } },
+        { event_name: 'event_11', time: baseTime + 11000, event_properties: { index: 11 } },
+      ];
+
+      await expect(storage.addEventRecords(secondBatch)).resolves.toBeUndefined();
+
+      // Verify debug log was called indicating 0 events added due to storage limit
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockLogger.debug).toHaveBeenCalledWith(
+        'DiagnosticsStorage: Only added 0 of 2 events due to storage limit',
+      );
+
+      // Verify still only 10 events in database
+      const dbName = `AMP_diagnostics_${apiKey.substring(0, 10)}`;
+      const db = await new Promise<IDBDatabase>((resolve, reject) => {
+        const request = indexedDB.open(dbName, 1);
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+
+      const transaction = db.transaction(['events'], 'readonly');
+      const store = transaction.objectStore('events');
+
+      const allRecords = await new Promise<Array<{ event_name: string; time: number; event_properties: any }>>(
+        (resolve, reject) => {
+          const request = store.getAll();
+          request.onsuccess = () => resolve(request.result);
+          request.onerror = () => reject(request.error);
+        },
+      );
+
+      // Should still have exactly 10 events (the original ones)
+      expect(allRecords).toHaveLength(10);
+
+      // Verify the events are the original ones (event_0 to event_9)
+      const sortedRecords = allRecords.sort((a, b) => a.time - b.time);
+      expect(sortedRecords[0].event_name).toBe('event_0');
+      expect(sortedRecords[9].event_name).toBe('event_9');
+
+      db.close();
+    });
+
+    test('should add partial batch when space is limited', async () => {
+      // First, add 8 events
+      const firstBatch = [];
+      const baseTime = Date.now();
+      for (let i = 0; i < 8; i++) {
+        firstBatch.push({
+          event_name: `event_${i}`,
+          time: baseTime + i * 1000,
+          event_properties: { index: i },
+        });
+      }
+
+      await expect(storage.addEventRecords(firstBatch)).resolves.toBeUndefined();
+
+      // Clear previous debug calls to focus on the limit-exceeding call
+      jest.clearAllMocks();
+
+      // Try to add 5 more events - only 2 should be added (the least recent ones)
+      const secondBatch = [];
+      for (let i = 8; i < 13; i++) {
+        secondBatch.push({
+          event_name: `event_${i}`,
+          time: baseTime + i * 1000,
+          event_properties: { index: i },
+        });
+      }
+
+      await expect(storage.addEventRecords(secondBatch)).resolves.toBeUndefined();
+
+      // Verify debug log was called indicating only 2 of 5 events were added
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockLogger.debug).toHaveBeenCalledWith(
+        'DiagnosticsStorage: Only added 2 of 5 events due to storage limit',
+      );
+
+      // Verify exactly 10 events in database
+      const dbName = `AMP_diagnostics_${apiKey.substring(0, 10)}`;
+      const db = await new Promise<IDBDatabase>((resolve, reject) => {
+        const request = indexedDB.open(dbName, 1);
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+
+      const transaction = db.transaction(['events'], 'readonly');
+      const store = transaction.objectStore('events');
+
+      const allRecords = await new Promise<Array<{ event_name: string; time: number; event_properties: any }>>(
+        (resolve, reject) => {
+          const request = store.getAll();
+          request.onsuccess = () => resolve(request.result);
+          request.onerror = () => reject(request.error);
+        },
+      );
+
+      // Should have exactly 10 events
+      expect(allRecords).toHaveLength(10);
+
+      // Verify we have the first 8 events plus the first 2 from the second batch (least recent)
+      const sortedRecords = allRecords.sort((a, b) => a.time - b.time);
+      expect(sortedRecords[0].event_name).toBe('event_0');
+      expect(sortedRecords[7].event_name).toBe('event_7');
+      expect(sortedRecords[8].event_name).toBe('event_8'); // First from second batch
+      expect(sortedRecords[9].event_name).toBe('event_9'); // Second from second batch
+
+      db.close();
     });
 
     test('should early return if events is empty', async () => {
@@ -706,8 +873,24 @@ describe('DiagnosticsStorage', () => {
         onerror: null as ((event: Event) => void) | null,
       };
 
-      // Mock the store.add to return a request that will fail
+      // Create a mock count request that succeeds
+      const mockCountRequest = {
+        onsuccess: null as ((event: Event) => void) | null,
+        onerror: null as ((event: Event) => void) | null,
+        result: 0, // Simulate empty database
+      };
+
+      // Mock the store with both count and add methods
       const mockStore = {
+        count: jest.fn().mockImplementation(() => {
+          // Simulate successful count
+          setTimeout(() => {
+            if (mockCountRequest.onsuccess) {
+              mockCountRequest.onsuccess(new Event('success'));
+            }
+          }, 0);
+          return mockCountRequest;
+        }),
         add: jest.fn().mockImplementation(() => {
           // Simulate async error by triggering onerror after handlers are set
           setTimeout(() => {
@@ -746,6 +929,9 @@ describe('DiagnosticsStorage', () => {
       // Give time for async error to be processed
       await new Promise((resolve) => setTimeout(resolve, 10));
 
+      // Verify the count request was attempted first
+      expect(mockStore.count).toHaveBeenCalled();
+
       // Verify the add request was attempted
       expect(mockStore.add).toHaveBeenCalledWith({
         event_name: 'page_view',
@@ -757,6 +943,72 @@ describe('DiagnosticsStorage', () => {
       // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockLogger.debug).toHaveBeenCalledWith(
         'DiagnosticsStorage: Failed to add event record',
+        expect.any(Event),
+      );
+
+      // Restore spy
+      getDBSpy.mockRestore();
+    });
+
+    test('should handle count request error', async () => {
+      const testEvents = [{ event_name: 'page_view', time: Date.now(), event_properties: { page: '/home' } }];
+
+      // Create a mock count request that will fail
+      const mockCountRequest = {
+        onsuccess: null as ((event: Event) => void) | null,
+        onerror: null as ((event: Event) => void) | null,
+        result: undefined,
+      };
+
+      // Mock the transaction first so we can reference it
+      const mockTransaction = {
+        oncomplete: null as ((event: Event) => void) | null,
+        onabort: null as ((event: Event) => void) | null,
+        objectStore: jest.fn(),
+      };
+
+      // Mock the store with count method that fails
+      const mockStore = {
+        count: jest.fn().mockImplementation(() => {
+          // Simulate async error by triggering onerror after handlers are set
+          setTimeout(() => {
+            if (mockCountRequest.onerror) {
+              const errorEvent = new Event('error');
+              mockCountRequest.onerror(errorEvent);
+            }
+            // Also trigger transaction complete to resolve the Promise
+            if (mockTransaction.oncomplete) {
+              mockTransaction.oncomplete(new Event('complete'));
+            }
+          }, 0);
+          return mockCountRequest;
+        }),
+      };
+
+      // Set up the mock store reference
+      mockTransaction.objectStore.mockReturnValue(mockStore);
+
+      // Mock the database
+      const mockDB = {
+        transaction: jest.fn().mockReturnValue(mockTransaction),
+      };
+
+      // Spy on getDB and make it return our mock database
+      const getDBSpy = jest.spyOn(storage, 'getDB').mockResolvedValue(mockDB as unknown as IDBDatabase);
+
+      // The addEventRecords should handle the error gracefully
+      await expect(storage.addEventRecords(testEvents)).resolves.toBeUndefined();
+
+      // Give time for async error to be processed
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      // Verify the count request was attempted
+      expect(mockStore.count).toHaveBeenCalled();
+
+      // Verify count error was logged
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockLogger.debug).toHaveBeenCalledWith(
+        'DiagnosticsStorage: Failed to count existing events',
         expect.any(Event),
       );
 

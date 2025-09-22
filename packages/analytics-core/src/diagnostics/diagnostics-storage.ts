@@ -2,6 +2,8 @@ import { getGlobalScope } from '../global-scope';
 import { ILogger } from '../logger';
 import { HistogramStats } from './diagnostics-client';
 
+const MAX_PERSISTENT_STORAGE_EVENTS_COUNT = 10;
+
 // Database configuration
 const DB_VERSION = 1;
 
@@ -339,7 +341,6 @@ export class DiagnosticsStorage implements IDiagnosticsStorage {
     }
   }
 
-  // TODO(AMP-139569) - should save at most 10 events
   async addEventRecords(
     events: Array<{ event_name: string; time: number; event_properties: Record<string, any> }>,
   ): Promise<void> {
@@ -363,17 +364,34 @@ export class DiagnosticsStorage implements IDiagnosticsStorage {
           resolve();
         };
 
-        events.forEach((event) => {
-          const request = store.add({
-            event_name: event.event_name,
-            event_properties: event.event_properties,
-            time: event.time,
-          });
+        // First, check how many events are currently stored
+        const countRequest = store.count();
 
-          request.onerror = (event) => {
-            this.logger.debug('DiagnosticsStorage: Failed to add event record', event);
-          };
-        });
+        countRequest.onsuccess = () => {
+          const currentCount = countRequest.result;
+
+          // Calculate how many events we can add
+          const availableSlots = Math.max(0, MAX_PERSISTENT_STORAGE_EVENTS_COUNT - currentCount);
+
+          if (availableSlots < events.length) {
+            this.logger.debug(
+              `DiagnosticsStorage: Only added ${availableSlots} of ${events.length} events due to storage limit`,
+            );
+          }
+
+          // Only add events up to the available slots (take the least recent ones)
+          events.slice(0, availableSlots).forEach((event) => {
+            const request = store.add(event);
+
+            request.onerror = (event) => {
+              this.logger.debug('DiagnosticsStorage: Failed to add event record', event);
+            };
+          });
+        };
+
+        countRequest.onerror = (event) => {
+          this.logger.debug('DiagnosticsStorage: Failed to count existing events', event);
+        };
       });
     } catch (error) {
       this.logger.debug('DiagnosticsStorage: Failed to add event records', error);
