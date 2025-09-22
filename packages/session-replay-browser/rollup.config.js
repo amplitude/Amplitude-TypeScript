@@ -11,7 +11,7 @@ import gzip from 'rollup-plugin-gzip';
 
 // Configure ES module build for chunks
 const esmConfig = {
-  input: 'src/session-replay.ts',
+  input: 'src/index.ts',
   output: {
     dir: 'lib/scripts',
     format: 'es',
@@ -56,7 +56,7 @@ const esmConfig = {
 
 // Keep original IIFE config for legacy browsers
 const mainBundleConfig = {
-  input: 'src/session-replay.ts',
+  input: 'src/index.ts',
   output: {
     format: 'iife',
     file: 'lib/scripts/session-replay-browser-min.js',
