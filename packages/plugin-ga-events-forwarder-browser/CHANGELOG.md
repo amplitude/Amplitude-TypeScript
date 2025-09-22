@@ -3,6 +3,19 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.4.6](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-ga-events-forwarder-browser@0.4.5...@amplitude/plugin-ga-events-forwarder-browser@0.4.6) (2025-09-22)
+
+### Bug Fixes
+
+- **plugin-ga-events-forwarder-browser:** do not log errors on relative URLs
+  ([#1299](https://github.com/amplitude/Amplitude-TypeScript/issues/1299))
+  ([4f75a01](https://github.com/amplitude/Amplitude-TypeScript/commit/4f75a010e9166e13c6da17c95abb29be3e94fc46))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [0.4.5](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-ga-events-forwarder-browser@0.4.4...@amplitude/plugin-ga-events-forwarder-browser@0.4.5) (2025-07-08)
 
 **Note:** Version bump only for package @amplitude/plugin-ga-events-forwarder-browser
