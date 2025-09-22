@@ -4,7 +4,7 @@ import { pack } from '@amplitude/rrweb-packer';
 
 onmessage = (e) => {
   // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-  const { event, sessionId } = e.data.type === 'string' ? JSON.parse(e.data) : e.data;
+  const { event, sessionId } = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
   // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
   const compressedEvent = JSON.stringify(pack(event));
   postMessage({ compressedEvent, sessionId });
