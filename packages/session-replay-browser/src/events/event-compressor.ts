@@ -24,7 +24,7 @@ export class EventCompressor {
     eventsManager: SessionReplayEventsManager<'replay' | 'interaction', string>,
     config: SessionReplayJoinedConfig,
     deviceId: string | undefined,
-    workerScriptInternal?: string, // this is used for unit testing
+    workerScript?: string,
   ) {
     const globalScope = getGlobalScope();
     this.canUseIdleCallback = globalScope && 'requestIdleCallback' in globalScope;
@@ -33,12 +33,7 @@ export class EventCompressor {
     this.deviceId = deviceId;
     this.timeout = config.performanceConfig?.timeout || DEFAULT_TIMEOUT;
 
-    // These two lines will be changed at compile time.
-    const replace: Record<string, string> = {};
-    // This next line is going to be ridiculously hard to cover in unit tests, ignoring.
-    /* istanbul ignore next */
-    const workerScript = replace.COMPRESSION_WEBWORKER_BODY ?? workerScriptInternal;
-    if (this.config.experimental?.useWebWorker && globalScope && globalScope.Worker && workerScript) {
+    if (workerScript) {
       config.loggerProvider.log('[Experimental] Enabling web worker for compression');
 
       const worker = new Worker(URL.createObjectURL(new Blob([workerScript], { type: 'application/javascript' })));
@@ -121,7 +116,17 @@ export class EventCompressor {
   public addCompressedEvent = (event: eventWithTime, sessionId: string | number) => {
     if (this.worker) {
       // This indirectly compresses the event.
-      this.worker.postMessage({ event, sessionId });
+      try {
+        this.worker.postMessage({ event, sessionId });
+      } catch (err: any) {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        if (err.name === 'DataCloneError') {
+          // fallback: serialize
+          this.worker.postMessage(JSON.stringify({ event, sessionId }));
+        } else {
+          throw err; // rethrow unexpected
+        }
+      }
     } else {
       const compressedEvent = this.compressEvent(event);
       this.addCompressedEventToManager(compressedEvent, sessionId);

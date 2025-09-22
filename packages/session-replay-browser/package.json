@@ -17,7 +17,7 @@
     "url": "git+https://github.com/amplitude/Amplitude-TypeScript.git"
   },
   "scripts": {
-    "build": "yarn bundle && yarn build:es5 && yarn build:esm",
+    "build": "yarn build:es5 && yarn build:esm && yarn bundle",
     "bundle": "rollup --config rollup.config.js",
     "bundle:analyze": "ANALYZE=true rollup --config rollup.config.js",
     "build:es5": "tsc -p ./tsconfig.es5.json",

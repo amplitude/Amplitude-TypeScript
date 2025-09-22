@@ -185,7 +185,16 @@ export class SessionReplay implements AmplitudeSessionReplay {
     if (this.eventCompressor) {
       this.eventCompressor.terminate();
     }
-    this.eventCompressor = new EventCompressor(this.eventsManager, this.config, this.getDeviceId());
+
+    let workerScript = undefined;
+    const globalScope = getGlobalScope();
+    if (this.config.experimental?.useWebWorker && globalScope && globalScope.Worker) {
+      const { compressionScript } = await import('./worker');
+
+      workerScript = compressionScript;
+    }
+
+    this.eventCompressor = new EventCompressor(this.eventsManager, this.config, this.getDeviceId(), workerScript);
 
     await this.initializeNetworkObservers();
 
