@@ -1,6 +1,6 @@
 import { createIdentifyEvent, Identify } from '@amplitude/analytics-core';
 import { Campaign, Logger } from '@amplitude/analytics-types';
-import { BASE_CAMPAIGN } from './constants';
+import { BASE_CAMPAIGN, TEXT_MASK_ATTRIBUTE, MASKED_TEXT_VALUE } from './constants';
 
 export interface Options {
   excludeReferrers?: (string | RegExp)[];
@@ -93,4 +93,19 @@ export const getDefaultExcludedReferrers = (cookieDomain: string | undefined) =>
     return [new RegExp(`${domain.replace('.', '\\.')}$`)];
   }
   return [];
+};
+
+/**
+ * Gets the page title, checking if the title element has data-amp-mask attribute
+ * @returns The page title, masked if the title element has data-amp-mask attribute
+ */
+export const getPageTitle = (parseTitleFunction?: (title: string) => string): string => {
+  if (typeof document === 'undefined' || !document.title) {
+    return '';
+  }
+  const titleElement = document.querySelector('title');
+  if (titleElement && titleElement.hasAttribute(TEXT_MASK_ATTRIBUTE)) {
+    return MASKED_TEXT_VALUE;
+  }
+  return parseTitleFunction ? parseTitleFunction(document.title) : document.title; // document.title is always synced to the first title element
 };

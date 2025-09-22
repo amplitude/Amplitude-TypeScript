@@ -15,6 +15,7 @@ import { getAncestors, getElementProperties } from './hierarchy';
 import type { JSONValue } from './helpers';
 import { getDataSource } from './pageActions/actions';
 import { Hierarchy } from './typings/autocapture';
+import { MASKED_TEXT_VALUE, TEXT_MASK_ATTRIBUTE, getPageTitle } from '@amplitude/analytics-client-common';
 
 const CC_REGEX = /\b(?:\d[ -]*?){13,16}\b/;
 const SSN_REGEX = /(\d{3}-?\d{2}-?\d{4})/g;
@@ -52,18 +53,18 @@ export class DataExtractor {
     let result = text;
 
     // Check for credit card number (with or without spaces/dashes)
-    result = result.replace(CC_REGEX, constants.MASKED_TEXT_VALUE);
+    result = result.replace(CC_REGEX, MASKED_TEXT_VALUE);
 
     // Check for social security number
-    result = result.replace(SSN_REGEX, constants.MASKED_TEXT_VALUE);
+    result = result.replace(SSN_REGEX, MASKED_TEXT_VALUE);
 
     // Check for email
-    result = result.replace(EMAIL_REGEX, constants.MASKED_TEXT_VALUE);
+    result = result.replace(EMAIL_REGEX, MASKED_TEXT_VALUE);
 
     // Check for additional mask text patterns
     for (const pattern of this.additionalMaskTextPatterns) {
       try {
-        result = result.replace(pattern, constants.MASKED_TEXT_VALUE);
+        result = result.replace(pattern, MASKED_TEXT_VALUE);
       } catch {
         // ignore invalid pattern
       }
@@ -156,7 +157,9 @@ export class DataExtractor {
       [constants.AMPLITUDE_EVENT_PROP_ELEMENT_ATTRIBUTES]: attributes,
       [constants.AMPLITUDE_EVENT_PROP_ELEMENT_PARENT_LABEL]: nearestLabel,
       [constants.AMPLITUDE_EVENT_PROP_PAGE_URL]: getDecodeURI(window.location.href.split('?')[0]),
-      [constants.AMPLITUDE_EVENT_PROP_PAGE_TITLE]: this.getPageTitle(),
+      [constants.AMPLITUDE_EVENT_PROP_PAGE_TITLE]: (
+        getPageTitle as (parseTitleFunction: (title: string) => string) => string
+      )(this.replaceSensitiveString),
       [constants.AMPLITUDE_EVENT_PROP_VIEWPORT_HEIGHT]: window.innerHeight,
       [constants.AMPLITUDE_EVENT_PROP_VIEWPORT_WIDTH]: window.innerWidth,
     };
@@ -243,39 +246,22 @@ export class DataExtractor {
 
   getText = (element: Element): string => {
     // Check if element or any parent has data-amp-mask attribute
-    const hasMaskAttribute = element.closest(`[${constants.TEXT_MASK_ATTRIBUTE}]`) !== null;
+    const hasMaskAttribute = element.closest(`[${TEXT_MASK_ATTRIBUTE}]`) !== null;
     if (hasMaskAttribute) {
-      return constants.MASKED_TEXT_VALUE;
+      return MASKED_TEXT_VALUE;
     }
     let output = '';
-    if (!element.querySelector(`[${constants.TEXT_MASK_ATTRIBUTE}], [contenteditable]`)) {
+    if (!element.querySelector(`[${TEXT_MASK_ATTRIBUTE}], [contenteditable]`)) {
       output = (element as HTMLElement).innerText || '';
     } else {
       const clonedTree = element.cloneNode(true) as HTMLElement;
       // replace all elements with TEXT_MASK_ATTRIBUTE attribute and contenteditable with the text MASKED_TEXT_VALUE
-      clonedTree.querySelectorAll(`[${constants.TEXT_MASK_ATTRIBUTE}], [contenteditable]`).forEach((node) => {
-        (node as HTMLElement).innerText = constants.MASKED_TEXT_VALUE;
+      clonedTree.querySelectorAll(`[${TEXT_MASK_ATTRIBUTE}], [contenteditable]`).forEach((node) => {
+        (node as HTMLElement).innerText = MASKED_TEXT_VALUE;
       });
       output = clonedTree.innerText || '';
     }
     return this.replaceSensitiveString(output.substring(0, 255)).replace(/\s+/g, ' ').trim();
-  };
-
-  /**
-   * Gets the page title, checking if the title element has data-amp-mask attribute
-   * @returns The page title, masked if the title element has data-amp-mask attribute
-   */
-  getPageTitle = (): string => {
-    if (typeof document === 'undefined') {
-      return '';
-    }
-
-    const titleElement = document.querySelector('title');
-    if (titleElement && titleElement.hasAttribute(constants.TEXT_MASK_ATTRIBUTE)) {
-      return constants.MASKED_TEXT_VALUE;
-    }
-
-    return this.replaceSensitiveString(document.title);
   };
 
   // Returns the element properties for the given element in Visual Labeling.
