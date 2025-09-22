@@ -156,7 +156,7 @@ export const pageUrlEnrichmentPlugin = (): EnrichmentPlugin => {
             '[Amplitude] Page Path',
             (typeof location !== 'undefined' && getDecodeURI(location.pathname)) || '',
           ),
-          '[Amplitude] Page Title': addIfNotExist(event, '[Amplitude] Page Title', (getPageTitle as () => string)()),
+          '[Amplitude] Page Title': addIfNotExist(event, '[Amplitude] Page Title', getPageTitle()),
           '[Amplitude] Page URL': addIfNotExist(event, '[Amplitude] Page URL', locationHREF.split('?')[0]),
           '[Amplitude] Previous Page Location': previousPage,
           '[Amplitude] Previous Page Type': getPrevPageType(previousPage),
