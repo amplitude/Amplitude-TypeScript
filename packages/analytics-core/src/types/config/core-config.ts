@@ -88,7 +88,7 @@ export interface IConfig {
    */
   requestMetadata?: IRequestMetadata;
   /**
-   * Identify object to be called on init.
+   * Invokes identify on this Identify object prior to initializing the SDK.
    */
   identify?: IIdentify;
 }
