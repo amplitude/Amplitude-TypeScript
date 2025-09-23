@@ -3,6 +3,22 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.25.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.24.1...@amplitude/analytics-core@2.25.0) (2025-09-23)
+
+
+### Bug Fixes
+
+* **analytics-core:** add events support for diagnostics client ([#1301](https://github.com/amplitude/Amplitude-TypeScript/issues/1301)) ([9671929](https://github.com/amplitude/Amplitude-TypeScript/commit/9671929b6cfa63621e6e8ca6f2575d057990775e))
+
+
+### Features
+
+* **analytics-core:** add diagnostics client ([#1281](https://github.com/amplitude/Amplitude-TypeScript/issues/1281)) ([c511002](https://github.com/amplitude/Amplitude-TypeScript/commit/c5110024832f09d3f69d25077c4c5b825e538e6c))
+
+
+
+
+
 ## [2.24.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.24.0...@amplitude/analytics-core@2.24.1) (2025-09-18)
 
 

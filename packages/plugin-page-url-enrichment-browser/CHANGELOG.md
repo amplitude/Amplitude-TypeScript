@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [0.3.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-page-url-enrichment-browser@0.2.10...@amplitude/plugin-page-url-enrichment-browser@0.3.0) (2025-09-23)
+
+
+### Features
+
+* **analytics-client-common:** refactor getPageTitle from autocapture to make it reusable ([#1298](https://github.com/amplitude/Amplitude-TypeScript/issues/1298)) ([3c931ee](https://github.com/amplitude/Amplitude-TypeScript/commit/3c931eeb7bb4d2482523c48cf796113187d9b078))
+
+
+
+
+
 ## [0.2.10](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-page-url-enrichment-browser@0.2.9...@amplitude/plugin-page-url-enrichment-browser@0.2.10) (2025-09-18)
 
 

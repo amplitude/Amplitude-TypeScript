@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.28.12](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.28.11...@amplitude/session-replay-browser@1.28.12) (2025-09-23)
+
+
+### Bug Fixes
+
+* **session-replay:** fix builds for iife ([#1302](https://github.com/amplitude/Amplitude-TypeScript/issues/1302)) ([b5f5af7](https://github.com/amplitude/Amplitude-TypeScript/commit/b5f5af780e4db91f8ffb7885f670a6d2f5036f76))
+
+
+
+
+
 ## [1.28.11](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.28.10...@amplitude/session-replay-browser@1.28.11) (2025-09-18)
 
 
