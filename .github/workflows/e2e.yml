@@ -55,6 +55,7 @@ jobs:
       - name: Start dev server
         run: |
           # Start the dev server
+          yarn build:vite
           yarn start --port 5173 &
           # Wait for the server to be ready
           sleep 10
