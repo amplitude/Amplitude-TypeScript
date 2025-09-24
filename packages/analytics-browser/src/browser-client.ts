@@ -164,6 +164,12 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
     const ampTimestamp = queryParams.ampTimestamp ? Number(queryParams.ampTimestamp) : undefined;
     const isWithinTimeLimit = ampTimestamp ? Date.now() < ampTimestamp : true;
 
+    // if an identify object is provided, call it on init
+    if (this.config.identify) {
+      this.identify(this.config.identify);
+    }
+
+    // check if we need to set the sessionId
     const querySessionId =
       isWithinTimeLimit && !Number.isNaN(Number(queryParams.ampSessionId))
         ? Number(queryParams.ampSessionId)
