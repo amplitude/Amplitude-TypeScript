@@ -1,4 +1,4 @@
-import { generateHashCode, isSessionInSample } from '../../src/utils/sampling';
+import { generateHashCode, isTimestampInSample } from '../../src/utils/sampling';
 
 describe('Sampling utilities', () => {
   describe('generateHashCode', () => {
@@ -16,13 +16,13 @@ describe('Sampling utilities', () => {
     });
   });
 
-  describe('isSessionInSample', () => {
-    test('should deterministically return true if calculation puts session id below sample rate', () => {
-      const result = isSessionInSample(1691092433788, 0.56);
+  describe('isTimestampInSample', () => {
+    test('should deterministically return true if calculation puts timestamp below sample rate', () => {
+      const result = isTimestampInSample(1691092433788, 0.56);
       expect(result).toEqual(true);
     });
-    test('should deterministically return false if calculation puts session id above sample rate', () => {
-      const result = isSessionInSample(1691092416403, 0.13);
+    test('should deterministically return false if calculation puts timestamp above sample rate', () => {
+      const result = isTimestampInSample(1691092416403, 0.13);
       expect(result).toEqual(false);
     });
   });

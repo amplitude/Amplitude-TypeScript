@@ -32,7 +32,7 @@ import {
 import { EventCompressor } from './events/event-compressor';
 import { createEventsManager } from './events/events-manager';
 import { MultiEventManager } from './events/multi-manager';
-import { generateHashCode, isSessionInSample } from '@amplitude/analytics-core';
+import { generateHashCode, isTimestampInSample } from '@amplitude/analytics-core';
 import { getDebugConfig, getPageUrl, getStorageSize, maskFn } from './helpers';
 import { clickBatcher, clickHook, clickNonBatcher } from './hooks/click';
 import { ScrollWatcher } from './hooks/scroll';
@@ -441,7 +441,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
         matched = true;
       }
     } else {
-      const isInSample = isSessionInSample(this.identifiers.sessionId, this.config.sampleRate);
+      const isInSample = isTimestampInSample(this.identifiers.sessionId, this.config.sampleRate);
       if (!isInSample) {
         message = `Opting session ${this.identifiers.sessionId} out of recording due to sample rate.`;
         this.loggerProvider.log(message);

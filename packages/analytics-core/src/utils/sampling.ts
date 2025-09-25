@@ -9,8 +9,8 @@ export const generateHashCode = function (str: string) {
   return hash;
 };
 
-export const isSessionInSample = function (sessionId: string | number, sampleRate: number) {
-  const hashNumber = generateHashCode(sessionId.toString());
+export const isTimestampInSample = function (timestamp: string | number, sampleRate: number) {
+  const hashNumber = generateHashCode(timestamp.toString());
   const absHash = Math.abs(hashNumber);
   const absHashMultiply = absHash * 31;
   const mod = absHashMultiply % 1000000;

@@ -167,7 +167,7 @@ describe('module level integration', () => {
       });
 
       test('should use sampleRate from sdk options', async () => {
-        const inSampleSpy = jest.spyOn(AnalyticsCore, 'isSessionInSample');
+        const inSampleSpy = jest.spyOn(AnalyticsCore, 'isTimestampInSample');
         const sessionReplay = new SessionReplay();
         await sessionReplay.init(apiKey, { ...mockOptions, sampleRate: 0.8 }).promise;
         expect(inSampleSpy).toHaveBeenCalledWith(sessionReplay.identifiers?.sessionId, 0.8);
@@ -209,7 +209,7 @@ describe('module level integration', () => {
       });
 
       test('should use sampleRate from remote config', async () => {
-        const inSampleSpy = jest.spyOn(AnalyticsCore, 'isSessionInSample');
+        const inSampleSpy = jest.spyOn(AnalyticsCore, 'isTimestampInSample');
         const sessionReplay = new SessionReplay();
         await sessionReplay.init(apiKey, { ...mockOptions, sampleRate: 0.8 }).promise;
         expect(inSampleSpy).toHaveBeenCalledWith(sessionReplay.identifiers?.sessionId, 0.5);
