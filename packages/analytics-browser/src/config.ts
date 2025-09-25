@@ -96,6 +96,7 @@ export class BrowserConfig extends Config implements IBrowserConfig {
     debugLogsEnabled?: boolean,
     public networkTrackingOptions?: NetworkTrackingOptions,
     public identify?: IIdentify,
+    public enableDiagnostics: boolean = true,
   ) {
     super({ apiKey, storageProvider, transportProvider: createTransport(transport) });
     this._cookieStorage = cookieStorage;
@@ -110,6 +111,7 @@ export class BrowserConfig extends Config implements IBrowserConfig {
     this.loggerProvider.enable(debugLogsEnabled ? LogLevel.Debug : this.logLevel);
     this.networkTrackingOptions = networkTrackingOptions;
     this.identify = identify;
+    this.enableDiagnostics = enableDiagnostics;
   }
 
   get cookieStorage() {
@@ -314,6 +316,7 @@ export const useBrowserConfig = async (
     debugLogsEnabled,
     options.networkTrackingOptions,
     options.identify,
+    options.enableDiagnostics,
   );
 
   if (!(await browserConfig.storageProvider.isEnabled())) {

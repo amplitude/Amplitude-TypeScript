@@ -77,6 +77,7 @@ describe('config', () => {
         useBatch: false,
         fetchRemoteConfig: true,
         version: VERSION,
+        enableDiagnostics: true,
       });
     });
 
@@ -135,6 +136,7 @@ describe('config', () => {
         useBatch: false,
         fetchRemoteConfig: true,
         version: VERSION,
+        enableDiagnostics: true,
       });
       expect(getTopLevelDomain).toHaveBeenCalledTimes(1);
     });
@@ -237,6 +239,7 @@ describe('config', () => {
         useBatch: false,
         fetchRemoteConfig: true,
         version: VERSION,
+        enableDiagnostics: true,
       });
     });
 

@@ -89,6 +89,11 @@ export interface ExternalBrowserConfig extends IConfig {
    * @deprecated use autocapture.networkTracking instead
    */
   networkTrackingOptions?: NetworkTrackingOptions;
+  /**
+   * Whether to enable diagnostics.
+   * @defaultValue `true`
+   */
+  enableDiagnostics?: boolean;
 }
 
 interface InternalBrowserConfig {

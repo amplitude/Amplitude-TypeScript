@@ -27,6 +27,7 @@ import {
   RemoteConfigClient,
   RemoteConfig,
   Source,
+  DiagnosticsClient,
 } from '@amplitude/analytics-core';
 import {
   getAttributionTrackingConfig,
@@ -72,6 +73,7 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
   webAttribution: WebAttribution | undefined;
   userProperties: { [key: string]: any } | undefined;
   remoteConfigClient: IRemoteConfigClient | undefined;
+  diagnosticsClient: DiagnosticsClient | undefined;
 
   init(apiKey = '', userIdOrOptions?: string | BrowserOptions, maybeOptions?: BrowserOptions) {
     let userId: string | undefined;
@@ -101,6 +103,13 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
     // Step 2: Create browser config
     // Get default browser config based on browser options
     const browserOptions = await useBrowserConfig(options.apiKey, options, this);
+
+    // Create diagnostics client
+    this.diagnosticsClient = new DiagnosticsClient(
+      browserOptions.apiKey,
+      browserOptions.loggerProvider,
+      browserOptions.serverZone,
+    );
 
     // Create remote config client and subscribe to analytics configs
     if (browserOptions.fetchRemoteConfig) {

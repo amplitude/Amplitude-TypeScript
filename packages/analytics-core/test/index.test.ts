@@ -54,7 +54,7 @@ import {
   AmplitudeContext,
   generateHashCode,
   isTimestampInSample,
-  // DiagnosticsClient,
+  DiagnosticsClient,
 } from '../src/index';
 
 describe('index', () => {
@@ -128,6 +128,6 @@ describe('index', () => {
     expect(typeof CampaignParser).toBe('function');
     expect(typeof generateHashCode).toBe('function');
     expect(typeof isTimestampInSample).toBe('function');
-    // expect(typeof DiagnosticsClient).toBe('function');
+    expect(typeof DiagnosticsClient).toBe('function');
   });
 });
