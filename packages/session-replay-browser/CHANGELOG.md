@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.28.14](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.28.13...@amplitude/session-replay-browser@1.28.14) (2025-09-25)
+
+
+### Bug Fixes
+
+* **session-replay-browser:** Fix webworker packaging for ESM ([#1300](https://github.com/amplitude/Amplitude-TypeScript/issues/1300)) ([9cf8cd9](https://github.com/amplitude/Amplitude-TypeScript/commit/9cf8cd90f1c96c0c03670fb1fc96f8d2d1dde605))
+
+
+
+
+
 ## [1.28.13](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.28.12...@amplitude/session-replay-browser@1.28.13) (2025-09-25)
 
 **Note:** Version bump only for package @amplitude/session-replay-browser
