@@ -2,6 +2,7 @@ import { ILogger } from '../logger';
 import { DiagnosticsStorage, IDiagnosticsStorage } from './diagnostics-storage';
 import { ServerZoneType } from '../types/server-zone';
 import { getGlobalScope } from '../global-scope';
+import { isTimestampInSample } from '../utils/sampling';
 
 export const SAVE_INTERVAL_MS = 1000; // 1 second
 export const FLUSH_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
@@ -151,6 +152,7 @@ export class DiagnosticsClient implements IDiagnosticsClient {
   logger: ILogger;
   serverUrl: string;
   apiKey: string;
+  shouldTrack: boolean;
 
   // In-memory storages
   inMemoryTags: DiagnosticsTags = {};
@@ -163,10 +165,22 @@ export class DiagnosticsClient implements IDiagnosticsClient {
   // Timer for flush interval
   flushTimer: ReturnType<typeof setTimeout> | null = null;
 
-  constructor(apiKey: string, logger: ILogger, serverZone: ServerZoneType = 'US') {
+  constructor(
+    apiKey: string,
+    logger: ILogger,
+    serverZone: ServerZoneType = 'US',
+    options?: {
+      enabled?: boolean;
+      sampleRate?: number;
+    },
+  ) {
     this.apiKey = apiKey;
     this.logger = logger;
     this.serverUrl = serverZone === 'US' ? DIAGNOSTICS_US_SERVER_URL : DIAGNOSTICS_EU_SERVER_URL;
+
+    // Diagnostics is enabled by default with sample rate of 0 (no sampling)
+    const config = { enabled: true, sampleRate: 0, ...options };
+    this.shouldTrack = isTimestampInSample(Date.now(), config.sampleRate) && config.enabled;
 
     if (DiagnosticsStorage.isSupported()) {
       this.storage = new DiagnosticsStorage(apiKey, logger);
@@ -178,7 +192,7 @@ export class DiagnosticsClient implements IDiagnosticsClient {
   }
 
   setTag(name: string, value: string) {
-    if (!this.storage) {
+    if (!this.storage || !this.shouldTrack) {
       return;
     }
 
@@ -192,7 +206,7 @@ export class DiagnosticsClient implements IDiagnosticsClient {
   }
 
   increment(name: string, size = 1) {
-    if (!this.storage) {
+    if (!this.storage || !this.shouldTrack) {
       return;
     }
 
@@ -206,7 +220,7 @@ export class DiagnosticsClient implements IDiagnosticsClient {
   }
 
   recordHistogram(name: string, value: number) {
-    if (!this.storage) {
+    if (!this.storage || !this.shouldTrack) {
       return;
     }
 
@@ -235,7 +249,7 @@ export class DiagnosticsClient implements IDiagnosticsClient {
   }
 
   recordEvent(name: string, properties: EventProperties) {
-    if (!this.storage) {
+    if (!this.storage || !this.shouldTrack) {
       return;
     }
 
