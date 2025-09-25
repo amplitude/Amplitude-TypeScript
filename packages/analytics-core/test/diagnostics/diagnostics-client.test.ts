@@ -9,6 +9,7 @@ import {
 } from '../../src/diagnostics/diagnostics-client';
 import { DiagnosticsStorage } from '../../src/diagnostics/diagnostics-storage';
 import { getGlobalScope } from '../../src/global-scope';
+import { isTimestampInSample } from '../../src/utils/sampling';
 
 // Mock logger
 const mockLogger: ILogger = {
@@ -25,6 +26,11 @@ const apiKey = '1234567890abcdefg';
 jest.mock('../../src/diagnostics/diagnostics-storage');
 jest.mock('../../src/global-scope');
 
+// Mock the sampling utils
+jest.mock('../../src/utils/sampling', () => ({
+  isTimestampInSample: jest.fn(),
+}));
+
 describe('DiagnosticsClient', () => {
   let initializeFlushIntervalSpy: jest.SpyInstance;
 
@@ -35,6 +41,9 @@ describe('DiagnosticsClient', () => {
     initializeFlushIntervalSpy = jest
       .spyOn(DiagnosticsClient.prototype, 'initializeFlushInterval')
       .mockImplementation(() => Promise.resolve());
+
+    // Mock isTimestampInSample to return true
+    (isTimestampInSample as jest.Mock).mockReturnValue(true);
 
     // Set up DiagnosticsStorage mock
     (DiagnosticsStorage.isSupported as jest.Mock).mockReturnValue(true);
@@ -72,6 +81,7 @@ describe('DiagnosticsClient', () => {
       expect(client.inMemoryEvents).toEqual([]);
       expect(client.saveTimer).toBeNull();
       expect(client.flushTimer).toBeNull();
+      expect(client.shouldTrack).toBe(true);
       expect(initializeFlushIntervalSpy).toHaveBeenCalledTimes(1);
     });
 
@@ -87,6 +97,17 @@ describe('DiagnosticsClient', () => {
 
       expect(client.storage).toBeUndefined();
       expect(mockLogger['debug']).toHaveBeenCalledWith('DiagnosticsClient: IndexedDB is not supported');
+    });
+
+    test('should set shouldTrack to false if not in sample', () => {
+      (isTimestampInSample as jest.Mock).mockReturnValue(false);
+      const client = new DiagnosticsClient(apiKey, mockLogger);
+      expect(client.shouldTrack).toBe(false);
+    });
+
+    test('should set shouldTrack to false if not enabled', () => {
+      const client = new DiagnosticsClient(apiKey, mockLogger, 'US', { enabled: false });
+      expect(client.shouldTrack).toBe(false);
     });
   });
 
@@ -262,6 +283,12 @@ describe('DiagnosticsClient', () => {
       expect(mockLogger.debug).toHaveBeenCalledWith('DiagnosticsClient: Early return setTags as reaching memory limit');
     });
 
+    test('setTag should early return if shouldTrack is false', () => {
+      client.shouldTrack = false;
+      client.setTag('library', 'amplitude-typescript/2.0.0');
+      expect(client.inMemoryTags).toEqual({});
+    });
+
     test('increment', () => {
       const key = 'analytics.fileNotFound';
       const size = 3;
@@ -304,6 +331,12 @@ describe('DiagnosticsClient', () => {
       expect(mockLogger.debug).toHaveBeenCalledWith(
         'DiagnosticsClient: Early return increment as reaching memory limit',
       );
+    });
+
+    test('increment should early return if shouldTrack is false', () => {
+      client.shouldTrack = false;
+      client.increment('analytics.fileNotFound', 5);
+      expect(client.inMemoryCounters).toEqual({});
     });
 
     test('recordHistogram', () => {
@@ -350,6 +383,12 @@ describe('DiagnosticsClient', () => {
       expect(client.inMemoryHistograms['sr.time']).toBeUndefined();
     });
 
+    test('recordHistogram should early return if shouldTrack is false', () => {
+      client.shouldTrack = false;
+      client.recordHistogram('sr.time', 50);
+      expect(client.inMemoryHistograms).toEqual({});
+    });
+
     test('recordEvent', () => {
       const eventName = 'error';
       const properties = { stack_trace: 'test stack trace' };
@@ -392,6 +431,12 @@ describe('DiagnosticsClient', () => {
       expect(mockLogger.debug).toHaveBeenCalledWith(
         'DiagnosticsClient: Early return recordEvent as reaching memory limit',
       );
+    });
+
+    test('recordEvent should early return if shouldTrack is false', () => {
+      client.shouldTrack = false;
+      client.recordEvent('error', { stack_trace: 'test stack trace' });
+      expect(client.inMemoryEvents).toEqual([]);
     });
   });
 
