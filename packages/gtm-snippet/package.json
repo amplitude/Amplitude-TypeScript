@@ -1,0 +1,41 @@
+{
+  "private": true,
+  "name": "@amplitude/amplitude-js-gtm",
+  "version": "3.18.1",
+  "description": "Amplitude JS SDK Wrapper for use with Google Tag Manager",
+  "main": "dist/index.js",
+  "scripts": {
+    "build:template": "node ./scripts/build-snippet.js",
+    "build:compress": "node ./scripts/compress-brotli.js",
+    "build": "yarn build:template && yarn build:compress",
+    "lint": "echo TODO",
+    "lint:eslint": "echo TODO",
+    "lint:fix": "echo TODO",
+    "lint:prettier": "echo TODO",
+    "prepublishOnly": "yarn build",
+    "deploy": "node ./scripts/upload-to-s3.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/amplitude/amplitude-js-gtm.git"
+  },
+  "author": "Amplitude <support@amplitude.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/amplitude/amplitude-js-gtm/issues"
+  },
+  "homepage": "https://github.com/amplitude/amplitude-js-gtm#readme",
+  "dependencies": {
+    "@amplitude/analytics-browser": "^2.24.2"
+  },
+  "devDependencies": {
+    "@amplitude/eslint-plugin-amplitude": "^1.0.1",
+    "@aws-sdk/client-s3": "^3.229.0",
+    "compression-webpack-plugin": "^11.1.0",
+    "ejs": "^3.1.9",
+    "eslint": "^8.2.0",
+    "eslint-config-prettier": "^8.3.0",
+    "eslint-plugin-prettier": "^4.0.0",
+    "prettier": "^2.4.1"
+  }
+}
