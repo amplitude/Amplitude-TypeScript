@@ -124,7 +124,7 @@ export class EventCompressor {
           // fallback: serialize
           this.worker.postMessage(JSON.stringify({ event, sessionId }));
         } else {
-          throw err; // rethrow unexpected
+          this.config.loggerProvider.warn('Unexpected error while posting message to worker:', err);
         }
       }
     } else {

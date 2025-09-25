@@ -287,7 +287,7 @@ describe('EventCompressor', () => {
     expect(terminateMock).toHaveBeenCalled();
   });
 
-  test('should rethrow unexpected errors in webworker', async () => {
+  test('should log warning for unexpected errors in webworker', async () => {
     let postMessageMock = jest.fn();
     let onMessageMock = jest.fn();
     let onErrorMock = jest.fn();
@@ -341,10 +341,19 @@ describe('EventCompressor', () => {
     };
     const testSessionId = 1234;
 
-    // Should throw the unexpected error
+    // Should not throw, but log a warning instead
     expect(() => {
       eventCompressor.addCompressedEvent(testEvent, testSessionId);
-    }).toThrow('Unexpected error');
+    }).not.toThrow();
+
+    // Verify warning was logged
+    expect(mockLoggerProvider['warn']).toHaveBeenCalledWith(
+      'Unexpected error while posting message to worker:',
+      expect.objectContaining({
+        name: 'SomeOtherError',
+        message: 'Unexpected error',
+      }),
+    );
 
     eventCompressor.terminate();
     expect(terminateMock).toHaveBeenCalled();
