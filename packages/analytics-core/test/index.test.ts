@@ -53,7 +53,7 @@ import {
   MKTG,
   AmplitudeContext,
   generateHashCode,
-  isSessionInSample,
+  isTimestampInSample,
   // DiagnosticsClient,
 } from '../src/index';
 
@@ -127,7 +127,7 @@ describe('index', () => {
     expect(typeof MKTG).toBe('string');
     expect(typeof CampaignParser).toBe('function');
     expect(typeof generateHashCode).toBe('function');
-    expect(typeof isSessionInSample).toBe('function');
+    expect(typeof isTimestampInSample).toBe('function');
     // expect(typeof DiagnosticsClient).toBe('function');
   });
 });

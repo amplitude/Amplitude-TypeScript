@@ -21,7 +21,7 @@ export { debugWrapper, getClientLogConfig, getClientStates } from './utils/debug
 export { UUID } from './utils/uuid';
 export { createIdentifyEvent } from './utils/event-builder';
 export { isUrlMatchAllowlist, getDecodeURI } from './utils/url-utils';
-export { generateHashCode, isSessionInSample } from './utils/sampling';
+export { generateHashCode, isTimestampInSample } from './utils/sampling';
 
 export { MemoryStorage } from './storage/memory';
 export { CookieStorage } from './storage/cookie';
