@@ -87,3 +87,25 @@ amplitude.add(plugin);
 ```typescript
 amplitude.init('API_KEY');
 ```
+
+## Privacy and Exclusions
+
+The autocapture plugin automatically excludes certain elements to respect user privacy and session replay configurations:
+
+### Automatic Exclusions
+
+- **Elements with `amp-block` class**: Elements marked with the `amp-block` CSS class are automatically excluded from autocapture tracking. This class is used by Amplitude's session replay functionality to block elements for privacy reasons.
+
+```html
+<!-- This button will NOT be tracked by autocapture -->
+<button class="amp-block">Sensitive Action</button>
+
+<!-- This button will be tracked (if other conditions are met) -->
+<button>Regular Action</button>
+```
+
+- **Hidden and password inputs**: Elements with `type="hidden"` or `type="password"` are automatically excluded.
+
+### Note
+
+The `amp-block` exclusion takes precedence over all other configurations, including custom `shouldTrackEventResolver` functions, to ensure privacy controls are respected.
