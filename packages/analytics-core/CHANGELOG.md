@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.26.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.25.0...@amplitude/analytics-core@2.26.0) (2025-09-25)
+
+
+### Features
+
+* **analytics-browser:** add "identify" to config ([#1303](https://github.com/amplitude/Amplitude-TypeScript/issues/1303)) ([693720c](https://github.com/amplitude/Amplitude-TypeScript/commit/693720c348eaac0ffef8b88454deae06ceca0bb4))
+
+
+
+
+
 # [2.25.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.24.1...@amplitude/analytics-core@2.25.0) (2025-09-23)
 
 
