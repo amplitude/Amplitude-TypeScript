@@ -50,6 +50,7 @@ export enum ObservablesEnum {
   // ErrorObservable = 'errorObservable',
   NavigateObservable = 'navigateObservable',
   MutationObservable = 'mutationObservable',
+  VisibilityChangeObservable = 'visibilityChangeObservable',
 }
 
 export interface AllWindowObservables {
@@ -58,6 +59,7 @@ export interface AllWindowObservables {
   // [ObservablesEnum.ErrorObservable]: Observable<TimestampedEvent<ErrorEvent>>;
   [ObservablesEnum.NavigateObservable]: Observable<TimestampedEvent<NavigateEvent>> | undefined;
   [ObservablesEnum.MutationObservable]: Observable<TimestampedEvent<MutationRecord[]>>;
+  [ObservablesEnum.VisibilityChangeObservable]?: Observable<TimestampedEvent<Event>>;
 }
 
 export const autocapturePlugin = (options: ElementInteractionsOptions = {}): BrowserEnrichmentPlugin => {

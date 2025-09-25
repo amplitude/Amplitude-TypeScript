@@ -238,7 +238,7 @@ export type AutoCaptureOptionsWithDefaults = Required<
 export type BaseTimestampedEvent<T> = {
   event: T;
   timestamp: number;
-  type: 'rage' | 'click' | 'change' | 'error' | 'navigate' | 'mutation';
+  type: 'rage' | 'click' | 'change' | 'error' | 'navigate' | 'visibilitychange' | 'mutation';
 };
 
 // Specific types for events with targetElementProperties

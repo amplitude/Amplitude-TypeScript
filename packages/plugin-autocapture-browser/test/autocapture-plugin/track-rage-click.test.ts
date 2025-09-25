@@ -26,6 +26,7 @@ describe('trackRageClicks', () => {
       [ObservablesEnum.ChangeObservable]: new Subject(),
       [ObservablesEnum.NavigateObservable]: new Subject(),
       [ObservablesEnum.MutationObservable]: new Subject(),
+      [ObservablesEnum.VisibilityChangeObservable]: new Subject(),
     };
     shouldTrackRageClick = jest.fn().mockReturnValue(true);
   });
