@@ -1139,7 +1139,7 @@ describe('SessionReplay', () => {
     test('should return false if session not included in sample rate', async () => {
       // Mock as if remote config call fails
       __setShouldThrowError(true);
-      jest.spyOn(Helpers, 'isSessionInSample').mockImplementationOnce(() => false);
+      jest.spyOn(AnalyticsCore, 'isSessionInSample').mockImplementationOnce(() => false);
 
       await sessionReplay.init(apiKey, { ...mockOptions, sampleRate: 0.2 }).promise;
       const sampleRate = sessionReplay.config?.sampleRate;
@@ -1149,7 +1149,7 @@ describe('SessionReplay', () => {
     });
     test('should set record as true if session is included in sample rate', async () => {
       await sessionReplay.init(apiKey, { ...mockOptions, sampleRate: 0.2 }).promise;
-      jest.spyOn(Helpers, 'isSessionInSample').mockImplementationOnce(() => true);
+      jest.spyOn(AnalyticsCore, 'isSessionInSample').mockImplementationOnce(() => true);
       const shouldRecord = sessionReplay.getShouldRecord();
       expect(shouldRecord).toBe(true);
     });

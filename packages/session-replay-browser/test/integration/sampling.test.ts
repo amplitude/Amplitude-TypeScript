@@ -9,7 +9,6 @@ import { SessionReplayOptions } from 'src/typings/session-replay';
 import * as SessionReplayIDB from '../../src/events/events-idb-store';
 
 import { DEFAULT_SAMPLE_RATE, DEFAULT_SESSION_REPLAY_PROPERTY, SESSION_REPLAY_SERVER_URL } from '../../src/constants';
-import * as Helpers from '../../src/helpers';
 import { SessionReplay } from '../../src/session-replay';
 import { SESSION_ID_IN_20_SAMPLE } from '../test-data';
 import { eventWithTime } from '@amplitude/rrweb-types';
@@ -168,7 +167,7 @@ describe('module level integration', () => {
       });
 
       test('should use sampleRate from sdk options', async () => {
-        const inSampleSpy = jest.spyOn(Helpers, 'isSessionInSample');
+        const inSampleSpy = jest.spyOn(AnalyticsCore, 'isSessionInSample');
         const sessionReplay = new SessionReplay();
         await sessionReplay.init(apiKey, { ...mockOptions, sampleRate: 0.8 }).promise;
         expect(inSampleSpy).toHaveBeenCalledWith(sessionReplay.identifiers?.sessionId, 0.8);
@@ -210,7 +209,7 @@ describe('module level integration', () => {
       });
 
       test('should use sampleRate from remote config', async () => {
-        const inSampleSpy = jest.spyOn(Helpers, 'isSessionInSample');
+        const inSampleSpy = jest.spyOn(AnalyticsCore, 'isSessionInSample');
         const sessionReplay = new SessionReplay();
         await sessionReplay.init(apiKey, { ...mockOptions, sampleRate: 0.8 }).promise;
         expect(inSampleSpy).toHaveBeenCalledWith(sessionReplay.identifiers?.sessionId, 0.5);

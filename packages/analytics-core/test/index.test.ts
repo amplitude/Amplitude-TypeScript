@@ -52,6 +52,8 @@ import {
   EMPTY_VALUE,
   MKTG,
   AmplitudeContext,
+  generateHashCode,
+  isSessionInSample,
   // DiagnosticsClient,
 } from '../src/index';
 
@@ -124,6 +126,8 @@ describe('index', () => {
     expect(typeof BASE_CAMPAIGN).toBe('object');
     expect(typeof MKTG).toBe('string');
     expect(typeof CampaignParser).toBe('function');
+    expect(typeof generateHashCode).toBe('function');
+    expect(typeof isSessionInSample).toBe('function');
     // expect(typeof DiagnosticsClient).toBe('function');
   });
 });

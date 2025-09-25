@@ -32,7 +32,8 @@ import {
 import { EventCompressor } from './events/event-compressor';
 import { createEventsManager } from './events/events-manager';
 import { MultiEventManager } from './events/multi-manager';
-import { generateHashCode, getDebugConfig, getPageUrl, getStorageSize, isSessionInSample, maskFn } from './helpers';
+import { generateHashCode, isSessionInSample } from '@amplitude/analytics-core';
+import { getDebugConfig, getPageUrl, getStorageSize, maskFn } from './helpers';
 import { clickBatcher, clickHook, clickNonBatcher } from './hooks/click';
 import { ScrollWatcher } from './hooks/scroll';
 import { SessionIdentifiers } from './identifiers';
