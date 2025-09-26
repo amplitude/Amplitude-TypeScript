@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/amplitude.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script src="/gtm-snippet/lib/scripts/analytics-browser-gtm-wrapper.min.js.gz"></script>
+    <script type="module">
+      amplitude.init(import.meta.env.VITE_AMPLITUDE_API_KEY);
+      amplitude.track('GTM Snippet Test');
+    </script>
+    <title>GTM Snippet Test</title>
+    
+  </head>
+  <body>
+    <div id="app">
+      GTM Snippet Test
+      This tests packages/gtm-snippet/lib/analytics-browser-gtm-wrapper.js.br
+    </div>
+  </body>
+</html>

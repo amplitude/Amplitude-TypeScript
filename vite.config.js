@@ -32,6 +32,38 @@ function htmlEntriesPlugin(pattern = '**/*.html', { cwd }) {
   };
 }
 
+function gzipServePlugin() {
+  return {
+    name: 'gzip-serve',
+    configureServer(server) {
+      server.middlewares.use((req, res, next) => {
+        if (req.url && req.url.endsWith('.gz')) {
+          // Set Content-Encoding header for gzip files
+          res.setHeader('Content-Encoding', 'gzip');
+          
+          // Determine the original content type by removing .gz extension
+          const originalPath = req.url.replace(/\.gz$/, '');
+          if (originalPath.endsWith('.js')) {
+            res.setHeader('Content-Type', 'application/javascript');
+          } else if (originalPath.endsWith('.css')) {
+            res.setHeader('Content-Type', 'text/css');
+          } else if (originalPath.endsWith('.html')) {
+            res.setHeader('Content-Type', 'text/html');
+          } else if (originalPath.endsWith('.json')) {
+            res.setHeader('Content-Type', 'application/json');
+          } else {
+            res.setHeader('Content-Type', 'application/octet-stream');
+          }
+          
+          // Add Vary header to indicate that the response varies by Accept-Encoding
+          res.setHeader('Vary', 'Accept-Encoding');
+        }
+        next();
+      });
+    }
+  };
+}
+
 function fileListingPlugin() {
   return {
     name: 'file-listing',
@@ -74,7 +106,7 @@ const amplitudeAliases = fs.readdirSync(packagesDir).reduce((aliases, pkgName) =
 export default defineConfig({
   envDir: path.resolve(__dirname),
   root: testServerDir,
-  publicDir: path.resolve(packagesDir, 'analytics-browser/generated'),
+  publicDir: packagesDir,
   resolve: {
     alias: amplitudeAliases
   },
@@ -102,7 +134,9 @@ export default defineConfig({
   },
   plugins: [
     htmlEntriesPlugin('**/*.html', { cwd: path.resolve(__dirname, 'test-server') }),
+    gzipServePlugin(),
     fileListingPlugin(),
-    createMockApi()
+    createMockApi(),
+    compression()
   ],
 });
