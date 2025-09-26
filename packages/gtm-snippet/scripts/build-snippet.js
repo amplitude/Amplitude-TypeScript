@@ -31,15 +31,4 @@ const rendered = ejs.render(template, {
 console.log('Writing output file...');
 fs.writeFileSync(outputPath, rendered);
 
-// Brotli compress the output file
-// console.log('Compressing with brotli...');
-// const brotliOutputPath = path.join(__dirname, '..', 'lib', 'analytics-browser-gtm-wrapper.js.br');
-// const compressedData = zlib.brotliCompressSync(rendered, {
-//   params: {
-//     [zlib.constants.BROTLI_PARAM_QUALITY]: 11, // Maximum compression
-//     [zlib.constants.BROTLI_PARAM_SIZE_HINT]: rendered.length
-//   }
-// });
-// fs.writeFileSync(brotliOutputPath, compressedData);
-
 console.log('✅ Successfully built amplitude-wrapper.js from template');

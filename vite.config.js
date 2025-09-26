@@ -137,6 +137,5 @@ export default defineConfig({
     gzipServePlugin(),
     fileListingPlugin(),
     createMockApi(),
-    compression()
   ],
 });

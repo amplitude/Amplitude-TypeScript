@@ -6,10 +6,6 @@
     "build": "yarn build:template && yarn build:bundle",
     "build:bundle": "rollup --config rollup.config.js",
     "build:template": "node ./scripts/build-snippet.js",
-    "lint": "echo TODO",
-    "lint:eslint": "echo TODO",
-    "lint:fix": "echo TODO",
-    "lint:prettier": "echo TODO",
     "prepublishOnly": "yarn build",
     "deploy": "node ./scripts/upload-to-s3.js"
   },
