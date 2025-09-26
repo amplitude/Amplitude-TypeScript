@@ -1,13 +1,11 @@
 {
-  "private": true,
-  "name": "@amplitude/amplitude-js-gtm",
-  "version": "3.18.1",
+  "name": "@amplitude/gtm-snippet",
+  "version": "3.20.0",
   "description": "Amplitude JS SDK Wrapper for use with Google Tag Manager",
-  "main": "dist/index.js",
   "scripts": {
+    "build": "yarn build:template && yarn build:bundle",
+    "build:bundle": "rollup --config rollup.config.js",
     "build:template": "node ./scripts/build-snippet.js",
-    "build:compress": "node ./scripts/compress-brotli.js",
-    "build": "yarn build:template && yarn build:compress",
     "lint": "echo TODO",
     "lint:eslint": "echo TODO",
     "lint:fix": "echo TODO",
@@ -21,16 +19,14 @@
   },
   "author": "Amplitude <support@amplitude.com>",
   "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/amplitude/amplitude-js-gtm/issues"
-  },
-  "homepage": "https://github.com/amplitude/amplitude-js-gtm#readme",
   "dependencies": {
-    "@amplitude/analytics-browser": "^2.24.2"
+    "@amplitude/analytics-browser": "^2.24.2",
+    "@amplitude/plugin-session-replay-browser": "^1.22.15"
   },
   "devDependencies": {
     "@amplitude/eslint-plugin-amplitude": "^1.0.1",
     "@aws-sdk/client-s3": "^3.229.0",
+    "@rollup/plugin-json": "5.0.0",
     "compression-webpack-plugin": "^11.1.0",
     "ejs": "^3.1.9",
     "eslint": "^8.2.0",

@@ -4,6 +4,7 @@ import resolve from '@rollup/plugin-node-resolve';
 import { terser } from 'rollup-plugin-terser';
 import gzip from 'rollup-plugin-gzip';
 import execute from 'rollup-plugin-execute';
+import json from '@rollup/plugin-json';
 import { exec } from 'child_process';
 import fs from 'fs';
 
@@ -221,3 +222,22 @@ export const bookmarklet = {
   },
   plugins: [createBookmarkletSnippet(), terser(), execute(`node ${base}/scripts/version/create-bookmarklet.js`)],
 };
+
+export const gtmSnippetBundle = {
+  input: 'lib/amplitude-wrapper.js', // TODO: move this around
+  output: {
+    name: 'amplitudeGTM',
+    file: 'lib/scripts/analytics-browser-gtm-wrapper.min.js',
+    format: 'iife',
+    sourcemap: true,
+  },
+  plugins: [
+    terser({
+      output: {
+        comments: false,
+      },
+    }),
+    gzip(),
+    json(),
+  ],
+}
