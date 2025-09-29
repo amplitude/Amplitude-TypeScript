@@ -21,13 +21,7 @@ export type URLInfo = {
   [PREVIOUS_PAGE_STORAGE_KEY]?: string;
 };
 
-export const EXCLUDED_DEFAULT_EVENT_TYPES = new Set([
-  '$identify',
-  '$groupidentify',
-  'revenue_amount',
-  'session_start',
-  'session_end',
-]);
+export const EXCLUDED_DEFAULT_EVENT_TYPES = new Set(['$identify', '$groupidentify', 'revenue_amount']);
 
 enum PreviousPageType {
   Direct = 'direct', // for no prev page or referrer
