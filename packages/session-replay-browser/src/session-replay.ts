@@ -287,7 +287,9 @@ export class SessionReplay implements AmplitudeSessionReplay {
   focusListener = () => {
     // Restart recording on focus to ensure that when user
     // switches tabs, we take a full snapshot
-    void this.recordEvents(false);
+    void this.recordEvents({
+      shouldLogMetadata: false,
+    });
   };
 
   /**
@@ -542,7 +544,8 @@ export class SessionReplay implements AmplitudeSessionReplay {
     }
   }
 
-  async recordEvents(shouldLogMetadata = true, forceRestart = true) {
+  async recordEvents(recordEventsConfig?: { shouldLogMetadata?: boolean; forceRestart?: boolean }) {
+    const { shouldLogMetadata = true, forceRestart = true } = recordEventsConfig || {};
     const config = this.config;
     const shouldRecord = this.getShouldRecord();
     const sessionId = this.identifiers?.sessionId;

@@ -1824,7 +1824,7 @@ describe('SessionReplay', () => {
           mockRecordFunction.mockClear(); // Clear previous calls
 
           // Act - Attempt to start recording again when forceRestart is false
-          await sessionReplay.recordEvents(shouldLogMetadata, forceRestart);
+          await sessionReplay.recordEvents({ shouldLogMetadata, forceRestart });
 
           // Assert
           expect(mockRecordFunction).toHaveBeenCalledTimes(expectedNumberOfRecordCalls);
