@@ -610,7 +610,7 @@ describe('SessionReplay', () => {
 
       expect(initialize).toHaveBeenCalledTimes(1);
 
-      expect(initialize.mock.calls[0]).toEqual([true]);
+      expect(initialize.mock.calls[0]).toEqual([true, true]);
     });
     test('should set up blur and focus event listeners', async () => {
       const initialize = jest.spyOn(sessionReplay, 'initialize');
@@ -820,17 +820,17 @@ describe('SessionReplay', () => {
       const userProperties = { age: 30, city: 'New York' };
       await (sessionReplay as any).asyncSetSessionId(456, '9l8m7n', { userProperties });
 
-      expect(evaluateTargetingAndCaptureSpy).toHaveBeenCalledWith({ userProperties });
+      expect(evaluateTargetingAndCaptureSpy).toHaveBeenCalledWith({ userProperties }, true);
 
       // Test without userProperties (options is undefined)
       await (sessionReplay as any).asyncSetSessionId(789, '9l8m7n');
 
-      expect(evaluateTargetingAndCaptureSpy).toHaveBeenCalledWith({ userProperties: undefined });
+      expect(evaluateTargetingAndCaptureSpy).toHaveBeenCalledWith({ userProperties: undefined }, true);
 
       // Test with empty options
       await (sessionReplay as any).asyncSetSessionId(101, '9l8m7n', {});
 
-      expect(evaluateTargetingAndCaptureSpy).toHaveBeenCalledWith({ userProperties: undefined });
+      expect(evaluateTargetingAndCaptureSpy).toHaveBeenCalledWith({ userProperties: undefined }, true);
     });
 
     test('should call recordEvents when no targetingConfig', async () => {
@@ -2607,7 +2607,7 @@ describe('SessionReplay', () => {
 
       await sessionReplay.evaluateTargetingAndCapture({}, true);
 
-      expect(initializeSpy).toHaveBeenCalledWith(true);
+      expect(initializeSpy).toHaveBeenCalledWith(true, true);
     });
 
     test('should call recordEvents when isInit is false', async () => {
@@ -2764,6 +2764,89 @@ describe('SessionReplay', () => {
           mockOptions.sessionId?.toString() || ''
         } due to matching targeting conditions.`,
       );
+    });
+  });
+
+  describe('restart behavior', () => {
+    test('should restart when the session id changes', async () => {
+      // Arrange
+      const recordFunction = createMockRecordFunction();
+      jest.spyOn(SessionReplay.prototype, 'getRecordFunction' as any).mockResolvedValue(recordFunction);
+      const sessionReplay = new SessionReplay();
+      await sessionReplay.init(apiKey, mockOptions).promise;
+
+      if (!sessionReplay.eventsManager || !sessionReplay.joinedConfigGenerator || !sessionReplay.config) {
+        throw new Error('Init not called');
+      }
+
+      const updatedConfig = { ...sessionReplay.config, sampleRate: 0.9 };
+      const generateJoinedConfigPromise = Promise.resolve({
+        joinedConfig: updatedConfig,
+        localConfig: updatedConfig,
+        remoteConfig: undefined,
+      });
+      jest
+        .spyOn(sessionReplay.joinedConfigGenerator, 'generateJoinedConfig')
+        .mockReturnValue(generateJoinedConfigPromise);
+
+      // Clear any calls from initialization
+      recordFunction.mockClear();
+      expect(recordFunction).not.toHaveBeenCalled();
+
+      // Act
+      await sessionReplay.setSessionId(456).promise;
+      await generateJoinedConfigPromise;
+
+      // Assert
+      expect(recordFunction).toHaveBeenCalled();
+    });
+
+    test('should restart when the focus changes', async () => {
+      // Arrange
+      const recordFunction = createMockRecordFunction();
+      jest.spyOn(SessionReplay.prototype, 'getRecordFunction' as any).mockResolvedValue(recordFunction);
+      const sessionReplay = new SessionReplay();
+      await sessionReplay.init(apiKey, mockOptions).promise;
+
+      // Clear any calls from initialization
+      recordFunction.mockClear();
+      expect(recordFunction).not.toHaveBeenCalled();
+
+      // Act
+      const focusCallback = addEventListenerMock.mock.calls[1][1];
+      await focusCallback();
+
+      // Assert
+      expect(recordFunction).toHaveBeenCalled();
+    });
+
+    test('should not restart when an event is executed', async () => {
+      // Arrange
+      const event = { event_type: 'page_view' };
+      const userProperties = { city: 'San Francisco' };
+      const recordFunction = createMockRecordFunction();
+      jest.spyOn(SessionReplay.prototype, 'getRecordFunction' as any).mockResolvedValue(recordFunction);
+      const sessionReplay = new SessionReplay();
+
+      // Spy on initialize to track when it's called
+      const initializeSpy = jest.spyOn(sessionReplay, 'initialize');
+
+      await sessionReplay.init(apiKey, mockOptions).promise;
+
+      // Wait for the async initialize call to complete (it's called with void in evaluateTargetingAndCapture)
+      if (initializeSpy.mock.calls.length > 0) {
+        await initializeSpy.mock.results[0]?.value;
+      }
+
+      // Clear any calls from initialization
+      recordFunction.mockClear();
+      expect(recordFunction).not.toHaveBeenCalled();
+
+      // Act - call evaluateTargetingAndCapture with an event the same way the plugin's execute() method does
+      await sessionReplay.evaluateTargetingAndCapture({ event, userProperties }, false);
+
+      // Assert - recordFunction should not have been called again after init
+      expect(recordFunction).not.toHaveBeenCalled();
     });
   });
 });
