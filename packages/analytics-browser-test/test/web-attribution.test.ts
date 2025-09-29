@@ -625,9 +625,8 @@ describe('Web attribution', () => {
       });
 
       test('should not drop campaign without reinitializing the SDK after unsetting the referrer', async () => {
-        const initReferrer = 'https://www.test.com/';
-
         const url = 'https://www.example.com?utm_source=test_utm_source';
+        const initReferrer = 'https://www.test.com/';
 
         navigateTo(url, initReferrer);
         expect(document.referrer).toEqual(initReferrer);
