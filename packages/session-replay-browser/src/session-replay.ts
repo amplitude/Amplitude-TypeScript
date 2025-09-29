@@ -362,11 +362,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
       );
     }
 
-    if (isInit) {
-      void this.initialize(true);
-    } else {
-      await this.recordEvents();
-    }
+    void this.initialize(isInit);
   };
 
   sendEvents(sessionId?: string | number) {
