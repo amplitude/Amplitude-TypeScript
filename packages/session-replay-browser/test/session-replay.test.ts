@@ -1807,6 +1807,29 @@ describe('SessionReplay', () => {
         expect(getPageUrlSpy).toHaveBeenCalledWith(originalHref, []);
         expect(metaEvent.data.href).toBe(originalHref);
       });
+
+      test.each([
+        { description: 'forceRestart true', forceRestart: true, expectedNumberOfRecordCalls: 1 },
+        { description: 'forceRestart omitted (default true)', forceRestart: undefined, expectedNumberOfRecordCalls: 1 },
+        { description: 'forceRestart false', forceRestart: false, expectedNumberOfRecordCalls: 0 },
+      ])(
+        'should not call recordFunction() if there is an active recording and forceRestart is false',
+        async ({ forceRestart, expectedNumberOfRecordCalls }) => {
+          // Arrange
+          const shouldLogMetadata = true;
+
+          await sessionReplay.init(apiKey, mockOptions).promise;
+          await sessionReplay.recordEvents(); // Start initial recording to create the active recording state
+
+          mockRecordFunction.mockClear(); // Clear previous calls
+
+          // Act - Attempt to start recording again when forceRestart is false
+          await sessionReplay.recordEvents(shouldLogMetadata, forceRestart);
+
+          // Assert
+          expect(mockRecordFunction).toHaveBeenCalledTimes(expectedNumberOfRecordCalls);
+        },
+      );
     });
   });
 

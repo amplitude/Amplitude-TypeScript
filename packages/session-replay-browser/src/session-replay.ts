@@ -542,13 +542,19 @@ export class SessionReplay implements AmplitudeSessionReplay {
     }
   }
 
-  async recordEvents(shouldLogMetadata = true) {
+  async recordEvents(shouldLogMetadata = true, forceRestart = true) {
     const config = this.config;
     const shouldRecord = this.getShouldRecord();
     const sessionId = this.identifiers?.sessionId;
     if (!shouldRecord || !sessionId || !config) {
       return;
     }
+
+    // NOTE: If there is already an existing active recording, exit early unless forceRestart is true
+    if (this.recordCancelCallback && !forceRestart) {
+      return;
+    }
+
     this.stopRecordingEvents();
 
     const recordFunction = await this.getRecordFunction();
