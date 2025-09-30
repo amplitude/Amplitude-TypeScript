@@ -97,6 +97,7 @@ export class BrowserConfig extends Config implements IBrowserConfig {
     public networkTrackingOptions?: NetworkTrackingOptions,
     public identify?: IIdentify,
     public enableDiagnostics: boolean = true,
+    public diagnosticsSampleRate: number = 0,
   ) {
     super({ apiKey, storageProvider, transportProvider: createTransport(transport) });
     this._cookieStorage = cookieStorage;
@@ -112,6 +113,7 @@ export class BrowserConfig extends Config implements IBrowserConfig {
     this.networkTrackingOptions = networkTrackingOptions;
     this.identify = identify;
     this.enableDiagnostics = enableDiagnostics;
+    this.diagnosticsSampleRate = diagnosticsSampleRate;
   }
 
   get cookieStorage() {

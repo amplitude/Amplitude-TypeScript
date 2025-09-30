@@ -145,6 +145,16 @@ export interface IDiagnosticsClient {
 
   // Flush storage
   _flush(): void;
+
+  /**
+   * Sets the sample rate for diagnostics.
+   *
+   * @example
+   * ```typescript
+   * diagnostics.setSampleRate(0.5);
+   * ```
+   */
+  _setSampleRate(sampleRate: number): void;
 }
 
 export class DiagnosticsClient implements IDiagnosticsClient {
@@ -153,6 +163,15 @@ export class DiagnosticsClient implements IDiagnosticsClient {
   serverUrl: string;
   apiKey: string;
   shouldTrack: boolean;
+  config: {
+    enabled: boolean;
+    sampleRate: number;
+  };
+  /**
+   * The timestamp when the diagnostics client was initialized.
+   * Save in memory to keep lifecycle sample rate calculation consistency.
+   */
+  startTimestamp: number;
 
   // In-memory storages
   inMemoryTags: DiagnosticsTags = {};
@@ -178,9 +197,11 @@ export class DiagnosticsClient implements IDiagnosticsClient {
     this.logger = logger;
     this.serverUrl = serverZone === 'US' ? DIAGNOSTICS_US_SERVER_URL : DIAGNOSTICS_EU_SERVER_URL;
 
+    this.logger.debug('DiagnosticsClient: Initializing with options', JSON.stringify(options, null, 2));
     // Diagnostics is enabled by default with sample rate of 0 (no sampling)
-    const config = { enabled: true, sampleRate: 0, ...options };
-    this.shouldTrack = isTimestampInSample(Date.now(), config.sampleRate) && config.enabled;
+    this.config = { enabled: true, sampleRate: 0, ...options };
+    this.startTimestamp = Date.now();
+    this.shouldTrack = isTimestampInSample(this.startTimestamp, this.config.sampleRate) && this.config.enabled;
 
     if (DiagnosticsStorage.isSupported()) {
       this.storage = new DiagnosticsStorage(apiKey, logger);
@@ -445,5 +466,12 @@ export class DiagnosticsClient implements IDiagnosticsClient {
           });
       }, remainingTime);
     }
+  }
+
+  _setSampleRate(sampleRate: number): void {
+    this.logger.debug('DiagnosticsClient: Setting sample rate to', sampleRate);
+    this.config.sampleRate = sampleRate;
+    this.shouldTrack = isTimestampInSample(this.startTimestamp, this.config.sampleRate) && this.config.enabled;
+    this.logger.debug('DiagnosticsClient: Should track is', this.shouldTrack);
   }
 }

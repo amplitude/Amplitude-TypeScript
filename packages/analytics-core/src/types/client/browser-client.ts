@@ -69,4 +69,17 @@ export interface BrowserClient extends Client {
    * ```
    */
   getOptOut(): boolean | undefined;
+
+  /**
+   * @experimental
+   * WARNING: This method is for internal testing only and is not part of the public API.
+   * It may be changed or removed at any time without notice.
+   *
+   * Sets the sample rate for diagnostics.
+   *
+   * ```typescript
+   * setDiagnosticsSampleRate(0.5);
+   * ```
+   */
+  _setDiagnosticsSampleRate(sampleRate: number): void;
 }

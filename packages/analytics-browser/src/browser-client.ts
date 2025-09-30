@@ -60,6 +60,8 @@ import { autocapturePlugin, frustrationPlugin } from '@amplitude/plugin-autocapt
 import { plugin as networkCapturePlugin } from '@amplitude/plugin-network-capture-browser';
 import { webVitalsPlugin } from '@amplitude/plugin-web-vitals-browser';
 import { WebAttribution } from './attribution/web-attribution';
+import { LIBPREFIX } from './lib-prefix';
+import { VERSION } from './version';
 
 /**
  * Exported for `@amplitude/unified` or integration with blade plugins.
@@ -75,6 +77,9 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
   userProperties: { [key: string]: any } | undefined;
   remoteConfigClient: IRemoteConfigClient | undefined;
   diagnosticsClient: IDiagnosticsClient | undefined;
+  // Backdoor to set diagnostics sample rate
+  // by calling amplitude._setDiagnosticsSampleRate(1); before amplitude.init()
+  _diagnosticsSampleRate = 0;
 
   init(apiKey = '', userIdOrOptions?: string | BrowserOptions, maybeOptions?: BrowserOptions) {
     let userId: string | undefined;
@@ -144,15 +149,17 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
       });
     }
 
+    // Initialize diagnostics client and set library tag
     this.diagnosticsClient = new DiagnosticsClient(
       browserOptions.apiKey,
       browserOptions.loggerProvider,
       browserOptions.serverZone,
       {
         enabled: browserOptions.enableDiagnostics,
-        sampleRate: browserOptions.diagnosticsSampleRate,
+        sampleRate: browserOptions.diagnosticsSampleRate || this._diagnosticsSampleRate,
       },
     );
+    this.diagnosticsClient.setTag('library', `${LIBPREFIX}/${VERSION}`);
 
     await super._init(browserOptions);
     this.logBrowserOptions(browserOptions);
@@ -480,6 +487,13 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
     } catch (e) {
       /* istanbul ignore next */
       this.config.loggerProvider.error('Error logging browser config', e);
+    }
+  }
+
+  _setDiagnosticsSampleRate(sampleRate: number): void {
+    if (!this.config) {
+      this._diagnosticsSampleRate = sampleRate;
+      return;
     }
   }
 }
