@@ -383,12 +383,7 @@ export class DiagnosticsClient implements IDiagnosticsClient {
     }));
 
     // Early return if all data collections are empty
-    if (
-      Object.keys(tags).length === 0 &&
-      Object.keys(counters).length === 0 &&
-      Object.keys(histogram).length === 0 &&
-      events.length === 0
-    ) {
+    if (Object.keys(counters).length === 0 && Object.keys(histogram).length === 0 && events.length === 0) {
       return;
     }
 
