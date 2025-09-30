@@ -570,7 +570,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
       this.loggerProvider.debug(`A capture is already in progress and forceRestart is false. Not restarting.`);
       return;
     }
-    this.loggerProvider.debug(`Starting new capture for session.`);
+    this.loggerProvider.debug(`Starting new capture for session with sessionId=${sessionId}.`);
 
     this.stopRecordingEvents();
 
