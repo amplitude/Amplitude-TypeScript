@@ -28,6 +28,7 @@ import {
   RemoteConfig,
   Source,
   IDiagnosticsClient,
+  DiagnosticsClient,
 } from '@amplitude/analytics-core';
 import {
   getAttributionTrackingConfig,
@@ -142,6 +143,16 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
         );
       });
     }
+
+    this.diagnosticsClient = new DiagnosticsClient(
+      browserOptions.apiKey,
+      browserOptions.loggerProvider,
+      browserOptions.serverZone,
+      {
+        enabled: browserOptions.enableDiagnostics,
+        sampleRate: browserOptions.diagnosticsSampleRate,
+      },
+    );
 
     await super._init(browserOptions);
     this.logBrowserOptions(browserOptions);

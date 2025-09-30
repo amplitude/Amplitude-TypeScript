@@ -102,6 +102,7 @@ interface InternalBrowserConfig {
   lastEventId?: number;
   transportProvider: Transport;
   version?: string;
+  diagnosticsSampleRate?: number;
 }
 
 /**
