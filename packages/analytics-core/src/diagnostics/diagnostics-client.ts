@@ -439,28 +439,40 @@ export class DiagnosticsClient implements IDiagnosticsClient {
     }
     const now = Date.now();
     const lastFlushTimestamp = (await this.storage.getLastFlushTimestamp()) || -1;
-    const timeSinceLastFlush = now - lastFlushTimestamp;
 
     // If last flush timestamp is -1, it means this is a new client
+    // Save current timestamp as the initial "last flush timestamp"
+    // and schedule the flush timer
     if (lastFlushTimestamp === -1) {
+      void this.storage.setLastFlushTimestamp(now);
+      this._setFlushTimer(FLUSH_INTERVAL_MS);
       return;
-    } else if (timeSinceLastFlush >= FLUSH_INTERVAL_MS) {
+    }
+
+    const timeSinceLastFlush = now - lastFlushTimestamp;
+    if (timeSinceLastFlush >= FLUSH_INTERVAL_MS) {
       // More than 5 minutes has passed, flush immediately
       void this._flush();
       return;
     } else {
       // Set timer for remaining time
-      const remainingTime = FLUSH_INTERVAL_MS - timeSinceLastFlush;
-      this.flushTimer = setTimeout(() => {
-        this._flush()
-          .catch((error) => {
-            this.logger.debug('DiagnosticsClient: Failed to flush', error);
-          })
-          .finally(() => {
-            this.flushTimer = null;
-          });
-      }, remainingTime);
+      this._setFlushTimer(FLUSH_INTERVAL_MS - timeSinceLastFlush);
     }
+  }
+
+  /**
+   * Helper method to set flush timer with consistent error handling
+   */
+  private _setFlushTimer(delay: number) {
+    this.flushTimer = setTimeout(() => {
+      this._flush()
+        .catch((error) => {
+          this.logger.debug('DiagnosticsClient: Failed to flush', error);
+        })
+        .finally(() => {
+          this.flushTimer = null;
+        });
+    }, delay);
   }
 
   _setSampleRate(sampleRate: number): void {
