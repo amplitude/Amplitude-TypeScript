@@ -248,14 +248,14 @@ describe('SessionReplay', () => {
 
       await sessionReplay.init(apiKey, mockOptions).promise;
       const startSpy = jest.spyOn(NetworkObservers.prototype, 'start');
-      await sessionReplay.recordEvents();
+      await sessionReplay.recordEvents({ forceRestart: true, shouldLogMetadata: true });
       expect(startSpy).toHaveBeenCalled();
     });
 
     test('should not start network observers when network logging is disabled in remote config', async () => {
       await sessionReplay.init(apiKey, mockOptions).promise;
       const startSpy = jest.spyOn(NetworkObservers.prototype, 'start');
-      await sessionReplay.recordEvents();
+      await sessionReplay.recordEvents({ forceRestart: true, shouldLogMetadata: true });
       expect(startSpy).not.toHaveBeenCalled();
     });
 
@@ -701,7 +701,7 @@ describe('SessionReplay', () => {
         ...mockOptions,
         ...options,
       }).promise;
-      await sessionReplay.recordEvents();
+      await sessionReplay.recordEvents({ forceRestart: true, shouldLogMetadata: true });
 
       const recordArg = mockRecordFunction.mock.calls[0][0];
       expect(recordArg?.applyBackgroundColorToBlockedElements).toBe(expectedValue);
@@ -1265,7 +1265,7 @@ describe('SessionReplay', () => {
       const existingRecordFunction = jest.spyOn(SessionReplay.prototype, 'getRecordFunction' as any);
       existingRecordFunction.mockResolvedValue(recordFunction);
 
-      await sessionReplay.recordEvents();
+      await sessionReplay.recordEvents({ forceRestart: true, shouldLogMetadata: true });
 
       // Verify recordEvents was called but mockRecordFunction was not
       expect(recordEventsSpy).toHaveBeenCalledTimes(1);
@@ -1290,7 +1290,7 @@ describe('SessionReplay', () => {
       const existingRecordFunction = jest.spyOn(SessionReplay.prototype, 'getRecordFunction' as any);
       existingRecordFunction.mockResolvedValue(recordFunction);
 
-      await sessionReplay.recordEvents();
+      await sessionReplay.recordEvents({ forceRestart: true, shouldLogMetadata: true });
 
       expect(recordFunction).not.toHaveBeenCalled();
     });
@@ -1298,7 +1298,7 @@ describe('SessionReplay', () => {
     test('should return early if user opts out', async () => {
       await sessionReplay.init(apiKey, { ...mockOptions, optOut: true, privacyConfig: { blockSelector: ['#class'] } })
         .promise;
-      await sessionReplay.recordEvents();
+      await sessionReplay.recordEvents({ forceRestart: true, shouldLogMetadata: true });
       expect(mockRecordFunction).not.toHaveBeenCalled();
       if (!sessionReplay.eventsManager) {
         throw new Error('Did not call init');
@@ -1311,13 +1311,13 @@ describe('SessionReplay', () => {
       await sessionReplay.init(apiKey, mockOptions).promise;
       const stopRecordingMock = jest.fn();
       sessionReplay.recordCancelCallback = stopRecordingMock;
-      await sessionReplay.recordEvents();
+      await sessionReplay.recordEvents({ forceRestart: true, shouldLogMetadata: true });
       expect(stopRecordingMock).toHaveBeenCalled();
     });
 
     test('should stop recording and send events if user opts out during recording', async () => {
       await sessionReplay.init(apiKey, mockOptions).promise;
-      await sessionReplay.recordEvents();
+      await sessionReplay.recordEvents({ forceRestart: true, shouldLogMetadata: true });
       const stopRecordingMock = jest.fn();
       sessionReplay.recordCancelCallback = stopRecordingMock;
       if (!sessionReplay.eventsManager) {
@@ -1343,7 +1343,7 @@ describe('SessionReplay', () => {
 
     test('should add an error handler', async () => {
       await sessionReplay.init(apiKey, mockOptions).promise;
-      await sessionReplay.recordEvents();
+      await sessionReplay.recordEvents({ forceRestart: true, shouldLogMetadata: true });
       const recordArg = mockRecordFunction.mock.calls[0][0];
       const errorHandlerReturn = recordArg?.errorHandler && recordArg?.errorHandler(new Error('test error'));
       // eslint-disable-next-line @typescript-eslint/unbound-method
@@ -1353,7 +1353,7 @@ describe('SessionReplay', () => {
 
     test('should add slim dom options', async () => {
       await sessionReplay.init(apiKey, { ...mockOptions, omitElementTags: { script: true, comment: true } }).promise;
-      await sessionReplay.recordEvents();
+      await sessionReplay.recordEvents({ forceRestart: true, shouldLogMetadata: true });
       const recordArg = mockRecordFunction.mock.calls[0][0];
       expect(recordArg?.slimDOMOptions).toEqual({ script: true, comment: true });
     });
@@ -1361,7 +1361,7 @@ describe('SessionReplay', () => {
     test('should rethrow CSSStylesheet errors', async () => {
       const sessionReplay = new SessionReplay();
       await sessionReplay.init(apiKey, mockOptions).promise;
-      await sessionReplay.recordEvents();
+      await sessionReplay.recordEvents({ forceRestart: true, shouldLogMetadata: true });
       const recordArg = mockRecordFunction.mock.calls[0][0];
       const stylesheetErrorMessage =
         "Failed to execute 'insertRule' on 'CSSStyleSheet': Failed to parse the rule 'body::-ms-expand{display: none}";
@@ -1373,7 +1373,7 @@ describe('SessionReplay', () => {
     test('should rethrow external errors', async () => {
       const sessionReplay = new SessionReplay();
       await sessionReplay.init(apiKey, mockOptions).promise;
-      await sessionReplay.recordEvents();
+      await sessionReplay.recordEvents({ forceRestart: true, shouldLogMetadata: true });
       const recordArg = mockRecordFunction.mock.calls[0][0];
       const error = new Error('test') as Error & { _external_?: boolean };
       error._external_ = true;
@@ -1385,7 +1385,7 @@ describe('SessionReplay', () => {
     test('should not add hooks if interaction config is not enabled', async () => {
       const sessionReplay = new SessionReplay();
       await sessionReplay.init(apiKey, mockOptions).promise;
-      await sessionReplay.recordEvents();
+      await sessionReplay.recordEvents({ forceRestart: true, shouldLogMetadata: true });
       const recordArg = mockRecordFunction.mock.calls[0][0];
       const error = new Error('test') as Error & { _external_?: boolean };
       error._external_ = true;
@@ -1404,7 +1404,7 @@ describe('SessionReplay', () => {
 
       const sessionReplay = new SessionReplay();
       await sessionReplay.init(apiKey, mockOptions).promise;
-      await sessionReplay.recordEvents();
+      await sessionReplay.recordEvents({ forceRestart: true, shouldLogMetadata: true });
       const recordArg = mockRecordFunction.mock.calls[0][0];
       const error = new Error('test') as Error & { _external_?: boolean };
       error._external_ = true;
@@ -1418,7 +1418,7 @@ describe('SessionReplay', () => {
         throw new Error('record failed');
       });
       const warnSpy = jest.spyOn(sessionReplay.loggerProvider, 'warn');
-      await sessionReplay.recordEvents();
+      await sessionReplay.recordEvents({ forceRestart: true, shouldLogMetadata: true });
       expect(warnSpy).toHaveBeenCalledWith('Failed to initialize session replay:', expect.any(Error));
     });
 
@@ -1433,7 +1433,7 @@ describe('SessionReplay', () => {
 
       const sessionReplay = new SessionReplay();
       await sessionReplay.init(apiKey, mockOptions).promise;
-      await sessionReplay.recordEvents();
+      await sessionReplay.recordEvents({ forceRestart: true, shouldLogMetadata: true });
       const recordArg = mockRecordFunction.mock.calls[0][0];
       const mouseInteractionHook = recordArg?.hooks?.mouseInteraction;
 
@@ -1455,7 +1455,7 @@ describe('SessionReplay', () => {
 
       const sessionReplay = new SessionReplay();
       await sessionReplay.init(apiKey, mockOptions).promise;
-      await sessionReplay.recordEvents();
+      await sessionReplay.recordEvents({ forceRestart: true, shouldLogMetadata: true });
       const recordArg = mockRecordFunction.mock.calls[0][0];
       const mouseInteractionHook = recordArg?.hooks?.mouseInteraction;
 
@@ -1475,7 +1475,7 @@ describe('SessionReplay', () => {
 
       const sessionReplay = new SessionReplay();
       await sessionReplay.init(apiKey, mockOptions).promise;
-      await sessionReplay.recordEvents();
+      await sessionReplay.recordEvents({ forceRestart: true, shouldLogMetadata: true });
       const recordArg = mockRecordFunction.mock.calls[0][0];
       const mouseInteractionHook = recordArg?.hooks?.mouseInteraction;
 
@@ -1499,7 +1499,7 @@ describe('SessionReplay', () => {
         const sessionReplay = new SessionReplay();
         const getPageUrlSpy = jest.spyOn(Helpers, 'getPageUrl');
         await sessionReplay.init(apiKey, mockOptions).promise;
-        await sessionReplay.recordEvents();
+        await sessionReplay.recordEvents({ forceRestart: true, shouldLogMetadata: true });
 
         const recordArg = mockRecordFunction.mock.calls[0][0];
         const metaEvent = {
@@ -1528,7 +1528,7 @@ describe('SessionReplay', () => {
         const sessionReplay = new SessionReplay();
         const getPageUrlSpy = jest.spyOn(Helpers, 'getPageUrl').mockReturnValue('https://example.com/sensitive-page');
         await sessionReplay.init(apiKey, mockOptions).promise;
-        await sessionReplay.recordEvents();
+        await sessionReplay.recordEvents({ forceRestart: true, shouldLogMetadata: true });
 
         const recordArg = mockRecordFunction.mock.calls[0][0];
         const originalHref = 'https://example.com/sensitive-page';
@@ -1558,7 +1558,7 @@ describe('SessionReplay', () => {
         const sessionReplay = new SessionReplay();
         const getPageUrlSpy = jest.spyOn(Helpers, 'getPageUrl').mockReturnValue('https://example.com/sensitive-page');
         await sessionReplay.init(apiKey, mockOptions).promise;
-        await sessionReplay.recordEvents();
+        await sessionReplay.recordEvents({ forceRestart: true, shouldLogMetadata: true });
 
         const recordArg = mockRecordFunction.mock.calls[0][0];
         const originalHref = 'https://example.com/sensitive-page';
@@ -1589,7 +1589,7 @@ describe('SessionReplay', () => {
         const sessionReplay = new SessionReplay();
         const getPageUrlSpy = jest.spyOn(Helpers, 'getPageUrl').mockReturnValue('https://example.com/sensitive-page');
         await sessionReplay.init(apiKey, mockOptions).promise;
-        await sessionReplay.recordEvents();
+        await sessionReplay.recordEvents({ forceRestart: true, shouldLogMetadata: true });
 
         const recordArg = mockRecordFunction.mock.calls[0][0];
         const originalHref = 'https://example.com/sensitive-page';
@@ -1621,7 +1621,7 @@ describe('SessionReplay', () => {
         const sessionReplay = new SessionReplay();
         const getPageUrlSpy = jest.spyOn(Helpers, 'getPageUrl');
         await sessionReplay.init(apiKey, mockOptions).promise;
-        await sessionReplay.recordEvents();
+        await sessionReplay.recordEvents({ forceRestart: true, shouldLogMetadata: true });
 
         const recordArg = mockRecordFunction.mock.calls[0][0];
         const originalHref = 'https://example.com/sensitive-page';
@@ -1652,7 +1652,7 @@ describe('SessionReplay', () => {
         const sessionReplay = new SessionReplay();
         const getPageUrlSpy = jest.spyOn(Helpers, 'getPageUrl');
         await sessionReplay.init(apiKey, mockOptions).promise;
-        await sessionReplay.recordEvents();
+        await sessionReplay.recordEvents({ forceRestart: true, shouldLogMetadata: true });
 
         const recordArg = mockRecordFunction.mock.calls[0][0];
         const metaEvent = {
@@ -1682,7 +1682,7 @@ describe('SessionReplay', () => {
         const sessionReplay = new SessionReplay();
         const getPageUrlSpy = jest.spyOn(Helpers, 'getPageUrl').mockReturnValue('https://example.com/sensitive-page');
         await sessionReplay.init(apiKey, mockOptions).promise;
-        await sessionReplay.recordEvents();
+        await sessionReplay.recordEvents({ forceRestart: true, shouldLogMetadata: true });
 
         // Set config to undefined to test optional chaining
         sessionReplay.config = undefined;
@@ -1717,7 +1717,7 @@ describe('SessionReplay', () => {
         const sessionReplay = new SessionReplay();
         const getPageUrlSpy = jest.spyOn(Helpers, 'getPageUrl').mockReturnValue('https://example.com/sensitive-page');
         await sessionReplay.init(apiKey, mockOptions).promise;
-        await sessionReplay.recordEvents();
+        await sessionReplay.recordEvents({ forceRestart: true, shouldLogMetadata: true });
 
         const recordArg = mockRecordFunction.mock.calls[0][0];
         const originalHref = 'https://example.com/sensitive-page';
@@ -1749,7 +1749,7 @@ describe('SessionReplay', () => {
         const sessionReplay = new SessionReplay();
         const getPageUrlSpy = jest.spyOn(Helpers, 'getPageUrl').mockReturnValue('https://example.com/sensitive-page');
         await sessionReplay.init(apiKey, mockOptions).promise;
-        await sessionReplay.recordEvents();
+        await sessionReplay.recordEvents({ forceRestart: true, shouldLogMetadata: true });
 
         // Manually set interactionConfig to null to test optional chaining
         if (sessionReplay.config) {
@@ -1789,7 +1789,7 @@ describe('SessionReplay', () => {
         const sessionReplay = new SessionReplay();
         const getPageUrlSpy = jest.spyOn(Helpers, 'getPageUrl').mockReturnValue('https://example.com/sensitive-page');
         await sessionReplay.init(apiKey, mockOptions).promise;
-        await sessionReplay.recordEvents();
+        await sessionReplay.recordEvents({ forceRestart: true, shouldLogMetadata: true });
 
         const recordArg = mockRecordFunction.mock.calls[0][0];
         const originalHref = 'https://example.com/sensitive-page';
@@ -1810,7 +1810,6 @@ describe('SessionReplay', () => {
 
       test.each([
         { description: 'forceRestart true', forceRestart: true, expectedNumberOfRecordCalls: 1 },
-        { description: 'forceRestart omitted (default true)', forceRestart: undefined, expectedNumberOfRecordCalls: 1 },
         { description: 'forceRestart false', forceRestart: false, expectedNumberOfRecordCalls: 0 },
       ])(
         'should not call recordFunction() if there is an active recording and forceRestart is false',
@@ -1819,7 +1818,7 @@ describe('SessionReplay', () => {
           const shouldLogMetadata = true;
 
           await sessionReplay.init(apiKey, mockOptions).promise;
-          await sessionReplay.recordEvents(); // Start initial recording to create the active recording state
+          await sessionReplay.recordEvents({ forceRestart: true, shouldLogMetadata: true }); // Start initial recording to create the active recording state
 
           mockRecordFunction.mockClear(); // Clear previous calls
 
@@ -2292,7 +2291,7 @@ describe('SessionReplay', () => {
         responseBody: '',
       };
 
-      await sessionReplay.recordEvents();
+      await sessionReplay.recordEvents({ forceRestart: true, shouldLogMetadata: true });
 
       expect(mockStart).toHaveBeenCalled();
       const startCallback = mockStart.mock.calls[0][0] as (event: NetworkRequestEvent) => void;
@@ -2536,7 +2535,7 @@ describe('SessionReplay', () => {
       // Spy on the record function to ensure it's not called
       mockRecordFunction.mockClear();
 
-      await sessionReplay.recordEvents();
+      await sessionReplay.recordEvents({ forceRestart: true, shouldLogMetadata: true });
 
       expect(mockRecordFunction).not.toHaveBeenCalled();
       expect(getRecordFunctionSpy).toHaveBeenCalled();
@@ -2552,7 +2551,7 @@ describe('SessionReplay', () => {
 
       mockRecordFunction.mockClear();
 
-      await sessionReplay.recordEvents();
+      await sessionReplay.recordEvents({ forceRestart: true, shouldLogMetadata: true });
 
       expect(mockRecordFunction).not.toHaveBeenCalled();
       expect(getRecordFunctionSpy).toHaveBeenCalled();

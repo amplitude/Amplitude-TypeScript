@@ -242,6 +242,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
     } else {
       await this.recordEvents({
         forceRestart: true,
+        shouldLogMetadata: true,
       });
     }
   }
@@ -400,6 +401,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
 
     return this.recordEvents({
       forceRestart,
+      shouldLogMetadata: true,
     });
   }
 
@@ -555,8 +557,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
     }
   }
 
-  async recordEvents(recordEventsConfig?: { shouldLogMetadata?: boolean; forceRestart?: boolean }) {
-    const { shouldLogMetadata = true, forceRestart = true } = recordEventsConfig || {};
+  async recordEvents({ shouldLogMetadata, forceRestart }: { shouldLogMetadata: boolean; forceRestart: boolean }) {
     const config = this.config;
     const shouldRecord = this.getShouldRecord();
     const sessionId = this.identifiers?.sessionId;
