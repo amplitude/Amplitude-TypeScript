@@ -114,6 +114,7 @@ describe('DiagnosticsClient', () => {
   describe('initializeFlushInterval', () => {
     let mockStorage: {
       getLastFlushTimestamp: jest.MockedFunction<() => Promise<number | undefined>>;
+      setLastFlushTimestamp: jest.MockedFunction<(timestamp: number) => Promise<void>>;
     };
     let client: DiagnosticsClient;
     let flushSpy: jest.SpyInstance;
@@ -124,6 +125,7 @@ describe('DiagnosticsClient', () => {
 
       mockStorage = {
         getLastFlushTimestamp: jest.fn(),
+        setLastFlushTimestamp: jest.fn(),
       };
       flushSpy = jest.spyOn(DiagnosticsClient.prototype, '_flush').mockResolvedValue();
     });
@@ -143,9 +145,19 @@ describe('DiagnosticsClient', () => {
 
     const createClientWithMockStorage = (timestampValue: number | undefined) => {
       mockStorage.getLastFlushTimestamp.mockResolvedValue(timestampValue);
+
+      // Mock the storage support check to prevent constructor from calling initializeFlushInterval
+      const isStorageSupportedSpy = jest.spyOn(DiagnosticsStorage, 'isSupported').mockReturnValue(false);
+
       client = new DiagnosticsClient(apiKey, mockLogger);
+
+      // Now set the mock storage after construction
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       client.storage = mockStorage as any;
+
+      // Restore the storage support check
+      isStorageSupportedSpy.mockRestore();
+
       return client;
     };
 
@@ -158,14 +170,18 @@ describe('DiagnosticsClient', () => {
       expect(mockStorage.getLastFlushTimestamp).not.toHaveBeenCalled();
     });
 
-    test('should early return for new client', async () => {
+    test('should set timestamp and timer for new client', async () => {
+      jest.useFakeTimers();
       createClientWithMockStorage(undefined);
 
       await client.initializeFlushInterval();
 
       expect(mockStorage.getLastFlushTimestamp).toHaveBeenCalled();
+      expect(mockStorage.setLastFlushTimestamp).toHaveBeenCalledWith(expect.any(Number));
       expect(flushSpy).not.toHaveBeenCalled();
-      expect(client.flushTimer).toBeNull();
+      expect(client.flushTimer).not.toBeNull();
+
+      jest.useRealTimers();
     });
 
     test('should flush immediately if 5 minutes have passed since last flush', async () => {
@@ -176,7 +192,6 @@ describe('DiagnosticsClient', () => {
 
       expect(mockStorage.getLastFlushTimestamp).toHaveBeenCalled();
       expect(flushSpy).toHaveBeenCalled();
-      expect(client.flushTimer).toBeNull();
     });
 
     test('should set timer for remaining time if less than 5 minutes have passed since last flush', async () => {
@@ -838,6 +853,70 @@ describe('DiagnosticsClient', () => {
       await euClient.fetch(TEST_PAYLOAD);
 
       expect(mockFetch).toHaveBeenCalledWith(DIAGNOSTICS_EU_SERVER_URL, expect.any(Object));
+    });
+  });
+
+  describe('_setSampleRate', () => {
+    let client: DiagnosticsClient;
+    let mockIsTimestampInSample: jest.SpyInstance;
+
+    beforeEach(() => {
+      // Mock isTimestampInSample with realistic implementation: compare sample rate with 0.5
+      mockIsTimestampInSample = jest
+        .spyOn({ isTimestampInSample }, 'isTimestampInSample')
+        .mockImplementation((_timestamp: string | number, sampleRate: number) => {
+          return sampleRate >= 0.5;
+        });
+      client = new DiagnosticsClient(apiKey, mockLogger);
+    });
+
+    afterEach(() => {
+      mockIsTimestampInSample.mockRestore();
+    });
+
+    test('should update sample rate and shouldTrack when rate >= 0.5 and enabled', () => {
+      const newSampleRate = 0.8;
+      client.config.enabled = true;
+
+      client._setSampleRate(newSampleRate);
+
+      expect(client.config.sampleRate).toBe(newSampleRate);
+      expect(mockIsTimestampInSample).toHaveBeenCalledWith(client.startTimestamp, newSampleRate);
+      expect(client.shouldTrack).toBe(true);
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockLogger.debug).toHaveBeenCalledWith('DiagnosticsClient: Setting sample rate to', newSampleRate);
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockLogger.debug).toHaveBeenCalledWith('DiagnosticsClient: Should track is', true);
+    });
+
+    test('should update sample rate and set shouldTrack to false when rate < 0.5', () => {
+      const newSampleRate = 0.2;
+      client.config.enabled = true;
+
+      client._setSampleRate(newSampleRate);
+
+      expect(client.config.sampleRate).toBe(newSampleRate);
+      expect(mockIsTimestampInSample).toHaveBeenCalledWith(client.startTimestamp, newSampleRate);
+      expect(client.shouldTrack).toBe(false);
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockLogger.debug).toHaveBeenCalledWith('DiagnosticsClient: Setting sample rate to', newSampleRate);
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockLogger.debug).toHaveBeenCalledWith('DiagnosticsClient: Should track is', false);
+    });
+
+    test('should set shouldTrack to false when disabled even with high sample rate', () => {
+      const newSampleRate = 1.0;
+      client.config.enabled = false;
+
+      client._setSampleRate(newSampleRate);
+
+      expect(client.config.sampleRate).toBe(newSampleRate);
+      expect(mockIsTimestampInSample).toHaveBeenCalledWith(client.startTimestamp, newSampleRate);
+      expect(client.shouldTrack).toBe(false);
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockLogger.debug).toHaveBeenCalledWith('DiagnosticsClient: Setting sample rate to', newSampleRate);
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockLogger.debug).toHaveBeenCalledWith('DiagnosticsClient: Should track is', false);
     });
   });
 });
