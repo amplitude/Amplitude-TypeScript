@@ -566,7 +566,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
 
     // NOTE: If there is already an existing active recording, exit early unless forceRestart is true
     if (this.recordCancelCallback && !forceRestart) {
-      this.loggerProvider.debug(`A capture is already in progress and forceRestart is false. Exiting.`);
+      this.loggerProvider.debug(`A capture is already in progress and forceRestart is false. Not restarting.`);
       return;
     }
     this.loggerProvider.debug(`Starting new capture for session.`);
