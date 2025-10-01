@@ -1,5 +1,5 @@
 /* eslint-disable no-restricted-globals */
-import { ElementInteractionsOptions, ActionType, getDecodeURI } from '@amplitude/analytics-core';
+import { ElementInteractionsOptions, ActionType, getDecodeURI, IDiagnosticsClient } from '@amplitude/analytics-core';
 import type { DataSource } from '@amplitude/analytics-core/lib/esm/types/element-interactions';
 import * as constants from './constants';
 import {
@@ -23,6 +23,7 @@ const EMAIL_REGEX = /[^\s@]+@[^\s@.]+\.[^\s@]+/g;
 
 export class DataExtractor {
   private readonly additionalMaskTextPatterns: RegExp[];
+  diagnosticsClient?: IDiagnosticsClient;
 
   constructor(options: ElementInteractionsOptions) {
     const rawPatterns = options.maskTextRegex ?? [];
@@ -75,10 +76,9 @@ export class DataExtractor {
 
   // Get the DOM hierarchy of the element, starting from the target element to the root element.
   getHierarchy = (element: Element | null): Hierarchy => {
+    const startTime = performance.now();
+
     let hierarchy: Hierarchy = [];
-    if (!element) {
-      return [];
-    }
 
     // Get list of ancestors including itself and get properties at each level in the hierarchy
     const ancestors = getAncestors(element);
@@ -111,6 +111,9 @@ export class DataExtractor {
         });
       }
     }
+
+    const endTime = performance.now();
+    this.diagnosticsClient?.recordHistogram('autocapturePlugin.getHierarchy', endTime - startTime);
 
     return hierarchy;
   };

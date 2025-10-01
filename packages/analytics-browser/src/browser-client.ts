@@ -27,7 +27,6 @@ import {
   RemoteConfigClient,
   RemoteConfig,
   Source,
-  IDiagnosticsClient,
   DiagnosticsClient,
 } from '@amplitude/analytics-core';
 import {
@@ -75,8 +74,7 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
   previousSessionUserId: string | undefined;
   webAttribution: WebAttribution | undefined;
   userProperties: { [key: string]: any } | undefined;
-  remoteConfigClient: IRemoteConfigClient | undefined;
-  diagnosticsClient: IDiagnosticsClient | undefined;
+
   // Backdoor to set diagnostics sample rate
   // by calling amplitude._setDiagnosticsSampleRate(1); before amplitude.init()
   _diagnosticsSampleRate = 0;
@@ -110,9 +108,10 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
     // Get default browser config based on browser options
     const browserOptions = await useBrowserConfig(options.apiKey, options, this);
 
+    let remoteConfigClient: IRemoteConfigClient | undefined;
     // Create remote config client and subscribe to analytics configs
     if (browserOptions.fetchRemoteConfig) {
-      this.remoteConfigClient = new RemoteConfigClient(
+      remoteConfigClient = new RemoteConfigClient(
         browserOptions.apiKey,
         browserOptions.loggerProvider,
         browserOptions.serverZone,
@@ -123,7 +122,7 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
       await new Promise<void>((resolve) => {
         // Disable coverage for this line because remote config client will always be defined in this case.
         // istanbul ignore next
-        this.remoteConfigClient?.subscribe(
+        remoteConfigClient?.subscribe(
           'configs.analyticsSDK.browserSDK',
           'all',
           (remoteConfig: RemoteConfig | null, source: Source, lastFetch: Date) => {
@@ -150,7 +149,7 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
     }
 
     // Initialize diagnostics client and set library tag
-    this.diagnosticsClient = new DiagnosticsClient(
+    const diagnosticsClient = new DiagnosticsClient(
       browserOptions.apiKey,
       browserOptions.loggerProvider,
       browserOptions.serverZone,
@@ -159,10 +158,13 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
         sampleRate: browserOptions.diagnosticsSampleRate || this._diagnosticsSampleRate,
       },
     );
-    this.diagnosticsClient.setTag('library', `${LIBPREFIX}/${VERSION}`);
+    diagnosticsClient.setTag('library', `${LIBPREFIX}/${VERSION}`);
 
     await super._init(browserOptions);
     this.logBrowserOptions(browserOptions);
+
+    this.config.diagnosticsClient = diagnosticsClient;
+    this.config.remoteConfigClient = remoteConfigClient;
 
     // Add web attribution plugin
     if (isAttributionTrackingEnabled(this.config.defaultTracking)) {
