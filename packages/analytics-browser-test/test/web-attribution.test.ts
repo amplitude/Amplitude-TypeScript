@@ -37,11 +37,6 @@ describe('Web attribution', () => {
     apiKey = UUID();
   });
 
-  afterEach(() => {
-    // clear url info in session storage from page url enrichment plugin
-    window.sessionStorage.setItem('AMP_URL_INFO', '{}');
-  });
-
   describe('Page load', () => {
     describe('in a new session', () => {
       let eventId = -1;
@@ -50,6 +45,8 @@ describe('Web attribution', () => {
       });
 
       afterEach(() => {
+        // clear url info in session storage from page url enrichment plugin
+        window.sessionStorage.setItem('AMP_URL_INFO', '{}');
         cleanup();
       });
 
@@ -80,7 +77,7 @@ describe('Web attribution', () => {
               client_upload_time: event_upload_time,
               events: [
                 generateAttributionEvent(++eventId, url, referrer),
-                generateSessionStartEvent(++eventId),
+                addPageUrlEnrichmentProperties(generateSessionStartEvent(++eventId), url, referrer),
                 generatePageViewEvent(++eventId, 1, url, referrer, { previousPageUrl: referrer }),
               ],
               options: {
@@ -119,7 +116,7 @@ describe('Web attribution', () => {
               client_upload_time: event_upload_time,
               events: [
                 generateAttributionEvent(++eventId, url),
-                generateSessionStartEvent(++eventId),
+                addPageUrlEnrichmentProperties(generateSessionStartEvent(++eventId), url),
                 generatePageViewEvent(++eventId, 1, url, undefined, { previousPageUrl: '' }),
               ],
               options: {
@@ -164,7 +161,7 @@ describe('Web attribution', () => {
               api_key: apiKey,
               client_upload_time: event_upload_time,
               events: [
-                generateSessionStartEvent(++eventId),
+                addPageUrlEnrichmentProperties(generateSessionStartEvent(++eventId), url, referrer),
                 generatePageViewEvent(++eventId, 1, url, referrer, { previousPageUrl: referrer }),
               ],
               options: {
@@ -185,6 +182,8 @@ describe('Web attribution', () => {
       });
 
       afterEach(() => {
+        // clear url info in session storage from page url enrichment plugin
+        window.sessionStorage.setItem('AMP_URL_INFO', '{}');
         cleanup();
       });
 
@@ -214,6 +213,8 @@ describe('Web attribution', () => {
           flushIntervalMillis: 3000,
         }).promise;
 
+        await new Promise((resolve) => setTimeout(resolve, 200));
+
         // refresh during the session.
         const directUrl = 'https://www.example.com/home';
         navigateTo(directUrl);
@@ -234,9 +235,9 @@ describe('Web attribution', () => {
               client_upload_time: event_upload_time,
               events: [
                 generateAttributionEvent(++eventId, url),
-                generateSessionStartEvent(++eventId),
+                addPageUrlEnrichmentProperties(generateSessionStartEvent(++eventId), url),
                 generatePageViewEvent(++eventId, 1, url, undefined, { previousPageUrl: '' }),
-                generatePageViewEvent(++eventId, 2, directUrl, undefined, { previousPageUrl: '' }),
+                generatePageViewEvent(++eventId, 2, directUrl, undefined, { previousPageUrl: url }),
               ],
               options: {
                 min_id_length: undefined,
@@ -274,6 +275,8 @@ describe('Web attribution', () => {
           flushIntervalMillis: 3000,
         }).promise;
 
+        await new Promise((resolve) => setTimeout(resolve, 200));
+
         // mock refresh during the session with updated campaign change.
         const newCampaignURL = 'https://www.example.com/?utm_source=second_utm_source&utm_content=test_utm_content';
         navigateTo(newCampaignURL);
@@ -294,10 +297,10 @@ describe('Web attribution', () => {
               client_upload_time: event_upload_time,
               events: [
                 generateAttributionEvent(++eventId, url),
-                generateSessionStartEvent(++eventId),
+                addPageUrlEnrichmentProperties(generateSessionStartEvent(++eventId), url),
                 generatePageViewEvent(++eventId, 1, url, undefined, { previousPageUrl: '' }),
                 generateAttributionEvent(++eventId, newCampaignURL),
-                generatePageViewEvent(++eventId, 2, newCampaignURL, undefined, { previousPageUrl: '' }),
+                generatePageViewEvent(++eventId, 2, newCampaignURL, undefined, { previousPageUrl: url }),
               ],
               options: {
                 min_id_length: undefined,
@@ -340,6 +343,8 @@ describe('Web attribution', () => {
           flushIntervalMillis: 3000,
         }).promise;
 
+        await new Promise((resolve) => setTimeout(resolve, 100));
+
         // refresh during the session.
         const directUrl = 'https://www.example.com/?utm_content=test_utm_content';
         navigateTo(directUrl);
@@ -366,12 +371,12 @@ describe('Web attribution', () => {
               client_upload_time: event_upload_time,
               events: [
                 generateAttributionEvent(++eventId, url),
-                generateSessionStartEvent(++eventId),
+                addPageUrlEnrichmentProperties(generateSessionStartEvent(++eventId), url),
                 generatePageViewEvent(++eventId, 1, url, undefined, { previousPageUrl: '' }),
-                generateSessionEndEvent(++eventId),
+                addPageUrlEnrichmentProperties(generateSessionEndEvent(++eventId), directUrl, url),
                 generateAttributionEvent(++eventId, directUrl),
-                generateSessionStartEvent(++eventId),
-                generatePageViewEvent(++eventId, 1, directUrl, undefined, { previousPageUrl: '' }),
+                addPageUrlEnrichmentProperties(generateSessionStartEvent(++eventId), directUrl, url),
+                generatePageViewEvent(++eventId, 1, directUrl, undefined, { previousPageUrl: url }),
               ],
               options: {
                 min_id_length: undefined,
@@ -393,6 +398,8 @@ describe('Web attribution', () => {
       });
 
       afterEach(() => {
+        // clear url info in session storage from page url enrichment plugin
+        window.sessionStorage.setItem('AMP_URL_INFO', '{}');
         cleanup();
       });
 
@@ -431,13 +438,14 @@ describe('Web attribution', () => {
               client_upload_time: event_upload_time,
               events: [
                 generateAttributionEvent(++eventId, url),
-                generateSessionStartEvent(++eventId),
+                addPageUrlEnrichmentProperties(generateSessionStartEvent(++eventId), url),
                 generatePageViewEvent(++eventId, 1, url, undefined, { previousPageUrl: '' }),
-                generateSessionEndEvent(++eventId),
-                generateSessionStartEvent(++eventId),
+                addPageUrlEnrichmentProperties(generateSessionEndEvent(++eventId), newCampaignURL, url),
+                addPageUrlEnrichmentProperties(generateSessionStartEvent(++eventId), newCampaignURL, url),
                 addPageUrlEnrichmentProperties(
                   generateEvent(++eventId, 'test event after session timeout'),
                   newCampaignURL,
+                  url,
                 ),
               ],
               options: {
@@ -491,14 +499,14 @@ describe('Web attribution', () => {
               api_key: apiKey,
               client_upload_time: event_upload_time,
               events: [
-                generateSessionStartEvent(++eventId),
+                addPageUrlEnrichmentProperties(generateSessionStartEvent(++eventId), url, referrer),
                 generatePageViewEvent(++eventId, 1, url, referrer, { previousPageUrl: referrer }),
-                generateSessionEndEvent(++eventId),
-                generateSessionStartEvent(++eventId),
+                addPageUrlEnrichmentProperties(generateSessionEndEvent(++eventId), newCampaignURL, url),
+                addPageUrlEnrichmentProperties(generateSessionStartEvent(++eventId), newCampaignURL, url),
                 addPageUrlEnrichmentProperties(
                   generateEvent(++eventId, 'test event after session timeout'),
                   newCampaignURL,
-                  referrer,
+                  url,
                 ),
               ],
               options: {
@@ -520,6 +528,8 @@ describe('Web attribution', () => {
       });
 
       afterEach(() => {
+        // clear url info in session storage from page url enrichment plugin
+        window.sessionStorage.setItem('AMP_URL_INFO', '{}');
         cleanup();
       });
 
@@ -542,6 +552,8 @@ describe('Web attribution', () => {
           flushIntervalMillis: 3000,
         }).promise;
 
+        await new Promise((resolve) => setTimeout(resolve, 100));
+
         // update the url and fire the first event during the same session without refreshing the page
         const newCampaignURL = 'https://www.example.com?utm_source=second_utm_source&utm_content=test_utm_content';
         navigateTo(newCampaignURL);
@@ -555,11 +567,12 @@ describe('Web attribution', () => {
               client_upload_time: event_upload_time,
               events: [
                 generateAttributionEvent(++eventId, url),
-                generateSessionStartEvent(++eventId),
+                addPageUrlEnrichmentProperties(generateSessionStartEvent(++eventId), url),
                 generatePageViewEvent(++eventId, 1, url, undefined, { previousPageUrl: '' }),
                 addPageUrlEnrichmentProperties(
                   generateEvent(++eventId, 'test event in the same session'),
                   newCampaignURL,
+                  url,
                 ),
               ],
               options: {
@@ -597,6 +610,8 @@ describe('Web attribution', () => {
           flushIntervalMillis: 3000,
         }).promise;
 
+        await new Promise((resolve) => setTimeout(resolve, 100));
+
         // refresh during the session.
         const directUrl = 'https://www.example.com/?utm_content=test_utm_content';
         navigateTo(directUrl);
@@ -610,9 +625,9 @@ describe('Web attribution', () => {
               client_upload_time: event_upload_time,
               events: [
                 generateAttributionEvent(++eventId, url),
-                generateSessionStartEvent(++eventId),
+                addPageUrlEnrichmentProperties(generateSessionStartEvent(++eventId), url),
                 generatePageViewEvent(++eventId, 1, url, undefined, { previousPageUrl: '' }),
-                addPageUrlEnrichmentProperties(generateEvent(++eventId, 'test event in same session'), directUrl),
+                addPageUrlEnrichmentProperties(generateEvent(++eventId, 'test event in same session'), directUrl, url),
               ],
               options: {
                 min_id_length: undefined,
@@ -646,6 +661,8 @@ describe('Web attribution', () => {
           flushIntervalMillis: 3000,
         }).promise;
 
+        await new Promise((resolve) => setTimeout(resolve, 100));
+
         // Unset the referrer after first hit
         Object.defineProperty(document, 'referrer', { value: '', configurable: true });
         expect(document.referrer).toEqual('');
@@ -663,9 +680,9 @@ describe('Web attribution', () => {
               client_upload_time: event_upload_time,
               events: [
                 generateAttributionEvent(++eventId, url, initReferrer),
-                generateSessionStartEvent(++eventId),
-                generatePageViewEvent(++eventId, 1, url, initReferrer, { previousPageUrl: '' }),
-                generatePageViewEvent(++eventId, 2, newURL, undefined, { previousPageUrl: '' }),
+                addPageUrlEnrichmentProperties(generateSessionStartEvent(++eventId), url, initReferrer),
+                generatePageViewEvent(++eventId, 1, url, initReferrer, { previousPageUrl: initReferrer }),
+                generatePageViewEvent(++eventId, 2, newURL, undefined, { previousPageUrl: url }),
               ],
               options: {
                 min_id_length: undefined,

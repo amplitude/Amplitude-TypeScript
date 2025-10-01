@@ -120,6 +120,7 @@ describe('pageUrlEnrichmentPlugin', () => {
 
   afterEach(async () => {
     await plugin.teardown?.();
+    window.sessionStorage.setItem('AMP_URL_INFO', '{}');
     jest.restoreAllMocks();
   });
 
@@ -424,6 +425,38 @@ describe('pageUrlEnrichmentPlugin', () => {
       );
     });
 
+    test('should update current page if it is not the same as the stored sessionStorage current page', async () => {
+      await plugin.setup?.(mockConfig, mockAmplitude);
+
+      const firstUrl = new URL('https://www.example.com/about');
+      mockWindowLocationFromURL(firstUrl);
+
+      await plugin.execute?.({
+        event_type: 'test_event_1',
+      });
+
+      expect(sessionStorage?.getItem(URL_INFO_STORAGE_KEY)).toStrictEqual(
+        JSON.stringify({
+          [CURRENT_PAGE_STORAGE_KEY]: 'https://www.example.com/about',
+          [PREVIOUS_PAGE_STORAGE_KEY]: '',
+        }),
+      );
+
+      const secondUrl = new URL('https://www.example.com/home');
+      mockWindowLocationFromURL(secondUrl);
+
+      await plugin.execute?.({
+        event_type: 'test_event_2',
+      });
+
+      expect(sessionStorage?.getItem(URL_INFO_STORAGE_KEY)).toStrictEqual(
+        JSON.stringify({
+          [CURRENT_PAGE_STORAGE_KEY]: 'https://www.example.com/home',
+          [PREVIOUS_PAGE_STORAGE_KEY]: 'https://www.example.com/about',
+        }),
+      );
+    });
+
     test('should not add properties if they already exist', async () => {
       await plugin.setup?.(mockConfig, mockAmplitude);
 
@@ -472,22 +505,6 @@ describe('pageUrlEnrichmentPlugin', () => {
       await plugin.setup?.(mockConfig, mockAmplitude);
       await plugin.teardown?.();
       expect(removeEventListener).toHaveBeenCalledTimes(1);
-    });
-
-    test('sessionStorage items should be removed', async () => {
-      await plugin.setup?.(mockConfig, mockAmplitude);
-      const sessionStorage = getGlobalScope()?.sessionStorage;
-
-      const initialURLInfo = {
-        [CURRENT_PAGE_STORAGE_KEY]: 'www.example.com/home',
-        [PREVIOUS_PAGE_STORAGE_KEY]: 'www.example.com/about',
-      };
-
-      sessionStorage?.setItem(URL_INFO_STORAGE_KEY, JSON.stringify(initialURLInfo));
-      expect(sessionStorage?.getItem(URL_INFO_STORAGE_KEY)).toStrictEqual(JSON.stringify(initialURLInfo));
-
-      await plugin.teardown?.();
-      expect(sessionStorage?.getItem(URL_INFO_STORAGE_KEY)).toStrictEqual(JSON.stringify({}));
     });
   });
 
