@@ -1,6 +1,6 @@
 {
   "name": "@amplitude/gtm-snippet",
-  "version": "3.20.0",
+  "version": "2.25.1",
   "description": "Amplitude JS SDK Wrapper for use with Google Tag Manager",
   "scripts": {
     "build": "yarn build:template && yarn build:bundle",
@@ -11,7 +11,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/amplitude/amplitude-js-gtm.git"
+    "url": "git+https://github.com/amplitude/Amplitude-TypeScript.git"
   },
   "author": "Amplitude <support@amplitude.com>",
   "license": "MIT",

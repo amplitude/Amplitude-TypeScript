@@ -15,6 +15,7 @@ jobs:
         node-version: [18.17.x, 20.x, 22.x]
         os: [ubuntu-latest]
     runs-on: ${{ matrix.os }}
+    retries: 2
 
     steps:
       - name: Check out git repository
