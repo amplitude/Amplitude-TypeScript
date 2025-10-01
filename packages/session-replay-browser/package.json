@@ -1,6 +1,6 @@
 {
   "name": "@amplitude/session-replay-browser",
-  "version": "1.28.14",
+  "version": "1.28.15",
   "description": "",
   "author": "Amplitude Inc",
   "homepage": "https://github.com/amplitude/Amplitude-TypeScript",
@@ -40,8 +40,8 @@
     "url": "https://github.com/amplitude/Amplitude-TypeScript/issues"
   },
   "dependencies": {
-    "@amplitude/analytics-client-common": "^2.4.1",
-    "@amplitude/analytics-core": "^2.26.0",
+    "@amplitude/analytics-client-common": "^2.4.2",
+    "@amplitude/analytics-core": "^2.26.1",
     "@amplitude/analytics-remote-config": "^0.6.3",
     "@amplitude/analytics-types": "^2.10.0",
     "@amplitude/rrweb-packer": "2.0.0-alpha.32",
