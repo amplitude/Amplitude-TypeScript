@@ -3,6 +3,27 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.29.0-fixsdk-init.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.28.14...@amplitude/session-replay-browser@1.29.0-fixsdk-init.0) (2025-10-01)
+
+
+### Bug Fixes
+
+* **session-replay-browser:** simplify event initialization logic ([7ac9f0a](https://github.com/amplitude/Amplitude-TypeScript/commit/7ac9f0a737bdbb346df87ccb7edc19ec8b029264))
+* **session-replay:** add forceRestart option to recordEvents method ([480f9be](https://github.com/amplitude/Amplitude-TypeScript/commit/480f9be93869e881f13958c693fae7fbfd6a4ee7))
+* **session-replay:** enhance debug message to include sessionId when starting a new capture ([c68312f](https://github.com/amplitude/Amplitude-TypeScript/commit/c68312f19611c7f5811d1fc1ee82146bc205a89b))
+* **session-replay:** require recordEvents() params ([f75a512](https://github.com/amplitude/Amplitude-TypeScript/commit/f75a51292a5cb894504d4f4a65f59b10d0e1ebbb))
+* **session-replay:** update debug message for existing capture with forceRestart option ([c81dab9](https://github.com/amplitude/Amplitude-TypeScript/commit/c81dab9a6990efbe52cd7fa4ddbe63a125547345))
+
+
+### Features
+
+* **session-replay:** add forceRestart param to initialize ([fda1c00](https://github.com/amplitude/Amplitude-TypeScript/commit/fda1c00d3e955423c8b2d1da47d59b161788df37))
+* **session-replay:** enable recordEvents method to accept configuration object ([743e4af](https://github.com/amplitude/Amplitude-TypeScript/commit/743e4af622a6093f6feecd3863285710e142d86f))
+
+
+
+
+
 ## [1.28.14](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.28.13...@amplitude/session-replay-browser@1.28.14) (2025-09-25)
 
 

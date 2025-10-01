@@ -236,9 +236,14 @@ export class SessionReplay implements AmplitudeSessionReplay {
     }
 
     if (this.config?.targetingConfig) {
-      await this.evaluateTargetingAndCapture({ userProperties: options?.userProperties });
+      // NOTE: By passing isInit=true here, it ensures that a new recording is started
+      const isInit = true;
+      await this.evaluateTargetingAndCapture({ userProperties: options?.userProperties }, isInit);
     } else {
-      await this.recordEvents();
+      await this.recordEvents({
+        forceRestart: true,
+        shouldLogMetadata: true,
+      });
     }
   }
 
@@ -287,7 +292,10 @@ export class SessionReplay implements AmplitudeSessionReplay {
   focusListener = () => {
     // Restart recording on focus to ensure that when user
     // switches tabs, we take a full snapshot
-    void this.recordEvents(false);
+    void this.recordEvents({
+      shouldLogMetadata: false,
+      forceRestart: true,
+    });
   };
 
   /**
@@ -362,11 +370,11 @@ export class SessionReplay implements AmplitudeSessionReplay {
       );
     }
 
-    if (isInit) {
-      void this.initialize(true);
-    } else {
-      await this.recordEvents();
-    }
+    // NOTE: Both of these values are equal to the value of isInit.
+    // Create constants for clarity.
+    const shouldSendStoredEvents = isInit;
+    const forceRestart = isInit;
+    void this.initialize(shouldSendStoredEvents, forceRestart);
   };
 
   sendEvents(sessionId?: string | number) {
@@ -378,7 +386,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
       this.eventsManager.sendCurrentSequenceEvents({ sessionId: sessionIdToSend, deviceId });
   }
 
-  async initialize(shouldSendStoredEvents = false) {
+  async initialize(shouldSendStoredEvents = false, forceRestart = true) {
     if (!this.identifiers?.sessionId) {
       this.loggerProvider.log(`Session is not being recorded due to lack of session id.`);
       return Promise.resolve();
@@ -391,7 +399,10 @@ export class SessionReplay implements AmplitudeSessionReplay {
     }
     this.eventsManager && shouldSendStoredEvents && void this.eventsManager.sendStoredEvents({ deviceId });
 
-    return this.recordEvents();
+    return this.recordEvents({
+      forceRestart,
+      shouldLogMetadata: true,
+    });
   }
 
   shouldOptOut() {
@@ -546,13 +557,21 @@ export class SessionReplay implements AmplitudeSessionReplay {
     }
   }
 
-  async recordEvents(shouldLogMetadata = true) {
+  async recordEvents({ shouldLogMetadata, forceRestart }: { shouldLogMetadata: boolean; forceRestart: boolean }) {
     const config = this.config;
     const shouldRecord = this.getShouldRecord();
     const sessionId = this.identifiers?.sessionId;
     if (!shouldRecord || !sessionId || !config) {
       return;
     }
+
+    // NOTE: If there is already an existing active recording, exit early unless forceRestart is true
+    if (this.recordCancelCallback && !forceRestart) {
+      this.loggerProvider.debug(`A capture is already in progress and forceRestart is false. Not restarting.`);
+      return;
+    }
+    this.loggerProvider.debug(`Starting new capture for session with sessionId=${sessionId}.`);
+
     this.stopRecordingEvents();
 
     const recordFunction = await this.getRecordFunction();
