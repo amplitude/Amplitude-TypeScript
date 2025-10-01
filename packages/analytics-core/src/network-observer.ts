@@ -157,11 +157,10 @@ export class NetworkObserver {
         const parsedUrl = new URL(url);
         // reconstruct the URL without the basic auth
         url = `${parsedUrl.protocol}//${parsedUrl.host}${parsedUrl.pathname}${parsedUrl.search}${parsedUrl.hash}`;
-      } catch (err) {
-        /* istanbul ignore next */
-        this.logger?.error('an unexpected error occurred while parsing the URL', err);
-      }
+        // eslint-disable-next-line no-empty
+      } catch (err) {}
     }
+    // eslint-enable no-empty
     method = requestWrapper?.method || method;
 
     let status, error;
