@@ -160,7 +160,6 @@ export class NetworkObserver {
         // eslint-disable-next-line no-empty
       } catch (err) {}
     }
-    // eslint-enable no-empty
     method = requestWrapper?.method || method;
 
     let status, error;
