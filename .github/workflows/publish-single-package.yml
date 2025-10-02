@@ -1,26 +1,32 @@
-name: Publish Single Package
+# This workflow is for publishing NEW packages that are currently private
+# It's separate from the main publish-v2.yml workflow which handles stable releases
+# Use this workflow for new packages that will only have beta/alpha versions
+# The 'latest' tag will always point to the most recent version (even if beta/alpha)
+# since these packages don't have stable releases yet
+name: Publish New Package (Beta/Alpha with Latest Tag)
 
 on:
   workflow_dispatch:
     inputs:
       packageName:
         type: string
-        description: 'Package name (e.g., unified, analytics-browser)'
+        description: 'Package name (e.g., unified, analytics-browser) - must be a valid package in packages/ directory'
         required: true
       releaseTag:
         type: choice
-        description: 'Release tag'
+        description: 'Release type - choose beta for testing releases or alpha for experimental releases (package will always be published with latest tag)'
         required: true
         options:
           - beta
           - alpha
       dryRun:
         type: boolean
-        description: 'Dry run (skip changelog update and npm publish)'
+        description: 'Dry run (skip changelog update and npm publish) - recommended to test first'
         required: true
         default: true
 
 jobs:
+  # Authorization step - ensures only users with write permissions can trigger this workflow
   authorize:
     name: Authorize
     runs-on: ubuntu-latest
@@ -32,8 +38,12 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+  # Main publishing job - handles the actual package publishing process
+  # This workflow is specifically for NEW packages that are currently private
+  # It publishes beta/alpha versions but always uses 'latest' tag for the most recent version
+  # since these packages don't have stable releases yet
   publish-package:
-    name: Publish Package
+    name: Publish New Package (Beta/Alpha with Latest Tag)
     runs-on: ubuntu-latest
     needs: [authorize]
     permissions:
@@ -49,11 +59,13 @@ jobs:
         node-version: [18.17.x]
 
     steps:
+      # Checkout the repository with full history for version management
       - name: Check out git repository
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
 
+      # Verify the specified package exists and has the required structure
       - name: Verify package exists
         run: |
           if [ ! -d "$PACKAGE_PATH" ]; then
@@ -66,26 +78,34 @@ jobs:
           fi
           echo "✅ Package $PACKAGE_NAME found at $PACKAGE_PATH"
 
+      # Cache node_modules for faster builds
       - name: Cache dependencies
         uses: actions/cache@v3
         with:
           path: '**/node_modules'
           key: ${{ runner.os }}-modules-${{ hashFiles('**/yarn.lock') }}
 
+      # Setup Node.js environment
       - name: Setup Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v3
         with:
           node-version: ${{ matrix.node-version }}
 
+      # Install all project dependencies
       - name: Install project dependencies
         run: |
           yarn install --frozen-lockfile
 
+      # Configure Git for automated commits
       - name: Configure Git User
         run: |
           git config --global user.name amplitude-sdk-bot
           git config --global user.email amplitude-sdk-bot@users.noreply.github.com
 
+      # Calculate new version and update package files
+      # This increments the patch version for beta/alpha releases
+      # For new packages, this will be the first version (e.g., 1.0.0-beta.1)
+      # The 'latest' tag will always point to the most recent version
       - name: Calculate and update version
         run: |
           cd $PACKAGE_PATH
@@ -119,6 +139,8 @@ jobs:
             exit 1
           fi
 
+      # Dry run mode - shows what would be published without actually doing it
+      # This is the default mode to prevent accidental publishes
       - name: Dry run summary and exit
         if: ${{ env.DRY_RUN == 'true' }}
         run: |
@@ -127,29 +149,34 @@ jobs:
           echo "Package: $PACKAGE_NAME"
           echo "Current version: $CURRENT_VERSION"
           echo "New version would be: $NEW_VERSION"
-          echo "Release tag: $RELEASE_TAG"
-          echo "Would publish: $PACKAGE_NAME@$NEW_VERSION with tag $RELEASE_TAG"
+          echo "Release tag: latest (always latest for new packages)"
+          echo "Would publish: $PACKAGE_NAME@$NEW_VERSION with tag latest"
           echo "✅ Dry run completed successfully - exiting without making changes"
           exit 0
 
+      # Build the package to ensure it compiles correctly
       - name: Build package
         run: |
           yarn build
 
+      # Run tests to ensure package quality
       - name: Test package
         run: |
           yarn test
 
+      # Lint the code to ensure code quality standards
       - name: Lint package
         run: |
           yarn lint
 
+      # Configure NPM authentication for publishing
       - name: Configure NPM User
         if: ${{ env.DRY_RUN == 'false' }}
         run: |
           echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_PUBLISH_TOKEN }}" > ~/.npmrc
           npm whoami
 
+      # Temporarily make package public for publishing (will be restored to private later)
       - name: Make package public for publishing
         if: ${{ env.DRY_RUN == 'false' }}
         run: |
@@ -194,11 +221,13 @@ jobs:
           mv $TEMP_FILE CHANGELOG.md
           echo "✅ Updated CHANGELOG.md"
           
-          # Publish to npm
-          echo "Publishing $PACKAGE_NAME@$NEW_VERSION with tag $RELEASE_TAG"
-          npm publish --tag $RELEASE_TAG --access=public
-          echo "✅ Published $PACKAGE_NAME@$NEW_VERSION to npm with tag $RELEASE_TAG"
+          # Publish to npm with latest tag (always latest for new packages)
+          echo "Publishing $PACKAGE_NAME@$NEW_VERSION with tag latest"
+          npm publish --tag latest --access=public
+          echo "✅ Published $PACKAGE_NAME@$NEW_VERSION to npm with tag latest"
 
+      # Restore package to private and commit all changes
+      # This ensures the package remains private in the repository after publishing
       - name: Restore package to private and commit changes
         if: ${{ env.DRY_RUN == 'false' && always() }}
         run: |
@@ -217,6 +246,7 @@ jobs:
           git tag "@amplitude/$PACKAGE_NAME@$NEW_VERSION"
           echo "✅ Committed changes and created tag"
 
+      # Push all changes and tags back to the repository
       - name: Push changes
         if: ${{ env.DRY_RUN == 'false' }}
         run: |
