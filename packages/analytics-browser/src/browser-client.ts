@@ -241,9 +241,7 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
 
     // Step 7: Add the event receiver after running remaining queued functions.
     connector.eventBridge.setEventReceiver((event) => {
-      const { time, ...eventProperties } = event.eventProperties || {};
-      const eventOptions = time ? { time } : undefined;
-      void this.track(event.eventType, eventProperties, eventOptions);
+      void this.track(event.eventType, event.eventProperties);
     });
   }
 
