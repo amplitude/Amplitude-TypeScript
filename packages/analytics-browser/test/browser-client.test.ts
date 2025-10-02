@@ -1789,7 +1789,7 @@ describe('browser-client', () => {
   });
 
   describe('_setDiagnosticsSampleRate', () => {
-    it('should set diagnostics sample rate when config is not initialized', () => {
+    test('should set diagnostics sample rate when config is not initialized', () => {
       expect(client._diagnosticsSampleRate).toBe(0);
       const sampleRate = 0.1;
 
@@ -1798,7 +1798,7 @@ describe('browser-client', () => {
       expect(client._diagnosticsSampleRate).toBe(sampleRate);
     });
 
-    it('should not set diagnostics sample rate when config is already initialized', async () => {
+    test('should not set diagnostics sample rate when config is already initialized', async () => {
       expect(client._diagnosticsSampleRate).toBe(0);
       await client.init(apiKey).promise;
 
@@ -1809,6 +1809,15 @@ describe('browser-client', () => {
 
       // Should not change the sample rate when config is already initialized
       expect(client._diagnosticsSampleRate).toBe(initialSampleRate);
+    });
+
+    test('should error when diagnostics sample rate is not between 0 and 1', () => {
+      expect(client._diagnosticsSampleRate).toBe(0);
+      const sampleRate = 1.1;
+
+      client._setDiagnosticsSampleRate(sampleRate);
+
+      expect(client._diagnosticsSampleRate).toBe(0);
     });
   });
 });

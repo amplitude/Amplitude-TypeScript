@@ -501,6 +501,9 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
    * @param sampleRate - The sample rate to set
    */
   _setDiagnosticsSampleRate(sampleRate: number): void {
+    if (sampleRate > 1 || sampleRate < 0) {
+      return;
+    }
     // Set diagnostics sample rate before initializing the config
     if (!this.config) {
       this._diagnosticsSampleRate = sampleRate;
