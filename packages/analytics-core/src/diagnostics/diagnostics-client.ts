@@ -162,6 +162,7 @@ export class DiagnosticsClient implements IDiagnosticsClient {
   logger: ILogger;
   serverUrl: string;
   apiKey: string;
+  // Whether to track diagnostics data based on sample rate and enabled flag
   shouldTrack: boolean;
   config: {
     enabled: boolean;
@@ -212,8 +213,15 @@ export class DiagnosticsClient implements IDiagnosticsClient {
     void this.initializeFlushInterval();
   }
 
+  /**
+   * Check if storage is available and tracking is enabled
+   */
+  isStorageAndTrackEnabled(): boolean {
+    return Boolean(this.storage) && Boolean(this.shouldTrack);
+  }
+
   setTag(name: string, value: string) {
-    if (!this.storage || !this.shouldTrack) {
+    if (!this.isStorageAndTrackEnabled()) {
       return;
     }
 
@@ -227,7 +235,7 @@ export class DiagnosticsClient implements IDiagnosticsClient {
   }
 
   increment(name: string, size = 1) {
-    if (!this.storage || !this.shouldTrack) {
+    if (!this.isStorageAndTrackEnabled()) {
       return;
     }
 
@@ -241,7 +249,7 @@ export class DiagnosticsClient implements IDiagnosticsClient {
   }
 
   recordHistogram(name: string, value: number) {
-    if (!this.storage || !this.shouldTrack) {
+    if (!this.isStorageAndTrackEnabled()) {
       return;
     }
 
@@ -270,7 +278,7 @@ export class DiagnosticsClient implements IDiagnosticsClient {
   }
 
   recordEvent(name: string, properties: EventProperties) {
-    if (!this.storage || !this.shouldTrack) {
+    if (!this.isStorageAndTrackEnabled()) {
       return;
     }
 
