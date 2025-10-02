@@ -4,13 +4,14 @@ import { getPageTitle } from '@amplitude/analytics-client-common';
 
 export const CURRENT_PAGE_STORAGE_KEY = 'AMP_CURRENT_PAGE';
 export const PREVIOUS_PAGE_STORAGE_KEY = 'AMP_PREVIOUS_PAGE';
-
 export const URL_INFO_STORAGE_KEY = 'AMP_URL_INFO';
 
 export type URLInfo = {
   [CURRENT_PAGE_STORAGE_KEY]?: string;
   [PREVIOUS_PAGE_STORAGE_KEY]?: string;
 };
+
+export const EXCLUDED_DEFAULT_EVENT_TYPES = new Set(['$identify', '$groupidentify', 'revenue_amount']);
 
 enum PreviousPageType {
   Direct = 'direct', // for no prev page or referrer
@@ -130,17 +131,24 @@ export const pageUrlEnrichmentPlugin = (): EnrichmentPlugin => {
     execute: async (event: Event) => {
       const locationHREF = getDecodeURI((typeof location !== 'undefined' && location.href) || '');
 
-      let previousPage = '';
       if (sessionStorage && isStorageEnabled) {
         const URLInfo = await sessionStorage.get(URL_INFO_STORAGE_KEY);
-        previousPage = URLInfo?.[PREVIOUS_PAGE_STORAGE_KEY] || document.referrer || '';
-
         if (!URLInfo?.[CURRENT_PAGE_STORAGE_KEY]) {
           await sessionStorage.set(URL_INFO_STORAGE_KEY, {
-            ...(URLInfo || {}),
             [CURRENT_PAGE_STORAGE_KEY]: locationHREF,
-            [PREVIOUS_PAGE_STORAGE_KEY]: previousPage,
+            [PREVIOUS_PAGE_STORAGE_KEY]: document.referrer || '',
           });
+        }
+
+        // no need to proceed to add additional properties if the event is one of the default event types to be excluded
+        if (EXCLUDED_DEFAULT_EVENT_TYPES.has(event.event_type)) {
+          return event;
+        }
+
+        const updatedURLInfo = await sessionStorage.get(URL_INFO_STORAGE_KEY);
+        let previousPage = '';
+        if (updatedURLInfo) {
+          previousPage = updatedURLInfo[PREVIOUS_PAGE_STORAGE_KEY] || '';
         }
 
         event.event_properties = {
@@ -170,10 +178,10 @@ export const pageUrlEnrichmentPlugin = (): EnrichmentPlugin => {
         globalScope.removeEventListener('popstate', saveUrlInfoWrapper);
 
         isTracking = false;
+      }
 
-        if (sessionStorage && isStorageEnabled) {
-          await sessionStorage.set(URL_INFO_STORAGE_KEY, {});
-        }
+      if (sessionStorage && isStorageEnabled) {
+        await sessionStorage.set(URL_INFO_STORAGE_KEY, {});
       }
     },
   };
