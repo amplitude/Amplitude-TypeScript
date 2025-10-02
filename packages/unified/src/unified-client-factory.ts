@@ -4,8 +4,18 @@ import { debugWrapper, getClientLogConfig, getClientStates } from '@amplitude/an
 export const createInstance = (): UnifiedClient => {
   const client = new AmplitudeUnified();
   return {
-    experiment: client.experiment,
-    sessionReplay: client.sessionReplay,
+    experiment: debugWrapper(
+      client.experiment.bind(client),
+      'experiment',
+      getClientLogConfig(client),
+      getClientStates(client, ['config']),
+    ),
+    sessionReplay: debugWrapper(
+      client.sessionReplay.bind(client),
+      'sessionReplay',
+      getClientLogConfig(client),
+      getClientStates(client, ['config']),
+    ),
     initAll: debugWrapper(
       client.initAll.bind(client),
       'initAll',
