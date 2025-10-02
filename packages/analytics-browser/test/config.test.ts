@@ -78,7 +78,8 @@ describe('config', () => {
         fetchRemoteConfig: true,
         version: VERSION,
         enableDiagnostics: true,
-        diagnosticsClient: new core.DiagnosticsClient(apiKey, logger, DEFAULT_SERVER_ZONE, { enabled: true }),
+        diagnosticsSampleRate: 0,
+        diagnosticsClient: undefined,
       });
     });
 
@@ -138,7 +139,8 @@ describe('config', () => {
         fetchRemoteConfig: true,
         version: VERSION,
         enableDiagnostics: true,
-        diagnosticsClient: new core.DiagnosticsClient(apiKey, logger, DEFAULT_SERVER_ZONE, { enabled: true }),
+        diagnosticsSampleRate: 0,
+        diagnosticsClient: undefined,
       });
       expect(getTopLevelDomain).toHaveBeenCalledTimes(1);
     });
@@ -242,7 +244,8 @@ describe('config', () => {
         fetchRemoteConfig: true,
         version: VERSION,
         enableDiagnostics: true,
-        diagnosticsClient: new core.DiagnosticsClient(apiKey, logger, DEFAULT_SERVER_ZONE, { enabled: true }),
+        diagnosticsSampleRate: 0,
+        diagnosticsClient: undefined,
       });
     });
 

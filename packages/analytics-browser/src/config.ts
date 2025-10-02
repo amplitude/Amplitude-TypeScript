@@ -26,6 +26,7 @@ import {
   CookieOptions,
   NetworkTrackingOptions,
   IIdentify,
+  IDiagnosticsClient,
 } from '@amplitude/analytics-core';
 
 import { LocalStorage } from './storage/local-storage';
@@ -98,6 +99,7 @@ export class BrowserConfig extends Config implements IBrowserConfig {
     public identify?: IIdentify,
     public enableDiagnostics: boolean = true,
     public diagnosticsSampleRate: number = 0,
+    public diagnosticsClient?: IDiagnosticsClient,
   ) {
     super({ apiKey, storageProvider, transportProvider: createTransport(transport) });
     this._cookieStorage = cookieStorage;
@@ -114,6 +116,7 @@ export class BrowserConfig extends Config implements IBrowserConfig {
     this.identify = identify;
     this.enableDiagnostics = enableDiagnostics;
     this.diagnosticsSampleRate = diagnosticsSampleRate;
+    this.diagnosticsClient = diagnosticsClient;
   }
 
   get cookieStorage() {

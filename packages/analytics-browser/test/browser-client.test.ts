@@ -1787,4 +1787,28 @@ describe('browser-client', () => {
       expect(loggerProvider.enable).toHaveBeenCalledWith(LogLevel.Error);
     });
   });
+
+  describe('_setDiagnosticsSampleRate', () => {
+    it('should set diagnostics sample rate when config is not initialized', () => {
+      expect(client._diagnosticsSampleRate).toBe(0);
+      const sampleRate = 0.1;
+
+      client._setDiagnosticsSampleRate(sampleRate);
+
+      expect(client._diagnosticsSampleRate).toBe(sampleRate);
+    });
+
+    it('should not set diagnostics sample rate when config is already initialized', async () => {
+      expect(client._diagnosticsSampleRate).toBe(0);
+      await client.init(apiKey).promise;
+
+      const initialSampleRate = client._diagnosticsSampleRate;
+      const newSampleRate = 0.5;
+
+      client._setDiagnosticsSampleRate(newSampleRate);
+
+      // Should not change the sample rate when config is already initialized
+      expect(client._diagnosticsSampleRate).toBe(initialSampleRate);
+    });
+  });
 });
