@@ -162,7 +162,7 @@ export const getNetworkTrackingConfig = (config: BrowserOptions): NetworkTrackin
       ...networkTrackingConfig,
       captureRules: networkTrackingConfig?.captureRules?.map((rule) => {
         // if URLs and hosts are both set, URLs take precedence over hosts
-        if (rule.urls && rule.hosts) {
+        if (rule.urls?.length && rule.hosts?.length) {
           const hostsString = JSON.stringify(rule.hosts);
           const urlsString = JSON.stringify(rule.urls);
           /* istanbul ignore next */
