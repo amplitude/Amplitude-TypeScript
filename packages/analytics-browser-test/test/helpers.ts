@@ -64,8 +64,17 @@ const generateAttributionUserProps = (campaignURL: string, referrerString?: stri
   return user_properties;
 };
 
-export const generateEvent = (event_id: number, event_type: string): BaseEvent => {
-  return {
+export const generateEvent = (
+  event_id: number,
+  event_type: string,
+  options?: {
+    withPageURLEnrichmentProperties?: {
+      url?: string;
+      previousPageUrl?: string;
+    };
+  },
+): BaseEvent => {
+  const event = {
     device_id: uuid,
     event_id: event_id,
     event_type: event_type,
@@ -81,6 +90,15 @@ export const generateEvent = (event_id: number, event_type: string): BaseEvent =
     user_agent: userAgent,
     user_id: 'user1@amplitude.com',
   };
+
+  if (options?.withPageURLEnrichmentProperties) {
+    return addPageUrlEnrichmentProperties(
+      event,
+      options.withPageURLEnrichmentProperties.url || '',
+      options.withPageURLEnrichmentProperties.previousPageUrl || '',
+    );
+  }
+  return event;
 };
 
 export const generateAttributionEvent = (event_id: number, campaignURL: string, referrer?: string) => {
@@ -89,25 +107,61 @@ export const generateAttributionEvent = (event_id: number, campaignURL: string, 
   return attributionEvent;
 };
 
-export const generateSessionStartEvent = (event_id: number) => {
-  return generateEvent(event_id, 'session_start');
+export const generateSessionStartEvent = (
+  event_id: number,
+  options: {
+    withPageURLEnrichmentProperties: {
+      url?: string;
+      previousPageUrl?: string;
+    };
+  },
+) => {
+  const sessionStartEvent = generateEvent(event_id, 'session_start');
+
+  if (options.withPageURLEnrichmentProperties) {
+    return addPageUrlEnrichmentProperties(
+      sessionStartEvent,
+      options.withPageURLEnrichmentProperties.url || '',
+      options.withPageURLEnrichmentProperties.previousPageUrl || '',
+    );
+  }
+  return sessionStartEvent;
 };
 
-export const generateSessionEndEvent = (event_id: number) => {
-  return generateEvent(event_id, 'session_end');
+export const generateSessionEndEvent = (
+  event_id: number,
+  options?: {
+    withPageURLEnrichmentProperties: {
+      url?: string;
+      previousPageUrl?: string;
+    };
+  },
+) => {
+  const sessionEndEvent = generateEvent(event_id, 'session_end');
+
+  if (options?.withPageURLEnrichmentProperties) {
+    return addPageUrlEnrichmentProperties(
+      sessionEndEvent,
+      options?.withPageURLEnrichmentProperties.url || '',
+      options?.withPageURLEnrichmentProperties.previousPageUrl || '',
+    );
+  }
+  return sessionEndEvent;
 };
 
 const generatePageViewEventProps = (
   pageCounter: number,
   urlString: string,
   referrerString?: string,
-  withPageURLEnrichmentProperties?: {
-    previousPageUrl?: string;
+  options?: {
+    withPageURLEnrichmentProperties?: {
+      previousPageUrl?: string;
+    };
   },
 ) => {
   const referrer = getReferrerObject(referrerString);
-  const previousUrl = withPageURLEnrichmentProperties?.previousPageUrl
-    ? new URL(withPageURLEnrichmentProperties.previousPageUrl)
+  const previousUrl = options?.withPageURLEnrichmentProperties?.previousPageUrl
+    ? new URL(options?.withPageURLEnrichmentProperties.previousPageUrl)
     : { href: '' };
 
   const url = new URL(urlString);
@@ -120,7 +174,7 @@ const generatePageViewEventProps = (
     '[Amplitude] Page Path': url.pathname,
     '[Amplitude] Page Title': '',
     '[Amplitude] Page URL': url.href.split('?')[0],
-    ...(withPageURLEnrichmentProperties
+    ...(options?.withPageURLEnrichmentProperties
       ? addPageUrlEnrichmentPreviousPageProperties(url.href, previousUrl.href || '')
       : {}),
     ...campaign,
@@ -133,17 +187,16 @@ export const generatePageViewEvent = (
   pageCounter: number,
   url: string,
   referrer?: string,
-  withPageURLEnrichmentProperties?: {
-    previousPageUrl?: string;
+  options?: {
+    withPageURLEnrichmentProperties?: {
+      previousPageUrl?: string;
+    };
   },
 ) => {
   const generatePageViewEvent = generateEvent(event_id, '[Amplitude] Page Viewed');
-  generatePageViewEvent.event_properties = generatePageViewEventProps(
-    pageCounter,
-    url,
-    referrer,
-    withPageURLEnrichmentProperties,
-  );
+  generatePageViewEvent.event_properties = generatePageViewEventProps(pageCounter, url, referrer, {
+    withPageURLEnrichmentProperties: options?.withPageURLEnrichmentProperties,
+  });
   return generatePageViewEvent;
 };
 

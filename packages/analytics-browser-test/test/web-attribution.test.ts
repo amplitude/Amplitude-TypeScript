@@ -14,7 +14,6 @@ import {
   generateSessionEndEvent,
   generatePageViewEvent,
   navigateTo,
-  addPageUrlEnrichmentProperties,
 } from './helpers';
 
 describe('Web attribution', () => {
@@ -45,8 +44,6 @@ describe('Web attribution', () => {
       });
 
       afterEach(() => {
-        // clear url info in session storage from page url enrichment plugin
-        window.sessionStorage.setItem('AMP_URL_INFO', '{}');
         cleanup();
       });
 
@@ -77,8 +74,12 @@ describe('Web attribution', () => {
               client_upload_time: event_upload_time,
               events: [
                 generateAttributionEvent(++eventId, url, referrer),
-                addPageUrlEnrichmentProperties(generateSessionStartEvent(++eventId), url, referrer),
-                generatePageViewEvent(++eventId, 1, url, referrer, { previousPageUrl: referrer }),
+                generateSessionStartEvent(++eventId, {
+                  withPageURLEnrichmentProperties: { url, previousPageUrl: referrer },
+                }),
+                generatePageViewEvent(++eventId, 1, url, referrer, {
+                  withPageURLEnrichmentProperties: { previousPageUrl: referrer },
+                }),
               ],
               options: {
                 min_id_length: undefined,
@@ -116,8 +117,10 @@ describe('Web attribution', () => {
               client_upload_time: event_upload_time,
               events: [
                 generateAttributionEvent(++eventId, url),
-                addPageUrlEnrichmentProperties(generateSessionStartEvent(++eventId), url),
-                generatePageViewEvent(++eventId, 1, url, undefined, { previousPageUrl: '' }),
+                generateSessionStartEvent(++eventId, { withPageURLEnrichmentProperties: { url } }),
+                generatePageViewEvent(++eventId, 1, url, undefined, {
+                  withPageURLEnrichmentProperties: {},
+                }),
               ],
               options: {
                 min_id_length: undefined,
@@ -161,8 +164,12 @@ describe('Web attribution', () => {
               api_key: apiKey,
               client_upload_time: event_upload_time,
               events: [
-                addPageUrlEnrichmentProperties(generateSessionStartEvent(++eventId), url, referrer),
-                generatePageViewEvent(++eventId, 1, url, referrer, { previousPageUrl: referrer }),
+                generateSessionStartEvent(++eventId, {
+                  withPageURLEnrichmentProperties: { url, previousPageUrl: referrer },
+                }),
+                generatePageViewEvent(++eventId, 1, url, referrer, {
+                  withPageURLEnrichmentProperties: { previousPageUrl: referrer },
+                }),
               ],
               options: {
                 min_id_length: undefined,
@@ -182,8 +189,6 @@ describe('Web attribution', () => {
       });
 
       afterEach(() => {
-        // clear url info in session storage from page url enrichment plugin
-        window.sessionStorage.setItem('AMP_URL_INFO', '{}');
         cleanup();
       });
 
@@ -235,9 +240,13 @@ describe('Web attribution', () => {
               client_upload_time: event_upload_time,
               events: [
                 generateAttributionEvent(++eventId, url),
-                addPageUrlEnrichmentProperties(generateSessionStartEvent(++eventId), url),
-                generatePageViewEvent(++eventId, 1, url, undefined, { previousPageUrl: '' }),
-                generatePageViewEvent(++eventId, 2, directUrl, undefined, { previousPageUrl: url }),
+                generateSessionStartEvent(++eventId, { withPageURLEnrichmentProperties: { url } }),
+                generatePageViewEvent(++eventId, 1, url, undefined, {
+                  withPageURLEnrichmentProperties: {},
+                }),
+                generatePageViewEvent(++eventId, 2, directUrl, undefined, {
+                  withPageURLEnrichmentProperties: {}, // no referrer because the previous page prop relies on document.referrer for non-SPA sites
+                }),
               ],
               options: {
                 min_id_length: undefined,
@@ -297,10 +306,14 @@ describe('Web attribution', () => {
               client_upload_time: event_upload_time,
               events: [
                 generateAttributionEvent(++eventId, url),
-                addPageUrlEnrichmentProperties(generateSessionStartEvent(++eventId), url),
-                generatePageViewEvent(++eventId, 1, url, undefined, { previousPageUrl: '' }),
+                generateSessionStartEvent(++eventId, { withPageURLEnrichmentProperties: { url } }),
+                generatePageViewEvent(++eventId, 1, url, undefined, {
+                  withPageURLEnrichmentProperties: {},
+                }),
                 generateAttributionEvent(++eventId, newCampaignURL),
-                generatePageViewEvent(++eventId, 2, newCampaignURL, undefined, { previousPageUrl: url }),
+                generatePageViewEvent(++eventId, 2, newCampaignURL, undefined, {
+                  withPageURLEnrichmentProperties: {}, // no referrer because the previous page prop relies on document.referrer for non-SPA sites
+                }),
               ],
               options: {
                 min_id_length: undefined,
@@ -371,12 +384,16 @@ describe('Web attribution', () => {
               client_upload_time: event_upload_time,
               events: [
                 generateAttributionEvent(++eventId, url),
-                addPageUrlEnrichmentProperties(generateSessionStartEvent(++eventId), url),
-                generatePageViewEvent(++eventId, 1, url, undefined, { previousPageUrl: '' }),
-                addPageUrlEnrichmentProperties(generateSessionEndEvent(++eventId), directUrl, url),
+                generateSessionStartEvent(++eventId, { withPageURLEnrichmentProperties: { url } }),
+                generatePageViewEvent(++eventId, 1, url, undefined, {
+                  withPageURLEnrichmentProperties: {},
+                }),
+                generateSessionEndEvent(++eventId, { withPageURLEnrichmentProperties: { url: directUrl } }), // no referrer because the previous page prop relies on document.referrer for non-SPA sites
                 generateAttributionEvent(++eventId, directUrl),
-                addPageUrlEnrichmentProperties(generateSessionStartEvent(++eventId), directUrl, url),
-                generatePageViewEvent(++eventId, 1, directUrl, undefined, { previousPageUrl: url }),
+                generateSessionStartEvent(++eventId, { withPageURLEnrichmentProperties: { url: directUrl } }), // no referrer because the previous page prop relies on document.referrer for non-SPA sites
+                generatePageViewEvent(++eventId, 1, directUrl, undefined, {
+                  withPageURLEnrichmentProperties: {},
+                }), // no referrer because the previous page prop relies on document.referrer for non-SPA sites
               ],
               options: {
                 min_id_length: undefined,
@@ -398,8 +415,6 @@ describe('Web attribution', () => {
       });
 
       afterEach(() => {
-        // clear url info in session storage from page url enrichment plugin
-        window.sessionStorage.setItem('AMP_URL_INFO', '{}');
         cleanup();
       });
 
@@ -438,15 +453,15 @@ describe('Web attribution', () => {
               client_upload_time: event_upload_time,
               events: [
                 generateAttributionEvent(++eventId, url),
-                addPageUrlEnrichmentProperties(generateSessionStartEvent(++eventId), url),
-                generatePageViewEvent(++eventId, 1, url, undefined, { previousPageUrl: '' }),
-                addPageUrlEnrichmentProperties(generateSessionEndEvent(++eventId), newCampaignURL, url),
-                addPageUrlEnrichmentProperties(generateSessionStartEvent(++eventId), newCampaignURL, url),
-                addPageUrlEnrichmentProperties(
-                  generateEvent(++eventId, 'test event after session timeout'),
-                  newCampaignURL,
-                  url,
-                ),
+                generateSessionStartEvent(++eventId, { withPageURLEnrichmentProperties: { url } }),
+                generatePageViewEvent(++eventId, 1, url, undefined, {
+                  withPageURLEnrichmentProperties: {},
+                }),
+                generateSessionEndEvent(++eventId, { withPageURLEnrichmentProperties: { url: newCampaignURL } }), // no previous page url prop since there is no pushstate event or referrer
+                generateSessionStartEvent(++eventId, { withPageURLEnrichmentProperties: { url: newCampaignURL } }), // no previous page url prop since there is no pushstate event or referrer
+                generateEvent(++eventId, 'test event after session timeout', {
+                  withPageURLEnrichmentProperties: { url: newCampaignURL }, // no previous page url prop since there is no pushstate event or referrer
+                }),
               ],
               options: {
                 min_id_length: undefined,
@@ -499,15 +514,22 @@ describe('Web attribution', () => {
               api_key: apiKey,
               client_upload_time: event_upload_time,
               events: [
-                addPageUrlEnrichmentProperties(generateSessionStartEvent(++eventId), url, referrer),
-                generatePageViewEvent(++eventId, 1, url, referrer, { previousPageUrl: referrer }),
-                addPageUrlEnrichmentProperties(generateSessionEndEvent(++eventId), newCampaignURL, url),
-                addPageUrlEnrichmentProperties(generateSessionStartEvent(++eventId), newCampaignURL, url),
-                addPageUrlEnrichmentProperties(
-                  generateEvent(++eventId, 'test event after session timeout'),
-                  newCampaignURL,
-                  url,
-                ),
+                generateSessionStartEvent(++eventId, {
+                  withPageURLEnrichmentProperties: { url, previousPageUrl: referrer },
+                }),
+                generatePageViewEvent(++eventId, 1, url, referrer, {
+                  withPageURLEnrichmentProperties: { previousPageUrl: referrer },
+                }),
+                generateSessionEndEvent(++eventId, {
+                  withPageURLEnrichmentProperties: { url: newCampaignURL, previousPageUrl: referrer }, // referrer stays the same as it has not been changed or removed
+                }),
+                generateSessionStartEvent(++eventId, {
+                  withPageURLEnrichmentProperties: { url: newCampaignURL, previousPageUrl: referrer }, // referrer stays the same as it has not been changed or removed
+                }),
+
+                generateEvent(++eventId, 'test event after session timeout', {
+                  withPageURLEnrichmentProperties: { url: newCampaignURL, previousPageUrl: referrer }, // referrer stays the same as it has not been changed or removed
+                }),
               ],
               options: {
                 min_id_length: undefined,
@@ -528,8 +550,6 @@ describe('Web attribution', () => {
       });
 
       afterEach(() => {
-        // clear url info in session storage from page url enrichment plugin
-        window.sessionStorage.setItem('AMP_URL_INFO', '{}');
         cleanup();
       });
 
@@ -567,13 +587,13 @@ describe('Web attribution', () => {
               client_upload_time: event_upload_time,
               events: [
                 generateAttributionEvent(++eventId, url),
-                addPageUrlEnrichmentProperties(generateSessionStartEvent(++eventId), url),
-                generatePageViewEvent(++eventId, 1, url, undefined, { previousPageUrl: '' }),
-                addPageUrlEnrichmentProperties(
-                  generateEvent(++eventId, 'test event in the same session'),
-                  newCampaignURL,
-                  url,
-                ),
+                generateSessionStartEvent(++eventId, { withPageURLEnrichmentProperties: { url } }),
+                generatePageViewEvent(++eventId, 1, url, undefined, {
+                  withPageURLEnrichmentProperties: { previousPageUrl: '' }, // no previous page url prop since there is no pushstate event or referrer
+                }),
+                generateEvent(++eventId, 'test event in the same session', {
+                  withPageURLEnrichmentProperties: { url: newCampaignURL, previousPageUrl: '' }, // no previous page url prop since there is no pushstate event or referrer
+                }),
               ],
               options: {
                 min_id_length: undefined,
@@ -625,9 +645,13 @@ describe('Web attribution', () => {
               client_upload_time: event_upload_time,
               events: [
                 generateAttributionEvent(++eventId, url),
-                addPageUrlEnrichmentProperties(generateSessionStartEvent(++eventId), url),
-                generatePageViewEvent(++eventId, 1, url, undefined, { previousPageUrl: '' }),
-                addPageUrlEnrichmentProperties(generateEvent(++eventId, 'test event in same session'), directUrl, url),
+                generateSessionStartEvent(++eventId, { withPageURLEnrichmentProperties: { url } }),
+                generatePageViewEvent(++eventId, 1, url, undefined, {
+                  withPageURLEnrichmentProperties: {},
+                }),
+                generateEvent(++eventId, 'test event in same session', {
+                  withPageURLEnrichmentProperties: { url: directUrl, previousPageUrl: '' }, // no previous page url prop since there is no pushstate event or referrer
+                }),
               ],
               options: {
                 min_id_length: undefined,
@@ -680,9 +704,15 @@ describe('Web attribution', () => {
               client_upload_time: event_upload_time,
               events: [
                 generateAttributionEvent(++eventId, url, initReferrer),
-                addPageUrlEnrichmentProperties(generateSessionStartEvent(++eventId), url, initReferrer),
-                generatePageViewEvent(++eventId, 1, url, initReferrer, { previousPageUrl: initReferrer }),
-                generatePageViewEvent(++eventId, 2, newURL, undefined, { previousPageUrl: url }),
+                generateSessionStartEvent(++eventId, {
+                  withPageURLEnrichmentProperties: { url, previousPageUrl: initReferrer },
+                }),
+                generatePageViewEvent(++eventId, 1, url, initReferrer, {
+                  withPageURLEnrichmentProperties: { previousPageUrl: initReferrer },
+                }),
+                generatePageViewEvent(++eventId, 2, newURL, undefined, {
+                  withPageURLEnrichmentProperties: { previousPageUrl: url },
+                }),
               ],
               options: {
                 min_id_length: undefined,
@@ -708,5 +738,8 @@ describe('Web attribution', () => {
       search: '',
     };
     Object.defineProperty(document, 'referrer', { value: '', configurable: true });
+
+    // clear url info in session storage from page url enrichment plugin
+    window.sessionStorage.setItem('AMP_URL_INFO', '{}');
   };
 });
