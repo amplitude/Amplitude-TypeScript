@@ -7,7 +7,7 @@
 
 # @amplitude/unified
 
-Official Amplitude SDK for Web analytics, experiment, session replay, and more.
+Official Amplitude SDK for Web analytics, experiment, session replay, Guides and Surveys, and more.
 
 ## Installation
 
@@ -38,21 +38,26 @@ initAll('YOUR_API_KEY', {
   // Shared options for all SDKs (optional)
   serverZone: 'US', // or 'EU'
   instanceName: 'my-instance',
-  
+
   // Analytics options
   analytics: {
     // Analytics configuration options
   },
-  
+
   // Session Replay options
   sessionReplay: {
     // Session Replay configuration options
   },
-  
+
   // Experiment options
   experiment: {
     // Experiment configuration options
-  }
+  },
+
+  // Guides and Surveys options
+  engagement: {
+    // Guides and Surveys configuration options
+  },
 });
 ```
 
@@ -61,11 +66,11 @@ initAll('YOUR_API_KEY', {
 The Unified SDK provides access to all Amplitude features through a single interface:
 
 ```typescript
-import { 
-  track, 
-  identify, 
-  experiment, 
-  sessionReplay 
+import {
+  track,
+  identify,
+  experiment,
+  sessionReplay
 } from '@amplitude/unified';
 
 // Track events
@@ -79,16 +84,19 @@ const variant = await experiment.fetch('experiment-key');
 
 // Access Session Replay features
 sessionReplay.flush();
+
+// Access Guides and Surveys features via engagement global
+const activeGuidesAndSurveys = await engagement.gs.list();
 ```
 
 ## Configuration Options
 
 ### Shared Options
 
-|Name|Type|Default|Description|
-|-|-|-|-|
-|`serverZone`|`'US'` or `'EU'`|`'US'`|The server zone to use for all SDKs.|
-|`instanceName`|`string`|`undefined`|A unique name for this instance of the SDK.|
+| Name           | Type             | Default     | Description                                 |
+| -------------- | ---------------- | ----------- | ------------------------------------------- |
+| `serverZone`   | `'US'` or `'EU'` | `'US'`      | The server zone to use for all SDKs.        |
+| `instanceName` | `string`         | `undefined` | A unique name for this instance of the SDK. |
 
 ### Analytics Options
 
@@ -102,8 +110,13 @@ All options from `@amplitude/plugin-session-replay-browser` are supported. See t
 
 All options from `@amplitude/plugin-experiment-browser` are supported. See the [Experiment documentation](https://www.docs.developers.amplitude.com/experiment/) for details.
 
+### Guides and Surveys Options
+
+All options from `@amplitude/engagement-browser` are supported. See the [Guides and Surveys documentation](hhttps://amplitude.com/docs/guides-and-surveys/sdk) for details.
+
 ## Learn More
 
 - [Analytics Browser SDK Documentation](https://amplitude.com/docs/sdks/analytics/browser/browser-sdk-2)
 - [Session Replay Documentation](https://amplitude.com/docs/session-replay/session-replay-standalone-sdk)
 - [Experiment Documentation](https://amplitude.com/docs/sdks/experiment-sdks/experiment-javascript)
+- [Guides and Surveys SDK Documentation](https://amplitude.com/docs/guides-and-surveys/sdk)

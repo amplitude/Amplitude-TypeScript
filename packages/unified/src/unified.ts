@@ -83,8 +83,12 @@ export class AmplitudeUnified extends AmplitudeBrowser implements UnifiedClient 
       this.sessionReplay = (srPlugin as SessionReplayPlugin).sessionReplay;
     }
 
-    await super.add(EngagementPlugin({ ...{ enabled: false }, ...unifiedOptions?.engagement, ...sharedOptions }))
-      .promise;
+    await super.add(
+      EngagementPlugin({
+        ...unifiedOptions?.engagement,
+        ...sharedOptions,
+      }),
+    ).promise;
   }
 
   /**
