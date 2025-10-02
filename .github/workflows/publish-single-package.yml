@@ -3,6 +3,9 @@
 # Use this workflow for new packages that will only have beta/alpha versions
 # The 'latest' tag will always point to the most recent version (even if beta/alpha)
 # since these packages don't have stable releases yet
+# 
+# IMPORTANT: Once a stable (non-beta/alpha) version is published to latest,
+# this workflow will prevent further beta/alpha publishing to maintain stability
 name: Publish New Package (Beta/Alpha with Latest Tag)
 
 on:
@@ -14,7 +17,7 @@ on:
         required: true
       releaseTag:
         type: choice
-        description: 'Release type - choose beta for testing releases or alpha for experimental releases (package will always be published with latest tag)'
+        description: 'Release type - choose beta for testing releases or alpha for experimental releases (package will be published with latest tag, but only if no stable version exists)'
         required: true
         options:
           - beta
@@ -77,6 +80,37 @@ jobs:
             exit 1
           fi
           echo "✅ Package $PACKAGE_NAME found at $PACKAGE_PATH"
+
+      # Check if latest published version is stable to prevent beta/alpha publishing
+      - name: Validate version publishing rules
+        run: |
+          echo "🔍 Checking if package can publish beta/alpha versions..."
+          
+          # Get the package name from package.json
+          PACKAGE_JSON_NAME=$(node -p "require('$PACKAGE_PATH/package.json').name")
+          echo "Package name: $PACKAGE_JSON_NAME"
+          
+          # Check if package exists on npm and get latest version
+          if npm view "$PACKAGE_JSON_NAME" version 2>/dev/null; then
+            LATEST_VERSION=$(npm view "$PACKAGE_JSON_NAME" version 2>/dev/null)
+            echo "Latest published version: $LATEST_VERSION"
+            
+            # Check if latest version is stable (doesn't contain beta or alpha)
+            if [[ "$LATEST_VERSION" == *"beta"* ]] || [[ "$LATEST_VERSION" == *"alpha"* ]]; then
+              echo "✅ Latest version ($LATEST_VERSION) is pre-release, can publish beta/alpha"
+            else
+              echo "❌ ERROR: Latest version ($LATEST_VERSION) is stable (non-beta/alpha)"
+              echo "Once a stable version is published to latest, you cannot publish beta/alpha versions anymore."
+              echo "This prevents version regression and maintains package stability."
+              echo ""
+              echo "If you need to publish a new stable version, use the main publish workflow instead."
+              echo "If this is a new package, ensure the first version is beta/alpha."
+              exit 1
+            fi
+          else
+            echo "✅ Package not found on npm, this appears to be a new package"
+            echo "New packages can publish beta/alpha versions with latest tag"
+          fi
 
       # Cache node_modules for faster builds
       - name: Cache dependencies
