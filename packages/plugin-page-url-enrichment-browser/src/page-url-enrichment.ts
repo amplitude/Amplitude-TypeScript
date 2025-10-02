@@ -154,8 +154,6 @@ export const pageUrlEnrichmentPlugin = (): EnrichmentPlugin => {
             [CURRENT_PAGE_STORAGE_KEY]: locationHREF,
             [PREVIOUS_PAGE_STORAGE_KEY]: document.referrer || '',
           });
-        } else if (URLInfo[CURRENT_PAGE_STORAGE_KEY] !== locationHREF) {
-          await saveURLInfo();
         }
 
         // no need to proceed to add additional properties if the event is one of the default event types to be excluded
@@ -205,6 +203,10 @@ export const pageUrlEnrichmentPlugin = (): EnrichmentPlugin => {
         globalScope.removeEventListener('popstate', saveUrlInfoWrapper);
 
         isTracking = false;
+      }
+
+      if (sessionStorage && isStorageEnabled) {
+        await sessionStorage.set(URL_INFO_STORAGE_KEY, {});
       }
     },
   };
