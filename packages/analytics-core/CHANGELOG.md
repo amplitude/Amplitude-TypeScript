@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.26.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.26.0...@amplitude/analytics-core@2.26.1) (2025-10-01)
+
+
+### Bug Fixes
+
+* suppress relative url errors ([#1311](https://github.com/amplitude/Amplitude-TypeScript/issues/1311)) ([9f3b3b0](https://github.com/amplitude/Amplitude-TypeScript/commit/9f3b3b0ded160ef56e046a35d7f0eb747a2a4ef3))
+
+
+
+
+
 # [2.26.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.25.0...@amplitude/analytics-core@2.26.0) (2025-09-25)
 
 

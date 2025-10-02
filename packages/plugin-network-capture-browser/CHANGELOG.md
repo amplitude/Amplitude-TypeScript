@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.6.4](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-network-capture-browser@1.6.3...@amplitude/plugin-network-capture-browser@1.6.4) (2025-10-01)
+
+**Note:** Version bump only for package @amplitude/plugin-network-capture-browser
+
+
+
+
+
 ## [1.6.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-network-capture-browser@1.6.2...@amplitude/plugin-network-capture-browser@1.6.3) (2025-09-25)
 
 **Note:** Version bump only for package @amplitude/plugin-network-capture-browser
