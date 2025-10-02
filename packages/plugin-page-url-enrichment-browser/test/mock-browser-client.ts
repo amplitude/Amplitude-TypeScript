@@ -23,6 +23,7 @@ export const createMockBrowserClient = (): jest.Mocked<BrowserClient> => {
     reset: jest.fn(),
     setOptOut: jest.fn(),
     setTransport: jest.fn(),
+    _setDiagnosticsSampleRate: jest.fn(),
   } as jest.Mocked<BrowserClient>;
 
   // Set up default return values for methods that return promises
