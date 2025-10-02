@@ -7,5 +7,4 @@ module.exports = {
   rootDir: '.',
   testEnvironment: 'jsdom',
   coveragePathIgnorePatterns: ['index.ts'],
-  setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
 };
