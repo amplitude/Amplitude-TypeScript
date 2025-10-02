@@ -1004,6 +1004,71 @@ describe('data extractor', () => {
         });
       });
     });
+
+    test('should record histogram with diagnostics client when provided', () => {
+      const mockDiagnosticsClient = {
+        recordHistogram: jest.fn(),
+        setTag: jest.fn(),
+        increment: jest.fn(),
+        recordEvent: jest.fn(),
+        _flush: jest.fn(),
+        _setSampleRate: jest.fn(),
+      };
+
+      // Create a new data extractor with diagnostics client
+      const dataExtractorWithDiagnostics = new DataExtractor({
+        maskTextRegex: [/Florida|California/, /Pennsylvania/],
+      });
+      dataExtractorWithDiagnostics.diagnosticsClient = mockDiagnosticsClient;
+
+      // Set up DOM
+      document.getElementsByTagName('body')[0].innerHTML = `
+        <div id="parent">
+          <div id="child">
+            <button id="target">Click me</button>
+          </div>
+        </div>
+      `;
+
+      const target = document.getElementById('target');
+      dataExtractorWithDiagnostics.getHierarchy(target);
+
+      // Verify that recordHistogram was called with the correct metric name
+      expect(mockDiagnosticsClient.recordHistogram).toHaveBeenCalledWith(
+        'autocapturePlugin.getHierarchy',
+        expect.any(Number),
+      );
+
+      // Verify that the recorded value is a positive number (execution time)
+      // eslint-disable-next-line
+      const recordedValue = mockDiagnosticsClient.recordHistogram.mock.calls[0][1];
+      expect(recordedValue).toBeGreaterThanOrEqual(0);
+    });
+
+    test('should not call diagnostics client when not provided', () => {
+      // Create a new data extractor without diagnostics client
+      const dataExtractorWithoutDiagnostics = new DataExtractor({
+        maskTextRegex: [/Florida|California/, /Pennsylvania/],
+      });
+      // Ensure diagnosticsClient is undefined
+      dataExtractorWithoutDiagnostics.diagnosticsClient = undefined;
+
+      // Set up DOM
+      document.getElementsByTagName('body')[0].innerHTML = `
+        <div id="parent">
+          <div id="child">
+            <button id="target">Click me</button>
+          </div>
+        </div>
+      `;
+
+      const target = document.getElementById('target');
+
+      // This should not throw an error even when diagnosticsClient is undefined
+      expect(() => {
+        dataExtractorWithoutDiagnostics.getHierarchy(target);
+      }).not.toThrow();
+    });
   });
 
   describe('getEventProperties with title masking', () => {

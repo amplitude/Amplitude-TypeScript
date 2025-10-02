@@ -212,11 +212,15 @@ export const autocapturePlugin = (options: ElementInteractionsOptions = {}): Bro
     dataExtractor.diagnosticsClient = config.diagnosticsClient;
 
     // Fetch remote config for pageActions in a non-blocking manner
-    if (config.remoteConfigClient) {
-      // This is equivalent to check config.fetchRemoteConfig
-      config.remoteConfigClient.subscribe('analyticsSDK.pageActions', 'all', (remoteConfig) => {
-        recomputePageActionsData(remoteConfig as ElementInteractionsOptions['pageActions']);
-      });
+    if (config.fetchRemoteConfig) {
+      if (!config.remoteConfigClient) {
+        // TODO(xinyi): Diagnostics.recordEvent
+        config.loggerProvider.debug('Remote config client is not provided, skipping remote config fetch');
+      } else {
+        config.remoteConfigClient.subscribe('analyticsSDK.pageActions', 'all', (remoteConfig) => {
+          recomputePageActionsData(remoteConfig as ElementInteractionsOptions['pageActions']);
+        });
+      }
     }
 
     // Create should track event functions the different allowlists
