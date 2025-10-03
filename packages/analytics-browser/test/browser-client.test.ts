@@ -421,7 +421,7 @@ describe('browser-client', () => {
           property2: 123,
           property3: true,
         },
-        { time: customTime }
+        { time: customTime },
       );
     });
 
@@ -456,7 +456,7 @@ describe('browser-client', () => {
           property1: 'value1',
           property2: 'value2',
         },
-        undefined
+        undefined,
       );
     });
 
