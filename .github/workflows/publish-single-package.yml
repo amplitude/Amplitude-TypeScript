@@ -3,7 +3,7 @@
 # Use this workflow for new packages that will only have beta/alpha versions
 # The 'latest' tag will always point to the most recent version (even if beta/alpha)
 # since these packages don't have stable releases yet
-# 
+#
 # IMPORTANT: Once a stable (non-beta/alpha) version is published to latest,
 # this workflow will prevent further beta/alpha publishing to maintain stability
 name: Publish New Package (Beta/Alpha with Latest Tag)
@@ -13,18 +13,18 @@ on:
     inputs:
       packageName:
         type: string
-        description: 'Package name (e.g., unified, analytics-browser) - must be a valid package in packages/ directory'
+        description: "Package name (e.g., unified, analytics-browser) - must be a valid package in packages/ directory"
         required: true
       releaseTag:
         type: choice
-        description: 'Release type - choose beta for testing releases or alpha for experimental releases (package will be published with latest tag, but only if no stable version exists)'
+        description: "Release type - choose beta for testing releases or alpha for experimental releases (package will be published with latest tag, but only if no stable version exists)"
         required: true
         options:
           - beta
           - alpha
       dryRun:
         type: boolean
-        description: 'Dry run (skip changelog update and npm publish) - recommended to test first'
+        description: "Dry run (skip changelog update and npm publish) - recommended to test first"
         required: true
         default: true
 
@@ -35,9 +35,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: ${{ github.actor }} permission check to do a release
-        uses: 'lannonbr/repo-permission-check-action@2.0.2'
+        uses: "lannonbr/repo-permission-check-action@2.0.2"
         with:
-          permission: 'write'
+          permission: "write"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -85,16 +85,16 @@ jobs:
       - name: Validate version publishing rules
         run: |
           echo "🔍 Checking if package can publish beta/alpha versions..."
-          
+
           # Get the package name from package.json
-          PACKAGE_JSON_NAME=$(node -p "require('$PACKAGE_PATH/package.json').name")
+          PACKAGE_JSON_NAME=$(node -p "require('./$PACKAGE_PATH/package.json').name")
           echo "Package name: $PACKAGE_JSON_NAME"
-          
+
           # Check if package exists on npm and get latest version
           if npm view "$PACKAGE_JSON_NAME" version 2>/dev/null; then
             LATEST_VERSION=$(npm view "$PACKAGE_JSON_NAME" version 2>/dev/null)
             echo "Latest published version: $LATEST_VERSION"
-            
+
             # Check if latest version is stable (doesn't contain beta or alpha)
             if [[ "$LATEST_VERSION" == *"beta"* ]] || [[ "$LATEST_VERSION" == *"alpha"* ]]; then
               echo "✅ Latest version ($LATEST_VERSION) is pre-release, can publish beta/alpha"
@@ -116,7 +116,7 @@ jobs:
       - name: Cache dependencies
         uses: actions/cache@v3
         with:
-          path: '**/node_modules'
+          path: "**/node_modules"
           key: ${{ runner.os }}-modules-${{ hashFiles('**/yarn.lock') }}
 
       # Setup Node.js environment
@@ -146,21 +146,21 @@ jobs:
           # Get current version - use node to extract just the version value
           CURRENT_VERSION=$(node -p "require('./package.json').version")
           echo "Current version: $CURRENT_VERSION"
-          
+
           # Simply increment the last digit of the version
           # Extract the last digit and increment it
           LAST_DIGIT=$(echo "$CURRENT_VERSION" | grep -o '[0-9][0-9]*$')
           NEW_LAST_DIGIT=$((LAST_DIGIT + 1))
-          
+
           # Replace the last digit with the incremented value
           NEW_VERSION=$(echo "$CURRENT_VERSION" | sed "s/[0-9][0-9]*$/$NEW_LAST_DIGIT/")
-          
+
           echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_ENV
           echo "✅ New version would be: $CURRENT_VERSION → $NEW_VERSION"
-          
+
           # Update version in package.json immediately (needed for build)
           npm pkg set version="$NEW_VERSION"
-          
+
           # Update version in src/version.ts - this file must exist
           if [ -f "src/version.ts" ]; then
             echo "Updating src/version.ts with new version"
@@ -216,10 +216,10 @@ jobs:
         run: |
           cd $PACKAGE_PATH
           echo "Making package public for publishing"
-          
+
           # Set private to false (version already updated)
           npm pkg set private=false --json
-          
+
           echo "✅ Made package public for publishing"
           echo "Current package.json settings:"
           cat package.json | grep -E '"(version|private)"'
@@ -228,16 +228,16 @@ jobs:
         if: ${{ env.DRY_RUN == 'false' }}
         run: |
           cd $PACKAGE_PATH
-          
+
           # Generate changelog entry
           echo "Updating changelog for version $NEW_VERSION"
-          
+
           # Check if CHANGELOG.md exists
           if [ ! -f "CHANGELOG.md" ]; then
             echo "# Changelog" > CHANGELOG.md
             echo "" >> CHANGELOG.md
           fi
-          
+
           # Add new version entry to changelog
           TEMP_FILE=$(mktemp)
           echo "# Changelog" > $TEMP_FILE
@@ -246,15 +246,15 @@ jobs:
           echo "" >> $TEMP_FILE
           echo "- Release $NEW_VERSION" >> $TEMP_FILE
           echo "" >> $TEMP_FILE
-          
+
           # Append existing changelog content (skip the first "# Changelog" line)
           if [ -f "CHANGELOG.md" ]; then
             tail -n +2 CHANGELOG.md >> $TEMP_FILE
           fi
-          
+
           mv $TEMP_FILE CHANGELOG.md
           echo "✅ Updated CHANGELOG.md"
-          
+
           # Publish to npm with latest tag (always latest for new packages)
           echo "Publishing $PACKAGE_NAME@$NEW_VERSION with tag latest"
           npm publish --tag latest --access=public
@@ -268,10 +268,10 @@ jobs:
           cd $PACKAGE_PATH
           npm pkg set private=true --json
           echo "✅ Set package back to private"
-          
+
           # Update version in the restored package.json (but keep private: true)
           npm pkg set version="$NEW_VERSION"
-          
+
           # Now commit the changes with the correct private setting
           echo "Committing version and changelog changes"
           git status
@@ -289,4 +289,4 @@ jobs:
           echo "Pushing to current branch: $CURRENT_BRANCH"
           git push origin "$CURRENT_BRANCH"
           git push origin "@amplitude/$PACKAGE_NAME@$NEW_VERSION"
-          echo "✅ Pushed changes and tags to repository" 
+          echo "✅ Pushed changes and tags to repository"
