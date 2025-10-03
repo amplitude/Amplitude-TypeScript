@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.26.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.26.1...@amplitude/analytics-core@2.26.2) (2025-10-03)
+
+
+### Bug Fixes
+
+* add diagnostics to client and track autocapture getHierachy block time ([#1312](https://github.com/amplitude/Amplitude-TypeScript/issues/1312)) ([a919e22](https://github.com/amplitude/Amplitude-TypeScript/commit/a919e223428083a87954cffa50bc765baa5360b0))
+
+
+
+
+
 ## [2.26.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.26.0...@amplitude/analytics-core@2.26.1) (2025-10-01)
 
 

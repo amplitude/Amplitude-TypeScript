@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.6.5](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-network-capture-browser@1.6.4...@amplitude/plugin-network-capture-browser@1.6.5) (2025-10-03)
+
+
+### Bug Fixes
+
+* add diagnostics to client and track autocapture getHierachy block time ([#1312](https://github.com/amplitude/Amplitude-TypeScript/issues/1312)) ([a919e22](https://github.com/amplitude/Amplitude-TypeScript/commit/a919e223428083a87954cffa50bc765baa5360b0))
+
+
+
+
+
 ## [1.6.4](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-network-capture-browser@1.6.3...@amplitude/plugin-network-capture-browser@1.6.4) (2025-10-01)
 
 **Note:** Version bump only for package @amplitude/plugin-network-capture-browser
