@@ -1811,7 +1811,7 @@ describe('browser-client', () => {
       expect(client._diagnosticsSampleRate).toBe(initialSampleRate);
     });
 
-    test('should error when diagnostics sample rate is not between 0 and 1', () => {
+    test('should early return when diagnostics sample rate is not between 0 and 1', () => {
       expect(client._diagnosticsSampleRate).toBe(0);
       const sampleRate = 1.1;
 
