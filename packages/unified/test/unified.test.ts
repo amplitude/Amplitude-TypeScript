@@ -27,13 +27,13 @@ describe('AmplitudeUnified', () => {
       undefined,
     ])('should initialize all plugins and assign sr and experiment properties', async (unifiedOptions) => {
       const client = new AmplitudeUnified();
-      expect(client.sessionReplay).toBeUndefined();
-      expect(client.experiment).toBeUndefined();
+      expect(client.sessionReplay()).toBeUndefined();
+      expect(client.experiment()).toBeUndefined();
 
       await client.initAll('test-api-key', unifiedOptions);
 
-      expect(client.sessionReplay).toBeDefined();
-      expect(client.experiment).toBeDefined();
+      expect(client.sessionReplay()).toBeDefined();
+      expect(client.experiment()).toBeDefined();
     });
 
     test('should log when sr plugin is not found', async () => {
@@ -43,8 +43,8 @@ describe('AmplitudeUnified', () => {
         if (name === SessionReplayPlugin.pluginName) return undefined;
         return originalPlugin(name);
       });
-      expect(client.sessionReplay).toBeUndefined();
-      expect(client.experiment).toBeUndefined();
+      expect(client.sessionReplay()).toBeUndefined();
+      expect(client.experiment()).toBeUndefined();
 
       await client.initAll('test-api-key', {
         analytics: {
@@ -52,9 +52,9 @@ describe('AmplitudeUnified', () => {
         },
       });
 
-      expect(client.sessionReplay).toBeUndefined();
+      expect(client.sessionReplay()).toBeUndefined();
       expect(mockLoggerProviderDebug).toHaveBeenCalledWith(`${SessionReplayPlugin.pluginName} plugin is not found.`);
-      expect(client.experiment).toBeDefined();
+      expect(client.experiment()).toBeDefined();
     });
 
     test('should log when experiment plugin is not found', async () => {
@@ -62,8 +62,8 @@ describe('AmplitudeUnified', () => {
       jest.spyOn(client, 'plugins').mockImplementation((_) => {
         return [];
       });
-      expect(client.sessionReplay).toBeUndefined();
-      expect(client.experiment).toBeUndefined();
+      expect(client.sessionReplay()).toBeUndefined();
+      expect(client.experiment()).toBeUndefined();
 
       await client.initAll('test-api-key', {
         analytics: {
@@ -71,8 +71,8 @@ describe('AmplitudeUnified', () => {
         },
       });
 
-      expect(client.sessionReplay).toBeDefined();
-      expect(client.experiment).toBeUndefined();
+      expect(client.sessionReplay()).toBeDefined();
+      expect(client.experiment()).toBeUndefined();
       expect(mockLoggerProviderDebug).toHaveBeenCalledWith(`${ExperimentPlugin.pluginName} plugin is not found.`);
     });
 
@@ -81,8 +81,8 @@ describe('AmplitudeUnified', () => {
       jest.spyOn(client, 'plugins').mockImplementation((_) => {
         return [];
       });
-      expect(client.sessionReplay).toBeUndefined();
-      expect(client.experiment).toBeUndefined();
+      expect(client.sessionReplay()).toBeUndefined();
+      expect(client.experiment()).toBeUndefined();
 
       await client.initAll('test-api-key', {
         analytics: {
@@ -90,8 +90,8 @@ describe('AmplitudeUnified', () => {
         },
       });
 
-      expect(client.sessionReplay).toBeDefined();
-      expect(client.experiment).toBeUndefined();
+      expect(client.sessionReplay()).toBeDefined();
+      expect(client.experiment()).toBeUndefined();
       expect(mockLoggerProviderDebug).toHaveBeenCalledWith(`${ExperimentPlugin.pluginName} plugin is not found.`);
     });
 
@@ -116,7 +116,7 @@ describe('AmplitudeUnified', () => {
     });
   });
 
-  describe('get experiment', () => {
+  describe('experiment method', () => {
     test('should return undefined and log when multiple experiment instances', async () => {
       const client = new AmplitudeUnified();
       const experimentPlugin2 = experimentPlugin();
@@ -131,7 +131,7 @@ describe('AmplitudeUnified', () => {
       await client.add(experimentPlugin2).promise;
 
       expect(client.plugin('@amplitude/experiment-analytics-plugin-2')).toBeDefined();
-      expect(client.experiment).toBeUndefined();
+      expect(client.experiment()).toBeUndefined();
       expect(mockLoggerProviderDebug).toHaveBeenCalledWith(
         `Multiple instances of ${ExperimentPlugin.pluginName} are found.`,
       );

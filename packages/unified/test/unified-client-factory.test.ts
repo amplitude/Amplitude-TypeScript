@@ -25,3 +25,17 @@ test('should create a UnifiedClient instance with expected methods', () => {
   expect(typeof instance.setOptOut).toBe('function');
   expect(typeof instance.setTransport).toBe('function');
 });
+
+test('should return non undefined sessionReplay and experiment after initAll() by import method 3', async () => {
+  // Method 3: import {createInstance} from '@amplitude/unified'
+  // Test that sessionReplay and experiment are undefined before initAll()
+  expect(instance.sessionReplay()).toBeUndefined();
+  expect(instance.experiment()).toBeUndefined();
+
+  // Initialize with a test API key
+  await instance.initAll('test-api-key');
+
+  // Test that sessionReplay and experiment are defined after initAll()
+  expect(instance.sessionReplay()).toBeDefined();
+  expect(instance.experiment()).toBeDefined();
+});

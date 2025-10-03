@@ -76,7 +76,6 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
   init(apiKey = '', userIdOrOptions?: string | BrowserOptions, maybeOptions?: BrowserOptions) {
     let userId: string | undefined;
     let options: BrowserOptions | undefined;
-
     if (arguments.length > 2) {
       userId = userIdOrOptions as string | undefined;
       options = maybeOptions;
@@ -89,6 +88,7 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
         options = userIdOrOptions;
       }
     }
+    console.log('options', options);
     return returnWrapper(this._init({ ...options, userId, apiKey }));
   }
   protected async _init(options: BrowserOptions & { apiKey: string }) {

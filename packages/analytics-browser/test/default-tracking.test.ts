@@ -475,6 +475,7 @@ describe('getNetworkTrackingConfig', () => {
       captureRules: [
         { urls: ['https://example.com/path', /path\/to/], hosts: ['example.com'] },
         { hosts: ['example.com', 'helloworld.com'] },
+        { urls: ['https://example.com'] },
       ],
     };
 
@@ -496,6 +497,16 @@ describe('getNetworkTrackingConfig', () => {
       const ruleWithOnlyHosts = captureRules[1];
       expect(ruleWithOnlyHosts.hosts).toEqual(['example.com', 'helloworld.com']);
       expect(ruleWithOnlyHosts.urls).toBeUndefined();
+    });
+
+    test('should ignore hosts if urls are set and hosts is undefined', () => {
+      const captureRules =
+        getNetworkTrackingConfig({
+          autocapture: { networkTracking },
+        })?.captureRules || [];
+      const ruleWithBothSet = captureRules[2];
+      expect(ruleWithBothSet.hosts).toBeUndefined();
+      expect(ruleWithBothSet.urls).toEqual(['https://example.com']);
     });
 
     test('should not do anything if captureRules is not set', () => {
