@@ -7,8 +7,8 @@ import {
   DEFAULT_CSS_SELECTOR_ALLOWLIST,
   DEFAULT_ACTION_CLICK_ALLOWLIST,
   DEFAULT_DATA_ATTRIBUTE_PREFIX,
+  IDiagnosticsClient,
 } from '@amplitude/analytics-core';
-import { createRemoteConfigFetch } from '@amplitude/analytics-remote-config';
 import * as constants from './constants';
 import { fromEvent, map, type Observable, type Subscription, share } from 'rxjs';
 import {
@@ -60,7 +60,10 @@ export interface AllWindowObservables {
   [ObservablesEnum.MutationObservable]: Observable<TimestampedEvent<MutationRecord[]>>;
 }
 
-export const autocapturePlugin = (options: ElementInteractionsOptions = {}): BrowserEnrichmentPlugin => {
+export const autocapturePlugin = (
+  options: ElementInteractionsOptions = {},
+  context?: { diagnosticsClient: IDiagnosticsClient },
+): BrowserEnrichmentPlugin => {
   const {
     dataAttributePrefix = DEFAULT_DATA_ATTRIBUTE_PREFIX,
     visualTaggingOptions = {
@@ -100,7 +103,7 @@ export const autocapturePlugin = (options: ElementInteractionsOptions = {}): Bro
   const subscriptions: Subscription[] = [];
 
   // Create data extractor based on options
-  const dataExtractor = new DataExtractor(options);
+  const dataExtractor = new DataExtractor(options, context);
 
   // Create observables on events on the window
   const createObservables = (): AllWindowObservables => {
@@ -211,25 +214,14 @@ export const autocapturePlugin = (options: ElementInteractionsOptions = {}): Bro
 
     // Fetch remote config for pageActions in a non-blocking manner
     if (config.fetchRemoteConfig) {
-      createRemoteConfigFetch({
-        localConfig: config,
-        configKeys: ['analyticsSDK.pageActions'],
-      })
-        .then(async (remoteConfigFetch) => {
-          try {
-            const remotePageActions = await remoteConfigFetch.getRemoteConfig('analyticsSDK', 'pageActions');
-            recomputePageActionsData(remotePageActions as ElementInteractionsOptions['pageActions']);
-          } catch (error) {
-            // Log error but don't fail the setup
-            /* istanbul ignore next */
-            config?.loggerProvider?.error(`Failed to fetch remote config: ${String(error)}`);
-          }
-        })
-        .catch((error) => {
-          // Log error but don't fail the setup
-          /* istanbul ignore next */
-          config?.loggerProvider?.error(`Failed to create remote config fetch: ${String(error)}`);
+      if (!config.remoteConfigClient) {
+        // TODO(xinyi): Diagnostics.recordEvent
+        config.loggerProvider.debug('Remote config client is not provided, skipping remote config fetch');
+      } else {
+        config.remoteConfigClient.subscribe('analyticsSDK.pageActions', 'all', (remoteConfig) => {
+          recomputePageActionsData(remoteConfig as ElementInteractionsOptions['pageActions']);
         });
+      }
     }
 
     // Create should track event functions the different allowlists

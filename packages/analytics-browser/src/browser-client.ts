@@ -27,6 +27,7 @@ import {
   RemoteConfigClient,
   RemoteConfig,
   Source,
+  DiagnosticsClient,
 } from '@amplitude/analytics-core';
 import {
   getAttributionTrackingConfig,
@@ -58,6 +59,8 @@ import { autocapturePlugin, frustrationPlugin } from '@amplitude/plugin-autocapt
 import { plugin as networkCapturePlugin } from '@amplitude/plugin-network-capture-browser';
 import { webVitalsPlugin } from '@amplitude/plugin-web-vitals-browser';
 import { WebAttribution } from './attribution/web-attribution';
+import { LIBPREFIX } from './lib-prefix';
+import { VERSION } from './version';
 
 /**
  * Exported for `@amplitude/unified` or integration with blade plugins.
@@ -71,7 +74,10 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
   previousSessionUserId: string | undefined;
   webAttribution: WebAttribution | undefined;
   userProperties: { [key: string]: any } | undefined;
-  remoteConfigClient: IRemoteConfigClient | undefined;
+
+  // Backdoor to set diagnostics sample rate
+  // by calling amplitude._setDiagnosticsSampleRate(1); before amplitude.init()
+  _diagnosticsSampleRate = 0;
 
   init(apiKey = '', userIdOrOptions?: string | BrowserOptions, maybeOptions?: BrowserOptions) {
     let userId: string | undefined;
@@ -101,9 +107,10 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
     // Get default browser config based on browser options
     const browserOptions = await useBrowserConfig(options.apiKey, options, this);
 
+    let remoteConfigClient: IRemoteConfigClient | undefined;
     // Create remote config client and subscribe to analytics configs
     if (browserOptions.fetchRemoteConfig) {
-      this.remoteConfigClient = new RemoteConfigClient(
+      remoteConfigClient = new RemoteConfigClient(
         browserOptions.apiKey,
         browserOptions.loggerProvider,
         browserOptions.serverZone,
@@ -114,7 +121,7 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
       await new Promise<void>((resolve) => {
         // Disable coverage for this line because remote config client will always be defined in this case.
         // istanbul ignore next
-        this.remoteConfigClient?.subscribe(
+        remoteConfigClient?.subscribe(
           'configs.analyticsSDK.browserSDK',
           'all',
           (remoteConfig: RemoteConfig | null, source: Source, lastFetch: Date) => {
@@ -140,8 +147,23 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
       });
     }
 
+    // Initialize diagnostics client and set library tag
+    const diagnosticsClient = new DiagnosticsClient(
+      browserOptions.apiKey,
+      browserOptions.loggerProvider,
+      browserOptions.serverZone,
+      {
+        enabled: browserOptions.enableDiagnostics,
+        sampleRate: browserOptions.diagnosticsSampleRate || this._diagnosticsSampleRate,
+      },
+    );
+    diagnosticsClient.setTag('library', `${LIBPREFIX}/${VERSION}`);
+
     await super._init(browserOptions);
     this.logBrowserOptions(browserOptions);
+
+    this.config.diagnosticsClient = diagnosticsClient;
+    this.config.remoteConfigClient = remoteConfigClient;
 
     // Add web attribution plugin
     if (isAttributionTrackingEnabled(this.config.defaultTracking)) {
@@ -214,7 +236,7 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
 
     if (isElementInteractionsEnabled(this.config.autocapture)) {
       this.config.loggerProvider.debug('Adding user interactions plugin (autocapture plugin)');
-      await this.add(autocapturePlugin(getElementInteractionsConfig(this.config))).promise;
+      await this.add(autocapturePlugin(getElementInteractionsConfig(this.config), { diagnosticsClient })).promise;
     }
 
     if (isFrustrationInteractionsEnabled(this.config.autocapture)) {
@@ -466,6 +488,25 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
     } catch (e) {
       /* istanbul ignore next */
       this.config.loggerProvider.error('Error logging browser config', e);
+    }
+  }
+
+  /**
+   * @experimental
+   * WARNING: This method is for internal testing only and is not part of the public API.
+   * It may be changed or removed at any time without notice.
+   *
+   * Sets the diagnostics sample rate before amplitude.init()
+   * @param sampleRate - The sample rate to set
+   */
+  _setDiagnosticsSampleRate(sampleRate: number): void {
+    if (sampleRate > 1 || sampleRate < 0) {
+      return;
+    }
+    // Set diagnostics sample rate before initializing the config
+    if (!this.config) {
+      this._diagnosticsSampleRate = sampleRate;
+      return;
     }
   }
 }

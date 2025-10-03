@@ -51,8 +51,9 @@ import {
   CampaignParser,
   EMPTY_VALUE,
   MKTG,
-  AmplitudeContext,
-  // DiagnosticsClient,
+  generateHashCode,
+  isTimestampInSample,
+  DiagnosticsClient,
 } from '../src/index';
 
 describe('index', () => {
@@ -68,7 +69,6 @@ describe('index', () => {
     expect(typeof client.revenue).toBe('function');
     expect(typeof client.add).toBe('function');
     expect(typeof client.remove).toBe('function');
-    expect(typeof AmplitudeContext).toBe('function');
     expect(typeof Identify).toBe('function');
     expect(typeof Revenue).toBe('function');
     expect(typeof BaseTransport).toBe('function');
@@ -124,6 +124,8 @@ describe('index', () => {
     expect(typeof BASE_CAMPAIGN).toBe('object');
     expect(typeof MKTG).toBe('string');
     expect(typeof CampaignParser).toBe('function');
-    // expect(typeof DiagnosticsClient).toBe('function');
+    expect(typeof generateHashCode).toBe('function');
+    expect(typeof isTimestampInSample).toBe('function');
+    expect(typeof DiagnosticsClient).toBe('function');
   });
 });

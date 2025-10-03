@@ -31,6 +31,7 @@ export const createAmplitudeMock = (): jest.MockedObject<BrowserClient> => ({
   extendSession: jest.fn(),
   reset: jest.fn(),
   setTransport: jest.fn(),
+  _setDiagnosticsSampleRate: jest.fn(),
 });
 
 export const createConfigurationMock = (options?: Partial<BrowserConfig>) => {

@@ -21,6 +21,7 @@ export { debugWrapper, getClientLogConfig, getClientStates } from './utils/debug
 export { UUID } from './utils/uuid';
 export { createIdentifyEvent } from './utils/event-builder';
 export { isUrlMatchAllowlist, getDecodeURI } from './utils/url-utils';
+export { generateHashCode, isTimestampInSample } from './utils/sampling';
 
 export { MemoryStorage } from './storage/memory';
 export { CookieStorage } from './storage/cookie';
@@ -28,7 +29,7 @@ export { getStorageKey } from './storage/helpers';
 
 export { BrowserStorage } from './storage/browser-storage';
 
-// export { DiagnosticsClient, IDiagnosticsClient } from './diagnostics/diagnostics-client';
+export { DiagnosticsClient, IDiagnosticsClient } from './diagnostics/diagnostics-client';
 
 export { BaseTransport } from './transports/base';
 export { FetchTransport } from './transports/fetch';

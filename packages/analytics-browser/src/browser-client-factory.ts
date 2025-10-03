@@ -136,6 +136,12 @@ export const createInstance = (): BrowserClient => {
       getClientLogConfig(client),
       getClientStates(client, ['config']),
     ),
+    _setDiagnosticsSampleRate: debugWrapper(
+      client._setDiagnosticsSampleRate.bind(client),
+      '_setDiagnosticsSampleRate',
+      getClientLogConfig(client),
+      getClientStates(client, ['config']),
+    ),
   };
 };
 

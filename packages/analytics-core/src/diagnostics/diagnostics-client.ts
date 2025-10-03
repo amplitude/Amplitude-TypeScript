@@ -2,6 +2,7 @@ import { ILogger } from '../logger';
 import { DiagnosticsStorage, IDiagnosticsStorage } from './diagnostics-storage';
 import { ServerZoneType } from '../types/server-zone';
 import { getGlobalScope } from '../global-scope';
+import { isTimestampInSample } from '../utils/sampling';
 
 export const SAVE_INTERVAL_MS = 1000; // 1 second
 export const FLUSH_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
@@ -144,6 +145,16 @@ export interface IDiagnosticsClient {
 
   // Flush storage
   _flush(): void;
+
+  /**
+   * Sets the sample rate for diagnostics.
+   *
+   * @example
+   * ```typescript
+   * diagnostics.setSampleRate(0.5);
+   * ```
+   */
+  _setSampleRate(sampleRate: number): void;
 }
 
 export class DiagnosticsClient implements IDiagnosticsClient {
@@ -151,6 +162,17 @@ export class DiagnosticsClient implements IDiagnosticsClient {
   logger: ILogger;
   serverUrl: string;
   apiKey: string;
+  // Whether to track diagnostics data based on sample rate and enabled flag
+  shouldTrack: boolean;
+  config: {
+    enabled: boolean;
+    sampleRate: number;
+  };
+  /**
+   * The timestamp when the diagnostics client was initialized.
+   * Save in memory to keep lifecycle sample rate calculation consistency.
+   */
+  startTimestamp: number;
 
   // In-memory storages
   inMemoryTags: DiagnosticsTags = {};
@@ -163,10 +185,24 @@ export class DiagnosticsClient implements IDiagnosticsClient {
   // Timer for flush interval
   flushTimer: ReturnType<typeof setTimeout> | null = null;
 
-  constructor(apiKey: string, logger: ILogger, serverZone: ServerZoneType = 'US') {
+  constructor(
+    apiKey: string,
+    logger: ILogger,
+    serverZone: ServerZoneType = 'US',
+    options?: {
+      enabled?: boolean;
+      sampleRate?: number;
+    },
+  ) {
     this.apiKey = apiKey;
     this.logger = logger;
     this.serverUrl = serverZone === 'US' ? DIAGNOSTICS_US_SERVER_URL : DIAGNOSTICS_EU_SERVER_URL;
+
+    this.logger.debug('DiagnosticsClient: Initializing with options', JSON.stringify(options, null, 2));
+    // Diagnostics is enabled by default with sample rate of 0 (no sampling)
+    this.config = { enabled: true, sampleRate: 0, ...options };
+    this.startTimestamp = Date.now();
+    this.shouldTrack = isTimestampInSample(this.startTimestamp, this.config.sampleRate) && this.config.enabled;
 
     if (DiagnosticsStorage.isSupported()) {
       this.storage = new DiagnosticsStorage(apiKey, logger);
@@ -177,8 +213,15 @@ export class DiagnosticsClient implements IDiagnosticsClient {
     void this.initializeFlushInterval();
   }
 
+  /**
+   * Check if storage is available and tracking is enabled
+   */
+  isStorageAndTrackEnabled(): boolean {
+    return Boolean(this.storage) && Boolean(this.shouldTrack);
+  }
+
   setTag(name: string, value: string) {
-    if (!this.storage) {
+    if (!this.isStorageAndTrackEnabled()) {
       return;
     }
 
@@ -192,7 +235,7 @@ export class DiagnosticsClient implements IDiagnosticsClient {
   }
 
   increment(name: string, size = 1) {
-    if (!this.storage) {
+    if (!this.isStorageAndTrackEnabled()) {
       return;
     }
 
@@ -206,7 +249,7 @@ export class DiagnosticsClient implements IDiagnosticsClient {
   }
 
   recordHistogram(name: string, value: number) {
-    if (!this.storage) {
+    if (!this.isStorageAndTrackEnabled()) {
       return;
     }
 
@@ -235,7 +278,7 @@ export class DiagnosticsClient implements IDiagnosticsClient {
   }
 
   recordEvent(name: string, properties: EventProperties) {
-    if (!this.storage) {
+    if (!this.isStorageAndTrackEnabled()) {
       return;
     }
 
@@ -348,12 +391,7 @@ export class DiagnosticsClient implements IDiagnosticsClient {
     }));
 
     // Early return if all data collections are empty
-    if (
-      Object.keys(tags).length === 0 &&
-      Object.keys(counters).length === 0 &&
-      Object.keys(histogram).length === 0 &&
-      events.length === 0
-    ) {
+    if (Object.keys(counters).length === 0 && Object.keys(histogram).length === 0 && events.length === 0) {
       return;
     }
 
@@ -409,27 +447,46 @@ export class DiagnosticsClient implements IDiagnosticsClient {
     }
     const now = Date.now();
     const lastFlushTimestamp = (await this.storage.getLastFlushTimestamp()) || -1;
-    const timeSinceLastFlush = now - lastFlushTimestamp;
 
     // If last flush timestamp is -1, it means this is a new client
+    // Save current timestamp as the initial "last flush timestamp"
+    // and schedule the flush timer
     if (lastFlushTimestamp === -1) {
+      void this.storage.setLastFlushTimestamp(now);
+      this._setFlushTimer(FLUSH_INTERVAL_MS);
       return;
-    } else if (timeSinceLastFlush >= FLUSH_INTERVAL_MS) {
+    }
+
+    const timeSinceLastFlush = now - lastFlushTimestamp;
+    if (timeSinceLastFlush >= FLUSH_INTERVAL_MS) {
       // More than 5 minutes has passed, flush immediately
       void this._flush();
       return;
     } else {
       // Set timer for remaining time
-      const remainingTime = FLUSH_INTERVAL_MS - timeSinceLastFlush;
-      this.flushTimer = setTimeout(() => {
-        this._flush()
-          .catch((error) => {
-            this.logger.debug('DiagnosticsClient: Failed to flush', error);
-          })
-          .finally(() => {
-            this.flushTimer = null;
-          });
-      }, remainingTime);
+      this._setFlushTimer(FLUSH_INTERVAL_MS - timeSinceLastFlush);
     }
+  }
+
+  /**
+   * Helper method to set flush timer with consistent error handling
+   */
+  private _setFlushTimer(delay: number) {
+    this.flushTimer = setTimeout(() => {
+      this._flush()
+        .catch((error) => {
+          this.logger.debug('DiagnosticsClient: Failed to flush', error);
+        })
+        .finally(() => {
+          this.flushTimer = null;
+        });
+    }, delay);
+  }
+
+  _setSampleRate(sampleRate: number): void {
+    this.logger.debug('DiagnosticsClient: Setting sample rate to', sampleRate);
+    this.config.sampleRate = sampleRate;
+    this.shouldTrack = isTimestampInSample(this.startTimestamp, this.config.sampleRate) && this.config.enabled;
+    this.logger.debug('DiagnosticsClient: Should track is', this.shouldTrack);
   }
 }
