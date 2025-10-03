@@ -79,6 +79,9 @@ export class DataExtractor {
     const startTime = performance.now();
 
     let hierarchy: Hierarchy = [];
+    if (!element) {
+      return [];
+    }
 
     // Get list of ancestors including itself and get properties at each level in the hierarchy
     const ancestors = getAncestors(element);
