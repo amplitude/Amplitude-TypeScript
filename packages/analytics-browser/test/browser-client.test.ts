@@ -387,6 +387,102 @@ describe('browser-client', () => {
       expect(track).toHaveBeenCalledTimes(1);
     });
 
+    test('should handle event bridge events with time property in eventProperties', async () => {
+      await client.init(apiKey, userId, {
+        optOut: false,
+        defaultTracking,
+      }).promise;
+      const track = jest.spyOn(client, 'track').mockReturnValueOnce({
+        promise: Promise.resolve({
+          code: 200,
+          message: '',
+          event: {
+            event_type: 'custom_event',
+          },
+        }),
+      });
+
+      const customTime = 12345;
+      getAnalyticsConnector().eventBridge.logEvent({
+        eventType: 'custom_event',
+        eventProperties: {
+          property1: 'value1',
+          property2: 123,
+          time: customTime,
+          property3: true,
+        },
+      });
+
+      expect(track).toHaveBeenCalledTimes(1);
+      expect(track).toHaveBeenCalledWith(
+        'custom_event',
+        {
+          property1: 'value1',
+          property2: 123,
+          property3: true,
+        },
+        { time: customTime }
+      );
+    });
+
+    test('should handle event bridge events with null time property', async () => {
+      await client.init(apiKey, userId, {
+        optOut: false,
+        defaultTracking,
+      }).promise;
+      const track = jest.spyOn(client, 'track').mockReturnValueOnce({
+        promise: Promise.resolve({
+          code: 200,
+          message: '',
+          event: {
+            event_type: 'null_time_event',
+          },
+        }),
+      });
+
+      getAnalyticsConnector().eventBridge.logEvent({
+        eventType: 'null_time_event',
+        eventProperties: {
+          property1: 'value1',
+          time: null,
+          property2: 'value2',
+        },
+      });
+
+      expect(track).toHaveBeenCalledTimes(1);
+      expect(track).toHaveBeenCalledWith(
+        'null_time_event',
+        {
+          property1: 'value1',
+          property2: 'value2',
+        },
+        undefined
+      );
+    });
+
+    test('should handle event bridge events with no eventProperties', async () => {
+      await client.init(apiKey, userId, {
+        optOut: false,
+        defaultTracking,
+      }).promise;
+      const track = jest.spyOn(client, 'track').mockReturnValueOnce({
+        promise: Promise.resolve({
+          code: 200,
+          message: '',
+          event: {
+            event_type: 'no_props_event',
+          },
+        }),
+      });
+
+      getAnalyticsConnector().eventBridge.logEvent({
+        eventType: 'no_props_event',
+      });
+
+      expect(track).toHaveBeenCalledTimes(1);
+      expect(track).toHaveBeenCalledWith('no_props_event', {}, undefined);
+    });
+
     test('should add file download and form interaction tracking plugins', async () => {
       const fileDownloadTrackingPlugin = jest.spyOn(fileDownloadTracking, 'fileDownloadTracking');
       const formInteractionTrackingPlugin = jest.spyOn(formInteractionTracking, 'formInteractionTracking');
