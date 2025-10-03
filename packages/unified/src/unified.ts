@@ -11,6 +11,7 @@ import {
   ExperimentPlugin,
   experimentPlugin,
 } from '@amplitude/plugin-experiment-browser';
+import { InitOptions, plugin as EngagementPlugin } from '@amplitude/engagement-browser';
 import { BrowserClient, BrowserOptions } from '@amplitude/analytics-core';
 import { libraryPlugin } from './library';
 
@@ -23,6 +24,7 @@ export type UnifiedOptions = UnifiedSharedOptions & {
   analytics?: BrowserOptions;
   sessionReplay?: Omit<SessionReplayOptions, keyof UnifiedSharedOptions>;
   experiment?: Omit<ExperimentPluginConfig, keyof UnifiedSharedOptions>;
+  engagement?: Omit<InitOptions, keyof UnifiedSharedOptions>;
 };
 
 export interface UnifiedClient extends BrowserClient {
@@ -84,6 +86,13 @@ export class AmplitudeUnified extends AmplitudeBrowser implements UnifiedClient 
     } else {
       this._sessionReplay = (srPlugin as SessionReplayPlugin).sessionReplay;
     }
+
+    await super.add(
+      EngagementPlugin({
+        ...unifiedOptions?.engagement,
+        ...sharedOptions,
+      }),
+    ).promise;
   }
 
   /**
