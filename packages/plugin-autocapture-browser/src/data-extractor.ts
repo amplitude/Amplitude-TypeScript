@@ -25,7 +25,9 @@ export class DataExtractor {
   private readonly additionalMaskTextPatterns: RegExp[];
   diagnosticsClient?: IDiagnosticsClient;
 
-  constructor(options: ElementInteractionsOptions) {
+  constructor(options: ElementInteractionsOptions, context?: { diagnosticsClient: IDiagnosticsClient }) {
+    this.diagnosticsClient = context?.diagnosticsClient;
+
     const rawPatterns = options.maskTextRegex ?? [];
 
     const compiled: RegExp[] = [];

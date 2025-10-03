@@ -7,6 +7,7 @@ import {
   DEFAULT_CSS_SELECTOR_ALLOWLIST,
   DEFAULT_ACTION_CLICK_ALLOWLIST,
   DEFAULT_DATA_ATTRIBUTE_PREFIX,
+  IDiagnosticsClient,
 } from '@amplitude/analytics-core';
 import * as constants from './constants';
 import { fromEvent, map, type Observable, type Subscription, share } from 'rxjs';
@@ -59,7 +60,10 @@ export interface AllWindowObservables {
   [ObservablesEnum.MutationObservable]: Observable<TimestampedEvent<MutationRecord[]>>;
 }
 
-export const autocapturePlugin = (options: ElementInteractionsOptions = {}): BrowserEnrichmentPlugin => {
+export const autocapturePlugin = (
+  options: ElementInteractionsOptions = {},
+  context?: { diagnosticsClient: IDiagnosticsClient },
+): BrowserEnrichmentPlugin => {
   const {
     dataAttributePrefix = DEFAULT_DATA_ATTRIBUTE_PREFIX,
     visualTaggingOptions = {
@@ -99,7 +103,7 @@ export const autocapturePlugin = (options: ElementInteractionsOptions = {}): Bro
   const subscriptions: Subscription[] = [];
 
   // Create data extractor based on options
-  const dataExtractor = new DataExtractor(options);
+  const dataExtractor = new DataExtractor(options, context);
 
   // Create observables on events on the window
   const createObservables = (): AllWindowObservables => {
@@ -207,9 +211,6 @@ export const autocapturePlugin = (options: ElementInteractionsOptions = {}): Bro
     if (typeof document === 'undefined') {
       return;
     }
-
-    // Inject diagnostics client
-    dataExtractor.diagnosticsClient = config.diagnosticsClient;
 
     // Fetch remote config for pageActions in a non-blocking manner
     if (config.fetchRemoteConfig) {

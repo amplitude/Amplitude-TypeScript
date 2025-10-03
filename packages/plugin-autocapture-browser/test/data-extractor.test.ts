@@ -1016,10 +1016,14 @@ describe('data extractor', () => {
       };
 
       // Create a new data extractor with diagnostics client
-      const dataExtractorWithDiagnostics = new DataExtractor({
-        maskTextRegex: [/Florida|California/, /Pennsylvania/],
-      });
-      dataExtractorWithDiagnostics.diagnosticsClient = mockDiagnosticsClient;
+      const dataExtractorWithDiagnostics = new DataExtractor(
+        {
+          maskTextRegex: [/Florida|California/, /Pennsylvania/],
+        },
+        {
+          diagnosticsClient: mockDiagnosticsClient,
+        },
+      );
 
       // Set up DOM
       document.getElementsByTagName('body')[0].innerHTML = `
@@ -1051,7 +1055,7 @@ describe('data extractor', () => {
         maskTextRegex: [/Florida|California/, /Pennsylvania/],
       });
       // Ensure diagnosticsClient is undefined
-      dataExtractorWithoutDiagnostics.diagnosticsClient = undefined;
+      expect(dataExtractor.diagnosticsClient).toBeUndefined();
 
       // Set up DOM
       document.getElementsByTagName('body')[0].innerHTML = `
