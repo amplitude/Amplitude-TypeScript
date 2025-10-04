@@ -628,5 +628,30 @@ describe('joined-config', () => {
         expect(config).toEqual({ hello: true });
       });
     });
+    describe('frustrationInteractions', () => {
+      test('should translate rageClick to rageClicks', () => {
+        const remoteConfig = {
+          browserSDK: {
+            autocapture: {
+              frustrationInteractions: { rageClick: true },
+            },
+          },
+        };
+        translateRemoteConfigToLocal(remoteConfig);
+        expect(remoteConfig.browserSDK.autocapture.frustrationInteractions).toEqual({ rageClicks: true });
+      });
+
+      test('should translate deadClick to deadClicks', () => {
+        const remoteConfig = {
+          browserSDK: {
+            autocapture: {
+              frustrationInteractions: { deadClick: true },
+            },
+          },
+        };
+        translateRemoteConfigToLocal(remoteConfig);
+        expect(remoteConfig.browserSDK.autocapture.frustrationInteractions).toEqual({ deadClicks: true });
+      });
+    });
   });
 });
