@@ -7,4 +7,12 @@ module.exports = {
   rootDir: '.',
   testEnvironment: 'jsdom',
   coveragePathIgnorePatterns: ['index.ts'],
+  coverageThreshold: {
+    global: {
+      branches: 100,
+      functions: 85,
+      lines: 95,
+      statements: 95,
+    }
+  },
 };
