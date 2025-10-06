@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
-/* eslint-disable jest/no-done-callback */
 /* eslint-disable @typescript-eslint/unbound-method */
 
 import { Subject } from 'rxjs';
@@ -16,6 +15,7 @@ describe('trackRageClicks', () => {
   let shouldTrackRageClick: jest.Mock;
 
   beforeEach(() => {
+    jest.useFakeTimers();
     mockAmplitude = {
       track: jest.fn(),
     } as any;
@@ -32,9 +32,10 @@ describe('trackRageClicks', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
+    jest.useRealTimers();
   });
 
-  it('should track rage clicks when threshold is met', (done) => {
+  it('should track rage clicks when threshold is met', () => {
     const subscription = trackRageClicks({
       amplitude: mockAmplitude,
       allObservables,
@@ -73,28 +74,27 @@ describe('trackRageClicks', () => {
       });
     }
 
-    // Wait for the event to be processed
-    setTimeout(() => {
-      expect(mockAmplitude.track).toHaveBeenCalledWith(
-        AMPLITUDE_ELEMENT_RAGE_CLICKED_EVENT,
-        expect.objectContaining({
-          '[Amplitude] Click Count': DEFAULT_RAGE_CLICK_THRESHOLD,
-          '[Amplitude] Clicks': expect.arrayContaining([
-            expect.objectContaining({
-              X: 100,
-              Y: 100,
-            }),
-          ]),
-          id: 'test-element',
-        }),
-        expect.any(Object),
-      );
-      subscription.unsubscribe();
-      done();
-    }, DEFAULT_RAGE_CLICK_WINDOW_MS + 100); // Short wait since we're triggering immediate detection
+    // Advance timers to trigger the event processing
+    jest.advanceTimersByTime(DEFAULT_RAGE_CLICK_WINDOW_MS + 100); // Short wait since we're triggering immediate detection
+
+    expect(mockAmplitude.track).toHaveBeenCalledWith(
+      AMPLITUDE_ELEMENT_RAGE_CLICKED_EVENT,
+      expect.objectContaining({
+        '[Amplitude] Click Count': DEFAULT_RAGE_CLICK_THRESHOLD,
+        '[Amplitude] Clicks': expect.arrayContaining([
+          expect.objectContaining({
+            X: 100,
+            Y: 100,
+          }),
+        ]),
+        id: 'test-element',
+      }),
+      expect.any(Object),
+    );
+    subscription.unsubscribe();
   });
 
-  it('should track rage clicks via timer when threshold is met within time window', (done) => {
+  it('should track rage clicks via timer when threshold is met within time window', () => {
     const subscription = trackRageClicks({
       amplitude: mockAmplitude,
       allObservables,
@@ -119,28 +119,27 @@ describe('trackRageClicks', () => {
       });
     }
 
-    // Wait for the timer to complete and call amplitude.track directly
-    setTimeout(() => {
-      expect(mockAmplitude.track).toHaveBeenCalledWith(
-        AMPLITUDE_ELEMENT_RAGE_CLICKED_EVENT,
-        expect.objectContaining({
-          '[Amplitude] Click Count': DEFAULT_RAGE_CLICK_THRESHOLD,
-          '[Amplitude] Clicks': expect.arrayContaining([
-            expect.objectContaining({
-              X: 100,
-              Y: 100,
-            }),
-          ]),
-          id: 'test-element',
-        }),
-        expect.any(Object),
-      );
-      subscription.unsubscribe();
-      done();
-    }, DEFAULT_RAGE_CLICK_WINDOW_MS + 100); // Wait for the timer to complete
+    // Advance timers to complete the timer and call amplitude.track directly
+    jest.advanceTimersByTime(DEFAULT_RAGE_CLICK_WINDOW_MS + 100); // Wait for the timer to complete
+
+    expect(mockAmplitude.track).toHaveBeenCalledWith(
+      AMPLITUDE_ELEMENT_RAGE_CLICKED_EVENT,
+      expect.objectContaining({
+        '[Amplitude] Click Count': DEFAULT_RAGE_CLICK_THRESHOLD,
+        '[Amplitude] Clicks': expect.arrayContaining([
+          expect.objectContaining({
+            X: 100,
+            Y: 100,
+          }),
+        ]),
+        id: 'test-element',
+      }),
+      expect.any(Object),
+    );
+    subscription.unsubscribe();
   });
 
-  it('should track if clicks exceed threshold but first click is outside the rage click window', (done) => {
+  it('should track if clicks exceed threshold but first click is outside the rage click window', () => {
     const subscription = trackRageClicks({
       amplitude: mockAmplitude,
       allObservables,
@@ -177,14 +176,13 @@ describe('trackRageClicks', () => {
       });
     }
 
-    setTimeout(() => {
-      expect(mockAmplitude.track).toHaveBeenCalledTimes(1);
-      subscription.unsubscribe();
-      done();
-    }, DEFAULT_RAGE_CLICK_WINDOW_MS + 100);
+    jest.advanceTimersByTime(DEFAULT_RAGE_CLICK_WINDOW_MS + 100);
+
+    expect(mockAmplitude.track).toHaveBeenCalledTimes(1);
+    subscription.unsubscribe();
   });
 
-  it('should not track when clicks are below threshold', (done) => {
+  it('should not track when clicks are below threshold', () => {
     const subscription = trackRageClicks({
       amplitude: mockAmplitude,
       allObservables,
@@ -209,14 +207,13 @@ describe('trackRageClicks', () => {
       });
     }
 
-    setTimeout(() => {
-      expect(mockAmplitude.track).not.toHaveBeenCalled();
-      subscription.unsubscribe();
-      done();
-    }, DEFAULT_RAGE_CLICK_WINDOW_MS + 100);
+    jest.advanceTimersByTime(DEFAULT_RAGE_CLICK_WINDOW_MS + 100);
+
+    expect(mockAmplitude.track).not.toHaveBeenCalled();
+    subscription.unsubscribe();
   });
 
-  it('should not track when clicks are on different elements', (done) => {
+  it('should not track when clicks are on different elements', () => {
     const subscription = trackRageClicks({
       amplitude: mockAmplitude,
       allObservables,
@@ -242,14 +239,13 @@ describe('trackRageClicks', () => {
       });
     }
 
-    setTimeout(() => {
-      expect(mockAmplitude.track).not.toHaveBeenCalled();
-      subscription.unsubscribe();
-      done();
-    }, DEFAULT_RAGE_CLICK_WINDOW_MS + 100);
+    jest.advanceTimersByTime(DEFAULT_RAGE_CLICK_WINDOW_MS + 100);
+
+    expect(mockAmplitude.track).not.toHaveBeenCalled();
+    subscription.unsubscribe();
   });
 
-  it('should not track untracked elements', (done) => {
+  it('should not track untracked elements', () => {
     shouldTrackRageClick.mockReturnValue(false);
 
     const subscription = trackRageClicks({
@@ -276,14 +272,13 @@ describe('trackRageClicks', () => {
       });
     }
 
-    setTimeout(() => {
-      expect(mockAmplitude.track).not.toHaveBeenCalled();
-      subscription.unsubscribe();
-      done();
-    }, DEFAULT_RAGE_CLICK_WINDOW_MS + 100);
+    jest.advanceTimersByTime(DEFAULT_RAGE_CLICK_WINDOW_MS + 100);
+
+    expect(mockAmplitude.track).not.toHaveBeenCalled();
+    subscription.unsubscribe();
   });
 
-  it('should handle clicks that exceed the time window correctly', (done) => {
+  it('should handle clicks that exceed the time window correctly', () => {
     const subscription = trackRageClicks({
       amplitude: mockAmplitude,
       allObservables,
@@ -322,15 +317,14 @@ describe('trackRageClicks', () => {
       targetElementProperties: { id: 'test-element' },
     });
 
-    setTimeout(() => {
-      // Should track the first rage click event
-      expect(mockAmplitude.track).toHaveBeenCalledTimes(1);
-      subscription.unsubscribe();
-      done();
-    }, DEFAULT_RAGE_CLICK_WINDOW_MS + 200);
+    jest.advanceTimersByTime(DEFAULT_RAGE_CLICK_WINDOW_MS + 200);
+
+    // Should track the first rage click event
+    expect(mockAmplitude.track).toHaveBeenCalledTimes(1);
+    subscription.unsubscribe();
   });
 
-  it('should trigger rage click when switching to different element with enough previous clicks', (done) => {
+  it('should trigger rage click when switching to different element with enough previous clicks', () => {
     const subscription = trackRageClicks({
       amplitude: mockAmplitude,
       allObservables,
@@ -369,28 +363,27 @@ describe('trackRageClicks', () => {
       targetElementProperties: { id: 'test-element-2' },
     });
 
-    setTimeout(() => {
-      // Should track the rage click event for the first element
-      expect(mockAmplitude.track).toHaveBeenCalledWith(
-        AMPLITUDE_ELEMENT_RAGE_CLICKED_EVENT,
-        expect.objectContaining({
-          '[Amplitude] Click Count': DEFAULT_RAGE_CLICK_THRESHOLD,
-          '[Amplitude] Clicks': expect.arrayContaining([
-            expect.objectContaining({
-              X: 100,
-              Y: 100,
-            }),
-          ]),
-          id: 'test-element-1',
-        }),
-        expect.any(Object),
-      );
-      subscription.unsubscribe();
-      done();
-    }, 100);
+    jest.advanceTimersByTime(100);
+
+    // Should track the rage click event for the first element
+    expect(mockAmplitude.track).toHaveBeenCalledWith(
+      AMPLITUDE_ELEMENT_RAGE_CLICKED_EVENT,
+      expect.objectContaining({
+        '[Amplitude] Click Count': DEFAULT_RAGE_CLICK_THRESHOLD,
+        '[Amplitude] Clicks': expect.arrayContaining([
+          expect.objectContaining({
+            X: 100,
+            Y: 100,
+          }),
+        ]),
+        id: 'test-element-1',
+      }),
+      expect.any(Object),
+    );
+    subscription.unsubscribe();
   });
 
-  it('should not trigger rage click when switching to different element without enough previous clicks', (done) => {
+  it('should not trigger rage click when switching to different element without enough previous clicks', () => {
     const subscription = trackRageClicks({
       amplitude: mockAmplitude,
       allObservables,
@@ -429,15 +422,14 @@ describe('trackRageClicks', () => {
       targetElementProperties: { id: 'test-element-2' },
     });
 
-    setTimeout(() => {
-      // Should NOT track any rage click event
-      expect(mockAmplitude.track).not.toHaveBeenCalled();
-      subscription.unsubscribe();
-      done();
-    }, 100);
+    jest.advanceTimersByTime(100);
+
+    // Should NOT track any rage click event
+    expect(mockAmplitude.track).not.toHaveBeenCalled();
+    subscription.unsubscribe();
   });
 
-  it('should not track rage clicks when threshold is met but clicks are out of bounds', (done) => {
+  it('should not track rage clicks when threshold is met but clicks are out of bounds', () => {
     const subscription = trackRageClicks({
       amplitude: mockAmplitude,
       allObservables,
@@ -476,11 +468,10 @@ describe('trackRageClicks', () => {
       });
     }
 
-    // Wait for the event to be processed
-    setTimeout(() => {
-      expect(mockAmplitude.track).not.toHaveBeenCalled();
-      subscription.unsubscribe();
-      done();
-    }, DEFAULT_RAGE_CLICK_WINDOW_MS + 100); // Short wait since we're triggering immediate detection
+    // Advance timers for the event to be processed
+    jest.advanceTimersByTime(DEFAULT_RAGE_CLICK_WINDOW_MS + 100); // Short wait since we're triggering immediate detection
+
+    expect(mockAmplitude.track).not.toHaveBeenCalled();
+    subscription.unsubscribe();
   });
 });
