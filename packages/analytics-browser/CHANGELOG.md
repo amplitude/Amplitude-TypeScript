@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.25.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.25.2...@amplitude/analytics-browser@2.25.3) (2025-10-06)
+
+
+### Bug Fixes
+
+* Allow timestamp override for experiment events ([#1317](https://github.com/amplitude/Amplitude-TypeScript/issues/1317)) ([055b998](https://github.com/amplitude/Amplitude-TypeScript/commit/055b99898bcff8f59755f92937b628e3852a5c35))
+* resolve pluralization issue frustrationInteractions ([#1320](https://github.com/amplitude/Amplitude-TypeScript/issues/1320)) ([3bd89d0](https://github.com/amplitude/Amplitude-TypeScript/commit/3bd89d073bb949b525fa6f65f66ad6511df4da34))
+
+
+
+
+
 ## [2.25.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.25.1...@amplitude/analytics-browser@2.25.2) (2025-10-03)
 
 
