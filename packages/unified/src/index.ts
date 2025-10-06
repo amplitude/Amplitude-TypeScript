@@ -2,7 +2,6 @@
 import client from './unified-client-factory';
 export { createInstance } from './unified-client-factory';
 export const {
-  _setDiagnosticsSampleRate,
   initAll,
   experiment,
   sessionReplay,
