@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
-/* eslint-disable jest/no-done-callback */
 /* eslint-disable @typescript-eslint/unbound-method */
 
 import { Subject } from 'rxjs';
@@ -47,7 +46,7 @@ describe('trackDeadClick', () => {
     jest.clearAllMocks();
   });
 
-  it('should track dead click when no mutation or navigation occurs', (done) => {
+  it('should track dead click when no mutation or navigation occurs', () => {
     const subscription = trackDeadClick({
       amplitude: mockAmplitude,
       allObservables,
@@ -82,10 +81,9 @@ describe('trackDeadClick', () => {
       expect.any(Object),
     );
     subscription.unsubscribe();
-    done();
   });
 
-  it('should not track when mutation occurs after click', (done) => {
+  it('should not track when mutation occurs after click', () => {
     const subscription = trackDeadClick({
       amplitude: mockAmplitude,
       allObservables,
@@ -115,7 +113,6 @@ describe('trackDeadClick', () => {
     // Wait for the dead click timeout
     expect(mockAmplitude.track).not.toHaveBeenCalled();
     subscription.unsubscribe();
-    done();
   });
 
   it('should not track when navigation occurs after click', () => {
