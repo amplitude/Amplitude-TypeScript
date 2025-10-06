@@ -1,6 +1,6 @@
 {
   "name": "@amplitude/gtm-snippet",
-  "version": "2.25.1",
+  "version": "2.25.2",
   "description": "Amplitude JS SDK Wrapper for use with Google Tag Manager",
   "scripts": {
     "build": "yarn build:template && yarn build:bundle",
