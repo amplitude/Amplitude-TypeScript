@@ -2,12 +2,17 @@
   "name": "@amplitude/gtm-snippet",
   "version": "2.25.3",
   "description": "Amplitude JS SDK Wrapper for use with Google Tag Manager",
+  "publishConfig": {
+    "access": "public",
+    "tag": "latest"
+  },
   "scripts": {
     "build": "yarn build:template && yarn build:bundle",
     "build:bundle": "rollup --config rollup.config.js",
     "build:template": "node ./scripts/build-snippet.js",
     "prepublishOnly": "yarn build",
-    "deploy": "node ./scripts/upload-to-s3.js"
+    "publish": "node ./scripts/upload-to-s3.js",
+    "version": "node ./scripts/version.js"
   },
   "repository": {
     "type": "git",
