@@ -4,12 +4,9 @@ import { debugWrapper, getClientLogConfig, getClientStates } from '@amplitude/an
 export const createInstance = (): UnifiedClient => {
   const client = new AmplitudeUnified();
   return {
-    _setDiagnosticsSampleRate: debugWrapper(
-      client._setDiagnosticsSampleRate.bind(client),
-      '_setDiagnosticsSampleRate',
-      getClientLogConfig(client),
-      getClientStates(client, ['config']),
-    ),
+    _setDiagnosticsSampleRate: () => {
+      return;
+    },
     experiment: debugWrapper(
       client.experiment.bind(client),
       'experiment',
