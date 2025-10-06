@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.0-beta.9 (2025-10-06)
+
+- Release 1.0.0-beta.9
+
+
 ## 1.0.0-beta.7 (2025-10-06)
 
 - Release 1.0.0-beta.7
