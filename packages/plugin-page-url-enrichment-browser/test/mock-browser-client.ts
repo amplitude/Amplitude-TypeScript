@@ -1,4 +1,4 @@
-import { BrowserClient } from '@amplitude/analytics-types';
+import { BrowserClient } from '@amplitude/analytics-core';
 
 // Mock BrowserClient implementation
 export const createMockBrowserClient = (): jest.Mocked<BrowserClient> => {
@@ -23,6 +23,8 @@ export const createMockBrowserClient = (): jest.Mocked<BrowserClient> => {
     reset: jest.fn(),
     setOptOut: jest.fn(),
     setTransport: jest.fn(),
+    getOptOut: jest.fn(),
+    getIdentity: jest.fn(),
     _setDiagnosticsSampleRate: jest.fn(),
   } as jest.Mocked<BrowserClient>;
 
