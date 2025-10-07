@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.14.4](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.14.3...@amplitude/plugin-autocapture-browser@1.14.4) (2025-10-07)
+
+
+### Bug Fixes
+
+* Revert "feat(analytics-client-common): refactor getPageTitle from aut… ([#1328](https://github.com/amplitude/Amplitude-TypeScript/issues/1328)) ([3976910](https://github.com/amplitude/Amplitude-TypeScript/commit/3976910d2e17a61f9f8e588a006cd44012f2f250))
+
+
+
+
+
 ## [1.14.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.14.2...@amplitude/plugin-autocapture-browser@1.14.3) (2025-10-03)
 
 
