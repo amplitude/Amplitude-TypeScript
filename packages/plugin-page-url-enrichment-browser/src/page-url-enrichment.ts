@@ -21,8 +21,6 @@ export type URLInfo = {
   [PREVIOUS_PAGE_STORAGE_KEY]?: string;
 };
 
-export const EXCLUDED_DEFAULT_EVENT_TYPES = new Set(['$identify', '$groupidentify', 'revenue_amount']);
-
 enum PreviousPageType {
   Direct = 'direct', // for no prev page or referrer
   Internal = 'internal', // for same domain - this excludes subdomains
@@ -163,11 +161,6 @@ export const pageUrlEnrichmentPlugin = (): EnrichmentPlugin => {
             [CURRENT_PAGE_STORAGE_KEY]: locationHREF,
             [PREVIOUS_PAGE_STORAGE_KEY]: document.referrer || '',
           });
-        }
-
-        // no need to proceed to add additional properties if the event is one of the default event types to be excluded
-        if (EXCLUDED_DEFAULT_EVENT_TYPES.has(event.event_type)) {
-          return event;
         }
 
         const updatedURLInfo = await sessionStorage.get(URL_INFO_STORAGE_KEY);

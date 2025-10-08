@@ -455,16 +455,6 @@ describe('pageUrlEnrichmentPlugin', () => {
         '[Amplitude] Previous Page Type': 'direct',
       });
     });
-
-    test('should ignore event if it is one of the default event types to be excluded', async () => {
-      await plugin.setup?.(mockConfig, mockAmplitude);
-
-      const excludedEvent = await plugin.execute?.({
-        event_type: '$identify',
-      });
-
-      expect(excludedEvent?.event_properties).toStrictEqual(undefined);
-    });
   });
 
   describe('teardown', () => {
