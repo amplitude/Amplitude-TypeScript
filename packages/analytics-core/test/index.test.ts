@@ -51,7 +51,6 @@ import {
   CampaignParser,
   EMPTY_VALUE,
   MKTG,
-  AmplitudeContext,
   getPageTitle,
   TEXT_MASK_ATTRIBUTE,
   MASKED_TEXT_VALUE,
