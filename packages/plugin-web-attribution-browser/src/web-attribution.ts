@@ -1,8 +1,8 @@
-import { WebAttribution } from '@amplitude/analytics-client-common';
+import { WebAttribution, isNewCampaign, isNewSession } from '@amplitude/analytics-client-common';
 import { BeforePlugin, BrowserClient, BrowserConfig, Event } from '@amplitude/analytics-types';
-import { isNewCampaign } from '@amplitude/analytics-client-common';
 import { CreateWebAttributionPlugin, Options } from './typings/web-attribution';
-import { isNewSession } from '@amplitude/analytics-client-common';
+
+/* eslint-disable @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-assignment */
 
 /**
  * @deprecated
