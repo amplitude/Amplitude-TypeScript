@@ -1,6 +1,8 @@
-import { createIdentifyEvent, Identify } from '@amplitude/analytics-core';
-import { Campaign, Logger } from '@amplitude/analytics-types';
-import { BASE_CAMPAIGN } from './constants';
+import { Logger } from '../logger';
+import { Campaign } from '../types/campaign';
+import { BASE_CAMPAIGN, EMPTY_VALUE } from '../types/constants';
+import { createIdentifyEvent } from '../utils/event-builder';
+import { Identify } from '../identify';
 
 export interface Options {
   excludeReferrers?: (string | RegExp)[];
@@ -74,7 +76,7 @@ export const createCampaignEvent = (campaign: Campaign, options: Options) => {
     ...campaign,
   };
   const identifyEvent = Object.entries(campaignParameters).reduce((identify, [key, value]) => {
-    identify.setOnce(`initial_${key}`, value ?? options.initialEmptyValue ?? 'EMPTY');
+    identify.setOnce(`initial_${key}`, value ?? options.initialEmptyValue ?? EMPTY_VALUE);
     if (value) {
       return identify.set(key, value);
     }
@@ -95,14 +97,21 @@ export const getDefaultExcludedReferrers = (cookieDomain: string | undefined) =>
   return [];
 };
 
+// Data masking constants moved from plugin-autocapture-browser
+export const TEXT_MASK_ATTRIBUTE = 'data-amp-mask';
+export const MASKED_TEXT_VALUE = '*****';
+
 /**
  * Gets the page title, checking if the title element has data-amp-mask attribute
  * @returns The page title, masked if the title element has data-amp-mask attribute
  */
 export const getPageTitle = (parseTitleFunction?: (title: string) => string): string => {
-  // This function has moved to analytics-core plugins helpers.
   if (typeof document === 'undefined' || !document.title) {
     return '';
   }
-  return parseTitleFunction ? parseTitleFunction(document.title) : document.title;
+  const titleElement = document.querySelector('title');
+  if (titleElement && titleElement.hasAttribute(TEXT_MASK_ATTRIBUTE)) {
+    return MASKED_TEXT_VALUE;
+  }
+  return parseTitleFunction ? parseTitleFunction(document.title) : document.title; // document.title is always synced to the first title element
 };

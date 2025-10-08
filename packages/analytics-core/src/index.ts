@@ -87,6 +87,16 @@ export { PageUrlEnrichmentOptions } from './types/page-url-enrichment';
 export { Campaign, UTMParameters, ReferrerParameters, ClickIdParameters, ICampaignParser } from './types/campaign';
 export { EMPTY_VALUE, BASE_CAMPAIGN, MKTG } from './types/constants';
 export { CampaignParser } from './campaign/campaign-parser';
+export {
+  Options as PluginHelperOptions,
+  isNewCampaign,
+  isExcludedReferrer,
+  createCampaignEvent,
+  getDefaultExcludedReferrers,
+  getPageTitle,
+  TEXT_MASK_ATTRIBUTE,
+  MASKED_TEXT_VALUE,
+} from './plugins/helpers';
 
 // Browser
 export {

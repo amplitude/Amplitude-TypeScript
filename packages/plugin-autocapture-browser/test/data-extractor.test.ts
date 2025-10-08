@@ -5,7 +5,7 @@ import type { ElementBasedTimestampedEvent } from '../src/helpers';
 import { DATA_AMP_MASK_ATTRIBUTES } from '../src/constants';
 import * as hierarchy from '../src/hierarchy';
 import type { Hierarchy } from '../src/typings/autocapture';
-import { MASKED_TEXT_VALUE } from '@amplitude/analytics-client-common';
+import { MASKED_TEXT_VALUE } from '@amplitude/analytics-core';
 
 describe('data extractor', () => {
   let dataExtractor: DataExtractor;

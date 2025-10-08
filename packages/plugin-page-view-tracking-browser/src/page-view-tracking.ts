@@ -1,5 +1,5 @@
 import { CampaignParser, getGlobalScope } from '@amplitude/analytics-client-common';
-import { getPageTitle } from '@amplitude/analytics-client-common';
+import { getPageTitle } from '@amplitude/analytics-core';
 import {
   BrowserClient,
   BrowserConfig,

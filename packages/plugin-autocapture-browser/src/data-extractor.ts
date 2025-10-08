@@ -15,7 +15,7 @@ import { getAncestors, getElementProperties } from './hierarchy';
 import type { JSONValue } from './helpers';
 import { getDataSource } from './pageActions/actions';
 import { Hierarchy } from './typings/autocapture';
-import { MASKED_TEXT_VALUE, TEXT_MASK_ATTRIBUTE, getPageTitle } from '@amplitude/analytics-client-common';
+import { MASKED_TEXT_VALUE, TEXT_MASK_ATTRIBUTE, getPageTitle } from '@amplitude/analytics-core';
 
 const CC_REGEX = /\b(?:\d[ -]*?){13,16}\b/;
 const SSN_REGEX = /(\d{3}-?\d{2}-?\d{4})/g;

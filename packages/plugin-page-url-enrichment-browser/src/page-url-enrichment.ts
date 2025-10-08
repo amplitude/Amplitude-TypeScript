@@ -1,6 +1,6 @@
 import type { BrowserClient, BrowserConfig, EnrichmentPlugin, Event, Logger } from '@amplitude/analytics-types';
 import { getGlobalScope, BrowserStorage, getDecodeURI } from '@amplitude/analytics-core';
-import { getPageTitle } from '@amplitude/analytics-client-common';
+import { getPageTitle } from '@amplitude/analytics-core';
 
 export const CURRENT_PAGE_STORAGE_KEY = 'AMP_CURRENT_PAGE';
 export const PREVIOUS_PAGE_STORAGE_KEY = 'AMP_PREVIOUS_PAGE';
