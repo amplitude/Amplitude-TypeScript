@@ -3,12 +3,15 @@ const path = require('path');
 const analyticsBrowserPkg = require(path.join(process.cwd(), '..', 'analytics-browser', 'package.json'));
 const { S3Client, PutObjectCommand, HeadObjectCommand } = require('@aws-sdk/client-s3');
 const bucket = process.env.S3_BUCKET_NAME;
-const gtmWrapper = `./lib/scripts/analytics-browser-gtm-wrapper.min.js.gz`;
+
+const extension = 'min.js.gz';
+const filename = 'analytics-browser-gtm-wrapper';
+const gtmWrapper = `./lib/scripts/${filename}.${extension}`;
 
 const getVersion = () => analyticsBrowserPkg.version;
 let deployed = false;
 const body = fs.readFileSync(path.join(process.cwd(), gtmWrapper));
-const key = `libs/analytics-browser-gtm-wrapper-${getVersion()}.js.br`;
+const key = `libs/${filename}-${getVersion()}.${extension}`;
 
 if (process.env.DRY_RUN) {
   console.log(`[Publish to AWS S3] Dry run. Skipping upload job.`);
