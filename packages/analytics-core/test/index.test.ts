@@ -55,6 +55,9 @@ import {
   getPageTitle,
   TEXT_MASK_ATTRIBUTE,
   MASKED_TEXT_VALUE,
+  generateHashCode,
+  isTimestampInSample,
+  DiagnosticsClient,
 } from '../src/index';
 
 describe('index', () => {
@@ -70,7 +73,6 @@ describe('index', () => {
     expect(typeof client.revenue).toBe('function');
     expect(typeof client.add).toBe('function');
     expect(typeof client.remove).toBe('function');
-    expect(typeof AmplitudeContext).toBe('function');
     expect(typeof Identify).toBe('function');
     expect(typeof Revenue).toBe('function');
     expect(typeof BaseTransport).toBe('function');
@@ -129,5 +131,8 @@ describe('index', () => {
     expect(typeof getPageTitle).toBe('function');
     expect(TEXT_MASK_ATTRIBUTE).toBe('data-amp-mask');
     expect(MASKED_TEXT_VALUE).toBe('*****');
+    expect(typeof generateHashCode).toBe('function');
+    expect(typeof isTimestampInSample).toBe('function');
+    expect(typeof DiagnosticsClient).toBe('function');
   });
 });

@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diagnostics Client Test</title>
+    <style>
+        body {
+            font-family: monospace;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 900px;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background: #fafafa;
+        }
+        .test-section h3 {
+            margin-top: 0;
+            color: #333;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+        }
+        button {
+            background: #007cba;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            margin: 8px 5px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        button:hover {
+            background: #005a8b;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .output {
+            background: #f8f8f8;
+            border: 1px solid #ddd;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        .network-info {
+            background: #e8f4fd;
+            border: 1px solid #bee5eb;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .status {
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-weight: bold;
+            margin: 5px 0;
+        }
+        .status.success { background: #d4edda; color: #155724; }
+        .status.error { background: #f8d7da; color: #721c24; }
+        .status.info { background: #d1ecf1; color: #0c5460; }
+        .log-output {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 4px;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 11px;
+        }
+        .log-entry {
+            margin: 2px 0;
+            word-wrap: break-word;
+        }
+        .log-debug { color: #569cd6; }
+        .log-warn { color: #dcdcaa; }
+        .log-error { color: #f44747; }
+        .log-log { color: #d4d4d4; }
+        .button-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+        }
+        .inline-info {
+            color: #666;
+            font-size: 12px;
+            margin-left: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔬 Diagnostics Client Test</h1>
+        
+        <div class="network-info">
+            <strong>API Key:</strong> YOUR_API_KEY_HERE<br>
+            <strong>Server URL:</strong> <span id="server-url">Not initialized</span><br>
+            <strong>💡 Tip:</strong> Open DevTools → Network tab to see diagnostics API requests
+        </div>
+
+        <div class="test-section">
+            <h3>🚀 Initialize</h3>
+            <div class="button-group">
+                <button onclick="initializeDiagnostics()">Initialize Diagnostics Client</button>
+                <span class="inline-info">Creates DiagnosticsClient with Logger</span>
+            </div>
+            <div id="init-output" class="output"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>🏷️ Tags</h3>
+            <div class="button-group">
+                <button onclick="testSetTag()" disabled id="tag-btn">Set Tag</button>
+                <span class="inline-info">library: amplitude-ts/2.11.0</span>
+            </div>
+            <div id="tag-output" class="output"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>📊 Counters</h3>
+            <div class="button-group">
+                <button onclick="testIncrement()" disabled id="counter-btn">Increment Counter</button>
+                <span class="inline-info">network.retry: +3</span>
+            </div>
+            <div id="counter-output" class="output"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>📈 Histograms</h3>
+            <div class="button-group">
+                <button onclick="testRecordHistogram()" disabled id="histogram-btn">Record Histogram</button>
+                <span class="inline-info">network.latency: random 0-500ms</span>
+            </div>
+            <div id="histogram-output" class="output"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>📝 Events</h3>
+            <div class="button-group">
+                <button onclick="testRecordEvent()" disabled id="event-btn">Record Event</button>
+                <span class="inline-info">error event with stack_trace</span>
+            </div>
+            <div id="event-output" class="output"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>🚀 Manual Actions</h3>
+            <div class="button-group">
+                <button onclick="testFlush()" disabled id="flush-btn">Flush Now</button>
+                <span class="inline-info">Send all data to server immediately</span>
+                <button onclick="clearLogs()">Clear Logs</button>
+            </div>
+            <div id="flush-output" class="output"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>📋 Logger Output</h3>
+            <div id="logger-output" class="log-output">
+                <div class="log-entry">Waiting for initialization...</div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        // Import from the built ESM files
+        import { DiagnosticsClient } from '../packages/analytics-core/lib/esm/diagnostics/diagnostics-client.js';
+        import { Logger } from '../packages/analytics-core/lib/esm/logger.js';
+        import { LogLevel } from '../packages/analytics-core/lib/esm/types/loglevel.js';
+
+        // Global variables
+        let diagnosticsClient = null;
+        let logger = null;
+
+        // Helper to update output divs
+        function updateOutput(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            element.innerHTML = `<div class="status ${type}">${message}</div>`;
+        }
+
+        // Helper to enable/disable buttons
+        function setButtonsEnabled(enabled) {
+            const buttons = ['tag-btn', 'counter-btn', 'histogram-btn', 'event-btn', 'flush-btn'];
+            buttons.forEach(id => {
+                document.getElementById(id).disabled = !enabled;
+            });
+        }
+
+        // Custom logger that outputs to the UI
+        class UILogger extends Logger {
+            _output(level, args) {
+                const logOutput = document.getElementById('logger-output');
+                const logEntry = document.createElement('div');
+                logEntry.className = `log-entry log-${level.toLowerCase()}`;
+                const timestamp = new Date().toLocaleTimeString();
+                logEntry.innerHTML = `<span style="color: #666;">[${timestamp}]</span> <strong>[${level}]</strong> ${args.join(' ')}`;
+                logOutput.appendChild(logEntry);
+                logOutput.scrollTop = logOutput.scrollHeight;
+            }
+
+            log(...args) {
+                super.log(...args);
+                this._output('Log', args);
+            }
+
+            warn(...args) {
+                super.warn(...args);
+                this._output('Warn', args);
+            }
+
+            error(...args) {
+                super.error(...args);
+                this._output('Error', args);
+            }
+
+            debug(...args) {
+                super.debug(...args);
+                this._output('Debug', args);
+            }
+        }
+
+        // Initialize diagnostics client
+        window.initializeDiagnostics = function() {
+            try {
+                logger = new UILogger();
+                logger.enable(LogLevel.Debug); // Enable debug level logging
+                
+                diagnosticsClient = new DiagnosticsClient('YOUR_API_KEY', logger);
+                
+                // Update server URL display
+                document.getElementById('server-url').textContent = diagnosticsClient.serverUrl;
+                
+                updateOutput('init-output', '✓ Diagnostics client initialized successfully', 'success');
+                setButtonsEnabled(true);
+                
+                logger.log('Diagnostics client initialized successfully');
+            } catch (error) {
+                updateOutput('init-output', `✗ Failed to initialize: ${error.message}`, 'error');
+                console.error('Failed to initialize diagnostics client:', error);
+            }
+        };
+
+        // Test setting tags
+        window.testSetTag = function() {
+            if (!diagnosticsClient) {
+                updateOutput('tag-output', '✗ Please initialize first', 'error');
+                return;
+            }
+
+            try {
+                diagnosticsClient.setTag('library', 'amplitude-ts/2.11.0');
+                updateOutput('tag-output', '✓ Tag set: library = amplitude-ts/2.11.0', 'success');
+            } catch (error) {
+                updateOutput('tag-output', `✗ Failed to set tag: ${error.message}`, 'error');
+            }
+        };
+
+        // Test incrementing counters
+        window.testIncrement = function() {
+            if (!diagnosticsClient) {
+                updateOutput('counter-output', '✗ Please initialize first', 'error');
+                return;
+            }
+
+            try {
+                diagnosticsClient.increment('network.retry', 3);
+                updateOutput('counter-output', '✓ Counter incremented: network.retry +3', 'success');
+            } catch (error) {
+                updateOutput('counter-output', `✗ Failed to increment counter: ${error.message}`, 'error');
+            }
+        };
+
+        // Test recording histograms
+        window.testRecordHistogram = function() {
+            if (!diagnosticsClient) {
+                updateOutput('histogram-output', '✗ Please initialize first', 'error');
+                return;
+            }
+
+            try {
+                const latency = Math.floor(Math.random() * 500); // Random 0-500ms
+                diagnosticsClient.recordHistogram('network.latency', latency);
+                updateOutput('histogram-output', `✓ Histogram recorded: network.latency = ${latency}ms`, 'success');
+            } catch (error) {
+                updateOutput('histogram-output', `✗ Failed to record histogram: ${error.message}`, 'error');
+            }
+        };
+
+        // Test recording events
+        window.testRecordEvent = function() {
+            if (!diagnosticsClient) {
+                updateOutput('event-output', '✗ Please initialize first', 'error');
+                return;
+            }
+
+            try {
+                diagnosticsClient.recordEvent('error', {
+                    stack_trace: 'test stack trace'
+                });
+                updateOutput('event-output', '✓ Event recorded: error with stack_trace', 'success');
+            } catch (error) {
+                updateOutput('event-output', `✗ Failed to record event: ${error.message}`, 'error');
+            }
+        };
+
+        // Test manual flush
+        window.testFlush = function() {
+            if (!diagnosticsClient) {
+                updateOutput('flush-output', '✗ Please initialize first', 'error');
+                return;
+            }
+
+            try {
+                diagnosticsClient._flush();
+                updateOutput('flush-output', '✓ Flush initiated - check Network tab for API request', 'success');
+            } catch (error) {
+                updateOutput('flush-output', `✗ Failed to flush: ${error.message}`, 'error');
+            }
+        };
+
+        // Clear logs
+        window.clearLogs = function() {
+            document.getElementById('logger-output').innerHTML = '';
+        };
+
+        // Auto-initialize on page load for convenience
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Diagnostics test page loaded. Ready to initialize.');
+        });
+    </script>
+</body>
+</html>

@@ -77,6 +77,9 @@ describe('config', () => {
         useBatch: false,
         fetchRemoteConfig: true,
         version: VERSION,
+        enableDiagnostics: true,
+        diagnosticsSampleRate: 0,
+        diagnosticsClient: undefined,
       });
     });
 
@@ -135,6 +138,9 @@ describe('config', () => {
         useBatch: false,
         fetchRemoteConfig: true,
         version: VERSION,
+        enableDiagnostics: true,
+        diagnosticsSampleRate: 0,
+        diagnosticsClient: undefined,
       });
       expect(getTopLevelDomain).toHaveBeenCalledTimes(1);
     });
@@ -237,6 +243,9 @@ describe('config', () => {
         useBatch: false,
         fetchRemoteConfig: true,
         version: VERSION,
+        enableDiagnostics: true,
+        diagnosticsSampleRate: 0,
+        diagnosticsClient: undefined,
       });
     });
 

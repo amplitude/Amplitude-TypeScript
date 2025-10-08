@@ -225,4 +225,137 @@ describe('EventCompressor', () => {
     eventCompressor.terminate();
     expect(terminateMock).toHaveBeenCalled();
   });
+
+  test('should handle DataCloneError and fallback to JSON.stringify', async () => {
+    let onMessageMock = jest.fn();
+    let onErrorMock = jest.fn();
+    let terminateMock = jest.fn();
+    let callCount = 0;
+
+    class MockWorker {
+      postMessage = () => {
+        callCount++;
+        // Simulate DataCloneError on first call, success on second
+        if (callCount === 1) {
+          const error = new Error('DataCloneError');
+          error.name = 'DataCloneError';
+          throw error;
+        }
+        // On second call, simulate success
+        this.onmessage({ data: { compressedEvent: '', sessionId: 1234 } });
+      };
+      onmessage = (e: any) => {
+        onMessageMock = jest.fn();
+        onMessageMock(e);
+      };
+      onerror = (e: any) => {
+        onErrorMock = jest.fn();
+        onErrorMock(e);
+      };
+      terminate = () => {
+        terminateMock = jest.fn();
+        terminateMock();
+      };
+    }
+
+    global.Worker = MockWorker as unknown as typeof global.Worker;
+
+    URL.createObjectURL = jest.fn();
+    eventsManager = await createEventsManager<'replay'>({
+      config,
+      type: 'replay',
+      storeType: 'memory',
+    });
+    eventCompressor = new EventCompressor(eventsManager, config, deviceId, 'console.log("hi")');
+
+    const testEvent: eventWithTime = {
+      data: {
+        height: 1,
+        width: 1,
+        href: 'http://localhost',
+      },
+      type: 4,
+      timestamp: 1,
+    };
+    const testSessionId = 1234;
+    eventCompressor.addCompressedEvent(testEvent, testSessionId);
+
+    // Should be called twice - once with original data (throws DataCloneError), once with JSON.stringify (succeeds)
+    expect(callCount).toBe(2);
+
+    eventCompressor.terminate();
+    expect(terminateMock).toHaveBeenCalled();
+  });
+
+  test('should log warning for unexpected errors in webworker', async () => {
+    let postMessageMock = jest.fn();
+    let onMessageMock = jest.fn();
+    let onErrorMock = jest.fn();
+    let terminateMock = jest.fn();
+
+    class MockWorker {
+      postMessage = (e: any) => {
+        postMessageMock = jest.fn(() => {
+          // Simulate unexpected error
+          const error = new Error('Unexpected error');
+          error.name = 'SomeOtherError';
+          throw error;
+        });
+        onErrorMock = jest.fn(() => {
+          this.onerror(e);
+        });
+        postMessageMock(e);
+      };
+      onmessage = (e: any) => {
+        onMessageMock = jest.fn();
+        onMessageMock(e);
+      };
+      onerror = (e: any) => {
+        onErrorMock = jest.fn();
+        onErrorMock(e);
+      };
+      terminate = () => {
+        terminateMock = jest.fn();
+        terminateMock();
+      };
+    }
+
+    global.Worker = MockWorker as unknown as typeof global.Worker;
+
+    URL.createObjectURL = jest.fn();
+    eventsManager = await createEventsManager<'replay'>({
+      config,
+      type: 'replay',
+      storeType: 'memory',
+    });
+    eventCompressor = new EventCompressor(eventsManager, config, deviceId, 'console.log("hi")');
+
+    const testEvent: eventWithTime = {
+      data: {
+        height: 1,
+        width: 1,
+        href: 'http://localhost',
+      },
+      type: 4,
+      timestamp: 1,
+    };
+    const testSessionId = 1234;
+
+    // Should not throw, but log a warning instead
+    expect(() => {
+      eventCompressor.addCompressedEvent(testEvent, testSessionId);
+    }).not.toThrow();
+
+    // Verify warning was logged
+    expect(mockLoggerProvider['warn']).toHaveBeenCalledWith(
+      'Unexpected error while posting message to worker:',
+      expect.objectContaining({
+        name: 'SomeOtherError',
+        message: 'Unexpected error',
+      }),
+    );
+
+    eventCompressor.terminate();
+    expect(terminateMock).toHaveBeenCalled();
+  });
 });

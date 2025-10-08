@@ -182,4 +182,8 @@ export class FakeBrowserClient implements BrowserClient {
   reset(): void {
     console.log('FakeBrowserClient.reset called');
   }
+
+  _setDiagnosticsSampleRate(sampleRate: number): void {
+    console.log('FakeBrowserClient.setDiagnosticsSampleRate called with:', { sampleRate });
+  }
 }

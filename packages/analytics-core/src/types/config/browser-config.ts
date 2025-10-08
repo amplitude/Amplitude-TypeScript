@@ -6,6 +6,8 @@ import { ElementInteractionsOptions } from '../element-interactions';
 import { PageTrackingOptions } from '../page-view-tracking';
 import { NetworkTrackingOptions } from '../network-tracking';
 import { FrustrationInteractionsOptions } from '../frustration-interactions';
+import { IDiagnosticsClient } from '../../diagnostics/diagnostics-client';
+import { IRemoteConfigClient } from '../../remote-config/remote-config';
 
 export interface BrowserConfig extends ExternalBrowserConfig, InternalBrowserConfig {}
 
@@ -89,6 +91,11 @@ export interface ExternalBrowserConfig extends IConfig {
    * @deprecated use autocapture.networkTracking instead
    */
   networkTrackingOptions?: NetworkTrackingOptions;
+  /**
+   * Whether to enable diagnostics.
+   * @defaultValue `true`
+   */
+  enableDiagnostics?: boolean;
 }
 
 interface InternalBrowserConfig {
@@ -97,6 +104,9 @@ interface InternalBrowserConfig {
   lastEventId?: number;
   transportProvider: Transport;
   version?: string;
+  diagnosticsSampleRate?: number;
+  diagnosticsClient?: IDiagnosticsClient;
+  remoteConfigClient?: IRemoteConfigClient;
 }
 
 /**

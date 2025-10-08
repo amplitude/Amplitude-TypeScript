@@ -17,7 +17,6 @@ import { AMPLITUDE_ELEMENT_CLICKED_EVENT, AMPLITUDE_ELEMENT_CHANGED_EVENT } from
 import { autocapturePlugin } from '../../src/autocapture-plugin';
 import type { BrowserClient, BrowserConfig, EnrichmentPlugin, ILogger } from '@amplitude/analytics-core';
 import { createInstance } from '@amplitude/analytics-browser';
-import { createRemoteConfigFetch } from '@amplitude/analytics-remote-config';
 import * as triggersModule from '../../src/pageActions/triggers';
 import { DataExtractor } from '../../src/data-extractor';
 
@@ -965,14 +964,11 @@ describe('autocapturePlugin recomputePageActionsData functionality', () => {
 
   describe('with remote config integration', () => {
     it('should fetch remote config and merge with local pageActions', async () => {
-      const mockRemoteConfigFetch = {
-        getRemoteConfig: jest.fn().mockResolvedValue({
-          labeledEvents: mockRemoteLabeledEvents,
-          triggers: mockRemoteTriggers,
-        }),
+      const mockRemoteConfigClient = {
+        subscribe: jest.fn(),
+        unsubscribe: jest.fn(),
+        updateConfigs: jest.fn(),
       };
-
-      (createRemoteConfigFetch as jest.Mock).mockResolvedValue(mockRemoteConfigFetch);
 
       const autocaptureConfig: ElementInteractionsOptions = {
         pageActions: {
@@ -986,6 +982,7 @@ describe('autocapturePlugin recomputePageActionsData functionality', () => {
         defaultTracking: false,
         loggerProvider: loggerProvider,
         fetchRemoteConfig: true,
+        remoteConfigClient: mockRemoteConfigClient,
       };
 
       await plugin?.setup?.(config as BrowserConfig, instance);
@@ -993,76 +990,21 @@ describe('autocapturePlugin recomputePageActionsData functionality', () => {
       // Wait for remote config to be fetched and processed
       await new Promise((resolve) => setTimeout(resolve, 10));
 
-      // Verify remote config fetch was called
-      expect(createRemoteConfigFetch).toHaveBeenCalledWith({
-        localConfig: config,
-        configKeys: ['analyticsSDK.pageActions'],
-      });
-
-      expect(mockRemoteConfigFetch.getRemoteConfig).toHaveBeenCalledWith('analyticsSDK', 'pageActions');
-    });
-
-    it('should handle remote config fetch errors gracefully', async () => {
-      const mockRemoteConfigFetch = {
-        getRemoteConfig: jest.fn().mockRejectedValue(new Error('Remote config fetch failed')),
-      };
-
-      (createRemoteConfigFetch as jest.Mock).mockResolvedValue(mockRemoteConfigFetch);
-
-      const autocaptureConfig: ElementInteractionsOptions = {
-        pageActions: {
-          labeledEvents: mockLabeledEvents,
-          triggers: mockTriggers,
-        },
-      };
-
-      plugin = autocapturePlugin(autocaptureConfig);
-      const config: Partial<BrowserConfig> = {
-        defaultTracking: false,
-        loggerProvider: loggerProvider,
-        fetchRemoteConfig: true,
-      };
-
-      await plugin?.setup?.(config as BrowserConfig, instance);
-
-      // Wait for remote config to be processed
-      await new Promise((resolve) => setTimeout(resolve, 10));
-
-      // Verify error was logged
-      expect(loggerProvider.error).toHaveBeenCalledWith(
-        'Failed to fetch remote config: Error: Remote config fetch failed',
-      );
-    });
-
-    it('should handle createRemoteConfigFetch errors gracefully', async () => {
-      (createRemoteConfigFetch as jest.Mock).mockRejectedValue(new Error('Failed to create remote config fetch'));
-
-      const autocaptureConfig: ElementInteractionsOptions = {
-        pageActions: {
-          labeledEvents: mockLabeledEvents,
-          triggers: mockTriggers,
-        },
-      };
-
-      plugin = autocapturePlugin(autocaptureConfig);
-      const config: Partial<BrowserConfig> = {
-        defaultTracking: false,
-        loggerProvider: loggerProvider,
-        fetchRemoteConfig: true,
-      };
-
-      await plugin?.setup?.(config as BrowserConfig, instance);
-
-      // Wait for remote config to be processed
-      await new Promise((resolve) => setTimeout(resolve, 10));
-
-      // Verify error was logged
-      expect(loggerProvider.error).toHaveBeenCalledWith(
-        'Failed to create remote config fetch: Error: Failed to create remote config fetch',
+      // Verify remote config client subscribe was called
+      expect(mockRemoteConfigClient.subscribe).toHaveBeenCalledWith(
+        'analyticsSDK.pageActions',
+        'all',
+        expect.any(Function),
       );
     });
 
     it('should not fetch remote config when fetchRemoteConfig is false', async () => {
+      const mockRemoteConfigClient = {
+        subscribe: jest.fn(),
+        unsubscribe: jest.fn(),
+        updateConfigs: jest.fn(),
+      };
+
       const autocaptureConfig: ElementInteractionsOptions = {
         pageActions: {
           labeledEvents: mockLabeledEvents,
@@ -1074,7 +1016,7 @@ describe('autocapturePlugin recomputePageActionsData functionality', () => {
       const config: Partial<BrowserConfig> = {
         defaultTracking: false,
         loggerProvider: loggerProvider,
-        fetchRemoteConfig: false,
+        // No remoteConfigClient provided
       };
 
       await plugin?.setup?.(config as BrowserConfig, instance);
@@ -1082,17 +1024,11 @@ describe('autocapturePlugin recomputePageActionsData functionality', () => {
       // Wait to ensure no remote config processing happens
       await new Promise((resolve) => setTimeout(resolve, 10));
 
-      // Verify remote config fetch was not called
-      expect(createRemoteConfigFetch).not.toHaveBeenCalled();
+      // Verify remote config client subscribe was not called
+      expect(mockRemoteConfigClient.subscribe).not.toHaveBeenCalled();
     });
 
-    it('should handle null/undefined remote pageActions', async () => {
-      const mockRemoteConfigFetch = {
-        getRemoteConfig: jest.fn().mockResolvedValue(null),
-      };
-
-      (createRemoteConfigFetch as jest.Mock).mockResolvedValue(mockRemoteConfigFetch);
-
+    it('should log when fetchRemoteConfig is true but remoteConfigClient undefined', async () => {
       const autocaptureConfig: ElementInteractionsOptions = {
         pageActions: {
           labeledEvents: mockLabeledEvents,
@@ -1105,6 +1041,46 @@ describe('autocapturePlugin recomputePageActionsData functionality', () => {
         defaultTracking: false,
         loggerProvider: loggerProvider,
         fetchRemoteConfig: true,
+        // remoteConfigClient is undefined
+      };
+
+      await plugin?.setup?.(config as BrowserConfig, instance);
+
+      // Wait for setup to complete
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      // Verify warning was logged about missing remoteConfigClient
+      expect(loggerProvider.debug).toHaveBeenCalledWith(
+        'Remote config client is not provided, skipping remote config fetch',
+      );
+    });
+
+    it('should handle null/undefined remote pageActions', async () => {
+      const mockRemoteConfigClient = {
+        subscribe: jest
+          .fn()
+          .mockImplementation(
+            (_key, _deliveryMode, callback: (remoteConfig: any, source: string, lastFetch: Date) => void) => {
+              // Simulate calling the callback with null remote config
+              callback(null, 'cache', new Date());
+            },
+          ),
+        unsubscribe: jest.fn(),
+        updateConfigs: jest.fn(),
+      };
+
+      const autocaptureConfig: ElementInteractionsOptions = {
+        pageActions: {
+          labeledEvents: mockLabeledEvents,
+          triggers: mockTriggers,
+        },
+      };
+
+      plugin = autocapturePlugin(autocaptureConfig);
+      const config: Partial<BrowserConfig> = {
+        defaultTracking: false,
+        loggerProvider: loggerProvider,
+        remoteConfigClient: mockRemoteConfigClient,
       };
 
       await plugin?.setup?.(config as BrowserConfig, instance);
@@ -1117,14 +1093,25 @@ describe('autocapturePlugin recomputePageActionsData functionality', () => {
     });
 
     it('should handle when local pageActions is undefined and remote config provides pageActions', async () => {
-      const mockRemoteConfigFetch = {
-        getRemoteConfig: jest.fn().mockResolvedValue({
-          labeledEvents: mockRemoteLabeledEvents,
-          triggers: mockRemoteTriggers,
-        }),
+      const mockRemoteConfigClient = {
+        subscribe: jest
+          .fn()
+          .mockImplementation(
+            (_key, _deliveryMode, callback: (remoteConfig: any, source: string, lastFetch: Date) => void) => {
+              // Simulate calling the callback with remote config data
+              callback(
+                {
+                  labeledEvents: mockRemoteLabeledEvents,
+                  triggers: mockRemoteTriggers,
+                },
+                'cache',
+                new Date(),
+              );
+            },
+          ),
+        unsubscribe: jest.fn(),
+        updateConfigs: jest.fn(),
       };
-
-      (createRemoteConfigFetch as jest.Mock).mockResolvedValue(mockRemoteConfigFetch);
 
       // Start with undefined pageActions
       const autocaptureConfig: ElementInteractionsOptions = {
@@ -1136,6 +1123,7 @@ describe('autocapturePlugin recomputePageActionsData functionality', () => {
         defaultTracking: false,
         loggerProvider: loggerProvider,
         fetchRemoteConfig: true,
+        remoteConfigClient: mockRemoteConfigClient,
       };
 
       await plugin?.setup?.(config as BrowserConfig, instance);
@@ -1143,13 +1131,12 @@ describe('autocapturePlugin recomputePageActionsData functionality', () => {
       // Wait for remote config to be processed
       await new Promise((resolve) => setTimeout(resolve, 10));
 
-      // Verify remote config fetch was called
-      expect(createRemoteConfigFetch).toHaveBeenCalledWith({
-        localConfig: config,
-        configKeys: ['analyticsSDK.pageActions'],
-      });
-
-      expect(mockRemoteConfigFetch.getRemoteConfig).toHaveBeenCalledWith('analyticsSDK', 'pageActions');
+      // Verify remote config client subscribe was called
+      expect(mockRemoteConfigClient.subscribe).toHaveBeenCalledWith(
+        'analyticsSDK.pageActions',
+        'all',
+        expect.any(Function),
+      );
 
       // No errors should be logged when starting with undefined pageActions
       expect(loggerProvider.error).not.toHaveBeenCalled();
@@ -1165,15 +1152,26 @@ describe('autocapturePlugin recomputePageActionsData functionality', () => {
       const groupLabeledEventsSpy = jest.spyOn(triggersModule, 'groupLabeledEventIdsByEventType');
       groupLabeledEventsSpy.mockImplementation(originalGroupLabeledEvents);
 
-      const mockRemoteConfigFetch = {
-        getRemoteConfig: jest.fn().mockResolvedValue({
-          // Remote config explicitly sets labeledEvents to undefined, overwriting local
-          labeledEvents: undefined,
-          triggers: mockRemoteTriggers,
-        }),
+      const mockRemoteConfigClient = {
+        subscribe: jest
+          .fn()
+          .mockImplementation(
+            (_key, _deliveryMode, callback: (remoteConfig: any, source: string, lastFetch: Date) => void) => {
+              // Simulate calling the callback with remote config that has undefined labeledEvents
+              callback(
+                {
+                  // Remote config explicitly sets labeledEvents to undefined, overwriting local
+                  labeledEvents: undefined,
+                  triggers: mockRemoteTriggers,
+                },
+                'cache',
+                new Date(),
+              );
+            },
+          ),
+        unsubscribe: jest.fn(),
+        updateConfigs: jest.fn(),
       };
-
-      (createRemoteConfigFetch as jest.Mock).mockResolvedValue(mockRemoteConfigFetch);
 
       // Start with local pageActions that has labeledEvents
       const autocaptureConfig: ElementInteractionsOptions = {
@@ -1188,6 +1186,7 @@ describe('autocapturePlugin recomputePageActionsData functionality', () => {
         defaultTracking: false,
         loggerProvider: loggerProvider,
         fetchRemoteConfig: true,
+        remoteConfigClient: mockRemoteConfigClient,
       };
 
       await plugin?.setup?.(config as BrowserConfig, instance);
@@ -1216,14 +1215,25 @@ describe('autocapturePlugin recomputePageActionsData functionality', () => {
       const groupLabeledEventsSpy = jest.spyOn(triggersModule, 'groupLabeledEventIdsByEventType');
       groupLabeledEventsSpy.mockImplementation(originalGroupLabeledEvents);
 
-      const mockRemoteConfigFetch = {
-        getRemoteConfig: jest.fn().mockResolvedValue({
-          labeledEvents: undefined,
-          triggers: mockRemoteTriggers,
-        }),
+      const mockRemoteConfigClient = {
+        subscribe: jest
+          .fn()
+          .mockImplementation(
+            (_key, _deliveryMode, callback: (remoteConfig: any, source: string, lastFetch: Date) => void) => {
+              // Simulate calling the callback with remote config that has undefined labeledEvents
+              callback(
+                {
+                  labeledEvents: undefined,
+                  triggers: mockRemoteTriggers,
+                },
+                'cache',
+                new Date(),
+              );
+            },
+          ),
+        unsubscribe: jest.fn(),
+        updateConfigs: jest.fn(),
       };
-
-      (createRemoteConfigFetch as jest.Mock).mockResolvedValue(mockRemoteConfigFetch);
 
       // Start with local pageActions that also has undefined labeledEvents
       const autocaptureConfig: ElementInteractionsOptions = {
@@ -1238,6 +1248,7 @@ describe('autocapturePlugin recomputePageActionsData functionality', () => {
         defaultTracking: false,
         loggerProvider: loggerProvider,
         fetchRemoteConfig: true,
+        remoteConfigClient: mockRemoteConfigClient,
       };
 
       await plugin?.setup?.(config as BrowserConfig, instance);
@@ -1266,14 +1277,25 @@ describe('autocapturePlugin recomputePageActionsData functionality', () => {
       const createLabeledEventToTriggerMapSpy = jest.spyOn(triggersModule, 'createLabeledEventToTriggerMap');
       createLabeledEventToTriggerMapSpy.mockImplementation(originalCreateLabeledEventToTriggerMap);
 
-      const mockRemoteConfigFetch = {
-        getRemoteConfig: jest.fn().mockResolvedValue({
-          labeledEvents: mockRemoteLabeledEvents,
-          triggers: undefined,
-        }),
+      const mockRemoteConfigClient = {
+        subscribe: jest
+          .fn()
+          .mockImplementation(
+            (_key, _deliveryMode, callback: (remoteConfig: any, source: string, lastFetch: Date) => void) => {
+              // Simulate calling the callback with remote config that has undefined triggers
+              callback(
+                {
+                  labeledEvents: mockRemoteLabeledEvents,
+                  triggers: undefined,
+                },
+                'cache',
+                new Date(),
+              );
+            },
+          ),
+        unsubscribe: jest.fn(),
+        updateConfigs: jest.fn(),
       };
-
-      (createRemoteConfigFetch as jest.Mock).mockResolvedValue(mockRemoteConfigFetch);
 
       // Start with local pageActions that also has undefined triggers
       const autocaptureConfig: ElementInteractionsOptions = {
@@ -1288,6 +1310,7 @@ describe('autocapturePlugin recomputePageActionsData functionality', () => {
         defaultTracking: false,
         loggerProvider: loggerProvider,
         fetchRemoteConfig: true,
+        remoteConfigClient: mockRemoteConfigClient,
       };
 
       await plugin?.setup?.(config as BrowserConfig, instance);

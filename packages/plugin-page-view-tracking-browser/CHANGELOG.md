@@ -3,6 +3,55 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.4.4](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-page-view-tracking-browser@2.4.3...@amplitude/plugin-page-view-tracking-browser@2.4.4) (2025-10-07)
+
+
+### Bug Fixes
+
+* Revert "feat(analytics-client-common): refactor getPageTitle from aut… ([#1328](https://github.com/amplitude/Amplitude-TypeScript/issues/1328)) ([3976910](https://github.com/amplitude/Amplitude-TypeScript/commit/3976910d2e17a61f9f8e588a006cd44012f2f250))
+
+
+
+
+
+## [2.4.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-page-view-tracking-browser@2.4.2...@amplitude/plugin-page-view-tracking-browser@2.4.3) (2025-10-03)
+
+
+### Bug Fixes
+
+* add diagnostics to client and track autocapture getHierachy block time ([#1312](https://github.com/amplitude/Amplitude-TypeScript/issues/1312)) ([a919e22](https://github.com/amplitude/Amplitude-TypeScript/commit/a919e223428083a87954cffa50bc765baa5360b0))
+
+
+
+
+
+## [2.4.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-page-view-tracking-browser@2.4.1...@amplitude/plugin-page-view-tracking-browser@2.4.2) (2025-10-01)
+
+**Note:** Version bump only for package @amplitude/plugin-page-view-tracking-browser
+
+
+
+
+
+## [2.4.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-page-view-tracking-browser@2.4.0...@amplitude/plugin-page-view-tracking-browser@2.4.1) (2025-09-25)
+
+**Note:** Version bump only for package @amplitude/plugin-page-view-tracking-browser
+
+
+
+
+
+# [2.4.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-page-view-tracking-browser@2.3.48...@amplitude/plugin-page-view-tracking-browser@2.4.0) (2025-09-23)
+
+
+### Features
+
+* **analytics-client-common:** refactor getPageTitle from autocapture to make it reusable ([#1298](https://github.com/amplitude/Amplitude-TypeScript/issues/1298)) ([3c931ee](https://github.com/amplitude/Amplitude-TypeScript/commit/3c931eeb7bb4d2482523c48cf796113187d9b078))
+
+
+
+
+
 ## [2.3.48](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-page-view-tracking-browser@2.3.47...@amplitude/plugin-page-view-tracking-browser@2.3.48) (2025-09-18)
 
 **Note:** Version bump only for package @amplitude/plugin-page-view-tracking-browser

@@ -24,6 +24,7 @@ export const {
   setTransport,
   setUserId,
   track,
+  _setDiagnosticsSampleRate,
 } = client;
 export { AmplitudeBrowser } from './browser-client';
 export { runQueuedFunctions } from './utils/snippet-helper';

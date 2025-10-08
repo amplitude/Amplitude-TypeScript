@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cookie Deduplication Test</title>
+    <script>
+    // de-duplicate cookies
+    // TODO: make this available as a plugin
+    const duplicateCookieFix = async () => {
+        const defaultWindow = window;
+        if (!("cookieStore" in defaultWindow)) return;
+        const cookies = await defaultWindow.cookieStore.getAll();
+        const ampCookies = cookies.filter((cookie) => cookie.name.includes("AMP_"));
+        const bestCookiesMap = new Map();
+
+        // Step 1: Deduplicate by name
+        for (const cookie of ampCookies) {
+            const key = cookie.name;
+            const currentBest = bestCookiesMap.get(key);
+            const isTopLevel = /^[^.]+\.[^.]+$/.test(cookie.domain);
+
+            if (!currentBest) {
+                bestCookiesMap.set(key, { cookie, isTopLevel });
+            } else {
+                if (isTopLevel) {
+                    bestCookiesMap.set(key, { cookie, isTopLevel });
+                }
+            }
+        }
+
+        // Step 2: Extract deduplicated list
+        const deduped = Array.from(bestCookiesMap.values()).map(
+            (entry) => entry.cookie
+        );
+
+        // Step 3: Delete duplicates
+        const keepSet = new Set(deduped.map((c) => `${c.name}|${c.domain}`));
+
+        await Promise.all(
+            ampCookies
+                .filter((c) => !keepSet.has(`${c.name}|${c.domain}`))
+                .map((c) => {
+                    return defaultWindow.cookieStore.delete(c.name, {
+                        domain: c.domain,
+                        path: c.path,
+                    });
+                })
+        );
+    };
+    duplicateCookieFix();
+    </script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 0;
+        }
+        .button:hover {
+            background-color: #0056b3;
+        }
+        .button:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
+        .info {
+            background-color: #e9ecef;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 15px 0;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .cookie-info {
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+            font-family: monospace;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Cookie Deduplication Test</h1>
+        
+        <div class="info">
+            <strong>Instructions:</strong> This tool helps copy Amplitude cookies from full domain scope to subdomain scope.
+            <br><br>
+            <strong>How it works:</strong>
+            <ol>
+                <li>Click the button below to scan for cookies matching the pattern <code>AMP_*</code></li>
+                <li>The tool will copy each found cookie and create a new version with the subdomain scope</li>
+                <li>For example: <code>.website.com</code> → <code>local.website.com</code></li>
+                <li>Refresh the page to see the updated cookies</li>
+            </ol>
+        </div>
+
+        <button id="dedupeButton" class="button" onclick="copyCookiesToSubdomain()">
+            Copy AMP Cookies to Subdomain
+        </button>
+
+        <div id="status"></div>
+        <div id="cookieList"></div>
+    </div>
+
+    <script>
+        function copyCookiesToSubdomain() {
+            const button = document.getElementById('dedupeButton');
+            const status = document.getElementById('status');
+            const cookieList = document.getElementById('cookieList');
+            
+            button.disabled = true;
+            button.textContent = 'Processing...';
+            status.innerHTML = '';
+            cookieList.innerHTML = '';
+
+            try {
+                // Get all cookies
+                const allCookies = document.cookie.split(';');
+                const ampCookies = [];
+                
+                // Find cookies that start with AMP_
+                allCookies.forEach(cookie => {
+                    const trimmed = cookie.trim();
+                    if (trimmed.startsWith('AMP_')) {
+                        ampCookies.push(trimmed);
+                    }
+                });
+
+                if (ampCookies.length === 0) {
+                    status.innerHTML = '<div class="info error">No AMP_* cookies found. Make sure you have Amplitude cookies set on this domain.</div>';
+                    button.disabled = false;
+                    button.textContent = 'Copy AMP Cookies to Subdomain';
+                    return;
+                }
+
+                let successCount = 0;
+                let errorCount = 0;
+                const results = [];
+
+                // Process each AMP cookie
+                ampCookies.forEach(cookieStr => {
+                    try {
+                        const [nameValue, ...rest] = cookieStr.split(';');
+                        const [name, value] = nameValue.split('=');
+                        
+                        if (!name || !value) {
+                            results.push(`<div class="cookie-info">❌ Invalid cookie format: ${cookieStr}</div>`);
+                            errorCount++;
+                            return;
+                        }
+
+                        // Get current domain
+                        const currentDomain = window.location.hostname;
+                        
+                        // Set the new cookie with subdomain scope (no domain attribute = current domain)
+                        const cookieOptions = rest.join(';');
+                        
+                        // Set the new cookie with subdomain scope (current domain)
+                        window.cookieStore.set(name, value, { path: '/', domain: currentDomain, ...cookieOptions });
+                        
+                        results.push(`
+                            <div class="cookie-info">
+                                ✅ Copied: <strong>${name}</strong><br>
+                                From: <code>.website.com</code> (full domain)<br>
+                                To: <code>${currentDomain}</code> (subdomain)<br>
+                                Value: <code>${value.substring(0, 50)}${value.length > 50 ? '...' : ''}</code>
+                            </div>
+                        `);
+                        successCount++;
+                        
+                    } catch (error) {
+                        results.push(`<div class="cookie-info">❌ Error processing cookie: ${cookieStr}<br>Error: ${error.message}</div>`);
+                        errorCount++;
+                    }
+                });
+
+                // Display results
+                cookieList.innerHTML = results.join('');
+                
+                if (successCount > 0) {
+                    status.innerHTML = `<div class="info success">✅ Successfully copied ${successCount} cookie(s) to subdomain scope.</div>`;
+                }
+                
+                if (errorCount > 0) {
+                    status.innerHTML += `<div class="info error">❌ Failed to copy ${errorCount} cookie(s).</div>`;
+                }
+
+            } catch (error) {
+                status.innerHTML = `<div class="info error">❌ Error: ${error.message}</div>`;
+            } finally {
+                button.disabled = false;
+                button.textContent = 'Copy AMP Cookies to Subdomain';
+            }
+        }
+
+        // Display current cookies on page load
+        window.addEventListener('load', function() {
+            const allCookies = document.cookie.split(';');
+            const ampCookies = allCookies.filter(cookie => cookie.trim().startsWith('AMP_'));
+            
+            if (ampCookies.length > 0) {
+                const cookieList = document.getElementById('cookieList');
+                cookieList.innerHTML = `
+                    <div class="info">
+                        <strong>Current AMP cookies found:</strong>
+                        ${ampCookies.map(cookie => `<div class="cookie-info">${cookie.trim()}</div>`).join('')}
+                    </div>
+                `;
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Session Replay Browser Script Tag Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .test-section {
+            background: #f5f5f5;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 5px;
+            border-left: 4px solid #007cba;
+        }
+        .success {
+            border-left-color: #28a745;
+            background: #d4edda;
+        }
+        .error {
+            border-left-color: #dc3545;
+            background: #f8d7da;
+        }
+        button {
+            background: #007cba;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #005a8b;
+        }
+        .log-output {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 3px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        input, select {
+            padding: 5px;
+            margin: 2px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+        }
+        .form-group {
+            margin: 10px 0;
+        }
+        .form-group label {
+            display: inline-block;
+            width: 120px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎬 Session Replay Browser Script Tag Test</h1>
+    
+    <div class="test-section">
+        <h2>1. Script Loading Test</h2>
+        <div id="script-load-result">Testing...</div>
+    </div>
+
+    <div class="test-section">
+        <h2>2. API Availability Test</h2>
+        <div id="api-test-result">Testing...</div>
+    </div>
+
+    <div class="test-section">
+        <h2>3. Configuration & Initialization</h2>
+        <div class="form-group">
+            <label for="api-key">API Key:</label>
+            <input type="text" id="api-key" value="test-api-key-12345" placeholder="Enter your API key">
+        </div>
+        <div class="form-group">
+            <label for="session-id">Session ID:</label>
+            <input type="text" id="session-id" value="test-session-123" placeholder="Enter session ID">
+        </div>
+        <div class="form-group">
+            <label for="device-id">Device ID:</label>
+            <input type="text" id="device-id" value="test-device-456" placeholder="Enter device ID">
+        </div>
+        <button onclick="initializeSessionReplay()">Initialize Session Replay</button>
+        <div id="init-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>4. Method Testing</h2>
+        <button onclick="testGetSessionReplayProperties()">Get Session Replay Properties</button>
+        <button onclick="testSetSessionId()">Set New Session ID</button>
+        <button onclick="testGetSessionId()">Get Session ID</button>
+        <button onclick="testFlush()">Flush Events</button>
+        <button onclick="testShutdown()">Shutdown</button>
+        <div id="method-test-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>5. Interactive Elements (for testing capture)</h2>
+        <p>These elements help test if session replay is capturing interactions:</p>
+        <button onclick="logInteraction('Button clicked!')">Click Me</button>
+        <input type="text" placeholder="Type something here..." onchange="logInteraction('Input changed: ' + this.value)">
+        <select onchange="logInteraction('Select changed: ' + this.value)">
+            <option value="">Choose...</option>
+            <option value="option1">Option 1</option>
+            <option value="option2">Option 2</option>
+        </select>
+    </div>
+
+    <div class="test-section">
+        <h2>6. Console Output</h2>
+        <p>Check the browser console for detailed logs. Recent logs appear below:</p>
+        <div id="console-output" class="log-output">
+            Console logs will appear here...
+        </div>
+        <button onclick="clearConsoleOutput()">Clear Logs</button>
+    </div>
+
+    <!-- Load the session replay bundle -->
+    <script src="../../lib/scripts/session-replay-browser-min.js"></script>
+    
+    <script>
+        // Custom console logging to capture output
+        const originalLog = console.log;
+        const originalWarn = console.warn;
+        const originalError = console.error;
+        
+        const consoleOutput = document.getElementById('console-output');
+        
+        function appendToConsole(type, ...args) {
+            const timestamp = new Date().toLocaleTimeString();
+            const message = args.map(arg => 
+                typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
+            ).join(' ');
+            
+            const logElement = document.createElement('div');
+            logElement.innerHTML = `<span style="color: #666;">[${timestamp}] ${type.toUpperCase()}:</span> ${message}`;
+            consoleOutput.appendChild(logElement);
+            consoleOutput.scrollTop = consoleOutput.scrollHeight;
+        }
+        
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            appendToConsole('log', ...args);
+        };
+        
+        console.warn = function(...args) {
+            originalWarn.apply(console, args);
+            appendToConsole('warn', ...args);
+        };
+        
+        console.error = function(...args) {
+            originalError.apply(console, args);
+            appendToConsole('error', ...args);
+        };
+        
+        function clearConsoleOutput() {
+            consoleOutput.innerHTML = 'Console logs will appear here...';
+        }
+
+        // Test 1: Script Loading
+        function testScriptLoading() {
+            const result = document.getElementById('script-load-result');
+            
+            if (typeof window.sessionReplay !== 'undefined') {
+                result.innerHTML = '✅ <strong>Success:</strong> window.sessionReplay is available';
+                result.className = 'success';
+                console.log('✅ Script loaded successfully. window.sessionReplay is available.');
+            } else {
+                result.innerHTML = '❌ <strong>Error:</strong> window.sessionReplay is not available';
+                result.className = 'error';
+                console.error('❌ Script loading failed. window.sessionReplay is not available.');
+            }
+        }
+
+        // Test 2: API Availability
+        function testAPIAvailability() {
+            const result = document.getElementById('api-test-result');
+            
+            if (typeof window.sessionReplay !== 'undefined') {
+                const expectedMethods = ['init', 'setSessionId', 'getSessionId', 'getSessionReplayProperties', 'flush', 'shutdown', 'evaluateTargetingAndCapture'];
+                const availableMethods = Object.keys(window.sessionReplay);
+                const missingMethods = expectedMethods.filter(method => typeof window.sessionReplay[method] !== 'function');
+                
+                console.log('Available methods:', availableMethods);
+                console.log('Expected methods:', expectedMethods);
+                
+                if (missingMethods.length === 0) {
+                    result.innerHTML = `✅ <strong>Success:</strong> All expected methods are available<br>
+                        <small>Available: ${availableMethods.join(', ')}</small>`;
+                    result.className = 'success';
+                    console.log('✅ All expected API methods are available.');
+                } else {
+                    result.innerHTML = `⚠️ <strong>Warning:</strong> Some methods are missing<br>
+                        <small>Missing: ${missingMethods.join(', ')}<br>
+                        Available: ${availableMethods.join(', ')}</small>`;
+                    result.className = 'error';
+                    console.warn('⚠️ Some expected methods are missing:', missingMethods);
+                }
+            } else {
+                result.innerHTML = '❌ <strong>Error:</strong> window.sessionReplay is not available';
+                result.className = 'error';
+            }
+        }
+
+        // Initialize Session Replay
+        function initializeSessionReplay() {
+            const result = document.getElementById('init-result');
+            const apiKey = document.getElementById('api-key').value;
+            const sessionId = document.getElementById('session-id').value;
+            const deviceId = document.getElementById('device-id').value;
+            
+            if (!apiKey) {
+                result.innerHTML = '❌ Please enter an API key';
+                result.className = 'error';
+                return;
+            }
+            
+            try {
+                console.log('Initializing Session Replay with:', { apiKey, sessionId, deviceId });
+                
+                window.sessionReplay.init(apiKey, {
+                    sessionId: sessionId || undefined,
+                    deviceId: deviceId || undefined,
+                    logLevel: 3, // Verbose logging
+                    debugMode: true,
+                    sampleRate: 1.0, // Capture everything for testing
+                });
+                
+                result.innerHTML = '✅ <strong>Success:</strong> Session Replay initialized!';
+                result.className = 'success';
+                console.log('✅ Session Replay initialized successfully!');
+            } catch (error) {
+                result.innerHTML = `❌ <strong>Error:</strong> ${error.message}`;
+                result.className = 'error';
+                console.error('❌ Initialization failed:', error);
+            }
+        }
+
+        // Test method calls
+        function testGetSessionReplayProperties() {
+            const result = document.getElementById('method-test-result');
+            try {
+                const properties = window.sessionReplay.getSessionReplayProperties();
+                result.innerHTML = `✅ <strong>getSessionReplayProperties():</strong><br><pre>${JSON.stringify(properties, null, 2)}</pre>`;
+                result.className = 'success';
+                console.log('Session Replay Properties:', properties);
+            } catch (error) {
+                result.innerHTML = `❌ <strong>Error:</strong> ${error.message}`;
+                result.className = 'error';
+                console.error('getSessionReplayProperties failed:', error);
+            }
+        }
+
+        function testSetSessionId() {
+            const result = document.getElementById('method-test-result');
+            try {
+                const newSessionId = 'new-session-' + Date.now();
+                window.sessionReplay.setSessionId(newSessionId);
+                result.innerHTML = `✅ <strong>setSessionId():</strong> Set to ${newSessionId}`;
+                result.className = 'success';
+                console.log('Session ID updated to:', newSessionId);
+            } catch (error) {
+                result.innerHTML = `❌ <strong>Error:</strong> ${error.message}`;
+                result.className = 'error';
+                console.error('setSessionId failed:', error);
+            }
+        }
+
+        function testGetSessionId() {
+            const result = document.getElementById('method-test-result');
+            try {
+                const sessionId = window.sessionReplay.getSessionId();
+                result.innerHTML = `✅ <strong>getSessionId():</strong> ${sessionId || 'null'}`;
+                result.className = 'success';
+                console.log('Current Session ID:', sessionId);
+            } catch (error) {
+                result.innerHTML = `❌ <strong>Error:</strong> ${error.message}`;
+                result.className = 'error';
+                console.error('getSessionId failed:', error);
+            }
+        }
+
+        function testFlush() {
+            const result = document.getElementById('method-test-result');
+            try {
+                const flushPromise = window.sessionReplay.flush();
+                if (flushPromise && typeof flushPromise.then === 'function') {
+                    flushPromise.then(() => {
+                        result.innerHTML = `✅ <strong>flush():</strong> Events flushed successfully`;
+                        result.className = 'success';
+                        console.log('✅ Events flushed successfully');
+                    }).catch(error => {
+                        result.innerHTML = `❌ <strong>flush() error:</strong> ${error.message}`;
+                        result.className = 'error';
+                        console.error('Flush failed:', error);
+                    });
+                } else {
+                    result.innerHTML = `✅ <strong>flush():</strong> Called (returned: ${flushPromise})`;
+                    result.className = 'success';
+                    console.log('Flush called, returned:', flushPromise);
+                }
+            } catch (error) {
+                result.innerHTML = `❌ <strong>Error:</strong> ${error.message}`;
+                result.className = 'error';
+                console.error('flush failed:', error);
+            }
+        }
+
+        function testShutdown() {
+            const result = document.getElementById('method-test-result');
+            try {
+                window.sessionReplay.shutdown();
+                result.innerHTML = `✅ <strong>shutdown():</strong> Session Replay shutdown completed`;
+                result.className = 'success';
+                console.log('✅ Session Replay shutdown completed');
+            } catch (error) {
+                result.innerHTML = `❌ <strong>Error:</strong> ${error.message}`;
+                result.className = 'error';
+                console.error('shutdown failed:', error);
+            }
+        }
+
+        function logInteraction(message) {
+            console.log('User interaction:', message);
+        }
+
+        // Run tests when page loads
+        window.addEventListener('load', function() {
+            console.log('🎬 Session Replay Browser Script Tag Test started');
+            console.log('User Agent:', navigator.userAgent);
+            console.log('Page URL:', window.location.href);
+            
+            // Run tests with slight delay to ensure script is loaded
+            setTimeout(() => {
+                testScriptLoading();
+                testAPIAvailability();
+            }, 100);
+        });
+    </script>
+</body>
+</html>

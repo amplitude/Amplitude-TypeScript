@@ -3,6 +3,72 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.25.4](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.25.3...@amplitude/analytics-browser@2.25.4) (2025-10-07)
+
+**Note:** Version bump only for package @amplitude/analytics-browser
+
+
+
+
+
+## [2.25.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.25.2...@amplitude/analytics-browser@2.25.3) (2025-10-06)
+
+
+### Bug Fixes
+
+* Allow timestamp override for experiment events ([#1317](https://github.com/amplitude/Amplitude-TypeScript/issues/1317)) ([055b998](https://github.com/amplitude/Amplitude-TypeScript/commit/055b99898bcff8f59755f92937b628e3852a5c35))
+* resolve pluralization issue frustrationInteractions ([#1320](https://github.com/amplitude/Amplitude-TypeScript/issues/1320)) ([3bd89d0](https://github.com/amplitude/Amplitude-TypeScript/commit/3bd89d073bb949b525fa6f65f66ad6511df4da34))
+
+
+
+
+
+## [2.25.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.25.1...@amplitude/analytics-browser@2.25.2) (2025-10-03)
+
+
+### Bug Fixes
+
+* add diagnostics to client and track autocapture getHierachy block time ([#1312](https://github.com/amplitude/Amplitude-TypeScript/issues/1312)) ([a919e22](https://github.com/amplitude/Amplitude-TypeScript/commit/a919e223428083a87954cffa50bc765baa5360b0))
+* **analytics-browser:** suppress unnecessary url warnings ([#1315](https://github.com/amplitude/Amplitude-TypeScript/issues/1315)) ([c65c726](https://github.com/amplitude/Amplitude-TypeScript/commit/c65c72604113cac24e877eb0ec9e160fd7d84a1a))
+* support timestamp override for Experiment events ([dc9640d](https://github.com/amplitude/Amplitude-TypeScript/commit/dc9640d1d8915a544fcf7dcad12704cb317d35cd))
+* undo debug statement issue from last PR ([#1319](https://github.com/amplitude/Amplitude-TypeScript/issues/1319)) ([6a98015](https://github.com/amplitude/Amplitude-TypeScript/commit/6a9801501c3f75ea9d580e20d15890e391b37cb6))
+
+
+### Reverts
+
+* **analytics-browser:** revert "fix: support timestamp override for Experiment events" ([#1316](https://github.com/amplitude/Amplitude-TypeScript/issues/1316)) ([bf4584b](https://github.com/amplitude/Amplitude-TypeScript/commit/bf4584b4426a7f6a1b4ec779a26fda50cfcd8389))
+
+
+
+
+
+## [2.25.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.25.0...@amplitude/analytics-browser@2.25.1) (2025-10-01)
+
+**Note:** Version bump only for package @amplitude/analytics-browser
+
+
+
+
+
+# [2.25.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.24.2...@amplitude/analytics-browser@2.25.0) (2025-09-25)
+
+
+### Features
+
+* **analytics-browser:** add "identify" to config ([#1303](https://github.com/amplitude/Amplitude-TypeScript/issues/1303)) ([693720c](https://github.com/amplitude/Amplitude-TypeScript/commit/693720c348eaac0ffef8b88454deae06ceca0bb4))
+
+
+
+
+
+## [2.24.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.24.1...@amplitude/analytics-browser@2.24.2) (2025-09-23)
+
+**Note:** Version bump only for package @amplitude/analytics-browser
+
+
+
+
+
 ## [2.24.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.24.0...@amplitude/analytics-browser@2.24.1) (2025-09-18)
 
 

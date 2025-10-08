@@ -260,14 +260,18 @@
         deadClicks: true,
         rageClicks: true,
       };
+      const identify = new amplitude.Identify();
+      identify.set('testing', 'testing');
       amplitude.init(
         import.meta.env.VITE_AMPLITUDE_API_KEY,
         import.meta.env.VITE_AMPLITUDE_USER_ID || 'amplitude-typescript test user',
         {
+          identify,
           fetchRemoteConfig: false,
           autocapture: {
             elementInteractions: true,
             frustrationInteractions,
+            sessions: true,
           },
         }
       );

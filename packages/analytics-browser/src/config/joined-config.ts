@@ -131,6 +131,19 @@ export function translateRemoteConfigToLocal(config?: Record<string, any>) {
     /* istanbul ignore next */
     // surprise exception, so don't translate it
   }
+
+  // translate frustrationInteractions pluralization
+  const frustrationInteractions = config.autocapture?.frustrationInteractions;
+  if (frustrationInteractions) {
+    if (frustrationInteractions.rageClick) {
+      frustrationInteractions.rageClicks = frustrationInteractions.rageClick;
+      delete frustrationInteractions.rageClick;
+    }
+    if (frustrationInteractions.deadClick) {
+      frustrationInteractions.deadClicks = frustrationInteractions.deadClick;
+      delete frustrationInteractions.deadClick;
+    }
+  }
 }
 
 function mergeUrls(urlsExact: (string | RegExp)[], urlsRegex: string[] | undefined, browserConfig: BrowserConfig) {

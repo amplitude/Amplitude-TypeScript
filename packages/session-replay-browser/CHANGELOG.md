@@ -3,6 +3,63 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.28.17](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.28.16...@amplitude/session-replay-browser@1.28.17) (2025-10-07)
+
+**Note:** Version bump only for package @amplitude/session-replay-browser
+
+
+
+
+
+## [1.28.16](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.28.15...@amplitude/session-replay-browser@1.28.16) (2025-10-03)
+
+
+### Bug Fixes
+
+* add diagnostics to client and track autocapture getHierachy block time ([#1312](https://github.com/amplitude/Amplitude-TypeScript/issues/1312)) ([a919e22](https://github.com/amplitude/Amplitude-TypeScript/commit/a919e223428083a87954cffa50bc765baa5360b0))
+
+
+
+
+
+## [1.28.15](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.28.14...@amplitude/session-replay-browser@1.28.15) (2025-10-01)
+
+**Note:** Version bump only for package @amplitude/session-replay-browser
+
+
+
+
+
+## [1.28.14](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.28.13...@amplitude/session-replay-browser@1.28.14) (2025-09-25)
+
+
+### Bug Fixes
+
+* **session-replay-browser:** Fix webworker packaging for ESM ([#1300](https://github.com/amplitude/Amplitude-TypeScript/issues/1300)) ([9cf8cd9](https://github.com/amplitude/Amplitude-TypeScript/commit/9cf8cd90f1c96c0c03670fb1fc96f8d2d1dde605))
+
+
+
+
+
+## [1.28.13](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.28.12...@amplitude/session-replay-browser@1.28.13) (2025-09-25)
+
+**Note:** Version bump only for package @amplitude/session-replay-browser
+
+
+
+
+
+## [1.28.12](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.28.11...@amplitude/session-replay-browser@1.28.12) (2025-09-23)
+
+
+### Bug Fixes
+
+* **session-replay:** fix builds for iife ([#1302](https://github.com/amplitude/Amplitude-TypeScript/issues/1302)) ([b5f5af7](https://github.com/amplitude/Amplitude-TypeScript/commit/b5f5af780e4db91f8ffb7885f670a6d2f5036f76))
+
+
+
+
+
 ## [1.28.11](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.28.10...@amplitude/session-replay-browser@1.28.11) (2025-09-18)
 
 
