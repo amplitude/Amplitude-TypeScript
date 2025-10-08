@@ -2295,9 +2295,9 @@ describe('integration', () => {
         expect(response.message).toBe(SUCCESS_MESSAGE);
         scope.done();
 
-        expect(logger.debug).toHaveBeenCalledTimes(14);
+        expect(logger.debug).toHaveBeenCalledTimes(15);
         /* eslint-disable */
-        const debugContext = JSON.parse(logger.debug.mock.calls[13]);
+        const debugContext = JSON.parse(logger.debug.mock.calls[14]);
         expect(debugContext.type).toBeDefined();
         expect(debugContext.name).toEqual('track');
         expect(debugContext.args).toBeDefined();
@@ -2323,9 +2323,9 @@ describe('integration', () => {
         }).promise;
         client.setOptOut(true);
 
-        expect(logger.debug).toHaveBeenCalledTimes(8);
+        expect(logger.debug).toHaveBeenCalledTimes(9);
         /* eslint-disable */
-        const debugContext = JSON.parse(logger.debug.mock.calls[7]);
+        const debugContext = JSON.parse(logger.debug.mock.calls[8]);
         expect(debugContext.type).toBeDefined();
         expect(debugContext.name).toEqual('setOptOut');
         expect(debugContext.args).toBeDefined();
