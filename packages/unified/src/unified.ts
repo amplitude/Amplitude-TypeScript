@@ -73,7 +73,6 @@ export class AmplitudeUnified extends AmplitudeBrowser implements UnifiedClient 
       instanceName: unifiedOptions?.instanceName,
     };
 
-    /* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-member-access */
     super.add(libraryPlugin());
     await super.init(apiKey, { ...unifiedOptions?.analytics, ...sharedOptions }).promise;
 
@@ -104,5 +103,4 @@ export class AmplitudeUnified extends AmplitudeBrowser implements UnifiedClient 
     const res = super.init(apiKey, userIdOrOptions, maybeOptions);
     return res;
   }
-  /* eslint-enable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-member-access */
 }
