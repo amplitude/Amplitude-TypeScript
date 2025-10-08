@@ -94,15 +94,3 @@ export const getDefaultExcludedReferrers = (cookieDomain: string | undefined) =>
   }
   return [];
 };
-
-/**
- * Gets the page title, checking if the title element has data-amp-mask attribute
- * @returns The page title, masked if the title element has data-amp-mask attribute
- */
-export const getPageTitle = (parseTitleFunction?: (title: string) => string): string => {
-  // This function has moved to analytics-core plugins helpers.
-  if (typeof document === 'undefined' || !document.title) {
-    return '';
-  }
-  return parseTitleFunction ? parseTitleFunction(document.title) : document.title;
-};
