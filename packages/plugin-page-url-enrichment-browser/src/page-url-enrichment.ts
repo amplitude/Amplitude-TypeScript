@@ -9,6 +9,7 @@ import {
   getPageTitle,
   type ILogger,
   replaceSensitiveString,
+  SpecialEventType,
 } from '@amplitude/analytics-core';
 
 export const CURRENT_PAGE_STORAGE_KEY = 'AMP_CURRENT_PAGE';
@@ -27,7 +28,11 @@ enum PreviousPageType {
   External = 'external', // for different domains
 }
 
-export const EXCLUDED_DEFAULT_EVENT_TYPES = new Set(['$identify', '$groupidentify', 'revenue_amount']);
+export const EXCLUDED_DEFAULT_EVENT_TYPES = new Set([
+  SpecialEventType.IDENTIFY as string,
+  SpecialEventType.GROUP_IDENTIFY as string,
+  SpecialEventType.REVENUE as string,
+]);
 
 export const isPageUrlEnrichmentEnabled = (option: unknown): boolean => {
   if (typeof option === 'boolean') {
