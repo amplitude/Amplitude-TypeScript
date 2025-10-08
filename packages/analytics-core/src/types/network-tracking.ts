@@ -49,7 +49,6 @@ export interface NetworkCaptureRule {
    * URL patterns to allow for network capture. Supports wildcard.
    *
    * This takes precedence over `hosts`
-   * @experimental This feature is experimental and may not be stable
    * @defaultValue `["*"]` all URLs
    */
   urls?: (string | RegExp)[];
@@ -69,7 +68,6 @@ export interface NetworkCaptureRule {
    * If true, SAFE_HEADERS are captured. If false, no headers are captured.
    * If a string array, the headers in the array are captured.
    *
-   * @experimental This feature is experimental and may not be stable
    * @defaultValue `false`
    */
   responseHeaders?: string[] | boolean;
@@ -79,18 +77,15 @@ export interface NetworkCaptureRule {
    * If true, SAFE_HEADERS are captured. If false, no headers are captured.
    * If a string array, the headers in the array are captured.
    *
-   * @experimental This feature is experimental and may not be stable
    * @defaultValue `false`
    */
   requestHeaders?: string[] | boolean;
   /**
    * Determines what to capture from the response body.
-   * @experimental This feature is experimental and may not be stable
    */
   responseBody?: BodyCaptureRule;
   /**
    * Determines what to capture from the request body.
-   * @experimental This feature is experimental and may not be stable
    */
   requestBody?: BodyCaptureRule;
   /**
