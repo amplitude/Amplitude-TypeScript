@@ -97,7 +97,6 @@ export const getDefaultExcludedReferrers = (cookieDomain: string | undefined) =>
   return [];
 };
 
-// Data masking constants moved from plugin-autocapture-browser
 export const TEXT_MASK_ATTRIBUTE = 'data-amp-mask';
 export const MASKED_TEXT_VALUE = '*****';
 
