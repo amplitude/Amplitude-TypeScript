@@ -326,5 +326,3 @@ describe('getDefaultExcludedReferrers', () => {
     expect(excludedReferrers).toEqual([new RegExp('amplitude\\.com$')]);
   });
 });
-
-// getPageTitle tests moved to analytics-core
