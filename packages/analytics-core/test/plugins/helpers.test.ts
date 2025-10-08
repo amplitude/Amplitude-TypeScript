@@ -1,5 +1,27 @@
 /** @jest-environment jsdom */
-import { MASKED_TEXT_VALUE, getPageTitle } from '../../src/plugins/helpers';
+import { MASKED_TEXT_VALUE, TEXT_MASK_ATTRIBUTE, getPageTitle } from '../../src/plugins/helpers';
+
+describe('Constants', () => {
+  describe('TEXT_MASK_ATTRIBUTE', () => {
+    test('has the correct value', () => {
+      expect(TEXT_MASK_ATTRIBUTE).toBe('data-amp-mask');
+    });
+
+    test('is a string', () => {
+      expect(typeof TEXT_MASK_ATTRIBUTE).toBe('string');
+    });
+  });
+
+  describe('MASKED_TEXT_VALUE', () => {
+    test('has the correct value', () => {
+      expect(MASKED_TEXT_VALUE).toBe('*****');
+    });
+
+    test('is a string', () => {
+      expect(typeof MASKED_TEXT_VALUE).toBe('string');
+    });
+  });
+});
 
 describe('getPageTitle (core)', () => {
   beforeEach(() => {
@@ -21,7 +43,7 @@ describe('getPageTitle (core)', () => {
 
   test('returns MASKED_TEXT_VALUE when title element has data-amp-mask attribute', () => {
     const titleElement = document.createElement('title');
-    titleElement.setAttribute('data-amp-mask', 'true');
+    titleElement.setAttribute(TEXT_MASK_ATTRIBUTE, 'true');
     titleElement.textContent = 'Sensitive Title';
     document.head.appendChild(titleElement);
 
