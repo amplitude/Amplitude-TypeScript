@@ -4,6 +4,8 @@ import Cookie from 'js-cookie';
 import { COOKIE_NAME } from './constants';
 import { AmplitudeIntegrationData } from './typings/wrapper';
 
+/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-member-access */
+
 export const getSessionId = (): number | undefined => {
   // First try to get the sessionId from the Session Replay SDK
   // If that fails, try to get the sessionId from the persistent storage

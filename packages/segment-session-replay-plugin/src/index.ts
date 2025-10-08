@@ -6,6 +6,8 @@ import { getSessionId, setSessionId, updateSessionIdAndAddProperties } from './h
 import { PluginOptions } from './typings/wrapper';
 import { VERSION } from './version';
 
+/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-member-access */
+
 export const createSegmentActionsPlugin = async ({
   amplitudeApiKey,
   sessionReplayOptions,

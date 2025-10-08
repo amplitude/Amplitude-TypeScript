@@ -19,7 +19,16 @@ module.exports = {
     'plugin:@typescript-eslint/recommended-requiring-type-checking',
     'plugin:jest/recommended',
     'prettier',
+    "plugin:import/recommended",
   ],
+  settings: {
+    'import/resolver': {
+      typescript: {
+        alwaysTryTypes: true,
+        project: 'packages/*/tsconfig.json',
+      },
+    },
+  },
   rules: {
     '@typescript-eslint/member-delimiter-style': 0,
     '@typescript-eslint/no-explicit-any': 0,
@@ -46,12 +55,27 @@ module.exports = {
         message: 'Unsafe access to `self`.',
       },
     ],
+    'import/no-extraneous-dependencies': [
+      'error',
+      {
+        optionalDependencies: false,
+      },
+    ],
   },
   overrides: [
     {
       // Allow test files to access globals
-      files: '*.test.ts',
+      files: ['*.test.ts', '*.spec.ts'],
       rules: {
+        'no-restricted-globals': 'off',
+        'import/no-unresolved': 'off',
+        'import/named': 'off',
+        '@typescript-eslint/no-unsafe-assignment': 'off',
+        'import/no-extraneous-dependencies': 'off',
+        'import/no-unsafe-argument': 'off',
+        '@typescript-eslint/no-unsafe-member-access': 'off',
+        '@typescript-eslint/no-unsafe-call': 'off',
+        '@typescript-eslint/no-unsafe-argument': 'off',
         'no-restricted-globals': 'off',
       },
     },

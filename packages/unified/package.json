@@ -45,6 +45,7 @@
   },
   "dependencies": {
     "@amplitude/analytics-browser": "^2.25.2",
+    "@amplitude/analytics-core": "^2.26.2",
     "@amplitude/engagement-browser": "^1.0.3",
     "@amplitude/plugin-experiment-browser": "^1.0.0-beta.0",
     "@amplitude/plugin-session-replay-browser": "^1.16.0"
