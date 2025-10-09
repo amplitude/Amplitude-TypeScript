@@ -48,7 +48,6 @@
   },
   "dependencies": {
     "@amplitude/analytics-core": "^2.26.2",
-    "@amplitude/analytics-remote-config": "^0.4.0",
     "@amplitude/plugin-autocapture-browser": "^1.14.4",
     "@amplitude/plugin-network-capture-browser": "^1.6.5",
     "@amplitude/plugin-page-view-tracking-browser": "^2.4.4",
