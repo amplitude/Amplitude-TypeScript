@@ -23,6 +23,7 @@ describe('autoTrackingPlugin', () => {
   });
 
   beforeEach(() => {
+    jest.useFakeTimers();
     (window.location as any) = {
       hostname: '',
       href: '',
@@ -36,6 +37,7 @@ describe('autoTrackingPlugin', () => {
     void plugin?.teardown?.();
     document.getElementsByTagName('body')[0].innerHTML = '';
     jest.clearAllMocks();
+    jest.useRealTimers();
   });
 
   describe('name', () => {
@@ -120,6 +122,7 @@ describe('autoTrackingPlugin', () => {
     let loggerProvider: ILogger;
 
     beforeEach(async () => {
+      jest.useFakeTimers();
       loggerProvider = {
         log: jest.fn(),
         warn: jest.fn(),
@@ -150,6 +153,7 @@ describe('autoTrackingPlugin', () => {
       document.querySelector('a#my-link-id')?.remove();
       document.querySelector('button#my-button-id')?.remove();
       document.querySelector('input#my-input-id')?.remove();
+      jest.useRealTimers();
     });
 
     test('should monitor element clicked event', async () => {
@@ -162,7 +166,7 @@ describe('autoTrackingPlugin', () => {
       // trigger click event
       document.getElementById('my-link-id')?.dispatchEvent(new Event('click'));
 
-      await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 3));
+      jest.advanceTimersByTime(TESTING_DEBOUNCE_TIME + 3);
 
       expect(track).toHaveBeenCalledTimes(1);
       expect(track).toHaveBeenNthCalledWith(1, '[Amplitude] Element Clicked', {
@@ -205,7 +209,7 @@ describe('autoTrackingPlugin', () => {
       // trigger click event
       document.getElementById('my-link-id')?.dispatchEvent(new Event('click'));
 
-      await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 3));
+      jest.advanceTimersByTime(TESTING_DEBOUNCE_TIME + 3);
 
       // assert no additional event was tracked
       expect(track).toHaveBeenCalledTimes(1);
@@ -221,7 +225,7 @@ describe('autoTrackingPlugin', () => {
       // trigger click event
       document.getElementById('my-link-id')?.dispatchEvent(new Event('click'));
 
-      await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 3));
+      jest.advanceTimersByTime(TESTING_DEBOUNCE_TIME + 3);
 
       expect(track).toHaveBeenCalledTimes(1);
       expect(track).toHaveBeenNthCalledWith(
@@ -256,7 +260,7 @@ describe('autoTrackingPlugin', () => {
       // trigger click event
       document.getElementById('my-link-id')?.dispatchEvent(new Event('click'));
 
-      await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 3));
+      jest.advanceTimersByTime(TESTING_DEBOUNCE_TIME + 3);
 
       // assert no additional event was tracked after teardown
       expect(track).toHaveBeenCalledTimes(1);
@@ -298,7 +302,7 @@ describe('autoTrackingPlugin', () => {
       // trigger click event
       submitButton?.dispatchEvent(new Event('click'));
 
-      await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 3));
+      jest.advanceTimersByTime(TESTING_DEBOUNCE_TIME + 3);
 
       expect(track).toHaveBeenCalledTimes(1);
       expect(track).toHaveBeenNthCalledWith(
@@ -327,7 +331,7 @@ describe('autoTrackingPlugin', () => {
       // trigger click event
       document.getElementById('my-link-id')?.dispatchEvent(new Event('click'));
 
-      await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 3));
+      jest.advanceTimersByTime(TESTING_DEBOUNCE_TIME + 3);
 
       // assert no additional event was tracked
       expect(track).toHaveBeenCalledTimes(1);
@@ -347,7 +351,7 @@ describe('autoTrackingPlugin', () => {
       // Change the link text immediately after click
       linkEl.textContent = 'updated-link-text';
 
-      await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 3));
+      jest.advanceTimersByTime(TESTING_DEBOUNCE_TIME + 3);
 
       expect(track).toHaveBeenCalledTimes(1);
       expect(track).toHaveBeenNthCalledWith(1, '[Amplitude] Element Clicked', {
@@ -390,7 +394,7 @@ describe('autoTrackingPlugin', () => {
       // trigger click event
       document.getElementById('my-link-id')?.dispatchEvent(new Event('click'));
 
-      await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 3));
+      jest.advanceTimersByTime(TESTING_DEBOUNCE_TIME + 3);
 
       // assert no additional event was tracked
       expect(track).toHaveBeenCalledTimes(1);
@@ -419,7 +423,7 @@ describe('autoTrackingPlugin', () => {
 
       document.getElementById('mask-button')?.dispatchEvent(new Event('click'));
 
-      await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 3));
+      jest.advanceTimersByTime(TESTING_DEBOUNCE_TIME + 3);
 
       expect(track).toHaveBeenCalledTimes(1);
       expect(track).toHaveBeenNthCalledWith(
@@ -449,7 +453,7 @@ describe('autoTrackingPlugin', () => {
 
       document.getElementById('my-button-id')?.dispatchEvent(new Event('click'));
 
-      await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 3));
+      jest.advanceTimersByTime(TESTING_DEBOUNCE_TIME + 3);
       expect(track).toHaveBeenCalledTimes(1);
       expect(track).toHaveBeenNthCalledWith(1, '[Amplitude] Element Clicked', {
         '[Amplitude] Element Class': 'my-button-class',
@@ -519,7 +523,7 @@ describe('autoTrackingPlugin', () => {
 
       // trigger click event
       document.getElementById('my-button-id')?.dispatchEvent(new Event('click'));
-      await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 3));
+      jest.advanceTimersByTime(TESTING_DEBOUNCE_TIME + 3);
 
       expect(track).toHaveBeenCalledTimes(1);
       expect(track).toHaveBeenNthCalledWith(1, '[Amplitude] Element Clicked', {
@@ -573,13 +577,13 @@ describe('autoTrackingPlugin', () => {
 
       // trigger click div which should not be tracked
       document.getElementById('my-div-id')?.dispatchEvent(new Event('click'));
-      await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 3));
+      jest.advanceTimersByTime(TESTING_DEBOUNCE_TIME + 3);
 
       expect(track).toHaveBeenCalledTimes(0);
 
       // trigger click link
       document.getElementById('my-link-id')?.dispatchEvent(new Event('click'));
-      await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 3));
+      jest.advanceTimersByTime(TESTING_DEBOUNCE_TIME + 3);
 
       expect(track).toHaveBeenCalledTimes(1);
     });
@@ -605,13 +609,13 @@ describe('autoTrackingPlugin', () => {
 
         // trigger click link
         document.getElementById('my-link-id')?.dispatchEvent(new Event('click'));
-        await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 3));
+        jest.advanceTimersByTime(TESTING_DEBOUNCE_TIME + 3);
 
         expect(track).toHaveBeenCalledTimes(0);
 
         // trigger click button
         document.getElementById('my-button-id')?.dispatchEvent(new Event('click'));
-        await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 3));
+        jest.advanceTimersByTime(TESTING_DEBOUNCE_TIME + 3);
 
         expect(track).toHaveBeenCalledTimes(1);
       });
@@ -642,13 +646,13 @@ describe('autoTrackingPlugin', () => {
 
         // trigger click button
         document.getElementById('my-button-id')?.dispatchEvent(new Event('click'));
-        await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 3));
+        jest.advanceTimersByTime(TESTING_DEBOUNCE_TIME + 3);
 
         expect(track).toHaveBeenCalledTimes(0);
 
         // trigger click div
         document.getElementById('my-div-id')?.dispatchEvent(new Event('click'));
-        await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 3));
+        jest.advanceTimersByTime(TESTING_DEBOUNCE_TIME + 3);
 
         expect(track).toHaveBeenCalledTimes(1);
       });
@@ -685,19 +689,19 @@ describe('autoTrackingPlugin', () => {
 
         // trigger click button
         document.getElementById('my-button-id')?.dispatchEvent(new Event('click'));
-        await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 3));
+        jest.advanceTimersByTime(TESTING_DEBOUNCE_TIME + 3);
 
         expect(track).toHaveBeenCalledTimes(1);
 
         // trigger click div1
         document.getElementById('my-div-id1')?.dispatchEvent(new Event('click'));
-        await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 3));
+        jest.advanceTimersByTime(TESTING_DEBOUNCE_TIME + 3);
 
         expect(track).toHaveBeenCalledTimes(2);
 
         // trigger click div2
         document.getElementById('my-div-id2')?.dispatchEvent(new Event('click'));
-        await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 3));
+        jest.advanceTimersByTime(TESTING_DEBOUNCE_TIME + 3);
 
         expect(track).toHaveBeenCalledTimes(3);
       });
@@ -717,7 +721,7 @@ describe('autoTrackingPlugin', () => {
 
       // trigger click link
       document.getElementById('my-link-id')?.dispatchEvent(new Event('click'));
-      await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 3));
+      jest.advanceTimersByTime(TESTING_DEBOUNCE_TIME + 3);
 
       expect(track).toHaveBeenCalledTimes(0);
 
@@ -733,7 +737,7 @@ describe('autoTrackingPlugin', () => {
 
       // trigger click link
       document.getElementById('my-link-id-new-url')?.dispatchEvent(new Event('click'));
-      await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 3));
+      jest.advanceTimersByTime(TESTING_DEBOUNCE_TIME + 3);
 
       expect(track).toHaveBeenCalledTimes(1);
     });
@@ -762,7 +766,7 @@ describe('autoTrackingPlugin', () => {
 
       // trigger click link - should be blocked by excludelist
       document.getElementById('my-link-id-excluded-url')?.dispatchEvent(new Event('click'));
-      await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 3));
+      jest.advanceTimersByTime(TESTING_DEBOUNCE_TIME + 3);
 
       expect(track).toHaveBeenCalledTimes(0);
 
@@ -778,7 +782,7 @@ describe('autoTrackingPlugin', () => {
 
       // trigger click link - should be allowed
       document.getElementById('my-link-id-allowed-url')?.dispatchEvent(new Event('click'));
-      await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 3));
+      jest.advanceTimersByTime(TESTING_DEBOUNCE_TIME + 3);
 
       expect(track).toHaveBeenCalledTimes(1);
     });
@@ -808,7 +812,7 @@ describe('autoTrackingPlugin', () => {
 
       // trigger click link - should be blocked by excludelist even though it matches allowlist
       document.getElementById('my-link-id-conflict-url')?.dispatchEvent(new Event('click'));
-      await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 3));
+      jest.advanceTimersByTime(TESTING_DEBOUNCE_TIME + 3);
 
       expect(track).toHaveBeenCalledTimes(0);
     });
@@ -842,13 +846,13 @@ describe('autoTrackingPlugin', () => {
 
       // trigger click button2
       document.getElementById('my-button-id-2')?.dispatchEvent(new Event('click'));
-      await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 3));
+      jest.advanceTimersByTime(TESTING_DEBOUNCE_TIME + 3);
 
       expect(track).toHaveBeenCalledTimes(0);
 
       // trigger click button1
       document.getElementById('my-button-id-1')?.dispatchEvent(new Event('click'));
-      await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 3));
+      jest.advanceTimersByTime(TESTING_DEBOUNCE_TIME + 3);
 
       expect(track).toHaveBeenCalledTimes(1);
     });
@@ -877,7 +881,7 @@ describe('autoTrackingPlugin', () => {
 
       // trigger click button
       document.getElementById('my-button-id')?.dispatchEvent(new Event('click'));
-      await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 3));
+      jest.advanceTimersByTime(TESTING_DEBOUNCE_TIME + 3);
 
       expect(track).toHaveBeenCalledTimes(1);
       expect(track).toHaveBeenNthCalledWith(1, '[Amplitude] Element Clicked', {
@@ -946,7 +950,7 @@ describe('autoTrackingPlugin', () => {
 
       // trigger click button
       document.getElementById('my-button-id')?.dispatchEvent(new Event('click'));
-      await new Promise((r) => setTimeout(r, 0));
+      jest.advanceTimersByTime(0);
       expect(track).toHaveBeenCalledTimes(1);
 
       global.fetch = oldFetch;
@@ -966,7 +970,7 @@ describe('autoTrackingPlugin', () => {
 
       // trigger click input
       document.getElementById('my-input-id')?.dispatchEvent(new Event('click'));
-      await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 3));
+      jest.advanceTimersByTime(TESTING_DEBOUNCE_TIME + 3);
 
       expect(track).toHaveBeenCalledTimes(1);
 
@@ -1110,7 +1114,7 @@ describe('autoTrackingPlugin', () => {
 
         // trigger click inner
         document.getElementById('inner')?.dispatchEvent(new Event('click', { bubbles: true }));
-        await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 3));
+        jest.advanceTimersByTime(TESTING_DEBOUNCE_TIME + 3);
 
         expect(track).toHaveBeenCalledTimes(1);
         expect(track).toHaveBeenNthCalledWith(
@@ -1123,7 +1127,7 @@ describe('autoTrackingPlugin', () => {
 
         // trigger click container
         document.getElementById('container1')?.dispatchEvent(new Event('click', { bubbles: true }));
-        await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 3));
+        jest.advanceTimersByTime(TESTING_DEBOUNCE_TIME + 3);
 
         expect(track).toHaveBeenCalledTimes(2);
         expect(track).toHaveBeenNthCalledWith(
@@ -1166,7 +1170,7 @@ describe('autoTrackingPlugin', () => {
 
         // trigger click inner
         document.getElementById('inner')?.dispatchEvent(new Event('click', { bubbles: true }));
-        await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 3));
+        jest.advanceTimersByTime(TESTING_DEBOUNCE_TIME + 3);
 
         expect(track).toHaveBeenCalledTimes(1);
         expect(track).toHaveBeenNthCalledWith(
@@ -1179,7 +1183,7 @@ describe('autoTrackingPlugin', () => {
 
         // trigger click container
         document.getElementById('container1')?.dispatchEvent(new Event('click', { bubbles: true }));
-        await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 3));
+        jest.advanceTimersByTime(TESTING_DEBOUNCE_TIME + 3);
 
         expect(track).toHaveBeenCalledTimes(2);
         expect(track).toHaveBeenNthCalledWith(
@@ -1218,7 +1222,7 @@ describe('autoTrackingPlugin', () => {
 
         // trigger click inner
         document.getElementById('inner')?.dispatchEvent(new Event('click', { bubbles: true }));
-        await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 3));
+        jest.advanceTimersByTime(TESTING_DEBOUNCE_TIME + 3);
 
         expect(track).toHaveBeenCalledTimes(1);
         expect(track).toHaveBeenNthCalledWith(
@@ -1231,7 +1235,7 @@ describe('autoTrackingPlugin', () => {
 
         // trigger click container
         document.getElementById('container')?.dispatchEvent(new Event('click', { bubbles: true }));
-        await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 3));
+        jest.advanceTimersByTime(TESTING_DEBOUNCE_TIME + 3);
 
         expect(track).toHaveBeenCalledTimes(2);
         expect(track).toHaveBeenNthCalledWith(
@@ -1271,7 +1275,7 @@ describe('autoTrackingPlugin', () => {
 
         // trigger click inner
         document.getElementById('inner')?.dispatchEvent(new Event('click', { bubbles: true }));
-        await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 3));
+        jest.advanceTimersByTime(TESTING_DEBOUNCE_TIME + 3);
 
         expect(track).toHaveBeenCalledTimes(1);
         expect(track).toHaveBeenNthCalledWith(
@@ -1284,7 +1288,7 @@ describe('autoTrackingPlugin', () => {
 
         // trigger click container
         document.getElementById('container')?.dispatchEvent(new Event('click', { bubbles: true }));
-        await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 3));
+        jest.advanceTimersByTime(TESTING_DEBOUNCE_TIME + 3);
 
         expect(track).toHaveBeenCalledTimes(2);
         expect(track).toHaveBeenNthCalledWith(
@@ -1305,7 +1309,7 @@ describe('autoTrackingPlugin', () => {
 
       window.dispatchEvent(event);
 
-      await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 3));
+      jest.advanceTimersByTime(TESTING_DEBOUNCE_TIME + 3);
 
       expect(track).toHaveBeenCalledTimes(0);
     });
@@ -1327,7 +1331,7 @@ describe('autoTrackingPlugin', () => {
         button.dispatchEvent(new Event('click'));
         button.dispatchEvent(new Event('click'));
 
-        await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 3));
+        jest.advanceTimersByTime(TESTING_DEBOUNCE_TIME + 3);
         expect(track).toHaveBeenCalledTimes(4);
       });
 
@@ -1350,7 +1354,7 @@ describe('autoTrackingPlugin', () => {
         button.dispatchEvent(new Event('click'));
         button.dispatchEvent(new Event('click'));
 
-        await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 3));
+        jest.advanceTimersByTime(TESTING_DEBOUNCE_TIME + 3);
         expect(track).toHaveBeenCalledTimes(6);
       });
     });
