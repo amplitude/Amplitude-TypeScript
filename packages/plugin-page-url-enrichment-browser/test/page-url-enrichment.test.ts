@@ -1,14 +1,20 @@
-import { BrowserClient, BrowserConfig, LogLevel } from '@amplitude/analytics-types';
 import {
-  pageUrlEnrichmentPlugin,
+  type BrowserClient,
+  type BrowserConfig,
+  CookieStorage,
+  FetchTransport,
+  getGlobalScope,
+  LogLevel,
+  Logger,
+  UUID,
+} from '@amplitude/analytics-core';
+import {
   CURRENT_PAGE_STORAGE_KEY,
   PREVIOUS_PAGE_STORAGE_KEY,
   URL_INFO_STORAGE_KEY,
   isPageUrlEnrichmentEnabled,
+  pageUrlEnrichmentPlugin,
 } from '../src/page-url-enrichment';
-import { Logger, UUID } from '@amplitude/analytics-core';
-import { CookieStorage, FetchTransport } from '@amplitude/analytics-client-common';
-import { getGlobalScope } from '@amplitude/analytics-core';
 import * as Core from '@amplitude/analytics-core';
 
 // Mock BrowserClient implementation
@@ -447,6 +453,16 @@ describe('pageUrlEnrichmentPlugin', () => {
         '[Amplitude] Previous Page Location': '',
         '[Amplitude] Previous Page Type': 'direct',
       });
+    });
+
+    test('should ignore event if it is one of the default event types to be excluded', async () => {
+      await plugin.setup?.(mockConfig, mockAmplitude);
+
+      const excludedEvent = await plugin.execute?.({
+        event_type: '$identify',
+      });
+
+      expect(excludedEvent?.event_properties).toStrictEqual(undefined);
     });
   });
 

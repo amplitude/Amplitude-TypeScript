@@ -1,5 +1,14 @@
-import type { BrowserClient, BrowserConfig, EnrichmentPlugin, Event, Logger } from '@amplitude/analytics-types';
-import { getGlobalScope, BrowserStorage, getDecodeURI } from '@amplitude/analytics-core';
+import {
+  type BrowserClient,
+  type BrowserConfig,
+  BrowserStorage,
+  type EnrichmentPlugin,
+  type Event,
+  getDecodeURI,
+  getGlobalScope,
+  type ILogger,
+  SpecialEventType,
+} from '@amplitude/analytics-core';
 
 export const CURRENT_PAGE_STORAGE_KEY = 'AMP_CURRENT_PAGE';
 export const PREVIOUS_PAGE_STORAGE_KEY = 'AMP_PREVIOUS_PAGE';
@@ -17,6 +26,12 @@ enum PreviousPageType {
   External = 'external', // for different domains
 }
 
+export const EXCLUDED_DEFAULT_EVENT_TYPES = new Set<string>([
+  SpecialEventType.IDENTIFY,
+  SpecialEventType.GROUP_IDENTIFY,
+  SpecialEventType.REVENUE,
+]);
+
 export const isPageUrlEnrichmentEnabled = (option: unknown): boolean => {
   if (typeof option === 'boolean') {
     return option;
@@ -31,7 +46,7 @@ export const pageUrlEnrichmentPlugin = (): EnrichmentPlugin => {
   const globalScope = getGlobalScope();
   let sessionStorage: BrowserStorage<URLInfo> | undefined = undefined;
   let isStorageEnabled = false;
-  let loggerProvider: Logger | undefined = undefined;
+  let loggerProvider: ILogger | undefined = undefined;
 
   let isProxied = false;
   let isTracking = false;
@@ -140,6 +155,11 @@ export const pageUrlEnrichmentPlugin = (): EnrichmentPlugin => {
             [CURRENT_PAGE_STORAGE_KEY]: locationHREF,
             [PREVIOUS_PAGE_STORAGE_KEY]: previousPage,
           });
+        }
+
+        // no need to proceed to add additional properties if the event is one of the default event types to be excluded
+        if (EXCLUDED_DEFAULT_EVENT_TYPES.has(event.event_type)) {
+          return event;
         }
 
         event.event_properties = {
