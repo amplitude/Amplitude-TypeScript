@@ -2,9 +2,10 @@ import { DataExtractor } from '../src/data-extractor';
 import * as constants from '../src/constants';
 import { mockWindowLocationFromURL } from './utils';
 import type { ElementBasedTimestampedEvent } from '../src/helpers';
-import { DATA_AMP_MASK_ATTRIBUTES, MASKED_TEXT_VALUE } from '../src/constants';
+import { DATA_AMP_MASK_ATTRIBUTES } from '../src/constants';
 import * as hierarchy from '../src/hierarchy';
 import type { Hierarchy } from '../src/typings/autocapture';
+import { MASKED_TEXT_VALUE } from '@amplitude/analytics-core';
 
 describe('data extractor', () => {
   let dataExtractor: DataExtractor;
@@ -13,177 +14,104 @@ describe('data extractor', () => {
     dataExtractor = new DataExtractor({ maskTextRegex: [/Florida|California/, /Pennsylvania/] });
   });
 
-  describe('replaceSensitiveString', () => {
-    test('should return empty string when text is null or undefined', () => {
-      const nullText = null;
-      const undefinedText = undefined;
-      const result = dataExtractor.replaceSensitiveString(nullText);
-      const result2 = dataExtractor.replaceSensitiveString(undefinedText as unknown as string);
-      expect(result).toEqual('');
-      expect(result2).toEqual('');
+  describe('constructor - maskTextRegex pattern compilation', () => {
+    test('should compile valid pattern strings from pattern objects', () => {
+      const extractor = new DataExtractor({
+        maskTextRegex: [{ pattern: 'Texas|Nevada', description: 'US States' }],
+      });
+
+      const button = document.createElement('button');
+      button.textContent = 'Visit Texas today';
+      const result = extractor.getText(button);
+
+      expect(result).toEqual(`Visit ${MASKED_TEXT_VALUE} today`);
     });
 
-    test('should return original text when text is not sensitive', () => {
-      const text = 'test-string';
-      const result = dataExtractor.replaceSensitiveString(text);
-      expect(result).toEqual('test-string');
+    test('should ignore invalid regex pattern strings without throwing', () => {
+      // Invalid regex patterns with unclosed brackets, invalid escapes, etc.
+      expect(() => {
+        new DataExtractor({
+          maskTextRegex: [
+            { pattern: '[invalid(regex', description: 'Invalid pattern 1' },
+            { pattern: '(?:unclosed', description: 'Invalid pattern 2' },
+            { pattern: '\\k<invalid>', description: 'Invalid pattern 3' },
+          ],
+        });
+      }).not.toThrow();
     });
 
-    // https://www.paypalobjects.com/en_AU/vhelp/paypalmanager_help/credit_card_numbers.htm
-    test('should return masked text when text is credit card format', () => {
-      const sampleCreditCardNumbers = [
-        // American Express
-        '378282246310005',
-        // American Express
-        '371449635398431',
-        // American Express Corporate
-        '378734493671000',
-        // Diners Club
-        '30569309025904',
-        // Diners Club
-        '38520000023237',
-        // Discover
-        '6011111111111117',
-        // Discover
-        '6011000990139424',
-        // JCB
-        '3530111333300000',
-        // JCB
-        '3566002020360505',
-        // MasterCard
-        '5555555555554444',
-        // MasterCard
-        '5105105105105100',
-        // Visa
-        '4111111111111111',
-        // Visa
-        '4012888888881881',
-        // Visa (13 digits). Note: Even though this number has a different character count than the other test numbers, it is the correct and functional number.
-        '4222222222222',
-        // Visa
-        '4916024123820164',
-      ];
-
-      for (const text of sampleCreditCardNumbers) {
-        const result = dataExtractor.replaceSensitiveString(text);
-        expect(result).toEqual(constants.MASKED_TEXT_VALUE);
-      }
-    });
-
-    test('should return masked text when text is social security number format', () => {
-      const text = '269-28-9315';
-      const result = dataExtractor.replaceSensitiveString(text);
-      expect(result).toEqual(constants.MASKED_TEXT_VALUE);
-    });
-
-    test('should return empty string when text is not a string', () => {
-      const text = 123;
-      const result = dataExtractor.replaceSensitiveString(text as unknown as string);
-      expect(result).toEqual('');
-    });
-
-    test('should return masked text when text is sensitive and matches maskTextRegex', () => {
-      const text = 'Pittsburgh, Pennsylvania';
-      const result = dataExtractor.replaceSensitiveString(text);
-
-      const text2 = 'Florida';
-      const result2 = dataExtractor.replaceSensitiveString(text2);
-
-      expect(result).toEqual(`Pittsburgh, ${constants.MASKED_TEXT_VALUE}`);
-      expect(result2).toEqual(constants.MASKED_TEXT_VALUE);
-    });
-
-    test('should return original text when text does not match maskTextRegex', () => {
-      const text = 'Test string';
-      const result = dataExtractor.replaceSensitiveString(text);
-      expect(result).toEqual('Test string');
-    });
-
-    test('should parse maskTextRegex objects into regex objects', () => {
-      const dataExtractor = new DataExtractor({
+    test('should continue processing valid patterns after encountering invalid ones', () => {
+      const extractor = new DataExtractor({
         maskTextRegex: [
-          { pattern: 'Florida|California', description: 'Florida or California' },
-          { pattern: 'Pennsylvania', description: 'Pennsylvania' },
+          { pattern: '[invalid(', description: 'Invalid' },
+          { pattern: 'Secret', description: 'Valid' },
+          /Confidential/,
         ],
       });
 
-      const text = 'Pittsburgh, Pennsylvania';
-      const result = dataExtractor.replaceSensitiveString(text);
+      const button1 = document.createElement('button');
+      button1.textContent = 'Secret information';
+      const result1 = extractor.getText(button1);
+      expect(result1).toEqual(`${MASKED_TEXT_VALUE} information`);
 
-      const text2 = 'Florida';
-      const result2 = dataExtractor.replaceSensitiveString(text2);
-
-      expect(result).toEqual(`Pittsburgh, ${constants.MASKED_TEXT_VALUE}`);
-      expect(result2).toEqual(constants.MASKED_TEXT_VALUE);
+      const button2 = document.createElement('button');
+      button2.textContent = 'Confidential data';
+      const result2 = extractor.getText(button2);
+      expect(result2).toEqual(`${MASKED_TEXT_VALUE} data`);
     });
 
-    test('should cap maskTextRegex over MAX_MASK_TEXT_PATTERNS', () => {
-      const overLimit = constants.MAX_MASK_TEXT_PATTERNS + 5;
-      const patterns = Array.from({ length: overLimit }, (_v, i) => new RegExp(`\\btoken${i + 1}\\b`));
-      const extractor = new DataExtractor({ maskTextRegex: patterns });
+    test('should handle mixed RegExp and pattern objects', () => {
+      const extractor = new DataExtractor({
+        maskTextRegex: [/DirectRegex/, { pattern: 'PatternObject', description: 'Pattern as object' }],
+      });
 
-      // Matches within the cap should be masked
-      expect(extractor.replaceSensitiveString(`token${constants.MAX_MASK_TEXT_PATTERNS}`)).toEqual(
-        constants.MASKED_TEXT_VALUE,
-      );
-      // Matches beyond the cap should NOT be masked
-      expect(extractor.replaceSensitiveString(`token${constants.MAX_MASK_TEXT_PATTERNS + 1}`)).toEqual(
-        `token${constants.MAX_MASK_TEXT_PATTERNS + 1}`,
-      );
+      const button1 = document.createElement('button');
+      button1.textContent = 'DirectRegex test';
+      expect(extractor.getText(button1)).toEqual(`${MASKED_TEXT_VALUE} test`);
+
+      const button2 = document.createElement('button');
+      button2.textContent = 'PatternObject test';
+      expect(extractor.getText(button2)).toEqual(`${MASKED_TEXT_VALUE} test`);
     });
 
-    test('should return masked text when text is email address format', () => {
-      const text = 'user@example.com';
-      const result = dataExtractor.replaceSensitiveString(text);
-      expect(result).toEqual(constants.MASKED_TEXT_VALUE);
+    test('should compile patterns with case-insensitive flag', () => {
+      const extractor = new DataExtractor({
+        maskTextRegex: [{ pattern: 'sensitive', description: 'Case insensitive' }],
+      });
+
+      const button1 = document.createElement('button');
+      button1.textContent = 'SENSITIVE data';
+      expect(extractor.getText(button1)).toEqual(`${MASKED_TEXT_VALUE} data`);
+
+      const button2 = document.createElement('button');
+      button2.textContent = 'Sensitive data';
+      expect(extractor.getText(button2)).toEqual(`${MASKED_TEXT_VALUE} data`);
+
+      const button3 = document.createElement('button');
+      button3.textContent = 'sensitive data';
+      expect(extractor.getText(button3)).toEqual(`${MASKED_TEXT_VALUE} data`);
     });
 
-    test('should return masked text when text contains email address within other text', () => {
-      const text = 'Contact us at support@example.com for help';
-      const result = dataExtractor.replaceSensitiveString(text);
-      expect(result).toEqual(`Contact us at ${constants.MASKED_TEXT_VALUE} for help`);
-    });
+    test('should respect MAX_MASK_TEXT_PATTERNS limit', () => {
+      const maxPatterns = constants.MAX_MASK_TEXT_PATTERNS;
+      const patterns = Array.from({ length: maxPatterns + 5 }, (_, i) => ({
+        pattern: `word${i}\\b`,
+        description: `Pattern ${i}`,
+      }));
 
-    test('should return masked text when text contains email address at the beginning', () => {
-      const text = 'user@example.com is the admin';
-      const result = dataExtractor.replaceSensitiveString(text);
-      expect(result).toEqual(`${constants.MASKED_TEXT_VALUE} is the admin`);
-    });
+      const extractor = new DataExtractor({
+        maskTextRegex: patterns,
+      });
 
-    test('should return masked text when text contains email address at the end', () => {
-      const text = 'Send feedback to feedback@company.org';
-      const result = dataExtractor.replaceSensitiveString(text);
-      expect(result).toEqual(`Send feedback to ${constants.MASKED_TEXT_VALUE}`);
-    });
+      // The first maxPatterns should work
+      const button1 = document.createElement('button');
+      button1.textContent = `word${maxPatterns - 1} test`;
+      expect(extractor.getText(button1)).toEqual(`${MASKED_TEXT_VALUE} test`);
 
-    test('should return masked text when text contains multiple email addresses', () => {
-      const text = 'Contact admin@example.com or support@example.com';
-      const result = dataExtractor.replaceSensitiveString(text);
-      expect(result).toEqual(`Contact ${constants.MASKED_TEXT_VALUE} or ${constants.MASKED_TEXT_VALUE}`);
-    });
-
-    test('should return masked text when email has dots in domain name before final dot', () => {
-      const text = 'user@sub.domain.example.com';
-      const result = dataExtractor.replaceSensitiveString(text);
-      expect(result).toEqual(constants.MASKED_TEXT_VALUE);
-    });
-
-    test('should handle credit card numbers with spaces', () => {
-      const text = 'Card number: 4111 1111 1111 1111';
-      const result = dataExtractor.replaceSensitiveString(text);
-      expect(result).toEqual(`Card number: ${constants.MASKED_TEXT_VALUE}`);
-    });
-
-    test('should handle credit card numbers with dashes', () => {
-      const text = 'Card: 4111-1111-1111-1111';
-      const result = dataExtractor.replaceSensitiveString(text);
-      expect(result).toEqual(`Card: ${constants.MASKED_TEXT_VALUE}`);
-    });
-
-    test('should handle credit card numbers with mixed spaces and dashes', () => {
-      const text = 'Payment: 4111 1111-1111 1111';
-      const result = dataExtractor.replaceSensitiveString(text);
-      expect(result).toEqual(`Payment: ${constants.MASKED_TEXT_VALUE}`);
+      // Patterns beyond the limit should not be compiled
+      const button2 = document.createElement('button');
+      button2.textContent = `word${maxPatterns} test`;
+      expect(extractor.getText(button2)).toEqual(`word${maxPatterns} test`);
     });
   });
 
@@ -229,7 +157,7 @@ describe('data extractor', () => {
       div.innerText = '269-28-9315';
       button.appendChild(div);
       const result = dataExtractor.getText(button);
-      expect(result).toEqual(`submit${constants.MASKED_TEXT_VALUE}`);
+      expect(result).toEqual(`submit${MASKED_TEXT_VALUE}`);
     });
 
     test('should return concatenated text with extra space removed', () => {
@@ -248,7 +176,7 @@ describe('data extractor', () => {
       button.setAttribute('data-amp-mask', 'true');
       button.innerText = 'sensitive button text';
       const result = dataExtractor.getText(button);
-      expect(result).toEqual(constants.MASKED_TEXT_VALUE);
+      expect(result).toEqual(MASKED_TEXT_VALUE);
     });
 
     test('should return MASKED_TEXT_VALUE when parent element has data-amp-mask attribute', () => {
@@ -258,7 +186,7 @@ describe('data extractor', () => {
       button.innerText = 'button text';
       container.appendChild(button);
       const result = dataExtractor.getText(button);
-      expect(result).toEqual(constants.MASKED_TEXT_VALUE);
+      expect(result).toEqual(MASKED_TEXT_VALUE);
     });
 
     test('should return MASKED_TEXT_VALUE when ancestor element has data-amp-mask attribute', () => {
@@ -270,7 +198,7 @@ describe('data extractor', () => {
       grandparent.appendChild(parent);
       parent.appendChild(button);
       const result = dataExtractor.getText(button);
-      expect(result).toEqual(constants.MASKED_TEXT_VALUE);
+      expect(result).toEqual(MASKED_TEXT_VALUE);
     });
 
     test('should mask sensitive text content containing credit card numbers', () => {
@@ -283,7 +211,7 @@ describe('data extractor', () => {
       const moreText = document.createTextNode(' securely');
       button.appendChild(moreText);
       const result = dataExtractor.getText(button);
-      expect(result).toEqual(`Pay with card ${constants.MASKED_TEXT_VALUE} securely`);
+      expect(result).toEqual(`Pay with card ${MASKED_TEXT_VALUE} securely`);
     });
 
     test('should mask sensitive text content containing SSN', () => {
@@ -294,7 +222,7 @@ describe('data extractor', () => {
       sensitiveDiv.innerText = '269-28-9315'; // SSN
       button.appendChild(sensitiveDiv);
       const result = dataExtractor.getText(button);
-      expect(result).toEqual(`Submit form ${constants.MASKED_TEXT_VALUE}`);
+      expect(result).toEqual(`Submit form ${MASKED_TEXT_VALUE}`);
     });
 
     test('should mask sensitive text content containing email addresses', () => {
@@ -307,7 +235,7 @@ describe('data extractor', () => {
       const moreText = document.createTextNode(' for support');
       button.appendChild(moreText);
       const result = dataExtractor.getText(button);
-      expect(result).toEqual(`Contact ${constants.MASKED_TEXT_VALUE} for support`);
+      expect(result).toEqual(`Contact ${MASKED_TEXT_VALUE} for support`);
     });
 
     test('should mask text matching custom maskTextRegex patterns', () => {
@@ -320,7 +248,7 @@ describe('data extractor', () => {
       const moreText = document.createTextNode(' tourism');
       button.appendChild(moreText);
       const result = dataExtractor.getText(button);
-      expect(result).toEqual(`Welcome to ${constants.MASKED_TEXT_VALUE} tourism`);
+      expect(result).toEqual(`Welcome to ${MASKED_TEXT_VALUE} tourism`);
     });
 
     test('should handle mixed content with both masked attribute and sensitive text masking', () => {
@@ -341,11 +269,11 @@ describe('data extractor', () => {
 
       // Test the masked div individually
       const maskedResult = dataExtractor.getText(maskedDiv);
-      expect(maskedResult).toEqual(constants.MASKED_TEXT_VALUE);
+      expect(maskedResult).toEqual(MASKED_TEXT_VALUE);
 
       // Test container with mixed content - masked elements return MASKED_TEXT_VALUE, sensitive text is also masked
       const containerResult = dataExtractor.getText(container);
-      expect(containerResult).toEqual(`Normal text ${constants.MASKED_TEXT_VALUE}${constants.MASKED_TEXT_VALUE}`);
+      expect(containerResult).toEqual(`Normal text ${MASKED_TEXT_VALUE}${MASKED_TEXT_VALUE}`);
     });
 
     test('should return empty string when cloned tree has null innerText and textContent', () => {
@@ -401,7 +329,7 @@ describe('data extractor', () => {
       div.appendChild(input);
 
       const result = dataExtractor.getNearestLabel(input);
-      expect(result).toEqual(constants.MASKED_TEXT_VALUE);
+      expect(result).toEqual(MASKED_TEXT_VALUE);
     });
 
     test('should return nearest label of the element parent', () => {
@@ -1073,110 +1001,6 @@ describe('data extractor', () => {
       expect(() => {
         dataExtractorWithoutDiagnostics.getHierarchy(target);
       }).not.toThrow();
-    });
-  });
-
-  describe('getPageTitle', () => {
-    beforeEach(() => {
-      // Reset document title
-      Object.defineProperty(document, 'title', {
-        value: 'Test Page Title',
-        writable: true,
-      });
-    });
-
-    afterEach(() => {
-      // Clean up any title elements added during tests
-      const titleElements = document.querySelectorAll('title');
-      titleElements.forEach((el) => el.remove());
-    });
-
-    test('should return document title when no title element has data-amp-mask', () => {
-      const result = dataExtractor.getPageTitle();
-      expect(result).toBe('Test Page Title');
-    });
-
-    test('should return MASKED_TEXT_VALUE when title element has data-amp-mask attribute', () => {
-      // Create and add title element with data-amp-mask
-      const titleElement = document.createElement('title');
-      titleElement.setAttribute('data-amp-mask', 'true');
-      titleElement.textContent = 'Sensitive Title';
-      document.head.appendChild(titleElement);
-
-      const result = dataExtractor.getPageTitle();
-      expect(result).toBe(MASKED_TEXT_VALUE);
-    });
-
-    test('should return document title when title element exists but does not have data-amp-mask', () => {
-      // Create and add title element without data-amp-mask
-      const titleElement = document.createElement('title');
-      titleElement.textContent = 'Regular Title';
-      document.head.appendChild(titleElement);
-
-      const result = dataExtractor.getPageTitle();
-      expect(result).toBe('Test Page Title');
-    });
-
-    test('should still apply sensitive string masking when title element does not have data-amp-mask', () => {
-      // Set a title with email that should be masked by replaceSensitiveString
-      Object.defineProperty(document, 'title', {
-        value: 'Contact us at test@example.com',
-        writable: true,
-      });
-
-      const titleElement = document.createElement('title');
-      titleElement.textContent = 'Contact us at test@example.com';
-      document.head.appendChild(titleElement);
-
-      const result = dataExtractor.getPageTitle();
-      expect(result).toBe('Contact us at *****');
-    });
-
-    test('should handle edge case when document title is null or undefined', () => {
-      // Test the code path where document.title might be null/undefined
-      Object.defineProperty(document, 'title', {
-        value: null,
-        writable: true,
-      });
-
-      const result = dataExtractor.getPageTitle();
-      expect(result).toBe(''); // replaceSensitiveString returns empty string for null
-
-      // Restore document title
-      Object.defineProperty(document, 'title', {
-        value: 'Test Page Title',
-        writable: true,
-      });
-    });
-
-    test('should return empty string when document is undefined (server-side scenario)', () => {
-      // Create a new test that mocks the global document to be undefined
-      // We'll temporarily replace the global document with undefined
-      const globalWithDocument = global as typeof global & { document?: Document };
-      const originalDescriptor = Object.getOwnPropertyDescriptor(globalWithDocument, 'document');
-
-      // Define document as undefined
-      Object.defineProperty(globalWithDocument, 'document', {
-        value: undefined,
-        writable: true,
-        configurable: true,
-      });
-
-      // Create a new DataExtractor instance in this environment
-      const serverSideExtractor = new DataExtractor({});
-
-      try {
-        const result = serverSideExtractor.getPageTitle();
-        expect(result).toBe('');
-      } finally {
-        // Restore the original document property
-        if (originalDescriptor) {
-          Object.defineProperty(globalWithDocument, 'document', originalDescriptor);
-        } else {
-          // Use Reflect.deleteProperty to avoid TypeScript linting issues
-          Reflect.deleteProperty(globalWithDocument, 'document');
-        }
-      }
     });
   });
 

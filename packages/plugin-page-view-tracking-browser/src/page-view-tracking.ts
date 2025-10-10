@@ -1,4 +1,5 @@
-import { CampaignParser, getGlobalScope } from '@amplitude/analytics-client-common';
+import { CampaignParser, getGlobalScope, BASE_CAMPAIGN } from '@amplitude/analytics-client-common';
+import { getPageTitle, replaceSensitiveString } from '@amplitude/analytics-core';
 import {
   BrowserClient,
   BrowserConfig,
@@ -8,7 +9,6 @@ import {
   IdentifyUserProperties,
   Logger,
 } from '@amplitude/analytics-types';
-import { BASE_CAMPAIGN } from '@amplitude/analytics-client-common';
 import { CreatePageViewTrackingPlugin, Options } from './typings/page-view-tracking';
 import { omitUndefined } from './utils';
 
@@ -46,7 +46,7 @@ export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (options: Op
         '[Amplitude] Page Location': locationHREF,
         '[Amplitude] Page Path':
           /* istanbul ignore next */ (typeof location !== 'undefined' && getDecodeURI(location.pathname)) || '',
-        '[Amplitude] Page Title': /* istanbul ignore next */ (typeof document !== 'undefined' && document.title) || '',
+        '[Amplitude] Page Title': /* istanbul ignore next */ getPageTitle(replaceSensitiveString),
         '[Amplitude] Page URL': locationHREF.split('?')[0],
       },
     };

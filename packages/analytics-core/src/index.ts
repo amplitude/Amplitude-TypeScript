@@ -90,6 +90,15 @@ export { PageUrlEnrichmentOptions } from './types/page-url-enrichment';
 export { Campaign, UTMParameters, ReferrerParameters, ClickIdParameters, ICampaignParser } from './types/campaign';
 export { EMPTY_VALUE, BASE_CAMPAIGN, MKTG } from './types/constants';
 export { CampaignParser } from './campaign/campaign-parser';
+export {
+  getPageTitle,
+  TEXT_MASK_ATTRIBUTE,
+  MASKED_TEXT_VALUE,
+  replaceSensitiveString,
+  CC_REGEX,
+  SSN_REGEX,
+  EMAIL_REGEX,
+} from './plugins/helpers';
 
 // Browser
 export {
