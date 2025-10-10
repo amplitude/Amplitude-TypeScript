@@ -14,175 +14,104 @@ describe('data extractor', () => {
     dataExtractor = new DataExtractor({ maskTextRegex: [/Florida|California/, /Pennsylvania/] });
   });
 
-  describe('replaceSensitiveString', () => {
-    test('should return empty string when text is null or undefined', () => {
-      const nullText = null;
-      const undefinedText = undefined;
-      const result = dataExtractor.replaceSensitiveString(nullText);
-      const result2 = dataExtractor.replaceSensitiveString(undefinedText as unknown as string);
-      expect(result).toEqual('');
-      expect(result2).toEqual('');
+  describe('constructor - maskTextRegex pattern compilation', () => {
+    test('should compile valid pattern strings from pattern objects', () => {
+      const extractor = new DataExtractor({
+        maskTextRegex: [{ pattern: 'Texas|Nevada', description: 'US States' }],
+      });
+
+      const button = document.createElement('button');
+      button.textContent = 'Visit Texas today';
+      const result = extractor.getText(button);
+
+      expect(result).toEqual(`Visit ${MASKED_TEXT_VALUE} today`);
     });
 
-    test('should return original text when text is not sensitive', () => {
-      const text = 'test-string';
-      const result = dataExtractor.replaceSensitiveString(text);
-      expect(result).toEqual('test-string');
+    test('should ignore invalid regex pattern strings without throwing', () => {
+      // Invalid regex patterns with unclosed brackets, invalid escapes, etc.
+      expect(() => {
+        new DataExtractor({
+          maskTextRegex: [
+            { pattern: '[invalid(regex', description: 'Invalid pattern 1' },
+            { pattern: '(?:unclosed', description: 'Invalid pattern 2' },
+            { pattern: '\\k<invalid>', description: 'Invalid pattern 3' },
+          ],
+        });
+      }).not.toThrow();
     });
 
-    // https://www.paypalobjects.com/en_AU/vhelp/paypalmanager_help/credit_card_numbers.htm
-    test('should return masked text when text is credit card format', () => {
-      const sampleCreditCardNumbers = [
-        // American Express
-        '378282246310005',
-        // American Express
-        '371449635398431',
-        // American Express Corporate
-        '378734493671000',
-        // Diners Club
-        '30569309025904',
-        // Diners Club
-        '38520000023237',
-        // Discover
-        '6011111111111117',
-        // Discover
-        '6011000990139424',
-        // JCB
-        '3530111333300000',
-        // JCB
-        '3566002020360505',
-        // MasterCard
-        '5555555555554444',
-        // MasterCard
-        '5105105105105100',
-        // Visa
-        '4111111111111111',
-        // Visa
-        '4012888888881881',
-        // Visa (13 digits). Note: Even though this number has a different character count than the other test numbers, it is the correct and functional number.
-        '4222222222222',
-        // Visa
-        '4916024123820164',
-      ];
-
-      for (const text of sampleCreditCardNumbers) {
-        const result = dataExtractor.replaceSensitiveString(text);
-        expect(result).toEqual(MASKED_TEXT_VALUE);
-      }
-    });
-
-    test('should return masked text when text is social security number format', () => {
-      const text = '269-28-9315';
-      const result = dataExtractor.replaceSensitiveString(text);
-      expect(result).toEqual(MASKED_TEXT_VALUE);
-    });
-
-    test('should return empty string when text is not a string', () => {
-      const text = 123;
-      const result = dataExtractor.replaceSensitiveString(text as unknown as string);
-      expect(result).toEqual('');
-    });
-
-    test('should return masked text when text is sensitive and matches maskTextRegex', () => {
-      const text = 'Pittsburgh, Pennsylvania';
-      const result = dataExtractor.replaceSensitiveString(text);
-
-      const text2 = 'Florida';
-      const result2 = dataExtractor.replaceSensitiveString(text2);
-
-      expect(result).toEqual(`Pittsburgh, ${MASKED_TEXT_VALUE}`);
-      expect(result2).toEqual(MASKED_TEXT_VALUE);
-    });
-
-    test('should return original text when text does not match maskTextRegex', () => {
-      const text = 'Test string';
-      const result = dataExtractor.replaceSensitiveString(text);
-      expect(result).toEqual('Test string');
-    });
-
-    test('should parse maskTextRegex objects into regex objects', () => {
-      const dataExtractor = new DataExtractor({
+    test('should continue processing valid patterns after encountering invalid ones', () => {
+      const extractor = new DataExtractor({
         maskTextRegex: [
-          { pattern: 'Florida|California', description: 'Florida or California' },
-          { pattern: 'Pennsylvania', description: 'Pennsylvania' },
+          { pattern: '[invalid(', description: 'Invalid' },
+          { pattern: 'Secret', description: 'Valid' },
+          /Confidential/,
         ],
       });
 
-      const text = 'Pittsburgh, Pennsylvania';
-      const result = dataExtractor.replaceSensitiveString(text);
+      const button1 = document.createElement('button');
+      button1.textContent = 'Secret information';
+      const result1 = extractor.getText(button1);
+      expect(result1).toEqual(`${MASKED_TEXT_VALUE} information`);
 
-      const text2 = 'Florida';
-      const result2 = dataExtractor.replaceSensitiveString(text2);
-
-      expect(result).toEqual(`Pittsburgh, ${MASKED_TEXT_VALUE}`);
-      expect(result2).toEqual(MASKED_TEXT_VALUE);
+      const button2 = document.createElement('button');
+      button2.textContent = 'Confidential data';
+      const result2 = extractor.getText(button2);
+      expect(result2).toEqual(`${MASKED_TEXT_VALUE} data`);
     });
 
-    test('should cap maskTextRegex over MAX_MASK_TEXT_PATTERNS', () => {
-      const overLimit = constants.MAX_MASK_TEXT_PATTERNS + 5;
-      const patterns = Array.from({ length: overLimit }, (_v, i) => new RegExp(`\\btoken${i + 1}\\b`));
-      const extractor = new DataExtractor({ maskTextRegex: patterns });
+    test('should handle mixed RegExp and pattern objects', () => {
+      const extractor = new DataExtractor({
+        maskTextRegex: [/DirectRegex/, { pattern: 'PatternObject', description: 'Pattern as object' }],
+      });
 
-      // Matches within the cap should be masked
-      expect(extractor.replaceSensitiveString(`token${constants.MAX_MASK_TEXT_PATTERNS}`)).toEqual(MASKED_TEXT_VALUE);
-      // Matches beyond the cap should NOT be masked
-      expect(extractor.replaceSensitiveString(`token${constants.MAX_MASK_TEXT_PATTERNS + 1}`)).toEqual(
-        `token${constants.MAX_MASK_TEXT_PATTERNS + 1}`,
-      );
+      const button1 = document.createElement('button');
+      button1.textContent = 'DirectRegex test';
+      expect(extractor.getText(button1)).toEqual(`${MASKED_TEXT_VALUE} test`);
+
+      const button2 = document.createElement('button');
+      button2.textContent = 'PatternObject test';
+      expect(extractor.getText(button2)).toEqual(`${MASKED_TEXT_VALUE} test`);
     });
 
-    test('should return masked text when text is email address format', () => {
-      const text = 'user@example.com';
-      const result = dataExtractor.replaceSensitiveString(text);
-      expect(result).toEqual(MASKED_TEXT_VALUE);
+    test('should compile patterns with case-insensitive flag', () => {
+      const extractor = new DataExtractor({
+        maskTextRegex: [{ pattern: 'sensitive', description: 'Case insensitive' }],
+      });
+
+      const button1 = document.createElement('button');
+      button1.textContent = 'SENSITIVE data';
+      expect(extractor.getText(button1)).toEqual(`${MASKED_TEXT_VALUE} data`);
+
+      const button2 = document.createElement('button');
+      button2.textContent = 'Sensitive data';
+      expect(extractor.getText(button2)).toEqual(`${MASKED_TEXT_VALUE} data`);
+
+      const button3 = document.createElement('button');
+      button3.textContent = 'sensitive data';
+      expect(extractor.getText(button3)).toEqual(`${MASKED_TEXT_VALUE} data`);
     });
 
-    test('should return masked text when text contains email address within other text', () => {
-      const text = 'Contact us at support@example.com for help';
-      const result = dataExtractor.replaceSensitiveString(text);
-      expect(result).toEqual(`Contact us at ${MASKED_TEXT_VALUE} for help`);
-    });
+    test('should respect MAX_MASK_TEXT_PATTERNS limit', () => {
+      const maxPatterns = constants.MAX_MASK_TEXT_PATTERNS;
+      const patterns = Array.from({ length: maxPatterns + 5 }, (_, i) => ({
+        pattern: `word${i}\\b`,
+        description: `Pattern ${i}`,
+      }));
 
-    test('should return masked text when text contains email address at the beginning', () => {
-      const text = 'user@example.com is the admin';
-      const result = dataExtractor.replaceSensitiveString(text);
-      expect(result).toEqual(`${MASKED_TEXT_VALUE} is the admin`);
-    });
+      const extractor = new DataExtractor({
+        maskTextRegex: patterns,
+      });
 
-    test('should return masked text when text contains email address at the end', () => {
-      const text = 'Send feedback to feedback@company.org';
-      const result = dataExtractor.replaceSensitiveString(text);
-      expect(result).toEqual(`Send feedback to ${MASKED_TEXT_VALUE}`);
-    });
+      // The first maxPatterns should work
+      const button1 = document.createElement('button');
+      button1.textContent = `word${maxPatterns - 1} test`;
+      expect(extractor.getText(button1)).toEqual(`${MASKED_TEXT_VALUE} test`);
 
-    test('should return masked text when text contains multiple email addresses', () => {
-      const text = 'Contact admin@example.com or support@example.com';
-      const result = dataExtractor.replaceSensitiveString(text);
-      expect(result).toEqual(`Contact ${MASKED_TEXT_VALUE} or ${MASKED_TEXT_VALUE}`);
-    });
-
-    test('should return masked text when email has dots in domain name before final dot', () => {
-      const text = 'user@sub.domain.example.com';
-      const result = dataExtractor.replaceSensitiveString(text);
-      expect(result).toEqual(MASKED_TEXT_VALUE);
-    });
-
-    test('should handle credit card numbers with spaces', () => {
-      const text = 'Card number: 4111 1111 1111 1111';
-      const result = dataExtractor.replaceSensitiveString(text);
-      expect(result).toEqual(`Card number: ${MASKED_TEXT_VALUE}`);
-    });
-
-    test('should handle credit card numbers with dashes', () => {
-      const text = 'Card: 4111-1111-1111-1111';
-      const result = dataExtractor.replaceSensitiveString(text);
-      expect(result).toEqual(`Card: ${MASKED_TEXT_VALUE}`);
-    });
-
-    test('should handle credit card numbers with mixed spaces and dashes', () => {
-      const text = 'Payment: 4111 1111-1111 1111';
-      const result = dataExtractor.replaceSensitiveString(text);
-      expect(result).toEqual(`Payment: ${MASKED_TEXT_VALUE}`);
+      // Patterns beyond the limit should not be compiled
+      const button2 = document.createElement('button');
+      button2.textContent = `word${maxPatterns} test`;
+      expect(extractor.getText(button2)).toEqual(`word${maxPatterns} test`);
     });
   });
 

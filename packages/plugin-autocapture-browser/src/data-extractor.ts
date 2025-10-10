@@ -1,5 +1,14 @@
 /* eslint-disable no-restricted-globals */
-import { ElementInteractionsOptions, ActionType, getDecodeURI, IDiagnosticsClient } from '@amplitude/analytics-core';
+import {
+  ElementInteractionsOptions,
+  ActionType,
+  getDecodeURI,
+  IDiagnosticsClient,
+  MASKED_TEXT_VALUE,
+  TEXT_MASK_ATTRIBUTE,
+  getPageTitle,
+  replaceSensitiveString,
+} from '@amplitude/analytics-core';
 import type { DataSource } from '@amplitude/analytics-core/lib/esm/types/element-interactions';
 import * as constants from './constants';
 import {
@@ -10,16 +19,10 @@ import {
   isElementBasedEvent,
   parseAttributesToMask,
 } from './helpers';
-import type { BaseTimestampedEvent, ElementBasedTimestampedEvent, TimestampedEvent } from './helpers';
+import type { BaseTimestampedEvent, ElementBasedTimestampedEvent, TimestampedEvent, JSONValue } from './helpers';
 import { getAncestors, getElementProperties } from './hierarchy';
-import type { JSONValue } from './helpers';
 import { getDataSource } from './pageActions/actions';
 import { Hierarchy } from './typings/autocapture';
-import { MASKED_TEXT_VALUE, TEXT_MASK_ATTRIBUTE, getPageTitle } from '@amplitude/analytics-core';
-
-const CC_REGEX = /\b(?:\d[ -]*?){13,16}\b/;
-const SSN_REGEX = /(\d{3}-?\d{2}-?\d{4})/g;
-const EMAIL_REGEX = /[^\s@]+@[^\s@.]+\.[^\s@]+/g;
 
 export class DataExtractor {
   private readonly additionalMaskTextPatterns: RegExp[];
@@ -48,32 +51,13 @@ export class DataExtractor {
     this.additionalMaskTextPatterns = compiled;
   }
 
+  /**
+   * Wrapper method to replace sensitive strings using the helper function
+   * @param text - The text to search for sensitive data
+   * @returns The text with sensitive data replaced by masked text
+   */
   replaceSensitiveString = (text: string | null): string => {
-    if (typeof text !== 'string') {
-      return '';
-    }
-
-    let result = text;
-
-    // Check for credit card number (with or without spaces/dashes)
-    result = result.replace(CC_REGEX, MASKED_TEXT_VALUE);
-
-    // Check for social security number
-    result = result.replace(SSN_REGEX, MASKED_TEXT_VALUE);
-
-    // Check for email
-    result = result.replace(EMAIL_REGEX, MASKED_TEXT_VALUE);
-
-    // Check for additional mask text patterns
-    for (const pattern of this.additionalMaskTextPatterns) {
-      try {
-        result = result.replace(pattern, MASKED_TEXT_VALUE);
-      } catch {
-        // ignore invalid pattern
-      }
-    }
-
-    return result;
+    return replaceSensitiveString(text, this.additionalMaskTextPatterns);
   };
 
   // Get the DOM hierarchy of the element, starting from the target element to the root element.

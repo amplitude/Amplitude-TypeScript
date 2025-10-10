@@ -54,6 +54,10 @@ import {
   getPageTitle,
   TEXT_MASK_ATTRIBUTE,
   MASKED_TEXT_VALUE,
+  replaceSensitiveString,
+  CC_REGEX,
+  SSN_REGEX,
+  EMAIL_REGEX,
   generateHashCode,
   isTimestampInSample,
   DiagnosticsClient,
@@ -130,8 +134,56 @@ describe('index', () => {
     expect(typeof getPageTitle).toBe('function');
     expect(TEXT_MASK_ATTRIBUTE).toBe('data-amp-mask');
     expect(MASKED_TEXT_VALUE).toBe('*****');
+    expect(typeof replaceSensitiveString).toBe('function');
+    expect(CC_REGEX).toBeInstanceOf(RegExp);
+    expect(SSN_REGEX).toBeInstanceOf(RegExp);
+    expect(EMAIL_REGEX).toBeInstanceOf(RegExp);
     expect(typeof generateHashCode).toBe('function');
     expect(typeof isTimestampInSample).toBe('function');
     expect(typeof DiagnosticsClient).toBe('function');
+  });
+
+  describe('replaceSensitiveString export', () => {
+    test('should mask credit card numbers', () => {
+      const result = replaceSensitiveString('CC: 4111111111111111');
+      expect(result).toContain(MASKED_TEXT_VALUE);
+    });
+
+    test('should mask SSN', () => {
+      const result = replaceSensitiveString('SSN: 123-45-6789');
+      expect(result).toContain(MASKED_TEXT_VALUE);
+    });
+
+    test('should mask email addresses', () => {
+      const result = replaceSensitiveString('Email: user@example.com');
+      expect(result).toContain(MASKED_TEXT_VALUE);
+    });
+
+    test('should work with custom patterns', () => {
+      const customPattern = /secret/gi;
+      const result = replaceSensitiveString('This is secret', [customPattern]);
+      expect(result).toContain(MASKED_TEXT_VALUE);
+    });
+  });
+
+  describe('Regex exports', () => {
+    test('CC_REGEX should match credit card numbers', () => {
+      expect(CC_REGEX.test('4111111111111111')).toBe(true);
+      expect(CC_REGEX.test('4111 1111 1111 1111')).toBe(true);
+    });
+
+    test('SSN_REGEX should match social security numbers', () => {
+      SSN_REGEX.lastIndex = 0;
+      expect(SSN_REGEX.test('123-45-6789')).toBe(true);
+      SSN_REGEX.lastIndex = 0;
+      expect(SSN_REGEX.test('123456789')).toBe(true);
+    });
+
+    test('EMAIL_REGEX should match email addresses', () => {
+      EMAIL_REGEX.lastIndex = 0;
+      expect(EMAIL_REGEX.test('user@example.com')).toBe(true);
+      EMAIL_REGEX.lastIndex = 0;
+      expect(EMAIL_REGEX.test('test.email@domain.co.uk')).toBe(true);
+    });
   });
 });

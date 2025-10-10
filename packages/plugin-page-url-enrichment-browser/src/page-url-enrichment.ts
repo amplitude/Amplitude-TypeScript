@@ -1,6 +1,11 @@
 import type { BrowserClient, BrowserConfig, EnrichmentPlugin, Event, Logger } from '@amplitude/analytics-types';
-import { getGlobalScope, BrowserStorage, getDecodeURI } from '@amplitude/analytics-core';
-import { getPageTitle } from '@amplitude/analytics-core';
+import {
+  getGlobalScope,
+  BrowserStorage,
+  getDecodeURI,
+  getPageTitle,
+  replaceSensitiveString,
+} from '@amplitude/analytics-core';
 
 export const CURRENT_PAGE_STORAGE_KEY = 'AMP_CURRENT_PAGE';
 export const PREVIOUS_PAGE_STORAGE_KEY = 'AMP_PREVIOUS_PAGE';
@@ -156,7 +161,11 @@ export const pageUrlEnrichmentPlugin = (): EnrichmentPlugin => {
             '[Amplitude] Page Path',
             (typeof location !== 'undefined' && getDecodeURI(location.pathname)) || '',
           ),
-          '[Amplitude] Page Title': addIfNotExist(event, '[Amplitude] Page Title', getPageTitle()),
+          '[Amplitude] Page Title': addIfNotExist(
+            event,
+            '[Amplitude] Page Title',
+            getPageTitle(replaceSensitiveString),
+          ),
           '[Amplitude] Page URL': addIfNotExist(event, '[Amplitude] Page URL', locationHREF.split('?')[0]),
           '[Amplitude] Previous Page Location': previousPage,
           '[Amplitude] Previous Page Type': getPrevPageType(previousPage),
