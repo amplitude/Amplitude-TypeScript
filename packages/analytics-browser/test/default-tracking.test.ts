@@ -233,8 +233,8 @@ describe('isNetworkTrackingEnabled', () => {
     expect(isNetworkTrackingEnabled(undefined)).toBe(false);
   });
 
-  test('should return false when autocapture is true (explicit opt-in)', () => {
-    expect(isNetworkTrackingEnabled(true)).toBe(false);
+  test('should return true when autocapture is true', () => {
+    expect(isNetworkTrackingEnabled(true)).toBe(true);
   });
 
   test('should return true when autocapture.networkTracking is true', () => {

@@ -60,6 +60,10 @@ export const isSessionTrackingEnabled = (autocapture: AutocaptureOptions | boole
  * otherwise returns false
  */
 export const isNetworkTrackingEnabled = (autocapture: AutocaptureOptions | boolean | undefined) => {
+  if (typeof autocapture === 'boolean') {
+    return autocapture;
+  }
+
   if (
     typeof autocapture === 'object' &&
     (autocapture.networkTracking === true || typeof autocapture.networkTracking === 'object')
