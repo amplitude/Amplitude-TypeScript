@@ -28,10 +28,10 @@ enum PreviousPageType {
   External = 'external', // for different domains
 }
 
-export const EXCLUDED_DEFAULT_EVENT_TYPES = new Set([
-  SpecialEventType.IDENTIFY as string,
-  SpecialEventType.GROUP_IDENTIFY as string,
-  SpecialEventType.REVENUE as string,
+export const EXCLUDED_DEFAULT_EVENT_TYPES = new Set<string>([
+  SpecialEventType.IDENTIFY,
+  SpecialEventType.GROUP_IDENTIFY,
+  SpecialEventType.REVENUE,
 ]);
 
 export const isPageUrlEnrichmentEnabled = (option: unknown): boolean => {
