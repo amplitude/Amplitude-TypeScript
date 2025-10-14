@@ -9,7 +9,7 @@ import {
 } from '../../src/diagnostics/diagnostics-client';
 import { DiagnosticsStorage } from '../../src/diagnostics/diagnostics-storage';
 import { getGlobalScope } from '../../src/global-scope';
-import { isTimestampInSample } from '../../src/utils/sampling';
+import { isTimestampInSampleTemp } from '../../src/utils/sampling';
 
 // Mock logger
 const mockLogger: ILogger = {
@@ -28,7 +28,7 @@ jest.mock('../../src/global-scope');
 
 // Mock the sampling utils
 jest.mock('../../src/utils/sampling', () => ({
-  isTimestampInSample: jest.fn(),
+  isTimestampInSampleTemp: jest.fn(),
 }));
 
 describe('DiagnosticsClient', () => {
@@ -42,8 +42,8 @@ describe('DiagnosticsClient', () => {
       .spyOn(DiagnosticsClient.prototype, 'initializeFlushInterval')
       .mockImplementation(() => Promise.resolve());
 
-    // Mock isTimestampInSample to return true
-    (isTimestampInSample as jest.Mock).mockReturnValue(true);
+    // Mock isTimestampInSampleTemp to return true
+    (isTimestampInSampleTemp as jest.Mock).mockReturnValue(true);
 
     // Set up DiagnosticsStorage mock
     (DiagnosticsStorage.isSupported as jest.Mock).mockReturnValue(true);
@@ -100,7 +100,7 @@ describe('DiagnosticsClient', () => {
     });
 
     test('should set shouldTrack to false if not in sample', () => {
-      (isTimestampInSample as jest.Mock).mockReturnValue(false);
+      (isTimestampInSampleTemp as jest.Mock).mockReturnValue(false);
       const client = new DiagnosticsClient(apiKey, mockLogger);
       expect(client.shouldTrack).toBe(false);
     });
@@ -858,12 +858,12 @@ describe('DiagnosticsClient', () => {
 
   describe('_setSampleRate', () => {
     let client: DiagnosticsClient;
-    let mockIsTimestampInSample: jest.SpyInstance;
+    let mockIsTimestampInSampleTemp: jest.SpyInstance;
 
     beforeEach(() => {
-      // Mock isTimestampInSample with realistic implementation: compare sample rate with 0.5
-      mockIsTimestampInSample = jest
-        .spyOn({ isTimestampInSample }, 'isTimestampInSample')
+      // Mock isTimestampInSampleTemp with realistic implementation: compare sample rate with 0.5
+      mockIsTimestampInSampleTemp = jest
+        .spyOn({ isTimestampInSampleTemp }, 'isTimestampInSampleTemp')
         .mockImplementation((_timestamp: string | number, sampleRate: number) => {
           return sampleRate >= 0.5;
         });
@@ -871,7 +871,7 @@ describe('DiagnosticsClient', () => {
     });
 
     afterEach(() => {
-      mockIsTimestampInSample.mockRestore();
+      mockIsTimestampInSampleTemp.mockRestore();
     });
 
     test('should update sample rate and shouldTrack when rate >= 0.5 and enabled', () => {
@@ -881,7 +881,7 @@ describe('DiagnosticsClient', () => {
       client._setSampleRate(newSampleRate);
 
       expect(client.config.sampleRate).toBe(newSampleRate);
-      expect(mockIsTimestampInSample).toHaveBeenCalledWith(client.startTimestamp, newSampleRate);
+      expect(mockIsTimestampInSampleTemp).toHaveBeenCalledWith(client.startTimestamp, newSampleRate);
       expect(client.shouldTrack).toBe(true);
       // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockLogger.debug).toHaveBeenCalledWith('DiagnosticsClient: Setting sample rate to', newSampleRate);
@@ -896,7 +896,7 @@ describe('DiagnosticsClient', () => {
       client._setSampleRate(newSampleRate);
 
       expect(client.config.sampleRate).toBe(newSampleRate);
-      expect(mockIsTimestampInSample).toHaveBeenCalledWith(client.startTimestamp, newSampleRate);
+      expect(mockIsTimestampInSampleTemp).toHaveBeenCalledWith(client.startTimestamp, newSampleRate);
       expect(client.shouldTrack).toBe(false);
       // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockLogger.debug).toHaveBeenCalledWith('DiagnosticsClient: Setting sample rate to', newSampleRate);
@@ -911,7 +911,7 @@ describe('DiagnosticsClient', () => {
       client._setSampleRate(newSampleRate);
 
       expect(client.config.sampleRate).toBe(newSampleRate);
-      expect(mockIsTimestampInSample).toHaveBeenCalledWith(client.startTimestamp, newSampleRate);
+      expect(mockIsTimestampInSampleTemp).toHaveBeenCalledWith(client.startTimestamp, newSampleRate);
       expect(client.shouldTrack).toBe(false);
       // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockLogger.debug).toHaveBeenCalledWith('DiagnosticsClient: Setting sample rate to', newSampleRate);

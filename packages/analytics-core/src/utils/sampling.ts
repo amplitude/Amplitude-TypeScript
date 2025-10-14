@@ -16,3 +16,13 @@ export const isTimestampInSample = function (timestamp: string | number, sampleR
   const mod = absHashMultiply % 1000000;
   return mod / 1000000 < sampleRate;
 };
+
+// TODO(xinyi): replace the temp one in diagnostics client after the fix
+// istanbul ignore next
+export const isTimestampInSampleTemp = function (timestamp: string | number, sampleRate: number) {
+  const hashNumber = generateHashCode(timestamp.toString());
+  const absHash = Math.abs(hashNumber);
+  const absHashMultiply = absHash * 31;
+  const mod = absHashMultiply % 100000;
+  return mod / 100000 < sampleRate;
+};
