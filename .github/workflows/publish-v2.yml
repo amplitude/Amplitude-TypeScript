@@ -71,11 +71,6 @@ jobs:
           git config --global user.name amplitude-sdk-bot
           git config --global user.email amplitude-sdk-bot@users.noreply.github.com
 
-      - name: Configure NPM User
-        run: |
-          echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_PUBLISH_TOKEN }}" > ~/.npmrc
-          npm whoami
-
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
