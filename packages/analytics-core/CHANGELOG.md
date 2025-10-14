@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.27.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.26.2...@amplitude/analytics-core@2.27.0) (2025-10-14)
+
+
+### Features
+
+* **autocapture:** refactor getPageTitle from autocapture to make it reusable ([#1331](https://github.com/amplitude/Amplitude-TypeScript/issues/1331)) ([44eabd1](https://github.com/amplitude/Amplitude-TypeScript/commit/44eabd1139252ed71845d29a86ceccd2ef119d15))
+* **plugin-network-capture-browser:** make networkTracking headers + body capturing GA ([#1334](https://github.com/amplitude/Amplitude-TypeScript/issues/1334)) ([8b57656](https://github.com/amplitude/Amplitude-TypeScript/commit/8b576569d28f323b21f6c82d708867d91c641063))
+
+
+
+
+
 ## [2.26.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.26.1...@amplitude/analytics-core@2.26.2) (2025-10-03)
 
 

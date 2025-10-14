@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.5.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-page-view-tracking-browser@2.4.4...@amplitude/plugin-page-view-tracking-browser@2.5.0) (2025-10-14)
+
+
+### Features
+
+* **autocapture:** refactor getPageTitle from autocapture to make it reusable ([#1331](https://github.com/amplitude/Amplitude-TypeScript/issues/1331)) ([44eabd1](https://github.com/amplitude/Amplitude-TypeScript/commit/44eabd1139252ed71845d29a86ceccd2ef119d15))
+
+
+
+
+
 ## [2.4.4](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-page-view-tracking-browser@2.4.3...@amplitude/plugin-page-view-tracking-browser@2.4.4) (2025-10-07)
 
 

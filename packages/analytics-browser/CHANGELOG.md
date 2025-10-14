@@ -3,6 +3,22 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.26.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.25.4...@amplitude/analytics-browser@2.26.0) (2025-10-14)
+
+
+### Bug Fixes
+
+* **analytics-browser:** remove analytics-remote-config dependency ([#1336](https://github.com/amplitude/Amplitude-TypeScript/issues/1336)) ([36ccea0](https://github.com/amplitude/Amplitude-TypeScript/commit/36ccea0156c500304983d2e7d53b40432ecb19e4))
+
+
+### Features
+
+* **plugin-network-capture-browser:** enable networkTracking by default when autocapture=true ([#1333](https://github.com/amplitude/Amplitude-TypeScript/issues/1333)) ([27e365b](https://github.com/amplitude/Amplitude-TypeScript/commit/27e365b76fe757a7161b85e5dc5795549c4ab1eb))
+
+
+
+
+
 ## [2.25.4](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.25.3...@amplitude/analytics-browser@2.25.4) (2025-10-07)
 
 **Note:** Version bump only for package @amplitude/analytics-browser
