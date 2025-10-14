@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sampling Test</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+            margin: 2rem;
+        }
+        .pass {
+            color: #2e7d32;
+        }
+        .fail {
+            color: #c62828;
+        }
+        code {
+            background: #f6f8fa;
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+        }
+        pre {
+            background: #f6f8fa;
+            padding: 1rem;
+            border-radius: 8px;
+            overflow: auto;
+        }
+        button {
+            padding: 0.6rem 1rem;
+            border: 0;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        h2 {
+            margin-top: 2rem;
+        }
+        .separator {
+            border-top: 2px solid #ddd;
+            margin: 1rem 0;
+            padding-top: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <h1>Sampling Test</h1>
+    <p>This page runs the sampling test, import from local sampling.ts. in analytics-core</p>
+    <div style="margin-bottom: 1rem;">
+        <label for="sessionCount">Number of sessions to test: </label>
+        <input type="number" id="sessionCount" value="10000" min="100" max="10000000" style="padding: 0.4rem; border: 1px solid #ccc; border-radius: 4px; width: 120px;">
+    </div>
+    <button id="run">Run Tests</button>
+    <div id="results" style="margin-top:1rem;"></div>
+
+    <h2>How the Test Works</h2>
+    <p>
+        Each test generates sequential session IDs (timestamps starting from <code>Date.now()</code>)
+        and checks whether each one passes the sampling filter. The test measures the actual sample rate and 
+        compares it to the expected rate with a <strong>±5% tolerance</strong>. You can configure the number
+        of sessions to test above (default: 10,000).
+    </p>
+
+    <h2>Why Bucket Size Matters</h2>
+    <p>
+        The two functions differ in their <strong>bucket size</strong> (the modulo value):
+    </p>
+    <ul>
+        <li><code>isTimestampInSample</code> uses <strong>1,000,000 buckets</strong> (<code>% 1000000</code>)</li>
+        <li><code>isTimestampInSampleTemp</code> uses <strong>100,000 buckets</strong> (<code>% 100000</code>)</li>
+    </ul>
+
+    <h3>The Problem with 1,000,000 Buckets</h3>
+    <p>
+        The hash function (<code>generateHashCode</code>) is like a <strong>bad dice</strong> - it wasn't designed 
+        for fair random distribution, just for organizing items in hash tables. When you try to use this bad dice 
+        to fill 1 million buckets:
+    </p>
+    <ul>
+        <li><strong>Biased distribution:</strong> The dice doesn't land evenly across all buckets</li>
+        <li><strong>Limited entropy:</strong> The 32-bit hash wraps and repeats, losing randomness</li>
+        <li><strong>Periodic patterns:</strong> Consecutive timestamps fall into "bad zones" where sampling fails</li>
+    </ul>
+    <p>
+        For example, with <code>sampleRate = 0.1</code> (10%), you need the hash to land in buckets 0-99,999. 
+        But the bad dice often <strong>never lands there</strong>, resulting in 0% sampling instead of 10%.
+    </p>
+
+    <h3>Why 100,000 Buckets Works Better</h3>
+    <p>
+        With a smaller bucket size (100,000), the same biased hash function works "good enough":
+    </p>
+    <ul>
+        <li><strong>Faster cycling:</strong> The hash cycles through all buckets more quickly</li>
+        <li><strong>Better coverage:</strong> Even with bias, the smaller space gets filled more evenly</li>
+        <li><strong>More consistent:</strong> Less dependent on which timestamp range you're testing</li>
+    </ul>
+
+    <h3>What You'll Observe</h3>
+    <p>
+        Try testing with different session counts:
+    </p>
+    <ul>
+        <li><strong>10,000 sessions:</strong> <code>isTimestampInSample</code> often fails (exposes periodic bias)</li>
+        <li><strong>100,000+ sessions:</strong> Both might pass (averaging hides the bias, but it's still there!)</li>
+        <li><code>isTimestampInSampleTemp</code> is more reliable across all scales</li>
+    </ul>
+
+    <script type="module">
+        // Import the sampling functions from the source
+        import { isTimestampInSample, isTimestampInSampleTemp, generateHashCode } from '@amplitude/analytics-core/src/utils/sampling';
+
+        // Make functions available globally
+        window.isTimestampInSample = isTimestampInSample;
+        window.isTimestampInSampleTemp = isTimestampInSampleTemp;
+        window.generateHashCode = generateHashCode;
+
+        console.log('Sampling functions loaded successfully');
+    </script>
+
+    <script>
+        "use strict";
+
+        // === Test harness ===
+        function sample({ sessionCount, sampleRate, sampleFn }) {
+            const start = Date.now();
+            let totalSampled = 0;
+            for (let sessionId = start; sessionId < start + sessionCount; sessionId++) {
+                if (sampleFn(sessionId, sampleRate)) totalSampled++;
+            }
+            return totalSampled / sessionCount;
+        }
+
+        function assertEqual(actual, expected, msg) {
+            if (actual !== expected) {
+                throw new Error(`${msg} — expected ${expected}, got ${actual}`);
+            }
+        }
+
+        function assertApprox(actual, expected, accuracy, msg) {
+            if (Math.abs(actual - expected) > accuracy) {
+                throw new Error(`${msg} — expected ${expected} ± ${accuracy}, got ${actual}`);
+            }
+        }
+
+        function runTests() {
+            const out = [];
+            let passed = 0, failed = 0;
+
+            // Get session count from input
+            const sessionCount = parseInt(document.getElementById("sessionCount").value) || 10000;
+            console.log('sessionCount', sessionCount);
+
+            function test(name, fn) {
+                try {
+                    fn();
+                    out.push(`<div class="pass">✔ ${name}</div>`);
+                    passed++;
+                } catch (e) {
+                    out.push(`<div class="fail">✘ ${name}<br><small>${e.message}</small></div>`);
+                    failed++;
+                }
+            }
+
+            // Test isTimestampInSample
+            test("sample(sampleRate: 1.0) == 1.0", () => {
+                const val = sample({ sessionCount, sampleRate: 1.0, sampleFn: window.isTimestampInSample });
+                assertEqual(Number(val.toFixed(6)), 1.0, "All sessions should be sampled at 1.0");
+            });
+
+            test("sample(sampleRate: 0.0) == 0.0", () => {
+                const val = sample({ sessionCount, sampleRate: 0.0, sampleFn: window.isTimestampInSample });
+                assertEqual(Number(val.toFixed(6)), 0.0, "No sessions should be sampled at 0.0");
+            });
+
+            test("sample(sampleRate: 0.5) ≈ 0.5 ± 0.05", () => {
+                const val = sample({ sessionCount, sampleRate: 0.5, sampleFn: window.isTimestampInSample });
+                assertApprox(val, 0.5, 0.05, "Half of sessions should be sampled");
+            });
+
+            test("sample(sampleRate: 0.1) ≈ 0.1 ± 0.05", () => {
+                const val = sample({ sessionCount, sampleRate: 0.1, sampleFn: window.isTimestampInSample });
+                assertApprox(val, 0.1, 0.05, "10% of sessions should be sampled");
+            });
+
+            test("sample(sampleRate: 0.9) ≈ 0.9 ± 0.05", () => {
+                const val = sample({ sessionCount, sampleRate: 0.9, sampleFn: window.isTimestampInSample });
+                assertApprox(val, 0.9, 0.05, "90% of sessions should be sampled");
+            });
+
+            // Add separator between the two function tests
+            out.push('<div class="separator"></div>');
+
+            // Test isTimestampInSampleTemp
+            test("[Temp] sample(sampleRate: 1.0) == 1.0", () => {
+                const val = sample({ sessionCount, sampleRate: 1.0, sampleFn: window.isTimestampInSampleTemp });
+                assertEqual(Number(val.toFixed(6)), 1.0, "All sessions should be sampled at 1.0");
+            });
+
+            test("[Temp] sample(sampleRate: 0.0) == 0.0", () => {
+                const val = sample({ sessionCount, sampleRate: 0.0, sampleFn: window.isTimestampInSampleTemp });
+                assertEqual(Number(val.toFixed(6)), 0.0, "No sessions should be sampled at 0.0");
+            });
+
+            test("[Temp] sample(sampleRate: 0.5) ≈ 0.5 ± 0.05", () => {
+                const val = sample({ sessionCount, sampleRate: 0.5, sampleFn: window.isTimestampInSampleTemp });
+                assertApprox(val, 0.5, 0.05, "Half of sessions should be sampled");
+            });
+
+            test("[Temp] sample(sampleRate: 0.1) ≈ 0.1 ± 0.05", () => {
+                const val = sample({ sessionCount, sampleRate: 0.1, sampleFn: window.isTimestampInSampleTemp });
+                assertApprox(val, 0.1, 0.05, "10% of sessions should be sampled");
+            });
+
+            test("[Temp] sample(sampleRate: 0.9) ≈ 0.9 ± 0.05", () => {
+                const val = sample({ sessionCount, sampleRate: 0.9, sampleFn: window.isTimestampInSampleTemp });
+                assertApprox(val, 0.9, 0.05, "90% of sessions should be sampled");
+            });
+
+            document.getElementById("results").innerHTML =
+                `<p><strong>Passed:</strong> ${passed} &nbsp; <strong>Failed:</strong> ${failed} &nbsp; (tested with ${sessionCount.toLocaleString()} sessions)</p>` + out.join("");
+        }
+
+        document.getElementById("run").addEventListener("click", runTests);
+    </script>
+</body>
+</html>
+

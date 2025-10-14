@@ -2,7 +2,7 @@ import { ILogger } from '../logger';
 import { DiagnosticsStorage, IDiagnosticsStorage } from './diagnostics-storage';
 import { ServerZoneType } from '../types/server-zone';
 import { getGlobalScope } from '../global-scope';
-import { isTimestampInSample } from '../utils/sampling';
+import { isTimestampInSampleTemp } from '../utils/sampling';
 
 export const SAVE_INTERVAL_MS = 1000; // 1 second
 export const FLUSH_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
@@ -202,7 +202,7 @@ export class DiagnosticsClient implements IDiagnosticsClient {
     // Diagnostics is enabled by default with sample rate of 0 (no sampling)
     this.config = { enabled: true, sampleRate: 0, ...options };
     this.startTimestamp = Date.now();
-    this.shouldTrack = isTimestampInSample(this.startTimestamp, this.config.sampleRate) && this.config.enabled;
+    this.shouldTrack = isTimestampInSampleTemp(this.startTimestamp, this.config.sampleRate) && this.config.enabled;
 
     if (DiagnosticsStorage.isSupported()) {
       this.storage = new DiagnosticsStorage(apiKey, logger);
@@ -486,7 +486,7 @@ export class DiagnosticsClient implements IDiagnosticsClient {
   _setSampleRate(sampleRate: number): void {
     this.logger.debug('DiagnosticsClient: Setting sample rate to', sampleRate);
     this.config.sampleRate = sampleRate;
-    this.shouldTrack = isTimestampInSample(this.startTimestamp, this.config.sampleRate) && this.config.enabled;
+    this.shouldTrack = isTimestampInSampleTemp(this.startTimestamp, this.config.sampleRate) && this.config.enabled;
     this.logger.debug('DiagnosticsClient: Should track is', this.shouldTrack);
   }
 }
