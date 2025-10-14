@@ -1,10 +1,10 @@
-import { EnrichmentPlugin, PageTrackingOptions as Options } from '@amplitude/analytics-types';
+import { EnrichmentPlugin, PageTrackingOptions as Options } from '@amplitude/analytics-core';
 
 export {
   PageTrackingOptions as Options,
   PageTrackingTrackOn,
   PageTrackingHistoryChanges,
-} from '@amplitude/analytics-types';
+} from '@amplitude/analytics-core';
 
 export interface CreatePageViewTrackingPlugin {
   (options?: Options): EnrichmentPlugin;

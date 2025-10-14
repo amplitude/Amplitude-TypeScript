@@ -1,14 +1,17 @@
-import { CampaignParser, getGlobalScope, BASE_CAMPAIGN } from '@amplitude/analytics-client-common';
-import { getPageTitle, replaceSensitiveString } from '@amplitude/analytics-core';
 import {
-  BrowserClient,
+  getPageTitle,
+  replaceSensitiveString,
   BrowserConfig,
+  BrowserClient,
   EnrichmentPlugin,
   Event,
   IdentifyOperation,
   IdentifyUserProperties,
-  Logger,
-} from '@amplitude/analytics-types';
+  ILogger,
+  CampaignParser,
+  getGlobalScope,
+  BASE_CAMPAIGN,
+} from '@amplitude/analytics-core';
 import { CreatePageViewTrackingPlugin, Options } from './typings/page-view-tracking';
 import { omitUndefined } from './utils';
 
@@ -17,7 +20,7 @@ export const defaultPageViewEvent = '[Amplitude] Page Viewed';
 export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (options: Options = {}) => {
   let amplitude: BrowserClient | undefined;
   const globalScope = getGlobalScope();
-  let loggerProvider: Logger | undefined = undefined;
+  let loggerProvider: ILogger | undefined = undefined;
   let isTracking = false;
   let localConfig: BrowserConfig;
   const { trackOn, trackHistoryChanges, eventType = defaultPageViewEvent } = options;
