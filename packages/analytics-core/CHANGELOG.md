@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.27.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.27.0...@amplitude/analytics-core@2.27.1) (2025-10-14)
+
+
+### Bug Fixes
+
+* **analytics-core:** diagnostics client use temp sampling algo ([#1340](https://github.com/amplitude/Amplitude-TypeScript/issues/1340)) ([3e89dd7](https://github.com/amplitude/Amplitude-TypeScript/commit/3e89dd7a678cf7043d843949b0c7934e74f59d29))
+
+
+
+
+
 # [2.27.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.26.2...@amplitude/analytics-core@2.27.0) (2025-10-14)
 
 
