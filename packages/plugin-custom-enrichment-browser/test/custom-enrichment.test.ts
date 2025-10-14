@@ -1,8 +1,5 @@
-import type { BrowserClient, BrowserConfig } from '@amplitude/analytics-types';
-import { LogLevel } from '@amplitude/analytics-types';
+import { type BrowserClient, type BrowserConfig, type ILogger, Logger, LogLevel } from '@amplitude/analytics-core';
 import { customEnrichmentPlugin } from '../src/custom-enrichment';
-import { Logger } from '@amplitude/analytics-core';
-import type { ILogger } from '@amplitude/analytics-core';
 
 // Mock BrowserClient implementation
 const createMockBrowserClient = (): jest.Mocked<BrowserClient> => {
