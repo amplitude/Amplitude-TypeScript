@@ -38,3 +38,6 @@ lerna-debug.log
 # Playground
 packages/analytics-browser/playground/html/amplitude.js
 packages/analytics-browser/playground/react-spa/public/amplitude.js
+.nx/cache
+.cursor/rules/nx-rules.mdc
+.github/instructions/nx.instructions.md
