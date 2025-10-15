@@ -130,6 +130,11 @@ export interface SessionReplayLocalConfig extends IConfig {
    */
   performanceConfig?: SessionReplayPerformanceConfig;
   /**
+   * Delay record initialization configuration. If enabled, we will defer record function initialization
+   * to be done during the browser's idle periods.
+   */
+  delayRecordInitialization?: SessionReplayDelayRecordInitializationConfig;
+  /**
    * Specifies how replay events should be stored. `idb` uses IndexedDB to persist replay events
    * when all events cannot be sent during capture. `memory` stores replay events only in memory,
    * meaning events are lost when the page is closed. If IndexedDB is unavailable, the system falls back to `memory`.
@@ -249,6 +254,20 @@ export interface SessionReplayPerformanceConfig {
    * Optional timeout in milliseconds for the `requestIdleCallback` API.
    * If specified, this value will be used to set a maximum time for the browser to wait
    * before executing the deferred compression task, even if the browser is not idle.
+   */
+  timeout?: number;
+}
+
+export interface SessionReplayDelayRecordInitializationConfig {
+  /**
+   * If enabled, we will defer record function initialization
+   * to be done during the browser's idle periods.
+   */
+  enabled: boolean;
+  /**
+   * Optional timeout in milliseconds for the `requestIdleCallback` API.
+   * If specified, this value will be used to set a maximum time for the browser to wait
+   * before executing the deferred record function initialization, even if the browser is not idle.
    */
   timeout?: number;
 }
