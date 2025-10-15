@@ -12,7 +12,7 @@ export const customEnrichmentPlugin = (): EnrichmentPlugin => {
       loggerProvider = config.loggerProvider;
       loggerProvider?.log('Installing @amplitude/plugin-custom-enrichment-browser');
 
-      // Fetch remote config for pageActions in a non-blocking manner
+      // Fetch remote config for custom enrichment in a non-blocking manner
       if (config.fetchRemoteConfig) {
         if (!config.remoteConfigClient) {
           // TODO(xinyi): Diagnostics.recordEvent
