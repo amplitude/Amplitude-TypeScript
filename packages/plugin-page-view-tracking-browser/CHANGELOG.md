@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.5.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-page-view-tracking-browser@2.5.1...@amplitude/plugin-page-view-tracking-browser@2.5.2) (2025-10-15)
+
+
+### Bug Fixes
+
+* **plugin-page-view-tracking-browser:** migrate to analytics-core ([#1341](https://github.com/amplitude/Amplitude-TypeScript/issues/1341)) ([676d347](https://github.com/amplitude/Amplitude-TypeScript/commit/676d347a04a6bd1ab5264ac8f58a358fd983ea54))
+
+
+
+
+
 ## [2.5.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-page-view-tracking-browser@2.5.0...@amplitude/plugin-page-view-tracking-browser@2.5.1) (2025-10-14)
 
 **Note:** Version bump only for package @amplitude/plugin-page-view-tracking-browser
