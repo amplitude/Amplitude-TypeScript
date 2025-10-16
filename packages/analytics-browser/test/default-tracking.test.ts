@@ -12,7 +12,34 @@ import {
   getNetworkTrackingConfig,
   isNetworkTrackingEnabled,
   isFrustrationInteractionsEnabled,
+  isWebVitalsEnabled,
 } from '../src/default-tracking';
+
+describe('isWebVitalsEnabled', () => {
+  describe('is true when', () => {
+    test('autocapture=true', () => {
+      expect(isWebVitalsEnabled(true)).toBe(true);
+    });
+
+    test('autocapture.webVitals=true', () => {
+      expect(isWebVitalsEnabled({ webVitals: true })).toBe(true);
+    });
+  });
+
+  describe('is false when', () => {
+    test('autocapture=false', () => {
+      expect(isWebVitalsEnabled(false)).toBe(false);
+    });
+
+    test('autocapture.webVitals=false', () => {
+      expect(isWebVitalsEnabled({ webVitals: false })).toBe(false);
+    });
+
+    test('autocapture.webVitals is undefined', () => {
+      expect(isWebVitalsEnabled({ networkTracking: true })).toBe(false);
+    });
+  });
+});
 
 describe('isFrustrationInteractionsEnabled', () => {
   test('should return true when autocapture=true', () => {

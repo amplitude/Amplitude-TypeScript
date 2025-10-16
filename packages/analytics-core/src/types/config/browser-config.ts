@@ -184,7 +184,6 @@ export interface AutocaptureOptions {
   /**
    * Enables/disables web vitals tracking.
    * @defaultValue `false`
-   * @experimental This feature is experimental and may not be stable
    */
   webVitals?: boolean;
 }
