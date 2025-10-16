@@ -21,7 +21,10 @@
   "bugs": {
     "url": "https://github.com/amplitude/Amplitude-TypeScript/issues"
   },
-  "private": true,
+  "publishConfig": {
+    "access": "public",
+    "tag": "latest"
+  },
   "files": [
     "lib"
   ],
