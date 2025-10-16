@@ -116,6 +116,6 @@ jobs:
       # See: https://lerna.js.org/docs/features/version-and-publish#from-package
       - name: Publish Release to NPM
         run: |
-          GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} npm run deploy:publish -- ${{ env.PUBLISH_FROM }} -y --pre-dist-tag beta
+          GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} npm run deploy:publish -- ${{ env.PUBLISH_FROM }} -y --pre-dist-tag beta --loglevel silly
         env:
           S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
