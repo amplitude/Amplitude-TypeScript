@@ -72,10 +72,14 @@
 
       amplitude.init(
         import.meta.env.VITE_AMPLITUDE_API_KEY,
-        import.meta.env.VITE_AMPLITUDE_USER_ID || 'amplitude-typescript test user'
+        import.meta.env.VITE_AMPLITUDE_USER_ID || 'amplitude-typescript test user',
+        {
+          autocapture: {
+            pageViews: true,
+            pageUrlEnrichment: true,
+          },
+        }
       );
-      amplitude.add(pageViewPlugin);
-      amplitude.add(pageUrlPlugin);
     </script>
   </body>
 </html>
