@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.28.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.27.2...@amplitude/analytics-core@2.28.0) (2025-10-17)
+
+
+### Features
+
+* make web-vitals autocapture GA ([#1347](https://github.com/amplitude/Amplitude-TypeScript/issues/1347)) ([178862f](https://github.com/amplitude/Amplitude-TypeScript/commit/178862f87e6ea8a882c1d612f48692ab1ab65e14))
+
+
+
+
+
 ## [2.27.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.27.1...@amplitude/analytics-core@2.27.2) (2025-10-15)
 
 

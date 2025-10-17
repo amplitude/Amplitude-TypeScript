@@ -1,3 +1,16 @@
+# Change Log
+
+All notable changes to this project will be documented in this file.
+See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
+# [1.0.0-beta.10](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/unified@1.0.0-beta.9...@amplitude/unified@1.0.0-beta.10) (2025-10-17)
+
+**Note:** Version bump only for package @amplitude/unified
+
+
+
+
+
 # Changelog
 
 ## 1.0.0-beta.9 (2025-10-06)
@@ -28,5 +41,3 @@
 ## 1.0.0-beta.3 (2025-06-25)
 
 - Release 1.0.0-beta.3
-
-
