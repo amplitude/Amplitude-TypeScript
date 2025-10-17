@@ -51,8 +51,13 @@ For more details visit the [Test Server README.md](/test-server/README.md)
 
 ## Troubleshooting
 
-If you ever get cryptic SQL errors when running an Nx command (yarn test, yarn build, etc...) then
-run `npx nx reset` and try again
+If you ever see an error that looks like this while running an Nx command (yarn test, yarn build, etc...):
+
+```
+ Lerna (powered by Nx)   DB transaction operation error: SqliteFailure(Error { code: SystemIoFailure, extended_code: 522 }, Some("disk I/O error"))
+ ```
+
+Run `npx nx reset` and try again
 
 ## Documentation
 
