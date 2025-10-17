@@ -97,6 +97,7 @@ export interface AmplitudeSessionReplay {
   evaluateTargetingAndCapture: (
     targetingParams: Pick<TargetingParameters, 'event' | 'userProperties'>,
     isInit?: boolean,
+    forceRestart?: boolean,
   ) => Promise<void>;
   flush: (useRetry: boolean) => Promise<void>;
   shutdown: () => void;
