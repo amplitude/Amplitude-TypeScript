@@ -120,6 +120,7 @@ describe('pageUrlEnrichmentPlugin', () => {
 
   afterEach(async () => {
     await plugin.teardown?.();
+    window.sessionStorage.setItem('AMP_URL_INFO', '{}');
     jest.restoreAllMocks();
   });
 
