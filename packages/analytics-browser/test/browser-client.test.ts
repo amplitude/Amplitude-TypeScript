@@ -170,6 +170,21 @@ describe('browser-client', () => {
       expect(MockedRemoteConfigClient).not.toHaveBeenCalled();
     });
 
+    test('should pass remoteConfigServerUrl to RemoteConfigClient when provided', async () => {
+      const customServerUrl = 'https://my-proxy.com/remote-config';
+
+      await client.init(apiKey, {
+        remoteConfigServerUrl: customServerUrl,
+      }).promise;
+
+      expect(MockedRemoteConfigClient).toHaveBeenCalledWith(
+        apiKey,
+        expect.anything(), // loggerProvider
+        'US', // default serverZone
+        customServerUrl, // our custom URL
+      );
+    });
+
     test('should call updateBrowserConfigWithRemoteConfig when remoteConfig is not null', async () => {
       const mockRemoteConfig = {
         autocapture: {
