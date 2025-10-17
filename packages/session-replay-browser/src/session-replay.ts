@@ -236,7 +236,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
     }
 
     if (this.config?.targetingConfig) {
-      await this.evaluateTargetingAndCapture({ userProperties: options?.userProperties });
+      await this.evaluateTargetingAndCapture({ userProperties: options?.userProperties }, false, true);
     } else {
       await this.recordEvents();
     }
@@ -304,6 +304,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
   evaluateTargetingAndCapture = async (
     targetingParams: Pick<TargetingParameters, 'event' | 'userProperties'>,
     isInit = false,
+    forceRestart = false,
   ) => {
     if (!this.identifiers || !this.identifiers.sessionId || !this.config) {
       if (this.identifiers && !this.identifiers.sessionId) {
@@ -365,7 +366,11 @@ export class SessionReplay implements AmplitudeSessionReplay {
     if (isInit) {
       void this.initialize(true);
     } else {
-      await this.recordEvents();
+      // Only call recordEvents if we're not already recording, unless forceRestart is true
+      if (forceRestart || !this.recordCancelCallback) {
+        this.loggerProvider.log('Recording events for session due to forceRestart or no ongoing recording.');
+        await this.recordEvents();
+      }
     }
   };
 
