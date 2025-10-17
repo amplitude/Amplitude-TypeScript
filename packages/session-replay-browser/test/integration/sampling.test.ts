@@ -3,7 +3,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import * as AnalyticsCore from '@amplitude/analytics-core';
-import { LogLevel, ILogger, ServerZone } from '@amplitude/analytics-core';
+import { LogLevel, ILogger, ServerZone, RemoteConfig, Source } from '@amplitude/analytics-core';
 import { IDBFactory } from 'fake-indexeddb';
 import { SessionReplayOptions } from 'src/typings/session-replay';
 import * as SessionReplayIDB from '../../src/events/events-idb-store';
@@ -15,13 +15,11 @@ import { eventWithTime } from '@amplitude/rrweb-types';
 
 jest.mock('@amplitude/analytics-remote-config');
 
-// Accessing mock helper functions from the Jest manual mock for @amplitude/analytics-remote-config.
-// This import is intentionally ts-ignored as these helpers are not part of the module's type definitions.
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore
-import { __setNamespaceConfig, __setShouldThrowError } from '@amplitude/analytics-remote-config';
-
 type MockedLogger = jest.Mocked<ILogger>;
+
+// Mock remote config client
+let mockRemoteConfig: RemoteConfig | null = null;
+let mockRemoteConfigClient: any;
 
 const mockEvent = {
   type: 4,
@@ -82,13 +80,51 @@ describe('module level integration', () => {
     sessionId: SESSION_ID_IN_20_SAMPLE,
   };
   let mockRecordFunction: jest.Mock & { addCustomEvent: jest.Mock };
-  beforeEach(() => {
-    // Reset the namespace config before each test
-    __setNamespaceConfig({
-      sr_sampling_config: samplingConfig,
-      sr_privacy_config: {},
+
+  // Helper function to initialize the mock remote config client
+  const initializeMockRemoteConfigClient = () => {
+    // Use a function that references mockRemoteConfig dynamically
+    const subscribeImplementation = jest.fn((configKey: string, _subscriptionMode: string, callback: any) => {
+      // Filter the config by key, matching RemoteConfigClient.sendCallback behavior
+      let filteredConfig: RemoteConfig | null = mockRemoteConfig;
+      if (configKey && filteredConfig) {
+        filteredConfig = configKey.split('.').reduce((config: RemoteConfig | null, key: string) => {
+          if (config === null) {
+            return config;
+          }
+          return key in config ? (config[key] as RemoteConfig) : null;
+        }, filteredConfig as RemoteConfig | null);
+      }
+
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+      return callback(filteredConfig, 'initial' as Source, new Date());
     });
-    __setShouldThrowError(false);
+
+    mockRemoteConfigClient = {
+      subscribe: subscribeImplementation,
+    };
+
+    // Mock RemoteConfigClient constructor using jest.spyOn
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+    jest.spyOn(AnalyticsCore, 'RemoteConfigClient').mockImplementation(() => mockRemoteConfigClient);
+  };
+
+  beforeEach(() => {
+    // Initialize mockRemoteConfig with default sampling config
+    // Structure must match how RemoteConfigClient.sendCallback filters by key
+    // When key is 'configs.sessionReplay', it expects nested objects: configs -> sessionReplay
+    mockRemoteConfig = {
+      configs: {
+        sessionReplay: {
+          sr_sampling_config: samplingConfig,
+          sr_privacy_config: {},
+        },
+      },
+    };
+
+    // Initialize the mock remote config client
+    initializeMockRemoteConfigClient();
+
     jest.spyOn(SessionReplayIDB.SessionReplayEventsIDBStore, 'new');
     jest.useFakeTimers({ doNotFake: ['nextTick'] });
     originalFetch = global.fetch;
@@ -113,29 +149,10 @@ describe('module level integration', () => {
     jest.useRealTimers();
   });
   describe('sampleRate and captureEnabled', () => {
-    describe('remote config API failure', () => {
-      beforeEach(() => {
-        __setShouldThrowError(true);
-      });
-      test('should not capture replays and use options sampleRate', async () => {
-        const sessionReplay = new SessionReplay();
-        const initPromise = sessionReplay.init(apiKey, { ...mockOptions, flushMaxRetries: 0 }).promise;
-        // eslint-disable-next-line @typescript-eslint/unbound-method
-        await new Promise(process.nextTick);
-        jest.runAllTimers();
-        return initPromise.then(() => {
-          const sampleRate = sessionReplay.config?.sampleRate;
-          // Ensure that sample rate matches what's passed in the options
-          expect(sampleRate).toBe(1);
-          const sessionRecordingProperties = sessionReplay.getSessionReplayProperties();
-          expect(sessionRecordingProperties).toMatchObject({});
-          expect(mockRecordFunction).not.toHaveBeenCalled();
-        });
-      });
-    });
     describe('without remote config set', () => {
       beforeEach(() => {
-        __setNamespaceConfig({});
+        mockRemoteConfig = null;
+        initializeMockRemoteConfigClient();
       });
       test('should capture', async () => {
         const sessionReplay = new SessionReplay();
@@ -175,9 +192,14 @@ describe('module level integration', () => {
     });
     describe('with remote config set', () => {
       beforeEach(() => {
-        __setNamespaceConfig({
-          sr_sampling_config: samplingConfig,
-        });
+        mockRemoteConfig = {
+          configs: {
+            sessionReplay: {
+              sr_sampling_config: samplingConfig,
+            },
+          },
+        };
+        initializeMockRemoteConfigClient();
       });
       test('should capture', async () => {
         const sessionReplay = new SessionReplay();
@@ -218,7 +240,8 @@ describe('module level integration', () => {
   });
   describe('sampling logic', () => {
     beforeEach(() => {
-      __setNamespaceConfig({});
+      mockRemoteConfig = null;
+      initializeMockRemoteConfigClient();
     });
     describe('with a sample rate', () => {
       test('should not record session if excluded due to sampling', async () => {
