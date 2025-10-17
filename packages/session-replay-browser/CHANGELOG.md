@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.28.15-perfrecord-init.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.28.14...@amplitude/session-replay-browser@1.28.15-perfrecord-init.0) (2025-10-17)
+
+
+### Performance Improvements
+
+* **session-replay:** reduce recording initialization when trc enabled ([c4c76bb](https://github.com/amplitude/Amplitude-TypeScript/commit/c4c76bb852f1059b38bdd9fa92b02498618753fc))
+
+
+
+
+
 ## [1.28.14](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.28.13...@amplitude/session-replay-browser@1.28.14) (2025-09-25)
 
 
