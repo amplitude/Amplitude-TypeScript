@@ -16,7 +16,7 @@ import {
  */
 type AutocaptureOptionsDefaultAvailable = Pick<
   AutocaptureOptions,
-  'pageViews' | 'sessions' | 'fileDownloads' | 'formInteractions' | 'attribution'
+  'pageViews' | 'sessions' | 'fileDownloads' | 'formInteractions' | 'attribution' | 'pageUrlEnrichment'
 >;
 
 /**
@@ -52,6 +52,9 @@ export const isPageViewTrackingEnabled = (autocapture: AutocaptureOptions | bool
 
 export const isSessionTrackingEnabled = (autocapture: AutocaptureOptions | boolean | undefined) =>
   isTrackingEnabled(autocapture, 'sessions');
+
+export const isPageUrlEnrichmentEnabled = (autocapture: AutocaptureOptions | boolean | undefined) =>
+  isTrackingEnabled(autocapture, 'pageUrlEnrichment');
 
 /**
  * Returns true if
@@ -235,22 +238,4 @@ export const getAttributionTrackingConfig = (config: BrowserOptions): Attributio
   }
 
   return {};
-};
-
-/**
- * Returns false if
- * 1. autocapture === false
- * 2. if autocapture.pageUrlEnrichment === false
- * otherwise returns true
- */
-export const isPageUrlEnrichmentEnabled = (autocapture: AutocaptureOptions | boolean | undefined) => {
-  if (typeof autocapture === 'boolean') {
-    return autocapture;
-  }
-
-  if (typeof autocapture === 'object' && autocapture.pageUrlEnrichment === false) {
-    return false;
-  }
-
-  return true;
 };
