@@ -4,7 +4,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import * as AnalyticsCore from '@amplitude/analytics-core';
-import { LogLevel, ILogger, ServerZone, SpecialEventType } from '@amplitude/analytics-core';
+import { LogLevel, ILogger, ServerZone, SpecialEventType, RemoteConfig, Source } from '@amplitude/analytics-core';
 import { SessionReplayLocalConfig } from '../src/config/local-config';
 import { NetworkObservers, NetworkRequestEvent } from '../src/observers';
 
@@ -26,8 +26,6 @@ jest.mock(
 );
 import { SessionReplayOptions } from '../src/typings/session-replay';
 
-jest.mock('@amplitude/analytics-remote-config');
-
 // Mock the URL tracking plugin
 jest.mock('../src/plugins/url-tracking-plugin', () => ({
   createUrlTrackingPlugin: jest.fn().mockImplementation((options: any = {}) => ({
@@ -47,13 +45,16 @@ jest.mock('../src/plugins/url-tracking-plugin', () => ({
   })),
 }));
 
-// Accessing mock helper functions from the Jest manual mock for @amplitude/analytics-remote-config.
-// This import is intentionally ts-ignored as these helpers are not part of the module's type definitions.
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore
-import { __setNamespaceConfig, __setShouldThrowError } from '@amplitude/analytics-remote-config';
-
 import { createUrlTrackingPlugin } from '../src/plugins/url-tracking-plugin';
+
+// Mock remote config storage
+let mockRemoteConfig: RemoteConfig | null = null;
+
+// Mock RemoteConfigClient - will be recreated for each test
+let mockRemoteConfigClient: any;
+
+let MockedRemoteConfigClient: jest.SpyInstance;
+let originalRemoteConfigClient: typeof AnalyticsCore.RemoteConfigClient;
 
 type MockedLogger = jest.Mocked<ILogger>;
 
@@ -178,11 +179,40 @@ describe('SessionReplay', () => {
     jest.clearAllMocks();
 
     // Set default remote config
-    __setNamespaceConfig({
+    mockRemoteConfig = {
       sr_sampling_config: samplingConfig,
       sr_privacy_config: {},
+    };
+
+    // Create a fresh mock client for each test
+    mockRemoteConfigClient = {
+      subscribe: jest
+        .fn()
+        .mockImplementation(
+          (
+            _configKey: string | undefined,
+            _deliveryMode: any,
+            callback: (remoteConfig: RemoteConfig | null, source: Source, lastFetch: Date) => void,
+          ) => {
+            // Call the callback synchronously with the mock remote config
+            callback(mockRemoteConfig, 'cache', new Date());
+            return 'mock-subscription-id';
+          },
+        ),
+      unsubscribe: jest.fn(() => true),
+      updateConfigs: jest.fn(),
+    };
+
+    // Set up RemoteConfigClient mock
+    originalRemoteConfigClient = AnalyticsCore.RemoteConfigClient;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+    MockedRemoteConfigClient = jest.fn().mockImplementation(() => mockRemoteConfigClient);
+    Object.defineProperty(AnalyticsCore, 'RemoteConfigClient', {
+      value: MockedRemoteConfigClient,
+      writable: true,
+      configurable: true,
     });
-    __setShouldThrowError(false);
+
     jest.spyOn(SessionReplayIDB, 'createStore');
     sessionReplay = new SessionReplay();
     initialize = jest.spyOn(sessionReplay, 'initialize');
@@ -215,6 +245,15 @@ describe('SessionReplay', () => {
     global.fetch = originalFetch;
     global.requestIdleCallback = deferEvents;
     jest.useRealTimers();
+
+    // Clean up RemoteConfigClient mock
+    if (MockedRemoteConfigClient) {
+      Object.defineProperty(AnalyticsCore, 'RemoteConfigClient', {
+        value: originalRemoteConfigClient,
+        writable: true,
+        configurable: true,
+      });
+    }
   });
   describe('init', () => {
     test('should remove invalid selectors', async () => {
@@ -233,7 +272,7 @@ describe('SessionReplay', () => {
     });
 
     test('should start network observers when network logging is enabled in remote config', async () => {
-      __setNamespaceConfig({
+      mockRemoteConfig = {
         sr_sampling_config: samplingConfig,
         sr_privacy_config: {},
         sr_interaction_config: {
@@ -244,7 +283,7 @@ describe('SessionReplay', () => {
             enabled: true,
           },
         },
-      });
+      };
 
       await sessionReplay.init(apiKey, mockOptions).promise;
       const startSpy = jest.spyOn(NetworkObservers.prototype, 'start');
@@ -273,7 +312,7 @@ describe('SessionReplay', () => {
     });
 
     test('should log warning when NetworkObservers import fails', async () => {
-      __setNamespaceConfig({
+      mockRemoteConfig = {
         sr_sampling_config: samplingConfig,
         sr_privacy_config: {},
         sr_interaction_config: {
@@ -284,7 +323,7 @@ describe('SessionReplay', () => {
             enabled: true,
           },
         },
-      });
+      };
 
       // Mock the dynamic import to throw an error
       jest.doMock('../src/observers', () => {
@@ -308,13 +347,13 @@ describe('SessionReplay', () => {
 
     test('should catch error and log a warn when initializing', async () => {
       // enable interaction config
-      __setNamespaceConfig({
+      mockRemoteConfig = {
         sr_sampling_config: samplingConfig,
         sr_privacy_config: {},
         sr_interaction_config: {
           enabled: true,
         },
-      });
+      };
 
       // mock the error when creating events managers
       jest.spyOn(SessionReplayEventsManager, 'createEventsManager').mockImplementation(() => {
@@ -541,11 +580,11 @@ describe('SessionReplay', () => {
         },
       ],
     ])('should setup sdk with interaction config', async (interactionConfig, expectationFn) => {
-      __setNamespaceConfig({
+      mockRemoteConfig = {
         sr_sampling_config: samplingConfig,
         sr_privacy_config: {},
         sr_interaction_config: interactionConfig,
-      });
+      };
       await sessionReplay.init(apiKey, {
         ...mockOptions,
         sampleRate: 0.5,
@@ -583,11 +622,11 @@ describe('SessionReplay', () => {
         },
       ],
     ])('should setup sdk with interaction config', async (loggingConfig, expectationFn) => {
-      __setNamespaceConfig({
+      mockRemoteConfig = {
         sr_sampling_config: samplingConfig,
         sr_privacy_config: {},
         sr_logging_config: loggingConfig,
-      });
+      };
       await sessionReplay.init(apiKey, {
         ...mockOptions,
         sampleRate: 0.5,
@@ -1046,13 +1085,13 @@ describe('SessionReplay', () => {
       { enabled: false, expectedLength: 0 },
       { enabled: undefined, expectedLength: 0 },
     ])('should not register scroll if interaction config not enabled', async ({ enabled, expectedLength }) => {
-      __setNamespaceConfig({
+      mockRemoteConfig = {
         sr_sampling_config: samplingConfig,
         sr_privacy_config: {},
         sr_interaction_config: {
           enabled,
         },
-      });
+      };
 
       await sessionReplay.init(apiKey, {
         ...mockOptions,
@@ -1117,7 +1156,7 @@ describe('SessionReplay', () => {
     });
     test('should return false if no options', async () => {
       // Mock as if remote config call fails
-      __setShouldThrowError(true);
+      mockRemoteConfig = null;
       await sessionReplay.init(apiKey, mockEmptyOptions).promise;
       const sampleRate = sessionReplay.config?.sampleRate;
       expect(sampleRate).toBe(DEFAULT_SAMPLE_RATE);
@@ -1125,20 +1164,20 @@ describe('SessionReplay', () => {
       expect(shouldRecord).toBe(false);
     });
     test('should return false if captureEnabled is false', async () => {
-      __setNamespaceConfig({
+      mockRemoteConfig = {
         sr_sampling_config: {
           capture_enabled: false,
           sample_rate: 0.5,
         },
         sr_privacy_config: {},
-      });
+      };
       await sessionReplay.init(apiKey, { ...mockOptions }).promise;
       const shouldRecord = sessionReplay.getShouldRecord();
       expect(shouldRecord).toBe(false);
     });
     test('should return false if session not included in sample rate', async () => {
       // Mock as if remote config call fails
-      __setShouldThrowError(true);
+      mockRemoteConfig = null;
       jest.spyOn(AnalyticsCore, 'isTimestampInSample').mockImplementationOnce(() => false);
 
       await sessionReplay.init(apiKey, { ...mockOptions, sampleRate: 0.2 }).promise;
@@ -1394,13 +1433,13 @@ describe('SessionReplay', () => {
 
     test('should add hooks if interaction config is enabled', async () => {
       // enable interaction config
-      __setNamespaceConfig({
+      mockRemoteConfig = {
         sr_sampling_config: samplingConfig,
         sr_privacy_config: {},
         sr_interaction_config: {
           enabled: true,
         },
-      });
+      };
 
       const sessionReplay = new SessionReplay();
       await sessionReplay.init(apiKey, mockOptions).promise;
@@ -1423,13 +1462,13 @@ describe('SessionReplay', () => {
     });
 
     test('should pass empty array for ugcFilterRules when not provided', async () => {
-      __setNamespaceConfig({
+      mockRemoteConfig = {
         sr_sampling_config: samplingConfig,
         sr_privacy_config: {},
         sr_interaction_config: {
           enabled: true,
         },
-      });
+      };
 
       const sessionReplay = new SessionReplay();
       await sessionReplay.init(apiKey, mockOptions).promise;
@@ -1444,14 +1483,14 @@ describe('SessionReplay', () => {
     test('should pass provided ugcFilterRules when configured', async () => {
       const mockUgcFilterRules = ['rule1', 'rule2'];
 
-      __setNamespaceConfig({
+      mockRemoteConfig = {
         sr_sampling_config: samplingConfig,
         sr_privacy_config: {},
         sr_interaction_config: {
           enabled: true,
           ugcFilterRules: mockUgcFilterRules,
         },
-      });
+      };
 
       const sessionReplay = new SessionReplay();
       await sessionReplay.init(apiKey, mockOptions).promise;
@@ -1464,14 +1503,14 @@ describe('SessionReplay', () => {
     });
 
     test('should pass empty array for ugcFilterRules when explicitly set to empty', async () => {
-      __setNamespaceConfig({
+      mockRemoteConfig = {
         sr_sampling_config: samplingConfig,
         sr_privacy_config: {},
         sr_interaction_config: {
           enabled: true,
           ugcFilterRules: [],
         },
-      });
+      };
 
       const sessionReplay = new SessionReplay();
       await sessionReplay.init(apiKey, mockOptions).promise;
@@ -1487,14 +1526,14 @@ describe('SessionReplay', () => {
       test('should apply UGC filter rules to meta event href when interaction config is enabled and ugcFilterRules exist', async () => {
         const mockUgcFilterRules = [{ selector: 'https://example.com/*', replacement: 'https://example.com/filtered' }];
 
-        __setNamespaceConfig({
+        mockRemoteConfig = {
           sr_sampling_config: samplingConfig,
           sr_privacy_config: {},
           sr_interaction_config: {
             enabled: true,
             ugcFilterRules: mockUgcFilterRules,
           },
-        });
+        };
 
         const sessionReplay = new SessionReplay();
         const getPageUrlSpy = jest.spyOn(Helpers, 'getPageUrl');
@@ -1516,14 +1555,14 @@ describe('SessionReplay', () => {
       });
 
       test('should not apply UGC filter rules to meta event when interaction config is disabled', async () => {
-        __setNamespaceConfig({
+        mockRemoteConfig = {
           sr_sampling_config: samplingConfig,
           sr_privacy_config: {},
           sr_interaction_config: {
             enabled: false,
             ugcFilterRules: [{ selector: 'https://example.com/*', replacement: 'https://example.com/filtered' }],
           },
-        });
+        };
 
         const sessionReplay = new SessionReplay();
         const getPageUrlSpy = jest.spyOn(Helpers, 'getPageUrl').mockReturnValue('https://example.com/sensitive-page');
@@ -1546,14 +1585,14 @@ describe('SessionReplay', () => {
       });
 
       test('should not apply UGC filter rules to meta event when ugcFilterRules is undefined', async () => {
-        __setNamespaceConfig({
+        mockRemoteConfig = {
           sr_sampling_config: samplingConfig,
           sr_privacy_config: {},
           sr_interaction_config: {
             enabled: true,
             ugcFilterRules: undefined,
           },
-        });
+        };
 
         const sessionReplay = new SessionReplay();
         const getPageUrlSpy = jest.spyOn(Helpers, 'getPageUrl').mockReturnValue('https://example.com/sensitive-page');
@@ -1577,14 +1616,14 @@ describe('SessionReplay', () => {
 
       test('should call getPageUrl with empty array when ugcFilterRules is empty array', async () => {
         const emptyUgcFilterRules: any[] = [];
-        __setNamespaceConfig({
+        mockRemoteConfig = {
           sr_sampling_config: samplingConfig,
           sr_privacy_config: {},
           sr_interaction_config: {
             enabled: true,
             ugcFilterRules: emptyUgcFilterRules,
           },
-        });
+        };
 
         const sessionReplay = new SessionReplay();
         const getPageUrlSpy = jest.spyOn(Helpers, 'getPageUrl').mockReturnValue('https://example.com/sensitive-page');
@@ -1609,14 +1648,14 @@ describe('SessionReplay', () => {
 
       test('should not apply UGC filter rules to non-meta events', async () => {
         const mockUgcFilterRules = [{ selector: 'https://example.com/*', replacement: 'https://example.com/filtered' }];
-        __setNamespaceConfig({
+        mockRemoteConfig = {
           sr_sampling_config: samplingConfig,
           sr_privacy_config: {},
           sr_interaction_config: {
             enabled: true,
             ugcFilterRules: mockUgcFilterRules,
           },
-        });
+        };
 
         const sessionReplay = new SessionReplay();
         const getPageUrlSpy = jest.spyOn(Helpers, 'getPageUrl');
@@ -1640,14 +1679,14 @@ describe('SessionReplay', () => {
 
       test('should handle meta event without href data', async () => {
         const mockUgcFilterRules = [{ selector: 'https://example.com/*', replacement: 'https://example.com/filtered' }];
-        __setNamespaceConfig({
+        mockRemoteConfig = {
           sr_sampling_config: samplingConfig,
           sr_privacy_config: {},
           sr_interaction_config: {
             enabled: true,
             ugcFilterRules: mockUgcFilterRules,
           },
-        });
+        };
 
         const sessionReplay = new SessionReplay();
         const getPageUrlSpy = jest.spyOn(Helpers, 'getPageUrl');
@@ -1670,14 +1709,14 @@ describe('SessionReplay', () => {
       });
 
       test('should not apply UGC filter rules when config is undefined', async () => {
-        __setNamespaceConfig({
+        mockRemoteConfig = {
           sr_sampling_config: samplingConfig,
           sr_privacy_config: {},
           sr_interaction_config: {
             enabled: true,
             ugcFilterRules: [{ selector: 'https://example.com/*', replacement: 'https://example.com/filtered' }],
           },
-        });
+        };
 
         const sessionReplay = new SessionReplay();
         const getPageUrlSpy = jest.spyOn(Helpers, 'getPageUrl').mockReturnValue('https://example.com/sensitive-page');
@@ -1708,11 +1747,11 @@ describe('SessionReplay', () => {
       });
 
       test('should not apply UGC filter rules when interactionConfig is undefined', async () => {
-        __setNamespaceConfig({
+        mockRemoteConfig = {
           sr_sampling_config: samplingConfig,
           sr_privacy_config: {},
           sr_interaction_config: undefined,
-        });
+        };
 
         const sessionReplay = new SessionReplay();
         const getPageUrlSpy = jest.spyOn(Helpers, 'getPageUrl').mockReturnValue('https://example.com/sensitive-page');
@@ -1737,14 +1776,14 @@ describe('SessionReplay', () => {
       });
 
       test('should not apply UGC filter rules when config exists but interactionConfig is null', async () => {
-        __setNamespaceConfig({
+        mockRemoteConfig = {
           sr_sampling_config: samplingConfig,
           sr_privacy_config: {},
           sr_interaction_config: {
             enabled: true,
             ugcFilterRules: [{ selector: 'https://example.com/*', replacement: 'https://example.com/filtered' }],
           },
-        });
+        };
 
         const sessionReplay = new SessionReplay();
         const getPageUrlSpy = jest.spyOn(Helpers, 'getPageUrl').mockReturnValue('https://example.com/sensitive-page');
@@ -1777,14 +1816,14 @@ describe('SessionReplay', () => {
       });
 
       test('should not apply UGC filter rules when ugcFilterRules is explicitly null', async () => {
-        __setNamespaceConfig({
+        mockRemoteConfig = {
           sr_sampling_config: samplingConfig,
           sr_privacy_config: {},
           sr_interaction_config: {
             enabled: true,
             ugcFilterRules: null,
           },
-        });
+        };
 
         const sessionReplay = new SessionReplay();
         const getPageUrlSpy = jest.spyOn(Helpers, 'getPageUrl').mockReturnValue('https://example.com/sensitive-page');
@@ -2244,7 +2283,7 @@ describe('SessionReplay', () => {
         NetworkRequestEvent: {} as any,
       }));
 
-      __setNamespaceConfig({
+      mockRemoteConfig = {
         sr_sampling_config: samplingConfig,
         sr_privacy_config: {},
         sr_logging_config: {
@@ -2252,7 +2291,7 @@ describe('SessionReplay', () => {
             enabled: true,
           },
         },
-      });
+      };
 
       await sessionReplay.init(apiKey, mockOptions).promise;
       const addCustomRRWebEventSpy = jest.spyOn(sessionReplay, 'addCustomRRWebEvent');
@@ -2325,14 +2364,14 @@ describe('SessionReplay', () => {
           { selector: '/test/', replacement: 'filtered' },
         ];
 
-        __setNamespaceConfig({
+        mockRemoteConfig = {
           sr_sampling_config: samplingConfig,
           sr_privacy_config: {},
           sr_interaction_config: {
             enabled: true,
             ugcFilterRules: mockUgcFilterRules,
           },
-        });
+        };
 
         await sessionReplay.init(apiKey, mockOptions).promise;
 
@@ -2387,14 +2426,14 @@ describe('SessionReplay', () => {
     });
 
     test('should handle empty UGC filter rules', async () => {
-      __setNamespaceConfig({
+      mockRemoteConfig = {
         sr_sampling_config: samplingConfig,
         sr_privacy_config: {},
         sr_interaction_config: {
           enabled: true,
           ugcFilterRules: [],
         },
-      });
+      };
 
       await sessionReplay.init(apiKey, mockOptions).promise;
 
@@ -2405,10 +2444,10 @@ describe('SessionReplay', () => {
     });
 
     test('should handle missing interaction config', async () => {
-      __setNamespaceConfig({
+      mockRemoteConfig = {
         sr_sampling_config: samplingConfig,
         sr_privacy_config: {},
-      });
+      };
 
       await sessionReplay.init(apiKey, mockOptions).promise;
 
@@ -2640,7 +2679,7 @@ describe('SessionReplay', () => {
       const sessionReplay = new SessionReplay();
 
       // Set up namespace config to include targeting config
-      __setNamespaceConfig({
+      mockRemoteConfig = {
         sr_sampling_config: samplingConfig,
         sr_privacy_config: {},
         sr_targeting_config: {
@@ -2648,7 +2687,7 @@ describe('SessionReplay', () => {
           variants: { on: { key: 'on' }, off: { key: 'off' } },
           segments: [],
         },
-      });
+      };
 
       await sessionReplay.init(apiKey, mockOptions).promise;
 
@@ -2669,7 +2708,7 @@ describe('SessionReplay', () => {
       const sessionReplay = new SessionReplay();
 
       // Set up namespace config to include targeting config
-      __setNamespaceConfig({
+      mockRemoteConfig = {
         sr_sampling_config: samplingConfig,
         sr_privacy_config: {},
         sr_targeting_config: {
@@ -2677,7 +2716,7 @@ describe('SessionReplay', () => {
           variants: { on: { key: 'on' }, off: { key: 'off' } },
           segments: [],
         },
-      });
+      };
 
       await sessionReplay.init(apiKey, mockOptions).promise;
 

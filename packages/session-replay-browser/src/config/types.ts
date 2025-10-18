@@ -199,20 +199,13 @@ export interface SessionReplayJoinedConfig extends SessionReplayLocalConfig {
   targetingConfig?: TargetingConfig;
 }
 
-export interface SessionReplayRemoteConfigFetch {
-  getServerUrl: () => void;
-  getSamplingConfig: (sessionId?: number) => Promise<SessionReplayRemoteConfig['sr_sampling_config'] | void>;
-  fetchRemoteConfig: (sessionId?: number) => Promise<SessionReplayRemoteConfig | void>;
-  getRemoteConfig: (sessionId?: number) => Promise<SessionReplayRemoteConfig | void>;
-}
-
 export interface SessionReplayConfigs {
   localConfig: SessionReplayLocalConfig;
   joinedConfig: SessionReplayJoinedConfig;
   remoteConfig: SessionReplayRemoteConfig | undefined;
 }
 export interface SessionReplayJoinedConfigGenerator {
-  generateJoinedConfig: (sessionId?: string | number) => Promise<SessionReplayConfigs>;
+  generateJoinedConfig: () => Promise<SessionReplayConfigs>;
 }
 
 export interface SessionReplayMetadata {

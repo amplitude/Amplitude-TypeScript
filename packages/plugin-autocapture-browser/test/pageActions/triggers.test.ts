@@ -25,11 +25,6 @@ import { DataExtractor } from '../../src/data-extractor';
 jest.mock('../../src/pageActions/matchEventToFilter');
 jest.mock('../../src/pageActions/actions');
 
-// Mock the remote config fetch
-jest.mock('@amplitude/analytics-remote-config', () => ({
-  createRemoteConfigFetch: jest.fn(),
-}));
-
 describe('groupLabeledEventIdsByEventType', () => {
   // Test 1: Handles an empty array
   test('should return empty sets for an empty input array', () => {

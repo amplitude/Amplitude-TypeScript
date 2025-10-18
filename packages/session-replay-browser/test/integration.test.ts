@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import * as AnalyticsCore from '@amplitude/analytics-core';
-import { LogLevel, ILogger, ServerZone } from '@amplitude/analytics-core';
+import { LogLevel, ILogger, ServerZone, RemoteConfig, Source } from '@amplitude/analytics-core';
 import * as RRWeb from '@amplitude/rrweb-record';
 import { IDBFactory } from 'fake-indexeddb';
 import { EventType, SessionReplayOptions } from 'src/typings/session-replay';
@@ -15,7 +15,10 @@ jest.mock('idb-keyval');
 type MockedLogger = jest.Mocked<ILogger>;
 jest.mock('@amplitude/rrweb-record');
 type MockedRRWeb = jest.Mocked<typeof import('@amplitude/rrweb-record')>;
-jest.mock('@amplitude/analytics-remote-config');
+
+// Mock remote config client
+let mockRemoteConfig: RemoteConfig | null = null;
+let mockRemoteConfigClient: any;
 
 const mockEvent = {
   type: 4,
@@ -32,6 +35,34 @@ async function runScheduleTimers() {
   // exhause nested setTimeout
   jest.runAllTimers();
 }
+
+// Helper function to initialize the mock remote config client
+const initializeMockRemoteConfigClient = () => {
+  const subscribeImplementation = jest.fn((configKey: string, _subscriptionMode: string, callback: any) => {
+    // Filter the config by key, matching RemoteConfigClient.sendCallback behavior
+    let filteredConfig: RemoteConfig | null = mockRemoteConfig;
+    if (configKey && filteredConfig) {
+      filteredConfig = configKey.split('.').reduce((config: RemoteConfig | null, key: string) => {
+        if (config === null) {
+          return config;
+        }
+        return key in config ? (config[key] as RemoteConfig) : null;
+      }, filteredConfig as RemoteConfig | null);
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+    return callback(filteredConfig, 'initial' as Source, new Date());
+  });
+
+  mockRemoteConfigClient = {
+    subscribe: subscribeImplementation,
+  };
+
+  // Mock RemoteConfigClient constructor using jest.spyOn
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+  jest.spyOn(AnalyticsCore, 'RemoteConfigClient').mockImplementation(() => mockRemoteConfigClient);
+};
+
 describe('module level integration', () => {
   const { record } = RRWeb as MockedRRWeb;
   const addEventListenerMock = jest.fn() as jest.Mock<typeof window.addEventListener>;
@@ -67,6 +98,12 @@ describe('module level integration', () => {
     serverZone: ServerZone.EU,
   };
   beforeEach(() => {
+    // Initialize mockRemoteConfig with null (no remote config by default for these tests)
+    mockRemoteConfig = null;
+
+    // Initialize the mock remote config client
+    initializeMockRemoteConfigClient();
+
     jest.spyOn(SessionReplayIDB.SessionReplayEventsIDBStore, 'new');
     jest.useFakeTimers();
     originalFetch = global.fetch;

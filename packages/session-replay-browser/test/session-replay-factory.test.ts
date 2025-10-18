@@ -1,8 +1,6 @@
 import { SessionReplay } from '../src/session-replay';
 import { getLogConfig } from '../src/session-replay-factory';
 
-jest.mock('@amplitude/analytics-remote-config');
-
 describe('session replay factory', () => {
   describe('getLogConfig', () => {
     test('return the log config if config defined on session replay', async () => {

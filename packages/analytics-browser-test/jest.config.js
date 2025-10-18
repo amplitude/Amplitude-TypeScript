@@ -7,5 +7,4 @@ module.exports = {
   displayName: package.name,
   rootDir: '.',
   testEnvironment: 'jsdom',
-  setupFilesAfterEnv: ['./jest.setup.js'],
 };
