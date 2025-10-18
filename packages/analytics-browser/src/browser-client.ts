@@ -31,36 +31,53 @@ import {
 } from '@amplitude/analytics-core';
 import {
   getAttributionTrackingConfig,
-  getPageViewTrackingConfig,
-  getElementInteractionsConfig,
-  getNetworkTrackingConfig,
   isAttributionTrackingEnabled,
   isSessionTrackingEnabled,
   isFileDownloadTrackingEnabled,
   isFormInteractionTrackingEnabled,
-  isElementInteractionsEnabled,
-  isPageViewTrackingEnabled,
-  isNetworkTrackingEnabled,
-  isWebVitalsEnabled,
-  isFrustrationInteractionsEnabled,
-  getFrustrationInteractionsConfig,
 } from './default-tracking';
 import { convertProxyObjectToRealObject, isInstanceProxy } from './utils/snippet-helper';
 import { Context } from './plugins/context';
 import { useBrowserConfig, createTransport } from './config';
-import { pageViewTrackingPlugin } from '@amplitude/plugin-page-view-tracking-browser';
-import { formInteractionTracking } from './plugins/form-interaction-tracking';
-import { fileDownloadTracking } from './plugins/file-download-tracking';
 import { DEFAULT_SESSION_END_EVENT, DEFAULT_SESSION_START_EVENT } from './constants';
 import { detNotify } from './det-notification';
 import { networkConnectivityCheckerPlugin } from './plugins/network-connectivity-checker';
 import { updateBrowserConfigWithRemoteConfig } from './config/joined-config';
-import { autocapturePlugin, frustrationPlugin } from '@amplitude/plugin-autocapture-browser';
-import { plugin as networkCapturePlugin } from '@amplitude/plugin-network-capture-browser';
-import { webVitalsPlugin } from '@amplitude/plugin-web-vitals-browser';
+import { formInteractionTracking } from './plugins/form-interaction-tracking';
+import { fileDownloadTracking } from './plugins/file-download-tracking';
 import { WebAttribution } from './attribution/web-attribution';
 import { LIBPREFIX } from './lib-prefix';
 import { VERSION } from './version';
+//import { autocapturePlugin, frustrationPlugin, networkCapturePlugin, webVitalsPlugin } from './autocapture';
+
+const asyncLoadScript = (url: string) => {
+  return new Promise((resolve, reject) => {
+    try {
+      const scriptElement = document.createElement('script');
+      scriptElement.type = 'text/javascript';
+      scriptElement.async = true;
+      scriptElement.src = url;
+      scriptElement.addEventListener(
+        'load',
+        () => {
+          resolve({ status: true });
+        },
+        { once: true },
+      );
+      scriptElement.addEventListener('error', () => {
+        reject({
+          status: false,
+          message: `Failed to load the script ${url}`,
+        });
+      });
+      /* istanbul ignore next */
+      document.head?.appendChild(scriptElement);
+    } catch (error) {
+      /* istanbul ignore next */
+      reject(error);
+    }
+  });
+};
 
 /**
  * Exported for `@amplitude/unified` or integration with blade plugins.
@@ -229,30 +246,37 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
     }
 
     // Add page view plugin
-    if (isPageViewTrackingEnabled(this.config.defaultTracking)) {
-      this.config.loggerProvider.debug('Adding page view tracking plugin');
-      await this.add(pageViewTrackingPlugin(getPageViewTrackingConfig(this.config))).promise;
-    }
+    // macro:start:lazy-load-autocapture
+    /*
+    await asyncLoadScript('/analytics-browser/lib/scripts/amplitude-autocapture-min.js.gz');
+    */ 
+   // macro:end:lazy-load-autocapture
+    console.log('autocapture loaded');
+    throw new Error('exiting');
+    // if (isPageViewTrackingEnabled(this.config.defaultTracking)) {
+    //   this.config.loggerProvider.debug('Adding page view tracking plugin');
+    //   await this.add(pageViewTrackingPlugin(getPageViewTrackingConfig(this.config))).promise;
+    // }
 
-    if (isElementInteractionsEnabled(this.config.autocapture)) {
-      this.config.loggerProvider.debug('Adding user interactions plugin (autocapture plugin)');
-      await this.add(autocapturePlugin(getElementInteractionsConfig(this.config), { diagnosticsClient })).promise;
-    }
+    // if (isElementInteractionsEnabled(this.config.autocapture)) {
+    //   this.config.loggerProvider.debug('Adding user interactions plugin (autocapture plugin)');
+    //   await this.add(autocapturePlugin(getElementInteractionsConfig(this.config), { diagnosticsClient })).promise;
+    // }
 
-    if (isFrustrationInteractionsEnabled(this.config.autocapture)) {
-      this.config.loggerProvider.debug('Adding frustration interactions plugin');
-      await this.add(frustrationPlugin(getFrustrationInteractionsConfig(this.config))).promise;
-    }
+    // if (isFrustrationInteractionsEnabled(this.config.autocapture)) {
+    //   this.config.loggerProvider.debug('Adding frustration interactions plugin');
+    //   await this.add(frustrationPlugin(getFrustrationInteractionsConfig(this.config))).promise;
+    // }
 
-    if (isNetworkTrackingEnabled(this.config.autocapture)) {
-      this.config.loggerProvider.debug('Adding network tracking plugin');
-      await this.add(networkCapturePlugin(getNetworkTrackingConfig(this.config))).promise;
-    }
+    // if (isNetworkTrackingEnabled(this.config.autocapture)) {
+    //   this.config.loggerProvider.debug('Adding network tracking plugin');
+    //   await this.add(networkCapturePlugin(getNetworkTrackingConfig(this.config))).promise;
+    // }
 
-    if (isWebVitalsEnabled(this.config.autocapture)) {
-      this.config.loggerProvider.debug('Adding web vitals plugin');
-      await this.add(webVitalsPlugin()).promise;
-    }
+    // if (isWebVitalsEnabled(this.config.autocapture)) {
+    //   this.config.loggerProvider.debug('Adding web vitals plugin');
+    //   await this.add(webVitalsPlugin()).promise;
+    // }
 
     this.initializing = false;
 

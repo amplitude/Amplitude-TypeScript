@@ -241,3 +241,60 @@ export const gtmSnippetBundle = {
     json(),
   ],
 }
+
+export const umdAutocapture = {
+  input: 'src/autocapture.ts',
+  output: {
+    name: 'amplitude',
+    file: 'lib/scripts/amplitude-autocapture-min.umd.js',
+    format: 'umd',
+  },
+  plugins: [
+    typescript({
+      module: 'es2020',
+      noEmit: false,
+      outDir: 'lib/umd',
+      rootDir: 'src',
+    }),
+    resolve({
+      browser: true,
+    }),
+    commonjs(),
+    terser({
+      output: {
+        comments: false,
+      },
+    }),
+    gzip(),
+  ],
+};
+
+
+export const iifeAutocapture = {
+  input: 'src/autocapture.ts',
+  output: {
+    name: 'amplitudeAutocapturePlugin',
+    file: 'lib/scripts/amplitude-autocapture-min.js',
+    format: 'iife',
+    sourcemap: true,
+  },
+  plugins: [
+    updateLibPrefixPlugin(),
+    typescript({
+      module: 'es2020',
+      noEmit: false,
+      outDir: 'lib/script',
+      rootDir: 'src',
+    }),
+    resolve({
+      browser: true,
+    }),
+    commonjs(),
+    terser({
+      output: {
+        comments: false,
+      },
+    }),
+    gzip(),
+  ],
+};
