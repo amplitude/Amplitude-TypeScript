@@ -15,7 +15,6 @@ jest.mock('idb-keyval');
 type MockedLogger = jest.Mocked<ILogger>;
 jest.mock('@amplitude/rrweb-record');
 type MockedRRWeb = jest.Mocked<typeof import('@amplitude/rrweb-record')>;
-jest.mock('@amplitude/analytics-remote-config');
 
 // Mock remote config client
 let mockRemoteConfig: RemoteConfig | null = null;

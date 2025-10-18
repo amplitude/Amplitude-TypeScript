@@ -13,8 +13,6 @@ import { SessionReplay } from '../../src/session-replay';
 import { SESSION_ID_IN_20_SAMPLE } from '../test-data';
 import { eventWithTime } from '@amplitude/rrweb-types';
 
-jest.mock('@amplitude/analytics-remote-config');
-
 type MockedLogger = jest.Mocked<ILogger>;
 
 // Mock remote config client

@@ -42,7 +42,6 @@
   "dependencies": {
     "@amplitude/analytics-client-common": "^2.4.8",
     "@amplitude/analytics-core": "^2.28.0",
-    "@amplitude/analytics-remote-config": "^0.6.3",
     "@amplitude/analytics-types": "^2.10.0",
     "@amplitude/rrweb-packer": "2.0.0-alpha.32",
     "@amplitude/rrweb-plugin-console-record": "2.0.0-alpha.32",
