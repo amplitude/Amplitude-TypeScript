@@ -1,11 +1,11 @@
 #!/bin/bash
 
 # Script to check for new usage of deprecated packages in PRs
-# Exits with error if new dependencies on analytics-types or analytics-client-common are detected
+# Exits with error if new dependencies on deprecated packages are detected
 
 set -e
 
-DEPRECATED_PACKAGES=("@amplitude/analytics-types" "@amplitude/analytics-client-common")
+DEPRECATED_PACKAGES=("@amplitude/analytics-types" "@amplitude/analytics-client-common" "@amplitude/analytics-remote-config")
 FAILED=0
 
 echo "Checking for new usage of deprecated packages..."
@@ -18,7 +18,7 @@ if [ -z "$CHANGED_FILES" ]; then
   exit 0
 fi
 
-echo "Changed package.json files:"
+echo "Changed package.json files:"  
 echo "$CHANGED_FILES"
 echo ""
 
@@ -40,7 +40,11 @@ for FILE in $CHANGED_FILES; do
     # If it's newly added (present now but not before)
     if [ "$CURRENT_HAS" -gt 0 ] && [ "$BASE_HAS" -eq 0 ]; then
       echo "❌ ERROR: New dependency on deprecated package '$PACKAGE' detected in $FILE"
-      echo "   Please use @amplitude/analytics-core instead"
+      if [ "$PACKAGE" = "@amplitude/analytics-remote-config" ]; then
+        echo "   Please use the new remote config client in @amplitude/analytics-core instead"
+      else
+        echo "   Please use @amplitude/analytics-core instead"
+      fi
       FAILED=1
     elif [ "$CURRENT_HAS" -gt 0 ] && [ "$BASE_HAS" -gt 0 ]; then
       echo "   ℹ️  Existing dependency on '$PACKAGE' found (grandfathered in)"
@@ -58,7 +62,12 @@ if [ "$FAILED" -eq 1 ]; then
     echo "  - $PACKAGE"
   done
   echo ""
-  echo "Please use @amplitude/analytics-core instead."
+  echo "For @amplitude/analytics-types and @amplitude/analytics-client-common:"
+  echo "  → Use @amplitude/analytics-core instead"
+  echo ""
+  echo "For @amplitude/analytics-remote-config:"
+  echo "  → Use the new remote config client in @amplitude/analytics-core instead"
+  echo ""
   echo "If you believe this is a false positive, please contact the team."
   exit 1
 fi

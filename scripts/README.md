@@ -9,8 +9,11 @@ Runs in CI to prevent new dependencies on deprecated packages.
 **Deprecated packages:**
 - `@amplitude/analytics-types`
 - `@amplitude/analytics-client-common`
+- `@amplitude/analytics-remote-config`
 
-**Replacement:** Use `@amplitude/analytics-core` instead.
+**Replacements:**
+- For `@amplitude/analytics-types` and `@amplitude/analytics-client-common`: Use `@amplitude/analytics-core`
+- For `@amplitude/analytics-remote-config`: Use the new remote config client in `@amplitude/analytics-core`
 
 **How it works:**
 - Compares `package.json` files between the base branch and PR branch
