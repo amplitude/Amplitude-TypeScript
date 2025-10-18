@@ -96,6 +96,13 @@ export interface ExternalBrowserConfig extends IConfig {
    * @defaultValue `true`
    */
   enableDiagnostics?: boolean;
+  /**
+   * Custom server URL for remote configuration requests. If not provided, defaults to the standard
+   * Amplitude remote config endpoint based on serverZone (US or EU).
+   * Use this to proxy remote config requests through your own server.
+   * @defaultValue `undefined` (uses standard Amplitude remote config endpoint)
+   */
+  remoteConfigServerUrl?: string;
 }
 
 interface InternalBrowserConfig {

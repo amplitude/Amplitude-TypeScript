@@ -114,9 +114,9 @@ export class RemoteConfigClient implements IRemoteConfigClient {
   // Registered callbackInfos by subscribe().
   callbackInfos: CallbackInfo[] = [];
 
-  constructor(apiKey: string, logger: ILogger, serverZone: ServerZoneType = 'US') {
+  constructor(apiKey: string, logger: ILogger, serverZone: ServerZoneType = 'US', serverUrl?: string) {
     this.apiKey = apiKey;
-    this.serverUrl = serverZone === 'US' ? US_SERVER_URL : EU_SERVER_URL;
+    this.serverUrl = serverUrl || (serverZone === 'US' ? US_SERVER_URL : EU_SERVER_URL);
     this.logger = logger;
     this.storage = new RemoteConfigLocalStorage(apiKey, logger);
   }

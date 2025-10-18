@@ -100,6 +100,7 @@ export class BrowserConfig extends Config implements IBrowserConfig {
     public enableDiagnostics: boolean = true,
     public diagnosticsSampleRate: number = 0,
     public diagnosticsClient?: IDiagnosticsClient,
+    public remoteConfigServerUrl?: string,
   ) {
     super({ apiKey, storageProvider, transportProvider: createTransport(transport) });
     this._cookieStorage = cookieStorage;
@@ -117,6 +118,7 @@ export class BrowserConfig extends Config implements IBrowserConfig {
     this.enableDiagnostics = enableDiagnostics;
     this.diagnosticsSampleRate = diagnosticsSampleRate;
     this.diagnosticsClient = diagnosticsClient;
+    this.remoteConfigServerUrl = remoteConfigServerUrl;
   }
 
   get cookieStorage() {
@@ -322,6 +324,9 @@ export const useBrowserConfig = async (
     options.networkTrackingOptions,
     options.identify,
     options.enableDiagnostics,
+    undefined, // diagnosticsSampleRate
+    undefined, // diagnosticsClient
+    options.remoteConfigServerUrl,
   );
 
   if (!(await browserConfig.storageProvider.isEnabled())) {

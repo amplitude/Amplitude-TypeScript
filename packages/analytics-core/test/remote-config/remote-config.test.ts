@@ -69,6 +69,19 @@ describe('RemoteConfigClient', () => {
       const euClient = new RemoteConfigClient(mockApiKey, mockLogger, 'EU');
       expect(euClient.serverUrl).toBe(EU_SERVER_URL);
     });
+
+    test('should use custom serverUrl when provided', () => {
+      const customServerUrl = 'https://custom-proxy.example.com/config';
+      const customClient = new RemoteConfigClient(mockApiKey, mockLogger, 'US', customServerUrl);
+      expect(customClient.serverUrl).toBe(customServerUrl);
+    });
+
+    test('should prioritize custom serverUrl over serverZone', () => {
+      const customServerUrl = 'https://my-proxy.company.com/amplitude-config';
+      const euClientWithCustomUrl = new RemoteConfigClient(mockApiKey, mockLogger, 'EU', customServerUrl);
+      expect(euClientWithCustomUrl.serverUrl).toBe(customServerUrl);
+      expect(euClientWithCustomUrl.serverUrl).not.toBe(EU_SERVER_URL);
+    });
   });
 
   describe('subscribe', () => {
@@ -665,6 +678,14 @@ describe('RemoteConfigClient', () => {
     test('should generate correct EU URL', () => {
       client = new RemoteConfigClient(mockApiKey, mockLogger, 'EU');
       const expectedUrl = `https://sr-client-cfg.eu.amplitude.com/config/test-api-key?config_group=browser`;
+      const url = client.getUrlParams();
+      expect(url).toBe(expectedUrl);
+    });
+
+    test('should generate URL with custom server URL', () => {
+      const customServerUrl = 'https://my-proxy.example.com/remote-config';
+      client = new RemoteConfigClient(mockApiKey, mockLogger, 'US', customServerUrl);
+      const expectedUrl = `https://my-proxy.example.com/remote-config/test-api-key?config_group=browser`;
       const url = client.getUrlParams();
       expect(url).toBe(expectedUrl);
     });

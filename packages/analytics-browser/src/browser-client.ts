@@ -114,6 +114,7 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
         browserOptions.apiKey,
         browserOptions.loggerProvider,
         browserOptions.serverZone,
+        browserOptions.remoteConfigServerUrl,
       );
 
       // Wait for initial remote config before proceeding.
