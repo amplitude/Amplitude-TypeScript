@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [0.0.0-perfrecord-init-prelease.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/segment-session-replay-plugin@0.0.0-beta.40...@amplitude/segment-session-replay-plugin@0.0.0-perfrecord-init-prelease.0) (2025-10-20)
+
+**Note:** Version bump only for package @amplitude/segment-session-replay-plugin
+
+
+
+
+
 # [0.0.0-beta.40](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/segment-session-replay-plugin@0.0.0-beta.39...@amplitude/segment-session-replay-plugin@0.0.0-beta.40) (2025-10-17)
 
 **Note:** Version bump only for package @amplitude/segment-session-replay-plugin

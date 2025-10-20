@@ -1,6 +1,6 @@
 {
   "name": "@amplitude/unified",
-  "version": "1.0.0-beta.10",
+  "version": "1.0.0-perfrecord-init-prelease.0",
   "description": "Official Amplitude SDK for Web analytics, experiment, session replay, and more.",
   "keywords": [
     "amplitude",
@@ -51,7 +51,7 @@
     "@amplitude/analytics-core": "^2.28.0",
     "@amplitude/engagement-browser": "^1.0.3",
     "@amplitude/plugin-experiment-browser": "^1.0.0-beta.0",
-    "@amplitude/plugin-session-replay-browser": "^1.22.25"
+    "@amplitude/plugin-session-replay-browser": "^1.22.26-perfrecord-init-prelease.0"
   },
   "devDependencies": {
     "rollup": "^2.79.1"

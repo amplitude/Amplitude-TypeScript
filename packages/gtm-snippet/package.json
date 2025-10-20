@@ -22,7 +22,7 @@
   "license": "MIT",
   "dependencies": {
     "@amplitude/analytics-browser": "^2.27.0",
-    "@amplitude/plugin-session-replay-browser": "^1.22.25"
+    "@amplitude/plugin-session-replay-browser": "^1.22.26-perfrecord-init-prelease.0"
   },
   "devDependencies": {
     "@amplitude/eslint-plugin-amplitude": "^1.0.1",

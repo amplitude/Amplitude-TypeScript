@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.22.26-perfrecord-init-prelease.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@1.22.25...@amplitude/plugin-session-replay-browser@1.22.26-perfrecord-init-prelease.0) (2025-10-20)
+
+**Note:** Version bump only for package @amplitude/plugin-session-replay-browser
+
+
+
+
+
 ## [1.22.25](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@1.22.24...@amplitude/plugin-session-replay-browser@1.22.25) (2025-10-17)
 
 **Note:** Version bump only for package @amplitude/plugin-session-replay-browser
