@@ -54,6 +54,20 @@ $ yarn test
 
 When writing commit message, follow [PR Commit Title Conventions](#PR-Commit-Title-Conventions) for the format. A git hook will also run to verify that the format is followed.
 
+#### Deprecated Packages
+
+The following packages are deprecated and **should not be added as dependencies** in new code:
+
+- `@amplitude/analytics-types`
+- `@amplitude/analytics-client-common`
+- `@amplitude/analytics-remote-config`
+
+**Replacements:**
+- For `@amplitude/analytics-types` and `@amplitude/analytics-client-common`: Use `@amplitude/analytics-core` instead
+- For `@amplitude/analytics-remote-config`: Use the new remote config client in `@amplitude/analytics-core` instead
+
+These packages remain in the codebase for backward compatibility with existing code, but new dependencies on them are blocked by CI checks. If your PR fails the "Check Deprecated Packages" CI job, update your `package.json` to use the appropriate replacement from `@amplitude/analytics-core`.
+
 #### Open a PR
 
 Once you are finished with your changes and feel good about the proposed changes, create a pull request. A team member will assist in getting them reviewed. We are excited to work with you on this.
