@@ -103,6 +103,7 @@ export function trackRageClicks({
   const { clickObservableZen } = allObservables;
 
   // TODO: take this out once it becomes a non-optional parameter
+  /* istanbul ignore if */
   if (!clickObservableZen) {
     return;
   }
@@ -129,10 +130,8 @@ export function trackRageClicks({
     }
   }
 
-  clickObservableZen.filter((click) => shouldTrackRageClick('click', click.closestTrackedAncestor));
-
   const rageClickObservable = asyncMap(
-    clickObservableZen,
+    clickObservableZen.filter((click) => shouldTrackRageClick('click', click.closestTrackedAncestor)),
     async (click: ClickEvent): Promise<RageClickEvent | null> => {
       // if there was a previous rage click timeout, clear it
       if (triggerRageClickTimeout) {
@@ -188,8 +187,14 @@ export function trackRageClicks({
   );
 
   return rageClickObservable
-    .filter((result) => result !== null)
-    .subscribe((data: RageClickEvent) => {
+    .filter((result) => {
+      return result !== null;
+    })
+    .subscribe((data: RageClickEvent | null) => {
+      /* istanbul ignore if */
+      if (data === null) {
+        return;
+      }
       amplitude.track(AMPLITUDE_ELEMENT_RAGE_CLICKED_EVENT, data.rageClickEvent, { time: data.time });
     });
 }

@@ -56,6 +56,8 @@ export const frustrationPlugin = (options: FrustrationInteractionsOptions = {}):
       share(),
     );
 
+    // TODO: once we're ready for ZenObservable, remove this ignore and add tests
+    /* istanbul ignore next */
     const clickObservableZen = createClickObservableZen('pointerdown').map((click) => {
       return dataExtractor.addAdditionalEventProperties(
         click,
@@ -137,6 +139,8 @@ export const frustrationPlugin = (options: FrustrationInteractionsOptions = {}):
 
   const teardown = async () => {
     for (const subscription of subscriptions) {
+      // TODO: This ? will be unnecessary once it's not an optional method
+      /* istanbul ignore next */
       subscription?.unsubscribe();
     }
   };

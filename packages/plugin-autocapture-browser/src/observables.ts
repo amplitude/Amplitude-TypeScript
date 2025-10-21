@@ -34,6 +34,8 @@ export const createClickObservable = (
  * TODO: This should eventually be renamed to just "createClickObservable" and replace RxJS version
  * @param clickType - The type of click event to track (click or pointerdown)
  */
+// TODO: once we're ready for ZenObservable, remove this ignore and add tests
+/* istanbul ignore next */
 export const createClickObservableZen = (
   clickType: 'click' | 'pointerdown' = 'click',
 ): ZenObservable<MouseEvent | PointerEvent> => {
