@@ -23,6 +23,7 @@ import { createServerConfig, RequestMetadata } from '../config';
 import { UUID } from '../utils/uuid';
 import { IConfig } from '../types/config/core-config';
 import { EventCallback } from '../types/event-callback';
+import { IDiagnosticsClient } from '../diagnostics/diagnostics-client';
 
 export interface Context {
   event: Event;
@@ -70,6 +71,11 @@ export class Destination implements DestinationPlugin {
   // When flush resolves, set `flushId` to null
   flushId: ReturnType<typeof setTimeout> | null = null;
   queue: Context[] = [];
+  diagnosticsClient: IDiagnosticsClient | undefined;
+
+  constructor(context?: { diagnosticsClient: IDiagnosticsClient }) {
+    this.diagnosticsClient = context?.diagnosticsClient;
+  }
 
   async setup(config: IConfig): Promise<undefined> {
     this.config = config;
@@ -108,6 +114,13 @@ export class Destination implements DestinationPlugin {
       if (context.attempts < this.config.flushMaxRetries) {
         return true;
       }
+      this.diagnosticsClient?.increment('analytics.droppedEvents');
+      this.diagnosticsClient?.recordEvent('analytics.droppedEvents', {
+        events: [context.event],
+        code: 500,
+        message: MAX_RETRIES_EXCEEDED_MESSAGE,
+        stack_trace: new Error().stack,
+      });
       void this.fulfillRequest([context], 500, MAX_RETRIES_EXCEEDED_MESSAGE);
       return false;
     });
@@ -189,6 +202,13 @@ export class Destination implements DestinationPlugin {
 
   async send(list: Context[], useRetry = true) {
     if (!this.config.apiKey) {
+      this.diagnosticsClient?.increment('analytics.droppedEvents', list.length);
+      this.diagnosticsClient?.recordEvent('analytics.droppedEvents', {
+        events: list.map((context) => context.event),
+        code: 400,
+        message: MISSING_API_KEY_MESSAGE,
+        stack_trace: new Error().stack,
+      });
       return this.fulfillRequest(list, 400, MISSING_API_KEY_MESSAGE);
     }
 
@@ -211,10 +231,25 @@ export class Destination implements DestinationPlugin {
       const { serverUrl } = createServerConfig(this.config.serverUrl, this.config.serverZone, this.config.useBatch);
       const res = await this.config.transportProvider.send(serverUrl, payload);
       if (res === null) {
+        this.diagnosticsClient?.increment('analytics.droppedEvents', list.length);
+        this.diagnosticsClient?.recordEvent('analytics.droppedEvents', {
+          events: list.map((context) => context.event),
+          code: 0,
+          message: UNEXPECTED_ERROR_MESSAGE,
+          stack_trace: new Error().stack,
+        });
         this.fulfillRequest(list, 0, UNEXPECTED_ERROR_MESSAGE);
         return;
       }
       if (!useRetry) {
+        this.diagnosticsClient?.increment('analytics.droppedEvents', list.length);
+        const message = 'body' in res ? `${res.status}: ${getResponseBodyString(res)}` : res.status;
+        this.diagnosticsClient?.recordEvent('analytics.droppedEvents', {
+          events: list.map((context) => context.event),
+          code: res.statusCode,
+          message: message,
+          stack_trace: new Error().stack,
+        });
         if ('body' in res) {
           this.fulfillRequest(list, res.statusCode, `${res.status}: ${getResponseBodyString(res)}`);
         } else {
@@ -226,6 +261,12 @@ export class Destination implements DestinationPlugin {
     } catch (e) {
       const errorMessage = getErrorMessage(e);
       this.config.loggerProvider.error(errorMessage);
+      this.diagnosticsClient?.recordEvent('analytics.transportError', {
+        events: list.map((context) => context.event),
+        code: 0,
+        message: errorMessage,
+        stack_trace: e instanceof Error ? e.stack : new Error().stack,
+      });
       this.handleResponse({ status: Status.Failed, statusCode: 0 }, list);
     }
   }
@@ -266,6 +307,14 @@ export class Destination implements DestinationPlugin {
   handleInvalidResponse(res: InvalidResponse, list: Context[]) {
     if (res.body.missingField || res.body.error.startsWith(INVALID_API_KEY)) {
       this.fulfillRequest(list, res.statusCode, res.body.error);
+      this.diagnosticsClient?.increment('analytics.droppedEvents', list.length);
+      this.diagnosticsClient?.recordEvent('analytics.droppedEvents', {
+        events: list.map((context) => context.event),
+        code: res.statusCode,
+        message: res.body.error,
+        stack_trace: new Error().stack,
+      });
+      this.fulfillRequest(list, res.statusCode, res.body.error);
       return;
     }
 
@@ -279,6 +328,14 @@ export class Destination implements DestinationPlugin {
 
     const retry = list.filter((context, index) => {
       if (dropIndexSet.has(index)) {
+        this.fulfillRequest([context], res.statusCode, res.body.error);
+        this.diagnosticsClient?.increment('analytics.droppedEvents', 1);
+        this.diagnosticsClient?.recordEvent('analytics.droppedEvents', {
+          events: [context.event],
+          code: res.statusCode,
+          message: res.body.error,
+          stack_trace: new Error().stack,
+        });
         this.fulfillRequest([context], res.statusCode, res.body.error);
         return;
       }
@@ -296,6 +353,14 @@ export class Destination implements DestinationPlugin {
 
   handlePayloadTooLargeResponse(res: PayloadTooLargeResponse, list: Context[]) {
     if (list.length === 1) {
+      this.fulfillRequest(list, res.statusCode, res.body.error);
+      this.diagnosticsClient?.increment('analytics.droppedEvents', list.length);
+      this.diagnosticsClient?.recordEvent('analytics.droppedEvents', {
+        events: list.map((context) => context.event),
+        code: res.statusCode,
+        message: res.body.error,
+        stack_trace: new Error().stack,
+      });
       this.fulfillRequest(list, res.statusCode, res.body.error);
       return;
     }
@@ -322,6 +387,14 @@ export class Destination implements DestinationPlugin {
         (context.event.user_id && dropUserIdsSet.has(context.event.user_id)) ||
         (context.event.device_id && dropDeviceIdsSet.has(context.event.device_id))
       ) {
+        this.fulfillRequest([context], res.statusCode, res.body.error);
+        this.diagnosticsClient?.increment('analytics.droppedEvents', 1);
+        this.diagnosticsClient?.recordEvent('analytics.droppedEvents', {
+          events: [context.event],
+          code: res.statusCode,
+          message: res.body.error,
+          stack_trace: new Error().stack,
+        });
         this.fulfillRequest([context], res.statusCode, res.body.error);
         return;
       }
