@@ -859,17 +859,49 @@ describe('SessionReplay', () => {
       const userProperties = { age: 30, city: 'New York' };
       await (sessionReplay as any).asyncSetSessionId(456, '9l8m7n', { userProperties });
 
-      expect(evaluateTargetingAndCaptureSpy).toHaveBeenCalledWith({ userProperties });
+      expect(evaluateTargetingAndCaptureSpy).toHaveBeenCalledWith({ userProperties }, false, true);
 
       // Test without userProperties (options is undefined)
       await (sessionReplay as any).asyncSetSessionId(789, '9l8m7n');
 
-      expect(evaluateTargetingAndCaptureSpy).toHaveBeenCalledWith({ userProperties: undefined });
+      expect(evaluateTargetingAndCaptureSpy).toHaveBeenCalledWith({ userProperties: undefined }, false, true);
 
       // Test with empty options
       await (sessionReplay as any).asyncSetSessionId(101, '9l8m7n', {});
 
-      expect(evaluateTargetingAndCaptureSpy).toHaveBeenCalledWith({ userProperties: undefined });
+      expect(evaluateTargetingAndCaptureSpy).toHaveBeenCalledWith({ userProperties: undefined }, false, true);
+    });
+
+    test('should call evaluateTargetingAndCapture with forceRestart true when targetingConfig exists', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+
+      // Create a mock config with targeting config
+      const mockConfigWithTargeting = new SessionReplayLocalConfig(apiKey, mockOptions);
+      (mockConfigWithTargeting as SessionReplayJoinedConfig).targetingConfig = {
+        key: 'sr_targeting_config',
+        variants: { on: { key: 'on' }, off: { key: 'off' } },
+        segments: [],
+      };
+
+      const mockSessionReplayConfigs = {
+        joinedConfig: mockConfigWithTargeting,
+        localConfig: mockConfigWithTargeting,
+        remoteConfig: undefined,
+      };
+
+      jest
+        .spyOn(sessionReplay.joinedConfigGenerator!, 'generateJoinedConfig')
+        .mockResolvedValue(mockSessionReplayConfigs);
+
+      const evaluateTargetingAndCaptureSpy = jest.spyOn(sessionReplay, 'evaluateTargetingAndCapture');
+
+      // Simulate recording is already active
+      sessionReplay.recordCancelCallback = jest.fn();
+
+      await (sessionReplay as any).asyncSetSessionId(456, '9l8m7n');
+
+      // Verify that evaluateTargetingAndCapture was called with forceRestart = true
+      expect(evaluateTargetingAndCaptureSpy).toHaveBeenCalledWith({ userProperties: undefined }, false, true);
     });
 
     test('should call recordEvents when no targetingConfig', async () => {
@@ -2640,7 +2672,8 @@ describe('SessionReplay', () => {
 
       await sessionReplay.evaluateTargetingAndCapture({}, false);
 
-      expect(recordEventsSpy).toHaveBeenCalled();
+      // recordEvents should not be called because we're already recording from init
+      expect(recordEventsSpy).not.toHaveBeenCalled();
     });
 
     test('should skip targeting evaluation when no targetingConfig', async () => {
@@ -2701,7 +2734,9 @@ describe('SessionReplay', () => {
 
       // Verify the targeting evaluation branch was executed by checking that sessionTargetingMatch was updated
       expect(typeof sessionReplay.sessionTargetingMatch).toBe('boolean');
-      expect(recordEventsSpy).toHaveBeenCalled();
+
+      // recordEvents should not be called because we're already recording from init
+      expect(recordEventsSpy).not.toHaveBeenCalled();
     });
 
     test('should handle special event types in targeting evaluation', async () => {
@@ -2732,6 +2767,81 @@ describe('SessionReplay', () => {
 
       // Verify the function executed without throwing errors
       expect(typeof sessionReplay.sessionTargetingMatch).toBe('boolean');
+    });
+
+    test('should not call recordEvents when already recording and forceRestart is false', async () => {
+      const sessionReplay = new SessionReplay();
+      await sessionReplay.init(apiKey, mockOptions).promise;
+
+      if (sessionReplay.config) {
+        sessionReplay.config.targetingConfig = {
+          key: 'sr_targeting_config',
+          variants: { on: { key: 'on' }, off: { key: 'off' } },
+          segments: [],
+        };
+      }
+
+      sessionReplay.sessionTargetingMatch = true;
+
+      // Simulate that recording is already active
+      sessionReplay.recordCancelCallback = jest.fn();
+
+      const recordEventsSpy = jest.spyOn(sessionReplay, 'recordEvents');
+
+      await sessionReplay.evaluateTargetingAndCapture({}, false, false);
+
+      // recordEvents should NOT be called because we're already recording and forceRestart is false
+      expect(recordEventsSpy).not.toHaveBeenCalled();
+    });
+
+    test('should call recordEvents when already recording but forceRestart is true', async () => {
+      const sessionReplay = new SessionReplay();
+      await sessionReplay.init(apiKey, mockOptions).promise;
+
+      if (sessionReplay.config) {
+        sessionReplay.config.targetingConfig = {
+          key: 'sr_targeting_config',
+          variants: { on: { key: 'on' }, off: { key: 'off' } },
+          segments: [],
+        };
+      }
+
+      sessionReplay.sessionTargetingMatch = true;
+
+      // Simulate that recording is already active
+      sessionReplay.recordCancelCallback = jest.fn();
+
+      const recordEventsSpy = jest.spyOn(sessionReplay, 'recordEvents');
+
+      await sessionReplay.evaluateTargetingAndCapture({}, false, true);
+
+      // recordEvents SHOULD be called because forceRestart is true
+      expect(recordEventsSpy).toHaveBeenCalled();
+    });
+
+    test('should call recordEvents when not recording and forceRestart is false', async () => {
+      const sessionReplay = new SessionReplay();
+      await sessionReplay.init(apiKey, mockOptions).promise;
+
+      if (sessionReplay.config) {
+        sessionReplay.config.targetingConfig = {
+          key: 'sr_targeting_config',
+          variants: { on: { key: 'on' }, off: { key: 'off' } },
+          segments: [],
+        };
+      }
+
+      sessionReplay.sessionTargetingMatch = true;
+
+      // Ensure recording is not active
+      sessionReplay.recordCancelCallback = null;
+
+      const recordEventsSpy = jest.spyOn(sessionReplay, 'recordEvents');
+
+      await sessionReplay.evaluateTargetingAndCapture({}, false, false);
+
+      // recordEvents SHOULD be called because we're not recording
+      expect(recordEventsSpy).toHaveBeenCalled();
     });
   });
 
