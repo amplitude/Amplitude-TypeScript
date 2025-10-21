@@ -60,7 +60,6 @@
   "dependencies": {
     "@amplitude/analytics-core": "^2.28.0",
     "@amplitude/ua-parser-js": "^0.7.31",
-    "@react-native-async-storage/async-storage": "^1.17.11",
     "tslib": "^2.4.1"
   },
   "devDependencies": {
@@ -68,11 +67,13 @@
     "@types/react-native": "0.70.8",
     "react": "18.2.0",
     "react-native": "0.70.6",
-    "react-native-builder-bob": "^0.20.3"
+    "react-native-builder-bob": "^0.20.3",
+    "@react-native-async-storage/async-storage": "^1.17.11"
   },
   "peerDependencies": {
     "react": "*",
-    "react-native": "*"
+    "react-native": "*",
+    "@react-native-async-storage/async-storage": ">=1.17.11"
   },
   "react-native-builder-bob": {
     "source": "src",
