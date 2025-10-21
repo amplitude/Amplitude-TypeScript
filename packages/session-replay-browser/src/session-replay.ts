@@ -6,6 +6,8 @@ import {
   LogLevel,
   returnWrapper,
   SpecialEventType,
+  generateHashCode,
+  isTimestampInSample,
 } from '@amplitude/analytics-core';
 
 // Import only specific types to avoid pulling in the entire rrweb-types package
@@ -32,7 +34,6 @@ import {
 import { EventCompressor } from './events/event-compressor';
 import { createEventsManager } from './events/events-manager';
 import { MultiEventManager } from './events/multi-manager';
-import { generateHashCode, isTimestampInSample } from '@amplitude/analytics-core';
 import { getDebugConfig, getPageUrl, getStorageSize, maskFn } from './helpers';
 import { clickBatcher, clickHook, clickNonBatcher } from './hooks/click';
 import { ScrollWatcher } from './hooks/scroll';
@@ -366,12 +367,10 @@ export class SessionReplay implements AmplitudeSessionReplay {
 
     if (isInit) {
       void this.initialize(true);
-    } else {
+    } else if (forceRestart || !this.recordCancelCallback) {
       // Only call recordEvents if we're not already recording, unless forceRestart is true
-      if (forceRestart || !this.recordCancelCallback) {
-        this.loggerProvider.log('Recording events for session due to forceRestart or no ongoing recording.');
-        await this.recordEvents();
-      }
+      this.loggerProvider.log('Recording events for session due to forceRestart or no ongoing recording.');
+      await this.recordEvents();
     }
   };
 
