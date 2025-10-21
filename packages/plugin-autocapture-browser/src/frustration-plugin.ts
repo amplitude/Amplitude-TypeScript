@@ -9,21 +9,26 @@ import {
   DEFAULT_DEAD_CLICK_ALLOWLIST,
 } from '@amplitude/analytics-core';
 import * as constants from './constants';
-import { fromEvent, map, Observable, Subscription, share } from 'rxjs';
+import { fromEvent, map, Observable, share } from 'rxjs';
 import { createShouldTrackEvent, ElementBasedTimestampedEvent, NavigateEvent } from './helpers';
 import { trackDeadClick } from './autocapture/track-dead-click';
 import { trackRageClicks } from './autocapture/track-rage-click';
 import { AllWindowObservables, ObservablesEnum } from './autocapture-plugin';
-import { createClickObservable, createMutationObservable } from './observables';
+import { createClickObservable, createClickObservableZen, createMutationObservable } from './observables';
 import { DataExtractor } from './data-extractor';
+import { Observable as ZenObservable } from '@amplitude/analytics-core';
 
 type BrowserEnrichmentPlugin = EnrichmentPlugin<BrowserClient, BrowserConfig>;
+
+type Unsubscribable = {
+  unsubscribe: () => void;
+};
 
 export const frustrationPlugin = (options: FrustrationInteractionsOptions = {}): BrowserEnrichmentPlugin => {
   const name = constants.FRUSTRATION_PLUGIN_NAME;
   const type = 'enrichment';
 
-  const subscriptions: Subscription[] = [];
+  const subscriptions: (Unsubscribable | undefined)[] = [];
 
   const rageCssSelectors = options.rageClicks?.cssSelectorAllowlist ?? DEFAULT_RAGE_CLICK_ALLOWLIST;
   const deadCssSelectors = options.deadClicks?.cssSelectorAllowlist ?? DEFAULT_DEAD_CLICK_ALLOWLIST;
@@ -51,6 +56,16 @@ export const frustrationPlugin = (options: FrustrationInteractionsOptions = {}):
       share(),
     );
 
+    const clickObservableZen = createClickObservableZen('pointerdown').map((click) => {
+      return dataExtractor.addAdditionalEventProperties(
+        click,
+        'click',
+        combinedCssSelectors,
+        dataAttributePrefix,
+        true, // capture when cursor is pointer
+      );
+    });
+
     // Create observable for URL changes
     let navigateObservable;
     /* istanbul ignore next */
@@ -76,6 +91,9 @@ export const frustrationPlugin = (options: FrustrationInteractionsOptions = {}):
       [ObservablesEnum.ChangeObservable]: new Observable<ElementBasedTimestampedEvent<Event>>(), // Empty observable since we don't need change events
       [ObservablesEnum.NavigateObservable]: navigateObservable,
       [ObservablesEnum.MutationObservable]: enrichedMutationObservable,
+      [ObservablesEnum.ClickObservableZen]: clickObservableZen as ZenObservable<
+        ElementBasedTimestampedEvent<MouseEvent>
+      >,
     };
   };
 
@@ -119,7 +137,7 @@ export const frustrationPlugin = (options: FrustrationInteractionsOptions = {}):
 
   const teardown = async () => {
     for (const subscription of subscriptions) {
-      subscription.unsubscribe();
+      subscription?.unsubscribe();
     }
   };
 

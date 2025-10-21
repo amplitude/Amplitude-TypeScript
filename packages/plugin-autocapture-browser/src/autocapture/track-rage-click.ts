@@ -1,13 +1,13 @@
 import { AllWindowObservables } from 'src/autocapture-plugin';
-import { filter, map } from 'rxjs';
-import { BrowserClient } from '@amplitude/analytics-core';
-import { filterOutNonTrackableEvents, shouldTrackEvent } from '../helpers';
-import { AMPLITUDE_ELEMENT_RAGE_CLICKED_EVENT } from '../constants';
 import {
+  BrowserClient,
+  asyncMap,
   DEFAULT_RAGE_CLICK_THRESHOLD,
   DEFAULT_RAGE_CLICK_WINDOW_MS,
   DEFAULT_RAGE_CLICK_OUT_OF_BOUNDS_THRESHOLD,
 } from '@amplitude/analytics-core';
+import { shouldTrackEvent } from '../helpers';
+import { AMPLITUDE_ELEMENT_RAGE_CLICKED_EVENT } from '../constants';
 
 const RAGE_CLICK_THRESHOLD = DEFAULT_RAGE_CLICK_THRESHOLD;
 const RAGE_CLICK_WINDOW_MS = DEFAULT_RAGE_CLICK_WINDOW_MS;
@@ -40,6 +40,11 @@ type ClickRegionBoundingBox = {
   xMin?: number;
   xMax?: number;
   isOutOfBounds?: boolean;
+};
+
+type RageClickEvent = {
+  rageClickEvent: EventRageClick;
+  time: number;
 };
 
 function addCoordinates(regionBox: ClickRegionBoundingBox, click: ClickEvent) {
@@ -95,7 +100,12 @@ export function trackRageClicks({
   allObservables: AllWindowObservables;
   shouldTrackRageClick: shouldTrackEvent;
 }) {
-  const { clickObservable } = allObservables;
+  const { clickObservableZen } = allObservables;
+
+  // TODO: take this out once it becomes a non-optional parameter
+  if (!clickObservableZen) {
+    return;
+  }
 
   // Keep track of all clicks within the sliding window
   let clickWindow: ClickEvent[] = [];
@@ -103,8 +113,11 @@ export function trackRageClicks({
   // Keep track of the region box for all clicks, to determine when a rage click is out of bounds
   let clickBoundingBox: ClickRegionBoundingBox = {};
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let triggerRageClickTimeout: any;
+  let triggerRageClickTimeout: {
+    resolve: (value: any) => void;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    timerId: any;
+  };
 
   // helper function to reset the click window and region box
   function resetClickWindow(click?: ClickEvent) {
@@ -116,67 +129,67 @@ export function trackRageClicks({
     }
   }
 
-  return clickObservable
-    .pipe(
-      filter(filterOutNonTrackableEvents),
-      filter((click) => {
-        return shouldTrackRageClick('click', click.closestTrackedAncestor);
-      }),
-      map((click) => {
-        // reset the click wait timer if it exists
-        if (triggerRageClickTimeout) {
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-          clearTimeout(triggerRageClickTimeout);
-        }
+  clickObservableZen.filter((click) => shouldTrackRageClick('click', click.closestTrackedAncestor));
 
-        // add click to bounding box
-        addCoordinates(clickBoundingBox, click);
-
-        // if there's just one click in the window, add it and return
-        if (clickWindow.length === 0) {
-          clickWindow.push(click);
-          return null;
-        }
-
-        // if current click is:
-        //  1. outside the rage click window
-        //  2. on a new element
-        //  3. out of bounds
-        // then start a new click window
-        if (
-          isNewElement(clickWindow, click) ||
-          isClickOutsideRageClickWindow(clickWindow, click) ||
-          clickBoundingBox.isOutOfBounds
-        ) {
-          const returnValue =
-            clickWindow.length >= RAGE_CLICK_THRESHOLD ? getRageClickAnalyticsEvent(clickWindow) : null;
-          resetClickWindow(click);
-          return returnValue;
-        }
-
-        // add click to current window
-        clickWindow.push(click);
-
-        // if we have enough clicks to be a rage click, set a timout to trigger the rage
-        // click event after the time threshold is reached.
-        // This will be cancelled if a new click is tracked.
-        if (clickWindow.length >= RAGE_CLICK_THRESHOLD) {
-          triggerRageClickTimeout = setTimeout(() => {
-            const { rageClickEvent, time } = getRageClickAnalyticsEvent(clickWindow);
-            amplitude.track(AMPLITUDE_ELEMENT_RAGE_CLICKED_EVENT, rageClickEvent, { time });
-            resetClickWindow();
-          }, RAGE_CLICK_WINDOW_MS);
-        }
-
-        return null;
-      }),
-      filter((result) => result !== null),
-    )
-    .subscribe((data: { rageClickEvent: EventRageClick; time: number } | null) => {
-      /* istanbul ignore if */
-      if (data === null) {
-        return;
+  const rageClickObservable = asyncMap(
+    clickObservableZen,
+    async (click: ClickEvent): Promise<RageClickEvent | null> => {
+      // if there was a previous rage click timeout, clear it
+      if (triggerRageClickTimeout) {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+        clearTimeout(triggerRageClickTimeout.timerId);
+        triggerRageClickTimeout.resolve(null);
       }
+
+      // add click to bounding box
+      addCoordinates(clickBoundingBox, click);
+
+      // if there's just one click in the window, add it to clickWindow and return
+      if (clickWindow.length === 0) {
+        clickWindow.push(click);
+        return null;
+      }
+
+      // if current click is:
+      //  1. outside the rage click window
+      //  2. on a new element
+      //  3. out of bounds
+      // then start a new click window
+      if (
+        isNewElement(clickWindow, click) ||
+        isClickOutsideRageClickWindow(clickWindow, click) ||
+        clickBoundingBox.isOutOfBounds
+      ) {
+        resetClickWindow(click);
+        return null;
+      }
+
+      // add click to current window
+      clickWindow.push(click);
+
+      // if we have enough clicks to be a rage click, set a timout to trigger the rage
+      // click event after the time threshold is reached.
+      // This will be cancelled if a new click is tracked within the time threshold.
+      if (clickWindow.length >= RAGE_CLICK_THRESHOLD) {
+        return new Promise((resolve) => {
+          triggerRageClickTimeout = {
+            resolve,
+            timerId: setTimeout(() => {
+              const data = getRageClickAnalyticsEvent(clickWindow);
+              resetClickWindow();
+              resolve(data);
+            }, RAGE_CLICK_WINDOW_MS),
+          };
+        });
+      }
+
+      return null;
+    },
+  );
+
+  return rageClickObservable
+    .filter((result) => result !== null)
+    .subscribe((data: RageClickEvent) => {
       amplitude.track(AMPLITUDE_ELEMENT_RAGE_CLICKED_EVENT, data.rageClickEvent, { time: data.time });
     });
 }

@@ -30,6 +30,7 @@ import {
   groupLabeledEventIdsByEventType,
 } from './pageActions/triggers';
 import { DataExtractor } from './data-extractor';
+import { Observable as ZenObservable } from '@amplitude/analytics-core';
 
 declare global {
   interface Window {
@@ -46,6 +47,7 @@ export type AutoCaptureOptionsWithDefaults = Required<
 
 export enum ObservablesEnum {
   ClickObservable = 'clickObservable',
+  ClickObservableZen = 'clickObservableZen',
   ChangeObservable = 'changeObservable',
   // ErrorObservable = 'errorObservable',
   NavigateObservable = 'navigateObservable',
@@ -58,6 +60,7 @@ export interface AllWindowObservables {
   // [ObservablesEnum.ErrorObservable]: Observable<TimestampedEvent<ErrorEvent>>;
   [ObservablesEnum.NavigateObservable]: Observable<TimestampedEvent<NavigateEvent>> | undefined;
   [ObservablesEnum.MutationObservable]: Observable<TimestampedEvent<MutationRecord[]>>;
+  [ObservablesEnum.ClickObservableZen]?: ZenObservable<ElementBasedTimestampedEvent<MouseEvent>>;
 }
 
 export const autocapturePlugin = (
