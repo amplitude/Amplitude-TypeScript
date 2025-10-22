@@ -13,9 +13,28 @@ on:
         
 
 jobs:
+  check-npm-token:
+    name: Check NPM Token
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check NPM token validity
+        run: |
+          RESPONSE=$(curl -s -H "Authorization: Bearer ${{ secrets.NPM_PUBLISH_TOKEN }}" https://registry.npmjs.org/-/whoami)
+          if [ "$RESPONSE" != '{"username":"sdk.dev"}' ]; then
+            echo "❌ NPM token validation failed!"
+            echo "Expected: {\"username\":\"sdk.dev\"}"
+            echo "Got: $RESPONSE"
+            echo ""
+            echo "⚠️  Please update the NPM_PUBLISH_TOKEN secret in GitHub repository settings."
+            echo "The token may have expired or been revoked."
+            exit 1
+          fi
+          echo "✅ NPM token is valid"
+
   authorize:
     name: Authorize
     runs-on: ubuntu-latest
+    needs: [check-npm-token]
     steps:
       - name: ${{ github.actor }} permission check to do a release
         uses: 'lannonbr/repo-permission-check-action@2.0.2'
