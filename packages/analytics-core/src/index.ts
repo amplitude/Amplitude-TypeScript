@@ -116,6 +116,7 @@ export {
   AutocaptureOptions,
   CookieOptions,
   AttributionOptions,
+  RemoteConfigOptions,
 } from './types/config/browser-config';
 export { BrowserClient } from './types/client/browser-client';
 

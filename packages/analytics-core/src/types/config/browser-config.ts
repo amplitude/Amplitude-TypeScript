@@ -83,8 +83,14 @@ export interface ExternalBrowserConfig extends IConfig {
    * Whether to fetch remote configuration. The remote configuration can be updated in the Amplitude platform here:
    * https://app.amplitude.com/data/amplitude/{your_org_name}/settings/autocapture
    * @defaultValue `true`
+   * @deprecated This property is deprecated and will be removed in future versions. Please use `remoteConfig.fetchRemoteConfig` instead.
    */
   fetchRemoteConfig?: boolean;
+  /**
+   * Remote configuration options.
+   * @defaultValue `undefined`
+   */
+  remoteConfig?: RemoteConfigOptions;
   /**
    * Captures network requests and responses.
    * @defaultValue `undefined`
@@ -96,13 +102,6 @@ export interface ExternalBrowserConfig extends IConfig {
    * @defaultValue `true`
    */
   enableDiagnostics?: boolean;
-  /**
-   * Custom server URL for remote configuration requests. If not provided, defaults to the standard
-   * Amplitude remote config endpoint based on serverZone (US or EU).
-   * Use this to proxy remote config requests through your own server.
-   * @defaultValue `undefined` (uses standard Amplitude remote config endpoint)
-   */
-  remoteConfigServerUrl?: string;
 }
 
 interface InternalBrowserConfig {
@@ -230,6 +229,22 @@ export interface AttributionOptions {
    * @defaultValue `false`
    */
   resetSessionOnNewCampaign?: boolean;
+}
+
+export interface RemoteConfigOptions {
+  /**
+   * Whether to fetch remote configuration. The remote configuration can be updated in the Amplitude platform here:
+   * https://app.amplitude.com/data/amplitude/{your_org_name}/settings/autocapture
+   * @defaultValue `true`
+   */
+  fetchRemoteConfig?: boolean;
+  /**
+   * Custom server URL for remote configuration requests. If not provided, defaults to the standard
+   * Amplitude remote config endpoint based on serverZone (US or EU).
+   * Use this to proxy remote config requests through your own server.
+   * @defaultValue `undefined` (uses standard Amplitude remote config endpoint)
+   */
+  serverUrl?: string;
 }
 
 export interface CookieOptions {

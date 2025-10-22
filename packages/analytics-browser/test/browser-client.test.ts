@@ -170,11 +170,13 @@ describe('browser-client', () => {
       expect(MockedRemoteConfigClient).not.toHaveBeenCalled();
     });
 
-    test('should pass remoteConfigServerUrl to RemoteConfigClient when provided', async () => {
+    test('should pass remoteConfig.serverUrl to RemoteConfigClient when provided', async () => {
       const customServerUrl = 'https://my-proxy.com/remote-config';
 
       await client.init(apiKey, {
-        remoteConfigServerUrl: customServerUrl,
+        remoteConfig: {
+          serverUrl: customServerUrl,
+        },
       }).promise;
 
       expect(MockedRemoteConfigClient).toHaveBeenCalledWith(
