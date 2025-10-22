@@ -513,4 +513,32 @@ describe('SessionReplayJoinedConfigGenerator', () => {
       });
     });
   });
+
+  describe('createSessionReplayJoinedConfigGenerator with config server url', () => {
+    test('should create a SessionReplayJoinedConfigGenerator with the correct remote config client', async () => {
+      const configServerUrl = 'https://config.amplitude.com';
+      const joinedConfigGenerator = await createSessionReplayJoinedConfigGenerator('static_key', {
+        ...mockOptions,
+        configServerUrl,
+      });
+
+      // Verify RemoteConfigClient was called with the correct parameters
+      expect(MockedRemoteConfigClient).toHaveBeenCalledWith(
+        'static_key',
+        mockLoggerProvider,
+        ServerZone.EU,
+        configServerUrl,
+      );
+
+      // Verify the generator was created successfully
+      expect(joinedConfigGenerator).toBeInstanceOf(SessionReplayJoinedConfigGenerator);
+    });
+
+    test('should pass undefined configServerUrl when not provided', async () => {
+      await createSessionReplayJoinedConfigGenerator('static_key', mockOptions);
+
+      // Verify RemoteConfigClient was called with undefined for configServerUrl
+      expect(MockedRemoteConfigClient).toHaveBeenCalledWith('static_key', mockLoggerProvider, ServerZone.EU, undefined);
+    });
+  });
 });

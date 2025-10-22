@@ -218,7 +218,12 @@ export class SessionReplayJoinedConfigGenerator {
 export const createSessionReplayJoinedConfigGenerator = async (apiKey: string, options: SessionReplayOptions) => {
   const localConfig = new SessionReplayLocalConfig(apiKey, options);
 
-  const remoteConfigClient = new RemoteConfigClient(apiKey, localConfig.loggerProvider, localConfig.serverZone);
+  const remoteConfigClient = new RemoteConfigClient(
+    apiKey,
+    localConfig.loggerProvider,
+    localConfig.serverZone,
+    options.configServerUrl,
+  );
 
   return new SessionReplayJoinedConfigGenerator(remoteConfigClient, localConfig);
 };
