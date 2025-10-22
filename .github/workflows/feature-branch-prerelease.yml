@@ -20,16 +20,18 @@ jobs:
       - name: Check NPM token validity
         run: |
           RESPONSE=$(curl -s -H "Authorization: Bearer ${{ secrets.NPM_PUBLISH_TOKEN }}" https://registry.npmjs.org/-/whoami)
-          if [ "$RESPONSE" != '{"username":"sdk.dev"}' ]; then
+          USERNAME=$(echo "$RESPONSE" | jq -r '.username')
+          if [ "$USERNAME" != "sdk.dev" ]; then
             echo "❌ NPM token validation failed!"
-            echo "Expected: {\"username\":\"sdk.dev\"}"
-            echo "Got: $RESPONSE"
+            echo "Expected username: sdk.dev"
+            echo "Got username: $USERNAME"
+            echo "Full response: $RESPONSE"
             echo ""
-            echo "⚠️  Please update the NPM_PUBLISH_TOKEN secret in GitHub repository settings."
             echo "The token may have expired or been revoked."
+            echo "📖 Token rotation guide: https://amplitude.atlassian.net/wiki/spaces/DBS/pages/3425271816/Migration+plan+Trusted+publisher+OIDC#Granular-access-token"
             exit 1
           fi
-          echo "✅ NPM token is valid"
+          echo "✅ NPM token is valid (username: $USERNAME)"
 
   authorize:
     name: Authorize
