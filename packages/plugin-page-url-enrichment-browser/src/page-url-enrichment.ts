@@ -84,8 +84,17 @@ export const pageUrlEnrichmentPlugin = (): EnrichmentPlugin => {
   const saveURLInfo = async () => {
     if (sessionStorage && isStorageEnabled) {
       const URLInfo = await sessionStorage.get(URL_INFO_STORAGE_KEY);
-      const previousURL = URLInfo?.[CURRENT_PAGE_STORAGE_KEY] || '';
       const currentURL = getDecodeURI((typeof location !== 'undefined' && location.href) || '');
+      const storedCurrentURL = URLInfo?.[CURRENT_PAGE_STORAGE_KEY] || '';
+
+      let previousURL;
+      if (currentURL === storedCurrentURL) {
+        previousURL = URLInfo?.[PREVIOUS_PAGE_STORAGE_KEY] || '';
+      } else if (storedCurrentURL) {
+        previousURL = storedCurrentURL;
+      } else {
+        previousURL = document.referrer || '';
+      }
 
       await sessionStorage.set(URL_INFO_STORAGE_KEY, {
         [CURRENT_PAGE_STORAGE_KEY]: currentURL,
