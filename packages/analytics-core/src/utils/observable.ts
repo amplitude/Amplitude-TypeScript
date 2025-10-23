@@ -30,12 +30,23 @@ function asyncMap<T, R>(observable: ZenObservable<T>, fn: (value: T) => Promise<
   );
 }
 
+type Unsubscribable = {
+  unsubscribe: () => void;
+};
+
+/**
+ * merge operator for Zen Observable
+ *
+ * Merges two observables into a single observable, emitting values from both sources in the order they arrive.
+ * @param sourceA Observable to merge
+ * @param sourceB Observable to merge
+ * @returns Unsubscribable cleanup function
+ */
 function merge<A, B>(sourceA: ZenObservable<A>, sourceB: ZenObservable<B>): ZenObservable<A | B> {
   return new ZenObservable<A | B>((observer) => {
-    let completedCount = 0;
     let closed = false;
 
-    const subscriptions: { unsubscribe: () => void }[] = [];
+    const subscriptions: Set<Unsubscribable> = new Set();
 
     const cleanup = (): void => {
       closed = true;
@@ -46,7 +57,7 @@ function merge<A, B>(sourceA: ZenObservable<A>, sourceB: ZenObservable<B>): ZenO
           /* do nothing */
         }
       }
-      subscriptions.length = 0;
+      subscriptions.clear();
     };
 
     const subscribeTo = <T>(source: ZenObservable<T>) => {
@@ -62,16 +73,16 @@ function merge<A, B>(sourceA: ZenObservable<A>, sourceB: ZenObservable<B>): ZenO
           }
         },
         complete() {
-          if (closed) return;
-          completedCount++;
-          if (completedCount === 2) {
+          subscriptions.delete(sub);
+          if (!closed && subscriptions.size === 0) {
             observer.complete();
             cleanup();
+            closed = true;
           }
         },
       });
 
-      subscriptions.push(sub);
+      subscriptions.add(sub);
     };
 
     subscribeTo(sourceA);
