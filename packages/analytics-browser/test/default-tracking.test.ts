@@ -1,19 +1,19 @@
 import {
   getAttributionTrackingConfig,
-  getPageViewTrackingConfig,
   getElementInteractionsConfig,
   getFrustrationInteractionsConfig,
+  getNetworkTrackingConfig,
+  getPageViewTrackingConfig,
   isAttributionTrackingEnabled,
+  isElementInteractionsEnabled,
   isFileDownloadTrackingEnabled,
   isFormInteractionTrackingEnabled,
+  isFrustrationInteractionsEnabled,
+  isNetworkTrackingEnabled,
+  isPageUrlEnrichmentEnabled,
   isPageViewTrackingEnabled,
   isSessionTrackingEnabled,
-  isElementInteractionsEnabled,
-  getNetworkTrackingConfig,
-  isNetworkTrackingEnabled,
-  isFrustrationInteractionsEnabled,
   isWebVitalsEnabled,
-  isPageUrlEnrichmentEnabled,
 } from '../src/default-tracking';
 
 describe('isWebVitalsEnabled', () => {
