@@ -29,7 +29,7 @@ test.describe('Cookie Consent Page', () => {
     await page.click('#track-before-consent-btn');
     
     // Wait a moment to ensure any potential requests would have been made
-    await page.waitForTimeout(1000);
+    await page.waitForTimeout(1500);
     
     // Assert: no network request made by Amplitude (since SDK is not initialized)
     expect(requests.length).toBe(0);

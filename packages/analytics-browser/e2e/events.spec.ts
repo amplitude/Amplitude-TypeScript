@@ -64,7 +64,7 @@ test.describe('Events Page', () => {
 
     // Wait for all network requests to complete
     await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(1000);
+    await page.waitForTimeout(1500);
 
     const events = requests[0].events;
     // Verify the network requests
