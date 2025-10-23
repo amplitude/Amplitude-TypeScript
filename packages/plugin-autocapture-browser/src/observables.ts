@@ -19,6 +19,23 @@ export const createMutationObservable = (): Observable<MutationRecord[]> => {
   });
 };
 
+// TODO: once we're ready for ZenObservable, remove this ignore and add tests
+/* istanbul ignore next */
+export const createMutationObservableZen = (): ZenObservable<MutationRecord[]> => {
+  return new ZenObservable<MutationRecord[]>((observer) => {
+    const mutationObserver = new MutationObserver((mutations) => {
+      observer.next(mutations);
+    });
+    mutationObserver.observe(document.body, {
+      childList: true,
+      attributes: true,
+      characterData: true,
+      subtree: true,
+    });
+    return () => mutationObserver.disconnect();
+  });
+};
+
 /**
  * Creates an observable that tracks click events on the document.
  * @param clickType - The type of click event to track (click or pointerdown)
