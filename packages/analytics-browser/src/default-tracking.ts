@@ -16,7 +16,7 @@ import {
  */
 type AutocaptureOptionsDefaultAvailable = Pick<
   AutocaptureOptions,
-  'pageViews' | 'sessions' | 'fileDownloads' | 'formInteractions' | 'attribution'
+  'pageViews' | 'sessions' | 'fileDownloads' | 'formInteractions' | 'attribution' | 'pageUrlEnrichment'
 >;
 
 /**
@@ -52,6 +52,9 @@ export const isPageViewTrackingEnabled = (autocapture: AutocaptureOptions | bool
 
 export const isSessionTrackingEnabled = (autocapture: AutocaptureOptions | boolean | undefined) =>
   isTrackingEnabled(autocapture, 'sessions');
+
+export const isPageUrlEnrichmentEnabled = (autocapture: AutocaptureOptions | boolean | undefined) =>
+  isTrackingEnabled(autocapture, 'pageUrlEnrichment');
 
 /**
  * Returns true if
