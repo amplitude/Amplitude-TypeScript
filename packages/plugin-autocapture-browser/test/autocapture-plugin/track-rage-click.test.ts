@@ -489,4 +489,41 @@ describe('trackRageClicks', () => {
     expect(mockAmplitude.track).not.toHaveBeenCalled();
     subscription?.unsubscribe();
   });
+
+  it('should track rage clicks when threshold is met and next click is out of bounds', async () => {
+    const subscription = trackRageClicks({
+      amplitude: mockAmplitude,
+      allObservables,
+      shouldTrackRageClick,
+    });
+
+    // Create a mock element
+    const mockElement = document.createElement('div');
+    const startTime = Date.now();
+    for (let i = 0; i < DEFAULT_RAGE_CLICK_THRESHOLD; i++) {
+      clickObserver.next({
+        event: {
+          target: mockElement,
+          clientX: 100,
+          clientY: 100,
+        },
+        timestamp: startTime,
+        closestTrackedAncestor: mockElement,
+        targetElementProperties: { id: 'test-element' },
+      });
+    }
+    clickObserver.next({
+      event: {
+        target: mockElement,
+        clientX: 1000,
+        clientY: 1000,
+      },
+      timestamp: startTime,
+      closestTrackedAncestor: mockElement,
+      targetElementProperties: { id: 'test-element' },
+    });
+    await jest.runAllTimersAsync();
+    expect(mockAmplitude.track).toHaveBeenCalledTimes(1);
+    subscription?.unsubscribe();
+  });
 });

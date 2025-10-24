@@ -59,6 +59,10 @@ function addCoordinates(regionBox: ClickRegionBoundingBox, click: ClickEvent) {
 }
 
 function getRageClickAnalyticsEvent(clickWindow: ClickEvent[]) {
+  /* istanbul ignore if */
+  if (clickWindow.length === 0) {
+    return null;
+  }
   const firstClick = clickWindow[0];
   const lastClick = clickWindow[clickWindow.length - 1];
 
@@ -133,6 +137,9 @@ export function trackRageClicks({
   const rageClickObservable = asyncMap(
     clickObservableZen.filter((click) => shouldTrackRageClick('click', click.closestTrackedAncestor)),
     async (click: ClickEvent): Promise<RageClickEvent | null> => {
+      // add this click's coordinates to the bounding box
+      addCoordinates(clickBoundingBox, click);
+
       // if current click is:
       //  1. first click in the window
       //  2. on a new element
@@ -149,16 +156,16 @@ export function trackRageClicks({
         if (triggerRageClick) {
           triggerRageClick.trackRageClickEvent();
         }
-      
+
         resetClickWindow(click);
         return null;
       } else {
-        addCoordinates(clickBoundingBox, click);
         clickWindow.push(click);
       }
 
       // if there was a previous Rage Click Event on deck, then cancel it
       if (triggerRageClick) {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         clearTimeout(triggerRageClick.timerId);
         triggerRageClick = null;
       }
@@ -168,15 +175,14 @@ export function trackRageClicks({
       // This will be cancelled if a new click is tracked within the time threshold.
       if (clickWindow.length >= RAGE_CLICK_THRESHOLD) {
         return new Promise((resolve) => {
-          const rageClickEvent = getRageClickAnalyticsEvent(clickWindow);
           const resolveFn = () => {
+            resolve(getRageClickAnalyticsEvent(clickWindow));
             resetClickWindow();
-            resolve(rageClickEvent);
+            triggerRageClick = null;
           };
           triggerRageClick = {
             trackRageClickEvent: resolveFn,
             timerId: setTimeout(() => {
-              resetClickWindow();
               resolveFn();
             }, RAGE_CLICK_WINDOW_MS),
           };
@@ -187,12 +193,11 @@ export function trackRageClicks({
     },
   );
 
-  return rageClickObservable
-    .subscribe((data: RageClickEvent | null) => {
-      /* istanbul ignore if */
-      if (data === null) {
-        return;
-      }
-      amplitude.track(AMPLITUDE_ELEMENT_RAGE_CLICKED_EVENT, data.rageClickEvent, { time: data.time });
-    });
+  return rageClickObservable.subscribe((data: RageClickEvent | null) => {
+    /* istanbul ignore if */
+    if (data === null) {
+      return;
+    }
+    amplitude.track(AMPLITUDE_ELEMENT_RAGE_CLICKED_EVENT, data.rageClickEvent, { time: data.time });
+  });
 }
