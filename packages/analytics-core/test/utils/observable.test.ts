@@ -249,7 +249,7 @@ describe('multicast', () => {
       isSubscribed = true;
       setTimeout(() => observer.next(1), 10);
       setTimeout(() => observer.complete(), 20);
-      
+
       return () => {
         isUnsubscribed = true;
       };
@@ -268,7 +268,7 @@ describe('multicast', () => {
     });
 
     // Wait for subscription to be established
-    await new Promise(resolve => setTimeout(resolve, 5));
+    await new Promise((resolve) => setTimeout(resolve, 5));
     expect(isSubscribed).toBe(true);
 
     // Unsubscribe all observers
@@ -276,7 +276,7 @@ describe('multicast', () => {
     unsubscribe2.unsubscribe();
 
     // Wait a bit to ensure cleanup happens
-    await new Promise(resolve => setTimeout(resolve, 5));
+    await new Promise((resolve) => setTimeout(resolve, 5));
     expect(isUnsubscribed).toBe(true);
   });
 

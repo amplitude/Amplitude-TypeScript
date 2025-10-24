@@ -67,7 +67,7 @@ export const frustrationPlugin = (options: FrustrationInteractionsOptions = {}):
           dataAttributePrefix,
           true, // capture when cursor is pointer
         );
-      })
+      }),
     );
 
     // Create observable for URL changes

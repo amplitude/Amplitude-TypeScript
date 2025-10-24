@@ -31,7 +31,7 @@ function asyncMap<T, R>(observable: ZenObservable<T>, fn: (value: T) => Promise<
 }
 
 function multicast<T>(source: ZenObservable<T>): ZenObservable<T> {
-  let observers: Set<Observer<T>> = new Set();
+  const observers: Set<Observer<T>> = new Set();
   let subscription: Subscription | null = null;
 
   return new ZenObservable<T>((observer) => {
@@ -81,6 +81,5 @@ function multicast<T>(source: ZenObservable<T>): ZenObservable<T> {
     observers.clear();
   }
 }
-
 
 export { asyncMap, multicast };
