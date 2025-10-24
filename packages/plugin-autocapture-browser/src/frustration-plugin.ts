@@ -16,7 +16,7 @@ import { trackRageClicks } from './autocapture/track-rage-click';
 import { AllWindowObservables, ObservablesEnum } from './autocapture-plugin';
 import { createClickObservable, createClickObservableZen, createMutationObservable } from './observables';
 import { DataExtractor } from './data-extractor';
-import { Observable as ZenObservable } from '@amplitude/analytics-core';
+import { Observable as ZenObservable, multicast } from '@amplitude/analytics-core';
 
 type BrowserEnrichmentPlugin = EnrichmentPlugin<BrowserClient, BrowserConfig>;
 
@@ -58,15 +58,17 @@ export const frustrationPlugin = (options: FrustrationInteractionsOptions = {}):
 
     // TODO: once we're ready for ZenObservable, remove this ignore and add tests
     /* istanbul ignore next */
-    const clickObservableZen = createClickObservableZen('pointerdown').map((click) => {
-      return dataExtractor.addAdditionalEventProperties(
-        click,
-        'click',
-        combinedCssSelectors,
-        dataAttributePrefix,
-        true, // capture when cursor is pointer
-      );
-    });
+    const clickObservableZen = multicast(
+      createClickObservableZen('pointerdown').map((click) => {
+        return dataExtractor.addAdditionalEventProperties(
+          click,
+          'click',
+          combinedCssSelectors,
+          dataAttributePrefix,
+          true, // capture when cursor is pointer
+        );
+      })
+    );
 
     // Create observable for URL changes
     let navigateObservable;
