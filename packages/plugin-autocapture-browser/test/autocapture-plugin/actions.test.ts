@@ -7,10 +7,10 @@ import type {
   ElementInteractionsOptions,
   LabeledEvent,
   Trigger,
+  DataSource,
 } from '@amplitude/analytics-core/lib/esm/types/element-interactions';
 import { getDataSource, executeActions } from '../../src/pageActions/actions';
 import { DataExtractor } from '../../src/data-extractor';
-import type { DataSource } from '@amplitude/analytics-core/lib/esm/types/element-interactions';
 
 const TESTING_DEBOUNCE_TIME = 4;
 
