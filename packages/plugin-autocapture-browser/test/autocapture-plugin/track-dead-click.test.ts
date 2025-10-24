@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 
 import { Subject } from 'rxjs';
-import { BrowserClient, DEFAULT_DEAD_CLICK_WINDOW_MS } from '@amplitude/analytics-core';
+import { BrowserClient, Observable } from '@amplitude/analytics-core';
 import { _overrideDeadClickConfig, trackDeadClick } from '../../src/autocapture/track-dead-click';
 import { AMPLITUDE_ELEMENT_DEAD_CLICKED_EVENT } from '../../src/constants';
 import { AllWindowObservables, ObservablesEnum } from '../../src/autocapture-plugin';
@@ -10,11 +10,17 @@ import { AllWindowObservables, ObservablesEnum } from '../../src/autocapture-plu
 describe('trackDeadClick', () => {
   let mockAmplitude: jest.Mocked<BrowserClient>;
   let clickObservable: Subject<any>;
-  let mutationObservable: Subject<any>;
-  let navigateObservable: Subject<any>;
+  let clickObservableZen: any;
+  //let mutationObservable: Subject<any>;
+  let mutationObservableZen: any;
+  let navigateObservableZen: any;
+  // let navigateObservable: Subject<any>;
   let allObservables: AllWindowObservables;
   let shouldTrackDeadClick: jest.Mock;
   let getEventProperties: jest.Mock;
+  let clickObserver: any;
+  let mutationObserver: any;
+  let navigateObserver: any;
 
   beforeAll(() => {
     // reduce the dead click timeout to 5ms to speed up the test
@@ -27,13 +33,23 @@ describe('trackDeadClick', () => {
     } as any;
 
     clickObservable = new Subject();
-    mutationObservable = new Subject();
-    navigateObservable = new Subject();
+    clickObservableZen = new Observable<any>((observer) => {
+      clickObserver = observer;
+    });
+    mutationObservableZen = new Observable<any>((observer) => {
+      mutationObserver = observer;
+    });
+    navigateObservableZen = new Observable<any>((observer) => {
+      navigateObserver = observer;
+    });
     allObservables = {
       [ObservablesEnum.ClickObservable]: clickObservable,
       [ObservablesEnum.ChangeObservable]: new Subject(),
-      [ObservablesEnum.NavigateObservable]: navigateObservable,
-      [ObservablesEnum.MutationObservable]: mutationObservable,
+      [ObservablesEnum.NavigateObservable]: new Subject(),
+      [ObservablesEnum.MutationObservable]: new Subject(),
+      [ObservablesEnum.ClickObservableZen]: clickObservableZen,
+      [ObservablesEnum.MutationObservableZen]: mutationObservableZen,
+      [ObservablesEnum.NavigateObservableZen]: navigateObservableZen,
     };
     shouldTrackDeadClick = jest.fn().mockReturnValue(true);
     getEventProperties = jest.fn().mockReturnValue({ id: 'test-element' });
@@ -45,7 +61,7 @@ describe('trackDeadClick', () => {
     jest.clearAllMocks();
   });
 
-  it('should track dead click when no mutation or navigation occurs', () => {
+  it('should track dead click when no mutation or navigation occurs', async () => {
     const subscription = trackDeadClick({
       amplitude: mockAmplitude,
       allObservables,
@@ -57,7 +73,7 @@ describe('trackDeadClick', () => {
     const mockElement = document.createElement('div');
 
     // Simulate a click
-    clickObservable.next({
+    clickObserver.next({
       event: {
         target: mockElement,
         clientX: 100,
@@ -66,10 +82,11 @@ describe('trackDeadClick', () => {
       timestamp: Date.now(),
       closestTrackedAncestor: mockElement,
       targetElementProperties: { id: 'test-element' },
+      type: 'click',
     });
 
     // Wait for the dead click timeout
-    jest.advanceTimersByTime(DEFAULT_DEAD_CLICK_WINDOW_MS + 1000);
+    await jest.runAllTimersAsync();
     expect(mockAmplitude.track).toHaveBeenCalledWith(
       AMPLITUDE_ELEMENT_DEAD_CLICKED_EVENT,
       expect.objectContaining({
@@ -79,10 +96,12 @@ describe('trackDeadClick', () => {
       }),
       expect.any(Object),
     );
-    subscription.unsubscribe();
+
+    subscription?.unsubscribe();
+    mutationObserver.complete();
   });
 
-  it('should not track when mutation occurs after click', () => {
+  it('should not track when mutation occurs after click', async () => {
     const subscription = trackDeadClick({
       amplitude: mockAmplitude,
       allObservables,
@@ -94,7 +113,7 @@ describe('trackDeadClick', () => {
     const mockElement = document.createElement('button');
 
     // Simulate a click
-    clickObservable.next({
+    clickObserver.next({
       event: {
         target: mockElement,
         clientX: 100,
@@ -106,15 +125,15 @@ describe('trackDeadClick', () => {
     });
 
     // Simulate a mutation shortly after
-    mutationObservable.next([{ type: 'childList' }]);
-    jest.runAllTimers();
+    mutationObserver.next([{ type: 'childList' }]);
+    await jest.runAllTimersAsync();
 
     // Wait for the dead click timeout
     expect(mockAmplitude.track).not.toHaveBeenCalled();
-    subscription.unsubscribe();
+    subscription?.unsubscribe();
   });
 
-  it('should not track when navigation occurs after click', () => {
+  it('should not track when navigation occurs after click', async () => {
     const subscription = trackDeadClick({
       amplitude: mockAmplitude,
       allObservables,
@@ -126,7 +145,7 @@ describe('trackDeadClick', () => {
     const mockElement = document.createElement('div');
 
     // Simulate a click
-    clickObservable.next({
+    clickObserver.next({
       event: {
         target: mockElement,
         clientX: 100,
@@ -135,20 +154,19 @@ describe('trackDeadClick', () => {
       timestamp: Date.now(),
       closestTrackedAncestor: mockElement,
       targetElementProperties: { id: 'test-element' },
+      type: 'click',
     });
 
     // Simulate a navigation shortly after
-    jest.advanceTimersByTime(1);
-    navigateObservable.next({ type: 'navigate' });
-    jest.runAllTimers();
-    jest.advanceTimersByTime(DEFAULT_DEAD_CLICK_WINDOW_MS + 1000);
+    navigateObserver.next({ type: 'navigate' });
+    await jest.runAllTimersAsync();
 
     // Wait for the dead click timeout
     expect(mockAmplitude.track).not.toHaveBeenCalled();
-    subscription.unsubscribe();
+    subscription?.unsubscribe();
   });
 
-  it('should not track elements that are not in the allowed list', () => {
+  it('should not track elements that are not in the allowed list', async () => {
     shouldTrackDeadClick.mockReturnValue(false);
 
     const subscription = trackDeadClick({
@@ -161,7 +179,7 @@ describe('trackDeadClick', () => {
     const mockElement = document.createElement('div');
 
     // Simulate a click
-    clickObservable.next({
+    clickObserver.next({
       event: {
         target: mockElement,
         clientX: 100,
@@ -173,12 +191,12 @@ describe('trackDeadClick', () => {
     });
 
     // Wait for the dead click timeout
-    jest.advanceTimersByTime(DEFAULT_DEAD_CLICK_WINDOW_MS + 1000);
+    await jest.runAllTimersAsync();
     expect(mockAmplitude.track).not.toHaveBeenCalled();
-    subscription.unsubscribe();
+    subscription?.unsubscribe();
   });
 
-  it('should not track when target is _blank', () => {
+  it('should not track when target is _blank', async () => {
     const subscription = trackDeadClick({
       amplitude: mockAmplitude,
       allObservables,
@@ -189,7 +207,7 @@ describe('trackDeadClick', () => {
     const mockElement = document.createElement('a');
     mockElement.setAttribute('target', '_blank');
 
-    clickObservable.next({
+    clickObserver.next({
       event: {
         target: mockElement,
       },
@@ -199,13 +217,13 @@ describe('trackDeadClick', () => {
     });
 
     // Wait for the dead click timeout
-    jest.advanceTimersByTime(DEFAULT_DEAD_CLICK_WINDOW_MS + 1000);
+    await jest.runAllTimersAsync();
     expect(mockAmplitude.track).not.toHaveBeenCalled();
-    subscription.unsubscribe();
+    subscription?.unsubscribe();
   });
 
-  it('should throttle multiple dead clicks', () => {
-    const subscription = trackDeadClick({
+  it('should throttle multiple dead clicks', async () => {
+    trackDeadClick({
       amplitude: mockAmplitude,
       allObservables,
       getEventProperties,
@@ -217,7 +235,7 @@ describe('trackDeadClick', () => {
     // Simulate multiple clicks
     for (let i = 0; i < 3; i++) {
       jest.advanceTimersByTime(i);
-      clickObservable.next({
+      clickObserver.next({
         event: {
           target: mockElement,
           clientX: 100,
@@ -226,12 +244,12 @@ describe('trackDeadClick', () => {
         timestamp: Date.now(),
         closestTrackedAncestor: mockElement,
         targetElementProperties: { id: 'test-element' },
+        type: 'click',
       });
     }
 
     // Wait for the dead click timeout plus some extra time for all clicks
-    jest.advanceTimersByTime(100);
+    await jest.runAllTimersAsync();
     expect(mockAmplitude.track).toHaveBeenCalledTimes(1); // Only one dead click should be tracked
-    subscription.unsubscribe();
   });
 });

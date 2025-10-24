@@ -30,6 +30,69 @@ function asyncMap<T, R>(observable: ZenObservable<T>, fn: (value: T) => Promise<
   );
 }
 
+type Unsubscribable = {
+  unsubscribe: () => void;
+};
+
+/**
+ * merge operator for Zen Observable
+ *
+ * Merges two observables into a single observable, emitting values from both sources in the order they arrive.
+ * @param sourceA Observable to merge
+ * @param sourceB Observable to merge
+ * @returns Unsubscribable cleanup function
+ */
+function merge<A, B>(sourceA: ZenObservable<A>, sourceB: ZenObservable<B>): ZenObservable<A | B> {
+  return new ZenObservable<A | B>((observer) => {
+    let closed = false;
+
+    const subscriptions: Set<Unsubscribable> = new Set();
+
+    const cleanup = (): void => {
+      closed = true;
+      for (const sub of subscriptions) {
+        try {
+          sub.unsubscribe();
+        } catch {
+          /* do nothing */
+        }
+      }
+      subscriptions.clear();
+    };
+
+    const subscribeTo = <T>(source: ZenObservable<T>) => {
+      const sub = source.subscribe({
+        next(value: T) {
+          if (!closed) observer.next(value as A | B);
+        },
+        error(err) {
+          if (!closed) {
+            closed = true;
+            observer.error(err);
+            cleanup();
+          }
+        },
+        complete() {
+          subscriptions.delete(sub);
+          if (!closed && subscriptions.size === 0) {
+            observer.complete();
+            cleanup();
+            closed = true;
+          }
+        },
+      });
+
+      subscriptions.add(sub);
+    };
+
+    subscribeTo(sourceA);
+    subscribeTo(sourceB);
+
+    return cleanup;
+  });
+}
+
+// function share() {
 function multicast<T>(source: ZenObservable<T>): ZenObservable<T> {
   const observers: Set<Observer<T>> = new Set();
   let subscription: Subscription | null = null;
@@ -82,4 +145,4 @@ function multicast<T>(source: ZenObservable<T>): ZenObservable<T> {
   }
 }
 
-export { asyncMap, multicast };
+export { asyncMap, multicast, merge };

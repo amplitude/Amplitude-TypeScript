@@ -1,4 +1,6 @@
-import { Observable, asyncMap, multicast } from '../../src/index';
+import { Observable, asyncMap, merge, multicast } from '../../src/index';
+
+/* eslint-disable jest/no-conditional-expect, @typescript-eslint/no-empty-function */
 
 describe('asyncMap', () => {
   test('should map values using async function and emit results in order', async () => {
@@ -142,6 +144,51 @@ describe('asyncMap', () => {
         },
       });
     });
+  });
+});
+
+describe('merge', () => {
+  beforeEach(() => {
+    jest.useFakeTimers();
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  test('should merge two observables', async () => {
+    const source1 = new Observable<number>((observer) => {
+      observer.next(1);
+      observer.complete();
+    });
+    const source2 = new Observable<number>((observer) => {
+      observer.next(2);
+      observer.complete();
+    });
+    const mergedObservable = merge(source1, source2);
+    const results: number[] = [];
+    mergedObservable.subscribe((value) => {
+      results.push(value);
+    });
+    await jest.runAllTimersAsync();
+    expect(results).toEqual([1, 2]);
+  });
+
+  test('should error if one of the observables errors', async () => {
+    const source1 = new Observable<number>((observer) => {
+      observer.next(1);
+      observer.complete();
+    });
+    const source2 = new Observable<number>((observer) => {
+      observer.error(new Error('Error'));
+    });
+    const mergedObservable = merge(source1, source2);
+    const results: number[] = [];
+    mergedObservable.subscribe((value) => {
+      results.push(value);
+    });
+    await jest.runAllTimersAsync();
+    expect(results).toEqual([1]);
   });
 });
 
