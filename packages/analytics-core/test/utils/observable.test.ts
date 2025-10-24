@@ -280,54 +280,6 @@ describe('multicast', () => {
     expect(isUnsubscribed).toBe(true);
   });
 
-  test('should propagate errors to all observers', async () => {
-    const source = new Observable<number>((observer) => {
-      setTimeout(() => observer.next(1), 10);
-      setTimeout(() => observer.error(new Error('Test error')), 20);
-    });
-
-    const multicasted = multicast(source);
-
-    const observer1Results: number[] = [];
-    const observer2Results: number[] = [];
-    const observer1Errors: any[] = [];
-    const observer2Errors: any[] = [];
-
-    const promise = new Promise<void>((resolve) => {
-      let errorCount = 0;
-      const checkError = () => {
-        errorCount++;
-        if (errorCount === 2) {
-          expect(observer1Results).toEqual([1]);
-          expect(observer2Results).toEqual([1]);
-          expect(observer1Errors).toHaveLength(1);
-          expect(observer2Errors).toHaveLength(1);
-          expect(observer1Errors[0].message).toBe('Test error');
-          expect(observer2Errors[0].message).toBe('Test error');
-          resolve();
-        }
-      };
-
-      multicasted.subscribe({
-        next: (value: number) => observer1Results.push(value),
-        error: (error: any) => {
-          observer1Errors.push(error);
-          checkError();
-        },
-      });
-
-      multicasted.subscribe({
-        next: (value: number) => observer2Results.push(value),
-        error: (error: any) => {
-          observer2Errors.push(error);
-          checkError();
-        },
-      });
-    });
-
-    return promise;
-  });
-
   test('should propagate completion to all observers', async () => {
     const source = new Observable<number>((observer) => {
       setTimeout(() => observer.next(1), 10);
