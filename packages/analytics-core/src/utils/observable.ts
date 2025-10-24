@@ -1,6 +1,6 @@
 export { Observable } from 'zen-observable-ts';
 
-import { Observable as ZenObservable } from 'zen-observable-ts';
+import { Observable as ZenObservable, Observer, Subscription } from 'zen-observable-ts';
 
 /**
  * asyncMap operator for Zen Observable
@@ -93,11 +93,56 @@ function merge<A, B>(sourceA: ZenObservable<A>, sourceB: ZenObservable<B>): ZenO
 }
 
 // function share() {
+function multicast<T>(source: ZenObservable<T>): ZenObservable<T> {
+  const observers: Set<Observer<T>> = new Set();
+  let subscription: Subscription | null = null;
 
-// }
+  return new ZenObservable<T>((observer) => {
+    observers.add(observer);
 
-// function throttle () {
+    if (subscription === null) {
+      subscription = source.subscribe({
+        next(value) {
+          for (const obs of observers) {
+            /* istanbul ignore next*/
+            obs.next?.(value);
+          }
+        },
+        error(err) {
+          for (const obs of observers) {
+            /* istanbul ignore next */
+            obs.error?.(err);
+          }
+          cleanup();
+        },
+        complete() {
+          for (const obs of observers) {
+            /* istanbul ignore next */
+            obs.complete?.();
+          }
+          cleanup();
+        },
+      });
+    }
 
-// }
+    // Return unsubscribe function for this observer
+    return () => {
+      observers.delete(observer);
 
-export { asyncMap, merge };
+      // If no observers left, unsubscribe from the source
+      if (observers.size === 0 && subscription) {
+        subscription.unsubscribe();
+        subscription = null;
+      }
+    };
+  });
+
+  function cleanup() {
+    /* istanbul ignore next */
+    subscription?.unsubscribe();
+    subscription = null;
+    observers.clear();
+  }
+}
+
+export { asyncMap, multicast, merge };

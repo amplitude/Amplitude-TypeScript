@@ -59,6 +59,10 @@ function addCoordinates(regionBox: ClickRegionBoundingBox, click: ClickEvent) {
 }
 
 function getRageClickAnalyticsEvent(clickWindow: ClickEvent[]) {
+  /* istanbul ignore if */
+  if (clickWindow.length === 0) {
+    return null;
+  }
   const firstClick = clickWindow[0];
   const lastClick = clickWindow[clickWindow.length - 1];
 
@@ -114,11 +118,11 @@ export function trackRageClicks({
   // Keep track of the region box for all clicks, to determine when a rage click is out of bounds
   let clickBoundingBox: ClickRegionBoundingBox = {};
 
-  let triggerRageClickTimeout: {
-    resolve: (value: any) => void;
+  let triggerRageClick: {
+    resolve: (rageClickEvent: RageClickEvent | null) => void;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     timerId: any;
-  };
+  } | null = null;
 
   // helper function to reset the click window and region box
   function resetClickWindow(click?: ClickEvent) {
@@ -133,50 +137,51 @@ export function trackRageClicks({
   const rageClickObservable = asyncMap(
     clickObservableZen.filter((click) => shouldTrackRageClick('click', click.closestTrackedAncestor)),
     async (click: ClickEvent): Promise<RageClickEvent | null> => {
-      // if there was a previous rage click timeout, clear it
-      if (triggerRageClickTimeout) {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-        clearTimeout(triggerRageClickTimeout.timerId);
-        triggerRageClickTimeout.resolve(null);
-      }
-
-      // add click to bounding box
+      // add this click's coordinates to the bounding box
       addCoordinates(clickBoundingBox, click);
 
-      // if there's just one click in the window, add it to clickWindow and return
-      if (clickWindow.length === 0) {
-        clickWindow.push(click);
-        return null;
-      }
+      let resolutionValue: RageClickEvent | null = null;
 
       // if current click is:
-      //  1. outside the rage click window
+      //  1. first click in the window
       //  2. on a new element
-      //  3. out of bounds
+      //  3. outside the rage click time window
+      //  4. out of bounds
       // then start a new click window
       if (
+        clickWindow.length === 0 ||
         isNewElement(clickWindow, click) ||
         isClickOutsideRageClickWindow(clickWindow, click) ||
         clickBoundingBox.isOutOfBounds
       ) {
+        // if there was a previous Rage Click Event on deck, then send it
+        if (triggerRageClick) {
+          resolutionValue = getRageClickAnalyticsEvent(clickWindow);
+        }
+
         resetClickWindow(click);
         return null;
+      } else {
+        clickWindow.push(click);
       }
 
-      // add click to current window
-      clickWindow.push(click);
+      // if there was a previous Rage Click Event on deck, then resolve it
+      if (triggerRageClick) {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+        clearTimeout(triggerRageClick.timerId);
+        triggerRageClick.resolve(resolutionValue);
+        triggerRageClick = null;
+      }
 
       // if we have enough clicks to be a rage click, set a timout to trigger the rage
       // click event after the time threshold is reached.
       // This will be cancelled if a new click is tracked within the time threshold.
       if (clickWindow.length >= RAGE_CLICK_THRESHOLD) {
         return new Promise((resolve) => {
-          triggerRageClickTimeout = {
+          triggerRageClick = {
             resolve,
             timerId: setTimeout(() => {
-              const data = getRageClickAnalyticsEvent(clickWindow);
-              resetClickWindow();
-              resolve(data);
+              resolve(getRageClickAnalyticsEvent(clickWindow));
             }, RAGE_CLICK_WINDOW_MS),
           };
         });
@@ -186,15 +191,11 @@ export function trackRageClicks({
     },
   );
 
-  return rageClickObservable
-    .filter((result) => {
-      return result !== null;
-    })
-    .subscribe((data: RageClickEvent | null) => {
-      /* istanbul ignore if */
-      if (data === null) {
-        return;
-      }
-      amplitude.track(AMPLITUDE_ELEMENT_RAGE_CLICKED_EVENT, data.rageClickEvent, { time: data.time });
-    });
+  return rageClickObservable.subscribe((data: RageClickEvent | null) => {
+    /* istanbul ignore if */
+    if (data === null) {
+      return;
+    }
+    amplitude.track(AMPLITUDE_ELEMENT_RAGE_CLICKED_EVENT, data.rageClickEvent, { time: data.time });
+  });
 }
