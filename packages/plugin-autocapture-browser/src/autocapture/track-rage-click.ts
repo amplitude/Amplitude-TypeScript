@@ -115,7 +115,7 @@ export function trackRageClicks({
   let clickBoundingBox: ClickRegionBoundingBox = {};
 
   let triggerRageClick: {
-    trackRageClickEvet: () => void;
+    trackRageClickEvent: () => void;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     timerId: any;
   } | null = null;
@@ -147,7 +147,7 @@ export function trackRageClicks({
       ) {
         // if there was a previous Rage Click Event on deck, then send it
         if (triggerRageClick) {
-          triggerRageClick.trackRageClickEvet();
+          triggerRageClick.trackRageClickEvent();
         }
       
         resetClickWindow(click);
@@ -174,7 +174,7 @@ export function trackRageClicks({
             resolve(rageClickEvent);
           };
           triggerRageClick = {
-            trackRageClickEvet: resolveFn,
+            trackRageClickEvent: resolveFn,
             timerId: setTimeout(() => {
               resetClickWindow();
               resolveFn();
