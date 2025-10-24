@@ -60,10 +60,8 @@ export const createClickObservableZen = (
     const handler = (event: MouseEvent | PointerEvent) => {
       observer.next(event);
     };
-    console.log('binding click event');
     getGlobalScope()?.document.addEventListener(clickType, handler);
     return () => {
-      console.log('unbinding click event');
       getGlobalScope()?.document.removeEventListener(clickType, handler);
     };
   });
