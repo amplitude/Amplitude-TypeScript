@@ -119,7 +119,7 @@ export function trackRageClicks({
   let clickBoundingBox: ClickRegionBoundingBox = {};
 
   let triggerRageClick: {
-    trackRageClickEvent: () => void;
+    resolve: (rageClickEvent: RageClickEvent | null) => void;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     timerId: any;
   } | null = null;
@@ -140,6 +140,8 @@ export function trackRageClicks({
       // add this click's coordinates to the bounding box
       addCoordinates(clickBoundingBox, click);
 
+      let resolutionValue: RageClickEvent | null = null;
+
       // if current click is:
       //  1. first click in the window
       //  2. on a new element
@@ -154,7 +156,7 @@ export function trackRageClicks({
       ) {
         // if there was a previous Rage Click Event on deck, then send it
         if (triggerRageClick) {
-          triggerRageClick.trackRageClickEvent();
+          resolutionValue = getRageClickAnalyticsEvent(clickWindow);
         }
 
         resetClickWindow(click);
@@ -163,10 +165,11 @@ export function trackRageClicks({
         clickWindow.push(click);
       }
 
-      // if there was a previous Rage Click Event on deck, then cancel it
+      // if there was a previous Rage Click Event on deck, then resolve it
       if (triggerRageClick) {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         clearTimeout(triggerRageClick.timerId);
+        triggerRageClick.resolve(resolutionValue);
         triggerRageClick = null;
       }
 
@@ -175,15 +178,10 @@ export function trackRageClicks({
       // This will be cancelled if a new click is tracked within the time threshold.
       if (clickWindow.length >= RAGE_CLICK_THRESHOLD) {
         return new Promise((resolve) => {
-          const resolveFn = () => {
-            resolve(getRageClickAnalyticsEvent(clickWindow));
-            resetClickWindow();
-            triggerRageClick = null;
-          };
           triggerRageClick = {
-            trackRageClickEvent: resolveFn,
+            resolve,
             timerId: setTimeout(() => {
-              resolveFn();
+              resolve(getRageClickAnalyticsEvent(clickWindow));
             }, RAGE_CLICK_WINDOW_MS),
           };
         });
