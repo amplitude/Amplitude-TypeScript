@@ -11,7 +11,7 @@ import {
   UNEXPECTED_ERROR_MESSAGE,
 } from '../../src/types/messages';
 import { uuidPattern } from '../helpers/util';
-import { RequestMetadata } from '../../src';
+import { DiagnosticsClient, RequestMetadata } from '../../src';
 import { TrackEvent } from '../../src/types/event/event';
 
 const jsons = (obj: any) => JSON.stringify(obj, null, 2);
@@ -26,6 +26,14 @@ const getMockLogger = (): ILogger => ({
 });
 
 describe('destination', () => {
+  describe('constructor', () => {
+    test('should pass diagnostics client to destination', () => {
+      const diagnosticsClient = new DiagnosticsClient(API_KEY, getMockLogger());
+      const destination = new Destination({ diagnosticsClient });
+      expect(destination.diagnosticsClient).toBe(diagnosticsClient);
+    });
+  });
+
   describe('setup', () => {
     test('should setup plugin', async () => {
       const destination = new Destination();
@@ -725,6 +733,87 @@ describe('destination', () => {
       await destination.send([context]);
       // We should not fulfill request when the request fails with an unknown error. This should be retried
       expect(callback).toHaveBeenCalledTimes(0);
+    });
+  });
+
+  describe('fulfillRequest', () => {
+    test('should record diagnostics when events are dropped (non-200 status code)', () => {
+      const diagnosticsClient = new DiagnosticsClient(API_KEY, getMockLogger());
+      const incrementSpy = jest.spyOn(diagnosticsClient, 'increment');
+      const recordEventSpy = jest.spyOn(diagnosticsClient, 'recordEvent');
+
+      const destination = new Destination({ diagnosticsClient });
+      destination.config = useDefaultConfig();
+
+      const callback1 = jest.fn();
+      const callback2 = jest.fn();
+      const event1 = { event_type: 'event1', user_id: 'user1' };
+      const event2 = { event_type: 'event2', user_id: 'user2' };
+
+      const contexts: Context[] = [
+        { event: event1, attempts: 1, callback: callback1, timeout: 0 },
+        { event: event2, attempts: 1, callback: callback2, timeout: 0 },
+      ];
+
+      // Call fulfillRequest with a 400 status code (non-200)
+      destination.fulfillRequest(contexts, 400, 'Bad Request');
+
+      // Verify diagnostics increment was called with the correct count
+      expect(incrementSpy).toHaveBeenCalledWith('analytics.droppedEvents', 2);
+
+      // Verify diagnostics recordEvent was called with the correct data
+      expect(recordEventSpy).toHaveBeenCalledWith('analytics.droppedEvents', {
+        events: [event1, event2],
+        code: 400,
+        message: 'Bad Request',
+        stack_trace: expect.any(Array),
+      });
+
+      // Verify stack_trace is an array of strings
+      const recordEventCall = recordEventSpy.mock.calls[0];
+      expect(Array.isArray(recordEventCall[1].stack_trace)).toBe(true);
+      expect(recordEventCall[1].stack_trace.length).toBeGreaterThan(0);
+
+      // Verify callbacks were called
+      expect(callback1).toHaveBeenCalledTimes(1);
+      expect(callback2).toHaveBeenCalledTimes(1);
+    });
+
+    test('should handle undefined stack trace gracefully', () => {
+      const diagnosticsClient = new DiagnosticsClient(API_KEY, getMockLogger());
+      const recordEventSpy = jest.spyOn(diagnosticsClient, 'recordEvent');
+
+      const destination = new Destination({ diagnosticsClient });
+      destination.config = useDefaultConfig();
+
+      const callback = jest.fn();
+      const event = { event_type: 'event1', user_id: 'user1' };
+      const context: Context = { event, attempts: 1, callback, timeout: 0 };
+
+      // Mock Error to return undefined stack
+      const originalError = global.Error;
+      global.Error = class extends originalError {
+        constructor(message?: string) {
+          super(message);
+          this.stack = undefined;
+        }
+      } as any;
+
+      try {
+        // Call fulfillRequest with a 500 status code
+        destination.fulfillRequest([context], 500, 'Internal Server Error');
+
+        // Verify stack_trace defaults to empty array when stack is undefined
+        expect(recordEventSpy).toHaveBeenCalledWith('analytics.droppedEvents', {
+          events: [event],
+          code: 500,
+          message: 'Internal Server Error',
+          stack_trace: [],
+        });
+      } finally {
+        // Restore original Error
+        global.Error = originalError;
+      }
     });
   });
 
