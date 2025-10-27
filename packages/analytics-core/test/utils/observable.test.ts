@@ -1,7 +1,9 @@
 import { Observable, asyncMap, multicast } from '../../src/index';
 
+/* eslint-disable @typescript-eslint/no-empty-function */
+
 // Test helper functions
-const createTimedObservable = <T>(values: T[], delay: number = 10): Observable<T> => {
+const createTimedObservable = <T>(values: T[], delay = 10): Observable<T> => {
   return new Observable<T>((observer) => {
     values.forEach((value, index) => {
       setTimeout(() => observer.next(value), index * delay);
@@ -10,8 +12,7 @@ const createTimedObservable = <T>(values: T[], delay: number = 10): Observable<T
   });
 };
 
-
-const createEmptyObservable = (delay: number = 10): Observable<any> => {
+const createEmptyObservable = (delay = 10): Observable<any> => {
   return new Observable<any>((observer) => {
     setTimeout(() => observer.complete(), delay);
   });
@@ -23,7 +24,11 @@ const createImmediateErrorObservable = <T>(error: Error): Observable<T> => {
   });
 };
 
-const createObservableWithUnsubscribe = <T>(values: T[], onSubscribe: () => void, onUnsubscribe: () => void): Observable<T> => {
+const createObservableWithUnsubscribe = <T>(
+  values: T[],
+  onSubscribe: () => void,
+  onUnsubscribe: () => void,
+): Observable<T> => {
   return new Observable<T>((observer) => {
     onSubscribe();
     values.forEach((value, index) => {
@@ -89,7 +94,7 @@ interface MultiObserverResult<T> {
 
 const subscribeMultipleObservers = <T>(
   observable: Observable<T>,
-  observerCount: 2 | 3 = 2
+  observerCount: 2 | 3 = 2,
 ): Promise<MultiObserverResult<T>> => {
   return new Promise<MultiObserverResult<T>>((resolve) => {
     const results: MultiObserverResult<T> = {
@@ -240,7 +245,15 @@ describe('multicast', () => {
   test('should unsubscribe from source when all observers unsubscribe', async () => {
     let isSubscribed = false;
     let isUnsubscribed = false;
-    const source = createObservableWithUnsubscribe([1], () => { isSubscribed = true; }, () => { isUnsubscribed = true; });
+    const source = createObservableWithUnsubscribe(
+      [1],
+      () => {
+        isSubscribed = true;
+      },
+      () => {
+        isUnsubscribed = true;
+      },
+    );
 
     const multicasted = multicast(source);
 
@@ -277,7 +290,7 @@ describe('multicast', () => {
     expect(results.observer1.completed).toBe(true);
     expect(results.observer2.completed).toBe(true);
   });
-  
+
   test('should handle empty source observable', async () => {
     const source = createEmptyObservable();
     const multicasted = multicast(source);
