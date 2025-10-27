@@ -1,82 +1,182 @@
 import { Observable, asyncMap, multicast } from '../../src/index';
 
-describe('asyncMap', () => {
-  test('should map values using async function and emit results in order', async () => {
-    const sourceValues = [1, 2, 3];
-    const source = new Observable<number>((observer) => {
-      sourceValues.forEach((value, index) => {
-        setTimeout(() => observer.next(value), index * 10);
-      });
-      setTimeout(() => observer.complete(), 50);
+// Test helper functions
+const createTimedObservable = <T>(values: T[], delay: number = 10): Observable<T> => {
+  return new Observable<T>((observer) => {
+    values.forEach((value, index) => {
+      setTimeout(() => observer.next(value), index * delay);
+    });
+    setTimeout(() => observer.complete(), values.length * delay + 10);
+  });
+};
+
+
+const createEmptyObservable = (delay: number = 10): Observable<any> => {
+  return new Observable<any>((observer) => {
+    setTimeout(() => observer.complete(), delay);
+  });
+};
+
+const createImmediateErrorObservable = <T>(error: Error): Observable<T> => {
+  return new Observable<T>((observer) => {
+    setTimeout(() => observer.error(error), 10);
+  });
+};
+
+const createObservableWithUnsubscribe = <T>(values: T[], onSubscribe: () => void, onUnsubscribe: () => void): Observable<T> => {
+  return new Observable<T>((observer) => {
+    onSubscribe();
+    values.forEach((value, index) => {
+      setTimeout(() => observer.next(value), index * 10);
+    });
+    setTimeout(() => observer.complete(), values.length * 10 + 10);
+    return onUnsubscribe;
+  });
+};
+
+interface SubscriptionResult<T> {
+  results: T[];
+  errors: any[];
+  completed: boolean;
+}
+
+const subscribeToObservable = <T>(observable: Observable<T>): Promise<SubscriptionResult<T>> => {
+  return new Promise<SubscriptionResult<T>>((resolve) => {
+    const result: SubscriptionResult<T> = {
+      results: [],
+      errors: [],
+      completed: false,
+    };
+
+    observable.subscribe({
+      next: (value: T) => result.results.push(value),
+      error: (error: any) => result.errors.push(error),
+      complete: () => {
+        result.completed = true;
+        resolve(result);
+      },
+    });
+  });
+};
+
+const subscribeToObservableWithError = <T>(observable: Observable<T>): Promise<SubscriptionResult<T>> => {
+  return new Promise<SubscriptionResult<T>>((resolve) => {
+    const result: SubscriptionResult<T> = {
+      results: [],
+      errors: [],
+      completed: false,
+    };
+
+    observable.subscribe({
+      next: (value: T) => result.results.push(value),
+      error: (error: any) => {
+        result.errors.push(error);
+        resolve(result);
+      },
+      complete: () => {
+        result.completed = true;
+        resolve(result);
+      },
+    });
+  });
+};
+
+interface MultiObserverResult<T> {
+  observer1: SubscriptionResult<T>;
+  observer2: SubscriptionResult<T>;
+  observer3?: SubscriptionResult<T>;
+}
+
+const subscribeMultipleObservers = <T>(
+  observable: Observable<T>,
+  observerCount: 2 | 3 = 2
+): Promise<MultiObserverResult<T>> => {
+  return new Promise<MultiObserverResult<T>>((resolve) => {
+    const results: MultiObserverResult<T> = {
+      observer1: { results: [], errors: [], completed: false },
+      observer2: { results: [], errors: [], completed: false },
+    };
+
+    if (observerCount === 3) {
+      results.observer3 = { results: [], errors: [], completed: false };
+    }
+
+    let completedCount = 0;
+    const checkComplete = () => {
+      completedCount++;
+      const expectedCount = observerCount;
+      if (completedCount === expectedCount) {
+        resolve(results);
+      }
+    };
+
+    observable.subscribe({
+      next: (value: T) => results.observer1.results.push(value),
+      error: (error: any) => {
+        results.observer1.errors.push(error);
+        checkComplete();
+      },
+      complete: () => {
+        results.observer1.completed = true;
+        checkComplete();
+      },
     });
 
-    const asyncFn = jest.fn((value: number) => Promise.resolve(value * 2));
+    observable.subscribe({
+      next: (value: T) => results.observer2.results.push(value),
+      error: (error: any) => {
+        results.observer2.errors.push(error);
+        checkComplete();
+      },
+      complete: () => {
+        results.observer2.completed = true;
+        checkComplete();
+      },
+    });
 
-    const mappedObservable = asyncMap(source, asyncFn);
-
-    const results: number[] = [];
-    const errors: any[] = [];
-    let completed = false;
-
-    const promise = new Promise<void>((resolve) => {
-      mappedObservable.subscribe({
-        next: (value: number) => {
-          results.push(value);
-        },
+    if (observerCount === 3 && results.observer3) {
+      observable.subscribe({
+        next: (value: T) => results.observer3!.results.push(value),
         error: (error: any) => {
-          errors.push(error);
+          results.observer3!.errors.push(error);
+          checkComplete();
         },
         complete: () => {
-          completed = true;
-          expect(results).toEqual([2, 4, 6]);
-          expect(errors).toHaveLength(0);
-          expect(completed).toBe(true);
-          resolve();
+          results.observer3!.completed = true;
+          checkComplete();
         },
       });
-    });
+    }
+  });
+};
 
-    return promise;
+describe('asyncMap', () => {
+  test('should map values using async function and emit results in order', async () => {
+    const source = createTimedObservable([1, 2, 3]);
+    const asyncFn = jest.fn((value: number) => Promise.resolve(value * 2));
+    const mappedObservable = asyncMap(source, asyncFn);
+    const result = await subscribeToObservable(mappedObservable);
+
+    expect(result.results).toEqual([2, 4, 6]);
+    expect(result.errors).toHaveLength(0);
+    expect(result.completed).toBe(true);
   });
 
   test('should handle async function errors', async () => {
-    const sourceValues = [1, 2, 3];
-    const source = new Observable<number>((observer) => {
-      sourceValues.forEach((value, index) => {
-        setTimeout(() => observer.next(value), index * 10);
-      });
-      setTimeout(() => observer.complete(), 50);
-    });
-
+    const source = createTimedObservable([1, 2, 3]);
     const asyncFn = jest.fn((value: number) => {
       if (value === 2) {
         return Promise.reject(new Error('Test error'));
       }
-      return Promise.resolve(value * 2);
+      return Promise.resolve(value);
     });
 
     const mappedObservable = asyncMap(source, asyncFn);
+    const result = await subscribeToObservableWithError(mappedObservable);
 
-    const results: number[] = [];
-    const errors: any[] = [];
-
-    return new Promise<void>((resolve) => {
-      mappedObservable.subscribe({
-        next: (value: number) => {
-          results.push(value);
-        },
-        error: (error: any) => {
-          errors.push(error);
-          expect(error.message).toBe('Test error');
-          expect(results).toEqual([2]); // Only first value should be emitted
-          expect(asyncFn).toHaveBeenCalledTimes(2); // Called for 1 and 2
-          resolve();
-        },
-        complete: () => {
-          // Should not complete due to error
-        },
-      });
-    });
+    expect(result.errors[0].message).toBe('Test error');
+    expect(result.results).toEqual([1]); // Only first value should be emitted
+    expect(asyncFn).toHaveBeenCalledTimes(2); // Called for 1 and 2
   });
 
   test('should handle source observable errors', async () => {
@@ -86,113 +186,37 @@ describe('asyncMap', () => {
     });
 
     const asyncFn = jest.fn((value: number) => Promise.resolve(value * 2));
-
     const mappedObservable = asyncMap(source, asyncFn);
+    const result = await subscribeToObservableWithError(mappedObservable);
 
-    const results: number[] = [];
-    const errors: any[] = [];
-
-    return new Promise<void>((resolve) => {
-      mappedObservable.subscribe({
-        next: (value: number) => {
-          results.push(value);
-        },
-        error: (error: any) => {
-          errors.push(error);
-          expect(error.message).toBe('Source error');
-          expect(results).toEqual([2]); // First value should be processed
-          expect(asyncFn).toHaveBeenCalledTimes(1);
-          resolve();
-        },
-        complete: () => {
-          // Should not complete due to error
-        },
-      });
-    });
+    expect(result.errors[0].message).toBe('Source error');
+    expect(result.results).toEqual([2]); // First value should be processed
+    expect(asyncFn).toHaveBeenCalledTimes(1);
   });
 
   test('should handle empty source observable', async () => {
-    const source = new Observable<any>((observer) => {
-      setTimeout(() => observer.complete(), 10);
-    });
-
+    const source = createEmptyObservable();
     const asyncFn = jest.fn((value: any) => Promise.resolve(value));
-
     const mappedObservable = asyncMap(source, asyncFn);
+    const result = await subscribeToObservable(mappedObservable);
 
-    const results: any[] = [];
-    const errors: any[] = [];
-    let completed = false;
-
-    return new Promise<void>((resolve) => {
-      mappedObservable.subscribe({
-        next: (value: any) => {
-          results.push(value);
-        },
-        error: (error: any) => {
-          errors.push(error);
-        },
-        complete: () => {
-          completed = true;
-          expect(results).toHaveLength(0);
-          expect(errors).toHaveLength(0);
-          expect(completed).toBe(true);
-          expect(asyncFn).not.toHaveBeenCalled();
-          resolve();
-        },
-      });
-    });
+    expect(result.results).toHaveLength(0);
+    expect(result.errors).toHaveLength(0);
+    expect(result.completed).toBe(true);
+    expect(asyncFn).not.toHaveBeenCalled();
   });
 });
 
 describe('multicast', () => {
   test('should multicast values to multiple observers', async () => {
-    const sourceValues = [1, 2, 3];
-    const source = new Observable<number>((observer) => {
-      sourceValues.forEach((value, index) => {
-        setTimeout(() => observer.next(value), index * 10);
-      });
-      setTimeout(() => observer.complete(), 50);
-    });
-
+    const source = createTimedObservable([1, 2, 3]);
     const multicasted = multicast(source);
+    const results = await subscribeMultipleObservers(multicasted);
 
-    const observer1Results: number[] = [];
-    const observer2Results: number[] = [];
-    let observer1Completed = false;
-    let observer2Completed = false;
-
-    const promise = new Promise<void>((resolve) => {
-      let completedCount = 0;
-      const checkComplete = () => {
-        completedCount++;
-        if (completedCount === 2) {
-          expect(observer1Results).toEqual([1, 2, 3]);
-          expect(observer2Results).toEqual([1, 2, 3]);
-          expect(observer1Completed).toBe(true);
-          expect(observer2Completed).toBe(true);
-          resolve();
-        }
-      };
-
-      multicasted.subscribe({
-        next: (value: number) => observer1Results.push(value),
-        complete: () => {
-          observer1Completed = true;
-          checkComplete();
-        },
-      });
-
-      multicasted.subscribe({
-        next: (value: number) => observer2Results.push(value),
-        complete: () => {
-          observer2Completed = true;
-          checkComplete();
-        },
-      });
-    });
-
-    return promise;
+    expect(results.observer1.results).toEqual([1, 2, 3]);
+    expect(results.observer2.results).toEqual([1, 2, 3]);
+    expect(results.observer1.completed).toBe(true);
+    expect(results.observer2.completed).toBe(true);
   });
 
   test('should only subscribe to source once with multiple observers', async () => {
@@ -205,55 +229,18 @@ describe('multicast', () => {
     });
 
     const multicasted = multicast(source);
+    const results = await subscribeMultipleObservers(multicasted, 3);
 
-    const observer1Results: number[] = [];
-    const observer2Results: number[] = [];
-    const observer3Results: number[] = [];
-
-    const promise = new Promise<void>((resolve) => {
-      let completedCount = 0;
-      const checkComplete = () => {
-        completedCount++;
-        if (completedCount === 3) {
-          expect(subscriptionCount).toBe(1); // Should only subscribe once
-          expect(observer1Results).toEqual([1, 2]);
-          expect(observer2Results).toEqual([1, 2]);
-          expect(observer3Results).toEqual([1, 2]);
-          resolve();
-        }
-      };
-
-      multicasted.subscribe({
-        next: (value: number) => observer1Results.push(value),
-        complete: checkComplete,
-      });
-
-      multicasted.subscribe({
-        next: (value: number) => observer2Results.push(value),
-        complete: checkComplete,
-      });
-
-      multicasted.subscribe({
-        next: (value: number) => observer3Results.push(value),
-        complete: checkComplete,
-      });
-    });
-
-    return promise;
+    expect(subscriptionCount).toBe(1); // Should only subscribe once
+    expect(results.observer1.results).toEqual([1, 2]);
+    expect(results.observer2.results).toEqual([1, 2]);
+    expect(results.observer3!.results).toEqual([1, 2]);
   });
 
   test('should unsubscribe from source when all observers unsubscribe', async () => {
     let isSubscribed = false;
     let isUnsubscribed = false;
-    const source = new Observable<number>((observer) => {
-      isSubscribed = true;
-      setTimeout(() => observer.next(1), 10);
-      setTimeout(() => observer.complete(), 20);
-
-      return () => {
-        isUnsubscribed = true;
-      };
-    });
+    const source = createObservableWithUnsubscribe([1], () => { isSubscribed = true; }, () => { isUnsubscribed = true; });
 
     const multicasted = multicast(source);
 
@@ -281,187 +268,34 @@ describe('multicast', () => {
   });
 
   test('should propagate completion to all observers', async () => {
-    const source = new Observable<number>((observer) => {
-      setTimeout(() => observer.next(1), 10);
-      setTimeout(() => observer.next(2), 20);
-      setTimeout(() => observer.complete(), 30);
-    });
-
+    const source = createTimedObservable([1, 2]);
     const multicasted = multicast(source);
+    const results = await subscribeMultipleObservers(multicasted);
 
-    const observer1Results: number[] = [];
-    const observer2Results: number[] = [];
-    let observer1Completed = false;
-    let observer2Completed = false;
-
-    const promise = new Promise<void>((resolve) => {
-      let completedCount = 0;
-      const checkComplete = () => {
-        completedCount++;
-        if (completedCount === 2) {
-          expect(observer1Results).toEqual([1, 2]);
-          expect(observer2Results).toEqual([1, 2]);
-          expect(observer1Completed).toBe(true);
-          expect(observer2Completed).toBe(true);
-          resolve();
-        }
-      };
-
-      multicasted.subscribe({
-        next: (value: number) => observer1Results.push(value),
-        complete: () => {
-          observer1Completed = true;
-          checkComplete();
-        },
-      });
-
-      multicasted.subscribe({
-        next: (value: number) => observer2Results.push(value),
-        complete: () => {
-          observer2Completed = true;
-          checkComplete();
-        },
-      });
-    });
-
-    return promise;
+    expect(results.observer1.results).toEqual([1, 2]);
+    expect(results.observer2.results).toEqual([1, 2]);
+    expect(results.observer1.completed).toBe(true);
+    expect(results.observer2.completed).toBe(true);
   });
-
-  test('should handle observers that unsubscribe before completion', async () => {
-    const source = new Observable<number>((observer) => {
-      setTimeout(() => observer.next(1), 10);
-      setTimeout(() => observer.next(2), 20);
-      setTimeout(() => observer.complete(), 30);
-    });
-
-    const multicasted = multicast(source);
-
-    const observer1Results: number[] = [];
-    const observer2Results: number[] = [];
-    let observer1Completed = false;
-    let observer2Completed = false;
-
-    const promise = new Promise<void>((resolve) => {
-      let completedCount = 0;
-      const checkComplete = () => {
-        completedCount++;
-        if (completedCount === 1) {
-          expect(observer1Results).toEqual([1, 2]);
-          expect(observer2Results).toEqual([1]); // Only first value before unsubscribe
-          expect(observer1Completed).toBe(true);
-          expect(observer2Completed).toBe(false); // Should not complete
-          resolve();
-        }
-      };
-
-      const unsubscribe2 = multicasted.subscribe({
-        next: (value: number) => observer2Results.push(value),
-        complete: () => {
-          observer2Completed = true;
-          checkComplete();
-        },
-      });
-
-      multicasted.subscribe({
-        next: (value: number) => observer1Results.push(value),
-        complete: () => {
-          observer1Completed = true;
-          checkComplete();
-        },
-      });
-
-      // Unsubscribe second observer after first value
-      setTimeout(() => unsubscribe2.unsubscribe(), 15);
-    });
-
-    return promise;
-  });
-
+  
   test('should handle empty source observable', async () => {
-    const source = new Observable<number>((observer) => {
-      setTimeout(() => observer.complete(), 10);
-    });
-
+    const source = createEmptyObservable();
     const multicasted = multicast(source);
+    const results = await subscribeMultipleObservers(multicasted);
 
-    const observer1Results: number[] = [];
-    const observer2Results: number[] = [];
-    let observer1Completed = false;
-    let observer2Completed = false;
-
-    const promise = new Promise<void>((resolve) => {
-      let completedCount = 0;
-      const checkComplete = () => {
-        completedCount++;
-        if (completedCount === 2) {
-          expect(observer1Results).toHaveLength(0);
-          expect(observer2Results).toHaveLength(0);
-          expect(observer1Completed).toBe(true);
-          expect(observer2Completed).toBe(true);
-          resolve();
-        }
-      };
-
-      multicasted.subscribe({
-        next: (value: number) => observer1Results.push(value),
-        complete: () => {
-          observer1Completed = true;
-          checkComplete();
-        },
-      });
-
-      multicasted.subscribe({
-        next: (value: number) => observer2Results.push(value),
-        complete: () => {
-          observer2Completed = true;
-          checkComplete();
-        },
-      });
-    });
-
-    return promise;
+    expect(results.observer1.results).toHaveLength(0);
+    expect(results.observer2.results).toHaveLength(0);
+    expect(results.observer1.completed).toBe(true);
+    expect(results.observer2.completed).toBe(true);
   });
 
   test('should handle source that errors immediately', async () => {
-    const source = new Observable<number>((observer) => {
-      setTimeout(() => observer.error(new Error('Immediate error')), 10);
-    });
+    const multicasted = multicast(createImmediateErrorObservable(new Error('Immediate error')));
+    const results = await subscribeMultipleObservers(multicasted);
 
-    const multicasted = multicast(source);
-
-    const observer1Errors: any[] = [];
-    const observer2Errors: any[] = [];
-
-    const promise = new Promise<void>((resolve) => {
-      let errorCount = 0;
-      const checkError = () => {
-        errorCount++;
-        if (errorCount === 2) {
-          expect(observer1Errors).toHaveLength(1);
-          expect(observer2Errors).toHaveLength(1);
-          expect(observer1Errors[0].message).toBe('Immediate error');
-          expect(observer2Errors[0].message).toBe('Immediate error');
-          resolve();
-        }
-      };
-
-      multicasted.subscribe({
-        next: () => {},
-        error: (error: any) => {
-          observer1Errors.push(error);
-          checkError();
-        },
-      });
-
-      multicasted.subscribe({
-        next: () => {},
-        error: (error: any) => {
-          observer2Errors.push(error);
-          checkError();
-        },
-      });
-    });
-
-    return promise;
+    expect(results.observer1.errors).toHaveLength(1);
+    expect(results.observer2.errors).toHaveLength(1);
+    expect(results.observer1.errors[0].message).toBe('Immediate error');
+    expect(results.observer2.errors[0].message).toBe('Immediate error');
   });
 });
