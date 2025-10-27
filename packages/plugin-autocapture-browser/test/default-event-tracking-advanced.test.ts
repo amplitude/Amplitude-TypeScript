@@ -1,6 +1,6 @@
 import { autocapturePlugin } from '../src/autocapture-plugin';
 
-import { BrowserConfig, EnrichmentPlugin, ILogger, BrowserClient } from '@amplitude/analytics-core';
+import { BrowserConfig, EnrichmentPlugin, ILogger, BrowserClient, IDiagnosticsClient } from '@amplitude/analytics-core';
 import { mockWindowLocationFromURL } from './utils';
 import { VERSION } from '../src/version';
 import { createMockBrowserClient } from './mock-browser-client';
@@ -55,6 +55,29 @@ describe('autoTrackingPlugin', () => {
   describe('version', () => {
     test('should return the plugin version', () => {
       expect(VERSION != null).toBe(true);
+    });
+  });
+
+  describe('diagnostics', () => {
+    test('should set plugin version tag when diagnostics client is provided', () => {
+      const mockDiagnosticsClient = {
+        setTag: jest.fn(),
+        increment: jest.fn(),
+        recordEvent: jest.fn(),
+        recordHistogram: jest.fn(),
+        _flush: jest.fn(),
+        _setSampleRate: jest.fn(),
+      };
+
+      autocapturePlugin({}, { diagnosticsClient: mockDiagnosticsClient as IDiagnosticsClient });
+
+      expect(mockDiagnosticsClient.setTag).toHaveBeenCalledWith('plugin.autocapture.version', VERSION);
+    });
+
+    test('should not throw error when diagnostics client is not provided', () => {
+      expect(() => {
+        autocapturePlugin({});
+      }).not.toThrow();
     });
   });
 
