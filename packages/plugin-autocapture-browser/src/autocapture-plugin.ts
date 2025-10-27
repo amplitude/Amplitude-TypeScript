@@ -30,6 +30,7 @@ import {
   groupLabeledEventIdsByEventType,
 } from './pageActions/triggers';
 import { DataExtractor } from './data-extractor';
+import { VERSION } from './version';
 
 declare global {
   interface Window {
@@ -64,6 +65,9 @@ export const autocapturePlugin = (
   options: ElementInteractionsOptions = {},
   context?: { diagnosticsClient: IDiagnosticsClient },
 ): BrowserEnrichmentPlugin => {
+  // Set the plugin version tag
+  context?.diagnosticsClient.setTag('plugin.autocapture.version', VERSION);
+
   const {
     dataAttributePrefix = DEFAULT_DATA_ATTRIBUTE_PREFIX,
     visualTaggingOptions = {
