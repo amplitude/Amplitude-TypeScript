@@ -10,15 +10,8 @@ import {
   ILogger,
 } from '@amplitude/analytics-core';
 import * as constants from './constants';
-import { Observable, Subscription } from 'rxjs';
-import { HasEventTargetAddRemove } from 'rxjs/internal/observable/fromEvent';
+import { Observable, Subscription } from '@amplitude/analytics-core';
 import { trackNetworkEvents } from './track-network-event';
-
-declare global {
-  interface Window {
-    navigation: HasEventTargetAddRemove<Event>;
-  }
-}
 
 export type BrowserEnrichmentPlugin = EnrichmentPlugin<BrowserClient, BrowserConfig>;
 
@@ -49,12 +42,12 @@ export interface AllWindowObservables {
   [ObservablesEnum.NetworkObservable]: Observable<TimestampedEvent<NetworkRequestEvent>>;
 }
 
+let subscription: Subscription;
+
 export const networkCapturePlugin = (options: NetworkTrackingOptions = {}): BrowserEnrichmentPlugin => {
   const name = constants.PLUGIN_NAME;
   const type = 'enrichment';
   let logger: ILogger;
-
-  const subscriptions: Subscription[] = [];
 
   const addAdditionalEventProperties = <T>(
     event: T,
@@ -99,13 +92,12 @@ export const networkCapturePlugin = (options: NetworkTrackingOptions = {}): Brow
     /* istanbul ignore next */
     logger = config?.loggerProvider;
 
-    const networkRequestSubscription = trackNetworkEvents({
+    subscription = trackNetworkEvents({
       allObservables,
       networkTrackingOptions: options,
       amplitude,
       loggerProvider: logger,
     });
-    subscriptions.push(networkRequestSubscription);
 
     /* istanbul ignore next */
     logger?.log(`${name} has been successfully added.`);
@@ -117,9 +109,7 @@ export const networkCapturePlugin = (options: NetworkTrackingOptions = {}): Brow
   };
 
   const teardown = async () => {
-    for (const subscription of subscriptions) {
-      subscription.unsubscribe();
-    }
+    subscription.unsubscribe();
   };
 
   return {

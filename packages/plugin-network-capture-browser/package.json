@@ -41,7 +41,6 @@
   },
   "dependencies": {
     "@amplitude/analytics-core": "^2.28.0",
-    "rxjs": "^7.8.1",
     "tslib": "^2.4.1"
   },
   "devDependencies": {

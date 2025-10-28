@@ -7,11 +7,11 @@ import {
   isUrlMatchAllowlist,
   SAFE_HEADERS,
   ILogger,
+  Subscription,
+  IRequestWrapper,
 } from '@amplitude/analytics-core';
-import { filter } from 'rxjs';
 import { AllWindowObservables, TimestampedEvent } from './network-capture-plugin';
 import { AMPLITUDE_NETWORK_REQUEST_EVENT, IS_HEADER_CAPTURE_EXPERIMENTAL } from './constants';
-import { IRequestWrapper } from '@amplitude/analytics-core';
 import { BodyCaptureRule } from '@amplitude/analytics-core/lib/esm/types/network-tracking';
 
 const DEFAULT_STATUS_CODE_RANGE = '500-599';
@@ -303,15 +303,13 @@ export function trackNetworkEvents({
   networkTrackingOptions: NetworkTrackingOptions;
   amplitude: BrowserClient;
   loggerProvider?: ILogger;
-}) {
+}): Subscription {
   const { networkObservable } = allObservables;
 
-  const filteredNetworkObservable = networkObservable.pipe(
-    filter((event: TimestampedEvent<NetworkRequestEvent>) => {
-      // Only track network events that should be tracked,
-      return shouldTrackNetworkEvent(event.event as NetworkRequestEvent, networkTrackingOptions);
-    }),
-  );
+  const filteredNetworkObservable = networkObservable.filter((event: TimestampedEvent<NetworkRequestEvent>) => {
+    // Only track network events that should be tracked
+    return shouldTrackNetworkEvent(event.event as NetworkRequestEvent, networkTrackingOptions);
+  });
 
   return filteredNetworkObservable.subscribe((networkEvent) => {
     const request = networkEvent.event;
