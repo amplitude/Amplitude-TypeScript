@@ -104,7 +104,7 @@ function multicast<T>(source: ZenObservable<T>): ZenObservable<T> {
       subscription = source.subscribe({
         next(value) {
           for (const obs of observers) {
-            /* istanbul ignore next*/
+            /* istanbul ignore next */
             obs.next?.(value);
           }
         },

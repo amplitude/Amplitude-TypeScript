@@ -118,7 +118,7 @@ export function trackRageClicks({
   // Keep track of the region box for all clicks, to determine when a rage click is out of bounds
   let clickBoundingBox: ClickRegionBoundingBox = {};
 
-  let triggerRageClick: {
+  let pendingRageClick: {
     resolve: (rageClickEvent: RageClickEvent | null) => void;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     timerId: any;
@@ -155,7 +155,7 @@ export function trackRageClicks({
         clickBoundingBox.isOutOfBounds
       ) {
         // if there was a previous Rage Click Event on deck, then send it
-        if (triggerRageClick) {
+        if (pendingRageClick) {
           resolutionValue = getRageClickAnalyticsEvent(clickWindow);
         }
 
@@ -166,11 +166,11 @@ export function trackRageClicks({
       }
 
       // if there was a previous Rage Click Event on deck, then resolve it
-      if (triggerRageClick) {
+      if (pendingRageClick) {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-        clearTimeout(triggerRageClick.timerId);
-        triggerRageClick.resolve(resolutionValue);
-        triggerRageClick = null;
+        clearTimeout(pendingRageClick.timerId);
+        pendingRageClick.resolve(resolutionValue);
+        pendingRageClick = null;
       }
 
       // if we have enough clicks to be a rage click, set a timout to trigger the rage
@@ -178,7 +178,7 @@ export function trackRageClicks({
       // This will be cancelled if a new click is tracked within the time threshold.
       if (clickWindow.length >= RAGE_CLICK_THRESHOLD) {
         return new Promise((resolve) => {
-          triggerRageClick = {
+          pendingRageClick = {
             resolve,
             timerId: setTimeout(() => {
               resolve(getRageClickAnalyticsEvent(clickWindow));
