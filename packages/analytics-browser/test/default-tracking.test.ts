@@ -378,6 +378,42 @@ describe('getPageViewTrackingConfig', () => {
     expect(config.trackHistoryChanges).toBe('all');
     expect(config.eventType).toBe('Page View');
   });
+
+  test('should return autocapture.pageViews config', () => {
+    const config = getPageViewTrackingConfig({
+      autocapture: {
+        pageViews: {
+          trackOn: 'attribution',
+          trackHistoryChanges: 'all',
+          eventType: 'Page View',
+        },
+      },
+    });
+
+    expect(config.trackOn).toBe('attribution');
+    expect(config.trackHistoryChanges).toBe('all');
+    expect(config.eventType).toBe('Page View');
+  });
+
+  test('should prioritize autocapture over defaultTracking', () => {
+    const config = getPageViewTrackingConfig({
+      autocapture: {
+        pageViews: {
+          trackOn: 'attribution',
+          eventType: 'Autocapture Page View',
+        },
+      },
+      defaultTracking: {
+        pageViews: {
+          trackOn: () => false,
+          eventType: 'DefaultTracking Page View',
+        },
+      },
+    });
+
+    expect(config.trackOn).toBe('attribution');
+    expect(config.eventType).toBe('Autocapture Page View');
+  });
 });
 
 describe('getAttributionTrackingConfig', () => {
@@ -422,6 +458,42 @@ describe('getAttributionTrackingConfig', () => {
       initialEmptyValue: 'EMPTY',
       resetSessionOnNewCampaign: true,
     });
+  });
+
+  test('should return autocapture.attribution config', () => {
+    const config = getAttributionTrackingConfig({
+      autocapture: {
+        attribution: {
+          excludeReferrers: ['google.com'],
+          initialEmptyValue: 'EMPTY',
+          resetSessionOnNewCampaign: true,
+        },
+      },
+    });
+    expect(config).toEqual({
+      excludeReferrers: ['google.com'],
+      initialEmptyValue: 'EMPTY',
+      resetSessionOnNewCampaign: true,
+    });
+  });
+
+  test('should prioritize autocapture.attribution over defaultTracking.attribution', () => {
+    const config = getAttributionTrackingConfig({
+      autocapture: {
+        attribution: {
+          resetSessionOnNewCampaign: true,
+          excludeReferrers: ['autocapture.com'],
+        },
+      },
+      defaultTracking: {
+        attribution: {
+          resetSessionOnNewCampaign: false,
+          excludeReferrers: ['defaultTracking.com'],
+        },
+      },
+    });
+    expect(config.resetSessionOnNewCampaign).toBe(true);
+    expect(config.excludeReferrers).toEqual(['autocapture.com']);
   });
 });
 

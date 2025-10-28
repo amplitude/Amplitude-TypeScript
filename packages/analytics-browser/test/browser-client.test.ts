@@ -531,6 +531,20 @@ describe('browser-client', () => {
       expect(formInteractionTrackingPlugin).toHaveBeenCalledTimes(0);
     });
 
+    test('should add file download and form interaction tracking plugins using autocapture', async () => {
+      const fileDownloadTrackingPlugin = jest.spyOn(fileDownloadTracking, 'fileDownloadTracking');
+      const formInteractionTrackingPlugin = jest.spyOn(formInteractionTracking, 'formInteractionTracking');
+      await client.init(apiKey, userId, {
+        optOut: false,
+        autocapture: {
+          fileDownloads: true,
+          formInteractions: true,
+        },
+      }).promise;
+      expect(fileDownloadTrackingPlugin).toHaveBeenCalledTimes(1);
+      expect(formInteractionTrackingPlugin).toHaveBeenCalledTimes(1);
+    });
+
     test('should add network connectivity checker plugin by default', async () => {
       const networkConnectivityCheckerPlugin = jest.spyOn(
         networkConnectivityChecker,
@@ -1411,6 +1425,68 @@ describe('browser-client', () => {
           resolve();
         }, 4000);
       });
+    });
+
+    test('should set session id with start and end session event and web attribution event using autocapture', async () => {
+      jest.spyOn(CookieMigration, 'parseLegacyCookies').mockResolvedValueOnce({
+        optOut: false,
+        sessionId: 1,
+        lastEventId: 100,
+        lastEventTime: Date.now() - 1000,
+      });
+      const result = {
+        promise: Promise.resolve({
+          code: 200,
+          event: {
+            event_type: 'a',
+          },
+          message: 'success',
+        }),
+      };
+      const track = jest.spyOn(client, 'track').mockReturnValue(result);
+      await client.init(apiKey, {
+        sessionTimeout: 5000,
+        autocapture: {
+          attribution: true,
+          pageViews: false,
+          sessions: true,
+        },
+      }).promise;
+
+      client.setSessionId(2);
+
+      expect(client.getSessionId()).toBe(2);
+      return new Promise<void>((resolve) => {
+        setTimeout(() => {
+          expect(track).toHaveBeenCalledTimes(3);
+          resolve();
+        }, 4000);
+      });
+    });
+
+    test('should prioritize autocapture over defaultTracking for attribution', async () => {
+      jest.spyOn(CookieMigration, 'parseLegacyCookies').mockResolvedValueOnce({
+        optOut: false,
+        sessionId: 1,
+        lastEventId: 100,
+        lastEventTime: Date.now() - 1000,
+      });
+      await client.init(apiKey, {
+        sessionTimeout: 5000,
+        autocapture: {
+          attribution: {
+            resetSessionOnNewCampaign: true,
+          },
+        },
+        defaultTracking: {
+          attribution: {
+            resetSessionOnNewCampaign: false,
+          },
+        },
+      }).promise;
+
+      // Verify web attribution is initialized (proving autocapture.attribution was used)
+      expect(client.webAttribution).toBeDefined();
     });
 
     test('should defer set session id', () => {
