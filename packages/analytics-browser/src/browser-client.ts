@@ -168,8 +168,14 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
     this.config.diagnosticsClient = diagnosticsClient;
     this.config.remoteConfigClient = remoteConfigClient;
 
+    // Determine tracking configuration - prioritize autocapture, fall back to defaultTracking for backwards compatibility
+    // Note: Some legacy features (attribution, pageViews, sessions, fileDownloads, formInteractions) support
+    // both autocapture and defaultTracking. Newer features only support autocapture.
+    const trackingConfig =
+      this.config.autocapture !== undefined ? this.config.autocapture : this.config.defaultTracking;
+
     // Add web attribution plugin
-    if (isAttributionTrackingEnabled(this.config.defaultTracking)) {
+    if (isAttributionTrackingEnabled(trackingConfig)) {
       const attributionTrackingOptions = getAttributionTrackingConfig(this.config);
       this.webAttribution = new WebAttribution(attributionTrackingOptions, this.config);
       // Fetch the current campaign, check if need to track web attribution later
@@ -221,22 +227,23 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
     // Notify if DET is enabled
     detNotify(this.config);
 
-    if (isFileDownloadTrackingEnabled(this.config.defaultTracking)) {
+    if (isFileDownloadTrackingEnabled(trackingConfig)) {
       this.config.loggerProvider.debug('Adding file download tracking plugin');
       await this.add(fileDownloadTracking()).promise;
     }
 
-    if (isFormInteractionTrackingEnabled(this.config.defaultTracking)) {
+    if (isFormInteractionTrackingEnabled(trackingConfig)) {
       this.config.loggerProvider.debug('Adding form interaction plugin');
       await this.add(formInteractionTracking()).promise;
     }
 
     // Add page view plugin
-    if (isPageViewTrackingEnabled(this.config.defaultTracking)) {
+    if (isPageViewTrackingEnabled(trackingConfig)) {
       this.config.loggerProvider.debug('Adding page view tracking plugin');
       await this.add(pageViewTrackingPlugin(getPageViewTrackingConfig(this.config))).promise;
     }
 
+    // Newer autocapture-only features (no defaultTracking support)
     if (isElementInteractionsEnabled(this.config.autocapture)) {
       this.config.loggerProvider.debug('Adding user interactions plugin (autocapture plugin)');
       await this.add(autocapturePlugin(getElementInteractionsConfig(this.config), { diagnosticsClient })).promise;
@@ -358,7 +365,9 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
     this.config.lastEventTime = undefined;
     this.config.pageCounter = 0;
 
-    if (isSessionTrackingEnabled(this.config.defaultTracking)) {
+    const trackingConfig =
+      this.config.autocapture !== undefined ? this.config.autocapture : this.config.defaultTracking;
+    if (isSessionTrackingEnabled(trackingConfig)) {
       if (previousSessionId && lastEventTime) {
         promises.push(
           this.track(DEFAULT_SESSION_END_EVENT, undefined, {
@@ -378,7 +387,7 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
     // 2. or shouldTrackNewCampaign (call setSessionId from async process(event) when there has new campaign and resetSessionOnNewCampaign = true )
     const isCampaignEventTracked = this.trackCampaignEventIfNeeded(++lastEventId, promises);
 
-    if (isSessionTrackingEnabled(this.config.defaultTracking)) {
+    if (isSessionTrackingEnabled(trackingConfig)) {
       promises.push(
         this.track(DEFAULT_SESSION_START_EVENT, undefined, {
           event_id: isCampaignEventTracked ? ++lastEventId : lastEventId,

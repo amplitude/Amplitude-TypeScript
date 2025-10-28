@@ -11,8 +11,12 @@ import {
 } from '@amplitude/analytics-core';
 
 /**
- * A subset of AutocaptureOptions that includes the autocapture features that
- * are made available to users by default (even if "config.autocapture === undefined")
+ * Legacy autocapture features that support both autocapture and defaultTracking properties.
+ * These features are enabled by default (even if "config.autocapture === undefined") for
+ * backwards compatibility with the deprecated defaultTracking property.
+ *
+ * Note: Newer features (networkTracking, elementInteractions, frustrationInteractions, webVitals)
+ * only support autocapture and are disabled by default.
  */
 type AutocaptureOptionsDefaultAvailable = Pick<
   AutocaptureOptions,
@@ -20,8 +24,9 @@ type AutocaptureOptionsDefaultAvailable = Pick<
 >;
 
 /**
- * Returns false if autocapture === false or if autocapture[event],
- * otherwise returns true (even if "config.autocapture === undefined")
+ * Helper for legacy features that support both autocapture and defaultTracking.
+ * Returns false if autocapture === false or if autocapture[event] === false,
+ * otherwise returns true (even if "config.autocapture === undefined") for backwards compatibility.
  */
 const isTrackingEnabled = (
   autocapture: AutocaptureOptionsDefaultAvailable | boolean | undefined,
@@ -38,6 +43,7 @@ const isTrackingEnabled = (
   return true;
 };
 
+// Legacy features - enabled by default, support both autocapture and defaultTracking
 export const isAttributionTrackingEnabled = (autocapture: AutocaptureOptions | boolean | undefined) =>
   isTrackingEnabled(autocapture, 'attribution');
 
@@ -55,6 +61,8 @@ export const isSessionTrackingEnabled = (autocapture: AutocaptureOptions | boole
 
 export const isPageUrlEnrichmentEnabled = (autocapture: AutocaptureOptions | boolean | undefined) =>
   isTrackingEnabled(autocapture, 'pageUrlEnrichment');
+
+// Newer features - disabled by default, autocapture-only (no defaultTracking support)
 
 /**
  * Returns true if
@@ -132,6 +140,8 @@ export const isFrustrationInteractionsEnabled = (autocapture: AutocaptureOptions
   return false;
 };
 
+// Config getters for newer autocapture-only features
+
 export const getElementInteractionsConfig = (config: BrowserOptions): ElementInteractionsOptions | undefined => {
   if (
     isElementInteractionsEnabled(config.autocapture) &&
@@ -185,33 +195,37 @@ export const getNetworkTrackingConfig = (config: BrowserOptions): NetworkTrackin
   return;
 };
 
+// Config getters for legacy features (support both autocapture and defaultTracking)
+
 export const getPageViewTrackingConfig = (config: BrowserOptions): PageTrackingOptions => {
   let trackOn: PageTrackingTrackOn | undefined = () => false;
   let trackHistoryChanges: PageTrackingHistoryChanges | undefined = undefined;
   let eventType: string | undefined;
   const pageCounter = config.pageCounter;
 
-  const isDefaultPageViewTrackingEnabled = isPageViewTrackingEnabled(config.defaultTracking);
+  // Prioritize config.autocapture, but fall back to config.defaultTracking for backwards compatibility
+  const trackingConfig = config.autocapture !== undefined ? config.autocapture : config.defaultTracking;
+  const isDefaultPageViewTrackingEnabled = isPageViewTrackingEnabled(trackingConfig);
   if (isDefaultPageViewTrackingEnabled) {
     trackOn = undefined;
     eventType = undefined;
 
     if (
-      config.defaultTracking &&
-      typeof config.defaultTracking === 'object' &&
-      config.defaultTracking.pageViews &&
-      typeof config.defaultTracking.pageViews === 'object'
+      trackingConfig &&
+      typeof trackingConfig === 'object' &&
+      trackingConfig.pageViews &&
+      typeof trackingConfig.pageViews === 'object'
     ) {
-      if ('trackOn' in config.defaultTracking.pageViews) {
-        trackOn = config.defaultTracking.pageViews.trackOn;
+      if ('trackOn' in trackingConfig.pageViews) {
+        trackOn = trackingConfig.pageViews.trackOn;
       }
 
-      if ('trackHistoryChanges' in config.defaultTracking.pageViews) {
-        trackHistoryChanges = config.defaultTracking.pageViews.trackHistoryChanges;
+      if ('trackHistoryChanges' in trackingConfig.pageViews) {
+        trackHistoryChanges = trackingConfig.pageViews.trackHistoryChanges;
       }
 
-      if ('eventType' in config.defaultTracking.pageViews && config.defaultTracking.pageViews.eventType) {
-        eventType = config.defaultTracking.pageViews.eventType;
+      if ('eventType' in trackingConfig.pageViews && trackingConfig.pageViews.eventType) {
+        eventType = trackingConfig.pageViews.eventType;
       }
     }
   }
@@ -225,15 +239,18 @@ export const getPageViewTrackingConfig = (config: BrowserOptions): PageTrackingO
 };
 
 export const getAttributionTrackingConfig = (config: BrowserOptions): AttributionOptions => {
+  // Prioritize config.autocapture, but fall back to config.defaultTracking for backwards compatibility
+  const trackingConfig = config.autocapture !== undefined ? config.autocapture : config.defaultTracking;
+
   if (
-    isAttributionTrackingEnabled(config.defaultTracking) &&
-    config.defaultTracking &&
-    typeof config.defaultTracking === 'object' &&
-    config.defaultTracking.attribution &&
-    typeof config.defaultTracking.attribution === 'object'
+    isAttributionTrackingEnabled(trackingConfig) &&
+    trackingConfig &&
+    typeof trackingConfig === 'object' &&
+    trackingConfig.attribution &&
+    typeof trackingConfig.attribution === 'object'
   ) {
     return {
-      ...config.defaultTracking.attribution,
+      ...trackingConfig.attribution,
     };
   }
 
