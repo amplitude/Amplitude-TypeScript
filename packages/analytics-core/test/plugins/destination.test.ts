@@ -759,11 +759,11 @@ describe('destination', () => {
       destination.fulfillRequest(contexts, 400, 'Bad Request');
 
       // Verify diagnostics increment was called with the correct count
-      expect(incrementSpy).toHaveBeenCalledWith('analytics.droppedEvents', 2);
+      expect(incrementSpy).toHaveBeenCalledWith('analytics.dropped.events', 2);
 
       // Verify diagnostics recordEvent was called with the correct data
-      expect(recordEventSpy).toHaveBeenCalledWith('analytics.droppedEvents', {
-        events: [event1, event2],
+      expect(recordEventSpy).toHaveBeenCalledWith('analytics.dropped.events', {
+        events: ['event1', 'event2'],
         code: 400,
         message: 'Bad Request',
         stack_trace: expect.any(Array),
@@ -804,8 +804,8 @@ describe('destination', () => {
         destination.fulfillRequest([context], 500, 'Internal Server Error');
 
         // Verify stack_trace defaults to empty array when stack is undefined
-        expect(recordEventSpy).toHaveBeenCalledWith('analytics.droppedEvents', {
-          events: [event],
+        expect(recordEventSpy).toHaveBeenCalledWith('analytics.dropped.events', {
+          events: ['event1'],
           code: 500,
           message: 'Internal Server Error',
           stack_trace: [],

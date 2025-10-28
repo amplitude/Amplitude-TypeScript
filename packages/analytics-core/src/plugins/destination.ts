@@ -360,9 +360,9 @@ export class Destination implements DestinationPlugin {
   fulfillRequest(list: Context[], code: number, message: string) {
     // Record diagnostics for dropped events (non-success status codes)
     if (code !== 200) {
-      this.diagnosticsClient?.increment('analytics.droppedEvents', list.length);
-      this.diagnosticsClient?.recordEvent('analytics.droppedEvents', {
-        events: list.map((context) => context.event),
+      this.diagnosticsClient?.increment('analytics.dropped.events', list.length);
+      this.diagnosticsClient?.recordEvent('analytics.dropped.events', {
+        events: list.map((context) => context.event.event_type),
         code: code,
         message: message,
         stack_trace: new Error().stack?.split('\n').filter((line) => line.trim()) || [], // convert to array of strings
