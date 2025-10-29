@@ -644,6 +644,29 @@ describe('browser-client', () => {
       expect(webVitalsPlugin).toHaveBeenCalledTimes(1);
     });
 
+    test.each([
+      true,
+      {
+        resetSessionOnNewCampaign: true,
+      },
+    ])('should add web attribution plugin when autocapture.attribution is configured', async (attributionOption) => {
+      await client.init(apiKey, userId, {
+        autocapture: {
+          attribution: attributionOption,
+        },
+      }).promise;
+      expect(client.webAttribution).toBeDefined();
+    });
+
+    test('should NOT add web attribution plugin when autocapture.attribution is false', async () => {
+      await client.init(apiKey, userId, {
+        autocapture: {
+          attribution: false,
+        },
+      }).promise;
+      expect(client.webAttribution).toBeUndefined();
+    });
+
     test('should listen for network change to online', async () => {
       jest.useFakeTimers();
       const addEventListenerMock = jest.spyOn(window, 'addEventListener');
