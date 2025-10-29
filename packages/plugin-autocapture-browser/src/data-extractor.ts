@@ -23,6 +23,7 @@ import type { BaseTimestampedEvent, ElementBasedTimestampedEvent, TimestampedEve
 import { getAncestors, getElementProperties } from './hierarchy';
 import { getDataSource } from './pageActions/actions';
 import { Hierarchy } from './typings/autocapture';
+import { cssPath } from './libs/element-path';
 
 export class DataExtractor {
   private readonly additionalMaskTextPatterns: RegExp[];
@@ -126,6 +127,17 @@ export class DataExtractor {
     return this.getNearestLabel(parent);
   };
 
+  getElementPath = (element: Element): string => {
+    const startTime = performance.now();
+
+    const elementPath = cssPath(element);
+
+    const endTime = performance.now();
+    this.diagnosticsClient?.recordHistogram('autocapturePlugin.getElementPath', endTime - startTime);
+
+    return elementPath;
+  };
+
   // Returns the Amplitude event properties for the given element.
   getEventProperties = (actionType: ActionType, element: Element, dataAttributePrefix: string) => {
     /* istanbul ignore next */
@@ -147,6 +159,7 @@ export class DataExtractor {
       [constants.AMPLITUDE_EVENT_PROP_ELEMENT_POSITION_LEFT]: rect.left == null ? null : Math.round(rect.left),
       [constants.AMPLITUDE_EVENT_PROP_ELEMENT_POSITION_TOP]: rect.top == null ? null : Math.round(rect.top),
       [constants.AMPLITUDE_EVENT_PROP_ELEMENT_ATTRIBUTES]: attributes,
+      [constants.AMPLITUDE_EVENT_PROP_ELEMENT_PATH]: this.getElementPath(element),
       [constants.AMPLITUDE_EVENT_PROP_ELEMENT_PARENT_LABEL]: nearestLabel,
       [constants.AMPLITUDE_EVENT_PROP_PAGE_URL]: getDecodeURI(window.location.href.split('?')[0]),
       [constants.AMPLITUDE_EVENT_PROP_PAGE_TITLE]: (
