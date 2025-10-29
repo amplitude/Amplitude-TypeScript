@@ -244,18 +244,23 @@ describe('merge', () => {
   test('should error if one of the observables errors', async () => {
     const source1 = new Observable<number>((observer) => {
       observer.next(1);
-      observer.complete();
     });
     const source2 = new Observable<number>((observer) => {
-      observer.error(new Error('Error'));
+      setTimeout(() => {
+        observer.error(new Error('Error'));
+      }, 10);
     });
     const mergedObservable = merge(source1, source2);
     const results: number[] = [];
-    mergedObservable.subscribe((value) => {
-      results.push(value);
+    const errors: Error[] = [];
+    mergedObservable.subscribe({
+      next: (value) => results.push(value),
+      error: (error) => errors.push(error),
+      complete: () => {},
     });
     await jest.runAllTimersAsync();
     expect(results).toEqual([1]);
+    expect(errors).toEqual([new Error('Error')]);
   });
 });
 

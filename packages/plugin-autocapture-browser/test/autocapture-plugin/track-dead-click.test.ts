@@ -3,7 +3,7 @@
 
 import { Subject } from 'rxjs';
 import { BrowserClient, Observable } from '@amplitude/analytics-core';
-import { _overrideDeadClickConfig, trackDeadClick } from '../../src/autocapture/track-dead-click';
+import { trackDeadClick } from '../../src/autocapture/track-dead-click';
 import { AMPLITUDE_ELEMENT_DEAD_CLICKED_EVENT } from '../../src/constants';
 import { AllWindowObservables, ObservablesEnum } from '../../src/autocapture-plugin';
 
@@ -21,11 +21,6 @@ describe('trackDeadClick', () => {
   let clickObserver: any;
   let mutationObserver: any;
   let navigateObserver: any;
-
-  beforeAll(() => {
-    // reduce the dead click timeout to 5ms to speed up the test
-    _overrideDeadClickConfig(5);
-  });
 
   beforeEach(() => {
     mockAmplitude = {

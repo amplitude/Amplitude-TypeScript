@@ -4,11 +4,6 @@ import { ElementBasedTimestampedEvent, filterOutNonTrackableEvents, shouldTrackE
 import { AMPLITUDE_ELEMENT_DEAD_CLICKED_EVENT } from '../constants';
 let DEAD_CLICK_TIMEOUT = 3000; // 3 seconds to wait for an activity to happen
 
-// allow override of dead click config for testing only
-export function _overrideDeadClickConfig(deadClickTimeout: number) {
-  DEAD_CLICK_TIMEOUT = deadClickTimeout;
-}
-
 type EventDeadClick = {
   '[Amplitude] X': number;
   '[Amplitude] Y': number;
@@ -51,7 +46,7 @@ export function trackDeadClick({
   const deadClickObservable = asyncMap(
     clicksAndMutationsObservable,
     (event): Promise<ElementBasedTimestampedEvent<MouseEvent> | null> => {
-      if (deadClickTimer && (event.type === 'mutation' || event.type === 'navigate')) {
+      if (deadClickTimer && (['mutation', 'navigate'].includes(event.type))) {
         clearTimeout(deadClickTimer);
         deadClickTimer = null;
         return Promise.resolve(null);

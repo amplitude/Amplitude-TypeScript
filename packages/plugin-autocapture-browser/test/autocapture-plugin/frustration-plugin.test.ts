@@ -13,12 +13,10 @@ import { trackRageClicks } from '../../src/autocapture/track-rage-click';
 // Mock the tracking functions
 jest.mock('../../src/autocapture/track-dead-click', () => ({
   trackDeadClick: jest.fn(),
-  _overrideDeadClickConfig: jest.fn(),
 }));
 
 jest.mock('../../src/autocapture/track-rage-click', () => ({
   trackRageClicks: jest.fn(),
-  _overrideRageClickConfig: jest.fn(),
 }));
 
 describe('frustrationPlugin', () => {
