@@ -24,6 +24,8 @@ import { UUID } from '../utils/uuid';
 import { IConfig } from '../types/config/core-config';
 import { EventCallback } from '../types/event-callback';
 import { IDiagnosticsClient } from '../diagnostics/diagnostics-client';
+import { isSuccessStatusCode } from '../utils/status-code';
+import { getStacktrace } from '../utils/debug';
 
 export interface Context {
   event: Event;
@@ -359,14 +361,16 @@ export class Destination implements DestinationPlugin {
 
   fulfillRequest(list: Context[], code: number, message: string) {
     // Record diagnostics for dropped events (non-success status codes)
-    if (code !== 200) {
+    if (!isSuccessStatusCode(code)) {
       this.diagnosticsClient?.increment('analytics.dropped.events', list.length);
       this.diagnosticsClient?.recordEvent('analytics.dropped.events', {
         events: list.map((context) => context.event.event_type),
         code: code,
         message: message,
-        stack_trace: new Error().stack?.split('\n').filter((line) => line.trim()) || [], // convert to array of strings
+        stack_trace: getStacktrace(),
       });
+    } else {
+      this.diagnosticsClient?.increment('analytics.sent.events', list.length);
     }
     this.removeEvents(list);
     list.forEach((context) => context.callback(buildResult(context.event, code, message)));

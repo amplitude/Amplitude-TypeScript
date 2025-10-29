@@ -815,6 +815,34 @@ describe('destination', () => {
         global.Error = originalError;
       }
     });
+
+    test('should record diagnostics when events are successfully sent (200 status code)', () => {
+      const diagnosticsClient = new DiagnosticsClient(API_KEY, getMockLogger());
+      const incrementSpy = jest.spyOn(diagnosticsClient, 'increment');
+
+      const destination = new Destination({ diagnosticsClient });
+      destination.config = useDefaultConfig();
+
+      const callback1 = jest.fn();
+      const callback2 = jest.fn();
+      const event1 = { event_type: 'event1', user_id: 'user1' };
+      const event2 = { event_type: 'event2', user_id: 'user2' };
+
+      const contexts: Context[] = [
+        { event: event1, attempts: 1, callback: callback1, timeout: 0 },
+        { event: event2, attempts: 1, callback: callback2, timeout: 0 },
+      ];
+
+      // Call fulfillRequest with a 200 status code (success)
+      destination.fulfillRequest(contexts, 200, 'OK');
+
+      // Verify diagnostics increment was called with the correct count for sent events
+      expect(incrementSpy).toHaveBeenCalledWith('analytics.sent.events', 2);
+
+      // Verify callbacks were called
+      expect(callback1).toHaveBeenCalledTimes(1);
+      expect(callback2).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe('updateEventStorage', () => {

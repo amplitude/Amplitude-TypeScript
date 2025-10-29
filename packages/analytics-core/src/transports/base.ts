@@ -5,6 +5,7 @@ import { Transport } from '../types/transport';
 import { Status } from '../types/status';
 import { Payload } from '../types/payload';
 import { Response } from '../types/response';
+import { isSuccessStatusCode } from '../utils/status-code';
 
 export class BaseTransport implements Transport {
   send(_serverUrl: string, _payload: Payload): Promise<Response | null> {
@@ -81,7 +82,7 @@ export class BaseTransport implements Transport {
   }
 
   buildStatus(code: number): Status {
-    if (code >= 200 && code < 300) {
+    if (isSuccessStatusCode(code)) {
       return Status.Success;
     }
 
