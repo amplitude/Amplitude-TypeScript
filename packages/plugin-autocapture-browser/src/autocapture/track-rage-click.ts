@@ -1,9 +1,9 @@
 import { AllWindowObservables } from 'src/autocapture-plugin';
 import { filter, map } from 'rxjs';
-import { BrowserClient } from '@amplitude/analytics-core';
 import { filterOutNonTrackableEvents, shouldTrackEvent } from '../helpers';
 import { AMPLITUDE_ELEMENT_RAGE_CLICKED_EVENT } from '../constants';
 import {
+  BrowserClient,
   DEFAULT_RAGE_CLICK_THRESHOLD,
   DEFAULT_RAGE_CLICK_WINDOW_MS,
   DEFAULT_RAGE_CLICK_OUT_OF_BOUNDS_THRESHOLD,

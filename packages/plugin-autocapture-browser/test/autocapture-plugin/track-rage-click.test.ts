@@ -2,11 +2,10 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 
 import { Subject } from 'rxjs';
-import { BrowserClient } from '@amplitude/analytics-core';
 import { trackRageClicks } from '../../src/autocapture/track-rage-click';
 import { AMPLITUDE_ELEMENT_RAGE_CLICKED_EVENT } from '../../src/constants';
 import { AllWindowObservables, ObservablesEnum } from '../../src/autocapture-plugin';
-import { DEFAULT_RAGE_CLICK_THRESHOLD, DEFAULT_RAGE_CLICK_WINDOW_MS } from '@amplitude/analytics-core';
+import { BrowserClient, DEFAULT_RAGE_CLICK_THRESHOLD, DEFAULT_RAGE_CLICK_WINDOW_MS } from '@amplitude/analytics-core';
 
 describe('trackRageClicks', () => {
   let mockAmplitude: jest.Mocked<BrowserClient>;

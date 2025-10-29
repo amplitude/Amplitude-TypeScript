@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/amplitude.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SDK Diagnostics Test</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        padding: 20px;
+      }
+      .container {
+        max-width: 600px;
+      }
+      button {
+        padding: 10px 20px;
+        margin: 10px 5px 10px 0;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>SDK Diagnostics Test</h1>
+      <button id="initButton">Initialize SDK</button>
+      <button id="addPluginButton">Add Plugin (Remove User/Device ID)</button>
+      <button id="testButton">Test Button</button>
+    </div>
+    <script type="module">
+      import * as amplitude from '@amplitude/analytics-browser';
+      
+      window.amplitude = amplitude;
+      
+      const initButton = document.getElementById('initButton');
+      const addPluginButton = document.getElementById('addPluginButton');
+      const testButton = document.getElementById('testButton');
+      
+      // Create plugin that removes user_id and device_id from events
+      const removeIdsPlugin = () => {
+        return {
+          name: 'remove-ids-plugin',
+          type: 'before',
+          execute: async (event) => {
+            delete event.user_id;
+            delete event.device_id;
+            console.log('Plugin: Removed user_id and device_id from event', event);
+            return event;
+          }
+        };
+      };
+      
+      initButton.addEventListener('click', () => {
+        const apiKey = import.meta.env.VITE_AMPLITUDE_API_KEY;
+        
+        if (!apiKey) {
+          alert('Please set VITE_AMPLITUDE_API_KEY in .env');
+          return;
+        }
+        
+        amplitude._setDiagnosticsSampleRate(1);
+        amplitude.init(apiKey, undefined, {
+            logLevel: 'debug',
+            autocapture: true,
+        });
+        console.log('SDK initialized with API key:', apiKey);
+      });
+      
+      addPluginButton.addEventListener('click', () => {
+        amplitude.add(removeIdsPlugin());
+        console.log('Plugin added to amplitude');
+      });
+      
+      testButton.addEventListener('click', () => {
+        console.log('Test button clicked');
+      });
+    </script>
+  </body>
+</html>
+
