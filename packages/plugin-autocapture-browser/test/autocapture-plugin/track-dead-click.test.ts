@@ -93,6 +93,7 @@ describe('trackDeadClick', () => {
 
     subscription?.unsubscribe();
     mutationObserver.complete();
+    navigateObserver.complete();
   });
 
   it('should not track when mutation occurs after click', async () => {
