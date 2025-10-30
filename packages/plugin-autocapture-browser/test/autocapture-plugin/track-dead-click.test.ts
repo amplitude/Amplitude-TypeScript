@@ -14,7 +14,6 @@ describe('trackDeadClick', () => {
   //let mutationObservable: Subject<any>;
   let mutationObservableZen: any;
   let navigateObservableZen: any;
-  // let navigateObservable: Subject<any>;
   let allObservables: AllWindowObservables;
   let shouldTrackDeadClick: jest.Mock;
   let getEventProperties: jest.Mock;
