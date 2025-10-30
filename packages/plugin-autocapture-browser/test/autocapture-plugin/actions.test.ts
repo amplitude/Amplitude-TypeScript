@@ -2,14 +2,15 @@ import { autocapturePlugin } from '../../src/autocapture-plugin';
 import { type ElementBasedTimestampedEvent } from '../../src/helpers';
 
 import {
-  BrowserConfig,
-  EnrichmentPlugin,
-  ILogger,
   ElementInteractionsOptions,
   LabeledEvent,
   Trigger,
   DataSource,
-} from '@amplitude/analytics-core/lib/esm/types/element-interactions';
+  BrowserConfig,
+  EnrichmentPlugin,
+  ILogger,
+} from '@amplitude/analytics-core';
+import { createInstance } from '@amplitude/analytics-browser';
 import { getDataSource, executeActions } from '../../src/pageActions/actions';
 import { DataExtractor } from '../../src/data-extractor';
 
