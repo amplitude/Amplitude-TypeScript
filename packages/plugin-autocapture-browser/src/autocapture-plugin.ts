@@ -9,6 +9,7 @@ import {
   DEFAULT_DATA_ATTRIBUTE_PREFIX,
   IDiagnosticsClient,
 } from '@amplitude/analytics-core';
+import { VERSION } from './version';
 import * as constants from './constants';
 import { fromEvent, map, type Observable, type Subscription, share } from 'rxjs';
 import {
@@ -52,6 +53,8 @@ export enum ObservablesEnum {
   // ErrorObservable = 'errorObservable',
   NavigateObservable = 'navigateObservable',
   MutationObservable = 'mutationObservable',
+  MutationObservableZen = 'mutationObservableZen',
+  NavigateObservableZen = 'navigateObservableZen',
 }
 
 export interface AllWindowObservables {
@@ -61,12 +64,18 @@ export interface AllWindowObservables {
   [ObservablesEnum.NavigateObservable]: Observable<TimestampedEvent<NavigateEvent>> | undefined;
   [ObservablesEnum.MutationObservable]: Observable<TimestampedEvent<MutationRecord[]>>;
   [ObservablesEnum.ClickObservableZen]?: ZenObservable<ElementBasedTimestampedEvent<MouseEvent>>;
+  [ObservablesEnum.MutationObservableZen]?: ZenObservable<TimestampedEvent<MutationRecord[]>>;
+  [ObservablesEnum.NavigateObservableZen]?: ZenObservable<TimestampedEvent<NavigateEvent>>;
 }
 
 export const autocapturePlugin = (
   options: ElementInteractionsOptions = {},
   context?: { diagnosticsClient: IDiagnosticsClient },
 ): BrowserEnrichmentPlugin => {
+  // Set the plugin version tag
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+  context?.diagnosticsClient.setTag('plugin.autocapture.version', VERSION);
+
   const {
     dataAttributePrefix = DEFAULT_DATA_ATTRIBUTE_PREFIX,
     visualTaggingOptions = {

@@ -72,6 +72,9 @@ export {
   DEFAULT_CSS_SELECTOR_ALLOWLIST,
   DEFAULT_DATA_ATTRIBUTE_PREFIX,
   DEFAULT_ACTION_CLICK_ALLOWLIST,
+  LabeledEvent,
+  Trigger,
+  DataSource,
 } from './types/element-interactions';
 
 export {
@@ -116,6 +119,7 @@ export {
   AutocaptureOptions,
   CookieOptions,
   AttributionOptions,
+  RemoteConfigOptions,
 } from './types/config/browser-config';
 export { BrowserClient } from './types/client/browser-client';
 
@@ -132,4 +136,4 @@ export {
 } from './types/config/react-native-config';
 export { ReactNativeClient } from './types/client/react-native-client';
 
-export { Observable, asyncMap, multicast, Subscription } from './utils/observable';
+export { Observable, asyncMap, merge, multicast } from './utils/observable';

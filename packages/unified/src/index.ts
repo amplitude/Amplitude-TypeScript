@@ -26,4 +26,4 @@ export const {
   setUserId,
   track,
 } = client;
-export { Types } from '@amplitude/analytics-browser';
+export { Types, Revenue, Identify } from '@amplitude/analytics-browser';

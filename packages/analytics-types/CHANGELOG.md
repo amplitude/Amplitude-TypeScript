@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.11.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-types@2.10.0...@amplitude/analytics-types@2.11.0) (2025-10-23)
+
+
+### Features
+
+* **analytics-browser:** add remote config server url to proxy remote config requests ([#1348](https://github.com/amplitude/Amplitude-TypeScript/issues/1348)) ([461b598](https://github.com/amplitude/Amplitude-TypeScript/commit/461b59876a75af0d97fd639c35ce08f6b0f4c24b))
+
+
+
+
+
 # [2.10.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-types@2.9.2...@amplitude/analytics-types@2.10.0) (2025-08-22)
 
 

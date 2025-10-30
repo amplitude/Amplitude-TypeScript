@@ -14,7 +14,6 @@ import {
 
 export const CURRENT_PAGE_STORAGE_KEY = 'AMP_CURRENT_PAGE';
 export const PREVIOUS_PAGE_STORAGE_KEY = 'AMP_PREVIOUS_PAGE';
-
 export const URL_INFO_STORAGE_KEY = 'AMP_URL_INFO';
 
 export type URLInfo = {
@@ -84,8 +83,17 @@ export const pageUrlEnrichmentPlugin = (): EnrichmentPlugin => {
   const saveURLInfo = async () => {
     if (sessionStorage && isStorageEnabled) {
       const URLInfo = await sessionStorage.get(URL_INFO_STORAGE_KEY);
-      const previousURL = URLInfo?.[CURRENT_PAGE_STORAGE_KEY] || '';
       const currentURL = getDecodeURI((typeof location !== 'undefined' && location.href) || '');
+      const storedCurrentURL = URLInfo?.[CURRENT_PAGE_STORAGE_KEY] || '';
+
+      let previousURL;
+      if (currentURL === storedCurrentURL) {
+        previousURL = URLInfo?.[PREVIOUS_PAGE_STORAGE_KEY] || '';
+      } else if (storedCurrentURL) {
+        previousURL = storedCurrentURL;
+      } else {
+        previousURL = document.referrer || '';
+      }
 
       await sessionStorage.set(URL_INFO_STORAGE_KEY, {
         [CURRENT_PAGE_STORAGE_KEY]: currentURL,
@@ -146,17 +154,19 @@ export const pageUrlEnrichmentPlugin = (): EnrichmentPlugin => {
     execute: async (event: Event) => {
       const locationHREF = getDecodeURI((typeof location !== 'undefined' && location.href) || '');
 
-      let previousPage = '';
       if (sessionStorage && isStorageEnabled) {
         const URLInfo = await sessionStorage.get(URL_INFO_STORAGE_KEY);
-        previousPage = URLInfo?.[PREVIOUS_PAGE_STORAGE_KEY] || document.referrer || '';
-
         if (!URLInfo?.[CURRENT_PAGE_STORAGE_KEY]) {
           await sessionStorage.set(URL_INFO_STORAGE_KEY, {
-            ...(URLInfo || {}),
             [CURRENT_PAGE_STORAGE_KEY]: locationHREF,
-            [PREVIOUS_PAGE_STORAGE_KEY]: previousPage,
+            [PREVIOUS_PAGE_STORAGE_KEY]: document.referrer || '',
           });
+        }
+
+        const updatedURLInfo = await sessionStorage.get(URL_INFO_STORAGE_KEY);
+        let previousPage = '';
+        if (updatedURLInfo) {
+          previousPage = updatedURLInfo[PREVIOUS_PAGE_STORAGE_KEY] || '';
         }
 
         // no need to proceed to add additional properties if the event is one of the default event types to be excluded
@@ -195,10 +205,10 @@ export const pageUrlEnrichmentPlugin = (): EnrichmentPlugin => {
         globalScope.removeEventListener('popstate', saveUrlInfoWrapper);
 
         isTracking = false;
+      }
 
-        if (sessionStorage && isStorageEnabled) {
-          await sessionStorage.set(URL_INFO_STORAGE_KEY, {});
-        }
+      if (sessionStorage && isStorageEnabled) {
+        await sessionStorage.set(URL_INFO_STORAGE_KEY, {});
       }
     },
   };

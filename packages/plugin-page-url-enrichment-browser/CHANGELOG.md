@@ -3,6 +3,38 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.5.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-page-url-enrichment-browser@0.5.0...@amplitude/plugin-page-url-enrichment-browser@0.5.1) (2025-10-29)
+
+**Note:** Version bump only for package @amplitude/plugin-page-url-enrichment-browser
+
+
+
+
+
+# [0.5.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-page-url-enrichment-browser@0.4.4...@amplitude/plugin-page-url-enrichment-browser@0.5.0) (2025-10-23)
+
+
+### Bug Fixes
+
+* previous page location set to current page on first load in SPAs ([#1366](https://github.com/amplitude/Amplitude-TypeScript/issues/1366)) ([880e59b](https://github.com/amplitude/Amplitude-TypeScript/commit/880e59bd109d1225475403f4faec4cd5da45bf79))
+
+
+### Features
+
+* **autocapture:** set page url enrichment plugin to default on and add/fix tests ([#1287](https://github.com/amplitude/Amplitude-TypeScript/issues/1287)) ([d96d7dd](https://github.com/amplitude/Amplitude-TypeScript/commit/d96d7dd7db156eae51a342b4956db2530ca64d29))
+
+
+
+
+
+## [0.4.4](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-page-url-enrichment-browser@0.4.3...@amplitude/plugin-page-url-enrichment-browser@0.4.4) (2025-10-23)
+
+**Note:** Version bump only for package @amplitude/plugin-page-url-enrichment-browser
+
+
+
+
+
 ## [0.4.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-page-url-enrichment-browser@0.4.2...@amplitude/plugin-page-url-enrichment-browser@0.4.3) (2025-10-17)
 
 **Note:** Version bump only for package @amplitude/plugin-page-url-enrichment-browser

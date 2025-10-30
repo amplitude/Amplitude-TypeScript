@@ -7,7 +7,6 @@ import {
   isUrlMatchAllowlist,
   SAFE_HEADERS,
   ILogger,
-  Subscription,
   IRequestWrapper,
 } from '@amplitude/analytics-core';
 import { AllWindowObservables, TimestampedEvent } from './network-capture-plugin';

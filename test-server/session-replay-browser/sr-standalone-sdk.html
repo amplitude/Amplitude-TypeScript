@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/amplitude.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Session Replay Test</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        max-width: 600px;
+        margin: 50px auto;
+        padding: 20px;
+      }
+      h1 {
+        color: #333;
+      }
+      button {
+        background: #0066cc;
+        color: white;
+        border: none;
+        padding: 12px 24px;
+        margin: 10px 5px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 16px;
+      }
+      button:hover {
+        background: #0052a3;
+      }
+      .status {
+        padding: 10px;
+        margin: 10px 0;
+        border-radius: 4px;
+        background: #f0f0f0;
+        font-family: monospace;
+      }
+      input {
+        padding: 8px;
+        margin: 5px;
+        font-size: 14px;
+        width: 300px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Session Replay Test</h1>
+    
+    <div class="status" id="status">Status: Not initialized</div>
+    
+    <input type="text" id="apiKey" placeholder="API Key (optional)" />
+    <br />
+    <button id="initBtn">Initialize Session Replay (Debug Mode)</button>
+
+    <script type="module">
+      import * as sessionReplay from '@amplitude/session-replay-browser';
+      
+      window.sessionReplay = sessionReplay;
+      
+      const statusEl = document.getElementById('status');
+      const apiKeyEl = document.getElementById('apiKey');
+      const initBtn = document.getElementById('initBtn');
+
+      function updateStatus(message) {
+        statusEl.textContent = `Status: ${message}`;
+        console.log('[Status]', message);
+      }
+
+      // Auto-fill API key from environment
+      if (import.meta.env.VITE_AMPLITUDE_API_KEY) {
+        apiKeyEl.value = import.meta.env.VITE_AMPLITUDE_API_KEY;
+      }
+
+      initBtn.addEventListener('click', async () => {
+        const apiKey = apiKeyEl.value || import.meta.env.VITE_AMPLITUDE_API_KEY || 'test-api-key';
+        
+        try {
+          updateStatus('Initializing...');
+          
+          console.log('[Init] Starting with config:', {
+            apiKey,
+            deviceId: 'test-device',
+            sampleRate: 1.0,
+            logLevel: 'debug',
+          });
+          
+          await sessionReplay.init(apiKey, {
+            deviceId: 'test-device',
+            sampleRate: 1.0,
+            logLevel: 'debug',
+          }).promise;
+          
+          const sessionId = sessionReplay.getSessionId();
+          const properties = sessionReplay.getSessionReplayProperties();
+          
+          updateStatus(`✓ Initialized! Session ID: ${sessionId}`);
+          
+          console.log('[Success] Session Replay initialized');
+          console.log('[Session ID]', sessionId);
+          console.log('[Properties]', properties);
+        } catch (error) {
+          updateStatus(`✗ Error: ${error.message}`);
+          console.error('[Error]', error);
+        }
+      });
+
+      updateStatus('Ready to initialize. Check browser console for debug logs.');
+      console.log('[Ready] Session Replay SDK loaded. Click "Initialize" to start.');
+    </script>
+  </body>
+</html>
+

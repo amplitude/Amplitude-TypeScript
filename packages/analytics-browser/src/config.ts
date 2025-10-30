@@ -24,6 +24,7 @@ import {
   TrackingOptions,
   AutocaptureOptions,
   CookieOptions,
+  RemoteConfigOptions,
   NetworkTrackingOptions,
   IIdentify,
   IDiagnosticsClient,
@@ -100,6 +101,7 @@ export class BrowserConfig extends Config implements IBrowserConfig {
     public enableDiagnostics: boolean = true,
     public diagnosticsSampleRate: number = 0,
     public diagnosticsClient?: IDiagnosticsClient,
+    public remoteConfig?: RemoteConfigOptions,
   ) {
     super({ apiKey, storageProvider, transportProvider: createTransport(transport) });
     this._cookieStorage = cookieStorage;
@@ -117,6 +119,18 @@ export class BrowserConfig extends Config implements IBrowserConfig {
     this.enableDiagnostics = enableDiagnostics;
     this.diagnosticsSampleRate = diagnosticsSampleRate;
     this.diagnosticsClient = diagnosticsClient;
+
+    // Backward compatibility for fetchRemoteConfig
+    if (fetchRemoteConfig) {
+      if (!this.remoteConfig) {
+        this.remoteConfig = {
+          fetchRemoteConfig: fetchRemoteConfig,
+        };
+      }
+      if (!this.remoteConfig.fetchRemoteConfig) {
+        this.remoteConfig.fetchRemoteConfig = fetchRemoteConfig;
+      }
+    }
   }
 
   get cookieStorage() {
@@ -322,6 +336,9 @@ export const useBrowserConfig = async (
     options.networkTrackingOptions,
     options.identify,
     options.enableDiagnostics,
+    undefined, // diagnosticsSampleRate - set in _setDiagnosticsSampleRate or defaults to 0
+    undefined, // diagnosticsClient - set after config creation
+    options.remoteConfig,
   );
 
   if (!(await browserConfig.storageProvider.isEnabled())) {

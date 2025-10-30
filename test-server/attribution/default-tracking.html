@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/amplitude.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, user-scalable=no" />
+    <title>Attribution Test</title>
+    <style>
+      /* Layout */
+      .container {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+
+      /* Common styles */
+      .border {
+        border: 1px solid #ccc;
+        border-radius: 4px;
+      }
+
+      .padding {
+        padding: 8px;
+      }
+
+      .padding-lg {
+        padding: 20px;
+      }
+
+      .margin {
+        margin: 5px;
+      }
+
+      .margin-lg {
+        margin: 20px 0;
+      }
+
+      /* Interactive elements */
+      .interactive-section {
+        composes: border padding-lg margin-lg;
+      }
+
+      .btn {
+        composes: border padding margin;
+        cursor: pointer;
+      }
+
+      .input {
+        composes: border padding margin;
+      }
+
+      .clickable-div {
+        composes: border padding margin;
+        background-color: #f0f0f0;
+        cursor: pointer;
+      }
+
+      /* Table styles */
+      .table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 20px;
+      }
+
+      .table th,
+      .table td {
+        composes: border padding;
+      }
+
+      .table th {
+        text-align: left;
+      }
+
+      .table td.center {
+        text-align: center;
+      }
+
+      /* Role-based elements */
+      .role-element {
+        display: inline-block;
+        background: #eee;
+        padding: 4px 10px;
+        border-radius: 4px;
+      }
+
+      .role-link {
+        display: inline-block;
+        color: #1976d2;
+        text-decoration: underline;
+      }
+
+      /* Media elements */
+      .media-controls {
+        width: 60px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Attribution bug test</h1>
+    </div>
+
+    <script type="module">
+      import * as amplitude from '@amplitude/analytics-browser';
+    
+      amplitude.init(import.meta.env.VITE_AMPLITUDE_API_KEY, undefined, {
+        fetchRemoteConfig: false,
+        autocapture: {
+          resetSessionOnNewCampaign: true
+        },
+      });
+    </script>
+    <span>In incognito open</span>
+    <span>http://localhost:5173/attribution/default-tracking.html?utm_campaign=helloworld224</span>
+  </body>
+</html>

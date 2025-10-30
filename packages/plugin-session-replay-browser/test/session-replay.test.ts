@@ -291,6 +291,49 @@ describe('SessionReplayPlugin', () => {
         }),
       );
     });
+
+    test('should use remote config serverUrl from browser config', async () => {
+      const remoteConfigServerUrl = 'http://remote-config-server.com';
+
+      const sessionReplay = new SessionReplayPlugin({
+        sampleRate: 0.4,
+        privacyConfig: {
+          blockSelector: ['#id'],
+        },
+      });
+      await sessionReplay.setup?.(
+        {
+          ...mockConfig,
+          remoteConfig: {
+            serverUrl: remoteConfigServerUrl,
+          },
+        },
+        mockAmplitude,
+      );
+
+      expect(init).toHaveBeenCalledTimes(1);
+      expect(init.mock.calls[0][0]).toEqual(mockConfig.apiKey);
+      expect(init.mock.calls[0][1]).toEqual(
+        expect.objectContaining({
+          deviceId: mockConfig.deviceId,
+          flushMaxRetries: mockConfig.flushMaxRetries,
+          logLevel: mockConfig.logLevel,
+          loggerProvider: mockConfig.loggerProvider,
+          optOut: mockConfig.optOut,
+          sampleRate: 0.4,
+          serverZone: mockConfig.serverZone,
+          configServerUrl: remoteConfigServerUrl,
+          sessionId: mockConfig.sessionId,
+          privacyConfig: expect.objectContaining({
+            blockSelector: ['#id'],
+          }) as object,
+          version: {
+            type: 'plugin',
+            version: VERSION,
+          },
+        }),
+      );
+    });
   });
 
   describe('onSessionIdChanged', () => {

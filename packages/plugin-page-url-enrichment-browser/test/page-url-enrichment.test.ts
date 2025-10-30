@@ -120,6 +120,7 @@ describe('pageUrlEnrichmentPlugin', () => {
 
   afterEach(async () => {
     await plugin.teardown?.();
+    window.sessionStorage.setItem('AMP_URL_INFO', '{}');
     jest.restoreAllMocks();
   });
 
@@ -488,6 +489,114 @@ describe('pageUrlEnrichmentPlugin', () => {
 
       await plugin.teardown?.();
       expect(sessionStorage?.getItem(URL_INFO_STORAGE_KEY)).toStrictEqual(JSON.stringify({}));
+    });
+  });
+
+  describe('first page load with document.referrer', () => {
+    test('should set Previous Page Type to "direct" when no referrer exists', async () => {
+      sessionStorage.clear();
+
+      Object.defineProperty(document, 'referrer', {
+        value: '',
+        configurable: true,
+      });
+
+      const newPlugin = pageUrlEnrichmentPlugin();
+      await newPlugin.setup?.(mockConfig, mockAmplitude);
+
+      const firstUrl = new URL('https://www.example.com/');
+      mockWindowLocationFromURL(firstUrl);
+      mockDocumentTitle('Home - Example');
+
+      window.history.replaceState(undefined, '');
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      const event = await newPlugin.execute?.({
+        event_type: 'Page View',
+      });
+
+      expect(event?.event_properties).toMatchObject({
+        '[Amplitude] Page Domain': 'www.example.com',
+        '[Amplitude] Page Location': 'https://www.example.com/',
+        '[Amplitude] Previous Page Location': '',
+        '[Amplitude] Previous Page Type': 'direct',
+      });
+
+      const urlInfoStr = sessionStorage?.getItem(URL_INFO_STORAGE_KEY) || '';
+      const urlInfo = JSON.parse(urlInfoStr);
+      expect(urlInfo[CURRENT_PAGE_STORAGE_KEY]).toBe('https://www.example.com/');
+      expect(urlInfo[PREVIOUS_PAGE_STORAGE_KEY]).toBe('');
+
+      await newPlugin.teardown?.();
+    });
+
+    test('should preserve external referrer on first page load', async () => {
+      sessionStorage.clear();
+
+      Object.defineProperty(document, 'referrer', {
+        value: 'https://google.com/search',
+        configurable: true,
+      });
+
+      const newPlugin = pageUrlEnrichmentPlugin();
+      await newPlugin.setup?.(mockConfig, mockAmplitude);
+
+      const firstUrl = new URL('https://www.example.com/');
+      mockWindowLocationFromURL(firstUrl);
+      mockDocumentTitle('Home - Example');
+
+      window.history.replaceState(undefined, '');
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      const event = await newPlugin.execute?.({
+        event_type: 'Page View',
+      });
+
+      expect(event?.event_properties).toMatchObject({
+        '[Amplitude] Page Domain': 'www.example.com',
+        '[Amplitude] Page Location': 'https://www.example.com/',
+        '[Amplitude] Previous Page Location': 'https://google.com/search',
+        '[Amplitude] Previous Page Type': 'external',
+      });
+
+      const urlInfoStr = sessionStorage?.getItem(URL_INFO_STORAGE_KEY) || '';
+      const urlInfo = JSON.parse(urlInfoStr);
+      expect(urlInfo[CURRENT_PAGE_STORAGE_KEY]).toBe('https://www.example.com/');
+      expect(urlInfo[PREVIOUS_PAGE_STORAGE_KEY]).toBe('https://google.com/search');
+
+      await newPlugin.teardown?.();
+    });
+
+    test('should handle history events before first event is tracked', async () => {
+      sessionStorage.clear();
+
+      Object.defineProperty(document, 'referrer', {
+        value: '',
+        configurable: true,
+      });
+
+      const newPlugin = pageUrlEnrichmentPlugin();
+      await newPlugin.setup?.(mockConfig, mockAmplitude);
+
+      const firstUrl = new URL('https://www.example.com/home');
+      mockWindowLocationFromURL(firstUrl);
+
+      window.history.pushState(undefined, '');
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      window.history.replaceState(undefined, '');
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      const event = await newPlugin.execute?.({
+        event_type: 'Page View',
+      });
+
+      expect(event?.event_properties).toMatchObject({
+        '[Amplitude] Previous Page Location': '',
+        '[Amplitude] Previous Page Type': 'direct',
+      });
+
+      await newPlugin.teardown?.();
     });
   });
 

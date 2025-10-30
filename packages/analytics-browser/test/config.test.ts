@@ -2,7 +2,14 @@ import * as Config from '../src/config';
 import * as LocalStorageModule from '../src/storage/local-storage';
 import * as SessionStorageModule from '../src/storage/session-storage';
 import * as core from '@amplitude/analytics-core';
-import { LogLevel, Storage, UserSession } from '@amplitude/analytics-core';
+import {
+  LogLevel,
+  Storage,
+  UserSession,
+  MemoryStorage,
+  getCookieName,
+  FetchTransport,
+} from '@amplitude/analytics-core';
 import * as BrowserUtils from '@amplitude/analytics-core';
 import { XHRTransport } from '../src/transports/xhr';
 import { createTransport } from '../src/config';
@@ -10,7 +17,6 @@ import { SendBeaconTransport } from '../src/transports/send-beacon';
 import { uuidPattern } from './helpers/constants';
 import { DEFAULT_IDENTITY_STORAGE, DEFAULT_SERVER_ZONE } from '../src/constants';
 import { AmplitudeBrowser } from '../src/browser-client';
-import { MemoryStorage, getCookieName, FetchTransport } from '@amplitude/analytics-core';
 import { VERSION } from '../src/version';
 
 describe('config', () => {
@@ -80,6 +86,9 @@ describe('config', () => {
         enableDiagnostics: true,
         diagnosticsSampleRate: 0,
         diagnosticsClient: undefined,
+        remoteConfig: {
+          fetchRemoteConfig: true,
+        },
       });
     });
 
@@ -141,6 +150,9 @@ describe('config', () => {
         enableDiagnostics: true,
         diagnosticsSampleRate: 0,
         diagnosticsClient: undefined,
+        remoteConfig: {
+          fetchRemoteConfig: true,
+        },
       });
       expect(getTopLevelDomain).toHaveBeenCalledTimes(1);
     });
@@ -246,6 +258,9 @@ describe('config', () => {
         enableDiagnostics: true,
         diagnosticsSampleRate: 0,
         diagnosticsClient: undefined,
+        remoteConfig: {
+          fetchRemoteConfig: true,
+        },
       });
     });
 

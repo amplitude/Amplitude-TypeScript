@@ -44,6 +44,7 @@ import {
   isWebVitalsEnabled,
   isFrustrationInteractionsEnabled,
   getFrustrationInteractionsConfig,
+  isPageUrlEnrichmentEnabled,
 } from './default-tracking';
 import { convertProxyObjectToRealObject, isInstanceProxy } from './utils/snippet-helper';
 import { Context } from './plugins/context';
@@ -61,6 +62,7 @@ import { webVitalsPlugin } from '@amplitude/plugin-web-vitals-browser';
 import { WebAttribution } from './attribution/web-attribution';
 import { LIBPREFIX } from './lib-prefix';
 import { VERSION } from './version';
+import { pageUrlEnrichmentPlugin } from '@amplitude/plugin-page-url-enrichment-browser';
 
 /**
  * Exported for `@amplitude/unified` or integration with blade plugins.
@@ -109,11 +111,12 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
 
     let remoteConfigClient: IRemoteConfigClient | undefined;
     // Create remote config client and subscribe to analytics configs
-    if (browserOptions.fetchRemoteConfig) {
+    if (browserOptions.remoteConfig?.fetchRemoteConfig) {
       remoteConfigClient = new RemoteConfigClient(
         browserOptions.apiKey,
         browserOptions.loggerProvider,
         browserOptions.serverZone,
+        /* istanbul ignore next */ browserOptions.remoteConfig?.serverUrl, // Disable coverage for this line as remoteConfig will always be set by BrowserConfig constructor
       );
 
       // Wait for initial remote config before proceeding.
@@ -211,7 +214,7 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
     if (this.config.offline !== OfflineDisabled) {
       await this.add(networkConnectivityCheckerPlugin()).promise;
     }
-    await this.add(new Destination()).promise;
+    await this.add(new Destination({ diagnosticsClient })).promise;
     await this.add(new Context()).promise;
     await this.add(new IdentityEventSender()).promise;
 
@@ -252,6 +255,11 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
     if (isWebVitalsEnabled(this.config.autocapture)) {
       this.config.loggerProvider.debug('Adding web vitals plugin');
       await this.add(webVitalsPlugin()).promise;
+    }
+
+    if (isPageUrlEnrichmentEnabled(this.config.autocapture)) {
+      this.config.loggerProvider.debug('Adding referrer page url plugin');
+      await this.add(pageUrlEnrichmentPlugin()).promise;
     }
 
     this.initializing = false;

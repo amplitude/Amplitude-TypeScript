@@ -160,7 +160,6 @@ export function trackRageClicks({
         }
 
         resetClickWindow(click);
-        return null;
       } else {
         clickWindow.push(click);
       }
