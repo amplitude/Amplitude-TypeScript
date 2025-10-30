@@ -65,7 +65,7 @@ export interface AllWindowObservables {
   [ObservablesEnum.MutationObservable]: Observable<TimestampedEvent<MutationRecord[]>>;
   [ObservablesEnum.ClickObservableZen]?: ZenObservable<ElementBasedTimestampedEvent<MouseEvent>>;
   [ObservablesEnum.MutationObservableZen]?: ZenObservable<TimestampedEvent<MutationRecord[]>>;
-  [ObservablesEnum.NavigateObservableZen]?: ZenObservable<Event>;
+  [ObservablesEnum.NavigateObservableZen]?: ZenObservable<TimestampedEvent<NavigateEvent>>;
 }
 
 export const autocapturePlugin = (
