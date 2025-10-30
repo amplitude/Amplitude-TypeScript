@@ -1,7 +1,21 @@
-import { Logger, UUID } from '@amplitude/analytics-core';
+import { Logger, UUID, getGlobalScope } from '@amplitude/analytics-core';
 import { BrowserClient, BrowserConfig, LogLevel } from '@amplitude/analytics-types';
-import { defaultPageViewEvent, pageViewTrackingPlugin, shouldTrackHistoryPageView } from '../src/page-view-tracking';
+import {
+  defaultPageViewEvent,
+  pageViewTrackingPlugin,
+  shouldTrackHistoryPageView,
+  PAGE_VIEW_SESSION_STORAGE_KEY,
+} from '../src/page-view-tracking';
 import { CookieStorage, FetchTransport } from '@amplitude/analytics-client-common';
+
+jest.mock('@amplitude/analytics-core', () => {
+  const actual = jest.requireActual<typeof import('@amplitude/analytics-core')>('@amplitude/analytics-core');
+  return {
+    ...actual,
+    UUID: jest.fn(() => '11111111-1111-1111-1111-111111111111'),
+    getGlobalScope: jest.fn(() => (typeof window !== 'undefined' ? window : undefined)),
+  };
+});
 
 // Mock BrowserClient implementation
 const createMockBrowserClient = (): jest.Mocked<BrowserClient> => {
@@ -132,10 +146,16 @@ describe('pageViewTrackingPlugin', () => {
           '[Amplitude] Page Path': newURL.pathname,
           '[Amplitude] Page Title': '',
           '[Amplitude] Page URL': newURL.toString(),
+          '[Amplitude] Page View ID': '11111111-1111-1111-1111-111111111111',
         },
         event_type: '[Amplitude] Page Viewed',
       });
       expect(track).toHaveBeenCalledTimes(2);
+
+      // Expect session storage to be set with the page view id
+      expect(window.sessionStorage.getItem(PAGE_VIEW_SESSION_STORAGE_KEY)).toBe(
+        JSON.stringify({ pageViewId: '11111111-1111-1111-1111-111111111111' }),
+      );
     });
 
     test.each([
@@ -174,6 +194,7 @@ describe('pageViewTrackingPlugin', () => {
           '[Amplitude] Page Path': pathname,
           '[Amplitude] Page Title': '',
           '[Amplitude] Page URL': `https://${hostname}${pathname}`,
+          '[Amplitude] Page View ID': '11111111-1111-1111-1111-111111111111',
           utm_source: 'google',
           utm_medium: 'cpc',
           utm_campaign: 'brand',
@@ -271,6 +292,7 @@ describe('pageViewTrackingPlugin', () => {
           '[Amplitude] Page Path': oldURL.pathname,
           '[Amplitude] Page Title': '',
           '[Amplitude] Page URL': oldURL.toString(),
+          '[Amplitude] Page View ID': '11111111-1111-1111-1111-111111111111',
         },
         event_type: '[Amplitude] Page Viewed',
       });
@@ -282,6 +304,7 @@ describe('pageViewTrackingPlugin', () => {
           '[Amplitude] Page Path': '/home-шеллы',
           '[Amplitude] Page Title': '',
           '[Amplitude] Page URL': 'https://www.example.com/home-шеллы',
+          '[Amplitude] Page View ID': '11111111-1111-1111-1111-111111111111',
         },
         event_type: '[Amplitude] Page Viewed',
       });
@@ -326,6 +349,7 @@ describe('pageViewTrackingPlugin', () => {
           '[Amplitude] Page Path': oldURL.pathname,
           '[Amplitude] Page Title': '',
           '[Amplitude] Page URL': oldURL.toString(),
+          '[Amplitude] Page View ID': '11111111-1111-1111-1111-111111111111',
         },
         event_type: '[Amplitude] Page Viewed',
       });
@@ -337,6 +361,7 @@ describe('pageViewTrackingPlugin', () => {
           '[Amplitude] Page Path': malformedPath,
           '[Amplitude] Page Title': '',
           '[Amplitude] Page URL': malformedURL,
+          '[Amplitude] Page View ID': '11111111-1111-1111-1111-111111111111',
         },
         event_type: '[Amplitude] Page Viewed',
       });
@@ -379,6 +404,7 @@ describe('pageViewTrackingPlugin', () => {
           '[Amplitude] Page Path': oldURL.pathname,
           '[Amplitude] Page Title': '',
           '[Amplitude] Page URL': oldURL.toString(),
+          '[Amplitude] Page View ID': '11111111-1111-1111-1111-111111111111',
         },
         event_type: '[Amplitude] Page Viewed',
       });
@@ -390,6 +416,7 @@ describe('pageViewTrackingPlugin', () => {
           '[Amplitude] Page Path': newURL.pathname,
           '[Amplitude] Page Title': '',
           '[Amplitude] Page URL': newBaseURL,
+          '[Amplitude] Page View ID': '11111111-1111-1111-1111-111111111111',
         },
         event_type: '[Amplitude] Page Viewed',
       });
@@ -455,6 +482,138 @@ describe('pageViewTrackingPlugin', () => {
         },
       });
       expect(event?.event_type).toBe('[Amplitude] Page Viewed');
+    });
+
+    test('should track attribution page view when session storage is unavailable', async () => {
+      // Mock getGlobalScope to return undefined to simulate no global scope
+      const orig = (getGlobalScope as jest.Mock).getMockImplementation();
+
+      (getGlobalScope as jest.Mock).mockReturnValue(undefined);
+
+      const amplitude = createMockBrowserClient();
+
+      const plugin = pageViewTrackingPlugin({
+        trackOn: 'attribution',
+      });
+
+      await plugin.setup?.(mockConfig, amplitude);
+      const event = await plugin.execute?.({
+        event_type: '$identify',
+        user_properties: {
+          $set: {
+            utm_source: 'amp-test',
+          },
+          $setOnce: {
+            initial_dclid: 'EMPTY',
+            initial_fbclid: 'EMPTY',
+            initial_gbraid: 'EMPTY',
+            initial_gclid: 'EMPTY',
+            initial_ko_click_id: 'EMPTY',
+            initial_li_fat_id: 'EMPTY',
+            initial_msclkid: 'EMPTY',
+            initial_wbraid: 'EMPTY',
+            initial_referrer: 'EMPTY',
+            initial_referring_domain: 'EMPTY',
+            initial_rdt_cid: 'EMPTY',
+            initial_ttclid: 'EMPTY',
+            initial_twclid: 'EMPTY',
+            initial_utm_campaign: 'EMPTY',
+            initial_utm_content: 'EMPTY',
+            initial_utm_id: 'EMPTY',
+            initial_utm_medium: 'EMPTY',
+            initial_utm_source: 'amp-test',
+            initial_utm_term: 'EMPTY',
+          },
+          $unset: {
+            dclid: '-',
+            fbclid: '-',
+            gbraid: '-',
+            gclid: '-',
+            ko_click_id: '-',
+            li_fat_id: '-',
+            msclkid: '-',
+            wbraid: '-',
+            referrer: '-',
+            referring_domain: '-',
+            rdt_cid: '-',
+            ttclid: '-',
+            twclid: '-',
+            utm_campaign: '-',
+            utm_content: '-',
+            utm_id: '-',
+            utm_medium: '-',
+            utm_term: '-',
+          },
+        },
+      });
+
+      expect(event?.event_type).toBe('[Amplitude] Page Viewed');
+      expect(event?.event_properties).not.toHaveProperty('[Amplitude] Page View ID');
+      (getGlobalScope as jest.Mock).mockImplementation(orig);
+    });
+
+    test('should track attribution page view when session storage is empty', async () => {
+      const amplitude = createMockBrowserClient();
+      const plugin = pageViewTrackingPlugin({
+        trackOn: 'attribution',
+      });
+
+      // Clear session storage
+      window.sessionStorage.setItem(PAGE_VIEW_SESSION_STORAGE_KEY, 'undefined');
+
+      await plugin.setup?.(mockConfig, amplitude);
+      const event = await plugin.execute?.({
+        event_type: '$identify',
+        user_properties: {
+          $set: {
+            utm_source: 'amp-test',
+          },
+          $setOnce: {
+            initial_dclid: 'EMPTY',
+            initial_fbclid: 'EMPTY',
+            initial_gbraid: 'EMPTY',
+            initial_gclid: 'EMPTY',
+            initial_ko_click_id: 'EMPTY',
+            initial_li_fat_id: 'EMPTY',
+            initial_msclkid: 'EMPTY',
+            initial_wbraid: 'EMPTY',
+            initial_referrer: 'EMPTY',
+            initial_referring_domain: 'EMPTY',
+            initial_rdt_cid: 'EMPTY',
+            initial_ttclid: 'EMPTY',
+            initial_twclid: 'EMPTY',
+            initial_utm_campaign: 'EMPTY',
+            initial_utm_content: 'EMPTY',
+            initial_utm_id: 'EMPTY',
+            initial_utm_medium: 'EMPTY',
+            initial_utm_source: 'amp-test',
+            initial_utm_term: 'EMPTY',
+          },
+          $unset: {
+            dclid: '-',
+            fbclid: '-',
+            gbraid: '-',
+            gclid: '-',
+            ko_click_id: '-',
+            li_fat_id: '-',
+            msclkid: '-',
+            wbraid: '-',
+            referrer: '-',
+            referring_domain: '-',
+            rdt_cid: '-',
+            ttclid: '-',
+            twclid: '-',
+            utm_campaign: '-',
+            utm_content: '-',
+            utm_id: '-',
+            utm_medium: '-',
+            utm_term: '-',
+          },
+        },
+      });
+
+      expect(event?.event_type).toBe('[Amplitude] Page Viewed');
+      expect(event?.event_properties).not.toHaveProperty('[Amplitude] Page View ID');
     });
 
     test('should return same event if it is not attribution event', async () => {
