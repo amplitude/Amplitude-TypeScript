@@ -2,11 +2,10 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 
 import { Subject } from 'rxjs';
-import { BrowserClient } from '@amplitude/analytics-core';
+import { BrowserClient, DEFAULT_DEAD_CLICK_WINDOW_MS } from '@amplitude/analytics-core';
 import { _overrideDeadClickConfig, trackDeadClick } from '../../src/autocapture/track-dead-click';
 import { AMPLITUDE_ELEMENT_DEAD_CLICKED_EVENT } from '../../src/constants';
 import { AllWindowObservables, ObservablesEnum } from '../../src/autocapture-plugin';
-import { DEFAULT_DEAD_CLICK_WINDOW_MS } from '@amplitude/analytics-core';
 
 describe('trackDeadClick', () => {
   let mockAmplitude: jest.Mocked<BrowserClient>;
