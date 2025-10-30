@@ -104,12 +104,12 @@
     <script type="module">
       import * as amplitude from '@amplitude/analytics-browser';
     
-      await amplitude.init(import.meta.env.VITE_AMPLITUDE_API_KEY, undefined, {
+      amplitude.init(import.meta.env.VITE_AMPLITUDE_API_KEY, undefined, {
         fetchRemoteConfig: false,
         autocapture: {
           resetSessionOnNewCampaign: true
         },
-      }).promise;
+      });
     </script>
     <span>In incognito open</span>
     <span>http://localhost:5173/attribution/default-tracking.html?utm_campaign=helloworld224</span>
