@@ -34,6 +34,26 @@ describe('frustrationPlugin', () => {
   };
 
   beforeEach(() => {
+    // mock window.navigation
+    (window.navigation as any) = {
+      _handlers: [],
+      addEventListener: function (type: string, listener: () => void) {
+        if (type === 'navigate') {
+          this._handlers.push(listener);
+        }
+      },
+      removeEventListener: function (type: string, listener: () => void) {
+        if (type === 'navigate') {
+          this._handlers = this._handlers.filter((l: () => void) => l !== listener);
+        }
+      },
+      dispatchEvent: function (event: Event) {
+        if (event.type === 'navigate') {
+          this._handlers.forEach((handler: () => void) => handler());
+        }
+      },
+    };
+
     instance = createMockBrowserClient();
 
     // mock window.PointerEvent because it's not available in jsdom
@@ -236,7 +256,6 @@ describe('frustrationPlugin', () => {
       expect(observables).toHaveProperty('clickObservable');
       expect(observables).toHaveProperty('mutationObservable');
       expect(observables).toHaveProperty('navigateObservable');
-      expect(observables).toHaveProperty('changeObservable');
 
       // Test click observable
       const clickSpy = jest.fn();
@@ -284,6 +303,31 @@ describe('frustrationPlugin', () => {
       // Cleanup
       mutationSubscription.unsubscribe();
       document.body.removeChild(container);
+    });
+
+    it('should create navigate observable', async () => {
+      plugin = frustrationPlugin({});
+      await plugin?.setup?.(config as BrowserConfig, instance);
+      const rageClickCall = (trackRageClicks as jest.Mock).mock.calls[0][0];
+      const observables = rageClickCall.allObservables;
+
+      expect(observables).toHaveProperty('navigateObservable');
+
+      // Create and trigger a mock navigate event
+      const navigateSpy = jest.fn();
+      const subscription = observables.navigateObservable.subscribe(navigateSpy);
+
+      // Trigger a mock navigate event
+      (window.navigation as any).dispatchEvent(new Event('navigate'));
+
+      // Verify that the navigate event was captured
+      expect(navigateSpy).toHaveBeenCalled();
+
+      // Cleanup
+      subscription.unsubscribe();
+
+      // expect no event listeners left on window.navigation
+      expect((window.navigation as any)._handlers.length).toBe(0);
     });
   });
 });

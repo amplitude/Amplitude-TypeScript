@@ -1,4 +1,4 @@
-import { AllWindowObservables } from 'src/autocapture-plugin';
+import { AllWindowObservables } from 'src/frustration-plugin';
 import {
   BrowserClient,
   asyncMap,
@@ -104,11 +104,11 @@ export function trackRageClicks({
   allObservables: AllWindowObservables;
   shouldTrackRageClick: shouldTrackEvent;
 }) {
-  const { clickObservableZen } = allObservables;
+  const { clickObservable }: AllWindowObservables = allObservables;
 
   // TODO: take this out once it becomes a non-optional parameter
   /* istanbul ignore if */
-  if (!clickObservableZen) {
+  if (!clickObservable) {
     return;
   }
 
@@ -135,7 +135,7 @@ export function trackRageClicks({
   }
 
   const rageClickObservable = asyncMap(
-    clickObservableZen.filter((click) => shouldTrackRageClick('click', click.closestTrackedAncestor)),
+    clickObservable.filter((click) => shouldTrackRageClick('click', click.closestTrackedAncestor)),
     async (click: ClickEvent): Promise<RageClickEvent | null> => {
       // add this click's coordinates to the bounding box
       addCoordinates(clickBoundingBox, click);
