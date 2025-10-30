@@ -136,4 +136,4 @@ export {
 } from './types/config/react-native-config';
 export { ReactNativeClient } from './types/client/react-native-client';
 
-export { Observable, asyncMap, merge, multicast } from './utils/observable';
+export { Observable, asyncMap, merge, multicast, Unsubscribable } from './utils/observable';

@@ -8,10 +8,12 @@ import {
   DEFAULT_ACTION_CLICK_ALLOWLIST,
   DEFAULT_DATA_ATTRIBUTE_PREFIX,
   IDiagnosticsClient,
+  getGlobalScope,
+  multicast,
 } from '@amplitude/analytics-core';
 import { VERSION } from './version';
 import * as constants from './constants';
-import { fromEvent, map, type Observable, type Subscription, share } from 'rxjs';
+import { fromEvent, map, type Observable, share } from 'rxjs';
 import {
   createShouldTrackEvent,
   type ElementBasedTimestampedEvent,
@@ -31,7 +33,7 @@ import {
   groupLabeledEventIdsByEventType,
 } from './pageActions/triggers';
 import { DataExtractor } from './data-extractor';
-import { Observable as ZenObservable } from '@amplitude/analytics-core';
+import { Observable as ZenObservable, Unsubscribable } from '@amplitude/analytics-core';
 
 declare global {
   interface Window {
@@ -59,7 +61,7 @@ export enum ObservablesEnum {
 
 export interface AllWindowObservables {
   [ObservablesEnum.ClickObservable]: Observable<ElementBasedTimestampedEvent<MouseEvent>>;
-  [ObservablesEnum.ChangeObservable]: Observable<ElementBasedTimestampedEvent<Event>>;
+  [ObservablesEnum.ChangeObservable]: ZenObservable<ElementBasedTimestampedEvent<Event>>;
   // [ObservablesEnum.ErrorObservable]: Observable<TimestampedEvent<ErrorEvent>>;
   [ObservablesEnum.NavigateObservable]: Observable<TimestampedEvent<NavigateEvent>> | undefined;
   [ObservablesEnum.MutationObservable]: Observable<TimestampedEvent<MutationRecord[]>>;
@@ -112,7 +114,7 @@ export const autocapturePlugin = (
   const name = constants.PLUGIN_NAME;
   const type = 'enrichment';
 
-  const subscriptions: Subscription[] = [];
+  const subscriptions: Unsubscribable[] = [];
 
   // Create data extractor based on options
   const dataExtractor = new DataExtractor(options, context);
@@ -131,16 +133,23 @@ export const autocapturePlugin = (
       ),
       share(),
     );
-    const changeObservable = fromEvent<Event>(document, 'change', { capture: true }).pipe(
-      map((change) =>
-        dataExtractor.addAdditionalEventProperties(
-          change,
-          'change',
-          (options as AutoCaptureOptionsWithDefaults).cssSelectorAllowlist,
-          dataAttributePrefix,
-        ),
-      ),
-      share(),
+
+    const changeObservable = multicast(
+      new ZenObservable<ElementBasedTimestampedEvent<Event>>((observer) => {
+        const handler = (changeEvent: Event) => {
+          const enrichedChangeEvent = dataExtractor.addAdditionalEventProperties(
+            changeEvent,
+            'change',
+            (options as AutoCaptureOptionsWithDefaults).cssSelectorAllowlist,
+            dataAttributePrefix,
+          ) as ElementBasedTimestampedEvent<Event>;
+          observer.next(enrichedChangeEvent);
+        };
+        /* istanbul ignore next */
+        getGlobalScope()?.document.addEventListener('change', handler, { capture: true });
+        /* istanbul ignore next */
+        return () => getGlobalScope()?.document.removeEventListener('change', handler);
+      }),
     );
 
     // Create Observable from unhandled errors
@@ -180,7 +189,7 @@ export const autocapturePlugin = (
 
     return {
       [ObservablesEnum.ClickObservable]: clickObservable as Observable<ElementBasedTimestampedEvent<MouseEvent>>,
-      [ObservablesEnum.ChangeObservable]: changeObservable as Observable<ElementBasedTimestampedEvent<Event>>,
+      [ObservablesEnum.ChangeObservable]: changeObservable,
       // [ObservablesEnum.ErrorObservable]: errorObservable,
       [ObservablesEnum.NavigateObservable]: navigateObservable,
       [ObservablesEnum.MutationObservable]: mutationObservable,
