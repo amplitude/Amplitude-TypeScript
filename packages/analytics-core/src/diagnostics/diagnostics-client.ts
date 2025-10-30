@@ -211,6 +211,11 @@ export class DiagnosticsClient implements IDiagnosticsClient {
     }
 
     void this.initializeFlushInterval();
+
+    // Track internal diagnostics metrics for sampling
+    if (this.shouldTrack) {
+      this.increment('sdk.diagnostics.sampled.in.and.enabled');
+    }
   }
 
   /**

@@ -1,9 +1,4 @@
-import type { Trigger } from '@amplitude/analytics-core/lib/esm/types/element-interactions';
-// Return which labeled events, if any, the element matches
-import type {
-  ElementInteractionsOptions,
-  LabeledEvent,
-} from '@amplitude/analytics-core/lib/esm/types/element-interactions';
+import type { ElementInteractionsOptions, LabeledEvent, Trigger } from '@amplitude/analytics-core';
 import type { ElementBasedTimestampedEvent, ElementBasedEvent } from 'src/helpers';
 import { matchEventToFilter } from './matchEventToFilter';
 import { executeActions } from './actions';

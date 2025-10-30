@@ -72,6 +72,9 @@ export {
   DEFAULT_CSS_SELECTOR_ALLOWLIST,
   DEFAULT_DATA_ATTRIBUTE_PREFIX,
   DEFAULT_ACTION_CLICK_ALLOWLIST,
+  LabeledEvent,
+  Trigger,
+  DataSource,
 } from './types/element-interactions';
 
 export {

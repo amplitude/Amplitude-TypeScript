@@ -1,9 +1,10 @@
 import { autocapturePlugin } from '../../src/autocapture-plugin';
 import { type ElementBasedTimestampedEvent } from '../../src/helpers';
 
-import { BrowserConfig, EnrichmentPlugin, ILogger } from '@amplitude/analytics-core';
-import { createInstance } from '@amplitude/analytics-browser';
-import type {
+import {
+  BrowserConfig,
+  EnrichmentPlugin,
+  ILogger,
   ElementInteractionsOptions,
   LabeledEvent,
   Trigger,
@@ -189,7 +190,7 @@ describe('page actions', () => {
       };
 
       plugin = autocapturePlugin(autocaptureConfig);
-      await plugin?.setup?.(config as BrowserConfig, instance);
+      await plugin?.setup?.(config, instance);
 
       const button1 = document.querySelector('#product-card-1 .add-to-cart-button');
 
@@ -244,7 +245,7 @@ describe('page actions', () => {
       };
 
       plugin = autocapturePlugin(autocaptureConfig);
-      await plugin?.setup?.(config as BrowserConfig, instance);
+      await plugin?.setup?.(config, instance);
 
       const button3 = document.querySelector('#product-card-3 .add-to-cart-button');
 
@@ -276,7 +277,7 @@ describe('page actions', () => {
       };
 
       plugin = autocapturePlugin(autocaptureConfig);
-      await plugin?.setup?.(config as BrowserConfig, instance);
+      await plugin?.setup?.(config, instance);
 
       const button1 = document.querySelector('#product-card-1 .add-to-cart-button');
 
