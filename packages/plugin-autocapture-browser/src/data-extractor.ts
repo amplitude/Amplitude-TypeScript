@@ -156,6 +156,19 @@ export class DataExtractor {
       [constants.AMPLITUDE_EVENT_PROP_VIEWPORT_WIDTH]: window.innerWidth,
     };
 
+    // Attach the current [Amplitude] Page View ID if present in sessionStorage
+    try {
+      const raw = window?.sessionStorage?.getItem('AMP_PAGE_VIEW');
+      if (raw) {
+        const parsed = JSON.parse(raw) as { pageViewId?: string };
+        if (typeof parsed.pageViewId === 'string') {
+          properties['[Amplitude] Page View ID'] = parsed.pageViewId;
+        }
+      }
+    } catch {
+      // ignore storage/JSON errors
+    }
+
     // id is never masked, so always include it
     properties[constants.AMPLITUDE_EVENT_PROP_ELEMENT_ID] = element.getAttribute('id') || '';
 
