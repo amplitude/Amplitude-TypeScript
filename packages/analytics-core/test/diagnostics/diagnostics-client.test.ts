@@ -69,6 +69,10 @@ describe('DiagnosticsClient', () => {
 
   describe('constructor', () => {
     test('should create DiagnosticsClient with required parameters', () => {
+      const incrementSpy = jest.spyOn(DiagnosticsClient.prototype, 'increment').mockImplementation(() => {
+        // Mock to prevent increment from being called
+      });
+
       const client = new DiagnosticsClient(apiKey, mockLogger);
 
       expect(client.apiKey).toBe(apiKey);
@@ -83,6 +87,9 @@ describe('DiagnosticsClient', () => {
       expect(client.flushTimer).toBeNull();
       expect(client.shouldTrack).toBe(true);
       expect(initializeFlushIntervalSpy).toHaveBeenCalledTimes(1);
+      expect(incrementSpy).toHaveBeenCalledWith('sdk.diagnostics.sampled.in.and.enabled');
+
+      incrementSpy.mockRestore();
     });
 
     test('should create DiagnosticsClient with EU server zone', () => {
@@ -108,6 +115,18 @@ describe('DiagnosticsClient', () => {
     test('should set shouldTrack to false if not enabled', () => {
       const client = new DiagnosticsClient(apiKey, mockLogger, 'US', { enabled: false });
       expect(client.shouldTrack).toBe(false);
+    });
+
+    test.each([
+      { isSampled: true, enabled: true, expectedCount: 1, description: 'when sampled and enabled' },
+      { isSampled: true, enabled: false, expectedCount: undefined, description: 'when sampled but disabled' },
+      { isSampled: false, enabled: true, expectedCount: undefined, description: 'when not sampled' },
+    ])('should track sdk.diagnostics.sampled.in.and.enabled $description', ({ isSampled, enabled, expectedCount }) => {
+      (isTimestampInSampleTemp as jest.Mock).mockReturnValue(isSampled);
+
+      const client = new DiagnosticsClient(apiKey, mockLogger, 'US', { enabled });
+
+      expect(client.inMemoryCounters['sdk.diagnostics.sampled.in.and.enabled']).toBe(expectedCount);
     });
   });
 
@@ -245,7 +264,16 @@ describe('DiagnosticsClient', () => {
     let startSaveTimerIfNeededSpy: jest.SpyInstance;
 
     beforeEach(() => {
+      // Mock increment temporarily to prevent diagnostic counter during construction
+      const incrementSpy = jest.spyOn(DiagnosticsClient.prototype, 'increment').mockImplementation(() => {
+        // Mock implementation
+      });
+
       client = new DiagnosticsClient(apiKey, mockLogger);
+
+      // Restore increment for the actual tests
+      incrementSpy.mockRestore();
+
       startSaveTimerIfNeededSpy = jest.spyOn(client, 'startTimersIfNeeded').mockImplementation(() => {
         // Mock implementation
       });
@@ -576,7 +604,16 @@ describe('DiagnosticsClient', () => {
     const TEST_EVENTS = [{ event_name: 'error', time: 123456789, event_properties: { type: 'network' } }];
 
     beforeEach(() => {
+      // Mock increment temporarily to prevent diagnostic counter and timers during construction
+      const incrementSpy = jest.spyOn(DiagnosticsClient.prototype, 'increment').mockImplementation(() => {
+        // Mock implementation
+      });
+
       client = new DiagnosticsClient(apiKey, mockLogger);
+
+      // Restore increment
+      incrementSpy.mockRestore();
+
       mockStorage = {
         setTags: jest.fn().mockResolvedValue(undefined),
         incrementCounters: jest.fn().mockResolvedValue(undefined),

@@ -9,6 +9,7 @@ import {
   DEFAULT_DATA_ATTRIBUTE_PREFIX,
   IDiagnosticsClient,
 } from '@amplitude/analytics-core';
+import { VERSION } from './version';
 import * as constants from './constants';
 import { fromEvent, map, type Observable, type Subscription, share } from 'rxjs';
 import {
@@ -71,6 +72,10 @@ export const autocapturePlugin = (
   options: ElementInteractionsOptions = {},
   context?: { diagnosticsClient: IDiagnosticsClient },
 ): BrowserEnrichmentPlugin => {
+  // Set the plugin version tag
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+  context?.diagnosticsClient.setTag('plugin.autocapture.version', VERSION);
+
   const {
     dataAttributePrefix = DEFAULT_DATA_ATTRIBUTE_PREFIX,
     visualTaggingOptions = {

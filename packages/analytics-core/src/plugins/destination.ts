@@ -23,6 +23,9 @@ import { createServerConfig, RequestMetadata } from '../config';
 import { UUID } from '../utils/uuid';
 import { IConfig } from '../types/config/core-config';
 import { EventCallback } from '../types/event-callback';
+import { IDiagnosticsClient } from '../diagnostics/diagnostics-client';
+import { isSuccessStatusCode } from '../utils/status-code';
+import { getStacktrace } from '../utils/debug';
 
 export interface Context {
   event: Event;
@@ -70,6 +73,11 @@ export class Destination implements DestinationPlugin {
   // When flush resolves, set `flushId` to null
   flushId: ReturnType<typeof setTimeout> | null = null;
   queue: Context[] = [];
+  diagnosticsClient: IDiagnosticsClient | undefined;
+
+  constructor(context?: { diagnosticsClient: IDiagnosticsClient }) {
+    this.diagnosticsClient = context?.diagnosticsClient;
+  }
 
   async setup(config: IConfig): Promise<undefined> {
     this.config = config;
@@ -226,6 +234,7 @@ export class Destination implements DestinationPlugin {
     } catch (e) {
       const errorMessage = getErrorMessage(e);
       this.config.loggerProvider.error(errorMessage);
+
       this.handleResponse({ status: Status.Failed, statusCode: 0 }, list);
     }
   }
@@ -351,6 +360,18 @@ export class Destination implements DestinationPlugin {
   }
 
   fulfillRequest(list: Context[], code: number, message: string) {
+    // Record diagnostics for dropped events (non-success status codes)
+    if (!isSuccessStatusCode(code)) {
+      this.diagnosticsClient?.increment('analytics.events.dropped', list.length);
+      this.diagnosticsClient?.recordEvent('analytics.events.dropped', {
+        events: list.map((context) => context.event.event_type),
+        code: code,
+        message: message,
+        stack_trace: getStacktrace(),
+      });
+    } else {
+      this.diagnosticsClient?.increment('analytics.events.sent', list.length);
+    }
     this.removeEvents(list);
     list.forEach((context) => context.callback(buildResult(context.event, code, message)));
   }
