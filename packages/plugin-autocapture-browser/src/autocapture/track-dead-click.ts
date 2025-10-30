@@ -23,7 +23,7 @@ export function trackDeadClick({
   const { clickObservableZen, mutationObservableZen, navigateObservableZen } = allObservables;
 
   /* istanbul ignore if */
-  if (!clickObservableZen || !mutationObservableZen || !navigateObservableZen) {
+  if (!clickObservableZen || !mutationObservableZen) {
     return;
   }
 
@@ -36,15 +36,17 @@ export function trackDeadClick({
     );
   });
 
-  const clicksAndMutationsObservable = merge(
-    merge(filteredClickObservable, mutationObservableZen),
-    navigateObservableZen,
-  );
+  /* istanbul ignore next */
+  const changeObservables = navigateObservableZen ?
+    merge(mutationObservableZen, navigateObservableZen) :
+    mutationObservableZen;
+
+  const clicksAndChangeObservable = merge(filteredClickObservable, changeObservables);
 
   let deadClickTimer: NodeJS.Timeout | null = null;
 
   const deadClickObservable = asyncMap(
-    clicksAndMutationsObservable,
+    clicksAndChangeObservable,
     (event): Promise<ElementBasedTimestampedEvent<MouseEvent> | null> => {
       if (deadClickTimer && ['mutation', 'navigate'].includes(event.type)) {
         // a mutation or navigation means it's not a dead click, so clear the timer

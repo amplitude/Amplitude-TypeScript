@@ -60,8 +60,10 @@ export const createClickObservableZen = (
     const handler = (event: MouseEvent | PointerEvent) => {
       observer.next(event);
     };
+    /* istanbul ignore next */
     getGlobalScope()?.document.addEventListener(clickType, handler);
     return () => {
+      /* istanbul ignore next */
       getGlobalScope()?.document.removeEventListener(clickType, handler);
     };
   });
