@@ -37,9 +37,9 @@ export function trackDeadClick({
   });
 
   /* istanbul ignore next */
-  const changeObservables = navigateObservableZen ?
-    merge(mutationObservableZen, navigateObservableZen) :
-    mutationObservableZen;
+  const changeObservables = navigateObservableZen
+    ? merge(mutationObservableZen, navigateObservableZen)
+    : mutationObservableZen;
 
   const clicksAndChangeObservable = merge(filteredClickObservable, changeObservables);
 
