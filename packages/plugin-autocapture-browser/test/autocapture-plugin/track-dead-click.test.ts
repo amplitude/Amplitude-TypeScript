@@ -11,7 +11,6 @@ describe('trackDeadClick', () => {
   let mockAmplitude: jest.Mocked<BrowserClient>;
   let clickObservable: Subject<any>;
   let clickObservableZen: any;
-  //let mutationObservable: Subject<any>;
   let mutationObservableZen: any;
   let navigateObservableZen: any;
   let allObservables: AllWindowObservables;
