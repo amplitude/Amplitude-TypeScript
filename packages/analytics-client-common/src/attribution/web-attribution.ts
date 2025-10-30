@@ -1,4 +1,4 @@
-import { BrowserConfig, Logger , Campaign, Storage } from '@amplitude/analytics-types';
+import { BrowserConfig, Logger, Campaign, Storage } from '@amplitude/analytics-types';
 import { Options, getDefaultExcludedReferrers, createCampaignEvent, isNewCampaign } from './helpers';
 import { getStorageKey } from '../storage/helpers';
 import { CampaignParser } from './campaign-parser';
