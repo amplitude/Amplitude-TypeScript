@@ -1,8 +1,7 @@
 import { NativeModules } from 'react-native';
 import { AmplitudeReactNative } from '../../src/react-native-client';
+import { Logger, MemoryStorage } from '@amplitude/analytics-core';
 import {
-  Logger,
-  MemoryStorage,
   Event,
   LogLevel,
   UserSession,

@@ -1,5 +1,6 @@
 import { NativeModules } from 'react-native';
-import { Event, ILogger, Storage, UserSession, STORAGE_PREFIX } from '@amplitude/analytics-core';
+import { Event, ILogger, Storage, UserSession } from '@amplitude/analytics-core';
+import { STORAGE_PREFIX } from '@amplitude/analytics-core';
 
 type LegacyEventKind = 'event' | 'identify' | 'interceptedIdentify';
 

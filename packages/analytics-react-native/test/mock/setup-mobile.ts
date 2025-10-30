@@ -1,5 +1,6 @@
 import mockAsyncStorage from '@react-native-async-storage/async-storage/jest/async-storage-mock';
-import { NativeModules, Platform } from 'react-native';
+import { NativeModules } from 'react-native';
+import { Platform } from 'react-native';
 
 /*
  * Set the platform OS to mobile.
