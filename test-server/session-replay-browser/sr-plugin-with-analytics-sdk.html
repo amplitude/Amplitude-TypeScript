@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/amplitude.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Session Replay Plugin Test</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        max-width: 600px;
+        margin: 50px auto;
+        padding: 20px;
+      }
+      h1 {
+        color: #333;
+      }
+      button {
+        background: #0066cc;
+        color: white;
+        border: none;
+        padding: 12px 24px;
+        margin: 10px 5px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 16px;
+      }
+      button:hover {
+        background: #0052a3;
+      }
+      .status {
+        padding: 10px;
+        margin: 10px 0;
+        border-radius: 4px;
+        background: #f0f0f0;
+        font-family: monospace;
+      }
+      input {
+        padding: 8px;
+        margin: 5px;
+        font-size: 14px;
+        width: 300px;
+      }
+      .section {
+        margin: 20px 0;
+        padding: 20px;
+        background: #f9f9f9;
+        border-radius: 8px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Session Replay Plugin Test</h1>
+    
+    <div class="status" id="status">Status: Not initialized</div>
+    
+    <input type="text" id="apiKey" placeholder="API Key (optional)" />
+    <br />
+    <button id="initBtn">Initialize Analytics + Session Replay Plugin</button>
+
+    <div class="section">
+      <h2>Test Events</h2>
+      <button id="trackBtn">Track Event</button>
+      <button id="getInfoBtn">Get Session Info</button>
+    </div>
+
+    <script type="module">
+      import * as amplitude from '@amplitude/analytics-browser';
+      import { sessionReplayPlugin } from '@amplitude/plugin-session-replay-browser';
+      
+      window.amplitude = amplitude;
+      
+      const statusEl = document.getElementById('status');
+      const apiKeyEl = document.getElementById('apiKey');
+      const initBtn = document.getElementById('initBtn');
+      const trackBtn = document.getElementById('trackBtn');
+      const getInfoBtn = document.getElementById('getInfoBtn');
+
+      function updateStatus(message) {
+        statusEl.textContent = `Status: ${message}`;
+        console.log('[Status]', message);
+      }
+
+      // Auto-fill API key from environment
+      if (import.meta.env.VITE_AMPLITUDE_API_KEY) {
+        apiKeyEl.value = import.meta.env.VITE_AMPLITUDE_API_KEY;
+      }
+
+      initBtn.addEventListener('click', async () => {
+        const apiKey = apiKeyEl.value || import.meta.env.VITE_AMPLITUDE_API_KEY || 'test-api-key';
+        
+        try {
+          updateStatus('Initializing Analytics Browser SDK...');
+          
+          console.log('[Init] Starting with API key:', apiKey);
+          
+          // Create and add Session Replay plugin
+          console.log('[Plugin] Creating Session Replay plugin...');
+          const sessionReplayTracking = sessionReplayPlugin({
+            sampleRate: 1.0,
+            logLevel: 'debug',
+          });
+          amplitude.add(sessionReplayTracking);
+
+          // Initialize Analytics Browser SDK
+          amplitude.init(apiKey, 'test-user@amplitude.com', {
+            logLevel: amplitude.Types.LogLevel.Debug,
+          });
+          
+          const sessionId = amplitude.getSessionId();
+          const deviceId = amplitude.getDeviceId();
+          
+          updateStatus(`✓ Initialized! Session ID: ${sessionId}`);
+          
+          console.log('[Success] All initialized');
+          console.log('[Session ID]', sessionId);
+          console.log('[Device ID]', deviceId);
+        } catch (error) {
+          updateStatus(`✗ Error: ${error.message}`);
+          console.error('[Error]', error);
+        }
+      });
+
+      trackBtn.addEventListener('click', () => {
+        console.log('[Track] Tracking test event...');
+        amplitude.track('Test Event', {
+          property: 'test-value',
+          timestamp: Date.now(),
+        });
+        updateStatus('✓ Event tracked');
+      });
+
+      getInfoBtn.addEventListener('click', () => {
+        const sessionId = amplitude.getSessionId();
+        const deviceId = amplitude.getDeviceId();
+        const userId = amplitude.getUserId();
+        
+        console.log('=== Session Info ===');
+        console.log('Session ID:', sessionId);
+        console.log('Device ID:', deviceId);
+        console.log('User ID:', userId);
+        
+        updateStatus(`Session: ${sessionId}`);
+      });
+
+      updateStatus('Ready to initialize. Check browser console for debug logs.');
+      console.log('[Ready] Session Replay Plugin test loaded. Click "Initialize" to start.');
+    </script>
+  </body>
+</html>
+

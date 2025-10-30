@@ -3,6 +3,41 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.29.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.29.1...@amplitude/session-replay-browser@1.29.2) (2025-10-23)
+
+**Note:** Version bump only for package @amplitude/session-replay-browser
+
+
+
+
+
+## [1.29.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.29.0...@amplitude/session-replay-browser@1.29.1) (2025-10-23)
+
+
+### Bug Fixes
+
+* **session-replay-browser:** should respect configServerUrl ([#1362](https://github.com/amplitude/Amplitude-TypeScript/issues/1362)) ([a452d6e](https://github.com/amplitude/Amplitude-TypeScript/commit/a452d6e2f58bf5b1fe1ee01353a2680403a71d8b))
+
+
+
+
+
+# [1.29.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.28.21...@amplitude/session-replay-browser@1.29.0) (2025-10-21)
+
+
+### Features
+
+* **session-replay-browser:** migrate to new remote config client ([#1351](https://github.com/amplitude/Amplitude-TypeScript/issues/1351)) ([d9e0c2c](https://github.com/amplitude/Amplitude-TypeScript/commit/d9e0c2c5df47147bd89c6bfd5e5d2fe3254c8b27))
+
+
+### Performance Improvements
+
+* **session-replay:** reduce recording initialization when trc enabled ([#1353](https://github.com/amplitude/Amplitude-TypeScript/issues/1353)) ([9cedb92](https://github.com/amplitude/Amplitude-TypeScript/commit/9cedb9297be3a0f59f17402c011ada8d940cbe0e))
+
+
+
+
+
 ## [1.28.21](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.28.20...@amplitude/session-replay-browser@1.28.21) (2025-10-17)
 
 **Note:** Version bump only for package @amplitude/session-replay-browser

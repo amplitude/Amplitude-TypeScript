@@ -76,7 +76,7 @@ export class SessionReplayPlugin implements EnrichmentPlugin<BrowserClient, Brow
         logLevel: this.config.logLevel,
         flushMaxRetries: this.config.flushMaxRetries,
         serverZone: this.config.serverZone,
-        configServerUrl: this.options.configServerUrl,
+        configServerUrl: this.options.configServerUrl || this.config.remoteConfig?.serverUrl,
         trackServerUrl: this.options.trackServerUrl,
         sampleRate: this.options.sampleRate,
         privacyConfig: {

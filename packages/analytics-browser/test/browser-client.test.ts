@@ -26,6 +26,7 @@ import * as formInteractionTracking from '../src/plugins/form-interaction-tracki
 import * as networkConnectivityChecker from '../src/plugins/network-connectivity-checker';
 import * as SnippetHelper from '../src/utils/snippet-helper';
 import * as joinedConfig from '../src/config/joined-config';
+import * as pageUrlEnrichment from '@amplitude/plugin-page-url-enrichment-browser';
 
 // Mock RemoteConfigClient constructor
 const mockRemoteConfigClient = {
@@ -168,6 +169,23 @@ describe('browser-client', () => {
         fetchRemoteConfig: false,
       }).promise;
       expect(MockedRemoteConfigClient).not.toHaveBeenCalled();
+    });
+
+    test('should pass remoteConfig.serverUrl to RemoteConfigClient when provided', async () => {
+      const customServerUrl = 'https://my-proxy.com/remote-config';
+
+      await client.init(apiKey, {
+        remoteConfig: {
+          serverUrl: customServerUrl,
+        },
+      }).promise;
+
+      expect(MockedRemoteConfigClient).toHaveBeenCalledWith(
+        apiKey,
+        expect.anything(), // loggerProvider
+        'US', // default serverZone
+        customServerUrl, // our custom URL
+      );
     });
 
     test('should call updateBrowserConfigWithRemoteConfig when remoteConfig is not null', async () => {
@@ -701,6 +719,34 @@ describe('browser-client', () => {
 
       getGlobalScopeMock.mockRestore();
       addEventListenerMock.mockRestore();
+    });
+
+    test('should add page url previous page plugin if pageUrlEnrichment is true', async () => {
+      const pageUrlEnrichmentPlugin = jest.spyOn(pageUrlEnrichment, 'pageUrlEnrichmentPlugin');
+      await client.init(apiKey, userId, {
+        autocapture: {
+          pageUrlEnrichment: true,
+        },
+      }).promise;
+      expect(pageUrlEnrichmentPlugin).toHaveBeenCalledTimes(1);
+    });
+
+    test('should NOT add page url previous page plugin if pageUrlEnrichment is false', async () => {
+      const pageUrlEnrichmentPlugin = jest.spyOn(pageUrlEnrichment, 'pageUrlEnrichmentPlugin');
+      await client.init(apiKey, userId, {
+        autocapture: {
+          pageUrlEnrichment: false,
+        },
+      }).promise;
+      expect(pageUrlEnrichmentPlugin).toHaveBeenCalledTimes(0);
+    });
+
+    test('should add page url previous page plugin if pageUrlEnrichment is undefined', async () => {
+      const pageUrlEnrichmentPlugin = jest.spyOn(pageUrlEnrichment, 'pageUrlEnrichmentPlugin');
+      await client.init(apiKey, userId, {
+        autocapture: {},
+      }).promise;
+      expect(pageUrlEnrichmentPlugin).toHaveBeenCalledTimes(1);
     });
 
     test.each([[url], [new URL(`https://www.example.com?deviceId=${testDeviceId}`)]])(

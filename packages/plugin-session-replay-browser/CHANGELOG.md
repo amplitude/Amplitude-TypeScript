@@ -3,6 +3,36 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.23.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@1.22.27...@amplitude/plugin-session-replay-browser@1.23.0) (2025-10-23)
+
+
+### Features
+
+* **autocapture:** set page url enrichment plugin to default on and add/fix tests ([#1287](https://github.com/amplitude/Amplitude-TypeScript/issues/1287)) ([d96d7dd](https://github.com/amplitude/Amplitude-TypeScript/commit/d96d7dd7db156eae51a342b4956db2530ca64d29))
+
+
+
+
+
+## [1.22.27](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@1.22.26...@amplitude/plugin-session-replay-browser@1.22.27) (2025-10-23)
+
+
+### Bug Fixes
+
+* **session-replay-browser:** should respect configServerUrl ([#1362](https://github.com/amplitude/Amplitude-TypeScript/issues/1362)) ([a452d6e](https://github.com/amplitude/Amplitude-TypeScript/commit/a452d6e2f58bf5b1fe1ee01353a2680403a71d8b))
+
+
+
+
+
+## [1.22.26](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@1.22.25...@amplitude/plugin-session-replay-browser@1.22.26) (2025-10-21)
+
+**Note:** Version bump only for package @amplitude/plugin-session-replay-browser
+
+
+
+
+
 ## [1.22.25](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@1.22.24...@amplitude/plugin-session-replay-browser@1.22.25) (2025-10-17)
 
 **Note:** Version bump only for package @amplitude/plugin-session-replay-browser

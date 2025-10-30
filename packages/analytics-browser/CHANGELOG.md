@@ -3,6 +3,36 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.29.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.28.0...@amplitude/analytics-browser@2.29.0) (2025-10-23)
+
+
+### Features
+
+* **autocapture:** set page url enrichment plugin to default on and add/fix tests ([#1287](https://github.com/amplitude/Amplitude-TypeScript/issues/1287)) ([d96d7dd](https://github.com/amplitude/Amplitude-TypeScript/commit/d96d7dd7db156eae51a342b4956db2530ca64d29))
+
+
+
+
+
+# [2.28.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.27.1...@amplitude/analytics-browser@2.28.0) (2025-10-23)
+
+
+### Features
+
+* **analytics-browser:** add remote config server url to proxy remote config requests ([#1348](https://github.com/amplitude/Amplitude-TypeScript/issues/1348)) ([461b598](https://github.com/amplitude/Amplitude-TypeScript/commit/461b59876a75af0d97fd639c35ce08f6b0f4c24b))
+
+
+
+
+
+## [2.27.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.27.0...@amplitude/analytics-browser@2.27.1) (2025-10-21)
+
+**Note:** Version bump only for package @amplitude/analytics-browser
+
+
+
+
+
 # [2.27.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.26.2...@amplitude/analytics-browser@2.27.0) (2025-10-17)
 
 

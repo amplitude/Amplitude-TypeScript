@@ -6,6 +6,8 @@ import {
   LogLevel,
   returnWrapper,
   SpecialEventType,
+  generateHashCode,
+  isTimestampInSample,
 } from '@amplitude/analytics-core';
 
 // Import only specific types to avoid pulling in the entire rrweb-types package
@@ -32,7 +34,6 @@ import {
 import { EventCompressor } from './events/event-compressor';
 import { createEventsManager } from './events/events-manager';
 import { MultiEventManager } from './events/multi-manager';
-import { generateHashCode, isTimestampInSample } from '@amplitude/analytics-core';
 import { getDebugConfig, getPageUrl, getStorageSize, maskFn } from './helpers';
 import { clickBatcher, clickHook, clickNonBatcher } from './hooks/click';
 import { ScrollWatcher } from './hooks/scroll';
@@ -115,9 +116,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
       this.loggerProvider.enable(options.logLevel as LogLevel);
     this.identifiers = new SessionIdentifiers({ sessionId: options.sessionId, deviceId: options.deviceId });
     this.joinedConfigGenerator = await createSessionReplayJoinedConfigGenerator(apiKey, options);
-    const { joinedConfig, localConfig, remoteConfig } = await this.joinedConfigGenerator.generateJoinedConfig(
-      this.identifiers.sessionId,
-    );
+    const { joinedConfig, localConfig, remoteConfig } = await this.joinedConfigGenerator.generateJoinedConfig();
     this.config = joinedConfig;
 
     this.setMetadata(
@@ -232,12 +231,12 @@ export class SessionReplay implements AmplitudeSessionReplay {
     // If there is no previous session id, SDK is being initialized for the first time,
     // and config was just fetched in initialization, so no need to fetch it a second time
     if (this.joinedConfigGenerator && previousSessionId) {
-      const { joinedConfig } = await this.joinedConfigGenerator.generateJoinedConfig(this.identifiers.sessionId);
+      const { joinedConfig } = await this.joinedConfigGenerator.generateJoinedConfig();
       this.config = joinedConfig;
     }
 
     if (this.config?.targetingConfig) {
-      await this.evaluateTargetingAndCapture({ userProperties: options?.userProperties });
+      await this.evaluateTargetingAndCapture({ userProperties: options?.userProperties }, false, true);
     } else {
       await this.recordEvents();
     }
@@ -305,6 +304,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
   evaluateTargetingAndCapture = async (
     targetingParams: Pick<TargetingParameters, 'event' | 'userProperties'>,
     isInit = false,
+    forceRestart = false,
   ) => {
     if (!this.identifiers || !this.identifiers.sessionId || !this.config) {
       if (this.identifiers && !this.identifiers.sessionId) {
@@ -365,7 +365,9 @@ export class SessionReplay implements AmplitudeSessionReplay {
 
     if (isInit) {
       void this.initialize(true);
-    } else {
+    } else if (forceRestart || !this.recordCancelCallback) {
+      // Only call recordEvents if we're not already recording, unless forceRestart is true
+      this.loggerProvider.log('Recording events for session due to forceRestart or no ongoing recording.');
       await this.recordEvents();
     }
   };

@@ -3,6 +3,33 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.16.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.16.1...@amplitude/plugin-autocapture-browser@1.16.2) (2025-10-23)
+
+**Note:** Version bump only for package @amplitude/plugin-autocapture-browser
+
+
+
+
+
+## [1.16.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.16.0...@amplitude/plugin-autocapture-browser@1.16.1) (2025-10-23)
+
+**Note:** Version bump only for package @amplitude/plugin-autocapture-browser
+
+
+
+
+
+# [1.16.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.15.3...@amplitude/plugin-autocapture-browser@1.16.0) (2025-10-21)
+
+
+### Features
+
+* **session-replay-browser:** migrate to new remote config client ([#1351](https://github.com/amplitude/Amplitude-TypeScript/issues/1351)) ([d9e0c2c](https://github.com/amplitude/Amplitude-TypeScript/commit/d9e0c2c5df47147bd89c6bfd5e5d2fe3254c8b27))
+
+
+
+
+
 ## [1.15.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.15.2...@amplitude/plugin-autocapture-browser@1.15.3) (2025-10-17)
 
 **Note:** Version bump only for package @amplitude/plugin-autocapture-browser

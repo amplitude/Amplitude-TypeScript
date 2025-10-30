@@ -1,17 +1,18 @@
 import {
   getAttributionTrackingConfig,
-  getPageViewTrackingConfig,
   getElementInteractionsConfig,
   getFrustrationInteractionsConfig,
+  getNetworkTrackingConfig,
+  getPageViewTrackingConfig,
   isAttributionTrackingEnabled,
+  isElementInteractionsEnabled,
   isFileDownloadTrackingEnabled,
   isFormInteractionTrackingEnabled,
+  isFrustrationInteractionsEnabled,
+  isNetworkTrackingEnabled,
+  isPageUrlEnrichmentEnabled,
   isPageViewTrackingEnabled,
   isSessionTrackingEnabled,
-  isElementInteractionsEnabled,
-  getNetworkTrackingConfig,
-  isNetworkTrackingEnabled,
-  isFrustrationInteractionsEnabled,
   isWebVitalsEnabled,
 } from '../src/default-tracking';
 
@@ -597,5 +598,43 @@ describe('getElementInteractionsConfig', () => {
     expect(config?.pageUrlAllowlist).toBe(testPageUrlAllowlist);
     expect(config?.shouldTrackEventResolver).toBe(mockedShouldTrackEventResolver);
     expect(config?.dataAttributePrefix).toBe(testDataAttributePrefix);
+  });
+});
+
+describe('isPageUrlEnrichmentEnabled', () => {
+  test('should return true with true parameter', () => {
+    expect(isPageUrlEnrichmentEnabled(true)).toBe(true);
+  });
+
+  test('should return true with undefined parameter', () => {
+    expect(isPageUrlEnrichmentEnabled(undefined)).toBe(true);
+  });
+
+  test('should return false with false parameter', () => {
+    expect(isPageUrlEnrichmentEnabled(false)).toBe(false);
+  });
+
+  test('should return true with object parameter set to true', () => {
+    expect(
+      isPageUrlEnrichmentEnabled({
+        pageUrlEnrichment: true,
+      }),
+    ).toBe(true);
+  });
+
+  test('should return false with object parameter set to false', () => {
+    expect(
+      isPageUrlEnrichmentEnabled({
+        pageUrlEnrichment: false,
+      }),
+    ).toBe(false);
+  });
+
+  test('should return true with object parameter undefined', () => {
+    expect(
+      isPageUrlEnrichmentEnabled({
+        pageUrlEnrichment: undefined,
+      }),
+    ).toBe(true);
   });
 });

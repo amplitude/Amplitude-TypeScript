@@ -2,7 +2,7 @@ import { AllWindowObservables } from 'src/autocapture-plugin';
 import { BrowserClient, ActionType, merge, asyncMap } from '@amplitude/analytics-core';
 import { ElementBasedTimestampedEvent, filterOutNonTrackableEvents, shouldTrackEvent } from '../helpers';
 import { AMPLITUDE_ELEMENT_DEAD_CLICKED_EVENT } from '../constants';
-let DEAD_CLICK_TIMEOUT = 3000; // 3 seconds to wait for an activity to happen
+const DEAD_CLICK_TIMEOUT = 3000; // 3 seconds to wait for an activity to happen
 
 type EventDeadClick = {
   '[Amplitude] X': number;
@@ -46,7 +46,7 @@ export function trackDeadClick({
   const deadClickObservable = asyncMap(
     clicksAndMutationsObservable,
     (event): Promise<ElementBasedTimestampedEvent<MouseEvent> | null> => {
-      if (deadClickTimer && (['mutation', 'navigate'].includes(event.type))) {
+      if (deadClickTimer && ['mutation', 'navigate'].includes(event.type)) {
         clearTimeout(deadClickTimer);
         deadClickTimer = null;
         return Promise.resolve(null);
