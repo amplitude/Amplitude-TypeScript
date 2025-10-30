@@ -47,11 +47,14 @@ export function trackDeadClick({
     clicksAndMutationsObservable,
     (event): Promise<ElementBasedTimestampedEvent<MouseEvent> | null> => {
       if (deadClickTimer && ['mutation', 'navigate'].includes(event.type)) {
+        // a mutation or navigation means it's not a dead click, so clear the timer
         clearTimeout(deadClickTimer);
         deadClickTimer = null;
         return Promise.resolve(null);
       } else if (event.type === 'click') {
-        // if a dead click is on-deck, return null. This is to throttle dead click events.
+        // if a dead click is already on-deck, return null.
+        // this throttles dead clicks events so no more than one dead click event
+        // is tracked per every DEAD_CLICK_TIMEOUT ms.
         if (deadClickTimer) {
           return Promise.resolve(null);
         }
@@ -62,6 +65,7 @@ export function trackDeadClick({
           }, DEAD_CLICK_TIMEOUT);
         });
       }
+      // unreachable code, but needed to satisfy the type checker
       return Promise.resolve(null);
     },
   );
