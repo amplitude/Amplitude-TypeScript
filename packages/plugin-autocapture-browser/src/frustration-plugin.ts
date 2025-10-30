@@ -10,11 +10,16 @@ import {
 } from '@amplitude/analytics-core';
 import * as constants from './constants';
 import { fromEvent, map, Observable, share } from 'rxjs';
-import { createShouldTrackEvent, ElementBasedTimestampedEvent, NavigateEvent } from './helpers';
+import { createShouldTrackEvent, ElementBasedTimestampedEvent, NavigateEvent, TimestampedEvent } from './helpers';
 import { trackDeadClick } from './autocapture/track-dead-click';
 import { trackRageClicks } from './autocapture/track-rage-click';
 import { AllWindowObservables, ObservablesEnum } from './autocapture-plugin';
-import { createClickObservable, createClickObservableZen, createMutationObservable } from './observables';
+import {
+  createClickObservable,
+  createClickObservableZen,
+  createMutationObservable,
+  createMutationObservableZen,
+} from './observables';
 import { DataExtractor } from './data-extractor';
 import { Observable as ZenObservable, multicast } from '@amplitude/analytics-core';
 
@@ -90,6 +95,41 @@ export const frustrationPlugin = (options: FrustrationInteractionsOptions = {}):
       share(),
     );
 
+    // TODO: once we're ready for ZenObservable, remove this ignore and add tests
+    /* istanbul ignore next */
+    const enrichedMutationObservableZen = multicast<TimestampedEvent<MutationRecord[]>>(
+      createMutationObservableZen().map((mutation) =>
+        dataExtractor.addAdditionalEventProperties(mutation, 'mutation', combinedCssSelectors, dataAttributePrefix),
+      ),
+    );
+
+    let enrichedNavigateObservableZen: ZenObservable<TimestampedEvent<NavigateEvent>> | undefined;
+
+    /* istanbul ignore next */
+    if (window.navigation) {
+      const navigateObservableZen = new ZenObservable<Event>((observer) => {
+        const handler = (event: Event): void => {
+          observer.next({
+            ...event,
+            type: 'navigate',
+          });
+        };
+        window.navigation.addEventListener('navigate', handler);
+        return () => window.navigation.removeEventListener('navigate', handler);
+      });
+      enrichedNavigateObservableZen = multicast<TimestampedEvent<NavigateEvent>>(
+        navigateObservableZen.map<TimestampedEvent<NavigateEvent>>(
+          (navigate) =>
+            dataExtractor.addAdditionalEventProperties(
+              navigate,
+              'navigate',
+              combinedCssSelectors,
+              dataAttributePrefix,
+            ) as TimestampedEvent<NavigateEvent>,
+        ),
+      );
+    }
+
     return {
       [ObservablesEnum.ClickObservable]: clickObservable as Observable<ElementBasedTimestampedEvent<MouseEvent>>,
       [ObservablesEnum.ChangeObservable]: new Observable<ElementBasedTimestampedEvent<Event>>(), // Empty observable since we don't need change events
@@ -98,6 +138,8 @@ export const frustrationPlugin = (options: FrustrationInteractionsOptions = {}):
       [ObservablesEnum.ClickObservableZen]: clickObservableZen as ZenObservable<
         ElementBasedTimestampedEvent<MouseEvent>
       >,
+      [ObservablesEnum.MutationObservableZen]: enrichedMutationObservableZen,
+      [ObservablesEnum.NavigateObservableZen]: enrichedNavigateObservableZen,
     };
   };
 

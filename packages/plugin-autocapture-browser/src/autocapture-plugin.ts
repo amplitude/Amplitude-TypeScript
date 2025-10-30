@@ -53,6 +53,8 @@ export enum ObservablesEnum {
   // ErrorObservable = 'errorObservable',
   NavigateObservable = 'navigateObservable',
   MutationObservable = 'mutationObservable',
+  MutationObservableZen = 'mutationObservableZen',
+  NavigateObservableZen = 'navigateObservableZen',
 }
 
 export interface AllWindowObservables {
@@ -62,6 +64,8 @@ export interface AllWindowObservables {
   [ObservablesEnum.NavigateObservable]: Observable<TimestampedEvent<NavigateEvent>> | undefined;
   [ObservablesEnum.MutationObservable]: Observable<TimestampedEvent<MutationRecord[]>>;
   [ObservablesEnum.ClickObservableZen]?: ZenObservable<ElementBasedTimestampedEvent<MouseEvent>>;
+  [ObservablesEnum.MutationObservableZen]?: ZenObservable<TimestampedEvent<MutationRecord[]>>;
+  [ObservablesEnum.NavigateObservableZen]?: ZenObservable<TimestampedEvent<NavigateEvent>>;
 }
 
 export const autocapturePlugin = (
