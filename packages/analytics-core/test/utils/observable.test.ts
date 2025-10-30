@@ -2,7 +2,6 @@ import { Observable, asyncMap, merge, multicast } from '../../src/index';
 
 /* eslint-disable jest/no-conditional-expect, @typescript-eslint/no-empty-function */
 
-/* eslint-disable @typescript-eslint/no-empty-function */
 
 // Test helper functions
 const createTimedObservable = <T>(values: T[], delay = 10): Observable<T> => {
