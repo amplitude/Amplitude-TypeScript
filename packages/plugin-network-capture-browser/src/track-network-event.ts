@@ -8,6 +8,7 @@ import {
   SAFE_HEADERS,
   ILogger,
   IRequestWrapper,
+  Unsubscribable,
 } from '@amplitude/analytics-core';
 import { AllWindowObservables, TimestampedEvent } from './network-capture-plugin';
 import { AMPLITUDE_NETWORK_REQUEST_EVENT, IS_HEADER_CAPTURE_EXPERIMENTAL } from './constants';
@@ -302,7 +303,7 @@ export function trackNetworkEvents({
   networkTrackingOptions: NetworkTrackingOptions;
   amplitude: BrowserClient;
   loggerProvider?: ILogger;
-}): Subscription {
+}): Unsubscribable {
   const { networkObservable } = allObservables;
 
   const filteredNetworkObservable = networkObservable.filter((event: TimestampedEvent<NetworkRequestEvent>) => {

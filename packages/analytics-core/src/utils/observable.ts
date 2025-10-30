@@ -145,4 +145,4 @@ function multicast<T>(source: ZenObservable<T>): ZenObservable<T> {
   }
 }
 
-export { asyncMap, multicast, merge };
+export { asyncMap, multicast, merge, Unsubscribable };

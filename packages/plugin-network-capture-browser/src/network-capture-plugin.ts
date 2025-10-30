@@ -10,7 +10,7 @@ import {
   ILogger,
 } from '@amplitude/analytics-core';
 import * as constants from './constants';
-import { Observable, Subscription } from '@amplitude/analytics-core';
+import { Observable, Unsubscribable } from '@amplitude/analytics-core';
 import { trackNetworkEvents } from './track-network-event';
 
 export type BrowserEnrichmentPlugin = EnrichmentPlugin<BrowserClient, BrowserConfig>;
@@ -42,7 +42,7 @@ export interface AllWindowObservables {
   [ObservablesEnum.NetworkObservable]: Observable<TimestampedEvent<NetworkRequestEvent>>;
 }
 
-let subscription: Subscription;
+let subscription: Unsubscribable;
 
 export const networkCapturePlugin = (options: NetworkTrackingOptions = {}): BrowserEnrichmentPlugin => {
   const name = constants.PLUGIN_NAME;
