@@ -9,9 +9,11 @@ import {
   UNMASK_TEXT_CLASS,
 } from '../src/constants';
 import { ServerZone } from '@amplitude/analytics-core';
-import { getServerUrl, getStorageSize, maskFn, getPageUrl, validateUGCFilterRules } from '../src/helpers';
+import { getServerUrl, getStorageSize, maskFn } from '../src/helpers';
 import * as AnalyticsCore from '@amplitude/analytics-core';
+import { getPageUrl } from '../src/helpers';
 import { UGCFilterRule } from '../src/config/types';
+import { validateUGCFilterRules } from '../src/helpers';
 
 describe('SessionReplayPlugin helpers', () => {
   describe('maskFn -- input', () => {
