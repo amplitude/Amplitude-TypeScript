@@ -19,12 +19,13 @@ export function trackChange({
 }) {
   const { changeObservable } = allObservables;
 
-  let filteredChangeObservable = changeObservable.filter(filterOutNonTrackableEvents);
-  filteredChangeObservable = filteredChangeObservable.filter((changeEvent: ElementBasedTimestampedEvent<Event>) => {
-    // Only track change on elements that should be tracked,
-    return shouldTrackEvent('change', changeEvent.closestTrackedAncestor);
-  });
-  filteredChangeObservable = filteredChangeObservable.map((changeEvent) => evaluateTriggers(changeEvent));
+  const filteredChangeObservable = changeObservable
+    .filter(filterOutNonTrackableEvents)
+    .filter((changeEvent: ElementBasedTimestampedEvent<Event>) => {
+      // Only track change on elements that should be tracked,
+      return shouldTrackEvent('change', changeEvent.closestTrackedAncestor);
+    })
+    .map((changeEvent) => evaluateTriggers(changeEvent));
 
   return filteredChangeObservable.subscribe((changeEvent) => {
     /* istanbul ignore next */
