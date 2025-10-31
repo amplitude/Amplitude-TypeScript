@@ -1,11 +1,11 @@
-import { AllWindowObservables, AutoCaptureOptionsWithDefaults, ObservablesEnum } from 'src/autocapture-plugin';
-import { filter, map, merge, switchMap, take, timeout, EMPTY } from 'rxjs';
-import { BrowserClient, ActionType } from '@amplitude/analytics-core';
+import { AllWindowObservables, AutoCaptureOptionsWithDefaults } from 'src/autocapture-plugin';
+import { BrowserClient, ActionType, merge, asyncMap } from '@amplitude/analytics-core';
 import {
   ElementBasedTimestampedEvent,
   filterOutNonTrackableEvents,
   getClosestElement,
   shouldTrackEvent,
+  TimestampedEvent,
 } from '../helpers';
 import { AMPLITUDE_ELEMENT_CLICKED_EVENT } from '../constants';
 
@@ -24,14 +24,19 @@ export function trackActionClick({
   shouldTrackActionClick: shouldTrackEvent;
   shouldTrackEvent: shouldTrackEvent;
 }) {
-  const { clickObservable, mutationObservable, navigateObservable } = allObservables;
+  const { clickObservableZen, mutationObservableZen, navigateObservableZen } = allObservables;
 
-  const filteredClickObservable = clickObservable.pipe(
-    filter((click) => {
-      // Filter out regularly tracked click events that are already handled in trackClicks
+  // TODO: remove this once we're ready for ZenObservable and they become not optional
+  /* istanbul ignore if */
+  if (!clickObservableZen || !mutationObservableZen) {
+    return;
+  }
+
+  const filteredClickObservable = clickObservableZen
+    .filter((click) => {
       return !shouldTrackEvent('click', click.closestTrackedAncestor);
-    }),
-    map((click) => {
+    })
+    .map((click) => {
       // overwrite the closestTrackedAncestor with the closest element that is on the actionClickAllowlist
       const closestActionClickEl = getClosestElement(click.event.target as Element, options.actionClickAllowlist);
       click.closestTrackedAncestor = closestActionClickEl as Element;
@@ -41,36 +46,63 @@ export function trackActionClick({
         click.targetElementProperties = getEventProperties(click.type, click.closestTrackedAncestor);
       }
       return click;
-    }),
-    filter(filterOutNonTrackableEvents),
-    filter((clickEvent) => {
+    })
+    .filter(filterOutNonTrackableEvents)
+    .filter((clickEvent) => {
       // Only track change on elements that should be tracked
       return shouldTrackActionClick('click', clickEvent.closestTrackedAncestor);
-    }),
-  );
+    });
 
-  const changeObservables: Array<
-    AllWindowObservables[ObservablesEnum.MutationObservable] | AllWindowObservables[ObservablesEnum.NavigateObservable]
-  > = [mutationObservable];
-  /* istanbul ignore next */
-  if (navigateObservable) {
-    changeObservables.push(navigateObservable);
-  }
-  const mutationOrNavigate = merge(...changeObservables);
+  let mutationOrNavigate = navigateObservableZen
+    ? merge(mutationObservableZen, navigateObservableZen)
+    : mutationObservableZen;
+  mutationOrNavigate = asyncMap(mutationOrNavigate, (event) => {
+    // defer mutation/navigation events to new task to prevent
+    // from being emitted before the click event
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        resolve(event);
+      }, 0);
+    });
+  });
 
-  const actionClicks = filteredClickObservable.pipe(
-    // If a mutation occurs within 0.5 seconds of a click event (timeout({ first: 500 })), it emits the original first click event.
-    // take 1 to only limit the action events in case there are multiple
-    switchMap((click) =>
-      mutationOrNavigate.pipe(
-        take(1),
-        timeout({ first: 500, with: () => EMPTY }), // in case of timeout, map to empty to prevent any click from being emitted
-        map(() => click),
-      ),
-    ),
-  );
+  const clickMutationNavigateObservable = merge(filteredClickObservable, mutationOrNavigate);
 
-  return actionClicks.subscribe((actionClick) => {
+  let actionClickTimer: ReturnType<typeof setTimeout> | null = null;
+  let lastClickEvent: TimestampedEvent<any> | null = null;
+
+  const actionClickObservable = asyncMap(clickMutationNavigateObservable, (event): any => {
+    // clear any previous timer
+    if (actionClickTimer) {
+      clearTimeout(actionClickTimer);
+      actionClickTimer = null;
+    }
+    if (event.type === 'click') {
+      // mark the 'last click event'
+      lastClickEvent = event;
+
+      // set a timer to clear last click event if no mutation event between now and 500ms
+      actionClickTimer = setTimeout(() => {
+        actionClickTimer = null;
+        lastClickEvent = null;
+        return null;
+      }, 500);
+      return Promise.resolve(null);
+    } else {
+      // if mutation/navigation + last click event, then it's an action click
+      if (lastClickEvent) {
+        try {
+          return Promise.resolve(lastClickEvent);
+        } finally {
+          lastClickEvent = null;
+        }
+      }
+    }
+    return Promise.resolve(null);
+  });
+
+  return actionClickObservable.subscribe((actionClick: any) => {
+    if (!actionClick) return;
     /* istanbul ignore next */
     amplitude?.track(
       AMPLITUDE_ELEMENT_CLICKED_EVENT,

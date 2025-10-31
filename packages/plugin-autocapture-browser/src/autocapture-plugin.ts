@@ -25,7 +25,12 @@ import { trackClicks } from './autocapture/track-click';
 import { trackChange } from './autocapture/track-change';
 import { trackActionClick } from './autocapture/track-action-click';
 import type { HasEventTargetAddRemove } from 'rxjs/internal/observable/fromEvent';
-import { createMutationObservable, createClickObservable } from './observables';
+import {
+  createMutationObservable,
+  createClickObservable,
+  createClickObservableZen,
+  createMutationObservableZen,
+} from './observables';
 
 import {
   createLabeledEventToTriggerMap,
@@ -134,6 +139,18 @@ export const autocapturePlugin = (
       share(),
     );
 
+    const clickObservableZen = multicast(
+      createClickObservableZen().map(
+        (click) =>
+          dataExtractor.addAdditionalEventProperties(
+            click,
+            'click',
+            (options as AutoCaptureOptionsWithDefaults).cssSelectorAllowlist,
+            dataAttributePrefix,
+          ) as ElementBasedTimestampedEvent<MouseEvent>,
+      ),
+    );
+
     const changeObservable = multicast(
       new ZenObservable<ElementBasedTimestampedEvent<Event>>((observer) => {
         const handler = (changeEvent: Event) => {
@@ -159,6 +176,8 @@ export const autocapturePlugin = (
 
     // Create observable for URL changes
     let navigateObservable: Observable<TimestampedEvent<NavigateEvent>> | undefined;
+    let navigateObservableZen: ZenObservable<TimestampedEvent<NavigateEvent>> | undefined;
+
     /* istanbul ignore next */
     if (window.navigation) {
       navigateObservable = fromEvent<NavigateEvent>(window.navigation, 'navigate').pipe(
@@ -171,6 +190,24 @@ export const autocapturePlugin = (
           ),
         ),
         share(),
+      );
+
+      navigateObservableZen = multicast(
+        new ZenObservable<TimestampedEvent<NavigateEvent>>((observer) => {
+          const handler = (navigateEvent: NavigateEvent) => {
+            const enrichedNavigateEvent = dataExtractor.addAdditionalEventProperties(
+              navigateEvent,
+              'navigate',
+              (options as AutoCaptureOptionsWithDefaults).cssSelectorAllowlist,
+              dataAttributePrefix,
+            );
+            observer.next(enrichedNavigateEvent);
+          };
+          window.navigation.addEventListener('navigate', handler as EventListener);
+          return () => {
+            window.navigation.removeEventListener('navigate', handler as EventListener);
+          };
+        }),
       );
     }
 
@@ -187,12 +224,26 @@ export const autocapturePlugin = (
       share(),
     );
 
+    const mutationObservableZen = multicast(
+      createMutationObservableZen().map((mutation) =>
+        dataExtractor.addAdditionalEventProperties(
+          mutation,
+          'mutation',
+          (options as AutoCaptureOptionsWithDefaults).cssSelectorAllowlist,
+          dataAttributePrefix,
+        ),
+      ),
+    );
+
     return {
       [ObservablesEnum.ClickObservable]: clickObservable as Observable<ElementBasedTimestampedEvent<MouseEvent>>,
       [ObservablesEnum.ChangeObservable]: changeObservable,
       // [ObservablesEnum.ErrorObservable]: errorObservable,
       [ObservablesEnum.NavigateObservable]: navigateObservable,
       [ObservablesEnum.MutationObservable]: mutationObservable,
+      [ObservablesEnum.ClickObservableZen]: clickObservableZen,
+      [ObservablesEnum.MutationObservableZen]: mutationObservableZen,
+      [ObservablesEnum.NavigateObservableZen]: navigateObservableZen,
     };
   };
 
@@ -285,7 +336,9 @@ export const autocapturePlugin = (
       shouldTrackEvent,
       shouldTrackActionClick: shouldTrackActionClick,
     });
-    subscriptions.push(actionClickSubscription);
+    if (actionClickSubscription) {
+      subscriptions.push(actionClickSubscription);
+    }
 
     /* istanbul ignore next */
     config?.loggerProvider?.log(`${name} has been successfully added.`);

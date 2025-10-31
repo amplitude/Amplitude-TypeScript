@@ -26,12 +26,14 @@ export const createMutationObservableZen = (): ZenObservable<MutationRecord[]> =
     const mutationObserver = new MutationObserver((mutations) => {
       observer.next(mutations);
     });
-    mutationObserver.observe(document.body, {
-      childList: true,
-      attributes: true,
-      characterData: true,
-      subtree: true,
-    });
+    if (document.body) {
+      mutationObserver.observe(document.body, {
+        childList: true,
+        attributes: true,
+        characterData: true,
+        subtree: true,
+      });
+    }
     return () => mutationObserver.disconnect();
   });
 };
@@ -61,10 +63,10 @@ export const createClickObservableZen = (
       observer.next(event);
     };
     /* istanbul ignore next */
-    getGlobalScope()?.document.addEventListener(clickType, handler);
+    getGlobalScope()?.document.addEventListener(clickType, handler, { capture: true });
     return () => {
       /* istanbul ignore next */
-      getGlobalScope()?.document.removeEventListener(clickType, handler);
+      getGlobalScope()?.document.removeEventListener(clickType, handler, { capture: true });
     };
   });
 };
