@@ -1,6 +1,5 @@
 import { AllWindowObservables } from 'src/autocapture-plugin';
-import { type evaluateTriggersFn } from 'src/helpers';
-import { filter, map } from 'rxjs';
+import { ElementBasedTimestampedEvent, type evaluateTriggersFn } from 'src/helpers';
 import { BrowserClient, ActionType } from '@amplitude/analytics-core';
 import { filterOutNonTrackableEvents, shouldTrackEvent } from '../helpers';
 import { AMPLITUDE_ELEMENT_CHANGED_EVENT } from '../constants';
@@ -20,14 +19,13 @@ export function trackChange({
 }) {
   const { changeObservable } = allObservables;
 
-  const filteredChangeObservable = changeObservable.pipe(
-    filter(filterOutNonTrackableEvents),
-    filter((changeEvent) => {
+  const filteredChangeObservable = changeObservable
+    .filter(filterOutNonTrackableEvents)
+    .filter((changeEvent: ElementBasedTimestampedEvent<Event>) => {
       // Only track change on elements that should be tracked,
       return shouldTrackEvent('change', changeEvent.closestTrackedAncestor);
-    }),
-    map((changeEvent) => evaluateTriggers(changeEvent)),
-  );
+    })
+    .map((changeEvent) => evaluateTriggers(changeEvent));
 
   return filteredChangeObservable.subscribe((changeEvent) => {
     /* istanbul ignore next */
