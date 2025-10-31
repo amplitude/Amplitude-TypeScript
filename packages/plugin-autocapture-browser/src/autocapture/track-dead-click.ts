@@ -1,4 +1,4 @@
-import { AllWindowObservables } from 'src/autocapture-plugin';
+import { AllWindowObservables } from 'src/frustration-plugin';
 import { BrowserClient, ActionType, merge, asyncMap } from '@amplitude/analytics-core';
 import { ElementBasedTimestampedEvent, filterOutNonTrackableEvents, shouldTrackEvent } from '../helpers';
 import { AMPLITUDE_ELEMENT_DEAD_CLICKED_EVENT } from '../constants';
@@ -22,14 +22,9 @@ export function trackDeadClick({
   getEventProperties: (actionType: ActionType, element: Element) => Record<string, any>;
   shouldTrackDeadClick: shouldTrackEvent;
 }) {
-  const { clickObservableZen, mutationObservableZen, navigateObservableZen } = allObservables;
+  const { clickObservable, mutationObservable, navigateObservable }: AllWindowObservables = allObservables;
 
-  /* istanbul ignore if */
-  if (!clickObservableZen || !mutationObservableZen) {
-    return;
-  }
-
-  const filteredClickObservable = clickObservableZen.filter((click) => {
+  const filteredClickObservable = clickObservable.filter((click) => {
     return (
       filterOutNonTrackableEvents(click) &&
       shouldTrackDeadClick('click', click.closestTrackedAncestor) &&
@@ -39,9 +34,7 @@ export function trackDeadClick({
   });
 
   /* istanbul ignore next */
-  const changeObservables = navigateObservableZen
-    ? merge(mutationObservableZen, navigateObservableZen)
-    : mutationObservableZen;
+  const changeObservables = navigateObservable ? merge(mutationObservable, navigateObservable) : mutationObservable;
 
   const clicksAndChangeObservable = merge(filteredClickObservable, changeObservables);
 
