@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/unbound-method */
-
-import { Subject } from 'rxjs';
+/* eslint-disable @typescript-eslint/no-empty-function */
 import {
   BrowserClient,
   DEFAULT_RAGE_CLICK_THRESHOLD,
@@ -10,12 +9,12 @@ import {
 } from '@amplitude/analytics-core';
 import { trackRageClicks } from '../../src/autocapture/track-rage-click';
 import { AMPLITUDE_ELEMENT_RAGE_CLICKED_EVENT } from '../../src/constants';
-import { AllWindowObservables, ObservablesEnum } from '../../src/autocapture-plugin';
+import { ObservablesEnum } from '../../src/autocapture-plugin';
+import { AllWindowObservables } from '../../src/frustration-plugin';
 
 describe('trackRageClicks', () => {
   let mockAmplitude: jest.Mocked<BrowserClient>;
-  let clickObservable: Subject<any>;
-  let clickObservableZen: Observable<any>;
+  let clickObservable: Observable<any>;
   let allObservables: AllWindowObservables;
   let shouldTrackRageClick: jest.Mock;
   let clickObserver: any;
@@ -25,18 +24,14 @@ describe('trackRageClicks', () => {
     mockAmplitude = {
       track: jest.fn(),
     } as any;
-
-    clickObservable = new Subject();
-    clickObservableZen = new Observable<any>((observer) => {
+    clickObservable = new Observable<any>((observer) => {
       clickObserver = observer;
     });
 
     allObservables = {
       [ObservablesEnum.ClickObservable]: clickObservable,
-      [ObservablesEnum.ClickObservableZen]: clickObservableZen,
-      [ObservablesEnum.ChangeObservable]: new Subject(),
-      [ObservablesEnum.NavigateObservable]: new Subject(),
-      [ObservablesEnum.MutationObservable]: new Subject(),
+      [ObservablesEnum.NavigateObservable]: new Observable<any>(() => {}),
+      [ObservablesEnum.MutationObservable]: new Observable<any>(() => {}),
     };
     shouldTrackRageClick = jest.fn().mockReturnValue(true);
   });
@@ -206,7 +201,7 @@ describe('trackRageClicks', () => {
     // Simulate only 3 clicks (below threshold of 4)
     const startTime = Date.now();
     for (let i = 0; i < DEFAULT_RAGE_CLICK_THRESHOLD - 1; i++) {
-      clickObservable.next({
+      clickObserver.next({
         event: {
           target: mockElement,
           clientX: 100,
@@ -238,7 +233,7 @@ describe('trackRageClicks', () => {
     // Simulate clicks alternating between elements
     const startTime = Date.now();
     for (let i = 0; i < DEFAULT_RAGE_CLICK_THRESHOLD * 2; i++) {
-      clickObservable.next({
+      clickObserver.next({
         event: {
           target: i % 2 === 0 ? mockElement1 : mockElement2,
           clientX: 100,
@@ -271,7 +266,7 @@ describe('trackRageClicks', () => {
     // Simulate 4 rapid clicks (threshold)
     const startTime = Date.now();
     for (let i = 0; i < DEFAULT_RAGE_CLICK_THRESHOLD; i++) {
-      clickObservable.next({
+      clickObserver.next({
         event: {
           target: mockElement,
           clientX: 100,
@@ -413,7 +408,7 @@ describe('trackRageClicks', () => {
 
     // Simulate clicks on the first element but not enough to meet threshold
     for (let i = 0; i < DEFAULT_RAGE_CLICK_THRESHOLD - 1; i++) {
-      clickObservable.next({
+      clickObserver.next({
         event: {
           target: mockElement1,
           clientX: 100,
@@ -426,7 +421,7 @@ describe('trackRageClicks', () => {
     }
 
     // Now click on a different element - this should NOT trigger rage click
-    clickObservable.next({
+    clickObserver.next({
       event: {
         target: mockElement2,
         clientX: 200,
@@ -458,7 +453,7 @@ describe('trackRageClicks', () => {
     const startTime = Date.now();
 
     // First click
-    clickObservable.next({
+    clickObserver.next({
       event: {
         target: mockElement,
         clientX: 100,
@@ -471,7 +466,7 @@ describe('trackRageClicks', () => {
 
     // Add clicks that exceed the time window
     for (let i = 0; i < DEFAULT_RAGE_CLICK_THRESHOLD; i++) {
-      clickObservable.next({
+      clickObserver.next({
         event: {
           target: mockElement,
           clientX: i === DEFAULT_RAGE_CLICK_THRESHOLD - 1 ? 1000 : 100,

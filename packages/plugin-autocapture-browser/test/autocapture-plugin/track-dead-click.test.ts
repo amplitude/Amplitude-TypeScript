@@ -1,15 +1,14 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/unbound-method */
 
-import { Subject } from 'rxjs';
 import { BrowserClient, Observable } from '@amplitude/analytics-core';
 import { trackDeadClick } from '../../src/autocapture/track-dead-click';
 import { AMPLITUDE_ELEMENT_DEAD_CLICKED_EVENT } from '../../src/constants';
-import { AllWindowObservables, ObservablesEnum } from '../../src/autocapture-plugin';
+import { ObservablesEnum } from '../../src/autocapture-plugin';
+import { AllWindowObservables } from '../../src/frustration-plugin';
 
 describe('trackDeadClick', () => {
   let mockAmplitude: jest.Mocked<BrowserClient>;
-  let clickObservable: Subject<any>;
   let clickObservableZen: any;
   let mutationObservableZen: any;
   let navigateObservableZen: any;
@@ -25,7 +24,6 @@ describe('trackDeadClick', () => {
       track: jest.fn(),
     } as any;
 
-    clickObservable = new Subject();
     clickObservableZen = new Observable<any>((observer) => {
       clickObserver = observer;
     });
@@ -36,13 +34,9 @@ describe('trackDeadClick', () => {
       navigateObserver = observer;
     });
     allObservables = {
-      [ObservablesEnum.ClickObservable]: clickObservable,
-      [ObservablesEnum.ChangeObservable]: new Subject(),
-      [ObservablesEnum.NavigateObservable]: new Subject(),
-      [ObservablesEnum.MutationObservable]: new Subject(),
-      [ObservablesEnum.ClickObservableZen]: clickObservableZen,
-      [ObservablesEnum.MutationObservableZen]: mutationObservableZen,
-      [ObservablesEnum.NavigateObservableZen]: navigateObservableZen,
+      [ObservablesEnum.ClickObservable]: clickObservableZen,
+      [ObservablesEnum.MutationObservable]: mutationObservableZen,
+      [ObservablesEnum.NavigateObservable]: navigateObservableZen,
     };
     shouldTrackDeadClick = jest.fn().mockReturnValue(true);
     getEventProperties = jest.fn().mockReturnValue({ id: 'test-element' });
