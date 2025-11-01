@@ -101,7 +101,7 @@ export function trackActionClick({
     return Promise.resolve(null);
   });
 
-  return actionClickObservable.subscribe((actionClick: any) => {
+  return actionClickObservable.subscribe((actionClick) => {
     if (!actionClick) return;
     /* istanbul ignore next */
     amplitude?.track(
