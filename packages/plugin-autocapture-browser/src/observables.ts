@@ -1,26 +1,6 @@
 import { Observable, fromEvent } from 'rxjs';
 import { Observable as ZenObservable, getGlobalScope } from '@amplitude/analytics-core';
 
-/**
- * Creates an observable that tracks DOM mutations on the document body.
- */
-export const createMutationObservable = (): Observable<MutationRecord[]> => {
-  return new Observable<MutationRecord[]>((observer) => {
-    const mutationObserver = new MutationObserver((mutations) => {
-      observer.next(mutations);
-    });
-    mutationObserver.observe(document.body, {
-      childList: true,
-      attributes: true,
-      characterData: true,
-      subtree: true,
-    });
-    return () => mutationObserver.disconnect();
-  });
-};
-
-// TODO: once we're ready for ZenObservable, remove this ignore and add tests
-/* istanbul ignore next */
 export const createMutationObservableZen = (): ZenObservable<MutationRecord[]> => {
   return new ZenObservable<MutationRecord[]>((observer) => {
     const mutationObserver = new MutationObserver((mutations) => {

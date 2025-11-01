@@ -25,12 +25,7 @@ import { trackClicks } from './autocapture/track-click';
 import { trackChange } from './autocapture/track-change';
 import { trackActionClick } from './autocapture/track-action-click';
 import type { HasEventTargetAddRemove } from 'rxjs/internal/observable/fromEvent';
-import {
-  createMutationObservable,
-  createClickObservable,
-  createClickObservableZen,
-  createMutationObservableZen,
-} from './observables';
+import { createClickObservable, createClickObservableZen, createMutationObservableZen } from './observables';
 
 import {
   createLabeledEventToTriggerMap,
@@ -69,7 +64,6 @@ export interface AllWindowObservables {
   [ObservablesEnum.ChangeObservable]: ZenObservable<ElementBasedTimestampedEvent<Event>>;
   // [ObservablesEnum.ErrorObservable]: Observable<TimestampedEvent<ErrorEvent>>;
   [ObservablesEnum.NavigateObservable]: Observable<TimestampedEvent<NavigateEvent>> | undefined;
-  [ObservablesEnum.MutationObservable]: Observable<TimestampedEvent<MutationRecord[]>>;
   [ObservablesEnum.ClickObservableZen]?: ZenObservable<ElementBasedTimestampedEvent<MouseEvent>>;
   [ObservablesEnum.MutationObservableZen]?: ZenObservable<TimestampedEvent<MutationRecord[]>>;
   [ObservablesEnum.NavigateObservableZen]?: ZenObservable<TimestampedEvent<NavigateEvent>>;
@@ -212,17 +206,17 @@ export const autocapturePlugin = (
     }
 
     // Track DOM Mutations using shared observable
-    const mutationObservable = createMutationObservable().pipe(
-      map((mutation) =>
-        dataExtractor.addAdditionalEventProperties(
-          mutation,
-          'mutation',
-          (options as AutoCaptureOptionsWithDefaults).cssSelectorAllowlist,
-          dataAttributePrefix,
-        ),
-      ),
-      share(),
-    );
+    // const mutationObservable = createMutationObservable().pipe(
+    //   map((mutation) =>
+    //     dataExtractor.addAdditionalEventProperties(
+    //       mutation,
+    //       'mutation',
+    //       (options as AutoCaptureOptionsWithDefaults).cssSelectorAllowlist,
+    //       dataAttributePrefix,
+    //     ),
+    //   ),
+    //   share(),
+    // );
 
     const mutationObservableZen = multicast(
       createMutationObservableZen().map((mutation) =>
@@ -240,7 +234,6 @@ export const autocapturePlugin = (
       [ObservablesEnum.ChangeObservable]: changeObservable,
       // [ObservablesEnum.ErrorObservable]: errorObservable,
       [ObservablesEnum.NavigateObservable]: navigateObservable,
-      [ObservablesEnum.MutationObservable]: mutationObservable,
       [ObservablesEnum.ClickObservableZen]: clickObservableZen,
       [ObservablesEnum.MutationObservableZen]: mutationObservableZen,
       [ObservablesEnum.NavigateObservableZen]: navigateObservableZen,
