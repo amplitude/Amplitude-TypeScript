@@ -204,20 +204,7 @@ export const autocapturePlugin = (
         }),
       );
     }
-
-    // Track DOM Mutations using shared observable
-    // const mutationObservable = createMutationObservable().pipe(
-    //   map((mutation) =>
-    //     dataExtractor.addAdditionalEventProperties(
-    //       mutation,
-    //       'mutation',
-    //       (options as AutoCaptureOptionsWithDefaults).cssSelectorAllowlist,
-    //       dataAttributePrefix,
-    //     ),
-    //   ),
-    //   share(),
-    // );
-
+    
     const mutationObservableZen = multicast(
       createMutationObservableZen().map((mutation) =>
         dataExtractor.addAdditionalEventProperties(
