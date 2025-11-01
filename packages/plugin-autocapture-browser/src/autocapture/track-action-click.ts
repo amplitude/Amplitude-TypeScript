@@ -71,7 +71,7 @@ export function trackActionClick({
   let actionClickTimer: ReturnType<typeof setTimeout> | null = null;
   let lastClickEvent: TimestampedEvent<any> | null = null;
 
-  const actionClickObservable = asyncMap(clickMutationNavigateObservable, (event): any => {
+  const actionClickObservable = asyncMap(clickMutationNavigateObservable, (event) => {
     // clear any previous timer
     if (actionClickTimer) {
       clearTimeout(actionClickTimer);
