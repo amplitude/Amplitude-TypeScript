@@ -12,7 +12,10 @@ jest.mock('@amplitude/analytics-core', () => {
   const actual = jest.requireActual<typeof import('@amplitude/analytics-core')>('@amplitude/analytics-core');
   return {
     ...actual,
-    UUID: jest.fn(() => '11111111-1111-1111-1111-111111111111'),
+    UUID: jest.fn(function (...args) {
+      // Call through to original
+      return actual.UUID(...args);
+    }),
     getGlobalScope: jest.fn(() => (typeof window !== 'undefined' ? window : undefined)),
   };
 });
@@ -139,6 +142,12 @@ describe('pageViewTrackingPlugin', () => {
       // Block event loop for 1s before asserting
       await new Promise((resolve) => setTimeout(resolve, 1000));
 
+      // Expect session storage to match the latest page view id
+      const sessionStorageItem = window.sessionStorage.getItem(PAGE_VIEW_SESSION_STORAGE_KEY);
+      expect(sessionStorageItem).toBeDefined();
+      const sessionStorageItemJson = JSON.parse(sessionStorageItem as string) as { pageViewId: string };
+      const pageViewIdSessionStorage = sessionStorageItemJson.pageViewId;
+
       expect(track).toHaveBeenNthCalledWith(2, {
         event_properties: {
           '[Amplitude] Page Domain': newURL.hostname,
@@ -146,16 +155,11 @@ describe('pageViewTrackingPlugin', () => {
           '[Amplitude] Page Path': newURL.pathname,
           '[Amplitude] Page Title': '',
           '[Amplitude] Page URL': newURL.toString(),
-          '[Amplitude] Page View ID': '11111111-1111-1111-1111-111111111111',
+          '[Amplitude] Page View ID': pageViewIdSessionStorage,
         },
         event_type: '[Amplitude] Page Viewed',
       });
       expect(track).toHaveBeenCalledTimes(2);
-
-      // Expect session storage to be set with the page view id
-      expect(window.sessionStorage.getItem(PAGE_VIEW_SESSION_STORAGE_KEY)).toBe(
-        JSON.stringify({ pageViewId: '11111111-1111-1111-1111-111111111111' }),
-      );
     });
 
     test.each([
@@ -194,7 +198,7 @@ describe('pageViewTrackingPlugin', () => {
           '[Amplitude] Page Path': pathname,
           '[Amplitude] Page Title': '',
           '[Amplitude] Page URL': `https://${hostname}${pathname}`,
-          '[Amplitude] Page View ID': '11111111-1111-1111-1111-111111111111',
+          '[Amplitude] Page View ID': expect.any(String),
           utm_source: 'google',
           utm_medium: 'cpc',
           utm_campaign: 'brand',
@@ -292,7 +296,7 @@ describe('pageViewTrackingPlugin', () => {
           '[Amplitude] Page Path': oldURL.pathname,
           '[Amplitude] Page Title': '',
           '[Amplitude] Page URL': oldURL.toString(),
-          '[Amplitude] Page View ID': '11111111-1111-1111-1111-111111111111',
+          '[Amplitude] Page View ID': expect.any(String),
         },
         event_type: '[Amplitude] Page Viewed',
       });
@@ -304,7 +308,7 @@ describe('pageViewTrackingPlugin', () => {
           '[Amplitude] Page Path': '/home-шеллы',
           '[Amplitude] Page Title': '',
           '[Amplitude] Page URL': 'https://www.example.com/home-шеллы',
-          '[Amplitude] Page View ID': '11111111-1111-1111-1111-111111111111',
+          '[Amplitude] Page View ID': expect.any(String),
         },
         event_type: '[Amplitude] Page Viewed',
       });
@@ -349,7 +353,7 @@ describe('pageViewTrackingPlugin', () => {
           '[Amplitude] Page Path': oldURL.pathname,
           '[Amplitude] Page Title': '',
           '[Amplitude] Page URL': oldURL.toString(),
-          '[Amplitude] Page View ID': '11111111-1111-1111-1111-111111111111',
+          '[Amplitude] Page View ID': expect.any(String),
         },
         event_type: '[Amplitude] Page Viewed',
       });
@@ -361,7 +365,7 @@ describe('pageViewTrackingPlugin', () => {
           '[Amplitude] Page Path': malformedPath,
           '[Amplitude] Page Title': '',
           '[Amplitude] Page URL': malformedURL,
-          '[Amplitude] Page View ID': '11111111-1111-1111-1111-111111111111',
+          '[Amplitude] Page View ID': expect.any(String),
         },
         event_type: '[Amplitude] Page Viewed',
       });
@@ -404,7 +408,7 @@ describe('pageViewTrackingPlugin', () => {
           '[Amplitude] Page Path': oldURL.pathname,
           '[Amplitude] Page Title': '',
           '[Amplitude] Page URL': oldURL.toString(),
-          '[Amplitude] Page View ID': '11111111-1111-1111-1111-111111111111',
+          '[Amplitude] Page View ID': expect.any(String),
         },
         event_type: '[Amplitude] Page Viewed',
       });
@@ -416,7 +420,7 @@ describe('pageViewTrackingPlugin', () => {
           '[Amplitude] Page Path': newURL.pathname,
           '[Amplitude] Page Title': '',
           '[Amplitude] Page URL': newBaseURL,
-          '[Amplitude] Page View ID': '11111111-1111-1111-1111-111111111111',
+          '[Amplitude] Page View ID': expect.any(String),
         },
         event_type: '[Amplitude] Page Viewed',
       });

@@ -70,13 +70,6 @@ export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (options: Op
   let previousURL: string | null = typeof location !== 'undefined' ? location.href : null;
 
   const trackHistoryPageView = async (): Promise<void> => {
-    // Generate new page view id and set it in session storage
-    let pageViewId: string | undefined;
-    if (sessionStorage) {
-      pageViewId = UUID();
-      void sessionStorage.set(PAGE_VIEW_SESSION_STORAGE_KEY, { pageViewId });
-    }
-
     const newURL = location.href;
     const shouldTrackPageView =
       shouldTrackHistoryPageView(trackHistoryChanges, newURL, previousURL || '') && shouldTrackOnPageLoad();
@@ -87,6 +80,13 @@ export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (options: Op
     previousURL = newURL;
 
     if (shouldTrackPageView) {
+      // Generate new page view id and set it in session storage
+      let pageViewId: string | undefined;
+      if (sessionStorage) {
+        pageViewId = UUID();
+        void sessionStorage.set(PAGE_VIEW_SESSION_STORAGE_KEY, { pageViewId });
+      }
+
       /* istanbul ignore next */
       loggerProvider?.log('Tracking page view event');
       amplitude?.track(await createPageViewEvent(pageViewId));
