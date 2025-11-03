@@ -204,7 +204,7 @@ export const autocapturePlugin = (
         }),
       );
     }
-    
+
     const mutationObservableZen = multicast(
       createMutationObservableZen().map((mutation) =>
         dataExtractor.addAdditionalEventProperties(
