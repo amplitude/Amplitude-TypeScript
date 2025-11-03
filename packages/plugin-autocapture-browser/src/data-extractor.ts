@@ -158,15 +158,15 @@ export class DataExtractor {
 
     // Attach the current [Amplitude] Page View ID if present in sessionStorage
     try {
-      const raw = window?.sessionStorage?.getItem('AMP_PAGE_VIEW');
+      const raw = window?.sessionStorage?.getItem(constants.PAGE_VIEW_SESSION_STORAGE_KEY);
       if (raw) {
         const parsed = JSON.parse(raw) as { pageViewId?: string };
         if (typeof parsed.pageViewId === 'string') {
-          properties['[Amplitude] Page View ID'] = parsed.pageViewId;
+          properties[constants.AMPLITUDE_EVENT_PROP_PAGE_VIEW_ID] = parsed.pageViewId;
         }
       }
     } catch {
-      // ignore storage/JSON errors
+      // ignore storage/JSON errors by not attaching the page view ID
     }
 
     // id is never masked, so always include it
