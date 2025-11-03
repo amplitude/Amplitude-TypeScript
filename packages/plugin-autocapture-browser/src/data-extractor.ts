@@ -158,7 +158,7 @@ export class DataExtractor {
 
     // Attach the current [Amplitude] Page View ID if present in sessionStorage
     try {
-      const raw = window?.sessionStorage?.getItem(constants.PAGE_VIEW_SESSION_STORAGE_KEY);
+      const raw = window.sessionStorage?.getItem(constants.PAGE_VIEW_SESSION_STORAGE_KEY);
       if (raw) {
         const parsed = JSON.parse(raw) as { pageViewId?: string };
         if (typeof parsed.pageViewId === 'string') {
