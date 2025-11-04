@@ -78,5 +78,5 @@ export interface BrowserClient extends Client {
    * Sets the diagnostics sample rate before amplitude.init()
    * @param sampleRate - The sample rate to set
    */
-  _setDiagnosticsSampleRate(sampleRate: number): void;
+  _setDiagnosticsSampleRate?(sampleRate: number): void;
 }
