@@ -272,7 +272,9 @@
           identify,
           fetchRemoteConfig: false,
           autocapture: {
-            elementInteractions: true,
+            elementInteractions: {
+              debounceTime: 1000,
+            },
             frustrationInteractions,
             sessions: true,
           },

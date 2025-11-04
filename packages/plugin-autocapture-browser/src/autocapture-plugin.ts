@@ -87,7 +87,7 @@ export const autocapturePlugin = (
 
   options.cssSelectorAllowlist = options.cssSelectorAllowlist ?? DEFAULT_CSS_SELECTOR_ALLOWLIST;
   options.actionClickAllowlist = options.actionClickAllowlist ?? DEFAULT_ACTION_CLICK_ALLOWLIST;
-  options.debounceTime = options.debounceTime ?? 0; // TODO: update this when rage clicks are added to 1000ms
+  options.debounceTime = options.debounceTime ?? 0;
 
   options.pageUrlExcludelist = options.pageUrlExcludelist?.reduce(
     (acc: (string | RegExp | { pattern: string })[], excludePattern) => {
