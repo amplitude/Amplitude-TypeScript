@@ -91,11 +91,9 @@ export function trackActionClick({
     } else {
       // if mutation/navigation + last click event, then it's an action click
       if (lastClickEvent) {
-        try {
-          return Promise.resolve(lastClickEvent);
-        } finally {
-          lastClickEvent = null;
-        }
+        const event = lastClickEvent;
+        lastClickEvent = null;
+        return Promise.resolve(event);
       }
     }
     return Promise.resolve(null);
