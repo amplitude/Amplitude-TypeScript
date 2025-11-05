@@ -1,32 +1,8 @@
 import { getGlobalScope } from '@amplitude/analytics-core';
-import dom from '@amplitude/rrweb-utils';
 import type { eventWithTime, scrollCallback } from '@amplitude/rrweb-types';
 
 // These functions are not exposed in rrweb package, so we will define it here to use
 // Ignoring this function since this is copied from rrweb
-/* istanbul ignore next */
-export function getWindowScroll(win: Window) {
-  const doc = win.document;
-  return {
-    left: doc.scrollingElement
-      ? doc.scrollingElement.scrollLeft
-      : win.pageXOffset !== undefined
-      ? win.pageXOffset
-      : doc.documentElement.scrollLeft ||
-        (doc?.body && dom.parentElement(doc.body)?.scrollLeft) ||
-        doc?.body?.scrollLeft ||
-        0,
-    top: doc.scrollingElement
-      ? doc.scrollingElement.scrollTop
-      : win.pageYOffset !== undefined
-      ? win.pageYOffset
-      : doc?.documentElement.scrollTop ||
-        (doc?.body && dom.parentElement(doc.body)?.scrollTop) ||
-        doc?.body?.scrollTop ||
-        0,
-  };
-}
-
 export function getWindowHeight(): number {
   const globalScope = getGlobalScope();
   return (
