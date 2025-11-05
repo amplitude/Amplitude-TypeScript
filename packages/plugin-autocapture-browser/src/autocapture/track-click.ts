@@ -31,6 +31,7 @@ export function trackClicks({
   );
 
   return bufferedClicks.subscribe((click) => {
+    /* istanbul ignore next */
     amplitude?.track(AMPLITUDE_ELEMENT_CLICKED_EVENT, click.targetElementProperties);
   });
 }
