@@ -56,7 +56,7 @@ export function trackActionClick({
   const mutationOrNavigate = navigateObservableZen
     ? merge(mutationObservableZen, navigateObservableZen)
     : mutationObservableZen;
-  
+
   const clickMutationNavigateObservable = merge(filteredClickObservable, mutationOrNavigate);
 
   let actionClickTimer: ReturnType<typeof setTimeout> | null = null;
