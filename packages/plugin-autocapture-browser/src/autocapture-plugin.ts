@@ -271,9 +271,7 @@ export const autocapturePlugin = (
       evaluateTriggers: evaluateTriggers.evaluate.bind(evaluateTriggers),
     });
 
-    if (clickTrackingSubscription) {
-      subscriptions.push(clickTrackingSubscription);
-    }
+    subscriptions.push(clickTrackingSubscription);
 
     const changeSubscription = trackChange({
       allObservables,
@@ -292,9 +290,7 @@ export const autocapturePlugin = (
       shouldTrackEvent,
       shouldTrackActionClick: shouldTrackActionClick,
     });
-    if (actionClickSubscription) {
-      subscriptions.push(actionClickSubscription);
-    }
+    subscriptions.push(actionClickSubscription);
 
     /* istanbul ignore next */
     config?.loggerProvider?.log(`${name} has been successfully added.`);
