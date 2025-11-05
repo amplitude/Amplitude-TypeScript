@@ -31,7 +31,7 @@ import {
   groupLabeledEventIdsByEventType,
 } from './pageActions/triggers';
 import { DataExtractor } from './data-extractor';
-import { Observable as ZenObservable, Unsubscribable } from '@amplitude/analytics-core';
+import { Observable, Unsubscribable } from '@amplitude/analytics-core';
 
 type NavigationType = {
   addEventListener: (type: string, listener: EventListenerOrEventListenerObject) => void;
@@ -63,11 +63,11 @@ export enum ObservablesEnum {
 }
 
 export interface AllWindowObservables {
-  [ObservablesEnum.ChangeObservable]: ZenObservable<ElementBasedTimestampedEvent<Event>>;
+  [ObservablesEnum.ChangeObservable]: Observable<ElementBasedTimestampedEvent<Event>>;
   // [ObservablesEnum.ErrorObservable]: Observable<TimestampedEvent<ErrorEvent>>;
-  [ObservablesEnum.ClickObservableZen]: ZenObservable<ElementBasedTimestampedEvent<MouseEvent>>;
-  [ObservablesEnum.MutationObservableZen]: ZenObservable<TimestampedEvent<MutationRecord[]>>;
-  [ObservablesEnum.NavigateObservableZen]?: ZenObservable<TimestampedEvent<NavigateEvent>>;
+  [ObservablesEnum.ClickObservableZen]: Observable<ElementBasedTimestampedEvent<MouseEvent>>;
+  [ObservablesEnum.MutationObservableZen]: Observable<TimestampedEvent<MutationRecord[]>>;
+  [ObservablesEnum.NavigateObservableZen]?: Observable<TimestampedEvent<NavigateEvent>>;
 }
 
 export const autocapturePlugin = (
@@ -134,7 +134,7 @@ export const autocapturePlugin = (
     );
 
     const changeObservable = multicast(
-      new ZenObservable<ElementBasedTimestampedEvent<Event>>((observer) => {
+      new Observable<ElementBasedTimestampedEvent<Event>>((observer) => {
         const handler = (changeEvent: Event) => {
           const enrichedChangeEvent = dataExtractor.addAdditionalEventProperties(
             changeEvent,
@@ -157,12 +157,12 @@ export const autocapturePlugin = (
     // );
 
     // Create observable for URL changes
-    let navigateObservableZen: ZenObservable<TimestampedEvent<NavigateEvent>> | undefined;
+    let navigateObservableZen: Observable<TimestampedEvent<NavigateEvent>> | undefined;
 
     /* istanbul ignore next */
     if (window.navigation) {
       navigateObservableZen = multicast(
-        new ZenObservable<TimestampedEvent<NavigateEvent>>((observer) => {
+        new Observable<TimestampedEvent<NavigateEvent>>((observer) => {
           const handler = (navigateEvent: NavigateEvent) => {
             const enrichedNavigateEvent = dataExtractor.addAdditionalEventProperties(
               navigateEvent,
