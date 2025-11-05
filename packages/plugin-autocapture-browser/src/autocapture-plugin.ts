@@ -65,8 +65,8 @@ export enum ObservablesEnum {
 export interface AllWindowObservables {
   [ObservablesEnum.ChangeObservable]: ZenObservable<ElementBasedTimestampedEvent<Event>>;
   // [ObservablesEnum.ErrorObservable]: Observable<TimestampedEvent<ErrorEvent>>;
-  [ObservablesEnum.ClickObservableZen]?: ZenObservable<ElementBasedTimestampedEvent<MouseEvent>>;
-  [ObservablesEnum.MutationObservableZen]?: ZenObservable<TimestampedEvent<MutationRecord[]>>;
+  [ObservablesEnum.ClickObservableZen]: ZenObservable<ElementBasedTimestampedEvent<MouseEvent>>;
+  [ObservablesEnum.MutationObservableZen]: ZenObservable<TimestampedEvent<MutationRecord[]>>;
   [ObservablesEnum.NavigateObservableZen]?: ZenObservable<TimestampedEvent<NavigateEvent>>;
 }
 

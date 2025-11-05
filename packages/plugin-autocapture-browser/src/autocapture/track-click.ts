@@ -18,12 +18,6 @@ export function trackClicks({
 }) {
   const { clickObservableZen } = allObservables;
 
-  // TODO: take this out once zen migration complete and this is non-optional
-  /* istanbul ignore next */
-  if (!clickObservableZen) {
-    return;
-  }
-
   const clickObservableFiltered = clickObservableZen
     .filter(filterOutNonTrackableEvents)
     .filter((click) => {

@@ -26,12 +26,6 @@ export function trackActionClick({
 }) {
   const { clickObservableZen, mutationObservableZen, navigateObservableZen } = allObservables;
 
-  // TODO: remove this once we're ready for ZenObservable and they become not optional
-  /* istanbul ignore if */
-  if (!clickObservableZen || !mutationObservableZen) {
-    return;
-  }
-
   const filteredClickObservable = clickObservableZen
     .filter((click) => {
       return !shouldTrackEvent('click', click.closestTrackedAncestor);
