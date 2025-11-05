@@ -53,19 +53,10 @@ export function trackActionClick({
       return shouldTrackActionClick('click', clickEvent.closestTrackedAncestor);
     });
 
-  let mutationOrNavigate = navigateObservableZen
+  const mutationOrNavigate = navigateObservableZen
     ? merge(mutationObservableZen, navigateObservableZen)
     : mutationObservableZen;
-  mutationOrNavigate = asyncMap(mutationOrNavigate, (event) => {
-    // defer mutation/navigation events to new task to prevent
-    // from being emitted before the click event
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve(event);
-      }, 0);
-    });
-  });
-
+  
   const clickMutationNavigateObservable = merge(filteredClickObservable, mutationOrNavigate);
 
   let actionClickTimer: ReturnType<typeof setTimeout> | null = null;
