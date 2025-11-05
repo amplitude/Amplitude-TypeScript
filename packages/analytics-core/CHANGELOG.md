@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.31.1-SR-1975.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.31.0...@amplitude/analytics-core@2.31.1-SR-1975.0) (2025-11-05)
+
+
+### Bug Fixes
+
+* make setDiagnosticsRate an optional function ([#1382](https://github.com/amplitude/Amplitude-TypeScript/issues/1382)) ([8898186](https://github.com/amplitude/Amplitude-TypeScript/commit/889818637c41c6469a89b70553e8dcfc9725ab87))
+
+
+
+
+
 # [2.31.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.30.0...@amplitude/analytics-core@2.31.0) (2025-10-29)
 
 
