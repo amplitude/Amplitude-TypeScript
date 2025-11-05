@@ -1483,6 +1483,33 @@ describe('SessionReplay', () => {
       expect(recordArg?.hooks?.scroll).toBeDefined();
     });
 
+    test('should handle interaction config enabled without clickHandler initialized', async () => {
+      // enable interaction config
+      mockRemoteConfig = {
+        sr_sampling_config: samplingConfig,
+        sr_privacy_config: {},
+        sr_interaction_config: {
+          enabled: true,
+        },
+      };
+
+      const sessionReplay = new SessionReplay();
+      // Init without sessionId so clickHandler is not created
+      const optionsWithoutSessionId = { ...mockOptions };
+      delete optionsWithoutSessionId.sessionId;
+      await sessionReplay.init(apiKey, optionsWithoutSessionId).promise;
+
+      // Set sessionId after init
+      sessionReplay.setSessionId(123456);
+
+      await sessionReplay.recordEvents();
+      const recordArg = mockRecordFunction.mock.calls[0][0];
+      // mouseInteraction should be undefined because clickHandler was never initialized
+      expect(recordArg?.hooks?.mouseInteraction).toBeUndefined();
+      // scroll should still be undefined because scrollHook was never initialized either
+      expect(recordArg?.hooks?.scroll).toBeUndefined();
+    });
+
     test('should warn if record throws during recordEvents', async () => {
       await sessionReplay.init(apiKey, mockOptions).promise;
       (mockRecordFunction as unknown as jest.Mock).mockImplementationOnce(() => {

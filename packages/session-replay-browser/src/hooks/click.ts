@@ -1,12 +1,13 @@
 import type { mouseInteractionCallBack } from '@amplitude/rrweb-types';
 import { MouseInteractions } from '@amplitude/rrweb-types';
-import { getWindowScroll, Mirror } from '../utils/rrweb';
+import { Mirror } from '../utils/rrweb';
 import { SessionReplayEventsManager as AmplitudeSessionReplayEventsManager } from '../typings/session-replay';
-import { PayloadBatcher } from 'src/track-destination';
+import { PayloadBatcher } from '../track-destination';
 import { finder } from '../libs/finder';
 import { getGlobalScope, ILogger } from '@amplitude/analytics-core';
-import { UGCFilterRule } from 'src/config/types';
+import { UGCFilterRule } from '../config/types';
 import { getPageUrl } from '../helpers';
+import { ScrollWatcher } from './scroll';
 
 // exported for testing
 export type ClickEvent = {
@@ -23,7 +24,7 @@ export type ClickEvent = {
 // exported for testing
 export type ClickEventWithCount = ClickEvent & { count: number };
 
-type Options = {
+type Context = {
   sessionId: string | number;
   deviceIdFn: () => string | undefined;
   eventsManager: AmplitudeSessionReplayEventsManager<'interaction', string>;
@@ -72,56 +73,70 @@ export const clickBatcher: PayloadBatcher = ({ version, events }) => {
   return { version, events: Object.values(reduced) };
 };
 
-export const clickHook: (logger: ILogger, options: Options) => mouseInteractionCallBack =
-  (logger, { eventsManager, sessionId, deviceIdFn, mirror, ugcFilterRules }) =>
-  (e) => {
-    if (e.type !== MouseInteractions.Click) {
-      return;
-    }
+export class ClickHandler {
+  private readonly logger: ILogger;
+  private readonly scrollWatcher: ScrollWatcher;
 
-    const globalScope = getGlobalScope();
-    if (!globalScope) {
-      return;
-    }
+  constructor(logger: ILogger, scrollWatcher: ScrollWatcher) {
+    this.logger = logger;
+    this.scrollWatcher = scrollWatcher;
+  }
 
-    const { location, innerHeight, innerWidth } = globalScope;
-    // it only makes sense to send events if a pageUrl exists
-    if (!location) {
-      return;
-    }
-
-    const { x, y } = e;
-    if (x === undefined || y === undefined) {
-      return;
-    }
-
-    const node = mirror.getNode(e.id);
-    let selector;
-    if (node) {
-      try {
-        selector = finder(node as Element);
-      } catch (err) {
-        logger.debug('error resolving selector from finder');
+  createHook: (context: Context) => mouseInteractionCallBack = ({
+    eventsManager,
+    sessionId,
+    deviceIdFn,
+    mirror,
+    ugcFilterRules,
+  }) => {
+    return (e) => {
+      if (e.type !== MouseInteractions.Click) {
+        return;
       }
-    }
 
-    const { left: scrollX, top: scrollY } = getWindowScroll(globalScope as unknown as Window);
+      const globalScope = getGlobalScope();
+      if (!globalScope) {
+        return;
+      }
 
-    const pageUrl = getPageUrl(location.href, ugcFilterRules);
+      const { location, innerHeight, innerWidth } = globalScope;
+      // it only makes sense to send events if a pageUrl exists
+      if (!location) {
+        return;
+      }
 
-    const event: ClickEvent = {
-      x: x + scrollX,
-      y: y + scrollY,
-      selector,
+      const { x, y } = e;
+      if (x === undefined || y === undefined) {
+        return;
+      }
 
-      viewportHeight: innerHeight,
-      viewportWidth: innerWidth,
-      pageUrl,
-      timestamp: Date.now(),
-      type: 'click',
+      const node = mirror.getNode(e.id);
+      let selector;
+      if (node) {
+        try {
+          selector = finder(node as Element);
+        } catch (err) {
+          this.logger.debug('error resolving selector from finder');
+        }
+      }
+
+      const pageUrl = getPageUrl(location.href, ugcFilterRules);
+
+      const event: ClickEvent = {
+        x: x + this.scrollWatcher.currentScrollX,
+        y: y + this.scrollWatcher.currentScrollY,
+        selector,
+
+        viewportHeight: innerHeight,
+        viewportWidth: innerWidth,
+        pageUrl,
+        timestamp: Date.now(),
+        type: 'click',
+      };
+      const deviceId = deviceIdFn();
+      if (deviceId) {
+        eventsManager.addEvent({ sessionId, event: { type: 'interaction', data: JSON.stringify(event) }, deviceId });
+      }
     };
-    const deviceId = deviceIdFn();
-    if (deviceId) {
-      eventsManager.addEvent({ sessionId, event: { type: 'interaction', data: JSON.stringify(event) }, deviceId });
-    }
   };
+}
