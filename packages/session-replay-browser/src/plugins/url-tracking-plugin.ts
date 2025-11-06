@@ -76,6 +76,9 @@ export function createUrlTrackingPlugin(
       // Initialize to undefined to ensure first call always emits an event
       let lastTrackedUrl: string | undefined = undefined;
 
+      // Patch detection marker to prevent double-patching
+      const PATCH_MARKER = '__amplitude_url_tracking_patched__';
+
       // Helper functions
       /**
        * Gets the current URL with proper normalization
@@ -141,13 +144,23 @@ export function createUrlTrackingPlugin(
       const createHistoryMethodPatch = <T extends typeof history.pushState | typeof history.replaceState>(
         originalMethod: T,
       ) => {
-        return function (this: History, ...args: Parameters<T>) {
+        const patchedMethod = function (this: History, ...args: Parameters<T>) {
           // Call the original history method first
           const result = originalMethod.apply(this, args);
           // Then emit URL change event
           emitUrlChange();
           return result;
         };
+
+        // Mark the patched method to prevent double-patching
+        Object.defineProperty(patchedMethod, PATCH_MARKER, {
+          value: true,
+          writable: false,
+          enumerable: false,
+          configurable: false
+        });
+
+        return patchedMethod;
       };
 
       // Hashchange event handler - delegates to emitUrlChange for consistency
@@ -183,8 +196,15 @@ export function createUrlTrackingPlugin(
         /**
          * Sets up history method patching to intercept pushState and replaceState calls
          * This ensures URL changes are detected even when history methods are called programmatically
+         * Includes patch detection to prevent double-patching by the same plugin
          */
         const setupHistoryPatching = (): void => {
+          // Check if we already patched these methods
+          if ((globalScope.history.pushState as any)[PATCH_MARKER]) {
+            // Already patched by this plugin, skip patching
+            return;
+          }
+
           // Patch pushState to emit URL change events
           globalScope.history.pushState = createHistoryMethodPatch(originalPushState);
 
@@ -205,9 +225,7 @@ export function createUrlTrackingPlugin(
 
         // Return cleanup function to restore original state
         return () => {
-          // Restore original history methods
-          globalScope.history.pushState = originalPushState;
-          globalScope.history.replaceState = originalReplaceState;
+          // Restore original history methods - cannot be done here because the plugin is not aware of the history methods modified by other plugins
 
           // Remove popstate event listener
           globalScope.removeEventListener('popstate', emitUrlChange);
