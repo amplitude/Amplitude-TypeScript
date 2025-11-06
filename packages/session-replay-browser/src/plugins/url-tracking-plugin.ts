@@ -153,7 +153,7 @@ export function createUrlTrackingPlugin(
         };
 
         // Mark the patched method to prevent double-patching
-        patchedMethod[PATCH_MARKER] = true;
+        (patchedMethod as any)[PATCH_MARKER] = true;
 
         return patchedMethod;
       };
