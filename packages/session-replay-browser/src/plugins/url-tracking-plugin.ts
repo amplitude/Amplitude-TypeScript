@@ -153,12 +153,7 @@ export function createUrlTrackingPlugin(
         };
 
         // Mark the patched method to prevent double-patching
-        Object.defineProperty(patchedMethod, PATCH_MARKER, {
-          value: true,
-          writable: false,
-          enumerable: false,
-          configurable: false
-        });
+        patchedMethod[PATCH_MARKER] = true;
 
         return patchedMethod;
       };
