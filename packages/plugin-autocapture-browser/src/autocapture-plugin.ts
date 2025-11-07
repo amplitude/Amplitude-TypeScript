@@ -292,7 +292,6 @@ export const autocapturePlugin = (
     // Create subscriptions
     const clickTrackingSubscription = trackClicks({
       allObservables,
-      options: options as AutoCaptureOptionsWithDefaults,
       amplitude,
       shouldTrackEvent: shouldTrackEvent,
       evaluateTriggers: evaluateTriggers.evaluate.bind(evaluateTriggers),
