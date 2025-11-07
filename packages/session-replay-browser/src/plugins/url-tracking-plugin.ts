@@ -79,6 +79,11 @@ export function createUrlTrackingPlugin(
       // Patch detection marker to prevent double-patching
       const PATCH_MARKER = '__amplitude_url_tracking_patched__';
 
+      // Global flag key on globalScope to track if the plugin has been reset/cleaned up
+      // When true, prevents emitUrlChange from being called from patched history methods
+      // even if other plugins have also patched them and we can't restore the originals
+      const RESET_FLAG_KEY = '__amplitude_url_tracking_reset__';
+
       // Helper functions
       /**
        * Gets the current URL with proper normalization
@@ -138,6 +143,7 @@ export function createUrlTrackingPlugin(
        * Creates a patched version of history methods (pushState/replaceState)
        * that calls the original method and then emits a URL change event
        * Ensures URL changes are detected even when history methods are called programmatically
+       * Checks global reset flag to prevent emitting after plugin cleanup
        * @param originalMethod The original history method to patch
        * @returns Patched function that calls original method then emits URL change event
        */
@@ -147,8 +153,10 @@ export function createUrlTrackingPlugin(
         const patchedMethod = function (this: History, ...args: Parameters<T>) {
           // Call the original history method first
           const result = originalMethod.apply(this, args);
-          // Then emit URL change event
-          emitUrlChange();
+          // Then emit URL change event only if plugin hasn't been reset
+          if (!(globalScope as Record<string, any>)[RESET_FLAG_KEY]) {
+            emitUrlChange();
+          }
           return result;
         } as T & { [PATCH_MARKER]: boolean };
 
@@ -224,7 +232,11 @@ export function createUrlTrackingPlugin(
 
         // Return cleanup function to restore original state
         return () => {
-          // Restore original history methods - cannot be done here because the plugin is not aware of the history methods modified by other plugins
+          // Restore original history methods - cannot be done here
+          // because the plugin is not aware of the history methods modified by other plugins
+          // so we need to set a flag on the globalScope to prevent further emitUrlChange calls from patched methods
+          // Set reset flag on globalScope to prevent further emitUrlChange calls from patched methods
+          (globalScope as Record<string, any>)[RESET_FLAG_KEY] = true;
 
           // Remove popstate event listener
           globalScope.removeEventListener('popstate', emitUrlChange);
