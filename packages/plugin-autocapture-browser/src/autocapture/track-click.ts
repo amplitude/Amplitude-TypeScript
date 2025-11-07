@@ -13,7 +13,6 @@ export function trackClicks({
 }: {
   amplitude: BrowserClient;
   allObservables: AllWindowObservables;
-  options: AutoCaptureOptionsWithDefaults;
   shouldTrackEvent: shouldTrackEvent;
   evaluateTriggers: evaluateTriggersFn;
 }) {
