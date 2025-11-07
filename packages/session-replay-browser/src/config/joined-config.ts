@@ -54,6 +54,7 @@ export class SessionReplayJoinedConfigGenerator {
     // in the remote config.
     config.captureEnabled = true;
     let sessionReplayRemoteConfig: SessionReplayRemoteConfig | undefined;
+    let remoteConfigFailed = false;
 
     // Subscribe to remote config client to get the config (uses cache if available)
     await new Promise<void>((resolve) => {
@@ -72,18 +73,20 @@ export class SessionReplayJoinedConfigGenerator {
             const samplingConfig = namespaceConfig.sr_sampling_config;
             const privacyConfig = namespaceConfig.sr_privacy_config;
             const targetingConfig = namespaceConfig.sr_targeting_config;
+            const interactionConfig = namespaceConfig.sr_interaction_config;
+            const loggingConfig = namespaceConfig.sr_logging_config;
 
             const ugcFilterRules = config.interactionConfig?.ugcFilterRules;
             // This is intentionally forced to only be set through the remote config.
-            config.interactionConfig = namespaceConfig.sr_interaction_config;
+            config.interactionConfig = interactionConfig;
             if (config.interactionConfig && ugcFilterRules) {
               config.interactionConfig.ugcFilterRules = ugcFilterRules;
             }
 
             // This is intentionally forced to only be set through the remote config.
-            config.loggingConfig = namespaceConfig.sr_logging_config;
+            config.loggingConfig = loggingConfig;
 
-            if (samplingConfig || privacyConfig || targetingConfig) {
+            if (samplingConfig || privacyConfig || targetingConfig || interactionConfig || loggingConfig) {
               sessionReplayRemoteConfig = {};
               if (samplingConfig) {
                 sessionReplayRemoteConfig.sr_sampling_config = samplingConfig;
@@ -95,6 +98,9 @@ export class SessionReplayJoinedConfigGenerator {
                 sessionReplayRemoteConfig.sr_targeting_config = targetingConfig;
               }
             }
+          } else {
+            // Remote config fetch failed - mark for kill switch
+            remoteConfigFailed = true;
           }
 
           // Resolve on first callback
@@ -104,6 +110,17 @@ export class SessionReplayJoinedConfigGenerator {
     });
 
     if (!sessionReplayRemoteConfig) {
+      // If we don't have session replay remote config, force disable capture
+      config.captureEnabled = false;
+      if (remoteConfigFailed) {
+        this.localConfig.loggerProvider.warn(
+          'Session Replay capture disabled because remote config could not be resolved.',
+        );
+      } else {
+        this.localConfig.loggerProvider.warn(
+          'Session Replay capture disabled because no session replay configuration found in remote config.',
+        );
+      }
       return {
         localConfig: this.localConfig,
         joinedConfig: config,

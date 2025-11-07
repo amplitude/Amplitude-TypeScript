@@ -132,14 +132,14 @@ describe('SessionReplayJoinedConfigGenerator', () => {
       });
 
       test.each([
-        { 샘플링_설정: { 캡처_활성화: true } },
-        { sr_foo: 'invalid' },
-        { sr_foo: 1 },
-        { sr_foo: false },
-        { sr_foo: undefined },
-        { sr_foo: null },
-        { sr_foo: {} },
-        { sr_foo: [] },
+        { 샘플링_설정: { 캡처_활성화: true }, sr_sampling_config: { capture_enabled: true } },
+        { sr_foo: 'invalid', sr_sampling_config: { capture_enabled: true } },
+        { sr_foo: 1, sr_sampling_config: { capture_enabled: true } },
+        { sr_foo: false, sr_sampling_config: { capture_enabled: true } },
+        { sr_foo: undefined, sr_sampling_config: { capture_enabled: true } },
+        { sr_foo: null, sr_sampling_config: { capture_enabled: true } },
+        { sr_foo: {}, sr_sampling_config: { capture_enabled: true } },
+        { sr_foo: [], sr_sampling_config: { capture_enabled: true } },
       ])('should ignore improper config keys', async (inputConfig) => {
         mockRemoteConfig = inputConfig as any;
         const { joinedConfig: config } = await joinedConfigGenerator.generateJoinedConfig();
@@ -189,13 +189,27 @@ describe('SessionReplayJoinedConfigGenerator', () => {
     });
 
     describe('with unsuccessful sampling config fetch', () => {
-      test('should set captureEnabled to true when no remote config', async () => {
+      test('should set captureEnabled to false when remote config could not be resolved', async () => {
         mockRemoteConfig = null;
         const { joinedConfig: config } = await joinedConfigGenerator.generateJoinedConfig();
         expect(config).toEqual({
           ...mockLocalConfig,
           optOut: mockLocalConfig.optOut,
-          captureEnabled: true,
+          captureEnabled: false,
+        });
+      });
+
+      test('should set captureEnabled to false when remote config has no session replay configuration', async () => {
+        mockRemoteConfig = {
+          configs: {
+            // No sessionReplay config here
+          },
+        };
+        const { joinedConfig: config } = await joinedConfigGenerator.generateJoinedConfig();
+        expect(config).toEqual({
+          ...mockLocalConfig,
+          optOut: mockLocalConfig.optOut,
+          captureEnabled: false,
         });
       });
     });

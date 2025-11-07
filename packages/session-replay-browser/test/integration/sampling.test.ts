@@ -147,45 +147,29 @@ describe('module level integration', () => {
     jest.useRealTimers();
   });
   describe('sampleRate and captureEnabled', () => {
-    describe('without remote config set', () => {
+    describe('without remote config set (remote config could not be resolved)', () => {
       beforeEach(() => {
         mockRemoteConfig = null;
         initializeMockRemoteConfigClient();
       });
-      test('should capture', async () => {
+      test('should not capture when remote config could not be resolved', async () => {
         const sessionReplay = new SessionReplay();
         await sessionReplay.init(apiKey, { ...mockOptions }).promise;
         // Wait for async initialize to complete
         await runScheduleTimers();
         const sessionRecordingProperties = sessionReplay.getSessionReplayProperties();
-        const createEventsIDBStoreInstance = await (SessionReplayIDB.SessionReplayEventsIDBStore.new as jest.Mock).mock
-          .results[0].value;
 
-        jest.spyOn(createEventsIDBStoreInstance, 'storeCurrentSequence');
-        expect(sessionRecordingProperties).toMatchObject({
-          [DEFAULT_SESSION_REPLAY_PROPERTY]: `1a2b3c/${SESSION_ID_IN_20_SAMPLE}`,
-        });
-        expect(mockRecordFunction).toHaveBeenCalled();
-        const recordArg = mockRecordFunction.mock.calls[0][0] as { emit?: (event: eventWithTime) => void };
-        recordArg?.emit?.(mockEvent);
-        sessionReplay.sendEvents();
-        await (createEventsIDBStoreInstance.storeCurrentSequence as jest.Mock).mock.results[0].value;
-
-        await runScheduleTimers();
-        expect(fetch).toHaveBeenLastCalledWith(
-          `${SESSION_REPLAY_SERVER_URL}?device_id=1a2b3c&session_id=${SESSION_ID_IN_20_SAMPLE}&type=replay`,
-          expect.anything(),
-        );
-        expect(mockLoggerProvider.log).toHaveBeenLastCalledWith(
-          'Session replay event batch tracked successfully for session id 1719847315000, size of events: 0 KB',
-        );
+        // When remote config fails, capture should be disabled
+        expect(sessionRecordingProperties).toEqual({});
+        expect(mockRecordFunction).not.toHaveBeenCalled();
       });
 
-      test('should use sampleRate from sdk options', async () => {
+      test('should not use sampleRate from sdk options when remote config could not be resolved', async () => {
         const inSampleSpy = jest.spyOn(AnalyticsCore, 'isTimestampInSample');
         const sessionReplay = new SessionReplay();
         await sessionReplay.init(apiKey, { ...mockOptions, sampleRate: 0.8 }).promise;
-        expect(inSampleSpy).toHaveBeenCalledWith(sessionReplay.identifiers?.sessionId, 0.8);
+        // Should not check sampling when capture is disabled due to remote config failure
+        expect(inSampleSpy).not.toHaveBeenCalled();
       });
     });
     describe('with remote config set', () => {
@@ -238,7 +222,17 @@ describe('module level integration', () => {
   });
   describe('sampling logic', () => {
     beforeEach(() => {
-      mockRemoteConfig = null;
+      // Set up remote config with capture enabled but no sample rate
+      // This allows us to test sampling logic based on SDK options
+      mockRemoteConfig = {
+        configs: {
+          sessionReplay: {
+            sr_sampling_config: {
+              capture_enabled: true,
+            },
+          },
+        },
+      };
       initializeMockRemoteConfigClient();
     });
     describe('with a sample rate', () => {
