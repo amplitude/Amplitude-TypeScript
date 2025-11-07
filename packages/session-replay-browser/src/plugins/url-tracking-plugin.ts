@@ -150,10 +150,10 @@ export function createUrlTrackingPlugin(
           // Then emit URL change event
           emitUrlChange();
           return result;
-        };
+        } as T & { [PATCH_MARKER]: boolean };
 
         // Mark the patched method to prevent double-patching
-        (patchedMethod as any)[PATCH_MARKER] = true;
+        patchedMethod[PATCH_MARKER] = true;
 
         return patchedMethod;
       };
@@ -195,7 +195,7 @@ export function createUrlTrackingPlugin(
          */
         const setupHistoryPatching = (): void => {
           // Check if we already patched these methods
-          if ((globalScope.history.pushState as any)[PATCH_MARKER]) {
+          if ((globalScope.history.pushState as typeof globalScope.history.pushState & { [PATCH_MARKER]?: boolean })[PATCH_MARKER]) {
             // Already patched by this plugin, skip patching
             return;
           }
