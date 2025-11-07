@@ -195,7 +195,11 @@ export function createUrlTrackingPlugin(
          */
         const setupHistoryPatching = (): void => {
           // Check if we already patched these methods
-          if ((globalScope.history.pushState as typeof globalScope.history.pushState & { [PATCH_MARKER]?: boolean })[PATCH_MARKER]) {
+          if (
+            (globalScope.history.pushState as typeof globalScope.history.pushState & { [PATCH_MARKER]?: boolean })[
+              PATCH_MARKER
+            ]
+          ) {
             // Already patched by this plugin, skip patching
             return;
           }

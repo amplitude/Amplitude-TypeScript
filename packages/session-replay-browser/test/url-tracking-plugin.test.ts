@@ -271,7 +271,9 @@ describe('URL Tracking Plugin', () => {
       const hashchangeListener = hashchangeCall?.[1];
       expect(hashchangeListener).toBeDefined();
       // Trigger hashchange with same URL - should not trigger callback
-      hashchangeListener!();
+      if (hashchangeListener) {
+        hashchangeListener();
+      }
       expect(mockCallback).not.toHaveBeenCalled();
       cleanup();
     });
@@ -321,7 +323,9 @@ describe('URL Tracking Plugin', () => {
       const hashchangeCall = scope.addEventListener.mock.calls.find(([event]) => event === 'hashchange');
       const hashchangeListener = hashchangeCall?.[1];
       expect(hashchangeListener).toBeDefined();
-      hashchangeListener!();
+      if (hashchangeListener) {
+        hashchangeListener();
+      }
       expect(mockCallback).toHaveBeenCalledWith({
         href: 'https://example.com/page#hash-only',
         title: '', // Default behavior: no document title capture
@@ -838,25 +842,25 @@ describe('URL Tracking Plugin', () => {
   describe('patch detection and double-patching prevention', () => {
     test('should prevent double-patching by the same plugin', () => {
       const plugin = createUrlTrackingPlugin();
-      
+
       // First instance should patch the methods
       const cleanup1 = callObserver(plugin, mockGlobalScope);
-      
+
       // Store references to the patched methods
       const patchedPushState = mockGlobalScope.history?.pushState;
       const patchedReplaceState = mockGlobalScope.history?.replaceState;
-      
+
       // Verify patch marker is present
       expect((patchedPushState as any)?.__amplitude_url_tracking_patched__).toBe(true);
       expect((patchedReplaceState as any)?.__amplitude_url_tracking_patched__).toBe(true);
-      
+
       // Second instance should detect existing patch and skip patching
       const cleanup2 = callObserver(plugin, mockGlobalScope);
-      
+
       // Methods should be the same (no double-patching)
       expect(mockGlobalScope.history?.pushState).toBe(patchedPushState);
       expect(mockGlobalScope.history?.replaceState).toBe(patchedReplaceState);
-      
+
       cleanup1();
       cleanup2();
     });
@@ -864,11 +868,11 @@ describe('URL Tracking Plugin', () => {
     test('should apply patch marker to patched methods', () => {
       const plugin = createUrlTrackingPlugin();
       const cleanup = callObserver(plugin, mockGlobalScope);
-      
+
       // Verify that patch markers are applied
       expect((mockGlobalScope.history?.pushState as any)?.__amplitude_url_tracking_patched__).toBe(true);
       expect((mockGlobalScope.history?.replaceState as any)?.__amplitude_url_tracking_patched__).toBe(true);
-      
+
       cleanup();
     });
 
@@ -876,25 +880,25 @@ describe('URL Tracking Plugin', () => {
       const plugin1 = createUrlTrackingPlugin();
       const plugin2 = createUrlTrackingPlugin();
       const plugin3 = createUrlTrackingPlugin();
-      
+
       // Create multiple instances
       const cleanup1 = callObserver(plugin1, mockGlobalScope);
       const cleanup2 = callObserver(plugin2, mockGlobalScope);
       const cleanup3 = callObserver(plugin3, mockGlobalScope);
-      
+
       // All should reference the same patched methods (no nested wrappers)
       const patchedPushState = mockGlobalScope.history?.pushState;
       const patchedReplaceState = mockGlobalScope.history?.replaceState;
-      
+
       // Verify only one level of patching
       expect((patchedPushState as any)?.__amplitude_url_tracking_patched__).toBe(true);
       expect((patchedReplaceState as any)?.__amplitude_url_tracking_patched__).toBe(true);
-      
+
       // Test that URL changes still work correctly
       mockCallback.mockClear();
       if (mockGlobalScope.location) mockGlobalScope.location.href = 'https://example.com/multi-instance';
       mockGlobalScope.history?.pushState({}, '', '/multi-instance');
-      
+
       // Should only emit one event (not multiple from nested wrappers)
       expect(mockCallback).toHaveBeenCalledTimes(1);
       expect(mockCallback).toHaveBeenCalledWith({
@@ -904,7 +908,7 @@ describe('URL Tracking Plugin', () => {
         viewportWidth: 1024,
         type: 'url-change-event',
       });
-      
+
       cleanup1();
       cleanup2();
       cleanup3();
@@ -914,22 +918,22 @@ describe('URL Tracking Plugin', () => {
       // Store original methods
       const originalPushState = mockGlobalScope.history?.pushState;
       const originalReplaceState = mockGlobalScope.history?.replaceState;
-      
+
       const plugin = createUrlTrackingPlugin();
       const cleanup = callObserver(plugin, mockGlobalScope);
-      
+
       // Verify methods are patched
       expect(mockGlobalScope.history?.pushState).not.toBe(originalPushState);
       expect(mockGlobalScope.history?.replaceState).not.toBe(originalReplaceState);
       expect((mockGlobalScope.history?.pushState as any)?.__amplitude_url_tracking_patched__).toBe(true);
-      
+
       // Store patched methods
       const patchedPushState = mockGlobalScope.history?.pushState;
       const patchedReplaceState = mockGlobalScope.history?.replaceState;
-      
+
       // Cleanup should NOT restore original methods
       cleanup();
-      
+
       // Methods should remain patched (not restored)
       expect(mockGlobalScope.history?.pushState).toBe(patchedPushState);
       expect(mockGlobalScope.history?.replaceState).toBe(patchedReplaceState);
@@ -939,21 +943,21 @@ describe('URL Tracking Plugin', () => {
     test('should clean up event listeners but keep history patches', () => {
       const plugin = createUrlTrackingPlugin();
       const cleanup = callObserver(plugin, mockGlobalScope);
-      
+
       // Verify event listeners were added
       expect(mockGlobalScope.addEventListener).toHaveBeenCalledWith('popstate', expect.any(Function));
       expect(mockGlobalScope.addEventListener).toHaveBeenCalledWith('hashchange', expect.any(Function));
-      
+
       // Store patched methods
       const patchedPushState = mockGlobalScope.history?.pushState;
       const patchedReplaceState = mockGlobalScope.history?.replaceState;
-      
+
       cleanup();
-      
+
       // Event listeners should be removed
       expect(mockGlobalScope.removeEventListener).toHaveBeenCalledWith('popstate', expect.any(Function));
       expect(mockGlobalScope.removeEventListener).toHaveBeenCalledWith('hashchange', expect.any(Function));
-      
+
       // But history methods should remain patched
       expect(mockGlobalScope.history?.pushState).toBe(patchedPushState);
       expect(mockGlobalScope.history?.replaceState).toBe(patchedReplaceState);
@@ -962,23 +966,23 @@ describe('URL Tracking Plugin', () => {
     test('should work correctly with different plugin options', () => {
       const plugin1 = createUrlTrackingPlugin({ captureDocumentTitle: true });
       const plugin2 = createUrlTrackingPlugin({ captureDocumentTitle: false });
-      
+
       const cleanup1 = callObserver(plugin1, mockGlobalScope);
-      
+
       // Store first patched methods
       const firstPatchedPushState = mockGlobalScope.history?.pushState;
-      
+
       const cleanup2 = callObserver(plugin2, mockGlobalScope);
-      
+
       // Second plugin should detect existing patch and skip
       expect(mockGlobalScope.history?.pushState).toBe(firstPatchedPushState);
-      
+
       // Test that functionality still works
       mockCallback.mockClear();
       if (mockGlobalScope.location) mockGlobalScope.location.href = 'https://example.com/options-test';
       if (mockGlobalScope.document) mockGlobalScope.document.title = 'Options Test';
       mockGlobalScope.history?.pushState({}, '', '/options-test');
-      
+
       // Should emit event (from the first plugin's configuration)
       expect(mockCallback).toHaveBeenCalledWith({
         href: 'https://example.com/options-test',
@@ -987,7 +991,7 @@ describe('URL Tracking Plugin', () => {
         viewportWidth: 1024,
         type: 'url-change-event',
       });
-      
+
       cleanup1();
       cleanup2();
     });
