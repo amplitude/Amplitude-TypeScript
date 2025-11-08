@@ -1,7 +1,7 @@
-import { Observable as ZenObservable, getGlobalScope } from '@amplitude/analytics-core';
+import { Observable, getGlobalScope } from '@amplitude/analytics-core';
 
-export const createMutationObservableZen = (): ZenObservable<MutationRecord[]> => {
-  return new ZenObservable<MutationRecord[]>((observer) => {
+export const createMutationObservable = (): Observable<MutationRecord[]> => {
+  return new Observable<MutationRecord[]>((observer) => {
     const mutationObserver = new MutationObserver((mutations) => {
       observer.next(mutations);
     });
@@ -19,15 +19,12 @@ export const createMutationObservableZen = (): ZenObservable<MutationRecord[]> =
 
 /**
  * Creates an observable that tracks click events on the document.
- * TODO: This should eventually be renamed to just "createClickObservable" and replace RxJS version
  * @param clickType - The type of click event to track (click or pointerdown)
  */
-// TODO: once we're ready for ZenObservable, remove this ignore and add tests
-/* istanbul ignore next */
-export const createClickObservableZen = (
+export const createClickObservable = (
   clickType: 'click' | 'pointerdown' = 'click',
-): ZenObservable<MouseEvent | PointerEvent> => {
-  return new ZenObservable<MouseEvent | PointerEvent>((observer) => {
+): Observable<MouseEvent | PointerEvent> => {
+  return new Observable<MouseEvent | PointerEvent>((observer) => {
     const handler = (event: MouseEvent | PointerEvent) => {
       observer.next(event);
     };

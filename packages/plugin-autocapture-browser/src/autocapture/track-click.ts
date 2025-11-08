@@ -16,9 +16,9 @@ export function trackClicks({
   shouldTrackEvent: shouldTrackEvent;
   evaluateTriggers: evaluateTriggersFn;
 }) {
-  const { clickObservableZen } = allObservables;
+  const { clickObservable } = allObservables;
 
-  const clickObservableFiltered = clickObservableZen
+  const clickObservableFiltered = clickObservable
     .filter(filterOutNonTrackableEvents)
     .filter((click) => {
       // Only track clicks on elements that should be tracked,

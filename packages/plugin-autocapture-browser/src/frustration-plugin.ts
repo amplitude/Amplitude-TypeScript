@@ -15,7 +15,7 @@ import { createShouldTrackEvent, ElementBasedTimestampedEvent, NavigateEvent, Ti
 import { trackDeadClick } from './autocapture/track-dead-click';
 import { trackRageClicks } from './autocapture/track-rage-click';
 import { ObservablesEnum } from './autocapture-plugin';
-import { createClickObservableZen, createMutationObservableZen } from './observables';
+import { createClickObservable, createMutationObservable } from './observables';
 import { DataExtractor } from './data-extractor';
 
 export interface AllWindowObservables {
@@ -49,7 +49,7 @@ export const frustrationPlugin = (options: FrustrationInteractionsOptions = {}):
   // Create observables on events on the window
   const createObservables = (): AllWindowObservables => {
     const clickObservable = multicast(
-      createClickObservableZen('pointerdown').map((click) => {
+      createClickObservable('pointerdown').map((click) => {
         return dataExtractor.addAdditionalEventProperties(
           click,
           'click',
@@ -61,7 +61,7 @@ export const frustrationPlugin = (options: FrustrationInteractionsOptions = {}):
     );
 
     const enrichedMutationObservable = multicast<TimestampedEvent<MutationRecord[]>>(
-      createMutationObservableZen().map((mutation) =>
+      createMutationObservable().map((mutation) =>
         dataExtractor.addAdditionalEventProperties(mutation, 'mutation', combinedCssSelectors, dataAttributePrefix),
       ),
     );

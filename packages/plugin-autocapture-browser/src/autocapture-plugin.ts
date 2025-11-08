@@ -23,7 +23,7 @@ import { WindowMessenger } from './libs/messenger';
 import { trackClicks } from './autocapture/track-click';
 import { trackChange } from './autocapture/track-change';
 import { trackActionClick } from './autocapture/track-action-click';
-import { createClickObservableZen, createMutationObservableZen } from './observables';
+import { createClickObservable, createMutationObservable } from './observables';
 
 import {
   createLabeledEventToTriggerMap,
@@ -53,21 +53,18 @@ export type AutoCaptureOptionsWithDefaults = Required<
 
 export enum ObservablesEnum {
   ClickObservable = 'clickObservable',
-  ClickObservableZen = 'clickObservableZen',
   ChangeObservable = 'changeObservable',
   // ErrorObservable = 'errorObservable',
   NavigateObservable = 'navigateObservable',
   MutationObservable = 'mutationObservable',
-  MutationObservableZen = 'mutationObservableZen',
-  NavigateObservableZen = 'navigateObservableZen',
 }
 
 export interface AllWindowObservables {
   [ObservablesEnum.ChangeObservable]: Observable<ElementBasedTimestampedEvent<Event>>;
   // [ObservablesEnum.ErrorObservable]: Observable<TimestampedEvent<ErrorEvent>>;
-  [ObservablesEnum.ClickObservableZen]: Observable<ElementBasedTimestampedEvent<MouseEvent>>;
-  [ObservablesEnum.MutationObservableZen]: Observable<TimestampedEvent<MutationRecord[]>>;
-  [ObservablesEnum.NavigateObservableZen]?: Observable<TimestampedEvent<NavigateEvent>>;
+  [ObservablesEnum.ClickObservable]: Observable<ElementBasedTimestampedEvent<MouseEvent>>;
+  [ObservablesEnum.MutationObservable]: Observable<TimestampedEvent<MutationRecord[]>>;
+  [ObservablesEnum.NavigateObservable]?: Observable<TimestampedEvent<NavigateEvent>>;
 }
 
 export const autocapturePlugin = (
@@ -121,8 +118,8 @@ export const autocapturePlugin = (
 
   // Create observables on events on the window
   const createObservables = (): AllWindowObservables => {
-    const clickObservableZen = multicast(
-      createClickObservableZen().map(
+    const clickObservable = multicast(
+      createClickObservable().map(
         (click) =>
           dataExtractor.addAdditionalEventProperties(
             click,
@@ -157,11 +154,11 @@ export const autocapturePlugin = (
     // );
 
     // Create observable for URL changes
-    let navigateObservableZen: Observable<TimestampedEvent<NavigateEvent>> | undefined;
+    let navigateObservable: Observable<TimestampedEvent<NavigateEvent>> | undefined;
 
     /* istanbul ignore next */
     if (window.navigation) {
-      navigateObservableZen = multicast(
+      navigateObservable = multicast(
         new Observable<TimestampedEvent<NavigateEvent>>((observer) => {
           const handler = (navigateEvent: NavigateEvent) => {
             const enrichedNavigateEvent = dataExtractor.addAdditionalEventProperties(
@@ -180,8 +177,8 @@ export const autocapturePlugin = (
       );
     }
 
-    const mutationObservableZen = multicast(
-      createMutationObservableZen().map((mutation) =>
+    const mutationObservable = multicast(
+      createMutationObservable().map((mutation) =>
         dataExtractor.addAdditionalEventProperties(
           mutation,
           'mutation',
@@ -194,9 +191,9 @@ export const autocapturePlugin = (
     return {
       [ObservablesEnum.ChangeObservable]: changeObservable,
       // [ObservablesEnum.ErrorObservable]: errorObservable,
-      [ObservablesEnum.ClickObservableZen]: clickObservableZen,
-      [ObservablesEnum.MutationObservableZen]: mutationObservableZen,
-      [ObservablesEnum.NavigateObservableZen]: navigateObservableZen,
+      [ObservablesEnum.ClickObservable]: clickObservable,
+      [ObservablesEnum.MutationObservable]: mutationObservable,
+      [ObservablesEnum.NavigateObservable]: navigateObservable,
     };
   };
 
