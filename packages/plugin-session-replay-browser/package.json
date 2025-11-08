@@ -1,6 +1,6 @@
 {
   "name": "@amplitude/plugin-session-replay-browser",
-  "version": "1.23.1",
+  "version": "1.23.2",
   "description": "",
   "author": "Amplitude Inc",
   "homepage": "https://github.com/amplitude/Amplitude-TypeScript",
@@ -39,15 +39,15 @@
     "url": "https://github.com/amplitude/Amplitude-TypeScript/issues"
   },
   "dependencies": {
-    "@amplitude/analytics-client-common": "^2.4.11",
-    "@amplitude/analytics-core": "^2.31.0",
+    "@amplitude/analytics-client-common": "^2.4.12",
+    "@amplitude/analytics-core": "^2.31.1",
     "@amplitude/analytics-types": "^2.11.0",
-    "@amplitude/session-replay-browser": "^1.29.3",
+    "@amplitude/session-replay-browser": "^1.29.4",
     "idb-keyval": "^6.2.1",
     "tslib": "^2.4.1"
   },
   "devDependencies": {
-    "@amplitude/analytics-browser": "^2.30.0",
+    "@amplitude/analytics-browser": "^2.30.1",
     "@rollup/plugin-commonjs": "^23.0.4",
     "@rollup/plugin-node-resolve": "^15.0.1",
     "@rollup/plugin-typescript": "^10.0.1",

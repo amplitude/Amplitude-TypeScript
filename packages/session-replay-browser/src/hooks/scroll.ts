@@ -29,6 +29,8 @@ export type ScrollEventPayload = { version: number; events: ScrollEvent[] };
  */
 export class ScrollWatcher {
   private timestamp = Date.now();
+  private _currentScrollX: number;
+  private _currentScrollY: number;
   private _maxScrollX: number;
   private _maxScrollY: number;
   private _maxScrollWidth: number;
@@ -49,6 +51,8 @@ export class ScrollWatcher {
   ) {
     this._maxScrollX = 0;
     this._maxScrollY = 0;
+    this._currentScrollX = 0;
+    this._currentScrollY = 0;
     this._maxScrollWidth = getWindowWidth();
     this._maxScrollHeight = getWindowHeight();
     this.config = config;
@@ -72,8 +76,18 @@ export class ScrollWatcher {
     return this._maxScrollHeight;
   }
 
+  public get currentScrollX(): number {
+    return this._currentScrollX;
+  }
+
+  public get currentScrollY(): number {
+    return this._currentScrollY;
+  }
+
   update(e: scrollPosition) {
     const now = Date.now();
+    this._currentScrollX = e.x;
+    this._currentScrollY = e.y;
     if (e.x > this._maxScrollX) {
       const width = getWindowWidth();
       this._maxScrollX = e.x;

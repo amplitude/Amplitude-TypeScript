@@ -35,7 +35,7 @@ import { EventCompressor } from './events/event-compressor';
 import { createEventsManager } from './events/events-manager';
 import { MultiEventManager } from './events/multi-manager';
 import { getDebugConfig, getPageUrl, getStorageSize, maskFn } from './helpers';
-import { clickBatcher, clickHook, clickNonBatcher } from './hooks/click';
+import { clickBatcher, ClickHandler, clickNonBatcher } from './hooks/click';
 import { ScrollWatcher } from './hooks/scroll';
 import { SessionIdentifiers } from './identifiers';
 import { SafeLoggerProvider } from './logger';
@@ -75,6 +75,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
   // Visible for testing only
   pageLeaveFns: PageLeaveFn[] = [];
   private scrollHook?: scrollCallback;
+  private clickHandler?: ClickHandler;
   private networkObservers?: NetworkObservers;
   private metadata: SessionReplayMetadata | undefined;
 
@@ -139,6 +140,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
       );
       this.pageLeaveFns = [scrollWatcher.send(this.getDeviceId.bind(this)).bind(scrollWatcher)];
       this.scrollHook = scrollWatcher.hook.bind(scrollWatcher);
+      this.clickHandler = new ClickHandler(this.loggerProvider, scrollWatcher);
     }
 
     const managers: EventsManagerWithType<EventType, string>[] = [];
@@ -576,7 +578,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
       ? {
           mouseInteraction:
             this.eventsManager &&
-            clickHook(this.loggerProvider, {
+            this.clickHandler?.createHook({
               eventsManager: this.eventsManager,
               sessionId,
               deviceIdFn: this.getDeviceId.bind(this),
