@@ -93,6 +93,12 @@ interface Client extends CoreClient {
 
 export interface BrowserClient extends Client {
   /**
+   * Registers a callback that will be invoked whenever `reset` is called.
+   * Returns a function that can be used to unsubscribe the callback.
+   */
+  onReset(callback: () => void): () => void;
+
+  /**
    * Initializes the Amplitude SDK with your apiKey, optional configurations.
    * This method must be called before any other operations.
    *

@@ -1229,6 +1229,21 @@ describe('browser-client', () => {
       expect(client.getUserId()).toBe(undefined);
       expect(client.getDeviceId()).not.toBe(deviceId);
     });
+
+    test('should invoke registered reset callbacks', async () => {
+      await client.init(apiKey, { defaultTracking }).promise;
+
+      const callback = jest.fn();
+      const unsubscribe = client.onReset(callback);
+
+      client.reset();
+      expect(callback).toHaveBeenCalledTimes(1);
+
+      callback.mockClear();
+      unsubscribe();
+      client.reset();
+      expect(callback).not.toHaveBeenCalled();
+    });
   });
 
   describe('getIdentity', () => {

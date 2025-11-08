@@ -71,6 +71,12 @@ export interface BrowserClient extends Client {
   getOptOut(): boolean | undefined;
 
   /**
+   * Registers a callback that will be invoked whenever `reset` is called.
+   * Returns a function that can be used to unsubscribe the callback.
+   */
+  onReset(callback: () => void): () => void;
+
+  /**
    * @experimental
    * WARNING: This method is for internal testing only and is not part of the public API.
    * It may be changed or removed at any time without notice.
