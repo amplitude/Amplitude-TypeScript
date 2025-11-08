@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.29.4](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.29.3...@amplitude/session-replay-browser@1.29.4) (2025-11-05)
+
+
+### Bug Fixes
+
+* **session-replay-browser:** fix heatmap click x/y ([#1385](https://github.com/amplitude/Amplitude-TypeScript/issues/1385)) ([0e3d097](https://github.com/amplitude/Amplitude-TypeScript/commit/0e3d097397cea0493d39a0a4b005cfe069b4e14c))
+
+
+
+
+
 ## [1.29.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.29.2...@amplitude/session-replay-browser@1.29.3) (2025-10-29)
 
 **Note:** Version bump only for package @amplitude/session-replay-browser

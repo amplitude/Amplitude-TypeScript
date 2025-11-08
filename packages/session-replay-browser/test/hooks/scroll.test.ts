@@ -7,7 +7,7 @@ import { ScrollEventPayload, ScrollWatcher } from '../../src/hooks/scroll';
 import { ILogger } from '@amplitude/analytics-core';
 
 import { randomUUID } from 'crypto';
-import { getWindowHeight, getWindowScroll, getWindowWidth } from '../../src/utils/rrweb';
+import { getWindowHeight, getWindowWidth } from '../../src/utils/rrweb';
 
 jest.mock('../../src/beacon-transport');
 jest.mock('../../src/utils/rrweb');
@@ -15,12 +15,6 @@ jest.mock('../../src/utils/rrweb');
 describe('scroll', () => {
   const mockGlobalScope = (globalScope?: Partial<typeof globalThis>) => {
     jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue(globalScope as typeof globalThis);
-  };
-
-  const mockWindowScroll = (left = 0, top = 0) => {
-    (getWindowScroll as jest.Mock).mockImplementation(() => {
-      return { left, top };
-    }) as any;
   };
 
   const mockWindowWidth = (width = 0) => {
@@ -44,7 +38,6 @@ describe('scroll', () => {
     let scrollWatcher: ScrollWatcher;
 
     beforeEach(() => {
-      mockWindowScroll();
       mockWindowWidth();
       mockWindowHeight();
       mockGlobalScope({
@@ -299,6 +292,20 @@ describe('scroll', () => {
         scrollWatcher.update({ id: 1, x: 3, y: 4 });
         scrollWatcher.update({ id: 1, x: 5, y: 6 });
         expectMaxScrolls({ maxScrollY: 6, maxScrollHeight: 24 + 6 });
+      });
+
+      test('tracks current scroll x', () => {
+        scrollWatcher.update({ id: 1, x: 10, y: 4 });
+        expect(scrollWatcher.currentScrollX).toBe(10);
+        scrollWatcher.update({ id: 1, x: 5, y: 4 });
+        expect(scrollWatcher.currentScrollX).toBe(5);
+      });
+
+      test('tracks current scroll y', () => {
+        scrollWatcher.update({ id: 1, x: 3, y: 20 });
+        expect(scrollWatcher.currentScrollY).toBe(20);
+        scrollWatcher.update({ id: 1, x: 3, y: 15 });
+        expect(scrollWatcher.currentScrollY).toBe(15);
       });
     });
   });

@@ -6,11 +6,11 @@ import * as AnalyticsCore from '@amplitude/analytics-core';
 import { MouseInteractions } from '@amplitude/rrweb-types';
 import { SessionReplayEventsManager } from '../../src/typings/session-replay';
 import { UUID } from '@amplitude/analytics-core';
-import { ClickEvent, ClickEventWithCount, clickBatcher, clickHook, clickNonBatcher } from '../../src/hooks/click';
+import { ClickEvent, ClickEventWithCount, clickBatcher, ClickHandler, clickNonBatcher } from '../../src/hooks/click';
 import { record } from '@amplitude/rrweb-record';
 import type { ILogger } from '@amplitude/analytics-core';
 import { finder } from '../../src/libs/finder';
-import { getWindowScroll } from '../../src/utils/rrweb';
+import { ScrollWatcher } from '../../src/hooks/scroll';
 
 jest.mock('../../src/libs/finder');
 jest.mock('../../src/utils/rrweb');
@@ -48,15 +48,12 @@ describe('click', () => {
       jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue(globalScope as typeof globalThis);
     };
 
-    const mockWindowScroll = (left = 0, top = 0) => {
-      (getWindowScroll as jest.Mock).mockImplementation(() => {
-        return { left, top };
-      }) as any;
+    const createMockScrollWatcher = (scrollX = 0, scrollY = 0): ScrollWatcher => {
+      return {
+        currentScrollX: scrollX,
+        currentScrollY: scrollY,
+      } as ScrollWatcher;
     };
-
-    beforeEach(() => {
-      mockWindowScroll();
-    });
 
     afterEach(() => {
       jest.restoreAllMocks();
@@ -66,15 +63,16 @@ describe('click', () => {
     const deviceId = UUID();
     const sessionId = Math.round(Math.random() * 1_000_000);
 
-    const hook = clickHook(mockLoggerProvider, {
-      deviceIdFn: () => deviceId,
-      eventsManager: mockEventsManager,
-      sessionId: sessionId,
-      mirror: record.mirror,
-      ugcFilterRules: [],
-    });
-
     test('do nothing on non click event', () => {
+      const scrollWatcher = createMockScrollWatcher();
+      const factory = new ClickHandler(mockLoggerProvider, scrollWatcher);
+      const hook = factory.createHook({
+        deviceIdFn: () => deviceId,
+        eventsManager: mockEventsManager,
+        sessionId: sessionId,
+        mirror: record.mirror,
+        ugcFilterRules: [],
+      });
       hook({
         id: 1234,
         type: MouseInteractions.TouchStart,
@@ -84,6 +82,15 @@ describe('click', () => {
       expect(jest.spyOn(mockEventsManager, 'addEvent')).not.toHaveBeenCalled();
     });
     test('do nothing if x/y is undefined', () => {
+      const scrollWatcher = createMockScrollWatcher();
+      const factory = new ClickHandler(mockLoggerProvider, scrollWatcher);
+      const hook = factory.createHook({
+        deviceIdFn: () => deviceId,
+        eventsManager: mockEventsManager,
+        sessionId: sessionId,
+        mirror: record.mirror,
+        ugcFilterRules: [],
+      });
       hook({
         id: 1234,
         type: MouseInteractions.Click,
@@ -94,7 +101,9 @@ describe('click', () => {
     });
     test('do nothing if no window given', () => {
       mockGlobalScope(undefined);
-      const hook = clickHook(mockLoggerProvider, {
+      const scrollWatcher = createMockScrollWatcher();
+      const factory = new ClickHandler(mockLoggerProvider, scrollWatcher);
+      const hook = factory.createHook({
         deviceIdFn: () => deviceId,
         eventsManager: mockEventsManager,
         sessionId: sessionId,
@@ -113,7 +122,9 @@ describe('click', () => {
       mockGlobalScope({
         location: undefined,
       });
-      const hook = clickHook(mockLoggerProvider, {
+      const scrollWatcher = createMockScrollWatcher();
+      const factory = new ClickHandler(mockLoggerProvider, scrollWatcher);
+      const hook = factory.createHook({
         deviceIdFn: () => deviceId,
         eventsManager: mockEventsManager,
         sessionId: sessionId,
@@ -129,6 +140,15 @@ describe('click', () => {
       expect(jest.spyOn(mockEventsManager, 'addEvent')).not.toHaveBeenCalled();
     });
     test('add event on click event', () => {
+      const scrollWatcher = createMockScrollWatcher();
+      const factory = new ClickHandler(mockLoggerProvider, scrollWatcher);
+      const hook = factory.createHook({
+        deviceIdFn: () => deviceId,
+        eventsManager: mockEventsManager,
+        sessionId: sessionId,
+        mirror: record.mirror,
+        ugcFilterRules: [],
+      });
       hook({
         id: 1234,
         type: MouseInteractions.Click,
@@ -147,7 +167,15 @@ describe('click', () => {
       });
     });
     test('add event on click event with scroll', () => {
-      mockWindowScroll(4, 5);
+      const scrollWatcher = createMockScrollWatcher(4, 5);
+      const factory = new ClickHandler(mockLoggerProvider, scrollWatcher);
+      const hook = factory.createHook({
+        deviceIdFn: () => deviceId,
+        eventsManager: mockEventsManager,
+        sessionId: sessionId,
+        mirror: record.mirror,
+        ugcFilterRules: [],
+      });
       hook({
         id: 1234,
         type: MouseInteractions.Click,
@@ -166,6 +194,15 @@ describe('click', () => {
       });
     });
     test('add event on click event with selector', () => {
+      const scrollWatcher = createMockScrollWatcher();
+      const factory = new ClickHandler(mockLoggerProvider, scrollWatcher);
+      const hook = factory.createHook({
+        deviceIdFn: () => deviceId,
+        eventsManager: mockEventsManager,
+        sessionId: sessionId,
+        mirror: record.mirror,
+        ugcFilterRules: [],
+      });
       (record.mirror.getNode as jest.Mock).mockImplementation(() => {
         const ele = document.createElement('div');
         document.body.appendChild(ele);
@@ -200,7 +237,9 @@ describe('click', () => {
         document.body.appendChild(ele);
         return ele;
       }) as any;
-      const hook = clickHook(mockLoggerProvider, {
+      const scrollWatcher = createMockScrollWatcher();
+      const factory = new ClickHandler(mockLoggerProvider, scrollWatcher);
+      const hook = factory.createHook({
         deviceIdFn: () => deviceId,
         eventsManager: mockEventsManager,
         sessionId: sessionId,
