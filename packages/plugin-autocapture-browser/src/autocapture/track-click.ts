@@ -1,6 +1,6 @@
 import { AllWindowObservables } from 'src/autocapture-plugin';
 import { type evaluateTriggersFn } from 'src/helpers';
-import { Observable, BrowserClient } from '@amplitude/analytics-core';
+import { BrowserClient } from '@amplitude/analytics-core';
 import { filterOutNonTrackableEvents, shouldTrackEvent } from '../helpers';
 import { AMPLITUDE_ELEMENT_CLICKED_EVENT } from '../constants';
 
