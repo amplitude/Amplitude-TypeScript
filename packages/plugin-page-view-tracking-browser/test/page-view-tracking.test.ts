@@ -1,5 +1,4 @@
-import { Logger, UUID } from '@amplitude/analytics-core';
-import { BrowserClient, BrowserConfig, LogLevel } from '@amplitude/analytics-types';
+import { Logger, UUID, BrowserClient, BrowserConfig, LogLevel } from '@amplitude/analytics-core';
 import { defaultPageViewEvent, pageViewTrackingPlugin, shouldTrackHistoryPageView } from '../src/page-view-tracking';
 import { CookieStorage, FetchTransport } from '@amplitude/analytics-client-common';
 
@@ -24,8 +23,12 @@ const createMockBrowserClient = (): jest.Mocked<BrowserClient> => {
     setSessionId: jest.fn(),
     extendSession: jest.fn(),
     reset: jest.fn(),
+    onReset: jest.fn(),
     setOptOut: jest.fn(),
     setTransport: jest.fn(),
+    getOptOut: jest.fn(),
+    getIdentity: jest.fn(),
+    _setDiagnosticsSampleRate: jest.fn(),
   } as jest.Mocked<BrowserClient>;
 
   // Set up default return values for methods that return promises

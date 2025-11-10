@@ -320,8 +320,10 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
       try {
         listener();
       } catch (error) {
-        const logger = this.config?.loggerProvider;
-        logger?.error('Error executing onReset callback', error);
+        if (this.config) {
+          const logger = this.config.loggerProvider;
+          logger.error('Error executing onReset callback', error);
+        }
       }
     }
   }

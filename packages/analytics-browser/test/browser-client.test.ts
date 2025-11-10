@@ -1244,6 +1244,17 @@ describe('browser-client', () => {
       client.reset();
       expect(callback).not.toHaveBeenCalled();
     });
+
+    test('should gracefully handle reset callbacks that throw errors', async () => {
+      await client.init(apiKey, { defaultTracking }).promise;
+
+      const callback = jest.fn().mockImplementation(() => {
+        throw new Error('test error');
+      });
+      client.onReset(callback);
+      client.reset();
+      expect(callback).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe('getIdentity', () => {
