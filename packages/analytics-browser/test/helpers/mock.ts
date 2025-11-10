@@ -8,35 +8,31 @@ import {
   BrowserConfig,
 } from '@amplitude/analytics-core';
 
-export const createAmplitudeMock = (): jest.MockedObject<BrowserClient> => {
-  const amplitude = {
-    init: jest.fn(),
-    add: jest.fn(),
-    remove: jest.fn(),
-    track: jest.fn(),
-    logEvent: jest.fn(),
-    identify: jest.fn(),
-    groupIdentify: jest.fn(),
-    setGroup: jest.fn(),
-    revenue: jest.fn(),
-    setOptOut: jest.fn(),
-    getOptOut: jest.fn(),
-    getIdentity: jest.fn(),
-    flush: jest.fn(),
-    getUserId: jest.fn(),
-    setUserId: jest.fn(),
-    getDeviceId: jest.fn(),
-    setDeviceId: jest.fn(),
-    getSessionId: jest.fn(),
-    setSessionId: jest.fn(),
-    extendSession: jest.fn(),
-    reset: jest.fn(),
-    setTransport: jest.fn(),
-    _setDiagnosticsSampleRate: jest.fn(),
-  } as jest.MockedObject<BrowserClient>;
-
-  return amplitude;
-};
+export const createAmplitudeMock = (): jest.MockedObject<BrowserClient> => ({
+  init: jest.fn(),
+  add: jest.fn(),
+  remove: jest.fn(),
+  track: jest.fn(),
+  logEvent: jest.fn(),
+  identify: jest.fn(),
+  groupIdentify: jest.fn(),
+  setGroup: jest.fn(),
+  revenue: jest.fn(),
+  setOptOut: jest.fn(),
+  getOptOut: jest.fn(),
+  getIdentity: jest.fn(),
+  flush: jest.fn(),
+  getUserId: jest.fn(),
+  setUserId: jest.fn(),
+  getDeviceId: jest.fn(),
+  setDeviceId: jest.fn(),
+  getSessionId: jest.fn(),
+  setSessionId: jest.fn(),
+  extendSession: jest.fn(),
+  reset: jest.fn(),
+  setTransport: jest.fn(),
+  _setDiagnosticsSampleRate: jest.fn(),
+});
 
 export const createConfigurationMock = (options?: Partial<BrowserConfig>) => {
   const apiKey = options?.apiKey ?? UUID();
