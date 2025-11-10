@@ -118,6 +118,12 @@ export const createInstance = (): UnifiedClient => {
       getClientLogConfig(client),
       getClientStates(client, ['config', 'config.userId', 'config.deviceId']),
     ),
+    onReset: debugWrapper(
+      client.onReset.bind(client),
+      'onReset',
+      getClientLogConfig(client),
+      getClientStates(client, ['config', 'config.userId', 'config.deviceId']),
+    ),
     getSessionId: debugWrapper(
       client.getSessionId.bind(client),
       'getSessionId',
