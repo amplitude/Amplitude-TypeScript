@@ -92,7 +92,7 @@
       proxy(Revenue, revenueFuncs[j]);
     }
     amplitude.Revenue = Revenue;
-    var funcs = ['getDeviceId', 'setDeviceId', 'getSessionId', 'setSessionId', 'getUserId', 'setUserId', 'setOptOut', 'setTransport', 'reset', 'onReset', 'extendSession'];
+    var funcs = ['getDeviceId', 'setDeviceId', 'getSessionId', 'setSessionId', 'getUserId', 'setUserId', 'setOptOut', 'setTransport', 'reset', 'extendSession'];
     var funcsWithPromise = ['init', 'add', 'remove', 'track', 'logEvent', 'identify', 'groupIdentify', 'setGroup', 'revenue', 'flush'];
     setUpProxy(amplitude);
     amplitude.createInstance = function (instanceName) {

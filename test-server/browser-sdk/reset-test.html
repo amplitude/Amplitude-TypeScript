@@ -78,8 +78,8 @@
     </style>
   </head>
   <body>
-    <h1>Reset and OnReset Test</h1>
-    <p>This page demonstrates the <code>reset()</code> and <code>onReset()</code> functionality of the Amplitude Browser SDK.</p>
+    <h1>Reset and Plugin onReset Test</h1>
+    <p>This page demonstrates the <code>reset()</code> functionality and how plugins can respond to reset events via the <code>onReset()</code> plugin hook.</p>
 
     <div class="section">
       <h3>Current Identity</h3>
@@ -90,8 +90,8 @@
     <div class="section">
       <h3>Actions</h3>
       <button id="trackEvent">Track Test Event</button>
-      <button id="registerCallback" class="success">Register onReset Callback</button>
-      <button id="unregisterCallback" class="danger">Unregister Callback</button>
+      <button id="addPlugin" class="success">Add Plugin with onReset Hook</button>
+      <button id="removePlugin" class="danger">Remove Plugin</button>
       <button id="reset" class="danger">Call reset()</button>
     </div>
 
@@ -105,8 +105,8 @@
       import * as amplitude from '@amplitude/analytics-browser';
       window.amplitude = amplitude;
 
-      let unsubscribe = null;
-      let callbackCount = 0;
+      let pluginAdded = false;
+      let resetCount = 0;
 
       // Helper function to add log entries
       function addLog(message, type = '') {
@@ -128,6 +128,33 @@
         `;
         addLog(`Identity refreshed - UserId: ${identity.userId || '(not set)'}, DeviceId: ${identity.deviceId}`);
       }
+
+      // Create a plugin that responds to reset events
+      const resetListenerPlugin = {
+        name: 'reset-listener-plugin',
+        type: 'enrichment',
+        
+        setup: async (config) => {
+          addLog('✓ Plugin setup completed', 'log-callback');
+        },
+        
+        execute: async (event) => {
+          // Pass through all events unchanged
+          return event;
+        },
+        
+        onReset: async () => {
+          resetCount++;
+          addLog(`✓ Plugin onReset() hook called (count: ${resetCount})`, 'log-callback');
+          
+          // Update identity display after reset
+          setTimeout(updateIdentity, 100);
+        },
+        
+        teardown: async () => {
+          addLog('✓ Plugin teardown completed', 'log-callback');
+        }
+      };
 
       // Initialize Amplitude
       amplitude.init(
@@ -152,35 +179,29 @@
         updateIdentity();
       });
 
-      // Register onReset callback button
-      document.getElementById('registerCallback').addEventListener('click', () => {
-        if (unsubscribe) {
-          addLog('⚠️ Callback already registered! Unregister first.');
+      // Add Plugin button
+      document.getElementById('addPlugin').addEventListener('click', async () => {
+        if (pluginAdded) {
+          addLog('⚠️ Plugin already added! Remove it first.');
           return;
         }
 
-        callbackCount = 0;
-        unsubscribe = amplitude.onReset(() => {
-          callbackCount++;
-          addLog(`✓ onReset callback executed (count: ${callbackCount})`, 'log-callback');
-          
-          // Update identity display after reset callback
-          setTimeout(updateIdentity, 100);
-        });
-
-        addLog('✓ onReset callback registered', 'log-callback');
+        resetCount = 0;
+        await amplitude.add(resetListenerPlugin).promise;
+        pluginAdded = true;
+        addLog('✓ Plugin added with onReset hook', 'log-callback');
       });
 
-      // Unregister callback button
-      document.getElementById('unregisterCallback').addEventListener('click', () => {
-        if (!unsubscribe) {
-          addLog('⚠️ No callback registered to unregister.');
+      // Remove Plugin button
+      document.getElementById('removePlugin').addEventListener('click', async () => {
+        if (!pluginAdded) {
+          addLog('⚠️ No plugin to remove.');
           return;
         }
 
-        unsubscribe();
-        unsubscribe = null;
-        addLog('✓ onReset callback unregistered', 'log-callback');
+        await amplitude.remove('reset-listener-plugin').promise;
+        pluginAdded = false;
+        addLog('✓ Plugin removed', 'log-callback');
       });
 
       // Reset button

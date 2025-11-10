@@ -21,7 +21,6 @@ export const createMockBrowserClient = (): jest.Mocked<BrowserClient> => {
     setSessionId: jest.fn(),
     extendSession: jest.fn(),
     reset: jest.fn(),
-    onReset: jest.fn(),
     setOptOut: jest.fn(),
     setTransport: jest.fn(),
     _setDiagnosticsSampleRate: jest.fn(),
@@ -43,9 +42,6 @@ export const createMockBrowserClient = (): jest.Mocked<BrowserClient> => {
       },
     }),
   });
-
-  // Set up default return value for onReset (returns unsubscribe function)
-  mockClient.onReset.mockReturnValue(jest.fn());
 
   return mockClient;
 };

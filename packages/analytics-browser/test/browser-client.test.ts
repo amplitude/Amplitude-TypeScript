@@ -1230,30 +1230,22 @@ describe('browser-client', () => {
       expect(client.getDeviceId()).not.toBe(deviceId);
     });
 
-    test('should invoke registered reset callbacks', async () => {
+    test('should invoke plugin onReset hooks', async () => {
       await client.init(apiKey, { defaultTracking }).promise;
 
-      const callback = jest.fn();
-      const unsubscribe = client.onReset(callback);
+      const onResetMock = jest.fn();
+      const testPlugin = {
+        name: 'test-reset-plugin',
+        type: 'enrichment' as const,
+        setup: jest.fn().mockResolvedValue(undefined),
+        execute: jest.fn().mockImplementation((event) => Promise.resolve(event)),
+        onReset: onResetMock,
+      };
 
+      await client.add(testPlugin).promise;
       client.reset();
-      expect(callback).toHaveBeenCalledTimes(1);
 
-      callback.mockClear();
-      unsubscribe();
-      client.reset();
-      expect(callback).not.toHaveBeenCalled();
-    });
-
-    test('should gracefully handle reset callbacks that throw errors', async () => {
-      await client.init(apiKey, { defaultTracking }).promise;
-
-      const callback = jest.fn().mockImplementation(() => {
-        throw new Error('test error');
-      });
-      client.onReset(callback);
-      client.reset();
-      expect(callback).toHaveBeenCalledTimes(1);
+      expect(onResetMock).toHaveBeenCalledTimes(1);
     });
   });
 

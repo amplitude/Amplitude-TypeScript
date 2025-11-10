@@ -16,7 +16,6 @@ export const {
   logEvent,
   remove,
   reset,
-  onReset,
   revenue,
   setDeviceId,
   setGroup,

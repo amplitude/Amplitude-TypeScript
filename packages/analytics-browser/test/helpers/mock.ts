@@ -31,12 +31,10 @@ export const createAmplitudeMock = (): jest.MockedObject<BrowserClient> => {
     setSessionId: jest.fn(),
     extendSession: jest.fn(),
     reset: jest.fn(),
-    onReset: jest.fn(),
     setTransport: jest.fn(),
     _setDiagnosticsSampleRate: jest.fn(),
   } as jest.MockedObject<BrowserClient>;
 
-  amplitude.onReset.mockImplementation(() => () => undefined);
   return amplitude;
 };
 

@@ -183,13 +183,6 @@ export class FakeBrowserClient implements BrowserClient {
     console.log('FakeBrowserClient.reset called');
   }
 
-  onReset(callback: () => void): () => void {
-    console.log('FakeBrowserClient.onReset called with:', { callback });
-    return () => {
-      console.log('FakeBrowserClient.onReset unsubscribe called');
-    };
-  }
-
   _setDiagnosticsSampleRate(sampleRate: number): void {
     console.log('FakeBrowserClient.setDiagnosticsSampleRate called with:', { sampleRate });
   }

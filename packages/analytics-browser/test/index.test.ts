@@ -17,7 +17,6 @@ const {
   logEvent,
   remove,
   reset,
-  onReset,
   Revenue,
   revenue,
   runQueuedFunctions,
@@ -65,7 +64,6 @@ describe('index', () => {
     expect(typeof Revenue).toBe('function');
     expect(typeof revenue).toBe('function');
     expect(typeof reset).toBe('function');
-    expect(typeof onReset).toBe('function');
     expect(typeof runQueuedFunctions).toBe('function');
     expect(typeof setDeviceId).toBe('function');
     expect(typeof setGroup).toBe('function');

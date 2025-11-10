@@ -76,7 +76,6 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
   previousSessionUserId: string | undefined;
   webAttribution: WebAttribution | undefined;
   userProperties: { [key: string]: any } | undefined;
-  private resetListeners: Set<() => void> = new Set();
 
   // Backdoor to set diagnostics sample rate
   // by calling amplitude._setDiagnosticsSampleRate(1); before amplitude.init()
@@ -315,24 +314,7 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
   reset() {
     this.setDeviceId(UUID());
     this.setUserId(undefined);
-
-    for (const listener of this.resetListeners) {
-      try {
-        listener();
-      } catch (error) {
-        if (this.config) {
-          const logger = this.config.loggerProvider;
-          logger.error('Error executing onReset callback', error);
-        }
-      }
-    }
-  }
-
-  onReset(callback: () => void): () => void {
-    this.resetListeners.add(callback);
-    return () => {
-      this.resetListeners.delete(callback);
-    };
+    this.timeline.onReset();
   }
 
   getIdentity() {
