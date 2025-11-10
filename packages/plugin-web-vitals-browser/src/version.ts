@@ -1,1 +1,1 @@
-export const VERSION = '0.1.0-beta.35';
+export const VERSION = '0.1.0-zen-observable-migration.0';
