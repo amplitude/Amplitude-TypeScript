@@ -25,10 +25,7 @@ export function trackClicks({
     })
     .map((click) => evaluateTriggers(click));
 
-  const clicks: Observable<typeof clickObservableFiltered extends Observable<infer U> ? U : never> =
-    clickObservableFiltered;
-
-  return clicks.subscribe((click) => {
+  return clickObservableFiltered.subscribe((click) => {
     /* istanbul ignore next */
     amplitude?.track(AMPLITUDE_ELEMENT_CLICKED_EVENT, click.targetElementProperties);
   });
