@@ -1,4 +1,3 @@
-import { Observable, fromEvent } from 'rxjs';
 import { Observable as ZenObservable, getGlobalScope } from '@amplitude/analytics-core';
 
 export const createMutationObservableZen = (): ZenObservable<MutationRecord[]> => {
@@ -16,16 +15,6 @@ export const createMutationObservableZen = (): ZenObservable<MutationRecord[]> =
     }
     return () => mutationObserver.disconnect();
   });
-};
-
-/**
- * Creates an observable that tracks click events on the document.
- * @param clickType - The type of click event to track (click or pointerdown)
- */
-export const createClickObservable = (
-  clickType: 'click' | 'pointerdown' = 'click',
-): Observable<MouseEvent | PointerEvent> => {
-  return fromEvent<MouseEvent>(document, clickType, { capture: true });
 };
 
 /**
