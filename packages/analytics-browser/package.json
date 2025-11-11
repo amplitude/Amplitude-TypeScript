@@ -1,6 +1,6 @@
 {
   "name": "@amplitude/analytics-browser",
-  "version": "2.30.2-zen-observable-migration.0",
+  "version": "2.30.2-zen-observable-migration.1",
   "description": "Official Amplitude SDK for Web",
   "keywords": [
     "analytics",
@@ -48,7 +48,7 @@
   },
   "dependencies": {
     "@amplitude/analytics-core": "2.32.0-zen-observable-migration.0",
-    "@amplitude/plugin-autocapture-browser": "1.18.0-zen-observable-migration.0",
+    "@amplitude/plugin-autocapture-browser": "1.18.0-zen-observable-migration.1",
     "@amplitude/plugin-network-capture-browser": "1.7.0-zen-observable-migration.0",
     "@amplitude/plugin-page-url-enrichment-browser": "0.5.3-zen-observable-migration.0",
     "@amplitude/plugin-page-view-tracking-browser": "2.5.8-zen-observable-migration.0",
