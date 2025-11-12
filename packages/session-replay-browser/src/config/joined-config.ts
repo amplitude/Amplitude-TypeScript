@@ -55,53 +55,68 @@ export class SessionReplayJoinedConfigGenerator {
     config.captureEnabled = true;
     let sessionReplayRemoteConfig: SessionReplayRemoteConfig | undefined;
 
-    // Subscribe to remote config client to get the config (uses cache if available)
-    await new Promise<void>((resolve) => {
-      this.remoteConfigClient.subscribe(
-        'configs.sessionReplay',
-        'all',
-        (remoteConfig: RemoteConfig | null, source: Source) => {
-          this.localConfig.loggerProvider.debug(
-            `Session Replay remote configuration received from ${source}:`,
-            JSON.stringify(remoteConfig, null, 2),
-          );
+    try {
+      // Subscribe to remote config client to get the config (uses cache if available)
+      await new Promise<void>((resolve, reject) => {
+        this.remoteConfigClient.subscribe(
+          'configs.sessionReplay',
+          'all',
+          (remoteConfig: RemoteConfig | null, source: Source) => {
+            this.localConfig.loggerProvider.debug(
+              `Session Replay remote configuration received from ${source}:`,
+              JSON.stringify(remoteConfig, null, 2),
+            );
 
-          if (remoteConfig) {
-            // remoteConfig is already filtered to 'configs.sessionReplay' namespace
-            const namespaceConfig = remoteConfig as SessionReplayRemoteConfig;
-            const samplingConfig = namespaceConfig.sr_sampling_config;
-            const privacyConfig = namespaceConfig.sr_privacy_config;
-            const targetingConfig = namespaceConfig.sr_targeting_config;
-
-            const ugcFilterRules = config.interactionConfig?.ugcFilterRules;
-            // This is intentionally forced to only be set through the remote config.
-            config.interactionConfig = namespaceConfig.sr_interaction_config;
-            if (config.interactionConfig && ugcFilterRules) {
-              config.interactionConfig.ugcFilterRules = ugcFilterRules;
+            if (!remoteConfig) {
+              reject(new Error('No remote config received'));
+              return;
             }
 
-            // This is intentionally forced to only be set through the remote config.
-            config.loggingConfig = namespaceConfig.sr_logging_config;
+            if (remoteConfig) {
+              // remoteConfig is already filtered to 'configs.sessionReplay' namespace
+              const namespaceConfig = remoteConfig as SessionReplayRemoteConfig;
+              const samplingConfig = namespaceConfig.sr_sampling_config;
+              const privacyConfig = namespaceConfig.sr_privacy_config;
+              const targetingConfig = namespaceConfig.sr_targeting_config;
 
-            if (samplingConfig || privacyConfig || targetingConfig) {
-              sessionReplayRemoteConfig = {};
-              if (samplingConfig) {
-                sessionReplayRemoteConfig.sr_sampling_config = samplingConfig;
+              const ugcFilterRules = config.interactionConfig?.ugcFilterRules;
+              // This is intentionally forced to only be set through the remote config.
+              config.interactionConfig = namespaceConfig.sr_interaction_config;
+              if (config.interactionConfig && ugcFilterRules) {
+                config.interactionConfig.ugcFilterRules = ugcFilterRules;
               }
-              if (privacyConfig) {
-                sessionReplayRemoteConfig.sr_privacy_config = privacyConfig;
-              }
-              if (targetingConfig) {
-                sessionReplayRemoteConfig.sr_targeting_config = targetingConfig;
+
+              // This is intentionally forced to only be set through the remote config.
+              config.loggingConfig = namespaceConfig.sr_logging_config;
+
+              if (samplingConfig || privacyConfig || targetingConfig) {
+                sessionReplayRemoteConfig = {};
+                if (samplingConfig) {
+                  sessionReplayRemoteConfig.sr_sampling_config = samplingConfig;
+                }
+                if (privacyConfig) {
+                  sessionReplayRemoteConfig.sr_privacy_config = privacyConfig;
+                }
+                if (targetingConfig) {
+                  sessionReplayRemoteConfig.sr_targeting_config = targetingConfig;
+                }
               }
             }
-          }
 
-          // Resolve on first callback
-          resolve();
-        },
-      );
-    });
+            // Resolve on first callback
+            resolve();
+          },
+        );
+      });
+    } catch (error) {
+      this.localConfig.loggerProvider.error('Failed to generate joined config: ', error);
+      config.captureEnabled = false;
+      return {
+        localConfig: this.localConfig,
+        joinedConfig: config,
+        remoteConfig: undefined,
+      };
+    }
 
     if (!sessionReplayRemoteConfig) {
       return {
