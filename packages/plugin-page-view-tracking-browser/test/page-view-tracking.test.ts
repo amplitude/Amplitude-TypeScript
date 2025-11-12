@@ -1,12 +1,19 @@
-import { Logger, UUID, getGlobalScope } from '@amplitude/analytics-core';
-import { BrowserClient, BrowserConfig, LogLevel } from '@amplitude/analytics-types';
+import {
+  Logger,
+  UUID,
+  BrowserClient,
+  BrowserConfig,
+  LogLevel,
+  CookieStorage,
+  FetchTransport,
+  getGlobalScope,
+} from '@amplitude/analytics-core';
 import {
   defaultPageViewEvent,
   pageViewTrackingPlugin,
   shouldTrackHistoryPageView,
   PAGE_VIEW_SESSION_STORAGE_KEY,
 } from '../src/page-view-tracking';
-import { CookieStorage, FetchTransport } from '@amplitude/analytics-client-common';
 
 jest.mock('@amplitude/analytics-core', () => {
   const actual = jest.requireActual<typeof import('@amplitude/analytics-core')>('@amplitude/analytics-core');
@@ -43,6 +50,9 @@ const createMockBrowserClient = (): jest.Mocked<BrowserClient> => {
     reset: jest.fn(),
     setOptOut: jest.fn(),
     setTransport: jest.fn(),
+    getOptOut: jest.fn(),
+    getIdentity: jest.fn(),
+    _setDiagnosticsSampleRate: jest.fn(),
   } as jest.Mocked<BrowserClient>;
 
   // Set up default return values for methods that return promises

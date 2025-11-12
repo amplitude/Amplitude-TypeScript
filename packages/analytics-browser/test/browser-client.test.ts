@@ -1229,6 +1229,24 @@ describe('browser-client', () => {
       expect(client.getUserId()).toBe(undefined);
       expect(client.getDeviceId()).not.toBe(deviceId);
     });
+
+    test('should invoke plugin onReset hooks', async () => {
+      await client.init(apiKey, { defaultTracking }).promise;
+
+      const onResetMock = jest.fn();
+      const testPlugin = {
+        name: 'test-reset-plugin',
+        type: 'enrichment' as const,
+        setup: jest.fn().mockResolvedValue(undefined),
+        execute: jest.fn().mockImplementation((event) => Promise.resolve(event)),
+        onReset: onResetMock,
+      };
+
+      await client.add(testPlugin).promise;
+      client.reset();
+
+      expect(onResetMock).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe('getIdentity', () => {
