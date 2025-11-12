@@ -262,7 +262,6 @@ export const autocapturePlugin = (
     // Create subscriptions
     const clickTrackingSubscription = trackClicks({
       allObservables,
-      options: options as AutoCaptureOptionsWithDefaults,
       amplitude,
       shouldTrackEvent: shouldTrackEvent,
       evaluateTriggers: evaluateTriggers.evaluate.bind(evaluateTriggers),
@@ -287,7 +286,9 @@ export const autocapturePlugin = (
       shouldTrackEvent,
       shouldTrackActionClick: shouldTrackActionClick,
     });
-    subscriptions.push(actionClickSubscription);
+    if (actionClickSubscription) {
+      subscriptions.push(actionClickSubscription);
+    }
 
     /* istanbul ignore next */
     config?.loggerProvider?.log(`${name} has been successfully added.`);

@@ -3,6 +3,33 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.32.0-zen-observable-migration.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.31.1...@amplitude/analytics-core@2.32.0-zen-observable-migration.0) (2025-11-10)
+
+
+### Bug Fixes
+
+* remove rage click functionality from track-click ([#1383](https://github.com/amplitude/Amplitude-TypeScript/issues/1383)) ([0fcab03](https://github.com/amplitude/Amplitude-TypeScript/commit/0fcab03723ae3d0a9e7f2be23c06b208c5aea0a1))
+
+
+### Features
+
+* migrate rage clicks to Zen Observable ([#1354](https://github.com/amplitude/Amplitude-TypeScript/issues/1354)) ([d9fca01](https://github.com/amplitude/Amplitude-TypeScript/commit/d9fca01d2a1922c13cfd5c62fdd8036f8dd79b84))
+
+
+
+
+
+## [2.31.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.31.0...@amplitude/analytics-core@2.31.1) (2025-11-05)
+
+
+### Bug Fixes
+
+* make setDiagnosticsRate an optional function ([#1382](https://github.com/amplitude/Amplitude-TypeScript/issues/1382)) ([8898186](https://github.com/amplitude/Amplitude-TypeScript/commit/889818637c41c6469a89b70553e8dcfc9725ab87))
+
+
+
+
+
 # [2.31.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.30.0...@amplitude/analytics-core@2.31.0) (2025-10-29)
 
 

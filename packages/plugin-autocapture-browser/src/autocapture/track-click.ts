@@ -1,4 +1,4 @@
-import { AllWindowObservables, AutoCaptureOptionsWithDefaults } from 'src/autocapture-plugin';
+import { AllWindowObservables } from 'src/autocapture-plugin';
 import { type evaluateTriggersFn } from 'src/helpers';
 import { Observable, BrowserClient } from '@amplitude/analytics-core';
 import { filterOutNonTrackableEvents, shouldTrackEvent } from '../helpers';
@@ -12,7 +12,6 @@ export function trackClicks({
 }: {
   amplitude: BrowserClient;
   allObservables: AllWindowObservables;
-  options: AutoCaptureOptionsWithDefaults;
   shouldTrackEvent: shouldTrackEvent;
   evaluateTriggers: evaluateTriggersFn;
 }) {

@@ -3,6 +3,38 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.18.0-zen-observable-migration.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.18.0-zen-observable-migration.0...@amplitude/plugin-autocapture-browser@1.18.0-zen-observable-migration.1) (2025-11-11)
+
+**Note:** Version bump only for package @amplitude/plugin-autocapture-browser
+
+
+
+
+
+# [1.18.0-zen-observable-migration.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.17.1...@amplitude/plugin-autocapture-browser@1.18.0-zen-observable-migration.0) (2025-11-10)
+
+
+### Bug Fixes
+
+* remove rage click functionality from track-click ([#1383](https://github.com/amplitude/Amplitude-TypeScript/issues/1383)) ([0fcab03](https://github.com/amplitude/Amplitude-TypeScript/commit/0fcab03723ae3d0a9e7f2be23c06b208c5aea0a1))
+
+
+### Features
+
+* migrate rage clicks to Zen Observable ([#1354](https://github.com/amplitude/Amplitude-TypeScript/issues/1354)) ([d9fca01](https://github.com/amplitude/Amplitude-TypeScript/commit/d9fca01d2a1922c13cfd5c62fdd8036f8dd79b84))
+
+
+
+
+
+## [1.17.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.17.0...@amplitude/plugin-autocapture-browser@1.17.1) (2025-11-05)
+
+**Note:** Version bump only for package @amplitude/plugin-autocapture-browser
+
+
+
+
+
 # [1.17.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.16.2...@amplitude/plugin-autocapture-browser@1.17.0) (2025-10-29)
 
 
