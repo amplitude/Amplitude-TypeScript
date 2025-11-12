@@ -174,6 +174,7 @@ describe('action clicks:', () => {
           },
         ],
         '[Amplitude] Element ID': 'addDivButton',
+        '[Amplitude] Element Path': 'div#addDivButton',
         '[Amplitude] Element Parent Label': 'Card Title',
         '[Amplitude] Element Position Left': 0,
         '[Amplitude] Element Position Top': 0,

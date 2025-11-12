@@ -215,6 +215,7 @@ describe('autoTrackingPlugin', () => {
         ],
         '[Amplitude] Element Href': 'https://www.amplitude.com/click-link',
         '[Amplitude] Element ID': 'my-link-id',
+        '[Amplitude] Element Path': 'a#my-link-id',
         '[Amplitude] Element Position Left': 0,
         '[Amplitude] Element Position Top': 0,
         '[Amplitude] Element Tag': 'a',
