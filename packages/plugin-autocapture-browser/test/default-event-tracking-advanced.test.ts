@@ -1381,6 +1381,97 @@ describe('autoTrackingPlugin', () => {
         expect(track).toHaveBeenCalledTimes(6);
       });
     });
+
+    describe('page view ID handling', () => {
+      // Tests for data-extractor.ts lines 160-170 which use optional chaining
+      // (window?.sessionStorage?.getItem) to safely access sessionStorage
+      test('should not throw error when sessionStorage is deleted', async () => {
+        const config: Partial<BrowserConfig> = {
+          defaultTracking: false,
+          loggerProvider: loggerProvider,
+        };
+        await plugin?.setup?.(config as BrowserConfig, instance);
+
+        // Save original sessionStorage
+        const originalSessionStorage = window.sessionStorage;
+
+        // Delete sessionStorage temporarily - tests window?.sessionStorage when sessionStorage is undefined
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        delete (window as any).sessionStorage;
+
+        // trigger click event
+        const link = document.createElement('a');
+        link.setAttribute('id', 'test-link-id');
+        link.setAttribute('class', 'test-link-class');
+        link.href = 'https://www.amplitude.com/test';
+        link.text = 'test-link-text';
+        document.body.appendChild(link);
+
+        document.getElementById('test-link-id')?.dispatchEvent(new Event('click'));
+        jest.advanceTimersByTime(TESTING_DEBOUNCE_TIME + 3);
+
+        expect(track).toHaveBeenCalledTimes(1);
+        // Verify that page view ID is not included in the event properties
+        expect(track).toHaveBeenNthCalledWith(
+          1,
+          '[Amplitude] Element Clicked',
+          expect.not.objectContaining({
+            '[Amplitude] Page View ID': expect.anything(),
+          }),
+        );
+
+        // Restore sessionStorage
+        window.sessionStorage = originalSessionStorage;
+
+        // Cleanup
+        document.getElementById('test-link-id')?.remove();
+      });
+
+      test('should not throw error when window.sessionStorage is undefined', async () => {
+        const config: Partial<BrowserConfig> = {
+          defaultTracking: false,
+          loggerProvider: loggerProvider,
+        };
+        await plugin?.setup?.(config as BrowserConfig, instance);
+
+        // Save original window.sessionStorage
+        const originalSessionStorage = window.sessionStorage;
+
+        // Set window.sessionStorage to undefined - tests optional chaining when window?.sessionStorage is undefined
+        Object.defineProperty(window, 'sessionStorage', {
+          value: undefined,
+          writable: true,
+          configurable: true,
+        });
+
+        // trigger click event
+        const link = document.createElement('a');
+        link.setAttribute('id', 'test-link-id-2');
+        link.setAttribute('class', 'test-link-class');
+        link.href = 'https://www.amplitude.com/test';
+        link.text = 'test-link-text';
+        document.body.appendChild(link);
+
+        document.getElementById('test-link-id-2')?.dispatchEvent(new Event('click'));
+        jest.advanceTimersByTime(TESTING_DEBOUNCE_TIME + 3);
+
+        expect(track).toHaveBeenCalledTimes(1);
+        // Verify that page view ID is not included in the event properties
+        expect(track).toHaveBeenNthCalledWith(
+          1,
+          '[Amplitude] Element Clicked',
+          expect.not.objectContaining({
+            '[Amplitude] Page View ID': expect.anything(),
+          }),
+        );
+
+        // Restore sessionStorage
+        window.sessionStorage = originalSessionStorage;
+
+        // Cleanup
+        document.getElementById('test-link-id-2')?.remove();
+      });
+    });
   });
 
   describe('teardown', () => {
