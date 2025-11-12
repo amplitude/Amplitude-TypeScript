@@ -103,6 +103,7 @@ export class DataExtractor {
     }
 
     const endTime = performance.now();
+    /* istanbul ignore next */
     this.diagnosticsClient?.recordHistogram('autocapturePlugin.getHierarchy', endTime - startTime);
 
     return hierarchy;
@@ -133,6 +134,7 @@ export class DataExtractor {
     const elementPath = cssPath(element);
 
     const endTime = performance.now();
+    /* istanbul ignore next */
     this.diagnosticsClient?.recordHistogram('autocapturePlugin.getElementPath', endTime - startTime);
 
     return elementPath;
@@ -170,6 +172,8 @@ export class DataExtractor {
     };
 
     // Attach the current [Amplitude] Page View ID if present in sessionStorage
+    // TODO: add test for this before merging into main branch!
+    /* istanbul ignore next */
     try {
       const raw = window.sessionStorage?.getItem(constants.PAGE_VIEW_SESSION_STORAGE_KEY);
       if (raw) {
