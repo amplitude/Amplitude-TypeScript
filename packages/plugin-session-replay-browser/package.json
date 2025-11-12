@@ -39,10 +39,10 @@
     "url": "https://github.com/amplitude/Amplitude-TypeScript/issues"
   },
   "dependencies": {
-    "@amplitude/analytics-client-common": "2.4.13-zen-observable-migration.0",
-    "@amplitude/analytics-core": "2.32.0-zen-observable-migration.0",
+    "@amplitude/analytics-client-common": "2.4.13-zen-observable-migration.1",
+    "@amplitude/analytics-core": "2.32.0-zen-observable-migration.1",
     "@amplitude/analytics-types": "^2.11.0",
-    "@amplitude/session-replay-browser": "1.29.5-zen-observable-migration.0",
+    "@amplitude/session-replay-browser": "1.29.5-zen-observable-migration.1",
     "idb-keyval": "^6.2.1",
     "tslib": "^2.4.1"
   },

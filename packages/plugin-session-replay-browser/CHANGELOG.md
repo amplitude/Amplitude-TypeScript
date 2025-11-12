@@ -3,7 +3,7 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
-## [1.23.3-zen-observable-migration.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@1.23.3-zen-observable-migration.0...@amplitude/plugin-session-replay-browser@1.23.3-zen-observable-migration.1) (2025-11-11)
+## [1.23.3-zen-observable-migration.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@1.23.3-zen-observable-migration.1...@amplitude/plugin-session-replay-browser@1.23.3-zen-observable-migration.1) (2025-11-11)
 
 **Note:** Version bump only for package @amplitude/plugin-session-replay-browser
 
@@ -11,7 +11,7 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 
 
-## [1.23.3-zen-observable-migration.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@1.23.2...@amplitude/plugin-session-replay-browser@1.23.3-zen-observable-migration.0) (2025-11-10)
+## [1.23.3-zen-observable-migration.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@1.23.2...@amplitude/plugin-session-replay-browser@1.23.3-zen-observable-migration.1) (2025-11-10)
 
 **Note:** Version bump only for package @amplitude/plugin-session-replay-browser
 
