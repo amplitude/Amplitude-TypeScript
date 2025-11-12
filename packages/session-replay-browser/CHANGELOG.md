@@ -3,17 +3,6 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
-## [1.29.5-zen-observable-migration.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.29.4...@amplitude/session-replay-browser@1.29.5-zen-observable-migration.0) (2025-11-10)
-
-
-### Bug Fixes
-
-* remove the reset history ([#1388](https://github.com/amplitude/Amplitude-TypeScript/issues/1388)) ([841c9ce](https://github.com/amplitude/Amplitude-TypeScript/commit/841c9ce1f93fb19dcd2e620e7e4f776db5982a09))
-
-
-
-
-
 ## [1.29.4](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.29.3...@amplitude/session-replay-browser@1.29.4) (2025-11-05)
 
 

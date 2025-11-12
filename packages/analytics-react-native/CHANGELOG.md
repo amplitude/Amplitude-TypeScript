@@ -3,14 +3,6 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
-## [1.5.24-zen-observable-migration.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-react-native@1.5.23...@amplitude/analytics-react-native@1.5.24-zen-observable-migration.0) (2025-11-10)
-
-**Note:** Version bump only for package @amplitude/analytics-react-native
-
-
-
-
-
 ## [1.5.23](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-react-native@1.5.22...@amplitude/analytics-react-native@1.5.23) (2025-11-05)
 
 **Note:** Version bump only for package @amplitude/analytics-react-native
