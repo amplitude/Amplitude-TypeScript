@@ -3,7 +3,7 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
-# [0.0.0-zen-observable-migration.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/segment-session-replay-plugin@0.0.0-beta.45...@amplitude/segment-session-replay-plugin@0.0.0-zen-observable-migration.1) (2025-11-10)
+# [0.0.0-zen-observable-migration.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/segment-session-replay-plugin@0.0.0-beta.45...@amplitude/segment-session-replay-plugin@0.0.0-zen-observable-migration.0) (2025-11-10)
 
 **Note:** Version bump only for package @amplitude/segment-session-replay-plugin
 

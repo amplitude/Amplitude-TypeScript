@@ -3,7 +3,7 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
-## [2.1.94-zen-observable-migration.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-web-attribution-browser@2.1.94-zen-observable-migration.1...@amplitude/plugin-web-attribution-browser@2.1.94-zen-observable-migration.1) (2025-11-11)
+## [2.1.94-zen-observable-migration.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-web-attribution-browser@2.1.94-zen-observable-migration.0...@amplitude/plugin-web-attribution-browser@2.1.94-zen-observable-migration.0) (2025-11-11)
 
 **Note:** Version bump only for package @amplitude/plugin-web-attribution-browser
 
@@ -11,7 +11,7 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 
 
-## [2.1.94-zen-observable-migration.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-web-attribution-browser@2.1.93...@amplitude/plugin-web-attribution-browser@2.1.94-zen-observable-migration.1) (2025-11-10)
+## [2.1.94-zen-observable-migration.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-web-attribution-browser@2.1.93...@amplitude/plugin-web-attribution-browser@2.1.94-zen-observable-migration.0) (2025-11-10)
 
 **Note:** Version bump only for package @amplitude/plugin-web-attribution-browser
 

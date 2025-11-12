@@ -3,7 +3,7 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
-# [1.7.0-zen-observable-migration.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-network-capture-browser@1.6.13...@amplitude/plugin-network-capture-browser@1.7.0-zen-observable-migration.1) (2025-11-10)
+# [1.7.0-zen-observable-migration.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-network-capture-browser@1.6.13...@amplitude/plugin-network-capture-browser@1.7.0-zen-observable-migration.0) (2025-11-10)
 
 
 ### Features
