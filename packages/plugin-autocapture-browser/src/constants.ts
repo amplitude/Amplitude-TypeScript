@@ -23,6 +23,8 @@ export const AMPLITUDE_EVENT_PROP_PAGE_TITLE = '[Amplitude] Page Title';
 export const AMPLITUDE_EVENT_PROP_VIEWPORT_HEIGHT = '[Amplitude] Viewport Height';
 export const AMPLITUDE_EVENT_PROP_VIEWPORT_WIDTH = '[Amplitude] Viewport Width';
 
+export const AMPLITUDE_EVENT_PROP_PAGE_VIEW_ID = '[Amplitude] Page View ID';
+
 // Visual Tagging related constants
 export const AMPLITUDE_ORIGIN = 'https://app.amplitude.com';
 export const AMPLITUDE_ORIGIN_EU = 'https://app.eu.amplitude.com';
@@ -43,4 +45,8 @@ export const AMPLITUDE_VISUAL_TAGGING_HIGHLIGHT_CLASS = 'amp-visual-tagging-sele
 export const DATA_AMP_MASK_ATTRIBUTES = 'data-amp-mask-attributes';
 
 export const MAX_MASK_TEXT_PATTERNS = 25;
+
 export const MAX_ATTRIBUTE_LENGTH = 128;
+
+// The key for the page view object in sessionStorage
+export const PAGE_VIEW_SESSION_STORAGE_KEY = 'AMP_PAGE_VIEW';
