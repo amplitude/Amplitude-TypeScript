@@ -3,6 +3,23 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.32.0-zen-plus-zoning.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.32.0-zen-observable-migration.0...@amplitude/analytics-core@2.32.0-zen-plus-zoning.0) (2025-11-12)
+
+
+### Features
+
+* **analytics-browser:** add reset listener API ([#1393](https://github.com/amplitude/Amplitude-TypeScript/issues/1393)) ([7bd85e5](https://github.com/amplitude/Amplitude-TypeScript/commit/7bd85e51b01cefdb43b8474d930e8c219b739323))
+
+
+### Reverts
+
+* Revert "chore(release): publish" ([f68b67f](https://github.com/amplitude/Amplitude-TypeScript/commit/f68b67f83fb3866b5159087702a8d122b091e0f7))
+* "fix: make setDiagnosticsRate an optional function ([#1382](https://github.com/amplitude/Amplitude-TypeScript/issues/1382))" ([#1394](https://github.com/amplitude/Amplitude-TypeScript/issues/1394)) ([f8ddc88](https://github.com/amplitude/Amplitude-TypeScript/commit/f8ddc88961e14a3ae7ad7e79ac7a182e84b158a0))
+
+
+
+
+
 ## [2.31.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.31.0...@amplitude/analytics-core@2.31.1) (2025-11-05)
 
 

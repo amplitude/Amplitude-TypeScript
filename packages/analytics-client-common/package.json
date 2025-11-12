@@ -1,6 +1,6 @@
 {
   "name": "@amplitude/analytics-client-common",
-  "version": "2.4.12",
+  "version": "2.4.13-zen-plus-zoning.0",
   "description": "",
   "author": "Amplitude Inc",
   "homepage": "https://github.com/amplitude/Amplitude-TypeScript",
@@ -37,7 +37,7 @@
   },
   "dependencies": {
     "@amplitude/analytics-connector": "^1.4.8",
-    "@amplitude/analytics-core": "^2.31.1",
+    "@amplitude/analytics-core": "2.32.0-zen-plus-zoning.0",
     "@amplitude/analytics-types": "^2.11.0",
     "tslib": "^2.4.1"
   },

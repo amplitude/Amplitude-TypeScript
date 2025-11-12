@@ -3,6 +3,24 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.18.0-zen-plus-zoning.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.18.0-zen-observable-migration.1...@amplitude/plugin-autocapture-browser@1.18.0-zen-plus-zoning.0) (2025-11-12)
+
+
+### Features
+
+* **autocapture:** add method to get unique element path for element ([f830069](https://github.com/amplitude/Amplitude-TypeScript/commit/f830069da06d7047bfb9e65d19dc4d6b13433293))
+* **page-view-tracking-browser:** Track page view id in session storage ([#1379](https://github.com/amplitude/Amplitude-TypeScript/issues/1379)) ([a5d3241](https://github.com/amplitude/Amplitude-TypeScript/commit/a5d3241f175fc148d9573b619a06f74458188a3a))
+
+
+### Reverts
+
+* Revert "chore(release): publish" ([f68b67f](https://github.com/amplitude/Amplitude-TypeScript/commit/f68b67f83fb3866b5159087702a8d122b091e0f7))
+* Revert "chore(release): publish" ([6b53d02](https://github.com/amplitude/Amplitude-TypeScript/commit/6b53d022aab0fc297fdc14652599567667c34561))
+
+
+
+
+
 ## [1.17.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.17.0...@amplitude/plugin-autocapture-browser@1.17.1) (2025-11-05)
 
 **Note:** Version bump only for package @amplitude/plugin-autocapture-browser

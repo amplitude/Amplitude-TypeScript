@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.0.0-zen-plus-zoning.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/unified@1.0.0-zen-observable-migration.1...@amplitude/unified@1.0.0-zen-plus-zoning.0) (2025-11-12)
+
+
+### Reverts
+
+* Revert "chore(release): publish" ([f68b67f](https://github.com/amplitude/Amplitude-TypeScript/commit/f68b67f83fb3866b5159087702a8d122b091e0f7))
+* Revert "chore(release): publish" ([6b53d02](https://github.com/amplitude/Amplitude-TypeScript/commit/6b53d022aab0fc297fdc14652599567667c34561))
+
+
+
+
+
 # [1.0.0-beta.15](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/unified@1.0.0-beta.14...@amplitude/unified@1.0.0-beta.15) (2025-11-05)
 
 **Note:** Version bump only for package @amplitude/unified
