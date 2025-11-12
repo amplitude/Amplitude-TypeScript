@@ -23,6 +23,7 @@ import type { BaseTimestampedEvent, ElementBasedTimestampedEvent, TimestampedEve
 import { getAncestors, getElementProperties } from './hierarchy';
 import { getDataSource } from './pageActions/actions';
 import { Hierarchy } from './typings/autocapture';
+import { cssPath } from './libs/element-path';
 
 export class DataExtractor {
   private readonly additionalMaskTextPatterns: RegExp[];
@@ -126,6 +127,17 @@ export class DataExtractor {
     return this.getNearestLabel(parent);
   };
 
+  getElementPath = (element: Element): string => {
+    const startTime = performance.now();
+
+    const elementPath = cssPath(element);
+
+    const endTime = performance.now();
+    this.diagnosticsClient?.recordHistogram('autocapturePlugin.getElementPath', endTime - startTime);
+
+    return elementPath;
+  };
+
   // Returns the Amplitude event properties for the given element.
   getEventProperties = (actionType: ActionType, element: Element, dataAttributePrefix: string) => {
     /* istanbul ignore next */
@@ -147,6 +159,7 @@ export class DataExtractor {
       [constants.AMPLITUDE_EVENT_PROP_ELEMENT_POSITION_LEFT]: rect.left == null ? null : Math.round(rect.left),
       [constants.AMPLITUDE_EVENT_PROP_ELEMENT_POSITION_TOP]: rect.top == null ? null : Math.round(rect.top),
       [constants.AMPLITUDE_EVENT_PROP_ELEMENT_ATTRIBUTES]: attributes,
+      [constants.AMPLITUDE_EVENT_PROP_ELEMENT_PATH]: this.getElementPath(element),
       [constants.AMPLITUDE_EVENT_PROP_ELEMENT_PARENT_LABEL]: nearestLabel,
       [constants.AMPLITUDE_EVENT_PROP_PAGE_URL]: getDecodeURI(window.location.href.split('?')[0]),
       [constants.AMPLITUDE_EVENT_PROP_PAGE_TITLE]: (
@@ -155,6 +168,19 @@ export class DataExtractor {
       [constants.AMPLITUDE_EVENT_PROP_VIEWPORT_HEIGHT]: window.innerHeight,
       [constants.AMPLITUDE_EVENT_PROP_VIEWPORT_WIDTH]: window.innerWidth,
     };
+
+    // Attach the current [Amplitude] Page View ID if present in sessionStorage
+    try {
+      const raw = window.sessionStorage?.getItem(constants.PAGE_VIEW_SESSION_STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw) as { pageViewId?: string };
+        if (typeof parsed.pageViewId === 'string') {
+          properties[constants.AMPLITUDE_EVENT_PROP_PAGE_VIEW_ID] = parsed.pageViewId;
+        }
+      }
+    } catch {
+      // ignore storage/JSON errors by not attaching the page view ID
+    }
 
     // id is never masked, so always include it
     properties[constants.AMPLITUDE_EVENT_PROP_ELEMENT_ID] = element.getAttribute('id') || '';

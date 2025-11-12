@@ -11,11 +11,18 @@ import {
   CampaignParser,
   getGlobalScope,
   BASE_CAMPAIGN,
+  BrowserStorage,
+  UUID,
 } from '@amplitude/analytics-core';
 import { CreatePageViewTrackingPlugin, Options } from './typings/page-view-tracking';
 import { omitUndefined } from './utils';
 
 export const defaultPageViewEvent = '[Amplitude] Page Viewed';
+export const PAGE_VIEW_SESSION_STORAGE_KEY = 'AMP_PAGE_VIEW';
+
+type PageViewSessionStorage = {
+  pageViewId: string;
+};
 
 export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (options: Options = {}) => {
   let amplitude: BrowserClient | undefined;
@@ -23,6 +30,7 @@ export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (options: Op
   let loggerProvider: ILogger | undefined = undefined;
   let isTracking = false;
   let localConfig: BrowserConfig;
+  let sessionStorage: BrowserStorage<PageViewSessionStorage> | undefined;
   const { trackOn, trackHistoryChanges, eventType = defaultPageViewEvent } = options;
 
   const getDecodeURI = (locationStr: string): string => {
@@ -37,7 +45,7 @@ export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (options: Op
     return decodedLocationStr;
   };
 
-  const createPageViewEvent = async (): Promise<Event> => {
+  const createPageViewEvent = async (pageViewId: string | undefined): Promise<Event> => {
     /* istanbul ignore next */
     const locationHREF = getDecodeURI((typeof location !== 'undefined' && location.href) || '');
     return {
@@ -51,6 +59,7 @@ export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (options: Op
           /* istanbul ignore next */ (typeof location !== 'undefined' && getDecodeURI(location.pathname)) || '',
         '[Amplitude] Page Title': /* istanbul ignore next */ getPageTitle(replaceSensitiveString),
         '[Amplitude] Page URL': locationHREF.split('?')[0],
+        '[Amplitude] Page View ID': pageViewId,
       },
     };
   };
@@ -71,14 +80,21 @@ export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (options: Op
     previousURL = newURL;
 
     if (shouldTrackPageView) {
+      // Generate new page view id and set it in session storage
+      let pageViewId: string | undefined;
+      if (sessionStorage) {
+        pageViewId = UUID();
+        void sessionStorage.set(PAGE_VIEW_SESSION_STORAGE_KEY, { pageViewId });
+      }
+
       /* istanbul ignore next */
       loggerProvider?.log('Tracking page view event');
-      amplitude?.track(await createPageViewEvent());
+      amplitude?.track(await createPageViewEvent(pageViewId));
     }
   };
 
   /* istanbul ignore next */
-  const trackHistoryPageViewWrapper = () => {
+  const handlePageChange = () => {
     void trackHistoryPageView();
   };
 
@@ -94,9 +110,11 @@ export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (options: Op
       loggerProvider.log('Installing @amplitude/plugin-page-view-tracking-browser');
 
       isTracking = true;
-
       if (globalScope) {
-        globalScope.addEventListener('popstate', trackHistoryPageViewWrapper);
+        // init session storage
+        sessionStorage = new BrowserStorage<PageViewSessionStorage>(globalScope.sessionStorage);
+
+        globalScope.addEventListener('popstate', handlePageChange);
 
         /* istanbul ignore next */
         // There is no global browser listener for changes to history, so we have
@@ -107,7 +125,7 @@ export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (options: Op
           apply: (target, thisArg, [state, unused, url]) => {
             target.apply(thisArg, [state, unused, url]);
             if (isTracking) {
-              void trackHistoryPageView();
+              handlePageChange();
             }
           },
         });
@@ -115,8 +133,15 @@ export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (options: Op
 
       if (shouldTrackOnPageLoad()) {
         loggerProvider.log('Tracking page view event');
+        // Generate new page view id and set it in session storage
+        let pageViewId: string | undefined;
 
-        amplitude.track(await createPageViewEvent());
+        if (sessionStorage) {
+          pageViewId = UUID();
+          void sessionStorage.set(PAGE_VIEW_SESSION_STORAGE_KEY, { pageViewId });
+        }
+
+        amplitude.track(await createPageViewEvent(pageViewId));
       }
     },
 
@@ -124,7 +149,14 @@ export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (options: Op
       if (trackOn === 'attribution' && isCampaignEvent(event)) {
         /* istanbul ignore next */ // loggerProvider should be defined by the time execute is invoked
         loggerProvider?.log('Enriching campaign event to page view event with campaign parameters');
-        const pageViewEvent = await createPageViewEvent();
+        // Retrieve current page view id from session storage
+        let pageViewId: string | undefined;
+        if (sessionStorage) {
+          const pageViewSession = await sessionStorage.get(PAGE_VIEW_SESSION_STORAGE_KEY);
+          pageViewId = pageViewSession?.pageViewId;
+        }
+
+        const pageViewEvent = await createPageViewEvent(pageViewId);
         event.event_type = pageViewEvent.event_type;
         event.event_properties = {
           ...event.event_properties,
@@ -145,7 +177,7 @@ export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (options: Op
 
     teardown: async () => {
       if (globalScope) {
-        globalScope.removeEventListener('popstate', trackHistoryPageViewWrapper);
+        globalScope.removeEventListener('popstate', handlePageChange);
         isTracking = false;
       }
     },
