@@ -34,6 +34,12 @@ interface PluginBase<T = CoreClient, U = IConfig> {
   onIdentityChanged?(identity: AnalyticsIdentity): Promise<void>;
   onSessionIdChanged?(sessionId: number): Promise<void>;
   onOptOutChanged?(optOut: boolean): Promise<void>;
+  /**
+   * Called when reset() is invoked on the client.
+   *
+   * Currently supported only in the Browser SDK. Not supported in React Native or Node SDKs.
+   */
+  onReset?(): Promise<void>;
 }
 
 export interface BeforePlugin<T = CoreClient, U = IConfig> extends PluginBase<T, U> {

@@ -314,6 +314,7 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
   reset() {
     this.setDeviceId(UUID());
     this.setUserId(undefined);
+    this.timeline.onReset();
   }
 
   getIdentity() {

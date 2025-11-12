@@ -212,4 +212,14 @@ export class Timeline {
       void plugin.onOptOutChanged?.(optOut);
     });
   }
+
+  onReset() {
+    this.plugins.forEach((plugin) => {
+      // Intentionally to not await plugin.onReset() for non-blocking.
+      // Ignore optional channing next line for test coverage.
+      // If the plugin doesn't implement it, it won't be called.
+      /* istanbul ignore next */
+      void plugin.onReset?.();
+    });
+  }
 }

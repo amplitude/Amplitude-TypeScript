@@ -1,4 +1,4 @@
-import { BrowserClient } from '@amplitude/analytics-types';
+import { BrowserClient } from '@amplitude/analytics-core';
 
 // Mock BrowserClient implementation
 export const createMockBrowserClient = (): jest.Mocked<BrowserClient> => {
@@ -24,6 +24,8 @@ export const createMockBrowserClient = (): jest.Mocked<BrowserClient> => {
     setOptOut: jest.fn(),
     setTransport: jest.fn(),
     _setDiagnosticsSampleRate: jest.fn(),
+    getOptOut: jest.fn(),
+    getIdentity: jest.fn(),
   } as jest.Mocked<BrowserClient>;
 
   // Set up default return values for methods that return promises
