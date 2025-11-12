@@ -135,3 +135,5 @@ export {
   ReactNativeAttributionOptions,
 } from './types/config/react-native-config';
 export { ReactNativeClient } from './types/client/react-native-client';
+
+export { Observable, asyncMap, merge, multicast, Unsubscribable } from './utils/observable';

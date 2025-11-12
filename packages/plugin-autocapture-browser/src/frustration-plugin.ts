@@ -7,23 +7,34 @@ import {
   DEFAULT_DATA_ATTRIBUTE_PREFIX,
   DEFAULT_RAGE_CLICK_ALLOWLIST,
   DEFAULT_DEAD_CLICK_ALLOWLIST,
+  multicast,
+  Observable,
 } from '@amplitude/analytics-core';
 import * as constants from './constants';
-import { fromEvent, map, Observable, Subscription, share } from 'rxjs';
-import { createShouldTrackEvent, ElementBasedTimestampedEvent, NavigateEvent } from './helpers';
+import { createShouldTrackEvent, ElementBasedTimestampedEvent, NavigateEvent, TimestampedEvent } from './helpers';
 import { trackDeadClick } from './autocapture/track-dead-click';
 import { trackRageClicks } from './autocapture/track-rage-click';
-import { AllWindowObservables, ObservablesEnum } from './autocapture-plugin';
-import { createClickObservable, createMutationObservable } from './observables';
+import { ObservablesEnum } from './autocapture-plugin';
+import { createClickObservableZen, createMutationObservableZen } from './observables';
 import { DataExtractor } from './data-extractor';
 
+export interface AllWindowObservables {
+  [ObservablesEnum.ClickObservable]: Observable<ElementBasedTimestampedEvent<MouseEvent>>;
+  [ObservablesEnum.MutationObservable]: Observable<TimestampedEvent<MutationRecord[]>>;
+  [ObservablesEnum.NavigateObservable]?: Observable<TimestampedEvent<NavigateEvent>>;
+}
+
 type BrowserEnrichmentPlugin = EnrichmentPlugin<BrowserClient, BrowserConfig>;
+
+type Unsubscribable = {
+  unsubscribe: () => void;
+};
 
 export const frustrationPlugin = (options: FrustrationInteractionsOptions = {}): BrowserEnrichmentPlugin => {
   const name = constants.FRUSTRATION_PLUGIN_NAME;
   const type = 'enrichment';
 
-  const subscriptions: Subscription[] = [];
+  const subscriptions: (Unsubscribable | undefined)[] = [];
 
   const rageCssSelectors = options.rageClicks?.cssSelectorAllowlist ?? DEFAULT_RAGE_CLICK_ALLOWLIST;
   const deadCssSelectors = options.deadClicks?.cssSelectorAllowlist ?? DEFAULT_DEAD_CLICK_ALLOWLIST;
@@ -37,9 +48,8 @@ export const frustrationPlugin = (options: FrustrationInteractionsOptions = {}):
 
   // Create observables on events on the window
   const createObservables = (): AllWindowObservables => {
-    // Create Observables from direct user events
-    const clickObservable = createClickObservable('pointerdown').pipe(
-      map((click) => {
+    const clickObservable = multicast(
+      createClickObservableZen('pointerdown').map((click) => {
         return dataExtractor.addAdditionalEventProperties(
           click,
           'click',
@@ -48,34 +58,46 @@ export const frustrationPlugin = (options: FrustrationInteractionsOptions = {}):
           true, // capture when cursor is pointer
         );
       }),
-      share(),
     );
 
-    // Create observable for URL changes
-    let navigateObservable;
-    /* istanbul ignore next */
+    const enrichedMutationObservable = multicast<TimestampedEvent<MutationRecord[]>>(
+      createMutationObservableZen().map((mutation) =>
+        dataExtractor.addAdditionalEventProperties(mutation, 'mutation', combinedCssSelectors, dataAttributePrefix),
+      ),
+    );
+
+    let enrichedNavigateObservable: Observable<TimestampedEvent<NavigateEvent>> | undefined;
+
     if (window.navigation) {
-      navigateObservable = fromEvent<NavigateEvent>(window.navigation, 'navigate').pipe(
-        map((navigate) =>
-          dataExtractor.addAdditionalEventProperties(navigate, 'navigate', combinedCssSelectors, dataAttributePrefix),
+      const navigateObservable = new Observable<Event>((observer) => {
+        const handler = (event: Event): void => {
+          observer.next({
+            ...event,
+            type: 'navigate',
+          });
+        };
+        window.navigation.addEventListener('navigate', handler);
+        return () => {
+          window.navigation.removeEventListener('navigate', handler);
+        };
+      });
+      enrichedNavigateObservable = multicast<TimestampedEvent<NavigateEvent>>(
+        navigateObservable.map<TimestampedEvent<NavigateEvent>>(
+          (navigate) =>
+            dataExtractor.addAdditionalEventProperties(
+              navigate,
+              'navigate',
+              combinedCssSelectors,
+              dataAttributePrefix,
+            ) as TimestampedEvent<NavigateEvent>,
         ),
-        share(),
       );
     }
 
-    // Track DOM Mutations
-    const enrichedMutationObservable = createMutationObservable().pipe(
-      map((mutation) =>
-        dataExtractor.addAdditionalEventProperties(mutation, 'mutation', combinedCssSelectors, dataAttributePrefix),
-      ),
-      share(),
-    );
-
     return {
       [ObservablesEnum.ClickObservable]: clickObservable as Observable<ElementBasedTimestampedEvent<MouseEvent>>,
-      [ObservablesEnum.ChangeObservable]: new Observable<ElementBasedTimestampedEvent<Event>>(), // Empty observable since we don't need change events
-      [ObservablesEnum.NavigateObservable]: navigateObservable,
       [ObservablesEnum.MutationObservable]: enrichedMutationObservable,
+      [ObservablesEnum.NavigateObservable]: enrichedNavigateObservable,
     };
   };
 
@@ -119,7 +141,9 @@ export const frustrationPlugin = (options: FrustrationInteractionsOptions = {}):
 
   const teardown = async () => {
     for (const subscription of subscriptions) {
-      subscription.unsubscribe();
+      // TODO: This ? will be unnecessary once it's not an optional method
+      /* istanbul ignore next */
+      subscription?.unsubscribe();
     }
   };
 

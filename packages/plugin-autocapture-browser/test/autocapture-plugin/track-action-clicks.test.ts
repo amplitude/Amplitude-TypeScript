@@ -174,6 +174,7 @@ describe('action clicks:', () => {
           },
         ],
         '[Amplitude] Element ID': 'addDivButton',
+        '[Amplitude] Element Path': 'div#addDivButton',
         '[Amplitude] Element Parent Label': 'Card Title',
         '[Amplitude] Element Position Left': 0,
         '[Amplitude] Element Position Top': 0,
@@ -278,18 +279,46 @@ describe('action clicks:', () => {
     });
 
     // Readd when jsdom has support for navigate events
-    // test('should track div click if it causes a navigation (popstate) change', async () => {
-    //   await plugin?.setup(config as BrowserConfig, instance);
+    describe('navigation events', () => {
+      beforeEach(() => {
+        (window.navigation as any) = {
+          _handlers: [],
+          addEventListener: function (type: string, listener: () => void) {
+            if (type === 'navigate') {
+              this._handlers.push(listener);
+            }
+          },
+          removeEventListener: function (type: string, listener: () => void) {
+            if (type === 'navigate') {
+              this._handlers = this._handlers.filter((l: () => void) => l !== listener);
+            }
+          },
+          dispatchEvent: function (event: Event) {
+            if (event.type === 'navigate') {
+              this._handlers.forEach((handler: () => void) => handler());
+            }
+          },
+        };
+      });
 
-    //   // Set initial window location
-    //   window.location.href = 'https://www.test.com/query';
+      afterEach(() => {
+        (window.navigation as any) = undefined;
+      });
 
-    //   // trigger click event on div which is acting as a button
-    //   document.getElementById('go-back-button')?.dispatchEvent(new Event('click'));
-    //   await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 503));
+      test('should track div click if it causes a navigation (popstate) change', async () => {
+        await plugin?.setup?.(config as BrowserConfig, instance);
 
-    //   expect(track).toHaveBeenCalledTimes(1);
-    //   expect(track).toHaveBeenNthCalledWith(1, '[Amplitude] Element Clicked', {});
-    // });
+        // Set initial window location
+        window.location.href = 'https://www.test.com/query';
+
+        // trigger click event on div which is acting as a button
+        document.getElementById('go-back-button')?.dispatchEvent(new Event('click'));
+        (window.navigation as any).dispatchEvent(new Event('navigate'));
+        await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 503));
+
+        expect(track).toHaveBeenCalledTimes(1);
+        expect(track).toHaveBeenNthCalledWith(1, '[Amplitude] Element Clicked', expect.objectContaining({}));
+      });
+    });
   });
 });

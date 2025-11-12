@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.29.5-zen-plus-zoning.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.29.5-zen-observable-migration.0...@amplitude/session-replay-browser@1.29.5-zen-plus-zoning.0) (2025-11-12)
+
+
+### Reverts
+
+* Revert "chore(release): publish" ([f68b67f](https://github.com/amplitude/Amplitude-TypeScript/commit/f68b67f83fb3866b5159087702a8d122b091e0f7))
+
+
+
+
+
 ## [1.29.4](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.29.3...@amplitude/session-replay-browser@1.29.4) (2025-11-05)
 
 
