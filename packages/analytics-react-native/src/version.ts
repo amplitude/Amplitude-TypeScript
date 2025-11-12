@@ -1,1 +1,1 @@
-export const VERSION = '1.5.24-zen-observable-migration.1';
+export const VERSION = '1.5.23';
