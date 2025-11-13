@@ -498,6 +498,14 @@ describe('SessionReplayJoinedConfigGenerator', () => {
         });
       });
     });
+
+    describe('with no remote config', () => {
+      test('should set captureEnabled to false', async () => {
+        mockRemoteConfig = null;
+        const { joinedConfig: config } = await joinedConfigGenerator.generateJoinedConfig();
+        expect(config.captureEnabled).toBe(false);
+      });
+    });
   });
 
   describe('removeInvalidSelectorsFromPrivacyConfig', () => {
