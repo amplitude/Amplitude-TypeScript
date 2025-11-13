@@ -2264,6 +2264,7 @@ describe('integration', () => {
           defaultTracking,
           loggerProvider: logger,
           logLevel: LogLevel.Debug,
+          fetchRemoteConfig: false,
         }).promise;
 
         const response = await client.track('test event').promise;
@@ -2295,9 +2296,9 @@ describe('integration', () => {
         expect(response.message).toBe(SUCCESS_MESSAGE);
         scope.done();
 
-        expect(logger.debug).toHaveBeenCalledTimes(15);
+        expect(logger.debug).toHaveBeenCalledTimes(6);
         /* eslint-disable */
-        const debugContext = JSON.parse(logger.debug.mock.calls[14]);
+        const debugContext = JSON.parse(logger.debug.mock.calls[5]);
         expect(debugContext.type).toBeDefined();
         expect(debugContext.name).toEqual('track');
         expect(debugContext.args).toBeDefined();
@@ -2320,12 +2321,13 @@ describe('integration', () => {
           defaultTracking,
           loggerProvider: logger,
           logLevel: LogLevel.Debug,
+          fetchRemoteConfig: false,
         }).promise;
         client.setOptOut(true);
 
-        expect(logger.debug).toHaveBeenCalledTimes(9);
+        expect(logger.debug).toHaveBeenCalledTimes(6);
         /* eslint-disable */
-        const debugContext = JSON.parse(logger.debug.mock.calls[8]);
+        const debugContext = JSON.parse(logger.debug.mock.calls[5]);
         expect(debugContext.type).toBeDefined();
         expect(debugContext.name).toEqual('setOptOut');
         expect(debugContext.args).toBeDefined();
