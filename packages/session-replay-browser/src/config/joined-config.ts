@@ -72,34 +72,32 @@ export class SessionReplayJoinedConfigGenerator {
               return;
             }
 
-            if (remoteConfig) {
-              // remoteConfig is already filtered to 'configs.sessionReplay' namespace
-              const namespaceConfig = remoteConfig as SessionReplayRemoteConfig;
-              const samplingConfig = namespaceConfig.sr_sampling_config;
-              const privacyConfig = namespaceConfig.sr_privacy_config;
-              const targetingConfig = namespaceConfig.sr_targeting_config;
+            // remoteConfig is already filtered to 'configs.sessionReplay' namespace
+            const namespaceConfig = remoteConfig as SessionReplayRemoteConfig;
+            const samplingConfig = namespaceConfig.sr_sampling_config;
+            const privacyConfig = namespaceConfig.sr_privacy_config;
+            const targetingConfig = namespaceConfig.sr_targeting_config;
 
-              const ugcFilterRules = config.interactionConfig?.ugcFilterRules;
-              // This is intentionally forced to only be set through the remote config.
-              config.interactionConfig = namespaceConfig.sr_interaction_config;
-              if (config.interactionConfig && ugcFilterRules) {
-                config.interactionConfig.ugcFilterRules = ugcFilterRules;
+            const ugcFilterRules = config.interactionConfig?.ugcFilterRules;
+            // This is intentionally forced to only be set through the remote config.
+            config.interactionConfig = namespaceConfig.sr_interaction_config;
+            if (config.interactionConfig && ugcFilterRules) {
+              config.interactionConfig.ugcFilterRules = ugcFilterRules;
+            }
+
+            // This is intentionally forced to only be set through the remote config.
+            config.loggingConfig = namespaceConfig.sr_logging_config;
+
+            if (samplingConfig || privacyConfig || targetingConfig) {
+              sessionReplayRemoteConfig = {};
+              if (samplingConfig) {
+                sessionReplayRemoteConfig.sr_sampling_config = samplingConfig;
               }
-
-              // This is intentionally forced to only be set through the remote config.
-              config.loggingConfig = namespaceConfig.sr_logging_config;
-
-              if (samplingConfig || privacyConfig || targetingConfig) {
-                sessionReplayRemoteConfig = {};
-                if (samplingConfig) {
-                  sessionReplayRemoteConfig.sr_sampling_config = samplingConfig;
-                }
-                if (privacyConfig) {
-                  sessionReplayRemoteConfig.sr_privacy_config = privacyConfig;
-                }
-                if (targetingConfig) {
-                  sessionReplayRemoteConfig.sr_targeting_config = targetingConfig;
-                }
+              if (privacyConfig) {
+                sessionReplayRemoteConfig.sr_privacy_config = privacyConfig;
+              }
+              if (targetingConfig) {
+                sessionReplayRemoteConfig.sr_targeting_config = targetingConfig;
               }
             }
 
