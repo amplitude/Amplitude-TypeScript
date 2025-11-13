@@ -117,8 +117,8 @@ export class RemoteConfigClient implements IRemoteConfigClient {
   readonly storage: RemoteConfigStorage;
   // Registered callbackInfos by subscribe().
   callbackInfos: CallbackInfo[] = [];
-  // Track the last successful fetch time for throttling.
-  lastSuccessfulFetch: Date | null = null;
+  // Track the last successful fetch time for throttling (timestamp in milliseconds).
+  lastSuccessfulFetch: number | null = null;
   // Store the in-flight fetch promise for deduplication.
   fetchPromise: Promise<RemoteConfigInfo> | null = null;
 
@@ -163,7 +163,7 @@ export class RemoteConfigClient implements IRemoteConfigClient {
   async updateConfigs() {
     // Check if we need to throttle based on last successful fetch time
     if (this.lastSuccessfulFetch) {
-      const timeSinceLastFetch = Date.now() - this.lastSuccessfulFetch.getTime();
+      const timeSinceLastFetch = Date.now() - this.lastSuccessfulFetch;
       if (timeSinceLastFetch < DEFAULT_MIN_TIME_BETWEEN_FETCHES) {
         this.logger.debug('Remote config client skipping updateConfigs: Too recent');
         return;
@@ -190,7 +190,7 @@ export class RemoteConfigClient implements IRemoteConfigClient {
       .then((result) => {
         // Update last successful fetch time if we got a valid config
         if (result.remoteConfig !== null) {
-          this.lastSuccessfulFetch = new Date();
+          this.lastSuccessfulFetch = Date.now();
         }
         return result;
       })

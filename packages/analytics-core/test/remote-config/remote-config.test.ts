@@ -187,7 +187,7 @@ describe('RemoteConfigClient', () => {
       expect(fetch).toHaveBeenCalledTimes(1);
       expect(mockStorage.setConfig).toHaveBeenCalledWith(remoteConfigInfo);
       expect(sendCallback).toHaveBeenCalledWith(callbackInfo, remoteConfigInfo, 'remote');
-      expect(client.lastSuccessfulFetch).toBeInstanceOf(Date);
+      expect(client.lastSuccessfulFetch).toEqual(expect.any(Number));
     });
 
     test('should skip fetch if called within 5 minutes of last successful fetch', async () => {
@@ -201,7 +201,7 @@ describe('RemoteConfigClient', () => {
       // First call should succeed
       await client.updateConfigs();
       expect(fetch).toHaveBeenCalledTimes(1);
-      expect(client.lastSuccessfulFetch).toBeInstanceOf(Date);
+      expect(client.lastSuccessfulFetch).toEqual(expect.any(Number));
 
       // Second call within 5 minutes should be skipped
       await client.updateConfigs();
@@ -222,7 +222,7 @@ describe('RemoteConfigClient', () => {
       expect(fetch).toHaveBeenCalledTimes(1);
 
       // Set lastSuccessfulFetch to 6 minutes ago
-      const sixMinutesAgo = new Date(Date.now() - 6 * 60 * 1000);
+      const sixMinutesAgo = Date.now() - 6 * 60 * 1000;
       client.lastSuccessfulFetch = sixMinutesAgo;
 
       // Second call should succeed
@@ -261,7 +261,7 @@ describe('RemoteConfigClient', () => {
       const result = await promise;
       expect(result).toEqual(remoteConfigInfo);
       expect(fetch).toHaveBeenCalledTimes(1);
-      expect(client.lastSuccessfulFetch).toBeInstanceOf(Date);
+      expect(client.lastSuccessfulFetch).toEqual(expect.any(Number));
     });
 
     test('should return existing fetch promise if one is in flight', async () => {
