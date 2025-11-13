@@ -148,6 +148,43 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
           },
         );
       });
+
+      await new Promise<void>((resolve) => {
+        // Disable coverage for this line because remote config client will always be defined in this case.
+        // istanbul ignore next
+        remoteConfigClient?.subscribe(
+          'configs.diagnostics.browserSDK',
+          'all',
+          (remoteConfig: RemoteConfig | null, source: Source, lastFetch: Date) => {
+            browserOptions.loggerProvider.debug(
+              'Diagnostics remote configuration received:',
+              JSON.stringify(
+                {
+                  remoteConfig,
+                  source,
+                  lastFetch,
+                },
+                null,
+                2,
+              ),
+            );
+            if (remoteConfig) {
+              // Validate and set sampleRate (must be a valid number)
+              const sampleRate = remoteConfig.sampleRate as number;
+              if (typeof sampleRate === 'number' && !isNaN(sampleRate)) {
+                browserOptions.diagnosticsSampleRate = sampleRate;
+              }
+
+              // Validate and set enabled (must be a boolean)
+              const enabled = remoteConfig.enabled as boolean;
+              if (typeof enabled === 'boolean') {
+                browserOptions.enableDiagnostics = enabled;
+              }
+            }
+            resolve();
+          },
+        );
+      });
     }
 
     // Initialize diagnostics client and set library tag

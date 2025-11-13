@@ -239,6 +239,72 @@ describe('browser-client', () => {
       updateBrowserConfigSpy.mockRestore();
     });
 
+    test('should update diagnostics config from remote config', async () => {
+      const mockMainRemoteConfig = {
+        autocapture: {
+          elementInteractions: true,
+        },
+      };
+
+      const mockDiagnosticsRemoteConfig = {
+        enabled: true,
+        sampleRate: 0.25,
+      };
+
+      // Mock the remote config client to return different configs based on the subscription key
+      const mockRemoteConfigClientWithDiagnostics = {
+        subscribe: jest
+          .fn()
+          .mockImplementation(
+            (
+              configKey: string,
+              _eventType: string,
+              callback: (remoteConfig: any, source: any, lastFetch: Date) => void,
+            ) => {
+              // Return different configs based on the subscription key
+              if (configKey === 'configs.analyticsSDK.browserSDK') {
+                callback(mockMainRemoteConfig, 'cache', new Date());
+              } else if (configKey === 'configs.diagnostics.browserSDK') {
+                callback(mockDiagnosticsRemoteConfig, 'cache', new Date());
+              } else {
+                callback(null, 'cache', new Date());
+              }
+            },
+          ),
+        unsubscribe: jest.fn(),
+        updateConfigs: jest.fn(),
+      };
+
+      // Replace the default mock with our data mock
+      MockedRemoteConfigClient = jest.fn().mockImplementation(() => mockRemoteConfigClientWithDiagnostics);
+      Object.defineProperty(core, 'RemoteConfigClient', {
+        value: MockedRemoteConfigClient,
+        writable: true,
+        configurable: true,
+      });
+
+      // Initialize the client
+      await client.init(apiKey, {
+        fetchRemoteConfig: true,
+      }).promise;
+
+      // Verify that subscribe was called with the correct keys
+      expect(mockRemoteConfigClientWithDiagnostics.subscribe).toHaveBeenCalledWith(
+        'configs.analyticsSDK.browserSDK',
+        'all',
+        expect.any(Function),
+      );
+      expect(mockRemoteConfigClientWithDiagnostics.subscribe).toHaveBeenCalledWith(
+        'configs.diagnostics.browserSDK',
+        'all',
+        expect.any(Function),
+      );
+
+      // Verify that the diagnostics config was applied
+      expect(client.config.enableDiagnostics).toBe(true);
+      expect(client.config.diagnosticsSampleRate).toBe(0.25);
+    });
+
     test('should initialize client', async () => {
       const parseLegacyCookies = jest.spyOn(CookieMigration, 'parseLegacyCookies').mockResolvedValueOnce({
         optOut: false,
