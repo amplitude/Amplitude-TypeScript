@@ -9,9 +9,9 @@ import { AllWindowObservables } from '../../src/frustration-plugin';
 
 describe('trackDeadClick', () => {
   let mockAmplitude: jest.Mocked<BrowserClient>;
-  let clickObservableZen: any;
-  let mutationObservableZen: any;
-  let navigateObservableZen: any;
+  let clickObservable: any;
+  let mutationObservable: any;
+  let navigateObservable: any;
   let allObservables: AllWindowObservables;
   let shouldTrackDeadClick: jest.Mock;
   let getEventProperties: jest.Mock;
@@ -24,19 +24,19 @@ describe('trackDeadClick', () => {
       track: jest.fn(),
     } as any;
 
-    clickObservableZen = new Observable<any>((observer) => {
+    clickObservable = new Observable<any>((observer) => {
       clickObserver = observer;
     });
-    mutationObservableZen = new Observable<any>((observer) => {
+    mutationObservable = new Observable<any>((observer) => {
       mutationObserver = observer;
     });
-    navigateObservableZen = new Observable<any>((observer) => {
+    navigateObservable = new Observable<any>((observer) => {
       navigateObserver = observer;
     });
     allObservables = {
-      [ObservablesEnum.ClickObservable]: clickObservableZen,
-      [ObservablesEnum.MutationObservable]: mutationObservableZen,
-      [ObservablesEnum.NavigateObservable]: navigateObservableZen,
+      [ObservablesEnum.ClickObservable]: clickObservable,
+      [ObservablesEnum.MutationObservable]: mutationObservable,
+      [ObservablesEnum.NavigateObservable]: navigateObservable,
     };
     shouldTrackDeadClick = jest.fn().mockReturnValue(true);
     getEventProperties = jest.fn().mockReturnValue({ id: 'test-element' });

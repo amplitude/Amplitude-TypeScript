@@ -24,9 +24,9 @@ export function trackActionClick({
   shouldTrackActionClick: shouldTrackEvent;
   shouldTrackEvent: shouldTrackEvent;
 }) {
-  const { clickObservableZen, mutationObservableZen, navigateObservableZen } = allObservables;
+  const { clickObservable, mutationObservable, navigateObservable } = allObservables;
 
-  const filteredClickObservable = clickObservableZen
+  const filteredClickObservable = clickObservable
     .filter((click) => {
       return !shouldTrackEvent('click', click.closestTrackedAncestor);
     })
@@ -47,9 +47,7 @@ export function trackActionClick({
       return shouldTrackActionClick('click', clickEvent.closestTrackedAncestor);
     });
 
-  const mutationOrNavigate = navigateObservableZen
-    ? merge(mutationObservableZen, navigateObservableZen)
-    : mutationObservableZen;
+  const mutationOrNavigate = navigateObservable ? merge(mutationObservable, navigateObservable) : mutationObservable;
 
   const clickMutationNavigateObservable = merge(filteredClickObservable, mutationOrNavigate);
 

@@ -1,6 +1,6 @@
 import { AllWindowObservables } from 'src/autocapture-plugin';
 import { type evaluateTriggersFn } from 'src/helpers';
-import { BrowserClient } from '@amplitude/analytics-core';
+import { Observable, BrowserClient } from '@amplitude/analytics-core';
 import { filterOutNonTrackableEvents, shouldTrackEvent } from '../helpers';
 import { AMPLITUDE_ELEMENT_CLICKED_EVENT } from '../constants';
 
@@ -15,9 +15,9 @@ export function trackClicks({
   shouldTrackEvent: shouldTrackEvent;
   evaluateTriggers: evaluateTriggersFn;
 }) {
-  const { clickObservableZen } = allObservables;
+  const { clickObservable } = allObservables;
 
-  const clickObservableFiltered = clickObservableZen
+  const clickObservableFiltered = clickObservable
     .filter(filterOutNonTrackableEvents)
     .filter((click) => {
       // Only track clicks on elements that should be tracked,
@@ -25,7 +25,10 @@ export function trackClicks({
     })
     .map((click) => evaluateTriggers(click));
 
-  return clickObservableFiltered.subscribe((click) => {
+  const clicks: Observable<typeof clickObservableFiltered extends Observable<infer U> ? U : never> =
+    clickObservableFiltered;
+
+  return clicks.subscribe((click) => {
     /* istanbul ignore next */
     amplitude?.track(AMPLITUDE_ELEMENT_CLICKED_EVENT, click.targetElementProperties);
   });
