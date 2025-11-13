@@ -211,7 +211,7 @@ describe('module level integration', () => {
   });
   describe('sampling logic', () => {
     beforeEach(() => {
-      mockRemoteConfig = null;
+      mockRemoteConfig = samplingConfig;
       initializeMockRemoteConfigClient();
     });
     describe('with a sample rate', () => {
