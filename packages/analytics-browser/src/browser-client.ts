@@ -194,7 +194,7 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
       browserOptions.serverZone,
       {
         enabled: browserOptions.enableDiagnostics,
-        sampleRate: browserOptions.diagnosticsSampleRate || this._diagnosticsSampleRate,
+        sampleRate: browserOptions.diagnosticsSampleRate ?? this._diagnosticsSampleRate,
       },
     );
     diagnosticsClient.setTag('library', `${LIBPREFIX}/${VERSION}`);

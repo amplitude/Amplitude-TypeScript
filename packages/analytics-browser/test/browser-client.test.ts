@@ -11,6 +11,7 @@ import {
   Identify,
   SpecialEventType,
   RemoteConfigClient,
+  DiagnosticsClient,
 } from '@amplitude/analytics-core';
 import { WebAttribution } from '../src/attribution/web-attribution';
 import * as core from '@amplitude/analytics-core';
@@ -303,6 +304,88 @@ describe('browser-client', () => {
       // Verify that the diagnostics config was applied
       expect(client.config.enableDiagnostics).toBe(true);
       expect(client.config.diagnosticsSampleRate).toBe(0.25);
+    });
+
+    test('should use remote config sample rate of 0 even when _diagnosticsSampleRate is non-zero', async () => {
+      // Set _diagnosticsSampleRate to a non-zero value
+      client._setDiagnosticsSampleRate(0.5);
+
+      const mockMainRemoteConfig = {
+        autocapture: {
+          elementInteractions: true,
+        },
+      };
+
+      const mockDiagnosticsRemoteConfig = {
+        enabled: true,
+        sampleRate: 0, // Set to 0 to test that it's not treated as falsy
+      };
+
+      // Mock the remote config client to return different configs based on the subscription key
+      const mockRemoteConfigClientWithDiagnostics = {
+        subscribe: jest
+          .fn()
+          .mockImplementation(
+            (
+              configKey: string,
+              _eventType: string,
+              callback: (remoteConfig: any, source: any, lastFetch: Date) => void,
+            ) => {
+              // Return different configs based on the subscription key
+              if (configKey === 'configs.analyticsSDK.browserSDK') {
+                callback(mockMainRemoteConfig, 'cache', new Date());
+              } else if (configKey === 'configs.diagnostics.browserSDK') {
+                callback(mockDiagnosticsRemoteConfig, 'cache', new Date());
+              } else {
+                callback(null, 'cache', new Date());
+              }
+            },
+          ),
+        unsubscribe: jest.fn(),
+        updateConfigs: jest.fn(),
+      };
+
+      // Replace the default mock with our data mock
+      MockedRemoteConfigClient = jest.fn().mockImplementation(() => mockRemoteConfigClientWithDiagnostics);
+      Object.defineProperty(core, 'RemoteConfigClient', {
+        value: MockedRemoteConfigClient,
+        writable: true,
+        configurable: true,
+      });
+
+      // Mock DiagnosticsClient to spy on its initialization
+      const mockDiagnosticsClient = {
+        setTag: jest.fn(),
+        enable: jest.fn(),
+        disable: jest.fn(),
+        track: jest.fn(),
+      };
+      const diagnosticsClientSpy = jest
+        .spyOn(core, 'DiagnosticsClient')
+        .mockImplementation(() => mockDiagnosticsClient as unknown as DiagnosticsClient);
+
+      // Initialize the client
+      await client.init(apiKey, {
+        fetchRemoteConfig: true,
+      }).promise;
+
+      // Verify that DiagnosticsClient was called with sampleRate: 0 (not 0.5)
+      expect(diagnosticsClientSpy).toHaveBeenCalledWith(
+        apiKey,
+        expect.any(Object), // loggerProvider
+        'US', // serverZone (default value)
+        {
+          enabled: true,
+          sampleRate: 0, // Should be 0 from remote config, not 0.5 from _diagnosticsSampleRate
+        },
+      );
+
+      // Verify that the diagnostics config was applied
+      expect(client.config.enableDiagnostics).toBe(true);
+      expect(client.config.diagnosticsSampleRate).toBe(0);
+
+      // Clean up
+      diagnosticsClientSpy.mockRestore();
     });
 
     test('should initialize client', async () => {
