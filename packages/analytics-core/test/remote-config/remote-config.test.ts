@@ -169,7 +169,7 @@ describe('RemoteConfigClient', () => {
       const fetch = jest.spyOn(client, 'fetch');
       const sendCallback = jest.spyOn(client, 'sendCallback');
       const remoteConfigInfo = {
-        remoteConfig: null,
+        remoteConfig: { key: 'value' },
         lastFetch: new Date(),
       };
       const fetchPromise = Promise.resolve(remoteConfigInfo);
@@ -187,10 +187,219 @@ describe('RemoteConfigClient', () => {
       expect(fetch).toHaveBeenCalledTimes(1);
       expect(mockStorage.setConfig).toHaveBeenCalledWith(remoteConfigInfo);
       expect(sendCallback).toHaveBeenCalledWith(callbackInfo, remoteConfigInfo, 'remote');
+      expect(client.lastSuccessfulFetch).toBeInstanceOf(Date);
+    });
+
+    test('should skip fetch if called within 5 minutes of last successful fetch', async () => {
+      const fetch = jest.spyOn(client, 'fetch');
+      const remoteConfigInfo = {
+        remoteConfig: { key: 'value' },
+        lastFetch: new Date(),
+      };
+      fetch.mockReturnValueOnce(Promise.resolve(remoteConfigInfo));
+
+      // First call should succeed
+      await client.updateConfigs();
+      expect(fetch).toHaveBeenCalledTimes(1);
+      expect(client.lastSuccessfulFetch).toBeInstanceOf(Date);
+
+      // Second call within 5 minutes should be skipped
+      await client.updateConfigs();
+      expect(fetch).toHaveBeenCalledTimes(1); // Still 1, not called again
+      expect(loggerDebug).toHaveBeenCalledWith('Remote config client skipping updateConfigs: Too recent');
+    });
+
+    test('should allow fetch if called after 5 minutes of last successful fetch', async () => {
+      const fetch = jest.spyOn(client, 'fetch');
+      const remoteConfigInfo = {
+        remoteConfig: { key: 'value' },
+        lastFetch: new Date(),
+      };
+      fetch.mockReturnValue(Promise.resolve(remoteConfigInfo));
+
+      // First call
+      await client.updateConfigs();
+      expect(fetch).toHaveBeenCalledTimes(1);
+
+      // Set lastSuccessfulFetch to 6 minutes ago
+      const sixMinutesAgo = new Date(Date.now() - 6 * 60 * 1000);
+      client.lastSuccessfulFetch = sixMinutesAgo;
+
+      // Second call should succeed
+      await client.updateConfigs();
+      expect(fetch).toHaveBeenCalledTimes(2);
+    });
+
+    test('should not update lastSuccessfulFetch if fetch returns null config', async () => {
+      const fetch = jest.spyOn(client, 'fetch');
+      const remoteConfigInfo = {
+        remoteConfig: null, // Failed fetch
+        lastFetch: new Date(),
+      };
+      fetch.mockReturnValueOnce(Promise.resolve(remoteConfigInfo));
+
+      expect(client.lastSuccessfulFetch).toBeNull();
+      await client.updateConfigs();
+      expect(fetch).toHaveBeenCalledTimes(1);
+      expect(client.lastSuccessfulFetch).toBeNull(); // Should still be null
+    });
+  });
+
+  describe('getOrCreateFetchPromise', () => {
+    test('should create a new fetch promise if none exists', async () => {
+      const fetch = jest.spyOn(client, 'fetch');
+      const remoteConfigInfo = {
+        remoteConfig: { key: 'value' },
+        lastFetch: new Date(),
+      };
+      fetch.mockReturnValueOnce(Promise.resolve(remoteConfigInfo));
+
+      expect(client.fetchPromise).toBeNull();
+      const promise = client.getOrCreateFetchPromise();
+      expect(client.fetchPromise).not.toBeNull();
+
+      const result = await promise;
+      expect(result).toEqual(remoteConfigInfo);
+      expect(fetch).toHaveBeenCalledTimes(1);
+      expect(client.lastSuccessfulFetch).toBeInstanceOf(Date);
+    });
+
+    test('should return existing fetch promise if one is in flight', async () => {
+      const fetch = jest.spyOn(client, 'fetch');
+      const remoteConfigInfo = {
+        remoteConfig: { key: 'value' },
+        lastFetch: new Date(),
+      };
+      // Mock fetch to take some time
+      fetch.mockImplementation(
+        () =>
+          new Promise((resolve) => {
+            setTimeout(() => {
+              resolve(remoteConfigInfo);
+            }, 100);
+          }),
+      );
+
+      // Call getOrCreateFetchPromise twice quickly
+      const promise1 = client.getOrCreateFetchPromise();
+      const promise2 = client.getOrCreateFetchPromise();
+
+      // Should return the same promise
+      expect(promise1).toBe(promise2);
+      expect(fetch).toHaveBeenCalledTimes(1); // Only one fetch call
+
+      const [result1, result2] = await Promise.all([promise1, promise2]);
+      expect(result1).toEqual(remoteConfigInfo);
+      expect(result2).toEqual(remoteConfigInfo);
+    });
+
+    test('should clear fetchPromise after promise settles successfully', async () => {
+      const fetch = jest.spyOn(client, 'fetch');
+      const remoteConfigInfo = {
+        remoteConfig: { key: 'value' },
+        lastFetch: new Date(),
+      };
+      fetch.mockReturnValueOnce(Promise.resolve(remoteConfigInfo));
+
+      expect(client.fetchPromise).toBeNull();
+      const promise = client.getOrCreateFetchPromise();
+      expect(client.fetchPromise).not.toBeNull();
+
+      await promise;
+      expect(client.fetchPromise).toBeNull();
+    });
+
+    test('should clear fetchPromise after promise settles with failure', async () => {
+      const fetch = jest.spyOn(client, 'fetch');
+      const remoteConfigInfo = {
+        remoteConfig: null, // Failed fetch
+        lastFetch: new Date(),
+      };
+      fetch.mockReturnValueOnce(Promise.resolve(remoteConfigInfo));
+
+      expect(client.fetchPromise).toBeNull();
+      const promise = client.getOrCreateFetchPromise();
+      expect(client.fetchPromise).not.toBeNull();
+
+      await promise;
+      expect(client.fetchPromise).toBeNull();
+      expect(client.lastSuccessfulFetch).toBeNull(); // Should not update on failure
+    });
+
+    test('should allow new fetch promise after previous one completes', async () => {
+      const fetch = jest.spyOn(client, 'fetch');
+      const remoteConfigInfo = {
+        remoteConfig: { key: 'value' },
+        lastFetch: new Date(),
+      };
+      fetch.mockReturnValue(Promise.resolve(remoteConfigInfo));
+
+      // First fetch
+      const promise1 = client.getOrCreateFetchPromise();
+      await promise1;
+      expect(client.fetchPromise).toBeNull();
+
+      // Second fetch should create a new promise
+      const promise2 = client.getOrCreateFetchPromise();
+      expect(promise2).not.toBe(promise1);
+      expect(client.fetchPromise).not.toBeNull();
+      await promise2;
+
+      expect(fetch).toHaveBeenCalledTimes(2);
     });
   });
 
   describe('subscribeAll', () => {
+    test('should batch multiple simultaneous subscribe calls into one request', async () => {
+      const fetch = jest.spyOn(client, 'fetch');
+      const sendCallback = jest.spyOn(client, 'sendCallback');
+      const remoteConfigInfo = {
+        remoteConfig: { key: 'value' },
+        lastFetch: new Date(),
+      };
+      // Mock fetch to take some time
+      fetch.mockImplementation(
+        () =>
+          new Promise((resolve) => {
+            setTimeout(() => {
+              resolve(remoteConfigInfo);
+            }, 100);
+          }),
+      );
+      storageFetchConfig.mockReturnValue(
+        new Promise((resolve) => {
+          setTimeout(() => {
+            resolve(remoteConfigInfo);
+          }, 200);
+        }),
+      );
+
+      const callback1 = jest.fn();
+      const callback2 = jest.fn();
+
+      const callbackInfo1 = {
+        id: 'id1',
+        key: testKey,
+        deliveryMode: 'all' as DeliveryMode,
+        callback: callback1,
+      };
+      const callbackInfo2 = {
+        id: 'id2',
+        key: testKey,
+        deliveryMode: 'all' as DeliveryMode,
+        callback: callback2,
+      };
+
+      // Call subscribeAll twice simultaneously
+      await Promise.all([client.subscribeAll(callbackInfo1), client.subscribeAll(callbackInfo2)]);
+
+      // Should only make one fetch call (batched)
+      expect(fetch).toHaveBeenCalledTimes(1);
+      // But both callbacks should be called
+      expect(sendCallback).toHaveBeenCalledWith(callbackInfo1, remoteConfigInfo, 'remote');
+      expect(sendCallback).toHaveBeenCalledWith(callbackInfo2, remoteConfigInfo, 'remote');
+    });
+
     test('should return remote only if remote returns first', async () => {
       // fetch() returns immediately
       const fetch = jest.spyOn(client, 'fetch');
@@ -274,6 +483,52 @@ describe('RemoteConfigClient', () => {
   });
 
   describe('subscribeWaitForRemote', () => {
+    test('should batch multiple simultaneous subscribe calls into one request', async () => {
+      const fetch = jest.spyOn(client, 'fetch');
+      const sendCallback = jest.spyOn(client, 'sendCallback');
+      const remoteConfigInfo = {
+        remoteConfig: { key: 'value' },
+        lastFetch: new Date(),
+      };
+      // Mock fetch to take some time but less than timeout
+      fetch.mockImplementation(
+        () =>
+          new Promise((resolve) => {
+            setTimeout(() => {
+              resolve(remoteConfigInfo);
+            }, 100);
+          }),
+      );
+
+      const callback1 = jest.fn();
+      const callback2 = jest.fn();
+
+      const callbackInfo1 = {
+        id: 'id1',
+        key: testKey,
+        deliveryMode: { timeout: 1000 } as DeliveryMode,
+        callback: callback1,
+      };
+      const callbackInfo2 = {
+        id: 'id2',
+        key: testKey,
+        deliveryMode: { timeout: 1000 } as DeliveryMode,
+        callback: callback2,
+      };
+
+      // Call subscribeWaitForRemote twice simultaneously
+      await Promise.all([
+        client.subscribeWaitForRemote(callbackInfo1, 1000),
+        client.subscribeWaitForRemote(callbackInfo2, 1000),
+      ]);
+
+      // Should only make one fetch call (batched)
+      expect(fetch).toHaveBeenCalledTimes(1);
+      // But both callbacks should be called
+      expect(sendCallback).toHaveBeenCalledWith(callbackInfo1, remoteConfigInfo, 'remote');
+      expect(sendCallback).toHaveBeenCalledWith(callbackInfo2, remoteConfigInfo, 'remote');
+    });
+
     test('should return remote', async () => {
       // fetch() returns immediately
       const fetch = jest.spyOn(client, 'fetch');
