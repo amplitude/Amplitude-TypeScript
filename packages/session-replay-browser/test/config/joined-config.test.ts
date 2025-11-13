@@ -189,13 +189,13 @@ describe('SessionReplayJoinedConfigGenerator', () => {
     });
 
     describe('with unsuccessful sampling config fetch', () => {
-      test('should set captureEnabled to true when no remote config', async () => {
+      test('should set captureEnabled to false when no remote config', async () => {
         mockRemoteConfig = null;
         const { joinedConfig: config } = await joinedConfigGenerator.generateJoinedConfig();
         expect(config).toEqual({
           ...mockLocalConfig,
           optOut: mockLocalConfig.optOut,
-          captureEnabled: true,
+          captureEnabled: false,
         });
       });
     });
