@@ -306,19 +306,29 @@ describe('browser-client', () => {
       expect(client.config.diagnosticsSampleRate).toBe(0.25);
     });
 
-    test('should use remote config sample rate of 0 even when _diagnosticsSampleRate is non-zero', async () => {
-      // Set _diagnosticsSampleRate to a non-zero value
-      client._setDiagnosticsSampleRate(0.5);
+    test.each([
+      {
+        testName: 'should use remote config sample rate of 0 even when _diagnosticsSampleRate is non-zero',
+        setDiagnosticsSampleRate: 0.5,
+        remoteConfigSampleRate: { enabled: true, sampleRate: 0 },
+        expectedSampleRate: 0,
+        description: '0 from remote config (not 0.5 from _diagnosticsSampleRate)',
+      },
+      {
+        testName: 'should use _diagnosticsSampleRate when remote config for diagnostics is null',
+        setDiagnosticsSampleRate: 0.75,
+        remoteConfigSampleRate: null,
+        expectedSampleRate: 0.75,
+        description: '0.75 from _diagnosticsSampleRate (remote config is null)',
+      },
+    ])('$testName', async ({ setDiagnosticsSampleRate, remoteConfigSampleRate, expectedSampleRate }) => {
+      // Set _diagnosticsSampleRate
+      client._setDiagnosticsSampleRate(setDiagnosticsSampleRate);
 
       const mockMainRemoteConfig = {
         autocapture: {
           elementInteractions: true,
         },
-      };
-
-      const mockDiagnosticsRemoteConfig = {
-        enabled: true,
-        sampleRate: 0, // Set to 0 to test that it's not treated as falsy
       };
 
       // Mock the remote config client to return different configs based on the subscription key
@@ -335,7 +345,7 @@ describe('browser-client', () => {
               if (configKey === 'configs.analyticsSDK.browserSDK') {
                 callback(mockMainRemoteConfig, 'cache', new Date());
               } else if (configKey === 'configs.diagnostics.browserSDK') {
-                callback(mockDiagnosticsRemoteConfig, 'cache', new Date());
+                callback(remoteConfigSampleRate, 'cache', new Date());
               } else {
                 callback(null, 'cache', new Date());
               }
@@ -369,20 +379,20 @@ describe('browser-client', () => {
         fetchRemoteConfig: true,
       }).promise;
 
-      // Verify that DiagnosticsClient was called with sampleRate: 0 (not 0.5)
+      // Verify that DiagnosticsClient was called with the expected sampleRate
       expect(diagnosticsClientSpy).toHaveBeenCalledWith(
         apiKey,
         expect.any(Object), // loggerProvider
         'US', // serverZone (default value)
         {
           enabled: true,
-          sampleRate: 0, // Should be 0 from remote config, not 0.5 from _diagnosticsSampleRate
+          sampleRate: expectedSampleRate, // Should be ${description}
         },
       );
 
       // Verify that the diagnostics config was applied
       expect(client.config.enableDiagnostics).toBe(true);
-      expect(client.config.diagnosticsSampleRate).toBe(0);
+      expect(client.config.diagnosticsSampleRate).toBe(expectedSampleRate);
 
       // Clean up
       diagnosticsClientSpy.mockRestore();
