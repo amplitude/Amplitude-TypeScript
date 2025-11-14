@@ -1,0 +1,301 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <link rel="icon" type="image/svg+xml" href="/amplitude.png" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SPA Test - Single Page Application</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 50px auto;
+      padding: 20px;
+      background-color: #f5f5f5;
+    }
+    
+    .container {
+      background: white;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    h1 {
+      color: #333;
+      margin-bottom: 10px;
+    }
+    
+    .current-route {
+      background: #e3f2fd;
+      padding: 10px;
+      border-radius: 4px;
+      margin: 20px 0;
+      font-family: monospace;
+    }
+    
+    .nav {
+      display: flex;
+      gap: 15px;
+      margin: 20px 0;
+      flex-wrap: wrap;
+    }
+    
+    .nav a {
+      padding: 10px 20px;
+      background: #2196F3;
+      color: white;
+      text-decoration: none;
+      border-radius: 4px;
+      transition: background 0.3s;
+    }
+    
+    .nav a:hover {
+      background: #1976D2;
+    }
+    
+    .content {
+      margin-top: 30px;
+      padding: 20px;
+      background: #f9f9f9;
+      border-radius: 4px;
+      min-height: 150px;
+    }
+    
+    .info {
+      margin-top: 30px;
+      padding: 15px;
+      background: #fff3cd;
+      border-radius: 4px;
+      border-left: 4px solid #ffc107;
+    }
+    
+    .info p {
+      margin: 5px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>SPA Test Page</h1>
+    <p>This simulates a Single Page Application with client-side routing using the History API. Navigate between routes and reload the page - you'll stay on the same route!</p>
+    <p>IMPORTANT: This page is best tested with "dev:ssh" to simulate document.referrer being preserved upon reload</p>
+    <div class="current-route">
+      Current Route: <strong id="current-path">/</strong>
+    </div>
+    
+    <div class="nav">
+      <a href="/spa-test.html" class="spa-link">Home</a>
+      <a href="/spa-test.html/about" class="spa-link">About</a>
+      <a href="/spa-test.html/products" class="spa-link">Products</a>
+      <a href="/spa-test.html/products?category=electronics&sort=price" class="spa-link">Products (with params)</a>
+      <a href="/spa-test.html/contact" class="spa-link">Contact</a>
+      <a href="/spa-test.html/profile/user123" class="spa-link">Profile</a>
+      <a href="/spa-test.html/profile/user123?tab=settings" class="spa-link">Profile (with params)</a>
+    </div>
+    
+    <div class="content" id="content">
+      <!-- Content will be dynamically updated here -->
+    </div>
+    
+    <div class="info">
+      <strong>How it works (History API):</strong>
+      <p>• Click any link above to navigate (using <code>pushState</code> and <code>popstate</code>)</p>
+      <p>• The URL path will change without page reload (e.g., <code>/spa-test.html/about</code>)</p>
+      <p>• The page content updates dynamically via JavaScript</p>
+      <p>• Browser back/forward buttons work correctly</p>
+      <p>• <strong>Query parameters are preserved</strong> - try adding ?param=value after the route</p>
+      <p>• <strong>Amplitude autocapture is enabled</strong> - tracking element interactions, page views, sessions, and form interactions</p>
+      <br>
+      <p><strong>⚠️ Server Configuration Needed for Reloads:</strong></p>
+      <p style="font-size: 0.9em; color: #666;">For reloading to work, your server must be configured to serve <code>spa-test.html</code> for all <code>/spa-test.html/*</code> routes. See below for Vite configuration.</p>
+    </div>
+  </div>
+
+  <script type="module">
+    import * as amplitude from '@amplitude/analytics-browser';
+    
+    // Make amplitude available globally for debugging
+    window.amplitude = amplitude;
+
+    // do not $unset campaign to empty
+    amplitude.add({
+        type: 'before',
+        execute(event) {
+            // pass through any non-identify events
+            if (event.event_type !== "$identify") {
+            return event;
+            }    
+
+            // get the $set keys
+            const userProps = event['user_properties'] || {};
+            const setProps = userProps['$set'] || {};
+
+            // if there's any non-referral keys being $set than pass-through the event
+            const nonReferralKeys = Object.keys(setProps).filter(
+                (key) => key !== 'referrer' && key !== 'referring_domain'
+            );
+            if (nonReferralKeys.length === 0) {
+                delete event['user_properties']['$unset'];
+            }
+            return event;
+        },
+        name: 'no-unset-campaign-to-empty',
+    });
+    
+    // Initialize Amplitude with autocapture enabled
+    amplitude.init(
+      import.meta.env.VITE_AMPLITUDE_API_KEY,
+      undefined,
+      {
+        fetchRemoteConfig: false,
+        autocapture: {
+          elementInteractions: true,
+          pageViews: true,
+          sessions: true,
+          formInteractions: true,
+        },
+      }
+    );
+    
+    console.log('Amplitude initialized with autocapture enabled');
+
+    // Base path for the SPA (used to strip from routes)
+    const BASE_PATH = '/spa-test.html';
+    
+    // Define content for different routes (relative to BASE_PATH)
+    const routes = {
+      '/': {
+        title: 'Home',
+        content: '<h2>Welcome Home!</h2><p>This is the home page of the SPA test. Click any link above to navigate to different routes without reloading the page.</p>'
+      },
+      '/about': {
+        title: 'About',
+        content: '<h2>About Us</h2><p>This is the about page. Notice how the URL changed but the page did not reload.</p>'
+      },
+      '/products': {
+        title: 'Products',
+        content: '<h2>Our Products</h2><p>Browse our amazing products. The route changed via pushState!</p>'
+      },
+      '/contact': {
+        title: 'Contact',
+        content: '<h2>Contact Us</h2><p>Get in touch with us. Single page application routing in action!</p>'
+      },
+      '/profile/user123': {
+        title: 'User Profile',
+        content: '<h2>User Profile</h2><p>Viewing profile for user123. Dynamic routes work too!</p>'
+      }
+    };
+
+    // Helper function to parse query parameters
+    function parseQueryParams(search) {
+      const params = {};
+      if (search) {
+        const urlParams = new URLSearchParams(search);
+        for (const [key, value] of urlParams) {
+          params[key] = value;
+        }
+      }
+      return params;
+    }
+
+    // Helper function to get relative route path (strip base path)
+    function getRelativeRoute(pathname) {
+      if (pathname.startsWith(BASE_PATH)) {
+        const relative = pathname.slice(BASE_PATH.length) || '/';
+        return relative;
+      }
+      return pathname;
+    }
+
+    // Function to render content based on current path and query params
+    function renderRoute(pathname, search = '') {
+      const contentDiv = document.getElementById('content');
+      const pathDisplay = document.getElementById('current-path');
+      
+      // Get relative route and parse query params
+      const relativePath = getRelativeRoute(pathname);
+      const queryParams = parseQueryParams(search);
+      const fullPath = relativePath + (search ? '?' + search.slice(1) : '');
+      
+      // Update path display (showing full path with query params)
+      pathDisplay.textContent = pathname + search;
+      
+      // Get route content or show 404
+      const route = routes[relativePath] || {
+        title: '404',
+        content: '<h2>404 - Not Found</h2><p>The route "' + relativePath + '" does not exist.</p>'
+      };
+      
+      // Build content with query parameters display
+      let content = route.content;
+      if (Object.keys(queryParams).length > 0) {
+        content += '<div style="margin-top: 20px; padding: 15px; background: #e8f5e9; border-radius: 4px;">';
+        content += '<strong>Query Parameters:</strong><ul style="margin: 10px 0 0 0;">';
+        for (const [key, value] of Object.entries(queryParams)) {
+          content += '<li><code>' + key + '</code> = <code>' + value + '</code></li>';
+        }
+        content += '</ul></div>';
+      }
+      
+      // Add reload notice with server config info
+      content += '<div style="margin-top: 20px; padding: 15px; background: #fff3e0; border-radius: 4px; border-left: 4px solid #ff9800;">';
+      content += '<strong>🔄 Try it:</strong> Reload the page (F5 or Cmd+R) - if the server is configured correctly, you\'ll stay on this route!<br>';
+      content += '<small style="color: #666; margin-top: 8px; display: block;">Note: This requires server-side configuration to serve spa-test.html for all /spa-test.html/* routes.</small>';
+      content += '</div>';
+      
+      // Update content
+      contentDiv.innerHTML = content;
+      document.title = 'SPA Test - ' + route.title;
+      
+      console.log('Navigated to:', pathname + search, 'Relative route:', relativePath, 'Query params:', queryParams);
+    }
+
+    // Handle link clicks (intercept and use History API)
+    document.addEventListener('click', function(e) {
+      // Check if clicked element is a SPA link
+      if (e.target.matches('.spa-link')) {
+        e.preventDefault();
+        const url = new URL(e.target.href);
+        
+        // Update browser history using pushState
+        window.history.pushState(
+          { pathname: url.pathname, search: url.search },
+          '',
+          url.pathname + url.search
+        );
+        
+        // Render the new route
+        renderRoute(url.pathname, url.search);
+      }
+    });
+
+    // Handle browser back/forward buttons (popstate event)
+    window.addEventListener('popstate', function(e) {
+      if (e.state) {
+        renderRoute(e.state.pathname, e.state.search);
+      } else {
+        // Fallback to current location
+        renderRoute(window.location.pathname, window.location.search);
+      }
+    });
+
+    // Initial render on page load
+    (function() {
+      const pathname = window.location.pathname;
+      const search = window.location.search;
+      
+      // Set initial state
+      window.history.replaceState(
+        { pathname: pathname, search: search },
+        '',
+        pathname + search
+      );
+      
+      renderRoute(pathname, search);
+      console.log('SPA loaded with History API routing. Current route:', pathname + search);
+    })();
+  </script>
+</body>
+</html>
+

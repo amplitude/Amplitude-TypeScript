@@ -93,6 +93,21 @@ function fileListingPlugin() {
   };
 }
 
+function spaRoutingPlugin() {
+  return {
+    name: 'spa-routing',
+    configureServer(server) {
+      server.middlewares.use((req, res, next) => {
+        // Handle SPA routes - serve spa-test.html for all /spa-test.html/* routes
+        if (req.url && req.url.startsWith('/spa-test.html/')) {
+          req.url = '/spa-test.html';
+        }
+        next();
+      });
+    }
+  };
+}
+
 const amplitudeAliases = fs.readdirSync(packagesDir).reduce((aliases, pkgName) => {
   const fullPath = path.join(packagesDir, pkgName);
   if (ignorePkg(pkgName)) {
@@ -136,6 +151,7 @@ export default defineConfig({
     htmlEntriesPlugin('**/*.html', { cwd: path.resolve(__dirname, 'test-server') }),
     gzipServePlugin(),
     fileListingPlugin(),
+    spaRoutingPlugin(),
     createMockApi(),
   ],
 });
