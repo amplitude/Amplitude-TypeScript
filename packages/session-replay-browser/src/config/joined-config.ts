@@ -55,18 +55,23 @@ export class SessionReplayJoinedConfigGenerator {
     config.captureEnabled = true;
     let sessionReplayRemoteConfig: SessionReplayRemoteConfig | undefined;
 
-    // Subscribe to remote config client to get the config (uses cache if available)
-    await new Promise<void>((resolve) => {
-      this.remoteConfigClient.subscribe(
-        'configs.sessionReplay',
-        'all',
-        (remoteConfig: RemoteConfig | null, source: Source) => {
-          this.localConfig.loggerProvider.debug(
-            `Session Replay remote configuration received from ${source}:`,
-            JSON.stringify(remoteConfig, null, 2),
-          );
+    try {
+      // Subscribe to remote config client to get the config (uses cache if available)
+      await new Promise<void>((resolve, reject) => {
+        this.remoteConfigClient.subscribe(
+          'configs.sessionReplay',
+          'all',
+          (remoteConfig: RemoteConfig | null, source: Source) => {
+            this.localConfig.loggerProvider.debug(
+              `Session Replay remote configuration received from ${source}:`,
+              JSON.stringify(remoteConfig, null, 2),
+            );
 
-          if (remoteConfig) {
+            if (!remoteConfig) {
+              reject(new Error('No remote config received'));
+              return;
+            }
+
             // remoteConfig is already filtered to 'configs.sessionReplay' namespace
             const namespaceConfig = remoteConfig as SessionReplayRemoteConfig;
             const samplingConfig = namespaceConfig.sr_sampling_config;
@@ -95,13 +100,21 @@ export class SessionReplayJoinedConfigGenerator {
                 sessionReplayRemoteConfig.sr_targeting_config = targetingConfig;
               }
             }
-          }
 
-          // Resolve on first callback
-          resolve();
-        },
-      );
-    });
+            // Resolve on first callback
+            resolve();
+          },
+        );
+      });
+    } catch (error) {
+      this.localConfig.loggerProvider.error('Failed to generate joined config: ', error);
+      config.captureEnabled = false;
+      return {
+        localConfig: this.localConfig,
+        joinedConfig: config,
+        remoteConfig: undefined,
+      };
+    }
 
     if (!sessionReplayRemoteConfig) {
       return {
