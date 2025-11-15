@@ -216,6 +216,7 @@
         <button id="primary-button" class="btn">Primary Button</button>
         <button class="btn secondary-button">Secondary Button</button>
         <button class="btn" data-test-id="test-button">Test Button</button>
+        <button data-dd-action-name="hello">Hello</button>
       </div>
 
       <div class="interactive-section">
@@ -245,9 +246,11 @@
 
       <div class="interactive-section">
         <h2>Content Changing Button</h2>
+        <!-- TODO: Make two content changers; 1 button 1 div -->
         <button id="content-changer" class="btn">Change Content</button>
+        <div id="content-changer-div" class="btn">Change Content</div>
         <div id="content-display" class="border padding" style="margin-top: 10px; min-height: 50px; background-color: #f9f9f9;">
-          <p>This content will change when you click the button above.</p>
+          <p>This content will change when you click the button or div above.</p>
         </div>
       </div>
     </div>
@@ -269,7 +272,9 @@
           identify,
           fetchRemoteConfig: false,
           autocapture: {
-            elementInteractions: true,
+            elementInteractions: {
+              debounceTime: 1000,
+            },
             frustrationInteractions,
             sessions: true,
           },
@@ -286,6 +291,14 @@
 
       // Add click handler for the content changer button
       document.getElementById('content-changer').addEventListener('click', () => {
+        const display = document.getElementById('content-display');
+        const now = new Date();
+        const timeString = now.toLocaleTimeString();
+        display.innerHTML = `<p>Content changed at ${timeString}!</p>`;
+      });
+
+      // Add click handler for the content changer div
+      document.getElementById('content-changer-div').addEventListener('click', () => {
         const display = document.getElementById('content-display');
         const now = new Date();
         const timeString = now.toLocaleTimeString();

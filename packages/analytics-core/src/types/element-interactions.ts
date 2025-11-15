@@ -83,8 +83,12 @@ export interface ElementInteractionsOptions {
   };
 
   /**
-   * Debounce time in milliseconds for tracking events.
-   * This is used to detect rage clicks.
+   * This has been deprecated in favor of rage clicks tracking
+   * via frustrationInteractions.
+   *
+   * Setting this will have no effect.
+   *
+   * @deprecated
    */
   debounceTime?: number;
 

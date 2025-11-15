@@ -1,30 +1,37 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/unbound-method */
-
-import { Subject } from 'rxjs';
+/* eslint-disable @typescript-eslint/no-empty-function */
+import {
+  BrowserClient,
+  DEFAULT_RAGE_CLICK_THRESHOLD,
+  DEFAULT_RAGE_CLICK_WINDOW_MS,
+  Observable,
+} from '@amplitude/analytics-core';
 import { trackRageClicks } from '../../src/autocapture/track-rage-click';
 import { AMPLITUDE_ELEMENT_RAGE_CLICKED_EVENT } from '../../src/constants';
-import { AllWindowObservables, ObservablesEnum } from '../../src/autocapture-plugin';
-import { BrowserClient, DEFAULT_RAGE_CLICK_THRESHOLD, DEFAULT_RAGE_CLICK_WINDOW_MS } from '@amplitude/analytics-core';
+import { ObservablesEnum } from '../../src/autocapture-plugin';
+import { AllWindowObservables } from '../../src/frustration-plugin';
 
 describe('trackRageClicks', () => {
   let mockAmplitude: jest.Mocked<BrowserClient>;
-  let clickObservable: Subject<any>;
+  let clickObservable: Observable<any>;
   let allObservables: AllWindowObservables;
   let shouldTrackRageClick: jest.Mock;
+  let clickObserver: any;
 
   beforeEach(() => {
     jest.useFakeTimers();
     mockAmplitude = {
       track: jest.fn(),
     } as any;
+    clickObservable = new Observable<any>((observer) => {
+      clickObserver = observer;
+    });
 
-    clickObservable = new Subject();
     allObservables = {
       [ObservablesEnum.ClickObservable]: clickObservable,
-      [ObservablesEnum.ChangeObservable]: new Subject(),
-      [ObservablesEnum.NavigateObservable]: new Subject(),
-      [ObservablesEnum.MutationObservable]: new Subject(),
+      [ObservablesEnum.NavigateObservable]: new Observable<any>(() => {}),
+      [ObservablesEnum.MutationObservable]: new Observable<any>(() => {}),
     };
     shouldTrackRageClick = jest.fn().mockReturnValue(true);
   });
@@ -34,7 +41,7 @@ describe('trackRageClicks', () => {
     jest.useRealTimers();
   });
 
-  it('should track rage clicks when threshold is met', () => {
+  it('should track rage clicks when threshold is met', async () => {
     const subscription = trackRageClicks({
       amplitude: mockAmplitude,
       allObservables,
@@ -48,7 +55,7 @@ describe('trackRageClicks', () => {
     const startTime = Date.now();
 
     // First click
-    clickObservable.next({
+    clickObserver.next({
       event: {
         target: mockElement,
         clientX: 100,
@@ -61,7 +68,7 @@ describe('trackRageClicks', () => {
 
     // Add clicks that exceed the time window
     for (let i = 1; i < DEFAULT_RAGE_CLICK_THRESHOLD + 1; i++) {
-      clickObservable.next({
+      clickObserver.next({
         event: {
           target: mockElement,
           clientX: 100,
@@ -74,7 +81,7 @@ describe('trackRageClicks', () => {
     }
 
     // Advance timers to trigger the event processing
-    jest.advanceTimersByTime(DEFAULT_RAGE_CLICK_WINDOW_MS + 100); // Short wait since we're triggering immediate detection
+    await jest.runAllTimersAsync();
 
     expect(mockAmplitude.track).toHaveBeenCalledWith(
       AMPLITUDE_ELEMENT_RAGE_CLICKED_EVENT,
@@ -90,10 +97,10 @@ describe('trackRageClicks', () => {
       }),
       expect.any(Object),
     );
-    subscription.unsubscribe();
+    subscription?.unsubscribe();
   });
 
-  it('should track rage clicks via timer when threshold is met within time window', () => {
+  it('should track rage clicks via timer when threshold is met within time window', async () => {
     const subscription = trackRageClicks({
       amplitude: mockAmplitude,
       allObservables,
@@ -106,7 +113,7 @@ describe('trackRageClicks', () => {
     // Simulate clicks within the time window to trigger timer-based rage click detection
     const startTime = Date.now();
     for (let i = 0; i < DEFAULT_RAGE_CLICK_THRESHOLD; i++) {
-      clickObservable.next({
+      clickObserver.next({
         event: {
           target: mockElement,
           clientX: 100,
@@ -119,7 +126,7 @@ describe('trackRageClicks', () => {
     }
 
     // Advance timers to complete the timer and call amplitude.track directly
-    jest.advanceTimersByTime(DEFAULT_RAGE_CLICK_WINDOW_MS + 100); // Wait for the timer to complete
+    await jest.runAllTimersAsync();
 
     expect(mockAmplitude.track).toHaveBeenCalledWith(
       AMPLITUDE_ELEMENT_RAGE_CLICKED_EVENT,
@@ -135,10 +142,10 @@ describe('trackRageClicks', () => {
       }),
       expect.any(Object),
     );
-    subscription.unsubscribe();
+    subscription?.unsubscribe();
   });
 
-  it('should track if clicks exceed threshold but first click is outside the rage click window', () => {
+  it('should track if clicks exceed threshold but first click is outside the rage click window', async () => {
     const subscription = trackRageClicks({
       amplitude: mockAmplitude,
       allObservables,
@@ -150,7 +157,7 @@ describe('trackRageClicks', () => {
 
     // Simulate clicks where the first click is outside the rage click window
     const startTime = Date.now();
-    clickObservable.next({
+    clickObserver.next({
       event: {
         target: mockElement,
         clientX: 100,
@@ -163,7 +170,7 @@ describe('trackRageClicks', () => {
 
     // Add clicks within the rage click window
     for (let i = 0; i < DEFAULT_RAGE_CLICK_THRESHOLD; i++) {
-      clickObservable.next({
+      clickObserver.next({
         event: {
           target: mockElement,
           clientX: 100,
@@ -175,10 +182,10 @@ describe('trackRageClicks', () => {
       });
     }
 
-    jest.advanceTimersByTime(DEFAULT_RAGE_CLICK_WINDOW_MS + 100);
+    await jest.runAllTimersAsync();
 
     expect(mockAmplitude.track).toHaveBeenCalledTimes(1);
-    subscription.unsubscribe();
+    subscription?.unsubscribe();
   });
 
   it('should not track when clicks are below threshold', () => {
@@ -194,7 +201,7 @@ describe('trackRageClicks', () => {
     // Simulate only 3 clicks (below threshold of 4)
     const startTime = Date.now();
     for (let i = 0; i < DEFAULT_RAGE_CLICK_THRESHOLD - 1; i++) {
-      clickObservable.next({
+      clickObserver.next({
         event: {
           target: mockElement,
           clientX: 100,
@@ -209,7 +216,7 @@ describe('trackRageClicks', () => {
     jest.advanceTimersByTime(DEFAULT_RAGE_CLICK_WINDOW_MS + 100);
 
     expect(mockAmplitude.track).not.toHaveBeenCalled();
-    subscription.unsubscribe();
+    subscription?.unsubscribe();
   });
 
   it('should not track when clicks are on different elements', () => {
@@ -226,7 +233,7 @@ describe('trackRageClicks', () => {
     // Simulate clicks alternating between elements
     const startTime = Date.now();
     for (let i = 0; i < DEFAULT_RAGE_CLICK_THRESHOLD * 2; i++) {
-      clickObservable.next({
+      clickObserver.next({
         event: {
           target: i % 2 === 0 ? mockElement1 : mockElement2,
           clientX: 100,
@@ -241,7 +248,7 @@ describe('trackRageClicks', () => {
     jest.advanceTimersByTime(DEFAULT_RAGE_CLICK_WINDOW_MS + 100);
 
     expect(mockAmplitude.track).not.toHaveBeenCalled();
-    subscription.unsubscribe();
+    subscription?.unsubscribe();
   });
 
   it('should not track untracked elements', () => {
@@ -259,7 +266,7 @@ describe('trackRageClicks', () => {
     // Simulate 4 rapid clicks (threshold)
     const startTime = Date.now();
     for (let i = 0; i < DEFAULT_RAGE_CLICK_THRESHOLD; i++) {
-      clickObservable.next({
+      clickObserver.next({
         event: {
           target: mockElement,
           clientX: 100,
@@ -274,10 +281,10 @@ describe('trackRageClicks', () => {
     jest.advanceTimersByTime(DEFAULT_RAGE_CLICK_WINDOW_MS + 100);
 
     expect(mockAmplitude.track).not.toHaveBeenCalled();
-    subscription.unsubscribe();
+    subscription?.unsubscribe();
   });
 
-  it('should handle clicks that exceed the time window correctly', () => {
+  it('should handle clicks that exceed the time window correctly', async () => {
     const subscription = trackRageClicks({
       amplitude: mockAmplitude,
       allObservables,
@@ -292,7 +299,7 @@ describe('trackRageClicks', () => {
 
     // First set of clicks within the window
     for (let i = 0; i < DEFAULT_RAGE_CLICK_THRESHOLD; i++) {
-      clickObservable.next({
+      clickObserver.next({
         event: {
           target: mockElement,
           clientX: 100,
@@ -304,8 +311,10 @@ describe('trackRageClicks', () => {
       });
     }
 
+    await jest.runAllTimersAsync();
+
     // Add a click that exceeds the time window
-    clickObservable.next({
+    clickObserver.next({
       event: {
         target: mockElement,
         clientX: 100,
@@ -316,14 +325,14 @@ describe('trackRageClicks', () => {
       targetElementProperties: { id: 'test-element' },
     });
 
-    jest.advanceTimersByTime(DEFAULT_RAGE_CLICK_WINDOW_MS + 200);
+    await jest.runAllTimersAsync();
 
     // Should track the first rage click event
     expect(mockAmplitude.track).toHaveBeenCalledTimes(1);
-    subscription.unsubscribe();
+    subscription?.unsubscribe();
   });
 
-  it('should trigger rage click when switching to different element with enough previous clicks', () => {
+  it('should trigger rage click when switching to different element with enough previous clicks', async () => {
     const subscription = trackRageClicks({
       amplitude: mockAmplitude,
       allObservables,
@@ -338,7 +347,7 @@ describe('trackRageClicks', () => {
 
     // Simulate enough clicks on the first element to meet threshold
     for (let i = 0; i < DEFAULT_RAGE_CLICK_THRESHOLD; i++) {
-      clickObservable.next({
+      clickObserver.next({
         event: {
           target: mockElement1,
           clientX: 100,
@@ -350,8 +359,10 @@ describe('trackRageClicks', () => {
       });
     }
 
+    await jest.runAllTimersAsync();
+
     // Now click on a different element - this should trigger rage click for the previous element
-    clickObservable.next({
+    clickObserver.next({
       event: {
         target: mockElement2,
         clientX: 200,
@@ -362,7 +373,7 @@ describe('trackRageClicks', () => {
       targetElementProperties: { id: 'test-element-2' },
     });
 
-    jest.advanceTimersByTime(100);
+    await jest.runAllTimersAsync();
 
     // Should track the rage click event for the first element
     expect(mockAmplitude.track).toHaveBeenCalledWith(
@@ -379,7 +390,7 @@ describe('trackRageClicks', () => {
       }),
       expect.any(Object),
     );
-    subscription.unsubscribe();
+    subscription?.unsubscribe();
   });
 
   it('should not trigger rage click when switching to different element without enough previous clicks', () => {
@@ -397,7 +408,7 @@ describe('trackRageClicks', () => {
 
     // Simulate clicks on the first element but not enough to meet threshold
     for (let i = 0; i < DEFAULT_RAGE_CLICK_THRESHOLD - 1; i++) {
-      clickObservable.next({
+      clickObserver.next({
         event: {
           target: mockElement1,
           clientX: 100,
@@ -410,7 +421,7 @@ describe('trackRageClicks', () => {
     }
 
     // Now click on a different element - this should NOT trigger rage click
-    clickObservable.next({
+    clickObserver.next({
       event: {
         target: mockElement2,
         clientX: 200,
@@ -425,7 +436,7 @@ describe('trackRageClicks', () => {
 
     // Should NOT track any rage click event
     expect(mockAmplitude.track).not.toHaveBeenCalled();
-    subscription.unsubscribe();
+    subscription?.unsubscribe();
   });
 
   it('should not track rage clicks when threshold is met but clicks are out of bounds', () => {
@@ -442,7 +453,7 @@ describe('trackRageClicks', () => {
     const startTime = Date.now();
 
     // First click
-    clickObservable.next({
+    clickObserver.next({
       event: {
         target: mockElement,
         clientX: 100,
@@ -455,7 +466,7 @@ describe('trackRageClicks', () => {
 
     // Add clicks that exceed the time window
     for (let i = 0; i < DEFAULT_RAGE_CLICK_THRESHOLD; i++) {
-      clickObservable.next({
+      clickObserver.next({
         event: {
           target: mockElement,
           clientX: i === DEFAULT_RAGE_CLICK_THRESHOLD - 1 ? 1000 : 100,
@@ -471,6 +482,43 @@ describe('trackRageClicks', () => {
     jest.advanceTimersByTime(DEFAULT_RAGE_CLICK_WINDOW_MS + 100); // Short wait since we're triggering immediate detection
 
     expect(mockAmplitude.track).not.toHaveBeenCalled();
-    subscription.unsubscribe();
+    subscription?.unsubscribe();
+  });
+
+  it('should track rage clicks when threshold is met and next click is out of bounds', async () => {
+    const subscription = trackRageClicks({
+      amplitude: mockAmplitude,
+      allObservables,
+      shouldTrackRageClick,
+    });
+
+    // Create a mock element
+    const mockElement = document.createElement('div');
+    const startTime = Date.now();
+    for (let i = 0; i < DEFAULT_RAGE_CLICK_THRESHOLD; i++) {
+      clickObserver.next({
+        event: {
+          target: mockElement,
+          clientX: 100,
+          clientY: 100,
+        },
+        timestamp: startTime,
+        closestTrackedAncestor: mockElement,
+        targetElementProperties: { id: 'test-element' },
+      });
+    }
+    clickObserver.next({
+      event: {
+        target: mockElement,
+        clientX: 1000,
+        clientY: 1000,
+      },
+      timestamp: startTime,
+      closestTrackedAncestor: mockElement,
+      targetElementProperties: { id: 'test-element' },
+    });
+    await jest.runAllTimersAsync();
+    expect(mockAmplitude.track).toHaveBeenCalledTimes(1);
+    subscription?.unsubscribe();
   });
 });

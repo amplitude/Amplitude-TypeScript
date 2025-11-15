@@ -1,19 +1,18 @@
-import { Observable, fromEvent } from 'rxjs';
+import { Observable, getGlobalScope } from '@amplitude/analytics-core';
 
-/**
- * Creates an observable that tracks DOM mutations on the document body.
- */
 export const createMutationObservable = (): Observable<MutationRecord[]> => {
   return new Observable<MutationRecord[]>((observer) => {
     const mutationObserver = new MutationObserver((mutations) => {
       observer.next(mutations);
     });
-    mutationObserver.observe(document.body, {
-      childList: true,
-      attributes: true,
-      characterData: true,
-      subtree: true,
-    });
+    if (document.body) {
+      mutationObserver.observe(document.body, {
+        childList: true,
+        attributes: true,
+        characterData: true,
+        subtree: true,
+      });
+    }
     return () => mutationObserver.disconnect();
   });
 };
@@ -25,5 +24,15 @@ export const createMutationObservable = (): Observable<MutationRecord[]> => {
 export const createClickObservable = (
   clickType: 'click' | 'pointerdown' = 'click',
 ): Observable<MouseEvent | PointerEvent> => {
-  return fromEvent<MouseEvent>(document, clickType, { capture: true });
+  return new Observable<MouseEvent | PointerEvent>((observer) => {
+    const handler = (event: MouseEvent | PointerEvent) => {
+      observer.next(event);
+    };
+    /* istanbul ignore next */
+    getGlobalScope()?.document.addEventListener(clickType, handler, { capture: true });
+    return () => {
+      /* istanbul ignore next */
+      getGlobalScope()?.document.removeEventListener(clickType, handler, { capture: true });
+    };
+  });
 };

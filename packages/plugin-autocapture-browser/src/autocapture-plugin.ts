@@ -8,9 +8,11 @@ import {
   DEFAULT_ACTION_CLICK_ALLOWLIST,
   DEFAULT_DATA_ATTRIBUTE_PREFIX,
   IDiagnosticsClient,
+  getGlobalScope,
+  multicast,
 } from '@amplitude/analytics-core';
+import { VERSION } from './version';
 import * as constants from './constants';
-import { fromEvent, map, type Observable, type Subscription, share } from 'rxjs';
 import {
   createShouldTrackEvent,
   type ElementBasedTimestampedEvent,
@@ -21,8 +23,7 @@ import { WindowMessenger } from './libs/messenger';
 import { trackClicks } from './autocapture/track-click';
 import { trackChange } from './autocapture/track-change';
 import { trackActionClick } from './autocapture/track-action-click';
-import type { HasEventTargetAddRemove } from 'rxjs/internal/observable/fromEvent';
-import { createMutationObservable, createClickObservable } from './observables';
+import { createClickObservable, createMutationObservable } from './observables';
 
 import {
   createLabeledEventToTriggerMap,
@@ -30,11 +31,16 @@ import {
   groupLabeledEventIdsByEventType,
 } from './pageActions/triggers';
 import { DataExtractor } from './data-extractor';
-import { VERSION } from './version';
+import { Observable, Unsubscribable } from '@amplitude/analytics-core';
+
+type NavigationType = {
+  addEventListener: (type: string, listener: EventListenerOrEventListenerObject) => void;
+  removeEventListener: (type: string, listener: EventListenerOrEventListenerObject) => void;
+};
 
 declare global {
   interface Window {
-    navigation: HasEventTargetAddRemove<Event>;
+    navigation: NavigationType;
   }
 }
 
@@ -54,11 +60,11 @@ export enum ObservablesEnum {
 }
 
 export interface AllWindowObservables {
-  [ObservablesEnum.ClickObservable]: Observable<ElementBasedTimestampedEvent<MouseEvent>>;
   [ObservablesEnum.ChangeObservable]: Observable<ElementBasedTimestampedEvent<Event>>;
   // [ObservablesEnum.ErrorObservable]: Observable<TimestampedEvent<ErrorEvent>>;
-  [ObservablesEnum.NavigateObservable]: Observable<TimestampedEvent<NavigateEvent>> | undefined;
+  [ObservablesEnum.ClickObservable]: Observable<ElementBasedTimestampedEvent<MouseEvent>>;
   [ObservablesEnum.MutationObservable]: Observable<TimestampedEvent<MutationRecord[]>>;
+  [ObservablesEnum.NavigateObservable]?: Observable<TimestampedEvent<NavigateEvent>>;
 }
 
 export const autocapturePlugin = (
@@ -66,6 +72,7 @@ export const autocapturePlugin = (
   context?: { diagnosticsClient: IDiagnosticsClient },
 ): BrowserEnrichmentPlugin => {
   // Set the plugin version tag
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
   context?.diagnosticsClient.setTag('plugin.autocapture.version', VERSION);
 
   const {
@@ -78,7 +85,7 @@ export const autocapturePlugin = (
 
   options.cssSelectorAllowlist = options.cssSelectorAllowlist ?? DEFAULT_CSS_SELECTOR_ALLOWLIST;
   options.actionClickAllowlist = options.actionClickAllowlist ?? DEFAULT_ACTION_CLICK_ALLOWLIST;
-  options.debounceTime = options.debounceTime ?? 0; // TODO: update this when rage clicks are added to 1000ms
+  options.debounceTime = options.debounceTime ?? 0;
 
   options.pageUrlExcludelist = options.pageUrlExcludelist?.reduce(
     (acc: (string | RegExp | { pattern: string })[], excludePattern) => {
@@ -104,35 +111,41 @@ export const autocapturePlugin = (
   const name = constants.PLUGIN_NAME;
   const type = 'enrichment';
 
-  const subscriptions: Subscription[] = [];
+  const subscriptions: Unsubscribable[] = [];
 
   // Create data extractor based on options
   const dataExtractor = new DataExtractor(options, context);
 
   // Create observables on events on the window
   const createObservables = (): AllWindowObservables => {
-    // Create Observables from direct user events
-    const clickObservable = createClickObservable().pipe(
-      map((click) =>
-        dataExtractor.addAdditionalEventProperties(
-          click,
-          'click',
-          (options as AutoCaptureOptionsWithDefaults).cssSelectorAllowlist,
-          dataAttributePrefix,
-        ),
+    const clickObservable = multicast(
+      createClickObservable().map(
+        (click) =>
+          dataExtractor.addAdditionalEventProperties(
+            click,
+            'click',
+            (options as AutoCaptureOptionsWithDefaults).cssSelectorAllowlist,
+            dataAttributePrefix,
+          ) as ElementBasedTimestampedEvent<MouseEvent>,
       ),
-      share(),
     );
-    const changeObservable = fromEvent<Event>(document, 'change', { capture: true }).pipe(
-      map((change) =>
-        dataExtractor.addAdditionalEventProperties(
-          change,
-          'change',
-          (options as AutoCaptureOptionsWithDefaults).cssSelectorAllowlist,
-          dataAttributePrefix,
-        ),
-      ),
-      share(),
+
+    const changeObservable = multicast(
+      new Observable<ElementBasedTimestampedEvent<Event>>((observer) => {
+        const handler = (changeEvent: Event) => {
+          const enrichedChangeEvent = dataExtractor.addAdditionalEventProperties(
+            changeEvent,
+            'change',
+            (options as AutoCaptureOptionsWithDefaults).cssSelectorAllowlist,
+            dataAttributePrefix,
+          ) as ElementBasedTimestampedEvent<Event>;
+          observer.next(enrichedChangeEvent);
+        };
+        /* istanbul ignore next */
+        getGlobalScope()?.document.addEventListener('change', handler, { capture: true });
+        /* istanbul ignore next */
+        return () => getGlobalScope()?.document.removeEventListener('change', handler);
+      }),
     );
 
     // Create Observable from unhandled errors
@@ -142,24 +155,30 @@ export const autocapturePlugin = (
 
     // Create observable for URL changes
     let navigateObservable: Observable<TimestampedEvent<NavigateEvent>> | undefined;
+
     /* istanbul ignore next */
     if (window.navigation) {
-      navigateObservable = fromEvent<NavigateEvent>(window.navigation, 'navigate').pipe(
-        map((navigate) =>
-          dataExtractor.addAdditionalEventProperties(
-            navigate,
-            'navigate',
-            (options as AutoCaptureOptionsWithDefaults).cssSelectorAllowlist,
-            dataAttributePrefix,
-          ),
-        ),
-        share(),
+      navigateObservable = multicast(
+        new Observable<TimestampedEvent<NavigateEvent>>((observer) => {
+          const handler = (navigateEvent: NavigateEvent) => {
+            const enrichedNavigateEvent = dataExtractor.addAdditionalEventProperties(
+              navigateEvent,
+              'navigate',
+              (options as AutoCaptureOptionsWithDefaults).cssSelectorAllowlist,
+              dataAttributePrefix,
+            );
+            observer.next(enrichedNavigateEvent);
+          };
+          window.navigation.addEventListener('navigate', handler as EventListener);
+          return () => {
+            window.navigation.removeEventListener('navigate', handler as EventListener);
+          };
+        }),
       );
     }
 
-    // Track DOM Mutations using shared observable
-    const mutationObservable = createMutationObservable().pipe(
-      map((mutation) =>
+    const mutationObservable = multicast(
+      createMutationObservable().map((mutation) =>
         dataExtractor.addAdditionalEventProperties(
           mutation,
           'mutation',
@@ -167,15 +186,14 @@ export const autocapturePlugin = (
           dataAttributePrefix,
         ),
       ),
-      share(),
     );
 
     return {
-      [ObservablesEnum.ClickObservable]: clickObservable as Observable<ElementBasedTimestampedEvent<MouseEvent>>,
-      [ObservablesEnum.ChangeObservable]: changeObservable as Observable<ElementBasedTimestampedEvent<Event>>,
+      [ObservablesEnum.ChangeObservable]: changeObservable,
       // [ObservablesEnum.ErrorObservable]: errorObservable,
-      [ObservablesEnum.NavigateObservable]: navigateObservable,
+      [ObservablesEnum.ClickObservable]: clickObservable,
       [ObservablesEnum.MutationObservable]: mutationObservable,
+      [ObservablesEnum.NavigateObservable]: navigateObservable,
     };
   };
 
@@ -244,11 +262,11 @@ export const autocapturePlugin = (
     // Create subscriptions
     const clickTrackingSubscription = trackClicks({
       allObservables,
-      options: options as AutoCaptureOptionsWithDefaults,
       amplitude,
       shouldTrackEvent: shouldTrackEvent,
       evaluateTriggers: evaluateTriggers.evaluate.bind(evaluateTriggers),
     });
+
     subscriptions.push(clickTrackingSubscription);
 
     const changeSubscription = trackChange({
@@ -268,7 +286,9 @@ export const autocapturePlugin = (
       shouldTrackEvent,
       shouldTrackActionClick: shouldTrackActionClick,
     });
-    subscriptions.push(actionClickSubscription);
+    if (actionClickSubscription) {
+      subscriptions.push(actionClickSubscription);
+    }
 
     /* istanbul ignore next */
     config?.loggerProvider?.log(`${name} has been successfully added.`);
