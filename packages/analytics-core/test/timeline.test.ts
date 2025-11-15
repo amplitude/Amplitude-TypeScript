@@ -562,4 +562,18 @@ describe('timeline', () => {
       expect(onOptOutChanged).toHaveBeenCalledWith(mockOptOut);
     });
   });
+
+  describe('onReset', () => {
+    test('should call onReset() of each plugin', async () => {
+      const onReset = jest.fn().mockReturnValue(Promise.resolve(undefined));
+      const plugin: EnrichmentPlugin = {
+        name: 'mock',
+        type: 'enrichment',
+        onReset,
+      };
+      timeline.plugins.push(plugin);
+      timeline.onReset?.();
+      expect(onReset).toHaveBeenCalledTimes(1);
+    });
+  });
 });

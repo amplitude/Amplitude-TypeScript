@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/amplitude.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Reset and OnReset Test</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        max-width: 800px;
+        margin: 50px auto;
+        padding: 20px;
+      }
+      h1 {
+        color: #333;
+      }
+      .section {
+        margin: 20px 0;
+        padding: 15px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        background-color: #f9f9f9;
+      }
+      button {
+        margin: 5px;
+        padding: 10px 15px;
+        background-color: #007bff;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+      }
+      button:hover {
+        background-color: #0056b3;
+      }
+      button.danger {
+        background-color: #dc3545;
+      }
+      button.danger:hover {
+        background-color: #c82333;
+      }
+      button.success {
+        background-color: #28a745;
+      }
+      button.success:hover {
+        background-color: #218838;
+      }
+      #identity {
+        font-family: monospace;
+        background-color: #e9ecef;
+        padding: 10px;
+        border-radius: 4px;
+        margin-top: 10px;
+      }
+      #logs {
+        font-family: monospace;
+        background-color: #f8f9fa;
+        padding: 10px;
+        border-radius: 4px;
+        max-height: 300px;
+        overflow-y: auto;
+        margin-top: 10px;
+      }
+      .log-entry {
+        margin: 5px 0;
+        padding: 5px;
+        border-left: 3px solid #007bff;
+        background-color: white;
+      }
+      .log-reset {
+        border-left-color: #dc3545;
+      }
+      .log-callback {
+        border-left-color: #28a745;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Reset and Plugin onReset Test</h1>
+    <p>This page demonstrates the <code>reset()</code> functionality and how plugins can respond to reset events via the <code>onReset()</code> plugin hook.</p>
+
+    <div class="section">
+      <h3>Current Identity</h3>
+      <button id="refreshIdentity" class="success">Refresh Identity</button>
+      <div id="identity">Loading...</div>
+    </div>
+
+    <div class="section">
+      <h3>Actions</h3>
+      <button id="trackEvent">Track Test Event</button>
+      <button id="addPlugin" class="success">Add Plugin with onReset Hook</button>
+      <button id="removePlugin" class="danger">Remove Plugin</button>
+      <button id="reset" class="danger">Call reset()</button>
+    </div>
+
+    <div class="section">
+      <h3>Logs</h3>
+      <button id="clearLogs" class="danger">Clear Logs</button>
+      <div id="logs"></div>
+    </div>
+
+    <script type="module">
+      import * as amplitude from '@amplitude/analytics-browser';
+      window.amplitude = amplitude;
+
+      let pluginAdded = false;
+      let resetCount = 0;
+
+      // Helper function to add log entries
+      function addLog(message, type = '') {
+        const logsDiv = document.getElementById('logs');
+        const entry = document.createElement('div');
+        entry.className = `log-entry ${type}`;
+        entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+        logsDiv.appendChild(entry);
+        logsDiv.scrollTop = logsDiv.scrollHeight;
+      }
+
+      // Helper function to update identity display
+      function updateIdentity() {
+        const identity = amplitude.getIdentity();
+        const identityDiv = document.getElementById('identity');
+        identityDiv.innerHTML = `
+          <strong>User ID:</strong> ${identity.userId || '(not set)'}<br>
+          <strong>Device ID:</strong> ${identity.deviceId || '(not set)'}
+        `;
+        addLog(`Identity refreshed - UserId: ${identity.userId || '(not set)'}, DeviceId: ${identity.deviceId}`);
+      }
+
+      // Create a plugin that responds to reset events
+      const resetListenerPlugin = {
+        name: 'reset-listener-plugin',
+        type: 'enrichment',
+        
+        setup: async (config) => {
+          addLog('✓ Plugin setup completed', 'log-callback');
+        },
+        
+        execute: async (event) => {
+          // Pass through all events unchanged
+          return event;
+        },
+        
+        onReset: async () => {
+          resetCount++;
+          addLog(`✓ Plugin onReset() hook called (count: ${resetCount})`, 'log-callback');
+          
+          // Update identity display after reset
+          setTimeout(updateIdentity, 100);
+        },
+        
+        teardown: async () => {
+          addLog('✓ Plugin teardown completed', 'log-callback');
+        }
+      };
+
+      // Initialize Amplitude
+      amplitude.init(
+        import.meta.env.VITE_AMPLITUDE_API_KEY,
+        import.meta.env.VITE_AMPLITUDE_USER_ID || 'reset-test-user',
+        {
+          logLevel: 'DEBUG'
+        }
+      );
+
+      addLog('Amplitude SDK initialized');
+      updateIdentity();
+
+      // Track Event button
+      document.getElementById('trackEvent').addEventListener('click', () => {
+        amplitude.track('Test Event', { timestamp: Date.now() });
+        addLog('Event tracked: Test Event');
+      });
+
+      // Refresh Identity button
+      document.getElementById('refreshIdentity').addEventListener('click', () => {
+        updateIdentity();
+      });
+
+      // Add Plugin button
+      document.getElementById('addPlugin').addEventListener('click', async () => {
+        if (pluginAdded) {
+          addLog('⚠️ Plugin already added! Remove it first.');
+          return;
+        }
+
+        resetCount = 0;
+        await amplitude.add(resetListenerPlugin).promise;
+        pluginAdded = true;
+        addLog('✓ Plugin added with onReset hook', 'log-callback');
+      });
+
+      // Remove Plugin button
+      document.getElementById('removePlugin').addEventListener('click', async () => {
+        if (!pluginAdded) {
+          addLog('⚠️ No plugin to remove.');
+          return;
+        }
+
+        await amplitude.remove('reset-listener-plugin').promise;
+        pluginAdded = false;
+        addLog('✓ Plugin removed', 'log-callback');
+      });
+
+      // Reset button
+      document.getElementById('reset').addEventListener('click', () => {
+        addLog('Calling reset()...', 'log-reset');
+        amplitude.reset();
+        addLog('✓ reset() completed', 'log-reset');
+        
+        // Update identity display after reset
+        setTimeout(updateIdentity, 100);
+      });
+
+      // Clear logs button
+      document.getElementById('clearLogs').addEventListener('click', () => {
+        document.getElementById('logs').innerHTML = '';
+      });
+    </script>
+  </body>
+</html>
+

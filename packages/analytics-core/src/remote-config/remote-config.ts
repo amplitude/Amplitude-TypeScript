@@ -31,8 +31,12 @@ export const DEFAULT_MAX_RETRIES = 3;
  * Linear backoff policy: timeout / retry times is the interval between fetch retry.
  */
 const DEFAULT_TIMEOUT = 1000;
-// TODO(xinyi)
-// const DEFAULT_MIN_TIME_BETWEEN_FETCHES = 5 * 60 * 1000; // 5 minutes
+
+/**
+ * The minimum time between fetches in milliseconds.
+ * This prevents too many requests from being sent in a short period of time.
+ */
+const DEFAULT_MIN_TIME_BETWEEN_FETCHES = 5 * 60 * 1000; // 5 minutes
 
 export interface RemoteConfig {
   [key: string]: any;
@@ -113,6 +117,10 @@ export class RemoteConfigClient implements IRemoteConfigClient {
   readonly storage: RemoteConfigStorage;
   // Registered callbackInfos by subscribe().
   callbackInfos: CallbackInfo[] = [];
+  // Track the last successful fetch time for throttling (timestamp in milliseconds).
+  lastSuccessfulFetch: number | null = null;
+  // Store the in-flight fetch promise for deduplication.
+  fetchPromise: Promise<RemoteConfigInfo> | null = null;
 
   constructor(apiKey: string, logger: ILogger, serverZone: ServerZoneType = 'US', serverUrl?: string) {
     this.apiKey = apiKey;
@@ -153,11 +161,45 @@ export class RemoteConfigClient implements IRemoteConfigClient {
   }
 
   async updateConfigs() {
-    const result = await this.fetch();
+    // Check if we need to throttle based on last successful fetch time
+    if (this.lastSuccessfulFetch) {
+      const timeSinceLastFetch = Date.now() - this.lastSuccessfulFetch;
+      if (timeSinceLastFetch < DEFAULT_MIN_TIME_BETWEEN_FETCHES) {
+        this.logger.debug('Remote config client skipping updateConfigs: Too recent');
+        return;
+      }
+    }
+
+    const result = await this.getOrCreateFetchPromise();
     void this.storage.setConfig(result);
     this.callbackInfos.forEach((callbackInfo) => {
       this.sendCallback(callbackInfo, result, 'remote');
     });
+  }
+
+  /**
+   * Get the in-flight fetch promise or create a new one.
+   * This ensures multiple subscribe calls share the same network request.
+   */
+  getOrCreateFetchPromise(): Promise<RemoteConfigInfo> {
+    if (this.fetchPromise) {
+      return this.fetchPromise;
+    }
+
+    this.fetchPromise = this.fetch()
+      .then((result) => {
+        // Update last successful fetch time if we got a valid config
+        if (result.remoteConfig !== null) {
+          this.lastSuccessfulFetch = Date.now();
+        }
+        return result;
+      })
+      .finally(() => {
+        // Clear the promise after it settles (success or failure)
+        this.fetchPromise = null;
+      });
+
+    return this.fetchPromise;
   }
 
   /**
@@ -166,7 +208,7 @@ export class RemoteConfigClient implements IRemoteConfigClient {
    * - if cache is fetched first, still fetching remote.
    */
   async subscribeAll(callbackInfo: CallbackInfo) {
-    const remotePromise = this.fetch().then((result) => {
+    const remotePromise = this.getOrCreateFetchPromise().then((result) => {
       this.logger.debug(`Remote config client subscription all mode fetched from remote: ${JSON.stringify(result)}`);
       this.sendCallback(callbackInfo, result, 'remote');
       void this.storage.setConfig(result);
@@ -198,7 +240,10 @@ export class RemoteConfigClient implements IRemoteConfigClient {
     });
 
     try {
-      const result: RemoteConfigInfo = (await Promise.race([this.fetch(), timeoutPromise])) as RemoteConfigInfo;
+      const result: RemoteConfigInfo = (await Promise.race([
+        this.getOrCreateFetchPromise(),
+        timeoutPromise,
+      ])) as RemoteConfigInfo;
 
       this.logger.debug('Remote config client subscription wait for remote mode returns from remote.');
       this.sendCallback(callbackInfo, result, 'remote');

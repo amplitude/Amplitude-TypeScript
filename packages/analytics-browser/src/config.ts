@@ -336,7 +336,7 @@ export const useBrowserConfig = async (
     options.networkTrackingOptions,
     options.identify,
     options.enableDiagnostics,
-    undefined, // diagnosticsSampleRate - set in _setDiagnosticsSampleRate or defaults to 0
+    amplitudeInstance._diagnosticsSampleRate, // Use _diagnosticsSampleRate set via _setDiagnosticsSampleRate() or defaults to 0
     undefined, // diagnosticsClient - set after config creation
     options.remoteConfig,
   );
