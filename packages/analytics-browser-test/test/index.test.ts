@@ -142,6 +142,7 @@ describe('integration', () => {
         client.init(apiKey, {
           defaultTracking,
           serverUrl: url + path,
+          fetchRemoteConfig: false,
         });
       });
     });
@@ -173,6 +174,7 @@ describe('integration', () => {
             trackOn: 'attribution',
           },
         },
+        fetchRemoteConfig: false,
       }).promise;
       await trackPromise;
 
@@ -284,6 +286,7 @@ describe('integration', () => {
 
       await client.init(apiKey, {
         defaultTracking,
+        fetchRemoteConfig: false,
       }).promise;
       const response = await client.track('test event', {
         mode: 'test',
@@ -325,6 +328,7 @@ describe('integration', () => {
         deviceId: 'deviceId',
         sessionId: 1,
         defaultTracking,
+        fetchRemoteConfig: false,
       }).promise;
       const response = await client.track('test event').promise;
       expect(response.event).toEqual({
@@ -361,6 +365,7 @@ describe('integration', () => {
 
       await client.init(apiKey, {
         defaultTracking,
+        fetchRemoteConfig: false,
       }).promise;
       const response = await client.track('test event', undefined, {
         user_id: 'sdk.dev@amplitude.com',
@@ -407,6 +412,7 @@ describe('integration', () => {
           sourceName,
           sourceVersion,
         },
+        fetchRemoteConfig: false,
       }).promise;
       const response = await client.track('test event', undefined, {
         user_id: 'sdk.dev@amplitude.com',
@@ -451,6 +457,7 @@ describe('integration', () => {
 
       await client.init(apiKey, {
         defaultTracking,
+        fetchRemoteConfig: false,
       }).promise;
       const response = await client.track(
         {
@@ -513,6 +520,7 @@ describe('integration', () => {
       await client.init(apiKey, {
         logLevel: 0,
         defaultTracking,
+        fetchRemoteConfig: false,
       }).promise;
       const response = await Promise.all([
         client.track('test event 1').promise,
@@ -587,6 +595,7 @@ describe('integration', () => {
         logLevel: 0,
         flushQueueSize: 2,
         defaultTracking,
+        fetchRemoteConfig: false,
       }).promise;
       const response = await Promise.all([client.track('test event 1').promise, client.track('test event 2').promise]);
       expect(response[0].event).toEqual({
@@ -660,6 +669,7 @@ describe('integration', () => {
       await client.init(apiKey, {
         logLevel: 0,
         defaultTracking,
+        fetchRemoteConfig: false,
       }).promise;
       const response = await Promise.all([
         client.track('test event 1').promise,
@@ -732,6 +742,7 @@ describe('integration', () => {
       await client.init(apiKey, {
         logLevel: 0,
         defaultTracking,
+        fetchRemoteConfig: false,
       }).promise;
       const response = await Promise.all([client.track('test event 1').promise, client.track('test event 2').promise]);
       expect(response[0].event).toEqual({
@@ -799,6 +810,7 @@ describe('integration', () => {
         logLevel: 0,
         flushMaxRetries: 3,
         defaultTracking,
+        fetchRemoteConfig: false,
       }).promise;
       const response = await client.track('test event').promise;
       expect(response.event).toEqual({
@@ -834,6 +846,7 @@ describe('integration', () => {
       await client.init('', undefined, {
         logLevel: 0,
         defaultTracking,
+        fetchRemoteConfig: false,
       }).promise;
       const response = await client.track('test event').promise;
       expect(response.code).toBe(400);
@@ -845,6 +858,7 @@ describe('integration', () => {
       await client.init(apiKey, {
         logLevel: 0,
         defaultTracking,
+        fetchRemoteConfig: false,
       }).promise;
       client.setOptOut(true);
       const response = await client.track('test event').promise;
@@ -859,6 +873,7 @@ describe('integration', () => {
 
       await client.init(apiKey, {
         defaultTracking,
+        fetchRemoteConfig: false,
       }).promise;
       const id = new amplitude.Identify();
       id.set('org', 'amp');
@@ -923,6 +938,7 @@ describe('integration', () => {
 
       await client.init(apiKey, {
         defaultTracking,
+        fetchRemoteConfig: false,
       }).promise;
       const rev = new amplitude.Revenue();
       rev.setProductId('1');
@@ -971,6 +987,7 @@ describe('integration', () => {
 
       await client.init(apiKey, {
         defaultTracking,
+        fetchRemoteConfig: false,
       }).promise;
       const response = await client.setGroup('org', 'engineering').promise;
       expect(response.event).toEqual({
@@ -1038,6 +1055,7 @@ describe('integration', () => {
         },
         sessionTimeout: 500,
         flushIntervalMillis: 3000,
+        fetchRemoteConfig: false,
       });
       // Sends `session_start` event
       client.track('Event in first session');
@@ -1299,6 +1317,7 @@ describe('integration', () => {
         },
         sessionTimeout: 500,
         flushIntervalMillis: 3000,
+        fetchRemoteConfig: false,
       });
       // Sends `session_start` event
       client.track('Event in first session');
@@ -1549,6 +1568,7 @@ describe('integration', () => {
         sessionId: 1,
         sessionTimeout: 1000,
         flushIntervalMillis: 3000,
+        fetchRemoteConfig: false,
       });
       client.track('First event in first session');
 
@@ -1659,6 +1679,7 @@ describe('integration', () => {
       const scope = nock(url).post(path).reply(200, success);
       await client.init(apiKey, {
         defaultTracking,
+        fetchRemoteConfig: false,
       }).promise;
       const response = await client.track('test event', {
         mode: 'test',
@@ -1700,6 +1721,7 @@ describe('integration', () => {
       await client.init(apiKey, {
         defaultTracking,
         sessionId: 1,
+        fetchRemoteConfig: false,
       }).promise;
       const response = await client.track('test event', {
         mode: 'test',
@@ -1740,6 +1762,7 @@ describe('integration', () => {
       const scope = nock(url).post(path).reply(200, success);
       await client.init(apiKey, {
         defaultTracking,
+        fetchRemoteConfig: false,
       }).promise;
       client.setSessionId(1);
       const response = await client.track('test event', {
@@ -1794,6 +1817,7 @@ describe('integration', () => {
             trackOn: 'attribution',
           },
         },
+        fetchRemoteConfig: false,
       });
 
       return new Promise<void>((resolve) => {
@@ -1900,6 +1924,7 @@ describe('integration', () => {
         },
         sessionTimeout: 500,
         flushIntervalMillis: 3000,
+        fetchRemoteConfig: false,
       });
 
       client.track('Event in first session');
@@ -2059,6 +2084,7 @@ describe('integration', () => {
           ...defaultTracking,
           pageViews: true,
         },
+        fetchRemoteConfig: false,
       });
 
       return new Promise<void>((resolve) => {
@@ -2129,6 +2155,7 @@ describe('integration', () => {
       const scope = nock(url).post(path).reply(200, success);
       await client.init(apiKey, {
         defaultTracking,
+        fetchRemoteConfig: false,
       }).promise;
       const response = await client.track('test event', {
         mode: 'test',
@@ -2171,6 +2198,7 @@ describe('integration', () => {
         cookieOptions: {
           upgrade: false,
         },
+        fetchRemoteConfig: false,
       }).promise;
       const response = await client.track('test event', {
         mode: 'test',
@@ -2216,6 +2244,7 @@ describe('integration', () => {
         await client.init(apiKey, {
           defaultTracking,
           serverUrl: serverUrl + path,
+          fetchRemoteConfig: false,
         }).promise;
         const response = await client.track('test event').promise;
         expect(response.event).toEqual({
@@ -2347,6 +2376,7 @@ describe('integration', () => {
       const scope2 = nock(url).post(path).reply(200, success);
       await client.init(apiKey, {
         identityStorage: 'cookie',
+        fetchRemoteConfig: false,
       }).promise;
       await client.identify(new amplitude.Identify().set('a', 'b')).promise;
       await client.track('Test Event').promise;
@@ -2363,6 +2393,7 @@ describe('integration', () => {
       const scope2 = nock(url).post(path).reply(200, success);
       await client.init(apiKey, {
         identityStorage: 'localStorage',
+        fetchRemoteConfig: false,
       }).promise;
       await client.identify(new amplitude.Identify().set('a', 'b')).promise;
       await client.track('Test Event').promise;

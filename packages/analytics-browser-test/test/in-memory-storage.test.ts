@@ -29,6 +29,7 @@ describe('Storage options', () => {
     const amplitude = createInstance();
     await amplitude.init(apiKey, {
       defaultTracking,
+      fetchRemoteConfig: false,
     }).promise;
 
     await amplitude.track('Event').promise;
@@ -54,6 +55,7 @@ describe('Storage options', () => {
     await amplitude.init(apiKey, {
       defaultTracking,
       identityStorage: 'localStorage',
+      fetchRemoteConfig: false,
     }).promise;
 
     await amplitude.track('Event').promise;
@@ -69,8 +71,7 @@ describe('Storage options', () => {
      */
     expect(window.localStorage.key(0)).toContain(`AMP_${shortenedApiKey}`);
     expect(window.localStorage.key(1)).toBe(`AMP_unsent_${shortenedApiKey}`);
-    expect(window.localStorage.key(2)).toBe(`AMP_remote_config_${shortenedApiKey}`);
-    expect(window.localStorage.length).toBe(3);
+    expect(window.localStorage.length).toBe(2);
 
     scope.done();
   });
@@ -83,6 +84,7 @@ describe('Storage options', () => {
       defaultTracking,
       identityStorage: 'none',
       storageProvider: new MemoryStorage(),
+      fetchRemoteConfig: false,
     }).promise;
 
     await amplitude.track('Event').promise;
@@ -96,10 +98,7 @@ describe('Storage options', () => {
      * storageProvider is set to new MemoryStorage()
      * asserts that local storage is not used
      */
-    // TODO(xinyi): configurable storage for remote config.
-    // Right now, remote config is stored in local storage only.
-    expect(window.localStorage.key(0)).toBe(`AMP_remote_config_${shortenedApiKey}`);
-    expect(window.localStorage.length).toBe(1);
+    expect(window.localStorage.length).toBe(0);
 
     scope.done();
   });
