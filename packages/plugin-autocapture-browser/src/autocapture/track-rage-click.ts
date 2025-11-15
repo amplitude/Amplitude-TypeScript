@@ -106,12 +106,6 @@ export function trackRageClicks({
 }) {
   const { clickObservable }: AllWindowObservables = allObservables;
 
-  // TODO: take this out once it becomes a non-optional parameter
-  /* istanbul ignore if */
-  if (!clickObservable) {
-    return;
-  }
-
   // Keep track of all clicks within the sliding window
   let clickWindow: ClickEvent[] = [];
 
