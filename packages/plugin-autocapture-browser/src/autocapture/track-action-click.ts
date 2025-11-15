@@ -68,7 +68,6 @@ export function trackActionClick({
       actionClickTimer = setTimeout(() => {
         actionClickTimer = null;
         lastClickEvent = null;
-        return null;
       }, 500);
       return Promise.resolve(null);
     } else {

@@ -9,6 +9,7 @@ import {
   DEFAULT_DEAD_CLICK_ALLOWLIST,
   multicast,
   Observable,
+  Unsubscribable,
 } from '@amplitude/analytics-core';
 import * as constants from './constants';
 import { createShouldTrackEvent, ElementBasedTimestampedEvent, NavigateEvent, TimestampedEvent } from './helpers';
@@ -25,10 +26,6 @@ export interface AllWindowObservables {
 }
 
 type BrowserEnrichmentPlugin = EnrichmentPlugin<BrowserClient, BrowserConfig>;
-
-type Unsubscribable = {
-  unsubscribe: () => void;
-};
 
 export const frustrationPlugin = (options: FrustrationInteractionsOptions = {}): BrowserEnrichmentPlugin => {
   const name = constants.FRUSTRATION_PLUGIN_NAME;
