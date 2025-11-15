@@ -234,7 +234,7 @@ describe('RemoteConfigClient', () => {
       const fetch = jest.spyOn(client, 'fetch');
       const sendCallback = jest.spyOn(client, 'sendCallback');
       const remoteConfigInfo = {
-        remoteConfig: null,
+        remoteConfig: { a: { b: 1 } },
         lastFetch: new Date(),
       };
       fetch.mockImplementation(
@@ -269,6 +269,56 @@ describe('RemoteConfigClient', () => {
       );
       expect(sendCallback).toHaveBeenCalledWith(callbackInfo, remoteConfigInfo, 'remote');
       expect(sendCallback).toHaveBeenCalledWith(callbackInfo, remoteConfigInfo, 'cache');
+      expect(mockStorage.setConfig).toHaveBeenCalledTimes(1);
+    });
+
+    test('should skip cache callback when cache is empty (first time user) but still return remote', async () => {
+      // fetch() returns after 1s with valid data
+      const fetch = jest.spyOn(client, 'fetch');
+      const sendCallback = jest.spyOn(client, 'sendCallback');
+      const remoteFetchResult = {
+        remoteConfig: { a: { b: 1 } },
+        lastFetch: new Date(),
+      };
+      fetch.mockImplementation(
+        () =>
+          new Promise((resolve) => {
+            setTimeout(() => {
+              resolve(remoteFetchResult);
+            }, 1000);
+          }),
+      );
+
+      // storage.fetchConfig() returns immediately with null remoteConfig (first time user)
+      const emptyCacheResult = {
+        remoteConfig: null,
+        lastFetch: new Date(),
+      };
+      storageFetchConfig.mockReturnValueOnce(Promise.resolve(emptyCacheResult));
+
+      const callbackInfo = {
+        id: mockUuid,
+        key: testKey,
+        deliveryMode: 'all' as DeliveryMode,
+        callback: jest.fn(),
+      };
+      await client.subscribeAll(callbackInfo);
+      // Wait 1s for fetch() returns
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
+      expect(fetch).toHaveBeenCalledTimes(1);
+      expect(mockStorage.fetchConfig).toHaveBeenCalledTimes(1);
+      // Should log that callback is skipped for empty cache
+      expect(loggerDebug).toHaveBeenCalledWith(
+        'Remote config client skips sending callback because cache is empty (first time user).',
+      );
+      expect(loggerDebug).toHaveBeenCalledWith(
+        expect.stringContaining('Remote config client subscription all mode fetched from remote:'),
+      );
+      // Should only send callback for remote, NOT for cache
+      expect(sendCallback).toHaveBeenCalledTimes(1);
+      expect(sendCallback).toHaveBeenCalledWith(callbackInfo, remoteFetchResult, 'remote');
+      expect(sendCallback).not.toHaveBeenCalledWith(callbackInfo, emptyCacheResult, 'cache');
       expect(mockStorage.setConfig).toHaveBeenCalledTimes(1);
     });
   });

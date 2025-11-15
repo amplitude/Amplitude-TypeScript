@@ -178,12 +178,16 @@ export class RemoteConfigClient implements IRemoteConfigClient {
 
     // Wait for the first result to resolve
     const result = await Promise.race([remotePromise, cachePromise]);
-    
+
     // If cache is fetched first, wait for remote.
-    if (result && result?.remoteConfig !== null) {
-      console.log(`Remote config client subscription all mode fetched from cache: ${JSON.stringify(result)}`);
+    if (result) {
       this.logger.debug(`Remote config client subscription all mode fetched from cache: ${JSON.stringify(result)}`);
-      this.sendCallback(callbackInfo, result, 'cache');
+      // Skip sending callback if cache is empty (first time user).
+      if (result.remoteConfig !== null) {
+        this.sendCallback(callbackInfo, result, 'cache');
+      } else {
+        this.logger.debug('Remote config client skips sending callback because cache is empty (first time user).');
+      }
     }
     await remotePromise;
   }
