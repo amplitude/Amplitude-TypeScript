@@ -34,7 +34,7 @@ export const frustrationPlugin = (options: FrustrationInteractionsOptions = {}):
   const name = constants.FRUSTRATION_PLUGIN_NAME;
   const type = 'enrichment';
 
-  const subscriptions: (Unsubscribable | undefined)[] = [];
+  const subscriptions: Unsubscribable[] = [];
 
   const rageCssSelectors = options.rageClicks?.cssSelectorAllowlist ?? DEFAULT_RAGE_CLICK_ALLOWLIST;
   const deadCssSelectors = options.deadClicks?.cssSelectorAllowlist ?? DEFAULT_DEAD_CLICK_ALLOWLIST;
@@ -141,9 +141,7 @@ export const frustrationPlugin = (options: FrustrationInteractionsOptions = {}):
 
   const teardown = async () => {
     for (const subscription of subscriptions) {
-      // TODO: This ? will be unnecessary once it's not an optional method
-      /* istanbul ignore next */
-      subscription?.unsubscribe();
+      subscription.unsubscribe();
     }
   };
 
