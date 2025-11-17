@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.6.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-page-view-tracking-browser@2.5.7...@amplitude/plugin-page-view-tracking-browser@2.6.0) (2025-11-17)
+
+
+### Features
+
+* **analytics-browser:** add reset listener API ([#1393](https://github.com/amplitude/Amplitude-TypeScript/issues/1393)) ([7bd85e5](https://github.com/amplitude/Amplitude-TypeScript/commit/7bd85e51b01cefdb43b8474d930e8c219b739323))
+
+
+
+
+
 ## [2.5.7](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-page-view-tracking-browser@2.5.6...@amplitude/plugin-page-view-tracking-browser@2.5.7) (2025-11-05)
 
 **Note:** Version bump only for package @amplitude/plugin-page-view-tracking-browser
