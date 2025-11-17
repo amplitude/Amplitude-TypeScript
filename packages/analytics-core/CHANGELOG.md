@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.32.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.32.0...@amplitude/analytics-core@2.32.1) (2025-11-17)
+
+
+### Bug Fixes
+
+* **analytics-core:** record unsuccessful response ([#1405](https://github.com/amplitude/Amplitude-TypeScript/issues/1405)) ([7e842fe](https://github.com/amplitude/Amplitude-TypeScript/commit/7e842feb0aa36ec4274b97a205b19613f3b5c642))
+
+
+
+
+
 # [2.32.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.31.1...@amplitude/analytics-core@2.32.0) (2025-11-17)
 
 
