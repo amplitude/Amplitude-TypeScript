@@ -189,7 +189,20 @@ describe('SessionReplayJoinedConfigGenerator', () => {
     });
 
     describe('with unsuccessful sampling config fetch', () => {
-      test('should set captureEnabled to true when no remote config', async () => {
+      test('should log error when no remote config', async () => {
+        mockRemoteConfig = null;
+        jest.spyOn(mockLoggerProvider, 'error').mockImplementation(() => {
+          return;
+        });
+        await joinedConfigGenerator.generateJoinedConfig();
+        expect(mockLoggerProvider.error).toHaveBeenCalledWith(
+          'Failed to generate joined config: ',
+          expect.objectContaining({
+            message: 'No remote config received',
+          }),
+        );
+      });
+      test('should set captureEnabled to false when no remote config', async () => {
         mockRemoteConfig = null;
         const { joinedConfig: config } = await joinedConfigGenerator.generateJoinedConfig();
         expect(config).toEqual({
