@@ -369,6 +369,8 @@ describe('browser-client', () => {
         enable: jest.fn(),
         disable: jest.fn(),
         track: jest.fn(),
+        recordEvent: jest.fn(),
+        increment: jest.fn(),
       };
       const diagnosticsClientSpy = jest
         .spyOn(core, 'DiagnosticsClient')

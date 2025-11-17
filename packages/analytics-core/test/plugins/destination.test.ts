@@ -3,6 +3,7 @@ import { IConfig } from '../../src/types/config/core-config';
 import { ILogger } from '../../src/logger';
 import { Payload } from '../../src/types/payload';
 import { Status } from '../../src/types/status';
+import { Response } from '../../src/types/response';
 import { API_KEY, useDefaultConfig } from '../helpers/default';
 import {
   INVALID_API_KEY,
@@ -733,6 +734,44 @@ describe('destination', () => {
       await destination.send([context]);
       // We should not fulfill request when the request fails with an unknown error. This should be retried
       expect(callback).toHaveBeenCalledTimes(0);
+    });
+  });
+
+  describe('handleResponse', () => {
+    test('should record diagnostics event for 408 timeout from load balancer', () => {
+      const diagnosticsClient = new DiagnosticsClient(API_KEY, getMockLogger());
+      const recordEventSpy = jest.spyOn(diagnosticsClient, 'recordEvent');
+
+      const destination = new Destination({ diagnosticsClient });
+      destination.config = useDefaultConfig();
+
+      const event1 = { event_type: 'event1', user_id: 'user1' };
+      const event2 = { event_type: 'event2', user_id: 'user2' };
+
+      const contexts: Context[] = [
+        { event: event1, attempts: 0, callback: jest.fn(), timeout: 0 },
+        { event: event2, attempts: 0, callback: jest.fn(), timeout: 0 },
+      ];
+
+      const response: Response = {
+        status: Status.Timeout,
+        statusCode: 408,
+      };
+
+      // Call handleResponse with a 408 timeout response
+      destination.handleResponse(response, contexts);
+
+      // Verify diagnostics recordEvent was called with the expected parameters
+      expect(recordEventSpy).toHaveBeenCalledWith('analytics.events.unsuccessful', {
+        events: ['event1', 'event2'],
+        code: 408,
+        stack_trace: expect.any(Array),
+      });
+
+      // Verify stack_trace is an array of strings
+      const recordEventCall = recordEventSpy.mock.calls[0];
+      expect(Array.isArray(recordEventCall[1].stack_trace)).toBe(true);
+      expect(recordEventCall[1].stack_trace.length).toBeGreaterThan(0);
     });
   });
 
