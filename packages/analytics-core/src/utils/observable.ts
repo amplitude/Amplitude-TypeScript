@@ -97,6 +97,13 @@ function multicast<T>(source: ZenObservable<T>): ZenObservable<T> {
   const observers: Set<Observer<T>> = new Set();
   let subscription: Subscription | null = null;
 
+  function cleanup() {
+    /* istanbul ignore next */
+    subscription?.unsubscribe();
+    subscription = null;
+    observers.clear();
+  }
+
   return new ZenObservable<T>((observer) => {
     observers.add(observer);
 
@@ -136,13 +143,6 @@ function multicast<T>(source: ZenObservable<T>): ZenObservable<T> {
       }
     };
   });
-
-  function cleanup() {
-    /* istanbul ignore next */
-    subscription?.unsubscribe();
-    subscription = null;
-    observers.clear();
-  }
 }
 
 export { asyncMap, multicast, merge, Unsubscribable };
