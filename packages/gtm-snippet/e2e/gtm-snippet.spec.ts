@@ -17,7 +17,7 @@ test.describe('GTM Snippet Page', () => {
     });
   });
 
-  test.skip('should load GTM snippet page and track event', async ({ page }) => {
+  test('should load GTM snippet page and track event', async ({ page }) => {
     // Navigate to the GTM snippet page
     const response = await page.goto('/gtm-snippet/gtm-snippet.html', {
       waitUntil: 'networkidle',
