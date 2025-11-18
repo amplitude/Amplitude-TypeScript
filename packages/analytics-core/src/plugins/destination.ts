@@ -240,6 +240,14 @@ export class Destination implements DestinationPlugin {
   }
 
   handleResponse(res: Response, list: Context[]) {
+    if (!isSuccessStatusCode(res.statusCode)) {
+      this.diagnosticsClient?.recordEvent('analytics.events.unsuccessful', {
+        events: list.map((context) => context.event.event_type),
+        code: res.statusCode,
+        stack_trace: getStacktrace(),
+      });
+    }
+
     const { status } = res;
 
     switch (status) {
