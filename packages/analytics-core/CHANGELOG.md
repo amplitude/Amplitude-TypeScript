@@ -3,6 +3,39 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.32.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.32.0...@amplitude/analytics-core@2.32.1) (2025-11-17)
+
+
+### Bug Fixes
+
+* **analytics-core:** record unsuccessful response ([#1405](https://github.com/amplitude/Amplitude-TypeScript/issues/1405)) ([7e842fe](https://github.com/amplitude/Amplitude-TypeScript/commit/7e842feb0aa36ec4274b97a205b19613f3b5c642))
+
+
+
+
+
+# [2.32.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.31.1...@amplitude/analytics-core@2.32.0) (2025-11-17)
+
+
+### Bug Fixes
+
+* **analytics-core:** batch remote config requests ([#1398](https://github.com/amplitude/Amplitude-TypeScript/issues/1398)) ([29da299](https://github.com/amplitude/Amplitude-TypeScript/commit/29da299e7c378a2c4221826f1b87e94aa6df3cb7))
+* **analytics-core:** remote config should not return null from cache for first time users ([#1401](https://github.com/amplitude/Amplitude-TypeScript/issues/1401)) ([568554a](https://github.com/amplitude/Amplitude-TypeScript/commit/568554a4849ff9069ae6948783458bc3c2997523))
+
+
+### Features
+
+* **analytics-browser:** add reset listener API ([#1393](https://github.com/amplitude/Amplitude-TypeScript/issues/1393)) ([7bd85e5](https://github.com/amplitude/Amplitude-TypeScript/commit/7bd85e51b01cefdb43b8474d930e8c219b739323))
+
+
+### Reverts
+
+* "fix: make setDiagnosticsRate an optional function ([#1382](https://github.com/amplitude/Amplitude-TypeScript/issues/1382))" ([#1394](https://github.com/amplitude/Amplitude-TypeScript/issues/1394)) ([f8ddc88](https://github.com/amplitude/Amplitude-TypeScript/commit/f8ddc88961e14a3ae7ad7e79ac7a182e84b158a0))
+
+
+
+
+
 ## [2.31.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.31.0...@amplitude/analytics-core@2.31.1) (2025-11-05)
 
 

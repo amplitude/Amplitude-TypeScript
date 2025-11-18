@@ -65,6 +65,7 @@ describe('Web attribution', () => {
           defaultTracking,
           sessionTimeout: 500,
           flushIntervalMillis: 3000,
+          fetchRemoteConfig: false,
         }).promise;
 
         return new Promise<void>((resolve) => {
@@ -108,6 +109,7 @@ describe('Web attribution', () => {
           defaultTracking,
           sessionTimeout: 500,
           flushIntervalMillis: 3000,
+          fetchRemoteConfig: false,
         }).promise;
 
         return new Promise<void>((resolve) => {
@@ -156,6 +158,7 @@ describe('Web attribution', () => {
           },
           sessionTimeout: 500,
           flushIntervalMillis: 3000,
+          fetchRemoteConfig: false,
         }).promise;
 
         return new Promise<void>((resolve) => {
@@ -216,6 +219,7 @@ describe('Web attribution', () => {
           defaultTracking,
           sessionTimeout: 500,
           flushIntervalMillis: 3000,
+          fetchRemoteConfig: false,
         }).promise;
 
         await new Promise((resolve) => setTimeout(resolve, 200));
@@ -231,6 +235,7 @@ describe('Web attribution', () => {
           defaultTracking,
           sessionTimeout: 500,
           flushIntervalMillis: 3000,
+          fetchRemoteConfig: false,
         }).promise;
 
         return new Promise<void>((resolve) => {
@@ -282,6 +287,7 @@ describe('Web attribution', () => {
           defaultTracking,
           sessionTimeout: 500,
           flushIntervalMillis: 3000,
+          fetchRemoteConfig: false,
         }).promise;
 
         await new Promise((resolve) => setTimeout(resolve, 200));
@@ -297,6 +303,7 @@ describe('Web attribution', () => {
           defaultTracking,
           sessionTimeout: 500,
           flushIntervalMillis: 3000,
+          fetchRemoteConfig: false,
         }).promise;
 
         return new Promise<void>((resolve) => {
@@ -354,6 +361,7 @@ describe('Web attribution', () => {
           },
           sessionTimeout: 500,
           flushIntervalMillis: 3000,
+          fetchRemoteConfig: false,
         }).promise;
 
         await new Promise((resolve) => setTimeout(resolve, 100));
@@ -374,6 +382,7 @@ describe('Web attribution', () => {
             },
             sessionTimeout: 500,
             flushIntervalMillis: 3000,
+            fetchRemoteConfig: false,
           }).promise;
         }, 100);
 
@@ -436,6 +445,7 @@ describe('Web attribution', () => {
           defaultTracking,
           sessionTimeout: 500,
           flushIntervalMillis: 3000,
+          fetchRemoteConfig: false,
         }).promise;
 
         // update the url and fire the first event after session timeout
@@ -498,6 +508,7 @@ describe('Web attribution', () => {
           },
           sessionTimeout: 500,
           flushIntervalMillis: 3000,
+          fetchRemoteConfig: false,
         }).promise;
 
         // update the url and fire the first event after session timeout
@@ -570,6 +581,7 @@ describe('Web attribution', () => {
           defaultTracking,
           sessionTimeout: 500,
           flushIntervalMillis: 3000,
+          fetchRemoteConfig: false,
         }).promise;
 
         await new Promise((resolve) => setTimeout(resolve, 100));
@@ -628,6 +640,7 @@ describe('Web attribution', () => {
           },
           sessionTimeout: 500,
           flushIntervalMillis: 3000,
+          fetchRemoteConfig: false,
         }).promise;
 
         await new Promise((resolve) => setTimeout(resolve, 100));
@@ -683,6 +696,7 @@ describe('Web attribution', () => {
           defaultTracking,
           sessionTimeout: 500,
           flushIntervalMillis: 3000,
+          fetchRemoteConfig: false,
         }).promise;
 
         await new Promise((resolve) => setTimeout(resolve, 100));
