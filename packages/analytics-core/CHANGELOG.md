@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.32.0-zen-plus-zoning.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.32.0-zen-plus-zoning.0...@amplitude/analytics-core@2.32.0-zen-plus-zoning.1) (2025-11-19)
+
+
+### Bug Fixes
+
+* **analytics-core:** record unsuccessful response ([#1405](https://github.com/amplitude/Amplitude-TypeScript/issues/1405)) ([#1406](https://github.com/amplitude/Amplitude-TypeScript/issues/1406)) ([5af9048](https://github.com/amplitude/Amplitude-TypeScript/commit/5af904810149adfd10fb7f8cb14e0584c884e995))
+
+
+
+
+
 # [2.32.0-zen-plus-zoning.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.32.0-zen-observable-migration.0...@amplitude/analytics-core@2.32.0-zen-plus-zoning.0) (2025-11-12)
 
 

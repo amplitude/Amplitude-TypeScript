@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.5.24-zen-plus-zoning.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-react-native@1.5.24-zen-plus-zoning.0...@amplitude/analytics-react-native@1.5.24-zen-plus-zoning.1) (2025-11-19)
+
+**Note:** Version bump only for package @amplitude/analytics-react-native
+
+
+
+
+
 ## [1.5.24-zen-plus-zoning.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-react-native@1.5.24-zen-observable-migration.0...@amplitude/analytics-react-native@1.5.24-zen-plus-zoning.0) (2025-11-12)
 
 
