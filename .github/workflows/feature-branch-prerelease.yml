@@ -126,6 +126,41 @@ jobs:
         run: |
           GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} npm run deploy:version -- -y --no-private --conventional-prerelease --preid ${{ env.PREID }} --allow-branch ${{ steps.branch-name.outputs.current_branch }} --create-release github
 
+      # Update test packages to use exact versions of their dependencies
+      - name: Update test package dependencies
+        run: |
+          echo "Updating test package dependencies..."
+          
+          # Get the new version of analytics-browser
+          BROWSER_VERSION=$(node -p "require('./packages/analytics-browser/package.json').version")
+          echo "Current @amplitude/analytics-browser version: $BROWSER_VERSION"
+          
+          # Get the current dependency version in analytics-browser-test
+          CURRENT_DEP=$(node -p "require('./packages/analytics-browser-test/package.json').dependencies['@amplitude/analytics-browser']")
+          echo "Current dependency in analytics-browser-test: $CURRENT_DEP"
+          
+          # Update if versions differ
+          if [ "$BROWSER_VERSION" != "$CURRENT_DEP" ]; then
+            echo "Updating analytics-browser-test to use @amplitude/analytics-browser@$BROWSER_VERSION"
+            cd packages/analytics-browser-test
+            npm pkg set dependencies.@amplitude/analytics-browser="$BROWSER_VERSION"
+            cd ../..
+            
+            # Add and amend to the version commit
+            git add packages/analytics-browser-test/package.json
+            git commit --amend --no-edit --no-verify
+            
+            # Push the amended commit if this is a real prerelease (not dry-run)
+            if [ "${{ github.event.inputs.releaseType }}" == "prerelease" ]; then
+              git push origin ${{ steps.branch-name.outputs.current_branch }} --follow-tags --force
+              echo "✅ Updated and pushed analytics-browser-test dependency"
+            else
+              echo "✅ Updated analytics-browser-test dependency (dry-run, not pushed)"
+            fi
+          else
+            echo "✅ analytics-browser-test already uses the correct version"
+          fi
+
       # Use 'from git' option if `lerna version` has already been run
       - name: Publish Release to NPM
         if: ${{ github.event.inputs.releaseType == 'prerelease' }}
