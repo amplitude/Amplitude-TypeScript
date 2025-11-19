@@ -29,6 +29,11 @@ export const {
 export { AmplitudeBrowser } from './browser-client';
 export { runQueuedFunctions } from './utils/snippet-helper';
 export { Revenue, Identify } from '@amplitude/analytics-core';
+export {
+  setupAmplitudeErrorHandler,
+  setupAmplitudeRejectionHandler,
+  setupAmplitudeErrorTracking,
+} from './utils/error-diagnostics';
 
 // Export types to maintain backward compatibility with `analytics-types`.
 // In the next major version, only export customer-facing types to reduce the public API surface.
