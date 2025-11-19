@@ -1,6 +1,6 @@
 {
   "name": "@amplitude/session-replay-browser",
-  "version": "1.29.5-zen-plus-zoning.1",
+  "version": "1.29.5-zen-plus-zoning.0",
   "description": "",
   "author": "Amplitude Inc",
   "homepage": "https://github.com/amplitude/Amplitude-TypeScript",
@@ -40,8 +40,8 @@
     "url": "https://github.com/amplitude/Amplitude-TypeScript/issues"
   },
   "dependencies": {
-    "@amplitude/analytics-client-common": "2.4.13-zen-plus-zoning.1",
-    "@amplitude/analytics-core": "2.32.0-zen-plus-zoning.1",
+    "@amplitude/analytics-client-common": "2.4.13-zen-plus-zoning.0",
+    "@amplitude/analytics-core": "2.32.0-zen-plus-zoning.0",
     "@amplitude/analytics-types": "^2.11.0",
     "@amplitude/rrweb-packer": "2.0.0-alpha.32",
     "@amplitude/rrweb-plugin-console-record": "2.0.0-alpha.32",
