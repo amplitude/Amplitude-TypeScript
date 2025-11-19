@@ -146,9 +146,18 @@ jobs:
             npm pkg set dependencies.@amplitude/analytics-browser="$BROWSER_VERSION"
             cd ../..
             
+            # Get all tags pointing to the current HEAD before amending
+            TAGS=$(git tag --points-at HEAD)
+            
             # Add and amend to the version commit
             git add packages/analytics-browser-test/package.json
             git commit --amend --no-edit --no-verify
+            
+            # Re-apply all tags to the new HEAD (after amend)
+            for TAG in $TAGS; do
+              echo "Moving tag $TAG to amended commit"
+              git tag -f "$TAG"
+            done
             
             # Push the amended commit if this is a real prerelease (not dry-run)
             if [ "${{ github.event.inputs.releaseType }}" == "prerelease" ]; then
