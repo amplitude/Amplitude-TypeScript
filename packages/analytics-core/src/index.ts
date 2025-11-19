@@ -22,15 +22,7 @@ export { UUID } from './utils/uuid';
 export { createIdentifyEvent } from './utils/event-builder';
 export { isUrlMatchAllowlist, getDecodeURI } from './utils/url-utils';
 export { generateHashCode, isTimestampInSample } from './utils/sampling';
-export {
-  AmplitudeError,
-  markAsAmplitudeError,
-  isAmplitudeOriginatedError,
-  wrapWithErrorTracking,
-  trackErrors,
-  getExecutionTracker,
-  analyzeStackTrace,
-} from './utils/amplitude-error';
+export { wrapWithErrorTracking, getExecutionTracker } from './utils/amplitude-error';
 
 export { MemoryStorage } from './storage/memory';
 export { CookieStorage } from './storage/cookie';

@@ -207,7 +207,6 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
     // This must be done early to catch any errors during initialization
     // The cleanup function is not stored as there is currently no shutdown method in the browser client
     setupAmplitudeErrorTracking(diagnosticsClient, {
-      enableStackTraceAnalysis: true,
       captureStackTraces: true,
     });
 
