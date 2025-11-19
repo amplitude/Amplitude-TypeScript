@@ -22,6 +22,7 @@ export { UUID } from './utils/uuid';
 export { createIdentifyEvent } from './utils/event-builder';
 export { isUrlMatchAllowlist, getDecodeURI } from './utils/url-utils';
 export { generateHashCode, isTimestampInSample } from './utils/sampling';
+export { wrapWithErrorTracking, getExecutionTracker } from './utils/amplitude-error';
 
 export { MemoryStorage } from './storage/memory';
 export { CookieStorage } from './storage/cookie';
