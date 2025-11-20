@@ -1,4 +1,4 @@
-import { wrapWithErrorTracking } from './amplitude-error';
+import { wrapWithErrorTracking } from '../diagnostics/diagnostics-uncaught-sdk-error';
 
 /**
  * Utility functions to safely execute code with error tracking
