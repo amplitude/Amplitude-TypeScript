@@ -531,7 +531,7 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
         this.userProperties = this.getOperationAppliedUserProperties(event.user_properties);
       }
 
-      throw new Error('TEST: SDK uncaught error in process()');
+      // throw new Error('TEST: SDK uncaught error in process()');
 
       return super.process(event);
     }, 'AmplitudeBrowser.process')();

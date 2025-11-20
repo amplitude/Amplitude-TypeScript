@@ -4,6 +4,9 @@
  * Tracks when SDK code is executing to identify which errors originate from SDK code.
  * Uses a simple counter-based approach: increment on entry, decrement on exit.
  * Any error during SDK execution (counter > 0) is an SDK error.
+ *
+ * Additionally tracks error objects themselves using WeakSet for precise error attribution,
+ * especially useful for async errors that may be reported after the execution context exits.
  */
 
 interface ExecutionContext {
@@ -16,6 +19,10 @@ const executionTracker: ExecutionContext = {
   depth: 0,
   currentContext: null,
 };
+
+// Track error objects that originated from SDK code
+// Using WeakSet prevents memory leaks as errors are garbage collected
+const pendingSDKErrors = new WeakSet<Error>();
 
 /**
  * Get the global execution tracker instance
@@ -113,17 +120,18 @@ export function wrapWithErrorTracking<T extends (...args: any[]) => any>(
             return value;
           })
           .catch((error: unknown) => {
-            // DON'T exit on error - keep tracker active so global handlers can detect it
-            // The exit will happen after a longer delay to allow error handlers to run
             const errorMessage = error instanceof Error ? error.message : String(error);
             console.log('[ErrorTracking] Promise CATCH - depth:', tracker.getDepth(), '| error:', errorMessage);
-            console.log('[ErrorTracking] NOT exiting - keeping depth active for error detection');
 
-            // Schedule exit after error handlers have had time to run (100ms should be safe)
-            setTimeout(() => {
-              console.log('[ErrorTracking] Delayed EXIT after error - depth before:', tracker.getDepth());
-              tracker.exit();
-            }, 100);
+            // Tag this error as SDK-originated for later detection
+            if (error instanceof Error) {
+              pendingSDKErrors.add(error);
+              console.log('[ErrorTracking] Tagged error as SDK error');
+            }
+
+            // Exit immediately - no setTimeout needed!
+            tracker.exit();
+            console.log('[ErrorTracking] EXIT after error - depth:', tracker.getDepth());
 
             throw error;
           }) as ReturnType<T>;
@@ -134,9 +142,40 @@ export function wrapWithErrorTracking<T extends (...args: any[]) => any>(
       // eslint-disable-next-line @typescript-eslint/no-unsafe-return
       return result;
     } catch (error) {
+      // Tag synchronous errors as SDK-originated
+      if (error instanceof Error) {
+        pendingSDKErrors.add(error);
+        console.log('[ErrorTracking] Tagged synchronous error as SDK error');
+      }
+
       // Exit tracking before re-throwing
       tracker.exit();
       throw error;
     }
   };
+}
+
+/**
+ * Check if an error object was tagged as SDK-originated.
+ * This is useful for detecting SDK errors in global error handlers,
+ * even after the execution context has exited.
+ *
+ * @param error - The error to check
+ * @returns true if the error originated from SDK code
+ */
+export function isPendingSDKError(error: unknown): boolean {
+  return error instanceof Error && pendingSDKErrors.has(error);
+}
+
+/**
+ * Clear the SDK error tag from an error object.
+ * Should be called after reporting the error to prevent memory leaks
+ * (though WeakSet already handles this automatically).
+ *
+ * @param error - The error to clear
+ */
+export function clearPendingSDKError(error: unknown): void {
+  if (error instanceof Error) {
+    pendingSDKErrors.delete(error);
+  }
 }

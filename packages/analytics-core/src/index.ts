@@ -22,7 +22,12 @@ export { UUID } from './utils/uuid';
 export { createIdentifyEvent } from './utils/event-builder';
 export { isUrlMatchAllowlist, getDecodeURI } from './utils/url-utils';
 export { generateHashCode, isTimestampInSample } from './utils/sampling';
-export { wrapWithErrorTracking, getExecutionTracker } from './diagnostics/diagnostics-uncaught-sdk-error';
+export {
+  wrapWithErrorTracking,
+  getExecutionTracker,
+  isPendingSDKError,
+  clearPendingSDKError,
+} from './diagnostics/diagnostics-uncaught-sdk-error';
 
 export { MemoryStorage } from './storage/memory';
 export { CookieStorage } from './storage/cookie';

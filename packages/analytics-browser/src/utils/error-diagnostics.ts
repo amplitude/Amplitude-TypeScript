@@ -5,7 +5,13 @@
  * Integrates with the Diagnostics Client to report SDK errors for monitoring and debugging.
  */
 
-import { getExecutionTracker, getGlobalScope, IDiagnosticsClient } from '@amplitude/analytics-core';
+import {
+  getExecutionTracker,
+  getGlobalScope,
+  IDiagnosticsClient,
+  isPendingSDKError,
+  clearPendingSDKError,
+} from '@amplitude/analytics-core';
 
 interface ErrorInfo {
   message: string;
@@ -78,20 +84,27 @@ function setupWindowErrorHandler(): void {
     const isInSDK = tracker.isInSDKExecution();
     const depth = tracker.getDepth();
 
+    const isPendingError = isPendingSDKError(error);
+
     console.log('[ErrorTracking] window.onerror triggered:', {
       isInSDK,
       depth,
+      isPendingError,
       context: tracker.getCurrentContext(),
       message: error?.message || messageOrEvent,
     });
 
-    if (isInSDK) {
+    // Check both execution depth AND error object tagging
+    if (isInSDK || isPendingError) {
       // This is an SDK error - report it
       console.log('[ErrorTracking] ✅ SDK error detected! Reporting to diagnostics...');
       const errorInfo = buildErrorInfo(error, messageOrEvent, source, lineno, colno, tracker.getCurrentContext());
       reportSDKError(errorInfo);
+
+      // Clean up the error tag
+      clearPendingSDKError(error);
     } else {
-      console.log('[ErrorTracking] ❌ Not an SDK error (depth=0), ignoring');
+      console.log('[ErrorTracking] ❌ Not an SDK error, ignoring');
     }
 
     // Call the original handler if it exists
@@ -122,31 +135,37 @@ function setupUnhandledRejectionHandler(): void {
     const tracker = getExecutionTracker();
     const isInSDK = tracker.isInSDKExecution();
     const depth = tracker.getDepth();
+    const isPendingError = isPendingSDKError(event.reason);
 
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
     const reasonMessage = event.reason?.message || event.reason;
     console.log('[ErrorTracking] window.onunhandledrejection triggered:', {
       isInSDK,
       depth,
+      isPendingError,
       context: tracker.getCurrentContext(),
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       reason: reasonMessage,
     });
 
-    if (isInSDK) {
+    // Check both execution depth AND error object tagging
+    if (isInSDK || isPendingError) {
       // This is an SDK error - report it
       console.log('[ErrorTracking] ✅ SDK error detected! Reporting to diagnostics...');
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       const error = event.reason;
       const errorInfo = buildErrorInfo(error, undefined, undefined, undefined, undefined, tracker.getCurrentContext());
       reportSDKError(errorInfo);
+
+      // Clean up the error tag
+      clearPendingSDKError(error);
     } else {
-      console.log('[ErrorTracking] ❌ Not an SDK error (depth=0), ignoring');
+      console.log('[ErrorTracking] ❌ Not an SDK error, ignoring');
     }
 
     // Call the original handler if it exists
     if (originalOnUnhandledRejection && globalScope) {
-      originalOnUnhandledRejection.call(globalScope, event);
+      originalOnUnhandledRejection.call(globalScope as unknown as Window, event);
     }
   };
 }
