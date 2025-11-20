@@ -735,6 +735,45 @@ describe('destination', () => {
       // We should not fulfill request when the request fails with an unknown error. This should be retried
       expect(callback).toHaveBeenCalledTimes(0);
     });
+
+    test('should record diagnostics event when send throws an error', async () => {
+      const diagnosticsClient = new DiagnosticsClient(API_KEY, getMockLogger());
+      const recordEventSpy = jest.spyOn(diagnosticsClient, 'recordEvent');
+
+      const destination = new Destination({ diagnosticsClient });
+      const transportProvider = {
+        send: jest.fn().mockImplementationOnce(() => {
+          throw new Error('Network error');
+        }),
+      };
+      await destination.setup({
+        ...useDefaultConfig(),
+        transportProvider,
+      });
+
+      const event1 = { event_type: 'event1', user_id: 'user1' };
+      const event2 = { event_type: 'event2', user_id: 'user2' };
+
+      const contexts: Context[] = [
+        { event: event1, attempts: 0, callback: jest.fn(), timeout: 0 },
+        { event: event2, attempts: 0, callback: jest.fn(), timeout: 0 },
+      ];
+
+      // Call send which should catch the error and record diagnostics
+      await destination.send(contexts);
+
+      // Verify diagnostics recordEvent was called with the expected parameters
+      expect(recordEventSpy).toHaveBeenCalledWith('analytics.events.unsuccessful.from.catch.error', {
+        events: ['event1', 'event2'],
+        message: 'Network error',
+        stack_trace: expect.any(Array),
+      });
+
+      // Verify stack_trace is an array of strings
+      const recordEventCall = recordEventSpy.mock.calls[0];
+      expect(Array.isArray(recordEventCall[1].stack_trace)).toBe(true);
+      expect(recordEventCall[1].stack_trace.length).toBeGreaterThan(0);
+    });
   });
 
   describe('handleResponse', () => {
@@ -765,6 +804,45 @@ describe('destination', () => {
       expect(recordEventSpy).toHaveBeenCalledWith('analytics.events.unsuccessful', {
         events: ['event1', 'event2'],
         code: 408,
+        status: Status.Timeout,
+        body: '',
+        stack_trace: expect.any(Array),
+      });
+
+      // Verify stack_trace is an array of strings
+      const recordEventCall = recordEventSpy.mock.calls[0];
+      expect(Array.isArray(recordEventCall[1].stack_trace)).toBe(true);
+      expect(recordEventCall[1].stack_trace.length).toBeGreaterThan(0);
+    });
+
+    test('should record diagnostics event with response body for unsuccessful request', () => {
+      const diagnosticsClient = new DiagnosticsClient(API_KEY, getMockLogger());
+      const recordEventSpy = jest.spyOn(diagnosticsClient, 'recordEvent');
+
+      const destination = new Destination({ diagnosticsClient });
+      destination.config = useDefaultConfig();
+
+      const event1 = { event_type: 'event1', user_id: 'user1' };
+
+      const contexts: Context[] = [{ event: event1, attempts: 0, callback: jest.fn(), timeout: 0 }];
+
+      const response: Response = {
+        status: Status.PayloadTooLarge,
+        statusCode: 413,
+        body: {
+          error: 'Payload too large',
+        },
+      };
+
+      // Call handleResponse with a 413 error response
+      destination.handleResponse(response, contexts);
+
+      // Verify diagnostics recordEvent was called with the expected parameters including body
+      expect(recordEventSpy).toHaveBeenCalledWith('analytics.events.unsuccessful', {
+        events: ['event1'],
+        code: 413,
+        status: Status.PayloadTooLarge,
+        body: JSON.stringify({ error: 'Payload too large' }, null, 2),
         stack_trace: expect.any(Array),
       });
 
