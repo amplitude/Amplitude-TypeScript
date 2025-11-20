@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
-import { PrivacyConfig } from '../src/config/types';
+import { PrivacyConfig, UGCFilterRule } from '../src/config/types';
 import {
   MASK_TEXT_CLASS,
   SESSION_REPLAY_EU_URL,
@@ -11,7 +11,6 @@ import {
 import { ServerZone } from '@amplitude/analytics-core';
 import { getServerUrl, getStorageSize, maskFn , getPageUrl , validateUGCFilterRules } from '../src/helpers';
 import * as AnalyticsCore from '@amplitude/analytics-core';
-import { UGCFilterRule } from '../src/config/types';
 
 describe('SessionReplayPlugin helpers', () => {
   describe('maskFn -- input', () => {
