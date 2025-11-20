@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.23.5](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@1.23.4...@amplitude/plugin-session-replay-browser@1.23.5) (2025-11-20)
+
+
+### Bug Fixes
+
+* **plugin-session-replay-browser:** handle nullable config in teardown ([#1410](https://github.com/amplitude/Amplitude-TypeScript/issues/1410)) ([32e89ec](https://github.com/amplitude/Amplitude-TypeScript/commit/32e89ec00541819e9636f8e73672e74f896d62da))
+
+
+
+
+
 ## [1.23.4](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@1.23.3...@amplitude/plugin-session-replay-browser@1.23.4) (2025-11-17)
 
 **Note:** Version bump only for package @amplitude/plugin-session-replay-browser
