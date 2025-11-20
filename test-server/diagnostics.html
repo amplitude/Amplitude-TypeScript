@@ -13,6 +13,25 @@
       .container {
         max-width: 600px;
       }
+      .description {
+        background-color: #f5f5f5;
+        padding: 20px;
+        border-radius: 8px;
+        margin: 20px 0;
+      }
+      .description h2 {
+        margin-top: 0;
+        color: #333;
+      }
+      .description ol {
+        line-height: 1.8;
+      }
+      .description code {
+        background-color: #e0e0e0;
+        padding: 2px 6px;
+        border-radius: 3px;
+        font-family: 'Courier New', monospace;
+      }
       button {
         padding: 10px 20px;
         margin: 10px 5px 10px 0;
@@ -23,9 +42,18 @@
   <body>
     <div class="container">
       <h1>SDK Diagnostics Test</h1>
+      
+      <div class="description">
+        <h2>How to Use This Page</h2>
+        <ol>
+          <li><strong>Initialize SDK:</strong> Click the "Initialize SDK" button to call <code>amplitude.init()</code>. This uses a backdoor to set the diagnostics sample rate to 1 (100%), ensuring all diagnostics events are tracked.</li>
+          <li><strong>Add Plugin:</strong> Click the "Add Plugin (Remove User/Device ID)" button to add a plugin that removes user_id and device_id from events. This mimics dropped events and triggers diagnostics tracking.</li>
+          <li><strong>View Diagnostics:</strong> Open DevTools → Application → IndexedDB to see diagnostics metrics tracked and saved in the database.</li>
+        </ol>
+      </div>
+      
       <button id="initButton">Initialize SDK</button>
       <button id="addPluginButton">Add Plugin (Remove User/Device ID)</button>
-      <button id="testButton">Test Button</button>
     </div>
     <script type="module">
       import * as amplitude from '@amplitude/analytics-browser';
@@ -69,10 +97,6 @@
       addPluginButton.addEventListener('click', () => {
         amplitude.add(removeIdsPlugin());
         console.log('Plugin added to amplitude');
-      });
-      
-      testButton.addEventListener('click', () => {
-        console.log('Test button clicked');
       });
     </script>
   </body>
