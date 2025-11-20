@@ -102,10 +102,10 @@ describe('SessionReplayPlugin', () => {
         deviceId: customDeviceId,
       });
       await sessionReplay.setup?.(mockConfig, mockAmplitude);
-      expect(sessionReplay.config.serverUrl).toBe('url');
-      expect(sessionReplay.config.flushMaxRetries).toBe(1);
-      expect(sessionReplay.config.flushQueueSize).toBe(0);
-      expect(sessionReplay.config.flushIntervalMillis).toBe(0);
+      expect(sessionReplay.config?.serverUrl).toBe('url');
+      expect(sessionReplay.config?.flushMaxRetries).toBe(1);
+      expect(sessionReplay.config?.flushQueueSize).toBe(0);
+      expect(sessionReplay.config?.flushIntervalMillis).toBe(0);
 
       expect(init).toHaveBeenCalledWith('static_key', expect.objectContaining({ deviceId: customDeviceId }));
     });
@@ -143,7 +143,7 @@ describe('SessionReplayPlugin', () => {
           },
           mockAmplitude,
         );
-        expect(sessionReplay.config.defaultTracking).toBe(true);
+        expect(sessionReplay.config?.defaultTracking).toBe(true);
       });
 
       test('should not change defaultTracking if its set to true', async () => {
@@ -155,7 +155,7 @@ describe('SessionReplayPlugin', () => {
           },
           mockAmplitude,
         );
-        expect(sessionReplay.config.defaultTracking).toBe(true);
+        expect(sessionReplay.config?.defaultTracking).toBe(true);
       });
 
       test('should modify defaultTracking to enable sessions if its set to false', async () => {
@@ -167,7 +167,7 @@ describe('SessionReplayPlugin', () => {
           },
           mockAmplitude,
         );
-        expect(sessionReplay.config.defaultTracking).toEqual({
+        expect(sessionReplay.config?.defaultTracking).toEqual({
           pageViews: false,
           formInteractions: false,
           fileDownloads: false,
@@ -186,7 +186,7 @@ describe('SessionReplayPlugin', () => {
           },
           mockAmplitude,
         );
-        expect(sessionReplay.config.defaultTracking).toEqual({
+        expect(sessionReplay.config?.defaultTracking).toEqual({
           pageViews: false,
           sessions: true,
         });
@@ -201,7 +201,7 @@ describe('SessionReplayPlugin', () => {
           },
           mockAmplitude,
         );
-        expect(sessionReplay.config.defaultTracking).toEqual(false);
+        expect(sessionReplay.config?.defaultTracking).toEqual(false);
       });
 
       test('should not modify defaultTracking object to enable sessions if session tracking is disbled', async () => {
@@ -215,7 +215,7 @@ describe('SessionReplayPlugin', () => {
           },
           mockAmplitude,
         );
-        expect(sessionReplay.config.defaultTracking).toEqual({
+        expect(sessionReplay.config?.defaultTracking).toEqual({
           pageViews: false,
         });
       });
@@ -350,6 +350,14 @@ describe('SessionReplayPlugin', () => {
         'Analytics session id is changed to 456, SR session id is 123.',
       );
     });
+
+    test('should handle call before setup gracefully', async () => {
+      const sessionReplay = new SessionReplayPlugin();
+      await sessionReplay.onSessionIdChanged?.(456);
+
+      expect(setSessionId).toHaveBeenCalledTimes(1);
+      expect(mockLoggerProviderDebug).not.toHaveBeenCalled();
+    });
   });
 
   describe('onOptOutChanged', () => {
@@ -377,6 +385,13 @@ describe('SessionReplayPlugin', () => {
       expect(mockLoggerProviderDebug).toHaveBeenCalledWith('optOut is changed to false, calling sessionReplay.init().');
       expect(init).toHaveBeenCalledWith('static_key', expect.objectContaining({ deviceId: customDeviceId }));
       expect(init).toHaveBeenNthCalledWith(2, 'static_key', expect.objectContaining({ deviceId: customDeviceId }));
+    });
+
+    test('should not re init when optOut is false but config is null', async () => {
+      const sessionReplay = new SessionReplayPlugin();
+      await sessionReplay.onOptOutChanged?.(false);
+
+      expect(init).not.toHaveBeenCalled();
     });
   });
 
@@ -433,7 +448,9 @@ describe('SessionReplayPlugin', () => {
       const newEvent = {
         event_type: 'session_start',
       };
-      sessionReplay.config.sessionId = 456;
+      if (sessionReplay.config) {
+        sessionReplay.config.sessionId = 456;
+      }
       await sessionReplay.execute(newEvent);
       expect(setSessionId).toHaveBeenCalledTimes(1);
       expect(setSessionId).toHaveBeenCalledWith(456);
@@ -573,6 +590,21 @@ describe('SessionReplayPlugin', () => {
       expect(setSessionId).not.toHaveBeenCalled();
       expect(enrichedEvent).toEqual(event);
     });
+
+    test('should handle execute before setup gracefully', async () => {
+      const sessionReplay = new SessionReplayPlugin();
+      const event = {
+        event_type: 'event_type',
+        event_properties: {
+          property_a: true,
+        },
+        session_id: 123,
+      };
+
+      const enrichedEvent = await sessionReplay.execute?.(event);
+      expect(enrichedEvent).toEqual(event);
+      expect(setSessionId).not.toHaveBeenCalled();
+    });
   });
 
   describe('teardown', () => {
@@ -581,6 +613,14 @@ describe('SessionReplayPlugin', () => {
       await sessionReplay.setup?.(mockConfig, mockAmplitude);
       await sessionReplay.teardown?.();
       expect(shutdown).toHaveBeenCalled();
+    });
+
+    test('should set config to null after teardown', async () => {
+      const sessionReplay = new SessionReplayPlugin();
+      await sessionReplay.setup?.(mockConfig, mockAmplitude);
+      expect(sessionReplay.config).not.toBeNull();
+      await sessionReplay.teardown?.();
+      expect(sessionReplay.config).toBeNull();
     });
 
     test('should handle teardown errors gracefully', async () => {

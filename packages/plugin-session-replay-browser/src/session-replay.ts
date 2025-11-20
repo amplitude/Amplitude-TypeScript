@@ -22,7 +22,7 @@ export class SessionReplayPlugin implements EnrichmentPlugin<BrowserClient, Brow
   // this.config is defined in setup() which will always be called first
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore
-  config: BrowserConfig;
+  config: BrowserConfig | null = null;
   options: SessionReplayOptions;
   srInitOptions: SessionReplayBrowserOptions;
   sessionReplay: AmplitudeSessionReplay = {
@@ -108,14 +108,14 @@ export class SessionReplayPlugin implements EnrichmentPlugin<BrowserClient, Brow
   }
 
   async onSessionIdChanged(sessionId: number): Promise<void> {
-    this.config.loggerProvider.debug(
+    this.config?.loggerProvider.debug(
       `Analytics session id is changed to ${sessionId}, SR session id is ${String(this.sessionReplay.getSessionId())}.`,
     );
     await this.sessionReplay.setSessionId(sessionId).promise;
   }
 
   async onOptOutChanged(optOut: boolean): Promise<void> {
-    this.config.loggerProvider.debug(
+    this.config?.loggerProvider.debug(
       `optOut is changed to ${String(optOut)}, calling ${
         optOut ? 'sessionReplay.shutdown()' : 'sessionReplay.init()'
       }.`,
@@ -125,7 +125,7 @@ export class SessionReplayPlugin implements EnrichmentPlugin<BrowserClient, Brow
     if (optOut) {
       this.sessionReplay.shutdown();
     } else {
-      await this.sessionReplay.init(this.config.apiKey, this.srInitOptions).promise;
+      this.config != null && (await this.sessionReplay.init(this.config.apiKey, this.srInitOptions).promise);
     }
   }
 
@@ -150,7 +150,7 @@ export class SessionReplayPlugin implements EnrichmentPlugin<BrowserClient, Brow
         // On event, synchronize the session id to the what's on the browserConfig (source of truth)
         // Choosing not to read from event object here, concerned about offline/delayed events messing up the state stored
         // in SR.
-        const sessionId: string | number | undefined = this.config.sessionId;
+        const sessionId: string | number | undefined = this.config?.sessionId;
         if (sessionId && sessionId !== this.sessionReplay.getSessionId()) {
           await this.sessionReplay.setSessionId(sessionId).promise;
         }
