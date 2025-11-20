@@ -1,1 +1,1 @@
-export const VERSION = '1.5.23-zen-plus-zoning.1';
+export const VERSION = '1.5.23-zen-plus-zoning.2';

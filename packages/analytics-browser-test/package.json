@@ -16,7 +16,7 @@
     "url": "https://github.com/amplitude/Amplitude-TypeScript/issues"
   },
   "dependencies": {
-    "@amplitude/analytics-browser": "2.31.0-zen-plus-zoning.1"
+    "@amplitude/analytics-browser": "2.31.0-zen-plus-zoning.2"
   },
   "devDependencies": {
     "nock": "^13.2.4"

@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.5.3-zen-plus-zoning.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-page-url-enrichment-browser@0.5.3-zen-plus-zoning.0...@amplitude/plugin-page-url-enrichment-browser@0.5.3-zen-plus-zoning.2) (2025-11-20)
+
+
+### Reverts
+
+* Revert "chore(release): publish" ([da9ba2f](https://github.com/amplitude/Amplitude-TypeScript/commit/da9ba2fc063566f871289110bfd3238b6d181671))
+
+
+
+
+
 ## [0.5.3-zen-plus-zoning.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-page-url-enrichment-browser@0.5.3-zen-plus-zoning.0...@amplitude/plugin-page-url-enrichment-browser@0.5.3-zen-plus-zoning.1) (2025-11-19)
 
 
