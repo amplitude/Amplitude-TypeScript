@@ -211,6 +211,11 @@ describe('SessionReplayJoinedConfigGenerator', () => {
           captureEnabled: false,
         });
       });
+      test('should set return an undefined remote config', async () => {
+        mockRemoteConfig = null;
+        const { localConfig } = await joinedConfigGenerator.generateJoinedConfig(); 
+        expect(localConfig).toEqual(mockLocalConfig);
+      });
     });
     describe('with successful privacy config fetch', () => {
       const privacySelectorTest = async (

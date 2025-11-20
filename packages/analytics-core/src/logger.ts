@@ -60,7 +60,7 @@ export class Logger implements ILogger {
     if (this.logLevel < LogLevel.Error) {
       return;
     }
-    console.warn(`${PREFIX}[Error]: ${args.join(' ')}`);
+    console.error(`${PREFIX}[Error]: ${args.join(' ')}`);
   }
 
   debug(...args: any[]): void {
