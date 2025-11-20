@@ -235,6 +235,12 @@ export class Destination implements DestinationPlugin {
       const errorMessage = getErrorMessage(e);
       this.config.loggerProvider.error(errorMessage);
 
+      this.diagnosticsClient?.recordEvent('analytics.events.unsuccessful.from.catch.error', {
+        events: list.map((context) => context.event.event_type),
+        message: errorMessage,
+        stack_trace: getStacktrace(),
+      });
+
       this.handleResponse({ status: Status.Failed, statusCode: 0 }, list);
     }
   }
@@ -244,6 +250,8 @@ export class Destination implements DestinationPlugin {
       this.diagnosticsClient?.recordEvent('analytics.events.unsuccessful', {
         events: list.map((context) => context.event.event_type),
         code: res.statusCode,
+        status: res.status,
+        body: getResponseBodyString(res),
         stack_trace: getStacktrace(),
       });
     }
