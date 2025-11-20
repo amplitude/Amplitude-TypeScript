@@ -1,4 +1,4 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -9,9 +9,12 @@
       body {
         font-family: Arial, sans-serif;
         padding: 20px;
+        margin: 0;
       }
       .container {
-        max-width: 600px;
+        max-width: 1200px;
+        width: 100%;
+        margin: 0 auto;
       }
       .description {
         background-color: #f5f5f5;
@@ -23,50 +26,186 @@
         margin-top: 0;
         color: #333;
       }
+      .description h3 {
+        color: #555;
+        margin-top: 20px;
+        margin-bottom: 10px;
+      }
       .description ol {
         line-height: 1.8;
+      }
+      .description ul {
+        line-height: 1.6;
+        margin-top: 8px;
+      }
+      .description p {
+        line-height: 1.6;
       }
       .description code {
         background-color: #e0e0e0;
         padding: 2px 6px;
         border-radius: 3px;
         font-family: 'Courier New', monospace;
+        font-size: 0.9em;
+      }
+      .description pre {
+        background-color: #2d2d2d;
+        color: #f8f8f2;
+        padding: 12px;
+        border-radius: 5px;
+        overflow-x: auto;
+        margin: 8px 0;
+      }
+      .description pre code {
+        background-color: transparent;
+        padding: 0;
+        color: #f8f8f2;
+        font-size: 0.85em;
+      }
+      h3 {
+        color: #444;
+        margin-top: 30px;
+        margin-bottom: 10px;
       }
       button {
         padding: 10px 20px;
         margin: 10px 5px 10px 0;
         cursor: pointer;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        font-size: 14px;
+      }
+      button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+      button.caught {
+        background-color: #4caf50;
+        color: white;
+        border-color: #45a049;
+      }
+      button.caught:hover:not(:disabled) {
+        background-color: #45a049;
+      }
+      button.not-caught {
+        background-color: #f44336;
+        color: white;
+        border-color: #da190b;
+      }
+      button.not-caught:hover:not(:disabled) {
+        background-color: #da190b;
       }
     </style>
   </head>
   <body>
     <div class="container">
       <h1>SDK Diagnostics Test</h1>
-      
+
       <div class="description">
         <h2>How to Use This Page</h2>
+
+        <p>
+          <strong>First step:</strong> Click the "Initialize SDK" button to initialize Amplitude. This uses a backdoor
+          to set the diagnostics sample rate to 1 (100%), ensuring all diagnostics events are tracked.
+        </p>
+
+        <h3>Test 1: Dropped Events (Missing User/Device ID)</h3>
         <ol>
-          <li><strong>Initialize SDK:</strong> Click the "Initialize SDK" button to call <code>amplitude.init()</code>. This uses a backdoor to set the diagnostics sample rate to 1 (100%), ensuring all diagnostics events are tracked.</li>
-          <li><strong>Add Plugin:</strong> Click the "Add Plugin (Remove User/Device ID)" button to add a plugin that removes user_id and device_id from events. This mimics dropped events and triggers diagnostics tracking.</li>
-          <li><strong>View Diagnostics:</strong> Open DevTools → Application → IndexedDB to see diagnostics metrics tracked and saved in the database.</li>
+          <li>
+            <strong>Add Plugin:</strong> Click the "Add Plugin (Remove User/Device ID)" button to add a plugin that
+            removes user_id and device_id from events. This mimics dropped events and triggers diagnostics tracking.
+          </li>
+          <li>
+            <strong>View Diagnostics:</strong> Open DevTools → Application → IndexedDB to see diagnostics metrics
+            tracked and saved in the database.
+          </li>
         </ol>
+
+        <h3>Test 2: Uncaught Errors</h3>
+        <p>
+          Use the error test buttons to trigger different types of uncaught errors. Buttons are color-coded:
+          <strong style="color: green">Green</strong> = caught by diagnostics, <strong style="color: red">Red</strong> =
+          NOT caught by diagnostics.
+        </p>
+        <ol>
+          <li>
+            <strong>Plugin Setup Error</strong> (✅ caught by diagnostics):
+            <pre><code>amplitude.add({
+  name: 'error-plugin',
+  type: 'enrichment',
+  setup: () => {
+    throw new Error('Uncaught error in setup');
+  }
+});</code></pre>
+          </li>
+          <li>
+            <strong>Track with Error Callback</strong> (❌ NOT caught by diagnostics - outside SDK execution context):
+            <pre><code>amplitude.track('event').promise.then(() => {
+  throw new Error('Uncaught error in callback');
+});</code></pre>
+          </li>
+          <li>
+            <strong>Synchronous Error</strong> (❌ NOT caught by diagnostics - outside SDK execution context):
+            <pre><code>throw new Error('Synchronous error in event handler');</code></pre>
+          </li>
+        </ol>
+        <p>
+          <strong>View Results:</strong> Check DevTools Console for error logs and Application → IndexedDB for
+          diagnostics events tracking the uncaught errors.
+        </p>
       </div>
-      
+
       <button id="initButton">Initialize SDK</button>
+
+      <h3>Test 1: Dropped Events</h3>
       <button id="addPluginButton">Add Plugin (Remove User/Device ID)</button>
+
+      <h3>Test 2: Uncaught Errors</h3>
+      <button id="pluginSetupErrorButton" class="caught" disabled>Trigger Plugin Setup Error</button>
+      <button id="trackCallbackErrorButton" class="not-caught" disabled>Track with Error Callback</button>
+      <button id="syncErrorButton" class="not-caught">Trigger Synchronous Error</button>
     </div>
     <script type="module">
       import * as amplitude from '@amplitude/analytics-browser';
-      
+
       window.amplitude = amplitude;
-      
+
       const initButton = document.getElementById('initButton');
       const addPluginButton = document.getElementById('addPluginButton');
-      const testButton = document.getElementById('testButton');
-      
-      // Create plugin that removes user_id and device_id from events
-      const removeIdsPlugin = () => {
-        return {
+      const pluginSetupErrorButton = document.getElementById('pluginSetupErrorButton');
+      const trackCallbackErrorButton = document.getElementById('trackCallbackErrorButton');
+      const syncErrorButton = document.getElementById('syncErrorButton');
+
+      // Initialize SDK
+      initButton.addEventListener('click', () => {
+        const apiKey = import.meta.env.VITE_AMPLITUDE_API_KEY;
+
+        if (!apiKey) {
+          alert('Please set VITE_AMPLITUDE_API_KEY in .env');
+          return;
+        }
+
+        console.log('=== Starting Amplitude initialization ===');
+        amplitude._setDiagnosticsSampleRate(1);
+        amplitude
+          .init(apiKey, 'diagnostics-test', {
+            // logLevel: 'debug',
+            autocapture: false,
+          })
+          .promise.then(() => {
+            console.log('=== Amplitude initialized! ===');
+
+            // Enable error test buttons
+            pluginSetupErrorButton.disabled = false;
+            trackCallbackErrorButton.disabled = false;
+
+            console.log('=== SDK ready. Check console and IndexedDB for diagnostics. ===');
+          });
+      });
+
+      // Test 1: Add plugin to remove IDs (mimics dropped events)
+      addPluginButton.addEventListener('click', () => {
+        amplitude.add({
           name: 'remove-ids-plugin',
           type: 'before',
           execute: async (event) => {
@@ -74,31 +213,44 @@
             delete event.device_id;
             console.log('Plugin: Removed user_id and device_id from event', event);
             return event;
-          }
-        };
-      };
-      
-      initButton.addEventListener('click', () => {
-        const apiKey = import.meta.env.VITE_AMPLITUDE_API_KEY;
-        
-        if (!apiKey) {
-          alert('Please set VITE_AMPLITUDE_API_KEY in .env');
-          return;
-        }
-        
-        amplitude._setDiagnosticsSampleRate(1);
-        amplitude.init(apiKey, undefined, {
-            logLevel: 'debug',
-            autocapture: true,
+          },
         });
-        console.log('SDK initialized with API key:', apiKey);
-      });
-      
-      addPluginButton.addEventListener('click', () => {
-        amplitude.add(removeIdsPlugin());
         console.log('Plugin added to amplitude');
+      });
+
+      // Test 2: Trigger plugin setup error
+      pluginSetupErrorButton.addEventListener('click', () => {
+        console.log('=== Triggering plugin setup error ===');
+        amplitude.add({
+          name: 'error-plugin',
+          type: 'enrichment',
+          setup: (config, amplitude) => {
+            console.log('=== Error plugin setup - throwing error ===');
+            throw new Error('TEST: Uncaught error in plugin setup');
+          },
+          execute: (event) => {
+            console.log('=== Error plugin execute ===');
+            return event;
+          },
+        });
+        console.log('Plugin with setup error added. Check console and IndexedDB for diagnostics.');
+      });
+
+      // Test 2: Track with error in callback (NOT caught by diagnostics)
+      trackCallbackErrorButton.addEventListener('click', () => {
+        console.log('=== Tracking event with error callback (NOT caught by diagnostics) ===');
+        amplitude.track('Test Event', { test: true }).promise.then(() => {
+          console.log('=== Track callback - throwing error ===');
+          throw new Error('TEST: Uncaught error in track callback');
+        });
+        console.log('Event tracked with error callback. This error will NOT be caught by diagnostics.');
+      });
+
+      // Test 2: Trigger synchronous error (NOT caught by diagnostics)
+      syncErrorButton.addEventListener('click', () => {
+        console.log('=== Triggering synchronous error (NOT caught by diagnostics) ===');
+        throw new Error('TEST: Synchronous error in event handler');
       });
     </script>
   </body>
 </html>
-
