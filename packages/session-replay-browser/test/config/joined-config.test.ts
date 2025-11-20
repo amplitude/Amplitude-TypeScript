@@ -191,10 +191,11 @@ describe('SessionReplayJoinedConfigGenerator', () => {
     describe('with unsuccessful sampling config fetch', () => {
       test('should log error when no remote config', async () => {
         mockRemoteConfig = null;
-        jest.spyOn(mockLoggerProvider, 'error').mockImplementation(() => {
+        jest.spyOn(mockLoggerProvider, 'error').mockImplementationOnce(() => {
           return;
         });
         await joinedConfigGenerator.generateJoinedConfig();
+        // eslint-disable-next-line @typescript-eslint/unbound-method
         expect(mockLoggerProvider.error).toHaveBeenCalledWith(
           'Failed to generate joined config: ',
           expect.objectContaining({
