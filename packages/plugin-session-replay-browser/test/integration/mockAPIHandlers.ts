@@ -23,6 +23,18 @@ export const handlers = [
       },
     });
   }),
+  http.get('https://sr-client-cfg.amplitude.com/config/:apiKey', () => {
+    return HttpResponse.json({
+      configs: {
+        sessionReplay: {
+          sr_sampling_config: {
+            sample_rate: 1,
+            capture_enabled: true,
+          },
+        },
+      },
+    });
+  }),
 ];
 
 export const server = setupServer(...handlers);
