@@ -82,29 +82,16 @@ function setupWindowErrorHandler(): void {
     // Check if this error occurred during SDK execution
     const tracker = getExecutionTracker();
     const isInSDK = tracker.isInSDKExecution();
-    const depth = tracker.getDepth();
-
     const isPendingError = isPendingSDKError(error);
-
-    console.log('[ErrorTracking] window.onerror triggered:', {
-      isInSDK,
-      depth,
-      isPendingError,
-      context: tracker.getCurrentContext(),
-      message: error?.message || messageOrEvent,
-    });
 
     // Check both execution depth AND error object tagging
     if (isInSDK || isPendingError) {
       // This is an SDK error - report it
-      console.log('[ErrorTracking] ✅ SDK error detected! Reporting to diagnostics...');
       const errorInfo = buildErrorInfo(error, messageOrEvent, source, lineno, colno, tracker.getCurrentContext());
       reportSDKError(errorInfo);
 
       // Clean up the error tag
       clearPendingSDKError(error);
-    } else {
-      console.log('[ErrorTracking] ❌ Not an SDK error, ignoring');
     }
 
     // Call the original handler if it exists
@@ -134,24 +121,11 @@ function setupUnhandledRejectionHandler(): void {
     // Check if this rejection occurred during SDK execution
     const tracker = getExecutionTracker();
     const isInSDK = tracker.isInSDKExecution();
-    const depth = tracker.getDepth();
     const isPendingError = isPendingSDKError(event.reason);
-
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
-    const reasonMessage = event.reason?.message || event.reason;
-    console.log('[ErrorTracking] window.onunhandledrejection triggered:', {
-      isInSDK,
-      depth,
-      isPendingError,
-      context: tracker.getCurrentContext(),
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      reason: reasonMessage,
-    });
 
     // Check both execution depth AND error object tagging
     if (isInSDK || isPendingError) {
       // This is an SDK error - report it
-      console.log('[ErrorTracking] ✅ SDK error detected! Reporting to diagnostics...');
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       const error = event.reason;
       const errorInfo = buildErrorInfo(error, undefined, undefined, undefined, undefined, tracker.getCurrentContext());
@@ -159,8 +133,6 @@ function setupUnhandledRejectionHandler(): void {
 
       // Clean up the error tag
       clearPendingSDKError(error);
-    } else {
-      console.log('[ErrorTracking] ❌ Not an SDK error, ignoring');
     }
 
     // Call the original handler if it exists
@@ -227,27 +199,19 @@ function buildErrorInfo(
  * Report SDK error to diagnostics client
  */
 function reportSDKError(errorInfo: ErrorInfo): void {
-  console.log('[ErrorTracking] reportSDKError called:', errorInfo);
-
   if (!diagnosticsClient) {
-    console.log('[ErrorTracking] ❌ No diagnosticsClient available!');
     return;
   }
 
   try {
     // Record the error event
-    console.log('[ErrorTracking] Recording event to diagnostics...');
     diagnosticsClient.recordEvent('sdk.uncaught_error', errorInfo);
 
     // Increment error counter
-    console.log('[ErrorTracking] Incrementing counter...');
     diagnosticsClient.increment('error.uncaught');
-
-    console.log('[ErrorTracking] ✅ Error reported successfully!');
   } catch (e) {
     // Silently fail to prevent infinite error loops
     // In production, we don't want error reporting to cause more errors
-    console.log('[ErrorTracking] ❌ Error reporting failed:', e);
   }
 }
 

@@ -35,19 +35,16 @@ export const getExecutionTracker = () => ({
   enter(context: string): void {
     executionTracker.depth++;
     executionTracker.currentContext = context;
-    console.log('[ErrorTracking] ENTER:', context, '| depth:', executionTracker.depth);
   },
 
   /**
    * Exit SDK execution context
    */
   exit(): void {
-    console.log('[ErrorTracking] EXIT: depth before:', executionTracker.depth);
     executionTracker.depth = Math.max(0, executionTracker.depth - 1);
     if (executionTracker.depth === 0) {
       executionTracker.currentContext = null;
     }
-    console.log('[ErrorTracking] EXIT: depth after:', executionTracker.depth);
   },
 
   /**
@@ -120,18 +117,13 @@ export function wrapWithErrorTracking<T extends (...args: any[]) => any>(
             return value;
           })
           .catch((error: unknown) => {
-            const errorMessage = error instanceof Error ? error.message : String(error);
-            console.log('[ErrorTracking] Promise CATCH - depth:', tracker.getDepth(), '| error:', errorMessage);
-
             // Tag this error as SDK-originated for later detection
             if (error instanceof Error) {
               pendingSDKErrors.add(error);
-              console.log('[ErrorTracking] Tagged error as SDK error');
             }
 
             // Exit immediately - no setTimeout needed!
             tracker.exit();
-            console.log('[ErrorTracking] EXIT after error - depth:', tracker.getDepth());
 
             throw error;
           }) as ReturnType<T>;
@@ -145,7 +137,6 @@ export function wrapWithErrorTracking<T extends (...args: any[]) => any>(
       // Tag synchronous errors as SDK-originated
       if (error instanceof Error) {
         pendingSDKErrors.add(error);
-        console.log('[ErrorTracking] Tagged synchronous error as SDK error');
       }
 
       // Exit tracking before re-throwing
