@@ -214,7 +214,7 @@ describe('SessionReplayJoinedConfigGenerator', () => {
       });
       test('should set return an undefined remote config', async () => {
         mockRemoteConfig = null;
-        const { localConfig } = await joinedConfigGenerator.generateJoinedConfig(); 
+        const { localConfig } = await joinedConfigGenerator.generateJoinedConfig();
         expect(localConfig).toEqual(mockLocalConfig);
       });
     });
