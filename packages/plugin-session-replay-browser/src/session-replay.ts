@@ -90,7 +90,7 @@ export class SessionReplayPlugin implements EnrichmentPlugin<BrowserClient, Brow
         version: { type: 'plugin', version: VERSION },
         performanceConfig: this.options.performanceConfig,
         storeType: this.options.storeType,
-        experimental: this.options.experimental,
+        useWebWorker: this.options.useWebWorker ?? this.options.experimental?.useWebWorker,
         userProperties: userProperties,
         omitElementTags: this.options.omitElementTags,
         applyBackgroundColorToBlockedElements: this.options.applyBackgroundColorToBlockedElements,
