@@ -334,6 +334,36 @@ describe('SessionReplayPlugin', () => {
         }),
       );
     });
+
+    test('should support useWebWorker config', async () => {
+      const sessionReplay = new SessionReplayPlugin({
+        useWebWorker: true,
+      });
+      await sessionReplay.setup?.(mockConfig, mockAmplitude);
+
+      expect(init).toHaveBeenCalledTimes(1);
+      expect(init.mock.calls[0][1]).toEqual(
+        expect.objectContaining({
+          useWebWorker: true,
+        }),
+      );
+    });
+
+    test('should support legacy experimental.useWebWorker config for backwards compatibility', async () => {
+      const sessionReplay = new SessionReplayPlugin({
+        experimental: {
+          useWebWorker: true,
+        },
+      });
+      await sessionReplay.setup?.(mockConfig, mockAmplitude);
+
+      expect(init).toHaveBeenCalledTimes(1);
+      expect(init.mock.calls[0][1]).toEqual(
+        expect.objectContaining({
+          useWebWorker: true,
+        }),
+      );
+    });
   });
 
   describe('onSessionIdChanged', () => {
