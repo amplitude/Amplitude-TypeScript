@@ -35,7 +35,7 @@ export class SessionReplayLocalConfig extends Config implements ISessionReplayLo
   version?: SessionReplayVersion;
   storeType: StoreType;
   performanceConfig?: SessionReplayPerformanceConfig;
-  experimental?: { useWebWorker: boolean };
+  useWebWorker?: boolean;
   applyBackgroundColorToBlockedElements?: boolean;
   omitElementTags?: {
     script?: boolean;
@@ -86,8 +86,8 @@ export class SessionReplayLocalConfig extends Config implements ISessionReplayLo
     if (options.debugMode) {
       this.debugMode = options.debugMode;
     }
-    if (options.experimental) {
-      this.experimental = options.experimental;
+    if (options.useWebWorker !== undefined) {
+      this.useWebWorker = options.useWebWorker;
     }
     if (options.omitElementTags) {
       this.omitElementTags = options.omitElementTags;

@@ -426,7 +426,7 @@ describe('SessionReplay', () => {
       expect(sessionReplay.loggerProvider).toBeDefined();
     });
 
-    test('should setup sdk with webworker when experimental.useWebWorker is true', async () => {
+    test('should setup sdk with webworker when useWebWorker is true', async () => {
       // Mock Worker constructor
       class MockWorker {
         postMessage = jest.fn();
@@ -468,7 +468,7 @@ describe('SessionReplay', () => {
       await sessionReplay.init(apiKey, {
         ...mockOptions,
         sampleRate: 0.5,
-        experimental: { useWebWorker: true },
+        useWebWorker: true,
       }).promise;
 
       expect(sessionReplay.config?.transportProvider).toBeDefined();

@@ -137,14 +137,13 @@ export interface SessionReplayLocalConfig extends IConfig {
   storeType: StoreType;
 
   /**
-   * Experimental features.
+   * If true, the SDK will compress replay events using a web worker.
+   * This offloads compression to a separate thread, improving performance on the main thread.
+   *
+   * @defaultValue false
    */
-  experimental?: {
-    /**
-     * If the SDK should compress the replay events using a webworker.
-     */
-    useWebWorker: boolean;
-  };
+  useWebWorker?: boolean;
+
   userProperties?: { [key: string]: any };
 
   /**
