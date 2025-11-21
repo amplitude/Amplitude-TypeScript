@@ -34,7 +34,7 @@ export class EventCompressor {
     this.timeout = config.performanceConfig?.timeout || DEFAULT_TIMEOUT;
 
     if (workerScript) {
-      config.loggerProvider.log('[Experimental] Enabling web worker for compression');
+      config.loggerProvider.log('Enabling web worker for compression');
 
       const worker = new Worker(URL.createObjectURL(new Blob([workerScript], { type: 'application/javascript' })));
       worker.onerror = (e) => {

@@ -334,6 +334,50 @@ describe('SessionReplayPlugin', () => {
         }),
       );
     });
+
+    test('should not set useWebWorker when not provided (default)', async () => {
+      const sessionReplay = new SessionReplayPlugin({
+        sampleRate: 0.5,
+      });
+      await sessionReplay.setup?.(mockConfig, mockAmplitude);
+
+      expect(init).toHaveBeenCalledTimes(1);
+      expect(init.mock.calls[0][1]).toEqual(
+        expect.objectContaining({
+          useWebWorker: undefined,
+        }),
+      );
+    });
+
+    test('should support useWebWorker config', async () => {
+      const sessionReplay = new SessionReplayPlugin({
+        useWebWorker: true,
+      });
+      await sessionReplay.setup?.(mockConfig, mockAmplitude);
+
+      expect(init).toHaveBeenCalledTimes(1);
+      expect(init.mock.calls[0][1]).toEqual(
+        expect.objectContaining({
+          useWebWorker: true,
+        }),
+      );
+    });
+
+    test('should support legacy experimental.useWebWorker config for backwards compatibility', async () => {
+      const sessionReplay = new SessionReplayPlugin({
+        experimental: {
+          useWebWorker: true,
+        },
+      });
+      await sessionReplay.setup?.(mockConfig, mockAmplitude);
+
+      expect(init).toHaveBeenCalledTimes(1);
+      expect(init.mock.calls[0][1]).toEqual(
+        expect.objectContaining({
+          useWebWorker: true,
+        }),
+      );
+    });
   });
 
   describe('onSessionIdChanged', () => {

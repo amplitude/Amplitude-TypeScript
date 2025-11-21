@@ -42,9 +42,7 @@ describe('EventCompressor', () => {
       enabled: true,
       timeout: 2000,
     },
-    experimental: {
-      useWebWorker: true,
-    },
+    useWebWorker: true,
   });
 
   beforeEach(async () => {
