@@ -987,7 +987,7 @@ describe('autocapturePlugin recomputePageActionsData functionality', () => {
 
       // Verify remote config client subscribe was called
       expect(mockRemoteConfigClient.subscribe).toHaveBeenCalledWith(
-        'analyticsSDK.pageActions',
+        'configs.analyticsSDK.pageActions',
         'all',
         expect.any(Function),
       );
@@ -1128,7 +1128,7 @@ describe('autocapturePlugin recomputePageActionsData functionality', () => {
 
       // Verify remote config client subscribe was called
       expect(mockRemoteConfigClient.subscribe).toHaveBeenCalledWith(
-        'analyticsSDK.pageActions',
+        'configs.analyticsSDK.pageActions',
         'all',
         expect.any(Function),
       );
