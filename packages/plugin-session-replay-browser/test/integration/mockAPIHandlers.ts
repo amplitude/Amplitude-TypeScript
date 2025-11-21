@@ -11,7 +11,7 @@ export const handlers = [
       server_upload_time: 1714522639863,
     });
   }),
-  http.get('https://sr-client-cfg.amplitude.com/config', () => {
+  http.get('https://sr-client-cfg.amplitude.com/config/:apiKey', () => {
     return HttpResponse.json({
       configs: {
         sessionReplay: {

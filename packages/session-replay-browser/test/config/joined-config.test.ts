@@ -189,14 +189,33 @@ describe('SessionReplayJoinedConfigGenerator', () => {
     });
 
     describe('with unsuccessful sampling config fetch', () => {
-      test('should set captureEnabled to true when no remote config', async () => {
+      test('should log error when no remote config', async () => {
+        mockRemoteConfig = null;
+        jest.spyOn(mockLoggerProvider, 'error').mockImplementationOnce(() => {
+          return;
+        });
+        await joinedConfigGenerator.generateJoinedConfig();
+        // eslint-disable-next-line @typescript-eslint/unbound-method
+        expect(mockLoggerProvider.error).toHaveBeenCalledWith(
+          'Failed to generate joined config: ',
+          expect.objectContaining({
+            message: 'No remote config received',
+          }),
+        );
+      });
+      test('should set captureEnabled to false when no remote config', async () => {
         mockRemoteConfig = null;
         const { joinedConfig: config } = await joinedConfigGenerator.generateJoinedConfig();
         expect(config).toEqual({
           ...mockLocalConfig,
           optOut: mockLocalConfig.optOut,
-          captureEnabled: true,
+          captureEnabled: false,
         });
+      });
+      test('should set return an undefined remote config', async () => {
+        mockRemoteConfig = null;
+        const { localConfig } = await joinedConfigGenerator.generateJoinedConfig();
+        expect(localConfig).toEqual(mockLocalConfig);
       });
     });
     describe('with successful privacy config fetch', () => {

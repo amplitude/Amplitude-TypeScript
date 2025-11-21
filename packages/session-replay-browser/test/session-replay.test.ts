@@ -1246,6 +1246,12 @@ describe('SessionReplay', () => {
       expect(mockLoggerProvider.warn).not.toHaveBeenCalled();
       expect(shouldRecord).toBe(false);
     });
+    test('should set record as false if sample rate is too low', async () => {
+      await sessionReplay.init(apiKey, { ...mockOptions, sampleRate: 0.2 }).promise;
+      jest.spyOn(AnalyticsCore, 'isTimestampInSample').mockImplementationOnce(() => false);
+      const shouldRecord = sessionReplay.getShouldRecord();
+      expect(shouldRecord).toBe(false);
+    });
   });
 
   describe('sendEvents', () => {

@@ -152,40 +152,13 @@ describe('module level integration', () => {
         mockRemoteConfig = null;
         initializeMockRemoteConfigClient();
       });
-      test('should capture', async () => {
+      test('should not capture', async () => {
         const sessionReplay = new SessionReplay();
         await sessionReplay.init(apiKey, { ...mockOptions }).promise;
-        // Wait for async initialize to complete
+        expect(sessionReplay.config?.captureEnabled).toBe(false);
+        expect(mockRecordFunction).not.toHaveBeenCalled();
         await runScheduleTimers();
-        const sessionRecordingProperties = sessionReplay.getSessionReplayProperties();
-        const createEventsIDBStoreInstance = await (SessionReplayIDB.SessionReplayEventsIDBStore.new as jest.Mock).mock
-          .results[0].value;
-
-        jest.spyOn(createEventsIDBStoreInstance, 'storeCurrentSequence');
-        expect(sessionRecordingProperties).toMatchObject({
-          [DEFAULT_SESSION_REPLAY_PROPERTY]: `1a2b3c/${SESSION_ID_IN_20_SAMPLE}`,
-        });
-        expect(mockRecordFunction).toHaveBeenCalled();
-        const recordArg = mockRecordFunction.mock.calls[0][0] as { emit?: (event: eventWithTime) => void };
-        recordArg?.emit?.(mockEvent);
-        sessionReplay.sendEvents();
-        await (createEventsIDBStoreInstance.storeCurrentSequence as jest.Mock).mock.results[0].value;
-
-        await runScheduleTimers();
-        expect(fetch).toHaveBeenLastCalledWith(
-          `${SESSION_REPLAY_SERVER_URL}?device_id=1a2b3c&session_id=${SESSION_ID_IN_20_SAMPLE}&type=replay`,
-          expect.anything(),
-        );
-        expect(mockLoggerProvider.log).toHaveBeenLastCalledWith(
-          'Session replay event batch tracked successfully for session id 1719847315000, size of events: 0 KB',
-        );
-      });
-
-      test('should use sampleRate from sdk options', async () => {
-        const inSampleSpy = jest.spyOn(AnalyticsCore, 'isTimestampInSample');
-        const sessionReplay = new SessionReplay();
-        await sessionReplay.init(apiKey, { ...mockOptions, sampleRate: 0.8 }).promise;
-        expect(inSampleSpy).toHaveBeenCalledWith(sessionReplay.identifiers?.sessionId, 0.8);
+        expect(fetch).not.toHaveBeenCalledWith(SESSION_REPLAY_SERVER_URL);
       });
     });
     describe('with remote config set', () => {
@@ -255,6 +228,13 @@ describe('module level integration', () => {
         expect(fetch).not.toHaveBeenCalledWith(SESSION_REPLAY_SERVER_URL);
       });
       test('should record session if included due to sampling', async () => {
+        mockRemoteConfig = {
+          configs: {
+            sessionReplay: {
+              sr_sampling_config: samplingConfig,
+            },
+          },
+        };
         const sessionReplay = new SessionReplay();
         await sessionReplay.init(apiKey, { ...mockOptions, sampleRate: 0.8 }).promise;
         // Wait for async initialize to complete
