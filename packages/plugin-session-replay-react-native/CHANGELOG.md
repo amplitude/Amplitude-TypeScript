@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.4.4](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-react-native@0.4.3...@amplitude/plugin-session-replay-react-native@0.4.4) (2025-11-21)
+
+
+### Bug Fixes
+
+* update analytics/kotlin sdk dependency to include Dexguard fix ([#1415](https://github.com/amplitude/Amplitude-TypeScript/issues/1415)) ([a19836a](https://github.com/amplitude/Amplitude-TypeScript/commit/a19836a7b54089b37a5219dda3adee03bee605e8))
+
+
+
+
+
 ## [0.4.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-react-native@0.4.2...@amplitude/plugin-session-replay-react-native@0.4.3) (2025-08-08)
 
 

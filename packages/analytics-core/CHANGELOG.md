@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.33.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.32.2...@amplitude/analytics-core@2.33.0) (2025-11-21)
+
+
+### Features
+
+* **analytics-browser:** reduce bundle size via refactoring out rxjs ([#1391](https://github.com/amplitude/Amplitude-TypeScript/issues/1391)) ([09ade0b](https://github.com/amplitude/Amplitude-TypeScript/commit/09ade0b37cfdbaacb0e328cb812168d60dc25124))
+
+
+
+
+
 ## [2.32.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.32.1...@amplitude/analytics-core@2.32.2) (2025-11-20)
 
 
