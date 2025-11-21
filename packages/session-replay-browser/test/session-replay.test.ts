@@ -491,6 +491,19 @@ describe('SessionReplay', () => {
       globalSpy = originalGlobalScope;
     });
 
+    test('should not use webworker when useWebWorker is not provided (default)', async () => {
+      await sessionReplay.init(apiKey, {
+        ...mockOptions,
+        sampleRate: 0.5,
+      }).promise;
+
+      expect(sessionReplay.config?.useWebWorker).toBeUndefined();
+      expect(sessionReplay.config?.transportProvider).toBeDefined();
+      expect(sessionReplay.config?.flushMaxRetries).toBe(1);
+      expect(sessionReplay.config?.optOut).toBe(false);
+      expect(sessionReplay.config?.sampleRate).toBe(1);
+    });
+
     test('should support legacy experimental.useWebWorker config for backwards compatibility', async () => {
       // Mock Worker constructor
       class MockWorker {
