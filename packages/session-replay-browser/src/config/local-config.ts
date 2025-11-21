@@ -4,6 +4,7 @@ import {
   DEFAULT_SAMPLE_RATE,
   DEFAULT_SERVER_ZONE,
   DEFAULT_URL_CHANGE_POLLING_INTERVAL,
+  DEFAULT_DELAY_RECORD_INITIALIZATION_CONFIG,
 } from '../constants';
 import { SessionReplayOptions, StoreType } from '../typings/session-replay';
 import {
@@ -12,6 +13,7 @@ import {
   PrivacyConfig,
   SessionReplayPerformanceConfig,
   SessionReplayVersion,
+  SessionReplayDelayRecordInitializationConfig,
 } from './types';
 import { SafeLoggerProvider } from '../logger';
 import { validateUGCFilterRules } from '../helpers';
@@ -35,6 +37,7 @@ export class SessionReplayLocalConfig extends Config implements ISessionReplayLo
   version?: SessionReplayVersion;
   storeType: StoreType;
   performanceConfig?: SessionReplayPerformanceConfig;
+  delayRecordInitialization?: SessionReplayDelayRecordInitializationConfig;
   experimental?: { useWebWorker: boolean };
   applyBackgroundColorToBlockedElements?: boolean;
   omitElementTags?: {
@@ -66,6 +69,7 @@ export class SessionReplayLocalConfig extends Config implements ISessionReplayLo
     this.shouldInlineStylesheet = options.shouldInlineStylesheet;
     this.version = options.version;
     this.performanceConfig = options.performanceConfig || DEFAULT_PERFORMANCE_CONFIG;
+    this.delayRecordInitialization = options.delayRecordInitialization || DEFAULT_DELAY_RECORD_INITIALIZATION_CONFIG;
     this.storeType = options.storeType ?? 'idb';
     this.applyBackgroundColorToBlockedElements = options.applyBackgroundColorToBlockedElements ?? false;
     this.enableUrlChangePolling = options.enableUrlChangePolling ?? false;

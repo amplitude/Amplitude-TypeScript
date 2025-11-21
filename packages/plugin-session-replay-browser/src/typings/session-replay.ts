@@ -22,6 +22,11 @@ export interface SessionReplayPerformanceConfig {
   timeout?: number;
 }
 
+export interface SessionReplayDelayRecordInitializationConfig {
+  enabled: boolean;
+  timeout?: number;
+}
+
 /**
  * UGC filter rule.
  */
@@ -79,6 +84,10 @@ export interface SessionReplayOptions {
    * @see {@link StandaloneSessionReplayOptions.performanceConfig}
    */
   performanceConfig?: SessionReplayPerformanceConfig;
+  /**
+   * @see {@link StandaloneSessionReplayOptions.delayRecordInitialization}
+   */
+  delayRecordInitialization?: SessionReplayDelayRecordInitializationConfig;
   /**
    * @see {@link StandaloneSessionReplayOptions.storeType}
    */
