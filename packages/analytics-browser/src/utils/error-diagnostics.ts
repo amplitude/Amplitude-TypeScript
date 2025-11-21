@@ -205,10 +205,7 @@ function reportSDKError(errorInfo: ErrorInfo): void {
 
   try {
     // Record the error event
-    diagnosticsClient.recordEvent('sdk.uncaught_error', errorInfo);
-
-    // Increment error counter
-    diagnosticsClient.increment('error.uncaught');
+    diagnosticsClient.recordEvent('analytics.errors.uncaught', errorInfo);
   } catch (e) {
     // Silently fail to prevent infinite error loops
     // In production, we don't want error reporting to cause more errors
