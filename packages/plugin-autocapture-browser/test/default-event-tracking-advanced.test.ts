@@ -1474,6 +1474,122 @@ describe('autoTrackingPlugin', () => {
     });
   });
 
+  describe('Viewport Content Updated Tracking', () => {
+    const API_KEY = 'API_KEY';
+    const USER_ID = 'USER_ID';
+    let instance: BrowserClient;
+    let track: jest.SpyInstance;
+    let loggerProvider: ILogger;
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    const originalPushState = history.pushState;
+
+    beforeEach(async () => {
+      // Ensure navigation API is not present to test fallback (pushState proxy)
+      Object.defineProperty(window, 'navigation', {
+        value: undefined,
+        writable: true,
+        configurable: true,
+      });
+
+      loggerProvider = {
+        log: jest.fn(),
+        warn: jest.fn(),
+        error: jest.fn(),
+        debug: jest.fn(),
+      } as unknown as ILogger;
+
+      instance = createMockBrowserClient();
+      await instance.init(API_KEY, USER_ID).promise;
+      track = jest.spyOn(instance, 'track').mockImplementation(jest.fn());
+
+      plugin = autocapturePlugin({ debounceTime: TESTING_DEBOUNCE_TIME });
+    });
+
+    afterEach(async () => {
+      await plugin?.teardown?.();
+      jest.restoreAllMocks();
+      if (originalPushState) {
+        history.pushState = originalPushState;
+      }
+    });
+
+    test('should track [Amplitude] Viewport Content Updated on beforeunload', async () => {
+      const config: Partial<BrowserConfig> = {
+        defaultTracking: false,
+        loggerProvider: loggerProvider,
+      };
+      await plugin?.setup?.(config as BrowserConfig, instance);
+
+      window.dispatchEvent(new Event('beforeunload'));
+
+      expect(track).toHaveBeenCalledWith(
+        '[Amplitude] Viewport Content Updated',
+        expect.objectContaining({
+          '[Amplitude] Page URL': expect.any(String),
+          '[Amplitude] Viewport Height': expect.any(Number),
+          '[Amplitude] Viewport Width': expect.any(Number),
+        }),
+      );
+    });
+
+    test('should not track duplicate [Amplitude] Viewport Content Updated events on multiple beforeunload', async () => {
+      const config: Partial<BrowserConfig> = {
+        defaultTracking: false,
+        loggerProvider: loggerProvider,
+      };
+      await plugin?.setup?.(config as BrowserConfig, instance);
+
+      window.dispatchEvent(new Event('beforeunload'));
+      window.dispatchEvent(new Event('beforeunload'));
+
+      expect(track).toHaveBeenCalledTimes(1);
+    });
+
+    test('should track [Amplitude] Viewport Content Updated on history.pushState and reset state', async () => {
+      const config: Partial<BrowserConfig> = {
+        defaultTracking: false,
+        loggerProvider: loggerProvider,
+      };
+      await plugin?.setup?.(config as BrowserConfig, instance);
+
+      // history.pushState is proxied.
+      history.pushState({}, 'test', '/new-page');
+
+      expect(track).toHaveBeenCalledWith('[Amplitude] Viewport Content Updated', expect.any(Object));
+
+      // Verify it can fire again (pageViewEndFired should be reset to false by the proxy)
+      history.pushState({}, 'test', '/another-page');
+      expect(track).toHaveBeenCalledTimes(2);
+    });
+
+    test('should include scroll and exposure state in Viewport Content Updated event', async () => {
+      const config: Partial<BrowserConfig> = {
+        defaultTracking: false,
+        loggerProvider: loggerProvider,
+      };
+      await plugin?.setup?.(config as BrowserConfig, instance);
+
+      // Trigger a scroll to update state
+      Object.defineProperty(window, 'scrollX', { value: 100, writable: true });
+      Object.defineProperty(window, 'scrollY', { value: 200, writable: true });
+      Object.defineProperty(window, 'pageXOffset', { value: 100, writable: true });
+      Object.defineProperty(window, 'pageYOffset', { value: 200, writable: true });
+      window.dispatchEvent(new Event('scroll'));
+
+      // Trigger page view end
+      window.dispatchEvent(new Event('beforeunload'));
+
+      expect(track).toHaveBeenCalledWith(
+        '[Amplitude] Viewport Content Updated',
+        expect.objectContaining({
+          '[Amplitude] Max Page X': 100,
+          '[Amplitude] Max Page Y': 200,
+          '[Amplitude] Element Exposed': expect.any(Array),
+        }),
+      );
+    });
+  });
+
   describe('teardown', () => {
     // eslint-disable-next-line jest/expect-expect
     test('should teardown plugin', () => {
