@@ -5,6 +5,7 @@ export const AMPLITUDE_ELEMENT_CLICKED_EVENT = '[Amplitude] Element Clicked';
 export const AMPLITUDE_ELEMENT_DEAD_CLICKED_EVENT = '[Amplitude] Dead Click';
 export const AMPLITUDE_ELEMENT_RAGE_CLICKED_EVENT = '[Amplitude] Rage Click';
 export const AMPLITUDE_ELEMENT_CHANGED_EVENT = '[Amplitude] Element Changed';
+export const AMPLITUDE_PAGE_SCROLLED_EVENT = '[Amplitude] Page Scrolled';
 
 export const AMPLITUDE_EVENT_PROP_ELEMENT_ID = '[Amplitude] Element ID';
 export const AMPLITUDE_EVENT_PROP_ELEMENT_CLASS = '[Amplitude] Element Class';
@@ -22,6 +23,8 @@ export const AMPLITUDE_EVENT_PROP_PAGE_URL = '[Amplitude] Page URL';
 export const AMPLITUDE_EVENT_PROP_PAGE_TITLE = '[Amplitude] Page Title';
 export const AMPLITUDE_EVENT_PROP_VIEWPORT_HEIGHT = '[Amplitude] Viewport Height';
 export const AMPLITUDE_EVENT_PROP_VIEWPORT_WIDTH = '[Amplitude] Viewport Width';
+export const AMPLITUDE_EVENT_PROP_MAX_PAGE_X = '[Amplitude] Max Page X';
+export const AMPLITUDE_EVENT_PROP_MAX_PAGE_Y = '[Amplitude] Max Page Y';
 
 // Visual Tagging related constants
 export const AMPLITUDE_ORIGIN = 'https://app.amplitude.com';
