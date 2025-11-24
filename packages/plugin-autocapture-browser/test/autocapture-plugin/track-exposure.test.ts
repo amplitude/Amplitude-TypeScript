@@ -198,13 +198,6 @@ describe('trackExposure', () => {
     element2.id = 'reset-div-2';
     const clearTimeoutSpy = jest.spyOn(global, 'clearTimeout');
 
-    // Start element 1 exposure (will be pending)
-    triggerExposure({
-      isIntersecting: true,
-      target: element1,
-      intersectionRatio: 1.0,
-    });
-
     // Start element 2 exposure and complete it
     triggerExposure({
       isIntersecting: true,
@@ -214,6 +207,13 @@ describe('trackExposure', () => {
     jest.advanceTimersByTime(2000);
     expect(onExposure).toHaveBeenCalledWith('#reset-div-2');
     onExposure.mockClear();
+
+    // Start element 1 exposure (will be pending)
+    triggerExposure({
+      isIntersecting: true,
+      target: element1,
+      intersectionRatio: 1.0,
+    });
 
     // Call reset
     reset();
