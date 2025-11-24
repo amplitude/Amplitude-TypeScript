@@ -70,79 +70,84 @@ export const getExecutionTracker = () => ({
 });
 
 /**
- * Wraps a function with execution tracking to identify SDK errors.
+ * Method decorator that wraps a class method with execution tracking to identify SDK errors.
  *
- * This wrapper tracks when SDK code is running using a simple counter.
+ * This decorator tracks when SDK code is running using a simple counter.
  * Any error that occurs while the counter > 0 is identified as an SDK error
  * by the global error handlers.
  *
- * @param fn - The function to wrap
  * @param context - Name of the function/context (e.g., 'AmplitudeBrowser.track')
- * @returns Wrapped function with error tracking
+ * @returns Method decorator
  *
  * @example
  * ```typescript
- * // Wrap synchronous function
- * const trackedInit = wrapWithErrorTracking(() => {
- *   // ... SDK initialization code ...
- * }, 'AmplitudeBrowser.init');
+ * class AmplitudeBrowser {
+ *   @TrackSDKErrors('AmplitudeBrowser.init')
+ *   async init(apiKey: string) {
+ *     // ... SDK initialization code ...
+ *   }
  *
- * // Wrap async function
- * const trackedProcess = wrapWithErrorTracking(async () => {
- *   // ... SDK processing code ...
- * }, 'AmplitudeBrowser.process');
+ *   @TrackSDKErrors('AmplitudeBrowser.track')
+ *   async track(event: Event) {
+ *     // ... SDK tracking code ...
+ *   }
+ * }
  * ```
  */
-export function wrapWithErrorTracking<T extends (...args: any[]) => any>(
-  fn: T,
-  context: string,
-): (...args: Parameters<T>) => ReturnType<T> {
-  const tracker = getExecutionTracker();
+export function TrackSDKErrors(context: string) {
+  return function <T extends (...args: any[]) => any>(
+    _target: any,
+    _propertyKey: string,
+    descriptor: PropertyDescriptor,
+  ): PropertyDescriptor {
+    const originalMethod = descriptor.value as T;
+    const tracker = getExecutionTracker();
 
-  // Handle both sync and async functions
-  return function (this: unknown, ...args: Parameters<T>): ReturnType<T> {
-    tracker.enter(context);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    descriptor.value = function (this: any, ...args: Parameters<T>): ReturnType<T> {
+      tracker.enter(context);
 
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      const result = fn.apply(this, args);
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        const result = originalMethod.apply(this, args);
 
-      // If result is a Promise, track async execution
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      if (result && typeof result === 'object' && typeof result.then === 'function') {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
-        return result
-          .then((value: unknown) => {
-            tracker.exit();
-            return value;
-          })
-          .catch((error: unknown) => {
-            // Tag this error as SDK-originated for later detection
-            if (error instanceof Error) {
-              pendingSDKErrors.add(error);
-            }
+        // If result is a Promise, track async execution
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        if (result && typeof result === 'object' && typeof result.then === 'function') {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+          return result
+            .then((value: unknown) => {
+              tracker.exit();
+              return value;
+            })
+            .catch((error: unknown) => {
+              // Tag this error as SDK-originated for later detection
+              if (error instanceof Error) {
+                pendingSDKErrors.add(error);
+              }
 
-            // Exit immediately - no setTimeout needed!
-            tracker.exit();
+              tracker.exit();
+              throw error;
+            }) as ReturnType<T>;
+        }
 
-            throw error;
-          }) as ReturnType<T>;
+        // Synchronous function - exit immediately
+        tracker.exit();
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+        return result;
+      } catch (error) {
+        // Tag synchronous errors as SDK-originated
+        if (error instanceof Error) {
+          pendingSDKErrors.add(error);
+        }
+
+        // Exit tracking before re-throwing
+        tracker.exit();
+        throw error;
       }
+    };
 
-      // Synchronous function - exit immediately
-      tracker.exit();
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-      return result;
-    } catch (error) {
-      // Tag synchronous errors as SDK-originated
-      if (error instanceof Error) {
-        pendingSDKErrors.add(error);
-      }
-
-      // Exit tracking before re-throwing
-      tracker.exit();
-      throw error;
-    }
+    return descriptor;
   };
 }
 

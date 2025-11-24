@@ -28,7 +28,7 @@ import {
   RemoteConfig,
   Source,
   DiagnosticsClient,
-  wrapWithErrorTracking,
+  TrackSDKErrors,
 } from '@amplitude/analytics-core';
 import {
   getAttributionTrackingConfig,
@@ -97,10 +97,10 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
         options = userIdOrOptions;
       }
     }
-    return returnWrapper(
-      wrapWithErrorTracking(() => this._init({ ...options, userId, apiKey }), 'AmplitudeBrowser.init')(),
-    );
+    return returnWrapper(this._init({ ...options, userId, apiKey }));
   }
+
+  @TrackSDKErrors('AmplitudeBrowser.init')
   protected async _init(options: BrowserOptions & { apiKey: string }) {
     // Step 1: Block concurrent initialization
     if (this.initializing) {
@@ -498,39 +498,38 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
     return true;
   }
 
+  @TrackSDKErrors('AmplitudeBrowser.process')
   async process(event: Event) {
-    return wrapWithErrorTracking(async () => {
-      const currentTime = Date.now();
-      const isEventInNewSession = isNewSession(this.config.sessionTimeout, this.config.lastEventTime);
-      const shouldSetSessionIdOnNewCampaign =
-        this.webAttribution && this.webAttribution.shouldSetSessionIdOnNewCampaign();
+    const currentTime = Date.now();
+    const isEventInNewSession = isNewSession(this.config.sessionTimeout, this.config.lastEventTime);
+    const shouldSetSessionIdOnNewCampaign =
+      this.webAttribution && this.webAttribution.shouldSetSessionIdOnNewCampaign();
 
-      if (
-        event.event_type !== DEFAULT_SESSION_START_EVENT &&
-        event.event_type !== DEFAULT_SESSION_END_EVENT &&
-        (!event.session_id || event.session_id === this.getSessionId())
-      ) {
-        if (isEventInNewSession || shouldSetSessionIdOnNewCampaign) {
-          this.setSessionId(currentTime);
-          if (shouldSetSessionIdOnNewCampaign) {
-            this.config.loggerProvider.log('Created a new session for new campaign.');
-          }
-        } else if (!isEventInNewSession) {
-          // Web attribution should be tracked during the middle of a session
-          // if there has been a chance in the campaign information.
-          this.trackCampaignEventIfNeeded();
+    if (
+      event.event_type !== DEFAULT_SESSION_START_EVENT &&
+      event.event_type !== DEFAULT_SESSION_END_EVENT &&
+      (!event.session_id || event.session_id === this.getSessionId())
+    ) {
+      if (isEventInNewSession || shouldSetSessionIdOnNewCampaign) {
+        this.setSessionId(currentTime);
+        if (shouldSetSessionIdOnNewCampaign) {
+          this.config.loggerProvider.log('Created a new session for new campaign.');
         }
+      } else if (!isEventInNewSession) {
+        // Web attribution should be tracked during the middle of a session
+        // if there has been a chance in the campaign information.
+        this.trackCampaignEventIfNeeded();
       }
+    }
 
-      // Set user properties
-      if (event.event_type === SpecialEventType.IDENTIFY && event.user_properties) {
-        this.userProperties = this.getOperationAppliedUserProperties(event.user_properties);
-      }
+    // Set user properties
+    if (event.event_type === SpecialEventType.IDENTIFY && event.user_properties) {
+      this.userProperties = this.getOperationAppliedUserProperties(event.user_properties);
+    }
 
-      // throw new Error('TEST: SDK uncaught error in process()');
+    // throw new Error('TEST: SDK uncaught error in process()');
 
-      return super.process(event);
-    }, 'AmplitudeBrowser.process')();
+    return super.process(event);
   }
 
   private logBrowserOptions(browserConfig: BrowserOptions & { apiKey: string }) {
