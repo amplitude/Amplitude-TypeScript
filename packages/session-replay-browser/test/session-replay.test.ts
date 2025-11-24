@@ -426,7 +426,85 @@ describe('SessionReplay', () => {
       expect(sessionReplay.loggerProvider).toBeDefined();
     });
 
-    test('should setup sdk with webworker when experimental.useWebWorker is true', async () => {
+    test('should setup sdk with webworker when useWebWorker is true', async () => {
+      // Mock Worker constructor
+      class MockWorker {
+        postMessage = jest.fn();
+        onmessage = jest.fn();
+        onerror = jest.fn();
+        terminate = jest.fn();
+      }
+
+      const originalWorker = global.Worker;
+      global.Worker = MockWorker as unknown as typeof global.Worker;
+
+      // Mock the dynamic import by mocking the import function
+      const mockCompressionScript = 'console.log("webworker script");';
+      const originalImport = (global as any).import;
+      (global as any).import = jest.fn().mockImplementation((path: string) => {
+        if (path === './worker') {
+          return Promise.resolve({ compressionScript: mockCompressionScript });
+        }
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+        return originalImport(path);
+      });
+
+      // Mock URL.createObjectURL and Blob
+      const originalCreateObjectURL = URL.createObjectURL;
+      const originalBlob = global.Blob;
+      URL.createObjectURL = jest.fn().mockReturnValue('blob:mock-url');
+      global.Blob = jest.fn().mockImplementation((parts, options) => ({
+        parts,
+        options,
+      })) as any;
+
+      // Mock getGlobalScope to include Worker
+      const originalGlobalScope = globalSpy;
+      globalSpy = jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue({
+        ...mockGlobalScope,
+        Worker: MockWorker as unknown as typeof global.Worker,
+      });
+
+      await sessionReplay.init(apiKey, {
+        ...mockOptions,
+        sampleRate: 0.5,
+        useWebWorker: true,
+      }).promise;
+
+      expect(sessionReplay.config?.transportProvider).toBeDefined();
+      expect(sessionReplay.config?.flushMaxRetries).toBe(1);
+      expect(sessionReplay.config?.optOut).toBe(false);
+      expect(sessionReplay.config?.sampleRate).toBe(1);
+      expect(sessionReplay.identifiers?.deviceId).toBe('1a2b3c');
+      expect(sessionReplay.identifiers?.sessionId).toBe(123);
+      expect(sessionReplay.config?.logLevel).toBe(0);
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockLoggerProvider.enable).toHaveBeenCalledWith(0);
+
+      // The import should have been called (coverage will show this)
+
+      // Restore original values
+      global.Worker = originalWorker;
+      (global as any).import = originalImport;
+      URL.createObjectURL = originalCreateObjectURL;
+      global.Blob = originalBlob;
+      globalSpy = originalGlobalScope;
+    });
+
+    test('should not use webworker when useWebWorker is not provided (default)', async () => {
+      await sessionReplay.init(apiKey, {
+        ...mockOptions,
+        sampleRate: 0.5,
+      }).promise;
+
+      expect(sessionReplay.config?.useWebWorker).toBeUndefined();
+      expect(sessionReplay.config?.transportProvider).toBeDefined();
+      expect(sessionReplay.config?.flushMaxRetries).toBe(1);
+      expect(sessionReplay.config?.optOut).toBe(false);
+      expect(sessionReplay.config?.sampleRate).toBe(1);
+    });
+
+    test('should support legacy experimental.useWebWorker config for backwards compatibility', async () => {
       // Mock Worker constructor
       class MockWorker {
         postMessage = jest.fn();
@@ -469,19 +547,9 @@ describe('SessionReplay', () => {
         ...mockOptions,
         sampleRate: 0.5,
         experimental: { useWebWorker: true },
-      }).promise;
+      } as any).promise;
 
-      expect(sessionReplay.config?.transportProvider).toBeDefined();
-      expect(sessionReplay.config?.flushMaxRetries).toBe(1);
-      expect(sessionReplay.config?.optOut).toBe(false);
-      expect(sessionReplay.config?.sampleRate).toBe(1);
-      expect(sessionReplay.identifiers?.deviceId).toBe('1a2b3c');
-      expect(sessionReplay.identifiers?.sessionId).toBe(123);
-      expect(sessionReplay.config?.logLevel).toBe(0);
-      // eslint-disable-next-line @typescript-eslint/unbound-method
-      expect(mockLoggerProvider.enable).toHaveBeenCalledWith(0);
-
-      // The import should have been called (coverage will show this)
+      expect(sessionReplay.config?.useWebWorker).toBe(true);
 
       // Restore original values
       global.Worker = originalWorker;

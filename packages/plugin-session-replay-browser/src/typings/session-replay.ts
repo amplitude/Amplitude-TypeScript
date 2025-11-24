@@ -84,6 +84,13 @@ export interface SessionReplayOptions {
    */
   storeType?: StoreType;
   /**
+   * If true, the SDK will compress replay events using a web worker.
+   * This offloads compression to a separate thread, improving performance on the main thread.
+   *
+   * @defaultValue false
+   */
+  useWebWorker?: boolean;
+  /**
    * Override the device ID for session replay.
    */
   deviceId?: string;
@@ -94,7 +101,8 @@ export interface SessionReplayOptions {
    */
   customSessionId?: (event: Event) => string | undefined;
   /**
-   * @see {@link StandaloneSessionReplayOptions.experimental}
+   * @deprecated Use `useWebWorker` instead. This will be removed in a future version.
+   * @see {@link StandaloneSessionReplayOptions.useWebWorker}
    */
   experimental?: {
     useWebWorker: boolean;
