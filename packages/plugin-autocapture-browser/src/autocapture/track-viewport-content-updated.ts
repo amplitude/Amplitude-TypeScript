@@ -47,7 +47,7 @@ export function fireViewportContentUpdated({
     [constants.AMPLITUDE_EVENT_PROP_VIEWPORT_WIDTH]: globalScope?.innerWidth,
     '[Amplitude] Element Exposed': Array.from(currentElementExposed),
   };
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+
   amplitude?.track('[Amplitude] Viewport Content Updated', eventProperties);
 
   // Clear current batch
