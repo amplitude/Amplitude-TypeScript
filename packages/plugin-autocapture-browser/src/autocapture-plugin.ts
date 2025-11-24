@@ -133,7 +133,7 @@ export const autocapturePlugin = (
   // currentElementExposed only holds the set of elements that will be flushed during the next [Amplitude] Viewport Content Updated event
   const currentElementExposed = new Set<string>();
 
-  let beforeUnloadCleanup: (() => void) | undefined;
+  let beforeUnloadCleanup: (() => void);
 
   const createObservables = (): AllWindowObservables => {
     const clickObservable = multicast(
@@ -361,7 +361,7 @@ export const autocapturePlugin = (
       globalScope?.removeEventListener('beforeunload', beforeUnloadHandler);
     };
     // Ensure cleanup on teardown as well
-    subscriptions.push({ unsubscribe: () => beforeUnloadCleanup?.() });
+    subscriptions.push({ unsubscribe: () => beforeUnloadCleanup() });
 
     // Also track on navigation (SPA)
     const navigateObservable = allObservables[ObservablesEnum.NavigateObservable];
@@ -372,19 +372,20 @@ export const autocapturePlugin = (
           pageViewEndFired = false;
         }),
       );
-    } else {
+    } else if (globalScope) {
+
       const popstateHandler = () => handleViewportContentUpdated(true);
       /* istanbul ignore next */
       // Fallback for SPA tracking when Navigation API is not available
-      globalScope?.addEventListener('popstate', popstateHandler);
+      globalScope.addEventListener('popstate', popstateHandler);
 
       /* istanbul ignore next */
       // There is no global browser listener for changes to history, so we have
       // to modify pushState directly.
       // https://stackoverflow.com/a/64927639
       // eslint-disable-next-line @typescript-eslint/unbound-method
-      const originalPushState = globalScope?.history.pushState;
-      if (globalScope?.history && originalPushState) {
+      const originalPushState = globalScope.history.pushState;
+      if (globalScope.history && originalPushState) {
         // eslint-disable-next-line @typescript-eslint/unbound-method
         globalScope.history.pushState = new Proxy(originalPushState, {
           apply: (target, thisArg, [state, unused, url]) => {
@@ -398,9 +399,9 @@ export const autocapturePlugin = (
       subscriptions.push({
         unsubscribe: () => {
           /* istanbul ignore next */
-          globalScope?.removeEventListener('popstate', popstateHandler);
+          globalScope.removeEventListener('popstate', popstateHandler);
           /* istanbul ignore next */
-          if (globalScope?.history && originalPushState) {
+          if (globalScope.history && originalPushState) {
             globalScope.history.pushState = originalPushState;
           }
         },

@@ -11,10 +11,15 @@ jest.mock('../../src/autocapture/track-exposure', () => ({
 
 // Mock fireViewportContentUpdated to verify calls
 jest.mock('../../src/autocapture/track-viewport-content-updated', () => {
-  const original = jest.requireActual('../../src/autocapture/track-viewport-content-updated');
+  const originalModule =
+    jest.requireActual<typeof import('../../src/autocapture/track-viewport-content-updated')>(
+      '../../src/autocapture/track-viewport-content-updated',
+    );
   return {
-    ...original,
-    fireViewportContentUpdated: jest.fn((...args) => original.fireViewportContentUpdated(...args)),
+    ...originalModule,
+    fireViewportContentUpdated: jest.fn((...args: Parameters<typeof originalModule.fireViewportContentUpdated>) =>
+      originalModule.fireViewportContentUpdated(...args),
+    ),
   };
 });
 
@@ -80,7 +85,7 @@ describe('autocapturePlugin - Viewport Content Updated (Exposure)', () => {
     // We need to exceed 18000 characters in JSON.stringify(array)
     // The array will be ["small-element", "large..."]
     // We can just add one massive string.
-    const largeString = 'a'.repeat(18000);
+    const largeString = 'a'.repeat(19000);
     onExposureCallback(largeString);
 
     // Should trigger track
