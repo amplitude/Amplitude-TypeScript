@@ -5,13 +5,9 @@
  * Integrates with the Diagnostics Client to report SDK errors for monitoring and debugging.
  */
 
-import {
-  getExecutionTracker,
-  getGlobalScope,
-  IDiagnosticsClient,
-  isPendingSDKError,
-  clearPendingSDKError,
-} from '@amplitude/analytics-core';
+import { getExecutionTracker, isPendingSDKError, clearPendingSDKError } from './diagnostics-uncaught-sdk-error';
+import { getGlobalScope } from '../global-scope';
+import { IDiagnosticsClient } from './diagnostics-client';
 
 interface ErrorInfo {
   message: string;
@@ -32,8 +28,8 @@ let diagnosticsClient: IDiagnosticsClient | null = null;
 /**
  * Setup global error tracking for Amplitude SDK errors.
  *
- * This sets up global error handlers (window.onerror and window.onunhandledrejection)
- * that work with execution context tracking to identify and report SDK errors.
+ * This sets up global error event listeners that work with execution context
+ * tracking to identify and report SDK errors.
  *
  * @param client - The diagnostics client to report errors to
  *
@@ -61,7 +57,7 @@ export function setupAmplitudeErrorTracking(client: IDiagnosticsClient): void {
 }
 
 /**
- * Setup window.onerror handler to catch synchronous errors
+ * Setup window error event listener to catch synchronous errors
  */
 function setupWindowErrorHandler(): void {
   const globalScope = getGlobalScope();
@@ -69,44 +65,33 @@ function setupWindowErrorHandler(): void {
     return;
   }
 
-  // Store the original handler to call it after our handler
-  const originalOnError = globalScope.onerror;
-
-  globalScope.onerror = function (
-    messageOrEvent: string | Event,
-    source?: string,
-    lineno?: number,
-    colno?: number,
-    error?: Error,
-  ): boolean | void {
+  globalScope.addEventListener('error', (event: ErrorEvent) => {
     // Check if this error occurred during SDK execution
     const tracker = getExecutionTracker();
     const isInSDK = tracker.isInSDKExecution();
-    const isPendingError = isPendingSDKError(error);
+    const isPendingError = isPendingSDKError(event.error);
 
     // Check both execution depth AND error object tagging
     if (isInSDK || isPendingError) {
       // This is an SDK error - report it
-      const errorInfo = buildErrorInfo(error, messageOrEvent, source, lineno, colno, tracker.getCurrentContext());
+      const errorInfo = buildErrorInfo(
+        event.error,
+        event.message,
+        event.filename,
+        event.lineno,
+        event.colno,
+        tracker.getCurrentContext(),
+      );
       reportSDKError(errorInfo);
 
       // Clean up the error tag
-      clearPendingSDKError(error);
+      clearPendingSDKError(event.error);
     }
-
-    // Call the original handler if it exists
-    if (originalOnError && globalScope) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-      return originalOnError.call(globalScope, messageOrEvent, source, lineno, colno, error);
-    }
-
-    // Return false to allow default error handling
-    return false;
-  };
+  });
 }
 
 /**
- * Setup unhandledrejection handler to catch async errors
+ * Setup unhandledrejection event listener to catch async errors
  */
 function setupUnhandledRejectionHandler(): void {
   const globalScope = getGlobalScope();
@@ -114,10 +99,7 @@ function setupUnhandledRejectionHandler(): void {
     return;
   }
 
-  // Store the original handler
-  const originalOnUnhandledRejection = globalScope.onunhandledrejection;
-
-  globalScope.onunhandledrejection = function (event: PromiseRejectionEvent): void {
+  globalScope.addEventListener('unhandledrejection', (event: PromiseRejectionEvent) => {
     // Check if this rejection occurred during SDK execution
     const tracker = getExecutionTracker();
     const isInSDK = tracker.isInSDKExecution();
@@ -134,12 +116,7 @@ function setupUnhandledRejectionHandler(): void {
       // Clean up the error tag
       clearPendingSDKError(error);
     }
-
-    // Call the original handler if it exists
-    if (originalOnUnhandledRejection && globalScope) {
-      originalOnUnhandledRejection.call(globalScope as unknown as Window, event);
-    }
-  };
+  });
 }
 
 /**
@@ -220,7 +197,7 @@ export function _teardownAmplitudeErrorTracking(): void {
   isSetup = false;
   diagnosticsClient = null;
 
-  // Note: We don't restore window.onerror and window.onunhandledrejection
-  // because other code might be relying on them. This is acceptable since
-  // the handlers will just no-op when diagnosticsClient is null.
+  // Note: Event listeners remain attached but will no-op when diagnosticsClient is null.
+  // In a real teardown scenario, you'd want to store listener references and remove them,
+  // but for testing purposes this is acceptable.
 }

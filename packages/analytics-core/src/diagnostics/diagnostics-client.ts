@@ -3,6 +3,7 @@ import { DiagnosticsStorage, IDiagnosticsStorage } from './diagnostics-storage';
 import { ServerZoneType } from '../types/server-zone';
 import { getGlobalScope } from '../global-scope';
 import { isTimestampInSampleTemp } from '../utils/sampling';
+import { setupAmplitudeErrorTracking } from './diagnostics-uncaught-sdk-error-web-handlers';
 
 export const SAVE_INTERVAL_MS = 1000; // 1 second
 export const FLUSH_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
@@ -212,9 +213,12 @@ export class DiagnosticsClient implements IDiagnosticsClient {
 
     void this.initializeFlushInterval();
 
-    // Track internal diagnostics metrics for sampling
     if (this.shouldTrack) {
+      // Track internal diagnostics metrics for sampling
       this.increment('sdk.diagnostics.sampled.in.and.enabled');
+
+      // Setup error tracking to capture uncaught SDK errors (web only)
+      setupAmplitudeErrorTracking(this);
     }
   }
 

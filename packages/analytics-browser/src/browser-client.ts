@@ -64,7 +64,6 @@ import { WebAttribution } from './attribution/web-attribution';
 import { LIBPREFIX } from './lib-prefix';
 import { VERSION } from './version';
 import { pageUrlEnrichmentPlugin } from '@amplitude/plugin-page-url-enrichment-browser';
-import { setupAmplitudeErrorTracking } from './utils/error-diagnostics';
 
 /**
  * Exported for `@amplitude/unified` or integration with blade plugins.
@@ -202,9 +201,6 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
       },
     );
     diagnosticsClient.setTag('library', `${LIBPREFIX}/${VERSION}`);
-
-    // Setup error tracking to capture uncaught SDK errors
-    setupAmplitudeErrorTracking(diagnosticsClient);
 
     await super._init(browserOptions);
     this.logBrowserOptions(browserOptions);

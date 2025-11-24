@@ -29,6 +29,8 @@ export {
   clearPendingSDKError,
 } from './diagnostics/diagnostics-uncaught-sdk-error';
 
+export { setupAmplitudeErrorTracking } from './diagnostics/diagnostics-uncaught-sdk-error-web-handlers';
+
 export { MemoryStorage } from './storage/memory';
 export { CookieStorage } from './storage/cookie';
 export { getStorageKey } from './storage/helpers';
