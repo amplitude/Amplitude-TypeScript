@@ -32,7 +32,6 @@ export const createClickObservable = (
 
     getGlobalScope()?.document.addEventListener(clickType, handler, { capture: true });
     return () => {
-
       getGlobalScope()?.document.removeEventListener(clickType, handler, { capture: true });
     };
   });
@@ -46,7 +45,6 @@ export const createScrollObservable = (): Observable<Event> => {
 
     getGlobalScope()?.window.addEventListener('scroll', handler);
     return () => {
-
       getGlobalScope()?.window.removeEventListener('scroll', handler);
     };
   });
@@ -90,10 +88,8 @@ export const createExposureObservable = (
     // Use mutation observable to observe new elements
     mutationObservable.subscribe(({ event }) =>
       event.forEach(({ addedNodes }) =>
-        addedNodes.forEach(node =>
-          node instanceof Element && intersectionObserver.observe(node)
-        )
-      )
+        addedNodes.forEach((node) => node instanceof Element && intersectionObserver.observe(node)),
+      ),
     );
 
     return () => {
