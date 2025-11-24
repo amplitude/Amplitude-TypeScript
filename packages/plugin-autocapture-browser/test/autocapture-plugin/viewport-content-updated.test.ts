@@ -11,10 +11,9 @@ jest.mock('../../src/autocapture/track-exposure', () => ({
 
 // Mock fireViewportContentUpdated to verify calls
 jest.mock('../../src/autocapture/track-viewport-content-updated', () => {
-  const originalModule =
-    jest.requireActual<typeof import('../../src/autocapture/track-viewport-content-updated')>(
-      '../../src/autocapture/track-viewport-content-updated',
-    );
+  const originalModule = jest.requireActual<typeof import('../../src/autocapture/track-viewport-content-updated')>(
+    '../../src/autocapture/track-viewport-content-updated',
+  );
   return {
     ...originalModule,
     fireViewportContentUpdated: jest.fn((...args: Parameters<typeof originalModule.fireViewportContentUpdated>) =>
@@ -120,17 +119,17 @@ describe('autocapturePlugin - Viewport Content Updated (Exposure)', () => {
   });
 
   test('should not re-add already exposed elements to the current batch', async () => {
-     // 1. Add an element
-     onExposureCallback('element-1');
+    // 1. Add an element
+    onExposureCallback('element-1');
 
-     // 2. Add the same element again
-     onExposureCallback('element-1');
+    // 2. Add the same element again
+    onExposureCallback('element-1');
 
-     // 3. Force flush via beforeunload
-     window.dispatchEvent(new Event('beforeunload'));
+    // 3. Force flush via beforeunload
+    window.dispatchEvent(new Event('beforeunload'));
 
-     // Should only be in the array once
-     expect(track).toHaveBeenCalledWith(
+    // Should only be in the array once
+    expect(track).toHaveBeenCalledWith(
       '[Amplitude] Viewport Content Updated',
       expect.objectContaining({
         '[Amplitude] Element Exposed': ['element-1'],

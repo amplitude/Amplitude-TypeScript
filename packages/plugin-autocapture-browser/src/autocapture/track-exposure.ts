@@ -1,6 +1,6 @@
 /* eslint-disable no-restricted-globals */
 import { AllWindowObservables } from '../autocapture-plugin';
-import { finder } from '../libs/finder';
+import { DataExtractor } from '../data-extractor';
 
 // Element must be visible for 2 seconds to count as "exposed"
 const EXPOSURE_TIMEOUT = 2_000;
@@ -8,9 +8,11 @@ const EXPOSURE_TIMEOUT = 2_000;
 export function trackExposure({
   allObservables,
   onExposure,
+  dataExtractor,
 }: {
   allObservables: AllWindowObservables;
   onExposure: (elementPath: string) => void;
+  dataExtractor: DataExtractor;
 }) {
   // Track which elements have been marked as exposed (per-element state)
   const exposureMap = new Map<Element, boolean>();
@@ -32,7 +34,7 @@ export function trackExposure({
           exposureMap.set(element, true);
 
           // Record the CSS selector path in the shared exposure state
-          const elementPath = finder(element);
+          const elementPath = dataExtractor.getElementPath(element);
           onExposure(elementPath);
 
           // Clear the timer reference
