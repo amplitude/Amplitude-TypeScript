@@ -1,5 +1,6 @@
 import { trackExposure } from '../../src/autocapture/track-exposure';
 import { AllWindowObservables, ObservablesEnum } from '../../src/autocapture-plugin';
+import { DataExtractor } from '../../src';
 
 // Mock finder to avoid DOM complexity dependencies
 jest.mock('../../src/libs/finder', () => ({
@@ -37,9 +38,11 @@ describe('trackExposure', () => {
       [ObservablesEnum.ExposureObservable]: exposureObservable,
     } as any;
 
+    const dataExtractor = new DataExtractor({});
     const result = trackExposure({
       allObservables,
       onExposure,
+      dataExtractor,
     });
     unsubscribe = result.unsubscribe;
     reset = result.reset;

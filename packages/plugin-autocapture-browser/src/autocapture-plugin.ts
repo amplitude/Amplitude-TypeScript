@@ -29,7 +29,7 @@ import {
   createClickObservable,
   createScrollObservable,
   createExposureObservable,
-createMutationObservable,
+  createMutationObservable,
 } from './observables';
 
 import {
@@ -133,7 +133,7 @@ export const autocapturePlugin = (
   // currentElementExposed only holds the set of elements that will be flushed during the next [Amplitude] Viewport Content Updated event
   const currentElementExposed = new Set<string>();
 
-  let beforeUnloadCleanup: (() => void);
+  let beforeUnloadCleanup: () => void;
 
   const createObservables = (): AllWindowObservables => {
     const clickObservable = multicast(
@@ -337,18 +337,14 @@ export const autocapturePlugin = (
     };
 
     const handleExposure = (elementPath: string) => {
-      onExposure(
-        elementPath,
-        elementExposedForPage,
-        currentElementExposed,
-        handleViewportContentUpdated,
-      );
+      onExposure(elementPath, elementExposedForPage, currentElementExposed, handleViewportContentUpdated);
     };
 
     trackers.exposure = trackExposure({
       allObservables,
       onExposure: handleExposure,
-    }) ;
+      dataExtractor,
+    });
     if (trackers.exposure) {
       subscriptions.push(trackers.exposure);
     }
@@ -373,7 +369,6 @@ export const autocapturePlugin = (
         }),
       );
     } else if (globalScope) {
-
       const popstateHandler = () => handleViewportContentUpdated(true);
       /* istanbul ignore next */
       // Fallback for SPA tracking when Navigation API is not available
