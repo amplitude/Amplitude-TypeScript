@@ -315,8 +315,9 @@ describe('action clicks:', () => {
         (window.navigation as any).dispatchEvent(new Event('navigate'));
         await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 503));
 
-        expect(track).toHaveBeenCalledTimes(1);
-        expect(track).toHaveBeenNthCalledWith(1, '[Amplitude] Element Clicked', expect.objectContaining({}));
+        // once for the page view end event, once for the click event
+        expect(track).toHaveBeenCalledTimes(2);
+        expect(track).toHaveBeenNthCalledWith(2, '[Amplitude] Element Clicked', expect.objectContaining({}));
       });
     });
   });
