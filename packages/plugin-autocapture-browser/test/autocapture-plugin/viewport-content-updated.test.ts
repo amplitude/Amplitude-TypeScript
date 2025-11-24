@@ -3,6 +3,7 @@ import { BrowserClient, BrowserConfig, ILogger } from '@amplitude/analytics-core
 import { createMockBrowserClient } from '../mock-browser-client';
 import { trackExposure } from '../../src/autocapture/track-exposure';
 import { fireViewportContentUpdated } from '../../src/autocapture/track-viewport-content-updated';
+import * as constants from '../../src/constants';
 
 // Mock trackExposure to capture onExposure callback
 jest.mock('../../src/autocapture/track-exposure', () => ({
@@ -69,6 +70,7 @@ describe('autocapturePlugin - Viewport Content Updated (Exposure)', () => {
   afterEach(() => {
     jest.clearAllMocks();
     jest.useRealTimers();
+    window.sessionStorage.clear();
     plugin.teardown();
   });
 
@@ -133,6 +135,24 @@ describe('autocapturePlugin - Viewport Content Updated (Exposure)', () => {
       '[Amplitude] Viewport Content Updated',
       expect.objectContaining({
         '[Amplitude] Element Exposed': ['element-1'],
+      }),
+    );
+  });
+
+  test('should include page view ID when available', async () => {
+    window.sessionStorage.setItem(
+      constants.PAGE_VIEW_SESSION_STORAGE_KEY,
+      JSON.stringify({ pageViewId: 'pv-test-123' }),
+    );
+
+    onExposureCallback('element-1');
+    window.dispatchEvent(new Event('beforeunload'));
+
+    expect(track).toHaveBeenCalledWith(
+      '[Amplitude] Viewport Content Updated',
+      expect.objectContaining({
+        '[Amplitude] Element Exposed': ['element-1'],
+        '[Amplitude] Page View ID': 'pv-test-123',
       }),
     );
   });
