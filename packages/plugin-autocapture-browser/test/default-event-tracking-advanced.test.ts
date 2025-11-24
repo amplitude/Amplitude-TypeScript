@@ -1513,7 +1513,6 @@ describe('autoTrackingPlugin', () => {
       instance = createMockBrowserClient();
       await instance.init(API_KEY, USER_ID).promise;
       track = jest.spyOn(instance, 'track').mockImplementation(jest.fn());
-
     });
 
     afterEach(async () => {
@@ -1582,10 +1581,7 @@ describe('autoTrackingPlugin', () => {
       // Simulate popstate event
       window.dispatchEvent(new Event('popstate'));
 
-      expect(track).toHaveBeenCalledWith(
-        '[Amplitude] Viewport Content Updated',
-        expect.any(Object)
-      );
+      expect(track).toHaveBeenCalledWith('[Amplitude] Viewport Content Updated', expect.any(Object));
     });
 
     test('should flush Viewport Content Updated event when exposure buffer limit is reached', async () => {
@@ -1649,13 +1645,10 @@ describe('autoTrackingPlugin', () => {
       // onExposure adds to set and checks size.
 
       // We expect at least one track call
-      expect(track).toHaveBeenCalledWith(
-        '[Amplitude] Viewport Content Updated',
-        expect.any(Object)
-      );
+      expect(track).toHaveBeenCalledWith('[Amplitude] Viewport Content Updated', expect.any(Object));
 
       // Cleanup
-      elements.forEach(el => el.remove());
+      elements.forEach((el) => el.remove());
     });
 
     test('should include scroll and exposure state in Viewport Content Updated event', async () => {
