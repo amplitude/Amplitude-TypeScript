@@ -1,5 +1,6 @@
 import { BrowserClient, getGlobalScope } from '@amplitude/analytics-core';
 import * as constants from '../constants';
+import { getCurrentPageViewId } from '../helpers';
 
 export interface ScrollTracker {
   getState: () => { maxX: number; maxY: number };
@@ -47,6 +48,11 @@ export function fireViewportContentUpdated({
     [constants.AMPLITUDE_EVENT_PROP_VIEWPORT_WIDTH]: globalScope?.innerWidth,
     '[Amplitude] Element Exposed': Array.from(currentElementExposed),
   };
+
+  const pageViewId = getCurrentPageViewId();
+  if (pageViewId) {
+    eventProperties[constants.AMPLITUDE_EVENT_PROP_PAGE_VIEW_ID] = pageViewId;
+  }
 
   amplitude?.track('[Amplitude] Viewport Content Updated', eventProperties);
 

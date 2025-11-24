@@ -18,6 +18,7 @@ import {
   getClosestElement,
   isElementBasedEvent,
   parseAttributesToMask,
+  getCurrentPageViewId,
 } from './helpers';
 import type { BaseTimestampedEvent, ElementBasedTimestampedEvent, TimestampedEvent, JSONValue } from './helpers';
 import { getAncestors, getElementProperties } from './hierarchy';
@@ -169,17 +170,9 @@ export class DataExtractor {
       [constants.AMPLITUDE_EVENT_PROP_VIEWPORT_WIDTH]: window.innerWidth,
     };
 
-    // Attach the current [Amplitude] Page View ID if present in sessionStorage
-    try {
-      const raw = window.sessionStorage?.getItem(constants.PAGE_VIEW_SESSION_STORAGE_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw) as { pageViewId?: string };
-        if (typeof parsed.pageViewId === 'string') {
-          properties[constants.AMPLITUDE_EVENT_PROP_PAGE_VIEW_ID] = parsed.pageViewId;
-        }
-      }
-    } catch {
-      // ignore storage/JSON errors by not attaching the page view ID
+    const pageViewId = getCurrentPageViewId();
+    if (pageViewId) {
+      properties[constants.AMPLITUDE_EVENT_PROP_PAGE_VIEW_ID] = pageViewId;
     }
 
     // id is never masked, so always include it
