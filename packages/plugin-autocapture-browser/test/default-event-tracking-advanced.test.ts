@@ -1477,7 +1477,8 @@ describe('autoTrackingPlugin', () => {
   describe('Viewport Content Updated Tracking', () => {
     const API_KEY = 'API_KEY';
     const USER_ID = 'USER_ID';
-    let instance: BrowserClient;
+
+    let instance = createMockBrowserClient();
     let track: jest.SpyInstance;
     let loggerProvider: ILogger;
     // eslint-disable-next-line @typescript-eslint/unbound-method
@@ -1502,12 +1503,9 @@ describe('autoTrackingPlugin', () => {
       await instance.init(API_KEY, USER_ID).promise;
       track = jest.spyOn(instance, 'track').mockImplementation(jest.fn());
 
-      plugin = autocapturePlugin({ debounceTime: TESTING_DEBOUNCE_TIME });
     });
 
     afterEach(async () => {
-      await plugin?.teardown?.();
-      jest.restoreAllMocks();
       if (originalPushState) {
         history.pushState = originalPushState;
       }

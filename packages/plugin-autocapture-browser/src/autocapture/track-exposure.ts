@@ -31,10 +31,6 @@ export function trackExposure({
           // Element has been visible for EXPOSURE_TIMEOUT - mark as exposed
           exposureMap.set(element, true);
 
-          // Add border for debugging
-          // @ts-ignore
-          element.style.border = '1px solid red';
-
           // Record the CSS selector path in the shared exposure state
           const elementPath = finder(element);
           onExposure(elementPath);
