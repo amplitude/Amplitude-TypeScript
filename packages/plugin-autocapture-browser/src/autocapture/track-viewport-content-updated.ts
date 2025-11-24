@@ -79,7 +79,7 @@ export function onExposure(
   const exposedArray = Array.from(currentElementExposed);
   const exposedString = JSON.stringify(exposedArray);
 
-  if (exposedString.length >= 18000) {
+  if (exposedString.length >= constants.MAX_ELEMENT_EXPOSED_STR_LENGTH) {
     fireViewportContentUpdatedCallback(false);
   }
 }

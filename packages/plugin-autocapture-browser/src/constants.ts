@@ -54,3 +54,5 @@ export const MAX_ATTRIBUTE_LENGTH = 128;
 
 // The key for the page view object in sessionStorage
 export const PAGE_VIEW_SESSION_STORAGE_KEY = 'AMP_PAGE_VIEW';
+
+export const MAX_ELEMENT_EXPOSED_STR_LENGTH = 18_000;
