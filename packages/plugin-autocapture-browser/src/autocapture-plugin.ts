@@ -40,7 +40,7 @@ import {
 import { DataExtractor } from './data-extractor';
 import { Observable, Unsubscribable } from '@amplitude/analytics-core';
 import { trackExposure } from './autocapture/track-exposure';
-import { fireViewportContentUpdated, onExposure } from './autocapture/track-viewport-content-updated';
+import { fireViewportContentUpdated, onExposure, ExposureTracker } from './autocapture/track-viewport-content-updated';
 
 type NavigationType = {
   addEventListener: (type: string, listener: EventListenerOrEventListenerObject) => void;
@@ -320,13 +320,12 @@ export const autocapturePlugin = (
     });
     subscriptions.push(scrollTracker);
 
-    const trackers: { exposure?: ReturnType<typeof trackExposure> } = {};
+    const trackers: { exposure?: ExposureTracker & Unsubscribable } = {};
 
     const globalScope = getGlobalScope();
 
     const handleViewportContentUpdated = (isPageEnd = true) => {
-      pageViewEndFired = isPageEnd;
-      fireViewportContentUpdated({
+      pageViewEndFired = fireViewportContentUpdated({
         amplitude,
         scrollTracker,
         currentElementExposed,
@@ -349,16 +348,17 @@ export const autocapturePlugin = (
     trackers.exposure = trackExposure({
       allObservables,
       onExposure: handleExposure,
-    });
+    }) ;
     if (trackers.exposure) {
       subscriptions.push(trackers.exposure);
     }
 
+    const beforeUnloadHandler = () => handleViewportContentUpdated(true);
     /* istanbul ignore next */
-    globalScope?.addEventListener('beforeunload', () => handleViewportContentUpdated(true));
+    globalScope?.addEventListener('beforeunload', beforeUnloadHandler);
     beforeUnloadCleanup = () => {
       /* istanbul ignore next */
-      globalScope?.removeEventListener('beforeunload', () => handleViewportContentUpdated(true));
+      globalScope?.removeEventListener('beforeunload', beforeUnloadHandler);
     };
     // Ensure cleanup on teardown as well
     subscriptions.push({ unsubscribe: () => beforeUnloadCleanup?.() });
@@ -373,9 +373,10 @@ export const autocapturePlugin = (
         }),
       );
     } else {
+      const popstateHandler = () => handleViewportContentUpdated(true);
       /* istanbul ignore next */
       // Fallback for SPA tracking when Navigation API is not available
-      globalScope?.addEventListener('popstate', () => handleViewportContentUpdated(true));
+      globalScope?.addEventListener('popstate', popstateHandler);
 
       /* istanbul ignore next */
       // There is no global browser listener for changes to history, so we have
@@ -397,7 +398,7 @@ export const autocapturePlugin = (
       subscriptions.push({
         unsubscribe: () => {
           /* istanbul ignore next */
-          globalScope?.removeEventListener('popstate', () => handleViewportContentUpdated(true));
+          globalScope?.removeEventListener('popstate', popstateHandler);
           /* istanbul ignore next */
           if (globalScope?.history && originalPushState) {
             globalScope.history.pushState = originalPushState;
