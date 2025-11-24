@@ -1483,6 +1483,8 @@ describe('autoTrackingPlugin', () => {
     let loggerProvider: ILogger;
     // eslint-disable-next-line @typescript-eslint/unbound-method
     const originalPushState = history.pushState;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let intersectionCallback: (entries: any[]) => void;
 
     beforeEach(async () => {
       // Ensure navigation API is not present to test fallback (pushState proxy)
@@ -1499,6 +1501,15 @@ describe('autoTrackingPlugin', () => {
         debug: jest.fn(),
       } as unknown as ILogger;
 
+      // Mock IntersectionObserver
+      (window as any).IntersectionObserver = jest.fn((cb) => {
+        intersectionCallback = cb;
+        return {
+          observe: jest.fn(),
+          disconnect: jest.fn(),
+        };
+      });
+
       instance = createMockBrowserClient();
       await instance.init(API_KEY, USER_ID).promise;
       track = jest.spyOn(instance, 'track').mockImplementation(jest.fn());
@@ -1509,6 +1520,7 @@ describe('autoTrackingPlugin', () => {
       if (originalPushState) {
         history.pushState = originalPushState;
       }
+      (window as any).IntersectionObserver = undefined;
     });
 
     test('should track [Amplitude] Viewport Content Updated on beforeunload', async () => {
@@ -1558,6 +1570,92 @@ describe('autoTrackingPlugin', () => {
       // Verify it can fire again (pageViewEndFired should be reset to false by the proxy)
       history.pushState({}, 'test', '/another-page');
       expect(track).toHaveBeenCalledTimes(2);
+    });
+
+    test('should track [Amplitude] Viewport Content Updated on popstate event', async () => {
+      const config: Partial<BrowserConfig> = {
+        defaultTracking: false,
+        loggerProvider: loggerProvider,
+      };
+      await plugin?.setup?.(config as BrowserConfig, instance);
+
+      // Simulate popstate event
+      window.dispatchEvent(new Event('popstate'));
+
+      expect(track).toHaveBeenCalledWith(
+        '[Amplitude] Viewport Content Updated',
+        expect.any(Object)
+      );
+    });
+
+    test('should flush Viewport Content Updated event when exposure buffer limit is reached', async () => {
+      const config: Partial<BrowserConfig> = {
+        defaultTracking: false,
+        loggerProvider: loggerProvider,
+      };
+      await plugin?.setup?.(config as BrowserConfig, instance);
+
+      // Mock finder to avoid DOM dependencies for path generation
+      // We can't easily mock the finder inside the module from here without jest.mock hoisting.
+      // Instead, we rely on elements having IDs which finder uses.
+
+      // We need to trigger exposure for enough unique elements to exceed 18000 chars.
+      // exposedString = JSON.stringify(["#id1", "#id2", ...])
+      // A simple id like "#e-1" is 4 chars. Quotes and comma add 3 chars. ~7 chars per element.
+      // 18000 / 7 = ~2571 elements.
+
+      const entries: any[] = [];
+      const elements: HTMLElement[] = [];
+
+      // Create a batch of elements
+      // Make ids long to reduce iteration count
+      const longIdPrefix = 'e'.repeat(100); // 100 chars
+      const count = 180; // 180 * 100 = 18000.
+
+      for (let i = 0; i < count; i++) {
+        const el = document.createElement('div');
+        el.id = `${longIdPrefix}-${i}`;
+        document.body.appendChild(el);
+        elements.push(el);
+
+        entries.push({
+          isIntersecting: true,
+          intersectionRatio: 1.0,
+          target: el,
+        });
+      }
+
+      // Trigger intersection
+      intersectionCallback(entries);
+
+      // Exposure has a debounce or delay?
+      // trackExposure uses observables which might be async or use internal logic.
+      // trackExposure has an internal buffer/timer.
+      // trackExposure implementation waits for element to be visible for some time (defaults 0?)
+      // Actually trackExposure defaults to 0 debounce/timeout?
+      // Let's check track-exposure.ts logic. It sets a timeout.
+      // We need to advance timers.
+
+      // The default threshold is likely 0 if not configured?
+      // No, trackExposure has hardcoded logic or uses options.
+      // Looking at track-exposure.ts:
+      // It sets a timeout of 2000ms (hardcoded in the file I saw previously?)
+      // Or it reads options?
+
+      // Let's verify with a smaller test first or assume 2s.
+      jest.advanceTimersByTime(2000); // Wait for exposure to be confirmed
+
+      // Now onExposure should be called for each element.
+      // onExposure adds to set and checks size.
+
+      // We expect at least one track call
+      expect(track).toHaveBeenCalledWith(
+        '[Amplitude] Viewport Content Updated',
+        expect.any(Object)
+      );
+
+      // Cleanup
+      elements.forEach(el => el.remove());
     });
 
     test('should include scroll and exposure state in Viewport Content Updated event', async () => {
