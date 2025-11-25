@@ -78,14 +78,7 @@ function setupWindowErrorHandler(): void {
     // Check both execution depth AND error object tagging
     if (isInSDK || isPendingError) {
       // This is an SDK error - report it
-      const errorInfo = buildErrorInfo(
-        event.error,
-        event.message,
-        event.filename,
-        event.lineno,
-        event.colno,
-        tracker.getCurrentContext(),
-      );
+      const errorInfo = buildErrorInfo(event.error, event.message, event.filename, event.lineno, event.colno, null);
       reportSDKError(errorInfo);
 
       // Clean up the error tag
@@ -114,7 +107,7 @@ function setupUnhandledRejectionHandler(): void {
       // This is an SDK error - report it
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       const error = event.reason;
-      const errorInfo = buildErrorInfo(error, undefined, undefined, undefined, undefined, tracker.getCurrentContext());
+      const errorInfo = buildErrorInfo(error, undefined, undefined, undefined, undefined, null);
       reportSDKError(errorInfo);
 
       // Clean up the error tag
