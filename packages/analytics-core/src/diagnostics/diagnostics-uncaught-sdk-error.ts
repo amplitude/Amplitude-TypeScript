@@ -82,19 +82,19 @@ export const getExecutionTracker = () => ({
  * @example
  * ```typescript
  * class AmplitudeBrowser {
- *   @TrackSDKErrors('AmplitudeBrowser.init')
+ *   @DiagnosticsUncaughtError('AmplitudeBrowser.init')
  *   async init(apiKey: string) {
  *     // ... SDK initialization code ...
  *   }
  *
- *   @TrackSDKErrors('AmplitudeBrowser.track')
+ *   @DiagnosticsUncaughtError('AmplitudeBrowser.track')
  *   async track(event: Event) {
  *     // ... SDK tracking code ...
  *   }
  * }
  * ```
  */
-export function TrackSDKErrors(context: string) {
+export function DiagnosticsUncaughtError(context: string) {
   return function <T extends (...args: any[]) => any>(
     _target: any,
     _propertyKey: string,

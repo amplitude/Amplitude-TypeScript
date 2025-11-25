@@ -23,7 +23,7 @@ export { createIdentifyEvent } from './utils/event-builder';
 export { isUrlMatchAllowlist, getDecodeURI } from './utils/url-utils';
 export { generateHashCode, isTimestampInSample } from './utils/sampling';
 export {
-  TrackSDKErrors,
+  DiagnosticsUncaughtError,
   getExecutionTracker,
   isPendingSDKError,
   clearPendingSDKError,

@@ -28,7 +28,7 @@ import {
   RemoteConfig,
   Source,
   DiagnosticsClient,
-  TrackSDKErrors,
+  DiagnosticsUncaughtError,
 } from '@amplitude/analytics-core';
 import {
   getAttributionTrackingConfig,
@@ -100,7 +100,7 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
     return returnWrapper(this._init({ ...options, userId, apiKey }));
   }
 
-  @TrackSDKErrors('AmplitudeBrowser.init')
+  @DiagnosticsUncaughtError('AmplitudeBrowser.init')
   protected async _init(options: BrowserOptions & { apiKey: string }) {
     // Step 1: Block concurrent initialization
     if (this.initializing) {
@@ -498,7 +498,7 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
     return true;
   }
 
-  @TrackSDKErrors('AmplitudeBrowser.process')
+  @DiagnosticsUncaughtError('AmplitudeBrowser.process')
   async process(event: Event) {
     const currentTime = Date.now();
     const isEventInNewSession = isNewSession(this.config.sessionTimeout, this.config.lastEventTime);
