@@ -61,6 +61,7 @@ import {
   generateHashCode,
   isTimestampInSample,
   DiagnosticsClient,
+  DiagnosticsUncaughtError,
 } from '../src/index';
 
 describe('index', () => {
@@ -141,6 +142,7 @@ describe('index', () => {
     expect(typeof generateHashCode).toBe('function');
     expect(typeof isTimestampInSample).toBe('function');
     expect(typeof DiagnosticsClient).toBe('function');
+    expect(typeof DiagnosticsUncaughtError).toBe('function');
   });
 
   describe('replaceSensitiveString export', () => {
