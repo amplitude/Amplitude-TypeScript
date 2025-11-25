@@ -59,7 +59,7 @@ jobs:
       PACKAGE_PATH: packages/${{ github.event.inputs.packageName }}
     strategy:
       matrix:
-        node-version: [18.17.x]
+        node-version: [24.x]
 
     steps:
       # Checkout the repository with full history for version management
