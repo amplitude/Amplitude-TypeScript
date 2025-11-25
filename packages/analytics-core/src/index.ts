@@ -22,14 +22,6 @@ export { UUID } from './utils/uuid';
 export { createIdentifyEvent } from './utils/event-builder';
 export { isUrlMatchAllowlist, getDecodeURI } from './utils/url-utils';
 export { generateHashCode, isTimestampInSample } from './utils/sampling';
-export {
-  DiagnosticsUncaughtError,
-  getExecutionTracker,
-  isPendingSDKError,
-  clearPendingSDKError,
-} from './diagnostics/diagnostics-uncaught-sdk-error-global-tracker';
-
-export { setupAmplitudeErrorTracking } from './diagnostics/diagnostics-uncaught-sdk-error-web-handlers';
 
 export { MemoryStorage } from './storage/memory';
 export { CookieStorage } from './storage/cookie';
@@ -38,6 +30,7 @@ export { getStorageKey } from './storage/helpers';
 export { BrowserStorage } from './storage/browser-storage';
 
 export { DiagnosticsClient, IDiagnosticsClient } from './diagnostics/diagnostics-client';
+export { DiagnosticsUncaughtError } from './diagnostics/diagnostics-uncaught-sdk-error-global-tracker';
 
 export { BaseTransport } from './transports/base';
 export { FetchTransport } from './transports/fetch';
