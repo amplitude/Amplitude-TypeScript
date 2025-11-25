@@ -192,16 +192,3 @@ function reportSDKError(errorInfo: ErrorInfo): void {
     // In production, we don't want error reporting to cause more errors
   }
 }
-
-/**
- * Teardown error tracking (for testing purposes)
- * @internal
- */
-export function _teardownAmplitudeErrorTracking(): void {
-  isSetup = false;
-  diagnosticsClient = null;
-
-  // Note: Event listeners remain attached but will no-op when diagnosticsClient is null.
-  // In a real teardown scenario, you'd want to store listener references and remove them,
-  // but for testing purposes this is acceptable.
-}
