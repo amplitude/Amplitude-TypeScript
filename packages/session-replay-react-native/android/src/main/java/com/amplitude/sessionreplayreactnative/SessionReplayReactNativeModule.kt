@@ -65,12 +65,13 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
       """.trimIndent())
 
       sessionReplay = SessionReplay(
-        apiKey,
-        reactContext.applicationContext,
-        deviceId ?: "",
-        sessionId,
-        logger = LogcatLogger.logger,
+        apiKey = apiKey,
+        context = reactContext.applicationContext,
+        deviceId = deviceId ?: "",
+        sessionId = sessionId,
+        optOut = optOut,
         sampleRate = sampleRate,
+        logger = LogcatLogger.logger,
         enableRemoteConfig = enableRemoteConfig,
         serverZone = when (serverZone) {
           "EU" -> ServerZone.EU
