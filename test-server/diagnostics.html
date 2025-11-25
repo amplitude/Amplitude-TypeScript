@@ -148,6 +148,12 @@
             <strong>Synchronous Error</strong> (❌ NOT caught by diagnostics - outside SDK execution context):
             <pre><code>throw new Error('Synchronous error in event handler');</code></pre>
           </li>
+          <li>
+            <strong>Synchronous Error After Init</strong> (❌ NOT caught by diagnostics - happens when Initialize SDK button is clicked):
+            <pre><code>amplitude.init(apiKey, userId).promise.then(() => { /* ... */ });
+throw new Error('Synchronous error after init');</code></pre>
+            <p>This error is thrown immediately after calling <code>init()</code>, before the promise resolves.</p>
+          </li>
         </ol>
         <p>
           <strong>View Results:</strong> Check DevTools Console for error logs and Application → IndexedDB for
@@ -201,6 +207,8 @@
 
             console.log('=== SDK ready. Check console and IndexedDB for diagnostics. ===');
           });
+        console.log('=== Triggering synchronous error (NOT caught by diagnostics) ===');
+        throw new Error('TEST: Synchronous error in after init');
       });
 
       // Test 1: Add plugin to remove IDs (mimics dropped events)

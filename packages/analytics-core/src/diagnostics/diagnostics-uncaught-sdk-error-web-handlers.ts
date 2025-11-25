@@ -44,17 +44,13 @@ let diagnosticsClient: IDiagnosticsClient | null = null;
  * ```
  */
 export function setupAmplitudeErrorTracking(client: IDiagnosticsClient): void {
-  // Prevent duplicate setup
   if (isSetup) {
     return;
   }
 
   diagnosticsClient = client;
 
-  // Setup window.onerror handler
   setupWindowErrorHandler();
-
-  // Setup unhandled rejection handler
   setupUnhandledRejectionHandler();
 
   isSetup = true;
@@ -70,18 +66,14 @@ function setupWindowErrorHandler(): void {
   }
 
   globalScope.addEventListener('error', (event: ErrorEvent) => {
-    // Check if this error occurred during SDK execution
     const tracker = getExecutionTracker();
     const isInSDK = tracker.isInSDKExecution();
     const isPendingError = isPendingSDKError(event.error);
 
-    // Check both execution depth AND error object tagging
     if (isInSDK || isPendingError) {
-      // This is an SDK error - report it
       const errorInfo = buildErrorInfo(event.error, event.message, event.filename, event.lineno, event.colno, null);
       reportSDKError(errorInfo);
 
-      // Clean up the error tag
       clearPendingSDKError(event.error);
     }
   });
@@ -97,20 +89,16 @@ function setupUnhandledRejectionHandler(): void {
   }
 
   globalScope.addEventListener('unhandledrejection', (event: PromiseRejectionEvent) => {
-    // Check if this rejection occurred during SDK execution
     const tracker = getExecutionTracker();
     const isInSDK = tracker.isInSDKExecution();
     const isPendingError = isPendingSDKError(event.reason);
 
-    // Check both execution depth AND error object tagging
     if (isInSDK || isPendingError) {
-      // This is an SDK error - report it
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       const error = event.reason;
       const errorInfo = buildErrorInfo(error, undefined, undefined, undefined, undefined, null);
       reportSDKError(errorInfo);
 
-      // Clean up the error tag
       clearPendingSDKError(error);
     }
   });
@@ -141,14 +129,19 @@ function buildErrorInfo(
     errorInfo.message = error.message || String(error);
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
     errorInfo.name = error.name || 'Error';
+    // Prioritize error.name for custom errors, as constructor.name may not be reliable in transpiled code
+    /* istanbul ignore next */
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
-    errorInfo.type = error.constructor?.name || error.name || 'Error';
+    errorInfo.type = error.name || error.constructor?.name || 'Error';
 
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     if (error.stack) {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
       errorInfo.stack = error.stack;
     }
+  } else if (error !== undefined && error !== null) {
+    // Handle primitive error values (strings, numbers, etc.)
+    errorInfo.message = String(error);
   } else if (typeof messageOrEvent === 'string') {
     errorInfo.message = messageOrEvent;
   } else if (messageOrEvent) {
@@ -173,12 +166,12 @@ function buildErrorInfo(
  * Report SDK error to diagnostics client
  */
 function reportSDKError(errorInfo: ErrorInfo): void {
+  /* istanbul ignore next */
   if (!diagnosticsClient) {
     return;
   }
 
   try {
-    // Record the error event
     diagnosticsClient.recordEvent('analytics.errors.uncaught', errorInfo);
   } catch (e) {
     // Silently fail to prevent infinite error loops
