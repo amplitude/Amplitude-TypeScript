@@ -27,7 +27,7 @@ export {
   getExecutionTracker,
   isPendingSDKError,
   clearPendingSDKError,
-} from './diagnostics/diagnostics-uncaught-sdk-error';
+} from './diagnostics/diagnostics-uncaught-sdk-error-global-tracker';
 
 export { setupAmplitudeErrorTracking } from './diagnostics/diagnostics-uncaught-sdk-error-web-handlers';
 

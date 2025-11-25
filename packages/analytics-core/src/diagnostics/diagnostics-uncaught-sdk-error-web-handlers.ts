@@ -5,7 +5,11 @@
  * Integrates with the Diagnostics Client to report SDK errors for monitoring and debugging.
  */
 
-import { getExecutionTracker, isPendingSDKError, clearPendingSDKError } from './diagnostics-uncaught-sdk-error';
+import {
+  getExecutionTracker,
+  isPendingSDKError,
+  clearPendingSDKError,
+} from './diagnostics-uncaught-sdk-error-global-tracker';
 import { getGlobalScope } from '../global-scope';
 import { IDiagnosticsClient } from './diagnostics-client';
 
