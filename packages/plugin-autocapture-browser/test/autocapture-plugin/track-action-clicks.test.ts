@@ -175,6 +175,7 @@ describe('action clicks:', () => {
         ],
         '[Amplitude] Element ID': 'addDivButton',
         '[Amplitude] Element Parent Label': 'Card Title',
+        '[Amplitude] Element Path': 'div#addDivButton',
         '[Amplitude] Element Position Left': 0,
         '[Amplitude] Element Position Top': 0,
         '[Amplitude] Element Tag': 'div',
@@ -200,7 +201,7 @@ describe('action clicks:', () => {
           '[Amplitude] Element ID': 'real-button',
           '[Amplitude] Element Tag': 'button',
           '[Amplitude] Element Text': 'Click me',
-        }),
+      }),
       );
     });
 
