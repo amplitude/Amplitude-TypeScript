@@ -2,7 +2,11 @@ import { autocapturePlugin } from '../../src/autocapture-plugin';
 import { BrowserClient, BrowserConfig, ILogger } from '@amplitude/analytics-core';
 import { createMockBrowserClient } from '../mock-browser-client';
 import { trackExposure } from '../../src/autocapture/track-exposure';
-import { fireViewportContentUpdated } from '../../src/autocapture/track-viewport-content-updated';
+import {
+  fireViewportContentUpdated,
+  ScrollTracker,
+  ExposureTracker,
+} from '../../src/autocapture/track-viewport-content-updated';
 import * as constants from '../../src/constants';
 
 // Mock trackExposure to capture onExposure callback
@@ -155,5 +159,137 @@ describe('autocapturePlugin - Viewport Content Updated (Exposure)', () => {
         '[Amplitude] Page View ID': 'pv-test-123',
       }),
     );
+  });
+
+  test('should not include page view ID when sessionStorage contains invalid JSON', async () => {
+    window.sessionStorage.setItem(constants.PAGE_VIEW_SESSION_STORAGE_KEY, 'invalid-json{not-valid');
+
+    onExposureCallback('element-1');
+    window.dispatchEvent(new Event('beforeunload'));
+
+    expect(track).toHaveBeenCalledWith(
+      '[Amplitude] Viewport Content Updated',
+      expect.objectContaining({
+        '[Amplitude] Element Exposed': ['element-1'],
+      }),
+    );
+
+    // Verify Page View ID is NOT in the event properties
+    const trackCall = track.mock.calls[0];
+    expect(trackCall[1]).not.toHaveProperty('[Amplitude] Page View ID');
+  });
+
+  test('should call handleViewportContentUpdated with isPageEnd=true on beforeunload', async () => {
+    onExposureCallback('element-1');
+    window.dispatchEvent(new Event('beforeunload'));
+
+    expect(fireViewportContentUpdatedMock).toHaveBeenCalledTimes(1);
+    expect(fireViewportContentUpdatedMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        isPageEnd: true,
+      }),
+    );
+  });
+
+  test('should call handleViewportContentUpdated with isPageEnd=false when exposure exceeds 18k chars', async () => {
+    // Add a very large element path to exceed 18k chars
+    const largeString = 'a'.repeat(19000);
+    onExposureCallback(largeString);
+
+    expect(fireViewportContentUpdatedMock).toHaveBeenCalledTimes(1);
+    expect(fireViewportContentUpdatedMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        isPageEnd: false,
+      }),
+    );
+  });
+});
+
+describe('fireViewportContentUpdated - exposureTracker optional chaining', () => {
+  let mockAmplitude: BrowserClient;
+  let mockScrollTracker: ScrollTracker;
+
+  beforeEach(async () => {
+    mockAmplitude = createMockBrowserClient();
+    await mockAmplitude.init('API_KEY', 'USER_ID').promise;
+    jest.spyOn(mockAmplitude, 'track').mockImplementation(jest.fn());
+
+    mockScrollTracker = {
+      getState: jest.fn().mockReturnValue({ maxX: 100, maxY: 200 }),
+      reset: jest.fn(),
+    };
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  test('should handle undefined exposureTracker gracefully when isPageEnd is true', () => {
+    const currentElementExposed = new Set<string>(['element-1']);
+    const elementExposedForPage = new Set<string>(['element-1']);
+
+    // Call with exposureTracker as undefined and isPageEnd as true
+    expect(() => {
+      fireViewportContentUpdated({
+        amplitude: mockAmplitude,
+        scrollTracker: mockScrollTracker,
+        currentElementExposed,
+        elementExposedForPage,
+        exposureTracker: undefined,
+        isPageEnd: true,
+        pageViewEndFired: false,
+      });
+    }).not.toThrow();
+
+    // Verify scrollTracker.reset was still called
+    expect(mockScrollTracker.reset).toHaveBeenCalled();
+    // Verify elementExposedForPage was cleared
+    expect(elementExposedForPage.size).toBe(0);
+  });
+
+  test('should call exposureTracker.reset when exposureTracker is defined and isPageEnd is true', () => {
+    const currentElementExposed = new Set<string>(['element-1']);
+    const elementExposedForPage = new Set<string>(['element-1']);
+    const mockExposureTracker: ExposureTracker = {
+      reset: jest.fn(),
+    };
+
+    fireViewportContentUpdated({
+      amplitude: mockAmplitude,
+      scrollTracker: mockScrollTracker,
+      currentElementExposed,
+      elementExposedForPage,
+      exposureTracker: mockExposureTracker,
+      isPageEnd: true,
+      pageViewEndFired: false,
+    });
+
+    // Verify exposureTracker.reset was called
+    expect(mockExposureTracker.reset).toHaveBeenCalled();
+    // Verify scrollTracker.reset was also called
+    expect(mockScrollTracker.reset).toHaveBeenCalled();
+  });
+
+  test('should not call exposureTracker.reset when isPageEnd is false', () => {
+    const currentElementExposed = new Set<string>(['element-1']);
+    const elementExposedForPage = new Set<string>(['element-1']);
+    const mockExposureTracker: ExposureTracker = {
+      reset: jest.fn(),
+    };
+
+    fireViewportContentUpdated({
+      amplitude: mockAmplitude,
+      scrollTracker: mockScrollTracker,
+      currentElementExposed,
+      elementExposedForPage,
+      exposureTracker: mockExposureTracker,
+      isPageEnd: false,
+      pageViewEndFired: false,
+    });
+
+    // Verify exposureTracker.reset was NOT called
+    expect(mockExposureTracker.reset).not.toHaveBeenCalled();
+    // Verify scrollTracker.reset was also NOT called
+    expect(mockScrollTracker.reset).not.toHaveBeenCalled();
   });
 });

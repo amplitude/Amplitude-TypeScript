@@ -1,10 +1,5 @@
 /* eslint-disable no-restricted-globals */
-import {
-  ElementInteractionsOptions,
-  ActionType,
-  isUrlMatchAllowlist,
-  getGlobalScope,
-} from '@amplitude/analytics-core';
+import { ElementInteractionsOptions, ActionType, isUrlMatchAllowlist, getGlobalScope } from '@amplitude/analytics-core';
 import * as constants from './constants';
 
 export type JSONValue = string | number | boolean | null | { [x: string]: JSONValue } | Array<JSONValue>;
@@ -166,6 +161,7 @@ export const removeEmptyProperties = (properties: { [key: string]: unknown }): {
 export const getCurrentPageViewId = (): string | undefined => {
   try {
     const globalScope = getGlobalScope();
+    /* istanbul ignore next */
     const raw = globalScope?.sessionStorage?.getItem(constants.PAGE_VIEW_SESSION_STORAGE_KEY);
     if (!raw) {
       return undefined;

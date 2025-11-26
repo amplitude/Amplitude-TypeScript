@@ -1,3 +1,5 @@
+/* istanbul ignore file */
+
 // Code is adapted from The Chromium Authors.
 // Source: https://github.com/ChromeDevTools/devtools-frontend/blob/main/front_end/panels/elements/DOMPath.ts#L14
 // License: BSD-style license
