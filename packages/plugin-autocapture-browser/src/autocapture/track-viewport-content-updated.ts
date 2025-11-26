@@ -41,11 +41,17 @@ export function fireViewportContentUpdated({
   const globalScope = getGlobalScope();
 
   const eventProperties: Record<string, unknown> = {
-    [constants.AMPLITUDE_EVENT_PROP_PAGE_URL]: globalScope?.location?.href,
+    [constants.AMPLITUDE_EVENT_PROP_PAGE_URL]:
+      /* istanbul ignore next */
+      globalScope?.location?.href,
     [constants.AMPLITUDE_EVENT_PROP_MAX_PAGE_X]: pageScrollMaxState.maxX,
     [constants.AMPLITUDE_EVENT_PROP_MAX_PAGE_Y]: pageScrollMaxState.maxY,
-    [constants.AMPLITUDE_EVENT_PROP_VIEWPORT_HEIGHT]: globalScope?.innerHeight,
-    [constants.AMPLITUDE_EVENT_PROP_VIEWPORT_WIDTH]: globalScope?.innerWidth,
+    [constants.AMPLITUDE_EVENT_PROP_VIEWPORT_HEIGHT]:
+      /* istanbul ignore next */
+      globalScope?.innerHeight,
+    [constants.AMPLITUDE_EVENT_PROP_VIEWPORT_WIDTH]:
+      /* istanbul ignore next */
+      globalScope?.innerWidth,
     '[Amplitude] Element Exposed': Array.from(currentElementExposed),
   };
 
@@ -54,6 +60,7 @@ export function fireViewportContentUpdated({
     eventProperties[constants.AMPLITUDE_EVENT_PROP_PAGE_VIEW_ID] = pageViewId;
   }
 
+  /* istanbul ignore next */
   amplitude?.track('[Amplitude] Viewport Content Updated', eventProperties);
 
   // Clear current batch

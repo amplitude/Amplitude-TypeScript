@@ -324,7 +324,7 @@ export const autocapturePlugin = (
 
     const globalScope = getGlobalScope();
 
-    const handleViewportContentUpdated = (isPageEnd = true) => {
+    const handleViewportContentUpdated = (isPageEnd: boolean) => {
       pageViewEndFired = fireViewportContentUpdated({
         amplitude,
         scrollTracker,
