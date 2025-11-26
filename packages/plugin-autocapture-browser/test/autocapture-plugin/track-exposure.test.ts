@@ -2,13 +2,6 @@ import { trackExposure } from '../../src/autocapture/track-exposure';
 import { AllWindowObservables, ObservablesEnum } from '../../src/autocapture-plugin';
 import { DataExtractor } from '../../src';
 
-// Mock finder to avoid DOM complexity dependencies
-jest.mock('../../src/libs/finder', () => ({
-  finder: (element: Element) => {
-    return element.id ? `#${element.id}` : element.tagName.toLowerCase();
-  },
-}));
-
 describe('trackExposure', () => {
   let exposureObservable: any;
   let allObservables: AllWindowObservables;
@@ -74,7 +67,7 @@ describe('trackExposure', () => {
     // Fast forward 2 seconds
     jest.advanceTimersByTime(2000);
 
-    expect(onExposure).toHaveBeenCalledWith('#test-div');
+    expect(onExposure).toHaveBeenCalledWith('div#test-div');
   });
 
   test('should not mark element as exposed if it becomes invisible before 2 seconds', () => {
@@ -114,7 +107,7 @@ describe('trackExposure', () => {
     });
 
     jest.advanceTimersByTime(2000);
-    expect(onExposure).toHaveBeenCalledWith('#test-div-repeat');
+    expect(onExposure).toHaveBeenCalledWith('div#test-div-repeat');
     expect(setTimeoutSpy).toHaveBeenCalledTimes(1);
 
     // Reset spy
@@ -161,12 +154,12 @@ describe('trackExposure', () => {
 
     // Element 1 finishes
     jest.advanceTimersByTime(1000);
-    expect(onExposure).toHaveBeenCalledWith('#div-1');
-    expect(onExposure).not.toHaveBeenCalledWith('#div-2');
+    expect(onExposure).toHaveBeenCalledWith('div#div-1');
+    expect(onExposure).not.toHaveBeenCalledWith('div#div-2');
 
     // Element 2 finishes
     jest.advanceTimersByTime(1000);
-    expect(onExposure).toHaveBeenCalledWith('#div-2');
+    expect(onExposure).toHaveBeenCalledWith('div#div-2');
   });
 
   test('should clear timer when element leaves viewport (intersection check)', () => {
@@ -208,7 +201,7 @@ describe('trackExposure', () => {
       intersectionRatio: 1.0,
     });
     jest.advanceTimersByTime(2000);
-    expect(onExposure).toHaveBeenCalledWith('#reset-div-2');
+    expect(onExposure).toHaveBeenCalledWith('div#reset-div-2');
     onExposure.mockClear();
 
     // Start element 1 exposure (will be pending)
@@ -226,7 +219,7 @@ describe('trackExposure', () => {
 
     // Fast forward to see if pending timer fires (should not)
     jest.advanceTimersByTime(2000);
-    expect(onExposure).not.toHaveBeenCalledWith('#reset-div-1');
+    expect(onExposure).not.toHaveBeenCalledWith('div#reset-div-1');
 
     // Re-expose element 2 (should work again because map was cleared)
     triggerExposure({
@@ -235,6 +228,6 @@ describe('trackExposure', () => {
       intersectionRatio: 1.0,
     });
     jest.advanceTimersByTime(2000);
-    expect(onExposure).toHaveBeenCalledWith('#reset-div-2');
+    expect(onExposure).toHaveBeenCalledWith('div#reset-div-2');
   });
 });
