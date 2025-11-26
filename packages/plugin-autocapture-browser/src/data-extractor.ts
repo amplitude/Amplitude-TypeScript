@@ -128,7 +128,10 @@ export class DataExtractor {
     return this.getNearestLabel(parent);
   };
 
-  getElementPath = (element: Element): string => {
+  getElementPath = (element: Element | null): string => {
+    if (!element) {
+      return '';
+    }
     const startTime = performance.now();
 
     const elementPath = cssPath(element);

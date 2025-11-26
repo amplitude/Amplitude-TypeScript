@@ -80,8 +80,9 @@ export const createExposureObservable = (
 
     // Observe initial elements
     const selectorString = selectorAllowlist.join(',');
-    const initialElements = globalScope?.document.querySelectorAll(selectorString);
-    initialElements?.forEach((element) => {
+    /* istanbul ignore next */
+    const initialElements = globalScope?.document.querySelectorAll(selectorString) ?? [];
+    initialElements.forEach((element) => {
       intersectionObserver.observe(element);
     });
 

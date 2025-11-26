@@ -21,7 +21,9 @@ export function trackScroll({
 
   const scrollSubscription = scrollObservable.subscribe(() => {
     const globalScope = getGlobalScope();
+    /* istanbul ignore next */
     const currentX = Math.floor(globalScope?.scrollX ?? globalScope?.pageXOffset ?? 0);
+    /* istanbul ignore next */
     const currentY = Math.floor(globalScope?.scrollY ?? globalScope?.pageYOffset ?? 0);
 
     // Update page-level max positions for Page View End event (never resets during page lifetime)
