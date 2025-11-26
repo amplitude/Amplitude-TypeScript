@@ -201,7 +201,7 @@ describe('action clicks:', () => {
           '[Amplitude] Element ID': 'real-button',
           '[Amplitude] Element Tag': 'button',
           '[Amplitude] Element Text': 'Click me',
-      }),
+        }),
       );
     });
 
