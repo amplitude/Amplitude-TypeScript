@@ -1,0 +1,26 @@
+{
+  "name": "react-module-playground",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "buildSDK": "cd ../.. && yarn build",
+    "dev": "vite",
+    "dev:with-sdk": "yarn buildSDK && yarn dev",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@amplitude/analytics-browser": "file:../..",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.21",
+    "@types/react-dom": "^18.2.7",
+    "@vitejs/plugin-react": "^4.0.3",
+    "typescript": "^5.2.2",
+    "vite": "^5.0.0"
+  }
+}
+

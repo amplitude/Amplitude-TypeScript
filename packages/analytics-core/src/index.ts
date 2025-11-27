@@ -30,6 +30,7 @@ export { getStorageKey } from './storage/helpers';
 export { BrowserStorage } from './storage/browser-storage';
 
 export { DiagnosticsClient, IDiagnosticsClient } from './diagnostics/diagnostics-client';
+export { registerSdkLoaderMetadata } from './diagnostics/sdk-error-listener';
 
 export { BaseTransport } from './transports/base';
 export { FetchTransport } from './transports/fetch';

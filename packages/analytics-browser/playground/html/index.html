@@ -7,10 +7,6 @@
     <title>Amplitude SDK Playground</title>
   </head>
   <script src="./amplitude.js"></script>
-	
-  <script>
-    amplitude.init('API_KEY', 'playground.user@amplitude.com');
-  </script>
   <body>
     <h1>Amplitude SDK Playground</h1>
     <p>This playground has Amplitude SDK script loaded, initialized, and available as <code>amplitude</code>.</p>
@@ -20,5 +16,57 @@
       <li>Go to Console tab</li>
       <li>Play with the SDK</li>
     </ul>
+    <section>
+      <h2>Self-Diagnostics Demo</h2>
+      <p>Use the buttons below to trigger different error sources.</p>
+      <button id="trigger-sdk-error">Trigger simulated SDK error</button>
+      <button id="trigger-app-error">Trigger app error</button>
+      <pre id="diagnostics-log"></pre>
+    </section>
+    <script>
+      const logEl = document.getElementById('diagnostics-log');
+
+      const log = (message) => {
+        if (!logEl) {
+          return;
+        }
+        const timestamp = new Date().toISOString();
+        logEl.textContent = `[${timestamp}] ${message}\n` + logEl.textContent;
+      };
+
+      const createFailingPlugin = () => ({
+        name: 'playground-failing-plugin',
+        type: 'before',
+        async setup() {
+          log('Failing plugin setup invoked. Throwing error to simulate SDK failure.');
+          throw new Error('Playground plugin setup error');
+        },
+        async execute(event) {
+          return event;
+        },
+      });
+
+      document.getElementById('trigger-sdk-error')?.addEventListener('click', () => {
+        log('Registering failing plugin (should produce SDK-side unhandled error).');
+        amplitude.add(createFailingPlugin());
+      });
+
+      document.getElementById('trigger-app-error')?.addEventListener('click', () => {
+        log('Throwing app-level error');
+        throw new Error('Application crash');
+      });
+
+      window.addEventListener('error', (event) => {
+        log(`[window.error] ${event.message} (${event.filename || 'unknown source'})`);
+      });
+
+      window.addEventListener('unhandledrejection', (event) => {
+        log(`[unhandledrejection] ${event.reason}`);
+      });
+    </script>
+
+    <script>
+    amplitude.init('5b9a9510e261f9ead90865bbc5a7ad1d', 'playground.user@amplitude.com');
+    </script>
   </body>
 </html>
