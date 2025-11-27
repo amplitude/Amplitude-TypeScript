@@ -5,21 +5,14 @@
  * Integrates with the Diagnostics Client to report SDK errors for monitoring and debugging.
  */
 
-import {
-  getExecutionTracker,
-  isPendingSDKError,
-  clearPendingSDKError,
-} from './diagnostics-uncaught-sdk-error-global-tracker';
+import { isPendingSDKError, clearPendingSDKError } from './diagnostics-uncaught-sdk-error-global-tracker';
 import { getGlobalScope } from '../global-scope';
 import { IDiagnosticsClient } from './diagnostics-client';
 
 interface ErrorInfo {
   message: string;
   name: string;
-  type: string;
   stack?: string;
-  detection_method: 'execution_tracking';
-  execution_context: string | null;
   error_location?: string;
   error_line?: number;
   error_column?: number;
@@ -66,14 +59,9 @@ function setupWindowErrorHandler(): void {
   }
 
   globalScope.addEventListener('error', (event: ErrorEvent) => {
-    const tracker = getExecutionTracker();
-    const isInSDK = tracker.isInSDKExecution();
-    const isPendingError = isPendingSDKError(event.error);
-
-    if (isInSDK || isPendingError) {
-      const errorInfo = buildErrorInfo(event.error, event.message, event.filename, event.lineno, event.colno, null);
+    if (isPendingSDKError(event.error)) {
+      const errorInfo = buildErrorInfo(event.error, event.message, event.filename, event.lineno, event.colno);
       reportSDKError(errorInfo);
-
       clearPendingSDKError(event.error);
     }
   });
@@ -89,16 +77,11 @@ function setupUnhandledRejectionHandler(): void {
   }
 
   globalScope.addEventListener('unhandledrejection', (event: PromiseRejectionEvent) => {
-    const tracker = getExecutionTracker();
-    const isInSDK = tracker.isInSDKExecution();
-    const isPendingError = isPendingSDKError(event.reason);
-
-    if (isInSDK || isPendingError) {
+    if (isPendingSDKError(event.reason)) {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       const error = event.reason;
-      const errorInfo = buildErrorInfo(error, undefined, undefined, undefined, undefined, null);
+      const errorInfo = buildErrorInfo(error);
       reportSDKError(errorInfo);
-
       clearPendingSDKError(error);
     }
   });
@@ -113,26 +96,19 @@ function buildErrorInfo(
   source?: string,
   lineno?: number,
   colno?: number,
-  executionContext?: string | null,
 ): ErrorInfo {
   const errorInfo: ErrorInfo = {
     message: '',
     name: 'Error',
-    type: 'Error',
-    detection_method: 'execution_tracking',
-    execution_context: executionContext || null,
   };
 
   // Extract error details
+  /* istanbul ignore next*/
   if (error && typeof error === 'object') {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
     errorInfo.message = error.message || String(error);
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
     errorInfo.name = error.name || 'Error';
-    // Prioritize error.name for custom errors, as constructor.name may not be reliable in transpiled code
-    /* istanbul ignore next */
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
-    errorInfo.type = error.name || error.constructor?.name || 'Error';
 
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     if (error.stack) {
@@ -142,8 +118,6 @@ function buildErrorInfo(
   } else if (error !== undefined && error !== null) {
     // Handle primitive error values (strings, numbers, etc.)
     errorInfo.message = String(error);
-  } else if (typeof messageOrEvent === 'string') {
-    errorInfo.message = messageOrEvent;
   } else if (messageOrEvent) {
     errorInfo.message = String(messageOrEvent);
   }

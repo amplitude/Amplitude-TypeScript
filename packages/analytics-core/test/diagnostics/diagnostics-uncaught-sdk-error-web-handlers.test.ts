@@ -4,11 +4,11 @@ import { IDiagnosticsClient } from '../../src/diagnostics/diagnostics-client';
 jest.mock('../../src/global-scope');
 
 describe('diagnostics-uncaught-sdk-error-web-handlers', () => {
-  let setupAmplitudeErrorTracking: any;
-  let getGlobalScope: any;
-  let globalTracker: any;
+  let setupAmplitudeErrorTracking: typeof import('../../src/diagnostics/diagnostics-uncaught-sdk-error-web-handlers').setupAmplitudeErrorTracking;
+  let getGlobalScope: jest.Mock;
+  let globalTracker: typeof import('../../src/diagnostics/diagnostics-uncaught-sdk-error-global-tracker');
   let mockClient: IDiagnosticsClient;
-  let mockGlobalScope: any;
+  let mockGlobalScope: { addEventListener: jest.Mock };
   let errorListener: ((event: ErrorEvent) => void) | null = null;
   let rejectionListener: ((event: PromiseRejectionEvent) => void) | null = null;
 
@@ -43,15 +43,15 @@ describe('diagnostics-uncaught-sdk-error-web-handlers', () => {
     errorListener = null;
     rejectionListener = null;
     mockGlobalScope = {
-      addEventListener: jest.fn((event: string, listener: any) => {
+      addEventListener: jest.fn((event: string, listener: (event: ErrorEvent | PromiseRejectionEvent) => void) => {
         if (event === 'error') {
-          errorListener = listener;
+          errorListener = listener as (event: ErrorEvent) => void;
         } else if (event === 'unhandledrejection') {
-          rejectionListener = listener;
+          rejectionListener = listener as (event: PromiseRejectionEvent) => void;
         }
       }),
     };
-    (getGlobalScope as jest.Mock).mockReturnValue(mockGlobalScope);
+    getGlobalScope.mockReturnValue(mockGlobalScope);
   });
 
   describe('setupAmplitudeErrorTracking', () => {
@@ -74,7 +74,7 @@ describe('diagnostics-uncaught-sdk-error-web-handlers', () => {
     });
 
     test('should handle missing global scope', () => {
-      (getGlobalScope as jest.Mock).mockReturnValue(null);
+      getGlobalScope.mockReturnValue(null);
 
       setupAmplitudeErrorTracking(mockClient);
 
@@ -84,13 +84,11 @@ describe('diagnostics-uncaught-sdk-error-web-handlers', () => {
   });
 
   describe('error handler (window.onerror)', () => {
-    let getExecutionTrackerSpy: jest.SpyInstance;
     let isPendingSDKErrorSpy: jest.SpyInstance;
     let clearPendingSDKErrorSpy: jest.SpyInstance;
 
     beforeEach(() => {
       // Setup spies BEFORE calling setupAmplitudeErrorTracking
-      getExecutionTrackerSpy = jest.spyOn(globalTracker, 'getExecutionTracker');
       isPendingSDKErrorSpy = jest.spyOn(globalTracker, 'isPendingSDKError');
       clearPendingSDKErrorSpy = jest.spyOn(globalTracker, 'clearPendingSDKError');
 
@@ -102,20 +100,13 @@ describe('diagnostics-uncaught-sdk-error-web-handlers', () => {
       jest.restoreAllMocks();
     });
 
-    test('should report errors during SDK execution', () => {
-      const mockTracker = {
-        enter: jest.fn(),
-        exit: jest.fn(),
-        isInSDKExecution: jest.fn().mockReturnValue(true),
-        getDepth: jest.fn().mockReturnValue(1),
-      };
-      getExecutionTrackerSpy.mockReturnValue(mockTracker);
-      isPendingSDKErrorSpy.mockReturnValue(false);
+    test('should report pending SDK errors', () => {
+      isPendingSDKErrorSpy.mockReturnValue(true);
 
-      const error = new Error('Test error during SDK execution');
+      const error = new Error('Test SDK error');
       const errorEvent = {
         error,
-        message: 'Test error during SDK execution',
+        message: 'Test SDK error',
         filename: 'test.js',
         lineno: 10,
         colno: 5,
@@ -126,12 +117,9 @@ describe('diagnostics-uncaught-sdk-error-web-handlers', () => {
 
       // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockClient.recordEvent).toHaveBeenCalledWith('analytics.errors.uncaught', {
-        message: 'Test error during SDK execution',
+        message: 'Test SDK error',
         name: 'Error',
-        type: 'Error',
         stack: expect.any(String),
-        detection_method: 'execution_tracking',
-        execution_context: null,
         error_location: 'test.js',
         error_line: 10,
         error_column: 5,
@@ -139,51 +127,7 @@ describe('diagnostics-uncaught-sdk-error-web-handlers', () => {
       expect(clearPendingSDKErrorSpy).toHaveBeenCalledWith(error);
     });
 
-    test('should report pending SDK errors even outside execution context', () => {
-      const mockTracker = {
-        enter: jest.fn(),
-        exit: jest.fn(),
-        isInSDKExecution: jest.fn().mockReturnValue(false),
-        getDepth: jest.fn().mockReturnValue(0),
-      };
-      getExecutionTrackerSpy.mockReturnValue(mockTracker);
-      isPendingSDKErrorSpy.mockReturnValue(true);
-
-      const error = new Error('Pending SDK error');
-      const errorEvent = {
-        error,
-        message: 'Pending SDK error',
-        filename: 'async.js',
-        lineno: 20,
-        colno: 8,
-      } as ErrorEvent;
-
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      errorListener!(errorEvent);
-
-      // eslint-disable-next-line @typescript-eslint/unbound-method
-      expect(mockClient.recordEvent).toHaveBeenCalledWith('analytics.errors.uncaught', {
-        message: 'Pending SDK error',
-        name: 'Error',
-        type: 'Error',
-        stack: expect.any(String),
-        detection_method: 'execution_tracking',
-        execution_context: null,
-        error_location: 'async.js',
-        error_line: 20,
-        error_column: 8,
-      });
-      expect(clearPendingSDKErrorSpy).toHaveBeenCalledWith(error);
-    });
-
-    test('should not report errors outside SDK execution', () => {
-      const mockTracker = {
-        enter: jest.fn(),
-        exit: jest.fn(),
-        isInSDKExecution: jest.fn().mockReturnValue(false),
-        getDepth: jest.fn().mockReturnValue(0),
-      };
-      getExecutionTrackerSpy.mockReturnValue(mockTracker);
+    test('should not report non-SDK errors', () => {
       isPendingSDKErrorSpy.mockReturnValue(false);
 
       const error = new Error('Non-SDK error');
@@ -204,14 +148,7 @@ describe('diagnostics-uncaught-sdk-error-web-handlers', () => {
     });
 
     test('should handle error with custom error type', () => {
-      const mockTracker = {
-        isInSDKExecution: jest.fn().mockReturnValue(true),
-        enter: jest.fn(),
-        exit: jest.fn(),
-        getDepth: jest.fn(),
-      };
-      getExecutionTrackerSpy.mockReturnValue(mockTracker);
-      isPendingSDKErrorSpy.mockReturnValue(false);
+      isPendingSDKErrorSpy.mockReturnValue(true);
 
       class CustomError extends Error {
         constructor(message: string) {
@@ -236,24 +173,15 @@ describe('diagnostics-uncaught-sdk-error-web-handlers', () => {
       expect(mockClient.recordEvent).toHaveBeenCalledWith('analytics.errors.uncaught', {
         message: 'Custom error message',
         name: 'CustomError',
-        type: 'CustomError',
         stack: expect.any(String),
-        detection_method: 'execution_tracking',
-        execution_context: null,
         error_location: 'custom.js',
         error_line: 15,
         error_column: 20,
       });
     });
 
-    test('should handle error without stack trace', () => {
-      const mockTracker = {
-        isInSDKExecution: jest.fn().mockReturnValue(true),
-        enter: jest.fn(),
-        exit: jest.fn(),
-        getDepth: jest.fn(),
-      };
-      getExecutionTrackerSpy.mockReturnValue(mockTracker);
+    test('should not report null errors (not pending SDK errors)', () => {
+      // null errors can't be in the WeakSet, so isPendingSDKError returns false
       isPendingSDKErrorSpy.mockReturnValue(false);
 
       const errorEvent = {
@@ -268,94 +196,32 @@ describe('diagnostics-uncaught-sdk-error-web-handlers', () => {
       errorListener!(errorEvent);
 
       // eslint-disable-next-line @typescript-eslint/unbound-method
-      expect(mockClient.recordEvent).toHaveBeenCalledWith('analytics.errors.uncaught', {
-        message: 'String error message',
-        name: 'Error',
-        type: 'Error',
-        detection_method: 'execution_tracking',
-        execution_context: null,
-        error_location: 'nostack.js',
-        error_line: 5,
-        error_column: 10,
-      });
+      expect(mockClient.recordEvent).not.toHaveBeenCalled();
     });
 
-    test('should handle error with object without message', () => {
-      const mockTracker = {
-        isInSDKExecution: jest.fn().mockReturnValue(true),
-        enter: jest.fn(),
-        exit: jest.fn(),
-        getDepth: jest.fn(),
-      };
-      getExecutionTrackerSpy.mockReturnValue(mockTracker);
-      isPendingSDKErrorSpy.mockReturnValue(false);
+    test('should handle error without location information', () => {
+      isPendingSDKErrorSpy.mockReturnValue(true);
 
-      const errorObj = { custom: 'error' };
+      const error = new Error('No location');
       const errorEvent = {
-        error: errorObj,
-        message: 'Object error',
-        filename: 'object.js',
-        lineno: 30,
-        colno: 15,
-      } as unknown as ErrorEvent;
+        error,
+        message: 'No location',
+      } as ErrorEvent;
 
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       errorListener!(errorEvent);
 
       // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockClient.recordEvent).toHaveBeenCalledWith('analytics.errors.uncaught', {
-        message: '[object Object]',
+        message: 'No location',
         name: 'Error',
-        type: 'Object',
-        detection_method: 'execution_tracking',
-        execution_context: null,
-        error_location: 'object.js',
-        error_line: 30,
-        error_column: 15,
+        stack: expect.any(String),
+        // Note: no error_location, error_line, error_column
       });
-    });
-
-    test('should handle Event object as message parameter', () => {
-      const mockTracker = {
-        isInSDKExecution: jest.fn().mockReturnValue(true),
-        enter: jest.fn(),
-        exit: jest.fn(),
-        getDepth: jest.fn(),
-      };
-      getExecutionTrackerSpy.mockReturnValue(mockTracker);
-      isPendingSDKErrorSpy.mockReturnValue(false);
-
-      const mockEvent = { type: 'error', target: {} };
-      const errorEvent = {
-        error: null,
-        message: mockEvent,
-        filename: 'event.js',
-        lineno: 25,
-        colno: 12,
-      } as unknown as ErrorEvent;
-
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      errorListener!(errorEvent);
-
-      // eslint-disable-next-line @typescript-eslint/unbound-method
-      expect(mockClient.recordEvent).toHaveBeenCalledWith(
-        'analytics.errors.uncaught',
-        expect.objectContaining({
-          message: '[object Object]',
-          detection_method: 'execution_tracking',
-        }),
-      );
     });
 
     test('should silently fail if recordEvent throws', () => {
-      const mockTracker = {
-        isInSDKExecution: jest.fn().mockReturnValue(true),
-        enter: jest.fn(),
-        exit: jest.fn(),
-        getDepth: jest.fn(),
-      };
-      getExecutionTrackerSpy.mockReturnValue(mockTracker);
-      isPendingSDKErrorSpy.mockReturnValue(false);
+      isPendingSDKErrorSpy.mockReturnValue(true);
 
       (mockClient.recordEvent as jest.Mock).mockImplementation(() => {
         throw new Error('RecordEvent failed');
@@ -374,47 +240,14 @@ describe('diagnostics-uncaught-sdk-error-web-handlers', () => {
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       expect(() => errorListener!(errorEvent)).not.toThrow();
     });
-
-    test('should handle error without location information', () => {
-      const mockTracker = {
-        isInSDKExecution: jest.fn().mockReturnValue(true),
-        enter: jest.fn(),
-        exit: jest.fn(),
-        getDepth: jest.fn(),
-      };
-      getExecutionTrackerSpy.mockReturnValue(mockTracker);
-      isPendingSDKErrorSpy.mockReturnValue(false);
-
-      const error = new Error('No location');
-      const errorEvent = {
-        error,
-        message: 'No location',
-      } as ErrorEvent;
-
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      errorListener!(errorEvent);
-
-      // eslint-disable-next-line @typescript-eslint/unbound-method
-      expect(mockClient.recordEvent).toHaveBeenCalledWith('analytics.errors.uncaught', {
-        message: 'No location',
-        name: 'Error',
-        type: 'Error',
-        stack: expect.any(String),
-        detection_method: 'execution_tracking',
-        execution_context: null,
-        // Note: no error_location, error_line, error_column
-      });
-    });
   });
 
   describe('unhandled rejection handler', () => {
-    let getExecutionTrackerSpy: jest.SpyInstance;
     let isPendingSDKErrorSpy: jest.SpyInstance;
     let clearPendingSDKErrorSpy: jest.SpyInstance;
 
     beforeEach(() => {
       // Setup spies BEFORE calling setupAmplitudeErrorTracking
-      getExecutionTrackerSpy = jest.spyOn(globalTracker, 'getExecutionTracker');
       isPendingSDKErrorSpy = jest.spyOn(globalTracker, 'isPendingSDKError');
       clearPendingSDKErrorSpy = jest.spyOn(globalTracker, 'clearPendingSDKError');
 
@@ -426,17 +259,10 @@ describe('diagnostics-uncaught-sdk-error-web-handlers', () => {
       jest.restoreAllMocks();
     });
 
-    test('should report rejections during SDK execution', () => {
-      const mockTracker = {
-        isInSDKExecution: jest.fn().mockReturnValue(true),
-        enter: jest.fn(),
-        exit: jest.fn(),
-        getDepth: jest.fn(),
-      };
-      getExecutionTrackerSpy.mockReturnValue(mockTracker);
-      isPendingSDKErrorSpy.mockReturnValue(false);
+    test('should report pending SDK rejections', () => {
+      isPendingSDKErrorSpy.mockReturnValue(true);
 
-      const error = new Error('Async error during SDK execution');
+      const error = new Error('Async SDK error');
       const rejectedPromise = Promise.reject(error);
       rejectedPromise.catch(() => void 0); // Prevent unhandled rejection
 
@@ -450,56 +276,14 @@ describe('diagnostics-uncaught-sdk-error-web-handlers', () => {
 
       // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockClient.recordEvent).toHaveBeenCalledWith('analytics.errors.uncaught', {
-        message: 'Async error during SDK execution',
+        message: 'Async SDK error',
         name: 'Error',
-        type: 'Error',
         stack: expect.any(String),
-        detection_method: 'execution_tracking',
-        execution_context: null,
       });
       expect(clearPendingSDKErrorSpy).toHaveBeenCalledWith(error);
     });
 
-    test('should report pending SDK rejections even outside execution context', () => {
-      const mockTracker = {
-        isInSDKExecution: jest.fn().mockReturnValue(false),
-        enter: jest.fn(),
-        exit: jest.fn(),
-        getDepth: jest.fn(),
-      };
-      getExecutionTrackerSpy.mockReturnValue(mockTracker);
-      isPendingSDKErrorSpy.mockReturnValue(true);
-
-      const error = new Error('Pending SDK rejection');
-      const rejectedPromise = Promise.reject(error);
-      rejectedPromise.catch(() => void 0); // Prevent unhandled rejection
-
-      const rejectionEvent = {
-        reason: error,
-        promise: rejectedPromise,
-      } as unknown as PromiseRejectionEvent;
-
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      rejectionListener!(rejectionEvent);
-
-      // eslint-disable-next-line @typescript-eslint/unbound-method
-      expect(mockClient.recordEvent).toHaveBeenCalledWith(
-        'analytics.errors.uncaught',
-        expect.objectContaining({
-          message: 'Pending SDK rejection',
-        }),
-      );
-      expect(clearPendingSDKErrorSpy).toHaveBeenCalledWith(error);
-    });
-
-    test('should not report rejections outside SDK execution', () => {
-      const mockTracker = {
-        isInSDKExecution: jest.fn().mockReturnValue(false),
-        enter: jest.fn(),
-        exit: jest.fn(),
-        getDepth: jest.fn(),
-      };
-      getExecutionTrackerSpy.mockReturnValue(mockTracker);
+    test('should not report non-SDK rejections', () => {
       isPendingSDKErrorSpy.mockReturnValue(false);
 
       const error = new Error('Non-SDK rejection');
@@ -520,13 +304,7 @@ describe('diagnostics-uncaught-sdk-error-web-handlers', () => {
     });
 
     test('should handle non-Error rejection reasons', () => {
-      const mockTracker = {
-        isInSDKExecution: jest.fn().mockReturnValue(true),
-        enter: jest.fn(),
-        exit: jest.fn(),
-        getDepth: jest.fn(),
-      };
-      getExecutionTrackerSpy.mockReturnValue(mockTracker);
+      // String rejections won't be pending SDK errors since isPendingSDKError checks instanceof Error
       isPendingSDKErrorSpy.mockReturnValue(false);
 
       const rejectedPromise = Promise.reject('String rejection reason');
@@ -541,56 +319,11 @@ describe('diagnostics-uncaught-sdk-error-web-handlers', () => {
       rejectionListener!(rejectionEvent);
 
       // eslint-disable-next-line @typescript-eslint/unbound-method
-      expect(mockClient.recordEvent).toHaveBeenCalledWith(
-        'analytics.errors.uncaught',
-        expect.objectContaining({
-          message: 'String rejection reason',
-          detection_method: 'execution_tracking',
-        }),
-      );
-    });
-
-    test('should handle object rejection reasons', () => {
-      const mockTracker = {
-        isInSDKExecution: jest.fn().mockReturnValue(true),
-        enter: jest.fn(),
-        exit: jest.fn(),
-        getDepth: jest.fn(),
-      };
-      getExecutionTrackerSpy.mockReturnValue(mockTracker);
-      isPendingSDKErrorSpy.mockReturnValue(false);
-
-      const reasonObj = { code: 'ERROR_CODE', details: 'Details' };
-      const rejectedPromise = Promise.reject(reasonObj);
-      rejectedPromise.catch(() => void 0); // Prevent unhandled rejection
-
-      const rejectionEvent = {
-        reason: reasonObj,
-        promise: rejectedPromise,
-      } as unknown as PromiseRejectionEvent;
-
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      rejectionListener!(rejectionEvent);
-
-      // eslint-disable-next-line @typescript-eslint/unbound-method
-      expect(mockClient.recordEvent).toHaveBeenCalledWith(
-        'analytics.errors.uncaught',
-        expect.objectContaining({
-          message: '[object Object]',
-          detection_method: 'execution_tracking',
-        }),
-      );
+      expect(mockClient.recordEvent).not.toHaveBeenCalled();
     });
 
     test('should handle custom error types in rejections', () => {
-      const mockTracker = {
-        isInSDKExecution: jest.fn().mockReturnValue(true),
-        enter: jest.fn(),
-        exit: jest.fn(),
-        getDepth: jest.fn(),
-      };
-      getExecutionTrackerSpy.mockReturnValue(mockTracker);
-      isPendingSDKErrorSpy.mockReturnValue(false);
+      isPendingSDKErrorSpy.mockReturnValue(true);
 
       class NetworkError extends Error {
         constructor(message: string) {
@@ -615,22 +348,12 @@ describe('diagnostics-uncaught-sdk-error-web-handlers', () => {
       expect(mockClient.recordEvent).toHaveBeenCalledWith('analytics.errors.uncaught', {
         message: 'Network request failed',
         name: 'NetworkError',
-        type: 'NetworkError',
         stack: expect.any(String),
-        detection_method: 'execution_tracking',
-        execution_context: null,
       });
     });
 
     test('should silently fail if recordEvent throws', () => {
-      const mockTracker = {
-        isInSDKExecution: jest.fn().mockReturnValue(true),
-        enter: jest.fn(),
-        exit: jest.fn(),
-        getDepth: jest.fn(),
-      };
-      getExecutionTrackerSpy.mockReturnValue(mockTracker);
-      isPendingSDKErrorSpy.mockReturnValue(false);
+      isPendingSDKErrorSpy.mockReturnValue(true);
 
       (mockClient.recordEvent as jest.Mock).mockImplementation(() => {
         throw new Error('RecordEvent failed');
@@ -653,17 +376,8 @@ describe('diagnostics-uncaught-sdk-error-web-handlers', () => {
 
   describe('integration scenarios', () => {
     test('should handle both error types in sequence', () => {
-      const getExecutionTrackerSpy = jest.spyOn(globalTracker, 'getExecutionTracker');
       const isPendingSDKErrorSpy = jest.spyOn(globalTracker, 'isPendingSDKError');
-
-      const mockTracker = {
-        isInSDKExecution: jest.fn().mockReturnValue(true),
-        enter: jest.fn(),
-        exit: jest.fn(),
-        getDepth: jest.fn(),
-      };
-      getExecutionTrackerSpy.mockReturnValue(mockTracker);
-      isPendingSDKErrorSpy.mockReturnValue(false);
+      isPendingSDKErrorSpy.mockReturnValue(true);
 
       setupAmplitudeErrorTracking(mockClient);
 

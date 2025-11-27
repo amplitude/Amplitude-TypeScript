@@ -1,170 +1,27 @@
 import {
-  getExecutionTracker,
-  DiagnosticsUncaughtError,
+  diagnosticsUncaughtError,
   isPendingSDKError,
   clearPendingSDKError,
 } from '../../src/diagnostics/diagnostics-uncaught-sdk-error-global-tracker';
 
 describe('diagnostics-uncaught-sdk-error-global-tracker', () => {
-  describe('getExecutionTracker', () => {
-    let tracker: ReturnType<typeof getExecutionTracker>;
-
-    beforeEach(() => {
-      tracker = getExecutionTracker();
-      // Reset tracker state before each test
-      while (tracker.getDepth() > 0) {
-        tracker.exit();
-      }
-    });
-
-    afterEach(() => {
-      // Clean up: ensure depth is reset
-      while (tracker.getDepth() > 0) {
-        tracker.exit();
-      }
-    });
-
-    describe('enter and exit', () => {
-      test('should track entry and exit', () => {
-        expect(tracker.isInSDKExecution()).toBe(false);
-        expect(tracker.getDepth()).toBe(0);
-
-        tracker.enter();
-
-        expect(tracker.isInSDKExecution()).toBe(true);
-        expect(tracker.getDepth()).toBe(1);
-
-        tracker.exit();
-
-        expect(tracker.isInSDKExecution()).toBe(false);
-        expect(tracker.getDepth()).toBe(0);
-      });
-
-      test('should support nested execution contexts', () => {
-        tracker.enter();
-        expect(tracker.getDepth()).toBe(1);
-
-        tracker.enter();
-        expect(tracker.getDepth()).toBe(2);
-
-        tracker.enter();
-        expect(tracker.getDepth()).toBe(3);
-
-        tracker.exit();
-        expect(tracker.getDepth()).toBe(2);
-
-        tracker.exit();
-        expect(tracker.getDepth()).toBe(1);
-
-        tracker.exit();
-        expect(tracker.getDepth()).toBe(0);
-      });
-
-      test('should not allow negative depth', () => {
-        tracker.exit();
-        expect(tracker.getDepth()).toBe(0);
-
-        tracker.exit();
-        expect(tracker.getDepth()).toBe(0);
-
-        tracker.exit();
-        expect(tracker.getDepth()).toBe(0);
-      });
-    });
-
-    describe('isInSDKExecution', () => {
-      test('should return false when not in SDK execution', () => {
-        expect(tracker.isInSDKExecution()).toBe(false);
-      });
-
-      test('should return true when in SDK execution', () => {
-        tracker.enter();
-        expect(tracker.isInSDKExecution()).toBe(true);
-      });
-
-      test('should return true for nested execution', () => {
-        tracker.enter();
-        tracker.enter();
-        expect(tracker.isInSDKExecution()).toBe(true);
-      });
-    });
-
-    describe('getDepth', () => {
-      test('should return 0 initially', () => {
-        expect(tracker.getDepth()).toBe(0);
-      });
-
-      test('should return correct depth for nested calls', () => {
-        expect(tracker.getDepth()).toBe(0);
-        tracker.enter();
-        expect(tracker.getDepth()).toBe(1);
-        tracker.enter();
-        expect(tracker.getDepth()).toBe(2);
-        tracker.enter();
-        expect(tracker.getDepth()).toBe(3);
-      });
-    });
-  });
-
-  describe('DiagnosticsUncaughtError decorator', () => {
-    let tracker: ReturnType<typeof getExecutionTracker>;
-
-    beforeEach(() => {
-      tracker = getExecutionTracker();
-      // Reset tracker state
-      while (tracker.getDepth() > 0) {
-        tracker.exit();
-      }
-    });
-
-    afterEach(() => {
-      while (tracker.getDepth() > 0) {
-        tracker.exit();
-      }
-    });
-
-    describe('synchronous methods', () => {
-      class TestClass {
-        @DiagnosticsUncaughtError
-        syncMethod(value: number): number {
-          return value * 2;
-        }
-
-        @DiagnosticsUncaughtError
-        syncMethodThrows(): void {
-          throw new Error('Sync error');
-        }
-      }
-
-      test('should track execution for successful sync method', () => {
-        const instance = new TestClass();
-        const result = instance.syncMethod(5);
+  describe('diagnosticsUncaughtError wrapper', () => {
+    describe('synchronous functions', () => {
+      test('should return result for successful sync function', () => {
+        const syncFn = diagnosticsUncaughtError((value: number) => value * 2);
+        const result = syncFn(5);
 
         expect(result).toBe(10);
-        expect(tracker.isInSDKExecution()).toBe(false);
-        expect(tracker.getDepth()).toBe(0);
       });
 
-      test('should track execution depth during sync method', () => {
-        let depthDuringExecution = 0;
-
-        class TestClass2 {
-          @DiagnosticsUncaughtError
-          captureDepth(): void {
-            depthDuringExecution = tracker.getDepth();
-          }
-        }
-
-        new TestClass2().captureDepth();
-        expect(depthDuringExecution).toBe(1);
-      });
-
-      test('should tag error and cleanup on sync throw', () => {
-        const instance = new TestClass();
+      test('should tag error and re-throw on sync throw', () => {
+        const syncFnThrows = diagnosticsUncaughtError(() => {
+          throw new Error('Sync error');
+        });
 
         let caughtError: Error | null = null;
         try {
-          instance.syncMethodThrows();
+          syncFnThrows();
         } catch (error) {
           caughtError = error as Error;
         }
@@ -172,60 +29,57 @@ describe('diagnostics-uncaught-sdk-error-global-tracker', () => {
         expect(caughtError).toBeTruthy();
         expect(caughtError?.message).toBe('Sync error');
         expect(isPendingSDKError(caughtError)).toBe(true);
-        expect(tracker.isInSDKExecution()).toBe(false);
-        expect(tracker.getDepth()).toBe(0);
       });
 
       test('should handle non-Error throws', () => {
-        class TestClass3 {
-          @DiagnosticsUncaughtError
-          throwString(): void {
-            // eslint-disable-next-line @typescript-eslint/no-throw-literal
-            throw 'string error';
-          }
-        }
+        const throwString = diagnosticsUncaughtError(() => {
+          // eslint-disable-next-line @typescript-eslint/no-throw-literal
+          throw 'string error';
+        });
 
-        const instance = new TestClass3();
-        expect(() => instance.throwString()).toThrow('string error');
-        expect(tracker.getDepth()).toBe(0);
+        expect(() => throwString()).toThrow('string error');
+      });
+
+      test('should preserve this context', () => {
+        const obj = {
+          value: 42,
+          getValue: diagnosticsUncaughtError(function (this: { value: number }) {
+            return this.value;
+          }),
+        };
+
+        expect(obj.getValue()).toBe(42);
+      });
+
+      test('should preserve arguments', () => {
+        const fn = diagnosticsUncaughtError((a: number, b: string, c: boolean) => {
+          return `${a}-${b}-${String(c)}`;
+        });
+
+        expect(fn(1, 'test', true)).toBe('1-test-true');
       });
     });
 
-    describe('asynchronous methods', () => {
-      class AsyncTestClass {
-        @DiagnosticsUncaughtError
-        async asyncMethod(value: number): Promise<number> {
+    describe('asynchronous functions', () => {
+      test('should return result for successful async function', async () => {
+        const asyncFn = diagnosticsUncaughtError(async (value: number) => {
           await new Promise((resolve) => setTimeout(resolve, 10));
           return value * 2;
-        }
+        });
 
-        @DiagnosticsUncaughtError
-        async asyncMethodThrows(): Promise<void> {
-          await new Promise((resolve) => setTimeout(resolve, 10));
-          throw new Error('Async error');
-        }
-
-        @DiagnosticsUncaughtError
-        async asyncMethodThrowsImmediately(): Promise<void> {
-          throw new Error('Immediate async error');
-        }
-      }
-
-      test('should track execution for successful async method', async () => {
-        const instance = new AsyncTestClass();
-        const result = await instance.asyncMethod(5);
-
+        const result = await asyncFn(5);
         expect(result).toBe(10);
-        expect(tracker.isInSDKExecution()).toBe(false);
-        expect(tracker.getDepth()).toBe(0);
       });
 
-      test('should tag error and cleanup on async throw', async () => {
-        const instance = new AsyncTestClass();
+      test('should tag error on async throw', async () => {
+        const asyncFnThrows = diagnosticsUncaughtError(async () => {
+          await new Promise((resolve) => setTimeout(resolve, 10));
+          throw new Error('Async error');
+        });
 
         let caughtError: Error | null = null;
         try {
-          await instance.asyncMethodThrows();
+          await asyncFnThrows();
         } catch (error) {
           caughtError = error as Error;
         }
@@ -233,16 +87,16 @@ describe('diagnostics-uncaught-sdk-error-global-tracker', () => {
         expect(caughtError).toBeTruthy();
         expect(caughtError?.message).toBe('Async error');
         expect(isPendingSDKError(caughtError)).toBe(true);
-        expect(tracker.isInSDKExecution()).toBe(false);
-        expect(tracker.getDepth()).toBe(0);
       });
 
-      test('should tag error thrown immediately in async method', async () => {
-        const instance = new AsyncTestClass();
+      test('should tag error thrown immediately in async function', async () => {
+        const asyncFnThrowsImmediately = diagnosticsUncaughtError(async () => {
+          throw new Error('Immediate async error');
+        });
 
         let caughtError: Error | null = null;
         try {
-          await instance.asyncMethodThrowsImmediately();
+          await asyncFnThrowsImmediately();
         } catch (error) {
           caughtError = error as Error;
         }
@@ -250,117 +104,22 @@ describe('diagnostics-uncaught-sdk-error-global-tracker', () => {
         expect(caughtError).toBeTruthy();
         expect(caughtError?.message).toBe('Immediate async error');
         expect(isPendingSDKError(caughtError)).toBe(true);
-        expect(tracker.getDepth()).toBe(0);
       });
 
-      test('should handle async method that returns non-Error rejection', async () => {
-        class TestClass4 {
-          @DiagnosticsUncaughtError
-          async rejectWithString(): Promise<void> {
-            // eslint-disable-next-line @typescript-eslint/no-throw-literal
-            throw 'string rejection';
-          }
-        }
+      test('should handle async function that returns non-Error rejection', async () => {
+        const rejectWithString = diagnosticsUncaughtError(async () => {
+          // eslint-disable-next-line @typescript-eslint/no-throw-literal
+          throw 'string rejection';
+        });
 
-        const instance = new TestClass4();
-        await expect(instance.rejectWithString()).rejects.toBe('string rejection');
-        expect(tracker.getDepth()).toBe(0);
-      });
-
-      test('should exit immediately when async method returns Promise, not wait for settlement', () => {
-        class TestClass5 {
-          @DiagnosticsUncaughtError
-          asyncMethod(): Promise<void> {
-            return new Promise((resolve) => setTimeout(resolve, 100));
-          }
-        }
-
-        const instance = new TestClass5();
-        const promise = instance.asyncMethod();
-
-        // Critical test: depth should be 0 immediately after calling async method
-        // This prevents user code errors from being incorrectly flagged as SDK errors
-        expect(tracker.getDepth()).toBe(0);
-        expect(tracker.isInSDKExecution()).toBe(false);
-
-        // Clean up
-        return promise;
+        await expect(rejectWithString()).rejects.toBe('string rejection');
       });
     });
 
-    describe('nested decorated methods', () => {
-      class NestedTestClass {
-        @DiagnosticsUncaughtError
-        outer(): number {
-          return this.inner() * 2;
-        }
-
-        @DiagnosticsUncaughtError
-        inner(): number {
-          return 5;
-        }
-
-        @DiagnosticsUncaughtError
-        outerThrows(): void {
-          this.innerThrows();
-        }
-
-        @DiagnosticsUncaughtError
-        innerThrows(): void {
-          throw new Error('Inner error');
-        }
-      }
-
-      test('should handle nested decorated method calls', () => {
-        const instance = new NestedTestClass();
-        const result = instance.outer();
-
-        expect(result).toBe(10);
-        expect(tracker.getDepth()).toBe(0);
-      });
-
-      test('should track nested execution depth', () => {
-        let depthInInner = 0;
-
-        class TestClass5 {
-          @DiagnosticsUncaughtError
-          outer(): number {
-            return this.inner();
-          }
-
-          @DiagnosticsUncaughtError
-          inner(): number {
-            depthInInner = tracker.getDepth();
-            return 42;
-          }
-        }
-
-        new TestClass5().outer();
-        expect(depthInInner).toBe(2);
-        expect(tracker.getDepth()).toBe(0);
-      });
-
-      test('should cleanup properly when nested method throws', () => {
-        const instance = new NestedTestClass();
-
-        let caughtError: Error | null = null;
-        try {
-          instance.outerThrows();
-        } catch (error) {
-          caughtError = error as Error;
-        }
-
-        expect(caughtError?.message).toBe('Inner error');
-        expect(isPendingSDKError(caughtError)).toBe(true);
-        expect(tracker.getDepth()).toBe(0);
-      });
-    });
-
-    describe('Promise-returning non-async methods', () => {
-      class PromiseTestClass {
-        @DiagnosticsUncaughtError
-        returnsPromise(shouldResolve: boolean): Promise<string> {
-          return new Promise((resolve, reject) => {
+    describe('Promise-returning functions', () => {
+      test('should handle Promise-returning function that resolves', async () => {
+        const returnsPromise = diagnosticsUncaughtError((shouldResolve: boolean) => {
+          return new Promise<string>((resolve, reject) => {
             setTimeout(() => {
               if (shouldResolve) {
                 resolve('success');
@@ -369,44 +128,114 @@ describe('diagnostics-uncaught-sdk-error-global-tracker', () => {
               }
             }, 10);
           });
-        }
-      }
+        });
 
-      test('should handle Promise-returning method that resolves', async () => {
-        const instance = new PromiseTestClass();
-        const result = await instance.returnsPromise(true);
-
+        const result = await returnsPromise(true);
         expect(result).toBe('success');
-        expect(tracker.getDepth()).toBe(0);
       });
 
-      test('should handle Promise-returning method that rejects', async () => {
-        const instance = new PromiseTestClass();
+      test('should handle Promise-returning function that rejects', async () => {
+        const returnsPromise = diagnosticsUncaughtError((shouldResolve: boolean) => {
+          return new Promise<string>((resolve, reject) => {
+            setTimeout(() => {
+              if (shouldResolve) {
+                resolve('success');
+              } else {
+                reject(new Error('Promise rejection'));
+              }
+            }, 10);
+          });
+        });
 
         let caughtError: Error | null = null;
         try {
-          await instance.returnsPromise(false);
+          await returnsPromise(false);
         } catch (error) {
           caughtError = error as Error;
         }
 
         expect(caughtError?.message).toBe('Promise rejection');
         expect(isPendingSDKError(caughtError)).toBe(true);
-        expect(tracker.getDepth()).toBe(0);
+      });
+    });
+
+    describe('nested wrapped functions', () => {
+      test('should handle nested wrapped function calls', () => {
+        const inner = diagnosticsUncaughtError(() => 5);
+        const outer = diagnosticsUncaughtError(() => inner() * 2);
+
+        const result = outer();
+        expect(result).toBe(10);
+      });
+
+      test('should tag error when inner function throws', () => {
+        const innerThrows = diagnosticsUncaughtError(() => {
+          throw new Error('Inner error');
+        });
+        const outerCalls = diagnosticsUncaughtError(() => {
+          innerThrows();
+        });
+
+        let caughtError: Error | null = null;
+        try {
+          outerCalls();
+        } catch (error) {
+          caughtError = error as Error;
+        }
+
+        expect(caughtError?.message).toBe('Inner error');
+        expect(isPendingSDKError(caughtError)).toBe(true);
+      });
+    });
+
+    describe('class method wrapping', () => {
+      test('should work as arrow function property', () => {
+        class TestClass {
+          value = 10;
+          multiply = diagnosticsUncaughtError((factor: number) => {
+            return this.value * factor;
+          });
+        }
+
+        const instance = new TestClass();
+        expect(instance.multiply(3)).toBe(30);
+      });
+
+      test('should tag error from wrapped class method', () => {
+        class TestClass {
+          throwError = diagnosticsUncaughtError(() => {
+            throw new Error('Class method error');
+          });
+        }
+
+        const instance = new TestClass();
+        let caughtError: Error | null = null;
+        try {
+          instance.throwError();
+        } catch (error) {
+          caughtError = error as Error;
+        }
+
+        expect(caughtError?.message).toBe('Class method error');
+        expect(isPendingSDKError(caughtError)).toBe(true);
+      });
+
+      test('should work with async class methods', async () => {
+        class TestClass {
+          asyncMethod = diagnosticsUncaughtError(async (value: number) => {
+            await new Promise((resolve) => setTimeout(resolve, 10));
+            return value * 2;
+          });
+        }
+
+        const instance = new TestClass();
+        const result = await instance.asyncMethod(5);
+        expect(result).toBe(10);
       });
     });
   });
 
   describe('isPendingSDKError', () => {
-    let tracker: ReturnType<typeof getExecutionTracker>;
-
-    beforeEach(() => {
-      tracker = getExecutionTracker();
-      while (tracker.getDepth() > 0) {
-        tracker.exit();
-      }
-    });
-
     test('should return false for non-Error values', () => {
       expect(isPendingSDKError(null)).toBe(false);
       expect(isPendingSDKError(undefined)).toBe(false);
@@ -420,17 +249,14 @@ describe('diagnostics-uncaught-sdk-error-global-tracker', () => {
       expect(isPendingSDKError(error)).toBe(false);
     });
 
-    test('should return true for tagged Error from decorated method', () => {
-      class TestClass {
-        @DiagnosticsUncaughtError
-        throwError(): void {
-          throw new Error('Tagged error');
-        }
-      }
+    test('should return true for tagged Error from wrapped function', () => {
+      const throwError = diagnosticsUncaughtError(() => {
+        throw new Error('Tagged error');
+      });
 
       let error: Error | null = null;
       try {
-        new TestClass().throwError();
+        throwError();
       } catch (e) {
         error = e as Error;
       }
@@ -438,17 +264,14 @@ describe('diagnostics-uncaught-sdk-error-global-tracker', () => {
       expect(isPendingSDKError(error)).toBe(true);
     });
 
-    test('should return true for tagged Error from async decorated method', async () => {
-      class TestClass {
-        @DiagnosticsUncaughtError
-        async asyncThrowError(): Promise<void> {
-          throw new Error('Tagged async error');
-        }
-      }
+    test('should return true for tagged Error from async wrapped function', async () => {
+      const asyncThrowError = diagnosticsUncaughtError(async () => {
+        throw new Error('Tagged async error');
+      });
 
       let error: Error | null = null;
       try {
-        await new TestClass().asyncThrowError();
+        await asyncThrowError();
       } catch (e) {
         error = e as Error;
       }
@@ -466,16 +289,13 @@ describe('diagnostics-uncaught-sdk-error-global-tracker', () => {
     });
 
     test('should clear pending SDK error tag', () => {
-      class TestClass {
-        @DiagnosticsUncaughtError
-        throwError(): void {
-          throw new Error('Error to clear');
-        }
-      }
+      const throwError = diagnosticsUncaughtError(() => {
+        throw new Error('Error to clear');
+      });
 
       let error: Error | null = null;
       try {
-        new TestClass().throwError();
+        throwError();
       } catch (e) {
         error = e as Error;
       }
@@ -488,16 +308,13 @@ describe('diagnostics-uncaught-sdk-error-global-tracker', () => {
     });
 
     test('should be idempotent', () => {
-      class TestClass {
-        @DiagnosticsUncaughtError
-        throwError(): void {
-          throw new Error('Error to clear');
-        }
-      }
+      const throwError = diagnosticsUncaughtError(() => {
+        throw new Error('Error to clear');
+      });
 
       let error: Error | null = null;
       try {
-        new TestClass().throwError();
+        throwError();
       } catch (e) {
         error = e as Error;
       }

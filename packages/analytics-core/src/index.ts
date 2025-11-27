@@ -30,7 +30,7 @@ export { getStorageKey } from './storage/helpers';
 export { BrowserStorage } from './storage/browser-storage';
 
 export { DiagnosticsClient, IDiagnosticsClient } from './diagnostics/diagnostics-client';
-export { DiagnosticsUncaughtError } from './diagnostics/diagnostics-uncaught-sdk-error-global-tracker';
+export { diagnosticsUncaughtError } from './diagnostics/diagnostics-uncaught-sdk-error-global-tracker';
 
 export { BaseTransport } from './transports/base';
 export { FetchTransport } from './transports/fetch';

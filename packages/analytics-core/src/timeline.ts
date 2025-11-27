@@ -7,6 +7,7 @@ import { Event } from './types/event/event';
 import { Result } from './types/result';
 import { buildResult } from './utils/result-builder';
 import { UUID } from './utils/uuid';
+import { diagnosticsUncaughtError } from './diagnostics/diagnostics-uncaught-sdk-error-global-tracker';
 
 export class Timeline {
   queue: [Event, EventCallback][] = [];
@@ -22,7 +23,8 @@ export class Timeline {
 
   constructor(private client: CoreClient) {}
 
-  async register(plugin: Plugin, config: IConfig) {
+  register = diagnosticsUncaughtError(async (plugin: Plugin, config: IConfig) => {
+    // Wrap with diagnosticsUncaughtError for plugin setup
     if (this.plugins.some((existingPlugin) => existingPlugin.name === plugin.name)) {
       // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
       this.loggerProvider.warn(`Plugin with name ${plugin.name} already exists, skipping registration`);
@@ -39,9 +41,10 @@ export class Timeline {
     plugin.type = plugin.type ?? 'enrichment';
     await plugin.setup?.(config, this.client);
     this.plugins.push(plugin);
-  }
+  });
 
-  async deregister(pluginName: string, config: IConfig) {
+  deregister = diagnosticsUncaughtError(async (pluginName: string, config: IConfig) => {
+    // Wrap with diagnosticsUncaughtError for plugin teardown
     const index = this.plugins.findIndex((plugin) => plugin.name === pluginName);
     if (index === -1) {
       config.loggerProvider.warn(`Plugin with name ${pluginName} does not exist, skipping deregistration`);
@@ -49,16 +52,17 @@ export class Timeline {
     }
     const plugin = this.plugins[index];
     this.plugins.splice(index, 1);
-    await plugin.teardown?.();
-  }
+    void plugin.teardown?.();
+  });
 
-  reset(client: CoreClient) {
+  reset = diagnosticsUncaughtError((client: CoreClient) => {
+    // Wrap with diagnosticsUncaughtError for plugin teardown
     this.applying = false;
     const plugins = this.plugins;
     plugins.map((plugin) => plugin.teardown?.());
     this.plugins = [];
     this.client = client;
-  }
+  });
 
   push(event: Event) {
     return new Promise<Result>((resolve) => {
@@ -80,7 +84,8 @@ export class Timeline {
     }, timeout);
   }
 
-  async apply(item: [Event, EventCallback] | undefined) {
+  apply = diagnosticsUncaughtError(async (item: [Event, EventCallback] | undefined) => {
+    // Wrap with diagnosticsUncaughtError for plugin execute
     if (!item) {
       return;
     }
@@ -164,7 +169,7 @@ export class Timeline {
     });
 
     return;
-  }
+  });
 
   async flush() {
     const queue = this.queue;

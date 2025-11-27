@@ -1,105 +1,61 @@
 /**
- * Execution Context Tracker for SDK Error Detection
+ * SDK Error Tracking via Error Tagging
  *
- * Identifies SDK-originated errors using two complementary mechanisms:
+ * Identifies SDK-originated errors by tagging error objects thrown from SDK code.
+ * Uses a WeakSet to tag errors, enabling detection by global error handlers
+ * even after the original execution context has exited.
  *
- * 1. Execution depth counter: Tracks active SDK execution (increment on entry, decrement on exit).
- *    Errors occurring while counter > 0 are identified as SDK errors.
- *
- * 2. Error tagging with WeakSet: Tags error objects thrown from SDK code.
- *    Enables detection of async errors that surface after the execution context has exited.
- *
- * Global error handlers check both mechanisms to accurately identify SDK errors.
+ * Usage:
+ * - Wrap SDK functions/callbacks with `diagnosticsUncaughtError(fn)`
+ * - Global error handlers check `isPendingSDKError(error)` to identify SDK errors
  */
-
-interface ExecutionContext {
-  depth: number;
-}
-
-// Global execution tracker
-const executionTracker: ExecutionContext = {
-  depth: 0,
-};
 
 // Track error objects that originated from SDK code
 // Using WeakSet prevents memory leaks as errors are garbage collected
 const pendingSDKErrors = new WeakSet<Error>();
 
 /**
- * Get the global execution tracker instance
- */
-export const getExecutionTracker = () => ({
-  /**
-   * Enter SDK execution context
-   */
-  enter(): void {
-    executionTracker.depth++;
-  },
-
-  /**
-   * Exit SDK execution context
-   */
-  exit(): void {
-    executionTracker.depth = Math.max(0, executionTracker.depth - 1);
-  },
-
-  /**
-   * Check if currently executing SDK code
-   */
-  isInSDKExecution(): boolean {
-    return executionTracker.depth > 0;
-  },
-
-  /**
-   * Get current depth (for debugging)
-   */
-  getDepth(): number {
-    return executionTracker.depth;
-  },
-});
-
-/**
- * Method decorator that wraps a class method with execution tracking to identify SDK errors.
+ * Wraps a function to tag any thrown errors as SDK-originated.
  *
- * This decorator tracks when SDK code is running using a simple counter.
- * Any error that occurs while the counter > 0 is identified as an SDK error
- * by the global error handlers.
+ * Use this to wrap SDK functions, methods, event listeners, or callbacks.
+ * When the wrapped function throws an error (sync or async), the error is
+ * tagged and re-thrown, allowing global error handlers to identify it as
+ * an SDK error.
  *
- * @returns Method decorator
+ * @param fn - The function to wrap
+ * @returns A wrapped function that tags errors before re-throwing
  *
  * @example
  * ```typescript
+ * // Wrap a class method
  * class AmplitudeBrowser {
- *   @DiagnosticsUncaughtError
- *   async track(event: Event) {
+ *   track = diagnosticsUncaughtError(async (event: Event) => {
  *     // ... SDK tracking code ...
- *   }
+ *   });
  * }
+ *
+ * // Wrap an event listener callback
+ * window.addEventListener('click', diagnosticsUncaughtError((event) => {
+ *   // ... SDK code ...
+ * }));
+ *
+ * // Wrap an observable subscription
+ * observable.subscribe(diagnosticsUncaughtError((value) => {
+ *   // ... SDK code ...
+ * }));
  * ```
  */
-export function DiagnosticsUncaughtError<T extends (...args: any[]) => any>(
-  _target: any,
-  _propertyKey: string,
-  descriptor: PropertyDescriptor,
-): PropertyDescriptor {
-  const originalMethod = descriptor.value as T;
-  const tracker = getExecutionTracker();
-
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-  descriptor.value = function (this: any, ...args: Parameters<T>): ReturnType<T> {
-    tracker.enter();
-
+export function diagnosticsUncaughtError<T extends (...args: any[]) => any>(fn: T): T {
+  return function (this: any, ...args: Parameters<T>): ReturnType<T> {
     try {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      const result = originalMethod.apply(this, args);
-      tracker.exit();
+      const result = fn.apply(this, args);
 
       // If async, attach error handler to tag async errors
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       if (result && typeof result === 'object' && typeof result.then === 'function') {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
         return result.catch((error: unknown) => {
-          // Tag this error as SDK-originated for later detection
           if (error instanceof Error) {
             pendingSDKErrors.add(error);
           }
@@ -107,7 +63,6 @@ export function DiagnosticsUncaughtError<T extends (...args: any[]) => any>(
         }) as ReturnType<T>;
       }
 
-      // If sync, return the result immediately
       // eslint-disable-next-line @typescript-eslint/no-unsafe-return
       return result;
     } catch (error) {
@@ -115,14 +70,9 @@ export function DiagnosticsUncaughtError<T extends (...args: any[]) => any>(
       if (error instanceof Error) {
         pendingSDKErrors.add(error);
       }
-
-      // Exit tracking before re-throwing
-      tracker.exit();
       throw error;
     }
-  };
-
-  return descriptor;
+  } as T;
 }
 
 /**
