@@ -3,6 +3,7 @@ import { DiagnosticsStorage, IDiagnosticsStorage } from './diagnostics-storage';
 import { ServerZoneType } from '../types/server-zone';
 import { getGlobalScope } from '../global-scope';
 import { isTimestampInSampleTemp } from '../utils/sampling';
+import { enableSdkErrorListeners } from './uncaught-sdk-errors';
 
 export const SAVE_INTERVAL_MS = 1000; // 1 second
 export const FLUSH_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
@@ -215,6 +216,7 @@ export class DiagnosticsClient implements IDiagnosticsClient {
     // Track internal diagnostics metrics for sampling
     if (this.shouldTrack) {
       this.increment('sdk.diagnostics.sampled.in.and.enabled');
+      enableSdkErrorListeners(this);
     }
   }
 
@@ -493,5 +495,8 @@ export class DiagnosticsClient implements IDiagnosticsClient {
     this.config.sampleRate = sampleRate;
     this.shouldTrack = isTimestampInSampleTemp(this.startTimestamp, this.config.sampleRate) && this.config.enabled;
     this.logger.debug('DiagnosticsClient: Should track is', this.shouldTrack);
+    if (this.shouldTrack) {
+      enableSdkErrorListeners(this);
+    }
   }
 }
