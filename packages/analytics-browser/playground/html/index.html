@@ -5,139 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>Amplitude SDK Playground</title>
-    <style>
-      body {
-        font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-        padding: 2rem;
-        max-width: 720px;
-        margin: 0 auto;
-        background-color: #f5f6fa;
-        color: #222;
-      }
-      .actions {
-        display: flex;
-        gap: 1rem;
-        margin-bottom: 1rem;
-        flex-wrap: wrap;
-      }
-      button {
-        padding: 0.75rem 1.5rem;
-        border-radius: 6px;
-        border: none;
-        cursor: pointer;
-        font-size: 1rem;
-      }
-      .sdk-error-btn {
-        background-color: #1c7ed6;
-        color: white;
-      }
-      .not-captured-btn {
-        background-color: #fa5252;
-        color: white;
-      }
-      .log {
-        background: #0c111b;
-        color: #f1f3f5;
-        padding: 1rem;
-        min-height: 200px;
-        border-radius: 8px;
-        overflow: auto;
-        font-size: 0.85rem;
-        white-space: pre-wrap;
-        word-break: break-all;
-      }
-      code {
-        background: #e9ecef;
-        padding: 0.2rem 0.4rem;
-        border-radius: 4px;
-      }
-    </style>
   </head>
   <script src="./amplitude.js"></script>
+	
   <script>
-    // Helper to log messages
-    function logMessage(message) {
-      var logElement = document.getElementById('log');
-      if (!logElement) return;
-      var timestamp = new Date().toISOString();
-      logElement.textContent = '[' + timestamp + '] ' + message + '\n' + logElement.textContent;
-    }
-
-    // Register global error handlers to see what's happening
-    window.addEventListener('error', function(event) {
-      logMessage('[window.error] ' + event.message + ' (' + (event.filename || 'unknown') + ')');
-    });
-
-    window.addEventListener('unhandledrejection', function(event) {
-      logMessage('[unhandledrejection] ' + String(event.reason));
-    });
-
-    // Initialize Amplitude
-    amplitude.init('5b9a9510e261f9ead90865bbc5a7ad1d', 'script.playground@amplitude.com');
-    logMessage('Amplitude SDK initialized');
+    amplitude.init('API_KEY', 'playground.user@amplitude.com');
   </script>
   <body>
-    <h1>Amplitude SDK Playground (Script Tag)</h1>
-    <p>This playground loads Amplitude SDK via <code>&lt;script&gt;</code> tag to test uncaught SDK error capture.</p>
-    
-    <div class="actions">
-      <button class="sdk-error-btn" onclick="triggerSdkSetupError()">SDK Error: Setup Error</button>
-      <button class="not-captured-btn" onclick="setupCustomPluginClickHandler()">Custom Plugin Click Handler (Not Captured)</button>
-      <button id="custom-plugin-click-target" class="not-captured-btn" style="display:none;">Click to Throw Error</button>
-      <button class="not-captured-btn" onclick="triggerAppError()">App Error (Not Captured)</button>
-    </div>
-
-    <h3>Event Log</h3>
-    <pre id="log" class="log"></pre>
-
-    <h3>Instructions</h3>
+    <h1>Amplitude SDK Playground</h1>
+    <p>This playground has Amplitude SDK script loaded, initialized, and available as <code>amplitude</code>.</p>
     <ul>
-      <li>Open Developer Tools → Network tab to see diagnostics requests</li>
-      <li><strong>SDK Error: Setup Error</strong> - Plugin setup returns a rejected promise (should be captured - error originates from SDK code)</li>
-      <li><strong>Custom Plugin Click Handler</strong> - Custom plugin sets up a click handler that throws (NOT captured - error originates from this page's code, not SDK)</li>
-      <li><strong>App Error</strong> - Throws error from application code (NOT captured - error originates from this page's code)</li>
+      <li>Check if you have a valid API KEY</li>
+      <li>Open Developer Tools</li>
+      <li>Go to Console tab</li>
+      <li>Play with the SDK</li>
     </ul>
-
-    <script>
-      function triggerSdkSetupError() {
-        logMessage('Adding plugin that throws in setup...');
-        amplitude.add({
-          name: 'plugin-setup-error',
-          type: 'before',
-          setup: function() {
-            return Promise.reject(new Error('Plugin setup error'));
-          },
-          execute: function(event) {
-            return Promise.resolve(event);
-          }
-        });
-      }
-
-      function setupCustomPluginClickHandler() {
-        logMessage('Adding custom plugin that sets up a click handler...');
-        amplitude.add({
-          name: 'custom-plugin-click-handler',
-          type: 'before',
-          setup: function() {
-            var btn = document.getElementById('custom-plugin-click-target');
-            btn.style.display = 'inline-block';
-            btn.addEventListener('click', function() {
-              logMessage('Click handler throwing error (from custom plugin code, not SDK)...');
-              throw new Error('Error from custom plugin click handler');
-            });
-            logMessage('Plugin setup complete. Click the red "Click to Throw Error" button.');
-            return Promise.resolve();
-          },
-          execute: function(event) {
-            return Promise.resolve(event);
-          }
-        });
-      }
-
-      function triggerAppError() {
-        logMessage('Throwing error from application code...');
-        throw new Error('Application level error');
-      }
-    </script>
   </body>
 </html>
