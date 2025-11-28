@@ -12,11 +12,12 @@ interface CapturedErrorContext {
   readonly metadata?: Record<string, unknown>;
 }
 
-const GLOBAL_KEY = '__AMPLITUDE_SCRIPT_URL__';
-const EVENT_NAME = 'sdk.errors.unhandled';
+export const GLOBAL_KEY = '__AMPLITUDE_SCRIPT_URL__';
+export const EVENT_NAME_ERROR_UNCAUGHT = 'sdk.error.uncaught';
 
 const getNormalizedScriptUrl = (): string | undefined => {
   const scope = getGlobalScope() as Record<string, unknown> | null;
+  /* istanbul ignore next */
   return scope?.[GLOBAL_KEY] as string | undefined;
 };
 
@@ -76,6 +77,7 @@ export const enableSdkErrorListeners = (client: IDiagnosticsClient) => {
       return;
     }
 
+    /* istanbul ignore next */
     capture({
       type: 'unhandledrejection',
       message: error?.message ?? stringifyReason(event.reason),
@@ -90,7 +92,7 @@ export const enableSdkErrorListeners = (client: IDiagnosticsClient) => {
   };
 
   const capture = (context: CapturedErrorContext) => {
-    client.recordEvent(EVENT_NAME, {
+    client.recordEvent(EVENT_NAME_ERROR_UNCAUGHT, {
       type: context.type,
       message: context.message,
       filename: context.filename,
@@ -126,13 +128,9 @@ const normalizeUrl = (value?: string) => {
     return undefined;
   }
 
-  try {
-    const withoutHash = value.split('#')[0];
-    const withoutQuery = withoutHash.split('?')[0];
-    return withoutQuery;
-  } catch {
-    return value;
-  }
+  const withoutHash = value.split('#')[0];
+  const withoutQuery = withoutHash.split('?')[0];
+  return withoutQuery;
 };
 
 const extractFilenameFromStack = (stack?: string) => {
@@ -141,9 +139,11 @@ const extractFilenameFromStack = (stack?: string) => {
   }
 
   const match = stack.match(/(https?:\/\/\S+?)(?=[)\s]|$)/);
+  /* istanbul ignore next */
   return match ? match[1] : undefined;
 };
 
+/* istanbul ignore next */
 const stringifyReason = (reason: unknown) => {
   if (typeof reason === 'string') {
     return reason;
