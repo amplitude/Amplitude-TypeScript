@@ -495,8 +495,5 @@ export class DiagnosticsClient implements IDiagnosticsClient {
     this.config.sampleRate = sampleRate;
     this.shouldTrack = isTimestampInSampleTemp(this.startTimestamp, this.config.sampleRate) && this.config.enabled;
     this.logger.debug('DiagnosticsClient: Should track is', this.shouldTrack);
-    if (this.shouldTrack) {
-      enableSdkErrorListeners(this);
-    }
   }
 }
