@@ -7,51 +7,141 @@
     <title>SDK Diagnostics Test</title>
     <style>
       body {
-        font-family: Arial, sans-serif;
-        padding: 20px;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        padding: 2rem;
+        max-width: 720px;
+        margin: 0 auto;
+        background-color: #f5f6fa;
+        color: #222;
       }
-      .container {
-        max-width: 600px;
+      .section {
+        margin-bottom: 2rem;
+      }
+      .actions {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 1rem;
+        flex-wrap: wrap;
       }
       button {
-        padding: 10px 20px;
-        margin: 10px 5px 10px 0;
+        padding: 0.75rem 1.5rem;
+        border-radius: 6px;
+        border: none;
         cursor: pointer;
+        font-size: 1rem;
+      }
+      .init-btn {
+        background-color: #37b24d;
+        color: white;
+      }
+      .plugin-btn {
+        background-color: #1c7ed6;
+        color: white;
+      }
+      .sdk-error-btn {
+        background-color: #f59f00;
+        color: white;
+      }
+      .not-captured-btn {
+        background-color: #fa5252;
+        color: white;
+      }
+      .log {
+        background: #0c111b;
+        color: #f1f3f5;
+        padding: 1rem;
+        min-height: 200px;
+        border-radius: 8px;
+        overflow: auto;
+        font-size: 0.85rem;
+        white-space: pre-wrap;
+        word-break: break-all;
+      }
+      code {
+        background: #e9ecef;
+        padding: 0.2rem 0.4rem;
+        border-radius: 4px;
+      }
+      h3 {
+        margin-top: 1.5rem;
+        margin-bottom: 0.5rem;
       }
     </style>
   </head>
+  <script src="/analytics-browser/lib/scripts/amplitude-min.js"></script>
+  <script type="module">
+    // Expose env vars to window for use in regular scripts
+    window.AMPLITUDE_API_KEY = import.meta.env.VITE_AMPLITUDE_API_KEY;
+  </script>
+  <script>
+    // Helper to log messages
+    function logMessage(message) {
+      var logElement = document.getElementById('log');
+      if (!logElement) return;
+      var timestamp = new Date().toISOString();
+      logElement.textContent = '[' + timestamp + '] ' + message + '\n' + logElement.textContent;
+    }
+
+    // Register global error handlers to see what's happening
+    window.addEventListener('error', function(event) {
+      logMessage('[window.error] ' + event.message + ' (' + (event.filename || 'unknown') + ')');
+    });
+
+    window.addEventListener('unhandledrejection', function(event) {
+      logMessage('[unhandledrejection] ' + String(event.reason));
+    });
+  </script>
   <body>
-    <div class="container">
-      <h1>SDK Diagnostics Test</h1>
-      <button id="initButton">Initialize SDK</button>
-      <button id="addPluginButton">Add Plugin (Remove User/Device ID)</button>
-      <button id="testButton">Test Button</button>
+    <h1>SDK Diagnostics Test</h1>
+    <p>This page tests SDK diagnostics including uncaught SDK error capture. SDK is loaded via <code>&lt;script&gt;</code> tag.</p>
+
+    <div class="section">
+      <h3>SDK Initialization</h3>
+      <div class="actions">
+        <button id="initButton" class="init-btn">Initialize SDK</button>
+        <button id="addPluginButton" class="plugin-btn">Add Plugin (Remove User/Device ID)</button>
+      </div>
     </div>
-    <script type="module">
-      import * as amplitude from '@amplitude/analytics-browser';
-      
-      window.amplitude = amplitude;
-      
-      const initButton = document.getElementById('initButton');
-      const addPluginButton = document.getElementById('addPluginButton');
-      const testButton = document.getElementById('testButton');
-      
+
+    <div class="section">
+      <h3>Uncaught SDK Error Tests</h3>
+      <div class="actions">
+        <button class="sdk-error-btn" onclick="triggerSdkSetupError()">SDK Error: Setup Error</button>
+        <button class="not-captured-btn" onclick="setupCustomPluginClickHandler()">Custom Plugin Click Handler (Not Captured)</button>
+        <button id="custom-plugin-click-target" class="not-captured-btn" style="display:none;">Click to Throw Error</button>
+        <button class="not-captured-btn" onclick="triggerAppError()">App Error (Not Captured)</button>
+      </div>
+    </div>
+
+    <h3>Event Log</h3>
+    <pre id="log" class="log"></pre>
+
+    <h3>Instructions</h3>
+    <ul>
+      <li>Click <strong>Initialize SDK</strong> first to set up Amplitude</li>
+      <li>Open Developer Tools → Network tab to see diagnostics requests</li>
+      <li><strong>SDK Error: Setup Error</strong> - Plugin setup returns a rejected promise (should be captured - error originates from SDK code)</li>
+      <li><strong>Custom Plugin Click Handler</strong> - Custom plugin sets up a click handler that throws (NOT captured - error originates from this page's code, not SDK)</li>
+      <li><strong>App Error</strong> - Throws error from application code (NOT captured - error originates from this page's code)</li>
+    </ul>
+
+    <script>
       // Create plugin that removes user_id and device_id from events
-      const removeIdsPlugin = () => {
+      function removeIdsPlugin() {
         return {
           name: 'remove-ids-plugin',
           type: 'before',
-          execute: async (event) => {
+          execute: function(event) {
             delete event.user_id;
             delete event.device_id;
-            console.log('Plugin: Removed user_id and device_id from event', event);
-            return event;
+            logMessage('Plugin: Removed user_id and device_id from event');
+            return Promise.resolve(event);
           }
         };
-      };
-      
-      initButton.addEventListener('click', () => {
-        const apiKey = import.meta.env.VITE_AMPLITUDE_API_KEY;
+      }
+
+      document.getElementById('initButton').addEventListener('click', function() {
+        var apiKey = window.AMPLITUDE_API_KEY;
         
         if (!apiKey) {
           alert('Please set VITE_AMPLITUDE_API_KEY in .env');
@@ -60,21 +150,58 @@
         
         amplitude._setDiagnosticsSampleRate(1);
         amplitude.init(apiKey, undefined, {
-            logLevel: 'debug',
             autocapture: true,
         });
-        console.log('SDK initialized with API key:', apiKey);
+        logMessage('SDK initialized with API key: ' + apiKey.substring(0, 10) + '...');
       });
       
-      addPluginButton.addEventListener('click', () => {
+      document.getElementById('addPluginButton').addEventListener('click', function() {
         amplitude.add(removeIdsPlugin());
-        console.log('Plugin added to amplitude');
+        logMessage('Plugin added: remove-ids-plugin');
       });
-      
-      testButton.addEventListener('click', () => {
-        console.log('Test button clicked');
-      });
+
+      // Uncaught SDK error test functions
+      function triggerSdkSetupError() {
+        logMessage('Adding plugin that throws in setup...');
+        amplitude.add({
+          name: 'plugin-setup-error',
+          type: 'before',
+          setup: function() {
+            return Promise.reject(new Error('Plugin setup error'));
+          },
+          execute: function(event) {
+            return Promise.resolve(event);
+          }
+        });
+      }
+
+      function setupCustomPluginClickHandler() {
+        logMessage('Adding custom plugin that sets up a click handler...');
+        amplitude.add({
+          name: 'custom-plugin-click-handler',
+          type: 'before',
+          setup: function() {
+            var btn = document.getElementById('custom-plugin-click-target');
+            btn.style.display = 'inline-block';
+            btn.addEventListener('click', function() {
+              logMessage('Click handler throwing error (from custom plugin code, not SDK)...');
+              throw new Error('Error from custom plugin click handler');
+            });
+            logMessage('Plugin setup complete. Click the red "Click to Throw Error" button.');
+            return Promise.resolve();
+          },
+          execute: function(event) {
+            return Promise.resolve(event);
+          }
+        });
+      }
+
+      function triggerAppError() {
+        logMessage('Throwing error from application code...');
+        throw new Error('Application level error');
+      }
+
+      logMessage('Page loaded. Click "Initialize SDK" to start.');
     </script>
   </body>
 </html>
-
