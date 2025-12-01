@@ -106,6 +106,9 @@ describe('autocapturePlugin - Viewport Content Updated (Exposure)', () => {
     track.mockClear();
     fireViewportContentUpdatedMock.mockClear();
 
+    // Advance timers to allow pageViewEndFired to reset (100ms timeout in handleViewportContentUpdated)
+    jest.advanceTimersByTime(150);
+
     // Add another small element
     onExposureCallback('another-small-element');
 
@@ -237,7 +240,7 @@ describe('fireViewportContentUpdated - exposureTracker optional chaining', () =>
         elementExposedForPage,
         exposureTracker: undefined,
         isPageEnd: true,
-        pageViewEndFired: false,
+        lastScroll: { maxX: undefined, maxY: undefined },
       });
     }).not.toThrow();
 
@@ -261,7 +264,7 @@ describe('fireViewportContentUpdated - exposureTracker optional chaining', () =>
       elementExposedForPage,
       exposureTracker: mockExposureTracker,
       isPageEnd: true,
-      pageViewEndFired: false,
+      lastScroll: { maxX: undefined, maxY: undefined },
     });
 
     // Verify exposureTracker.reset was called
@@ -284,7 +287,7 @@ describe('fireViewportContentUpdated - exposureTracker optional chaining', () =>
       elementExposedForPage,
       exposureTracker: mockExposureTracker,
       isPageEnd: false,
-      pageViewEndFired: false,
+      lastScroll: { maxX: undefined, maxY: undefined },
     });
 
     // Verify exposureTracker.reset was NOT called

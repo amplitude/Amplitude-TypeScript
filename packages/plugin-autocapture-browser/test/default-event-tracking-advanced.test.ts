@@ -1571,6 +1571,12 @@ describe('autoTrackingPlugin', () => {
 
       expect(track).toHaveBeenCalledWith('[Amplitude] Viewport Content Updated', expect.any(Object));
 
+      jest.advanceTimersByTime(1000);
+      //  change scroll depth to trigger a new viewport content updated event
+      Object.defineProperty(window, 'scrollY', { value: 100, writable: true });
+      Object.defineProperty(window, 'pageYOffset', { value: 100, writable: true });
+      window.dispatchEvent(new Event('scroll'));
+
       // Verify it can fire again (pageViewEndFired should be reset to false by the proxy)
       history.pushState({}, 'test', '/another-page');
       expect(track).toHaveBeenCalledTimes(2);
