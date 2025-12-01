@@ -296,3 +296,134 @@ describe('fireViewportContentUpdated - exposureTracker optional chaining', () =>
     expect(mockScrollTracker.reset).not.toHaveBeenCalled();
   });
 });
+
+describe('fireViewportContentUpdated - early return when no changes', () => {
+  let mockAmplitude: BrowserClient;
+  let mockScrollTracker: ScrollTracker;
+  let trackSpy: jest.SpyInstance;
+
+  beforeEach(async () => {
+    mockAmplitude = createMockBrowserClient();
+    await mockAmplitude.init('API_KEY', 'USER_ID').promise;
+    trackSpy = jest.spyOn(mockAmplitude, 'track').mockImplementation(jest.fn());
+
+    mockScrollTracker = {
+      getState: jest.fn().mockReturnValue({ maxX: 100, maxY: 200 }),
+      reset: jest.fn(),
+    };
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  test('should not track when no elements exposed and scroll position unchanged', () => {
+    const currentElementExposed = new Set<string>();
+    const elementExposedForPage = new Set<string>();
+
+    fireViewportContentUpdated({
+      amplitude: mockAmplitude,
+      scrollTracker: mockScrollTracker,
+      currentElementExposed,
+      elementExposedForPage,
+      exposureTracker: undefined,
+      isPageEnd: false,
+      lastScroll: { maxX: 100, maxY: 200 }, // Same as scrollTracker state
+    });
+
+    // Should NOT call track because no elements exposed and scroll is same
+    expect(trackSpy).not.toHaveBeenCalled();
+  });
+
+  test('should track when elements are exposed even if scroll position unchanged', () => {
+    const currentElementExposed = new Set<string>(['element-1']);
+    const elementExposedForPage = new Set<string>(['element-1']);
+
+    fireViewportContentUpdated({
+      amplitude: mockAmplitude,
+      scrollTracker: mockScrollTracker,
+      currentElementExposed,
+      elementExposedForPage,
+      exposureTracker: undefined,
+      isPageEnd: false,
+      lastScroll: { maxX: 100, maxY: 200 }, // Same as scrollTracker state
+    });
+
+    // Should call track because there are exposed elements
+    expect(trackSpy).toHaveBeenCalledWith(
+      '[Amplitude] Viewport Content Updated',
+      expect.objectContaining({
+        '[Amplitude] Element Exposed': ['element-1'],
+      }),
+    );
+  });
+
+  test('should track when maxX changed even if no elements exposed', () => {
+    const currentElementExposed = new Set<string>();
+    const elementExposedForPage = new Set<string>();
+
+    fireViewportContentUpdated({
+      amplitude: mockAmplitude,
+      scrollTracker: mockScrollTracker,
+      currentElementExposed,
+      elementExposedForPage,
+      exposureTracker: undefined,
+      isPageEnd: false,
+      lastScroll: { maxX: 50, maxY: 200 }, // Different maxX
+    });
+
+    // Should call track because maxX changed
+    expect(trackSpy).toHaveBeenCalledWith(
+      '[Amplitude] Viewport Content Updated',
+      expect.objectContaining({
+        '[Amplitude] Element Exposed': [],
+      }),
+    );
+  });
+
+  test('should track when maxY changed even if no elements exposed', () => {
+    const currentElementExposed = new Set<string>();
+    const elementExposedForPage = new Set<string>();
+
+    fireViewportContentUpdated({
+      amplitude: mockAmplitude,
+      scrollTracker: mockScrollTracker,
+      currentElementExposed,
+      elementExposedForPage,
+      exposureTracker: undefined,
+      isPageEnd: false,
+      lastScroll: { maxX: 100, maxY: 150 }, // Different maxY
+    });
+
+    // Should call track because maxY changed
+    expect(trackSpy).toHaveBeenCalledWith(
+      '[Amplitude] Viewport Content Updated',
+      expect.objectContaining({
+        '[Amplitude] Element Exposed': [],
+      }),
+    );
+  });
+
+  test('should track when lastScroll has undefined values', () => {
+    const currentElementExposed = new Set<string>();
+    const elementExposedForPage = new Set<string>();
+
+    fireViewportContentUpdated({
+      amplitude: mockAmplitude,
+      scrollTracker: mockScrollTracker,
+      currentElementExposed,
+      elementExposedForPage,
+      exposureTracker: undefined,
+      isPageEnd: false,
+      lastScroll: { maxX: undefined, maxY: undefined }, // First call, undefined values
+    });
+
+    // Should call track because undefined !== 100 and undefined !== 200
+    expect(trackSpy).toHaveBeenCalledWith(
+      '[Amplitude] Viewport Content Updated',
+      expect.objectContaining({
+        '[Amplitude] Element Exposed': [],
+      }),
+    );
+  });
+});
