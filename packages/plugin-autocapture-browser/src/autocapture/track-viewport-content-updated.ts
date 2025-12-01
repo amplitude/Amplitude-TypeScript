@@ -57,7 +57,6 @@ export function fireViewportContentUpdated({
     pageScrollMaxState.maxX === lastScroll.maxX &&
     pageScrollMaxState.maxY === lastScroll.maxY
   ) {
-    console.error('No elements exposed and max scroll is same as last event, skipping track');
     return;
   }
 
