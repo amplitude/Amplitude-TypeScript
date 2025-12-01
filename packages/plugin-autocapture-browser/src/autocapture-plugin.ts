@@ -326,9 +326,9 @@ export const autocapturePlugin = (
     const globalScope = getGlobalScope();
 
     const handleViewportContentUpdated = (isPageEnd: boolean) => {
-       if (isPageEnd && pageViewEndFired) {
+      if (isPageEnd && pageViewEndFired) {
         return;
-       }
+      }
       setTimeout(() => {
         pageViewEndFired = false;
       }, 100);
@@ -341,7 +341,7 @@ export const autocapturePlugin = (
         elementExposedForPage,
         exposureTracker: trackers.exposure,
         isPageEnd,
-        lastScroll
+        lastScroll,
       });
     };
 
