@@ -18,7 +18,7 @@ export function fireViewportContentUpdated({
   elementExposedForPage,
   exposureTracker,
   isPageEnd,
-  pageViewEndFired,
+  lastScroll,
 }: {
   amplitude: BrowserClient;
   scrollTracker: ScrollTracker;
@@ -26,17 +26,8 @@ export function fireViewportContentUpdated({
   elementExposedForPage: Set<string>;
   exposureTracker: ExposureTracker | undefined;
   isPageEnd: boolean;
-  pageViewEndFired: boolean;
-}): boolean {
-  if (isPageEnd && pageViewEndFired) {
-    return pageViewEndFired;
-  }
-
-  let newPageViewEndFired = pageViewEndFired;
-  if (isPageEnd) {
-    newPageViewEndFired = true;
-  }
-
+  lastScroll: { maxX: undefined | number; maxY: undefined | number };
+}): void {
   const pageScrollMaxState = scrollTracker.getState();
   const globalScope = getGlobalScope();
 
@@ -60,8 +51,19 @@ export function fireViewportContentUpdated({
     eventProperties[constants.AMPLITUDE_EVENT_PROP_PAGE_VIEW_ID] = pageViewId;
   }
 
+  // If elements exposed is empty and max scroll is same as last event, don't track
+  if (
+    currentElementExposed.size === 0 &&
+    pageScrollMaxState.maxX === lastScroll.maxX &&
+    pageScrollMaxState.maxY === lastScroll.maxY
+  ) {
+    console.error('No elements exposed and max scroll is same as last event, skipping track');
+    return;
+  }
+
   /* istanbul ignore next */
   amplitude?.track('[Amplitude] Viewport Content Updated', eventProperties);
+  lastScroll = { maxX: pageScrollMaxState.maxX, maxY: pageScrollMaxState.maxY };
 
   // Clear current batch
   currentElementExposed.clear();
@@ -72,8 +74,6 @@ export function fireViewportContentUpdated({
     elementExposedForPage.clear();
     exposureTracker?.reset();
   }
-
-  return newPageViewEndFired;
 }
 
 export function onExposure(
