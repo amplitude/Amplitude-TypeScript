@@ -257,6 +257,7 @@ export const autocapturePlugin = (
     }
 
     let pageViewEndFired = false;
+    const lastScroll: { maxX: undefined | number; maxY: undefined | number } = { maxX: undefined, maxY: undefined };
 
     // Fetch remote config for pageActions in a non-blocking manner
     if (config.fetchRemoteConfig) {
@@ -325,14 +326,22 @@ export const autocapturePlugin = (
     const globalScope = getGlobalScope();
 
     const handleViewportContentUpdated = (isPageEnd: boolean) => {
-      pageViewEndFired = fireViewportContentUpdated({
+       if (isPageEnd && pageViewEndFired) {
+        return;
+       }
+      setTimeout(() => {
+        pageViewEndFired = false;
+      }, 100);
+
+      pageViewEndFired = true;
+      fireViewportContentUpdated({
         amplitude,
         scrollTracker,
         currentElementExposed,
         elementExposedForPage,
         exposureTracker: trackers.exposure,
         isPageEnd,
-        pageViewEndFired,
+        lastScroll
       });
     };
 
@@ -349,7 +358,10 @@ export const autocapturePlugin = (
       subscriptions.push(trackers.exposure);
     }
 
-    const beforeUnloadHandler = () => handleViewportContentUpdated(true);
+    const beforeUnloadHandler = () => {
+      console.log('amp: beforeUnload');
+      handleViewportContentUpdated(true);
+    };
     /* istanbul ignore next */
     globalScope?.addEventListener('beforeunload', beforeUnloadHandler);
     beforeUnloadCleanup = () => {
@@ -364,12 +376,15 @@ export const autocapturePlugin = (
     if (navigateObservable) {
       subscriptions.push(
         navigateObservable.subscribe(() => {
+          console.log('amp: navigate');
           handleViewportContentUpdated(true);
-          pageViewEndFired = false;
         }),
       );
     } else if (globalScope) {
-      const popstateHandler = () => handleViewportContentUpdated(true);
+      const popstateHandler = () => {
+        console.log('amp: popstate');
+        handleViewportContentUpdated(true);
+      };
       /* istanbul ignore next */
       // Fallback for SPA tracking when Navigation API is not available
       globalScope.addEventListener('popstate', popstateHandler);
@@ -384,9 +399,9 @@ export const autocapturePlugin = (
         // eslint-disable-next-line @typescript-eslint/unbound-method
         globalScope.history.pushState = new Proxy(originalPushState, {
           apply: (target, thisArg, [state, unused, url]) => {
+            console.log('amp: pushState');
             target.apply(thisArg, [state, unused, url]);
             handleViewportContentUpdated(true);
-            pageViewEndFired = false;
           },
         });
       }
