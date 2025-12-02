@@ -1,5 +1,8 @@
-import { Logger, UUID, BrowserClient, BrowserConfig, LogLevel } from '@amplitude/analytics-core';
-import { defaultPageViewEvent, pageViewTrackingPlugin, shouldTrackHistoryPageView ,
+import { Logger, UUID, BrowserClient, BrowserConfig, LogLevel, getGlobalScope } from '@amplitude/analytics-core';
+import {
+  defaultPageViewEvent,
+  pageViewTrackingPlugin,
+  shouldTrackHistoryPageView,
   PAGE_VIEW_SESSION_STORAGE_KEY,
 } from '../src/page-view-tracking';
 import { CookieStorage, FetchTransport } from '@amplitude/analytics-client-common';
