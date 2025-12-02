@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.0.0-feat-zoning.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/unified@1.0.0-beta.19...@amplitude/unified@1.0.0-feat-zoning.0) (2025-12-02)
+
+**Note:** Version bump only for package @amplitude/unified
+
+
+
+
+
 # [1.0.0-beta.19](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/unified@1.0.0-beta.18...@amplitude/unified@1.0.0-beta.19) (2025-11-21)
 
 **Note:** Version bump only for package @amplitude/unified

@@ -1,6 +1,6 @@
 {
   "name": "@amplitude/gtm-snippet",
-  "version": "2.31.3",
+  "version": "2.31.4-feat-zoning.0",
   "description": "Amplitude JS SDK Wrapper for use with Google Tag Manager",
   "publishConfig": {
     "access": "public",
@@ -21,8 +21,8 @@
   "author": "Amplitude <support@amplitude.com>",
   "license": "MIT",
   "dependencies": {
-    "@amplitude/analytics-browser": "2.31.3",
-    "@amplitude/plugin-session-replay-browser": "1.23.6"
+    "@amplitude/analytics-browser": "2.31.4-feat-zoning.0",
+    "@amplitude/plugin-session-replay-browser": "1.23.7-feat-zoning.0"
   },
   "devDependencies": {
     "@amplitude/eslint-plugin-amplitude": "^1.0.1",

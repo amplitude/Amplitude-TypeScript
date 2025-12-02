@@ -1,6 +1,6 @@
 {
   "name": "@amplitude/analytics-browser",
-  "version": "2.31.3",
+  "version": "2.31.4-feat-zoning.0",
   "description": "Official Amplitude SDK for Web",
   "keywords": [
     "analytics",
@@ -48,10 +48,10 @@
   },
   "dependencies": {
     "@amplitude/analytics-core": "2.33.0",
-    "@amplitude/plugin-autocapture-browser": "1.18.0",
+    "@amplitude/plugin-autocapture-browser": "1.19.0-feat-zoning.0",
     "@amplitude/plugin-network-capture-browser": "1.7.0",
     "@amplitude/plugin-page-url-enrichment-browser": "0.5.6",
-    "@amplitude/plugin-page-view-tracking-browser": "2.6.3",
+    "@amplitude/plugin-page-view-tracking-browser": "2.7.0-feat-zoning.0",
     "@amplitude/plugin-web-vitals-browser": "1.1.0",
     "tslib": "^2.4.1"
   },

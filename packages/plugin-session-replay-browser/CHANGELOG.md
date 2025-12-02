@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.23.7-feat-zoning.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@1.23.6...@amplitude/plugin-session-replay-browser@1.23.7-feat-zoning.0) (2025-12-02)
+
+**Note:** Version bump only for package @amplitude/plugin-session-replay-browser
+
+
+
+
+
 ## [1.23.6](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@1.23.5...@amplitude/plugin-session-replay-browser@1.23.6) (2025-11-21)
 
 

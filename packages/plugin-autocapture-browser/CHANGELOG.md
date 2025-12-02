@@ -3,6 +3,26 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.19.0-feat-zoning.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.18.0...@amplitude/plugin-autocapture-browser@1.19.0-feat-zoning.0) (2025-12-02)
+
+
+### Bug Fixes
+
+* double firing behavior ([e464f07](https://github.com/amplitude/Amplitude-TypeScript/commit/e464f07442f5f5d309b1e87ebb5f2c0d45fc9561))
+* test coverage ([a1b3969](https://github.com/amplitude/Amplitude-TypeScript/commit/a1b3969071eb63828039a6669ad89ee3f7ac8e68))
+* test coverage ([f79f89d](https://github.com/amplitude/Amplitude-TypeScript/commit/f79f89da741f29d748b078d1d0c4e7452c1ba86d))
+* update tests to add new element path property ([4f5cba0](https://github.com/amplitude/Amplitude-TypeScript/commit/4f5cba085357386cc11ee3f8ad29416c9c4b5c3b))
+
+
+### Features
+
+* **autocapture:** add method to get unique element path for element ([c8597b2](https://github.com/amplitude/Amplitude-TypeScript/commit/c8597b2101d0c4336cc6dbe8e22c8845db8e2b96))
+* **page-view-tracking-browser:** Track page view id in session storage ([#1379](https://github.com/amplitude/Amplitude-TypeScript/issues/1379)) ([e09ba43](https://github.com/amplitude/Amplitude-TypeScript/commit/e09ba43e2835c1dde26bd2d7f0110a8121494f98))
+
+
+
+
+
 # [1.18.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.17.4...@amplitude/plugin-autocapture-browser@1.18.0) (2025-11-21)
 
 
