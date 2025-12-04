@@ -3,9 +3,18 @@ name: Publish v2.x
 on:
   workflow_dispatch:
     inputs:
+      releaseType:
+        type: choice
+        description: Release type (release for main branch, prerelease for feature branches)
+        required: true
+        default: release
+        options:
+          - release
+          - prerelease
+          - dry-run
       publishFrom:
         type: string
-        description: Publish source (leave empty for from-git, or enter "from-package")
+        description: Publish source (leave empty for from-git, or enter "from-package"). Only applies to 'release' type.
         required: false
 
 jobs:
@@ -24,6 +33,7 @@ jobs:
     name: Deploy
     runs-on: ubuntu-latest
     needs: [authorize]
+    if: ${{ github.event.inputs.releaseType == 'release' }}
     permissions:
       id-token: write # Required for OIDC
       contents: write
@@ -117,5 +127,97 @@ jobs:
       - name: Publish Release to NPM
         run: |
           GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} npm run deploy:publish -- ${{ env.PUBLISH_FROM }} -y --pre-dist-tag beta --loglevel silly
+        env:
+          S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
+
+  prerelease:
+    name: Prerelease feature branch
+    runs-on: ubuntu-latest
+    needs: [authorize]
+    if: ${{ github.event.inputs.releaseType != 'release' }}
+    permissions:
+      id-token: write # Required for OIDC
+      contents: write
+    strategy:
+      matrix:
+        node-version: [24.x] # Ensure npm 11.5.1 or later is installed for OIDC, node 24.6 is minimal
+
+    steps:
+      - name: Get branch name
+        id: branch-name
+        uses: tj-actions/branch-name@v7
+
+      - name: Check out git repository
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ steps.branch-name.outputs.ref_branch }}
+          fetch-depth: 0
+
+      - name: Cache dependencies
+        uses: actions/cache@v3
+        with:
+          path: '**/node_modules'
+          key: ${{ runner.os }}-modules-${{ hashFiles('**/yarn.lock') }}
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install project dependencies
+        run: |
+          yarn install --frozen-lockfile
+
+      - name: Build all packages
+        run: |
+          yarn build
+
+      - name: Test all packages
+        run: |
+          yarn test
+
+      - name: Lint all packages
+        run: |
+          yarn lint
+
+      - name: Configure Git User
+        run: |
+          git config --global user.name amplitude-sdk-bot
+          git config --global user.email amplitude-sdk-bot@users.noreply.github.com
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: arn:aws:iam::358203115967:role/github-actions-role
+          aws-region: us-west-2
+
+      # Keep alphanumeric characters and hyphens, remove other invalid characters
+      # Examples:
+      #   - SR-1858 -> SR-1858
+      #   - feature/my-branch -> featuremy-branch
+      #   - fix_bug_123 -> fixbug123
+      #   - user@company.com -> usercompanycom
+      - name: Transform feature branch name
+        run: |
+          echo "PREID=$(echo '${{ steps.branch-name.outputs.current_branch }}' | tr -cd '[:alnum:]-')" >> $GITHUB_ENV
+
+      # Use --no-push to prevent pushing to remote
+      # Version example: 1.0.0 -> 1.1.0-{preid}.0
+      - name: Dry run pre-release version
+        if: ${{ github.event.inputs.releaseType == 'dry-run' }}
+        run: |
+          GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} npm run deploy:version -- -y --no-private --conventional-prerelease --preid ${{ env.PREID }} --allow-branch ${{ steps.branch-name.outputs.current_branch }} --no-changelog --no-push
+
+      - name: Pre-release version
+        if: ${{ github.event.inputs.releaseType == 'prerelease' }}
+        run: |
+          GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} npm run deploy:version -- -y --no-private --conventional-prerelease --preid ${{ env.PREID }} --allow-branch ${{ steps.branch-name.outputs.current_branch }} --create-release github
+
+      # Use 'from git' option if `lerna version` has already been run
+      - name: Publish Release to NPM
+        if: ${{ github.event.inputs.releaseType == 'prerelease' }}
+        run: |
+          GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} npm run deploy:publish -- from-git -y --ignore-scripts --pre-dist-tag ${{ env.PREID }}
         env:
           S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
