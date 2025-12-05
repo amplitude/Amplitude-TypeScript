@@ -243,6 +243,34 @@ export interface SessionReplayPerformanceConfig {
    * before executing the deferred compression task, even if the browser is not idle.
    */
   timeout?: number;
+  /**
+   * Performance configuration for interaction tracking (clicks, scrolls).
+   */
+  interaction?: InteractionPerformanceConfig;
+}
+
+/**
+ * Performance configuration for interaction tracking, specifically for CSS selector generation.
+ */
+export interface InteractionPerformanceConfig {
+  /**
+   * Maximum time in milliseconds allowed for CSS selector generation.
+   * If selector generation takes longer than this, it will throw a timeout error.
+   * Default: undefined (no timeout limit)
+   */
+  timeoutMs?: number;
+  /**
+   * Maximum number of attempts to optimize/simplify the CSS selector path.
+   * Higher values may produce shorter selectors but take longer to compute.
+   * Default: 10000
+   */
+  maxNumberOfTries?: number;
+  /**
+   * Maximum number of CSS selector combinations to test for uniqueness.
+   * If more combinations would be generated, falls back to a simpler strategy.
+   * Default: 1000
+   */
+  threshold?: number;
 }
 
 export type SessionReplayType = 'standalone' | 'plugin' | 'segment';
