@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.24.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@1.23.6...@amplitude/plugin-session-replay-browser@1.24.0) (2025-12-05)
+
+
+### Features
+
+* **session-replay-browser:** move web worker out of experimental ([#1416](https://github.com/amplitude/Amplitude-TypeScript/issues/1416)) ([50e3063](https://github.com/amplitude/Amplitude-TypeScript/commit/50e30636fb00f98989a2085b8b79d1792e1705d4))
+
+
+
+
+
 ## [1.23.6](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@1.23.5...@amplitude/plugin-session-replay-browser@1.23.6) (2025-11-21)
 
 
