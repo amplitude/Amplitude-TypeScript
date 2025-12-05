@@ -144,13 +144,13 @@ describe('browser-client', () => {
 
   describe('init', () => {
     test('should call identify when identify is provided', async () => {
-      const identifySpy = jest.spyOn(client, 'track');
+      const trackSpy = jest.spyOn(client, 'track');
       const identify = new Identify();
       identify.set('test', '123');
       await client.init(apiKey, {
         identify,
       }).promise;
-      expect(identifySpy).toHaveBeenNthCalledWith(2, {
+      expect(trackSpy).toHaveBeenNthCalledWith(2, {
         event_type: '$identify',
         user_properties: { $set: { test: '123' } },
       });
