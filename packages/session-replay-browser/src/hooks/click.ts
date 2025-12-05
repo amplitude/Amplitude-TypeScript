@@ -3,9 +3,9 @@ import { MouseInteractions } from '@amplitude/rrweb-types';
 import { Mirror } from '../utils/rrweb';
 import { SessionReplayEventsManager as AmplitudeSessionReplayEventsManager } from '../typings/session-replay';
 import { PayloadBatcher } from '../track-destination';
-import { finder } from '../libs/finder';
+import { finder, Options as FinderOptions } from '../libs/finder';
 import { getGlobalScope, ILogger } from '@amplitude/analytics-core';
-import { UGCFilterRule } from '../config/types';
+import { UGCFilterRule, InteractionPerformanceConfig } from '../config/types';
 import { getPageUrl } from '../helpers';
 import { ScrollWatcher } from './scroll';
 
@@ -30,6 +30,7 @@ type Context = {
   eventsManager: AmplitudeSessionReplayEventsManager<'interaction', string>;
   mirror: Mirror;
   ugcFilterRules: UGCFilterRule[];
+  performanceOptions?: InteractionPerformanceConfig;
 };
 
 const HOUR_IN_MILLISECONDS = 3_600_000;
@@ -88,6 +89,7 @@ export class ClickHandler {
     deviceIdFn,
     mirror,
     ugcFilterRules,
+    performanceOptions,
   }) => {
     return (e) => {
       if (e.type !== MouseInteractions.Click) {
@@ -114,7 +116,10 @@ export class ClickHandler {
       let selector;
       if (node) {
         try {
-          selector = finder(node as Element);
+          selector = finder(
+            node as Element,
+            performanceOptions as Pick<FinderOptions, 'timeoutMs' | 'maxNumberOfTries' | 'threshold'>,
+          );
         } catch (err) {
           this.logger.debug('error resolving selector from finder');
         }

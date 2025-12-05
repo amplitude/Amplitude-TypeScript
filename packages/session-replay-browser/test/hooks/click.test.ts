@@ -263,6 +263,114 @@ describe('click', () => {
         type: 'click',
       });
     });
+
+    test('passes performance options to finder', () => {
+      const scrollWatcher = createMockScrollWatcher();
+      const factory = new ClickHandler(mockLoggerProvider, scrollWatcher);
+      const performanceOptions = {
+        timeoutMs: 5000,
+        maxNumberOfTries: 5000,
+        threshold: 500,
+      };
+
+      (record.mirror.getNode as jest.Mock).mockImplementation(() => {
+        const ele = document.createElement('div');
+        document.body.appendChild(ele);
+        return ele;
+      }) as any;
+
+      const hook = factory.createHook({
+        deviceIdFn: () => deviceId,
+        eventsManager: mockEventsManager,
+        sessionId: sessionId,
+        mirror: record.mirror,
+        ugcFilterRules: [],
+        performanceOptions,
+      });
+
+      hook({
+        id: 1234,
+        type: MouseInteractions.Click,
+        x: 3,
+        y: 3,
+      });
+
+      expect(mockFinder).toHaveBeenCalledWith(expect.any(Element), performanceOptions);
+      expect(jest.spyOn(mockEventsManager, 'addEvent')).toHaveBeenCalledTimes(1);
+    });
+
+    test('passes partial performance options to finder', () => {
+      const scrollWatcher = createMockScrollWatcher();
+      const factory = new ClickHandler(mockLoggerProvider, scrollWatcher);
+      const performanceOptions = {
+        timeoutMs: 3000,
+      };
+
+      (record.mirror.getNode as jest.Mock).mockImplementation(() => {
+        const ele = document.createElement('div');
+        document.body.appendChild(ele);
+        return ele;
+      }) as any;
+
+      const hook = factory.createHook({
+        deviceIdFn: () => deviceId,
+        eventsManager: mockEventsManager,
+        sessionId: sessionId,
+        mirror: record.mirror,
+        ugcFilterRules: [],
+        performanceOptions,
+      });
+
+      hook({
+        id: 1234,
+        type: MouseInteractions.Click,
+        x: 3,
+        y: 3,
+      });
+
+      expect(mockFinder).toHaveBeenCalledWith(expect.any(Element), performanceOptions);
+      expect(jest.spyOn(mockEventsManager, 'addEvent')).toHaveBeenCalledTimes(1);
+    });
+
+    test('works without performance options', () => {
+      const scrollWatcher = createMockScrollWatcher();
+      const factory = new ClickHandler(mockLoggerProvider, scrollWatcher);
+
+      (record.mirror.getNode as jest.Mock).mockImplementation(() => {
+        const ele = document.createElement('div');
+        document.body.appendChild(ele);
+        return ele;
+      }) as any;
+
+      const hook = factory.createHook({
+        deviceIdFn: () => deviceId,
+        eventsManager: mockEventsManager,
+        sessionId: sessionId,
+        mirror: record.mirror,
+        ugcFilterRules: [],
+      });
+
+      hook({
+        id: 1234,
+        type: MouseInteractions.Click,
+        x: 3,
+        y: 3,
+      });
+
+      expect(mockFinder).toHaveBeenCalledWith(expect.any(Element), undefined);
+      expect(jest.spyOn(mockEventsManager, 'addEvent')).toHaveBeenCalledTimes(1);
+      const eventData = JSON.parse(mockEventsManager.addEvent.mock.calls[0][0].event.data);
+      expect(eventData).toMatchObject({
+        x: 3,
+        y: 3,
+        viewportHeight: 768,
+        viewportWidth: 1024,
+        pageUrl: 'http://localhost/',
+        timestamp: expect.any(Number),
+        type: 'click',
+      });
+      expect(eventData.selector).toContain('div');
+    });
   });
 
   describe('clickBatcher', () => {
