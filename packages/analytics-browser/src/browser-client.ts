@@ -28,6 +28,7 @@ import {
   RemoteConfig,
   Source,
   DiagnosticsClient,
+  createIdentifyEvent,
 } from '@amplitude/analytics-core';
 import {
   getAttributionTrackingConfig,
@@ -225,11 +226,6 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
     const ampTimestamp = queryParams.ampTimestamp ? Number(queryParams.ampTimestamp) : undefined;
     const isWithinTimeLimit = ampTimestamp ? Date.now() < ampTimestamp : true;
 
-    // if an identify object is provided, call it on init
-    if (this.config.identify) {
-      this.identify(this.config.identify);
-    }
-
     // check if we need to set the sessionId
     const querySessionId =
       isWithinTimeLimit && !Number.isNaN(Number(queryParams.ampSessionId))
@@ -415,6 +411,11 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
     // 1. has new campaign (call setSessionId from init function)
     // 2. or shouldTrackNewCampaign (call setSessionId from async process(event) when there has new campaign and resetSessionOnNewCampaign = true )
     const isCampaignEventTracked = this.trackCampaignEventIfNeeded(++lastEventId, promises);
+
+    // track the identify event if an Identify object is provided in the config
+    if (this.config.identify) {
+      promises.push(this.track(createIdentifyEvent(this.config.identify)).promise);
+    }
 
     if (isSessionTrackingEnabled(this.config.defaultTracking)) {
       promises.push(
