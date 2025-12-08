@@ -49,44 +49,10 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Cache dependencies
-        uses: actions/cache@v3
-        with:
-          path: '**/node_modules'
-          key: ${{ runner.os }}-modules-${{ hashFiles('**/yarn.lock') }}
-
-      - name: Setup Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v3
+      - name: Build and Test
+        uses: ./.github/actions/build-and-test
         with:
           node-version: ${{ matrix.node-version }}
-          registry-url: 'https://registry.npmjs.org'
-
-      - name: Install project dependencies
-        run: |
-          yarn install --frozen-lockfile
-
-      - name: Build all packages
-        run: |
-          yarn build
-
-      - name: Test all packages
-        run: |
-          yarn test
-
-      - name: Lint all packages
-        run: |
-          yarn lint
-
-      - name: Configure Git User
-        run: |
-          git config --global user.name amplitude-sdk-bot
-          git config --global user.email amplitude-sdk-bot@users.noreply.github.com
-
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v2
-        with:
-          role-to-assume: arn:aws:iam::358203115967:role/github-actions-role
-          aws-region: us-west-2
 
       # Only create release version when using from-git (default behavior)
       # from-package mode uses existing package.json versions and doesn't need git tags
@@ -153,44 +119,10 @@ jobs:
           ref: ${{ steps.branch-name.outputs.ref_branch }}
           fetch-depth: 0
 
-      - name: Cache dependencies
-        uses: actions/cache@v3
-        with:
-          path: '**/node_modules'
-          key: ${{ runner.os }}-modules-${{ hashFiles('**/yarn.lock') }}
-
-      - name: Setup Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v3
+      - name: Build and Test
+        uses: ./.github/actions/build-and-test
         with:
           node-version: ${{ matrix.node-version }}
-          registry-url: 'https://registry.npmjs.org'
-
-      - name: Install project dependencies
-        run: |
-          yarn install --frozen-lockfile
-
-      - name: Build all packages
-        run: |
-          yarn build
-
-      - name: Test all packages
-        run: |
-          yarn test
-
-      - name: Lint all packages
-        run: |
-          yarn lint
-
-      - name: Configure Git User
-        run: |
-          git config --global user.name amplitude-sdk-bot
-          git config --global user.email amplitude-sdk-bot@users.noreply.github.com
-
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v2
-        with:
-          role-to-assume: arn:aws:iam::358203115967:role/github-actions-role
-          aws-region: us-west-2
 
       # Keep alphanumeric characters and hyphens, remove other invalid characters
       # Examples:
