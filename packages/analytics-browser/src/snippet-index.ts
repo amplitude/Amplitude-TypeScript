@@ -17,9 +17,7 @@ function resolveCurrentScriptUrl(): string | undefined {
     return currentScript.src;
   }
 
-  const scripts = document.getElementsByTagName('script');
-  const lastScript = scripts[scripts.length - 1];
-  return lastScript?.src;
+  return undefined;
 }
 
 // https://developer.mozilla.org/en-US/docs/Glossary/IIFE
