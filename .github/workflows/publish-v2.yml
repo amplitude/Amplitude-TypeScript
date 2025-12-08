@@ -26,14 +26,14 @@ jobs:
     name: Authorize
     runs-on: ubuntu-latest
     steps:
-      # - name: Check branch protection
-      #   run: |
-      #     if [ "${{ github.ref_name }}" != "main" ]; then
-      #       echo "❌ This workflow can only be triggered from the main branch."
-      #       echo "Current branch: ${{ github.ref_name }}"
-      #       exit 1
-      #     fi
-      #     echo "✅ Branch check passed: running from main"
+      - name: Check branch protection
+        run: |
+          if [ "${{ github.ref_name }}" != "main" ]; then
+            echo "❌ This workflow can only be triggered from the main branch."
+            echo "Current branch: ${{ github.ref_name }}"
+            exit 1
+          fi
+          echo "✅ Branch check passed: running from main"
 
       - name: ${{ github.actor }} permission check to do a release
         uses: 'lannonbr/repo-permission-check-action@2.0.2'
