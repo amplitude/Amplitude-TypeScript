@@ -100,7 +100,7 @@ jobs:
     name: Prerelease feature branch
     runs-on: ubuntu-latest
     needs: [authorize]
-    if: ${{ github.event.inputs.releaseType != 'release' }}
+    if: ${{ github.event.inputs.releaseType == 'prerelease' || github.event.inputs.releaseType == 'dry-run' }}
     permissions:
       id-token: write # Required for OIDC
       contents: write
