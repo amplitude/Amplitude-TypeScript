@@ -38,7 +38,9 @@ class PluginSessionReplayReactNative: NSObject {
                                       serverZone: serverZone == "EU" ? .EU : .US,
                                       enableRemoteConfig: enableRemoteConfig)
         if (autoStart) {
-            sessionReplay.start()
+          DispatchQueue.main.async {
+            self.sessionReplay.start()
+          }
         }
         resolve(nil)
     }
@@ -65,15 +67,19 @@ class PluginSessionReplayReactNative: NSObject {
     @objc(start:reject:)
     func start(_ resolve: RCTPromiseResolveBlock, reject: RCTPromiseRejectBlock) -> Void {
       print("start")
-      sessionReplay.start()
-      resolve(nil)
+      DispatchQueue.main.async {
+        self.sessionReplay.start()
+        resolve(nil)
+      }
     }
     
     @objc(stop:reject:)
     func stop(_ resolve: RCTPromiseResolveBlock, reject: RCTPromiseRejectBlock) -> Void {
       print("stop")
-      sessionReplay.stop()
-      resolve(nil)
+      DispatchQueue.main.async {
+        self.sessionReplay.stop()
+        resolve(nil)
+      }
     }
     
     @objc(flush:reject:)
@@ -86,7 +92,9 @@ class PluginSessionReplayReactNative: NSObject {
     @objc(teardown:reject:)
     func teardown(_ resolve: RCTPromiseResolveBlock, reject: RCTPromiseRejectBlock) -> Void {
       print("teardown")
-      sessionReplay.stop()
-      resolve(nil)
+      DispatchQueue.main.async {
+        self.sessionReplay.stop()
+        resolve(nil)
+      }
     }
 }
