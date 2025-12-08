@@ -16,12 +16,25 @@ on:
         type: string
         description: Publish source (leave empty for from-git, or enter "from-package"). Only applies to 'release' type.
         required: false
+      branch:
+        type: string
+        description: Branch to create pre-release from (only applies to prerelease/dry-run). Leave empty to use current branch.
+        required: false
 
 jobs:
   authorize:
     name: Authorize
     runs-on: ubuntu-latest
     steps:
+      # - name: Check branch protection
+      #   run: |
+      #     if [ "${{ github.ref_name }}" != "main" ]; then
+      #       echo "❌ This workflow can only be triggered from the main branch."
+      #       echo "Current branch: ${{ github.ref_name }}"
+      #       exit 1
+      #     fi
+      #     echo "✅ Branch check passed: running from main"
+
       - name: ${{ github.actor }} permission check to do a release
         uses: 'lannonbr/repo-permission-check-action@2.0.2'
         with:
@@ -109,14 +122,19 @@ jobs:
         node-version: [24.x] # Ensure npm 11.5.1 or later is installed for OIDC, node 24.6 is minimal
 
     steps:
-      - name: Get branch name
-        id: branch-name
-        uses: tj-actions/branch-name@v7
+      - name: Determine branch to use
+        id: determine-branch
+        run: |
+          if [ -n "${{ github.event.inputs.branch }}" ]; then
+            echo "branch=${{ github.event.inputs.branch }}" >> $GITHUB_OUTPUT
+          else
+            echo "branch=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+          fi
 
       - name: Check out git repository
         uses: actions/checkout@v3
         with:
-          ref: ${{ steps.branch-name.outputs.ref_branch }}
+          ref: ${{ steps.determine-branch.outputs.branch }}
           fetch-depth: 0
 
       - name: Build and Test
@@ -132,19 +150,19 @@ jobs:
       #   - user@company.com -> usercompanycom
       - name: Transform feature branch name
         run: |
-          echo "PREID=$(echo '${{ steps.branch-name.outputs.current_branch }}' | tr -cd '[:alnum:]-')" >> $GITHUB_ENV
+          echo "PREID=$(echo '${{ steps.determine-branch.outputs.branch }}' | tr -cd '[:alnum:]-')" >> $GITHUB_ENV
 
       # Use --no-push to prevent pushing to remote
       # Version example: 1.0.0 -> 1.1.0-{preid}.0
       - name: Dry run pre-release version
         if: ${{ github.event.inputs.releaseType == 'dry-run' }}
         run: |
-          GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} npm run deploy:version -- -y --no-private --conventional-prerelease --preid ${{ env.PREID }} --allow-branch ${{ steps.branch-name.outputs.current_branch }} --no-changelog --no-push --no-git-tag-version
+          GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} npm run deploy:version -- -y --no-private --conventional-prerelease --preid ${{ env.PREID }} --allow-branch ${{ steps.determine-branch.outputs.branch }} --no-changelog --no-push --no-git-tag-version
 
       - name: Pre-release version
         if: ${{ github.event.inputs.releaseType == 'prerelease' }}
         run: |
-          GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} npm run deploy:version -- -y --no-private --conventional-prerelease --preid ${{ env.PREID }} --allow-branch ${{ steps.branch-name.outputs.current_branch }} --create-release github
+          GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} npm run deploy:version -- -y --no-private --conventional-prerelease --preid ${{ env.PREID }} --allow-branch ${{ steps.determine-branch.outputs.branch }} --create-release github
 
       # Use 'from git' option if `lerna version` has already been run
       - name: Publish Release to NPM
