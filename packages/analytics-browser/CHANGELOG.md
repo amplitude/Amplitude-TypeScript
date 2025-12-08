@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.31.4](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.31.3...@amplitude/analytics-browser@2.31.4) (2025-12-08)
+
+
+### Bug Fixes
+
+* identify call race condition ([#1424](https://github.com/amplitude/Amplitude-TypeScript/issues/1424)) ([1aaaff5](https://github.com/amplitude/Amplitude-TypeScript/commit/1aaaff581a21ed4cedb50430550a66310e20ce8b))
+
+
+
+
+
 ## [2.31.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.31.2...@amplitude/analytics-browser@2.31.3) (2025-11-21)
 
 **Note:** Version bump only for package @amplitude/analytics-browser
