@@ -1,0 +1,54 @@
+name: 'Build and Test'
+description: 'Install dependencies, build, test, and lint packages'
+inputs:
+  node-version:
+    description: 'Node.js version to use'
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Cache dependencies
+      uses: actions/cache@v3
+      with:
+        path: '**/node_modules'
+        key: ${{ runner.os }}-modules-${{ hashFiles('**/yarn.lock') }}
+
+    - name: Setup Node.js ${{ inputs.node-version }}
+      uses: actions/setup-node@v3
+      with:
+        node-version: ${{ inputs.node-version }}
+        registry-url: 'https://registry.npmjs.org'
+
+    - name: Install project dependencies
+      shell: bash
+      run: |
+        yarn install --frozen-lockfile
+
+    - name: Build all packages
+      shell: bash
+      run: |
+        yarn build
+
+    - name: Test all packages
+      shell: bash
+      run: |
+        yarn test
+
+    - name: Lint all packages
+      shell: bash
+      run: |
+        yarn lint
+
+    - name: Configure Git User
+      shell: bash
+      run: |
+        git config --global user.name amplitude-sdk-bot
+        git config --global user.email amplitude-sdk-bot@users.noreply.github.com
+
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v2
+      with:
+        role-to-assume: arn:aws:iam::358203115967:role/github-actions-role
+        aws-region: us-west-2
+
