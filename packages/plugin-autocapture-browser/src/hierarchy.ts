@@ -1,6 +1,7 @@
 import { isNonSensitiveElement } from './helpers';
 import { DATA_AMP_MASK_ATTRIBUTES } from './constants';
 import type { HierarchyNode } from './typings/autocapture';
+import * as constants from './constants';
 import { MASKED_TEXT_VALUE, TEXT_MASK_ATTRIBUTE } from '@amplitude/analytics-core';
 
 const BLOCKED_ATTRIBUTES = new Set([
@@ -38,7 +39,6 @@ const SENSITIVE_ELEMENT_ATTRIBUTE_ALLOWLIST = ['type'];
 
 const SVG_TAGS = ['svg', 'path', 'g'];
 const HIGHLY_SENSITIVE_INPUT_TYPES = ['password', 'hidden'];
-const MAX_ATTRIBUTE_LENGTH = 128;
 export const MAX_HIERARCHY_LENGTH = 1024;
 
 export function getElementProperties(
@@ -94,7 +94,7 @@ export function getElementProperties(
       }
 
       // Finally cast attribute value to string and limit attribute value length
-      attributes[attr.name] = String(attr.value).substring(0, MAX_ATTRIBUTE_LENGTH);
+      attributes[attr.name] = String(attr.value).substring(0, constants.MAX_ATTRIBUTE_LENGTH);
     }
   }
 
