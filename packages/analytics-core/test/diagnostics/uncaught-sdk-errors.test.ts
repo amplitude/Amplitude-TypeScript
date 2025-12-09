@@ -86,6 +86,12 @@ describe('uncaught-sdk-errors', () => {
 
       expect(mockGlobalScope[GLOBAL_KEY]).toBeUndefined();
     });
+
+    it('should not register if scriptUrl is an invalid URL', () => {
+      registerSdkLoaderMetadata({ scriptUrl: 'not-a-valid-url' });
+
+      expect(mockGlobalScope[GLOBAL_KEY]).toBeUndefined();
+    });
   });
 
   describe('enableSdkErrorListeners', () => {
@@ -251,7 +257,7 @@ describe('uncaught-sdk-errors', () => {
           error_name: 'Error',
           stack: error.stack,
           isTrusted: true,
-          matchReason: 'stack',
+          matchReason: 'filename',
         });
       });
 

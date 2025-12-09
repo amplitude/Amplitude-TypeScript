@@ -112,7 +112,7 @@ const detectSdkOrigin = (payload: { filename?: string; stack?: string }): 'filen
     return undefined;
   }
 
-  if (normalizeUrl(payload.filename) === normalizedScriptUrl) {
+  if (payload.filename && payload.filename.includes(normalizedScriptUrl)) {
     return 'filename';
   }
 
@@ -123,14 +123,14 @@ const detectSdkOrigin = (payload: { filename?: string; stack?: string }): 'filen
   return undefined;
 };
 
-const normalizeUrl = (value?: string) => {
-  if (!value) {
+const normalizeUrl = (value: string) => {
+  try {
+    /* istanbul ignore next */
+    const url = new URL(value, getGlobalScope()?.location?.origin);
+    return url.origin + url.pathname;
+  } catch {
     return undefined;
   }
-
-  const withoutHash = value.split('#')[0];
-  const withoutQuery = withoutHash.split('?')[0];
-  return withoutQuery;
 };
 
 const extractFilenameFromStack = (stack?: string) => {
