@@ -1,7 +1,24 @@
-import { getGlobalScope } from '@amplitude/analytics-core';
+import { getGlobalScope, registerSdkLoaderMetadata } from '@amplitude/analytics-core';
 import * as amplitude from './index';
 import { createInstance } from './browser-client-factory';
 import { runQueuedFunctions } from './utils/snippet-helper';
+
+registerSdkLoaderMetadata({
+  scriptUrl: resolveCurrentScriptUrl(),
+});
+
+function resolveCurrentScriptUrl(): string | undefined {
+  if (typeof document === 'undefined') {
+    return undefined;
+  }
+
+  const currentScript = document.currentScript as HTMLScriptElement | null;
+  if (currentScript?.src) {
+    return currentScript.src;
+  }
+
+  return undefined;
+}
 
 // https://developer.mozilla.org/en-US/docs/Glossary/IIFE
 (function () {
