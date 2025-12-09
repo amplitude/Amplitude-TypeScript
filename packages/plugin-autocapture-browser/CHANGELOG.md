@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.18.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.18.0...@amplitude/plugin-autocapture-browser@1.18.1) (2025-12-09)
+
+
+### Bug Fixes
+
+* truncate large href ([#1427](https://github.com/amplitude/Amplitude-TypeScript/issues/1427)) ([a4b626b](https://github.com/amplitude/Amplitude-TypeScript/commit/a4b626be02c4d3805bd8378bbdc0bad1eeb21089))
+
+
+
+
+
 # [1.18.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.17.4...@amplitude/plugin-autocapture-browser@1.18.0) (2025-11-21)
 
 

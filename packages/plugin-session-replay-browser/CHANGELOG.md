@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.25.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@1.24.1...@amplitude/plugin-session-replay-browser@1.25.0) (2025-12-09)
+
+
+### Features
+
+* **plugin-session-replay-browser:** add performance config for selector generation ([#1423](https://github.com/amplitude/Amplitude-TypeScript/issues/1423)) ([85ec6e4](https://github.com/amplitude/Amplitude-TypeScript/commit/85ec6e430077be996ff85b4c033d8744d95a3ea2))
+
+
+
+
+
 ## [1.24.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@1.24.0...@amplitude/plugin-session-replay-browser@1.24.1) (2025-12-08)
 
 **Note:** Version bump only for package @amplitude/plugin-session-replay-browser
