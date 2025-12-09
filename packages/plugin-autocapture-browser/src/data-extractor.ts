@@ -165,7 +165,8 @@ export class DataExtractor {
     properties[constants.AMPLITUDE_EVENT_PROP_ELEMENT_ARIA_LABEL] = currentElementAttributes?.['aria-label'];
 
     if (tag === 'a' && actionType === 'click' && element instanceof HTMLAnchorElement) {
-      properties[constants.AMPLITUDE_EVENT_PROP_ELEMENT_HREF] = this.replaceSensitiveString(element.href); // we don't use hierarchy here because we don't want href value to be changed
+      const href = element.href.substring(0, constants.MAX_ATTRIBUTE_LENGTH);
+      properties[constants.AMPLITUDE_EVENT_PROP_ELEMENT_HREF] = this.replaceSensitiveString(href); // we don't use hierarchy here because we don't want href value to be changed
     }
 
     return removeEmptyProperties(properties);
