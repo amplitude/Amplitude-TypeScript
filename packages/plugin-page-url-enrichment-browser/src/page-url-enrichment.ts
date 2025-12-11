@@ -76,14 +76,7 @@ export const pageUrlEnrichmentPlugin = ({ internalDomains = [] }: PageUrlEnrichm
     }
 
     const isCurrentInternal = internalDomains.some((domain) => currentDomain.indexOf(domain) !== -1);
-
-    let isPrevInternal = false;
-    for (const domain of internalDomains) {
-      if (previousPageDomain.indexOf(domain) !== -1) {
-        isPrevInternal = true;
-        break;
-      }
-    }
+    const isPrevInternal = internalDomains.some((domain) => previousPageDomain.indexOf(domain) !== -1);
 
     if (currentDomain === previousPageDomain || (isPrevInternal && isCurrentInternal)) {
       return PreviousPageType.Internal;
