@@ -478,6 +478,35 @@ describe('SessionReplayEventsIDBStore', () => {
       await expect(promise).rejects.toBe(request.error);
     });
 
+    test('should resolve and delete database when AbortError occurs', async () => {
+      const abortError = new Error('AbortError');
+      abortError.name = 'AbortError';
+
+      const request = {
+        onupgradeneeded: null,
+        onsuccess: null,
+        onerror: null,
+        result: {} as IDBDatabase,
+        error: abortError,
+      } as unknown as IDBOpenDBRequest;
+
+      const deleteDatabase = jest.fn();
+      const mockGlobalScope = {
+        indexedDB: {
+          open: jest.fn().mockReturnValue(request),
+          deleteDatabase,
+        },
+      } as unknown as typeof globalThis;
+
+      jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue(mockGlobalScope);
+
+      const promise = EventsIDBStore.keyValDatabaseExists();
+      request.onerror?.call(request, new Event('error'));
+
+      await expect(promise).resolves.toBeUndefined();
+      expect(deleteDatabase).toHaveBeenCalledWith('keyval-store');
+    });
+
     test('should add current session events to new idb sessionCurrentSequence', async () => {
       const db = await createKeyValDB();
       await db.put('keyval', mockKeyValStore, 'AMP_unsent_static_key');

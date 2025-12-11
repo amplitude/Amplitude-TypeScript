@@ -32,29 +32,33 @@ export const keyValDatabaseExists = function (): Promise<IDBDatabase | void> {
       return reject(new Error('Session Replay: cannot find indexedDB'));
     }
 
-    const request = globalScope.indexedDB.open('keyval-store');
+    try {
+      const request = globalScope.indexedDB.open('keyval-store');
 
-    request.onupgradeneeded = function () {
-      // Version 1 means database didn't exist - abort to prevent creation
-      if (request.result.version === 1) {
-        request.transaction?.abort();
-      }
-    };
+      request.onupgradeneeded = function () {
+        // Version 1 means database didn't exist - abort to prevent creation
+        if (request.result.version === 1) {
+          request.transaction?.abort();
+        }
+      };
 
-    request.onsuccess = function () {
-      resolve(request.result);
-    };
+      request.onsuccess = function () {
+        resolve(request.result);
+      };
 
-    request.onerror = function () {
-      // AbortError is expected when we abort the upgrade transaction
-      if (request.error?.name === 'AbortError') {
-        // Now that abort is complete, safely delete the partially created database
-        globalScope.indexedDB.deleteDatabase('keyval-store');
-        resolve();
-      } else {
-        reject(request.error);
-      }
-    };
+      request.onerror = function () {
+        // AbortError is expected when we abort the upgrade transaction
+        if (request.error?.name === 'AbortError') {
+          // Now that abort is complete, safely delete the partially created database
+          globalScope.indexedDB.deleteDatabase('keyval-store');
+          resolve();
+        } else {
+          reject(request.error);
+        }
+      };
+    } catch (e) {
+      reject(e);
+    }
   });
 };
 
