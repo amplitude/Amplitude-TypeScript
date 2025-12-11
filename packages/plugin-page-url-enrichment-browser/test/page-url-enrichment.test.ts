@@ -373,7 +373,7 @@ describe('pageUrlEnrichmentPlugin', () => {
       });
     });
 
-    test('should assign internal/external to previous page type for based on matching internal domains', async () => {
+    test('should assign internal/external to previous page type for based on internal domain match', async () => {
       const plugin = pageUrlEnrichmentPlugin({ internalDomains: ['example.com', 'example.co.uk'] });
       await plugin.setup?.(mockConfig, mockAmplitude);
 

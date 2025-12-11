@@ -75,17 +75,17 @@ export const pageUrlEnrichmentPlugin = ({ internalDomains = [] }: PageUrlEnrichm
       return PreviousPageType.Direct;
     }
 
-    const currentIsInternal = internalDomains.some((domain) => currentDomain.indexOf(domain) !== -1);
+    const isCurrentInternal = internalDomains.some((domain) => currentDomain.indexOf(domain) !== -1);
 
-    let matchInternalDomain = false;
+    let isPrevInternal = false;
     for (const domain of internalDomains) {
       if (previousPageDomain.indexOf(domain) !== -1) {
-        matchInternalDomain = true;
+        isPrevInternal = true;
         break;
       }
     }
 
-    if (currentDomain === previousPageDomain || (matchInternalDomain && currentIsInternal)) {
+    if (currentDomain === previousPageDomain || (isPrevInternal && isCurrentInternal)) {
       return PreviousPageType.Internal;
     }
 
