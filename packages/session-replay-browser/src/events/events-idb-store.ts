@@ -34,19 +34,27 @@ export const keyValDatabaseExists = function (): Promise<IDBDatabase | void> {
 
     try {
       const request = globalScope.indexedDB.open('keyval-store');
+
       request.onupgradeneeded = function () {
+        // Version 1 means database didn't exist - abort to prevent creation
         if (request.result.version === 1) {
-          request.result.close();
-          request.transaction && request.transaction.abort();
-          globalScope.indexedDB.deleteDatabase('keyval-store');
-          resolve();
+          request.transaction?.abort();
         }
       };
+
       request.onsuccess = function () {
         resolve(request.result);
       };
+
       request.onerror = function () {
-        reject(request.error);
+        // AbortError is expected when we abort the upgrade transaction
+        if (request.error?.name === 'AbortError') {
+          // Now that abort is complete, safely delete the partially created database
+          globalScope.indexedDB.deleteDatabase('keyval-store');
+          resolve();
+        } else {
+          reject(request.error);
+        }
       };
     } catch (e) {
       reject(e);
