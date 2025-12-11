@@ -121,15 +121,16 @@ export class BrowserConfig extends Config implements IBrowserConfig {
     this.diagnosticsClient = diagnosticsClient;
 
     // Backward compatibility for fetchRemoteConfig
-    if (fetchRemoteConfig) {
-      if (!this.remoteConfig) {
-        this.remoteConfig = {
-          fetchRemoteConfig: fetchRemoteConfig,
-        };
-      }
-      if (!this.remoteConfig.fetchRemoteConfig) {
-        this.remoteConfig.fetchRemoteConfig = fetchRemoteConfig;
-      }
+    if (remoteConfig?.fetchRemoteConfig === false || fetchRemoteConfig === false) {
+      this.remoteConfig = {
+        ...(remoteConfig || {}),
+        fetchRemoteConfig: false,
+      };
+    } else {
+      this.remoteConfig = {
+        ...(remoteConfig || {}),
+        fetchRemoteConfig: true,
+      };
     }
   }
 
