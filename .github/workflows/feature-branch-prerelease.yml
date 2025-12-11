@@ -96,8 +96,8 @@ jobs:
 
       - name: Configure Git User
         run: |
-          git config --global user.name amplitude-sdk-bot
-          git config --global user.email amplitude-sdk-bot@users.noreply.github.com
+          git config --global user.name amplitude-sdk-dev
+          git config --global user.email 249154226+amplitude-sdk-dev@users.noreply.github.com
 
       - name: Configure NPM User
         run: |
