@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.32.1-feat-zoning-1211.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/gtm-snippet@2.31.5...@amplitude/gtm-snippet@2.32.1-feat-zoning-1211.0) (2025-12-11)
+
+**Note:** Version bump only for package @amplitude/gtm-snippet
+
+
+
+
+
 # [2.32.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/gtm-snippet@2.31.4...@amplitude/gtm-snippet@2.32.0) (2025-12-09)
 
 **Note:** Version bump only for package @amplitude/gtm-snippet
