@@ -8,6 +8,7 @@ import {
   getGlobalScope,
   getPageTitle,
   type ILogger,
+  PageUrlEnrichmentOptions,
   replaceSensitiveString,
   SpecialEventType,
 } from '@amplitude/analytics-core';
@@ -43,7 +44,7 @@ export const isPageUrlEnrichmentEnabled = (option: unknown): boolean => {
   return false;
 };
 
-export const pageUrlEnrichmentPlugin = (): EnrichmentPlugin => {
+export const pageUrlEnrichmentPlugin = ({ internalDomains = [] }: PageUrlEnrichmentOptions = {}): EnrichmentPlugin => {
   const globalScope = getGlobalScope();
   let sessionStorage: BrowserStorage<URLInfo> | undefined = undefined;
   let isStorageEnabled = false;
@@ -70,14 +71,25 @@ export const pageUrlEnrichmentPlugin = (): EnrichmentPlugin => {
     const currentDomain = (typeof location !== 'undefined' && location.hostname) || '';
     const previousPageDomain = previousPage ? getHostname(previousPage) : undefined;
 
-    switch (previousPageDomain) {
-      case undefined:
-        return PreviousPageType.Direct;
-      case currentDomain:
-        return PreviousPageType.Internal;
-      default:
-        return PreviousPageType.External;
+    if (!previousPageDomain) {
+      return PreviousPageType.Direct;
     }
+
+    const currentIsInternal = internalDomains.some((domain) => currentDomain.indexOf(domain) !== -1);
+
+    let matchInternalDomain = false;
+    for (const domain of internalDomains) {
+      if (previousPageDomain.indexOf(domain) !== -1) {
+        matchInternalDomain = true;
+        break;
+      }
+    }
+
+    if (currentDomain === previousPageDomain || (matchInternalDomain && currentIsInternal)) {
+      return PreviousPageType.Internal;
+    }
+
+    return PreviousPageType.External;
   };
 
   const saveURLInfo = async () => {
@@ -86,7 +98,7 @@ export const pageUrlEnrichmentPlugin = (): EnrichmentPlugin => {
       const currentURL = getDecodeURI((typeof location !== 'undefined' && location.href) || '');
       const storedCurrentURL = URLInfo?.[CURRENT_PAGE_STORAGE_KEY] || '';
 
-      let previousURL;
+      let previousURL: string | undefined;
       if (currentURL === storedCurrentURL) {
         previousURL = URLInfo?.[PREVIOUS_PAGE_STORAGE_KEY] || '';
       } else if (storedCurrentURL) {
