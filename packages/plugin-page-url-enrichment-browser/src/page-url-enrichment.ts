@@ -24,7 +24,7 @@ export type URLInfo = {
 
 enum PreviousPageType {
   Direct = 'direct', // for no prev page or referrer
-  Internal = 'internal', // for same domain - this excludes subdomains
+  Internal = 'internal', // for internal domains - exact domain matches or when current and previous page are both internal domains
   External = 'external', // for different domains
 }
 
