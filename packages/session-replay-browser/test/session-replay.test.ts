@@ -298,6 +298,48 @@ describe('SessionReplay', () => {
       expect(startSpy).not.toHaveBeenCalled();
     });
 
+    test('should handle interaction config enabled with no performanceConfig.interaction', async () => {
+      mockRemoteConfig = {
+        sr_sampling_config: samplingConfig,
+        sr_privacy_config: {},
+        sr_interaction_config: {
+          enabled: true,
+        },
+      };
+
+      await sessionReplay.init(apiKey, {
+        ...mockOptions,
+        performanceConfig: { enabled: false }, // No interaction property
+      }).promise;
+      await sessionReplay.recordEvents();
+      expect(mockRecordFunction).toHaveBeenCalled();
+      const recordArg = mockRecordFunction.mock.calls[0][0];
+      expect(recordArg?.hooks?.mouseInteraction).toBeDefined();
+    });
+
+    test('should handle interaction config enabled when performanceConfig is set to null', async () => {
+      mockRemoteConfig = {
+        sr_sampling_config: samplingConfig,
+        sr_privacy_config: {},
+        sr_interaction_config: {
+          enabled: true,
+        },
+      };
+
+      const sessionReplay = new SessionReplay();
+      await sessionReplay.init(apiKey, mockOptions).promise;
+
+      // Manually set performanceConfig to null to test edge case
+      if (sessionReplay.config) {
+        (sessionReplay.config as any).performanceConfig = null;
+      }
+
+      await sessionReplay.recordEvents();
+      expect(mockRecordFunction).toHaveBeenCalled();
+      const recordArg = mockRecordFunction.mock.calls[0][0];
+      expect(recordArg?.hooks?.mouseInteraction).toBeDefined();
+    });
+
     test('should not initialize network observers when config is undefined', async () => {
       // Create a new SessionReplay instance without initializing
       const sessionReplayWithoutConfig = new SessionReplay();
@@ -664,6 +706,69 @@ describe('SessionReplay', () => {
       expect(sessionReplay.identifiers?.sessionId).toBe(123);
       expect(sessionReplay.config?.logLevel).toBe(0);
       expect(sessionReplay.loggerProvider).toBeDefined();
+
+      if (sessionReplay.config) {
+        await expectationFn(sessionReplay.config);
+      }
+    });
+
+    test.each([
+      [
+        {
+          enabled: true,
+          interaction: {
+            timeoutMs: 5000,
+            maxNumberOfTries: 5000,
+            threshold: 500,
+          },
+        },
+        async (config: SessionReplayJoinedConfig) => {
+          expect(config.performanceConfig?.enabled).toBe(true);
+          expect(config.performanceConfig?.interaction?.timeoutMs).toBe(5000);
+          expect(config.performanceConfig?.interaction?.maxNumberOfTries).toBe(5000);
+          expect(config.performanceConfig?.interaction?.threshold).toBe(500);
+        },
+      ],
+      [
+        {
+          enabled: true,
+          interaction: {
+            timeoutMs: 3000,
+          },
+        },
+        async (config: SessionReplayJoinedConfig) => {
+          expect(config.performanceConfig?.enabled).toBe(true);
+          expect(config.performanceConfig?.interaction?.timeoutMs).toBe(3000);
+          expect(config.performanceConfig?.interaction?.maxNumberOfTries).toBeUndefined();
+          expect(config.performanceConfig?.interaction?.threshold).toBeUndefined();
+        },
+      ],
+      [
+        {
+          enabled: false,
+        },
+        async (config: SessionReplayJoinedConfig) => {
+          expect(config.performanceConfig?.enabled).toBe(false);
+          expect(config.performanceConfig?.interaction).toBeUndefined();
+        },
+      ],
+      [
+        undefined,
+        async (config: SessionReplayJoinedConfig) => {
+          expect(config.performanceConfig?.enabled).toBe(true);
+          expect(config.performanceConfig?.interaction).toBeUndefined();
+        },
+      ],
+    ])('should setup sdk with performance config', async (performanceConfig, expectationFn) => {
+      mockRemoteConfig = {
+        sr_sampling_config: samplingConfig,
+        sr_privacy_config: {},
+      };
+      await sessionReplay.init(apiKey, {
+        ...mockOptions,
+        performanceConfig,
+        sampleRate: 0.5,
+      }).promise;
 
       if (sessionReplay.config) {
         await expectationFn(sessionReplay.config);

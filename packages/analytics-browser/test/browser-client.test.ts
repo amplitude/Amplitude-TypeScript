@@ -144,13 +144,16 @@ describe('browser-client', () => {
 
   describe('init', () => {
     test('should call identify when identify is provided', async () => {
-      const identifySpy = jest.spyOn(client, 'identify');
+      const trackSpy = jest.spyOn(client, 'track');
       const identify = new Identify();
-      identify.set('test', 'test');
+      identify.set('test', '123');
       await client.init(apiKey, {
         identify,
       }).promise;
-      expect(identifySpy).toHaveBeenCalledWith(identify);
+      expect(trackSpy).toHaveBeenNthCalledWith(2, {
+        event_type: '$identify',
+        user_properties: { $set: { test: '123' } },
+      });
     });
 
     test('should use remote config by default', async () => {

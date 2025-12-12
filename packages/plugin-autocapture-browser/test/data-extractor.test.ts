@@ -533,6 +533,27 @@ describe('data extractor', () => {
       document.body.removeChild(container);
     });
 
+    test('should truncate href when it exceeds MAX_ATTRIBUTE_LENGTH', () => {
+      const container = document.createElement('div');
+
+      const element = document.createElement('a');
+      // Create a very large href value (simulating a data URI or long URL)
+      const largeHref = 'data:image/png;base64,' + 'A'.repeat(5000);
+      element.setAttribute('href', largeHref);
+      element.textContent = 'Large data link';
+
+      container.appendChild(element);
+      document.body.appendChild(container);
+
+      const result = dataExtractor.getEventProperties('click', element, 'data-amp-track-');
+
+      const hrefValue = result[constants.AMPLITUDE_EVENT_PROP_ELEMENT_HREF];
+      expect((hrefValue as string).length).toBe(constants.MAX_ATTRIBUTE_LENGTH);
+      expect(largeHref.startsWith(hrefValue as string)).toBe(true);
+
+      document.body.removeChild(container);
+    });
+
     test('should not mask attributes when not specified in maskion list', () => {
       const container = document.createElement('div');
       container.setAttribute(DATA_AMP_MASK_ATTRIBUTES, 'other-attr');

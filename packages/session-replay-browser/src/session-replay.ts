@@ -585,6 +585,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
               deviceIdFn: this.getDeviceId.bind(this),
               mirror: recordFunction.mirror,
               ugcFilterRules: interactionConfig.ugcFilterRules ?? [],
+              performanceOptions: config.performanceConfig?.interaction,
             }),
           scroll: this.scrollHook,
         }

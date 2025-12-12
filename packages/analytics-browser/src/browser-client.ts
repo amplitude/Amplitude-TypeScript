@@ -28,6 +28,7 @@ import {
   RemoteConfig,
   Source,
   DiagnosticsClient,
+  createIdentifyEvent,
 } from '@amplitude/analytics-core';
 import {
   getAttributionTrackingConfig,
@@ -111,7 +112,9 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
 
     let remoteConfigClient: IRemoteConfigClient | undefined;
     // Create remote config client and subscribe to analytics configs
-    if (browserOptions.remoteConfig?.fetchRemoteConfig) {
+    /* istanbul ignore next */
+    const fetchRemoteConfig = browserOptions.remoteConfig && browserOptions.remoteConfig.fetchRemoteConfig;
+    if (fetchRemoteConfig) {
       remoteConfigClient = new RemoteConfigClient(
         browserOptions.apiKey,
         browserOptions.loggerProvider,
@@ -198,6 +201,7 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
       },
     );
     diagnosticsClient.setTag('library', `${LIBPREFIX}/${VERSION}`);
+    diagnosticsClient.setTag('user_agent', navigator.userAgent);
 
     await super._init(browserOptions);
     this.logBrowserOptions(browserOptions);
@@ -224,11 +228,6 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
     // Check if ampTimestamp is present and valid
     const ampTimestamp = queryParams.ampTimestamp ? Number(queryParams.ampTimestamp) : undefined;
     const isWithinTimeLimit = ampTimestamp ? Date.now() < ampTimestamp : true;
-
-    // if an identify object is provided, call it on init
-    if (this.config.identify) {
-      this.identify(this.config.identify);
-    }
 
     // check if we need to set the sessionId
     const querySessionId =
@@ -415,6 +414,11 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
     // 1. has new campaign (call setSessionId from init function)
     // 2. or shouldTrackNewCampaign (call setSessionId from async process(event) when there has new campaign and resetSessionOnNewCampaign = true )
     const isCampaignEventTracked = this.trackCampaignEventIfNeeded(++lastEventId, promises);
+
+    // track the identify event if an Identify object is provided in the config
+    if (this.config.identify) {
+      promises.push(this.track(createIdentifyEvent(this.config.identify)).promise);
+    }
 
     if (isSessionTrackingEnabled(this.config.defaultTracking)) {
       promises.push(
