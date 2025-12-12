@@ -8,6 +8,7 @@ import {
   getGlobalScope,
   getPageTitle,
   type ILogger,
+  PageUrlEnrichmentOptions,
   replaceSensitiveString,
   SpecialEventType,
 } from '@amplitude/analytics-core';
@@ -23,7 +24,7 @@ export type URLInfo = {
 
 enum PreviousPageType {
   Direct = 'direct', // for no prev page or referrer
-  Internal = 'internal', // for same domain - this excludes subdomains
+  Internal = 'internal', // for internal domains - exact domain matches or when current and previous page are both internal domains
   External = 'external', // for different domains
 }
 
@@ -43,7 +44,7 @@ export const isPageUrlEnrichmentEnabled = (option: unknown): boolean => {
   return false;
 };
 
-export const pageUrlEnrichmentPlugin = (): EnrichmentPlugin => {
+export const pageUrlEnrichmentPlugin = ({ internalDomains = [] }: PageUrlEnrichmentOptions = {}): EnrichmentPlugin => {
   const globalScope = getGlobalScope();
   let sessionStorage: BrowserStorage<URLInfo> | undefined = undefined;
   let isStorageEnabled = false;
@@ -70,14 +71,18 @@ export const pageUrlEnrichmentPlugin = (): EnrichmentPlugin => {
     const currentDomain = (typeof location !== 'undefined' && location.hostname) || '';
     const previousPageDomain = previousPage ? getHostname(previousPage) : undefined;
 
-    switch (previousPageDomain) {
-      case undefined:
-        return PreviousPageType.Direct;
-      case currentDomain:
-        return PreviousPageType.Internal;
-      default:
-        return PreviousPageType.External;
+    if (!previousPageDomain) {
+      return PreviousPageType.Direct;
     }
+
+    const isCurrentInternal = internalDomains.some((domain) => currentDomain.indexOf(domain) !== -1);
+    const isPrevInternal = internalDomains.some((domain) => previousPageDomain.indexOf(domain) !== -1);
+
+    if (currentDomain === previousPageDomain || (isPrevInternal && isCurrentInternal)) {
+      return PreviousPageType.Internal;
+    }
+
+    return PreviousPageType.External;
   };
 
   const saveURLInfo = async () => {
@@ -86,7 +91,7 @@ export const pageUrlEnrichmentPlugin = (): EnrichmentPlugin => {
       const currentURL = getDecodeURI((typeof location !== 'undefined' && location.href) || '');
       const storedCurrentURL = URLInfo?.[CURRENT_PAGE_STORAGE_KEY] || '';
 
-      let previousURL;
+      let previousURL: string | undefined;
       if (currentURL === storedCurrentURL) {
         previousURL = URLInfo?.[PREVIOUS_PAGE_STORAGE_KEY] || '';
       } else if (storedCurrentURL) {

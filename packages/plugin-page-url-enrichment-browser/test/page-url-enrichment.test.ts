@@ -373,11 +373,111 @@ describe('pageUrlEnrichmentPlugin', () => {
       });
     });
 
+    test('should assign internal/external to previous page type for based on internal domain match', async () => {
+      const plugin = pageUrlEnrichmentPlugin({ internalDomains: ['example.com', 'example.co.uk'] });
+      await plugin.setup?.(mockConfig, mockAmplitude);
+
+      // go from example.com to subdomain.test.example.com (internal)
+      const firstUrl = new URL('https://www.example.com/home');
+      mockWindowLocationFromURL(firstUrl);
+      window.history.pushState(undefined, firstUrl.href);
+      // block event loop so that the sessionStorage is updated since pushState is async
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      const secondUrl = new URL('https://www.subdomain.test.example.com/about?test=param');
+      mockWindowLocationFromURL(secondUrl);
+      mockDocumentTitle('About - Example');
+      window.history.pushState(undefined, secondUrl.href);
+      // block event loop so that the sessionStorage is updated since pushState is async
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      const event = await plugin.execute?.({
+        event_type: 'test_event',
+      });
+
+      expect(event?.event_properties).toStrictEqual({
+        '[Amplitude] Page Domain': 'www.subdomain.test.example.com',
+        '[Amplitude] Page Location': 'https://www.subdomain.test.example.com/about?test=param',
+        '[Amplitude] Page Path': '/about',
+        '[Amplitude] Page Title': 'About - Example',
+        '[Amplitude] Page URL': 'https://www.subdomain.test.example.com/about',
+        '[Amplitude] Previous Page Location': 'https://www.example.com/home',
+        '[Amplitude] Previous Page Type': 'internal',
+      });
+
+      // go from subdomain.test.example.com to example.co.uk (internal)
+      const thirdUrl = new URL('https://www.example.co.uk/contact');
+      mockWindowLocationFromURL(thirdUrl);
+      mockDocumentTitle('Contact - Example');
+      window.history.pushState(undefined, thirdUrl.href);
+      // block event loop so that the sessionStorage is updated since pushState is async
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      const event2 = await plugin.execute?.({
+        event_type: 'test_event_2',
+      });
+
+      expect(event2?.event_properties).toStrictEqual({
+        '[Amplitude] Page Domain': 'www.example.co.uk',
+        '[Amplitude] Page Location': 'https://www.example.co.uk/contact',
+        '[Amplitude] Page Path': '/contact',
+        '[Amplitude] Page Title': 'Contact - Example',
+        '[Amplitude] Page URL': 'https://www.example.co.uk/contact',
+        '[Amplitude] Previous Page Location': 'https://www.subdomain.test.example.com/about?test=param',
+        '[Amplitude] Previous Page Type': 'internal',
+      });
+
+      // go from example.co.uk to example.org (external)
+      const fourthUrl = new URL('https://www.example.org/home');
+      mockWindowLocationFromURL(fourthUrl);
+      mockDocumentTitle('Home - Example');
+      window.history.pushState(undefined, fourthUrl.href);
+      // block event loop so that the sessionStorage is updated since pushState is async
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      const event3 = await plugin.execute?.({
+        event_type: 'test_event_3',
+      });
+
+      expect(event3?.event_properties).toStrictEqual({
+        '[Amplitude] Page Domain': 'www.example.org',
+        '[Amplitude] Page Location': 'https://www.example.org/home',
+        '[Amplitude] Page Path': '/home',
+        '[Amplitude] Page Title': 'Home - Example',
+        '[Amplitude] Page URL': 'https://www.example.org/home',
+        '[Amplitude] Previous Page Location': 'https://www.example.co.uk/contact',
+        '[Amplitude] Previous Page Type': 'external',
+      });
+
+      // go from example.org to example.com (external)
+      const fifthUrl = new URL('https://www.example.com/about');
+      mockWindowLocationFromURL(fifthUrl);
+      mockDocumentTitle('About - Example');
+      window.history.pushState(undefined, fifthUrl.href);
+      // block event loop so that the sessionStorage is updated since pushState is async
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      const event4 = await plugin.execute?.({
+        event_type: 'test_event_4',
+      });
+
+      expect(event4?.event_properties).toStrictEqual({
+        '[Amplitude] Page Domain': 'www.example.com',
+        '[Amplitude] Page Location': 'https://www.example.com/about',
+        '[Amplitude] Page Path': '/about',
+        '[Amplitude] Page Title': 'About - Example',
+        '[Amplitude] Page URL': 'https://www.example.com/about',
+        '[Amplitude] Previous Page Location': 'https://www.example.org/home',
+        '[Amplitude] Previous Page Type': 'external',
+      });
+    });
+
     test('should assign direct to previous page type for unknown missing domains', async () => {
       await plugin.setup?.(mockConfig, mockAmplitude);
 
       const firstUrl = new URL('https://www.example.com/about?test=param');
       mockWindowLocationFromURL(firstUrl);
+      mockDocumentTitle('About - Example');
       window.history.pushState(undefined, firstUrl.href);
       // block event loop so that the sessionStorage is updated since pushState is async
       await new Promise((resolve) => setTimeout(resolve, 0));
