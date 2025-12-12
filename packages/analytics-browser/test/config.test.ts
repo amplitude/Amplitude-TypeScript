@@ -440,6 +440,17 @@ describe('config', () => {
   });
 
   describe('fetchRemoteConfig', () => {
+    test('should set remoteConfig.fetchRemoteConfig to true when remoteConfig.fetchRemoteConfig true', async () => {
+      const instance = new AmplitudeBrowser();
+      const config = await useBrowserConfig(apiKey, {
+        fetchRemoteConfig: false,
+        remoteConfig: {
+          fetchRemoteConfig: true,
+        },
+      }, instance);
+      expect(config.remoteConfig?.fetchRemoteConfig).toBe(true);
+    });
+
     test('should set remoteConfig.fetchRemoteConfig to true when remoteConfig.fetchRemoteConfig is false', async () => {
       const instance = new AmplitudeBrowser();
       const config = await useBrowserConfig(
