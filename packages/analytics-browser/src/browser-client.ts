@@ -112,7 +112,9 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
 
     let remoteConfigClient: IRemoteConfigClient | undefined;
     // Create remote config client and subscribe to analytics configs
-    if (browserOptions.remoteConfig?.fetchRemoteConfig) {
+    /* istanbul ignore next */
+    const fetchRemoteConfig = browserOptions.remoteConfig && browserOptions.remoteConfig.fetchRemoteConfig;
+    if (fetchRemoteConfig) {
       remoteConfigClient = new RemoteConfigClient(
         browserOptions.apiKey,
         browserOptions.loggerProvider,

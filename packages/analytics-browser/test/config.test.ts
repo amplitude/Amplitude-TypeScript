@@ -12,7 +12,7 @@ import {
 } from '@amplitude/analytics-core';
 import * as BrowserUtils from '@amplitude/analytics-core';
 import { XHRTransport } from '../src/transports/xhr';
-import { createTransport } from '../src/config';
+import { createTransport, useBrowserConfig } from '../src/config';
 import { SendBeaconTransport } from '../src/transports/send-beacon';
 import { uuidPattern } from './helpers/constants';
 import { DEFAULT_IDENTITY_STORAGE, DEFAULT_SERVER_ZONE } from '../src/constants';
@@ -436,6 +436,37 @@ describe('config', () => {
         value: originalLocation,
         configurable: true,
       });
+    });
+  });
+
+  describe('fetchRemoteConfig', () => {
+    test('should set remoteConfig.fetchRemoteConfig to true when remoteConfig.fetchRemoteConfig true', async () => {
+      const instance = new AmplitudeBrowser();
+      const config = await useBrowserConfig(
+        apiKey,
+        {
+          fetchRemoteConfig: false,
+          remoteConfig: {
+            fetchRemoteConfig: true,
+          },
+        },
+        instance,
+      );
+      expect(config.remoteConfig?.fetchRemoteConfig).toBe(true);
+    });
+
+    test('should set remoteConfig.fetchRemoteConfig to true when remoteConfig.fetchRemoteConfig is false', async () => {
+      const instance = new AmplitudeBrowser();
+      const config = await useBrowserConfig(
+        apiKey,
+        {
+          remoteConfig: {
+            fetchRemoteConfig: false,
+          },
+        },
+        instance,
+      );
+      expect(config.remoteConfig?.fetchRemoteConfig).toBe(false);
     });
   });
 });
