@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.32.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.32.0...@amplitude/analytics-browser@2.32.1) (2025-12-12)
+
+
+### Bug Fixes
+
+* **analytics-browser:** diagnostics track user agent ([#1428](https://github.com/amplitude/Amplitude-TypeScript/issues/1428)) ([11c14ed](https://github.com/amplitude/Amplitude-TypeScript/commit/11c14ede71725140fcdd86d3ab1dc277cc586729))
+
+
+
+
+
 # [2.32.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.31.4...@amplitude/analytics-browser@2.32.0) (2025-12-09)
 
 

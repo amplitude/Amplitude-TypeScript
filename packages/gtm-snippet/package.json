@@ -1,6 +1,6 @@
 {
   "name": "@amplitude/gtm-snippet",
-  "version": "2.32.0",
+  "version": "2.32.1",
   "description": "Amplitude JS SDK Wrapper for use with Google Tag Manager",
   "publishConfig": {
     "access": "public",
@@ -21,8 +21,8 @@
   "author": "Amplitude <support@amplitude.com>",
   "license": "MIT",
   "dependencies": {
-    "@amplitude/analytics-browser": "2.32.0",
-    "@amplitude/plugin-session-replay-browser": "1.25.0"
+    "@amplitude/analytics-browser": "2.32.1",
+    "@amplitude/plugin-session-replay-browser": "1.25.1"
   },
   "devDependencies": {
     "@amplitude/eslint-plugin-amplitude": "^1.0.1",
