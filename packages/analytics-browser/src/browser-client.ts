@@ -199,6 +199,7 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
       },
     );
     diagnosticsClient.setTag('library', `${LIBPREFIX}/${VERSION}`);
+    diagnosticsClient.setTag('user_agent', navigator.userAgent);
 
     await super._init(browserOptions);
     this.logBrowserOptions(browserOptions);
