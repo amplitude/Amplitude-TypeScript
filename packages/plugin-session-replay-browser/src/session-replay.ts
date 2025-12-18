@@ -15,6 +15,8 @@ import { parseUserProperties } from './helpers';
 import { SessionReplayOptions } from './typings/session-replay';
 import { VERSION } from './version';
 
+export const DEFAULT_EVENT_PROPERTY_PREFIX = '[Amplitude]';
+export const DEFAULT_SESSION_REPLAY_PROPERTY = `${DEFAULT_EVENT_PROPERTY_PREFIX} Session Replay ID`;
 export class SessionReplayPlugin implements EnrichmentPlugin<BrowserClient, BrowserConfig> {
   static pluginName = '@amplitude/plugin-session-replay-browser';
   name = SessionReplayPlugin.pluginName;
@@ -169,6 +171,10 @@ export class SessionReplayPlugin implements EnrichmentPlugin<BrowserClient, Brow
             ...sessionRecordingProperties,
           };
         }
+      }
+
+      if (event.event_type === SpecialEventType.IDENTIFY && event.event_properties) {
+        delete event.event_properties[DEFAULT_SESSION_REPLAY_PROPERTY];
       }
 
       return Promise.resolve(event);
