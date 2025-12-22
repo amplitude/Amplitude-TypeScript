@@ -40,7 +40,7 @@ const promise = client
         Bucket: bucket,
         CacheControl: 'max-age=31536000',
         ContentType: 'application/javascript',
-        ContentEncoding: 'br',
+        ContentEncoding: 'gzip',
         Key: key,
       });
       return client
