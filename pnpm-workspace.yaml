@@ -1,0 +1,5 @@
+blockExoticSubdeps: true
+minimumReleaseAge: 4320
+packages:
+  - "packages/*"
+  - "apps/*"
