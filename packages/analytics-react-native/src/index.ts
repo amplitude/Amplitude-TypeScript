@@ -22,6 +22,7 @@ export const {
   track,
   extendSession,
 } = client;
+
 export { Revenue, Identify } from '@amplitude/analytics-core';
 
 // Export types to maintain backward compatibility with `analytics-types`.
