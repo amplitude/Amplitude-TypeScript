@@ -34,18 +34,40 @@ export const keyValDatabaseExists = function (): Promise<IDBDatabase | void> {
 
     try {
       const request = globalScope.indexedDB.open('keyval-store');
+      // If the DB doesn't exist, IndexedDB will create it at version 1 and fire `onupgradeneeded`.
+      // In that case, we want to clean it up and resolve (not reject) without emitting noisy AbortErrors.
+      let shouldDeleteNewDb = false;
       request.onupgradeneeded = function () {
         if (request.result.version === 1) {
-          request.result.close();
-          request.transaction && request.transaction.abort();
-          globalScope.indexedDB.deleteDatabase('keyval-store');
-          resolve();
+          shouldDeleteNewDb = true;
         }
       };
       request.onsuccess = function () {
+        if (shouldDeleteNewDb) {
+          try {
+            request.result.close();
+          } catch {
+            // ignore
+          }
+          try {
+            globalScope.indexedDB.deleteDatabase('keyval-store');
+          } catch {
+            // ignore
+          }
+          resolve();
+          return;
+        }
+
         resolve(request.result);
       };
-      request.onerror = function () {
+      request.onerror = function (event) {
+        // AbortErrors can occur due to internal IndexedDB cancellation/cleanup and are not actionable.
+        // Prevent the default error event behavior to avoid surfacing it to customer error trackers.
+        if (request.error?.name === 'AbortError') {
+          event.preventDefault();
+          resolve();
+          return;
+        }
         reject(request.error);
       };
     } catch (e) {
