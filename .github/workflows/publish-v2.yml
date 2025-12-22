@@ -129,7 +129,8 @@ jobs:
           if [ -n "${{ github.event.inputs.branch }}" ]; then
             echo "branch=${{ github.event.inputs.branch }}" >> $GITHUB_OUTPUT
           else
-            echo "branch=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+            echo "❌ No branch specified. Please specify a branch to create pre-release from."
+            exit 1
           fi
 
       - name: Check out git repository
