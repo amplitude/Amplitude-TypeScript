@@ -18,7 +18,7 @@ on:
         required: false
       branch:
         type: string
-        description: Branch to create pre-release from (only applies to prerelease/dry-run). Leave empty to use current branch.
+        description: Branch to create pre-release from (only applies to prerelease/dry-run).
         required: false
 
 jobs:
