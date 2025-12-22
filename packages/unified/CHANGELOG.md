@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.0.0-AMP-140206-change-encoding-gtm-snippet-to-gz.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/unified@1.0.0-beta.24...@amplitude/unified@1.0.0-AMP-140206-change-encoding-gtm-snippet-to-gz.0) (2025-12-22)
+
+**Note:** Version bump only for package @amplitude/unified
+
+
+
+
+
 # [1.0.0-beta.24](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/unified@1.0.0-beta.23...@amplitude/unified@1.0.0-beta.24) (2025-12-16)
 
 **Note:** Version bump only for package @amplitude/unified

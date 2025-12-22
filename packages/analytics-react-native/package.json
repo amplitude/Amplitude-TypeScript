@@ -1,6 +1,6 @@
 {
   "name": "@amplitude/analytics-react-native",
-  "version": "1.5.29",
+  "version": "1.5.30-AMP-140206-change-encoding-gtm-snippet-to-gz.0",
   "description": "Official React Native SDK",
   "keywords": [
     "analytics",
