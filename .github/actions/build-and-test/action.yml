@@ -23,23 +23,28 @@ runs:
     - name: Install project dependencies
       run: |
         yarn install --frozen-lockfile
+      shell: bash
 
     - name: Build all packages
       run: |
         yarn build
+      shell: bash
 
     - name: Test all packages
       run: |
         yarn test
+      shell: bash
 
     - name: Lint all packages
       run: |
         yarn lint
+      shell: bash
 
     - name: Configure Git User
       run: |
         git config --global user.name amplitude-sdk-dev
         git config --global user.email 249154226+amplitude-sdk-dev@users.noreply.github.com
+      shell: bash
 
     - name: Configure AWS Credentials
       uses: aws-actions/configure-aws-credentials@v2
