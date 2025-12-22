@@ -138,6 +138,7 @@ jobs:
         with:
           ref: ${{ steps.determine-branch.outputs.branch }}
           fetch-depth: 0
+          token: ${{ secrets.GH_PUBLISH_TOKEN }}
 
       - name: Build and Test
         uses: ./.github/actions/build-and-test
