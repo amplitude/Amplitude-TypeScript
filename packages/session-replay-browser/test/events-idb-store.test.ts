@@ -478,6 +478,84 @@ describe('SessionReplayEventsIDBStore', () => {
       await expect(promise).rejects.toBe(request.error);
     });
 
+    test('should reject when indexedDB.open request errors and request.error is null', async () => {
+      const preventDefault = jest.fn();
+      const request = {
+        onupgradeneeded: null,
+        onsuccess: null,
+        onerror: null,
+        result: {} as IDBDatabase,
+        error: null,
+      } as unknown as IDBOpenDBRequest;
+
+      const mockGlobalScope = {
+        indexedDB: {
+          open: jest.fn().mockReturnValue(request),
+        },
+      } as unknown as typeof globalThis;
+
+      jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue(mockGlobalScope);
+
+      const promise = EventsIDBStore.keyValDatabaseExists();
+      request.onerror?.call(request, { preventDefault } as unknown as Event);
+
+      await expect(promise).rejects.toBeNull();
+      expect(preventDefault).not.toHaveBeenCalled();
+    });
+
+    test('should resolve (and swallow) when indexedDB.open request errors with AbortError', async () => {
+      const preventDefault = jest.fn();
+      const request = {
+        onupgradeneeded: null,
+        onsuccess: null,
+        onerror: null,
+        result: {} as IDBDatabase,
+        error: { name: 'AbortError' },
+      } as unknown as IDBOpenDBRequest;
+
+      const mockGlobalScope = {
+        indexedDB: {
+          open: jest.fn().mockReturnValue(request),
+        },
+      } as unknown as typeof globalThis;
+
+      jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue(mockGlobalScope);
+
+      const promise = EventsIDBStore.keyValDatabaseExists();
+      request.onerror?.call(request, { preventDefault } as unknown as Event);
+
+      await expect(promise).resolves.toBeUndefined();
+      expect(preventDefault).toHaveBeenCalled();
+    });
+
+    test('should resolve and delete DB if keyval-store is newly created (onupgradeneeded at version 1)', async () => {
+      const close = jest.fn();
+      const request = {
+        onupgradeneeded: null,
+        onsuccess: null,
+        onerror: null,
+        result: { version: 1, close } as unknown as IDBDatabase,
+        error: null,
+      } as unknown as IDBOpenDBRequest;
+
+      const mockGlobalScope = {
+        indexedDB: {
+          open: jest.fn().mockReturnValue(request),
+          deleteDatabase: jest.fn(),
+        },
+      } as unknown as typeof globalThis;
+
+      jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue(mockGlobalScope);
+
+      const promise = EventsIDBStore.keyValDatabaseExists();
+      request.onupgradeneeded?.call(request, { oldVersion: 0, newVersion: 1 } as unknown as IDBVersionChangeEvent);
+      request.onsuccess?.call(request, new Event('success'));
+
+      await expect(promise).resolves.toBeUndefined();
+      expect(close).toHaveBeenCalled();
+      expect(mockGlobalScope.indexedDB.deleteDatabase).toHaveBeenCalledWith('keyval-store');
+    });
+
     test('should add current session events to new idb sessionCurrentSequence', async () => {
       const db = await createKeyValDB();
       await db.put('keyval', mockKeyValStore, 'AMP_unsent_static_key');
