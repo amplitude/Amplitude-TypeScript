@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.32.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.32.1...@amplitude/analytics-browser@2.32.2) (2025-12-16)
+
+
+### Bug Fixes
+
+* **analytics-browser:** remoteConfig.fetchRemoteConfig was broken ([#1434](https://github.com/amplitude/Amplitude-TypeScript/issues/1434)) ([43540d0](https://github.com/amplitude/Amplitude-TypeScript/commit/43540d0cc26baf491feebda3973343153626dcb9))
+
+
+
+
+
 ## [2.32.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.32.0...@amplitude/analytics-browser@2.32.1) (2025-12-12)
 
 

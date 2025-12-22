@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.5.8](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-page-url-enrichment-browser@0.5.7...@amplitude/plugin-page-url-enrichment-browser@0.5.8) (2025-12-16)
+
+
+### Bug Fixes
+
+* **plugin-page-url-enrichment-browser:** add internalDomains config for subdomain matching ([#1433](https://github.com/amplitude/Amplitude-TypeScript/issues/1433)) ([cf97ca3](https://github.com/amplitude/Amplitude-TypeScript/commit/cf97ca344e81666d4227aba67b0368d2213c9b34))
+
+
+
+
+
 ## [0.5.7](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-page-url-enrichment-browser@0.5.6...@amplitude/plugin-page-url-enrichment-browser@0.5.7) (2025-12-09)
 
 **Note:** Version bump only for package @amplitude/plugin-page-url-enrichment-browser

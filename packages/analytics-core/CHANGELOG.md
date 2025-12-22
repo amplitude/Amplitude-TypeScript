@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.34.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.34.0...@amplitude/analytics-core@2.34.1) (2025-12-16)
+
+
+### Bug Fixes
+
+* **plugin-page-url-enrichment-browser:** add internalDomains config for subdomain matching ([#1433](https://github.com/amplitude/Amplitude-TypeScript/issues/1433)) ([cf97ca3](https://github.com/amplitude/Amplitude-TypeScript/commit/cf97ca344e81666d4227aba67b0368d2213c9b34))
+
+
+
+
+
 # [2.34.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.33.0...@amplitude/analytics-core@2.34.0) (2025-12-09)
 
 

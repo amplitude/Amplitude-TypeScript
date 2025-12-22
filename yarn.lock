@@ -53,70 +53,60 @@
     base64-js "1.5.1"
     unfetch "4.1.0"
 
-"@amplitude/rrdom@^2.0.0-alpha.33":
-  version "2.0.0-alpha.33"
-  resolved "https://registry.yarnpkg.com/@amplitude/rrdom/-/rrdom-2.0.0-alpha.33.tgz#dfba53077736f16dceb611f2f18125f818a94986"
-  integrity sha512-uu+1w1RGEJ7QcGPwCC898YBR47DpNYOZTnQMY9/IgMzTXQ0+Hh1/JLsQfMnBBtAePhvCS0BlHd/qGD5w0taIcg==
+"@amplitude/rrdom@^2.0.0-alpha.34":
+  version "2.0.0-alpha.34"
+  resolved "https://registry.yarnpkg.com/@amplitude/rrdom/-/rrdom-2.0.0-alpha.34.tgz#b36ec8d43d5a5bdfdd5094ef27836d38294b077f"
+  integrity sha512-2MhME5qMj6ZiIJQ+WpdSn+FPE0e3EQzCPk11RhITkRnsQRol545FOKjQ0brImj0k+JgtzcjYroWdjrMG46Wm6w==
   dependencies:
-    "@amplitude/rrweb-snapshot" "^2.0.0-alpha.33"
+    "@amplitude/rrweb-snapshot" "^2.0.0-alpha.34"
 
-"@amplitude/rrweb-packer@2.0.0-alpha.32":
-  version "2.0.0-alpha.32"
-  resolved "https://registry.yarnpkg.com/@amplitude/rrweb-packer/-/rrweb-packer-2.0.0-alpha.32.tgz#1e1e8ed7531ea44c2cb21f31d60df8f26ec7f9fb"
-  integrity sha512-vYT0JFzle/FV9jIpEbuumCLh516az6ltAo7mrd06dlGo1tgos7bJbl3kcnvEXmDG7WWsKwip/Qprap7cZ4CmJw==
+"@amplitude/rrweb-packer@2.0.0-alpha.34":
+  version "2.0.0-alpha.34"
+  resolved "https://registry.yarnpkg.com/@amplitude/rrweb-packer/-/rrweb-packer-2.0.0-alpha.34.tgz#23837c711232036ab0ede898f29c79c988fd99d1"
+  integrity sha512-92Ikg/rLS1j1YoORkX7JgNzIOhCEnOcwRA4wrvAnkgBGcAFVQe+hYNMkl+5c/jYBDeJM6uSb4vUDS+kYe8LV1A==
   dependencies:
-    "@amplitude/rrweb-types" "^2.0.0-alpha.32"
+    "@amplitude/rrweb-types" "^2.0.0-alpha.34"
     fflate "^0.4.4"
 
-"@amplitude/rrweb-plugin-console-record@2.0.0-alpha.32":
-  version "2.0.0-alpha.32"
-  resolved "https://registry.yarnpkg.com/@amplitude/rrweb-plugin-console-record/-/rrweb-plugin-console-record-2.0.0-alpha.32.tgz#e47a56087c6ca029c461639b0961d5c106bb0478"
-  integrity sha512-oJuBSNuBnqnrRCneW3b/pMirSz0Ubr2Ebz/t+zJhkGBgrTPNMviv8sSyyGuSn0kL4RAh/9QAG1H1hiYf9cuzgA==
+"@amplitude/rrweb-plugin-console-record@2.0.0-alpha.34":
+  version "2.0.0-alpha.34"
+  resolved "https://registry.yarnpkg.com/@amplitude/rrweb-plugin-console-record/-/rrweb-plugin-console-record-2.0.0-alpha.34.tgz#a1526f8856c53d6b0e52053545baa3449207f973"
+  integrity sha512-qWH4Ddc+F7DJt+E3ASDvGrkI7a1dwRKRNNxL22g58LerB5srcuumakzm9qMP1+GPsDgU3qgMVwUOgFe5ITbHGg==
 
-"@amplitude/rrweb-record@2.0.0-alpha.32":
-  version "2.0.0-alpha.32"
-  resolved "https://registry.yarnpkg.com/@amplitude/rrweb-record/-/rrweb-record-2.0.0-alpha.32.tgz#018af4eb9b2fda1a70a93216344d2af70915ac4c"
-  integrity sha512-bs5ItsPfedVNiZyIzYgtey6S6qaU90XcP4/313dcvedzBk9o+eVjBG5DDbStJnwYnSj+lB+oAWw5uc9H9ghKjQ==
+"@amplitude/rrweb-record@2.0.0-alpha.34":
+  version "2.0.0-alpha.34"
+  resolved "https://registry.yarnpkg.com/@amplitude/rrweb-record/-/rrweb-record-2.0.0-alpha.34.tgz#fa8658a286cd69fb3ae4428c5dcb80cabca61d3f"
+  integrity sha512-NHXginyuS7geV+4l3jJVooUO0W7RY2LspKEESx1+hEUjIAju0qMQOIICerW830e7RYb2VijUfqckty0Azm/3Xg==
   dependencies:
-    "@amplitude/rrweb" "^2.0.0-alpha.32"
-    "@amplitude/rrweb-types" "^2.0.0-alpha.32"
+    "@amplitude/rrweb" "^2.0.0-alpha.34"
+    "@amplitude/rrweb-types" "^2.0.0-alpha.34"
 
-"@amplitude/rrweb-snapshot@^2.0.0-alpha.33":
-  version "2.0.0-alpha.33"
-  resolved "https://registry.yarnpkg.com/@amplitude/rrweb-snapshot/-/rrweb-snapshot-2.0.0-alpha.33.tgz#2a1e6dfcfed95d5912519b14b92c163ab432a391"
-  integrity sha512-06CgbRFS+cYDo1tUa+Fe8eo4QA9qmYv9Azio3UYlYxqJf4BtAYSL0eXuzVBuqt3ZXnQwzBlsUj/8QWKKySkO7A==
+"@amplitude/rrweb-snapshot@^2.0.0-alpha.34":
+  version "2.0.0-alpha.34"
+  resolved "https://registry.yarnpkg.com/@amplitude/rrweb-snapshot/-/rrweb-snapshot-2.0.0-alpha.34.tgz#1aee396336b1855539cb844013ffb974da7c7749"
+  integrity sha512-y4wfV47ZQSYtCPk7g/L4tv8MH7Ik4qa5Bfq1f5bUgc0s7r2Ns46fyem7w5OEc+fOh3K8ZyDbLkglgfRhW+IXug==
   dependencies:
     postcss "^8.4.38"
 
-"@amplitude/rrweb-types@2.0.0-alpha.32":
-  version "2.0.0-alpha.32"
-  resolved "https://registry.yarnpkg.com/@amplitude/rrweb-types/-/rrweb-types-2.0.0-alpha.32.tgz#c880e085df841e1f0ca6381f7410508ffb1f537d"
-  integrity sha512-tDs8uizkG+UwE2GKjXh+gH8WhUz0C3y7WfTwrtWi1TnsVc00sXaKSUo5G2h4YF4PGK6dpnLgJBqTwrqCZ211AQ==
+"@amplitude/rrweb-types@2.0.0-alpha.34", "@amplitude/rrweb-types@^2.0.0-alpha.34":
+  version "2.0.0-alpha.34"
+  resolved "https://registry.yarnpkg.com/@amplitude/rrweb-types/-/rrweb-types-2.0.0-alpha.34.tgz#67fe0fe882398996f7d06f6c38368cb6406d669b"
+  integrity sha512-MsvaCNJdw3QRLhmp7EDahDcVB5k+sqwBH37Yl/S7uwCawg30SGHkB+ISciUeLwNqIKcQQ1fqNkkBdjpjwUjmeg==
 
-"@amplitude/rrweb-types@^2.0.0-alpha.32", "@amplitude/rrweb-types@^2.0.0-alpha.33":
-  version "2.0.0-alpha.33"
-  resolved "https://registry.yarnpkg.com/@amplitude/rrweb-types/-/rrweb-types-2.0.0-alpha.33.tgz#9fc43c74c1bc010453d3d0bd57d66ab6860ecb11"
-  integrity sha512-OTUqndbcuXDZczf99NUq2PqQWTZ4JHK7oF8YT7aOXh1pJVEWhfe6S+J0idHd3YFCy1TD9gtOcdnz5nDJN68Wnw==
+"@amplitude/rrweb-utils@2.0.0-alpha.34", "@amplitude/rrweb-utils@^2.0.0-alpha.34":
+  version "2.0.0-alpha.34"
+  resolved "https://registry.yarnpkg.com/@amplitude/rrweb-utils/-/rrweb-utils-2.0.0-alpha.34.tgz#4a471bca7c097c2c7af9b9885e9c2e530f7b180d"
+  integrity sha512-3cWzBirK/v5ZCsOkYF4rBfkyMcSH1FsyXJ1+raz1YN/VOsmtDFikEYMzQoiIr2JnnxUQC+bDYy43e045hWYl4w==
 
-"@amplitude/rrweb-utils@2.0.0-alpha.32":
-  version "2.0.0-alpha.32"
-  resolved "https://registry.yarnpkg.com/@amplitude/rrweb-utils/-/rrweb-utils-2.0.0-alpha.32.tgz#8d243b8f565d74c72c34704a7fbaf468a6b70a4b"
-  integrity sha512-DCCQjuNACkIMkdY5/KBaEgL4znRHU694ClW3RIjqFXJ6j6pqGyjEhCqtlCes+XwdgwOQKnJGMNka3J9rmrSqHg==
-
-"@amplitude/rrweb-utils@^2.0.0-alpha.33":
-  version "2.0.0-alpha.33"
-  resolved "https://registry.yarnpkg.com/@amplitude/rrweb-utils/-/rrweb-utils-2.0.0-alpha.33.tgz#fddb3fb31651f20b959e9463438cf34f1d3e4dd5"
-  integrity sha512-brK6csN0Tj1W5gYERFhamWEPeFLbz9nYokdaUtd8PL/Y0owWXNX11KGP4pMWvl/f1bElDU0vcu3uYAzM4YGLQw==
-
-"@amplitude/rrweb@^2.0.0-alpha.32":
-  version "2.0.0-alpha.33"
-  resolved "https://registry.yarnpkg.com/@amplitude/rrweb/-/rrweb-2.0.0-alpha.33.tgz#c04174aa018542822154b0b1847ea95f8065d105"
-  integrity sha512-vMuk/3HzDWaUzBLFxKd7IpA8TEWjyPZBuLiLexMd/mOfTt/+JkVLsfXiJOyltJfR98LpmMTp1q51dtq357Dnfg==
+"@amplitude/rrweb@^2.0.0-alpha.34":
+  version "2.0.0-alpha.34"
+  resolved "https://registry.yarnpkg.com/@amplitude/rrweb/-/rrweb-2.0.0-alpha.34.tgz#3751f937dfd58b3cedd53640f9e84c3a088af799"
+  integrity sha512-nS7z+xVyo3RsiZOWXvP2s63J+PbsqrbPDY/YnKHhL1QQr5F5CTzkNIYdjTi7seG9Aa+PN4WLIdaw61ddXGQ6eQ==
   dependencies:
-    "@amplitude/rrdom" "^2.0.0-alpha.33"
-    "@amplitude/rrweb-snapshot" "^2.0.0-alpha.33"
-    "@amplitude/rrweb-types" "^2.0.0-alpha.33"
-    "@amplitude/rrweb-utils" "^2.0.0-alpha.33"
+    "@amplitude/rrdom" "^2.0.0-alpha.34"
+    "@amplitude/rrweb-snapshot" "^2.0.0-alpha.34"
+    "@amplitude/rrweb-types" "^2.0.0-alpha.34"
+    "@amplitude/rrweb-utils" "^2.0.0-alpha.34"
     "@types/css-font-loading-module" "0.0.7"
     "@xstate/fsm" "^1.4.0"
     base64-arraybuffer "^1.0.1"
@@ -13841,7 +13831,7 @@ run-parallel@^1.1.9:
   dependencies:
     queue-microtask "^1.2.2"
 
-rxjs@7.8.2, rxjs@^7.8.2:
+rxjs@7.8.2, rxjs@^7.8.1, rxjs@^7.8.2:
   version "7.8.2"
   resolved "https://registry.yarnpkg.com/rxjs/-/rxjs-7.8.2.tgz#955bc473ed8af11a002a2be52071bf475638607b"
   integrity sha512-dhKf903U/PQZY6boNNtAGdWbG85WAbjT/1xYoZIC7FAY0yWapOBQVsVrDl58W86//e1VpMNBtRV4MaXfdMySFA==
@@ -14391,16 +14381,7 @@ string-length@^4.0.1:
     char-regex "^1.0.2"
     strip-ansi "^6.0.0"
 
-"string-width-cjs@npm:string-width@^4.2.0":
-  version "4.2.3"
-  resolved "https://registry.yarnpkg.com/string-width/-/string-width-4.2.3.tgz#269c7117d27b05ad2e536830a8ec895ef9c6d010"
-  integrity sha512-wKyQRQpjJ0sIp62ErSZdGsjMJWsap5oRNihHhu6G7JVO/9jIB6UyevL+tXuOqrng8j/cxKTWyWUwvSTriiZz/g==
-  dependencies:
-    emoji-regex "^8.0.0"
-    is-fullwidth-code-point "^3.0.0"
-    strip-ansi "^6.0.1"
-
-"string-width@^1.0.2 || 2 || 3 || 4", string-width@^4.1.0, string-width@^4.2.0, string-width@^4.2.3:
+"string-width-cjs@npm:string-width@^4.2.0", "string-width@^1.0.2 || 2 || 3 || 4", string-width@^4.1.0, string-width@^4.2.0, string-width@^4.2.3:
   version "4.2.3"
   resolved "https://registry.yarnpkg.com/string-width/-/string-width-4.2.3.tgz#269c7117d27b05ad2e536830a8ec895ef9c6d010"
   integrity sha512-wKyQRQpjJ0sIp62ErSZdGsjMJWsap5oRNihHhu6G7JVO/9jIB6UyevL+tXuOqrng8j/cxKTWyWUwvSTriiZz/g==
@@ -14464,7 +14445,7 @@ string_decoder@~1.1.1:
   dependencies:
     safe-buffer "~5.1.0"
 
-"strip-ansi-cjs@npm:strip-ansi@^6.0.1":
+"strip-ansi-cjs@npm:strip-ansi@^6.0.1", strip-ansi@^6.0.0, strip-ansi@^6.0.1:
   version "6.0.1"
   resolved "https://registry.yarnpkg.com/strip-ansi/-/strip-ansi-6.0.1.tgz#9e26c63d30f53443e9489495b2105d37b67a85d9"
   integrity sha512-Y38VPSHcqkFrCpFnQ9vuSXmquuv5oXOKpGeT6aGrr3o3Gc9AlVa6JBfUSOCnbxGGZF+/0ooI7KrPuUSztUdU5A==
@@ -14484,13 +14465,6 @@ strip-ansi@^5.0.0, strip-ansi@^5.2.0:
   integrity sha512-DuRs1gKbBqsMKIZlrffwlug8MHkcnpjs5VPmL1PAh+mA30U0DTotfDZ0d2UUsXpPmPmMMJ6W773MaA3J+lbiWA==
   dependencies:
     ansi-regex "^4.1.0"
-
-strip-ansi@^6.0.0, strip-ansi@^6.0.1:
-  version "6.0.1"
-  resolved "https://registry.yarnpkg.com/strip-ansi/-/strip-ansi-6.0.1.tgz#9e26c63d30f53443e9489495b2105d37b67a85d9"
-  integrity sha512-Y38VPSHcqkFrCpFnQ9vuSXmquuv5oXOKpGeT6aGrr3o3Gc9AlVa6JBfUSOCnbxGGZF+/0ooI7KrPuUSztUdU5A==
-  dependencies:
-    ansi-regex "^5.0.1"
 
 strip-ansi@^7.0.1:
   version "7.1.2"
@@ -15528,7 +15502,7 @@ wordwrap@^1.0.0:
   resolved "https://registry.yarnpkg.com/wordwrap/-/wordwrap-1.0.0.tgz#27584810891456a4171c8d0226441ade90cbcaeb"
   integrity sha512-gvVzJFlPycKc5dZN4yPkP8w7Dc37BtP1yczEneOb4uq34pXZcvrtRTmWV8W+Ume+XCxKgbjM+nevkyFPMybd4Q==
 
-"wrap-ansi-cjs@npm:wrap-ansi@^7.0.0":
+"wrap-ansi-cjs@npm:wrap-ansi@^7.0.0", wrap-ansi@^7.0.0:
   version "7.0.0"
   resolved "https://registry.yarnpkg.com/wrap-ansi/-/wrap-ansi-7.0.0.tgz#67e145cff510a6a6984bdf1152911d69d2eb9e43"
   integrity sha512-YVGIj2kamLSTxw6NsZjoBxfSwsn0ycdesmc4p+Q21c5zPuZ1pl+NfxVdxPtdHvmNVOQ6XSYG4AUtyt/Fi7D16Q==
@@ -15541,15 +15515,6 @@ wrap-ansi@^6.2.0:
   version "6.2.0"
   resolved "https://registry.yarnpkg.com/wrap-ansi/-/wrap-ansi-6.2.0.tgz#e9393ba07102e6c91a3b221478f0257cd2856e53"
   integrity sha512-r6lPcBGxZXlIcymEu7InxDMhdW0KDxpLgoFLcguasxCaJ/SOIZwINatK9KY/tf+ZrlywOKU0UDj3ATXUBfxJXA==
-  dependencies:
-    ansi-styles "^4.0.0"
-    string-width "^4.1.0"
-    strip-ansi "^6.0.0"
-
-wrap-ansi@^7.0.0:
-  version "7.0.0"
-  resolved "https://registry.yarnpkg.com/wrap-ansi/-/wrap-ansi-7.0.0.tgz#67e145cff510a6a6984bdf1152911d69d2eb9e43"
-  integrity sha512-YVGIj2kamLSTxw6NsZjoBxfSwsn0ycdesmc4p+Q21c5zPuZ1pl+NfxVdxPtdHvmNVOQ6XSYG4AUtyt/Fi7D16Q==
   dependencies:
     ansi-styles "^4.0.0"
     string-width "^4.1.0"
