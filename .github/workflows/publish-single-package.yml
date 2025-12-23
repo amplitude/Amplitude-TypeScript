@@ -128,7 +128,7 @@ jobs:
       # Install all project dependencies
       - name: Install project dependencies
         run: |
-          yarn install --frozen-lockfile
+          pnpm install
 
       # Configure Git for automated commits
       - name: Configure Git User

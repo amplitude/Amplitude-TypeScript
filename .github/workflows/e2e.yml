@@ -41,7 +41,7 @@ jobs:
 
       - name: Install project dependencies
         run: |
-          yarn install --frozen-lockfile
+          pnpm install
 
       - name: Build all packages
         run: |

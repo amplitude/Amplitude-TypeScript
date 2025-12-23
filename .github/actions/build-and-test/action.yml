@@ -22,7 +22,7 @@ runs:
 
     - name: Install project dependencies
       run: |
-        yarn install --frozen-lockfile
+        pnpm install
       shell: bash
 
     - name: Build all packages
