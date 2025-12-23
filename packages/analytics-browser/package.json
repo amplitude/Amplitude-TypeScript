@@ -22,25 +22,25 @@
     "url": "git+https://github.com/amplitude/Amplitude-TypeScript.git"
   },
   "scripts": {
-    "build": "yarn bundle && yarn build:es5 && yarn build:esm",
+    "build": "pnpm bundle && pnpm build:es5 && pnpm build:esm",
     "bundle": "rollup --config rollup.config.js",
     "build:es5": "tsc -p ./tsconfig.es5.json",
     "build:esm": "tsc -p ./tsconfig.esm.json",
     "watch": "tsc -p ./tsconfig.esm.json --watch",
     "clean": "rimraf node_modules lib coverage",
-    "fix": "yarn fix:eslint & yarn fix:prettier",
+    "fix": "pnpm fix:eslint & pnpm fix:prettier",
     "fix:eslint": "eslint '{src,test}/**/*.ts' --fix",
     "fix:prettier": "prettier --write \"{src,test}/**/*.ts\"",
-    "lint": "yarn lint:eslint & yarn lint:prettier",
+    "lint": "pnpm lint:eslint & pnpm lint:prettier",
     "lint:eslint": "eslint '{src,test}/**/*.ts'",
     "lint:prettier": "prettier --check \"{src,test}/**/*.ts\"",
     "playground:html": "cp lib/scripts/amplitude-min.js playground/html/amplitude.js && http-server ./playground/html",
-    "playground:react-spa": "cp lib/scripts/amplitude-min.js playground/react-spa/public/amplitude.js && cd ./playground/react-spa && yarn install && yarn start",
+    "playground:react-spa": "cp lib/scripts/amplitude-min.js playground/react-spa/public/amplitude.js && cd ./playground/react-spa && pnpm install && pnpm start",
     "publish": "node ../../scripts/publish/upload-to-s3.js",
     "test": "jest",
     "test:playwright": "playwright test",
     "typecheck": "tsc -p ./tsconfig.json",
-    "version": "yarn version-file && GENERATE_SNIPPET=true yarn build && cp lib/scripts/amplitude-min.js playground/html/amplitude.js && cp lib/scripts/amplitude-min.js playground/react-spa/public/amplitude.js",
+    "version": "pnpm version-file && GENERATE_SNIPPET=true yarn build && cp lib/scripts/amplitude-min.js playground/html/amplitude.js && cp lib/scripts/amplitude-min.js playground/react-spa/public/amplitude.js",
     "version-file": "node -p \"'export const VERSION = \\'' + require('./package.json').version + '\\';'\" > src/version.ts"
   },
   "bugs": {
@@ -56,6 +56,7 @@
     "tslib": "^2.4.1"
   },
   "devDependencies": {
+    "@amplitude/analytics-types": "2.11.0",
     "@aws-sdk/client-s3": "^3.229.0",
     "@rollup/plugin-commonjs": "^23.0.4",
     "@rollup/plugin-node-resolve": "^15.0.1",

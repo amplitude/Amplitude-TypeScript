@@ -6,6 +6,7 @@
     "esModuleInterop": true,
     "lib": ["dom"],
     "noEmit": true,
-    "rootDir": "."
+    "rootDir": ".",
+    "types": ["jest", "node", "idb"]
   }
 }

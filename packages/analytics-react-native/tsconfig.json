@@ -15,6 +15,7 @@
     "noImplicitUseStrict": false,
     "noStrictGenericChecks": false,
     "skipLibCheck": true,
-    "target": "es6"
+    "target": "es6",
+    "types": ["jest", "node"]
   }
 }
