@@ -4,6 +4,12 @@ export class XHRTransport extends BaseTransport implements Transport {
   private state = {
     done: 4,
   };
+  private customHeaders: Record<string, string>;
+
+  constructor(customHeaders: Record<string, string> = {}) {
+    super();
+    this.customHeaders = customHeaders;
+  }
 
   async send(serverUrl: string, payload: Payload): Promise<Response | null> {
     return new Promise((resolve, reject) => {
@@ -27,6 +33,9 @@ export class XHRTransport extends BaseTransport implements Transport {
       };
       xhr.setRequestHeader('Content-Type', 'application/json');
       xhr.setRequestHeader('Accept', '*/*');
+      for (const [key, value] of Object.entries(this.customHeaders)) {
+        xhr.setRequestHeader(key, value);
+      }
       xhr.send(JSON.stringify(payload));
     });
   }

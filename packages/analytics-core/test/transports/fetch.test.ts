@@ -33,5 +33,53 @@ describe('fetch', () => {
       const response = await transport.send(url, payload);
       expect(response).toEqual(result);
     });
+
+    test('should include custom headers in request', async () => {
+      const customHeaders = {
+        Authorization: 'Bearer token123',
+      };
+      const transport = new FetchTransport(customHeaders);
+      const url = 'http://localhost:3000';
+      const payload = {
+        api_key: '',
+        events: [],
+      };
+
+      const fetchSpy = jest.spyOn(window, 'fetch').mockReturnValueOnce(Promise.resolve(new Response('{}')));
+
+      await transport.send(url, payload);
+
+      expect(fetchSpy).toHaveBeenCalledWith(url, {
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: '*/*',
+          Authorization: 'Bearer token123',
+        },
+        body: JSON.stringify(payload),
+        method: 'POST',
+      });
+    });
+
+    test('should work without custom headers (backward compatibility)', async () => {
+      const transport = new FetchTransport();
+      const url = 'http://localhost:3000';
+      const payload = {
+        api_key: '',
+        events: [],
+      };
+
+      const fetchSpy = jest.spyOn(window, 'fetch').mockReturnValueOnce(Promise.resolve(new Response('{}')));
+
+      await transport.send(url, payload);
+
+      expect(fetchSpy).toHaveBeenCalledWith(url, {
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: '*/*',
+        },
+        body: JSON.stringify(payload),
+        method: 'POST',
+      });
+    });
   });
 });

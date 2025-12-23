@@ -15,7 +15,7 @@ import {
   EventOptions,
   IIdentify,
   IRevenue,
-  TransportType,
+  TransportTypeOrOptions,
   OfflineDisabled,
   Result,
   BrowserOptions,
@@ -443,7 +443,7 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
     this.config.lastEventTime = Date.now();
   }
 
-  setTransport(transport: TransportType) {
+  setTransport(transport: TransportTypeOrOptions) {
     if (!this.config) {
       this.q.push(this.setTransport.bind(this, transport));
       return;

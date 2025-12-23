@@ -10,7 +10,7 @@ import {
   OfflineDisabled,
   Plan,
   IdentityStorageType,
-  TransportType,
+  TransportTypeOrOptions,
   MemoryStorage,
   UUID,
   CookieStorage,
@@ -90,7 +90,7 @@ export class BrowserConfig extends Config implements IBrowserConfig {
       language: true,
       platform: true,
     },
-    public transport: 'fetch' | 'xhr' | 'beacon' = 'fetch',
+    public transport: TransportTypeOrOptions = 'fetch',
     public useBatch: boolean = false,
     public fetchRemoteConfig: boolean = true,
     userId?: string,
@@ -375,14 +375,18 @@ export const createCookieStorage = <T>(
   }
 };
 
-export const createTransport = (transport?: TransportType) => {
-  if (transport === 'xhr') {
-    return new XHRTransport();
+export const createTransport = (transport?: TransportTypeOrOptions) => {
+  const type = typeof transport === 'object' ? transport.type : transport;
+  const headers = typeof transport === 'object' ? transport.headers : undefined;
+
+  if (type === 'xhr') {
+    return new XHRTransport(headers);
   }
-  if (transport === 'beacon') {
+  if (type === 'beacon') {
+    // SendBeacon does not support custom headers
     return new SendBeaconTransport();
   }
-  return new FetchTransport();
+  return new FetchTransport(headers);
 };
 
 export const getTopLevelDomain = async (url?: string) => {
