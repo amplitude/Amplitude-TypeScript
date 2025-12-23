@@ -31,9 +31,13 @@ export class XHRTransport extends BaseTransport implements Transport {
           }
         }
       };
-      xhr.setRequestHeader('Content-Type', 'application/json');
-      xhr.setRequestHeader('Accept', '*/*');
-      for (const [key, value] of Object.entries(this.customHeaders)) {
+      // Merge headers: custom headers override defaults (consistent with FetchTransport)
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        Accept: '*/*',
+        ...this.customHeaders,
+      };
+      for (const [key, value] of Object.entries(headers)) {
         xhr.setRequestHeader(key, value);
       }
       xhr.send(JSON.stringify(payload));

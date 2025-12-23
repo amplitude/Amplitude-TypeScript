@@ -95,6 +95,51 @@ describe('xhr', () => {
       expect(setRequestHeader).toHaveBeenCalledWith('X-Custom-Header', 'custom-value');
     });
 
+    test('should allow custom headers to override defaults', async () => {
+      const customHeaders = {
+        'Content-Type': 'text/plain',
+        Accept: 'application/json',
+      };
+      const transport = new XHRTransport(customHeaders);
+      const url = 'http://localhost:3000';
+      const payload = {
+        api_key: '',
+        events: [],
+      };
+      const result = {
+        statusCode: 200,
+        status: Status.Success as const,
+        body: {
+          eventsIngested: 0,
+          payloadSizeBytes: 0,
+          serverUploadTime: 0,
+        },
+      };
+      const xhr = new XMLHttpRequest();
+      const open = jest.fn();
+      const setRequestHeader = jest.fn();
+      const send = jest.fn();
+      const mock = {
+        ...xhr,
+        open,
+        setRequestHeader,
+        send,
+        readyState: 4,
+        responseText: '{}',
+      };
+      jest.spyOn(window, 'XMLHttpRequest').mockReturnValueOnce(mock);
+      jest.spyOn(transport, 'buildResponse').mockReturnValueOnce(result);
+
+      const unresolvedResponse = transport.send(url, payload);
+      mock.onreadystatechange && mock.onreadystatechange(new Event(''));
+      await unresolvedResponse;
+
+      // Custom headers should override defaults, so only 2 calls total
+      expect(setRequestHeader).toHaveBeenCalledTimes(2);
+      expect(setRequestHeader).toHaveBeenCalledWith('Content-Type', 'text/plain');
+      expect(setRequestHeader).toHaveBeenCalledWith('Accept', 'application/json');
+    });
+
     test('should work without custom headers (backward compatibility)', async () => {
       const transport = new XHRTransport();
       const url = 'http://localhost:3000';
