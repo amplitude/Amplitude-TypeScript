@@ -1,5 +1,5 @@
 import { createSessionReplayLogger } from '../src/logger';
-import { LogLevel } from '@amplitude/analytics-core';
+import { LogLevel } from '@amplitude/analytics-types';
 
 describe('Logger', () => {
   let logger: ReturnType<typeof createSessionReplayLogger>;

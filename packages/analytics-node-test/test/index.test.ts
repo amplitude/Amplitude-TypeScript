@@ -2,7 +2,7 @@ import * as amplitude from '@amplitude/analytics-node';
 import { default as nock } from 'nock';
 import { success } from './responses';
 import { path, SUCCESS_MESSAGE, url, uuidPattern } from './constants';
-import { LogLevel } from '@amplitude/analytics-core';
+import { LogLevel } from '@amplitude/analytics-types';
 
 describe('integration', () => {
   const uuid: string = expect.stringMatching(uuidPattern) as string;

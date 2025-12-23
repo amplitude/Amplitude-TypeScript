@@ -1,5 +1,5 @@
-import { EnrichmentPlugin } from '@amplitude/analytics-core';
-import { BaseEvent } from '@amplitude/analytics-core';
+import { EnrichmentPlugin } from '@amplitude/analytics-types';
+import { BaseEvent } from '@amplitude/analytics-types/src';
 
 type KeyOfEvent = keyof BaseEvent;
 

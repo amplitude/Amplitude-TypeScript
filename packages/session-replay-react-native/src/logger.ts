@@ -1,4 +1,4 @@
-import { LogLevel } from '@amplitude/analytics-core';
+import { LogLevel } from '@amplitude/analytics-types';
 
 const PREFIX = 'Amplitude Session Replay ';
 

@@ -1,4 +1,4 @@
-import { EnrichmentPlugin } from '@amplitude/analytics-core';
+import { EnrichmentPlugin } from '@amplitude/analytics-types';
 
 /**
  * This plugin enriches events with event_type "Page View" by adding

@@ -12,7 +12,7 @@ jest.mock('../src/logger', () => require('./utils/logger'));
 
 import { init, start, stop, getSessionId, getSessionReplayProperties, type SessionReplayConfig } from '../src/index';
 import { NativeModules } from 'react-native';
-import { LogLevel } from '@amplitude/analytics-core';
+import { LogLevel } from '@amplitude/analytics-types';
 
 // Mock the getSessionReplayProperties return value for our tests
 const mockNativeModules = NativeModules as jest.Mocked<typeof NativeModules>;

@@ -39,7 +39,7 @@ import {
   init,
   track,
 } from '@amplitude/analytics-react-native';
-import { LogLevel } from '@amplitude/analytics-core';
+import { LogLevel } from '@amplitude/analytics-types';
 import { NavigationContainer } from '@react-navigation/native';
 
 import { SessionReplayPlugin, AmpMaskView, SessionReplayConfig } from '@amplitude/plugin-session-replay-react-native';
