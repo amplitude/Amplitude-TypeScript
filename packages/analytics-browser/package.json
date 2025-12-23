@@ -56,7 +56,6 @@
     "tslib": "^2.4.1"
   },
   "devDependencies": {
-    "@amplitude/analytics-types": "2.11.0",
     "@aws-sdk/client-s3": "^3.229.0",
     "@rollup/plugin-commonjs": "^23.0.4",
     "@rollup/plugin-node-resolve": "^15.0.1",
