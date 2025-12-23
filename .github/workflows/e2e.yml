@@ -45,7 +45,7 @@ jobs:
 
       - name: Build all packages
         run: |
-          yarn build
+          pnpm build
 
       - name: Create .env file
         run: |
@@ -55,7 +55,7 @@ jobs:
       - name: Start dev server
         run: |
           # Start the dev server
-          yarn build:vite
+          pnpm build:vite
           yarn start --port 5173 &
           # Wait for the server to be ready
           sleep 10

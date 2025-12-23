@@ -10,7 +10,7 @@ jobs:
       - name: Setup
         run: |
           yarn
-          yarn build
+          pnpm build
           yarn docs
 
       - name: Deploy

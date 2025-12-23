@@ -191,7 +191,7 @@ jobs:
       # Build the package to ensure it compiles correctly
       - name: Build package
         run: |
-          yarn build
+          pnpm build
 
       # Run tests to ensure package quality
       - name: Test package
