@@ -25,7 +25,7 @@ import {
   MaskLevel,
 } from '../src/index';
 import { NativeModules } from 'react-native';
-import { LogLevel } from '@amplitude/analytics-types';
+import { LogLevel } from '@amplitude/analytics-core';
 
 // Mock the getSessionReplayProperties return value for our tests
 NativeModules.AMPNativeSessionReplay.getSessionReplayProperties.mockResolvedValue({ replayId: 'test-id' });

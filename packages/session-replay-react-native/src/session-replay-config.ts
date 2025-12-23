@@ -1,4 +1,4 @@
-import { LogLevel } from '@amplitude/analytics-types';
+import { LogLevel } from '@amplitude/analytics-core';
 
 /**
  * Masking levels for sensitive content in session replay
