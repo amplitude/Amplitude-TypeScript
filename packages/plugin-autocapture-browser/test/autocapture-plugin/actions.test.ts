@@ -7,11 +7,12 @@ import {
   Trigger,
   DataSource,
   BrowserConfig,
+  BrowserClient,
   EnrichmentPlugin,
   ILogger,
   IConfig,
 } from '@amplitude/analytics-core';
-import { createInstance } from '@amplitude/analytics-browser';
+import { createMockBrowserClient } from '../mock-browser-client';
 import { getDataSource, executeActions } from '../../src/pageActions/actions';
 import { DataExtractor } from '../../src/data-extractor';
 
@@ -19,10 +20,7 @@ const TESTING_DEBOUNCE_TIME = 4;
 
 describe('page actions', () => {
   let plugin: EnrichmentPlugin | undefined;
-  const API_KEY = 'API_KEY';
-  const USER_ID = 'USER_ID';
-  let instance = createInstance();
-  let track: jest.SpyInstance;
+  let instance: jest.Mocked<BrowserClient>;
   let loggerProvider: ILogger;
 
   const bodyHTML = `
@@ -144,7 +142,7 @@ describe('page actions', () => {
     });
   });
 
-  beforeEach(async () => {
+  beforeEach(() => {
     (window.location as any) = {
       hostname: '',
       href: '',
@@ -160,9 +158,7 @@ describe('page actions', () => {
     } as unknown as ILogger;
 
     plugin = autocapturePlugin({ debounceTime: TESTING_DEBOUNCE_TIME });
-    instance = createInstance();
-    await instance.init(API_KEY, USER_ID).promise;
-    track = jest.spyOn(instance, 'track').mockImplementation(jest.fn());
+    instance = createMockBrowserClient();
   });
 
   afterEach(() => {
@@ -201,7 +197,7 @@ describe('page actions', () => {
 
       await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 3));
 
-      expect(track).toHaveBeenNthCalledWith(
+      expect(instance.track).toHaveBeenNthCalledWith(
         1,
         '[Amplitude] Element Clicked',
         expect.objectContaining({
@@ -219,7 +215,7 @@ describe('page actions', () => {
 
       await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 3));
 
-      expect(track).toHaveBeenNthCalledWith(
+      expect(instance.track).toHaveBeenNthCalledWith(
         2,
         '[Amplitude] Element Clicked',
         expect.objectContaining({
@@ -256,7 +252,7 @@ describe('page actions', () => {
 
       await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 3));
 
-      expect(track).toHaveBeenNthCalledWith(
+      expect(instance.track).toHaveBeenNthCalledWith(
         1,
         '[Amplitude] Element Clicked',
         expect.objectContaining({
@@ -288,7 +284,7 @@ describe('page actions', () => {
 
       await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 3));
 
-      expect(track).toHaveBeenNthCalledWith(
+      expect(instance.track).toHaveBeenNthCalledWith(
         1,
         '[Amplitude] Element Clicked',
         expect.not.objectContaining({

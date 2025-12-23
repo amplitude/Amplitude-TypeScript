@@ -325,9 +325,6 @@ importers:
 
   packages/plugin-autocapture-browser:
     dependencies:
-      '@amplitude/analytics-browser':
-        specifier: '>=2.0.0'
-        version: 2.32.2
       '@amplitude/analytics-core':
         specifier: workspace:*
         version: link:../analytics-core
