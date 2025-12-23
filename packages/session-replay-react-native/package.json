@@ -39,7 +39,7 @@
     "version": "pnpm version-file && pnpm build",
     "version-file": "node -p \"'export const VERSION = \\'' + require('./package.json').version + '\\';'\" > src/version.ts",
     "typescript": "tsc --noEmit",
-    "example": "pnpm workspace @amplitude/plugin-session-replay-react-native-example",
+    "example": "pnpm --filter @amplitude/plugin-session-replay-react-native-example start",
     "pods": "cd example && pod-install --quiet"
   },
   "source": "src/index",
