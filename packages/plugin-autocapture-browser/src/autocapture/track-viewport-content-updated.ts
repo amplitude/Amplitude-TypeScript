@@ -31,18 +31,19 @@ export function fireViewportContentUpdated({
   const pageScrollMaxState = scrollTracker.getState();
   const globalScope = getGlobalScope();
 
+  /* istanbul ignore next */
+  const viewportWidth = globalScope?.innerWidth ?? 0;
+  /* istanbul ignore next */
+  const viewportHeight = globalScope?.innerHeight ?? 0;
+
   const eventProperties: Record<string, unknown> = {
     [constants.AMPLITUDE_EVENT_PROP_PAGE_URL]:
       /* istanbul ignore next */
       globalScope?.location?.href,
-    [constants.AMPLITUDE_EVENT_PROP_MAX_PAGE_X]: pageScrollMaxState.maxX,
-    [constants.AMPLITUDE_EVENT_PROP_MAX_PAGE_Y]: pageScrollMaxState.maxY,
-    [constants.AMPLITUDE_EVENT_PROP_VIEWPORT_HEIGHT]:
-      /* istanbul ignore next */
-      globalScope?.innerHeight,
-    [constants.AMPLITUDE_EVENT_PROP_VIEWPORT_WIDTH]:
-      /* istanbul ignore next */
-      globalScope?.innerWidth,
+    [constants.AMPLITUDE_EVENT_PROP_MAX_PAGE_X]: pageScrollMaxState.maxX + viewportWidth,
+    [constants.AMPLITUDE_EVENT_PROP_MAX_PAGE_Y]: pageScrollMaxState.maxY + viewportHeight,
+    [constants.AMPLITUDE_EVENT_PROP_VIEWPORT_HEIGHT]: viewportHeight,
+    [constants.AMPLITUDE_EVENT_PROP_VIEWPORT_WIDTH]: viewportWidth,
     '[Amplitude] Element Exposed': Array.from(currentElementExposed),
   };
 

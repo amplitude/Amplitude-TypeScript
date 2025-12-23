@@ -1682,8 +1682,8 @@ describe('autoTrackingPlugin', () => {
       expect(track).toHaveBeenCalledWith(
         '[Amplitude] Viewport Content Updated',
         expect.objectContaining({
-          '[Amplitude] Max Page X': 100,
-          '[Amplitude] Max Page Y': 200,
+          '[Amplitude] Max Page X': 100 + 1024,
+          '[Amplitude] Max Page Y': 200 + 768,
           '[Amplitude] Element Exposed': expect.any(Array),
         }),
       );

@@ -2,8 +2,8 @@
 import { AllWindowObservables } from '../autocapture-plugin';
 import { DataExtractor } from '../data-extractor';
 
-// Element must be visible for 2 seconds to count as "exposed"
-const EXPOSURE_TIMEOUT = 2_000;
+// Element must be visible for 1 second to count as "exposed"
+const EXPOSURE_TIMEOUT = 1_000;
 
 export function trackExposure({
   allObservables,

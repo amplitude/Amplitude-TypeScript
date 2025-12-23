@@ -70,7 +70,7 @@ describe('trackExposure', () => {
     expect(onExposure).toHaveBeenCalledWith('div#test-div');
   });
 
-  test('should not mark element as exposed if it becomes invisible before 2 seconds', () => {
+  test('should not mark element as exposed if it becomes invisible before timeout (1 second)', () => {
     const element = document.createElement('div');
     element.id = 'test-div-cancel';
 
@@ -80,7 +80,7 @@ describe('trackExposure', () => {
       intersectionRatio: 1.0,
     });
 
-    jest.advanceTimersByTime(1000);
+    jest.advanceTimersByTime(250);
 
     // Element leaves viewport
     triggerExposure({
@@ -89,7 +89,7 @@ describe('trackExposure', () => {
       intersectionRatio: 0,
     });
 
-    jest.advanceTimersByTime(1500);
+    jest.advanceTimersByTime(500);
 
     expect(onExposure).not.toHaveBeenCalled();
   });
@@ -143,7 +143,7 @@ describe('trackExposure', () => {
       intersectionRatio: 1.0,
     });
 
-    jest.advanceTimersByTime(1000);
+    jest.advanceTimersByTime(500);
 
     // Start element 2
     triggerExposure({
@@ -153,12 +153,12 @@ describe('trackExposure', () => {
     });
 
     // Element 1 finishes
-    jest.advanceTimersByTime(1000);
+    jest.advanceTimersByTime(500);
     expect(onExposure).toHaveBeenCalledWith('div#div-1');
     expect(onExposure).not.toHaveBeenCalledWith('div#div-2');
 
     // Element 2 finishes
-    jest.advanceTimersByTime(1000);
+    jest.advanceTimersByTime(500);
     expect(onExposure).toHaveBeenCalledWith('div#div-2');
   });
 
