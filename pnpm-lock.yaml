@@ -127,23 +127,23 @@ importers:
   packages/analytics-browser:
     dependencies:
       '@amplitude/analytics-core':
-        specifier: 2.34.1
-        version: 2.34.1
+        specifier: workspace:*
+        version: link:../analytics-core
       '@amplitude/plugin-autocapture-browser':
-        specifier: 1.18.2
-        version: 1.18.2
+        specifier: workspace:*
+        version: link:../plugin-autocapture-browser
       '@amplitude/plugin-network-capture-browser':
-        specifier: 1.7.2
-        version: 1.7.2
+        specifier: workspace:*
+        version: link:../plugin-network-capture-browser
       '@amplitude/plugin-page-url-enrichment-browser':
-        specifier: 0.5.8
-        version: 0.5.8
+        specifier: workspace:*
+        version: link:../plugin-page-url-enrichment-browser
       '@amplitude/plugin-page-view-tracking-browser':
-        specifier: 2.6.5
-        version: 2.6.5
+        specifier: workspace:*
+        version: link:../plugin-page-view-tracking-browser
       '@amplitude/plugin-web-vitals-browser':
-        specifier: 1.1.2
-        version: 1.1.2
+        specifier: workspace:*
+        version: link:../plugin-web-vitals-browser
       tslib:
         specifier: ^2.4.1
         version: 2.8.1
@@ -201,8 +201,8 @@ importers:
         specifier: ^1.4.8
         version: 1.6.4
       '@amplitude/analytics-core':
-        specifier: 2.34.1
-        version: 2.34.1
+        specifier: workspace:*
+        version: link:../analytics-core
       '@amplitude/analytics-types':
         specifier: ^2.11.0
         version: 2.11.0
@@ -225,8 +225,8 @@ importers:
   packages/analytics-node:
     dependencies:
       '@amplitude/analytics-core':
-        specifier: 2.34.1
-        version: 2.34.1
+        specifier: workspace:*
+        version: link:../analytics-core
       tslib:
         specifier: ^2.4.1
         version: 2.8.1
@@ -244,8 +244,8 @@ importers:
   packages/analytics-react-native:
     dependencies:
       '@amplitude/analytics-core':
-        specifier: 2.34.1
-        version: 2.34.1
+        specifier: workspace:*
+        version: link:../analytics-core
       '@amplitude/ua-parser-js':
         specifier: ^0.7.31
         version: 0.7.33
@@ -320,8 +320,8 @@ importers:
   packages/plugin-autocapture-browser:
     dependencies:
       '@amplitude/analytics-core':
-        specifier: 2.34.1
-        version: 2.34.1
+        specifier: workspace:*
+        version: link:../analytics-core
       rxjs:
         specifier: ^7.8.1
         version: 7.8.2
@@ -404,8 +404,8 @@ importers:
   packages/plugin-network-capture-browser:
     dependencies:
       '@amplitude/analytics-core':
-        specifier: 2.34.1
-        version: 2.34.1
+        specifier: workspace:*
+        version: link:../analytics-core
       tslib:
         specifier: ^2.4.1
         version: 2.8.1
@@ -438,8 +438,8 @@ importers:
   packages/plugin-page-url-enrichment-browser:
     dependencies:
       '@amplitude/analytics-core':
-        specifier: 2.34.1
-        version: 2.34.1
+        specifier: workspace:*
+        version: link:../analytics-core
       tslib:
         specifier: ^2.4.1
         version: 2.8.1
@@ -469,8 +469,8 @@ importers:
   packages/plugin-page-view-tracking-browser:
     dependencies:
       '@amplitude/analytics-core':
-        specifier: 2.34.1
-        version: 2.34.1
+        specifier: workspace:*
+        version: link:../analytics-core
       tslib:
         specifier: ^2.4.1
         version: 2.8.1
@@ -503,8 +503,8 @@ importers:
         specifier: 2.4.18
         version: 2.4.18
       '@amplitude/analytics-core':
-        specifier: 2.34.1
-        version: 2.34.1
+        specifier: workspace:*
+        version: link:../analytics-core
       '@amplitude/analytics-types':
         specifier: ^2.11.0
         version: 2.11.0
@@ -620,8 +620,8 @@ importers:
         specifier: 2.4.18
         version: 2.4.18
       '@amplitude/analytics-core':
-        specifier: 2.34.1
-        version: 2.34.1
+        specifier: workspace:*
+        version: link:../analytics-core
       '@amplitude/analytics-types':
         specifier: ^2.11.0
         version: 2.11.0
@@ -657,8 +657,8 @@ importers:
   packages/plugin-web-vitals-browser:
     dependencies:
       '@amplitude/analytics-core':
-        specifier: 2.34.1
-        version: 2.34.1
+        specifier: workspace:*
+        version: link:../analytics-core
       tslib:
         specifier: ^2.4.1
         version: 2.8.1
@@ -746,8 +746,8 @@ importers:
         specifier: 2.4.18
         version: 2.4.18
       '@amplitude/analytics-core':
-        specifier: 2.34.1
-        version: 2.34.1
+        specifier: workspace:*
+        version: link:../analytics-core
       '@amplitude/analytics-types':
         specifier: ^2.11.0
         version: 2.11.0
@@ -893,8 +893,8 @@ importers:
         specifier: 2.32.2
         version: 2.32.2
       '@amplitude/analytics-core':
-        specifier: 2.34.1
-        version: 2.34.1
+        specifier: workspace:*
+        version: link:../analytics-core
       '@amplitude/engagement-browser':
         specifier: ^1.0.3
         version: 1.0.5
