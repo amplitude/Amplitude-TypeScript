@@ -47,7 +47,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: '**/node_modules'
-          key: ${{ runner.os }}-modules-${{ hashFiles('**/yarn.lock') }}
+          key: ${{ runner.os }}-modules-${{ hashFiles('**/pnpm-lock.yaml') }}
 
       - name: Setup Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v3
@@ -64,11 +64,11 @@ jobs:
 
       - name: Test all packages
         run: |
-          yarn test
+          pnpm test
 
       - name: Lint all packages
         run: |
-          yarn lint
+          pnpm lint
 
       - name: Configure Git User
         run: |

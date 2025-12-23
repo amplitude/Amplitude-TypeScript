@@ -12,7 +12,7 @@ runs:
       uses: actions/cache@v3
       with:
         path: '**/node_modules'
-        key: ${{ runner.os }}-modules-${{ hashFiles('**/yarn.lock') }}
+        key: ${{ runner.os }}-modules-${{ hashFiles('**/pnpm-lock.yaml') }}
 
     - name: Setup Node.js ${{ inputs.node-version }}
       uses: actions/setup-node@v3
@@ -27,17 +27,17 @@ runs:
 
     - name: Build all packages
       run: |
-        yarn build
+        pnpm build
       shell: bash
 
     - name: Test all packages
       run: |
-        yarn test
+        pnpm test
       shell: bash
 
     - name: Lint all packages
       run: |
-        yarn lint
+        pnpm lint
       shell: bash
 
     - name: Configure Git User
