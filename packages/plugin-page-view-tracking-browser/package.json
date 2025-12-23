@@ -1,6 +1,6 @@
 {
   "name": "@amplitude/plugin-page-view-tracking-browser",
-  "version": "2.6.5",
+  "version": "2.7.0-feat-zoning-1223.0",
   "description": "",
   "author": "Amplitude Inc",
   "homepage": "https://github.com/amplitude/Amplitude-TypeScript",

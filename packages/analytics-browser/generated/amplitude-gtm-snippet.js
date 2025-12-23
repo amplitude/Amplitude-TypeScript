@@ -55,10 +55,10 @@
     amplitude.invoked = true;
     var as = document.createElement('script');
     as.type = 'text/javascript';
-    as.integrity = 'sha384-ekLJxkakxSL9zV0Xk4jn13YNOU6PvXrfM17ICPCdk6KcXmSwLuesneZL+OJ6UkCK';
+    as.integrity = 'sha384-O+m3Zh6VHzVwuCFxyRdZfhrX1Hb16hc/em2j4/CtToRny5b9tf8e8517CraUX5fh';
     as.crossOrigin = 'anonymous';
     as.async = true;
-    as.src = 'https://cdn.amplitude.com/libs/analytics-browser-gtm-2.32.2-min.js.gz';
+    as.src = 'https://cdn.amplitude.com/libs/analytics-browser-gtm-2.32.3-feat-zoning-1223.0-min.js.gz';
     as.onload = function () {
       if (!window.amplitudeGTM.runQueuedFunctions) {
         console.log('[Amplitude] Error: could not load SDK');

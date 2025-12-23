@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.2.109-feat-zoning-1223.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-global-user-properties@1.2.108...@amplitude/plugin-global-user-properties@1.2.109-feat-zoning-1223.0) (2025-12-23)
+
+**Note:** Version bump only for package @amplitude/plugin-global-user-properties
+
+
+
+
+
 ## [1.2.108](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-global-user-properties@1.2.107...@amplitude/plugin-global-user-properties@1.2.108) (2025-12-16)
 
 **Note:** Version bump only for package @amplitude/plugin-global-user-properties

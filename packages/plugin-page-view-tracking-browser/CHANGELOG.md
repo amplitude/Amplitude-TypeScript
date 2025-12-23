@@ -3,6 +3,22 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.7.0-feat-zoning-1223.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-page-view-tracking-browser@2.6.5...@amplitude/plugin-page-view-tracking-browser@2.7.0-feat-zoning-1223.0) (2025-12-23)
+
+
+### Bug Fixes
+
+* import in test ([7cf36fc](https://github.com/amplitude/Amplitude-TypeScript/commit/7cf36fcd7a0441fa352e41ff161f52aeb0ed97cf))
+
+
+### Features
+
+* **page-view-tracking-browser:** Track page view id in session storage ([#1379](https://github.com/amplitude/Amplitude-TypeScript/issues/1379)) ([b2f356e](https://github.com/amplitude/Amplitude-TypeScript/commit/b2f356e91cc916edfd9632f1d338c568b5128b86))
+
+
+
+
+
 ## [2.6.5](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-page-view-tracking-browser@2.6.4...@amplitude/plugin-page-view-tracking-browser@2.6.5) (2025-12-16)
 
 **Note:** Version bump only for package @amplitude/plugin-page-view-tracking-browser
