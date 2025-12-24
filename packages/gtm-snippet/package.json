@@ -7,10 +7,10 @@
     "tag": "latest"
   },
   "scripts": {
-    "build": "yarn build:template && yarn build:bundle",
+    "build": "pnpm build:template && pnpm build:bundle",
     "build:bundle": "rollup --config rollup.config.js",
     "build:template": "node ./scripts/build-snippet.js",
-    "prepublishOnly": "yarn build",
+    "prepublishOnly": "pnpm build",
     "publish": "node ./scripts/upload-to-s3.js",
     "version": "node ./scripts/version.js"
   },
@@ -22,7 +22,8 @@
   "license": "MIT",
   "dependencies": {
     "@amplitude/analytics-browser": "2.33.0",
-    "@amplitude/plugin-session-replay-browser": "1.25.4"
+    "@amplitude/plugin-session-replay-browser": "1.25.4",
+    "@amplitude/rrweb": "2.0.0-alpha.34"
   },
   "devDependencies": {
     "@amplitude/eslint-plugin-amplitude": "^1.0.1",
@@ -33,6 +34,9 @@
     "eslint": "^8.2.0",
     "eslint-config-prettier": "^8.3.0",
     "eslint-plugin-prettier": "^4.0.0",
-    "prettier": "^2.4.1"
+    "prettier": "^2.4.1",
+    "rollup": "^2.79.1",
+    "rollup-plugin-gzip": "^3.1.0",
+    "rollup-plugin-terser": "^7.0.2"
   }
 }

@@ -181,7 +181,7 @@ export const getStorageSize = async (): Promise<StorageData> => {
   return { totalStorageSize: 0, percentOfQuota: 0, usageDetails: '' };
 };
 
-export const getDebugConfig = (config: SessionReplayJoinedConfig) => {
+export const getDebugConfig = (config: SessionReplayJoinedConfig): SessionReplayJoinedConfig => {
   const debugConfig = {
     ...config,
   };
