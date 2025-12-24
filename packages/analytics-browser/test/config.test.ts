@@ -350,6 +350,26 @@ describe('config', () => {
     test('should return fetch', () => {
       expect(createTransport('fetch')).toBeInstanceOf(FetchTransport);
     });
+
+    test('should return fetch when undefined', () => {
+      expect(createTransport()).toBeInstanceOf(FetchTransport);
+    });
+
+    test('should return xhr with object format', () => {
+      expect(createTransport({ type: 'xhr' })).toBeInstanceOf(XHRTransport);
+    });
+
+    test('should return beacon with object format', () => {
+      expect(createTransport({ type: 'beacon' })).toBeInstanceOf(SendBeaconTransport);
+    });
+
+    test('should return fetch with object format', () => {
+      expect(createTransport({ type: 'fetch' })).toBeInstanceOf(FetchTransport);
+    });
+
+    test('should return fetch when object format has only headers', () => {
+      expect(createTransport({ headers: { Authorization: 'Bearer token' } })).toBeInstanceOf(FetchTransport);
+    });
   });
 
   describe('getTopLevelDomain', () => {

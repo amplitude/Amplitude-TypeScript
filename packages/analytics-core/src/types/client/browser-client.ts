@@ -1,4 +1,4 @@
-import { TransportType } from '../transport';
+import { TransportTypeOrOptions } from '../transport';
 import { Client } from './core-client';
 import { AnalyticsIdentity, Plugin } from '../plugin';
 import { AmplitudeReturn } from '../../utils/return-wrapper';
@@ -29,9 +29,12 @@ export interface BrowserClient extends Client {
    *
    * // Use navigator.sendBeacon API
    * setTransport('beacon');
+   *
+   * // Use Fetch API with custom headers
+   * setTransport({ type: 'fetch', headers: { 'X-Custom-Header': 'value' } });
    * ```
    */
-  setTransport(transport: TransportType): void;
+  setTransport(transport: TransportTypeOrOptions): void;
 
   /**
    * Adds a new plugin.
