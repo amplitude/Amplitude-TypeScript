@@ -47,7 +47,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: '**/node_modules'
-          key: ${{ runner.os }}-modules-${{ hashFiles('**/pnpm-lock.yaml') }}
+          key: ${{ runner.os }}-modules-${{ hashFiles('**/yarn.lock') }}
 
       - name: Setup Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v3
@@ -56,19 +56,19 @@ jobs:
 
       - name: Install project dependencies
         run: |
-          pnpm install
+          yarn install --frozen-lockfile
 
       - name: Build all packages
         run: |
-          pnpm build
+          yarn build
 
       - name: Test all packages
         run: |
-          pnpm test
+          yarn test
 
       - name: Lint all packages
         run: |
-          pnpm lint
+          yarn lint
 
       - name: Configure Git User
         run: |

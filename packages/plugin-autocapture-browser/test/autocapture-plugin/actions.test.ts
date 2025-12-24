@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/unbound-method */
+
 import { autocapturePlugin } from '../../src/autocapture-plugin';
 import { type ElementBasedTimestampedEvent } from '../../src/helpers';
 

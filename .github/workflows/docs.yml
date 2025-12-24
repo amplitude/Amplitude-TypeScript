@@ -7,11 +7,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
       - name: Setup
         run: |
-          yarn
           pnpm build
-          yarn docs
+          pnpm docs
 
       - name: Deploy
         uses: JamesIves/github-pages-deploy-action@4.1.5

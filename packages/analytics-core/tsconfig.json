@@ -5,7 +5,6 @@
     "baseUrl": ".",
     "noEmit": true,
     "rootDir": ".",
-    "lib": ["dom", "es6"],
-    "types": ["jest", "node"]
+    "lib": ["dom", "es6"]
   }
 }
