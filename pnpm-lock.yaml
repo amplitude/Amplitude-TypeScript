@@ -282,11 +282,11 @@ importers:
   packages/gtm-snippet:
     dependencies:
       '@amplitude/analytics-browser':
-        specifier: 2.32.2
-        version: 2.32.2
+        specifier: 2.33.0
+        version: 2.33.0
       '@amplitude/plugin-session-replay-browser':
-        specifier: 1.25.3
-        version: 1.25.3(@amplitude/rrweb@2.0.0-alpha.34)(rollup@2.79.2)
+        specifier: 1.25.4
+        version: 1.25.4(@amplitude/rrweb@2.0.0-alpha.34)(rollup@2.79.2)
       '@amplitude/rrweb':
         specifier: 2.0.0-alpha.34
         version: 2.0.0-alpha.34
@@ -388,8 +388,8 @@ importers:
         version: 2.8.1
     devDependencies:
       '@amplitude/analytics-browser':
-        specifier: 2.32.2
-        version: 2.32.2
+        specifier: 2.33.0
+        version: 2.33.0
       '@rollup/plugin-commonjs':
         specifier: ^23.0.4
         version: 23.0.7(rollup@2.79.2)
@@ -511,8 +511,8 @@ importers:
   packages/plugin-session-replay-browser:
     dependencies:
       '@amplitude/analytics-client-common':
-        specifier: 2.4.18
-        version: 2.4.18
+        specifier: 2.4.19
+        version: 2.4.19
       '@amplitude/analytics-core':
         specifier: workspace:*
         version: link:../analytics-core
@@ -526,8 +526,8 @@ importers:
         specifier: 2.0.0-alpha.34
         version: 2.0.0-alpha.34
       '@amplitude/session-replay-browser':
-        specifier: 1.30.3
-        version: 1.30.3(@amplitude/rrweb@2.0.0-alpha.34)(rollup@2.79.2)
+        specifier: 1.30.4
+        version: 1.30.4(@amplitude/rrweb@2.0.0-alpha.34)(rollup@2.79.2)
       idb-keyval:
         specifier: ^6.2.1
         version: 6.2.2
@@ -536,8 +536,8 @@ importers:
         version: 2.8.1
     devDependencies:
       '@amplitude/analytics-browser':
-        specifier: 2.32.2
-        version: 2.32.2
+        specifier: 2.33.0
+        version: 2.33.0
       '@rollup/plugin-commonjs':
         specifier: ^23.0.4
         version: 23.0.7(rollup@2.79.2)
@@ -628,8 +628,8 @@ importers:
   packages/plugin-web-attribution-browser:
     dependencies:
       '@amplitude/analytics-client-common':
-        specifier: 2.4.18
-        version: 2.4.18
+        specifier: 2.4.19
+        version: 2.4.19
       '@amplitude/analytics-core':
         specifier: workspace:*
         version: link:../analytics-core
@@ -641,8 +641,8 @@ importers:
         version: 2.8.1
     devDependencies:
       '@amplitude/analytics-browser':
-        specifier: 2.32.2
-        version: 2.32.2
+        specifier: 2.33.0
+        version: 2.33.0
       '@rollup/plugin-commonjs':
         specifier: ^23.0.4
         version: 23.0.7(rollup@2.79.2)
@@ -705,8 +705,8 @@ importers:
   packages/segment-session-replay-plugin:
     dependencies:
       '@amplitude/session-replay-browser':
-        specifier: 1.30.3
-        version: 1.30.3(@amplitude/rrweb@2.0.0-alpha.34)(rollup@2.79.2)
+        specifier: 1.30.4
+        version: 1.30.4(@amplitude/rrweb@2.0.0-alpha.34)(rollup@2.79.2)
       '@segment/analytics-next':
         specifier: ^1.81.0
         version: 1.81.1(encoding@0.1.13)
@@ -754,8 +754,8 @@ importers:
   packages/session-replay-browser:
     dependencies:
       '@amplitude/analytics-client-common':
-        specifier: 2.4.18
-        version: 2.4.18
+        specifier: 2.4.19
+        version: 2.4.19
       '@amplitude/analytics-core':
         specifier: workspace:*
         version: link:../analytics-core
@@ -901,8 +901,8 @@ importers:
   packages/unified:
     dependencies:
       '@amplitude/analytics-browser':
-        specifier: 2.32.2
-        version: 2.32.2
+        specifier: 2.33.0
+        version: 2.33.0
       '@amplitude/analytics-core':
         specifier: workspace:*
         version: link:../analytics-core
@@ -913,8 +913,8 @@ importers:
         specifier: workspace:*
         version: link:../plugin-experiment-browser
       '@amplitude/plugin-session-replay-browser':
-        specifier: 1.25.3
-        version: 1.25.3(@amplitude/rrweb@2.0.0-alpha.34)(rollup@2.79.2)
+        specifier: 1.25.4
+        version: 1.25.4(@amplitude/rrweb@2.0.0-alpha.34)(rollup@2.79.2)
       '@amplitude/rrweb':
         specifier: ^2.0.0-alpha.34
         version: 2.0.0-alpha.34
@@ -928,14 +928,23 @@ packages:
   '@amplitude/analytics-browser@2.32.2':
     resolution: {integrity: sha512-qNcY9FCVwSEUObBeQx/KfavZO/1vHJPQ7FkRz82DwMBGMCFGnuO6lAxRtv/qUKhDTLQK0qvT6jmpQTcxbivzIQ==}
 
+  '@amplitude/analytics-browser@2.33.0':
+    resolution: {integrity: sha512-7qrTIImI53o9Pnhun68kCY0Hhc3AaBG59wlr5A/lvD5fp6D85KZntz3whxmLqbKMGoudKqzhjdGKp1VNSNv28g==}
+
   '@amplitude/analytics-client-common@2.4.18':
     resolution: {integrity: sha512-jTssTdiPYaNoInBn69mhxF0VcFsc9rN4fAeC7xCoMx6Gm2N138Ti9Z0fL30dx4Y84uvelVDJCOHTZ5PsfRQ7OA==}
+
+  '@amplitude/analytics-client-common@2.4.19':
+    resolution: {integrity: sha512-GkEQ6eC2gQZuNa1lO37I+vymFeuHp0Gk1X3rBXgo4l+pHoee7789ZMBBsjuRdHs/QuOFHq1QCBZhgUSCAKOotA==}
 
   '@amplitude/analytics-connector@1.6.4':
     resolution: {integrity: sha512-SpIv0IQMNIq6SH3UqFGiaZyGSc7PBZwRdq7lvP0pBxW8i4Ny+8zwI0pV+VMfMHQwWY3wdIbWw5WQphNjpdq1/Q==}
 
   '@amplitude/analytics-core@2.34.1':
     resolution: {integrity: sha512-wnEQVCwUMNzlDmzePiwhJrfu+CCHiCROis0tuyuDmseqYv4EqYUuRiu9PMU9ZZJtWJqmQ1wo+sVDA90qBKe3Sw==}
+
+  '@amplitude/analytics-core@2.35.0':
+    resolution: {integrity: sha512-7RmHYELXCGu8yuO9D6lEXiqkMtiC5sePNhCWmwuP30dneDYHtH06gaYvAFH/YqOFuE6enwEEJfFYtcaPhyiqtA==}
 
   '@amplitude/analytics-types@1.4.0':
     resolution: {integrity: sha512-RiMPHBqdrJ8ktTqG+Wzj2htnN/PCG9jGZG0SXtTFnWwVvcAJYbYm55/nrP1TTyrx1OlLhvF2VG3lVUP/xGAU8w==}
@@ -961,20 +970,35 @@ packages:
   '@amplitude/plugin-autocapture-browser@1.18.2':
     resolution: {integrity: sha512-Mm6ekar0HnbDlbcIo8JVTwt/Naq5hVYk1+sQdFExzAulvBDaNxZtFKtE6XuiEo0iLiSLo7dkUEN8YfXzk8F9dQ==}
 
+  '@amplitude/plugin-autocapture-browser@1.18.3':
+    resolution: {integrity: sha512-njYque5t1QCEEe5V8Ls4yVVklTM6V7OXxBk6pqznN/hj/Pc4X8Wjy898pZ2VtbnvpagBKKzGb5B6Syl8OXiicw==}
+
   '@amplitude/plugin-network-capture-browser@1.7.2':
     resolution: {integrity: sha512-xi+MCTnTo/zIQrz7M3+zbxHid7WqELB5sjZzo8+Du1ggYNotM+kyMXFtmUNY5It26FQmpB10krPWcn8LB26NfA==}
+
+  '@amplitude/plugin-network-capture-browser@1.7.3':
+    resolution: {integrity: sha512-zfWgAN7g6AigJAsgrGmlgVwydOHH6XvweBoxhU+qEvRydboiIVCDLSxuXczUsBG7kYVLWRdBK1DYoE5J7lqTGA==}
 
   '@amplitude/plugin-page-url-enrichment-browser@0.5.8':
     resolution: {integrity: sha512-YakSthesJQ4z0yNAEI/McA3Z83+bVuWmyY493i83l68Kr5KiNqdA4G2C3L/SSqyUuHe1fAkT+rdHJQK7g8lODw==}
 
+  '@amplitude/plugin-page-url-enrichment-browser@0.5.9':
+    resolution: {integrity: sha512-TqdELx4WrdRutCjHUFUzum/f/UjhbdTZw0UKkYFAj5gwAKDjaPEjL4waRvINOTaVLsne1A6ck4KEMfC8AKByFw==}
+
   '@amplitude/plugin-page-view-tracking-browser@2.6.5':
     resolution: {integrity: sha512-uhsJWG5pd1oqWskASWB3+bCzlPgDBWlpybIgSa1azjQSRk9UokEOXVpoQnukdcWThk0KTngtGjXF1ZV05qU+iA==}
 
-  '@amplitude/plugin-session-replay-browser@1.25.3':
-    resolution: {integrity: sha512-0qlFEVz7cH9OIa/CFlcp/gIgKIujpI+Tndoyg9F6dpbRbffbX6ZVb9IPQh+cpn0DNtr0aO6nxtZEteKaFq+cQQ==}
+  '@amplitude/plugin-page-view-tracking-browser@2.6.6':
+    resolution: {integrity: sha512-dBcJlrdKgPzSgS3exDRRrMLqhIaOjwlIy7o8sEMn1PpMawERlbumSSdtfII6L4L67HYUPo4PY4Kp4acqSzaLvQ==}
+
+  '@amplitude/plugin-session-replay-browser@1.25.4':
+    resolution: {integrity: sha512-t3+YmLc1MsjvCjt5GxlhxHKpfIWu8nQ3n46lQArARCp4Okfxp9HaTBAPf2JBBWNv6hh2iTyQS4HBwkR04yKUmQ==}
 
   '@amplitude/plugin-web-vitals-browser@1.1.2':
     resolution: {integrity: sha512-BKcC+/fiSZV+X2A5sRjpgz6JO7R8Nzlp4AiZdqB47dbFTCnpHPsSPns10A0AZK8/zcKLBEsX6MnoRTIQHWOhQg==}
+
+  '@amplitude/plugin-web-vitals-browser@1.1.3':
+    resolution: {integrity: sha512-dXtlmgjWBaQGQtWKy8wluF7JJJZ8cHJuUIajsQ6TvQtJvjV5E6B/kX9lDmGiyaVyQw9YmRf51DjfUfJhfAAyTg==}
 
   '@amplitude/rrdom@2.0.0-alpha.34':
     resolution: {integrity: sha512-2MhME5qMj6ZiIJQ+WpdSn+FPE0e3EQzCPk11RhITkRnsQRol545FOKjQ0brImj0k+JgtzcjYroWdjrMG46Wm6w==}
@@ -1002,8 +1026,8 @@ packages:
   '@amplitude/rrweb@2.0.0-alpha.34':
     resolution: {integrity: sha512-nS7z+xVyo3RsiZOWXvP2s63J+PbsqrbPDY/YnKHhL1QQr5F5CTzkNIYdjTi7seG9Aa+PN4WLIdaw61ddXGQ6eQ==}
 
-  '@amplitude/session-replay-browser@1.30.3':
-    resolution: {integrity: sha512-LxOdne9a+kOgrLY8loAa2F9QrxrHcmeQAwhyZ6jMO5eOmTBXAqjtXrGtoipxv5NTsPkfY7G9e1kyNTzQLBczxw==}
+  '@amplitude/session-replay-browser@1.30.4':
+    resolution: {integrity: sha512-Egrtp6QvxbjEdAson0omQ/HNLfSXyv+km1qdJlS4KfAH+2i07BmoWgGIcfNy4fB6MviEl9VZrKswXt6+KUD2zw==}
 
   '@amplitude/session-replay-react-native@0.0.1-beta.3':
     resolution: {integrity: sha512-aCMcaSE3jLeC7W11/bJFV2ws/4qIgIJ5HFYrbdo1jSInaTbwDjSB0QebsfUVgj3J6SKbrv10poaNPkHnNE88BQ==}
@@ -9331,6 +9355,16 @@ snapshots:
       '@amplitude/plugin-web-vitals-browser': 1.1.2
       tslib: 2.8.1
 
+  '@amplitude/analytics-browser@2.33.0':
+    dependencies:
+      '@amplitude/analytics-core': 2.35.0
+      '@amplitude/plugin-autocapture-browser': 1.18.3
+      '@amplitude/plugin-network-capture-browser': 1.7.3
+      '@amplitude/plugin-page-url-enrichment-browser': 0.5.9
+      '@amplitude/plugin-page-view-tracking-browser': 2.6.6
+      '@amplitude/plugin-web-vitals-browser': 1.1.3
+      tslib: 2.8.1
+
   '@amplitude/analytics-client-common@2.4.18':
     dependencies:
       '@amplitude/analytics-connector': 1.6.4
@@ -9338,9 +9372,22 @@ snapshots:
       '@amplitude/analytics-types': 2.11.0
       tslib: 2.8.1
 
+  '@amplitude/analytics-client-common@2.4.19':
+    dependencies:
+      '@amplitude/analytics-connector': 1.6.4
+      '@amplitude/analytics-core': 2.35.0
+      '@amplitude/analytics-types': 2.11.0
+      tslib: 2.8.1
+
   '@amplitude/analytics-connector@1.6.4': {}
 
   '@amplitude/analytics-core@2.34.1':
+    dependencies:
+      '@amplitude/analytics-connector': 1.6.4
+      tslib: 2.8.1
+      zen-observable-ts: 1.1.0
+
+  '@amplitude/analytics-core@2.35.0':
     dependencies:
       '@amplitude/analytics-connector': 1.6.4
       tslib: 2.8.1
@@ -9382,9 +9429,20 @@ snapshots:
       rxjs: 7.8.2
       tslib: 2.8.1
 
+  '@amplitude/plugin-autocapture-browser@1.18.3':
+    dependencies:
+      '@amplitude/analytics-core': 2.35.0
+      rxjs: 7.8.2
+      tslib: 2.8.1
+
   '@amplitude/plugin-network-capture-browser@1.7.2':
     dependencies:
       '@amplitude/analytics-core': 2.34.1
+      tslib: 2.8.1
+
+  '@amplitude/plugin-network-capture-browser@1.7.3':
+    dependencies:
+      '@amplitude/analytics-core': 2.35.0
       tslib: 2.8.1
 
   '@amplitude/plugin-page-url-enrichment-browser@0.5.8':
@@ -9392,17 +9450,27 @@ snapshots:
       '@amplitude/analytics-core': 2.34.1
       tslib: 2.8.1
 
+  '@amplitude/plugin-page-url-enrichment-browser@0.5.9':
+    dependencies:
+      '@amplitude/analytics-core': 2.35.0
+      tslib: 2.8.1
+
   '@amplitude/plugin-page-view-tracking-browser@2.6.5':
     dependencies:
       '@amplitude/analytics-core': 2.34.1
       tslib: 2.8.1
 
-  '@amplitude/plugin-session-replay-browser@1.25.3(@amplitude/rrweb@2.0.0-alpha.34)(rollup@2.79.2)':
+  '@amplitude/plugin-page-view-tracking-browser@2.6.6':
     dependencies:
-      '@amplitude/analytics-client-common': 2.4.18
-      '@amplitude/analytics-core': 2.34.1
+      '@amplitude/analytics-core': 2.35.0
+      tslib: 2.8.1
+
+  '@amplitude/plugin-session-replay-browser@1.25.4(@amplitude/rrweb@2.0.0-alpha.34)(rollup@2.79.2)':
+    dependencies:
+      '@amplitude/analytics-client-common': 2.4.19
+      '@amplitude/analytics-core': 2.35.0
       '@amplitude/analytics-types': 2.11.0
-      '@amplitude/session-replay-browser': 1.30.3(@amplitude/rrweb@2.0.0-alpha.34)(rollup@2.79.2)
+      '@amplitude/session-replay-browser': 1.30.4(@amplitude/rrweb@2.0.0-alpha.34)(rollup@2.79.2)
       idb-keyval: 6.2.2
       tslib: 2.8.1
     transitivePeerDependencies:
@@ -9412,6 +9480,12 @@ snapshots:
   '@amplitude/plugin-web-vitals-browser@1.1.2':
     dependencies:
       '@amplitude/analytics-core': 2.34.1
+      tslib: 2.8.1
+      web-vitals: 5.0.1
+
+  '@amplitude/plugin-web-vitals-browser@1.1.3':
+    dependencies:
+      '@amplitude/analytics-core': 2.35.0
       tslib: 2.8.1
       web-vitals: 5.0.1
 
@@ -9452,10 +9526,10 @@ snapshots:
       base64-arraybuffer: 1.0.2
       mitt: 3.0.1
 
-  '@amplitude/session-replay-browser@1.30.3(@amplitude/rrweb@2.0.0-alpha.34)(rollup@2.79.2)':
+  '@amplitude/session-replay-browser@1.30.4(@amplitude/rrweb@2.0.0-alpha.34)(rollup@2.79.2)':
     dependencies:
-      '@amplitude/analytics-client-common': 2.4.18
-      '@amplitude/analytics-core': 2.34.1
+      '@amplitude/analytics-client-common': 2.4.19
+      '@amplitude/analytics-core': 2.35.0
       '@amplitude/analytics-types': 2.11.0
       '@amplitude/rrweb-packer': 2.0.0-alpha.34
       '@amplitude/rrweb-plugin-console-record': 2.0.0-alpha.34(@amplitude/rrweb@2.0.0-alpha.34)
@@ -9478,7 +9552,7 @@ snapshots:
 
   '@amplitude/targeting@0.2.0':
     dependencies:
-      '@amplitude/analytics-client-common': 2.4.18
+      '@amplitude/analytics-client-common': 2.4.19
       '@amplitude/analytics-core': 2.34.1
       '@amplitude/analytics-types': 2.11.0
       '@amplitude/experiment-core': 0.7.2
