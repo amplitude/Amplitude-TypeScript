@@ -12,6 +12,7 @@ jobs:
 
       - name: Setup
         run: |
+          pnpm install
           pnpm build
           pnpm docs
 
