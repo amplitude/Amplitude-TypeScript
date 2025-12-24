@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
-import { BaseEvent, Campaign } from '@amplitude/analytics-types';
+import { BaseEvent, Campaign } from '@amplitude/analytics-core';
 import { BASE_CAMPAIGN } from '@amplitude/analytics-client-common';
 import { uuidPattern } from './constants';
 
