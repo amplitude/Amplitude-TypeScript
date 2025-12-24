@@ -40,7 +40,7 @@
     "version": "pnpm version-file && pnpm build",
     "version-file": "node -p \"'export const VERSION = \\'' + require('./package.json').version + '\\';'\" > src/version.ts",
     "typescript": "tsc --noEmit",
-    "example": "pnpm --cwd example",
+    "example": "yarn --cwd example",
     "pods": "cd example && pod-install --quiet"
   },
   "source": "src/index",
