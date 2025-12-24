@@ -40,7 +40,7 @@
     "test": "jest",
     "test:playwright": "playwright test",
     "typecheck": "tsc -p ./tsconfig.json",
-    "version": "pnpm version-file && GENERATE_SNIPPET=true yarn build && cp lib/scripts/amplitude-min.js playground/html/amplitude.js && cp lib/scripts/amplitude-min.js playground/react-spa/public/amplitude.js",
+    "version": "pnpm version-file && GENERATE_SNIPPET=true pnpm build && cp lib/scripts/amplitude-min.js playground/html/amplitude.js && cp lib/scripts/amplitude-min.js playground/react-spa/public/amplitude.js",
     "version-file": "node -p \"'export const VERSION = \\'' + require('./package.json').version + '\\';'\" > src/version.ts"
   },
   "bugs": {
