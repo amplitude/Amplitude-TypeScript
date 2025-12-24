@@ -49,7 +49,7 @@
     "@amplitude/rrweb-record": "2.0.0-alpha.34",
     "@amplitude/rrweb-types": "2.0.0-alpha.34",
     "@amplitude/rrweb-utils": "2.0.0-alpha.34",
-    "@amplitude/targeting": "0.2.0",
+    "@amplitude/targeting": "workspace:*",
     "@rollup/plugin-replace": "^6.0.1",
     "idb": "8.0.0",
     "tslib": "^2.4.1"
