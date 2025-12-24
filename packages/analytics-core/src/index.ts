@@ -53,7 +53,7 @@ export { IngestionMetadata } from './types/event/ingestion-metadata';
 export { ServerZoneType, ServerZone } from './types/server-zone';
 export { OfflineDisabled } from './types/offline';
 export { Plan } from './types/event/plan';
-export { TransportType, Transport } from './types/transport';
+export { TransportType, Transport, TransportOptions, TransportTypeOrOptions } from './types/transport';
 export { Payload } from './types/payload';
 export { Response } from './types/response';
 export { UserSession } from './types/user-session';

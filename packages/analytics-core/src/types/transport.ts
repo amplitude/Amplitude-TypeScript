@@ -6,3 +6,10 @@ export interface Transport {
 }
 
 export type TransportType = 'xhr' | 'beacon' | 'fetch';
+
+export interface TransportOptions {
+  type?: TransportType;
+  headers?: Record<string, string>;
+}
+
+export type TransportTypeOrOptions = TransportType | TransportOptions;
