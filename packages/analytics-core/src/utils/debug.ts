@@ -22,7 +22,7 @@ export const getStacktrace = (ignoreDepth = 0): string[] => {
 };
 
 // This hook makes sure we always get the latest logger and logLevel.
-export const getClientLogConfig = (client: AmplitudeCore | DebugClient) => (): LogConfig => {
+export const getClientLogConfig = (client: DebugClient) => (): LogConfig => {
   const { loggerProvider: logger, logLevel } = { ...client.config };
   return {
     logger,
