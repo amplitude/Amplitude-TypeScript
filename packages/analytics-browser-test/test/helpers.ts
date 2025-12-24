@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { BaseEvent, Campaign } from '@amplitude/analytics-core';
-import { BASE_CAMPAIGN } from '@amplitude/analytics-client-common';
+import { BASE_CAMPAIGN } from '@amplitude/analytics-client-core';
 import { uuidPattern } from './constants';
 
 const uuid: string = expect.stringMatching(uuidPattern) as string;
