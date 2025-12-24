@@ -1,6 +1,6 @@
 import { UserSession } from '../user-session';
 import { IdentityStorageType, Storage } from '../storage';
-import { Transport } from '../transport';
+import { Transport, TransportTypeOrOptions } from '../transport';
 import { IConfig } from './core-config';
 import { ElementInteractionsOptions } from '../element-interactions';
 import { PageTrackingOptions } from '../page-view-tracking';
@@ -68,7 +68,7 @@ export interface ExternalBrowserConfig extends IConfig {
    * Network transport mechanism used to send events.
    * @defaultValue `"fetch"`
    */
-  transport?: 'fetch' | 'xhr' | 'beacon';
+  transport?: TransportTypeOrOptions;
   /**
    * The identifier for the user being tracked.
    * @defaultValue `undefined`

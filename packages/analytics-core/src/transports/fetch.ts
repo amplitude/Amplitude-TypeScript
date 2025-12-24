@@ -4,6 +4,13 @@ import { Payload } from '../types/payload';
 import { Response } from '../types/response';
 
 export class FetchTransport extends BaseTransport implements Transport {
+  private customHeaders: Record<string, string>;
+
+  constructor(customHeaders: Record<string, string> = {}) {
+    super();
+    this.customHeaders = customHeaders;
+  }
+
   async send(serverUrl: string, payload: Payload): Promise<Response | null> {
     /* istanbul ignore if */
     if (typeof fetch === 'undefined') {
@@ -13,6 +20,7 @@ export class FetchTransport extends BaseTransport implements Transport {
       headers: {
         'Content-Type': 'application/json',
         Accept: '*/*',
+        ...this.customHeaders,
       },
       body: JSON.stringify(payload),
       method: 'POST',
