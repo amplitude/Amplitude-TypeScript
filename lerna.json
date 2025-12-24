@@ -1,10 +1,10 @@
 {
   "packages": ["packages/*"],
   "version": "independent",
-  "npmClient": "yarn",
+  "npmClient": "pnpm",
   "command": {
     "version": {
-      "allowBranch": "main",
+      "TODO: undo this -- allowBranch": "main",
       "conventionalCommits": true,
       "message": "chore(release): publish",
       "preid": "beta",
