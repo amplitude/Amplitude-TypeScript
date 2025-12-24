@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.35.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.34.1...@amplitude/analytics-core@2.35.0) (2025-12-24)
+
+
+### Features
+
+* **analytics-browser:** add support to set headers for transport pro… ([#1444](https://github.com/amplitude/Amplitude-TypeScript/issues/1444)) ([c277239](https://github.com/amplitude/Amplitude-TypeScript/commit/c277239d317106496f7a08fc2933e72e391be9de))
+
+
+
+
+
 ## [2.34.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.34.0...@amplitude/analytics-core@2.34.1) (2025-12-16)
 
 
