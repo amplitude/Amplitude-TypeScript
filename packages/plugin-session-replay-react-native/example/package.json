@@ -9,7 +9,7 @@
     "lint": "eslint .",
     "start": "react-native start",
     "test": "jest",
-    "nuke": "yarn clean && yarn install && rm -rf node_modules/@amplitude/plugin-session-replay-react-native/node_modules"
+    "nuke": "pnpm clean && pnpm install && rm -rf node_modules/@amplitude/plugin-session-replay-react-native/node_modules"
   },
   "dependencies": {
     "@amplitude/analytics-react-native": "^1.4.11",

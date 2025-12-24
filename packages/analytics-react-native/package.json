@@ -27,17 +27,17 @@
   "scripts": {
     "build": "bob build",
     "clean": "rimraf node_modules lib coverage",
-    "fix": "yarn fix:eslint & yarn fix:prettier",
+    "fix": "pnpm fix:eslint & pnpm fix:prettier",
     "fix:eslint": "eslint '{src,test}/**/*.ts' --fix",
     "fix:prettier": "prettier --write \"{src,test}/**/*.ts\"",
-    "lint": "yarn lint:eslint & yarn lint:prettier",
+    "lint": "pnpm lint:eslint & pnpm lint:prettier",
     "lint:eslint": "eslint '{src,test}/**/*.ts'",
     "lint:prettier": "prettier --check \"{src,test}/**/*.ts\"",
-    "test": "yarn test:web && yarn test:mobile",
+    "test": "pnpm test:web && pnpm test:mobile",
     "test:web": "jest --setupFiles './test/mock/setup-web.ts'",
     "test:mobile": "jest --setupFiles './test/mock/setup-mobile.ts'",
     "typecheck": "tsc -p ./tsconfig.json",
-    "version": "yarn version-file && yarn build",
+    "version": "pnpm version-file && pnpm build",
     "version-file": "node -p \"'export const VERSION = \\'' + require('./package.json').version + '\\';'\" > src/version.ts",
     "typescript": "tsc --noEmit",
     "example": "yarn --cwd example",
@@ -58,7 +58,7 @@
     "url": "https://github.com/amplitude/Amplitude-TypeScript/issues"
   },
   "dependencies": {
-    "@amplitude/analytics-core": "2.35.0",
+    "@amplitude/analytics-core": "workspace:*",
     "@amplitude/ua-parser-js": "^0.7.31",
     "@react-native-async-storage/async-storage": "^1.17.11",
     "tslib": "^2.4.1"

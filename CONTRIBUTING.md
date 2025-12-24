@@ -24,8 +24,8 @@ Getting setup is quick and easy. Follow the steps below to get your your dev env
 
 ```
 $ git clone <HTTPS_OR_GIT_URL>
-$ yarn
-$ yarn build
+$ pnpm install
+$ pnpm build
 ```
 
 This repo contains mutliple major versions of all packages. For contributions to version `1.x`, create a branch off `v1.x`. For contributions to the `2.x` (latest) version, create a branch off `main`. Refer to the table below for more infomation about the release status of each package.

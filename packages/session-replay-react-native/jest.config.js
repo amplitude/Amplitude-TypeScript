@@ -9,6 +9,9 @@ module.exports = {
   testEnvironment: 'jsdom',
   modulePathIgnorePatterns: ['<rootDir>/lib/'],
   moduleFileExtensions: ['tsx', 'ts', 'js', 'jsx', 'json'],
+  transformIgnorePatterns: [
+    'node_modules/(?!(.pnpm|@react-native|react-native|@segment)/)',
+  ],
   // TODO: get full coverage
   coverageThreshold: {
     global: {
