@@ -2,9 +2,16 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import { LogConfig, DebugContext } from '../logger';
+import { LogConfig, DebugContext, ILogger } from '../logger';
 import { LogLevel } from '../types/loglevel';
 import { AmplitudeCore } from '../core-client';
+
+interface DebugClient {
+  config: {
+    loggerProvider: ILogger;
+    logLevel: LogLevel;
+  };
+}
 
 export const getStacktrace = (ignoreDepth = 0): string[] => {
   const trace = new Error().stack || '';
@@ -15,7 +22,7 @@ export const getStacktrace = (ignoreDepth = 0): string[] => {
 };
 
 // This hook makes sure we always get the latest logger and logLevel.
-export const getClientLogConfig = (client: AmplitudeCore) => (): LogConfig => {
+export const getClientLogConfig = (client: AmplitudeCore | DebugClient) => (): LogConfig => {
   const { loggerProvider: logger, logLevel } = { ...client.config };
   return {
     logger,
@@ -37,7 +44,7 @@ export const getValueByStringPath = (obj: any, path: string): any => {
   return obj;
 };
 
-export const getClientStates = (client: AmplitudeCore, paths: Array<string>) => (): { [key: string]: any } => {
+export const getClientStates = (client: DebugClient, paths: Array<string>) => (): { [key: string]: any } => {
   const res: { [key: string]: any } = {};
   for (const path of paths) {
     res[path] = getValueByStringPath(client, path);
