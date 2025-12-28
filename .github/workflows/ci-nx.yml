@@ -45,7 +45,7 @@ jobs:
           cache: 'pnpm'
 
       - name: Install project dependencies
-        run: pnpm install
+        run: pnpm install --frozen-lockfile
 
       - name: Build all packages
         run: pnpm build
@@ -88,7 +88,7 @@ jobs:
           cache: 'pnpm'
 
       - name: Install project dependencies
-        run: pnpm install
+        run: pnpm install --frozen-lockfile
 
       - name: Set up NX base for affected commands
         run: |
