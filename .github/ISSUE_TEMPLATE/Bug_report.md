@@ -25,5 +25,5 @@ labels: 'bug'
 
 ## Environment
 - JS SDK Version: <!--- E.g. 7.1.0 -->
-- Installation Method: <!-- I.e. NPM/Yarn or <script> import -->
+- Installation Method: <!-- I.e. NPM/yarn/pnpm or <script> import -->
 - Browser and Version: <!-- E.g. Chrome 84-->
