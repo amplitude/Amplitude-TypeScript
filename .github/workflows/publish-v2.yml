@@ -179,3 +179,10 @@ jobs:
           GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} npm run deploy:publish -- from-git -y --ignore-scripts --pre-dist-tag ${{ env.PREID }}
         env:
           S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
+
+      - name: Dry run publish release to NPM
+        if: ${{ github.event.inputs.releaseType == 'dry-run' }}
+        env:
+          DRY_RUN: true
+        run: |
+          pnpm deploy:publish:dry-run
