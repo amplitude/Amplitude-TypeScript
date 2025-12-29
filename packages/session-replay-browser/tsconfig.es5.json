@@ -6,7 +6,6 @@
     "module": "commonjs",
     "noEmit": false,
     "outDir": "lib/cjs",
-    "rootDir": "./src",
-    "lib": ["es2021", "dom"]
+    "rootDir": "./src"
   }
 }
