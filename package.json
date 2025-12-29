@@ -4,7 +4,7 @@
     "packages/*"
   ],
   "scripts": {
-    "build": "lerna run build --stream --include-dependencies",
+    "build": "lerna run build --stream --include-dependencies --skip-nx-cache",
     "build:vite": "rm -rf ./test-server/dist/ && vite build",
     "build:nx-cache": "nx run-many --target=build --all",
     "build:nx-affected": "nx affected --target=build",
