@@ -9,10 +9,10 @@ jobs:
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
-
+      
       - name: Setup
         run: |
-          pnpm install
+          pnpm install --frozen-lockfile
           pnpm build
           pnpm docs
 

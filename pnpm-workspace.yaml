@@ -9,6 +9,8 @@ minimumReleaseAge: 4320
 minimumReleaseAgeExclude:
   - '@amplitude/*'
 
+# These are dependencies that run the postinstall script
+# Only add dependencies to this if they have been vetted for security
 onlyBuiltDependencies:
   - core-js
   - esbuild

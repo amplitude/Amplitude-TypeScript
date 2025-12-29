@@ -31,7 +31,7 @@ jobs:
 
       - name: Install project dependencies
         run: |
-          pnpm install
+          pnpm install --frozen-lockfile
 
       - name: Build all packages
         run: |

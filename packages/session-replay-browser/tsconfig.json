@@ -1,12 +1,11 @@
 {
   "extends": "../../tsconfig.json",
-  "include": ["src/**/*", "test/**/*"],
+  "include": ["src/**/*"],
   "compilerOptions": {
     "baseUrl": ".",
     "esModuleInterop": true,
-    "lib": ["dom"],
+    "lib": ["es2021", "dom"],
     "noEmit": true,
     "rootDir": ".",
-    "types": ["jest", "node", "idb"]
   }
 }

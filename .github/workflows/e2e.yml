@@ -30,7 +30,7 @@ jobs:
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
-
+      
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -39,7 +39,7 @@ jobs:
 
       - name: Install project dependencies
         run: |
-          pnpm install
+          pnpm install --frozen-lockfile
 
       - name: Build all packages
         run: |
