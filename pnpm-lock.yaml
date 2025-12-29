@@ -852,8 +852,8 @@ importers:
   packages/targeting:
     dependencies:
       '@amplitude/analytics-client-common':
-        specifier: 2.4.19
-        version: 2.4.19
+        specifier: workspace:*
+        version: link:../analytics-client-common
       '@amplitude/analytics-core':
         specifier: workspace:*
         version: link:../analytics-core
@@ -925,20 +925,11 @@ importers:
 
 packages:
 
-  '@amplitude/analytics-client-common@2.4.19':
-    resolution: {integrity: sha512-GkEQ6eC2gQZuNa1lO37I+vymFeuHp0Gk1X3rBXgo4l+pHoee7789ZMBBsjuRdHs/QuOFHq1QCBZhgUSCAKOotA==}
-
   '@amplitude/analytics-connector@1.6.4':
     resolution: {integrity: sha512-SpIv0IQMNIq6SH3UqFGiaZyGSc7PBZwRdq7lvP0pBxW8i4Ny+8zwI0pV+VMfMHQwWY3wdIbWw5WQphNjpdq1/Q==}
 
-  '@amplitude/analytics-core@2.35.0':
-    resolution: {integrity: sha512-7RmHYELXCGu8yuO9D6lEXiqkMtiC5sePNhCWmwuP30dneDYHtH06gaYvAFH/YqOFuE6enwEEJfFYtcaPhyiqtA==}
-
   '@amplitude/analytics-types@1.4.0':
     resolution: {integrity: sha512-RiMPHBqdrJ8ktTqG+Wzj2htnN/PCG9jGZG0SXtTFnWwVvcAJYbYm55/nrP1TTyrx1OlLhvF2VG3lVUP/xGAU8w==}
-
-  '@amplitude/analytics-types@2.11.0':
-    resolution: {integrity: sha512-L1niBXYSWmbyHUE/GNuf6YBljbafaxWI3X5jjEIZDFCjQvdWO3DKalY1VPFUbhgYQgWw7+bC6I/AlUaporyfig==}
 
   '@amplitude/engagement-browser@1.0.5':
     resolution: {integrity: sha512-Sr+smknZFWpvylnGE2EtTn/alCZN9hp0j8q57R+Q5qGgCJddUaJbd0oouawfOEvpV1L2eXrdj4xzi9lrgvA0Gw==}
@@ -9288,24 +9279,9 @@ packages:
 
 snapshots:
 
-  '@amplitude/analytics-client-common@2.4.19':
-    dependencies:
-      '@amplitude/analytics-connector': 1.6.4
-      '@amplitude/analytics-core': 2.35.0
-      '@amplitude/analytics-types': 2.11.0
-      tslib: 2.8.1
-
   '@amplitude/analytics-connector@1.6.4': {}
 
-  '@amplitude/analytics-core@2.35.0':
-    dependencies:
-      '@amplitude/analytics-connector': 1.6.4
-      tslib: 2.8.1
-      zen-observable-ts: 1.1.0
-
   '@amplitude/analytics-types@1.4.0': {}
-
-  '@amplitude/analytics-types@2.11.0': {}
 
   '@amplitude/engagement-browser@1.0.5':
     dependencies:
