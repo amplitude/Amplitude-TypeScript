@@ -762,6 +762,9 @@ importers:
       '@amplitude/analytics-types':
         specifier: ^2.11.0
         version: 2.11.0
+      '@amplitude/experiment-core':
+        specifier: 0.7.2
+        version: 0.7.2
       '@amplitude/rrweb-packer':
         specifier: 2.0.0-alpha.34
         version: 2.0.0-alpha.34
