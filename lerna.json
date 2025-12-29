@@ -4,7 +4,7 @@
   "npmClient": "pnpm",
   "command": {
     "version": {
-      "TODO: undo this -- allowBranch": "main",
+      "allowBranch": "main",
       "conventionalCommits": true,
       "message": "chore(release): publish",
       "preid": "beta",
