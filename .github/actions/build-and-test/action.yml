@@ -8,36 +8,31 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: Cache dependencies
-      uses: actions/cache@v3
-      with:
-        path: '**/node_modules'
-        key: ${{ runner.os }}-modules-${{ hashFiles('**/yarn.lock') }}
-
     - name: Setup Node.js ${{ inputs.node-version }}
-      uses: actions/setup-node@v3
+      uses: actions/setup-node@v4
       with:
         node-version: ${{ inputs.node-version }}
         registry-url: 'https://registry.npmjs.org'
+        cache: 'pnpm'
 
     - name: Install project dependencies
       run: |
-        yarn install --frozen-lockfile
+        pnpm install --frozen-lockfile
       shell: bash
 
     - name: Build all packages
       run: |
-        yarn build
+        pnpm build
       shell: bash
 
     - name: Test all packages
       run: |
-        yarn test
+        pnpm test
       shell: bash
 
     - name: Lint all packages
       run: |
-        yarn lint
+        pnpm lint
       shell: bash
 
     - name: Configure Git User
