@@ -6,7 +6,6 @@
   "scripts": {
     "build": "lerna run build --stream --include-dependencies --skip-nx-cache",
     "build:vite": "rm -rf ./test-server/dist/ && vite build",
-    "build:nx-cache": "nx run-many --target=build --all",
     "build:nx-affected": "nx affected --target=build",
     "watch": "nx run-many --target=watch --all --parallel 9999 --output-style=stream --maxParallel=0",
     "clean": "lerna run clean --stream && rimraf node_modules docs",
