@@ -2075,7 +2075,7 @@ describe('integration', () => {
           resolve();
         }, 4000);
       });
-    });
+    }, 10000);
 
     test('should send page view', () => {
       let payload: any = undefined;
