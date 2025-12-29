@@ -167,6 +167,11 @@ jobs:
         run: |
           GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} npm run deploy:version -- -y --no-private --conventional-prerelease --preid ${{ env.PREID }} --allow-branch ${{ steps.determine-branch.outputs.branch }} --no-changelog --no-push --no-git-tag-version
 
+      - name: Dry run publish release to NPM
+        if: ${{ github.event.inputs.releaseType == 'dry-run' }}
+        run: |
+          GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} pnpm deploy:publish:dry-run
+
       - name: Pre-release version
         if: ${{ github.event.inputs.releaseType == 'prerelease' }}
         run: |
