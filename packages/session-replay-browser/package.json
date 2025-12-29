@@ -55,6 +55,7 @@
     "tslib": "^2.4.1"
   },
   "devDependencies": {
+    "@aws-sdk/client-s3": "^3.229.0",
     "@babel/core": "^7.24.7",
     "@babel/plugin-transform-modules-commonjs": "^7.24.7",
     "@rollup/plugin-commonjs": "^23.0.4",
