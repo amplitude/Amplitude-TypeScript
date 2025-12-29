@@ -1,5 +1,5 @@
 import { AmplitudeUnified, UnifiedClient } from './unified';
-import { debugWrapper, getClientLogConfig, getClientStates } from '@amplitude/analytics-core';
+import { debugWrapper, getClientLogConfig, getClientStates, TransportTypeOrOptions } from '@amplitude/analytics-core';
 
 export const createInstance = (): UnifiedClient => {
   const client = new AmplitudeUnified();
@@ -153,7 +153,7 @@ export const createInstance = (): UnifiedClient => {
       'setTransport',
       getClientLogConfig(client),
       getClientStates(client, ['config']),
-    ),
+    ) as (transport: TransportTypeOrOptions) => void,
     getIdentity: debugWrapper(
       client.getIdentity.bind(client),
       'getIdentity',
