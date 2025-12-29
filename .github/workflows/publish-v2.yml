@@ -67,6 +67,9 @@ jobs:
         with:
           fetch-depth: 0
           token: ${{ secrets.GH_PUBLISH_TOKEN }}
+      
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
 
       - name: Build and Test
         uses: ./.github/actions/build-and-test
