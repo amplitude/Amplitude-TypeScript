@@ -28,24 +28,22 @@ jobs:
       #       git branch -f main origin/main
       #     fi
 
-      - name: Cache dependencies
-        uses: actions/cache@v3
-        with:
-          path: '**/node_modules'
-          key: ${{ runner.os }}-modules-${{ hashFiles('**/yarn.lock') }}
-
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+      
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: '20.x'
+          cache: 'pnpm'
 
       - name: Install project dependencies
         run: |
-          yarn install --frozen-lockfile
+          pnpm install --frozen-lockfile
 
       - name: Build all packages
         run: |
-          yarn build
+          pnpm build
 
       - name: Create .env file
         run: |
@@ -55,8 +53,8 @@ jobs:
       - name: Start dev server
         run: |
           # Start the dev server
-          yarn build:vite
-          yarn start --port 5173 &
+          pnpm build:vite
+          pnpm start --port 5173 &
           # Wait for the server to be ready
           sleep 10
           # Verify the server is running
@@ -64,7 +62,7 @@ jobs:
 
       - name: Run Playwright tests
         run: |
-          yarn test:playwright:ci
+          pnpm test:playwright:ci
 
       - name: Upload Playwright Report
         if: always()

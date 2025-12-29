@@ -4,7 +4,31 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 
-import { PluginType, EventType, type SegmentEvent, type SegmentClient } from '@segment/analytics-react-native';
+// Mock @segment/analytics-react-native to prevent native module initialization
+jest.mock('@segment/analytics-react-native', () => ({
+  PluginType: {
+    enrichment: 'enrichment',
+    destination: 'destination',
+    utility: 'utility',
+    before: 'before',
+    after: 'after',
+  },
+  EventType: {
+    TrackEvent: 'track',
+    ScreenEvent: 'screen',
+    IdentifyEvent: 'identify',
+    GroupEvent: 'group',
+    AliasEvent: 'alias',
+  },
+  Plugin: class Plugin {
+    analytics: unknown;
+    configure(analytics: unknown) {
+      this.analytics = analytics;
+    }
+  },
+}));
+
+import { PluginType, EventType, SegmentEvent, SegmentClient } from '@segment/analytics-react-native';
 import { SegmentSessionReplayPlugin, createSegmentSessionReplayPlugin } from '../src/segment-session-replay-plugin';
 import {
   init,
