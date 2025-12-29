@@ -44,6 +44,7 @@
     "version": "git add -A"
   },
   "devDependencies": {
+    "@aws-sdk/client-s3": "^3.0.0",
     "@commitlint/cli": "^17.3.0",
     "@commitlint/config-conventional": "^17.3.0",
     "@nx/workspace": "^21.2.1",
