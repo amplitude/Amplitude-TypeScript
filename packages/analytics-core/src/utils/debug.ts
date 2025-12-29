@@ -4,7 +4,6 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { LogConfig, DebugContext, ILogger } from '../logger';
 import { LogLevel } from '../types/loglevel';
-import { AmplitudeCore } from '../core-client';
 
 interface DebugClient {
   config: {
