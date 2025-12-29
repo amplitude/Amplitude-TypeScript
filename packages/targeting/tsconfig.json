@@ -7,6 +7,5 @@
     "lib": ["dom", "es2020"],
     "noEmit": true,
     "rootDir": ".",
-    "types": ["idb"]
   }
 }
