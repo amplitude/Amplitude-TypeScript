@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.1.4](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-web-vitals-browser@1.1.3...@amplitude/plugin-web-vitals-browser@1.1.4) (2025-12-30)
+
+
+### Bug Fixes
+
+* upgrade web-vitals 5.0.1 -> 5.1.0 ([#1451](https://github.com/amplitude/Amplitude-TypeScript/issues/1451)) ([a2d7606](https://github.com/amplitude/Amplitude-TypeScript/commit/a2d7606ac3310a0467a825f9cb7b0ac8b7f34dab))
+
+
+
+
+
 ## [1.1.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-web-vitals-browser@1.1.2...@amplitude/plugin-web-vitals-browser@1.1.3) (2025-12-24)
 
 **Note:** Version bump only for package @amplitude/plugin-web-vitals-browser
