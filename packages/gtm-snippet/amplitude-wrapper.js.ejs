@@ -189,7 +189,7 @@ const LOG_PREFIX = '[Amplitude / GTM]';
           type: 'enrichment',
           setup: async () => undefined,
           execute: async (event) => {
-              event['library'] = `amplitude-ts-gtm/${version}`;
+              event['library'] = `amplitude-ts-gtm-snippet/${version}`;
               return event;
           },
       };
