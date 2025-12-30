@@ -251,7 +251,7 @@ jobs:
 
           # Publish to npm with latest tag (always latest for new packages)
           echo "Publishing $PACKAGE_NAME@$NEW_VERSION with tag latest"
-          npm publish --tag latest --access=public
+          pnpm publish --tag latest --access=public
           echo "✅ Published $PACKAGE_NAME@$NEW_VERSION to npm with tag latest"
 
       # Restore package to private and commit all changes
