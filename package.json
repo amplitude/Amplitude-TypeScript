@@ -73,7 +73,7 @@
     "jest": "^29.3.1",
     "jest-environment-jsdom": "^29.3.1",
     "lerna": "^9.0.0",
-    "lint-staged": "^13.1.0",
+    "lint-staged": "^15.2.0",
     "morgan": "^1.10.0",
     "nodemon": "^3.0.1",
     "nx": "^21.2.1",
