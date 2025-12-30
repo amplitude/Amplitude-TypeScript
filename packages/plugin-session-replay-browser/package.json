@@ -39,17 +39,18 @@
     "url": "https://github.com/amplitude/Amplitude-TypeScript/issues"
   },
   "dependencies": {
-    "@amplitude/analytics-client-common": "2.4.19",
+    "@amplitude/analytics-client-common": "workspace:*",
     "@amplitude/analytics-core": "workspace:*",
-    "@amplitude/analytics-types": "^2.11.0",
+    "@amplitude/analytics-types": "workspace:*",
     "@amplitude/rrweb-plugin-console-record": "2.0.0-alpha.34",
     "@amplitude/rrweb-record": "2.0.0-alpha.34",
-    "@amplitude/session-replay-browser": "1.30.4",
+    "@amplitude/session-replay-browser": "workspace:*",
     "idb-keyval": "^6.2.1",
     "tslib": "^2.4.1"
   },
   "devDependencies": {
-    "@amplitude/analytics-browser": "2.33.0",
+    "@amplitude/analytics-browser": "workspace:*",
+    "@aws-sdk/client-s3": "^3.229.0",
     "@rollup/plugin-commonjs": "^23.0.4",
     "@rollup/plugin-node-resolve": "^15.0.1",
     "@rollup/plugin-typescript": "^10.0.1",

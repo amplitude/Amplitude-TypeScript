@@ -1,4 +1,5 @@
 #!/bin/sh
 . "$(dirname "$0")/_/husky.sh"
 
+pnpm install --frozen-lockfile
 pnpm lint:staged

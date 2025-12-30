@@ -4,9 +4,8 @@
     "packages/*"
   ],
   "scripts": {
-    "build": "lerna run build --stream --include-dependencies",
+    "build": "lerna run build --stream --include-dependencies --skip-nx-cache",
     "build:vite": "rm -rf ./test-server/dist/ && vite build",
-    "build:nx-cache": "nx run-many --target=build --all",
     "build:nx-affected": "nx affected --target=build",
     "watch": "nx run-many --target=watch --all --parallel 9999 --output-style=stream --maxParallel=0",
     "clean": "lerna run clean --stream && rimraf node_modules docs",
@@ -44,6 +43,7 @@
     "version": "git add -A"
   },
   "devDependencies": {
+    "@aws-sdk/client-s3": "^3.0.0",
     "@commitlint/cli": "^17.3.0",
     "@commitlint/config-conventional": "^17.3.0",
     "@nx/workspace": "^21.2.1",

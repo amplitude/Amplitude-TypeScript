@@ -38,7 +38,7 @@
   "dependencies": {
     "@amplitude/analytics-connector": "^1.4.8",
     "@amplitude/analytics-core": "workspace:*",
-    "@amplitude/analytics-types": "^2.11.0",
+    "@amplitude/analytics-types": "workspace:*",
     "tslib": "^2.4.1"
   },
   "files": [
