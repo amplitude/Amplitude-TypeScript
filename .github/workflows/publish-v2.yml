@@ -7,7 +7,7 @@ on:
         type: choice
         description: Release type (release for main branch, prerelease for feature branches)
         required: true
-        default: release
+        default: prerelease
         options:
           - release
           - prerelease
@@ -82,7 +82,7 @@ jobs:
           
           # Temporarily disable exit on error to capture output even when command fails
           set +e
-          OUTPUT=$(GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} npm run deploy:version -- -y --no-private --create-release github 2>&1)
+          OUTPUT=$(GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} pnpm deploy:version -- -y --no-private --create-release github 2>&1)
           EXIT_CODE=$?
           set -e
           
@@ -111,7 +111,7 @@ jobs:
       # See: https://lerna.js.org/docs/features/version-and-publish#from-package
       - name: Publish Release to NPM
         run: |
-          GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} npm run deploy:publish -- ${{ env.PUBLISH_FROM }} -y --pre-dist-tag beta --loglevel silly
+          GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} pnpm deploy:publish -- ${{ env.PUBLISH_FROM }} --tag beta
         env:
           S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
 
@@ -165,17 +165,24 @@ jobs:
       - name: Dry run pre-release version
         if: ${{ github.event.inputs.releaseType == 'dry-run' }}
         run: |
-          GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} npm run deploy:version -- -y --no-private --conventional-prerelease --preid ${{ env.PREID }} --allow-branch ${{ steps.determine-branch.outputs.branch }} --no-changelog --no-push --no-git-tag-version
+          GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} pnpm deploy:version:dry-run -- -y --no-private --conventional-prerelease --preid ${{ env.PREID }} --allow-branch ${{ steps.determine-branch.outputs.branch }} --no-changelog --no-push --no-git-tag-version
 
       - name: Pre-release version
         if: ${{ github.event.inputs.releaseType == 'prerelease' }}
         run: |
-          GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} npm run deploy:version -- -y --no-private --conventional-prerelease --preid ${{ env.PREID }} --allow-branch ${{ steps.determine-branch.outputs.branch }} --create-release github
+            GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} pnpm deploy:version -- -y --no-private --conventional-prerelease --preid ${{ env.PREID }} --allow-branch ${{ steps.determine-branch.outputs.branch }} --create-release github
 
       # Use 'from git' option if `lerna version` has already been run
       - name: Publish Release to NPM
         if: ${{ github.event.inputs.releaseType == 'prerelease' }}
         run: |
-          GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} npm run deploy:publish -- from-git -y --ignore-scripts --pre-dist-tag ${{ env.PREID }}
+          GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} pnpm deploy:publish -- -y --ignore-scripts --tag ${{ env.PREID }}
         env:
           S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
+
+      - name: Dry run publish release to NPM
+        if: ${{ github.event.inputs.releaseType == 'dry-run' }}
+        env:
+          DRY_RUN: true
+        run: |
+          pnpm deploy:publish:dry-run
