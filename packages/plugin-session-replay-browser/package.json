@@ -44,7 +44,7 @@
     "@amplitude/analytics-types": "^2.11.0",
     "@amplitude/session-replay-browser": "1.30.4",
     "idb-keyval": "^6.2.1",
-    "tslib": "^2.4.1"
+    "tslib": "^2.8.1"
   },
   "devDependencies": {
     "@amplitude/analytics-browser": "2.33.0",

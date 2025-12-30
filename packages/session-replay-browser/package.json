@@ -51,7 +51,7 @@
     "@amplitude/targeting": "0.2.0",
     "@rollup/plugin-replace": "^6.0.1",
     "idb": "8.0.0",
-    "tslib": "^2.4.1"
+    "tslib": "^2.8.1"
   },
   "devDependencies": {
     "@babel/core": "^7.24.7",

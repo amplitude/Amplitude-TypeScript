@@ -37,7 +37,7 @@
   },
   "dependencies": {
     "@amplitude/analytics-connector": "^1.6.4",
-    "tslib": "^2.4.1",
+    "tslib": "^2.8.1",
     "zen-observable-ts": "^1.1.0"
   },
   "files": [
