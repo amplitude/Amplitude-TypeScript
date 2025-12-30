@@ -112,6 +112,9 @@ jobs:
             echo "New packages can publish beta/alpha versions with latest tag"
           fi
 
+      - name: Setup PNPM
+        uses: pnpm/action-setup@v4
+
       # Setup Node.js environment
       - name: Setup Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4
