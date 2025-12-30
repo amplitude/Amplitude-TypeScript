@@ -11,7 +11,7 @@ const gtmWrapper = `./lib/scripts/${filename}.${extension}`;
 const getVersion = () => analyticsBrowserPkg.version;
 let deployed = false;
 const body = fs.readFileSync(path.join(process.cwd(), gtmWrapper));
-const key = `libs/${filename}-${getVersion()}.${extension}`;
+const key = `libs/${filename}-v${getVersion()}.${extension}`;
 
 if (process.env.DRY_RUN) {
   console.log(`[Publish to AWS S3] Dry run. Skipping upload job.`);
