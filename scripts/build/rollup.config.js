@@ -7,6 +7,10 @@ import execute from 'rollup-plugin-execute';
 import json from '@rollup/plugin-json';
 import { exec } from 'child_process';
 import fs from 'fs';
+import { brotliCompress } from 'zlib';
+import { promisify } from 'util';
+
+const brotliPromise = promisify(brotliCompress);
 
 // The paths are relative to process.cwd(), which are packages/*
 const base = '../..';
@@ -238,6 +242,10 @@ export const gtmSnippetBundle = {
       },
     }),
     gzip(),
+    gzip({
+      customCompression: (content) => brotliPromise(Buffer.from(content)),
+      fileName: '.br',
+    }),
     json(),
   ],
 }
