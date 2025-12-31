@@ -122,6 +122,7 @@
         } catch (error) {
           console.error('Error loading file list:', error);
           document.getElementById('fileList').innerHTML = 'Error loading file list';
+          document.getElementById('fileList').appendChild(document.createElement('pre')).textContent = error.message;
         }
       }
 
