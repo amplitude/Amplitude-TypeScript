@@ -52,11 +52,6 @@ jobs:
           echo "VITE_AMPLITUDE_API_KEY=${{ secrets.AMPLITUDE_API_KEY }}" > .env
           echo "VITE_AMPLITUDE_USER_ID=github-actions-sdk-user" >> .env
 
-      - name: Log .env file
-        run: |
-          cat .env
-          exit 1 # FAIL FOR DEBUGGING
-
       - name: Start dev server
         run: |
           # Start the dev server
