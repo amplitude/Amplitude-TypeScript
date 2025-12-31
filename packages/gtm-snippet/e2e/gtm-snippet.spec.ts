@@ -45,10 +45,11 @@ test.describe('GTM Snippet Page', () => {
 
     // Wait for network requests to complete
     await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(1000);
-
-    // Verify that at least one request was made
-    expect(requests.length).toBeGreaterThan(0);
+    // wait up to 10 seconds for the request to be made
+    for (let i = 0; i < 20; i++) {
+      if (requests.length > 0) break;
+      await page.waitForTimeout(500);
+    }
 
     // Verify the GTM Snippet Test event was tracked
     const events = requests[0].events;

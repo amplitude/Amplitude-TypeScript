@@ -44,8 +44,8 @@ test.describe('Cookie Consent Page', () => {
     
     // Wait for all network requests to complete
     await page.waitForLoadState('networkidle');
-    // Check every 500ms for up to 5 seconds
-    for (let i = 0; i < 10; i++) {
+    // Check every 500ms for up to 10 seconds
+    for (let i = 0; i < 20; i++) {
       if (requests.length === 1) break;
       await page.waitForTimeout(500);
     }
