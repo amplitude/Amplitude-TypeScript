@@ -58,8 +58,8 @@ describe('trackRageClicks', () => {
     clickObserver.next({
       event: {
         target: mockElement,
-        clientX: 100,
-        clientY: 100,
+        pageX: 100,
+        pageY: 100,
       },
       timestamp: startTime,
       closestTrackedAncestor: mockElement,
@@ -71,8 +71,8 @@ describe('trackRageClicks', () => {
       clickObserver.next({
         event: {
           target: mockElement,
-          clientX: 100,
-          clientY: 100,
+          pageX: 100,
+          pageY: 100,
         },
         timestamp: startTime + DEFAULT_RAGE_CLICK_WINDOW_MS + i * 50, // Exceed the time window
         closestTrackedAncestor: mockElement,
@@ -116,8 +116,8 @@ describe('trackRageClicks', () => {
       clickObserver.next({
         event: {
           target: mockElement,
-          clientX: 100,
-          clientY: 100,
+          pageX: 100,
+          pageY: 100,
         },
         timestamp: startTime + i * 50, // Space clicks 50ms apart (well within 1000ms window)
         closestTrackedAncestor: mockElement,
@@ -160,8 +160,8 @@ describe('trackRageClicks', () => {
     clickObserver.next({
       event: {
         target: mockElement,
-        clientX: 100,
-        clientY: 100,
+        pageX: 100,
+        pageY: 100,
       },
       timestamp: startTime,
       closestTrackedAncestor: mockElement,
@@ -173,8 +173,8 @@ describe('trackRageClicks', () => {
       clickObserver.next({
         event: {
           target: mockElement,
-          clientX: 100,
-          clientY: 100,
+          pageX: 100,
+          pageY: 100,
         },
         timestamp: startTime + (DEFAULT_RAGE_CLICK_WINDOW_MS - 200) + i * 50,
         closestTrackedAncestor: mockElement,
@@ -204,8 +204,8 @@ describe('trackRageClicks', () => {
       clickObserver.next({
         event: {
           target: mockElement,
-          clientX: 100,
-          clientY: 100,
+          pageX: 100,
+          pageY: 100,
         },
         timestamp: startTime + i * 50,
         closestTrackedAncestor: mockElement,
@@ -236,8 +236,8 @@ describe('trackRageClicks', () => {
       clickObserver.next({
         event: {
           target: i % 2 === 0 ? mockElement1 : mockElement2,
-          clientX: 100,
-          clientY: 100,
+          pageX: 100,
+          pageY: 100,
         },
         timestamp: startTime + i * 50,
         closestTrackedAncestor: i % 2 === 0 ? mockElement1 : mockElement2,
@@ -269,8 +269,8 @@ describe('trackRageClicks', () => {
       clickObserver.next({
         event: {
           target: mockElement,
-          clientX: 100,
-          clientY: 100,
+          pageX: 100,
+          pageY: 100,
         },
         timestamp: startTime + i * 50,
         closestTrackedAncestor: mockElement,
@@ -302,8 +302,8 @@ describe('trackRageClicks', () => {
       clickObserver.next({
         event: {
           target: mockElement,
-          clientX: 100,
-          clientY: 100,
+          pageX: 100,
+          pageY: 100,
         },
         timestamp: startTime + i * 50,
         closestTrackedAncestor: mockElement,
@@ -317,8 +317,8 @@ describe('trackRageClicks', () => {
     clickObserver.next({
       event: {
         target: mockElement,
-        clientX: 100,
-        clientY: 100,
+        pageX: 100,
+        pageY: 100,
       },
       timestamp: startTime + DEFAULT_RAGE_CLICK_WINDOW_MS + 100,
       closestTrackedAncestor: mockElement,
@@ -350,8 +350,8 @@ describe('trackRageClicks', () => {
       clickObserver.next({
         event: {
           target: mockElement1,
-          clientX: 100,
-          clientY: 100,
+          pageX: 100,
+          pageY: 100,
         },
         timestamp: startTime + i * 50,
         closestTrackedAncestor: mockElement1,
@@ -365,8 +365,8 @@ describe('trackRageClicks', () => {
     clickObserver.next({
       event: {
         target: mockElement2,
-        clientX: 200,
-        clientY: 200,
+        pageX: 200,
+        pageY: 200,
       },
       timestamp: startTime + DEFAULT_RAGE_CLICK_THRESHOLD * 50 + 100,
       closestTrackedAncestor: mockElement2,
@@ -411,8 +411,8 @@ describe('trackRageClicks', () => {
       clickObserver.next({
         event: {
           target: mockElement1,
-          clientX: 100,
-          clientY: 100,
+          pageX: 100,
+          pageY: 100,
         },
         timestamp: startTime + i * 50,
         closestTrackedAncestor: mockElement1,
@@ -424,8 +424,8 @@ describe('trackRageClicks', () => {
     clickObserver.next({
       event: {
         target: mockElement2,
-        clientX: 200,
-        clientY: 200,
+        pageX: 200,
+        pageY: 200,
       },
       timestamp: startTime + (DEFAULT_RAGE_CLICK_THRESHOLD - 1) * 50 + 100,
       closestTrackedAncestor: mockElement2,
@@ -439,7 +439,7 @@ describe('trackRageClicks', () => {
     subscription?.unsubscribe();
   });
 
-  it('should not track rage clicks when threshold is met but clicks are out of bounds', () => {
+  it('should not track rage clicks when threshold is met but clicks are out of bounds', async () => {
     const subscription = trackRageClicks({
       amplitude: mockAmplitude,
       allObservables,
@@ -458,6 +458,8 @@ describe('trackRageClicks', () => {
         target: mockElement,
         clientX: 100,
         clientY: 100,
+        pageX: 100,
+        pageY: 100,
       },
       timestamp: startTime,
       closestTrackedAncestor: mockElement,
@@ -465,21 +467,25 @@ describe('trackRageClicks', () => {
     });
 
     // Add clicks that exceed the time window
-    for (let i = 0; i < DEFAULT_RAGE_CLICK_THRESHOLD; i++) {
+    for (let i = 0; i <= DEFAULT_RAGE_CLICK_THRESHOLD; i++) {
       clickObserver.next({
         event: {
           target: mockElement,
-          clientX: i === DEFAULT_RAGE_CLICK_THRESHOLD - 1 ? 1000 : 100,
-          clientY: i === DEFAULT_RAGE_CLICK_THRESHOLD - 1 ? 1000 : 100,
+          pageX: i === DEFAULT_RAGE_CLICK_THRESHOLD - 1 ? 1000 : 100,
+          pageY: i === DEFAULT_RAGE_CLICK_THRESHOLD - 1 ? 1000 : 100,
+          // keep clientX and clientY fixed to test it doesn't use
+          // viewport coordinates
+          clientX: 100,
+          clientY: 100,
         },
-        timestamp: startTime + DEFAULT_RAGE_CLICK_WINDOW_MS + i * 50, // Exceed the time window
+        timestamp: startTime + DEFAULT_RAGE_CLICK_WINDOW_MS + i * 1,
         closestTrackedAncestor: mockElement,
         targetElementProperties: { id: 'test-element' },
       });
     }
 
-    // Advance timers for the event to be processed
-    jest.advanceTimersByTime(DEFAULT_RAGE_CLICK_WINDOW_MS + 100); // Short wait since we're triggering immediate detection
+    // Run all timers and flush promises
+    await jest.runAllTimersAsync();
 
     expect(mockAmplitude.track).not.toHaveBeenCalled();
     subscription?.unsubscribe();
@@ -499,8 +505,8 @@ describe('trackRageClicks', () => {
       clickObserver.next({
         event: {
           target: mockElement,
-          clientX: 100,
-          clientY: 100,
+          pageX: 100,
+          pageY: 100,
         },
         timestamp: startTime,
         closestTrackedAncestor: mockElement,
@@ -510,8 +516,8 @@ describe('trackRageClicks', () => {
     clickObserver.next({
       event: {
         target: mockElement,
-        clientX: 1000,
-        clientY: 1000,
+        pageX: 1000,
+        pageY: 1000,
       },
       timestamp: startTime,
       closestTrackedAncestor: mockElement,

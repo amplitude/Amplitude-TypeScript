@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Scroll Test Page</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 20px;
+        background: white;
+        font-family: sans-serif;
+        min-height: 15000px;
+      }
+      
+      h1 {
+        margin-bottom: 20px;
+      }
+      
+      .marker {
+        padding: 10px;
+        margin: 500px 0;
+        background: #f0f0f0;
+        border-left: 4px solid #333;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Scroll Test Page</h1>
+    <p>This page has a height of ~15,000px for scroll testing.</p>
+    
+    <div class="marker">1000px</div>
+    <div class="marker">2000px</div>
+    <div class="marker">3000px</div>
+    <div class="marker">4000px</div>
+    <div class="marker">5000px</div>
+    <div class="marker">6000px</div>
+    <div class="marker">7000px</div>
+    <div class="marker">8000px</div>
+    <div class="marker">9000px</div>
+    <div class="marker">10000px</div>
+    <div class="marker">11000px</div>
+    <div class="marker">12000px</div>
+    <div class="marker">13000px</div>
+    <div class="marker">14000px</div>
+    <div class="marker">End</div>
+
+    <script type="module">
+      import * as amplitude from '@amplitude/analytics-browser';
+      
+      window.amplitude = amplitude;
+      
+      amplitude.init(
+        import.meta.env.VITE_AMPLITUDE_API_KEY,
+        import.meta.env.VITE_AMPLITUDE_USER_ID || 'scroll-test-user',
+        {
+          autocapture: {
+            frustrationInteractions: {
+              rageClicks: true,
+            }
+          }
+        }
+      );
+    </script>
+  </body>
+</html>
