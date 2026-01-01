@@ -11,6 +11,7 @@ on:
 jobs:
   e2e:
     name: E2E Tests
+    if: github.actor != 'dependabot[bot]'
     runs-on: ubuntu-latest
     container:
       image: mcr.microsoft.com/playwright:v1.55.0
@@ -21,61 +22,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      # - name: Setup git for nx
-      #   run: |
-      #     git config --global --add safe.directory "$GITHUB_WORKSPACE"
-      #     git fetch origin
-      #       git branch -f main origin/main
-      #     fi
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-      
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Run E2E tests
+        uses: ./.github/actions/e2e-test
         with:
-          node-version: '20.x'
-          cache: 'pnpm'
-
-      - name: Install project dependencies
-        run: |
-          pnpm install --frozen-lockfile
-
-      - name: Build all packages
-        run: |
-          pnpm build
-
-      - name: Create .env file
-        run: |
-          echo "VITE_AMPLITUDE_API_KEY=${{ secrets.AMPLITUDE_API_KEY }}" > .env
-          echo "VITE_AMPLITUDE_USER_ID=github-actions-sdk-user" >> .env
-
-      - name: Start dev server
-        run: |
-          # Start the dev server
-          pnpm build:vite
-          pnpm start --port 5173 &
-          # Wait for the server to be ready
-          sleep 10
-          # Verify the server is running
-          curl -f http://localhost:5173 || exit 1
-
-      - name: Run Playwright tests
-        run: |
-          pnpm test:playwright:ci
-
-      - name: Upload Playwright Report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: playwright-report
-          path: playwright-report/
-          retention-days: 30
-
-      - name: Upload Test Results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-results
-          path: test-results/
-          retention-days: 30 
+          amplitude-api-key: ${{ secrets.AMPLITUDE_API_KEY }}

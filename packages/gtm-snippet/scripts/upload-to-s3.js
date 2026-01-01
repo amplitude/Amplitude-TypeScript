@@ -4,7 +4,7 @@ const analyticsBrowserPkg = require(path.join(process.cwd(), '..', 'analytics-br
 const { S3Client, PutObjectCommand, HeadObjectCommand } = require('@aws-sdk/client-s3');
 const bucket = process.env.S3_BUCKET_NAME;
 
-const extension = 'min.js.gz';
+const extension = 'min.js.br';
 const filename = 'analytics-browser-gtm-wrapper';
 const gtmWrapper = `./lib/scripts/${filename}.${extension}`;
 

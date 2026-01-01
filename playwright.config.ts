@@ -48,5 +48,6 @@ export default defineConfig({
     timeout: 120000,
   },
   testMatch: '**/e2e/**/*.spec.ts',
+  testIgnore: '**/test-server/dist/**',
   timeout: 30000,
 });

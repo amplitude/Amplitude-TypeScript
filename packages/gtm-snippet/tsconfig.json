@@ -1,6 +1,6 @@
 {
   "extends": "../../tsconfig.json",
-  "include": ["src/**/*", "test/**/*", "e2e/**/*"],
+  "include": ["e2e/**/*"],
   "compilerOptions": {
     "baseUrl": ".",
     "esModuleInterop": true,
@@ -9,3 +9,4 @@
     "rootDir": "."
   }
 }
+
