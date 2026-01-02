@@ -1,5 +1,6 @@
 import { AllWindowObservables } from '../frustration-plugin';
 import {
+  getGlobalScope,
   BrowserClient,
   asyncMap,
   DEFAULT_RAGE_CLICK_THRESHOLD,
@@ -95,6 +96,8 @@ function isNewElement(clickWindow: ClickEvent[], click: ClickEvent) {
   );
 }
 
+let currSelection: string | null = getGlobalScope()?.getSelection()?.toString() ?? null;
+
 export function trackRageClicks({
   amplitude,
   allObservables,
@@ -135,18 +138,23 @@ export function trackRageClicks({
       addCoordinates(clickBoundingBox, click);
 
       let resolutionValue: RageClickEvent | null = null;
+      let prevSelection: string | null = currSelection;
+      currSelection = getGlobalScope()?.getSelection()?.toString() ?? null;
+      console.log('prevSelection', prevSelection, 'currSelection', currSelection);
 
       // if current click is:
       //  1. first click in the window
       //  2. on a new element
       //  3. outside the rage click time window
       //  4. out of bounds
+      //  5. the selection has changed indicating the user clicked on text to highlight it
       // then start a new click window
       if (
         clickWindow.length === 0 ||
         isNewElement(clickWindow, click) ||
         isClickOutsideRageClickWindow(clickWindow, click) ||
-        clickBoundingBox.isOutOfBounds
+        clickBoundingBox.isOutOfBounds ||
+        prevSelection !== getGlobalScope()?.getSelection()?.toString()
       ) {
         // if there was a previous Rage Click Event on deck, then send it
         if (pendingRageClick) {

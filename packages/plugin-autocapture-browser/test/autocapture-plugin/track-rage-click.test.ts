@@ -41,6 +41,16 @@ describe('trackRageClicks', () => {
     jest.useRealTimers();
   });
 
+  describe('selection change', () => {
+    it('should not track rage clicks when the text selection has changed', () => {
+
+    });
+
+    it('should track rage click if selection changes but 4 clicks happen after selection change', () => {
+
+    });
+  });
+
   it('should track rage clicks when threshold is met', async () => {
     const subscription = trackRageClicks({
       amplitude: mockAmplitude,
