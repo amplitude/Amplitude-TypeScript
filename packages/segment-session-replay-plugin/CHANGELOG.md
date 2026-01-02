@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [0.0.0-pnpm-migration.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/segment-session-replay-plugin@0.0.0-beta.54...@amplitude/segment-session-replay-plugin@0.0.0-pnpm-migration.0) (2026-01-02)
+
+
+### Reverts
+
+* Revert "empty" ([b8a027e](https://github.com/amplitude/Amplitude-TypeScript/commit/b8a027e84b6baed0984a9b086f95d659b18bd315))
+* Revert "chore(release): publish" ([c2808e9](https://github.com/amplitude/Amplitude-TypeScript/commit/c2808e91750afc1bf82cb612bcf8432bbdbdb1d6))
+
+
+
+
+
 # [0.0.0-beta.54](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/segment-session-replay-plugin@0.0.0-beta.53...@amplitude/segment-session-replay-plugin@0.0.0-beta.54) (2025-12-24)
 
 **Note:** Version bump only for package @amplitude/segment-session-replay-plugin
