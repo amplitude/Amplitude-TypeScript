@@ -25,8 +25,16 @@ jobs:
       - name: Read PR info
         id: pr-info
         run: |
-          echo "title=$(cat pr_title.txt)" >> $GITHUB_OUTPUT
-          echo "url=$(cat pr_url.txt)" >> $GITHUB_OUTPUT
+          {
+            echo "title<<EOF"
+            cat pr_title.txt
+            echo "EOF"
+          } >> $GITHUB_OUTPUT
+          {
+            echo "url<<EOF"
+            cat pr_url.txt
+            echo "EOF"
+          } >> $GITHUB_OUTPUT
 
   call-workflow-passing-data:
     needs: read-pr-info

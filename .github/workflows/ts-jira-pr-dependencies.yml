@@ -13,9 +13,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Save PR info
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
         run: |
-          echo '${{ github.event.pull_request.title }}' > pr_title.txt
-          echo '${{ github.event.pull_request.html_url }}' > pr_url.txt
+          printf "%s" "$PR_TITLE" > pr_title.txt
+          printf "%s" "$PR_URL" > pr_url.txt
       - name: Upload PR info
         uses: actions/upload-artifact@v4
         with:
