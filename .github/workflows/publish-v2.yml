@@ -94,7 +94,7 @@ jobs:
           
           # Temporarily disable exit on error to capture output even when command fails
           set +e
-          OUTPUT=$(GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} pnpm deploy:version -- -y --no-private --create-release github 2>&1)
+          OUTPUT=$(GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} pnpm deploy:version --no-private --create-release github 2>&1)
           EXIT_CODE=$?
           set -e
           
@@ -120,7 +120,7 @@ jobs:
       # Publish to NPM
       - name: Publish Release to NPM
         run: |
-          GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} pnpm deploy:publish
+          GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} pnpm deploy:publish --ignore-scripts
         env:
           S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
 
@@ -174,18 +174,26 @@ jobs:
       - name: Dry run pre-release version
         if: ${{ github.event.inputs.releaseType == 'dry-run' }}
         run: |
+<<<<<<< HEAD
           GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} pnpm deploy:version:dry-run -y --no-private --conventional-prerelease --preid ${{ env.PREID }} --allow-branch ${{ steps.determine-branch.outputs.branch }} --no-changelog --no-push --no-git-tag-version
+=======
+          GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} pnpm deploy:version:dry-run --no-private --conventional-prerelease --preid ${{ env.PREID }} --allow-branch ${{ steps.determine-branch.outputs.branch }} --no-changelog --no-push --no-git-tag-version
+>>>>>>> 0fd94154 (chore: remove unknown args pnpm publish)
 
       - name: Pre-release version
         if: ${{ github.event.inputs.releaseType == 'prerelease' }}
         run: |
+<<<<<<< HEAD
             GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} pnpm deploy:version -y --no-private --conventional-prerelease --preid ${{ env.PREID }} --allow-branch ${{ steps.determine-branch.outputs.branch }} --create-release github
+=======
+            GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} pnpm deploy:version --no-private --conventional-prerelease --preid ${{ env.PREID }} --allow-branch ${{ steps.determine-branch.outputs.branch }} --create-release github
+>>>>>>> 0fd94154 (chore: remove unknown args pnpm publish)
 
       # Use 'from git' option if `lerna version` has already been run
       - name: Publish Pre-release to NPM
         if: ${{ github.event.inputs.releaseType == 'prerelease' }}
         run: |
-          GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} pnpm deploy:publish -y --ignore-scripts --tag ${{ env.PREID }}
+          GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} pnpm deploy:publish --ignore-scripts --tag ${{ env.PREID }}
         env:
           S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
 
