@@ -1,0 +1,53 @@
+# Action workflow that creates Jira tickets for dependency PRs
+# Runs in base repo context with access to secrets after trigger workflow completes
+name: Jira Issue Creator For Dependencies PR - Action
+
+on:
+  workflow_run:
+    workflows: ["Jira Issue Creator For Dependencies PR - Trigger"]
+    types: [completed]
+
+jobs:
+  read-pr-info:
+    if: github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    outputs:
+      title: ${{ steps.pr-info.outputs.title }}
+      url: ${{ steps.pr-info.outputs.url }}
+    steps:
+      - name: Download PR info
+        uses: actions/download-artifact@v4
+        with:
+          name: pr-info
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ github.event.workflow_run.id }}
+
+      - name: Read PR info
+        id: pr-info
+        run: |
+          DELIM_TITLE="EOF_$(uuidgen)"
+          DELIM_URL="EOF_$(uuidgen)"
+          {
+            echo "title<<$DELIM_TITLE"
+            cat pr_title.txt
+            echo "$DELIM_TITLE"
+          } >> $GITHUB_OUTPUT
+          {
+            echo "url<<$DELIM_URL"
+            cat pr_url.txt
+            echo "$DELIM_URL"
+          } >> $GITHUB_OUTPUT
+
+  call-workflow-passing-data:
+    needs: read-pr-info
+    uses: amplitude/Amplitude-TypeScript/.github/workflows/jira-issue-create-template.yml@main
+    with:
+      label: "TS"
+      subcomponent: "dx_typescript_browser_sdk"
+      title: ${{ needs.read-pr-info.outputs.title }}
+      url: ${{ needs.read-pr-info.outputs.url }}
+    secrets:
+      JIRA_BASE_URL: ${{ secrets.JIRA_BASE_URL }}
+      JIRA_USER_EMAIL: ${{ secrets.JIRA_USER_EMAIL }}
+      JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
+      JIRA_PROJECT: ${{ secrets.JIRA_PROJECT }}
