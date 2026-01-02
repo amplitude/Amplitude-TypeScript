@@ -174,12 +174,12 @@ jobs:
       - name: Dry run pre-release version
         if: ${{ github.event.inputs.releaseType == 'dry-run' }}
         run: |
-          GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} pnpm deploy:version:dry-run--preid ${{ env.PREID }}
+          GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} pnpm deploy:version:dry-run --preid ${{ env.PREID }}
 
       - name: Pre-release version
         if: ${{ github.event.inputs.releaseType == 'prerelease' }}
         run: |
-            GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} pnpm deploy:version --no-private --conventional-prerelease --preid ${{ env.PREID }} --allow-branch ${{ steps.determine-branch.outputs.branch }} --create-release github
+            GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} pnpm deploy:version --no-git-checks --no-private --conventional-prerelease --preid ${{ env.PREID }} --allow-branch ${{ steps.determine-branch.outputs.branch }} --create-release github
 
       # Use 'from git' option if `lerna version` has already been run
       - name: Publish Pre-release to NPM
