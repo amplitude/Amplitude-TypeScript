@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 import client from './unified-client-factory';
 export { createInstance } from './unified-client-factory';
-
 export const {
   _setDiagnosticsSampleRate,
   initAll,
@@ -27,5 +26,4 @@ export const {
   setUserId,
   track,
 } = client;
-
 export { Types, Revenue, Identify } from '@amplitude/analytics-browser';

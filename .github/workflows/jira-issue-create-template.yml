@@ -13,6 +13,14 @@ on:
         description: 'The Subcomponent for the Repository'
         type: string
         required: true
+      title:
+        description: 'Title for the Jira issue (optional, defaults to github.event.issue.title)'
+        type: string
+        required: false
+      url:
+        description: 'URL for the Jira issue description (optional, defaults to github.event.issue.html_url)'
+        type: string
+        required: false
     secrets:
       JIRA_BASE_URL:
         description: 'Jira Base Url'
@@ -53,8 +61,10 @@ jobs:
           PREFIX="[SDK - ${{ inputs.label }}] "
           ELLIPSIS="..."
           MAX_TITLE_LENGTH=$((255 - ${#PREFIX} - ${#ELLIPSIS} - 1))
+          # Use provided title or fall back to issue title for backward compatibility
+          RAW_TITLE="${{ inputs.title || github.event.issue.title }}"
           # Process and truncate title if needed
-          TITLE=$(echo "${{ github.event.issue.title }}" | tr '\n' ' ' | sed 's/"/\\"/g')
+          TITLE=$(echo "$RAW_TITLE" | tr '\n' ' ' | sed 's/"/\\"/g')
           if [ ${#TITLE} -gt $MAX_TITLE_LENGTH ]; then
             TITLE="${TITLE:0:$MAX_TITLE_LENGTH}..."
           fi
@@ -69,7 +79,7 @@ jobs:
           summary: |
             [SDK - ${{ inputs.label }}] ${{ steps.truncate.outputs.truncated_title }}
           description: |
-            ${{ github.event.issue.html_url }}
+            ${{ inputs.url || github.event.issue.html_url }}
           fields: '{
             "customfield_11416": {"value": "GitHub"},
             "components": [{"name": "SDK"}],

@@ -22,8 +22,7 @@
   "license": "MIT",
   "dependencies": {
     "@amplitude/analytics-browser": "workspace:*",
-    "@amplitude/plugin-session-replay-browser": "workspace:*",
-    "@amplitude/rrweb": "2.0.0-alpha.34"
+    "@amplitude/plugin-session-replay-browser": "workspace:*"
   },
   "devDependencies": {
     "@amplitude/eslint-plugin-amplitude": "^1.0.1",

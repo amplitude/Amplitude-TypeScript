@@ -1,0 +1,29 @@
+# Trigger workflow for PRs labeled with 'dependencies'
+# This saves PR info to an artifact for the action workflow to process
+# (PRs from forks like Dependabot don't have access to secrets)
+name: Jira Issue Creator For Dependencies PR - Trigger
+
+on:
+  pull_request:
+    types: [labeled]
+
+jobs:
+  save-pr-info:
+    if: github.event.label.name == 'dependencies'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Save PR info
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+        run: |
+          printf "%s\n" "$PR_TITLE" > pr_title.txt
+          printf "%s\n" "$PR_URL" > pr_url.txt
+      - name: Upload PR info
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr-info
+          path: |
+            pr_title.txt
+            pr_url.txt
+          retention-days: 1

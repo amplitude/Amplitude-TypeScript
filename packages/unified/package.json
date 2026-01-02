@@ -51,8 +51,7 @@
     "@amplitude/analytics-core": "workspace:*",
     "@amplitude/engagement-browser": "^1.0.3",
     "@amplitude/plugin-experiment-browser": "workspace:*",
-    "@amplitude/plugin-session-replay-browser": "workspace:*",
-    "@amplitude/rrweb": "^2.0.0-alpha.34"
+    "@amplitude/plugin-session-replay-browser": "workspace:*"
   },
   "devDependencies": {
     "rollup": "^2.79.1"
