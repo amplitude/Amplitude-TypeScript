@@ -1,6 +1,6 @@
 {
   "name": "@amplitude/analytics-types",
-  "version": "2.11.1-pnpm-migration.0",
+  "version": "2.11.0",
   "description": "",
   "author": "Amplitude Inc",
   "homepage": "https://github.com/amplitude/Amplitude-TypeScript",

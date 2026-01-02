@@ -1,1 +1,1 @@
-export const VERSION = '1.1.5-pnpm-migration.0';
+export const VERSION = '1.1.4';
