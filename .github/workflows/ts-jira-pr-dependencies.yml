@@ -1,21 +1,26 @@
-# Creates jira tickets for PRs labeled with 'dependencies' to help triage
-name: Jira Issue Creator For Dependencies PR
+# Trigger workflow for PRs labeled with 'dependencies'
+# This saves PR info to an artifact for the action workflow to process
+# (PRs from forks like Dependabot don't have access to secrets)
+name: Jira Issue Creator For Dependencies PR - Trigger
 
 on:
   pull_request:
     types: [labeled]
 
 jobs:
-  call-workflow-passing-data:
+  save-pr-info:
     if: github.event.label.name == 'dependencies'
-    uses: amplitude/Amplitude-TypeScript/.github/workflows/jira-issue-create-template.yml@main
-    with:
-      label: "TS"
-      subcomponent: "dx_typescript_browser_sdk"
-      title: ${{ github.event.pull_request.title }}
-      url: ${{ github.event.pull_request.html_url }}
-    secrets:
-      JIRA_BASE_URL: ${{ secrets.JIRA_BASE_URL }}
-      JIRA_USER_EMAIL: ${{ secrets.JIRA_USER_EMAIL }}
-      JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
-      JIRA_PROJECT: ${{ secrets.JIRA_PROJECT }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Save PR info
+        run: |
+          echo '${{ github.event.pull_request.title }}' > pr_title.txt
+          echo '${{ github.event.pull_request.html_url }}' > pr_url.txt
+      - name: Upload PR info
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr-info
+          path: |
+            pr_title.txt
+            pr_url.txt
+          retention-days: 1
