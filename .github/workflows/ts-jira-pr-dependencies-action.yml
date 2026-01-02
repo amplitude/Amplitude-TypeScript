@@ -25,15 +25,17 @@ jobs:
       - name: Read PR info
         id: pr-info
         run: |
+          DELIM_TITLE="EOF_$(uuidgen)"
+          DELIM_URL="EOF_$(uuidgen)"
           {
-            echo "title<<EOF"
+            echo "title<<$DELIM_TITLE"
             cat pr_title.txt
-            echo "EOF"
+            echo "$DELIM_TITLE"
           } >> $GITHUB_OUTPUT
           {
-            echo "url<<EOF"
+            echo "url<<$DELIM_URL"
             cat pr_url.txt
-            echo "EOF"
+            echo "$DELIM_URL"
           } >> $GITHUB_OUTPUT
 
   call-workflow-passing-data:
