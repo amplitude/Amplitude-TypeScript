@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.7.4-pnpm-migration.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-network-capture-browser@1.7.3...@amplitude/plugin-network-capture-browser@1.7.4-pnpm-migration.0) (2026-01-02)
+
+**Note:** Version bump only for package @amplitude/plugin-network-capture-browser
+
+
+
+
+
 ## [1.7.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-network-capture-browser@1.7.2...@amplitude/plugin-network-capture-browser@1.7.3) (2025-12-24)
 
 **Note:** Version bump only for package @amplitude/plugin-network-capture-browser
