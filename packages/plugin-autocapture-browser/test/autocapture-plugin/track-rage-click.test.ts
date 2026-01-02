@@ -453,32 +453,34 @@ describe('trackRageClicks', () => {
     const startTime = Date.now();
 
     // First click
-    clickObserver.next({
-      event: {
-        target: mockElement,
-        clientX: 100,
-        clientY: 100,
-        pageX: 100,
-        pageY: 100,
-      },
-      timestamp: startTime,
-      closestTrackedAncestor: mockElement,
-      targetElementProperties: { id: 'test-element' },
-    });
+    // clickObserver.next({
+    //   event: {
+    //     target: mockElement,
+    //     clientX: 100,
+    //     clientY: 100,
+    //     pageX: 100,
+    //     pageY: 100,
+    //   },
+    //   timestamp: startTime,
+    //   closestTrackedAncestor: mockElement,
+    //   targetElementProperties: { id: 'test-element' },
+    // });
 
     // Add clicks that exceed the time window
-    for (let i = 0; i <= DEFAULT_RAGE_CLICK_THRESHOLD; i++) {
+    for (let i = 0; i < DEFAULT_RAGE_CLICK_THRESHOLD; i++) {
       clickObserver.next({
         event: {
           target: mockElement,
+          // have the first click and the last n - 1 clicks be in different
+          // positions to test that the rage click is not triggered
           pageX: i === DEFAULT_RAGE_CLICK_THRESHOLD - 1 ? 1000 : 100,
           pageY: i === DEFAULT_RAGE_CLICK_THRESHOLD - 1 ? 1000 : 100,
-          // keep clientX and clientY fixed to test it doesn't use
-          // viewport coordinates
+          // keep clientX and clientY fixed to confirm it doesn't use
+          // viewport coordinates any more
           clientX: 100,
           clientY: 100,
         },
-        timestamp: startTime + DEFAULT_RAGE_CLICK_WINDOW_MS + i * 1,
+        timestamp: startTime + i,
         closestTrackedAncestor: mockElement,
         targetElementProperties: { id: 'test-element' },
       });
