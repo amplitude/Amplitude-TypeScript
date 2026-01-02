@@ -6,6 +6,6 @@
     "esModuleInterop": true,
     "lib": ["dom", "es2020"],
     "noEmit": true,
-    "rootDir": ".",
+    "rootDir": "."
   }
 }
