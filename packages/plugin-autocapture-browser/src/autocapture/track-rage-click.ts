@@ -141,7 +141,6 @@ export function trackRageClicks({
       //  2. on a new element
       //  3. outside the rage click time window
       //  4. out of bounds
-      //  5. the selection has changed indicating the user clicked on text to highlight it
       // then start a new click window
       if (
         clickWindow.length === 0 ||

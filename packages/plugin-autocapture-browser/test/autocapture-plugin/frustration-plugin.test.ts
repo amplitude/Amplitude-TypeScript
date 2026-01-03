@@ -329,5 +329,54 @@ describe('frustrationPlugin', () => {
       // expect no event listeners left on window.navigation
       expect((window.navigation as any)._handlers.length).toBe(0);
     });
+
+    describe('selection observable', () => {
+      it('should trigger on selection highlighted', async () => {
+        plugin = frustrationPlugin({});
+        await plugin?.setup?.(config as BrowserConfig, instance);
+        const rageClickCall = (trackRageClicks as jest.Mock).mock.calls[0][0];
+        const observables = rageClickCall.allObservables;
+
+        expect(observables).toHaveProperty('selectionObservable');
+
+        // Create and trigger a mock selection event
+        const selectionSpy = jest.fn();
+        const subscription = observables.selectionObservable.subscribe(selectionSpy);
+
+        // Trigger a mock selection event
+        jest.spyOn(window, 'getSelection').mockReturnValue({
+          isCollapsed: false,
+        } as any);
+        const mockSelectionEvent: any = new Event('selectionchange');
+        (window.document as any).dispatchEvent(mockSelectionEvent);
+
+        expect(selectionSpy).toHaveBeenCalled();
+        subscription.unsubscribe();
+      });
+      it('should trigger on input element selection change', async () => {
+        plugin = frustrationPlugin({});
+        await plugin?.setup?.(config as BrowserConfig, instance);
+        const rageClickCall = (trackRageClicks as jest.Mock).mock.calls[0][0];
+        const observables = rageClickCall.allObservables;
+
+        const selectionSpy = jest.fn();
+        const subscription = observables.selectionObservable.subscribe(selectionSpy);
+
+        // Trigger a mock selection event
+        ['textarea', 'input'].forEach((tag) => {
+          const input = document.createElement(tag) as HTMLTextAreaElement | HTMLInputElement;
+          input.value = 'some text here'; // Add text so there's something to select
+          input.selectionStart = 0;
+          input.selectionEnd = 10;
+          document.body.appendChild(input);
+          input.focus(); // This sets document.activeElement to the input
+          (window.document as any).dispatchEvent(new Event('selectionchange'));
+          document.body.removeChild(input);
+        });
+
+        expect(selectionSpy).toHaveBeenCalledTimes(2);
+        subscription.unsubscribe();
+      });
+    });
   });
 });
