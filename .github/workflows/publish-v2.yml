@@ -7,11 +7,15 @@ on:
         type: choice
         description: Release type (release for main branch, prerelease for feature branches)
         required: true
-        default: prerelease
+        default: release
         options:
           - release
           - prerelease
           - dry-run
+      publishFrom:
+        type: string
+        description: Publish source (leave empty for from-git, or enter "from-package"). Only applies to 'release' type.
+        required: false
       branch:
         type: string
         description: Branch to create pre-release from (only applies to prerelease/dry-run).
@@ -70,6 +74,8 @@ jobs:
     permissions:
       id-token: write # Required for OIDC
       contents: write
+    env:
+      PUBLISH_FROM: ${{ github.event.inputs.publishFrom || 'from-git' }}
     strategy:
       matrix:
         node-version: [24.x] # Ensure npm 11.5.1 or later is installed for OIDC, node 24.6 is minimal 
@@ -89,12 +95,13 @@ jobs:
       # Only create release version when using from-git (default behavior)
       # from-package mode uses existing package.json versions and doesn't need git tags
       - name: Create release version
+        if: ${{ env.PUBLISH_FROM != 'from-package' }}
         run: |
           echo "Running lerna version..."
           
           # Temporarily disable exit on error to capture output even when command fails
           set +e
-          OUTPUT=$(GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} pnpm deploy:version -y --no-private --create-release github 2>&1)
+          OUTPUT=$(GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} npm run deploy:version -- -y --no-private --create-release github 2>&1)
           EXIT_CODE=$?
           set -e
           
@@ -117,10 +124,13 @@ jobs:
           
           echo "✅ Successfully created release version"
 
-      # Publish to NPM
+      # Publish to NPM using from-git or from-package:
+      # - from-git: Publishes packages tagged by 'lerna version' in the current commit (requires prior versioning)
+      # - from-package: Compares package.json versions with NPM registry, publishes any versions not present in registry
+      # See: https://lerna.js.org/docs/features/version-and-publish#from-package
       - name: Publish Release to NPM
         run: |
-          GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} pnpm deploy:publish --ignore-scripts
+          GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} npm run deploy:publish -- ${{ env.PUBLISH_FROM }} -y --pre-dist-tag beta --loglevel silly
         env:
           S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
 
@@ -174,24 +184,17 @@ jobs:
       - name: Dry run pre-release version
         if: ${{ github.event.inputs.releaseType == 'dry-run' }}
         run: |
-          GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} pnpm deploy:version:dry-run -y --preid ${{ env.PREID }}
+          GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} npm run deploy:version -- -y --no-private --conventional-prerelease --preid ${{ env.PREID }} --allow-branch ${{ steps.determine-branch.outputs.branch }} --no-changelog --no-push --no-git-tag-version
 
       - name: Pre-release version
         if: ${{ github.event.inputs.releaseType == 'prerelease' }}
         run: |
-            GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} pnpm deploy:version -y --no-private --conventional-prerelease --preid ${{ env.PREID }} --allow-branch ${{ steps.determine-branch.outputs.branch }} --create-release github
+          GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} npm run deploy:version -- -y --no-private --conventional-prerelease --preid ${{ env.PREID }} --allow-branch ${{ steps.determine-branch.outputs.branch }} --create-release github
 
       # Use 'from git' option if `lerna version` has already been run
-      - name: Publish Pre-release to NPM
+      - name: Publish Release to NPM
         if: ${{ github.event.inputs.releaseType == 'prerelease' }}
         run: |
-          GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} pnpm deploy:publish --no-git-checks --ignore-scripts --tag ${{ env.PREID }}
+          GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} npm run deploy:publish -- from-git -y --ignore-scripts --pre-dist-tag ${{ env.PREID }}
         env:
           S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
-
-      - name: Dry run publish release to NPM
-        if: ${{ github.event.inputs.releaseType == 'dry-run' }}
-        env:
-          DRY_RUN: true
-        run: |
-          pnpm deploy:publish:dry-run
