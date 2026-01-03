@@ -6,6 +6,7 @@ import {
   DEFAULT_RAGE_CLICK_THRESHOLD,
   DEFAULT_RAGE_CLICK_WINDOW_MS,
   Observable,
+  Unsubscribable,
 } from '@amplitude/analytics-core';
 import { trackRageClicks } from '../../src/autocapture/track-rage-click';
 import { AMPLITUDE_ELEMENT_RAGE_CLICKED_EVENT } from '../../src/constants';
@@ -48,16 +49,27 @@ describe('trackRageClicks', () => {
   });
 
   describe('selection change', () => {
-    it('should not track rage clicks when the text selection has changed', async () => {
-      const subscription = trackRageClicks({
+    let subscription: Unsubscribable | undefined;
+    let mockElement: HTMLElement;
+    let ancestorElement: HTMLElement;
+    let startTime: number;
+    
+    beforeEach(async () => {
+      subscription = trackRageClicks({
         amplitude: mockAmplitude,
         allObservables,
         shouldTrackRageClick,
       });
+      mockElement = document.createElement('div');
+      ancestorElement = document.createElement('div');
+      startTime = Date.now();
+    });
 
-      const mockElement = document.createElement('div');
-      const ancestorElement = document.createElement('div');
-      const startTime = Date.now();
+    afterEach(() => {
+      subscription?.unsubscribe();
+    });
+
+    it('should not track rage clicks when the text selection has changed', async () => {
       for (let i = 0; i < DEFAULT_RAGE_CLICK_THRESHOLD; i++) {
         clickObserver.next({
           event: {
@@ -65,7 +77,7 @@ describe('trackRageClicks', () => {
             pageX: 100,
             pageY: 100,
           },
-          timestamp: startTime + i,
+          timestamp: startTime + i * 20,
           closestTrackedAncestor: ancestorElement,
           targetElementProperties: { id: 'test-element' },
         });
@@ -77,19 +89,9 @@ describe('trackRageClicks', () => {
       jest.advanceTimersByTime(DEFAULT_RAGE_CLICK_WINDOW_MS + 100);
       await jest.runAllTimersAsync();
       expect(mockAmplitude.track).not.toHaveBeenCalled();
-      subscription?.unsubscribe();
     });
 
     it('should track rage click if selection changes but 4 clicks happen after selection change', async () => {
-      const subscription = trackRageClicks({
-        amplitude: mockAmplitude,
-        allObservables,
-        shouldTrackRageClick,
-      });
-
-      const mockElement = document.createElement('div');
-      const ancestorElement = document.createElement('div');
-      const startTime = Date.now();
       for (let i = 0; i < DEFAULT_RAGE_CLICK_THRESHOLD + 3; i++) {
         clickObserver.next({
           event: {
@@ -97,7 +99,7 @@ describe('trackRageClicks', () => {
             pageX: 100,
             pageY: 100,
           },
-          timestamp: startTime + i,
+          timestamp: startTime + i * 20,
           closestTrackedAncestor: ancestorElement,
           targetElementProperties: { id: 'test-element' },
         });
@@ -111,7 +113,6 @@ describe('trackRageClicks', () => {
       jest.advanceTimersByTime(DEFAULT_RAGE_CLICK_WINDOW_MS + 100);
       await jest.runAllTimersAsync();
       expect(mockAmplitude.track).toHaveBeenCalled();
-      subscription?.unsubscribe();
     });
   });
 
