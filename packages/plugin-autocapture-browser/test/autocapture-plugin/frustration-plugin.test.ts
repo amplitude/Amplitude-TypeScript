@@ -1,5 +1,5 @@
-import { frustrationPlugin } from '../../src/frustration-plugin';
-import { BrowserConfig, EnrichmentPlugin, ILogger } from '@amplitude/analytics-core';
+import { AllWindowObservables, frustrationPlugin } from '../../src/frustration-plugin';
+import { BrowserConfig, EnrichmentPlugin, ILogger, Unsubscribable } from '@amplitude/analytics-core';
 import { createMockBrowserClient } from '../mock-browser-client';
 import { trackDeadClick } from '../../src/autocapture/track-dead-click';
 import { trackRageClicks } from '../../src/autocapture/track-rage-click';
@@ -331,19 +331,32 @@ describe('frustrationPlugin', () => {
     });
 
     describe('selection observable', () => {
-      it('should trigger on selection highlighted', async () => {
+      let plugin: EnrichmentPlugin | undefined;
+      let rageClickCall: any;
+      let observables: AllWindowObservables;
+      let subscription: Unsubscribable | undefined;
+      let selectionSpy: jest.Mock;
+
+      beforeEach(async () => {
         plugin = frustrationPlugin({});
         await plugin?.setup?.(config as BrowserConfig, instance);
-        const rageClickCall = (trackRageClicks as jest.Mock).mock.calls[0][0];
-        const observables = rageClickCall.allObservables;
+        rageClickCall = (trackRageClicks as jest.Mock).mock.calls[0][0];
+        observables = rageClickCall.allObservables;
+        selectionSpy = jest.fn();
+        subscription = observables.selectionObservable?.subscribe(selectionSpy);
+        jest.clearAllMocks();
+      });
+
+      afterEach(() => {
+        subscription?.unsubscribe();
+      });
+
+      it('should trigger on selection highlighted', async () => {
+        const div = document.createElement('div');
+        div.focus();
 
         expect(observables).toHaveProperty('selectionObservable');
 
-        // Create and trigger a mock selection event
-        const selectionSpy = jest.fn();
-        const subscription = observables.selectionObservable.subscribe(selectionSpy);
-
-        // Trigger a mock selection event
         jest.spyOn(window, 'getSelection').mockReturnValue({
           isCollapsed: false,
         } as any);
@@ -351,17 +364,17 @@ describe('frustrationPlugin', () => {
         (window.document as any).dispatchEvent(mockSelectionEvent);
 
         expect(selectionSpy).toHaveBeenCalled();
-        subscription.unsubscribe();
       });
+
+      it('should not trigger on non-input element selection change if selection is collapsed', async () => {
+        // Trigger a mock selection event
+        const div = document.createElement('div');
+        div.focus();
+        (window.document as any).dispatchEvent(new Event('selectionchange'));
+        expect(selectionSpy).not.toHaveBeenCalled();
+      });
+
       it('should trigger on input element selection change', async () => {
-        plugin = frustrationPlugin({});
-        await plugin?.setup?.(config as BrowserConfig, instance);
-        const rageClickCall = (trackRageClicks as jest.Mock).mock.calls[0][0];
-        const observables = rageClickCall.allObservables;
-
-        const selectionSpy = jest.fn();
-        const subscription = observables.selectionObservable.subscribe(selectionSpy);
-
         // Trigger a mock selection event
         ['textarea', 'input'].forEach((tag) => {
           const input = document.createElement(tag) as HTMLTextAreaElement | HTMLInputElement;
@@ -375,18 +388,10 @@ describe('frustrationPlugin', () => {
         });
 
         expect(selectionSpy).toHaveBeenCalledTimes(2);
-        subscription.unsubscribe();
       });
+
       it('should not trigger on input element selection change if selection is collapsed', async () => {
-        plugin = frustrationPlugin({});
-        await plugin?.setup?.(config as BrowserConfig, instance);
-        const rageClickCall = (trackRageClicks as jest.Mock).mock.calls[0][0];
-        const observables = rageClickCall.allObservables;
-
-        const selectionSpy = jest.fn();
-        const subscription = observables.selectionObservable.subscribe(selectionSpy);
-
-        // Trigger a mock selection event
+        // Trigger a mock selection event on input and textarea elements
         ['textarea', 'input'].forEach((tag) => {
           const input = document.createElement(tag) as HTMLTextAreaElement | HTMLInputElement;
           input.value = 'some text here'; // Add text so there's something to select
@@ -399,7 +404,6 @@ describe('frustrationPlugin', () => {
         });
 
         expect(selectionSpy).not.toHaveBeenCalled();
-        subscription.unsubscribe();
       });
     });
   });

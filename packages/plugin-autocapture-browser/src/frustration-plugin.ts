@@ -98,11 +98,12 @@ export const frustrationPlugin = (options: FrustrationInteractionsOptions = {}):
           // handle input and textarea
           const el: HTMLElement | null = document.activeElement as HTMLElement;
 
+          console.log('el', el, el.tagName);
           if (el && (el.tagName === 'TEXTAREA' || el.tagName === 'INPUT')) {
             const start = (el as HTMLInputElement | HTMLTextAreaElement).selectionStart;
             const end = (el as HTMLInputElement | HTMLTextAreaElement).selectionEnd;
             if (start === end) return; // collapsed
-            observer.next();
+            return observer.next();
           }
 
           // handle non-input elements
