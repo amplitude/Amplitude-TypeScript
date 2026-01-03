@@ -138,3 +138,5 @@ export {
 export { ReactNativeClient } from './types/client/react-native-client';
 
 export { Observable, asyncMap, merge, multicast, Unsubscribable } from './utils/observable';
+
+export { InstanceProxy } from './types/proxy';

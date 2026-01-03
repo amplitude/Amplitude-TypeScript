@@ -29,15 +29,15 @@
   },
   "scripts": {
     "build": "bob build",
-    "fix": "yarn fix:eslint & yarn fix:prettier",
+    "fix": "pnpm fix:eslint & pnpm fix:prettier",
     "fix:eslint": "eslint '{src,test}/**/*.ts' --fix",
     "fix:prettier": "prettier --write \"{src,test}/**/*.ts\"",
-    "lint": "yarn lint:prettier && yarn lint:eslint",
+    "lint": "pnpm lint:prettier && pnpm lint:eslint",
     "lint:eslint": "eslint '{src,test}/**/*.ts'",
     "lint:prettier": "prettier --check \"{src,test}/**/*.ts\"",
     "test": "jest",
     "typecheck": "tsc -p ./tsconfig.json",
-    "version": "yarn version-file && yarn build",
+    "version": "pnpm version-file && pnpm build",
     "version-file": "node -p \"'export const VERSION = \\'' + require('./package.json').version + '\\';'\" > src/version.ts",
     "typescript": "tsc --noEmit"
   },
@@ -53,7 +53,7 @@
     "url": "https://github.com/amplitude/Amplitude-TypeScript/issues"
   },
   "devDependencies": {
-    "@amplitude/session-replay-react-native": ">=0.0.1-beta.2 <1.0.0",
+    "@amplitude/session-replay-react-native": "workspace:*",
     "@segment/analytics-react-native": "2.15.0",
     "react-native-builder-bob": "^0.20.3"
   },

@@ -19,9 +19,9 @@ If you plan on contributing to this SDK, here's how you can start.
 ```
 $ git clone git@github.com:amplitude/Amplitude-TypeScript.git
 $ nvm use
-$ yarn --version
-$ yarn install
-$ yarn build
+$ pnpm --version
+$ pnpm install
+$ pnpm build
 ```
 
 Check our guidelines for repo contributions on [CONTRIBUTING.md](https://github.com/amplitude/Amplitude-TypeScript/blob/main/CONTRIBUTING.md).
@@ -45,13 +45,13 @@ To test the SDK locally, you can run our test server.
 
 Before running the test server for the first time, copy ".env.example" as ".env" and replace the variables in '.env' with your own variables.
 
-Run `yarn dev` to run the test server. It will open up to the home page automatically in your default browser.
+Run `pnpm dev` to run the test server. It will open up to the home page automatically in your default browser.
 
 For more details visit the [Test Server README.md](/test-server/README.md)
 
 ## Troubleshooting
 
-If you ever see an error that looks like this while running an Nx command (yarn test, yarn build, etc...):
+If you ever see an error that looks like this while running an Nx command (pnpm test, pnpm build, etc...):
 
 ```
  Lerna (powered by Nx)   DB transaction operation error: SqliteFailure(Error { code: SystemIoFailure, extended_code: 522 }, Some("disk I/O error"))

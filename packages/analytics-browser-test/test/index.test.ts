@@ -6,7 +6,7 @@ import { default as nock } from 'nock';
 import { success } from './responses';
 import 'isomorphic-fetch';
 import { path, url, SUCCESS_MESSAGE, uuidPattern } from './constants';
-import { LogLevel } from '@amplitude/analytics-types';
+import { LogLevel } from '@amplitude/analytics-core';
 import { UUID } from '@amplitude/analytics-core';
 
 describe('integration', () => {

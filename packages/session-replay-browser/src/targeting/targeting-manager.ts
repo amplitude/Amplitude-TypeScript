@@ -42,7 +42,7 @@ export const evaluateTargetingAndStore = async ({
     const targetingResult = await evaluateTargetingPackage({
       ...targetingParams,
       flag: targetingConfig,
-      sessionId: sessionId,
+      sessionId: typeof sessionId === 'string' ? parseInt(sessionId, 10) : sessionId,
       apiKey: apiKey,
       loggerProvider: loggerProvider,
     });

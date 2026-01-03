@@ -20,24 +20,22 @@ jobs:
       - name: Check out git repository
         uses: actions/checkout@v3
 
-      - name: Cache dependencies
-        uses: actions/cache@v3
-        with:
-          path: '**/node_modules'
-          key: ${{ runner.os }}-modules-${{ hashFiles('**/yarn.lock') }}
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
 
       - name: Setup Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
+          cache: 'pnpm'
 
       - name: Install project dependencies
         run: |
-          yarn install --frozen-lockfile
+          pnpm install --frozen-lockfile
 
       - name: Build all packages
         run: |
-          yarn build
+          pnpm build
 
       # https://github.com/amplitude/Amplitude-TypeScript/issues/281
       - name: Check module dependencies
@@ -54,12 +52,12 @@ jobs:
 
       - name: Build docs
         run: |
-          yarn docs:check
+          pnpm docs:check
 
       - name: Test all packages
         run: |
-          yarn test
+          pnpm test
 
       - name: Lint all packages
         run: |
-          yarn lint
+          pnpm lint

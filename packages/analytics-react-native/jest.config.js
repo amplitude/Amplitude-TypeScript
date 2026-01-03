@@ -10,6 +10,9 @@ module.exports = {
   modulePathIgnorePatterns: [
     "<rootDir>/lib/"
   ],
+  transformIgnorePatterns: [
+    'node_modules/(?!(.pnpm|@react-native|react-native|@segment)/)',
+  ],
   // TODO: get full coverage
   coverageThreshold: {
     global: {
