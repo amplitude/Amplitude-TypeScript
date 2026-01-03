@@ -73,7 +73,7 @@ function fileListingPlugin() {
           const files = await glob('**/*.html', {
             cwd: testServerDir,
             absolute: false,
-            ignore: ['**/dist/**']
+            ignore: ['**/dist/**', '**/node_modules/**']
           });
           
           const fileList = files.map(file => ({

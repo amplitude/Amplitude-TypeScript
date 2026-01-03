@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/amplitude.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>NPM Analytics Browser Test</title>
+  </head>
+  <body>
+    <div id="app">
+      <h1>NPM Analytics Browser Test</h1>
+      <p>This page tests importing @amplitude/analytics-browser from npm.</p>
+      <button id="trackEvent">Track Test Event</button>
+      <div id="status" style="margin-top: 10px;"></div>
+    </div>
+    <script type="module">
+      import * as amplitude from './node_modules/@amplitude/analytics-browser/lib/esm/index.js';
+      
+      window.amplitude = amplitude;
+      
+      const status = document.getElementById('status');
+      
+      amplitude.init(
+        import.meta.env.VITE_AMPLITUDE_API_KEY,
+        import.meta.env.VITE_AMPLITUDE_USER_ID || 'npm-test-user',
+        {
+          autocapture: true,
+        }
+      );
+      
+      amplitude.track('Testing Event');
+    </script>
+  </body>
+</html>
+
