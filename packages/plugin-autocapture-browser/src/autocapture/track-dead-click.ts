@@ -1,4 +1,4 @@
-import { AllWindowObservables } from 'src/frustration-plugin';
+import { AllWindowObservables } from '../frustration-plugin';
 import { BrowserClient, ActionType, merge, asyncMap } from '@amplitude/analytics-core';
 import { ElementBasedTimestampedEvent, filterOutNonTrackableEvents, shouldTrackEvent } from '../helpers';
 import { AMPLITUDE_ELEMENT_DEAD_CLICKED_EVENT } from '../constants';

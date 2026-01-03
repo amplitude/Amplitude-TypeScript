@@ -1,4 +1,4 @@
-import { AllWindowObservables, AutoCaptureOptionsWithDefaults } from 'src/autocapture-plugin';
+import { AllWindowObservables, AutoCaptureOptionsWithDefaults } from '../autocapture-plugin';
 import { BrowserClient, ActionType, merge, asyncMap } from '@amplitude/analytics-core';
 import {
   ElementBasedTimestampedEvent,

@@ -1,5 +1,5 @@
 import type { ElementInteractionsOptions, LabeledEvent, Trigger } from '@amplitude/analytics-core';
-import type { ElementBasedTimestampedEvent, ElementBasedEvent } from 'src/helpers';
+import type { ElementBasedTimestampedEvent, ElementBasedEvent } from '../helpers';
 import { matchEventToFilter } from './matchEventToFilter';
 import { executeActions } from './actions';
 import type { DataExtractor } from '../data-extractor';
