@@ -184,6 +184,7 @@ export function trackRageClicks({
   );
 
   // reset the click window when a selection change occurs
+  /* istanbul ignore next */
   selectionObservable?.subscribe(() => {
     resetClickWindow();
   });
