@@ -120,7 +120,7 @@ jobs:
       # Publish to NPM
       - name: Publish Release to NPM
         run: |
-          GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} pnpm deploy:publish --ignore-scripts
+          GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} pnpm deploy:publish
         env:
           S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
 
