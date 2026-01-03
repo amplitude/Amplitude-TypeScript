@@ -185,15 +185,23 @@ export function trackRageClicks({
 
   // reset the click window when a selection change occurs
   /* istanbul ignore next */
-  selectionObservable?.subscribe(() => {
+  const selectionSubscription = selectionObservable?.subscribe(() => {
     resetClickWindow();
   });
 
-  return rageClickObservable.subscribe((data: RageClickEvent | null) => {
+  const rageClickSubscription = rageClickObservable.subscribe((data: RageClickEvent | null) => {
     /* istanbul ignore if */
     if (data === null) {
       return;
     }
     amplitude.track(AMPLITUDE_ELEMENT_RAGE_CLICKED_EVENT, data.rageClickEvent, { time: data.time });
   });
+
+  return {
+    unsubscribe: () => {
+      rageClickSubscription.unsubscribe();
+      /* istanbul ignore next */
+      selectionSubscription?.unsubscribe();
+    },
+  };
 }
