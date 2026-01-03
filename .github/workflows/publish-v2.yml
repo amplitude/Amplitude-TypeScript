@@ -7,7 +7,7 @@ on:
         type: choice
         description: Release type (release for main branch, prerelease for feature branches)
         required: true
-        default: prerelease
+        default: release
         options:
           - release
           - prerelease
@@ -182,16 +182,9 @@ jobs:
             GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} pnpm deploy:version -y --no-private --conventional-prerelease --preid ${{ env.PREID }} --allow-branch ${{ steps.determine-branch.outputs.branch }} --create-release github
 
       # Use 'from git' option if `lerna version` has already been run
-      - name: Publish Pre-release to NPM
+      - name: Publish Release to NPM
         if: ${{ github.event.inputs.releaseType == 'prerelease' }}
         run: |
-          GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} pnpm deploy:publish --no-git-checks --ignore-scripts --tag ${{ env.PREID }}
+          GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} npm run deploy:publish -- from-git -y --ignore-scripts --pre-dist-tag ${{ env.PREID }}
         env:
           S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
-
-      - name: Dry run publish release to NPM
-        if: ${{ github.event.inputs.releaseType == 'dry-run' }}
-        env:
-          DRY_RUN: true
-        run: |
-          pnpm deploy:publish:dry-run
