@@ -15,9 +15,11 @@ import { AllWindowObservables } from '../../src/frustration-plugin';
 describe('trackRageClicks', () => {
   let mockAmplitude: jest.Mocked<BrowserClient>;
   let clickObservable: Observable<any>;
+  let selectionObservable: Observable<any>;
   let allObservables: AllWindowObservables;
   let shouldTrackRageClick: jest.Mock;
   let clickObserver: any;
+  let selectionObserver: any;
 
   beforeEach(() => {
     jest.useFakeTimers();
@@ -27,11 +29,15 @@ describe('trackRageClicks', () => {
     clickObservable = new Observable<any>((observer) => {
       clickObserver = observer;
     });
+    selectionObservable = new Observable<any>((observer) => {
+      selectionObserver = observer;
+    });
 
     allObservables = {
       [ObservablesEnum.ClickObservable]: clickObservable,
       [ObservablesEnum.NavigateObservable]: new Observable<any>(() => {}),
       [ObservablesEnum.MutationObservable]: new Observable<any>(() => {}),
+      [ObservablesEnum.SelectionObservable]: selectionObservable,
     };
     shouldTrackRageClick = jest.fn().mockReturnValue(true);
   });
@@ -42,12 +48,70 @@ describe('trackRageClicks', () => {
   });
 
   describe('selection change', () => {
-    it('should not track rage clicks when the text selection has changed', () => {
+    it('should not track rage clicks when the text selection has changed', async () => {
+      const subscription = trackRageClicks({
+        amplitude: mockAmplitude,
+        allObservables,
+        shouldTrackRageClick,
+      });
 
+      const mockElement = document.createElement('div');
+      const ancestorElement = document.createElement('div');
+      const startTime = Date.now();
+      for (let i = 0; i < DEFAULT_RAGE_CLICK_THRESHOLD; i++) {
+        clickObserver.next({
+          event: {
+            target: mockElement,
+            pageX: 100,
+            pageY: 100,
+          },
+          timestamp: startTime + i,
+          closestTrackedAncestor: ancestorElement,
+          targetElementProperties: { id: 'test-element' },
+        });
+        if (i === DEFAULT_RAGE_CLICK_THRESHOLD - 2) {
+          jest.advanceTimersByTime(10);
+          selectionObserver.next();
+        }
+      }
+      jest.advanceTimersByTime(DEFAULT_RAGE_CLICK_WINDOW_MS + 100);
+      await jest.runAllTimersAsync();
+      expect(mockAmplitude.track).not.toHaveBeenCalled();
+      subscription?.unsubscribe();
     });
 
-    it('should track rage click if selection changes but 4 clicks happen after selection change', () => {
+    it('should track rage click if selection changes but 4 clicks happen after selection change', async () => {
+      const subscription = trackRageClicks({
+        amplitude: mockAmplitude,
+        allObservables,
+        shouldTrackRageClick,
+      });
 
+      const mockElement = document.createElement('div');
+      const ancestorElement = document.createElement('div');
+      const startTime = Date.now();
+      for (let i = 0; i < DEFAULT_RAGE_CLICK_THRESHOLD + 3; i++) {
+        clickObserver.next({
+          event: {
+            target: mockElement,
+            pageX: 100,
+            pageY: 100,
+          },
+          timestamp: startTime + i,
+          closestTrackedAncestor: ancestorElement,
+          targetElementProperties: { id: 'test-element' },
+        });
+
+        // make the 3rd click trigger a selection change
+        if (i === 2) {
+          jest.advanceTimersByTime(10);
+          selectionObserver.next();
+        }
+      }
+      jest.advanceTimersByTime(DEFAULT_RAGE_CLICK_WINDOW_MS + 100);
+      await jest.runAllTimersAsync();
+      expect(mockAmplitude.track).toHaveBeenCalled();
+      subscription?.unsubscribe();
     });
   });
 

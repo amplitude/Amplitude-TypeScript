@@ -23,6 +23,7 @@ export interface AllWindowObservables {
   [ObservablesEnum.ClickObservable]: Observable<ElementBasedTimestampedEvent<MouseEvent>>;
   [ObservablesEnum.MutationObservable]: Observable<TimestampedEvent<MutationRecord[]>>;
   [ObservablesEnum.NavigateObservable]?: Observable<TimestampedEvent<NavigateEvent>>;
+  [ObservablesEnum.SelectionObservable]?: Observable<void>;
 }
 
 type BrowserEnrichmentPlugin = EnrichmentPlugin<BrowserClient, BrowserConfig>;
@@ -91,10 +92,36 @@ export const frustrationPlugin = (options: FrustrationInteractionsOptions = {}):
       );
     }
 
+    const selectionObservable = multicast(
+      new Observable<void>((observer) => {
+        const handler = () => {
+          // handle input and textarea
+          const el: HTMLElement | null = document.activeElement as HTMLElement;
+
+          if (el && (el.tagName === 'TEXTAREA' || el.tagName === 'INPUT')) {
+            const start = (el as HTMLInputElement | HTMLTextAreaElement).selectionStart;
+            const end = (el as HTMLInputElement | HTMLTextAreaElement).selectionEnd;
+            if (start === end) return; // collapsed
+            observer.next();
+          }
+
+          // handle non-input elements
+          const selection = window.getSelection();
+          if (!selection || selection.isCollapsed) return;
+          observer.next();
+        };
+        window.document.addEventListener('selectionchange', handler);
+        return () => {
+          window.document.removeEventListener('selectionchange', handler);
+        };
+      }),
+    );
+
     return {
       [ObservablesEnum.ClickObservable]: clickObservable as Observable<ElementBasedTimestampedEvent<MouseEvent>>,
       [ObservablesEnum.MutationObservable]: enrichedMutationObservable,
       [ObservablesEnum.NavigateObservable]: enrichedNavigateObservable,
+      [ObservablesEnum.SelectionObservable]: selectionObservable,
     };
   };
 

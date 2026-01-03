@@ -1,6 +1,5 @@
 import { AllWindowObservables } from '../frustration-plugin';
 import {
-  getGlobalScope,
   BrowserClient,
   asyncMap,
   DEFAULT_RAGE_CLICK_THRESHOLD,
@@ -96,8 +95,6 @@ function isNewElement(clickWindow: ClickEvent[], click: ClickEvent) {
   );
 }
 
-let currSelection: string | null = getGlobalScope()?.getSelection()?.toString() ?? null;
-
 export function trackRageClicks({
   amplitude,
   allObservables,
@@ -107,7 +104,7 @@ export function trackRageClicks({
   allObservables: AllWindowObservables;
   shouldTrackRageClick: shouldTrackEvent;
 }) {
-  const { clickObservable }: AllWindowObservables = allObservables;
+  const { clickObservable, selectionObservable }: AllWindowObservables = allObservables;
 
   // Keep track of all clicks within the sliding window
   let clickWindow: ClickEvent[] = [];
@@ -138,9 +135,6 @@ export function trackRageClicks({
       addCoordinates(clickBoundingBox, click);
 
       let resolutionValue: RageClickEvent | null = null;
-      let prevSelection: string | null = currSelection;
-      currSelection = getGlobalScope()?.getSelection()?.toString() ?? null;
-      console.log('prevSelection', prevSelection, 'currSelection', currSelection);
 
       // if current click is:
       //  1. first click in the window
@@ -153,14 +147,12 @@ export function trackRageClicks({
         clickWindow.length === 0 ||
         isNewElement(clickWindow, click) ||
         isClickOutsideRageClickWindow(clickWindow, click) ||
-        clickBoundingBox.isOutOfBounds ||
-        prevSelection !== getGlobalScope()?.getSelection()?.toString()
+        clickBoundingBox.isOutOfBounds
       ) {
         // if there was a previous Rage Click Event on deck, then send it
         if (pendingRageClick) {
           resolutionValue = getRageClickAnalyticsEvent(clickWindow);
         }
-
         resetClickWindow(click);
       } else {
         clickWindow.push(click);
@@ -191,6 +183,11 @@ export function trackRageClicks({
       return null;
     },
   );
+
+  // reset the click window when a selection change occurs
+  selectionObservable?.subscribe(() => {
+    resetClickWindow();
+  });
 
   return rageClickObservable.subscribe((data: RageClickEvent | null) => {
     /* istanbul ignore if */
