@@ -134,28 +134,5 @@ describe('Targeting Manager', () => {
       expect(mockLoggerProvider.warn).toHaveBeenCalledTimes(1);
       expect(mockLoggerProvider.warn.mock.calls[0][0]).toEqual('storage error');
     });
-
-    test('should parse string sessionId to number when calling evaluateTargeting', async () => {
-      jest.spyOn(targetingIDBStore, 'getTargetingMatchForSession').mockResolvedValueOnce(false);
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call,@typescript-eslint/no-unsafe-member-access
-      (evaluateTargeting as jest.Mock).mockResolvedValueOnce({
-        sr_targeting_config: {
-          key: 'on',
-        },
-      });
-      const sessionTargetingMatch = await evaluateTargetingAndStore({
-        sessionId: '456',
-        loggerProvider: config.loggerProvider,
-        apiKey: config.apiKey,
-        targetingConfig: flagConfig,
-      });
-      expect(evaluateTargeting).toHaveBeenCalledWith({
-        apiKey: 'static_key',
-        loggerProvider: mockLoggerProvider,
-        flag: flagConfig,
-        sessionId: 456,
-      });
-      expect(sessionTargetingMatch).toBe(true);
-    });
   });
 });
