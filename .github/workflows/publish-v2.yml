@@ -7,7 +7,7 @@ on:
         type: choice
         description: Release type (release for main branch, prerelease for feature branches)
         required: true
-        default: release
+        default: prerelease
         options:
           - release
           - prerelease
@@ -181,9 +181,16 @@ jobs:
         run: |
             GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} pnpm deploy:version -y --no-private --conventional-prerelease --preid ${{ env.PREID }} --allow-branch ${{ steps.determine-branch.outputs.branch }} --create-release github
 
-      - name: Publish Release to NPM
+      - name: Publish Pre-release to NPM
         if: ${{ github.event.inputs.releaseType == 'prerelease' }}
         run: |
-          GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} pnpm deploy:publish --tag ${{ env.PREID }}
+          GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} pnpm deploy:publish --no-git-checks --ignore-scripts --tag ${{ env.PREID }}
         env:
           S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
+
+      - name: Dry run publish release to NPM
+        if: ${{ github.event.inputs.releaseType == 'dry-run' }}
+        env:
+          DRY_RUN: true
+        run: |
+          pnpm deploy:publish:dry-run
