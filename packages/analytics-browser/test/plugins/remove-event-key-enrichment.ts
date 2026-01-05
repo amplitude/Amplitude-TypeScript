@@ -1,5 +1,4 @@
-import { EnrichmentPlugin } from '@amplitude/analytics-types';
-import { BaseEvent } from '@amplitude/analytics-types/src';
+import { BaseEvent, Event, EnrichmentPlugin } from '@amplitude/analytics-core';
 
 type KeyOfEvent = keyof BaseEvent;
 
@@ -20,7 +19,7 @@ export const removeEventKeyEnrichment = (keysToRemove: KeyOfEvent[] = []): Enric
     name: 'remove-event-key-enrichment',
     type: 'enrichment',
     setup: async () => undefined,
-    execute: async (event) => {
+    execute: async (event: Event) => {
       for (var key of keysToRemove) {
         delete event[key];
       }

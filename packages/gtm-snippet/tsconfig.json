@@ -1,11 +1,12 @@
 {
   "extends": "../../tsconfig.json",
-  "include": ["src/**/*"],
+  "include": ["e2e/**/*"],
   "compilerOptions": {
     "baseUrl": ".",
     "esModuleInterop": true,
-    "lib": ["dom", "es2020"],
+    "lib": ["dom"],
     "noEmit": true,
     "rootDir": "."
   }
 }
+

@@ -25,20 +25,23 @@ runs:
       uses: actions/cache@v3
       with:
         path: '**/node_modules'
-        key: ${{ runner.os }}-modules-${{ hashFiles('**/yarn.lock') }}
+        key: ${{ runner.os }}-modules-${{ hashFiles('**/pnpm-lock.yaml') }}
 
     - name: Setup Node.js
       uses: actions/setup-node@v3
       with:
         node-version: ${{ inputs.node-version }}
 
+    - name: Setup pnpm
+      uses: pnpm/action-setup@v4
+
     - name: Install project dependencies
       shell: bash
-      run: yarn install --frozen-lockfile
+      run: pnpm install --frozen-lockfile
 
     - name: Build all packages
       shell: bash
-      run: yarn build
+      run: pnpm build
 
     - name: Create .env file
       shell: bash
@@ -49,14 +52,14 @@ runs:
     - name: Start dev server
       shell: bash
       run: |
-        yarn build:vite
-        yarn start --port ${{ inputs.server-port }} &
+        pnpm build:vite
+        pnpm start --port ${{ inputs.server-port }} &
         sleep 10
         curl -f http://localhost:${{ inputs.server-port }} || exit 1
 
     - name: Run Playwright tests
       shell: bash
-      run: yarn test:playwright:ci
+      run: pnpm test:playwright:ci
 
     - name: Upload Playwright Report
       if: always()
