@@ -4,6 +4,7 @@ import {
   type BrowserConfig,
   type EnrichmentPlugin,
   type ElementInteractionsOptions,
+  DEFAULT_EXPOSURE_DURATION,
   DEFAULT_CSS_SELECTOR_ALLOWLIST,
   DEFAULT_ACTION_CLICK_ALLOWLIST,
   DEFAULT_DATA_ATTRIBUTE_PREFIX,
@@ -98,6 +99,7 @@ export const autocapturePlugin = (
   options.cssSelectorAllowlist = options.cssSelectorAllowlist ?? DEFAULT_CSS_SELECTOR_ALLOWLIST;
   options.actionClickAllowlist = options.actionClickAllowlist ?? DEFAULT_ACTION_CLICK_ALLOWLIST;
   options.debounceTime = options.debounceTime ?? 0;
+  options.exposureDuration = options.exposureDuration ?? DEFAULT_EXPOSURE_DURATION;
 
   options.pageUrlExcludelist = options.pageUrlExcludelist?.reduce(
     (acc: (string | RegExp | { pattern: string })[], excludePattern) => {
@@ -353,6 +355,7 @@ export const autocapturePlugin = (
       allObservables,
       onExposure: handleExposure,
       dataExtractor,
+      exposureDuration: options.exposureDuration,
     });
     if (trackers.exposure) {
       subscriptions.push(trackers.exposure);

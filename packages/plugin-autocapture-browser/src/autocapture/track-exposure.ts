@@ -2,17 +2,19 @@
 import { AllWindowObservables } from '../autocapture-plugin';
 import { DataExtractor } from '../data-extractor';
 
-// Element must be visible for 1 second to count as "exposed"
-const EXPOSURE_TIMEOUT = 1_000;
+// Default duration an element must be visible to count as "exposed"
+export const DEFAULT_EXPOSURE_DURATION = 150;
 
 export function trackExposure({
   allObservables,
   onExposure,
   dataExtractor,
+  exposureDuration = DEFAULT_EXPOSURE_DURATION,
 }: {
   allObservables: AllWindowObservables;
   onExposure: (elementPath: string) => void;
   dataExtractor: DataExtractor;
+  exposureDuration?: number;
 }) {
   // Track which elements have been marked as exposed (per-element state)
   const exposureMap = new Map<Element, boolean>();
@@ -30,7 +32,7 @@ export function trackExposure({
       // Element became visible - start exposure timer if not already exposed
       if (!exposureMap.get(element)) {
         const timer = setTimeout(() => {
-          // Element has been visible for EXPOSURE_TIMEOUT - mark as exposed
+          // Element has been visible for exposureDuration - mark as exposed
           exposureMap.set(element, true);
 
           // Record the CSS selector path in the shared exposure state
@@ -39,7 +41,7 @@ export function trackExposure({
 
           // Clear the timer reference
           exposureTimerMap.set(element, null);
-        }, EXPOSURE_TIMEOUT);
+        }, exposureDuration);
 
         exposureTimerMap.set(element, timer);
       }

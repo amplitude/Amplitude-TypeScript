@@ -123,6 +123,77 @@ describe('autoTrackingPlugin', () => {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       expect((messengerMock as any).setup).toHaveBeenCalledTimes(1);
     });
+
+    test('should use custom exposureDuration when provided', async () => {
+      const customDuration = 500;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let intersectionCallback: (entries: any[]) => void;
+
+      // Mock IntersectionObserver
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (window as any).IntersectionObserver = jest.fn((cb) => {
+        intersectionCallback = cb;
+        return {
+          observe: jest.fn(),
+          disconnect: jest.fn(),
+        };
+      });
+
+      plugin = autocapturePlugin({
+        exposureDuration: customDuration,
+      });
+      const loggerProvider: Partial<ILogger> = {
+        log: jest.fn(),
+        warn: jest.fn(),
+        error: jest.fn(),
+      };
+      const config: Partial<BrowserConfig> = {
+        defaultTracking: false,
+        loggerProvider: loggerProvider as ILogger,
+      };
+      const amplitude = createMockBrowserClient();
+      await amplitude.init('API_KEY', 'USER_ID').promise;
+      const track = jest.spyOn(amplitude, 'track').mockImplementation(jest.fn());
+
+      await plugin?.setup?.(config as BrowserConfig, amplitude);
+
+      // Create and expose an element
+      const element = document.createElement('button');
+      element.id = 'exposure-test-button';
+      document.body.appendChild(element);
+
+      // Trigger intersection (element becomes visible)
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      intersectionCallback!([
+        {
+          isIntersecting: true,
+          intersectionRatio: 1.0,
+          target: element,
+        },
+      ]);
+
+      // Should not be exposed before custom duration
+      jest.advanceTimersByTime(customDuration - 50);
+      expect(track).not.toHaveBeenCalledWith('[Amplitude] Viewport Content Updated', expect.anything());
+
+      // Should be exposed after custom duration
+      jest.advanceTimersByTime(100);
+
+      // Trigger page end to flush the exposure
+      window.dispatchEvent(new Event('beforeunload'));
+
+      expect(track).toHaveBeenCalledWith(
+        '[Amplitude] Viewport Content Updated',
+        expect.objectContaining({
+          '[Amplitude] Element Exposed': expect.arrayContaining(['button#exposure-test-button']),
+        }),
+      );
+
+      // Cleanup
+      element.remove();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (window as any).IntersectionObserver = undefined;
+    });
   });
 
   describe('execute', () => {

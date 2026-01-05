@@ -1,6 +1,7 @@
 import { trackExposure } from '../../src/autocapture/track-exposure';
 import { AllWindowObservables, ObservablesEnum } from '../../src/autocapture-plugin';
 import { DataExtractor } from '../../src';
+import { DEFAULT_EXPOSURE_DURATION } from '@amplitude/analytics-core';
 
 describe('trackExposure', () => {
   let exposureObservable: any;
@@ -80,7 +81,7 @@ describe('trackExposure', () => {
       intersectionRatio: 1.0,
     });
 
-    jest.advanceTimersByTime(250);
+    jest.advanceTimersByTime(50);
 
     // Element leaves viewport
     triggerExposure({
@@ -89,7 +90,7 @@ describe('trackExposure', () => {
       intersectionRatio: 0,
     });
 
-    jest.advanceTimersByTime(500);
+    jest.advanceTimersByTime(50);
 
     expect(onExposure).not.toHaveBeenCalled();
   });
@@ -106,7 +107,7 @@ describe('trackExposure', () => {
       intersectionRatio: 1.0,
     });
 
-    jest.advanceTimersByTime(2000);
+    jest.advanceTimersByTime(DEFAULT_EXPOSURE_DURATION * 1.5);
     expect(onExposure).toHaveBeenCalledWith('div#test-div-repeat');
     expect(setTimeoutSpy).toHaveBeenCalledTimes(1);
 
@@ -143,7 +144,7 @@ describe('trackExposure', () => {
       intersectionRatio: 1.0,
     });
 
-    jest.advanceTimersByTime(500);
+    jest.advanceTimersByTime(DEFAULT_EXPOSURE_DURATION / 2);
 
     // Start element 2
     triggerExposure({
@@ -153,12 +154,12 @@ describe('trackExposure', () => {
     });
 
     // Element 1 finishes
-    jest.advanceTimersByTime(500);
+    jest.advanceTimersByTime(DEFAULT_EXPOSURE_DURATION / 2);
     expect(onExposure).toHaveBeenCalledWith('div#div-1');
     expect(onExposure).not.toHaveBeenCalledWith('div#div-2');
 
     // Element 2 finishes
-    jest.advanceTimersByTime(500);
+    jest.advanceTimersByTime(DEFAULT_EXPOSURE_DURATION / 2);
     expect(onExposure).toHaveBeenCalledWith('div#div-2');
   });
 
@@ -173,7 +174,7 @@ describe('trackExposure', () => {
       intersectionRatio: 1.0,
     });
 
-    jest.advanceTimersByTime(500);
+    jest.advanceTimersByTime(DEFAULT_EXPOSURE_DURATION / 2);
 
     triggerExposure({
       isIntersecting: false,
@@ -183,7 +184,7 @@ describe('trackExposure', () => {
 
     expect(clearTimeoutSpy).toHaveBeenCalled();
 
-    jest.advanceTimersByTime(2000);
+    jest.advanceTimersByTime(DEFAULT_EXPOSURE_DURATION * 1.5);
     expect(onExposure).not.toHaveBeenCalled();
   });
 
@@ -200,7 +201,7 @@ describe('trackExposure', () => {
       target: element2,
       intersectionRatio: 1.0,
     });
-    jest.advanceTimersByTime(2000);
+    jest.advanceTimersByTime(DEFAULT_EXPOSURE_DURATION * 1.5);
     expect(onExposure).toHaveBeenCalledWith('div#reset-div-2');
     onExposure.mockClear();
 
@@ -218,7 +219,7 @@ describe('trackExposure', () => {
     expect(clearTimeoutSpy).toHaveBeenCalled();
 
     // Fast forward to see if pending timer fires (should not)
-    jest.advanceTimersByTime(2000);
+    jest.advanceTimersByTime(DEFAULT_EXPOSURE_DURATION * 1.5);
     expect(onExposure).not.toHaveBeenCalledWith('div#reset-div-1');
 
     // Re-expose element 2 (should work again because map was cleared)
@@ -227,7 +228,7 @@ describe('trackExposure', () => {
       target: element2,
       intersectionRatio: 1.0,
     });
-    jest.advanceTimersByTime(2000);
+    jest.advanceTimersByTime(DEFAULT_EXPOSURE_DURATION * 1.5);
     expect(onExposure).toHaveBeenCalledWith('div#reset-div-2');
   });
 });

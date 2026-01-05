@@ -35,6 +35,8 @@ export const DEFAULT_DATA_ATTRIBUTE_PREFIX = 'data-amp-track-';
  */
 export const DEFAULT_ACTION_CLICK_ALLOWLIST = ['div', 'span', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'];
 
+export const DEFAULT_EXPOSURE_DURATION = 150;
+
 export interface ElementInteractionsOptions {
   /**
    * List of CSS selectors to allow auto tracking on.
@@ -109,6 +111,12 @@ export interface ElementInteractionsOptions {
    * RegExp pattern list to allow custom patterns for text masking
    */
   maskTextRegex?: (RegExp | { pattern: string; description: string })[];
+
+  /**
+   * Duration in milliseconds an element must be visible before it is considered exposed.
+   * Default is 150ms.
+   */
+  exposureDuration?: number;
 }
 
 type MatchingCondition = {
