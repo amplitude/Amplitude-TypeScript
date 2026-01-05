@@ -1,6 +1,6 @@
 {
   "name": "@amplitude/gtm-snippet",
-  "version": "2.33.1",
+  "version": "2.33.2-fake-branch-1141.0",
   "description": "Amplitude JS SDK Wrapper for use with Google Tag Manager",
   "publishConfig": {
     "access": "public",
