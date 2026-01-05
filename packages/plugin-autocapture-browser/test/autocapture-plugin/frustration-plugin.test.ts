@@ -405,6 +405,27 @@ describe('frustrationPlugin', () => {
 
         expect(selectionSpy).not.toHaveBeenCalled();
       });
+
+      it('should not trigger on input element that does not support selectionStart/selectionEnd (like checkbox)', async () => {
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        // make .selectionStart and .selectionEnd throw an error
+        // simulating "Chrome" behavior
+        Object.defineProperty(checkbox, 'selectionStart', {
+          get: () => {
+            throw new Error('Not supported');
+          },
+        });
+        Object.defineProperty(checkbox, 'selectionEnd', {
+          get: () => {
+            throw new Error('Not supported');
+          },
+        });
+        document.body.appendChild(checkbox);
+        checkbox.focus(); // This sets document.activeElement to the checkbox
+        (window.document as any).dispatchEvent(new Event('selectionchange'));
+        document.body.removeChild(checkbox);
+      });
     });
   });
 });

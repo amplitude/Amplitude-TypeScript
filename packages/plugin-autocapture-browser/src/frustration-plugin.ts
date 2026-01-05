@@ -99,9 +99,17 @@ export const frustrationPlugin = (options: FrustrationInteractionsOptions = {}):
           const el: HTMLElement | null = document.activeElement as HTMLElement;
 
           if (el && (el.tagName === 'TEXTAREA' || el.tagName === 'INPUT')) {
-            const start = (el as HTMLInputElement | HTMLTextAreaElement).selectionStart;
-            const end = (el as HTMLInputElement | HTMLTextAreaElement).selectionEnd;
-            if (start === end) return; // collapsed
+            let start: number | null | undefined;
+            let end: number | null | undefined;
+            try {
+              start = (el as HTMLInputElement | HTMLTextAreaElement).selectionStart;
+              end = (el as HTMLInputElement | HTMLTextAreaElement).selectionEnd;
+              if (start === end) return; // collapsed
+            } catch (error) {
+              // input that doesn't support selectionStart/selectionEnd (like checkbox)
+              // do nothing here
+              return;
+            }
             return observer.next();
           }
 
