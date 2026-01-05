@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.6.7-fake-branch.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-page-view-tracking-browser@2.6.6...@amplitude/plugin-page-view-tracking-browser@2.6.7-fake-branch.0) (2026-01-05)
+
+**Note:** Version bump only for package @amplitude/plugin-page-view-tracking-browser
+
+
+
+
+
 ## [2.6.6](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-page-view-tracking-browser@2.6.5...@amplitude/plugin-page-view-tracking-browser@2.6.6) (2025-12-24)
 
 **Note:** Version bump only for package @amplitude/plugin-page-view-tracking-browser
