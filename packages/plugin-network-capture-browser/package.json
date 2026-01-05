@@ -1,6 +1,6 @@
 {
   "name": "@amplitude/plugin-network-capture-browser",
-  "version": "1.7.3",
+  "version": "1.7.4-feat-zoning-010526.0",
   "description": "",
   "author": "Amplitude Inc",
   "homepage": "https://github.com/amplitude/Amplitude-TypeScript",
@@ -40,7 +40,7 @@
     "url": "https://github.com/amplitude/Amplitude-TypeScript/issues"
   },
   "dependencies": {
-    "@amplitude/analytics-core": "2.35.0",
+    "@amplitude/analytics-core": "2.35.1-feat-zoning-010526.0",
     "tslib": "^2.4.1"
   },
   "devDependencies": {

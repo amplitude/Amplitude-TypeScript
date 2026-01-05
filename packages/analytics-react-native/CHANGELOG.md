@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.5.33-feat-zoning-010526.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-react-native@1.5.32...@amplitude/analytics-react-native@1.5.33-feat-zoning-010526.0) (2026-01-05)
+
+**Note:** Version bump only for package @amplitude/analytics-react-native
+
+
+
+
+
 ## [1.5.32](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-react-native@1.5.31...@amplitude/analytics-react-native@1.5.32) (2025-12-24)
 
 **Note:** Version bump only for package @amplitude/analytics-react-native

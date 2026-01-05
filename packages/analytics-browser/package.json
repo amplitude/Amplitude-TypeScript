@@ -1,6 +1,6 @@
 {
   "name": "@amplitude/analytics-browser",
-  "version": "2.33.1",
+  "version": "2.33.2-feat-zoning-010526.0",
   "description": "Official Amplitude SDK for Web",
   "keywords": [
     "analytics",
@@ -47,12 +47,12 @@
     "url": "https://github.com/amplitude/Amplitude-TypeScript/issues"
   },
   "dependencies": {
-    "@amplitude/analytics-core": "2.35.0",
-    "@amplitude/plugin-autocapture-browser": "1.18.3",
-    "@amplitude/plugin-network-capture-browser": "1.7.3",
-    "@amplitude/plugin-page-url-enrichment-browser": "0.5.9",
-    "@amplitude/plugin-page-view-tracking-browser": "2.6.6",
-    "@amplitude/plugin-web-vitals-browser": "1.1.4",
+    "@amplitude/analytics-core": "2.35.1-feat-zoning-010526.0",
+    "@amplitude/plugin-autocapture-browser": "1.19.0-feat-zoning-010526.0",
+    "@amplitude/plugin-network-capture-browser": "1.7.4-feat-zoning-010526.0",
+    "@amplitude/plugin-page-url-enrichment-browser": "0.5.10-feat-zoning-010526.0",
+    "@amplitude/plugin-page-view-tracking-browser": "2.7.0-feat-zoning-010526.0",
+    "@amplitude/plugin-web-vitals-browser": "1.1.5-feat-zoning-010526.0",
     "tslib": "^2.4.1"
   },
   "devDependencies": {
