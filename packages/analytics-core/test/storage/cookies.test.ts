@@ -1,8 +1,10 @@
 /**
  * @jest-environment jsdom
+ * @jest-environment-options { "url": "https://www.example.com" }
  */
-
+/* eslint-disable @typescript-eslint/no-unsafe-return */
 import { CookieStorage } from '../../src/storage/cookie';
+import { isDomainEqual } from '../../src/index';
 import * as GlobalScopeModule from '../../src/global-scope';
 
 describe('cookies', () => {
@@ -141,6 +143,92 @@ describe('cookies', () => {
     test('should return undefined', async () => {
       const cookies = new CookieStorage();
       expect(await cookies.reset()).toBe(undefined);
+    });
+  });
+  describe('duplicateResolverFn', () => {
+    let tldCookies: CookieStorage<Record<string, string>>;
+    let subdomainCookies: CookieStorage<Record<string, string>>;
+    beforeEach(() => {
+      tldCookies = new CookieStorage<Record<string, string>>({
+        domain: 'example.com',
+        duplicateResolverFn: (value: string) => {
+          const decodedValue = decodeURIComponent(atob(value));
+          const parsedValue = JSON.parse(decodedValue);
+          if (parsedValue.a === 'keep') {
+            return true;
+          }
+          return false;
+        },
+      });
+      subdomainCookies = new CookieStorage<Record<string, string>>({
+        domain: 'www.example.com',
+      });
+    });
+    test('should de-duplicate cookies', async () => {
+      await tldCookies.set('dummy', { a: 'ignore' });
+
+      // set 2 conflicting cookies on example.com and www.example.com
+      await tldCookies.set('hello', { a: 'ignore' });
+      await subdomainCookies.set('hello', { a: 'keep' });
+
+      // should resolve to the cookie that
+      expect(await tldCookies.get('hello')).toEqual({ a: 'keep' });
+      await tldCookies.remove('hello');
+    });
+  });
+
+  describe('cookieStore', () => {
+    let cookieStorage: CookieStorage<string>;
+    let globalScope: any;
+    beforeEach(() => {
+      cookieStorage = new CookieStorage({
+        useCookieStore: true,
+        domain: 'domain.com',
+      });
+      globalScope = GlobalScopeModule.getGlobalScope() || {};
+      const cookies: any = {};
+
+      // setting up cookieStore mock because JSDom doesn't support cookieStore
+      globalScope.cookieStore = {
+        set({ name, value, domain }: any) {
+          cookies[domain] = cookies[domain] || {};
+          cookies[domain][name] = value;
+        },
+        getAll(key: string) {
+          const output: any[] = [];
+          for (const domain of Object.keys(cookies)) {
+            output.push({
+              key,
+              value: cookies[domain][key],
+              domain,
+            });
+          }
+          return output;
+        },
+      };
+    });
+
+    afterAll(() => {
+      delete globalScope.cookieStore;
+    });
+
+    test('should read from cookieStore', async () => {
+      const value = {
+        hello: 'world!',
+      };
+      await globalScope.cookieStore.set({
+        name: 'hello',
+        value: btoa(encodeURIComponent(JSON.stringify(value))),
+        domain: 'domain.com',
+      });
+      expect(await cookieStorage.get('hello')).toEqual({ hello: 'world!' });
+    });
+  });
+
+  describe('isDomainEqual', () => {
+    test('should return true if domains are equal disregard leading .', () => {
+      expect(isDomainEqual('.domain.com', 'domain.com')).toBe(true);
+      expect(isDomainEqual('domain.com', '.domain.com')).toBe(true);
     });
   });
 });

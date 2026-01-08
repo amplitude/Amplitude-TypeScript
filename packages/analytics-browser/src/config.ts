@@ -28,6 +28,7 @@ import {
   NetworkTrackingOptions,
   IIdentify,
   IDiagnosticsClient,
+  isDomainEqual,
 } from '@amplitude/analytics-core';
 
 import { LocalStorage } from './storage/local-storage';
@@ -242,6 +243,7 @@ export class BrowserConfig extends Config implements IBrowserConfig {
       lastEventId: this._lastEventId,
       pageCounter: this._pageCounter,
       debugLogsEnabled: this._debugLogsEnabled,
+      cookieDomain: this.cookieOptions.domain,
     };
     void this.cookieStorage.set(getCookieName(this.apiKey), cache);
   }
@@ -261,6 +263,13 @@ export const useBrowserConfig = async (
     sameSite: 'Lax' as const,
     secure: false,
     upgrade: true,
+    duplicateResolverFn: (value: string): boolean => {
+      const parsed = JSON.parse(decodeURIComponent(atob(value))) as UserSession;
+      if (cookieOptions.domain && parsed.cookieDomain && isDomainEqual(parsed.cookieDomain, cookieOptions.domain)) {
+        return true;
+      }
+      return false;
+    },
     ...options.cookieOptions,
   };
   const cookieStorage = createCookieStorage<UserSession>(options.identityStorage, cookieOptions);

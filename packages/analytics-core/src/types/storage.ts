@@ -12,6 +12,8 @@ export interface CookieStorageOptions {
   expirationDays?: number;
   sameSite?: string;
   secure?: boolean;
+  useCookieStore?: boolean;
+  duplicateResolverFn?: (value: string) => boolean;
 }
 
 export type IdentityStorageType = 'cookie' | 'localStorage' | 'sessionStorage' | 'none';
