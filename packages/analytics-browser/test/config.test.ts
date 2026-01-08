@@ -113,7 +113,6 @@ describe('config', () => {
           sameSite: 'Lax',
           secure: false,
           upgrade: true,
-          duplicateResolverFn: expect.any(Function),
         },
         defaultTracking: undefined,
         identityStorage: DEFAULT_IDENTITY_STORAGE,
@@ -217,7 +216,6 @@ describe('config', () => {
           sameSite: 'Lax',
           secure: false,
           upgrade: false,
-          duplicateResolverFn: expect.any(Function),
         },
         defaultTracking: true,
         flushIntervalMillis: 1000,
@@ -386,6 +384,7 @@ describe('config', () => {
       jest.spyOn(BrowserUtils, 'CookieStorage').mockReturnValueOnce({
         ...testCookieStorage,
         options: {},
+        config: {},
       });
       const domain = await Config.getTopLevelDomain();
       expect(domain).toBe('');
@@ -413,10 +412,12 @@ describe('config', () => {
         .mockReturnValueOnce({
           ...testCookieStorage,
           options: {},
+          config: {},
         })
         .mockReturnValue({
           ...actualCookieStorage,
           options: {},
+          config: {},
         });
       expect(await Config.getTopLevelDomain('www.legislation.gov.uk')).toBe('.legislation.gov.uk');
     });

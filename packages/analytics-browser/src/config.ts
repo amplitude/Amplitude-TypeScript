@@ -29,6 +29,7 @@ import {
   IIdentify,
   IDiagnosticsClient,
   isDomainEqual,
+  CookieStorageConfig,
 } from '@amplitude/analytics-core';
 
 import { LocalStorage } from './storage/local-storage';
@@ -269,12 +270,15 @@ export const useBrowserConfig = async (
     secure: false,
     upgrade: true,
     ...options.cookieOptions,
+  };
+
+  const cookieConfig: CookieStorageConfig = {
     duplicateResolverFn: (value: string): boolean => {
       const parsed = JSON.parse(decodeURIComponent(atob(value))) as UserSession;
       return isDomainEqual(parsed.cookieDomain, cookieOptions.domain);
     },
   };
-  const cookieStorage = createCookieStorage<UserSession>(options.identityStorage, cookieOptions);
+  const cookieStorage = createCookieStorage<UserSession>(options.identityStorage, cookieOptions, cookieConfig);
 
   // Step 1: Parse cookies using identity storage instance
   const legacyCookies = await parseLegacyCookies(apiKey, cookieStorage, options.cookieOptions?.upgrade ?? true);
@@ -369,6 +373,7 @@ export const useBrowserConfig = async (
 export const createCookieStorage = <T>(
   identityStorage: IdentityStorageType = DEFAULT_IDENTITY_STORAGE,
   cookieOptions: CookieOptions = {},
+  cookieConfig?: CookieStorageConfig,
 ) => {
   switch (identityStorage) {
     case 'localStorage':
@@ -379,10 +384,13 @@ export const createCookieStorage = <T>(
       return new MemoryStorage<T>();
     case 'cookie':
     default:
-      return new CookieStorage<T>({
-        ...cookieOptions,
-        expirationDays: cookieOptions.expiration,
-      });
+      return new CookieStorage<T>(
+        {
+          ...cookieOptions,
+          expirationDays: cookieOptions.expiration,
+        },
+        cookieConfig,
+      );
   }
 };
 

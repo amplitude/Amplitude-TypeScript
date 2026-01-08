@@ -149,17 +149,21 @@ describe('cookies', () => {
     let tldCookies: CookieStorage<Record<string, string>>;
     let subdomainCookies: CookieStorage<Record<string, string>>;
     beforeEach(() => {
-      tldCookies = new CookieStorage<Record<string, string>>({
-        domain: 'example.com',
-        duplicateResolverFn: (value: string) => {
-          const decodedValue = decodeURIComponent(atob(value));
-          const parsedValue = JSON.parse(decodedValue);
-          if (parsedValue.a === 'keep') {
-            return true;
-          }
-          return false;
+      tldCookies = new CookieStorage<Record<string, string>>(
+        {
+          domain: 'example.com',
         },
-      });
+        {
+          duplicateResolverFn: (value: string) => {
+            const decodedValue = decodeURIComponent(atob(value));
+            const parsedValue = JSON.parse(decodedValue);
+            if (parsedValue.a === 'keep') {
+              return true;
+            }
+            return false;
+          },
+        },
+      );
       subdomainCookies = new CookieStorage<Record<string, string>>({
         domain: 'www.example.com',
       });

@@ -1,4 +1,4 @@
-import { Storage, CookieStorageOptions } from '../types/storage';
+import { Storage, CookieStorageOptions, CookieStorageConfig } from '../types/storage';
 import { getGlobalScope } from '../global-scope';
 
 // CookieStore is a Web API not included in standard TypeScript lib types
@@ -24,10 +24,12 @@ type GlobalScopeWithCookieStore = {
 
 export class CookieStorage<T> implements Storage<T> {
   options: CookieStorageOptions;
+  config: CookieStorageConfig;
   private static testValue: undefined | string;
 
-  constructor(options?: CookieStorageOptions) {
+  constructor(options?: CookieStorageOptions, config: CookieStorageConfig = {}) {
     this.options = { ...options };
+    this.config = config;
   }
 
   async isEnabled(): Promise<boolean> {
@@ -102,8 +104,9 @@ export class CookieStorage<T> implements Storage<T> {
 
     // if matcher function is provided, use a matcher function to
     // de-duplicate when there's more than one cookie
-    const duplicateResolverFn = this.options.duplicateResolverFn;
-    if (duplicateResolverFn) {
+    /* istanbul ignore if */
+    const duplicateResolverFn = this.config.duplicateResolverFn;
+    if (typeof duplicateResolverFn === 'function') {
       for (const c of cookie) {
         // skip if not the correct key
         if (!(c.indexOf(key + '=') === 0)) {

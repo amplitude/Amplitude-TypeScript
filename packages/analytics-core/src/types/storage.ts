@@ -13,6 +13,17 @@ export interface CookieStorageOptions {
   sameSite?: string;
   secure?: boolean;
   useCookieStore?: boolean;
+}
+
+/**
+ * Configuration for CookieStorage behavior.
+ * Separated from options to keep storage-specific config distinct from cookie attributes.
+ */
+export interface CookieStorageConfig {
+  /**
+   * Function to resolve duplicate cookies when multiple cookies with the same key exist.
+   * Returns true if the cookie value should be used, false otherwise.
+   */
   duplicateResolverFn?: (value: string) => boolean;
 }
 

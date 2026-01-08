@@ -39,7 +39,7 @@ export { RemoteConfigClient, IRemoteConfigClient, RemoteConfig, Source } from '.
 
 export { LogLevel } from './types/loglevel';
 export { AMPLITUDE_PREFIX, STORAGE_PREFIX } from './types/constants';
-export { Storage, IdentityStorageType } from './types/storage';
+export { Storage, IdentityStorageType, CookieStorageConfig } from './types/storage';
 export {
   Event,
   IdentifyOperation,
