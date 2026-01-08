@@ -10,6 +10,7 @@ import {
   getCookieName,
   FetchTransport,
   Logger,
+  BrowserConfig,
 } from '@amplitude/analytics-core';
 import * as BrowserUtils from '@amplitude/analytics-core';
 import { XHRTransport } from '../src/transports/xhr';
@@ -483,6 +484,36 @@ describe('config', () => {
         instance,
       );
       expect(config.remoteConfig?.fetchRemoteConfig).toBe(false);
+    });
+  });
+
+  describe('duplicateResolverFn', () => {
+    const encodeJson = (session: UserSession) => btoa(encodeURIComponent(JSON.stringify(session)));
+
+    let config: BrowserConfig;
+    let cookieStorage: BrowserUtils.CookieStorage<UserSession>;
+    let duplicateResolverFn: ((value: string) => boolean) | undefined;
+
+    beforeEach(async () => {
+      config = await Config.useBrowserConfig(
+        apiKey,
+        { cookieOptions: { domain: '.amplitude.com' } },
+        new AmplitudeBrowser(),
+      );
+      cookieStorage = config.cookieStorage as BrowserUtils.CookieStorage<UserSession>;
+      duplicateResolverFn = cookieStorage.config.duplicateResolverFn;
+    });
+
+    test('should return true when cookieDomain matches config domain', async () => {
+      expect(duplicateResolverFn?.(encodeJson({ optOut: false, cookieDomain: '.amplitude.com' }))).toBe(true);
+    });
+
+    test('should return false when cookieDomain does not match config domain', async () => {
+      expect(duplicateResolverFn?.(encodeJson({ optOut: false, cookieDomain: '.other.com' }))).toBe(false);
+    });
+
+    test('should return false when cookieDomain is not set', async () => {
+      expect(duplicateResolverFn?.(encodeJson({ optOut: false }))).toBe(false);
     });
   });
 });
