@@ -186,7 +186,6 @@ describe('cookies', () => {
     let globalScope: any;
     beforeEach(() => {
       cookieStorage = new CookieStorage({
-        useCookieStore: true,
         domain: 'domain.com',
       });
       globalScope = GlobalScopeModule.getGlobalScope() || {};

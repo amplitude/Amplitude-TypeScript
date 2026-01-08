@@ -94,36 +94,27 @@ export class CookieStorage<T> implements Storage<T> {
       // if cookieStore had a surprise failure, fallback to document.cookie
     }
 
-    const cookie = globalScope?.document?.cookie.split('; ') ?? [];
+    const cookie = (globalScope?.document?.cookie.split('; ') ?? [])
+      .filter((c) => c.indexOf(key + '=') === 0);
     let match: string | undefined = undefined;
 
-    // if matcher function is provided, use a matcher function to
-    // de-duplicate when there's more than one cookie
+    // if matcher function is provided, use it to de-duplicate when there's more than one cookie
     /* istanbul ignore if */
     const duplicateResolverFn = this.config.duplicateResolverFn;
-    if (typeof duplicateResolverFn === 'function') {
-      for (const c of cookie) {
-        // skip if not the correct key
-        if (!(c.indexOf(key + '=') === 0)) {
-          continue;
-        }
-
-        // run matcher fn against the value
-        const value = c.substring(key.length + 1);
+    if (typeof duplicateResolverFn === 'function' && cookie.length > 1) {
+      match = cookie.find((c) => {
         try {
-          if (duplicateResolverFn(value)) {
-            match = c;
-            break;
-          }
+          return duplicateResolverFn(c.substring(key.length + 1));
         } catch (ignoreError) {
           /* istanbul ignore next */
+          return false;
         }
-      }
+      });
     }
 
     // if match was not found, just get the first one that matches the key
     if (!match) {
-      match = cookie.find((c) => c.indexOf(key + '=') === 0);
+      match = cookie[0];
     }
     if (!match) {
       return undefined;

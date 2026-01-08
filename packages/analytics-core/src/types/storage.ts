@@ -12,7 +12,6 @@ export interface CookieStorageOptions {
   expirationDays?: number;
   sameSite?: string;
   secure?: boolean;
-  useCookieStore?: boolean;
 }
 
 /**
