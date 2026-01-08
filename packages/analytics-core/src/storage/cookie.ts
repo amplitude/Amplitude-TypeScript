@@ -77,18 +77,13 @@ export class CookieStorage<T> implements Storage<T> {
 
     // use CookieStore if available and enabled
     const globalScopeWithCookiesStore = globalScope as GlobalScopeWithCookieStore;
-    /* istanbul ignore if */
     try {
       const cookieStore = globalScopeWithCookiesStore?.cookieStore;
       if (cookieStore) {
         const cookies = await cookieStore.getAll(key);
         if (cookies) {
           for (const cookie of cookies) {
-            /* istanbul ignore if */
-            if (!cookie.domain) {
-              continue;
-            }
-            if (this.options.domain && isDomainEqual(cookie.domain, this.options.domain)) {
+            if (isDomainEqual(cookie.domain, this.options.domain)) {
               return cookie.value;
             }
           }
