@@ -23,6 +23,7 @@ export interface AllWindowObservables {
   [ObservablesEnum.ClickObservable]: Observable<ElementBasedTimestampedEvent<MouseEvent>>;
   [ObservablesEnum.MutationObservable]: Observable<TimestampedEvent<MutationRecord[]>>;
   [ObservablesEnum.NavigateObservable]?: Observable<TimestampedEvent<NavigateEvent>>;
+  [ObservablesEnum.SelectionObservable]?: Observable<void>;
 }
 
 type BrowserEnrichmentPlugin = EnrichmentPlugin<BrowserClient, BrowserConfig>;
@@ -91,10 +92,51 @@ export const frustrationPlugin = (options: FrustrationInteractionsOptions = {}):
       );
     }
 
+    const selectionObservable = multicast(
+      new Observable<void>((observer) => {
+        const handler = () => {
+          const el: HTMLElement | null = document.activeElement as HTMLElement;
+
+          // handle input and textarea
+
+          // if the selectionStart and selectionEnd are the same, it means
+          // nothing is selected (collapsed) and the cursor position is one point
+          if (el && (el.tagName === 'TEXTAREA' || el.tagName === 'INPUT')) {
+            let start: number | null | undefined;
+            let end: number | null | undefined;
+            try {
+              start = (el as HTMLInputElement | HTMLTextAreaElement).selectionStart;
+              end = (el as HTMLInputElement | HTMLTextAreaElement).selectionEnd;
+              if (start === end) return; // collapsed
+            } catch (error) {
+              // input that doesn't support selectionStart/selectionEnd (like checkbox)
+              // do nothing here
+              return;
+            }
+            return observer.next();
+          }
+
+          // handle non-input elements
+
+          // non-input elements have an attribute called "isCollapsed" which
+          // if true, indicates there "is currently not any text selected"
+          // (see https://developer.mozilla.org/en-US/docs/Web/API/Selection/isCollapsed)
+          const selection = window.getSelection();
+          if (!selection || selection.isCollapsed) return;
+          return observer.next();
+        };
+        window.document.addEventListener('selectionchange', handler);
+        return () => {
+          window.document.removeEventListener('selectionchange', handler);
+        };
+      }),
+    );
+
     return {
       [ObservablesEnum.ClickObservable]: clickObservable as Observable<ElementBasedTimestampedEvent<MouseEvent>>,
       [ObservablesEnum.MutationObservable]: enrichedMutationObservable,
       [ObservablesEnum.NavigateObservable]: enrichedNavigateObservable,
+      [ObservablesEnum.SelectionObservable]: selectionObservable,
     };
   };
 
