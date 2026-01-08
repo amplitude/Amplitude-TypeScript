@@ -263,11 +263,11 @@ export const useBrowserConfig = async (
     sameSite: 'Lax' as const,
     secure: false,
     upgrade: true,
+    ...options.cookieOptions,
     duplicateResolverFn: (value: string): boolean => {
       const parsed = JSON.parse(decodeURIComponent(atob(value))) as UserSession;
       return isDomainEqual(parsed.cookieDomain, cookieOptions.domain);
     },
-    ...options.cookieOptions,
   };
   const cookieStorage = createCookieStorage<UserSession>(options.identityStorage, cookieOptions);
 
