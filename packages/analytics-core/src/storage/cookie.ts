@@ -200,7 +200,10 @@ const decodeCookiesWithDoubleUrlEncoding = (value: string): string | undefined =
  * This is useful for comparing cookie domains since ".example.com" and "example.com"
  * are effectively equivalent for cookie scoping.
  */
-export const isDomainEqual = (domain1: string, domain2: string): boolean => {
+export const isDomainEqual = (domain1: string | undefined, domain2: string | undefined): boolean => {
+  if (!domain1 || !domain2) {
+    return false;
+  }
   const normalized1 = domain1.startsWith('.') ? domain1.substring(1) : domain1;
   const normalized2 = domain2.startsWith('.') ? domain2.substring(1) : domain2;
   return normalized1 === normalized2;

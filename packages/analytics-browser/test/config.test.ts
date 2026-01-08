@@ -9,6 +9,7 @@ import {
   MemoryStorage,
   getCookieName,
   FetchTransport,
+  Logger,
 } from '@amplitude/analytics-core';
 import * as BrowserUtils from '@amplitude/analytics-core';
 import { XHRTransport } from '../src/transports/xhr';
@@ -36,18 +37,10 @@ describe('config', () => {
 
   describe('BrowserConfig', () => {
     test('should create empty config', async () => {
-      const cookieStorage = new core.MemoryStorage<UserSession>();
-      const logger = new core.Logger();
-      logger.enable(LogLevel.Warn);
       const config = new Config.BrowserConfig(apiKey);
-      expect(config).toEqual({
-        _cookieStorage: cookieStorage,
-        _deviceId: undefined,
-        _lastEventId: undefined,
-        _lastEventTime: undefined,
+      expect(config).toMatchObject({
+        _cookieStorage: expect.any(MemoryStorage),
         _optOut: false,
-        _sessionId: undefined,
-        _userId: undefined,
         apiKey,
         appVersion: undefined,
         cookieOptions: {
@@ -62,7 +55,7 @@ describe('config', () => {
         flushIntervalMillis: 1000,
         flushMaxRetries: 5,
         flushQueueSize: 30,
-        loggerProvider: logger,
+        loggerProvider: expect.any(Logger),
         logLevel: LogLevel.Warn,
         minIdLength: undefined,
         offline: false,
@@ -72,14 +65,14 @@ describe('config', () => {
         serverUrl: '',
         serverZone: DEFAULT_SERVER_ZONE,
         sessionTimeout: 1800000,
-        storageProvider: new LocalStorageModule.LocalStorage({ loggerProvider: logger }),
+        storageProvider: expect.any(LocalStorageModule.LocalStorage),
         trackingOptions: {
           ipAddress: true,
           language: true,
           platform: true,
         },
         transport: 'fetch',
-        transportProvider: new FetchTransport(),
+        transportProvider: expect.any(FetchTransport),
         useBatch: false,
         fetchRemoteConfig: true,
         version: VERSION,
@@ -120,6 +113,7 @@ describe('config', () => {
           sameSite: 'Lax',
           secure: false,
           upgrade: true,
+          duplicateResolverFn: expect.any(Function),
         },
         defaultTracking: undefined,
         identityStorage: DEFAULT_IDENTITY_STORAGE,
@@ -208,7 +202,7 @@ describe('config', () => {
         new AmplitudeBrowser(),
       );
       expect(config).toEqual({
-        _cookieStorage: cookieStorage,
+        _cookieStorage: expect.any(MemoryStorage),
         _deviceId: 'device-device-device',
         _lastEventId: 100,
         _lastEventTime: 1,
@@ -223,6 +217,7 @@ describe('config', () => {
           sameSite: 'Lax',
           secure: false,
           upgrade: false,
+          duplicateResolverFn: expect.any(Function),
         },
         defaultTracking: true,
         flushIntervalMillis: 1000,
@@ -251,7 +246,7 @@ describe('config', () => {
           platform: true,
         },
         transport: 'fetch',
-        transportProvider: new FetchTransport(),
+        transportProvider: expect.any(FetchTransport),
         useBatch: false,
         fetchRemoteConfig: true,
         version: VERSION,

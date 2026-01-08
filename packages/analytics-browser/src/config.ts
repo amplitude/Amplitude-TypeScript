@@ -265,10 +265,7 @@ export const useBrowserConfig = async (
     upgrade: true,
     duplicateResolverFn: (value: string): boolean => {
       const parsed = JSON.parse(decodeURIComponent(atob(value))) as UserSession;
-      if (cookieOptions.domain && parsed.cookieDomain && isDomainEqual(parsed.cookieDomain, cookieOptions.domain)) {
-        return true;
-      }
-      return false;
+      return isDomainEqual(parsed.cookieDomain, cookieOptions.domain);
     },
     ...options.cookieOptions,
   };
