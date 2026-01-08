@@ -273,6 +273,8 @@ export const useBrowserConfig = async (
   };
 
   const cookieConfig: CookieStorageConfig = {
+    // if more than one cookie with the same key exists,
+    // look for the cookie that has the domain attribute set to cookieOptions.domain
     duplicateResolverFn: (value: string): boolean => {
       const parsed = JSON.parse(decodeURIComponent(atob(value))) as UserSession;
       return isDomainEqual(parsed.cookieDomain, cookieOptions.domain);
