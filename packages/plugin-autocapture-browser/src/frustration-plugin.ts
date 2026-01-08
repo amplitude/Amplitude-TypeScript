@@ -95,9 +95,12 @@ export const frustrationPlugin = (options: FrustrationInteractionsOptions = {}):
     const selectionObservable = multicast(
       new Observable<void>((observer) => {
         const handler = () => {
-          // handle input and textarea
           const el: HTMLElement | null = document.activeElement as HTMLElement;
 
+          // handle input and textarea
+
+          // if the selectionStart and selectionEnd are the same, it means
+          // nothing is selected (collapsed) and the cursor position is one point
           if (el && (el.tagName === 'TEXTAREA' || el.tagName === 'INPUT')) {
             let start: number | null | undefined;
             let end: number | null | undefined;
@@ -114,6 +117,10 @@ export const frustrationPlugin = (options: FrustrationInteractionsOptions = {}):
           }
 
           // handle non-input elements
+
+          // non-input elements have an attribute called "isCollapsed" which
+          // if true, indicates there "is currently not any text selected"
+          // (see https://developer.mozilla.org/en-US/docs/Web/API/Selection/isCollapsed)
           const selection = window.getSelection();
           if (!selection || selection.isCollapsed) return;
           return observer.next();
