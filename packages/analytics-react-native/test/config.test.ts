@@ -209,6 +209,7 @@ describe('config', () => {
     test('should return custom', async () => {
       const cookieStorage = {
         options: {},
+        config: {},
         isEnabled: async () => true,
         get: async () => ({
           optOut: false,
