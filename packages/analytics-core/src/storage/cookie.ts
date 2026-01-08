@@ -104,10 +104,10 @@ export class CookieStorage<T> implements Storage<T> {
     // de-duplicate when there's more than one cookie
     const duplicateResolverFn = this.options.duplicateResolverFn;
     if (duplicateResolverFn) {
-      cookie.forEach((c) => {
+      for (const c of cookie) {
         // skip if not the correct key
         if (!(c.indexOf(key + '=') === 0)) {
-          return;
+          continue;
         }
 
         // run matcher fn against the value
@@ -115,13 +115,12 @@ export class CookieStorage<T> implements Storage<T> {
         try {
           if (duplicateResolverFn(value)) {
             match = c;
-            return false;
+            break;
           }
         } catch (ignoreError) {
           /* istanbul ignore next */
         }
-        return;
-      });
+      }
     }
 
     // if match was not found, just get the first one that matches the key
