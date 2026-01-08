@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/amplitude.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Cookie Store Test</title>
+    <script type="module">
+      import { CookieStorage } from '@amplitude/analytics-core';
+      // clear all cookies
+      await cookieStore.delete({
+        name: 'hello',
+        domain: 'website.com',
+      });
+      await cookieStore.delete({
+        name: 'hello',
+        domain: 'local.website.com',
+      });
+      
+      let storage = new CookieStorage({
+        //useCookieStore: true,
+        domain: 'local.website.com',
+      });
+      await storage.set('hello', 'world');
+      cookieStore.set({
+        name: 'hello',
+        value: btoa(encodeURIComponent(JSON.stringify('foobar'))),
+        domain: 'local.website.com',
+        expires: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30),
+      });
+      console.assert(
+        (await storage.get('hello')) === 'world',
+        'CookieStorage should prioritize website.com over local.website.com',
+      );
+      await cookieStore.delete({
+        name: 'hello',
+      });
+
+      storage = new CookieStorage({
+        useCookieStore: true,
+        domain: 'local.website.com',
+      });
+      console.assert(
+        (await storage.get('hello')) === 'foobar',
+        'CookieStorage should fallback to local.website.com if website.com is not found',
+      );
+    </script>
+  </head>
+  <body>
+    <div id="app">
+      Cookie Store Test
+    </div>
+  </body>
+</html>

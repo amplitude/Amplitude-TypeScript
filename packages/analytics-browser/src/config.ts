@@ -243,8 +243,13 @@ export class BrowserConfig extends Config implements IBrowserConfig {
       lastEventId: this._lastEventId,
       pageCounter: this._pageCounter,
       debugLogsEnabled: this._debugLogsEnabled,
-      cookieDomain: this.cookieOptions.domain,
+      cookieDomain: undefined as string | undefined,
     };
+
+    if (this.cookieStorage instanceof CookieStorage) {
+      cache.cookieDomain = this.cookieStorage.options.domain;
+    }
+
     void this.cookieStorage.set(getCookieName(this.apiKey), cache);
   }
 }
