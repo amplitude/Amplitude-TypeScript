@@ -91,8 +91,7 @@ export class CookieStorage<T> implements Storage<T> {
       // if cookieStore had a surprise failure, fallback to document.cookie
     }
 
-    const cookie = (globalScope?.document?.cookie.split('; ') ?? [])
-      .filter((c) => c.indexOf(key + '=') === 0);
+    const cookie = (globalScope?.document?.cookie.split('; ') ?? []).filter((c) => c.indexOf(key + '=') === 0);
     let match: string | undefined = undefined;
 
     // if matcher function is provided, use it to de-duplicate when there's more than one cookie
