@@ -242,6 +242,7 @@ describe('config', () => {
     test('should use memory', async () => {
       const cookiesConstructor = jest.spyOn(BrowserUtils, 'CookieStorage').mockReturnValueOnce({
         options: {},
+        config: {},
         isEnabled: async () => false,
         get: async () => '',
         getRaw: async () => '',
