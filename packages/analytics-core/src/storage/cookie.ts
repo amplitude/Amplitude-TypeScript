@@ -12,9 +12,6 @@ interface CookieStoreSetOptions {
 }
 
 interface CookieStore {
-  set(key: string, value: string): Promise<void>;
-  set(options: CookieStoreSetOptions): Promise<void>;
-  get(key: string): Promise<string | undefined>;
   getAll(key: string): Promise<CookieStoreSetOptions[] | undefined>;
 }
 
