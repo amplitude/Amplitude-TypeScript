@@ -30,6 +30,7 @@ import {
   IDiagnosticsClient,
   isDomainEqual,
   CookieStorageConfig,
+  decodeCookieValue,
 } from '@amplitude/analytics-core';
 
 import { LocalStorage } from './storage/local-storage';
@@ -276,7 +277,11 @@ export const useBrowserConfig = async (
     // if more than one cookie with the same key exists,
     // look for the cookie that has the domain attribute set to cookieOptions.domain
     duplicateResolverFn: (value: string): boolean => {
-      const parsed = JSON.parse(decodeURIComponent(atob(value))) as UserSession;
+      const decodedValue = decodeCookieValue(value);
+      if (!decodedValue) {
+        return false;
+      }
+      const parsed = JSON.parse(decodedValue) as UserSession;
       return isDomainEqual(parsed.cookieDomain, cookieOptions.domain);
     },
   };

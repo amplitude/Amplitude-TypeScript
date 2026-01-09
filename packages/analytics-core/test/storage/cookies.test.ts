@@ -4,7 +4,7 @@
  */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 import { CookieStorage } from '../../src/storage/cookie';
-import { isDomainEqual } from '../../src/index';
+import { isDomainEqual, decodeCookieValue } from '../../src/index';
 import * as GlobalScopeModule from '../../src/global-scope';
 
 describe('cookies', () => {
@@ -243,6 +243,24 @@ describe('cookies', () => {
     it('should return false if domains are not equal', () => {
       expect(isDomainEqual('domain.com', 'www.domain.com')).toBe(false);
       expect(isDomainEqual('www.domain.com', 'domain.com')).toBe(false);
+    });
+  });
+
+  describe('decodeCookieValue', () => {
+    test('should decode standard encoded cookie value', () => {
+      const value = { hello: 'world' };
+      const encoded = btoa(encodeURIComponent(JSON.stringify(value)));
+      expect(decodeCookieValue(encoded)).toBe(JSON.stringify(value));
+    });
+
+    test('should decode double URL encoded cookie value (Ruby Rails)', () => {
+      const value = { hello: 'world' };
+      const encoded = encodeURIComponent(btoa(encodeURIComponent(JSON.stringify(value))));
+      expect(decodeCookieValue(encoded)).toBe(JSON.stringify(value));
+    });
+
+    test('should return undefined for invalid encoded value', () => {
+      expect(decodeCookieValue('not-valid-base64!')).toBe(undefined);
     });
   });
 });
