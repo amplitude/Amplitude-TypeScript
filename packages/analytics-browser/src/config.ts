@@ -421,7 +421,8 @@ export const getTopLevelDomain = async (url?: string) => {
   const host = url ?? location.hostname;
   const parts = host.split('.');
   const levels = [];
-  const storageKey = 'AMP_TLDTEST';
+  const cookieKeyUniqueId = UUID();
+  const storageKey = `AMP_TLDTEST_${cookieKeyUniqueId.substring(0, 8)}`;
 
   for (let i = parts.length - 2; i >= 0; --i) {
     levels.push(parts.slice(i).join('.'));
