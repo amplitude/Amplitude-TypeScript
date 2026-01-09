@@ -7,4 +7,5 @@ export interface UserSession {
   lastEventId?: number;
   pageCounter?: number;
   debugLogsEnabled?: boolean;
+  cookieDomain?: string;
 }

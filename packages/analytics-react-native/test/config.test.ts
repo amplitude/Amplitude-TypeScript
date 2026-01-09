@@ -209,6 +209,7 @@ describe('config', () => {
     test('should return custom', async () => {
       const cookieStorage = {
         options: {},
+        config: {},
         isEnabled: async () => true,
         get: async () => ({
           optOut: false,
@@ -242,6 +243,7 @@ describe('config', () => {
     test('should use memory', async () => {
       const cookiesConstructor = jest.spyOn(BrowserUtils, 'CookieStorage').mockReturnValueOnce({
         options: {},
+        config: {},
         isEnabled: async () => false,
         get: async () => '',
         getRaw: async () => '',
@@ -312,6 +314,7 @@ describe('config', () => {
       jest.spyOn(BrowserUtils, 'CookieStorage').mockReturnValueOnce({
         ...testCookieStorage,
         options: {},
+        config: {},
       });
       const domain = await Config.getTopLevelDomain();
       expect(domain).toBe('');
@@ -339,10 +342,12 @@ describe('config', () => {
         .mockReturnValueOnce({
           ...testCookieStorage,
           options: {},
+          config: {},
         })
         .mockReturnValue({
           ...actualCookieStorage,
           options: {},
+          config: {},
         });
       expect(await Config.getTopLevelDomain('www.legislation.gov.uk')).toBe('.legislation.gov.uk');
     });
