@@ -29,6 +29,7 @@ import {
   Source,
   DiagnosticsClient,
   createIdentifyEvent,
+  Logger,
 } from '@amplitude/analytics-core';
 import {
   getAttributionTrackingConfig,
@@ -49,11 +50,11 @@ import {
 } from './default-tracking';
 import { convertProxyObjectToRealObject, isInstanceProxy } from './utils/snippet-helper';
 import { Context } from './plugins/context';
-import { useBrowserConfig, createTransport } from './config';
+import { useBrowserConfig, createTransport, shouldFetchRemoteConfig } from './config';
 import { pageViewTrackingPlugin } from '@amplitude/plugin-page-view-tracking-browser';
 import { formInteractionTracking } from './plugins/form-interaction-tracking';
 import { fileDownloadTracking } from './plugins/file-download-tracking';
-import { DEFAULT_SESSION_END_EVENT, DEFAULT_SESSION_START_EVENT } from './constants';
+import { DEFAULT_SESSION_END_EVENT, DEFAULT_SESSION_START_EVENT, DEFAULT_SERVER_ZONE } from './constants';
 import { detNotify } from './det-notification';
 import { networkConnectivityCheckerPlugin } from './plugins/network-connectivity-checker';
 import { updateBrowserConfigWithRemoteConfig } from './config/joined-config';
@@ -107,23 +108,85 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
     this.initializing = true;
 
     // Step 2: Create browser config
-    // Get default browser config based on browser options
-    const browserOptions = await useBrowserConfig(options.apiKey, options, this);
+    // Step 2.1: Determine if we should fetch remote config BEFORE creating browser config
+    // This allows us to get diagnostics settings before creating the DiagnosticsClient
+    const fetchRemoteConfig = shouldFetchRemoteConfig(options);
+
+    // Set up early dependencies needed for remote config client
+    // These use options directly or fall back to defaults
+    const loggerProvider = options.loggerProvider ?? new Logger();
+    const serverZone = options.serverZone ?? DEFAULT_SERVER_ZONE;
 
     let remoteConfigClient: IRemoteConfigClient | undefined;
-    // Create remote config client and subscribe to analytics configs
+    let diagnosticsSampleRate = this._diagnosticsSampleRate;
+    let enableDiagnostics = options.enableDiagnostics ?? true;
+
+    // Step 2.2: Fetch diagnostics config FIRST to get sample rate for DiagnosticsClient
+    // We want to create DiagnosticsClient as early as possible so it can track more data
     /* istanbul ignore next */
-    const fetchRemoteConfig = browserOptions.remoteConfig && browserOptions.remoteConfig.fetchRemoteConfig;
     if (fetchRemoteConfig) {
       remoteConfigClient = new RemoteConfigClient(
-        browserOptions.apiKey,
-        browserOptions.loggerProvider,
-        browserOptions.serverZone,
-        /* istanbul ignore next */ browserOptions.remoteConfig?.serverUrl, // Disable coverage for this line as remoteConfig will always be set by BrowserConfig constructor
+        options.apiKey,
+        loggerProvider,
+        serverZone,
+        /* istanbul ignore next */ options.remoteConfig?.serverUrl,
       );
 
-      // Wait for initial remote config before proceeding.
-      // Delivery mode is all, meaning it calls the callback with whoever (cache or remote) returns first.
+      // Fetch diagnostics config first to get sample rate
+      await new Promise<void>((resolve) => {
+        // Disable coverage for this line because remote config client will always be defined in this case.
+        // istanbul ignore next
+        remoteConfigClient?.subscribe(
+          'configs.diagnostics.browserSDK',
+          'all',
+          (remoteConfig: RemoteConfig | null, source: Source, lastFetch: Date) => {
+            loggerProvider.debug(
+              'Diagnostics remote configuration received:',
+              JSON.stringify(
+                {
+                  remoteConfig,
+                  source,
+                  lastFetch,
+                },
+                null,
+                2,
+              ),
+            );
+            if (remoteConfig) {
+              // Validate and set sampleRate (must be a valid number)
+              const sampleRate = remoteConfig.sampleRate as number;
+              if (typeof sampleRate === 'number' && !isNaN(sampleRate)) {
+                diagnosticsSampleRate = sampleRate;
+              }
+
+              // Validate and set enabled (must be a boolean)
+              const enabled = remoteConfig.enabled as boolean;
+              if (typeof enabled === 'boolean') {
+                enableDiagnostics = enabled;
+              }
+            }
+            resolve();
+          },
+        );
+      });
+    }
+
+    // Step 2.3: Initialize diagnostics client as early as possible
+    // Now we have the sample rate from remote config (if fetched)
+    const diagnosticsClient = new DiagnosticsClient(options.apiKey, loggerProvider, serverZone, {
+      enabled: enableDiagnostics,
+      sampleRate: diagnosticsSampleRate,
+    });
+    diagnosticsClient.setTag('library', `${LIBPREFIX}/${VERSION}`);
+    diagnosticsClient.setTag('user_agent', navigator.userAgent);
+
+    // Step 2.4: Create browser config with diagnosticsClient
+    const browserOptions = await useBrowserConfig(options.apiKey, options, this, diagnosticsClient);
+
+    // Step 2.5: Fetch analytics SDK remote config
+    // This is fetched after DiagnosticsClient is created so diagnostics can track any issues
+    /* istanbul ignore next */
+    if (fetchRemoteConfig && remoteConfigClient) {
       await new Promise<void>((resolve) => {
         // Disable coverage for this line because remote config client will always be defined in this case.
         // istanbul ignore next
@@ -151,62 +214,11 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
           },
         );
       });
-
-      await new Promise<void>((resolve) => {
-        // Disable coverage for this line because remote config client will always be defined in this case.
-        // istanbul ignore next
-        remoteConfigClient?.subscribe(
-          'configs.diagnostics.browserSDK',
-          'all',
-          (remoteConfig: RemoteConfig | null, source: Source, lastFetch: Date) => {
-            browserOptions.loggerProvider.debug(
-              'Diagnostics remote configuration received:',
-              JSON.stringify(
-                {
-                  remoteConfig,
-                  source,
-                  lastFetch,
-                },
-                null,
-                2,
-              ),
-            );
-            if (remoteConfig) {
-              // Validate and set sampleRate (must be a valid number)
-              const sampleRate = remoteConfig.sampleRate as number;
-              if (typeof sampleRate === 'number' && !isNaN(sampleRate)) {
-                browserOptions.diagnosticsSampleRate = sampleRate;
-              }
-
-              // Validate and set enabled (must be a boolean)
-              const enabled = remoteConfig.enabled as boolean;
-              if (typeof enabled === 'boolean') {
-                browserOptions.enableDiagnostics = enabled;
-              }
-            }
-            resolve();
-          },
-        );
-      });
     }
-
-    // Initialize diagnostics client and set library tag
-    const diagnosticsClient = new DiagnosticsClient(
-      browserOptions.apiKey,
-      browserOptions.loggerProvider,
-      browserOptions.serverZone,
-      {
-        enabled: browserOptions.enableDiagnostics,
-        sampleRate: browserOptions.diagnosticsSampleRate,
-      },
-    );
-    diagnosticsClient.setTag('library', `${LIBPREFIX}/${VERSION}`);
-    diagnosticsClient.setTag('user_agent', navigator.userAgent);
 
     await super._init(browserOptions);
     this.logBrowserOptions(browserOptions);
 
-    this.config.diagnosticsClient = diagnosticsClient;
     this.config.remoteConfigClient = remoteConfigClient;
 
     // Add web attribution plugin
