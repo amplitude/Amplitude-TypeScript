@@ -248,12 +248,27 @@ export class BrowserConfig extends Config implements IBrowserConfig {
   }
 }
 
+/**
+ * Early-initialized configuration values that are determined before useBrowserConfig is called.
+ * These are created early to support DiagnosticsClient and RemoteConfigClient initialization.
+ */
+export interface EarlyConfig {
+  /** Logger instance - shared across DiagnosticsClient, RemoteConfigClient, and BrowserConfig */
+  loggerProvider: ILogger;
+  /** Server zone for API endpoints */
+  serverZone: ServerZoneType;
+  /** Whether diagnostics is enabled (may come from remote config) */
+  enableDiagnostics: boolean;
+  /** Diagnostics sample rate (may come from remote config) */
+  diagnosticsSampleRate: number;
+}
+
 export const useBrowserConfig = async (
   apiKey: string,
   options: BrowserOptions = {},
   amplitudeInstance: AmplitudeBrowser,
   diagnosticsClient?: IDiagnosticsClient,
-  diagnosticsConfig?: { enabled: boolean; sampleRate: number },
+  earlyConfig?: EarlyConfig,
 ): Promise<IBrowserConfig> => {
   // Step 1: Create identity storage instance
   const identityStorage = options.identityStorage || DEFAULT_IDENTITY_STORAGE;
@@ -330,7 +345,8 @@ export const useBrowserConfig = async (
     options.instanceName,
     lastEventId,
     lastEventTime,
-    options.loggerProvider,
+    // Use earlyConfig.loggerProvider to ensure consistent logger across DiagnosticsClient/RemoteConfigClient/BrowserConfig
+    earlyConfig?.loggerProvider ?? options.loggerProvider,
     options.logLevel,
     options.minIdLength,
     options.offline,
@@ -338,7 +354,8 @@ export const useBrowserConfig = async (
     options.partnerId,
     options.plan,
     options.serverUrl,
-    options.serverZone,
+    // Use earlyConfig.serverZone to ensure consistent serverZone
+    earlyConfig?.serverZone ?? options.serverZone,
     sessionId,
     options.sessionTimeout,
     options.storageProvider,
@@ -351,9 +368,9 @@ export const useBrowserConfig = async (
     debugLogsEnabled,
     options.networkTrackingOptions,
     options.identify,
-    // Use diagnosticsConfig if provided (already has remote config applied), otherwise fall back to options
-    diagnosticsConfig?.enabled ?? options.enableDiagnostics,
-    diagnosticsConfig?.sampleRate ?? amplitudeInstance._diagnosticsSampleRate,
+    // Use earlyConfig values (already has remote config applied), otherwise fall back to options
+    earlyConfig?.enableDiagnostics ?? options.enableDiagnostics,
+    earlyConfig?.diagnosticsSampleRate ?? amplitudeInstance._diagnosticsSampleRate,
     diagnosticsClient,
     options.remoteConfig,
   );
