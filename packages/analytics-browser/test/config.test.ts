@@ -545,4 +545,32 @@ describe('config', () => {
       expect(shouldFetchRemoteConfig()).toBe(true);
     });
   });
+
+  describe('useBrowserConfig with earlyConfig', () => {
+    test('should use earlyConfig values when provided', async () => {
+      const customLogger = new core.Logger();
+      customLogger.enable(LogLevel.Debug);
+
+      const earlyConfig: Config.EarlyConfig = {
+        loggerProvider: customLogger,
+        serverZone: 'EU',
+        enableDiagnostics: false,
+        diagnosticsSampleRate: 0.5,
+      };
+
+      const config = await Config.useBrowserConfig(
+        apiKey,
+        {}, // Empty options to ensure earlyConfig values are used
+        new AmplitudeBrowser(),
+        undefined, // diagnosticsClient
+        earlyConfig,
+      );
+
+      // Verify earlyConfig values are used instead of defaults
+      expect(config.loggerProvider).toBe(customLogger);
+      expect(config.serverZone).toBe('EU');
+      expect(config.enableDiagnostics).toBe(false);
+      expect(config.diagnosticsSampleRate).toBe(0.5);
+    });
+  });
 });
