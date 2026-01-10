@@ -315,6 +315,9 @@ describe('browser-client', () => {
         setDiagnosticsSampleRate: 0.5,
         remoteConfigSampleRate: { enabled: true, sampleRate: 0 },
         expectedSampleRate: 0,
+        expectedEnabled: true,
+        serverZone: undefined,
+        enableDiagnostics: undefined,
         description: '0 from remote config (not 0.5 from _diagnosticsSampleRate)',
       },
       {
@@ -322,86 +325,111 @@ describe('browser-client', () => {
         setDiagnosticsSampleRate: 0.75,
         remoteConfigSampleRate: null,
         expectedSampleRate: 0.75,
+        expectedEnabled: true,
+        serverZone: undefined,
+        enableDiagnostics: undefined,
         description: '0.75 from _diagnosticsSampleRate (remote config is null)',
       },
-    ])('$testName', async ({ setDiagnosticsSampleRate, remoteConfigSampleRate, expectedSampleRate }) => {
-      // Set _diagnosticsSampleRate
-      client._setDiagnosticsSampleRate(setDiagnosticsSampleRate);
+      {
+        testName: 'should use provided serverZone and enableDiagnostics options',
+        setDiagnosticsSampleRate: 0,
+        remoteConfigSampleRate: null,
+        expectedSampleRate: 0,
+        expectedEnabled: false,
+        serverZone: 'EU' as const,
+        enableDiagnostics: false,
+        description: 'EU serverZone and enableDiagnostics=false from options',
+      },
+    ])(
+      '$testName',
+      async ({
+        setDiagnosticsSampleRate,
+        remoteConfigSampleRate,
+        expectedSampleRate,
+        expectedEnabled,
+        serverZone,
+        enableDiagnostics,
+      }) => {
+        // Set _diagnosticsSampleRate
+        client._setDiagnosticsSampleRate(setDiagnosticsSampleRate);
 
-      const mockMainRemoteConfig = {
-        autocapture: {
-          elementInteractions: true,
-        },
-      };
+        const mockMainRemoteConfig = {
+          autocapture: {
+            elementInteractions: true,
+          },
+        };
 
-      // Mock the remote config client to return different configs based on the subscription key
-      const mockRemoteConfigClientWithDiagnostics = {
-        subscribe: jest
-          .fn()
-          .mockImplementation(
-            (
-              configKey: string,
-              _eventType: string,
-              callback: (remoteConfig: any, source: any, lastFetch: Date) => void,
-            ) => {
-              // Return different configs based on the subscription key
-              if (configKey === 'configs.analyticsSDK.browserSDK') {
-                callback(mockMainRemoteConfig, 'cache', new Date());
-              } else if (configKey === 'configs.diagnostics.browserSDK') {
-                callback(remoteConfigSampleRate, 'cache', new Date());
-              } else {
-                callback(null, 'cache', new Date());
-              }
-            },
-          ),
-        unsubscribe: jest.fn(),
-        updateConfigs: jest.fn(),
-      };
+        // Mock the remote config client to return different configs based on the subscription key
+        const mockRemoteConfigClientWithDiagnostics = {
+          subscribe: jest
+            .fn()
+            .mockImplementation(
+              (
+                configKey: string,
+                _eventType: string,
+                callback: (remoteConfig: any, source: any, lastFetch: Date) => void,
+              ) => {
+                // Return different configs based on the subscription key
+                if (configKey === 'configs.analyticsSDK.browserSDK') {
+                  callback(mockMainRemoteConfig, 'cache', new Date());
+                } else if (configKey === 'configs.diagnostics.browserSDK') {
+                  callback(remoteConfigSampleRate, 'cache', new Date());
+                } else {
+                  callback(null, 'cache', new Date());
+                }
+              },
+            ),
+          unsubscribe: jest.fn(),
+          updateConfigs: jest.fn(),
+        };
 
-      // Replace the default mock with our data mock
-      MockedRemoteConfigClient = jest.fn().mockImplementation(() => mockRemoteConfigClientWithDiagnostics);
-      Object.defineProperty(core, 'RemoteConfigClient', {
-        value: MockedRemoteConfigClient,
-        writable: true,
-        configurable: true,
-      });
+        // Replace the default mock with our data mock
+        MockedRemoteConfigClient = jest.fn().mockImplementation(() => mockRemoteConfigClientWithDiagnostics);
+        Object.defineProperty(core, 'RemoteConfigClient', {
+          value: MockedRemoteConfigClient,
+          writable: true,
+          configurable: true,
+        });
 
-      // Mock DiagnosticsClient to spy on its initialization
-      const mockDiagnosticsClient = {
-        setTag: jest.fn(),
-        enable: jest.fn(),
-        disable: jest.fn(),
-        track: jest.fn(),
-        recordEvent: jest.fn(),
-        increment: jest.fn(),
-      };
-      const diagnosticsClientSpy = jest
-        .spyOn(core, 'DiagnosticsClient')
-        .mockImplementation(() => mockDiagnosticsClient as unknown as DiagnosticsClient);
+        // Mock DiagnosticsClient to spy on its initialization
+        const mockDiagnosticsClient = {
+          setTag: jest.fn(),
+          enable: jest.fn(),
+          disable: jest.fn(),
+          track: jest.fn(),
+          recordEvent: jest.fn(),
+          increment: jest.fn(),
+        };
+        const diagnosticsClientSpy = jest
+          .spyOn(core, 'DiagnosticsClient')
+          .mockImplementation(() => mockDiagnosticsClient as unknown as DiagnosticsClient);
 
-      // Initialize the client
-      await client.init(apiKey, {
-        fetchRemoteConfig: true,
-      }).promise;
+        // Initialize the client with optional serverZone and enableDiagnostics
+        await client.init(apiKey, {
+          fetchRemoteConfig: true,
+          ...(serverZone !== undefined && { serverZone }),
+          ...(enableDiagnostics !== undefined && { enableDiagnostics }),
+        }).promise;
 
-      // Verify that DiagnosticsClient was called with the expected sampleRate
-      expect(diagnosticsClientSpy).toHaveBeenCalledWith(
-        apiKey,
-        expect.any(Object), // loggerProvider
-        'US', // serverZone (default value)
-        {
-          enabled: true,
-          sampleRate: expectedSampleRate, // Should be ${description}
-        },
-      );
+        // Verify that DiagnosticsClient was called with the expected values
+        expect(diagnosticsClientSpy).toHaveBeenCalledWith(
+          apiKey,
+          expect.any(Object), // loggerProvider
+          serverZone ?? 'US', // serverZone from options or default
+          {
+            enabled: expectedEnabled,
+            sampleRate: expectedSampleRate,
+          },
+        );
 
-      // Verify that the diagnostics config was applied
-      expect(client.config.enableDiagnostics).toBe(true);
-      expect(client.config.diagnosticsSampleRate).toBe(expectedSampleRate);
+        // Verify that the diagnostics config was applied
+        expect(client.config.enableDiagnostics).toBe(expectedEnabled);
+        expect(client.config.diagnosticsSampleRate).toBe(expectedSampleRate);
 
-      // Clean up
-      diagnosticsClientSpy.mockRestore();
-    });
+        // Clean up
+        diagnosticsClientSpy.mockRestore();
+      },
+    );
 
     test('should initialize client', async () => {
       const parseLegacyCookies = jest.spyOn(CookieMigration, 'parseLegacyCookies').mockResolvedValueOnce({
