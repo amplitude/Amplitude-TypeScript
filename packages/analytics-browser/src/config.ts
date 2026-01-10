@@ -126,7 +126,7 @@ export class BrowserConfig extends Config implements IBrowserConfig {
     // This logic is duplicated here to maintain the BrowserConfig constructor contract and ensure
     // the config object has the correct fetchRemoteConfig value set on its properties.
     // The value passed to this constructor should already be computed via shouldFetchRemoteConfig().
-    const _fetchRemoteConfig = remoteConfig?.fetchRemoteConfig ?? fetchRemoteConfig ?? true;
+    const _fetchRemoteConfig = remoteConfig?.fetchRemoteConfig ?? fetchRemoteConfig;
     this.remoteConfig = this.remoteConfig || {};
     this.remoteConfig.fetchRemoteConfig = _fetchRemoteConfig;
     this.fetchRemoteConfig = _fetchRemoteConfig;
@@ -253,6 +253,7 @@ export const useBrowserConfig = async (
   options: BrowserOptions = {},
   amplitudeInstance: AmplitudeBrowser,
   diagnosticsClient?: IDiagnosticsClient,
+  diagnosticsConfig?: { enabled: boolean; sampleRate: number },
 ): Promise<IBrowserConfig> => {
   // Step 1: Create identity storage instance
   const identityStorage = options.identityStorage || DEFAULT_IDENTITY_STORAGE;
@@ -350,8 +351,9 @@ export const useBrowserConfig = async (
     debugLogsEnabled,
     options.networkTrackingOptions,
     options.identify,
-    options.enableDiagnostics,
-    amplitudeInstance._diagnosticsSampleRate, // Use _diagnosticsSampleRate set via _setDiagnosticsSampleRate() or defaults to 0
+    // Use diagnosticsConfig if provided (already has remote config applied), otherwise fall back to options
+    diagnosticsConfig?.enabled ?? options.enableDiagnostics,
+    diagnosticsConfig?.sampleRate ?? amplitudeInstance._diagnosticsSampleRate,
     diagnosticsClient,
     options.remoteConfig,
   );

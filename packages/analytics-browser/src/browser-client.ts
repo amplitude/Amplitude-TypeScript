@@ -181,7 +181,10 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
     diagnosticsClient.setTag('user_agent', navigator.userAgent);
 
     // Step 2.4: Create browser config with diagnosticsClient
-    const browserOptions = await useBrowserConfig(options.apiKey, options, this, diagnosticsClient);
+    const browserOptions = await useBrowserConfig(options.apiKey, options, this, diagnosticsClient, {
+      enabled: enableDiagnostics,
+      sampleRate: diagnosticsSampleRate,
+    });
 
     // Step 2.5: Fetch analytics SDK remote config
     // This is fetched after DiagnosticsClient is created so diagnostics can track any issues
