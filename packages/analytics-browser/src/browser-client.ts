@@ -178,7 +178,9 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
       sampleRate: diagnosticsSampleRate,
     });
     diagnosticsClient.setTag('library', `${LIBPREFIX}/${VERSION}`);
-    diagnosticsClient.setTag('user_agent', navigator.userAgent);
+    if (typeof navigator !== 'undefined') {
+      diagnosticsClient.setTag('user_agent', navigator.userAgent);
+    }
 
     // Step 2.4: Create browser config with diagnosticsClient
     const browserOptions = await useBrowserConfig(options.apiKey, options, this, diagnosticsClient, {
