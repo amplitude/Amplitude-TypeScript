@@ -24,7 +24,7 @@ export { isUrlMatchAllowlist, getDecodeURI } from './utils/url-utils';
 export { generateHashCode, isTimestampInSample } from './utils/sampling';
 
 export { MemoryStorage } from './storage/memory';
-export { CookieStorage, isDomainEqual } from './storage/cookie';
+export { CookieStorage, isDomainEqual, decodeCookieValue } from './storage/cookie';
 export { getStorageKey } from './storage/helpers';
 
 export { BrowserStorage } from './storage/browser-storage';

@@ -42,8 +42,8 @@
     "@amplitude/analytics-client-common": "workspace:*",
     "@amplitude/analytics-core": "workspace:*",
     "@amplitude/analytics-types": "workspace:*",
-    "@amplitude/rrweb-plugin-console-record": "2.0.0-alpha.34",
-    "@amplitude/rrweb-record": "2.0.0-alpha.34",
+    "@amplitude/rrweb-plugin-console-record": "2.0.0-alpha.35",
+    "@amplitude/rrweb-record": "2.0.0-alpha.35",
     "@amplitude/session-replay-browser": "workspace:*",
     "idb-keyval": "^6.2.1",
     "tslib": "^2.4.1"

@@ -56,7 +56,7 @@ export class CookieStorage<T> implements Storage<T> {
       return undefined;
     }
     try {
-      const decodedValue = decodeCookiesAsDefault(value) ?? decodeCookiesWithDoubleUrlEncoding(value);
+      const decodedValue = decodeCookieValue(value);
       if (decodedValue === undefined) {
         console.error(`Amplitude Logger [Error]: Failed to decode cookie value for key: ${key}, value: ${value}`);
         return undefined;
@@ -177,6 +177,14 @@ const decodeCookiesWithDoubleUrlEncoding = (value: string): string | undefined =
   } catch {
     return undefined;
   }
+};
+
+/**
+ * Decodes a cookie value that was encoded with btoa(encodeURIComponent(...)).
+ * Handles both standard encoding and double URL encoding (used by Ruby Rails v7+).
+ */
+export const decodeCookieValue = (value: string): string | undefined => {
+  return decodeCookiesAsDefault(value) ?? decodeCookiesWithDoubleUrlEncoding(value);
 };
 
 /**
