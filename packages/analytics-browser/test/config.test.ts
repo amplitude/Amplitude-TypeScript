@@ -522,6 +522,10 @@ describe('config', () => {
     test('should return false when cookieDomain is not set', async () => {
       expect(duplicateResolverFn?.(encodeJson({ optOut: false }))).toBe(false);
     });
+
+    test('should return false when cookie value cannot be decoded', async () => {
+      expect(duplicateResolverFn?.('not-valid-base64!')).toBe(false);
+    });
   });
 
   describe('shouldFetchRemoteConfig', () => {
