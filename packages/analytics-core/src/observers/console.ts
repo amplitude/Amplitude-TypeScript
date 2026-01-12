@@ -84,7 +84,7 @@ function removeListener(callback: Callback) {
 // this should only be used for testing
 // restoring console can break other console overrides
 function _restoreConsole() {
-  if (globalScope) {
+  if (globalScope && originalConsole) {
     /* eslint-disable-next-line @typescript-eslint/no-unsafe-member-access */
     (globalScope as any).console = originalConsole;
   }
