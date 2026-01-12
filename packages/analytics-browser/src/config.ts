@@ -123,18 +123,11 @@ export class BrowserConfig extends Config implements IBrowserConfig {
     this.diagnosticsSampleRate = diagnosticsSampleRate;
     this.diagnosticsClient = diagnosticsClient;
 
-    // Backward compatibility for fetchRemoteConfig
-    let _fetchRemoteConfig;
-    if (remoteConfig?.fetchRemoteConfig === true) {
-      // set to true if remoteConfig explicitly set to true
-      _fetchRemoteConfig = true;
-    } else if (remoteConfig?.fetchRemoteConfig === false || fetchRemoteConfig === false) {
-      // set to false if either are set to false explicitly
-      _fetchRemoteConfig = false;
-    } else {
-      // default to true if both undefined
-      _fetchRemoteConfig = true;
-    }
+    // Note: The canonical logic for determining fetchRemoteConfig is in shouldFetchRemoteConfig().
+    // This logic is duplicated here to maintain the BrowserConfig constructor contract and ensure
+    // the config object has the correct fetchRemoteConfig value set on its properties.
+    // The value passed to this constructor should already be computed via shouldFetchRemoteConfig().
+    const _fetchRemoteConfig = remoteConfig?.fetchRemoteConfig ?? fetchRemoteConfig;
     this.remoteConfig = this.remoteConfig || {};
     this.remoteConfig.fetchRemoteConfig = _fetchRemoteConfig;
     this.fetchRemoteConfig = _fetchRemoteConfig;
@@ -256,10 +249,27 @@ export class BrowserConfig extends Config implements IBrowserConfig {
   }
 }
 
+/**
+ * Early-initialized configuration values that are determined before useBrowserConfig is called.
+ * These are created early to support DiagnosticsClient and RemoteConfigClient initialization.
+ */
+export interface EarlyConfig {
+  /** Logger instance - shared across DiagnosticsClient, RemoteConfigClient, and BrowserConfig */
+  loggerProvider: ILogger;
+  /** Server zone for API endpoints */
+  serverZone: ServerZoneType;
+  /** Whether diagnostics is enabled (may come from remote config) */
+  enableDiagnostics: boolean;
+  /** Diagnostics sample rate (may come from remote config) */
+  diagnosticsSampleRate: number;
+}
+
 export const useBrowserConfig = async (
   apiKey: string,
   options: BrowserOptions = {},
   amplitudeInstance: AmplitudeBrowser,
+  diagnosticsClient?: IDiagnosticsClient,
+  earlyConfig?: EarlyConfig,
 ): Promise<IBrowserConfig> => {
   // Step 1: Create identity storage instance
   const identityStorage = options.identityStorage || DEFAULT_IDENTITY_STORAGE;
@@ -340,7 +350,8 @@ export const useBrowserConfig = async (
     options.instanceName,
     lastEventId,
     lastEventTime,
-    options.loggerProvider,
+    // Use earlyConfig.loggerProvider to ensure consistent logger across DiagnosticsClient/RemoteConfigClient/BrowserConfig
+    earlyConfig?.loggerProvider ?? options.loggerProvider,
     options.logLevel,
     options.minIdLength,
     options.offline,
@@ -348,7 +359,8 @@ export const useBrowserConfig = async (
     options.partnerId,
     options.plan,
     options.serverUrl,
-    options.serverZone,
+    // Use earlyConfig.serverZone to ensure consistent serverZone
+    earlyConfig?.serverZone ?? options.serverZone,
     sessionId,
     options.sessionTimeout,
     options.storageProvider,
@@ -361,9 +373,10 @@ export const useBrowserConfig = async (
     debugLogsEnabled,
     options.networkTrackingOptions,
     options.identify,
-    options.enableDiagnostics,
-    amplitudeInstance._diagnosticsSampleRate, // Use _diagnosticsSampleRate set via _setDiagnosticsSampleRate() or defaults to 0
-    undefined, // diagnosticsClient - set after config creation
+    // Use earlyConfig values (already has remote config applied), otherwise fall back to options
+    earlyConfig?.enableDiagnostics ?? options.enableDiagnostics,
+    earlyConfig?.diagnosticsSampleRate ?? amplitudeInstance._diagnosticsSampleRate,
+    diagnosticsClient,
     options.remoteConfig,
   );
 
@@ -398,6 +411,23 @@ export const createCookieStorage = <T>(
         },
         cookieConfig,
       );
+  }
+};
+
+/**
+ * Determines whether to fetch remote config based on options.
+ * Extracted to allow early determination before useBrowserConfig is called.
+ */
+export const shouldFetchRemoteConfig = (options: BrowserOptions = {}): boolean => {
+  if (options.remoteConfig?.fetchRemoteConfig === true) {
+    // set to true if remoteConfig explicitly set to true
+    return true;
+  } else if (options.remoteConfig?.fetchRemoteConfig === false || options.fetchRemoteConfig === false) {
+    // set to false if either are set to false explicitly
+    return false;
+  } else {
+    // default to true if both undefined
+    return true;
   }
 };
 

@@ -14,7 +14,7 @@ import {
 } from '@amplitude/analytics-core';
 import * as BrowserUtils from '@amplitude/analytics-core';
 import { XHRTransport } from '../src/transports/xhr';
-import { createTransport, useBrowserConfig } from '../src/config';
+import { createTransport, useBrowserConfig, shouldFetchRemoteConfig } from '../src/config';
 import { SendBeaconTransport } from '../src/transports/send-beacon';
 import { uuidPattern } from './helpers/constants';
 import { DEFAULT_IDENTITY_STORAGE, DEFAULT_SERVER_ZONE } from '../src/constants';
@@ -89,6 +89,13 @@ describe('config', () => {
     test('shoud return _optOut', () => {
       const config = new Config.BrowserConfig(apiKey);
       expect(config.optOut).toBe(false);
+    });
+
+    test('should default fetchRemoteConfig to true when both remoteConfig.fetchRemoteConfig and fetchRemoteConfig are undefined', () => {
+      // Pass undefined for fetchRemoteConfig to test the ?? true fallback on line 129
+      const config = new Config.BrowserConfig(apiKey);
+      expect(config.fetchRemoteConfig).toBe(true);
+      expect(config.remoteConfig?.fetchRemoteConfig).toBe(true);
     });
   });
 
@@ -518,6 +525,56 @@ describe('config', () => {
 
     test('should return false when cookie value cannot be decoded', async () => {
       expect(duplicateResolverFn?.('not-valid-base64!')).toBe(false);
+    });
+  });
+
+  describe('shouldFetchRemoteConfig', () => {
+    test('should return true when remoteConfig.fetchRemoteConfig is explicitly true', () => {
+      expect(shouldFetchRemoteConfig({ remoteConfig: { fetchRemoteConfig: true } })).toBe(true);
+    });
+
+    test('should return false when remoteConfig.fetchRemoteConfig is explicitly false', () => {
+      expect(shouldFetchRemoteConfig({ remoteConfig: { fetchRemoteConfig: false } })).toBe(false);
+    });
+
+    test('should return false when fetchRemoteConfig is explicitly false', () => {
+      expect(shouldFetchRemoteConfig({ fetchRemoteConfig: false })).toBe(false);
+    });
+
+    test('should return true when both are undefined (default behavior)', () => {
+      expect(shouldFetchRemoteConfig({})).toBe(true);
+    });
+
+    test('should return true when options is undefined', () => {
+      expect(shouldFetchRemoteConfig()).toBe(true);
+    });
+  });
+
+  describe('useBrowserConfig with earlyConfig', () => {
+    test('should use earlyConfig values when provided', async () => {
+      const customLogger = new core.Logger();
+      customLogger.enable(LogLevel.Debug);
+
+      const earlyConfig: Config.EarlyConfig = {
+        loggerProvider: customLogger,
+        serverZone: 'EU',
+        enableDiagnostics: false,
+        diagnosticsSampleRate: 0.5,
+      };
+
+      const config = await Config.useBrowserConfig(
+        apiKey,
+        {}, // Empty options to ensure earlyConfig values are used
+        new AmplitudeBrowser(),
+        undefined, // diagnosticsClient
+        earlyConfig,
+      );
+
+      // Verify earlyConfig values are used instead of defaults
+      expect(config.loggerProvider).toBe(customLogger);
+      expect(config.serverZone).toBe('EU');
+      expect(config.enableDiagnostics).toBe(false);
+      expect(config.diagnosticsSampleRate).toBe(0.5);
     });
   });
 });
