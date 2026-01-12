@@ -55,7 +55,7 @@ function overrideConsole(): boolean {
           inConsoleOverride = false;
         }
         /* eslint-disable-next-line @typescript-eslint/no-unsafe-argument */
-        return (target[prop] as (...args: any[]) => void)(...args);
+        return Reflect.apply(target[prop] as (...args: any[]) => void, target, args);
       };
     },
   };
