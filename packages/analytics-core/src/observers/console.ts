@@ -35,8 +35,8 @@ function overrideConsole(): boolean {
       }
       return function (...args: any[]) {
         try {
+          // add a re-entrancy guard to prevent infinite recursion
           if (handlers.has(prop) && !inConsoleOverride) {
-            // add a re-entrancy guard to prevent infinite recursion
             inConsoleOverride = true;
             const callbacks = handlers.get(prop);
             if (callbacks) {
@@ -48,11 +48,10 @@ function overrideConsole(): boolean {
                 }
               });
             }
+            inConsoleOverride = false;
           }
         } catch {
           // do nothing
-        } finally {
-          inConsoleOverride = false;
         }
         /* eslint-disable-next-line @typescript-eslint/no-unsafe-argument */
         return Reflect.apply(target[prop] as (...args: any[]) => void, target, args);
