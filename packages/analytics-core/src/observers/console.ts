@@ -13,7 +13,7 @@ let isOverridden = false;
 
 type Callback = (logLevel: ConsoleLogLevel, args: any[]) => void;
 
-const handlers = new Map<ConsoleLogLevel, Array<Callback>>();
+const handlers = isMapSupported ? new Map<ConsoleLogLevel, Array<Callback>>() : undefined;
 
 let inConsoleOverride = false;
 
