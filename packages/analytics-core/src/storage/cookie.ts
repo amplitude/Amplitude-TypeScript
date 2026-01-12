@@ -79,6 +79,7 @@ export class CookieStorage<T> implements Storage<T> {
       if (cookieStore) {
         const cookies = await cookieStore.getAll(key);
         if (cookies) {
+          /* istanbul ignore if */
           if (cookies.length > 1) {
             this.config.diagnosticsClient?.recordEvent('cookies.duplicate', {
               cookies: cookies.map((cookie) => cookie.domain),

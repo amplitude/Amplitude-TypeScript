@@ -294,6 +294,7 @@ export const useBrowserConfig = async (
       const parsed = JSON.parse(decodedValue) as UserSession;
       return isDomainEqual(parsed.cookieDomain, cookieOptions.domain);
     },
+    diagnosticsClient: diagnosticsClient,
   };
   const cookieStorage = createCookieStorage<UserSession>(options.identityStorage, cookieOptions, cookieConfig);
 

@@ -179,6 +179,36 @@ describe('cookies', () => {
       expect(await tldCookies.get('hello')).toEqual({ a: 'keep' });
       await tldCookies.remove('hello');
     });
+
+    test('should record diagnostics when duplicateResolverFn returns false', async () => {
+      const diagnosticsClient = {
+        recordEvent: jest.fn(),
+        increment: jest.fn(),
+      };
+      const cookieStorageWithDiagnostics = new CookieStorage<Record<string, string>>(
+        {
+          domain: 'example.com',
+        },
+        {
+          duplicateResolverFn: (value: string) => {
+            const decodedValue = decodeURIComponent(atob(value));
+            const parsedValue = JSON.parse(decodedValue);
+            // Return false for "ignore", true for "keep"
+            return parsedValue.a === 'keep';
+          },
+          diagnosticsClient: diagnosticsClient as any,
+        },
+      );
+
+      // Set up duplicate cookies - one to ignore, one to keep
+      await tldCookies.set('test', { a: 'ignore' });
+      await subdomainCookies.set('test', { a: 'keep' });
+
+      await cookieStorageWithDiagnostics.get('test');
+
+      expect(diagnosticsClient.increment).toHaveBeenCalledWith('cookies.duplicate.occurrence.document.cookie');
+      await tldCookies.remove('test');
+    });
   });
 
   describe('cookieStore', () => {
@@ -225,6 +255,34 @@ describe('cookies', () => {
         domain: 'domain.com',
       });
       expect(await cookieStorage.get('hello')).toEqual({ hello: 'world!' });
+    });
+
+    test('should record diagnostics when duplicate cookies are detected', async () => {
+      const diagnosticsClient = {
+        recordEvent: jest.fn(),
+        increment: jest.fn(),
+      };
+      const cookieStorageWithDiagnostics = new CookieStorage<string>(
+        {
+          domain: 'domain.com',
+        },
+        {
+          diagnosticsClient: diagnosticsClient as any,
+        },
+      );
+
+      // Mock cookieStore to return multiple cookies
+      globalScope.cookieStore.getAll = jest.fn().mockResolvedValue([
+        { name: 'hello', value: btoa(encodeURIComponent(JSON.stringify('value1'))), domain: 'domain.com' },
+        { name: 'hello', value: btoa(encodeURIComponent(JSON.stringify('value2'))), domain: 'other.com' },
+      ]);
+
+      await cookieStorageWithDiagnostics.get('hello');
+
+      expect(diagnosticsClient.recordEvent).toHaveBeenCalledWith('cookies.duplicate', {
+        cookies: ['domain.com', 'other.com'],
+      });
+      expect(diagnosticsClient.increment).toHaveBeenCalledWith('cookies.duplicate.occurrence.cookieStore');
     });
   });
 
