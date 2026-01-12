@@ -1,3 +1,5 @@
+import { IDiagnosticsClient } from '../diagnostics/diagnostics-client';
+
 export interface Storage<T> {
   isEnabled(): Promise<boolean>;
   get(key: string): Promise<T | undefined>;
@@ -24,6 +26,7 @@ export interface CookieStorageConfig {
    * Returns true if the cookie value should be used, false otherwise.
    */
   duplicateResolverFn?: (value: string) => boolean;
+  diagnosticsClient?: IDiagnosticsClient;
 }
 
 export type IdentityStorageType = 'cookie' | 'localStorage' | 'sessionStorage' | 'none';
