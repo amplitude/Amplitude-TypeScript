@@ -15,9 +15,9 @@
     const callback = (logLevel, args) => {
       console.log(`Echoing the error: ${args.join(' ')}`);
     };
-    consoleObserver.observe('error', callback);
+    consoleObserver.addListener('error', callback);
     setTimeout(() => {
-      consoleObserver.disconnectHandler(callback);
+      consoleObserver.removeListener(callback);
       console.log('Disconnected');
     }, 8000);
   </script>
