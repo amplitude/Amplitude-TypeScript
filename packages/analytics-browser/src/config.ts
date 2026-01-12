@@ -28,6 +28,9 @@ import {
   NetworkTrackingOptions,
   IIdentify,
   IDiagnosticsClient,
+  isDomainEqual,
+  CookieStorageConfig,
+  decodeCookieValue,
 } from '@amplitude/analytics-core';
 
 import { LocalStorage } from './storage/local-storage';
@@ -242,7 +245,13 @@ export class BrowserConfig extends Config implements IBrowserConfig {
       lastEventId: this._lastEventId,
       pageCounter: this._pageCounter,
       debugLogsEnabled: this._debugLogsEnabled,
+      cookieDomain: undefined as string | undefined,
     };
+
+    if (this.cookieStorage instanceof CookieStorage) {
+      cache.cookieDomain = this.cookieStorage.options.domain;
+    }
+
     void this.cookieStorage.set(getCookieName(this.apiKey), cache);
   }
 }
@@ -263,7 +272,20 @@ export const useBrowserConfig = async (
     upgrade: true,
     ...options.cookieOptions,
   };
-  const cookieStorage = createCookieStorage<UserSession>(options.identityStorage, cookieOptions);
+
+  const cookieConfig: CookieStorageConfig = {
+    // if more than one cookie with the same key exists,
+    // look for the cookie that has the domain attribute set to cookieOptions.domain
+    duplicateResolverFn: (value: string): boolean => {
+      const decodedValue = decodeCookieValue(value);
+      if (!decodedValue) {
+        return false;
+      }
+      const parsed = JSON.parse(decodedValue) as UserSession;
+      return isDomainEqual(parsed.cookieDomain, cookieOptions.domain);
+    },
+  };
+  const cookieStorage = createCookieStorage<UserSession>(options.identityStorage, cookieOptions, cookieConfig);
 
   // Step 1: Parse cookies using identity storage instance
   const legacyCookies = await parseLegacyCookies(apiKey, cookieStorage, options.cookieOptions?.upgrade ?? true);
@@ -358,6 +380,7 @@ export const useBrowserConfig = async (
 export const createCookieStorage = <T>(
   identityStorage: IdentityStorageType = DEFAULT_IDENTITY_STORAGE,
   cookieOptions: CookieOptions = {},
+  cookieConfig?: CookieStorageConfig,
 ) => {
   switch (identityStorage) {
     case 'localStorage':
@@ -368,10 +391,13 @@ export const createCookieStorage = <T>(
       return new MemoryStorage<T>();
     case 'cookie':
     default:
-      return new CookieStorage<T>({
-        ...cookieOptions,
-        expirationDays: cookieOptions.expiration,
-      });
+      return new CookieStorage<T>(
+        {
+          ...cookieOptions,
+          expirationDays: cookieOptions.expiration,
+        },
+        cookieConfig,
+      );
   }
 };
 
@@ -400,7 +426,8 @@ export const getTopLevelDomain = async (url?: string) => {
   const host = url ?? location.hostname;
   const parts = host.split('.');
   const levels = [];
-  const storageKey = 'AMP_TLDTEST';
+  const cookieKeyUniqueId = UUID();
+  const storageKey = `AMP_TLDTEST_${cookieKeyUniqueId.substring(0, 8)}`;
 
   for (let i = parts.length - 2; i >= 0; --i) {
     levels.push(parts.slice(i).join('.'));
