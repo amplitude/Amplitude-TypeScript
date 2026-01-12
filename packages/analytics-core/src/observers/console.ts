@@ -6,6 +6,8 @@ const globalScope = getGlobalScope();
 /* istanbul ignore next */
 const originalConsole: Console | undefined = globalScope?.console;
 const isProxySupported = typeof Proxy === 'function';
+const isMapSupported = typeof Map === 'function';
+const isSupported = isProxySupported && isMapSupported;
 
 let isOverridden = false;
 
@@ -17,7 +19,7 @@ let inConsoleOverride = false;
 
 function overrideConsole(): boolean {
   /* istanbul ignore if */
-  if (!originalConsole || !globalScope || !isProxySupported) {
+  if (!originalConsole || !globalScope || !isSupported) {
     return false;
   }
 
