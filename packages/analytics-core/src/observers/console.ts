@@ -13,6 +13,8 @@ type Callback = (logLevel: ConsoleLogLevel, args: any[]) => void;
 
 const handlers = new Map<ConsoleLogLevel, Array<Callback>>();
 
+let inConsoleOverride = false;
+
 function overrideConsole(): boolean {
   /* istanbul ignore if */
   if (!originalConsole || !globalScope || !isProxySupported) {
@@ -32,11 +34,25 @@ function overrideConsole(): boolean {
         return target[prop];
       }
       return function (...args: any[]) {
-        if (handlers.has(prop)) {
-          const callbacks = handlers.get(prop);
-          if (callbacks) {
-            callbacks.forEach((callback) => callback(prop, args));
+        try {
+          if (handlers.has(prop) && !inConsoleOverride) {
+            // add a re-entrancy guard to prevent infinite recursion
+            inConsoleOverride = true;
+            const callbacks = handlers.get(prop);
+            if (callbacks) {
+              callbacks.forEach((callback) => {
+                try {
+                  callback(prop, args);
+                } catch {
+                  // do nothing
+                }
+              });
+            }
           }
+        } catch {
+          // do nothing
+        } finally {
+          inConsoleOverride = false;
         }
         /* eslint-disable-next-line @typescript-eslint/no-unsafe-argument */
         return (target[prop] as (...args: any[]) => void)(...args);
