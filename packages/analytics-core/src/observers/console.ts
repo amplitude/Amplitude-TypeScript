@@ -92,8 +92,11 @@ function addListener(level: ConsoleLogLevel, callback: Callback): Error | void {
  */
 function removeListener(callback: Callback) {
   handlers.forEach((callbacks) => {
-    if (callbacks.includes(callback)) {
-      callbacks.splice(callbacks.indexOf(callback), 1);
+    for (let i = callbacks.length - 1; i >= 0; i--) { 
+      if (callbacks[i] === callback) {
+        callbacks.splice(i, 1);
+        break;
+      }
     }
   });
 }
