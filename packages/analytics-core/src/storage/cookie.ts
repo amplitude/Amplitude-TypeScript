@@ -79,6 +79,14 @@ export class CookieStorage<T> implements Storage<T> {
       if (cookieStore) {
         const cookies = await cookieStore.getAll(key);
         if (cookies) {
+          /* istanbul ignore if */
+          if (cookies.length > 1) {
+            this.config.diagnosticsClient?.recordEvent('cookies.duplicate', {
+              cookies: cookies.map((cookie) => cookie.domain),
+            });
+            this.config.diagnosticsClient?.increment('cookies.duplicate.occurrence.cookieStore');
+          }
+
           for (const cookie of cookies) {
             if (isDomainEqual(cookie.domain, this.options.domain)) {
               return cookie.value;
@@ -91,16 +99,20 @@ export class CookieStorage<T> implements Storage<T> {
       // if cookieStore had a surprise failure, fallback to document.cookie
     }
 
-    const cookie = (globalScope?.document?.cookie.split('; ') ?? []).filter((c) => c.indexOf(key + '=') === 0);
+    const cookies = (globalScope?.document?.cookie.split('; ') ?? []).filter((c) => c.indexOf(key + '=') === 0);
     let match: string | undefined = undefined;
 
     // if matcher function is provided, use it to de-duplicate when there's more than one cookie
     /* istanbul ignore if */
     const duplicateResolverFn = this.config.duplicateResolverFn;
-    if (typeof duplicateResolverFn === 'function' && cookie.length > 1) {
-      match = cookie.find((c) => {
+    if (typeof duplicateResolverFn === 'function' && cookies.length > 1) {
+      match = cookies.find((c) => {
         try {
-          return duplicateResolverFn(c.substring(key.length + 1));
+          const res = duplicateResolverFn(c.substring(key.length + 1));
+          if (!res) {
+            this.config.diagnosticsClient?.increment('cookies.duplicate.occurrence.document.cookie');
+          }
+          return res;
         } catch (ignoreError) {
           /* istanbul ignore next */
           return false;
@@ -110,7 +122,7 @@ export class CookieStorage<T> implements Storage<T> {
 
     // if match was not found, just get the first one that matches the key
     if (!match) {
-      match = cookie[0];
+      match = cookies[0];
     }
     if (!match) {
       return undefined;
