@@ -39,8 +39,10 @@ export const frustrationPlugin = (options: FrustrationInteractionsOptions = {}):
   const rageClicksEnabled = options.rageClicks !== false;
 
   // Get CSS selectors for enabled features
-  const rageCssSelectors = (typeof options.rageClicks === 'object' && options.rageClicks.cssSelectorAllowlist) || DEFAULT_RAGE_CLICK_ALLOWLIST;
-  const deadCssSelectors = (typeof options.deadClicks === 'object' && options.deadClicks.cssSelectorAllowlist) || DEFAULT_DEAD_CLICK_ALLOWLIST;
+  const rageCssSelectors =
+    (typeof options.rageClicks === 'object' && options.rageClicks.cssSelectorAllowlist) || DEFAULT_RAGE_CLICK_ALLOWLIST;
+  const deadCssSelectors =
+    (typeof options.deadClicks === 'object' && options.deadClicks.cssSelectorAllowlist) || DEFAULT_DEAD_CLICK_ALLOWLIST;
 
   const dataAttributePrefix = options.dataAttributePrefix ?? DEFAULT_DATA_ATTRIBUTE_PREFIX;
 
