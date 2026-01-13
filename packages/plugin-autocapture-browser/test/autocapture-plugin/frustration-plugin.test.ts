@@ -3,6 +3,7 @@ import { BrowserConfig, EnrichmentPlugin, ILogger, Observable, Unsubscribable } 
 import { createMockBrowserClient } from '../mock-browser-client';
 import { trackDeadClick } from '../../src/autocapture/track-dead-click';
 import { trackRageClicks } from '../../src/autocapture/track-rage-click';
+import { trackErrorClicks } from '../../src/autocapture/track-error-click';
 import { BrowserErrorEvent, createErrorObservable } from '../../src/observables';
 import { dispatchUnhandledRejection } from '../utils';
 
@@ -19,6 +20,10 @@ jest.mock('../../src/autocapture/track-dead-click', () => ({
 
 jest.mock('../../src/autocapture/track-rage-click', () => ({
   trackRageClicks: jest.fn(),
+}));
+
+jest.mock('../../src/autocapture/track-error-click', () => ({
+  trackErrorClicks: jest.fn(),
 }));
 
 describe('frustrationPlugin', () => {
@@ -128,6 +133,30 @@ describe('frustrationPlugin', () => {
       // Test that the allowlist is working
       expect(shouldTrackRageClick('click', input)).toBe(true); // input is in allowlist
       expect(shouldTrackRageClick('click', span)).toBe(false); // span is not in allowlist
+    });
+
+    it('should pass custom error click allowlist to tracking function', async () => {
+      const customErrorClickAllowlist = ['input', 'select'];
+
+      plugin = frustrationPlugin({
+        errorClicks: {
+          cssSelectorAllowlist: customErrorClickAllowlist,
+        },
+      });
+
+      await plugin?.setup?.(config as BrowserConfig, instance);
+
+      // Get the shouldTrackRageClick function that was passed
+      const errorClickCall = (trackErrorClicks as jest.Mock).mock.calls[0][0];
+      const shouldTrackErrorClick = errorClickCall.shouldTrackErrorClick;
+
+      // Create test elements
+      const input = document.createElement('input');
+      const span = document.createElement('span');
+
+      // Test that the allowlist is working
+      expect(shouldTrackErrorClick('click', input)).toBe(true); // input is in allowlist
+      expect(shouldTrackErrorClick('click', span)).toBe(false); // span is not in allowlist
     });
   });
 
@@ -330,6 +359,42 @@ describe('frustrationPlugin', () => {
 
       // expect no event listeners left on window.navigation
       expect((window.navigation as any)._handlers.length).toBe(0);
+    });
+
+    it('should create browser error observable with type and timestamp', async () => {
+      plugin = frustrationPlugin({
+        errorClicks: true,
+      });
+      await plugin?.setup?.(config as BrowserConfig, instance);
+
+      const errorClickCall = (trackErrorClicks as jest.Mock).mock.calls[0][0];
+      const observables = errorClickCall.allObservables;
+
+      expect(observables).toHaveProperty('browserErrorObservable');
+
+      // Subscribe to the browser error observable
+      const errorSpy = jest.fn();
+      const subscription = observables.browserErrorObservable.subscribe(errorSpy);
+
+      // Trigger a console error
+      window.console.error('test browser error observable');
+
+      // Verify the error was captured and enriched with type and timestamp
+      expect(errorSpy).toHaveBeenCalled();
+      const capturedError = errorSpy.mock.calls[0][0];
+
+      // Verify the structure added by dataExtractor.addTypeAndTimestamp
+      expect(capturedError).toHaveProperty('type', 'error');
+      expect(capturedError).toHaveProperty('timestamp');
+      expect(typeof capturedError.timestamp).toBe('number');
+      expect(capturedError).toHaveProperty('event');
+      expect(capturedError.event).toEqual({
+        kind: 'console',
+        message: 'test browser error observable',
+      });
+
+      // Cleanup
+      subscription.unsubscribe();
     });
   });
 
