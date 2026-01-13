@@ -86,6 +86,10 @@ export {
   DEFAULT_RAGE_CLICK_WINDOW_MS,
   DEFAULT_RAGE_CLICK_OUT_OF_BOUNDS_THRESHOLD,
   DEFAULT_DEAD_CLICK_WINDOW_MS,
+  isDeadClicksEnabled,
+  isRageClicksEnabled,
+  getDeadClicksCssSelectorAllowlist,
+  getRageClicksCssSelectorAllowlist,
 } from './types/frustration-interactions';
 export { PageTrackingOptions, PageTrackingTrackOn, PageTrackingHistoryChanges } from './types/page-view-tracking';
 export { Status } from './types/status';

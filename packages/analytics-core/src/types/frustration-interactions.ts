@@ -59,14 +59,18 @@ export interface FrustrationInteractionsOptions {
   dataAttributePrefix?: string;
 
   /**
-   * Configuration for dead clicks tracking
+   * Configuration for dead clicks tracking.
+   * Set to `false` to disable dead click tracking.
+   * Set to `true` or an options object to enable with default or custom settings.
    */
-  deadClicks?: DeadClickOptions;
+  deadClicks?: boolean | DeadClickOptions;
 
   /**
-   * Configuration for rage clicks tracking
+   * Configuration for rage clicks tracking.
+   * Set to `false` to disable rage click tracking.
+   * Set to `true` or an options object to enable with default or custom settings.
    */
-  rageClicks?: RageClickOptions;
+  rageClicks?: boolean | RageClickOptions;
 
   /**
    * RegExp pattern list to allow custom patterns for text masking
@@ -124,6 +128,44 @@ export const DEFAULT_RAGE_CLICK_THRESHOLD = 4;
  * Default threshold for rage clicks to be considered out of bounds (50 pixels)
  */
 export const DEFAULT_RAGE_CLICK_OUT_OF_BOUNDS_THRESHOLD = 50; // pixels
+
+/**
+ * Check if dead clicks tracking is enabled.
+ * Returns true only when explicitly set to `true` or an options object.
+ */
+export const isDeadClicksEnabled = (deadClicks: boolean | DeadClickOptions | undefined | null): boolean => {
+  return deadClicks === true || (typeof deadClicks === 'object' && !!deadClicks);
+};
+
+/**
+ * Check if rage clicks tracking is enabled.
+ * Returns true only when explicitly set to `true` or an options object.
+ */
+export const isRageClicksEnabled = (rageClicks: boolean | RageClickOptions | undefined | null): boolean => {
+  return rageClicks === true || (typeof rageClicks === 'object' && !!rageClicks);
+};
+
+/**
+ * Get the CSS selector allowlist for dead clicks.
+ * Returns the custom allowlist if provided, otherwise returns the default.
+ */
+export const getDeadClicksCssSelectorAllowlist = (deadClicks: boolean | DeadClickOptions | undefined): string[] => {
+  if (typeof deadClicks === 'object' && deadClicks.cssSelectorAllowlist) {
+    return deadClicks.cssSelectorAllowlist;
+  }
+  return DEFAULT_DEAD_CLICK_ALLOWLIST;
+};
+
+/**
+ * Get the CSS selector allowlist for rage clicks.
+ * Returns the custom allowlist if provided, otherwise returns the default.
+ */
+export const getRageClicksCssSelectorAllowlist = (rageClicks: boolean | RageClickOptions | undefined): string[] => {
+  if (typeof rageClicks === 'object' && rageClicks.cssSelectorAllowlist) {
+    return rageClicks.cssSelectorAllowlist;
+  }
+  return DEFAULT_RAGE_CLICK_ALLOWLIST;
+};
 
 // DomElement is [Element](https://developer.mozilla.org/en-US/docs/Web/API/Element) if the dom library is included in tsconfig.json
 // and never if it is not included

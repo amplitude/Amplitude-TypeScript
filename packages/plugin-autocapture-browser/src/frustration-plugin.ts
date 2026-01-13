@@ -5,11 +5,13 @@ import {
   EnrichmentPlugin,
   FrustrationInteractionsOptions,
   DEFAULT_DATA_ATTRIBUTE_PREFIX,
-  DEFAULT_RAGE_CLICK_ALLOWLIST,
-  DEFAULT_DEAD_CLICK_ALLOWLIST,
   multicast,
   Observable,
   Unsubscribable,
+  isDeadClicksEnabled,
+  isRageClicksEnabled,
+  getDeadClicksCssSelectorAllowlist,
+  getRageClicksCssSelectorAllowlist,
 } from '@amplitude/analytics-core';
 import * as constants from './constants';
 import { createShouldTrackEvent, ElementBasedTimestampedEvent, NavigateEvent, TimestampedEvent } from './helpers';
@@ -34,14 +36,19 @@ export const frustrationPlugin = (options: FrustrationInteractionsOptions = {}):
 
   const subscriptions: Unsubscribable[] = [];
 
-  const rageCssSelectors = options.rageClicks?.cssSelectorAllowlist ?? DEFAULT_RAGE_CLICK_ALLOWLIST;
-  const deadCssSelectors = options.deadClicks?.cssSelectorAllowlist ?? DEFAULT_DEAD_CLICK_ALLOWLIST;
+  // Check if each feature is enabled
+  const deadClicksEnabled = isDeadClicksEnabled(options.deadClicks);
+  const rageClicksEnabled = isRageClicksEnabled(options.rageClicks);
+
+  // Get CSS selectors for enabled features
+  const rageCssSelectors = rageClicksEnabled ? getRageClicksCssSelectorAllowlist(options.rageClicks) : [];
+  const deadCssSelectors = deadClicksEnabled ? getDeadClicksCssSelectorAllowlist(options.deadClicks) : [];
 
   const dataAttributePrefix = options.dataAttributePrefix ?? DEFAULT_DATA_ATTRIBUTE_PREFIX;
 
   const dataExtractor = new DataExtractor(options);
 
-  // combine the two selector lists to determine which clicked elements should be filtered
+  // combine the selector lists from enabled features to determine which clicked elements should be filtered
   const combinedCssSelectors = [...new Set([...rageCssSelectors, ...deadCssSelectors])];
 
   // Create observables on events on the window
@@ -146,29 +153,31 @@ export const frustrationPlugin = (options: FrustrationInteractionsOptions = {}):
       return;
     }
 
-    // Create should track event functions for the different allowlists
-    const shouldTrackRageClick = createShouldTrackEvent(options, rageCssSelectors);
-    const shouldTrackDeadClick = createShouldTrackEvent(options, deadCssSelectors);
-
     // Create observables for events on the window
     const allObservables = createObservables();
 
-    // Create subscriptions
-    const rageClickSubscription = trackRageClicks({
-      allObservables,
-      amplitude,
-      shouldTrackRageClick,
-    });
-    subscriptions.push(rageClickSubscription);
+    // Create subscriptions only for enabled features
+    if (rageClicksEnabled) {
+      const shouldTrackRageClick = createShouldTrackEvent(options, rageCssSelectors);
+      const rageClickSubscription = trackRageClicks({
+        allObservables,
+        amplitude,
+        shouldTrackRageClick,
+      });
+      subscriptions.push(rageClickSubscription);
+    }
 
-    const deadClickSubscription = trackDeadClick({
-      amplitude,
-      allObservables,
-      getEventProperties: (actionType, element) =>
-        dataExtractor.getEventProperties(actionType, element, dataAttributePrefix),
-      shouldTrackDeadClick,
-    });
-    subscriptions.push(deadClickSubscription);
+    if (deadClicksEnabled) {
+      const shouldTrackDeadClick = createShouldTrackEvent(options, deadCssSelectors);
+      const deadClickSubscription = trackDeadClick({
+        amplitude,
+        allObservables,
+        getEventProperties: (actionType, element) =>
+          dataExtractor.getEventProperties(actionType, element, dataAttributePrefix),
+        shouldTrackDeadClick,
+      });
+      subscriptions.push(deadClickSubscription);
+    }
 
     /* istanbul ignore next */
     config?.loggerProvider?.log(`${name} has been successfully added.`);
