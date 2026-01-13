@@ -261,10 +261,7 @@
       import * as amplitude from '@amplitude/analytics-browser';
     
       window.amplitude = amplitude;
-      const frustrationInteractions = {
-        deadClicks: true,
-        rageClicks: true,
-      };
+      const frustrationInteractions = false;
       const identify = new amplitude.Identify();
       identify.set('testing', 'testing');
       amplitude.track('hello', 'world');
@@ -278,7 +275,6 @@
             elementInteractions: {
               debounceTime: 1000,
             },
-            frustrationInteractions,
             sessions: true,
           },
         }

@@ -129,44 +129,6 @@ export const DEFAULT_RAGE_CLICK_THRESHOLD = 4;
  */
 export const DEFAULT_RAGE_CLICK_OUT_OF_BOUNDS_THRESHOLD = 50; // pixels
 
-/**
- * Check if dead clicks tracking is enabled.
- * Returns true unless explicitly set to `false`.
- */
-export const isDeadClicksEnabled = (deadClicks: boolean | DeadClickOptions | undefined): boolean => {
-  return deadClicks !== false;
-};
-
-/**
- * Check if rage clicks tracking is enabled.
- * Returns true unless explicitly set to `false`.
- */
-export const isRageClicksEnabled = (rageClicks: boolean | RageClickOptions | undefined): boolean => {
-  return rageClicks !== false;
-};
-
-/**
- * Get the CSS selector allowlist for dead clicks.
- * Returns the custom allowlist if provided, otherwise returns the default.
- */
-export const getDeadClicksCssSelectorAllowlist = (deadClicks: boolean | DeadClickOptions | undefined): string[] => {
-  if (typeof deadClicks === 'object' && deadClicks.cssSelectorAllowlist) {
-    return deadClicks.cssSelectorAllowlist;
-  }
-  return DEFAULT_DEAD_CLICK_ALLOWLIST;
-};
-
-/**
- * Get the CSS selector allowlist for rage clicks.
- * Returns the custom allowlist if provided, otherwise returns the default.
- */
-export const getRageClicksCssSelectorAllowlist = (rageClicks: boolean | RageClickOptions | undefined): string[] => {
-  if (typeof rageClicks === 'object' && rageClicks.cssSelectorAllowlist) {
-    return rageClicks.cssSelectorAllowlist;
-  }
-  return DEFAULT_RAGE_CLICK_ALLOWLIST;
-};
-
 // DomElement is [Element](https://developer.mozilla.org/en-US/docs/Web/API/Element) if the dom library is included in tsconfig.json
 // and never if it is not included
 // eslint-disable-next-line no-restricted-globals

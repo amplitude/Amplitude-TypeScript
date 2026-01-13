@@ -8,10 +8,8 @@ import {
   multicast,
   Observable,
   Unsubscribable,
-  isDeadClicksEnabled,
-  isRageClicksEnabled,
-  getDeadClicksCssSelectorAllowlist,
-  getRageClicksCssSelectorAllowlist,
+  DEFAULT_RAGE_CLICK_ALLOWLIST,
+  DEFAULT_DEAD_CLICK_ALLOWLIST,
 } from '@amplitude/analytics-core';
 import * as constants from './constants';
 import { createShouldTrackEvent, ElementBasedTimestampedEvent, NavigateEvent, TimestampedEvent } from './helpers';
@@ -37,12 +35,12 @@ export const frustrationPlugin = (options: FrustrationInteractionsOptions = {}):
   const subscriptions: Unsubscribable[] = [];
 
   // Check if each feature is enabled
-  const deadClicksEnabled = isDeadClicksEnabled(options.deadClicks);
-  const rageClicksEnabled = isRageClicksEnabled(options.rageClicks);
+  const deadClicksEnabled = options.deadClicks !== false;
+  const rageClicksEnabled = options.rageClicks !== false;
 
   // Get CSS selectors for enabled features
-  const rageCssSelectors = rageClicksEnabled ? getRageClicksCssSelectorAllowlist(options.rageClicks) : [];
-  const deadCssSelectors = deadClicksEnabled ? getDeadClicksCssSelectorAllowlist(options.deadClicks) : [];
+  const rageCssSelectors = (typeof options.rageClicks === 'object' && options.rageClicks.cssSelectorAllowlist) || DEFAULT_RAGE_CLICK_ALLOWLIST;
+  const deadCssSelectors = (typeof options.deadClicks === 'object' && options.deadClicks.cssSelectorAllowlist) || DEFAULT_DEAD_CLICK_ALLOWLIST;
 
   const dataAttributePrefix = options.dataAttributePrefix ?? DEFAULT_DATA_ATTRIBUTE_PREFIX;
 
