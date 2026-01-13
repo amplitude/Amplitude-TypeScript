@@ -31,10 +31,8 @@ export const createClickObservable = (
     const handler = (event: MouseEvent | PointerEvent) => {
       observer.next(event);
     };
-    /* istanbul ignore next */
     globalScope.document.addEventListener(clickType, handler, { capture: true });
     return () => {
-      /* istanbul ignore next */
       globalScope.document.removeEventListener(clickType, handler, { capture: true });
     };
   });
