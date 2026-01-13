@@ -32,9 +32,10 @@ type BrowserEnrichmentPlugin = EnrichmentPlugin<BrowserClient, BrowserConfig>;
 function getCssSelectorAllowlist(
   options: FrustrationInteractionsOptions,
   attribute: keyof FrustrationInteractionsOptions,
-  defaultAllowlist: string[]
+  defaultAllowlist: string[],
+  enabled: boolean
 ): string[] {
-  if (options[attribute] === false || options[attribute] === null) {
+  if (!enabled) {
     return [];
   }
   const config = options[attribute];
@@ -60,8 +61,8 @@ export const frustrationPlugin = (options: FrustrationInteractionsOptions = {}):
   const rageClicksEnabled = options.rageClicks !== false && options.rageClicks !== null;
 
   // Get CSS selectors for enabled features
-  const rageCssSelectors = getCssSelectorAllowlist(options, 'rageClicks', DEFAULT_RAGE_CLICK_ALLOWLIST);
-  const deadCssSelectors = getCssSelectorAllowlist(options, 'deadClicks', DEFAULT_DEAD_CLICK_ALLOWLIST);
+  const rageCssSelectors = getCssSelectorAllowlist(options, 'rageClicks', DEFAULT_RAGE_CLICK_ALLOWLIST, deadClicksEnabled);
+  const deadCssSelectors = getCssSelectorAllowlist(options, 'deadClicks', DEFAULT_DEAD_CLICK_ALLOWLIST, rageClicksEnabled);
 
   const dataAttributePrefix = options.dataAttributePrefix ?? DEFAULT_DATA_ATTRIBUTE_PREFIX;
 
