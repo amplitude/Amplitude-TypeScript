@@ -16,19 +16,14 @@ import { createShouldTrackEvent, ElementBasedTimestampedEvent, NavigateEvent, Ti
 import { trackDeadClick } from './autocapture/track-dead-click';
 import { trackRageClicks } from './autocapture/track-rage-click';
 import { ObservablesEnum } from './autocapture-plugin';
-import {
-  BrowserErrorEvent,
-  createClickObservable,
-  createErrorObservable,
-  createMutationObservable,
-} from './observables';
+import { BrowserErrorEvent, createClickObservable, createMutationObservable } from './observables';
 import { DataExtractor } from './data-extractor';
 
 export interface AllWindowObservables {
   [ObservablesEnum.ClickObservable]: Observable<ElementBasedTimestampedEvent<MouseEvent>>;
   [ObservablesEnum.MutationObservable]: Observable<TimestampedEvent<MutationRecord[]>>;
   [ObservablesEnum.NavigateObservable]?: Observable<TimestampedEvent<NavigateEvent>>;
-  [ObservablesEnum.BrowserErrorObservable]: Observable<TimestampedEvent<BrowserErrorEvent>>;
+  [ObservablesEnum.BrowserErrorObservable]?: Observable<TimestampedEvent<BrowserErrorEvent>>;
 }
 
 type BrowserEnrichmentPlugin = EnrichmentPlugin<BrowserClient, BrowserConfig>;
@@ -97,17 +92,10 @@ export const frustrationPlugin = (options: FrustrationInteractionsOptions = {}):
       );
     }
 
-    const enrichedBrowserErrorObservable = multicast<TimestampedEvent<BrowserErrorEvent>>(
-      createErrorObservable().map((error) => {
-        return dataExtractor.addTypeAndTimestamp(error, 'error');
-      }),
-    );
-
     return {
       [ObservablesEnum.ClickObservable]: clickObservable as Observable<ElementBasedTimestampedEvent<MouseEvent>>,
       [ObservablesEnum.MutationObservable]: enrichedMutationObservable,
       [ObservablesEnum.NavigateObservable]: enrichedNavigateObservable,
-      [ObservablesEnum.BrowserErrorObservable]: enrichedBrowserErrorObservable,
     };
   };
 
