@@ -11,7 +11,7 @@
     window.AMPLITUDE_API_KEY = import.meta.env.VITE_AMPLITUDE_API_KEY;
   </script>
   <script type="module">
-    import { consoleObserver } from '@amplitude/analytics-core';
+    import { consoleObserver } from '@amplitude/analytics-core/src/observers/console';
     const callback = (logLevel, args) => {
       console.log(`Echoing the error: ${args.join(' ')}`);
     };
