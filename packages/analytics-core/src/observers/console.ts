@@ -93,7 +93,7 @@ function addListener(level: ConsoleLogLevel, callback: Callback): Error | void {
 function removeListener(callback: Callback) {
   handlers.forEach((callbacks) => {
     // iterate backwards to avoid index shifting
-    for (let i = callbacks.length - 1; i >= 0; i--) { 
+    for (let i = callbacks.length - 1; i >= 0; i--) {
       if (callbacks[i] === callback) {
         callbacks.splice(i, 1);
         break;
