@@ -1,7 +1,7 @@
-import { Observable, consoleObserver, merge } from '@amplitude/analytics-core';
+import { Observable, consoleObserver, getGlobalScope, merge } from '@amplitude/analytics-core';
 
 /* eslint-disable-next-line no-restricted-globals */
-const globalScope = window;
+const globalScope = getGlobalScope() as typeof window;
 
 export const createMutationObservable = (): Observable<MutationRecord[]> => {
   return new Observable<MutationRecord[]>((observer) => {
@@ -94,7 +94,6 @@ const createUnhandledRejectionObservable = (): Observable<BrowserErrorEvent> => 
       const output: BrowserErrorEvent = {
         kind: 'unhandledrejection',
       };
-      console.log('isObject', typeof event);
       if (event.reason instanceof Error) {
         output.message = event.reason.message;
         output.stack = event.reason.stack;
