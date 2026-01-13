@@ -28,7 +28,6 @@ export interface AllWindowObservables {
 
 type BrowserEnrichmentPlugin = EnrichmentPlugin<BrowserClient, BrowserConfig>;
 
-
 /**
  * Helper function to extract the css selector allowlist
  * from the frustration interactions options for a specific
@@ -38,7 +37,7 @@ function getCssSelectorAllowlist(
   options: FrustrationInteractionsOptions,
   attribute: keyof FrustrationInteractionsOptions,
   defaultAllowlist: string[],
-  enabled: boolean
+  enabled: boolean,
 ): string[] {
   if (!enabled) {
     return [];
@@ -50,7 +49,7 @@ function getCssSelectorAllowlist(
     'cssSelectorAllowlist' in config &&
     Array.isArray(config.cssSelectorAllowlist)
   ) {
-    return config.cssSelectorAllowlist as string[];
+    return config.cssSelectorAllowlist;
   }
   return defaultAllowlist;
 }
@@ -66,8 +65,18 @@ export const frustrationPlugin = (options: FrustrationInteractionsOptions = {}):
   const rageClicksEnabled = options.rageClicks !== false && options.rageClicks !== null;
 
   // Get CSS selectors for enabled features
-  const rageCssSelectors = getCssSelectorAllowlist(options, 'rageClicks', DEFAULT_RAGE_CLICK_ALLOWLIST, rageClicksEnabled);
-  const deadCssSelectors = getCssSelectorAllowlist(options, 'deadClicks', DEFAULT_DEAD_CLICK_ALLOWLIST, deadClicksEnabled);
+  const rageCssSelectors = getCssSelectorAllowlist(
+    options,
+    'rageClicks',
+    DEFAULT_RAGE_CLICK_ALLOWLIST,
+    rageClicksEnabled,
+  );
+  const deadCssSelectors = getCssSelectorAllowlist(
+    options,
+    'deadClicks',
+    DEFAULT_DEAD_CLICK_ALLOWLIST,
+    deadClicksEnabled,
+  );
 
   const dataAttributePrefix = options.dataAttributePrefix ?? DEFAULT_DATA_ATTRIBUTE_PREFIX;
 
