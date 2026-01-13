@@ -81,8 +81,9 @@ export interface FrustrationInteractionsOptions {
 
   /**
    * Configuration for error clicks tracking
+   * @experimental this feature is experimental and may not be stable
    */
-  errorClicks?: ErrorClickOptions;
+  errorClicks?: boolean | ErrorClickOptions;
 
   /**
    * RegExp pattern list to allow custom patterns for text masking

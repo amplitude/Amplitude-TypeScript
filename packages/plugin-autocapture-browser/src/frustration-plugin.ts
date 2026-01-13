@@ -43,7 +43,10 @@ export const frustrationPlugin = (options: FrustrationInteractionsOptions = {}):
 
   const rageCssSelectors = options.rageClicks?.cssSelectorAllowlist ?? DEFAULT_RAGE_CLICK_ALLOWLIST;
   const deadCssSelectors = options.deadClicks?.cssSelectorAllowlist ?? DEFAULT_DEAD_CLICK_ALLOWLIST;
-  const errorCssSelectors = options.errorClicks?.cssSelectorAllowlist ?? DEFAULT_ERROR_CLICK_ALLOWLIST;
+
+  const errorCssSelectors =
+    (typeof options.errorClicks === 'object' && options.errorClicks?.cssSelectorAllowlist) ||
+    DEFAULT_ERROR_CLICK_ALLOWLIST;
 
   const dataAttributePrefix = options.dataAttributePrefix ?? DEFAULT_DATA_ATTRIBUTE_PREFIX;
 
@@ -123,7 +126,6 @@ export const frustrationPlugin = (options: FrustrationInteractionsOptions = {}):
     // Create should track event functions for the different allowlists
     const shouldTrackRageClick = createShouldTrackEvent(options, rageCssSelectors);
     const shouldTrackDeadClick = createShouldTrackEvent(options, deadCssSelectors);
-    const shouldTrackErrorClick = createShouldTrackEvent(options, errorCssSelectors);
 
     // Create observables for events on the window
     const allObservables = createObservables();
@@ -145,12 +147,23 @@ export const frustrationPlugin = (options: FrustrationInteractionsOptions = {}):
     });
     subscriptions.push(deadClickSubscription);
 
-    const errorClickSubscription = trackErrorClicks({
-      amplitude,
-      allObservables,
-      shouldTrackErrorClick,
-    });
-    subscriptions.push(errorClickSubscription);
+    let isErrorClicksEnabled = options.errorClicks !== false;
+
+    // if errorClicks is not defined, disable it
+    // change this once it moves out of @experimental
+    if (!options.errorClicks) {
+      isErrorClicksEnabled = false;
+    }
+
+    if (isErrorClicksEnabled) {
+      const shouldTrackErrorClick = createShouldTrackEvent(options, errorCssSelectors);
+      const errorClickSubscription = trackErrorClicks({
+        amplitude,
+        allObservables,
+        shouldTrackErrorClick,
+      });
+      subscriptions.push(errorClickSubscription);
+    }
 
     /* istanbul ignore next */
     config?.loggerProvider?.log(`${name} has been successfully added.`);
