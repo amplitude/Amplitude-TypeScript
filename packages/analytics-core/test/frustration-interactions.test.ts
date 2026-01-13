@@ -9,9 +9,8 @@ import {
 
 describe('frustration-interactions helpers', () => {
   describe('isDeadClicksEnabled', () => {
-    it('should return false when deadClicks is undefined or null', () => {
-      expect(isDeadClicksEnabled(undefined)).toBe(false);
-      expect(isDeadClicksEnabled(null)).toBe(false);
+    it('should return true when deadClicks is undefined', () => {
+      expect(isDeadClicksEnabled(undefined)).toBe(true);
     });
 
     it('should return true when deadClicks is true', () => {
@@ -29,9 +28,8 @@ describe('frustration-interactions helpers', () => {
   });
 
   describe('isRageClicksEnabled', () => {
-    it('should return false when rageClicks is undefined or null', () => {
-      expect(isRageClicksEnabled(undefined)).toBe(false);
-      expect(isRageClicksEnabled(null)).toBe(false);
+    it('should return true when rageClicks is undefined', () => {
+      expect(isRageClicksEnabled(undefined)).toBe(true);
     });
 
     it('should return true when rageClicks is true', () => {

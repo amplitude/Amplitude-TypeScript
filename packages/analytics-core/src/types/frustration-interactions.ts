@@ -131,18 +131,18 @@ export const DEFAULT_RAGE_CLICK_OUT_OF_BOUNDS_THRESHOLD = 50; // pixels
 
 /**
  * Check if dead clicks tracking is enabled.
- * Returns true only when explicitly set to `true` or an options object.
+ * Returns true unless explicitly set to `false`.
  */
-export const isDeadClicksEnabled = (deadClicks: boolean | DeadClickOptions | undefined | null): boolean => {
-  return deadClicks === true || (typeof deadClicks === 'object' && deadClicks !== null);
+export const isDeadClicksEnabled = (deadClicks: boolean | DeadClickOptions | undefined): boolean => {
+  return deadClicks !== false;
 };
 
 /**
  * Check if rage clicks tracking is enabled.
- * Returns true only when explicitly set to `true` or an options object.
+ * Returns true unless explicitly set to `false`.
  */
-export const isRageClicksEnabled = (rageClicks: boolean | RageClickOptions | undefined | null): boolean => {
-  return rageClicks === true || (typeof rageClicks === 'object' && rageClicks !== null);
+export const isRageClicksEnabled = (rageClicks: boolean | RageClickOptions | undefined): boolean => {
+  return rageClicks !== false;
 };
 
 /**

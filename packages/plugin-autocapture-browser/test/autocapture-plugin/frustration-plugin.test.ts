@@ -90,13 +90,13 @@ describe('frustrationPlugin', () => {
       expect(trackRageClicks).toHaveBeenCalled();
     });
 
-    it('should skip tracking when not defined', async () => {
+    it('should enable tracking when not defined', async () => {
       plugin = frustrationPlugin({});
 
       await plugin?.setup?.(config as BrowserConfig, instance);
 
-      expect(trackDeadClick).not.toHaveBeenCalled();
-      expect(trackRageClicks).not.toHaveBeenCalled();
+      expect(trackDeadClick).toHaveBeenCalled();
+      expect(trackRageClicks).toHaveBeenCalled();
     });
   });
 
@@ -177,8 +177,8 @@ describe('frustrationPlugin', () => {
       expect(plugin.type).toBe('enrichment');
     });
 
-    it('should setup tracking functions when enabled', async () => {
-      plugin = frustrationPlugin({ deadClicks: true, rageClicks: true });
+    it('should setup tracking functions with default options', async () => {
+      plugin = frustrationPlugin({});
       await plugin?.setup?.(config as BrowserConfig, instance);
 
       expect(trackDeadClick).toHaveBeenCalledWith(
@@ -209,8 +209,6 @@ describe('frustrationPlugin', () => {
       const customDataAttributePrefix = 'data-custom-';
 
       plugin = frustrationPlugin({
-        deadClicks: true,
-        rageClicks: true,
         dataAttributePrefix: customDataAttributePrefix,
       });
       await plugin?.setup?.(config as BrowserConfig, instance);
@@ -259,7 +257,7 @@ describe('frustrationPlugin', () => {
       (trackDeadClick as jest.Mock).mockReturnValue(mockSubscription);
       (trackRageClicks as jest.Mock).mockReturnValue(mockSubscription);
 
-      plugin = frustrationPlugin({ deadClicks: true, rageClicks: true });
+      plugin = frustrationPlugin({});
       await plugin?.setup?.(config as BrowserConfig, instance);
       await plugin?.teardown?.();
 
@@ -267,7 +265,7 @@ describe('frustrationPlugin', () => {
     });
 
     it('should execute and return the event unchanged', async () => {
-      plugin = frustrationPlugin({ deadClicks: true, rageClicks: true });
+      plugin = frustrationPlugin({});
 
       const mockEvent = {
         event_type: 'test_event',
@@ -284,7 +282,7 @@ describe('frustrationPlugin', () => {
 
   describe('observables', () => {
     it('should create click + mutation observables with correct properties', async () => {
-      plugin = frustrationPlugin({ deadClicks: true, rageClicks: true });
+      plugin = frustrationPlugin({});
       await plugin?.setup?.(config as BrowserConfig, instance);
 
       const rageClickCall = (trackRageClicks as jest.Mock).mock.calls[0][0];
@@ -343,7 +341,7 @@ describe('frustrationPlugin', () => {
     });
 
     it('should create navigate observable', async () => {
-      plugin = frustrationPlugin({ deadClicks: true, rageClicks: true });
+      plugin = frustrationPlugin({});
       await plugin?.setup?.(config as BrowserConfig, instance);
       const rageClickCall = (trackRageClicks as jest.Mock).mock.calls[0][0];
       const observables = rageClickCall.allObservables;
@@ -375,7 +373,7 @@ describe('frustrationPlugin', () => {
       let selectionSpy: jest.Mock;
 
       beforeEach(async () => {
-        plugin = frustrationPlugin({ deadClicks: true, rageClicks: true });
+        plugin = frustrationPlugin({});
         await plugin?.setup?.(config as BrowserConfig, instance);
         rageClickCall = (trackRageClicks as jest.Mock).mock.calls[0][0];
         observables = rageClickCall.allObservables;
