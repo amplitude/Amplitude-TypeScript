@@ -35,18 +35,55 @@ export interface AllWindowObservables {
 
 type BrowserEnrichmentPlugin = EnrichmentPlugin<BrowserClient, BrowserConfig>;
 
+/**
+ * Helper function to extract the css selector allowlist
+ * from the frustration interactions options for a specific
+ * autocapture feature.
+ */
+function getCssSelectorAllowlist(
+  options: FrustrationInteractionsOptions,
+  attribute: keyof FrustrationInteractionsOptions,
+  defaultAllowlist: string[],
+  enabled: boolean,
+): string[] {
+  if (!enabled) {
+    return [];
+  }
+  const config = options[attribute];
+  if (
+    typeof config === 'object' &&
+    config !== null &&
+    'cssSelectorAllowlist' in config &&
+    Array.isArray(config.cssSelectorAllowlist)
+  ) {
+    return config.cssSelectorAllowlist;
+  }
+  return defaultAllowlist;
+}
+
 export const frustrationPlugin = (options: FrustrationInteractionsOptions = {}): BrowserEnrichmentPlugin => {
   const name = constants.FRUSTRATION_PLUGIN_NAME;
   const type = 'enrichment';
 
   const subscriptions: Unsubscribable[] = [];
 
+  let isErrorClicksEnabled = options.errorClicks !== false;
+
+  // if errorClicks is not defined, disable it
+  // change this once it moves out of @experimental
+  if (!options.errorClicks) {
+    isErrorClicksEnabled = false;
+  }
+
   const rageCssSelectors = options.rageClicks?.cssSelectorAllowlist ?? DEFAULT_RAGE_CLICK_ALLOWLIST;
   const deadCssSelectors = options.deadClicks?.cssSelectorAllowlist ?? DEFAULT_DEAD_CLICK_ALLOWLIST;
 
-  const errorCssSelectors =
-    (typeof options.errorClicks === 'object' && options.errorClicks?.cssSelectorAllowlist) ||
-    DEFAULT_ERROR_CLICK_ALLOWLIST;
+  const errorCssSelectors = getCssSelectorAllowlist(
+    options,
+    'errorClicks',
+    DEFAULT_ERROR_CLICK_ALLOWLIST,
+    isErrorClicksEnabled,
+  );
 
   const dataAttributePrefix = options.dataAttributePrefix ?? DEFAULT_DATA_ATTRIBUTE_PREFIX;
 
@@ -146,14 +183,6 @@ export const frustrationPlugin = (options: FrustrationInteractionsOptions = {}):
       shouldTrackDeadClick,
     });
     subscriptions.push(deadClickSubscription);
-
-    let isErrorClicksEnabled = options.errorClicks !== false;
-
-    // if errorClicks is not defined, disable it
-    // change this once it moves out of @experimental
-    if (!options.errorClicks) {
-      isErrorClicksEnabled = false;
-    }
 
     if (isErrorClicksEnabled) {
       const shouldTrackErrorClick = createShouldTrackEvent(options, errorCssSelectors);

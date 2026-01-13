@@ -52,8 +52,16 @@
         amplitude.init(
           import.meta.env.VITE_AMPLITUDE_API_KEY,
           import.meta.env.VITE_AMPLITUDE_USER_ID || 'amplitude-typescript test user',
+          {
+            autocapture: {
+              frustrationInteractions: {
+                deadClicks: false,
+                rageClicks: false,
+                errorClicks: true,
+              },
+            },
+          }
         );
-        frustrationPlugin().setup({}, amplitude);
     </script>
   </body>
 </html>
