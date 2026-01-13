@@ -43,10 +43,8 @@ const createConsoleErrorObservable = (): Observable<BrowserErrorEvent> => {
     const handler = (_: string, ...args: any[]) => {
       /* istanbul ignore next */
       let message: string | undefined = undefined;
-      if (Array.isArray(args[0])) {
-        if (typeof args[0][0] === 'string') {
-          message = args[0][0];
-        }
+      if (Array.isArray(args[0]) && typeof args[0][0] === 'string') {
+        message = args[0][0];
       }
       observer.next({ kind: 'console', message });
     };
