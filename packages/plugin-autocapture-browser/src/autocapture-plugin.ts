@@ -242,7 +242,7 @@ export const autocapturePlugin = (
         // TODO(xinyi): Diagnostics.recordEvent
         config.loggerProvider.debug('Remote config client is not provided, skipping remote config fetch');
       } else {
-        config.remoteConfigClient.subscribe('analyticsSDK.pageActions', 'all', (remoteConfig) => {
+        config.remoteConfigClient.subscribe('configs.analyticsSDK.pageActions', 'all', (remoteConfig) => {
           recomputePageActionsData(remoteConfig as ElementInteractionsOptions['pageActions']);
         });
       }
