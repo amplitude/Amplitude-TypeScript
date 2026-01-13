@@ -5,7 +5,7 @@
 ## Setup
 ```
 # cd into Amplitude-TypeScript/examples/react-native/expo-app directory
-yarn install
+pnpm install
 ```
 
 ## Run
@@ -17,17 +17,17 @@ yarn install
 ### Android
 ```
 # cd into Amplitude-TypeScript/examples/react-native/expo-app directory
-yarn run android
+pnpm run android
 ```
 
 ### iOS
 ```
 # cd into Amplitude-TypeScript/examples/react-native/expo-app directory
-yarn run ios
+pnpm run ios
 ```
 
 ### Web
 ```
 # cd into Amplitude-TypeScript/examples/react-native/expo-app directory
-yarn run web
+pnpm run web
 ```
