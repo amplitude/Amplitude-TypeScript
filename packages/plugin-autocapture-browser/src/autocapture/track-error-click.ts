@@ -1,4 +1,4 @@
-import { BrowserErrorEvent } from 'src/observables';
+import { BrowserErrorEvent } from '../../src/observables';
 import { AllWindowObservables } from '../frustration-plugin';
 import {
   ElementBasedTimestampedEvent,
@@ -43,6 +43,12 @@ export function trackErrorClicks({
     }
     latestClickEvent = null;
   };
+
+  // TODO: Take this out once it becomes not optional
+  /* istanbul ignore next */
+  if (!browserErrorObservable) {
+    return;
+  }
 
   return merge(filteredClickObservable, browserErrorObservable).subscribe((event: ClickOrErrorEvent) => {
     if (event.type === 'click') {
