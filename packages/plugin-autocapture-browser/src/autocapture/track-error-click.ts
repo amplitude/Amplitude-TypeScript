@@ -48,7 +48,7 @@ export function trackErrorClicks({
     if (event.type === 'click') {
       clearClickTimer();
       latestClickEvent = event as ElementBasedTimestampedEvent<MouseEvent>;
-      setTimeout(clearClickTimer, ERROR_CLICK_TIMEOUT);
+      errorClickTimer = setTimeout(clearClickTimer, ERROR_CLICK_TIMEOUT);
       return;
     }
 
