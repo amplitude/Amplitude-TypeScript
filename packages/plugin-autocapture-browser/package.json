@@ -42,7 +42,6 @@
   },
   "dependencies": {
     "@amplitude/analytics-core": "workspace:*",
-    "rxjs": "^7.8.1",
     "tslib": "^2.4.1"
   },
   "devDependencies": {
