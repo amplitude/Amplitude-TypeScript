@@ -98,6 +98,18 @@ describe('frustrationPlugin', () => {
       expect(trackDeadClick).toHaveBeenCalled();
       expect(trackRageClicks).toHaveBeenCalled();
     });
+
+    it('should be disabled when set to null', async () => {
+      plugin = frustrationPlugin({
+        deadClicks: null as any,
+        rageClicks: null as any,
+      });
+
+      await plugin?.setup?.(config as BrowserConfig, instance);
+
+      expect(trackDeadClick).not.toHaveBeenCalled();
+      expect(trackRageClicks).not.toHaveBeenCalled();
+    });
   });
 
   describe('css selector allowlists', () => {
