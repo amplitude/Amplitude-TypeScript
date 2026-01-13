@@ -42,7 +42,7 @@ function overrideConsole(): boolean {
             inConsoleOverride = true;
             const callbacks = handlers.get(prop);
             if (callbacks) {
-              callbacks.forEach((callback) => {
+              [...callbacks].forEach((callback) => {
                 try {
                   callback(prop, args);
                 } catch {

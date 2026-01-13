@@ -16,14 +16,15 @@ import { createShouldTrackEvent, ElementBasedTimestampedEvent, NavigateEvent, Ti
 import { trackDeadClick } from './autocapture/track-dead-click';
 import { trackRageClicks } from './autocapture/track-rage-click';
 import { ObservablesEnum } from './autocapture-plugin';
-import { BrowserErrorEvent, createClickObservable, createMutationObservable } from './observables';
+import { BrowserErrorEvent, createClickObservable, createErrorObservable, createMutationObservable } from './observables';
 import { DataExtractor } from './data-extractor';
+import { trackErrorClicks } from './autocapture/track-error-click';
 
 export interface AllWindowObservables {
   [ObservablesEnum.ClickObservable]: Observable<ElementBasedTimestampedEvent<MouseEvent>>;
   [ObservablesEnum.MutationObservable]: Observable<TimestampedEvent<MutationRecord[]>>;
+  [ObservablesEnum.BrowserErrorObservable]: Observable<TimestampedEvent<BrowserErrorEvent>>;
   [ObservablesEnum.NavigateObservable]?: Observable<TimestampedEvent<NavigateEvent>>;
-  [ObservablesEnum.BrowserErrorObservable]?: Observable<TimestampedEvent<BrowserErrorEvent>>;
 }
 
 type BrowserEnrichmentPlugin = EnrichmentPlugin<BrowserClient, BrowserConfig>;
@@ -57,6 +58,12 @@ export const frustrationPlugin = (options: FrustrationInteractionsOptions = {}):
         );
       }),
     );
+
+    const browserErrorObservables = multicast(
+      createErrorObservable().map((error) => {
+        return dataExtractor.addTypeAndTimestamp(error, 'error');
+      }),
+    )
 
     const enrichedMutationObservable = multicast<TimestampedEvent<MutationRecord[]>>(
       createMutationObservable().map((mutation) =>
@@ -96,6 +103,7 @@ export const frustrationPlugin = (options: FrustrationInteractionsOptions = {}):
       [ObservablesEnum.ClickObservable]: clickObservable as Observable<ElementBasedTimestampedEvent<MouseEvent>>,
       [ObservablesEnum.MutationObservable]: enrichedMutationObservable,
       [ObservablesEnum.NavigateObservable]: enrichedNavigateObservable,
+      [ObservablesEnum.BrowserErrorObservable]: browserErrorObservables,
     };
   };
 
@@ -108,8 +116,7 @@ export const frustrationPlugin = (options: FrustrationInteractionsOptions = {}):
     // Create should track event functions for the different allowlists
     const shouldTrackRageClick = createShouldTrackEvent(options, rageCssSelectors);
     const shouldTrackDeadClick = createShouldTrackEvent(options, deadCssSelectors);
-
-    // TODO: add "shouldTrackErrorClick" logic
+    //const shouldTrackErrorClick = () => true; // TODO: !!!DO NOT MERGE THIS!!!
 
     // Create observables for events on the window
     const allObservables = createObservables();
@@ -130,6 +137,13 @@ export const frustrationPlugin = (options: FrustrationInteractionsOptions = {}):
       shouldTrackDeadClick,
     });
     subscriptions.push(deadClickSubscription);
+
+    const errorClickSubscription = trackErrorClicks({
+      amplitude,
+      allObservables,
+      // TODO: !!!!!DO NOT MERGE THIS UNTIL shouldTrackErrorClick is added!!!!!
+    });
+    subscriptions.push(errorClickSubscription);
 
     /* istanbul ignore next */
     config?.loggerProvider?.log(`${name} has been successfully added.`);
