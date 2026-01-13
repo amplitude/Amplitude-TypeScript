@@ -162,7 +162,7 @@ importers:
         version: 15.3.1(rollup@2.79.2)
       '@rollup/plugin-typescript':
         specifier: ^10.0.1
-        version: 10.0.1(rollup@2.79.2)(tslib@2.8.1)(typescript@4.9.5)
+        version: 10.0.1(rollup@2.79.2)(tslib@2.8.1)(typescript@5.9.3)
       fake-indexeddb:
         specifier: 4.0.2
         version: 4.0.2
@@ -333,9 +333,6 @@ importers:
       '@amplitude/analytics-core':
         specifier: workspace:*
         version: link:../analytics-core
-      rxjs:
-        specifier: ^7.8.1
-        version: 7.8.2
       tslib:
         specifier: ^2.4.1
         version: 2.8.1
@@ -351,7 +348,7 @@ importers:
         version: 15.3.1(rollup@2.79.2)
       '@rollup/plugin-typescript':
         specifier: ^10.0.1
-        version: 10.0.1(rollup@2.79.2)(tslib@2.8.1)(typescript@4.9.5)
+        version: 10.0.1(rollup@2.79.2)(tslib@2.8.1)(typescript@5.9.3)
       css.escape:
         specifier: ^1.5.1
         version: 1.5.1
@@ -401,7 +398,7 @@ importers:
         version: 15.3.1(rollup@2.79.2)
       '@rollup/plugin-typescript':
         specifier: ^10.0.1
-        version: 10.0.1(rollup@2.79.2)(tslib@2.8.1)(typescript@4.9.5)
+        version: 10.0.1(rollup@2.79.2)(tslib@2.8.1)(typescript@5.9.3)
       rollup:
         specifier: ^2.79.1
         version: 2.79.2
@@ -435,7 +432,7 @@ importers:
         version: 15.3.1(rollup@2.79.2)
       '@rollup/plugin-typescript':
         specifier: ^10.0.1
-        version: 10.0.1(rollup@2.79.2)(tslib@2.8.1)(typescript@4.9.5)
+        version: 10.0.1(rollup@2.79.2)(tslib@2.8.1)(typescript@5.9.3)
       css.escape:
         specifier: ^1.5.1
         version: 1.5.1
@@ -469,7 +466,7 @@ importers:
         version: 15.3.1(rollup@2.79.2)
       '@rollup/plugin-typescript':
         specifier: ^10.0.1
-        version: 10.0.1(rollup@2.79.2)(tslib@2.8.1)(typescript@4.9.5)
+        version: 10.0.1(rollup@2.79.2)(tslib@2.8.1)(typescript@5.9.3)
       rollup:
         specifier: ^2.79.1
         version: 2.79.2
@@ -500,7 +497,7 @@ importers:
         version: 15.3.1(rollup@2.79.2)
       '@rollup/plugin-typescript':
         specifier: ^10.0.1
-        version: 10.0.1(rollup@2.79.2)(tslib@2.8.1)(typescript@4.9.5)
+        version: 10.0.1(rollup@2.79.2)(tslib@2.8.1)(typescript@5.9.3)
       rollup:
         specifier: ^2.79.1
         version: 2.79.2
@@ -555,13 +552,13 @@ importers:
         version: 15.3.1(rollup@2.79.2)
       '@rollup/plugin-typescript':
         specifier: ^10.0.1
-        version: 10.0.1(rollup@2.79.2)(tslib@2.8.1)(typescript@4.9.5)
+        version: 10.0.1(rollup@2.79.2)(tslib@2.8.1)(typescript@5.9.3)
       fake-indexeddb:
         specifier: 4.0.2
         version: 4.0.2
       msw:
         specifier: ^2.3.1
-        version: 2.12.2(@types/node@24.10.1)(typescript@4.9.5)
+        version: 2.12.2(@types/node@24.10.1)(typescript@5.9.3)
       node-fetch:
         specifier: ^3.3.2
         version: 3.3.2
@@ -620,7 +617,7 @@ importers:
         version: 15.3.1(rollup@2.79.2)
       '@rollup/plugin-typescript':
         specifier: ^10.0.1
-        version: 10.0.1(rollup@2.79.2)(tslib@2.8.1)(typescript@4.9.5)
+        version: 10.0.1(rollup@2.79.2)(tslib@2.8.1)(typescript@5.9.3)
       css.escape:
         specifier: ^1.5.1
         version: 1.5.1
@@ -663,7 +660,7 @@ importers:
         version: 15.3.1(rollup@2.79.2)
       '@rollup/plugin-typescript':
         specifier: ^10.0.1
-        version: 10.0.1(rollup@2.79.2)(tslib@2.8.1)(typescript@4.9.5)
+        version: 10.0.1(rollup@2.79.2)(tslib@2.8.1)(typescript@5.9.3)
       rollup:
         specifier: ^2.79.1
         version: 2.79.2
@@ -697,7 +694,7 @@ importers:
         version: 15.3.1(rollup@2.79.2)
       '@rollup/plugin-typescript':
         specifier: ^10.0.1
-        version: 10.0.1(rollup@2.79.2)(tslib@2.8.1)(typescript@4.9.5)
+        version: 10.0.1(rollup@2.79.2)(tslib@2.8.1)(typescript@5.9.3)
       css.escape:
         specifier: ^1.5.1
         version: 1.5.1
@@ -737,7 +734,7 @@ importers:
         version: 15.3.1(rollup@2.79.2)
       '@rollup/plugin-typescript':
         specifier: ^10.0.1
-        version: 10.0.1(rollup@2.79.2)(tslib@2.8.1)(typescript@4.9.5)
+        version: 10.0.1(rollup@2.79.2)(tslib@2.8.1)(typescript@5.9.3)
       '@types/js-cookie':
         specifier: ^3.0.6
         version: 3.0.6
@@ -825,7 +822,7 @@ importers:
         version: 15.3.1(rollup@2.79.2)
       '@rollup/plugin-typescript':
         specifier: ^10.0.1
-        version: 10.0.1(rollup@2.79.2)(tslib@2.8.1)(typescript@4.9.5)
+        version: 10.0.1(rollup@2.79.2)(tslib@2.8.1)(typescript@5.9.3)
       '@ungap/structured-clone':
         specifier: ^1.2.0
         version: 1.3.0
@@ -899,7 +896,7 @@ importers:
         version: 15.3.1(rollup@2.79.2)
       '@rollup/plugin-typescript':
         specifier: ^10.0.1
-        version: 10.0.1(rollup@2.79.2)(tslib@2.8.1)(typescript@4.9.5)
+        version: 10.0.1(rollup@2.79.2)(tslib@2.8.1)(typescript@5.9.3)
       '@types/core-js':
         specifier: ^2.5.8
         version: 2.5.8
@@ -10829,7 +10826,7 @@ snapshots:
       '@types/node': 20.5.1
       chalk: 4.1.2
       cosmiconfig: 8.3.6(typescript@5.9.3)
-      cosmiconfig-typescript-loader: 4.4.0(@types/node@20.5.1)(cosmiconfig@8.3.6(typescript@4.9.5))(ts-node@10.9.2(@types/node@18.19.130)(typescript@4.9.5))(typescript@5.9.3)
+      cosmiconfig-typescript-loader: 4.4.0(@types/node@20.5.1)(cosmiconfig@8.3.6(typescript@5.9.3))(ts-node@10.9.2(@types/node@20.5.1)(typescript@5.9.3))(typescript@5.9.3)
       lodash.isplainobject: 4.0.6
       lodash.merge: 4.6.2
       lodash.uniq: 4.5.0
@@ -12420,11 +12417,11 @@ snapshots:
     optionalDependencies:
       rollup: 2.79.2
 
-  '@rollup/plugin-typescript@10.0.1(rollup@2.79.2)(tslib@2.8.1)(typescript@4.9.5)':
+  '@rollup/plugin-typescript@10.0.1(rollup@2.79.2)(tslib@2.8.1)(typescript@5.9.3)':
     dependencies:
       '@rollup/pluginutils': 5.3.0(rollup@2.79.2)
       resolve: 1.22.11
-      typescript: 4.9.5
+      typescript: 5.9.3
     optionalDependencies:
       rollup: 2.79.2
       tslib: 2.8.1
@@ -14606,7 +14603,7 @@ snapshots:
 
   corser@2.0.1: {}
 
-  cosmiconfig-typescript-loader@4.4.0(@types/node@20.5.1)(cosmiconfig@8.3.6(typescript@4.9.5))(ts-node@10.9.2(@types/node@18.19.130)(typescript@4.9.5))(typescript@5.9.3):
+  cosmiconfig-typescript-loader@4.4.0(@types/node@20.5.1)(cosmiconfig@8.3.6(typescript@5.9.3))(ts-node@10.9.2(@types/node@20.5.1)(typescript@5.9.3))(typescript@5.9.3):
     dependencies:
       '@types/node': 20.5.1
       cosmiconfig: 8.3.6(typescript@5.9.3)
@@ -17880,7 +17877,7 @@ snapshots:
 
   ms@2.1.3: {}
 
-  msw@2.12.2(@types/node@24.10.1)(typescript@4.9.5):
+  msw@2.12.2(@types/node@24.10.1)(typescript@5.9.3):
     dependencies:
       '@inquirer/confirm': 5.1.21(@types/node@24.10.1)
       '@mswjs/interceptors': 0.40.0
@@ -17901,7 +17898,7 @@ snapshots:
       until-async: 3.0.2
       yargs: 17.7.2
     optionalDependencies:
-      typescript: 4.9.5
+      typescript: 5.9.3
     transitivePeerDependencies:
       - '@types/node'
 
