@@ -29,6 +29,11 @@ export interface AllWindowObservables {
 type BrowserEnrichmentPlugin = EnrichmentPlugin<BrowserClient, BrowserConfig>;
 
 
+/**
+ * Helper function to extract the css selector allowlist
+ * from the frustration interactions options for a specific
+ * autocapture feature.
+ */
 function getCssSelectorAllowlist(
   options: FrustrationInteractionsOptions,
   attribute: keyof FrustrationInteractionsOptions,
