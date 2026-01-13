@@ -7,6 +7,7 @@ import {
   DEFAULT_DATA_ATTRIBUTE_PREFIX,
   DEFAULT_RAGE_CLICK_ALLOWLIST,
   DEFAULT_DEAD_CLICK_ALLOWLIST,
+  DEFAULT_ERROR_CLICK_ALLOWLIST,
   multicast,
   Observable,
   Unsubscribable,
@@ -16,7 +17,12 @@ import { createShouldTrackEvent, ElementBasedTimestampedEvent, NavigateEvent, Ti
 import { trackDeadClick } from './autocapture/track-dead-click';
 import { trackRageClicks } from './autocapture/track-rage-click';
 import { ObservablesEnum } from './autocapture-plugin';
-import { BrowserErrorEvent, createClickObservable, createErrorObservable, createMutationObservable } from './observables';
+import {
+  BrowserErrorEvent,
+  createClickObservable,
+  createErrorObservable,
+  createMutationObservable,
+} from './observables';
 import { DataExtractor } from './data-extractor';
 import { trackErrorClicks } from './autocapture/track-error-click';
 
@@ -37,13 +43,14 @@ export const frustrationPlugin = (options: FrustrationInteractionsOptions = {}):
 
   const rageCssSelectors = options.rageClicks?.cssSelectorAllowlist ?? DEFAULT_RAGE_CLICK_ALLOWLIST;
   const deadCssSelectors = options.deadClicks?.cssSelectorAllowlist ?? DEFAULT_DEAD_CLICK_ALLOWLIST;
+  const errorCssSelectors = options.errorClicks?.cssSelectorAllowlist ?? DEFAULT_ERROR_CLICK_ALLOWLIST;
 
   const dataAttributePrefix = options.dataAttributePrefix ?? DEFAULT_DATA_ATTRIBUTE_PREFIX;
 
   const dataExtractor = new DataExtractor(options);
 
   // combine the two selector lists to determine which clicked elements should be filtered
-  const combinedCssSelectors = [...new Set([...rageCssSelectors, ...deadCssSelectors])];
+  const combinedCssSelectors = [...new Set([...rageCssSelectors, ...deadCssSelectors, ...errorCssSelectors])];
 
   // Create observables on events on the window
   const createObservables = (): AllWindowObservables => {
@@ -63,7 +70,7 @@ export const frustrationPlugin = (options: FrustrationInteractionsOptions = {}):
       createErrorObservable().map((error) => {
         return dataExtractor.addTypeAndTimestamp(error, 'error');
       }),
-    )
+    );
 
     const enrichedMutationObservable = multicast<TimestampedEvent<MutationRecord[]>>(
       createMutationObservable().map((mutation) =>
@@ -116,7 +123,7 @@ export const frustrationPlugin = (options: FrustrationInteractionsOptions = {}):
     // Create should track event functions for the different allowlists
     const shouldTrackRageClick = createShouldTrackEvent(options, rageCssSelectors);
     const shouldTrackDeadClick = createShouldTrackEvent(options, deadCssSelectors);
-    //const shouldTrackErrorClick = () => true; // TODO: !!!DO NOT MERGE THIS!!!
+    const shouldTrackErrorClick = createShouldTrackEvent(options, errorCssSelectors);
 
     // Create observables for events on the window
     const allObservables = createObservables();
@@ -141,7 +148,7 @@ export const frustrationPlugin = (options: FrustrationInteractionsOptions = {}):
     const errorClickSubscription = trackErrorClicks({
       amplitude,
       allObservables,
-      // TODO: !!!!!DO NOT MERGE THIS UNTIL shouldTrackErrorClick is added!!!!!
+      shouldTrackErrorClick,
     });
     subscriptions.push(errorClickSubscription);
 
