@@ -28,6 +28,27 @@ export interface AllWindowObservables {
 
 type BrowserEnrichmentPlugin = EnrichmentPlugin<BrowserClient, BrowserConfig>;
 
+
+function getCssSelectorAllowlist(
+  options: FrustrationInteractionsOptions,
+  attribute: keyof FrustrationInteractionsOptions,
+  defaultAllowlist: string[]
+): string[] {
+  if (options[attribute] === false || options[attribute] === null) {
+    return [];
+  }
+  const config = options[attribute];
+  if (
+    typeof config === 'object' &&
+    config !== null &&
+    'cssSelectorAllowlist' in config &&
+    Array.isArray(config.cssSelectorAllowlist)
+  ) {
+    return config.cssSelectorAllowlist as string[];
+  }
+  return defaultAllowlist;
+}
+
 export const frustrationPlugin = (options: FrustrationInteractionsOptions = {}): BrowserEnrichmentPlugin => {
   const name = constants.FRUSTRATION_PLUGIN_NAME;
   const type = 'enrichment';
@@ -39,12 +60,8 @@ export const frustrationPlugin = (options: FrustrationInteractionsOptions = {}):
   const rageClicksEnabled = options.rageClicks !== false && options.rageClicks !== null;
 
   // Get CSS selectors for enabled features
-  const rageCssSelectors =
-    (typeof options.rageClicks === 'object' && options.rageClicks?.cssSelectorAllowlist) ||
-    DEFAULT_RAGE_CLICK_ALLOWLIST;
-  const deadCssSelectors =
-    (typeof options.deadClicks === 'object' && options.deadClicks?.cssSelectorAllowlist) ||
-    DEFAULT_DEAD_CLICK_ALLOWLIST;
+  const rageCssSelectors = getCssSelectorAllowlist(options, 'rageClicks', DEFAULT_RAGE_CLICK_ALLOWLIST);
+  const deadCssSelectors = getCssSelectorAllowlist(options, 'deadClicks', DEFAULT_DEAD_CLICK_ALLOWLIST);
 
   const dataAttributePrefix = options.dataAttributePrefix ?? DEFAULT_DATA_ATTRIBUTE_PREFIX;
 
