@@ -134,7 +134,7 @@ export const DEFAULT_RAGE_CLICK_OUT_OF_BOUNDS_THRESHOLD = 50; // pixels
  * Returns true only when explicitly set to `true` or an options object.
  */
 export const isDeadClicksEnabled = (deadClicks: boolean | DeadClickOptions | undefined | null): boolean => {
-  return deadClicks === true || (typeof deadClicks === 'object' && !!deadClicks);
+  return deadClicks === true || (typeof deadClicks === 'object' && deadClicks !== null);
 };
 
 /**
@@ -142,7 +142,7 @@ export const isDeadClicksEnabled = (deadClicks: boolean | DeadClickOptions | und
  * Returns true only when explicitly set to `true` or an options object.
  */
 export const isRageClicksEnabled = (rageClicks: boolean | RageClickOptions | undefined | null): boolean => {
-  return rageClicks === true || (typeof rageClicks === 'object' && !!rageClicks);
+  return rageClicks === true || (typeof rageClicks === 'object' && rageClicks !== null);
 };
 
 /**
