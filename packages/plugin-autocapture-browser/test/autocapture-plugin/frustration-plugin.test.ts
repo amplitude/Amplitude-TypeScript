@@ -1,8 +1,10 @@
 import { frustrationPlugin } from '../../src/frustration-plugin';
-import { BrowserConfig, EnrichmentPlugin, ILogger } from '@amplitude/analytics-core';
+import { BrowserConfig, EnrichmentPlugin, ILogger, Observable, Unsubscribable } from '@amplitude/analytics-core';
 import { createMockBrowserClient } from '../mock-browser-client';
 import { trackDeadClick } from '../../src/autocapture/track-dead-click';
 import { trackRageClicks } from '../../src/autocapture/track-rage-click';
+import { BrowserErrorEvent, createErrorObservable } from '../../src/observables';
+import { dispatchUnhandledRejection } from '../utils';
 
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
@@ -328,6 +330,74 @@ describe('frustrationPlugin', () => {
 
       // expect no event listeners left on window.navigation
       expect((window.navigation as any)._handlers.length).toBe(0);
+    });
+  });
+
+  describe('createBrowserErrorObservable', () => {
+    let errorObservable: Observable<BrowserErrorEvent>;
+    let subscribePromise: Promise<BrowserErrorEvent>;
+    let subscription: Unsubscribable;
+
+    beforeEach(() => {
+      errorObservable = createErrorObservable();
+      subscribePromise = new Promise((resolve) => {
+        subscription = errorObservable.subscribe((error: BrowserErrorEvent) => {
+          resolve(error);
+        });
+      });
+    });
+
+    afterEach(() => {
+      subscription.unsubscribe();
+    });
+
+    it('should capture unhandled rejections', async () => {
+      const error = new Error('boom');
+      dispatchUnhandledRejection(window, error);
+
+      const res = await subscribePromise;
+      expect(res.kind).toBe('unhandledrejection');
+      expect(res.message).toBe('boom');
+    });
+
+    it('should capture unhandled rejections with non-object reason', async () => {
+      const error = 'Something went wrong';
+      dispatchUnhandledRejection(window, error);
+
+      const res = await subscribePromise;
+      expect(res.kind).toBe('unhandledrejection');
+      expect(res.message).toBe('Something went wrong');
+    });
+
+    it('should capture uncaught errors', async () => {
+      setTimeout(() => {
+        const error = new Error('test uncaught error');
+        error.stack = 'fake stack';
+        throw error;
+      }, 10);
+      const res = await subscribePromise;
+      expect(res.stack).toEqual('fake stack');
+      expect(res.kind).toBe('error');
+      expect(res.message).toBe('test uncaught error');
+    });
+
+    it('should capture uncaught errors with non-object error', async () => {
+      setTimeout(() => {
+        throw 'test uncaught error';
+      }, 10);
+      const res = await subscribePromise;
+      expect(res.kind).toBe('error');
+      expect(res.message).toBe('test uncaught error');
+      expect(res.stack).toBeUndefined();
+    });
+
+    it('should capture console errors', async () => {
+      window.console.error('test console error');
+      const res = await subscribePromise;
+      expect(res).toEqual({
+        kind: 'console',
+        message: 'test console error',
+      });
     });
   });
 });

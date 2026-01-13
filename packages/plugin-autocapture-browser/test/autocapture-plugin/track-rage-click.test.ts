@@ -33,6 +33,7 @@ describe('trackRageClicks', () => {
       [ObservablesEnum.ClickObservable]: clickObservable,
       [ObservablesEnum.NavigateObservable]: new Observable<any>(() => {}),
       [ObservablesEnum.MutationObservable]: new Observable<any>(() => {}),
+      [ObservablesEnum.BrowserErrorObservable]: new Observable<any>(() => {}),
     };
     shouldTrackRageClick = jest.fn().mockReturnValue(true);
 
