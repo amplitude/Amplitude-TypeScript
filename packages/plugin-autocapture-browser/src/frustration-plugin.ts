@@ -7,6 +7,7 @@ import {
   DEFAULT_DATA_ATTRIBUTE_PREFIX,
   DEFAULT_RAGE_CLICK_ALLOWLIST,
   DEFAULT_DEAD_CLICK_ALLOWLIST,
+  DEFAULT_ERROR_CLICK_ALLOWLIST,
   multicast,
   Observable,
   Unsubscribable,
@@ -16,17 +17,49 @@ import { createShouldTrackEvent, ElementBasedTimestampedEvent, NavigateEvent, Ti
 import { trackDeadClick } from './autocapture/track-dead-click';
 import { trackRageClicks } from './autocapture/track-rage-click';
 import { ObservablesEnum } from './autocapture-plugin';
-import { BrowserErrorEvent, createClickObservable, createMutationObservable } from './observables';
+import {
+  BrowserErrorEvent,
+  createClickObservable,
+  createErrorObservable,
+  createMutationObservable,
+} from './observables';
 import { DataExtractor } from './data-extractor';
+import { trackErrorClicks } from './autocapture/track-error-click';
 
 export interface AllWindowObservables {
   [ObservablesEnum.ClickObservable]: Observable<ElementBasedTimestampedEvent<MouseEvent>>;
   [ObservablesEnum.MutationObservable]: Observable<TimestampedEvent<MutationRecord[]>>;
+  [ObservablesEnum.BrowserErrorObservable]: Observable<TimestampedEvent<BrowserErrorEvent>>;
   [ObservablesEnum.NavigateObservable]?: Observable<TimestampedEvent<NavigateEvent>>;
-  [ObservablesEnum.BrowserErrorObservable]?: Observable<TimestampedEvent<BrowserErrorEvent>>;
 }
 
 type BrowserEnrichmentPlugin = EnrichmentPlugin<BrowserClient, BrowserConfig>;
+
+/**
+ * Helper function to extract the css selector allowlist
+ * from the frustration interactions options for a specific
+ * autocapture feature.
+ */
+function getCssSelectorAllowlist(
+  options: FrustrationInteractionsOptions,
+  attribute: keyof FrustrationInteractionsOptions,
+  defaultAllowlist: string[],
+  enabled: boolean,
+): string[] {
+  if (!enabled) {
+    return [];
+  }
+  const config = options[attribute];
+  if (
+    typeof config === 'object' &&
+    config !== null &&
+    'cssSelectorAllowlist' in config &&
+    Array.isArray(config.cssSelectorAllowlist)
+  ) {
+    return config.cssSelectorAllowlist;
+  }
+  return defaultAllowlist;
+}
 
 export const frustrationPlugin = (options: FrustrationInteractionsOptions = {}): BrowserEnrichmentPlugin => {
   const name = constants.FRUSTRATION_PLUGIN_NAME;
@@ -34,15 +67,30 @@ export const frustrationPlugin = (options: FrustrationInteractionsOptions = {}):
 
   const subscriptions: Unsubscribable[] = [];
 
+  let isErrorClicksEnabled = options.errorClicks !== false;
+
+  // if errorClicks is not defined, disable it
+  // change this once it moves out of @experimental
+  if (!options.errorClicks) {
+    isErrorClicksEnabled = false;
+  }
+
   const rageCssSelectors = options.rageClicks?.cssSelectorAllowlist ?? DEFAULT_RAGE_CLICK_ALLOWLIST;
   const deadCssSelectors = options.deadClicks?.cssSelectorAllowlist ?? DEFAULT_DEAD_CLICK_ALLOWLIST;
+
+  const errorCssSelectors = getCssSelectorAllowlist(
+    options,
+    'errorClicks',
+    DEFAULT_ERROR_CLICK_ALLOWLIST,
+    isErrorClicksEnabled,
+  );
 
   const dataAttributePrefix = options.dataAttributePrefix ?? DEFAULT_DATA_ATTRIBUTE_PREFIX;
 
   const dataExtractor = new DataExtractor(options);
 
   // combine the two selector lists to determine which clicked elements should be filtered
-  const combinedCssSelectors = [...new Set([...rageCssSelectors, ...deadCssSelectors])];
+  const combinedCssSelectors = [...new Set([...rageCssSelectors, ...deadCssSelectors, ...errorCssSelectors])];
 
   // Create observables on events on the window
   const createObservables = (): AllWindowObservables => {
@@ -55,6 +103,12 @@ export const frustrationPlugin = (options: FrustrationInteractionsOptions = {}):
           dataAttributePrefix,
           true, // capture when cursor is pointer
         );
+      }),
+    );
+
+    const browserErrorObservables = multicast(
+      createErrorObservable().map((error) => {
+        return dataExtractor.addTypeAndTimestamp(error, 'error');
       }),
     );
 
@@ -96,6 +150,7 @@ export const frustrationPlugin = (options: FrustrationInteractionsOptions = {}):
       [ObservablesEnum.ClickObservable]: clickObservable as Observable<ElementBasedTimestampedEvent<MouseEvent>>,
       [ObservablesEnum.MutationObservable]: enrichedMutationObservable,
       [ObservablesEnum.NavigateObservable]: enrichedNavigateObservable,
+      [ObservablesEnum.BrowserErrorObservable]: browserErrorObservables,
     };
   };
 
@@ -108,8 +163,6 @@ export const frustrationPlugin = (options: FrustrationInteractionsOptions = {}):
     // Create should track event functions for the different allowlists
     const shouldTrackRageClick = createShouldTrackEvent(options, rageCssSelectors);
     const shouldTrackDeadClick = createShouldTrackEvent(options, deadCssSelectors);
-
-    // TODO: add "shouldTrackErrorClick" logic
 
     // Create observables for events on the window
     const allObservables = createObservables();
@@ -130,6 +183,16 @@ export const frustrationPlugin = (options: FrustrationInteractionsOptions = {}):
       shouldTrackDeadClick,
     });
     subscriptions.push(deadClickSubscription);
+
+    if (isErrorClicksEnabled) {
+      const shouldTrackErrorClick = createShouldTrackEvent(options, errorCssSelectors);
+      const errorClickSubscription = trackErrorClicks({
+        amplitude,
+        allObservables,
+        shouldTrackErrorClick,
+      });
+      subscriptions.push(errorClickSubscription);
+    }
 
     /* istanbul ignore next */
     config?.loggerProvider?.log(`${name} has been successfully added.`);
