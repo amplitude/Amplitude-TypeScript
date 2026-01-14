@@ -3,6 +3,19 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.18.4](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.18.3...@amplitude/plugin-autocapture-browser@1.18.4) (2026-01-14)
+
+
+### Bug Fixes
+
+* **plugin-autocapture-browser:** apply rage clicks to window over viewport ([#1459](https://github.com/amplitude/Amplitude-TypeScript/issues/1459)) ([ee71e48](https://github.com/amplitude/Amplitude-TypeScript/commit/ee71e48b81a5c22f236df67ad6aa23c25ce0bffc))
+* **plugin-autocapture-browser:** do not trigger rage click when text being highlighted ([#1471](https://github.com/amplitude/Amplitude-TypeScript/issues/1471)) ([7564033](https://github.com/amplitude/Amplitude-TypeScript/commit/7564033a7a4759c49015738fe3ea49ec1475dbe8))
+* **plugin-autocapture-browser:** Remove unused rxjs dependency in plugin-autocapture-browser ([#1484](https://github.com/amplitude/Amplitude-TypeScript/issues/1484)) ([dcbce97](https://github.com/amplitude/Amplitude-TypeScript/commit/dcbce97c86f2907bfae9cc421821f21d193feb06))
+
+
+
+
+
 ## [1.18.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.18.2...@amplitude/plugin-autocapture-browser@1.18.3) (2025-12-24)
 
 **Note:** Version bump only for package @amplitude/plugin-autocapture-browser

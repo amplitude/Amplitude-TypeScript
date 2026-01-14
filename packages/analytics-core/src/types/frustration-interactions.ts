@@ -70,14 +70,18 @@ export interface FrustrationInteractionsOptions {
   dataAttributePrefix?: string;
 
   /**
-   * Configuration for dead clicks tracking
+   * Configuration for dead clicks tracking.
+   * Set to `false` to disable dead click tracking.
+   * Set to `true` or an options object to enable with default or custom settings.
    */
-  deadClicks?: DeadClickOptions;
+  deadClicks?: boolean | DeadClickOptions;
 
   /**
-   * Configuration for rage clicks tracking
+   * Configuration for rage clicks tracking.
+   * Set to `false` to disable rage click tracking.
+   * Set to `true` or an options object to enable with default or custom settings.
    */
-  rageClicks?: RageClickOptions;
+  rageClicks?: boolean | RageClickOptions;
 
   /**
    * Configuration for error clicks tracking
