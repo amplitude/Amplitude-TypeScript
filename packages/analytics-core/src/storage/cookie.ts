@@ -1,5 +1,6 @@
 import { Storage, CookieStorageOptions, CookieStorageConfig } from '../types/storage';
 import { getGlobalScope } from '../global-scope';
+import { UUID } from '../utils/uuid';
 
 // CookieStore is a Web API not included in standard TypeScript lib types
 // https://developer.mozilla.org/en-US/docs/Web/API/CookieStore
@@ -36,8 +37,12 @@ export class CookieStorage<T> implements Storage<T> {
     }
 
     CookieStorage.testValue = String(Date.now());
-    const testStorage = new CookieStorage<string>(this.options);
-    const testKey = 'AMP_TEST';
+    const testCookieOptions = {
+      ...this.options,
+      expirationDays: 0.003, // expire in ~5 minutes
+    };
+    const testStorage = new CookieStorage<string>(testCookieOptions);
+    const testKey = `AMP_TEST_${UUID().substring(0, 8)}`;
     try {
       await testStorage.set(testKey, CookieStorage.testValue);
       const value = await testStorage.get(testKey);
