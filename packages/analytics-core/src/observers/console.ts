@@ -5,7 +5,7 @@ type Callback = (logLevel: ConsoleLogLevel, args: any[]) => void;
 
 const globalScope = getGlobalScope();
 /* istanbul ignore next */
-const originalConsole: Console | undefined = globalScope?.console;
+const originalConsole: any = globalScope?.console;
 
 let handlers: { [key in ConsoleLogLevel]?: Array<Callback> } = {};
 
@@ -21,6 +21,7 @@ function overrideConsole(logLevel: ConsoleLogLevel): boolean {
   }
 
   // should not override if original console property is not a function
+  /* eslint-disable-next-line @typescript-eslint/no-unsafe-member-access */
   if (typeof originalConsole[logLevel] !== 'function') {
     return false;
   }
@@ -53,9 +54,10 @@ function overrideConsole(logLevel: ConsoleLogLevel): boolean {
     inConsoleOverride = false;
     return originalFn[logLevel]!.apply(originalConsole, args);
   };
+  /* eslint-disable-next-line @typescript-eslint/no-unsafe-member-access */
   originalFn[logLevel] = originalConsole[logLevel] as (...args: any[]) => void;
   /* eslint-disable-next-line @typescript-eslint/no-unsafe-member-access */
-  (originalConsole as any)[logLevel] = handler;
+  originalConsole[logLevel] = handler;
   return true;
 }
 
@@ -102,7 +104,7 @@ function _restoreConsole() {
   for (const [key, originalHandler] of Object.entries(originalFn)) {
     if (originalHandler) {
       /* eslint-disable-next-line @typescript-eslint/no-unsafe-member-access */
-      (originalConsole as any)[key] = originalHandler;
+      originalConsole[key] = originalHandler;
     }
   }
   originalFn = {};
