@@ -65,6 +65,53 @@ describe('frustrationPlugin', () => {
     jest.clearAllMocks();
   });
 
+  describe('enable/disable frustration interactions', () => {
+    it('should skip tracking when set to false', async () => {
+      plugin = frustrationPlugin({
+        deadClicks: false,
+        rageClicks: false,
+      });
+
+      await plugin?.setup?.(config as BrowserConfig, instance);
+
+      expect(trackDeadClick).not.toHaveBeenCalled();
+      expect(trackRageClicks).not.toHaveBeenCalled();
+    });
+
+    it('should enable tracking when set to true', async () => {
+      plugin = frustrationPlugin({
+        deadClicks: true,
+        rageClicks: true,
+      });
+
+      await plugin?.setup?.(config as BrowserConfig, instance);
+
+      expect(trackDeadClick).toHaveBeenCalled();
+      expect(trackRageClicks).toHaveBeenCalled();
+    });
+
+    it('should enable tracking when not defined', async () => {
+      plugin = frustrationPlugin({});
+
+      await plugin?.setup?.(config as BrowserConfig, instance);
+
+      expect(trackDeadClick).toHaveBeenCalled();
+      expect(trackRageClicks).toHaveBeenCalled();
+    });
+
+    it('should be disabled when set to null', async () => {
+      plugin = frustrationPlugin({
+        deadClicks: null as any,
+        rageClicks: null as any,
+      });
+
+      await plugin?.setup?.(config as BrowserConfig, instance);
+
+      expect(trackDeadClick).not.toHaveBeenCalled();
+      expect(trackRageClicks).not.toHaveBeenCalled();
+    });
+  });
+
   describe('css selector allowlists', () => {
     it('should pass custom dead click allowlist to tracking function', async () => {
       const customDeadClickAllowlist = ['button', 'a'];
