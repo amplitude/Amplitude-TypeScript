@@ -17,8 +17,8 @@
     };
     consoleObserver.addListener('error', callback);
     setTimeout(() => {
-      // consoleObserver.removeListener(callback);
-      // console.log('Disconnected');
+      consoleObserver.removeListener(callback);
+      console.log('Disconnected');
     }, 8000);
   </script>
   <body>

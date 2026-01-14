@@ -1,24 +1,22 @@
 import { getGlobalScope } from '../global-scope';
 
 type ConsoleLogLevel = keyof Console;
+type Callback = (logLevel: ConsoleLogLevel, args: any[]) => void;
 
 const globalScope = getGlobalScope();
 /* istanbul ignore next */
 const originalConsole: Console | undefined = globalScope?.console;
-const isProxySupported = typeof Proxy === 'function';
-const isMapSupported = typeof Map === 'function';
-const isSupported = isProxySupported && isMapSupported;
 
-type Callback = (logLevel: ConsoleLogLevel, args: any[]) => void;
+let handlers: { [key in ConsoleLogLevel]?: Array<Callback> } = {};
 
-const handlers = new Map<ConsoleLogLevel, Array<Callback>>();
+// keeps reference to original console methods
 let originalFn: { [key in ConsoleLogLevel]?: (...args: any[]) => void } = {};
 
 let inConsoleOverride = false;
 
 function overrideConsole(logLevel: ConsoleLogLevel): boolean {
   /* istanbul ignore if */
-  if (!originalConsole || !globalScope || !isSupported) {
+  if (!originalConsole) {
     return false;
   }
 
@@ -35,10 +33,10 @@ function overrideConsole(logLevel: ConsoleLogLevel): boolean {
   // override console method
   const handler = function (...args: any[]) {
     try {
-      if (handlers.has(logLevel) && !inConsoleOverride) {
+      if (handlers[logLevel] && !inConsoleOverride) {
         // add a re-entrancy guard to prevent infinite recursion
         inConsoleOverride = true;
-        const callbacks = handlers.get(logLevel);
+        const callbacks = handlers[logLevel];
         if (callbacks) {
           callbacks.forEach((callback) => {
             try {
@@ -57,7 +55,7 @@ function overrideConsole(logLevel: ConsoleLogLevel): boolean {
   };
   originalFn[logLevel] = originalConsole[logLevel] as (...args: any[]) => void;
   /* eslint-disable-next-line @typescript-eslint/no-unsafe-member-access */
-  (globalScope.console as any)[logLevel] = handler;
+  (originalConsole as any)[logLevel] = handler;
   return true;
 }
 
@@ -74,11 +72,11 @@ function addListener(level: ConsoleLogLevel, callback: Callback): Error | void {
     return new Error('Console override failed');
   }
 
-  if (handlers.has(level)) {
-    // using ! is safe because we know the key exists based on has() condition
-    handlers.get(level)!.push(callback);
+  if (handlers[level]) {
+    // using ! is safe because we know the key exists based on condition above
+    handlers[level]!.push(callback);
   } else {
-    handlers.set(level, [callback]);
+    handlers[level] = [callback];
   }
 }
 
@@ -87,7 +85,7 @@ function addListener(level: ConsoleLogLevel, callback: Callback): Error | void {
  * @param callback - The callback function to disconnect
  */
 function removeListener(callback: Callback) {
-  handlers.forEach((callbacks) => {
+  for (const callbacks of Object.values(handlers)) {
     // iterate backwards to avoid index shifting
     for (let i = callbacks.length - 1; i >= 0; i--) {
       if (callbacks[i] === callback) {
@@ -95,7 +93,7 @@ function removeListener(callback: Callback) {
         break;
       }
     }
-  });
+  }
 }
 
 // this should only be used for testing
@@ -108,7 +106,7 @@ function _restoreConsole() {
     }
   }
   originalFn = {};
-  handlers.clear();
+  handlers = {};
 }
 
 const consoleObserver = {
