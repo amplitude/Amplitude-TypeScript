@@ -24,7 +24,7 @@ export { isUrlMatchAllowlist, getDecodeURI } from './utils/url-utils';
 export { generateHashCode, isTimestampInSample } from './utils/sampling';
 
 export { MemoryStorage } from './storage/memory';
-export { CookieStorage } from './storage/cookie';
+export { CookieStorage, isDomainEqual, decodeCookieValue } from './storage/cookie';
 export { getStorageKey } from './storage/helpers';
 
 export { BrowserStorage } from './storage/browser-storage';
@@ -39,7 +39,7 @@ export { RemoteConfigClient, IRemoteConfigClient, RemoteConfig, Source } from '.
 
 export { LogLevel } from './types/loglevel';
 export { AMPLITUDE_PREFIX, STORAGE_PREFIX } from './types/constants';
-export { Storage, IdentityStorageType } from './types/storage';
+export { Storage, IdentityStorageType, CookieStorageConfig } from './types/storage';
 export {
   Event,
   IdentifyOperation,
