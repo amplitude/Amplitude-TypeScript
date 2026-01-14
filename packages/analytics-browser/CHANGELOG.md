@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.33.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.33.2...@amplitude/analytics-browser@2.33.3) (2026-01-14)
+
+
+### Bug Fixes
+
+* **analytics-browser:** re-entrant error in cookies.isEnabled ([#1493](https://github.com/amplitude/Amplitude-TypeScript/issues/1493)) ([ed4f62c](https://github.com/amplitude/Amplitude-TypeScript/commit/ed4f62cb57a389deb1b67f3fdb310e30caf7e3e2))
+
+
+
+
+
 ## [2.33.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.33.1...@amplitude/analytics-browser@2.33.2) (2026-01-14)
 
 
