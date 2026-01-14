@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.33.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.33.1...@amplitude/analytics-browser@2.33.2) (2026-01-14)
+
+
+### Bug Fixes
+
+* **analytics-browser:** two cookie problem resolution ([#1490](https://github.com/amplitude/Amplitude-TypeScript/issues/1490)) ([506638a](https://github.com/amplitude/Amplitude-TypeScript/commit/506638a2a412dc3843b0da9450325f70ff465422))
+* **deps:** bump node-forge from 1.3.1 to 1.3.3 in /packages/analytics-browser/playground/react-spa ([#1438](https://github.com/amplitude/Amplitude-TypeScript/issues/1438)) ([ffacc88](https://github.com/amplitude/Amplitude-TypeScript/commit/ffacc8888217249e6c8084ef7327872e1fa375ca))
+
+
+
+
+
 ## [2.33.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.33.0...@amplitude/analytics-browser@2.33.1) (2025-12-30)
 
 **Note:** Version bump only for package @amplitude/analytics-browser
