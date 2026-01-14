@@ -1,4 +1,4 @@
-import { frustrationPlugin } from '../../src/frustration-plugin';
+import { AllWindowObservables, frustrationPlugin } from '../../src/frustration-plugin';
 import { BrowserConfig, EnrichmentPlugin, ILogger, Observable, Unsubscribable } from '@amplitude/analytics-core';
 import { createMockBrowserClient } from '../mock-browser-client';
 import { trackDeadClick } from '../../src/autocapture/track-dead-click';
@@ -70,6 +70,53 @@ describe('frustrationPlugin', () => {
     (global.window as any).PointerEvent = MockPointerEvent;
     (global.window as any).PointerEvent.prototype = Event.prototype;
     jest.clearAllMocks();
+  });
+
+  describe('enable/disable frustration interactions', () => {
+    it('should skip tracking when set to false', async () => {
+      plugin = frustrationPlugin({
+        deadClicks: false,
+        rageClicks: false,
+      });
+
+      await plugin?.setup?.(config as BrowserConfig, instance);
+
+      expect(trackDeadClick).not.toHaveBeenCalled();
+      expect(trackRageClicks).not.toHaveBeenCalled();
+    });
+
+    it('should enable tracking when set to true', async () => {
+      plugin = frustrationPlugin({
+        deadClicks: true,
+        rageClicks: true,
+      });
+
+      await plugin?.setup?.(config as BrowserConfig, instance);
+
+      expect(trackDeadClick).toHaveBeenCalled();
+      expect(trackRageClicks).toHaveBeenCalled();
+    });
+
+    it('should enable tracking when not defined', async () => {
+      plugin = frustrationPlugin({});
+
+      await plugin?.setup?.(config as BrowserConfig, instance);
+
+      expect(trackDeadClick).toHaveBeenCalled();
+      expect(trackRageClicks).toHaveBeenCalled();
+    });
+
+    it('should be disabled when set to null', async () => {
+      plugin = frustrationPlugin({
+        deadClicks: null as any,
+        rageClicks: null as any,
+      });
+
+      await plugin?.setup?.(config as BrowserConfig, instance);
+
+      expect(trackDeadClick).not.toHaveBeenCalled();
+      expect(trackRageClicks).not.toHaveBeenCalled();
+    });
   });
 
   describe('css selector allowlists', () => {
@@ -395,6 +442,104 @@ describe('frustrationPlugin', () => {
 
       // Cleanup
       subscription.unsubscribe();
+    });
+
+    describe('selection observable', () => {
+      let plugin: EnrichmentPlugin | undefined;
+      let rageClickCall: any;
+      let observables: AllWindowObservables;
+      let subscription: Unsubscribable | undefined;
+      let selectionSpy: jest.Mock;
+
+      beforeEach(async () => {
+        plugin = frustrationPlugin({});
+        await plugin?.setup?.(config as BrowserConfig, instance);
+        rageClickCall = (trackRageClicks as jest.Mock).mock.calls[0][0];
+        observables = rageClickCall.allObservables;
+        selectionSpy = jest.fn();
+        subscription = observables.selectionObservable?.subscribe(selectionSpy);
+        jest.clearAllMocks();
+      });
+
+      afterEach(() => {
+        subscription?.unsubscribe();
+      });
+
+      it('should trigger on selection highlighted', async () => {
+        const div = document.createElement('div');
+        div.focus();
+
+        expect(observables).toHaveProperty('selectionObservable');
+
+        jest.spyOn(window, 'getSelection').mockReturnValue({
+          isCollapsed: false,
+        } as any);
+        const mockSelectionEvent: any = new Event('selectionchange');
+        (window.document as any).dispatchEvent(mockSelectionEvent);
+
+        expect(selectionSpy).toHaveBeenCalled();
+      });
+
+      it('should not trigger on non-input element selection change if selection is collapsed', async () => {
+        // Trigger a mock selection event
+        const div = document.createElement('div');
+        div.focus();
+        (window.document as any).dispatchEvent(new Event('selectionchange'));
+        expect(selectionSpy).not.toHaveBeenCalled();
+      });
+
+      it('should trigger on input element selection change', async () => {
+        // Trigger a mock selection event
+        ['textarea', 'input'].forEach((tag) => {
+          const input = document.createElement(tag) as HTMLTextAreaElement | HTMLInputElement;
+          input.value = 'some text here'; // Add text so there's something to select
+          input.selectionStart = 0;
+          input.selectionEnd = 10;
+          document.body.appendChild(input);
+          input.focus(); // This sets document.activeElement to the input
+          (window.document as any).dispatchEvent(new Event('selectionchange'));
+          document.body.removeChild(input);
+        });
+
+        expect(selectionSpy).toHaveBeenCalledTimes(2);
+      });
+
+      it('should not trigger on input element selection change if selection is collapsed', async () => {
+        // Trigger a mock selection event on input and textarea elements
+        ['textarea', 'input'].forEach((tag) => {
+          const input = document.createElement(tag) as HTMLTextAreaElement | HTMLInputElement;
+          input.value = 'some text here'; // Add text so there's something to select
+          input.selectionStart = 0;
+          input.selectionEnd = 0;
+          document.body.appendChild(input);
+          input.focus(); // This sets document.activeElement to the input
+          (window.document as any).dispatchEvent(new Event('selectionchange'));
+          document.body.removeChild(input);
+        });
+
+        expect(selectionSpy).not.toHaveBeenCalled();
+      });
+
+      it('should not trigger on input element that does not support selectionStart/selectionEnd (like checkbox)', async () => {
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        // make .selectionStart and .selectionEnd throw an error
+        // simulating "Chrome" behavior
+        Object.defineProperty(checkbox, 'selectionStart', {
+          get: () => {
+            throw new Error('Not supported');
+          },
+        });
+        Object.defineProperty(checkbox, 'selectionEnd', {
+          get: () => {
+            throw new Error('Not supported');
+          },
+        });
+        document.body.appendChild(checkbox);
+        checkbox.focus(); // This sets document.activeElement to the checkbox
+        (window.document as any).dispatchEvent(new Event('selectionchange'));
+        document.body.removeChild(checkbox);
+      });
     });
   });
 

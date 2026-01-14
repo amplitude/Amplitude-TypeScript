@@ -104,7 +104,7 @@ export function trackRageClicks({
   allObservables: AllWindowObservables;
   shouldTrackRageClick: shouldTrackEvent;
 }) {
-  const { clickObservable }: AllWindowObservables = allObservables;
+  const { clickObservable, selectionObservable }: AllWindowObservables = allObservables;
 
   // Keep track of all clicks within the sliding window
   let clickWindow: ClickEvent[] = [];
@@ -152,7 +152,6 @@ export function trackRageClicks({
         if (pendingRageClick) {
           resolutionValue = getRageClickAnalyticsEvent(clickWindow);
         }
-
         resetClickWindow(click);
       } else {
         clickWindow.push(click);
@@ -184,11 +183,25 @@ export function trackRageClicks({
     },
   );
 
-  return rageClickObservable.subscribe((data: RageClickEvent | null) => {
+  // reset the click window when a selection change occurs
+  /* istanbul ignore next */
+  const selectionSubscription = selectionObservable?.subscribe(() => {
+    resetClickWindow();
+  });
+
+  const rageClickSubscription = rageClickObservable.subscribe((data: RageClickEvent | null) => {
     /* istanbul ignore if */
     if (data === null) {
       return;
     }
     amplitude.track(AMPLITUDE_ELEMENT_RAGE_CLICKED_EVENT, data.rageClickEvent, { time: data.time });
   });
+
+  return {
+    unsubscribe: () => {
+      rageClickSubscription.unsubscribe();
+      /* istanbul ignore next */
+      selectionSubscription?.unsubscribe();
+    },
+  };
 }
