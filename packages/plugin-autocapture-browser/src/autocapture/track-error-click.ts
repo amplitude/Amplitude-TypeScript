@@ -1,4 +1,4 @@
-import { BrowserErrorEvent } from 'src/observables';
+import { BrowserErrorEvent } from '../observables';
 import { AllWindowObservables } from '../frustration-plugin';
 import {
   ElementBasedTimestampedEvent,
