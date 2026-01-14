@@ -1,8 +1,10 @@
 /**
  * @jest-environment jsdom
+ * @jest-environment-options { "url": "https://www.example.com" }
  */
-
+/* eslint-disable @typescript-eslint/no-unsafe-return */
 import { CookieStorage } from '../../src/storage/cookie';
+import { isDomainEqual, decodeCookieValue } from '../../src/index';
 import * as GlobalScopeModule from '../../src/global-scope';
 
 describe('cookies', () => {
@@ -141,6 +143,182 @@ describe('cookies', () => {
     test('should return undefined', async () => {
       const cookies = new CookieStorage();
       expect(await cookies.reset()).toBe(undefined);
+    });
+  });
+  describe('duplicateResolverFn', () => {
+    let tldCookies: CookieStorage<Record<string, string>>;
+    let subdomainCookies: CookieStorage<Record<string, string>>;
+    beforeEach(() => {
+      tldCookies = new CookieStorage<Record<string, string>>(
+        {
+          domain: 'example.com',
+        },
+        {
+          duplicateResolverFn: (value: string) => {
+            const decodedValue = decodeURIComponent(atob(value));
+            const parsedValue = JSON.parse(decodedValue);
+            if (parsedValue.a === 'keep') {
+              return true;
+            }
+            return false;
+          },
+        },
+      );
+      subdomainCookies = new CookieStorage<Record<string, string>>({
+        domain: 'www.example.com',
+      });
+    });
+    test('should de-duplicate cookies', async () => {
+      await tldCookies.set('dummy', { a: 'ignore' });
+
+      // set 2 conflicting cookies on example.com and www.example.com
+      await tldCookies.set('hello', { a: 'ignore' });
+      await subdomainCookies.set('hello', { a: 'keep' });
+
+      // should resolve to the cookie that
+      expect(await tldCookies.get('hello')).toEqual({ a: 'keep' });
+      await tldCookies.remove('hello');
+    });
+
+    test('should record diagnostics when duplicateResolverFn returns false', async () => {
+      const diagnosticsClient = {
+        recordEvent: jest.fn(),
+        increment: jest.fn(),
+      };
+      const cookieStorageWithDiagnostics = new CookieStorage<Record<string, string>>(
+        {
+          domain: 'example.com',
+        },
+        {
+          duplicateResolverFn: (value: string) => {
+            const decodedValue = decodeURIComponent(atob(value));
+            const parsedValue = JSON.parse(decodedValue);
+            // Return false for "ignore", true for "keep"
+            return parsedValue.a === 'keep';
+          },
+          diagnosticsClient: diagnosticsClient as any,
+        },
+      );
+
+      // Set up duplicate cookies - one to ignore, one to keep
+      await tldCookies.set('test', { a: 'ignore' });
+      await subdomainCookies.set('test', { a: 'keep' });
+
+      await cookieStorageWithDiagnostics.get('test');
+
+      expect(diagnosticsClient.increment).toHaveBeenCalledWith('cookies.duplicate.occurrence.document.cookie');
+      await tldCookies.remove('test');
+    });
+  });
+
+  describe('cookieStore', () => {
+    let cookieStorage: CookieStorage<string>;
+    let globalScope: any;
+    beforeEach(() => {
+      cookieStorage = new CookieStorage({
+        domain: 'domain.com',
+      });
+      globalScope = GlobalScopeModule.getGlobalScope() || {};
+      const cookies: any = {};
+
+      // setting up cookieStore mock because JSDom doesn't support cookieStore
+      globalScope.cookieStore = {
+        set({ name, value, domain }: any) {
+          cookies[domain] = cookies[domain] || {};
+          cookies[domain][name] = value;
+        },
+        getAll(key: string) {
+          const output: any[] = [];
+          for (const domain of Object.keys(cookies)) {
+            output.push({
+              key,
+              value: cookies[domain][key],
+              domain,
+            });
+          }
+          return output;
+        },
+      };
+    });
+
+    afterAll(() => {
+      delete globalScope.cookieStore;
+    });
+
+    test('should read from cookieStore', async () => {
+      const value = {
+        hello: 'world!',
+      };
+      await globalScope.cookieStore.set({
+        name: 'hello',
+        value: btoa(encodeURIComponent(JSON.stringify(value))),
+        domain: 'domain.com',
+      });
+      expect(await cookieStorage.get('hello')).toEqual({ hello: 'world!' });
+    });
+
+    test('should record diagnostics when duplicate cookies are detected', async () => {
+      const diagnosticsClient = {
+        recordEvent: jest.fn(),
+        increment: jest.fn(),
+      };
+      const cookieStorageWithDiagnostics = new CookieStorage<string>(
+        {
+          domain: 'domain.com',
+        },
+        {
+          diagnosticsClient: diagnosticsClient as any,
+        },
+      );
+
+      // Mock cookieStore to return multiple cookies
+      globalScope.cookieStore.getAll = jest.fn().mockResolvedValue([
+        { name: 'hello', value: btoa(encodeURIComponent(JSON.stringify('value1'))), domain: 'domain.com' },
+        { name: 'hello', value: btoa(encodeURIComponent(JSON.stringify('value2'))), domain: 'other.com' },
+      ]);
+
+      await cookieStorageWithDiagnostics.get('hello');
+
+      expect(diagnosticsClient.recordEvent).toHaveBeenCalledWith('cookies.duplicate', {
+        cookies: ['domain.com', 'other.com'],
+      });
+      expect(diagnosticsClient.increment).toHaveBeenCalledWith('cookies.duplicate.occurrence.cookieStore');
+    });
+  });
+
+  describe('isDomainEqual', () => {
+    test('should return true if domains are equal disregard leading .', () => {
+      expect(isDomainEqual('.domain.com', 'domain.com')).toBe(true);
+      expect(isDomainEqual('domain.com', '.domain.com')).toBe(true);
+    });
+
+    it('should return false if either domain is undefined', () => {
+      expect(isDomainEqual(undefined, 'domain.com')).toBe(false);
+      expect(isDomainEqual('domain.com', undefined)).toBe(false);
+      expect(isDomainEqual(undefined, undefined)).toBe(false);
+    });
+
+    it('should return false if domains are not equal', () => {
+      expect(isDomainEqual('domain.com', 'www.domain.com')).toBe(false);
+      expect(isDomainEqual('www.domain.com', 'domain.com')).toBe(false);
+    });
+  });
+
+  describe('decodeCookieValue', () => {
+    test('should decode standard encoded cookie value', () => {
+      const value = { hello: 'world' };
+      const encoded = btoa(encodeURIComponent(JSON.stringify(value)));
+      expect(decodeCookieValue(encoded)).toBe(JSON.stringify(value));
+    });
+
+    test('should decode double URL encoded cookie value (Ruby Rails)', () => {
+      const value = { hello: 'world' };
+      const encoded = encodeURIComponent(btoa(encodeURIComponent(JSON.stringify(value))));
+      expect(decodeCookieValue(encoded)).toBe(JSON.stringify(value));
+    });
+
+    test('should return undefined for invalid encoded value', () => {
+      expect(decodeCookieValue('not-valid-base64!')).toBe(undefined);
     });
   });
 });

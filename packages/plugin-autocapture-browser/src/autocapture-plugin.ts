@@ -58,6 +58,7 @@ export enum ObservablesEnum {
   NavigateObservable = 'navigateObservable',
   MutationObservable = 'mutationObservable',
   BrowserErrorObservable = 'browserErrorObservable',
+  SelectionObservable = 'selectionObservable',
 }
 
 export interface AllWindowObservables {
@@ -66,6 +67,7 @@ export interface AllWindowObservables {
   [ObservablesEnum.ClickObservable]: Observable<ElementBasedTimestampedEvent<MouseEvent>>;
   [ObservablesEnum.MutationObservable]: Observable<TimestampedEvent<MutationRecord[]>>;
   [ObservablesEnum.NavigateObservable]?: Observable<TimestampedEvent<NavigateEvent>>;
+  [ObservablesEnum.SelectionObservable]?: Observable<void>;
 }
 
 export const autocapturePlugin = (
