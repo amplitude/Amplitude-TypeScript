@@ -5,11 +5,11 @@ import {
   EnrichmentPlugin,
   FrustrationInteractionsOptions,
   DEFAULT_DATA_ATTRIBUTE_PREFIX,
-  DEFAULT_RAGE_CLICK_ALLOWLIST,
-  DEFAULT_DEAD_CLICK_ALLOWLIST,
   multicast,
   Observable,
   Unsubscribable,
+  DEFAULT_RAGE_CLICK_ALLOWLIST,
+  DEFAULT_DEAD_CLICK_ALLOWLIST,
 } from '@amplitude/analytics-core';
 import * as constants from './constants';
 import { createShouldTrackEvent, ElementBasedTimestampedEvent, NavigateEvent, TimestampedEvent } from './helpers';
@@ -23,9 +23,36 @@ export interface AllWindowObservables {
   [ObservablesEnum.ClickObservable]: Observable<ElementBasedTimestampedEvent<MouseEvent>>;
   [ObservablesEnum.MutationObservable]: Observable<TimestampedEvent<MutationRecord[]>>;
   [ObservablesEnum.NavigateObservable]?: Observable<TimestampedEvent<NavigateEvent>>;
+  [ObservablesEnum.SelectionObservable]?: Observable<void>;
 }
 
 type BrowserEnrichmentPlugin = EnrichmentPlugin<BrowserClient, BrowserConfig>;
+
+/**
+ * Helper function to extract the css selector allowlist
+ * from the frustration interactions options for a specific
+ * autocapture feature.
+ */
+function getCssSelectorAllowlist(
+  options: FrustrationInteractionsOptions,
+  attribute: keyof FrustrationInteractionsOptions,
+  defaultAllowlist: string[],
+  enabled: boolean,
+): string[] {
+  if (!enabled) {
+    return [];
+  }
+  const config = options[attribute];
+  if (
+    typeof config === 'object' &&
+    config !== null &&
+    'cssSelectorAllowlist' in config &&
+    Array.isArray(config.cssSelectorAllowlist)
+  ) {
+    return config.cssSelectorAllowlist;
+  }
+  return defaultAllowlist;
+}
 
 export const frustrationPlugin = (options: FrustrationInteractionsOptions = {}): BrowserEnrichmentPlugin => {
   const name = constants.FRUSTRATION_PLUGIN_NAME;
@@ -33,14 +60,29 @@ export const frustrationPlugin = (options: FrustrationInteractionsOptions = {}):
 
   const subscriptions: Unsubscribable[] = [];
 
-  const rageCssSelectors = options.rageClicks?.cssSelectorAllowlist ?? DEFAULT_RAGE_CLICK_ALLOWLIST;
-  const deadCssSelectors = options.deadClicks?.cssSelectorAllowlist ?? DEFAULT_DEAD_CLICK_ALLOWLIST;
+  // Check if each feature is enabled
+  const deadClicksEnabled = options.deadClicks !== false && options.deadClicks !== null;
+  const rageClicksEnabled = options.rageClicks !== false && options.rageClicks !== null;
+
+  // Get CSS selectors for enabled features
+  const rageCssSelectors = getCssSelectorAllowlist(
+    options,
+    'rageClicks',
+    DEFAULT_RAGE_CLICK_ALLOWLIST,
+    rageClicksEnabled,
+  );
+  const deadCssSelectors = getCssSelectorAllowlist(
+    options,
+    'deadClicks',
+    DEFAULT_DEAD_CLICK_ALLOWLIST,
+    deadClicksEnabled,
+  );
 
   const dataAttributePrefix = options.dataAttributePrefix ?? DEFAULT_DATA_ATTRIBUTE_PREFIX;
 
   const dataExtractor = new DataExtractor(options);
 
-  // combine the two selector lists to determine which clicked elements should be filtered
+  // combine the selector lists from enabled features to determine which clicked elements should be filtered
   const combinedCssSelectors = [...new Set([...rageCssSelectors, ...deadCssSelectors])];
 
   // Create observables on events on the window
@@ -91,10 +133,51 @@ export const frustrationPlugin = (options: FrustrationInteractionsOptions = {}):
       );
     }
 
+    const selectionObservable = multicast(
+      new Observable<void>((observer) => {
+        const handler = () => {
+          const el: HTMLElement | null = document.activeElement as HTMLElement;
+
+          // handle input and textarea
+
+          // if the selectionStart and selectionEnd are the same, it means
+          // nothing is selected (collapsed) and the cursor position is one point
+          if (el && (el.tagName === 'TEXTAREA' || el.tagName === 'INPUT')) {
+            let start: number | null | undefined;
+            let end: number | null | undefined;
+            try {
+              start = (el as HTMLInputElement | HTMLTextAreaElement).selectionStart;
+              end = (el as HTMLInputElement | HTMLTextAreaElement).selectionEnd;
+              if (start === end) return; // collapsed
+            } catch (error) {
+              // input that doesn't support selectionStart/selectionEnd (like checkbox)
+              // do nothing here
+              return;
+            }
+            return observer.next();
+          }
+
+          // handle non-input elements
+
+          // non-input elements have an attribute called "isCollapsed" which
+          // if true, indicates there "is currently not any text selected"
+          // (see https://developer.mozilla.org/en-US/docs/Web/API/Selection/isCollapsed)
+          const selection = window.getSelection();
+          if (!selection || selection.isCollapsed) return;
+          return observer.next();
+        };
+        window.document.addEventListener('selectionchange', handler);
+        return () => {
+          window.document.removeEventListener('selectionchange', handler);
+        };
+      }),
+    );
+
     return {
       [ObservablesEnum.ClickObservable]: clickObservable as Observable<ElementBasedTimestampedEvent<MouseEvent>>,
       [ObservablesEnum.MutationObservable]: enrichedMutationObservable,
       [ObservablesEnum.NavigateObservable]: enrichedNavigateObservable,
+      [ObservablesEnum.SelectionObservable]: selectionObservable,
     };
   };
 
@@ -104,29 +187,31 @@ export const frustrationPlugin = (options: FrustrationInteractionsOptions = {}):
       return;
     }
 
-    // Create should track event functions for the different allowlists
-    const shouldTrackRageClick = createShouldTrackEvent(options, rageCssSelectors);
-    const shouldTrackDeadClick = createShouldTrackEvent(options, deadCssSelectors);
-
     // Create observables for events on the window
     const allObservables = createObservables();
 
-    // Create subscriptions
-    const rageClickSubscription = trackRageClicks({
-      allObservables,
-      amplitude,
-      shouldTrackRageClick,
-    });
-    subscriptions.push(rageClickSubscription);
+    // Create subscriptions only for enabled features
+    if (rageClicksEnabled) {
+      const shouldTrackRageClick = createShouldTrackEvent(options, rageCssSelectors);
+      const rageClickSubscription = trackRageClicks({
+        allObservables,
+        amplitude,
+        shouldTrackRageClick,
+      });
+      subscriptions.push(rageClickSubscription);
+    }
 
-    const deadClickSubscription = trackDeadClick({
-      amplitude,
-      allObservables,
-      getEventProperties: (actionType, element) =>
-        dataExtractor.getEventProperties(actionType, element, dataAttributePrefix),
-      shouldTrackDeadClick,
-    });
-    subscriptions.push(deadClickSubscription);
+    if (deadClicksEnabled) {
+      const shouldTrackDeadClick = createShouldTrackEvent(options, deadCssSelectors);
+      const deadClickSubscription = trackDeadClick({
+        amplitude,
+        allObservables,
+        getEventProperties: (actionType, element) =>
+          dataExtractor.getEventProperties(actionType, element, dataAttributePrefix),
+        shouldTrackDeadClick,
+      });
+      subscriptions.push(deadClickSubscription);
+    }
 
     /* istanbul ignore next */
     config?.loggerProvider?.log(`${name} has been successfully added.`);
