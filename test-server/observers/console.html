@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/public/amplitude.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Console Observer Test</title>
+  </head>
+  <script src="/analytics-browser/lib/scripts/amplitude-min.js"></script>
+  <script type="module">
+    window.AMPLITUDE_API_KEY = import.meta.env.VITE_AMPLITUDE_API_KEY;
+  </script>
+  <script type="module">
+    import { consoleObserver } from '@amplitude/analytics-core/src/observers/console';
+    const callback = (logLevel, args) => {
+      console.error(`Echoing the error: ${args.join(' ')}`);
+    };
+    consoleObserver.addListener('error', callback);
+    setTimeout(() => {
+      consoleObserver.removeListener(callback);
+      console.log('Disconnected');
+    }, 8000);
+  </script>
+  <body>
+    <h1>Console Observer Test</h1>
+  </body>
+</html>
