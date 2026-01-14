@@ -9,59 +9,55 @@ const isProxySupported = typeof Proxy === 'function';
 const isMapSupported = typeof Map === 'function';
 const isSupported = isProxySupported && isMapSupported;
 
-let isOverridden = false;
-
 type Callback = (logLevel: ConsoleLogLevel, args: any[]) => void;
 
 const handlers = new Map<ConsoleLogLevel, Array<Callback>>();
+let originalFn: { [key in ConsoleLogLevel]?: (...args: any[]) => void } = {};
 
 let inConsoleOverride = false;
 
-function overrideConsole(): boolean {
+function overrideConsole(logLevel: ConsoleLogLevel): boolean {
   /* istanbul ignore if */
   if (!originalConsole || !globalScope || !isSupported) {
     return false;
   }
 
+  // should not override if original console property is not a function
+  if (typeof originalConsole[logLevel] !== 'function') {
+    return false;
+  }
+
   // if console is already overridden, return true
-  if (isOverridden) {
+  if (originalFn[logLevel]) {
     return true;
   }
 
-  // use Proxy to override the console method
-  const handler = {
-    // get args from console method call
-    get(target: Console, prop: ConsoleLogLevel) {
-      if (typeof target[prop] !== 'function') {
-        return target[prop];
-      }
-      return function (...args: any[]) {
-        try {
-          // add a re-entrancy guard to prevent infinite recursion
-          if (handlers.has(prop) && !inConsoleOverride) {
-            inConsoleOverride = true;
-            const callbacks = handlers.get(prop);
-            if (callbacks) {
-              callbacks.forEach((callback) => {
-                try {
-                  callback(prop, args);
-                } catch {
-                  // do nothing
-                }
-              });
+  // override console method
+  const handler = function (...args: any[]) {
+    try {
+      if (handlers.has(logLevel) && !inConsoleOverride) {
+        // add a re-entrancy guard to prevent infinite recursion
+        inConsoleOverride = true;
+        const callbacks = handlers.get(logLevel);
+        if (callbacks) {
+          callbacks.forEach((callback) => {
+            try {
+              callback(logLevel, args);
+            } catch {
+              // do nothing
             }
-            inConsoleOverride = false;
-          }
-        } catch {
-          // do nothing
+          });
         }
-        /* eslint-disable-next-line @typescript-eslint/no-unsafe-argument */
-        return Reflect.apply(target[prop] as (...args: any[]) => void, target, args);
-      };
-    },
+      }
+    } catch {
+      // do nothing
+    }
+    inConsoleOverride = false;
+    return originalFn[logLevel]!.apply(originalConsole, args);
   };
-  globalScope.console = new Proxy(originalConsole, handler);
-  isOverridden = true;
+  originalFn[logLevel] = originalConsole[logLevel] as (...args: any[]) => void;
+  /* eslint-disable-next-line @typescript-eslint/no-unsafe-member-access */
+  (globalScope.console as any)[logLevel] = handler;
   return true;
 }
 
@@ -71,7 +67,7 @@ function overrideConsole(): boolean {
  * @param callback - The callback function to call when the console log level is observed
  */
 function addListener(level: ConsoleLogLevel, callback: Callback): Error | void {
-  const res = overrideConsole();
+  const res = overrideConsole(level);
 
   /* istanbul ignore if */
   if (!res) {
@@ -103,13 +99,15 @@ function removeListener(callback: Callback) {
 }
 
 // this should only be used for testing
-// restoring console can break other console overrides
+// restoring console can break console overrides
 function _restoreConsole() {
-  if (globalScope && originalConsole) {
-    /* eslint-disable-next-line @typescript-eslint/no-unsafe-member-access */
-    (globalScope as any).console = originalConsole;
+  for (const [key, originalHandler] of Object.entries(originalFn)) {
+    if (originalHandler) {
+      /* eslint-disable-next-line @typescript-eslint/no-unsafe-member-access */
+      (originalConsole as any)[key] = originalHandler;
+    }
   }
-  isOverridden = false;
+  originalFn = {};
   handlers.clear();
 }
 
