@@ -3,6 +3,7 @@ import { AllWindowObservables } from '../frustration-plugin';
 import {
   ElementBasedTimestampedEvent,
   filterOutNonTrackableEvents,
+  MouseButton,
   shouldTrackEvent,
   TimestampedEvent,
 } from '../helpers';
@@ -29,7 +30,8 @@ export function trackErrorClicks({
       filterOutNonTrackableEvents(click) &&
       shouldTrackErrorClick('click', click.closestTrackedAncestor) &&
       click.event.target instanceof Element &&
-      click.event.target.closest('a[target="_blank"]') === null
+      click.event.target.closest('a[target="_blank"]') === null &&
+      click.event.button === MouseButton.LEFT_OR_TOUCH_CONTACT
     );
   });
 
