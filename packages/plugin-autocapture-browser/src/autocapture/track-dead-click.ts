@@ -9,6 +9,12 @@ type EventDeadClick = {
   '[Amplitude] Y': number;
 };
 
+enum MouseButton {
+  LEFT_OR_TOUCH_CONTACT = 0,
+  MIDDLE = 1,
+  RIGHT = 2,
+}
+
 const CHANGE_EVENTS = ['mutation', 'navigate'];
 
 export function trackDeadClick({
@@ -29,7 +35,8 @@ export function trackDeadClick({
       filterOutNonTrackableEvents(click) &&
       shouldTrackDeadClick('click', click.closestTrackedAncestor) &&
       click.event.target instanceof Element &&
-      click.event.target.closest('a[target="_blank"]') === null
+      click.event.target.closest('a[target="_blank"]') === null &&
+      click.event.button === MouseButton.LEFT_OR_TOUCH_CONTACT
     );
   });
 
