@@ -1,4 +1,3 @@
-import { UUID } from '../utils/uuid';
 import { Storage as AmplitudeStorage } from '../types/storage';
 
 export class BrowserStorage<T> implements AmplitudeStorage<T> {
@@ -12,7 +11,7 @@ export class BrowserStorage<T> implements AmplitudeStorage<T> {
 
     const random = String(Date.now());
     const testStorage = new BrowserStorage<string>(this.storage);
-    const testKey = `AMP_TEST_${UUID().substring(0, 8)}`;
+    const testKey = 'AMP_TEST';
     try {
       await testStorage.set(testKey, random);
       const value = await testStorage.get(testKey);

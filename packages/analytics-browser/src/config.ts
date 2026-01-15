@@ -465,7 +465,10 @@ export const getTopLevelDomain = async (url?: string) => {
   }
   for (let i = 0; i < levels.length; i++) {
     const domain = levels[i];
-    const options = { domain: '.' + domain };
+    const options = {
+      domain: '.' + domain,
+      expirationDays: 0.003, // expire in ~5 minutes
+    };
     const storage = new CookieStorage<number>(options);
     await storage.set(storageKey, 1);
     const value = await storage.get(storageKey);

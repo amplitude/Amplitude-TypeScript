@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.35.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.35.1...@amplitude/analytics-core@2.35.2) (2026-01-14)
+
+
+### Bug Fixes
+
+* **analytics-browser:** re-entrant error in cookies.isEnabled ([#1493](https://github.com/amplitude/Amplitude-TypeScript/issues/1493)) ([ed4f62c](https://github.com/amplitude/Amplitude-TypeScript/commit/ed4f62cb57a389deb1b67f3fdb310e30caf7e3e2))
+* **plugin-autocapture-browser:** allow selective configuration of frustration interactions ([#1489](https://github.com/amplitude/Amplitude-TypeScript/issues/1489)) ([5350f5b](https://github.com/amplitude/Amplitude-TypeScript/commit/5350f5b53d134b516f1e0e0cd202090015751ce0))
+
+
+
+
+
 ## [2.35.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.35.0...@amplitude/analytics-core@2.35.1) (2026-01-14)
 
 
