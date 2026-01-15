@@ -18,7 +18,6 @@
   "publishConfig": {
     "tag": "beta"
   },
-  "private": true,
   "files": [
     "lib"
   ],
