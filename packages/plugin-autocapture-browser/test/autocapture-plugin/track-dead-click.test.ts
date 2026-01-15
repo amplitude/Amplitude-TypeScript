@@ -95,13 +95,13 @@ describe('trackDeadClick', () => {
     // Create a mock element
     const mockElement = document.createElement('div');
 
-    // Simulate a click
+    // Simulate a right click
     clickObserver.next({
       event: {
         target: mockElement,
         clientX: 100,
         clientY: 100,
-        button: 2,
+        button: 2, // right click button
       },
       timestamp: Date.now(),
       closestTrackedAncestor: mockElement,
