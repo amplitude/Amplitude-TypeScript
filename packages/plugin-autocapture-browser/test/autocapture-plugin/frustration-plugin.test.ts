@@ -472,6 +472,7 @@ describe('frustrationPlugin', () => {
         checkbox.focus(); // This sets document.activeElement to the checkbox
         (window.document as any).dispatchEvent(new Event('selectionchange'));
         document.body.removeChild(checkbox);
+        expect(selectionSpy).not.toHaveBeenCalled();
       });
     });
   });
