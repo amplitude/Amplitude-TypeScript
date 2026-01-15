@@ -65,6 +65,7 @@ describe('trackDeadClick', () => {
         target: mockElement,
         clientX: 100,
         clientY: 100,
+        button: 0,
       },
       timestamp: Date.now(),
       closestTrackedAncestor: mockElement,
@@ -89,6 +90,40 @@ describe('trackDeadClick', () => {
     navigateObserver.complete();
   });
 
+  it('should not track dead click on right click', async () => {
+    const subscription = trackDeadClick({
+      amplitude: mockAmplitude,
+      allObservables,
+      getEventProperties,
+      shouldTrackDeadClick,
+    });
+
+    // Create a mock element
+    const mockElement = document.createElement('div');
+
+    // Simulate a click
+    clickObserver.next({
+      event: {
+        target: mockElement,
+        clientX: 100,
+        clientY: 100,
+        button: 2,
+      },
+      timestamp: Date.now(),
+      closestTrackedAncestor: mockElement,
+      targetElementProperties: { id: 'test-element' },
+      type: 'click',
+    });
+
+    // Wait for the dead click timeout
+    await jest.runAllTimersAsync();
+    expect(mockAmplitude.track).not.toHaveBeenCalled();
+
+    subscription?.unsubscribe();
+    mutationObserver.complete();
+    navigateObserver.complete();
+  });
+
   it('should not track when mutation occurs after click', async () => {
     const subscription = trackDeadClick({
       amplitude: mockAmplitude,
@@ -106,6 +141,7 @@ describe('trackDeadClick', () => {
         target: mockElement,
         clientX: 100,
         clientY: 100,
+        button: 0,
       },
       timestamp: Date.now(),
       closestTrackedAncestor: mockElement,
@@ -138,6 +174,7 @@ describe('trackDeadClick', () => {
         target: mockElement,
         clientX: 100,
         clientY: 100,
+        button: 0,
       },
       timestamp: Date.now(),
       closestTrackedAncestor: mockElement,
@@ -166,12 +203,12 @@ describe('trackDeadClick', () => {
 
     const mockElement = document.createElement('div');
 
-    // Simulate a click
     clickObserver.next({
       event: {
         target: mockElement,
         clientX: 100,
         clientY: 100,
+        button: 0,
       },
       timestamp: Date.now(),
       closestTrackedAncestor: mockElement,
@@ -198,6 +235,7 @@ describe('trackDeadClick', () => {
     clickObserver.next({
       event: {
         target: mockElement,
+        button: 0,
       },
       timestamp: Date.now(),
       closestTrackedAncestor: mockElement,
@@ -228,6 +266,7 @@ describe('trackDeadClick', () => {
           target: mockElement,
           clientX: 100,
           clientY: 100,
+          button: 0,
         },
         timestamp: Date.now(),
         closestTrackedAncestor: mockElement,
