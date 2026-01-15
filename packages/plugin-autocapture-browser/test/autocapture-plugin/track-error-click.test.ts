@@ -7,6 +7,7 @@ import { trackErrorClicks } from '../../src/autocapture/track-error-click';
 import { AMPLITUDE_ELEMENT_ERROR_CLICKED_EVENT } from '../../src/constants';
 import { ObservablesEnum } from '../../src/autocapture-plugin';
 import { AllWindowObservables } from '../../src/frustration-plugin';
+import { MouseButton } from '../../src/helpers';
 
 describe('trackErrorClicks', () => {
   let mockAmplitude: jest.Mocked<BrowserClient>;
@@ -64,6 +65,7 @@ describe('trackErrorClicks', () => {
         target: mockElement,
         clientX: 100,
         clientY: 100,
+        button: MouseButton.LEFT_OR_TOUCH_CONTACT,
       },
       timestamp: Date.now(),
       closestTrackedAncestor: mockElement,
@@ -130,6 +132,7 @@ describe('trackErrorClicks', () => {
         target: mockElement,
         clientX: 100,
         clientY: 100,
+        button: MouseButton.LEFT_OR_TOUCH_CONTACT,
       },
       timestamp: Date.now(),
       closestTrackedAncestor: mockElement,
