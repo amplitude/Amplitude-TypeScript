@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.36.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.35.2...@amplitude/analytics-core@2.36.0) (2026-01-15)
+
+
+### Features
+
+* **analytics-core:** add console observer helper ([#1478](https://github.com/amplitude/Amplitude-TypeScript/issues/1478)) ([f81ad91](https://github.com/amplitude/Amplitude-TypeScript/commit/f81ad91459cb0b69d1fdb2c4bcc463ac887dd44f))
+
+
+
+
+
 ## [2.35.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.35.1...@amplitude/analytics-core@2.35.2) (2026-01-14)
 
 
