@@ -3,6 +3,7 @@ import { IdentityStorageType, Storage } from '../storage';
 import { Transport, TransportTypeOrOptions } from '../transport';
 import { IConfig } from './core-config';
 import { ElementInteractionsOptions } from '../element-interactions';
+import { FormInteractionsOptions } from '../form-interactions';
 import { PageTrackingOptions } from '../page-view-tracking';
 import { NetworkTrackingOptions } from '../network-tracking';
 import { FrustrationInteractionsOptions } from '../frustration-interactions';
@@ -130,10 +131,10 @@ export interface DefaultTrackingOptions {
    */
   fileDownloads?: boolean;
   /**
-   * Enables/disables form interaction tracking.
+   * Enables/disables form interaction tracking or configures with detailed options.
    * @defaultValue `true`
    */
-  formInteractions?: boolean;
+  formInteractions?: boolean | FormInteractionsOptions;
   /**
    * Enables/disables default page view tracking.
    * @defaultValue `true`
@@ -158,10 +159,10 @@ export interface AutocaptureOptions {
    */
   fileDownloads?: boolean;
   /**
-   * Enables/disables form interaction tracking.
+   * Enables/disables form interaction tracking or configures with detailed options.
    * @defaultValue `true`
    */
-  formInteractions?: boolean;
+  formInteractions?: boolean | FormInteractionsOptions;
   /**
    * Enables/disables default page view tracking.
    * @defaultValue `true`
