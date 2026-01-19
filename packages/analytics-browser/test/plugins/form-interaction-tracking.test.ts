@@ -323,4 +323,111 @@ describe('formInteractionTracking', () => {
     // no explicit assertion
     // test asserts that no error is thrown
   });
+
+  describe('shouldTrackSubmit', () => {
+    test('should not track form_submit when shouldTrackSubmit returns false', async () => {
+      const shouldTrackSubmit = jest.fn(() => false);
+      const config = createConfigurationMock({
+        autocapture: {
+          formInteractions: {
+            shouldTrackSubmit,
+          },
+        },
+      });
+      const plugin = formInteractionTracking();
+      await plugin.setup?.(config, amplitude);
+      window.dispatchEvent(new Event('load'));
+
+      // trigger submit event
+      document.getElementById('my-form-id')?.dispatchEvent(new Event('submit'));
+
+      // assert shouldTrackSubmit was called
+      expect(shouldTrackSubmit).toHaveBeenCalledTimes(1);
+
+      // assert form_start was tracked but form_submit was NOT
+      expect(amplitude.track).toHaveBeenCalledTimes(1);
+      expect(amplitude.track).toHaveBeenNthCalledWith(1, '[Amplitude] Form Started', {
+        [FORM_ID]: 'my-form-id',
+        [FORM_NAME]: 'my-form-name',
+        [FORM_DESTINATION]: 'http://localhost/submit',
+      });
+    });
+
+    test('should not re-track form_start on subsequent submit when shouldTrackSubmit returns false', async () => {
+      const shouldTrackSubmit = jest.fn(() => false);
+      const config = createConfigurationMock({
+        autocapture: {
+          formInteractions: {
+            shouldTrackSubmit,
+          },
+        },
+      });
+      const plugin = formInteractionTracking();
+      await plugin.setup?.(config, amplitude);
+      window.dispatchEvent(new Event('load'));
+
+      // trigger first submit event (tracks form_start)
+      document.getElementById('my-form-id')?.dispatchEvent(new Event('submit'));
+      expect(amplitude.track).toHaveBeenCalledTimes(1);
+
+      // trigger second submit event (should NOT track form_start again)
+      document.getElementById('my-form-id')?.dispatchEvent(new Event('submit'));
+
+      // assert shouldTrackSubmit was called twice
+      expect(shouldTrackSubmit).toHaveBeenCalledTimes(2);
+
+      // assert form_start was only tracked once (no duplicate)
+      expect(amplitude.track).toHaveBeenCalledTimes(1);
+    });
+
+    test('should track form_submit when shouldTrackSubmit returns true', async () => {
+      const shouldTrackSubmit = jest.fn(() => true);
+      const config = createConfigurationMock({
+        autocapture: {
+          formInteractions: {
+            shouldTrackSubmit,
+          },
+        },
+      });
+      const plugin = formInteractionTracking();
+      await plugin.setup?.(config, amplitude);
+      window.dispatchEvent(new Event('load'));
+
+      // trigger submit event
+      document.getElementById('my-form-id')?.dispatchEvent(new Event('submit'));
+
+      // assert shouldTrackSubmit was called
+      expect(shouldTrackSubmit).toHaveBeenCalledTimes(1);
+
+      // assert both form_start and form_submit were tracked
+      expect(amplitude.track).toHaveBeenCalledTimes(2);
+      expect(amplitude.track).toHaveBeenNthCalledWith(2, '[Amplitude] Form Submitted', {
+        [FORM_ID]: 'my-form-id',
+        [FORM_NAME]: 'my-form-name',
+        [FORM_DESTINATION]: 'http://localhost/submit',
+      });
+    });
+
+    test('should track form_submit normally when shouldTrackSubmit is not provided', async () => {
+      const config = createConfigurationMock({
+        autocapture: {
+          formInteractions: {},
+        },
+      });
+      const plugin = formInteractionTracking();
+      await plugin.setup?.(config, amplitude);
+      window.dispatchEvent(new Event('load'));
+
+      // trigger submit event
+      document.getElementById('my-form-id')?.dispatchEvent(new Event('submit'));
+
+      // assert both form_start and form_submit were tracked
+      expect(amplitude.track).toHaveBeenCalledTimes(2);
+      expect(amplitude.track).toHaveBeenNthCalledWith(2, '[Amplitude] Form Submitted', {
+        [FORM_ID]: 'my-form-id',
+        [FORM_NAME]: 'my-form-name',
+        [FORM_DESTINATION]: 'http://localhost/submit',
+      });
+    });
+  });
 });

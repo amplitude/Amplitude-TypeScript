@@ -1,6 +1,7 @@
 import {
   getAttributionTrackingConfig,
   getElementInteractionsConfig,
+  getFormInteractionsConfig,
   getFrustrationInteractionsConfig,
   getNetworkTrackingConfig,
   getPageViewTrackingConfig,
@@ -151,6 +152,69 @@ describe('isFormInteractionTrackingEnabled', () => {
         formInteractions: false,
       }),
     ).toBe(false);
+  });
+});
+
+describe('getFormInteractionsConfig', () => {
+  test('should return undefined when autocapture is undefined', () => {
+    const config = getFormInteractionsConfig({});
+    expect(config).toBeUndefined();
+  });
+
+  test('should return undefined when autocapture is true', () => {
+    const config = getFormInteractionsConfig({
+      autocapture: true,
+    });
+    expect(config).toBeUndefined();
+  });
+
+  test('should return undefined when autocapture is false', () => {
+    const config = getFormInteractionsConfig({
+      autocapture: false,
+    });
+    expect(config).toBeUndefined();
+  });
+
+  test('should return undefined when formInteractions is true', () => {
+    const config = getFormInteractionsConfig({
+      autocapture: {
+        formInteractions: true,
+      },
+    });
+    expect(config).toBeUndefined();
+  });
+
+  test('should return undefined when formInteractions is false', () => {
+    const config = getFormInteractionsConfig({
+      autocapture: {
+        formInteractions: false,
+      },
+    });
+    expect(config).toBeUndefined();
+  });
+
+  test('should return config with shouldTrackSubmit callback', () => {
+    const shouldTrackSubmit = jest.fn(() => true);
+    const config = getFormInteractionsConfig({
+      autocapture: {
+        formInteractions: {
+          shouldTrackSubmit,
+        },
+      },
+    });
+
+    expect(config).toBeDefined();
+    expect(config?.shouldTrackSubmit).toBe(shouldTrackSubmit);
+  });
+
+  test('should return empty config object when formInteractions is empty object', () => {
+    const config = getFormInteractionsConfig({
+      autocapture: {
+        formInteractions: {},
+      },
+    });
+
+    expect(config).toEqual({});
   });
 });
 

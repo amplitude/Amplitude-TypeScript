@@ -80,14 +80,6 @@ export const formInteractionTracking = (): EnrichmentPlugin => {
         });
 
         addEventListener(form, 'submit', (event: Event) => {
-          // Check if shouldTrackSubmit callback is provided and use it to determine whether to track
-          if (formInteractionsConfig?.shouldTrackSubmit) {
-            const shouldTrack = formInteractionsConfig.shouldTrackSubmit(event as SubmitEvent);
-            if (!shouldTrack) {
-              return;
-            }
-          }
-
           const formDestination = extractFormAction(form);
           if (!hasFormChanged) {
             amplitude.track(DEFAULT_FORM_START_EVENT, {
@@ -95,6 +87,15 @@ export const formInteractionTracking = (): EnrichmentPlugin => {
               [FORM_NAME]: stringOrUndefined(form.name),
               [FORM_DESTINATION]: formDestination,
             });
+          }
+          hasFormChanged = true;
+
+          // Check if shouldTrackSubmit callback is provided and use it to determine whether to track form_submit
+          if (formInteractionsConfig?.shouldTrackSubmit) {
+            const shouldTrack = formInteractionsConfig.shouldTrackSubmit(event as SubmitEvent);
+            if (!shouldTrack) {
+              return;
+            }
           }
 
           amplitude.track(DEFAULT_FORM_SUBMIT_EVENT, {
