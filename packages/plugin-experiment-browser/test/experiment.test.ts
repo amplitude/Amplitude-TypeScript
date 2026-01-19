@@ -1,6 +1,7 @@
 import { ExperimentPlugin, experimentPlugin, ExperimentPluginConfig } from '../src/experiment';
 import { ExperimentClient, ExperimentConfig, initializeWithAmplitudeAnalytics } from '@amplitude/experiment-js-client';
 import { BrowserClient, BrowserConfig, ILogger, LogLevel } from '@amplitude/analytics-core';
+import { VERSION } from '../src/version';
 
 type MockedLogger = jest.Mocked<ILogger>;
 type MockedBrowserClient = jest.Mocked<BrowserClient>;
@@ -118,5 +119,11 @@ describe('ExperimentPlugin', () => {
       expect(plugin).toBeInstanceOf(ExperimentPlugin);
       expect((plugin as ExperimentPlugin).config).toBeUndefined();
     });
+  });
+});
+
+describe('version', () => {
+  test('should return the plugin version', () => {
+    expect(VERSION != null).toBe(true);
   });
 });
