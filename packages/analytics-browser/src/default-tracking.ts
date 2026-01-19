@@ -243,11 +243,12 @@ export const getAttributionTrackingConfig = (config: BrowserOptions): Attributio
 
 export const getFormInteractionsConfig = (config: BrowserOptions): FormInteractionsOptions | undefined => {
   if (
-    isFormInteractionTrackingEnabled(config.autocapture) &&
-    typeof config.autocapture === 'object' &&
-    typeof config.autocapture.formInteractions === 'object'
+    isFormInteractionTrackingEnabled(config.defaultTracking) &&
+    config.defaultTracking &&
+    typeof config.defaultTracking === 'object' &&
+    typeof config.defaultTracking.formInteractions === 'object'
   ) {
-    return config.autocapture.formInteractions;
+    return config.defaultTracking.formInteractions;
   }
   return undefined;
 };

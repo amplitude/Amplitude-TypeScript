@@ -328,7 +328,7 @@ describe('formInteractionTracking', () => {
     test('should not track form_submit when shouldTrackSubmit returns false', async () => {
       const shouldTrackSubmit = jest.fn(() => false);
       const config = createConfigurationMock({
-        autocapture: {
+        defaultTracking: {
           formInteractions: {
             shouldTrackSubmit,
           },
@@ -356,7 +356,7 @@ describe('formInteractionTracking', () => {
     test('should not re-track form_start on subsequent submit when shouldTrackSubmit returns false', async () => {
       const shouldTrackSubmit = jest.fn(() => false);
       const config = createConfigurationMock({
-        autocapture: {
+        defaultTracking: {
           formInteractions: {
             shouldTrackSubmit,
           },
@@ -383,7 +383,7 @@ describe('formInteractionTracking', () => {
     test('should track form_submit when shouldTrackSubmit returns true', async () => {
       const shouldTrackSubmit = jest.fn(() => true);
       const config = createConfigurationMock({
-        autocapture: {
+        defaultTracking: {
           formInteractions: {
             shouldTrackSubmit,
           },
@@ -410,7 +410,7 @@ describe('formInteractionTracking', () => {
 
     test('should track form_submit normally when shouldTrackSubmit is not provided', async () => {
       const config = createConfigurationMock({
-        autocapture: {
+        defaultTracking: {
           formInteractions: {},
         },
       });

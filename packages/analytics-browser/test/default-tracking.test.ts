@@ -156,28 +156,28 @@ describe('isFormInteractionTrackingEnabled', () => {
 });
 
 describe('getFormInteractionsConfig', () => {
-  test('should return undefined when autocapture is undefined', () => {
+  test('should return undefined when defaultTracking is undefined', () => {
     const config = getFormInteractionsConfig({});
     expect(config).toBeUndefined();
   });
 
-  test('should return undefined when autocapture is true', () => {
+  test('should return undefined when defaultTracking is true', () => {
     const config = getFormInteractionsConfig({
-      autocapture: true,
+      defaultTracking: true,
     });
     expect(config).toBeUndefined();
   });
 
-  test('should return undefined when autocapture is false', () => {
+  test('should return undefined when defaultTracking is false', () => {
     const config = getFormInteractionsConfig({
-      autocapture: false,
+      defaultTracking: false,
     });
     expect(config).toBeUndefined();
   });
 
   test('should return undefined when formInteractions is true', () => {
     const config = getFormInteractionsConfig({
-      autocapture: {
+      defaultTracking: {
         formInteractions: true,
       },
     });
@@ -186,7 +186,7 @@ describe('getFormInteractionsConfig', () => {
 
   test('should return undefined when formInteractions is false', () => {
     const config = getFormInteractionsConfig({
-      autocapture: {
+      defaultTracking: {
         formInteractions: false,
       },
     });
@@ -196,7 +196,7 @@ describe('getFormInteractionsConfig', () => {
   test('should return config with shouldTrackSubmit callback', () => {
     const shouldTrackSubmit = jest.fn(() => true);
     const config = getFormInteractionsConfig({
-      autocapture: {
+      defaultTracking: {
         formInteractions: {
           shouldTrackSubmit,
         },
@@ -209,7 +209,7 @@ describe('getFormInteractionsConfig', () => {
 
   test('should return empty config object when formInteractions is empty object', () => {
     const config = getFormInteractionsConfig({
-      autocapture: {
+      defaultTracking: {
         formInteractions: {},
       },
     });
