@@ -97,6 +97,10 @@ export const autocapturePlugin = (
       enabled: true,
       messenger: new WindowMessenger(),
     },
+    backgroundCaptureOptions = {
+      enabled: true,
+      messenger: new WindowMessenger(),
+    },
   } = options;
 
   options.cssSelectorAllowlist = options.cssSelectorAllowlist ?? DEFAULT_CSS_SELECTOR_ALLOWLIST;
@@ -426,7 +430,6 @@ export const autocapturePlugin = (
 
     /* istanbul ignore next */
     config?.loggerProvider?.log(`${name} has been successfully added.`);
-
     // Setup visual tagging selector
     if (window.opener && visualTaggingOptions.enabled) {
       const allowlist = (options as AutoCaptureOptionsWithDefaults).cssSelectorAllowlist;
@@ -440,6 +443,15 @@ export const autocapturePlugin = (
         isElementSelectable: createShouldTrackEvent(options, [...allowlist, ...actionClickAllowlist]),
         cssSelectorAllowlist: allowlist,
         actionClickAllowlist: actionClickAllowlist,
+      });
+    }
+
+    // Setup background capture messenger if it is not already setup for visual tagging selector
+    if (window.opener && backgroundCaptureOptions.enabled && !visualTaggingOptions.messenger) {
+      /* istanbul ignore next */
+      backgroundCaptureOptions.messenger?.setup({
+        dataExtractor: dataExtractor,
+        logger: config?.loggerProvider,
       });
     }
   };

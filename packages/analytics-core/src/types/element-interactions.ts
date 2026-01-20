@@ -85,6 +85,15 @@ export interface ElementInteractionsOptions {
   };
 
   /**
+   * Options for integrating background capture features that rely on a Messenger
+   * to communicate with an external parent window.
+   */
+  backgroundCaptureOptions?: {
+    enabled?: boolean;
+    messenger?: Messenger;
+  };
+
+  /**
    * This has been deprecated in favor of rage clicks tracking
    * via frustrationInteractions.
    *
