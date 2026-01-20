@@ -42,6 +42,7 @@
   },
   "dependencies": {
     "@amplitude/analytics-core": "workspace:*",
+    "@amplitude/rrweb-snapshot": "2.0.0-alpha.35",
     "rxjs": "^7.8.1",
     "tslib": "^2.4.1"
   },

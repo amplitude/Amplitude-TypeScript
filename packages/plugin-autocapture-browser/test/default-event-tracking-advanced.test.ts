@@ -123,6 +123,67 @@ describe('autoTrackingPlugin', () => {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       expect((messengerMock as any).setup).toHaveBeenCalledTimes(1);
     });
+
+    test('should setup background capture messenger', async () => {
+      window.opener = true;
+      const backgroundMessengerMock = {
+        setup: jest.fn(),
+      };
+      plugin = autocapturePlugin({
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        visualTaggingOptions: { enabled: false, messenger: undefined as any },
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        backgroundCaptureOptions: { enabled: true, messenger: backgroundMessengerMock as any },
+      });
+      const loggerProvider: Partial<ILogger> = {
+        log: jest.fn(),
+        warn: jest.fn(),
+        error: jest.fn(),
+      };
+      const config: Partial<BrowserConfig> = {
+        defaultTracking: false,
+        loggerProvider: loggerProvider as ILogger,
+      };
+      const amplitude: Partial<BrowserClient> = {};
+      await plugin?.setup?.(config as BrowserConfig, amplitude as BrowserClient);
+
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      expect((backgroundMessengerMock as any).setup).toHaveBeenCalledTimes(1);
+    });
+
+    test('should not setup background capture messenger when visual tagging messenger is set', async () => {
+      window.opener = true;
+      const visualMessengerMock = {
+        setup: jest.fn(),
+      };
+      const backgroundMessengerMock = {
+        setup: jest.fn(),
+      };
+      plugin = autocapturePlugin({
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        visualTaggingOptions: { enabled: true, messenger: visualMessengerMock as any },
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        backgroundCaptureOptions: { enabled: true, messenger: backgroundMessengerMock as any },
+      });
+      const loggerProvider: Partial<ILogger> = {
+        log: jest.fn(),
+        warn: jest.fn(),
+        error: jest.fn(),
+      };
+      const config: Partial<BrowserConfig> = {
+        defaultTracking: false,
+        loggerProvider: loggerProvider as ILogger,
+      };
+      const amplitude: Partial<BrowserClient> = {};
+      await plugin?.setup?.(config as BrowserConfig, amplitude as BrowserClient);
+
+      // Visual tagging messenger should be set up
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      expect((visualMessengerMock as any).setup).toHaveBeenCalledTimes(1);
+      // Background capture messenger should NOT be set up (condition: !visualTaggingOptions.messenger)
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      expect((backgroundMessengerMock as any).setup).toHaveBeenCalledTimes(0);
+    });
   });
 
   describe('execute', () => {
