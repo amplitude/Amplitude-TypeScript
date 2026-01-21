@@ -1,6 +1,6 @@
 import { AllWindowObservables } from '../frustration-plugin';
 import { BrowserClient, ActionType, merge, asyncMap } from '@amplitude/analytics-core';
-import { ElementBasedTimestampedEvent, filterOutNonTrackableEvents, shouldTrackEvent } from '../helpers';
+import { ElementBasedTimestampedEvent, filterOutNonTrackableEvents, MouseButton, shouldTrackEvent } from '../helpers';
 import { AMPLITUDE_ELEMENT_DEAD_CLICKED_EVENT } from '../constants';
 const DEAD_CLICK_TIMEOUT = 3000; // 3 seconds to wait for an activity to happen
 
@@ -8,12 +8,6 @@ type EventDeadClick = {
   '[Amplitude] X': number;
   '[Amplitude] Y': number;
 };
-
-enum MouseButton {
-  LEFT_OR_TOUCH_CONTACT = 0,
-  MIDDLE = 1,
-  RIGHT = 2,
-}
 
 const CHANGE_EVENTS = ['mutation', 'navigate'];
 
