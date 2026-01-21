@@ -49,18 +49,28 @@ describe('rrweb utils', () => {
       expect(getWindowHeight()).toBe(600);
     });
 
-    test('should return document.body.clientHeight when documentElement.clientHeight not available', () => {
+    test('should return 0 when documentElement.clientHeight is 0 (not fallback to body.clientHeight)', () => {
+      mockGetGlobalScope.mockReturnValue({} as typeof globalThis);
+      Object.defineProperty(document, 'documentElement', {
+        value: { clientHeight: 0 },
+        writable: true,
+      });
+      Object.defineProperty(document, 'body', {
+        value: { clientHeight: 14000 },
+        writable: true,
+      });
+
+      expect(getWindowHeight()).toBe(0);
+    });
+
+    test('should return 0 when documentElement.clientHeight not available', () => {
       mockGetGlobalScope.mockReturnValue({} as typeof globalThis);
       Object.defineProperty(document, 'documentElement', {
         value: null,
         writable: true,
       });
-      Object.defineProperty(document, 'body', {
-        value: { clientHeight: 400 },
-        writable: true,
-      });
 
-      expect(getWindowHeight()).toBe(400);
+      expect(getWindowHeight()).toBe(0);
     });
 
     test('should return 0 when no height sources are available', () => {
@@ -105,18 +115,28 @@ describe('rrweb utils', () => {
       expect(getWindowWidth()).toBe(1000);
     });
 
-    test('should return document.body.clientWidth when documentElement.clientWidth not available', () => {
+    test('should return 0 when documentElement.clientWidth is 0 (not fallback to body.clientWidth)', () => {
+      mockGetGlobalScope.mockReturnValue({} as typeof globalThis);
+      Object.defineProperty(document, 'documentElement', {
+        value: { clientWidth: 0 },
+        writable: true,
+      });
+      Object.defineProperty(document, 'body', {
+        value: { clientWidth: 10000 },
+        writable: true,
+      });
+
+      expect(getWindowWidth()).toBe(0);
+    });
+
+    test('should return 0 when documentElement.clientWidth not available', () => {
       mockGetGlobalScope.mockReturnValue({} as typeof globalThis);
       Object.defineProperty(document, 'documentElement', {
         value: null,
         writable: true,
       });
-      Object.defineProperty(document, 'body', {
-        value: { clientWidth: 800 },
-        writable: true,
-      });
 
-      expect(getWindowWidth()).toBe(800);
+      expect(getWindowWidth()).toBe(0);
     });
 
     test('should return 0 when no width sources are available', () => {

@@ -8,7 +8,6 @@ export function getWindowHeight(): number {
   return (
     globalScope?.innerHeight ||
     (document.documentElement && document.documentElement.clientHeight) ||
-    (document.body && document.body.clientHeight) ||
     0
   );
 }
@@ -18,7 +17,6 @@ export function getWindowWidth(): number {
   return (
     globalScope?.innerWidth ||
     (document.documentElement && document.documentElement.clientWidth) ||
-    (document.body && document.body.clientWidth) ||
     0
   );
 }
