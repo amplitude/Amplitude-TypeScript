@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.12.0-SR-2360.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-types@2.11.0...@amplitude/analytics-types@2.12.0-SR-2360.0) (2026-01-21)
+
+
+### Features
+
+* **background-capture:** adding background capture injection to autocapture ([267218e](https://github.com/amplitude/Amplitude-TypeScript/commit/267218e960c9451a83e4e750921b77fd93f4f21a))
+
+
+
+
+
 # [2.11.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-types@2.10.0...@amplitude/analytics-types@2.11.0) (2025-10-23)
 
 

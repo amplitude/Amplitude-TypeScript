@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.36.0-SR-2360.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.35.0...@amplitude/analytics-core@2.36.0-SR-2360.0) (2026-01-21)
+
+
+### Features
+
+* **background-capture:** adding background capture injection to autocapture ([267218e](https://github.com/amplitude/Amplitude-TypeScript/commit/267218e960c9451a83e4e750921b77fd93f4f21a))
+
+
+
+
+
 # [2.35.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.34.1...@amplitude/analytics-core@2.35.0) (2025-12-24)
 
 
