@@ -3,24 +3,14 @@ import type { eventWithTime, scrollCallback } from '@amplitude/rrweb-types';
 
 // These functions are not exposed in rrweb package, so we will define it here to use
 // Ignoring this function since this is copied from rrweb
-export function getWindowHeight(): number {
+export function getViewportHeight(): number {
   const globalScope = getGlobalScope();
-  return (
-    globalScope?.innerHeight ||
-    (document.documentElement && document.documentElement.clientHeight) ||
-    (document.body && document.body.clientHeight) ||
-    0
-  );
+  return globalScope?.innerHeight || (document.documentElement && document.documentElement.clientHeight) || 0;
 }
 
-export function getWindowWidth(): number {
+export function getViewportWidth(): number {
   const globalScope = getGlobalScope();
-  return (
-    globalScope?.innerWidth ||
-    (document.documentElement && document.documentElement.clientWidth) ||
-    (document.body && document.body.clientWidth) ||
-    0
-  );
+  return globalScope?.innerWidth || (document.documentElement && document.documentElement.clientWidth) || 0;
 }
 
 export type Mirror = {
