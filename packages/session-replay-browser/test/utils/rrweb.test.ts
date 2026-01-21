@@ -1,4 +1,4 @@
-import { getWindowHeight, getWindowWidth } from '../../src/utils/rrweb';
+import { getViewportHeight, getViewportWidth } from '../../src/utils/rrweb';
 import { getGlobalScope } from '@amplitude/analytics-core';
 
 // Mock the getGlobalScope function
@@ -22,11 +22,11 @@ describe('rrweb utils', () => {
     });
   });
 
-  describe('getWindowHeight', () => {
+  describe('getViewportHeight', () => {
     test('should return globalScope.innerHeight when available', () => {
       mockGetGlobalScope.mockReturnValue({ innerHeight: 800 } as typeof globalThis);
 
-      expect(getWindowHeight()).toBe(800);
+      expect(getViewportHeight()).toBe(800);
     });
 
     test('should return document.documentElement.clientHeight when globalScope is null', () => {
@@ -36,7 +36,7 @@ describe('rrweb utils', () => {
         writable: true,
       });
 
-      expect(getWindowHeight()).toBe(600);
+      expect(getViewportHeight()).toBe(600);
     });
 
     test('should return document.documentElement.clientHeight when globalScope.innerHeight not available', () => {
@@ -46,7 +46,7 @@ describe('rrweb utils', () => {
         writable: true,
       });
 
-      expect(getWindowHeight()).toBe(600);
+      expect(getViewportHeight()).toBe(600);
     });
 
     test('should return 0 when documentElement.clientHeight is 0 (not fallback to body.clientHeight)', () => {
@@ -60,7 +60,7 @@ describe('rrweb utils', () => {
         writable: true,
       });
 
-      expect(getWindowHeight()).toBe(0);
+      expect(getViewportHeight()).toBe(0);
     });
 
     test('should return 0 when documentElement.clientHeight not available', () => {
@@ -70,7 +70,7 @@ describe('rrweb utils', () => {
         writable: true,
       });
 
-      expect(getWindowHeight()).toBe(0);
+      expect(getViewportHeight()).toBe(0);
     });
 
     test('should return 0 when no height sources are available', () => {
@@ -84,15 +84,15 @@ describe('rrweb utils', () => {
         writable: true,
       });
 
-      expect(getWindowHeight()).toBe(0);
+      expect(getViewportHeight()).toBe(0);
     });
   });
 
-  describe('getWindowWidth', () => {
+  describe('getViewportWidth', () => {
     test('should return globalScope.innerWidth when available', () => {
       mockGetGlobalScope.mockReturnValue({ innerWidth: 1200 } as typeof globalThis);
 
-      expect(getWindowWidth()).toBe(1200);
+      expect(getViewportWidth()).toBe(1200);
     });
 
     test('should return document.documentElement.clientWidth when globalScope is null', () => {
@@ -102,7 +102,7 @@ describe('rrweb utils', () => {
         writable: true,
       });
 
-      expect(getWindowWidth()).toBe(1000);
+      expect(getViewportWidth()).toBe(1000);
     });
 
     test('should return document.documentElement.clientWidth when globalScope.innerWidth not available', () => {
@@ -112,7 +112,7 @@ describe('rrweb utils', () => {
         writable: true,
       });
 
-      expect(getWindowWidth()).toBe(1000);
+      expect(getViewportWidth()).toBe(1000);
     });
 
     test('should return 0 when documentElement.clientWidth is 0 (not fallback to body.clientWidth)', () => {
@@ -126,7 +126,7 @@ describe('rrweb utils', () => {
         writable: true,
       });
 
-      expect(getWindowWidth()).toBe(0);
+      expect(getViewportWidth()).toBe(0);
     });
 
     test('should return 0 when documentElement.clientWidth not available', () => {
@@ -136,7 +136,7 @@ describe('rrweb utils', () => {
         writable: true,
       });
 
-      expect(getWindowWidth()).toBe(0);
+      expect(getViewportWidth()).toBe(0);
     });
 
     test('should return 0 when no width sources are available', () => {
@@ -150,7 +150,7 @@ describe('rrweb utils', () => {
         writable: true,
       });
 
-      expect(getWindowWidth()).toBe(0);
+      expect(getViewportWidth()).toBe(0);
     });
   });
 });

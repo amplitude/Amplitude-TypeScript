@@ -7,7 +7,7 @@ import { ScrollEventPayload, ScrollWatcher } from '../../src/hooks/scroll';
 import { ILogger } from '@amplitude/analytics-core';
 
 import { randomUUID } from 'crypto';
-import { getWindowHeight, getWindowWidth } from '../../src/utils/rrweb';
+import { getViewportHeight, getViewportWidth } from '../../src/utils/rrweb';
 
 jest.mock('../../src/beacon-transport');
 jest.mock('../../src/utils/rrweb');
@@ -18,13 +18,13 @@ describe('scroll', () => {
   };
 
   const mockWindowWidth = (width = 0) => {
-    (getWindowWidth as jest.Mock).mockImplementation(() => {
+    (getViewportWidth as jest.Mock).mockImplementation(() => {
       return width;
     }) as any;
   };
 
   const mockWindowHeight = (height = 0) => {
-    (getWindowHeight as jest.Mock).mockImplementation(() => {
+    (getViewportHeight as jest.Mock).mockImplementation(() => {
       return height;
     }) as any;
   };
