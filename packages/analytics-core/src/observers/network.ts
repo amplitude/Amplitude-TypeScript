@@ -1,6 +1,6 @@
-import { getGlobalScope } from './';
-import { UUID } from './utils/uuid';
-import { ILogger } from './logger';
+import { getGlobalScope } from '..';
+import { UUID } from '../utils/uuid';
+import { ILogger } from '../logger';
 import {
   IRequestWrapper,
   NetworkRequestEvent,
@@ -11,7 +11,7 @@ import {
   IResponseWrapper,
   RequestInitSafe,
   XMLHttpRequestBodyInitSafe,
-} from './network-request-event';
+} from '../network-request-event';
 
 // object that is added to each XHR instance so
 // that info can be set in xhr.open and retrieved in xhr.send
