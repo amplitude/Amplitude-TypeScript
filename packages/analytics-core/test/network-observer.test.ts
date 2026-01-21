@@ -5,7 +5,7 @@ import {
   SAFE_HEADERS,
   networkObserver,
 } from '../src/index';
-import { NetworkObserver } from '../src/network-observer';
+import { NetworkObserver } from '../src/observers/network';
 import {
   FetchRequestBody,
   PRUNE_STRATEGY,
