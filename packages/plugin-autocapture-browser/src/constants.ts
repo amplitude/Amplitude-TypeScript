@@ -43,7 +43,7 @@ export const AMPLITUDE_ORIGINS_MAP = {
 export const AMPLITUDE_VISUAL_TAGGING_SELECTOR_SCRIPT_URL =
   'https://cdn.amplitude.com/libs/visual-tagging-selector-1.0.0-alpha.js.gz';
 export const AMPLITUDE_BACKGROUND_CAPTURE_SCRIPT_URL =
-  'https://cdn.amplitude.com/libs/background-capture-1.0.0-alpha.js.gz';
+  'https://cdn.amplitude.com/libs/background-capture-1.0.0-alpha.0.js.gz';
 // This is the class name used by the visual tagging selector to highlight the selected element.
 // Should not use this class in the selector.
 export const AMPLITUDE_VISUAL_TAGGING_HIGHLIGHT_CLASS = 'amp-visual-tagging-selector-highlight';
