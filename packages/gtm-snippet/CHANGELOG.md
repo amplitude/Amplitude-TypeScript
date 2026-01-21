@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.33.5](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/gtm-snippet@2.33.4...@amplitude/gtm-snippet@2.33.5) (2026-01-21)
+
+
+### Bug Fixes
+
+* **analytics-browser:** ignore right clicks when tracking dead clicks ([#1496](https://github.com/amplitude/Amplitude-TypeScript/issues/1496)) ([752b4c0](https://github.com/amplitude/Amplitude-TypeScript/commit/752b4c0d9f22fcaa4b920b6fff09455a58f92da2))
+
+
+
+
+
 ## [2.33.4](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/gtm-snippet@2.33.3...@amplitude/gtm-snippet@2.33.4) (2026-01-15)
 
 **Note:** Version bump only for package @amplitude/gtm-snippet

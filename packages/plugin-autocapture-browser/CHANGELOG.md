@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.18.7](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.18.6...@amplitude/plugin-autocapture-browser@1.18.7) (2026-01-21)
+
+
+### Bug Fixes
+
+* **analytics-browser:** ignore right clicks when tracking dead clicks ([#1496](https://github.com/amplitude/Amplitude-TypeScript/issues/1496)) ([752b4c0](https://github.com/amplitude/Amplitude-TypeScript/commit/752b4c0d9f22fcaa4b920b6fff09455a58f92da2))
+* **autocapture:** fix config key for page actions ([#1488](https://github.com/amplitude/Amplitude-TypeScript/issues/1488)) ([267b73d](https://github.com/amplitude/Amplitude-TypeScript/commit/267b73d8e857e170fbff615b75ddf6887093a25a))
+
+
+
+
+
 ## [1.18.6](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.18.5...@amplitude/plugin-autocapture-browser@1.18.6) (2026-01-15)
 
 **Note:** Version bump only for package @amplitude/plugin-autocapture-browser
