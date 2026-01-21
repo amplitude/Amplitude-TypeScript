@@ -193,7 +193,7 @@ describe('frustrationPlugin', () => {
 
       await plugin?.setup?.(config as BrowserConfig, instance);
 
-      // Get the shouldTrackRageClick function that was passed
+      // Get the shouldTrackErrorClick function that was passed
       const errorClickCall = (trackErrorClicks as jest.Mock).mock.calls[0][0];
       const shouldTrackErrorClick = errorClickCall.shouldTrackErrorClick;
 
@@ -204,6 +204,24 @@ describe('frustrationPlugin', () => {
       // Test that the allowlist is working
       expect(shouldTrackErrorClick('click', input)).toBe(true); // input is in allowlist
       expect(shouldTrackErrorClick('click', span)).toBe(false); // span is not in allowlist
+    });
+  });
+
+  describe('errorClicks', () => {
+    it('should not track error clicks if not explicitly enabled (while still @experimental)', async () => {
+      plugin = frustrationPlugin({});
+      await plugin?.setup?.(config as BrowserConfig, instance);
+
+      expect(trackErrorClicks).not.toHaveBeenCalled();
+    });
+
+    it('should track error clicks if explicitly enabled', async () => {
+      plugin = frustrationPlugin({
+        errorClicks: true,
+      });
+      await plugin?.setup?.(config as BrowserConfig, instance);
+
+      expect(trackErrorClicks).toHaveBeenCalled();
     });
   });
 
