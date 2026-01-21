@@ -57,6 +57,7 @@ export enum ObservablesEnum {
   // ErrorObservable = 'errorObservable',
   NavigateObservable = 'navigateObservable',
   MutationObservable = 'mutationObservable',
+  BrowserErrorObservable = 'browserErrorObservable',
   SelectionObservable = 'selectionObservable',
 }
 

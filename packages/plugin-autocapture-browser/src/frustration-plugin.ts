@@ -16,13 +16,14 @@ import { createShouldTrackEvent, ElementBasedTimestampedEvent, NavigateEvent, Ti
 import { trackDeadClick } from './autocapture/track-dead-click';
 import { trackRageClicks } from './autocapture/track-rage-click';
 import { ObservablesEnum } from './autocapture-plugin';
-import { createClickObservable, createMutationObservable } from './observables';
+import { BrowserErrorEvent, createClickObservable, createMutationObservable } from './observables';
 import { DataExtractor } from './data-extractor';
 
 export interface AllWindowObservables {
   [ObservablesEnum.ClickObservable]: Observable<ElementBasedTimestampedEvent<MouseEvent>>;
   [ObservablesEnum.MutationObservable]: Observable<TimestampedEvent<MutationRecord[]>>;
   [ObservablesEnum.NavigateObservable]?: Observable<TimestampedEvent<NavigateEvent>>;
+  [ObservablesEnum.BrowserErrorObservable]?: Observable<TimestampedEvent<BrowserErrorEvent>>;
   [ObservablesEnum.SelectionObservable]?: Observable<void>;
 }
 

@@ -1,4 +1,4 @@
-import { consoleObserver } from '../../src/observers/console';
+import { consoleObserver } from '../../src';
 
 describe('consoleObserver', () => {
   beforeEach(() => {

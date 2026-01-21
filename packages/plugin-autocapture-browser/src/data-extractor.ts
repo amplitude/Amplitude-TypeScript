@@ -172,6 +172,17 @@ export class DataExtractor {
     return removeEmptyProperties(properties);
   };
 
+  addTypeAndTimestamp = <T>(
+    event: T,
+    type: BaseTimestampedEvent<T>['type'] | ElementBasedTimestampedEvent<T>['type'],
+  ): BaseTimestampedEvent<T> | ElementBasedTimestampedEvent<T> => {
+    return {
+      event,
+      timestamp: Date.now(),
+      type,
+    };
+  };
+
   addAdditionalEventProperties = <T>(
     event: T,
     type: TimestampedEvent<T>['type'],
@@ -182,11 +193,7 @@ export class DataExtractor {
     //         regardless of the element's tag name
     isCapturingCursorPointer = false,
   ): TimestampedEvent<T> | ElementBasedTimestampedEvent<T> => {
-    const baseEvent: BaseTimestampedEvent<T> | ElementBasedTimestampedEvent<T> = {
-      event,
-      timestamp: Date.now(),
-      type,
-    };
+    const baseEvent = this.addTypeAndTimestamp(event, type);
 
     if (isElementBasedEvent(baseEvent) && baseEvent.event.target !== null) {
       if (isCapturingCursorPointer) {
