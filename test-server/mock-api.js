@@ -1,12 +1,23 @@
+import fs from 'fs';
+import path from 'path';
+import { SourceMapConsumer } from 'source-map';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const packagesDir = path.resolve(__dirname, '..', 'packages');
+
 // Mock API endpoints for Vite dev server
 export function createMockApi() {
   return {
     name: 'mock-api',
     configureServer(server) {
       configureMockApiMiddleware(server.middlewares);
+      configureUnminifyMiddleware(server.middlewares);
     },
     configurePreviewServer(server) {
       configureMockApiMiddleware(server.middlewares);
+      configureUnminifyMiddleware(server.middlewares);
     }
   };
 }
@@ -157,4 +168,244 @@ function getStatusMessage(statusCode) {
   };
   
   return messages[statusCode] || `Status ${statusCode}`;
+}
+
+/**
+ * Parse a CDN URL to extract package name and file suffix
+ * Example: https://cdn.amplitude.com/libs/analytics-browser-2.33.5-min.js.gz:1:54975
+ * Returns: { packageName: 'analytics-browser', suffix: 'min', line: 1, column: 54975 }
+ */
+function parseCdnUrl(stacktraceLine) {
+  // Pattern: https://cdn.amplitude.com/libs/{name}-{version}-{suffix}.js.gz:{line}:{column}
+  // The suffix could be 'min' or 'gtm-min' etc.
+  const regex = /https?:\/\/cdn\.amplitude\.com\/libs\/([a-z-]+)-[\d.]+-([a-z-]+)\.js(?:\.gz|\.br)?:(\d+):(\d+)/i;
+  const match = stacktraceLine.match(regex);
+  
+  if (!match) {
+    return null;
+  }
+  
+  return {
+    packageName: match[1],
+    suffix: match[2],
+    line: parseInt(match[3], 10),
+    column: parseInt(match[4], 10),
+    originalUrl: stacktraceLine
+  };
+}
+
+/**
+ * Map CDN URL info to local source map path
+ * 
+ * Mappings (based on scripts/publish/upload-to-s3.js):
+ * - analytics-browser-{ver}-min.js.gz → packages/analytics-browser/lib/scripts/amplitude-min.js.map
+ * - analytics-browser-gtm-{ver}-min.js.gz → packages/analytics-browser/lib/scripts/amplitude-gtm-min.js.map
+ */
+function getSourceMapPath(parsedUrl) {
+  const { packageName, suffix } = parsedUrl;
+  
+  // Handle analytics-browser package
+  if (packageName === 'analytics-browser') {
+    if (suffix === 'min') {
+      return path.join(packagesDir, 'analytics-browser', 'lib', 'scripts', 'amplitude-min.js.map');
+    }
+    if (suffix === 'gtm-min') {
+      return path.join(packagesDir, 'analytics-browser', 'lib', 'scripts', 'amplitude-gtm-min.js.map');
+    }
+  }
+  
+  // Handle analytics-browser-gtm (from gtm-snippet package) - Milestone 2
+  // analytics-browser-gtm-wrapper-{ver}.min.js.br → packages/gtm-snippet/lib/scripts/analytics-browser-gtm-wrapper.min.js.map
+  
+  return null;
+}
+
+/**
+ * Convert a JS source path to its TypeScript equivalent and resolve the absolute path
+ * Example: ../../../analytics-core/lib/esm/diagnostics/diagnostics-client.js
+ *       -> packages/analytics-core/src/diagnostics/diagnostics-client.ts
+ */
+function resolveTypeScriptSource(jsSourcePath, sourceMapPath) {
+  // The source path is relative to the source map file location
+  const sourceMapDir = path.dirname(sourceMapPath);
+  const absoluteJsPath = path.resolve(sourceMapDir, jsSourcePath);
+  
+  // Convert lib/esm/ or lib/cjs/ to src/ and .js to .ts
+  let tsPath = absoluteJsPath
+    .replace(/\/lib\/esm\//, '/src/')
+    .replace(/\/lib\/cjs\//, '/src/')
+    .replace(/\.js$/, '.ts');
+  
+  // Check if the TS file exists
+  if (fs.existsSync(tsPath)) {
+    return {
+      absolutePath: tsPath,
+      relativePath: path.relative(packagesDir, tsPath),
+      exists: true
+    };
+  }
+  
+  // Try .tsx extension for React components
+  const tsxPath = tsPath.replace(/\.ts$/, '.tsx');
+  if (fs.existsSync(tsxPath)) {
+    return {
+      absolutePath: tsxPath,
+      relativePath: path.relative(packagesDir, tsxPath),
+      exists: true
+    };
+  }
+  
+  // Return the expected path even if it doesn't exist
+  return {
+    absolutePath: tsPath,
+    relativePath: path.relative(packagesDir, tsPath),
+    exists: false
+  };
+}
+
+/**
+ * Configure the unminify API middleware
+ */
+export function configureUnminifyMiddleware(middlewares) {
+  middlewares.use('/api/unminify', async (req, res) => {
+    // Set CORS headers
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    res.setHeader('Content-Type', 'application/json');
+
+    // Handle preflight
+    if (req.method === 'OPTIONS') {
+      res.statusCode = 200;
+      res.end();
+      return;
+    }
+
+    if (req.method !== 'POST') {
+      res.statusCode = 405;
+      res.end(JSON.stringify({ success: false, error: 'Method not allowed. Use POST.' }));
+      return;
+    }
+
+    // Read request body
+    let body = '';
+    for await (const chunk of req) {
+      body += chunk;
+    }
+
+    let requestData;
+    try {
+      requestData = JSON.parse(body);
+    } catch (e) {
+      res.statusCode = 400;
+      res.end(JSON.stringify({ success: false, error: 'Invalid JSON body' }));
+      return;
+    }
+
+    const { stacktraceLine } = requestData;
+    if (!stacktraceLine) {
+      res.statusCode = 400;
+      res.end(JSON.stringify({ success: false, error: 'Missing stacktraceLine in request body' }));
+      return;
+    }
+
+    // Parse the CDN URL
+    const parsed = parseCdnUrl(stacktraceLine);
+    if (!parsed) {
+      res.statusCode = 400;
+      res.end(JSON.stringify({ 
+        success: false, 
+        error: 'Could not parse stack trace line. Expected format: https://cdn.amplitude.com/libs/{package}-{version}-{suffix}.js.gz:{line}:{column}' 
+      }));
+      return;
+    }
+
+    // Get the source map path
+    const sourceMapPath = getSourceMapPath(parsed);
+    if (!sourceMapPath) {
+      res.statusCode = 400;
+      res.end(JSON.stringify({ 
+        success: false, 
+        error: `Unsupported package or suffix: ${parsed.packageName}-${parsed.suffix}. Currently supported: analytics-browser-min, analytics-browser-gtm-min` 
+      }));
+      return;
+    }
+
+    // Check if source map exists
+    if (!fs.existsSync(sourceMapPath)) {
+      res.statusCode = 404;
+      res.end(JSON.stringify({ 
+        success: false, 
+        error: `Source map not found at ${sourceMapPath}. Have you run 'pnpm build'?`,
+        sourceMapPath 
+      }));
+      return;
+    }
+
+    try {
+      // Read and parse source map
+      const rawSourceMap = fs.readFileSync(sourceMapPath, 'utf-8');
+      const consumer = await new SourceMapConsumer(JSON.parse(rawSourceMap));
+
+      // Look up the original position
+      const original = consumer.originalPositionFor({
+        line: parsed.line,
+        column: parsed.column
+      });
+
+      consumer.destroy();
+
+      if (!original.source) {
+        res.end(JSON.stringify({
+          success: false,
+          error: 'Could not find original position for the given line and column',
+          minified: {
+            url: parsed.originalUrl,
+            line: parsed.line,
+            column: parsed.column
+          },
+          sourceMapPath
+        }));
+        return;
+      }
+
+      // Resolve the TypeScript source file
+      const tsSource = resolveTypeScriptSource(original.source, sourceMapPath);
+      
+      // Build GitHub link
+      const githubBaseUrl = 'https://github.com/amplitude/Amplitude-TypeScript/blob/main/packages';
+      const githubLink = tsSource.relativePath 
+        ? `${githubBaseUrl}/${tsSource.relativePath}#L${original.line}`
+        : null;
+
+      res.end(JSON.stringify({
+        success: true,
+        original: {
+          source: original.source,
+          line: original.line,
+          column: original.column,
+          name: original.name
+        },
+        typescript: {
+          relativePath: tsSource.relativePath,
+          absolutePath: tsSource.absolutePath,
+          exists: tsSource.exists,
+          githubLink
+        },
+        minified: {
+          url: parsed.originalUrl,
+          line: parsed.line,
+          column: parsed.column
+        },
+        sourceMapPath
+      }));
+    } catch (error) {
+      res.statusCode = 500;
+      res.end(JSON.stringify({ 
+        success: false, 
+        error: `Error processing source map: ${error.message}`,
+        sourceMapPath 
+      }));
+    }
+  });
 } 
