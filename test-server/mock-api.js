@@ -1,4 +1,5 @@
 import { SourceMapConsumer } from 'source-map';
+import https from 'https';
 
 // Mock API endpoints for Vite dev server
 export function createMockApi() {
@@ -198,15 +199,41 @@ function getSourceMapCdnUrl(parsedUrl) {
 }
 
 /**
- * Fetch source map from CDN
+ * Fetch source map from CDN using Node.js https module
  */
-async function fetchSourceMapFromCdn(sourceMapUrl) {
-  const response = await fetch(sourceMapUrl);
-  if (!response.ok) {
-    throw new Error(`Failed to fetch source map: ${response.status} ${response.statusText}`);
-  }
-  const text = await response.text();
-  return JSON.parse(text);
+function fetchSourceMapFromCdn(sourceMapUrl) {
+  return new Promise((resolve, reject) => {
+    https.get(sourceMapUrl, (res) => {
+      const { statusCode } = res;
+      
+      if (statusCode === 404 || statusCode === 403) {
+        res.resume(); // Consume response to free up memory
+        const error = new Error('SOURCE_MAP_NOT_FOUND');
+        error.status = statusCode;
+        error.sourceMapUrl = sourceMapUrl;
+        reject(error);
+        return;
+      }
+      
+      if (statusCode !== 200) {
+        res.resume();
+        reject(new Error(`Failed to fetch source map: ${statusCode}`));
+        return;
+      }
+
+      let data = '';
+      res.on('data', (chunk) => { data += chunk; });
+      res.on('end', () => {
+        try {
+          resolve(JSON.parse(data));
+        } catch (e) {
+          reject(new Error(`Failed to parse source map JSON: ${e.message}`));
+        }
+      });
+    }).on('error', (err) => {
+      reject(new Error(`Network error fetching source map: ${err.message}`));
+    });
+  });
 }
 
 /**
@@ -349,11 +376,13 @@ export function configureUnminifyMiddleware(middlewares) {
       // Resolve the source path (now directly from flattened source map)
       const sourceInfo = resolveSourcePath(original.source, parsed);
       
-      // Build GitHub link using the version from the CDN URL for accurate tag linking
-      const githubBaseUrl = `https://github.com/amplitude/Amplitude-TypeScript/blob/@amplitude/${parsed.packageName}@${parsed.version}`;
-      const githubLink = sourceInfo.relativePath && !sourceInfo.isExternal
-        ? `${githubBaseUrl}/${sourceInfo.relativePath}#L${original.line}`
-        : null;
+      // Build GitHub link using the version tag from the CDN URL
+      // The tag is always @amplitude/{cdnPackageName}@{version} (e.g., @amplitude/analytics-browser@2.33.5)
+      let githubLink = null;
+      if (sourceInfo.relativePath && !sourceInfo.isExternal) {
+        const tag = `@amplitude/${parsed.packageName}@${parsed.version}`;
+        githubLink = `https://github.com/amplitude/Amplitude-TypeScript/blob/${encodeURIComponent(tag)}/${sourceInfo.relativePath}#L${original.line}`;
+      }
 
       res.end(JSON.stringify({
         success: true,
@@ -377,12 +406,30 @@ export function configureUnminifyMiddleware(middlewares) {
         sourceMapUrl
       }));
     } catch (error) {
-      res.statusCode = 500;
-      res.end(JSON.stringify({ 
-        success: false, 
-        error: `Error processing source map: ${error.message}`,
-        sourceMapUrl 
-      }));
+      if (error.message === 'SOURCE_MAP_NOT_FOUND') {
+        res.statusCode = 404;
+        res.end(JSON.stringify({ 
+          success: false, 
+          error: 'Source map not found on CDN',
+          sourceMapNotFound: true,
+          sourceMapUrl,
+          instructions: {
+            summary: `The source map for version ${parsed.version} has not been uploaded to CDN yet.`,
+            steps: [
+              `1. Build the package: cd packages/${parsed.packageName} && pnpm build`,
+              `2. Find the source map: packages/${parsed.packageName}/lib/scripts/amplitude-${parsed.suffix}.js.map`,
+              `3. Upload to S3/CDN with the name: ${parsed.packageName}-${parsed.version}-${parsed.suffix}.js.map`
+            ]
+          }
+        }));
+      } else {
+        res.statusCode = 500;
+        res.end(JSON.stringify({ 
+          success: false, 
+          error: `Error processing source map: ${error.message}`,
+          sourceMapUrl 
+        }));
+      }
     } finally {
       if (consumer && typeof consumer.destroy === 'function') {
         consumer.destroy();
