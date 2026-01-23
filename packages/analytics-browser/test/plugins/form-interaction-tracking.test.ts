@@ -449,5 +449,39 @@ describe('formInteractionTracking', () => {
         [FORM_DESTINATION]: 'http://localhost/submit',
       });
     });
+
+    test('should log warning and proceed with tracking when shouldTrackSubmit throws an error', async () => {
+      const shouldTrackSubmit = jest.fn(() => {
+        throw new Error('Test error');
+      });
+      const config = createConfigurationMock({
+        defaultTracking: {
+          formInteractions: {
+            shouldTrackSubmit,
+          },
+        },
+      });
+      const warnSpy = jest.spyOn(config.loggerProvider, 'warn');
+      const plugin = formInteractionTracking();
+      await plugin.setup?.(config, amplitude);
+      window.dispatchEvent(new Event('load'));
+
+      // trigger submit event with SubmitEvent
+      document.getElementById('my-form-id')?.dispatchEvent(new SubmitEvent('submit'));
+
+      // assert shouldTrackSubmit was called
+      expect(shouldTrackSubmit).toHaveBeenCalledTimes(1);
+
+      // assert warning was logged
+      expect(warnSpy).toHaveBeenCalledWith('shouldTrackSubmit callback threw an error, proceeding with tracking.');
+
+      // assert both form_start and form_submit were still tracked despite the error
+      expect(amplitude.track).toHaveBeenCalledTimes(2);
+      expect(amplitude.track).toHaveBeenNthCalledWith(2, '[Amplitude] Form Submitted', {
+        [FORM_ID]: 'my-form-id',
+        [FORM_NAME]: 'my-form-name',
+        [FORM_DESTINATION]: 'http://localhost/submit',
+      });
+    });
   });
 });
