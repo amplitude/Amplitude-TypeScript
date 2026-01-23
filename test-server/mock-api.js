@@ -171,14 +171,14 @@ function getStatusMessage(statusCode) {
 }
 
 /**
- * Parse a CDN URL to extract package name and file suffix
+ * Parse a CDN URL to extract package name, version, and file suffix
  * Example: https://cdn.amplitude.com/libs/analytics-browser-2.33.5-min.js.gz:1:54975
- * Returns: { packageName: 'analytics-browser', suffix: 'min', line: 1, column: 54975 }
+ * Returns: { packageName: 'analytics-browser', version: '2.33.5', suffix: 'min', line: 1, column: 54975 }
  */
 function parseCdnUrl(stacktraceLine) {
   // Pattern: https://cdn.amplitude.com/libs/{name}-{version}-{suffix}.js.gz:{line}:{column}
   // The suffix could be 'min' or 'gtm-min' etc.
-  const regex = /https?:\/\/cdn\.amplitude\.com\/libs\/([a-z-]+)-[\d.]+-([a-z-]+)\.js(?:\.gz|\.br)?:(\d+):(\d+)/i;
+  const regex = /https?:\/\/cdn\.amplitude\.com\/libs\/([a-z-]+)-([\d.]+)-([a-z-]+)\.js(?:\.gz|\.br)?:(\d+):(\d+)/i;
   const match = stacktraceLine.match(regex);
   
   if (!match) {
@@ -187,79 +187,151 @@ function parseCdnUrl(stacktraceLine) {
   
   return {
     packageName: match[1],
-    suffix: match[2],
-    line: parseInt(match[3], 10),
-    column: parseInt(match[4], 10),
+    version: match[2],
+    suffix: match[3],
+    line: parseInt(match[4], 10),
+    column: parseInt(match[5], 10),
     originalUrl: stacktraceLine
   };
 }
 
 /**
- * Map CDN URL info to local source map path
- * 
- * Mappings (based on scripts/publish/upload-to-s3.js):
- * - analytics-browser-{ver}-min.js.gz → packages/analytics-browser/lib/scripts/amplitude-min.js.map
- * - analytics-browser-gtm-{ver}-min.js.gz → packages/analytics-browser/lib/scripts/amplitude-gtm-min.js.map
+ * Build the CDN URL for the source map based on the parsed URL info
+ * Example: analytics-browser-2.33.5-min.js.gz → https://cdn.amplitude.com/libs/analytics-browser-2.33.5-min.js.map
  */
-function getSourceMapPath(parsedUrl) {
-  const { packageName, suffix } = parsedUrl;
+function getSourceMapCdnUrl(parsedUrl) {
+  const { packageName, version, suffix } = parsedUrl;
   
-  // Handle analytics-browser package
-  if (packageName === 'analytics-browser') {
-    if (suffix === 'min') {
-      return path.join(packagesDir, 'analytics-browser', 'lib', 'scripts', 'amplitude-min.js.map');
-    }
-    if (suffix === 'gtm-min') {
-      return path.join(packagesDir, 'analytics-browser', 'lib', 'scripts', 'amplitude-gtm-min.js.map');
-    }
+  // Supported packages
+  const supportedPatterns = ['analytics-browser'];
+  const supportedSuffixes = ['min', 'gtm-min'];
+  
+  if (!supportedPatterns.includes(packageName) || !supportedSuffixes.includes(suffix)) {
+    return null;
   }
   
-  // Handle analytics-browser-gtm (from gtm-snippet package) - Milestone 2
-  // analytics-browser-gtm-wrapper-{ver}.min.js.br → packages/gtm-snippet/lib/scripts/analytics-browser-gtm-wrapper.min.js.map
-  
-  return null;
+  // Build the source map URL: {package}-{version}-{suffix}.js.map
+  return `https://cdn.amplitude.com/libs/${packageName}-${version}-${suffix}.js.map`;
 }
 
 /**
- * Convert a JS source path to its TypeScript equivalent and resolve the absolute path
- * Example: ../../../analytics-core/lib/esm/diagnostics/diagnostics-client.js
- *       -> packages/analytics-core/src/diagnostics/diagnostics-client.ts
+ * Fetch source map from CDN
  */
-function resolveTypeScriptSource(jsSourcePath, sourceMapPath) {
-  // The source path is relative to the source map file location
-  const sourceMapDir = path.dirname(sourceMapPath);
-  const absoluteJsPath = path.resolve(sourceMapDir, jsSourcePath);
+async function fetchSourceMapFromCdn(sourceMapUrl) {
+  const response = await fetch(sourceMapUrl);
   
-  // Convert lib/esm/ or lib/cjs/ to src/ and .js to .ts
-  let tsPath = absoluteJsPath
-    .replace(/\/lib\/esm\//, '/src/')
-    .replace(/\/lib\/cjs\//, '/src/')
-    .replace(/\.js$/, '.ts');
+  if (!response.ok) {
+    if (response.status === 403 || response.status === 404) {
+      throw new Error(`Source map not found at CDN. The source map for this version may not have been uploaded yet. URL: ${sourceMapUrl}`);
+    }
+    throw new Error(`Failed to fetch source map: ${response.status} ${response.statusText}`);
+  }
   
-  // Check if the TS file exists
-  if (fs.existsSync(tsPath)) {
+  const text = await response.text();
+  return JSON.parse(text);
+}
+
+/**
+ * Convert a raw JS source path to a clean relative path
+ * Example: ../../../analytics-core/lib/esm/diagnostics/diagnostics-client.js
+ *       -> packages/analytics-core/lib/esm/diagnostics/diagnostics-client.js
+ */
+function cleanJsSourcePath(jsSourcePath) {
+  // Extract the package path from the source
+  const packageMatch = jsSourcePath.match(/(?:\.\.\/)*([a-z-]+\/lib\/(?:esm|cjs)\/.+\.js)$/i);
+  
+  if (packageMatch) {
+    return `packages/${packageMatch[1]}`;
+  }
+  
+  // For node_modules or other external paths
+  const nodeModulesMatch = jsSourcePath.match(/node_modules\/(.+)$/);
+  if (nodeModulesMatch) {
+    return `node_modules/${nodeModulesMatch[1]}`;
+  }
+  
+  return jsSourcePath;
+}
+
+/**
+ * Convert a JS source path to its TypeScript equivalent
+ * Example: ../../../analytics-core/lib/esm/diagnostics/diagnostics-client.js
+ *       -> analytics-core/src/diagnostics/diagnostics-client.ts
+ * 
+ * The source paths in the source map are relative paths that typically look like:
+ * - ../../../analytics-core/lib/esm/diagnostics/diagnostics-client.js
+ * - ../../../../node_modules/.pnpm/...
+ */
+function resolveTypeScriptSource(jsSourcePath) {
+  // Extract the package path from the source
+  // Pattern: ../../../{package}/lib/esm/{rest}.js or similar
+  const packageMatch = jsSourcePath.match(/(?:\.\.\/)*([a-z-]+)\/lib\/(?:esm|cjs)\/(.+)\.js$/i);
+  
+  if (!packageMatch) {
+    // Could be a node_modules path or other external source
     return {
-      absolutePath: tsPath,
-      relativePath: path.relative(packagesDir, tsPath),
-      exists: true
+      relativePath: null,
+      jsRelativePath: cleanJsSourcePath(jsSourcePath),
+      exists: false,
+      isExternal: true,
+      hasIntermediateSourceMap: false,
+      intermediateSourceMapPath: null
+    };
+  }
+  
+  const packageName = packageMatch[1];
+  const filePath = packageMatch[2];
+  const tsRelativePath = `${packageName}/src/${filePath}.ts`;
+  const jsRelativePath = `${packageName}/lib/esm/${filePath}.js`;
+  const absoluteTsPath = path.join(packagesDir, tsRelativePath);
+  
+  // Check for intermediate source map (JS -> TS)
+  // Note: This checks if it exists locally. For CDN, it would need to be uploaded.
+  const jsMapPath = path.join(packagesDir, `${jsRelativePath}.map`);
+  const intermediateSourceMapExistsLocally = fs.existsSync(jsMapPath);
+  const intermediateSourceMapPath = `packages/${jsRelativePath}.map`;
+  
+  // For now, we don't have intermediate source maps on CDN, so always false
+  // TODO: Check if intermediate source map exists on CDN when implemented
+  const hasIntermediateSourceMap = false;
+  
+  // Check if the TS file exists locally
+  if (fs.existsSync(absoluteTsPath)) {
+    return {
+      relativePath: tsRelativePath,
+      jsRelativePath: `packages/${jsRelativePath}`,
+      absolutePath: absoluteTsPath,
+      exists: true,
+      isExternal: false,
+      hasIntermediateSourceMap,
+      intermediateSourceMapPath
     };
   }
   
   // Try .tsx extension for React components
-  const tsxPath = tsPath.replace(/\.ts$/, '.tsx');
-  if (fs.existsSync(tsxPath)) {
+  const tsxRelativePath = `${packageName}/src/${filePath}.tsx`;
+  const absoluteTsxPath = path.join(packagesDir, tsxRelativePath);
+  if (fs.existsSync(absoluteTsxPath)) {
     return {
-      absolutePath: tsxPath,
-      relativePath: path.relative(packagesDir, tsxPath),
-      exists: true
+      relativePath: tsxRelativePath,
+      jsRelativePath: `packages/${jsRelativePath}`,
+      absolutePath: absoluteTsxPath,
+      exists: true,
+      isExternal: false,
+      hasIntermediateSourceMap,
+      intermediateSourceMapPath
     };
   }
   
-  // Return the expected path even if it doesn't exist
+  // Return the expected path even if it doesn't exist locally
   return {
-    absolutePath: tsPath,
-    relativePath: path.relative(packagesDir, tsPath),
-    exists: false
+    relativePath: tsRelativePath,
+    jsRelativePath: `packages/${jsRelativePath}`,
+    absolutePath: absoluteTsPath,
+    exists: false,
+    isExternal: false,
+    hasIntermediateSourceMap,
+    intermediateSourceMapPath
   };
 }
 
@@ -320,9 +392,9 @@ export function configureUnminifyMiddleware(middlewares) {
       return;
     }
 
-    // Get the source map path
-    const sourceMapPath = getSourceMapPath(parsed);
-    if (!sourceMapPath) {
+    // Get the source map CDN URL
+    const sourceMapUrl = getSourceMapCdnUrl(parsed);
+    if (!sourceMapUrl) {
       res.statusCode = 400;
       res.end(JSON.stringify({ 
         success: false, 
@@ -331,29 +403,17 @@ export function configureUnminifyMiddleware(middlewares) {
       return;
     }
 
-    // Check if source map exists
-    if (!fs.existsSync(sourceMapPath)) {
-      res.statusCode = 404;
-      res.end(JSON.stringify({ 
-        success: false, 
-        error: `Source map not found at ${sourceMapPath}. Have you run 'pnpm build'?`,
-        sourceMapPath 
-      }));
-      return;
-    }
-
+    let consumer = null;
     try {
-      // Read and parse source map
-      const rawSourceMap = fs.readFileSync(sourceMapPath, 'utf-8');
-      const consumer = await new SourceMapConsumer(JSON.parse(rawSourceMap));
+      // Fetch source map from CDN
+      const rawSourceMap = await fetchSourceMapFromCdn(sourceMapUrl);
+      consumer = await new SourceMapConsumer(rawSourceMap);
 
       // Look up the original position
       const original = consumer.originalPositionFor({
         line: parsed.line,
         column: parsed.column
       });
-
-      consumer.destroy();
 
       if (!original.source) {
         res.end(JSON.stringify({
@@ -364,48 +424,63 @@ export function configureUnminifyMiddleware(middlewares) {
             line: parsed.line,
             column: parsed.column
           },
-          sourceMapPath
+          sourceMapUrl
         }));
         return;
       }
 
       // Resolve the TypeScript source file
-      const tsSource = resolveTypeScriptSource(original.source, sourceMapPath);
+      const tsSource = resolveTypeScriptSource(original.source);
       
-      // Build GitHub link
-      const githubBaseUrl = 'https://github.com/amplitude/Amplitude-TypeScript/blob/main/packages';
-      const githubLink = tsSource.relativePath 
-        ? `${githubBaseUrl}/${tsSource.relativePath}#L${original.line}`
+      // Build GitHub link using the version from the URL for accurate tag linking
+      const githubBaseUrl = `https://github.com/amplitude/Amplitude-TypeScript/blob/@amplitude/analytics-browser@${parsed.version}/packages`;
+      
+      // GitHub link to TS file (without line number since we don't have accurate TS line from intermediate source map)
+      const tsGithubLink = tsSource.relativePath 
+        ? `${githubBaseUrl}/${tsSource.relativePath}`
         : null;
 
       res.end(JSON.stringify({
         success: true,
-        original: {
+        compiledJs: {
           source: original.source,
+          relativePath: tsSource.jsRelativePath,
           line: original.line,
           column: original.column,
           name: original.name
         },
         typescript: {
-          relativePath: tsSource.relativePath,
+          relativePath: tsSource.relativePath ? `packages/${tsSource.relativePath}` : null,
           absolutePath: tsSource.absolutePath,
           exists: tsSource.exists,
-          githubLink
+          isExternal: tsSource.isExternal,
+          hasIntermediateSourceMap: tsSource.hasIntermediateSourceMap,
+          intermediateSourceMapPath: tsSource.intermediateSourceMapPath,
+          githubLink: tsGithubLink
         },
         minified: {
           url: parsed.originalUrl,
           line: parsed.line,
           column: parsed.column
         },
-        sourceMapPath
+        sourceMapUrl
       }));
     } catch (error) {
       res.statusCode = 500;
       res.end(JSON.stringify({ 
         success: false, 
         error: `Error processing source map: ${error.message}`,
-        sourceMapPath 
+        sourceMapUrl 
       }));
+    } finally {
+      // Clean up the consumer if it was created and has destroy method
+      if (consumer && typeof consumer.destroy === 'function') {
+        try {
+          consumer.destroy();
+        } catch (e) {
+          // Ignore destroy errors
+        }
+      }
     }
   });
 } 

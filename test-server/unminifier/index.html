@@ -229,11 +229,8 @@
       <input 
         type="text" 
         id="stacktrace-input" 
-        placeholder="https://cdn.amplitude.com/libs/analytics-browser-2.33.5-min.js.gz:1:54975"
+        value="https://cdn.amplitude.com/libs/analytics-browser-2.32.1-min.js.gz:1:54975"
       />
-      <p class="example">
-        Example: <code>https://cdn.amplitude.com/libs/analytics-browser-2.33.5-min.js.gz:1:54975</code>
-      </p>
       <button id="unminify-btn" onclick="unminify()">Unminify</button>
     </div>
     
@@ -273,40 +270,45 @@
           const data = await response.json();
           
           if (data.success) {
-            const tsExists = data.typescript?.exists;
-            const githubLink = data.typescript?.githubLink;
+            const ts = data.typescript;
+            const js = data.compiledJs;
+            const hasSourceMap = ts?.hasIntermediateSourceMap;
+            
+            // GitHub icon SVG
+            const githubIcon = `<svg height="16" width="16" viewBox="0 0 16 16" style="vertical-align: text-bottom; margin-right: 6px;"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path></svg>`;
+            
             container.innerHTML = `
               <div class="result-item success">
                 <div class="result-label">TypeScript Source</div>
                 <div class="result-grid">
                   <div class="result-card" style="grid-column: 1 / -1;">
-                    <div class="label">File Path ${tsExists ? '(verified)' : '(not found)'}</div>
-                    <div class="value" style="color: ${tsExists ? '#2e7d32' : '#c62828'}">
-                      ${escapeHtml(data.typescript?.relativePath || 'N/A')}
+                    <div class="label">File Path ${ts?.exists ? '(verified locally)' : ''}</div>
+                    <div class="value" style="color: #2e7d32">
+                      ${escapeHtml(ts?.relativePath || 'N/A')}
                     </div>
                   </div>
-                  <div class="result-card">
-                    <div class="label">Line</div>
-                    <div class="value">${data.original.line}</div>
-                  </div>
-                  <div class="result-card">
-                    <div class="label">Column</div>
-                    <div class="value">${data.original.column}</div>
-                  </div>
-                  ${data.original.name ? `
-                  <div class="result-card">
-                    <div class="label">Symbol Name</div>
-                    <div class="value">${escapeHtml(data.original.name)}</div>
-                  </div>
-                  ` : ''}
                 </div>
-                ${githubLink ? `
+                
+                ${!hasSourceMap ? `
+                <div style="margin-top: 15px; padding: 12px; background: #fff3e0; border-radius: 4px; border-left: 4px solid #ff9800;">
+                  <div style="font-weight: 600; color: #e65100; margin-bottom: 8px;">
+                    ⚠️ No intermediate source map found
+                  </div>
+                  <div style="font-size: 13px; color: #666; margin-bottom: 8px;">
+                    The line number shown is from the compiled JS, not the TypeScript source.
+                    To get accurate TS line numbers, upload the intermediate source map:
+                  </div>
+                  <div style="font-family: monospace; font-size: 12px; background: #f5f5f5; padding: 8px; border-radius: 4px; word-break: break-all;">
+                    ${escapeHtml(ts?.intermediateSourceMapPath || 'N/A')}
+                  </div>
+                </div>
+                ` : ''}
+                
+                ${ts?.githubLink ? `
                 <div style="margin-top: 15px;">
-                  <a href="${escapeHtml(githubLink)}" target="_blank" rel="noopener noreferrer" class="github-link">
-                    <svg height="16" width="16" viewBox="0 0 16 16" style="vertical-align: text-bottom; margin-right: 6px;">
-                      <path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path>
-                    </svg>
-                    View on GitHub
+                  <a href="${escapeHtml(ts.githubLink)}" target="_blank" rel="noopener noreferrer" class="github-link">
+                    ${githubIcon}
+                    View TypeScript on GitHub
                   </a>
                 </div>
                 ` : ''}
@@ -316,9 +318,23 @@
                 <div class="result-label">Compiled JS (from source map)</div>
                 <div class="result-grid">
                   <div class="result-card" style="grid-column: 1 / -1;">
-                    <div class="label">Source File</div>
-                    <div class="value">${escapeHtml(data.original.source)}</div>
+                    <div class="label">File Path</div>
+                    <div class="value">${escapeHtml(js?.relativePath || js?.source)}</div>
                   </div>
+                  <div class="result-card">
+                    <div class="label">Line</div>
+                    <div class="value">${js?.line}</div>
+                  </div>
+                  <div class="result-card">
+                    <div class="label">Column</div>
+                    <div class="value">${js?.column}</div>
+                  </div>
+                  ${js?.name ? `
+                  <div class="result-card">
+                    <div class="label">Symbol Name</div>
+                    <div class="value">${escapeHtml(js.name)}</div>
+                  </div>
+                  ` : ''}
                 </div>
               </div>
               
@@ -341,17 +357,21 @@
               </div>
               
               <div class="result-item" style="border-left: 4px solid #9e9e9e;">
-                <div class="result-label">Source Map Used</div>
-                <div class="result-value">${escapeHtml(data.sourceMapPath)}</div>
+                <div class="result-label">Source Map</div>
+                <div class="result-value">
+                  <a href="${escapeHtml(data.sourceMapUrl)}" target="_blank" rel="noopener noreferrer" style="color: #1976D2; word-break: break-all;">
+                    ${escapeHtml(data.sourceMapUrl)}
+                  </a>
+                </div>
               </div>
             `;
           } else {
             container.innerHTML = `
               <div class="result-item error">
                 <div class="error-message">${escapeHtml(data.error)}</div>
-                ${data.sourceMapPath ? `
+                ${data.sourceMapUrl ? `
                 <div style="margin-top: 10px; font-size: 12px; color: #666;">
-                  Source map path: <code>${escapeHtml(data.sourceMapPath)}</code>
+                  Source map URL: <a href="${escapeHtml(data.sourceMapUrl)}" target="_blank" style="color: #1976D2;">${escapeHtml(data.sourceMapUrl)}</a>
                 </div>
                 ` : ''}
               </div>
