@@ -47,8 +47,6 @@
   },
   "devDependencies": {
     "@aws-sdk/client-s3": "^3.0.0",
-    "rollup-plugin-sourcemaps": "^0.6.3",
-    "source-map": "^0.7.4",
     "@commitlint/cli": "^17.3.0",
     "@commitlint/config-conventional": "^17.3.0",
     "@nx/workspace": "^21.2.1",
@@ -81,6 +79,8 @@
     "nx": "^21.2.1",
     "prettier": "^2.8.1",
     "rimraf": "^3.0.2",
+    "rollup-plugin-sourcemaps": "^0.6.3",
+    "source-map": "^0.7.4",
     "ts-jest": "^29.0.3",
     "tslib": "^2.4.1",
     "typedoc": "^0.23.22",
