@@ -117,7 +117,7 @@ jobs:
           
           echo "✅ Successfully created release version"
 
-      # Publish to NPM
+      # Publish to NPM (also uploads minified JS and source maps to S3)
       - name: Publish Release to NPM
         run: |
           GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} pnpm deploy:publish
@@ -181,6 +181,7 @@ jobs:
         run: |
             GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} pnpm deploy:version -y --no-private --conventional-prerelease --preid ${{ env.PREID }} --allow-branch ${{ steps.determine-branch.outputs.branch }} --create-release github
 
+      # Publish to NPM (also uploads minified JS and source maps to S3)
       - name: Publish Pre-release to NPM
         if: ${{ github.event.inputs.releaseType == 'prerelease' }}
         run: |
