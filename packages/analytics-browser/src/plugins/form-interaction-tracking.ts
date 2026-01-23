@@ -93,9 +93,13 @@ export const formInteractionTracking = (): EnrichmentPlugin => {
           // Check if shouldTrackSubmit callback is provided and use it to determine whether to track form_submit
           if (formInteractionsConfig?.shouldTrackSubmit !== undefined) {
             if (typeof formInteractionsConfig.shouldTrackSubmit === 'function' && typeof SubmitEvent !== 'undefined' && event instanceof SubmitEvent) {
-              const shouldTrack = formInteractionsConfig.shouldTrackSubmit(event);
-              if (!shouldTrack) {
-                return;
+              try {
+                const shouldTrack = formInteractionsConfig.shouldTrackSubmit(event);
+                if (!shouldTrack) {
+                  return;
+                }
+              } catch (e) {
+                config.loggerProvider.warn('shouldTrackSubmit callback threw an exception. Defaulting to tracking the form submit event.');
               }
             } else {
               config.loggerProvider.warn(
