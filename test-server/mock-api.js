@@ -1,11 +1,4 @@
-import fs from 'fs';
-import path from 'path';
 import { SourceMapConsumer } from 'source-map';
-import { fileURLToPath } from 'url';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const packagesDir = path.resolve(__dirname, '..', 'packages');
 
 // Mock API endpoints for Vite dev server
 export function createMockApi() {
@@ -171,14 +164,14 @@ function getStatusMessage(statusCode) {
 }
 
 /**
- * Parse a CDN URL to extract package name and file suffix
+ * Parse a CDN URL to extract package name, version, and file suffix
  * Example: https://cdn.amplitude.com/libs/analytics-browser-2.33.5-min.js.gz:1:54975
- * Returns: { packageName: 'analytics-browser', suffix: 'min', line: 1, column: 54975 }
+ * Returns: { packageName: 'analytics-browser', version: '2.33.5', suffix: 'min', line: 1, column: 54975 }
  */
 function parseCdnUrl(stacktraceLine) {
   // Pattern: https://cdn.amplitude.com/libs/{name}-{version}-{suffix}.js.gz:{line}:{column}
   // The suffix could be 'min' or 'gtm-min' etc.
-  const regex = /https?:\/\/cdn\.amplitude\.com\/libs\/([a-z-]+)-[\d.]+-([a-z-]+)\.js(?:\.gz|\.br)?:(\d+):(\d+)/i;
+  const regex = /https?:\/\/cdn\.amplitude\.com\/libs\/([a-z-]+)-([\d.]+)-([a-z-]+)\.js(?:\.gz|\.br)?:(\d+):(\d+)/i;
   const match = stacktraceLine.match(regex);
   
   if (!match) {
@@ -187,79 +180,83 @@ function parseCdnUrl(stacktraceLine) {
   
   return {
     packageName: match[1],
-    suffix: match[2],
-    line: parseInt(match[3], 10),
-    column: parseInt(match[4], 10),
+    version: match[2],
+    suffix: match[3],
+    line: parseInt(match[4], 10),
+    column: parseInt(match[5], 10),
     originalUrl: stacktraceLine
   };
 }
 
 /**
- * Map CDN URL info to local source map path
- * 
- * Mappings (based on scripts/publish/upload-to-s3.js):
- * - analytics-browser-{ver}-min.js.gz → packages/analytics-browser/lib/scripts/amplitude-min.js.map
- * - analytics-browser-gtm-{ver}-min.js.gz → packages/analytics-browser/lib/scripts/amplitude-gtm-min.js.map
+ * Build CDN URL for the source map based on parsed URL info
+ * Example: analytics-browser-2.33.5-min.js.gz → https://cdn.amplitude.com/libs/analytics-browser-2.33.5-min.js.map
  */
-function getSourceMapPath(parsedUrl) {
-  const { packageName, suffix } = parsedUrl;
-  
-  // Handle analytics-browser package
-  if (packageName === 'analytics-browser') {
-    if (suffix === 'min') {
-      return path.join(packagesDir, 'analytics-browser', 'lib', 'scripts', 'amplitude-min.js.map');
-    }
-    if (suffix === 'gtm-min') {
-      return path.join(packagesDir, 'analytics-browser', 'lib', 'scripts', 'amplitude-gtm-min.js.map');
-    }
-  }
-  
-  // Handle analytics-browser-gtm (from gtm-snippet package) - Milestone 2
-  // analytics-browser-gtm-wrapper-{ver}.min.js.br → packages/gtm-snippet/lib/scripts/analytics-browser-gtm-wrapper.min.js.map
-  
-  return null;
+function getSourceMapCdnUrl(parsedUrl) {
+  const { packageName, version, suffix } = parsedUrl;
+  return `https://cdn.amplitude.com/libs/${packageName}-${version}-${suffix}.js.map`;
 }
 
 /**
- * Convert a JS source path to its TypeScript equivalent and resolve the absolute path
- * Example: ../../../analytics-core/lib/esm/diagnostics/diagnostics-client.js
- *       -> packages/analytics-core/src/diagnostics/diagnostics-client.ts
+ * Fetch source map from CDN
  */
-function resolveTypeScriptSource(jsSourcePath, sourceMapPath) {
-  // The source path is relative to the source map file location
-  const sourceMapDir = path.dirname(sourceMapPath);
-  const absoluteJsPath = path.resolve(sourceMapDir, jsSourcePath);
-  
-  // Convert lib/esm/ or lib/cjs/ to src/ and .js to .ts
-  let tsPath = absoluteJsPath
-    .replace(/\/lib\/esm\//, '/src/')
-    .replace(/\/lib\/cjs\//, '/src/')
-    .replace(/\.js$/, '.ts');
-  
-  // Check if the TS file exists
-  if (fs.existsSync(tsPath)) {
+async function fetchSourceMapFromCdn(sourceMapUrl) {
+  const response = await fetch(sourceMapUrl);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch source map: ${response.status} ${response.statusText}`);
+  }
+  const text = await response.text();
+  return JSON.parse(text);
+}
+
+/**
+ * Clean up source path from flattened source map
+ * The flattened source map paths are relative to packages/{package}/lib/scripts/
+ * Example: ../../../analytics-core/src/diagnostics/diagnostics-client.ts
+ *       -> packages/analytics-core/src/diagnostics/diagnostics-client.ts
+ * Example: ../../../src/index.ts (same package)
+ *       -> packages/analytics-browser/src/index.ts
+ */
+function resolveSourcePath(sourcePath, parsedUrl) {
+  // Handle node_modules paths - these are external dependencies
+  if (sourcePath.includes('node_modules')) {
     return {
-      absolutePath: tsPath,
-      relativePath: path.relative(packagesDir, tsPath),
-      exists: true
+      relativePath: sourcePath,
+      isExternal: true,
+      isTypeScript: false
     };
   }
+
+  // Clean up the relative path
+  // Paths like ../../../analytics-core/src/... need to be converted to packages/analytics-core/src/...
+  // Paths like ../../../src/... refer to the same package (e.g., analytics-browser)
+  let cleanPath = sourcePath;
   
-  // Try .tsx extension for React components
-  const tsxPath = tsPath.replace(/\.ts$/, '.tsx');
-  if (fs.existsSync(tsxPath)) {
-    return {
-      absolutePath: tsxPath,
-      relativePath: path.relative(packagesDir, tsxPath),
-      exists: true
-    };
+  // Remove leading ../ segments and extract the package-relative path
+  const pathParts = sourcePath.split('/');
+  let i = 0;
+  while (i < pathParts.length && pathParts[i] === '..') {
+    i++;
   }
   
-  // Return the expected path even if it doesn't exist
+  const remainingPath = pathParts.slice(i).join('/');
+  
+  // Check if this is a path within a specific package (e.g., analytics-core/src/...)
+  // or within the current package (e.g., src/...)
+  if (remainingPath.startsWith('src/')) {
+    // This is a path within the current package (e.g., analytics-browser)
+    cleanPath = `packages/${parsedUrl.packageName}/${remainingPath}`;
+  } else {
+    // This is a path to another package (e.g., analytics-core/src/...)
+    cleanPath = `packages/${remainingPath}`;
+  }
+
+  const isTypeScript = cleanPath.endsWith('.ts') || cleanPath.endsWith('.tsx');
+
   return {
-    absolutePath: tsPath,
-    relativePath: path.relative(packagesDir, tsPath),
-    exists: false
+    relativePath: cleanPath,
+    isExternal: false,
+    isTypeScript
   };
 }
 
@@ -320,40 +317,20 @@ export function configureUnminifyMiddleware(middlewares) {
       return;
     }
 
-    // Get the source map path
-    const sourceMapPath = getSourceMapPath(parsed);
-    if (!sourceMapPath) {
-      res.statusCode = 400;
-      res.end(JSON.stringify({ 
-        success: false, 
-        error: `Unsupported package or suffix: ${parsed.packageName}-${parsed.suffix}. Currently supported: analytics-browser-min, analytics-browser-gtm-min` 
-      }));
-      return;
-    }
+    // Build the source map CDN URL
+    const sourceMapUrl = getSourceMapCdnUrl(parsed);
 
-    // Check if source map exists
-    if (!fs.existsSync(sourceMapPath)) {
-      res.statusCode = 404;
-      res.end(JSON.stringify({ 
-        success: false, 
-        error: `Source map not found at ${sourceMapPath}. Have you run 'pnpm build'?`,
-        sourceMapPath 
-      }));
-      return;
-    }
-
+    let consumer;
     try {
-      // Read and parse source map
-      const rawSourceMap = fs.readFileSync(sourceMapPath, 'utf-8');
-      const consumer = await new SourceMapConsumer(JSON.parse(rawSourceMap));
+      // Fetch source map from CDN
+      const rawSourceMap = await fetchSourceMapFromCdn(sourceMapUrl);
+      consumer = await new SourceMapConsumer(rawSourceMap);
 
       // Look up the original position
       const original = consumer.originalPositionFor({
         line: parsed.line,
         column: parsed.column
       });
-
-      consumer.destroy();
 
       if (!original.source) {
         res.end(JSON.stringify({
@@ -364,18 +341,18 @@ export function configureUnminifyMiddleware(middlewares) {
             line: parsed.line,
             column: parsed.column
           },
-          sourceMapPath
+          sourceMapUrl
         }));
         return;
       }
 
-      // Resolve the TypeScript source file
-      const tsSource = resolveTypeScriptSource(original.source, sourceMapPath);
+      // Resolve the source path (now directly from flattened source map)
+      const sourceInfo = resolveSourcePath(original.source, parsed);
       
-      // Build GitHub link
-      const githubBaseUrl = 'https://github.com/amplitude/Amplitude-TypeScript/blob/main/packages';
-      const githubLink = tsSource.relativePath 
-        ? `${githubBaseUrl}/${tsSource.relativePath}#L${original.line}`
+      // Build GitHub link using the version from the CDN URL for accurate tag linking
+      const githubBaseUrl = `https://github.com/amplitude/Amplitude-TypeScript/blob/@amplitude/${parsed.packageName}@${parsed.version}`;
+      const githubLink = sourceInfo.relativePath && !sourceInfo.isExternal
+        ? `${githubBaseUrl}/${sourceInfo.relativePath}#L${original.line}`
         : null;
 
       res.end(JSON.stringify({
@@ -387,9 +364,9 @@ export function configureUnminifyMiddleware(middlewares) {
           name: original.name
         },
         typescript: {
-          relativePath: tsSource.relativePath,
-          absolutePath: tsSource.absolutePath,
-          exists: tsSource.exists,
+          relativePath: sourceInfo.relativePath,
+          isExternal: sourceInfo.isExternal,
+          isTypeScript: sourceInfo.isTypeScript,
           githubLink
         },
         minified: {
@@ -397,15 +374,19 @@ export function configureUnminifyMiddleware(middlewares) {
           line: parsed.line,
           column: parsed.column
         },
-        sourceMapPath
+        sourceMapUrl
       }));
     } catch (error) {
       res.statusCode = 500;
       res.end(JSON.stringify({ 
         success: false, 
         error: `Error processing source map: ${error.message}`,
-        sourceMapPath 
+        sourceMapUrl 
       }));
+    } finally {
+      if (consumer && typeof consumer.destroy === 'function') {
+        consumer.destroy();
+      }
     }
   });
 } 

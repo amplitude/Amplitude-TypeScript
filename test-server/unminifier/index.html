@@ -221,7 +221,6 @@
     <h1>Stack Trace Unminifier</h1>
     <p class="description">
       Paste a minified stack trace line from Amplitude CDN and get the original source location.
-      <br><strong>Note:</strong> Make sure you've run <code>pnpm build</code> to generate source maps.
     </p>
     
     <div class="input-section">
@@ -229,7 +228,7 @@
       <input 
         type="text" 
         id="stacktrace-input" 
-        value="https://cdn.amplitude.com/libs/analytics-browser-2.33.5-min.js.gz:1:54975"
+        value="https://cdn.amplitude.com/libs/analytics-browser-2.33.5-min.js.gz:1:56244"
       />
       <button id="unminify-btn" onclick="unminify()">Unminify</button>
     </div>
@@ -270,15 +269,17 @@
           const data = await response.json();
           
           if (data.success) {
-            const tsExists = data.typescript?.exists;
+            const isExternal = data.typescript?.isExternal;
+            const isTypeScript = data.typescript?.isTypeScript;
             const githubLink = data.typescript?.githubLink;
+            const sourceLabel = isExternal ? 'External Dependency' : (isTypeScript ? 'TypeScript Source' : 'Source');
             container.innerHTML = `
               <div class="result-item success">
-                <div class="result-label">TypeScript Source</div>
+                <div class="result-label">${sourceLabel}</div>
                 <div class="result-grid">
                   <div class="result-card" style="grid-column: 1 / -1;">
-                    <div class="label">File Path ${tsExists ? '(verified)' : '(not found)'}</div>
-                    <div class="value" style="color: ${tsExists ? '#2e7d32' : '#c62828'}">
+                    <div class="label">File Path</div>
+                    <div class="value" style="color: ${isExternal ? '#888' : '#2e7d32'}">
                       ${escapeHtml(data.typescript?.relativePath || 'N/A')}
                     </div>
                   </div>
@@ -310,10 +311,10 @@
               </div>
 
               <div class="result-item" style="border-left: 4px solid #ff9800;">
-                <div class="result-label">Compiled JS (from source map)</div>
+                <div class="result-label">Raw Source Map Entry</div>
                 <div class="result-grid">
                   <div class="result-card" style="grid-column: 1 / -1;">
-                    <div class="label">Source File</div>
+                    <div class="label">Source Path (as in source map)</div>
                     <div class="value">${escapeHtml(data.original.source)}</div>
                   </div>
                 </div>
@@ -338,17 +339,17 @@
               </div>
               
               <div class="result-item" style="border-left: 4px solid #9e9e9e;">
-                <div class="result-label">Source Map Used</div>
-                <div class="result-value">${escapeHtml(data.sourceMapPath)}</div>
+                <div class="result-label">Source Map URL</div>
+                <div class="result-value"><a href="${escapeHtml(data.sourceMapUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(data.sourceMapUrl)}</a></div>
               </div>
             `;
           } else {
             container.innerHTML = `
               <div class="result-item error">
                 <div class="error-message">${escapeHtml(data.error)}</div>
-                ${data.sourceMapPath ? `
+                ${data.sourceMapUrl ? `
                 <div style="margin-top: 10px; font-size: 12px; color: #666;">
-                  Source map path: <code>${escapeHtml(data.sourceMapPath)}</code>
+                  Source map URL: <code>${escapeHtml(data.sourceMapUrl)}</code>
                 </div>
                 ` : ''}
               </div>
