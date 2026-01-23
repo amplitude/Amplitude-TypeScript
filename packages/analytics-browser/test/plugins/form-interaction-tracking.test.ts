@@ -4,6 +4,26 @@ import { createAmplitudeMock, createConfigurationMock } from '../helpers/mock';
 import { formInteractionTracking } from '../../src/plugins/form-interaction-tracking';
 import { FORM_DESTINATION, FORM_ID, FORM_NAME } from '../../src/constants';
 
+// SubmitEvent is not available in JSDOM, so we need to polyfill it
+if (typeof SubmitEvent === 'undefined') {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (global as any).SubmitEvent = function SubmitEvent(
+    this: Event & { submitter: HTMLElement | null },
+    type: string,
+    eventInitDict?: SubmitEventInit,
+  ) {
+    const event = new Event(type, eventInitDict);
+    Object.setPrototypeOf(event, SubmitEvent.prototype);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (event as any).submitter = eventInitDict?.submitter ?? null;
+    return event;
+  };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (global as any).SubmitEvent.prototype = Object.create(Event.prototype);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (global as any).SubmitEvent.prototype.constructor = (global as any).SubmitEvent;
+}
+
 describe('formInteractionTracking', () => {
   let amplitude = createAmplitudeMock();
 
@@ -322,5 +342,146 @@ describe('formInteractionTracking', () => {
     await plugin.teardown?.();
     // no explicit assertion
     // test asserts that no error is thrown
+  });
+
+  describe('shouldTrackSubmit', () => {
+    test('should not track form_submit when shouldTrackSubmit returns false', async () => {
+      const shouldTrackSubmit = jest.fn(() => false);
+      const config = createConfigurationMock({
+        defaultTracking: {
+          formInteractions: {
+            shouldTrackSubmit,
+          },
+        },
+      });
+      const plugin = formInteractionTracking();
+      await plugin.setup?.(config, amplitude);
+      window.dispatchEvent(new Event('load'));
+
+      // trigger submit event with SubmitEvent
+      document.getElementById('my-form-id')?.dispatchEvent(new SubmitEvent('submit'));
+
+      // assert shouldTrackSubmit was called
+      expect(shouldTrackSubmit).toHaveBeenCalledTimes(1);
+
+      // assert form_start was tracked but form_submit was NOT
+      expect(amplitude.track).toHaveBeenCalledTimes(1);
+      expect(amplitude.track).toHaveBeenNthCalledWith(1, '[Amplitude] Form Started', {
+        [FORM_ID]: 'my-form-id',
+        [FORM_NAME]: 'my-form-name',
+        [FORM_DESTINATION]: 'http://localhost/submit',
+      });
+    });
+
+    test('should not re-track form_start on subsequent submit when shouldTrackSubmit returns false', async () => {
+      const shouldTrackSubmit = jest.fn(() => false);
+      const config = createConfigurationMock({
+        defaultTracking: {
+          formInteractions: {
+            shouldTrackSubmit,
+          },
+        },
+      });
+      const plugin = formInteractionTracking();
+      await plugin.setup?.(config, amplitude);
+      window.dispatchEvent(new Event('load'));
+
+      // trigger first submit event (tracks form_start)
+      document.getElementById('my-form-id')?.dispatchEvent(new SubmitEvent('submit'));
+      expect(amplitude.track).toHaveBeenCalledTimes(1);
+
+      // trigger second submit event (should NOT track form_start again)
+      document.getElementById('my-form-id')?.dispatchEvent(new SubmitEvent('submit'));
+
+      // assert shouldTrackSubmit was called twice
+      expect(shouldTrackSubmit).toHaveBeenCalledTimes(2);
+
+      // assert form_start was only tracked once (no duplicate)
+      expect(amplitude.track).toHaveBeenCalledTimes(1);
+    });
+
+    test('should track form_submit when shouldTrackSubmit returns true', async () => {
+      const shouldTrackSubmit = jest.fn(() => true);
+      const config = createConfigurationMock({
+        defaultTracking: {
+          formInteractions: {
+            shouldTrackSubmit,
+          },
+        },
+      });
+      const plugin = formInteractionTracking();
+      await plugin.setup?.(config, amplitude);
+      window.dispatchEvent(new Event('load'));
+
+      // trigger submit event with SubmitEvent
+      document.getElementById('my-form-id')?.dispatchEvent(new SubmitEvent('submit'));
+
+      // assert shouldTrackSubmit was called
+      expect(shouldTrackSubmit).toHaveBeenCalledTimes(1);
+
+      // assert both form_start and form_submit were tracked
+      expect(amplitude.track).toHaveBeenCalledTimes(2);
+      expect(amplitude.track).toHaveBeenNthCalledWith(2, '[Amplitude] Form Submitted', {
+        [FORM_ID]: 'my-form-id',
+        [FORM_NAME]: 'my-form-name',
+        [FORM_DESTINATION]: 'http://localhost/submit',
+      });
+    });
+
+    test('should track form_submit normally when shouldTrackSubmit is not provided', async () => {
+      const config = createConfigurationMock({
+        defaultTracking: {
+          formInteractions: {},
+        },
+      });
+      const plugin = formInteractionTracking();
+      await plugin.setup?.(config, amplitude);
+      window.dispatchEvent(new Event('load'));
+
+      // trigger submit event
+      document.getElementById('my-form-id')?.dispatchEvent(new Event('submit'));
+
+      // assert both form_start and form_submit were tracked
+      expect(amplitude.track).toHaveBeenCalledTimes(2);
+      expect(amplitude.track).toHaveBeenNthCalledWith(2, '[Amplitude] Form Submitted', {
+        [FORM_ID]: 'my-form-id',
+        [FORM_NAME]: 'my-form-name',
+        [FORM_DESTINATION]: 'http://localhost/submit',
+      });
+    });
+
+    test('should log warning and proceed with tracking when shouldTrackSubmit throws an error', async () => {
+      const shouldTrackSubmit = jest.fn(() => {
+        throw new Error('Test error');
+      });
+      const config = createConfigurationMock({
+        defaultTracking: {
+          formInteractions: {
+            shouldTrackSubmit,
+          },
+        },
+      });
+      const warnSpy = jest.spyOn(config.loggerProvider, 'warn');
+      const plugin = formInteractionTracking();
+      await plugin.setup?.(config, amplitude);
+      window.dispatchEvent(new Event('load'));
+
+      // trigger submit event with SubmitEvent
+      document.getElementById('my-form-id')?.dispatchEvent(new SubmitEvent('submit'));
+
+      // assert shouldTrackSubmit was called
+      expect(shouldTrackSubmit).toHaveBeenCalledTimes(1);
+
+      // assert warning was logged
+      expect(warnSpy).toHaveBeenCalledWith('shouldTrackSubmit callback threw an error, proceeding with tracking.');
+
+      // assert both form_start and form_submit were still tracked despite the error
+      expect(amplitude.track).toHaveBeenCalledTimes(2);
+      expect(amplitude.track).toHaveBeenNthCalledWith(2, '[Amplitude] Form Submitted', {
+        [FORM_ID]: 'my-form-id',
+        [FORM_NAME]: 'my-form-name',
+        [FORM_DESTINATION]: 'http://localhost/submit',
+      });
+    });
   });
 });

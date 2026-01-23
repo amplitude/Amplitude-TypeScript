@@ -54,7 +54,7 @@
 <body>
     <h1>Form Test with Performance Tracking</h1>
     
-    <form id="testForm">
+    <form id="testForm" novalidate>
         <div class="form-container-wrapper">
             <div class="form-section-primary">
                 <div class="input-group-container">
@@ -216,22 +216,27 @@
 
         // Get URL parameters
         const urlParams = new URLSearchParams(window.location.search);
-        const skipAutocapture = urlParams.get('skipAutocapture') === 'true';
 
         // Initialize Amplitude
         window.amplitude = amplitude;
         const apiKey = import.meta.env.VITE_AMPLITUDE_API_KEY;
         amplitude.add(stubPlugin());
         amplitude.init(apiKey, 'test-user', {
-            autocapture: !skipAutocapture,
+            fetchRemoteConfig: false,
+            autocapture: {
+                pageViews: false,
+                elementInteractions: false,
+                formInteractions: {
+                    shouldTrackSubmit: (event) => {
+                        const form = event.target;
+                        const isValid = form.checkValidity();
+                        console.log('Custom form validity check:', isValid);
+                        return isValid;
+                    }
+                },
+            },
+            logLevel: 4,
         });
-
-        // Display autocapture status
-        const metricsDiv = document.getElementById('performance-metrics');
-        metricsDiv.innerHTML = `
-            <h3>Configuration:</h3>
-            <p>Autocapture: ${!skipAutocapture ? 'Enabled' : 'Disabled'}</p>
-        `;
 
         // Performance tracking
         let startTime;
@@ -289,12 +294,6 @@
                 <p>Total Blocking Time (TBT): <span id="tbt">${tbt.toFixed(2)}</span>ms</p>
                 <p>Number of Long Tasks: ${longTasks.length}</p>
             `;
-
-            // Track form submission with Amplitude
-            amplitude.track('Form Submitted', {
-                tbt: tbt.toFixed(2),
-                longTaskCount: longTasks.length
-            });
         });
     </script>
 </body>

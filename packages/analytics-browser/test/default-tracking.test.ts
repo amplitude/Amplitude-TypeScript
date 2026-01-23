@@ -1,6 +1,7 @@
 import {
   getAttributionTrackingConfig,
   getElementInteractionsConfig,
+  getFormInteractionsConfig,
   getFrustrationInteractionsConfig,
   getNetworkTrackingConfig,
   getPageViewTrackingConfig,
@@ -151,6 +152,69 @@ describe('isFormInteractionTrackingEnabled', () => {
         formInteractions: false,
       }),
     ).toBe(false);
+  });
+});
+
+describe('getFormInteractionsConfig', () => {
+  test('should return undefined when defaultTracking is undefined', () => {
+    const config = getFormInteractionsConfig({});
+    expect(config).toBeUndefined();
+  });
+
+  test('should return undefined when defaultTracking is true', () => {
+    const config = getFormInteractionsConfig({
+      defaultTracking: true,
+    });
+    expect(config).toBeUndefined();
+  });
+
+  test('should return undefined when defaultTracking is false', () => {
+    const config = getFormInteractionsConfig({
+      defaultTracking: false,
+    });
+    expect(config).toBeUndefined();
+  });
+
+  test('should return undefined when formInteractions is true', () => {
+    const config = getFormInteractionsConfig({
+      defaultTracking: {
+        formInteractions: true,
+      },
+    });
+    expect(config).toBeUndefined();
+  });
+
+  test('should return undefined when formInteractions is false', () => {
+    const config = getFormInteractionsConfig({
+      defaultTracking: {
+        formInteractions: false,
+      },
+    });
+    expect(config).toBeUndefined();
+  });
+
+  test('should return config with shouldTrackSubmit callback', () => {
+    const shouldTrackSubmit = jest.fn(() => true);
+    const config = getFormInteractionsConfig({
+      defaultTracking: {
+        formInteractions: {
+          shouldTrackSubmit,
+        },
+      },
+    });
+
+    expect(config).toBeDefined();
+    expect(config?.shouldTrackSubmit).toBe(shouldTrackSubmit);
+  });
+
+  test('should return empty config object when formInteractions is empty object', () => {
+    const config = getFormInteractionsConfig({
+      defaultTracking: {
+        formInteractions: {},
+      },
+    });
+
+    expect(config).toEqual({});
   });
 });
 

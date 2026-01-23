@@ -90,6 +90,7 @@ export {
   DEFAULT_DEAD_CLICK_WINDOW_MS,
 } from './types/frustration-interactions';
 export { PageTrackingOptions, PageTrackingTrackOn, PageTrackingHistoryChanges } from './types/page-view-tracking';
+export { FormInteractionsOptions } from './types/form-interactions';
 export { Status } from './types/status';
 
 export { NetworkEventCallback, networkObserver } from './observers/network';
