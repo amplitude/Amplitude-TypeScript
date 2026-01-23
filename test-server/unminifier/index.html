@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Stack Trace Unminifier</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 20px;
+        background: #f5f5f5;
+      }
+      
+      h1 {
+        color: #333;
+        margin-bottom: 10px;
+      }
+      
+      .description {
+        color: #666;
+        margin-bottom: 20px;
+      }
+      
+      .input-section {
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        margin-bottom: 20px;
+      }
+      
+      label {
+        display: block;
+        font-weight: 600;
+        margin-bottom: 8px;
+        color: #333;
+      }
+      
+      input[type="text"] {
+        width: 100%;
+        padding: 12px;
+        font-size: 14px;
+        font-family: monospace;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        margin-bottom: 15px;
+      }
+      
+      input[type="text"]:focus {
+        outline: none;
+        border-color: #4CAF50;
+        box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
+      }
+      
+      button {
+        background: #4CAF50;
+        color: white;
+        border: none;
+        padding: 12px 24px;
+        font-size: 16px;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: background 0.2s;
+      }
+      
+      button:hover {
+        background: #45a049;
+      }
+      
+      button:disabled {
+        background: #ccc;
+        cursor: not-allowed;
+      }
+      
+      .result-section {
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      }
+      
+      .result-section h2 {
+        margin-top: 0;
+        color: #333;
+        font-size: 18px;
+      }
+      
+      .result-item {
+        margin: 15px 0;
+        padding: 15px;
+        border-radius: 4px;
+        background: #f8f9fa;
+      }
+      
+      .result-item.success {
+        border-left: 4px solid #4CAF50;
+      }
+      
+      .result-item.error {
+        border-left: 4px solid #f44336;
+      }
+      
+      .result-label {
+        font-weight: 600;
+        color: #555;
+        margin-bottom: 5px;
+      }
+      
+      .result-value {
+        font-family: monospace;
+        word-break: break-all;
+        color: #333;
+      }
+      
+      .result-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+      }
+      
+      .result-card {
+        background: #fff;
+        border: 1px solid #e0e0e0;
+        padding: 12px;
+        border-radius: 4px;
+      }
+      
+      .result-card .label {
+        font-size: 12px;
+        color: #888;
+        text-transform: uppercase;
+        margin-bottom: 4px;
+      }
+      
+      .result-card .value {
+        font-family: monospace;
+        font-size: 14px;
+        color: #333;
+        word-break: break-all;
+      }
+      
+      .error-message {
+        color: #c62828;
+        background: #ffebee;
+        padding: 15px;
+        border-radius: 4px;
+        margin-top: 10px;
+      }
+      
+      .empty-state {
+        text-align: center;
+        color: #888;
+        padding: 40px;
+      }
+      
+      .loading {
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        border: 2px solid #fff;
+        border-radius: 50%;
+        border-top-color: transparent;
+        animation: spin 1s linear infinite;
+        margin-right: 8px;
+        vertical-align: middle;
+      }
+      
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+      
+      .example {
+        font-size: 12px;
+        color: #888;
+        margin-top: 5px;
+      }
+      
+      .example code {
+        background: #f0f0f0;
+        padding: 2px 6px;
+        border-radius: 3px;
+        font-family: monospace;
+      }
+
+      .copy-btn {
+        background: #2196F3;
+        padding: 6px 12px;
+        font-size: 12px;
+        margin-left: 10px;
+      }
+      
+      .copy-btn:hover {
+        background: #1976D2;
+      }
+      
+      .github-link {
+        display: inline-flex;
+        align-items: center;
+        background: #24292e;
+        color: white;
+        padding: 10px 16px;
+        border-radius: 6px;
+        text-decoration: none;
+        font-size: 14px;
+        font-weight: 500;
+        transition: background 0.2s;
+      }
+      
+      .github-link:hover {
+        background: #444d56;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Stack Trace Unminifier</h1>
+    <p class="description">
+      Paste a minified stack trace line from Amplitude CDN and get the original source location.
+    </p>
+    
+    <div class="input-section">
+      <label for="stacktrace-input">Stack Trace Line</label>
+      <input 
+        type="text" 
+        id="stacktrace-input" 
+        value="https://cdn.amplitude.com/libs/analytics-browser-2.33.5-min.js.gz:1:56244"
+      />
+      <button id="unminify-btn" onclick="unminify()">Unminify</button>
+    </div>
+    
+    <div class="result-section">
+      <h2>Result</h2>
+      <div id="result-container">
+        <div class="empty-state">
+          Enter a stack trace line above and click "Unminify" to see the original source location.
+        </div>
+      </div>
+    </div>
+
+    <script>
+      async function unminify() {
+        const input = document.getElementById('stacktrace-input');
+        const btn = document.getElementById('unminify-btn');
+        const container = document.getElementById('result-container');
+        const stacktraceLine = input.value.trim();
+        
+        if (!stacktraceLine) {
+          container.innerHTML = '<div class="error-message">Please enter a stack trace line.</div>';
+          return;
+        }
+        
+        // Show loading state
+        btn.disabled = true;
+        btn.innerHTML = '<span class="loading"></span>Processing...';
+        container.innerHTML = '<div class="empty-state">Looking up source map...</div>';
+        
+        try {
+          const response = await fetch('/api/unminify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ stacktraceLine })
+          });
+          
+          const data = await response.json();
+          
+          if (data.success) {
+            const isExternal = data.typescript?.isExternal;
+            const isTypeScript = data.typescript?.isTypeScript;
+            const githubLink = data.typescript?.githubLink;
+            const sourceLabel = isExternal ? 'External Dependency' : (isTypeScript ? 'TypeScript Source' : 'Source');
+            container.innerHTML = `
+              <div class="result-item success">
+                <div class="result-label">${sourceLabel}</div>
+                <div class="result-grid">
+                  <div class="result-card" style="grid-column: 1 / -1;">
+                    <div class="label">File Path</div>
+                    <div class="value" style="color: ${isExternal ? '#888' : '#2e7d32'}">
+                      ${escapeHtml(data.typescript?.relativePath || 'N/A')}
+                    </div>
+                  </div>
+                  <div class="result-card">
+                    <div class="label">Line</div>
+                    <div class="value">${data.original.line}</div>
+                  </div>
+                  <div class="result-card">
+                    <div class="label">Column</div>
+                    <div class="value">${data.original.column}</div>
+                  </div>
+                  ${data.original.name ? `
+                  <div class="result-card">
+                    <div class="label">Symbol Name</div>
+                    <div class="value">${escapeHtml(data.original.name)}</div>
+                  </div>
+                  ` : ''}
+                </div>
+                ${githubLink ? `
+                <div style="margin-top: 15px;">
+                  <a href="${escapeHtml(githubLink)}" target="_blank" rel="noopener noreferrer" class="github-link">
+                    <svg height="16" width="16" viewBox="0 0 16 16" style="vertical-align: text-bottom; margin-right: 6px;">
+                      <path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path>
+                    </svg>
+                    View on GitHub
+                  </a>
+                </div>
+                ` : ''}
+              </div>
+
+              <div class="result-item" style="border-left: 4px solid #ff9800;">
+                <div class="result-label">Raw Source Map Entry</div>
+                <div class="result-grid">
+                  <div class="result-card" style="grid-column: 1 / -1;">
+                    <div class="label">Source Path (as in source map)</div>
+                    <div class="value">${escapeHtml(data.original.source)}</div>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="result-item" style="border-left: 4px solid #2196F3;">
+                <div class="result-label">Minified Location</div>
+                <div class="result-grid">
+                  <div class="result-card">
+                    <div class="label">URL</div>
+                    <div class="value">${escapeHtml(data.minified.url)}</div>
+                  </div>
+                  <div class="result-card">
+                    <div class="label">Line</div>
+                    <div class="value">${data.minified.line}</div>
+                  </div>
+                  <div class="result-card">
+                    <div class="label">Column</div>
+                    <div class="value">${data.minified.column}</div>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="result-item" style="border-left: 4px solid #9e9e9e;">
+                <div class="result-label">Source Map URL</div>
+                <div class="result-value"><a href="${escapeHtml(data.sourceMapUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(data.sourceMapUrl)}</a></div>
+              </div>
+            `;
+          } else if (data.sourceMapNotFound && data.instructions) {
+            container.innerHTML = `
+              <div class="result-item error">
+                <div class="error-message">${escapeHtml(data.error)}</div>
+                <div style="margin-top: 15px; padding: 15px; background: #fff3e0; border-radius: 4px; border-left: 4px solid #ff9800;">
+                  <div style="font-weight: 600; margin-bottom: 10px; color: #e65100;">
+                    ${escapeHtml(data.instructions.summary)}
+                  </div>
+                  <div style="font-weight: 600; margin-bottom: 8px; color: #333;">To upload the source map:</div>
+                  <ol style="margin: 0; padding-left: 20px; font-family: monospace; font-size: 13px; line-height: 1.8;">
+                    ${data.instructions.steps.map(step => `<li>${escapeHtml(step.substring(3))}</li>`).join('')}
+                  </ol>
+                </div>
+                ${data.sourceMapUrl ? `
+                <div style="margin-top: 10px; font-size: 12px; color: #666;">
+                  Expected source map URL: <code>${escapeHtml(data.sourceMapUrl)}</code>
+                </div>
+                ` : ''}
+              </div>
+            `;
+          } else {
+            container.innerHTML = `
+              <div class="result-item error">
+                <div class="error-message">${escapeHtml(data.error)}</div>
+                ${data.sourceMapUrl ? `
+                <div style="margin-top: 10px; font-size: 12px; color: #666;">
+                  Source map URL: <code>${escapeHtml(data.sourceMapUrl)}</code>
+                </div>
+                ` : ''}
+              </div>
+            `;
+          }
+        } catch (error) {
+          container.innerHTML = `
+            <div class="result-item error">
+              <div class="error-message">Network error: ${escapeHtml(error.message)}</div>
+            </div>
+          `;
+        } finally {
+          btn.disabled = false;
+          btn.textContent = 'Unminify';
+        }
+      }
+      
+      function escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+      }
+      
+      // Allow pressing Enter to submit
+      document.getElementById('stacktrace-input').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+          unminify();
+        }
+      });
+    </script>
+  </body>
+</html>
