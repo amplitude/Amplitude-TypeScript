@@ -4,6 +4,26 @@ import { createAmplitudeMock, createConfigurationMock } from '../helpers/mock';
 import { formInteractionTracking } from '../../src/plugins/form-interaction-tracking';
 import { FORM_DESTINATION, FORM_ID, FORM_NAME } from '../../src/constants';
 
+// SubmitEvent is not available in JSDOM, so we need to polyfill it
+if (typeof SubmitEvent === 'undefined') {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (global as any).SubmitEvent = function SubmitEvent(
+    this: Event & { submitter: HTMLElement | null },
+    type: string,
+    eventInitDict?: SubmitEventInit,
+  ) {
+    const event = new Event(type, eventInitDict);
+    Object.setPrototypeOf(event, SubmitEvent.prototype);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (event as any).submitter = eventInitDict?.submitter ?? null;
+    return event;
+  };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (global as any).SubmitEvent.prototype = Object.create(Event.prototype);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (global as any).SubmitEvent.prototype.constructor = (global as any).SubmitEvent;
+}
+
 describe('formInteractionTracking', () => {
   let amplitude = createAmplitudeMock();
 
@@ -338,8 +358,8 @@ describe('formInteractionTracking', () => {
       await plugin.setup?.(config, amplitude);
       window.dispatchEvent(new Event('load'));
 
-      // trigger submit event
-      document.getElementById('my-form-id')?.dispatchEvent(new Event('submit'));
+      // trigger submit event with SubmitEvent
+      document.getElementById('my-form-id')?.dispatchEvent(new SubmitEvent('submit'));
 
       // assert shouldTrackSubmit was called
       expect(shouldTrackSubmit).toHaveBeenCalledTimes(1);
@@ -367,11 +387,11 @@ describe('formInteractionTracking', () => {
       window.dispatchEvent(new Event('load'));
 
       // trigger first submit event (tracks form_start)
-      document.getElementById('my-form-id')?.dispatchEvent(new Event('submit'));
+      document.getElementById('my-form-id')?.dispatchEvent(new SubmitEvent('submit'));
       expect(amplitude.track).toHaveBeenCalledTimes(1);
 
       // trigger second submit event (should NOT track form_start again)
-      document.getElementById('my-form-id')?.dispatchEvent(new Event('submit'));
+      document.getElementById('my-form-id')?.dispatchEvent(new SubmitEvent('submit'));
 
       // assert shouldTrackSubmit was called twice
       expect(shouldTrackSubmit).toHaveBeenCalledTimes(2);
@@ -393,8 +413,8 @@ describe('formInteractionTracking', () => {
       await plugin.setup?.(config, amplitude);
       window.dispatchEvent(new Event('load'));
 
-      // trigger submit event
-      document.getElementById('my-form-id')?.dispatchEvent(new Event('submit'));
+      // trigger submit event with SubmitEvent
+      document.getElementById('my-form-id')?.dispatchEvent(new SubmitEvent('submit'));
 
       // assert shouldTrackSubmit was called
       expect(shouldTrackSubmit).toHaveBeenCalledTimes(1);
