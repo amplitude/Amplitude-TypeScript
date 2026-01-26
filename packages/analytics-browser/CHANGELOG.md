@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.34.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.33.5...@amplitude/analytics-browser@2.34.0) (2026-01-26)
+
+
+### Features
+
+* **analytics-browser:** add shouldTrackSubmit for custom form validation ([#1500](https://github.com/amplitude/Amplitude-TypeScript/issues/1500)) ([1d76745](https://github.com/amplitude/Amplitude-TypeScript/commit/1d76745dc202e27d188bfe47ae76d69806bbb566))
+
+
+
+
+
 ## [2.33.5](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.33.4...@amplitude/analytics-browser@2.33.5) (2026-01-21)
 
 **Note:** Version bump only for package @amplitude/analytics-browser

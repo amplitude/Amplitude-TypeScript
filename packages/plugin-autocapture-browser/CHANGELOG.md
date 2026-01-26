@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.19.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.18.7...@amplitude/plugin-autocapture-browser@1.19.0) (2026-01-26)
+
+
+### Features
+
+* **analytics-browser:** support Error Clicks in frustration interactions ([#1491](https://github.com/amplitude/Amplitude-TypeScript/issues/1491)) ([d6f4c59](https://github.com/amplitude/Amplitude-TypeScript/commit/d6f4c59b4d71f8fe1e0e906221f2c6469a643cf9))
+
+
+
+
+
 ## [1.18.7](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.18.6...@amplitude/plugin-autocapture-browser@1.18.7) (2026-01-21)
 
 
