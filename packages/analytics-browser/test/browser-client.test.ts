@@ -1039,6 +1039,54 @@ describe('browser-client', () => {
       },
     );
 
+    describe('config.optOut', () => {
+      describe('when optOut is true', () => {
+        beforeEach(async () => {
+          await client.init(apiKey, userId, {
+            optOut: true,
+          }).promise;
+        });
+
+        test('should defer sessionId start until after optOut changes', async () => {
+          expect(client.config.sessionId).toBeUndefined();
+          client.setOptOut(false);
+          expect(client.config.sessionId).toBeGreaterThan(0);
+        });
+
+        test('should defer sessionId start until another init call with optOut false', async () => {
+          expect(client.config.sessionId).toBeUndefined();
+          await client.init(apiKey, userId, {
+            optOut: false,
+          }).promise;
+          expect(client.config.sessionId).toBeGreaterThan(0);
+        });
+      });
+
+      describe('when optOut is false', () => {
+        let sessionId: number | undefined;
+        beforeEach(async () => {
+          await client.init(apiKey, userId, {
+            optOut: false,
+          }).promise;
+          sessionId = client.config.sessionId;
+        });
+
+        test('should not change sessionId when optOut changes to true', async () => {
+          expect(sessionId).toBeGreaterThan(0);
+          client.setOptOut(true);
+          expect(client.config.sessionId).toBe(sessionId);
+        });
+
+        test('should not change sessionId when another init called again with optOut false', async () => {
+          expect(sessionId).toBeGreaterThan(0);
+          await client.init(apiKey, userId, {
+            optOut: false,
+          }).promise;
+          expect(client.config.sessionId).toBe(sessionId);
+        });
+      });
+    });
+
     describe('ampTimestamp validation', () => {
       const originalLocation = window.location;
       const originalDateNow = Date.now;
