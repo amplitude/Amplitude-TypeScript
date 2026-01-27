@@ -114,6 +114,7 @@ interface InternalBrowserConfig {
   diagnosticsSampleRate?: number;
   diagnosticsClient?: IDiagnosticsClient;
   remoteConfigClient?: IRemoteConfigClient;
+  deferredSessionId?: number;
 }
 
 /**

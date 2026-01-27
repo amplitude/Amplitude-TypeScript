@@ -51,6 +51,7 @@ export class BrowserConfig extends Config implements IBrowserConfig {
   protected _lastEventTime?: number;
   protected _optOut = false;
   protected _sessionId?: number;
+  protected _deferredSessionId?: number;
   protected _userId?: string;
   protected _pageCounter?: number;
   protected _debugLogsEnabled?: boolean;
@@ -177,6 +178,17 @@ export class BrowserConfig extends Config implements IBrowserConfig {
     }
   }
 
+  get deferredSessionId() {
+    return this._deferredSessionId;
+  }
+
+  set deferredSessionId(deferredSessionId: number | undefined) {
+    if (this._deferredSessionId !== deferredSessionId) {
+      this._deferredSessionId = deferredSessionId;
+      this.updateStorage();
+    }
+  }
+
   get optOut() {
     return this._optOut;
   }
@@ -233,6 +245,7 @@ export class BrowserConfig extends Config implements IBrowserConfig {
       deviceId: this._deviceId,
       userId: this._userId,
       sessionId: this._sessionId,
+      deferredSessionId: this._deferredSessionId,
       optOut: this._optOut,
       lastEventTime: this._lastEventTime,
       lastEventId: this._lastEventId,
@@ -318,6 +331,7 @@ export const useBrowserConfig = async (
   const lastEventTime = previousCookies?.lastEventTime ?? legacyCookies.lastEventTime;
   const optOut = options.optOut ?? previousCookies?.optOut ?? legacyCookies.optOut;
   const sessionId = previousCookies?.sessionId ?? legacyCookies.sessionId;
+  const deferredSessionId = previousCookies?.deferredSessionId;
   const userId = options.userId ?? previousCookies?.userId ?? legacyCookies.userId;
   amplitudeInstance.previousSessionDeviceId = previousCookies?.deviceId ?? legacyCookies.deviceId;
   amplitudeInstance.previousSessionUserId = previousCookies?.userId ?? legacyCookies.userId;
@@ -387,6 +401,8 @@ export const useBrowserConfig = async (
     );
     browserConfig.storageProvider = new MemoryStorage();
   }
+
+  browserConfig.deferredSessionId = deferredSessionId;
 
   return browserConfig;
 };

@@ -19,7 +19,8 @@ export class Timeline {
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore
   loggerProvider: ILogger;
-
+  _optOutListeners: ((optOut: boolean) => void)[] = [];
+  
   constructor(private client: CoreClient) {}
 
   async register(plugin: Plugin, config: IConfig) {
@@ -183,6 +184,11 @@ export class Timeline {
     await Promise.all(executeDestinations);
   }
 
+  _addOptOutListener(cb: (optOut: boolean) => void) {
+    this._optOutListeners = this._optOutListeners ?? [];
+    this._optOutListeners.push(cb);
+  }
+
   onIdentityChanged(identity: AnalyticsIdentity) {
     this.plugins.forEach((plugin) => {
       // Intentionally to not await plugin.onIdentityChanged() for non-blocking.
@@ -211,6 +217,7 @@ export class Timeline {
       /* istanbul ignore next */
       void plugin.onOptOutChanged?.(optOut);
     });
+    this._optOutListeners.forEach((listener) => listener(optOut));
   }
 
   onReset() {
