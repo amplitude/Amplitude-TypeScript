@@ -8,20 +8,31 @@
 <body>
   <h1>Opt Out Test</h1>
   <p>This page initializes Amplitude with optOut enabled.</p>
-  <button id="setOptOutBtn">Set Opt Out</button>
-  <button onClick="amplitude.track('test event')" id="Track Event">Track Event</button>
+  <div>
+    <button id="setOptOutBtn">Turn off opt out</button>
+    <button id="initAgain">Call init again with optOut false</button>
+  </div>
+  <div style="margin-top: 10px;">
+    <button onClick="amplitude.track('test event')" id="Track Event">Track Event</button>
+  </div>
+  <p id="isOptedIn">Not opted in</p>
   
   <script type="module">
     import * as amplitude from '@amplitude/analytics-browser';
-    
-    // Initialize Amplitude with optOut enabled
-    amplitude.init(import.meta.env.VITE_AMPLITUDE_API_KEY, {
-      optOut: false,
+
+    const baseConfig = {
       autocapture: {
         sessions: true,
         pageViews: true,
+        attribution: true,
       },
       //identityStorage: 'memory', // set to memory so easy to test session on each page
+    };
+    
+    // Initialize Amplitude with optOut enabled
+    amplitude.init(import.meta.env.VITE_AMPLITUDE_API_KEY, {
+      ...baseConfig,
+      optOut: true,
     });
     
     // Make amplitude available globally for debugging
@@ -31,6 +42,16 @@
     document.getElementById('setOptOutBtn').addEventListener('click', () => {
       amplitude.setOptOut(false);
       console.log('setOptOut(true) called');
+      document.getElementById('isOptedIn').textContent = 'Opted in';
+    });
+
+    document.getElementById('initAgain').addEventListener('click', () => {
+      amplitude.init(import.meta.env.VITE_AMPLITUDE_API_KEY, {
+        ...baseConfig,
+        optOut: false,
+      });
+      console.log('init again called');
+      document.getElementById('isOptedIn').textContent = 'Opted in';
     });
   </script>
 </body>

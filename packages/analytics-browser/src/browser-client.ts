@@ -254,17 +254,18 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
       isWithinTimeLimit && !Number.isNaN(Number(queryParams.ampSessionId))
         ? Number(queryParams.ampSessionId)
         : undefined;
-    
+
+    this.setSessionId(
+      options.sessionId ?? querySessionId ?? this.config.deferredSessionId ?? this.config.sessionId ?? Date.now(),
+    );
+
+    // TODO: confirm deferredSessionId is working across pages
     if (options.optOut) {
-      // TODO: confirm deferredSessionId is working across pages
       this.timeline._addOptOutListener((optOut) => {
-        this.setSessionId(
-          options.sessionId ?? querySessionId ?? this.config.deferredSessionId ?? this.config.sessionId ?? Date.now(),
-          { optIn: !optOut }
-        );
+        if (!optOut && this.config.deferredSessionId) {
+          this.setSessionId(this.config.deferredSessionId);
+        }
       });
-    } else {
-      this.setSessionId(options.sessionId ?? querySessionId ?? this.config.deferredSessionId ?? this.config.sessionId ?? Date.now());
     }
 
     // Set up the analytics connector to integrate with the experiment SDK.
@@ -400,19 +401,19 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
     return this.config?.sessionId;
   }
 
-  setSessionId(sessionId: number, options: { optIn?: boolean } = { optIn: false }) {
+  setSessionId(sessionId: number) {
     const promises: Promise<Result>[] = [];
     if (!this.config) {
       this.q.push(this.setSessionId.bind(this, sessionId));
       return returnWrapper(Promise.resolve());
     }
     // do not start a new session if optOut is true
-    if (!(options?.optIn === true) && this.config.optOut) {
+    if (this.config.optOut) {
       // save the sessionId to storage to be used when optOut is false
       this.config.deferredSessionId = sessionId;
       return returnWrapper(Promise.resolve());
     }
-    
+
     // Prevents starting a new session with the same session ID
     if (sessionId === this.config.sessionId) {
       return returnWrapper(Promise.resolve());
@@ -549,7 +550,7 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
       (!event.session_id || event.session_id === this.getSessionId())
     ) {
       if (isEventInNewSession || shouldSetSessionIdOnNewCampaign) {
-        this.setSessionId(currentTime, { optOut: this.config.optOut });
+        this.setSessionId(currentTime);
         if (shouldSetSessionIdOnNewCampaign) {
           this.config.loggerProvider.log('Created a new session for new campaign.');
         }
