@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Unified Script Test</title>
+  <script type="module">
+    const apiKey = import.meta.env.VITE_AMPLITUDE_API_KEY;
+    const script = document.createElement('script');
+    script.src = `https://cdn.amplitude.com/script/${apiKey}.js`;
+    document.head.appendChild(script);
+  </script>
+</head>
+<body>
+  <h1>Unified Script</h1>
+  <p>Open the browser DevTools Network tab to see all scripts loading.</p>
+</body>
+</html>
