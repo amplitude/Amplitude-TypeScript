@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Opt Out Test</title>
+</head>
+<body>
+  <h1>Opt Out Test</h1>
+  <p>This page initializes Amplitude with optOut enabled.</p>
+  <button id="setOptOutBtn">Set Opt Out</button>
+  <button onClick="amplitude.track('test event')" id="Track Event">Track Event</button>
+  
+  <script type="module">
+    import * as amplitude from '@amplitude/analytics-browser';
+    
+    // Initialize Amplitude with optOut enabled
+    amplitude.init(import.meta.env.VITE_AMPLITUDE_API_KEY, {
+      optOut: false,
+      autocapture: {
+        sessions: true,
+        pageViews: true,
+      },
+      //identityStorage: 'memory', // set to memory so easy to test session on each page
+    });
+    
+    // Make amplitude available globally for debugging
+    window.amplitude = amplitude;
+    
+    // Button click handler
+    document.getElementById('setOptOutBtn').addEventListener('click', () => {
+      amplitude.setOptOut(false);
+      console.log('setOptOut(true) called');
+    });
+  </script>
+</body>
+</html>
+

@@ -256,8 +256,8 @@ export class AmplitudeCore implements CoreClient, PluginHost {
 
   _setOptOut(optOut: boolean) {
     if (this.config.optOut !== optOut) {
-      this.timeline.onOptOutChanged(optOut);
       this.config.optOut = Boolean(optOut);
+      this.timeline.onOptOutChanged(optOut);
     }
   }
 
