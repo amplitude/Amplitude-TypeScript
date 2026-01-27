@@ -72,25 +72,6 @@ export type UGCFilterRule = {
   replacement: string;
 };
 
-/**
- * Background capture options for Zoning dashboard integration.
- */
-export interface BackgroundCaptureOptions {
-  /**
-   * Enable background capture functionality.
-   *
-   * @defaultValue false
-   */
-  enabled?: boolean;
-  /**
-   * Expected origin of the parent window (e.g., Zoning dashboard).
-   * Messages from other origins will be ignored for security.
-   *
-   * @defaultValue 'https://app.amplitude.com'
-   */
-  openerOrigin?: string;
-}
-
 export interface SessionReplayLocalConfig extends IConfig {
   apiKey: string;
   loggerProvider: ILogger;
@@ -208,11 +189,6 @@ export interface SessionReplayLocalConfig extends IConfig {
    */
   captureDocumentTitle?: boolean;
   interactionConfig?: InteractionConfig;
-  /**
-   * Background capture options for Zoning dashboard integration.
-   * Enables communication with parent window for on-demand snapshot capture.
-   */
-  backgroundCaptureOptions?: BackgroundCaptureOptions;
 }
 
 export interface SessionReplayJoinedConfig extends SessionReplayLocalConfig {

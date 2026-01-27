@@ -6,13 +6,15 @@ export type Action =
   | 'initialize-background-capture'
   | 'close-background-capture'
   | 'background-capture-loaded'
-  | 'background-capture-complete';
+  | 'background-capture-complete'
+  | 'page-loaded';
 
 export type ActionData = {
   'initialize-background-capture': null | undefined;
   'close-background-capture': null | undefined;
   'background-capture-loaded': null | undefined;
   'background-capture-complete': { [key: string]: string | number | null };
+  'page-loaded': null | undefined;
 };
 
 export interface Message<A extends Action> {
@@ -40,9 +42,11 @@ export class WindowMessenger implements Messenger {
   private endpoint?: string;
   private requestCallbacks: Map<string, RequestCallback> = new Map();
   private nextRequestId = 0;
+  private amplitudeBackgroundCaptureInstance: any = null;
 
   setup(config: { endpoint?: string; logger?: ILogger } = {}) {
     const { endpoint = AMPLITUDE_ORIGIN, logger } = config;
+
     if (this.endpoint) {
       this.logger?.warn('Messenger already setup, skipping duplicate setup');
       return;
@@ -50,10 +54,6 @@ export class WindowMessenger implements Messenger {
 
     this.endpoint = endpoint;
     this.logger = logger;
-
-    let amplitudeBackgroundCaptureInstance: any = null;
-
-    this.logger?.debug?.('Setting up background capture messenger');
 
     const globalScope = getGlobalScope();
     if (!globalScope) {
@@ -63,22 +63,18 @@ export class WindowMessenger implements Messenger {
 
     // Listen for messages from parent window
     globalScope.addEventListener('message', (event) => {
-      this.logger?.debug?.('Message received: ', JSON.stringify(event));
-
       // Validate origin
       if (this.endpoint && event.origin !== this.endpoint) {
-        this.logger?.debug?.(`Ignoring message from ${event.origin}, expected ${this.endpoint}`);
         return;
       }
 
       const message = event.data as Message<Action>;
+      const { action, requestId, data } = message;
 
-      // Validate message structure
-      if (!message || message.source !== 'amplitude-session-replay') {
+      // Ignore messages without action
+      if (!action) {
         return;
       }
-
-      const { action, requestId, data } = message;
 
       // Handle responses to requests
       if (requestId && this.requestCallbacks.has(requestId)) {
@@ -93,28 +89,41 @@ export class WindowMessenger implements Messenger {
 
       // Handle action messages
       if (action === 'initialize-background-capture') {
-        this.logger?.debug?.('Initializing background capture (external script)');
-        asyncLoadScript(new URL(AMPLITUDE_BACKGROUND_CAPTURE_SCRIPT_URL, this.endpoint).toString())
-          .then(() => {
-            this.logger?.debug?.('Background capture script loaded (external)');
-            const globalScope = getGlobalScope();
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
-            amplitudeBackgroundCaptureInstance = (globalScope as any)?.amplitudeBackgroundCapture?.({
-              messenger: this,
-              onBackgroundCapture: this.onBackgroundCapture,
-            });
-            this.notify({ action: 'background-capture-loaded' });
-          })
-          .catch(() => {
-            this.logger?.warn('Failed to initialize background capture');
-          });
+        this.initializeBackgroundCapture();
       } else if (action === 'close-background-capture') {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
-        amplitudeBackgroundCaptureInstance?.close?.();
+        this.amplitudeBackgroundCaptureInstance?.close?.();
       }
     });
 
-    this.logger?.log('Background capture messenger setup complete');
+    // Notify the parent window that the page has loaded
+    this.notify({ action: 'page-loaded' });
+  }
+
+  private initializeBackgroundCapture(): void {
+    const scriptUrl = new URL(AMPLITUDE_BACKGROUND_CAPTURE_SCRIPT_URL, this.endpoint).toString();
+
+    asyncLoadScript(scriptUrl)
+      .then(() => {
+        const globalScope = getGlobalScope();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+        const amplitudeBackgroundCaptureFn = (globalScope as any)?.amplitudeBackgroundCapture;
+
+        if (amplitudeBackgroundCaptureFn) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+          this.amplitudeBackgroundCaptureInstance = amplitudeBackgroundCaptureFn({
+            messenger: this,
+            onBackgroundCapture: this.onBackgroundCapture,
+          });
+        } else {
+          this.logger?.warn('amplitudeBackgroundCapture function not found on global scope');
+        }
+
+        this.notify({ action: 'background-capture-loaded' });
+      })
+      .catch((error) => {
+        this.logger?.warn('Failed to initialize background capture:', error);
+      });
   }
 
   notify<A extends Action>(message: Omit<Message<A>, 'source'>): void {
@@ -132,7 +141,6 @@ export class WindowMessenger implements Messenger {
     if (globalScope?.opener) {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
       globalScope.opener.postMessage(fullMessage, this.endpoint);
-      this.logger?.debug?.('Sent message to parent:', fullMessage);
     } else {
       this.logger?.warn('Cannot notify: no window.opener');
     }
@@ -170,13 +178,11 @@ export class WindowMessenger implements Messenger {
 
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
       globalScope.opener.postMessage(fullMessage, this.endpoint);
-      this.logger?.debug?.('Sent request to parent:', fullMessage);
     });
   }
 
   private onBackgroundCapture = (type: string, backgroundCaptureData: { [key: string]: string | number | null }) => {
     if (type === 'background-capture-complete') {
-      this.logger?.debug?.('Background capture complete');
       this.notify({ action: 'background-capture-complete', data: backgroundCaptureData });
     }
   };

@@ -133,10 +133,8 @@ export class SessionReplay implements AmplitudeSessionReplay {
       options.version?.type,
     );
 
-    // Setup background capture if enabled and page has opener
-    if (this.config.backgroundCaptureOptions?.enabled) {
-      await this.setupBackgroundCapture();
-    }
+    // Setup background capture if page has opener
+    await this.setupBackgroundCapture();
 
     if (options.sessionId && this.config.interactionConfig?.enabled) {
       const scrollWatcher = ScrollWatcher.default(
@@ -795,12 +793,6 @@ export class SessionReplay implements AmplitudeSessionReplay {
 
     // Only setup if opened by parent window
     if (!globalScope?.opener) {
-      this.loggerProvider.log('Background capture not setup: no window.opener');
-      return;
-    }
-
-    const { backgroundCaptureOptions } = this.config || {};
-    if (!backgroundCaptureOptions?.enabled) {
       return;
     }
 
@@ -809,11 +801,9 @@ export class SessionReplay implements AmplitudeSessionReplay {
       this.backgroundCaptureMessenger = new WindowMessenger();
 
       this.backgroundCaptureMessenger.setup({
-        endpoint: backgroundCaptureOptions.openerOrigin || AMPLITUDE_ORIGIN,
+        endpoint: AMPLITUDE_ORIGIN,
         logger: this.loggerProvider,
       });
-
-      this.loggerProvider.log('Background capture messenger initialized');
     } catch (error) {
       this.loggerProvider.warn('Failed to setup background capture:', error);
     }

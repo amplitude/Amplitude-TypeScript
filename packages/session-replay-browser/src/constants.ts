@@ -31,8 +31,7 @@ export const MAX_URL_LENGTH = 1000;
 // Background capture / Zoning integration
 export const AMPLITUDE_ORIGIN = 'https://app.amplitude.com';
 export const AMPLITUDE_BACKGROUND_CAPTURE_SCRIPT_URL =
-  'https://cdn.amplitude.com/libs/background-capture-1.0.0-alpha.0.js.gz';
-
+  'https://cdn.amplitude.com/libs/background-capture-1.0.0-alpha.1.js.gz';
 export enum CustomRRwebEvent {
   GET_SR_PROPS = 'get-sr-props',
   DEBUG_INFO = 'debug-info',
