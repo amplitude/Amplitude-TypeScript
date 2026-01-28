@@ -54,6 +54,7 @@ export class Timeline {
   }
 
   reset(client: CoreClient) {
+    this._clearOptOutListeners();
     this.applying = false;
     const plugins = this.plugins;
     plugins.map((plugin) => plugin.teardown?.());
