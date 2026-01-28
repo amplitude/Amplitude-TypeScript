@@ -581,15 +581,13 @@ describe('timeline', () => {
     let mockOptOutListener: jest.Mock;
 
     beforeEach(() => {
+      timeline._clearOptOutListeners();
       mockOptOutListener = jest.fn();
       timeline._addOptOutListener(mockOptOutListener);
     });
 
-    afterEach(() => {
-      timeline._optOutListeners = [];
-    });
-
     test('optOut listener should be called when optOut is changed', async () => {
+      expect(timeline._optOutListeners.length).toBe(1);
       timeline.onOptOutChanged(true);
       expect(mockOptOutListener).toHaveBeenCalledTimes(1);
       expect(mockOptOutListener).toHaveBeenCalledWith(true);

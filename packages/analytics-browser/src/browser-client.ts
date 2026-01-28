@@ -121,6 +121,8 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
     let diagnosticsSampleRate = this._diagnosticsSampleRate;
     let enableDiagnostics = options.enableDiagnostics ?? true;
 
+    this.timeline._clearOptOutListeners();
+
     // Step 2.2: Fetch diagnostics config FIRST to get sample rate for DiagnosticsClient
     // We want to create DiagnosticsClient as early as possible so it can track more data
     /* istanbul ignore next */
@@ -259,7 +261,6 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
       options.sessionId ?? querySessionId ?? this.config.deferredSessionId ?? this.config.sessionId ?? Date.now(),
     );
 
-    // TODO: confirm deferredSessionId is working across pages
     if (options.optOut) {
       this.timeline._addOptOutListener((optOut) => {
         if (!optOut && this.config.deferredSessionId) {
