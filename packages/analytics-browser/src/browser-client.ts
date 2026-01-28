@@ -254,7 +254,18 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
       isWithinTimeLimit && !Number.isNaN(Number(queryParams.ampSessionId))
         ? Number(queryParams.ampSessionId)
         : undefined;
-    this.setSessionId(options.sessionId ?? querySessionId ?? this.config.sessionId ?? Date.now());
+
+    this.setSessionId(
+      options.sessionId ?? querySessionId ?? this.config.deferredSessionId ?? this.config.sessionId ?? Date.now(),
+    );
+
+    if (this.config.optOut) {
+      this.timeline._addOptOutListener((optOut) => {
+        if (!optOut && this.config.deferredSessionId) {
+          this.setSessionId(this.config.deferredSessionId);
+        }
+      });
+    }
 
     // Set up the analytics connector to integrate with the experiment SDK.
     // Send events from the experiment SDK and forward identifies to the
@@ -395,6 +406,13 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
       this.q.push(this.setSessionId.bind(this, sessionId));
       return returnWrapper(Promise.resolve());
     }
+    // do not start a new session if optOut is true
+    if (this.config.optOut) {
+      // save the sessionId to storage to be used when optOut is false
+      this.config.deferredSessionId = sessionId;
+      return returnWrapper(Promise.resolve());
+    }
+
     // Prevents starting a new session with the same session ID
     if (sessionId === this.config.sessionId) {
       return returnWrapper(Promise.resolve());

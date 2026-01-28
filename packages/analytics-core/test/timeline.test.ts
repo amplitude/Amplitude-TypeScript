@@ -576,4 +576,21 @@ describe('timeline', () => {
       expect(onReset).toHaveBeenCalledTimes(1);
     });
   });
+
+  describe('_addOptOutListener', () => {
+    let mockOptOutListener: jest.Mock;
+
+    beforeEach(() => {
+      timeline.reset(new AmplitudeCore());
+      mockOptOutListener = jest.fn();
+      timeline._addOptOutListener(mockOptOutListener);
+    });
+
+    test('optOut listener should be called when optOut is changed', async () => {
+      expect(timeline._optOutListeners.length).toBe(1);
+      timeline.onOptOutChanged(true);
+      expect(mockOptOutListener).toHaveBeenCalledTimes(1);
+      expect(mockOptOutListener).toHaveBeenCalledWith(true);
+    });
+  });
 });
