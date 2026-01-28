@@ -174,6 +174,11 @@ export class BrowserConfig extends Config implements IBrowserConfig {
   set sessionId(sessionId: number | undefined) {
     if (this._sessionId !== sessionId) {
       this._sessionId = sessionId;
+      // Clear deferredSessionId when sessionId is set to prevent stale values
+      // from overriding legitimate sessionIds on subsequent page loads
+      if (sessionId !== undefined && this._deferredSessionId !== undefined) {
+        this._deferredSessionId = undefined;
+      }
       this.updateStorage();
     }
   }
