@@ -87,6 +87,7 @@ export class BrowserConfig extends Config implements IBrowserConfig {
     public serverUrl: string = '',
     public serverZone: ServerZoneType = DEFAULT_SERVER_ZONE,
     sessionId?: number,
+    deferredSessionId?: number,
     public sessionTimeout: number = 30 * 60 * 1000,
     public storageProvider: Storage<Event[]> = new LocalStorage({ loggerProvider }),
     public trackingOptions: Required<TrackingOptions> = {
@@ -114,6 +115,7 @@ export class BrowserConfig extends Config implements IBrowserConfig {
     this.lastEventTime = lastEventTime;
     this.optOut = optOut;
     this.sessionId = sessionId;
+    this.deferredSessionId = deferredSessionId;
     this.pageCounter = pageCounter;
     this.userId = userId;
     this.debugLogsEnabled = debugLogsEnabled;
@@ -382,6 +384,7 @@ export const useBrowserConfig = async (
     // Use earlyConfig.serverZone to ensure consistent serverZone
     earlyConfig?.serverZone ?? options.serverZone,
     sessionId,
+    deferredSessionId,
     options.sessionTimeout,
     options.storageProvider,
     trackingOptions,
@@ -406,8 +409,6 @@ export const useBrowserConfig = async (
     );
     browserConfig.storageProvider = new MemoryStorage();
   }
-
-  browserConfig.deferredSessionId = deferredSessionId;
 
   return browserConfig;
 };

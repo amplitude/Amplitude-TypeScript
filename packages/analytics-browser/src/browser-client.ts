@@ -259,7 +259,7 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
       options.sessionId ?? querySessionId ?? this.config.deferredSessionId ?? this.config.sessionId ?? Date.now(),
     );
 
-    if (options.optOut) {
+    if (this.config.optOut) {
       this.timeline._addOptOutListener((optOut) => {
         if (!optOut && this.config.deferredSessionId) {
           this.setSessionId(this.config.deferredSessionId);
