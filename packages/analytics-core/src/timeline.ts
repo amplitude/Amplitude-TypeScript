@@ -188,6 +188,10 @@ export class Timeline {
     this._optOutListeners.push(cb);
   }
 
+  _clearOptOutListeners() {
+    this._optOutListeners = [];
+  }
+
   onIdentityChanged(identity: AnalyticsIdentity) {
     this.plugins.forEach((plugin) => {
       // Intentionally to not await plugin.onIdentityChanged() for non-blocking.
