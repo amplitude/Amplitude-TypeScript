@@ -20,7 +20,7 @@ export class Timeline {
   // @ts-ignore
   loggerProvider: ILogger;
   _optOutListeners: ((optOut: boolean) => void)[] = [];
-  
+
   constructor(private client: CoreClient) {}
 
   async register(plugin: Plugin, config: IConfig) {
@@ -185,7 +185,6 @@ export class Timeline {
   }
 
   _addOptOutListener(cb: (optOut: boolean) => void) {
-    this._optOutListeners = this._optOutListeners ?? [];
     this._optOutListeners.push(cb);
   }
 
