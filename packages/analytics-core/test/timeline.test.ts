@@ -581,7 +581,7 @@ describe('timeline', () => {
     let mockOptOutListener: jest.Mock;
 
     beforeEach(() => {
-      timeline._clearOptOutListeners();
+      timeline.reset(new AmplitudeCore());
       mockOptOutListener = jest.fn();
       timeline._addOptOutListener(mockOptOutListener);
     });
