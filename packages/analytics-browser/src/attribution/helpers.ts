@@ -4,6 +4,7 @@ export interface Options {
   excludeReferrers?: (string | RegExp)[];
   initialEmptyValue?: string;
   resetSessionOnNewCampaign?: boolean;
+  optOut?: boolean;
 }
 
 const domainWithoutSubdomain = (domain: string) => {
