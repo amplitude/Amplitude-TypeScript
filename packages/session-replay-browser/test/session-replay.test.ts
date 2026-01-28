@@ -2184,6 +2184,81 @@ describe('SessionReplay', () => {
         deviceId: '1a2b3c',
       });
     });
+
+    test('should close background capture messenger if active', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+
+      // Mock window.opener to enable background capture setup
+      const mockOpener = {
+        postMessage: jest.fn(),
+      };
+      jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue({
+        ...mockGlobalScope,
+        opener: mockOpener,
+      } as typeof globalThis);
+
+      // Setup background capture
+      await (sessionReplay as any).setupBackgroundCapture();
+
+      // Verify background capture messenger was created
+      expect((sessionReplay as any).backgroundCaptureMessenger).toBeDefined();
+
+      // Mock the notify method
+      const notifySpy = jest.spyOn((sessionReplay as any).backgroundCaptureMessenger, 'notify');
+
+      // Call shutdown
+      sessionReplay.shutdown();
+
+      // Verify notify was called with close action
+      expect(notifySpy).toHaveBeenCalledWith({ action: 'close-background-capture' });
+    });
+  });
+
+  describe('setupBackgroundCapture', () => {
+    test('should setup background capture when window.opener exists', async () => {
+      const mockOpener = {
+        postMessage: jest.fn(),
+      };
+      jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue({
+        ...mockGlobalScope,
+        opener: mockOpener,
+        addEventListener: jest.fn(),
+      } as typeof globalThis);
+
+      await (sessionReplay as any).setupBackgroundCapture();
+
+      expect((sessionReplay as any).backgroundCaptureMessenger).toBeDefined();
+    });
+
+    test('should return early when window.opener does not exist', async () => {
+      jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue({
+        ...mockGlobalScope,
+        opener: null,
+      } as typeof globalThis);
+
+      await (sessionReplay as any).setupBackgroundCapture();
+
+      expect((sessionReplay as any).backgroundCaptureMessenger).toBeUndefined();
+    });
+
+    test('should handle setup error gracefully', async () => {
+      const mockOpener = {
+        postMessage: jest.fn(),
+      };
+      jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue({
+        ...mockGlobalScope,
+        opener: mockOpener,
+        addEventListener: jest.fn(() => {
+          throw new Error('addEventListener failed');
+        }),
+      } as typeof globalThis);
+
+      const warnSpy = jest.spyOn(sessionReplay.loggerProvider, 'warn');
+
+      await (sessionReplay as any).setupBackgroundCapture();
+
+      expect(warnSpy).toHaveBeenCalledWith('Failed to setup background capture:', expect.any(Error));
+    });
   });
 
   describe('getCurrentUrl', () => {
