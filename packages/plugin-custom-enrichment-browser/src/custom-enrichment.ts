@@ -1,8 +1,10 @@
 import type { BrowserClient, BrowserConfig, EnrichmentPlugin, Event, ILogger } from '@amplitude/analytics-core';
 
 export const customEnrichmentPlugin = (): EnrichmentPlugin => {
-  let loggerProvider: ILogger | undefined = undefined;
-  let customEnrichmentBody: string | undefined = undefined;
+  let loggerProvider: ILogger | undefined;
+  let customEnrichmentBody: string | undefined;
+
+  let enrichEvent: (event: Event) => Event | undefined;
 
   const plugin: EnrichmentPlugin = {
     name: '@amplitude/plugin-custom-enrichment-browser',
@@ -20,24 +22,18 @@ export const customEnrichmentPlugin = (): EnrichmentPlugin => {
         } else {
           config.remoteConfigClient.subscribe('analyticsSDK.customEnrichment', 'all', (remoteConfig) => {
             if (remoteConfig) {
-              customEnrichmentBody = remoteConfig.body as string | undefined;
+              customEnrichmentBody = remoteConfig.body as string;
             }
           });
         }
       }
+
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-implied-eval
+      enrichEvent = new Function('event', customEnrichmentBody || '') as (event: Event) => Event;
     },
     execute: async (event: Event) => {
       try {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-implied-eval
-        const enrichEvent = new Function('event', customEnrichmentBody || '') as (event: Event) => Event;
-
-        const enrichedEvent: Event = enrichEvent(event);
-
-        if (!enrichedEvent) {
-          return event;
-        }
-
-        return enrichedEvent;
+        return enrichEvent(event) || null;
       } catch (error) {
         loggerProvider?.error('Could not execute custom enrichment function', error);
       }
