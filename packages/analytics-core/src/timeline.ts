@@ -229,6 +229,7 @@ export class Timeline {
       try {
         await listener(optOut);
       } catch (e) {
+        /* istanbul ignore next */
         this.loggerProvider.error('Error calling optOut listener', e);
       }
     }
