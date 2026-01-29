@@ -366,6 +366,33 @@ describe('Custom Enrichment Plugin', () => {
 
       expect(result).toEqual(originalEvent);
     });
+
+    it('should handle null remote config', async () => {
+      const plugin = customEnrichmentPlugin();
+
+      const mockRemoteConfigClient = {
+        subscribe: jest.fn((key, _audience, callback) => {
+          if (key === 'configs.analyticsSDK.browserSDK.customEnrichment') {
+            callback(null);
+          }
+        }),
+      };
+
+      const configWithRemoteConfig = {
+        ...mockConfig,
+        remoteConfigClient: mockRemoteConfigClient,
+        remoteConfig: {
+          fetchRemoteConfig: true,
+        },
+      };
+
+      await plugin.setup?.(configWithRemoteConfig, mockClient);
+
+      const originalEvent = { event_type: 'test_event' };
+      const result = await plugin.execute?.(originalEvent);
+
+      expect(result).toEqual(originalEvent);
+    });
   });
 
   describe('remote config integration', () => {
