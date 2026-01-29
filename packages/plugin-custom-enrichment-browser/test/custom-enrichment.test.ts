@@ -1,4 +1,11 @@
-import { type BrowserClient, type BrowserConfig, type ILogger, Logger, LogLevel } from '@amplitude/analytics-core';
+import {
+  type BrowserClient,
+  type BrowserConfig,
+  type ILogger,
+  IRemoteConfigClient,
+  Logger,
+  LogLevel,
+} from '@amplitude/analytics-core';
 import { customEnrichmentPlugin } from '../src/custom-enrichment';
 
 // Mock BrowserClient implementation
@@ -434,9 +441,63 @@ describe('Custom Enrichment Plugin', () => {
   });
 
   describe('teardown', () => {
-    it('should complete teardown without errors', async () => {
+    it('should complete teardown without errors and unsubscribe from remote config', async () => {
       const plugin = customEnrichmentPlugin();
-      await plugin.setup?.(mockConfig, mockClient);
+
+      const mockRemoteConfigClient = {
+        subscribe: jest.fn(),
+        unsubscribe: jest.fn(),
+      };
+
+      const configWithRemoteConfig = {
+        ...mockConfig,
+        remoteConfigClient: mockRemoteConfigClient,
+        remoteConfig: {
+          fetchRemoteConfig: true,
+        },
+      };
+      await plugin.setup?.(configWithRemoteConfig, mockClient);
+      await expect(plugin.teardown?.()).resolves.toBeUndefined();
+      expect(mockRemoteConfigClient.unsubscribe).toHaveBeenCalled();
+    });
+
+    it('should handle when config.remoteConfigClient is undefined', async () => {
+      const plugin = customEnrichmentPlugin();
+
+      const mockRemoteConfigClient = {
+        subscribe: jest.fn(),
+      } as unknown as IRemoteConfigClient;
+
+      const configWithRemoteConfig = {
+        ...mockConfig,
+        remoteConfigClient: mockRemoteConfigClient,
+        remoteConfig: {
+          fetchRemoteConfig: true,
+        },
+      };
+      await plugin.setup?.(configWithRemoteConfig, mockClient);
+      configWithRemoteConfig.remoteConfigClient = undefined as unknown as IRemoteConfigClient;
+
+      await expect(plugin.teardown?.()).resolves.toBeUndefined();
+    });
+
+    it('should handle when unsubscribe is undefined', async () => {
+      const plugin = customEnrichmentPlugin();
+
+      const mockRemoteConfigClient = {
+        subscribe: jest.fn(),
+        unsubscribe: jest.fn(),
+      };
+
+      const configWithRemoteConfig = {
+        ...mockConfig,
+        remoteConfigClient: mockRemoteConfigClient,
+        remoteConfig: {
+          fetchRemoteConfig: true,
+        },
+      };
+
+      await plugin.setup?.(configWithRemoteConfig, mockClient);
       await expect(plugin.teardown?.()).resolves.toBeUndefined();
     });
   });

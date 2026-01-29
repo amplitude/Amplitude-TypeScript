@@ -10,6 +10,7 @@ import type {
 
 export const customEnrichmentPlugin = (): EnrichmentPlugin => {
   let loggerProvider: ILogger | undefined;
+  let unsubscribe: (() => void) | undefined;
 
   let enrichEvent: ((event: Event) => Event) | undefined;
 
@@ -51,17 +52,18 @@ export const customEnrichmentPlugin = (): EnrichmentPlugin => {
           // TODO(xinyi): Diagnostics.recordEvent
           loggerProvider?.debug('Remote config client is not provided, skipping remote config fetch');
         } else {
-          config.remoteConfigClient.subscribe(
+          const subscriptionId = config.remoteConfigClient.subscribe(
             'configs.analyticsSDK.browserSDK.customEnrichment',
             'all',
             (remoteConfig: RemoteConfig | null) => {
               if (remoteConfig) {
                 if (isCustomEnrichmentConfig(remoteConfig)) {
-                  enrichEvent = createEnrichEvent((remoteConfig.body as string) || '');
+                  enrichEvent = createEnrichEvent(remoteConfig.body || '');
                 }
               }
             },
           );
+          unsubscribe = () => config.remoteConfigClient?.unsubscribe(subscriptionId);
         }
       }
     },
@@ -78,7 +80,9 @@ export const customEnrichmentPlugin = (): EnrichmentPlugin => {
       return event;
     },
     teardown: async () => {
-      // No teardown required
+      if (unsubscribe) {
+        unsubscribe();
+      }
     },
   };
 
