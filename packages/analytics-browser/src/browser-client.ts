@@ -231,6 +231,13 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
 
     // Add web attribution plugin
     if (isAttributionTrackingEnabled(this.config.defaultTracking)) {
+      this.timeline._addOptOutListener(async (optOut) => {
+        if (!optOut) {
+          const attributionTrackingOptions = getAttributionTrackingConfig(this.config);
+          this.webAttribution = new WebAttribution(attributionTrackingOptions, this.config);
+          await this.webAttribution.init();
+        }
+      });
       const attributionTrackingOptions = getAttributionTrackingConfig(this.config);
       this.webAttribution = new WebAttribution(attributionTrackingOptions, this.config);
       // Fetch the current campaign, check if need to track web attribution later
@@ -260,7 +267,7 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
     );
 
     if (this.config.optOut) {
-      this.timeline._addOptOutListener((optOut) => {
+      this.timeline._addOptOutListener(async (optOut) => {
         if (!optOut && this.config.deferredSessionId) {
           this.setSessionId(this.config.deferredSessionId);
         }

@@ -44,6 +44,7 @@ export class WebAttribution {
     [this.currentCampaign, this.previousCampaign] = await this.fetchCampaign();
     const isEventInNewSession = !this.lastEventTime ? true : isNewSession(this.sessionTimeout, this.lastEventTime);
 
+    // skip attribution if optOut is true
     if (this.options.optOut) {
       return;
     }
