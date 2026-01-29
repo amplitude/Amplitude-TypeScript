@@ -1053,6 +1053,10 @@ describe('browser-client', () => {
           client.setOptOut(false);
           expect(client.config.sessionId).toBeGreaterThan(0);
           expect(client.webAttribution?.currentCampaign).toBeDefined();
+          // wait for 100ms
+          jest.setTimeout(100);
+          const plugins = client.timeline.plugins.map((plugin) => plugin.name);
+          expect(plugins).toContain('@amplitude/plugin-page-view-tracking-browser');
         });
 
         test('should defer session + attribution until another init call with optOut false', async () => {

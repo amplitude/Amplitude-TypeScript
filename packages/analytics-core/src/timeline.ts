@@ -226,7 +226,11 @@ export class Timeline {
 
   async _callOptOutListeners(optOut: boolean) {
     for (const listener of this._optOutListeners) {
-      await listener(optOut);
+      try {
+        await listener(optOut);
+      } catch (e) {
+        this.loggerProvider.error('Error calling optOut listener', e);
+      }
     }
   }
 

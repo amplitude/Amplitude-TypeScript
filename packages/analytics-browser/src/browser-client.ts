@@ -307,8 +307,19 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
 
     // Add page view plugin
     if (isPageViewTrackingEnabled(this.config.defaultTracking)) {
-      this.config.loggerProvider.debug('Adding page view tracking plugin');
-      await this.add(pageViewTrackingPlugin(getPageViewTrackingConfig(this.config))).promise;
+      if (!this.config.optOut) {
+        this.config.loggerProvider.debug('Adding page view tracking plugin');
+        await this.add(pageViewTrackingPlugin(getPageViewTrackingConfig(this.config))).promise;
+      } else {
+        this.timeline._addOptOutListener(async (optOut) => {
+          /* istanbul ignore if */
+          if (optOut) {
+            return;
+          }
+          this.config.loggerProvider.debug('Adding page view tracking plugin');
+          await this.add(pageViewTrackingPlugin(getPageViewTrackingConfig(this.config))).promise;
+        });
+      }
     }
 
     if (isElementInteractionsEnabled(this.config.autocapture)) {
