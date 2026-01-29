@@ -1047,18 +1047,22 @@ describe('browser-client', () => {
           }).promise;
         });
 
-        test('should defer sessionId start until after optOut changes', async () => {
+        test('should defer session + attribution until after optOut changes', async () => {
           expect(client.config.sessionId).toBeUndefined();
+          expect(client.webAttribution?.currentCampaign).toBeDefined();
           client.setOptOut(false);
           expect(client.config.sessionId).toBeGreaterThan(0);
+          expect(client.webAttribution?.currentCampaign).toBeDefined();
         });
 
-        test('should defer sessionId start until another init call with optOut false', async () => {
+        test('should defer session + attribution until another init call with optOut false', async () => {
           expect(client.config.sessionId).toBeUndefined();
+          expect(client.webAttribution?.currentCampaign).toBeDefined();
           await client.init(apiKey, userId, {
             optOut: false,
           }).promise;
           expect(client.config.sessionId).toBeGreaterThan(0);
+          expect(client.webAttribution?.currentCampaign).toBeDefined();
         });
       });
 
