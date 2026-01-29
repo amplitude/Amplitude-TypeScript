@@ -110,7 +110,7 @@ describe('Custom Enrichment Plugin', () => {
       // Mock remote config to provide the custom function
       const mockRemoteConfigClient = {
         subscribe: jest.fn((key, _audience, callback) => {
-          if (key === 'analyticsSDK.customEnrichment') {
+          if (key === 'configs.analyticsSDK.browserSDK.customEnrichment') {
             callback({ body: customFunction });
           }
         }),
@@ -118,8 +118,10 @@ describe('Custom Enrichment Plugin', () => {
 
       const configWithRemoteConfig = {
         ...mockConfig,
-        fetchRemoteConfig: true,
         remoteConfigClient: mockRemoteConfigClient,
+        remoteConfig: {
+          fetchRemoteConfig: true,
+        },
       };
 
       await plugin.setup?.(configWithRemoteConfig, mockClient);
@@ -153,7 +155,7 @@ describe('Custom Enrichment Plugin', () => {
       // Mock remote config to provide the custom function
       const mockRemoteConfigClient = {
         subscribe: jest.fn((key, _audience, callback) => {
-          if (key === 'analyticsSDK.customEnrichment') {
+          if (key === 'configs.analyticsSDK.browserSDK.customEnrichment') {
             callback({ body: customFunction });
           }
         }),
@@ -161,8 +163,10 @@ describe('Custom Enrichment Plugin', () => {
 
       const configWithRemoteConfig = {
         ...mockConfig,
-        fetchRemoteConfig: true,
         remoteConfigClient: mockRemoteConfigClient,
+        remoteConfig: {
+          fetchRemoteConfig: true,
+        },
       };
 
       await plugin.setup?.(configWithRemoteConfig, mockClient);
@@ -188,7 +192,7 @@ describe('Custom Enrichment Plugin', () => {
       // Mock remote config to provide the invalid function
       const mockRemoteConfigClient = {
         subscribe: jest.fn((key, _audience, callback) => {
-          if (key === 'analyticsSDK.customEnrichment') {
+          if (key === 'configs.analyticsSDK.browserSDK.customEnrichment') {
             callback({ body: invalidFunction });
           }
         }),
@@ -196,8 +200,10 @@ describe('Custom Enrichment Plugin', () => {
 
       const configWithRemoteConfig = {
         ...mockConfig,
-        fetchRemoteConfig: true,
         remoteConfigClient: mockRemoteConfigClient,
+        remoteConfig: {
+          fetchRemoteConfig: true,
+        },
       };
 
       await plugin.setup?.(configWithRemoteConfig, mockClient);
@@ -217,7 +223,7 @@ describe('Custom Enrichment Plugin', () => {
       // Mock remote config to provide the error function
       const mockRemoteConfigClient = {
         subscribe: jest.fn((key, _audience, callback) => {
-          if (key === 'analyticsSDK.customEnrichment') {
+          if (key === 'configs.analyticsSDK.browserSDK.customEnrichment') {
             callback({ body: 'throw new Error("test error");' });
           }
         }),
@@ -225,8 +231,10 @@ describe('Custom Enrichment Plugin', () => {
 
       const configWithRemoteConfig = {
         ...configWithoutLogger,
-        fetchRemoteConfig: true,
         remoteConfigClient: mockRemoteConfigClient,
+        remoteConfig: {
+          fetchRemoteConfig: true,
+        },
       };
 
       await plugin.setup?.(configWithRemoteConfig, mockClient);
@@ -245,7 +253,7 @@ describe('Custom Enrichment Plugin', () => {
       // Mock remote config to provide the invalid function
       const mockRemoteConfigClient = {
         subscribe: jest.fn((key, _audience, callback) => {
-          if (key === 'analyticsSDK.customEnrichment') {
+          if (key === 'configs.analyticsSDK.browserSDK.customEnrichment') {
             callback({ body: invalidFunction });
           }
         }),
@@ -253,8 +261,10 @@ describe('Custom Enrichment Plugin', () => {
 
       const configWithRemoteConfig = {
         ...mockConfig,
-        fetchRemoteConfig: true,
         remoteConfigClient: mockRemoteConfigClient,
+        remoteConfig: {
+          fetchRemoteConfig: true,
+        },
       };
 
       await plugin.setup?.(configWithRemoteConfig, mockClient);
@@ -264,38 +274,7 @@ describe('Custom Enrichment Plugin', () => {
 
       expect(result).toEqual(originalEvent);
       expect((mockLogger.error as jest.Mock).mock.calls.length).toBe(1);
-      expect((mockLogger.error as jest.Mock).mock.calls[0][0]).toBe('Could not execute custom enrichment function');
-    });
-
-    it('should return original event if enrichment function does not return an event', async () => {
-      const customFunction = `
-        // Function that doesn't return anything
-        event.event_properties = { modified: true };
-      `;
-      const plugin = customEnrichmentPlugin();
-
-      // Mock remote config to provide the custom function
-      const mockRemoteConfigClient = {
-        subscribe: jest.fn((key, _audience, callback) => {
-          if (key === 'analyticsSDK.customEnrichment') {
-            callback({ body: customFunction });
-          }
-        }),
-      };
-
-      const configWithRemoteConfig = {
-        ...mockConfig,
-        fetchRemoteConfig: true,
-        remoteConfigClient: mockRemoteConfigClient,
-      };
-
-      await plugin.setup?.(configWithRemoteConfig, mockClient);
-
-      const originalEvent = { event_type: 'test_event' };
-      const result = await plugin.execute?.(originalEvent);
-
-      // Should return the original event since the function didn't return anything
-      expect(result).toEqual(originalEvent);
+      expect((mockLogger.error as jest.Mock).mock.calls[0][0]).toBe('Could not create custom enrichment function');
     });
 
     it('should handle empty enrichment function', async () => {
@@ -304,7 +283,7 @@ describe('Custom Enrichment Plugin', () => {
       // Mock remote config to provide empty function
       const mockRemoteConfigClient = {
         subscribe: jest.fn((key, _audience, callback) => {
-          if (key === 'analyticsSDK.customEnrichment') {
+          if (key === 'configs.analyticsSDK.browserSDK.customEnrichment') {
             callback({ body: '' });
           }
         }),
@@ -312,8 +291,10 @@ describe('Custom Enrichment Plugin', () => {
 
       const configWithRemoteConfig = {
         ...mockConfig,
-        fetchRemoteConfig: true,
         remoteConfigClient: mockRemoteConfigClient,
+        remoteConfig: {
+          fetchRemoteConfig: true,
+        },
       };
 
       await plugin.setup?.(configWithRemoteConfig, mockClient);
@@ -330,7 +311,7 @@ describe('Custom Enrichment Plugin', () => {
       // Mock remote config to provide comment-only function
       const mockRemoteConfigClient = {
         subscribe: jest.fn((key, _audience, callback) => {
-          if (key === 'analyticsSDK.customEnrichment') {
+          if (key === 'configs.analyticsSDK.browserSDK.customEnrichment') {
             callback({ body: '// This is just a comment' });
           }
         }),
@@ -338,8 +319,37 @@ describe('Custom Enrichment Plugin', () => {
 
       const configWithRemoteConfig = {
         ...mockConfig,
-        fetchRemoteConfig: true,
         remoteConfigClient: mockRemoteConfigClient,
+        remoteConfig: {
+          fetchRemoteConfig: true,
+        },
+      };
+
+      await plugin.setup?.(configWithRemoteConfig, mockClient);
+
+      const originalEvent = { event_type: 'test_event' };
+      const result = await plugin.execute?.(originalEvent);
+
+      expect(result).toEqual(null);
+    });
+
+    it('should handle remote config with invalid config', async () => {
+      const plugin = customEnrichmentPlugin();
+
+      const mockRemoteConfigClient = {
+        subscribe: jest.fn((key, _audience, callback) => {
+          if (key === 'configs.analyticsSDK.browserSDK.customEnrichment') {
+            callback('not an object');
+          }
+        }),
+      };
+
+      const configWithRemoteConfig = {
+        ...mockConfig,
+        remoteConfigClient: mockRemoteConfigClient,
+        remoteConfig: {
+          fetchRemoteConfig: true,
+        },
       };
 
       await plugin.setup?.(configWithRemoteConfig, mockClient);
@@ -357,8 +367,10 @@ describe('Custom Enrichment Plugin', () => {
 
       const configWithRemoteConfig = {
         ...mockConfig,
-        fetchRemoteConfig: true,
         remoteConfigClient: undefined,
+        remoteConfig: {
+          fetchRemoteConfig: true,
+        },
       };
 
       await plugin.setup?.(configWithRemoteConfig, mockClient);
@@ -379,7 +391,10 @@ describe('Custom Enrichment Plugin', () => {
 
       const configWithoutRemoteConfig = {
         ...mockConfig,
-        fetchRemoteConfig: false,
+        remoteConfigClient: undefined,
+        remoteConfig: {
+          fetchRemoteConfig: false,
+        },
       };
 
       await plugin.setup?.(configWithoutRemoteConfig, mockClient);
@@ -400,15 +415,19 @@ describe('Custom Enrichment Plugin', () => {
 
       const configWithRemoteConfig = {
         ...mockConfig,
-        fetchRemoteConfig: true,
         remoteConfigClient: mockRemoteConfigClient,
+        remoteConfig: {
+          fetchRemoteConfig: true,
+        },
       };
 
       await plugin.setup?.(configWithRemoteConfig, mockClient);
 
       // Verify that subscribe was called with the correct parameters
       expect(mockRemoteConfigClient.subscribe).toHaveBeenCalled();
-      expect(mockRemoteConfigClient.subscribe.mock.calls[0][0]).toBe('analyticsSDK.customEnrichment');
+      expect(mockRemoteConfigClient.subscribe.mock.calls[0][0]).toBe(
+        'configs.analyticsSDK.browserSDK.customEnrichment',
+      );
       expect(mockRemoteConfigClient.subscribe.mock.calls[0][1]).toBe('all');
       expect(typeof mockRemoteConfigClient.subscribe.mock.calls[0][2]).toBe('function');
     });
@@ -431,24 +450,77 @@ describe('Custom Enrichment Plugin', () => {
       await expect(plugin.setup?.(configWithoutLogger, mockClient)).resolves.toBeUndefined();
     });
 
+    it('should handle missing loggerProvider and missing remote config client', async () => {
+      const plugin = customEnrichmentPlugin();
+
+      const configWithRemoteConfig = {
+        ...mockConfig,
+        remoteConfigClient: undefined,
+        remoteConfig: {
+          fetchRemoteConfig: true,
+        },
+        loggerProvider: undefined,
+      } as unknown as BrowserConfig;
+
+      await plugin.setup?.(configWithRemoteConfig, mockClient);
+
+      const originalEvent = { event_type: 'test_event' };
+      const result = await plugin.execute?.(originalEvent);
+
+      // Should return original event when no remote config is available
+      expect(result).toEqual(originalEvent);
+    });
+
     it('should handle undefined loggerProvider in execute error case', async () => {
-      const configWithoutLogger = { ...mockConfig, loggerProvider: undefined } as unknown as BrowserConfig;
       const plugin = customEnrichmentPlugin();
 
       // Mock remote config to provide the error function
       const mockRemoteConfigClient = {
         subscribe: jest.fn((key, _audience, callback) => {
-          if (key === 'analyticsSDK.customEnrichment') {
+          if (key === 'configs.analyticsSDK.browserSDK.customEnrichment') {
             callback({ body: 'throw new Error("test error");' });
           }
         }),
       };
 
       const configWithRemoteConfig = {
-        ...configWithoutLogger,
-        fetchRemoteConfig: true,
+        ...mockConfig,
         remoteConfigClient: mockRemoteConfigClient,
+        remoteConfig: {
+          fetchRemoteConfig: true,
+        },
+        loggerProvider: undefined,
+      } as unknown as BrowserConfig;
+
+      await plugin.setup?.(configWithRemoteConfig, mockClient);
+
+      const originalEvent = { event_type: 'test_event' };
+      const result = await plugin.execute?.(originalEvent);
+
+      // Should return original event and not throw even with undefined loggerProvider
+      expect(result).toEqual(originalEvent);
+    });
+
+    it('should handle undefined loggerProvider in createEnrichEvent', async () => {
+      const plugin = customEnrichmentPlugin();
+
+      // Mock remote config to provide the error function
+      const mockRemoteConfigClient = {
+        subscribe: jest.fn((key, _audience, callback) => {
+          if (key === 'configs.analyticsSDK.browserSDK.customEnrichment') {
+            callback({ body: 'not an actual function' });
+          }
+        }),
       };
+
+      const configWithRemoteConfig = {
+        ...mockConfig,
+        remoteConfigClient: mockRemoteConfigClient,
+        remoteConfig: {
+          fetchRemoteConfig: true,
+        },
+        loggerProvider: undefined,
+      } as unknown as BrowserConfig;
 
       await plugin.setup?.(configWithRemoteConfig, mockClient);
 
