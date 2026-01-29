@@ -8,7 +8,7 @@ import {
   getGlobalScope,
   getPageTitle,
   type ILogger,
-  PageUrlEnrichmentOptions,
+  type PageUrlEnrichmentOptions,
   replaceSensitiveString,
   SpecialEventType,
 } from '@amplitude/analytics-core';
