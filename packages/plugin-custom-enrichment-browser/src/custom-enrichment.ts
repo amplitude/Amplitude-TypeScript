@@ -60,6 +60,9 @@ export const customEnrichmentPlugin = (): EnrichmentPlugin => {
                 if (isCustomEnrichmentConfig(remoteConfig)) {
                   enrichEvent = createEnrichEvent(remoteConfig.body || '');
                 }
+              } else {
+                // clear enrich event
+                enrichEvent = createEnrichEvent('');
               }
             },
           );
