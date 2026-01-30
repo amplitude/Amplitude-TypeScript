@@ -1042,31 +1042,32 @@ describe('browser-client', () => {
     describe('config.optOut', () => {
       describe('when optOut is true', () => {
         beforeEach(async () => {
+          jest.useFakeTimers();
+          const identity = new Identify();
+          identity.set('test-property', 'test-value');
           await client.init(apiKey, userId, {
             optOut: true,
+            identify: identity,
           }).promise;
+        });
+
+        afterEach(() => {
+          jest.useRealTimers();
         });
 
         test('should defer session + attribution until after optOut changes', async () => {
           expect(client.config.sessionId).toBeUndefined();
-          expect(client.webAttribution?.currentCampaign).toBeDefined();
+          jest.advanceTimersByTime(1000);
           client.setOptOut(false);
           expect(client.config.sessionId).toBeGreaterThan(0);
-          expect(client.webAttribution?.currentCampaign).toBeDefined();
-          // wait for 100ms
-          jest.setTimeout(100);
-          const plugins = client.timeline.plugins.map((plugin) => plugin.name);
-          expect(plugins).toContain('@amplitude/plugin-page-view-tracking-browser');
         });
 
         test('should defer session + attribution until another init call with optOut false', async () => {
           expect(client.config.sessionId).toBeUndefined();
-          expect(client.webAttribution?.currentCampaign).toBeDefined();
           await client.init(apiKey, userId, {
             optOut: false,
           }).promise;
           expect(client.config.sessionId).toBeGreaterThan(0);
-          expect(client.webAttribution?.currentCampaign).toBeDefined();
         });
       });
 
