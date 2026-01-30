@@ -231,6 +231,13 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
 
     // Add web attribution plugin
     if (isAttributionTrackingEnabled(this.config.defaultTracking)) {
+      this.timeline._addOptOutListener(async (optOut) => {
+        if (!optOut) {
+          const attributionTrackingOptions = getAttributionTrackingConfig(this.config);
+          this.webAttribution = new WebAttribution(attributionTrackingOptions, this.config);
+          await this.webAttribution.init();
+        }
+      });
       const attributionTrackingOptions = getAttributionTrackingConfig(this.config);
       this.webAttribution = new WebAttribution(attributionTrackingOptions, this.config);
       // Fetch the current campaign, check if need to track web attribution later
@@ -254,7 +261,18 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
       isWithinTimeLimit && !Number.isNaN(Number(queryParams.ampSessionId))
         ? Number(queryParams.ampSessionId)
         : undefined;
-    this.setSessionId(options.sessionId ?? querySessionId ?? this.config.sessionId ?? Date.now());
+
+    this.setSessionId(
+      options.sessionId ?? querySessionId ?? this.config.deferredSessionId ?? this.config.sessionId ?? Date.now(),
+    );
+
+    if (this.config.optOut) {
+      this.timeline._addOptOutListener(async (optOut) => {
+        if (!optOut && this.config.deferredSessionId) {
+          this.setSessionId(this.config.deferredSessionId);
+        }
+      });
+    }
 
     // Set up the analytics connector to integrate with the experiment SDK.
     // Send events from the experiment SDK and forward identifies to the
@@ -289,8 +307,19 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
 
     // Add page view plugin
     if (isPageViewTrackingEnabled(this.config.defaultTracking)) {
-      this.config.loggerProvider.debug('Adding page view tracking plugin');
-      await this.add(pageViewTrackingPlugin(getPageViewTrackingConfig(this.config))).promise;
+      if (!this.config.optOut) {
+        this.config.loggerProvider.debug('Adding page view tracking plugin');
+        await this.add(pageViewTrackingPlugin(getPageViewTrackingConfig(this.config))).promise;
+      } else {
+        this.timeline._addOptOutListener(async (optOut) => {
+          /* istanbul ignore if */
+          if (optOut) {
+            return;
+          }
+          this.config.loggerProvider.debug('Adding page view tracking plugin');
+          await this.add(pageViewTrackingPlugin(getPageViewTrackingConfig(this.config))).promise;
+        });
+      }
     }
 
     if (isElementInteractionsEnabled(this.config.autocapture)) {
@@ -395,6 +424,13 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
       this.q.push(this.setSessionId.bind(this, sessionId));
       return returnWrapper(Promise.resolve());
     }
+    // do not start a new session if optOut is true
+    if (this.config.optOut) {
+      // save the sessionId to storage to be used when optOut is false
+      this.config.deferredSessionId = sessionId;
+      return returnWrapper(Promise.resolve());
+    }
+
     // Prevents starting a new session with the same session ID
     if (sessionId === this.config.sessionId) {
       return returnWrapper(Promise.resolve());
