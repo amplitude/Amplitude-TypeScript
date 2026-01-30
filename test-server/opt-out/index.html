@@ -20,12 +20,16 @@
   <script type="module">
     import * as amplitude from '@amplitude/analytics-browser';
 
+    const ident = new amplitude.Identify();
+    ident.set('test-property', 'test-value');
+
     const baseConfig = {
       autocapture: {
         sessions: true,
         pageViews: true,
         attribution: true,
       },
+      identify: ident,
       //identityStorage: 'memory', // set to memory so easy to test session on each page
     };
     
