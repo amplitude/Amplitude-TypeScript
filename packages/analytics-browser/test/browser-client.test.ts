@@ -1042,7 +1042,6 @@ describe('browser-client', () => {
     describe('config.optOut', () => {
       describe('when optOut is true', () => {
         beforeEach(async () => {
-          jest.useFakeTimers();
           const identity = new Identify();
           identity.set('test-property', 'test-value');
           await client.init(apiKey, userId, {
@@ -1051,15 +1050,11 @@ describe('browser-client', () => {
           }).promise;
         });
 
-        afterEach(() => {
-          jest.useRealTimers();
-        });
-
         test('should defer session + attribution until after optOut changes', async () => {
           expect(client.config.sessionId).toBeUndefined();
-          jest.advanceTimersByTime(1000);
           client.setOptOut(false);
-          jest.advanceTimersByTime(10);
+          // give the timeline 10 ms to finish calling the onOptOutChanged listeners
+          await new Promise((resolve) => setTimeout(resolve, 10));
           expect(client.config.sessionId).toBeGreaterThan(0);
         });
 
@@ -1068,7 +1063,8 @@ describe('browser-client', () => {
           await client.init(apiKey, userId, {
             optOut: false,
           }).promise;
-          jest.advanceTimersByTime(10);
+          // give the timeline 10 ms to finish calling the onOptOutChanged listeners
+          await new Promise((resolve) => setTimeout(resolve, 10));
           expect(client.config.sessionId).toBeGreaterThan(0);
         });
       });
