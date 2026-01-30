@@ -1059,6 +1059,7 @@ describe('browser-client', () => {
           expect(client.config.sessionId).toBeUndefined();
           jest.advanceTimersByTime(1000);
           client.setOptOut(false);
+          jest.advanceTimersByTime(10);
           expect(client.config.sessionId).toBeGreaterThan(0);
         });
 
@@ -1067,6 +1068,7 @@ describe('browser-client', () => {
           await client.init(apiKey, userId, {
             optOut: false,
           }).promise;
+          jest.advanceTimersByTime(10);
           expect(client.config.sessionId).toBeGreaterThan(0);
         });
       });
