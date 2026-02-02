@@ -66,6 +66,8 @@ import { LIBPREFIX } from './lib-prefix';
 import { VERSION } from './version';
 import { pageUrlEnrichmentPlugin } from '@amplitude/plugin-page-url-enrichment-browser';
 
+const UNSPECIFIED_SESSION_ID = -1;
+
 /**
  * Exported for `@amplitude/unified` or integration with blade plugins.
  * If you only use `@amplitude/analytics-browser`, use `amplitude.init()` or `amplitude.createInstance()` instead.
@@ -272,7 +274,7 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
     if (this.config.optOut) {
       this.timeline.addOptOutListener(async (optOut) => {
         if (!optOut && this.config.deferredSessionId) {
-          if (this.config.deferredSessionId === -1) {
+          if (this.config.deferredSessionId === UNSPECIFIED_SESSION_ID) {
             this.setSessionId(undefined);
           } else {
             this.setSessionId(this.config.deferredSessionId);
@@ -434,7 +436,7 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
     // do not start a new session if optOut is true
     if (this.config.optOut) {
       // save the sessionId to storage to be used when optOut is false
-      this.config.deferredSessionId = sessionId || -1; // TODO: make this a constant
+      this.config.deferredSessionId = sessionId || UNSPECIFIED_SESSION_ID;
       return returnWrapper(Promise.resolve());
     }
 
