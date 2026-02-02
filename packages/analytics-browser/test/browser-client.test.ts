@@ -1025,10 +1025,10 @@ describe('browser-client', () => {
           },
         }).promise;
 
-        // Should fall back to use Date.now() because "test" from ampSessionId is NaN
+        // should call "setSessionId" with undefined because "test" from ampSessionId is NaN
         expect(client.config.sessionId).toEqual(currentTimestamp);
         expect(setSessionId).toHaveBeenCalledTimes(1);
-        expect(setSessionId).toHaveBeenLastCalledWith(currentTimestamp);
+        expect(setSessionId).toHaveBeenLastCalledWith(undefined);
 
         // Restore mocks
         Object.defineProperty(window, 'location', {
@@ -1058,6 +1058,15 @@ describe('browser-client', () => {
           expect(client.config.sessionId).toBeGreaterThan(0);
         });
 
+        test('should defer session but use user specified sessionId if provided', async () => {
+          expect(client.config.sessionId).toBeUndefined();
+          const id = Date.now() + 10_000; // future timestamp
+          client.setSessionId(id);
+          client.setOptOut(false);
+          await new Promise((resolve) => setTimeout(resolve, 10));
+          expect(client.config.sessionId).toBe(id);
+        });
+
         test('should defer session + attribution until another init call with optOut false', async () => {
           expect(client.config.sessionId).toBeUndefined();
           await client.init(apiKey, userId, {
@@ -1066,6 +1075,27 @@ describe('browser-client', () => {
           // give the timeline 10 ms to finish calling the onOptOutChanged listeners
           await new Promise((resolve) => setTimeout(resolve, 10));
           expect(client.config.sessionId).toBeGreaterThan(0);
+        });
+
+        test('should defer session but use user specified sessionId if set with setSessionId', async () => {
+          expect(client.config.sessionId).toBeUndefined();
+          const id = Date.now() + 10_000; // future timestamp
+          client.setSessionId(id);
+          await client.init(apiKey, userId, {
+            optOut: false,
+          }).promise;
+          await new Promise((resolve) => setTimeout(resolve, 20));
+          expect(client.config.sessionId).toBe(id);
+        });
+
+        test('should defer session but use user specified sessionId if set in init', async () => {
+          expect(client.config.sessionId).toBeUndefined();
+          const id = Date.now() + 10_000; // future timestamp
+          await client.init(apiKey, userId, {
+            optOut: false,
+            sessionId: id,
+          }).promise;
+          expect(client.config.sessionId).toBe(id);
         });
       });
 
@@ -1172,7 +1202,7 @@ describe('browser-client', () => {
 
         // Should fall back to Date.now() instead of using expired ampSessionId
         expect(client.config.sessionId).toEqual(currentTime);
-        expect(setSessionId).toHaveBeenCalledWith(currentTime);
+        expect(setSessionId).toHaveBeenCalledWith(undefined);
       });
 
       test('should use ampDeviceId when ampTimestamp is valid (future)', async () => {

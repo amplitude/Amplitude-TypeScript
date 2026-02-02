@@ -231,7 +231,7 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
 
     // Add web attribution plugin
     if (isAttributionTrackingEnabled(this.config.defaultTracking)) {
-      this.timeline._addOptOutListener(async (optOut) => {
+      this.timeline.addOptOutListener(async (optOut) => {
         if (!optOut) {
           const attributionTrackingOptions = getAttributionTrackingConfig(this.config);
           this.webAttribution = new WebAttribution(attributionTrackingOptions, this.config);
@@ -262,14 +262,21 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
         ? Number(queryParams.ampSessionId)
         : undefined;
 
-    this.setSessionId(
-      options.sessionId ?? querySessionId ?? this.config.deferredSessionId ?? this.config.sessionId ?? Date.now(),
-    );
+    let deferredSessionId = this.config.deferredSessionId;
+    if (deferredSessionId === -1 && !this.config.optOut) {
+      deferredSessionId = Date.now();
+    }
+
+    this.setSessionId(options.sessionId ?? querySessionId ?? deferredSessionId ?? this.config.sessionId);
 
     if (this.config.optOut) {
-      this.timeline._addOptOutListener(async (optOut) => {
+      this.timeline.addOptOutListener(async (optOut) => {
         if (!optOut && this.config.deferredSessionId) {
-          this.setSessionId(this.config.deferredSessionId);
+          if (this.config.deferredSessionId === -1) {
+            this.setSessionId(undefined);
+          } else {
+            this.setSessionId(this.config.deferredSessionId);
+          }
         }
       });
     }
@@ -311,7 +318,7 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
         this.config.loggerProvider.debug('Adding page view tracking plugin');
         await this.add(pageViewTrackingPlugin(getPageViewTrackingConfig(this.config))).promise;
       } else {
-        this.timeline._addOptOutListener(async (optOut) => {
+        this.timeline.addOptOutListener(async (optOut) => {
           /* istanbul ignore if */
           if (optOut) {
             return;
@@ -418,7 +425,7 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
     return this.config?.sessionId;
   }
 
-  setSessionId(sessionId: number) {
+  setSessionId(sessionId: number | undefined) {
     const promises: Promise<Result>[] = [];
     if (!this.config) {
       this.q.push(this.setSessionId.bind(this, sessionId));
@@ -427,8 +434,13 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
     // do not start a new session if optOut is true
     if (this.config.optOut) {
       // save the sessionId to storage to be used when optOut is false
-      this.config.deferredSessionId = sessionId;
+      this.config.deferredSessionId = sessionId || -1; // TODO: make this a constant
       return returnWrapper(Promise.resolve());
+    }
+
+    // default sessionId to current time
+    if (sessionId === undefined) {
+      sessionId = Date.now();
     }
 
     // Prevents starting a new session with the same session ID

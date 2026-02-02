@@ -185,7 +185,7 @@ export class Timeline {
     await Promise.all(executeDestinations);
   }
 
-  _addOptOutListener(cb: (optOut: boolean) => Promise<void>) {
+  addOptOutListener(cb: (optOut: boolean) => Promise<void>) {
     this._optOutListeners.push(cb);
   }
 
