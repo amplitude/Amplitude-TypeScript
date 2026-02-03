@@ -97,6 +97,7 @@ export const autocapturePlugin = (
       enabled: true,
       messenger: new WindowMessenger(),
     },
+    /* istanbul ignore next */
     backgroundCaptureOptions = {
       enabled: true,
       messenger: new WindowMessenger(),
