@@ -1,11 +1,19 @@
-import { Logger, UUID, BrowserClient, BrowserConfig, LogLevel, getGlobalScope } from '@amplitude/analytics-core';
+import {
+  Logger,
+  UUID,
+  BrowserClient,
+  BrowserConfig,
+  LogLevel,
+  getGlobalScope,
+  CookieStorage,
+  FetchTransport,
+} from '@amplitude/analytics-core';
 import {
   defaultPageViewEvent,
   pageViewTrackingPlugin,
   shouldTrackHistoryPageView,
   PAGE_VIEW_SESSION_STORAGE_KEY,
 } from '../src/page-view-tracking';
-import { CookieStorage, FetchTransport } from '@amplitude/analytics-client-common';
 
 jest.mock('@amplitude/analytics-core', () => {
   const actual = jest.requireActual<typeof import('@amplitude/analytics-core')>('@amplitude/analytics-core');
