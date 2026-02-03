@@ -57,7 +57,10 @@ const createConsoleErrorObservable = (): Observable<BrowserErrorEvent> => {
 
 const createUnhandledErrorObservable = (): Observable<BrowserErrorEvent> => {
   return new Observable<BrowserErrorEvent>((observer) => {
-    const handler = (event: ErrorEvent) => {
+    const handler = (event: Event) => {
+      if (!(event instanceof ErrorEvent)) {
+        return;
+      }
       let output: BrowserErrorEvent = {
         kind: 'error',
       };
@@ -73,9 +76,6 @@ const createUnhandledErrorObservable = (): Observable<BrowserErrorEvent> => {
         };
       } else if (typeof event.error === 'string') {
         output.message = event.error;
-      } else {
-        // ignore non-error events
-        return;
       }
       observer.next(output);
     };
