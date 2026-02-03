@@ -56,12 +56,10 @@ export const customEnrichmentPlugin = (): EnrichmentPlugin => {
             'configs.analyticsSDK.browserSDK.customEnrichment',
             'all',
             (remoteConfig: RemoteConfig | null) => {
-              if (remoteConfig) {
-                if (isCustomEnrichmentConfig(remoteConfig)) {
-                  enrichEvent = createEnrichEvent(remoteConfig.body || '');
-                }
+              if (remoteConfig && isCustomEnrichmentConfig(remoteConfig)) {
+                enrichEvent = createEnrichEvent(remoteConfig.body || '');
               } else {
-                // clear enrich event
+                // if there is no valid body, clear enrich event
                 enrichEvent = createEnrichEvent('');
               }
             },
