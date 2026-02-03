@@ -1,6 +1,6 @@
 {
   "name": "@amplitude/plugin-global-user-properties",
-  "version": "1.2.110",
+  "version": "1.2.115",
   "description": "An event enrichment plugin that adds the experimental global user properties field to events",
   "author": "Amplitude Inc",
   "homepage": "https://github.com/amplitude/Amplitude-TypeScript",
@@ -18,16 +18,16 @@
     "url": "git+https://github.com/amplitude/Amplitude-TypeScript.git"
   },
   "scripts": {
-    "build": "yarn bundle && yarn build:es5 && yarn build:esm",
+    "build": "pnpm bundle && pnpm build:es5 && pnpm build:esm",
     "bundle": "rollup --config rollup.config.js",
     "build:es5": "tsc -p ./tsconfig.es5.json",
     "build:esm": "tsc -p ./tsconfig.esm.json",
     "watch": "tsc -p ./tsconfig.esm.json --watch",
     "clean": "rimraf node_modules lib coverage",
-    "fix": "yarn fix:eslint & yarn fix:prettier",
+    "fix": "pnpm fix:eslint & pnpm fix:prettier",
     "fix:eslint": "eslint '{src,test}/**/*.ts' --fix",
     "fix:prettier": "prettier --write \"{src,test}/**/*.ts\"",
-    "lint": "yarn lint:eslint & yarn lint:prettier",
+    "lint": "pnpm lint:eslint & pnpm lint:prettier",
     "lint:eslint": "eslint '{src,test}/**/*.ts'",
     "lint:prettier": "prettier --check \"{src,test}/**/*.ts\"",
     "test": "jest",
@@ -37,11 +37,11 @@
     "url": "https://github.com/amplitude/Amplitude-TypeScript/issues"
   },
   "dependencies": {
-    "@amplitude/analytics-types": "^2.11.0",
+    "@amplitude/analytics-types": "workspace:*",
     "tslib": "^2.4.1"
   },
   "devDependencies": {
-    "@amplitude/analytics-browser": "2.33.1",
+    "@amplitude/analytics-browser": "workspace:*",
     "@rollup/plugin-commonjs": "^23.0.4",
     "@rollup/plugin-node-resolve": "^15.0.1",
     "@rollup/plugin-typescript": "^10.0.1",

@@ -24,8 +24,8 @@ Getting setup is quick and easy. Follow the steps below to get your your dev env
 
 ```
 $ git clone <HTTPS_OR_GIT_URL>
-$ yarn
-$ yarn build
+$ pnpm install
+$ pnpm build
 ```
 
 This repo contains mutliple major versions of all packages. For contributions to version `1.x`, create a branch off `v1.x`. For contributions to the `2.x` (latest) version, create a branch off `main`. Refer to the table below for more infomation about the release status of each package.
@@ -48,8 +48,8 @@ This repo contains mutliple major versions of all packages. For contributions to
 Building quality software is one of our top priorities. We recommend getting your changes tested using manual and automated practices.
 
 ```
-$ yarn build
-$ yarn test
+$ pnpm build
+$ pnpm test
 ```
 
 When writing commit message, follow [PR Commit Title Conventions](#PR-Commit-Title-Conventions) for the format. A git hook will also run to verify that the format is followed.
@@ -94,7 +94,7 @@ PR titles should follow [conventional commit standards](https://www.conventional
 - `test(<optional scope>)`: Test updates
 - `refactor(<optional scope>)`: Code change that neither fixes a bug nor adds a feature
 - `style(<optional scope>)`: Code style changes (e.g. formatting, commas, semi-colons)
-- `build(<optional scope>)`: Changes that affect the build system or external dependencies (e.g. Yarn, Npm)
+- `build(<optional scope>)`: Changes that affect the build system or external dependencies (e.g. pnpm, Npm)
 - `ci(<optional scope>)`: Changes to our CI configuration files and scripts
 - `chore(<optional scope>)`: Other changes that don't modify src or test files
 - `revert(<optional scope>)`: Revert commit

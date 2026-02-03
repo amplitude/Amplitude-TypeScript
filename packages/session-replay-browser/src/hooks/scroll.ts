@@ -1,4 +1,4 @@
-import { getWindowHeight, getWindowWidth } from '../utils/rrweb';
+import { getViewportHeight, getViewportWidth } from '../utils/rrweb';
 import type { scrollCallback, scrollPosition } from '@amplitude/rrweb-types';
 import { BeaconTransport } from '../beacon-transport';
 import { getGlobalScope } from '@amplitude/analytics-core';
@@ -53,8 +53,8 @@ export class ScrollWatcher {
     this._maxScrollY = 0;
     this._currentScrollX = 0;
     this._currentScrollY = 0;
-    this._maxScrollWidth = getWindowWidth();
-    this._maxScrollHeight = getWindowHeight();
+    this._maxScrollWidth = getViewportWidth();
+    this._maxScrollHeight = getViewportHeight();
     this.config = config;
 
     this.transport = transport;
@@ -89,7 +89,7 @@ export class ScrollWatcher {
     this._currentScrollX = e.x;
     this._currentScrollY = e.y;
     if (e.x > this._maxScrollX) {
-      const width = getWindowWidth();
+      const width = getViewportWidth();
       this._maxScrollX = e.x;
       const maxScrollWidth = e.x + width;
       if (maxScrollWidth > this._maxScrollWidth) {
@@ -99,7 +99,7 @@ export class ScrollWatcher {
     }
 
     if (e.y > this._maxScrollY) {
-      const height = getWindowHeight();
+      const height = getViewportHeight();
       this._maxScrollY = e.y;
       const maxScrollHeight = e.y + height;
       if (maxScrollHeight > this._maxScrollHeight) {
@@ -126,8 +126,8 @@ export class ScrollWatcher {
             maxScrollWidth: this._maxScrollWidth,
             maxScrollHeight: this._maxScrollHeight,
 
-            viewportHeight: getWindowHeight(),
-            viewportWidth: getWindowWidth(),
+            viewportHeight: getViewportHeight(),
+            viewportWidth: getViewportWidth(),
             pageUrl: getPageUrl(globalScope.location.href, this.config.interactionConfig?.ugcFilterRules ?? []),
             timestamp: this.timestamp,
             type: 'scroll',

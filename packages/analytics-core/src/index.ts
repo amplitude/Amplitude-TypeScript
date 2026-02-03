@@ -24,7 +24,7 @@ export { isUrlMatchAllowlist, getDecodeURI } from './utils/url-utils';
 export { generateHashCode, isTimestampInSample } from './utils/sampling';
 
 export { MemoryStorage } from './storage/memory';
-export { CookieStorage } from './storage/cookie';
+export { CookieStorage, isDomainEqual, decodeCookieValue } from './storage/cookie';
 export { getStorageKey } from './storage/helpers';
 
 export { BrowserStorage } from './storage/browser-storage';
@@ -39,7 +39,8 @@ export { RemoteConfigClient, IRemoteConfigClient, RemoteConfig, Source } from '.
 
 export { LogLevel } from './types/loglevel';
 export { AMPLITUDE_PREFIX, STORAGE_PREFIX } from './types/constants';
-export { Storage, IdentityStorageType } from './types/storage';
+export { Storage, IdentityStorageType, CookieStorageConfig } from './types/storage';
+export { consoleObserver } from './observers/console';
 export {
   Event,
   IdentifyOperation,
@@ -83,15 +84,17 @@ export {
   FrustrationInteractionsOptions,
   DEFAULT_DEAD_CLICK_ALLOWLIST,
   DEFAULT_RAGE_CLICK_ALLOWLIST,
+  DEFAULT_ERROR_CLICK_ALLOWLIST,
   DEFAULT_RAGE_CLICK_THRESHOLD,
   DEFAULT_RAGE_CLICK_WINDOW_MS,
   DEFAULT_RAGE_CLICK_OUT_OF_BOUNDS_THRESHOLD,
   DEFAULT_DEAD_CLICK_WINDOW_MS,
 } from './types/frustration-interactions';
 export { PageTrackingOptions, PageTrackingTrackOn, PageTrackingHistoryChanges } from './types/page-view-tracking';
+export { FormInteractionsOptions } from './types/form-interactions';
 export { Status } from './types/status';
 
-export { NetworkEventCallback, networkObserver } from './network-observer';
+export { NetworkEventCallback, networkObserver } from './observers/network';
 export { NetworkRequestEvent, IRequestWrapper, JsonObject, JsonValue, JsonArray } from './network-request-event';
 export { NetworkTrackingOptions, NetworkCaptureRule } from './types/network-tracking';
 export { SAFE_HEADERS, FORBIDDEN_HEADERS } from './types/constants';
@@ -139,3 +142,5 @@ export {
 export { ReactNativeClient } from './types/client/react-native-client';
 
 export { Observable, asyncMap, merge, multicast, Unsubscribable } from './utils/observable';
+
+export { InstanceProxy } from './types/proxy';

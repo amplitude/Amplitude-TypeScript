@@ -1,6 +1,6 @@
-import { AllWindowObservables } from 'src/frustration-plugin';
+import { AllWindowObservables } from '../frustration-plugin';
 import { BrowserClient, ActionType, merge, asyncMap } from '@amplitude/analytics-core';
-import { ElementBasedTimestampedEvent, filterOutNonTrackableEvents, shouldTrackEvent } from '../helpers';
+import { ElementBasedTimestampedEvent, filterOutNonTrackableEvents, MouseButton, shouldTrackEvent } from '../helpers';
 import { AMPLITUDE_ELEMENT_DEAD_CLICKED_EVENT } from '../constants';
 const DEAD_CLICK_TIMEOUT = 3000; // 3 seconds to wait for an activity to happen
 
@@ -29,7 +29,8 @@ export function trackDeadClick({
       filterOutNonTrackableEvents(click) &&
       shouldTrackDeadClick('click', click.closestTrackedAncestor) &&
       click.event.target instanceof Element &&
-      click.event.target.closest('a[target="_blank"]') === null
+      click.event.target.closest('a[target="_blank"]') === null &&
+      click.event.button === MouseButton.LEFT_OR_TOUCH_CONTACT
     );
   });
 

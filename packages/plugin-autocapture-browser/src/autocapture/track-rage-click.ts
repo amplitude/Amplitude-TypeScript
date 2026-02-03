@@ -1,4 +1,4 @@
-import { AllWindowObservables } from 'src/frustration-plugin';
+import { AllWindowObservables } from '../frustration-plugin';
 import {
   BrowserClient,
   asyncMap,
@@ -48,11 +48,11 @@ type RageClickEvent = {
 };
 
 function addCoordinates(regionBox: ClickRegionBoundingBox, click: ClickEvent) {
-  const { clientX, clientY } = click.event as MouseEvent;
-  regionBox.yMin = Math.min(regionBox.yMin ?? clientY, clientY);
-  regionBox.yMax = Math.max(regionBox.yMax ?? clientY, clientY);
-  regionBox.xMin = Math.min(regionBox.xMin ?? clientX, clientX);
-  regionBox.xMax = Math.max(regionBox.xMax ?? clientX, clientX);
+  const { pageX, pageY } = click.event as MouseEvent;
+  regionBox.yMin = Math.min(regionBox.yMin ?? pageY, pageY);
+  regionBox.yMax = Math.max(regionBox.yMax ?? pageY, pageY);
+  regionBox.xMin = Math.min(regionBox.xMin ?? pageX, pageX);
+  regionBox.xMax = Math.max(regionBox.xMax ?? pageX, pageX);
   regionBox.isOutOfBounds =
     regionBox.yMax - regionBox.yMin > RAGE_CLICK_OUT_OF_BOUNDS_THRESHOLD ||
     regionBox.xMax - regionBox.xMin > RAGE_CLICK_OUT_OF_BOUNDS_THRESHOLD;
@@ -71,8 +71,8 @@ function getRageClickAnalyticsEvent(clickWindow: ClickEvent[]) {
     '[Amplitude] End Time': new Date(lastClick.timestamp).toISOString(),
     '[Amplitude] Duration': lastClick.timestamp - firstClick.timestamp,
     '[Amplitude] Clicks': clickWindow.map((click) => ({
-      X: (click.event as MouseEvent).clientX,
-      Y: (click.event as MouseEvent).clientY,
+      X: (click.event as MouseEvent).pageX,
+      Y: (click.event as MouseEvent).pageY,
       Time: click.timestamp,
     })),
     '[Amplitude] Click Count': clickWindow.length,
@@ -104,7 +104,7 @@ export function trackRageClicks({
   allObservables: AllWindowObservables;
   shouldTrackRageClick: shouldTrackEvent;
 }) {
-  const { clickObservable }: AllWindowObservables = allObservables;
+  const { clickObservable, selectionObservable }: AllWindowObservables = allObservables;
 
   // Keep track of all clicks within the sliding window
   let clickWindow: ClickEvent[] = [];
@@ -152,7 +152,6 @@ export function trackRageClicks({
         if (pendingRageClick) {
           resolutionValue = getRageClickAnalyticsEvent(clickWindow);
         }
-
         resetClickWindow(click);
       } else {
         clickWindow.push(click);
@@ -184,11 +183,25 @@ export function trackRageClicks({
     },
   );
 
-  return rageClickObservable.subscribe((data: RageClickEvent | null) => {
+  // reset the click window when a selection change occurs
+  /* istanbul ignore next */
+  const selectionSubscription = selectionObservable?.subscribe(() => {
+    resetClickWindow();
+  });
+
+  const rageClickSubscription = rageClickObservable.subscribe((data: RageClickEvent | null) => {
     /* istanbul ignore if */
     if (data === null) {
       return;
     }
     amplitude.track(AMPLITUDE_ELEMENT_RAGE_CLICKED_EVENT, data.rageClickEvent, { time: data.time });
   });
+
+  return {
+    unsubscribe: () => {
+      rageClickSubscription.unsubscribe();
+      /* istanbul ignore next */
+      selectionSubscription?.unsubscribe();
+    },
+  };
 }

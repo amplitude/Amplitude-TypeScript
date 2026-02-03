@@ -23,6 +23,17 @@ export interface RageClickOptions {
 }
 
 /**
+ * Configuration options for error clicks tracking
+ */
+export interface ErrorClickOptions {
+  /**
+   * CSS selectors to define which elements on the page to track for error clicks.
+   * An error click is a click that results in an error.
+   */
+  cssSelectorAllowlist?: string[];
+}
+
+/**
  * Configuration options for frustration interactions tracking.
  * This includes dead clicks and rage clicks tracking.
  */
@@ -59,14 +70,24 @@ export interface FrustrationInteractionsOptions {
   dataAttributePrefix?: string;
 
   /**
-   * Configuration for dead clicks tracking
+   * Configuration for dead clicks tracking.
+   * Set to `false` to disable dead click tracking.
+   * Set to `true` or an options object to enable with default or custom settings.
    */
-  deadClicks?: DeadClickOptions;
+  deadClicks?: boolean | DeadClickOptions;
 
   /**
-   * Configuration for rage clicks tracking
+   * Configuration for rage clicks tracking.
+   * Set to `false` to disable rage click tracking.
+   * Set to `true` or an options object to enable with default or custom settings.
    */
-  rageClicks?: RageClickOptions;
+  rageClicks?: boolean | RageClickOptions;
+
+  /**
+   * Configuration for error clicks tracking
+   * @experimental this feature is experimental and may not be stable
+   */
+  errorClicks?: boolean | ErrorClickOptions;
 
   /**
    * RegExp pattern list to allow custom patterns for text masking
@@ -88,10 +109,7 @@ const CLICKABLE_ELEMENT_SELECTORS = [
   '[contenteditable="true" i]',
 ];
 
-/**
- * Default CSS selectors for dead clicks tracking
- */
-export const DEFAULT_DEAD_CLICK_ALLOWLIST = [
+const DEFAULT_ERROR_AND_DEAD_CLICK_ALLOWLIST = [
   'input[type="button"]',
   'input[type="submit"]',
   'input[type="reset"]',
@@ -99,6 +117,16 @@ export const DEFAULT_DEAD_CLICK_ALLOWLIST = [
   'input[type="file"]',
   ...CLICKABLE_ELEMENT_SELECTORS,
 ];
+
+/**
+ * Default CSS selectors for dead clicks tracking
+ */
+export const DEFAULT_DEAD_CLICK_ALLOWLIST = DEFAULT_ERROR_AND_DEAD_CLICK_ALLOWLIST;
+
+/**
+ * Default CSS selectors for error tracking
+ */
+export const DEFAULT_ERROR_CLICK_ALLOWLIST = DEFAULT_ERROR_AND_DEAD_CLICK_ALLOWLIST;
 
 /**
  * Default CSS selectors for rage clicks tracking

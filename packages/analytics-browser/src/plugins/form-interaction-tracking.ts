@@ -6,19 +6,26 @@ import {
   FORM_DESTINATION,
 } from '../constants';
 import { BrowserConfig } from '../config';
-import { getGlobalScope, Event, EnrichmentPlugin, BrowserClient } from '@amplitude/analytics-core';
+import {
+  getGlobalScope,
+  Event as AmplitudeEvent,
+  EnrichmentPlugin,
+  BrowserClient,
+  FormInteractionsOptions,
+} from '@amplitude/analytics-core';
+import { getFormInteractionsConfig } from '../default-tracking';
 
 interface EventListener {
   element: Element;
   type: 'change' | 'submit';
-  handler: () => void;
+  handler: (event: Event) => void;
 }
 
 export const formInteractionTracking = (): EnrichmentPlugin => {
   let observer: MutationObserver | undefined;
   let eventListeners: EventListener[] = [];
 
-  const addEventListener = (element: Element, type: 'change' | 'submit', handler: () => void) => {
+  const addEventListener = (element: Element, type: 'change' | 'submit', handler: (event: Event) => void) => {
     element.addEventListener(type, handler);
     eventListeners.push({
       element,
@@ -35,9 +42,13 @@ export const formInteractionTracking = (): EnrichmentPlugin => {
     eventListeners = [];
   };
 
+  let formInteractionsConfig: FormInteractionsOptions | undefined;
+
   const name = '@amplitude/plugin-form-interaction-tracking-browser';
   const type = 'enrichment';
   const setup = async (config: BrowserConfig, amplitude: BrowserClient) => {
+    formInteractionsConfig = getFormInteractionsConfig(config);
+
     const initializeFormTracking = () => {
       /* istanbul ignore if */
       if (!amplitude) {
@@ -68,7 +79,7 @@ export const formInteractionTracking = (): EnrichmentPlugin => {
           hasFormChanged = true;
         });
 
-        addEventListener(form, 'submit', () => {
+        addEventListener(form, 'submit', (event: Event) => {
           const formDestination = extractFormAction(form);
           if (!hasFormChanged) {
             amplitude.track(DEFAULT_FORM_START_EVENT, {
@@ -76,6 +87,29 @@ export const formInteractionTracking = (): EnrichmentPlugin => {
               [FORM_NAME]: stringOrUndefined(form.name),
               [FORM_DESTINATION]: formDestination,
             });
+          }
+          hasFormChanged = true;
+
+          // Check if shouldTrackSubmit callback is provided and use it to determine whether to track form_submit
+          if (formInteractionsConfig?.shouldTrackSubmit !== undefined) {
+            if (
+              typeof formInteractionsConfig.shouldTrackSubmit === 'function' &&
+              typeof SubmitEvent !== 'undefined' &&
+              event instanceof SubmitEvent
+            ) {
+              try {
+                const shouldTrack = formInteractionsConfig.shouldTrackSubmit(event);
+                if (!shouldTrack) {
+                  return;
+                }
+              } catch (e) {
+                config.loggerProvider.warn('shouldTrackSubmit callback threw an error, proceeding with tracking.');
+              }
+            } else {
+              config.loggerProvider.warn(
+                'shouldTrackSubmit is ignored because it is not a function or event is not a SubmitEvent.',
+              );
+            }
           }
 
           amplitude.track(DEFAULT_FORM_SUBMIT_EVENT, {
@@ -131,7 +165,7 @@ export const formInteractionTracking = (): EnrichmentPlugin => {
       }
     }
   };
-  const execute = async (event: Event) => event;
+  const execute = async (event: AmplitudeEvent) => event;
   const teardown = async () => {
     observer?.disconnect();
     removeClickListeners();

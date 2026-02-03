@@ -68,6 +68,8 @@ export enum ObservablesEnum {
   MutationObservable = 'mutationObservable',
   ScrollObservable = 'scrollObservable',
   ExposureObservable = 'exposureObservable',
+  BrowserErrorObservable = 'browserErrorObservable',
+  SelectionObservable = 'selectionObservable',
 }
 
 export interface AllWindowObservables {
@@ -78,6 +80,7 @@ export interface AllWindowObservables {
   [ObservablesEnum.NavigateObservable]?: Observable<TimestampedEvent<NavigateEvent>>;
   [ObservablesEnum.ScrollObservable]: Observable<Event>; // TODO: add type for scroll event
   [ObservablesEnum.ExposureObservable]: Observable<Event>;
+  [ObservablesEnum.SelectionObservable]?: Observable<void>;
 }
 
 export const autocapturePlugin = (
@@ -267,7 +270,7 @@ export const autocapturePlugin = (
         // TODO(xinyi): Diagnostics.recordEvent
         config.loggerProvider.debug('Remote config client is not provided, skipping remote config fetch');
       } else {
-        config.remoteConfigClient.subscribe('analyticsSDK.pageActions', 'all', (remoteConfig) => {
+        config.remoteConfigClient.subscribe('configs.analyticsSDK.pageActions', 'all', (remoteConfig) => {
           recomputePageActionsData(remoteConfig as ElementInteractionsOptions['pageActions']);
         });
       }

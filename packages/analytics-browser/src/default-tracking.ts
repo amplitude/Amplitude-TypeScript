@@ -3,6 +3,7 @@ import {
   PageTrackingOptions,
   PageTrackingTrackOn,
   ElementInteractionsOptions,
+  FormInteractionsOptions,
   BrowserOptions,
   AutocaptureOptions,
   AttributionOptions,
@@ -238,4 +239,16 @@ export const getAttributionTrackingConfig = (config: BrowserOptions): Attributio
   }
 
   return {};
+};
+
+export const getFormInteractionsConfig = (config: BrowserOptions): FormInteractionsOptions | undefined => {
+  if (
+    isFormInteractionTrackingEnabled(config.defaultTracking) &&
+    config.defaultTracking &&
+    typeof config.defaultTracking === 'object' &&
+    typeof config.defaultTracking.formInteractions === 'object'
+  ) {
+    return config.defaultTracking.formInteractions;
+  }
+  return undefined;
 };

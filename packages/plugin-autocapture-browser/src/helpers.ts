@@ -305,3 +305,9 @@ export interface NavigateEvent extends Event {
 
   scroll(): void;
 }
+
+export enum MouseButton {
+  LEFT_OR_TOUCH_CONTACT = 0,
+  MIDDLE = 1,
+  RIGHT = 2,
+}

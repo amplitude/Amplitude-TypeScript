@@ -16,7 +16,7 @@ import * as actionsModule from '../../src/pageActions/actions';
 import { AMPLITUDE_ELEMENT_CLICKED_EVENT, AMPLITUDE_ELEMENT_CHANGED_EVENT } from '../../src/constants';
 import { autocapturePlugin } from '../../src/autocapture-plugin';
 import type { BrowserClient, BrowserConfig, EnrichmentPlugin, ILogger } from '@amplitude/analytics-core';
-import { createInstance } from '@amplitude/analytics-browser';
+import { createMockBrowserClient } from '../mock-browser-client';
 import * as triggersModule from '../../src/pageActions/triggers';
 import { DataExtractor } from '../../src/data-extractor';
 
@@ -771,7 +771,7 @@ describe('TriggerEvaluator', () => {
 
 describe('autocapturePlugin recomputePageActionsData functionality', () => {
   let plugin: EnrichmentPlugin | undefined;
-  let instance: BrowserClient;
+  let instance: jest.Mocked<BrowserClient>;
   let loggerProvider: ILogger;
 
   // Mock data
@@ -909,7 +909,7 @@ describe('autocapturePlugin recomputePageActionsData functionality', () => {
     });
   });
 
-  beforeEach(async () => {
+  beforeEach(() => {
     mockWindowLocationFromURL(new URL('https://test.com'));
 
     loggerProvider = {
@@ -919,8 +919,7 @@ describe('autocapturePlugin recomputePageActionsData functionality', () => {
       debug: jest.fn(),
     } as unknown as ILogger;
 
-    instance = createInstance();
-    await instance.init('API_KEY', 'USER_ID').promise;
+    instance = createMockBrowserClient();
 
     // Reset all mocks
     jest.clearAllMocks();
@@ -987,7 +986,7 @@ describe('autocapturePlugin recomputePageActionsData functionality', () => {
 
       // Verify remote config client subscribe was called
       expect(mockRemoteConfigClient.subscribe).toHaveBeenCalledWith(
-        'analyticsSDK.pageActions',
+        'configs.analyticsSDK.pageActions',
         'all',
         expect.any(Function),
       );
@@ -1128,7 +1127,7 @@ describe('autocapturePlugin recomputePageActionsData functionality', () => {
 
       // Verify remote config client subscribe was called
       expect(mockRemoteConfigClient.subscribe).toHaveBeenCalledWith(
-        'analyticsSDK.pageActions',
+        'configs.analyticsSDK.pageActions',
         'all',
         expect.any(Function),
       );

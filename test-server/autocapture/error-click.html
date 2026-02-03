@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Error Click Test</title>
+  </head>
+  <body>
+    <h1>Error Click Test</h1>
+
+    <button id="console-error">Click for console.error (1s delay)</button>
+    <br /><br />
+
+    <button id="uncaught-exception">Click for uncaught exception (1s delay)</button>
+    <br /><br />
+
+    <button id="unhandled-rejection">Click for unhandled rejection (1s delay)</button>
+    <br /><br />
+
+    <button id="counter">Click to increment counter</button>
+    <span id="count">0</span>
+
+    <script>
+      document.getElementById('console-error').addEventListener('click', function () {
+        setTimeout(function () {
+          console.error('This is a console error triggered by click');
+        }, 1000);
+      });
+
+      document.getElementById('uncaught-exception').addEventListener('click', function () {
+        setTimeout(function () {
+          throw new Error('This is an uncaught exception triggered by click');
+        }, 1000);
+      });
+
+      document.getElementById('unhandled-rejection').addEventListener('click', function () {
+        setTimeout(function () {
+          Promise.reject(new Error('This is an unhandled rejection triggered by click'));
+        }, 1000);
+      });
+
+      var count = 0;
+      document.getElementById('counter').addEventListener('click', function () {
+        count++;
+        document.getElementById('count').textContent = count;
+      });
+    </script>
+
+    <script type="module">
+        import * as amplitude from '@amplitude/analytics-browser';
+        window.amplitude = amplitude;
+        amplitude.init(
+          import.meta.env.VITE_AMPLITUDE_API_KEY,
+          import.meta.env.VITE_AMPLITUDE_USER_ID || 'amplitude-typescript test user',
+          {
+            autocapture: {
+              frustrationInteractions: {
+                deadClicks: false,
+                rageClicks: false,
+                errorClicks: true,
+              },
+            },
+          }
+        );
+    </script>
+  </body>
+</html>
+

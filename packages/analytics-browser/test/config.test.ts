@@ -9,10 +9,12 @@ import {
   MemoryStorage,
   getCookieName,
   FetchTransport,
+  Logger,
+  BrowserConfig,
 } from '@amplitude/analytics-core';
 import * as BrowserUtils from '@amplitude/analytics-core';
 import { XHRTransport } from '../src/transports/xhr';
-import { createTransport, useBrowserConfig } from '../src/config';
+import { createTransport, useBrowserConfig, shouldFetchRemoteConfig } from '../src/config';
 import { SendBeaconTransport } from '../src/transports/send-beacon';
 import { uuidPattern } from './helpers/constants';
 import { DEFAULT_IDENTITY_STORAGE, DEFAULT_SERVER_ZONE } from '../src/constants';
@@ -36,18 +38,10 @@ describe('config', () => {
 
   describe('BrowserConfig', () => {
     test('should create empty config', async () => {
-      const cookieStorage = new core.MemoryStorage<UserSession>();
-      const logger = new core.Logger();
-      logger.enable(LogLevel.Warn);
       const config = new Config.BrowserConfig(apiKey);
-      expect(config).toEqual({
-        _cookieStorage: cookieStorage,
-        _deviceId: undefined,
-        _lastEventId: undefined,
-        _lastEventTime: undefined,
+      expect(config).toMatchObject({
+        _cookieStorage: expect.any(MemoryStorage),
         _optOut: false,
-        _sessionId: undefined,
-        _userId: undefined,
         apiKey,
         appVersion: undefined,
         cookieOptions: {
@@ -62,7 +56,7 @@ describe('config', () => {
         flushIntervalMillis: 1000,
         flushMaxRetries: 5,
         flushQueueSize: 30,
-        loggerProvider: logger,
+        loggerProvider: expect.any(Logger),
         logLevel: LogLevel.Warn,
         minIdLength: undefined,
         offline: false,
@@ -72,14 +66,14 @@ describe('config', () => {
         serverUrl: '',
         serverZone: DEFAULT_SERVER_ZONE,
         sessionTimeout: 1800000,
-        storageProvider: new LocalStorageModule.LocalStorage({ loggerProvider: logger }),
+        storageProvider: expect.any(LocalStorageModule.LocalStorage),
         trackingOptions: {
           ipAddress: true,
           language: true,
           platform: true,
         },
         transport: 'fetch',
-        transportProvider: new FetchTransport(),
+        transportProvider: expect.any(FetchTransport),
         useBatch: false,
         fetchRemoteConfig: true,
         version: VERSION,
@@ -95,6 +89,13 @@ describe('config', () => {
     test('shoud return _optOut', () => {
       const config = new Config.BrowserConfig(apiKey);
       expect(config.optOut).toBe(false);
+    });
+
+    test('should default fetchRemoteConfig to true when both remoteConfig.fetchRemoteConfig and fetchRemoteConfig are undefined', () => {
+      // Pass undefined for fetchRemoteConfig to test the ?? true fallback on line 129
+      const config = new Config.BrowserConfig(apiKey);
+      expect(config.fetchRemoteConfig).toBe(true);
+      expect(config.remoteConfig?.fetchRemoteConfig).toBe(true);
     });
   });
 
@@ -208,7 +209,7 @@ describe('config', () => {
         new AmplitudeBrowser(),
       );
       expect(config).toEqual({
-        _cookieStorage: cookieStorage,
+        _cookieStorage: expect.any(MemoryStorage),
         _deviceId: 'device-device-device',
         _lastEventId: 100,
         _lastEventTime: 1,
@@ -251,7 +252,7 @@ describe('config', () => {
           platform: true,
         },
         transport: 'fetch',
-        transportProvider: new FetchTransport(),
+        transportProvider: expect.any(FetchTransport),
         useBatch: false,
         fetchRemoteConfig: true,
         version: VERSION,
@@ -391,6 +392,7 @@ describe('config', () => {
       jest.spyOn(BrowserUtils, 'CookieStorage').mockReturnValueOnce({
         ...testCookieStorage,
         options: {},
+        config: {},
       });
       const domain = await Config.getTopLevelDomain();
       expect(domain).toBe('');
@@ -418,10 +420,12 @@ describe('config', () => {
         .mockReturnValueOnce({
           ...testCookieStorage,
           options: {},
+          config: {},
         })
         .mockReturnValue({
           ...actualCookieStorage,
           options: {},
+          config: {},
         });
       expect(await Config.getTopLevelDomain('www.legislation.gov.uk')).toBe('.legislation.gov.uk');
     });
@@ -487,6 +491,90 @@ describe('config', () => {
         instance,
       );
       expect(config.remoteConfig?.fetchRemoteConfig).toBe(false);
+    });
+  });
+
+  describe('duplicateResolverFn', () => {
+    const encodeJson = (session: UserSession) => btoa(encodeURIComponent(JSON.stringify(session)));
+
+    let config: BrowserConfig;
+    let cookieStorage: BrowserUtils.CookieStorage<UserSession>;
+    let duplicateResolverFn: ((value: string) => boolean) | undefined;
+
+    beforeEach(async () => {
+      config = await Config.useBrowserConfig(
+        apiKey,
+        { cookieOptions: { domain: '.amplitude.com' } },
+        new AmplitudeBrowser(),
+      );
+      cookieStorage = config.cookieStorage as BrowserUtils.CookieStorage<UserSession>;
+      duplicateResolverFn = cookieStorage.config.duplicateResolverFn;
+    });
+
+    test('should return true when cookieDomain matches config domain', async () => {
+      expect(duplicateResolverFn?.(encodeJson({ optOut: false, cookieDomain: '.amplitude.com' }))).toBe(true);
+    });
+
+    test('should return false when cookieDomain does not match config domain', async () => {
+      expect(duplicateResolverFn?.(encodeJson({ optOut: false, cookieDomain: '.other.com' }))).toBe(false);
+    });
+
+    test('should return false when cookieDomain is not set', async () => {
+      expect(duplicateResolverFn?.(encodeJson({ optOut: false }))).toBe(false);
+    });
+
+    test('should return false when cookie value cannot be decoded', async () => {
+      expect(duplicateResolverFn?.('not-valid-base64!')).toBe(false);
+    });
+  });
+
+  describe('shouldFetchRemoteConfig', () => {
+    test('should return true when remoteConfig.fetchRemoteConfig is explicitly true', () => {
+      expect(shouldFetchRemoteConfig({ remoteConfig: { fetchRemoteConfig: true } })).toBe(true);
+    });
+
+    test('should return false when remoteConfig.fetchRemoteConfig is explicitly false', () => {
+      expect(shouldFetchRemoteConfig({ remoteConfig: { fetchRemoteConfig: false } })).toBe(false);
+    });
+
+    test('should return false when fetchRemoteConfig is explicitly false', () => {
+      expect(shouldFetchRemoteConfig({ fetchRemoteConfig: false })).toBe(false);
+    });
+
+    test('should return true when both are undefined (default behavior)', () => {
+      expect(shouldFetchRemoteConfig({})).toBe(true);
+    });
+
+    test('should return true when options is undefined', () => {
+      expect(shouldFetchRemoteConfig()).toBe(true);
+    });
+  });
+
+  describe('useBrowserConfig with earlyConfig', () => {
+    test('should use earlyConfig values when provided', async () => {
+      const customLogger = new core.Logger();
+      customLogger.enable(LogLevel.Debug);
+
+      const earlyConfig: Config.EarlyConfig = {
+        loggerProvider: customLogger,
+        serverZone: 'EU',
+        enableDiagnostics: false,
+        diagnosticsSampleRate: 0.5,
+      };
+
+      const config = await Config.useBrowserConfig(
+        apiKey,
+        {}, // Empty options to ensure earlyConfig values are used
+        new AmplitudeBrowser(),
+        undefined, // diagnosticsClient
+        earlyConfig,
+      );
+
+      // Verify earlyConfig values are used instead of defaults
+      expect(config.loggerProvider).toBe(customLogger);
+      expect(config.serverZone).toBe('EU');
+      expect(config.enableDiagnostics).toBe(false);
+      expect(config.diagnosticsSampleRate).toBe(0.5);
     });
   });
 });

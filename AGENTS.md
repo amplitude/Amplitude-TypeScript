@@ -7,17 +7,17 @@ This repository uses GitHub Actions for continuous integration. Contributors sho
 Before running any tests or scripts, install dependencies and build the packages:
 
 ```bash
-yarn install --frozen-lockfile
-yarn build
+pnpm install
+pnpm build
 ```
 
 ## Testing and Linting
 
-1. Install dependencies with `yarn install --frozen-lockfile`.
-2. Build all packages with `yarn build`.
-3. Verify documentation with `yarn docs:check`.
-4. Run unit tests with `yarn test` and example tests with `yarn test:examples`.
-5. Lint the code using `yarn lint`.
+1. Install dependencies with `pnpm install`.
+2. Build all packages with `pnpm build`.
+3. Verify documentation with `pnpm docs:check`.
+4. Run unit tests with `pnpm test` and example tests with `pnpm test:examples`.
+5. Lint the code using `pnpm lint`.
 
 These steps must pass before you submit your PR.
 

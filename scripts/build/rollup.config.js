@@ -5,6 +5,7 @@ import { terser } from 'rollup-plugin-terser';
 import gzip from 'rollup-plugin-gzip';
 import execute from 'rollup-plugin-execute';
 import json from '@rollup/plugin-json';
+import sourcemaps from 'rollup-plugin-sourcemaps';
 import { exec } from 'child_process';
 import fs from 'fs';
 import { brotliCompress } from 'zlib';
@@ -114,6 +115,13 @@ export const iife = {
       browser: true,
     }),
     commonjs(),
+    // Flatten source maps: Dependencies like @amplitude/analytics-core are pre-compiled by
+    // TypeScript to lib/esm/*.js with corresponding lib/esm/*.js.map files that point back to
+    // the original .ts sources. When Rollup bundles these, the sourcemaps() plugin reads those
+    // intermediate source maps and chains them together. The result is a final source map that
+    // points directly to the original .ts files, enabling one-step unminification from CDN.
+    // Note: lib/cjs/ is for Node.js and not used in the browser IIFE bundle.
+    sourcemaps(),
     terser({
       output: {
         comments: false,
@@ -178,6 +186,13 @@ export const iifeGTM = {
       browser: true,
     }),
     commonjs(),
+    // Flatten source maps: Dependencies like @amplitude/analytics-core are pre-compiled by
+    // TypeScript to lib/esm/*.js with corresponding lib/esm/*.js.map files that point back to
+    // the original .ts sources. When Rollup bundles these, the sourcemaps() plugin reads those
+    // intermediate source maps and chains them together. The result is a final source map that
+    // points directly to the original .ts files, enabling one-step unminification from CDN.
+    // Note: lib/cjs/ is for Node.js and not used in the browser IIFE bundle.
+    sourcemaps(),
     terser({
       output: {
         comments: false,

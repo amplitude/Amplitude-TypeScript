@@ -28,6 +28,9 @@ import {
   NetworkTrackingOptions,
   IIdentify,
   IDiagnosticsClient,
+  isDomainEqual,
+  CookieStorageConfig,
+  decodeCookieValue,
 } from '@amplitude/analytics-core';
 
 import { LocalStorage } from './storage/local-storage';
@@ -120,18 +123,11 @@ export class BrowserConfig extends Config implements IBrowserConfig {
     this.diagnosticsSampleRate = diagnosticsSampleRate;
     this.diagnosticsClient = diagnosticsClient;
 
-    // Backward compatibility for fetchRemoteConfig
-    let _fetchRemoteConfig;
-    if (remoteConfig?.fetchRemoteConfig === true) {
-      // set to true if remoteConfig explicitly set to true
-      _fetchRemoteConfig = true;
-    } else if (remoteConfig?.fetchRemoteConfig === false || fetchRemoteConfig === false) {
-      // set to false if either are set to false explicitly
-      _fetchRemoteConfig = false;
-    } else {
-      // default to true if both undefined
-      _fetchRemoteConfig = true;
-    }
+    // Note: The canonical logic for determining fetchRemoteConfig is in shouldFetchRemoteConfig().
+    // This logic is duplicated here to maintain the BrowserConfig constructor contract and ensure
+    // the config object has the correct fetchRemoteConfig value set on its properties.
+    // The value passed to this constructor should already be computed via shouldFetchRemoteConfig().
+    const _fetchRemoteConfig = remoteConfig?.fetchRemoteConfig ?? fetchRemoteConfig;
     this.remoteConfig = this.remoteConfig || {};
     this.remoteConfig.fetchRemoteConfig = _fetchRemoteConfig;
     this.fetchRemoteConfig = _fetchRemoteConfig;
@@ -242,15 +238,38 @@ export class BrowserConfig extends Config implements IBrowserConfig {
       lastEventId: this._lastEventId,
       pageCounter: this._pageCounter,
       debugLogsEnabled: this._debugLogsEnabled,
+      cookieDomain: undefined as string | undefined,
     };
+
+    if (this.cookieStorage instanceof CookieStorage) {
+      cache.cookieDomain = this.cookieStorage.options.domain;
+    }
+
     void this.cookieStorage.set(getCookieName(this.apiKey), cache);
   }
+}
+
+/**
+ * Early-initialized configuration values that are determined before useBrowserConfig is called.
+ * These are created early to support DiagnosticsClient and RemoteConfigClient initialization.
+ */
+export interface EarlyConfig {
+  /** Logger instance - shared across DiagnosticsClient, RemoteConfigClient, and BrowserConfig */
+  loggerProvider: ILogger;
+  /** Server zone for API endpoints */
+  serverZone: ServerZoneType;
+  /** Whether diagnostics is enabled (may come from remote config) */
+  enableDiagnostics: boolean;
+  /** Diagnostics sample rate (may come from remote config) */
+  diagnosticsSampleRate: number;
 }
 
 export const useBrowserConfig = async (
   apiKey: string,
   options: BrowserOptions = {},
   amplitudeInstance: AmplitudeBrowser,
+  diagnosticsClient?: IDiagnosticsClient,
+  earlyConfig?: EarlyConfig,
 ): Promise<IBrowserConfig> => {
   // Step 1: Create identity storage instance
   const identityStorage = options.identityStorage || DEFAULT_IDENTITY_STORAGE;
@@ -263,7 +282,21 @@ export const useBrowserConfig = async (
     upgrade: true,
     ...options.cookieOptions,
   };
-  const cookieStorage = createCookieStorage<UserSession>(options.identityStorage, cookieOptions);
+
+  const cookieConfig: CookieStorageConfig = {
+    // if more than one cookie with the same key exists,
+    // look for the cookie that has the domain attribute set to cookieOptions.domain
+    duplicateResolverFn: (value: string): boolean => {
+      const decodedValue = decodeCookieValue(value);
+      if (!decodedValue) {
+        return false;
+      }
+      const parsed = JSON.parse(decodedValue) as UserSession;
+      return isDomainEqual(parsed.cookieDomain, cookieOptions.domain);
+    },
+    diagnosticsClient: diagnosticsClient,
+  };
+  const cookieStorage = createCookieStorage<UserSession>(options.identityStorage, cookieOptions, cookieConfig);
 
   // Step 1: Parse cookies using identity storage instance
   const legacyCookies = await parseLegacyCookies(apiKey, cookieStorage, options.cookieOptions?.upgrade ?? true);
@@ -318,7 +351,8 @@ export const useBrowserConfig = async (
     options.instanceName,
     lastEventId,
     lastEventTime,
-    options.loggerProvider,
+    // Use earlyConfig.loggerProvider to ensure consistent logger across DiagnosticsClient/RemoteConfigClient/BrowserConfig
+    earlyConfig?.loggerProvider ?? options.loggerProvider,
     options.logLevel,
     options.minIdLength,
     options.offline,
@@ -326,7 +360,8 @@ export const useBrowserConfig = async (
     options.partnerId,
     options.plan,
     options.serverUrl,
-    options.serverZone,
+    // Use earlyConfig.serverZone to ensure consistent serverZone
+    earlyConfig?.serverZone ?? options.serverZone,
     sessionId,
     options.sessionTimeout,
     options.storageProvider,
@@ -339,9 +374,10 @@ export const useBrowserConfig = async (
     debugLogsEnabled,
     options.networkTrackingOptions,
     options.identify,
-    options.enableDiagnostics,
-    amplitudeInstance._diagnosticsSampleRate, // Use _diagnosticsSampleRate set via _setDiagnosticsSampleRate() or defaults to 0
-    undefined, // diagnosticsClient - set after config creation
+    // Use earlyConfig values (already has remote config applied), otherwise fall back to options
+    earlyConfig?.enableDiagnostics ?? options.enableDiagnostics,
+    earlyConfig?.diagnosticsSampleRate ?? amplitudeInstance._diagnosticsSampleRate,
+    diagnosticsClient,
     options.remoteConfig,
   );
 
@@ -358,6 +394,7 @@ export const useBrowserConfig = async (
 export const createCookieStorage = <T>(
   identityStorage: IdentityStorageType = DEFAULT_IDENTITY_STORAGE,
   cookieOptions: CookieOptions = {},
+  cookieConfig?: CookieStorageConfig,
 ) => {
   switch (identityStorage) {
     case 'localStorage':
@@ -368,10 +405,30 @@ export const createCookieStorage = <T>(
       return new MemoryStorage<T>();
     case 'cookie':
     default:
-      return new CookieStorage<T>({
-        ...cookieOptions,
-        expirationDays: cookieOptions.expiration,
-      });
+      return new CookieStorage<T>(
+        {
+          ...cookieOptions,
+          expirationDays: cookieOptions.expiration,
+        },
+        cookieConfig,
+      );
+  }
+};
+
+/**
+ * Determines whether to fetch remote config based on options.
+ * Extracted to allow early determination before useBrowserConfig is called.
+ */
+export const shouldFetchRemoteConfig = (options: BrowserOptions = {}): boolean => {
+  if (options.remoteConfig?.fetchRemoteConfig === true) {
+    // set to true if remoteConfig explicitly set to true
+    return true;
+  } else if (options.remoteConfig?.fetchRemoteConfig === false || options.fetchRemoteConfig === false) {
+    // set to false if either are set to false explicitly
+    return false;
+  } else {
+    // default to true if both undefined
+    return true;
   }
 };
 
@@ -400,14 +457,18 @@ export const getTopLevelDomain = async (url?: string) => {
   const host = url ?? location.hostname;
   const parts = host.split('.');
   const levels = [];
-  const storageKey = 'AMP_TLDTEST';
+  const cookieKeyUniqueId = UUID();
+  const storageKey = `AMP_TLDTEST_${cookieKeyUniqueId.substring(0, 8)}`;
 
   for (let i = parts.length - 2; i >= 0; --i) {
     levels.push(parts.slice(i).join('.'));
   }
   for (let i = 0; i < levels.length; i++) {
     const domain = levels[i];
-    const options = { domain: '.' + domain };
+    const options = {
+      domain: '.' + domain,
+      expirationDays: 0.003, // expire in ~5 minutes
+    };
     const storage = new CookieStorage<number>(options);
     await storage.set(storageKey, 1);
     const value = await storage.get(storageKey);

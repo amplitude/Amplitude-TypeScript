@@ -5,7 +5,7 @@ import App from './App';
 import reportWebVitals from './reportWebVitals';
 import * as amplitude from '@amplitude/unified';
 
-amplitude.initAll('5b9a9510e261f9ead90865bbc5a7ad1d');
+amplitude.initAll('API_KEY');
 
 const root = ReactDOM.createRoot(
   document.getElementById('root') as HTMLElement

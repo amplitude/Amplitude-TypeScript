@@ -3,6 +3,49 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.5.37](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-react-native@1.5.36...@amplitude/analytics-react-native@1.5.37) (2026-01-26)
+
+**Note:** Version bump only for package @amplitude/analytics-react-native
+
+
+
+
+
+## [1.5.36](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-react-native@1.5.35...@amplitude/analytics-react-native@1.5.36) (2026-01-21)
+
+**Note:** Version bump only for package @amplitude/analytics-react-native
+
+
+
+
+
+## [1.5.35](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-react-native@1.5.34...@amplitude/analytics-react-native@1.5.35) (2026-01-15)
+
+**Note:** Version bump only for package @amplitude/analytics-react-native
+
+
+
+
+
+## [1.5.34](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-react-native@1.5.33...@amplitude/analytics-react-native@1.5.34) (2026-01-14)
+
+**Note:** Version bump only for package @amplitude/analytics-react-native
+
+
+
+
+
+## [1.5.33](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-react-native@1.5.32...@amplitude/analytics-react-native@1.5.33) (2026-01-14)
+
+
+### Bug Fixes
+
+* **analytics-browser:** two cookie problem resolution ([#1490](https://github.com/amplitude/Amplitude-TypeScript/issues/1490)) ([506638a](https://github.com/amplitude/Amplitude-TypeScript/commit/506638a2a412dc3843b0da9450325f70ff465422))
+
+
+
+
+
 ## [1.5.32](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-react-native@1.5.31...@amplitude/analytics-react-native@1.5.32) (2025-12-24)
 
 **Note:** Version bump only for package @amplitude/analytics-react-native

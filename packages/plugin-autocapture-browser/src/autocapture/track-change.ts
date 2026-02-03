@@ -1,7 +1,11 @@
-import { AllWindowObservables } from 'src/autocapture-plugin';
-import { ElementBasedTimestampedEvent, type evaluateTriggersFn } from 'src/helpers';
+import { AllWindowObservables } from '../autocapture-plugin';
+import {
+  filterOutNonTrackableEvents,
+  shouldTrackEvent,
+  ElementBasedTimestampedEvent,
+  type evaluateTriggersFn,
+} from '../helpers';
 import { BrowserClient, ActionType } from '@amplitude/analytics-core';
-import { filterOutNonTrackableEvents, shouldTrackEvent } from '../helpers';
 import { AMPLITUDE_ELEMENT_CHANGED_EVENT } from '../constants';
 
 export function trackChange({
