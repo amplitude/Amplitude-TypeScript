@@ -438,7 +438,7 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
     // do not start a new session if optOut is true
     if (this.config.optOut) {
       // save the sessionId to storage to be used when optOut is false
-      this.config.deferredSessionId = sessionId || UNSPECIFIED_SESSION_ID;
+      this.config.deferredSessionId = sessionId ?? UNSPECIFIED_SESSION_ID;
       return returnWrapper(Promise.resolve());
     }
 
