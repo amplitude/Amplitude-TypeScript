@@ -41,13 +41,13 @@ export class WebAttribution {
   }
 
   async init() {
-    [this.currentCampaign, this.previousCampaign] = await this.fetchCampaign();
-    const isEventInNewSession = !this.lastEventTime ? true : isNewSession(this.sessionTimeout, this.lastEventTime);
-
     // skip attribution if optOut is true
     if (this.options.optOut) {
       return;
     }
+
+    [this.currentCampaign, this.previousCampaign] = await this.fetchCampaign();
+    const isEventInNewSession = !this.lastEventTime ? true : isNewSession(this.sessionTimeout, this.lastEventTime);
 
     if (isNewCampaign(this.currentCampaign, this.previousCampaign, this.options, this.logger, isEventInNewSession)) {
       this.shouldTrackNewCampaign = true;
