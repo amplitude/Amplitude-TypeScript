@@ -62,7 +62,7 @@ const createUnhandledErrorObservable = (): Observable<BrowserErrorEvent> => {
         kind: 'error',
       };
 
-      if (event.error instanceof Error) {
+      if (event.error instanceof Error || event.error instanceof DOMException) {
         output = {
           ...output,
           message: event.error.message,
@@ -73,6 +73,9 @@ const createUnhandledErrorObservable = (): Observable<BrowserErrorEvent> => {
         };
       } else if (typeof event.error === 'string') {
         output.message = event.error;
+      } else {
+        // ignore non-error events
+        return;
       }
       observer.next(output);
     };
