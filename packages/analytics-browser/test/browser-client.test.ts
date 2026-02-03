@@ -1097,6 +1097,34 @@ describe('browser-client', () => {
           }).promise;
           expect(client.config.sessionId).toBe(id);
         });
+
+        test('should not initialize webAttribution when optOut listener receives true', async () => {
+          // Initialize with optOut: true and attribution enabled to set up the listener
+          await client.init(apiKey, userId, {
+            optOut: true,
+            defaultTracking: {
+              attribution: true,
+            },
+          }).promise;
+
+          // Track calls to WebAttribution constructor
+          let webAttributionInitCallCount = 0;
+          /* eslint-disable-next-line @typescript-eslint/unbound-method */
+          const originalInit = WebAttribution.prototype.init;
+          jest.spyOn(WebAttribution.prototype, 'init').mockImplementation(function (this: WebAttribution) {
+            webAttributionInitCallCount++;
+            return originalInit.call(this);
+          });
+
+          // set optOut to false and then true
+          client.setOptOut(false);
+          await new Promise((resolve) => setTimeout(resolve, 10));
+          client.setOptOut(true);
+          await new Promise((resolve) => setTimeout(resolve, 10));
+
+          // should only call init once
+          expect(webAttributionInitCallCount).toBe(1);
+        });
       });
 
       describe('when optOut is false', () => {
