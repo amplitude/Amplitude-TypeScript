@@ -393,6 +393,77 @@ describe('Custom Enrichment Plugin', () => {
 
       expect(result).toEqual(originalEvent);
     });
+
+    it('should handle null remote config body', async () => {
+      const plugin = customEnrichmentPlugin();
+
+      const mockRemoteConfigClient = {
+        subscribe: jest.fn((key, _audience, callback) => {
+          if (key === 'configs.analyticsSDK.browserSDK.customEnrichment') {
+            callback({ body: null });
+          }
+        }),
+      };
+
+      const configWithRemoteConfig = {
+        ...mockConfig,
+        remoteConfigClient: mockRemoteConfigClient,
+      };
+
+      await plugin.setup?.(configWithRemoteConfig, mockClient);
+
+      const originalEvent = { event_type: 'test_event' };
+      const result = await plugin.execute?.(originalEvent);
+
+      expect(result).toEqual(originalEvent);
+    });
+
+    it('should handle when remote config body becomes null', async () => {
+      const plugin = customEnrichmentPlugin();
+      const customFunction = `
+        event.event_properties = { test: "value" };
+        return event;
+      `;
+
+      // Store the callback so we can invoke it multiple times to simulate config changes
+      let subscribedCallback: ((config: any) => void) | undefined;
+
+      const mockRemoteConfigClient = {
+        subscribe: jest.fn((key, _audience, callback) => {
+          if (key === 'configs.analyticsSDK.browserSDK.customEnrichment') {
+            subscribedCallback = callback;
+            // Initial call with valid custom function
+            callback({ body: customFunction });
+          }
+        }),
+      };
+
+      const configWithRemoteConfig = {
+        ...mockConfig,
+        remoteConfigClient: mockRemoteConfigClient,
+        remoteConfig: {
+          fetchRemoteConfig: true,
+        },
+      };
+
+      await plugin.setup?.(configWithRemoteConfig, mockClient);
+
+      // First execution should apply the custom enrichment
+      const firstEvent = { event_type: 'test_event' };
+      const firstResult = await plugin.execute?.(firstEvent);
+      expect(firstResult).toEqual({
+        event_type: 'test_event',
+        event_properties: { test: 'value' },
+      });
+
+      // Now simulate the remote config changing to null
+      subscribedCallback?.({ body: null });
+
+      // Second execution should return the event unchanged (enrichment disabled)
+      const secondEvent = { event_type: 'test_event_2' };
+      const secondResult = await plugin.execute?.(secondEvent);
+      expect(secondResult).toEqual(secondEvent);
+    });
   });
 
   describe('remote config integration', () => {
