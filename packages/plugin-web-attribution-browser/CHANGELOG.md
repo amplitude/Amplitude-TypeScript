@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.1.109-feat-zoning-alpha.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-web-attribution-browser@2.1.108...@amplitude/plugin-web-attribution-browser@2.1.109-feat-zoning-alpha.0) (2026-02-03)
+
+**Note:** Version bump only for package @amplitude/plugin-web-attribution-browser
+
+
+
+
+
 ## [2.1.108](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-web-attribution-browser@2.1.107...@amplitude/plugin-web-attribution-browser@2.1.108) (2026-01-26)
 
 **Note:** Version bump only for package @amplitude/plugin-web-attribution-browser
