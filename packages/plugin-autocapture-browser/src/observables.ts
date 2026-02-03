@@ -93,7 +93,7 @@ const createUnhandledRejectionObservable = (): Observable<BrowserErrorEvent> => 
       const output: BrowserErrorEvent = {
         kind: 'unhandledrejection',
       };
-      if (event.reason instanceof Error) {
+      if (event.reason instanceof Error || event.reason instanceof DOMException) {
         output.message = event.reason.message;
         output.stack = event.reason.stack;
       } else if (typeof event.reason === 'string') {
