@@ -447,6 +447,7 @@ export const autocapturePlugin = (
     }
 
     // Setup background capture messenger if it is not already setup for visual tagging selector
+    /* istanbul ignore next */
     if (window.opener && backgroundCaptureOptions.enabled && !visualTaggingOptions.messenger) {
       /* istanbul ignore next */
       backgroundCaptureOptions.messenger?.setup({

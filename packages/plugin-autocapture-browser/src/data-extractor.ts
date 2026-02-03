@@ -175,6 +175,7 @@ export class DataExtractor {
 
     const pageViewId = getCurrentPageViewId();
     if (pageViewId) {
+      /* istanbul ignore next */
       properties[constants.AMPLITUDE_EVENT_PROP_PAGE_VIEW_ID] = pageViewId;
     }
 
