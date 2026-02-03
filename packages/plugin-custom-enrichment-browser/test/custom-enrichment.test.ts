@@ -408,6 +408,9 @@ describe('Custom Enrichment Plugin', () => {
       const configWithRemoteConfig = {
         ...mockConfig,
         remoteConfigClient: mockRemoteConfigClient,
+        remoteConfig: {
+          fetchRemoteConfig: true,
+        },
       };
 
       await plugin.setup?.(configWithRemoteConfig, mockClient);
