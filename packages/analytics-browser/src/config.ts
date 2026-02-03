@@ -190,7 +190,7 @@ export class BrowserConfig extends Config implements IBrowserConfig {
   }
 
   set deferredSessionId(deferredSessionId: number | undefined) {
-    if (this._deferredSessionId !== deferredSessionId) {
+    if (this._deferredSessionId !== deferredSessionId && deferredSessionId !== this.sessionId) {
       this._deferredSessionId = deferredSessionId;
       this.updateStorage();
     }
