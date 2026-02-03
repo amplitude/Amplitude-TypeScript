@@ -610,7 +610,7 @@ describe('frustrationPlugin', () => {
       expect(res.message).toBe('test uncaught error');
     });
 
-    it('should capture uncaught errors with non-object error', async () => {
+    it('should capture uncaught errors with string error', async () => {
       setTimeout(() => {
         throw 'test uncaught error';
       }, 10);
@@ -618,6 +618,24 @@ describe('frustrationPlugin', () => {
       expect(res.kind).toBe('error');
       expect(res.message).toBe('test uncaught error');
       expect(res.stack).toBeUndefined();
+    });
+
+    it('should capture uncaught DOMException error', async () => {
+      setTimeout(() => {
+        // https://developer.mozilla.org/en-US/docs/Web/API/DOMException
+        throw new DOMException('test DOMException error', 'DOMException');
+      }, 10);
+      const res = await subscribePromise;
+      expect(res.kind).toBe('error');
+      expect(res.message).toBe('test DOMException error');
+      expect(res.stack).toBeDefined();
+    });
+
+    it('should not capture non-error events', async () => {
+      window.dispatchEvent(new Event('error'));
+      const timeoutPromise = new Promise((resolve) => setTimeout(() => resolve('timeout'), 100));
+      const result = await Promise.race([subscribePromise, timeoutPromise]);
+      expect(result).toBe('timeout');
     });
 
     it('should capture console errors', async () => {

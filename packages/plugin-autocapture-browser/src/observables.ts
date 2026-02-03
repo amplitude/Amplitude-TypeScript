@@ -57,12 +57,15 @@ const createConsoleErrorObservable = (): Observable<BrowserErrorEvent> => {
 
 const createUnhandledErrorObservable = (): Observable<BrowserErrorEvent> => {
   return new Observable<BrowserErrorEvent>((observer) => {
-    const handler = (event: ErrorEvent) => {
+    const handler = (event: Event) => {
+      if (!(event instanceof ErrorEvent)) {
+        return;
+      }
       let output: BrowserErrorEvent = {
         kind: 'error',
       };
 
-      if (event.error instanceof Error) {
+      if (event.error instanceof Error || event.error instanceof DOMException) {
         output = {
           ...output,
           message: event.error.message,
@@ -90,7 +93,7 @@ const createUnhandledRejectionObservable = (): Observable<BrowserErrorEvent> => 
       const output: BrowserErrorEvent = {
         kind: 'unhandledrejection',
       };
-      if (event.reason instanceof Error) {
+      if (event.reason instanceof Error || event.reason instanceof DOMException) {
         output.message = event.reason.message;
         output.stack = event.reason.stack;
       } else if (typeof event.reason === 'string') {
