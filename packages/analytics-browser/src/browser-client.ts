@@ -267,7 +267,7 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
         : undefined;
 
     let deferredSessionId = this.config.deferredSessionId;
-    if (deferredSessionId === -1 && !this.config.optOut) {
+    if (deferredSessionId === UNSPECIFIED_SESSION_ID && !this.config.optOut) {
       deferredSessionId = Date.now();
     }
 
