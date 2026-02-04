@@ -65,6 +65,27 @@ export interface BrowserClient extends Client {
   getIdentity(): AnalyticsIdentity;
 
   /**
+   * Sets the identity (userId, deviceId, and/or userProperties).
+   * This is a unified shortcut for `setUserId()`, `setDeviceId()`, and setting user properties.
+   * When userProperties change, an identify event is automatically sent.
+   *
+   * ```typescript
+   * // Set user properties (auto-sends identify event)
+   * setIdentity({ userProperties: { plan: 'premium' } });
+   *
+   * // Set userId (equivalent to setUserId('user-123'))
+   * setIdentity({ userId: 'user-123' });
+   *
+   * // Set deviceId (equivalent to setDeviceId('device-456'))
+   * setIdentity({ deviceId: 'device-456' });
+   *
+   * // Set multiple identity fields together
+   * setIdentity({ userId: 'user-123', deviceId: 'device-456', userProperties: { name: 'John' } });
+   * ```
+   */
+  setIdentity(identity: Partial<AnalyticsIdentity>): void;
+
+  /**
    * Returns the current optOut config value.
    *
    * ```typescript

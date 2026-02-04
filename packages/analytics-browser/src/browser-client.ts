@@ -23,6 +23,7 @@ import {
   BrowserClient,
   SpecialEventType,
   AnalyticsClient,
+  AnalyticsIdentity,
   IRemoteConfigClient,
   RemoteConfigClient,
   RemoteConfig,
@@ -381,6 +382,41 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
     };
   }
 
+  setIdentity(identity: Partial<AnalyticsIdentity>) {
+    if (!this.config) {
+      this.q.push(this.setIdentity.bind(this, identity));
+      return;
+    }
+
+    // Handle userId change
+    if ('userId' in identity && identity.userId !== this.config.userId) {
+      this.setUserId(identity.userId);
+    }
+
+    // Handle deviceId change
+    if ('deviceId' in identity && identity.deviceId !== this.config.deviceId) {
+      this.setDeviceId(identity.deviceId as string);
+    }
+
+    // Handle userProperties change - auto-send identify
+    if ('userProperties' in identity) {
+      const oldProps = this.userPropertiesToSortedString(this.userProperties);
+      const newProps = this.userPropertiesToSortedString(identity.userProperties);
+      if (oldProps !== newProps) {
+        this.userProperties = identity.userProperties;
+        // Auto-send identify event with $set operations
+        const identifyObj = new Identify();
+        for (const [key, value] of Object.entries(identity.userProperties ?? {})) {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+          identifyObj.set(key, value);
+        }
+        this.identify(identifyObj);
+        // Notify plugins of identity change
+        this.timeline.onIdentityChanged({ userProperties: this.userProperties });
+      }
+    }
+  }
+
   getOptOut(): boolean | undefined {
     return this.config?.optOut;
   }
@@ -548,6 +584,20 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
     }
 
     return super.process(event);
+  }
+
+  /**
+   * Converts user properties to a sorted JSON string for comparison.
+   * Similar to Swift's NSDictionary comparison behavior (order-independent).
+   */
+  private userPropertiesToSortedString(props: { [key: string]: unknown } | undefined): string {
+    if (!props) return '{}';
+    const sortedKeys = Object.keys(props).sort();
+    const sortedObj: { [key: string]: unknown } = {};
+    for (const key of sortedKeys) {
+      sortedObj[key] = props[key];
+    }
+    return JSON.stringify(sortedObj);
   }
 
   private logBrowserOptions(browserConfig: BrowserOptions & { apiKey: string }) {

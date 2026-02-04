@@ -1493,6 +1493,108 @@ describe('browser-client', () => {
     });
   });
 
+  describe('setIdentity', () => {
+    test('should set userId via setIdentity', async () => {
+      await client.init(apiKey, { defaultTracking }).promise;
+      expect(client.getUserId()).toBe(undefined);
+
+      client.setIdentity({ userId: 'new-user-id' });
+
+      expect(client.getUserId()).toBe('new-user-id');
+    });
+
+    test('should set deviceId via setIdentity', async () => {
+      await client.init(apiKey, { defaultTracking }).promise;
+      const initialDeviceId = client.getDeviceId();
+
+      client.setIdentity({ deviceId: 'new-device-id' });
+
+      expect(client.getDeviceId()).toBe('new-device-id');
+      expect(client.getDeviceId()).not.toBe(initialDeviceId);
+    });
+
+    test('should set userProperties and auto-send identify event', async () => {
+      await client.init(apiKey, { defaultTracking }).promise;
+      const identifySpy = jest.spyOn(client, 'identify');
+
+      client.setIdentity({ userProperties: { plan: 'premium', theme: 'dark' } });
+
+      expect(client.userProperties).toEqual({ plan: 'premium', theme: 'dark' });
+      expect(identifySpy).toHaveBeenCalledTimes(1);
+
+      const identity = client.getIdentity();
+      expect(identity.userProperties).toEqual({ plan: 'premium', theme: 'dark' });
+    });
+
+    test('should not send identify event if userProperties are the same', async () => {
+      await client.init(apiKey, { defaultTracking }).promise;
+
+      // Set initial user properties
+      client.setIdentity({ userProperties: { plan: 'premium', theme: 'dark' } });
+      const identifySpy = jest.spyOn(client, 'identify');
+
+      // Set the same user properties again
+      client.setIdentity({ userProperties: { theme: 'dark', plan: 'premium' } });
+
+      expect(identifySpy).not.toHaveBeenCalled();
+    });
+
+    test('should set userId and userProperties together', async () => {
+      await client.init(apiKey, { defaultTracking }).promise;
+      const identifySpy = jest.spyOn(client, 'identify');
+
+      client.setIdentity({
+        userId: 'new-user-id',
+        userProperties: { name: 'John' },
+      });
+
+      expect(client.getUserId()).toBe('new-user-id');
+      expect(client.userProperties).toEqual({ name: 'John' });
+      expect(identifySpy).toHaveBeenCalledTimes(1);
+    });
+
+    test('should defer setIdentity before init', () => {
+      return new Promise<void>((resolve) => {
+        void client.init(apiKey, { defaultTracking }).promise.then(() => {
+          expect(client.getUserId()).toBe('deferred-user');
+          expect(client.userProperties).toEqual({ deferred: true });
+          resolve();
+        });
+        client.setIdentity({ userId: 'deferred-user', userProperties: { deferred: true } });
+      });
+    });
+
+    test('should replace userProperties completely', async () => {
+      await client.init(apiKey, { defaultTracking }).promise;
+
+      client.setIdentity({ userProperties: { plan: 'premium', theme: 'dark' } });
+      expect(client.userProperties).toEqual({ plan: 'premium', theme: 'dark' });
+
+      // Replace with new properties - should be a full replacement, not merge
+      client.setIdentity({ userProperties: { plan: 'basic' } });
+      expect(client.userProperties).toEqual({ plan: 'basic' });
+    });
+
+    test('should notify plugins of identity change', async () => {
+      await client.init(apiKey, { defaultTracking }).promise;
+      const onIdentityChangedMock = jest.fn();
+
+      await client.add({
+        name: 'test-plugin',
+        type: 'enrichment',
+        setup: async () => {
+          return;
+        },
+        execute: async (event) => event,
+        onIdentityChanged: onIdentityChangedMock,
+      }).promise;
+
+      client.setIdentity({ userProperties: { plan: 'premium' } });
+
+      expect(onIdentityChangedMock).toHaveBeenCalledWith({ userProperties: { plan: 'premium' } });
+    });
+  });
+
   describe('getOptOut', () => {
     test.each([true, false])('should return opt out value', async (optOut) => {
       await client.init(apiKey, {
