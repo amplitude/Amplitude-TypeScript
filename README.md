@@ -21,7 +21,7 @@ $ git clone git@github.com:amplitude/Amplitude-TypeScript.git
 $ nvm use
 $ pnpm --version
 $ pnpm install
-$ pnpm build
+$ pxnpm build
 ```
 
 Check our guidelines for repo contributions on [CONTRIBUTING.md](https://github.com/amplitude/Amplitude-TypeScript/blob/main/CONTRIBUTING.md).
