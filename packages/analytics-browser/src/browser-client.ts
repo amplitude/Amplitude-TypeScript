@@ -600,7 +600,9 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
       }
       return JSON.stringify(sortedObj);
     } catch {
-      this.config.loggerProvider.error('Error converting user properties to sorted string', props);
+      this.config.loggerProvider.warn('Error converting user properties to sorted string', props);
+      // Return a unique string to force comparison mismatch and send the identify.
+      return `__unstringifiable_${Date.now()}`;
     }
   }
 
