@@ -410,9 +410,9 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
           // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
           identifyObj.set(key, value);
         }
+        // The identify event processing in core-client already calls onIdentityChanged,
+        // so we don't need to call it explicitly here to avoid duplicate notifications.
         this.identify(identifyObj);
-        // Notify plugins of identity change
-        this.timeline.onIdentityChanged({ userProperties: this.userProperties });
       }
     }
   }
