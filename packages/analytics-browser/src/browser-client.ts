@@ -394,8 +394,8 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
     }
 
     // Handle deviceId change
-    if ('deviceId' in identity && identity.deviceId !== this.config.deviceId) {
-      this.setDeviceId(identity.deviceId as string);
+    if ('deviceId' in identity && identity.deviceId && identity.deviceId !== this.config.deviceId) {
+      this.setDeviceId(identity.deviceId);
     }
 
     // Handle userProperties change - auto-send identify
@@ -592,12 +592,16 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
    */
   private userPropertiesToSortedString(props: { [key: string]: unknown } | undefined): string {
     if (!props) return '{}';
-    const sortedKeys = Object.keys(props).sort();
-    const sortedObj: { [key: string]: unknown } = {};
-    for (const key of sortedKeys) {
-      sortedObj[key] = props[key];
+    try {
+      const sortedKeys = Object.keys(props).sort();
+      const sortedObj: { [key: string]: unknown } = {};
+      for (const key of sortedKeys) {
+        sortedObj[key] = props[key];
+      }
+      return JSON.stringify(sortedObj);
+    } catch {
+      this.config.loggerProvider.error('Error converting user properties to sorted string', props);
     }
-    return JSON.stringify(sortedObj);
   }
 
   private logBrowserOptions(browserConfig: BrowserOptions & { apiKey: string }) {
