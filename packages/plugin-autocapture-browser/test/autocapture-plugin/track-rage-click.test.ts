@@ -21,6 +21,7 @@ describe('trackRageClicks', () => {
   let shouldTrackRageClick: jest.Mock;
   let clickObserver: any;
   let selectionObserver: any;
+  let mouseMoveObservable: any;
   let subscription: ReturnType<typeof trackRageClicks>;
 
   beforeEach(() => {
@@ -34,13 +35,14 @@ describe('trackRageClicks', () => {
     selectionObservable = new Observable<any>((observer) => {
       selectionObserver = observer;
     });
-
+    mouseMoveObservable = new Observable<any>(() => {});
     allObservables = {
       [ObservablesEnum.ClickObservable]: clickObservable,
       [ObservablesEnum.NavigateObservable]: new Observable<any>(() => {}),
       [ObservablesEnum.MutationObservable]: new Observable<any>(() => {}),
       [ObservablesEnum.BrowserErrorObservable]: new Observable<any>(() => {}),
       [ObservablesEnum.SelectionObservable]: selectionObservable,
+      [ObservablesEnum.MouseMoveObservable]: mouseMoveObservable,
     };
     shouldTrackRageClick = jest.fn().mockReturnValue(true);
 
