@@ -266,16 +266,16 @@ export const frustrationPlugin = (options: FrustrationInteractionsOptions = {}):
     }
 
     if (thrashedCursorEnabled) {
-      let threshold, windowMs;
+      let directionChanges, thresholdMs;
       if (typeof options.thrashedCursor === 'object') {
-        threshold = options.thrashedCursor.directionChanges;
-        windowMs = options.thrashedCursor.threshold;
+        directionChanges = options.thrashedCursor.directionChanges;
+        thresholdMs = options.thrashedCursor.threshold;
       }
       const thrashedCursorSubscription = trackThrashedCursor({
         amplitude,
         allObservables,
-        threshold,
-        windowMs,
+        directionChanges,
+        thresholdMs,
       });
       subscriptions.push(thrashedCursorSubscription);
     }

@@ -220,10 +220,9 @@ describe('frustrationPlugin', () => {
       });
       await plugin?.setup?.(config as BrowserConfig, instance);
 
-      expect(trackThrashedCursor).toHaveBeenCalledWith(expect.objectContaining({ threshold: 5, windowMs: 100 }));
-      const thrashedCursorCall = (trackThrashedCursor as jest.Mock).mock.calls[0][0];
-      expect(thrashedCursorCall.threshold).toBe(5);
-      expect(thrashedCursorCall.windowMs).toBe(100);
+      expect(trackThrashedCursor).toHaveBeenCalledWith(
+        expect.objectContaining({ thresholdMs: 100, directionChanges: 5 }),
+      );
     });
   });
 

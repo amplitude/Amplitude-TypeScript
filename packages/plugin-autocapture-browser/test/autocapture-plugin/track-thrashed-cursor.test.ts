@@ -67,8 +67,8 @@ describe('trackThrashedCursor', () => {
             resolve();
           }),
         } as AllWindowObservables,
-        threshold: 5,
-        windowMs: 100,
+        directionChanges: 5,
+        thresholdMs: 100,
       });
     });
     jest.runAllTimers();
