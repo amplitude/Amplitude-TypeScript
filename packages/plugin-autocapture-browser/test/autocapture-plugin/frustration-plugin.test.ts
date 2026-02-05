@@ -210,6 +210,21 @@ describe('frustrationPlugin', () => {
       expect(shouldTrackErrorClick('click', input)).toBe(true); // input is in allowlist
       expect(shouldTrackErrorClick('click', span)).toBe(false); // span is not in allowlist
     });
+
+    it('should accept custom thrashed cursor options', async () => {
+      plugin = frustrationPlugin({
+        thrashedCursor: {
+          directionChanges: 5,
+          threshold: 100,
+        },
+      });
+      await plugin?.setup?.(config as BrowserConfig, instance);
+
+      expect(trackThrashedCursor).toHaveBeenCalledWith(expect.objectContaining({ threshold: 5, windowMs: 100 }));
+      const thrashedCursorCall = (trackThrashedCursor as jest.Mock).mock.calls[0][0];
+      expect(thrashedCursorCall.threshold).toBe(5);
+      expect(thrashedCursorCall.windowMs).toBe(100);
+    });
   });
 
   describe('errorClicks', () => {

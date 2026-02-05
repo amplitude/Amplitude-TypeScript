@@ -56,6 +56,39 @@ describe('trackThrashedCursor', () => {
     jest.runAllTimers();
     expect(amplitude.track).toHaveBeenCalledWith(AMPLITUDE_THRASHED_CURSOR_EVENT, {}, { time: startTime + 200 });
   });
+
+  it('should track thrashed cursor with custom threshold and window ms', async () => {
+    const promise = new Promise<void>((resolve) => {
+      trackThrashedCursor({
+        amplitude,
+        allObservables: {
+          [ObservablesEnum.MouseMoveObservable]: new Observable<MouseEvent>((observer) => {
+            mouseMoveObserver = observer;
+            resolve();
+          }),
+        } as AllWindowObservables,
+        threshold: 5,
+        windowMs: 100,
+      });
+    });
+    jest.runAllTimers();
+    await promise;
+    if (mouseMoveObserver.next) {
+      // simulate a circular mouse motion
+      const origin = { clientX: 100, clientY: 100 };
+      const destination = { clientX: 101, clientY: 101 };
+      for (let i = 0; i < 10; i++) {
+        if (i % 2 === 0) {
+          mouseMoveObserver.next(origin);
+        } else {
+          mouseMoveObserver.next(destination);
+        }
+        jest.advanceTimersByTime(1);
+      }
+    }
+    jest.runAllTimers();
+    expect(amplitude.track).toHaveBeenCalledWith(AMPLITUDE_THRASHED_CURSOR_EVENT, {}, { time: expect.any(Number) });
+  });
 });
 
 describe('createMouseDirectionChangeObservable', () => {

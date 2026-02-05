@@ -169,12 +169,20 @@ export const createThrashedCursorObservable = ({
 export const trackThrashedCursor = ({
   amplitude,
   allObservables,
+  threshold = DEFAULT_THRESHOLD,
+  windowMs = DEFAULT_WINDOW_MS,
 }: {
   amplitude: BrowserClient;
   allObservables: AllWindowObservables;
+  threshold?: number;
+  windowMs?: number;
 }) => {
   const mouseDirectionChangeObservable = createMouseDirectionChangeObservable({ allWindowObservables: allObservables });
-  const thrashedCursorObservable = createThrashedCursorObservable({ mouseDirectionChangeObservable });
+  const thrashedCursorObservable = createThrashedCursorObservable({
+    mouseDirectionChangeObservable,
+    threshold,
+    windowMs,
+  });
   return thrashedCursorObservable.subscribe((time) => {
     amplitude.track(AMPLITUDE_THRASHED_CURSOR_EVENT, {}, { time });
   });
