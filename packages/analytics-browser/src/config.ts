@@ -114,8 +114,8 @@ export class BrowserConfig extends Config implements IBrowserConfig {
     this.lastEventId = lastEventId;
     this.lastEventTime = lastEventTime;
     this.optOut = optOut;
-    this.sessionId = sessionId;
     this.deferredSessionId = deferredSessionId;
+    this.sessionId = sessionId;
     this.pageCounter = pageCounter;
     this.userId = userId;
     this.debugLogsEnabled = debugLogsEnabled;
