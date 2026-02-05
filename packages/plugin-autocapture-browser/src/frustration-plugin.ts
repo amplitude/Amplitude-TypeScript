@@ -26,6 +26,7 @@ import {
 } from './observables';
 import { DataExtractor } from './data-extractor';
 import { trackErrorClicks } from './autocapture/track-error-click';
+import { trackThrashedCursor } from './autocapture/track-thrashed-cursor';
 
 export interface AllWindowObservables {
   [ObservablesEnum.ClickObservable]: Observable<ElementBasedTimestampedEvent<MouseEvent>>;
@@ -82,6 +83,11 @@ export const frustrationPlugin = (options: FrustrationInteractionsOptions = {}):
   const deadClicksEnabled = options.deadClicks !== false && options.deadClicks !== null;
   const rageClicksEnabled = options.rageClicks !== false && options.rageClicks !== null;
 
+  let thrashedCursorEnabled = options.thrashedCursor !== false && options.thrashedCursor !== null;
+  if (!options.thrashedCursor) {
+    thrashedCursorEnabled = false;
+  }
+
   // Get CSS selectors for enabled features
   const rageCssSelectors = getCssSelectorAllowlist(
     options,
@@ -89,6 +95,7 @@ export const frustrationPlugin = (options: FrustrationInteractionsOptions = {}):
     DEFAULT_RAGE_CLICK_ALLOWLIST,
     rageClicksEnabled,
   );
+
   const deadCssSelectors = getCssSelectorAllowlist(
     options,
     'deadClicks',
@@ -256,6 +263,14 @@ export const frustrationPlugin = (options: FrustrationInteractionsOptions = {}):
         shouldTrackErrorClick,
       });
       subscriptions.push(errorClickSubscription);
+    }
+
+    if (thrashedCursorEnabled) {
+      const thrashedCursorSubscription = trackThrashedCursor({
+        amplitude,
+        allObservables,
+      });
+      subscriptions.push(thrashedCursorSubscription);
     }
 
     /* istanbul ignore next */

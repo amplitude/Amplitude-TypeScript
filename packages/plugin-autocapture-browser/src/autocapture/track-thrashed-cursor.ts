@@ -1,5 +1,6 @@
-import { Observable } from '@amplitude/analytics-core';
+import { BrowserClient, Observable } from '@amplitude/analytics-core';
 import { AllWindowObservables } from '../frustration-plugin';
+import { AMPLITUDE_THRASHED_CURSOR_EVENT } from '../constants';
 
 type Position = {
   x: number;
@@ -162,5 +163,19 @@ export const createThrashedCursorObservable = ({
         emitPendingThrashedCursor();
       }
     });
+  });
+};
+
+export const trackThrashedCursor = ({
+  amplitude,
+  allObservables,
+}: {
+  amplitude: BrowserClient;
+  allObservables: AllWindowObservables;
+}) => {
+  const mouseDirectionChangeObservable = createMouseDirectionChangeObservable({ allWindowObservables: allObservables });
+  const thrashedCursorObservable = createThrashedCursorObservable({ mouseDirectionChangeObservable });
+  return thrashedCursorObservable.subscribe((time) => {
+    amplitude.track(AMPLITUDE_THRASHED_CURSOR_EVENT, {}, { time });
   });
 };

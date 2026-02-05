@@ -2,13 +2,61 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 /* eslint-disable @typescript-eslint/no-empty-function */
 
-import { Observable, Unsubscribable } from '@amplitude/analytics-core';
+import { BrowserClient, Observable, Unsubscribable } from '@amplitude/analytics-core';
 import {
   createMouseDirectionChangeObservable,
   createThrashedCursorObservable,
+  trackThrashedCursor,
 } from '../../src/autocapture/track-thrashed-cursor';
 import { AllWindowObservables } from '../../src/frustration-plugin';
 import { ObservablesEnum } from '../../src/autocapture-plugin';
+import { createMockBrowserClient } from '../mock-browser-client';
+import { AMPLITUDE_THRASHED_CURSOR_EVENT } from '../../src/constants';
+
+describe('trackThrashedCursor', () => {
+  let amplitude: BrowserClient;
+  let mouseMoveObserver: any = {};
+  beforeEach(() => {
+    amplitude = createMockBrowserClient();
+    jest.useFakeTimers();
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  it('should track thrashed cursor', async () => {
+    const promise = new Promise<void>((resolve) => {
+      trackThrashedCursor({
+        amplitude,
+        allObservables: {
+          [ObservablesEnum.MouseMoveObservable]: new Observable<MouseEvent>((observer) => {
+            mouseMoveObserver = observer;
+            resolve();
+          }),
+        } as AllWindowObservables,
+      });
+    });
+    jest.runAllTimers();
+    await promise;
+    const startTime = +Date.now();
+    if (mouseMoveObserver.next) {
+      // simulate a circular mouse motion
+      const origin = { clientX: 100, clientY: 100 };
+      const destination = { clientX: 101, clientY: 101 };
+      for (let i = 0; i < 20; i++) {
+        if (i % 2 === 0) {
+          mouseMoveObserver.next(origin);
+        } else {
+          mouseMoveObserver.next(destination);
+        }
+        jest.advanceTimersByTime(100);
+      }
+    }
+    jest.runAllTimers();
+    expect(amplitude.track).toHaveBeenCalledWith(AMPLITUDE_THRASHED_CURSOR_EVENT, {}, { time: startTime + 200 });
+  });
+});
 
 describe('createMouseDirectionChangeObservable', () => {
   let mouseMoveObservable: any;
