@@ -124,9 +124,10 @@ export const createMouseMoveObservable = (): Observable<MouseEvent> => {
     const handler = (event: MouseEvent) => {
       observer.next(event);
     };
-    globalScope.document.addEventListener('mousemove', handler);
+    const args: AddEventListenerOptions = { capture: true, passive: true };
+    globalScope.document.addEventListener('mousemove', handler, args);
     return () => {
-      globalScope.document.removeEventListener('mousemove', handler);
+      globalScope.document.removeEventListener('mousemove', handler, args);
     };
   });
 };
