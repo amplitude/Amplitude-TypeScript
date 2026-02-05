@@ -400,9 +400,7 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
 
     // Handle userProperties change - auto-send identify
     if ('userProperties' in identity) {
-      const oldProps = this.userPropertiesToSortedString(this.userProperties);
-      const newProps = this.userPropertiesToSortedString(identity.userProperties);
-      if (oldProps !== newProps) {
+      if (!this.deepEqual(this.userProperties, identity.userProperties)) {
         this.userProperties = identity.userProperties;
         // Auto-send identify event with $set operations
         const identifyObj = new Identify();
@@ -587,23 +585,24 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
   }
 
   /**
-   * Converts user properties to a sorted JSON string for comparison.
-   * Similar to Swift's NSDictionary comparison behavior (order-independent).
+   * Deep equality check for user properties.
+   * Mimics Swift's NSDictionary isEqual: behavior (order-independent, recursive).
    */
-  private userPropertiesToSortedString(props: { [key: string]: unknown } | undefined): string {
-    if (!props) return '{}';
-    try {
-      const sortedKeys = Object.keys(props).sort();
-      const sortedObj: { [key: string]: unknown } = {};
-      for (const key of sortedKeys) {
-        sortedObj[key] = props[key];
-      }
-      return JSON.stringify(sortedObj);
-    } catch {
-      this.config.loggerProvider.warn('Error converting user properties to sorted string', props);
-      // Return a unique string to force comparison mismatch and send the identify.
-      return `__unstringifiable_${Date.now()}`;
-    }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private deepEqual(a: any, b: any): boolean {
+    if (a === b) return true;
+    if (a == null || b == null) return false;
+    if (typeof a !== typeof b) return false;
+    if (typeof a !== 'object') return false;
+
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+    const keysA = Object.keys(a);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+    const keysB = Object.keys(b);
+    if (keysA.length !== keysB.length) return false;
+
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    return keysA.every((k) => this.deepEqual(a[k], b[k]));
   }
 
   private logBrowserOptions(browserConfig: BrowserOptions & { apiKey: string }) {
