@@ -51,6 +51,7 @@ export class BrowserConfig extends Config implements IBrowserConfig {
   protected _lastEventTime?: number;
   protected _optOut = false;
   protected _sessionId?: number;
+  protected _deferredSessionId?: number;
   protected _userId?: string;
   protected _pageCounter?: number;
   protected _debugLogsEnabled?: boolean;
@@ -86,6 +87,7 @@ export class BrowserConfig extends Config implements IBrowserConfig {
     public serverUrl: string = '',
     public serverZone: ServerZoneType = DEFAULT_SERVER_ZONE,
     sessionId?: number,
+    deferredSessionId?: number,
     public sessionTimeout: number = 30 * 60 * 1000,
     public storageProvider: Storage<Event[]> = new LocalStorage({ loggerProvider }),
     public trackingOptions: Required<TrackingOptions> = {
@@ -112,6 +114,7 @@ export class BrowserConfig extends Config implements IBrowserConfig {
     this.lastEventId = lastEventId;
     this.lastEventTime = lastEventTime;
     this.optOut = optOut;
+    this.deferredSessionId = deferredSessionId;
     this.sessionId = sessionId;
     this.pageCounter = pageCounter;
     this.userId = userId;
@@ -173,6 +176,22 @@ export class BrowserConfig extends Config implements IBrowserConfig {
   set sessionId(sessionId: number | undefined) {
     if (this._sessionId !== sessionId) {
       this._sessionId = sessionId;
+      // Clear deferredSessionId when sessionId is set to prevent stale values
+      // from overriding legitimate sessionIds on subsequent page loads
+      if (sessionId !== undefined && this._deferredSessionId !== undefined) {
+        this._deferredSessionId = undefined;
+      }
+      this.updateStorage();
+    }
+  }
+
+  get deferredSessionId() {
+    return this._deferredSessionId;
+  }
+
+  set deferredSessionId(deferredSessionId: number | undefined) {
+    if (this._deferredSessionId !== deferredSessionId && deferredSessionId !== this.sessionId) {
+      this._deferredSessionId = deferredSessionId;
       this.updateStorage();
     }
   }
@@ -233,6 +252,7 @@ export class BrowserConfig extends Config implements IBrowserConfig {
       deviceId: this._deviceId,
       userId: this._userId,
       sessionId: this._sessionId,
+      deferredSessionId: this._deferredSessionId,
       optOut: this._optOut,
       lastEventTime: this._lastEventTime,
       lastEventId: this._lastEventId,
@@ -318,6 +338,7 @@ export const useBrowserConfig = async (
   const lastEventTime = previousCookies?.lastEventTime ?? legacyCookies.lastEventTime;
   const optOut = options.optOut ?? previousCookies?.optOut ?? legacyCookies.optOut;
   const sessionId = previousCookies?.sessionId ?? legacyCookies.sessionId;
+  const deferredSessionId = previousCookies?.deferredSessionId;
   const userId = options.userId ?? previousCookies?.userId ?? legacyCookies.userId;
   amplitudeInstance.previousSessionDeviceId = previousCookies?.deviceId ?? legacyCookies.deviceId;
   amplitudeInstance.previousSessionUserId = previousCookies?.userId ?? legacyCookies.userId;
@@ -363,6 +384,7 @@ export const useBrowserConfig = async (
     // Use earlyConfig.serverZone to ensure consistent serverZone
     earlyConfig?.serverZone ?? options.serverZone,
     sessionId,
+    deferredSessionId,
     options.sessionTimeout,
     options.storageProvider,
     trackingOptions,

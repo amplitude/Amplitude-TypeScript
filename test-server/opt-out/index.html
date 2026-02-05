@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Opt Out Test</title>
+</head>
+<body>
+  <h1>Opt Out Test</h1>
+  <p>This page initializes Amplitude with optOut enabled.</p>
+  <div>
+    <button id="setOptOutBtn">Turn off opt out</button>
+    <button id="initAgain">Call init again with optOut false</button>
+  </div>
+  <div style="margin-top: 10px;">
+    <button onClick="amplitude.track('test event')" id="Track Event">Track Event</button>
+  </div>
+  <p id="isOptedIn">Not opted in</p>
+  
+  <script type="module">
+    import * as amplitude from '@amplitude/analytics-browser';
+
+    const ident = new amplitude.Identify();
+    ident.set('test-property', 'test-value');
+
+    const baseConfig = {
+      autocapture: {
+        sessions: true,
+        pageViews: true,
+        attribution: true,
+      },
+      identify: ident,
+      //identityStorage: 'memory', // set to memory so easy to test session on each page
+    };
+    
+    // Initialize Amplitude with optOut enabled
+    amplitude.init(import.meta.env.VITE_AMPLITUDE_API_KEY, {
+      ...baseConfig,
+      optOut: true,
+    });
+    
+    // Make amplitude available globally for debugging
+    window.amplitude = amplitude;
+    
+    // Button click handler
+    document.getElementById('setOptOutBtn').addEventListener('click', () => {
+      amplitude.setOptOut(false);
+      console.log('setOptOut(false) called');
+      document.getElementById('isOptedIn').textContent = 'Opted in';
+    });
+
+    document.getElementById('initAgain').addEventListener('click', () => {
+      amplitude.init(import.meta.env.VITE_AMPLITUDE_API_KEY, {
+        ...baseConfig,
+        optOut: false,
+      });
+      console.log('init again called');
+      document.getElementById('isOptedIn').textContent = 'Opted in';
+    });
+  </script>
+</body>
+</html>
+

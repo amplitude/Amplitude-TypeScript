@@ -576,4 +576,54 @@ describe('timeline', () => {
       expect(onReset).toHaveBeenCalledTimes(1);
     });
   });
+
+  describe('addOptOutListener', () => {
+    let mockOptOutListener: jest.Mock;
+
+    beforeEach(() => {
+      timeline.reset(new AmplitudeCore());
+    });
+
+    test('optOut listener should be called when optOut is changed', async () => {
+      mockOptOutListener = jest.fn();
+      timeline.addOptOutListener(mockOptOutListener);
+      expect(timeline._optOutListeners.length).toBe(1);
+      timeline.onOptOutChanged(true);
+      expect(mockOptOutListener).toHaveBeenCalledTimes(1);
+      expect(mockOptOutListener).toHaveBeenCalledWith(true);
+    });
+
+    test('should call optOut listeners one by one', async () => {
+      jest.useFakeTimers();
+      const calls: number[] = [];
+
+      // add a long async listener
+      timeline.addOptOutListener(async () => {
+        return new Promise((resolve) => {
+          setTimeout(() => {
+            resolve();
+            calls.push(1);
+            console.log('listener 1 resolved');
+          }, 1000);
+        });
+      });
+
+      // add a short async listener
+      timeline.addOptOutListener(async () => {
+        return new Promise((resolve) => {
+          setTimeout(() => {
+            resolve();
+            calls.push(2);
+            console.log('listener 2 resolved');
+          }, 100);
+        });
+      });
+      timeline.onOptOutChanged(true);
+      // Advance timers to allow setTimeout callbacks to execute
+      await jest.runAllTimersAsync();
+
+      // check that long listener finished first
+      expect(calls).toEqual([1, 2]);
+    });
+  });
 });

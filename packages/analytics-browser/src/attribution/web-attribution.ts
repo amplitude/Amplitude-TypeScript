@@ -27,6 +27,7 @@ export class WebAttribution {
       initialEmptyValue: 'EMPTY',
       resetSessionOnNewCampaign: false,
       excludeReferrers: getDefaultExcludedReferrers(config.cookieOptions?.domain),
+      optOut: config.optOut,
       ...options,
     };
     this.storage = config.cookieStorage as unknown as Storage<Campaign>;
@@ -40,6 +41,11 @@ export class WebAttribution {
   }
 
   async init() {
+    // skip attribution if optOut is true
+    if (this.options.optOut) {
+      return;
+    }
+
     [this.currentCampaign, this.previousCampaign] = await this.fetchCampaign();
     const isEventInNewSession = !this.lastEventTime ? true : isNewSession(this.sessionTimeout, this.lastEventTime);
 

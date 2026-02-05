@@ -1025,10 +1025,10 @@ describe('browser-client', () => {
           },
         }).promise;
 
-        // Should fall back to use Date.now() because "test" from ampSessionId is NaN
+        // should call "setSessionId" with undefined because "test" from ampSessionId is NaN
         expect(client.config.sessionId).toEqual(currentTimestamp);
         expect(setSessionId).toHaveBeenCalledTimes(1);
-        expect(setSessionId).toHaveBeenLastCalledWith(currentTimestamp);
+        expect(setSessionId).toHaveBeenLastCalledWith(undefined);
 
         // Restore mocks
         Object.defineProperty(window, 'location', {
@@ -1038,6 +1038,119 @@ describe('browser-client', () => {
         Date.now = originalDate;
       },
     );
+
+    describe('config.optOut', () => {
+      describe('when optOut is true', () => {
+        beforeEach(async () => {
+          const identity = new Identify();
+          identity.set('test-property', 'test-value');
+          await client.init(apiKey, userId, {
+            optOut: true,
+            identify: identity,
+          }).promise;
+        });
+
+        test('should defer session + attribution until after optOut changes', async () => {
+          expect(client.config.sessionId).toBeUndefined();
+          client.setOptOut(false);
+          // give the timeline 10 ms to finish calling the onOptOutChanged listeners
+          await new Promise((resolve) => setTimeout(resolve, 10));
+          expect(client.config.sessionId).toBeGreaterThan(0);
+        });
+
+        test('should defer session but use user specified sessionId if provided', async () => {
+          expect(client.config.sessionId).toBeUndefined();
+          const id = Date.now() + 10_000; // future timestamp
+          client.setSessionId(id);
+          client.setOptOut(false);
+          await new Promise((resolve) => setTimeout(resolve, 10));
+          expect(client.config.sessionId).toBe(id);
+        });
+
+        test('should defer session + attribution until another init call with optOut false', async () => {
+          expect(client.config.sessionId).toBeUndefined();
+          await client.init(apiKey, userId, {
+            optOut: false,
+          }).promise;
+          // give the timeline 10 ms to finish calling the onOptOutChanged listeners
+          await new Promise((resolve) => setTimeout(resolve, 10));
+          expect(client.config.sessionId).toBeGreaterThan(0);
+        });
+
+        test('should defer session but use user specified sessionId if set with setSessionId', async () => {
+          expect(client.config.sessionId).toBeUndefined();
+          const id = Date.now() + 10_000; // future timestamp
+          client.setSessionId(id);
+          await client.init(apiKey, userId, {
+            optOut: false,
+          }).promise;
+          await new Promise((resolve) => setTimeout(resolve, 20));
+          expect(client.config.sessionId).toBe(id);
+        });
+
+        test('should defer session but use user specified sessionId if set in init', async () => {
+          expect(client.config.sessionId).toBeUndefined();
+          const id = Date.now() + 10_000; // future timestamp
+          await client.init(apiKey, userId, {
+            optOut: false,
+            sessionId: id,
+          }).promise;
+          expect(client.config.sessionId).toBe(id);
+        });
+
+        test('should not initialize webAttribution when optOut listener receives true', async () => {
+          // Initialize with optOut: true and attribution enabled to set up the listener
+          await client.init(apiKey, userId, {
+            optOut: true,
+            defaultTracking: {
+              attribution: true,
+            },
+          }).promise;
+
+          // Track calls to WebAttribution constructor
+          let webAttributionInitCallCount = 0;
+          /* eslint-disable-next-line @typescript-eslint/unbound-method */
+          const originalInit = WebAttribution.prototype.init;
+          jest.spyOn(WebAttribution.prototype, 'init').mockImplementation(function (this: WebAttribution) {
+            webAttributionInitCallCount++;
+            return originalInit.call(this);
+          });
+
+          // set optOut to false and then true
+          client.setOptOut(false);
+          await new Promise((resolve) => setTimeout(resolve, 10));
+          client.setOptOut(true);
+          await new Promise((resolve) => setTimeout(resolve, 10));
+
+          // should only call init once
+          expect(webAttributionInitCallCount).toBe(1);
+        });
+      });
+
+      describe('when optOut is false', () => {
+        let sessionId: number | undefined;
+        beforeEach(async () => {
+          await client.init(apiKey, userId, {
+            optOut: false,
+          }).promise;
+          sessionId = client.config.sessionId;
+        });
+
+        test('should not change sessionId when optOut changes to true', async () => {
+          expect(sessionId).toBeGreaterThan(0);
+          client.setOptOut(true);
+          expect(client.config.sessionId).toBe(sessionId);
+        });
+
+        test('should not change sessionId when another init called again with optOut false', async () => {
+          expect(sessionId).toBeGreaterThan(0);
+          await client.init(apiKey, userId, {
+            optOut: false,
+          }).promise;
+          expect(client.config.sessionId).toBe(sessionId);
+        });
+      });
+    });
 
     describe('ampTimestamp validation', () => {
       const originalLocation = window.location;
@@ -1117,7 +1230,7 @@ describe('browser-client', () => {
 
         // Should fall back to Date.now() instead of using expired ampSessionId
         expect(client.config.sessionId).toEqual(currentTime);
-        expect(setSessionId).toHaveBeenCalledWith(currentTime);
+        expect(setSessionId).toHaveBeenCalledWith(undefined);
       });
 
       test('should use ampDeviceId when ampTimestamp is valid (future)', async () => {
