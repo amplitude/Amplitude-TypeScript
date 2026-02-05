@@ -193,8 +193,8 @@ describe('createThrashedCursorObservable', () => {
     const customThreshold = 5;
     thrashedCursorObservable = createThrashedCursorObservable({
       mouseDirectionChangeObservable: mouseDirectionChangeObservable as any,
-      windowMs: customWindowMs,
-      threshold: customThreshold,
+      thresholdMs: customWindowMs,
+      directionChanges: customThreshold,
     });
     subscription?.unsubscribe();
     emittedTimes = [];

@@ -65,12 +65,12 @@ const DEFAULT_WINDOW_MS = 2000;
 
 export const createThrashedCursorObservable = ({
   mouseDirectionChangeObservable,
-  threshold = DEFAULT_THRESHOLD,
-  windowMs = DEFAULT_WINDOW_MS,
+  directionChanges = DEFAULT_THRESHOLD,
+  thresholdMs = DEFAULT_WINDOW_MS,
 }: {
   mouseDirectionChangeObservable: Observable<Axis>;
-  threshold?: number;
-  windowMs?: number;
+  directionChanges?: number;
+  thresholdMs?: number;
 }): Observable<number> => {
   return new Observable<number>((observer) => {
     let xDirectionChanges: number[] = [];
@@ -81,11 +81,11 @@ export const createThrashedCursorObservable = ({
 
     // checks if there are enough direction changes within window + threshold
     // for it to be considered a thrashed cursor
-    function isThrashedCursor(directionChanges: number[]): boolean {
-      const nthLastIndex = directionChanges.length - threshold;
+    function isThrashedCursor(directionChangeArr: number[]): boolean {
+      const nthLastIndex = directionChangeArr.length - directionChanges;
       if (nthLastIndex < 0) return false;
-      const delta = directionChanges[directionChanges.length - 1] - directionChanges[nthLastIndex];
-      return delta < windowMs;
+      const delta = directionChangeArr[directionChangeArr.length - 1] - directionChangeArr[nthLastIndex];
+      return delta < thresholdMs;
     }
 
     // if a thrashed cursor is pending, return the earliest time
@@ -136,13 +136,13 @@ export const createThrashedCursorObservable = ({
       }
 
       if (isInThrashedCursorWindow) {
-        // if we're in a thrashed cursor window, debounce it for "windowMs" duration
+        // if we're in a thrashed cursor window, debounce it for "thresholdMs" duration
         // this is so that any future mouse moves do not get counted as new thrashed
         // cursor events
         timer = setTimeout(() => {
           emitPendingThrashedCursor();
           timer = null;
-        }, windowMs);
+        }, thresholdMs);
       } else {
         // if the thrashed cursor window has closed, see if there's any pending
         emitPendingThrashedCursor();
