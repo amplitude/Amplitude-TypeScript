@@ -356,4 +356,49 @@ describe('EventCompressor', () => {
     eventCompressor.terminate();
     expect(terminateMock).toHaveBeenCalled();
   });
+
+  test('should handle Worker constructor failure and fall back to non-worker compression', async () => {
+    const originalWorker = global.Worker;
+
+    // Mock Worker constructor to throw
+    const mockWorkerConstructor = jest.fn().mockImplementation(() => {
+      throw new Error('Worker constructor failed');
+    });
+    global.Worker = mockWorkerConstructor as any;
+
+    URL.createObjectURL = jest.fn();
+    eventsManager = await createEventsManager<'replay'>({
+      config,
+      type: 'replay',
+      storeType: 'memory',
+    });
+
+    // Create compressor with worker script - should catch the error and fall back
+    eventCompressor = new EventCompressor(eventsManager, config, deviceId, 'console.log("hi")');
+
+    expect(mockLoggerProvider['error']).toHaveBeenCalledWith(
+      'Failed to create worker, falling back to non-worker compression:',
+      expect.objectContaining({
+        message: 'Worker constructor failed',
+      }),
+    );
+
+    // Verify it still works with non-worker compression
+    const testEvent: eventWithTime = {
+      data: {
+        height: 1,
+        width: 1,
+        href: 'http://localhost',
+      },
+      type: 4,
+      timestamp: 1,
+    };
+    const testSessionId = 1234;
+
+    expect(() => {
+      eventCompressor.addCompressedEvent(testEvent, testSessionId);
+    }).not.toThrow();
+
+    global.Worker = originalWorker;
+  });
 });
