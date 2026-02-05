@@ -19,6 +19,7 @@ export const {
   revenue,
   setDeviceId,
   setGroup,
+  setIdentity,
   setOptOut,
   setSessionId,
   setTransport,
