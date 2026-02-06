@@ -22,6 +22,7 @@ import {
   createClickObservable,
   createErrorObservable,
   createMutationObservable,
+  createMouseMoveObservable,
 } from './observables';
 import { DataExtractor } from './data-extractor';
 import { trackErrorClicks } from './autocapture/track-error-click';
@@ -32,6 +33,7 @@ export interface AllWindowObservables {
   [ObservablesEnum.BrowserErrorObservable]: Observable<TimestampedEvent<BrowserErrorEvent>>;
   [ObservablesEnum.NavigateObservable]?: Observable<TimestampedEvent<NavigateEvent>>;
   [ObservablesEnum.SelectionObservable]?: Observable<void>;
+  [ObservablesEnum.MouseMoveObservable]: Observable<MouseEvent>;
 }
 
 type BrowserEnrichmentPlugin = EnrichmentPlugin<BrowserClient, BrowserConfig>;
@@ -202,12 +204,15 @@ export const frustrationPlugin = (options: FrustrationInteractionsOptions = {}):
       }),
     );
 
+    const mouseMoveObservable = multicast(createMouseMoveObservable());
+
     return {
       [ObservablesEnum.ClickObservable]: clickObservable as Observable<ElementBasedTimestampedEvent<MouseEvent>>,
       [ObservablesEnum.MutationObservable]: enrichedMutationObservable,
       [ObservablesEnum.NavigateObservable]: enrichedNavigateObservable,
       [ObservablesEnum.BrowserErrorObservable]: browserErrorObservables,
       [ObservablesEnum.SelectionObservable]: selectionObservable,
+      [ObservablesEnum.MouseMoveObservable]: mouseMoveObservable,
     };
   };
 

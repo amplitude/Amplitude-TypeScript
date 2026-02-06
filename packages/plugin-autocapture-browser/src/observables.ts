@@ -121,3 +121,16 @@ export const createErrorObservable = (): Observable<BrowserErrorEvent> => {
   const unhandledErrorObservable = merge(createUnhandledErrorObservable(), createUnhandledRejectionObservable());
   return merge(unhandledErrorObservable, createConsoleErrorObservable());
 };
+
+export const createMouseMoveObservable = (): Observable<MouseEvent> => {
+  return new Observable<MouseEvent>((observer) => {
+    const handler = (event: MouseEvent) => {
+      observer.next(event);
+    };
+    const args: AddEventListenerOptions = { capture: true };
+    globalScope.document.addEventListener('mousemove', handler, args);
+    return () => {
+      globalScope.document.removeEventListener('mousemove', handler, args);
+    };
+  });
+};

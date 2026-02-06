@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mouse Move Observables Test</title>
+  </head>
+  <body>
+    <h1>Mouse Move Observables Test</h1>
+    <p>Move your mouse around to see events logged</p>
+    <div id="output"></div>
+    <script type="module">
+      import { createMouseMoveObservable } from '@amplitude/plugin-autocapture-browser/src/observables';
+      
+      const mouseMoveObservable = createMouseMoveObservable();
+      const output = document.getElementById('output');
+      
+      mouseMoveObservable.subscribe((event) => {
+        const log = `Mouse moved: x=${event.clientX}, y=${event.clientY}`;
+        console.log(log);
+        if (output) {
+          output.textContent = log;
+        }
+      });
+    </script>
+  </body>
+</html>
+

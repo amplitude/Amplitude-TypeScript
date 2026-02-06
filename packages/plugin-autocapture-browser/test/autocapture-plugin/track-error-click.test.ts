@@ -15,6 +15,7 @@ describe('trackErrorClicks', () => {
   let mutationObservable: any;
   let navigateObservable: any;
   let browserErrorObservable: any;
+  let mouseMoveObservable: any;
   let allObservables: AllWindowObservables;
   let shouldTrackErrorClick: jest.Mock;
   let clickObserver: any;
@@ -34,11 +35,13 @@ describe('trackErrorClicks', () => {
     browserErrorObservable = new Observable<any>((observer) => {
       browserErrorObserver = observer;
     });
+    mouseMoveObservable = new Observable<any>(() => {});
     allObservables = {
       [ObservablesEnum.ClickObservable]: clickObservable,
       [ObservablesEnum.MutationObservable]: mutationObservable,
       [ObservablesEnum.NavigateObservable]: navigateObservable,
       [ObservablesEnum.BrowserErrorObservable]: browserErrorObservable,
+      [ObservablesEnum.MouseMoveObservable]: mouseMoveObservable,
     };
     shouldTrackErrorClick = jest.fn().mockReturnValue(true);
 

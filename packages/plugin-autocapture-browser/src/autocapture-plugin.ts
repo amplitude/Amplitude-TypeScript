@@ -59,6 +59,7 @@ export enum ObservablesEnum {
   MutationObservable = 'mutationObservable',
   BrowserErrorObservable = 'browserErrorObservable',
   SelectionObservable = 'selectionObservable',
+  MouseMoveObservable = 'mouseMoveObservable',
 }
 
 export interface AllWindowObservables {
