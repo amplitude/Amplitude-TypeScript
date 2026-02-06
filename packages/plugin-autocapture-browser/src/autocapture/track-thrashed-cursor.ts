@@ -128,12 +128,13 @@ export const createThrashedCursorObservable = ({
   return new Observable<number>((observer) => {
     const xDirectionChanges: DirectionChangeSeries = { changes: [], changesThreshold: directionChanges, thresholdMs };
     const yDirectionChanges: DirectionChangeSeries = { changes: [], changesThreshold: directionChanges, thresholdMs };
+    let pendingThrashedCursor: number | undefined = undefined;
     let timer: ReturnType<typeof setTimeout> | null = null;
 
     function emitPendingThrashedCursor() {
-      const pendingThrashedCursor = getPendingThrashedCursor(xDirectionChanges, yDirectionChanges);
       if (pendingThrashedCursor !== undefined) {
         observer.next(pendingThrashedCursor);
+        pendingThrashedCursor = undefined;
 
         // reset window
         if (timer !== null) clearTimeout(timer);
@@ -146,11 +147,13 @@ export const createThrashedCursorObservable = ({
       if (timer !== null) clearTimeout(timer);
       addDirectionChange(axis === Axis.X ? xDirectionChanges : yDirectionChanges);
 
-      const isInThrashedCursorWindow = isThrashedCursor(xDirectionChanges) || isThrashedCursor(yDirectionChanges);
-      if (isInThrashedCursorWindow) {
+      //const isInThrashedCursorWindow = isThrashedCursor(xDirectionChanges) || isThrashedCursor(yDirectionChanges);
+      const nextPendingThrashedCursor = getPendingThrashedCursor(xDirectionChanges, yDirectionChanges);
+      if (nextPendingThrashedCursor) {
         // if we're in a thrashed cursor window, debounce it for "thresholdMs" duration
         // this is so that we do not restart the window if more direction changes are
         // detected in this series
+        pendingThrashedCursor = nextPendingThrashedCursor;
         timer = setTimeout(() => {
           emitPendingThrashedCursor();
           timer = null;

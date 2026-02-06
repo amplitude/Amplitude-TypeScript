@@ -188,6 +188,16 @@ describe('createThrashedCursorObservable', () => {
     expect(emittedTimes).toEqual([startTime, secondStartTime]);
   });
 
+  it('should trigger two thrashed cursors if trailing window is too long', async () => {
+    for (let i = 0; i < DEFAULT_THRESHOLD; i++) {
+      directionChangeObserver.next('x');
+      jest.advanceTimersByTime(100);
+    }
+    jest.advanceTimersByTime(DEFAULT_WINDOW_MS - 100);
+    directionChangeObserver.next('x');
+    expect(emittedTimes).toEqual([startTime]);
+  });
+
   it('should use custom threshold and window ms', async () => {
     const customWindowMs = 10;
     const customThreshold = 5;
