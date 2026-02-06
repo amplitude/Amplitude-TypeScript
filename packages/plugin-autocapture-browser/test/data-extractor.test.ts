@@ -354,6 +354,26 @@ describe('data extractor', () => {
     });
   });
 
+  describe('getElementPath', () => {
+    test('should return empty string when element is null', () => {
+      const result = dataExtractor.getElementPath(null);
+      expect(result).toEqual('');
+    });
+
+    test('should return CSS path when element is valid', () => {
+      document.getElementsByTagName('body')[0].innerHTML = `
+        <div id="container">
+          <button id="test-button">Click me</button>
+        </div>
+      `;
+
+      const button = document.getElementById('test-button');
+      const result = dataExtractor.getElementPath(button);
+
+      expect(result).toEqual('button#test-button');
+    });
+  });
+
   describe('getEventTagProps', () => {
     beforeAll(() => {
       Object.defineProperty(window, 'location', {
@@ -990,6 +1010,13 @@ describe('data extractor', () => {
       // Verify that recordHistogram was called with the correct metric name
       expect(mockDiagnosticsClient.recordHistogram).toHaveBeenCalledWith(
         'autocapturePlugin.getHierarchy',
+        expect.any(Number),
+      );
+
+      dataExtractorWithDiagnostics.getElementPath(target);
+
+      expect(mockDiagnosticsClient.recordHistogram).toHaveBeenCalledWith(
+        'autocapturePlugin.getElementPath',
         expect.any(Number),
       );
 

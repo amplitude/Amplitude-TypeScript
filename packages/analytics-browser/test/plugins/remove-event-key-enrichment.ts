@@ -20,7 +20,7 @@ export const removeEventKeyEnrichment = (keysToRemove: KeyOfEvent[] = []): Enric
     type: 'enrichment',
     setup: async () => undefined,
     execute: async (event: Event) => {
-      for (var key of keysToRemove) {
+      for (const key of keysToRemove) {
         delete event[key];
       }
       return event;

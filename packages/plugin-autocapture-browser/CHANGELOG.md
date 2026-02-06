@@ -3,6 +3,29 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.20.0-feat-zoning-alpha.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.19.0...@amplitude/plugin-autocapture-browser@1.20.0-feat-zoning-alpha.0) (2026-02-03)
+
+
+### Bug Fixes
+
+* **autocapture:** add viewport size to scroll to get max X/Y ([b985fda](https://github.com/amplitude/Amplitude-TypeScript/commit/b985fda0b927c77016eb3dd9a5d00092ae2085c4))
+* **autocapture:** update exposure timeout and add as an option ([5afc08f](https://github.com/amplitude/Amplitude-TypeScript/commit/5afc08f3050f224f3d57643bf650c0ce1fc2af3f))
+* double firing behavior ([5c2fc84](https://github.com/amplitude/Amplitude-TypeScript/commit/5c2fc8457fa51977b660810340f204dc963f3702))
+* test coverage ([9774259](https://github.com/amplitude/Amplitude-TypeScript/commit/97742598dbc031da730dc7c5e672aa8c27ca3ec7))
+* test coverage ([8b7a1de](https://github.com/amplitude/Amplitude-TypeScript/commit/8b7a1def6874bb22497bb9fa670c40817c86a9f2))
+* update tests to add new element path property ([6efd0ce](https://github.com/amplitude/Amplitude-TypeScript/commit/6efd0ce43bed6bdbd98ff50487712b6bf235bb28))
+
+
+### Features
+
+* **autocapture:** add method to get unique element path for element ([1e762dc](https://github.com/amplitude/Amplitude-TypeScript/commit/1e762dca5d5c4c530a889dac51486d0705d415f2))
+* **background-capture:** adding background capture injection to autocapture ([c0a8757](https://github.com/amplitude/Amplitude-TypeScript/commit/c0a8757497e9fe99223b9675bada0bad338e521a))
+* **page-view-tracking-browser:** Track page view id in session storage ([#1379](https://github.com/amplitude/Amplitude-TypeScript/issues/1379)) ([51fd3d2](https://github.com/amplitude/Amplitude-TypeScript/commit/51fd3d2ce3d22c312d12079dd8c036a5520df0f1))
+
+
+
+
+
 # [1.19.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.18.7...@amplitude/plugin-autocapture-browser@1.19.0) (2026-01-26)
 
 

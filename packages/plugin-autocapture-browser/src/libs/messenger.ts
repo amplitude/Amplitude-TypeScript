@@ -4,9 +4,13 @@ import {
   AMPLITUDE_ORIGIN,
   AMPLITUDE_VISUAL_TAGGING_SELECTOR_SCRIPT_URL,
   AMPLITUDE_VISUAL_TAGGING_HIGHLIGHT_CLASS,
+  AMPLITUDE_BACKGROUND_CAPTURE_SCRIPT_URL,
 } from '../constants';
 import { asyncLoadScript, generateUniqueId } from '../helpers';
 import { ILogger, Messenger, ActionType } from '@amplitude/analytics-core';
+// Inline background-capture implementation (disabled) uses rrweb snapshot.
+// eslint-disable-next-line import/no-extraneous-dependencies
+// import { snapshot } from '@amplitude/rrweb-snapshot';
 import { VERSION } from '../version';
 import { DataExtractor } from '../data-extractor';
 
@@ -19,7 +23,11 @@ export type Action =
   | 'close-visual-tagging-selector'
   | 'element-selected'
   | 'track-selector-mode-changed'
-  | 'track-selector-moved';
+  | 'track-selector-moved'
+  | 'initialize-background-capture'
+  | 'close-background-capture'
+  | 'background-capture-loaded'
+  | 'background-capture-complete';
 
 interface InitializeVisualTaggingSelectorData {
   actionType: ActionType;
@@ -53,6 +61,10 @@ export type ActionData = {
   'element-selected': ElementSelectedData;
   'track-selector-mode-changed': TrackSelectorModeChangedData;
   'track-selector-moved': TrackSelectorMovedData;
+  'initialize-background-capture': null | undefined;
+  'close-background-capture': null | undefined;
+  'background-capture-loaded': null | undefined;
+  'background-capture-complete': { [key: string]: string | null };
 };
 
 export interface Message<A extends Action> {
@@ -155,7 +167,8 @@ export class WindowMessenger implements Messenger {
       this.endpoint = endpoint;
     }
     let amplitudeVisualTaggingSelectorInstance: any = null;
-
+    let amplitudeBackgroundCaptureInstance: any = null;
+    this.logger?.debug?.('Setting up messenger');
     // Attach Event Listener to listen for messages from the parent window
     window.addEventListener('message', (event) => {
       this.logger?.debug?.('Message received: ', JSON.stringify(event));
@@ -214,9 +227,27 @@ export class WindowMessenger implements Messenger {
             .catch(() => {
               this.logger?.warn('Failed to initialize visual tagging selector');
             });
+        } else if (action === 'initialize-background-capture') {
+          this.logger?.debug?.('Initializing background capture (external script)');
+          asyncLoadScript(new URL(AMPLITUDE_BACKGROUND_CAPTURE_SCRIPT_URL, this.endpoint).toString())
+            .then(() => {
+              this.logger?.debug?.('Background capture script loaded (external)');
+              // eslint-disable-next-line
+              amplitudeBackgroundCaptureInstance = (window as any)?.amplitudeBackgroundCapture?.({
+                messenger: this,
+                onBackgroundCapture: this.onBackgroundCapture,
+              });
+              this.notify({ action: 'background-capture-loaded' });
+            })
+            .catch(() => {
+              this.logger?.warn('Failed to initialize background capture');
+            });
         } else if (action === 'close-visual-tagging-selector') {
           // eslint-disable-next-line
           amplitudeVisualTaggingSelectorInstance?.close?.();
+        } else if (action === 'close-background-capture') {
+          // eslint-disable-next-line
+          amplitudeBackgroundCaptureInstance?.close?.();
         }
       }
     });
@@ -234,6 +265,13 @@ export class WindowMessenger implements Messenger {
       this.notify({ action: 'track-selector-mode-changed', data: properties });
     } else if (type === 'selector-moved') {
       this.notify({ action: 'track-selector-moved', data: properties });
+    }
+  };
+
+  private onBackgroundCapture = (type: string, backgroundCaptureData: { [key: string]: string | number | null }) => {
+    if (type === 'background-capture-complete') {
+      this.logger?.debug?.('Background capture complete');
+      this.notify({ action: 'background-capture-complete', data: backgroundCaptureData });
     }
   };
 }

@@ -3,6 +3,23 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.38.0-feat-zoning-alpha.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.37.0...@amplitude/analytics-core@2.38.0-feat-zoning-alpha.0) (2026-02-03)
+
+
+### Bug Fixes
+
+* **autocapture:** add test for new option ([c7eedcb](https://github.com/amplitude/Amplitude-TypeScript/commit/c7eedcbfd3121c7e3fdf51873f0bc5801a4c6d4a))
+* **autocapture:** update exposure timeout and add as an option ([5afc08f](https://github.com/amplitude/Amplitude-TypeScript/commit/5afc08f3050f224f3d57643bf650c0ce1fc2af3f))
+
+
+### Features
+
+* **background-capture:** adding background capture injection to autocapture ([c0a8757](https://github.com/amplitude/Amplitude-TypeScript/commit/c0a8757497e9fe99223b9675bada0bad338e521a))
+
+
+
+
+
 # [2.37.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.36.1...@amplitude/analytics-core@2.37.0) (2026-01-26)
 
 

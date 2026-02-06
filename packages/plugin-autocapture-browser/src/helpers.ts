@@ -1,5 +1,6 @@
 /* eslint-disable no-restricted-globals */
-import { ElementInteractionsOptions, ActionType, isUrlMatchAllowlist } from '@amplitude/analytics-core';
+import { ElementInteractionsOptions, ActionType, isUrlMatchAllowlist, getGlobalScope } from '@amplitude/analytics-core';
+import * as constants from './constants';
 
 export type JSONValue = string | number | boolean | null | { [x: string]: JSONValue } | Array<JSONValue>;
 
@@ -155,6 +156,24 @@ export const removeEmptyProperties = (properties: { [key: string]: unknown }): {
     }
     return filteredProperties;
   }, {});
+};
+
+export const getCurrentPageViewId = (): string | undefined => {
+  try {
+    const globalScope = getGlobalScope();
+    /* istanbul ignore next */
+    const raw = globalScope?.sessionStorage?.getItem(constants.PAGE_VIEW_SESSION_STORAGE_KEY);
+    if (!raw) {
+      return undefined;
+    }
+    const parsed = JSON.parse(raw) as { pageViewId?: unknown };
+    if (typeof parsed.pageViewId === 'string') {
+      return parsed.pageViewId;
+    }
+  } catch {
+    // ignore storage access or JSON errors
+  }
+  return undefined;
 };
 
 export const querySelectUniqueElements = (root: Element | Document, selectors: string[]): Element[] => {

@@ -75,6 +75,15 @@ export interface ElementInteractionsOptions {
   };
 
   /**
+   * Options for integrating background capture features that rely on a Messenger
+   * to communicate with an external parent window.
+   */
+  backgroundCaptureOptions?: {
+    enabled?: boolean;
+    messenger?: Messenger;
+  };
+
+  /**
    * Debounce time in milliseconds for tracking events.
    * This is used to detect rage clicks.
    */
