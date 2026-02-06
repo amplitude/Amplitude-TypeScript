@@ -2,7 +2,7 @@ export { AmplitudeCore } from './core-client';
 export { CoreClient, PluginHost } from './types/client/core-client';
 export { AnalyticsClient } from './types/client/analytics-client';
 export { AmplitudeContext } from './types/amplitude-context';
-export { Identify, IIdentify } from './identify';
+export { Identify, IIdentify, ValidPropertyType } from './identify';
 export { Revenue, IRevenue, RevenueProperty } from './revenue';
 export { Destination } from './plugins/destination';
 export { IdentityEventSender } from './plugins/identity';
