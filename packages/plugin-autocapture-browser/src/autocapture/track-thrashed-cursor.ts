@@ -60,8 +60,61 @@ export const createMouseDirectionChangeObservable = ({
   });
 };
 
+type DirectionChangeSeries = {
+  // number of direction changes to be considered a thrashed cursor
+  changesThreshold: number;
+  // timestamps of direction changes (limited to "changesThreshold" to avoid memory leaks)
+  changes: number[];
+  // window duration in milliseconds
+  thresholdMs: number;
+  // when the series of direction   changes started
+  startTime?: number;
+};
+
+function addDirectionChange(directionChangeSeries: DirectionChangeSeries) {
+  const now = +Date.now();
+
+  directionChangeSeries.startTime = directionChangeSeries.startTime || now;
+
+  // add this direction change to the series (fixed length array to avoid memory leaks)
+  const { changes, changesThreshold } = directionChangeSeries;
+  changes.push(now);
+  if (changes.length > changesThreshold) changes.shift();
+}
+
+// checks if there are enough direction changes within window + threshold
+// for it to be considered a thrashed cursor
+function isThrashedCursor(directionChanges: DirectionChangeSeries): boolean {
+  const { changes, changesThreshold, thresholdMs } = directionChanges;
+  if (changes.length < changesThreshold) return false;
+  const delta = changes[changes.length - 1] - changes[0];
+  return delta < thresholdMs;
+}
+
+function resetDirectionChangeSeries(directionChangeSeries: DirectionChangeSeries) {
+  directionChangeSeries.changes = [];
+  directionChangeSeries.startTime = undefined;
+}
+
+function getPendingThrashedCursor(
+  directionChangesX: DirectionChangeSeries,
+  directionChangesY: DirectionChangeSeries,
+): number | undefined {
+  let startTime = undefined;
+  if (isThrashedCursor(directionChangesX)) {
+    startTime = directionChangesX.startTime;
+  }
+  if (isThrashedCursor(directionChangesY)) {
+    const startTimeY = directionChangesY.startTime;
+    if (startTimeY && (!startTime || startTimeY < startTime)) {
+      startTime = startTimeY;
+    }
+  }
+  return startTime;
+}
+
 const DEFAULT_THRESHOLD = 10;
-const DEFAULT_WINDOW_MS = 2000;
+const DEFAULT_WINDOW_MS = 2_000;
 
 export const createThrashedCursorObservable = ({
   mouseDirectionChangeObservable,
@@ -73,78 +126,36 @@ export const createThrashedCursorObservable = ({
   thresholdMs?: number;
 }): Observable<number> => {
   return new Observable<number>((observer) => {
-    let xDirectionChanges: number[] = [];
-    let yDirectionChanges: number[] = [];
-    let pendingThrashedCursorTimeX: number | null = null;
-    let pendingThrashedCursorTimeY: number | null = null;
+    const xDirectionChanges: DirectionChangeSeries = { changes: [], changesThreshold: directionChanges, thresholdMs };
+    const yDirectionChanges: DirectionChangeSeries = { changes: [], changesThreshold: directionChanges, thresholdMs };
     let timer: ReturnType<typeof setTimeout> | null = null;
 
-    // checks if there are enough direction changes within window + threshold
-    // for it to be considered a thrashed cursor
-    function isThrashedCursor(directionChangeArr: number[]): boolean {
-      const nthLastIndex = directionChangeArr.length - directionChanges;
-      if (nthLastIndex < 0) return false;
-      const delta = directionChangeArr[directionChangeArr.length - 1] - directionChangeArr[nthLastIndex];
-      return delta < thresholdMs;
-    }
-
-    // if a thrashed cursor is pending, return the earliest time
-    function getPendingThrashedCursor() {
-      if (pendingThrashedCursorTimeX && pendingThrashedCursorTimeY) {
-        return Math.min(pendingThrashedCursorTimeX, pendingThrashedCursorTimeY);
-      } else if (pendingThrashedCursorTimeX) {
-        return pendingThrashedCursorTimeX;
-      } else if (pendingThrashedCursorTimeY) {
-        return pendingThrashedCursorTimeY;
-      }
-      return null;
-    }
-
     function emitPendingThrashedCursor() {
-      const pendingThrashedCursor = getPendingThrashedCursor();
-      if (pendingThrashedCursor !== null) {
+      const pendingThrashedCursor = getPendingThrashedCursor(xDirectionChanges, yDirectionChanges);
+      if (pendingThrashedCursor !== undefined) {
         observer.next(pendingThrashedCursor);
 
         // reset window
         if (timer !== null) clearTimeout(timer);
-        pendingThrashedCursorTimeX = null;
-        pendingThrashedCursorTimeY = null;
-        xDirectionChanges = [];
-        yDirectionChanges = [];
+        resetDirectionChangeSeries(xDirectionChanges);
+        resetDirectionChangeSeries(yDirectionChanges);
       }
     }
 
     return mouseDirectionChangeObservable.subscribe((axis) => {
-      const now = +Date.now();
-
       if (timer !== null) clearTimeout(timer);
+      addDirectionChange(axis === Axis.X ? xDirectionChanges : yDirectionChanges);
 
-      if (axis === Axis.X) {
-        xDirectionChanges.push(now);
-      } else if (axis === Axis.Y) {
-        yDirectionChanges.push(now);
-      }
-
-      let isInThrashedCursorWindow = false;
-      if (isThrashedCursor(xDirectionChanges)) {
-        pendingThrashedCursorTimeX = pendingThrashedCursorTimeX || xDirectionChanges[0];
-        isInThrashedCursorWindow = true;
-      }
-      if (isThrashedCursor(yDirectionChanges)) {
-        pendingThrashedCursorTimeY = pendingThrashedCursorTimeY || yDirectionChanges[0];
-        isInThrashedCursorWindow = true;
-      }
-
+      const isInThrashedCursorWindow = isThrashedCursor(xDirectionChanges) || isThrashedCursor(yDirectionChanges);
       if (isInThrashedCursorWindow) {
         // if we're in a thrashed cursor window, debounce it for "thresholdMs" duration
-        // this is so that any future mouse moves do not get counted as new thrashed
-        // cursor events
+        // this is so that we do not restart the window if more direction changes are
+        // detected in this series
         timer = setTimeout(() => {
           emitPendingThrashedCursor();
           timer = null;
         }, thresholdMs);
       } else {
-        // if the thrashed cursor window has closed, see if there's any pending
         emitPendingThrashedCursor();
       }
     });
