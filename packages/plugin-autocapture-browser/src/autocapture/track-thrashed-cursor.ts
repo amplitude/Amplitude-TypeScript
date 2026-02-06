@@ -161,6 +161,15 @@ export const createThrashedCursorObservable = ({
       } else {
         emitPendingThrashedCursor();
       }
+
+      /* istanbul ignore next */
+      return () => {
+        /* istanbul ignore if */
+        if (timer !== null) {
+          clearTimeout(timer);
+          timer = null;
+        }
+      };
     });
   });
 };
