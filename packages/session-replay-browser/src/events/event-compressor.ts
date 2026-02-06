@@ -36,16 +36,25 @@ export class EventCompressor {
     if (workerScript) {
       config.loggerProvider.log('Enabling web worker for compression');
 
-      const worker = new Worker(URL.createObjectURL(new Blob([workerScript], { type: 'application/javascript' })));
-      worker.onerror = (e) => {
-        config.loggerProvider.error(e);
-      };
-      worker.onmessage = (e) => {
-        const { compressedEvent, sessionId } = e.data as Record<string, string>;
-        this.addCompressedEventToManager(compressedEvent, sessionId);
-      };
+      try {
+        const blob = new Blob([workerScript], { type: 'application/javascript' });
+        const blobUrl = URL.createObjectURL(blob);
+        const worker = new Worker(blobUrl);
 
-      this.worker = worker;
+        worker.onerror = (e) => {
+          config.loggerProvider.error('Worker failed, falling back to non-worker compression:', e);
+          worker.terminate();
+          this.worker = undefined;
+        };
+        worker.onmessage = (e) => {
+          const { compressedEvent, sessionId } = e.data as Record<string, string>;
+          this.addCompressedEventToManager(compressedEvent, sessionId);
+        };
+
+        this.worker = worker;
+      } catch (error) {
+        config.loggerProvider.error('Failed to create worker, falling back to non-worker compression:', error);
+      }
     }
   }
 
