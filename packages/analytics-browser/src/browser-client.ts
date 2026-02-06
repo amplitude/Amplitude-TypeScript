@@ -23,6 +23,7 @@ import {
   BrowserClient,
   SpecialEventType,
   AnalyticsClient,
+  AnalyticsIdentity,
   IRemoteConfigClient,
   RemoteConfigClient,
   RemoteConfig,
@@ -421,6 +422,39 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
     };
   }
 
+  setIdentity(identity: Partial<AnalyticsIdentity>) {
+    if (!this.config) {
+      this.q.push(this.setIdentity.bind(this, identity));
+      return;
+    }
+
+    // Handle userId change
+    if ('userId' in identity && identity.userId !== this.config.userId) {
+      this.setUserId(identity.userId);
+    }
+
+    // Handle deviceId change
+    if ('deviceId' in identity && identity.deviceId && identity.deviceId !== this.config.deviceId) {
+      this.setDeviceId(identity.deviceId);
+    }
+
+    // Handle userProperties change - auto-send identify
+    if ('userProperties' in identity) {
+      if (!this.deepEqual(this.userProperties, identity.userProperties)) {
+        this.userProperties = identity.userProperties;
+        // Auto-send identify event with $set operations
+        const identifyObj = new Identify();
+        for (const [key, value] of Object.entries(identity.userProperties ?? {})) {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+          identifyObj.set(key, value);
+        }
+        // The identify event processing in core-client already calls onIdentityChanged,
+        // so we don't need to call it explicitly here to avoid duplicate notifications.
+        this.identify(identifyObj);
+      }
+    }
+  }
+
   getOptOut(): boolean | undefined {
     return this.config?.optOut;
   }
@@ -600,6 +634,27 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
     }
 
     return super.process(event);
+  }
+
+  /**
+   * Deep equality check for user properties.
+   * Mimics Swift's NSDictionary isEqual: behavior (order-independent, recursive).
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private deepEqual(a: any, b: any): boolean {
+    if (a === b) return true;
+    if (a == null || b == null) return false;
+    if (typeof a !== typeof b) return false;
+    if (typeof a !== 'object') return false;
+
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+    const keysA = Object.keys(a);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+    const keysB = Object.keys(b);
+    if (keysA.length !== keysB.length) return false;
+
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    return keysA.every((k) => this.deepEqual(a[k], b[k]));
   }
 
   private logBrowserOptions(browserConfig: BrowserOptions & { apiKey: string }) {

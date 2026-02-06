@@ -25,6 +25,7 @@ export const createMockBrowserClient = (): jest.Mocked<BrowserClient> => {
     setTransport: jest.fn(),
     getOptOut: jest.fn(),
     getIdentity: jest.fn(),
+    setIdentity: jest.fn(),
     _setDiagnosticsSampleRate: jest.fn(),
   } as jest.Mocked<BrowserClient>;
 

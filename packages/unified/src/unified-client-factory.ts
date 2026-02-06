@@ -160,6 +160,12 @@ export const createInstance = (): UnifiedClient => {
       getClientLogConfig(client),
       getClientStates(client, ['config']),
     ),
+    setIdentity: debugWrapper(
+      client.setIdentity.bind(client),
+      'setIdentity',
+      getClientLogConfig(client),
+      getClientStates(client, ['config', 'config.userId', 'config.deviceId']),
+    ),
   };
 };
 

@@ -130,6 +130,12 @@ export const createInstance = (): BrowserClient => {
       getClientLogConfig(client),
       getClientStates(client, ['config']),
     ),
+    setIdentity: debugWrapper(
+      client.setIdentity.bind(client),
+      'setIdentity',
+      getClientLogConfig(client),
+      getClientStates(client, ['config', 'config.userId', 'config.deviceId']),
+    ),
     getOptOut: debugWrapper(
       client.getOptOut.bind(client),
       'getOptOut',
