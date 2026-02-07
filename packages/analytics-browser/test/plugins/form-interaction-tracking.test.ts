@@ -26,12 +26,11 @@ if (typeof SubmitEvent === 'undefined') {
 
 describe('formInteractionTracking', () => {
   let amplitude = createAmplitudeMock();
-  let form: HTMLFormElement;
 
   beforeEach(() => {
     amplitude = createAmplitudeMock();
 
-    form = document.createElement('form');
+    const form = document.createElement('form');
     form.setAttribute('id', 'my-form-id');
     form.setAttribute('name', 'my-form-name');
     form.setAttribute('action', '/submit');
