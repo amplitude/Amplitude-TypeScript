@@ -507,7 +507,7 @@ describe('formInteractionTracking', () => {
       // this will cause Form element to show up twice in mutation observer
       const div = document.createElement('div');
       div.appendChild(form);
-      document.body.appendChild(form);
+      document.body.appendChild(div);
 
       // allow mutation observer to execute and event listener to be attached
       await new Promise((r) => r(undefined));
