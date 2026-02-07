@@ -40,4 +40,5 @@ export {
   ClickIdParameters,
   ReferrerParameters,
   UTMParameters,
+  ValidPropertyType,
 } from '@amplitude/analytics-core';
