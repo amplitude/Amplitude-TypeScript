@@ -147,7 +147,6 @@ export const createThrashedCursorObservable = ({
       if (timer !== null) clearTimeout(timer);
       addDirectionChange(axis === Axis.X ? xDirectionChanges : yDirectionChanges);
 
-      //const isInThrashedCursorWindow = isThrashedCursor(xDirectionChanges) || isThrashedCursor(yDirectionChanges);
       const nextPendingThrashedCursor = getPendingThrashedCursor(xDirectionChanges, yDirectionChanges);
       if (nextPendingThrashedCursor) {
         // if we're in a thrashed cursor window, debounce it for "thresholdMs" duration
