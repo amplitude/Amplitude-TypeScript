@@ -26,11 +26,12 @@ if (typeof SubmitEvent === 'undefined') {
 
 describe('formInteractionTracking', () => {
   let amplitude = createAmplitudeMock();
+  let form: HTMLFormElement;
 
   beforeEach(() => {
     amplitude = createAmplitudeMock();
 
-    const form = document.createElement('form');
+    form = document.createElement('form');
     form.setAttribute('id', 'my-form-id');
     form.setAttribute('name', 'my-form-name');
     form.setAttribute('action', '/submit');
@@ -480,6 +481,46 @@ describe('formInteractionTracking', () => {
       expect(amplitude.track).toHaveBeenNthCalledWith(2, '[Amplitude] Form Submitted', {
         [FORM_ID]: 'my-form-id',
         [FORM_NAME]: 'my-form-name',
+        [FORM_DESTINATION]: 'http://localhost/submit',
+      });
+    });
+
+    test('should not track form more than once', async () => {
+      const config = createConfigurationMock({
+        defaultTracking: {
+          formInteractions: {
+            shouldTrackSubmit: () => true,
+          },
+        },
+      });
+      const plugin = formInteractionTracking();
+      await plugin.setup?.(config, amplitude);
+      window.dispatchEvent(new Event('load'));
+
+      // create a new form element and add it to the body
+      const form = document.createElement('form');
+      form.setAttribute('id', 'duplicate-form-id');
+      form.setAttribute('name', 'duplicate-form-name');
+      form.setAttribute('action', '/submit');
+      document.body.appendChild(form);
+
+      // move form element to div container
+      // this will cause Form element to show up twice in mutation observer
+      const div = document.createElement('div');
+      div.appendChild(form);
+      document.body.appendChild(form);
+
+      // allow mutation observer to execute and event listener to be attached
+      await new Promise((r) => r(undefined));
+
+      // trigger submit event with SubmitEvent
+      document.getElementById('duplicate-form-id')?.dispatchEvent(new SubmitEvent('submit'));
+
+      // assert both form_start and form_submit were tracked only once each
+      expect(amplitude.track).toHaveBeenCalledTimes(2);
+      expect(amplitude.track).toHaveBeenNthCalledWith(2, '[Amplitude] Form Submitted', {
+        [FORM_ID]: 'duplicate-form-id',
+        [FORM_NAME]: 'duplicate-form-name',
         [FORM_DESTINATION]: 'http://localhost/submit',
       });
     });

@@ -129,8 +129,13 @@ export const formInteractionTracking = (): EnrichmentPlugin => {
       /* istanbul ignore else */
       if (typeof MutationObserver !== 'undefined') {
         observer = new MutationObserver((mutations) => {
+          const addedFormNodes: WeakSet<Node> = new WeakSet();
           mutations.forEach((mutation) => {
             mutation.addedNodes.forEach((node) => {
+              if (addedFormNodes.has(node)) {
+                return;
+              }
+              addedFormNodes.add(node);
               if (node.nodeName === 'FORM') {
                 addFormInteractionListener(node as HTMLFormElement);
               }
