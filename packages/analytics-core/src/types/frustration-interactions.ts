@@ -23,6 +23,21 @@ export interface RageClickOptions {
 }
 
 /**
+ * Configuration options for thrashed cursor tracking
+ */
+export interface ThrashedCursorOptions {
+  /**
+   * Number of direction changes required to consider a thrashed cursor.
+   * (x axis changes and y axis changes are counted separately)
+   */
+  directionChanges?: number;
+  /**
+   * Time window in milliseconds to consider a thrashed cursor.
+   */
+  threshold?: number;
+}
+
+/**
  * Configuration options for error clicks tracking
  */
 export interface ErrorClickOptions {
@@ -56,7 +71,7 @@ export interface FrustrationInteractionsOptions {
   /**
    * Function to determine whether an event should be tracked.
    * When provided, this function overwrites all other allowlists and configurations.
-   * If the function returns true, the event will be tracked.
+   * If the function returns true, the event will be tracked.i
    * If the function returns false, the event will not be tracked.
    * @param actionType - The type of action that triggered the event.
    * @param element - The [Element](https://developer.mozilla.org/en-US/docs/Web/API/Element) that triggered the event.
@@ -79,7 +94,7 @@ export interface FrustrationInteractionsOptions {
   /**
    * Configuration for rage clicks tracking.
    * Set to `false` to disable rage click tracking.
-   * Set to `true` or an options object to enable with default or custom settings.
+   * Set to `true` or an options object to enable with default settings.
    */
   rageClicks?: boolean | RageClickOptions;
 
@@ -88,6 +103,13 @@ export interface FrustrationInteractionsOptions {
    * @experimental this feature is experimental and may not be stable
    */
   errorClicks?: boolean | ErrorClickOptions;
+  /**
+   * Configuration for thrashed cursor tracking.
+   * Set to `false` to disable thrashed cursor tracking.
+   * Set to `true` or an options object to enable with default settings.
+   * @experimental this feature is experimental and may not be stable
+   */
+  thrashedCursor?: boolean | ThrashedCursorOptions;
 
   /**
    * RegExp pattern list to allow custom patterns for text masking
