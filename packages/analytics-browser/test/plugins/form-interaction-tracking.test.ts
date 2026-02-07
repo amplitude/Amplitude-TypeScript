@@ -484,43 +484,60 @@ describe('formInteractionTracking', () => {
       });
     });
 
-    test('should not track form more than once', async () => {
-      const config = createConfigurationMock({
-        defaultTracking: {
-          formInteractions: {
-            shouldTrackSubmit: () => true,
+    describe('duplicate form tracking', () => {
+      let plugin: ReturnType<typeof formInteractionTracking>;
+      beforeEach(async () => {
+        const config = createConfigurationMock({
+          defaultTracking: {
+            formInteractions: {
+              shouldTrackSubmit: () => true,
+            },
           },
-        },
+        });
+        plugin = formInteractionTracking();
+        await plugin?.setup?.(config, amplitude);
+        window.dispatchEvent(new Event('load'));
+
+        // create a new form element and add it to the body
+        const form = document.createElement('form');
+        form.setAttribute('id', 'duplicate-form-id');
+        form.setAttribute('name', 'duplicate-form-name');
+        form.setAttribute('action', '/submit');
+        document.body.appendChild(form);
+
+        // move form element to div container
+        // this will cause Form element to show up twice in mutation observer
+        const div = document.createElement('div');
+        div.setAttribute('id', 'duplicate-div-id');
+        div.appendChild(form);
+        document.body.appendChild(div);
+
+        // allow mutation observer to execute and event listener to be attached
+        await new Promise((r) => r(undefined));
       });
-      const plugin = formInteractionTracking();
-      await plugin.setup?.(config, amplitude);
-      window.dispatchEvent(new Event('load'));
 
-      // create a new form element and add it to the body
-      const form = document.createElement('form');
-      form.setAttribute('id', 'duplicate-form-id');
-      form.setAttribute('name', 'duplicate-form-name');
-      form.setAttribute('action', '/submit');
-      document.body.appendChild(form);
+      afterEach(async () => {
+        await plugin?.teardown?.();
+        document.getElementById('duplicate-div-id')?.remove();
+        document.getElementById('duplicate-form-id')?.remove();
+      });
 
-      // move form element to div container
-      // this will cause Form element to show up twice in mutation observer
-      const div = document.createElement('div');
-      div.appendChild(form);
-      document.body.appendChild(div);
+      test('should not track form events more than once', async () => {
+        // trigger submit event with SubmitEvent
+        document.getElementById('duplicate-form-id')?.dispatchEvent(new SubmitEvent('submit'));
 
-      // allow mutation observer to execute and event listener to be attached
-      await new Promise((r) => r(undefined));
-
-      // trigger submit event with SubmitEvent
-      document.getElementById('duplicate-form-id')?.dispatchEvent(new SubmitEvent('submit'));
-
-      // assert both form_start and form_submit were tracked only once each
-      expect(amplitude.track).toHaveBeenCalledTimes(2);
-      expect(amplitude.track).toHaveBeenNthCalledWith(2, '[Amplitude] Form Submitted', {
-        [FORM_ID]: 'duplicate-form-id',
-        [FORM_NAME]: 'duplicate-form-name',
-        [FORM_DESTINATION]: 'http://localhost/submit',
+        // assert both form_start and form_submit were tracked only once each
+        expect(amplitude.track).toHaveBeenCalledTimes(2);
+        expect(amplitude.track).toHaveBeenNthCalledWith(1, '[Amplitude] Form Started', {
+          [FORM_ID]: 'duplicate-form-id',
+          [FORM_NAME]: 'duplicate-form-name',
+          [FORM_DESTINATION]: 'http://localhost/submit',
+        });
+        expect(amplitude.track).toHaveBeenNthCalledWith(2, '[Amplitude] Form Submitted', {
+          [FORM_ID]: 'duplicate-form-id',
+          [FORM_NAME]: 'duplicate-form-name',
+          [FORM_DESTINATION]: 'http://localhost/submit',
+        });
       });
     });
   });
