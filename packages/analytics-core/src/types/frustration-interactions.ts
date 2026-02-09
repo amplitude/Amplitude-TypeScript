@@ -71,7 +71,7 @@ export interface FrustrationInteractionsOptions {
   /**
    * Function to determine whether an event should be tracked.
    * When provided, this function overwrites all other allowlists and configurations.
-   * If the function returns true, the event will be tracked.i
+   * If the function returns true, the event will be tracked.
    * If the function returns false, the event will not be tracked.
    * @param actionType - The type of action that triggered the event.
    * @param element - The [Element](https://developer.mozilla.org/en-US/docs/Web/API/Element) that triggered the event.
@@ -88,6 +88,7 @@ export interface FrustrationInteractionsOptions {
    * Configuration for dead clicks tracking.
    * Set to `false` to disable dead click tracking.
    * Set to `true` or an options object to enable with default or custom settings.
+   * Default is false.
    */
   deadClicks?: boolean | DeadClickOptions;
 
@@ -95,11 +96,15 @@ export interface FrustrationInteractionsOptions {
    * Configuration for rage clicks tracking.
    * Set to `false` to disable rage click tracking.
    * Set to `true` or an options object to enable with default settings.
+   * Default is false.
    */
   rageClicks?: boolean | RageClickOptions;
 
   /**
    * Configuration for error clicks tracking
+   * Set to `false` to disable error click tracking.
+   * Set to `true` or an options object to enable with default settings.
+   * Default is false.
    * @experimental this feature is experimental and may not be stable
    */
   errorClicks?: boolean | ErrorClickOptions;
@@ -107,6 +112,7 @@ export interface FrustrationInteractionsOptions {
    * Configuration for thrashed cursor tracking.
    * Set to `false` to disable thrashed cursor tracking.
    * Set to `true` or an options object to enable with default settings.
+   * Default is false.
    * @experimental this feature is experimental and may not be stable
    */
   thrashedCursor?: boolean | ThrashedCursorOptions;

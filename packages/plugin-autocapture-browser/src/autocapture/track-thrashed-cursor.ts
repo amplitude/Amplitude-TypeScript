@@ -87,6 +87,7 @@ function addDirectionChange(directionChangeSeries: DirectionChangeSeries) {
 // for it to be considered a thrashed cursor
 function isThrashedCursor(directionChanges: DirectionChangeSeries): boolean {
   const { changes, changesThreshold, thresholdMs } = directionChanges;
+  console.log('!!!isThrashedCursor', changes, changesThreshold, thresholdMs);
   if (changes.length < changesThreshold) return false;
   const delta = changes[changes.length - 1] - changes[0];
   return delta < thresholdMs;
@@ -184,6 +185,6 @@ export const trackThrashedCursor = ({
     thresholdMs,
   });
   return thrashedCursorObservable.subscribe((time) => {
-    amplitude.track(AMPLITUDE_THRASHED_CURSOR_EVENT, {}, { time });
+    amplitude.track(AMPLITUDE_THRASHED_CURSOR_EVENT, undefined, { time });
   });
 };
