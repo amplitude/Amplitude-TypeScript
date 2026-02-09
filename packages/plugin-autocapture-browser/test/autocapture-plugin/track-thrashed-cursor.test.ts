@@ -54,7 +54,7 @@ describe('trackThrashedCursor', () => {
       }
     }
     jest.runAllTimers();
-    expect(amplitude.track).toHaveBeenCalledWith(AMPLITUDE_THRASHED_CURSOR_EVENT, {}, { time: startTime + 200 });
+    expect(amplitude.track).toHaveBeenCalledWith(AMPLITUDE_THRASHED_CURSOR_EVENT, undefined, { time: startTime + 200 });
   });
 
   it('should track thrashed cursor with custom threshold and window ms', async () => {
@@ -87,7 +87,9 @@ describe('trackThrashedCursor', () => {
       }
     }
     jest.runAllTimers();
-    expect(amplitude.track).toHaveBeenCalledWith(AMPLITUDE_THRASHED_CURSOR_EVENT, {}, { time: expect.any(Number) });
+    expect(amplitude.track).toHaveBeenCalledWith(AMPLITUDE_THRASHED_CURSOR_EVENT, undefined, {
+      time: expect.any(Number),
+    });
   });
 });
 
@@ -269,7 +271,7 @@ describe('createThrashedCursorObservable', () => {
     expect(emittedTimes).toEqual([startTime, secondStartTime]);
   });
 
-  it('should trigger two thrashed cursors if trailing window is too long', async () => {
+  it('should trigger one thrashed cursor if trailing window is above threshold', async () => {
     for (let i = 0; i < DEFAULT_THRESHOLD; i++) {
       directionChangeObserver.next('x');
       jest.advanceTimersByTime(100);

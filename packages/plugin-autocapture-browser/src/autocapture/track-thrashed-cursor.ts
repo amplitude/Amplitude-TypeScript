@@ -87,7 +87,6 @@ function addDirectionChange(directionChangeSeries: DirectionChangeSeries) {
 // for it to be considered a thrashed cursor
 function isThrashedCursor(directionChanges: DirectionChangeSeries): boolean {
   const { changes, changesThreshold, thresholdMs } = directionChanges;
-  console.log('!!!isThrashedCursor', changes, changesThreshold, thresholdMs);
   if (changes.length < changesThreshold) return false;
   const delta = changes[changes.length - 1] - changes[0];
   return delta < thresholdMs;
@@ -149,13 +148,12 @@ export const createThrashedCursorObservable = ({
       if (timer !== null) clearTimeout(timer);
       addDirectionChange(axis === Axis.X ? xDirectionChanges : yDirectionChanges);
 
-      //const isInThrashedCursorWindow = isThrashedCursor(xDirectionChanges) || isThrashedCursor(yDirectionChanges);
       const nextPendingThrashedCursor = getPendingThrashedCursor(xDirectionChanges, yDirectionChanges);
       if (nextPendingThrashedCursor) {
         // if we're in a thrashed cursor window, debounce it for "thresholdMs" duration
         // this is so that we do not restart the window if more direction changes are
         // detected in this series
-        pendingThrashedCursor = nextPendingThrashedCursor;
+        pendingThrashedCursor = pendingThrashedCursor || nextPendingThrashedCursor;
         timer = setTimeout(() => {
           emitPendingThrashedCursor();
           timer = null;
@@ -163,6 +161,15 @@ export const createThrashedCursorObservable = ({
       } else {
         emitPendingThrashedCursor();
       }
+
+      /* istanbul ignore next */
+      return () => {
+        /* istanbul ignore if */
+        if (timer !== null) {
+          clearTimeout(timer);
+          timer = null;
+        }
+      };
     });
   });
 };
