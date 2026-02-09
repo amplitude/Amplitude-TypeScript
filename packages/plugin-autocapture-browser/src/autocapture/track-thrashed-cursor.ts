@@ -102,10 +102,13 @@ function isThrashedCursor(directionChanges: DirectionChangeSeries): boolean {
 // shift the window to the right until it is below the threshold
 function adjustWindow(directionChanges: DirectionChangeSeries) {
   const { changes } = directionChanges;
-  for (let i = 0; i < directionChanges.changes.length; i++) {
+  let i = 0;
+  while (i < changes.length) {
     if (isAboveTimeThreshold(directionChanges)) {
       changes.shift();
       directionChanges.startTime = changes[0];
+    } else {
+      break;
     }
   }
 }
