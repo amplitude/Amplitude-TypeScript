@@ -1,7 +1,5 @@
-import { BrowserClient, ElementInteractionsOptions, Observable } from '@amplitude/analytics-core';
+import { Observable } from '@amplitude/analytics-core';
 import { AllWindowObservables } from '../frustration-plugin';
-import { AMPLITUDE_THRASHED_CURSOR_EVENT } from '../constants';
-import { isUrlAllowed } from '../helpers';
 
 type Position = {
   x: number;
@@ -102,7 +100,7 @@ function isThrashedCursor(directionChanges: DirectionChangeSeries): boolean {
 // shift the window to the right until it is below the threshold
 function adjustWindow(directionChanges: DirectionChangeSeries) {
   const { changes } = directionChanges;
-  let i = 0;
+  const i = 0;
   while (i < changes.length) {
     if (isAboveTimeThreshold(directionChanges)) {
       changes.shift();
@@ -196,32 +194,5 @@ export const createThrashedCursorObservable = ({
         }
       };
     });
-  });
-};
-
-export const trackThrashedCursor = ({
-  amplitude,
-  options,
-  allObservables,
-  directionChanges = DEFAULT_THRESHOLD,
-  thresholdMs = DEFAULT_WINDOW_MS,
-}: {
-  amplitude: BrowserClient;
-  options: ElementInteractionsOptions;
-  allObservables: AllWindowObservables;
-  directionChanges?: number;
-  thresholdMs?: number;
-}) => {
-  const mouseDirectionChangeObservable = createMouseDirectionChangeObservable({ allWindowObservables: allObservables });
-  const thrashedCursorObservable = createThrashedCursorObservable({
-    mouseDirectionChangeObservable,
-    directionChanges,
-    thresholdMs,
-  });
-  return thrashedCursorObservable.subscribe((time) => {
-    if (!isUrlAllowed(options)) {
-      return;
-    }
-    amplitude.track(AMPLITUDE_THRASHED_CURSOR_EVENT, undefined, { time });
   });
 };
