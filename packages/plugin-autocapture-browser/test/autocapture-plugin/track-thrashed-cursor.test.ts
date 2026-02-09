@@ -25,7 +25,44 @@ describe('trackThrashedCursor', () => {
     jest.useRealTimers();
   });
 
-  it('should track thrashed cursor', async () => {
+  async function setupAndSimulateThrashedCursor(
+    config: {
+      directionChanges?: number;
+      thresholdMs?: number;
+      options?: {
+        pageUrlAllowlist?: RegExp[];
+        pageUrlExcludelist?: RegExp[];
+      };
+      windowLocation?: {
+        href: string;
+      };
+      mouseMovements?: {
+        iterations?: number;
+        timeAdvance?: number;
+      };
+    } = {}
+  ): Promise<{ mouseMoveObserver: any; startTime: number }> {
+    const {
+      directionChanges,
+      thresholdMs,
+      options = {
+        pageUrlAllowlist: [],
+        pageUrlExcludelist: [],
+      },
+      windowLocation,
+      mouseMovements = {
+        iterations: 10,
+        timeAdvance: 1,
+      },
+    } = config;
+
+    if (windowLocation) {
+      Object.defineProperty(window, 'location', {
+        value: windowLocation,
+        writable: true,
+      });
+    }
+
     const promise = new Promise<void>((resolve) => {
       trackThrashedCursor({
         amplitude,
@@ -35,154 +72,81 @@ describe('trackThrashedCursor', () => {
             resolve();
           }),
         } as AllWindowObservables,
-        options: {
-          pageUrlAllowlist: [],
-          pageUrlExcludelist: [],
-        },
+        ...(directionChanges !== undefined && { directionChanges }),
+        ...(thresholdMs !== undefined && { thresholdMs }),
+        options,
       });
     });
+
     jest.runAllTimers();
     await promise;
+
     const startTime = +Date.now();
     if (mouseMoveObserver.next) {
       // simulate a circular mouse motion
       const origin = { clientX: 100, clientY: 100 };
       const destination = { clientX: 101, clientY: 101 };
-      for (let i = 0; i < 20; i++) {
+      for (let i = 0; i < mouseMovements.iterations!; i++) {
         if (i % 2 === 0) {
           mouseMoveObserver.next(origin);
         } else {
           mouseMoveObserver.next(destination);
         }
-        jest.advanceTimersByTime(100);
+        jest.advanceTimersByTime(mouseMovements.timeAdvance!);
       }
     }
     jest.runAllTimers();
+
+    return { mouseMoveObserver, startTime };
+  }
+
+  it('should track thrashed cursor', async () => {
+    const { startTime } = await setupAndSimulateThrashedCursor({
+      mouseMovements: {
+        iterations: 20,
+        timeAdvance: 100,
+      },
+    });
     expect(amplitude.track).toHaveBeenCalledWith(AMPLITUDE_THRASHED_CURSOR_EVENT, undefined, { time: startTime + 200 });
   });
 
   it('should track thrashed cursor with custom threshold and window ms', async () => {
-    const promise = new Promise<void>((resolve) => {
-      trackThrashedCursor({
-        amplitude,
-        allObservables: {
-          [ObservablesEnum.MouseMoveObservable]: new Observable<MouseEvent>((observer) => {
-            mouseMoveObserver = observer;
-            resolve();
-          }),
-        } as AllWindowObservables,
-        directionChanges: 5,
-        thresholdMs: 100,
-        options: {
-          pageUrlAllowlist: [],
-          pageUrlExcludelist: [],
-        },
-      });
+    await setupAndSimulateThrashedCursor({
+      directionChanges: 5,
+      thresholdMs: 100,
     });
-    jest.runAllTimers();
-    await promise;
-    if (mouseMoveObserver.next) {
-      // simulate a circular mouse motion
-      const origin = { clientX: 100, clientY: 100 };
-      const destination = { clientX: 101, clientY: 101 };
-      for (let i = 0; i < 10; i++) {
-        if (i % 2 === 0) {
-          mouseMoveObserver.next(origin);
-        } else {
-          mouseMoveObserver.next(destination);
-        }
-        jest.advanceTimersByTime(1);
-      }
-    }
-    jest.runAllTimers();
     expect(amplitude.track).toHaveBeenCalledWith(AMPLITUDE_THRASHED_CURSOR_EVENT, undefined, {
       time: expect.any(Number),
     });
   });
 
   it('should not track thrashed cursor when pageUrlExcludelist is set', async () => {
-    Object.defineProperty(window, 'location', {
-      value: {
+    await setupAndSimulateThrashedCursor({
+      directionChanges: 5,
+      thresholdMs: 100,
+      windowLocation: {
         href: 'http://localhost/test',
       },
-      writable: true,
+      options: {
+        pageUrlAllowlist: [],
+        pageUrlExcludelist: [new RegExp('/test')],
+      },
     });
-    const promise = new Promise<void>((resolve) => {
-      trackThrashedCursor({
-        amplitude,
-        allObservables: {
-          [ObservablesEnum.MouseMoveObservable]: new Observable<MouseEvent>((observer) => {
-            mouseMoveObserver = observer;
-            resolve();
-          }),
-        } as AllWindowObservables,
-        directionChanges: 5,
-        thresholdMs: 100,
-        options: {
-          pageUrlAllowlist: [],
-          pageUrlExcludelist: [new RegExp('/test')],
-        },
-      });
-    });
-    jest.runAllTimers();
-    await promise;
-    if (mouseMoveObserver.next) {
-      // simulate a circular mouse motion
-      const origin = { clientX: 100, clientY: 100 };
-      const destination = { clientX: 101, clientY: 101 };
-      for (let i = 0; i < 10; i++) {
-        if (i % 2 === 0) {
-          mouseMoveObserver.next(origin);
-        } else {
-          mouseMoveObserver.next(destination);
-        }
-        jest.advanceTimersByTime(1);
-      }
-    }
-    jest.runAllTimers();
     expect(amplitude.track).not.toHaveBeenCalled();
   });
 
   it('should not track thrashed cursor when pageUrlAllowlist is set', async () => {
-    Object.defineProperty(window, 'location', {
-      value: {
+    await setupAndSimulateThrashedCursor({
+      directionChanges: 5,
+      thresholdMs: 100,
+      windowLocation: {
         href: 'http://localhost/nomatch',
       },
-      writable: true,
+      options: {
+        pageUrlAllowlist: [new RegExp('/match')],
+        pageUrlExcludelist: [],
+      },
     });
-    const promise = new Promise<void>((resolve) => {
-      trackThrashedCursor({
-        amplitude,
-        allObservables: {
-          [ObservablesEnum.MouseMoveObservable]: new Observable<MouseEvent>((observer) => {
-            mouseMoveObserver = observer;
-            resolve();
-          }),
-        } as AllWindowObservables,
-        directionChanges: 5,
-        thresholdMs: 100,
-        options: {
-          pageUrlAllowlist: [new RegExp('/match')],
-          pageUrlExcludelist: [],
-        },
-      });
-    });
-    jest.runAllTimers();
-    await promise;
-    if (mouseMoveObserver.next) {
-      // simulate a circular mouse motion
-      const origin = { clientX: 100, clientY: 100 };
-      const destination = { clientX: 101, clientY: 101 };
-      for (let i = 0; i < 10; i++) {
-        if (i % 2 === 0) {
-          mouseMoveObserver.next(origin);
-        } else {
-          mouseMoveObserver.next(destination);
-        }
-        jest.advanceTimersByTime(1);
-      }
-    }
-    jest.runAllTimers();
     expect(amplitude.track).not.toHaveBeenCalled();
   });
 });
