@@ -83,18 +83,30 @@ function addDirectionChange(directionChangeSeries: DirectionChangeSeries) {
   if (changes.length > changesThreshold) changes.shift();
 }
 
+function isAboveTimeThreshold(directionChanges: DirectionChangeSeries): boolean {
+  const { changes, thresholdMs } = directionChanges;
+  const delta = changes[changes.length - 1] - changes[0];
+  return delta >= thresholdMs;
+}
+
 // checks if there are enough direction changes within window + threshold
 // for it to be considered a thrashed cursor
 function isThrashedCursor(directionChanges: DirectionChangeSeries): boolean {
-  const { changes, changesThreshold, thresholdMs } = directionChanges;
+  const { changes, changesThreshold } = directionChanges;
   if (changes.length < changesThreshold) return false;
-  const delta = changes[changes.length - 1] - changes[0];
-  return delta < thresholdMs;
+  return !isAboveTimeThreshold(directionChanges);
 }
 
-function resetDirectionChangeSeries(directionChangeSeries: DirectionChangeSeries) {
-  directionChangeSeries.changes = [];
-  directionChangeSeries.startTime = undefined;
+// if the time between first and last change is greater than the threshold,
+// shift the window to the right until it is below the threshold
+function adjustWindow(directionChanges: DirectionChangeSeries) {
+  const { changes } = directionChanges;
+  for (let i = 0; i < directionChanges.changes.length; i++) {
+    if (isAboveTimeThreshold(directionChanges)) {
+      changes.shift();
+      directionChanges.startTime = changes[0];
+    }
+  }
 }
 
 function getPendingThrashedCursor(
@@ -139,9 +151,14 @@ export const createThrashedCursorObservable = ({
 
         // reset window
         if (timer !== null) clearTimeout(timer);
-        resetDirectionChangeSeries(xDirectionChanges);
-        resetDirectionChangeSeries(yDirectionChanges);
       }
+    }
+
+    function resetDirectionChangeSeries() {
+      xDirectionChanges.startTime = undefined;
+      xDirectionChanges.changes = [];
+      yDirectionChanges.startTime = undefined;
+      yDirectionChanges.changes = [];
     }
 
     return mouseDirectionChangeObservable.subscribe((axis) => {
@@ -156,11 +173,15 @@ export const createThrashedCursorObservable = ({
         pendingThrashedCursor = pendingThrashedCursor || nextPendingThrashedCursor;
         timer = setTimeout(() => {
           emitPendingThrashedCursor();
+          resetDirectionChangeSeries();
           timer = null;
         }, thresholdMs);
       } else {
         emitPendingThrashedCursor();
       }
+
+      adjustWindow(xDirectionChanges);
+      adjustWindow(yDirectionChanges);
 
       /* istanbul ignore next */
       return () => {

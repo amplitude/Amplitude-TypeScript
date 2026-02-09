@@ -302,4 +302,35 @@ describe('createThrashedCursorObservable', () => {
     await jest.runAllTimersAsync();
     expect(emittedTimes).toEqual([startTime]);
   });
+
+  it('should trigger a start time when the first direction change is made', async () => {
+    const testStartTime = +Date.now();
+    directionChangeObserver.next('x');
+    jest.advanceTimersByTime(DEFAULT_WINDOW_MS + 100);
+    const thrashedCursorStartTime = +Date.now();
+    for (let i = 0; i < DEFAULT_THRESHOLD; i++) {
+      directionChangeObserver.next('x');
+      jest.advanceTimersByTime(100);
+    }
+    await jest.runAllTimersAsync();
+    expect(emittedTimes[0]).toBeGreaterThan(testStartTime);
+    expect(emittedTimes).toEqual([thrashedCursorStartTime]);
+  });
+
+  it('should slide window to the right when direction changes are above threshold', async () => {
+    // run a direction change and wait 1.5 seconds
+    directionChangeObserver.next('x');
+    jest.advanceTimersByTime(DEFAULT_WINDOW_MS - 500);
+
+    // run 10 direction changes over 1 second; which will push the first change out of the window
+    const expectedStartTime = +Date.now();
+    for (let i = 0; i < DEFAULT_THRESHOLD; i++) {
+      directionChangeObserver.next('x');
+      jest.advanceTimersByTime(100);
+    }
+    await jest.runAllTimersAsync();
+
+    // expect the start time to be the start of the last 10 changes and not the first change
+    expect(emittedTimes).toEqual([expectedStartTime]);
+  });
 });
