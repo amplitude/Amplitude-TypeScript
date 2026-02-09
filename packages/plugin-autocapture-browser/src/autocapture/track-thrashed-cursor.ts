@@ -152,7 +152,7 @@ export const createThrashedCursorObservable = ({
         // if we're in a thrashed cursor window, debounce it for "thresholdMs" duration
         // this is so that we do not restart the window if more direction changes are
         // detected in this series
-        pendingThrashedCursor = nextPendingThrashedCursor;
+        pendingThrashedCursor = pendingThrashedCursor || nextPendingThrashedCursor;
         timer = setTimeout(() => {
           emitPendingThrashedCursor();
           timer = null;
