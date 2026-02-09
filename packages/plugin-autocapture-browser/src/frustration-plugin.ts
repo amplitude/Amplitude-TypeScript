@@ -273,6 +273,7 @@ export const frustrationPlugin = (options: FrustrationInteractionsOptions = {}):
       }
       const thrashedCursorSubscription = trackThrashedCursor({
         amplitude,
+        options,
         allObservables,
         directionChanges,
         thresholdMs,
