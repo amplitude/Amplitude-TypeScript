@@ -91,6 +91,11 @@ export interface IConfig {
    * Invokes identify on this Identify object prior to initializing the SDK.
    */
   identify?: IIdentify;
+  /**
+   * Returns the current in-memory user properties. Used when processing identify events
+   * to merge event operations on top of current state
+   */
+  getUserProperties?: () => Record<string, any> | undefined;
 }
 
 export interface IRequestMetadata {

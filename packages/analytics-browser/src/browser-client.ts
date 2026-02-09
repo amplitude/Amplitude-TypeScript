@@ -225,6 +225,7 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
       });
     }
 
+    browserOptions.getUserProperties = () => this.userProperties;
     await super._init(browserOptions);
     this.logBrowserOptions(browserOptions);
 

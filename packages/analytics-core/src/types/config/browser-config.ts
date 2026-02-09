@@ -103,6 +103,10 @@ export interface ExternalBrowserConfig extends IConfig {
    * @defaultValue `true`
    */
   enableDiagnostics?: boolean;
+  /**
+   * Returns the current in-memory user properties.
+   */
+  getUserProperties?: () => Record<string, any> | undefined;
 }
 
 interface InternalBrowserConfig {

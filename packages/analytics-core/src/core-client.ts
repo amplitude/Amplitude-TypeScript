@@ -145,6 +145,7 @@ export class AmplitudeCore implements CoreClient, PluginHost {
    * This is a best-effort api that only supports $set, $clearAll, and $unset.
    * Other operations are not supported and are ignored.
    *
+   * When config.getUserProperties is set, operations are applied on top of current state.
    *
    * @param userProperties The `event.userProperties` object from an Identify event.
    * @returns A key-value object user properties without operations.
@@ -163,7 +164,8 @@ export class AmplitudeCore implements CoreClient, PluginHost {
    * }
    */
   getOperationAppliedUserProperties(userProperties: UserProperties | undefined): { [key: string]: any } {
-    const updatedProperties: { [key: string]: any } = {};
+    const base = this.config.getUserProperties?.() ?? {};
+    const updatedProperties: { [key: string]: any } = { ...base };
 
     if (userProperties === undefined) {
       return updatedProperties;
