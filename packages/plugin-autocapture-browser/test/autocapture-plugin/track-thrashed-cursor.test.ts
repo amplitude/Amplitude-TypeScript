@@ -3,7 +3,10 @@
 /* eslint-disable @typescript-eslint/no-empty-function */
 
 import { Observable, Unsubscribable } from '@amplitude/analytics-core';
-import { createMouseDirectionChangeObservable } from '../../src/autocapture/track-thrashed-cursor';
+import {
+  createMouseDirectionChangeObservable,
+  createThrashedCursorObservable,
+} from '../../src/autocapture/track-thrashed-cursor';
 import { AllWindowObservables } from '../../src/frustration-plugin';
 import { ObservablesEnum } from '../../src/autocapture-plugin';
 
@@ -70,5 +73,150 @@ describe('createMouseDirectionChangeObservable', () => {
     mouseMoveObserver.next({ clientX: 1, clientY: 2 });
     const axis = await subscriptionPromise;
     expect(axis).toEqual('y');
+  });
+});
+
+describe('createThrashedCursorObservable', () => {
+  let mouseDirectionChangeObservable: Observable<'x' | 'y'>;
+  let directionChangeObserver: any;
+  let thrashedCursorObservable: Observable<number>;
+  let subscription: Unsubscribable | undefined;
+  let emittedTimes: number[];
+  let startTime: number;
+  const DEFAULT_THRESHOLD = 10;
+  const DEFAULT_WINDOW_MS = 2000;
+
+  beforeEach(() => {
+    jest.useFakeTimers();
+    emittedTimes = [];
+    mouseDirectionChangeObservable = new Observable<'x' | 'y'>((observer) => {
+      directionChangeObserver = observer;
+    });
+
+    thrashedCursorObservable = createThrashedCursorObservable({
+      mouseDirectionChangeObservable: mouseDirectionChangeObservable as any,
+    });
+
+    subscription = thrashedCursorObservable.subscribe((time) => {
+      emittedTimes.push(time);
+    });
+    startTime = +Date.now();
+  });
+
+  afterEach(() => {
+    subscription?.unsubscribe();
+    jest.clearAllMocks();
+    jest.useRealTimers();
+  });
+
+  it('should not emit when direction changes are below threshold', () => {
+    for (let i = 0; i < DEFAULT_THRESHOLD - 1; i++) {
+      jest.advanceTimersByTime(100);
+      directionChangeObserver.next('x');
+    }
+    jest.advanceTimersByTime(DEFAULT_WINDOW_MS + 100);
+    expect(emittedTimes).toHaveLength(0);
+  });
+
+  it('should emit when X axis direction changes meet threshold within window', async () => {
+    for (let i = 0; i < DEFAULT_THRESHOLD; i++) {
+      directionChangeObserver.next('x');
+      jest.advanceTimersByTime(100);
+    }
+    await jest.runAllTimersAsync();
+    expect(emittedTimes).toEqual([startTime]);
+  });
+
+  it('should emit when Y axis direction changes meet threshold within window', async () => {
+    for (let i = 0; i < DEFAULT_THRESHOLD; i++) {
+      directionChangeObserver.next('y');
+      jest.advanceTimersByTime(100);
+    }
+    await jest.runAllTimersAsync();
+    expect(emittedTimes).toEqual([startTime]);
+  });
+
+  it('should emit when both X and Y axes meet threshold', async () => {
+    // Emit 10 X and Y direction changes
+    for (let i = 0; i < DEFAULT_THRESHOLD; i++) {
+      directionChangeObserver.next('x');
+      jest.advanceTimersByTime(50);
+      directionChangeObserver.next('y');
+      jest.advanceTimersByTime(50);
+    }
+    await jest.runAllTimersAsync();
+    expect(emittedTimes.length).toBeGreaterThan(0);
+    expect(emittedTimes).toEqual([startTime]);
+  });
+
+  it('should not emit when direction changes exceed window time', () => {
+    const mouseMoveIntervals = DEFAULT_WINDOW_MS / (DEFAULT_THRESHOLD - 1) + 10;
+    for (let i = 0; i < DEFAULT_THRESHOLD; i++) {
+      directionChangeObserver.next('x');
+      jest.advanceTimersByTime(mouseMoveIntervals);
+    }
+    jest.advanceTimersByTime(100);
+    expect(emittedTimes).toHaveLength(0);
+  });
+
+  it('should only trigger one thrashed cursor if there are more mouse moves than threshold', async () => {
+    for (let i = 0; i < DEFAULT_THRESHOLD + 100; i++) {
+      directionChangeObserver.next('x');
+      jest.advanceTimersByTime(100);
+    }
+    expect(emittedTimes).toHaveLength(0);
+    await jest.runAllTimersAsync();
+    expect(emittedTimes).toEqual([startTime]);
+  });
+
+  it('should trigger two thrashed cursors if there is time between them', async () => {
+    // first thrashed cursor
+    for (let i = 0; i < DEFAULT_THRESHOLD; i++) {
+      directionChangeObserver.next('x');
+      jest.advanceTimersByTime(100);
+    }
+    await jest.runAllTimersAsync();
+
+    // second thrashed cursor
+    jest.advanceTimersByTime(DEFAULT_WINDOW_MS + 100);
+    const secondStartTime = +Date.now();
+    for (let i = 0; i < DEFAULT_THRESHOLD; i++) {
+      directionChangeObserver.next('x');
+      jest.advanceTimersByTime(100);
+    }
+    await jest.runAllTimersAsync();
+    expect(emittedTimes).toEqual([startTime, secondStartTime]);
+  });
+
+  it('should trigger one thrashed cursor if trailing window is above threshold', async () => {
+    for (let i = 0; i < DEFAULT_THRESHOLD; i++) {
+      directionChangeObserver.next('x');
+      jest.advanceTimersByTime(100);
+    }
+    jest.advanceTimersByTime(DEFAULT_WINDOW_MS - 100);
+    directionChangeObserver.next('x');
+    expect(emittedTimes).toEqual([startTime]);
+  });
+
+  it('should use custom threshold and window ms', async () => {
+    const customWindowMs = 10;
+    const customThreshold = 5;
+    thrashedCursorObservable = createThrashedCursorObservable({
+      mouseDirectionChangeObservable: mouseDirectionChangeObservable as any,
+      thresholdMs: customWindowMs,
+      directionChanges: customThreshold,
+    });
+    subscription?.unsubscribe();
+    emittedTimes = [];
+    subscription = thrashedCursorObservable.subscribe((time) => {
+      emittedTimes.push(time);
+    });
+
+    for (let i = 0; i < customThreshold; i++) {
+      directionChangeObserver.next('x');
+      jest.advanceTimersByTime(2);
+    }
+    await jest.runAllTimersAsync();
+    expect(emittedTimes).toEqual([startTime]);
   });
 });

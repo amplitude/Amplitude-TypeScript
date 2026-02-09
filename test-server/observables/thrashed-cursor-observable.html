@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Thrashed Cursor Observables Test</title>
+  </head>
+  <body>
+    <h1>Thrashed Cursor Observables Test</h1>
+    <p>Move your mouse around quickly to see thrashed cursor events logged</p>
+    <div id="output"></div>
+    <script type="module">
+      import { createMouseMoveObservable } from '@amplitude/plugin-autocapture-browser/src/observables';
+      import { createMouseDirectionChangeObservable, createThrashedCursorObservable } from '@amplitude/plugin-autocapture-browser/src/autocapture/track-thrashed-cursor';
+      
+      const mouseMoveObservable = createMouseMoveObservable();
+      const allWindowObservables = {
+        mouseMoveObservable,
+      };
+      
+      const mouseDirectionChangeObservable = createMouseDirectionChangeObservable({
+        allWindowObservables,
+      });
+      
+      const thrashedCursorObservable = createThrashedCursorObservable({
+        mouseDirectionChangeObservable,
+      });
+      
+      const output = document.getElementById('output');
+      
+      let thrashedCursorCount = 0;
+      thrashedCursorObservable.subscribe((eventTime) => {
+        const log = `#${thrashedCursorCount++} Thrashed cursor detected`;
+        console.log(log, +(Date.now()) - eventTime);
+        if (output) {
+          output.textContent = log;
+        }
+      });
+    </script>
+  </body>
+</html>
+
