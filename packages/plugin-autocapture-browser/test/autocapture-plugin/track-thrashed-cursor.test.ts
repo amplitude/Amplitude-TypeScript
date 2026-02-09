@@ -188,7 +188,7 @@ describe('createThrashedCursorObservable', () => {
     expect(emittedTimes).toEqual([startTime, secondStartTime]);
   });
 
-  it('should trigger two thrashed cursors if trailing window is too long', async () => {
+  it('should trigger one thrashed cursor if trailing window is above threshold', async () => {
     for (let i = 0; i < DEFAULT_THRESHOLD; i++) {
       directionChangeObserver.next('x');
       jest.advanceTimersByTime(100);
