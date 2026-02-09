@@ -40,7 +40,7 @@ describe('trackThrashedCursor', () => {
         iterations?: number;
         timeAdvance?: number;
       };
-    } = {}
+    } = {},
   ): Promise<{ mouseMoveObserver: any; startTime: number }> {
     const {
       directionChanges,
