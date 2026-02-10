@@ -22,6 +22,12 @@ yarn-error.log*
 *.d.ts
 *.d.ts.map
 .env
+.env.*
+*.pem
+*.key
+*.p12
+*.pfx
+secrets.*
 
 lerna-debug.log
 
