@@ -398,7 +398,9 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
         // Auto-send identify event with $set operations
         const identifyObj = new Identify();
         // istanbul ignore next
-        for (const [key, value] of Object.entries(identity.userProperties ?? {})) {
+        const userProperties = identity.userProperties ?? {};
+        for (const [key, value] of Object.entries(userProperties)) {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
           identifyObj.set(key, value);
         }
