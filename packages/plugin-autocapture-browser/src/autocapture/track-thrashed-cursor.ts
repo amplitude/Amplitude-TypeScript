@@ -93,14 +93,9 @@ function isThrashedCursor(directionChanges: DirectionChangeSeries): boolean {
   return delta < thresholdMs;
 }
 
-function resetDirectionChangeSeries(
-  xDirectionChanges: DirectionChangeSeries,
-  yDirectionChanges: DirectionChangeSeries,
-) {
-  xDirectionChanges.startTime = undefined;
-  xDirectionChanges.changes = [];
-  yDirectionChanges.startTime = undefined;
-  yDirectionChanges.changes = [];
+function resetDirectionChangeSeries(directionChangeSeries: DirectionChangeSeries) {
+  directionChangeSeries.startTime = undefined;
+  directionChangeSeries.changes = [];
 }
 
 // if the time between first and last change is greater than the threshold,
@@ -162,6 +157,8 @@ export const createThrashedCursorObservable = ({
       if (pendingThrashedCursor !== undefined) {
         observer.next(pendingThrashedCursor);
         pendingThrashedCursor = undefined;
+        resetDirectionChangeSeries(xDirectionChanges);
+        resetDirectionChangeSeries(yDirectionChanges);
 
         // reset window
         if (timer !== null) clearTimeout(timer);
@@ -180,7 +177,6 @@ export const createThrashedCursorObservable = ({
         pendingThrashedCursor = pendingThrashedCursor || nextPendingThrashedCursor;
         timer = setTimeout(() => {
           emitPendingThrashedCursor();
-          resetDirectionChangeSeries(xDirectionChanges, yDirectionChanges);
           timer = null;
         }, thresholdMs);
       } else {
