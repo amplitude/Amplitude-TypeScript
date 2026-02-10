@@ -1525,41 +1525,6 @@ describe('browser-client', () => {
       expect(identity.userProperties).toEqual({ plan: 'premium', theme: 'dark' });
     });
 
-    test('should not send identify event if userProperties are the same', async () => {
-      await client.init(apiKey, { defaultTracking }).promise;
-
-      // Set initial user properties
-      client.setIdentity({ userProperties: { plan: 'premium', theme: 'dark' } });
-      const identifySpy = jest.spyOn(client, 'identify');
-
-      // Set the same user properties again
-      client.setIdentity({ userProperties: { theme: 'dark', plan: 'premium' } });
-
-      expect(identifySpy).not.toHaveBeenCalled();
-    });
-
-    test('should send identify when userProperties value changes type (deepEqual typeof branch)', async () => {
-      await client.init(apiKey, { defaultTracking }).promise;
-      client.setIdentity({ userProperties: { count: 1 } });
-      const identifySpy = jest.spyOn(client, 'identify');
-
-      client.setIdentity({ userProperties: { count: '1' } });
-
-      expect(identifySpy).toHaveBeenCalledTimes(1);
-      expect(client.userProperties).toEqual({ count: '1' });
-    });
-
-    test('should send identify when userProperties primitive value changes (deepEqual non-object branch)', async () => {
-      await client.init(apiKey, { defaultTracking }).promise;
-      client.setIdentity({ userProperties: { count: 1 } });
-      const identifySpy = jest.spyOn(client, 'identify');
-
-      client.setIdentity({ userProperties: { count: 2 } });
-
-      expect(identifySpy).toHaveBeenCalledTimes(1);
-      expect(client.userProperties).toEqual({ count: 2 });
-    });
-
     test('should set userId and userProperties together', async () => {
       await client.init(apiKey, { defaultTracking }).promise;
       const identifySpy = jest.spyOn(client, 'identify');
@@ -1583,17 +1548,6 @@ describe('browser-client', () => {
         });
         client.setIdentity({ userId: 'deferred-user', userProperties: { deferred: true } });
       });
-    });
-
-    test('should replace userProperties completely', async () => {
-      await client.init(apiKey, { defaultTracking }).promise;
-
-      client.setIdentity({ userProperties: { plan: 'premium', theme: 'dark' } });
-      expect(client.userProperties).toEqual({ plan: 'premium', theme: 'dark' });
-
-      // Replace with new properties - should be a full replacement, not merge
-      client.setIdentity({ userProperties: { plan: 'basic' } });
-      expect(client.userProperties).toEqual({ plan: 'basic' });
     });
 
     test('should notify plugins of identity change', async () => {

@@ -393,21 +393,19 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
 
     // Handle userProperties change - auto-send identify
     if ('userProperties' in identity) {
-      if (!this.deepEqual(this.userProperties, identity.userProperties)) {
-        this.userProperties = identity.userProperties;
-        // Auto-send identify event with $set operations
-        const identifyObj = new Identify();
-        // istanbul ignore next
-        const userProperties = identity.userProperties ?? {};
-        for (const [key, value] of Object.entries(userProperties)) {
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-          identifyObj.set(key, value);
-        }
-        // The identify event processing in core-client already calls onIdentityChanged,
-        // so we don't need to call it explicitly here to avoid duplicate notifications.
-        this.identify(identifyObj);
+      this.userProperties = identity.userProperties;
+      // Auto-send identify event with $set operations
+      const identifyObj = new Identify();
+      // istanbul ignore next
+      const userProperties = identity.userProperties ?? {};
+      for (const [key, value] of Object.entries(userProperties)) {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+        identifyObj.set(key, value);
       }
+      // The identify event processing in core-client already calls onIdentityChanged,
+      // so we don't need to call it explicitly here to avoid duplicate notifications.
+      this.identify(identifyObj);
     }
   }
 
@@ -573,27 +571,6 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
     }
 
     return super.process(event);
-  }
-
-  /**
-   * Deep equality check for user properties.
-   * Mimics Swift's NSDictionary isEqual: behavior (order-independent, recursive).
-   */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private deepEqual(a: any, b: any): boolean {
-    if (a === b) return true;
-    if (a == null || b == null) return false;
-    if (typeof a !== typeof b) return false;
-    if (typeof a !== 'object') return false;
-
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-    const keysA = Object.keys(a);
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-    const keysB = Object.keys(b);
-    if (keysA.length !== keysB.length) return false;
-
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    return keysA.every((k) => this.deepEqual(a[k], b[k]));
   }
 
   private logBrowserOptions(browserConfig: BrowserOptions & { apiKey: string }) {
