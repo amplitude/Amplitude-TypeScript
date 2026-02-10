@@ -37,6 +37,7 @@ import {
   DEFAULT_ACTION_CLICK_ALLOWLIST,
   DEFAULT_DEAD_CLICK_ALLOWLIST,
   DEFAULT_RAGE_CLICK_ALLOWLIST,
+  DEFAULT_EXPOSURE_DURATION,
   DEFAULT_ERROR_CLICK_ALLOWLIST,
   DEFAULT_RAGE_CLICK_OUT_OF_BOUNDS_THRESHOLD,
   DEFAULT_CSS_SELECTOR_ALLOWLIST,
@@ -118,6 +119,7 @@ describe('index', () => {
     expect(typeof Status).toBe('object');
     expect(typeof DEFAULT_ACTION_CLICK_ALLOWLIST).toBe('object');
     expect(typeof DEFAULT_CSS_SELECTOR_ALLOWLIST).toBe('object');
+    expect(typeof DEFAULT_EXPOSURE_DURATION).toBe('number');
     expect(typeof DEFAULT_DEAD_CLICK_ALLOWLIST).toBe('object');
     expect(typeof DEFAULT_RAGE_CLICK_ALLOWLIST).toBe('object');
     expect(typeof DEFAULT_DATA_ATTRIBUTE_PREFIX).toBe('string');

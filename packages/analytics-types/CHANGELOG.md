@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.12.0-feat-zoning-alpha.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-types@2.11.1...@amplitude/analytics-types@2.12.0-feat-zoning-alpha.0) (2026-02-03)
+
+
+### Features
+
+* **background-capture:** adding background capture injection to autocapture ([c0a8757](https://github.com/amplitude/Amplitude-TypeScript/commit/c0a8757497e9fe99223b9675bada0bad338e521a))
+
+
+
+
+
 ## [2.11.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-types@2.11.0...@amplitude/analytics-types@2.11.1) (2026-01-14)
 
 **Note:** Version bump only for package @amplitude/analytics-types

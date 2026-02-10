@@ -4,6 +4,7 @@ import {
   type BrowserConfig,
   type EnrichmentPlugin,
   type ElementInteractionsOptions,
+  DEFAULT_EXPOSURE_DURATION,
   DEFAULT_CSS_SELECTOR_ALLOWLIST,
   DEFAULT_ACTION_CLICK_ALLOWLIST,
   DEFAULT_DATA_ATTRIBUTE_PREFIX,
@@ -23,7 +24,14 @@ import { WindowMessenger } from './libs/messenger';
 import { trackClicks } from './autocapture/track-click';
 import { trackChange } from './autocapture/track-change';
 import { trackActionClick } from './autocapture/track-action-click';
-import { createClickObservable, createMutationObservable } from './observables';
+import { trackScroll } from './autocapture/track-scroll';
+
+import {
+  createClickObservable,
+  createScrollObservable,
+  createExposureObservable,
+  createMutationObservable,
+} from './observables';
 
 import {
   createLabeledEventToTriggerMap,
@@ -32,6 +40,8 @@ import {
 } from './pageActions/triggers';
 import { DataExtractor } from './data-extractor';
 import { Observable, Unsubscribable } from '@amplitude/analytics-core';
+import { trackExposure } from './autocapture/track-exposure';
+import { fireViewportContentUpdated, onExposure, ExposureTracker } from './autocapture/track-viewport-content-updated';
 
 type NavigationType = {
   addEventListener: (type: string, listener: EventListenerOrEventListenerObject) => void;
@@ -54,9 +64,10 @@ export type AutoCaptureOptionsWithDefaults = Required<
 export enum ObservablesEnum {
   ClickObservable = 'clickObservable',
   ChangeObservable = 'changeObservable',
-  // ErrorObservable = 'errorObservable',
   NavigateObservable = 'navigateObservable',
   MutationObservable = 'mutationObservable',
+  ScrollObservable = 'scrollObservable',
+  ExposureObservable = 'exposureObservable',
   BrowserErrorObservable = 'browserErrorObservable',
   SelectionObservable = 'selectionObservable',
   MouseMoveObservable = 'mouseMoveObservable',
@@ -68,6 +79,8 @@ export interface AllWindowObservables {
   [ObservablesEnum.ClickObservable]: Observable<ElementBasedTimestampedEvent<MouseEvent>>;
   [ObservablesEnum.MutationObservable]: Observable<TimestampedEvent<MutationRecord[]>>;
   [ObservablesEnum.NavigateObservable]?: Observable<TimestampedEvent<NavigateEvent>>;
+  [ObservablesEnum.ScrollObservable]: Observable<Event>; // TODO: add type for scroll event
+  [ObservablesEnum.ExposureObservable]: Observable<Event>;
   [ObservablesEnum.SelectionObservable]?: Observable<void>;
 }
 
@@ -85,11 +98,17 @@ export const autocapturePlugin = (
       enabled: true,
       messenger: new WindowMessenger(),
     },
+    /* istanbul ignore next */
+    backgroundCaptureOptions = {
+      enabled: true,
+      messenger: new WindowMessenger(),
+    },
   } = options;
 
   options.cssSelectorAllowlist = options.cssSelectorAllowlist ?? DEFAULT_CSS_SELECTOR_ALLOWLIST;
   options.actionClickAllowlist = options.actionClickAllowlist ?? DEFAULT_ACTION_CLICK_ALLOWLIST;
   options.debounceTime = options.debounceTime ?? 0;
+  options.exposureDuration = options.exposureDuration ?? DEFAULT_EXPOSURE_DURATION;
 
   options.pageUrlExcludelist = options.pageUrlExcludelist?.reduce(
     (acc: (string | RegExp | { pattern: string })[], excludePattern) => {
@@ -117,10 +136,16 @@ export const autocapturePlugin = (
 
   const subscriptions: Unsubscribable[] = [];
 
-  // Create data extractor based on options
   const dataExtractor = new DataExtractor(options, context);
 
-  // Create observables on events on the window
+  // Page-level state shared across trackers, emitted in a single Page View End event on beforeunload
+  // elementExposedForPage holds the total set of elements seen during the entire page view lifetime
+  const elementExposedForPage = new Set<string>();
+  // currentElementExposed only holds the set of elements that will be flushed during the next [Amplitude] Viewport Content Updated event
+  const currentElementExposed = new Set<string>();
+
+  let beforeUnloadCleanup: () => void;
+
   const createObservables = (): AllWindowObservables => {
     const clickObservable = multicast(
       createClickObservable().map(
@@ -151,11 +176,6 @@ export const autocapturePlugin = (
         return () => getGlobalScope()?.document.removeEventListener('change', handler);
       }),
     );
-
-    // Create Observable from unhandled errors
-    // const errorObservable = fromEvent<ErrorEvent>(window, 'error').pipe(
-    //   map((error) => addAdditionalEventProperties(error, 'error')),
-    // );
 
     // Create observable for URL changes
     let navigateObservable: Observable<TimestampedEvent<NavigateEvent>> | undefined;
@@ -192,12 +212,21 @@ export const autocapturePlugin = (
       ),
     );
 
+    const scrollObservable = createScrollObservable();
+
+    const exposureObservable = createExposureObservable(
+      mutationObservable,
+      (options as AutoCaptureOptionsWithDefaults).cssSelectorAllowlist,
+    );
+
     return {
       [ObservablesEnum.ChangeObservable]: changeObservable,
       // [ObservablesEnum.ErrorObservable]: errorObservable,
       [ObservablesEnum.ClickObservable]: clickObservable,
       [ObservablesEnum.MutationObservable]: mutationObservable,
       [ObservablesEnum.NavigateObservable]: navigateObservable,
+      [ObservablesEnum.ScrollObservable]: scrollObservable,
+      [ObservablesEnum.ExposureObservable]: exposureObservable,
     };
   };
 
@@ -237,6 +266,9 @@ export const autocapturePlugin = (
     if (typeof document === 'undefined') {
       return;
     }
+
+    let pageViewEndFired = false;
+    const lastScroll: { maxX: undefined | number; maxY: undefined | number } = { maxX: undefined, maxY: undefined };
 
     // Fetch remote config for pageActions in a non-blocking manner
     if (config.fetchRemoteConfig) {
@@ -294,9 +326,112 @@ export const autocapturePlugin = (
       subscriptions.push(actionClickSubscription);
     }
 
+    const scrollTracker = trackScroll({
+      allObservables,
+      amplitude,
+    });
+    subscriptions.push(scrollTracker);
+
+    const trackers: { exposure?: ExposureTracker & Unsubscribable } = {};
+
+    const globalScope = getGlobalScope();
+
+    const handleViewportContentUpdated = (isPageEnd: boolean) => {
+      if (isPageEnd && pageViewEndFired) {
+        return;
+      }
+      setTimeout(() => {
+        pageViewEndFired = false;
+      }, 100);
+
+      pageViewEndFired = true;
+      fireViewportContentUpdated({
+        amplitude,
+        scrollTracker,
+        currentElementExposed,
+        elementExposedForPage,
+        exposureTracker: trackers.exposure,
+        isPageEnd,
+        lastScroll,
+      });
+    };
+
+    const handleExposure = (elementPath: string) => {
+      onExposure(elementPath, elementExposedForPage, currentElementExposed, handleViewportContentUpdated);
+    };
+
+    trackers.exposure = trackExposure({
+      allObservables,
+      onExposure: handleExposure,
+      dataExtractor,
+      exposureDuration: options.exposureDuration,
+    });
+    if (trackers.exposure) {
+      subscriptions.push(trackers.exposure);
+    }
+
+    const beforeUnloadHandler = () => {
+      console.log('amp: beforeUnload');
+      handleViewportContentUpdated(true);
+    };
+    /* istanbul ignore next */
+    globalScope?.addEventListener('beforeunload', beforeUnloadHandler);
+    beforeUnloadCleanup = () => {
+      /* istanbul ignore next */
+      globalScope?.removeEventListener('beforeunload', beforeUnloadHandler);
+    };
+    // Ensure cleanup on teardown as well
+    subscriptions.push({ unsubscribe: () => beforeUnloadCleanup() });
+
+    // Also track on navigation (SPA)
+    const navigateObservable = allObservables[ObservablesEnum.NavigateObservable];
+    if (navigateObservable) {
+      subscriptions.push(
+        navigateObservable.subscribe(() => {
+          console.log('amp: navigate');
+          handleViewportContentUpdated(true);
+        }),
+      );
+    } else if (globalScope) {
+      const popstateHandler = () => {
+        console.log('amp: popstate');
+        handleViewportContentUpdated(true);
+      };
+      /* istanbul ignore next */
+      // Fallback for SPA tracking when Navigation API is not available
+      globalScope.addEventListener('popstate', popstateHandler);
+
+      /* istanbul ignore next */
+      // There is no global browser listener for changes to history, so we have
+      // to modify pushState directly.
+      // https://stackoverflow.com/a/64927639
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      const originalPushState = globalScope.history.pushState;
+      if (globalScope.history && originalPushState) {
+        // eslint-disable-next-line @typescript-eslint/unbound-method
+        globalScope.history.pushState = new Proxy(originalPushState, {
+          apply: (target, thisArg, [state, unused, url]) => {
+            console.log('amp: pushState');
+            target.apply(thisArg, [state, unused, url]);
+            handleViewportContentUpdated(true);
+          },
+        });
+      }
+
+      subscriptions.push({
+        unsubscribe: () => {
+          /* istanbul ignore next */
+          globalScope.removeEventListener('popstate', popstateHandler);
+          /* istanbul ignore next */
+          if (globalScope.history && originalPushState) {
+            globalScope.history.pushState = originalPushState;
+          }
+        },
+      });
+    }
+
     /* istanbul ignore next */
     config?.loggerProvider?.log(`${name} has been successfully added.`);
-
     // Setup visual tagging selector
     if (window.opener && visualTaggingOptions.enabled) {
       const allowlist = (options as AutoCaptureOptionsWithDefaults).cssSelectorAllowlist;
@@ -310,6 +445,16 @@ export const autocapturePlugin = (
         isElementSelectable: createShouldTrackEvent(options, [...allowlist, ...actionClickAllowlist]),
         cssSelectorAllowlist: allowlist,
         actionClickAllowlist: actionClickAllowlist,
+      });
+    }
+
+    // Setup background capture messenger if it is not already setup for visual tagging selector
+    /* istanbul ignore next */
+    if (window.opener && backgroundCaptureOptions.enabled && !visualTaggingOptions.messenger) {
+      /* istanbul ignore next */
+      backgroundCaptureOptions.messenger?.setup({
+        dataExtractor: dataExtractor,
+        logger: config?.loggerProvider,
       });
     }
   };

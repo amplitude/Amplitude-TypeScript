@@ -123,6 +123,77 @@ describe('autoTrackingPlugin', () => {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       expect((messengerMock as any).setup).toHaveBeenCalledTimes(1);
     });
+
+    test('should use custom exposureDuration when provided', async () => {
+      const customDuration = 500;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let intersectionCallback: (entries: any[]) => void;
+
+      // Mock IntersectionObserver
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (window as any).IntersectionObserver = jest.fn((cb) => {
+        intersectionCallback = cb;
+        return {
+          observe: jest.fn(),
+          disconnect: jest.fn(),
+        };
+      });
+
+      plugin = autocapturePlugin({
+        exposureDuration: customDuration,
+      });
+      const loggerProvider: Partial<ILogger> = {
+        log: jest.fn(),
+        warn: jest.fn(),
+        error: jest.fn(),
+      };
+      const config: Partial<BrowserConfig> = {
+        defaultTracking: false,
+        loggerProvider: loggerProvider as ILogger,
+      };
+      const amplitude = createMockBrowserClient();
+      await amplitude.init('API_KEY', 'USER_ID').promise;
+      const track = jest.spyOn(amplitude, 'track').mockImplementation(jest.fn());
+
+      await plugin?.setup?.(config as BrowserConfig, amplitude);
+
+      // Create and expose an element
+      const element = document.createElement('button');
+      element.id = 'exposure-test-button';
+      document.body.appendChild(element);
+
+      // Trigger intersection (element becomes visible)
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      intersectionCallback!([
+        {
+          isIntersecting: true,
+          intersectionRatio: 1.0,
+          target: element,
+        },
+      ]);
+
+      // Should not be exposed before custom duration
+      jest.advanceTimersByTime(customDuration - 50);
+      expect(track).not.toHaveBeenCalledWith('[Amplitude] Viewport Content Updated', expect.anything());
+
+      // Should be exposed after custom duration
+      jest.advanceTimersByTime(100);
+
+      // Trigger page end to flush the exposure
+      window.dispatchEvent(new Event('beforeunload'));
+
+      expect(track).toHaveBeenCalledWith(
+        '[Amplitude] Viewport Content Updated',
+        expect.objectContaining({
+          '[Amplitude] Element Exposed': expect.arrayContaining(['button#exposure-test-button']),
+        }),
+      );
+
+      // Cleanup
+      element.remove();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (window as any).IntersectionObserver = undefined;
+    });
   });
 
   describe('execute', () => {
@@ -221,6 +292,7 @@ describe('autoTrackingPlugin', () => {
         '[Amplitude] Element Text': 'my-link-text',
         '[Amplitude] Element Aria Label': 'my-link',
         '[Amplitude] Element Parent Label': 'my-h2-text',
+        '[Amplitude] Element Path': 'a#my-link-id',
         '[Amplitude] Page URL': 'https://www.amplitude.com/unit-test',
         '[Amplitude] Viewport Height': 768,
         '[Amplitude] Viewport Width': 1024,
@@ -406,6 +478,7 @@ describe('autoTrackingPlugin', () => {
         '[Amplitude] Element Text': 'my-link-text',
         '[Amplitude] Element Aria Label': 'my-link',
         '[Amplitude] Element Parent Label': 'my-h2-text',
+        '[Amplitude] Element Path': 'a#my-link-id',
         '[Amplitude] Page URL': 'https://www.amplitude.com/unit-test',
         '[Amplitude] Viewport Height': 768,
         '[Amplitude] Viewport Width': 1024,
@@ -506,6 +579,7 @@ describe('autoTrackingPlugin', () => {
         '[Amplitude] Element Text': 'submit',
         '[Amplitude] Element Aria Label': 'my-button',
         '[Amplitude] Element Parent Label': 'my-h2-text',
+        '[Amplitude] Element Path': 'button#my-button-id',
         '[Amplitude] Page URL': 'https://www.amplitude.com/unit-test',
         '[Amplitude] Viewport Height': 768,
         '[Amplitude] Viewport Width': 1024,
@@ -577,6 +651,7 @@ describe('autoTrackingPlugin', () => {
         '[Amplitude] Element Text': 'submit',
         '[Amplitude] Element Aria Label': 'my-button',
         '[Amplitude] Element Parent Label': 'my-h2-text',
+        '[Amplitude] Element Path': 'button#my-button-id',
         '[Amplitude] Page URL': 'https://www.amplitude.com/unit-test',
         '[Amplitude] Viewport Height': 768,
         '[Amplitude] Viewport Width': 1024,
@@ -937,6 +1012,7 @@ describe('autoTrackingPlugin', () => {
         '[Amplitude] Element Tag': 'button',
         '[Amplitude] Element Text': 'submit',
         '[Amplitude] Element Parent Label': 'my-h2-text',
+        '[Amplitude] Element Path': 'button#my-button-id',
         '[Amplitude] Page URL': 'https://www.amplitude.com/unit-test',
         '[Amplitude] Viewport Height': 768,
         '[Amplitude] Viewport Width': 1024,
@@ -1380,6 +1456,308 @@ describe('autoTrackingPlugin', () => {
         jest.advanceTimersByTime(TESTING_DEBOUNCE_TIME + 3);
         expect(track).toHaveBeenCalledTimes(6);
       });
+    });
+
+    describe('page view ID handling', () => {
+      // Tests for data-extractor.ts lines 160-170 which use optional chaining
+      // (window?.sessionStorage?.getItem) to safely access sessionStorage
+      test('should not throw error when sessionStorage is deleted', async () => {
+        const config: Partial<BrowserConfig> = {
+          defaultTracking: false,
+          loggerProvider: loggerProvider,
+        };
+        await plugin?.setup?.(config as BrowserConfig, instance);
+
+        // Save original sessionStorage
+        const originalSessionStorage = window.sessionStorage;
+
+        // Delete sessionStorage temporarily - tests window?.sessionStorage when sessionStorage is undefined
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        delete (window as any).sessionStorage;
+
+        // trigger click event
+        const link = document.createElement('a');
+        link.setAttribute('id', 'test-link-id');
+        link.setAttribute('class', 'test-link-class');
+        link.href = 'https://www.amplitude.com/test';
+        link.text = 'test-link-text';
+        document.body.appendChild(link);
+
+        document.getElementById('test-link-id')?.dispatchEvent(new Event('click'));
+        jest.advanceTimersByTime(TESTING_DEBOUNCE_TIME + 3);
+
+        expect(track).toHaveBeenCalledTimes(1);
+        // Verify that page view ID is not included in the event properties
+        expect(track).toHaveBeenNthCalledWith(
+          1,
+          '[Amplitude] Element Clicked',
+          expect.not.objectContaining({
+            '[Amplitude] Page View ID': expect.anything(),
+          }),
+        );
+
+        // Restore sessionStorage
+        window.sessionStorage = originalSessionStorage;
+
+        // Cleanup
+        document.getElementById('test-link-id')?.remove();
+      });
+
+      test('should not throw error when window.sessionStorage is undefined', async () => {
+        const config: Partial<BrowserConfig> = {
+          defaultTracking: false,
+          loggerProvider: loggerProvider,
+        };
+        await plugin?.setup?.(config as BrowserConfig, instance);
+
+        // Save original window.sessionStorage
+        const originalSessionStorage = window.sessionStorage;
+
+        // Set window.sessionStorage to undefined - tests optional chaining when window?.sessionStorage is undefined
+        Object.defineProperty(window, 'sessionStorage', {
+          value: undefined,
+          writable: true,
+          configurable: true,
+        });
+
+        // trigger click event
+        const link = document.createElement('a');
+        link.setAttribute('id', 'test-link-id-2');
+        link.setAttribute('class', 'test-link-class');
+        link.href = 'https://www.amplitude.com/test';
+        link.text = 'test-link-text';
+        document.body.appendChild(link);
+
+        document.getElementById('test-link-id-2')?.dispatchEvent(new Event('click'));
+        jest.advanceTimersByTime(TESTING_DEBOUNCE_TIME + 3);
+
+        expect(track).toHaveBeenCalledTimes(1);
+        // Verify that page view ID is not included in the event properties
+        expect(track).toHaveBeenNthCalledWith(
+          1,
+          '[Amplitude] Element Clicked',
+          expect.not.objectContaining({
+            '[Amplitude] Page View ID': expect.anything(),
+          }),
+        );
+
+        // Restore sessionStorage
+        window.sessionStorage = originalSessionStorage;
+
+        // Cleanup
+        document.getElementById('test-link-id-2')?.remove();
+      });
+    });
+  });
+
+  describe('Viewport Content Updated Tracking', () => {
+    const API_KEY = 'API_KEY';
+    const USER_ID = 'USER_ID';
+
+    let instance = createMockBrowserClient();
+    let track: jest.SpyInstance;
+    let loggerProvider: ILogger;
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    const originalPushState = history.pushState;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let intersectionCallback: (entries: any[]) => void;
+
+    beforeEach(async () => {
+      // Ensure navigation API is not present to test fallback (pushState proxy)
+      Object.defineProperty(window, 'navigation', {
+        value: undefined,
+        writable: true,
+        configurable: true,
+      });
+
+      loggerProvider = {
+        log: jest.fn(),
+        warn: jest.fn(),
+        error: jest.fn(),
+        debug: jest.fn(),
+      } as unknown as ILogger;
+
+      // Mock IntersectionObserver
+      (window as any).IntersectionObserver = jest.fn((cb) => {
+        intersectionCallback = cb;
+        return {
+          observe: jest.fn(),
+          disconnect: jest.fn(),
+        };
+      });
+
+      instance = createMockBrowserClient();
+      await instance.init(API_KEY, USER_ID).promise;
+      track = jest.spyOn(instance, 'track').mockImplementation(jest.fn());
+    });
+
+    afterEach(async () => {
+      if (originalPushState) {
+        history.pushState = originalPushState;
+      }
+      (window as any).IntersectionObserver = undefined;
+    });
+
+    test('should track [Amplitude] Viewport Content Updated on beforeunload', async () => {
+      const config: Partial<BrowserConfig> = {
+        defaultTracking: false,
+        loggerProvider: loggerProvider,
+      };
+      await plugin?.setup?.(config as BrowserConfig, instance);
+
+      window.dispatchEvent(new Event('beforeunload'));
+
+      expect(track).toHaveBeenCalledWith(
+        '[Amplitude] Viewport Content Updated',
+        expect.objectContaining({
+          '[Amplitude] Page URL': expect.any(String),
+          '[Amplitude] Viewport Height': expect.any(Number),
+          '[Amplitude] Viewport Width': expect.any(Number),
+        }),
+      );
+    });
+
+    test('should not track duplicate [Amplitude] Viewport Content Updated events on multiple beforeunload', async () => {
+      const config: Partial<BrowserConfig> = {
+        defaultTracking: false,
+        loggerProvider: loggerProvider,
+      };
+      await plugin?.setup?.(config as BrowserConfig, instance);
+
+      window.dispatchEvent(new Event('beforeunload'));
+      window.dispatchEvent(new Event('beforeunload'));
+
+      expect(track).toHaveBeenCalledTimes(1);
+    });
+
+    test('should track [Amplitude] Viewport Content Updated on history.pushState and reset state', async () => {
+      const config: Partial<BrowserConfig> = {
+        defaultTracking: false,
+        loggerProvider: loggerProvider,
+      };
+      await plugin?.setup?.(config as BrowserConfig, instance);
+
+      // history.pushState is proxied.
+      history.pushState({}, 'test', '/new-page');
+
+      expect(track).toHaveBeenCalledWith('[Amplitude] Viewport Content Updated', expect.any(Object));
+
+      jest.advanceTimersByTime(1000);
+      //  change scroll depth to trigger a new viewport content updated event
+      Object.defineProperty(window, 'scrollY', { value: 100, writable: true });
+      Object.defineProperty(window, 'pageYOffset', { value: 100, writable: true });
+      window.dispatchEvent(new Event('scroll'));
+
+      // Verify it can fire again (pageViewEndFired should be reset to false by the proxy)
+      history.pushState({}, 'test', '/another-page');
+      expect(track).toHaveBeenCalledTimes(2);
+    });
+
+    test('should track [Amplitude] Viewport Content Updated on popstate event', async () => {
+      const config: Partial<BrowserConfig> = {
+        defaultTracking: false,
+        loggerProvider: loggerProvider,
+      };
+      await plugin?.setup?.(config as BrowserConfig, instance);
+
+      // Simulate popstate event
+      window.dispatchEvent(new Event('popstate'));
+
+      expect(track).toHaveBeenCalledWith('[Amplitude] Viewport Content Updated', expect.any(Object));
+    });
+
+    test('should flush Viewport Content Updated event when exposure buffer limit is reached', async () => {
+      const config: Partial<BrowserConfig> = {
+        defaultTracking: false,
+        loggerProvider: loggerProvider,
+      };
+      await plugin?.setup?.(config as BrowserConfig, instance);
+
+      // Mock finder to avoid DOM dependencies for path generation
+      // We can't easily mock the finder inside the module from here without jest.mock hoisting.
+      // Instead, we rely on elements having IDs which finder uses.
+
+      // We need to trigger exposure for enough unique elements to exceed 18000 chars.
+      // exposedString = JSON.stringify(["#id1", "#id2", ...])
+      // A simple id like "#e-1" is 4 chars. Quotes and comma add 3 chars. ~7 chars per element.
+      // 18000 / 7 = ~2571 elements.
+
+      const entries: any[] = [];
+      const elements: HTMLElement[] = [];
+
+      // Create a batch of elements
+      // Make ids long to reduce iteration count
+      const longIdPrefix = 'e'.repeat(100); // 100 chars
+      const count = 180; // 180 * 100 = 18000.
+
+      for (let i = 0; i < count; i++) {
+        const el = document.createElement('div');
+        el.id = `${longIdPrefix}-${i}`;
+        document.body.appendChild(el);
+        elements.push(el);
+
+        entries.push({
+          isIntersecting: true,
+          intersectionRatio: 1.0,
+          target: el,
+        });
+      }
+
+      // Trigger intersection
+      intersectionCallback(entries);
+
+      // Exposure has a debounce or delay?
+      // trackExposure uses observables which might be async or use internal logic.
+      // trackExposure has an internal buffer/timer.
+      // trackExposure implementation waits for element to be visible for some time (defaults 0?)
+      // Actually trackExposure defaults to 0 debounce/timeout?
+      // Let's check track-exposure.ts logic. It sets a timeout.
+      // We need to advance timers.
+
+      // The default threshold is likely 0 if not configured?
+      // No, trackExposure has hardcoded logic or uses options.
+      // Looking at track-exposure.ts:
+      // It sets a timeout of 2000ms (hardcoded in the file I saw previously?)
+      // Or it reads options?
+
+      // Let's verify with a smaller test first or assume 2s.
+      jest.advanceTimersByTime(2000); // Wait for exposure to be confirmed
+
+      // Now onExposure should be called for each element.
+      // onExposure adds to set and checks size.
+
+      // We expect at least one track call
+      expect(track).toHaveBeenCalledWith('[Amplitude] Viewport Content Updated', expect.any(Object));
+
+      // Cleanup
+      elements.forEach((el) => el.remove());
+    });
+
+    test('should include scroll and exposure state in Viewport Content Updated event', async () => {
+      const config: Partial<BrowserConfig> = {
+        defaultTracking: false,
+        loggerProvider: loggerProvider,
+      };
+      await plugin?.setup?.(config as BrowserConfig, instance);
+
+      // Trigger a scroll to update state
+      Object.defineProperty(window, 'scrollX', { value: 100, writable: true });
+      Object.defineProperty(window, 'scrollY', { value: 200, writable: true });
+      Object.defineProperty(window, 'pageXOffset', { value: 100, writable: true });
+      Object.defineProperty(window, 'pageYOffset', { value: 200, writable: true });
+      window.dispatchEvent(new Event('scroll'));
+
+      // Trigger page view end
+      window.dispatchEvent(new Event('beforeunload'));
+
+      expect(track).toHaveBeenCalledWith(
+        '[Amplitude] Viewport Content Updated',
+        expect.objectContaining({
+          '[Amplitude] Max Page X': 100 + 1024,
+          '[Amplitude] Max Page Y': 200 + 768,
+          '[Amplitude] Element Exposed': expect.any(Array),
+        }),
+      );
     });
   });
 

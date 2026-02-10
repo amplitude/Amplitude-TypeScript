@@ -173,6 +173,7 @@ const generatePageViewEventProps = (
     '[Amplitude] Page Path': url.pathname,
     '[Amplitude] Page Title': '',
     '[Amplitude] Page URL': url.href.split('?')[0],
+    '[Amplitude] Page View ID': uuid,
     ...(options?.withPageURLEnrichmentProperties
       ? addPageUrlEnrichmentPreviousPageProperties(url.href, previousUrl.href || '')
       : {}),
