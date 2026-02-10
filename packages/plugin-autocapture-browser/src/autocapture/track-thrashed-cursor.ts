@@ -157,11 +157,11 @@ export const createThrashedCursorObservable = ({
       if (pendingThrashedCursor !== undefined) {
         observer.next(pendingThrashedCursor);
         pendingThrashedCursor = undefined;
-        resetDirectionChangeSeries(xDirectionChanges);
-        resetDirectionChangeSeries(yDirectionChanges);
 
         // reset window
         if (timer !== null) clearTimeout(timer);
+        resetDirectionChangeSeries(xDirectionChanges);
+        resetDirectionChangeSeries(yDirectionChanges);
       }
     }
 
