@@ -84,20 +84,23 @@ function addDirectionChange(directionChangeSeries: DirectionChangeSeries) {
   if (changes.length > changesThreshold) changes.shift();
 }
 
-function isAboveTimeThreshold(directionChanges: DirectionChangeSeries): boolean {
-  const { changes, thresholdMs } = directionChanges;
-  /* istanbul ignore if */
-  if (changes.length <= 1) return false;
-  const delta = changes[changes.length - 1] - changes[0];
-  return delta >= thresholdMs;
-}
-
 // checks if there are enough direction changes within window + threshold
 // for it to be considered a thrashed cursor
 function isThrashedCursor(directionChanges: DirectionChangeSeries): boolean {
-  const { changes, changesThreshold } = directionChanges;
+  const { changes, changesThreshold, thresholdMs } = directionChanges;
   if (changes.length < changesThreshold) return false;
-  return !isAboveTimeThreshold(directionChanges);
+  const delta = changes[changes.length - 1] - changes[0];
+  return delta < thresholdMs;
+}
+
+function resetDirectionChangeSeries(
+  xDirectionChanges: DirectionChangeSeries,
+  yDirectionChanges: DirectionChangeSeries,
+) {
+  xDirectionChanges.startTime = undefined;
+  xDirectionChanges.changes = [];
+  yDirectionChanges.startTime = undefined;
+  yDirectionChanges.changes = [];
 }
 
 // if the time between first and last change is greater than the threshold,
@@ -165,13 +168,6 @@ export const createThrashedCursorObservable = ({
       }
     }
 
-    function resetDirectionChangeSeries() {
-      xDirectionChanges.startTime = undefined;
-      xDirectionChanges.changes = [];
-      yDirectionChanges.startTime = undefined;
-      yDirectionChanges.changes = [];
-    }
-
     return mouseDirectionChangeObservable.subscribe((axis) => {
       if (timer !== null) clearTimeout(timer);
       addDirectionChange(axis === Axis.X ? xDirectionChanges : yDirectionChanges);
@@ -184,7 +180,7 @@ export const createThrashedCursorObservable = ({
         pendingThrashedCursor = pendingThrashedCursor || nextPendingThrashedCursor;
         timer = setTimeout(() => {
           emitPendingThrashedCursor();
-          resetDirectionChangeSeries();
+          resetDirectionChangeSeries(xDirectionChanges, yDirectionChanges);
           timer = null;
         }, thresholdMs);
       } else {
