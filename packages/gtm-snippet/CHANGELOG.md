@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.34.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/gtm-snippet@2.33.6...@amplitude/gtm-snippet@2.34.1) (2026-02-10)
+
+
+### Bug Fixes
+
+* **analytics-browser:** defer session_start and attribution when optOut is "true" ([#1509](https://github.com/amplitude/Amplitude-TypeScript/issues/1509)) ([3a3818d](https://github.com/amplitude/Amplitude-TypeScript/commit/3a3818d19bd84e4aa8405e10f8538886dd647f38))
+
+
+
+
+
 # [2.34.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/gtm-snippet@2.33.5...@amplitude/gtm-snippet@2.34.0) (2026-01-26)
 
 **Note:** Version bump only for package @amplitude/gtm-snippet

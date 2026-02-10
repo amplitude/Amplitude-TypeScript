@@ -3,6 +3,19 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.34.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.34.0...@amplitude/analytics-browser@2.34.1) (2026-02-10)
+
+
+### Bug Fixes
+
+* **analytics-browser:** defer session_start and attribution when optOut is "true" ([#1509](https://github.com/amplitude/Amplitude-TypeScript/issues/1509)) ([3a3818d](https://github.com/amplitude/Amplitude-TypeScript/commit/3a3818d19bd84e4aa8405e10f8538886dd647f38))
+* **analytics-browser:** prevent Form from being bound to 2x ([#1527](https://github.com/amplitude/Amplitude-TypeScript/issues/1527)) ([9ec707f](https://github.com/amplitude/Amplitude-TypeScript/commit/9ec707fc785bdd552bb6db89c9213c6293f71a3e))
+* **analytics-core:** add ValidPropertyType type ([#1525](https://github.com/amplitude/Amplitude-TypeScript/issues/1525)) ([f63c657](https://github.com/amplitude/Amplitude-TypeScript/commit/f63c6570f95acab087ad47d9ce9442fe42765a2c))
+
+
+
+
+
 # [2.34.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.33.5...@amplitude/analytics-browser@2.34.0) (2026-01-26)
 
 

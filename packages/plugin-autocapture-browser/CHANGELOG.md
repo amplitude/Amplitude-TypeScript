@@ -3,6 +3,22 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.20.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.19.0...@amplitude/plugin-autocapture-browser@1.20.0) (2026-02-10)
+
+
+### Bug Fixes
+
+* ignore errors that are not ErrorEvent ([#1512](https://github.com/amplitude/Amplitude-TypeScript/issues/1512)) ([366d7eb](https://github.com/amplitude/Amplitude-TypeScript/commit/366d7ebed2e10d46cf46e301650f0c52d82047ed))
+
+
+### Features
+
+* **analytics-browser:** [@experimental](https://github.com/experimental) add Thrashed Cursor frustration signal ([#1523](https://github.com/amplitude/Amplitude-TypeScript/issues/1523)) ([376b034](https://github.com/amplitude/Amplitude-TypeScript/commit/376b0342716057c82430ab72c0fc5bab55bc0dba))
+
+
+
+
+
 # [1.19.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.18.7...@amplitude/plugin-autocapture-browser@1.19.0) (2026-01-26)
 
 

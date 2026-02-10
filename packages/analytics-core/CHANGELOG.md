@@ -3,6 +3,23 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.38.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.37.0...@amplitude/analytics-core@2.38.0) (2026-02-10)
+
+
+### Bug Fixes
+
+* **analytics-browser:** defer session_start and attribution when optOut is "true" ([#1509](https://github.com/amplitude/Amplitude-TypeScript/issues/1509)) ([3a3818d](https://github.com/amplitude/Amplitude-TypeScript/commit/3a3818d19bd84e4aa8405e10f8538886dd647f38))
+* **analytics-core:** add ValidPropertyType type ([#1525](https://github.com/amplitude/Amplitude-TypeScript/issues/1525)) ([f63c657](https://github.com/amplitude/Amplitude-TypeScript/commit/f63c6570f95acab087ad47d9ce9442fe42765a2c))
+
+
+### Features
+
+* **analytics-browser:** [@experimental](https://github.com/experimental) add Thrashed Cursor frustration signal ([#1523](https://github.com/amplitude/Amplitude-TypeScript/issues/1523)) ([376b034](https://github.com/amplitude/Amplitude-TypeScript/commit/376b0342716057c82430ab72c0fc5bab55bc0dba))
+
+
+
+
+
 # [2.37.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.36.1...@amplitude/analytics-core@2.37.0) (2026-01-26)
 
 
