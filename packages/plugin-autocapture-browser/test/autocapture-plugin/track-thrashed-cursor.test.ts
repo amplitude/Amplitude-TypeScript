@@ -2,13 +2,154 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 /* eslint-disable @typescript-eslint/no-empty-function */
 
-import { Observable, Unsubscribable } from '@amplitude/analytics-core';
+import { BrowserClient, Observable, Unsubscribable } from '@amplitude/analytics-core';
 import {
   createMouseDirectionChangeObservable,
   createThrashedCursorObservable,
+  trackThrashedCursor,
 } from '../../src/autocapture/track-thrashed-cursor';
 import { AllWindowObservables } from '../../src/frustration-plugin';
 import { ObservablesEnum } from '../../src/autocapture-plugin';
+import { createMockBrowserClient } from '../mock-browser-client';
+import { AMPLITUDE_THRASHED_CURSOR_EVENT } from '../../src/constants';
+
+describe('trackThrashedCursor', () => {
+  let amplitude: BrowserClient;
+  let mouseMoveObserver: any = {};
+  beforeEach(() => {
+    amplitude = createMockBrowserClient();
+    jest.useFakeTimers();
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  async function setupAndSimulateThrashedCursor(
+    config: {
+      directionChanges?: number;
+      thresholdMs?: number;
+      options?: {
+        pageUrlAllowlist?: RegExp[];
+        pageUrlExcludelist?: RegExp[];
+      };
+      windowLocation?: {
+        href: string;
+      };
+      mouseMovements?: {
+        iterations?: number;
+        timeAdvance?: number;
+      };
+    } = {},
+  ): Promise<{ mouseMoveObserver: any; startTime: number }> {
+    const {
+      directionChanges,
+      thresholdMs,
+      options = {
+        pageUrlAllowlist: [],
+        pageUrlExcludelist: [],
+      },
+      windowLocation,
+      mouseMovements = {
+        iterations: 10,
+        timeAdvance: 1,
+      },
+    } = config;
+
+    if (windowLocation) {
+      Object.defineProperty(window, 'location', {
+        value: windowLocation,
+        writable: true,
+      });
+    }
+
+    const promise = new Promise<void>((resolve) => {
+      trackThrashedCursor({
+        amplitude,
+        allObservables: {
+          [ObservablesEnum.MouseMoveObservable]: new Observable<MouseEvent>((observer) => {
+            mouseMoveObserver = observer;
+            resolve();
+          }),
+        } as AllWindowObservables,
+        ...(directionChanges !== undefined && { directionChanges }),
+        ...(thresholdMs !== undefined && { thresholdMs }),
+        options,
+      });
+    });
+
+    jest.runAllTimers();
+    await promise;
+
+    const startTime = +Date.now();
+    if (mouseMoveObserver.next) {
+      // simulate a circular mouse motion
+      const origin = { clientX: 100, clientY: 100 };
+      const destination = { clientX: 101, clientY: 101 };
+      for (let i = 0; i < mouseMovements.iterations!; i++) {
+        if (i % 2 === 0) {
+          mouseMoveObserver.next(origin);
+        } else {
+          mouseMoveObserver.next(destination);
+        }
+        jest.advanceTimersByTime(mouseMovements.timeAdvance!);
+      }
+    }
+    jest.runAllTimers();
+
+    return { mouseMoveObserver, startTime };
+  }
+
+  it('should track thrashed cursor', async () => {
+    const { startTime } = await setupAndSimulateThrashedCursor({
+      mouseMovements: {
+        iterations: 20,
+        timeAdvance: 100,
+      },
+    });
+    expect(amplitude.track).toHaveBeenCalledWith(AMPLITUDE_THRASHED_CURSOR_EVENT, undefined, { time: startTime + 200 });
+  });
+
+  it('should track thrashed cursor with custom threshold and window ms', async () => {
+    await setupAndSimulateThrashedCursor({
+      directionChanges: 5,
+      thresholdMs: 100,
+    });
+    expect(amplitude.track).toHaveBeenCalledWith(AMPLITUDE_THRASHED_CURSOR_EVENT, undefined, {
+      time: expect.any(Number),
+    });
+  });
+
+  it('should not track thrashed cursor when pageUrlExcludelist is set', async () => {
+    await setupAndSimulateThrashedCursor({
+      directionChanges: 5,
+      thresholdMs: 100,
+      windowLocation: {
+        href: 'http://localhost/test',
+      },
+      options: {
+        pageUrlAllowlist: [],
+        pageUrlExcludelist: [new RegExp('/test')],
+      },
+    });
+    expect(amplitude.track).not.toHaveBeenCalled();
+  });
+
+  it('should not track thrashed cursor when pageUrlAllowlist is set', async () => {
+    await setupAndSimulateThrashedCursor({
+      directionChanges: 5,
+      thresholdMs: 100,
+      windowLocation: {
+        href: 'http://localhost/nomatch',
+      },
+      options: {
+        pageUrlAllowlist: [new RegExp('/match')],
+        pageUrlExcludelist: [],
+      },
+    });
+    expect(amplitude.track).not.toHaveBeenCalled();
+  });
+});
 
 describe('createMouseDirectionChangeObservable', () => {
   let mouseMoveObservable: any;
@@ -218,5 +359,36 @@ describe('createThrashedCursorObservable', () => {
     }
     await jest.runAllTimersAsync();
     expect(emittedTimes).toEqual([startTime]);
+  });
+
+  it('should trigger a start time when the first direction change is made', async () => {
+    const testStartTime = +Date.now();
+    directionChangeObserver.next('x');
+    jest.advanceTimersByTime(DEFAULT_WINDOW_MS + 100);
+    const thrashedCursorStartTime = +Date.now();
+    for (let i = 0; i < DEFAULT_THRESHOLD; i++) {
+      directionChangeObserver.next('x');
+      jest.advanceTimersByTime(100);
+    }
+    await jest.runAllTimersAsync();
+    expect(emittedTimes[0]).toBeGreaterThan(testStartTime);
+    expect(emittedTimes).toEqual([thrashedCursorStartTime]);
+  });
+
+  it('should slide window to the right when direction changes are above threshold', async () => {
+    // run a direction change and wait 1.5 seconds
+    directionChangeObserver.next('x');
+    jest.advanceTimersByTime(DEFAULT_WINDOW_MS - 500);
+
+    // run 10 direction changes over 1 second; which will push the first change out of the window
+    const expectedStartTime = +Date.now();
+    for (let i = 0; i < DEFAULT_THRESHOLD; i++) {
+      directionChangeObserver.next('x');
+      jest.advanceTimersByTime(100);
+    }
+    await jest.runAllTimersAsync();
+
+    // expect the start time to be the start of the last 10 changes and not the first change
+    expect(emittedTimes).toEqual([expectedStartTime]);
   });
 });

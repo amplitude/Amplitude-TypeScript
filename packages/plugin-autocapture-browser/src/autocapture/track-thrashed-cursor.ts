@@ -1,5 +1,7 @@
-import { Observable } from '@amplitude/analytics-core';
+import { BrowserClient, ElementInteractionsOptions, Observable } from '@amplitude/analytics-core';
 import { AllWindowObservables } from '../frustration-plugin';
+import { AMPLITUDE_THRASHED_CURSOR_EVENT } from '../constants';
+import { isUrlAllowed } from '../helpers';
 
 type Position = {
   x: number;
@@ -96,6 +98,26 @@ function resetDirectionChangeSeries(directionChangeSeries: DirectionChangeSeries
   directionChangeSeries.startTime = undefined;
 }
 
+// if the time between first and last change is greater than the threshold,
+// shift the window to the right until it is below the threshold
+function adjustWindow(directionChanges: DirectionChangeSeries) {
+  const { changes, thresholdMs } = directionChanges;
+
+  // find the first change that is within the threshold
+  let leftPtr = 0;
+  const lastChange = changes[changes.length - 1];
+  for (; leftPtr < changes.length; leftPtr++) {
+    const delta = lastChange - changes[leftPtr];
+    if (delta < thresholdMs) {
+      break;
+    }
+  }
+  if (leftPtr === 0) return;
+
+  directionChanges.startTime = changes[leftPtr];
+  directionChanges.changes.splice(0, leftPtr);
+}
+
 function getPendingThrashedCursor(
   directionChangesX: DirectionChangeSeries,
   directionChangesY: DirectionChangeSeries,
@@ -161,6 +183,9 @@ export const createThrashedCursorObservable = ({
         emitPendingThrashedCursor();
       }
 
+      adjustWindow(xDirectionChanges);
+      adjustWindow(yDirectionChanges);
+
       /* istanbul ignore next */
       return () => {
         /* istanbul ignore if */
@@ -170,5 +195,32 @@ export const createThrashedCursorObservable = ({
         }
       };
     });
+  });
+};
+
+export const trackThrashedCursor = ({
+  amplitude,
+  options,
+  allObservables,
+  directionChanges = DEFAULT_THRESHOLD,
+  thresholdMs = DEFAULT_WINDOW_MS,
+}: {
+  amplitude: BrowserClient;
+  options: ElementInteractionsOptions;
+  allObservables: AllWindowObservables;
+  directionChanges?: number;
+  thresholdMs?: number;
+}) => {
+  const mouseDirectionChangeObservable = createMouseDirectionChangeObservable({ allWindowObservables: allObservables });
+  const thrashedCursorObservable = createThrashedCursorObservable({
+    mouseDirectionChangeObservable,
+    directionChanges,
+    thresholdMs,
+  });
+  return thrashedCursorObservable.subscribe((time) => {
+    if (!isUrlAllowed(options)) {
+      return;
+    }
+    amplitude.track(AMPLITUDE_THRASHED_CURSOR_EVENT, undefined, { time });
   });
 };
