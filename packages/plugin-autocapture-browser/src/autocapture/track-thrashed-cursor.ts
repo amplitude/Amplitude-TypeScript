@@ -94,8 +94,8 @@ function isThrashedCursor(directionChanges: DirectionChangeSeries): boolean {
 }
 
 function resetDirectionChangeSeries(directionChangeSeries: DirectionChangeSeries) {
-  directionChangeSeries.startTime = undefined;
   directionChangeSeries.changes = [];
+  directionChangeSeries.startTime = undefined;
 }
 
 // if the time between first and last change is greater than the threshold,
