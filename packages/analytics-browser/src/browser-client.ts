@@ -21,7 +21,6 @@ import {
   BrowserOptions,
   BrowserConfig,
   BrowserClient,
-  SpecialEventType,
   AnalyticsClient,
   AnalyticsIdentity,
   IRemoteConfigClient,
@@ -78,7 +77,6 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
   previousSessionDeviceId: string | undefined;
   previousSessionUserId: string | undefined;
   webAttribution: WebAttribution | undefined;
-  userProperties: { [key: string]: any } | undefined;
 
   // Backdoor to set diagnostics sample rate
   // by calling amplitude._setDiagnosticsSampleRate(1); before amplitude.init()
@@ -225,7 +223,6 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
       });
     }
 
-    browserOptions.getUserProperties = () => this.userProperties;
     await super._init(browserOptions);
     this.logBrowserOptions(browserOptions);
 
@@ -575,11 +572,6 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
         // if there has been a chance in the campaign information.
         this.trackCampaignEventIfNeeded();
       }
-    }
-
-    // Set user properties
-    if (event.event_type === SpecialEventType.IDENTIFY && event.user_properties) {
-      this.userProperties = this.getOperationAppliedUserProperties(event.user_properties);
     }
 
     return super.process(event);
