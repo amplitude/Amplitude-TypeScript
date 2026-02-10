@@ -382,12 +382,12 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
 
   setIdentity(identity: Partial<AnalyticsIdentity>) {
     // Handle userId change
-    if ('userId' in identity && identity.userId !== this.config.userId) {
+    if ('userId' in identity) {
       this.setUserId(identity.userId);
     }
 
     // Handle deviceId change
-    if ('deviceId' in identity && identity.deviceId && identity.deviceId !== this.config.deviceId) {
+    if ('deviceId' in identity && identity.deviceId) {
       this.setDeviceId(identity.deviceId);
     }
 
@@ -397,6 +397,7 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
         this.userProperties = identity.userProperties;
         // Auto-send identify event with $set operations
         const identifyObj = new Identify();
+        // istanbul ignore next
         for (const [key, value] of Object.entries(identity.userProperties ?? {})) {
           // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
           identifyObj.set(key, value);

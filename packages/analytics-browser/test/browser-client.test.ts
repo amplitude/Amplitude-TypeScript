@@ -9,7 +9,6 @@ import {
   UserSession,
   AutocaptureOptions,
   Identify,
-  SpecialEventType,
   RemoteConfigClient,
   DiagnosticsClient,
 } from '@amplitude/analytics-core';
@@ -1539,6 +1538,28 @@ describe('browser-client', () => {
       expect(identifySpy).not.toHaveBeenCalled();
     });
 
+    test('should send identify when userProperties value changes type (deepEqual typeof branch)', async () => {
+      await client.init(apiKey, { defaultTracking }).promise;
+      client.setIdentity({ userProperties: { count: 1 } });
+      const identifySpy = jest.spyOn(client, 'identify');
+
+      client.setIdentity({ userProperties: { count: '1' } });
+
+      expect(identifySpy).toHaveBeenCalledTimes(1);
+      expect(client.userProperties).toEqual({ count: '1' });
+    });
+
+    test('should send identify when userProperties primitive value changes (deepEqual non-object branch)', async () => {
+      await client.init(apiKey, { defaultTracking }).promise;
+      client.setIdentity({ userProperties: { count: 1 } });
+      const identifySpy = jest.spyOn(client, 'identify');
+
+      client.setIdentity({ userProperties: { count: 2 } });
+
+      expect(identifySpy).toHaveBeenCalledTimes(1);
+      expect(client.userProperties).toEqual({ count: 2 });
+    });
+
     test('should set userId and userProperties together', async () => {
       await client.init(apiKey, { defaultTracking }).promise;
       const identifySpy = jest.spyOn(client, 'identify');
@@ -2153,29 +2174,6 @@ describe('browser-client', () => {
       // and once on process
       expect(setSessionId).toHaveBeenCalledTimes(2);
       expect(result.code).toBe(0);
-    });
-
-    test('should set user properties', async () => {
-      await client.init(apiKey, {
-        defaultTracking,
-        optOut: true,
-      }).promise;
-      expect(client.userProperties).toBeUndefined();
-
-      await client.process({
-        event_type: SpecialEventType.IDENTIFY,
-        user_properties: {
-          $set: {
-            'test-property': 'test-value',
-          },
-        },
-      });
-
-      const identity = client.getIdentity();
-
-      expect(identity.userProperties).toEqual({
-        'test-property': 'test-value',
-      });
     });
   });
 

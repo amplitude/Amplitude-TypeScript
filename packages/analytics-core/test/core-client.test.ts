@@ -421,6 +421,26 @@ describe('core-client', () => {
       const client = new AmplitudeCore();
       expect(client.getOperationAppliedUserProperties(undefined)).toEqual({});
     });
+
+    test('should use empty object as base when this.userProperties is undefined', () => {
+      const client = new AmplitudeCore();
+      expect(client.userProperties).toBeUndefined();
+      const userProperties: UserProperties = {
+        [IdentifyOperation.SET]: { plan: 'premium' },
+      };
+      const result = client.getOperationAppliedUserProperties(userProperties);
+      expect(result).toEqual({ plan: 'premium' });
+    });
+
+    test('should use this.userProperties as base when defined', () => {
+      const client = new AmplitudeCore();
+      client.userProperties = { existing: 'value' };
+      const userProperties: UserProperties = {
+        [IdentifyOperation.SET]: { plan: 'premium' },
+      };
+      const result = client.getOperationAppliedUserProperties(userProperties);
+      expect(result).toEqual({ existing: 'value', plan: 'premium' });
+    });
   });
 
   describe('process', () => {
