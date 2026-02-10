@@ -28,11 +28,15 @@ export interface RageClickOptions {
 export interface ThrashedCursorOptions {
   /**
    * Number of direction changes required to consider a thrashed cursor.
+   * Minimum of 5
    * (x axis changes and y axis changes are counted separately)
+   * @default 10
    */
   directionChanges?: number;
   /**
    * Time window in milliseconds to consider a thrashed cursor.
+   * Maximum of of 4000
+   * @default 2000
    */
   threshold?: number;
 }

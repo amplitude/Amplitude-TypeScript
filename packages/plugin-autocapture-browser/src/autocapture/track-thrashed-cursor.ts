@@ -86,6 +86,8 @@ function addDirectionChange(directionChangeSeries: DirectionChangeSeries) {
 
 function isAboveTimeThreshold(directionChanges: DirectionChangeSeries): boolean {
   const { changes, thresholdMs } = directionChanges;
+  /* istanbul ignore if */
+  if (changes.length <= 1) return false;
   const delta = changes[changes.length - 1] - changes[0];
   return delta >= thresholdMs;
 }
@@ -101,15 +103,21 @@ function isThrashedCursor(directionChanges: DirectionChangeSeries): boolean {
 // if the time between first and last change is greater than the threshold,
 // shift the window to the right until it is below the threshold
 function adjustWindow(directionChanges: DirectionChangeSeries) {
-  const { changes } = directionChanges;
-  while (changes.length > 1) {
-    if (isAboveTimeThreshold(directionChanges)) {
-      changes.shift();
-      directionChanges.startTime = changes[0];
-    } else {
+  const { changes, thresholdMs } = directionChanges;
+
+  // find the first change that is within the threshold
+  let leftPtr = 0;
+  const lastChange = changes[changes.length - 1];
+  for (; leftPtr < changes.length; leftPtr++) {
+    const delta = lastChange - changes[leftPtr];
+    if (delta < thresholdMs) {
       break;
     }
   }
+  if (leftPtr === 0) return;
+  
+  directionChanges.startTime = changes[leftPtr];
+  directionChanges.changes.splice(0, leftPtr);
 }
 
 function getPendingThrashedCursor(

@@ -224,6 +224,20 @@ describe('frustrationPlugin', () => {
         expect.objectContaining({ thresholdMs: 100, directionChanges: 5 }),
       );
     });
+
+    it('should enforce minimum and maximum thrashed cursor options', async () => {
+      plugin = frustrationPlugin({
+        thrashedCursor: {
+          directionChanges: 4,
+          threshold: 4001,
+        },
+      });
+      await plugin?.setup?.(config as BrowserConfig, instance);
+      
+      expect(trackThrashedCursor).toHaveBeenCalledWith(
+        expect.objectContaining({ thresholdMs: 4000, directionChanges: 5 }),
+      );
+    });
   });
 
   describe('errorClicks', () => {

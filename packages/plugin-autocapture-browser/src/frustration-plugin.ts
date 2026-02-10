@@ -65,6 +65,9 @@ function getCssSelectorAllowlist(
   return defaultAllowlist;
 }
 
+const MINIMUM_THRASHED_CURSOR_DIRECTION_CHANGES = 5;
+const MAXIMUM_THRASHED_CURSOR_THRESHOLD = 4000;
+
 export const frustrationPlugin = (options: FrustrationInteractionsOptions = {}): BrowserEnrichmentPlugin => {
   const name = constants.FRUSTRATION_PLUGIN_NAME;
   const type = 'enrichment';
@@ -270,6 +273,19 @@ export const frustrationPlugin = (options: FrustrationInteractionsOptions = {}):
       if (typeof options.thrashedCursor === 'object') {
         directionChanges = options.thrashedCursor.directionChanges;
         thresholdMs = options.thrashedCursor.threshold;
+
+        if (directionChanges && directionChanges < MINIMUM_THRASHED_CURSOR_DIRECTION_CHANGES) {
+          config.loggerProvider.warn(
+            `'thrashedCursor.directionChanges' of ${directionChanges} is below the minimum of ${MINIMUM_THRASHED_CURSOR_DIRECTION_CHANGES}, setting to ${MINIMUM_THRASHED_CURSOR_DIRECTION_CHANGES}`,
+          );
+          directionChanges = MINIMUM_THRASHED_CURSOR_DIRECTION_CHANGES;
+        }
+        if (thresholdMs && thresholdMs > MAXIMUM_THRASHED_CURSOR_THRESHOLD) {
+          config.loggerProvider.warn(
+            `'thrashedCursor.threshold' of ${thresholdMs} is above the maximum of ${MAXIMUM_THRASHED_CURSOR_THRESHOLD}, setting to ${MAXIMUM_THRASHED_CURSOR_THRESHOLD}`,
+          );
+          thresholdMs = MAXIMUM_THRASHED_CURSOR_THRESHOLD;
+        }
       }
       const thrashedCursorSubscription = trackThrashedCursor({
         amplitude,
