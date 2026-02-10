@@ -31,8 +31,9 @@ export class CookieStorage<T> implements Storage<T> {
   }
 
   async isEnabled(): Promise<boolean> {
+    const globalScope = getGlobalScope();
     /* istanbul ignore if */
-    if (!getGlobalScope()) {
+    if (!globalScope || !globalScope.document || typeof globalScope.document.cookie !== 'string') {
       return false;
     }
 
@@ -160,9 +161,10 @@ export class CookieStorage<T> implements Storage<T> {
         str += `; SameSite=${this.options.sameSite}`;
       }
       const globalScope = getGlobalScope();
-      if (globalScope) {
-        globalScope.document.cookie = str;
+      if (!globalScope?.document) {
+        return;
       }
+      globalScope.document.cookie = str;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       console.error(`Amplitude Logger [Error]: Failed to set cookie for key: ${key}. Error: ${errorMessage}`);

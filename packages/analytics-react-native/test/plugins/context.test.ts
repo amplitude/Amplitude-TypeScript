@@ -1,6 +1,7 @@
 import { Context } from '../../src/plugins/context';
 import { useDefaultConfig } from '../helpers/default';
 import { isWeb } from '../../src/utils/platform';
+import { Platform } from 'react-native';
 
 describe('context', () => {
   describe('setup', () => {
@@ -55,6 +56,33 @@ describe('context', () => {
       const secondContextEvent = await context.execute(event);
       expect(secondContextEvent.insert_id).toBeDefined();
       expect(secondContextEvent.insert_id).not.toEqual(firstContextEvent.insert_id);
+    });
+
+    test('should fallback to native runtime values when native module is unavailable', async () => {
+      const context = new Context();
+      context.nativeModule = undefined;
+      const config = useDefaultConfig({
+        deviceId: 'deviceId',
+        sessionId: 1,
+        userId: 'user@amplitude.com',
+      });
+      await context.setup(config);
+
+      const event = await context.execute({
+        event_type: 'event_type',
+      });
+
+      if (isWeb()) {
+        expect(event.platform).toEqual('Web');
+        return;
+      }
+
+      expect(event.platform).toEqual('iOS');
+      expect(event.os_name).toEqual('ios');
+      if (typeof Platform.Version === 'number' || typeof Platform.Version === 'string') {
+        expect(event.os_version).toEqual(String(Platform.Version));
+      }
+      expect(event.device_manufacturer).toBeDefined();
     });
 
     test('should not return the properties when the tracking options are false', async () => {

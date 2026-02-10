@@ -13,6 +13,13 @@ describe('cookies', () => {
       const cookies = new CookieStorage();
       expect(await cookies.isEnabled()).toBe(true);
     });
+
+    test('should return false when global scope has no document', async () => {
+      const cookies = new CookieStorage();
+      jest.spyOn(GlobalScopeModule, 'getGlobalScope').mockReturnValueOnce({} as typeof globalThis);
+      expect(await cookies.isEnabled()).toBe(false);
+      jest.restoreAllMocks();
+    });
   });
 
   describe('get', () => {
@@ -128,6 +135,17 @@ describe('cookies', () => {
         jest.restoreAllMocks();
       },
     );
+
+    test('should not log an error when global scope has no document', async () => {
+      console.error = jest.fn();
+      jest.spyOn(GlobalScopeModule, 'getGlobalScope').mockReturnValueOnce({} as typeof globalThis);
+
+      const cookies = new CookieStorage();
+      await cookies.set('hello', 'world');
+
+      expect(console.error).not.toHaveBeenCalled();
+      jest.restoreAllMocks();
+    });
   });
 
   describe('remove', () => {

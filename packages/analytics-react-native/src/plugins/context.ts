@@ -8,7 +8,7 @@ import {
 } from '@amplitude/analytics-core';
 import UAParser from '@amplitude/ua-parser-js';
 import { VERSION } from '../version';
-import { NativeModules } from 'react-native';
+import { NativeModules, Platform } from 'react-native';
 
 const BROWSER_PLATFORM = 'Web';
 const IP_ADDRESS = '$remote';
@@ -57,6 +57,35 @@ export class Context implements BeforePlugin {
     this.uaResult = new UAParser(agent).getResult();
   }
 
+  private getPlatformFallback(): string | undefined {
+    if (Platform.OS === 'ios') {
+      return 'iOS';
+    }
+    if (Platform.OS === 'android') {
+      return 'Android';
+    }
+    return undefined;
+  }
+
+  private getOsNameFallback(): string | undefined {
+    if (Platform.OS === 'ios') {
+      return 'ios';
+    }
+    if (Platform.OS === 'android') {
+      return 'android';
+    }
+    return undefined;
+  }
+
+  private getPlatformConstant(name: string): string | undefined {
+    const constants = Platform.constants as unknown as Record<string, unknown> | undefined;
+    if (!constants) {
+      return undefined;
+    }
+    const value = constants[name];
+    return typeof value === 'string' ? value : undefined;
+  }
+
   setup(config: ReactNativeConfig): Promise<undefined> {
     this.config = config;
     return Promise.resolve(undefined);
@@ -65,16 +94,27 @@ export class Context implements BeforePlugin {
   async execute(context: Event): Promise<Event> {
     const time = new Date().getTime();
     const nativeContext = await this.nativeModule?.getApplicationContext(this.config.trackingOptions);
+    const platformFallback = this.getPlatformFallback();
+    const osNameFallback = this.getOsNameFallback();
+    const osVersionFallback =
+      typeof Platform.Version === 'number' || typeof Platform.Version === 'string'
+        ? String(Platform.Version)
+        : undefined;
+    const deviceManufacturerFallback =
+      this.getPlatformConstant('Brand') ??
+      this.getPlatformConstant('Manufacturer') ??
+      (Platform.OS === 'ios' ? 'Apple' : undefined);
+    const deviceModelFallback = this.getPlatformConstant('Model');
     const appVersion = this.config.appVersion || nativeContext?.version;
-    const platform = nativeContext?.platform || BROWSER_PLATFORM;
+    const platform = nativeContext?.platform || platformFallback || BROWSER_PLATFORM;
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment
-    const osName = nativeContext?.osName || this.uaResult.browser.name;
+    const osName = nativeContext?.osName || osNameFallback || this.uaResult.browser.name;
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment
-    const osVersion = nativeContext?.osVersion || this.uaResult.browser.version;
+    const osVersion = nativeContext?.osVersion || osVersionFallback || this.uaResult.browser.version;
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment
-    const deviceVendor = nativeContext?.deviceManufacturer || this.uaResult.device.vendor;
+    const deviceVendor = nativeContext?.deviceManufacturer || deviceManufacturerFallback || this.uaResult.device.vendor;
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment
-    const deviceModel = nativeContext?.deviceModel || this.uaResult.device.model || this.uaResult.os.name;
+    const deviceModel = nativeContext?.deviceModel || deviceModelFallback || this.uaResult.device.model || this.uaResult.os.name;
     const language = nativeContext?.language || getLanguage();
     const country = nativeContext?.country;
     const carrier = nativeContext?.carrier;
