@@ -75,10 +75,14 @@ describe('context', () => {
 
         const contextEvent = await context.execute(event);
         const expectedPlatform = Platform.OS === 'android' ? 'Android' : 'iOS';
+        const expectedOsVersion =
+          Platform.Version !== undefined && Platform.Version !== null
+            ? String(Platform.Version)
+            : context.uaResult.browser.version;
 
         expect(contextEvent.platform).toEqual(expectedPlatform);
         expect(contextEvent.os_name).toEqual(expectedPlatform);
-        expect(contextEvent.os_version).toEqual(String(Platform.Version));
+        expect(contextEvent.os_version).toEqual(expectedOsVersion);
       });
     }
 
