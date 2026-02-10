@@ -118,7 +118,7 @@ function adjustWindow(directionChanges: DirectionChangeSeries) {
     }
   }
   if (leftPtr === 0) return;
-  
+
   directionChanges.startTime = changes[leftPtr];
   directionChanges.changes.splice(0, leftPtr);
 }

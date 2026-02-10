@@ -233,7 +233,7 @@ describe('frustrationPlugin', () => {
         },
       });
       await plugin?.setup?.(config as BrowserConfig, instance);
-      
+
       expect(trackThrashedCursor).toHaveBeenCalledWith(
         expect.objectContaining({ thresholdMs: 4000, directionChanges: 5 }),
       );
