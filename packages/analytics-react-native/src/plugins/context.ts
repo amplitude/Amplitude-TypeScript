@@ -8,10 +8,26 @@ import {
 } from '@amplitude/analytics-core';
 import UAParser from '@amplitude/ua-parser-js';
 import { VERSION } from '../version';
-import { NativeModules } from 'react-native';
+import { NativeModules, Platform } from 'react-native';
 
 const BROWSER_PLATFORM = 'Web';
 const IP_ADDRESS = '$remote';
+const NATIVE_PLATFORM_BY_OS: Partial<Record<typeof Platform.OS, string>> = {
+  ios: 'iOS',
+  android: 'Android',
+};
+
+const getNativePlatform = (): string | undefined => {
+  return NATIVE_PLATFORM_BY_OS[Platform.OS];
+};
+
+const getNativeOsVersion = (): string | undefined => {
+  const osVersion = Platform.Version;
+  if (osVersion === undefined || osVersion === null) {
+    return undefined;
+  }
+  return String(osVersion);
+};
 
 type NativeContext = {
   version: string;
@@ -65,12 +81,13 @@ export class Context implements BeforePlugin {
   async execute(context: Event): Promise<Event> {
     const time = new Date().getTime();
     const nativeContext = await this.nativeModule?.getApplicationContext(this.config.trackingOptions);
+    const nativePlatform = getNativePlatform();
     const appVersion = this.config.appVersion || nativeContext?.version;
-    const platform = nativeContext?.platform || BROWSER_PLATFORM;
+    const platform = nativeContext?.platform || nativePlatform || BROWSER_PLATFORM;
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment
-    const osName = nativeContext?.osName || this.uaResult.browser.name;
+    const osName = nativeContext?.osName || nativePlatform || this.uaResult.browser.name;
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment
-    const osVersion = nativeContext?.osVersion || this.uaResult.browser.version;
+    const osVersion = nativeContext?.osVersion || getNativeOsVersion() || this.uaResult.browser.version;
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment
     const deviceVendor = nativeContext?.deviceManufacturer || this.uaResult.device.vendor;
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment

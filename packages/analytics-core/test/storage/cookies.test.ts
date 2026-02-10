@@ -108,6 +108,21 @@ describe('cookies', () => {
       await cookies.remove('hello');
     });
 
+    test('should not log when document.cookie is unavailable', async () => {
+      const errorSpy = jest.spyOn(console, 'error').mockImplementation();
+      const globalScopeSpy = jest
+        .spyOn(GlobalScopeModule, 'getGlobalScope')
+        .mockReturnValueOnce({} as typeof globalThis);
+
+      const cookies = new CookieStorage();
+      await cookies.set('hello', 'world');
+
+      expect(errorSpy).not.toHaveBeenCalled();
+
+      globalScopeSpy.mockRestore();
+      errorSpy.mockRestore();
+    });
+
     test.each([new Error('Simulated error'), 'Simulated error'])(
       'logs an error message when setting a cookie fails',
       async (error) => {

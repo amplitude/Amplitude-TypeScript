@@ -160,9 +160,13 @@ export class CookieStorage<T> implements Storage<T> {
         str += `; SameSite=${this.options.sameSite}`;
       }
       const globalScope = getGlobalScope();
-      if (globalScope) {
-        globalScope.document.cookie = str;
+      const globalDocument = globalScope?.document;
+      // In non-browser runtimes (for example React Native), document.cookie is unavailable.
+      // Treat this as a no-op instead of logging an error.
+      if (!globalDocument || typeof globalDocument.cookie !== 'string') {
+        return;
       }
+      globalDocument.cookie = str;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       console.error(`Amplitude Logger [Error]: Failed to set cookie for key: ${key}. Error: ${errorMessage}`);

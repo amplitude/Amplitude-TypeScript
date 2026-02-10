@@ -1,6 +1,7 @@
 import { Context } from '../../src/plugins/context';
 import { useDefaultConfig } from '../helpers/default';
 import { isWeb } from '../../src/utils/platform';
+import { Platform } from 'react-native';
 
 describe('context', () => {
   describe('setup', () => {
@@ -56,6 +57,30 @@ describe('context', () => {
       expect(secondContextEvent.insert_id).toBeDefined();
       expect(secondContextEvent.insert_id).not.toEqual(firstContextEvent.insert_id);
     });
+
+    if (!isWeb()) {
+      test('should fallback to react-native platform fields when native module is unavailable', async () => {
+        const context = new Context();
+        context.nativeModule = undefined;
+        const config = useDefaultConfig({
+          deviceId: 'deviceId',
+          sessionId: 1,
+          userId: 'user@amplitude.com',
+        });
+        await context.setup(config);
+
+        const event = {
+          event_type: 'event_type',
+        };
+
+        const contextEvent = await context.execute(event);
+        const expectedPlatform = Platform.OS === 'android' ? 'Android' : 'iOS';
+
+        expect(contextEvent.platform).toEqual(expectedPlatform);
+        expect(contextEvent.os_name).toEqual(expectedPlatform);
+        expect(contextEvent.os_version).toEqual(String(Platform.Version));
+      });
+    }
 
     test('should not return the properties when the tracking options are false', async () => {
       const context = new Context();
