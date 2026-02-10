@@ -381,11 +381,6 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
   }
 
   setIdentity(identity: Partial<AnalyticsIdentity>) {
-    if (!this.config) {
-      this.q.push(this.setIdentity.bind(this, identity));
-      return;
-    }
-
     // Handle userId change
     if ('userId' in identity && identity.userId !== this.config.userId) {
       this.setUserId(identity.userId);
