@@ -447,10 +447,6 @@ describe('core-client', () => {
     test('should call onIdentifyChanged on identify events', async () => {
       const client = new AmplitudeCore();
       client.config = mockConfig;
-      const getOperationAppliedUserPropertiesSpy = jest.spyOn(
-        AmplitudeCore.prototype,
-        'getOperationAppliedUserProperties',
-      );
       const onIdentityChanged = jest.spyOn(client.timeline, 'onIdentityChanged');
       jest.spyOn(client.timeline, 'push').mockReturnValueOnce(
         Promise.resolve({
@@ -466,8 +462,8 @@ describe('core-client', () => {
       };
       await client.process(identifyEvent);
 
-      expect(getOperationAppliedUserPropertiesSpy).toHaveBeenCalledTimes(1);
       expect(onIdentityChanged).toHaveBeenCalledTimes(1);
+      expect(onIdentityChanged).toHaveBeenCalledWith({ userProperties: undefined });
     });
   });
 

@@ -234,7 +234,8 @@ export class AmplitudeCore implements CoreClient, PluginHost {
       }
 
       if (event.event_type === SpecialEventType.IDENTIFY) {
-        this.userProperties = this.getOperationAppliedUserProperties(event.user_properties);
+        // Do not update this.userProperties here.
+        // It is only set synchronously in identify() or setIdentity()
         this.timeline.onIdentityChanged({ userProperties: this.userProperties });
       }
 
