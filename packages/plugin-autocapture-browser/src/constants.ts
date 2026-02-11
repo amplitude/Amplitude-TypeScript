@@ -25,15 +25,14 @@ export const AMPLITUDE_EVENT_PROP_PAGE_TITLE = '[Amplitude] Page Title';
 export const AMPLITUDE_EVENT_PROP_VIEWPORT_HEIGHT = '[Amplitude] Viewport Height';
 export const AMPLITUDE_EVENT_PROP_VIEWPORT_WIDTH = '[Amplitude] Viewport Width';
 
-// Visual Tagging related constants
-export const AMPLITUDE_ORIGIN = 'https://app.amplitude.com';
-export const AMPLITUDE_ORIGIN_EU = 'https://app.eu.amplitude.com';
-export const AMPLITUDE_ORIGIN_STAGING = 'https://apps.stag2.amplitude.com';
-export const AMPLITUDE_ORIGINS_MAP = {
-  US: AMPLITUDE_ORIGIN,
-  EU: AMPLITUDE_ORIGIN_EU,
-  STAGING: AMPLITUDE_ORIGIN_STAGING,
-};
+// Origin constants are now shared via analytics-core; re-export for backwards compatibility
+export {
+  AMPLITUDE_ORIGIN,
+  AMPLITUDE_ORIGIN_EU,
+  AMPLITUDE_ORIGIN_STAGING,
+  AMPLITUDE_ORIGINS_MAP,
+  AMPLITUDE_BACKGROUND_CAPTURE_SCRIPT_URL,
+} from '@amplitude/analytics-core';
 
 export const AMPLITUDE_VISUAL_TAGGING_SELECTOR_SCRIPT_URL =
   'https://cdn.amplitude.com/libs/visual-tagging-selector-1.0.0-alpha.js.gz';

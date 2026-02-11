@@ -8,6 +8,9 @@ import {
   SpecialEventType,
   generateHashCode,
   isTimestampInSample,
+  getOrCreateWindowMessenger,
+  enableBackgroundCapture,
+  AMPLITUDE_ORIGINS_MAP,
 } from '@amplitude/analytics-core';
 
 // Import only specific types to avoid pulling in the entire rrweb-types package
@@ -199,6 +202,18 @@ export class SessionReplay implements AmplitudeSessionReplay {
     this.eventCompressor = new EventCompressor(this.eventsManager, this.config, this.getDeviceId(), workerScript);
 
     await this.initializeNetworkObservers();
+
+    // Enable background capture when this page is opened by the Amplitude app
+    // (window.opener exists). Uses the shared messenger singleton so that if
+    // autocapture is also loaded, both share a single messenger and script load.
+    if (getGlobalScope()?.opener) {
+      const messenger = getOrCreateWindowMessenger();
+      enableBackgroundCapture(messenger);
+      messenger.setup({
+        logger: this.loggerProvider,
+        ...(this.config.serverZone && { endpoint: AMPLITUDE_ORIGINS_MAP[this.config.serverZone] }),
+      });
+    }
 
     this.loggerProvider.log('Installing @amplitude/session-replay-browser.');
 
