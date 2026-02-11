@@ -117,6 +117,7 @@ describe('updateSessionIdAndAddProperties()', () => {
 
     getSessionIdSpy = jest.spyOn(helpers, 'getSessionId').mockReturnValue(undefined);
     setSessionIdSpy = jest.spyOn(helpers, 'setSessionId').mockResolvedValue(undefined);
+    (sessionReplay.evaluateTargetingAndCapture as jest.Mock).mockResolvedValue(undefined);
   });
 
   afterEach(() => {
@@ -256,5 +257,155 @@ describe('updateSessionIdAndAddProperties()', () => {
 
     // Assert
     expect(setSessionIdSpy).toHaveBeenCalledTimes(0);
+  });
+
+  it('should call evaluateTargetingAndCapture with the converted event', async () => {
+    // Arrange
+    const context = {
+      event: {
+        type: 'track',
+        event: 'Button Clicked',
+        properties: {
+          buttonName: 'Submit',
+        },
+        traits: {
+          email: 'test@example.com',
+        },
+        timestamp: new Date('2024-01-01T00:00:00Z'),
+      },
+      updateEvent: jest.fn(),
+    } as unknown as Context;
+
+    (sessionReplay.getSessionReplayProperties as jest.Mock).mockReturnValue({});
+    getSessionIdSpy.mockReturnValue(123);
+
+    // Act
+    await updateSessionIdAndAddProperties(context, 'deviceId');
+
+    // Assert
+    expect(sessionReplay.evaluateTargetingAndCapture).toHaveBeenCalledTimes(1);
+    expect(sessionReplay.evaluateTargetingAndCapture).toHaveBeenCalledWith({
+      event: {
+        event_type: 'track',
+        event_properties: {
+          buttonName: 'Submit',
+        },
+        user_properties: {
+          email: 'test@example.com',
+        },
+        time: new Date('2024-01-01T00:00:00Z').getTime(),
+      },
+    });
+  });
+
+  it('should call evaluateTargetingAndCapture with current time when timestamp is undefined', async () => {
+    // Arrange
+    const mockNow = 1640000000000;
+    jest.spyOn(Date, 'now').mockReturnValue(mockNow);
+
+    const context = {
+      event: {
+        type: 'track',
+        event: 'Button Clicked',
+        properties: {},
+        traits: {},
+        // No timestamp provided
+      },
+      updateEvent: jest.fn(),
+    } as unknown as Context;
+
+    (sessionReplay.getSessionReplayProperties as jest.Mock).mockReturnValue({});
+    getSessionIdSpy.mockReturnValue(123);
+
+    // Act
+    await updateSessionIdAndAddProperties(context, 'deviceId');
+
+    // Assert
+    expect(sessionReplay.evaluateTargetingAndCapture).toHaveBeenCalledWith({
+      event: {
+        event_type: 'track',
+        event_properties: {},
+        user_properties: {},
+        time: mockNow,
+      },
+    });
+  });
+
+  it('should handle event type fallback when type and event are undefined', async () => {
+    // Arrange
+    const context = {
+      event: {
+        // No type or event property
+        properties: { test: 'value' },
+        timestamp: new Date('2024-01-01T00:00:00Z'),
+      },
+      updateEvent: jest.fn(),
+    } as unknown as Context;
+
+    (sessionReplay.getSessionReplayProperties as jest.Mock).mockReturnValue({});
+    getSessionIdSpy.mockReturnValue(123);
+
+    // Act
+    await updateSessionIdAndAddProperties(context, 'deviceId');
+
+    // Assert
+    expect(sessionReplay.evaluateTargetingAndCapture).toHaveBeenCalledWith({
+      event: expect.objectContaining({
+        event_type: 'unknown',
+      }),
+    });
+  });
+
+  it('should use event property when type is undefined', async () => {
+    // Arrange
+    const context = {
+      event: {
+        event: 'Custom Event Name',
+        properties: { test: 'value' },
+        timestamp: new Date('2024-01-01T00:00:00Z'),
+      },
+      updateEvent: jest.fn(),
+    } as unknown as Context;
+
+    (sessionReplay.getSessionReplayProperties as jest.Mock).mockReturnValue({});
+    getSessionIdSpy.mockReturnValue(123);
+
+    // Act
+    await updateSessionIdAndAddProperties(context, 'deviceId');
+
+    // Assert
+    expect(sessionReplay.evaluateTargetingAndCapture).toHaveBeenCalledWith({
+      event: expect.objectContaining({
+        event_type: 'Custom Event Name',
+      }),
+    });
+  });
+
+  it('should handle undefined properties and traits', async () => {
+    // Arrange
+    const context = {
+      event: {
+        type: 'track',
+        // No properties or traits
+        timestamp: new Date('2024-01-01T00:00:00Z'),
+      },
+      updateEvent: jest.fn(),
+    } as unknown as Context;
+
+    (sessionReplay.getSessionReplayProperties as jest.Mock).mockReturnValue({});
+    getSessionIdSpy.mockReturnValue(123);
+
+    // Act
+    await updateSessionIdAndAddProperties(context, 'deviceId');
+
+    // Assert
+    expect(sessionReplay.evaluateTargetingAndCapture).toHaveBeenCalledWith({
+      event: {
+        event_type: 'track',
+        event_properties: {},
+        user_properties: {},
+        time: new Date('2024-01-01T00:00:00Z').getTime(),
+      },
+    });
   });
 });

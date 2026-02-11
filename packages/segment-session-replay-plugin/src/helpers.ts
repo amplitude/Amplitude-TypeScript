@@ -43,6 +43,17 @@ export const updateSessionIdAndAddProperties = async (ctx: Context, deviceId: st
     await setSessionId(nextSessionId, deviceId);
   }
 
+  // Convert Segment event to Amplitude event format for targeting evaluation
+  const amplitudeEvent = {
+    event_type: ctx.event.type || ctx.event.event || 'unknown',
+    event_properties: ctx.event.properties || {},
+    user_properties: ctx.event.traits || {},
+    time: ctx.event.timestamp ? new Date(ctx.event.timestamp).getTime() : Date.now(),
+  };
+
+  // Evaluate targeting and capture decision before enriching with properties
+  await sessionReplay.evaluateTargetingAndCapture({ event: amplitudeEvent });
+
   // Enrich the event with the session replay properties
   // NOTE: This is what will add the `[Amplitude] Session Replay ID` attribute to the event
   const sessionReplayProperties = sessionReplay.getSessionReplayProperties();

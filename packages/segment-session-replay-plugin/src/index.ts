@@ -77,6 +77,18 @@ export const createSegmentActionsPlugin = async ({
         await setSessionId(sessionId, deviceId);
       }
 
+      // Evaluate targeting for identify events with user properties
+      const amplitudeEvent = {
+        event_type: 'identify',
+        user_properties: ctx.event.traits || {},
+        time: ctx.event.timestamp ? new Date(ctx.event.timestamp).getTime() : Date.now(),
+      };
+
+      await sessionReplay.evaluateTargetingAndCapture({
+        event: amplitudeEvent,
+        userProperties: ctx.event.traits || {},
+      });
+
       return ctx;
     },
   };

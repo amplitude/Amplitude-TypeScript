@@ -47,6 +47,7 @@ describe('createSegmentActionsPlugin()', () => {
     jest.clearAllMocks();
 
     (sessionReplay.init as jest.Mock).mockResolvedValue({ promise: Promise.resolve() });
+    (sessionReplay.evaluateTargetingAndCapture as jest.Mock).mockResolvedValue(undefined);
   });
 
   it('should call segmentInstance.register() with the plugin', async () => {
@@ -320,6 +321,106 @@ describe('createSegmentActionsPlugin()', () => {
 
       // Assert
       expect(setSessionId).not.toHaveBeenCalled();
+    });
+
+    it('should call evaluateTargetingAndCapture with user properties', async () => {
+      // Arrange
+      const contextWithTraits: Context = {
+        event: {
+          type: 'identify',
+          traits: {
+            email: 'test@example.com',
+            name: 'Test User',
+          },
+          timestamp: new Date('2024-01-01T00:00:00Z'),
+        },
+        updateEvent: jest.fn(),
+      } as unknown as Context;
+
+      (getSessionId as jest.Mock).mockReturnValue(123);
+
+      await createSegmentActionsPlugin({
+        segmentInstance: DEFAULT_SEGMENT_INSTANCE,
+        amplitudeApiKey: API_KEY,
+        sessionReplayOptions: {
+          ...DEFAULT_SESSION_REPLAY_OPTIONS,
+          deviceId: DEVICE_ID,
+        },
+      });
+
+      const plugin = getPlugin(DEFAULT_SEGMENT_INSTANCE);
+
+      // NOTE: load() must be called before identify()
+      await plugin.load(DEFAULT_CONTEXT, DEFAULT_ANALYTICS);
+
+      // Act
+      plugin.identify && (await plugin.identify(contextWithTraits));
+
+      // Assert
+      expect(sessionReplay.evaluateTargetingAndCapture).toHaveBeenCalledWith({
+        event: {
+          event_type: 'identify',
+          user_properties: {
+            email: 'test@example.com',
+            name: 'Test User',
+          },
+          time: new Date('2024-01-01T00:00:00Z').getTime(),
+        },
+        userProperties: {
+          email: 'test@example.com',
+          name: 'Test User',
+        },
+      });
+    });
+
+    it('should call evaluateTargetingAndCapture with current time when timestamp is undefined', async () => {
+      // Arrange
+      const mockNow = 1640000000000;
+      jest.spyOn(Date, 'now').mockReturnValue(mockNow);
+
+      const contextWithTraits: Context = {
+        event: {
+          type: 'identify',
+          traits: {
+            email: 'test@example.com',
+          },
+          // No timestamp provided
+        },
+        updateEvent: jest.fn(),
+      } as unknown as Context;
+
+      (getSessionId as jest.Mock).mockReturnValue(123);
+
+      await createSegmentActionsPlugin({
+        segmentInstance: DEFAULT_SEGMENT_INSTANCE,
+        amplitudeApiKey: API_KEY,
+        sessionReplayOptions: {
+          ...DEFAULT_SESSION_REPLAY_OPTIONS,
+          deviceId: DEVICE_ID,
+        },
+      });
+
+      const plugin = getPlugin(DEFAULT_SEGMENT_INSTANCE);
+
+      // NOTE: load() must be called before identify()
+      await plugin.load(DEFAULT_CONTEXT, DEFAULT_ANALYTICS);
+
+      // Act
+      plugin.identify && (await plugin.identify(contextWithTraits));
+
+      // Assert
+      expect(sessionReplay.evaluateTargetingAndCapture).toHaveBeenCalledWith({
+        event: {
+          event_type: 'identify',
+          user_properties: {
+            email: 'test@example.com',
+          },
+          time: mockNow,
+        },
+        userProperties: {
+          email: 'test@example.com',
+        },
+      });
     });
   });
 });
