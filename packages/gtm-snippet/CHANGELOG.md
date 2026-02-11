@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.34.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/gtm-snippet@2.34.1...@amplitude/gtm-snippet@2.34.1) (2026-02-11)
+
+
+### Features
+
+* **gtm-snippet:** update GTM package's engagement sdk snippet to support split bun… ([#1528](https://github.com/amplitude/Amplitude-TypeScript/issues/1528)) ([ce5da08](https://github.com/amplitude/Amplitude-TypeScript/commit/ce5da08398a9cbaa468217d36e73a5f9eefcdb32))
+
+
+
+
+
 ## [2.34.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/gtm-snippet@2.33.6...@amplitude/gtm-snippet@2.34.1) (2026-02-10)
 
 
