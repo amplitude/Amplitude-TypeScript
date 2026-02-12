@@ -58,7 +58,10 @@ export const updateSessionIdAndAddProperties = async (ctx: Context, deviceId: st
     };
 
     // Evaluate targeting and capture decision before enriching with properties
-    await sessionReplay.evaluateTargetingAndCapture({ event: amplitudeEvent });
+    await sessionReplay.evaluateTargetingAndCapture({
+      event: amplitudeEvent,
+      userProperties: ctx.event.traits || {},
+    });
   }
 
   // Enrich the event with the session replay properties

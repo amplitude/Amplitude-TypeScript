@@ -295,6 +295,9 @@ describe('updateSessionIdAndAddProperties()', () => {
         },
         time: new Date('2024-01-01T00:00:00Z').getTime(),
       },
+      userProperties: {
+        email: 'test@example.com',
+      },
     });
   });
 
@@ -328,6 +331,7 @@ describe('updateSessionIdAndAddProperties()', () => {
         user_properties: {},
         time: mockNow,
       },
+      userProperties: {},
     });
   });
 
@@ -353,6 +357,7 @@ describe('updateSessionIdAndAddProperties()', () => {
       event: expect.objectContaining({
         event_type: 'unknown',
       }),
+      userProperties: {},
     });
   });
 
@@ -378,6 +383,7 @@ describe('updateSessionIdAndAddProperties()', () => {
       event: expect.objectContaining({
         event_type: 'Custom Event Name',
       }),
+      userProperties: {},
     });
   });
 
@@ -406,6 +412,7 @@ describe('updateSessionIdAndAddProperties()', () => {
         user_properties: {},
         time: new Date('2024-01-01T00:00:00Z').getTime(),
       },
+      userProperties: {},
     });
   });
 
@@ -474,6 +481,7 @@ describe('updateSessionIdAndAddProperties()', () => {
         user_properties: { email: 'test@example.com' },
         time: new Date('2024-01-01T00:00:00Z').getTime(),
       },
+      userProperties: { email: 'test@example.com' },
     });
   });
 
@@ -498,5 +506,11 @@ describe('updateSessionIdAndAddProperties()', () => {
 
     // Assert - targeting should be evaluated when no session_id is provided
     expect(sessionReplay.evaluateTargetingAndCapture).toHaveBeenCalledTimes(1);
+    expect(sessionReplay.evaluateTargetingAndCapture).toHaveBeenCalledWith({
+      event: expect.objectContaining({
+        event_type: 'Button Clicked',
+      }),
+      userProperties: {},
+    });
   });
 });
