@@ -1,14 +1,7 @@
 /* istanbul ignore file */
 /* eslint-disable no-restricted-globals */
 import { AMPLITUDE_VISUAL_TAGGING_SELECTOR_SCRIPT_URL, AMPLITUDE_VISUAL_TAGGING_HIGHLIGHT_CLASS } from '../constants';
-import {
-  ILogger,
-  ActionType,
-  BaseWindowMessenger,
-  AMPLITUDE_ORIGIN,
-  asyncLoadScript,
-  enableBackgroundCapture,
-} from '@amplitude/analytics-core';
+import { ActionType, BaseWindowMessenger, asyncLoadScript } from '@amplitude/analytics-core';
 import { VERSION } from '../version';
 import { DataExtractor } from '../data-extractor';
 
@@ -71,91 +64,87 @@ export interface Message<A extends Action> {
 }
 
 /**
- * WindowMessenger extends BaseWindowMessenger with autocapture-specific
- * visual tagging functionality. Background capture is handled by the base class.
+ * Brand key to track whether visual tagging has been enabled on a messenger.
  */
-export class WindowMessenger extends BaseWindowMessenger {
-  constructor({ origin = AMPLITUDE_ORIGIN }: { origin?: string } = {}) {
-    super({ origin });
+const VISUAL_TAGGING_BRAND = '__AMPLITUDE_VISUAL_TAGGING__' as const;
+
+/**
+ * Enable visual tagging on a messenger instance.
+ * The first call registers the handlers; subsequent calls are no-ops.
+ *
+ * @param messenger - The messenger to enable visual tagging on
+ * @param options - Visual tagging configuration
+ */
+export function enableVisualTagging(
+  messenger: BaseWindowMessenger,
+  options: {
+    isElementSelectable?: (action: InitializeVisualTaggingSelectorData['actionType'], element: Element) => boolean;
+    cssSelectorAllowlist?: string[];
+    actionClickAllowlist?: string[];
+    dataExtractor: DataExtractor;
+  },
+): void {
+  // Idempotency guard — works across bundle boundaries
+  const branded = messenger as unknown as Record<string, unknown>;
+  if (branded[VISUAL_TAGGING_BRAND] === true) {
+    return;
   }
+  branded[VISUAL_TAGGING_BRAND] = true;
 
-  setup(
-    {
-      logger,
-      endpoint,
-      isElementSelectable,
-      cssSelectorAllowlist,
-      actionClickAllowlist,
-      dataExtractor,
-    }: {
-      logger?: ILogger;
-      endpoint?: string;
-      isElementSelectable?: (action: InitializeVisualTaggingSelectorData['actionType'], element: Element) => boolean;
-      cssSelectorAllowlist?: string[];
-      actionClickAllowlist?: string[];
-      dataExtractor: DataExtractor;
-    } = { dataExtractor: new DataExtractor({}) },
-  ) {
-    // Enable background capture on this messenger (idempotent)
-    enableBackgroundCapture(this);
+  const { dataExtractor, isElementSelectable, cssSelectorAllowlist, actionClickAllowlist } = options;
 
-    // Register visual tagging action handlers
-    let amplitudeVisualTaggingSelectorInstance: any = null;
+  let amplitudeVisualTaggingSelectorInstance: any = null;
 
-    this.registerActionHandler(
-      'initialize-visual-tagging-selector',
-      (actionData: InitializeVisualTaggingSelectorData) => {
-        asyncLoadScript(AMPLITUDE_VISUAL_TAGGING_SELECTOR_SCRIPT_URL)
-          .then(() => {
-            // eslint-disable-next-line
-            amplitudeVisualTaggingSelectorInstance = (window as any)?.amplitudeVisualTaggingSelector?.({
-              getEventTagProps: dataExtractor.getEventTagProps,
-              isElementSelectable: (element: Element) => {
-                if (isElementSelectable) {
-                  return isElementSelectable(actionData?.actionType || 'click', element);
-                }
-                return true;
-              },
-              onTrack: this.onTrack,
-              onSelect: this.onSelect,
-              visualHighlightClass: AMPLITUDE_VISUAL_TAGGING_HIGHLIGHT_CLASS,
-              messenger: this,
-              cssSelectorAllowlist,
-              actionClickAllowlist,
-              extractDataFromDataSource: dataExtractor.extractDataFromDataSource,
-              dataExtractor,
-              diagnostics: {
-                autocapture: {
-                  version: VERSION,
-                },
-              },
-            });
-            this.notify({ action: 'selector-loaded' });
-          })
-          .catch(() => {
-            this.logger?.warn('Failed to initialize visual tagging selector');
-          });
-      },
-    );
-
-    this.registerActionHandler('close-visual-tagging-selector', () => {
-      // eslint-disable-next-line
-      amplitudeVisualTaggingSelectorInstance?.close?.();
-    });
-
-    // Call base setup (sets up message listener, idempotent)
-    super.setup({ logger, endpoint });
-  }
-
-  private onSelect = (data: ElementSelectedData) => {
-    this.notify({ action: 'element-selected', data });
+  const onSelect = (data: ElementSelectedData) => {
+    messenger.notify({ action: 'element-selected', data });
   };
 
-  private onTrack = (type: string, properties: { [key: string]: string | null }) => {
+  const onTrack = (type: string, properties: { [key: string]: string | null }) => {
     if (type === 'selector-mode-changed') {
-      this.notify({ action: 'track-selector-mode-changed', data: properties });
+      messenger.notify({ action: 'track-selector-mode-changed', data: properties });
     } else if (type === 'selector-moved') {
-      this.notify({ action: 'track-selector-moved', data: properties });
+      messenger.notify({ action: 'track-selector-moved', data: properties });
     }
   };
+
+  messenger.registerActionHandler(
+    'initialize-visual-tagging-selector',
+    (actionData: InitializeVisualTaggingSelectorData) => {
+      asyncLoadScript(AMPLITUDE_VISUAL_TAGGING_SELECTOR_SCRIPT_URL)
+        .then(() => {
+          // eslint-disable-next-line
+          amplitudeVisualTaggingSelectorInstance = (window as any)?.amplitudeVisualTaggingSelector?.({
+            getEventTagProps: dataExtractor.getEventTagProps,
+            isElementSelectable: (element: Element) => {
+              if (isElementSelectable) {
+                return isElementSelectable(actionData?.actionType || 'click', element);
+              }
+              return true;
+            },
+            onTrack,
+            onSelect,
+            visualHighlightClass: AMPLITUDE_VISUAL_TAGGING_HIGHLIGHT_CLASS,
+            messenger,
+            cssSelectorAllowlist,
+            actionClickAllowlist,
+            extractDataFromDataSource: dataExtractor.extractDataFromDataSource,
+            dataExtractor,
+            diagnostics: {
+              autocapture: {
+                version: VERSION,
+              },
+            },
+          });
+          messenger.notify({ action: 'selector-loaded' });
+        })
+        .catch(() => {
+          messenger.logger?.warn('Failed to initialize visual tagging selector');
+        });
+    },
+  );
+
+  messenger.registerActionHandler('close-visual-tagging-selector', () => {
+    // eslint-disable-next-line
+    amplitudeVisualTaggingSelectorInstance?.close?.();
+  });
 }
