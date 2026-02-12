@@ -45,7 +45,7 @@ export const updateSessionIdAndAddProperties = async (ctx: Context, deviceId: st
 
   // Convert Segment event to Amplitude event format for targeting evaluation
   const amplitudeEvent = {
-    event_type: ctx.event.type || ctx.event.event || 'unknown',
+    event_type: ctx.event.event || ctx.event.type || 'unknown',
     event_properties: ctx.event.properties || {},
     user_properties: ctx.event.traits || {},
     time: ctx.event.timestamp ? new Date(ctx.event.timestamp).getTime() : Date.now(),

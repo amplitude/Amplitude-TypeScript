@@ -286,7 +286,7 @@ describe('updateSessionIdAndAddProperties()', () => {
     expect(sessionReplay.evaluateTargetingAndCapture).toHaveBeenCalledTimes(1);
     expect(sessionReplay.evaluateTargetingAndCapture).toHaveBeenCalledWith({
       event: {
-        event_type: 'track',
+        event_type: 'Button Clicked',
         event_properties: {
           buttonName: 'Submit',
         },
@@ -323,7 +323,7 @@ describe('updateSessionIdAndAddProperties()', () => {
     // Assert
     expect(sessionReplay.evaluateTargetingAndCapture).toHaveBeenCalledWith({
       event: {
-        event_type: 'track',
+        event_type: 'Button Clicked',
         event_properties: {},
         user_properties: {},
         time: mockNow,
