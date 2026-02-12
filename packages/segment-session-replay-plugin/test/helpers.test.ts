@@ -408,4 +408,95 @@ describe('updateSessionIdAndAddProperties()', () => {
       },
     });
   });
+
+  it('should NOT evaluate targeting when event session_id is older than current session', async () => {
+    // Arrange
+    const currentSessionId = 200;
+    const oldSessionId = 100;
+
+    const context = {
+      event: {
+        type: 'track',
+        event: 'Button Clicked',
+        properties: { test: 'value' },
+        integrations: {
+          'Actions Amplitude': {
+            session_id: oldSessionId,
+          },
+        },
+        timestamp: new Date('2024-01-01T00:00:00Z'),
+      },
+      updateEvent: jest.fn(),
+    } as unknown as Context;
+
+    (sessionReplay.getSessionReplayProperties as jest.Mock).mockReturnValue({});
+    getSessionIdSpy.mockReturnValue(currentSessionId);
+
+    // Act
+    await updateSessionIdAndAddProperties(context, 'deviceId');
+
+    // Assert - targeting should NOT be evaluated for old session events
+    expect(sessionReplay.evaluateTargetingAndCapture).not.toHaveBeenCalled();
+  });
+
+  it('should evaluate targeting when event session_id matches current session', async () => {
+    // Arrange
+    const currentSessionId = 100;
+
+    const context = {
+      event: {
+        type: 'track',
+        event: 'Button Clicked',
+        properties: { test: 'value' },
+        traits: { email: 'test@example.com' },
+        integrations: {
+          'Actions Amplitude': {
+            session_id: currentSessionId,
+          },
+        },
+        timestamp: new Date('2024-01-01T00:00:00Z'),
+      },
+      updateEvent: jest.fn(),
+    } as unknown as Context;
+
+    (sessionReplay.getSessionReplayProperties as jest.Mock).mockReturnValue({});
+    getSessionIdSpy.mockReturnValue(currentSessionId);
+
+    // Act
+    await updateSessionIdAndAddProperties(context, 'deviceId');
+
+    // Assert - targeting should be evaluated for current session events
+    expect(sessionReplay.evaluateTargetingAndCapture).toHaveBeenCalledTimes(1);
+    expect(sessionReplay.evaluateTargetingAndCapture).toHaveBeenCalledWith({
+      event: {
+        event_type: 'Button Clicked',
+        event_properties: { test: 'value' },
+        user_properties: { email: 'test@example.com' },
+        time: new Date('2024-01-01T00:00:00Z').getTime(),
+      },
+    });
+  });
+
+  it('should evaluate targeting when event has no session_id', async () => {
+    // Arrange
+    const context = {
+      event: {
+        type: 'track',
+        event: 'Button Clicked',
+        properties: { test: 'value' },
+        // No integrations or session_id
+        timestamp: new Date('2024-01-01T00:00:00Z'),
+      },
+      updateEvent: jest.fn(),
+    } as unknown as Context;
+
+    (sessionReplay.getSessionReplayProperties as jest.Mock).mockReturnValue({});
+    getSessionIdSpy.mockReturnValue(100);
+
+    // Act
+    await updateSessionIdAndAddProperties(context, 'deviceId');
+
+    // Assert - targeting should be evaluated when no session_id is provided
+    expect(sessionReplay.evaluateTargetingAndCapture).toHaveBeenCalledTimes(1);
+  });
 });
