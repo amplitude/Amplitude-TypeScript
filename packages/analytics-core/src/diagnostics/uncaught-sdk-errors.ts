@@ -15,16 +15,28 @@ interface CapturedErrorContext {
 export const GLOBAL_KEY = '__AMPLITUDE_SCRIPT_URL__';
 export const EVENT_NAME_ERROR_UNCAUGHT = 'sdk.error.uncaught';
 
-const getNormalizedScriptUrl = (): string | undefined => {
+const getNormalizedScriptUrls = (): string[] => {
   const scope = getGlobalScope() as Record<string, unknown> | null;
-  /* istanbul ignore next */
-  return scope?.[GLOBAL_KEY] as string | undefined;
+  const value = scope?.[GLOBAL_KEY];
+  if (Array.isArray(value)) {
+    return value as string[];
+  }
+  /* istanbul ignore next - legacy single URL stored as string */
+  if (typeof value === 'string') {
+    return [value];
+  }
+  return [];
 };
 
-const setNormalizedScriptUrl = (url: string) => {
+const addNormalizedScriptUrl = (url: string) => {
   const scope = getGlobalScope() as Record<string, unknown> | null;
-  if (scope) {
-    scope[GLOBAL_KEY] = url;
+  if (!scope) {
+    return;
+  }
+  const urls = getNormalizedScriptUrls();
+  if (!urls.includes(url)) {
+    urls.push(url);
+    scope[GLOBAL_KEY] = urls;
   }
 };
 
@@ -32,7 +44,7 @@ export const registerSdkLoaderMetadata = (metadata: { scriptUrl?: string }) => {
   if (metadata.scriptUrl) {
     const normalized = normalizeUrl(metadata.scriptUrl);
     if (normalized) {
-      setNormalizedScriptUrl(normalized);
+      addNormalizedScriptUrl(normalized);
     }
   }
 };
@@ -107,17 +119,18 @@ export const enableSdkErrorListeners = (client: IDiagnosticsClient) => {
 };
 
 const detectSdkOrigin = (payload: { filename?: string; stack?: string }): 'filename' | 'stack' | undefined => {
-  const normalizedScriptUrl = getNormalizedScriptUrl();
-  if (!normalizedScriptUrl) {
+  const normalizedScriptUrls = getNormalizedScriptUrls();
+  if (normalizedScriptUrls.length === 0) {
     return undefined;
   }
 
-  if (payload.filename && payload.filename.includes(normalizedScriptUrl)) {
-    return 'filename';
-  }
-
-  if (payload.stack && payload.stack.includes(normalizedScriptUrl)) {
-    return 'stack';
+  for (const normalizedScriptUrl of normalizedScriptUrls) {
+    if (payload.filename && payload.filename.includes(normalizedScriptUrl)) {
+      return 'filename';
+    }
+    if (payload.stack && payload.stack.includes(normalizedScriptUrl)) {
+      return 'stack';
+    }
   }
 
   return undefined;

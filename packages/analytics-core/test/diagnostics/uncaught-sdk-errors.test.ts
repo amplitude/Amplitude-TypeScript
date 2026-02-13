@@ -54,25 +54,42 @@ describe('uncaught-sdk-errors', () => {
     it('should register script URL in global scope', () => {
       registerSdkLoaderMetadata({ scriptUrl: 'https://cdn.amplitude.com/libs/amplitude.js' });
 
-      expect(mockGlobalScope[GLOBAL_KEY]).toBe('https://cdn.amplitude.com/libs/amplitude.js');
+      expect(mockGlobalScope[GLOBAL_KEY]).toEqual(['https://cdn.amplitude.com/libs/amplitude.js']);
     });
 
     it('should normalize script URL by removing query params', () => {
       registerSdkLoaderMetadata({ scriptUrl: 'https://cdn.amplitude.com/libs/amplitude.js?v=1.0.0' });
 
-      expect(mockGlobalScope[GLOBAL_KEY]).toBe('https://cdn.amplitude.com/libs/amplitude.js');
+      expect(mockGlobalScope[GLOBAL_KEY]).toEqual(['https://cdn.amplitude.com/libs/amplitude.js']);
     });
 
     it('should normalize script URL by removing hash', () => {
       registerSdkLoaderMetadata({ scriptUrl: 'https://cdn.amplitude.com/libs/amplitude.js#section' });
 
-      expect(mockGlobalScope[GLOBAL_KEY]).toBe('https://cdn.amplitude.com/libs/amplitude.js');
+      expect(mockGlobalScope[GLOBAL_KEY]).toEqual(['https://cdn.amplitude.com/libs/amplitude.js']);
     });
 
     it('should normalize script URL by removing both query params and hash', () => {
       registerSdkLoaderMetadata({ scriptUrl: 'https://cdn.amplitude.com/libs/amplitude.js?v=1.0.0#section' });
 
-      expect(mockGlobalScope[GLOBAL_KEY]).toBe('https://cdn.amplitude.com/libs/amplitude.js');
+      expect(mockGlobalScope[GLOBAL_KEY]).toEqual(['https://cdn.amplitude.com/libs/amplitude.js']);
+    });
+
+    it('should merge multiple script URLs when called multiple times', () => {
+      registerSdkLoaderMetadata({ scriptUrl: 'https://cdn.amplitude.com/libs/amplitude.js' });
+      registerSdkLoaderMetadata({ scriptUrl: 'https://cdn.amplitude.com/libs/plugin.js' });
+
+      expect(mockGlobalScope[GLOBAL_KEY]).toEqual([
+        'https://cdn.amplitude.com/libs/amplitude.js',
+        'https://cdn.amplitude.com/libs/plugin.js',
+      ]);
+    });
+
+    it('should not duplicate same normalized URL when called multiple times', () => {
+      registerSdkLoaderMetadata({ scriptUrl: 'https://cdn.amplitude.com/libs/amplitude.js' });
+      registerSdkLoaderMetadata({ scriptUrl: 'https://cdn.amplitude.com/libs/amplitude.js?v=2.0.0' });
+
+      expect(mockGlobalScope[GLOBAL_KEY]).toEqual(['https://cdn.amplitude.com/libs/amplitude.js']);
     });
 
     it('should not register if scriptUrl is undefined', () => {
@@ -186,6 +203,35 @@ describe('uncaught-sdk-errors', () => {
           lineno: 200,
           isTrusted: true,
           matchReason: 'stack',
+        });
+      });
+
+      it('should capture error when filename matches second of multiple registered SDK script URLs', () => {
+        registerSdkLoaderMetadata({ scriptUrl: 'https://cdn.amplitude.com/libs/plugin.js' });
+
+        const error = new Error('Test error');
+        const errorEvent = {
+          message: 'Test error',
+          filename: 'https://cdn.amplitude.com/libs/plugin.js',
+          lineno: 100,
+          colno: 50,
+          error,
+          isTrusted: true,
+        } as ErrorEvent;
+
+        errorHandler?.(errorEvent);
+
+        // eslint-disable-next-line @typescript-eslint/unbound-method
+        expect(mockDiagnosticsClient.recordEvent).toHaveBeenCalledWith(EVENT_NAME_ERROR_UNCAUGHT, {
+          type: 'error',
+          message: 'Test error',
+          filename: 'https://cdn.amplitude.com/libs/plugin.js',
+          error_name: 'Error',
+          stack: error.stack,
+          colno: 50,
+          lineno: 100,
+          isTrusted: true,
+          matchReason: 'filename',
         });
       });
 
