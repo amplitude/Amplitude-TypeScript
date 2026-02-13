@@ -77,6 +77,8 @@ export class AmplitudeCore implements CoreClient, PluginHost {
 
   track(eventInput: BaseEvent | string, eventProperties?: Record<string, any>, eventOptions?: EventOptions) {
     const event = createTrackEvent(eventInput, eventProperties, eventOptions);
+    // Update client user properties immediately and synchronously
+    this.userProperties = this.getOperationAppliedUserProperties(event.user_properties);
     return returnWrapper(this.dispatch(event));
   }
 
@@ -84,7 +86,7 @@ export class AmplitudeCore implements CoreClient, PluginHost {
 
   identify(identify: IIdentify, eventOptions?: EventOptions) {
     const event = createIdentifyEvent(identify, eventOptions);
-    // Update client user properties immediately and synchronously when identify() is called
+    // Update client user properties immediately and synchronously
     this.userProperties = this.getOperationAppliedUserProperties(event.user_properties);
     return returnWrapper(this.dispatch(event));
   }
@@ -96,6 +98,8 @@ export class AmplitudeCore implements CoreClient, PluginHost {
 
   setGroup(groupType: string, groupName: string | string[], eventOptions?: EventOptions) {
     const event = createGroupEvent(groupType, groupName, eventOptions);
+    // Update client user properties immediately and synchronously
+    this.userProperties = this.getOperationAppliedUserProperties(event.user_properties);
     return returnWrapper(this.dispatch(event));
   }
 
