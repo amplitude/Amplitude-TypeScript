@@ -19,4 +19,3 @@ describe('safeJsonStringify', () => {
     expect(result).toContain('test');
   });
 });
-
