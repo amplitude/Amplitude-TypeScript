@@ -30,6 +30,7 @@ import {
   DiagnosticsClient,
   createIdentifyEvent,
   Logger,
+  safeJsonStringify,
 } from '@amplitude/analytics-core';
 import {
   getAttributionTrackingConfig,
@@ -608,7 +609,10 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
         ...browserConfig,
         apiKey: browserConfig.apiKey.substring(0, 10) + '********',
       };
-      this.config.loggerProvider.debug('Initialized Amplitude with BrowserConfig:', JSON.stringify(browserConfigCopy));
+      this.config.loggerProvider.debug(
+        'Initialized Amplitude with BrowserConfig:',
+        safeJsonStringify(browserConfigCopy),
+      );
     } catch (e) {
       /* istanbul ignore next */
       this.config.loggerProvider.error('Error logging browser config', e);

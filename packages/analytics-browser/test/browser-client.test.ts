@@ -2285,4 +2285,25 @@ describe('browser-client', () => {
       expect(client._diagnosticsSampleRate).toBe(0);
     });
   });
+
+  describe('logBrowserOptions', () => {
+    test('should not throw error on circular reference', async () => {
+      // regression test for https://github.com/amplitude/Amplitude-TypeScript/issues/1521
+      const logBrowserOptions = AmplitudeBrowser.prototype['logBrowserOptions'];
+      const circularReference: any = { a: undefined };
+      circularReference.a = circularReference;
+      const ctx = {
+        config: {
+          loggerProvider: {
+            debug: jest.fn(),
+            error: jest.fn(),
+          },
+        },
+      };
+      const apiKey = '1234567890';
+      logBrowserOptions.call(ctx, { apiKey, ...circularReference });
+      expect(ctx.config.loggerProvider.debug.mock.calls[0][1]).toContain(apiKey.substring(0, 5));
+      expect(ctx.config.loggerProvider.error).not.toHaveBeenCalled();
+    });
+  });
 });
