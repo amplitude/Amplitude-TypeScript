@@ -36,6 +36,12 @@ export class AmplitudeCore implements CoreClient, PluginHost {
   protected q: Array<CallableFunction | typeof returnWrapper> = [];
   protected dispatchQ: Array<CallableFunction> = [];
 
+  /**
+   * Current user properties (operation-applied, flat key-value).
+   * Only used by client-side SDKs; server SDKs may leave this undefined.
+   */
+  userProperties: { [key: string]: any } | undefined;
+
   constructor(name = '$default') {
     this.timeline = new Timeline(this);
     this.name = name;
@@ -71,6 +77,8 @@ export class AmplitudeCore implements CoreClient, PluginHost {
 
   track(eventInput: BaseEvent | string, eventProperties?: Record<string, any>, eventOptions?: EventOptions) {
     const event = createTrackEvent(eventInput, eventProperties, eventOptions);
+    // Update client user properties immediately and synchronously
+    this.userProperties = this.getOperationAppliedUserProperties(event.user_properties);
     return returnWrapper(this.dispatch(event));
   }
 
@@ -78,6 +86,8 @@ export class AmplitudeCore implements CoreClient, PluginHost {
 
   identify(identify: IIdentify, eventOptions?: EventOptions) {
     const event = createIdentifyEvent(identify, eventOptions);
+    // Update client user properties immediately and synchronously
+    this.userProperties = this.getOperationAppliedUserProperties(event.user_properties);
     return returnWrapper(this.dispatch(event));
   }
 
@@ -88,6 +98,8 @@ export class AmplitudeCore implements CoreClient, PluginHost {
 
   setGroup(groupType: string, groupName: string | string[], eventOptions?: EventOptions) {
     const event = createGroupEvent(groupType, groupName, eventOptions);
+    // Update client user properties immediately and synchronously
+    this.userProperties = this.getOperationAppliedUserProperties(event.user_properties);
     return returnWrapper(this.dispatch(event));
   }
 
@@ -145,8 +157,9 @@ export class AmplitudeCore implements CoreClient, PluginHost {
    * This is a best-effort api that only supports $set, $clearAll, and $unset.
    * Other operations are not supported and are ignored.
    *
+   * Operations are applied on top of current client state (this.userProperties).
    *
-   * @param userProperties The `event.userProperties` object from an Identify event.
+   * @param userProperties The new user properties object from identify() or setIdentity().
    * @returns A key-value object user properties without operations.
    *
    * @example
@@ -163,7 +176,8 @@ export class AmplitudeCore implements CoreClient, PluginHost {
    * }
    */
   getOperationAppliedUserProperties(userProperties: UserProperties | undefined): { [key: string]: any } {
-    const updatedProperties: { [key: string]: any } = {};
+    const base = this.userProperties ?? {};
+    const updatedProperties: { [key: string]: any } = { ...base };
 
     if (userProperties === undefined) {
       return updatedProperties;
@@ -224,8 +238,9 @@ export class AmplitudeCore implements CoreClient, PluginHost {
       }
 
       if (event.event_type === SpecialEventType.IDENTIFY) {
-        const userProperties = this.getOperationAppliedUserProperties(event.user_properties);
-        this.timeline.onIdentityChanged({ userProperties: userProperties });
+        // Do not update this.userProperties here.
+        // It is only set synchronously in identify() or setIdentity()
+        this.timeline.onIdentityChanged({ userProperties: this.userProperties });
       }
 
       const result = await this.timeline.push(event);

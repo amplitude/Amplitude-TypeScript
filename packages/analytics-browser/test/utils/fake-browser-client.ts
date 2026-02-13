@@ -44,6 +44,10 @@ export class FakeBrowserClient implements BrowserClient {
     };
   }
 
+  setIdentity(identity: Partial<AnalyticsIdentity>): void {
+    console.log('FakeBrowserClient.setIdentity called with:', { identity });
+  }
+
   getOptOut(): boolean | undefined {
     console.log('FakeBrowserClient.getOptOut called');
     return false;

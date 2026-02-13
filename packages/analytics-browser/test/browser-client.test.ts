@@ -9,7 +9,6 @@ import {
   UserSession,
   AutocaptureOptions,
   Identify,
-  SpecialEventType,
   RemoteConfigClient,
   DiagnosticsClient,
 } from '@amplitude/analytics-core';
@@ -1606,6 +1605,84 @@ describe('browser-client', () => {
     });
   });
 
+  describe('setIdentity', () => {
+    test('should set userId via setIdentity', async () => {
+      await client.init(apiKey, { defaultTracking }).promise;
+      expect(client.getUserId()).toBe(undefined);
+
+      client.setIdentity({ userId: 'new-user-id' });
+
+      expect(client.getUserId()).toBe('new-user-id');
+    });
+
+    test('should set deviceId via setIdentity', async () => {
+      await client.init(apiKey, { defaultTracking }).promise;
+      const initialDeviceId = client.getDeviceId();
+
+      client.setIdentity({ deviceId: 'new-device-id' });
+
+      expect(client.getDeviceId()).toBe('new-device-id');
+      expect(client.getDeviceId()).not.toBe(initialDeviceId);
+    });
+
+    test('should set userProperties and auto-send identify event', async () => {
+      await client.init(apiKey, { defaultTracking }).promise;
+      const identifySpy = jest.spyOn(client, 'identify');
+
+      client.setIdentity({ userProperties: { plan: 'premium', theme: 'dark' } });
+
+      expect(client.userProperties).toEqual({ plan: 'premium', theme: 'dark' });
+      expect(identifySpy).toHaveBeenCalledTimes(1);
+
+      const identity = client.getIdentity();
+      expect(identity.userProperties).toEqual({ plan: 'premium', theme: 'dark' });
+    });
+
+    test('should set userId and userProperties together', async () => {
+      await client.init(apiKey, { defaultTracking }).promise;
+      const identifySpy = jest.spyOn(client, 'identify');
+
+      client.setIdentity({
+        userId: 'new-user-id',
+        userProperties: { name: 'John' },
+      });
+
+      expect(client.getUserId()).toBe('new-user-id');
+      expect(client.userProperties).toEqual({ name: 'John' });
+      expect(identifySpy).toHaveBeenCalledTimes(1);
+    });
+
+    test('should defer setIdentity before init', () => {
+      return new Promise<void>((resolve) => {
+        void client.init(apiKey, { defaultTracking }).promise.then(() => {
+          expect(client.getUserId()).toBe('deferred-user');
+          expect(client.userProperties).toEqual({ deferred: true });
+          resolve();
+        });
+        client.setIdentity({ userId: 'deferred-user', userProperties: { deferred: true } });
+      });
+    });
+
+    test('should notify plugins of identity change', async () => {
+      await client.init(apiKey, { defaultTracking }).promise;
+      const onIdentityChangedMock = jest.fn();
+
+      await client.add({
+        name: 'test-plugin',
+        type: 'enrichment',
+        setup: async () => {
+          return;
+        },
+        execute: async (event) => event,
+        onIdentityChanged: onIdentityChangedMock,
+      }).promise;
+
+      client.setIdentity({ userProperties: { plan: 'premium' } });
+
+      expect(onIdentityChangedMock).toHaveBeenCalledWith({ userProperties: { plan: 'premium' } });
+    });
+  });
+
   describe('getOptOut', () => {
     test.each([true, false])('should return opt out value', async (optOut) => {
       await client.init(apiKey, {
@@ -2164,29 +2241,6 @@ describe('browser-client', () => {
       // and once on process
       expect(setSessionId).toHaveBeenCalledTimes(2);
       expect(result.code).toBe(0);
-    });
-
-    test('should set user properties', async () => {
-      await client.init(apiKey, {
-        defaultTracking,
-        optOut: true,
-      }).promise;
-      expect(client.userProperties).toBeUndefined();
-
-      await client.process({
-        event_type: SpecialEventType.IDENTIFY,
-        user_properties: {
-          $set: {
-            'test-property': 'test-value',
-          },
-        },
-      });
-
-      const identity = client.getIdentity();
-
-      expect(identity.userProperties).toEqual({
-        'test-property': 'test-value',
-      });
     });
   });
 

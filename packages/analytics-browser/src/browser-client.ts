@@ -21,8 +21,8 @@ import {
   BrowserOptions,
   BrowserConfig,
   BrowserClient,
-  SpecialEventType,
   AnalyticsClient,
+  AnalyticsIdentity,
   IRemoteConfigClient,
   RemoteConfigClient,
   RemoteConfig,
@@ -79,7 +79,6 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
   previousSessionDeviceId: string | undefined;
   previousSessionUserId: string | undefined;
   webAttribution: WebAttribution | undefined;
-  userProperties: { [key: string]: any } | undefined;
 
   // Backdoor to set diagnostics sample rate
   // by calling amplitude._setDiagnosticsSampleRate(1); before amplitude.init()
@@ -421,6 +420,35 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
     };
   }
 
+  setIdentity(identity: Partial<AnalyticsIdentity>) {
+    // Handle userId change
+    if ('userId' in identity) {
+      this.setUserId(identity.userId);
+    }
+
+    // Handle deviceId change
+    if ('deviceId' in identity && identity.deviceId) {
+      this.setDeviceId(identity.deviceId);
+    }
+
+    // Handle userProperties change - auto-send identify
+    if ('userProperties' in identity) {
+      this.userProperties = identity.userProperties;
+      // Auto-send identify event with $set operations
+      const identifyObj = new Identify();
+      // istanbul ignore next
+      const userProperties = identity.userProperties ?? {};
+      for (const [key, value] of Object.entries(userProperties)) {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+        identifyObj.set(key, value);
+      }
+      // The identify event processing in core-client already calls onIdentityChanged,
+      // so we don't need to call it explicitly here to avoid duplicate notifications.
+      this.identify(identifyObj);
+    }
+  }
+
   getOptOut(): boolean | undefined {
     return this.config?.optOut;
   }
@@ -592,11 +620,6 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
         // if there has been a chance in the campaign information.
         this.trackCampaignEventIfNeeded();
       }
-    }
-
-    // Set user properties
-    if (event.event_type === SpecialEventType.IDENTIFY && event.user_properties) {
-      this.userProperties = this.getOperationAppliedUserProperties(event.user_properties);
     }
 
     return super.process(event);

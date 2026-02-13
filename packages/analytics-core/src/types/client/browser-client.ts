@@ -65,6 +65,40 @@ export interface BrowserClient extends Client {
   getIdentity(): AnalyticsIdentity;
 
   /**
+   * Sets the identity (userId, deviceId, and/or userProperties).
+   * This is a unified shortcut for `setUserId()`, `setDeviceId()`, and setting user properties.
+   * When userProperties change, an identify event is automatically sent.
+   *
+   * **Important limitation:** When userProperties are replaced, the local state is fully replaced
+   * but the identify event sent to the server only includes `$set` operations for the new properties.
+   * Properties removed from the local state are **not** `$unset` on the server.
+   *
+   * For example, changing from `{plan: 'premium', theme: 'dark'}` to `{plan: 'basic'}` removes
+   * `theme` locally but leaves it on the server. To remove a property from the server, use
+   * `identify()` with `Identify.unset()` directly.
+   *
+   * ```typescript
+   * // Set user properties (auto-sends identify event with $set)
+   * setIdentity({ userProperties: { plan: 'premium' } });
+   *
+   * // Set userId (equivalent to setUserId('user-123'))
+   * setIdentity({ userId: 'user-123' });
+   *
+   * // Set deviceId (equivalent to setDeviceId('device-456'))
+   * setIdentity({ deviceId: 'device-456' });
+   *
+   * // Set multiple identity fields together
+   * setIdentity({ userId: 'user-123', deviceId: 'device-456', userProperties: { name: 'John' } });
+   *
+   * // To remove a property from the server, use identify() directly:
+   * const identify = new Identify();
+   * identify.unset('theme');
+   * amplitude.identify(identify);
+   * ```
+   */
+  setIdentity(identity: Partial<AnalyticsIdentity>): void;
+
+  /**
    * Returns the current optOut config value.
    *
    * ```typescript

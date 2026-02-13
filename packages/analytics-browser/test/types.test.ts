@@ -27,7 +27,7 @@ describe('Type Exports', () => {
     arrTypes.forEach((arrType) => {
       expect((amplitude.Types as any)[arrType]).toBeDefined();
       expect(Array.isArray((amplitude.Types as any)[arrType])).toBe(true);
-      expect(((amplitude.Types as any)[arrType] as any).length).toBeGreaterThan(0);
+      expect((amplitude.Types as any)[arrType].length).toBeGreaterThan(0);
     });
   });
 
