@@ -17,7 +17,11 @@ export const EVENT_NAME_ERROR_UNCAUGHT = 'sdk.error.uncaught';
 
 const getNormalizedScriptUrls = (): string[] => {
   const scope = getGlobalScope() as Record<string, unknown> | null;
-  const value = scope?.[GLOBAL_KEY];
+  /* istanbul ignore next */
+  if (!scope) {
+    return [];
+  }
+  const value = scope[GLOBAL_KEY];
   if (Array.isArray(value)) {
     return value as string[];
   }
@@ -30,6 +34,7 @@ const getNormalizedScriptUrls = (): string[] => {
 
 const addNormalizedScriptUrl = (url: string) => {
   const scope = getGlobalScope() as Record<string, unknown> | null;
+  /* istanbul ignore next */
   if (!scope) {
     return;
   }
