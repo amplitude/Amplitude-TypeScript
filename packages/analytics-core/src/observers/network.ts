@@ -56,6 +56,14 @@ type AmplitudeXMLHttpRequestSafe = {
   addEventListener: (type: 'loadend', listener: () => void) => void;
 };
 
+function safeInvoke(fn: () => void) {
+  try {
+    fn();
+  } catch (err) {
+    // swallow the error
+  }
+}
+
 export class NetworkObserver {
   private eventCallbacks: Map<string, NetworkEventCallback> = new Map();
   // eslint-disable-next-line no-restricted-globals
@@ -119,8 +127,7 @@ export class NetworkObserver {
       } catch (err) {
         // if the callback throws an error, we should catch it
         // to avoid breaking the fetch promise chain
-        /* istanbul ignore next */
-        this.logger?.debug('an unexpected error occurred while triggering event callbacks', err);
+        safeInvoke(() => this.logger?.debug?.('an unexpected error occurred while triggering event callbacks', err));
       }
     });
   }
@@ -222,8 +229,7 @@ export class NetworkObserver {
       try {
         timestamps = this.getTimestamps();
       } catch (error) {
-        /* istanbul ignore next */
-        this.logger?.debug('an unexpected error occurred while retrieving timestamps', error);
+        safeInvoke(() => this.logger?.debug('an unexpected error occurred while retrieving timestamps', error));
       }
 
       // 2. make the call to the original fetch and preserve the response or error
@@ -251,8 +257,7 @@ export class NetworkObserver {
       } catch (err) {
         // this catch shouldn't be reachable, but keep it here for safety
         // because we're overriding the fetch function and better to be safe than sorry
-        /* istanbul ignore next */
-        this.logger?.debug('an unexpected error occurred while handling fetch', err);
+        safeInvoke(() => this.logger?.debug('an unexpected error occurred while handling fetch', err));
       }
 
       // 4. return the original response or throw the original error
@@ -294,9 +299,9 @@ export class NetworkObserver {
         if (err instanceof Error && err.name === 'InvalidStateError') {
           // https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest/responseText#exceptions
           // if we reach here, it means we don't handle responseType correctly
-          context.logger?.error(
+          safeInvoke(() => context.logger?.debug?.(
             `unexpected error when retrieving responseText. responseType='${xhrUnsafe.responseType}'`,
-          );
+          ));
         }
         // the other possible error is Json Parse error which we fail silently
         return null;
@@ -345,8 +350,7 @@ export class NetworkObserver {
           ...networkObserverContext.getTimestamps(),
         } as AmplitudeAnalyticsEvent;
       } catch (err) {
-        /* istanbul ignore next */
-        networkObserverContext.logger?.error('an unexpected error occurred while calling xhr open', err);
+        safeInvoke(() => networkObserverContext.logger?.debug?.('an unexpected error occurred while calling xhr open', err));
       }
       // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       return originalXhrOpen.apply(xhrSafe, args as any);
@@ -393,8 +397,7 @@ export class NetworkObserver {
             requestEvent.durationStart,
           );
         } catch (err) {
-          /* istanbul ignore next */
-          networkObserverContext.logger?.error('an unexpected error occurred while handling xhr send', err);
+          safeInvoke(() => networkObserverContext.logger?.debug?.('an unexpected error occurred while handling xhr send', err));
         }
       });
       /* eslint-disable-next-line @typescript-eslint/no-unsafe-argument */
@@ -415,8 +418,7 @@ export class NetworkObserver {
         /* eslint-disable-next-line @typescript-eslint/no-unsafe-assignment */
         xhrSafe.$$AmplitudeAnalyticsEvent.headers[headerName as string] = headerValue as string;
       } catch (err) {
-        /* istanbul ignore next */
-        networkObserverContext.logger?.error('an unexpected error occurred while calling xhr setRequestHeader', err);
+        safeInvoke(() => networkObserverContext.logger?.debug?.('an unexpected error occurred while calling xhr setRequestHeader', err));
       }
       /* eslint-disable-next-line @typescript-eslint/no-unsafe-argument */
       originalXhrSetRequestHeader.apply(xhrSafe, [headerName, headerValue]);
