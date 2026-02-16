@@ -127,7 +127,10 @@ export class NetworkObserver {
       } catch (err) {
         // if the callback throws an error, we should catch it
         // to avoid breaking the fetch promise chain
-        safeInvoke(() => this.logger?.debug?.('an unexpected error occurred while triggering event callbacks', err));
+        safeInvoke(() => {
+          /* istanbul ignore next */
+          this.logger?.debug?.('an unexpected error occurred while triggering event callbacks', err);
+        });
       }
     });
   }
@@ -229,6 +232,7 @@ export class NetworkObserver {
       try {
         timestamps = this.getTimestamps();
       } catch (error) {
+        /* istanbul ignore next */
         safeInvoke(() => this.logger?.debug('an unexpected error occurred while retrieving timestamps', error));
       }
 
@@ -257,7 +261,8 @@ export class NetworkObserver {
       } catch (err) {
         // this catch shouldn't be reachable, but keep it here for safety
         // because we're overriding the fetch function and better to be safe than sorry
-        safeInvoke(() => this.logger?.debug('an unexpected error occurred while handling fetch', err));
+        /* istanbul ignore next */
+        safeInvoke(() => this.logger?.debug?.('an unexpected error occurred while handling fetch', err));
       }
 
       // 4. return the original response or throw the original error
@@ -299,9 +304,11 @@ export class NetworkObserver {
         if (err instanceof Error && err.name === 'InvalidStateError') {
           // https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest/responseText#exceptions
           // if we reach here, it means we don't handle responseType correctly
-          safeInvoke(() => context.logger?.debug?.(
-            `unexpected error when retrieving responseText. responseType='${xhrUnsafe.responseType}'`,
-          ));
+          safeInvoke(() =>
+            context.logger?.debug(
+              `unexpected error when retrieving responseText. responseType='${xhrUnsafe.responseType}'`,
+            ),
+          );
         }
         // the other possible error is Json Parse error which we fail silently
         return null;
@@ -350,7 +357,10 @@ export class NetworkObserver {
           ...networkObserverContext.getTimestamps(),
         } as AmplitudeAnalyticsEvent;
       } catch (err) {
-        safeInvoke(() => networkObserverContext.logger?.debug?.('an unexpected error occurred while calling xhr open', err));
+        /* istanbul ignore next */
+        safeInvoke(() =>
+          networkObserverContext.logger?.debug('an unexpected error occurred while calling xhr open', err),
+        );
       }
       // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       return originalXhrOpen.apply(xhrSafe, args as any);
@@ -372,34 +382,42 @@ export class NetworkObserver {
       const body = args[0] as XMLHttpRequestBodyInitSafe;
       const requestEvent = xhrSafe.$$AmplitudeAnalyticsEvent;
 
-      xhrSafe.addEventListener('loadend', function () {
-        try {
-          const responseHeaders = xhrSafe.getAllResponseHeaders();
-          const responseBodySize = xhrSafe.getResponseHeader('content-length');
+      // if xhrSafe.$$AmplitudeAnalyticsEvent is not set, it means that
+      // the xhr.open method was called before we monkey-patched XHR and
+      // the event is missed
+      if (xhrSafe.$$AmplitudeAnalyticsEvent) {
+        xhrSafe.addEventListener('loadend', function () {
+          try {
+            const responseHeaders = xhrSafe.getAllResponseHeaders();
+            const responseBodySize = xhrSafe.getResponseHeader('content-length');
 
-          const responseWrapper = new ResponseWrapperXhr(
-            xhrSafe.status,
-            responseHeaders,
+            const responseWrapper = new ResponseWrapperXhr(
+              xhrSafe.status,
+              responseHeaders,
+              /* istanbul ignore next */
+              responseBodySize ? parseInt(responseBodySize, 10) : undefined,
+              getJson,
+            );
+            const requestHeaders = xhrSafe.$$AmplitudeAnalyticsEvent.headers;
+            const requestWrapper = new RequestWrapperXhr(body, requestHeaders);
+            requestEvent.status = xhrSafe.status;
+            networkObserverContext.handleNetworkRequestEvent(
+              'xhr',
+              { url: requestEvent.url, method: requestEvent.method },
+              requestWrapper,
+              responseWrapper,
+              undefined,
+              requestEvent.startTime,
+              requestEvent.durationStart,
+            );
+          } catch (err) {
             /* istanbul ignore next */
-            responseBodySize ? parseInt(responseBodySize, 10) : undefined,
-            getJson,
-          );
-          const requestHeaders = xhrSafe.$$AmplitudeAnalyticsEvent.headers;
-          const requestWrapper = new RequestWrapperXhr(body, requestHeaders);
-          requestEvent.status = xhrSafe.status;
-          networkObserverContext.handleNetworkRequestEvent(
-            'xhr',
-            { url: requestEvent.url, method: requestEvent.method },
-            requestWrapper,
-            responseWrapper,
-            undefined,
-            requestEvent.startTime,
-            requestEvent.durationStart,
-          );
-        } catch (err) {
-          safeInvoke(() => networkObserverContext.logger?.debug?.('an unexpected error occurred while handling xhr send', err));
-        }
-      });
+            safeInvoke(() =>
+              networkObserverContext.logger?.debug('an unexpected error occurred while handling xhr send', err),
+            );
+          }
+        });
+      }
       /* eslint-disable-next-line @typescript-eslint/no-unsafe-argument */
       return originalXhrSend.apply(xhrSafe, args as any);
     };
@@ -415,10 +433,19 @@ export class NetworkObserver {
     xhrProto.setRequestHeader = function (headerName: any, headerValue: any) {
       const xhrSafe = this as unknown as AmplitudeXMLHttpRequestSafe;
       try {
-        /* eslint-disable-next-line @typescript-eslint/no-unsafe-assignment */
-        xhrSafe.$$AmplitudeAnalyticsEvent.headers[headerName as string] = headerValue as string;
+        const analyticsEvent = xhrSafe.$$AmplitudeAnalyticsEvent;
+        if (analyticsEvent) {
+          /* eslint-disable-next-line @typescript-eslint/no-unsafe-assignment */
+          analyticsEvent.headers[headerName as string] = headerValue as string;
+        }
       } catch (err) {
-        safeInvoke(() => networkObserverContext.logger?.debug?.('an unexpected error occurred while calling xhr setRequestHeader', err));
+        /* istanbul ignore next */
+        safeInvoke(() =>
+          networkObserverContext.logger?.debug?.(
+            'an unexpected error occurred while calling xhr setRequestHeader',
+            err,
+          ),
+        );
       }
       /* eslint-disable-next-line @typescript-eslint/no-unsafe-argument */
       originalXhrSetRequestHeader.apply(xhrSafe, [headerName, headerValue]);

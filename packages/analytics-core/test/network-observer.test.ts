@@ -865,6 +865,7 @@ describe('observeXhr', () => {
     onreadystatechange: (() => void) | null = null;
     openCalled = false;
     sendCalled = false;
+    setRequestHeaderCalled = false;
 
     constructor(options?: MockXHROptions) {
       if (options) {
@@ -906,11 +907,15 @@ describe('observeXhr', () => {
     }
 
     setRequestHeader(header: string, value: string): void {
+      this.setRequestHeaderCalled = true;
       (this as any)[header] = value;
     }
   }
 
   let networkObserver: any, originalGlobal;
+  let originalMockXhrOpen: typeof MockXHR.prototype.open;
+  let originalMockXhrSend: typeof MockXHR.prototype.send;
+  let originalMockXhrSetRequestHeader: typeof MockXHR.prototype.setRequestHeader;
 
   beforeAll(() => {
     // override globalScope to include mock XHR
@@ -921,6 +926,10 @@ describe('observeXhr', () => {
       XMLHttpRequest: MockXHR,
       TextEncoder,
     } as any;
+    // Save original MockXHR methods so we can restore between tests (patch persists across tests otherwise)
+    originalMockXhrOpen = MockXHR.prototype.open;
+    originalMockXhrSend = MockXHR.prototype.send;
+    originalMockXhrSetRequestHeader = MockXHR.prototype.setRequestHeader;
   });
 
   afterAll(() => {});
@@ -968,6 +977,65 @@ describe('observeXhr', () => {
       xhr.setRequestHeader('Authorization', 'secretpassword!');
       xhr.setRequestHeader('X-Custom-Header', 'customvalue');
       xhr.send('hello world!');
+    });
+
+    // eslint-disable-next-line jest/no-done-callback
+    describe('xhr.open monkey-patching order matters', () => {
+      // Use a fresh observer so the first test's subscribe() actually patches MockXHR (shared observer already has isObserving=true)
+      let networkObserver2: NetworkObserver;
+      beforeAll(() => {
+        MockXHR.prototype.open = originalMockXhrOpen;
+        MockXHR.prototype.send = originalMockXhrSend;
+        MockXHR.prototype.setRequestHeader = originalMockXhrSetRequestHeader;
+        networkObserver2 = new NetworkObserver();
+        (networkObserver2 as unknown as any).globalScope = (networkObserver as unknown as any).globalScope;
+      });
+      beforeEach(() => {
+        jest.useFakeTimers();
+      });
+      afterEach(() => {
+        jest.useRealTimers();
+      });
+      it('should not track event when xhr.open is called before patch ($$AmplitudeAnalyticsEvent not set)', () => {
+        const XMLHttpRequest = (networkObserver2 as unknown as any).globalScope.XMLHttpRequest;
+        const xhr = new XMLHttpRequest();
+        xhr.open('GET', 'https://api.example.com/data');
+        let callbackInvoked = false;
+        const callback = () => {
+          callbackInvoked = true;
+        };
+        const callbackToUnsubscribe = new NetworkEventCallback(callback);
+        networkObserver2.subscribe(callbackToUnsubscribe);
+        networkObserver2.subscribe(new NetworkEventCallback(callback));
+        expect(xhr.sendCalled).toBe(false);
+        expect(xhr.setRequestHeaderCalled).toBe(false);
+        xhr.setRequestHeader('X-Custom-Header', 'customvalue');
+        xhr.send('body');
+        jest.runAllTimers();
+        expect(callbackInvoked).toBe(false);
+        expect(xhr.sendCalled).toBe(true);
+        expect(xhr.setRequestHeaderCalled).toBe(true);
+        expect(xhr.$$AmplitudeAnalyticsEvent).toBeUndefined();
+        networkObserver2.unsubscribe(callbackToUnsubscribe);
+      });
+
+      it('should invoke callback when xhr.open is called after patch ($$AmplitudeAnalyticsEvent set)', () => {
+        const XMLHttpRequest = (networkObserver2 as unknown as any).globalScope.XMLHttpRequest;
+        const xhr = new XMLHttpRequest();
+        let callbackInvoked = false;
+        const callback = () => {
+          callbackInvoked = true;
+        };
+        networkObserver2.subscribe(new NetworkEventCallback(callback));
+        xhr.open('GET', 'https://api.example.com/data');
+        expect(xhr.sendCalled).toBe(false);
+        expect(xhr.setRequestHeaderCalled).toBe(false);
+        xhr.setRequestHeader('X-Custom-Header', 'customvalue');
+        xhr.send('body');
+        jest.advanceTimersByTime(100);
+        expect(xhr.$$AmplitudeAnalyticsEvent).toBeDefined();
+        expect(callbackInvoked).toBe(true);
+      });
     });
   });
 
