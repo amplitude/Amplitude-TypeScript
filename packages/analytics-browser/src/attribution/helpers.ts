@@ -8,7 +8,7 @@ import {
 } from '@amplitude/analytics-core';
 
 export interface Options {
-  excludeReferrers?: (string | RegExp)[] | true;
+  excludeReferrers?: (string | RegExp)[];
   initialEmptyValue?: string;
   resetSessionOnNewCampaign?: boolean;
   optOut?: boolean;
@@ -66,10 +66,7 @@ export const isNewCampaign = (
   return result;
 };
 
-export const isExcludedReferrer = (excludeReferrers: (string | RegExp)[] | true = [], referringDomain = '') => {
-  if (excludeReferrers === true) {
-    return true;
-  }
+export const isExcludedReferrer = (excludeReferrers: (string | RegExp)[] = [], referringDomain = '') => {
   return excludeReferrers.some((value) =>
     value instanceof RegExp ? value.test(referringDomain) : value === referringDomain,
   );
@@ -138,6 +135,7 @@ const KNOWN_2LDS = [
  */
 function getHostDomain() {
   const globalScope = getGlobalScope();
+  /* istanbul ignore next */
   const { hostname } = globalScope?.location ?? {};
   if (!hostname || typeof hostname !== 'string') {
     return '';
