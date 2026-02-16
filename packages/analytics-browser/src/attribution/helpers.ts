@@ -126,12 +126,12 @@ const KNOWN_2LDS = [
 ];
 
 /**
- * This function is a best-effort to get the most specific domain from the current page.
+ * Best-effort most specific domain from the current page.
+ * Fallback from using "getTopLevelDomain()" if no domain provided in config.
  *
  * The reason it's "best-effort" is because we don't have access to the
  * Public Suffix List (https://publicsuffix.org/) to be able to perfectly
  * determine the most specific domain.
- *
  */
 function getHostDomain() {
   const globalScope = getGlobalScope();
@@ -143,14 +143,14 @@ function getHostDomain() {
   const parts = hostname.split('.');
   let tld = parts[parts.length - 1];
   let name = parts[parts.length - 2];
-  if (KNOWN_2LDS.find((tld) => hostname.endsWith(tld))) {
+  if (KNOWN_2LDS.find((tld) => hostname.endsWith(`.${tld}`))) {
     tld = parts[parts.length - 2] + '.' + parts[parts.length - 1];
     name = parts[parts.length - 3];
   }
 
   if (!name) return tld;
 
-  return name + '.' + tld;
+  return `${name}.${tld}`;
 }
 
 export const getDefaultExcludedReferrers = (cookieDomain: string | undefined) => {

@@ -343,6 +343,7 @@ describe('getDefaultExcludedReferrers', () => {
         ['amplitude.com', [new RegExp('amplitude\\.com$')]],
         ['sub.domain.amplitude.io', [new RegExp('amplitude\\.io$')]],
         ['phony.fakedomain', [new RegExp('phony\\.fakedomain$')]],
+        ['shop.tesco.uk', [new RegExp('tesco\\.uk$')]],
       ];
       oneLevelDomains.forEach(([hostname, expected]) => {
         locationSpy.mockImplementation(() => ({
