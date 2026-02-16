@@ -310,7 +310,19 @@ describe('createCampaignEvent', () => {
 });
 
 describe('getDefaultExcludedReferrers', () => {
-  test('should return empty array', () => {
+  let locationSpy: jest.SpyInstance;
+  beforeEach(() => {
+    locationSpy = jest.spyOn(global, 'location', 'get');
+  });
+
+  afterEach(() => {
+    locationSpy.mockRestore();
+  });
+
+  test('should return empty array if no domain provided and no location', () => {
+    locationSpy.mockImplementation(() => ({
+      hostname: undefined,
+    }));
     const excludedReferrers = getDefaultExcludedReferrers(undefined);
     expect(excludedReferrers).toEqual([]);
   });
@@ -323,5 +335,52 @@ describe('getDefaultExcludedReferrers', () => {
   test('should return array with regex 2', () => {
     const excludedReferrers = getDefaultExcludedReferrers('.amplitude.com');
     expect(excludedReferrers).toEqual([new RegExp('amplitude\\.com$')]);
+  });
+
+  describe('when no domain provided', () => {
+    test('should match 1LD', () => {
+      const oneLevelDomains = [
+        ['amplitude.com', [new RegExp('amplitude\\.com$')]],
+        ['sub.domain.amplitude.io', [new RegExp('amplitude\\.io$')]],
+        ['phony.fakedomain', [new RegExp('phony\\.fakedomain$')]],
+      ];
+      oneLevelDomains.forEach(([hostname, expected]) => {
+        locationSpy.mockImplementation(() => ({
+          hostname,
+        }));
+        expect(getDefaultExcludedReferrers(undefined)).toEqual(expected);
+      });
+    });
+
+    test('should match 2LDs', () => {
+      const twoLevelDomains = [
+        ['amplitude.com', [new RegExp('amplitude\\.com$')]], // 1LD move this
+        ['amplitude.co.uk', [new RegExp('amplitude\\.co\\.uk$')]],
+        ['amplitude.gov.uk', [new RegExp('amplitude\\.gov\\.uk$')]],
+        ['amplitude.ac.uk', [new RegExp('amplitude\\.ac\\.uk$')]],
+        ['amplitude.co.jp', [new RegExp('amplitude\\.co\\.jp$')]],
+        ['something.amplitude.ne.jp', [new RegExp('amplitude\\.ne\\.jp$')]],
+        ['www.amplitude.or.jp', [new RegExp('amplitude\\.or\\.jp$')]],
+      ];
+      twoLevelDomains.forEach(([hostname, expected]) => {
+        locationSpy.mockImplementation(() => ({
+          hostname,
+        }));
+        expect(getDefaultExcludedReferrers(undefined)).toEqual(expected);
+      });
+    });
+
+    test('should match edge cases', () => {
+      const edgeCases = [
+        ['localhost', [new RegExp('localhost$')]],
+        ['192.168.1.1', [new RegExp('1\\.1$')]],
+      ];
+      edgeCases.forEach(([hostname, expected]) => {
+        locationSpy.mockImplementation(() => ({
+          hostname,
+        }));
+        expect(getDefaultExcludedReferrers(undefined)).toEqual(expected);
+      });
+    });
   });
 });
