@@ -23,7 +23,6 @@ type GlobalScopeWithCookieStore = {
 export class CookieStorage<T> implements Storage<T> {
   options: CookieStorageOptions;
   config: CookieStorageConfig;
-  private static testValue: undefined | string;
 
   constructor(options?: CookieStorageOptions, config: CookieStorageConfig = {}) {
     this.options = { ...options };
@@ -36,7 +35,7 @@ export class CookieStorage<T> implements Storage<T> {
       return false;
     }
 
-    CookieStorage.testValue = String(Date.now());
+    const testValue = String(Date.now());
     const testCookieOptions = {
       ...this.options,
       expirationDays: 0.003, // expire in ~5 minutes
@@ -44,9 +43,9 @@ export class CookieStorage<T> implements Storage<T> {
     const testStorage = new CookieStorage<string>(testCookieOptions);
     const testKey = `AMP_TEST_${UUID().substring(0, 8)}`;
     try {
-      await testStorage.set(testKey, CookieStorage.testValue);
+      await testStorage.set(testKey, testValue);
       const value = await testStorage.get(testKey);
-      return value === CookieStorage.testValue;
+      return value === testValue;
     } catch {
       /* istanbul ignore next */
       return false;
