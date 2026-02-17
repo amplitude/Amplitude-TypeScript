@@ -3,6 +3,22 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.39.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.38.0...@amplitude/analytics-core@2.39.0) (2026-02-17)
+
+
+### Bug Fixes
+
+* **analytics-browser:** cookie re-entrancy problem in isEnabled ([#1539](https://github.com/amplitude/Amplitude-TypeScript/issues/1539)) ([bb4b25e](https://github.com/amplitude/Amplitude-TypeScript/commit/bb4b25e03d05ca2b86e2bfb530b371c155ba70d1))
+
+
+### Features
+
+* **analytics-browser:** add setIdentity() ([#1517](https://github.com/amplitude/Amplitude-TypeScript/issues/1517)) ([314b3c1](https://github.com/amplitude/Amplitude-TypeScript/commit/314b3c1b7ee5b0ef135848a66156eb2874daec5f))
+
+
+
+
+
 # [2.38.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.37.0...@amplitude/analytics-core@2.38.0) (2026-02-10)
 
 

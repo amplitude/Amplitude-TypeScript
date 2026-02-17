@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.30.11](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.30.10...@amplitude/session-replay-browser@1.30.11) (2026-02-17)
+
+
+### Bug Fixes
+
+* **session-replay-browser:** prevent worker script load failure from blob URLs ([#1522](https://github.com/amplitude/Amplitude-TypeScript/issues/1522)) ([decccae](https://github.com/amplitude/Amplitude-TypeScript/commit/decccaea363c3f88c1bee7b3629435a07268d699))
+
+
+
+
+
 ## [1.30.10](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.30.9...@amplitude/session-replay-browser@1.30.10) (2026-02-10)
 
 **Note:** Version bump only for package @amplitude/session-replay-browser

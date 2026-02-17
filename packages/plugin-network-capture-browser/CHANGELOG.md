@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.8.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-network-capture-browser@1.7.9...@amplitude/plugin-network-capture-browser@1.8.0) (2026-02-17)
+
+
+### Features
+
+* **analytics-browser:** add setIdentity() ([#1517](https://github.com/amplitude/Amplitude-TypeScript/issues/1517)) ([314b3c1](https://github.com/amplitude/Amplitude-TypeScript/commit/314b3c1b7ee5b0ef135848a66156eb2874daec5f))
+
+
+
+
+
 ## [1.7.9](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-network-capture-browser@1.7.8...@amplitude/plugin-network-capture-browser@1.7.9) (2026-02-10)
 
 **Note:** Version bump only for package @amplitude/plugin-network-capture-browser
