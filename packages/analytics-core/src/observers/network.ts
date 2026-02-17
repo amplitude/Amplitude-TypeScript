@@ -129,7 +129,7 @@ export class NetworkObserver {
         // to avoid breaking the fetch promise chain
         safeInvoke(() => {
           /* istanbul ignore next */
-          this.logger?.debug?.('an unexpected error occurred while triggering event callbacks', err);
+          this.logger?.debug('an unexpected error occurred while triggering event callbacks', err);
         });
       }
     });
@@ -262,7 +262,7 @@ export class NetworkObserver {
         // this catch shouldn't be reachable, but keep it here for safety
         // because we're overriding the fetch function and better to be safe than sorry
         /* istanbul ignore next */
-        safeInvoke(() => this.logger?.debug?.('an unexpected error occurred while handling fetch', err));
+        safeInvoke(() => this.logger?.debug('an unexpected error occurred while handling fetch', err));
       }
 
       // 4. return the original response or throw the original error
@@ -441,10 +441,7 @@ export class NetworkObserver {
       } catch (err) {
         /* istanbul ignore next */
         safeInvoke(() =>
-          networkObserverContext.logger?.debug?.(
-            'an unexpected error occurred while calling xhr setRequestHeader',
-            err,
-          ),
+          networkObserverContext.logger?.debug('an unexpected error occurred while calling xhr setRequestHeader', err),
         );
       }
       /* eslint-disable-next-line @typescript-eslint/no-unsafe-argument */
