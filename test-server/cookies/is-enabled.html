@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>cookie isEnabled</title>
+</head>
+<body>
+  <pre id="out"></pre>
+  <script type="module">
+    import { CookieStorage } from '@amplitude/analytics-core';
+
+    const out = document.getElementById('out');
+
+    function log(msg) {
+      out.textContent += msg + '\n';
+    }
+
+    async function run() {
+      const c1 = new CookieStorage();
+      const c2 = new CookieStorage();
+
+      const promises = [
+        c1.isEnabled(),
+        c2.isEnabled(),
+        c1.isEnabled(),
+        c2.isEnabled(),
+      ];
+      const res = await Promise.all(promises);
+
+      const allTrue = res.every((r) => r === true);
+      log('Parallel calls: ' + JSON.stringify(res));
+      log('All true: ' + allTrue);
+
+      const a = await c1.isEnabled();
+      const b = await c1.isEnabled();
+      const c = await c2.isEnabled();
+      log('Sequential c1.isEnabled(): ' + a + ', ' + b);
+      log('Sequential c2.isEnabled(): ' + c);
+      log('All true: ' + (a && b && c));
+    }
+
+    run().catch((e) => {
+      log('Error: ' + e.message);
+    });
+  </script>
+</body>
+</html>

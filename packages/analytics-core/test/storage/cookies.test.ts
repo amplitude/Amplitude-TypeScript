@@ -9,6 +9,14 @@ import * as GlobalScopeModule from '../../src/global-scope';
 
 describe('cookies', () => {
   describe('isEnabled', () => {
+    test('regression test re-entrancy issue', async () => {
+      const c1 = new CookieStorage();
+      const c2 = new CookieStorage();
+      // calling isEnabled one after the other should not cause a re-entrancy issue
+      const promises = [c1.isEnabled(), c2.isEnabled()];
+      const res = await Promise.all(promises);
+      expect(res).toEqual([true, true]);
+    });
     test('should return true', async () => {
       const cookies = new CookieStorage();
       expect(await cookies.isEnabled()).toBe(true);
