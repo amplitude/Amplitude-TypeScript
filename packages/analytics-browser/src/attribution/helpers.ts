@@ -1,4 +1,11 @@
-import { createIdentifyEvent, Identify, ILogger, Campaign, BASE_CAMPAIGN } from '@amplitude/analytics-core';
+import {
+  createIdentifyEvent,
+  Identify,
+  ILogger,
+  Campaign,
+  BASE_CAMPAIGN,
+  getGlobalScope,
+} from '@amplitude/analytics-core';
 
 export interface Options {
   excludeReferrers?: (string | RegExp)[];
@@ -83,13 +90,82 @@ export const createCampaignEvent = (campaign: Campaign, options: Options) => {
   return createIdentifyEvent(identifyEvent);
 };
 
+/**
+ * List of 2-level TLD's (not an exhaustive list)
+ * This list was compiled by downloading the top 1 million domains
+ * from https://tranco-list.eu/ and then filtering for domains that have
+ * a 2-level TLD.
+ */
+const KNOWN_2LDS = [
+  'co.uk',
+  'gov.uk',
+  'ac.uk',
+  'co.jp',
+  'ne.jp',
+  'or.jp',
+  'co.kr',
+  'or.kr',
+  'go.kr',
+  'com.au',
+  'net.au',
+  'org.au',
+  'com.br',
+  'net.br',
+  'org.br',
+  'com.cn',
+  'net.cn',
+  'org.cn',
+  'com.mx',
+  'github.io',
+  'gitlab.io',
+  'cloudfront.net',
+  'herokuapp.com',
+  'appspot.com',
+  'azurewebsites.net',
+  'firebaseapp.com',
+];
+
+/**
+ * Best-effort most specific domain from the current page.
+ * Fallback from using "getTopLevelDomain()" if no domain provided in config.
+ *
+ * The reason it's "best-effort" is because we don't have access to the
+ * Public Suffix List (https://publicsuffix.org/) to be able to perfectly
+ * determine the most specific domain.
+ */
+function getHostDomain() {
+  const globalScope = getGlobalScope();
+  /* istanbul ignore next */
+  const { hostname } = globalScope?.location ?? {};
+  if (!hostname || typeof hostname !== 'string') {
+    return '';
+  }
+  const parts = hostname.split('.');
+  let tld = parts[parts.length - 1];
+  let name = parts[parts.length - 2];
+  if (KNOWN_2LDS.find((tld) => hostname.endsWith(`.${tld}`))) {
+    tld = parts[parts.length - 2] + '.' + parts[parts.length - 1];
+    name = parts[parts.length - 3];
+  }
+
+  if (!name) return tld;
+
+  return `${name}.${tld}`;
+}
+
 export const getDefaultExcludedReferrers = (cookieDomain: string | undefined) => {
   let domain = cookieDomain;
+  if (!domain) {
+    // if no domain provided in config, call "getHostDomain()"
+    // as a best-effort fallback to get the host domain
+    domain = getHostDomain();
+  }
   if (domain) {
     if (domain.startsWith('.')) {
       domain = domain.substring(1);
     }
-    return [new RegExp(`${domain.replace('.', '\\.')}$`)];
+    domain = domain.replace(/\./g, '\\.');
+    return [new RegExp(`${domain}$`)];
   }
   return [];
 };
