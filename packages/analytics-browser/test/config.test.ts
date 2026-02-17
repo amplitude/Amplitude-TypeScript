@@ -393,6 +393,7 @@ describe('config', () => {
         ...testCookieStorage,
         options: {},
         config: {},
+        _isEnabled: jest.fn().mockResolvedValueOnce(Promise.resolve(false)),
       });
       const domain = await Config.getTopLevelDomain();
       expect(domain).toBe('');
@@ -421,11 +422,13 @@ describe('config', () => {
           ...testCookieStorage,
           options: {},
           config: {},
+          _isEnabled: jest.fn().mockResolvedValueOnce(Promise.resolve(true)),
         })
         .mockReturnValue({
           ...actualCookieStorage,
           options: {},
           config: {},
+          _isEnabled: jest.fn().mockResolvedValueOnce(Promise.resolve(true)),
         });
       expect(await Config.getTopLevelDomain('www.legislation.gov.uk')).toBe('.legislation.gov.uk');
     });
@@ -459,6 +462,21 @@ describe('config', () => {
       Object.defineProperty(window, 'location', {
         value: originalLocation,
         configurable: true,
+      });
+    });
+
+    test('should record a diagnostics event when no access to cookies', async () => {
+      const mockDiagnosticsClient = {
+        recordEvent: jest.fn(),
+        setTag: jest.fn(),
+        increment: jest.fn(),
+        recordHistogram: jest.fn(),
+        _flush: jest.fn(),
+        _setSampleRate: jest.fn(),
+      };
+      await Config.getTopLevelDomain('www.amplitude.com', mockDiagnosticsClient);
+      expect(mockDiagnosticsClient.recordEvent).toHaveBeenCalledWith('cookies.tld.failure', {
+        reason: 'Could not determine TLD for host www.amplitude.com',
       });
     });
   });

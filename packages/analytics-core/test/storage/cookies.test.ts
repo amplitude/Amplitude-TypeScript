@@ -17,9 +17,41 @@ describe('cookies', () => {
       const res = await Promise.all(promises);
       expect(res).toEqual([true, true]);
     });
+
     test('should return true', async () => {
       const cookies = new CookieStorage();
       expect(await cookies.isEnabled()).toBe(true);
+    });
+
+    test('should return true if _isEnabled returns false the first time and then returns true', async () => {
+      const cookies = new CookieStorage();
+      const _isEnabledSpy = jest.spyOn(cookies, '_isEnabled');
+      _isEnabledSpy.mockResolvedValueOnce(false).mockResolvedValueOnce(true);
+      expect(await cookies.isEnabled()).toBe(true);
+      expect(_isEnabledSpy).toHaveBeenCalledTimes(2);
+    });
+
+    test('should cache the result of _isEnabled if it returns true once', async () => {
+      const cookies = new CookieStorage();
+      expect(await cookies.isEnabled()).toBe(true);
+      expect(CookieStorage.isEnabledCachedResult).toBe(true);
+      expect(await cookies.isEnabled()).toBe(true);
+    });
+
+    test('should return false if _isEnabled returns false after 3 attempts', async () => {
+      const mockDiagnosticsClient = {
+        recordEvent: jest.fn(),
+        increment: jest.fn(),
+        recordHistogram: jest.fn(),
+        setTag: jest.fn(),
+        _flush: jest.fn(),
+        _setSampleRate: jest.fn(),
+      };
+      const cookies = new CookieStorage({}, { diagnosticsClient: mockDiagnosticsClient });
+      const _isEnabledSpy = jest.spyOn(cookies, '_isEnabled');
+      _isEnabledSpy.mockResolvedValue(false);
+      expect(await cookies.isEnabled()).toBe(false);
+      expect(_isEnabledSpy).toHaveBeenCalledTimes(3);
     });
   });
 
