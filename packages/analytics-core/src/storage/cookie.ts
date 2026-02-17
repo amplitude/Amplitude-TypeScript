@@ -23,16 +23,22 @@ type GlobalScopeWithCookieStore = {
 export class CookieStorage<T> implements Storage<T> {
   options: CookieStorageOptions;
   config: CookieStorageConfig;
+  // if "isEnabled" returns true once, cache the result to avoid multiple calls to _isEnabled
+  static isEnabledCachedResult = false;
 
   constructor(options?: CookieStorageOptions, config: CookieStorageConfig = {}) {
     this.options = { ...options };
     this.config = config;
   }
 
-  async isEnabled(): Promise<boolean> {
+  async _isEnabled(): Promise<boolean> {
     /* istanbul ignore if */
     if (!getGlobalScope()) {
       return false;
+    }
+
+    if (CookieStorage.isEnabledCachedResult) {
+      return true;
     }
 
     const testValue = String(Date.now());
@@ -45,13 +51,44 @@ export class CookieStorage<T> implements Storage<T> {
     try {
       await testStorage.set(testKey, testValue);
       const value = await testStorage.get(testKey);
+      if (value !== testValue && this.config.diagnosticsClient) {
+        this.config.diagnosticsClient?.recordEvent('cookies.isEnabled.failure', {
+          reason: 'Test Value mismatch',
+          testKey,
+          testValue,
+        });
+      }
       return value === testValue;
-    } catch {
+    } catch (e) {
       /* istanbul ignore next */
+      if (this.config.diagnosticsClient) {
+        const errMessage = e instanceof Error ? e.message : String(e);
+        this.config.diagnosticsClient?.recordEvent('cookies.isEnabled.failure', {
+          reason: 'Cookie getter/setter failed',
+          testKey,
+          testValue,
+          error: errMessage,
+        });
+      }
       return false;
     } finally {
       await testStorage.remove(testKey);
     }
+  }
+
+  async isEnabled(): Promise<boolean> {
+    const MAX_RETRIES = 3;
+    const DELAY_MS = 100;
+
+    for (let i = 0; i < MAX_RETRIES; i++) {
+      const isEnabled = await this._isEnabled();
+      if (isEnabled) {
+        CookieStorage.isEnabledCachedResult = true;
+        return true;
+      }
+      await new Promise((resolve) => setTimeout(resolve, DELAY_MS));
+    }
+    return false;
   }
 
   async get(key: string): Promise<T | undefined> {
