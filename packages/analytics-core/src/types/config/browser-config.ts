@@ -99,6 +99,12 @@ export interface ExternalBrowserConfig extends IConfig {
    */
   networkTrackingOptions?: NetworkTrackingOptions;
   /**
+   * Controls request body compression **only** when a custom `serverUrl` is configured.
+   * When using the SDK's default endpoints, request bodies are always compressed regardless of this setting.
+   * @defaultValue `false`
+   */
+  enableRequestBodyCompression?: boolean;
+  /**
    * Whether to enable diagnostics.
    * @defaultValue `true`
    */

@@ -107,8 +107,10 @@ export class BrowserConfig extends Config implements IBrowserConfig {
     public diagnosticsSampleRate: number = 0,
     public diagnosticsClient?: IDiagnosticsClient,
     public remoteConfig?: RemoteConfigOptions,
+    public enableRequestBodyCompression: boolean = false,
   ) {
-    super({ apiKey, storageProvider, transportProvider: createTransport(transport) });
+    const shouldCompressUploadBody = getShouldCompressUploadBody(serverUrl, enableRequestBodyCompression);
+    super({ apiKey, storageProvider, transportProvider: createTransport(transport, shouldCompressUploadBody) });
     this._cookieStorage = cookieStorage;
     this.deviceId = deviceId;
     this.lastEventId = lastEventId;
@@ -401,6 +403,7 @@ export const useBrowserConfig = async (
     earlyConfig?.diagnosticsSampleRate ?? amplitudeInstance._diagnosticsSampleRate,
     diagnosticsClient,
     options.remoteConfig,
+    options.enableRequestBodyCompression,
   );
 
   if (!(await browserConfig.storageProvider.isEnabled())) {
@@ -454,18 +457,32 @@ export const shouldFetchRemoteConfig = (options: BrowserOptions = {}): boolean =
   }
 };
 
-export const createTransport = (transport?: TransportTypeOrOptions) => {
+/**
+ * Custom servers may not support gzip compression—only enable it if opted in.
+ * When using the SDK's default endpoints, request bodies are always compressed.
+ */
+export const getShouldCompressUploadBody = (
+  serverUrl: string | undefined,
+  enableRequestBodyCompression: boolean,
+): boolean => {
+  if (serverUrl !== undefined && serverUrl !== '') {
+    return enableRequestBodyCompression;
+  }
+  return true;
+};
+
+export const createTransport = (transport?: TransportTypeOrOptions, shouldCompressUploadBody = true) => {
   const type = typeof transport === 'object' ? transport.type : transport;
   const headers = typeof transport === 'object' ? transport.headers : undefined;
 
   if (type === 'xhr') {
-    return new XHRTransport(headers);
+    return new XHRTransport(headers, shouldCompressUploadBody);
   }
   if (type === 'beacon') {
     // SendBeacon does not support custom headers
-    return new SendBeaconTransport();
+    return new SendBeaconTransport(shouldCompressUploadBody);
   }
-  return new FetchTransport(headers);
+  return new FetchTransport(headers, shouldCompressUploadBody);
 };
 
 export const getTopLevelDomain = async (url?: string) => {

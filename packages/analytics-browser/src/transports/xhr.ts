@@ -1,14 +1,32 @@
 import { BaseTransport, Payload, Response, Transport } from '@amplitude/analytics-core';
 
+declare const CompressionStream:
+  | {
+      new (format: string): { readable: ReadableStream; writable: WritableStream };
+    }
+  | undefined;
+
+// Compress string to gzip ArrayBuffer via CompressionStream.
+// XHR accepts ArrayBuffer but not ReadableStream.
+async function gzipToArrayBuffer(data: string): Promise<ArrayBuffer> {
+  if (typeof CompressionStream === 'undefined') {
+    throw new Error('CompressionStream is not available');
+  }
+  const stream = new Blob([data]).stream().pipeThrough(new CompressionStream('gzip'));
+  return new Response(stream).arrayBuffer();
+}
+
 export class XHRTransport extends BaseTransport implements Transport {
   private state = {
     done: 4,
   };
   private customHeaders: Record<string, string>;
+  private shouldCompressUploadBody: boolean;
 
-  constructor(customHeaders: Record<string, string> = {}) {
+  constructor(customHeaders: Record<string, string> = {}, shouldCompressUploadBody = false) {
     super();
     this.customHeaders = customHeaders;
+    this.shouldCompressUploadBody = shouldCompressUploadBody;
   }
 
   async send(serverUrl: string, payload: Payload): Promise<Response | null> {
@@ -37,10 +55,25 @@ export class XHRTransport extends BaseTransport implements Transport {
         Accept: '*/*',
         ...this.customHeaders,
       };
-      for (const [key, value] of Object.entries(headers)) {
-        xhr.setRequestHeader(key, value);
+
+      const bodyString = JSON.stringify(payload);
+      const sendBody = (body: string | ArrayBuffer, contentEncoding?: string) => {
+        if (contentEncoding) {
+          xhr.setRequestHeader('Content-Encoding', contentEncoding);
+        }
+        for (const [key, value] of Object.entries(headers)) {
+          xhr.setRequestHeader(key, value);
+        }
+        xhr.send(body);
+      };
+
+      if (this.shouldCompressUploadBody && typeof CompressionStream !== 'undefined') {
+        gzipToArrayBuffer(bodyString)
+          .then((body) => sendBody(body, 'gzip'))
+          .catch(reject);
+      } else {
+        sendBody(bodyString);
       }
-      xhr.send(JSON.stringify(payload));
     });
   }
 }

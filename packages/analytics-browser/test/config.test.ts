@@ -14,7 +14,7 @@ import {
 } from '@amplitude/analytics-core';
 import * as BrowserUtils from '@amplitude/analytics-core';
 import { XHRTransport } from '../src/transports/xhr';
-import { createTransport, useBrowserConfig, shouldFetchRemoteConfig } from '../src/config';
+import { createTransport, getShouldCompressUploadBody, useBrowserConfig, shouldFetchRemoteConfig } from '../src/config';
 import { SendBeaconTransport } from '../src/transports/send-beacon';
 import { uuidPattern } from './helpers/constants';
 import { DEFAULT_IDENTITY_STORAGE, DEFAULT_SERVER_ZONE } from '../src/constants';
@@ -336,6 +336,17 @@ describe('config', () => {
     test('should use memory', async () => {
       const storage = Config.createCookieStorage('none');
       expect(storage).toBeInstanceOf(core.MemoryStorage);
+    });
+  });
+
+  describe('getShouldCompressUploadBody', () => {
+    test('should return true when serverUrl is empty (default endpoints)', () => {
+      expect(getShouldCompressUploadBody('', false)).toBe(true);
+      expect(getShouldCompressUploadBody(undefined, false)).toBe(true);
+    });
+    test('should return enableRequestBodyCompression when custom serverUrl is set', () => {
+      expect(getShouldCompressUploadBody('https://custom.example.com', true)).toBe(true);
+      expect(getShouldCompressUploadBody('https://custom.example.com', false)).toBe(false);
     });
   });
 
