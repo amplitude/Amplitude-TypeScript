@@ -47,7 +47,7 @@ type RequestUrlAndMethod = {
 // Use great care when modifying this type, make sure you only use read-only properties and only add
 // what you need to access, nothing more.
 type AmplitudeXMLHttpRequestSafe = {
-  $$AmplitudeAnalyticsEvent: AmplitudeAnalyticsEvent;
+  $$AmplitudeAnalyticsEvent?: AmplitudeAnalyticsEvent;
   status: number;
   responseText: string;
   responseType: XMLHttpRequestResponseType;
