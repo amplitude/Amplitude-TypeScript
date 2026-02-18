@@ -1,7 +1,8 @@
 /* istanbul ignore file */
 /* eslint-disable no-restricted-globals */
 import { AMPLITUDE_VISUAL_TAGGING_SELECTOR_SCRIPT_URL, AMPLITUDE_VISUAL_TAGGING_HIGHLIGHT_CLASS } from '../constants';
-import { ActionType, BaseWindowMessenger, asyncLoadScript } from '@amplitude/analytics-core';
+import type { BaseWindowMessenger } from '@amplitude/analytics-core';
+import { ActionType, asyncLoadScript } from '@amplitude/analytics-core';
 import { VERSION } from '../version';
 import { DataExtractor } from '../data-extractor';
 

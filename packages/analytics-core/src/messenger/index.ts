@@ -1,4 +1,5 @@
-export { BaseWindowMessenger, getOrCreateWindowMessenger, ActionHandler } from './base-window-messenger';
+export type { BaseWindowMessenger, ActionHandler } from './base-window-messenger';
+export { getOrCreateWindowMessenger } from './base-window-messenger';
 export { enableBackgroundCapture } from './background-capture';
 export {
   AMPLITUDE_ORIGIN,

@@ -1,6 +1,5 @@
 // Shared origin constants for Amplitude cross-window communication
-// export const AMPLITUDE_ORIGIN = 'https://app.amplitude.com';
-export const AMPLITUDE_ORIGIN = 'https://local.amplitude.com:3010';
+export const AMPLITUDE_ORIGIN = 'https://app.amplitude.com';
 export const AMPLITUDE_ORIGIN_EU = 'https://app.eu.amplitude.com';
 export const AMPLITUDE_ORIGIN_STAGING = 'https://apps.stag2.amplitude.com';
 export const AMPLITUDE_ORIGINS_MAP: Record<string, string> = {

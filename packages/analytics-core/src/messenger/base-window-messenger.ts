@@ -32,7 +32,7 @@ const MESSENGER_GLOBAL_KEY = '__AMPLITUDE_MESSENGER__';
  * BaseWindowMessenger provides generic cross-window communication via postMessage.
  * Singleton access via getOrCreateWindowMessenger() to prevent duplicate instances
  */
-export class BaseWindowMessenger implements Messenger {
+class BaseWindowMessenger implements Messenger {
   /** Brand property for cross-bundle instanceof checks. */
   readonly [MESSENGER_BRAND] = true;
 
@@ -254,3 +254,5 @@ export function getOrCreateWindowMessenger(options?: { origin?: string }): BaseW
   }
   return messenger;
 }
+
+export type { BaseWindowMessenger };

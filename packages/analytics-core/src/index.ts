@@ -146,10 +146,9 @@ export { InstanceProxy } from './types/proxy';
 export { safeJsonStringify } from './utils/safe-stringify';
 
 // Messenger (cross-window communication)
+export type { BaseWindowMessenger, ActionHandler } from './messenger';
 export {
-  BaseWindowMessenger,
   getOrCreateWindowMessenger,
-  ActionHandler,
   enableBackgroundCapture,
   AMPLITUDE_ORIGIN,
   AMPLITUDE_ORIGIN_EU,

@@ -1,6 +1,6 @@
 /* istanbul ignore file */
 /* eslint-disable no-restricted-globals */
-import { BaseWindowMessenger } from './base-window-messenger';
+import type { BaseWindowMessenger } from './base-window-messenger';
 import { AMPLITUDE_BACKGROUND_CAPTURE_SCRIPT_URL } from './constants';
 
 /**
