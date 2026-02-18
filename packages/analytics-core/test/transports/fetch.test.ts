@@ -2,6 +2,7 @@
  * @jest-environment jsdom
  */
 
+import { ReadableStream, WritableStream } from 'stream/web';
 import { FetchTransport } from '../../src/transports/fetch';
 import { Status } from '../../src/types/status';
 import 'isomorphic-fetch';
@@ -106,6 +107,47 @@ describe('fetch', () => {
         body: JSON.stringify(payload),
         method: 'POST',
       });
+    });
+
+    test('should send gzip-compressed body with Content-Encoding when shouldCompressUploadBody is true', async () => {
+      const mockReadable = new ReadableStream<Uint8Array>();
+      const mockCompressionStream = jest.fn().mockImplementation(() => ({
+        readable: mockReadable,
+        writable: new WritableStream(),
+      }));
+      (global as typeof globalThis & { CompressionStream?: unknown }).CompressionStream = mockCompressionStream;
+
+      // jsdom Blob doesn't implement .stream(); provide one that returns a pipeThrough-able ReadableStream (Node stream/web)
+      const blobStreamSource = new ReadableStream<Uint8Array>();
+      // Node stream/web ReadableStream is compatible at runtime with DOM Blob.stream() for this test
+      Object.defineProperty(Blob.prototype, 'stream', {
+        value: () => blobStreamSource,
+        configurable: true,
+        writable: true,
+      });
+
+      const transport = new FetchTransport({}, true);
+      const url = 'http://localhost:3000';
+      const payload = { api_key: '', events: [] };
+
+      const fetchSpy = jest.spyOn(window, 'fetch').mockReturnValueOnce(Promise.resolve(new Response('{}')));
+
+      await transport.send(url, payload);
+
+      expect(fetchSpy).toHaveBeenCalledTimes(1);
+      const [calledUrl, options] = fetchSpy.mock.calls[0];
+      expect(calledUrl).toBe(url);
+      expect(options?.headers).toMatchObject({
+        'Content-Type': 'application/json',
+        Accept: '*/*',
+        'Content-Encoding': 'gzip',
+      });
+      expect(options?.body).toBe(mockReadable);
+      expect(options?.method).toBe('POST');
+
+      delete (Blob.prototype as unknown as { stream?: () => ReadableStream }).stream;
+      const g = global as { CompressionStream?: unknown };
+      delete g.CompressionStream;
     });
   });
 });
