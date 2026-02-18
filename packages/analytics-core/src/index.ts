@@ -144,3 +144,18 @@ export { Observable, asyncMap, merge, multicast, Unsubscribable } from './utils/
 
 export { InstanceProxy } from './types/proxy';
 export { safeJsonStringify } from './utils/safe-stringify';
+
+// Messenger (cross-window communication)
+export {
+  BaseWindowMessenger,
+  getOrCreateWindowMessenger,
+  ActionHandler,
+  enableBackgroundCapture,
+  AMPLITUDE_ORIGIN,
+  AMPLITUDE_ORIGIN_EU,
+  AMPLITUDE_ORIGIN_STAGING,
+  AMPLITUDE_ORIGINS_MAP,
+  AMPLITUDE_BACKGROUND_CAPTURE_SCRIPT_URL,
+  asyncLoadScript,
+  generateUniqueId,
+} from './messenger';
