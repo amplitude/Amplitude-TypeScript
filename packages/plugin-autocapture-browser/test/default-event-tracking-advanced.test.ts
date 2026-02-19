@@ -1,5 +1,6 @@
 import { autocapturePlugin } from '../src/autocapture-plugin';
 
+import * as AnalyticsCore from '@amplitude/analytics-core';
 import { BrowserConfig, EnrichmentPlugin, ILogger, BrowserClient, IDiagnosticsClient } from '@amplitude/analytics-core';
 import { mockWindowLocationFromURL } from './utils';
 import { VERSION } from '../src/version';
@@ -103,10 +104,12 @@ describe('autoTrackingPlugin', () => {
       window.opener = true;
       const messengerMock = {
         setup: jest.fn(),
+        registerActionHandler: jest.fn(),
       };
+      jest.spyOn(AnalyticsCore, 'getOrCreateWindowMessenger').mockReturnValue(messengerMock as any);
+      jest.spyOn(AnalyticsCore, 'enableBackgroundCapture').mockImplementation(jest.fn());
       plugin = autocapturePlugin({
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        visualTaggingOptions: { enabled: true, messenger: messengerMock as any },
+        visualTaggingOptions: { enabled: true },
       });
       const loggerProvider: Partial<ILogger> = {
         log: jest.fn(),

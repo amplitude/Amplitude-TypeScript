@@ -918,6 +918,55 @@ describe('SessionReplay', () => {
       const recordArg = mockRecordFunction.mock.calls[0][0];
       expect(recordArg?.applyBackgroundColorToBlockedElements).toBe(expectedValue);
     });
+
+    describe('background capture', () => {
+      let mockMessenger: { setup: jest.Mock };
+      let getOrCreateSpy: jest.SpyInstance;
+      let enableBgCaptureSpy: jest.SpyInstance;
+
+      beforeEach(() => {
+        mockMessenger = { setup: jest.fn() };
+        getOrCreateSpy = jest.spyOn(AnalyticsCore, 'getOrCreateWindowMessenger').mockReturnValue(mockMessenger as any);
+        enableBgCaptureSpy = jest.spyOn(AnalyticsCore, 'enableBackgroundCapture').mockImplementation(jest.fn());
+      });
+
+      test('should enable background capture when window.opener exists', async () => {
+        globalSpy = jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue({
+          ...mockGlobalScope,
+          opener: {},
+        });
+
+        await sessionReplay.init(apiKey, mockOptions).promise;
+
+        expect(getOrCreateSpy).toHaveBeenCalled();
+        expect(enableBgCaptureSpy).toHaveBeenCalledWith(mockMessenger);
+        expect(mockMessenger.setup).toHaveBeenCalledTimes(1);
+        const setupArg = mockMessenger.setup.mock.calls[0][0];
+        expect(setupArg.endpoint).toBe(AnalyticsCore.AMPLITUDE_ORIGINS_MAP[mockOptions.serverZone!]);
+      });
+
+      test('should not enable background capture when window.opener is absent', async () => {
+        await sessionReplay.init(apiKey, mockOptions).promise;
+
+        expect(getOrCreateSpy).not.toHaveBeenCalled();
+        expect(enableBgCaptureSpy).not.toHaveBeenCalled();
+      });
+
+      test('should pass the correct endpoint for each server zone', async () => {
+        globalSpy = jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue({
+          ...mockGlobalScope,
+          opener: {},
+        });
+
+        await sessionReplay.init(apiKey, {
+          ...mockOptions,
+          serverZone: ServerZone.US,
+        }).promise;
+
+        const setupArg = mockMessenger.setup.mock.calls[0][0];
+        expect(setupArg.endpoint).toBe(AnalyticsCore.AMPLITUDE_ORIGINS_MAP['US']);
+      });
+    });
   });
 
   describe('setSessionId', () => {

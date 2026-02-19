@@ -63,6 +63,13 @@ import {
   isTimestampInSample,
   DiagnosticsClient,
   registerSdkLoaderMetadata,
+  getOrCreateWindowMessenger,
+  enableBackgroundCapture,
+  AMPLITUDE_ORIGIN,
+  AMPLITUDE_ORIGIN_EU,
+  AMPLITUDE_ORIGIN_STAGING,
+  AMPLITUDE_ORIGINS_MAP,
+  AMPLITUDE_BACKGROUND_CAPTURE_SCRIPT_URL,
 } from '../src/index';
 
 describe('index', () => {
@@ -145,6 +152,13 @@ describe('index', () => {
     expect(typeof isTimestampInSample).toBe('function');
     expect(typeof DiagnosticsClient).toBe('function');
     expect(typeof registerSdkLoaderMetadata).toBe('function');
+    expect(typeof getOrCreateWindowMessenger).toBe('function');
+    expect(typeof enableBackgroundCapture).toBe('function');
+    expect(typeof AMPLITUDE_ORIGIN).toBe('string');
+    expect(typeof AMPLITUDE_ORIGIN_EU).toBe('string');
+    expect(typeof AMPLITUDE_ORIGIN_STAGING).toBe('string');
+    expect(typeof AMPLITUDE_ORIGINS_MAP).toBe('object');
+    expect(typeof AMPLITUDE_BACKGROUND_CAPTURE_SCRIPT_URL).toBe('string');
   });
 
   describe('replaceSensitiveString export', () => {

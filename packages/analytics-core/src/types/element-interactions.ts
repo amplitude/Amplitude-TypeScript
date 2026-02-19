@@ -79,7 +79,6 @@ export interface ElementInteractionsOptions {
    */
   visualTaggingOptions?: {
     enabled?: boolean;
-    messenger?: Messenger;
   };
 
   /**
