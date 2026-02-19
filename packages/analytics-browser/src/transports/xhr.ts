@@ -1,21 +1,11 @@
-import { BaseTransport, Payload, Response, Transport } from '@amplitude/analytics-core';
-
-declare const CompressionStream:
-  | {
-      new (format: string): { readable: ReadableStream; writable: WritableStream };
-    }
-  | undefined;
-
-// Compress string to gzip ArrayBuffer via CompressionStream.
-// XHR accepts ArrayBuffer but not ReadableStream.
-// Exported for testing.
-export async function gzipToArrayBuffer(data: string): Promise<ArrayBuffer> {
-  if (typeof CompressionStream === 'undefined') {
-    throw new Error('CompressionStream is not available');
-  }
-  const stream = new Blob([data]).stream().pipeThrough(new CompressionStream('gzip'));
-  return new Response(stream).arrayBuffer();
-}
+import {
+  BaseTransport,
+  compressToGzipArrayBuffer,
+  isCompressionStreamAvailable,
+  Payload,
+  Response,
+  Transport,
+} from '@amplitude/analytics-core';
 
 export class XHRTransport extends BaseTransport implements Transport {
   private state = {
@@ -68,8 +58,8 @@ export class XHRTransport extends BaseTransport implements Transport {
         xhr.send(body);
       };
 
-      if (this.shouldCompressUploadBody && typeof CompressionStream !== 'undefined') {
-        gzipToArrayBuffer(bodyString)
+      if (this.shouldCompressUploadBody && isCompressionStreamAvailable()) {
+        compressToGzipArrayBuffer(bodyString)
           .then((body) => sendBody(body, 'gzip'))
           .catch(reject);
       } else {

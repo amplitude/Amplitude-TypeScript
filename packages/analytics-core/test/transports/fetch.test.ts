@@ -110,16 +110,27 @@ describe('fetch', () => {
     });
 
     test('should send gzip-compressed body with Content-Encoding when shouldCompressUploadBody is true', async () => {
-      const mockReadable = new ReadableStream<Uint8Array>();
+      const mockCompressedBytes = new Uint8Array([0x1f, 0x8b]);
+      const mockArrayBuffer = new ArrayBuffer(2);
+      new Uint8Array(mockArrayBuffer).set(mockCompressedBytes);
+      const OriginalResponse = (global as { Response?: typeof Response }).Response;
+      (global as { Response?: unknown }).Response = jest.fn().mockImplementation(() => ({
+        arrayBuffer: () => Promise.resolve(mockArrayBuffer),
+      }));
+
+      const mockReadable = new ReadableStream<Uint8Array>({
+        start(controller) {
+          controller.enqueue(mockCompressedBytes);
+          controller.close();
+        },
+      });
       const mockCompressionStream = jest.fn().mockImplementation(() => ({
         readable: mockReadable,
         writable: new WritableStream(),
       }));
       (global as typeof globalThis & { CompressionStream?: unknown }).CompressionStream = mockCompressionStream;
 
-      // jsdom Blob doesn't implement .stream(); provide one that returns a pipeThrough-able ReadableStream (Node stream/web)
       const blobStreamSource = new ReadableStream<Uint8Array>();
-      // Node stream/web ReadableStream is compatible at runtime with DOM Blob.stream() for this test
       Object.defineProperty(Blob.prototype, 'stream', {
         value: () => blobStreamSource,
         configurable: true,
@@ -130,7 +141,10 @@ describe('fetch', () => {
       const url = 'http://localhost:3000';
       const payload = { api_key: '', events: [] };
 
-      const fetchSpy = jest.spyOn(window, 'fetch').mockReturnValueOnce(Promise.resolve(new Response('{}')));
+      // Use a response-like object with .text() since global Response is mocked for compressToGzipArrayBuffer
+      const fetchSpy = jest
+        .spyOn(window, 'fetch')
+        .mockReturnValueOnce(Promise.resolve({ text: () => Promise.resolve('{}') } as Response));
 
       await transport.send(url, payload);
 
@@ -142,9 +156,11 @@ describe('fetch', () => {
         Accept: '*/*',
         'Content-Encoding': 'gzip',
       });
-      expect(options?.body).toBe(mockReadable);
+      expect(options?.body).toBeInstanceOf(ArrayBuffer);
+      expect(new Uint8Array(options?.body as ArrayBuffer)).toEqual(mockCompressedBytes);
       expect(options?.method).toBe('POST');
 
+      (global as { Response?: unknown }).Response = OriginalResponse;
       delete (Blob.prototype as unknown as { stream?: () => ReadableStream }).stream;
       const g = global as { CompressionStream?: unknown };
       delete g.CompressionStream;
