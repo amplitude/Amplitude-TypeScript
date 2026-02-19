@@ -1,4 +1,3 @@
-/* istanbul ignore file */
 /* eslint-disable no-restricted-globals */
 import { ILogger } from '../logger';
 import { Messenger } from '../types/element-interactions';
@@ -79,7 +78,7 @@ class BaseWindowMessenger implements Messenger {
 
       this.notify(request);
 
-      if (options?.timeout > 0) {
+      if (options.timeout > 0) {
         setTimeout(() => {
           reject(new Error(`${action} timed out (id: ${id})`));
           delete this.requestCallbacks[id];
@@ -170,7 +169,7 @@ class BaseWindowMessenger implements Messenger {
         return;
       }
 
-      const eventData = event?.data as { action?: string; id?: string; data?: any; responseData?: any };
+      const eventData = event.data as { action?: string; id?: string; data?: any; responseData?: any };
       const action = eventData?.action;
 
       // Ignore messages without action

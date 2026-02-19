@@ -1,4 +1,3 @@
-/* istanbul ignore file */
 /* eslint-disable no-restricted-globals */
 import type { BaseWindowMessenger } from './base-window-messenger';
 import { AMPLITUDE_BACKGROUND_CAPTURE_SCRIPT_URL } from './constants';
@@ -44,7 +43,9 @@ export function enableBackgroundCapture(messenger: BaseWindowMessenger, options?
       .then(() => {
         messenger.logger?.debug?.('Background capture script loaded (external)');
         // eslint-disable-next-line
-        backgroundCaptureInstance = (window as any)?.amplitudeBackgroundCapture?.({
+        backgroundCaptureInstance = /* istanbul ignore next -- window is always defined in browser */ (
+          window as any
+        )?.amplitudeBackgroundCapture?.({
           messenger,
           onBackgroundCapture,
         });

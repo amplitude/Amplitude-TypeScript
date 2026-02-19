@@ -146,15 +146,14 @@ export { InstanceProxy } from './types/proxy';
 export { safeJsonStringify } from './utils/safe-stringify';
 
 // Messenger (cross-window communication)
-export type { BaseWindowMessenger, ActionHandler } from './messenger';
+export type { BaseWindowMessenger, ActionHandler } from './messenger/base-window-messenger';
+export { getOrCreateWindowMessenger } from './messenger/base-window-messenger';
+export { enableBackgroundCapture } from './messenger/background-capture';
 export {
-  getOrCreateWindowMessenger,
-  enableBackgroundCapture,
   AMPLITUDE_ORIGIN,
   AMPLITUDE_ORIGIN_EU,
   AMPLITUDE_ORIGIN_STAGING,
   AMPLITUDE_ORIGINS_MAP,
   AMPLITUDE_BACKGROUND_CAPTURE_SCRIPT_URL,
-  asyncLoadScript,
-  generateUniqueId,
-} from './messenger';
+} from './messenger/constants';
+export { asyncLoadScript, generateUniqueId } from './messenger/utils';
