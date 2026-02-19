@@ -70,8 +70,6 @@ import {
   AMPLITUDE_ORIGIN_STAGING,
   AMPLITUDE_ORIGINS_MAP,
   AMPLITUDE_BACKGROUND_CAPTURE_SCRIPT_URL,
-  asyncLoadScript,
-  generateUniqueId,
 } from '../src/index';
 
 describe('index', () => {
@@ -161,8 +159,6 @@ describe('index', () => {
     expect(typeof AMPLITUDE_ORIGIN_STAGING).toBe('string');
     expect(typeof AMPLITUDE_ORIGINS_MAP).toBe('object');
     expect(typeof AMPLITUDE_BACKGROUND_CAPTURE_SCRIPT_URL).toBe('string');
-    expect(typeof asyncLoadScript).toBe('function');
-    expect(typeof generateUniqueId).toBe('function');
   });
 
   describe('replaceSensitiveString export', () => {

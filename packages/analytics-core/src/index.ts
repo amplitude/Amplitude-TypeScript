@@ -156,4 +156,3 @@ export {
   AMPLITUDE_ORIGINS_MAP,
   AMPLITUDE_BACKGROUND_CAPTURE_SCRIPT_URL,
 } from './messenger/constants';
-export { asyncLoadScript, generateUniqueId } from './messenger/utils';
