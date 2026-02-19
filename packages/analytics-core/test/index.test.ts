@@ -26,8 +26,10 @@ import {
   getOldCookieName,
   getLanguage,
   IdentityEventSender,
+  compressToGzipArrayBuffer,
   CookieStorage,
   FetchTransport,
+  isCompressionStreamAvailable,
   RemoteConfigClient,
   Identify,
   Revenue,
@@ -107,9 +109,11 @@ describe('index', () => {
     expect(typeof getLanguage).toBe('function');
     expect(typeof IdentityEventSender).toBe('function');
     expect(() => new IdentityEventSender()).not.toThrow();
+    expect(typeof compressToGzipArrayBuffer).toBe('function');
     expect(typeof CookieStorage).toBe('function');
     expect(() => new CookieStorage()).not.toThrow();
     expect(typeof FetchTransport).toBe('function');
+    expect(typeof isCompressionStreamAvailable).toBe('function');
     expect(() => new FetchTransport()).not.toThrow();
     expect(typeof RemoteConfigClient).toBe('function');
     expect(() => new RemoteConfigClient('api-key', new Logger())).not.toThrow();

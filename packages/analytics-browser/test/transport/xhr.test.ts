@@ -1,6 +1,6 @@
 import { ReadableStream, WritableStream } from 'stream/web';
-import { XHRTransport, gzipToArrayBuffer } from '../../src/transports/xhr';
-import { Status } from '@amplitude/analytics-core';
+import { compressToGzipArrayBuffer, Status } from '@amplitude/analytics-core';
+import { XHRTransport } from '../../src/transports/xhr';
 
 describe('xhr', () => {
   describe('send', () => {
@@ -181,12 +181,13 @@ describe('xhr', () => {
       expect(setRequestHeader).toHaveBeenCalledWith('Accept', '*/*');
     });
 
-    test('gzipToArrayBuffer throws when CompressionStream is not available', async () => {
+    test('compressToGzipArrayBuffer throws when CompressionStream is not available', async () => {
       const g = global as { CompressionStream?: unknown };
       const originalCompressionStream = g.CompressionStream;
-      delete g.CompressionStream;
+      // Set to undefined (don't delete) so the code hits our throw instead of ReferenceError
+      g.CompressionStream = undefined;
 
-      await expect(gzipToArrayBuffer('data')).rejects.toThrow('CompressionStream is not available');
+      await expect(compressToGzipArrayBuffer('data')).rejects.toThrow('CompressionStream is not available');
 
       g.CompressionStream = originalCompressionStream;
     });
@@ -269,7 +270,7 @@ describe('xhr', () => {
       jest.spyOn(global, 'XMLHttpRequest').mockImplementation(() => mockXhr as unknown as XMLHttpRequest);
 
       const sendPromise = transport.send(url, payload);
-      // Allow gzipToArrayBuffer (Response(stream).arrayBuffer()) to resolve before resolving send promise
+      // Allow compressToGzipArrayBuffer (Response(stream).arrayBuffer()) to resolve before resolving send promise
       await new Promise((r) => setTimeout(r, 0));
       mockXhr.onreadystatechange?.();
       await sendPromise;
