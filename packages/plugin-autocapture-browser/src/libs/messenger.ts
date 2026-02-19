@@ -2,7 +2,7 @@
 /* eslint-disable no-restricted-globals */
 import { AMPLITUDE_VISUAL_TAGGING_SELECTOR_SCRIPT_URL, AMPLITUDE_VISUAL_TAGGING_HIGHLIGHT_CLASS } from '../constants';
 import type { BaseWindowMessenger } from '@amplitude/analytics-core';
-import { ActionType, asyncLoadScript } from '@amplitude/analytics-core';
+import { ActionType } from '@amplitude/analytics-core';
 import { VERSION } from '../version';
 import { DataExtractor } from '../data-extractor';
 
@@ -111,7 +111,8 @@ export function enableVisualTagging(
   messenger.registerActionHandler(
     'initialize-visual-tagging-selector',
     (actionData: InitializeVisualTaggingSelectorData) => {
-      asyncLoadScript(AMPLITUDE_VISUAL_TAGGING_SELECTOR_SCRIPT_URL)
+      messenger
+        .loadScriptOnce(AMPLITUDE_VISUAL_TAGGING_SELECTOR_SCRIPT_URL)
         .then(() => {
           // eslint-disable-next-line
           amplitudeVisualTaggingSelectorInstance = (window as any)?.amplitudeVisualTaggingSelector?.({
