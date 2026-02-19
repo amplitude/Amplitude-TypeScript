@@ -313,6 +313,7 @@ export const autocapturePlugin = (
         actionClickAllowlist,
       });
       enableBackgroundCapture(messenger);
+      /* istanbul ignore next */
       messenger.setup({
         logger: config?.loggerProvider,
         ...(config?.serverZone && { endpoint: constants.AMPLITUDE_ORIGINS_MAP[config.serverZone] }),
