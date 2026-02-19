@@ -144,7 +144,7 @@ describe('config', () => {
           platform: true,
         },
         transport: 'fetch',
-        transportProvider: new FetchTransport(),
+        transportProvider: expect.any(FetchTransport),
         useBatch: false,
         fetchRemoteConfig: true,
         version: VERSION,
@@ -155,6 +155,7 @@ describe('config', () => {
           fetchRemoteConfig: true,
         },
         topLevelDomain: '.amplitude.com',
+        enableRequestBodyCompression: false,
       });
       expect(getTopLevelDomain).toHaveBeenCalledTimes(1);
     });
@@ -270,6 +271,7 @@ describe('config', () => {
           fetchRemoteConfig: true,
         },
         topLevelDomain: 'amplitude.com',
+        enableRequestBodyCompression: false,
       });
     });
 
@@ -355,6 +357,10 @@ describe('config', () => {
     test('should return enableRequestBodyCompression when custom serverUrl is set', () => {
       expect(getShouldCompressUploadBody('https://custom.example.com', true)).toBe(true);
       expect(getShouldCompressUploadBody('https://custom.example.com', false)).toBe(false);
+    });
+    test('should default enableRequestBodyCompression to false when omitted or undefined (custom serverUrl)', () => {
+      expect(getShouldCompressUploadBody('https://custom.example.com')).toBe(false);
+      expect(getShouldCompressUploadBody('https://custom.example.com', undefined)).toBe(false);
     });
   });
 

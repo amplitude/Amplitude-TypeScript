@@ -8,7 +8,8 @@ declare const CompressionStream:
 
 // Compress string to gzip ArrayBuffer via CompressionStream.
 // XHR accepts ArrayBuffer but not ReadableStream.
-async function gzipToArrayBuffer(data: string): Promise<ArrayBuffer> {
+// Exported for testing.
+export async function gzipToArrayBuffer(data: string): Promise<ArrayBuffer> {
   if (typeof CompressionStream === 'undefined') {
     throw new Error('CompressionStream is not available');
   }
