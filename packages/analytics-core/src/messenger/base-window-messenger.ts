@@ -51,7 +51,7 @@ class BaseWindowMessenger implements Messenger {
    * Messages received for actions that had no registered handler yet.
    * Drained automatically when the corresponding handler is registered via
    * registerActionHandler(), solving startup race conditions between
-   * independently-initialized plugins (e.g. autocapture + session-replay).
+   * independently-initialized plugins.
    */
   private pendingMessages = new Map<string, any[]>();
 
