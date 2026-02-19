@@ -9,7 +9,14 @@ import {
   UNMASK_TEXT_CLASS,
 } from '../src/constants';
 import { ServerZone } from '@amplitude/analytics-core';
-import { getServerUrl, getStorageSize, maskFn, getPageUrl, validateUGCFilterRules } from '../src/helpers';
+import {
+  getServerUrl,
+  getStorageSize,
+  maskFn,
+  getPageUrl,
+  validateUGCFilterRules,
+  asyncLoadScript,
+} from '../src/helpers';
 import * as AnalyticsCore from '@amplitude/analytics-core';
 
 describe('SessionReplayPlugin helpers', () => {
@@ -355,6 +362,94 @@ describe('SessionReplayPlugin helpers', () => {
       expect(() => validateUGCFilterRules(rules)).toThrow(
         'ugcFilterRules must be an array of objects with valid globs',
       );
+    });
+  });
+
+  describe('asyncLoadScript', () => {
+    beforeEach(() => {
+      // Clear any existing scripts
+      document.head.innerHTML = '';
+    });
+
+    test('should load script successfully', async () => {
+      const url = 'https://example.com/test.js';
+      const script = document.createElement('script');
+      script.src = url;
+
+      // Mock the script load event
+      const loadPromise = asyncLoadScript(url);
+
+      // Simulate script load
+      const scriptElement = document.head.querySelector(`script[src="${url}"]`);
+      expect(scriptElement).toBeTruthy();
+
+      // Trigger load event
+      const loadEvent = new Event('load');
+      scriptElement?.dispatchEvent(loadEvent);
+
+      const result = await loadPromise;
+      expect(result).toEqual({ status: true });
+    });
+
+    test('should reject on script error', async () => {
+      const url = 'https://example.com/fail.js';
+
+      const loadPromise = asyncLoadScript(url);
+
+      // Simulate script error
+      const scriptElement = document.head.querySelector(`script[src="${url}"]`);
+      expect(scriptElement).toBeTruthy();
+
+      // Trigger error event
+      const errorEvent = new Event('error');
+      scriptElement?.dispatchEvent(errorEvent);
+
+      await expect(loadPromise).rejects.toEqual({
+        status: false,
+        message: `Failed to load the script ${url}`,
+      });
+    });
+
+    test('should handle error when creating script element', async () => {
+      const url = 'https://example.com/test.js';
+
+      // Mock document.createElement to throw an error
+      const createElementSpy = jest.spyOn(document, 'createElement').mockImplementation(() => {
+        throw new Error('Cannot create element');
+      });
+
+      await expect(asyncLoadScript(url)).rejects.toEqual({
+        status: false,
+        message: 'Error creating script element: Error: Cannot create element',
+      });
+
+      // Restore original
+      createElementSpy.mockRestore();
+    });
+
+    test('should handle missing document.head gracefully', () => {
+      const url = 'https://example.com/test.js';
+
+      // Mock document.head to be null
+      const originalHead = document.head;
+      Object.defineProperty(document, 'head', {
+        value: null,
+        writable: true,
+        configurable: true,
+      });
+
+      // The function should handle null head gracefully using optional chaining
+      // It should not throw an error
+      expect(() => {
+        void asyncLoadScript(url);
+      }).not.toThrow();
+
+      // Restore head
+      Object.defineProperty(document, 'head', {
+        value: originalHead,
+        writable: true,
+        configurable: true,
+      });
     });
   });
 });

@@ -28,6 +28,10 @@ export const MAX_IDB_STORAGE_LENGTH = 1000 * 60 * 60 * 24 * 3; // 3 days
 export const KB_SIZE = 1024;
 export const MAX_URL_LENGTH = 1000;
 
+// Background capture / Zoning integration
+export const AMPLITUDE_ORIGIN = 'https://app.amplitude.com';
+export const AMPLITUDE_BACKGROUND_CAPTURE_SCRIPT_URL =
+  'https://cdn.amplitude.com/libs/background-capture-1.0.0-alpha.1.js.gz';
 export enum CustomRRwebEvent {
   GET_SR_PROPS = 'get-sr-props',
   DEBUG_INFO = 'debug-info',
