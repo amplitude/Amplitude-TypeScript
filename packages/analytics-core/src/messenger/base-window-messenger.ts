@@ -201,6 +201,7 @@ class BaseWindowMessenger implements Messenger {
       } else {
         if (action === 'ping') {
           this.notify({ action: 'pong' });
+          return;
         }
 
         // Dispatch to registered action handlers, or buffer for late registration

@@ -235,7 +235,7 @@ describe('BaseWindowMessenger', () => {
       expect(handler).toHaveBeenCalledWith({ foo: 'bar' });
     });
 
-    test('should respond to ping with pong', () => {
+    test('should respond to ping with pong and not buffer the message', () => {
       messenger = getOrCreateWindowMessenger();
       const mockPostMessage = jest.fn();
       Object.defineProperty(window, 'opener', {
@@ -247,8 +247,12 @@ describe('BaseWindowMessenger', () => {
       mockPostMessage.mockClear();
 
       postMessageToWindow({ action: 'ping' }, AMPLITUDE_ORIGIN);
+      postMessageToWindow({ action: 'ping' }, AMPLITUDE_ORIGIN);
 
       expect(mockPostMessage).toHaveBeenCalledWith({ action: 'pong' }, AMPLITUDE_ORIGIN);
+      expect(mockPostMessage).toHaveBeenCalledTimes(2);
+      // Ping should NOT accumulate in the pending messages buffer
+      expect((messenger as any).pendingMessages.has('ping')).toBe(false);
     });
 
     test('should handle response messages with id by resolving the callback', async () => {
