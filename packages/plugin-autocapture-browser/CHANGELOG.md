@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.22.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.21.0...@amplitude/plugin-autocapture-browser@1.22.0) (2026-02-19)
+
+
+### Features
+
+* screenshot capture messenger ([#1535](https://github.com/amplitude/Amplitude-TypeScript/issues/1535)) ([93ef551](https://github.com/amplitude/Amplitude-TypeScript/commit/93ef551ff0ab7dc48014aa5fa25841437d641993))
+
+
+
+
+
 # [1.21.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.20.0...@amplitude/plugin-autocapture-browser@1.21.0) (2026-02-17)
 
 

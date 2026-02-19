@@ -3,6 +3,24 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.40.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.39.0...@amplitude/analytics-core@2.40.0) (2026-02-19)
+
+
+### Bug Fixes
+
+* **analytics-browser:** handle XHR open vs send race condition ([#1541](https://github.com/amplitude/Amplitude-TypeScript/issues/1541)) ([b952b81](https://github.com/amplitude/Amplitude-TypeScript/commit/b952b8145f8be436ccf1fe62d1275162c8a92f70))
+* **analytics-browser:** prevent circular reference in logBrowserOptions ([#1537](https://github.com/amplitude/Amplitude-TypeScript/issues/1537)) ([23b4fdb](https://github.com/amplitude/Amplitude-TypeScript/commit/23b4fdb106a242e4f64b81842f4227bcf771432b))
+* **analytics-core:** diagnostics supports multiple script urls ([#1538](https://github.com/amplitude/Amplitude-TypeScript/issues/1538)) ([8ae3b27](https://github.com/amplitude/Amplitude-TypeScript/commit/8ae3b27e9011a7fddcb63b6dd421d943f26873d8))
+
+
+### Features
+
+* screenshot capture messenger ([#1535](https://github.com/amplitude/Amplitude-TypeScript/issues/1535)) ([93ef551](https://github.com/amplitude/Amplitude-TypeScript/commit/93ef551ff0ab7dc48014aa5fa25841437d641993))
+
+
+
+
+
 # [2.39.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.38.0...@amplitude/analytics-core@2.39.0) (2026-02-17)
 
 
