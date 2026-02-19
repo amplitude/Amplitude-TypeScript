@@ -43,7 +43,9 @@ export class FetchTransport extends BaseTransport implements Transport {
       headers,
       body,
       method: 'POST',
-    };
+      // Required when body is a ReadableStream (streaming upload).
+      ...(typeof body !== 'string' && { duplex: 'half' }),
+    } as RequestInit;
     const response = await fetch(serverUrl, options);
     const responseText = await response.text();
     try {
