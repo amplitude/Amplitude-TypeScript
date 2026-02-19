@@ -48,6 +48,14 @@ class BaseWindowMessenger implements Messenger {
   private actionHandlers = new Map<string, ActionHandler>();
 
   /**
+   * Messages received for actions that had no registered handler yet.
+   * Drained automatically when the corresponding handler is registered via
+   * registerActionHandler(), solving startup race conditions between
+   * independently-initialized plugins (e.g. autocapture + session-replay).
+   */
+  private pendingMessages = new Map<string, any[]>();
+
+  /**
    * Tracks in-flight and completed script loads by URL.
    * Using a map, this prevents duplicate loads before the first resolves.
    */
@@ -111,6 +119,15 @@ class BaseWindowMessenger implements Messenger {
       this.logger?.warn?.(`Overwriting existing action handler for: ${action}`);
     }
     this.actionHandlers.set(action, handler);
+
+    // Replay any messages that arrived before this handler was registered
+    const queued = this.pendingMessages.get(action);
+    if (queued) {
+      this.pendingMessages.delete(action);
+      for (const data of queued) {
+        handler(data);
+      }
+    }
   }
 
   /**
@@ -186,10 +203,14 @@ class BaseWindowMessenger implements Messenger {
           this.notify({ action: 'pong' });
         }
 
-        // Dispatch to registered action handlers
+        // Dispatch to registered action handlers, or buffer for late registration
         const handler = this.actionHandlers.get(action);
         if (handler) {
           handler(eventData.data);
+        } else {
+          const queue = this.pendingMessages.get(action) ?? [];
+          queue.push(eventData.data);
+          this.pendingMessages.set(action, queue);
         }
       }
     };
@@ -208,6 +229,7 @@ class BaseWindowMessenger implements Messenger {
     }
     this.isSetup = false;
     this.actionHandlers.clear();
+    this.pendingMessages.clear();
     this.requestCallbacks = {};
     this.scriptLoadPromises.clear();
 

@@ -291,13 +291,18 @@ describe('BaseWindowMessenger', () => {
       expect(handler).not.toHaveBeenCalled();
     });
 
-    test('should ignore action without a registered handler', () => {
+    test('should buffer action without a registered handler', () => {
       messenger = getOrCreateWindowMessenger();
       messenger.setup();
 
       expect(() => {
         postMessageToWindow({ action: 'unregistered-action' }, AMPLITUDE_ORIGIN);
       }).not.toThrow();
+
+      const handler = jest.fn();
+      messenger.registerActionHandler('unregistered-action', handler);
+
+      expect(handler).toHaveBeenCalledTimes(1);
     });
 
     test('should warn for unknown response id without logger', () => {
@@ -325,6 +330,98 @@ describe('BaseWindowMessenger', () => {
       expect(() => {
         postMessageToWindow({}, AMPLITUDE_ORIGIN);
       }).not.toThrow();
+    });
+  });
+
+  describe('message buffering', () => {
+    beforeEach(() => {
+      Object.defineProperty(window, 'opener', { value: null, writable: true, configurable: true });
+    });
+
+    test('should replay buffered messages when handler is registered after message arrives', () => {
+      messenger = getOrCreateWindowMessenger();
+      messenger.setup();
+
+      postMessageToWindow({ action: 'late-action', data: { step: 1 } }, AMPLITUDE_ORIGIN);
+
+      const handler = jest.fn();
+      messenger.registerActionHandler('late-action', handler);
+
+      expect(handler).toHaveBeenCalledWith({ step: 1 });
+    });
+
+    test('should replay multiple buffered messages in order', () => {
+      messenger = getOrCreateWindowMessenger();
+      messenger.setup();
+
+      postMessageToWindow({ action: 'late-action', data: { step: 1 } }, AMPLITUDE_ORIGIN);
+      postMessageToWindow({ action: 'late-action', data: { step: 2 } }, AMPLITUDE_ORIGIN);
+
+      const calls: any[] = [];
+      messenger.registerActionHandler('late-action', (data) => calls.push(data));
+
+      expect(calls).toEqual([{ step: 1 }, { step: 2 }]);
+    });
+
+    test('should not replay messages for a different action', () => {
+      messenger = getOrCreateWindowMessenger();
+      messenger.setup();
+
+      postMessageToWindow({ action: 'action-a', data: 'a' }, AMPLITUDE_ORIGIN);
+
+      const handlerB = jest.fn();
+      messenger.registerActionHandler('action-b', handlerB);
+
+      expect(handlerB).not.toHaveBeenCalled();
+    });
+
+    test('should clear the buffer for an action after replaying', () => {
+      messenger = getOrCreateWindowMessenger();
+      messenger.setup();
+
+      postMessageToWindow({ action: 'once', data: 'first' }, AMPLITUDE_ORIGIN);
+
+      const handler1 = jest.fn();
+      messenger.registerActionHandler('once', handler1);
+      expect(handler1).toHaveBeenCalledWith('first');
+
+      // Overwrite handler — should not get the old buffered message again
+      const handler2 = jest.fn();
+      messenger.registerActionHandler('once', handler2);
+      expect(handler2).not.toHaveBeenCalled();
+    });
+
+    test('should not buffer messages that have a registered handler', () => {
+      messenger = getOrCreateWindowMessenger();
+      const handler = jest.fn();
+      messenger.registerActionHandler('existing', handler);
+      messenger.setup();
+
+      postMessageToWindow({ action: 'existing', data: 'live' }, AMPLITUDE_ORIGIN);
+
+      expect(handler).toHaveBeenCalledWith('live');
+
+      // Overwrite handler — no buffered messages should replay
+      const handler2 = jest.fn();
+      messenger.registerActionHandler('existing', handler2);
+      expect(handler2).not.toHaveBeenCalled();
+    });
+
+    test('should handle the autocapture + session-replay race condition', () => {
+      messenger = getOrCreateWindowMessenger();
+      messenger.setup();
+
+      // Parent sends initialize-visual-tagging-selector before autocapture registers its handler
+      postMessageToWindow(
+        { action: 'initialize-visual-tagging-selector', data: { actionType: 'click' } },
+        AMPLITUDE_ORIGIN,
+      );
+
+      // Autocapture registers its handler later
+      const visualTaggingHandler = jest.fn();
+      messenger.registerActionHandler('initialize-visual-tagging-selector', visualTaggingHandler);
+
+      expect(visualTaggingHandler).toHaveBeenCalledWith({ actionType: 'click' });
     });
   });
 
