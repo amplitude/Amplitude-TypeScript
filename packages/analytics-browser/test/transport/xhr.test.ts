@@ -1,4 +1,5 @@
-import { XHRTransport } from '../../src/transports/xhr';
+import { ReadableStream, WritableStream } from 'stream/web';
+import { XHRTransport, gzipToArrayBuffer } from '../../src/transports/xhr';
 import { Status } from '@amplitude/analytics-core';
 
 describe('xhr', () => {
@@ -178,6 +179,111 @@ describe('xhr', () => {
       expect(setRequestHeader).toHaveBeenCalledTimes(2); // Only Content-Type and Accept
       expect(setRequestHeader).toHaveBeenCalledWith('Content-Type', 'application/json');
       expect(setRequestHeader).toHaveBeenCalledWith('Accept', '*/*');
+    });
+
+    test('gzipToArrayBuffer throws when CompressionStream is not available', async () => {
+      const g = global as { CompressionStream?: unknown };
+      const originalCompressionStream = g.CompressionStream;
+      delete g.CompressionStream;
+
+      await expect(gzipToArrayBuffer('data')).rejects.toThrow('CompressionStream is not available');
+
+      g.CompressionStream = originalCompressionStream;
+    });
+
+    test('when shouldCompressUploadBody is true but CompressionStream is not available, should send uncompressed body', async () => {
+      const g = global as { CompressionStream?: unknown };
+      const originalCompressionStream = g.CompressionStream;
+      delete g.CompressionStream;
+
+      const transport = new XHRTransport({}, true);
+      const url = 'http://localhost:3000';
+      const payload = { api_key: '', events: [] };
+
+      const setRequestHeader = jest.fn();
+      const send = jest.fn();
+      const mockXhr = {
+        open: jest.fn(),
+        setRequestHeader,
+        send,
+        readyState: 4,
+        responseText: '{}',
+        onreadystatechange: null as (() => void) | null,
+      };
+      jest.spyOn(global, 'XMLHttpRequest').mockImplementation(() => mockXhr as unknown as XMLHttpRequest);
+
+      const sendPromise = transport.send(url, payload);
+      mockXhr.onreadystatechange?.();
+      await sendPromise;
+
+      expect(setRequestHeader).not.toHaveBeenCalledWith('Content-Encoding', 'gzip');
+      expect(send).toHaveBeenCalledWith(JSON.stringify(payload));
+
+      g.CompressionStream = originalCompressionStream;
+    });
+
+    test('should send gzip-compressed body with Content-Encoding when shouldCompressUploadBody is true', async () => {
+      const mockCompressedBytes = new Uint8Array([0x1f, 0x8b]); // gzip magic number
+      const mockArrayBuffer = new ArrayBuffer(2);
+      new Uint8Array(mockArrayBuffer).set(mockCompressedBytes);
+      const OriginalResponse = (global as { Response?: typeof Response }).Response;
+      (global as { Response?: unknown }).Response = jest.fn().mockImplementation(() => ({
+        arrayBuffer: () => Promise.resolve(mockArrayBuffer),
+      }));
+
+      const mockReadable = new ReadableStream<Uint8Array>({
+        start(controller) {
+          controller.enqueue(mockCompressedBytes);
+          controller.close();
+        },
+      });
+      const MockCompressionStream = jest.fn().mockImplementation(() => ({
+        readable: mockReadable,
+        writable: new WritableStream(),
+      }));
+      (global as { CompressionStream?: unknown }).CompressionStream = MockCompressionStream;
+
+      // jsdom Blob doesn't implement .stream(); provide one (same as fetch.test.ts)
+      const blobStreamSource = new ReadableStream<Uint8Array>();
+      Object.defineProperty(Blob.prototype, 'stream', {
+        value: () => blobStreamSource,
+        configurable: true,
+        writable: true,
+      });
+
+      const transport = new XHRTransport({}, true);
+      const url = 'http://localhost:3000';
+      const payload = { api_key: '', events: [] };
+
+      const open = jest.fn();
+      const setRequestHeader = jest.fn();
+      const send = jest.fn();
+      const mockXhr = {
+        open,
+        setRequestHeader,
+        send,
+        readyState: 4,
+        responseText: '{}',
+        onreadystatechange: null as (() => void) | null,
+      };
+      jest.spyOn(global, 'XMLHttpRequest').mockImplementation(() => mockXhr as unknown as XMLHttpRequest);
+
+      const sendPromise = transport.send(url, payload);
+      // Allow gzipToArrayBuffer (Response(stream).arrayBuffer()) to resolve before resolving send promise
+      await new Promise((r) => setTimeout(r, 0));
+      mockXhr.onreadystatechange?.();
+      await sendPromise;
+
+      expect(setRequestHeader).toHaveBeenCalledWith('Content-Encoding', 'gzip');
+      expect(send).toHaveBeenCalledTimes(1);
+      const sentBody = send.mock.calls[0][0];
+      expect(sentBody).toBeInstanceOf(ArrayBuffer);
+      expect(new Uint8Array(sentBody as ArrayBuffer)).toEqual(mockCompressedBytes);
+
+      (global as { Response?: unknown }).Response = OriginalResponse;
+      delete (Blob.prototype as unknown as { stream?: () => ReadableStream }).stream;
+      const g = global as { CompressionStream?: unknown };
+      delete g.CompressionStream;
     });
   });
 });

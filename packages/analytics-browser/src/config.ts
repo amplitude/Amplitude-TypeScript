@@ -463,7 +463,7 @@ export const shouldFetchRemoteConfig = (options: BrowserOptions = {}): boolean =
  */
 export const getShouldCompressUploadBody = (
   serverUrl: string | undefined,
-  enableRequestBodyCompression: boolean,
+  enableRequestBodyCompression = false,
 ): boolean => {
   if (serverUrl !== undefined && serverUrl !== '') {
     return enableRequestBodyCompression;

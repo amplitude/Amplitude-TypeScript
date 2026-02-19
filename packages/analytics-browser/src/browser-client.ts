@@ -550,7 +550,7 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
     }
     const shouldCompressUploadBody = getShouldCompressUploadBody(
       this.config.serverUrl,
-      this.config.enableRequestBodyCompression ?? false,
+      this.config.enableRequestBodyCompression,
     );
     this.config.transportProvider = createTransport(transport, shouldCompressUploadBody);
   }
