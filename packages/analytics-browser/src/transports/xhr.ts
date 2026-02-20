@@ -1,14 +1,23 @@
-import { BaseTransport, Payload, Response, Transport } from '@amplitude/analytics-core';
+import {
+  BaseTransport,
+  compressToGzipArrayBuffer,
+  isCompressionStreamAvailable,
+  Payload,
+  Response,
+  Transport,
+} from '@amplitude/analytics-core';
 
 export class XHRTransport extends BaseTransport implements Transport {
   private state = {
     done: 4,
   };
   private customHeaders: Record<string, string>;
+  private shouldCompressUploadBody: boolean;
 
-  constructor(customHeaders: Record<string, string> = {}) {
+  constructor(customHeaders: Record<string, string> = {}, shouldCompressUploadBody = false) {
     super();
     this.customHeaders = customHeaders;
+    this.shouldCompressUploadBody = shouldCompressUploadBody;
   }
 
   async send(serverUrl: string, payload: Payload): Promise<Response | null> {
@@ -37,10 +46,25 @@ export class XHRTransport extends BaseTransport implements Transport {
         Accept: '*/*',
         ...this.customHeaders,
       };
-      for (const [key, value] of Object.entries(headers)) {
-        xhr.setRequestHeader(key, value);
+
+      const bodyString = JSON.stringify(payload);
+      const sendBody = (body: string | ArrayBuffer, contentEncoding?: string) => {
+        if (contentEncoding) {
+          xhr.setRequestHeader('Content-Encoding', contentEncoding);
+        }
+        for (const [key, value] of Object.entries(headers)) {
+          xhr.setRequestHeader(key, value);
+        }
+        xhr.send(body);
+      };
+
+      if (this.shouldCompressUploadBody && isCompressionStreamAvailable()) {
+        compressToGzipArrayBuffer(bodyString)
+          .then((body) => sendBody(body, 'gzip'))
+          .catch(reject);
+      } else {
+        sendBody(bodyString);
       }
-      xhr.send(JSON.stringify(payload));
     });
   }
 }

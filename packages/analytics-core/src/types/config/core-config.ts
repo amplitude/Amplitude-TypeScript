@@ -63,6 +63,12 @@ export interface IConfig {
    */
   ingestionMetadata?: IngestionMetadata;
   /**
+   * Controls request body compression **only** when a custom `serverUrl` is configured.
+   * When using the SDK's default endpoints, request bodies are always compressed regardless of this setting.
+   * @defaultValue `false`
+   */
+  enableRequestBodyCompression?: boolean;
+  /**
    * The URL where events are upload to.
    */
   serverUrl?: string;

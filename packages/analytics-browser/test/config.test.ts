@@ -14,7 +14,7 @@ import {
 } from '@amplitude/analytics-core';
 import * as BrowserUtils from '@amplitude/analytics-core';
 import { XHRTransport } from '../src/transports/xhr';
-import { createTransport, useBrowserConfig, shouldFetchRemoteConfig } from '../src/config';
+import { createTransport, getShouldCompressUploadBody, useBrowserConfig, shouldFetchRemoteConfig } from '../src/config';
 import { SendBeaconTransport } from '../src/transports/send-beacon';
 import { uuidPattern } from './helpers/constants';
 import { DEFAULT_IDENTITY_STORAGE, DEFAULT_SERVER_ZONE } from '../src/constants';
@@ -144,7 +144,7 @@ describe('config', () => {
           platform: true,
         },
         transport: 'fetch',
-        transportProvider: new FetchTransport(),
+        transportProvider: expect.any(FetchTransport),
         useBatch: false,
         fetchRemoteConfig: true,
         version: VERSION,
@@ -154,6 +154,7 @@ describe('config', () => {
         remoteConfig: {
           fetchRemoteConfig: true,
         },
+        enableRequestBodyCompression: false,
       });
       expect(getTopLevelDomain).toHaveBeenCalledTimes(1);
     });
@@ -262,6 +263,7 @@ describe('config', () => {
         remoteConfig: {
           fetchRemoteConfig: true,
         },
+        enableRequestBodyCompression: false,
       });
     });
 
@@ -336,6 +338,21 @@ describe('config', () => {
     test('should use memory', async () => {
       const storage = Config.createCookieStorage('none');
       expect(storage).toBeInstanceOf(core.MemoryStorage);
+    });
+  });
+
+  describe('getShouldCompressUploadBody', () => {
+    test('should return true when serverUrl is empty (default endpoints)', () => {
+      expect(getShouldCompressUploadBody('', false)).toBe(true);
+      expect(getShouldCompressUploadBody(undefined, false)).toBe(true);
+    });
+    test('should return enableRequestBodyCompression when custom serverUrl is set', () => {
+      expect(getShouldCompressUploadBody('https://custom.example.com', true)).toBe(true);
+      expect(getShouldCompressUploadBody('https://custom.example.com', false)).toBe(false);
+    });
+    test('should default enableRequestBodyCompression to false when omitted or undefined (custom serverUrl)', () => {
+      expect(getShouldCompressUploadBody('https://custom.example.com')).toBe(false);
+      expect(getShouldCompressUploadBody('https://custom.example.com', undefined)).toBe(false);
     });
   });
 
