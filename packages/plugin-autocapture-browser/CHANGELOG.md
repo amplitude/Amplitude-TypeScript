@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.22.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.22.0...@amplitude/plugin-autocapture-browser@1.22.1) (2026-02-20)
+
+
+### Bug Fixes
+
+* **autocapture:** remove cloneNode in getText can cause duplicate network requests ([#1546](https://github.com/amplitude/Amplitude-TypeScript/issues/1546)) ([b75f696](https://github.com/amplitude/Amplitude-TypeScript/commit/b75f6969e5cc1baf7f6fc6bd585bd8f976b87620))
+
+
+
+
+
 # [1.22.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.21.0...@amplitude/plugin-autocapture-browser@1.22.0) (2026-02-19)
 
 
