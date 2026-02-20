@@ -1,4 +1,5 @@
 import { test, expect, Page } from '@playwright/test';
+import { parseRequestBody } from './helpers';
 
 interface StorageState {
   origins: Array<{
@@ -29,9 +30,8 @@ test.describe('Events Page', () => {
     requests = [];
     await page.route('https://api2.amplitude.com/2/httpapi', async (route) => {
       const request = route.request();
-      const postData = request.postData();
-      if (postData) {
-        const data = JSON.parse(postData);
+      const data = parseRequestBody(request);
+      if (data) {
         requests.push(data);
       }
       await route.continue();

@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { parseRequestBody } from './helpers';
 
 test.describe('Cookie Consent Page', () => {
   let requests: any[] = [];
@@ -7,9 +8,8 @@ test.describe('Cookie Consent Page', () => {
     requests = [];
     await page.route('https://api2.amplitude.com/2/httpapi', async (route) => {
       const request = route.request();
-      const postData = request.postData();
-      if (postData) {
-        const data = JSON.parse(postData);
+      const data = parseRequestBody(request);
+      if (data) {
         requests.push(data);
       }
       await route.continue();
