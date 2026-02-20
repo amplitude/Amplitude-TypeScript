@@ -244,6 +244,42 @@ export class DataExtractor {
     return undefined;
   };
 
+  // Traverse text content without cloning DOM nodes, which avoids media/network side effects
+  // from recreating nested elements such as <video>, <audio>, or <img>.
+  private getTextWithMaskedDescendants = (element: Element): string => {
+    const maskedSelector = `[${TEXT_MASK_ATTRIBUTE}], [contenteditable]`;
+    // Fast path: if no masked descendants exist, rely on native text extraction.
+    if (!element.querySelector(maskedSelector)) {
+      if (element instanceof HTMLElement) {
+        return element.innerText || '';
+      }
+      return element.textContent || '';
+    }
+
+    let output = '';
+    const childNodes = Array.from(element.childNodes);
+    for (const childNode of childNodes) {
+      if (childNode.nodeType === Node.TEXT_NODE) {
+        output += childNode.textContent || '';
+        continue;
+      }
+
+      if (!(childNode instanceof Element)) {
+        continue;
+      }
+
+      // Replace entire masked/contenteditable subtrees with the mask token.
+      if (childNode.hasAttribute(TEXT_MASK_ATTRIBUTE) || childNode.hasAttribute('contenteditable')) {
+        output += MASKED_TEXT_VALUE;
+        continue;
+      }
+
+      output += this.getTextWithMaskedDescendants(childNode);
+    }
+
+    return output;
+  };
+
   getText = (element: Element): string => {
     // Check if element or any parent has data-amp-mask attribute
     const hasMaskAttribute = element.closest(`[${TEXT_MASK_ATTRIBUTE}]`) !== null;
@@ -254,12 +290,7 @@ export class DataExtractor {
     if (!element.querySelector(`[${TEXT_MASK_ATTRIBUTE}], [contenteditable]`)) {
       output = (element as HTMLElement).innerText || '';
     } else {
-      const clonedTree = element.cloneNode(true) as HTMLElement;
-      // replace all elements with TEXT_MASK_ATTRIBUTE attribute and contenteditable with the text MASKED_TEXT_VALUE
-      clonedTree.querySelectorAll(`[${TEXT_MASK_ATTRIBUTE}], [contenteditable]`).forEach((node) => {
-        (node as HTMLElement).innerText = MASKED_TEXT_VALUE;
-      });
-      output = clonedTree.innerText || '';
+      output = this.getTextWithMaskedDescendants(element);
     }
     return this.replaceSensitiveString(output.substring(0, 255)).replace(/\s+/g, ' ').trim();
   };
