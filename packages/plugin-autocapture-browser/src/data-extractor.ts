@@ -250,10 +250,7 @@ export class DataExtractor {
     const maskedSelector = `[${TEXT_MASK_ATTRIBUTE}], [contenteditable]`;
     // Fast path: if no masked descendants exist, rely on native text extraction.
     if (!element.querySelector(maskedSelector)) {
-      if (element instanceof HTMLElement) {
-        return element.innerText || '';
-      }
-      return element.textContent || '';
+      return (element as HTMLElement).innerText;
     }
 
     let output = '';
@@ -273,10 +270,8 @@ export class DataExtractor {
         output += MASKED_TEXT_VALUE;
         continue;
       }
-
       output += this.getTextWithMaskedDescendants(childNode);
     }
-
     return output;
   };
 

@@ -326,6 +326,61 @@ describe('data extractor', () => {
 
       cloneNodeSpy.mockRestore();
     });
+
+    test('should use innerText in recursive fast path for unmasked descendants', () => {
+      const container = document.createElement('div');
+      const maskedChild = document.createElement('div');
+      maskedChild.setAttribute('data-amp-mask', 'true');
+      maskedChild.innerText = 'secret';
+
+      const plainChild = document.createElement('div');
+      const plainGrandchild = document.createElement('span');
+      plainGrandchild.innerText = 'Visible text';
+      plainChild.appendChild(plainGrandchild);
+
+      container.appendChild(maskedChild);
+      container.appendChild(plainChild);
+
+      const result = dataExtractor.getText(container);
+      expect(result).toEqual(`${MASKED_TEXT_VALUE}Visible text`);
+    });
+
+    test('should ignore non-element non-text nodes while traversing masked descendants', () => {
+      const container = document.createElement('div');
+      container.appendChild(document.createTextNode('Start '));
+      container.appendChild(document.createComment('ignore me'));
+
+      const maskedChild = document.createElement('div');
+      maskedChild.setAttribute('data-amp-mask', 'true');
+      maskedChild.innerText = 'secret';
+      container.appendChild(maskedChild);
+
+      container.appendChild(document.createTextNode(' End'));
+
+      const result = dataExtractor.getText(container);
+      expect(result).toEqual(`Start ${MASKED_TEXT_VALUE} End`);
+    });
+
+    test('should handle null textContent for text nodes while traversing masked descendants', () => {
+      const container = document.createElement('div');
+      const textNode = document.createTextNode('transient text');
+      container.appendChild(textNode);
+
+      // Ensure getText() enters getTextWithMaskedDescendants branch
+      const maskedChild = document.createElement('div');
+      maskedChild.setAttribute('data-amp-mask', 'true');
+      maskedChild.innerText = 'secret';
+      container.appendChild(maskedChild);
+
+      const textContentSpy = jest.spyOn(textNode, 'textContent', 'get').mockReturnValue(null as unknown as string);
+
+      const result = dataExtractor.getText(container);
+
+      // Null textContent should contribute '' and not crash
+      expect(result).toEqual(MASKED_TEXT_VALUE);
+
+      textContentSpy.mockRestore();
+    });
   });
 
   describe('getNearestLabel', () => {
