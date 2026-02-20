@@ -246,16 +246,9 @@ export class DataExtractor {
 
   // Traverse text content without cloning DOM nodes, which avoids media/network side effects
   // from recreating nested elements such as <video>, <audio>, or <img>.
+  // Single-pass traversal: iterates childNodes at each level and checks masking attributes directly,
+  // without calling querySelector on every recursive call to avoid O(n^2) behavior.
   private getTextWithMaskedDescendants = (element: Element): string => {
-    const maskedSelector = `[${TEXT_MASK_ATTRIBUTE}], [contenteditable]`;
-    // Fast path: if no masked descendants exist, rely on native text extraction.
-    if (!element.querySelector(maskedSelector)) {
-      if (element instanceof HTMLElement) {
-        return element.innerText || '';
-      }
-      return element.textContent || '';
-    }
-
     let output = '';
     const childNodes = Array.from(element.childNodes);
     for (const childNode of childNodes) {
