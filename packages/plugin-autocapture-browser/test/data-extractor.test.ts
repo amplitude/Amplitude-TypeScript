@@ -276,34 +276,110 @@ describe('data extractor', () => {
       expect(containerResult).toEqual(`Normal text ${MASKED_TEXT_VALUE}${MASKED_TEXT_VALUE}`);
     });
 
-    test('should return empty string when cloned tree has null innerText and textContent', () => {
+    test('should mask nested content without cloning the element tree', () => {
       const container = document.createElement('div');
       const maskedChild = document.createElement('div');
       maskedChild.setAttribute('data-amp-mask', 'true');
       maskedChild.innerText = 'masked content';
       container.appendChild(maskedChild);
 
-      // Mock cloneNode to return an element where both innerText and textContent are null
-      const originalCloneNode = container.cloneNode.bind(container);
-      container.cloneNode = jest.fn().mockImplementation((deep: boolean) => {
-        const clonedElement = originalCloneNode(deep) as HTMLElement;
-        // Override the text properties to return null
-        Object.defineProperty(clonedElement, 'innerText', {
-          get: () => null,
-          configurable: true,
-        });
-        Object.defineProperty(clonedElement, 'innerText', {
-          get: () => null,
-          configurable: true,
-        });
-        return clonedElement;
-      });
+      const cloneNodeSpy = jest.spyOn(container, 'cloneNode');
 
       const result = dataExtractor.getText(container);
-      expect(result).toEqual('');
+      expect(result).toEqual(MASKED_TEXT_VALUE);
+      expect(cloneNodeSpy).not.toHaveBeenCalled();
 
-      // Restore original cloneNode
-      container.cloneNode = originalCloneNode;
+      cloneNodeSpy.mockRestore();
+    });
+
+    test('should handle deeply nested masked and contenteditable branches without cloning', () => {
+      const container = document.createElement('div');
+      container.appendChild(document.createTextNode('Start '));
+
+      const section = document.createElement('section');
+      const maskedBranch = document.createElement('div');
+      maskedBranch.setAttribute('data-amp-mask', 'true');
+      maskedBranch.innerText = 'credit card 4111111111111111';
+      const nestedVideo = document.createElement('video');
+      nestedVideo.setAttribute('src', '/sample.mp4');
+      maskedBranch.appendChild(nestedVideo);
+
+      const visibleBranch = document.createElement('div');
+      visibleBranch.appendChild(document.createTextNode('middle '));
+      const editableBranch = document.createElement('div');
+      editableBranch.setAttribute('contenteditable', 'true');
+      editableBranch.innerText = 'editable text';
+      visibleBranch.appendChild(editableBranch);
+      visibleBranch.appendChild(document.createTextNode(' end'));
+
+      section.appendChild(maskedBranch);
+      section.appendChild(document.createTextNode(' '));
+      section.appendChild(visibleBranch);
+      container.appendChild(section);
+      container.appendChild(document.createTextNode(' California'));
+
+      const cloneNodeSpy = jest.spyOn(container, 'cloneNode');
+
+      const result = dataExtractor.getText(container);
+      expect(result).toEqual(`Start ${MASKED_TEXT_VALUE} middle ${MASKED_TEXT_VALUE} end ${MASKED_TEXT_VALUE}`);
+      expect(cloneNodeSpy).not.toHaveBeenCalled();
+
+      cloneNodeSpy.mockRestore();
+    });
+
+    test('should use innerText in recursive fast path for unmasked descendants', () => {
+      const container = document.createElement('div');
+      const maskedChild = document.createElement('div');
+      maskedChild.setAttribute('data-amp-mask', 'true');
+      maskedChild.innerText = 'secret';
+
+      const plainChild = document.createElement('div');
+      const plainGrandchild = document.createElement('span');
+      plainGrandchild.innerText = 'Visible text';
+      plainChild.appendChild(plainGrandchild);
+
+      container.appendChild(maskedChild);
+      container.appendChild(plainChild);
+
+      const result = dataExtractor.getText(container);
+      expect(result).toEqual(`${MASKED_TEXT_VALUE}Visible text`);
+    });
+
+    test('should ignore non-element non-text nodes while traversing masked descendants', () => {
+      const container = document.createElement('div');
+      container.appendChild(document.createTextNode('Start '));
+      container.appendChild(document.createComment('ignore me'));
+
+      const maskedChild = document.createElement('div');
+      maskedChild.setAttribute('data-amp-mask', 'true');
+      maskedChild.innerText = 'secret';
+      container.appendChild(maskedChild);
+
+      container.appendChild(document.createTextNode(' End'));
+
+      const result = dataExtractor.getText(container);
+      expect(result).toEqual(`Start ${MASKED_TEXT_VALUE} End`);
+    });
+
+    test('should handle null textContent for text nodes while traversing masked descendants', () => {
+      const container = document.createElement('div');
+      const textNode = document.createTextNode('transient text');
+      container.appendChild(textNode);
+
+      // Ensure getText() enters getTextWithMaskedDescendants branch
+      const maskedChild = document.createElement('div');
+      maskedChild.setAttribute('data-amp-mask', 'true');
+      maskedChild.innerText = 'secret';
+      container.appendChild(maskedChild);
+
+      const textContentSpy = jest.spyOn(textNode, 'textContent', 'get').mockReturnValue(null as unknown as string);
+
+      const result = dataExtractor.getText(container);
+
+      // Null textContent should contribute '' and not crash
+      expect(result).toEqual(MASKED_TEXT_VALUE);
+
+      textContentSpy.mockRestore();
     });
   });
 
