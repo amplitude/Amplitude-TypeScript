@@ -227,6 +227,11 @@ export interface AttributionOptions {
    */
   excludeReferrers?: (string | RegExp)[];
   /**
+   * Exclude internal referrers for campaign attribution.
+   * (a referrer is internal if it is on the same domain as the current page)
+   */
+  excludeInternalReferrers?: true | ExcludeInternalReferrersOptions;
+  /**
    * The value to represent undefined/no initial campaign parameter for first-touch attribution.
    * @defaultValue `"EMPTY"`
    */
@@ -236,6 +241,14 @@ export interface AttributionOptions {
    * @defaultValue `false`
    */
   resetSessionOnNewCampaign?: boolean;
+}
+
+export interface ExcludeInternalReferrersOptions {
+  /*
+   * The condition on which to exclude internal referrers for campaign attribution.
+   * @defaultValue `"always"`
+   */
+  condition?: 'always' | 'ifEmptyCampaign';
 }
 
 export interface RemoteConfigOptions {
