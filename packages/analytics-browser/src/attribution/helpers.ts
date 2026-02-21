@@ -1,11 +1,49 @@
-import { createIdentifyEvent, Identify, ILogger, Campaign, BASE_CAMPAIGN } from '@amplitude/analytics-core';
+import {
+  createIdentifyEvent,
+  Identify,
+  ILogger,
+  Campaign,
+  BASE_CAMPAIGN,
+  getGlobalScope,
+} from '@amplitude/analytics-core';
+import { ExcludeInternalReferrersOptions } from '@amplitude/analytics-core/lib/esm/types/config/browser-config';
 
 export interface Options {
   excludeReferrers?: (string | RegExp)[];
+  excludeInternalReferrers?: true | ExcludeInternalReferrersOptions;
   initialEmptyValue?: string;
   resetSessionOnNewCampaign?: boolean;
   optOut?: boolean;
 }
+
+const KNOWN_2LDS = [
+  'co.uk',
+  'gov.uk',
+  'ac.uk',
+  'co.jp',
+  'ne.jp',
+  'or.jp',
+  'co.kr',
+  'or.kr',
+  'go.kr',
+  'com.au',
+  'net.au',
+  'org.au',
+  'com.br',
+  'net.br',
+  'org.br',
+  'com.cn',
+  'net.cn',
+  'org.cn',
+  'com.mx',
+  'github.io',
+  'gitlab.io',
+  'cloudfront.net',
+  'herokuapp.com',
+  'appspot.com',
+  'azurewebsites.net',
+  'firebaseapp.com',
+];
 
 const domainWithoutSubdomain = (domain: string) => {
   const parts = domain.split('.');
@@ -31,6 +69,34 @@ export const isNewCampaign = (
 ) => {
   const { referrer, referring_domain, ...currentCampaign } = current;
   const { referrer: _previous_referrer, referring_domain: prevReferringDomain, ...previousCampaign } = previous || {};
+
+  const { excludeInternalReferrers } = options;
+
+  if (excludeInternalReferrers) {
+    const condition = excludeInternalReferrers === true ? 'always' : excludeInternalReferrers.condition;
+    if (condition === 'always' && current.referring_domain && isInternalReferrer(current.referring_domain)) {
+      logger.debug(
+        `This is not a new campaign because ` +
+          `referring_domain=${current.referring_domain} is on the same domain as the current page ` +
+          `and it is configured to exclude internal referrers.`,
+      );
+      return false;
+    } else if (
+      condition === 'ifEmptyCampaign' &&
+      current.referring_domain &&
+      isInternalReferrer(current.referring_domain) &&
+      isEmptyCampaign(current)
+    ) {
+      logger.debug(
+        `This is not a new campaign because ` +
+          `referring_domain=${current.referring_domain} is on the same domain as the current page ` +
+          `and it is configured to exclude internal referrers with empty campaign parameters.`,
+      );
+      return false;
+    } else {
+      logger.error('Invalid configuration provided for attribution.excludeInternalReferrers.');
+    }
+  }
 
   if (isExcludedReferrer(options.excludeReferrers, current.referring_domain)) {
     // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
@@ -92,4 +158,43 @@ export const getDefaultExcludedReferrers = (cookieDomain: string | undefined) =>
     return [new RegExp(`${domain.replace('.', '\\.')}$`)];
   }
   return [];
+};
+
+function getDomain(hostname: string) {
+  const parts = hostname.split('.');
+  let tld = parts[parts.length - 1];
+  let name = parts[parts.length - 2];
+  if (KNOWN_2LDS.find((tld) => hostname.endsWith(`.${tld}`))) {
+    tld = parts[parts.length - 2] + '.' + parts[parts.length - 1];
+    name = parts[parts.length - 3];
+  }
+
+  if (!name) return tld;
+
+  return `${name}.${tld}`;
+}
+
+export const isSameDomain = (domain1: string, domain2: string) => {
+  if (domain1 === domain2) return true;
+
+  if (getDomain(domain1) === getDomain(domain2)) return true;
+
+  return false;
+};
+
+const isInternalReferrer = (referringDomain?: string) => {
+  const globalScope = getGlobalScope();
+  /* istanbul ignore if */
+  if (!globalScope) return false;
+  if (globalScope && referringDomain) {
+    const { hostname } = globalScope.location;
+    return isSameDomain(referringDomain, hostname);
+  }
+  /* istanbul ignore next */
+  return false;
+};
+
+export const isEmptyCampaign = (campaign: Campaign) => {
+  const campaignWithoutReferrer = { ...campaign, referring_domain: undefined, referrer: undefined };
+  return Object.values(campaignWithoutReferrer).every((value) => !value);
 };

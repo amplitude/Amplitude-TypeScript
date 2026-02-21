@@ -1,8 +1,10 @@
+import { ExcludeInternalReferrersOptions } from '@amplitude/analytics-core/lib/esm/types/config/browser-config';
 import {
   isNewCampaign,
   createCampaignEvent,
   getDefaultExcludedReferrers,
   isExcludedReferrer,
+  isSameDomain,
 } from '../../src/attribution/helpers';
 
 import { getStorageKey, BASE_CAMPAIGN } from '@amplitude/analytics-core';
@@ -173,6 +175,148 @@ describe('isNewCampaign', () => {
 
     expect(isNewCampaign(currentCampaign, previousCampaign, {}, loggerProvider, false)).toBe(true);
   });
+
+  describe('when excludeInternalReferrers', () => {
+    let location: Location;
+
+    beforeAll(() => {
+      location = window.location;
+      Object.defineProperty(window, 'location', {
+        value: {
+          hostname: 'a.b.co.uk',
+        },
+        writable: true,
+      });
+    });
+
+    afterAll(() => {
+      Object.defineProperty(window, 'location', {
+        value: location,
+        writable: true,
+      });
+    });
+
+    describe('is true (or "always")', () => {
+      test('should return false if internal referrer', () => {
+        const previousCampaign = {
+          ...BASE_CAMPAIGN,
+          referring_domain: 'a.b.co.uk',
+        };
+        const currentCampaign = {
+          ...BASE_CAMPAIGN,
+          referring_domain: 'b.co.uk',
+        };
+
+        expect(
+          isNewCampaign(currentCampaign, previousCampaign, { excludeInternalReferrers: true }, loggerProvider),
+        ).toBe(false);
+      });
+
+      test('should return true if not internal referrer', () => {
+        const previousCampaign = {
+          ...BASE_CAMPAIGN,
+          referring_domain: 'facebook.com',
+        };
+        const currentCampaign = {
+          ...BASE_CAMPAIGN,
+          referring_domain: 'google.com',
+        };
+        expect(
+          isNewCampaign(currentCampaign, previousCampaign, { excludeInternalReferrers: true }, loggerProvider),
+        ).toBe(true);
+      });
+
+      test('should return false if no referring_domain', () => {
+        const previousCampaign = {
+          ...BASE_CAMPAIGN,
+        };
+        const currentCampaign = {
+          ...BASE_CAMPAIGN,
+        };
+        expect(
+          isNewCampaign(currentCampaign, previousCampaign, { excludeInternalReferrers: true }, loggerProvider),
+        ).toBe(false);
+      });
+
+      test('should return false if no referring domain', () => {
+        const previousCampaign = {
+          ...BASE_CAMPAIGN,
+        };
+        const currentCampaign = {
+          ...BASE_CAMPAIGN,
+        };
+        expect(
+          isNewCampaign(
+            currentCampaign,
+            previousCampaign,
+            { excludeInternalReferrers: { condition: 'always' } },
+            loggerProvider,
+          ),
+        ).toBe(false);
+      });
+    });
+
+    describe('is "ifEmptyCampaign"', () => {
+      test('should return false if internal referrer and campaign is empty', () => {
+        const previousCampaign = {
+          ...BASE_CAMPAIGN,
+          referring_domain: 'a.b.co.uk',
+        };
+        const currentCampaign = {
+          ...BASE_CAMPAIGN,
+          referring_domain: 'a.b.co.uk',
+        };
+        expect(
+          isNewCampaign(
+            currentCampaign,
+            previousCampaign,
+            { excludeInternalReferrers: { condition: 'ifEmptyCampaign' } },
+            loggerProvider,
+          ),
+        ).toBe(false);
+      });
+
+      test('should return true if not internal referrer and campaign is not empty', () => {
+        const previousCampaign = {
+          ...BASE_CAMPAIGN,
+          utm_campaign: 'previous_campaign',
+          referring_domain: 'facebook.com',
+        };
+        const currentCampaign = {
+          ...BASE_CAMPAIGN,
+          utm_campaign: 'new_campaign',
+          referring_domain: 'google.com',
+        };
+        expect(
+          isNewCampaign(
+            currentCampaign,
+            previousCampaign,
+            { excludeInternalReferrers: { condition: 'ifEmptyCampaign' } },
+            loggerProvider,
+          ),
+        ).toBe(true);
+      });
+    });
+
+    describe('is invalid', () => {
+      test('should silently ignore invalid condition', () => {
+        const previousCampaign = {
+          ...BASE_CAMPAIGN,
+          utm_campaign: 'previous_campaign',
+          referring_domain: 'a.b.co.uk',
+        };
+        const currentCampaign = {
+          ...BASE_CAMPAIGN,
+          utm_campaign: 'new_campaign',
+          referring_domain: 'a.b.co.uk',
+        };
+        const excludeInternalReferrers = { condition: 'invalid' } as unknown as ExcludeInternalReferrersOptions;
+        expect(isNewCampaign(currentCampaign, previousCampaign, { excludeInternalReferrers }, loggerProvider)).toBe(
+          true,
+        );
+      });
+    });
+  });
 });
 
 describe('isExcludedReferrer', () => {
@@ -323,5 +467,36 @@ describe('getDefaultExcludedReferrers', () => {
   test('should return array with regex 2', () => {
     const excludedReferrers = getDefaultExcludedReferrers('.amplitude.com');
     expect(excludedReferrers).toEqual([new RegExp('amplitude\\.com$')]);
+  });
+});
+
+describe('isSameDomain', () => {
+  describe('should return true if 2 domains', () => {
+    test('have the same domain', () => {
+      expect(isSameDomain('amplitude.com', 'amplitude.com')).toBe(true);
+    });
+    test('have the same subdomain', () => {
+      expect(isSameDomain('www.amplitude.com', 'www.amplitude.com')).toBe(true);
+      expect(isSameDomain('sub.domain.amplitude.com', 'sub.domain.amplitude.com')).toBe(true);
+    });
+    test('have the same domain but a different subdomain', () => {
+      expect(isSameDomain('amplitude.com', 'docs.amplitude.com')).toBe(true);
+      expect(isSameDomain('docs.amplitude.com', 'amplitude.com')).toBe(true);
+      expect(isSameDomain('app.amplitude.com', 'docs.amplitude.com')).toBe(true);
+      expect(isSameDomain('app.amplitude.com', 'some.app.amplitude.com')).toBe(true);
+      expect(isSameDomain('some.app.amplitude.com', 'app.amplitude.com')).toBe(true);
+    });
+    test('are localhost', () => {
+      expect(isSameDomain('localhost', 'localhost')).toBe(true);
+    });
+  });
+
+  describe('should return false if 2 domains', () => {
+    test('have different domains', () => {
+      expect(isSameDomain('amplitude.com', 'example.com')).toBe(false);
+      expect(isSameDomain('amplitude.domain.com', 'amplitude.com')).toBe(false);
+      expect(isSameDomain('amplitude.domain.com', 'docs.amplitude.com')).toBe(false);
+      expect(isSameDomain('localhost', 'amplitude.com')).toBe(false);
+    });
   });
 });
