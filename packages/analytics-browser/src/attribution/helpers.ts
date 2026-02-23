@@ -17,35 +17,6 @@ export interface Options {
   optOut?: boolean;
 }
 
-const KNOWN_2LDS = [
-  'co.uk',
-  'gov.uk',
-  'ac.uk',
-  'co.jp',
-  'ne.jp',
-  'or.jp',
-  'co.kr',
-  'or.kr',
-  'go.kr',
-  'com.au',
-  'net.au',
-  'org.au',
-  'com.br',
-  'net.br',
-  'org.br',
-  'com.cn',
-  'net.cn',
-  'org.cn',
-  'com.mx',
-  'github.io',
-  'gitlab.io',
-  'cloudfront.net',
-  'herokuapp.com',
-  'appspot.com',
-  'azurewebsites.net',
-  'firebaseapp.com',
-];
-
 const domainWithoutSubdomain = (domain: string) => {
   const parts = domain.split('.');
 
@@ -207,6 +178,35 @@ function debugLogInternalReferrerExclude(
     logger.debug(`${baseMessage} and it is configured to exclude internal referrers with empty campaign parameters`);
   }
 }
+
+const KNOWN_2LDS = [
+  'co.uk',
+  'gov.uk',
+  'ac.uk',
+  'co.jp',
+  'ne.jp',
+  'or.jp',
+  'co.kr',
+  'or.kr',
+  'go.kr',
+  'com.au',
+  'net.au',
+  'org.au',
+  'com.br',
+  'net.br',
+  'org.br',
+  'com.cn',
+  'net.cn',
+  'org.cn',
+  'com.mx',
+  'github.io',
+  'gitlab.io',
+  'cloudfront.net',
+  'herokuapp.com',
+  'appspot.com',
+  'azurewebsites.net',
+  'firebaseapp.com',
+];
 
 const getDomain = (hostname: string) => {
   const parts = hostname.split('.');
