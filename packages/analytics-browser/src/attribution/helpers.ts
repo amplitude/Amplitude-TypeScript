@@ -5,8 +5,7 @@ import {
   Campaign,
   BASE_CAMPAIGN,
   getGlobalScope,
-} from '@amplitude/analytics-core';
-import { ExcludeInternalReferrersOptions } from '@amplitude/analytics-core';
+ ExcludeInternalReferrersOptions } from '@amplitude/analytics-core';
 
 export interface Options {
   excludeReferrers?: (string | RegExp)[];
@@ -74,14 +73,20 @@ function typeguardExcludeInternalReferrers(
   return false;
 }
 
-function parseExcludeInternalReferrersCondition(excludeInternalReferrers: ExcludeInternalReferrersOptions | boolean): ExcludeInternalReferrersOptions['condition'] {
+function parseExcludeInternalReferrersCondition(
+  excludeInternalReferrers: ExcludeInternalReferrersOptions | boolean,
+): ExcludeInternalReferrersOptions['condition'] {
   if (typeof excludeInternalReferrers === 'object' && excludeInternalReferrers.condition) {
     return excludeInternalReferrers.condition;
   }
   return 'always';
 }
 
-function debugLogInternalReferrerExclude(condition: ExcludeInternalReferrersOptions['condition'], referringDomain: string, logger: ILogger) {
+function debugLogInternalReferrerExclude(
+  condition: ExcludeInternalReferrersOptions['condition'],
+  referringDomain: string,
+  logger: ILogger,
+) {
   const baseMessage = `This is not a new campaign because referring_domain=${referringDomain} is on the same domain as the current page and it is configured to exclude internal referrers`;
   if (condition === 'always') {
     logger.debug(baseMessage);
@@ -103,7 +108,6 @@ export const isNewCampaign = (
   const { excludeInternalReferrers } = options;
 
   if (excludeInternalReferrers) {
-
     // type-check excludeInternalReferrers for JS type safety
     if (!typeguardExcludeInternalReferrers(excludeInternalReferrers)) {
       logger.error(

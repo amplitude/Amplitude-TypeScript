@@ -1,4 +1,4 @@
-import { Storage, UserSession , MemoryStorage, CookieStorage, getOldCookieName } from '@amplitude/analytics-core';
+import { Storage, UserSession, MemoryStorage, CookieStorage, getOldCookieName } from '@amplitude/analytics-core';
 import { decode, parseLegacyCookies, parseTime } from '../../src/cookie-migration';
 import * as LocalStorageModule from '../../src/storage/local-storage';
 
