@@ -74,7 +74,14 @@ function typeguardExcludeInternalReferrers(
   return false;
 }
 
-function logInternalReferrerExclude(condition: ExcludeInternalReferrersOptions['condition'], referringDomain: string, logger: ILogger) {
+function parseExcludeInternalReferrersCondition(excludeInternalReferrers: ExcludeInternalReferrersOptions | boolean): ExcludeInternalReferrersOptions['condition'] {
+  if (typeof excludeInternalReferrers === 'object' && excludeInternalReferrers.condition) {
+    return excludeInternalReferrers.condition;
+  }
+  return 'always';
+}
+
+function debugLogInternalReferrerExclude(condition: ExcludeInternalReferrersOptions['condition'], referringDomain: string, logger: ILogger) {
   const baseMessage = `This is not a new campaign because referring_domain=${referringDomain} is on the same domain as the current page and it is configured to exclude internal referrers`;
   if (condition === 'always') {
     logger.debug(baseMessage);
@@ -96,10 +103,6 @@ export const isNewCampaign = (
   const { excludeInternalReferrers } = options;
 
   if (excludeInternalReferrers) {
-    let condition = excludeInternalReferrers === true ? 'always' : excludeInternalReferrers.condition;
-    if (typeof excludeInternalReferrers === 'object' && excludeInternalReferrers.condition === undefined) {
-      condition = 'always';
-    }
 
     // type-check excludeInternalReferrers for JS type safety
     if (!typeguardExcludeInternalReferrers(excludeInternalReferrers)) {
@@ -109,11 +112,12 @@ export const isNewCampaign = (
         )}`,
       );
     } else if (current.referring_domain && isInternalReferrer(current.referring_domain)) {
+      const condition = parseExcludeInternalReferrersCondition(excludeInternalReferrers);
       if (condition === 'always') {
-        logInternalReferrerExclude(condition, current.referring_domain, logger);
+        debugLogInternalReferrerExclude(condition, current.referring_domain, logger);
         return false;
       } else if (condition === 'ifEmptyCampaign' && isEmptyCampaign(current)) {
-        logInternalReferrerExclude(condition, current.referring_domain, logger);
+        debugLogInternalReferrerExclude(condition, current.referring_domain, logger);
         return false;
       }
     }

@@ -280,11 +280,11 @@
               excludeReferrers: [
                 'google.com',
               ],
-              // excludeInternalReferrers: {
-              //   //condition: 'ifEmptyCampaign',
-              //   //condition: 'always',
-              // },
-              excludeInternalReferrers: true,
+              excludeInternalReferrers: {
+                condition: 'ifEmptyCampaign',
+                //condition: 'always',
+              },
+              //excludeInternalReferrers: true,
             },
             elementInteractions: {
               debounceTime: 1000,
