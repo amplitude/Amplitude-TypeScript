@@ -5,7 +5,8 @@ import {
   Campaign,
   BASE_CAMPAIGN,
   getGlobalScope,
- ExcludeInternalReferrersOptions } from '@amplitude/analytics-core';
+  ExcludeInternalReferrersOptions,
+} from '@amplitude/analytics-core';
 
 export interface Options {
   excludeReferrers?: (string | RegExp)[];
