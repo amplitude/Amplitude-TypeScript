@@ -60,16 +60,23 @@ const isDirectTraffic = (current: Campaign) => {
   return Object.values(current).every((value) => !value);
 };
 
+// type guard to check if excludeInternalReferrers is a valid ExcludeInternalReferrersOptions object
+// (needed because this is a user provided option that may not have the benefit of compile-time type checking)
 function typeguardExcludeInternalReferrers(
   excludeInternalReferrers: ExcludeInternalReferrersOptions | boolean,
 ): excludeInternalReferrers is ExcludeInternalReferrersOptions {
-  if (
-    typeof excludeInternalReferrers === 'boolean' ||
-    (typeof excludeInternalReferrers === 'object' &&
-      typeof excludeInternalReferrers.condition === 'string' &&
-      ['always', 'ifEmptyCampaign'].includes(excludeInternalReferrers.condition))
-  ) {
+  if (typeof excludeInternalReferrers === 'boolean') {
     return true;
+  }
+  if (typeof excludeInternalReferrers === 'object') {
+    if (
+      typeof excludeInternalReferrers.condition === 'string' &&
+      ['always', 'ifEmptyCampaign'].includes(excludeInternalReferrers.condition)
+    ) {
+      return true;
+    } else if (typeof excludeInternalReferrers.condition === 'undefined') {
+      return true;
+    }
   }
   return false;
 }
