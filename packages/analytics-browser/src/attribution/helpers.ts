@@ -64,7 +64,7 @@ const isDirectTraffic = (current: Campaign) => {
 // (needed because this is a user provided option that may not have the benefit of compile-time type checking)
 function typeguardExcludeInternalReferrers(
   excludeInternalReferrers: ExcludeInternalReferrersOptions | boolean,
-): excludeInternalReferrers is ExcludeInternalReferrersOptions {
+): boolean {
   if (typeof excludeInternalReferrers === 'boolean') {
     return true;
   }
