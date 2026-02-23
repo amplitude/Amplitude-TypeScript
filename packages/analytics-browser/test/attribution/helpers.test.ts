@@ -1,4 +1,4 @@
-import { ExcludeInternalReferrersOptions } from '@amplitude/analytics-core/lib/esm/types/config/browser-config';
+import { ExcludeInternalReferrersOptions, getStorageKey, BASE_CAMPAIGN } from '@amplitude/analytics-core';
 import {
   isNewCampaign,
   createCampaignEvent,
@@ -6,8 +6,6 @@ import {
   isExcludedReferrer,
   isSameDomain,
 } from '../../src/attribution/helpers';
-
-import { getStorageKey, BASE_CAMPAIGN } from '@amplitude/analytics-core';
 
 const loggerProvider = {
   log: jest.fn(),

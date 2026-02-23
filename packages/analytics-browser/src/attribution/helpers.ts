@@ -117,21 +117,23 @@ export const isNewCampaign = (
 
   if (excludeInternalReferrers) {
     // type-check excludeInternalReferrers for JS type safety
-    if (!typeguardExcludeInternalReferrers(excludeInternalReferrers)) {
+    if (typeguardExcludeInternalReferrers(excludeInternalReferrers)) {
+      if (current.referring_domain && isInternalReferrer(current.referring_domain)) {
+        const condition = parseExcludeInternalReferrersCondition(excludeInternalReferrers);
+        if (condition === 'always') {
+          debugLogInternalReferrerExclude(condition, current.referring_domain, logger);
+          return false;
+        } else if (condition === 'ifEmptyCampaign' && isEmptyCampaign(current)) {
+          debugLogInternalReferrerExclude(condition, current.referring_domain, logger);
+          return false;
+        }
+      }
+    } else {
       logger.error(
         `Invalid configuration provided for attribution.excludeInternalReferrers: ${JSON.stringify(
           excludeInternalReferrers,
         )}`,
       );
-    } else if (current.referring_domain && isInternalReferrer(current.referring_domain)) {
-      const condition = parseExcludeInternalReferrersCondition(excludeInternalReferrers);
-      if (condition === 'always') {
-        debugLogInternalReferrerExclude(condition, current.referring_domain, logger);
-        return false;
-      } else if (condition === 'ifEmptyCampaign' && isEmptyCampaign(current)) {
-        debugLogInternalReferrerExclude(condition, current.referring_domain, logger);
-        return false;
-      }
     }
   }
 
