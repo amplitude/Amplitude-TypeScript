@@ -76,12 +76,10 @@ function parseExcludeInternalReferrersCondition(
     return 'always';
   }
   if (typeof excludeInternalReferrers === 'object') {
-    if (
-      typeof excludeInternalReferrers.condition === 'string' &&
-      ['always', 'ifEmptyCampaign'].includes(excludeInternalReferrers.condition)
-    ) {
-      return excludeInternalReferrers.condition;
-    } else if (typeof excludeInternalReferrers.condition === 'undefined') {
+    const { condition } = excludeInternalReferrers;
+    if (typeof condition === 'string' && ['always', 'ifEmptyCampaign'].includes(condition)) {
+      return condition;
+    } else if (typeof condition === 'undefined') {
       return 'always';
     }
   }
