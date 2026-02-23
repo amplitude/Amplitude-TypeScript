@@ -61,54 +61,10 @@ const isDirectTraffic = (current: Campaign) => {
   return Object.values(current).every((value) => !value);
 };
 
-/**
- * Parses the excludeInternalReferrers configuration to determine the condition on which to
- * exclude internal referrers for campaign attribution.
- *
- * If the config is invalid type, log and return a TypeError.
- * 
- * (this does explicit type checking so don't have to rely on TS compiler to catch invalid types)
- *
- * @param excludeInternalReferrers - attribution.excludeInternalReferrers configuration
- * @param logger - logger instance to log error when TypeError
- * @returns The condition if the config is valid, TypeError if the config is invalid.
- */
-function parseExcludeInternalReferrersCondition(
-  excludeInternalReferrers: ExcludeInternalReferrersOptions | boolean,
-  logger: ILogger,
-): ExcludeInternalReferrersOptions['condition'] | TypeError {
-  if (excludeInternalReferrers === true) {
-    return EXCLUDE_INTERNAL_REFERRERS_CONDITIONS.always;
-  }
-  if (typeof excludeInternalReferrers === 'object') {
-    const { condition } = excludeInternalReferrers;
-    if (typeof condition === 'string' && Object.keys(EXCLUDE_INTERNAL_REFERRERS_CONDITIONS).includes(condition)) {
-      return condition;
-    } else if (typeof condition === 'undefined') {
-      return EXCLUDE_INTERNAL_REFERRERS_CONDITIONS.always;
-    }
-  }
-  const errorMessage = `Invalid configuration provided for attribution.excludeInternalReferrers: ${JSON.stringify(
-    excludeInternalReferrers,
-  )}`;
-  logger.error(errorMessage);
-  return new TypeError(errorMessage);
-}
-
-// helper function to log debug message when internal referrer is excluded
-// (added this to prevent code duplication and improve readability)
-function debugLogInternalReferrerExclude(
-  condition: ExcludeInternalReferrersOptions['condition'],
-  referringDomain: string,
-  logger: ILogger,
-) {
-  const baseMessage = `This is not a new campaign because referring_domain=${referringDomain} is on the same domain as the current page and it is configured to exclude internal referrers`;
-  if (condition === 'always') {
-    logger.debug(baseMessage);
-  } else if (condition === 'ifEmptyCampaign') {
-    logger.debug(`${baseMessage} and it is configured to exclude internal referrers with empty campaign parameters`);
-  }
-}
+const isEmptyCampaign = (campaign: Campaign) => {
+  const campaignWithoutReferrer = { ...campaign, referring_domain: undefined, referrer: undefined };
+  return Object.values(campaignWithoutReferrer).every((value) => !value);
+};
 
 export const isNewCampaign = (
   current: Campaign,
@@ -123,7 +79,7 @@ export const isNewCampaign = (
   const { excludeInternalReferrers } = options;
 
   if (excludeInternalReferrers) {
-    const condition = parseExcludeInternalReferrersCondition(excludeInternalReferrers, logger);
+    const condition = getExcludeInternalReferrersCondition(excludeInternalReferrers, logger);
     if (!(condition instanceof TypeError) && current.referring_domain && isInternalReferrer(current.referring_domain)) {
       if (condition === 'always') {
         debugLogInternalReferrerExclude(condition, current.referring_domain, logger);
@@ -168,6 +124,12 @@ export const isExcludedReferrer = (excludeReferrers: (string | RegExp)[] = [], r
   );
 };
 
+export const isSameDomain = (domain1: string, domain2: string) => {
+  if (domain1 === domain2) return true;
+  if (getDomain(domain1) === getDomain(domain2)) return true;
+  return false;
+};
+
 export const createCampaignEvent = (campaign: Campaign, options: Options) => {
   const campaignParameters: Campaign = {
     // This object definition allows undefined keys to be iterated on
@@ -197,7 +159,56 @@ export const getDefaultExcludedReferrers = (cookieDomain: string | undefined) =>
   return [];
 };
 
-function getDomain(hostname: string) {
+/**
+ * Parses the excludeInternalReferrers configuration to determine the condition on which to
+ * exclude internal referrers for campaign attribution.
+ *
+ * If the config is invalid type, log and return a TypeError.
+ *
+ * (this does explicit type checking so don't have to rely on TS compiler to catch invalid types)
+ *
+ * @param excludeInternalReferrers - attribution.excludeInternalReferrers configuration
+ * @param logger - logger instance to log error when TypeError
+ * @returns The condition if the config is valid, TypeError if the config is invalid.
+ */
+const getExcludeInternalReferrersCondition = (
+  excludeInternalReferrers: ExcludeInternalReferrersOptions | boolean,
+  logger: ILogger,
+): ExcludeInternalReferrersOptions['condition'] | TypeError => {
+  if (excludeInternalReferrers === true) {
+    return EXCLUDE_INTERNAL_REFERRERS_CONDITIONS.always;
+  }
+  if (typeof excludeInternalReferrers === 'object') {
+    const { condition } = excludeInternalReferrers;
+    if (typeof condition === 'string' && Object.keys(EXCLUDE_INTERNAL_REFERRERS_CONDITIONS).includes(condition)) {
+      return condition;
+    } else if (typeof condition === 'undefined') {
+      return EXCLUDE_INTERNAL_REFERRERS_CONDITIONS.always;
+    }
+  }
+  const errorMessage = `Invalid configuration provided for attribution.excludeInternalReferrers: ${JSON.stringify(
+    excludeInternalReferrers,
+  )}`;
+  logger.error(errorMessage);
+  return new TypeError(errorMessage);
+};
+
+// helper function to log debug message when internal referrer is excluded
+// (added this to prevent code duplication and improve readability)
+function debugLogInternalReferrerExclude(
+  condition: ExcludeInternalReferrersOptions['condition'],
+  referringDomain: string,
+  logger: ILogger,
+) {
+  const baseMessage = `This is not a new campaign because referring_domain=${referringDomain} is on the same domain as the current page and it is configured to exclude internal referrers`;
+  if (condition === 'always') {
+    logger.debug(baseMessage);
+  } else if (condition === 'ifEmptyCampaign') {
+    logger.debug(`${baseMessage} and it is configured to exclude internal referrers with empty campaign parameters`);
+  }
+}
+
+const getDomain = (hostname: string) => {
   const parts = hostname.split('.');
   let tld = parts[parts.length - 1];
   let name = parts[parts.length - 2];
@@ -209,14 +220,6 @@ function getDomain(hostname: string) {
   if (!name) return tld;
 
   return `${name}.${tld}`;
-}
-
-export const isSameDomain = (domain1: string, domain2: string) => {
-  if (domain1 === domain2) return true;
-
-  if (getDomain(domain1) === getDomain(domain2)) return true;
-
-  return false;
 };
 
 const isInternalReferrer = (referringDomain: string) => {
@@ -224,9 +227,4 @@ const isInternalReferrer = (referringDomain: string) => {
   /* istanbul ignore if */
   if (!globalScope) return false;
   return isSameDomain(referringDomain, globalScope.location.hostname);
-};
-
-export const isEmptyCampaign = (campaign: Campaign) => {
-  const campaignWithoutReferrer = { ...campaign, referring_domain: undefined, referrer: undefined };
-  return Object.values(campaignWithoutReferrer).every((value) => !value);
 };
