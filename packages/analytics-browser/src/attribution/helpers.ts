@@ -62,7 +62,7 @@ const isDirectTraffic = (current: Campaign) => {
 
 // type guard to check if excludeInternalReferrers is a valid ExcludeInternalReferrersOptions object
 // (needed because this is a user provided option that may not have the benefit of compile-time type checking)
-function typeguardExcludeInternalReferrers(
+function isValidExcludeInternalReferrersType(
   excludeInternalReferrers: ExcludeInternalReferrersOptions | boolean,
 ): boolean {
   if (typeof excludeInternalReferrers === 'boolean') {
@@ -117,7 +117,7 @@ export const isNewCampaign = (
 
   if (excludeInternalReferrers) {
     // type-check excludeInternalReferrers for JS type safety
-    if (typeguardExcludeInternalReferrers(excludeInternalReferrers)) {
+    if (isValidExcludeInternalReferrersType(excludeInternalReferrers)) {
       if (current.referring_domain && isInternalReferrer(current.referring_domain)) {
         const condition = parseExcludeInternalReferrersCondition(excludeInternalReferrers);
         if (condition === 'always') {
