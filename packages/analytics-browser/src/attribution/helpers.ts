@@ -67,7 +67,7 @@ function typeguardExcludeInternalReferrers(
     typeof excludeInternalReferrers === 'boolean' ||
     (typeof excludeInternalReferrers === 'object' &&
       typeof excludeInternalReferrers.condition === 'string' &&
-      !['always', 'ifEmptyCampaign'].includes(excludeInternalReferrers.condition))
+      ['always', 'ifEmptyCampaign'].includes(excludeInternalReferrers.condition))
   ) {
     return true;
   }
@@ -96,7 +96,10 @@ export const isNewCampaign = (
   const { excludeInternalReferrers } = options;
 
   if (excludeInternalReferrers) {
-    const condition = excludeInternalReferrers === true ? 'always' : excludeInternalReferrers.condition;
+    let condition = excludeInternalReferrers === true ? 'always' : excludeInternalReferrers.condition;
+    if (typeof excludeInternalReferrers === 'object' && excludeInternalReferrers.condition === undefined) {
+      condition = 'always';
+    }
 
     // type-check excludeInternalReferrers for JS type safety
     if (!typeguardExcludeInternalReferrers(excludeInternalReferrers)) {
@@ -105,9 +108,7 @@ export const isNewCampaign = (
           excludeInternalReferrers,
         )}`,
       );
-    }
-
-    if (current.referring_domain && isInternalReferrer(current.referring_domain)) {
+    } else if (current.referring_domain && isInternalReferrer(current.referring_domain)) {
       if (condition === 'always') {
         logInternalReferrerExclude(condition, current.referring_domain, logger);
         return false;
