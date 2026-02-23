@@ -75,11 +75,11 @@ function typeguardExcludeInternalReferrers(
 }
 
 function logInternalReferrerExclude(condition: ExcludeInternalReferrersOptions['condition'], referringDomain: string, logger: ILogger) {
-  const baseMessage = `This is not a new campaign because referring_domain=${referringDomain} is on the same domain as the current page and it is configured to exclude internal referrers.`;
+  const baseMessage = `This is not a new campaign because referring_domain=${referringDomain} is on the same domain as the current page and it is configured to exclude internal referrers`;
   if (condition === 'always') {
     logger.debug(baseMessage);
   } else if (condition === 'ifEmptyCampaign') {
-    logger.debug(`${baseMessage} and it is configured to exclude internal referrers with empty campaign parameters.`);
+    logger.debug(`${baseMessage} and it is configured to exclude internal referrers with empty campaign parameters`);
   }
 }
 
