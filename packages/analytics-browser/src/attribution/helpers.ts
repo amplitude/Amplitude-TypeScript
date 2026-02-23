@@ -63,7 +63,7 @@ const isDirectTraffic = (current: Campaign) => {
 /**
  * Parses the excludeInternalReferrers configuration to determine the condition on which to
  * exclude internal referrers for campaign attribution.
- * 
+ *
  * If the config is invalid type, log and return a TypeError.
  *
  * @param excludeInternalReferrers - attribution.excludeInternalReferrers configuration
