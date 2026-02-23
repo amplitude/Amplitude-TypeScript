@@ -62,8 +62,9 @@ const isDirectTraffic = (current: Campaign) => {
 
 // type guard to check if excludeInternalReferrers is a valid ExcludeInternalReferrersOptions object
 // (needed because this is a user provided option that may not have the benefit of compile-time type checking)
-function isValidExcludeInternalReferrersType(
+function checkValidExcludeInternalReferrersType(
   excludeInternalReferrers: ExcludeInternalReferrersOptions | boolean,
+  logger: ILogger,
 ): boolean {
   if (typeof excludeInternalReferrers === 'boolean') {
     return true;
@@ -78,6 +79,11 @@ function isValidExcludeInternalReferrersType(
       return true;
     }
   }
+  logger.error(
+    `Invalid configuration provided for attribution.excludeInternalReferrers: ${JSON.stringify(
+      excludeInternalReferrers,
+    )}`,
+  );
   return false;
 }
 
@@ -115,25 +121,16 @@ export const isNewCampaign = (
 
   const { excludeInternalReferrers } = options;
 
-  if (excludeInternalReferrers) {
-    // type-check excludeInternalReferrers for JS type safety
-    if (isValidExcludeInternalReferrersType(excludeInternalReferrers)) {
-      if (current.referring_domain && isInternalReferrer(current.referring_domain)) {
-        const condition = parseExcludeInternalReferrersCondition(excludeInternalReferrers);
-        if (condition === 'always') {
-          debugLogInternalReferrerExclude(condition, current.referring_domain, logger);
-          return false;
-        } else if (condition === 'ifEmptyCampaign' && isEmptyCampaign(current)) {
-          debugLogInternalReferrerExclude(condition, current.referring_domain, logger);
-          return false;
-        }
+  if (excludeInternalReferrers && checkValidExcludeInternalReferrersType(excludeInternalReferrers, logger)) {
+    if (current.referring_domain && isInternalReferrer(current.referring_domain)) {
+      const condition = parseExcludeInternalReferrersCondition(excludeInternalReferrers);
+      if (condition === 'always') {
+        debugLogInternalReferrerExclude(condition, current.referring_domain, logger);
+        return false;
+      } else if (condition === 'ifEmptyCampaign' && isEmptyCampaign(current)) {
+        debugLogInternalReferrerExclude(condition, current.referring_domain, logger);
+        return false;
       }
-    } else {
-      logger.error(
-        `Invalid configuration provided for attribution.excludeInternalReferrers: ${JSON.stringify(
-          excludeInternalReferrers,
-        )}`,
-      );
     }
   }
 
