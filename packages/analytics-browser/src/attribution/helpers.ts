@@ -5,8 +5,9 @@ import {
   Campaign,
   BASE_CAMPAIGN,
   getGlobalScope,
-  ExcludeInternalReferrersOptions,
 } from '@amplitude/analytics-core';
+
+import { ExcludeInternalReferrersOptions, EXCLUDE_INTERNAL_REFERRERS_CONDITIONS } from '../types';
 
 export interface Options {
   excludeReferrers?: (string | RegExp)[];
@@ -75,14 +76,14 @@ function parseExcludeInternalReferrersCondition(
   logger: ILogger,
 ): ExcludeInternalReferrersOptions['condition'] | TypeError {
   if (excludeInternalReferrers === true) {
-    return 'always';
+    return EXCLUDE_INTERNAL_REFERRERS_CONDITIONS.always;
   }
   if (typeof excludeInternalReferrers === 'object') {
     const { condition } = excludeInternalReferrers;
-    if (typeof condition === 'string' && ['always', 'ifEmptyCampaign'].includes(condition)) {
+    if (typeof condition === 'string' && Object.keys(EXCLUDE_INTERNAL_REFERRERS_CONDITIONS).includes(condition)) {
       return condition;
     } else if (typeof condition === 'undefined') {
-      return 'always';
+      return EXCLUDE_INTERNAL_REFERRERS_CONDITIONS.always;
     }
   }
   const errorMessage = `Invalid configuration provided for attribution.excludeInternalReferrers: ${JSON.stringify(

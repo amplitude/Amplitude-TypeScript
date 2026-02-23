@@ -109,3 +109,8 @@ export const SAFE_HEADERS = [
 
 // list of Network headers to never capture
 export const FORBIDDEN_HEADERS = ['authorization', 'cookie', 'set-cookie'];
+
+export const EXCLUDE_INTERNAL_REFERRERS_CONDITIONS = {
+  always: 'always',
+  ifEmptyCampaign: 'ifEmptyCampaign',
+};

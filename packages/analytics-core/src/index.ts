@@ -157,4 +157,4 @@ export {
   AMPLITUDE_BACKGROUND_CAPTURE_SCRIPT_URL,
 } from './messenger/constants';
 
-export { ExcludeInternalReferrersOptions } from './types/config/browser-config';
+export { ExcludeInternalReferrersOptions, EXCLUDE_INTERNAL_REFERRERS_CONDITIONS } from './types/config/browser-config';

@@ -244,12 +244,20 @@ export interface AttributionOptions {
   resetSessionOnNewCampaign?: boolean;
 }
 
+export const EXCLUDE_INTERNAL_REFERRERS_CONDITIONS = {
+  always: 'always',
+  ifEmptyCampaign: 'ifEmptyCampaign',
+} as const;
+
+type ExcludeInternalReferrersCondition =
+  (typeof EXCLUDE_INTERNAL_REFERRERS_CONDITIONS)[keyof typeof EXCLUDE_INTERNAL_REFERRERS_CONDITIONS];
+
 export interface ExcludeInternalReferrersOptions {
   /*
    * The condition on which to exclude internal referrers for campaign attribution.
    * @defaultValue `"always"`
    */
-  condition?: 'always' | 'ifEmptyCampaign';
+  condition?: ExcludeInternalReferrersCondition;
 }
 
 export interface RemoteConfigOptions {
