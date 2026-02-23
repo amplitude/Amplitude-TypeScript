@@ -60,6 +60,29 @@ const isDirectTraffic = (current: Campaign) => {
   return Object.values(current).every((value) => !value);
 };
 
+function typeguardExcludeInternalReferrers(
+  excludeInternalReferrers: ExcludeInternalReferrersOptions | boolean,
+): excludeInternalReferrers is ExcludeInternalReferrersOptions {
+  if (
+    typeof excludeInternalReferrers === 'boolean' ||
+    (typeof excludeInternalReferrers === 'object' &&
+      typeof excludeInternalReferrers.condition === 'string' &&
+      !['always', 'ifEmptyCampaign'].includes(excludeInternalReferrers.condition))
+  ) {
+    return true;
+  }
+  return false;
+}
+
+function logInternalReferrerExclude(condition: 'always' | 'ifEmptyCampaign', referringDomain: string, logger: ILogger) {
+  const baseMessage = `This is not a new campaign because referring_domain=${referringDomain} is on the same domain as the current page and it is configured to exclude internal referrers.`;
+  if (condition === 'always') {
+    logger.debug(baseMessage);
+  } else if (condition === 'ifEmptyCampaign') {
+    logger.debug(`${baseMessage} and it is configured to exclude internal referrers with empty campaign parameters.`);
+  }
+}
+
 export const isNewCampaign = (
   current: Campaign,
   previous: Campaign | undefined,
@@ -74,27 +97,24 @@ export const isNewCampaign = (
 
   if (excludeInternalReferrers) {
     const condition = excludeInternalReferrers === true ? 'always' : excludeInternalReferrers.condition;
-    if (condition === 'always' && current.referring_domain && isInternalReferrer(current.referring_domain)) {
-      logger.debug(
-        `This is not a new campaign because ` +
-          `referring_domain=${current.referring_domain} is on the same domain as the current page ` +
-          `and it is configured to exclude internal referrers.`,
+
+    // type-check excludeInternalReferrers for JS type safety
+    if (!typeguardExcludeInternalReferrers(excludeInternalReferrers)) {
+      logger.error(
+        `Invalid configuration provided for attribution.excludeInternalReferrers: ${JSON.stringify(
+          excludeInternalReferrers,
+        )}`,
       );
-      return false;
-    } else if (
-      condition === 'ifEmptyCampaign' &&
-      current.referring_domain &&
-      isInternalReferrer(current.referring_domain) &&
-      isEmptyCampaign(current)
-    ) {
-      logger.debug(
-        `This is not a new campaign because ` +
-          `referring_domain=${current.referring_domain} is on the same domain as the current page ` +
-          `and it is configured to exclude internal referrers with empty campaign parameters.`,
-      );
-      return false;
-    } else {
-      logger.error('Invalid configuration provided for attribution.excludeInternalReferrers.');
+    }
+
+    if (current.referring_domain && isInternalReferrer(current.referring_domain)) {
+      if (condition === 'always') {
+        logInternalReferrerExclude(condition, current.referring_domain, logger);
+        return false;
+      } else if (condition === 'ifEmptyCampaign' && isEmptyCampaign(current)) {
+        logInternalReferrerExclude(condition, current.referring_domain, logger);
+        return false;
+      }
     }
   }
 
@@ -182,7 +202,7 @@ export const isSameDomain = (domain1: string, domain2: string) => {
   return false;
 };
 
-const isInternalReferrer = (referringDomain?: string) => {
+const isInternalReferrer = (referringDomain: string) => {
   const globalScope = getGlobalScope();
   /* istanbul ignore if */
   if (!globalScope) return false;
