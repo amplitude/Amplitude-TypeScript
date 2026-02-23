@@ -66,6 +66,8 @@ const isDirectTraffic = (current: Campaign) => {
  * exclude internal referrers for campaign attribution.
  *
  * If the config is invalid type, log and return a TypeError.
+ * 
+ * (this does explicit type checking so don't have to rely on TS compiler to catch invalid types)
  *
  * @param excludeInternalReferrers - attribution.excludeInternalReferrers configuration
  * @param logger - logger instance to log error when TypeError
