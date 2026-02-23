@@ -210,9 +210,9 @@ describe('isNewCampaign', () => {
         expect(
           isNewCampaign(currentCampaign, previousCampaign, { excludeInternalReferrers: true }, loggerProvider),
         ).toBe(false);
-        expect(
-          isNewCampaign(currentCampaign, previousCampaign, { excludeInternalReferrers: {} }, loggerProvider),
-        ).toBe(false);
+        expect(isNewCampaign(currentCampaign, previousCampaign, { excludeInternalReferrers: {} }, loggerProvider)).toBe(
+          false,
+        );
       });
 
       test('should return true if not internal referrer', () => {

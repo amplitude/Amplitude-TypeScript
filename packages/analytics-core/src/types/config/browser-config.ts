@@ -227,8 +227,9 @@ export interface AttributionOptions {
    */
   excludeReferrers?: (string | RegExp)[];
   /**
-   * Exclude internal referrers for campaign attribution.
-   * (a referrer is internal if it is on the same domain as the current page)
+   * Exclude internal referrers from campaign attribution.
+   * (a referrer is 'internal' if it is on the same domain as the current page)
+   * @experimental this feature is experimental and may not be stable
    */
   excludeInternalReferrers?: true | ExcludeInternalReferrersOptions;
   /**
