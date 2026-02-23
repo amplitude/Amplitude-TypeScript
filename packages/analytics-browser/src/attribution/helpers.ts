@@ -60,42 +60,40 @@ const isDirectTraffic = (current: Campaign) => {
   return Object.values(current).every((value) => !value);
 };
 
-// type guard to check if excludeInternalReferrers is a valid ExcludeInternalReferrersOptions object
-// (needed because this is a user provided option that may not have the benefit of compile-time type checking)
-function checkValidExcludeInternalReferrersType(
+/**
+ * Parses the excludeInternalReferrers configuration to determine the condition on which to
+ * exclude internal referrers for campaign attribution.
+ *
+ * @param excludeInternalReferrers - attribution.excludeInternalReferrers configuration
+ * @param logger - logger instance to log error when TypeError
+ * @returns The condition if the config is valid, TypeError if the config is invalid.
+ */
+function parseExcludeInternalReferrersCondition(
   excludeInternalReferrers: ExcludeInternalReferrersOptions | boolean,
   logger: ILogger,
-): boolean {
-  if (typeof excludeInternalReferrers === 'boolean') {
-    return true;
+): ExcludeInternalReferrersOptions['condition'] | TypeError {
+  if (excludeInternalReferrers === true) {
+    return 'always';
   }
   if (typeof excludeInternalReferrers === 'object') {
     if (
       typeof excludeInternalReferrers.condition === 'string' &&
       ['always', 'ifEmptyCampaign'].includes(excludeInternalReferrers.condition)
     ) {
-      return true;
+      return excludeInternalReferrers.condition;
     } else if (typeof excludeInternalReferrers.condition === 'undefined') {
-      return true;
+      return 'always';
     }
   }
-  logger.error(
-    `Invalid configuration provided for attribution.excludeInternalReferrers: ${JSON.stringify(
-      excludeInternalReferrers,
-    )}`,
-  );
-  return false;
+  const errorMessage = `Invalid configuration provided for attribution.excludeInternalReferrers: ${JSON.stringify(
+    excludeInternalReferrers,
+  )}`;
+  logger.error(errorMessage);
+  return new TypeError(errorMessage);
 }
 
-function parseExcludeInternalReferrersCondition(
-  excludeInternalReferrers: ExcludeInternalReferrersOptions | boolean,
-): ExcludeInternalReferrersOptions['condition'] {
-  if (typeof excludeInternalReferrers === 'object' && excludeInternalReferrers.condition) {
-    return excludeInternalReferrers.condition;
-  }
-  return 'always';
-}
-
+// helper function to log debug message when internal referrer is excluded
+// (added this to prevent code duplication and improve readability)
 function debugLogInternalReferrerExclude(
   condition: ExcludeInternalReferrersOptions['condition'],
   referringDomain: string,
@@ -121,9 +119,9 @@ export const isNewCampaign = (
 
   const { excludeInternalReferrers } = options;
 
-  if (excludeInternalReferrers && checkValidExcludeInternalReferrersType(excludeInternalReferrers, logger)) {
-    if (current.referring_domain && isInternalReferrer(current.referring_domain)) {
-      const condition = parseExcludeInternalReferrersCondition(excludeInternalReferrers);
+  if (excludeInternalReferrers) {
+    const condition = parseExcludeInternalReferrersCondition(excludeInternalReferrers, logger);
+    if (!(condition instanceof TypeError) && current.referring_domain && isInternalReferrer(current.referring_domain)) {
       if (condition === 'always') {
         debugLogInternalReferrerExclude(condition, current.referring_domain, logger);
         return false;
