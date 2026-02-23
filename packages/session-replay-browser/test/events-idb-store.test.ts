@@ -410,19 +410,12 @@ describe('SessionReplayEventsIDBStore', () => {
     });
 
     test('should warn user if keyval database cannot be accessed', async () => {
-      const mockGlobalScope = {
-        indexedDB: {
-          open: jest.fn().mockImplementation(() => {
-            throw new Error('Test error');
-          }),
-        },
-      } as unknown as typeof globalThis;
+      const dbError = new Error('Test error');
+      jest.spyOn(EventsIDBStore, 'keyValDatabaseExists').mockRejectedValueOnce(dbError);
       const eventsStorage = await SessionReplayEventsIDBStore.new('replay', {
         apiKey,
         loggerProvider: mockLoggerProvider,
       });
-
-      jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue(mockGlobalScope);
 
       await eventsStorage?.transitionFromKeyValStore();
       expect(mockLoggerProvider.warn).toHaveBeenCalled();
@@ -500,6 +493,148 @@ describe('SessionReplayEventsIDBStore', () => {
       const result = await EventsIDBStore.keyValDatabaseExists();
       expect(result).toBe(mockDbResult);
       expect(mockGlobalScope.indexedDB.open).toHaveBeenCalledWith('keyval-store');
+    });
+
+    test('should resolve undefined and clean up when onupgradeneeded fires (race condition)', async () => {
+      const mockClose = jest.fn();
+      const mockDeleteDatabase = jest.fn();
+      const mockGlobalScope = {
+        indexedDB: {
+          databases: jest.fn().mockResolvedValue([{ name: 'keyval-store' }]),
+          open: jest.fn().mockImplementation(() => {
+            const req: Record<string, unknown> = {
+              result: { close: mockClose },
+              error: null,
+              transaction: { abort: jest.fn() },
+            };
+            void Promise.resolve().then(() => {
+              (req.onupgradeneeded as (() => void) | undefined)?.();
+              (req.onsuccess as ((e: Event) => void) | undefined)?.(new Event('success'));
+            });
+            return req;
+          }),
+          deleteDatabase: mockDeleteDatabase,
+        },
+      } as unknown as typeof globalThis;
+
+      jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue(mockGlobalScope);
+
+      const result = await EventsIDBStore.keyValDatabaseExists();
+      expect(result).toBeUndefined();
+      expect(mockClose).toHaveBeenCalled();
+      expect(mockDeleteDatabase).toHaveBeenCalledWith('keyval-store');
+    });
+
+    test('should resolve undefined when onupgradeneeded fires and close/delete throw', async () => {
+      const mockLogger = {
+        debug: jest.fn(),
+        log: jest.fn(),
+        warn: jest.fn(),
+        error: jest.fn(),
+        enable: jest.fn(),
+        disable: jest.fn(),
+      };
+      const mockGlobalScope = {
+        indexedDB: {
+          databases: jest.fn().mockResolvedValue([{ name: 'keyval-store' }]),
+          open: jest.fn().mockImplementation(() => {
+            const req: Record<string, unknown> = {
+              result: {
+                close: jest.fn().mockImplementation(() => {
+                  throw new Error('close failed');
+                }),
+              },
+              error: null,
+              transaction: { abort: jest.fn() },
+            };
+            void Promise.resolve().then(() => {
+              (req.onupgradeneeded as (() => void) | undefined)?.();
+              (req.onsuccess as ((e: Event) => void) | undefined)?.(new Event('success'));
+            });
+            return req;
+          }),
+          deleteDatabase: jest.fn().mockImplementation(() => {
+            throw new Error('delete failed');
+          }),
+        },
+      } as unknown as typeof globalThis;
+
+      jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue(mockGlobalScope);
+
+      const result = await EventsIDBStore.keyValDatabaseExists(mockLogger);
+      expect(result).toBeUndefined();
+      expect(mockLogger.debug).toHaveBeenCalledWith(expect.stringContaining('close failed'));
+      expect(mockLogger.debug).toHaveBeenCalledWith(expect.stringContaining('delete failed'));
+    });
+
+    test('should resolve undefined when onupgradeneeded fires with no transaction and no logger', async () => {
+      const mockGlobalScope = {
+        indexedDB: {
+          databases: jest.fn().mockResolvedValue([{ name: 'keyval-store' }]),
+          open: jest.fn().mockImplementation(() => {
+            const req: Record<string, unknown> = {
+              result: {
+                close: jest.fn().mockImplementation(() => {
+                  throw new Error('close failed');
+                }),
+              },
+              error: null,
+              transaction: undefined,
+            };
+            void Promise.resolve().then(() => {
+              (req.onupgradeneeded as (() => void) | undefined)?.();
+              (req.onsuccess as ((e: Event) => void) | undefined)?.(new Event('success'));
+            });
+            return req;
+          }),
+          deleteDatabase: jest.fn().mockImplementation(() => {
+            throw new Error('delete failed');
+          }),
+        },
+      } as unknown as typeof globalThis;
+
+      jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue(mockGlobalScope);
+
+      const result = await EventsIDBStore.keyValDatabaseExists();
+      expect(result).toBeUndefined();
+    });
+
+    test('should resolve undefined when onerror fires', async () => {
+      const mockGlobalScope = {
+        indexedDB: {
+          databases: jest.fn().mockResolvedValue([{ name: 'keyval-store' }]),
+          open: jest.fn().mockImplementation(() => {
+            const req: Record<string, unknown> = { result: undefined, error: new Error('open failed') };
+            void Promise.resolve().then(() => {
+              const event = new Event('error');
+              jest.spyOn(event, 'preventDefault');
+              (req.onerror as ((e: Event) => void) | undefined)?.(event);
+            });
+            return req;
+          }),
+        },
+      } as unknown as typeof globalThis;
+
+      jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue(mockGlobalScope);
+
+      const result = await EventsIDBStore.keyValDatabaseExists();
+      expect(result).toBeUndefined();
+    });
+
+    test('should resolve undefined when indexedDB.open throws synchronously', async () => {
+      const mockGlobalScope = {
+        indexedDB: {
+          databases: jest.fn().mockResolvedValue([{ name: 'keyval-store' }]),
+          open: jest.fn().mockImplementation(() => {
+            throw new Error('sync throw');
+          }),
+        },
+      } as unknown as typeof globalThis;
+
+      jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue(mockGlobalScope);
+
+      const result = await EventsIDBStore.keyValDatabaseExists();
+      expect(result).toBeUndefined();
     });
 
     test('should add current session events to new idb sessionCurrentSequence', async () => {

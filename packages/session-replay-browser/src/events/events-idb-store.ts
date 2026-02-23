@@ -1,4 +1,4 @@
-import { STORAGE_PREFIX, getGlobalScope } from '@amplitude/analytics-core';
+import { ILogger, STORAGE_PREFIX, getGlobalScope } from '@amplitude/analytics-core';
 import { DBSchema, IDBPDatabase, openDB } from 'idb';
 import { STORAGE_FAILURE } from '../messages';
 import { EventType, Events, SendingSequencesReturn } from '../typings/session-replay';
@@ -49,7 +49,7 @@ export interface SessionReplayDB extends DBSchema {
  * 4. onerror calls event.preventDefault() to suppress the default IDB
  *    error event from reaching customer error trackers.
  */
-export const keyValDatabaseExists = async function (): Promise<IDBDatabase | void> {
+export const keyValDatabaseExists = async function (logger?: ILogger): Promise<IDBDatabase | void> {
   const globalScope = getGlobalScope();
 
   // (1) and (2): require databases() — skip migration if unavailable
@@ -83,13 +83,13 @@ export const keyValDatabaseExists = async function (): Promise<IDBDatabase | voi
         if (abortedNewDb) {
           try {
             request.result.close();
-          } catch {
-            // ignore
+          } catch (e) {
+            logger?.debug(`Failed to close recreated keyval-store: ${String(e)}`);
           }
           try {
             globalScope.indexedDB.deleteDatabase('keyval-store');
-          } catch {
-            // ignore
+          } catch (e) {
+            logger?.debug(`Failed to delete recreated keyval-store: ${String(e)}`);
           }
           resolve();
           return;
@@ -311,7 +311,7 @@ export class SessionReplayEventsIDBStore extends BaseEventsStore<number> {
 
   transitionFromKeyValStore = async (sessionId?: string | number) => {
     try {
-      const keyValDb = await keyValDatabaseExists();
+      const keyValDb = await keyValDatabaseExists(this.loggerProvider);
       if (!keyValDb) {
         return;
       }
