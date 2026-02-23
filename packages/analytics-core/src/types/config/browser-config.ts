@@ -231,7 +231,7 @@ export interface AttributionOptions {
    * (a referrer is 'internal' if it is on the same domain as the current page)
    * @experimental this feature is experimental and may not be stable
    */
-  excludeInternalReferrers?: true | ExcludeInternalReferrersOptions;
+  excludeInternalReferrers?: true | false | ExcludeInternalReferrersOptions;
   /**
    * The value to represent undefined/no initial campaign parameter for first-touch attribution.
    * @defaultValue `"EMPTY"`

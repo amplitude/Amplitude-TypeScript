@@ -6,11 +6,11 @@ import {
   BASE_CAMPAIGN,
   getGlobalScope,
 } from '@amplitude/analytics-core';
-import { ExcludeInternalReferrersOptions } from '@amplitude/analytics-core/lib/esm/types/config/browser-config';
+import { ExcludeInternalReferrersOptions } from '@amplitude/analytics-core';
 
 export interface Options {
   excludeReferrers?: (string | RegExp)[];
-  excludeInternalReferrers?: true | ExcludeInternalReferrersOptions;
+  excludeInternalReferrers?: true | false | ExcludeInternalReferrersOptions;
   initialEmptyValue?: string;
   resetSessionOnNewCampaign?: boolean;
   optOut?: boolean;
@@ -74,7 +74,7 @@ function typeguardExcludeInternalReferrers(
   return false;
 }
 
-function logInternalReferrerExclude(condition: 'always' | 'ifEmptyCampaign', referringDomain: string, logger: ILogger) {
+function logInternalReferrerExclude(condition: ExcludeInternalReferrersOptions['condition'], referringDomain: string, logger: ILogger) {
   const baseMessage = `This is not a new campaign because referring_domain=${referringDomain} is on the same domain as the current page and it is configured to exclude internal referrers.`;
   if (condition === 'always') {
     logger.debug(baseMessage);
@@ -207,12 +207,7 @@ const isInternalReferrer = (referringDomain: string) => {
   const globalScope = getGlobalScope();
   /* istanbul ignore if */
   if (!globalScope) return false;
-  if (globalScope && referringDomain) {
-    const { hostname } = globalScope.location;
-    return isSameDomain(referringDomain, hostname);
-  }
-  /* istanbul ignore next */
-  return false;
+  return isSameDomain(referringDomain, globalScope.location.hostname);
 };
 
 export const isEmptyCampaign = (campaign: Campaign) => {
