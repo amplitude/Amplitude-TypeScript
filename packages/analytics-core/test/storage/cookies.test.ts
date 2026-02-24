@@ -21,6 +21,11 @@ describe('cookies', () => {
       const cookies = new CookieStorage();
       expect(await cookies.isEnabled()).toBe(true);
     });
+    test('should return false when document is not available', async () => {
+      jest.spyOn(GlobalScopeModule, 'getGlobalScope').mockReturnValueOnce({} as typeof globalThis);
+      const cookies = new CookieStorage();
+      expect(await cookies.isEnabled()).toBe(false);
+    });
   });
 
   describe('get', () => {
