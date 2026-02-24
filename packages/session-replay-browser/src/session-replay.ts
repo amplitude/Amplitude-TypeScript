@@ -156,7 +156,6 @@ export class SessionReplay implements AmplitudeSessionReplay {
     try {
       const rrwebEventManager = await createEventsManager<'replay'>({
         config: this.config,
-        sessionId: this.identifiers.sessionId,
         type: 'replay',
         storeType,
       });
@@ -171,7 +170,6 @@ export class SessionReplay implements AmplitudeSessionReplay {
       try {
         const interactionEventManager = await createEventsManager<'interaction'>({
           config: this.config,
-          sessionId: this.identifiers.sessionId,
           type: 'interaction',
           minInterval: this.config.interactionConfig.trackEveryNms ?? INTERACTION_MIN_INTERVAL,
           maxInterval: INTERACTION_MAX_INTERVAL,
