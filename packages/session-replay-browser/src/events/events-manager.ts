@@ -47,8 +47,11 @@ export const createEventsManager = async <Type extends EventType>({
       maxInterval,
       apiKey: config.apiKey,
     });
-    config.loggerProvider.log('Failed to initialize idb store, falling back to memory store.');
-    return store ?? getMemoryStore();
+    if (!store) {
+      config.loggerProvider.log('Failed to initialize idb store, falling back to memory store.');
+      return getMemoryStore();
+    }
+    return store;
   };
 
   const store: EventsStore<number> = storeType === 'idb' ? await getIdbStoreOrFallback() : getMemoryStore();
