@@ -1,9 +1,10 @@
-import { STORAGE_PREFIX, getGlobalScope } from '@amplitude/analytics-core';
+import { ILogger, STORAGE_PREFIX, getGlobalScope } from '@amplitude/analytics-core';
 import { DBSchema, IDBPDatabase, openDB } from 'idb';
 import { STORAGE_FAILURE } from '../messages';
 import { EventType, Events, SendingSequencesReturn } from '../typings/session-replay';
 import { BaseEventsStore, InstanceArgs as BaseInstanceArgs } from './base-events-store';
 import { IDBStore, IDBStoreSession, RecordingStatus } from './legacy-idb-types';
+import { logIdbError } from '../utils/is-abort-error';
 
 export const currentSequenceKey = 'sessionCurrentSequence';
 export const sequencesToSendKey = 'sequencesToSend';
@@ -21,57 +22,87 @@ export interface SessionReplayDB extends DBSchema {
   };
 }
 
-export const keyValDatabaseExists = function (): Promise<IDBDatabase | void> {
+/**
+ * Best-effort check for the legacy 'keyval-store' IndexedDB database.
+ *
+ * Background: older SDK versions stored replay events in the default
+ * idb-keyval database ('keyval-store'). That name collides with other
+ * popular libraries (e.g. @tanstack/react-query-persist-client), so the
+ * SDK migrated to a per-API-key database. This function exists solely to
+ * detect leftover data for migration.
+ *
+ * Design decisions (intentional — do not "fix" without reading):
+ *
+ * 1. We use indexedDB.databases() to check existence without opening the
+ *    DB. The old approach (indexedDB.open) created the DB as a side-effect
+ *    if it didn't exist, which is the exact collision we're trying to avoid.
+ *
+ * 2. If databases() is unavailable (Firefox < 126) we skip migration
+ *    entirely. Losing very old replay data is acceptable; creating the
+ *    colliding DB is not.
+ *
+ * 3. Every failure path resolves undefined (no legacy DB) rather than
+ *    rejecting/throwing. This is a best-effort migration — surfacing
+ *    errors here causes customer-visible Sentry noise with no actionable
+ *    fix on their end.
+ *
+ * 4. onerror calls event.preventDefault() to suppress the default IDB
+ *    error event from reaching customer error trackers.
+ */
+export const keyValDatabaseExists = async function (logger?: ILogger): Promise<IDBDatabase | void> {
   const globalScope = getGlobalScope();
-  return new Promise((resolve, reject) => {
-    if (!globalScope) {
-      return reject(new Error('Global scope not found'));
-    }
 
-    if (!globalScope.indexedDB) {
-      return reject(new Error('Session Replay: cannot find indexedDB'));
-    }
+  // (1) and (2): require databases() — skip migration if unavailable
+  if (!globalScope?.indexedDB || typeof globalScope.indexedDB.databases !== 'function') {
+    return;
+  }
 
+  // (3): swallow databases() failures (privacy modes, blocked storage, etc.)
+  let dbs: IDBDatabaseInfo[];
+  try {
+    dbs = await globalScope.indexedDB.databases();
+  } catch {
+    return;
+  }
+  if (!dbs.some((db) => db.name === 'keyval-store')) {
+    return;
+  }
+
+  // DB confirmed to exist — open it for migration
+  return new Promise((resolve) => {
     try {
       const request = globalScope.indexedDB.open('keyval-store');
-      // If the DB doesn't exist, IndexedDB will create it at version 1 and fire `onupgradeneeded`.
-      // In that case, we want to clean it up and resolve (not reject) without emitting noisy AbortErrors.
-      let shouldDeleteNewDb = false;
-      request.onupgradeneeded = function () {
-        if (request.result.version === 1) {
-          shouldDeleteNewDb = true;
-        }
+      let abortedNewDb = false;
+      request.onupgradeneeded = () => {
+        // Race: DB was deleted between databases() and open() — abort to
+        // avoid recreating the colliding DB.
+        abortedNewDb = true;
+        request.transaction?.abort();
       };
-      request.onsuccess = function () {
-        if (shouldDeleteNewDb) {
+      request.onsuccess = () => {
+        if (abortedNewDb) {
           try {
             request.result.close();
-          } catch {
-            // ignore
+          } catch (e) {
+            logger?.debug(`Failed to close recreated keyval-store: ${String(e)}`);
           }
           try {
             globalScope.indexedDB.deleteDatabase('keyval-store');
-          } catch {
-            // ignore
+          } catch (e) {
+            logger?.debug(`Failed to delete recreated keyval-store: ${String(e)}`);
           }
           resolve();
           return;
         }
-
         resolve(request.result);
       };
-      request.onerror = function (event) {
-        // AbortErrors can occur due to internal IndexedDB cancellation/cleanup and are not actionable.
-        // Prevent the default error event behavior to avoid surfacing it to customer error trackers.
-        if (request.error?.name === 'AbortError') {
-          event.preventDefault();
-          resolve();
-          return;
-        }
-        reject(request.error);
+      request.onerror = (event) => {
+        // (4): suppress IDB error event from reaching customer error trackers
+        event.preventDefault();
+        resolve();
       };
-    } catch (e) {
-      reject(e);
+    } catch {
+      resolve();
     }
   });
 };
@@ -142,7 +173,7 @@ export class SessionReplayEventsIDBStore extends BaseEventsStore<number> {
       await eventsIDBStore.transitionFromKeyValStore(sessionId);
       return eventsIDBStore;
     } catch (e) {
-      args.loggerProvider.warn(`${STORAGE_FAILURE}: ${e as string}`);
+      logIdbError(args.loggerProvider, `${STORAGE_FAILURE}: ${e as string}`, e);
     }
     return;
   }
@@ -180,7 +211,7 @@ export class SessionReplayEventsIDBStore extends BaseEventsStore<number> {
 
       return sequences;
     } catch (e) {
-      this.loggerProvider.warn(`${STORAGE_FAILURE}: ${e as string}`);
+      logIdbError(this.loggerProvider, `${STORAGE_FAILURE}: ${e as string}`, e);
     }
     return undefined;
   };
@@ -208,7 +239,7 @@ export class SessionReplayEventsIDBStore extends BaseEventsStore<number> {
         sequenceId,
       };
     } catch (e) {
-      this.loggerProvider.warn(`${STORAGE_FAILURE}: ${e as string}`);
+      logIdbError(this.loggerProvider, `${STORAGE_FAILURE}: ${e as string}`, e);
     }
     return undefined;
   };
@@ -249,7 +280,7 @@ export class SessionReplayEventsIDBStore extends BaseEventsStore<number> {
         sequenceId,
       };
     } catch (e) {
-      this.loggerProvider.warn(`${STORAGE_FAILURE}: ${e as string}`);
+      logIdbError(this.loggerProvider, `${STORAGE_FAILURE}: ${e as string}`, e);
     }
     return undefined;
   };
@@ -262,7 +293,7 @@ export class SessionReplayEventsIDBStore extends BaseEventsStore<number> {
       });
       return sequenceId;
     } catch (e) {
-      this.loggerProvider.warn(`${STORAGE_FAILURE}: ${e as string}`);
+      logIdbError(this.loggerProvider, `${STORAGE_FAILURE}: ${e as string}`, e);
     }
     return undefined;
   };
@@ -274,13 +305,13 @@ export class SessionReplayEventsIDBStore extends BaseEventsStore<number> {
     try {
       await this.db.delete<'sequencesToSend'>(sequencesToSendKey, sequenceId);
     } catch (e) {
-      this.loggerProvider.warn(`${STORAGE_FAILURE}: ${e as string}`);
+      logIdbError(this.loggerProvider, `${STORAGE_FAILURE}: ${e as string}`, e);
     }
   };
 
   transitionFromKeyValStore = async (sessionId?: string | number) => {
     try {
-      const keyValDb = await keyValDatabaseExists();
+      const keyValDb = await keyValDatabaseExists(this.loggerProvider);
       if (!keyValDb) {
         return;
       }
@@ -346,13 +377,19 @@ export class SessionReplayEventsIDBStore extends BaseEventsStore<number> {
           globalScope.indexedDB.deleteDatabase('keyval-store');
         }
       } catch (e) {
-        this.loggerProvider.warn(`Failed to transition session replay events from keyval to new store: ${e as string}`);
+        logIdbError(
+          this.loggerProvider,
+          `Failed to transition session replay events from keyval to new store: ${e as string}`,
+          e,
+        );
       }
     } catch (e) {
-      this.loggerProvider.warn(
+      logIdbError(
+        this.loggerProvider,
         `Failed to access keyval store: ${
           e as string
         }. For more information, visit: https://www.docs.developers.amplitude.com/session-replay/sdks/standalone/#indexeddb-best-practices`,
+        e,
       );
     }
   };
