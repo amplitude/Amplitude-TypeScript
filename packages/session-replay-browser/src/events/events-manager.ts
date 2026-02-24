@@ -13,7 +13,6 @@ import { InMemoryEventsStore } from './events-memory-store';
 
 export const createEventsManager = async <Type extends EventType>({
   config,
-  sessionId,
   minInterval,
   maxInterval,
   type,
@@ -24,7 +23,6 @@ export const createEventsManager = async <Type extends EventType>({
   type: Type;
   minInterval?: number;
   maxInterval?: number;
-  sessionId?: string | number;
   payloadBatcher?: PayloadBatcher;
   storeType: StoreType;
 }): Promise<AmplitudeSessionReplayEventsManager<Type, string>> => {
@@ -43,16 +41,12 @@ export const createEventsManager = async <Type extends EventType>({
   };
 
   const getIdbStoreOrFallback = async (): Promise<EventsStore<number>> => {
-    const store = await SessionReplayEventsIDBStore.new(
-      type,
-      {
-        loggerProvider: config.loggerProvider,
-        minInterval,
-        maxInterval,
-        apiKey: config.apiKey,
-      },
-      sessionId,
-    );
+    const store = await SessionReplayEventsIDBStore.new(type, {
+      loggerProvider: config.loggerProvider,
+      minInterval,
+      maxInterval,
+      apiKey: config.apiKey,
+    });
     config.loggerProvider.log('Failed to initialize idb store, falling back to memory store.');
     return store ?? getMemoryStore();
   };
