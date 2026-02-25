@@ -42,20 +42,22 @@ describe('cookies', () => {
       });
     });
 
-    test('should return false if _isEnabled returns false after 3 attempts', async () => {
-      const mockDiagnosticsClient = {
-        recordEvent: jest.fn(),
-        increment: jest.fn(),
-        recordHistogram: jest.fn(),
-        setTag: jest.fn(),
-        _flush: jest.fn(),
-        _setSampleRate: jest.fn(),
-      };
-      const cookies = new CookieStorage({}, { diagnosticsClient: mockDiagnosticsClient });
-      const _isEnabledSpy = jest.spyOn(cookies, '_isEnabled');
-      _isEnabledSpy.mockResolvedValue(false);
-      expect(await cookies.isEnabled()).toBe(false);
-      expect(_isEnabledSpy).toHaveBeenCalledTimes(3);
+    describe('should return false', () => {
+      test('if _isEnabled returns false after 3 attempts', async () => {
+        const mockDiagnosticsClient = {
+          recordEvent: jest.fn(),
+          increment: jest.fn(),
+          recordHistogram: jest.fn(),
+          setTag: jest.fn(),
+          _flush: jest.fn(),
+          _setSampleRate: jest.fn(),
+        };
+        const cookies = new CookieStorage({}, { diagnosticsClient: mockDiagnosticsClient });
+        const _isEnabledSpy = jest.spyOn(cookies, '_isEnabled');
+        _isEnabledSpy.mockResolvedValue(false);
+        expect(await cookies.isEnabled()).toBe(false);
+        expect(_isEnabledSpy).toHaveBeenCalledTimes(3);
+      });
     });
 
     describe('when document is not available', () => {
