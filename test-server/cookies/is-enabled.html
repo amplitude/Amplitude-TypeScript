@@ -25,23 +25,23 @@
         c1.isEnabled(),
         c2.isEnabled(),
       ];
-      const res = await Promise.all(promises);
+      const results = await Promise.all(promises);
+      const [a, b, c, d] = results;
 
-      const allTrue = res.every((r) => r === true);
-      log('Parallel calls: ' + JSON.stringify(res));
-      log('All true: ' + allTrue);
+      log('Parallel calls: ' + JSON.stringify(results));
+      log('All true: ' + (a && b && c && d));
 
-      const a = await c1.isEnabled();
-      const b = await c1.isEnabled();
-      const c = await c2.isEnabled();
-      log('Sequential c1.isEnabled(): ' + a + ', ' + b);
-      log('Sequential c2.isEnabled(): ' + c);
-      log('All true: ' + (a && b && c));
+      // Test that all of the concurrent calls returned true
+      for (const result of results) {
+        if (!result) {
+          const errorMessage = `isEnabled returned 'false'. Test failed.`;
+          console.error(errorMessage);
+          throw new Error(errorMessage);
+        }
+      }
     }
 
-    run().catch((e) => {
-      log('Error: ' + e.message);
-    });
+    run();
   </script>
 </body>
 </html>
