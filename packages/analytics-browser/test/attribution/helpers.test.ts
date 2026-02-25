@@ -297,6 +297,27 @@ describe('isNewCampaign', () => {
           ),
         ).toBe(true);
       });
+
+      test('should return true if internal referrer and campaign is not empty', () => {
+        const previousCampaign = {
+          ...BASE_CAMPAIGN,
+          utm_campaign: 'previous_campaign',
+          referring_domain: 'a.b.co.uk',
+        };
+        const currentCampaign = {
+          ...BASE_CAMPAIGN,
+          utm_campaign: 'new_campaign',
+          referring_domain: 'a.b.co.uk',
+        };
+        expect(
+          isNewCampaign(
+            currentCampaign,
+            previousCampaign,
+            { excludeInternalReferrers: { condition: 'ifEmptyCampaign' } },
+            loggerProvider,
+          ),
+        ).toBe(true);
+      });
     });
 
     describe('is invalid', () => {

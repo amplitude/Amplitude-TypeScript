@@ -175,7 +175,7 @@ function debugLogInternalReferrerExclude(
   if (condition === 'always') {
     logger.debug(baseMessage);
   } else if (condition === 'ifEmptyCampaign') {
-    logger.debug(`${baseMessage} and it is configured to exclude internal referrers with empty campaign parameters`);
+    logger.debug(`${baseMessage} with empty campaign parameters`);
   }
 }
 
