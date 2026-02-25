@@ -30,8 +30,9 @@ export class CookieStorage<T> implements Storage<T> {
   }
 
   async isEnabled(): Promise<boolean> {
+    const globalScope = getGlobalScope();
     /* istanbul ignore if */
-    if (!getGlobalScope()) {
+    if (!globalScope || !globalScope.document) {
       return false;
     }
 

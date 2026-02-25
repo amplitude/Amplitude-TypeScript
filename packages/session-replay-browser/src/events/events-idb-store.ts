@@ -1,9 +1,8 @@
-import { STORAGE_PREFIX, getGlobalScope } from '@amplitude/analytics-core';
 import { DBSchema, IDBPDatabase, openDB } from 'idb';
 import { STORAGE_FAILURE } from '../messages';
 import { EventType, Events, SendingSequencesReturn } from '../typings/session-replay';
 import { BaseEventsStore, InstanceArgs as BaseInstanceArgs } from './base-events-store';
-import { IDBStore, IDBStoreSession, RecordingStatus } from './legacy-idb-types';
+import { logIdbError } from '../utils/is-abort-error';
 
 export const currentSequenceKey = 'sessionCurrentSequence';
 export const sequencesToSendKey = 'sequencesToSend';
@@ -20,69 +19,6 @@ export interface SessionReplayDB extends DBSchema {
     indexes: { sessionId: string | number };
   };
 }
-
-export const keyValDatabaseExists = function (): Promise<IDBDatabase | void> {
-  const globalScope = getGlobalScope();
-  return new Promise((resolve, reject) => {
-    if (!globalScope) {
-      return reject(new Error('Global scope not found'));
-    }
-
-    if (!globalScope.indexedDB) {
-      return reject(new Error('Session Replay: cannot find indexedDB'));
-    }
-
-    try {
-      const request = globalScope.indexedDB.open('keyval-store');
-      // If the DB doesn't exist, IndexedDB will create it at version 1 and fire `onupgradeneeded`.
-      // In that case, we want to clean it up and resolve (not reject) without emitting noisy AbortErrors.
-      let shouldDeleteNewDb = false;
-      request.onupgradeneeded = function () {
-        if (request.result.version === 1) {
-          shouldDeleteNewDb = true;
-        }
-      };
-      request.onsuccess = function () {
-        if (shouldDeleteNewDb) {
-          try {
-            request.result.close();
-          } catch {
-            // ignore
-          }
-          try {
-            globalScope.indexedDB.deleteDatabase('keyval-store');
-          } catch {
-            // ignore
-          }
-          resolve();
-          return;
-        }
-
-        resolve(request.result);
-      };
-      request.onerror = function (event) {
-        // AbortErrors can occur due to internal IndexedDB cancellation/cleanup and are not actionable.
-        // Prevent the default error event behavior to avoid surfacing it to customer error trackers.
-        if (request.error?.name === 'AbortError') {
-          event.preventDefault();
-          resolve();
-          return;
-        }
-        reject(request.error);
-      };
-    } catch (e) {
-      reject(e);
-    }
-  });
-};
-
-const batchPromiseAll = async (promiseBatch: Promise<any>[]) => {
-  while (promiseBatch.length > 0) {
-    const chunkSize = 10;
-    const batch = promiseBatch.splice(0, chunkSize);
-    await Promise.all(batch);
-  }
-};
 
 export const defineObjectStores = (db: IDBPDatabase<SessionReplayDB>) => {
   let sequencesStore;
@@ -117,32 +53,24 @@ type InstanceArgs = {
 } & BaseInstanceArgs;
 
 export class SessionReplayEventsIDBStore extends BaseEventsStore<number> {
-  private readonly apiKey: string;
   private readonly db: IDBPDatabase<SessionReplayDB>;
 
   constructor(args: InstanceArgs) {
     super(args);
-    this.apiKey = args.apiKey;
     this.db = args.db;
   }
 
-  static async new(
-    type: EventType,
-    args: Omit<InstanceArgs, 'db'>,
-    sessionId?: string | number,
-  ): Promise<SessionReplayEventsIDBStore | undefined> {
+  static async new(type: EventType, args: Omit<InstanceArgs, 'db'>): Promise<SessionReplayEventsIDBStore | undefined> {
     try {
       const dbSuffix = type === 'replay' ? '' : `_${type}`;
       const dbName = `${args.apiKey.substring(0, 10)}_amp_session_replay_events${dbSuffix}`;
       const db = await createStore(dbName);
-      const eventsIDBStore = new SessionReplayEventsIDBStore({
+      return new SessionReplayEventsIDBStore({
         ...args,
         db,
       });
-      await eventsIDBStore.transitionFromKeyValStore(sessionId);
-      return eventsIDBStore;
     } catch (e) {
-      args.loggerProvider.warn(`${STORAGE_FAILURE}: ${e as string}`);
+      logIdbError(args.loggerProvider, `${STORAGE_FAILURE}: ${e as string}`, e);
     }
     return;
   }
@@ -180,7 +108,7 @@ export class SessionReplayEventsIDBStore extends BaseEventsStore<number> {
 
       return sequences;
     } catch (e) {
-      this.loggerProvider.warn(`${STORAGE_FAILURE}: ${e as string}`);
+      logIdbError(this.loggerProvider, `${STORAGE_FAILURE}: ${e as string}`, e);
     }
     return undefined;
   };
@@ -208,7 +136,7 @@ export class SessionReplayEventsIDBStore extends BaseEventsStore<number> {
         sequenceId,
       };
     } catch (e) {
-      this.loggerProvider.warn(`${STORAGE_FAILURE}: ${e as string}`);
+      logIdbError(this.loggerProvider, `${STORAGE_FAILURE}: ${e as string}`, e);
     }
     return undefined;
   };
@@ -249,7 +177,7 @@ export class SessionReplayEventsIDBStore extends BaseEventsStore<number> {
         sequenceId,
       };
     } catch (e) {
-      this.loggerProvider.warn(`${STORAGE_FAILURE}: ${e as string}`);
+      logIdbError(this.loggerProvider, `${STORAGE_FAILURE}: ${e as string}`, e);
     }
     return undefined;
   };
@@ -262,7 +190,7 @@ export class SessionReplayEventsIDBStore extends BaseEventsStore<number> {
       });
       return sequenceId;
     } catch (e) {
-      this.loggerProvider.warn(`${STORAGE_FAILURE}: ${e as string}`);
+      logIdbError(this.loggerProvider, `${STORAGE_FAILURE}: ${e as string}`, e);
     }
     return undefined;
   };
@@ -274,86 +202,7 @@ export class SessionReplayEventsIDBStore extends BaseEventsStore<number> {
     try {
       await this.db.delete<'sequencesToSend'>(sequencesToSendKey, sequenceId);
     } catch (e) {
-      this.loggerProvider.warn(`${STORAGE_FAILURE}: ${e as string}`);
-    }
-  };
-
-  transitionFromKeyValStore = async (sessionId?: string | number) => {
-    try {
-      const keyValDb = await keyValDatabaseExists();
-      if (!keyValDb) {
-        return;
-      }
-
-      const transitionCurrentSessionSequences = async (numericSessionId: number, sessionStore: IDBStoreSession) => {
-        const currentSessionSequences = sessionStore.sessionSequences;
-        const promisesToBatch: Promise<number | SendingSequencesReturn<number> | undefined>[] = [];
-
-        Object.keys(currentSessionSequences).forEach((sequenceId) => {
-          const numericSequenceId = parseInt(sequenceId, 10);
-          const sequence = currentSessionSequences[numericSequenceId];
-          if (numericSequenceId === sessionStore.currentSequenceId) {
-            const eventAddPromises: Promise<SendingSequencesReturn<number> | undefined>[] = sequence.events.map(
-              async (event) => this.addEventToCurrentSequence(numericSessionId, event),
-            );
-            promisesToBatch.push(...eventAddPromises);
-          } else if (sequence.status !== RecordingStatus.SENT) {
-            promisesToBatch.push(this.storeSendingEvents(numericSessionId, sequence.events));
-          }
-        });
-
-        await batchPromiseAll(promisesToBatch);
-      };
-
-      const storageKey = `${STORAGE_PREFIX}_${this.apiKey.substring(0, 10)}`;
-      try {
-        const getAllRequest = keyValDb.transaction('keyval').objectStore('keyval').getAll(storageKey);
-        const transitionPromise = new Promise<void>((resolve) => {
-          getAllRequest.onsuccess = async (e) => {
-            const storedReplaySessionContextList = e && ((e.target as IDBRequest).result as IDBStore[]);
-            const storedReplaySessionContexts = storedReplaySessionContextList && storedReplaySessionContextList[0];
-            if (storedReplaySessionContexts) {
-              const promisesToBatch: Promise<any>[] = [];
-
-              Object.keys(storedReplaySessionContexts).forEach((storedSessionId) => {
-                const numericSessionId = parseInt(storedSessionId, 10);
-                const oldSessionStore = storedReplaySessionContexts[numericSessionId];
-
-                if (sessionId === numericSessionId) {
-                  promisesToBatch.push(transitionCurrentSessionSequences(numericSessionId, oldSessionStore));
-                } else {
-                  const oldSessionSequences = oldSessionStore.sessionSequences;
-                  Object.keys(oldSessionSequences).forEach((sequenceId) => {
-                    const numericSequenceId = parseInt(sequenceId, 10);
-                    if (oldSessionSequences[numericSequenceId].status !== RecordingStatus.SENT) {
-                      promisesToBatch.push(
-                        this.storeSendingEvents(numericSessionId, oldSessionSequences[numericSequenceId].events),
-                      );
-                    }
-                  });
-                }
-              });
-
-              await batchPromiseAll(promisesToBatch);
-            }
-            resolve();
-          };
-        });
-
-        await transitionPromise;
-        const globalScope = getGlobalScope();
-        if (globalScope) {
-          globalScope.indexedDB.deleteDatabase('keyval-store');
-        }
-      } catch (e) {
-        this.loggerProvider.warn(`Failed to transition session replay events from keyval to new store: ${e as string}`);
-      }
-    } catch (e) {
-      this.loggerProvider.warn(
-        `Failed to access keyval store: ${
-          e as string
-        }. For more information, visit: https://www.docs.developers.amplitude.com/session-replay/sdks/standalone/#indexeddb-best-practices`,
-      );
+      logIdbError(this.loggerProvider, `${STORAGE_FAILURE}: ${e as string}`, e);
     }
   };
 }
