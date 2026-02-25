@@ -81,7 +81,9 @@ export class CookieStorage<T> implements Storage<T> {
       if (isEnabled) {
         return true;
       }
-      await new Promise((resolve) => setTimeout(resolve, DELAY_MS));
+      if (i < MAX_RETRIES - 1) {
+        await new Promise((resolve) => setTimeout(resolve, DELAY_MS));
+      }
     }
     return false;
   }
