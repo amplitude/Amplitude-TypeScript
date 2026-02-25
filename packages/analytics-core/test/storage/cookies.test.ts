@@ -16,7 +16,7 @@ describe('cookies', () => {
       afterEach(() => {
         jest.useRealTimers();
       });
-      
+
       test('regression test re-entrancy issue', async () => {
         const c1 = new CookieStorage();
         const c2 = new CookieStorage();
