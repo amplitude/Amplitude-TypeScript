@@ -109,4 +109,3 @@ export const SAFE_HEADERS = [
 
 // list of Network headers to never capture
 export const FORBIDDEN_HEADERS = ['authorization', 'cookie', 'set-cookie'];
-
