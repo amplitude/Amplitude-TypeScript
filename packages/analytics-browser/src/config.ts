@@ -472,7 +472,7 @@ export const createTransport = (transport?: TransportTypeOrOptions) => {
 
 export const getTopLevelDomain = async (url?: string, diagnosticsClient?: IDiagnosticsClient) => {
   if (
-    !(await new CookieStorage<number>().isEnabled()) ||
+    !(await new CookieStorage<number>(undefined, { diagnosticsClient }).isEnabled()) ||
     (!url && (typeof location === 'undefined' || !location.hostname))
   ) {
     return '';

@@ -8,6 +8,9 @@ import { isDomainEqual, decodeCookieValue } from '../../src/index';
 import * as GlobalScopeModule from '../../src/global-scope';
 
 describe('cookies', () => {
+  afterEach(() => {
+    delete (CookieStorage as unknown as any).isEnabledCachedResult;
+  });
   describe('isEnabled', () => {
     test('regression test re-entrancy issue', async () => {
       const c1 = new CookieStorage();
@@ -18,17 +21,25 @@ describe('cookies', () => {
       expect(res).toEqual([true, true]);
     });
 
-    test('should return true', async () => {
-      const cookies = new CookieStorage();
-      expect(await cookies.isEnabled()).toBe(true);
-    });
+    describe('should return true', () => {
+      test('when isEnabled is called', async () => {
+        const cookies = new CookieStorage();
+        expect(await cookies.isEnabled()).toBe(true);
+      });
 
-    test('should return true if _isEnabled returns false the first time and then returns true', async () => {
-      const cookies = new CookieStorage();
-      const _isEnabledSpy = jest.spyOn(cookies, '_isEnabled');
-      _isEnabledSpy.mockResolvedValueOnce(false).mockResolvedValueOnce(true);
-      expect(await cookies.isEnabled()).toBe(true);
-      expect(_isEnabledSpy).toHaveBeenCalledTimes(2);
+      test('when isEnabled is called multiple times', async () => {
+        const cookies = new CookieStorage();
+        expect(await cookies.isEnabled()).toBe(true);
+        expect(await cookies.isEnabled()).toBe(true);
+      });
+
+      test('if _isEnabled returns false the first time and then returns true', async () => {
+        const cookies = new CookieStorage();
+        const _isEnabledSpy = jest.spyOn(cookies, '_isEnabled');
+        _isEnabledSpy.mockResolvedValueOnce(false).mockResolvedValueOnce(true);
+        expect(await cookies.isEnabled()).toBe(true);
+        expect(_isEnabledSpy).toHaveBeenCalledTimes(2);
+      });
     });
 
     test('should return false if _isEnabled returns false after 3 attempts', async () => {

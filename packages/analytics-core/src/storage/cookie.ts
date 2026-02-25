@@ -23,6 +23,7 @@ type GlobalScopeWithCookieStore = {
 export class CookieStorage<T> implements Storage<T> {
   options: CookieStorageOptions;
   config: CookieStorageConfig;
+  private static isEnabledCachedResult: true | undefined;
 
   constructor(options?: CookieStorageOptions, config: CookieStorageConfig = {}) {
     this.options = { ...options };
@@ -73,12 +74,16 @@ export class CookieStorage<T> implements Storage<T> {
   }
 
   async isEnabled(): Promise<boolean> {
+    if (CookieStorage.isEnabledCachedResult === true) {
+      return CookieStorage.isEnabledCachedResult;
+    }
     const MAX_RETRIES = 3;
     const DELAY_MS = 100;
 
     for (let i = 0; i < MAX_RETRIES; i++) {
       const isEnabled = await this._isEnabled();
       if (isEnabled) {
+        CookieStorage.isEnabledCachedResult = true;
         return true;
       }
       await new Promise((resolve) => setTimeout(resolve, DELAY_MS));
