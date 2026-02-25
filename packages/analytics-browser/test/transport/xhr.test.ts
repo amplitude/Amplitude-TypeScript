@@ -1,6 +1,11 @@
 import { ReadableStream, WritableStream } from 'stream/web';
-import { compressToGzipArrayBuffer, Status } from '@amplitude/analytics-core';
+import { TextEncoder } from 'util';
+import { compressToGzipArrayBuffer, MIN_GZIP_UPLOAD_BODY_SIZE_BYTES, Status } from '@amplitude/analytics-core';
 import { XHRTransport } from '../../src/transports/xhr';
+
+if (typeof global.TextEncoder === 'undefined') {
+  (global as typeof globalThis & { TextEncoder?: typeof TextEncoder }).TextEncoder = TextEncoder;
+}
 
 describe('xhr', () => {
   describe('send', () => {
@@ -223,6 +228,39 @@ describe('xhr', () => {
       g.CompressionStream = originalCompressionStream;
     });
 
+    test('when payload is below compression threshold, should send uncompressed body', async () => {
+      const g = global as { CompressionStream?: unknown };
+      const originalCompressionStream = g.CompressionStream;
+      const MockCompressionStream = jest.fn();
+      g.CompressionStream = MockCompressionStream;
+
+      const transport = new XHRTransport({}, true);
+      const url = 'http://localhost:3000';
+      const payload = { api_key: '', events: [] };
+
+      const setRequestHeader = jest.fn();
+      const send = jest.fn();
+      const mockXhr = {
+        open: jest.fn(),
+        setRequestHeader,
+        send,
+        readyState: 4,
+        responseText: '{}',
+        onreadystatechange: null as (() => void) | null,
+      };
+      jest.spyOn(global, 'XMLHttpRequest').mockImplementation(() => mockXhr as unknown as XMLHttpRequest);
+
+      const sendPromise = transport.send(url, payload);
+      mockXhr.onreadystatechange?.();
+      await sendPromise;
+
+      expect(setRequestHeader).not.toHaveBeenCalledWith('Content-Encoding', 'gzip');
+      expect(send).toHaveBeenCalledWith(JSON.stringify(payload));
+      expect(MockCompressionStream).not.toHaveBeenCalled();
+
+      g.CompressionStream = originalCompressionStream;
+    });
+
     test('should send gzip-compressed body with Content-Encoding when shouldCompressUploadBody is true', async () => {
       const mockCompressedBytes = new Uint8Array([0x1f, 0x8b]); // gzip magic number
       const mockArrayBuffer = new ArrayBuffer(2);
@@ -254,7 +292,15 @@ describe('xhr', () => {
 
       const transport = new XHRTransport({}, true);
       const url = 'http://localhost:3000';
-      const payload = { api_key: '', events: [] };
+      const payload = {
+        api_key: '',
+        events: [
+          {
+            event_type: 'large-payload',
+            event_properties: { value: 'a'.repeat(MIN_GZIP_UPLOAD_BODY_SIZE_BYTES) },
+          },
+        ],
+      };
 
       const open = jest.fn();
       const setRequestHeader = jest.fn();

@@ -2,7 +2,12 @@ import { BaseTransport } from './base';
 import { Transport } from '../types/transport';
 import { Payload } from '../types/payload';
 import { Response } from '../types/response';
-import { compressToGzipArrayBuffer, isCompressionStreamAvailable } from './gzip';
+import {
+  compressToGzipArrayBuffer,
+  getStringSizeInBytes,
+  isCompressionStreamAvailable,
+  MIN_GZIP_UPLOAD_BODY_SIZE_BYTES,
+} from './gzip';
 
 export class FetchTransport extends BaseTransport implements Transport {
   private customHeaders: Record<string, string>;
@@ -20,13 +25,18 @@ export class FetchTransport extends BaseTransport implements Transport {
       throw new Error('FetchTransport is not supported');
     }
     const bodyString = JSON.stringify(payload);
+    const shouldCompressBody =
+      this.shouldCompressUploadBody &&
+      getStringSizeInBytes(bodyString) >= MIN_GZIP_UPLOAD_BODY_SIZE_BYTES &&
+      isCompressionStreamAvailable();
+
     let body: string | ArrayBuffer = bodyString;
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       Accept: '*/*',
       ...this.customHeaders,
     };
-    if (this.shouldCompressUploadBody && isCompressionStreamAvailable()) {
+    if (shouldCompressBody) {
       body = await compressToGzipArrayBuffer(bodyString);
       headers['Content-Encoding'] = 'gzip';
     }

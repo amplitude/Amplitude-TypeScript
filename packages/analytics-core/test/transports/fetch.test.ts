@@ -3,9 +3,15 @@
  */
 
 import { ReadableStream, WritableStream } from 'stream/web';
+import { TextEncoder } from 'util';
 import { FetchTransport } from '../../src/transports/fetch';
+import { MIN_GZIP_UPLOAD_BODY_SIZE_BYTES } from '../../src/transports/gzip';
 import { Status } from '../../src/types/status';
 import 'isomorphic-fetch';
+
+if (typeof global.TextEncoder === 'undefined') {
+  (global as typeof globalThis & { TextEncoder?: typeof TextEncoder }).TextEncoder = TextEncoder;
+}
 
 describe('fetch', () => {
   describe('send', () => {
@@ -109,6 +115,34 @@ describe('fetch', () => {
       });
     });
 
+    test('should send uncompressed body when payload is below the compression threshold', async () => {
+      const mockCompressionStream = jest.fn();
+      (global as typeof globalThis & { CompressionStream?: unknown }).CompressionStream = mockCompressionStream;
+
+      const transport = new FetchTransport({}, true);
+      const url = 'http://localhost:3000';
+      const payload = {
+        api_key: '',
+        events: [{ event_type: 'test', device_id: 'test_device_id' }],
+      };
+
+      const fetchSpy = jest.spyOn(window, 'fetch').mockReturnValueOnce(Promise.resolve(new Response('{}')));
+      await transport.send(url, payload);
+
+      expect(fetchSpy).toHaveBeenCalledWith(url, {
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: '*/*',
+        },
+        body: JSON.stringify(payload),
+        method: 'POST',
+      });
+      expect(mockCompressionStream).not.toHaveBeenCalled();
+
+      const g = global as { CompressionStream?: unknown };
+      delete g.CompressionStream;
+    });
+
     test('should send gzip-compressed body with Content-Encoding when shouldCompressUploadBody is true', async () => {
       const mockCompressedBytes = new Uint8Array([0x1f, 0x8b]);
       const mockArrayBuffer = new ArrayBuffer(2);
@@ -139,7 +173,15 @@ describe('fetch', () => {
 
       const transport = new FetchTransport({}, true);
       const url = 'http://localhost:3000';
-      const payload = { api_key: '', events: [] };
+      const payload = {
+        api_key: '',
+        events: [
+          {
+            event_type: 'large-payload',
+            event_properties: { value: 'a'.repeat(MIN_GZIP_UPLOAD_BODY_SIZE_BYTES) },
+          },
+        ],
+      };
 
       // Use a response-like object with .text() since global Response is mocked for compressToGzipArrayBuffer
       const fetchSpy = jest
