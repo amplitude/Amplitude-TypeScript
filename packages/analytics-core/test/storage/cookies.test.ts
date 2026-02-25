@@ -31,13 +31,6 @@ describe('cookies', () => {
       expect(_isEnabledSpy).toHaveBeenCalledTimes(2);
     });
 
-    test('should cache the result of _isEnabled if it returns true once', async () => {
-      const cookies = new CookieStorage();
-      expect(await cookies.isEnabled()).toBe(true);
-      expect(CookieStorage.isEnabledCachedResult).toBe(true);
-      expect(await cookies.isEnabled()).toBe(true);
-    });
-
     test('should return false if _isEnabled returns false after 3 attempts', async () => {
       const mockDiagnosticsClient = {
         recordEvent: jest.fn(),
@@ -52,6 +45,95 @@ describe('cookies', () => {
       _isEnabledSpy.mockResolvedValue(false);
       expect(await cookies.isEnabled()).toBe(false);
       expect(_isEnabledSpy).toHaveBeenCalledTimes(3);
+    });
+
+    describe('when document is not available', () => {
+      let getGlobalScopeSpy: jest.SpyInstance;
+      beforeEach(() => {
+        getGlobalScopeSpy = jest.spyOn(GlobalScopeModule, 'getGlobalScope').mockReturnValue({} as typeof globalThis);
+      });
+      afterEach(() => {
+        getGlobalScopeSpy.mockRestore();
+      });
+      test('should return false', async () => {
+        const cookies = new CookieStorage();
+        expect(await cookies.isEnabled()).toBe(false);
+      });
+    });
+
+    describe('when document.cookie throws an error', () => {
+      let getGlobalScopeSpy: jest.SpyInstance;
+      beforeEach(() => {
+        getGlobalScopeSpy = jest.spyOn(GlobalScopeModule, 'getGlobalScope').mockReturnValue({} as typeof globalThis);
+        getGlobalScopeSpy.mockImplementation(() => {
+          return {
+            document: {
+              cookie: {
+                get() {
+                  throw new Error('getter error');
+                },
+                set() {
+                  throw new Error('setter error');
+                },
+              }
+            },
+          }
+        });
+      });
+      afterEach(() => {
+        getGlobalScopeSpy.mockRestore();
+      });
+
+      test('should return false', async () => {
+        const mockDiagnosticsClient = {
+          recordEvent: jest.fn(),
+          increment: jest.fn(),
+          recordHistogram: jest.fn(),
+          setTag: jest.fn(),
+          _flush: jest.fn(),
+          _setSampleRate: jest.fn(),
+        };
+        const cookies = new CookieStorage(undefined, { diagnosticsClient: mockDiagnosticsClient as any });
+        expect(await cookies.isEnabled()).toBe(false);
+        expect(mockDiagnosticsClient.recordEvent).toHaveBeenCalledTimes(3);
+      });
+    });
+
+    describe('when document.cookie returns wrong test value', () => {
+      let getGlobalScopeSpy: jest.SpyInstance;
+      beforeEach(() => {
+        getGlobalScopeSpy = jest.spyOn(GlobalScopeModule, 'getGlobalScope').mockReturnValue({} as typeof globalThis);
+        getGlobalScopeSpy.mockImplementation(() => {
+          return {
+            document: {
+              cookie: {
+                get() {
+                  return 'wrong value';
+                },
+                set() {
+                  return 'wrong value';
+                },
+              }
+            },
+          }
+        });
+      });
+      afterEach(() => {
+        getGlobalScopeSpy.mockRestore();
+      });
+      test('should return false', async () => {
+        const mockDiagnosticsClient = {
+          recordEvent: jest.fn(),
+          increment: jest.fn(),
+          recordHistogram: jest.fn(),
+          setTag: jest.fn(),
+          _flush: jest.fn(),
+          _setSampleRate: jest.fn(),
+        };
+        const cookies = new CookieStorage(undefined, { diagnosticsClient: mockDiagnosticsClient as any });
+        expect(await cookies.isEnabled()).toBe(false);
+        expect(mockDiagnosticsClient.recordEvent).toHaveBeenCalledTimes(3);
+      });
     });
   });
 

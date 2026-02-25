@@ -1,6 +1,6 @@
 {
   "name": "@amplitude/unified",
-  "version": "1.0.0-beta.36",
+  "version": "1.0.0-beta.37",
   "description": "Official Amplitude SDK for Web analytics, experiment, session replay, and more.",
   "keywords": [
     "amplitude",

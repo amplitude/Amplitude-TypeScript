@@ -23,8 +23,6 @@ type GlobalScopeWithCookieStore = {
 export class CookieStorage<T> implements Storage<T> {
   options: CookieStorageOptions;
   config: CookieStorageConfig;
-  // if "isEnabled" returns true once, cache the result to avoid multiple calls to _isEnabled
-  static isEnabledCachedResult = false;
 
   constructor(options?: CookieStorageOptions, config: CookieStorageConfig = {}) {
     this.options = { ...options };
@@ -32,13 +30,10 @@ export class CookieStorage<T> implements Storage<T> {
   }
 
   async _isEnabled(): Promise<boolean> {
+    const globalScope = getGlobalScope();
     /* istanbul ignore if */
-    if (!getGlobalScope()) {
+    if (!globalScope || !globalScope.document) {
       return false;
-    }
-
-    if (CookieStorage.isEnabledCachedResult) {
-      return true;
     }
 
     const testValue = String(Date.now());
@@ -51,6 +46,7 @@ export class CookieStorage<T> implements Storage<T> {
     try {
       await testStorage.set(testKey, testValue);
       const value = await testStorage.get(testKey);
+      /* istanbul ignore next */
       if (value !== testValue && this.config.diagnosticsClient) {
         this.config.diagnosticsClient?.recordEvent('cookies.isEnabled.failure', {
           reason: 'Test Value mismatch',
@@ -83,7 +79,6 @@ export class CookieStorage<T> implements Storage<T> {
     for (let i = 0; i < MAX_RETRIES; i++) {
       const isEnabled = await this._isEnabled();
       if (isEnabled) {
-        CookieStorage.isEnabledCachedResult = true;
         return true;
       }
       await new Promise((resolve) => setTimeout(resolve, DELAY_MS));

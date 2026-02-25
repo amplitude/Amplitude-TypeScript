@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.40.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.40.0...@amplitude/analytics-core@2.40.1) (2026-02-24)
+
+
+### Bug Fixes
+
+* import globalScope from named versus root ([#1554](https://github.com/amplitude/Amplitude-TypeScript/issues/1554)) ([b565551](https://github.com/amplitude/Amplitude-TypeScript/commit/b56555199782f070b0a8e5163add3ff36d5350ea))
+
+
+
+
+
 # [2.40.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.39.0...@amplitude/analytics-core@2.40.0) (2026-02-19)
 
 

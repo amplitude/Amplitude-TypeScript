@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.31.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.31.0...@amplitude/session-replay-browser@1.31.1) (2026-02-24)
+
+
+### Bug Fixes
+
+* **session-replay:** avoid creating keyval-store DB when checking for legacy data ([#1551](https://github.com/amplitude/Amplitude-TypeScript/issues/1551)) ([73450e2](https://github.com/amplitude/Amplitude-TypeScript/commit/73450e29f21bd06e8932f387571af3bd6bb1b022))
+* **session-replay:** remove keyval-store migration to avoid collisions with app code ([#1553](https://github.com/amplitude/Amplitude-TypeScript/issues/1553)) ([165164a](https://github.com/amplitude/Amplitude-TypeScript/commit/165164a13045e4b5a5a226a91174054b36309bcc))
+
+
+
+
+
 # [1.31.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.30.11...@amplitude/session-replay-browser@1.31.0) (2026-02-19)
 
 
