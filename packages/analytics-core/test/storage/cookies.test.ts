@@ -86,9 +86,9 @@ describe('cookies', () => {
                 set() {
                   throw new Error('setter error');
                 },
-              }
+              },
             },
-          }
+          };
         });
       });
       afterEach(() => {
@@ -124,9 +124,9 @@ describe('cookies', () => {
                 set() {
                   return 'wrong value';
                 },
-              }
+              },
             },
-          }
+          };
         });
       });
       afterEach(() => {
