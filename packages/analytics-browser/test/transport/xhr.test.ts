@@ -419,6 +419,52 @@ describe('xhr', () => {
       delete (global as { CompressionStream?: unknown }).CompressionStream;
     });
 
+    test('should reject when sendBody throws (e.g. xhr.send throws)', async () => {
+      const sendError = new Error('xhr.send failed');
+      const transport = new XHRTransport();
+      const url = 'http://localhost:3000';
+      const payload = { api_key: '', events: [] };
+
+      const setRequestHeader = jest.fn();
+      const send = jest.fn().mockImplementation(() => {
+        throw sendError;
+      });
+      const mockXhr = {
+        open: jest.fn(),
+        setRequestHeader,
+        send,
+        readyState: 4,
+        responseText: '{}',
+        onreadystatechange: null as (() => void) | null,
+      };
+      jest.spyOn(global, 'XMLHttpRequest').mockImplementation(() => mockXhr as unknown as XMLHttpRequest);
+
+      await expect(transport.send(url, payload, false)).rejects.toThrow(sendError);
+    });
+
+    test('should reject when setRequestHeader throws', async () => {
+      const headerError = new Error('setRequestHeader failed');
+      const transport = new XHRTransport();
+      const url = 'http://localhost:3000';
+      const payload = { api_key: '', events: [] };
+
+      const setRequestHeader = jest.fn().mockImplementation(() => {
+        throw headerError;
+      });
+      const send = jest.fn();
+      const mockXhr = {
+        open: jest.fn(),
+        setRequestHeader,
+        send,
+        readyState: 4,
+        responseText: '{}',
+        onreadystatechange: null as (() => void) | null,
+      };
+      jest.spyOn(global, 'XMLHttpRequest').mockImplementation(() => mockXhr as unknown as XMLHttpRequest);
+
+      await expect(transport.send(url, payload, false)).rejects.toThrow(headerError);
+    });
+
     test('should respect custom Content-Encoding header when compressing', async () => {
       const mockCompressedBytes = new Uint8Array([0x1f, 0x8b]);
       const mockArrayBuffer = new ArrayBuffer(2);

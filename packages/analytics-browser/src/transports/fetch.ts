@@ -1,7 +1,6 @@
 import {
   BaseTransport,
   compressToGzipArrayBuffer,
-  getStringSizeInBytes,
   isCompressionStreamAvailable,
   MIN_GZIP_UPLOAD_BODY_SIZE_BYTES,
   Payload,
@@ -29,7 +28,7 @@ export class FetchTransport extends BaseTransport implements Transport {
     const bodyString = JSON.stringify(payload);
     const shouldCompressBody =
       shouldCompressUploadBody &&
-      getStringSizeInBytes(bodyString) >= MIN_GZIP_UPLOAD_BODY_SIZE_BYTES &&
+      bodyString.length >= MIN_GZIP_UPLOAD_BODY_SIZE_BYTES &&
       isCompressionStreamAvailable();
 
     let body: string | ArrayBuffer = bodyString;

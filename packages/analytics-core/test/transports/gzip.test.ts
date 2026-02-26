@@ -3,23 +3,13 @@
  */
 
 import { TextEncoder } from 'util';
-import {
-  compressToGzipArrayBuffer,
-  getStringSizeInBytes,
-  isCompressionStreamAvailable,
-} from '../../src/transports/gzip';
+import { compressToGzipArrayBuffer, isCompressionStreamAvailable } from '../../src/transports/gzip';
 
 if (typeof global.TextEncoder === 'undefined') {
   (global as typeof globalThis & { TextEncoder?: typeof TextEncoder }).TextEncoder = TextEncoder;
 }
 
 describe('gzip', () => {
-  describe('getStringSizeInBytes', () => {
-    test('returns UTF-8 byte size', () => {
-      expect(getStringSizeInBytes('hello')).toBe(5);
-    });
-  });
-
   describe('compressToGzipArrayBuffer', () => {
     test('returns undefined when CompressionStream is not available', async () => {
       const g = global as { CompressionStream?: unknown };

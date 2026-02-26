@@ -7,10 +7,6 @@ declare const CompressionStream:
 
 export const MIN_GZIP_UPLOAD_BODY_SIZE_BYTES = 2 * 1024 * 1024;
 
-export const getStringSizeInBytes = (value: string): number => {
-  return new TextEncoder().encode(value).byteLength;
-};
-
 /**
  * Returns true if CompressionStream is available (e.g. in supported browsers).
  */

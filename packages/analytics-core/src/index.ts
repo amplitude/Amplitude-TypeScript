@@ -36,7 +36,6 @@ export { BaseTransport } from './transports/base';
 export { FetchTransport } from './transports/fetch';
 export {
   compressToGzipArrayBuffer,
-  getStringSizeInBytes,
   isCompressionStreamAvailable,
   MIN_GZIP_UPLOAD_BODY_SIZE_BYTES,
 } from './transports/gzip';

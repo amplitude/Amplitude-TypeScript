@@ -1,7 +1,6 @@
 import {
   BaseTransport,
   compressToGzipArrayBuffer,
-  getStringSizeInBytes,
   isCompressionStreamAvailable,
   MIN_GZIP_UPLOAD_BODY_SIZE_BYTES,
   Payload,
@@ -49,7 +48,7 @@ export class XHRTransport extends BaseTransport implements Transport {
       const bodyString = JSON.stringify(payload);
       const shouldCompressBody =
         shouldCompressUploadBody &&
-        getStringSizeInBytes(bodyString) >= MIN_GZIP_UPLOAD_BODY_SIZE_BYTES &&
+        bodyString.length >= MIN_GZIP_UPLOAD_BODY_SIZE_BYTES &&
         isCompressionStreamAvailable();
 
       const sendBody = (body: string | ArrayBuffer) => {
@@ -77,7 +76,7 @@ export class XHRTransport extends BaseTransport implements Transport {
           sendBody(bodyString);
         }
       };
-      void doSend();
+      doSend().catch(reject);
     });
   }
 }
