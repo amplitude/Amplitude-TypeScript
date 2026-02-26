@@ -46,8 +46,8 @@ export class FetchTransport extends BaseTransport implements Transport {
       }
     }
     headers = {
-      ...headers,
       ...this.customHeaders,
+      ...headers,
     };
 
     const options: RequestInit = {
