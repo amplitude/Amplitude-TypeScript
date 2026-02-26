@@ -101,7 +101,7 @@ describe('xhr', () => {
       expect(setRequestHeader).toHaveBeenCalledWith('X-Custom-Header', 'custom-value');
     });
 
-    test('should allow custom headers to override defaults', async () => {
+    test('should not allow custom headers to override defaults', async () => {
       const customHeaders = {
         'Content-Type': 'text/plain',
         Accept: 'application/json',
@@ -142,8 +142,8 @@ describe('xhr', () => {
 
       // Custom headers should override defaults, so only 2 calls total
       expect(setRequestHeader).toHaveBeenCalledTimes(2);
-      expect(setRequestHeader).toHaveBeenCalledWith('Content-Type', 'text/plain');
-      expect(setRequestHeader).toHaveBeenCalledWith('Accept', 'application/json');
+      expect(setRequestHeader).toHaveBeenCalledWith('Content-Type', 'application/json');
+      expect(setRequestHeader).toHaveBeenCalledWith('Accept', '*/*');
     });
 
     test('should work without custom headers (backward compatibility)', async () => {
@@ -476,7 +476,7 @@ describe('xhr', () => {
       mockXhr.onreadystatechange?.();
       await sendPromise;
 
-      expect(setRequestHeader).toHaveBeenCalledWith('Content-Encoding', 'br');
+      expect(setRequestHeader).toHaveBeenCalledWith('Content-Encoding', 'gzip');
 
       (global as { Response?: unknown }).Response = OriginalResponse;
       delete (Blob.prototype as unknown as { stream?: () => ReadableStream }).stream;

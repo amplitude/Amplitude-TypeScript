@@ -131,7 +131,7 @@ describe('fetch transport', () => {
       delete (global as { CompressionStream?: unknown }).CompressionStream;
     });
 
-    test('should respect custom Content-Encoding header when compression is enabled', async () => {
+    test('should respect Content-Encoding header when compression is enabled', async () => {
       const mockCompressedBytes = new Uint8Array([0x1f, 0x8b]);
       const mockArrayBuffer = new ArrayBuffer(2);
       new Uint8Array(mockArrayBuffer).set(mockCompressedBytes);
@@ -179,7 +179,7 @@ describe('fetch transport', () => {
       expect(options?.headers).toMatchObject({
         'Content-Type': 'application/json',
         Accept: '*/*',
-        'Content-Encoding': 'br',
+        'Content-Encoding': 'gzip',
       });
 
       (global as { Response?: unknown }).Response = OriginalResponse;

@@ -53,10 +53,9 @@ export class XHRTransport extends BaseTransport implements Transport {
         isCompressionStreamAvailable();
 
       const sendBody = (body: string | ArrayBuffer) => {
-        // Merge headers: custom headers override defaults (consistent with FetchTransport)
         headers = {
-          ...headers,
           ...this.customHeaders,
+          ...headers,
         };
 
         for (const [key, value] of Object.entries(headers)) {
