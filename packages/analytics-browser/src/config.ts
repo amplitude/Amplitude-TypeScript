@@ -107,6 +107,7 @@ export class BrowserConfig extends Config implements IBrowserConfig {
     public diagnosticsSampleRate: number = 0,
     public diagnosticsClient?: IDiagnosticsClient,
     public remoteConfig?: RemoteConfigOptions,
+    public topLevelDomain?: string,
   ) {
     super({ apiKey, storageProvider, transportProvider: createTransport(transport) });
     this._cookieStorage = cookieStorage;
@@ -134,6 +135,7 @@ export class BrowserConfig extends Config implements IBrowserConfig {
     this.remoteConfig = this.remoteConfig || {};
     this.remoteConfig.fetchRemoteConfig = _fetchRemoteConfig;
     this.fetchRemoteConfig = _fetchRemoteConfig;
+    this.topLevelDomain = topLevelDomain;
   }
 
   get cookieStorage() {
@@ -293,9 +295,12 @@ export const useBrowserConfig = async (
 ): Promise<IBrowserConfig> => {
   // Step 1: Create identity storage instance
   const identityStorage = options.identityStorage || DEFAULT_IDENTITY_STORAGE;
+  let topLevelDomain = '';
+  if (identityStorage === DEFAULT_IDENTITY_STORAGE) {
+    topLevelDomain = await getTopLevelDomain();
+  }
   const cookieOptions = {
-    domain:
-      identityStorage !== DEFAULT_IDENTITY_STORAGE ? '' : options.cookieOptions?.domain ?? (await getTopLevelDomain()),
+    domain: options.cookieOptions?.domain ?? topLevelDomain,
     expiration: 365,
     sameSite: 'Lax' as const,
     secure: false,
@@ -401,6 +406,7 @@ export const useBrowserConfig = async (
     earlyConfig?.diagnosticsSampleRate ?? amplitudeInstance._diagnosticsSampleRate,
     diagnosticsClient,
     options.remoteConfig,
+    topLevelDomain,
   );
 
   if (!(await browserConfig.storageProvider.isEnabled())) {

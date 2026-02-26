@@ -115,6 +115,7 @@ interface InternalBrowserConfig {
   diagnosticsClient?: IDiagnosticsClient;
   remoteConfigClient?: IRemoteConfigClient;
   deferredSessionId?: number;
+  topLevelDomain?: string;
 }
 
 /**

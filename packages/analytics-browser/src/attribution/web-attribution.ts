@@ -37,7 +37,7 @@ export class WebAttribution {
     this.sessionTimeout = config.sessionTimeout;
     this.lastEventTime = config.lastEventTime;
     this.logger = config.loggerProvider;
-    this.topLevelDomain = config.cookieOptions?.domain;
+    this.topLevelDomain = config.topLevelDomain;
     config.loggerProvider.log('Installing web attribution tracking.');
   }
 

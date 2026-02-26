@@ -228,11 +228,11 @@ export const getDomain = (hostname: string) => {
   return `${name}.${tld}`;
 };
 
-const isInternalReferrer = (referringDomain: string, cookieDomain?: string) => {
+const isInternalReferrer = (referringDomain: string, topLevelDomain?: string) => {
   const globalScope = getGlobalScope();
   /* istanbul ignore if */
   if (!globalScope) return false;
   // if referring domain is subdomain of config.cookieDomain, return true
-  const internalDomain = (cookieDomain || '').trim() || getDomain(globalScope.location.hostname);
+  const internalDomain = (topLevelDomain || '').trim() || getDomain(globalScope.location.hostname);
   return isSubdomainOf(referringDomain, internalDomain);
 };
