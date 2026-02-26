@@ -1,4 +1,12 @@
-import { BaseTransport, Payload, Response, Transport } from '@amplitude/analytics-core';
+import {
+  BaseTransport,
+  compressToGzipArrayBuffer,
+  isCompressionStreamAvailable,
+  MIN_GZIP_UPLOAD_BODY_SIZE_BYTES,
+  Payload,
+  Response,
+  Transport,
+} from '@amplitude/analytics-core';
 
 export class XHRTransport extends BaseTransport implements Transport {
   private state = {
@@ -11,7 +19,7 @@ export class XHRTransport extends BaseTransport implements Transport {
     this.customHeaders = customHeaders;
   }
 
-  async send(serverUrl: string, payload: Payload): Promise<Response | null> {
+  async send(serverUrl: string, payload: Payload, shouldCompressUploadBody = false): Promise<Response | null> {
     return new Promise((resolve, reject) => {
       /* istanbul ignore if */
       if (typeof XMLHttpRequest === 'undefined') {
@@ -31,16 +39,44 @@ export class XHRTransport extends BaseTransport implements Transport {
           }
         }
       };
-      // Merge headers: custom headers override defaults (consistent with FetchTransport)
-      const headers: Record<string, string> = {
+
+      let headers: Record<string, string> = {
         'Content-Type': 'application/json',
         Accept: '*/*',
-        ...this.customHeaders,
       };
-      for (const [key, value] of Object.entries(headers)) {
-        xhr.setRequestHeader(key, value);
-      }
-      xhr.send(JSON.stringify(payload));
+
+      const bodyString = JSON.stringify(payload);
+      const shouldCompressBody =
+        shouldCompressUploadBody &&
+        bodyString.length >= MIN_GZIP_UPLOAD_BODY_SIZE_BYTES &&
+        isCompressionStreamAvailable();
+
+      const sendBody = (body: string | ArrayBuffer) => {
+        headers = {
+          ...this.customHeaders,
+          ...headers,
+        };
+
+        for (const [key, value] of Object.entries(headers)) {
+          xhr.setRequestHeader(key, value);
+        }
+        xhr.send(body);
+      };
+
+      const doSend = async () => {
+        if (shouldCompressBody) {
+          const compressed = await compressToGzipArrayBuffer(bodyString);
+          if (compressed) {
+            headers['Content-Encoding'] = 'gzip';
+            sendBody(compressed);
+          } else {
+            sendBody(bodyString);
+          }
+        } else {
+          sendBody(bodyString);
+        }
+      };
+      doSend().catch(reject);
     });
   }
 }

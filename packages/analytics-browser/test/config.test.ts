@@ -8,13 +8,14 @@ import {
   UserSession,
   MemoryStorage,
   getCookieName,
-  FetchTransport,
+  FetchTransport as CoreFetchTransport,
   Logger,
   BrowserConfig,
 } from '@amplitude/analytics-core';
 import * as BrowserUtils from '@amplitude/analytics-core';
 import { XHRTransport } from '../src/transports/xhr';
 import { createTransport, useBrowserConfig, shouldFetchRemoteConfig } from '../src/config';
+import { FetchTransport } from '../src/transports/fetch';
 import { SendBeaconTransport } from '../src/transports/send-beacon';
 import { uuidPattern } from './helpers/constants';
 import { DEFAULT_IDENTITY_STORAGE, DEFAULT_SERVER_ZONE } from '../src/constants';
@@ -144,7 +145,7 @@ describe('config', () => {
           platform: true,
         },
         transport: 'fetch',
-        transportProvider: new FetchTransport(),
+        transportProvider: expect.any(FetchTransport),
         useBatch: false,
         fetchRemoteConfig: true,
         version: VERSION,
@@ -154,6 +155,7 @@ describe('config', () => {
         remoteConfig: {
           fetchRemoteConfig: true,
         },
+        enableRequestBodyCompression: false,
       });
       expect(getTopLevelDomain).toHaveBeenCalledTimes(1);
     });
@@ -262,6 +264,7 @@ describe('config', () => {
         remoteConfig: {
           fetchRemoteConfig: true,
         },
+        enableRequestBodyCompression: false,
       });
     });
 
@@ -370,6 +373,12 @@ describe('config', () => {
 
     test('should return fetch when object format has only headers', () => {
       expect(createTransport({ headers: { Authorization: 'Bearer token' } })).toBeInstanceOf(FetchTransport);
+    });
+
+    test('should return browser fetch transport (temporary copy, not core fetch transport)', () => {
+      const transport = createTransport('fetch');
+      expect(transport).toBeInstanceOf(FetchTransport);
+      expect(transport).not.toBeInstanceOf(CoreFetchTransport);
     });
   });
 

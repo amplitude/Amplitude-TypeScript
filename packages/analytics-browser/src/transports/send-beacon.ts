@@ -1,7 +1,15 @@
 import { BaseTransport, getGlobalScope, Payload, Response, Transport } from '@amplitude/analytics-core';
 
+/**
+ * SendBeacon does not support custom headers (e.g. Content-Encoding: gzip),
+ * so request body compression is not applied even when enableRequestBodyCompression is true.
+ */
 export class SendBeaconTransport extends BaseTransport implements Transport {
-  async send(serverUrl: string, payload: Payload): Promise<Response | null> {
+  constructor() {
+    super();
+  }
+
+  async send(serverUrl: string, payload: Payload, _enableRequestBodyCompression = false): Promise<Response | null> {
     return new Promise((resolve, reject) => {
       const globalScope = getGlobalScope();
       /* istanbul ignore if */
@@ -10,7 +18,8 @@ export class SendBeaconTransport extends BaseTransport implements Transport {
       }
       try {
         const data = JSON.stringify(payload);
-        const success = globalScope.navigator.sendBeacon(serverUrl, JSON.stringify(payload));
+        // SendBeacon cannot set Content-Encoding, so we always send uncompressed
+        const success = globalScope.navigator.sendBeacon(serverUrl, data);
         if (success) {
           return resolve(
             this.buildResponse({

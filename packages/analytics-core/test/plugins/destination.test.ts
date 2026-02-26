@@ -14,6 +14,7 @@ import {
 import { uuidPattern } from '../helpers/util';
 import { DiagnosticsClient, RequestMetadata } from '../../src';
 import { TrackEvent } from '../../src/types/event/event';
+import { AMPLITUDE_SERVER_URL } from '../../src/types/constants';
 
 const jsons = (obj: any) => JSON.stringify(obj, null, 2);
 
@@ -563,6 +564,85 @@ describe('destination', () => {
         message: SUCCESS_MESSAGE,
       });
     });
+
+    test('should force request body compression for default server URL', async () => {
+      const destination = new Destination();
+      const callback = jest.fn();
+      const event = { event_type: 'event_type' };
+      const context = {
+        attempts: 0,
+        callback,
+        event,
+        timeout: 0,
+      };
+      const transportProvider = {
+        send: jest.fn().mockResolvedValueOnce({
+          status: Status.Success,
+          statusCode: 200,
+          body: {
+            eventsIngested: 1,
+            payloadSizeBytes: 1,
+            serverUploadTime: 1,
+          },
+        }),
+      };
+      await destination.setup({
+        ...useDefaultConfig(),
+        transportProvider,
+        apiKey: API_KEY,
+        serverUrl: AMPLITUDE_SERVER_URL,
+        enableRequestBodyCompression: false,
+      });
+
+      await destination.send([context]);
+
+      expect(transportProvider.send).toHaveBeenCalledWith(AMPLITUDE_SERVER_URL, expect.any(Object), true);
+    });
+
+    test.each([
+      [false, false],
+      [true, true],
+    ])(
+      'should use enableRequestBodyCompression for custom server URL (enable=%s)',
+      async (enableRequestBodyCompression, expectedShouldCompress) => {
+        const destination = new Destination();
+        const callback = jest.fn();
+        const event = { event_type: 'event_type' };
+        const context = {
+          attempts: 0,
+          callback,
+          event,
+          timeout: 0,
+        };
+        const transportProvider = {
+          send: jest.fn().mockResolvedValueOnce({
+            status: Status.Success,
+            statusCode: 200,
+            body: {
+              eventsIngested: 1,
+              payloadSizeBytes: 1,
+              serverUploadTime: 1,
+            },
+          }),
+        };
+        const customServerUrl = 'https://custom.example.com/2/httpapi';
+        await destination.setup({
+          ...useDefaultConfig(),
+          transportProvider,
+          apiKey: API_KEY,
+          serverUrl: customServerUrl,
+          enableRequestBodyCompression,
+        });
+
+        await destination.send([context]);
+
+        expect(transportProvider.send).toHaveBeenCalledWith(
+          customServerUrl,
+          expect.any(Object),
+          expectedShouldCompress,
+        );
+      },
+    );
 
     test('should not include extra', async () => {
       const destination = new Destination();

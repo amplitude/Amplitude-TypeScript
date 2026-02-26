@@ -63,6 +63,16 @@ export interface IConfig {
    */
   ingestionMetadata?: IngestionMetadata;
   /**
+   * Compress network request body payloads with gzip.
+   *
+   * For custom `serverUrl` values, this option controls whether compression is attempted.
+   * For default Amplitude endpoints, compression remains enabled.
+   * Compression is best-effort and only applies when the platform supports it,
+   * the payload meets the minimum size threshold, and the transport can set request headers.
+   * @defaultValue `false`
+   */
+  enableRequestBodyCompression?: boolean;
+  /**
    * The URL where events are upload to.
    */
   serverUrl?: string;

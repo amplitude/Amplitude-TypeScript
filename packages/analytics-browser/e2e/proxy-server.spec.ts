@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { parseRequestBody } from './helpers';
 
 // Extend the Window interface to include amplitude
 declare global {
@@ -16,10 +17,9 @@ test.describe('Proxy Server Integration', () => {
     // Intercept calls to the proxy server
     await page.route('http://localhost:3001/2/httpapi', async (route) => {
       const request = route.request();
-      const postData = request.postData();
-      
-      if (postData) {
-        const data = JSON.parse(postData);
+      const data = parseRequestBody(request);
+
+      if (data) {
         proxyRequests.push({
         url: request.url(),
         method: request.method(),

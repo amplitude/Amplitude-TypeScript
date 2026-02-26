@@ -34,6 +34,11 @@ export { registerSdkLoaderMetadata } from './diagnostics/uncaught-sdk-errors';
 
 export { BaseTransport } from './transports/base';
 export { FetchTransport } from './transports/fetch';
+export {
+  compressToGzipArrayBuffer,
+  isCompressionStreamAvailable,
+  MIN_GZIP_UPLOAD_BODY_SIZE_BYTES,
+} from './transports/gzip';
 
 export { RemoteConfigClient, IRemoteConfigClient, RemoteConfig, Source } from './remote-config/remote-config';
 
