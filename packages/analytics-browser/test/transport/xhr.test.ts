@@ -202,7 +202,7 @@ describe('xhr', () => {
       const originalCompressionStream = g.CompressionStream;
       delete g.CompressionStream;
 
-      const transport = new XHRTransport({}, true);
+      const transport = new XHRTransport();
       const url = 'http://localhost:3000';
       const payload = { api_key: '', events: [] };
 
@@ -218,7 +218,7 @@ describe('xhr', () => {
       };
       jest.spyOn(global, 'XMLHttpRequest').mockImplementation(() => mockXhr as unknown as XMLHttpRequest);
 
-      const sendPromise = transport.send(url, payload);
+      const sendPromise = transport.send(url, payload, true);
       mockXhr.onreadystatechange?.();
       await sendPromise;
 
@@ -234,7 +234,7 @@ describe('xhr', () => {
       const MockCompressionStream = jest.fn();
       g.CompressionStream = MockCompressionStream;
 
-      const transport = new XHRTransport({}, true);
+      const transport = new XHRTransport();
       const url = 'http://localhost:3000';
       const payload = { api_key: '', events: [] };
 
@@ -250,7 +250,7 @@ describe('xhr', () => {
       };
       jest.spyOn(global, 'XMLHttpRequest').mockImplementation(() => mockXhr as unknown as XMLHttpRequest);
 
-      const sendPromise = transport.send(url, payload);
+      const sendPromise = transport.send(url, payload, true);
       mockXhr.onreadystatechange?.();
       await sendPromise;
 
@@ -290,7 +290,7 @@ describe('xhr', () => {
         writable: true,
       });
 
-      const transport = new XHRTransport({}, true);
+      const transport = new XHRTransport();
       const url = 'http://localhost:3000';
       const payload = {
         api_key: '',
@@ -315,7 +315,7 @@ describe('xhr', () => {
       };
       jest.spyOn(global, 'XMLHttpRequest').mockImplementation(() => mockXhr as unknown as XMLHttpRequest);
 
-      const sendPromise = transport.send(url, payload);
+      const sendPromise = transport.send(url, payload, true);
       // Allow compressToGzipArrayBuffer (Response(stream).arrayBuffer()) to resolve before resolving send promise
       await new Promise((r) => setTimeout(r, 0));
       mockXhr.onreadystatechange?.();
@@ -326,6 +326,102 @@ describe('xhr', () => {
       const sentBody = send.mock.calls[0][0];
       expect(sentBody).toBeInstanceOf(ArrayBuffer);
       expect(new Uint8Array(sentBody as ArrayBuffer)).toEqual(mockCompressedBytes);
+
+      (global as { Response?: unknown }).Response = OriginalResponse;
+      delete (Blob.prototype as unknown as { stream?: () => ReadableStream }).stream;
+      const g = global as { CompressionStream?: unknown };
+      delete g.CompressionStream;
+    });
+
+    test('should keep body uncompressed when compression flag is false', async () => {
+      const transport = new XHRTransport();
+      const url = 'https://api2.amplitude.com/2/httpapi';
+      const payload = { api_key: '', events: [{ event_type: 'test', device_id: 'test_device_id' }] };
+      const MockCompressionStream = jest.fn();
+      (global as { CompressionStream?: unknown }).CompressionStream = MockCompressionStream;
+
+      const setRequestHeader = jest.fn();
+      const send = jest.fn();
+      const mockXhr = {
+        open: jest.fn(),
+        setRequestHeader,
+        send,
+        readyState: 4,
+        responseText: '{}',
+        onreadystatechange: null as (() => void) | null,
+      };
+      jest.spyOn(global, 'XMLHttpRequest').mockImplementation(() => mockXhr as unknown as XMLHttpRequest);
+
+      const sendPromise = transport.send(url, payload, false);
+      mockXhr.onreadystatechange?.();
+      await sendPromise;
+
+      expect(setRequestHeader).not.toHaveBeenCalledWith('Content-Encoding', 'gzip');
+      expect(send).toHaveBeenCalledWith(JSON.stringify(payload));
+      expect(MockCompressionStream).not.toHaveBeenCalled();
+
+      delete (global as { CompressionStream?: unknown }).CompressionStream;
+    });
+
+    test('should override custom Content-Encoding header with gzip when compressing', async () => {
+      const mockCompressedBytes = new Uint8Array([0x1f, 0x8b]);
+      const mockArrayBuffer = new ArrayBuffer(2);
+      new Uint8Array(mockArrayBuffer).set(mockCompressedBytes);
+      const OriginalResponse = (global as { Response?: typeof Response }).Response;
+      (global as { Response?: unknown }).Response = jest.fn().mockImplementation(() => ({
+        arrayBuffer: () => Promise.resolve(mockArrayBuffer),
+      }));
+
+      const mockReadable = new ReadableStream<Uint8Array>({
+        start(controller) {
+          controller.enqueue(mockCompressedBytes);
+          controller.close();
+        },
+      });
+      const MockCompressionStream = jest.fn().mockImplementation(() => ({
+        readable: mockReadable,
+        writable: new WritableStream(),
+      }));
+      (global as { CompressionStream?: unknown }).CompressionStream = MockCompressionStream;
+
+      const blobStreamSource = new ReadableStream<Uint8Array>();
+      Object.defineProperty(Blob.prototype, 'stream', {
+        value: () => blobStreamSource,
+        configurable: true,
+        writable: true,
+      });
+
+      const transport = new XHRTransport({ 'content-encoding': 'br' });
+      const url = 'http://localhost:3000';
+      const payload = {
+        api_key: '',
+        events: [
+          {
+            event_type: 'large-payload',
+            event_properties: { value: 'a'.repeat(MIN_GZIP_UPLOAD_BODY_SIZE_BYTES) },
+          },
+        ],
+      };
+
+      const setRequestHeader = jest.fn();
+      const send = jest.fn();
+      const mockXhr = {
+        open: jest.fn(),
+        setRequestHeader,
+        send,
+        readyState: 4,
+        responseText: '{}',
+        onreadystatechange: null as (() => void) | null,
+      };
+      jest.spyOn(global, 'XMLHttpRequest').mockImplementation(() => mockXhr as unknown as XMLHttpRequest);
+
+      const sendPromise = transport.send(url, payload, true);
+      await new Promise((r) => setTimeout(r, 0));
+      mockXhr.onreadystatechange?.();
+      await sendPromise;
+
+      expect(setRequestHeader).toHaveBeenCalledWith('Content-Encoding', 'gzip');
+      expect(setRequestHeader).not.toHaveBeenCalledWith('content-encoding', 'br');
 
       (global as { Response?: unknown }).Response = OriginalResponse;
       delete (Blob.prototype as unknown as { stream?: () => ReadableStream }).stream;

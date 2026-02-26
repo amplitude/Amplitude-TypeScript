@@ -1984,6 +1984,30 @@ describe('browser-client', () => {
       expect(createTransport).toHaveBeenCalledTimes(2);
     });
 
+    test('should keep compression enabled for default endpoints when switching transport', async () => {
+      const createTransport = jest.spyOn(Config, 'createTransport');
+      await client.init(apiKey, { defaultTracking }).promise;
+
+      createTransport.mockClear();
+      client.setTransport('xhr');
+
+      expect(createTransport).toHaveBeenCalledWith('xhr');
+    });
+
+    test('should keep custom endpoint compression setting when switching transport', async () => {
+      const createTransport = jest.spyOn(Config, 'createTransport');
+      await client.init(apiKey, {
+        defaultTracking,
+        serverUrl: 'https://custom.example.com/2/httpapi',
+        enableRequestBodyCompression: false,
+      }).promise;
+
+      createTransport.mockClear();
+      client.setTransport('xhr');
+
+      expect(createTransport).toHaveBeenCalledWith('xhr');
+    });
+
     test('should defer set transport', () => {
       return new Promise<void>((resolve) => {
         const fetch = new FetchTransport();

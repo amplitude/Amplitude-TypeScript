@@ -15,7 +15,6 @@ import {
   UUID,
   CookieStorage,
   getCookieName,
-  FetchTransport,
   getQueryParams,
   UserSession,
   BrowserOptions,
@@ -31,6 +30,7 @@ import {
   isDomainEqual,
   CookieStorageConfig,
   decodeCookieValue,
+  FetchTransport,
 } from '@amplitude/analytics-core';
 
 import { LocalStorage } from './storage/local-storage';
@@ -109,8 +109,7 @@ export class BrowserConfig extends Config implements IBrowserConfig {
     public remoteConfig?: RemoteConfigOptions,
     public enableRequestBodyCompression: boolean = false,
   ) {
-    const shouldCompressUploadBody = getShouldCompressUploadBody(serverUrl, enableRequestBodyCompression);
-    super({ apiKey, storageProvider, transportProvider: createTransport(transport, shouldCompressUploadBody) });
+    super({ apiKey, storageProvider, transportProvider: createTransport(transport) });
     this._cookieStorage = cookieStorage;
     this.deviceId = deviceId;
     this.lastEventId = lastEventId;
@@ -457,32 +456,18 @@ export const shouldFetchRemoteConfig = (options: BrowserOptions = {}): boolean =
   }
 };
 
-/**
- * Custom servers may not support gzip compression—only enable it if opted in.
- * When using the SDK's default endpoints, request bodies are always compressed.
- */
-export const getShouldCompressUploadBody = (
-  serverUrl: string | undefined,
-  enableRequestBodyCompression = false,
-): boolean => {
-  if (serverUrl !== undefined && serverUrl !== '') {
-    return enableRequestBodyCompression;
-  }
-  return true;
-};
-
-export const createTransport = (transport?: TransportTypeOrOptions, shouldCompressUploadBody = true) => {
+export const createTransport = (transport?: TransportTypeOrOptions) => {
   const type = typeof transport === 'object' ? transport.type : transport;
   const headers = typeof transport === 'object' ? transport.headers : undefined;
 
   if (type === 'xhr') {
-    return new XHRTransport(headers, shouldCompressUploadBody);
+    return new XHRTransport(headers);
   }
   if (type === 'beacon') {
     // SendBeacon does not support custom headers
-    return new SendBeaconTransport(shouldCompressUploadBody);
+    return new SendBeaconTransport();
   }
-  return new FetchTransport(headers, shouldCompressUploadBody);
+  return new FetchTransport(headers);
 };
 
 export const getTopLevelDomain = async (url?: string) => {

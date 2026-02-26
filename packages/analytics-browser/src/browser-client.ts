@@ -50,7 +50,7 @@ import {
 } from './default-tracking';
 import { convertProxyObjectToRealObject, isInstanceProxy } from './utils/snippet-helper';
 import { Context } from './plugins/context';
-import { useBrowserConfig, createTransport, getShouldCompressUploadBody, shouldFetchRemoteConfig } from './config';
+import { useBrowserConfig, createTransport, shouldFetchRemoteConfig } from './config';
 import { pageViewTrackingPlugin } from '@amplitude/plugin-page-view-tracking-browser';
 import { formInteractionTracking } from './plugins/form-interaction-tracking';
 import { fileDownloadTracking } from './plugins/file-download-tracking';
@@ -548,11 +548,7 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
       this.q.push(this.setTransport.bind(this, transport));
       return;
     }
-    const shouldCompressUploadBody = getShouldCompressUploadBody(
-      this.config.serverUrl,
-      this.config.enableRequestBodyCompression,
-    );
-    this.config.transportProvider = createTransport(transport, shouldCompressUploadBody);
+    this.config.transportProvider = createTransport(transport);
   }
 
   identify(identify: IIdentify, eventOptions?: EventOptions) {

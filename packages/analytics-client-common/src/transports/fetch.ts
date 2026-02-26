@@ -2,7 +2,7 @@ import { BaseTransport } from '@amplitude/analytics-core';
 import { Payload, Response, Transport } from '@amplitude/analytics-types';
 
 export class FetchTransport extends BaseTransport implements Transport {
-  async send(serverUrl: string, payload: Payload): Promise<Response | null> {
+  async send(serverUrl: string, payload: Payload, _enableRequestBodyCompression = false): Promise<Response | null> {
     /* istanbul ignore if */
     if (typeof fetch === 'undefined') {
       throw new Error('FetchTransport is not supported');
