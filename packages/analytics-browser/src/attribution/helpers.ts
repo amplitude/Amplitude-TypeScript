@@ -100,12 +100,6 @@ export const isExcludedReferrer = (excludeReferrers: (string | RegExp)[] = [], r
   );
 };
 
-export const isSameDomain = (domain1: string, domain2: string) => {
-  if (domain1 === domain2) return true;
-  if (getDomain(domain1) === getDomain(domain2)) return true;
-  return false;
-};
-
 export const isSubdomainOf = (subDomain: string, domain: string) => {
   const cookieDomainWithLeadingDot = domain.startsWith('.') ? domain : `.${domain}`;
   const subDomainWithLeadingDot = subDomain.startsWith('.') ? subDomain : `.${subDomain}`;
@@ -220,7 +214,7 @@ const KNOWN_2LDS = [
   'firebaseapp.com',
 ];
 
-const getDomain = (hostname: string) => {
+export const getDomain = (hostname: string) => {
   const parts = hostname.split('.');
   let tld = parts[parts.length - 1];
   let name = parts[parts.length - 2];
@@ -239,9 +233,6 @@ const isInternalReferrer = (referringDomain: string, cookieDomain?: string) => {
   /* istanbul ignore if */
   if (!globalScope) return false;
   // if referring domain is subdomain of config.cookieDomain, return true
-  if (cookieDomain) {
-    return isSubdomainOf(referringDomain, cookieDomain);
-  }
-  // if no config.cookieDomain, check domain of current page instead
-  return isSameDomain(referringDomain, globalScope.location.hostname);
+  const internalDomain = cookieDomain || getDomain(globalScope.location.hostname);
+  return isSubdomainOf(referringDomain, internalDomain);
 };

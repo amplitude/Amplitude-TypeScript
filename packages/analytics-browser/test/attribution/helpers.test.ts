@@ -4,8 +4,8 @@ import {
   createCampaignEvent,
   getDefaultExcludedReferrers,
   isExcludedReferrer,
-  isSameDomain,
   isSubdomainOf,
+  getDomain,
 } from '../../src/attribution/helpers';
 
 const loggerProvider = {
@@ -537,37 +537,6 @@ describe('getDefaultExcludedReferrers', () => {
   });
 });
 
-describe('isSameDomain', () => {
-  describe('should return true if 2 domains', () => {
-    test('have the same domain', () => {
-      expect(isSameDomain('amplitude.com', 'amplitude.com')).toBe(true);
-    });
-    test('have the same subdomain', () => {
-      expect(isSameDomain('www.amplitude.com', 'www.amplitude.com')).toBe(true);
-      expect(isSameDomain('sub.domain.amplitude.com', 'sub.domain.amplitude.com')).toBe(true);
-    });
-    test('have the same domain but a different subdomain', () => {
-      expect(isSameDomain('amplitude.com', 'docs.amplitude.com')).toBe(true);
-      expect(isSameDomain('docs.amplitude.com', 'amplitude.com')).toBe(true);
-      expect(isSameDomain('app.amplitude.com', 'docs.amplitude.com')).toBe(true);
-      expect(isSameDomain('app.amplitude.com', 'some.app.amplitude.com')).toBe(true);
-      expect(isSameDomain('some.app.amplitude.com', 'app.amplitude.com')).toBe(true);
-    });
-    test('are localhost', () => {
-      expect(isSameDomain('localhost', 'localhost')).toBe(true);
-    });
-  });
-
-  describe('should return false if 2 domains', () => {
-    test('have different domains', () => {
-      expect(isSameDomain('amplitude.com', 'example.com')).toBe(false);
-      expect(isSameDomain('amplitude.domain.com', 'amplitude.com')).toBe(false);
-      expect(isSameDomain('amplitude.domain.com', 'docs.amplitude.com')).toBe(false);
-      expect(isSameDomain('localhost', 'amplitude.com')).toBe(false);
-    });
-  });
-});
-
 describe('isSubdomainOf', () => {
   test('should return true if subdomain of domain', () => {
     expect(isSubdomainOf('b.co.uk', 'b.co.uk')).toBe(true); // exact match
@@ -583,5 +552,11 @@ describe('isSubdomainOf', () => {
     expect(isSubdomainOf('b.co.uk', 'a.b.co.uk')).toBe(false);
     expect(isSubdomainOf('b.co.uk', '.a.b.co.uk')).toBe(false);
     expect(isSubdomainOf('www.b.co.uk', 'google.com')).toBe(false);
+  });
+});
+
+describe('getDomain', () => {
+  test('should return true if both localhost', () => {
+    expect(getDomain('localhost')).toBe('localhost');
   });
 });
