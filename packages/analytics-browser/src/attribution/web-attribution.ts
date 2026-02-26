@@ -21,7 +21,7 @@ export class WebAttribution {
   sessionTimeout: number;
   lastEventTime?: number;
   logger: ILogger;
-  cookieDomain?: string;
+  topLevelDomain?: string;
   constructor(options: Options, config: BrowserConfig) {
     this.options = {
       initialEmptyValue: 'EMPTY',
@@ -37,7 +37,7 @@ export class WebAttribution {
     this.sessionTimeout = config.sessionTimeout;
     this.lastEventTime = config.lastEventTime;
     this.logger = config.loggerProvider;
-    this.cookieDomain = config.cookieOptions?.domain;
+    this.topLevelDomain = config.cookieOptions?.domain;
     config.loggerProvider.log('Installing web attribution tracking.');
   }
 
@@ -57,7 +57,7 @@ export class WebAttribution {
         this.options,
         this.logger,
         isEventInNewSession,
-        this.cookieDomain,
+        this.topLevelDomain,
       )
     ) {
       this.shouldTrackNewCampaign = true;

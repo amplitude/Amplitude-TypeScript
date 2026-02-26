@@ -43,7 +43,7 @@ export const isNewCampaign = (
   options: Options,
   logger: ILogger,
   isNewSession = true,
-  cookieDomain?: string,
+  topLevelDomain?: string,
 ) => {
   const { referrer, referring_domain, ...currentCampaign } = current;
   const { referrer: _previous_referrer, referring_domain: prevReferringDomain, ...previousCampaign } = previous || {};
@@ -55,7 +55,7 @@ export const isNewCampaign = (
     if (
       !(condition instanceof TypeError) &&
       current.referring_domain &&
-      isInternalReferrer(current.referring_domain, cookieDomain)
+      isInternalReferrer(current.referring_domain, topLevelDomain)
     ) {
       if (condition === 'always') {
         debugLogInternalReferrerExclude(condition, current.referring_domain, logger);
@@ -233,6 +233,6 @@ const isInternalReferrer = (referringDomain: string, cookieDomain?: string) => {
   /* istanbul ignore if */
   if (!globalScope) return false;
   // if referring domain is subdomain of config.cookieDomain, return true
-  const internalDomain = cookieDomain || getDomain(globalScope.location.hostname);
+  const internalDomain = (cookieDomain || '').trim() || getDomain(globalScope.location.hostname);
   return isSubdomainOf(referringDomain, internalDomain);
 };
