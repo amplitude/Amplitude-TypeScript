@@ -20,13 +20,18 @@ export function isCompressionStreamAvailable(): boolean {
 
 /**
  * Compress a string to gzip and return the result as an ArrayBuffer.
+ * Best-effort: returns undefined if CompressionStream is unavailable or compression fails.
  * Payload is small so buffering is fine. Used by Fetch and XHR transports.
  */
-export async function compressToGzipArrayBuffer(data: string): Promise<ArrayBuffer> {
+export async function compressToGzipArrayBuffer(data: string): Promise<ArrayBuffer | undefined> {
   const CompressionStreamImpl = CompressionStream;
   if (typeof CompressionStreamImpl === 'undefined') {
-    throw new Error('CompressionStream is not available');
+    return undefined;
   }
-  const stream = new Blob([data]).stream().pipeThrough(new CompressionStreamImpl('gzip'));
-  return new Response(stream).arrayBuffer();
+  try {
+    const stream = new Blob([data]).stream().pipeThrough(new CompressionStreamImpl('gzip'));
+    return await new Response(stream).arrayBuffer();
+  } catch {
+    return undefined;
+  }
 }

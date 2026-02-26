@@ -39,8 +39,11 @@ export class FetchTransport extends BaseTransport implements Transport {
     };
 
     if (shouldCompressBody) {
-      headers['Content-Encoding'] = 'gzip';
-      body = await compressToGzipArrayBuffer(bodyString);
+      const compressed = await compressToGzipArrayBuffer(bodyString);
+      if (compressed) {
+        headers['Content-Encoding'] = 'gzip';
+        body = compressed;
+      }
     }
     headers = {
       ...headers,

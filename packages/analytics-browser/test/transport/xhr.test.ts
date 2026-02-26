@@ -186,13 +186,14 @@ describe('xhr', () => {
       expect(setRequestHeader).toHaveBeenCalledWith('Accept', '*/*');
     });
 
-    test('compressToGzipArrayBuffer throws when CompressionStream is not available', async () => {
+    test('compressToGzipArrayBuffer returns undefined when CompressionStream is not available', async () => {
       const g = global as { CompressionStream?: unknown };
       const originalCompressionStream = g.CompressionStream;
-      // Set to undefined (don't delete) so the code hits our throw instead of ReferenceError
+      // Set to undefined (don't delete) so the code hits our return instead of ReferenceError
       g.CompressionStream = undefined;
 
-      await expect(compressToGzipArrayBuffer('data')).rejects.toThrow('CompressionStream is not available');
+      const result = await compressToGzipArrayBuffer('data');
+      expect(result).toBeUndefined();
 
       g.CompressionStream = originalCompressionStream;
     });
@@ -226,6 +227,61 @@ describe('xhr', () => {
       expect(send).toHaveBeenCalledWith(JSON.stringify(payload));
 
       g.CompressionStream = originalCompressionStream;
+    });
+
+    test('when shouldCompressUploadBody is true but compression returns undefined, should send uncompressed body', async () => {
+      const g = global as { CompressionStream?: unknown; Response?: unknown };
+      const originalCompressionStream = g.CompressionStream;
+      const originalResponse = g.Response;
+
+      const mockCompressedStream = {};
+      const pipeThrough = jest.fn().mockReturnValue(mockCompressedStream);
+      Object.defineProperty(Blob.prototype, 'stream', {
+        value: () => ({ pipeThrough }),
+        configurable: true,
+        writable: true,
+      });
+
+      g.CompressionStream = jest.fn();
+      g.Response = jest.fn().mockImplementation(() => ({
+        arrayBuffer: () => Promise.reject(new Error('compression failed')),
+      }));
+
+      const transport = new XHRTransport();
+      const url = 'http://localhost:3000';
+      const payload = {
+        api_key: '',
+        events: [
+          {
+            event_type: 'large-payload',
+            event_properties: { value: 'a'.repeat(MIN_GZIP_UPLOAD_BODY_SIZE_BYTES) },
+          },
+        ],
+      };
+
+      const setRequestHeader = jest.fn();
+      const send = jest.fn();
+      const mockXhr = {
+        open: jest.fn(),
+        setRequestHeader,
+        send,
+        readyState: 4,
+        responseText: '{}',
+        onreadystatechange: null as (() => void) | null,
+      };
+      jest.spyOn(global, 'XMLHttpRequest').mockImplementation(() => mockXhr as unknown as XMLHttpRequest);
+
+      const sendPromise = transport.send(url, payload, true);
+      await new Promise((r) => setTimeout(r, 0));
+      mockXhr.onreadystatechange?.();
+      await sendPromise;
+
+      expect(setRequestHeader).not.toHaveBeenCalledWith('Content-Encoding', 'gzip');
+      expect(send).toHaveBeenCalledWith(JSON.stringify(payload));
+
+      g.CompressionStream = originalCompressionStream;
+      g.Response = originalResponse;
+      delete (Blob.prototype as unknown as { stream?: () => unknown }).stream;
     });
 
     test('when payload is below compression threshold, should send uncompressed body', async () => {
