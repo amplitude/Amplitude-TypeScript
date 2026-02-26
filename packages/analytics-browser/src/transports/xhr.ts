@@ -40,7 +40,7 @@ export class XHRTransport extends BaseTransport implements Transport {
           }
         }
       };
-      // Merge headers: custom headers override defaults (consistent with FetchTransport)
+
       let headers: Record<string, string> = {
         'Content-Type': 'application/json',
         Accept: '*/*',
@@ -52,28 +52,33 @@ export class XHRTransport extends BaseTransport implements Transport {
         getStringSizeInBytes(bodyString) >= MIN_GZIP_UPLOAD_BODY_SIZE_BYTES &&
         isCompressionStreamAvailable();
 
-      if (shouldCompressBody) {
-        headers['Content-Encoding'] = 'gzip';
-      }
-      headers = {
-        ...headers,
-        ...this.customHeaders,
-      };
-
       const sendBody = (body: string | ArrayBuffer) => {
+        // Merge headers: custom headers override defaults (consistent with FetchTransport)
+        headers = {
+          ...headers,
+          ...this.customHeaders,
+        };
+
         for (const [key, value] of Object.entries(headers)) {
           xhr.setRequestHeader(key, value);
         }
         xhr.send(body);
       };
 
-      if (shouldCompressBody) {
-        compressToGzipArrayBuffer(bodyString)
-          .then((body) => sendBody(body))
-          .catch(reject);
-      } else {
-        sendBody(bodyString);
-      }
+      const doSend = async () => {
+        if (shouldCompressBody) {
+          const compressed = await compressToGzipArrayBuffer(bodyString);
+          if (compressed) {
+            headers['Content-Encoding'] = 'gzip';
+            sendBody(compressed);
+          } else {
+            sendBody(bodyString);
+          }
+        } else {
+          sendBody(bodyString);
+        }
+      };
+      void doSend();
     });
   }
 }

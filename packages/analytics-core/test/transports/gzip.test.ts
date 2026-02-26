@@ -21,15 +21,42 @@ describe('gzip', () => {
   });
 
   describe('compressToGzipArrayBuffer', () => {
-    test('throws when CompressionStream is not available', async () => {
+    test('returns undefined when CompressionStream is not available', async () => {
       const g = global as { CompressionStream?: unknown };
       const originalCompressionStream = g.CompressionStream;
-      // Set to undefined (don't delete) so the code hits our throw instead of ReferenceError
+      // Set to undefined (don't delete) so the code hits our return instead of ReferenceError
       g.CompressionStream = undefined;
 
-      await expect(compressToGzipArrayBuffer('data')).rejects.toThrow('CompressionStream is not available');
+      const result = await compressToGzipArrayBuffer('data');
+      expect(result).toBeUndefined();
 
       g.CompressionStream = originalCompressionStream;
+    });
+
+    test('returns undefined when compression fails at runtime', async () => {
+      const g = global as { CompressionStream?: unknown; Response?: unknown };
+      const originalCompressionStream = g.CompressionStream;
+      const originalResponse = g.Response;
+
+      const mockCompressedStream = {};
+      const pipeThrough = jest.fn().mockReturnValue(mockCompressedStream);
+      Object.defineProperty(Blob.prototype, 'stream', {
+        value: () => ({ pipeThrough }),
+        configurable: true,
+        writable: true,
+      });
+
+      g.CompressionStream = jest.fn();
+      g.Response = jest.fn().mockImplementation(() => ({
+        arrayBuffer: () => Promise.reject(new Error('compression failed')),
+      }));
+
+      const result = await compressToGzipArrayBuffer('data');
+      expect(result).toBeUndefined();
+
+      g.CompressionStream = originalCompressionStream;
+      g.Response = originalResponse;
+      delete (Blob.prototype as unknown as { stream?: () => unknown }).stream;
     });
 
     test('compresses with gzip and returns array buffer', async () => {
@@ -58,7 +85,8 @@ describe('gzip', () => {
       expect(MockCompressionStream).toHaveBeenCalledWith('gzip');
       expect(pipeThrough).toHaveBeenCalledWith(expect.anything());
       expect(g.Response as jest.Mock).toHaveBeenCalledWith(mockCompressedStream);
-      expect(new Uint8Array(result)).toEqual(new Uint8Array([0x1f, 0x8b]));
+      expect(result).toBeDefined();
+      expect(new Uint8Array(result as ArrayBuffer)).toEqual(new Uint8Array([0x1f, 0x8b]));
 
       g.CompressionStream = originalCompressionStream;
       g.Response = originalResponse;

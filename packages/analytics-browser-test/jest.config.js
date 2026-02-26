@@ -6,5 +6,6 @@ module.exports = {
   collectCoverage: false,
   displayName: package.name,
   rootDir: '.',
+  setupFiles: ['./test/setup.ts'],
   testEnvironment: 'jsdom',
 };
