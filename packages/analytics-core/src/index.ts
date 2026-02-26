@@ -44,7 +44,14 @@ export {
 export { RemoteConfigClient, IRemoteConfigClient, RemoteConfig, Source } from './remote-config/remote-config';
 
 export { LogLevel } from './types/loglevel';
-export { AMPLITUDE_PREFIX, STORAGE_PREFIX } from './types/constants';
+export {
+  AMPLITUDE_PREFIX,
+  STORAGE_PREFIX,
+  AMPLITUDE_SERVER_URL,
+  EU_AMPLITUDE_SERVER_URL,
+  AMPLITUDE_BATCH_SERVER_URL,
+  EU_AMPLITUDE_BATCH_SERVER_URL,
+} from './types/constants';
 export { Storage, IdentityStorageType, CookieStorageConfig } from './types/storage';
 export { consoleObserver } from './observers/console';
 export {

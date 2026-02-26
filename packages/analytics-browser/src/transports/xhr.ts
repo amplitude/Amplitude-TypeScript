@@ -14,15 +14,13 @@ export class XHRTransport extends BaseTransport implements Transport {
     done: 4,
   };
   private customHeaders: Record<string, string>;
-  private shouldCompressUploadBody: boolean;
 
-  constructor(customHeaders: Record<string, string> = {}, shouldCompressUploadBody = false) {
+  constructor(customHeaders: Record<string, string> = {}) {
     super();
     this.customHeaders = customHeaders;
-    this.shouldCompressUploadBody = shouldCompressUploadBody;
   }
 
-  async send(serverUrl: string, payload: Payload): Promise<Response | null> {
+  async send(serverUrl: string, payload: Payload, shouldCompressUploadBody = false): Promise<Response | null> {
     return new Promise((resolve, reject) => {
       /* istanbul ignore if */
       if (typeof XMLHttpRequest === 'undefined') {
@@ -51,14 +49,20 @@ export class XHRTransport extends BaseTransport implements Transport {
 
       const bodyString = JSON.stringify(payload);
       const shouldCompressBody =
-        this.shouldCompressUploadBody &&
+        shouldCompressUploadBody &&
         getStringSizeInBytes(bodyString) >= MIN_GZIP_UPLOAD_BODY_SIZE_BYTES &&
         isCompressionStreamAvailable();
 
-      const sendBody = (body: string | ArrayBuffer, contentEncoding?: string) => {
-        if (contentEncoding) {
-          xhr.setRequestHeader('Content-Encoding', contentEncoding);
+      if (shouldCompressBody) {
+        for (const key of Object.keys(headers)) {
+          if (key.toLowerCase() === 'content-encoding') {
+            delete headers[key];
+          }
         }
+        headers['Content-Encoding'] = 'gzip';
+      }
+
+      const sendBody = (body: string | ArrayBuffer) => {
         for (const [key, value] of Object.entries(headers)) {
           xhr.setRequestHeader(key, value);
         }
@@ -67,7 +71,7 @@ export class XHRTransport extends BaseTransport implements Transport {
 
       if (shouldCompressBody) {
         compressToGzipArrayBuffer(bodyString)
-          .then((body) => sendBody(body, 'gzip'))
+          .then((body) => sendBody(body))
           .catch(reject);
       } else {
         sendBody(bodyString);

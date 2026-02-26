@@ -2,16 +2,14 @@ import { BaseTransport, getGlobalScope, Payload, Response, Transport } from '@am
 
 /**
  * SendBeacon does not support custom headers (e.g. Content-Encoding: gzip),
- * so request body compression is not applied even when shouldCompressUploadBody is true.
+ * so request body compression is not applied even when enableRequestBodyCompression is true.
  */
 export class SendBeaconTransport extends BaseTransport implements Transport {
-  constructor(
-    _shouldCompressUploadBody = false, // Unused: SendBeacon cannot set Content-Encoding
-  ) {
+  constructor() {
     super();
   }
 
-  async send(serverUrl: string, payload: Payload): Promise<Response | null> {
+  async send(serverUrl: string, payload: Payload, _enableRequestBodyCompression = false): Promise<Response | null> {
     return new Promise((resolve, reject) => {
       const globalScope = getGlobalScope();
       /* istanbul ignore if */
