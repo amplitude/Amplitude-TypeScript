@@ -231,6 +231,7 @@ export interface AttributionOptions {
    * Exclude internal referrers from campaign attribution.
    * (a referrer is 'internal' if it is on the same domain as the current page)
    * @experimental this feature is experimental and may not be stable
+   * @defaultValue `false`
    */
   excludeInternalReferrers?: true | false | ExcludeInternalReferrersOptions;
   /**
