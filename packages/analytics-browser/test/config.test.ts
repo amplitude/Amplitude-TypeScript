@@ -209,7 +209,6 @@ describe('config', () => {
         },
         new AmplitudeBrowser(),
       );
-      console.log('!!!config', config);
       expect(config).toEqual({
         _cookieStorage: expect.any(MemoryStorage),
         _deviceId: 'device-device-device',
