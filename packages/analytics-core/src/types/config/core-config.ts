@@ -63,8 +63,12 @@ export interface IConfig {
    */
   ingestionMetadata?: IngestionMetadata;
   /**
-   * Controls request body compression **only** when a custom `serverUrl` is configured.
-   * When using the SDK's default endpoints, request bodies are always compressed regardless of this setting.
+   * Compress network request body payloads with gzip.
+   *
+   * For custom `serverUrl` values, this option controls whether compression is attempted.
+   * For default Amplitude endpoints, compression remains enabled.
+   * Compression is best-effort and only applies when the platform supports it,
+   * the payload meets the minimum size threshold, and the transport can set request headers.
    * @defaultValue `false`
    */
   enableRequestBodyCompression?: boolean;
