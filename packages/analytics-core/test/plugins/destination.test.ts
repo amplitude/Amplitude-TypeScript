@@ -636,7 +636,11 @@ describe('destination', () => {
 
         await destination.send([context]);
 
-        expect(transportProvider.send).toHaveBeenCalledWith(customServerUrl, expect.any(Object), expectedShouldCompress);
+        expect(transportProvider.send).toHaveBeenCalledWith(
+          customServerUrl,
+          expect.any(Object),
+          expectedShouldCompress,
+        );
       },
     );
 
