@@ -3,7 +3,7 @@ import * as http from 'http';
 import * as https from 'https';
 
 export class Http extends BaseTransport implements Transport {
-  send(serverUrl: string, payload: Payload, _enableRequestBodyCompression = false): Promise<Response | null> {
+  send(serverUrl: string, payload: Payload): Promise<Response | null> {
     let protocol: typeof http | typeof https;
     if (serverUrl.startsWith('http://')) {
       protocol = http;
