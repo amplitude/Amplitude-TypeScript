@@ -5,6 +5,7 @@ import {
   getDefaultExcludedReferrers,
   isExcludedReferrer,
   isSameDomain,
+  isSubdomainOf,
 } from '../../src/attribution/helpers';
 
 const loggerProvider = {
@@ -211,6 +212,50 @@ describe('isNewCampaign', () => {
         expect(isNewCampaign(currentCampaign, previousCampaign, { excludeInternalReferrers: {} }, loggerProvider)).toBe(
           false,
         );
+      });
+
+      describe('when cookieDomain is specified', () => {
+        test('should return false if internal referrer', () => {
+          const previousCampaign = {
+            ...BASE_CAMPAIGN,
+            referring_domain: 'a.b.co.uk',
+          };
+          const currentCampaign = {
+            ...BASE_CAMPAIGN,
+            referring_domain: 'b.co.uk',
+          };
+          expect(
+            isNewCampaign(
+              currentCampaign,
+              previousCampaign,
+              { excludeInternalReferrers: true },
+              loggerProvider,
+              false,
+              '.b.co.uk',
+            ),
+          ).toBe(false);
+        });
+
+        test('should return true if not internal referrer', () => {
+          const previousCampaign = {
+            ...BASE_CAMPAIGN,
+            referring_domain: 'www.google.com',
+          };
+          const currentCampaign = {
+            ...BASE_CAMPAIGN,
+            referring_domain: 'www.google.co.jp',
+          };
+          expect(
+            isNewCampaign(
+              currentCampaign,
+              previousCampaign,
+              { excludeInternalReferrers: true },
+              loggerProvider,
+              false,
+              '.b.co.uk',
+            ),
+          ).toBe(true);
+        });
       });
 
       test('should return true if not internal referrer', () => {
@@ -520,5 +565,23 @@ describe('isSameDomain', () => {
       expect(isSameDomain('amplitude.domain.com', 'docs.amplitude.com')).toBe(false);
       expect(isSameDomain('localhost', 'amplitude.com')).toBe(false);
     });
+  });
+});
+
+describe('isSubdomainOf', () => {
+  test('should return true if subdomain of domain', () => {
+    expect(isSubdomainOf('b.co.uk', 'b.co.uk')).toBe(true); // exact match
+    expect(isSubdomainOf('b.co.uk', '.b.co.uk')).toBe(true); // exact match leading dot
+    expect(isSubdomainOf('a.b.co.uk', '.b.co.uk')).toBe(true);
+    expect(isSubdomainOf('www.b.co.uk', '.b.co.uk')).toBe(true);
+    expect(isSubdomainOf('www.b.co.uk', '.co.uk')).toBe(true);
+    expect(isSubdomainOf('www.b.co.uk', 'co.uk')).toBe(true);
+    expect(isSubdomainOf('.www.b.co.uk', 'b.co.uk')).toBe(true);
+  });
+
+  test('should return false if not subdomain of domain', () => {
+    expect(isSubdomainOf('b.co.uk', 'a.b.co.uk')).toBe(false);
+    expect(isSubdomainOf('b.co.uk', '.a.b.co.uk')).toBe(false);
+    expect(isSubdomainOf('www.b.co.uk', 'google.com')).toBe(false);
   });
 });

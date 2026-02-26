@@ -43,6 +43,7 @@ export const isNewCampaign = (
   options: Options,
   logger: ILogger,
   isNewSession = true,
+  cookieDomain?: string,
 ) => {
   const { referrer, referring_domain, ...currentCampaign } = current;
   const { referrer: _previous_referrer, referring_domain: prevReferringDomain, ...previousCampaign } = previous || {};
@@ -51,7 +52,11 @@ export const isNewCampaign = (
 
   if (excludeInternalReferrers) {
     const condition = getExcludeInternalReferrersCondition(excludeInternalReferrers, logger);
-    if (!(condition instanceof TypeError) && current.referring_domain && isInternalReferrer(current.referring_domain)) {
+    if (
+      !(condition instanceof TypeError) &&
+      current.referring_domain &&
+      isInternalReferrer(current.referring_domain, cookieDomain)
+    ) {
       if (condition === 'always') {
         debugLogInternalReferrerExclude(condition, current.referring_domain, logger);
         return false;
@@ -98,6 +103,13 @@ export const isExcludedReferrer = (excludeReferrers: (string | RegExp)[] = [], r
 export const isSameDomain = (domain1: string, domain2: string) => {
   if (domain1 === domain2) return true;
   if (getDomain(domain1) === getDomain(domain2)) return true;
+  return false;
+};
+
+export const isSubdomainOf = (subDomain: string, domain: string) => {
+  const cookieDomainWithLeadingDot = domain.startsWith('.') ? domain : `.${domain}`;
+  const subDomainWithLeadingDot = subDomain.startsWith('.') ? subDomain : `.${subDomain}`;
+  if (subDomainWithLeadingDot.endsWith(cookieDomainWithLeadingDot)) return true;
   return false;
 };
 
@@ -222,9 +234,14 @@ const getDomain = (hostname: string) => {
   return `${name}.${tld}`;
 };
 
-const isInternalReferrer = (referringDomain: string) => {
+const isInternalReferrer = (referringDomain: string, cookieDomain?: string) => {
   const globalScope = getGlobalScope();
   /* istanbul ignore if */
   if (!globalScope) return false;
+  // if referring domain is subdomain of config.cookieDomain, return true
+  if (cookieDomain) {
+    return isSubdomainOf(referringDomain, cookieDomain);
+  }
+  // if no config.cookieDomain, check domain of current page instead
   return isSameDomain(referringDomain, globalScope.location.hostname);
 };
