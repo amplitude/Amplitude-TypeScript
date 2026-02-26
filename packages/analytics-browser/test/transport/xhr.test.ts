@@ -363,7 +363,7 @@ describe('xhr', () => {
       delete (global as { CompressionStream?: unknown }).CompressionStream;
     });
 
-    test('should override custom Content-Encoding header with gzip when compressing', async () => {
+    test('should respect custom Content-Encoding header when compressing', async () => {
       const mockCompressedBytes = new Uint8Array([0x1f, 0x8b]);
       const mockArrayBuffer = new ArrayBuffer(2);
       new Uint8Array(mockArrayBuffer).set(mockCompressedBytes);
@@ -391,7 +391,7 @@ describe('xhr', () => {
         writable: true,
       });
 
-      const transport = new XHRTransport({ 'content-encoding': 'br' });
+      const transport = new XHRTransport({ 'Content-Encoding': 'br' });
       const url = 'http://localhost:3000';
       const payload = {
         api_key: '',
@@ -420,8 +420,7 @@ describe('xhr', () => {
       mockXhr.onreadystatechange?.();
       await sendPromise;
 
-      expect(setRequestHeader).toHaveBeenCalledWith('Content-Encoding', 'gzip');
-      expect(setRequestHeader).not.toHaveBeenCalledWith('content-encoding', 'br');
+      expect(setRequestHeader).toHaveBeenCalledWith('Content-Encoding', 'br');
 
       (global as { Response?: unknown }).Response = OriginalResponse;
       delete (Blob.prototype as unknown as { stream?: () => ReadableStream }).stream;
