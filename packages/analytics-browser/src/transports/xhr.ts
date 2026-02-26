@@ -41,10 +41,9 @@ export class XHRTransport extends BaseTransport implements Transport {
         }
       };
       // Merge headers: custom headers override defaults (consistent with FetchTransport)
-      const headers: Record<string, string> = {
+      let headers: Record<string, string> = {
         'Content-Type': 'application/json',
         Accept: '*/*',
-        ...this.customHeaders,
       };
 
       const bodyString = JSON.stringify(payload);
@@ -54,13 +53,12 @@ export class XHRTransport extends BaseTransport implements Transport {
         isCompressionStreamAvailable();
 
       if (shouldCompressBody) {
-        for (const key of Object.keys(headers)) {
-          if (key.toLowerCase() === 'content-encoding') {
-            delete headers[key];
-          }
-        }
         headers['Content-Encoding'] = 'gzip';
       }
+      headers = {
+        ...headers,
+        ...this.customHeaders,
+      };
 
       const sendBody = (body: string | ArrayBuffer) => {
         for (const [key, value] of Object.entries(headers)) {
