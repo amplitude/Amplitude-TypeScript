@@ -55,7 +55,7 @@ export class BrowserConfig extends Config implements IBrowserConfig {
   protected _userId?: string;
   protected _pageCounter?: number;
   protected _debugLogsEnabled?: boolean;
-  protected _disableStorageUpdate = false;
+  private _disableStorageUpdate = false;
   constructor(
     public apiKey: string,
     public appVersion?: string,
@@ -110,12 +110,8 @@ export class BrowserConfig extends Config implements IBrowserConfig {
     public remoteConfig?: RemoteConfigOptions,
   ) {
     super({ apiKey, storageProvider, transportProvider: createTransport(transport) });
-    try {
-      // temporarily disable storage update to prevent race condition where
-      // the storage is updated with incomplete data
-      this._disableStorageUpdate = true;
-
-      this._cookieStorage = cookieStorage;
+    this._cookieStorage = cookieStorage;
+    this.updateStorageTransaction(() => {
       this.deviceId = deviceId;
       this.lastEventId = lastEventId;
       this.lastEventTime = lastEventTime;
@@ -140,11 +136,7 @@ export class BrowserConfig extends Config implements IBrowserConfig {
       this.remoteConfig = this.remoteConfig || {};
       this.remoteConfig.fetchRemoteConfig = _fetchRemoteConfig;
       this.fetchRemoteConfig = _fetchRemoteConfig;
-    } finally {
-      // re-enable storage and update it
-      this._disableStorageUpdate = false;
-      this.updateStorage();
-    }
+    });
   }
 
   get cookieStorage() {
@@ -280,6 +272,25 @@ export class BrowserConfig extends Config implements IBrowserConfig {
     }
 
     void this.cookieStorage.set(getCookieName(this.apiKey), cache);
+  }
+
+  /**
+   * Wraps execution of a function that disables storage updates at the
+   * beginning, re-enables them at the end, and updates the storage.
+   *
+   * This is meant for cases where there are multiple writes that need to be
+   * performed, and this makes it so they get commited to storage in one
+   * single operation
+   * @param fn - Function to execute within the storage transaction
+   */
+  private updateStorageTransaction(fn: () => void) {
+    try {
+      this._disableStorageUpdate = true;
+      fn();
+    } finally {
+      this._disableStorageUpdate = false;
+      this.updateStorage();
+    }
   }
 }
 
