@@ -41,6 +41,7 @@ import { parseLegacyCookies } from './cookie-migration';
 import { DEFAULT_IDENTITY_STORAGE, DEFAULT_SERVER_ZONE } from './constants';
 import { AmplitudeBrowser } from './browser-client';
 import { VERSION } from './version';
+import { getDomain } from './attribution/helpers';
 
 // Exported for testing purposes only. Do not expose to public interface.
 export class BrowserConfig extends Config implements IBrowserConfig {
@@ -135,7 +136,13 @@ export class BrowserConfig extends Config implements IBrowserConfig {
     this.remoteConfig = this.remoteConfig || {};
     this.remoteConfig.fetchRemoteConfig = _fetchRemoteConfig;
     this.fetchRemoteConfig = _fetchRemoteConfig;
+
     this.topLevelDomain = topLevelDomain;
+
+    // if TLD failed to find, fallback to parsing the hostname
+    if (identityStorage === DEFAULT_IDENTITY_STORAGE && !topLevelDomain) {
+      this.topLevelDomain = getDomain();
+    }
   }
 
   get cookieStorage() {
@@ -299,7 +306,8 @@ export const useBrowserConfig = async (
 
   // use the getTopLevelDomain function to find the TLD only if identity storage
   // is cookie (because getTopLevelDomain() uses cookies)
-  if (identityStorage === DEFAULT_IDENTITY_STORAGE) {
+  const isCookieStorage = identityStorage === DEFAULT_IDENTITY_STORAGE;
+  if (isCookieStorage) {
     topLevelDomain = await getTopLevelDomain();
   }
   const cookieOptions = {
@@ -505,6 +513,7 @@ export const getTopLevelDomain = async (url?: string) => {
     const value = await storage.get(storageKey);
     if (value) {
       await storage.remove(storageKey);
+      console.log('!!!getTopLevelDomain', '.' + domain);
       return '.' + domain;
     }
   }

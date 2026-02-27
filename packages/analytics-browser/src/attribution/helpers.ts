@@ -214,7 +214,12 @@ const KNOWN_2LDS = [
   'firebaseapp.com',
 ];
 
-export const getDomain = (hostname: string) => {
+export const getDomain = (hostnameParam?: string) => {
+  /* istanbul ignore next */
+  const hostname = hostnameParam ?? getGlobalScope()?.location?.hostname;
+  if (!hostname) {
+    return '';
+  }
   const parts = hostname.split('.');
   let tld = parts[parts.length - 1];
   let name = parts[parts.length - 2];

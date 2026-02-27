@@ -173,6 +173,12 @@ describe('config', () => {
     });
 
     test('should create using cookies/overwrite', async () => {
+      Object.defineProperty(window, 'location', {
+        value: {
+          hostname: 'amplitude.com',
+        },
+        configurable: true,
+      });
       const cookieStorage = new core.MemoryStorage<UserSession>();
       await cookieStorage.set(getCookieName(apiKey), {
         deviceId: 'device-device-device',
@@ -263,7 +269,7 @@ describe('config', () => {
         remoteConfig: {
           fetchRemoteConfig: true,
         },
-        topLevelDomain: '',
+        topLevelDomain: 'amplitude.com',
       });
     });
 

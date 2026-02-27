@@ -26,7 +26,7 @@ export class WebAttribution {
     this.options = {
       initialEmptyValue: 'EMPTY',
       resetSessionOnNewCampaign: false,
-      excludeReferrers: getDefaultExcludedReferrers(config.cookieOptions?.domain),
+      excludeReferrers: getDefaultExcludedReferrers(config.cookieOptions?.domain ?? config.topLevelDomain),
       optOut: config.optOut,
       ...options,
     };
