@@ -296,6 +296,9 @@ export const useBrowserConfig = async (
   // Step 1: Create identity storage instance
   const identityStorage = options.identityStorage || DEFAULT_IDENTITY_STORAGE;
   let topLevelDomain = '';
+
+  // use the getTopLevelDomain function to find the TLD only if identity storage
+  // is cookie (because getTopLevelDomain() uses cookies)
   if (identityStorage === DEFAULT_IDENTITY_STORAGE) {
     topLevelDomain = await getTopLevelDomain();
   }
