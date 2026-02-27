@@ -106,6 +106,7 @@ describe('config', () => {
       logger.enable(LogLevel.Warn);
       const config = await Config.useBrowserConfig(apiKey, undefined, new AmplitudeBrowser());
       expect(config).toEqual({
+        _disableStorageUpdate: false,
         _cookieStorage: someCookieStorage,
         _deviceId: someUUID,
         _lastEventId: undefined,
@@ -209,6 +210,7 @@ describe('config', () => {
         new AmplitudeBrowser(),
       );
       expect(config).toEqual({
+        _disableStorageUpdate: false,
         _cookieStorage: expect.any(MemoryStorage),
         _deviceId: 'device-device-device',
         _lastEventId: 100,

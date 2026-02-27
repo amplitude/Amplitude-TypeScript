@@ -55,6 +55,7 @@ export class BrowserConfig extends Config implements IBrowserConfig {
   protected _userId?: string;
   protected _pageCounter?: number;
   protected _debugLogsEnabled?: boolean;
+  private _disableStorageUpdate = false;
   constructor(
     public apiKey: string,
     public appVersion?: string,
@@ -110,30 +111,32 @@ export class BrowserConfig extends Config implements IBrowserConfig {
   ) {
     super({ apiKey, storageProvider, transportProvider: createTransport(transport) });
     this._cookieStorage = cookieStorage;
-    this.deviceId = deviceId;
-    this.lastEventId = lastEventId;
-    this.lastEventTime = lastEventTime;
-    this.optOut = optOut;
-    this.deferredSessionId = deferredSessionId;
-    this.sessionId = sessionId;
-    this.pageCounter = pageCounter;
-    this.userId = userId;
-    this.debugLogsEnabled = debugLogsEnabled;
-    this.loggerProvider.enable(debugLogsEnabled ? LogLevel.Debug : this.logLevel);
-    this.networkTrackingOptions = networkTrackingOptions;
-    this.identify = identify;
-    this.enableDiagnostics = enableDiagnostics;
-    this.diagnosticsSampleRate = diagnosticsSampleRate;
-    this.diagnosticsClient = diagnosticsClient;
+    this.updateStorageTransaction(() => {
+      this.deviceId = deviceId;
+      this.lastEventId = lastEventId;
+      this.lastEventTime = lastEventTime;
+      this.optOut = optOut;
+      this.deferredSessionId = deferredSessionId;
+      this.sessionId = sessionId;
+      this.pageCounter = pageCounter;
+      this.userId = userId;
+      this.debugLogsEnabled = debugLogsEnabled;
+      this.loggerProvider.enable(debugLogsEnabled ? LogLevel.Debug : this.logLevel);
+      this.networkTrackingOptions = networkTrackingOptions;
+      this.identify = identify;
+      this.enableDiagnostics = enableDiagnostics;
+      this.diagnosticsSampleRate = diagnosticsSampleRate;
+      this.diagnosticsClient = diagnosticsClient;
 
-    // Note: The canonical logic for determining fetchRemoteConfig is in shouldFetchRemoteConfig().
-    // This logic is duplicated here to maintain the BrowserConfig constructor contract and ensure
-    // the config object has the correct fetchRemoteConfig value set on its properties.
-    // The value passed to this constructor should already be computed via shouldFetchRemoteConfig().
-    const _fetchRemoteConfig = remoteConfig?.fetchRemoteConfig ?? fetchRemoteConfig;
-    this.remoteConfig = this.remoteConfig || {};
-    this.remoteConfig.fetchRemoteConfig = _fetchRemoteConfig;
-    this.fetchRemoteConfig = _fetchRemoteConfig;
+      // Note: The canonical logic for determining fetchRemoteConfig is in shouldFetchRemoteConfig().
+      // This logic is duplicated here to maintain the BrowserConfig constructor contract and ensure
+      // the config object has the correct fetchRemoteConfig value set on its properties.
+      // The value passed to this constructor should already be computed via shouldFetchRemoteConfig().
+      const _fetchRemoteConfig = remoteConfig?.fetchRemoteConfig ?? fetchRemoteConfig;
+      this.remoteConfig = this.remoteConfig || {};
+      this.remoteConfig.fetchRemoteConfig = _fetchRemoteConfig;
+      this.fetchRemoteConfig = _fetchRemoteConfig;
+    });
   }
 
   get cookieStorage() {
@@ -248,6 +251,9 @@ export class BrowserConfig extends Config implements IBrowserConfig {
   }
 
   private updateStorage() {
+    if (this._disableStorageUpdate) {
+      return;
+    }
     const cache = {
       deviceId: this._deviceId,
       userId: this._userId,
@@ -266,6 +272,25 @@ export class BrowserConfig extends Config implements IBrowserConfig {
     }
 
     void this.cookieStorage.set(getCookieName(this.apiKey), cache);
+  }
+
+  /**
+   * Wraps execution of a function that disables storage updates at the
+   * beginning, re-enables them at the end, and updates the storage.
+   *
+   * This is meant for cases where there are multiple writes that need to be
+   * performed, and this makes it so they get commited to storage in one
+   * single operation
+   * @param fn - Function to execute within the storage transaction
+   */
+  private updateStorageTransaction(fn: () => void) {
+    try {
+      this._disableStorageUpdate = true;
+      fn();
+    } finally {
+      this._disableStorageUpdate = false;
+      this.updateStorage();
+    }
   }
 }
 

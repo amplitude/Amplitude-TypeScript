@@ -30,6 +30,7 @@ export class Context implements BeforePlugin {
 
   async execute(context: Event): Promise<Event> {
     const time = new Date().getTime();
+    // TODO: atomize these writes too
     const lastEventId = this.config.lastEventId ?? -1;
     const nextEventId = context.event_id ?? lastEventId + 1;
     this.config.lastEventId = nextEventId;
