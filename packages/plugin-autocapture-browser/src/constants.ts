@@ -18,6 +18,7 @@ export const AMPLITUDE_EVENT_PROP_ELEMENT_POSITION_LEFT = '[Amplitude] Element P
 export const AMPLITUDE_EVENT_PROP_ELEMENT_POSITION_TOP = '[Amplitude] Element Position Top';
 export const AMPLITUDE_EVENT_PROP_ELEMENT_ARIA_LABEL = '[Amplitude] Element Aria Label';
 export const AMPLITUDE_EVENT_PROP_ELEMENT_ATTRIBUTES = '[Amplitude] Element Attributes';
+export const AMPLITUDE_EVENT_PROP_ELEMENT_PATH = '[Amplitude] Element Path';
 
 export const AMPLITUDE_EVENT_PROP_ELEMENT_PARENT_LABEL = '[Amplitude] Element Parent Label';
 export const AMPLITUDE_EVENT_PROP_PAGE_URL = '[Amplitude] Page URL';
