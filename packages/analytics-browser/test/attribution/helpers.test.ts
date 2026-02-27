@@ -1,11 +1,12 @@
+import { ExcludeInternalReferrersOptions, getStorageKey, BASE_CAMPAIGN } from '@amplitude/analytics-core';
 import {
   isNewCampaign,
   createCampaignEvent,
   getDefaultExcludedReferrers,
   isExcludedReferrer,
+  isSubdomainOf,
+  getDomain,
 } from '../../src/attribution/helpers';
-
-import { getStorageKey, BASE_CAMPAIGN } from '@amplitude/analytics-core';
 
 const loggerProvider = {
   log: jest.fn(),
@@ -173,6 +174,216 @@ describe('isNewCampaign', () => {
 
     expect(isNewCampaign(currentCampaign, previousCampaign, {}, loggerProvider, false)).toBe(true);
   });
+
+  describe('when excludeInternalReferrers', () => {
+    let location: Location;
+
+    beforeAll(() => {
+      location = window.location;
+      Object.defineProperty(window, 'location', {
+        value: {
+          hostname: 'a.b.co.uk',
+        },
+        writable: true,
+      });
+    });
+
+    afterAll(() => {
+      Object.defineProperty(window, 'location', {
+        value: location,
+        writable: true,
+      });
+    });
+
+    describe('is true (or "always")', () => {
+      test('should return false if internal referrer', () => {
+        const previousCampaign = {
+          ...BASE_CAMPAIGN,
+          referring_domain: 'a.b.co.uk',
+        };
+        const currentCampaign = {
+          ...BASE_CAMPAIGN,
+          referring_domain: 'b.co.uk',
+        };
+
+        expect(
+          isNewCampaign(currentCampaign, previousCampaign, { excludeInternalReferrers: true }, loggerProvider),
+        ).toBe(false);
+        expect(isNewCampaign(currentCampaign, previousCampaign, { excludeInternalReferrers: {} }, loggerProvider)).toBe(
+          false,
+        );
+      });
+
+      describe('when cookieDomain is specified', () => {
+        test('should return false if internal referrer', () => {
+          const previousCampaign = {
+            ...BASE_CAMPAIGN,
+            referring_domain: 'a.b.co.uk',
+          };
+          const currentCampaign = {
+            ...BASE_CAMPAIGN,
+            referring_domain: 'b.co.uk',
+          };
+          expect(
+            isNewCampaign(
+              currentCampaign,
+              previousCampaign,
+              { excludeInternalReferrers: true },
+              loggerProvider,
+              false,
+              '.b.co.uk',
+            ),
+          ).toBe(false);
+        });
+
+        test('should return true if not internal referrer', () => {
+          const previousCampaign = {
+            ...BASE_CAMPAIGN,
+            referring_domain: 'www.google.com',
+          };
+          const currentCampaign = {
+            ...BASE_CAMPAIGN,
+            referring_domain: 'www.google.co.jp',
+          };
+          expect(
+            isNewCampaign(
+              currentCampaign,
+              previousCampaign,
+              { excludeInternalReferrers: true },
+              loggerProvider,
+              false,
+              '.b.co.uk',
+            ),
+          ).toBe(true);
+        });
+      });
+
+      test('should return true if not internal referrer', () => {
+        const previousCampaign = {
+          ...BASE_CAMPAIGN,
+          referring_domain: 'facebook.com',
+        };
+        const currentCampaign = {
+          ...BASE_CAMPAIGN,
+          referring_domain: 'google.com',
+        };
+        expect(
+          isNewCampaign(currentCampaign, previousCampaign, { excludeInternalReferrers: true }, loggerProvider),
+        ).toBe(true);
+      });
+
+      test('should return false if no referring_domain', () => {
+        const previousCampaign = {
+          ...BASE_CAMPAIGN,
+        };
+        const currentCampaign = {
+          ...BASE_CAMPAIGN,
+        };
+        expect(
+          isNewCampaign(currentCampaign, previousCampaign, { excludeInternalReferrers: true }, loggerProvider),
+        ).toBe(false);
+      });
+
+      test('should return false if no referring domain', () => {
+        const previousCampaign = {
+          ...BASE_CAMPAIGN,
+        };
+        const currentCampaign = {
+          ...BASE_CAMPAIGN,
+        };
+        expect(
+          isNewCampaign(
+            currentCampaign,
+            previousCampaign,
+            { excludeInternalReferrers: { condition: 'always' } },
+            loggerProvider,
+          ),
+        ).toBe(false);
+      });
+    });
+
+    describe('is "ifEmptyCampaign"', () => {
+      test('should return false if internal referrer and campaign is empty', () => {
+        const previousCampaign = {
+          ...BASE_CAMPAIGN,
+          referring_domain: 'a.b.co.uk',
+        };
+        const currentCampaign = {
+          ...BASE_CAMPAIGN,
+          referring_domain: 'a.b.co.uk',
+        };
+        expect(
+          isNewCampaign(
+            currentCampaign,
+            previousCampaign,
+            { excludeInternalReferrers: { condition: 'ifEmptyCampaign' } },
+            loggerProvider,
+          ),
+        ).toBe(false);
+      });
+
+      test('should return true if not internal referrer and campaign is not empty', () => {
+        const previousCampaign = {
+          ...BASE_CAMPAIGN,
+          utm_campaign: 'previous_campaign',
+          referring_domain: 'facebook.com',
+        };
+        const currentCampaign = {
+          ...BASE_CAMPAIGN,
+          utm_campaign: 'new_campaign',
+          referring_domain: 'google.com',
+        };
+        expect(
+          isNewCampaign(
+            currentCampaign,
+            previousCampaign,
+            { excludeInternalReferrers: { condition: 'ifEmptyCampaign' } },
+            loggerProvider,
+          ),
+        ).toBe(true);
+      });
+
+      test('should return true if internal referrer and campaign is not empty', () => {
+        const previousCampaign = {
+          ...BASE_CAMPAIGN,
+          utm_campaign: 'previous_campaign',
+          referring_domain: 'a.b.co.uk',
+        };
+        const currentCampaign = {
+          ...BASE_CAMPAIGN,
+          utm_campaign: 'new_campaign',
+          referring_domain: 'a.b.co.uk',
+        };
+        expect(
+          isNewCampaign(
+            currentCampaign,
+            previousCampaign,
+            { excludeInternalReferrers: { condition: 'ifEmptyCampaign' } },
+            loggerProvider,
+          ),
+        ).toBe(true);
+      });
+    });
+
+    describe('is invalid', () => {
+      test('should silently ignore invalid condition', () => {
+        const previousCampaign = {
+          ...BASE_CAMPAIGN,
+          utm_campaign: 'previous_campaign',
+          referring_domain: 'a.b.co.uk',
+        };
+        const currentCampaign = {
+          ...BASE_CAMPAIGN,
+          utm_campaign: 'new_campaign',
+          referring_domain: 'a.b.co.uk',
+        };
+        const excludeInternalReferrers = { condition: 'invalid' } as unknown as ExcludeInternalReferrersOptions;
+        expect(isNewCampaign(currentCampaign, previousCampaign, { excludeInternalReferrers }, loggerProvider)).toBe(
+          true,
+        );
+      });
+    });
+  });
 });
 
 describe('isExcludedReferrer', () => {
@@ -323,5 +534,29 @@ describe('getDefaultExcludedReferrers', () => {
   test('should return array with regex 2', () => {
     const excludedReferrers = getDefaultExcludedReferrers('.amplitude.com');
     expect(excludedReferrers).toEqual([new RegExp('amplitude\\.com$')]);
+  });
+});
+
+describe('isSubdomainOf', () => {
+  test('should return true if subdomain of domain', () => {
+    expect(isSubdomainOf('b.co.uk', 'b.co.uk')).toBe(true); // exact match
+    expect(isSubdomainOf('b.co.uk', '.b.co.uk')).toBe(true); // exact match leading dot
+    expect(isSubdomainOf('a.b.co.uk', '.b.co.uk')).toBe(true);
+    expect(isSubdomainOf('www.b.co.uk', '.b.co.uk')).toBe(true);
+    expect(isSubdomainOf('www.b.co.uk', '.co.uk')).toBe(true);
+    expect(isSubdomainOf('www.b.co.uk', 'co.uk')).toBe(true);
+    expect(isSubdomainOf('.www.b.co.uk', 'b.co.uk')).toBe(true);
+  });
+
+  test('should return false if not subdomain of domain', () => {
+    expect(isSubdomainOf('b.co.uk', 'a.b.co.uk')).toBe(false);
+    expect(isSubdomainOf('b.co.uk', '.a.b.co.uk')).toBe(false);
+    expect(isSubdomainOf('www.b.co.uk', 'google.com')).toBe(false);
+  });
+});
+
+describe('getDomain', () => {
+  test('should return true if both localhost', () => {
+    expect(getDomain('localhost')).toBe('localhost');
   });
 });

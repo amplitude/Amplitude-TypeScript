@@ -115,6 +115,7 @@ interface InternalBrowserConfig {
   diagnosticsClient?: IDiagnosticsClient;
   remoteConfigClient?: IRemoteConfigClient;
   deferredSessionId?: number;
+  topLevelDomain?: string;
 }
 
 /**
@@ -227,6 +228,13 @@ export interface AttributionOptions {
    */
   excludeReferrers?: (string | RegExp)[];
   /**
+   * Exclude internal referrers from campaign attribution.
+   * (a referrer is 'internal' if it is on the same domain as the current page)
+   * @experimental this feature is experimental and may not be stable
+   * @defaultValue `false`
+   */
+  excludeInternalReferrers?: true | false | ExcludeInternalReferrersOptions;
+  /**
    * The value to represent undefined/no initial campaign parameter for first-touch attribution.
    * @defaultValue `"EMPTY"`
    */
@@ -236,6 +244,22 @@ export interface AttributionOptions {
    * @defaultValue `false`
    */
   resetSessionOnNewCampaign?: boolean;
+}
+
+export const EXCLUDE_INTERNAL_REFERRERS_CONDITIONS = {
+  always: 'always',
+  ifEmptyCampaign: 'ifEmptyCampaign',
+} as const;
+
+type ExcludeInternalReferrersCondition =
+  (typeof EXCLUDE_INTERNAL_REFERRERS_CONDITIONS)[keyof typeof EXCLUDE_INTERNAL_REFERRERS_CONDITIONS];
+
+export interface ExcludeInternalReferrersOptions {
+  /*
+   * The condition on which to exclude internal referrers for campaign attribution.
+   * @defaultValue `"always"`
+   */
+  condition?: ExcludeInternalReferrersCondition;
 }
 
 export interface RemoteConfigOptions {
