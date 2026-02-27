@@ -88,10 +88,11 @@ export const formInteractionTracking = (): EnrichmentPlugin => {
         };
 
         // TODO: check "frustrationInteractions.shouldTrackEventResolver"
-        /* istanbul ignore next */
-        win?.addEventListener('pagehide', trackFormAbandoned);
-        /* istanbul ignore next */
-        win?.addEventListener('beforeunload', trackFormAbandoned);
+        /* istanbul ignore if */
+        if (formInteractionsConfig?.shouldTrackAbandoned) {
+          win?.addEventListener('pagehide', trackFormAbandoned);
+          win?.addEventListener('beforeunload', trackFormAbandoned);
+        }
 
         addEventListener(form, 'change', () => {
           if (!hasFormChanged) {

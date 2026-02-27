@@ -544,7 +544,13 @@ describe('formInteractionTracking', () => {
 
   describe('shouldTrackAbandoned', () => {
     beforeEach(async () => {
-      const config = createConfigurationMock();
+      const config = createConfigurationMock({
+        defaultTracking: {
+          formInteractions: {
+            shouldTrackAbandoned: true,
+          },
+        },
+      });
       const plugin = formInteractionTracking();
       await plugin.setup?.(config, amplitude);
       window.dispatchEvent(new Event('load'));

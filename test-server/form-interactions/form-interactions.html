@@ -37,7 +37,9 @@
       autocapture: {
         pageViews: false,
         sessions: false,
-        formInteractions: true,
+        formInteractions: {
+          shouldTrackAbandoned: true,
+        },
       },
     });
   </script>
