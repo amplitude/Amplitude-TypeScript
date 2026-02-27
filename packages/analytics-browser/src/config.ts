@@ -137,12 +137,7 @@ export class BrowserConfig extends Config implements IBrowserConfig {
     this.remoteConfig.fetchRemoteConfig = _fetchRemoteConfig;
     this.fetchRemoteConfig = _fetchRemoteConfig;
 
-    this.topLevelDomain = topLevelDomain;
-
-    // if TLD failed to find, fallback to parsing the hostname
-    if (identityStorage === DEFAULT_IDENTITY_STORAGE && !topLevelDomain) {
-      this.topLevelDomain = getDomain();
-    }
+    this.topLevelDomain = topLevelDomain || getDomain();
   }
 
   get cookieStorage() {
