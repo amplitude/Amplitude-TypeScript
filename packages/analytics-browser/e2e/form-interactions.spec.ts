@@ -15,7 +15,6 @@ test.describe('Form Interactions Page', () => {
         const data = JSON.parse(postData);
         requests.push(data);
       }
-      console.log('added request');
       await route.continue();
     });
   });

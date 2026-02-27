@@ -576,6 +576,13 @@ describe('formInteractionTracking', () => {
       });
     });
 
+    test('should track form abandoned when form started then abandoned (multiple times)', async () => {
+      document.getElementById('my-form-id')?.dispatchEvent(new Event('change'));
+      window.dispatchEvent(new Event('beforeunload'));
+      window.dispatchEvent(new Event('pagehide'));
+      expect(amplitude.track).toHaveBeenCalledTimes(2);
+    });
+
     test('should not track form abandoned when form is not started', async () => {
       window.dispatchEvent(new Event('pagehide'));
       expect(amplitude.track).not.toHaveBeenCalled();
