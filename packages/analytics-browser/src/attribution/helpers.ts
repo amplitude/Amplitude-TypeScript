@@ -1,7 +1,17 @@
-import { createIdentifyEvent, Identify, ILogger, Campaign, BASE_CAMPAIGN } from '@amplitude/analytics-core';
+import {
+  createIdentifyEvent,
+  Identify,
+  ILogger,
+  Campaign,
+  BASE_CAMPAIGN,
+  getGlobalScope,
+} from '@amplitude/analytics-core';
+
+import { ExcludeInternalReferrersOptions, EXCLUDE_INTERNAL_REFERRERS_CONDITIONS } from '../types';
 
 export interface Options {
   excludeReferrers?: (string | RegExp)[];
+  excludeInternalReferrers?: true | false | ExcludeInternalReferrersOptions;
   initialEmptyValue?: string;
   resetSessionOnNewCampaign?: boolean;
   optOut?: boolean;
@@ -22,15 +32,40 @@ const isDirectTraffic = (current: Campaign) => {
   return Object.values(current).every((value) => !value);
 };
 
+const isEmptyCampaign = (campaign: Campaign) => {
+  const campaignWithoutReferrer = { ...campaign, referring_domain: undefined, referrer: undefined };
+  return Object.values(campaignWithoutReferrer).every((value) => !value);
+};
+
 export const isNewCampaign = (
   current: Campaign,
   previous: Campaign | undefined,
   options: Options,
   logger: ILogger,
   isNewSession = true,
+  topLevelDomain?: string,
 ) => {
   const { referrer, referring_domain, ...currentCampaign } = current;
   const { referrer: _previous_referrer, referring_domain: prevReferringDomain, ...previousCampaign } = previous || {};
+
+  const { excludeInternalReferrers } = options;
+
+  if (excludeInternalReferrers) {
+    const condition = getExcludeInternalReferrersCondition(excludeInternalReferrers, logger);
+    if (
+      !(condition instanceof TypeError) &&
+      current.referring_domain &&
+      isInternalReferrer(current.referring_domain, topLevelDomain)
+    ) {
+      if (condition === 'always') {
+        debugLogInternalReferrerExclude(condition, current.referring_domain, logger);
+        return false;
+      } else if (condition === 'ifEmptyCampaign' && isEmptyCampaign(current)) {
+        debugLogInternalReferrerExclude(condition, current.referring_domain, logger);
+        return false;
+      }
+    }
+  }
 
   if (isExcludedReferrer(options.excludeReferrers, current.referring_domain)) {
     // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
@@ -65,6 +100,13 @@ export const isExcludedReferrer = (excludeReferrers: (string | RegExp)[] = [], r
   );
 };
 
+export const isSubdomainOf = (subDomain: string, domain: string) => {
+  const cookieDomainWithLeadingDot = domain.startsWith('.') ? domain : `.${domain}`;
+  const subDomainWithLeadingDot = subDomain.startsWith('.') ? subDomain : `.${subDomain}`;
+  if (subDomainWithLeadingDot.endsWith(cookieDomainWithLeadingDot)) return true;
+  return false;
+};
+
 export const createCampaignEvent = (campaign: Campaign, options: Options) => {
   const campaignParameters: Campaign = {
     // This object definition allows undefined keys to be iterated on
@@ -92,4 +134,105 @@ export const getDefaultExcludedReferrers = (cookieDomain: string | undefined) =>
     return [new RegExp(`${domain.replace('.', '\\.')}$`)];
   }
   return [];
+};
+
+/**
+ * Parses the excludeInternalReferrers configuration to determine the condition on which to
+ * exclude internal referrers for campaign attribution.
+ *
+ * If the config is invalid type, log and return a TypeError.
+ *
+ * (this does explicit type checking so don't have to rely on TS compiler to catch invalid types)
+ *
+ * @param excludeInternalReferrers - attribution.excludeInternalReferrers configuration
+ * @param logger - logger instance to log error when TypeError
+ * @returns The condition if the config is valid, TypeError if the config is invalid.
+ */
+const getExcludeInternalReferrersCondition = (
+  excludeInternalReferrers: ExcludeInternalReferrersOptions | boolean,
+  logger: ILogger,
+): ExcludeInternalReferrersOptions['condition'] | TypeError => {
+  if (excludeInternalReferrers === true) {
+    return EXCLUDE_INTERNAL_REFERRERS_CONDITIONS.always;
+  }
+  if (typeof excludeInternalReferrers === 'object') {
+    const { condition } = excludeInternalReferrers;
+    if (typeof condition === 'string' && Object.keys(EXCLUDE_INTERNAL_REFERRERS_CONDITIONS).includes(condition)) {
+      return condition;
+    } else if (typeof condition === 'undefined') {
+      return EXCLUDE_INTERNAL_REFERRERS_CONDITIONS.always;
+    }
+  }
+  const errorMessage = `Invalid configuration provided for attribution.excludeInternalReferrers: ${JSON.stringify(
+    excludeInternalReferrers,
+  )}`;
+  logger.error(errorMessage);
+  return new TypeError(errorMessage);
+};
+
+// helper function to log debug message when internal referrer is excluded
+// (added this to prevent code duplication and improve readability)
+function debugLogInternalReferrerExclude(
+  condition: ExcludeInternalReferrersOptions['condition'],
+  referringDomain: string,
+  logger: ILogger,
+) {
+  const baseMessage = `This is not a new campaign because referring_domain=${referringDomain} is on the same domain as the current page and it is configured to exclude internal referrers`;
+  if (condition === 'always') {
+    logger.debug(baseMessage);
+  } else if (condition === 'ifEmptyCampaign') {
+    logger.debug(`${baseMessage} with empty campaign parameters`);
+  }
+}
+
+const KNOWN_2LDS = [
+  'co.uk',
+  'gov.uk',
+  'ac.uk',
+  'co.jp',
+  'ne.jp',
+  'or.jp',
+  'co.kr',
+  'or.kr',
+  'go.kr',
+  'com.au',
+  'net.au',
+  'org.au',
+  'com.br',
+  'net.br',
+  'org.br',
+  'com.cn',
+  'net.cn',
+  'org.cn',
+  'com.mx',
+  'github.io',
+  'gitlab.io',
+  'cloudfront.net',
+  'herokuapp.com',
+  'appspot.com',
+  'azurewebsites.net',
+  'firebaseapp.com',
+];
+
+export const getDomain = (hostname: string) => {
+  const parts = hostname.split('.');
+  let tld = parts[parts.length - 1];
+  let name = parts[parts.length - 2];
+  if (KNOWN_2LDS.find((tld) => hostname.endsWith(`.${tld}`))) {
+    tld = parts[parts.length - 2] + '.' + parts[parts.length - 1];
+    name = parts[parts.length - 3];
+  }
+
+  if (!name) return tld;
+
+  return `${name}.${tld}`;
+};
+
+const isInternalReferrer = (referringDomain: string, topLevelDomain?: string) => {
+  const globalScope = getGlobalScope();
+  /* istanbul ignore if */
+  if (!globalScope) return false;
+  // if referring domain is subdomain of config.cookieDomain, return true
+  const internalDomain = (topLevelDomain || '').trim() || getDomain(globalScope.location.hostname);
+  return isSubdomainOf(referringDomain, internalDomain);
 };

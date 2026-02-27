@@ -41,4 +41,6 @@ export {
   ReferrerParameters,
   UTMParameters,
   ValidPropertyType,
+  ExcludeInternalReferrersOptions,
+  EXCLUDE_INTERNAL_REFERRERS_CONDITIONS,
 } from '@amplitude/analytics-core';

@@ -154,6 +154,7 @@ describe('config', () => {
         remoteConfig: {
           fetchRemoteConfig: true,
         },
+        topLevelDomain: '.amplitude.com',
       });
       expect(getTopLevelDomain).toHaveBeenCalledTimes(1);
     });
@@ -262,6 +263,7 @@ describe('config', () => {
         remoteConfig: {
           fetchRemoteConfig: true,
         },
+        topLevelDomain: '',
       });
     });
 

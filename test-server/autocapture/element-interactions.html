@@ -274,7 +274,18 @@
         import.meta.env.VITE_AMPLITUDE_USER_ID || 'amplitude-typescript test user',
         {
           fetchRemoteConfig: false,
+          logLevel: 'debug',
           autocapture: {
+            attribution: {
+              excludeReferrers: [
+                /\.google.com$/,
+              ],
+              excludeInternalReferrers: {
+                condition: 'ifEmptyCampaign',
+                //condition: 'always',
+              },
+              //excludeInternalReferrers: false,
+            },
             elementInteractions: {
               debounceTime: 1000,
             },
