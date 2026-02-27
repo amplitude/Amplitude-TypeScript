@@ -463,6 +463,21 @@ describe('config', () => {
         configurable: true,
       });
     });
+
+    test('should record a diagnostics event when no access to cookies', async () => {
+      const mockDiagnosticsClient = {
+        recordEvent: jest.fn(),
+        setTag: jest.fn(),
+        increment: jest.fn(),
+        recordHistogram: jest.fn(),
+        _flush: jest.fn(),
+        _setSampleRate: jest.fn(),
+      };
+      await Config.getTopLevelDomain('www.amplitude.com', mockDiagnosticsClient);
+      expect(mockDiagnosticsClient.recordEvent).toHaveBeenCalledWith('cookies.tld.failure', {
+        reason: 'Could not determine TLD for host www.amplitude.com',
+      });
+    });
   });
 
   describe('fetchRemoteConfig', () => {

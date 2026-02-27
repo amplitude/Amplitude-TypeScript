@@ -300,7 +300,7 @@ export const useBrowserConfig = async (
   // use the getTopLevelDomain function to find the TLD only if identity storage
   // is cookie (because getTopLevelDomain() uses cookies)
   if (identityStorage === DEFAULT_IDENTITY_STORAGE) {
-    topLevelDomain = await getTopLevelDomain();
+    topLevelDomain = await getTopLevelDomain(undefined, diagnosticsClient);
   }
   const cookieOptions = {
     domain: options.cookieOptions?.domain ?? topLevelDomain,
@@ -477,9 +477,9 @@ export const createTransport = (transport?: TransportTypeOrOptions) => {
   return new FetchTransport(headers);
 };
 
-export const getTopLevelDomain = async (url?: string) => {
+export const getTopLevelDomain = async (url?: string, diagnosticsClient?: IDiagnosticsClient) => {
   if (
-    !(await new CookieStorage<number>().isEnabled()) ||
+    !(await new CookieStorage<number>(undefined, { diagnosticsClient }).isEnabled()) ||
     (!url && (typeof location === 'undefined' || !location.hostname))
   ) {
     return '';
@@ -507,6 +507,12 @@ export const getTopLevelDomain = async (url?: string) => {
       await storage.remove(storageKey);
       return '.' + domain;
     }
+  }
+
+  if (diagnosticsClient) {
+    diagnosticsClient.recordEvent('cookies.tld.failure', {
+      reason: `Could not determine TLD for host ${host}`,
+    });
   }
 
   return '';
