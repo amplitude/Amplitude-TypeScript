@@ -1,6 +1,7 @@
 import {
   DEFAULT_FORM_START_EVENT,
   DEFAULT_FORM_SUBMIT_EVENT,
+  DEFAULT_FORM_ABANDONED_EVENT,
   FORM_ID,
   FORM_NAME,
   FORM_DESTINATION,
@@ -73,16 +74,35 @@ export const formInteractionTracking = (): EnrichmentPlugin => {
 
         let hasFormChanged = false;
 
+        const win = getGlobalScope();
+
+        const trackFormAbandoned = () => {
+          if (hasFormChanged) {
+            const formDestination = extractFormAction(form);
+            amplitude.track(DEFAULT_FORM_ABANDONED_EVENT, {
+              [FORM_ID]: stringOrUndefined(form.id),
+              [FORM_NAME]: stringOrUndefined(form.name),
+              [FORM_DESTINATION]: formDestination,
+            });
+          }
+        };
+
+        // TODO: check "frustrationInteractions.shouldTrackEventResolver"
+        /* istanbul ignore next */
+        win?.addEventListener('pagehide', trackFormAbandoned);
+        /* istanbul ignore next */
+        win?.addEventListener('beforeunload', trackFormAbandoned);
+
         addEventListener(form, 'change', () => {
-          const formDestination = extractFormAction(form);
           if (!hasFormChanged) {
+            hasFormChanged = true;
+            const formDestination = extractFormAction(form);
             amplitude.track(DEFAULT_FORM_START_EVENT, {
               [FORM_ID]: stringOrUndefined(form.id),
               [FORM_NAME]: stringOrUndefined(form.name),
               [FORM_DESTINATION]: formDestination,
             });
           }
-          hasFormChanged = true;
         });
 
         addEventListener(form, 'submit', (event: Event) => {
