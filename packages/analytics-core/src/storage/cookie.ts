@@ -29,7 +29,7 @@ export class CookieStorage<T> implements Storage<T> {
     this.config = config;
   }
 
-  async _isEnabled(): Promise<boolean> {
+  async isEnabled(): Promise<boolean> {
     const globalScope = getGlobalScope();
     /* istanbul ignore if */
     if (!globalScope || !globalScope.document) {
@@ -70,22 +70,6 @@ export class CookieStorage<T> implements Storage<T> {
     } finally {
       await testStorage.remove(testKey);
     }
-  }
-
-  async isEnabled(): Promise<boolean> {
-    const MAX_RETRIES = 3;
-    const DELAY_MS = 100;
-
-    for (let i = 0; i < MAX_RETRIES; i++) {
-      const isEnabled = await this._isEnabled();
-      if (isEnabled) {
-        return true;
-      }
-      if (i < MAX_RETRIES - 1) {
-        await new Promise((resolve) => setTimeout(resolve, DELAY_MS));
-      }
-    }
-    return false;
   }
 
   async get(key: string): Promise<T | undefined> {

@@ -35,30 +35,6 @@ describe('cookies', () => {
       expect(await cookies.isEnabled()).toBe(true);
     });
 
-    test('should return true if _isEnabled returns false the first time and then returns true', async () => {
-      const cookies = new CookieStorage();
-      const _isEnabledSpy = jest.spyOn(cookies, '_isEnabled');
-      _isEnabledSpy.mockResolvedValueOnce(false).mockResolvedValueOnce(true);
-      expect(await cookies.isEnabled()).toBe(true);
-      expect(_isEnabledSpy).toHaveBeenCalledTimes(2);
-    });
-
-    test('should return false if _isEnabled returns false after 3 attempts', async () => {
-      const mockDiagnosticsClient = {
-        recordEvent: jest.fn(),
-        increment: jest.fn(),
-        recordHistogram: jest.fn(),
-        setTag: jest.fn(),
-        _flush: jest.fn(),
-        _setSampleRate: jest.fn(),
-      };
-      const cookies = new CookieStorage({}, { diagnosticsClient: mockDiagnosticsClient });
-      const _isEnabledSpy = jest.spyOn(cookies, '_isEnabled');
-      _isEnabledSpy.mockResolvedValue(false);
-      expect(await cookies.isEnabled()).toBe(false);
-      expect(_isEnabledSpy).toHaveBeenCalledTimes(3);
-    });
-
     describe('when document is not available', () => {
       let getGlobalScopeSpy: jest.SpyInstance;
       beforeEach(() => {
@@ -107,7 +83,7 @@ describe('cookies', () => {
         };
         const cookies = new CookieStorage(undefined, { diagnosticsClient: mockDiagnosticsClient as any });
         expect(await cookies.isEnabled()).toBe(false);
-        expect(mockDiagnosticsClient.recordEvent).toHaveBeenCalledTimes(3);
+        expect(mockDiagnosticsClient.recordEvent).toHaveBeenCalledTimes(1);
       });
     });
 
@@ -144,7 +120,7 @@ describe('cookies', () => {
         };
         const cookies = new CookieStorage(undefined, { diagnosticsClient: mockDiagnosticsClient as any });
         expect(await cookies.isEnabled()).toBe(false);
-        expect(mockDiagnosticsClient.recordEvent).toHaveBeenCalledTimes(3);
+        expect(mockDiagnosticsClient.recordEvent).toHaveBeenCalledTimes(1);
       });
     });
   });
