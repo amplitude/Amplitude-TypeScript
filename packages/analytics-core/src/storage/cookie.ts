@@ -35,6 +35,59 @@ export class CookieStorage<T> implements Storage<T> {
     if (!globalScope || !globalScope.document) {
       return false;
     }
+    const { navigator } = globalScope;
+    if (!navigator?.locks) {
+      return await this.legacyIsEnabled();
+    }
+    
+    return await navigator.locks.request('com/amplitude/cookie-storage-is-enabled', async () => {
+      const testValue = String(Date.now());
+      const testCookieOptions = { ...this.options };
+      const testStorage = new CookieStorage<string>(testCookieOptions);
+      const testKey = 'AMP_TEST';
+      try {
+        await testStorage.set(testKey, testValue);
+        const value = await testStorage.get(testKey);
+        
+        /* istanbul ignore next */
+        if (value !== testValue && this.config.diagnosticsClient) {
+          this.config.diagnosticsClient?.recordEvent('cookies.isEnabled.failure', {
+            reason: 'Test Value mismatch',
+            testKey,
+            testValue,
+          });
+        }
+        console.log('isEnabled -- exiting with result:', value === testValue);
+        return value === testValue;
+      } catch (e){
+        /* istanbul ignore next */
+        if (this.config.diagnosticsClient) {
+          const errMessage = e instanceof Error ? e.message : String(e);
+          this.config.diagnosticsClient?.recordEvent('cookies.isEnabled.failure', {
+            reason: 'Cookie getter/setter failed',
+            testKey,
+            testValue,
+            error: errMessage,
+          });
+        }
+        return false;
+      } finally {
+        await testStorage.remove(testKey);
+      }
+    });
+  }
+
+  /**
+   * Detects if cookies are enabled by setting a test cookie and checking if it is set.
+   * Legacy version that doesn't use navigator.locks
+   * @returns boolean
+   */
+  async legacyIsEnabled(): Promise<boolean> {
+    const globalScope = getGlobalScope();
+    /* istanbul ignore if */
+    if (!globalScope || !globalScope.document) {
+      return false;
+    }
 
     const testValue = String(Date.now());
     const testCookieOptions = {
@@ -46,9 +99,26 @@ export class CookieStorage<T> implements Storage<T> {
     try {
       await testStorage.set(testKey, testValue);
       const value = await testStorage.get(testKey);
-      return value === testValue;
-    } catch {
       /* istanbul ignore next */
+      if (value !== testValue && this.config.diagnosticsClient) {
+        this.config.diagnosticsClient?.recordEvent('cookies.isEnabled.failure', {
+          reason: 'Test Value mismatch',
+          testKey,
+          testValue,
+        });
+      }
+      return value === testValue;
+    } catch (e) {
+      /* istanbul ignore next */
+      if (this.config.diagnosticsClient) {
+        const errMessage = e instanceof Error ? e.message : String(e);
+        this.config.diagnosticsClient?.recordEvent('cookies.isEnabled.failure', {
+          reason: 'Cookie getter/setter failed',
+          testKey,
+          testValue,
+          error: errMessage,
+        });
+      }
       return false;
     } finally {
       await testStorage.remove(testKey);

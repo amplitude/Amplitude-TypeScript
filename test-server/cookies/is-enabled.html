@@ -16,32 +16,31 @@
     }
 
     async function run() {
-      const c1 = new CookieStorage();
-      const c2 = new CookieStorage();
+      const promises = [];
 
-      const promises = [
-        c1.isEnabled(),
-        c2.isEnabled(),
-        c1.isEnabled(),
-        c2.isEnabled(),
-      ];
-      const res = await Promise.all(promises);
+      // call isEnabled many times concurrently to stress test the re-entrancy issue
+      // that was fixed by fixed by https://github.com/amplitude/Amplitude-TypeScript/pull/1539
+      const RUNS = 100;
+      for (let i = 0; i < RUNS; i++) {
+        const c = new CookieStorage();
+        promises.push(c.isEnabled());
+      }
 
-      const allTrue = res.every((r) => r === true);
-      log('Parallel calls: ' + JSON.stringify(res));
-      log('All true: ' + allTrue);
+      const results = await Promise.all(promises);
 
-      const a = await c1.isEnabled();
-      const b = await c1.isEnabled();
-      const c = await c2.isEnabled();
-      log('Sequential c1.isEnabled(): ' + a + ', ' + b);
-      log('Sequential c2.isEnabled(): ' + c);
-      log('All true: ' + (a && b && c));
+      log(`All ${RUNS} calls to CookieStorage.prototype.isEnabled returned true: ${results.every((result) => result === true)}`);
+
+      // Assert that all of the concurrent calls returned true
+      for (const result of results) {
+        if (!result) {
+          const errorMessage = `isEnabled returned 'false'. Test failed.`;
+          console.error(errorMessage);
+          throw new Error(errorMessage);
+        }
+      }
     }
 
-    run().catch((e) => {
-      log('Error: ' + e.message);
-    });
+    run();
   </script>
 </body>
 </html>
