@@ -1,6 +1,7 @@
 import {
   DEFAULT_FORM_START_EVENT,
   DEFAULT_FORM_SUBMIT_EVENT,
+  DEFAULT_FORM_ABANDONED_EVENT,
   FORM_ID,
   FORM_NAME,
   FORM_DESTINATION,
@@ -15,9 +16,13 @@ import {
 } from '@amplitude/analytics-core';
 import { getFormInteractionsConfig } from '../default-tracking';
 
+type ElementOrWindow = Element | Pick<Window, 'addEventListener' | 'removeEventListener'>;
+
+type EventType = 'change' | 'submit' | 'pagehide' | 'beforeunload';
+
 interface EventListener {
-  element: Element;
-  type: 'change' | 'submit';
+  elementOrWindow: ElementOrWindow;
+  type: EventType;
   handler: (event: Event) => void;
 }
 
@@ -25,19 +30,19 @@ export const formInteractionTracking = (): EnrichmentPlugin => {
   let observer: MutationObserver | undefined;
   let eventListeners: EventListener[] = [];
 
-  const addEventListener = (element: Element, type: 'change' | 'submit', handler: (event: Event) => void) => {
-    element.addEventListener(type, handler);
+  const addEventListener = (elementOrWindow: ElementOrWindow, type: EventType, handler: (event: Event) => void) => {
+    elementOrWindow.addEventListener(type, handler);
     eventListeners.push({
-      element,
+      elementOrWindow,
       type,
       handler,
     });
   };
 
   const removeClickListeners = () => {
-    eventListeners.forEach(({ element, type, handler }) => {
+    eventListeners.forEach(({ elementOrWindow, type, handler }) => {
       /* istanbul ignore next */
-      element?.removeEventListener(type, handler);
+      elementOrWindow?.removeEventListener(type, handler);
     });
     eventListeners = [];
   };
@@ -72,17 +77,38 @@ export const formInteractionTracking = (): EnrichmentPlugin => {
         addedFormNodes.add(form);
 
         let hasFormChanged = false;
+        let hasFormAbandoned = false;
+
+        const trackFormAbandoned = () => {
+          if (hasFormChanged && !hasFormAbandoned) {
+            hasFormAbandoned = true;
+            const formDestination = extractFormAction(form);
+            amplitude.track(DEFAULT_FORM_ABANDONED_EVENT, {
+              [FORM_ID]: stringOrUndefined(form.id),
+              [FORM_NAME]: stringOrUndefined(form.name),
+              [FORM_DESTINATION]: formDestination,
+            });
+          }
+        };
+
+        const win = getGlobalScope() as Pick<Window, 'addEventListener' | 'removeEventListener'>;
+
+        /* istanbul ignore if */
+        if (formInteractionsConfig?.shouldTrackAbandoned && win) {
+          addEventListener(win, 'pagehide', trackFormAbandoned);
+          addEventListener(win, 'beforeunload', trackFormAbandoned);
+        }
 
         addEventListener(form, 'change', () => {
-          const formDestination = extractFormAction(form);
           if (!hasFormChanged) {
+            hasFormChanged = true;
+            const formDestination = extractFormAction(form);
             amplitude.track(DEFAULT_FORM_START_EVENT, {
               [FORM_ID]: stringOrUndefined(form.id),
               [FORM_NAME]: stringOrUndefined(form.name),
               [FORM_DESTINATION]: formDestination,
             });
           }
-          hasFormChanged = true;
         });
 
         addEventListener(form, 'submit', (event: Event) => {
