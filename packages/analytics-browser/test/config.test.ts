@@ -393,6 +393,7 @@ describe('config', () => {
         ...testCookieStorage,
         options: {},
         config: {},
+        legacyIsEnabled: jest.fn().mockResolvedValueOnce(Promise.resolve(false)),
       });
       const domain = await Config.getTopLevelDomain();
       expect(domain).toBe('');
@@ -421,11 +422,13 @@ describe('config', () => {
           ...testCookieStorage,
           options: {},
           config: {},
+          legacyIsEnabled: jest.fn().mockResolvedValueOnce(Promise.resolve(true)),
         })
         .mockReturnValue({
           ...actualCookieStorage,
           options: {},
           config: {},
+          legacyIsEnabled: jest.fn().mockResolvedValueOnce(Promise.resolve(true)),
         });
       expect(await Config.getTopLevelDomain('www.legislation.gov.uk')).toBe('.legislation.gov.uk');
     });

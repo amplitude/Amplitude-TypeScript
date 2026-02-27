@@ -250,6 +250,7 @@ describe('config', () => {
         set: async () => undefined,
         remove: async () => undefined,
         reset: async () => undefined,
+        legacyIsEnabled: async () => false,
       });
       const localStorageConstructor = jest.spyOn(LocalStorageModule, 'LocalStorage').mockReturnValueOnce({
         isEnabled: async () => false,
@@ -315,6 +316,7 @@ describe('config', () => {
         ...testCookieStorage,
         options: {},
         config: {},
+        legacyIsEnabled: async () => false,
       });
       const domain = await Config.getTopLevelDomain();
       expect(domain).toBe('');
@@ -343,11 +345,13 @@ describe('config', () => {
           ...testCookieStorage,
           options: {},
           config: {},
+          legacyIsEnabled: async () => false,
         })
         .mockReturnValue({
           ...actualCookieStorage,
           options: {},
           config: {},
+          legacyIsEnabled: async () => false,
         });
       expect(await Config.getTopLevelDomain('www.legislation.gov.uk')).toBe('.legislation.gov.uk');
     });
