@@ -55,6 +55,7 @@ export class BrowserConfig extends Config implements IBrowserConfig {
   protected _userId?: string;
   protected _pageCounter?: number;
   protected _debugLogsEnabled?: boolean;
+  protected _disableStorageUpdate = false;
   constructor(
     public apiKey: string,
     public appVersion?: string,
@@ -109,31 +110,41 @@ export class BrowserConfig extends Config implements IBrowserConfig {
     public remoteConfig?: RemoteConfigOptions,
   ) {
     super({ apiKey, storageProvider, transportProvider: createTransport(transport) });
-    this._cookieStorage = cookieStorage;
-    this.deviceId = deviceId;
-    this.lastEventId = lastEventId;
-    this.lastEventTime = lastEventTime;
-    this.optOut = optOut;
-    this.deferredSessionId = deferredSessionId;
-    this.sessionId = sessionId;
-    this.pageCounter = pageCounter;
-    this.userId = userId;
-    this.debugLogsEnabled = debugLogsEnabled;
-    this.loggerProvider.enable(debugLogsEnabled ? LogLevel.Debug : this.logLevel);
-    this.networkTrackingOptions = networkTrackingOptions;
-    this.identify = identify;
-    this.enableDiagnostics = enableDiagnostics;
-    this.diagnosticsSampleRate = diagnosticsSampleRate;
-    this.diagnosticsClient = diagnosticsClient;
+    try {
+      // temporarily disable storage update to prevent race condition where
+      // the storage is updated with incomplete data
+      this._disableStorageUpdate = true;
 
-    // Note: The canonical logic for determining fetchRemoteConfig is in shouldFetchRemoteConfig().
-    // This logic is duplicated here to maintain the BrowserConfig constructor contract and ensure
-    // the config object has the correct fetchRemoteConfig value set on its properties.
-    // The value passed to this constructor should already be computed via shouldFetchRemoteConfig().
-    const _fetchRemoteConfig = remoteConfig?.fetchRemoteConfig ?? fetchRemoteConfig;
-    this.remoteConfig = this.remoteConfig || {};
-    this.remoteConfig.fetchRemoteConfig = _fetchRemoteConfig;
-    this.fetchRemoteConfig = _fetchRemoteConfig;
+      this._cookieStorage = cookieStorage;
+      this.deviceId = deviceId;
+      this.lastEventId = lastEventId;
+      this.lastEventTime = lastEventTime;
+      this.optOut = optOut;
+      this.deferredSessionId = deferredSessionId;
+      this.sessionId = sessionId;
+      this.pageCounter = pageCounter;
+      this.userId = userId;
+      this.debugLogsEnabled = debugLogsEnabled;
+      this.loggerProvider.enable(debugLogsEnabled ? LogLevel.Debug : this.logLevel);
+      this.networkTrackingOptions = networkTrackingOptions;
+      this.identify = identify;
+      this.enableDiagnostics = enableDiagnostics;
+      this.diagnosticsSampleRate = diagnosticsSampleRate;
+      this.diagnosticsClient = diagnosticsClient;
+
+      // Note: The canonical logic for determining fetchRemoteConfig is in shouldFetchRemoteConfig().
+      // This logic is duplicated here to maintain the BrowserConfig constructor contract and ensure
+      // the config object has the correct fetchRemoteConfig value set on its properties.
+      // The value passed to this constructor should already be computed via shouldFetchRemoteConfig().
+      const _fetchRemoteConfig = remoteConfig?.fetchRemoteConfig ?? fetchRemoteConfig;
+      this.remoteConfig = this.remoteConfig || {};
+      this.remoteConfig.fetchRemoteConfig = _fetchRemoteConfig;
+      this.fetchRemoteConfig = _fetchRemoteConfig;
+    } finally {
+      // re-enable storage and update it
+      this._disableStorageUpdate = false;
+      this.updateStorage();
+    }
   }
 
   get cookieStorage() {
@@ -248,6 +259,9 @@ export class BrowserConfig extends Config implements IBrowserConfig {
   }
 
   private updateStorage() {
+    if (this._disableStorageUpdate) {
+      return;
+    }
     const cache = {
       deviceId: this._deviceId,
       userId: this._userId,
