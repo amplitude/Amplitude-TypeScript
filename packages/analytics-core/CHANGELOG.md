@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.40.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.40.1...@amplitude/analytics-core@2.40.2) (2026-02-26)
+
+
+### Bug Fixes
+
+* early return isEnabled false when document not present ([#1555](https://github.com/amplitude/Amplitude-TypeScript/issues/1555)) ([50c9a38](https://github.com/amplitude/Amplitude-TypeScript/commit/50c9a38580997b952e7cec6835139239d5de63a8))
+
+
+
+
+
 ## [2.40.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.40.0...@amplitude/analytics-core@2.40.1) (2026-02-24)
 
 
