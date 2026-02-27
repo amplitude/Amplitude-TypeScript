@@ -216,7 +216,7 @@ const KNOWN_2LDS = [
 
 export const getDomain = (hostnameParam?: string) => {
   /* istanbul ignore next */
-  const hostname = hostnameParam ?? getGlobalScope()?.location?.hostname;
+  const hostname = hostnameParam || getGlobalScope()?.location?.hostname;
   if (!hostname) {
     return '';
   }
