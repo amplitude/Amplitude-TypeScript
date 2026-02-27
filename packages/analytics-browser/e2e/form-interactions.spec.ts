@@ -1,7 +1,7 @@
+/* eslint-disable @typescript-eslint/no-unsafe-return */
 import { test, expect } from '@playwright/test';
 
 const FORM_STARTED_EVENT = '[Amplitude] Form Started';
-const FORM_ABANDONED_EVENT = '[Amplitude] Form Abandoned';
 
 test.describe('Form Interactions Page', () => {
   let requests: any[] = [];
@@ -33,8 +33,7 @@ test.describe('Form Interactions Page', () => {
 
     // Wait for the form started event to be sent
     await expect(async () => {
-      const allEvents = requests.flatMap((r) => r.events || [])
-        .filter((e: any) => e.event_type !== '$identify');
+      const allEvents = requests.flatMap((r) => r.events || []).filter((e: any) => e.event_type !== '$identify');
       expect(allEvents.length).toBe(1);
       expect(allEvents.some((e: any) => e.event_type === FORM_STARTED_EVENT)).toBe(true);
     }).toPass({ timeout: 5000 });
