@@ -117,6 +117,7 @@ describe('updateSessionIdAndAddProperties()', () => {
 
     getSessionIdSpy = jest.spyOn(helpers, 'getSessionId').mockReturnValue(undefined);
     setSessionIdSpy = jest.spyOn(helpers, 'setSessionId').mockResolvedValue(undefined);
+    (sessionReplay.evaluateTargetingAndCapture as jest.Mock).mockResolvedValue(undefined);
   });
 
   afterEach(() => {
@@ -256,5 +257,260 @@ describe('updateSessionIdAndAddProperties()', () => {
 
     // Assert
     expect(setSessionIdSpy).toHaveBeenCalledTimes(0);
+  });
+
+  it('should call evaluateTargetingAndCapture with the converted event', async () => {
+    // Arrange
+    const context = {
+      event: {
+        type: 'track',
+        event: 'Button Clicked',
+        properties: {
+          buttonName: 'Submit',
+        },
+        traits: {
+          email: 'test@example.com',
+        },
+        timestamp: new Date('2024-01-01T00:00:00Z'),
+      },
+      updateEvent: jest.fn(),
+    } as unknown as Context;
+
+    (sessionReplay.getSessionReplayProperties as jest.Mock).mockReturnValue({});
+    getSessionIdSpy.mockReturnValue(123);
+
+    // Act
+    await updateSessionIdAndAddProperties(context, 'deviceId');
+
+    // Assert
+    expect(sessionReplay.evaluateTargetingAndCapture).toHaveBeenCalledTimes(1);
+    expect(sessionReplay.evaluateTargetingAndCapture).toHaveBeenCalledWith({
+      event: {
+        event_type: 'Button Clicked',
+        event_properties: {
+          buttonName: 'Submit',
+        },
+        user_properties: {
+          email: 'test@example.com',
+        },
+        time: new Date('2024-01-01T00:00:00Z').getTime(),
+      },
+      userProperties: {
+        email: 'test@example.com',
+      },
+    });
+  });
+
+  it('should call evaluateTargetingAndCapture with current time when timestamp is undefined', async () => {
+    // Arrange
+    const mockNow = 1640000000000;
+    jest.spyOn(Date, 'now').mockReturnValue(mockNow);
+
+    const context = {
+      event: {
+        type: 'track',
+        event: 'Button Clicked',
+        properties: {},
+        traits: {},
+        // No timestamp provided
+      },
+      updateEvent: jest.fn(),
+    } as unknown as Context;
+
+    (sessionReplay.getSessionReplayProperties as jest.Mock).mockReturnValue({});
+    getSessionIdSpy.mockReturnValue(123);
+
+    // Act
+    await updateSessionIdAndAddProperties(context, 'deviceId');
+
+    // Assert
+    expect(sessionReplay.evaluateTargetingAndCapture).toHaveBeenCalledWith({
+      event: {
+        event_type: 'Button Clicked',
+        event_properties: {},
+        user_properties: {},
+        time: mockNow,
+      },
+      userProperties: {},
+    });
+  });
+
+  it('should handle event type fallback when type and event are undefined', async () => {
+    // Arrange
+    const context = {
+      event: {
+        // No type or event property
+        properties: { test: 'value' },
+        timestamp: new Date('2024-01-01T00:00:00Z'),
+      },
+      updateEvent: jest.fn(),
+    } as unknown as Context;
+
+    (sessionReplay.getSessionReplayProperties as jest.Mock).mockReturnValue({});
+    getSessionIdSpy.mockReturnValue(123);
+
+    // Act
+    await updateSessionIdAndAddProperties(context, 'deviceId');
+
+    // Assert
+    expect(sessionReplay.evaluateTargetingAndCapture).toHaveBeenCalledWith({
+      event: expect.objectContaining({
+        event_type: 'unknown',
+      }),
+      userProperties: {},
+    });
+  });
+
+  it('should use event property when type is undefined', async () => {
+    // Arrange
+    const context = {
+      event: {
+        event: 'Custom Event Name',
+        properties: { test: 'value' },
+        timestamp: new Date('2024-01-01T00:00:00Z'),
+      },
+      updateEvent: jest.fn(),
+    } as unknown as Context;
+
+    (sessionReplay.getSessionReplayProperties as jest.Mock).mockReturnValue({});
+    getSessionIdSpy.mockReturnValue(123);
+
+    // Act
+    await updateSessionIdAndAddProperties(context, 'deviceId');
+
+    // Assert
+    expect(sessionReplay.evaluateTargetingAndCapture).toHaveBeenCalledWith({
+      event: expect.objectContaining({
+        event_type: 'Custom Event Name',
+      }),
+      userProperties: {},
+    });
+  });
+
+  it('should handle undefined properties and traits', async () => {
+    // Arrange
+    const context = {
+      event: {
+        type: 'track',
+        // No properties or traits
+        timestamp: new Date('2024-01-01T00:00:00Z'),
+      },
+      updateEvent: jest.fn(),
+    } as unknown as Context;
+
+    (sessionReplay.getSessionReplayProperties as jest.Mock).mockReturnValue({});
+    getSessionIdSpy.mockReturnValue(123);
+
+    // Act
+    await updateSessionIdAndAddProperties(context, 'deviceId');
+
+    // Assert
+    expect(sessionReplay.evaluateTargetingAndCapture).toHaveBeenCalledWith({
+      event: {
+        event_type: 'track',
+        event_properties: {},
+        user_properties: {},
+        time: new Date('2024-01-01T00:00:00Z').getTime(),
+      },
+      userProperties: {},
+    });
+  });
+
+  it('should NOT evaluate targeting when event session_id is older than current session', async () => {
+    // Arrange
+    const currentSessionId = 200;
+    const oldSessionId = 100;
+
+    const context = {
+      event: {
+        type: 'track',
+        event: 'Button Clicked',
+        properties: { test: 'value' },
+        integrations: {
+          'Actions Amplitude': {
+            session_id: oldSessionId,
+          },
+        },
+        timestamp: new Date('2024-01-01T00:00:00Z'),
+      },
+      updateEvent: jest.fn(),
+    } as unknown as Context;
+
+    (sessionReplay.getSessionReplayProperties as jest.Mock).mockReturnValue({});
+    getSessionIdSpy.mockReturnValue(currentSessionId);
+
+    // Act
+    await updateSessionIdAndAddProperties(context, 'deviceId');
+
+    // Assert - targeting should NOT be evaluated for old session events
+    expect(sessionReplay.evaluateTargetingAndCapture).not.toHaveBeenCalled();
+  });
+
+  it('should evaluate targeting when event session_id matches current session', async () => {
+    // Arrange
+    const currentSessionId = 100;
+
+    const context = {
+      event: {
+        type: 'track',
+        event: 'Button Clicked',
+        properties: { test: 'value' },
+        traits: { email: 'test@example.com' },
+        integrations: {
+          'Actions Amplitude': {
+            session_id: currentSessionId,
+          },
+        },
+        timestamp: new Date('2024-01-01T00:00:00Z'),
+      },
+      updateEvent: jest.fn(),
+    } as unknown as Context;
+
+    (sessionReplay.getSessionReplayProperties as jest.Mock).mockReturnValue({});
+    getSessionIdSpy.mockReturnValue(currentSessionId);
+
+    // Act
+    await updateSessionIdAndAddProperties(context, 'deviceId');
+
+    // Assert - targeting should be evaluated for current session events
+    expect(sessionReplay.evaluateTargetingAndCapture).toHaveBeenCalledTimes(1);
+    expect(sessionReplay.evaluateTargetingAndCapture).toHaveBeenCalledWith({
+      event: {
+        event_type: 'Button Clicked',
+        event_properties: { test: 'value' },
+        user_properties: { email: 'test@example.com' },
+        time: new Date('2024-01-01T00:00:00Z').getTime(),
+      },
+      userProperties: { email: 'test@example.com' },
+    });
+  });
+
+  it('should evaluate targeting when event has no session_id', async () => {
+    // Arrange
+    const context = {
+      event: {
+        type: 'track',
+        event: 'Button Clicked',
+        properties: { test: 'value' },
+        // No integrations or session_id
+        timestamp: new Date('2024-01-01T00:00:00Z'),
+      },
+      updateEvent: jest.fn(),
+    } as unknown as Context;
+
+    (sessionReplay.getSessionReplayProperties as jest.Mock).mockReturnValue({});
+    getSessionIdSpy.mockReturnValue(100);
+
+    // Act
+    await updateSessionIdAndAddProperties(context, 'deviceId');
+
+    // Assert - targeting should be evaluated when no session_id is provided
+    expect(sessionReplay.evaluateTargetingAndCapture).toHaveBeenCalledTimes(1);
+    expect(sessionReplay.evaluateTargetingAndCapture).toHaveBeenCalledWith({
+      event: expect.objectContaining({
+        event_type: 'Button Clicked',
+      }),
+      userProperties: {},
+    });
   });
 });

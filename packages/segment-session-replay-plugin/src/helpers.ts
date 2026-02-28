@@ -43,6 +43,27 @@ export const updateSessionIdAndAddProperties = async (ctx: Context, deviceId: st
     await setSessionId(nextSessionId, deviceId);
   }
 
+  // Only evaluate targeting if the event belongs to the current session
+  // Skip evaluation for delayed/offline events from older sessions
+  const currentSessionId = getSessionId() || 0;
+  const shouldEvaluateTargeting = !nextSessionId || nextSessionId === currentSessionId;
+
+  if (shouldEvaluateTargeting) {
+    // Convert Segment event to Amplitude event format for targeting evaluation
+    const amplitudeEvent = {
+      event_type: ctx.event.event || ctx.event.type || 'unknown',
+      event_properties: ctx.event.properties || {},
+      user_properties: ctx.event.traits || {},
+      time: ctx.event.timestamp ? new Date(ctx.event.timestamp).getTime() : Date.now(),
+    };
+
+    // Evaluate targeting and capture decision before enriching with properties
+    await sessionReplay.evaluateTargetingAndCapture({
+      event: amplitudeEvent,
+      userProperties: ctx.event.traits || {},
+    });
+  }
+
   // Enrich the event with the session replay properties
   // NOTE: This is what will add the `[Amplitude] Session Replay ID` attribute to the event
   const sessionReplayProperties = sessionReplay.getSessionReplayProperties();

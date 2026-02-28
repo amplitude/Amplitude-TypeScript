@@ -3,7 +3,7 @@ import { Analytics, Context, Plugin, User } from '@segment/analytics-next';
 
 import { DEBUG_LOG_PREFIX, PLUGIN_NAME, PLUGIN_TYPE } from './constants';
 import { getSessionId, setSessionId, updateSessionIdAndAddProperties } from './helpers';
-import { PluginOptions } from './typings/wrapper';
+import { AmplitudeIntegrationData, PluginOptions } from './typings/wrapper';
 import { VERSION } from './version';
 
 export const createSegmentActionsPlugin = async ({
@@ -75,6 +75,29 @@ export const createSegmentActionsPlugin = async ({
             }`,
           );
         await setSessionId(sessionId, deviceId);
+      }
+
+      // Only evaluate targeting if the event belongs to the current session
+      // Skip evaluation for delayed/offline events from older sessions
+      const currentSessionId = getSessionId() || 0;
+      let nextSessionId: number | undefined;
+      if (ctx.event.integrations && (ctx.event.integrations['Actions Amplitude'] as AmplitudeIntegrationData)) {
+        nextSessionId = (ctx.event.integrations['Actions Amplitude'] as AmplitudeIntegrationData).session_id;
+      }
+      const shouldEvaluateTargeting = !nextSessionId || nextSessionId === currentSessionId;
+
+      if (shouldEvaluateTargeting) {
+        // Evaluate targeting for identify events with user properties
+        const amplitudeEvent = {
+          event_type: 'identify',
+          user_properties: ctx.event.traits || {},
+          time: ctx.event.timestamp ? new Date(ctx.event.timestamp).getTime() : Date.now(),
+        };
+
+        await sessionReplay.evaluateTargetingAndCapture({
+          event: amplitudeEvent,
+          userProperties: ctx.event.traits || {},
+        });
       }
 
       return ctx;
