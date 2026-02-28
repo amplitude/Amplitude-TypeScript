@@ -273,6 +273,7 @@
         import.meta.env.VITE_AMPLITUDE_API_KEY,
         import.meta.env.VITE_AMPLITUDE_USER_ID || 'amplitude-typescript test user',
         {
+          _useExperimentalMutex: true,
           fetchRemoteConfig: false,
           logLevel: 'debug',
           autocapture: {
@@ -295,6 +296,31 @@
         }
       );
 
+      amplitude.createInstance('test-1').init(
+        import.meta.env.VITE_AMPLITUDE_API_KEY,
+        import.meta.env.VITE_AMPLITUDE_USER_ID || 'amplitude-typescript test user',
+        { _useExperimentalMutex: true },
+      );
+      amplitude.createInstance('test-2').init(
+        import.meta.env.VITE_AMPLITUDE_API_KEY,
+        import.meta.env.VITE_AMPLITUDE_USER_ID || 'amplitude-typescript test user',
+        { _useExperimentalMutex: true },
+      );
+      amplitude.createInstance('test-3').init(
+        import.meta.env.VITE_AMPLITUDE_API_KEY,
+        import.meta.env.VITE_AMPLITUDE_USER_ID || 'amplitude-typescript test user',
+        { _useExperimentalMutex: true },
+      );
+      amplitude.createInstance('test-4').init(
+        import.meta.env.VITE_AMPLITUDE_API_KEY,
+        import.meta.env.VITE_AMPLITUDE_USER_ID || 'amplitude-typescript test user',
+        { _useExperimentalMutex: true },
+      );
+      amplitude.createInstance('test-5').init(
+        import.meta.env.VITE_AMPLITUDE_API_KEY,
+        import.meta.env.VITE_AMPLITUDE_USER_ID || 'amplitude-typescript test user',
+        { _useExperimentalMutex: true },
+      );
       // Add click handler for the first clickable div
       document.getElementById('dynamic-div').addEventListener('click', () => {
         setTimeout(() => {

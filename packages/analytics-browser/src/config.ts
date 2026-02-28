@@ -295,6 +295,9 @@ export const useBrowserConfig = async (
   diagnosticsClient?: IDiagnosticsClient,
   earlyConfig?: EarlyConfig,
 ): Promise<IBrowserConfig> => {
+  // set the experimental mutex flag to enable locking in CookieStorage
+  CookieStorage._enableExperimentalMutex = options._useExperimentalMutex ?? false;
+
   // Step 1: Create identity storage instance
   const identityStorage = options.identityStorage || DEFAULT_IDENTITY_STORAGE;
   let topLevelDomain = '';
