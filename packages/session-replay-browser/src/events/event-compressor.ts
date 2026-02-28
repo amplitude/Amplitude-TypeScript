@@ -42,6 +42,7 @@ export class EventCompressor {
         const worker = new Worker(blobUrl);
 
         worker.onerror = (e) => {
+          e.preventDefault();
           config.loggerProvider.error('Worker failed, falling back to non-worker compression:', e);
           worker.terminate();
           this.worker = undefined;

@@ -357,6 +357,50 @@ describe('EventCompressor', () => {
     expect(terminateMock).toHaveBeenCalled();
   });
 
+  test('should call preventDefault on worker onerror to suppress uncaught error propagation', async () => {
+    let capturedOnerror: ((e: any) => void) | undefined;
+    const mockTerminate = jest.fn();
+
+    class MockWorker {
+      set onerror(fn: (e: any) => void) {
+        capturedOnerror = fn;
+      }
+      get onerror() {
+        return capturedOnerror ?? jest.fn();
+      }
+      onmessage: any = null;
+      postMessage = jest.fn();
+      terminate = () => {
+        mockTerminate();
+      };
+    }
+
+    global.Worker = MockWorker as unknown as typeof global.Worker;
+    URL.createObjectURL = jest.fn();
+
+    eventsManager = await createEventsManager<'replay'>({
+      config,
+      type: 'replay',
+      storeType: 'memory',
+    });
+    eventCompressor = new EventCompressor(eventsManager, config, deviceId, 'console.log("hi")');
+
+    expect(capturedOnerror).toBeDefined();
+
+    const mockPreventDefault = jest.fn();
+    const mockErrorEvent = { preventDefault: mockPreventDefault };
+
+    (capturedOnerror as (e: any) => void)(mockErrorEvent);
+
+    expect(mockPreventDefault).toHaveBeenCalledTimes(1);
+    expect(mockLoggerProvider['error']).toHaveBeenCalledWith(
+      'Worker failed, falling back to non-worker compression:',
+      mockErrorEvent,
+    );
+    expect(mockTerminate).toHaveBeenCalledTimes(1);
+    expect(eventCompressor.worker).toBeUndefined();
+  });
+
   test('should handle Worker constructor failure and fall back to non-worker compression', async () => {
     const originalWorker = global.Worker;
 
