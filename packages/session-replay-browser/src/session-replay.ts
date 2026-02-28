@@ -646,8 +646,10 @@ export class SessionReplay implements AmplitudeSessionReplay {
         errorHandler: (error: unknown) => {
           const typedError = error as Error & { _external_?: boolean };
 
-          // styled-components relies on this error being thrown and bubbled up, rrweb is otherwise suppressing it
-          if (typedError.message.includes('insertRule') && typedError.message.includes('CSSStyleSheet')) {
+          // CSS-in-JS libraries such as styled-components and stitches rely on this error being thrown and
+          // bubbled up, rrweb is otherwise suppressing it. The goal is to rethrow errors from
+          // `CSSStyleSheet.insertRule` and `CSSGroupingRule.insertRule`.
+          if (typedError.stack?.includes('insertRule')) {
             throw typedError;
           }
 
