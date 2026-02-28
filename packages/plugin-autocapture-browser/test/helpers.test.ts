@@ -711,5 +711,50 @@ describe('autocapture-plugin helpers', () => {
 
       expect(shouldTrackEvent('click', element)).toEqual(true);
     });
+
+    test('should exclude elements with amp-block class', () => {
+      const element = document.createElement('button');
+      element.textContent = 'Click me';
+      element.classList.add('amp-block');
+
+      const shouldTrackEvent = createShouldTrackEvent(
+        {
+          // No URL restrictions for this test
+        },
+        ['button'],
+      );
+
+      expect(shouldTrackEvent('click', element)).toEqual(false);
+    });
+
+    test('should allow tracking elements without amp-block class', () => {
+      const element = document.createElement('button');
+      element.textContent = 'Click me';
+      element.classList.add('other-class');
+
+      const shouldTrackEvent = createShouldTrackEvent(
+        {
+          // No URL restrictions for this test
+        },
+        ['button'],
+      );
+
+      expect(shouldTrackEvent('click', element)).toEqual(true);
+    });
+
+    test('should exclude elements with amp-block class even when custom shouldTrackEventResolver would allow it', () => {
+      const element = document.createElement('button');
+      element.textContent = 'Click me';
+      element.classList.add('amp-block');
+
+      const shouldTrackEvent = createShouldTrackEvent(
+        {
+          shouldTrackEventResolver: () => true, // Custom resolver that would allow tracking
+        },
+        ['button'],
+      );
+
+      expect(shouldTrackEvent('click', element)).toEqual(false);
+    });
   });
 });
