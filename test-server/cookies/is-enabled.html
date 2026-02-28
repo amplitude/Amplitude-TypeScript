@@ -9,6 +9,9 @@
   <script type="module">
     import { CookieStorage } from '@amplitude/analytics-core';
 
+    // TODO: experimental, remove once it becomes the standard
+    CookieStorage._enableExperimentalMutex = true;
+
     const out = document.getElementById('out');
 
     function log(msg) {
