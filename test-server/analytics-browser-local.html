@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Analytics Browser Local Test (Autocapture)</title>
+  </head>
+  <body>
+    <h1>Analytics Browser Local Test</h1>
+    <p>This page loads the analytics-browser bundle from <code>packages/analytics-browser/lib/scripts/</code> and runs with autocapture enabled.</p>
+    <button id="testButton">Click me (autocapture test)</button>
+    <p id="status">SDK loading…</p>
+
+    <!-- Built bundle from packages/analytics-browser/lib/scripts/ (served as /analytics-browser/lib/scripts/amplitude-min.js) -->
+    <script src="/analytics-browser/lib/scripts/amplitude-min.js"></script>
+    <script type="module">
+      window.API_KEY = import.meta.env.VITE_AMPLITUDE_API_KEY;
+      window.USER_ID = import.meta.env.VITE_AMPLITUDE_USER_ID || 'analytics-browser-local-test-user';
+    </script>
+    <script type="module">
+      (function () {
+        var amplitude = window.amplitude;
+        if (!amplitude) {
+          document.getElementById('status').textContent = 'Error: window.amplitude not found. Run "pnpm build" in packages/analytics-browser first.';
+          return;
+        }
+
+        // Use test defaults; set VITE_AMPLITUDE_API_KEY in .env when using the Vite dev server with module-based pages
+        var apiKey = import.meta.env.VITE_AMPLITUDE_API_KEY;
+        var userId = import.meta.env.VITE_AMPLITUDE_USER_ID || 'analytics-browser-local-test-user';
+
+        amplitude.init(apiKey, userId, {
+          logLevel: 'debug',
+          autocapture: {
+            networkTracking: true,
+            frustrationInteractions: true,
+            elementInteractions: true,
+            pageViews: true,
+            sessions: true,
+            fileDownloads: true,
+            formInteractions: true,
+            attribution: {
+              excludeReferrers: [],
+              excludeInternalReferrers: {
+                condition: 'always',
+              },
+            },
+            webVitals: true,
+          }
+        });
+
+        // add test instances to test concurrency issues
+        amplitude.createInstance('newInstance1').init(apiKey, userId);
+        amplitude.createInstance('newInstance2').init(apiKey, userId);
+        amplitude.createInstance('newInstance3').init(apiKey, userId);
+        document.getElementById('status').textContent = 'SDK initialized with autocapture enabled.';
+
+        document.getElementById('testButton').addEventListener('click', function () {
+          amplitude.track('local_test_button_clicked');
+          document.getElementById('status').textContent = 'Tracked "local_test_button_clicked". Check Network/Amplitude for autocapture and this event.';
+        });
+      })();
+    </script>
+  </body>
+</html>
