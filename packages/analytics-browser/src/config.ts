@@ -31,6 +31,7 @@ import {
   isDomainEqual,
   CookieStorageConfig,
   decodeCookieValue,
+  getGlobalScope,
 } from '@amplitude/analytics-core';
 
 import { LocalStorage } from './storage/local-storage';
@@ -296,7 +297,7 @@ export const useBrowserConfig = async (
   earlyConfig?: EarlyConfig,
 ): Promise<IBrowserConfig> => {
   // set the experimental mutex flag to enable locking in CookieStorage
-  CookieStorage._enableExperimentalMutex = options._useExperimentalMutex ?? false;
+  CookieStorage._enableExperimentalMutex = options._useExperimentalMutex || false;
 
   // Step 1: Create identity storage instance
   const identityStorage = options.identityStorage || DEFAULT_IDENTITY_STORAGE;
@@ -482,12 +483,57 @@ export const createTransport = (transport?: TransportTypeOrOptions) => {
   return new FetchTransport(headers);
 };
 
+const LOCK_NAME = 'com:amplitude:cookie-storage:amp_tldtest';
+
+const getTopLevelDomainV2 = async (locks: LockManager, url?: string, diagnosticsClient?: IDiagnosticsClient) => {
+  const res = (await locks.request(LOCK_NAME, async (): Promise<string> => {
+    const host = url ?? location.hostname;
+    const parts = host.split('.');
+    const levels = [];
+    const storageKey = 'AMP_TLDTEST';
+
+    for (let i = parts.length - 2; i >= 0; --i) {
+      levels.push(parts.slice(i).join('.'));
+    }
+    for (let i = 0; i < levels.length; i++) {
+      const domain = levels[i];
+      const options = {
+        domain: '.' + domain,
+      };
+      const storage = new CookieStorage<number>(options);
+      try {
+        await storage.set(storageKey, 1);
+        const value = await storage.get(storageKey);
+        if (value) {
+          return '.' + domain;
+        }
+      } finally {
+        await storage.remove(storageKey);
+      }
+    }
+
+    if (diagnosticsClient) {
+      diagnosticsClient.recordEvent('cookies.tld.failure', {
+        reason: `Could not determine TLD for host ${host}`,
+      });
+    }
+
+    return '';
+  })) as string;
+  return res;
+};
+
 export const getTopLevelDomain = async (url?: string, diagnosticsClient?: IDiagnosticsClient) => {
   if (
     !(await new CookieStorage<number>(undefined, { diagnosticsClient }).isEnabled()) ||
     (!url && (typeof location === 'undefined' || !location.hostname))
   ) {
     return '';
+  }
+
+  const { locks } = getGlobalScope()?.navigator ?? {};
+  if (CookieStorage._enableExperimentalMutex && locks) {
+    return await getTopLevelDomainV2(locks, url, diagnosticsClient);
   }
 
   const host = url ?? location.hostname;

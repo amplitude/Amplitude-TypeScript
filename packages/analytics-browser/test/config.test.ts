@@ -401,7 +401,7 @@ describe('config', () => {
         ...testCookieStorage,
         options: {},
         config: {},
-      });
+      } as unknown as BrowserUtils.CookieStorage<number>);
       const domain = await Config.getTopLevelDomain();
       expect(domain).toBe('');
     });
@@ -429,12 +429,12 @@ describe('config', () => {
           ...testCookieStorage,
           options: {},
           config: {},
-        })
+        } as unknown as BrowserUtils.CookieStorage<number>)
         .mockReturnValue({
           ...actualCookieStorage,
           options: {},
           config: {},
-        });
+        } as unknown as BrowserUtils.CookieStorage<number>);
       expect(await Config.getTopLevelDomain('www.legislation.gov.uk')).toBe('.legislation.gov.uk');
     });
 
@@ -482,6 +482,89 @@ describe('config', () => {
       await Config.getTopLevelDomain('www.amplitude.com', mockDiagnosticsClient);
       expect(mockDiagnosticsClient.recordEvent).toHaveBeenCalledWith('cookies.tld.failure', {
         reason: 'Could not determine TLD for host www.amplitude.com',
+      });
+    });
+  });
+
+  describe('getTopLevelDomainV2', () => {
+    // JSDOM does not implement navigator.locks (Lock Manager API)
+    const createLocksMock = () => ({
+      request: jest.fn(<T>(_name: string, callback: () => T | Promise<T>) => Promise.resolve(callback())),
+    });
+
+    beforeEach(() => {
+      BrowserUtils.CookieStorage._enableExperimentalMutex = true;
+      const g = core.getGlobalScope() as any;
+      g.navigator = g.navigator ?? {};
+      g.navigator.locks = createLocksMock();
+      // So getTopLevelDomain() proceeds to the locks path; avoid real cookie check in isEnabled()
+      jest.spyOn(BrowserUtils.CookieStorage.prototype, 'isEnabled').mockResolvedValue(true);
+    });
+
+    afterEach(() => {
+      BrowserUtils.CookieStorage._enableExperimentalMutex = false;
+      const g = core.getGlobalScope() as any;
+      if (g?.navigator && 'locks' in g.navigator) {
+        delete g.navigator.locks;
+      }
+      jest.restoreAllMocks();
+    });
+
+    test('returns TLD when navigator.locks exists and cookie read/write succeeds for a domain', async () => {
+      const cookieGetSpy = jest.spyOn(BrowserUtils.CookieStorage.prototype, 'get');
+      cookieGetSpy.mockResolvedValueOnce(1); // first domain (.example.com) succeeds
+
+      const result = await Config.getTopLevelDomain('www.example.com');
+      expect(result).toBe('.example.com');
+
+      const locks = (core.getGlobalScope() as any).navigator?.locks;
+      expect(locks?.request).toHaveBeenCalledWith('com:amplitude:cookie-storage:amp_tldtest', expect.any(Function));
+      cookieGetSpy.mockRestore();
+    });
+
+    test('returns empty string when no domain accepts cookies and records diagnostics when provided', async () => {
+      const mockDiagnosticsClient = {
+        recordEvent: jest.fn(),
+        setTag: jest.fn(),
+        increment: jest.fn(),
+        recordHistogram: jest.fn(),
+        _flush: jest.fn(),
+        _setSampleRate: jest.fn(),
+      };
+      const cookieGetSpy = jest.spyOn(BrowserUtils.CookieStorage.prototype, 'get').mockResolvedValue(undefined);
+
+      const result = await Config.getTopLevelDomain('www.amplitude.com', mockDiagnosticsClient);
+      expect(result).toBe('');
+      expect(mockDiagnosticsClient.recordEvent).toHaveBeenCalledWith('cookies.tld.failure', {
+        reason: 'Could not determine TLD for host www.amplitude.com',
+      });
+      cookieGetSpy.mockRestore();
+    });
+
+    test('uses url parameter when provided', async () => {
+      const cookieGetSpy = jest.spyOn(BrowserUtils.CookieStorage.prototype, 'get');
+      // For www.legislation.gov.uk levels are .gov.uk, .legislation.gov.uk, .www.legislation.gov.uk; first get undefined, second 1
+      cookieGetSpy.mockResolvedValueOnce(undefined).mockResolvedValueOnce(1);
+
+      const result = await Config.getTopLevelDomain('www.legislation.gov.uk');
+      expect(result).toBe('.legislation.gov.uk');
+      cookieGetSpy.mockRestore();
+    });
+
+    test('works with location.hostname', async () => {
+      const originalLocation = window.location;
+      Object.defineProperty(window, 'location', {
+        value: { hostname: 'www.legislation.gov.uk' },
+        configurable: true,
+      });
+      const cookieGetSpy = jest.spyOn(BrowserUtils.CookieStorage.prototype, 'get');
+      cookieGetSpy.mockResolvedValueOnce(undefined).mockResolvedValueOnce(1);
+      const result = await Config.getTopLevelDomain();
+      expect(result).toBe('.legislation.gov.uk');
+      cookieGetSpy.mockRestore();
+      Object.defineProperty(window, 'location', {
+        value: originalLocation,
+        configurable: true,
       });
     });
   });
