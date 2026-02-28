@@ -35,46 +35,6 @@ export class CookieStorage<T> implements Storage<T> {
 
   static _enableExperimentalMutex = false;
 
-  // experimental feature for now
-  private async isEnabledV2(locks: LockManager): Promise<boolean> {
-    const res = (await locks.request(IS_ENABLED_MUTEX_LOCK_NAME, async (): Promise<boolean> => {
-      const testValue = String(Date.now());
-      const testCookieOptions = { ...this.options };
-      const testStorage = new CookieStorage<string>(testCookieOptions);
-      const testKey = 'AMP_TEST';
-      try {
-        await testStorage.set(testKey, testValue);
-        const value = await testStorage.get(testKey);
-        /* istanbul ignore next */
-        if (value !== testValue && this.config.diagnosticsClient) {
-          this.config.diagnosticsClient?.recordEvent('cookies.isEnabled.failure', {
-            reason: 'Test Value mismatch',
-            testKey,
-            testValue,
-            experimentalMutex: true,
-          });
-        }
-        return value === testValue;
-      } catch (e) {
-        /* istanbul ignore next */
-        if (this.config.diagnosticsClient) {
-          const errMessage = e instanceof Error ? e.message : String(e);
-          this.config.diagnosticsClient?.recordEvent('cookies.isEnabled.failure', {
-            reason: 'Cookie getter/setter failed',
-            testKey,
-            testValue,
-            error: errMessage,
-            experimentalMutex: true,
-          });
-        }
-        return false;
-      } finally {
-        await testStorage.remove(testKey);
-      }
-    })) as boolean;
-    return res;
-  }
-
   async isEnabled(): Promise<boolean> {
     const globalScope = getGlobalScope();
     /* istanbul ignore if */
@@ -84,8 +44,45 @@ export class CookieStorage<T> implements Storage<T> {
 
     const nav = globalScope.navigator as NavigatorWithLocks | undefined;
     const locks = nav?.locks;
+
+    // experimental feature for now that uses navigator.locks
     if (CookieStorage._enableExperimentalMutex && locks) {
-      return await this.isEnabledV2(locks);
+      const res = (await locks.request(IS_ENABLED_MUTEX_LOCK_NAME, async (): Promise<boolean> => {
+        const testValue = String(Date.now());
+        const testCookieOptions = { ...this.options };
+        const testStorage = new CookieStorage<string>(testCookieOptions);
+        const testKey = 'AMP_TEST';
+        try {
+          await testStorage.set(testKey, testValue);
+          const value = await testStorage.get(testKey);
+          /* istanbul ignore next */
+          if (value !== testValue && this.config.diagnosticsClient) {
+            this.config.diagnosticsClient?.recordEvent('cookies.isEnabled.failure', {
+              reason: 'Test Value mismatch',
+              testKey,
+              testValue,
+              experimentalMutex: true,
+            });
+          }
+          return value === testValue;
+        } catch (e) {
+          /* istanbul ignore next */
+          if (this.config.diagnosticsClient) {
+            const errMessage = e instanceof Error ? e.message : String(e);
+            this.config.diagnosticsClient?.recordEvent('cookies.isEnabled.failure', {
+              reason: 'Cookie getter/setter failed',
+              testKey,
+              testValue,
+              error: errMessage,
+              experimentalMutex: true,
+            });
+          }
+          return false;
+        } finally {
+          await testStorage.remove(testKey);
+        }
+      })) as boolean;
+      return res;
     }
 
     const testValue = String(Date.now());
