@@ -41,6 +41,7 @@ import { parseLegacyCookies } from './cookie-migration';
 import { DEFAULT_IDENTITY_STORAGE, DEFAULT_SERVER_ZONE } from './constants';
 import { AmplitudeBrowser } from './browser-client';
 import { VERSION } from './version';
+import { getDomain } from './attribution/helpers';
 
 // Exported for testing purposes only. Do not expose to public interface.
 export class BrowserConfig extends Config implements IBrowserConfig {
@@ -135,7 +136,8 @@ export class BrowserConfig extends Config implements IBrowserConfig {
     this.remoteConfig = this.remoteConfig || {};
     this.remoteConfig.fetchRemoteConfig = _fetchRemoteConfig;
     this.fetchRemoteConfig = _fetchRemoteConfig;
-    this.topLevelDomain = topLevelDomain;
+
+    this.topLevelDomain = topLevelDomain || getDomain();
   }
 
   get cookieStorage() {

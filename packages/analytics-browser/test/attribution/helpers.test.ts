@@ -556,7 +556,40 @@ describe('isSubdomainOf', () => {
 });
 
 describe('getDomain', () => {
+  let location: Location;
+
+  beforeAll(() => {
+    location = window.location;
+    Object.defineProperty(window, 'location', {
+      value: {
+        hostname: 'sub.domain.hello.world.co.uk',
+      },
+      configurable: true,
+    });
+  });
+
+  afterAll(() => {
+    Object.defineProperty(window, 'location', {
+      value: location,
+      configurable: true,
+    });
+  });
+
   test('should return true if both localhost', () => {
     expect(getDomain('localhost')).toBe('localhost');
+  });
+
+  test('should return domain of location.hostname if no arg provided', () => {
+    expect(getDomain()).toBe('world.co.uk');
+  });
+
+  test('should return empty if location.hostname is undefined', () => {
+    Object.defineProperty(window, 'location', {
+      value: {
+        hostname: undefined,
+      },
+      configurable: true,
+    });
+    expect(getDomain()).toBe('');
   });
 });
