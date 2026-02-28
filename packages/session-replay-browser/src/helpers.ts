@@ -189,3 +189,37 @@ export const getDebugConfig = (config: SessionReplayJoinedConfig): SessionReplay
   debugConfig.apiKey = `****${apiKey.substring(apiKey.length - 4)}`;
   return debugConfig;
 };
+
+export const asyncLoadScript = (url: string): Promise<{ status: boolean }> => {
+  return new Promise((resolve, reject) => {
+    try {
+      const scriptElement = document.createElement('script');
+      scriptElement.type = 'text/javascript';
+      scriptElement.async = true;
+      scriptElement.src = url;
+      scriptElement.addEventListener(
+        'load',
+        () => {
+          resolve({ status: true });
+        },
+        { once: true },
+      );
+      scriptElement.addEventListener(
+        'error',
+        () => {
+          reject({
+            status: false,
+            message: `Failed to load the script ${url}`,
+          });
+        },
+        { once: true },
+      );
+      document.head?.appendChild(scriptElement);
+    } catch (error) {
+      reject({
+        status: false,
+        message: `Error creating script element: ${String(error)}`,
+      });
+    }
+  });
+};

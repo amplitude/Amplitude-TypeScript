@@ -26,6 +26,7 @@ import {
   SessionReplayRemoteConfig,
 } from './config/types';
 import {
+  AMPLITUDE_ORIGIN,
   BLOCK_CLASS,
   CustomRRwebEvent,
   DEFAULT_SESSION_REPLAY_PROPERTY,
@@ -58,6 +59,7 @@ import { VERSION } from './version';
 import type { NetworkObservers, NetworkRequestEvent } from './observers';
 import { createUrlTrackingPlugin } from './plugins/url-tracking-plugin';
 import type { RecordFunction } from './utils/rrweb';
+import type { Messenger } from './libs/messenger';
 
 type PageLeaveFn = (e: PageTransitionEvent | Event) => void;
 
@@ -81,6 +83,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
   private clickHandler?: ClickHandler;
   private networkObservers?: NetworkObservers;
   private metadata: SessionReplayMetadata | undefined;
+  private backgroundCaptureMessenger?: Messenger;
 
   // Cache the dynamically imported record function
   private recordFunction: RecordFunction | null = null;
@@ -132,6 +135,9 @@ export class SessionReplay implements AmplitudeSessionReplay {
       VERSION,
       options.version?.type,
     );
+
+    // Setup background capture if page has opener
+    await this.setupBackgroundCapture();
 
     if (options.sessionId && this.config.interactionConfig?.enabled) {
       const scrollWatcher = ScrollWatcher.default(
@@ -740,6 +746,11 @@ export class SessionReplay implements AmplitudeSessionReplay {
     this.teardownEventListeners(true);
     this.stopRecordingEvents();
     this.sendEvents();
+
+    // Close background capture if active
+    if (this.backgroundCaptureMessenger) {
+      this.backgroundCaptureMessenger.notify({ action: 'close-background-capture' });
+    }
   }
 
   private mapSDKType(sdkType: string | undefined) {
@@ -787,6 +798,27 @@ export class SessionReplay implements AmplitudeSessionReplay {
       } catch (error) {
         this.loggerProvider.warn('Failed to import or instantiate NetworkObservers:', error);
       }
+    }
+  }
+
+  private async setupBackgroundCapture(): Promise<void> {
+    const globalScope = getGlobalScope();
+
+    // Only setup if opened by parent window
+    if (!globalScope?.opener) {
+      return;
+    }
+
+    try {
+      const { WindowMessenger } = await import('./libs/messenger');
+      this.backgroundCaptureMessenger = new WindowMessenger();
+
+      this.backgroundCaptureMessenger.setup({
+        endpoint: AMPLITUDE_ORIGIN,
+        logger: this.loggerProvider,
+      });
+    } catch (error) {
+      this.loggerProvider.warn('Failed to setup background capture:', error);
     }
   }
 }
