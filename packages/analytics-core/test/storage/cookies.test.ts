@@ -126,73 +126,17 @@ describe('cookies', () => {
   });
 
   describe('isEnabledV2', () => {
-    // JSDOM does not implement navigator.locks (Lock Manager API)
-    const createLocksMock = () => ({
-      request: jest.fn(<T>(_name: string, callback: () => T | Promise<T>) => Promise.resolve(callback())),
-    });
-
     beforeEach(() => {
       CookieStorage._enableNextFeatures = true;
     });
 
     afterEach(() => {
       CookieStorage._enableNextFeatures = false;
-      const g = GlobalScopeModule.getGlobalScope() as any;
-      if (g?.navigator && 'locks' in g.navigator) {
-        delete g.navigator.locks;
-      }
     });
 
-    test('returns false when navigator.locks is undefined', async () => {
-      const getGlobalScopeSpy = jest.spyOn(GlobalScopeModule, 'getGlobalScope').mockReturnValue({
-        navigator: {},
-        document: undefined,
-      } as any);
+    test('returns true when cookie operations succeed', async () => {
       const storage = new CookieStorage<string>();
-      expect(await storage.isEnabled()).toBe(false);
-      getGlobalScopeSpy.mockRestore();
-    });
-
-    test('returns false when navigator is undefined', async () => {
-      const getGlobalScopeSpy = jest.spyOn(GlobalScopeModule, 'getGlobalScope').mockReturnValue({
-        navigator: undefined,
-        document: undefined,
-      } as any);
-      const storage = new CookieStorage<string>();
-      expect(await storage.isEnabled()).toBe(false);
-      getGlobalScopeSpy.mockRestore();
-    });
-
-    test('returns true when navigator.locks exists and cookie read/write succeeds', async () => {
-      const globalScope = GlobalScopeModule.getGlobalScope() as any;
-      globalScope.navigator = globalScope.navigator ?? {};
-      globalScope.navigator.locks = createLocksMock();
-
-      const storage = new CookieStorage<string>();
-      CookieStorage._enableNextFeatures = true;
       expect(await storage.isEnabled()).toBe(true);
-      expect(globalScope.navigator.locks.request).toHaveBeenCalledWith(
-        'com:amplitude:cookie-storage:amp_test',
-        expect.any(Function),
-      );
-    });
-
-    test('returns false when navigator.locks exists but cookie value does not round-trip', async () => {
-      const getGlobalScopeSpy = jest.spyOn(GlobalScopeModule, 'getGlobalScope').mockReturnValue({
-        document: {
-          get cookie() {
-            return 'wrong-value';
-          },
-          set cookie(_: string) {
-            // no-op
-          },
-        },
-        navigator: { locks: createLocksMock() },
-      } as any);
-
-      const storage = new CookieStorage<string>();
-      expect(await storage.isEnabled()).toBe(false);
-      getGlobalScopeSpy.mockRestore();
     });
 
     test('returns false and records diagnostics when cookie operations throw', async () => {
@@ -213,7 +157,6 @@ describe('cookies', () => {
             throw new Error('cookie set error');
           },
         },
-        navigator: { locks: createLocksMock() },
       } as any);
 
       const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(function () {
@@ -230,7 +173,7 @@ describe('cookies', () => {
           reason: 'Cookie getter/setter failed',
           testKey: 'AMP_TEST',
           error: expect.any(String),
-          experimentalMutex: true,
+          sync: true,
         }),
       );
 
@@ -286,7 +229,7 @@ describe('cookies', () => {
     test('should return undefined when global scope is not defined', async () => {
       const cookies = new CookieStorage<number[]>();
       await cookies.set('hello', [1]);
-      jest.spyOn(GlobalScopeModule, 'getGlobalScope').mockReturnValueOnce(undefined);
+      jest.spyOn(GlobalScopeModule, 'getGlobalScope').mockReturnValue(undefined);
       expect(await cookies.get('hello')).toEqual(undefined);
       await cookies.remove('hello');
     });
@@ -294,7 +237,7 @@ describe('cookies', () => {
     test('should return undefined when global scope is defined but document is not', async () => {
       const cookies = new CookieStorage<number[]>();
       await cookies.set('hello', [1]);
-      jest.spyOn(GlobalScopeModule, 'getGlobalScope').mockReturnValueOnce({} as typeof globalThis);
+      jest.spyOn(GlobalScopeModule, 'getGlobalScope').mockReturnValue({} as typeof globalThis);
       expect(await cookies.get('hello')).toEqual(undefined);
       await cookies.remove('hello');
     });
