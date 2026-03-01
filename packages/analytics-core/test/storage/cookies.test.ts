@@ -125,6 +125,63 @@ describe('cookies', () => {
     });
   });
 
+  describe('isEnabledV2', () => {
+    beforeEach(() => {
+      CookieStorage._enableNextFeatures = true;
+    });
+
+    afterEach(() => {
+      CookieStorage._enableNextFeatures = false;
+    });
+
+    test('returns true when cookie operations succeed', async () => {
+      const storage = new CookieStorage<string>();
+      expect(await storage.isEnabled()).toBe(true);
+    });
+
+    test('returns false and records diagnostics when cookie operations throw', async () => {
+      const mockDiagnosticsClient = {
+        recordEvent: jest.fn(),
+        increment: jest.fn(),
+        recordHistogram: jest.fn(),
+        setTag: jest.fn(),
+        _flush: jest.fn(),
+        _setSampleRate: jest.fn(),
+      };
+      const getGlobalScopeSpy = jest.spyOn(GlobalScopeModule, 'getGlobalScope').mockReturnValue({
+        document: {
+          get cookie() {
+            throw new Error('cookie get error');
+          },
+          set cookie(_: string) {
+            throw new Error('cookie set error');
+          },
+        },
+      } as any);
+
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(function () {
+        return {};
+      });
+
+      const storage = new CookieStorage<string>(undefined, {
+        diagnosticsClient: mockDiagnosticsClient as any,
+      });
+      expect(await storage.isEnabled()).toBe(false);
+      expect(mockDiagnosticsClient.recordEvent).toHaveBeenCalledWith(
+        'cookies.isEnabled.failure',
+        expect.objectContaining({
+          reason: 'Cookie getter/setter failed',
+          testKey: 'AMP_TEST',
+          error: expect.any(String),
+          sync: true,
+        }),
+      );
+
+      getGlobalScopeSpy.mockRestore();
+      consoleErrorSpy.mockRestore();
+    });
+  });
+
   describe('get', () => {
     test('should return undefined for no cookie value', async () => {
       const cookies = new CookieStorage();
@@ -172,7 +229,7 @@ describe('cookies', () => {
     test('should return undefined when global scope is not defined', async () => {
       const cookies = new CookieStorage<number[]>();
       await cookies.set('hello', [1]);
-      jest.spyOn(GlobalScopeModule, 'getGlobalScope').mockReturnValueOnce(undefined);
+      jest.spyOn(GlobalScopeModule, 'getGlobalScope').mockReturnValue(undefined);
       expect(await cookies.get('hello')).toEqual(undefined);
       await cookies.remove('hello');
     });
@@ -180,7 +237,7 @@ describe('cookies', () => {
     test('should return undefined when global scope is defined but document is not', async () => {
       const cookies = new CookieStorage<number[]>();
       await cookies.set('hello', [1]);
-      jest.spyOn(GlobalScopeModule, 'getGlobalScope').mockReturnValueOnce({} as typeof globalThis);
+      jest.spyOn(GlobalScopeModule, 'getGlobalScope').mockReturnValue({} as typeof globalThis);
       expect(await cookies.get('hello')).toEqual(undefined);
       await cookies.remove('hello');
     });

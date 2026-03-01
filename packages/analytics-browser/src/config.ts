@@ -295,17 +295,20 @@ export const useBrowserConfig = async (
   diagnosticsClient?: IDiagnosticsClient,
   earlyConfig?: EarlyConfig,
 ): Promise<IBrowserConfig> => {
+  // set the experimental mutex flag to enable locking in CookieStorage
+  CookieStorage._enableNextFeatures = options._enableNextFeatures || false;
+
   // Step 1: Create identity storage instance
   const identityStorage = options.identityStorage || DEFAULT_IDENTITY_STORAGE;
-  let topLevelDomain = '';
+  let defaultCookieDomain = '';
 
   // use the getTopLevelDomain function to find the TLD only if identity storage
   // is cookie (because getTopLevelDomain() uses cookies)
   if (identityStorage === DEFAULT_IDENTITY_STORAGE) {
-    topLevelDomain = await getTopLevelDomain(undefined, diagnosticsClient);
+    defaultCookieDomain = await getTopLevelDomain(undefined, diagnosticsClient);
   }
   const cookieOptions = {
-    domain: options.cookieOptions?.domain ?? topLevelDomain,
+    domain: options.cookieOptions?.domain ?? defaultCookieDomain,
     expiration: 365,
     sameSite: 'Lax' as const,
     secure: false,
@@ -411,7 +414,7 @@ export const useBrowserConfig = async (
     earlyConfig?.diagnosticsSampleRate ?? amplitudeInstance._diagnosticsSampleRate,
     diagnosticsClient,
     options.remoteConfig,
-    topLevelDomain,
+    defaultCookieDomain,
   );
 
   if (!(await browserConfig.storageProvider.isEnabled())) {
@@ -479,12 +482,49 @@ export const createTransport = (transport?: TransportTypeOrOptions) => {
   return new FetchTransport(headers);
 };
 
+const getTopLevelDomainSync = (url?: string, diagnosticsClient?: IDiagnosticsClient) => {
+  const host = url ?? location.hostname;
+  const parts = host.split('.');
+  const levels = [];
+  const storageKey = 'AMP_TLDTEST';
+
+  for (let i = parts.length - 2; i >= 0; --i) {
+    levels.push(parts.slice(i).join('.'));
+  }
+  for (let i = 0; i < levels.length; i++) {
+    const domain = levels[i];
+    const options = {
+      domain: '.' + domain,
+    };
+    const storage = new CookieStorage<number>(options);
+    try {
+      storage.setSync(storageKey, 1);
+      const value = storage.getRawSync(storageKey);
+      if (value) {
+        return '.' + domain;
+      }
+    } finally {
+      storage.setSync(storageKey, null);
+    }
+  }
+
+  if (diagnosticsClient) {
+    diagnosticsClient.recordEvent('cookies.tld.failure', {
+      reason: `Could not determine TLD for host ${host}`,
+    });
+  }
+  return '';
+};
+
 export const getTopLevelDomain = async (url?: string, diagnosticsClient?: IDiagnosticsClient) => {
   if (
     !(await new CookieStorage<number>(undefined, { diagnosticsClient }).isEnabled()) ||
     (!url && (typeof location === 'undefined' || !location.hostname))
   ) {
     return '';
+  }
+  if (CookieStorage._enableNextFeatures) {
+    return getTopLevelDomainSync(url, diagnosticsClient);
   }
 
   const host = url ?? location.hostname;

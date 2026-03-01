@@ -6,6 +6,12 @@ test.describe('CookieStorage', () => {
   // Regression Test to cover re-entrancy issues fixed by https://github.com/amplitude/Amplitude-TypeScript/pull/1539
   test('.isEnabled works when called multiple times concurrently', async ({ page }) => {
     const consoleErrors: string[] = [];
+
+    await page.addInitScript(() => {
+      // runs before any page script
+      (window as any).IS_PLAYWRIGHT = true;
+    });
+
     page.on('console', (msg) => {
       if (msg.type() === 'error') {
         consoleErrors.push(msg.text());
