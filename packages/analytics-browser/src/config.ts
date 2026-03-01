@@ -484,7 +484,7 @@ export const createTransport = (transport?: TransportTypeOrOptions) => {
 
 let CACHED_TLD: string | undefined = undefined;
 
-const getTopLevelDomainV2 = async (url?: string, diagnosticsClient?: IDiagnosticsClient) => {
+const getTopLevelDomainSync = (url?: string, diagnosticsClient?: IDiagnosticsClient) => {
   if (CACHED_TLD) {
     return CACHED_TLD;
   }
@@ -531,7 +531,7 @@ export const getTopLevelDomain = async (url?: string, diagnosticsClient?: IDiagn
     return '';
   }
   if (CookieStorage._enableNextFeatures) {
-    return await getTopLevelDomainV2(url, diagnosticsClient);
+    return await getTopLevelDomainSync(url, diagnosticsClient);
   }
 
   const host = url ?? location.hostname;
