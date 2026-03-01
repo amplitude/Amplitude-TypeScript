@@ -412,6 +412,16 @@ describe('cookies', () => {
       expect(isDomainEqual('domain.com', 'www.domain.com')).toBe(false);
       expect(isDomainEqual('www.domain.com', 'domain.com')).toBe(false);
     });
+
+    describe('empty values and empty strings', () => {
+      test('should return true when both domains are empty strings', () => {
+        expect(isDomainEqual('', '')).toBe(true);
+      });
+      test('should return false if one domain is empty string and other is falsey', () => {
+        expect(isDomainEqual('', undefined)).toBe(false);
+        expect(isDomainEqual(undefined, '')).toBe(false);
+      });
+    });
   });
 
   describe('decodeCookieValue', () => {
