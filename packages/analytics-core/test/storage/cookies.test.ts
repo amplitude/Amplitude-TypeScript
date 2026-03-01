@@ -4,7 +4,7 @@
  */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 import { CookieStorage } from '../../src/storage/cookie';
-import { isDomainEqual, decodeCookieValue } from '../../src/index';
+import { decodeCookieValue } from '../../src/index';
 import * as GlobalScopeModule from '../../src/global-scope';
 
 describe('cookies', () => {
@@ -450,24 +450,6 @@ describe('cookies', () => {
         cookies: ['domain.com', 'other.com'],
       });
       expect(diagnosticsClient.increment).toHaveBeenCalledWith('cookies.duplicate.occurrence.cookieStore');
-    });
-  });
-
-  describe('isDomainEqual', () => {
-    test('should return true if domains are equal disregard leading .', () => {
-      expect(isDomainEqual('.domain.com', 'domain.com')).toBe(true);
-      expect(isDomainEqual('domain.com', '.domain.com')).toBe(true);
-    });
-
-    it('should return false if either domain is undefined', () => {
-      expect(isDomainEqual(undefined, 'domain.com')).toBe(false);
-      expect(isDomainEqual('domain.com', undefined)).toBe(false);
-      expect(isDomainEqual(undefined, undefined)).toBe(false);
-    });
-
-    it('should return false if domains are not equal', () => {
-      expect(isDomainEqual('domain.com', 'www.domain.com')).toBe(false);
-      expect(isDomainEqual('www.domain.com', 'domain.com')).toBe(false);
     });
   });
 

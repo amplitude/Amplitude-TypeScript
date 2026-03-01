@@ -28,7 +28,6 @@ import {
   NetworkTrackingOptions,
   IIdentify,
   IDiagnosticsClient,
-  isDomainEqual,
   CookieStorageConfig,
   decodeCookieValue,
 } from '@amplitude/analytics-core';
@@ -252,7 +251,7 @@ export class BrowserConfig extends Config implements IBrowserConfig {
   }
 
   private updateStorage() {
-    const cache = {
+    const cache: UserSession = {
       deviceId: this._deviceId,
       userId: this._userId,
       sessionId: this._sessionId,
@@ -262,11 +261,10 @@ export class BrowserConfig extends Config implements IBrowserConfig {
       lastEventId: this._lastEventId,
       pageCounter: this._pageCounter,
       debugLogsEnabled: this._debugLogsEnabled,
-      cookieDomain: undefined as string | undefined,
     };
 
     if (this.cookieStorage instanceof CookieStorage) {
-      cache.cookieDomain = this.cookieStorage.options.domain;
+      cache.lastWriteTime = Date.now();
     }
 
     void this.cookieStorage.set(getCookieName(this.apiKey), cache);
@@ -318,14 +316,28 @@ export const useBrowserConfig = async (
 
   const cookieConfig: CookieStorageConfig = {
     // if more than one cookie with the same key exists,
-    // look for the cookie that has the domain attribute set to cookieOptions.domain
-    duplicateResolverFn: (value: string): boolean => {
-      const decodedValue = decodeCookieValue(value);
-      if (!decodedValue) {
-        return false;
+    // look for the cookie that was written the most recently
+    duplicateResolverFn: (cookies: string[]): string | undefined => {
+      let latestWriteTime = 0;
+      let latestCookie: string | undefined = undefined;
+
+      for (const cookie of cookies) {
+        const [, value] = cookie.split('=');
+        const decodedValue = decodeCookieValue(value);
+        if (!decodedValue) {
+          continue;
+        }
+        const userCookie = JSON.parse(decodedValue) as UserSession;
+        if (!userCookie) {
+          continue;
+        }
+        const writeTime = userCookie?.lastWriteTime ?? userCookie?.lastEventTime ?? 0;
+        if (writeTime > latestWriteTime) {
+          latestWriteTime = writeTime;
+          latestCookie = cookie;
+        }
       }
-      const parsed = JSON.parse(decodedValue) as UserSession;
-      return isDomainEqual(parsed.cookieDomain, cookieOptions.domain);
+      return latestCookie;
     },
     diagnosticsClient: diagnosticsClient,
   };

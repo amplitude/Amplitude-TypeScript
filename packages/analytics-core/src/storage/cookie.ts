@@ -2,24 +2,6 @@ import { Storage, CookieStorageOptions, CookieStorageConfig } from '../types/sto
 import { getGlobalScope } from '../global-scope';
 import { UUID } from '../utils/uuid';
 
-// CookieStore is a Web API not included in standard TypeScript lib types
-// https://developer.mozilla.org/en-US/docs/Web/API/CookieStore
-interface CookieStoreSetOptions {
-  name: string;
-  value: string;
-  expires?: number;
-  domain?: string;
-  sameSite?: 'strict' | 'lax' | 'none';
-}
-
-interface CookieStore {
-  getAll(key: string): Promise<CookieStoreSetOptions[] | undefined>;
-}
-
-type GlobalScopeWithCookieStore = {
-  cookieStore?: CookieStore;
-} & typeof global;
-
 export class CookieStorage<T> implements Storage<T> {
   options: CookieStorageOptions;
   config: CookieStorageConfig;
@@ -135,35 +117,6 @@ export class CookieStorage<T> implements Storage<T> {
   }
 
   async getRaw(key: string): Promise<string | undefined> {
-    const globalScope = getGlobalScope();
-
-    // use CookieStore if available and enabled
-    const globalScopeWithCookiesStore = globalScope as GlobalScopeWithCookieStore;
-    try {
-      const cookieStore = globalScopeWithCookiesStore?.cookieStore;
-      if (cookieStore) {
-        const cookies = await cookieStore.getAll(key);
-        if (cookies) {
-          /* istanbul ignore if */
-          if (cookies.length > 1) {
-            this.config.diagnosticsClient?.recordEvent('cookies.duplicate', {
-              cookies: cookies.map((cookie) => cookie.domain),
-            });
-            this.config.diagnosticsClient?.increment('cookies.duplicate.occurrence.cookieStore');
-          }
-
-          for (const cookie of cookies) {
-            if (isDomainEqual(cookie.domain, this.options.domain)) {
-              return cookie.value;
-            }
-          }
-        }
-      }
-    } catch (ignoreError) {
-      /* istanbul ignore next */
-      // if cookieStore had a surprise failure, fallback to document.cookie
-    }
-
     return this.getRawSync(key);
   }
 
@@ -175,19 +128,9 @@ export class CookieStorage<T> implements Storage<T> {
     // if matcher function is provided, use it to de-duplicate when there's more than one cookie
     /* istanbul ignore if */
     const duplicateResolverFn = this.config.duplicateResolverFn;
-    if (typeof duplicateResolverFn === 'function' && cookies.length > 1) {
-      match = cookies.find((c) => {
-        try {
-          const res = duplicateResolverFn(c.substring(key.length + 1));
-          if (!res) {
-            this.config.diagnosticsClient?.increment('cookies.duplicate.occurrence.document.cookie');
-          }
-          return res;
-        } catch (ignoreError) {
-          /* istanbul ignore next */
-          return false;
-        }
-      });
+    if (duplicateResolverFn && cookies.length > 1) {
+      this.config.diagnosticsClient?.increment('cookies.duplicate.occurrence.document.cookie');
+      match = duplicateResolverFn(cookies);
     }
 
     // if match was not found, just get the first one that matches the key
@@ -271,18 +214,4 @@ const decodeCookiesWithDoubleUrlEncoding = (value: string): string | undefined =
  */
 export const decodeCookieValue = (value: string): string | undefined => {
   return decodeCookiesAsDefault(value) ?? decodeCookiesWithDoubleUrlEncoding(value);
-};
-
-/**
- * Compares two domain strings for equality, ignoring leading dots.
- * This is useful for comparing cookie domains since ".example.com" and "example.com"
- * are effectively equivalent for cookie scoping.
- */
-export const isDomainEqual = (domain1: string | undefined, domain2: string | undefined): boolean => {
-  if (!domain1 || !domain2) {
-    return false;
-  }
-  const normalized1 = domain1.startsWith('.') ? domain1.substring(1) : domain1;
-  const normalized2 = domain2.startsWith('.') ? domain2.substring(1) : domain2;
-  return normalized1.toLowerCase() === normalized2.toLowerCase();
 };

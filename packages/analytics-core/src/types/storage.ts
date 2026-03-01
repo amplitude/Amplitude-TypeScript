@@ -25,7 +25,7 @@ export interface CookieStorageConfig {
    * Function to resolve duplicate cookies when multiple cookies with the same key exist.
    * Returns true if the cookie value should be used, false otherwise.
    */
-  duplicateResolverFn?: (value: string) => boolean;
+  duplicateResolverFn?: (cookies: string[]) => string | undefined;
   diagnosticsClient?: IDiagnosticsClient;
 }
 
