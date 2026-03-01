@@ -245,8 +245,11 @@ describe('config', () => {
         options: {},
         config: {},
         isEnabled: async () => false,
+        isEnabledSync: () => false,
         get: async () => '',
         getRaw: async () => '',
+        getRawSync: () => '',
+        setSync: () => undefined,
         set: async () => undefined,
         remove: async () => undefined,
         reset: async () => undefined,
@@ -315,7 +318,7 @@ describe('config', () => {
         ...testCookieStorage,
         options: {},
         config: {},
-      });
+      } as unknown as BrowserUtils.CookieStorage<number>);
       const domain = await Config.getTopLevelDomain();
       expect(domain).toBe('');
     });
@@ -343,12 +346,12 @@ describe('config', () => {
           ...testCookieStorage,
           options: {},
           config: {},
-        })
+        } as unknown as BrowserUtils.CookieStorage<number>)
         .mockReturnValue({
           ...actualCookieStorage,
           options: {},
           config: {},
-        });
+        } as unknown as BrowserUtils.CookieStorage<number>);
       expect(await Config.getTopLevelDomain('www.legislation.gov.uk')).toBe('.legislation.gov.uk');
     });
 
