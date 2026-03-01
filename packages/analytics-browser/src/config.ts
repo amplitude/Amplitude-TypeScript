@@ -482,12 +482,7 @@ export const createTransport = (transport?: TransportTypeOrOptions) => {
   return new FetchTransport(headers);
 };
 
-let CACHED_TLD: string | undefined = undefined;
-
 const getTopLevelDomainSync = (url?: string, diagnosticsClient?: IDiagnosticsClient) => {
-  if (CACHED_TLD) {
-    return CACHED_TLD;
-  }
   const host = url ?? location.hostname;
   const parts = host.split('.');
   const levels = [];
@@ -505,10 +500,8 @@ const getTopLevelDomainSync = (url?: string, diagnosticsClient?: IDiagnosticsCli
     try {
       storage.setSync(storageKey, 1);
       const value = storage.getRawSync(storageKey);
-
       if (value) {
-        CACHED_TLD = '.' + domain;
-        return CACHED_TLD;
+        return '.' + domain;
       }
     } finally {
       storage.setSync(storageKey, null);
