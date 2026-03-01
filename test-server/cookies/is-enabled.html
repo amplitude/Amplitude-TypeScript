@@ -8,6 +8,7 @@
   <pre id="out"></pre>
   <script type="module">
     import { CookieStorage } from '@amplitude/analytics-core';
+    import { getTopLevelDomain } from '@amplitude/analytics-browser/lib/esm/config';
 
     // TODO: experimental, remove once it becomes the standard
     CookieStorage._enableExperimentalMutex = true;
@@ -23,26 +24,60 @@
 
       // call isEnabled many times concurrently to stress test the re-entrancy issue
       // that was fixed by fixed by https://github.com/amplitude/Amplitude-TypeScript/pull/1539
-      const RUNS = 100;
+      const RUNS = 5000;
       for (let i = 0; i < RUNS; i++) {
         const c = new CookieStorage();
         promises.push(c.isEnabled());
       }
 
+      // call getTopLevelDomain many times concurrently to stress test the re-entrancy issue
+      const tldPromises = [];
+      for (let i = 0; i < RUNS; i++) {
+        const tld = getTopLevelDomain();
+        tldPromises.push(tld);
+      }
+
+
       const results = await Promise.all(promises);
-
+      const tldResults = await Promise.all(tldPromises);
+      
       log(`All ${RUNS} calls to CookieStorage.prototype.isEnabled returned true: ${results.every((result) => result === true)}`);
-
+      log(`All ${RUNS} calls to getTopLevelDomain returned: ${tldResults.every((result) => result !== '')}`);
+      
       // Assert that all of the concurrent calls returned true
+      let failureCount = 0;
       for (const result of results) {
         if (!result) {
-          const errorMessage = `isEnabled returned 'false'. Test failed.`;
+          const errorMessage = `isEnabled returned '${result}'. Test failed.`;
           console.error(errorMessage);
-          throw new Error(errorMessage);
+          failureCount++;
         }
       }
-    }
 
+      let tldFailureCount = 0;
+      for (const tldResult of tldResults) {
+        if (tldResult === '') {
+          const errorMessage = `getTopLevelDomain returned ''. Test failed.`;
+          tldFailureCount++;
+        }
+      }
+
+      // test all TLD results are the same
+      const allSame = tldResults.every((result) => result === tldResults[0]);
+      log(`All TLD results are the same: ${allSame}`);
+      if (!allSame) {
+        throw new Error(`getTopLevelDomain: all TLD results are not the same`);
+      }
+
+      log(`Failure count: ${failureCount}`);
+      if (failureCount > 0) {
+        throw new Error(`isEnabled: ${failureCount} / ${RUNS} failures occurred`);
+      }
+      log(`TLD failure count: ${tldFailureCount}`);
+      if (tldFailureCount > 0) {
+        throw new Error(`getTopLevelDomain: ${tldFailureCount} / ${RUNS} failures occurred`);
+      }
+    }
     run();
   </script>
 </body>
