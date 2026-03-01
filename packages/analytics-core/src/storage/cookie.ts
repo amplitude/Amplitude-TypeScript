@@ -227,6 +227,9 @@ export const decodeCookieValue = (value: string): string | undefined => {
  * are effectively equivalent for cookie scoping.
  */
 export const isDomainEqual = (domain1: string | undefined, domain2: string | undefined): boolean => {
+  if (domain1 === '' && domain2 === '') {
+    return true;
+  }
   if (!domain1 || !domain2) {
     return false;
   }
