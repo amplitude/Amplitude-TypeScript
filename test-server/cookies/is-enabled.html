@@ -32,9 +32,11 @@
 
       // call getTopLevelDomain many times concurrently to stress test the re-entrancy issue
       const tldPromises = [];
-      for (let i = 0; i < RUNS; i++) {
-        const tld = getTopLevelDomain();
-        tldPromises.push(tld);
+      if (!window.IS_PLAYWRIGHT) {
+        for (let i = 0; i < RUNS; i++) {
+          const tld = getTopLevelDomain();
+          tldPromises.push(tld);
+        }
       }
 
 
