@@ -295,8 +295,7 @@ export const useBrowserConfig = async (
   diagnosticsClient?: IDiagnosticsClient,
   earlyConfig?: EarlyConfig,
 ): Promise<IBrowserConfig> => {
-  // set the experimental mutex flag to enable locking in CookieStorage
-  CookieStorage._enableNextFeatures = options._enableNextFeatures || false;
+  const enableNextFeatures = options._enableNextFeatures || false;
 
   // Step 1: Create identity storage instance
   const identityStorage = options.identityStorage || DEFAULT_IDENTITY_STORAGE;
@@ -305,7 +304,7 @@ export const useBrowserConfig = async (
   // use the getTopLevelDomain function to find the TLD only if identity storage
   // is cookie (because getTopLevelDomain() uses cookies)
   if (identityStorage === DEFAULT_IDENTITY_STORAGE) {
-    defaultCookieDomain = await getTopLevelDomain(undefined, diagnosticsClient);
+    defaultCookieDomain = await getTopLevelDomain(undefined, diagnosticsClient, enableNextFeatures);
   }
   const cookieOptions = {
     domain: options.cookieOptions?.domain ?? defaultCookieDomain,
@@ -516,14 +515,18 @@ const getTopLevelDomainSync = (url?: string, diagnosticsClient?: IDiagnosticsCli
   return '';
 };
 
-export const getTopLevelDomain = async (url?: string, diagnosticsClient?: IDiagnosticsClient) => {
+export const getTopLevelDomain = async (
+  url?: string,
+  diagnosticsClient?: IDiagnosticsClient,
+  enableNextFeatures = CookieStorage._enableNextFeatures,
+) => {
   if (
-    !(await new CookieStorage<number>(undefined, { diagnosticsClient }).isEnabled()) ||
+    !(await new CookieStorage<number>(undefined, { diagnosticsClient }).isEnabled(enableNextFeatures)) ||
     (!url && (typeof location === 'undefined' || !location.hostname))
   ) {
     return '';
   }
-  if (CookieStorage._enableNextFeatures) {
+  if (enableNextFeatures) {
     return getTopLevelDomainSync(url, diagnosticsClient);
   }
 

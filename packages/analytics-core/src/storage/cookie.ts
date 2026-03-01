@@ -67,7 +67,7 @@ export class CookieStorage<T> implements Storage<T> {
     }
   }
 
-  async isEnabled(): Promise<boolean> {
+  async isEnabled(enableNextFeatures = CookieStorage._enableNextFeatures): Promise<boolean> {
     const globalScope = getGlobalScope();
     /* istanbul ignore if */
     if (!globalScope || !globalScope.document) {
@@ -75,7 +75,7 @@ export class CookieStorage<T> implements Storage<T> {
     }
 
     // experimental feature for now that uses navigator.locks
-    if (CookieStorage._enableNextFeatures) {
+    if (enableNextFeatures) {
       return this.isEnabledSync();
     }
 
