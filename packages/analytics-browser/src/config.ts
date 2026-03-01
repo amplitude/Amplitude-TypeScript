@@ -531,7 +531,7 @@ export const getTopLevelDomain = async (url?: string, diagnosticsClient?: IDiagn
     return '';
   }
   if (CookieStorage._enableNextFeatures) {
-    return await getTopLevelDomainSync(url, diagnosticsClient);
+    return getTopLevelDomainSync(url, diagnosticsClient);
   }
 
   const host = url ?? location.hostname;
