@@ -11,7 +11,7 @@
     import { getTopLevelDomain } from '@amplitude/analytics-browser/lib/esm/config';
 
     // TODO: experimental, remove once it becomes the standard
-    CookieStorage._enableExperimentalMutex = true;
+    CookieStorage._enableNextFeatures = true;
 
     const out = document.getElementById('out');
 
@@ -24,7 +24,7 @@
 
       // call isEnabled many times concurrently to stress test the re-entrancy issue
       // that was fixed by fixed by https://github.com/amplitude/Amplitude-TypeScript/pull/1539
-      const RUNS = 5000;
+      const RUNS = 50000;
       for (let i = 0; i < RUNS; i++) {
         const c = new CookieStorage();
         promises.push(c.isEnabled());

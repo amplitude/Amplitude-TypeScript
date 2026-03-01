@@ -132,11 +132,11 @@ describe('cookies', () => {
     });
 
     beforeEach(() => {
-      CookieStorage._enableExperimentalMutex = true;
+      CookieStorage._enableNextFeatures = true;
     });
 
     afterEach(() => {
-      CookieStorage._enableExperimentalMutex = false;
+      CookieStorage._enableNextFeatures = false;
       const g = GlobalScopeModule.getGlobalScope() as any;
       if (g?.navigator && 'locks' in g.navigator) {
         delete g.navigator.locks;
@@ -169,7 +169,7 @@ describe('cookies', () => {
       globalScope.navigator.locks = createLocksMock();
 
       const storage = new CookieStorage<string>();
-      CookieStorage._enableExperimentalMutex = true;
+      CookieStorage._enableNextFeatures = true;
       expect(await storage.isEnabled()).toBe(true);
       expect(globalScope.navigator.locks.request).toHaveBeenCalledWith(
         'com:amplitude:cookie-storage:amp_test',
