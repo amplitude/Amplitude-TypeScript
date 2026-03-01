@@ -12,10 +12,6 @@ interface CookieStoreSetOptions {
   sameSite?: 'strict' | 'lax' | 'none';
 }
 
-const IS_ENABLED_MUTEX_LOCK_NAME = 'com:amplitude:cookie-storage:amp_test';
-
-type NavigatorWithLocks = Navigator & { locks?: LockManager };
-
 interface CookieStore {
   getAll(key: string): Promise<CookieStoreSetOptions[] | undefined>;
 }
@@ -33,7 +29,43 @@ export class CookieStorage<T> implements Storage<T> {
     this.config = config;
   }
 
-  static _enableExperimentalMutex = false;
+  static _enableNextFeatures = false;
+
+  isEnabledSync(): boolean {
+    const testValue = String(Date.now());
+    const testCookieOptions = { ...this.options };
+    const testStorage = new CookieStorage<string>(testCookieOptions);
+    const testKey = 'AMP_TEST';
+    try {
+      testStorage.setSync(testKey, testValue);
+      const value = testStorage.getRawSync(testKey);
+      /* istanbul ignore next */
+      if (!value && this.config.diagnosticsClient) {
+        this.config.diagnosticsClient?.recordEvent('cookies.isEnabled.failure', {
+          reason: 'Test Value mismatch',
+          testKey,
+          testValue,
+          sync: true,
+        });
+      }
+      return !!value;
+    } catch (e) {
+      /* istanbul ignore next */
+      if (this.config.diagnosticsClient) {
+        const errMessage = e instanceof Error ? e.message : String(e);
+        this.config.diagnosticsClient?.recordEvent('cookies.isEnabled.failure', {
+          reason: 'Cookie getter/setter failed',
+          testKey,
+          testValue,
+          error: errMessage,
+          sync: true,
+        });
+      }
+      return false;
+    } finally {
+      testStorage.setSync(testKey, null);
+    }
+  }
 
   async isEnabled(): Promise<boolean> {
     const globalScope = getGlobalScope();
@@ -42,47 +74,9 @@ export class CookieStorage<T> implements Storage<T> {
       return false;
     }
 
-    const nav = globalScope.navigator as NavigatorWithLocks | undefined;
-    const locks = nav?.locks;
-
     // experimental feature for now that uses navigator.locks
-    if (CookieStorage._enableExperimentalMutex && locks) {
-      const res = (await locks.request(IS_ENABLED_MUTEX_LOCK_NAME, async (): Promise<boolean> => {
-        const testValue = String(Date.now());
-        const testCookieOptions = { ...this.options };
-        const testStorage = new CookieStorage<string>(testCookieOptions);
-        const testKey = 'AMP_TEST';
-        try {
-          await testStorage.set(testKey, testValue);
-          const value = await testStorage.get(testKey);
-          /* istanbul ignore next */
-          if (value !== testValue && this.config.diagnosticsClient) {
-            this.config.diagnosticsClient?.recordEvent('cookies.isEnabled.failure', {
-              reason: 'Test Value mismatch',
-              testKey,
-              testValue,
-              experimentalMutex: true,
-            });
-          }
-          return value === testValue;
-        } catch (e) {
-          /* istanbul ignore next */
-          if (this.config.diagnosticsClient) {
-            const errMessage = e instanceof Error ? e.message : String(e);
-            this.config.diagnosticsClient?.recordEvent('cookies.isEnabled.failure', {
-              reason: 'Cookie getter/setter failed',
-              testKey,
-              testValue,
-              error: errMessage,
-              experimentalMutex: true,
-            });
-          }
-          return false;
-        } finally {
-          await testStorage.remove(testKey);
-        }
-      })) as boolean;
-      return res;
+    if (CookieStorage._enableNextFeatures) {
+      return this.isEnabledSync();
     }
 
     const testValue = String(Date.now());
@@ -170,6 +164,11 @@ export class CookieStorage<T> implements Storage<T> {
       // if cookieStore had a surprise failure, fallback to document.cookie
     }
 
+    return this.getRawSync(key);
+  }
+
+  getRawSync(key: string): string | undefined {
+    const globalScope = getGlobalScope();
     const cookies = (globalScope?.document?.cookie.split('; ') ?? []).filter((c) => c.indexOf(key + '=') === 0);
     let match: string | undefined = undefined;
 
@@ -202,6 +201,10 @@ export class CookieStorage<T> implements Storage<T> {
   }
 
   async set(key: string, value: T | null): Promise<void> {
+    this.setSync(key, value);
+  }
+
+  setSync(key: string, value: T | null): void {
     try {
       const expirationDays = this.options.expirationDays ?? 0;
       const expires = value !== null ? expirationDays : -1;

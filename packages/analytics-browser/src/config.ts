@@ -31,7 +31,6 @@ import {
   isDomainEqual,
   CookieStorageConfig,
   decodeCookieValue,
-  getGlobalScope,
 } from '@amplitude/analytics-core';
 
 import { LocalStorage } from './storage/local-storage';
@@ -297,7 +296,7 @@ export const useBrowserConfig = async (
   earlyConfig?: EarlyConfig,
 ): Promise<IBrowserConfig> => {
   // set the experimental mutex flag to enable locking in CookieStorage
-  CookieStorage._enableExperimentalMutex = options._useExperimentalMutex || false;
+  CookieStorage._enableNextFeatures = options._enableNextFeatures || false;
 
   // Step 1: Create identity storage instance
   const identityStorage = options.identityStorage || DEFAULT_IDENTITY_STORAGE;
@@ -309,7 +308,7 @@ export const useBrowserConfig = async (
     topLevelDomain = await getTopLevelDomain(undefined, diagnosticsClient);
   }
   const cookieOptions = {
-    domain: options.cookieOptions?.domain ?? topLevelDomain,
+    domain: options.cookieOptions?.domain,
     expiration: 365,
     sameSite: 'Lax' as const,
     secure: false,
@@ -483,44 +482,45 @@ export const createTransport = (transport?: TransportTypeOrOptions) => {
   return new FetchTransport(headers);
 };
 
-const LOCK_NAME = 'com:amplitude:cookie-storage:amp_tldtest';
+let CACHED_TLD: string | undefined = undefined;
 
-const getTopLevelDomainV2 = async (locks: LockManager, url?: string, diagnosticsClient?: IDiagnosticsClient) => {
-  const res = (await locks.request(LOCK_NAME, async (): Promise<string> => {
-    const host = url ?? location.hostname;
-    const parts = host.split('.');
-    const levels = [];
-    const storageKey = 'AMP_TLDTEST';
+const getTopLevelDomainV2 = async (url?: string, diagnosticsClient?: IDiagnosticsClient) => {
+  if (CACHED_TLD) {
+    return CACHED_TLD;
+  }
+  const host = url ?? location.hostname;
+  const parts = host.split('.');
+  const levels = [];
+  const storageKey = 'AMP_TLDTEST';
 
-    for (let i = parts.length - 2; i >= 0; --i) {
-      levels.push(parts.slice(i).join('.'));
-    }
-    for (let i = 0; i < levels.length; i++) {
-      const domain = levels[i];
-      const options = {
-        domain: '.' + domain,
-      };
-      const storage = new CookieStorage<number>(options);
-      try {
-        await storage.set(storageKey, 1);
-        const value = await storage.get(storageKey);
-        if (value) {
-          return '.' + domain;
-        }
-      } finally {
-        await storage.remove(storageKey);
+  for (let i = parts.length - 2; i >= 0; --i) {
+    levels.push(parts.slice(i).join('.'));
+  }
+  for (let i = 0; i < levels.length; i++) {
+    const domain = levels[i];
+    const options = {
+      domain: '.' + domain,
+    };
+    const storage = new CookieStorage<number>(options);
+    try {
+      storage.setSync(storageKey, 1);
+      const value = storage.getRawSync(storageKey);
+
+      if (value) {
+        CACHED_TLD = '.' + domain;
+        return CACHED_TLD;
       }
+    } finally {
+      storage.setSync(storageKey, null);
     }
+  }
 
-    if (diagnosticsClient) {
-      diagnosticsClient.recordEvent('cookies.tld.failure', {
-        reason: `Could not determine TLD for host ${host}`,
-      });
-    }
-
-    return '';
-  })) as string;
-  return res;
+  if (diagnosticsClient) {
+    diagnosticsClient.recordEvent('cookies.tld.failure', {
+      reason: `Could not determine TLD for host ${host}`,
+    });
+  }
+  return '';
 };
 
 export const getTopLevelDomain = async (url?: string, diagnosticsClient?: IDiagnosticsClient) => {
@@ -530,10 +530,8 @@ export const getTopLevelDomain = async (url?: string, diagnosticsClient?: IDiagn
   ) {
     return '';
   }
-
-  const { locks } = getGlobalScope()?.navigator ?? {};
-  if (CookieStorage._enableExperimentalMutex && locks) {
-    return await getTopLevelDomainV2(locks, url, diagnosticsClient);
+  if (CookieStorage._enableNextFeatures) {
+    return await getTopLevelDomainV2(url, diagnosticsClient);
   }
 
   const host = url ?? location.hostname;
