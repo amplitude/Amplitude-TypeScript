@@ -2382,6 +2382,9 @@ describe('browser-client', () => {
       logBrowserOptions.call(ctx, { apiKey, ...circularReference });
       expect(ctx.config.loggerProvider.debug.mock.calls[0][1]).toContain(apiKey.substring(0, 5));
       expect(ctx.config.loggerProvider.error).not.toHaveBeenCalled();
+    });
+  });
+
   describe('_enableRequestBodyCompressionExperimental', () => {
     test('should default to false', async () => {
       await client.init(apiKey).promise;
