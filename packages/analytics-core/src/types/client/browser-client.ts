@@ -116,4 +116,11 @@ export interface BrowserClient extends Client {
    * @param sampleRate - The sample rate to set
    */
   _setDiagnosticsSampleRate(sampleRate: number): void;
+
+  /**
+   * @experimental
+   * WARNING: This method is for internal testing only and is not part of the public API.
+   * It may be changed or removed at any time without notice.
+   */
+  _enableRequestBodyCompressionExperimental(enabled: boolean): void;
 }

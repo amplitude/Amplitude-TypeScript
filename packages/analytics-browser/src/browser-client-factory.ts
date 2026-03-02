@@ -148,6 +148,12 @@ export const createInstance = (): BrowserClient => {
       getClientLogConfig(client),
       getClientStates(client, ['config']),
     ),
+    _enableRequestBodyCompressionExperimental: debugWrapper(
+      client._enableRequestBodyCompressionExperimental.bind(client),
+      '_enableRequestBodyCompressionExperimental',
+      getClientLogConfig(client),
+      getClientStates(client, ['config']),
+    ),
   };
 };
 

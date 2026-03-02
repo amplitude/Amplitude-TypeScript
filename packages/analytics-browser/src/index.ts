@@ -26,6 +26,7 @@ export const {
   setUserId,
   track,
   _setDiagnosticsSampleRate,
+  _enableRequestBodyCompressionExperimental,
 } = client;
 export { AmplitudeBrowser } from './browser-client';
 export { runQueuedFunctions } from './utils/snippet-helper';
