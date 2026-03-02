@@ -31,7 +31,7 @@
       const tldPromises = [];
       if (!window.IS_PLAYWRIGHT) {
         for (let i = 0; i < RUNS; i++) {
-          const tld = getTopLevelDomain(undefined, undefined, config.experimentalCookies);
+          const tld = getTopLevelDomain(undefined, undefined);
           tldPromises.push(tld);
         }
       }
