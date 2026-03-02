@@ -511,19 +511,6 @@ describe('cookies', () => {
 
     describe('with mock navigator.locks', () => {
       let lockCallList: string[] = [];
-      // class MockStorageSync implements StorageSync<string> {
-      //   _cache: Map<string, string> = new Map();
-      //   get(): string | undefined {
-      //     return this._cache.get('test');
-      //   }
-      //   set(value: string | null): void {
-      //     if (value) {
-      //       this._cache.set('test', value);
-      //     } else {
-      //       this._cache.delete('test');
-      //     }
-      //   }
-      // }
 
       beforeEach(() => {
         Object.defineProperty(global, 'navigator', {
