@@ -126,6 +126,56 @@ describe('cookies', () => {
     });
   });
 
+  describe('isEnabledV2', () => {
+    test('returns true when cookie operations succeed', async () => {
+      const storage = new CookieStorage<string>(undefined, { experimentalCookies: true });
+      expect(await storage.isEnabled()).toBe(true);
+    });
+
+    test('returns false and records diagnostics when cookie operations throw', async () => {
+      const mockDiagnosticsClient = {
+        recordEvent: jest.fn(),
+        increment: jest.fn(),
+        recordHistogram: jest.fn(),
+        setTag: jest.fn(),
+        _flush: jest.fn(),
+        _setSampleRate: jest.fn(),
+      };
+      const getGlobalScopeSpy = jest.spyOn(GlobalScopeModule, 'getGlobalScope').mockReturnValue({
+        document: {
+          get cookie() {
+            throw new Error('cookie get error');
+          },
+          set cookie(_: string) {
+            throw new Error('cookie set error');
+          },
+        },
+      } as any);
+
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(function () {
+        return {};
+      });
+
+      const storage = new CookieStorage<string>(undefined, {
+        diagnosticsClient: mockDiagnosticsClient as any,
+        experimentalCookies: true,
+      });
+      expect(await storage.isEnabled()).toBe(false);
+      expect(mockDiagnosticsClient.recordEvent).toHaveBeenCalledWith(
+        'cookies.isEnabled.failure',
+        expect.objectContaining({
+          reason: 'Cookie getter/setter failed',
+          testKey: 'AMP_TEST',
+          error: expect.any(String),
+          sync: true,
+        }),
+      );
+
+      getGlobalScopeSpy.mockRestore();
+      consoleErrorSpy.mockRestore();
+    });
+  });
+
   describe('get', () => {
     test('should return undefined for no cookie value', async () => {
       const cookies = new CookieStorage();
