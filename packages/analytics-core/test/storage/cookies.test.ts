@@ -127,16 +127,8 @@ describe('cookies', () => {
   });
 
   describe('isEnabledV2', () => {
-    beforeEach(() => {
-      CookieStorage._enableNextFeatures = true;
-    });
-
-    afterEach(() => {
-      CookieStorage._enableNextFeatures = false;
-    });
-
     test('returns true when cookie operations succeed', async () => {
-      const storage = new CookieStorage<string>();
+      const storage = new CookieStorage<string>(undefined, { experimentalCookies: true });
       expect(await storage.isEnabled()).toBe(true);
     });
 
@@ -166,6 +158,7 @@ describe('cookies', () => {
 
       const storage = new CookieStorage<string>(undefined, {
         diagnosticsClient: mockDiagnosticsClient as any,
+        experimentalCookies: true,
       });
       expect(await storage.isEnabled()).toBe(false);
       expect(mockDiagnosticsClient.recordEvent).toHaveBeenCalledWith(

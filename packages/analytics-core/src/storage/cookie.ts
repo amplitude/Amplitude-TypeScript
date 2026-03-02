@@ -35,8 +35,6 @@ export class CookieStorage<T> implements Storage<T> {
     this.config = config;
   }
 
-  static _enableNextFeatures = false;
-
   async isEnabledV2(): Promise<boolean> {
     const testKey = 'AMP_TEST';
     const testCookieOptions = { ...this.options };
@@ -85,7 +83,7 @@ export class CookieStorage<T> implements Storage<T> {
     }
 
     // experimental feature for now that uses navigator.locks
-    if (CookieStorage._enableNextFeatures) {
+    if (this.config.experimentalCookies) {
       return this.isEnabledV2();
     }
 

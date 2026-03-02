@@ -295,9 +295,6 @@ export const useBrowserConfig = async (
   diagnosticsClient?: IDiagnosticsClient,
   earlyConfig?: EarlyConfig,
 ): Promise<IBrowserConfig> => {
-  // set the experimental mutex flag to enable locking in CookieStorage
-  CookieStorage._enableNextFeatures = options._enableNextFeatures || false;
-
   // Step 1: Create identity storage instance
   const identityStorage = options.identityStorage || DEFAULT_IDENTITY_STORAGE;
   let defaultCookieDomain = '';
@@ -305,7 +302,7 @@ export const useBrowserConfig = async (
   // use the getTopLevelDomain function to find the TLD only if identity storage
   // is cookie (because getTopLevelDomain() uses cookies)
   if (identityStorage === DEFAULT_IDENTITY_STORAGE) {
-    defaultCookieDomain = await getTopLevelDomain(undefined, diagnosticsClient);
+    defaultCookieDomain = await getTopLevelDomain(undefined, diagnosticsClient, options._enableNextFeatures);
   }
   const cookieOptions = {
     domain: options.cookieOptions?.domain ?? defaultCookieDomain,
@@ -317,6 +314,7 @@ export const useBrowserConfig = async (
   };
 
   const cookieConfig: CookieStorageConfig = {
+    experimentalCookies: options._enableNextFeatures,
     // if more than one cookie with the same key exists,
     // look for the cookie that has the domain attribute set to cookieOptions.domain
     duplicateResolverFn: (value: string): boolean => {
@@ -527,14 +525,18 @@ const getTopLevelDomainV2 = async (url?: string, diagnosticsClient?: IDiagnostic
   return '';
 };
 
-export const getTopLevelDomain = async (url?: string, diagnosticsClient?: IDiagnosticsClient) => {
+export const getTopLevelDomain = async (
+  url?: string,
+  diagnosticsClient?: IDiagnosticsClient,
+  experimentalCookies?: boolean,
+) => {
   if (
-    !(await new CookieStorage<number>(undefined, { diagnosticsClient }).isEnabled()) ||
+    !(await new CookieStorage<number>(undefined, { diagnosticsClient, experimentalCookies }).isEnabled()) ||
     (!url && (typeof location === 'undefined' || !location.hostname))
   ) {
     return '';
   }
-  if (CookieStorage._enableNextFeatures) {
+  if (experimentalCookies) {
     return getTopLevelDomainV2(url, diagnosticsClient);
   }
 
