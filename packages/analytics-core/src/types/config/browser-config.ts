@@ -103,11 +103,6 @@ export interface ExternalBrowserConfig extends IConfig {
    * @defaultValue `true`
    */
   enableDiagnostics?: boolean;
-  /**
-   * Whether to enable experimental mutex for cookie storage.
-   * @defaultValue `false`
-   */
-  _enableNextFeatures?: boolean;
 }
 
 interface InternalBrowserConfig {
