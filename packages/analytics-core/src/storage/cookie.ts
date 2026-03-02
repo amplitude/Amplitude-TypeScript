@@ -35,56 +35,11 @@ export class CookieStorage<T> implements Storage<T> {
     this.config = config;
   }
 
-  async isEnabledV2(): Promise<boolean> {
-    const testKey = 'AMP_TEST';
-    const testCookieOptions = { ...this.options };
-    const testStorage = new CookieStorage<string>(testCookieOptions);
-    const testValue = String(Date.now());
-    return await testStorage.transaction<boolean>(testKey, (storage: StorageSync<string>) => {
-      try {
-        storage.set(testValue);
-        const value = storage.get();
-        const result = value === testValue;
-        /* istanbul ignore next */
-        if (!result && this.config.diagnosticsClient) {
-          this.config.diagnosticsClient?.recordEvent('cookies.isEnabled.failure', {
-            reason: 'Test Value mismatch',
-            testKey,
-            testValue,
-            sync: true,
-          });
-        }
-        return result;
-      } catch (e) {
-        /* istanbul ignore next */
-        if (this.config.diagnosticsClient) {
-          const errMessage = e instanceof Error ? e.message : String(e);
-          this.config.diagnosticsClient?.recordEvent('cookies.isEnabled.failure', {
-            reason: 'Cookie getter/setter failed',
-            testKey,
-            testValue,
-            error: errMessage,
-            sync: true,
-          });
-        }
-        return false;
-      } finally {
-        // clean-up the AMP_TEST cookie behind us
-        storage.set(null);
-      }
-    });
-  }
-
   async isEnabled(): Promise<boolean> {
     const globalScope = getGlobalScope();
     /* istanbul ignore if */
     if (!globalScope || !globalScope.document) {
       return false;
-    }
-
-    // experimental feature for now that uses navigator.locks
-    if (this.config.experimentalCookies) {
-      return this.isEnabledV2();
     }
 
     const testValue = String(Date.now());
