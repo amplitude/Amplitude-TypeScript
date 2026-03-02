@@ -302,7 +302,7 @@ export const useBrowserConfig = async (
   // use the getTopLevelDomain function to find the TLD only if identity storage
   // is cookie (because getTopLevelDomain() uses cookies)
   if (identityStorage === DEFAULT_IDENTITY_STORAGE) {
-    defaultCookieDomain = await getTopLevelDomain(undefined, diagnosticsClient, options._enableNextFeatures);
+    defaultCookieDomain = await getTopLevelDomain(undefined, diagnosticsClient);
   }
   const cookieOptions = {
     domain: options.cookieOptions?.domain ?? defaultCookieDomain,
@@ -314,7 +314,6 @@ export const useBrowserConfig = async (
   };
 
   const cookieConfig: CookieStorageConfig = {
-    experimentalCookies: options._enableNextFeatures,
     // if more than one cookie with the same key exists,
     // look for the cookie that has the domain attribute set to cookieOptions.domain
     duplicateResolverFn: (value: string): boolean => {
@@ -480,64 +479,12 @@ export const createTransport = (transport?: TransportTypeOrOptions) => {
   return new FetchTransport(headers);
 };
 
-const getTopLevelDomainV2 = async (url?: string, diagnosticsClient?: IDiagnosticsClient) => {
-  const host = url ?? location.hostname;
-  const parts = host.split('.');
-  const levels = [];
-  const storageKey = 'AMP_TLDTEST';
-
-  for (let i = parts.length - 2; i >= 0; --i) {
-    levels.push(parts.slice(i).join('.'));
-  }
-  for (let i = 0; i < levels.length; i++) {
-    const domain = levels[i];
-    const options = {
-      domain: '.' + domain,
-    };
-    const storage = new CookieStorage<number>(options);
-    const result = await storage.transaction<boolean>(storageKey, (storage) => {
-      let value: number | undefined;
-      try {
-        storage.set(1);
-        value = storage.get();
-      } finally {
-        storage.set(null);
-      }
-      return !!value;
-    });
-
-    // if the transaction succeeded, the domain is valid
-    if (result) {
-      return '.' + domain;
-    }
-  }
-
-  // if the transaction failed, the domain is invalid
-  // record a diagnostic event
-  if (diagnosticsClient) {
-    diagnosticsClient.recordEvent('cookies.tld.failure', {
-      reason: `Could not determine TLD for host ${host}`,
-    });
-  }
-
-  // return an empty string to indicate that we couldn't determine the TLD
-  // so fallback to not using a domain in cookies
-  return '';
-};
-
-export const getTopLevelDomain = async (
-  url?: string,
-  diagnosticsClient?: IDiagnosticsClient,
-  experimentalCookies?: boolean,
-) => {
+export const getTopLevelDomain = async (url?: string, diagnosticsClient?: IDiagnosticsClient) => {
   if (
-    !(await new CookieStorage<number>(undefined, { diagnosticsClient, experimentalCookies }).isEnabled()) ||
+    !(await new CookieStorage<number>(undefined, { diagnosticsClient }).isEnabled()) ||
     (!url && (typeof location === 'undefined' || !location.hostname))
   ) {
     return '';
-  }
-  if (experimentalCookies) {
-    return getTopLevelDomainV2(url, diagnosticsClient);
   }
 
   const host = url ?? location.hostname;
