@@ -497,9 +497,14 @@ const getTopLevelDomainV2 = async (url?: string, diagnosticsClient?: IDiagnostic
       domain: '.' + domain,
     };
     const storage = new CookieStorage<number>(options);
-    const result = await storage.transaction<boolean>(storageKey, (syncStorage) => {
-      syncStorage.set(1);
-      const value = syncStorage.get();
+    const result = await storage.transaction<boolean>(storageKey, (storage) => {
+      let value: number | undefined;
+      try {
+        storage.set(1);
+        value = storage.get();
+      } finally {
+        storage.set(null);
+      }
       return !!value;
     });
 
@@ -513,7 +518,7 @@ const getTopLevelDomainV2 = async (url?: string, diagnosticsClient?: IDiagnostic
   // record a diagnostic event
   if (diagnosticsClient) {
     diagnosticsClient.recordEvent('cookies.tld.failure', {
-      reason: `Could not determine TLD for host ${host} using transaction`,
+      reason: `Could not determine TLD for host ${host}`,
     });
   }
 

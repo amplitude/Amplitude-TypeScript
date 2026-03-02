@@ -20,6 +20,12 @@ type GlobalScopeWithCookieStore = {
   cookieStore?: CookieStore;
 } & typeof global;
 
+/* istanbul ignore next */
+const getLocks = (): typeof global.navigator.locks | undefined => {
+  const globalScope = getGlobalScope();
+  return globalScope?.navigator?.locks;
+};
+
 export class CookieStorage<T> implements Storage<T> {
   options: CookieStorageOptions;
   config: CookieStorageConfig;
@@ -35,13 +41,14 @@ export class CookieStorage<T> implements Storage<T> {
     const testKey = 'AMP_TEST';
     const testCookieOptions = { ...this.options };
     const testStorage = new CookieStorage<string>(testCookieOptions);
-    return await testStorage.transaction<boolean>(testKey, (syncStorage) => {
-      const testValue = String(Date.now());
+    const testValue = String(Date.now());
+    return await testStorage.transaction<boolean>(testKey, (storage: StorageSync<string>) => {
       try {
-        syncStorage.set(testValue);
-        const value = syncStorage.get();
+        storage.set(testValue);
+        const value = storage.get();
+        const result = value === testValue;
         /* istanbul ignore next */
-        if (!value && this.config.diagnosticsClient) {
+        if (!result && this.config.diagnosticsClient) {
           this.config.diagnosticsClient?.recordEvent('cookies.isEnabled.failure', {
             reason: 'Test Value mismatch',
             testKey,
@@ -49,7 +56,7 @@ export class CookieStorage<T> implements Storage<T> {
             sync: true,
           });
         }
-        return !!value;
+        return result;
       } catch (e) {
         /* istanbul ignore next */
         if (this.config.diagnosticsClient) {
@@ -65,7 +72,7 @@ export class CookieStorage<T> implements Storage<T> {
         return false;
       } finally {
         // clean-up the AMP_TEST cookie behind us
-        syncStorage.set(null);
+        storage.set(null);
       }
     });
   }
@@ -119,11 +126,11 @@ export class CookieStorage<T> implements Storage<T> {
   }
 
   async get(key: string): Promise<T | undefined> {
-    return this.getSync(key);
+    const value = await this.getRaw(key);
+    return this.decodeCookieValue(key, value);
   }
 
-  private getSync(key: string): T | undefined {
-    const value = this.getRawSync(key);
+  private decodeCookieValue(key: string, value: string | undefined): T | undefined {
     if (!value) {
       return undefined;
     }
@@ -139,6 +146,11 @@ export class CookieStorage<T> implements Storage<T> {
       console.error(`Amplitude Logger [Error]: Failed to parse cookie value for key: ${key}, value: ${value}`);
       return undefined;
     }
+  }
+
+  private getSync(key: string): T | undefined {
+    const value = this.getRawSync(key);
+    return this.decodeCookieValue(key, value);
   }
 
   async getRaw(key: string): Promise<string | undefined> {
@@ -255,17 +267,17 @@ export class CookieStorage<T> implements Storage<T> {
 
   async transaction<ReturnType>(
     key: string,
-    callback: (syncStorage: StorageSync<T>) => ReturnType,
+    callback: (storageSync: StorageSync<T>) => ReturnType,
   ): Promise<ReturnType> {
-    const locks = getGlobalScope()?.navigator?.locks;
+    const locks = getLocks();
     const callbackWrapper = () => {
       // construct a sync storage object that is scoped to
       // Cookie with name <key>
-      const syncStorage: StorageSync<T> = {
+      const storageSync: StorageSync<T> = {
         get: () => this.getSync(key),
         set: (value: T | null) => this.setSync(key, value),
       };
-      return callback(syncStorage);
+      return callback(storageSync);
     };
 
     // if 'locks' is missing, it is a legacy browser, just call the callback directly
@@ -273,7 +285,7 @@ export class CookieStorage<T> implements Storage<T> {
     if (!locks) {
       return callbackWrapper();
     }
-    return (await locks.request<ReturnType>(`com.amplitude:cookie-lock:${key}`, callbackWrapper)) as ReturnType;
+    return (await locks.request(`com.amplitude:cookie-lock:${key}`, callbackWrapper)) as ReturnType;
   }
 }
 
