@@ -245,15 +245,12 @@ describe('config', () => {
         options: {},
         config: {},
         isEnabled: async () => false,
-        isEnabledSync: () => false,
         get: async () => '',
         getRaw: async () => '',
-        getRawSync: () => '',
-        setSync: () => undefined,
         set: async () => undefined,
         remove: async () => undefined,
         reset: async () => undefined,
-      });
+      } as unknown as BrowserUtils.CookieStorage<unknown>);
       const localStorageConstructor = jest.spyOn(LocalStorageModule, 'LocalStorage').mockReturnValueOnce({
         isEnabled: async () => false,
         get: async () => '',
@@ -318,7 +315,7 @@ describe('config', () => {
         ...testCookieStorage,
         options: {},
         config: {},
-      } as unknown as BrowserUtils.CookieStorage<number>);
+      } as unknown as BrowserUtils.CookieStorage<unknown>);
       const domain = await Config.getTopLevelDomain();
       expect(domain).toBe('');
     });
@@ -346,12 +343,12 @@ describe('config', () => {
           ...testCookieStorage,
           options: {},
           config: {},
-        } as unknown as BrowserUtils.CookieStorage<number>)
+        } as unknown as BrowserUtils.CookieStorage<unknown>)
         .mockReturnValue({
           ...actualCookieStorage,
           options: {},
           config: {},
-        } as unknown as BrowserUtils.CookieStorage<number>);
+        } as unknown as BrowserUtils.CookieStorage<unknown>);
       expect(await Config.getTopLevelDomain('www.legislation.gov.uk')).toBe('.legislation.gov.uk');
     });
 
