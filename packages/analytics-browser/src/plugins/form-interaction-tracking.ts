@@ -89,6 +89,8 @@ export const formInteractionTracking = (): EnrichmentPlugin => {
               [FORM_DESTINATION]: formDestination,
             });
           }
+          // left the page indicating
+          hasFormChanged = false;
         };
 
         const win = getGlobalScope() as Pick<Window, 'addEventListener' | 'removeEventListener'>;
