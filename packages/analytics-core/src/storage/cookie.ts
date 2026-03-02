@@ -1,4 +1,4 @@
-import { Storage, CookieStorageOptions, CookieStorageConfig } from '../types/storage';
+import { Storage, StorageSync, CookieStorageOptions, CookieStorageConfig } from '../types/storage';
 import { getGlobalScope } from '../global-scope';
 import { UUID } from '../utils/uuid';
 
@@ -31,40 +31,43 @@ export class CookieStorage<T> implements Storage<T> {
 
   static _enableNextFeatures = false;
 
-  isEnabledSync(): boolean {
-    const testValue = String(Date.now());
+  async isEnabledV2(): Promise<boolean> {
+    const testKey = 'AMP_TEST';
     const testCookieOptions = { ...this.options };
     const testStorage = new CookieStorage<string>(testCookieOptions);
-    const testKey = 'AMP_TEST';
-    try {
-      testStorage.setSync(testKey, testValue);
-      const value = testStorage.getRawSync(testKey);
-      /* istanbul ignore next */
-      if (!value && this.config.diagnosticsClient) {
-        this.config.diagnosticsClient?.recordEvent('cookies.isEnabled.failure', {
-          reason: 'Test Value mismatch',
-          testKey,
-          testValue,
-          sync: true,
-        });
+    return await testStorage.transaction<boolean>(testKey, (syncStorage) => {
+      const testValue = String(Date.now());
+      try {
+        syncStorage.set(testValue);
+        const value = syncStorage.get();
+        /* istanbul ignore next */
+        if (!value && this.config.diagnosticsClient) {
+          this.config.diagnosticsClient?.recordEvent('cookies.isEnabled.failure', {
+            reason: 'Test Value mismatch',
+            testKey,
+            testValue,
+            sync: true,
+          });
+        }
+        return !!value;
+      } catch (e) {
+        /* istanbul ignore next */
+        if (this.config.diagnosticsClient) {
+          const errMessage = e instanceof Error ? e.message : String(e);
+          this.config.diagnosticsClient?.recordEvent('cookies.isEnabled.failure', {
+            reason: 'Cookie getter/setter failed',
+            testKey,
+            testValue,
+            error: errMessage,
+            sync: true,
+          });
+        }
+        return false;
+      } finally {
+        // clean-up the AMP_TEST cookie behind us
+        syncStorage.set(null);
       }
-      return !!value;
-    } catch (e) {
-      /* istanbul ignore next */
-      if (this.config.diagnosticsClient) {
-        const errMessage = e instanceof Error ? e.message : String(e);
-        this.config.diagnosticsClient?.recordEvent('cookies.isEnabled.failure', {
-          reason: 'Cookie getter/setter failed',
-          testKey,
-          testValue,
-          error: errMessage,
-          sync: true,
-        });
-      }
-      return false;
-    } finally {
-      testStorage.setSync(testKey, null);
-    }
+    });
   }
 
   async isEnabled(): Promise<boolean> {
@@ -76,7 +79,7 @@ export class CookieStorage<T> implements Storage<T> {
 
     // experimental feature for now that uses navigator.locks
     if (CookieStorage._enableNextFeatures) {
-      return this.isEnabledSync();
+      return this.isEnabledV2();
     }
 
     const testValue = String(Date.now());
@@ -116,7 +119,11 @@ export class CookieStorage<T> implements Storage<T> {
   }
 
   async get(key: string): Promise<T | undefined> {
-    const value = await this.getRaw(key);
+    return this.getSync(key);
+  }
+
+  private getSync(key: string): T | undefined {
+    const value = this.getRawSync(key);
     if (!value) {
       return undefined;
     }
@@ -167,7 +174,7 @@ export class CookieStorage<T> implements Storage<T> {
     return this.getRawSync(key);
   }
 
-  getRawSync(key: string): string | undefined {
+  private getRawSync(key: string): string | undefined {
     const globalScope = getGlobalScope();
     const cookies = (globalScope?.document?.cookie.split('; ') ?? []).filter((c) => c.indexOf(key + '=') === 0);
     let match: string | undefined = undefined;
@@ -204,7 +211,7 @@ export class CookieStorage<T> implements Storage<T> {
     this.setSync(key, value);
   }
 
-  setSync(key: string, value: T | null): void {
+  private setSync(key: string, value: T | null): void {
     try {
       const expirationDays = this.options.expirationDays ?? 0;
       const expires = value !== null ? expirationDays : -1;
@@ -244,6 +251,29 @@ export class CookieStorage<T> implements Storage<T> {
 
   async reset(): Promise<void> {
     return;
+  }
+
+  async transaction<ReturnType>(
+    key: string,
+    callback: (syncStorage: StorageSync<T>) => ReturnType,
+  ): Promise<ReturnType> {
+    const locks = getGlobalScope()?.navigator?.locks;
+    const callbackWrapper = () => {
+      // construct a sync storage object that is scoped to
+      // Cookie with name <key>
+      const syncStorage: StorageSync<T> = {
+        get: () => this.getSync(key),
+        set: (value: T | null) => this.setSync(key, value),
+      };
+      return callback(syncStorage);
+    };
+
+    // if 'locks' is missing, it is a legacy browser, just call the callback directly
+    // and settle for a transaction that isn't isolated across tabs
+    if (!locks) {
+      return callbackWrapper();
+    }
+    return (await locks.request<ReturnType>(`com.amplitude:cookie-lock:${key}`, callbackWrapper)) as ReturnType;
   }
 }
 

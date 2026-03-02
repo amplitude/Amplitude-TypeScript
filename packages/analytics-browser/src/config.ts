@@ -488,7 +488,7 @@ export const createTransport = (transport?: TransportTypeOrOptions) => {
   return new FetchTransport(headers);
 };
 
-const getTopLevelDomainSync = (url?: string, diagnosticsClient?: IDiagnosticsClient) => {
+const getTopLevelDomainV2 = async (url?: string, diagnosticsClient?: IDiagnosticsClient) => {
   const host = url ?? location.hostname;
   const parts = host.split('.');
   const levels = [];
@@ -503,22 +503,28 @@ const getTopLevelDomainSync = (url?: string, diagnosticsClient?: IDiagnosticsCli
       domain: '.' + domain,
     };
     const storage = new CookieStorage<number>(options);
-    try {
-      storage.setSync(storageKey, 1);
-      const value = storage.getRawSync(storageKey);
-      if (value) {
-        return '.' + domain;
-      }
-    } finally {
-      storage.setSync(storageKey, null);
+    const result = await storage.transaction<boolean>(storageKey, (syncStorage) => {
+      syncStorage.set(1);
+      const value = syncStorage.get();
+      return !!value;
+    });
+
+    // if the transaction succeeded, the domain is valid
+    if (result) {
+      return '.' + domain;
     }
   }
 
+  // if the transaction failed, the domain is invalid
+  // record a diagnostic event
   if (diagnosticsClient) {
     diagnosticsClient.recordEvent('cookies.tld.failure', {
-      reason: `Could not determine TLD for host ${host}`,
+      reason: `Could not determine TLD for host ${host} using transaction`,
     });
   }
+
+  // return an empty string to indicate that we couldn't determine the TLD
+  // so fallback to not using a domain in cookies
   return '';
 };
 
@@ -530,7 +536,7 @@ export const getTopLevelDomain = async (url?: string, diagnosticsClient?: IDiagn
     return '';
   }
   if (CookieStorage._enableNextFeatures) {
-    return getTopLevelDomainSync(url, diagnosticsClient);
+    return getTopLevelDomainV2(url, diagnosticsClient);
   }
 
   const host = url ?? location.hostname;
