@@ -566,7 +566,7 @@ describe('destination', () => {
     });
 
     test.each([
-      [false, true],
+      [false, false],
       [true, true],
     ])(
       'should keep compression enabled for default server URL (experimental=%s)',
@@ -643,6 +643,7 @@ describe('destination', () => {
           apiKey: API_KEY,
           serverUrl: customServerUrl,
           enableRequestBodyCompression,
+          _enableRequestBodyCompressionExperimental: true, // Delete this when enableRequestBodyCompressionExperimental is deleted
         });
 
         await destination.send([context]);
@@ -657,7 +658,7 @@ describe('destination', () => {
 
     test.each([
       [false, false, false],
-      [true, false, true],
+      [true, false, false],
     ])(
       'should OR experimental override with custom server URL setting (experimental=%s, enable=%s)',
       async (enableRequestBodyCompressionExperimental, enableRequestBodyCompression, expectedShouldCompress) => {

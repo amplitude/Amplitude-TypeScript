@@ -5,7 +5,7 @@ declare const CompressionStream:
     }
   | undefined;
 
-export const MIN_GZIP_UPLOAD_BODY_SIZE_BYTES = 2 * 1024 * 1024;
+export const MIN_GZIP_UPLOAD_BODY_SIZE_BYTES = 2 * 1024;
 
 /**
  * Returns true if CompressionStream is available (e.g. in supported browsers).

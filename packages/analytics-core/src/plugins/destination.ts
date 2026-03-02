@@ -245,7 +245,7 @@ export class Destination implements DestinationPlugin {
       const res = await this.config.transportProvider.send(
         serverUrl,
         payload,
-        this.config._enableRequestBodyCompressionExperimental || shouldCompressUploadBody,
+        this.config._enableRequestBodyCompressionExperimental && shouldCompressUploadBody,
       );
       if (res === null) {
         this.fulfillRequest(list, 0, UNEXPECTED_ERROR_MESSAGE);

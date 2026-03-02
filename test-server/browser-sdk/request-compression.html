@@ -157,6 +157,7 @@
         const { transport, enableRequestBodyCompression, serverUrl } = getConfig();
         try {
           amplitude.reset();
+          amplitude._enableRequestBodyCompressionExperimental(true);
           amplitude.init(
             import.meta.env.VITE_AMPLITUDE_API_KEY,
             import.meta.env.VITE_AMPLITUDE_USER_ID || 'request-compression-test-user',
