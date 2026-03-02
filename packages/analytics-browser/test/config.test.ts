@@ -504,7 +504,6 @@ describe('config', () => {
     });
 
     beforeEach(() => {
-      BrowserUtils.CookieStorage._enableNextFeatures = true;
       const g = core.getGlobalScope() as any;
       g.navigator = g.navigator ?? {};
       g.navigator.locks = createLocksMock();
@@ -513,7 +512,6 @@ describe('config', () => {
     });
 
     afterEach(() => {
-      BrowserUtils.CookieStorage._enableNextFeatures = false;
       const g = core.getGlobalScope() as any;
       if (g?.navigator && 'locks' in g.navigator) {
         delete g.navigator.locks;
@@ -534,7 +532,7 @@ describe('config', () => {
         .spyOn(BrowserUtils.CookieStorage.prototype as any, 'getSync')
         .mockReturnValue(undefined);
 
-      const result = await Config.getTopLevelDomain('www.amplitude.com', mockDiagnosticsClient);
+      const result = await Config.getTopLevelDomain('www.amplitude.com', mockDiagnosticsClient, true);
       expect(result).toBe('');
       expect(mockDiagnosticsClient.recordEvent).toHaveBeenCalledWith('cookies.tld.failure', {
         reason: 'Could not determine TLD for host www.amplitude.com',
@@ -547,7 +545,7 @@ describe('config', () => {
       // For www.legislation.gov.uk levels are .gov.uk, .legislation.gov.uk, .www.legislation.gov.uk; first get undefined, second 1
       cookieGetSpy.mockReturnValueOnce(undefined).mockReturnValueOnce(1);
 
-      const result = await Config.getTopLevelDomain('www.legislation.gov.uk');
+      const result = await Config.getTopLevelDomain('www.legislation.gov.uk', undefined, true);
       expect(result).toBe('.legislation.gov.uk');
       cookieGetSpy.mockRestore();
     });
@@ -560,7 +558,7 @@ describe('config', () => {
       });
       const cookieGetSpy = jest.spyOn(BrowserUtils.CookieStorage.prototype as any, 'getSync');
       cookieGetSpy.mockReturnValueOnce(undefined).mockReturnValueOnce(1);
-      const result = await Config.getTopLevelDomain();
+      const result = await Config.getTopLevelDomain(undefined, undefined, true);
       expect(result).toBe('.legislation.gov.uk');
       cookieGetSpy.mockRestore();
       Object.defineProperty(window, 'location', {
