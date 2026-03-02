@@ -412,7 +412,7 @@ describe('config', () => {
         ...testCookieStorage,
         options: {},
         config: {},
-      } as unknown as BrowserUtils.CookieStorage<number>);
+      } as unknown as BrowserUtils.CookieStorage<unknown>);
       const domain = await Config.getTopLevelDomain();
       expect(domain).toBe('');
     });
@@ -440,12 +440,12 @@ describe('config', () => {
           ...testCookieStorage,
           options: {},
           config: {},
-        } as unknown as BrowserUtils.CookieStorage<number>)
+        } as unknown as BrowserUtils.CookieStorage<unknown>)
         .mockReturnValue({
           ...actualCookieStorage,
           options: {},
           config: {},
-        } as unknown as BrowserUtils.CookieStorage<number>);
+        } as unknown as BrowserUtils.CookieStorage<unknown>);
       expect(await Config.getTopLevelDomain('www.legislation.gov.uk')).toBe('.legislation.gov.uk');
     });
 
@@ -531,7 +531,7 @@ describe('config', () => {
         _setSampleRate: jest.fn(),
       };
       const cookieGetSpy = jest
-        .spyOn(BrowserUtils.CookieStorage.prototype as any, 'getRawSync')
+        .spyOn(BrowserUtils.CookieStorage.prototype as any, 'getSync')
         .mockReturnValue(undefined);
 
       const result = await Config.getTopLevelDomain('www.amplitude.com', mockDiagnosticsClient);
@@ -543,7 +543,7 @@ describe('config', () => {
     });
 
     test('uses url parameter when provided', async () => {
-      const cookieGetSpy = jest.spyOn(BrowserUtils.CookieStorage.prototype as any, 'getRawSync');
+      const cookieGetSpy = jest.spyOn(BrowserUtils.CookieStorage.prototype as any, 'getSync');
       // For www.legislation.gov.uk levels are .gov.uk, .legislation.gov.uk, .www.legislation.gov.uk; first get undefined, second 1
       cookieGetSpy.mockReturnValueOnce(undefined).mockReturnValueOnce(1);
 
@@ -558,7 +558,7 @@ describe('config', () => {
         value: { hostname: 'www.legislation.gov.uk' },
         configurable: true,
       });
-      const cookieGetSpy = jest.spyOn(BrowserUtils.CookieStorage.prototype as any, 'getRawSync');
+      const cookieGetSpy = jest.spyOn(BrowserUtils.CookieStorage.prototype as any, 'getSync');
       cookieGetSpy.mockReturnValueOnce(undefined).mockReturnValueOnce(1);
       const result = await Config.getTopLevelDomain();
       expect(result).toBe('.legislation.gov.uk');

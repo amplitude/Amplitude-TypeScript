@@ -6,6 +6,7 @@
 import { CookieStorage } from '../../src/storage/cookie';
 import { isDomainEqual, decodeCookieValue } from '../../src/index';
 import * as GlobalScopeModule from '../../src/global-scope';
+import { StorageSync } from 'src/types/storage';
 
 describe('cookies', () => {
   describe('isEnabled', () => {
@@ -496,6 +497,63 @@ describe('cookies', () => {
 
     test('should return undefined for invalid encoded value', () => {
       expect(decodeCookieValue('not-valid-base64!')).toBe(undefined);
+    });
+  });
+
+  describe('transaction', () => {
+    test('should return the result of the callback', async () => {
+      const cookies = new CookieStorage();
+      const result = await cookies.transaction('test', () => {
+        return 'test';
+      });
+      expect(result).toBe('test');
+    });
+
+    describe('with mock navigator.locks', () => {
+      let lockCallList: string[] = [];
+      // class MockStorageSync implements StorageSync<string> {
+      //   _cache: Map<string, string> = new Map();
+      //   get(): string | undefined {
+      //     return this._cache.get('test');
+      //   }
+      //   set(value: string | null): void {
+      //     if (value) {
+      //       this._cache.set('test', value);
+      //     } else {
+      //       this._cache.delete('test');
+      //     }
+      //   }
+      // }
+
+      beforeEach(() => {
+        Object.defineProperty(global, 'navigator', {
+          value: {
+            locks: {
+              request: (lockName: string, callback: () => Promise<any>) => {
+                lockCallList.push(lockName);
+                return callback();
+              },
+            },
+          },
+        });
+      });
+      afterEach(() => {
+        lockCallList = [];
+        Object.defineProperty(global, 'navigator', {
+          value: {
+            locks: undefined,
+          },
+        });
+      });
+      test('should return the result of the callback', async () => {
+        const cookies = new CookieStorage();
+        const result = await cookies.transaction('test', (storageSync: StorageSync<unknown>) => {
+          storageSync.set('TEST_VALUE');
+          return storageSync.get() as string;
+        });
+        expect(result).toBe('TEST_VALUE');
+        expect(lockCallList).toEqual(['com.amplitude:cookie-lock:test']);
+      });
     });
   });
 });
