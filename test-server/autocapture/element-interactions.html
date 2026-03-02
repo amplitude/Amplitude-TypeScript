@@ -259,8 +259,6 @@
 
     <script type="module">
       import * as amplitude from '@amplitude/analytics-browser';
-    
-      const _enableNextFeatures = true;
 
       window.amplitude = amplitude;
       const frustrationInteractions = {
@@ -275,7 +273,6 @@
         import.meta.env.VITE_AMPLITUDE_API_KEY,
         import.meta.env.VITE_AMPLITUDE_USER_ID || 'amplitude-typescript test user',
         {
-          _enableNextFeatures,
           fetchRemoteConfig: false,
           logLevel: 'debug',
           autocapture: {
