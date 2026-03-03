@@ -119,7 +119,7 @@ describe('index', () => {
     expect(typeof IdentityEventSender).toBe('function');
     expect(() => new IdentityEventSender()).not.toThrow();
     expect(typeof compressToGzipArrayBuffer).toBe('function');
-    expect(MIN_GZIP_UPLOAD_BODY_SIZE_BYTES).toBe(2 * 1024 * 1024);
+    expect(MIN_GZIP_UPLOAD_BODY_SIZE_BYTES).toBe(2 * 1024);
     expect(typeof CookieStorage).toBe('function');
     expect(() => new CookieStorage()).not.toThrow();
     expect(typeof FetchTransport).toBe('function');

@@ -73,6 +73,12 @@ export interface IConfig {
    */
   enableRequestBodyCompression?: boolean;
   /**
+   * @experimental
+   * WARNING: This config is for internal testing only and is not part of the public API.
+   * It may be changed or removed at any time without notice.
+   */
+  _enableRequestBodyCompressionExperimental?: boolean;
+  /**
    * The URL where events are upload to.
    */
   serverUrl?: string;

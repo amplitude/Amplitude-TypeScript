@@ -110,6 +110,7 @@ export class BrowserConfig extends Config implements IBrowserConfig {
     public remoteConfig?: RemoteConfigOptions,
     public topLevelDomain?: string,
     public enableRequestBodyCompression: boolean = false,
+    public _enableRequestBodyCompressionExperimental: boolean = false,
   ) {
     super({ apiKey, storageProvider, transportProvider: createTransport(transport) });
     this._cookieStorage = cookieStorage;
@@ -414,6 +415,7 @@ export const useBrowserConfig = async (
     options.remoteConfig,
     topLevelDomain,
     options.enableRequestBodyCompression,
+    amplitudeInstance._enableRequestBodyCompressionExperimentalValue,
   );
 
   if (!(await browserConfig.storageProvider.isEnabled())) {

@@ -2384,4 +2384,27 @@ describe('browser-client', () => {
       expect(ctx.config.loggerProvider.error).not.toHaveBeenCalled();
     });
   });
+
+  describe('_enableRequestBodyCompressionExperimental', () => {
+    test('should default to false', async () => {
+      await client.init(apiKey).promise;
+      expect(client.config._enableRequestBodyCompressionExperimental).toBe(false);
+    });
+
+    test('should set experimental request body compression when config is not initialized', async () => {
+      client._enableRequestBodyCompressionExperimental(true);
+
+      await client.init(apiKey).promise;
+
+      expect(client.config._enableRequestBodyCompressionExperimental).toBe(true);
+    });
+
+    test('should not set experimental request body compression when config is already initialized', async () => {
+      await client.init(apiKey).promise;
+
+      client._enableRequestBodyCompressionExperimental(true);
+
+      expect(client.config._enableRequestBodyCompressionExperimental).toBe(false);
+    });
+  });
 });
