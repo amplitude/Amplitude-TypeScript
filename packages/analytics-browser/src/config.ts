@@ -554,6 +554,8 @@ const getTopLevelDomainV2 = async (url?: string, diagnosticsClient?: IDiagnostic
       try {
         storage.set(1);
         value = storage.get();
+      } catch (e) {
+        // ignore errors move to next level
       } finally {
         storage.set(null);
       }
