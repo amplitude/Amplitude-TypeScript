@@ -16,7 +16,13 @@ import {
   SUCCESS_MESSAGE,
   UNEXPECTED_ERROR_MESSAGE,
 } from '../types/messages';
-import { STORAGE_PREFIX } from '../types/constants';
+import {
+  AMPLITUDE_BATCH_SERVER_URL,
+  AMPLITUDE_SERVER_URL,
+  EU_AMPLITUDE_BATCH_SERVER_URL,
+  EU_AMPLITUDE_SERVER_URL,
+  STORAGE_PREFIX,
+} from '../types/constants';
 import { chunk } from '../utils/chunk';
 import { buildResult } from '../utils/result-builder';
 import { createServerConfig, RequestMetadata } from '../config';
@@ -33,6 +39,21 @@ export interface Context {
   callback: EventCallback;
   timeout: number;
 }
+
+const DEFAULT_AMPLITUDE_SERVER_URLS = new Set([
+  AMPLITUDE_SERVER_URL,
+  EU_AMPLITUDE_SERVER_URL,
+  AMPLITUDE_BATCH_SERVER_URL,
+  EU_AMPLITUDE_BATCH_SERVER_URL,
+]);
+
+const shouldCompressUploadBodyForRequest = (serverUrl: string, enableRequestBodyCompression = false) => {
+  if (DEFAULT_AMPLITUDE_SERVER_URLS.has(serverUrl)) {
+    return true;
+  }
+
+  return enableRequestBodyCompression;
+};
 
 function getErrorMessage(error: unknown) {
   if (error instanceof Error) return error.message;
@@ -217,7 +238,11 @@ export class Destination implements DestinationPlugin {
 
     try {
       const { serverUrl } = createServerConfig(this.config.serverUrl, this.config.serverZone, this.config.useBatch);
-      const res = await this.config.transportProvider.send(serverUrl, payload);
+      const shouldCompressUploadBody = shouldCompressUploadBodyForRequest(
+        serverUrl,
+        this.config.enableRequestBodyCompression,
+      );
+      const res = await this.config.transportProvider.send(serverUrl, payload, shouldCompressUploadBody);
       if (res === null) {
         this.fulfillRequest(list, 0, UNEXPECTED_ERROR_MESSAGE);
         return;
