@@ -3,6 +3,24 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.36.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.35.4...@amplitude/analytics-browser@2.36.0) (2026-03-03)
+
+
+### Bug Fixes
+
+* make default excluded referrers work better ([#1559](https://github.com/amplitude/Amplitude-TypeScript/issues/1559)) ([4bcca98](https://github.com/amplitude/Amplitude-TypeScript/commit/4bcca98e414833d7b7b3e4938ce46f55e6dad472))
+
+
+### Features
+
+* **analytics-browser:** add config attribution.excludeInternalReferrers ([#1548](https://github.com/amplitude/Amplitude-TypeScript/issues/1548)) ([df16648](https://github.com/amplitude/Amplitude-TypeScript/commit/df1664856bea96afde1dbac8dc523b4d69925c2a))
+* **analytics-browser:** support gzip request body compression ([#1542](https://github.com/amplitude/Amplitude-TypeScript/issues/1542)) ([0d2a7d2](https://github.com/amplitude/Amplitude-TypeScript/commit/0d2a7d2d873c86d8854dad16109af461ad392166))
+* manual opt in gzip ([#1568](https://github.com/amplitude/Amplitude-TypeScript/issues/1568)) ([303c130](https://github.com/amplitude/Amplitude-TypeScript/commit/303c130429c51b0913f3903db4ace5263e1c78e7))
+
+
+
+
+
 ## [2.35.4](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.35.3...@amplitude/analytics-browser@2.35.4) (2026-02-26)
 
 **Note:** Version bump only for package @amplitude/analytics-browser

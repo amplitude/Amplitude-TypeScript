@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.23.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.22.3...@amplitude/plugin-autocapture-browser@1.23.0) (2026-03-03)
+
+
+### Features
+
+* manual opt in gzip ([#1568](https://github.com/amplitude/Amplitude-TypeScript/issues/1568)) ([303c130](https://github.com/amplitude/Amplitude-TypeScript/commit/303c130429c51b0913f3903db4ace5263e1c78e7))
+
+
+
+
+
 ## [1.22.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.22.2...@amplitude/plugin-autocapture-browser@1.22.3) (2026-02-26)
 
 **Note:** Version bump only for package @amplitude/plugin-autocapture-browser

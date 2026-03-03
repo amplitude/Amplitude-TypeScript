@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.0.0-beta.39](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/unified@1.0.0-beta.38...@amplitude/unified@1.0.0-beta.39) (2026-03-03)
+
+
+### Features
+
+* manual opt in gzip ([#1568](https://github.com/amplitude/Amplitude-TypeScript/issues/1568)) ([303c130](https://github.com/amplitude/Amplitude-TypeScript/commit/303c130429c51b0913f3903db4ace5263e1c78e7))
+
+
+
+
+
 # [1.0.0-beta.38](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/unified@1.0.0-beta.37...@amplitude/unified@1.0.0-beta.38) (2026-02-26)
 
 **Note:** Version bump only for package @amplitude/unified
