@@ -15,7 +15,6 @@ import {
   UUID,
   CookieStorage,
   getCookieName,
-  FetchTransport,
   getQueryParams,
   UserSession,
   BrowserOptions,
@@ -36,6 +35,7 @@ import {
 import { LocalStorage } from './storage/local-storage';
 import { SessionStorage } from './storage/session-storage';
 import { XHRTransport } from './transports/xhr';
+import { FetchTransport } from './transports/fetch';
 import { SendBeaconTransport } from './transports/send-beacon';
 import { parseLegacyCookies } from './cookie-migration';
 import { DEFAULT_IDENTITY_STORAGE, DEFAULT_SERVER_ZONE } from './constants';
@@ -109,6 +109,8 @@ export class BrowserConfig extends Config implements IBrowserConfig {
     public diagnosticsClient?: IDiagnosticsClient,
     public remoteConfig?: RemoteConfigOptions,
     public topLevelDomain?: string,
+    public enableRequestBodyCompression: boolean = false,
+    public _enableRequestBodyCompressionExperimental: boolean = false,
   ) {
     super({ apiKey, storageProvider, transportProvider: createTransport(transport) });
     this._cookieStorage = cookieStorage;
@@ -413,6 +415,8 @@ export const useBrowserConfig = async (
     diagnosticsClient,
     options.remoteConfig,
     defaultCookieDomain,
+    options.enableRequestBodyCompression,
+    amplitudeInstance._enableRequestBodyCompressionExperimentalValue,
   );
 
   if (!(await browserConfig.storageProvider.isEnabled())) {
@@ -477,6 +481,8 @@ export const createTransport = (transport?: TransportTypeOrOptions) => {
     // SendBeacon does not support custom headers
     return new SendBeaconTransport();
   }
+  // Keep a browser-local fetch transport for gzip support.
+  // TODO: Merge back to core FetchTransport after React Native supports gzip.
   return new FetchTransport(headers);
 };
 

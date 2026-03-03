@@ -122,6 +122,7 @@ interface InternalBrowserConfig {
   remoteConfigClient?: IRemoteConfigClient;
   deferredSessionId?: number;
   topLevelDomain?: string;
+  _enableRequestBodyCompressionExperimental?: boolean;
 }
 
 /**
@@ -312,7 +313,7 @@ export interface CookieOptions {
   upgrade?: boolean;
 }
 
-type HiddenOptions = 'apiKey' | 'transportProvider' | 'requestMetadata';
+type HiddenOptions = 'apiKey' | 'transportProvider' | 'requestMetadata' | '_enableRequestBodyCompressionExperimental';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface BrowserOptions extends Omit<Partial<ExternalBrowserConfig>, HiddenOptions> {}

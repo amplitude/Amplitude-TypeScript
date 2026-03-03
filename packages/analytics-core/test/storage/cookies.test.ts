@@ -463,6 +463,16 @@ describe('cookies', () => {
       expect(isDomainEqual('domain.com', 'www.domain.com')).toBe(false);
       expect(isDomainEqual('www.domain.com', 'domain.com')).toBe(false);
     });
+
+    describe('empty values and empty strings', () => {
+      test('should return true when both domains are empty strings', () => {
+        expect(isDomainEqual('', '')).toBe(true);
+      });
+      test('should return false if one domain is empty string and other is falsey', () => {
+        expect(isDomainEqual('', undefined)).toBe(false);
+        expect(isDomainEqual(undefined, '')).toBe(false);
+      });
+    });
   });
 
   describe('decodeCookieValue', () => {
@@ -485,11 +495,13 @@ describe('cookies', () => {
 
   describe('transaction', () => {
     test('should return the result of the callback', async () => {
-      const cookies = new CookieStorage();
-      const result = await cookies.transaction('test', () => {
-        return 'test';
+      const cookies = new CookieStorage<string>();
+      const result = await cookies.transaction('test', (storageSync: StorageSync<string>) => {
+        storageSync.set('TEST_VALUE_NO_LOCK');
+        return storageSync.get();
       });
-      expect(result).toBe('test');
+      expect(result).toBe('TEST_VALUE_NO_LOCK');
+      expect(await cookies.get('test')).toBe('TEST_VALUE_NO_LOCK');
     });
 
     describe('with mock navigator.locks', () => {
@@ -516,12 +528,14 @@ describe('cookies', () => {
         });
       });
       test('should return the result of the callback', async () => {
-        const cookies = new CookieStorage();
-        const result = await cookies.transaction('test', (storageSync: StorageSync<unknown>) => {
-          storageSync.set('TEST_VALUE');
-          return storageSync.get() as string;
+        const cookies = new CookieStorage<string>();
+        const result = await cookies.transaction('test', (storageSync: StorageSync<string>) => {
+          storageSync.set('TEST_VALUE_WITH_LOCK');
+          return storageSync.get();
         });
-        expect(result).toBe('TEST_VALUE');
+        expect(result).toBe('TEST_VALUE_WITH_LOCK');
+        expect(await cookies.get('test')).toBe('TEST_VALUE_WITH_LOCK');
+        await cookies.remove('test');
         expect(lockCallList).toEqual(['com.amplitude:cookie-lock:test']);
       });
     });
