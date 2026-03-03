@@ -25,6 +25,8 @@
           return;
         }
 
+        //amplitude._enableRequestBodyCompressionExperimental(true);
+
         // Use test defaults; set VITE_AMPLITUDE_API_KEY in .env when using the Vite dev server with module-based pages
         var apiKey = import.meta.env.VITE_AMPLITUDE_API_KEY;
         var userId = import.meta.env.VITE_AMPLITUDE_USER_ID || 'analytics-browser-local-test-user';
@@ -41,18 +43,14 @@
             formInteractions: true,
             attribution: {
               excludeReferrers: [],
-              excludeInternalReferrers: {
-                condition: 'always',
-              },
+              excludeInternalReferrers: true,
             },
             webVitals: true,
           }
         });
 
         // add test instances to test concurrency issues
-        amplitude.createInstance('newInstance1').init(apiKey, userId);
-        amplitude.createInstance('newInstance2').init(apiKey, userId);
-        amplitude.createInstance('newInstance3').init(apiKey, userId);
+        // amplitude.createInstance('newInstance1').init(apiKey, userId);
         document.getElementById('status').textContent = 'SDK initialized with autocapture enabled.';
 
         document.getElementById('testButton').addEventListener('click', function () {
