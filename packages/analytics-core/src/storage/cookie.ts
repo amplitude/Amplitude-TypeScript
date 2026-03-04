@@ -218,7 +218,17 @@ export class CookieStorage<T> implements Storage<T> {
     return;
   }
 
-  async transaction<ReturnType>(
+  /* istanbul ignore next */
+  static async isDomainWritable(/*domain: string*/): Promise<boolean> {
+    const key = 'AMP_TEST';
+    const cookieStorage = new CookieStorage();
+    await cookieStorage.transaction(key, function () {
+      throw new Error(`Not yet implemented`);
+    });
+    return false;
+  }
+
+  private async transaction<ReturnType>(
     key: string,
     callback: (storageSync: StorageSync<T>) => ReturnType,
   ): Promise<ReturnType> {

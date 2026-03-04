@@ -446,7 +446,7 @@ describe('cookies', () => {
   describe('transaction', () => {
     test('should return the result of the callback', async () => {
       const cookies = new CookieStorage<string>();
-      const result = await cookies.transaction('test', (storageSync: StorageSync<string>) => {
+      const result = await (cookies as any).transaction('test', (storageSync: StorageSync<string>) => {
         storageSync.set('TEST_VALUE_NO_LOCK');
         return storageSync.get();
       });
@@ -479,7 +479,7 @@ describe('cookies', () => {
       });
       test('should return the result of the callback', async () => {
         const cookies = new CookieStorage<string>();
-        const result = await cookies.transaction('test', (storageSync: StorageSync<string>) => {
+        const result = await (cookies as any).transaction('test', (storageSync: StorageSync<string>) => {
           storageSync.set('TEST_VALUE_WITH_LOCK');
           return storageSync.get();
         });
