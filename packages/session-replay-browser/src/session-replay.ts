@@ -396,8 +396,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
 
     // Re-evaluate when we have no match yet, or when explicitly forced.
     const targetingConfig = this.config.targetingConfig;
-    const shouldReEvaluate =
-      targetingConfig && (!this.sessionTargetingMatch || forceRestart || forceTargetingReevaluation);
+    const shouldReEvaluate = targetingConfig && (!this.sessionTargetingMatch || forceTargetingReevaluation);
     if (shouldReEvaluate) {
       let eventForTargeting = targetingParams.event;
       if (
