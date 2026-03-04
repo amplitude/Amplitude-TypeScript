@@ -15,6 +15,7 @@ import * as SessionReplayIDB from '../src/events/events-idb-store';
 import * as SessionReplayEventsManager from '../src/events/events-manager';
 import * as Helpers from '../src/helpers';
 import { SessionReplay } from '../src/session-replay';
+import * as targetingManager from '../src/targeting/targeting-manager';
 
 // Mock the worker module
 jest.mock(
@@ -3022,6 +3023,72 @@ describe('SessionReplay', () => {
 
       // Verify the function executed without throwing errors
       expect(typeof sessionReplay.sessionTargetingMatch).toBe('boolean');
+    });
+
+    test('should pass page url from getGlobalScope to evaluateTargetingAndStore', async () => {
+      const pageUrl = 'https://replay-page-test.example.com/path';
+      const mockGlobalScope = {
+        location: { href: pageUrl },
+        addEventListener: jest.fn(),
+        removeEventListener: jest.fn(),
+      };
+      jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue(mockGlobalScope as any);
+      const evaluateTargetingAndStoreSpy = jest
+        .spyOn(targetingManager, 'evaluateTargetingAndStore')
+        .mockResolvedValue(true);
+
+      const sessionReplay = new SessionReplay();
+      mockRemoteConfig = {
+        sr_sampling_config: samplingConfig,
+        sr_privacy_config: {},
+        sr_targeting_config: {
+          key: 'sr_targeting_config',
+          variants: { on: { key: 'on' }, off: { key: 'off' } },
+          segments: [],
+        },
+      };
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      sessionReplay.sessionTargetingMatch = false;
+
+      await sessionReplay.evaluateTargetingAndCapture({});
+
+      expect(evaluateTargetingAndStoreSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          targetingParams: expect.objectContaining({
+            page: { url: pageUrl },
+          }),
+        }),
+      );
+    });
+
+    test('should pass page url as empty string when getGlobalScope is undefined or has no location', async () => {
+      jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue(undefined);
+      const evaluateTargetingAndStoreSpy = jest
+        .spyOn(targetingManager, 'evaluateTargetingAndStore')
+        .mockResolvedValue(true);
+
+      const sessionReplay = new SessionReplay();
+      mockRemoteConfig = {
+        sr_sampling_config: samplingConfig,
+        sr_privacy_config: {},
+        sr_targeting_config: {
+          key: 'sr_targeting_config',
+          variants: { on: { key: 'on' }, off: { key: 'off' } },
+          segments: [],
+        },
+      };
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      sessionReplay.sessionTargetingMatch = false;
+
+      await sessionReplay.evaluateTargetingAndCapture({});
+
+      expect(evaluateTargetingAndStoreSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          targetingParams: expect.objectContaining({
+            page: { url: '' },
+          }),
+        }),
+      );
     });
 
     test('should not call recordEvents when already recording and forceRestart is false', async () => {

@@ -98,6 +98,38 @@ describe('Targeting Manager', () => {
       });
       expect(sessionTargetingMatch).toBe(true);
     });
+
+    test('should pass page to evaluateTargeting when provided in targetingParams', async () => {
+      jest.spyOn(targetingIDBStore, 'getTargetingMatchForSession').mockResolvedValueOnce(false);
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call,@typescript-eslint/no-unsafe-member-access
+      (evaluateTargeting as jest.Mock).mockResolvedValueOnce({
+        sr_targeting_config: {
+          key: 'on',
+        },
+      });
+      const page = { url: 'https://example.com/analytics' };
+      const sessionTargetingMatch = await evaluateTargetingAndStore({
+        sessionId: 123,
+        loggerProvider: config.loggerProvider,
+        apiKey: config.apiKey,
+        targetingConfig: flagConfig,
+        targetingParams: {
+          userProperties: {},
+          page,
+        },
+      });
+      expect(evaluateTargeting).toHaveBeenCalledWith(
+        expect.objectContaining({
+          apiKey: 'static_key',
+          loggerProvider: mockLoggerProvider,
+          flag: flagConfig,
+          sessionId: 123,
+          page,
+        }),
+      );
+      expect(sessionTargetingMatch).toBe(true);
+    });
+
     test('should store sessionTargetingMatch', async () => {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-call,@typescript-eslint/no-unsafe-member-access
       (evaluateTargeting as jest.Mock).mockResolvedValueOnce({

@@ -78,6 +78,33 @@ describe('targeting', () => {
         [flagCatchAll],
       );
     });
+
+    test('should pass page to the evaluation engine when provided', async () => {
+      const targeting = new Targeting();
+      const mockEngineEvaluate = jest.fn();
+      targeting.evaluationEngine.evaluate = mockEngineEvaluate;
+      const page = { url: 'https://example.com/analytics/dashboard' };
+      await targeting.evaluateTargeting({
+        deviceId: '1a2b3c',
+        userProperties: mockUserProperties,
+        flag: flagCatchAll,
+        sessionId: 123,
+        apiKey: 'static_key',
+        loggerProvider: mockLoggerProvider,
+        page,
+      });
+      expect(mockEngineEvaluate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          page,
+          user: {
+            device_id: '1a2b3c',
+            user_properties: mockUserProperties,
+          },
+          session_id: 123,
+        }),
+        [flagCatchAll],
+      );
+    });
   });
 
   describe('condition tests', () => {

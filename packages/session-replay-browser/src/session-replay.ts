@@ -72,7 +72,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
   eventCount = 0;
   eventCompressor: EventCompressor | undefined;
   sessionTargetingMatch = false;
-  private lastTargetingParams?: Pick<TargetingParameters, 'event' | 'userProperties'>;
+  private lastTargetingParams?: Pick<TargetingParameters, 'event' | 'userProperties' | 'page'>;
   private lastShouldRecordDecision?: boolean;
 
   // Visible for testing only
@@ -317,7 +317,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
   };
 
   evaluateTargetingAndCapture = async (
-    targetingParams: Pick<TargetingParameters, 'event' | 'userProperties'>,
+    targetingParams: Pick<TargetingParameters, 'event' | 'userProperties' | 'page'>,
     isInit = false,
     forceRestart = false,
   ) => {
@@ -355,12 +355,20 @@ export class SessionReplay implements AmplitudeSessionReplay {
       // We're setting this on this class because fetching the value from idb
       // is async, we need to access this value synchronously (for record
       // and for getSessionReplayProperties - both synchronous fns)
+      const pageUrl = getGlobalScope()?.location?.href;
+
       this.sessionTargetingMatch = await evaluateTargetingAndStore({
         sessionId: this.identifiers.sessionId,
         targetingConfig: this.config.targetingConfig,
         loggerProvider: this.loggerProvider,
         apiKey: this.config.apiKey,
-        targetingParams: { userProperties: targetingParams.userProperties, event: eventForTargeting },
+        targetingParams: {
+          userProperties: targetingParams.userProperties,
+          event: eventForTargeting,
+          page: {
+            url: pageUrl ?? '',
+          },
+        },
       });
 
       // Log the targeting config to debug

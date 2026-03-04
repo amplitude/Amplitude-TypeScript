@@ -14,7 +14,7 @@ export const evaluateTargetingAndStore = async ({
   targetingConfig: TargetingConfig;
   loggerProvider: Logger;
   apiKey: string;
-  targetingParams?: Pick<TargetingParameters, 'event' | 'userProperties'>;
+  targetingParams?: Pick<TargetingParameters, 'event' | 'userProperties' | 'page'>;
 }) => {
   await targetingIDBStore.clearStoreOfOldSessions({
     loggerProvider: loggerProvider,
@@ -39,13 +39,14 @@ export const evaluateTargetingAndStore = async ({
     // Dynamic import of the targeting package
     const { evaluateTargeting: evaluateTargetingPackage } = await import('@amplitude/targeting');
 
-    const targetingResult = await evaluateTargetingPackage({
+    const params: TargetingParameters = {
       ...targetingParams,
       flag: targetingConfig,
       sessionId: typeof sessionId === 'string' ? parseInt(sessionId, 10) : sessionId,
       apiKey: apiKey,
       loggerProvider: loggerProvider,
-    });
+    };
+    const targetingResult = await evaluateTargetingPackage(params);
     if (targetingResult && targetingResult.sr_targeting_config) {
       sessionTargetingMatch = targetingResult.sr_targeting_config.key === 'on';
     }
