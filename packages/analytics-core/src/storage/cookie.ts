@@ -1,6 +1,5 @@
 import { Storage, StorageSync, CookieStorageOptions, CookieStorageConfig } from '../types/storage';
 import { getGlobalScope } from '../global-scope';
-import { UUID } from '../utils/uuid';
 
 // CookieStore is a Web API not included in standard TypeScript lib types
 // https://developer.mozilla.org/en-US/docs/Web/API/CookieStore
@@ -35,7 +34,7 @@ export class CookieStorage<T> implements Storage<T> {
     this.config = config;
   }
 
-  async isEnabledV2(): Promise<boolean> {
+  async isEnabled(): Promise<boolean> {
     const testKey = 'AMP_TEST';
     const testCookieOptions = { ...this.options };
     const testStorage = new CookieStorage<string>(testCookieOptions);
@@ -73,54 +72,6 @@ export class CookieStorage<T> implements Storage<T> {
         storage.set(null);
       }
     });
-  }
-
-  async isEnabled(): Promise<boolean> {
-    const globalScope = getGlobalScope();
-    /* istanbul ignore if */
-    if (!globalScope || !globalScope.document) {
-      return false;
-    }
-
-    // experimental feature for now that uses navigator.locks
-    if (this.config.experimentalCookies) {
-      return this.isEnabledV2();
-    }
-
-    const testValue = String(Date.now());
-    const testCookieOptions = {
-      ...this.options,
-      expirationDays: 0.003, // expire in ~5 minutes
-    };
-    const testStorage = new CookieStorage<string>(testCookieOptions);
-    const testKey = `AMP_TEST_${UUID().substring(0, 8)}`;
-    try {
-      await testStorage.set(testKey, testValue);
-      const value = await testStorage.get(testKey);
-      /* istanbul ignore next */
-      if (value !== testValue && this.config.diagnosticsClient) {
-        this.config.diagnosticsClient?.recordEvent('cookies.isEnabled.failure', {
-          reason: 'Test Value mismatch',
-          testKey,
-          testValue,
-        });
-      }
-      return value === testValue;
-    } catch (e) {
-      /* istanbul ignore next */
-      if (this.config.diagnosticsClient) {
-        const errMessage = e instanceof Error ? e.message : String(e);
-        this.config.diagnosticsClient?.recordEvent('cookies.isEnabled.failure', {
-          reason: 'Cookie getter/setter failed',
-          testKey,
-          testValue,
-          error: errMessage,
-        });
-      }
-      return false;
-    } finally {
-      await testStorage.remove(testKey);
-    }
   }
 
   async get(key: string): Promise<T | undefined> {

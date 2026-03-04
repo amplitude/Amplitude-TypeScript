@@ -426,14 +426,16 @@ describe('config', () => {
         remove: jest.fn().mockResolvedValueOnce(Promise.resolve(undefined)),
         reset: jest.fn().mockResolvedValueOnce(Promise.resolve(undefined)),
       };
-      const actualCookieStorage: Storage<number> = {
+      const actualCookieStorage = {
         isEnabled: () => Promise.resolve(true),
         get: jest.fn().mockResolvedValueOnce(Promise.resolve(undefined)).mockResolvedValueOnce(Promise.resolve(1)),
         getRaw: jest.fn().mockResolvedValueOnce(Promise.resolve(undefined)).mockResolvedValueOnce(Promise.resolve(1)),
         set: jest.fn().mockResolvedValue(Promise.resolve(undefined)),
         remove: jest.fn().mockResolvedValue(Promise.resolve(undefined)),
         reset: jest.fn().mockResolvedValue(Promise.resolve(undefined)),
-      };
+        // CookieStorage.transaction is used by getTopLevelDomain; first domain fails, second succeeds
+        transaction: jest.fn().mockResolvedValueOnce(false).mockResolvedValueOnce(true),
+      } as unknown as BrowserUtils.CookieStorage<number>;
       jest
         .spyOn(BrowserUtils, 'CookieStorage')
         .mockReturnValueOnce({
@@ -493,77 +495,6 @@ describe('config', () => {
       await Config.getTopLevelDomain('www.amplitude.com', mockDiagnosticsClient);
       expect(mockDiagnosticsClient.recordEvent).toHaveBeenCalledWith('cookies.tld.failure', {
         reason: 'Could not determine TLD for host www.amplitude.com',
-      });
-    });
-  });
-
-  describe('getTopLevelDomainV2', () => {
-    // JSDOM does not implement navigator.locks (Lock Manager API)
-    const createLocksMock = () => ({
-      request: jest.fn(<T>(_name: string, callback: () => T | Promise<T>) => Promise.resolve(callback())),
-    });
-
-    beforeEach(() => {
-      const g = core.getGlobalScope() as any;
-      g.navigator = g.navigator ?? {};
-      g.navigator.locks = createLocksMock();
-      // So getTopLevelDomain() proceeds to the locks path; avoid real cookie check in isEnabled()
-      jest.spyOn(BrowserUtils.CookieStorage.prototype, 'isEnabled').mockResolvedValue(true);
-    });
-
-    afterEach(() => {
-      const g = core.getGlobalScope() as any;
-      if (g?.navigator && 'locks' in g.navigator) {
-        delete g.navigator.locks;
-      }
-      jest.restoreAllMocks();
-    });
-
-    test('returns empty string when no domain accepts cookies and records diagnostics when provided', async () => {
-      const mockDiagnosticsClient = {
-        recordEvent: jest.fn(),
-        setTag: jest.fn(),
-        increment: jest.fn(),
-        recordHistogram: jest.fn(),
-        _flush: jest.fn(),
-        _setSampleRate: jest.fn(),
-      };
-      const cookieGetSpy = jest
-        .spyOn(BrowserUtils.CookieStorage.prototype as any, 'getSync')
-        .mockReturnValue(undefined);
-
-      const result = await Config.getTopLevelDomain('www.amplitude.com', mockDiagnosticsClient, true);
-      expect(result).toBe('');
-      expect(mockDiagnosticsClient.recordEvent).toHaveBeenCalledWith('cookies.tld.failure', {
-        reason: 'Could not determine TLD for host www.amplitude.com',
-      });
-      cookieGetSpy.mockRestore();
-    });
-
-    test('uses url parameter when provided', async () => {
-      const cookieGetSpy = jest.spyOn(BrowserUtils.CookieStorage.prototype as any, 'getSync');
-      // For www.legislation.gov.uk levels are .gov.uk, .legislation.gov.uk, .www.legislation.gov.uk; first get undefined, second 1
-      cookieGetSpy.mockReturnValueOnce(undefined).mockReturnValueOnce(1);
-
-      const result = await Config.getTopLevelDomain('www.legislation.gov.uk', undefined, true);
-      expect(result).toBe('.legislation.gov.uk');
-      cookieGetSpy.mockRestore();
-    });
-
-    test('works with location.hostname', async () => {
-      const originalLocation = window.location;
-      Object.defineProperty(window, 'location', {
-        value: { hostname: 'www.legislation.gov.uk' },
-        configurable: true,
-      });
-      const cookieGetSpy = jest.spyOn(BrowserUtils.CookieStorage.prototype as any, 'getSync');
-      cookieGetSpy.mockReturnValueOnce(undefined).mockReturnValueOnce(1);
-      const result = await Config.getTopLevelDomain(undefined, undefined, true);
-      expect(result).toBe('.legislation.gov.uk');
-      cookieGetSpy.mockRestore();
-      Object.defineProperty(window, 'location', {
-        value: originalLocation,
-        configurable: true,
       });
     });
   });
