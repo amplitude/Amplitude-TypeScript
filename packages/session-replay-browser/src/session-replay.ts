@@ -355,8 +355,6 @@ export class SessionReplay implements AmplitudeSessionReplay {
       // We're setting this on this class because fetching the value from idb
       // is async, we need to access this value synchronously (for record
       // and for getSessionReplayProperties - both synchronous fns)
-      const pageUrl = getGlobalScope()?.location?.href;
-
       this.sessionTargetingMatch = await evaluateTargetingAndStore({
         sessionId: this.identifiers.sessionId,
         targetingConfig: this.config.targetingConfig,
@@ -365,9 +363,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
         targetingParams: {
           userProperties: targetingParams.userProperties,
           event: eventForTargeting,
-          page: {
-            url: pageUrl ?? '',
-          },
+          page: targetingParams.page,
         },
       });
 

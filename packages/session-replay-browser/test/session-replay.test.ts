@@ -3025,10 +3025,39 @@ describe('SessionReplay', () => {
       expect(typeof sessionReplay.sessionTargetingMatch).toBe('boolean');
     });
 
-    test('should pass page url from getGlobalScope to evaluateTargetingAndStore', async () => {
-      const pageUrl = 'https://replay-page-test.example.com/path';
+    test('should pass targetingParams.page to evaluateTargetingAndStore', async () => {
+      const page = { url: 'https://replay-page-test.example.com/path' };
+      const evaluateTargetingAndStoreSpy = jest
+        .spyOn(targetingManager, 'evaluateTargetingAndStore')
+        .mockResolvedValue(true);
+
+      const sessionReplay = new SessionReplay();
+      mockRemoteConfig = {
+        sr_sampling_config: samplingConfig,
+        sr_privacy_config: {},
+        sr_targeting_config: {
+          key: 'sr_targeting_config',
+          variants: { on: { key: 'on' }, off: { key: 'off' } },
+          segments: [],
+        },
+      };
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      sessionReplay.sessionTargetingMatch = false;
+
+      await sessionReplay.evaluateTargetingAndCapture({ page });
+
+      expect(evaluateTargetingAndStoreSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          targetingParams: expect.objectContaining({
+            page,
+          }),
+        }),
+      );
+    });
+
+    test('should pass page undefined when targetingParams.page is not provided', async () => {
       const mockGlobalScope = {
-        location: { href: pageUrl },
+        location: { href: 'https://global-url.example.com/ignored' },
         addEventListener: jest.fn(),
         removeEventListener: jest.fn(),
       };
@@ -3055,37 +3084,7 @@ describe('SessionReplay', () => {
       expect(evaluateTargetingAndStoreSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           targetingParams: expect.objectContaining({
-            page: { url: pageUrl },
-          }),
-        }),
-      );
-    });
-
-    test('should pass page url as empty string when getGlobalScope is undefined or has no location', async () => {
-      jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue(undefined);
-      const evaluateTargetingAndStoreSpy = jest
-        .spyOn(targetingManager, 'evaluateTargetingAndStore')
-        .mockResolvedValue(true);
-
-      const sessionReplay = new SessionReplay();
-      mockRemoteConfig = {
-        sr_sampling_config: samplingConfig,
-        sr_privacy_config: {},
-        sr_targeting_config: {
-          key: 'sr_targeting_config',
-          variants: { on: { key: 'on' }, off: { key: 'off' } },
-          segments: [],
-        },
-      };
-      await sessionReplay.init(apiKey, mockOptions).promise;
-      sessionReplay.sessionTargetingMatch = false;
-
-      await sessionReplay.evaluateTargetingAndCapture({});
-
-      expect(evaluateTargetingAndStoreSpy).toHaveBeenCalledWith(
-        expect.objectContaining({
-          targetingParams: expect.objectContaining({
-            page: { url: '' },
+            page: undefined,
           }),
         }),
       );
