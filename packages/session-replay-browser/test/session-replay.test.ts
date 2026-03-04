@@ -3302,6 +3302,7 @@ describe('SessionReplay', () => {
 
       sessionReplay.recordCancelCallback = jest.fn();
       const stopSpy = jest.spyOn(sessionReplay, 'stopRecordingEvents');
+      const recordEventsSpy = jest.spyOn(sessionReplay, 'recordEvents');
       const logSpy = jest.spyOn(sessionReplay.loggerProvider, 'log');
       jest.spyOn(targetingManager, 'evaluateTargetingAndStore').mockResolvedValue(false);
 
@@ -3315,6 +3316,10 @@ describe('SessionReplay', () => {
       expect(stopSpy).toHaveBeenCalled();
       expect(logSpy).toHaveBeenCalledWith(
         'Stopping Session Replay capture due to targeting no longer matching after re-evaluation.',
+      );
+      expect(recordEventsSpy).not.toHaveBeenCalled();
+      expect(logSpy).not.toHaveBeenCalledWith(
+        'Recording events for session due to forceRestart or no ongoing recording.',
       );
     });
   });

@@ -76,7 +76,15 @@ export function subscribeToUrlChanges(
 
   if (enablePolling) {
     const getHref = (): string => globalScope.location.href ?? '';
-    const id = globalScope.setInterval(() => onUrlChange(getHref()), pollingInterval);
+    let lastHref = getHref();
+    const id = globalScope.setInterval(() => {
+      const href = getHref();
+      if (href === lastHref) {
+        return;
+      }
+      lastHref = href;
+      onUrlChange(href);
+    }, pollingInterval);
     return (): void => {
       if (id != null) {
         globalScope.clearInterval(id);

@@ -436,12 +436,16 @@ export class SessionReplay implements AmplitudeSessionReplay {
       );
     }
 
-    // On forced re-evaluation/restart, stop recording if we no longer match targeting.
-    if (forceTargetingReevaluation && !this.sessionTargetingMatch && this.recordCancelCallback) {
-      this.loggerProvider.log(
-        'Stopping Session Replay capture due to targeting no longer matching after re-evaluation.',
-      );
-      this.stopRecordingEvents();
+    // On forced re-evaluation, never fall through to recordEvents when targeting no longer matches.
+    const noLongerMatchesAfterReevaluation = forceTargetingReevaluation && !this.sessionTargetingMatch;
+    if (noLongerMatchesAfterReevaluation) {
+      if (this.recordCancelCallback) {
+        this.loggerProvider.log(
+          'Stopping Session Replay capture due to targeting no longer matching after re-evaluation.',
+        );
+        this.stopRecordingEvents();
+      }
+      return;
     }
 
     if (isInit) {

@@ -212,10 +212,42 @@ describe('URL Tracking Plugin', () => {
       });
       const setIntervalMock = Reflect.get(win, 'setInterval') as jest.Mock;
       expect(setIntervalMock).toHaveBeenCalledWith(expect.any(Function), 1000);
-      (setIntervalMock.mock.calls[0][0] as (this: void) => void).call(undefined);
-      expect(cb).toHaveBeenCalledWith('https://example.com/initial');
+      const tick = setIntervalMock.mock.calls[0][0] as (this: void) => void;
+      tick.call(undefined);
+      expect(cb).not.toHaveBeenCalled();
+      if (win.location) {
+        win.location.href = 'https://example.com/changed-by-polling';
+      }
+      tick.call(undefined);
+      expect(cb).toHaveBeenCalledWith('https://example.com/changed-by-polling');
       (cleanup as (this: void) => void).call(undefined);
       expect(Reflect.get(win, 'clearInterval')).toHaveBeenCalledWith(123);
+    });
+
+    test('polling dedupes repeated ticks when href is unchanged', () => {
+      const cb = jest.fn();
+      const win = createMockGlobalScope() as unknown as Window;
+      subscribeToUrlChanges(win, cb, {
+        enablePolling: true,
+        pollingInterval: 1000,
+      });
+
+      const setIntervalMock = Reflect.get(win, 'setInterval') as jest.Mock;
+      const tick = setIntervalMock.mock.calls[0][0] as (this: void) => void;
+
+      tick.call(undefined);
+      tick.call(undefined);
+      expect(cb).not.toHaveBeenCalled();
+
+      if (win.location) {
+        win.location.href = 'https://example.com/changed';
+      }
+      tick.call(undefined);
+      expect(cb).toHaveBeenCalledTimes(1);
+      expect(cb).toHaveBeenCalledWith('https://example.com/changed');
+
+      tick.call(undefined);
+      expect(cb).toHaveBeenCalledTimes(1);
     });
 
     test('polling cleanup does not call clearInterval when interval id is null', () => {
@@ -230,15 +262,19 @@ describe('URL Tracking Plugin', () => {
       expect(Reflect.get(win, 'clearInterval')).not.toHaveBeenCalled();
     });
 
-    test('polling getHref returns empty string when location has no href', () => {
+    test('polling getHref returns empty string when href is removed', () => {
       const cb = jest.fn();
-      const win = createMockGlobalScope({ location: {} as any }) as unknown as Window;
+      const win = createMockGlobalScope() as unknown as Window;
       const cleanup = subscribeToUrlChanges(win, cb, {
         enablePolling: true,
         pollingInterval: 1000,
       });
       const setIntervalMock = Reflect.get(win, 'setInterval') as jest.Mock;
-      (setIntervalMock.mock.calls[0][0] as (this: void) => void).call(undefined);
+      const tick = setIntervalMock.mock.calls[0][0] as (this: void) => void;
+      if (win.location) {
+        (win.location as unknown as { href?: string }).href = undefined;
+      }
+      tick.call(undefined);
       expect(cb).toHaveBeenCalledWith('');
       (cleanup as (this: void) => void).call(undefined);
     });
