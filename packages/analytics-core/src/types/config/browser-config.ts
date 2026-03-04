@@ -103,12 +103,6 @@ export interface ExternalBrowserConfig extends IConfig {
    * @defaultValue `true`
    */
   enableDiagnostics?: boolean;
-  /**
-   * Enable experimental features. For internal testing.
-   * @defaultValue `false`
-   * @experimental
-   */
-  _enableNextFeatures?: boolean;
 }
 
 interface InternalBrowserConfig {

@@ -32,7 +32,6 @@ export interface CookieStorageConfig {
    */
   duplicateResolverFn?: (value: string) => boolean;
   diagnosticsClient?: IDiagnosticsClient;
-  experimentalCookies?: boolean | undefined;
 }
 
 export type IdentityStorageType = 'cookie' | 'localStorage' | 'sessionStorage' | 'none';
