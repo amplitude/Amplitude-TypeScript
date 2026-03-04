@@ -3235,6 +3235,34 @@ describe('SessionReplay', () => {
       expect(recordEventsSpy).toHaveBeenCalled();
     });
 
+    test('should not call recordEvents when URL change re-evaluation still matches and recording is active', async () => {
+      const sessionReplay = new SessionReplay();
+      await sessionReplay.init(apiKey, mockOptions).promise;
+
+      if (sessionReplay.config) {
+        sessionReplay.config.targetingConfig = {
+          key: 'sr_targeting_config',
+          variants: { on: { key: 'on' }, off: { key: 'off' } },
+          segments: [],
+        };
+      }
+
+      sessionReplay.sessionTargetingMatch = true;
+      sessionReplay.recordCancelCallback = jest.fn();
+      jest.spyOn(targetingManager, 'evaluateTargetingAndStore').mockResolvedValue(true);
+      const recordEventsSpy = jest.spyOn(sessionReplay, 'recordEvents');
+
+      await sessionReplay.evaluateTargetingAndCapture(
+        { page: { url: 'https://example.com/still-matching' } },
+        false,
+        false,
+        true,
+      );
+
+      // URL-change re-evaluation should not restart rrweb when already recording and still matching.
+      expect(recordEventsSpy).not.toHaveBeenCalled();
+    });
+
     test('should call recordEvents when not recording and forceRestart is false', async () => {
       const sessionReplay = new SessionReplay();
       await sessionReplay.init(apiKey, mockOptions).promise;
@@ -3260,7 +3288,7 @@ describe('SessionReplay', () => {
       expect(recordEventsSpy).toHaveBeenCalled();
     });
 
-    test('should call stopRecordingEvents when forceRestart and no longer match and was recording', async () => {
+    test('should call stopRecordingEvents when URL-change re-evaluation no longer matches and recording is active', async () => {
       const sessionReplay = new SessionReplay();
       await sessionReplay.init(apiKey, mockOptions).promise;
 
@@ -3279,6 +3307,7 @@ describe('SessionReplay', () => {
 
       await sessionReplay.evaluateTargetingAndCapture(
         { page: { url: 'https://example.com/non-matching' } },
+        false,
         false,
         true,
       );
@@ -3335,6 +3364,7 @@ describe('SessionReplay', () => {
           event: undefined,
           page: { url: 'https://example.com/new-page' },
         }),
+        false,
         false,
         true,
       );

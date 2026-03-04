@@ -114,12 +114,50 @@ describe('URL Tracking Plugin', () => {
       const win = createMockGlobalScope() as unknown as Window;
       const unsubscribe = subscribeToUrlChanges(win, cb);
       expect(cb).not.toHaveBeenCalled();
+      if (win.location) {
+        win.location.href = 'https://example.com/page1';
+      }
       win.history.pushState({}, '', 'https://example.com/page1');
       expect(cb).toHaveBeenCalledWith('https://example.com/page1');
       unsubscribe();
       cb.mockClear();
+      if (win.location) {
+        win.location.href = 'https://example.com/page2';
+      }
       win.history.pushState({}, '', 'https://example.com/page2');
       expect(cb).not.toHaveBeenCalled();
+    });
+
+    test('resolves relative pushState URL to absolute href and dedupes subsequent popstate', () => {
+      const cb = jest.fn();
+      const scope = createMockGlobalScope();
+      scope.history = {
+        pushState: jest.fn((_state: unknown, _title: string, url?: string | URL | null) => {
+          if (scope.location && url != null) {
+            scope.location.href = new URL(String(url), scope.location.href).href;
+          }
+        }),
+        replaceState: jest.fn((_state: unknown, _title: string, url?: string | URL | null) => {
+          if (scope.location && url != null) {
+            scope.location.href = new URL(String(url), scope.location.href).href;
+          }
+        }),
+      };
+      const win = scope as unknown as Window;
+
+      subscribeToUrlChanges(win, cb);
+      win.history.pushState({}, '', '/page2');
+
+      expect(cb).toHaveBeenCalledWith('https://example.com/page2');
+      expect(cb).toHaveBeenCalledTimes(1);
+
+      const [, popstateListener] = (win.addEventListener as jest.Mock).mock.calls.find(
+        (c: [string]) => c[0] === 'popstate',
+      ) ?? [undefined, undefined];
+      popstateListener?.();
+
+      // No duplicate notification because lastHref is stored as absolute href.
+      expect(cb).toHaveBeenCalledTimes(1);
     });
 
     test('invokes callback on pushState with null url uses getHref', () => {
@@ -134,6 +172,9 @@ describe('URL Tracking Plugin', () => {
       const cb = jest.fn();
       const win = createMockGlobalScope() as unknown as Window;
       subscribeToUrlChanges(win, cb);
+      if (win.location) {
+        win.location.href = 'https://example.com/replaced';
+      }
       win.history.replaceState({}, '', 'https://example.com/replaced');
       expect(cb).toHaveBeenCalledWith('https://example.com/replaced');
     });
@@ -208,6 +249,9 @@ describe('URL Tracking Plugin', () => {
       const win = createMockGlobalScope() as unknown as Window;
       subscribeToUrlChanges(win, cb1);
       subscribeToUrlChanges(win, cb2);
+      if (win.location) {
+        win.location.href = 'https://example.com/page1';
+      }
       const history = Reflect.get(win, 'history') as
         | { pushState: (state: unknown, title: string, url?: string) => void }
         | undefined;
@@ -1067,6 +1111,9 @@ describe('URL Tracking Plugin', () => {
 
       expect(mockGlobalScope.history?.pushState).toBe(patchedPushState);
       cb.mockClear();
+      if (mockGlobalScope.location) {
+        mockGlobalScope.location.href = 'https://example.com/after-plugin-cleanup';
+      }
       if (mockGlobalScope.history?.pushState) {
         mockGlobalScope.history.pushState({}, '', 'https://example.com/after-plugin-cleanup');
       }

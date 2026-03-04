@@ -91,8 +91,8 @@ export function subscribeToUrlChanges(
 
     const getHref = (): string => globalScope.location.href ?? '';
 
-    const notify = (urlOverride?: string) => {
-      const href = urlOverride ?? getHref();
+    const notify = () => {
+      const href = getHref();
       if (lastHref !== undefined && href === lastHref) return;
       lastHref = href;
       callbacks.forEach((c) => c(href));
@@ -104,11 +104,13 @@ export function subscribeToUrlChanges(
     if (globalScope.history && originalPushState && originalReplaceState) {
       globalScope.history.pushState = (state: unknown, title: string, url?: string | URL | null) => {
         originalPushState(state, title, url);
-        notify(url != null ? String(url) : undefined);
+        // Read from location.href after history call so we always notify with resolved absolute URL.
+        notify();
       };
       globalScope.history.replaceState = (state: unknown, title: string, url?: string | URL | null) => {
         originalReplaceState(state, title, url);
-        notify(url != null ? String(url) : undefined);
+        // Read from location.href after history call so we always notify with resolved absolute URL.
+        notify();
       };
     }
     const onPopStateOrHashChange = (): void => notify();

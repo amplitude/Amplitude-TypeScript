@@ -135,6 +135,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
           page: { url: href },
         },
         false,
+        false,
         true,
       );
     };
@@ -369,6 +370,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
     targetingParams: Pick<TargetingParameters, 'event' | 'userProperties' | 'page'>,
     isInit = false,
     forceRestart = false,
+    forceTargetingReevaluation = false,
   ) => {
     if (!this.identifiers || !this.identifiers.sessionId || !this.config) {
       if (this.identifiers && !this.identifiers.sessionId) {
@@ -392,9 +394,10 @@ export class SessionReplay implements AmplitudeSessionReplay {
     // Store targeting parameters for use in getShouldRecord
     this.lastTargetingParams = targetingParams;
 
-    // Re-evaluate when we have no match yet, or when forceRestart (e.g. URL change) so we can start/stop recording
+    // Re-evaluate when we have no match yet, or when explicitly forced.
     const targetingConfig = this.config.targetingConfig;
-    const shouldReEvaluate = targetingConfig && (!this.sessionTargetingMatch || forceRestart);
+    const shouldReEvaluate =
+      targetingConfig && (!this.sessionTargetingMatch || forceRestart || forceTargetingReevaluation);
     if (shouldReEvaluate) {
       let eventForTargeting = targetingParams.event;
       if (
@@ -417,7 +420,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
           event: eventForTargeting,
           page: pageForTargeting,
         },
-        urlChange: forceRestart,
+        urlChange: forceTargetingReevaluation,
       });
 
       this.loggerProvider.debug(
@@ -434,8 +437,8 @@ export class SessionReplay implements AmplitudeSessionReplay {
       );
     }
 
-    // On forceRestart (e.g. URL change): stop recording if we no longer match
-    if (forceRestart && !this.sessionTargetingMatch && this.recordCancelCallback) {
+    // On forced re-evaluation/restart, stop recording if we no longer match targeting.
+    if (forceTargetingReevaluation && !this.sessionTargetingMatch && this.recordCancelCallback) {
       this.loggerProvider.log(
         'Stopping Session Replay capture due to targeting no longer matching after re-evaluation.',
       );
