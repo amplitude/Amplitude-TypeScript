@@ -337,11 +337,12 @@ export const useBrowserConfig = async (
   const legacyCookies = await parseLegacyCookies(apiKey, cookieStorage, options.cookieOptions?.upgrade ?? true);
   let previousCookies: UserSession | undefined = await cookieStorage.get(getCookieName(apiKey));
 
-  if (options._enableNextFeatures && cookieStorage instanceof CookieStorage) {
+  if (cookieStorage instanceof CookieStorage) {
     const cookiesAll: UserSession[] = await cookieStorage.getAll(getCookieName(apiKey));
     const mostRecentUserSession = getMostRecentUserSession(cookiesAll);
     if (mostRecentUserSession) {
       previousCookies = mostRecentUserSession;
+      debugger;
     }
   }
 

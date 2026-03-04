@@ -614,8 +614,8 @@ describe('config', () => {
     });
   });
 
-  describe('useBrowserConfig with _enableNextFeatures', () => {
-    test('should use most recent user session when _enableNextFeatures is true', async () => {
+  describe('useBrowserConfig', () => {
+    test('should use most recent user session', async () => {
       // mock createCookieStorage
       jest.spyOn(BrowserUtils.CookieStorage.prototype, 'getAll').mockResolvedValue([
         {
@@ -630,7 +630,7 @@ describe('config', () => {
           lastEventTime: 200,
         },
       ]);
-      const config = await Config.useBrowserConfig(apiKey, { _enableNextFeatures: true }, new AmplitudeBrowser());
+      const config = await Config.useBrowserConfig(apiKey, {}, new AmplitudeBrowser());
       expect(config.userId).toBe('user-user-user-2');
       expect(config.sessionId).toBe(2);
       expect(config.lastEventTime).toBe(200);
@@ -640,7 +640,7 @@ describe('config', () => {
       // mock createCookieStorage
       jest.spyOn(BrowserUtils.CookieStorage.prototype, 'get').mockResolvedValue(undefined);
       jest.spyOn(BrowserUtils.CookieStorage.prototype, 'getAll').mockResolvedValue([]);
-      const config = await Config.useBrowserConfig(apiKey, { _enableNextFeatures: true }, new AmplitudeBrowser());
+      const config = await Config.useBrowserConfig(apiKey, {}, new AmplitudeBrowser());
       expect(config.userId).toBeUndefined();
       expect(config.sessionId).toBeUndefined();
       expect(config.lastEventTime).toBeUndefined();
