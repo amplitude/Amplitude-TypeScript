@@ -258,6 +258,19 @@ describe('SessionReplay', () => {
     }
   });
   describe('init', () => {
+    test('should pass current page to evaluateTargetingAndCapture during init', async () => {
+      const evaluateTargetingAndCaptureSpy = jest.spyOn(sessionReplay, 'evaluateTargetingAndCapture');
+      await sessionReplay.init(apiKey, mockOptions).promise;
+
+      expect(evaluateTargetingAndCaptureSpy).toHaveBeenCalledWith(
+        {
+          userProperties: undefined,
+          page: { url: 'http://localhost' },
+        },
+        true,
+      );
+    });
+
     test('should remove invalid selectors', async () => {
       await sessionReplay.init(apiKey, {
         ...mockOptions,
@@ -1083,17 +1096,29 @@ describe('SessionReplay', () => {
       const userProperties = { age: 30, city: 'New York' };
       await (sessionReplay as any).asyncSetSessionId(456, '9l8m7n', { userProperties });
 
-      expect(evaluateTargetingAndCaptureSpy).toHaveBeenCalledWith({ userProperties }, false, true);
+      expect(evaluateTargetingAndCaptureSpy).toHaveBeenCalledWith(
+        { userProperties, page: { url: 'http://localhost' } },
+        false,
+        true,
+      );
 
       // Test without userProperties (options is undefined)
       await (sessionReplay as any).asyncSetSessionId(789, '9l8m7n');
 
-      expect(evaluateTargetingAndCaptureSpy).toHaveBeenCalledWith({ userProperties: undefined }, false, true);
+      expect(evaluateTargetingAndCaptureSpy).toHaveBeenCalledWith(
+        { userProperties: undefined, page: { url: 'http://localhost' } },
+        false,
+        true,
+      );
 
       // Test with empty options
       await (sessionReplay as any).asyncSetSessionId(101, '9l8m7n', {});
 
-      expect(evaluateTargetingAndCaptureSpy).toHaveBeenCalledWith({ userProperties: undefined }, false, true);
+      expect(evaluateTargetingAndCaptureSpy).toHaveBeenCalledWith(
+        { userProperties: undefined, page: { url: 'http://localhost' } },
+        false,
+        true,
+      );
     });
 
     test('should call evaluateTargetingAndCapture with forceRestart true when targetingConfig exists', async () => {
@@ -1125,7 +1150,11 @@ describe('SessionReplay', () => {
       await (sessionReplay as any).asyncSetSessionId(456, '9l8m7n');
 
       // Verify that evaluateTargetingAndCapture was called with forceRestart = true
-      expect(evaluateTargetingAndCaptureSpy).toHaveBeenCalledWith({ userProperties: undefined }, false, true);
+      expect(evaluateTargetingAndCaptureSpy).toHaveBeenCalledWith(
+        { userProperties: undefined, page: { url: 'http://localhost' } },
+        false,
+        true,
+      );
     });
 
     test('should call recordEvents when no targetingConfig', async () => {

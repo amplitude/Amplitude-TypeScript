@@ -147,6 +147,11 @@ export class SessionReplay implements AmplitudeSessionReplay {
     };
   }
 
+  private getCurrentPageForTargeting(): Pick<TargetingParameters, 'page'>['page'] {
+    const currentUrl = getGlobalScope()?.location?.href;
+    return currentUrl != null ? { url: currentUrl } : undefined;
+  }
+
   protected async _init(apiKey: string, options: SessionReplayOptions) {
     this.loggerProvider = new SafeLoggerProvider(options.loggerProvider || new Logger());
     Object.prototype.hasOwnProperty.call(options, 'logLevel') &&
@@ -250,7 +255,10 @@ export class SessionReplay implements AmplitudeSessionReplay {
 
     this.teardownEventListeners(false);
 
-    await this.evaluateTargetingAndCapture({ userProperties: options.userProperties }, true);
+    await this.evaluateTargetingAndCapture(
+      { userProperties: options.userProperties, page: this.getCurrentPageForTargeting() },
+      true,
+    );
 
     if (this.config.targetingConfig) {
       this.setupUrlChangeListenerForTargeting();
@@ -288,7 +296,11 @@ export class SessionReplay implements AmplitudeSessionReplay {
     }
 
     if (this.config?.targetingConfig) {
-      await this.evaluateTargetingAndCapture({ userProperties: options?.userProperties }, false, true);
+      await this.evaluateTargetingAndCapture(
+        { userProperties: options?.userProperties, page: this.getCurrentPageForTargeting() },
+        false,
+        true,
+      );
     } else {
       await this.recordEvents();
     }
