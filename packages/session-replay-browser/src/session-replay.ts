@@ -56,7 +56,7 @@ import { VERSION } from './version';
 
 // Import only the type for NetworkRequestEvent to keep type safety
 import type { NetworkObservers, NetworkRequestEvent } from './observers';
-import { createUrlTrackingPlugin } from './plugins/url-tracking-plugin';
+import { createUrlTrackingPlugin, subscribeToUrlChanges } from './plugins/url-tracking-plugin';
 import type { RecordFunction } from './utils/rrweb';
 
 type PageLeaveFn = (e: PageTransitionEvent | Event) => void;
@@ -84,6 +84,9 @@ export class SessionReplay implements AmplitudeSessionReplay {
 
   // Cache the dynamically imported record function
   private recordFunction: RecordFunction | null = null;
+
+  /** Cleanup for URL change listener used to re-evaluate targeting on SPA route changes */
+  private urlChangeCleanup: (() => void) | null = null;
 
   constructor() {
     this.loggerProvider = new SafeLoggerProvider(new Logger());
@@ -113,6 +116,36 @@ export class SessionReplay implements AmplitudeSessionReplay {
       }
     }
   };
+
+  /**
+   * Subscribes to SPA URL changes via the URL tracking plugin and re-evaluates targeting so we
+   * can start/stop recording when the user navigates to a page that matches or no longer matches.
+   */
+  private setupUrlChangeListenerForTargeting(): void {
+    const globalScope = getGlobalScope() as Window | undefined;
+    if (!globalScope?.location) {
+      return;
+    }
+
+    const onUrlChange = (href: string): void => {
+      void this.evaluateTargetingAndCapture(
+        {
+          userProperties: {},
+          event: undefined,
+          page: { url: href },
+        },
+        false,
+        true,
+      );
+    };
+    type UrlUnsubscribe = (scope: Window | undefined, cb: (href: string) => void) => () => void;
+    const unsubscribe = (subscribeToUrlChanges as UrlUnsubscribe)(globalScope, onUrlChange);
+
+    this.urlChangeCleanup = (): void => {
+      unsubscribe();
+      this.urlChangeCleanup = null;
+    };
+  }
 
   protected async _init(apiKey: string, options: SessionReplayOptions) {
     this.loggerProvider = new SafeLoggerProvider(options.loggerProvider || new Logger());
@@ -218,6 +251,10 @@ export class SessionReplay implements AmplitudeSessionReplay {
     this.teardownEventListeners(false);
 
     await this.evaluateTargetingAndCapture({ userProperties: options.userProperties }, true);
+
+    if (this.config.targetingConfig) {
+      this.setupUrlChangeListenerForTargeting();
+    }
   }
 
   setSessionId(sessionId: string | number, deviceId?: string) {
@@ -343,7 +380,10 @@ export class SessionReplay implements AmplitudeSessionReplay {
     // Store targeting parameters for use in getShouldRecord
     this.lastTargetingParams = targetingParams;
 
-    if (this.config.targetingConfig && !this.sessionTargetingMatch) {
+    // Re-evaluate when we have no match yet, or when forceRestart (e.g. URL change) so we can start/stop recording
+    const targetingConfig = this.config.targetingConfig;
+    const shouldReEvaluate = targetingConfig && (!this.sessionTargetingMatch || forceRestart);
+    if (shouldReEvaluate) {
       let eventForTargeting = targetingParams.event;
       if (
         eventForTargeting &&
@@ -352,22 +392,22 @@ export class SessionReplay implements AmplitudeSessionReplay {
         eventForTargeting = undefined;
       }
 
-      // We're setting this on this class because fetching the value from idb
-      // is async, we need to access this value synchronously (for record
-      // and for getSessionReplayProperties - both synchronous fns)
+      const pageUrl = targetingParams.page?.url ?? getGlobalScope()?.location?.href ?? '';
+      const pageForTargeting = targetingParams.page ?? (pageUrl !== '' ? { url: pageUrl } : undefined);
+
       this.sessionTargetingMatch = await evaluateTargetingAndStore({
         sessionId: this.identifiers.sessionId,
-        targetingConfig: this.config.targetingConfig,
+        targetingConfig,
         loggerProvider: this.loggerProvider,
         apiKey: this.config.apiKey,
         targetingParams: {
           userProperties: targetingParams.userProperties,
           event: eventForTargeting,
-          page: targetingParams.page,
+          page: pageForTargeting,
         },
+        urlChange: forceRestart,
       });
 
-      // Log the targeting config to debug
       this.loggerProvider.debug(
         JSON.stringify(
           {
@@ -382,10 +422,17 @@ export class SessionReplay implements AmplitudeSessionReplay {
       );
     }
 
+    // On forceRestart (e.g. URL change): stop recording if we no longer match
+    if (forceRestart && !this.sessionTargetingMatch && this.recordCancelCallback) {
+      this.loggerProvider.log(
+        'Stopping Session Replay capture due to targeting no longer matching after re-evaluation.',
+      );
+      this.stopRecordingEvents();
+    }
+
     if (isInit) {
       void this.initialize(true);
     } else if (forceRestart || !this.recordCancelCallback) {
-      // Only call recordEvents if we're not already recording, unless forceRestart is true
       this.loggerProvider.log('Recording events for session due to forceRestart or no ongoing recording.');
       await this.recordEvents();
     }
@@ -741,6 +788,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
   }
 
   shutdown() {
+    this.urlChangeCleanup?.();
     this.teardownEventListeners(true);
     this.stopRecordingEvents();
     this.sendEvents();

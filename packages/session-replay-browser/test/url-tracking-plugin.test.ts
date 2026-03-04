@@ -1,4 +1,8 @@
-import { createUrlTrackingPlugin, URLTrackingPluginOptions } from '../src/plugins/url-tracking-plugin';
+import {
+  createUrlTrackingPlugin,
+  subscribeToUrlChanges,
+  URLTrackingPluginOptions,
+} from '../src/plugins/url-tracking-plugin';
 import * as AnalyticsCore from '@amplitude/analytics-core';
 import * as Helpers from '../src/helpers';
 import { IWindow } from '@amplitude/rrweb-types';
@@ -85,6 +89,155 @@ describe('URL Tracking Plugin', () => {
     jest.useRealTimers();
     jest.restoreAllMocks();
     (Helpers.getPageUrl as jest.Mock).mockClear();
+  });
+
+  describe('subscribeToUrlChanges', () => {
+    test('returns no-op cleanup when globalScope is undefined', () => {
+      const cb = jest.fn();
+      const unsubscribe = subscribeToUrlChanges(undefined, cb);
+      expect(typeof unsubscribe).toBe('function');
+      expect(() => unsubscribe()).not.toThrow();
+      expect(cb).not.toHaveBeenCalled();
+    });
+
+    test('returns no-op cleanup when globalScope has no location and cleanup is callable', () => {
+      const cb = jest.fn();
+      const scopeNoLocation = createMockGlobalScope({ location: undefined as any }) as unknown as Window;
+      const unsubscribe = subscribeToUrlChanges(scopeNoLocation, cb);
+      expect(typeof unsubscribe).toBe('function');
+      expect(() => unsubscribe()).not.toThrow();
+      expect(cb).not.toHaveBeenCalled();
+    });
+
+    test('invokes callback on pushState with new URL and teardown on unsubscribe', () => {
+      const cb = jest.fn();
+      const win = createMockGlobalScope() as unknown as Window;
+      const unsubscribe = subscribeToUrlChanges(win, cb);
+      expect(cb).not.toHaveBeenCalled();
+      win.history.pushState({}, '', 'https://example.com/page1');
+      expect(cb).toHaveBeenCalledWith('https://example.com/page1');
+      unsubscribe();
+      cb.mockClear();
+      win.history.pushState({}, '', 'https://example.com/page2');
+      expect(cb).not.toHaveBeenCalled();
+    });
+
+    test('invokes callback on pushState with null url uses getHref', () => {
+      const cb = jest.fn();
+      const win = createMockGlobalScope() as unknown as Window;
+      subscribeToUrlChanges(win, cb);
+      win.history.pushState({}, '', null as unknown as string);
+      expect(cb).toHaveBeenCalledWith('https://example.com/initial');
+    });
+
+    test('invokes callback on replaceState', () => {
+      const cb = jest.fn();
+      const win = createMockGlobalScope() as unknown as Window;
+      subscribeToUrlChanges(win, cb);
+      win.history.replaceState({}, '', 'https://example.com/replaced');
+      expect(cb).toHaveBeenCalledWith('https://example.com/replaced');
+    });
+
+    test('replaceState with null url invokes callback with getHref', () => {
+      const cb = jest.fn();
+      const win = createMockGlobalScope() as unknown as Window;
+      subscribeToUrlChanges(win, cb);
+      win.history.replaceState({}, '', null as unknown as string);
+      expect(cb).toHaveBeenCalledWith('https://example.com/initial');
+    });
+
+    test('invokes callback on popstate/hashchange with current location.href', () => {
+      const cb = jest.fn();
+      const win = createMockGlobalScope() as unknown as Window;
+      subscribeToUrlChanges(win, cb);
+      const [, popstateListener] = (win.addEventListener as jest.Mock).mock.calls.find(
+        (c: [string]) => c[0] === 'popstate',
+      ) ?? [undefined, undefined];
+      expect(popstateListener).toBeDefined();
+      popstateListener?.();
+      expect(cb).toHaveBeenCalledWith('https://example.com/initial');
+      expect(cb).toHaveBeenCalledTimes(1);
+      // Same href is deduped, so a second trigger does not call again
+      popstateListener?.();
+      expect(cb).toHaveBeenCalledTimes(1);
+    });
+
+    test('uses polling when enablePolling option is true and cleanup clears interval', () => {
+      const cb = jest.fn();
+      const win = createMockGlobalScope() as unknown as Window;
+      const cleanup = subscribeToUrlChanges(win, cb, {
+        enablePolling: true,
+        pollingInterval: 1000,
+      });
+      const setIntervalMock = Reflect.get(win, 'setInterval') as jest.Mock;
+      expect(setIntervalMock).toHaveBeenCalledWith(expect.any(Function), 1000);
+      (setIntervalMock.mock.calls[0][0] as (this: void) => void).call(undefined);
+      expect(cb).toHaveBeenCalledWith('https://example.com/initial');
+      (cleanup as (this: void) => void).call(undefined);
+      expect(Reflect.get(win, 'clearInterval')).toHaveBeenCalledWith(123);
+    });
+
+    test('polling cleanup does not call clearInterval when interval id is null', () => {
+      const cb = jest.fn();
+      const win = createMockGlobalScope() as unknown as Window;
+      (Reflect.get(win, 'setInterval') as jest.Mock).mockReturnValue(null);
+      const cleanup = subscribeToUrlChanges(win, cb, {
+        enablePolling: true,
+        pollingInterval: 1000,
+      });
+      (cleanup as (this: void) => void).call(undefined);
+      expect(Reflect.get(win, 'clearInterval')).not.toHaveBeenCalled();
+    });
+
+    test('polling getHref returns empty string when location has no href', () => {
+      const cb = jest.fn();
+      const win = createMockGlobalScope({ location: {} as any }) as unknown as Window;
+      const cleanup = subscribeToUrlChanges(win, cb, {
+        enablePolling: true,
+        pollingInterval: 1000,
+      });
+      const setIntervalMock = Reflect.get(win, 'setInterval') as jest.Mock;
+      (setIntervalMock.mock.calls[0][0] as (this: void) => void).call(undefined);
+      expect(cb).toHaveBeenCalledWith('');
+      (cleanup as (this: void) => void).call(undefined);
+    });
+
+    test('adds second subscriber to same scope and notifies both', () => {
+      const cb1 = jest.fn();
+      const cb2 = jest.fn();
+      const win = createMockGlobalScope() as unknown as Window;
+      subscribeToUrlChanges(win, cb1);
+      subscribeToUrlChanges(win, cb2);
+      const history = Reflect.get(win, 'history') as
+        | { pushState: (state: unknown, title: string, url?: string) => void }
+        | undefined;
+      history?.pushState.call(history, {}, '', 'https://example.com/page1');
+      expect(cb1).toHaveBeenCalledWith('https://example.com/page1');
+      expect(cb2).toHaveBeenCalledWith('https://example.com/page1');
+    });
+
+    test('notifies via popstate when history or pushState/replaceState is missing', () => {
+      const cb = jest.fn();
+      const win = createMockGlobalScope({ history: undefined }) as unknown as Window;
+      subscribeToUrlChanges(win, cb);
+      const [, popstateListener] = (win.addEventListener as jest.Mock).mock.calls.find(
+        (c: [string]) => c[0] === 'popstate',
+      ) ?? [undefined, undefined];
+      expect(popstateListener).toBeDefined();
+      popstateListener?.();
+      expect(cb).toHaveBeenCalledWith('https://example.com/initial');
+    });
+
+    test('getHref uses empty string when location has no href (event-based path)', () => {
+      const cb = jest.fn();
+      const win = createMockGlobalScope({ location: {} as any }) as unknown as Window;
+      subscribeToUrlChanges(win, cb);
+      const [, popstateListener] = (win.addEventListener as jest.Mock).mock.calls.find(
+        (c: [string]) => c[0] === 'popstate',
+      ) ?? [undefined, undefined];
+      popstateListener?.();
+      expect(cb).toHaveBeenCalledWith('');
+    });
   });
 
   describe('plugin creation', () => {
@@ -839,25 +992,14 @@ describe('URL Tracking Plugin', () => {
     });
   });
 
-  describe('patch detection and double-patching prevention', () => {
-    test('should prevent double-patching by the same plugin', () => {
+  describe('shared subscription (subscribeToUrlChanges)', () => {
+    test('multiple plugin instances share a single history patch', () => {
       const plugin = createUrlTrackingPlugin();
-
-      // First instance should patch the methods
       const cleanup1 = callObserver(plugin, mockGlobalScope);
-
-      // Store references to the patched methods
       const patchedPushState = mockGlobalScope.history?.pushState;
       const patchedReplaceState = mockGlobalScope.history?.replaceState;
 
-      // Verify patch marker is present
-      expect((patchedPushState as any)?.__amplitude_url_tracking_patched__).toBe(true);
-      expect((patchedReplaceState as any)?.__amplitude_url_tracking_patched__).toBe(true);
-
-      // Second instance should detect existing patch and skip patching
       const cleanup2 = callObserver(plugin, mockGlobalScope);
-
-      // Methods should be the same (no double-patching)
       expect(mockGlobalScope.history?.pushState).toBe(patchedPushState);
       expect(mockGlobalScope.history?.replaceState).toBe(patchedReplaceState);
 
@@ -865,42 +1007,27 @@ describe('URL Tracking Plugin', () => {
       cleanup2();
     });
 
-    test('should apply patch marker to patched methods', () => {
-      const plugin = createUrlTrackingPlugin();
-      const cleanup = callObserver(plugin, mockGlobalScope);
-
-      // Verify that patch markers are applied
-      expect((mockGlobalScope.history?.pushState as any)?.__amplitude_url_tracking_patched__).toBe(true);
-      expect((mockGlobalScope.history?.replaceState as any)?.__amplitude_url_tracking_patched__).toBe(true);
-
-      cleanup();
-    });
-
-    test('should handle multiple plugin instances without memory leaks', () => {
+    test('multiple plugin instances each receive URL change and share one patch', () => {
+      const scope = createMockGlobalScope() as unknown as MockGlobalScope;
       const plugin1 = createUrlTrackingPlugin();
       const plugin2 = createUrlTrackingPlugin();
       const plugin3 = createUrlTrackingPlugin();
+      const cleanup1 = callObserver(plugin1, scope);
+      const cleanup2 = callObserver(plugin2, scope);
+      const cleanup3 = callObserver(plugin3, scope);
 
-      // Create multiple instances
-      const cleanup1 = callObserver(plugin1, mockGlobalScope);
-      const cleanup2 = callObserver(plugin2, mockGlobalScope);
-      const cleanup3 = callObserver(plugin3, mockGlobalScope);
-
-      // All should reference the same patched methods (no nested wrappers)
-      const patchedPushState = mockGlobalScope.history?.pushState;
-      const patchedReplaceState = mockGlobalScope.history?.replaceState;
-
-      // Verify only one level of patching
-      expect((patchedPushState as any)?.__amplitude_url_tracking_patched__).toBe(true);
-      expect((patchedReplaceState as any)?.__amplitude_url_tracking_patched__).toBe(true);
-
-      // Test that URL changes still work correctly
+      expect(scope.history?.pushState).toBeDefined();
       mockCallback.mockClear();
-      if (mockGlobalScope.location) mockGlobalScope.location.href = 'https://example.com/multi-instance';
-      mockGlobalScope.history?.pushState({}, '', '/multi-instance');
+      // Trigger via popstate listener (subscription notifies all callbacks with current location.href)
+      if (scope.location) scope.location.href = 'https://example.com/multi-instance';
+      const popstateCalls = (scope.addEventListener as jest.Mock).mock.calls.filter(
+        (c: [string]) => c[0] === 'popstate',
+      );
+      const popstateListener = popstateCalls[0]?.[1];
+      expect(popstateListener).toBeDefined();
+      popstateListener?.();
 
-      // Should only emit one event (not multiple from nested wrappers)
-      expect(mockCallback).toHaveBeenCalledTimes(1);
+      expect(mockCallback).toHaveBeenCalledTimes(3);
       expect(mockCallback).toHaveBeenCalledWith({
         href: 'https://example.com/multi-instance',
         title: '',
@@ -914,53 +1041,37 @@ describe('URL Tracking Plugin', () => {
       cleanup3();
     });
 
-    test('should not restore history methods on cleanup', () => {
-      // Store original methods
-      const originalPushState = mockGlobalScope.history?.pushState;
-      const originalReplaceState = mockGlobalScope.history?.replaceState;
-
+    test('when plugin is the only subscriber, cleanup removes listeners but does not restore history', () => {
       const plugin = createUrlTrackingPlugin();
       const cleanup = callObserver(plugin, mockGlobalScope);
-
-      // Verify methods are patched
-      expect(mockGlobalScope.history?.pushState).not.toBe(originalPushState);
-      expect(mockGlobalScope.history?.replaceState).not.toBe(originalReplaceState);
-      expect((mockGlobalScope.history?.pushState as any)?.__amplitude_url_tracking_patched__).toBe(true);
-
-      // Store patched methods
       const patchedPushState = mockGlobalScope.history?.pushState;
       const patchedReplaceState = mockGlobalScope.history?.replaceState;
 
-      // Cleanup should NOT restore original methods
       cleanup();
 
-      // Methods should remain patched (not restored)
+      // We do not restore history (other scripts may have patched); patch remains
       expect(mockGlobalScope.history?.pushState).toBe(patchedPushState);
       expect(mockGlobalScope.history?.replaceState).toBe(patchedReplaceState);
-      expect((mockGlobalScope.history?.pushState as any)?.__amplitude_url_tracking_patched__).toBe(true);
-    });
-
-    test('should clean up event listeners but keep history patches', () => {
-      const plugin = createUrlTrackingPlugin();
-      const cleanup = callObserver(plugin, mockGlobalScope);
-
-      // Verify event listeners were added
-      expect(mockGlobalScope.addEventListener).toHaveBeenCalledWith('popstate', expect.any(Function));
-      expect(mockGlobalScope.addEventListener).toHaveBeenCalledWith('hashchange', expect.any(Function));
-
-      // Store patched methods
-      const patchedPushState = mockGlobalScope.history?.pushState;
-      const patchedReplaceState = mockGlobalScope.history?.replaceState;
-
-      cleanup();
-
-      // Event listeners should be removed
       expect(mockGlobalScope.removeEventListener).toHaveBeenCalledWith('popstate', expect.any(Function));
       expect(mockGlobalScope.removeEventListener).toHaveBeenCalledWith('hashchange', expect.any(Function));
+    });
 
-      // But history methods should remain patched
+    test('when another subscriber exists, plugin cleanup leaves patch and listeners in place', () => {
+      const cb = jest.fn();
+      const unsubscribeTargeting = subscribeToUrlChanges(mockGlobalScope as unknown as Window, cb);
+      const plugin = createUrlTrackingPlugin();
+      const cleanupPlugin = callObserver(plugin, mockGlobalScope);
+      const patchedPushState = mockGlobalScope.history?.pushState;
+
+      cleanupPlugin();
+
       expect(mockGlobalScope.history?.pushState).toBe(patchedPushState);
-      expect(mockGlobalScope.history?.replaceState).toBe(patchedReplaceState);
+      cb.mockClear();
+      if (mockGlobalScope.history?.pushState) {
+        mockGlobalScope.history.pushState({}, '', 'https://example.com/after-plugin-cleanup');
+      }
+      expect(cb).toHaveBeenCalledWith('https://example.com/after-plugin-cleanup');
+      unsubscribeTargeting();
     });
 
     test('should work correctly with different plugin options', () => {

@@ -44,9 +44,10 @@ jest.mock('../src/plugins/url-tracking-plugin', () => ({
       captureDocumentTitle: options.captureDocumentTitle ?? false,
     },
   })),
+  subscribeToUrlChanges: jest.fn().mockImplementation(() => jest.fn()),
 }));
 
-import { createUrlTrackingPlugin } from '../src/plugins/url-tracking-plugin';
+import { createUrlTrackingPlugin, subscribeToUrlChanges } from '../src/plugins/url-tracking-plugin';
 
 // Mock remote config storage
 let mockRemoteConfig: RemoteConfig | null = null;
@@ -3081,6 +3082,71 @@ describe('SessionReplay', () => {
 
       await sessionReplay.evaluateTargetingAndCapture({});
 
+      // When targetingParams.page is not provided, we derive page from location.href
+      expect(evaluateTargetingAndStoreSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          targetingParams: expect.objectContaining({
+            page: { url: 'https://global-url.example.com/ignored' },
+          }),
+        }),
+      );
+    });
+
+    test('should pass page undefined when targetingParams.page not provided and location.href is empty', async () => {
+      jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue({
+        location: { href: '' },
+        addEventListener: jest.fn(),
+        removeEventListener: jest.fn(),
+      } as any);
+      const evaluateTargetingAndStoreSpy = jest
+        .spyOn(targetingManager, 'evaluateTargetingAndStore')
+        .mockResolvedValue(true);
+
+      const sessionReplay = new SessionReplay();
+      mockRemoteConfig = {
+        sr_sampling_config: samplingConfig,
+        sr_privacy_config: {},
+        sr_targeting_config: {
+          key: 'sr_targeting_config',
+          variants: { on: { key: 'on' }, off: { key: 'off' } },
+          segments: [],
+        },
+      };
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      sessionReplay.sessionTargetingMatch = false;
+
+      await sessionReplay.evaluateTargetingAndCapture({});
+
+      expect(evaluateTargetingAndStoreSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          targetingParams: expect.objectContaining({
+            page: undefined,
+          }),
+        }),
+      );
+    });
+
+    test('should pass page undefined when targetingParams.page not provided and getGlobalScope returns undefined', async () => {
+      const evaluateTargetingAndStoreSpy = jest
+        .spyOn(targetingManager, 'evaluateTargetingAndStore')
+        .mockResolvedValue(true);
+
+      const sessionReplay = new SessionReplay();
+      mockRemoteConfig = {
+        sr_sampling_config: samplingConfig,
+        sr_privacy_config: {},
+        sr_targeting_config: {
+          key: 'sr_targeting_config',
+          variants: { on: { key: 'on' }, off: { key: 'off' } },
+          segments: [],
+        },
+      };
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      sessionReplay.sessionTargetingMatch = false;
+
+      jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue(undefined as any);
+      await sessionReplay.evaluateTargetingAndCapture({});
+
       expect(evaluateTargetingAndStoreSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           targetingParams: expect.objectContaining({
@@ -3163,6 +3229,121 @@ describe('SessionReplay', () => {
 
       // recordEvents SHOULD be called because we're not recording
       expect(recordEventsSpy).toHaveBeenCalled();
+    });
+
+    test('should call stopRecordingEvents when forceRestart and no longer match and was recording', async () => {
+      const sessionReplay = new SessionReplay();
+      await sessionReplay.init(apiKey, mockOptions).promise;
+
+      if (sessionReplay.config) {
+        sessionReplay.config.targetingConfig = {
+          key: 'sr_targeting_config',
+          variants: { on: { key: 'on' }, off: { key: 'off' } },
+          segments: [],
+        };
+      }
+
+      sessionReplay.recordCancelCallback = jest.fn();
+      const stopSpy = jest.spyOn(sessionReplay, 'stopRecordingEvents');
+      const logSpy = jest.spyOn(sessionReplay.loggerProvider, 'log');
+      jest.spyOn(targetingManager, 'evaluateTargetingAndStore').mockResolvedValue(false);
+
+      await sessionReplay.evaluateTargetingAndCapture(
+        { page: { url: 'https://example.com/non-matching' } },
+        false,
+        true,
+      );
+
+      expect(stopSpy).toHaveBeenCalled();
+      expect(logSpy).toHaveBeenCalledWith(
+        'Stopping Session Replay capture due to targeting no longer matching after re-evaluation.',
+      );
+    });
+  });
+
+  describe('URL change listener for targeting', () => {
+    test('should not call subscribeToUrlChanges when getGlobalScope has no location', () => {
+      jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue({} as any);
+      const sessionReplay = new SessionReplay();
+      sessionReplay.config = { targetingConfig: {} } as any;
+      sessionReplay.identifiers = { sessionId: 123 } as any;
+      (sessionReplay as any).setupUrlChangeListenerForTargeting();
+      expect(subscribeToUrlChanges).not.toHaveBeenCalled();
+    });
+
+    test('should not call subscribeToUrlChanges when getGlobalScope returns null', () => {
+      jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue(null as any);
+      const sessionReplay = new SessionReplay();
+      sessionReplay.config = { targetingConfig: {} } as any;
+      sessionReplay.identifiers = { sessionId: 123 } as any;
+      (sessionReplay as any).setupUrlChangeListenerForTargeting();
+      expect(subscribeToUrlChanges).not.toHaveBeenCalled();
+    });
+
+    test('should call evaluateTargetingAndCapture when URL change callback is invoked', async () => {
+      mockRemoteConfig = {
+        sr_sampling_config: {},
+        sr_privacy_config: {},
+        sr_targeting_config: {
+          key: 'sr_targeting_config',
+          variants: { on: { key: 'on' }, off: { key: 'off' } },
+          segments: [],
+        },
+      };
+      const sessionReplay = new SessionReplay();
+      const subscribeMock = subscribeToUrlChanges as jest.MockedFunction<typeof subscribeToUrlChanges>;
+      const callCountBefore = subscribeMock.mock.calls.length;
+      await sessionReplay.init(apiKey, mockOptions).promise;
+
+      const evaluateSpy = jest.spyOn(sessionReplay, 'evaluateTargetingAndCapture');
+      const lastCall = subscribeMock.mock.calls[callCountBefore];
+      const onUrlChange = lastCall?.[1];
+      expect(onUrlChange).toBeDefined();
+      onUrlChange('https://example.com/new-page');
+      expect(evaluateSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          userProperties: {},
+          event: undefined,
+          page: { url: 'https://example.com/new-page' },
+        }),
+        false,
+        true,
+      );
+    });
+
+    test('should call urlChangeCleanup on shutdown when targeting was set up', async () => {
+      mockRemoteConfig = {
+        sr_sampling_config: {},
+        sr_privacy_config: {},
+        sr_targeting_config: {
+          key: 'sr_targeting_config',
+          variants: { on: { key: 'on' }, off: { key: 'off' } },
+          segments: [],
+        },
+      };
+      let capturedCleanup: (() => void) | null = null;
+      (subscribeToUrlChanges as jest.Mock).mockImplementation(() => {
+        const cleanup = jest.fn();
+        capturedCleanup = cleanup;
+        return cleanup;
+      });
+      const sessionReplay = new SessionReplay();
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      expect(capturedCleanup).not.toBeNull();
+      expect(typeof capturedCleanup).toBe('function');
+      sessionReplay.shutdown();
+      expect(capturedCleanup).toHaveBeenCalled();
+    });
+
+    test('should not call subscribeToUrlChanges when init completes with no targetingConfig', async () => {
+      (subscribeToUrlChanges as jest.Mock).mockClear();
+      mockRemoteConfig = {
+        sr_sampling_config: samplingConfig,
+        sr_privacy_config: {},
+      };
+      const sessionReplay = new SessionReplay();
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      expect(subscribeToUrlChanges).not.toHaveBeenCalled();
     });
   });
 
