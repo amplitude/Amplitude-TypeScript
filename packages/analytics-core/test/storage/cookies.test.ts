@@ -6,7 +6,7 @@
 import { CookieStorage } from '../../src/storage/cookie';
 import { isDomainEqual, decodeCookieValue } from '../../src/index';
 import * as GlobalScopeModule from '../../src/global-scope';
-import { StorageSync } from 'src/types/storage';
+import { StorageSync } from '../../src/types/storage';
 
 describe('cookies', () => {
   describe('isEnabled', () => {
