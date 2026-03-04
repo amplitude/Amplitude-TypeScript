@@ -237,6 +237,32 @@ describe('cookies', () => {
     });
   });
 
+  describe('getAll', () => {
+    test('should return undefined when there are no cookies', async () => {
+      const cookies = new CookieStorage();
+      expect(await cookies.getAll('HELLO_WORLD')).toEqual([]);
+    });
+
+    test('should return cookies', async () => {
+      const cookies = new CookieStorage();
+      await cookies.set('HELLO_WORLD', 'world');
+      expect(await cookies.getAll('HELLO_WORLD')).toEqual(['world']);
+      await cookies.remove('HELLO_WORLD');
+    });
+
+    test('should return empty if document.cookie is not available', async () => {
+      const cookies = new CookieStorage();
+      jest.spyOn(GlobalScopeModule, 'getGlobalScope').mockReturnValue({} as typeof globalThis);
+      expect(await cookies.getAll('HELLO_WORLD')).toEqual([]);
+    });
+
+    test('should return empty array if global scope is not defined', async () => {
+      const cookies = new CookieStorage();
+      jest.spyOn(GlobalScopeModule, 'getGlobalScope').mockReturnValue(undefined);
+      expect(await cookies.getAll('HELLO_WORLD')).toEqual([]);
+    });
+  });
+
   describe('set', () => {
     test('should set cookie value', async () => {
       const cookies = new CookieStorage();
@@ -306,6 +332,7 @@ describe('cookies', () => {
       expect(await cookies.reset()).toBe(undefined);
     });
   });
+
   describe('duplicateResolverFn', () => {
     let tldCookies: CookieStorage<Record<string, string>>;
     let subdomainCookies: CookieStorage<Record<string, string>>;

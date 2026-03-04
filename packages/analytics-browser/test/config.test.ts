@@ -682,4 +682,37 @@ describe('config', () => {
       expect(config.diagnosticsSampleRate).toBe(0.5);
     });
   });
+
+  describe('useBrowserConfig with _enableNextFeatures', () => {
+    test('should use most recent user session when _enableNextFeatures is true', async () => {
+      // mock createCookieStorage
+      jest.spyOn(BrowserUtils.CookieStorage.prototype, 'getAll').mockResolvedValue([
+        {
+          userId: 'user-user-user',
+          sessionId: 1,
+          lastEventTime: 100,
+          lastWriteTime: 100,
+        },
+        {
+          userId: 'user-user-user-2',
+          sessionId: 2,
+          lastEventTime: 200,
+        },
+      ]);
+      const config = await Config.useBrowserConfig(apiKey, { _enableNextFeatures: true }, new AmplitudeBrowser());
+      expect(config.userId).toBe('user-user-user-2');
+      expect(config.sessionId).toBe(2);
+      expect(config.lastEventTime).toBe(200);
+    });
+
+    test('should work when there are no persisted user sessions', async () => {
+      // mock createCookieStorage
+      jest.spyOn(BrowserUtils.CookieStorage.prototype, 'get').mockResolvedValue(undefined);
+      jest.spyOn(BrowserUtils.CookieStorage.prototype, 'getAll').mockResolvedValue([]);
+      const config = await Config.useBrowserConfig(apiKey, { _enableNextFeatures: true }, new AmplitudeBrowser());
+      expect(config.userId).toBeUndefined();
+      expect(config.sessionId).toBeUndefined();
+      expect(config.lastEventTime).toBeUndefined();
+    });
+  });
 });

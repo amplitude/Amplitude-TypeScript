@@ -273,8 +273,12 @@
         import.meta.env.VITE_AMPLITUDE_API_KEY,
         import.meta.env.VITE_AMPLITUDE_USER_ID || 'amplitude-typescript test user',
         {
+          _enableNextFeatures: true,
           fetchRemoteConfig: false,
           logLevel: 'debug',
+          cookieOptions: {
+            domain: 'website.com',
+          },
           autocapture: {
             attribution: {
               excludeReferrers: [

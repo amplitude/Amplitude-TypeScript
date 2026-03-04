@@ -42,6 +42,7 @@ import { DEFAULT_IDENTITY_STORAGE, DEFAULT_SERVER_ZONE } from './constants';
 import { AmplitudeBrowser } from './browser-client';
 import { VERSION } from './version';
 import { getDomain } from './attribution/helpers';
+import { getMostRecentUserSession } from './utils/storage-helpers';
 
 // Exported for testing purposes only. Do not expose to public interface.
 export class BrowserConfig extends Config implements IBrowserConfig {
@@ -265,10 +266,12 @@ export class BrowserConfig extends Config implements IBrowserConfig {
       pageCounter: this._pageCounter,
       debugLogsEnabled: this._debugLogsEnabled,
       cookieDomain: undefined as string | undefined,
+      lastWriteTime: undefined as number | undefined,
     };
 
     if (this.cookieStorage instanceof CookieStorage) {
       cache.cookieDomain = this.cookieStorage.options.domain;
+      cache.lastWriteTime = Date.now();
     }
 
     void this.cookieStorage.set(getCookieName(this.apiKey), cache);
@@ -333,7 +336,16 @@ export const useBrowserConfig = async (
 
   // Step 1: Parse cookies using identity storage instance
   const legacyCookies = await parseLegacyCookies(apiKey, cookieStorage, options.cookieOptions?.upgrade ?? true);
-  const previousCookies = await cookieStorage.get(getCookieName(apiKey));
+  let previousCookies: UserSession | undefined = await cookieStorage.get(getCookieName(apiKey));
+
+  if (options._enableNextFeatures && cookieStorage instanceof CookieStorage) {
+    const cookiesAll: UserSession[] = await cookieStorage.getAll(getCookieName(apiKey));
+    const mostRecentUserSession = getMostRecentUserSession(cookiesAll);
+    if (mostRecentUserSession) {
+      previousCookies = mostRecentUserSession;
+    }
+  }
+
   const queryParams = getQueryParams();
 
   // Check if ampTimestamp is present and valid
