@@ -305,6 +305,12 @@ export interface CookieOptions {
    * @defaultValue `true`
    */
   upgrade?: boolean;
+  /**
+   * Which criteria to use to resolve multiple cookies with the same key.
+   * (default is "domain" but this will likely change to "lastWriteTime")
+   * @defaultValue `'domain'`
+   */
+  resolveMultipleCookiesBy?: 'domain' | 'lastWriteTime';
 }
 
 type HiddenOptions = 'apiKey' | 'transportProvider' | 'requestMetadata' | '_enableRequestBodyCompressionExperimental';

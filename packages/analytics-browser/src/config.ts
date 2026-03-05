@@ -334,10 +334,13 @@ export const useBrowserConfig = async (
 
   // Step 1: Parse cookies using identity storage instance
   const legacyCookies = await parseLegacyCookies(apiKey, cookieStorage, options.cookieOptions?.upgrade ?? true);
-  let previousCookies: UserSession | undefined = await cookieStorage.get(getCookieName(apiKey));
+  let previousCookies: UserSession | undefined;
 
-  if (cookieStorage instanceof CookieStorage) {
-    previousCookies = (await getMostRecentUserSessionFromCookieStorage(apiKey, cookieStorage)) ?? previousCookies;
+  const resolveBy = options.cookieOptions?.resolveMultipleCookiesBy ?? 'domain';
+  if (resolveBy === 'lastWriteTime' && cookieStorage instanceof CookieStorage) {
+    previousCookies = await getMostRecentUserSessionFromCookieStorage(apiKey, cookieStorage);
+  } else {
+    previousCookies = await cookieStorage.get(getCookieName(apiKey));
   }
 
   const queryParams = getQueryParams();
@@ -424,6 +427,13 @@ export const useBrowserConfig = async (
     options.enableRequestBodyCompression,
     amplitudeInstance._enableRequestBodyCompressionExperimentalValue,
   );
+
+  if (resolveBy && resolveBy !== 'domain') {
+    /* istanbul ignore next */
+    browserConfig.loggerProvider?.error(
+      `unknown configuration option: resolveMultipleCookiesBy=${resolveBy}. Expected 'domain' or 'lastWriteTime'. Defaulting to 'domain'.`,
+    );
+  }
 
   if (!(await browserConfig.storageProvider.isEnabled())) {
     browserConfig.loggerProvider.warn(
