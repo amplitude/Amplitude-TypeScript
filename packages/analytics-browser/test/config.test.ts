@@ -412,7 +412,7 @@ describe('config', () => {
         ...testCookieStorage,
         options: {},
         config: {},
-      });
+      } as unknown as BrowserUtils.CookieStorage<unknown>);
       const domain = await Config.getTopLevelDomain();
       expect(domain).toBe('');
     });
@@ -426,27 +426,41 @@ describe('config', () => {
         remove: jest.fn().mockResolvedValueOnce(Promise.resolve(undefined)),
         reset: jest.fn().mockResolvedValueOnce(Promise.resolve(undefined)),
       };
-      const actualCookieStorage: Storage<number> = {
+      const actualCookieStorage = {
         isEnabled: () => Promise.resolve(true),
         get: jest.fn().mockResolvedValueOnce(Promise.resolve(undefined)).mockResolvedValueOnce(Promise.resolve(1)),
         getRaw: jest.fn().mockResolvedValueOnce(Promise.resolve(undefined)).mockResolvedValueOnce(Promise.resolve(1)),
         set: jest.fn().mockResolvedValue(Promise.resolve(undefined)),
         remove: jest.fn().mockResolvedValue(Promise.resolve(undefined)),
         reset: jest.fn().mockResolvedValue(Promise.resolve(undefined)),
-      };
+        // CookieStorage.transaction is used by getTopLevelDomain; first domain fails, second succeeds
+        transaction: jest.fn().mockResolvedValueOnce(false).mockResolvedValueOnce(true),
+      } as unknown as BrowserUtils.CookieStorage<number>;
       jest
         .spyOn(BrowserUtils, 'CookieStorage')
         .mockReturnValueOnce({
           ...testCookieStorage,
           options: {},
           config: {},
-        })
+        } as unknown as BrowserUtils.CookieStorage<unknown>)
         .mockReturnValue({
           ...actualCookieStorage,
           options: {},
           config: {},
+        } as unknown as BrowserUtils.CookieStorage<unknown>);
+
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      const isDomainWritableBefore = BrowserUtils.CookieStorage.isDomainWritable;
+      try {
+        BrowserUtils.CookieStorage.isDomainWritable = jest.fn().mockImplementation((domain: string) => {
+          if (domain === 'gov.uk') return Promise.resolve(false);
+          if (domain === 'legislation.gov.uk') return Promise.resolve(true);
+          return Promise.resolve(false);
         });
-      expect(await Config.getTopLevelDomain('www.legislation.gov.uk')).toBe('.legislation.gov.uk');
+        expect(await Config.getTopLevelDomain('www.legislation.gov.uk')).toBe('.legislation.gov.uk');
+      } finally {
+        BrowserUtils.CookieStorage.isDomainWritable = isDomainWritableBefore;
+      }
     });
 
     test('should not throw an error when location is an empty object', async () => {

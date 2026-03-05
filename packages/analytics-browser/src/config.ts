@@ -299,15 +299,15 @@ export const useBrowserConfig = async (
 ): Promise<IBrowserConfig> => {
   // Step 1: Create identity storage instance
   const identityStorage = options.identityStorage || DEFAULT_IDENTITY_STORAGE;
-  let topLevelDomain = '';
+  let defaultCookieDomain = '';
 
   // use the getTopLevelDomain function to find the TLD only if identity storage
   // is cookie (because getTopLevelDomain() uses cookies)
   if (identityStorage === DEFAULT_IDENTITY_STORAGE) {
-    topLevelDomain = await getTopLevelDomain(undefined, diagnosticsClient);
+    defaultCookieDomain = await getTopLevelDomain(undefined, diagnosticsClient);
   }
   const cookieOptions = {
-    domain: options.cookieOptions?.domain ?? topLevelDomain,
+    domain: options.cookieOptions?.domain ?? defaultCookieDomain,
     expiration: 365,
     sameSite: 'Lax' as const,
     secure: false,
@@ -413,7 +413,7 @@ export const useBrowserConfig = async (
     earlyConfig?.diagnosticsSampleRate ?? amplitudeInstance._diagnosticsSampleRate,
     diagnosticsClient,
     options.remoteConfig,
-    topLevelDomain,
+    defaultCookieDomain,
     options.enableRequestBodyCompression,
     amplitudeInstance._enableRequestBodyCompressionExperimentalValue,
   );
@@ -492,36 +492,32 @@ export const getTopLevelDomain = async (url?: string, diagnosticsClient?: IDiagn
   ) {
     return '';
   }
-
   const host = url ?? location.hostname;
   const parts = host.split('.');
   const levels = [];
-  const cookieKeyUniqueId = UUID();
-  const storageKey = `AMP_TLDTEST_${cookieKeyUniqueId.substring(0, 8)}`;
 
   for (let i = parts.length - 2; i >= 0; --i) {
     levels.push(parts.slice(i).join('.'));
   }
   for (let i = 0; i < levels.length; i++) {
     const domain = levels[i];
-    const options = {
-      domain: '.' + domain,
-      expirationDays: 0.003, // expire in ~5 minutes
-    };
-    const storage = new CookieStorage<number>(options);
-    await storage.set(storageKey, 1);
-    const value = await storage.get(storageKey);
-    if (value) {
-      await storage.remove(storageKey);
+    const result = await CookieStorage.isDomainWritable(domain);
+
+    // if the transaction succeeded, the domain is valid
+    if (result) {
       return '.' + domain;
     }
   }
 
+  // if the transaction failed, the domain is invalid
+  // record a diagnostic event
   if (diagnosticsClient) {
     diagnosticsClient.recordEvent('cookies.tld.failure', {
       reason: `Could not determine TLD for host ${host}`,
     });
   }
 
+  // return an empty string to indicate that we couldn't determine the TLD
+  // so fallback to host-only cookies (scoped to the current host)
   return '';
 };

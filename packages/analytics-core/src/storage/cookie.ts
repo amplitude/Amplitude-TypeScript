@@ -1,6 +1,5 @@
-import { Storage, CookieStorageOptions, CookieStorageConfig } from '../types/storage';
+import { Storage, StorageSync, CookieStorageOptions, CookieStorageConfig } from '../types/storage';
 import { getGlobalScope } from '../global-scope';
-import { UUID } from '../utils/uuid';
 
 // CookieStore is a Web API not included in standard TypeScript lib types
 // https://developer.mozilla.org/en-US/docs/Web/API/CookieStore
@@ -20,6 +19,12 @@ type GlobalScopeWithCookieStore = {
   cookieStore?: CookieStore;
 } & typeof global;
 
+/* istanbul ignore next */
+const getLocks = (): typeof global.navigator.locks | undefined => {
+  const globalScope = getGlobalScope();
+  return globalScope?.navigator?.locks;
+};
+
 export class CookieStorage<T> implements Storage<T> {
   options: CookieStorageOptions;
   config: CookieStorageConfig;
@@ -30,50 +35,51 @@ export class CookieStorage<T> implements Storage<T> {
   }
 
   async isEnabled(): Promise<boolean> {
-    const globalScope = getGlobalScope();
-    /* istanbul ignore if */
-    if (!globalScope || !globalScope.document) {
-      return false;
-    }
-
-    const testValue = String(Date.now());
-    const testCookieOptions = {
-      ...this.options,
-      expirationDays: 0.003, // expire in ~5 minutes
-    };
+    const testKey = 'AMP_TEST';
+    const testCookieOptions = { ...this.options };
     const testStorage = new CookieStorage<string>(testCookieOptions);
-    const testKey = `AMP_TEST_${UUID().substring(0, 8)}`;
-    try {
-      await testStorage.set(testKey, testValue);
-      const value = await testStorage.get(testKey);
-      /* istanbul ignore next */
-      if (value !== testValue && this.config.diagnosticsClient) {
-        this.config.diagnosticsClient?.recordEvent('cookies.isEnabled.failure', {
-          reason: 'Test Value mismatch',
-          testKey,
-          testValue,
-        });
+    const testValue = String(Date.now());
+    return await testStorage.transaction<boolean>(testKey, (storage: StorageSync<string>) => {
+      try {
+        storage.set(testValue);
+        const value = storage.get();
+        const result = value === testValue;
+        /* istanbul ignore next */
+        if (!result && this.config.diagnosticsClient) {
+          this.config.diagnosticsClient?.recordEvent('cookies.isEnabled.failure', {
+            reason: 'Test Value mismatch',
+            testKey,
+            testValue,
+            sync: true,
+          });
+        }
+        return result;
+      } catch (e) {
+        /* istanbul ignore next */
+        if (this.config.diagnosticsClient) {
+          const errMessage = e instanceof Error ? e.message : String(e);
+          this.config.diagnosticsClient?.recordEvent('cookies.isEnabled.failure', {
+            reason: 'Cookie getter/setter failed',
+            testKey,
+            testValue,
+            error: errMessage,
+            sync: true,
+          });
+        }
+        return false;
+      } finally {
+        // clean-up the AMP_TEST cookie behind us
+        storage.set(null);
       }
-      return value === testValue;
-    } catch (e) {
-      /* istanbul ignore next */
-      if (this.config.diagnosticsClient) {
-        const errMessage = e instanceof Error ? e.message : String(e);
-        this.config.diagnosticsClient?.recordEvent('cookies.isEnabled.failure', {
-          reason: 'Cookie getter/setter failed',
-          testKey,
-          testValue,
-          error: errMessage,
-        });
-      }
-      return false;
-    } finally {
-      await testStorage.remove(testKey);
-    }
+    });
   }
 
   async get(key: string): Promise<T | undefined> {
     const value = await this.getRaw(key);
+    return this.decodeCookieValue(key, value);
+  }
+
+  private decodeCookieValue(key: string, value: string | undefined): T | undefined {
     if (!value) {
       return undefined;
     }
@@ -89,6 +95,11 @@ export class CookieStorage<T> implements Storage<T> {
       console.error(`Amplitude Logger [Error]: Failed to parse cookie value for key: ${key}, value: ${value}`);
       return undefined;
     }
+  }
+
+  private getSync(key: string): T | undefined {
+    const value = this.getRawSync(key);
+    return this.decodeCookieValue(key, value);
   }
 
   async getRaw(key: string): Promise<string | undefined> {
@@ -121,6 +132,11 @@ export class CookieStorage<T> implements Storage<T> {
       // if cookieStore had a surprise failure, fallback to document.cookie
     }
 
+    return this.getRawSync(key);
+  }
+
+  private getRawSync(key: string): string | undefined {
+    const globalScope = getGlobalScope();
     const cookies = (globalScope?.document?.cookie.split('; ') ?? []).filter((c) => c.indexOf(key + '=') === 0);
     let match: string | undefined = undefined;
 
@@ -153,6 +169,10 @@ export class CookieStorage<T> implements Storage<T> {
   }
 
   async set(key: string, value: T | null): Promise<void> {
+    this.setSync(key, value);
+  }
+
+  private setSync(key: string, value: T | null): void {
     try {
       const expirationDays = this.options.expirationDays ?? 0;
       const expires = value !== null ? expirationDays : -1;
@@ -192,6 +212,50 @@ export class CookieStorage<T> implements Storage<T> {
 
   async reset(): Promise<void> {
     return;
+  }
+
+  static async isDomainWritable(domain: string): Promise<boolean> {
+    const options = {
+      domain: '.' + domain,
+    };
+    const storageKey = 'AMP_TLDTEST';
+    const storage = new CookieStorage<number>(options);
+    try {
+      const res = await storage.transaction(storageKey, (storageSync) => {
+        try {
+          storageSync.set(1);
+          return storageSync.get();
+        } finally {
+          storageSync.set(null);
+        }
+      });
+      return !!res;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  private async transaction<ReturnType>(
+    key: string,
+    callback: (storageSync: StorageSync<T>) => ReturnType,
+  ): Promise<ReturnType> {
+    const locks = getLocks();
+    const callbackWrapper = () => {
+      // construct a sync storage object that is scoped to
+      // Cookie with name <key>
+      const storageSync: StorageSync<T> = {
+        get: () => this.getSync(key),
+        set: (value: T | null) => this.setSync(key, value),
+      };
+      return callback(storageSync);
+    };
+
+    // if 'locks' is missing, it is a legacy browser, just call the callback directly
+    // and settle for a transaction that isn't isolated across tabs
+    if (!locks) {
+      return callbackWrapper();
+    }
+    return (await locks.request(`com.amplitude:cookie-lock:${key}`, callbackWrapper)) as ReturnType;
   }
 }
 

@@ -9,6 +9,11 @@ export interface Storage<T> {
   reset(): Promise<void>;
 }
 
+export interface StorageSync<T> {
+  get: () => T | undefined;
+  set: (value: T | null) => void;
+}
+
 export interface CookieStorageOptions {
   domain?: string;
   expirationDays?: number;
