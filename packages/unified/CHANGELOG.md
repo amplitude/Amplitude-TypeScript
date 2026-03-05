@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.0.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/unified@1.0.0-beta.41...@amplitude/unified@1.0.1) (2026-03-05)
+
+
+### Bug Fixes
+
+* **unified:** promote to GA ([#1574](https://github.com/amplitude/Amplitude-TypeScript/issues/1574)) ([0021158](https://github.com/amplitude/Amplitude-TypeScript/commit/00211581ed150b3f8ad55a15876522c2b37e9c50))
+
+
+
+
+
 # [1.0.0-beta.41](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/unified@1.0.0-beta.40...@amplitude/unified@1.0.0-beta.41) (2026-03-05)
 
 **Note:** Version bump only for package @amplitude/unified
