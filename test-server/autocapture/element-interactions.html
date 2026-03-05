@@ -276,7 +276,8 @@
           fetchRemoteConfig: false,
           logLevel: 'debug',
           cookieOptions: {
-            domain: '',
+            domain: 'local.website.com',
+            resolveMultipleCookiesBy: 'lastWriteTime',
           },
           autocapture: {
             attribution: {
