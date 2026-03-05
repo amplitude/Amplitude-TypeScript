@@ -42,7 +42,7 @@ import { DEFAULT_IDENTITY_STORAGE, DEFAULT_SERVER_ZONE } from './constants';
 import { AmplitudeBrowser } from './browser-client';
 import { VERSION } from './version';
 import { getDomain } from './attribution/helpers';
-import { getMostRecentUserSession } from './utils/storage-helpers';
+import { getMostRecentUserSessionFromCookieStorage } from './utils/storage-helpers';
 
 // Exported for testing purposes only. Do not expose to public interface.
 export class BrowserConfig extends Config implements IBrowserConfig {
@@ -338,12 +338,7 @@ export const useBrowserConfig = async (
   let previousCookies: UserSession | undefined = await cookieStorage.get(getCookieName(apiKey));
 
   if (cookieStorage instanceof CookieStorage) {
-    const cookiesAll: UserSession[] = await cookieStorage.getAll(getCookieName(apiKey));
-    const mostRecentUserSession = getMostRecentUserSession(cookiesAll);
-    if (mostRecentUserSession) {
-      previousCookies = mostRecentUserSession;
-      debugger;
-    }
+    previousCookies = (await getMostRecentUserSessionFromCookieStorage(apiKey, cookieStorage)) ?? previousCookies;
   }
 
   const queryParams = getQueryParams();

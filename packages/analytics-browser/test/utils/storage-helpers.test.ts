@@ -9,12 +9,12 @@ const session = (overrides: Partial<UserSession> = {}): UserSession => ({
 describe('storage-helpers', () => {
   describe('getMostRecentUserSession', () => {
     test('returns undefined for empty array', async () => {
-      expect(getMostRecentUserSession([])).toBeNull();
+      expect(getMostRecentUserSession([])).toBeUndefined();
     });
 
     test('returns undefined for null or undefined input', async () => {
-      expect(getMostRecentUserSession(null as unknown as UserSession[])).toBeNull();
-      expect(getMostRecentUserSession(undefined as unknown as UserSession[])).toBeNull();
+      expect(getMostRecentUserSession(null as unknown as UserSession[])).toBeUndefined();
+      expect(getMostRecentUserSession(undefined as unknown as UserSession[])).toBeUndefined();
     });
 
     test('returns the only cookie when array has one item', async () => {
