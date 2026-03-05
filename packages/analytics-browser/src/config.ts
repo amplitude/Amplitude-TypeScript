@@ -299,15 +299,15 @@ export const useBrowserConfig = async (
 ): Promise<IBrowserConfig> => {
   // Step 1: Create identity storage instance
   const identityStorage = options.identityStorage || DEFAULT_IDENTITY_STORAGE;
-  let topLevelDomain = '';
+  let defaultCookieDomain = '';
 
   // use the getTopLevelDomain function to find the TLD only if identity storage
   // is cookie (because getTopLevelDomain() uses cookies)
   if (identityStorage === DEFAULT_IDENTITY_STORAGE) {
-    topLevelDomain = await getTopLevelDomain(undefined, diagnosticsClient);
+    defaultCookieDomain = await getTopLevelDomain(undefined, diagnosticsClient);
   }
   const cookieOptions = {
-    domain: options.cookieOptions?.domain ?? topLevelDomain,
+    domain: options.cookieOptions?.domain ?? defaultCookieDomain,
     expiration: 365,
     sameSite: 'Lax' as const,
     secure: false,
@@ -413,7 +413,7 @@ export const useBrowserConfig = async (
     earlyConfig?.diagnosticsSampleRate ?? amplitudeInstance._diagnosticsSampleRate,
     diagnosticsClient,
     options.remoteConfig,
-    topLevelDomain,
+    defaultCookieDomain,
     options.enableRequestBodyCompression,
     amplitudeInstance._enableRequestBodyCompressionExperimentalValue,
   );

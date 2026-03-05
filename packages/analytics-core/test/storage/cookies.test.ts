@@ -6,6 +6,7 @@
 import { CookieStorage } from '../../src/storage/cookie';
 import { isDomainEqual, decodeCookieValue } from '../../src/index';
 import * as GlobalScopeModule from '../../src/global-scope';
+import { StorageSync } from '../../src/types/storage';
 
 describe('cookies', () => {
   describe('isEnabled', () => {
@@ -172,7 +173,7 @@ describe('cookies', () => {
     test('should return undefined when global scope is not defined', async () => {
       const cookies = new CookieStorage<number[]>();
       await cookies.set('hello', [1]);
-      jest.spyOn(GlobalScopeModule, 'getGlobalScope').mockReturnValueOnce(undefined);
+      jest.spyOn(GlobalScopeModule, 'getGlobalScope').mockReturnValue(undefined);
       expect(await cookies.get('hello')).toEqual(undefined);
       await cookies.remove('hello');
     });
@@ -180,7 +181,7 @@ describe('cookies', () => {
     test('should return undefined when global scope is defined but document is not', async () => {
       const cookies = new CookieStorage<number[]>();
       await cookies.set('hello', [1]);
-      jest.spyOn(GlobalScopeModule, 'getGlobalScope').mockReturnValueOnce({} as typeof globalThis);
+      jest.spyOn(GlobalScopeModule, 'getGlobalScope').mockReturnValue({} as typeof globalThis);
       expect(await cookies.get('hello')).toEqual(undefined);
       await cookies.remove('hello');
     });
@@ -439,6 +440,89 @@ describe('cookies', () => {
 
     test('should return undefined for invalid encoded value', () => {
       expect(decodeCookieValue('not-valid-base64!')).toBe(undefined);
+    });
+  });
+
+  describe('isDomainWritable', () => {
+    test('should return true when domain is writable', async () => {
+      // jest env is https://www.example.com, so example.com should be writable
+      const result = await CookieStorage.isDomainWritable('example.com');
+      expect(result).toBe(true);
+    });
+
+    test('should return false when document is not available', async () => {
+      const getGlobalScopeSpy = jest
+        .spyOn(GlobalScopeModule, 'getGlobalScope')
+        .mockReturnValue({} as typeof globalThis);
+      const result = await CookieStorage.isDomainWritable('example.com');
+      getGlobalScopeSpy.mockRestore();
+      expect(result).toBe(false);
+    });
+
+    test('should return false for non-writable domain', async () => {
+      // .amplitude.com is not writable from www.example.com
+      const result = await CookieStorage.isDomainWritable('amplitude.com');
+      expect(result).toBe(false);
+    });
+
+    test('should return false if cookie transactions throws error', async () => {
+      const getGlobalScopeSpy = jest
+        .spyOn(GlobalScopeModule, 'getGlobalScope')
+        .mockReturnValue({} as typeof globalThis);
+      jest.spyOn(CookieStorage.prototype as any, 'transaction').mockImplementation(() => {
+        throw new Error('getter error');
+      });
+      const result = await CookieStorage.isDomainWritable('example.com');
+      getGlobalScopeSpy.mockRestore();
+      expect(result).toBe(false);
+    });
+  });
+
+  describe('transaction', () => {
+    test('should return the result of the callback', async () => {
+      const cookies = new CookieStorage<string>();
+      const result = await (cookies as any).transaction('test', (storageSync: StorageSync<string>) => {
+        storageSync.set('TEST_VALUE_NO_LOCK');
+        return storageSync.get();
+      });
+      expect(result).toBe('TEST_VALUE_NO_LOCK');
+      expect(await cookies.get('test')).toBe('TEST_VALUE_NO_LOCK');
+    });
+
+    describe('with mock navigator.locks', () => {
+      let lockCallList: string[] = [];
+
+      beforeEach(() => {
+        Object.defineProperty(global, 'navigator', {
+          value: {
+            locks: {
+              request: (lockName: string, callback: () => Promise<any>) => {
+                lockCallList.push(lockName);
+                return callback();
+              },
+            },
+          },
+        });
+      });
+      afterEach(() => {
+        lockCallList = [];
+        Object.defineProperty(global, 'navigator', {
+          value: {
+            locks: undefined,
+          },
+        });
+      });
+      test('should return the result of the callback', async () => {
+        const cookies = new CookieStorage<string>();
+        const result = await (cookies as any).transaction('test', (storageSync: StorageSync<string>) => {
+          storageSync.set('TEST_VALUE_WITH_LOCK');
+          return storageSync.get();
+        });
+        expect(result).toBe('TEST_VALUE_WITH_LOCK');
+        expect(await cookies.get('test')).toBe('TEST_VALUE_WITH_LOCK');
+        await cookies.remove('test');
+        expect(lockCallList).toEqual(['com.amplitude:cookie-lock:test']);
+      });
     });
   });
 });
