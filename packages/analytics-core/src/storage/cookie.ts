@@ -226,14 +226,16 @@ export class CookieStorage<T> implements Storage<T> {
     const storage = new CookieStorage<number>(options);
     try {
       const res = await storage.transaction(storageKey, (storageSync) => {
-        storageSync.set(1);
-        return storageSync.get();
+        try {
+          storageSync.set(1);
+          return storageSync.get();
+        } finally {
+          storageSync.set(null);
+        }
       });
       return !!res;
     } catch (error) {
       return false;
-    } finally {
-      await storage.remove(storageKey);
     }
   }
 
