@@ -124,6 +124,10 @@ export class SessionReplay implements AmplitudeSessionReplay {
    * can start/stop recording when the user navigates to a page that matches or no longer matches.
    */
   private setupUrlChangeListenerForTargeting(): void {
+    // If init() runs multiple times, remove the previous URL-change subscription first
+    // so we don't leak callbacks and trigger duplicate targeting evaluations.
+    this.urlChangeCleanup?.();
+
     const globalScope = getGlobalScope() as Window | undefined;
     if (!globalScope?.location) {
       return;
@@ -158,6 +162,10 @@ export class SessionReplay implements AmplitudeSessionReplay {
   }
 
   protected async _init(apiKey: string, options: SessionReplayOptions) {
+    // Re-init should always tear down any previous URL-change subscription, even when the
+    // next config has no targeting config and we don't subscribe again.
+    this.urlChangeCleanup?.();
+
     this.loggerProvider = new SafeLoggerProvider(options.loggerProvider || new Logger());
     Object.prototype.hasOwnProperty.call(options, 'logLevel') &&
       this.loggerProvider.enable(options.logLevel as LogLevel);
@@ -279,6 +287,8 @@ export class SessionReplay implements AmplitudeSessionReplay {
     deviceId?: string,
     options?: { userProperties?: { [key: string]: any } },
   ) {
+    // Invalidate any in-flight URL-change re-evaluations from the previous session.
+    this.latestUrlChangeTargetingEvaluationId++;
     this.sessionTargetingMatch = false;
     this.lastShouldRecordDecision = undefined; // Reset targeting decision for new session
 
@@ -439,7 +449,10 @@ export class SessionReplay implements AmplitudeSessionReplay {
         );
         return;
       }
-      this.sessionTargetingMatch = targetingMatch;
+      // Keep targeting match monotonic within a session: once true, always true.
+      // This avoids races where an older in-flight evaluation resolves false after
+      // a newer evaluation already resolved true.
+      this.sessionTargetingMatch = this.sessionTargetingMatch || targetingMatch;
 
       this.loggerProvider.debug(
         JSON.stringify(

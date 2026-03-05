@@ -1165,6 +1165,67 @@ describe('SessionReplay', () => {
 
       expect(recordEventsSpy).toHaveBeenCalled();
     });
+
+    test('should invalidate in-flight URL-change targeting evaluation on session change', async () => {
+      mockRemoteConfig = {
+        sr_sampling_config: samplingConfig,
+        sr_privacy_config: {},
+        sr_targeting_config: {
+          key: 'sr_targeting_config',
+          variants: { on: { key: 'on' }, off: { key: 'off' } },
+          segments: [],
+        },
+      };
+      await sessionReplay.init(apiKey, mockOptions).promise;
+
+      const mockConfigWithTargeting = new SessionReplayLocalConfig(apiKey, mockOptions);
+      (mockConfigWithTargeting as SessionReplayJoinedConfig).targetingConfig = {
+        key: 'sr_targeting_config',
+        variants: { on: { key: 'on' }, off: { key: 'off' } },
+        segments: [],
+      };
+      jest.spyOn(sessionReplay.joinedConfigGenerator!, 'generateJoinedConfig').mockResolvedValue({
+        joinedConfig: mockConfigWithTargeting,
+        localConfig: mockConfigWithTargeting,
+        remoteConfig: undefined,
+      });
+
+      let resolveStaleEvaluation!: (value: boolean) => void;
+      const staleEvaluationPromise = new Promise<boolean>((resolve) => {
+        resolveStaleEvaluation = resolve;
+      });
+      jest
+        .spyOn(targetingManager, 'evaluateTargetingAndStore')
+        .mockImplementationOnce(() => staleEvaluationPromise)
+        .mockResolvedValueOnce(false);
+      sessionReplay.sessionTargetingMatch = false;
+
+      (
+        sessionReplay as unknown as {
+          latestUrlChangeTargetingEvaluationId: number;
+        }
+      ).latestUrlChangeTargetingEvaluationId = 1;
+
+      const staleUrlEvaluation = sessionReplay.evaluateTargetingAndCapture(
+        { page: { url: 'https://example.com/old-session-page' } },
+        false,
+        false,
+        true,
+      );
+
+      await (sessionReplay as any).asyncSetSessionId(456, '9l8m7n');
+      resolveStaleEvaluation(true);
+      await staleUrlEvaluation;
+
+      expect(sessionReplay.sessionTargetingMatch).toBe(false);
+      expect(
+        (
+          sessionReplay as unknown as {
+            latestUrlChangeTargetingEvaluationId: number;
+          }
+        ).latestUrlChangeTargetingEvaluationId,
+      ).toBe(2);
+    });
   });
 
   describe('getSessionId', () => {
@@ -3333,6 +3394,45 @@ describe('SessionReplay', () => {
       );
     });
 
+    test('should not let a late URL-change false overwrite a newer non-URL true match', async () => {
+      const sessionReplay = new SessionReplay();
+      await sessionReplay.init(apiKey, mockOptions).promise;
+
+      if (sessionReplay.config) {
+        sessionReplay.config.targetingConfig = {
+          key: 'sr_targeting_config',
+          variants: { on: { key: 'on' }, off: { key: 'off' } },
+          segments: [],
+        };
+      }
+
+      let resolveUrlChangeEvaluation!: (value: boolean) => void;
+      const urlChangeEvaluationPromise = new Promise<boolean>((resolve) => {
+        resolveUrlChangeEvaluation = resolve;
+      });
+
+      jest
+        .spyOn(targetingManager, 'evaluateTargetingAndStore')
+        .mockImplementationOnce(() => urlChangeEvaluationPromise)
+        .mockResolvedValueOnce(true);
+
+      sessionReplay.sessionTargetingMatch = false;
+      const urlChangeEval = sessionReplay.evaluateTargetingAndCapture(
+        { page: { url: 'https://example.com/url-change' } },
+        false,
+        false,
+        true,
+      );
+
+      await sessionReplay.evaluateTargetingAndCapture({ event: { event_type: 'regular_event' } as any });
+      expect(sessionReplay.sessionTargetingMatch).toBe(true);
+
+      resolveUrlChangeEvaluation(false);
+      await urlChangeEval;
+
+      expect(sessionReplay.sessionTargetingMatch).toBe(true);
+    });
+
     test('should keep recording for the session after first targeting match', async () => {
       const sessionReplay = new SessionReplay();
       await sessionReplay.init(apiKey, mockOptions).promise;
@@ -3492,6 +3592,69 @@ describe('SessionReplay', () => {
       expect(typeof capturedCleanup).toBe('function');
       sessionReplay.shutdown();
       expect(capturedCleanup).toHaveBeenCalled();
+    });
+
+    test('should clean up previous URL subscription before re-subscribing on re-init', async () => {
+      mockRemoteConfig = {
+        sr_sampling_config: samplingConfig,
+        sr_privacy_config: {},
+        sr_targeting_config: {
+          key: 'sr_targeting_config',
+          variants: { on: { key: 'on' }, off: { key: 'off' } },
+          segments: [],
+        },
+      };
+
+      const callbacks = new Set<(href: string) => void>();
+      (subscribeToUrlChanges as jest.Mock).mockImplementation(
+        (_scope: Window | undefined, cb: (href: string) => void) => {
+          callbacks.add(cb);
+          return () => {
+            callbacks.delete(cb);
+          };
+        },
+      );
+
+      const evaluateTargetingAndCaptureSpy = jest.spyOn(sessionReplay, 'evaluateTargetingAndCapture');
+
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      await sessionReplay.init(apiKey, mockOptions).promise;
+
+      // Init itself evaluates targeting; clear those calls and test only URL-change behavior.
+      evaluateTargetingAndCaptureSpy.mockClear();
+
+      callbacks.forEach((cb) => cb('https://example.com/new-route'));
+
+      expect(callbacks.size).toBe(1);
+      expect(evaluateTargetingAndCaptureSpy).toHaveBeenCalledTimes(1);
+      expect(evaluateTargetingAndCaptureSpy).toHaveBeenCalledWith(
+        {
+          userProperties: {},
+          event: undefined,
+          page: { url: 'https://example.com/new-route' },
+        },
+        false,
+        false,
+        true,
+      );
+    });
+
+    test('should clean up existing URL subscription when setupUrlChangeListenerForTargeting is called again', () => {
+      jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue({
+        location: { href: 'https://example.com/current' },
+      } as any);
+      const firstCleanup = jest.fn();
+      const secondCleanup = jest.fn();
+      (subscribeToUrlChanges as jest.Mock)
+        .mockImplementationOnce(() => firstCleanup)
+        .mockImplementationOnce(() => secondCleanup);
+
+      const sessionReplay = new SessionReplay();
+      (sessionReplay as any).setupUrlChangeListenerForTargeting();
+      (sessionReplay as any).setupUrlChangeListenerForTargeting();
+
+      expect(firstCleanup).toHaveBeenCalledTimes(1);
+      expect(secondCleanup).not.toHaveBeenCalled();
     });
 
     test('should not call subscribeToUrlChanges when init completes with no targetingConfig', async () => {
