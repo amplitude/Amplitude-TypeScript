@@ -535,6 +535,6 @@ export const getTopLevelDomain = async (url?: string, diagnosticsClient?: IDiagn
   }
 
   // return an empty string to indicate that we couldn't determine the TLD
-  // so fallback to not using a domain in cookies
+  // so fallback to host-only cookies (scoped to the current host)
   return '';
 };
