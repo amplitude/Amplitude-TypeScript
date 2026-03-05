@@ -448,7 +448,19 @@ describe('config', () => {
           options: {},
           config: {},
         } as unknown as BrowserUtils.CookieStorage<unknown>);
-      expect(await Config.getTopLevelDomain('www.legislation.gov.uk')).toBe('.legislation.gov.uk');
+
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      const isDomainWritableBefore = BrowserUtils.CookieStorage.isDomainWritable;
+      try {
+        BrowserUtils.CookieStorage.isDomainWritable = jest.fn().mockImplementation((domain: string) => {
+          if (domain === 'gov.uk') return Promise.resolve(false);
+          if (domain === 'legislation.gov.uk') return Promise.resolve(true);
+          return Promise.resolve(false);
+        });
+        expect(await Config.getTopLevelDomain('www.legislation.gov.uk')).toBe('.legislation.gov.uk');
+      } finally {
+        BrowserUtils.CookieStorage.isDomainWritable = isDomainWritableBefore;
+      }
     });
 
     test('should not throw an error when location is an empty object', async () => {

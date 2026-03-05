@@ -470,10 +470,45 @@ describe('cookies', () => {
     });
   });
 
+  describe('isDomainWritable', () => {
+    test('should return true when domain is writable', async () => {
+      // jest env is https://www.example.com, so example.com should be writable
+      const result = await CookieStorage.isDomainWritable('example.com');
+      expect(result).toBe(true);
+    });
+
+    test('should return false when document is not available', async () => {
+      const getGlobalScopeSpy = jest
+        .spyOn(GlobalScopeModule, 'getGlobalScope')
+        .mockReturnValue({} as typeof globalThis);
+      const result = await CookieStorage.isDomainWritable('example.com');
+      getGlobalScopeSpy.mockRestore();
+      expect(result).toBe(false);
+    });
+
+    test('should return false for non-writable domain', async () => {
+      // .amplitude.com is not writable from www.example.com
+      const result = await CookieStorage.isDomainWritable('amplitude.com');
+      expect(result).toBe(false);
+    });
+
+    test('should return false if cookie transactions throws error', async () => {
+      const getGlobalScopeSpy = jest
+        .spyOn(GlobalScopeModule, 'getGlobalScope')
+        .mockReturnValue({} as typeof globalThis);
+      jest.spyOn(CookieStorage.prototype as any, 'transaction').mockImplementation(() => {
+        throw new Error('getter error');
+      });
+      const result = await CookieStorage.isDomainWritable('example.com');
+      getGlobalScopeSpy.mockRestore();
+      expect(result).toBe(false);
+    });
+  });
+
   describe('transaction', () => {
     test('should return the result of the callback', async () => {
       const cookies = new CookieStorage<string>();
-      const result = await cookies.transaction('test', (storageSync: StorageSync<string>) => {
+      const result = await (cookies as any).transaction('test', (storageSync: StorageSync<string>) => {
         storageSync.set('TEST_VALUE_NO_LOCK');
         return storageSync.get();
       });
@@ -506,7 +541,7 @@ describe('cookies', () => {
       });
       test('should return the result of the callback', async () => {
         const cookies = new CookieStorage<string>();
-        const result = await cookies.transaction('test', (storageSync: StorageSync<string>) => {
+        const result = await (cookies as any).transaction('test', (storageSync: StorageSync<string>) => {
           storageSync.set('TEST_VALUE_WITH_LOCK');
           return storageSync.get();
         });

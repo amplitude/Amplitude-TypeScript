@@ -508,29 +508,13 @@ export const getTopLevelDomain = async (url?: string, diagnosticsClient?: IDiagn
   const host = url ?? location.hostname;
   const parts = host.split('.');
   const levels = [];
-  const storageKey = 'AMP_TLDTEST';
 
   for (let i = parts.length - 2; i >= 0; --i) {
     levels.push(parts.slice(i).join('.'));
   }
   for (let i = 0; i < levels.length; i++) {
     const domain = levels[i];
-    const options = {
-      domain: '.' + domain,
-    };
-    const storage = new CookieStorage<number>(options);
-    const result = await storage.transaction<boolean>(storageKey, (storage) => {
-      let value: number | undefined;
-      try {
-        storage.set(1);
-        value = storage.get();
-      } catch (e) {
-        // ignore errors move to next level
-      } finally {
-        storage.set(null);
-      }
-      return !!value;
-    });
+    const result = await CookieStorage.isDomainWritable(domain);
 
     // if the transaction succeeded, the domain is valid
     if (result) {

@@ -230,7 +230,28 @@ export class CookieStorage<T> implements Storage<T> {
     return;
   }
 
-  async transaction<ReturnType>(
+  static async isDomainWritable(domain: string): Promise<boolean> {
+    const options = {
+      domain: '.' + domain,
+    };
+    const storageKey = 'AMP_TLDTEST';
+    const storage = new CookieStorage<number>(options);
+    try {
+      const res = await storage.transaction(storageKey, (storageSync) => {
+        try {
+          storageSync.set(1);
+          return storageSync.get();
+        } finally {
+          storageSync.set(null);
+        }
+      });
+      return !!res;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  private async transaction<ReturnType>(
     key: string,
     callback: (storageSync: StorageSync<T>) => ReturnType,
   ): Promise<ReturnType> {
