@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.41.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.41.1...@amplitude/analytics-core@2.41.2) (2026-03-05)
+
+
+### Bug Fixes
+
+* make getTopLevelDomain and isEnabled synchronous to avoid re-entrancy ([#1564](https://github.com/amplitude/Amplitude-TypeScript/issues/1564)) ([ab9b09f](https://github.com/amplitude/Amplitude-TypeScript/commit/ab9b09f9ec9b9583f92c7cdffb7194cc30e0ea9f))
+
+
+
+
+
 ## [2.41.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.41.0...@amplitude/analytics-core@2.41.1) (2026-03-03)
 
 **Note:** Version bump only for package @amplitude/analytics-core
