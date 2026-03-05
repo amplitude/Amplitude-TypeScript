@@ -398,9 +398,10 @@ export class SessionReplay implements AmplitudeSessionReplay {
     // Store targeting parameters for use in getShouldRecord
     this.lastTargetingParams = targetingParams;
 
-    // Re-evaluate when we have no match yet, or when explicitly forced.
+    // Re-evaluate only until we get the first match in this session.
+    // Once matched, keep recording for the rest of the session.
     const targetingConfig = this.config.targetingConfig;
-    const shouldReEvaluate = targetingConfig && (!this.sessionTargetingMatch || forceTargetingReevaluation);
+    const shouldReEvaluate = targetingConfig && !this.sessionTargetingMatch;
     if (shouldReEvaluate) {
       // Capture URL-change evaluation id so out-of-order async completions can be discarded.
       const urlChangeEvaluationId = forceTargetingReevaluation ? this.latestUrlChangeTargetingEvaluationId : undefined;
@@ -452,18 +453,6 @@ export class SessionReplay implements AmplitudeSessionReplay {
           2,
         ),
       );
-    }
-
-    // On forced re-evaluation, never fall through to recordEvents when targeting no longer matches.
-    const noLongerMatchesAfterReevaluation = forceTargetingReevaluation && !this.sessionTargetingMatch;
-    if (noLongerMatchesAfterReevaluation) {
-      if (this.recordCancelCallback) {
-        this.loggerProvider.log(
-          'Stopping Session Replay capture due to targeting no longer matching after re-evaluation.',
-        );
-        this.stopRecordingEvents();
-      }
-      return;
     }
 
     if (isInit) {

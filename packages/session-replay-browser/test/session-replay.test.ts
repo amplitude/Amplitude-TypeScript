@@ -3288,7 +3288,7 @@ describe('SessionReplay', () => {
       expect(recordEventsSpy).toHaveBeenCalled();
     });
 
-    test('should call stopRecordingEvents when URL-change re-evaluation no longer matches and recording is active', async () => {
+    test('should keep recording for the session after first targeting match', async () => {
       const sessionReplay = new SessionReplay();
       await sessionReplay.init(apiKey, mockOptions).promise;
 
@@ -3300,11 +3300,13 @@ describe('SessionReplay', () => {
         };
       }
 
+      sessionReplay.sessionTargetingMatch = true;
       sessionReplay.recordCancelCallback = jest.fn();
       const stopSpy = jest.spyOn(sessionReplay, 'stopRecordingEvents');
       const recordEventsSpy = jest.spyOn(sessionReplay, 'recordEvents');
-      const logSpy = jest.spyOn(sessionReplay.loggerProvider, 'log');
-      jest.spyOn(targetingManager, 'evaluateTargetingAndStore').mockResolvedValue(false);
+      const evaluateTargetingAndStoreSpy = jest
+        .spyOn(targetingManager, 'evaluateTargetingAndStore')
+        .mockResolvedValue(false);
 
       await sessionReplay.evaluateTargetingAndCapture(
         { page: { url: 'https://example.com/non-matching' } },
@@ -3313,14 +3315,11 @@ describe('SessionReplay', () => {
         true,
       );
 
-      expect(stopSpy).toHaveBeenCalled();
-      expect(logSpy).toHaveBeenCalledWith(
-        'Stopping Session Replay capture due to targeting no longer matching after re-evaluation.',
-      );
+      // Once matched, we do not re-evaluate/stop on later URL changes in the same session.
+      expect(evaluateTargetingAndStoreSpy).not.toHaveBeenCalled();
+      expect(sessionReplay.sessionTargetingMatch).toBe(true);
+      expect(stopSpy).not.toHaveBeenCalled();
       expect(recordEventsSpy).not.toHaveBeenCalled();
-      expect(logSpy).not.toHaveBeenCalledWith(
-        'Recording events for session due to forceRestart or no ongoing recording.',
-      );
     });
   });
 
