@@ -128,6 +128,32 @@ describe('URL Tracking Plugin', () => {
       expect(cb).not.toHaveBeenCalled();
     });
 
+    test('does not re-wrap history across unsubscribe and re-subscribe cycles', () => {
+      const cb1 = jest.fn();
+      const cb2 = jest.fn();
+      const win = createMockGlobalScope() as unknown as Window;
+      const history = win.history;
+
+      const unsubscribe1 = subscribeToUrlChanges(win, cb1);
+      const firstPatchedPushState = Reflect.get(history, 'pushState');
+      const firstPatchedReplaceState = Reflect.get(history, 'replaceState');
+
+      unsubscribe1();
+
+      const unsubscribe2 = subscribeToUrlChanges(win, cb2);
+      expect(Reflect.get(history, 'pushState')).toBe(firstPatchedPushState);
+      expect(Reflect.get(history, 'replaceState')).toBe(firstPatchedReplaceState);
+
+      if (win.location) {
+        win.location.href = 'https://example.com/resubscribed';
+      }
+      history.pushState({}, '', 'https://example.com/resubscribed');
+      expect(cb2).toHaveBeenCalledTimes(1);
+      expect(cb2).toHaveBeenCalledWith('https://example.com/resubscribed');
+
+      unsubscribe2();
+    });
+
     test('resolves relative pushState URL to absolute href and dedupes subsequent popstate', () => {
       const cb = jest.fn();
       const scope = createMockGlobalScope();

@@ -42,11 +42,20 @@ export interface SubscribeToUrlChangesOptions {
   pollingInterval?: number;
 }
 
-/** Per-globalScope subscription state so we only patch history once when multiple subscribers exist */
-const urlChangeSubscriptionsByScope = new WeakMap<
-  Window,
-  { callbacks: Set<(href: string) => void>; cleanup: () => void }
->();
+/** Patch detection marker to prevent double-patching */
+const PATCH_MARKER = '__amplitude_url_tracking_patched__';
+
+type PatchableHistoryMethod<T extends (...args: any[]) => any> = T & { [PATCH_MARKER]?: boolean };
+
+interface UrlChangeSubscriptionState {
+  callbacks: Set<(href: string) => void>;
+  onPopStateOrHashChange: () => void;
+  notify: () => void;
+  listenersAttached: boolean;
+}
+
+/** Per-globalScope subscription state; persists to avoid wrapper stacking across re-subscribe cycles */
+const urlChangeSubscriptionsByScope = new WeakMap<Window, UrlChangeSubscriptionState>();
 
 /**
  * Single helper for URL change detection. Supports:
@@ -92,56 +101,78 @@ export function subscribeToUrlChanges(
     };
   }
 
-  let state = urlChangeSubscriptionsByScope.get(globalScope);
-  if (!state) {
+  let subscriptionState = urlChangeSubscriptionsByScope.get(globalScope);
+  if (!subscriptionState) {
     let lastHref: string | undefined = undefined;
     const callbacks = new Set<(href: string) => void>();
 
     const getHref = (): string => globalScope.location.href ?? '';
 
-    const notify = () => {
+    const notify = (): void => {
       const href = getHref();
       if (lastHref !== undefined && href === lastHref) return;
       lastHref = href;
       callbacks.forEach((c) => c(href));
     };
 
-    const originalPushState = globalScope.history?.pushState?.bind(globalScope.history);
-    const originalReplaceState = globalScope.history?.replaceState?.bind(globalScope.history);
-
-    if (globalScope.history && originalPushState && originalReplaceState) {
-      globalScope.history.pushState = (state: unknown, title: string, url?: string | URL | null) => {
-        originalPushState(state, title, url);
+    /**
+     * Creates a patched version of history methods (pushState/replaceState)
+     * that calls the original method and then emits a URL change event.
+     */
+    const createHistoryMethodPatch = <T extends typeof history.pushState | typeof history.replaceState>(
+      originalMethod: T,
+    ) => {
+      const patchedMethod = function (this: History, ...args: Parameters<T>) {
+        const result = originalMethod.apply(this, args);
         // Read from location.href after history call so we always notify with resolved absolute URL.
         notify();
-      };
-      globalScope.history.replaceState = (state: unknown, title: string, url?: string | URL | null) => {
-        originalReplaceState(state, title, url);
-        // Read from location.href after history call so we always notify with resolved absolute URL.
-        notify();
-      };
-    }
-    const onPopStateOrHashChange = (): void => notify();
-    globalScope.addEventListener('popstate', onPopStateOrHashChange);
-    globalScope.addEventListener('hashchange', onPopStateOrHashChange);
+        return result;
+      } as PatchableHistoryMethod<T>;
 
-    const cleanup = (): void => {
-      // Do not restore history methods: we are not aware of patches applied by other scripts.
-      globalScope.removeEventListener('popstate', onPopStateOrHashChange);
-      globalScope.removeEventListener('hashchange', onPopStateOrHashChange);
-      urlChangeSubscriptionsByScope.delete(globalScope);
+      patchedMethod[PATCH_MARKER] = true;
+      return patchedMethod;
     };
 
-    state = { callbacks, cleanup };
-    urlChangeSubscriptionsByScope.set(globalScope, state);
+    const history = globalScope.history;
+    if (history?.pushState) {
+      const pushState = Reflect.get(history, 'pushState') as PatchableHistoryMethod<History['pushState']>;
+      if (!pushState[PATCH_MARKER]) {
+        history.pushState = createHistoryMethodPatch(pushState);
+      }
+    }
+    if (history?.replaceState) {
+      const replaceState = Reflect.get(history, 'replaceState') as PatchableHistoryMethod<History['replaceState']>;
+      if (!replaceState[PATCH_MARKER]) {
+        history.replaceState = createHistoryMethodPatch(replaceState);
+      }
+    }
+
+    subscriptionState = {
+      callbacks,
+      notify,
+      onPopStateOrHashChange: () => notify(),
+      listenersAttached: false,
+    };
+    urlChangeSubscriptionsByScope.set(globalScope, subscriptionState);
   }
 
-  const subscriptionState = state;
-  subscriptionState.callbacks.add(onUrlChange);
+  const state = subscriptionState;
+  if (!state.listenersAttached) {
+    globalScope.addEventListener('popstate', state.onPopStateOrHashChange);
+    globalScope.addEventListener('hashchange', state.onPopStateOrHashChange);
+    state.listenersAttached = true;
+  }
+
+  state.callbacks.add(onUrlChange);
   return (): void => {
-    subscriptionState.callbacks.delete(onUrlChange);
-    if (subscriptionState.callbacks.size === 0) {
-      subscriptionState.cleanup();
+    state.callbacks.delete(onUrlChange);
+    if (state.callbacks.size === 0) {
+      // Do not restore history methods: we are not aware of patches applied by other scripts.
+      if (state.listenersAttached) {
+        globalScope.removeEventListener('popstate', state.onPopStateOrHashChange);
+        globalScope.removeEventListener('hashchange', state.onPopStateOrHashChange);
+        state.listenersAttached = false;
+      }
     }
   };
 }
