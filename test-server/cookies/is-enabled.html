@@ -12,10 +12,6 @@
 
     const out = document.getElementById('out');
 
-    const config = {
-      //_enableNextFeatures: true,
-    };
-
     function log(msg) {
       out.textContent += msg + '\n';
     }
@@ -27,7 +23,7 @@
       // that was fixed by fixed by https://github.com/amplitude/Amplitude-TypeScript/pull/1539
       const RUNS = 10;
       for (let i = 0; i < RUNS; i++) {
-        const c = new CookieStorage(undefined, config);
+        const c = new CookieStorage();
         promises.push(c.isEnabled());
       }
 
