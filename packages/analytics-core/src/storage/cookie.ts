@@ -218,14 +218,23 @@ export class CookieStorage<T> implements Storage<T> {
     return;
   }
 
-  /* istanbul ignore next */
-  static async isDomainWritable(/*domain: string*/): Promise<boolean> {
-    const key = 'AMP_TEST';
-    const cookieStorage = new CookieStorage();
-    await cookieStorage.transaction(key, function () {
-      throw new Error(`Not yet implemented`);
-    });
-    return false;
+  static async isDomainWritable(domain: string): Promise<boolean> {
+    const options = {
+      domain: '.' + domain,
+    };
+    const storageKey = 'AMP_TLDTEST';
+    const storage = new CookieStorage<number>(options);
+    try {
+      const res = await storage.transaction(storageKey, (storage) => {
+        storage.set(1);
+        return storage.get();
+      });
+      return !!res;
+    } catch (error) {
+      return false;
+    } finally {
+      await storage.remove(storageKey);
+    }
   }
 
   private async transaction<ReturnType>(
