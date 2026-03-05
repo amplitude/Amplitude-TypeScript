@@ -225,9 +225,9 @@ export class CookieStorage<T> implements Storage<T> {
     const storageKey = 'AMP_TLDTEST';
     const storage = new CookieStorage<number>(options);
     try {
-      const res = await storage.transaction(storageKey, (storage) => {
-        storage.set(1);
-        return storage.get();
+      const res = await storage.transaction(storageKey, (storageSync) => {
+        storageSync.set(1);
+        return storageSync.get();
       });
       return !!res;
     } catch (error) {
