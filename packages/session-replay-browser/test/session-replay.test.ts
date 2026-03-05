@@ -3288,6 +3288,51 @@ describe('SessionReplay', () => {
       expect(recordEventsSpy).toHaveBeenCalled();
     });
 
+    test('should ignore stale forceTargetingReevaluation result when latest URL evaluation id changes', async () => {
+      const sessionReplay = new SessionReplay();
+      await sessionReplay.init(apiKey, mockOptions).promise;
+
+      if (sessionReplay.config) {
+        sessionReplay.config.targetingConfig = {
+          key: 'sr_targeting_config',
+          variants: { on: { key: 'on' }, off: { key: 'off' } },
+          segments: [],
+        };
+      }
+
+      let resolveEvaluation!: (value: boolean) => void;
+      const evaluationPromise = new Promise<boolean>((resolve) => {
+        resolveEvaluation = resolve;
+      });
+      jest.spyOn(targetingManager, 'evaluateTargetingAndStore').mockImplementationOnce(() => evaluationPromise);
+
+      (
+        sessionReplay as unknown as {
+          latestUrlChangeTargetingEvaluationId: number;
+        }
+      ).latestUrlChangeTargetingEvaluationId = 1;
+
+      const evalPromise = sessionReplay.evaluateTargetingAndCapture(
+        { page: { url: 'https://example.com/stale-targeting' } },
+        false,
+        false,
+        true,
+      );
+
+      (
+        sessionReplay as unknown as {
+          latestUrlChangeTargetingEvaluationId: number;
+        }
+      ).latestUrlChangeTargetingEvaluationId = 2;
+      resolveEvaluation(true);
+      await evalPromise;
+
+      expect(sessionReplay.sessionTargetingMatch).toBe(false);
+      expect(mockLoggerProvider.debug).toHaveBeenCalledWith(
+        expect.stringContaining('Ignoring stale URL-change targeting result #1; latest is #2.'),
+      );
+    });
+
     test('should keep recording for the session after first targeting match', async () => {
       const sessionReplay = new SessionReplay();
       await sessionReplay.init(apiKey, mockOptions).promise;
