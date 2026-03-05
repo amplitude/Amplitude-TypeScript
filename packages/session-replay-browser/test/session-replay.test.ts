@@ -3375,6 +3375,57 @@ describe('SessionReplay', () => {
       );
     });
 
+    test('should ignore stale URL-change targeting results when reevaluations resolve out of order', async () => {
+      mockRemoteConfig = {
+        sr_sampling_config: {},
+        sr_privacy_config: {},
+        sr_targeting_config: {
+          key: 'sr_targeting_config',
+          variants: { on: { key: 'on' }, off: { key: 'off' } },
+          segments: [],
+        },
+      };
+      const sessionReplay = new SessionReplay();
+      const subscribeMock = subscribeToUrlChanges as jest.MockedFunction<typeof subscribeToUrlChanges>;
+      const callCountBefore = subscribeMock.mock.calls.length;
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      sessionReplay.recordCancelCallback = jest.fn();
+
+      let resolveFirst!: (value: boolean) => void;
+      let resolveSecond!: (value: boolean) => void;
+      const firstEvaluation = new Promise<boolean>((resolve) => {
+        resolveFirst = resolve;
+      });
+      const secondEvaluation = new Promise<boolean>((resolve) => {
+        resolveSecond = resolve;
+      });
+      jest
+        .spyOn(targetingManager, 'evaluateTargetingAndStore')
+        .mockImplementationOnce(() => firstEvaluation)
+        .mockImplementationOnce(() => secondEvaluation);
+
+      const stopSpy = jest.spyOn(sessionReplay, 'stopRecordingEvents');
+
+      const lastCall = subscribeMock.mock.calls[callCountBefore];
+      const onUrlChange = lastCall?.[1] as ((href: string) => void) | undefined;
+      expect(onUrlChange).toBeDefined();
+
+      onUrlChange?.('https://example.com/route-a');
+      onUrlChange?.('https://example.com/route-b');
+
+      resolveSecond(true);
+      await Promise.resolve();
+      await Promise.resolve();
+      expect(sessionReplay.sessionTargetingMatch).toBe(true);
+
+      resolveFirst(false);
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect(sessionReplay.sessionTargetingMatch).toBe(true);
+      expect(stopSpy).not.toHaveBeenCalled();
+    });
+
     test('should call urlChangeCleanup on shutdown when targeting was set up', async () => {
       mockRemoteConfig = {
         sr_sampling_config: {},

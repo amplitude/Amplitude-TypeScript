@@ -87,6 +87,8 @@ export class SessionReplay implements AmplitudeSessionReplay {
 
   /** Cleanup for URL change listener used to re-evaluate targeting on SPA route changes */
   private urlChangeCleanup: (() => void) | null = null;
+  /** Monotonic counter to ignore stale URL-change targeting results */
+  private latestUrlChangeTargetingEvaluationId = 0;
 
   constructor() {
     this.loggerProvider = new SafeLoggerProvider(new Logger());
@@ -128,6 +130,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
     }
 
     const onUrlChange = (href: string): void => {
+      const evaluationId = ++this.latestUrlChangeTargetingEvaluationId;
       void this.evaluateTargetingAndCapture(
         {
           userProperties: {},
@@ -138,6 +141,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
         false,
         true,
       );
+      this.loggerProvider.debug(`Queued URL-change targeting re-evaluation #${evaluationId} for ${href}.`);
     };
     type UrlUnsubscribe = (scope: Window | undefined, cb: (href: string) => void) => () => void;
     const unsubscribe = (subscribeToUrlChanges as UrlUnsubscribe)(globalScope, onUrlChange);
@@ -398,6 +402,8 @@ export class SessionReplay implements AmplitudeSessionReplay {
     const targetingConfig = this.config.targetingConfig;
     const shouldReEvaluate = targetingConfig && (!this.sessionTargetingMatch || forceTargetingReevaluation);
     if (shouldReEvaluate) {
+      // Capture URL-change evaluation id so out-of-order async completions can be discarded.
+      const urlChangeEvaluationId = forceTargetingReevaluation ? this.latestUrlChangeTargetingEvaluationId : undefined;
       let eventForTargeting = targetingParams.event;
       if (
         eventForTargeting &&
@@ -409,7 +415,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
       const pageUrl = targetingParams.page?.url ?? getGlobalScope()?.location?.href ?? '';
       const pageForTargeting = targetingParams.page ?? (pageUrl !== '' ? { url: pageUrl } : undefined);
 
-      this.sessionTargetingMatch = await evaluateTargetingAndStore({
+      const targetingMatch = await evaluateTargetingAndStore({
         sessionId: this.identifiers.sessionId,
         targetingConfig,
         loggerProvider: this.loggerProvider,
@@ -421,6 +427,18 @@ export class SessionReplay implements AmplitudeSessionReplay {
         },
         urlChange: forceTargetingReevaluation,
       });
+
+      if (
+        forceTargetingReevaluation &&
+        urlChangeEvaluationId !== undefined &&
+        urlChangeEvaluationId !== this.latestUrlChangeTargetingEvaluationId
+      ) {
+        this.loggerProvider.debug(
+          `Ignoring stale URL-change targeting result #${urlChangeEvaluationId}; latest is #${this.latestUrlChangeTargetingEvaluationId}.`,
+        );
+        return;
+      }
+      this.sessionTargetingMatch = targetingMatch;
 
       this.loggerProvider.debug(
         JSON.stringify(
