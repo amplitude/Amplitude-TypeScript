@@ -266,12 +266,11 @@ export class BrowserConfig extends Config implements IBrowserConfig {
       pageCounter: this._pageCounter,
       debugLogsEnabled: this._debugLogsEnabled,
       cookieDomain: undefined as string | undefined,
-      lastWriteTime: undefined as number | undefined,
+      lastWriteTime: Date.now(),
     };
 
     if (this.cookieStorage instanceof CookieStorage) {
       cache.cookieDomain = this.cookieStorage.options.domain;
-      cache.lastWriteTime = Date.now();
     }
 
     void this.cookieStorage.set(getCookieName(this.apiKey), cache);

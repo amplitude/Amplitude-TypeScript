@@ -7,8 +7,6 @@ export interface Storage<T> {
   set(key: string, value: T): Promise<void>;
   remove(key: string): Promise<void>;
   reset(): Promise<void>;
-  // optional methods
-  getAll?(key: string): Promise<T[]>;
 }
 
 export interface StorageSync<T> {
