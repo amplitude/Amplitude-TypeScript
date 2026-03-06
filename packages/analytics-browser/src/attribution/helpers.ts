@@ -185,8 +185,10 @@ function debugLogInternalReferrerExclude(
   }
 }
 
-// list of domains that are known ccTLDs or domains that are commonly subtenanted
-const KNOWN_2LDS = [
+// list of domains that are known ccTLDs that are commonly used
+// and are in the
+
+export const KNOWN_2LDS = [
   'ac.in',
   'ac.jp',
   'ac.th',
@@ -196,6 +198,7 @@ const KNOWN_2LDS = [
   'asn.au',
   'azurewebsites.net',
   'cloudfront.net',
+  'myshopify.com',
   'co.ca',
   'co.in',
   'co.jp',

@@ -395,7 +395,7 @@ describe('config', () => {
   describe('getTopLevelDomain', () => {
     test('should return empty string for localhost', async () => {
       // jest env hostname is localhost
-      const domain = await Config.getTopLevelDomain();
+      const domain = await Config.getTopLevelDomain(undefined);
       expect(domain).toBe('');
     });
 
@@ -454,10 +454,15 @@ describe('config', () => {
       try {
         BrowserUtils.CookieStorage.isDomainWritable = jest.fn().mockImplementation((domain: string) => {
           if (domain === 'gov.uk') return Promise.resolve(false);
+          if (domain === 'ac.be') return Promise.resolve(false);
           if (domain === 'legislation.gov.uk') return Promise.resolve(true);
+          if (domain === 'website.com') return Promise.resolve(true);
+          if (domain === 'hello.ac.be') return Promise.resolve(true);
           return Promise.resolve(false);
         });
         expect(await Config.getTopLevelDomain('www.legislation.gov.uk')).toBe('.legislation.gov.uk');
+        expect(await Config.getTopLevelDomain('www.website.com')).toBe('.website.com');
+        expect(await Config.getTopLevelDomain('www.hello.ac.be')).toBe('.hello.ac.be');
       } finally {
         BrowserUtils.CookieStorage.isDomainWritable = isDomainWritableBefore;
       }
