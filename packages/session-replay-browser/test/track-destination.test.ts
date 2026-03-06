@@ -193,6 +193,65 @@ describe('SessionReplayTrackDestination', () => {
       expect(send).toHaveBeenCalledTimes(1);
     });
 
+    test('should send batches sequentially in order', async () => {
+      const trackDestination = new SessionReplayTrackDestination({ loggerProvider: mockLoggerProvider });
+
+      const sendOrder: number[] = [];
+      let resolveFirst!: () => void;
+
+      jest
+        .spyOn(trackDestination, 'send')
+        .mockImplementationOnce(() => {
+          sendOrder.push(1);
+          return new Promise<void>((resolve) => {
+            resolveFirst = resolve;
+          });
+        })
+        .mockImplementationOnce(() => {
+          sendOrder.push(2);
+          return Promise.resolve();
+        });
+
+      trackDestination.queue = [
+        {
+          events: [mockEventString],
+          sessionId: 1,
+          apiKey,
+          attempts: 0,
+          timeout: 0,
+          flushMaxRetries: 1,
+          deviceId: '1a2b3c',
+          sampleRate: 1,
+          serverZone: ServerZone.US,
+          type: 'replay',
+          onComplete: mockOnComplete,
+        },
+        {
+          events: [mockEventString],
+          sessionId: 2,
+          apiKey,
+          attempts: 0,
+          timeout: 0,
+          flushMaxRetries: 1,
+          deviceId: '1a2b3c',
+          sampleRate: 1,
+          serverZone: ServerZone.US,
+          type: 'replay',
+          onComplete: mockOnComplete,
+        },
+      ];
+
+      const flushPromise = trackDestination.flush();
+
+      // First send should have started; second should not have started yet
+      expect(sendOrder).toEqual([1]);
+
+      resolveFirst();
+      await flushPromise;
+
+      expect(sendOrder).toEqual([1, 2]);
+    });
+
     test('should send later', async () => {
       const trackDestination = new SessionReplayTrackDestination({ loggerProvider: mockLoggerProvider });
       const context: SessionReplayDestinationContext = {
@@ -368,7 +427,7 @@ describe('SessionReplayTrackDestination', () => {
         apiKey,
         attempts: 0,
         timeout: 0,
-        flushMaxRetries: 1,
+        flushMaxRetries: 2,
         deviceId: '1a2b3c',
         sampleRate: 1,
         serverZone: ServerZone.US,
@@ -386,15 +445,12 @@ describe('SessionReplayTrackDestination', () => {
             status: 200,
           }),
         );
-      const addToQueue = jest.spyOn(trackDestination, 'addToQueue');
 
-      await trackDestination.send(context, true);
-      expect(addToQueue).toHaveBeenCalledTimes(1);
-      expect(addToQueue).toHaveBeenCalledWith({
-        ...context,
-        attempts: 1,
-        timeout: 0,
-      });
+      const sendPromise = trackDestination.send(context, true);
+      await jest.runAllTimersAsync();
+      await sendPromise;
+
+      expect(fetch).toHaveBeenCalledTimes(2);
     });
 
     test('should not retry if retry param is false', async () => {
