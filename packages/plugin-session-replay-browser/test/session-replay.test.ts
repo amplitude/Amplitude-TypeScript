@@ -1,3 +1,4 @@
+import * as AnalyticsCore from '@amplitude/analytics-core';
 import {
   BrowserClient,
   BrowserConfig,
@@ -528,10 +529,58 @@ describe('SessionReplayPlugin', () => {
       };
       await sessionReplay.execute?.(event);
 
-      expect(evaluateTargetingAndCapture).toHaveBeenCalledWith({
-        event,
-        userProperties: { name: 'John', age: 30 },
-      });
+      expect(evaluateTargetingAndCapture).toHaveBeenCalledWith(
+        expect.objectContaining({
+          event,
+          userProperties: { name: 'John', age: 30 },
+        }),
+      );
+    });
+
+    test('should call evaluateTargetingAndCapture with page from getGlobalScope when location.href is set', async () => {
+      jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue({
+        location: { href: 'https://app.example.com/analytics' },
+      } as any);
+      const sessionReplay = new SessionReplayPlugin();
+      await sessionReplay.setup?.({ ...mockConfig, sessionId: 123 }, mockAmplitude);
+      evaluateTargetingAndCapture.mockResolvedValue(undefined);
+
+      const event = {
+        event_type: SpecialEventType.IDENTIFY,
+        user_properties: { $set: { name: 'Jane' } },
+        session_id: 123,
+      };
+      await sessionReplay.execute?.(event);
+
+      expect(evaluateTargetingAndCapture).toHaveBeenCalledWith(
+        expect.objectContaining({
+          event,
+          userProperties: { name: 'Jane' },
+          page: { url: 'https://app.example.com/analytics' },
+        }),
+      );
+    });
+
+    test('should call evaluateTargetingAndCapture with page undefined when getGlobalScope has no location or href', async () => {
+      jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue(undefined);
+      const sessionReplay = new SessionReplayPlugin();
+      await sessionReplay.setup?.({ ...mockConfig, sessionId: 123 }, mockAmplitude);
+      evaluateTargetingAndCapture.mockResolvedValue(undefined);
+
+      const event = {
+        event_type: SpecialEventType.IDENTIFY,
+        user_properties: { $set: { name: 'Bob' } },
+        session_id: 123,
+      };
+      await sessionReplay.execute?.(event);
+
+      expect(evaluateTargetingAndCapture).toHaveBeenCalledWith(
+        expect.objectContaining({
+          event,
+          userProperties: { name: 'Bob' },
+          page: undefined,
+        }),
+      );
     });
 
     test('should return original event in case of errors', async () => {
