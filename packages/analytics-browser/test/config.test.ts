@@ -625,4 +625,72 @@ describe('config', () => {
       expect(config.diagnosticsSampleRate).toBe(0.5);
     });
   });
+
+  describe('useBrowserConfig with cookieOptions.resolveMultipleCookiesBy', () => {
+    test('should use most recent user session when resolveMultipleCookiesBy is lastWriteTime', async () => {
+      // mock createCookieStorage
+      jest.spyOn(BrowserUtils.CookieStorage.prototype, 'getAll').mockResolvedValue([
+        {
+          userId: 'user-user-user',
+          sessionId: 1,
+          lastEventTime: 100,
+          lastWriteTime: 100,
+        },
+        {
+          userId: 'user-user-user-2',
+          sessionId: 2,
+          lastEventTime: 200,
+        },
+      ]);
+      const config = await Config.useBrowserConfig(
+        apiKey,
+        {
+          cookieOptions: {
+            resolveMultipleCookiesBy: 'lastWriteTime',
+          },
+        },
+        new AmplitudeBrowser(),
+      );
+      expect(config.userId).toBe('user-user-user-2');
+      expect(config.sessionId).toBe(2);
+      expect(config.lastEventTime).toBe(200);
+    });
+
+    test('should default resolveMultipleCookiesBy to domain', async () => {
+      const mockError = jest.fn();
+      await Config.useBrowserConfig(
+        apiKey,
+        {
+          cookieOptions: {
+            resolveMultipleCookiesBy: 'badParameterShouldDefaultToDomain',
+          },
+          loggerProvider: {
+            ...Logger.prototype,
+            error: mockError,
+          },
+        } as any,
+        new AmplitudeBrowser(),
+      );
+      // check logger matches regex /unknown configuration option/
+      expect(mockError).toHaveBeenCalledWith(expect.stringMatching(/unknown configuration option/));
+    });
+
+    test('should work when there are no persisted user sessions', async () => {
+      // mock createCookieStorage
+      jest.spyOn(BrowserUtils.CookieStorage.prototype, 'get').mockResolvedValue(undefined);
+      jest.spyOn(BrowserUtils.CookieStorage.prototype, 'getAll').mockResolvedValue([]);
+      const config = await Config.useBrowserConfig(
+        apiKey,
+        {
+          cookieOptions: {
+            resolveMultipleCookiesBy: 'lastWriteTime',
+          },
+        },
+        new AmplitudeBrowser(),
+      );
+      expect(config.userId).toBeUndefined();
+      expect(config.sessionId).toBeUndefined();
+      expect(config.lastEventTime).toBeUndefined();
+    });
+  });
 });

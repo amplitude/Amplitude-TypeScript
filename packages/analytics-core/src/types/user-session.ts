@@ -4,6 +4,7 @@ export interface UserSession {
   sessionId?: number;
   deferredSessionId?: number;
   lastEventTime?: number;
+  lastWriteTime?: number;
   optOut: boolean;
   lastEventId?: number;
   pageCounter?: number;

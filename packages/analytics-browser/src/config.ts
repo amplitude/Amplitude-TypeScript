@@ -42,6 +42,7 @@ import { DEFAULT_IDENTITY_STORAGE, DEFAULT_SERVER_ZONE } from './constants';
 import { AmplitudeBrowser } from './browser-client';
 import { VERSION } from './version';
 import { getDomain } from './attribution/helpers';
+import { getMostRecentUserSessionFromCookieStorage } from './utils/storage-helpers';
 
 // Exported for testing purposes only. Do not expose to public interface.
 export class BrowserConfig extends Config implements IBrowserConfig {
@@ -265,6 +266,7 @@ export class BrowserConfig extends Config implements IBrowserConfig {
       pageCounter: this._pageCounter,
       debugLogsEnabled: this._debugLogsEnabled,
       cookieDomain: undefined as string | undefined,
+      lastWriteTime: Date.now(),
     };
 
     if (this.cookieStorage instanceof CookieStorage) {
@@ -332,7 +334,15 @@ export const useBrowserConfig = async (
 
   // Step 1: Parse cookies using identity storage instance
   const legacyCookies = await parseLegacyCookies(apiKey, cookieStorage, options.cookieOptions?.upgrade ?? true);
-  const previousCookies = await cookieStorage.get(getCookieName(apiKey));
+  let previousCookies: UserSession | undefined;
+
+  const resolveBy = options.cookieOptions?.resolveMultipleCookiesBy ?? 'domain';
+  if (resolveBy === 'lastWriteTime' && cookieStorage instanceof CookieStorage) {
+    previousCookies = await getMostRecentUserSessionFromCookieStorage(apiKey, cookieStorage);
+  } else {
+    previousCookies = await cookieStorage.get(getCookieName(apiKey));
+  }
+
   const queryParams = getQueryParams();
 
   // Check if ampTimestamp is present and valid
@@ -417,6 +427,13 @@ export const useBrowserConfig = async (
     options.enableRequestBodyCompression,
     amplitudeInstance._enableRequestBodyCompressionExperimentalValue,
   );
+
+  if (resolveBy && resolveBy !== 'domain') {
+    /* istanbul ignore next */
+    browserConfig.loggerProvider?.error(
+      `unknown configuration option: resolveMultipleCookiesBy=${resolveBy}. Expected 'domain' or 'lastWriteTime'. Defaulting to 'domain'.`,
+    );
+  }
 
   if (!(await browserConfig.storageProvider.isEnabled())) {
     browserConfig.loggerProvider.warn(

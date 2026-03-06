@@ -168,6 +168,22 @@ export class CookieStorage<T> implements Storage<T> {
     return match.substring(key.length + 1);
   }
 
+  async getAll(key: string): Promise<T[]> {
+    const cookies = this.getRawAllSync(key);
+    const cookiesParsed: (T | undefined)[] = cookies.map((c) => this.decodeCookieValue(key, c));
+    return cookiesParsed.filter((c) => c !== undefined) as T[];
+  }
+
+  private getRawAllSync(key: string): string[] {
+    const globalScope = getGlobalScope();
+    const cookies = (globalScope?.document?.cookie.split('; ') ?? []).filter((c) => c.indexOf(key + '=') === 0);
+
+    if (cookies.length === 0) {
+      return [];
+    }
+    return cookies.map((c) => c.substring(key.length + 1));
+  }
+
   async set(key: string, value: T | null): Promise<void> {
     this.setSync(key, value);
   }

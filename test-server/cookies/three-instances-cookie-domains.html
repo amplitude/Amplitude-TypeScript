@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Three instances (cookie domains)</title>
+  <style>
+    #event-log { border-collapse: collapse; }
+    #event-log th, #event-log td { border: 1px solid #333; padding: 4px 8px; }
+  </style>
+</head>
+<body>
+  <h2>Events</h2>
+  <table id="event-log">
+    <thead>
+      <tr><th>Instance Name</th><th>Domain</th><th>Device ID</th><th>Event ID</th></tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <script type="module">
+    import * as amplitude from '@amplitude/analytics-browser';
+
+    const apiKey = import.meta.env.VITE_AMPLITUDE_API_KEY || 'test-api-key';
+    const tbody = document.querySelector('#event-log tbody');
+
+    const baseCookieOptions = {
+      //resolveMultipleCookiesBy: 'domain',
+      resolveMultipleCookiesBy: 'lastWriteTime',
+    };
+
+    function eventLogPlugin(instanceName, domain) {
+      return {
+        name: `event-log-${instanceName}`,
+        type: 'enrichment',
+        execute: async (event) => {
+          const eventId = event.event_id != null ? String(event.event_id) : '—';
+          const deviceId = event.device_id != null && event.device_id !== '' ? String(event.device_id) : '—';
+          const row = tbody.insertRow();
+          row.insertCell(0).textContent = instanceName;
+          row.insertCell(1).textContent = domain || '<hostOnly>';
+          row.insertCell(2).textContent = deviceId;
+          row.insertCell(3).textContent = eventId;
+          return event;
+        },
+      };
+    }
+
+    (async () => {
+      const a = amplitude.createInstance();
+      a.add(eventLogPlugin('a', 'local.website.com'));
+      await a.init(apiKey, undefined, {
+        cookieOptions: { domain: 'local.website.com', ...baseCookieOptions },
+        defaultTracking: false,
+        autocapture: false,
+      });
+      a.track('dummy_event_a');
+
+      const b = amplitude.createInstance();
+      b.add(eventLogPlugin('b', 'website.com'));
+      await b.init(apiKey, undefined, {
+        cookieOptions: { domain: 'website.com', ...baseCookieOptions },
+        defaultTracking: false,
+        autocapture: false,
+      });
+      b.track('dummy_event_b');
+
+      const c = amplitude.createInstance();
+      c.add(eventLogPlugin('c', ''));
+      await c.init(apiKey, undefined, {
+        cookieOptions: { domain: '', ...baseCookieOptions },
+        defaultTracking: false,
+        autocapture: false,
+      });
+      c.track('dummy_event_c');
+    })();
+  </script>
+</body>
+</html>
