@@ -186,8 +186,7 @@ function debugLogInternalReferrerExclude(
 }
 
 // list of domains that are known ccTLDs that are commonly used
-// and are in the
-
+// and are in the Public Suffix List (https://publicsuffix.org/)
 export const KNOWN_2LDS = [
   'ac.in',
   'ac.jp',
