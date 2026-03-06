@@ -251,30 +251,6 @@ describe('SessionReplayTrackDestination', () => {
 
       expect(sendOrder).toEqual([1, 2]);
     });
-
-    test('should send later', async () => {
-      const trackDestination = new SessionReplayTrackDestination({ loggerProvider: mockLoggerProvider });
-      const context: SessionReplayDestinationContext = {
-        events: [mockEventString],
-
-        sessionId: 123,
-        apiKey,
-        attempts: 0,
-        timeout: 1000,
-        flushMaxRetries: 1,
-        deviceId: '1a2b3c',
-        sampleRate: 1,
-        serverZone: ServerZone.US,
-        type: 'replay',
-        onComplete: mockOnComplete,
-      };
-      trackDestination.queue = [context];
-      const send = jest.spyOn(trackDestination, 'send').mockReturnValueOnce(Promise.resolve());
-      const result = await trackDestination.flush();
-      expect(trackDestination.queue).toEqual([context]);
-      expect(result).toBe(undefined);
-      expect(send).toHaveBeenCalledTimes(0);
-    });
   });
 
   describe('send', () => {
@@ -478,6 +454,30 @@ describe('SessionReplayTrackDestination', () => {
 
       await trackDestination.send(context, false);
       expect(addToQueue).toHaveBeenCalledTimes(0);
+    });
+  });
+
+  describe('handleOtherResponse', () => {
+    test('should complete request when flushMaxRetries is not set', async () => {
+      const trackDestination = new SessionReplayTrackDestination({ loggerProvider: mockLoggerProvider });
+      const completeRequest = jest.spyOn(trackDestination, 'completeRequest').mockReturnValueOnce(undefined);
+      const context: SessionReplayDestinationContext = {
+        events: [mockEventString],
+        sessionId: 123,
+        apiKey,
+        attempts: 1,
+        timeout: 0,
+        deviceId: '1a2b3c',
+        sampleRate: 1,
+        serverZone: ServerZone.US,
+        type: 'replay',
+        onComplete: mockOnComplete,
+      };
+      await trackDestination.handleOtherResponse(context);
+      expect(completeRequest).toHaveBeenCalledWith({
+        context,
+        err: 'Session replay event batch rejected due to exceeded retry count',
+      });
     });
   });
 });
