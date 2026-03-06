@@ -498,7 +498,7 @@ export const getTopLevelDomain = async (url?: string, diagnosticsClient?: IDiagn
 
   let skipLevel = 1;
 
-  // if the hostname ends with a TLD we know is inn the Public Suffix List
+  // if the hostname ends with a TLD we know is in the Public Suffix List
   // then the last two parts are definitely not writable as a domain
   if (KNOWN_2LDS.find((tld) => host.endsWith(`.${tld}`))) {
     skipLevel = 2;
