@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.31.6-in-order.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.31.5...@amplitude/session-replay-browser@1.31.6-in-order.0) (2026-03-06)
+
+
+### Bug Fixes
+
+* **session-replay:** remove dead timeout-queue code and restore 100% coverage ([aa0703c](https://github.com/amplitude/Amplitude-TypeScript/commit/aa0703c8b5da571cb32485f870ee3532d9069a02))
+* **session-replay:** send batches and retries in order ([94bf37b](https://github.com/amplitude/Amplitude-TypeScript/commit/94bf37b1aa3404147089db9bc81c489a77f7544a))
+
+
+
+
+
 ## [1.31.5](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.31.4...@amplitude/session-replay-browser@1.31.5) (2026-03-05)
 
 **Note:** Version bump only for package @amplitude/session-replay-browser
