@@ -476,6 +476,47 @@ describe('cookies', () => {
       getGlobalScopeSpy.mockRestore();
       expect(result).toBe(false);
     });
+
+    test('should record cookies.tld.failure and return false when cookie get/set throws inside transaction', async () => {
+      const tldError = new Error('cookie access denied');
+      const documentWithThrowingCookie = Object.defineProperties(
+        {},
+        {
+          cookie: {
+            get() {
+              throw tldError;
+            },
+            set() {
+              // no-op so setSync does not throw
+            },
+            configurable: true,
+            enumerable: true,
+          },
+        },
+      );
+      const getGlobalScopeSpy = jest.spyOn(GlobalScopeModule, 'getGlobalScope').mockReturnValue({
+        document: documentWithThrowingCookie,
+      } as typeof globalThis);
+      const mockDiagnosticsClient = {
+        recordEvent: jest.fn(),
+        increment: jest.fn(),
+        recordHistogram: jest.fn(),
+        setTag: jest.fn(),
+        _flush: jest.fn(),
+        _setSampleRate: jest.fn(),
+      };
+
+      const result = await CookieStorage.isDomainWritable('example.com', {
+        diagnosticsClient: mockDiagnosticsClient as any,
+      });
+
+      getGlobalScopeSpy.mockRestore();
+      expect(result).toBe(false);
+      expect(mockDiagnosticsClient.recordEvent).toHaveBeenCalledWith('cookies.tld.failure', {
+        reason: 'Unexpected exception checking domain is writable: example.com',
+        error: 'cookie access denied',
+      });
+    });
   });
 
   describe('transaction', () => {

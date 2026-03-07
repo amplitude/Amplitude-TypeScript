@@ -501,7 +501,7 @@ export const getTopLevelDomain = async (url?: string, diagnosticsClient?: IDiagn
   }
   for (let i = 0; i < levels.length; i++) {
     const domain = levels[i];
-    const result = await CookieStorage.isDomainWritable(domain);
+    const result = await CookieStorage.isDomainWritable(domain, { diagnosticsClient });
 
     // if the transaction succeeded, the domain is valid
     if (result) {
