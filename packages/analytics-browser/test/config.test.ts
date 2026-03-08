@@ -538,6 +538,7 @@ describe('config', () => {
     describe('tldCache', () => {
       /* eslint-disable-next-line @typescript-eslint/unbound-method */
       const isDomainWritableBefore = BrowserUtils.CookieStorage.isDomainWritable;
+      const originalLocation = window.location;
       beforeAll(() => {
         // mock isDomainWritable to return true
         BrowserUtils.CookieStorage.isDomainWritable = jest.fn().mockImplementation((domain: string) => {
@@ -555,6 +556,10 @@ describe('config', () => {
 
       afterAll(() => {
         BrowserUtils.CookieStorage.isDomainWritable = isDomainWritableBefore;
+        Object.defineProperty(window, 'location', {
+          value: originalLocation,
+          configurable: true,
+        });
       });
 
       test('should return cached TLD when available', async () => {
