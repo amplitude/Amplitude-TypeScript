@@ -37,6 +37,7 @@
   },
   "dependencies": {
     "@amplitude/analytics-connector": "^1.6.4",
+    "@types/zen-observable": "0.8.3",
     "safe-json-stringify": "1.2.0",
     "tslib": "^2.4.1",
     "zen-observable": "0.10.0"
@@ -45,7 +46,6 @@
     "lib"
   ],
   "devDependencies": {
-    "@types/safe-json-stringify": "1.1.5",
-    "@types/zen-observable": "0.8.3"
+    "@types/safe-json-stringify": "1.1.5"
   }
 }
