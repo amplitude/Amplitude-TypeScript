@@ -444,6 +444,9 @@ describe('cookies', () => {
   });
 
   describe('isDomainWritable', () => {
+    beforeEach(() => {
+      (CookieStorage as any).cachedTlds = {};
+    });
     test('should return true when domain is writable', async () => {
       // jest env is https://www.example.com, so example.com should be writable
       const result = await CookieStorage.isDomainWritable('example.com');
@@ -453,13 +456,40 @@ describe('cookies', () => {
       expect(result2).toBe(true);
     });
 
-    test('should return true when called concurrently', async () => {
-      const promises = [];
-      for (let i = 0; i < 20; i++) {
-        promises.push(CookieStorage.isDomainWritable('example.com'));
+    test('should return true from inner cachedTlds check when a concurrent call already cached the domain', async () => {
+      const lockQueue: Array<() => Promise<unknown>> = [];
+      const processQueue = (): void => {
+        if (lockQueue.length === 0) return;
+        const run = lockQueue.shift()!;
+        run().then(processQueue, processQueue);
+      };
+      const locks = {
+        request: (_lockName: string, callback: () => unknown) => {
+          const promise = new Promise<unknown>((resolve, reject) => {
+            lockQueue.push(() =>
+              Promise.resolve()
+                .then(() => callback())
+                .then(resolve, reject),
+            );
+            if (lockQueue.length === 1) {
+              Promise.resolve().then(processQueue);
+            }
+          });
+          return promise;
+        },
+      };
+      const nav = global.navigator;
+      Object.defineProperty(global, 'navigator', { value: { ...nav, locks }, configurable: true });
+      try {
+        const [result1, result2] = await Promise.all([
+          CookieStorage.isDomainWritable('example.com'),
+          CookieStorage.isDomainWritable('example.com'),
+        ]);
+        expect(result1).toBe(true);
+        expect(result2).toBe(true);
+      } finally {
+        Object.defineProperty(global, 'navigator', { value: nav, configurable: true });
       }
-      const results = await Promise.all(promises);
-      expect(results.every((result) => result === true)).toBe(true);
     });
 
     test('should return false when document is not available', async () => {
