@@ -448,6 +448,18 @@ describe('cookies', () => {
       // jest env is https://www.example.com, so example.com should be writable
       const result = await CookieStorage.isDomainWritable('example.com');
       expect(result).toBe(true);
+      // call it again to cover the cachedTlds check
+      const result2 = await CookieStorage.isDomainWritable('example.com');
+      expect(result2).toBe(true);
+    });
+
+    test('should return true when called concurrently', async () => {
+      const promises = [];
+      for (let i = 0; i < 20; i++) {
+        promises.push(CookieStorage.isDomainWritable('example.com'));
+      }
+      const results = await Promise.all(promises);
+      expect(results.every((result) => result === true)).toBe(true);
     });
 
     test('should return false when document is not available', async () => {

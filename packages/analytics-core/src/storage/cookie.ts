@@ -29,6 +29,8 @@ export class CookieStorage<T> implements Storage<T> {
   options: CookieStorageOptions;
   config: CookieStorageConfig;
 
+  private static cachedTlds: Set<string> = new Set();
+
   constructor(options?: CookieStorageOptions, config: CookieStorageConfig = {}) {
     this.options = { ...options };
     this.config = config;
@@ -215,16 +217,27 @@ export class CookieStorage<T> implements Storage<T> {
   }
 
   static async isDomainWritable(domain: string): Promise<boolean> {
+    if (CookieStorage.cachedTlds.has(domain)) {
+      return true;
+    }
     const options = {
       domain: '.' + domain,
     };
     const storageKey = 'AMP_TLDTEST';
-    const storage = new CookieStorage<string>(options);
+    const storage = new CookieStorage<number>(options);
     try {
       const res = await storage.transaction(storageKey, (storageSync) => {
+        if (CookieStorage.cachedTlds.has(domain)) {
+          return true;
+        }
         try {
-          storageSync.set(domain);
-          return storageSync.get() === domain;
+          storageSync.set(1);
+          const result = storageSync.get() === 1;
+          debugger;
+          if (result) {
+            CookieStorage.cachedTlds.add(domain);
+          }
+          return result;
         } finally {
           storageSync.set(null);
         }
