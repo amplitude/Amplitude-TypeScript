@@ -521,7 +521,7 @@ describe('config', () => {
         _setSampleRate: jest.fn(),
       };
 
-      /* eslint-disable @typescript-eslint/unbound-method */
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       const isDomainWritableBefore = BrowserUtils.CookieStorage.isDomainWritable;
       try {
         BrowserUtils.CookieStorage.isDomainWritable = jest.fn().mockRejectedValue(tldError);
