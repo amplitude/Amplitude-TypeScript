@@ -214,7 +214,7 @@ export class CookieStorage<T> implements Storage<T> {
     return;
   }
 
-  static async isDomainWritable(domain: string, config: CookieStorageConfig = {}): Promise<boolean> {
+  static async isDomainWritable(domain: string): Promise<boolean> {
     const options = {
       domain: '.' + domain,
     };
@@ -225,16 +225,6 @@ export class CookieStorage<T> implements Storage<T> {
         try {
           storageSync.set(domain);
           return storageSync.get() === domain;
-        } catch (e) {
-          if (config.diagnosticsClient) {
-            /* istanbul ignore next */
-            const errorMessage = e instanceof Error ? e.message : String(e);
-            config.diagnosticsClient.recordEvent('cookies.tld.failure', {
-              reason: `Unexpected exception checking domain is writable: ${domain}`,
-              error: errorMessage,
-            });
-          }
-          return false;
         } finally {
           storageSync.set(null);
         }
