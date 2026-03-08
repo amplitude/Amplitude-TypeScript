@@ -232,7 +232,7 @@ export class CookieStorage<T> implements Storage<T> {
         }
         try {
           storageSync.set(1);
-          const result = storageSync.get() === 1;
+          const result = !!storageSync.get();
           if (result) {
             CookieStorage.cachedTlds[domain] = true;
           }
