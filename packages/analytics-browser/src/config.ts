@@ -501,11 +501,21 @@ export const getTopLevelDomain = async (url?: string, diagnosticsClient?: IDiagn
   }
   for (let i = 0; i < levels.length; i++) {
     const domain = levels[i];
-    const result = await CookieStorage.isDomainWritable(domain, { diagnosticsClient });
+    try {
+      const result = await CookieStorage.isDomainWritable(domain);
 
-    // if the transaction succeeded, the domain is valid
-    if (result) {
-      return '.' + domain;
+      // if the transaction succeeded, the domain is valid
+      if (result) {
+        return '.' + domain;
+      }
+    } catch (e) {
+      if (diagnosticsClient) {
+        diagnosticsClient.recordEvent('cookies.tld.failure', {
+          reason: `Unexpected exception checking domain is writable: ${domain}`,
+          /* istanbul ignore next */
+          error: e instanceof Error && e.message,
+        });
+      }
     }
   }
 

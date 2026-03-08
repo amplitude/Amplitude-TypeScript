@@ -509,6 +509,31 @@ describe('config', () => {
         reason: 'Could not determine TLD for host www.amplitude.com',
       });
     });
+
+    test('should record cookies.tld.failure when isDomainWritable throws', async () => {
+      const tldError = new Error('cookie access denied');
+      const mockDiagnosticsClient = {
+        recordEvent: jest.fn(),
+        setTag: jest.fn(),
+        increment: jest.fn(),
+        recordHistogram: jest.fn(),
+        _flush: jest.fn(),
+        _setSampleRate: jest.fn(),
+      };
+
+      /* eslint-disable @typescript-eslint/unbound-method */
+      const isDomainWritableBefore = BrowserUtils.CookieStorage.isDomainWritable;
+      try {
+        BrowserUtils.CookieStorage.isDomainWritable = jest.fn().mockRejectedValue(tldError);
+        expect(await Config.getTopLevelDomain('www.example.com', mockDiagnosticsClient)).toBe('');
+        expect(mockDiagnosticsClient.recordEvent).toHaveBeenCalledWith('cookies.tld.failure', {
+          reason: 'Unexpected exception checking domain is writable: example.com',
+          error: 'cookie access denied',
+        });
+      } finally {
+        BrowserUtils.CookieStorage.isDomainWritable = isDomainWritableBefore;
+      }
+    });
   });
 
   describe('fetchRemoteConfig', () => {

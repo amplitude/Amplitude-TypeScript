@@ -219,12 +219,12 @@ export class CookieStorage<T> implements Storage<T> {
       domain: '.' + domain,
     };
     const storageKey = 'AMP_TLDTEST';
-    const storage = new CookieStorage<number>(options);
+    const storage = new CookieStorage<string>(options);
     try {
       const res = await storage.transaction(storageKey, (storageSync) => {
         try {
-          storageSync.set(1);
-          return storageSync.get();
+          storageSync.set(domain);
+          return storageSync.get() === domain;
         } catch (e) {
           if (config.diagnosticsClient) {
             /* istanbul ignore next */
