@@ -48,6 +48,8 @@ type Unsubscribable = {
   unsubscribe: () => void;
 };
 
+type ZenObserver<A, B> ={ next: (v: A | B) => void; error: (e: unknown) => void; complete: () => void }
+
 /**
  * merge operator for Zen Observable
  *
@@ -58,7 +60,7 @@ type Unsubscribable = {
  */
 function merge<A, B>(sourceA: ZenObservable<A>, sourceB: ZenObservable<B>): ZenObservable<A | B> {
   return new ZenObservable<A | B>(
-    (observer: { next: (v: A | B) => void; error: (e: unknown) => void; complete: () => void }) => {
+    (observer: ZenObserver<A, B>) => {
       let closed = false;
 
       const subscriptions: Set<Unsubscribable> = new Set();
