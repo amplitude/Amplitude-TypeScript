@@ -1,24 +1,6 @@
 import { Storage, StorageSync, CookieStorageOptions, CookieStorageConfig } from '../types/storage';
 import { getGlobalScope } from '../global-scope';
 
-// CookieStore is a Web API not included in standard TypeScript lib types
-// https://developer.mozilla.org/en-US/docs/Web/API/CookieStore
-interface CookieStoreSetOptions {
-  name: string;
-  value: string;
-  expires?: number;
-  domain?: string;
-  sameSite?: 'strict' | 'lax' | 'none';
-}
-
-interface CookieStore {
-  getAll(key: string): Promise<CookieStoreSetOptions[] | undefined>;
-}
-
-type GlobalScopeWithCookieStore = {
-  cookieStore?: CookieStore;
-} & typeof global;
-
 /* istanbul ignore next */
 const getLocks = (): typeof global.navigator.locks | undefined => {
   const globalScope = getGlobalScope();
@@ -105,35 +87,6 @@ export class CookieStorage<T> implements Storage<T> {
   }
 
   async getRaw(key: string): Promise<string | undefined> {
-    const globalScope = getGlobalScope();
-
-    // use CookieStore if available and enabled
-    const globalScopeWithCookiesStore = globalScope as GlobalScopeWithCookieStore;
-    try {
-      const cookieStore = globalScopeWithCookiesStore?.cookieStore;
-      if (cookieStore) {
-        const cookies = await cookieStore.getAll(key);
-        if (cookies) {
-          /* istanbul ignore if */
-          if (cookies.length > 1) {
-            this.config.diagnosticsClient?.recordEvent('cookies.duplicate', {
-              cookies: cookies.map((cookie) => cookie.domain),
-            });
-            this.config.diagnosticsClient?.increment('cookies.duplicate.occurrence.cookieStore');
-          }
-
-          for (const cookie of cookies) {
-            if (isDomainEqual(cookie.domain, this.options.domain)) {
-              return cookie.value;
-            }
-          }
-        }
-      }
-    } catch (ignoreError) {
-      /* istanbul ignore next */
-      // if cookieStore had a surprise failure, fallback to document.cookie
-    }
-
     return this.getRawSync(key);
   }
 
