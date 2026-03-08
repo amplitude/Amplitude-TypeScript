@@ -39,12 +39,13 @@
     "@amplitude/analytics-connector": "^1.6.4",
     "safe-json-stringify": "1.2.0",
     "tslib": "^2.4.1",
-    "zen-observable-ts": "^1.1.0"
+    "zen-observable": "0.10.0"
   },
   "files": [
     "lib"
   ],
   "devDependencies": {
-    "@types/safe-json-stringify": "1.1.5"
+    "@types/safe-json-stringify": "1.1.5",
+    "@types/zen-observable": "0.8.3"
   }
 }

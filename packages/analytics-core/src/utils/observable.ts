@@ -1,6 +1,20 @@
-export { Observable } from 'zen-observable-ts';
+import ZenObservable from 'zen-observable';
 
-import { Observable as ZenObservable, Observer, Subscription } from 'zen-observable-ts';
+export { ZenObservable as Observable };
+
+/** Subscription type for zen-observable */
+interface Subscription {
+  closed: boolean;
+  unsubscribe(): void;
+}
+
+/** Observer type for zen-observable */
+interface Observer<T> {
+  start?(subscription: Subscription): unknown;
+  next?(value: T): void;
+  error?(errorValue: unknown): void;
+  complete?(): void;
+}
 
 /**
  * asyncMap operator for Zen Observable
@@ -43,53 +57,55 @@ type Unsubscribable = {
  * @returns Unsubscribable cleanup function
  */
 function merge<A, B>(sourceA: ZenObservable<A>, sourceB: ZenObservable<B>): ZenObservable<A | B> {
-  return new ZenObservable<A | B>((observer) => {
-    let closed = false;
+  return new ZenObservable<A | B>(
+    (observer: { next: (v: A | B) => void; error: (e: unknown) => void; complete: () => void }) => {
+      let closed = false;
 
-    const subscriptions: Set<Unsubscribable> = new Set();
+      const subscriptions: Set<Unsubscribable> = new Set();
 
-    const cleanup = (): void => {
-      closed = true;
-      for (const sub of subscriptions) {
-        try {
-          sub.unsubscribe();
-        } catch {
-          /* do nothing */
+      const cleanup = (): void => {
+        closed = true;
+        for (const sub of subscriptions) {
+          try {
+            sub.unsubscribe();
+          } catch {
+            /* do nothing */
+          }
         }
-      }
-      subscriptions.clear();
-    };
+        subscriptions.clear();
+      };
 
-    const subscribeTo = <T>(source: ZenObservable<T>) => {
-      const sub = source.subscribe({
-        next(value: T) {
-          if (!closed) observer.next(value as A | B);
-        },
-        error(err) {
-          if (!closed) {
-            closed = true;
-            observer.error(err);
-            cleanup();
-          }
-        },
-        complete() {
-          subscriptions.delete(sub);
-          if (!closed && subscriptions.size === 0) {
-            observer.complete();
-            cleanup();
-            closed = true;
-          }
-        },
-      });
+      const subscribeTo = <T>(source: ZenObservable<T>) => {
+        const sub = source.subscribe({
+          next(value: T) {
+            if (!closed) observer.next(value as A | B);
+          },
+          error(err: unknown) {
+            if (!closed) {
+              closed = true;
+              observer.error(err);
+              cleanup();
+            }
+          },
+          complete() {
+            subscriptions.delete(sub);
+            if (!closed && subscriptions.size === 0) {
+              observer.complete();
+              cleanup();
+              closed = true;
+            }
+          },
+        });
 
-      subscriptions.add(sub);
-    };
+        subscriptions.add(sub);
+      };
 
-    subscribeTo(sourceA);
-    subscribeTo(sourceB);
+      subscribeTo(sourceA);
+      subscribeTo(sourceB);
 
-    return cleanup;
-  });
+      return cleanup;
+    },
+  );
 }
 
 // function share() {
@@ -104,18 +120,18 @@ function multicast<T>(source: ZenObservable<T>): ZenObservable<T> {
     observers.clear();
   }
 
-  return new ZenObservable<T>((observer) => {
+  return new ZenObservable<T>((observer: Observer<T>) => {
     observers.add(observer);
 
     if (subscription === null) {
       subscription = source.subscribe({
-        next(value) {
+        next(value: T) {
           for (const obs of observers) {
             /* istanbul ignore next */
             obs.next?.(value);
           }
         },
-        error(err) {
+        error(err: unknown) {
           for (const obs of observers) {
             /* istanbul ignore next */
             obs.error?.(err);

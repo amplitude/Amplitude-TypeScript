@@ -253,7 +253,7 @@ describe('merge', () => {
     const errors: Error[] = [];
     mergedObservable.subscribe({
       next: (value) => results.push(value),
-      error: (error) => errors.push(error),
+      error: (error) => errors.push(error as Error),
       complete: () => {},
     });
     await jest.runAllTimersAsync();
