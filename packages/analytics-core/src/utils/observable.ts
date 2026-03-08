@@ -59,55 +59,53 @@ type ZenObserver<A, B> ={ next: (v: A | B) => void; error: (e: unknown) => void;
  * @returns Unsubscribable cleanup function
  */
 function merge<A, B>(sourceA: ZenObservable<A>, sourceB: ZenObservable<B>): ZenObservable<A | B> {
-  return new ZenObservable<A | B>(
-    (observer: ZenObserver<A, B>) => {
-      let closed = false;
+  return new ZenObservable<A | B>((observer: ZenObserver<A, B>) => {
+    let closed = false;
 
-      const subscriptions: Set<Unsubscribable> = new Set();
+    const subscriptions: Set<Unsubscribable> = new Set();
 
-      const cleanup = (): void => {
-        closed = true;
-        for (const sub of subscriptions) {
-          try {
-            sub.unsubscribe();
-          } catch {
-            /* do nothing */
-          }
+    const cleanup = (): void => {
+      closed = true;
+      for (const sub of subscriptions) {
+        try {
+          sub.unsubscribe();
+        } catch {
+          /* do nothing */
         }
-        subscriptions.clear();
-      };
+      }
+      subscriptions.clear();
+    };
 
-      const subscribeTo = <T>(source: ZenObservable<T>) => {
-        const sub = source.subscribe({
-          next(value: T) {
-            if (!closed) observer.next(value as A | B);
-          },
-          error(err: unknown) {
-            if (!closed) {
-              closed = true;
-              observer.error(err);
-              cleanup();
-            }
-          },
-          complete() {
-            subscriptions.delete(sub);
-            if (!closed && subscriptions.size === 0) {
-              observer.complete();
-              cleanup();
-              closed = true;
-            }
-          },
-        });
+    const subscribeTo = <T>(source: ZenObservable<T>) => {
+      const sub = source.subscribe({
+        next(value: T) {
+          if (!closed) observer.next(value as A | B);
+        },
+        error(err: unknown) {
+          if (!closed) {
+            closed = true;
+            observer.error(err);
+            cleanup();
+          }
+        },
+        complete() {
+          subscriptions.delete(sub);
+          if (!closed && subscriptions.size === 0) {
+            observer.complete();
+            cleanup();
+            closed = true;
+          }
+        },
+      });
 
-        subscriptions.add(sub);
-      };
+      subscriptions.add(sub);
+    };
 
-      subscribeTo(sourceA);
-      subscribeTo(sourceB);
+    subscribeTo(sourceA);
+    subscribeTo(sourceB);
 
-      return cleanup;
-    },
-  );
+    return cleanup;
+  });
 }
 
 // function share() {
