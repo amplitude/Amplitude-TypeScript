@@ -534,6 +534,50 @@ describe('config', () => {
         BrowserUtils.CookieStorage.isDomainWritable = isDomainWritableBefore;
       }
     });
+
+    describe('tldCache', () => {
+      /* eslint-disable-next-line @typescript-eslint/unbound-method */
+      const isDomainWritableBefore = BrowserUtils.CookieStorage.isDomainWritable;
+      const originalLocation = window.location;
+      beforeAll(() => {
+        // mock isDomainWritable to return true
+        BrowserUtils.CookieStorage.isDomainWritable = jest.fn().mockImplementation((domain: string) => {
+          if (domain === 'co.uk') return Promise.resolve(false);
+          if (domain === 'example.co.uk') return Promise.resolve(true);
+          return Promise.resolve(false);
+        });
+        Object.defineProperty(window, 'location', {
+          value: {
+            hostname: 'example.co.uk',
+          },
+          configurable: true,
+        });
+      });
+
+      afterAll(() => {
+        BrowserUtils.CookieStorage.isDomainWritable = isDomainWritableBefore;
+        Object.defineProperty(window, 'location', {
+          value: originalLocation,
+          configurable: true,
+        });
+      });
+
+      test('should return cached TLD when available', async () => {
+        const tld1 = await Config.getTopLevelDomain();
+        expect(sessionStorage.getItem('AMP_TLD')).toBe('".example.co.uk"');
+        const tld2 = await Config.getTopLevelDomain();
+        expect(tld1).toBe('.example.co.uk');
+        expect(tld2).toBe('.example.co.uk');
+      });
+
+      test('should not return cached TLD if it is not a subdomain of the hostname', async () => {
+        const tld1 = await Config.getTopLevelDomain();
+        sessionStorage.setItem('AMP_TLD', 'CORRUPTED_VALUE');
+        const tld2 = await Config.getTopLevelDomain();
+        expect(tld1).toBe('.example.co.uk');
+        expect(tld2).toBe('.example.co.uk');
+      });
+    });
   });
 
   describe('fetchRemoteConfig', () => {

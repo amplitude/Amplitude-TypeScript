@@ -41,7 +41,10 @@ import { parseLegacyCookies } from './cookie-migration';
 import { DEFAULT_IDENTITY_STORAGE, DEFAULT_SERVER_ZONE } from './constants';
 import { AmplitudeBrowser } from './browser-client';
 import { VERSION } from './version';
-import { getDomain } from './attribution/helpers';
+import { getDomain, isSubdomainOf } from './attribution/helpers';
+
+const TLD_CACHE_KEY = 'AMP_TLD';
+const tldCache = new SessionStorage<string>();
 
 // Exported for testing purposes only. Do not expose to public interface.
 export class BrowserConfig extends Config implements IBrowserConfig {
@@ -486,6 +489,14 @@ export const createTransport = (transport?: TransportTypeOrOptions) => {
 };
 
 export const getTopLevelDomain = async (url?: string, diagnosticsClient?: IDiagnosticsClient) => {
+  // see if the TLD is cached returun that and skip the cookie check
+  if (!url && typeof location !== 'undefined') {
+    const cachedTld = await tldCache.get(TLD_CACHE_KEY);
+    // also do a sanity check that the TLD is a subdomain of the hostname
+    if (cachedTld && isSubdomainOf(location.hostname, cachedTld)) {
+      return cachedTld;
+    }
+  }
   if (
     !(await new CookieStorage<number>(undefined, { diagnosticsClient }).isEnabled()) ||
     (!url && (typeof location === 'undefined' || !location.hostname))
@@ -506,6 +517,7 @@ export const getTopLevelDomain = async (url?: string, diagnosticsClient?: IDiagn
 
       // if the transaction succeeded, the domain is valid
       if (result) {
+        !url && (await tldCache.set(TLD_CACHE_KEY, '.' + domain));
         return '.' + domain;
       }
     } catch (e) {
