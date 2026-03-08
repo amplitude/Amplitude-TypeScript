@@ -509,11 +509,11 @@ export const getTopLevelDomain = async (url?: string, diagnosticsClient?: IDiagn
         return '.' + domain;
       }
     } catch (e) {
+      /* istanbul ignore if */
       if (diagnosticsClient) {
         diagnosticsClient.recordEvent('cookies.tld.failure', {
           reason: `Unexpected exception checking domain is writable: ${domain}`,
-          /* istanbul ignore next */
-          error: e instanceof Error && e.message,
+          error: e instanceof Error ? e.message : String(e),
         });
       }
     }
