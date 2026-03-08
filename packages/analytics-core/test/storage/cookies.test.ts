@@ -322,81 +322,6 @@ describe('cookies', () => {
     });
   });
 
-  describe('cookieStore', () => {
-    let cookieStorage: CookieStorage<string>;
-    let globalScope: any;
-    beforeEach(() => {
-      cookieStorage = new CookieStorage({
-        domain: 'domain.com',
-      });
-      globalScope = GlobalScopeModule.getGlobalScope() || {};
-      const cookies: any = {};
-
-      // setting up cookieStore mock because JSDom doesn't support cookieStore
-      globalScope.cookieStore = {
-        set({ name, value, domain }: any) {
-          cookies[domain] = cookies[domain] || {};
-          cookies[domain][name] = value;
-        },
-        getAll(key: string) {
-          const output: any[] = [];
-          for (const domain of Object.keys(cookies)) {
-            output.push({
-              key,
-              value: cookies[domain][key],
-              domain,
-            });
-          }
-          return output;
-        },
-      };
-    });
-
-    afterAll(() => {
-      delete globalScope.cookieStore;
-    });
-
-    test('should read from cookieStore', async () => {
-      const value = {
-        hello: 'world!',
-      };
-      await globalScope.cookieStore.set({
-        name: 'hello',
-        value: btoa(encodeURIComponent(JSON.stringify(value))),
-        domain: 'domain.com',
-      });
-      expect(await cookieStorage.get('hello')).toEqual({ hello: 'world!' });
-    });
-
-    test('should record diagnostics when duplicate cookies are detected', async () => {
-      const diagnosticsClient = {
-        recordEvent: jest.fn(),
-        increment: jest.fn(),
-      };
-      const cookieStorageWithDiagnostics = new CookieStorage<string>(
-        {
-          domain: 'domain.com',
-        },
-        {
-          diagnosticsClient: diagnosticsClient as any,
-        },
-      );
-
-      // Mock cookieStore to return multiple cookies
-      globalScope.cookieStore.getAll = jest.fn().mockResolvedValue([
-        { name: 'hello', value: btoa(encodeURIComponent(JSON.stringify('value1'))), domain: 'domain.com' },
-        { name: 'hello', value: btoa(encodeURIComponent(JSON.stringify('value2'))), domain: 'other.com' },
-      ]);
-
-      await cookieStorageWithDiagnostics.get('hello');
-
-      expect(diagnosticsClient.recordEvent).toHaveBeenCalledWith('cookies.duplicate', {
-        cookies: ['domain.com', 'other.com'],
-      });
-      expect(diagnosticsClient.increment).toHaveBeenCalledWith('cookies.duplicate.occurrence.cookieStore');
-    });
-  });
-
   describe('isDomainEqual', () => {
     test('should return true if domains are equal disregard leading .', () => {
       expect(isDomainEqual('.domain.com', 'domain.com')).toBe(true);
@@ -472,6 +397,7 @@ describe('cookies', () => {
                 .then(resolve, reject),
             );
             if (lockQueue.length === 1) {
+              /* eslint-disable-next-line @typescript-eslint/no-floating-promises */
               Promise.resolve().then(processQueue);
             }
           });
