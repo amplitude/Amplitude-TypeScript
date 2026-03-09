@@ -672,9 +672,10 @@ export class SessionReplay implements AmplitudeSessionReplay {
 
     await this.initializeNetworkObservers();
 
+    const networkLoggingConfig = config.loggingConfig?.network;
     this.networkObservers?.start((event: NetworkRequestEvent) => {
       void this.addCustomRRWebEvent(CustomRRwebEvent.FETCH_REQUEST, event);
-    }, this.config?.loggingConfig?.network);
+    }, networkLoggingConfig);
     const { privacyConfig, interactionConfig, loggingConfig } = config;
 
     const hooks = interactionConfig?.enabled
