@@ -41,7 +41,7 @@ import { parseLegacyCookies } from './cookie-migration';
 import { DEFAULT_IDENTITY_STORAGE, DEFAULT_SERVER_ZONE } from './constants';
 import { AmplitudeBrowser } from './browser-client';
 import { VERSION } from './version';
-import { getDomain } from './attribution/helpers';
+import { getDomain, KNOWN_2LDS } from './attribution/helpers';
 
 // Exported for testing purposes only. Do not expose to public interface.
 export class BrowserConfig extends Config implements IBrowserConfig {
@@ -496,7 +496,15 @@ export const getTopLevelDomain = async (url?: string, diagnosticsClient?: IDiagn
   const parts = host.split('.');
   const levels = [];
 
-  for (let i = parts.length - 2; i >= 0; --i) {
+  let skipLevel = 1;
+
+  // if the hostname ends with a TLD we know is in the Public Suffix List
+  // then the last two parts are definitely not writable as a domain
+  if (KNOWN_2LDS.find((tld) => host.endsWith(`.${tld}`))) {
+    skipLevel = 2;
+  }
+
+  for (let i = parts.length - skipLevel - 1; i >= 0; --i) {
     levels.push(parts.slice(i).join('.'));
   }
   for (let i = 0; i < levels.length; i++) {
