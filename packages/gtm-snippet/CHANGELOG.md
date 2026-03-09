@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.36.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/gtm-snippet@2.36.2...@amplitude/gtm-snippet@2.36.3) (2026-03-09)
+
+
+### Bug Fixes
+
+* **session-replay:** guarantee in-order batch delivery including retries ([#1576](https://github.com/amplitude/Amplitude-TypeScript/issues/1576)) ([0afcac6](https://github.com/amplitude/Amplitude-TypeScript/commit/0afcac6cd42b999b74ba797717f7cf0d447029ef))
+
+
+
+
+
 ## [2.36.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/gtm-snippet@2.36.2...@amplitude/gtm-snippet@2.36.2) (2026-03-06)
 
 

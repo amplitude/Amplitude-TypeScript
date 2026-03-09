@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.41.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.41.2...@amplitude/analytics-core@2.41.3) (2026-03-09)
+
+
+### Bug Fixes
+
+* **analytics-browser:** remove zen observable version with bad polyfill ([#1580](https://github.com/amplitude/Amplitude-TypeScript/issues/1580)) ([e07cbe4](https://github.com/amplitude/Amplitude-TypeScript/commit/e07cbe4eaccb261ce8db05d3fd6bd561e7e6da1b))
+* **analytics-browser:** Safari cookie writing race condition + extra exception catching ([#1578](https://github.com/amplitude/Amplitude-TypeScript/issues/1578)) ([bbcc6d7](https://github.com/amplitude/Amplitude-TypeScript/commit/bbcc6d77342a78388fce3fdf8b01d208e6403acf))
+
+
+
+
+
 ## [2.41.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.41.1...@amplitude/analytics-core@2.41.2) (2026-03-05)
 
 

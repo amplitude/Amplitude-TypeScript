@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.36.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.36.2...@amplitude/analytics-browser@2.36.3) (2026-03-09)
+
+
+### Bug Fixes
+
+* **analytics-browser:** Safari cookie writing race condition + extra exception catching ([#1578](https://github.com/amplitude/Amplitude-TypeScript/issues/1578)) ([bbcc6d7](https://github.com/amplitude/Amplitude-TypeScript/commit/bbcc6d77342a78388fce3fdf8b01d208e6403acf))
+* **analytics-browser:** skip known 2lds in TLD check ([#1575](https://github.com/amplitude/Amplitude-TypeScript/issues/1575)) ([1aaab18](https://github.com/amplitude/Amplitude-TypeScript/commit/1aaab1855d6739d4ac7c952e71427bff34844a74))
+
+
+
+
+
 ## [2.36.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.36.1...@amplitude/analytics-browser@2.36.2) (2026-03-05)
 
 
