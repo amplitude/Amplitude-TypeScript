@@ -57,6 +57,24 @@ function serializeRequestBody(body: BodyInit | null | undefined): string | undef
   return undefined;
 }
 
+function truncateToByteLimit(str: string, maxBytes: number): { value: string; truncated: boolean } {
+  if (new Blob([str]).size <= maxBytes) {
+    return { value: str, truncated: false };
+  }
+  // Binary search for the longest prefix whose UTF-8 byte length fits within maxBytes
+  let lo = 0;
+  let hi = str.length;
+  while (lo < hi) {
+    const mid = Math.ceil((lo + hi) / 2);
+    if (new Blob([str.slice(0, mid)]).size <= maxBytes) {
+      lo = mid;
+    } else {
+      hi = mid - 1;
+    }
+  }
+  return { value: str.slice(0, lo), truncated: true };
+}
+
 export class NetworkObservers {
   private fetchObserver: (() => void) | null = null;
   private eventCallback?: NetworkEventCallback;
@@ -102,7 +120,7 @@ export class NetworkObservers {
         const serialized = serializeRequestBody(init?.body);
         if (serialized !== undefined) {
           const maxBytes = bodyConfig.maxBodySizeBytes ?? DEFAULT_MAX_BODY_SIZE_BYTES;
-          requestEvent.requestBody = serialized.length > maxBytes ? serialized.slice(0, maxBytes) : serialized;
+          requestEvent.requestBody = truncateToByteLimit(serialized, maxBytes).value;
         }
       }
 
@@ -131,13 +149,9 @@ export class NetworkObservers {
             cloned.text().then(
               (text) => {
                 const maxBytes = bodyConfig.maxBodySizeBytes ?? DEFAULT_MAX_BODY_SIZE_BYTES;
-                if (text.length > maxBytes) {
-                  requestEvent.responseBody = text.slice(0, maxBytes);
-                  requestEvent.responseBodyStatus = 'truncated';
-                } else {
-                  requestEvent.responseBody = text;
-                  requestEvent.responseBodyStatus = 'captured';
-                }
+                const { value, truncated } = truncateToByteLimit(text, maxBytes);
+                requestEvent.responseBody = value;
+                requestEvent.responseBodyStatus = truncated ? 'truncated' : 'captured';
                 this.notifyEvent(requestEvent);
               },
               () => {

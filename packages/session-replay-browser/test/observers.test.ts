@@ -226,6 +226,23 @@ describe('NetworkObservers', () => {
       expect(events[0].requestBody).toBe('hello');
     });
 
+    it('should truncate request body at a character boundary for multi-byte content', async () => {
+      const mockResponse = {
+        status: 200,
+        headers: { forEach: jest.fn() },
+      };
+      mockFetch.mockResolvedValue(mockResponse);
+      // 🎉 is 4 UTF-8 bytes; with maxBodySizeBytes: 4, only the emoji should be kept
+      networkObservers.start(callback, { enabled: true, body: { request: true, maxBodySizeBytes: 4 } });
+
+      await globalScope.fetch('https://api.example.com/data', {
+        method: 'POST',
+        body: '🎉hello',
+      });
+
+      expect(events[0].requestBody).toBe('🎉');
+    });
+
     it('should not capture request body when body.request is false', async () => {
       const mockResponse = {
         status: 200,
@@ -344,6 +361,28 @@ describe('NetworkObservers', () => {
       await Promise.resolve();
 
       expect(events[0].responseBody).toBe('hello');
+      expect(events[0].responseBodyStatus).toBe('truncated');
+    });
+
+    it('should truncate response body at a character boundary for multi-byte content', async () => {
+      // 🎉 is 4 UTF-8 bytes; with maxBodySizeBytes: 4, only the emoji should be kept
+      const mockClone = { text: jest.fn().mockResolvedValue('🎉hello') };
+      const mockResponse = {
+        status: 200,
+        headers: {
+          forEach: (cb: (value: string, key: string) => void) => {
+            cb('text/plain', 'content-type');
+          },
+        },
+        clone: jest.fn().mockReturnValue(mockClone),
+      };
+      mockFetch.mockResolvedValue(mockResponse);
+      networkObservers.start(callback, { enabled: true, body: { response: true, maxBodySizeBytes: 4 } });
+
+      await globalScope.fetch('https://api.example.com/data');
+      await Promise.resolve();
+
+      expect(events[0].responseBody).toBe('🎉');
       expect(events[0].responseBodyStatus).toBe('truncated');
     });
 
