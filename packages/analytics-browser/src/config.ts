@@ -303,7 +303,11 @@ export const useBrowserConfig = async (
 
   // use the getTopLevelDomain function to find the TLD only if identity storage
   // is cookie (because getTopLevelDomain() uses cookies)
-  if (identityStorage === DEFAULT_IDENTITY_STORAGE) {
+  if (
+    identityStorage === DEFAULT_IDENTITY_STORAGE &&
+    !options.cookieOptions?.domain &&
+    options.cookieOptions?.domain !== ''
+  ) {
     defaultCookieDomain = await getTopLevelDomain(undefined, diagnosticsClient);
   }
   const cookieOptions = {

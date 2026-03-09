@@ -308,6 +308,35 @@ describe('config', () => {
       expect(config.cookieOptions?.domain).toEqual('amplitude.com');
     });
 
+    test('should not call getTopLevelDomain when options.cookieOptions.domain is set', async () => {
+      const getTopLevelDomainSpy = jest.spyOn(Config, 'getTopLevelDomain').mockResolvedValue('.amplitude.com');
+      await Config.useBrowserConfig(
+        apiKey,
+        {
+          cookieOptions: {
+            domain: '.example.com',
+          },
+        },
+        new AmplitudeBrowser(),
+      );
+      expect(getTopLevelDomainSpy).not.toHaveBeenCalled();
+    });
+
+    test('should not call getTopLevelDomain when options.cookieOptions.domain is empty string', async () => {
+      const getTopLevelDomainSpy = jest.spyOn(Config, 'getTopLevelDomain').mockResolvedValue('.amplitude.com');
+      const config = await Config.useBrowserConfig(
+        apiKey,
+        {
+          cookieOptions: {
+            domain: '',
+          },
+        },
+        new AmplitudeBrowser(),
+      );
+      expect(getTopLevelDomainSpy).not.toHaveBeenCalled();
+      expect(config.cookieOptions?.domain).toEqual('');
+    });
+
     test.each([
       [true, true],
       [undefined, true],
