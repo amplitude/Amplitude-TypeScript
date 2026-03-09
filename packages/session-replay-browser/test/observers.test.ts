@@ -1,4 +1,4 @@
-import { NetworkObservers, NetworkRequestEvent } from '../src/observers';
+import { NetworkObservers, NetworkRequestEvent, NetworkConfig } from '../src/observers';
 import * as AnalyticsCore from '@amplitude/analytics-core';
 type PartialGlobal = Pick<typeof globalThis, 'fetch'>;
 
@@ -136,6 +136,332 @@ describe('NetworkObservers', () => {
         name: 'UnknownError',
         message: 'An unknown error occurred',
       });
+    });
+  });
+
+  describe('request body capture', () => {
+    const networkConfig: NetworkConfig = { enabled: true, body: { request: true } };
+
+    it('should capture string request body', async () => {
+      const mockResponse = {
+        status: 200,
+        headers: { forEach: jest.fn() },
+      };
+      mockFetch.mockResolvedValue(mockResponse);
+      networkObservers.start(callback, networkConfig);
+
+      await globalScope.fetch('https://api.example.com/data', {
+        method: 'POST',
+        body: '{"key":"value"}',
+      });
+
+      expect(events[0].requestBody).toBe('{"key":"value"}');
+    });
+
+    it('should capture URLSearchParams request body', async () => {
+      const mockResponse = {
+        status: 200,
+        headers: { forEach: jest.fn() },
+      };
+      mockFetch.mockResolvedValue(mockResponse);
+      networkObservers.start(callback, networkConfig);
+
+      await globalScope.fetch('https://api.example.com/data', {
+        method: 'POST',
+        body: new URLSearchParams({ foo: 'bar', baz: 'qux' }),
+      });
+
+      expect(events[0].requestBody).toBe('foo=bar&baz=qux');
+    });
+
+    it('should capture FormData request body', async () => {
+      const mockResponse = {
+        status: 200,
+        headers: { forEach: jest.fn() },
+      };
+      mockFetch.mockResolvedValue(mockResponse);
+      networkObservers.start(callback, networkConfig);
+
+      const formData = new FormData();
+      formData.append('username', 'alice');
+      formData.append('password', 'secret');
+
+      await globalScope.fetch('https://api.example.com/data', {
+        method: 'POST',
+        body: formData,
+      });
+
+      expect(events[0].requestBody).toBe('username=alice&password=secret');
+    });
+
+    it('should skip binary request body types', async () => {
+      const mockResponse = {
+        status: 200,
+        headers: { forEach: jest.fn() },
+      };
+      mockFetch.mockResolvedValue(mockResponse);
+      networkObservers.start(callback, networkConfig);
+
+      await globalScope.fetch('https://api.example.com/data', {
+        method: 'POST',
+        body: new ArrayBuffer(8),
+      });
+
+      expect(events[0].requestBody).toBeUndefined();
+    });
+
+    it('should truncate request body exceeding maxBodySizeBytes', async () => {
+      const mockResponse = {
+        status: 200,
+        headers: { forEach: jest.fn() },
+      };
+      mockFetch.mockResolvedValue(mockResponse);
+      networkObservers.start(callback, { enabled: true, body: { request: true, maxBodySizeBytes: 5 } });
+
+      await globalScope.fetch('https://api.example.com/data', {
+        method: 'POST',
+        body: 'hello world',
+      });
+
+      expect(events[0].requestBody).toBe('hello');
+    });
+
+    it('should not capture request body when body.request is false', async () => {
+      const mockResponse = {
+        status: 200,
+        headers: { forEach: jest.fn() },
+      };
+      mockFetch.mockResolvedValue(mockResponse);
+      networkObservers.start(callback, { enabled: true, body: { request: false } });
+
+      await globalScope.fetch('https://api.example.com/data', {
+        method: 'POST',
+        body: '{"key":"value"}',
+      });
+
+      expect(events[0].requestBody).toBeUndefined();
+    });
+
+    it('should not capture request body when body config is absent', async () => {
+      const mockResponse = {
+        status: 200,
+        headers: { forEach: jest.fn() },
+      };
+      mockFetch.mockResolvedValue(mockResponse);
+      networkObservers.start(callback);
+
+      await globalScope.fetch('https://api.example.com/data', {
+        method: 'POST',
+        body: '{"key":"value"}',
+      });
+
+      expect(events[0].requestBody).toBeUndefined();
+    });
+
+    it('should handle undefined init when request body capture is enabled', async () => {
+      const mockResponse = {
+        status: 200,
+        headers: { forEach: jest.fn() },
+      };
+      mockFetch.mockResolvedValue(mockResponse);
+      networkObservers.start(callback, networkConfig);
+
+      await globalScope.fetch('https://api.example.com/data');
+
+      expect(events[0].requestBody).toBeUndefined();
+    });
+
+    it('should handle null body when request body capture is enabled', async () => {
+      const mockResponse = {
+        status: 200,
+        headers: { forEach: jest.fn() },
+      };
+      mockFetch.mockResolvedValue(mockResponse);
+      networkObservers.start(callback, networkConfig);
+
+      await globalScope.fetch('https://api.example.com/data', { method: 'POST', body: null });
+
+      expect(events[0].requestBody).toBeUndefined();
+    });
+
+    it('should represent File entries in FormData as [File]', async () => {
+      const mockResponse = {
+        status: 200,
+        headers: { forEach: jest.fn() },
+      };
+      mockFetch.mockResolvedValue(mockResponse);
+      networkObservers.start(callback, networkConfig);
+
+      const formData = new FormData();
+      formData.append('name', 'alice');
+      formData.append('avatar', new File(['content'], 'avatar.png'));
+
+      await globalScope.fetch('https://api.example.com/data', { method: 'POST', body: formData });
+
+      expect(events[0].requestBody).toBe('name=alice&avatar=[File]');
+    });
+  });
+
+  describe('response body capture', () => {
+    it('should capture response body with status "captured"', async () => {
+      const mockClone = { text: jest.fn().mockResolvedValue('{"result":"ok"}') };
+      const mockResponse = {
+        status: 200,
+        headers: {
+          forEach: (cb: (value: string, key: string) => void) => {
+            cb('application/json', 'content-type');
+          },
+        },
+        clone: jest.fn().mockReturnValue(mockClone),
+      };
+      mockFetch.mockResolvedValue(mockResponse);
+      networkObservers.start(callback, { enabled: true, body: { response: true } });
+
+      await globalScope.fetch('https://api.example.com/data');
+
+      // Wait for the detached body-read promise to resolve
+      await Promise.resolve();
+
+      expect(events[0].responseBody).toBe('{"result":"ok"}');
+      expect(events[0].responseBodyStatus).toBe('captured');
+    });
+
+    it('should truncate response body exceeding maxBodySizeBytes', async () => {
+      const mockClone = { text: jest.fn().mockResolvedValue('hello world') };
+      const mockResponse = {
+        status: 200,
+        headers: {
+          forEach: (cb: (value: string, key: string) => void) => {
+            cb('text/plain', 'content-type');
+          },
+        },
+        clone: jest.fn().mockReturnValue(mockClone),
+      };
+      mockFetch.mockResolvedValue(mockResponse);
+      networkObservers.start(callback, { enabled: true, body: { response: true, maxBodySizeBytes: 5 } });
+
+      await globalScope.fetch('https://api.example.com/data');
+      await Promise.resolve();
+
+      expect(events[0].responseBody).toBe('hello');
+      expect(events[0].responseBodyStatus).toBe('truncated');
+    });
+
+    it('should set responseBodyStatus to "skipped_binary" for binary content types', async () => {
+      const mockResponse = {
+        status: 200,
+        headers: {
+          forEach: (cb: (value: string, key: string) => void) => {
+            cb('image/png', 'content-type');
+          },
+        },
+        clone: jest.fn(),
+      };
+      mockFetch.mockResolvedValue(mockResponse);
+      networkObservers.start(callback, { enabled: true, body: { response: true } });
+
+      await globalScope.fetch('https://api.example.com/image.png');
+
+      expect(events[0].responseBodyStatus).toBe('skipped_binary');
+      expect(events[0].responseBody).toBeUndefined();
+      expect(mockResponse.clone).not.toHaveBeenCalled();
+    });
+
+    it('should set responseBodyStatus to "error" when body read fails', async () => {
+      const mockClone = { text: jest.fn().mockRejectedValue(new Error('read error')) };
+      const mockResponse = {
+        status: 200,
+        headers: {
+          forEach: (cb: (value: string, key: string) => void) => {
+            cb('application/json', 'content-type');
+          },
+        },
+        clone: jest.fn().mockReturnValue(mockClone),
+      };
+      mockFetch.mockResolvedValue(mockResponse);
+      networkObservers.start(callback, { enabled: true, body: { response: true } });
+
+      await globalScope.fetch('https://api.example.com/data');
+      await Promise.resolve();
+
+      expect(events[0].responseBodyStatus).toBe('error');
+      expect(events[0].responseBody).toBeUndefined();
+    });
+
+    it('should not capture response body when body.response is false', async () => {
+      const mockResponse = {
+        status: 200,
+        headers: { forEach: jest.fn() },
+        clone: jest.fn(),
+      };
+      mockFetch.mockResolvedValue(mockResponse);
+      networkObservers.start(callback, { enabled: true, body: { response: false } });
+
+      await globalScope.fetch('https://api.example.com/data');
+
+      expect(events[0].responseBodyStatus).toBeUndefined();
+      expect(events[0].responseBody).toBeUndefined();
+      expect(mockResponse.clone).not.toHaveBeenCalled();
+    });
+
+    it('should capture response body when no content-type header present', async () => {
+      const mockClone = { text: jest.fn().mockResolvedValue('plain text') };
+      const mockResponse = {
+        status: 200,
+        headers: {
+          forEach: jest.fn(), // no content-type emitted
+        },
+        clone: jest.fn().mockReturnValue(mockClone),
+      };
+      mockFetch.mockResolvedValue(mockResponse);
+      networkObservers.start(callback, { enabled: true, body: { response: true } });
+
+      await globalScope.fetch('https://api.example.com/data');
+      await Promise.resolve();
+
+      expect(events[0].responseBody).toBe('plain text');
+      expect(events[0].responseBodyStatus).toBe('captured');
+    });
+
+    it('should not capture response body when body config is absent', async () => {
+      const mockResponse = {
+        status: 200,
+        headers: { forEach: jest.fn() },
+        clone: jest.fn(),
+      };
+      mockFetch.mockResolvedValue(mockResponse);
+      networkObservers.start(callback);
+
+      await globalScope.fetch('https://api.example.com/data');
+
+      expect(events[0].responseBodyStatus).toBeUndefined();
+      expect(events[0].responseBody).toBeUndefined();
+      expect(mockResponse.clone).not.toHaveBeenCalled();
+    });
+
+    it('should capture both request and response body when both enabled', async () => {
+      const mockClone = { text: jest.fn().mockResolvedValue('response text') };
+      const mockResponse = {
+        status: 200,
+        headers: {
+          forEach: (cb: (value: string, key: string) => void) => {
+            cb('text/plain', 'content-type');
+          },
+        },
+        clone: jest.fn().mockReturnValue(mockClone),
+      };
+      mockFetch.mockResolvedValue(mockResponse);
+      networkObservers.start(callback, { enabled: true, body: { request: true, response: true } });
+
+      await globalScope.fetch('https://api.example.com/data', {
+        method: 'POST',
+        body: 'request text',
+      });
+      await Promise.resolve();
+
+      expect(events[0].requestBody).toBe('request text');
+      expect(events[0].responseBody).toBe('response text');
+      expect(events[0].responseBodyStatus).toBe('captured');
     });
   });
 

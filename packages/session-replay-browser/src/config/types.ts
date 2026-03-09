@@ -24,6 +24,11 @@ export interface LoggingConfig {
   };
   network?: {
     enabled: boolean;
+    body?: {
+      request?: boolean;
+      response?: boolean;
+      maxBodySizeBytes?: number;
+    };
   };
 }
 
