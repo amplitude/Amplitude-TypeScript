@@ -395,7 +395,17 @@ describe('config', () => {
   describe('getTopLevelDomain', () => {
     test('should return empty string for localhost', async () => {
       // jest env hostname is localhost
-      const domain = await Config.getTopLevelDomain(undefined);
+      const isDomainWritableSpy = jest.spyOn(BrowserUtils.CookieStorage, 'isDomainWritable');
+      const domain = await Config.getTopLevelDomain('localhost');
+      expect(isDomainWritableSpy).not.toHaveBeenCalled();
+      expect(domain).toBe('');
+    });
+
+    test('should return empty string for single part hostname', async () => {
+      // jest env hostname is localhost
+      const isDomainWritableSpy = jest.spyOn(BrowserUtils.CookieStorage, 'isDomainWritable');
+      const domain = await Config.getTopLevelDomain('mylocaldomain');
+      expect(isDomainWritableSpy).not.toHaveBeenCalled();
       expect(domain).toBe('');
     });
 
