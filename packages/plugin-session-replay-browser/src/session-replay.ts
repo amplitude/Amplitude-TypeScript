@@ -1,4 +1,11 @@
-import { BrowserClient, BrowserConfig, EnrichmentPlugin, Event, SpecialEventType } from '@amplitude/analytics-core';
+import {
+  BrowserClient,
+  BrowserConfig,
+  EnrichmentPlugin,
+  Event,
+  SpecialEventType,
+  getGlobalScope,
+} from '@amplitude/analytics-core';
 import {
   init,
   setSessionId,
@@ -164,7 +171,12 @@ export class SessionReplayPlugin implements EnrichmentPlugin<BrowserClient, Brow
           if (event.event_type === SpecialEventType.IDENTIFY) {
             userProperties = parseUserProperties(event);
           }
-          await this.sessionReplay.evaluateTargetingAndCapture({ event, userProperties });
+          const globalScope = getGlobalScope();
+          await this.sessionReplay.evaluateTargetingAndCapture({
+            event,
+            userProperties,
+            page: globalScope?.location?.href != null ? { url: globalScope.location.href } : undefined,
+          });
           const sessionRecordingProperties = this.sessionReplay.getSessionReplayProperties();
           event.event_properties = {
             ...event.event_properties,
