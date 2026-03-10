@@ -497,7 +497,7 @@ export const getTopLevelDomain = async (url?: string, diagnosticsClient?: IDiagn
   const parts = host.split('.');
 
   // if hostname has less than 2 parts, it's not a registrable domain
-  // and the browser won't allow setting cookies for it so return empty string
+  // and the browser won't allow setting domain-scoped cookies for it so return empty string
   if (parts.length === 1) {
     return '';
   }
