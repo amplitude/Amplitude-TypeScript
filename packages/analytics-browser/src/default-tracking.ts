@@ -134,8 +134,12 @@ export const isFrustrationInteractionsEnabled = (autocapture: AutocaptureOptions
   return false;
 };
 
-export const isCustomEnrichmentEnabled = (customEnrichment: CustomEnrichmentOptions | undefined) => {
-  if (typeof customEnrichment === 'object' && customEnrichment.enabled) {
+export const isCustomEnrichmentEnabled = (customEnrichment: boolean | CustomEnrichmentOptions | undefined) => {
+  if (typeof customEnrichment === 'boolean') {
+    return customEnrichment;
+  }
+
+  if (typeof customEnrichment === 'object' && customEnrichment.enabled !== false) {
     return true;
   }
 

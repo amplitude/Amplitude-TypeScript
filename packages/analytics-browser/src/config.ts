@@ -112,6 +112,7 @@ export class BrowserConfig extends Config implements IBrowserConfig {
     public topLevelDomain?: string,
     public enableRequestBodyCompression: boolean = false,
     public _enableRequestBodyCompressionExperimental: boolean = false,
+    public customEnrichment?: boolean | CustomEnrichmentOptions,
   ) {
     super({ apiKey, storageProvider, transportProvider: createTransport(transport) });
     this._cookieStorage = cookieStorage;
