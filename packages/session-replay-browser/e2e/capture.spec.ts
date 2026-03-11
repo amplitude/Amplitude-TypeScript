@@ -12,9 +12,6 @@ const remoteConfigRecording = {
 const remoteConfigNotRecording = {
   configs: { sessionReplay: { sr_sampling_config: { capture_enabled: true, sample_rate: 0.0 } } },
 };
-const remoteConfigOptOut = {
-  configs: { sessionReplay: { sr_sampling_config: { capture_enabled: true, sample_rate: 1.0 } } },
-};
 
 /**
  * Builds a remote config with URL-based targeting: records when the page URL
@@ -114,7 +111,7 @@ test.describe('session replay capture', () => {
   });
 
   test('does not record when opted out', async ({ page }) => {
-    await mockRemoteConfig(page, remoteConfigOptOut);
+    await mockRemoteConfig(page, remoteConfigRecording);
     await mockTrackApi(page);
 
     await page.goto(
@@ -181,7 +178,10 @@ test.describe('session replay capture', () => {
     );
     await waitForReady(page);
 
-    await page.evaluate((newId) => (window as any).sessionReplay.setSessionId(newId) as Promise<void>, NEW_SESSION_ID);
+    await page.evaluate(
+      (newId) => (window as any).sessionReplay.setSessionId(newId).promise as Promise<void>,
+      NEW_SESSION_ID,
+    );
 
     const props = await getProperties(page);
     expect(String(props[SR_PROPERTY_KEY])).toContain(`/${NEW_SESSION_ID}`);
@@ -203,7 +203,10 @@ test.describe('session replay capture', () => {
 
     // waitForRequest verifies that events were actually flushed to the API
     const trackRequestPromise = page.waitForRequest('https://api-sr.amplitude.com/**', { timeout: 5_000 });
-    await page.evaluate((newId) => (window as any).sessionReplay.setSessionId(newId) as Promise<void>, NEW_SESSION_ID);
+    void page.evaluate(
+      (newId) => (window as any).sessionReplay.setSessionId(newId).promise as Promise<void>,
+      NEW_SESSION_ID,
+    );
     await trackRequestPromise; // will throw if no request is made in time
 
     // New session is now active
