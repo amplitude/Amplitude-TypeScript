@@ -81,9 +81,23 @@ export interface ElementInteractionsOptions {
   debounceTime?: number;
 
   /**
-   * CSS selector allowlist for tracking clicks that result in a DOM change/navigation on elements not already allowed by the cssSelectorAllowlist
+   * CSS selector allowlist for tracking clicks that result in a DOM change/navigation
+   * on elements not already allowed by the cssSelectorAllowlist.
+   * Only applies to click-based interaction tracking; has no effect on
+   * viewport/exposure-based features (e.g., zoning).
    */
   actionClickAllowlist?: string[];
+
+  /**
+   * Options for viewport content updated tracking (zoning).
+   */
+  viewportContentUpdated?: {
+    /**
+     * Duration in milliseconds an element must be visible before it is considered exposed.
+     * Default is 150ms.
+     */
+    exposureDuration?: number;
+  };
 }
 
 export interface Messenger {

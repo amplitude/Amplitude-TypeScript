@@ -104,7 +104,12 @@ export const autocapturePlugin = (
   options.cssSelectorAllowlist = options.cssSelectorAllowlist ?? DEFAULT_CSS_SELECTOR_ALLOWLIST;
   options.actionClickAllowlist = options.actionClickAllowlist ?? DEFAULT_ACTION_CLICK_ALLOWLIST;
   options.debounceTime = options.debounceTime ?? 0;
-  options.exposureDuration = options.exposureDuration ?? DEFAULT_EXPOSURE_DURATION;
+  const resolvedExposureDuration =
+    options.viewportContentUpdated?.exposureDuration ?? options.exposureDuration ?? DEFAULT_EXPOSURE_DURATION;
+  options.viewportContentUpdated = {
+    ...options.viewportContentUpdated,
+    exposureDuration: resolvedExposureDuration,
+  };
 
   options.pageUrlExcludelist = options.pageUrlExcludelist?.reduce(
     (acc: (string | RegExp | { pattern: string })[], excludePattern) => {
@@ -360,7 +365,7 @@ export const autocapturePlugin = (
       allObservables,
       onExposure: handleExposure,
       dataExtractor,
-      exposureDuration: options.exposureDuration,
+      exposureDuration: resolvedExposureDuration,
     });
     if (trackers.exposure) {
       subscriptions.push(trackers.exposure);
