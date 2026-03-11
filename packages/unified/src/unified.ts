@@ -37,12 +37,7 @@ export class AmplitudeUnified extends AmplitudeBrowser implements UnifiedClient 
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore
   private _sessionReplay: AmplitudeSessionReplay;
-  private _initAllInProgress: boolean;
-
-  constructor() {
-    super();
-    this._initAllInProgress = false;
-  }
+  private _initAllPromise?: Promise<void>;
 
   sessionReplay(): AmplitudeSessionReplay {
     return this._sessionReplay;
@@ -74,38 +69,42 @@ export class AmplitudeUnified extends AmplitudeBrowser implements UnifiedClient 
    * @param unifiedOptions Shared configuration for all SDKs and for blade SDKs.
    */
   async initAll(apiKey: string, unifiedOptions?: UnifiedOptions) {
-    if (this._initAllInProgress) {
-      return;
-    }
-    this._initAllInProgress = true;
-    const sharedOptions = {
-      serverZone: unifiedOptions?.serverZone,
-      instanceName: unifiedOptions?.instanceName,
-    };
-
-    await super.add(libraryPlugin()).promise;
-
-    await super.init(apiKey, { ...unifiedOptions?.analytics, ...sharedOptions }).promise;
-
-    await super.add(sessionReplayPlugin({ ...unifiedOptions?.sessionReplay, ...sharedOptions })).promise;
-
-    await super.add(experimentPlugin({ ...unifiedOptions?.experiment, ...sharedOptions })).promise;
-
-    const srPlugin = this.plugin(SessionReplayPlugin.pluginName);
-    if (srPlugin === undefined) {
-      this.config.loggerProvider.debug(`${SessionReplayPlugin.pluginName} plugin is not found.`);
-    } else {
-      this._sessionReplay = (srPlugin as SessionReplayPlugin).sessionReplay;
+    if (this._initAllPromise) {
+      return this._initAllPromise;
     }
 
-    await super.add(
-      EngagementPlugin({
-        ...unifiedOptions?.engagement,
-        ...sharedOptions,
-      }),
-    ).promise;
+    this._initAllPromise = (async () => {
+      const sharedOptions = {
+        serverZone: unifiedOptions?.serverZone,
+        instanceName: unifiedOptions?.instanceName,
+      };
 
-    this._initAllInProgress = false;
+      await super.add(libraryPlugin()).promise;
+
+      await super.init(apiKey, { ...unifiedOptions?.analytics, ...sharedOptions }).promise;
+
+      await super.add(sessionReplayPlugin({ ...unifiedOptions?.sessionReplay, ...sharedOptions })).promise;
+
+      await super.add(experimentPlugin({ ...unifiedOptions?.experiment, ...sharedOptions })).promise;
+
+      const srPlugin = this.plugin(SessionReplayPlugin.pluginName);
+      if (srPlugin === undefined) {
+        this.config.loggerProvider.debug(`${SessionReplayPlugin.pluginName} plugin is not found.`);
+      } else {
+        this._sessionReplay = (srPlugin as SessionReplayPlugin).sessionReplay;
+      }
+
+      await super.add(
+        EngagementPlugin({
+          ...unifiedOptions?.engagement,
+          ...sharedOptions,
+        }),
+      ).promise;
+    })().finally(() => {
+      this._initAllPromise = undefined;
+    });
+
+    return this._initAllPromise;
   }
 
   /**

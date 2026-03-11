@@ -10,8 +10,8 @@ jest.mock('@amplitude/analytics-browser', () => {
 
 import { AmplitudeUnified } from '../src/unified';
 
-describe('AmplitudeUnified constructor coverage', () => {
-  test('covers fallback branch when super call returns undefined', () => {
+describe('AmplitudeUnified instantiation coverage', () => {
+  test('covers class instantiation when super call returns undefined', () => {
     const client = new AmplitudeUnified();
     expect(client).toBeDefined();
   });
