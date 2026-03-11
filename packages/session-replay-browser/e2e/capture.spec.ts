@@ -16,6 +16,42 @@ const remoteConfigOptOut = {
   configs: { sessionReplay: { sr_sampling_config: { capture_enabled: true, sample_rate: 1.0 } } },
 };
 
+/**
+ * Builds a remote config with URL-based targeting: records when the page URL
+ * contains `matchStr`, skips otherwise. capture_enabled is true, no sample_rate
+ * (sampling is handled by the targeting decision).
+ */
+function remoteConfigWithUrlTargeting(matchStr: string): object {
+  return {
+    configs: {
+      sessionReplay: {
+        sr_sampling_config: { capture_enabled: true },
+        sr_targeting_config: {
+          key: 'sr_targeting_config',
+          variants: { on: { key: 'on' }, off: { key: 'off' } },
+          segments: [
+            {
+              metadata: { segmentName: 'url_match' },
+              bucket: {
+                selector: ['context', 'session_id'],
+                salt: 'pw_test_salt',
+                allocations: [
+                  {
+                    range: [0, 99],
+                    distributions: [{ variant: 'on', range: [0, 42949672] }],
+                  },
+                ],
+              },
+              conditions: [[{ selector: ['context', 'page', 'url'], op: 'contains', values: [matchStr] }]],
+            },
+            { variant: 'off' },
+          ],
+        },
+      },
+    },
+  };
+}
+
 function mockRemoteConfig(page: import('@playwright/test').Page, body: object) {
   return page.route('https://sr-client-cfg.amplitude.com/**', (route: Route) =>
     route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(body) }),
@@ -173,5 +209,76 @@ test.describe('session replay capture', () => {
     // New session is now active
     const props = await getProperties(page);
     expect(String(props[SR_PROPERTY_KEY])).toContain(`/${NEW_SESSION_ID}`);
+  });
+});
+
+// ─── URL-based targeting ──────────────────────────────────────────────────────
+
+test.describe('URL-based targeting', () => {
+  // The test page URL contains 'sr-capture-test', so this string always matches on init.
+  const MATCH_STRING = 'sr-capture-test';
+  // This string only matches after an explicit pushState navigation.
+  const NAV_MATCH_STRING = '/matching-route';
+
+  test('starts recording when page URL matches targeting condition on init', async ({ page }) => {
+    await mockRemoteConfig(page, remoteConfigWithUrlTargeting(MATCH_STRING));
+    await mockTrackApi(page);
+
+    await page.goto(buildUrl('/session-replay-browser/sr-capture-test.html', { sessionId: TEST_SESSION_ID }));
+    await waitForReady(page);
+    // Give targeting evaluation (async IDB + rrweb start) time to complete
+    await page.waitForTimeout(500);
+
+    const props = await getProperties(page);
+    expect(props[SR_PROPERTY_KEY]).toBeTruthy();
+    expect(String(props[SR_PROPERTY_KEY])).toContain(`/${TEST_SESSION_ID}`);
+  });
+
+  test('starts recording when user navigates to a matching URL (SPA pushState)', async ({ page }) => {
+    await mockRemoteConfig(page, remoteConfigWithUrlTargeting(NAV_MATCH_STRING));
+    await mockTrackApi(page);
+
+    await page.goto(buildUrl('/session-replay-browser/sr-capture-test.html', { sessionId: TEST_SESSION_ID }));
+    await waitForReady(page);
+
+    // Current URL doesn't match — not recording yet
+    const propsBefore = await getProperties(page);
+    expect(propsBefore[SR_PROPERTY_KEY]).toBeFalsy();
+
+    // SPA navigation to matching route
+    await page.evaluate((path) => history.pushState({}, '', path), NAV_MATCH_STRING);
+
+    // Wait for targeting re-evaluation to kick in and recording to start
+    await page.waitForFunction(
+      (key) => !!(window as any).sessionReplay.getSessionReplayProperties()[key],
+      SR_PROPERTY_KEY,
+      { timeout: 5_000 },
+    );
+
+    const propsAfter = await getProperties(page);
+    expect(propsAfter[SR_PROPERTY_KEY]).toBeTruthy();
+    expect(String(propsAfter[SR_PROPERTY_KEY])).toContain(`/${TEST_SESSION_ID}`);
+  });
+
+  test('continues recording after navigating away from matched URL (monotonic match)', async ({ page }) => {
+    await mockRemoteConfig(page, remoteConfigWithUrlTargeting(MATCH_STRING));
+    await mockTrackApi(page);
+
+    await page.goto(buildUrl('/session-replay-browser/sr-capture-test.html', { sessionId: TEST_SESSION_ID }));
+    await waitForReady(page);
+    await page.waitForTimeout(500);
+
+    // Verify recording started on the matching URL
+    const propsBefore = await getProperties(page);
+    expect(propsBefore[SR_PROPERTY_KEY]).toBeTruthy();
+
+    // Navigate away to a non-matching URL
+    await page.evaluate(() => history.pushState({}, '', '/some-other-route'));
+    await page.waitForTimeout(500);
+
+    // Should still be recording — targeting match is monotonic within a session
+    const propsAfter = await getProperties(page);
+    expect(propsAfter[SR_PROPERTY_KEY]).toBeTruthy();
+    expect(String(propsAfter[SR_PROPERTY_KEY])).toContain(`/${TEST_SESSION_ID}`);
   });
 });
