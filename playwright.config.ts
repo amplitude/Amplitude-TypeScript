@@ -48,6 +48,12 @@ export default defineConfig({
     timeout: 120000,
   },
   testMatch: '**/e2e/**/*.spec.ts',
-  testIgnore: '**/test-server/dist/**',
+  testIgnore: [
+    '**/test-server/dist/**',
+    // session-replay-browser e2e tests are local sanity checks only — not yet
+    // wired into CI (requires a real remote config + SR API setup). Run manually
+    // with `npx playwright test packages/session-replay-browser/e2e/`.
+    '**/session-replay-browser/e2e/**',
+  ],
   timeout: 30000,
 });
