@@ -6,6 +6,7 @@ import {
   getNetworkTrackingConfig,
   getPageViewTrackingConfig,
   isAttributionTrackingEnabled,
+  isCustomEnrichmentEnabled,
   isElementInteractionsEnabled,
   isFileDownloadTrackingEnabled,
   isFormInteractionTrackingEnabled,
@@ -16,6 +17,20 @@ import {
   isSessionTrackingEnabled,
   isWebVitalsEnabled,
 } from '../src/default-tracking';
+
+describe('isCustomEnrichmentEnabled', () => {
+  test('should return false when customEnrichment is undefined', () => {
+    expect(isCustomEnrichmentEnabled(undefined)).toBe(false);
+  });
+
+  test('should return true when customEnrichment is an object with enabled=true', () => {
+    expect(isCustomEnrichmentEnabled({ enabled: true, body: 'test' })).toBe(true);
+  });
+
+  test('should return false when customEnrichment is an object with enabled=false', () => {
+    expect(isCustomEnrichmentEnabled({ enabled: false, body: 'test' })).toBe(false);
+  });
+});
 
 describe('isWebVitalsEnabled', () => {
   describe('is true when', () => {

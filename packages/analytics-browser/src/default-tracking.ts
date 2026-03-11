@@ -9,6 +9,7 @@ import {
   AttributionOptions,
   NetworkTrackingOptions,
   FrustrationInteractionsOptions,
+  CustomEnrichmentOptions,
 } from '@amplitude/analytics-core';
 
 /**
@@ -127,6 +128,14 @@ export const isFrustrationInteractionsEnabled = (autocapture: AutocaptureOptions
     typeof autocapture === 'object' &&
     (autocapture.frustrationInteractions === true || typeof autocapture.frustrationInteractions === 'object')
   ) {
+    return true;
+  }
+
+  return false;
+};
+
+export const isCustomEnrichmentEnabled = (customEnrichment: CustomEnrichmentOptions | undefined) => {
+  if (typeof customEnrichment === 'object' && customEnrichment.enabled) {
     return true;
   }
 
