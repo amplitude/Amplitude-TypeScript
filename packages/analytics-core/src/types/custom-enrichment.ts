@@ -3,5 +3,6 @@
  */
 
 export interface CustomEnrichmentOptions {
+  enabled: boolean;
   body: string;
 }

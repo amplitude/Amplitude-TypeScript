@@ -9,6 +9,7 @@ import { NetworkTrackingOptions } from '../network-tracking';
 import { FrustrationInteractionsOptions } from '../frustration-interactions';
 import { IDiagnosticsClient } from '../../diagnostics/diagnostics-client';
 import { IRemoteConfigClient } from '../../remote-config/remote-config';
+import { CustomEnrichmentOptions } from '../custom-enrichment';
 
 export interface BrowserConfig extends ExternalBrowserConfig, InternalBrowserConfig {}
 
@@ -30,6 +31,11 @@ export interface ExternalBrowserConfig extends IConfig {
    * See {@link https://www.docs.developers.amplitude.com/data/sdks/browser-2/autocapture/}.
    */
   autocapture?: boolean | AutocaptureOptions;
+  /**
+   * The configurations for custom enrichment.
+   * @defaultValue `undefined`
+   */
+  customEnrichment?: CustomEnrichmentOptions;
   /**
    * The identifier for the device running your application.
    * @defaultValue `UUID()`

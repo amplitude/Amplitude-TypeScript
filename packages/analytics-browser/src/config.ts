@@ -25,6 +25,7 @@ import {
   CookieOptions,
   RemoteConfigOptions,
   NetworkTrackingOptions,
+  CustomEnrichmentOptions,
   IIdentify,
   IDiagnosticsClient,
   isDomainEqual,
