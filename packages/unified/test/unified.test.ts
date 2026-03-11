@@ -17,6 +17,13 @@ describe('AmplitudeUnified', () => {
     debug: mockLoggerProviderDebug,
   };
 
+  describe('constructor', () => {
+    test('should construct client with initAll lock disabled', () => {
+      const client = new AmplitudeUnified() as unknown as { _initAllInProgress: boolean };
+      expect(client._initAllInProgress).toBe(false);
+    });
+  });
+
   describe('initAll', () => {
     test.each([
       {
@@ -102,6 +109,13 @@ describe('AmplitudeUnified', () => {
       await client.initAll('test-api-key');
 
       expect(spy).toHaveBeenCalled();
+    });
+
+    test('should not throw when called concurrently without await', async () => {
+      const client = new AmplitudeUnified();
+      const p1 = client.initAll('test-api-key');
+      const p2 = client.initAll('test-api-key');
+      await expect(Promise.all([p1, p2])).resolves.not.toThrow();
     });
   });
 

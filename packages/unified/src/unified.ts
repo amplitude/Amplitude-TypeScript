@@ -37,6 +37,12 @@ export class AmplitudeUnified extends AmplitudeBrowser implements UnifiedClient 
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore
   private _sessionReplay: AmplitudeSessionReplay;
+  private _initAllInProgress: boolean;
+
+  constructor() {
+    super();
+    this._initAllInProgress = false;
+  }
 
   sessionReplay(): AmplitudeSessionReplay {
     return this._sessionReplay;
@@ -68,12 +74,17 @@ export class AmplitudeUnified extends AmplitudeBrowser implements UnifiedClient 
    * @param unifiedOptions Shared configuration for all SDKs and for blade SDKs.
    */
   async initAll(apiKey: string, unifiedOptions?: UnifiedOptions) {
+    if (this._initAllInProgress) {
+      return;
+    }
+    this._initAllInProgress = true;
     const sharedOptions = {
       serverZone: unifiedOptions?.serverZone,
       instanceName: unifiedOptions?.instanceName,
     };
 
-    super.add(libraryPlugin());
+    await super.add(libraryPlugin()).promise;
+
     await super.init(apiKey, { ...unifiedOptions?.analytics, ...sharedOptions }).promise;
 
     await super.add(sessionReplayPlugin({ ...unifiedOptions?.sessionReplay, ...sharedOptions })).promise;
@@ -93,6 +104,8 @@ export class AmplitudeUnified extends AmplitudeBrowser implements UnifiedClient 
         ...sharedOptions,
       }),
     ).promise;
+
+    this._initAllInProgress = false;
   }
 
   /**
