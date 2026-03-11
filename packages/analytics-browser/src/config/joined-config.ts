@@ -2,6 +2,7 @@ import {
   AutocaptureOptions,
   type ElementInteractionsOptions,
   BrowserConfig,
+  CustomEnrichmentOptions,
   RemoteConfig,
   NetworkTrackingOptions,
   NetworkCaptureRule,
@@ -36,6 +37,7 @@ export interface NetworkTrackingOptionsRemoteConfig extends NetworkTrackingOptio
 // Type alias for the remote config structure we expect (this is what comes from the filtered browserSDK config)
 type RemoteConfigBrowserSDK = {
   autocapture?: AutocaptureOptionsRemoteConfig | boolean;
+  customEnrichment?: CustomEnrichmentOptions | boolean;
 };
 
 /**
@@ -265,6 +267,10 @@ export function updateBrowserConfigWithRemoteConfig(
 
       // Override default tracking options if autocapture is updated by remote config
       browserConfig.defaultTracking = browserConfig.autocapture;
+    }
+
+    if ('customEnrichment' in typedRemoteConfig) {
+      browserConfig.customEnrichment = typedRemoteConfig.customEnrichment;
     }
 
     browserConfig.loggerProvider.debug('Browser config after remote config update:', JSON.stringify(browserConfig));

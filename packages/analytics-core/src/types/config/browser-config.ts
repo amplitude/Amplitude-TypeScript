@@ -35,7 +35,7 @@ export interface ExternalBrowserConfig extends IConfig {
    * The configurations for custom enrichment.
    * @defaultValue `undefined`
    */
-  customEnrichment?: CustomEnrichmentOptions;
+  customEnrichment?: boolean | CustomEnrichmentOptions;
   /**
    * The identifier for the device running your application.
    * @defaultValue `UUID()`

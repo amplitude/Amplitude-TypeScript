@@ -106,7 +106,7 @@ export class BrowserConfig extends Config implements IBrowserConfig {
     public diagnosticsSampleRate: number = 0,
     public diagnosticsClient?: IDiagnosticsClient,
     public remoteConfig?: RemoteConfigOptions,
-    public customEnrichment?: CustomEnrichmentOptions,
+    public customEnrichment?: boolean | CustomEnrichmentOptions,
   ) {
     super({ apiKey, storageProvider, transportProvider: createTransport(transport) });
     this._cookieStorage = cookieStorage;
