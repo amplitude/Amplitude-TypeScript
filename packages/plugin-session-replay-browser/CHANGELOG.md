@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.26.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@1.25.21...@amplitude/plugin-session-replay-browser@1.26.0) (2026-03-11)
+
+
+### Features
+
+* **session-replay:** enhance targeting evaluation with page URL ([#1571](https://github.com/amplitude/Amplitude-TypeScript/issues/1571)) ([509bec0](https://github.com/amplitude/Amplitude-TypeScript/commit/509bec01ccdb795c0f9dbf83a99e585c6d16ee63))
+
+
+
+
+
 ## [1.25.21](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@1.25.20...@amplitude/plugin-session-replay-browser@1.25.21) (2026-03-09)
 
 **Note:** Version bump only for package @amplitude/plugin-session-replay-browser
