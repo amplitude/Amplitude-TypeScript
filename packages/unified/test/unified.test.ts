@@ -116,7 +116,7 @@ describe('AmplitudeUnified', () => {
       const client = new AmplitudeUnified();
       const p1 = client.initAll('test-api-key');
       const p2 = client.initAll('test-api-key');
-      await expect(Promise.all([p1, p2])).resolves.not.toThrow();
+      await expect(Promise.all([p1, p2])).resolves.toEqual([undefined, undefined]);
     });
 
     test('should wait for in-flight initAll for concurrent callers', async () => {
