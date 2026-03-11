@@ -243,6 +243,23 @@ describe('RemoteConfigClient', () => {
       expect(fetch).toHaveBeenCalledTimes(1);
       expect(client.lastSuccessfulFetch).toBeNull(); // Should still be null
     });
+
+    test('should skip future updateConfigs calls after invalid API key response', async () => {
+      global.fetch = jest.fn(() =>
+        Promise.resolve({
+          ok: false,
+          status: 401,
+          text: () => Promise.resolve('Invalid API key'),
+        } as Response),
+      );
+
+      await client.updateConfigs();
+      expect(global.fetch).toHaveBeenCalledTimes(1);
+
+      await client.updateConfigs();
+      expect(global.fetch).toHaveBeenCalledTimes(1);
+      expect(loggerDebug).toHaveBeenCalledWith('Remote config client skipping fetch: Invalid API key');
+    });
   });
 
   describe('getOrCreateFetchPromise', () => {
@@ -346,6 +363,18 @@ describe('RemoteConfigClient', () => {
       await promise2;
 
       expect(fetch).toHaveBeenCalledTimes(2);
+    });
+
+    test('should short-circuit and skip fetch when API key is invalid', async () => {
+      const fetch = jest.spyOn(client, 'fetch');
+      client.isLastFetchInvalidApiKey = true;
+
+      const result = await client.getOrCreateFetchPromise();
+
+      expect(fetch).not.toHaveBeenCalled();
+      expect(result.remoteConfig).toBeNull();
+      expect(result.lastFetch).toBeInstanceOf(Date);
+      expect(loggerDebug).toHaveBeenCalledWith('Remote config client skipping fetch: Invalid API key');
     });
   });
 
@@ -860,6 +889,61 @@ describe('RemoteConfigClient', () => {
       expect(result.remoteConfig).toEqual(mockResponse.remoteConfig);
       expect(result.lastFetch).toBeInstanceOf(Date);
       expect(loggerDebug).toHaveBeenCalledWith(expect.stringContaining('failed with 500'));
+    });
+
+    test('should not retry on bad request response', async () => {
+      global.fetch = jest.fn(() =>
+        Promise.resolve({
+          ok: false,
+          status: 400,
+          text: () => Promise.resolve('Bad Request'),
+        } as Response),
+      );
+
+      const result = await client.fetch(3);
+      expect(result.remoteConfig).toBeNull();
+      expect(result.lastFetch).toBeInstanceOf(Date);
+      expect(global.fetch).toHaveBeenCalledTimes(1);
+      expect(loggerDebug).toHaveBeenCalledTimes(1);
+      expect(loggerDebug).toHaveBeenCalledWith(expect.stringContaining('failed with 400'));
+    });
+
+    test('should not retry on invalid API key response', async () => {
+      global.fetch = jest.fn(() =>
+        Promise.resolve({
+          ok: false,
+          status: 401,
+          text: () => Promise.resolve('Invalid API key'),
+        } as Response),
+      );
+
+      const result = await client.fetch(3);
+      expect(result.remoteConfig).toBeNull();
+      expect(result.lastFetch).toBeInstanceOf(Date);
+      expect(global.fetch).toHaveBeenCalledTimes(1);
+      expect(client.isLastFetchInvalidApiKey).toBe(true);
+      expect(loggerDebug).toHaveBeenCalledTimes(1);
+      expect(loggerDebug).toHaveBeenCalledWith(expect.stringContaining('failed with 401'));
+    });
+
+    test('should retry on rate limit and recover', async () => {
+      global.fetch = jest
+        .fn()
+        .mockResolvedValueOnce({
+          ok: false,
+          status: 429,
+          text: () => Promise.resolve('Rate Limited'),
+        } as Response)
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () => Promise.resolve({ key: 'value' }),
+        } as Response);
+
+      const result = await client.fetch(3);
+      expect(result.remoteConfig).toEqual({ key: 'value' });
+      expect(result.lastFetch).toBeInstanceOf(Date);
+      expect(global.fetch).toHaveBeenCalledTimes(2);
+      expect(loggerDebug).toHaveBeenCalledWith(expect.stringContaining('failed with 429'));
     });
 
     test('should retry and fail after maximum retries', async () => {
