@@ -79,7 +79,7 @@ export class AmplitudeUnified extends AmplitudeBrowser implements UnifiedClient 
         instanceName: unifiedOptions?.instanceName,
       };
 
-      await super.add(libraryPlugin()).promise;
+      super.add(libraryPlugin());
 
       await super.init(apiKey, { ...unifiedOptions?.analytics, ...sharedOptions }).promise;
 
