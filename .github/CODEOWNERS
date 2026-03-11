@@ -1,0 +1,13 @@
+# CODEOWNERS file for Amplitude TypeScript repository
+# This file defines code ownership for different parts of the repository.
+# When a pull request is opened that modifies files matching these patterns,
+# the specified teams/individuals will automatically be requested for review.
+#
+# More info: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Session Replay Packages (Browser)
+# Owned by the Session Replay SDK team
+/packages/session-replay-browser/ @amplitude/session-replay-sdk
+/packages/plugin-session-replay-browser/ @amplitude/session-replay-sdk
+/packages/segment-session-replay-plugin/ @amplitude/session-replay-sdk
+/packages/targeting/ @amplitude/session-replay-sdk

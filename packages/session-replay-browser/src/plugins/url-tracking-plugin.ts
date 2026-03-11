@@ -34,6 +34,149 @@ export interface URLTrackingPluginOptions {
   captureDocumentTitle?: boolean;
 }
 
+/** Options for subscribeToUrlChanges (polling vs history + hash) */
+export interface SubscribeToUrlChangesOptions {
+  /** Use polling instead of history/popstate/hashchange (e.g. when history is unreliable) */
+  enablePolling?: boolean;
+  /** Polling interval in ms when enablePolling is true (default: 1000) */
+  pollingInterval?: number;
+}
+
+/** Patch detection marker to prevent double-patching */
+const PATCH_MARKER = '__amplitude_url_tracking_patched__';
+
+type PatchableHistoryMethod<T extends (...args: any[]) => any> = T & { [PATCH_MARKER]?: boolean };
+
+interface UrlChangeSubscriptionState {
+  callbacks: Set<(href: string) => void>;
+  onPopStateOrHashChange: () => void;
+  notify: () => void;
+  listenersAttached: boolean;
+}
+
+/** Per-globalScope subscription state; persists to avoid wrapper stacking across re-subscribe cycles */
+const urlChangeSubscriptionsByScope = new WeakMap<Window, UrlChangeSubscriptionState>();
+
+/**
+ * Single helper for URL change detection. Supports:
+ * - History API (pushState/replaceState) + popstate + hashchange (shared patch per scope)
+ * - Optional polling (setInterval on location.href)
+ *
+ * Used by session-replay targeting (re-evaluate on URL change) and the URL tracking plugin
+ * (emit rrweb events). Call the returned function to unsubscribe.
+ *
+ * @param globalScope - window (or equivalent); no-op if undefined
+ * @param onUrlChange - called when the URL changes, with the new href
+ * @param options - optional polling (default: event-based only)
+ * @returns cleanup function to remove this subscription
+ */
+export function subscribeToUrlChanges(
+  globalScope: Window | undefined,
+  onUrlChange: (href: string) => void,
+  options: SubscribeToUrlChangesOptions = {},
+): () => void {
+  if (!globalScope?.location) {
+    return (): void => {
+      return;
+    };
+  }
+
+  const { enablePolling = false, pollingInterval = DEFAULT_URL_CHANGE_POLLING_INTERVAL } = options;
+
+  if (enablePolling) {
+    const getHref = (): string => globalScope.location.href ?? '';
+    let lastHref = getHref();
+    const id = globalScope.setInterval(() => {
+      const href = getHref();
+      if (href === lastHref) {
+        return;
+      }
+      lastHref = href;
+      onUrlChange(href);
+    }, pollingInterval);
+    return (): void => {
+      if (id != null) {
+        globalScope.clearInterval(id);
+      }
+    };
+  }
+
+  let subscriptionState = urlChangeSubscriptionsByScope.get(globalScope);
+  if (!subscriptionState) {
+    let lastHref: string | undefined = undefined;
+    const callbacks = new Set<(href: string) => void>();
+
+    const getHref = (): string => globalScope.location.href ?? '';
+
+    const notify = (): void => {
+      const href = getHref();
+      if (lastHref !== undefined && href === lastHref) return;
+      lastHref = href;
+      callbacks.forEach((c) => c(href));
+    };
+
+    /**
+     * Creates a patched version of history methods (pushState/replaceState)
+     * that calls the original method and then emits a URL change event.
+     */
+    const createHistoryMethodPatch = <T extends typeof history.pushState | typeof history.replaceState>(
+      originalMethod: T,
+    ) => {
+      const patchedMethod = function (this: History, ...args: Parameters<T>) {
+        const result = originalMethod.apply(this, args);
+        // Read from location.href after history call so we always notify with resolved absolute URL.
+        notify();
+        return result;
+      } as PatchableHistoryMethod<T>;
+
+      patchedMethod[PATCH_MARKER] = true;
+      return patchedMethod;
+    };
+
+    const history = globalScope.history;
+    if (history?.pushState) {
+      const pushState = Reflect.get(history, 'pushState') as PatchableHistoryMethod<History['pushState']>;
+      if (!pushState[PATCH_MARKER]) {
+        history.pushState = createHistoryMethodPatch(pushState);
+      }
+    }
+    if (history?.replaceState) {
+      const replaceState = Reflect.get(history, 'replaceState') as PatchableHistoryMethod<History['replaceState']>;
+      if (!replaceState[PATCH_MARKER]) {
+        history.replaceState = createHistoryMethodPatch(replaceState);
+      }
+    }
+
+    subscriptionState = {
+      callbacks,
+      notify,
+      onPopStateOrHashChange: () => notify(),
+      listenersAttached: false,
+    };
+    urlChangeSubscriptionsByScope.set(globalScope, subscriptionState);
+  }
+
+  const state = subscriptionState;
+  if (!state.listenersAttached) {
+    globalScope.addEventListener('popstate', state.onPopStateOrHashChange);
+    globalScope.addEventListener('hashchange', state.onPopStateOrHashChange);
+    state.listenersAttached = true;
+  }
+
+  state.callbacks.add(onUrlChange);
+  return (): void => {
+    state.callbacks.delete(onUrlChange);
+    if (state.callbacks.size === 0) {
+      // Do not restore history methods: we are not aware of patches applied by other scripts.
+      if (state.listenersAttached) {
+        globalScope.removeEventListener('popstate', state.onPopStateOrHashChange);
+        globalScope.removeEventListener('hashchange', state.onPopStateOrHashChange);
+        state.listenersAttached = false;
+      }
+    }
+  };
+}
+
 /**
  * Creates a URL tracking plugin for rrweb record function
  *
@@ -76,14 +219,6 @@ export function createUrlTrackingPlugin(
       // Initialize to undefined to ensure first call always emits an event
       let lastTrackedUrl: string | undefined = undefined;
 
-      // Patch detection marker to prevent double-patching
-      const PATCH_MARKER = '__amplitude_url_tracking_patched__';
-
-      // Global flag key on globalScope to track if the plugin has been reset/cleaned up
-      // When true, prevents emitUrlChange from being called from patched history methods
-      // even if other plugins have also patched them and we can't restore the originals
-      const RESET_FLAG_KEY = '__amplitude_url_tracking_reset__';
-
       // Helper functions
       /**
        * Gets the current URL with proper normalization
@@ -125,13 +260,9 @@ export function createUrlTrackingPlugin(
       /**
        * Emits a URL change event if the URL has actually changed
        * Always emits on first call (when lastTrackedUrl is undefined)
-       * Prevents duplicate events for the same URL on subsequent calls
-       * Handles edge cases like undefined/null/empty URLs gracefully
        */
       const emitUrlChange = (): void => {
         const currentUrl = getCurrentUrl();
-
-        // Always emit on first call, or if URL actually changed
         if (lastTrackedUrl === undefined || currentUrl !== lastTrackedUrl) {
           lastTrackedUrl = currentUrl;
           const event = createUrlChangeEvent();
@@ -139,119 +270,15 @@ export function createUrlTrackingPlugin(
         }
       };
 
-      /**
-       * Creates a patched version of history methods (pushState/replaceState)
-       * that calls the original method and then emits a URL change event
-       * Ensures URL changes are detected even when history methods are called programmatically
-       * Checks global reset flag to prevent emitting after plugin cleanup
-       * @param originalMethod The original history method to patch
-       * @returns Patched function that calls original method then emits URL change event
-       */
-      const createHistoryMethodPatch = <T extends typeof history.pushState | typeof history.replaceState>(
-        originalMethod: T,
-      ) => {
-        const patchedMethod = function (this: History, ...args: Parameters<T>) {
-          // Call the original history method first
-          const result = originalMethod.apply(this, args);
-          // Then emit URL change event only if plugin hasn't been reset
-          if (!(globalScope as Record<string, any>)[RESET_FLAG_KEY]) {
-            emitUrlChange();
-          }
-          return result;
-        } as T & { [PATCH_MARKER]: boolean };
-
-        // Mark the patched method to prevent double-patching
-        patchedMethod[PATCH_MARKER] = true;
-
-        return patchedMethod;
-      };
-
-      // Hashchange event handler - delegates to emitUrlChange for consistency
-      const hashChangeHandler = () => {
-        emitUrlChange();
-      };
-
-      // 1. if explicitly enable polling → use polling
-      if (enablePolling) {
-        // Use polling (covers everything)
-        const urlChangeInterval = globalScope.setInterval(() => {
-          emitUrlChange();
-        }, pollingInterval);
-
-        // Emit initial URL immediately
-        emitUrlChange();
-
-        // Return cleanup function to stop polling
-        return () => {
-          if (urlChangeInterval) {
-            globalScope.clearInterval(urlChangeInterval);
-          }
-        };
-      }
-
-      // 2. if polling not enabled → check history, if exist, use history
-      if (globalScope.history) {
-        // Use History API + hashchange (covers History API + hash routing)
-        // Store original history methods for restoration during cleanup
-        const originalPushState = globalScope.history.pushState.bind(globalScope.history);
-        const originalReplaceState = globalScope.history.replaceState.bind(globalScope.history);
-
-        /**
-         * Sets up history method patching to intercept pushState and replaceState calls
-         * This ensures URL changes are detected even when history methods are called programmatically
-         * Includes patch detection to prevent double-patching by the same plugin
-         */
-        const setupHistoryPatching = (): void => {
-          // Check if we already patched these methods
-          if (
-            (globalScope.history.pushState as typeof globalScope.history.pushState & { [PATCH_MARKER]?: boolean })[
-              PATCH_MARKER
-            ]
-          ) {
-            // Already patched by this plugin, skip patching
-            return;
-          }
-
-          // Patch pushState to emit URL change events
-          globalScope.history.pushState = createHistoryMethodPatch(originalPushState);
-
-          // Patch replaceState to emit URL change events
-          globalScope.history.replaceState = createHistoryMethodPatch(originalReplaceState);
-        };
-
-        // Apply history method patches
-        setupHistoryPatching();
-
-        // Listen to popstate events for browser back/forward navigation
-        globalScope.addEventListener('popstate', emitUrlChange);
-        // Listen to hashchange events for hash routing
-        globalScope.addEventListener('hashchange', hashChangeHandler);
-
-        // Emit initial URL immediately
-        emitUrlChange();
-
-        // Return cleanup function to restore original state
-        return () => {
-          // Restore original history methods - cannot be done here
-          // because the plugin is not aware of the history methods modified by other plugins
-          // so we need to set a flag on the globalScope to prevent further emitUrlChange calls from patched methods
-          // Set reset flag on globalScope to prevent further emitUrlChange calls from patched methods
-          (globalScope as Record<string, any>)[RESET_FLAG_KEY] = true;
-
-          // Remove popstate event listener
-          globalScope.removeEventListener('popstate', emitUrlChange);
-          // Remove hashchange event listener
-          globalScope.removeEventListener('hashchange', hashChangeHandler);
-        };
-      }
-
-      // 3. if not, then the framework is probably using hash router → do hash
-      // Fallback: just hashchange (for pure hash routing)
-      globalScope.addEventListener('hashchange', hashChangeHandler);
+      // Single helper: history + popstate + hashchange, or polling when enabled
+      const unsubscribe = subscribeToUrlChanges(
+        globalScope as Window,
+        () => emitUrlChange(),
+        enablePolling ? { enablePolling: true, pollingInterval } : {},
+      );
       emitUrlChange();
-      return () => {
-        globalScope.removeEventListener('hashchange', hashChangeHandler);
-      };
+
+      return (): void => unsubscribe();
     },
     options,
   };

@@ -3,6 +3,114 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.36.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.36.2...@amplitude/analytics-browser@2.36.3) (2026-03-09)
+
+
+### Bug Fixes
+
+* **analytics-browser:** Safari cookie writing race condition + extra exception catching ([#1578](https://github.com/amplitude/Amplitude-TypeScript/issues/1578)) ([bbcc6d7](https://github.com/amplitude/Amplitude-TypeScript/commit/bbcc6d77342a78388fce3fdf8b01d208e6403acf))
+* **analytics-browser:** skip known 2lds in TLD check ([#1575](https://github.com/amplitude/Amplitude-TypeScript/issues/1575)) ([1aaab18](https://github.com/amplitude/Amplitude-TypeScript/commit/1aaab1855d6739d4ac7c952e71427bff34844a74))
+
+
+
+
+
+## [2.36.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.36.1...@amplitude/analytics-browser@2.36.2) (2026-03-05)
+
+
+### Bug Fixes
+
+* make getTopLevelDomain and isEnabled synchronous to avoid re-entrancy ([#1564](https://github.com/amplitude/Amplitude-TypeScript/issues/1564)) ([ab9b09f](https://github.com/amplitude/Amplitude-TypeScript/commit/ab9b09f9ec9b9583f92c7cdffb7194cc30e0ea9f))
+
+
+
+
+
+## [2.36.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.36.0...@amplitude/analytics-browser@2.36.1) (2026-03-03)
+
+**Note:** Version bump only for package @amplitude/analytics-browser
+
+
+
+
+
+# [2.36.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.35.4...@amplitude/analytics-browser@2.36.0) (2026-03-03)
+
+
+### Bug Fixes
+
+* make default excluded referrers work better ([#1559](https://github.com/amplitude/Amplitude-TypeScript/issues/1559)) ([4bcca98](https://github.com/amplitude/Amplitude-TypeScript/commit/4bcca98e414833d7b7b3e4938ce46f55e6dad472))
+
+
+### Features
+
+* **analytics-browser:** add config attribution.excludeInternalReferrers ([#1548](https://github.com/amplitude/Amplitude-TypeScript/issues/1548)) ([df16648](https://github.com/amplitude/Amplitude-TypeScript/commit/df1664856bea96afde1dbac8dc523b4d69925c2a))
+* **analytics-browser:** support gzip request body compression ([#1542](https://github.com/amplitude/Amplitude-TypeScript/issues/1542)) ([0d2a7d2](https://github.com/amplitude/Amplitude-TypeScript/commit/0d2a7d2d873c86d8854dad16109af461ad392166))
+* manual opt in gzip ([#1568](https://github.com/amplitude/Amplitude-TypeScript/issues/1568)) ([303c130](https://github.com/amplitude/Amplitude-TypeScript/commit/303c130429c51b0913f3903db4ace5263e1c78e7))
+
+
+
+
+
+## [2.35.4](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.35.3...@amplitude/analytics-browser@2.35.4) (2026-02-26)
+
+**Note:** Version bump only for package @amplitude/analytics-browser
+
+
+
+
+
+## [2.35.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.35.2...@amplitude/analytics-browser@2.35.3) (2026-02-24)
+
+**Note:** Version bump only for package @amplitude/analytics-browser
+
+
+
+
+
+## [2.35.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.35.1...@amplitude/analytics-browser@2.35.2) (2026-02-20)
+
+**Note:** Version bump only for package @amplitude/analytics-browser
+
+
+
+
+
+## [2.35.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.35.0...@amplitude/analytics-browser@2.35.1) (2026-02-19)
+
+
+### Bug Fixes
+
+* **analytics-browser:** prevent circular reference in logBrowserOptions ([#1537](https://github.com/amplitude/Amplitude-TypeScript/issues/1537)) ([23b4fdb](https://github.com/amplitude/Amplitude-TypeScript/commit/23b4fdb106a242e4f64b81842f4227bcf771432b))
+
+
+
+
+
+# [2.35.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.34.1...@amplitude/analytics-browser@2.35.0) (2026-02-17)
+
+
+### Features
+
+* **analytics-browser:** add setIdentity() ([#1517](https://github.com/amplitude/Amplitude-TypeScript/issues/1517)) ([314b3c1](https://github.com/amplitude/Amplitude-TypeScript/commit/314b3c1b7ee5b0ef135848a66156eb2874daec5f))
+
+
+
+
+
+## [2.34.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.34.0...@amplitude/analytics-browser@2.34.1) (2026-02-10)
+
+
+### Bug Fixes
+
+* **analytics-browser:** defer session_start and attribution when optOut is "true" ([#1509](https://github.com/amplitude/Amplitude-TypeScript/issues/1509)) ([3a3818d](https://github.com/amplitude/Amplitude-TypeScript/commit/3a3818d19bd84e4aa8405e10f8538886dd647f38))
+* **analytics-browser:** prevent Form from being bound to 2x ([#1527](https://github.com/amplitude/Amplitude-TypeScript/issues/1527)) ([9ec707f](https://github.com/amplitude/Amplitude-TypeScript/commit/9ec707fc785bdd552bb6db89c9213c6293f71a3e))
+* **analytics-core:** add ValidPropertyType type ([#1525](https://github.com/amplitude/Amplitude-TypeScript/issues/1525)) ([f63c657](https://github.com/amplitude/Amplitude-TypeScript/commit/f63c6570f95acab087ad47d9ce9442fe42765a2c))
+
+
+
+
+
 # [2.34.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.33.5...@amplitude/analytics-browser@2.34.0) (2026-01-26)
 
 

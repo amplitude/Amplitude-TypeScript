@@ -15,13 +15,33 @@ export const isElementPointerCursor = (element: Element, actionType: ActionType)
   return computedStyle?.getPropertyValue('cursor') === 'pointer' && actionType === 'click';
 };
 
+export const isUrlAllowed = (autocaptureOptions: ElementInteractionsOptions): boolean => {
+  const { pageUrlAllowlist, pageUrlExcludelist } = autocaptureOptions;
+
+  // check if the URL is in the excludelist
+  if (
+    pageUrlExcludelist &&
+    pageUrlExcludelist.length > 0 &&
+    isUrlMatchAllowlist(window.location.href, pageUrlExcludelist as (string | RegExp)[])
+  ) {
+    return false;
+  }
+
+  // check if the URL is in the allow list
+  if (!isUrlMatchAllowlist(window.location.href, pageUrlAllowlist)) {
+    return false;
+  }
+
+  return true;
+};
+
 export const createShouldTrackEvent = (
   autocaptureOptions: ElementInteractionsOptions,
   allowlist: string[], // this can be any type of css selector allow list
   isAlwaysCaptureCursorPointer = false,
 ): shouldTrackEvent => {
   return (actionType: ActionType, element: Element) => {
-    const { pageUrlAllowlist, pageUrlExcludelist, shouldTrackEventResolver } = autocaptureOptions;
+    const { shouldTrackEventResolver } = autocaptureOptions;
 
     /* istanbul ignore next */
     const tag = element?.tagName?.toLowerCase?.();
@@ -34,17 +54,7 @@ export const createShouldTrackEvent = (
       return shouldTrackEventResolver(actionType, element);
     }
 
-    // check if the URL is in the allow list
-    if (!isUrlMatchAllowlist(window.location.href, pageUrlAllowlist)) {
-      return false;
-    }
-
-    // check if the URL is in the excludelist
-    if (
-      pageUrlExcludelist &&
-      pageUrlExcludelist.length > 0 &&
-      isUrlMatchAllowlist(window.location.href, pageUrlExcludelist as (string | RegExp)[])
-    ) {
+    if (!isUrlAllowed(autocaptureOptions)) {
       return false;
     }
 

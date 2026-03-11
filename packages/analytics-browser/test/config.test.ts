@@ -8,13 +8,14 @@ import {
   UserSession,
   MemoryStorage,
   getCookieName,
-  FetchTransport,
+  FetchTransport as CoreFetchTransport,
   Logger,
   BrowserConfig,
 } from '@amplitude/analytics-core';
 import * as BrowserUtils from '@amplitude/analytics-core';
 import { XHRTransport } from '../src/transports/xhr';
 import { createTransport, useBrowserConfig, shouldFetchRemoteConfig } from '../src/config';
+import { FetchTransport } from '../src/transports/fetch';
 import { SendBeaconTransport } from '../src/transports/send-beacon';
 import { uuidPattern } from './helpers/constants';
 import { DEFAULT_IDENTITY_STORAGE, DEFAULT_SERVER_ZONE } from '../src/constants';
@@ -144,7 +145,7 @@ describe('config', () => {
           platform: true,
         },
         transport: 'fetch',
-        transportProvider: new FetchTransport(),
+        transportProvider: expect.any(FetchTransport),
         useBatch: false,
         fetchRemoteConfig: true,
         version: VERSION,
@@ -154,6 +155,9 @@ describe('config', () => {
         remoteConfig: {
           fetchRemoteConfig: true,
         },
+        topLevelDomain: '.amplitude.com',
+        enableRequestBodyCompression: false,
+        _enableRequestBodyCompressionExperimental: false,
       });
       expect(getTopLevelDomain).toHaveBeenCalledTimes(1);
     });
@@ -172,6 +176,12 @@ describe('config', () => {
     });
 
     test('should create using cookies/overwrite', async () => {
+      Object.defineProperty(window, 'location', {
+        value: {
+          hostname: 'amplitude.com',
+        },
+        configurable: true,
+      });
       const cookieStorage = new core.MemoryStorage<UserSession>();
       await cookieStorage.set(getCookieName(apiKey), {
         deviceId: 'device-device-device',
@@ -262,6 +272,9 @@ describe('config', () => {
         remoteConfig: {
           fetchRemoteConfig: true,
         },
+        topLevelDomain: 'amplitude.com',
+        enableRequestBodyCompression: false,
+        _enableRequestBodyCompressionExperimental: false,
       });
     });
 
@@ -371,12 +384,18 @@ describe('config', () => {
     test('should return fetch when object format has only headers', () => {
       expect(createTransport({ headers: { Authorization: 'Bearer token' } })).toBeInstanceOf(FetchTransport);
     });
+
+    test('should return browser fetch transport (temporary copy, not core fetch transport)', () => {
+      const transport = createTransport('fetch');
+      expect(transport).toBeInstanceOf(FetchTransport);
+      expect(transport).not.toBeInstanceOf(CoreFetchTransport);
+    });
   });
 
   describe('getTopLevelDomain', () => {
     test('should return empty string for localhost', async () => {
       // jest env hostname is localhost
-      const domain = await Config.getTopLevelDomain();
+      const domain = await Config.getTopLevelDomain(undefined);
       expect(domain).toBe('');
     });
 
@@ -393,7 +412,7 @@ describe('config', () => {
         ...testCookieStorage,
         options: {},
         config: {},
-      });
+      } as unknown as BrowserUtils.CookieStorage<unknown>);
       const domain = await Config.getTopLevelDomain();
       expect(domain).toBe('');
     });
@@ -407,27 +426,46 @@ describe('config', () => {
         remove: jest.fn().mockResolvedValueOnce(Promise.resolve(undefined)),
         reset: jest.fn().mockResolvedValueOnce(Promise.resolve(undefined)),
       };
-      const actualCookieStorage: Storage<number> = {
+      const actualCookieStorage = {
         isEnabled: () => Promise.resolve(true),
         get: jest.fn().mockResolvedValueOnce(Promise.resolve(undefined)).mockResolvedValueOnce(Promise.resolve(1)),
         getRaw: jest.fn().mockResolvedValueOnce(Promise.resolve(undefined)).mockResolvedValueOnce(Promise.resolve(1)),
         set: jest.fn().mockResolvedValue(Promise.resolve(undefined)),
         remove: jest.fn().mockResolvedValue(Promise.resolve(undefined)),
         reset: jest.fn().mockResolvedValue(Promise.resolve(undefined)),
-      };
+        // CookieStorage.transaction is used by getTopLevelDomain; first domain fails, second succeeds
+        transaction: jest.fn().mockResolvedValueOnce(false).mockResolvedValueOnce(true),
+      } as unknown as BrowserUtils.CookieStorage<number>;
       jest
         .spyOn(BrowserUtils, 'CookieStorage')
         .mockReturnValueOnce({
           ...testCookieStorage,
           options: {},
           config: {},
-        })
+        } as unknown as BrowserUtils.CookieStorage<unknown>)
         .mockReturnValue({
           ...actualCookieStorage,
           options: {},
           config: {},
+        } as unknown as BrowserUtils.CookieStorage<unknown>);
+
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      const isDomainWritableBefore = BrowserUtils.CookieStorage.isDomainWritable;
+      try {
+        BrowserUtils.CookieStorage.isDomainWritable = jest.fn().mockImplementation((domain: string) => {
+          if (domain === 'gov.uk') return Promise.resolve(false);
+          if (domain === 'ac.be') return Promise.resolve(false);
+          if (domain === 'legislation.gov.uk') return Promise.resolve(true);
+          if (domain === 'website.com') return Promise.resolve(true);
+          if (domain === 'hello.ac.be') return Promise.resolve(true);
+          return Promise.resolve(false);
         });
-      expect(await Config.getTopLevelDomain('www.legislation.gov.uk')).toBe('.legislation.gov.uk');
+        expect(await Config.getTopLevelDomain('www.legislation.gov.uk')).toBe('.legislation.gov.uk');
+        expect(await Config.getTopLevelDomain('www.website.com')).toBe('.website.com');
+        expect(await Config.getTopLevelDomain('www.hello.ac.be')).toBe('.hello.ac.be');
+      } finally {
+        BrowserUtils.CookieStorage.isDomainWritable = isDomainWritableBefore;
+      }
     });
 
     test('should not throw an error when location is an empty object', async () => {
@@ -460,6 +498,46 @@ describe('config', () => {
         value: originalLocation,
         configurable: true,
       });
+    });
+
+    test('should record a diagnostics event when no access to cookies', async () => {
+      const mockDiagnosticsClient = {
+        recordEvent: jest.fn(),
+        setTag: jest.fn(),
+        increment: jest.fn(),
+        recordHistogram: jest.fn(),
+        _flush: jest.fn(),
+        _setSampleRate: jest.fn(),
+      };
+      await Config.getTopLevelDomain('www.amplitude.com', mockDiagnosticsClient);
+      expect(mockDiagnosticsClient.recordEvent).toHaveBeenCalledWith('cookies.tld.failure', {
+        reason: 'Could not determine TLD for host www.amplitude.com',
+      });
+    });
+
+    test('should record cookies.tld.failure when isDomainWritable throws', async () => {
+      const tldError = new Error('cookie access denied');
+      const mockDiagnosticsClient = {
+        recordEvent: jest.fn(),
+        setTag: jest.fn(),
+        increment: jest.fn(),
+        recordHistogram: jest.fn(),
+        _flush: jest.fn(),
+        _setSampleRate: jest.fn(),
+      };
+
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      const isDomainWritableBefore = BrowserUtils.CookieStorage.isDomainWritable;
+      try {
+        BrowserUtils.CookieStorage.isDomainWritable = jest.fn().mockRejectedValue(tldError);
+        expect(await Config.getTopLevelDomain('www.example.com', mockDiagnosticsClient)).toBe('');
+        expect(mockDiagnosticsClient.recordEvent).toHaveBeenCalledWith('cookies.tld.failure', {
+          reason: 'Unexpected exception checking domain is writable: example.com',
+          error: 'cookie access denied',
+        });
+      } finally {
+        BrowserUtils.CookieStorage.isDomainWritable = isDomainWritableBefore;
+      }
     });
   });
 

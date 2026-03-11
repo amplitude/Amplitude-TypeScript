@@ -2,7 +2,7 @@ export { AmplitudeCore } from './core-client';
 export { CoreClient, PluginHost } from './types/client/core-client';
 export { AnalyticsClient } from './types/client/analytics-client';
 export { AmplitudeContext } from './types/amplitude-context';
-export { Identify, IIdentify } from './identify';
+export { Identify, IIdentify, ValidPropertyType } from './identify';
 export { Revenue, IRevenue, RevenueProperty } from './revenue';
 export { Destination } from './plugins/destination';
 export { IdentityEventSender } from './plugins/identity';
@@ -34,6 +34,11 @@ export { registerSdkLoaderMetadata } from './diagnostics/uncaught-sdk-errors';
 
 export { BaseTransport } from './transports/base';
 export { FetchTransport } from './transports/fetch';
+export {
+  compressToGzipArrayBuffer,
+  isCompressionStreamAvailable,
+  MIN_GZIP_UPLOAD_BODY_SIZE_BYTES,
+} from './transports/gzip';
 
 export { RemoteConfigClient, IRemoteConfigClient, RemoteConfig, Source } from './remote-config/remote-config';
 
@@ -144,3 +149,18 @@ export { ReactNativeClient } from './types/client/react-native-client';
 export { Observable, asyncMap, merge, multicast, Unsubscribable } from './utils/observable';
 
 export { InstanceProxy } from './types/proxy';
+export { safeJsonStringify } from './utils/safe-stringify';
+
+// Messenger (cross-window communication)
+export type { BaseWindowMessenger, ActionHandler } from './messenger/base-window-messenger';
+export { getOrCreateWindowMessenger } from './messenger/base-window-messenger';
+export { enableBackgroundCapture } from './messenger/background-capture';
+export {
+  AMPLITUDE_ORIGIN,
+  AMPLITUDE_ORIGIN_EU,
+  AMPLITUDE_ORIGIN_STAGING,
+  AMPLITUDE_ORIGINS_MAP,
+  AMPLITUDE_BACKGROUND_CAPTURE_SCRIPT_URL,
+} from './messenger/constants';
+
+export { ExcludeInternalReferrersOptions, EXCLUDE_INTERNAL_REFERRERS_CONDITIONS } from './types/config/browser-config';

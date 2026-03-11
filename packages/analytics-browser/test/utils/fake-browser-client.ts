@@ -44,6 +44,10 @@ export class FakeBrowserClient implements BrowserClient {
     };
   }
 
+  setIdentity(identity: Partial<AnalyticsIdentity>): void {
+    console.log('FakeBrowserClient.setIdentity called with:', { identity });
+  }
+
   getOptOut(): boolean | undefined {
     console.log('FakeBrowserClient.getOptOut called');
     return false;
@@ -185,5 +189,9 @@ export class FakeBrowserClient implements BrowserClient {
 
   _setDiagnosticsSampleRate(sampleRate: number): void {
     console.log('FakeBrowserClient.setDiagnosticsSampleRate called with:', { sampleRate });
+  }
+
+  _enableRequestBodyCompressionExperimental(enabled: boolean): void {
+    console.log('FakeBrowserClient.enableRequestBodyCompressionExperimental called with:', { enabled });
   }
 }

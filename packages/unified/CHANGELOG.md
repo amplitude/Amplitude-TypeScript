@@ -3,6 +3,141 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.0.4](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/unified@1.0.3...@amplitude/unified@1.0.4) (2026-03-11)
+
+**Note:** Version bump only for package @amplitude/unified
+
+
+
+
+
+## [1.0.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/unified@1.0.2...@amplitude/unified@1.0.3) (2026-03-09)
+
+**Note:** Version bump only for package @amplitude/unified
+
+
+
+
+
+## [1.0.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/unified@1.0.1...@amplitude/unified@1.0.2) (2026-03-06)
+
+
+### Bug Fixes
+
+* **session-replay:** guarantee in-order batch delivery including retries ([#1576](https://github.com/amplitude/Amplitude-TypeScript/issues/1576)) ([0afcac6](https://github.com/amplitude/Amplitude-TypeScript/commit/0afcac6cd42b999b74ba797717f7cf0d447029ef))
+
+
+
+
+
+## [1.0.2-beta.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/unified@1.0.1...@amplitude/unified@1.0.2-beta.0) (2026-03-06)
+
+
+### Bug Fixes
+
+* **session-replay:** guarantee in-order batch delivery including retries ([#1576](https://github.com/amplitude/Amplitude-TypeScript/issues/1576)) ([0afcac6](https://github.com/amplitude/Amplitude-TypeScript/commit/0afcac6cd42b999b74ba797717f7cf0d447029ef))
+
+
+
+
+
+## [1.0.2-in-order.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/unified@1.0.1...@amplitude/unified@1.0.2-in-order.0) (2026-03-06)
+
+**Note:** Version bump only for package @amplitude/unified
+
+
+
+
+
+## [1.0.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/unified@1.0.0-beta.41...@amplitude/unified@1.0.1) (2026-03-05)
+
+
+### Bug Fixes
+
+* **unified:** promote to GA ([#1574](https://github.com/amplitude/Amplitude-TypeScript/issues/1574)) ([0021158](https://github.com/amplitude/Amplitude-TypeScript/commit/00211581ed150b3f8ad55a15876522c2b37e9c50))
+
+
+
+
+
+# [1.0.0-beta.41](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/unified@1.0.0-beta.40...@amplitude/unified@1.0.0-beta.41) (2026-03-05)
+
+**Note:** Version bump only for package @amplitude/unified
+
+
+
+
+
+# [1.0.0-beta.40](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/unified@1.0.0-beta.39...@amplitude/unified@1.0.0-beta.40) (2026-03-03)
+
+**Note:** Version bump only for package @amplitude/unified
+
+
+
+
+
+# [1.0.0-beta.39](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/unified@1.0.0-beta.38...@amplitude/unified@1.0.0-beta.39) (2026-03-03)
+
+
+### Features
+
+* manual opt in gzip ([#1568](https://github.com/amplitude/Amplitude-TypeScript/issues/1568)) ([303c130](https://github.com/amplitude/Amplitude-TypeScript/commit/303c130429c51b0913f3903db4ace5263e1c78e7))
+
+
+
+
+
+# [1.0.0-beta.38](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/unified@1.0.0-beta.37...@amplitude/unified@1.0.0-beta.38) (2026-02-26)
+
+**Note:** Version bump only for package @amplitude/unified
+
+
+
+
+
+# [1.0.0-beta.37](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/unified@1.0.0-beta.36...@amplitude/unified@1.0.0-beta.37) (2026-02-24)
+
+**Note:** Version bump only for package @amplitude/unified
+
+
+
+
+
+# [1.0.0-beta.36](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/unified@1.0.0-beta.35...@amplitude/unified@1.0.0-beta.36) (2026-02-20)
+
+**Note:** Version bump only for package @amplitude/unified
+
+
+
+
+
+# [1.0.0-beta.35](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/unified@1.0.0-beta.34...@amplitude/unified@1.0.0-beta.35) (2026-02-19)
+
+**Note:** Version bump only for package @amplitude/unified
+
+
+
+
+
+# [1.0.0-beta.34](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/unified@1.0.0-beta.33...@amplitude/unified@1.0.0-beta.34) (2026-02-17)
+
+
+### Features
+
+* **analytics-browser:** add setIdentity() ([#1517](https://github.com/amplitude/Amplitude-TypeScript/issues/1517)) ([314b3c1](https://github.com/amplitude/Amplitude-TypeScript/commit/314b3c1b7ee5b0ef135848a66156eb2874daec5f))
+
+
+
+
+
+# [1.0.0-beta.33](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/unified@1.0.0-beta.32...@amplitude/unified@1.0.0-beta.33) (2026-02-10)
+
+**Note:** Version bump only for package @amplitude/unified
+
+
+
+
+
 # [1.0.0-beta.32](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/unified@1.0.0-beta.31...@amplitude/unified@1.0.0-beta.32) (2026-01-26)
 
 **Note:** Version bump only for package @amplitude/unified

@@ -64,7 +64,13 @@ export const formInteractionTracking = (): EnrichmentPlugin => {
         return;
       }
 
+      const addedFormNodes = new WeakSet<Node>();
       const addFormInteractionListener = (form: HTMLFormElement) => {
+        if (addedFormNodes.has(form)) {
+          return;
+        }
+        addedFormNodes.add(form);
+
         let hasFormChanged = false;
 
         addEventListener(form, 'change', () => {

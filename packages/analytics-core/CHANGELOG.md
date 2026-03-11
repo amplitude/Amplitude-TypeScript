@@ -3,6 +3,128 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.41.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.41.2...@amplitude/analytics-core@2.41.3) (2026-03-09)
+
+
+### Bug Fixes
+
+* **analytics-browser:** remove zen observable version with bad polyfill ([#1580](https://github.com/amplitude/Amplitude-TypeScript/issues/1580)) ([e07cbe4](https://github.com/amplitude/Amplitude-TypeScript/commit/e07cbe4eaccb261ce8db05d3fd6bd561e7e6da1b))
+* **analytics-browser:** Safari cookie writing race condition + extra exception catching ([#1578](https://github.com/amplitude/Amplitude-TypeScript/issues/1578)) ([bbcc6d7](https://github.com/amplitude/Amplitude-TypeScript/commit/bbcc6d77342a78388fce3fdf8b01d208e6403acf))
+
+
+
+
+
+## [2.41.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.41.1...@amplitude/analytics-core@2.41.2) (2026-03-05)
+
+
+### Bug Fixes
+
+* make getTopLevelDomain and isEnabled synchronous to avoid re-entrancy ([#1564](https://github.com/amplitude/Amplitude-TypeScript/issues/1564)) ([ab9b09f](https://github.com/amplitude/Amplitude-TypeScript/commit/ab9b09f9ec9b9583f92c7cdffb7194cc30e0ea9f))
+
+
+
+
+
+## [2.41.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.41.0...@amplitude/analytics-core@2.41.1) (2026-03-03)
+
+**Note:** Version bump only for package @amplitude/analytics-core
+
+
+
+
+
+# [2.41.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.40.2...@amplitude/analytics-core@2.41.0) (2026-03-03)
+
+
+### Bug Fixes
+
+* **analytics-browser:** duplicate cookie resolution bugfix ([#1566](https://github.com/amplitude/Amplitude-TypeScript/issues/1566)) ([3fe77c6](https://github.com/amplitude/Amplitude-TypeScript/commit/3fe77c6034799afad8668373d296b367b2fd478c))
+
+
+### Features
+
+* **analytics-browser:** add config attribution.excludeInternalReferrers ([#1548](https://github.com/amplitude/Amplitude-TypeScript/issues/1548)) ([df16648](https://github.com/amplitude/Amplitude-TypeScript/commit/df1664856bea96afde1dbac8dc523b4d69925c2a))
+* **analytics-browser:** support gzip request body compression ([#1542](https://github.com/amplitude/Amplitude-TypeScript/issues/1542)) ([0d2a7d2](https://github.com/amplitude/Amplitude-TypeScript/commit/0d2a7d2d873c86d8854dad16109af461ad392166))
+* manual opt in gzip ([#1568](https://github.com/amplitude/Amplitude-TypeScript/issues/1568)) ([303c130](https://github.com/amplitude/Amplitude-TypeScript/commit/303c130429c51b0913f3903db4ace5263e1c78e7))
+
+
+
+
+
+## [2.40.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.40.1...@amplitude/analytics-core@2.40.2) (2026-02-26)
+
+
+### Bug Fixes
+
+* early return isEnabled false when document not present ([#1555](https://github.com/amplitude/Amplitude-TypeScript/issues/1555)) ([50c9a38](https://github.com/amplitude/Amplitude-TypeScript/commit/50c9a38580997b952e7cec6835139239d5de63a8))
+
+
+
+
+
+## [2.40.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.40.0...@amplitude/analytics-core@2.40.1) (2026-02-24)
+
+
+### Bug Fixes
+
+* import globalScope from named versus root ([#1554](https://github.com/amplitude/Amplitude-TypeScript/issues/1554)) ([b565551](https://github.com/amplitude/Amplitude-TypeScript/commit/b56555199782f070b0a8e5163add3ff36d5350ea))
+
+
+
+
+
+# [2.40.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.39.0...@amplitude/analytics-core@2.40.0) (2026-02-19)
+
+
+### Bug Fixes
+
+* **analytics-browser:** handle XHR open vs send race condition ([#1541](https://github.com/amplitude/Amplitude-TypeScript/issues/1541)) ([b952b81](https://github.com/amplitude/Amplitude-TypeScript/commit/b952b8145f8be436ccf1fe62d1275162c8a92f70))
+* **analytics-browser:** prevent circular reference in logBrowserOptions ([#1537](https://github.com/amplitude/Amplitude-TypeScript/issues/1537)) ([23b4fdb](https://github.com/amplitude/Amplitude-TypeScript/commit/23b4fdb106a242e4f64b81842f4227bcf771432b))
+* **analytics-core:** diagnostics supports multiple script urls ([#1538](https://github.com/amplitude/Amplitude-TypeScript/issues/1538)) ([8ae3b27](https://github.com/amplitude/Amplitude-TypeScript/commit/8ae3b27e9011a7fddcb63b6dd421d943f26873d8))
+
+
+### Features
+
+* screenshot capture messenger ([#1535](https://github.com/amplitude/Amplitude-TypeScript/issues/1535)) ([93ef551](https://github.com/amplitude/Amplitude-TypeScript/commit/93ef551ff0ab7dc48014aa5fa25841437d641993))
+
+
+
+
+
+# [2.39.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.38.0...@amplitude/analytics-core@2.39.0) (2026-02-17)
+
+
+### Bug Fixes
+
+* **analytics-browser:** cookie re-entrancy problem in isEnabled ([#1539](https://github.com/amplitude/Amplitude-TypeScript/issues/1539)) ([bb4b25e](https://github.com/amplitude/Amplitude-TypeScript/commit/bb4b25e03d05ca2b86e2bfb530b371c155ba70d1))
+
+
+### Features
+
+* **analytics-browser:** add setIdentity() ([#1517](https://github.com/amplitude/Amplitude-TypeScript/issues/1517)) ([314b3c1](https://github.com/amplitude/Amplitude-TypeScript/commit/314b3c1b7ee5b0ef135848a66156eb2874daec5f))
+
+
+
+
+
+# [2.38.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.37.0...@amplitude/analytics-core@2.38.0) (2026-02-10)
+
+
+### Bug Fixes
+
+* **analytics-browser:** defer session_start and attribution when optOut is "true" ([#1509](https://github.com/amplitude/Amplitude-TypeScript/issues/1509)) ([3a3818d](https://github.com/amplitude/Amplitude-TypeScript/commit/3a3818d19bd84e4aa8405e10f8538886dd647f38))
+* **analytics-core:** add ValidPropertyType type ([#1525](https://github.com/amplitude/Amplitude-TypeScript/issues/1525)) ([f63c657](https://github.com/amplitude/Amplitude-TypeScript/commit/f63c6570f95acab087ad47d9ce9442fe42765a2c))
+
+
+### Features
+
+* **analytics-browser:** [@experimental](https://github.com/experimental) add Thrashed Cursor frustration signal ([#1523](https://github.com/amplitude/Amplitude-TypeScript/issues/1523)) ([376b034](https://github.com/amplitude/Amplitude-TypeScript/commit/376b0342716057c82430ab72c0fc5bab55bc0dba))
+
+
+
+
+
 # [2.37.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.36.1...@amplitude/analytics-core@2.37.0) (2026-01-26)
 
 

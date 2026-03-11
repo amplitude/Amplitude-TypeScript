@@ -15,7 +15,6 @@ import {
   UUID,
   CookieStorage,
   getCookieName,
-  FetchTransport,
   getQueryParams,
   UserSession,
   BrowserOptions,
@@ -36,11 +35,13 @@ import {
 import { LocalStorage } from './storage/local-storage';
 import { SessionStorage } from './storage/session-storage';
 import { XHRTransport } from './transports/xhr';
+import { FetchTransport } from './transports/fetch';
 import { SendBeaconTransport } from './transports/send-beacon';
 import { parseLegacyCookies } from './cookie-migration';
 import { DEFAULT_IDENTITY_STORAGE, DEFAULT_SERVER_ZONE } from './constants';
 import { AmplitudeBrowser } from './browser-client';
 import { VERSION } from './version';
+import { getDomain, KNOWN_2LDS } from './attribution/helpers';
 
 // Exported for testing purposes only. Do not expose to public interface.
 export class BrowserConfig extends Config implements IBrowserConfig {
@@ -51,6 +52,7 @@ export class BrowserConfig extends Config implements IBrowserConfig {
   protected _lastEventTime?: number;
   protected _optOut = false;
   protected _sessionId?: number;
+  protected _deferredSessionId?: number;
   protected _userId?: string;
   protected _pageCounter?: number;
   protected _debugLogsEnabled?: boolean;
@@ -86,6 +88,7 @@ export class BrowserConfig extends Config implements IBrowserConfig {
     public serverUrl: string = '',
     public serverZone: ServerZoneType = DEFAULT_SERVER_ZONE,
     sessionId?: number,
+    deferredSessionId?: number,
     public sessionTimeout: number = 30 * 60 * 1000,
     public storageProvider: Storage<Event[]> = new LocalStorage({ loggerProvider }),
     public trackingOptions: Required<TrackingOptions> = {
@@ -105,6 +108,9 @@ export class BrowserConfig extends Config implements IBrowserConfig {
     public diagnosticsSampleRate: number = 0,
     public diagnosticsClient?: IDiagnosticsClient,
     public remoteConfig?: RemoteConfigOptions,
+    public topLevelDomain?: string,
+    public enableRequestBodyCompression: boolean = false,
+    public _enableRequestBodyCompressionExperimental: boolean = false,
   ) {
     super({ apiKey, storageProvider, transportProvider: createTransport(transport) });
     this._cookieStorage = cookieStorage;
@@ -112,6 +118,7 @@ export class BrowserConfig extends Config implements IBrowserConfig {
     this.lastEventId = lastEventId;
     this.lastEventTime = lastEventTime;
     this.optOut = optOut;
+    this.deferredSessionId = deferredSessionId;
     this.sessionId = sessionId;
     this.pageCounter = pageCounter;
     this.userId = userId;
@@ -131,6 +138,8 @@ export class BrowserConfig extends Config implements IBrowserConfig {
     this.remoteConfig = this.remoteConfig || {};
     this.remoteConfig.fetchRemoteConfig = _fetchRemoteConfig;
     this.fetchRemoteConfig = _fetchRemoteConfig;
+
+    this.topLevelDomain = topLevelDomain || getDomain();
   }
 
   get cookieStorage() {
@@ -173,6 +182,22 @@ export class BrowserConfig extends Config implements IBrowserConfig {
   set sessionId(sessionId: number | undefined) {
     if (this._sessionId !== sessionId) {
       this._sessionId = sessionId;
+      // Clear deferredSessionId when sessionId is set to prevent stale values
+      // from overriding legitimate sessionIds on subsequent page loads
+      if (sessionId !== undefined && this._deferredSessionId !== undefined) {
+        this._deferredSessionId = undefined;
+      }
+      this.updateStorage();
+    }
+  }
+
+  get deferredSessionId() {
+    return this._deferredSessionId;
+  }
+
+  set deferredSessionId(deferredSessionId: number | undefined) {
+    if (this._deferredSessionId !== deferredSessionId && deferredSessionId !== this.sessionId) {
+      this._deferredSessionId = deferredSessionId;
       this.updateStorage();
     }
   }
@@ -233,6 +258,7 @@ export class BrowserConfig extends Config implements IBrowserConfig {
       deviceId: this._deviceId,
       userId: this._userId,
       sessionId: this._sessionId,
+      deferredSessionId: this._deferredSessionId,
       optOut: this._optOut,
       lastEventTime: this._lastEventTime,
       lastEventId: this._lastEventId,
@@ -273,9 +299,15 @@ export const useBrowserConfig = async (
 ): Promise<IBrowserConfig> => {
   // Step 1: Create identity storage instance
   const identityStorage = options.identityStorage || DEFAULT_IDENTITY_STORAGE;
+  let defaultCookieDomain = '';
+
+  // use the getTopLevelDomain function to find the TLD only if identity storage
+  // is cookie (because getTopLevelDomain() uses cookies)
+  if (identityStorage === DEFAULT_IDENTITY_STORAGE) {
+    defaultCookieDomain = await getTopLevelDomain(undefined, diagnosticsClient);
+  }
   const cookieOptions = {
-    domain:
-      identityStorage !== DEFAULT_IDENTITY_STORAGE ? '' : options.cookieOptions?.domain ?? (await getTopLevelDomain()),
+    domain: options.cookieOptions?.domain ?? defaultCookieDomain,
     expiration: 365,
     sameSite: 'Lax' as const,
     secure: false,
@@ -318,6 +350,7 @@ export const useBrowserConfig = async (
   const lastEventTime = previousCookies?.lastEventTime ?? legacyCookies.lastEventTime;
   const optOut = options.optOut ?? previousCookies?.optOut ?? legacyCookies.optOut;
   const sessionId = previousCookies?.sessionId ?? legacyCookies.sessionId;
+  const deferredSessionId = previousCookies?.deferredSessionId;
   const userId = options.userId ?? previousCookies?.userId ?? legacyCookies.userId;
   amplitudeInstance.previousSessionDeviceId = previousCookies?.deviceId ?? legacyCookies.deviceId;
   amplitudeInstance.previousSessionUserId = previousCookies?.userId ?? legacyCookies.userId;
@@ -363,6 +396,7 @@ export const useBrowserConfig = async (
     // Use earlyConfig.serverZone to ensure consistent serverZone
     earlyConfig?.serverZone ?? options.serverZone,
     sessionId,
+    deferredSessionId,
     options.sessionTimeout,
     options.storageProvider,
     trackingOptions,
@@ -379,6 +413,9 @@ export const useBrowserConfig = async (
     earlyConfig?.diagnosticsSampleRate ?? amplitudeInstance._diagnosticsSampleRate,
     diagnosticsClient,
     options.remoteConfig,
+    defaultCookieDomain,
+    options.enableRequestBodyCompression,
+    amplitudeInstance._enableRequestBodyCompressionExperimentalValue,
   );
 
   if (!(await browserConfig.storageProvider.isEnabled())) {
@@ -443,40 +480,62 @@ export const createTransport = (transport?: TransportTypeOrOptions) => {
     // SendBeacon does not support custom headers
     return new SendBeaconTransport();
   }
+  // Keep a browser-local fetch transport for gzip support.
+  // TODO: Merge back to core FetchTransport after React Native supports gzip.
   return new FetchTransport(headers);
 };
 
-export const getTopLevelDomain = async (url?: string) => {
+export const getTopLevelDomain = async (url?: string, diagnosticsClient?: IDiagnosticsClient) => {
   if (
-    !(await new CookieStorage<number>().isEnabled()) ||
+    !(await new CookieStorage<number>(undefined, { diagnosticsClient }).isEnabled()) ||
     (!url && (typeof location === 'undefined' || !location.hostname))
   ) {
     return '';
   }
-
   const host = url ?? location.hostname;
   const parts = host.split('.');
   const levels = [];
-  const cookieKeyUniqueId = UUID();
-  const storageKey = `AMP_TLDTEST_${cookieKeyUniqueId.substring(0, 8)}`;
 
-  for (let i = parts.length - 2; i >= 0; --i) {
+  let skipLevel = 1;
+
+  // if the hostname ends with a TLD we know is in the Public Suffix List
+  // then the last two parts are definitely not writable as a domain
+  if (KNOWN_2LDS.find((tld) => host.endsWith(`.${tld}`))) {
+    skipLevel = 2;
+  }
+
+  for (let i = parts.length - skipLevel - 1; i >= 0; --i) {
     levels.push(parts.slice(i).join('.'));
   }
   for (let i = 0; i < levels.length; i++) {
     const domain = levels[i];
-    const options = {
-      domain: '.' + domain,
-      expirationDays: 0.003, // expire in ~5 minutes
-    };
-    const storage = new CookieStorage<number>(options);
-    await storage.set(storageKey, 1);
-    const value = await storage.get(storageKey);
-    if (value) {
-      await storage.remove(storageKey);
-      return '.' + domain;
+    try {
+      const result = await CookieStorage.isDomainWritable(domain);
+
+      // if the transaction succeeded, the domain is valid
+      if (result) {
+        return '.' + domain;
+      }
+    } catch (e) {
+      /* istanbul ignore if */
+      if (diagnosticsClient) {
+        diagnosticsClient.recordEvent('cookies.tld.failure', {
+          reason: `Unexpected exception checking domain is writable: ${domain}`,
+          error: e instanceof Error ? e.message : String(e),
+        });
+      }
     }
   }
 
+  // if the transaction failed, the domain is invalid
+  // record a diagnostic event
+  if (diagnosticsClient) {
+    diagnosticsClient.recordEvent('cookies.tld.failure', {
+      reason: `Could not determine TLD for host ${host}`,
+    });
+  }
+
+  // return an empty string to indicate that we couldn't determine the TLD
+  // so fallback to host-only cookies (scoped to the current host)
   return '';
 };

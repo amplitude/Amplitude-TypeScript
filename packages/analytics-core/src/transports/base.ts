@@ -8,7 +8,7 @@ import { Response } from '../types/response';
 import { isSuccessStatusCode } from '../utils/status-code';
 
 export class BaseTransport implements Transport {
-  send(_serverUrl: string, _payload: Payload): Promise<Response | null> {
+  send(_serverUrl: string, _payload: Payload, _enableRequestBodyCompression?: boolean): Promise<Response | null> {
     return Promise.resolve(null);
   }
 

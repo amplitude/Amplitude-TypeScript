@@ -26,8 +26,11 @@ import {
   getOldCookieName,
   getLanguage,
   IdentityEventSender,
+  compressToGzipArrayBuffer,
+  MIN_GZIP_UPLOAD_BODY_SIZE_BYTES,
   CookieStorage,
   FetchTransport,
+  isCompressionStreamAvailable,
   RemoteConfigClient,
   Identify,
   Revenue,
@@ -64,6 +67,14 @@ import {
   isTimestampInSample,
   DiagnosticsClient,
   registerSdkLoaderMetadata,
+  getOrCreateWindowMessenger,
+  enableBackgroundCapture,
+  AMPLITUDE_ORIGIN,
+  AMPLITUDE_ORIGIN_EU,
+  AMPLITUDE_ORIGIN_STAGING,
+  AMPLITUDE_ORIGINS_MAP,
+  AMPLITUDE_BACKGROUND_CAPTURE_SCRIPT_URL,
+  EXCLUDE_INTERNAL_REFERRERS_CONDITIONS,
 } from '../src/index';
 
 describe('index', () => {
@@ -108,9 +119,12 @@ describe('index', () => {
     expect(typeof getLanguage).toBe('function');
     expect(typeof IdentityEventSender).toBe('function');
     expect(() => new IdentityEventSender()).not.toThrow();
+    expect(typeof compressToGzipArrayBuffer).toBe('function');
+    expect(MIN_GZIP_UPLOAD_BODY_SIZE_BYTES).toBe(2 * 1024);
     expect(typeof CookieStorage).toBe('function');
     expect(() => new CookieStorage()).not.toThrow();
     expect(typeof FetchTransport).toBe('function');
+    expect(typeof isCompressionStreamAvailable).toBe('function');
     expect(() => new FetchTransport()).not.toThrow();
     expect(typeof RemoteConfigClient).toBe('function');
     expect(() => new RemoteConfigClient('api-key', new Logger())).not.toThrow();
@@ -147,6 +161,25 @@ describe('index', () => {
     expect(typeof isTimestampInSample).toBe('function');
     expect(typeof DiagnosticsClient).toBe('function');
     expect(typeof registerSdkLoaderMetadata).toBe('function');
+    expect(typeof getOrCreateWindowMessenger).toBe('function');
+    expect(typeof enableBackgroundCapture).toBe('function');
+    expect(typeof AMPLITUDE_ORIGIN).toBe('string');
+    expect(typeof AMPLITUDE_ORIGIN_EU).toBe('string');
+    expect(typeof AMPLITUDE_ORIGIN_STAGING).toBe('string');
+    expect(typeof AMPLITUDE_ORIGINS_MAP).toBe('object');
+    expect(typeof AMPLITUDE_BACKGROUND_CAPTURE_SCRIPT_URL).toBe('string');
+    expect(typeof EXCLUDE_INTERNAL_REFERRERS_CONDITIONS).toBe('object');
+  });
+
+  describe('EXCLUDE_INTERNAL_REFERRERS_CONDITIONS export', () => {
+    test('should be an object', () => {
+      expect(typeof EXCLUDE_INTERNAL_REFERRERS_CONDITIONS).toBe('object');
+    });
+    test('keys and values should be strings with same value', () => {
+      Object.entries(EXCLUDE_INTERNAL_REFERRERS_CONDITIONS).forEach(([key, value]) => {
+        expect(key).toBe(value);
+      });
+    });
   });
 
   describe('replaceSensitiveString export', () => {

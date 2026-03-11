@@ -65,15 +65,7 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
     });
     tryable.forEach((context) => {
       this.queue = this.queue.concat(context);
-      if (context.timeout === 0) {
-        this.schedule(0);
-        return;
-      }
-
-      setTimeout(() => {
-        context.timeout = 0;
-        this.schedule(0);
-      }, context.timeout);
+      this.schedule(0);
     });
   }
 
@@ -89,17 +81,17 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
   }
 
   async flush(useRetry = false) {
-    const list: SessionReplayDestinationContext[] = [];
-    const later: SessionReplayDestinationContext[] = [];
-    this.queue.forEach((context) => (context.timeout === 0 ? list.push(context) : later.push(context)));
-    this.queue = later;
+    const list = this.queue;
+    this.queue = [];
 
     if (this.scheduled) {
       clearTimeout(this.scheduled);
       this.scheduled = null;
     }
 
-    await Promise.all(list.map((context) => this.send(context, useRetry)));
+    for (const context of list) {
+      await this.send(context, useRetry);
+    }
   }
 
   async send(context: SessionReplayDestinationContext, useRetry = true) {
@@ -160,21 +152,21 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
         }
         this.completeRequest({ context, success: `${res.status}: ${responseBody}` });
       } else {
-        this.handleReponse(res.status, context);
+        await this.handleReponse(res.status, context);
       }
     } catch (e) {
       this.completeRequest({ context, err: e as string });
     }
   }
 
-  handleReponse(status: number, context: SessionReplayDestinationContext) {
+  async handleReponse(status: number, context: SessionReplayDestinationContext) {
     const parsedStatus = new BaseTransport().buildStatus(status);
     switch (parsedStatus) {
       case Status.Success:
         this.handleSuccessResponse(context);
         break;
       case Status.Failed:
-        this.handleOtherResponse(context);
+        await this.handleOtherResponse(context);
         break;
       default:
         this.completeRequest({ context, err: UNEXPECTED_NETWORK_ERROR_MESSAGE });
@@ -189,11 +181,15 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
     });
   }
 
-  handleOtherResponse(context: SessionReplayDestinationContext) {
-    this.addToQueue({
-      ...context,
-      timeout: context.attempts * this.retryTimeout,
-    });
+  async handleOtherResponse(context: SessionReplayDestinationContext) {
+    const delay = context.attempts * this.retryTimeout;
+    context.attempts++;
+    if (context.attempts > (context.flushMaxRetries || 0)) {
+      this.completeRequest({ context, err: MAX_RETRIES_EXCEEDED_MESSAGE });
+      return;
+    }
+    await new Promise<void>((resolve) => setTimeout(resolve, delay));
+    await this.send(context, true);
   }
 
   completeRequest({

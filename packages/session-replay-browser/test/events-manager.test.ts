@@ -59,7 +59,7 @@ describe('createEventsManager', () => {
     jest.useRealTimers();
   });
 
-  test('falls back to memory store', async () => {
+  test('falls back to memory store when IDB store fails to initialize', async () => {
     jest.spyOn(SessionReplayIDB.SessionReplayEventsIDBStore, 'new').mockResolvedValue(undefined);
 
     await createEventsManager<'replay'>({
@@ -69,6 +69,18 @@ describe('createEventsManager', () => {
     });
 
     expect(mockLoggerProvider.log).toHaveBeenCalledWith(
+      'Failed to initialize idb store, falling back to memory store.',
+    );
+  });
+
+  test('does not log fallback message when IDB store initializes successfully', async () => {
+    await createEventsManager<'replay'>({
+      config,
+      type: 'replay',
+      storeType: 'idb',
+    });
+
+    expect(mockLoggerProvider.log).not.toHaveBeenCalledWith(
       'Failed to initialize idb store, falling back to memory store.',
     );
   });

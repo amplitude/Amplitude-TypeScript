@@ -9,12 +9,14 @@ export const evaluateTargetingAndStore = async ({
   loggerProvider,
   apiKey,
   targetingParams,
+  urlChange = false,
 }: {
   sessionId: string | number;
   targetingConfig: TargetingConfig;
   loggerProvider: Logger;
   apiKey: string;
-  targetingParams?: Pick<TargetingParameters, 'event' | 'userProperties'>;
+  targetingParams?: Pick<TargetingParameters, 'event' | 'userProperties' | 'page'>;
+  urlChange?: boolean;
 }) => {
   await targetingIDBStore.clearStoreOfOldSessions({
     loggerProvider: loggerProvider,
@@ -27,7 +29,9 @@ export const evaluateTargetingAndStore = async ({
     apiKey: apiKey,
     sessionId: sessionId,
   });
-  if (idbTargetingMatch === true) {
+  // Skip IDB cache when re-evaluating with a new page (e.g. URL change); otherwise we'd never
+  // re-evaluate and would keep returning true after navigating to a non-matching page.
+  if (idbTargetingMatch === true && !urlChange) {
     return true;
   }
 
@@ -39,13 +43,14 @@ export const evaluateTargetingAndStore = async ({
     // Dynamic import of the targeting package
     const { evaluateTargeting: evaluateTargetingPackage } = await import('@amplitude/targeting');
 
-    const targetingResult = await evaluateTargetingPackage({
+    const params: TargetingParameters = {
       ...targetingParams,
       flag: targetingConfig,
       sessionId: typeof sessionId === 'string' ? parseInt(sessionId, 10) : sessionId,
       apiKey: apiKey,
       loggerProvider: loggerProvider,
-    });
+    };
+    const targetingResult = await evaluateTargetingPackage(params);
     if (targetingResult && targetingResult.sr_targeting_config) {
       sessionTargetingMatch = targetingResult.sr_targeting_config.key === 'on';
     }

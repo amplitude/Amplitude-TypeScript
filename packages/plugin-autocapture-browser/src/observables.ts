@@ -120,12 +120,15 @@ export const createExposureObservable = (
 };
 const createUnhandledErrorObservable = (): Observable<BrowserErrorEvent> => {
   return new Observable<BrowserErrorEvent>((observer) => {
-    const handler = (event: ErrorEvent) => {
+    const handler = (event: Event) => {
+      if (!(event instanceof ErrorEvent)) {
+        return;
+      }
       let output: BrowserErrorEvent = {
         kind: 'error',
       };
 
-      if (event.error instanceof Error) {
+      if (event.error instanceof Error || event.error instanceof DOMException) {
         output = {
           ...output,
           message: event.error.message,
@@ -153,7 +156,7 @@ const createUnhandledRejectionObservable = (): Observable<BrowserErrorEvent> => 
       const output: BrowserErrorEvent = {
         kind: 'unhandledrejection',
       };
-      if (event.reason instanceof Error) {
+      if (event.reason instanceof Error || event.reason instanceof DOMException) {
         output.message = event.reason.message;
         output.stack = event.reason.stack;
       } else if (typeof event.reason === 'string') {
@@ -180,4 +183,17 @@ export type BrowserErrorEvent = {
 export const createErrorObservable = (): Observable<BrowserErrorEvent> => {
   const unhandledErrorObservable = merge(createUnhandledErrorObservable(), createUnhandledRejectionObservable());
   return merge(unhandledErrorObservable, createConsoleErrorObservable());
+};
+
+export const createMouseMoveObservable = (): Observable<MouseEvent> => {
+  return new Observable<MouseEvent>((observer) => {
+    const handler = (event: MouseEvent) => {
+      observer.next(event);
+    };
+    const args: AddEventListenerOptions = { capture: true };
+    globalScope.document.addEventListener('mousemove', handler, args);
+    return () => {
+      globalScope.document.removeEventListener('mousemove', handler, args);
+    };
+  });
 };

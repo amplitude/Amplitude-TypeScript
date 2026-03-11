@@ -1,6 +1,20 @@
-export { Observable } from 'zen-observable-ts';
+import ZenObservable from 'zen-observable';
 
-import { Observable as ZenObservable, Observer, Subscription } from 'zen-observable-ts';
+export { ZenObservable as Observable };
+
+/** Subscription type for zen-observable */
+interface Subscription {
+  closed: boolean;
+  unsubscribe(): void;
+}
+
+/** Observer type for zen-observable */
+interface Observer<T> {
+  start?(subscription: Subscription): unknown;
+  next?(value: T): void;
+  error?(errorValue: unknown): void;
+  complete?(): void;
+}
 
 /**
  * asyncMap operator for Zen Observable
@@ -34,6 +48,8 @@ type Unsubscribable = {
   unsubscribe: () => void;
 };
 
+type ZenObserver<A, B> = { next: (v: A | B) => void; error: (e: unknown) => void; complete: () => void };
+
 /**
  * merge operator for Zen Observable
  *
@@ -43,7 +59,7 @@ type Unsubscribable = {
  * @returns Unsubscribable cleanup function
  */
 function merge<A, B>(sourceA: ZenObservable<A>, sourceB: ZenObservable<B>): ZenObservable<A | B> {
-  return new ZenObservable<A | B>((observer) => {
+  return new ZenObservable<A | B>((observer: ZenObserver<A, B>) => {
     let closed = false;
 
     const subscriptions: Set<Unsubscribable> = new Set();
@@ -65,7 +81,7 @@ function merge<A, B>(sourceA: ZenObservable<A>, sourceB: ZenObservable<B>): ZenO
         next(value: T) {
           if (!closed) observer.next(value as A | B);
         },
-        error(err) {
+        error(err: unknown) {
           if (!closed) {
             closed = true;
             observer.error(err);
@@ -104,18 +120,18 @@ function multicast<T>(source: ZenObservable<T>): ZenObservable<T> {
     observers.clear();
   }
 
-  return new ZenObservable<T>((observer) => {
+  return new ZenObservable<T>((observer: Observer<T>) => {
     observers.add(observer);
 
     if (subscription === null) {
       subscription = source.subscribe({
-        next(value) {
+        next(value: T) {
           for (const obs of observers) {
             /* istanbul ignore next */
             obs.next?.(value);
           }
         },
-        error(err) {
+        error(err: unknown) {
           for (const obs of observers) {
             /* istanbul ignore next */
             obs.error?.(err);

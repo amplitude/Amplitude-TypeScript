@@ -3,6 +3,133 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.32.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.31.7...@amplitude/session-replay-browser@1.32.0) (2026-03-11)
+
+
+### Features
+
+* **session-replay:** enhance targeting evaluation with page URL ([#1571](https://github.com/amplitude/Amplitude-TypeScript/issues/1571)) ([509bec0](https://github.com/amplitude/Amplitude-TypeScript/commit/509bec01ccdb795c0f9dbf83a99e585c6d16ee63))
+
+
+
+
+
+## [1.31.7](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.31.6...@amplitude/session-replay-browser@1.31.7) (2026-03-09)
+
+**Note:** Version bump only for package @amplitude/session-replay-browser
+
+
+
+
+
+## [1.31.6](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.31.5...@amplitude/session-replay-browser@1.31.6) (2026-03-06)
+
+
+### Bug Fixes
+
+* **session-replay:** guarantee in-order batch delivery including retries ([#1576](https://github.com/amplitude/Amplitude-TypeScript/issues/1576)) ([0afcac6](https://github.com/amplitude/Amplitude-TypeScript/commit/0afcac6cd42b999b74ba797717f7cf0d447029ef))
+
+
+
+
+
+## [1.31.6-beta.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.31.5...@amplitude/session-replay-browser@1.31.6-beta.0) (2026-03-06)
+
+
+### Bug Fixes
+
+* **session-replay:** guarantee in-order batch delivery including retries ([#1576](https://github.com/amplitude/Amplitude-TypeScript/issues/1576)) ([0afcac6](https://github.com/amplitude/Amplitude-TypeScript/commit/0afcac6cd42b999b74ba797717f7cf0d447029ef))
+
+
+
+
+
+## [1.31.6-in-order.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.31.5...@amplitude/session-replay-browser@1.31.6-in-order.0) (2026-03-06)
+
+
+### Bug Fixes
+
+* **session-replay:** remove dead timeout-queue code and restore 100% coverage ([aa0703c](https://github.com/amplitude/Amplitude-TypeScript/commit/aa0703c8b5da571cb32485f870ee3532d9069a02))
+* **session-replay:** send batches and retries in order ([94bf37b](https://github.com/amplitude/Amplitude-TypeScript/commit/94bf37b1aa3404147089db9bc81c489a77f7544a))
+
+
+
+
+
+## [1.31.5](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.31.4...@amplitude/session-replay-browser@1.31.5) (2026-03-05)
+
+**Note:** Version bump only for package @amplitude/session-replay-browser
+
+
+
+
+
+## [1.31.4](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.31.3...@amplitude/session-replay-browser@1.31.4) (2026-03-03)
+
+**Note:** Version bump only for package @amplitude/session-replay-browser
+
+
+
+
+
+## [1.31.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.31.2...@amplitude/session-replay-browser@1.31.3) (2026-03-03)
+
+**Note:** Version bump only for package @amplitude/session-replay-browser
+
+
+
+
+
+## [1.31.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.31.1...@amplitude/session-replay-browser@1.31.2) (2026-02-26)
+
+**Note:** Version bump only for package @amplitude/session-replay-browser
+
+
+
+
+
+## [1.31.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.31.0...@amplitude/session-replay-browser@1.31.1) (2026-02-24)
+
+
+### Bug Fixes
+
+* **session-replay:** avoid creating keyval-store DB when checking for legacy data ([#1551](https://github.com/amplitude/Amplitude-TypeScript/issues/1551)) ([73450e2](https://github.com/amplitude/Amplitude-TypeScript/commit/73450e29f21bd06e8932f387571af3bd6bb1b022))
+* **session-replay:** remove keyval-store migration to avoid collisions with app code ([#1553](https://github.com/amplitude/Amplitude-TypeScript/issues/1553)) ([165164a](https://github.com/amplitude/Amplitude-TypeScript/commit/165164a13045e4b5a5a226a91174054b36309bcc))
+
+
+
+
+
+# [1.31.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.30.11...@amplitude/session-replay-browser@1.31.0) (2026-02-19)
+
+
+### Features
+
+* screenshot capture messenger ([#1535](https://github.com/amplitude/Amplitude-TypeScript/issues/1535)) ([93ef551](https://github.com/amplitude/Amplitude-TypeScript/commit/93ef551ff0ab7dc48014aa5fa25841437d641993))
+
+
+
+
+
+## [1.30.11](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.30.10...@amplitude/session-replay-browser@1.30.11) (2026-02-17)
+
+
+### Bug Fixes
+
+* **session-replay-browser:** prevent worker script load failure from blob URLs ([#1522](https://github.com/amplitude/Amplitude-TypeScript/issues/1522)) ([decccae](https://github.com/amplitude/Amplitude-TypeScript/commit/decccaea363c3f88c1bee7b3629435a07268d699))
+
+
+
+
+
+## [1.30.10](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.30.9...@amplitude/session-replay-browser@1.30.10) (2026-02-10)
+
+**Note:** Version bump only for package @amplitude/session-replay-browser
+
+
+
+
+
 ## [1.30.9](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.30.8...@amplitude/session-replay-browser@1.30.9) (2026-01-26)
 
 **Note:** Version bump only for package @amplitude/session-replay-browser

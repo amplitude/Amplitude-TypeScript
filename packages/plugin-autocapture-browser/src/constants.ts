@@ -7,6 +7,7 @@ export const AMPLITUDE_ELEMENT_RAGE_CLICKED_EVENT = '[Amplitude] Rage Click';
 export const AMPLITUDE_ELEMENT_ERROR_CLICKED_EVENT = '[Amplitude] Error Click';
 export const AMPLITUDE_ELEMENT_CHANGED_EVENT = '[Amplitude] Element Changed';
 export const AMPLITUDE_PAGE_SCROLLED_EVENT = '[Amplitude] Page Scrolled';
+export const AMPLITUDE_THRASHED_CURSOR_EVENT = '[Amplitude] Thrashed Cursor';
 
 export const AMPLITUDE_EVENT_PROP_ELEMENT_ID = '[Amplitude] Element ID';
 export const AMPLITUDE_EVENT_PROP_ELEMENT_CLASS = '[Amplitude] Element Class';
@@ -30,20 +31,17 @@ export const AMPLITUDE_EVENT_PROP_MAX_PAGE_Y = '[Amplitude] Max Page Y';
 
 export const AMPLITUDE_EVENT_PROP_PAGE_VIEW_ID = '[Amplitude] Page View ID';
 
-// Visual Tagging related constants
-export const AMPLITUDE_ORIGIN = 'https://app.amplitude.com';
-export const AMPLITUDE_ORIGIN_EU = 'https://app.eu.amplitude.com';
-export const AMPLITUDE_ORIGIN_STAGING = 'https://apps.stag2.amplitude.com';
-export const AMPLITUDE_ORIGINS_MAP = {
-  US: AMPLITUDE_ORIGIN,
-  EU: AMPLITUDE_ORIGIN_EU,
-  STAGING: AMPLITUDE_ORIGIN_STAGING,
-};
+// Origin constants are now shared via analytics-core; re-export for backwards compatibility
+export {
+  AMPLITUDE_ORIGIN,
+  AMPLITUDE_ORIGIN_EU,
+  AMPLITUDE_ORIGIN_STAGING,
+  AMPLITUDE_ORIGINS_MAP,
+  AMPLITUDE_BACKGROUND_CAPTURE_SCRIPT_URL,
+} from '@amplitude/analytics-core';
 
 export const AMPLITUDE_VISUAL_TAGGING_SELECTOR_SCRIPT_URL =
   'https://cdn.amplitude.com/libs/visual-tagging-selector-1.0.0-alpha.js.gz';
-export const AMPLITUDE_BACKGROUND_CAPTURE_SCRIPT_URL =
-  'https://cdn.amplitude.com/libs/background-capture-1.0.0-alpha.1.js.gz';
 // This is the class name used by the visual tagging selector to highlight the selected element.
 // Should not use this class in the selector.
 export const AMPLITUDE_VISUAL_TAGGING_HIGHLIGHT_CLASS = 'amp-visual-tagging-selector-highlight';

@@ -130,6 +130,12 @@ export const createInstance = (): BrowserClient => {
       getClientLogConfig(client),
       getClientStates(client, ['config']),
     ),
+    setIdentity: debugWrapper(
+      client.setIdentity.bind(client),
+      'setIdentity',
+      getClientLogConfig(client),
+      getClientStates(client, ['config', 'config.userId', 'config.deviceId']),
+    ),
     getOptOut: debugWrapper(
       client.getOptOut.bind(client),
       'getOptOut',
@@ -139,6 +145,12 @@ export const createInstance = (): BrowserClient => {
     _setDiagnosticsSampleRate: debugWrapper(
       client._setDiagnosticsSampleRate.bind(client),
       '_setDiagnosticsSampleRate',
+      getClientLogConfig(client),
+      getClientStates(client, ['config']),
+    ),
+    _enableRequestBodyCompressionExperimental: debugWrapper(
+      client._enableRequestBodyCompressionExperimental.bind(client),
+      '_enableRequestBodyCompressionExperimental',
       getClientLogConfig(client),
       getClientStates(client, ['config']),
     ),

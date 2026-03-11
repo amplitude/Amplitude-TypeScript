@@ -162,7 +162,7 @@ async function buildWebWorker() {
     format: 'iife',
     name: 'WebWorker',
     inlineDynamicImports: true,
-    sourcemap: true,
+    sourcemap: false,
   });
   const webWorkerCode = output[0].code;
 

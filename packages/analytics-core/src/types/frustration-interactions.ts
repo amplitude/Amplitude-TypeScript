@@ -23,6 +23,25 @@ export interface RageClickOptions {
 }
 
 /**
+ * Configuration options for thrashed cursor tracking
+ */
+export interface ThrashedCursorOptions {
+  /**
+   * Number of direction changes required to consider a thrashed cursor.
+   * Minimum of 5
+   * (x axis changes and y axis changes are counted separately)
+   * @default 10
+   */
+  directionChanges?: number;
+  /**
+   * Time window in milliseconds to consider a thrashed cursor.
+   * Maximum of of 4000
+   * @default 2000
+   */
+  threshold?: number;
+}
+
+/**
  * Configuration options for error clicks tracking
  */
 export interface ErrorClickOptions {
@@ -73,21 +92,34 @@ export interface FrustrationInteractionsOptions {
    * Configuration for dead clicks tracking.
    * Set to `false` to disable dead click tracking.
    * Set to `true` or an options object to enable with default or custom settings.
+   * Default is false.
    */
   deadClicks?: boolean | DeadClickOptions;
 
   /**
    * Configuration for rage clicks tracking.
    * Set to `false` to disable rage click tracking.
-   * Set to `true` or an options object to enable with default or custom settings.
+   * Set to `true` or an options object to enable with default settings.
+   * Default is false.
    */
   rageClicks?: boolean | RageClickOptions;
 
   /**
    * Configuration for error clicks tracking
+   * Set to `false` to disable error click tracking.
+   * Set to `true` or an options object to enable with default settings.
+   * Default is false.
    * @experimental this feature is experimental and may not be stable
    */
   errorClicks?: boolean | ErrorClickOptions;
+  /**
+   * Configuration for thrashed cursor tracking.
+   * Set to `false` to disable thrashed cursor tracking.
+   * Set to `true` or an options object to enable with default settings.
+   * Default is false.
+   * @experimental this feature is experimental and may not be stable
+   */
+  thrashedCursor?: boolean | ThrashedCursorOptions;
 
   /**
    * RegExp pattern list to allow custom patterns for text masking

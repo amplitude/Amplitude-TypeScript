@@ -22,9 +22,11 @@ import {
   createClickObservable,
   createErrorObservable,
   createMutationObservable,
+  createMouseMoveObservable,
 } from './observables';
 import { DataExtractor } from './data-extractor';
 import { trackErrorClicks } from './autocapture/track-error-click';
+import { trackThrashedCursor } from './autocapture/track-thrashed-cursor';
 
 export interface AllWindowObservables {
   [ObservablesEnum.ClickObservable]: Observable<ElementBasedTimestampedEvent<MouseEvent>>;
@@ -32,6 +34,7 @@ export interface AllWindowObservables {
   [ObservablesEnum.BrowserErrorObservable]: Observable<TimestampedEvent<BrowserErrorEvent>>;
   [ObservablesEnum.NavigateObservable]?: Observable<TimestampedEvent<NavigateEvent>>;
   [ObservablesEnum.SelectionObservable]?: Observable<void>;
+  [ObservablesEnum.MouseMoveObservable]: Observable<MouseEvent>;
 }
 
 type BrowserEnrichmentPlugin = EnrichmentPlugin<BrowserClient, BrowserConfig>;
@@ -62,6 +65,9 @@ function getCssSelectorAllowlist(
   return defaultAllowlist;
 }
 
+const MINIMUM_THRASHED_CURSOR_DIRECTION_CHANGES = 5;
+const MAXIMUM_THRASHED_CURSOR_THRESHOLD = 4000;
+
 export const frustrationPlugin = (options: FrustrationInteractionsOptions = {}): BrowserEnrichmentPlugin => {
   const name = constants.FRUSTRATION_PLUGIN_NAME;
   const type = 'enrichment';
@@ -80,6 +86,11 @@ export const frustrationPlugin = (options: FrustrationInteractionsOptions = {}):
   const deadClicksEnabled = options.deadClicks !== false && options.deadClicks !== null;
   const rageClicksEnabled = options.rageClicks !== false && options.rageClicks !== null;
 
+  let thrashedCursorEnabled = options.thrashedCursor !== false && options.thrashedCursor !== null;
+  if (!options.thrashedCursor) {
+    thrashedCursorEnabled = false;
+  }
+
   // Get CSS selectors for enabled features
   const rageCssSelectors = getCssSelectorAllowlist(
     options,
@@ -87,6 +98,7 @@ export const frustrationPlugin = (options: FrustrationInteractionsOptions = {}):
     DEFAULT_RAGE_CLICK_ALLOWLIST,
     rageClicksEnabled,
   );
+
   const deadCssSelectors = getCssSelectorAllowlist(
     options,
     'deadClicks',
@@ -202,12 +214,15 @@ export const frustrationPlugin = (options: FrustrationInteractionsOptions = {}):
       }),
     );
 
+    const mouseMoveObservable = multicast(createMouseMoveObservable());
+
     return {
       [ObservablesEnum.ClickObservable]: clickObservable as Observable<ElementBasedTimestampedEvent<MouseEvent>>,
       [ObservablesEnum.MutationObservable]: enrichedMutationObservable,
       [ObservablesEnum.NavigateObservable]: enrichedNavigateObservable,
       [ObservablesEnum.BrowserErrorObservable]: browserErrorObservables,
       [ObservablesEnum.SelectionObservable]: selectionObservable,
+      [ObservablesEnum.MouseMoveObservable]: mouseMoveObservable,
     };
   };
 
@@ -251,6 +266,35 @@ export const frustrationPlugin = (options: FrustrationInteractionsOptions = {}):
         shouldTrackErrorClick,
       });
       subscriptions.push(errorClickSubscription);
+    }
+
+    if (thrashedCursorEnabled) {
+      let directionChanges, thresholdMs;
+      if (typeof options.thrashedCursor === 'object') {
+        directionChanges = options.thrashedCursor.directionChanges;
+        thresholdMs = options.thrashedCursor.threshold;
+
+        if (directionChanges && directionChanges < MINIMUM_THRASHED_CURSOR_DIRECTION_CHANGES) {
+          config.loggerProvider.warn(
+            `'thrashedCursor.directionChanges' of ${directionChanges} is below the minimum of ${MINIMUM_THRASHED_CURSOR_DIRECTION_CHANGES}, setting to ${MINIMUM_THRASHED_CURSOR_DIRECTION_CHANGES}`,
+          );
+          directionChanges = MINIMUM_THRASHED_CURSOR_DIRECTION_CHANGES;
+        }
+        if (thresholdMs && thresholdMs > MAXIMUM_THRASHED_CURSOR_THRESHOLD) {
+          config.loggerProvider.warn(
+            `'thrashedCursor.threshold' of ${thresholdMs} is above the maximum of ${MAXIMUM_THRASHED_CURSOR_THRESHOLD}, setting to ${MAXIMUM_THRASHED_CURSOR_THRESHOLD}`,
+          );
+          thresholdMs = MAXIMUM_THRASHED_CURSOR_THRESHOLD;
+        }
+      }
+      const thrashedCursorSubscription = trackThrashedCursor({
+        amplitude,
+        options,
+        allObservables,
+        directionChanges,
+        thresholdMs,
+      });
+      subscriptions.push(thrashedCursorSubscription);
     }
 
     /* istanbul ignore next */

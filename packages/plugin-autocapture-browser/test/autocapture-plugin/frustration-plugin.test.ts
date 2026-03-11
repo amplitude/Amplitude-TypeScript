@@ -4,6 +4,7 @@ import { createMockBrowserClient } from '../mock-browser-client';
 import { trackDeadClick } from '../../src/autocapture/track-dead-click';
 import { trackRageClicks } from '../../src/autocapture/track-rage-click';
 import { trackErrorClicks } from '../../src/autocapture/track-error-click';
+import { trackThrashedCursor } from '../../src/autocapture/track-thrashed-cursor';
 import { BrowserErrorEvent, createErrorObservable } from '../../src/observables';
 import { dispatchUnhandledRejection } from '../utils';
 
@@ -24,6 +25,10 @@ jest.mock('../../src/autocapture/track-rage-click', () => ({
 
 jest.mock('../../src/autocapture/track-error-click', () => ({
   trackErrorClicks: jest.fn(),
+}));
+
+jest.mock('../../src/autocapture/track-thrashed-cursor', () => ({
+  trackThrashedCursor: jest.fn(),
 }));
 
 describe('frustrationPlugin', () => {
@@ -205,6 +210,34 @@ describe('frustrationPlugin', () => {
       expect(shouldTrackErrorClick('click', input)).toBe(true); // input is in allowlist
       expect(shouldTrackErrorClick('click', span)).toBe(false); // span is not in allowlist
     });
+
+    it('should accept custom thrashed cursor options', async () => {
+      plugin = frustrationPlugin({
+        thrashedCursor: {
+          directionChanges: 5,
+          threshold: 100,
+        },
+      });
+      await plugin?.setup?.(config as BrowserConfig, instance);
+
+      expect(trackThrashedCursor).toHaveBeenCalledWith(
+        expect.objectContaining({ thresholdMs: 100, directionChanges: 5 }),
+      );
+    });
+
+    it('should enforce minimum and maximum thrashed cursor options', async () => {
+      plugin = frustrationPlugin({
+        thrashedCursor: {
+          directionChanges: 4,
+          threshold: 4001,
+        },
+      });
+      await plugin?.setup?.(config as BrowserConfig, instance);
+
+      expect(trackThrashedCursor).toHaveBeenCalledWith(
+        expect.objectContaining({ thresholdMs: 4000, directionChanges: 5 }),
+      );
+    });
   });
 
   describe('errorClicks', () => {
@@ -222,6 +255,24 @@ describe('frustrationPlugin', () => {
       await plugin?.setup?.(config as BrowserConfig, instance);
 
       expect(trackErrorClicks).toHaveBeenCalled();
+    });
+  });
+
+  describe('thrashedCursor', () => {
+    it('should not track thrashed cursor if not explicitly enabled (while still @experimental)', async () => {
+      plugin = frustrationPlugin({});
+      await plugin?.setup?.(config as BrowserConfig, instance);
+
+      expect(trackThrashedCursor).not.toHaveBeenCalled();
+    });
+
+    it('should track thrashed cursor if explicitly enabled', async () => {
+      plugin = frustrationPlugin({
+        thrashedCursor: true,
+      });
+      await plugin?.setup?.(config as BrowserConfig, instance);
+
+      expect(trackThrashedCursor).toHaveBeenCalled();
     });
   });
 
@@ -610,7 +661,7 @@ describe('frustrationPlugin', () => {
       expect(res.message).toBe('test uncaught error');
     });
 
-    it('should capture uncaught errors with non-object error', async () => {
+    it('should capture uncaught errors with string error', async () => {
       setTimeout(() => {
         throw 'test uncaught error';
       }, 10);
@@ -618,6 +669,24 @@ describe('frustrationPlugin', () => {
       expect(res.kind).toBe('error');
       expect(res.message).toBe('test uncaught error');
       expect(res.stack).toBeUndefined();
+    });
+
+    it('should capture uncaught DOMException error', async () => {
+      setTimeout(() => {
+        // https://developer.mozilla.org/en-US/docs/Web/API/DOMException
+        throw new DOMException('test DOMException error', 'DOMException');
+      }, 10);
+      const res = await subscribePromise;
+      expect(res.kind).toBe('error');
+      expect(res.message).toBe('test DOMException error');
+      expect(res.stack).toBeDefined();
+    });
+
+    it('should not capture non-error events', async () => {
+      window.dispatchEvent(new Event('error'));
+      const timeoutPromise = new Promise((resolve) => setTimeout(() => resolve('timeout'), 100));
+      const result = await Promise.race([subscribePromise, timeoutPromise]);
+      expect(result).toBe('timeout');
     });
 
     it('should capture console errors', async () => {

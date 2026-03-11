@@ -16,6 +16,7 @@ export class Targeting implements AmplitudeTargeting {
     sessionId,
     userProperties,
     deviceId,
+    page,
     flag,
   }: TargetingParameters) => {
     const eventTypes =
@@ -39,6 +40,7 @@ export class Targeting implements AmplitudeTargeting {
         device_id: deviceId,
         user_properties: userProperties,
       },
+      page: page,
     };
     const targetingBucket = this.evaluationEngine.evaluate(context, [flag]);
     return targetingBucket;

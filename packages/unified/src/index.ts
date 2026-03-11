@@ -3,6 +3,7 @@ import client from './unified-client-factory';
 export { createInstance } from './unified-client-factory';
 export const {
   _setDiagnosticsSampleRate,
+  _enableRequestBodyCompressionExperimental,
   initAll,
   experiment,
   sessionReplay,
@@ -10,6 +11,8 @@ export const {
   extendSession,
   flush,
   getDeviceId,
+  getIdentity,
+  getOptOut,
   getSessionId,
   getUserId,
   groupIdentify,
@@ -20,6 +23,7 @@ export const {
   revenue,
   setDeviceId,
   setGroup,
+  setIdentity,
   setOptOut,
   setSessionId,
   setTransport,

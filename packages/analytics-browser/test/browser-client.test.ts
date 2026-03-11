@@ -9,7 +9,6 @@ import {
   UserSession,
   AutocaptureOptions,
   Identify,
-  SpecialEventType,
   RemoteConfigClient,
   DiagnosticsClient,
 } from '@amplitude/analytics-core';
@@ -1025,10 +1024,10 @@ describe('browser-client', () => {
           },
         }).promise;
 
-        // Should fall back to use Date.now() because "test" from ampSessionId is NaN
+        // should call "setSessionId" with undefined because "test" from ampSessionId is NaN
         expect(client.config.sessionId).toEqual(currentTimestamp);
         expect(setSessionId).toHaveBeenCalledTimes(1);
-        expect(setSessionId).toHaveBeenLastCalledWith(currentTimestamp);
+        expect(setSessionId).toHaveBeenLastCalledWith(undefined);
 
         // Restore mocks
         Object.defineProperty(window, 'location', {
@@ -1038,6 +1037,119 @@ describe('browser-client', () => {
         Date.now = originalDate;
       },
     );
+
+    describe('config.optOut', () => {
+      describe('when optOut is true', () => {
+        beforeEach(async () => {
+          const identity = new Identify();
+          identity.set('test-property', 'test-value');
+          await client.init(apiKey, userId, {
+            optOut: true,
+            identify: identity,
+          }).promise;
+        });
+
+        test('should defer session + attribution until after optOut changes', async () => {
+          expect(client.config.sessionId).toBeUndefined();
+          client.setOptOut(false);
+          // give the timeline 10 ms to finish calling the onOptOutChanged listeners
+          await new Promise((resolve) => setTimeout(resolve, 10));
+          expect(client.config.sessionId).toBeGreaterThan(0);
+        });
+
+        test('should defer session but use user specified sessionId if provided', async () => {
+          expect(client.config.sessionId).toBeUndefined();
+          const id = Date.now() + 10_000; // future timestamp
+          client.setSessionId(id);
+          client.setOptOut(false);
+          await new Promise((resolve) => setTimeout(resolve, 10));
+          expect(client.config.sessionId).toBe(id);
+        });
+
+        test('should defer session + attribution until another init call with optOut false', async () => {
+          expect(client.config.sessionId).toBeUndefined();
+          await client.init(apiKey, userId, {
+            optOut: false,
+          }).promise;
+          // give the timeline 10 ms to finish calling the onOptOutChanged listeners
+          await new Promise((resolve) => setTimeout(resolve, 10));
+          expect(client.config.sessionId).toBeGreaterThan(0);
+        });
+
+        test('should defer session but use user specified sessionId if set with setSessionId', async () => {
+          expect(client.config.sessionId).toBeUndefined();
+          const id = Date.now() + 10_000; // future timestamp
+          client.setSessionId(id);
+          await client.init(apiKey, userId, {
+            optOut: false,
+          }).promise;
+          await new Promise((resolve) => setTimeout(resolve, 20));
+          expect(client.config.sessionId).toBe(id);
+        });
+
+        test('should defer session but use user specified sessionId if set in init', async () => {
+          expect(client.config.sessionId).toBeUndefined();
+          const id = Date.now() + 10_000; // future timestamp
+          await client.init(apiKey, userId, {
+            optOut: false,
+            sessionId: id,
+          }).promise;
+          expect(client.config.sessionId).toBe(id);
+        });
+
+        test('should not initialize webAttribution when optOut listener receives true', async () => {
+          // Initialize with optOut: true and attribution enabled to set up the listener
+          await client.init(apiKey, userId, {
+            optOut: true,
+            defaultTracking: {
+              attribution: true,
+            },
+          }).promise;
+
+          // Track calls to WebAttribution constructor
+          let webAttributionInitCallCount = 0;
+          /* eslint-disable-next-line @typescript-eslint/unbound-method */
+          const originalInit = WebAttribution.prototype.init;
+          jest.spyOn(WebAttribution.prototype, 'init').mockImplementation(function (this: WebAttribution) {
+            webAttributionInitCallCount++;
+            return originalInit.call(this);
+          });
+
+          // set optOut to false and then true
+          client.setOptOut(false);
+          await new Promise((resolve) => setTimeout(resolve, 10));
+          client.setOptOut(true);
+          await new Promise((resolve) => setTimeout(resolve, 10));
+
+          // should only call init once
+          expect(webAttributionInitCallCount).toBe(1);
+        });
+      });
+
+      describe('when optOut is false', () => {
+        let sessionId: number | undefined;
+        beforeEach(async () => {
+          await client.init(apiKey, userId, {
+            optOut: false,
+          }).promise;
+          sessionId = client.config.sessionId;
+        });
+
+        test('should not change sessionId when optOut changes to true', async () => {
+          expect(sessionId).toBeGreaterThan(0);
+          client.setOptOut(true);
+          expect(client.config.sessionId).toBe(sessionId);
+        });
+
+        test('should not change sessionId when another init called again with optOut false', async () => {
+          expect(sessionId).toBeGreaterThan(0);
+          await client.init(apiKey, userId, {
+            optOut: false,
+          }).promise;
+          expect(client.config.sessionId).toBe(sessionId);
+        });
+      });
+    });
 
     describe('ampTimestamp validation', () => {
       const originalLocation = window.location;
@@ -1117,7 +1229,7 @@ describe('browser-client', () => {
 
         // Should fall back to Date.now() instead of using expired ampSessionId
         expect(client.config.sessionId).toEqual(currentTime);
-        expect(setSessionId).toHaveBeenCalledWith(currentTime);
+        expect(setSessionId).toHaveBeenCalledWith(undefined);
       });
 
       test('should use ampDeviceId when ampTimestamp is valid (future)', async () => {
@@ -1493,6 +1605,84 @@ describe('browser-client', () => {
     });
   });
 
+  describe('setIdentity', () => {
+    test('should set userId via setIdentity', async () => {
+      await client.init(apiKey, { defaultTracking }).promise;
+      expect(client.getUserId()).toBe(undefined);
+
+      client.setIdentity({ userId: 'new-user-id' });
+
+      expect(client.getUserId()).toBe('new-user-id');
+    });
+
+    test('should set deviceId via setIdentity', async () => {
+      await client.init(apiKey, { defaultTracking }).promise;
+      const initialDeviceId = client.getDeviceId();
+
+      client.setIdentity({ deviceId: 'new-device-id' });
+
+      expect(client.getDeviceId()).toBe('new-device-id');
+      expect(client.getDeviceId()).not.toBe(initialDeviceId);
+    });
+
+    test('should set userProperties and auto-send identify event', async () => {
+      await client.init(apiKey, { defaultTracking }).promise;
+      const identifySpy = jest.spyOn(client, 'identify');
+
+      client.setIdentity({ userProperties: { plan: 'premium', theme: 'dark' } });
+
+      expect(client.userProperties).toEqual({ plan: 'premium', theme: 'dark' });
+      expect(identifySpy).toHaveBeenCalledTimes(1);
+
+      const identity = client.getIdentity();
+      expect(identity.userProperties).toEqual({ plan: 'premium', theme: 'dark' });
+    });
+
+    test('should set userId and userProperties together', async () => {
+      await client.init(apiKey, { defaultTracking }).promise;
+      const identifySpy = jest.spyOn(client, 'identify');
+
+      client.setIdentity({
+        userId: 'new-user-id',
+        userProperties: { name: 'John' },
+      });
+
+      expect(client.getUserId()).toBe('new-user-id');
+      expect(client.userProperties).toEqual({ name: 'John' });
+      expect(identifySpy).toHaveBeenCalledTimes(1);
+    });
+
+    test('should defer setIdentity before init', () => {
+      return new Promise<void>((resolve) => {
+        void client.init(apiKey, { defaultTracking }).promise.then(() => {
+          expect(client.getUserId()).toBe('deferred-user');
+          expect(client.userProperties).toEqual({ deferred: true });
+          resolve();
+        });
+        client.setIdentity({ userId: 'deferred-user', userProperties: { deferred: true } });
+      });
+    });
+
+    test('should notify plugins of identity change', async () => {
+      await client.init(apiKey, { defaultTracking }).promise;
+      const onIdentityChangedMock = jest.fn();
+
+      await client.add({
+        name: 'test-plugin',
+        type: 'enrichment',
+        setup: async () => {
+          return;
+        },
+        execute: async (event) => event,
+        onIdentityChanged: onIdentityChangedMock,
+      }).promise;
+
+      client.setIdentity({ userProperties: { plan: 'premium' } });
+
+      expect(onIdentityChangedMock).toHaveBeenCalledWith({ userProperties: { plan: 'premium' } });
+    });
+  });
+
   describe('getOptOut', () => {
     test.each([true, false])('should return opt out value', async (optOut) => {
       await client.init(apiKey, {
@@ -1794,6 +1984,30 @@ describe('browser-client', () => {
       expect(createTransport).toHaveBeenCalledTimes(2);
     });
 
+    test('should keep compression enabled for default endpoints when switching transport', async () => {
+      const createTransport = jest.spyOn(Config, 'createTransport');
+      await client.init(apiKey, { defaultTracking }).promise;
+
+      createTransport.mockClear();
+      client.setTransport('xhr');
+
+      expect(createTransport).toHaveBeenCalledWith('xhr');
+    });
+
+    test('should keep custom endpoint compression setting when switching transport', async () => {
+      const createTransport = jest.spyOn(Config, 'createTransport');
+      await client.init(apiKey, {
+        defaultTracking,
+        serverUrl: 'https://custom.example.com/2/httpapi',
+        enableRequestBodyCompression: false,
+      }).promise;
+
+      createTransport.mockClear();
+      client.setTransport('xhr');
+
+      expect(createTransport).toHaveBeenCalledWith('xhr');
+    });
+
     test('should defer set transport', () => {
       return new Promise<void>((resolve) => {
         const fetch = new FetchTransport();
@@ -2052,29 +2266,6 @@ describe('browser-client', () => {
       expect(setSessionId).toHaveBeenCalledTimes(2);
       expect(result.code).toBe(0);
     });
-
-    test('should set user properties', async () => {
-      await client.init(apiKey, {
-        defaultTracking,
-        optOut: true,
-      }).promise;
-      expect(client.userProperties).toBeUndefined();
-
-      await client.process({
-        event_type: SpecialEventType.IDENTIFY,
-        user_properties: {
-          $set: {
-            'test-property': 'test-value',
-          },
-        },
-      });
-
-      const identity = client.getIdentity();
-
-      expect(identity.userProperties).toEqual({
-        'test-property': 'test-value',
-      });
-    });
   });
 
   describe('debug logs through cookie', () => {
@@ -2170,6 +2361,50 @@ describe('browser-client', () => {
       client._setDiagnosticsSampleRate(sampleRate);
 
       expect(client._diagnosticsSampleRate).toBe(0);
+    });
+  });
+
+  describe('logBrowserOptions', () => {
+    test('should not throw error on circular reference', async () => {
+      // regression test for https://github.com/amplitude/Amplitude-TypeScript/issues/1521
+      const logBrowserOptions = AmplitudeBrowser.prototype['logBrowserOptions'];
+      const circularReference: any = { a: undefined };
+      circularReference.a = circularReference;
+      const ctx = {
+        config: {
+          loggerProvider: {
+            debug: jest.fn(),
+            error: jest.fn(),
+          },
+        },
+      };
+      const apiKey = '1234567890';
+      logBrowserOptions.call(ctx, { apiKey, ...circularReference });
+      expect(ctx.config.loggerProvider.debug.mock.calls[0][1]).toContain(apiKey.substring(0, 5));
+      expect(ctx.config.loggerProvider.error).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('_enableRequestBodyCompressionExperimental', () => {
+    test('should default to false', async () => {
+      await client.init(apiKey).promise;
+      expect(client.config._enableRequestBodyCompressionExperimental).toBe(false);
+    });
+
+    test('should set experimental request body compression when config is not initialized', async () => {
+      client._enableRequestBodyCompressionExperimental(true);
+
+      await client.init(apiKey).promise;
+
+      expect(client.config._enableRequestBodyCompressionExperimental).toBe(true);
+    });
+
+    test('should not set experimental request body compression when config is already initialized', async () => {
+      await client.init(apiKey).promise;
+
+      client._enableRequestBodyCompressionExperimental(true);
+
+      expect(client.config._enableRequestBodyCompressionExperimental).toBe(false);
     });
   });
 });

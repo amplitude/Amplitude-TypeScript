@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>cookie transaction test</title>
+  <body>Open the console to see stuff -></body>
+</head>
+<body>
+  <script type="module">
+    import { CookieStorage } from '@amplitude/analytics-core';
+
+    const cookies = new CookieStorage({}, {});
+
+    // stress test the transaction function
+    function incrementValue() {
+      return cookies.transaction('incrementing_value', (storageSync) => {
+        const currentValue = storageSync.get();
+        const nextValue = currentValue ? Number(currentValue) + 1 : 1;
+        storageSync.set(nextValue);
+        return storageSync.get();
+      });
+    }
+
+    let previousResult, result;
+    const promises = [];
+
+    promises.push(cookies.transaction('incrementing_value', (storageSync) => {
+      storageSync.set(0);
+      return 0;
+    }));
+
+    const TRANSACTIONS = 1000;
+
+    for (let i = 0; i < TRANSACTIONS; i++) {
+      promises.push(incrementValue())
+    }
+    
+    Promise.all(promises)
+      .then((res) => {
+        console.log('values after all transactions', JSON.stringify(res, null, 2));
+        for (let i = 0; i < res.length; i++) {
+          if (res[i] !== i) {
+            throw new Error('Result is not the expected value. Synchronization issue:', res[i], i + 1);
+          }
+        }
+        console.info('Test passed');
+      })
+      .catch((err) => {
+        throw err;
+      });
+
+  </script>
+</body>
+</html>

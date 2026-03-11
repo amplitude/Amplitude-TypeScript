@@ -3,6 +3,141 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.36.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/gtm-snippet@2.36.3...@amplitude/gtm-snippet@2.36.3) (2026-03-11)
+
+**Note:** Version bump only for package @amplitude/gtm-snippet
+
+
+
+
+
+## [2.36.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/gtm-snippet@2.36.2...@amplitude/gtm-snippet@2.36.3) (2026-03-09)
+
+
+### Bug Fixes
+
+* **session-replay:** guarantee in-order batch delivery including retries ([#1576](https://github.com/amplitude/Amplitude-TypeScript/issues/1576)) ([0afcac6](https://github.com/amplitude/Amplitude-TypeScript/commit/0afcac6cd42b999b74ba797717f7cf0d447029ef))
+
+
+
+
+
+## [2.36.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/gtm-snippet@2.36.2...@amplitude/gtm-snippet@2.36.2) (2026-03-06)
+
+
+### Bug Fixes
+
+* **session-replay:** guarantee in-order batch delivery including retries ([#1576](https://github.com/amplitude/Amplitude-TypeScript/issues/1576)) ([0afcac6](https://github.com/amplitude/Amplitude-TypeScript/commit/0afcac6cd42b999b74ba797717f7cf0d447029ef))
+
+
+
+
+
+## [2.36.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/gtm-snippet@2.36.2...@amplitude/gtm-snippet@2.36.2) (2026-03-06)
+
+
+### Bug Fixes
+
+* **session-replay:** guarantee in-order batch delivery including retries ([#1576](https://github.com/amplitude/Amplitude-TypeScript/issues/1576)) ([0afcac6](https://github.com/amplitude/Amplitude-TypeScript/commit/0afcac6cd42b999b74ba797717f7cf0d447029ef))
+
+
+
+
+
+## [2.36.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/gtm-snippet@2.36.2...@amplitude/gtm-snippet@2.36.2) (2026-03-06)
+
+**Note:** Version bump only for package @amplitude/gtm-snippet
+
+
+
+
+
+## [2.36.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/gtm-snippet@2.36.1...@amplitude/gtm-snippet@2.36.2) (2026-03-05)
+
+**Note:** Version bump only for package @amplitude/gtm-snippet
+
+
+
+
+
+## [2.36.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/gtm-snippet@2.35.5...@amplitude/gtm-snippet@2.36.1) (2026-03-03)
+
+**Note:** Version bump only for package @amplitude/gtm-snippet
+
+
+
+
+
+# [2.36.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/gtm-snippet@2.35.4...@amplitude/gtm-snippet@2.36.0) (2026-03-03)
+
+**Note:** Version bump only for package @amplitude/gtm-snippet
+
+
+
+
+
+## [2.35.4](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/gtm-snippet@2.35.3...@amplitude/gtm-snippet@2.35.4) (2026-02-26)
+
+**Note:** Version bump only for package @amplitude/gtm-snippet
+
+
+
+
+
+## [2.35.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/gtm-snippet@2.35.2...@amplitude/gtm-snippet@2.35.3) (2026-02-24)
+
+**Note:** Version bump only for package @amplitude/gtm-snippet
+
+
+
+
+
+## [2.35.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/gtm-snippet@2.35.1...@amplitude/gtm-snippet@2.35.2) (2026-02-20)
+
+**Note:** Version bump only for package @amplitude/gtm-snippet
+
+
+
+
+
+## [2.35.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/gtm-snippet@2.34.2...@amplitude/gtm-snippet@2.35.1) (2026-02-19)
+
+**Note:** Version bump only for package @amplitude/gtm-snippet
+
+
+
+
+
+# [2.35.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/gtm-snippet@2.35.0...@amplitude/gtm-snippet@2.35.0) (2026-02-17)
+
+**Note:** Version bump only for package @amplitude/gtm-snippet
+
+
+
+
+
+## [2.34.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/gtm-snippet@2.34.1...@amplitude/gtm-snippet@2.34.1) (2026-02-11)
+
+
+### Features
+
+* **gtm-snippet:** update GTM package's engagement sdk snippet to support split bun… ([#1528](https://github.com/amplitude/Amplitude-TypeScript/issues/1528)) ([ce5da08](https://github.com/amplitude/Amplitude-TypeScript/commit/ce5da08398a9cbaa468217d36e73a5f9eefcdb32))
+
+
+
+
+
+## [2.34.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/gtm-snippet@2.33.6...@amplitude/gtm-snippet@2.34.1) (2026-02-10)
+
+
+### Bug Fixes
+
+* **analytics-browser:** defer session_start and attribution when optOut is "true" ([#1509](https://github.com/amplitude/Amplitude-TypeScript/issues/1509)) ([3a3818d](https://github.com/amplitude/Amplitude-TypeScript/commit/3a3818d19bd84e4aa8405e10f8538886dd647f38))
+
+
+
+
+
 # [2.34.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/gtm-snippet@2.33.5...@amplitude/gtm-snippet@2.34.0) (2026-01-26)
 
 **Note:** Version bump only for package @amplitude/gtm-snippet

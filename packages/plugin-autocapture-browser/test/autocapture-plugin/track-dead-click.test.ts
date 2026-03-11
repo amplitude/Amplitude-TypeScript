@@ -13,6 +13,7 @@ describe('trackDeadClick', () => {
   let mutationObservable: any;
   let navigateObservable: any;
   let browserErrorObservable: any;
+  let mouseMoveObservable: any;
   let allObservables: AllWindowObservables;
   let shouldTrackDeadClick: jest.Mock;
   let getEventProperties: jest.Mock;
@@ -38,11 +39,15 @@ describe('trackDeadClick', () => {
     browserErrorObservable = new Observable<any>((/* observer */) => {
       //browserErrorObserver = observer;
     });
+    mouseMoveObservable = new Observable<any>((/* observer */) => {
+      //mouseMoveObserver = observer;
+    });
     allObservables = {
       [ObservablesEnum.ClickObservable]: clickObservable,
       [ObservablesEnum.MutationObservable]: mutationObservable,
       [ObservablesEnum.NavigateObservable]: navigateObservable,
       [ObservablesEnum.BrowserErrorObservable]: browserErrorObservable,
+      [ObservablesEnum.MouseMoveObservable]: mouseMoveObservable,
     };
     shouldTrackDeadClick = jest.fn().mockReturnValue(true);
     getEventProperties = jest.fn().mockReturnValue({ id: 'test-element' });

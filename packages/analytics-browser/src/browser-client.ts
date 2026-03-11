@@ -21,8 +21,8 @@ import {
   BrowserOptions,
   BrowserConfig,
   BrowserClient,
-  SpecialEventType,
   AnalyticsClient,
+  AnalyticsIdentity,
   IRemoteConfigClient,
   RemoteConfigClient,
   RemoteConfig,
@@ -30,6 +30,7 @@ import {
   DiagnosticsClient,
   createIdentifyEvent,
   Logger,
+  safeJsonStringify,
 } from '@amplitude/analytics-core';
 import {
   getAttributionTrackingConfig,
@@ -66,6 +67,8 @@ import { LIBPREFIX } from './lib-prefix';
 import { VERSION } from './version';
 import { pageUrlEnrichmentPlugin } from '@amplitude/plugin-page-url-enrichment-browser';
 
+const UNSPECIFIED_SESSION_ID = -1;
+
 /**
  * Exported for `@amplitude/unified` or integration with blade plugins.
  * If you only use `@amplitude/analytics-browser`, use `amplitude.init()` or `amplitude.createInstance()` instead.
@@ -77,11 +80,14 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
   previousSessionDeviceId: string | undefined;
   previousSessionUserId: string | undefined;
   webAttribution: WebAttribution | undefined;
-  userProperties: { [key: string]: any } | undefined;
 
   // Backdoor to set diagnostics sample rate
   // by calling amplitude._setDiagnosticsSampleRate(1); before amplitude.init()
   _diagnosticsSampleRate = 0;
+
+  // Backdoor to test request body compression
+  // by calling amplitude._enableRequestBodyCompressionExperimental(true); before amplitude.init()
+  _enableRequestBodyCompressionExperimentalValue = false;
 
   init(apiKey = '', userIdOrOptions?: string | BrowserOptions, maybeOptions?: BrowserOptions) {
     let userId: string | undefined;
@@ -231,6 +237,15 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
 
     // Add web attribution plugin
     if (isAttributionTrackingEnabled(this.config.defaultTracking)) {
+      if (this.config.optOut) {
+        this.timeline.addOptOutListener(async (optOut) => {
+          if (!optOut) {
+            const attributionTrackingOptions = getAttributionTrackingConfig(this.config);
+            this.webAttribution = new WebAttribution(attributionTrackingOptions, this.config);
+            await this.webAttribution.init();
+          }
+        });
+      }
       const attributionTrackingOptions = getAttributionTrackingConfig(this.config);
       this.webAttribution = new WebAttribution(attributionTrackingOptions, this.config);
       // Fetch the current campaign, check if need to track web attribution later
@@ -254,7 +269,25 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
       isWithinTimeLimit && !Number.isNaN(Number(queryParams.ampSessionId))
         ? Number(queryParams.ampSessionId)
         : undefined;
-    this.setSessionId(options.sessionId ?? querySessionId ?? this.config.sessionId ?? Date.now());
+
+    let deferredSessionId = this.config.deferredSessionId;
+    if (deferredSessionId === UNSPECIFIED_SESSION_ID && !this.config.optOut) {
+      deferredSessionId = Date.now();
+    }
+
+    this.setSessionId(options.sessionId ?? querySessionId ?? deferredSessionId ?? this.config.sessionId);
+
+    if (this.config.optOut) {
+      this.timeline.addOptOutListener(async (optOut) => {
+        if (!optOut && this.config.deferredSessionId) {
+          if (this.config.deferredSessionId === UNSPECIFIED_SESSION_ID) {
+            this.setSessionId(undefined);
+          } else {
+            this.setSessionId(this.config.deferredSessionId);
+          }
+        }
+      });
+    }
 
     // Set up the analytics connector to integrate with the experiment SDK.
     // Send events from the experiment SDK and forward identifies to the
@@ -289,8 +322,19 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
 
     // Add page view plugin
     if (isPageViewTrackingEnabled(this.config.defaultTracking)) {
-      this.config.loggerProvider.debug('Adding page view tracking plugin');
-      await this.add(pageViewTrackingPlugin(getPageViewTrackingConfig(this.config))).promise;
+      if (!this.config.optOut) {
+        this.config.loggerProvider.debug('Adding page view tracking plugin');
+        await this.add(pageViewTrackingPlugin(getPageViewTrackingConfig(this.config))).promise;
+      } else {
+        this.timeline.addOptOutListener(async (optOut) => {
+          /* istanbul ignore if */
+          if (optOut) {
+            return;
+          }
+          this.config.loggerProvider.debug('Adding page view tracking plugin');
+          await this.add(pageViewTrackingPlugin(getPageViewTrackingConfig(this.config))).promise;
+        });
+      }
     }
 
     if (isElementInteractionsEnabled(this.config.autocapture)) {
@@ -381,6 +425,35 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
     };
   }
 
+  setIdentity(identity: Partial<AnalyticsIdentity>) {
+    // Handle userId change
+    if ('userId' in identity) {
+      this.setUserId(identity.userId);
+    }
+
+    // Handle deviceId change
+    if ('deviceId' in identity && identity.deviceId) {
+      this.setDeviceId(identity.deviceId);
+    }
+
+    // Handle userProperties change - auto-send identify
+    if ('userProperties' in identity) {
+      this.userProperties = identity.userProperties;
+      // Auto-send identify event with $set operations
+      const identifyObj = new Identify();
+      // istanbul ignore next
+      const userProperties = identity.userProperties ?? {};
+      for (const [key, value] of Object.entries(userProperties)) {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+        identifyObj.set(key, value);
+      }
+      // The identify event processing in core-client already calls onIdentityChanged,
+      // so we don't need to call it explicitly here to avoid duplicate notifications.
+      this.identify(identifyObj);
+    }
+  }
+
   getOptOut(): boolean | undefined {
     return this.config?.optOut;
   }
@@ -389,12 +462,24 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
     return this.config?.sessionId;
   }
 
-  setSessionId(sessionId: number) {
+  setSessionId(sessionId: number | undefined) {
     const promises: Promise<Result>[] = [];
     if (!this.config) {
       this.q.push(this.setSessionId.bind(this, sessionId));
       return returnWrapper(Promise.resolve());
     }
+    // do not start a new session if optOut is true
+    if (this.config.optOut) {
+      // save the sessionId to storage to be used when optOut is false
+      this.config.deferredSessionId = sessionId ?? UNSPECIFIED_SESSION_ID;
+      return returnWrapper(Promise.resolve());
+    }
+
+    // default sessionId to current time
+    if (sessionId === undefined) {
+      sessionId = Date.now();
+    }
+
     // Prevents starting a new session with the same session ID
     if (sessionId === this.config.sessionId) {
       return returnWrapper(Promise.resolve());
@@ -542,11 +627,6 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
       }
     }
 
-    // Set user properties
-    if (event.event_type === SpecialEventType.IDENTIFY && event.user_properties) {
-      this.userProperties = this.getOperationAppliedUserProperties(event.user_properties);
-    }
-
     return super.process(event);
   }
 
@@ -556,7 +636,10 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
         ...browserConfig,
         apiKey: browserConfig.apiKey.substring(0, 10) + '********',
       };
-      this.config.loggerProvider.debug('Initialized Amplitude with BrowserConfig:', JSON.stringify(browserConfigCopy));
+      this.config.loggerProvider.debug(
+        'Initialized Amplitude with BrowserConfig:',
+        safeJsonStringify(browserConfigCopy),
+      );
     } catch (e) {
       /* istanbul ignore next */
       this.config.loggerProvider.error('Error logging browser config', e);
@@ -578,6 +661,19 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
     // Set diagnostics sample rate before initializing the config
     if (!this.config) {
       this._diagnosticsSampleRate = sampleRate;
+      return;
+    }
+  }
+
+  /**
+   * @experimental
+   * WARNING: This method is for internal testing only and is not part of the public API.
+   * It may be changed or removed at any time without notice.
+   */
+  _enableRequestBodyCompressionExperimental(enabled: boolean): void {
+    // Set request body compression experimental config before initializing the config
+    if (!this.config) {
+      this._enableRequestBodyCompressionExperimentalValue = enabled;
       return;
     }
   }

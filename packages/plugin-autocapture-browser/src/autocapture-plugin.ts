@@ -10,6 +10,8 @@ import {
   DEFAULT_DATA_ATTRIBUTE_PREFIX,
   IDiagnosticsClient,
   getGlobalScope,
+  getOrCreateWindowMessenger,
+  enableBackgroundCapture,
   multicast,
 } from '@amplitude/analytics-core';
 import { VERSION } from './version';
@@ -20,7 +22,7 @@ import {
   type TimestampedEvent,
   type NavigateEvent,
 } from './helpers';
-import { WindowMessenger } from './libs/messenger';
+import { enableVisualTagging } from './libs/messenger';
 import { trackClicks } from './autocapture/track-click';
 import { trackChange } from './autocapture/track-change';
 import { trackActionClick } from './autocapture/track-action-click';
@@ -70,6 +72,7 @@ export enum ObservablesEnum {
   ExposureObservable = 'exposureObservable',
   BrowserErrorObservable = 'browserErrorObservable',
   SelectionObservable = 'selectionObservable',
+  MouseMoveObservable = 'mouseMoveObservable',
 }
 
 export interface AllWindowObservables {
@@ -95,12 +98,6 @@ export const autocapturePlugin = (
     dataAttributePrefix = DEFAULT_DATA_ATTRIBUTE_PREFIX,
     visualTaggingOptions = {
       enabled: true,
-      messenger: new WindowMessenger(),
-    },
-    /* istanbul ignore next */
-    backgroundCaptureOptions = {
-      enabled: true,
-      messenger: new WindowMessenger(),
     },
   } = options;
 
@@ -431,29 +428,26 @@ export const autocapturePlugin = (
 
     /* istanbul ignore next */
     config?.loggerProvider?.log(`${name} has been successfully added.`);
-    // Setup visual tagging selector
+
+    // Setup visual tagging and background capture on the shared messenger singleton.
+    // Using the singleton ensures a single message listener per page, even when
+    // session-replay is also loaded.
     if (window.opener && visualTaggingOptions.enabled) {
       const allowlist = (options as AutoCaptureOptionsWithDefaults).cssSelectorAllowlist;
       const actionClickAllowlist = (options as AutoCaptureOptionsWithDefaults).actionClickAllowlist;
 
-      /* istanbul ignore next */
-      visualTaggingOptions.messenger?.setup({
-        dataExtractor: dataExtractor,
-        logger: config?.loggerProvider,
-        ...(config?.serverZone && { endpoint: constants.AMPLITUDE_ORIGINS_MAP[config.serverZone] }),
+      const messenger = getOrCreateWindowMessenger();
+      enableVisualTagging(messenger, {
+        dataExtractor,
         isElementSelectable: createShouldTrackEvent(options, [...allowlist, ...actionClickAllowlist]),
         cssSelectorAllowlist: allowlist,
-        actionClickAllowlist: actionClickAllowlist,
+        actionClickAllowlist,
       });
-    }
-
-    // Setup background capture messenger if it is not already setup for visual tagging selector
-    /* istanbul ignore next */
-    if (window.opener && backgroundCaptureOptions.enabled && !visualTaggingOptions.messenger) {
+      enableBackgroundCapture(messenger);
       /* istanbul ignore next */
-      backgroundCaptureOptions.messenger?.setup({
-        dataExtractor: dataExtractor,
+      messenger.setup({
         logger: config?.loggerProvider,
+        ...(config?.serverZone && { endpoint: constants.AMPLITUDE_ORIGINS_MAP[config.serverZone] }),
       });
     }
   };

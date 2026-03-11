@@ -1,5 +1,6 @@
 import { Logger as ILogger } from '@amplitude/analytics-types';
 import { DBSchema, IDBPDatabase, openDB } from 'idb';
+import { logIdbError } from '../utils/is-abort-error';
 
 export const MAX_IDB_STORAGE_LENGTH = 1000 * 60 * 60 * 24 * 2; // 2 days
 
@@ -55,7 +56,7 @@ export class TargetingIDBStore {
 
       return targetingMatchForSession?.targetingMatch;
     } catch (e) {
-      loggerProvider.warn(`Failed to get targeting match for session id ${sessionId}: ${e as string}`);
+      logIdbError(loggerProvider, `Failed to get targeting match for session id ${sessionId}: ${e as string}`, e);
     }
     return undefined;
   };
@@ -82,7 +83,7 @@ export class TargetingIDBStore {
 
       return targetingMatchForSession;
     } catch (e) {
-      loggerProvider.warn(`Failed to store targeting match for session id ${sessionId}: ${e as string}`);
+      logIdbError(loggerProvider, `Failed to store targeting match for session id ${sessionId}: ${e as string}`, e);
     }
     return undefined;
   };
@@ -110,7 +111,7 @@ export class TargetingIDBStore {
       }
       await tx.done;
     } catch (e) {
-      loggerProvider.warn(`Failed to clear old targeting matches for sessions: ${e as string}`);
+      logIdbError(loggerProvider, `Failed to clear old targeting matches for sessions: ${e as string}`, e);
     }
   };
 }

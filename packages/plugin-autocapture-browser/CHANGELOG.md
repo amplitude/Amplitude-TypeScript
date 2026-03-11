@@ -3,6 +3,106 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.23.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.23.2...@amplitude/plugin-autocapture-browser@1.23.3) (2026-03-09)
+
+**Note:** Version bump only for package @amplitude/plugin-autocapture-browser
+
+
+
+
+
+## [1.23.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.23.1...@amplitude/plugin-autocapture-browser@1.23.2) (2026-03-05)
+
+**Note:** Version bump only for package @amplitude/plugin-autocapture-browser
+
+
+
+
+
+## [1.23.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.23.0...@amplitude/plugin-autocapture-browser@1.23.1) (2026-03-03)
+
+**Note:** Version bump only for package @amplitude/plugin-autocapture-browser
+
+
+
+
+
+# [1.23.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.22.3...@amplitude/plugin-autocapture-browser@1.23.0) (2026-03-03)
+
+
+### Features
+
+* manual opt in gzip ([#1568](https://github.com/amplitude/Amplitude-TypeScript/issues/1568)) ([303c130](https://github.com/amplitude/Amplitude-TypeScript/commit/303c130429c51b0913f3903db4ace5263e1c78e7))
+
+
+
+
+
+## [1.22.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.22.2...@amplitude/plugin-autocapture-browser@1.22.3) (2026-02-26)
+
+**Note:** Version bump only for package @amplitude/plugin-autocapture-browser
+
+
+
+
+
+## [1.22.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.22.1...@amplitude/plugin-autocapture-browser@1.22.2) (2026-02-24)
+
+**Note:** Version bump only for package @amplitude/plugin-autocapture-browser
+
+
+
+
+
+## [1.22.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.22.0...@amplitude/plugin-autocapture-browser@1.22.1) (2026-02-20)
+
+
+### Bug Fixes
+
+* **autocapture:** remove cloneNode in getText can cause duplicate network requests ([#1546](https://github.com/amplitude/Amplitude-TypeScript/issues/1546)) ([b75f696](https://github.com/amplitude/Amplitude-TypeScript/commit/b75f6969e5cc1baf7f6fc6bd585bd8f976b87620))
+
+
+
+
+
+# [1.22.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.21.0...@amplitude/plugin-autocapture-browser@1.22.0) (2026-02-19)
+
+
+### Features
+
+* screenshot capture messenger ([#1535](https://github.com/amplitude/Amplitude-TypeScript/issues/1535)) ([93ef551](https://github.com/amplitude/Amplitude-TypeScript/commit/93ef551ff0ab7dc48014aa5fa25841437d641993))
+
+
+
+
+
+# [1.21.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.20.0...@amplitude/plugin-autocapture-browser@1.21.0) (2026-02-17)
+
+
+### Features
+
+* **analytics-browser:** add setIdentity() ([#1517](https://github.com/amplitude/Amplitude-TypeScript/issues/1517)) ([314b3c1](https://github.com/amplitude/Amplitude-TypeScript/commit/314b3c1b7ee5b0ef135848a66156eb2874daec5f))
+
+
+
+
+
+# [1.20.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.19.0...@amplitude/plugin-autocapture-browser@1.20.0) (2026-02-10)
+
+
+### Bug Fixes
+
+* ignore errors that are not ErrorEvent ([#1512](https://github.com/amplitude/Amplitude-TypeScript/issues/1512)) ([366d7eb](https://github.com/amplitude/Amplitude-TypeScript/commit/366d7ebed2e10d46cf46e301650f0c52d82047ed))
+
+
+### Features
+
+* **analytics-browser:** [@experimental](https://github.com/experimental) add Thrashed Cursor frustration signal ([#1523](https://github.com/amplitude/Amplitude-TypeScript/issues/1523)) ([376b034](https://github.com/amplitude/Amplitude-TypeScript/commit/376b0342716057c82430ab72c0fc5bab55bc0dba))
+
+
+
+
+
 # [1.19.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.18.7...@amplitude/plugin-autocapture-browser@1.19.0) (2026-01-26)
 
 
