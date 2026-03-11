@@ -260,6 +260,35 @@ test.describe('URL-based targeting', () => {
     expect(String(propsAfter[SR_PROPERTY_KEY])).toContain(`/${TEST_SESSION_ID}`);
   });
 
+  test('does not record when page URL never matches targeting condition', async ({ page }) => {
+    await mockRemoteConfig(page, remoteConfigWithUrlTargeting(NAV_MATCH_STRING));
+    await mockTrackApi(page);
+
+    await page.goto(buildUrl('/session-replay-browser/sr-capture-test.html', { sessionId: TEST_SESSION_ID }));
+    await waitForReady(page);
+    await page.waitForTimeout(500);
+
+    // URL never matched — should not be recording
+    const props = await getProperties(page);
+    expect(props[SR_PROPERTY_KEY]).toBeFalsy();
+  });
+
+  test('does not send events to the track API when URL never matches', async ({ page }) => {
+    const sentUrls: string[] = [];
+    await mockRemoteConfig(page, remoteConfigWithUrlTargeting(NAV_MATCH_STRING));
+    await mockTrackApi(page, (route) => sentUrls.push(route.request().url()));
+
+    await page.goto(buildUrl('/session-replay-browser/sr-capture-test.html', { sessionId: TEST_SESSION_ID }));
+    await waitForReady(page);
+    await page.waitForTimeout(500);
+
+    await page.evaluate(() => window.dispatchEvent(new Event('blur')) as unknown as void);
+    await page.evaluate(() => (window as any).sessionReplay.flush(false) as Promise<void>);
+    await page.waitForTimeout(500);
+
+    expect(sentUrls.length).toBe(0);
+  });
+
   test('continues recording after navigating away from matched URL (monotonic match)', async ({ page }) => {
     await mockRemoteConfig(page, remoteConfigWithUrlTargeting(MATCH_STRING));
     await mockTrackApi(page);
