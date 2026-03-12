@@ -72,6 +72,10 @@ function truncateToByteLimit(str: string, maxBytes: number): { value: string; tr
       hi = mid - 1;
     }
   }
+  // Avoid splitting a surrogate pair: if lo landed after a high surrogate, back up one position
+  if (lo > 0 && str.charCodeAt(lo - 1) >= 0xd800 && str.charCodeAt(lo - 1) <= 0xdbff) {
+    lo -= 1;
+  }
   return { value: str.slice(0, lo), truncated: true };
 }
 
