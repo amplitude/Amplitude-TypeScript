@@ -357,6 +357,9 @@ export class RemoteConfigClient implements IRemoteConfigClient {
           this.logger.debug(`Remote config client fetch with retry time ${retries} failed with ${res.status}: ${body}`);
 
           if (res.status === CODE_STATUS.INVALID_API_KEY) {
+            this.logger.error(
+              `Remote config client fetch failed with ${CODE_STATUS.INVALID_API_KEY}. Invalid API key; future fetches will be skipped.`,
+            );
             this.isLastFetchInvalidApiKey = true;
             shouldRetry = false;
           } else if (res.status >= 400 && res.status < 500 && res.status !== CODE_STATUS.RATE_LIMIT) {

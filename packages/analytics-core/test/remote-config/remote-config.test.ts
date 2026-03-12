@@ -43,10 +43,12 @@ const testKey = 'browser';
 describe('RemoteConfigClient', () => {
   let client: RemoteConfigClient;
   let loggerDebug: jest.SpyInstance;
+  let loggerError: jest.SpyInstance;
   let storageFetchConfig: jest.SpyInstance;
 
   beforeEach(() => {
     loggerDebug = jest.spyOn(mockLogger, 'debug');
+    loggerError = jest.spyOn(mockLogger, 'error');
     storageFetchConfig = jest.spyOn(mockStorage, 'fetchConfig');
 
     (RemoteConfigLocalStorage as jest.Mock).mockImplementation(() => mockStorage);
@@ -259,6 +261,10 @@ describe('RemoteConfigClient', () => {
       await client.updateConfigs();
       expect(global.fetch).toHaveBeenCalledTimes(1);
       expect(loggerDebug).toHaveBeenCalledWith('Remote config client skipping fetch: Invalid API key');
+      expect(loggerError).toHaveBeenCalledTimes(1);
+      expect(loggerError).toHaveBeenCalledWith(
+        expect.stringContaining('Remote config client fetch failed with 401. Invalid API key'),
+      );
     });
   });
 
@@ -924,6 +930,10 @@ describe('RemoteConfigClient', () => {
       expect(client.isLastFetchInvalidApiKey).toBe(true);
       expect(loggerDebug).toHaveBeenCalledTimes(1);
       expect(loggerDebug).toHaveBeenCalledWith(expect.stringContaining('failed with 401'));
+      expect(loggerError).toHaveBeenCalledTimes(1);
+      expect(loggerError).toHaveBeenCalledWith(
+        expect.stringContaining('Remote config client fetch failed with 401. Invalid API key'),
+      );
     });
 
     test('should retry on rate limit and recover', async () => {
