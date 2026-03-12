@@ -156,6 +156,39 @@ Body capture is a separate opt-in within network capture. To enable it, set `bod
 | `responseBodyStatus` | `string` | `'captured'`, `'truncated'`, `'skipped_binary'`, or `'error'` |
 | `error` | `object` | Error name and message if the request failed |
 
+## Releasing a Prerelease
+
+Prereleases are published to npm via the **Publish v2.x** GitHub Actions workflow. The published package will be tagged with the branch name (e.g. `@amplitude/session-replay-browser@SR-2728`) so it doesn't affect the `latest` dist-tag.
+
+### Steps
+
+1. Go to **Actions → Publish v2.x** in the GitHub repo
+2. Click **Run workflow**
+3. Set the inputs:
+   - **Use workflow from**: `main` (required — the workflow enforces this)
+   - **Release type**: `prerelease`
+   - **Branch to create pre-release from**: your feature branch (e.g. `SR-2728`)
+4. Click **Run workflow**
+
+The workflow will:
+- Check out your feature branch
+- Build and run tests
+- Bump the version using conventional commits with your branch name as the preid (e.g. `1.33.0-SR-2728.0`)
+- Publish to npm with `--tag <branch-name>`
+
+### Installing a prerelease
+
+```sh
+npm install @amplitude/session-replay-browser@SR-2728
+# or a specific version:
+npm install @amplitude/session-replay-browser@1.33.0-SR-2728.0
+```
+
+### Notes
+
+- The `--tag` value is derived from the branch name with non-alphanumeric characters (except `-`) stripped, so `SR-2728` → tag `SR-2728`, `feature/my-branch` → tag `featuremy-branch`
+- Triggering from a branch other than `main` will fail the authorization check — always use `main` in the "Use workflow from" dropdown
+
 ## Bundle Size Optimization
 The Session Replay SDK uses dynamic imports to optimize bundle size and improve initial page load performance. Key modules are loaded on-demand rather than being included in the initial bundle:
 
