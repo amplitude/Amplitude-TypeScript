@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.36.4-SR-2728.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.36.3...@amplitude/analytics-browser@2.36.4-SR-2728.0) (2026-03-12)
+
+
+### Bug Fixes
+
+* **analytics-browser:** skip localhost + single word domain on TLD check ([#1584](https://github.com/amplitude/Amplitude-TypeScript/issues/1584)) ([a07861e](https://github.com/amplitude/Amplitude-TypeScript/commit/a07861e24bebeab641b4fb4cd474532a16e4e0e5))
+* **analytics-core:** remote config should not retry client side error except 429 ([#1590](https://github.com/amplitude/Amplitude-TypeScript/issues/1590)) ([b1445cb](https://github.com/amplitude/Amplitude-TypeScript/commit/b1445cb43272281ceb60da5055283fb42c494068))
+
+
+
+
+
 ## [2.36.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.36.2...@amplitude/analytics-browser@2.36.3) (2026-03-09)
 
 

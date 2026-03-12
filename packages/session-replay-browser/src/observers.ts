@@ -1,5 +1,7 @@
 import { getGlobalScope } from '@amplitude/analytics-core';
 
+export type ResponseBodyStatus = 'captured' | 'truncated' | 'skipped_binary' | 'error';
+
 export interface NetworkRequestEvent {
   timestamp: number;
   type: 'fetch';
@@ -9,6 +11,9 @@ export interface NetworkRequestEvent {
   duration?: number;
   requestHeaders?: Record<string, string>;
   responseHeaders?: Record<string, string>;
+  requestBody?: string;
+  responseBody?: string;
+  responseBodyStatus?: ResponseBodyStatus;
   error?: {
     name: string;
     message: string;
@@ -17,12 +22,71 @@ export interface NetworkRequestEvent {
 
 export type NetworkEventCallback = (event: NetworkRequestEvent) => void;
 
+export interface NetworkBodyConfig {
+  request?: boolean;
+  response?: boolean;
+  maxBodySizeBytes?: number;
+}
+
+export interface NetworkConfig {
+  enabled: boolean;
+  body?: NetworkBodyConfig;
+}
+
+const DEFAULT_MAX_BODY_SIZE_BYTES = 10240; // 10KB
+
+const BINARY_CONTENT_TYPE_PREFIXES = ['image/', 'audio/', 'video/', 'application/octet-stream', 'font/'];
+
+function isBinaryContentType(contentType: string | null): boolean {
+  if (!contentType) return false;
+  return BINARY_CONTENT_TYPE_PREFIXES.some((prefix) => contentType.toLowerCase().startsWith(prefix));
+}
+
+function serializeRequestBody(body: BodyInit | null | undefined): string | undefined {
+  if (body === null || body === undefined) return undefined;
+  if (typeof body === 'string') return body;
+  if (body instanceof URLSearchParams) return body.toString();
+  if (body instanceof FormData) {
+    const parts: string[] = [];
+    body.forEach((value, key) => {
+      parts.push(`${key}=${typeof value === 'string' ? value : '[File]'}`);
+    });
+    return parts.join('&');
+  }
+  // Blob, ArrayBuffer, ArrayBufferView, ReadableStream — skip
+  return undefined;
+}
+
+function truncateToByteLimit(str: string, maxBytes: number): { value: string; truncated: boolean } {
+  if (new Blob([str]).size <= maxBytes) {
+    return { value: str, truncated: false };
+  }
+  // Binary search for the longest prefix whose UTF-8 byte length fits within maxBytes
+  let lo = 0;
+  let hi = str.length;
+  while (lo < hi) {
+    const mid = Math.ceil((lo + hi) / 2);
+    if (new Blob([str.slice(0, mid)]).size <= maxBytes) {
+      lo = mid;
+    } else {
+      hi = mid - 1;
+    }
+  }
+  // Avoid splitting a surrogate pair: if lo landed after a high surrogate, back up one position
+  if (lo > 0 && str.charCodeAt(lo - 1) >= 0xd800 && str.charCodeAt(lo - 1) <= 0xdbff) {
+    lo -= 1;
+  }
+  return { value: str.slice(0, lo), truncated: true };
+}
+
 export class NetworkObservers {
   private fetchObserver: (() => void) | null = null;
   private eventCallback?: NetworkEventCallback;
+  private networkConfig?: NetworkConfig;
 
-  start(eventCallback: NetworkEventCallback) {
+  start(eventCallback: NetworkEventCallback, networkConfig?: NetworkConfig) {
     this.eventCallback = eventCallback;
+    this.networkConfig = networkConfig;
     this.observeFetch();
   }
 
@@ -30,6 +94,7 @@ export class NetworkObservers {
     this.fetchObserver?.();
     this.fetchObserver = null;
     this.eventCallback = undefined;
+    this.networkConfig = undefined;
   }
 
   protected notifyEvent(event: NetworkRequestEvent) {
@@ -53,6 +118,16 @@ export class NetworkObservers {
         requestHeaders: init?.headers as Record<string, string>,
       };
 
+      // Capture request body if configured
+      const bodyConfig = this.networkConfig?.body;
+      if (bodyConfig?.request) {
+        const serialized = serializeRequestBody(init?.body);
+        if (serialized !== undefined) {
+          const maxBytes = bodyConfig.maxBodySizeBytes ?? DEFAULT_MAX_BODY_SIZE_BYTES;
+          requestEvent.requestBody = truncateToByteLimit(serialized, maxBytes).value;
+        }
+      }
+
       try {
         const response = await originalFetch(input, init);
         const endTime = Date.now();
@@ -67,7 +142,32 @@ export class NetworkObservers {
         });
         requestEvent.responseHeaders = headers;
 
-        this.notifyEvent(requestEvent);
+        if (bodyConfig?.response) {
+          const contentType = headers['content-type'] || null;
+          if (isBinaryContentType(contentType)) {
+            requestEvent.responseBodyStatus = 'skipped_binary';
+            this.notifyEvent(requestEvent);
+          } else {
+            const cloned = response.clone();
+            // Read body without blocking the response return to the caller
+            cloned.text().then(
+              (text) => {
+                const maxBytes = bodyConfig.maxBodySizeBytes ?? DEFAULT_MAX_BODY_SIZE_BYTES;
+                const { value, truncated } = truncateToByteLimit(text, maxBytes);
+                requestEvent.responseBody = value;
+                requestEvent.responseBodyStatus = truncated ? 'truncated' : 'captured';
+                this.notifyEvent(requestEvent);
+              },
+              () => {
+                requestEvent.responseBodyStatus = 'error';
+                this.notifyEvent(requestEvent);
+              },
+            );
+          }
+        } else {
+          this.notifyEvent(requestEvent);
+        }
+
         return response;
       } catch (error) {
         const endTime = Date.now();
