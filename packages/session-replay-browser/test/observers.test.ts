@@ -243,6 +243,24 @@ describe('NetworkObservers', () => {
       expect(events[0].requestBody).toBe('🎉');
     });
 
+    it('should not produce a broken surrogate pair when truncation boundary falls mid-emoji', async () => {
+      const mockResponse = {
+        status: 200,
+        headers: { forEach: jest.fn() },
+      };
+      mockFetch.mockResolvedValue(mockResponse);
+      // 'a' (1 byte) + '🎉' (4 bytes) = 5 bytes; limit of 4 means binary search would land
+      // after the high surrogate of 🎉 (giving 1+3=4 bytes) without the surrogate fix.
+      networkObservers.start(callback, { enabled: true, body: { request: true, maxBodySizeBytes: 4 } });
+
+      await globalScope.fetch('https://api.example.com/data', {
+        method: 'POST',
+        body: 'a🎉',
+      });
+
+      expect(events[0].requestBody).toBe('a');
+    });
+
     it('should not capture request body when body.request is false', async () => {
       const mockResponse = {
         status: 200,
@@ -361,6 +379,29 @@ describe('NetworkObservers', () => {
       await Promise.resolve();
 
       expect(events[0].responseBody).toBe('hello');
+      expect(events[0].responseBodyStatus).toBe('truncated');
+    });
+
+    it('should not produce a broken surrogate pair when truncation boundary falls mid-emoji', async () => {
+      // 'a' (1 byte) + '🎉' (4 bytes) = 5 bytes; limit of 4 means binary search would land
+      // after the high surrogate of 🎉 (giving 1+3=4 bytes) without the surrogate fix.
+      const mockClone = { text: jest.fn().mockResolvedValue('a🎉') };
+      const mockResponse = {
+        status: 200,
+        headers: {
+          forEach: (cb: (value: string, key: string) => void) => {
+            cb('text/plain', 'content-type');
+          },
+        },
+        clone: jest.fn().mockReturnValue(mockClone),
+      };
+      mockFetch.mockResolvedValue(mockResponse);
+      networkObservers.start(callback, { enabled: true, body: { response: true, maxBodySizeBytes: 4 } });
+
+      await globalScope.fetch('https://api.example.com/data');
+      await Promise.resolve();
+
+      expect(events[0].responseBody).toBe('a');
       expect(events[0].responseBodyStatus).toBe('truncated');
     });
 
