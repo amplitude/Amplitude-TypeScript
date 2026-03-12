@@ -25,6 +25,10 @@ export type Source = 'cache' | 'remote';
 export const US_SERVER_URL = 'https://sr-client-cfg.amplitude.com/config';
 export const EU_SERVER_URL = 'https://sr-client-cfg.eu.amplitude.com/config';
 export const DEFAULT_MAX_RETRIES = 3;
+const CODE_STATUS = {
+  INVALID_API_KEY: 401,
+  RATE_LIMIT: 429,
+} as const;
 
 /**
  * The default timeout for fetch in milliseconds.
@@ -121,6 +125,8 @@ export class RemoteConfigClient implements IRemoteConfigClient {
   lastSuccessfulFetch: number | null = null;
   // Store the in-flight fetch promise for deduplication.
   fetchPromise: Promise<RemoteConfigInfo> | null = null;
+  // Used to skip periodic updateConfigs calls when API key is invalid.
+  isLastFetchInvalidApiKey = false;
 
   constructor(apiKey: string, logger: ILogger, serverZone: ServerZoneType = 'US', serverUrl?: string) {
     this.apiKey = apiKey;
@@ -183,6 +189,17 @@ export class RemoteConfigClient implements IRemoteConfigClient {
    */
   getOrCreateFetchPromise(): Promise<RemoteConfigInfo> {
     if (this.fetchPromise) {
+      return this.fetchPromise;
+    }
+
+    if (this.isLastFetchInvalidApiKey) {
+      this.logger.debug('Remote config client skipping fetch: Invalid API key');
+      this.fetchPromise = Promise.resolve({
+        remoteConfig: null,
+        lastFetch: new Date(),
+      }).finally(() => {
+        this.fetchPromise = null;
+      });
       return this.fetchPromise;
     }
 
@@ -305,6 +322,11 @@ export class RemoteConfigClient implements IRemoteConfigClient {
    *    and the attempt is considered failed (and may be retried if retries remain).
    * 2. It is also used to calculate the interval between retries. The total timeout is divided by the number of retries,
    *    so each retry waits for (timeout / retries) milliseconds before the next attempt (linear backoff).
+   * Retry behavior by status code:
+   * - 401: invalid API key (stop retries and disable future updateConfigs calls).
+   * - 429: retry up to max retries.
+   * - other 4xx: no retry.
+   * - 5xx and network failures: retry up to max retries.
    * @returns the remote config info. null if failed to fetch or the response is not valid JSON.
    */
   async fetch(retries: number = DEFAULT_MAX_RETRIES, timeout: number = DEFAULT_TIMEOUT): Promise<RemoteConfigInfo> {
@@ -315,6 +337,7 @@ export class RemoteConfigClient implements IRemoteConfigClient {
     };
 
     for (let attempt = 0; attempt < retries; attempt++) {
+      let shouldRetry = true;
       // Create AbortController for request timeout
       const abortController = new AbortController();
       const timeoutId = setTimeout(() => abortController.abort(), timeout);
@@ -332,6 +355,16 @@ export class RemoteConfigClient implements IRemoteConfigClient {
         if (!res.ok) {
           const body = await res.text();
           this.logger.debug(`Remote config client fetch with retry time ${retries} failed with ${res.status}: ${body}`);
+
+          if (res.status === CODE_STATUS.INVALID_API_KEY) {
+            this.logger.error(
+              `Remote config client fetch failed with ${CODE_STATUS.INVALID_API_KEY}. Invalid API key; future fetches will be skipped.`,
+            );
+            this.isLastFetchInvalidApiKey = true;
+            shouldRetry = false;
+          } else if (res.status >= 400 && res.status < 500 && res.status !== CODE_STATUS.RATE_LIMIT) {
+            shouldRetry = false;
+          }
         } else {
           // Handle successful fetch
           const remoteConfig: RemoteConfig = (await res.json()) as RemoteConfig;
@@ -350,6 +383,10 @@ export class RemoteConfigClient implements IRemoteConfigClient {
       } finally {
         // Clear the timeout since request completed or failed
         clearTimeout(timeoutId);
+      }
+
+      if (!shouldRetry) {
+        break;
       }
 
       // Linear backoff:

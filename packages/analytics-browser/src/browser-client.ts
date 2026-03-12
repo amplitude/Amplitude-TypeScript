@@ -31,6 +31,7 @@ import {
   createIdentifyEvent,
   Logger,
   safeJsonStringify,
+  LogLevel,
 } from '@amplitude/analytics-core';
 import {
   getAttributionTrackingConfig,
@@ -121,6 +122,9 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
     // Set up early dependencies needed for remote config client
     // These use options directly or fall back to defaults
     const loggerProvider = options.loggerProvider ?? new Logger();
+    if (!options.loggerProvider) {
+      loggerProvider.enable(options.logLevel ?? LogLevel.Warn);
+    }
     const serverZone = options.serverZone ?? DEFAULT_SERVER_ZONE;
 
     let remoteConfigClient: IRemoteConfigClient | undefined;
