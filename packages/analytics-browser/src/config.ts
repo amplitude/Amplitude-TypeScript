@@ -302,7 +302,7 @@ export const useBrowserConfig = async (
   let defaultCookieDomain = '';
 
   // use the getTopLevelDomain function to find the TLD only if identity storage
-  // is cookie (because getTopLevelDomain() uses cookies)
+  // is cookie (because getTopLevelDomain() uses cookies) AND cookie option domain is not set
   if (
     identityStorage === DEFAULT_IDENTITY_STORAGE &&
     !options.cookieOptions?.domain &&
