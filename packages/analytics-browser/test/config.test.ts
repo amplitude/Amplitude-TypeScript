@@ -175,106 +175,119 @@ describe('config', () => {
       expect(config.storageProvider).toEqual(expect.any(MemoryStorage));
     });
 
-    test('should create using cookies/overwrite', async () => {
-      Object.defineProperty(window, 'location', {
-        value: {
-          hostname: 'amplitude.com',
-        },
-        configurable: true,
+    describe('with location override', () => {
+      const originalLocation = window.location;
+      beforeAll(() => {
+        Object.defineProperty(window, 'location', {
+          value: { hostname: 'amplitude.com' },
+          configurable: true,
+        });
       });
-      const cookieStorage = new core.MemoryStorage<UserSession>();
-      await cookieStorage.set(getCookieName(apiKey), {
-        deviceId: 'device-device-device',
-        sessionId: -1,
-        userId: 'user-user-user',
-        lastEventId: 100,
-        lastEventTime: 1,
-        optOut: false,
+      afterAll(() => {
+        Object.defineProperty(window, 'location', { value: originalLocation, configurable: true });
       });
-      const logger = new core.Logger();
-      logger.enable(LogLevel.Warn);
-      jest.spyOn(Config, 'createCookieStorage').mockReturnValueOnce(cookieStorage);
-      const config = await Config.useBrowserConfig(
-        apiKey,
-        {
+      test('should create using cookies/overwrite', async () => {
+        Object.defineProperty(window, 'location', {
+          value: {
+            hostname: 'amplitude.com',
+          },
+          configurable: true,
+        });
+        const cookieStorage = new core.MemoryStorage<UserSession>();
+        await cookieStorage.set(getCookieName(apiKey), {
           deviceId: 'device-device-device',
           sessionId: -1,
           userId: 'user-user-user',
-          partnerId: 'partnerId',
-          plan: {
-            version: '0',
+          lastEventId: 100,
+          lastEventTime: 1,
+          optOut: false,
+        });
+        const logger = new core.Logger();
+        logger.enable(LogLevel.Warn);
+        jest.spyOn(Config, 'createCookieStorage').mockReturnValueOnce(cookieStorage);
+        const config = await Config.useBrowserConfig(
+          apiKey,
+          {
+            deviceId: 'device-device-device',
+            sessionId: -1,
+            userId: 'user-user-user',
+            partnerId: 'partnerId',
+            plan: {
+              version: '0',
+            },
+            ingestionMetadata: {
+              sourceName: 'ampli',
+              sourceVersion: '2.0.0',
+            },
+            sessionTimeout: 1,
+            cookieOptions: {
+              domain: '.amplitude.com',
+              upgrade: false,
+            },
+            defaultTracking: true,
+            offline: true,
           },
+          new AmplitudeBrowser(),
+        );
+
+        expect(config).toEqual({
+          _cookieStorage: expect.any(MemoryStorage),
+          _deviceId: 'device-device-device',
+          _lastEventId: 100,
+          _lastEventTime: 1,
+          _optOut: false,
+          _sessionId: -1,
+          _userId: 'user-user-user',
+          apiKey,
+          appVersion: undefined,
+          cookieOptions: {
+            domain: '.amplitude.com',
+            expiration: 365,
+            sameSite: 'Lax',
+            secure: false,
+            upgrade: false,
+          },
+          defaultTracking: true,
+          flushIntervalMillis: 1000,
+          flushMaxRetries: 5,
+          flushQueueSize: 30,
+          identityStorage: DEFAULT_IDENTITY_STORAGE,
           ingestionMetadata: {
             sourceName: 'ampli',
             sourceVersion: '2.0.0',
           },
-          sessionTimeout: 1,
-          cookieOptions: {
-            domain: '.amplitude.com',
-            upgrade: false,
-          },
-          defaultTracking: true,
+          logLevel: 2,
+          loggerProvider: logger,
+          minIdLength: undefined,
           offline: true,
-        },
-        new AmplitudeBrowser(),
-      );
-      expect(config).toEqual({
-        _cookieStorage: expect.any(MemoryStorage),
-        _deviceId: 'device-device-device',
-        _lastEventId: 100,
-        _lastEventTime: 1,
-        _optOut: false,
-        _sessionId: -1,
-        _userId: 'user-user-user',
-        apiKey,
-        appVersion: undefined,
-        cookieOptions: {
-          domain: '.amplitude.com',
-          expiration: 365,
-          sameSite: 'Lax',
-          secure: false,
-          upgrade: false,
-        },
-        defaultTracking: true,
-        flushIntervalMillis: 1000,
-        flushMaxRetries: 5,
-        flushQueueSize: 30,
-        identityStorage: DEFAULT_IDENTITY_STORAGE,
-        ingestionMetadata: {
-          sourceName: 'ampli',
-          sourceVersion: '2.0.0',
-        },
-        logLevel: 2,
-        loggerProvider: logger,
-        minIdLength: undefined,
-        offline: true,
-        partnerId: 'partnerId',
-        plan: {
-          version: '0',
-        },
-        serverUrl: '',
-        serverZone: DEFAULT_SERVER_ZONE,
-        sessionTimeout: 1,
-        storageProvider: someLocalStorage,
-        trackingOptions: {
-          ipAddress: true,
-          language: true,
-          platform: true,
-        },
-        transport: 'fetch',
-        transportProvider: expect.any(FetchTransport),
-        useBatch: false,
-        fetchRemoteConfig: true,
-        version: VERSION,
-        enableDiagnostics: true,
-        diagnosticsSampleRate: 0,
-        diagnosticsClient: undefined,
-        remoteConfig: {
+          partnerId: 'partnerId',
+          plan: {
+            version: '0',
+          },
+          serverUrl: '',
+          serverZone: DEFAULT_SERVER_ZONE,
+          sessionTimeout: 1,
+          storageProvider: someLocalStorage,
+          trackingOptions: {
+            ipAddress: true,
+            language: true,
+            platform: true,
+          },
+          transport: 'fetch',
+          transportProvider: expect.any(FetchTransport),
+          useBatch: false,
           fetchRemoteConfig: true,
-        },
-        topLevelDomain: 'amplitude.com',
-        enableRequestBodyCompression: false,
-        _enableRequestBodyCompressionExperimental: false,
+          version: VERSION,
+          enableDiagnostics: true,
+          diagnosticsSampleRate: 0,
+          diagnosticsClient: undefined,
+          remoteConfig: {
+            fetchRemoteConfig: true,
+          },
+          topLevelDomain: 'amplitude.com',
+          enableRequestBodyCompression: false,
+          _enableRequestBodyCompressionExperimental: false,
+        });
       });
     });
 
@@ -394,8 +407,17 @@ describe('config', () => {
 
   describe('getTopLevelDomain', () => {
     test('should return empty string for localhost', async () => {
-      // jest env hostname is localhost
+      const isDomainWritableSpy = jest.spyOn(BrowserUtils.CookieStorage, 'isDomainWritable');
       const domain = await Config.getTopLevelDomain(undefined);
+      expect(isDomainWritableSpy).not.toHaveBeenCalled();
+      expect(domain).toBe('');
+      isDomainWritableSpy.mockRestore();
+    });
+
+    test('should return empty string for single part hostname', async () => {
+      const isDomainWritableSpy = jest.spyOn(BrowserUtils.CookieStorage, 'isDomainWritable');
+      const domain = await Config.getTopLevelDomain('mylocaldomain');
+      expect(isDomainWritableSpy).not.toHaveBeenCalled();
       expect(domain).toBe('');
     });
 
