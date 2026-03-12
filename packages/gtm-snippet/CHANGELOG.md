@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.36.4-SR-2728.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/gtm-snippet@2.36.4...@amplitude/gtm-snippet@2.36.4-SR-2728.0) (2026-03-12)
+
+
+### Bug Fixes
+
+* **gtm-snippet:** use workspace protocol for plugin-session-replay-browser dep ([d8d8341](https://github.com/amplitude/Amplitude-TypeScript/commit/d8d8341659c4f14181e5242d209154d24517a7bf))
+
+
+
+
+
 ## [2.36.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/gtm-snippet@2.36.3...@amplitude/gtm-snippet@2.36.3) (2026-03-11)
 
 **Note:** Version bump only for package @amplitude/gtm-snippet

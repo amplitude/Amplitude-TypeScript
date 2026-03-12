@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.0.4-SR-2728.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/segment-session-replay-plugin@0.0.3...@amplitude/segment-session-replay-plugin@0.0.4-SR-2728.0) (2026-03-12)
+
+**Note:** Version bump only for package @amplitude/segment-session-replay-plugin
+
+
+
+
+
 ## [0.0.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/segment-session-replay-plugin@0.0.2...@amplitude/segment-session-replay-plugin@0.0.3) (2026-03-11)
 
 **Note:** Version bump only for package @amplitude/segment-session-replay-plugin
