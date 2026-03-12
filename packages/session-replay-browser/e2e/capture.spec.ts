@@ -1,8 +1,11 @@
 import { test, expect, Route } from '@playwright/test';
+import { unpack } from '@amplitude/rrweb-packer';
 
 const SR_PROPERTY_KEY = '[Amplitude] Session Replay ID';
 const TEST_SESSION_ID = 1700000000000; // fixed timestamp always in sample at 100%
 const SR_API_SUCCESS = { code: 200 };
+// Fake origin used for fetch calls made from the test page during network body capture tests.
+const TEST_FETCH_ORIGIN = 'https://test-fetch.amplitude.test';
 
 // Remote config responses. The key 'configs.sessionReplay' is traversed as a
 // dot-separated path by the RemoteConfigClient, so the response must be nested.
@@ -12,6 +15,53 @@ const remoteConfigRecording = {
 const remoteConfigNotRecording = {
   configs: { sessionReplay: { sr_sampling_config: { capture_enabled: true, sample_rate: 0.0 } } },
 };
+
+/**
+ * Remote config with network logging and opt-in body capture enabled.
+ */
+function remoteConfigWithNetworkBody(opts: { request?: boolean; response?: boolean; maxBodySizeBytes?: number } = {}) {
+  return {
+    configs: {
+      sessionReplay: {
+        sr_sampling_config: { capture_enabled: true, sample_rate: 1.0 },
+        sr_logging_config: {
+          network: {
+            enabled: true,
+            body: { request: true, response: true, ...opts },
+          },
+        },
+      },
+    },
+  };
+}
+
+/**
+ * Decodes all custom 'fetch-request' events out of a raw track-API request body.
+ * Each event string in payload.events is JSON.stringify(pack(rrwebEvent)).
+ */
+function decodeFetchRequestEvents(rawBody: string): Array<Record<string, unknown>> {
+  if (!rawBody) return [];
+  let payload: { events?: unknown[] };
+  try {
+    payload = JSON.parse(rawBody) as { events?: unknown[] };
+  } catch {
+    return [];
+  }
+  if (!Array.isArray(payload.events)) return [];
+  const results: Array<Record<string, unknown>> = [];
+  for (const eventStr of payload.events) {
+    if (typeof eventStr !== 'string') continue;
+    try {
+      const event = unpack(JSON.parse(eventStr));
+      if (event.type === 5 && (event.data as any).tag === 'fetch-request') {
+        results.push((event.data as any).payload as Record<string, unknown>);
+      }
+    } catch {
+      // skip unparseable events
+    }
+  }
+  return results;
+}
 
 /**
  * Builds a remote config with URL-based targeting: records when the page URL
@@ -69,6 +119,18 @@ function buildUrl(path: string, params: Record<string, string | number | boolean
 
 async function waitForReady(page: import('@playwright/test').Page): Promise<void> {
   await page.waitForFunction(() => (window as any).srReady === true, { timeout: 10_000 });
+}
+
+/**
+ * Waits until the SDK's NetworkObservers have patched window.fetch.
+ * The SDK replaces the native fetch with an async wrapper; once replaced,
+ * fetch.toString() no longer contains '[native code]'.
+ *
+ * Must be called AFTER waitForReady because the SDK patches fetch
+ * asynchronously (via `void initialize()`) after init() resolves.
+ */
+async function waitForNetworkObservers(page: import('@playwright/test').Page): Promise<void> {
+  await page.waitForFunction(() => !window.fetch.toString().includes('[native code]'), { timeout: 10_000 });
 }
 
 async function getProperties(page: import('@playwright/test').Page): Promise<Record<string, unknown>> {
@@ -550,5 +612,151 @@ test.describe('URL-based targeting — URL pattern matching', () => {
     await page.waitForTimeout(500);
 
     expect((await getProperties(page))[SR_PROPERTY_KEY]).toBeFalsy();
+  });
+});
+
+// ─── Network body capture ─────────────────────────────────────────────────────
+
+test.describe('network body capture', () => {
+  /**
+   * Sets up a track-API mock that also captures POST bodies via page.route().
+   * Call BEFORE page.goto. Returns a function that decodes all captured
+   * fetch-request event payloads.
+   */
+  async function mockTrackApiWithCapture(page: import('@playwright/test').Page) {
+    const rawBodies: string[] = [];
+    await page.route('https://api-sr.amplitude.com/**', (route: Route) => {
+      rawBodies.push(route.request().postData() ?? '');
+      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(SR_API_SUCCESS) });
+    });
+    return () => rawBodies.flatMap((body) => decodeFetchRequestEvents(body));
+  }
+
+  test('captures request and response body for a JSON fetch', async ({ page }) => {
+    await mockRemoteConfig(page, remoteConfigWithNetworkBody());
+    const getFetchEvents = await mockTrackApiWithCapture(page);
+    await page.route(`${TEST_FETCH_ORIGIN}/**`, (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ result: 'ok' }),
+      }),
+    );
+
+    await page.goto(buildUrl('/session-replay-browser/sr-capture-test.html', { sessionId: TEST_SESSION_ID }));
+    await waitForReady(page);
+    await waitForNetworkObservers(page);
+
+    // Make a POST fetch from within the page
+    await page.evaluate(
+      (url) =>
+        fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'test' }),
+        }),
+      `${TEST_FETCH_ORIGIN}/data`,
+    );
+    // Give the SDK time to read the cloned response body (detached async)
+    await page.waitForTimeout(200);
+
+    await page.evaluate(() => window.dispatchEvent(new Event('blur')));
+    await page.evaluate(() => (window as any).sessionReplay.flush(false) as Promise<void>);
+    await page.waitForTimeout(500);
+
+    const fetchEvents = getFetchEvents();
+    expect(fetchEvents.length).toBeGreaterThan(0);
+    const evt = fetchEvents.find((e) => String(e.url).includes(TEST_FETCH_ORIGIN));
+    expect(evt).toBeDefined();
+    expect(evt!.requestBody).toBe('{"action":"test"}');
+    expect(evt!.responseBody).toBe('{"result":"ok"}');
+    expect(evt!.responseBodyStatus).toBe('captured');
+  });
+
+  test('sets responseBodyStatus to "skipped_binary" for image responses', async ({ page }) => {
+    await mockRemoteConfig(page, remoteConfigWithNetworkBody());
+    const getFetchEvents = await mockTrackApiWithCapture(page);
+    const PNG_1X1 = Buffer.from(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+      'base64',
+    );
+    await page.route(`${TEST_FETCH_ORIGIN}/**`, (route) =>
+      route.fulfill({ status: 200, contentType: 'image/png', body: PNG_1X1 }),
+    );
+
+    await page.goto(buildUrl('/session-replay-browser/sr-capture-test.html', { sessionId: TEST_SESSION_ID }));
+    await waitForReady(page);
+    await waitForNetworkObservers(page);
+
+    await page.evaluate((url) => fetch(url), `${TEST_FETCH_ORIGIN}/image.png`);
+    await page.waitForTimeout(200);
+
+    await page.evaluate(() => window.dispatchEvent(new Event('blur')));
+    await page.evaluate(() => (window as any).sessionReplay.flush(false) as Promise<void>);
+    await page.waitForTimeout(500);
+
+    const fetchEvents = getFetchEvents();
+    const evt = fetchEvents.find((e) => String(e.url).includes(TEST_FETCH_ORIGIN));
+    expect(evt).toBeDefined();
+    expect(evt!.responseBodyStatus).toBe('skipped_binary');
+    expect(evt!.responseBody).toBeUndefined();
+  });
+
+  test('does not capture bodies when body config is absent', async ({ page }) => {
+    await mockRemoteConfig(page, {
+      configs: {
+        sessionReplay: {
+          sr_sampling_config: { capture_enabled: true, sample_rate: 1.0 },
+          sr_logging_config: { network: { enabled: true } },
+        },
+      },
+    });
+    const getFetchEvents = await mockTrackApiWithCapture(page);
+    await page.route(`${TEST_FETCH_ORIGIN}/**`, (route) =>
+      route.fulfill({ status: 200, contentType: 'application/json', body: '{"x":1}' }),
+    );
+
+    await page.goto(buildUrl('/session-replay-browser/sr-capture-test.html', { sessionId: TEST_SESSION_ID }));
+    await waitForReady(page);
+    await waitForNetworkObservers(page);
+
+    await page.evaluate((url) => fetch(url, { method: 'POST', body: 'hello' }), `${TEST_FETCH_ORIGIN}/data`);
+    await page.waitForTimeout(200);
+
+    await page.evaluate(() => window.dispatchEvent(new Event('blur')));
+    await page.evaluate(() => (window as any).sessionReplay.flush(false) as Promise<void>);
+    await page.waitForTimeout(500);
+
+    const fetchEvents = getFetchEvents();
+    const evt = fetchEvents.find((e) => String(e.url).includes(TEST_FETCH_ORIGIN));
+    expect(evt).toBeDefined();
+    expect(evt!.requestBody).toBeUndefined();
+    expect(evt!.responseBody).toBeUndefined();
+    expect(evt!.responseBodyStatus).toBeUndefined();
+  });
+
+  test('truncates response body exceeding maxBodySizeBytes', async ({ page }) => {
+    await mockRemoteConfig(page, remoteConfigWithNetworkBody({ maxBodySizeBytes: 5 }));
+    const getFetchEvents = await mockTrackApiWithCapture(page);
+    await page.route(`${TEST_FETCH_ORIGIN}/**`, (route) =>
+      route.fulfill({ status: 200, contentType: 'text/plain', body: 'hello world' }),
+    );
+
+    await page.goto(buildUrl('/session-replay-browser/sr-capture-test.html', { sessionId: TEST_SESSION_ID }));
+    await waitForReady(page);
+    await waitForNetworkObservers(page);
+
+    await page.evaluate((url) => fetch(url), `${TEST_FETCH_ORIGIN}/data`);
+    await page.waitForTimeout(200);
+
+    await page.evaluate(() => window.dispatchEvent(new Event('blur')));
+    await page.evaluate(() => (window as any).sessionReplay.flush(false) as Promise<void>);
+    await page.waitForTimeout(500);
+
+    const fetchEvents = getFetchEvents();
+    const evt = fetchEvents.find((e) => String(e.url).includes(TEST_FETCH_ORIGIN));
+    expect(evt).toBeDefined();
+    expect(evt!.responseBody).toBe('hello');
+    expect(evt!.responseBodyStatus).toBe('truncated');
   });
 });

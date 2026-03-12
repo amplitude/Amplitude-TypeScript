@@ -105,6 +105,57 @@ sessionReplay.shutdown()
 |`performanceConfig.timeout`|`number`|No|`undefined`|Optional timeout in milliseconds for the `requestIdleCallback` API. If specified, this value will be used to set a maximum time for the browser to wait before executing the deferred compression task, even if the browser is not idle.|
 |`useWebWorker`|`boolean`|No|`false`|If true, the SDK will compress replay events using a web worker. This offloads compression to a separate thread, improving performance on the main thread.|
 
+## Network Request Capture
+
+The SDK can capture network requests made via `fetch` and include them as events in the session replay. This is opt-in and disabled by default.
+
+### Basic setup
+
+Enable network capture via remote configuration by setting `sr_logging_config.network.enabled: true`. No code changes are required beyond the standard SDK initialization.
+
+### Capturing request and response bodies
+
+Body capture is a separate opt-in within network capture. To enable it, set `body.request` and/or `body.response` in the network config:
+
+```typescript
+// This is configured server-side via sr_logging_config, not in the SDK init call.
+// The shape of the remote config that enables body capture:
+{
+  sr_logging_config: {
+    network: {
+      enabled: true,
+      body: {
+        request: true,   // capture fetch request bodies
+        response: true,  // capture fetch response bodies
+        maxBodySizeBytes: 10240, // optional, defaults to 10KB
+      }
+    }
+  }
+}
+```
+
+#### Behavior
+
+- **Request bodies**: Captured for `string`, `URLSearchParams`, and `FormData` body types. `Blob`, `ArrayBuffer`, and `ReadableStream` bodies are skipped.
+- **Response bodies**: Captured after the response is received. Binary content types (`image/*`, `audio/*`, `video/*`, `application/octet-stream`, `font/*`) are skipped and the event will have `responseBodyStatus: 'skipped_binary'`.
+- **Truncation**: Bodies exceeding `maxBodySizeBytes` are truncated to fit within the limit (byte-accurate for multi-byte characters). The event will have `responseBodyStatus: 'truncated'`.
+- **Errors**: If reading the response body fails, the event will have `responseBodyStatus: 'error'`.
+
+#### Network event fields
+
+| Field | Type | Description |
+|-|-|-|
+| `url` | `string` | Request URL |
+| `method` | `string` | HTTP method |
+| `status` | `number` | Response status code |
+| `duration` | `number` | Round-trip time in milliseconds |
+| `requestHeaders` | `object` | Request headers |
+| `responseHeaders` | `object` | Response headers |
+| `requestBody` | `string` | Request body (if body capture enabled) |
+| `responseBody` | `string` | Response body (if body capture enabled) |
+| `responseBodyStatus` | `string` | `'captured'`, `'truncated'`, `'skipped_binary'`, or `'error'` |
+| `error` | `object` | Error name and message if the request failed |
+
 ## Bundle Size Optimization
 The Session Replay SDK uses dynamic imports to optimize bundle size and improve initial page load performance. Key modules are loaded on-demand rather than being included in the initial bundle:
 
