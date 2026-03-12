@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.0.5](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/unified@1.0.4...@amplitude/unified@1.0.5) (2026-03-12)
+
+
+### Bug Fixes
+
+* **unified:** should not throw an error on multiple initAll calls ([#1585](https://github.com/amplitude/Amplitude-TypeScript/issues/1585)) ([10e191a](https://github.com/amplitude/Amplitude-TypeScript/commit/10e191a24600ebe767040d58e231852185f07a30))
+
+
+
+
+
 ## [1.0.4](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/unified@1.0.3...@amplitude/unified@1.0.4) (2026-03-11)
 
 **Note:** Version bump only for package @amplitude/unified
