@@ -28,13 +28,16 @@ export const customEnrichmentPlugin = (): EnrichmentPlugin => {
     if (body) {
       try {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-implied-eval
-        return new Function('event', body) as (event: Event) => Event;
+        const fn = new Function('return ' + body)() as unknown;
+        if (typeof fn === 'function') {
+          return fn as (event: Event) => Event;
+        }
+        loggerProvider?.error('Custom enrichment body did not evaluate to a function');
       } catch (error) {
         loggerProvider?.error('Could not create custom enrichment function', error);
       }
     }
 
-    // if there was no content, return a function that returns the event unchanged
     return (event: Event) => event;
   }
 

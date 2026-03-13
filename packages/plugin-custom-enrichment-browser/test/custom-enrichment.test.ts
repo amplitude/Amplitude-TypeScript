@@ -107,11 +107,11 @@ describe('Custom Enrichment Plugin', () => {
   });
   describe('execute', () => {
     it('should execute custom enrichment function successfully', async () => {
-      const customFunction = `
+      const customFunction = `function(event) {
         event.event_properties = event.event_properties || {};
         event.event_properties.custom_field = 'enriched_value';
         return event;
-      `;
+      }`;
       const plugin = customEnrichmentPlugin();
 
       // Mock remote config to provide the custom function
@@ -151,12 +151,12 @@ describe('Custom Enrichment Plugin', () => {
 
     it('should handle enrichment function that adds or modifies the event', async () => {
       const timestamp = Date.now();
-      const customFunction = `
+      const customFunction = `function(event) {
         event.user_properties = { custom_user_prop: 'user_value' };
         event.event_properties = { ...event.event_properties, timestamp: ${timestamp} };
         event.event_type = 'enriched_event';
         return event;
-      `;
+      }`;
       const plugin = customEnrichmentPlugin();
 
       // Mock remote config to provide the custom function
@@ -191,9 +191,9 @@ describe('Custom Enrichment Plugin', () => {
     });
 
     it('should return original event if enrichment function throws error', async () => {
-      const invalidFunction = `
+      const invalidFunction = `function(event) {
         throw new Error('Invalid enrichment function');
-      `;
+      }`;
       const plugin = customEnrichmentPlugin();
 
       // Mock remote config to provide the invalid function
@@ -231,7 +231,7 @@ describe('Custom Enrichment Plugin', () => {
       const mockRemoteConfigClient = {
         subscribe: jest.fn((key, _audience, callback) => {
           if (key === 'configs.analyticsSDK.browserSDK.customEnrichment') {
-            callback({ body: 'throw new Error("test error");' });
+            callback({ body: 'function(event) { throw new Error("test error"); }' });
           }
         }),
       };
@@ -337,7 +337,38 @@ describe('Custom Enrichment Plugin', () => {
       const originalEvent = { event_type: 'test_event' };
       const result = await plugin.execute?.(originalEvent);
 
-      expect(result).toEqual(null);
+      expect(result).toEqual(originalEvent);
+      expect((mockLogger.error as jest.Mock).mock.calls.length).toBe(1);
+      expect((mockLogger.error as jest.Mock).mock.calls[0][0]).toBe(
+        'Custom enrichment body did not evaluate to a function',
+      );
+    });
+
+    it('should return null when enrichment function returns undefined', async () => {
+      const plugin = customEnrichmentPlugin();
+
+      const mockRemoteConfigClient = {
+        subscribe: jest.fn((key, _audience, callback) => {
+          if (key === 'configs.analyticsSDK.browserSDK.customEnrichment') {
+            callback({ body: 'function(event) {}' });
+          }
+        }),
+      };
+
+      const configWithRemoteConfig = {
+        ...mockConfig,
+        remoteConfigClient: mockRemoteConfigClient,
+        remoteConfig: {
+          fetchRemoteConfig: true,
+        },
+      };
+
+      await plugin.setup?.(configWithRemoteConfig, mockClient);
+
+      const originalEvent = { event_type: 'test_event' };
+      const result = await plugin.execute?.(originalEvent);
+
+      expect(result).toBeNull();
     });
 
     it('should handle remote config with invalid config', async () => {
@@ -423,10 +454,10 @@ describe('Custom Enrichment Plugin', () => {
 
     it('should handle when remote config body becomes null', async () => {
       const plugin = customEnrichmentPlugin();
-      const customFunction = `
+      const customFunction = `function(event) {
         event.event_properties = { test: "value" };
         return event;
-      `;
+      }`;
 
       // Store the callback so we can invoke it multiple times to simulate config changes
       let subscribedCallback: ((config: any) => void) | undefined;
@@ -640,7 +671,7 @@ describe('Custom Enrichment Plugin', () => {
       const mockRemoteConfigClient = {
         subscribe: jest.fn((key, _audience, callback) => {
           if (key === 'configs.analyticsSDK.browserSDK.customEnrichment') {
-            callback({ body: 'throw new Error("test error");' });
+            callback({ body: 'function(event) { throw new Error("test error"); }' });
           }
         }),
       };
@@ -663,10 +694,9 @@ describe('Custom Enrichment Plugin', () => {
       expect(result).toEqual(originalEvent);
     });
 
-    it('should handle undefined loggerProvider in createEnrichEvent', async () => {
+    it('should handle undefined loggerProvider in createEnrichEvent when body throws', async () => {
       const plugin = customEnrichmentPlugin();
 
-      // Mock remote config to provide the error function
       const mockRemoteConfigClient = {
         subscribe: jest.fn((key, _audience, callback) => {
           if (key === 'configs.analyticsSDK.browserSDK.customEnrichment') {
@@ -689,7 +719,34 @@ describe('Custom Enrichment Plugin', () => {
       const originalEvent = { event_type: 'test_event' };
       const result = await plugin.execute?.(originalEvent);
 
-      // Should return original event and not throw even with undefined loggerProvider
+      expect(result).toEqual(originalEvent);
+    });
+
+    it('should handle undefined loggerProvider when body evaluates to non-function', async () => {
+      const plugin = customEnrichmentPlugin();
+
+      const mockRemoteConfigClient = {
+        subscribe: jest.fn((key, _audience, callback) => {
+          if (key === 'configs.analyticsSDK.browserSDK.customEnrichment') {
+            callback({ body: '"a string, not a function"' });
+          }
+        }),
+      };
+
+      const configWithRemoteConfig = {
+        ...mockConfig,
+        remoteConfigClient: mockRemoteConfigClient,
+        remoteConfig: {
+          fetchRemoteConfig: true,
+        },
+        loggerProvider: undefined,
+      } as unknown as BrowserConfig;
+
+      await plugin.setup?.(configWithRemoteConfig, mockClient);
+
+      const originalEvent = { event_type: 'test_event' };
+      const result = await plugin.execute?.(originalEvent);
+
       expect(result).toEqual(originalEvent);
     });
   });
