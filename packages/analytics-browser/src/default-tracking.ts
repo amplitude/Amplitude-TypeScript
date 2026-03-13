@@ -139,7 +139,7 @@ export const isCustomEnrichmentEnabled = (customEnrichment: boolean | CustomEnri
     return customEnrichment;
   }
 
-  if (typeof customEnrichment === 'object' && customEnrichment.enabled !== false) {
+  if (typeof customEnrichment === 'object' && customEnrichment !== null && customEnrichment.enabled !== false) {
     return true;
   }
 

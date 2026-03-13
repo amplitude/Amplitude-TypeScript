@@ -269,7 +269,7 @@ export function updateBrowserConfigWithRemoteConfig(
       browserConfig.defaultTracking = browserConfig.autocapture;
     }
 
-    if ('customEnrichment' in typedRemoteConfig) {
+    if ('customEnrichment' in typedRemoteConfig && typedRemoteConfig.customEnrichment !== null) {
       browserConfig.customEnrichment = typedRemoteConfig.customEnrichment;
     }
 
