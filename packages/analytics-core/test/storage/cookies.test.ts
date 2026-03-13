@@ -242,16 +242,17 @@ describe('cookies', () => {
 
     describe('when document is not available on globalScope (like React Native)', () => {
       let getGlobalScopeSpy: jest.SpyInstance;
-      
+
       beforeEach(() => {
-        getGlobalScopeSpy = jest.spyOn(GlobalScopeModule, 'getGlobalScope')
+        getGlobalScopeSpy = jest
+          .spyOn(GlobalScopeModule, 'getGlobalScope')
           .mockReturnValue({} as typeof globalThis);
       });
-      
+
       afterEach(() => {
         getGlobalScopeSpy.mockRestore();
       });
-      
+
       test('setSync exits without error', async () => {
         const cookies = new CookieStorage();
         await expect(cookies.set('key', 'value')).resolves.not.toThrow();
