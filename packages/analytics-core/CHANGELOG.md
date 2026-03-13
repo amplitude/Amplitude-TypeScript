@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.41.5](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.41.4...@amplitude/analytics-core@2.41.5) (2026-03-13)
+
+
+### Bug Fixes
+
+* **analytics-core:** check document before writing cookie ([#1594](https://github.com/amplitude/Amplitude-TypeScript/issues/1594)) ([d88bd4e](https://github.com/amplitude/Amplitude-TypeScript/commit/d88bd4eca1f4b1dd19733c194f45f2317e7cb545))
+
+
+
+
+
 ## [2.41.4](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.41.3...@amplitude/analytics-core@2.41.4) (2026-03-12)
 
 

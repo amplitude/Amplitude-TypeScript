@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.32.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.32.1...@amplitude/session-replay-browser@1.32.2) (2026-03-13)
+
+
+### Bug Fixes
+
+* **session-replay:** add user-property targeting for session recording ([#1593](https://github.com/amplitude/Amplitude-TypeScript/issues/1593)) ([123b4a5](https://github.com/amplitude/Amplitude-TypeScript/commit/123b4a521e6f35353c09b60f1e3ab619e06e5f3b))
+
+
+
+
+
 ## [1.32.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.32.0...@amplitude/session-replay-browser@1.32.1) (2026-03-12)
 
 
