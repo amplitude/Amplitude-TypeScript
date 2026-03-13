@@ -42,6 +42,10 @@ describe('isCustomEnrichmentEnabled', () => {
   test('should return true when customEnrichment is an object without enabled (from translated remote config)', () => {
     expect(isCustomEnrichmentEnabled({ body: 'test' })).toBe(true);
   });
+
+  test('should return false when customEnrichment is null', () => {
+    expect(isCustomEnrichmentEnabled(null as unknown as undefined)).toBe(false);
+  });
 });
 
 describe('isWebVitalsEnabled', () => {
