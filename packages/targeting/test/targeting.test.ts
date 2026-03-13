@@ -105,6 +105,68 @@ describe('targeting', () => {
         [flagCatchAll],
       );
     });
+
+    test('should flatten user properties onto context.user for targeting selectors', async () => {
+      const targeting = new Targeting();
+      const mockEngineEvaluate = jest.fn();
+      targeting.evaluationEngine.evaluate = mockEngineEvaluate;
+      const userProperties = {
+        country: 'Canada',
+        subscription_tier: 'paid',
+      };
+
+      await targeting.evaluateTargeting({
+        deviceId: '1a2b3c',
+        userProperties,
+        flag: flagCatchAll,
+        sessionId: 123,
+        apiKey: 'static_key',
+        loggerProvider: mockLoggerProvider,
+      });
+
+      expect(mockEngineEvaluate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          user: expect.objectContaining({
+            device_id: '1a2b3c',
+            user_properties: userProperties,
+            country: 'Canada',
+            subscription_tier: 'paid',
+          }),
+        }),
+        [flagCatchAll],
+      );
+    });
+
+    test('should not allow user properties to overwrite internal user context fields', async () => {
+      const targeting = new Targeting();
+      const mockEngineEvaluate = jest.fn();
+      targeting.evaluationEngine.evaluate = mockEngineEvaluate;
+      const userProperties = {
+        country: 'Canada',
+        device_id: 'malicious-device-id',
+        user_properties: { spoofed: true },
+      };
+
+      await targeting.evaluateTargeting({
+        deviceId: '1a2b3c',
+        userProperties,
+        flag: flagCatchAll,
+        sessionId: 123,
+        apiKey: 'static_key',
+        loggerProvider: mockLoggerProvider,
+      });
+
+      expect(mockEngineEvaluate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          user: expect.objectContaining({
+            country: 'Canada',
+            device_id: '1a2b3c',
+            user_properties: userProperties,
+          }),
+        }),
+        [flagCatchAll],
+      );
+    });
   });
 
   describe('condition tests', () => {

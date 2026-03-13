@@ -49,6 +49,41 @@ function remoteConfigWithUrlTargeting(matchStr: string): object {
   };
 }
 
+/**
+ * Builds a remote config with user-property targeting:
+ * records only when context.user.country is "Canada".
+ */
+function remoteConfigWithUserPropertyTargeting(country: string): object {
+  return {
+    configs: {
+      sessionReplay: {
+        sr_sampling_config: { capture_enabled: true },
+        sr_targeting_config: {
+          key: 'sr_targeting_config',
+          variants: { on: { key: 'on' }, off: { key: 'off' } },
+          segments: [
+            {
+              metadata: { segmentName: 'country_match' },
+              bucket: {
+                selector: ['context', 'session_id'],
+                salt: 'pw_user_targeting_salt',
+                allocations: [
+                  {
+                    range: [0, 99],
+                    distributions: [{ variant: 'on', range: [0, 42949672] }],
+                  },
+                ],
+              },
+              conditions: [[{ selector: ['context', 'user', 'country'], op: 'is', values: [country] }]],
+            },
+            { variant: 'off' },
+          ],
+        },
+      },
+    },
+  };
+}
+
 function mockRemoteConfig(page: import('@playwright/test').Page, body: object) {
   return page.route('https://sr-client-cfg.amplitude.com/**', (route: Route) =>
     route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(body) }),
@@ -550,5 +585,66 @@ test.describe('URL-based targeting — URL pattern matching', () => {
     await page.waitForTimeout(500);
 
     expect((await getProperties(page))[SR_PROPERTY_KEY]).toBeFalsy();
+  });
+});
+
+// ─── User-property targeting ──────────────────────────────────────────────────
+
+test.describe('user-property targeting', () => {
+  test('does not start recording when user country does not match targeting condition', async ({ page }) => {
+    await mockRemoteConfig(page, remoteConfigWithUserPropertyTargeting('Canada'));
+    await mockTrackApi(page);
+
+    await page.goto(buildUrl('/session-replay-browser/sr-capture-test.html', { sessionId: TEST_SESSION_ID }));
+    await waitForReady(page);
+
+    await page.evaluate(() => {
+      void (window as any).sessionReplay.evaluateTargetingAndCapture({
+        userProperties: { country: 'US' },
+        page: { url: window.location.href },
+      });
+    });
+    await page.waitForTimeout(300);
+
+    // Country does not match targeting rule, so replay should remain disabled.
+    expect((await getProperties(page))[SR_PROPERTY_KEY]).toBeFalsy();
+  });
+
+  test('starts recording only after matching user properties are provided', async ({ page }) => {
+    await mockRemoteConfig(page, remoteConfigWithUserPropertyTargeting('Canada'));
+    await mockTrackApi(page);
+
+    await page.goto(buildUrl('/session-replay-browser/sr-capture-test.html', { sessionId: TEST_SESSION_ID }));
+    await waitForReady(page);
+
+    // No user properties yet -> should not record
+    expect((await getProperties(page))[SR_PROPERTY_KEY]).toBeFalsy();
+
+    // Re-evaluate targeting with a non-matching country -> still should not record
+    await page.evaluate(() => {
+      void (window as any).sessionReplay.evaluateTargetingAndCapture({
+        userProperties: { country: 'US' },
+        page: { url: window.location.href },
+      });
+    });
+    await page.waitForTimeout(300);
+    expect((await getProperties(page))[SR_PROPERTY_KEY]).toBeFalsy();
+
+    // Re-evaluate with matching country -> should start recording
+    await page.evaluate(() => {
+      void (window as any).sessionReplay.evaluateTargetingAndCapture({
+        userProperties: { country: 'Canada' },
+        page: { url: window.location.href },
+      });
+    });
+    await page.waitForFunction(
+      (key) => !!(window as any).sessionReplay.getSessionReplayProperties()[key],
+      SR_PROPERTY_KEY,
+      { timeout: 5_000 },
+    );
+
+    const props = await getProperties(page);
+    expect(props[SR_PROPERTY_KEY]).toBeTruthy();
+    expect(String(props[SR_PROPERTY_KEY])).toContain(`/${TEST_SESSION_ID}`);
   });
 });
