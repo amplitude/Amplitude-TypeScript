@@ -39,6 +39,7 @@ export class Targeting implements AmplitudeTargeting {
       user: {
         device_id: deviceId,
         user_properties: userProperties,
+        ...userProperties,
       },
       page: page,
     };
