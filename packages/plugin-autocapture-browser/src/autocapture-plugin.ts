@@ -372,7 +372,6 @@ export const autocapturePlugin = (
     }
 
     const beforeUnloadHandler = () => {
-      console.log('amp: beforeUnload');
       handleViewportContentUpdated(true);
     };
     /* istanbul ignore next */
@@ -389,13 +388,11 @@ export const autocapturePlugin = (
     if (navigateObservable) {
       subscriptions.push(
         navigateObservable.subscribe(() => {
-          console.log('amp: navigate');
           handleViewportContentUpdated(true);
         }),
       );
     } else if (globalScope) {
       const popstateHandler = () => {
-        console.log('amp: popstate');
         handleViewportContentUpdated(true);
       };
       /* istanbul ignore next */
@@ -412,7 +409,6 @@ export const autocapturePlugin = (
         // eslint-disable-next-line @typescript-eslint/unbound-method
         globalScope.history.pushState = new Proxy(originalPushState, {
           apply: (target, thisArg, [state, unused, url]) => {
-            console.log('amp: pushState');
             target.apply(thisArg, [state, unused, url]);
             handleViewportContentUpdated(true);
           },

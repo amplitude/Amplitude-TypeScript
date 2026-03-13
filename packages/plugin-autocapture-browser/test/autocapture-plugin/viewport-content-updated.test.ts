@@ -426,4 +426,38 @@ describe('fireViewportContentUpdated - early return when no changes', () => {
       }),
     );
   });
+
+  test('should mutate lastScroll so consecutive calls deduplicate correctly', () => {
+    const currentElementExposed = new Set<string>();
+    const elementExposedForPage = new Set<string>();
+    const lastScroll: { maxX: undefined | number; maxY: undefined | number } = { maxX: undefined, maxY: undefined };
+
+    // First call: scroll changed from undefined -> 100/200, should track
+    fireViewportContentUpdated({
+      amplitude: mockAmplitude,
+      scrollTracker: mockScrollTracker,
+      currentElementExposed,
+      elementExposedForPage,
+      exposureTracker: undefined,
+      isPageEnd: false,
+      lastScroll,
+    });
+    expect(trackSpy).toHaveBeenCalledTimes(1);
+
+    // Verify lastScroll was mutated (not reassigned)
+    expect(lastScroll.maxX).toBe(100);
+    expect(lastScroll.maxY).toBe(200);
+
+    // Second call: same scroll position, no new elements — should be deduplicated
+    fireViewportContentUpdated({
+      amplitude: mockAmplitude,
+      scrollTracker: mockScrollTracker,
+      currentElementExposed,
+      elementExposedForPage,
+      exposureTracker: undefined,
+      isPageEnd: false,
+      lastScroll,
+    });
+    expect(trackSpy).toHaveBeenCalledTimes(1); // Still 1, deduplication worked
+  });
 });

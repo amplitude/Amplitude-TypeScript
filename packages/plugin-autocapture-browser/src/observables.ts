@@ -107,13 +107,14 @@ export const createExposureObservable = (
     });
 
     // Use mutation observable to observe new elements
-    mutationObservable.subscribe(({ event }) =>
+    const mutationSubscription = mutationObservable.subscribe(({ event }) =>
       event.forEach(({ addedNodes }) =>
         addedNodes.forEach((node) => node instanceof Element && intersectionObserver.observe(node)),
       ),
     );
 
     return () => {
+      mutationSubscription.unsubscribe();
       intersectionObserver.disconnect();
     };
   });

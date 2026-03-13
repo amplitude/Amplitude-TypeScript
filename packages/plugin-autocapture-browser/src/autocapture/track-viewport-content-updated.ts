@@ -63,7 +63,8 @@ export function fireViewportContentUpdated({
 
   /* istanbul ignore next */
   amplitude?.track('[Amplitude] Viewport Content Updated', eventProperties);
-  lastScroll = { maxX: pageScrollMaxState.maxX, maxY: pageScrollMaxState.maxY };
+  lastScroll.maxX = pageScrollMaxState.maxX;
+  lastScroll.maxY = pageScrollMaxState.maxY;
 
   // Clear current batch
   currentElementExposed.clear();
