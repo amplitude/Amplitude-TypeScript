@@ -37,9 +37,9 @@ export class Targeting implements AmplitudeTargeting {
       event,
       event_types: eventStrings && Array.from(eventStrings),
       user: {
+        ...userProperties,
         device_id: deviceId,
         user_properties: userProperties,
-        ...userProperties,
       },
       page: page,
     };
