@@ -244,6 +244,7 @@ describe('cookies', () => {
       let getGlobalScopeSpy: jest.SpyInstance;
 
       beforeEach(() => {
+        document.cookie = '';
         getGlobalScopeSpy = jest
           .spyOn(GlobalScopeModule, 'getGlobalScope')
           .mockReturnValue({} as typeof globalThis);
