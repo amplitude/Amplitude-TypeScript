@@ -1,9 +1,7 @@
 /* eslint-disable no-restricted-globals */
+import { DEFAULT_EXPOSURE_DURATION } from '@amplitude/analytics-core';
 import { AllWindowObservables } from '../autocapture-plugin';
 import { DataExtractor } from '../data-extractor';
-
-// Default duration an element must be visible to count as "exposed"
-export const DEFAULT_EXPOSURE_DURATION = 150;
 
 export function trackExposure({
   allObservables,
