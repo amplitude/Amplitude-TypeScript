@@ -47,6 +47,7 @@ import {
   isFrustrationInteractionsEnabled,
   getFrustrationInteractionsConfig,
   isPageUrlEnrichmentEnabled,
+  isCustomEnrichmentEnabled,
 } from './default-tracking';
 import { convertProxyObjectToRealObject, isInstanceProxy } from './utils/snippet-helper';
 import { Context } from './plugins/context';
@@ -65,6 +66,7 @@ import { WebAttribution } from './attribution/web-attribution';
 import { LIBPREFIX } from './lib-prefix';
 import { VERSION } from './version';
 import { pageUrlEnrichmentPlugin } from '@amplitude/plugin-page-url-enrichment-browser';
+import { customEnrichmentPlugin } from '@amplitude/plugin-custom-enrichment-browser';
 
 /**
  * Exported for `@amplitude/unified` or integration with blade plugins.
@@ -316,6 +318,11 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
     if (isPageUrlEnrichmentEnabled(this.config.autocapture)) {
       this.config.loggerProvider.debug('Adding referrer page url plugin');
       await this.add(pageUrlEnrichmentPlugin()).promise;
+    }
+
+    if (isCustomEnrichmentEnabled(this.config.customEnrichment)) {
+      this.config.loggerProvider.debug('Adding custom enrichment plugin');
+      await this.add(customEnrichmentPlugin()).promise;
     }
 
     this.initializing = false;

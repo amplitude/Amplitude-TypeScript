@@ -53,6 +53,7 @@
     "@amplitude/plugin-page-url-enrichment-browser": "workspace:*",
     "@amplitude/plugin-page-view-tracking-browser": "workspace:*",
     "@amplitude/plugin-web-vitals-browser": "workspace:*",
+    "@amplitude/plugin-custom-enrichment-browser": "workspace:*",
     "tslib": "^2.4.1"
   },
   "devDependencies": {

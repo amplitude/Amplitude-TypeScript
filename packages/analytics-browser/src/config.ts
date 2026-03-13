@@ -26,6 +26,7 @@ import {
   CookieOptions,
   RemoteConfigOptions,
   NetworkTrackingOptions,
+  CustomEnrichmentOptions,
   IIdentify,
   IDiagnosticsClient,
   isDomainEqual,
@@ -105,6 +106,7 @@ export class BrowserConfig extends Config implements IBrowserConfig {
     public diagnosticsSampleRate: number = 0,
     public diagnosticsClient?: IDiagnosticsClient,
     public remoteConfig?: RemoteConfigOptions,
+    public customEnrichment?: boolean | CustomEnrichmentOptions,
   ) {
     super({ apiKey, storageProvider, transportProvider: createTransport(transport) });
     this._cookieStorage = cookieStorage;
@@ -379,6 +381,7 @@ export const useBrowserConfig = async (
     earlyConfig?.diagnosticsSampleRate ?? amplitudeInstance._diagnosticsSampleRate,
     diagnosticsClient,
     options.remoteConfig,
+    options.customEnrichment,
   );
 
   if (!(await browserConfig.storageProvider.isEnabled())) {

@@ -532,6 +532,59 @@ describe('joined-config', () => {
         expect(networkTracking?.captureRules).toBeUndefined();
       });
     });
+
+    describe('customEnrichment', () => {
+      test('should merge customEnrichment from remote config when enabled', () => {
+        const remoteConfig = {
+          customEnrichment: { enabled: true, body: 'return event;' },
+        };
+
+        updateBrowserConfigWithRemoteConfig(remoteConfig, localConfig);
+        expect(localConfig.customEnrichment).toStrictEqual({ body: 'return event;' });
+      });
+
+      test('should set customEnrichment to false when remote config disables it', () => {
+        localConfig.customEnrichment = { enabled: true, body: 'return event;' };
+
+        const remoteConfig = {
+          customEnrichment: { enabled: false, body: 'return event;' },
+        };
+
+        updateBrowserConfigWithRemoteConfig(remoteConfig, localConfig);
+        expect(localConfig.customEnrichment).toBe(false);
+      });
+
+      test('should not modify customEnrichment if remote config does not include it', () => {
+        localConfig.customEnrichment = { enabled: true, body: 'return event;' };
+
+        const remoteConfig = {
+          autocapture: true,
+        };
+
+        updateBrowserConfigWithRemoteConfig(remoteConfig, localConfig);
+        expect(localConfig.customEnrichment).toStrictEqual({ enabled: true, body: 'return event;' });
+      });
+
+      test('should set customEnrichment to true when remote config has enabled-only', () => {
+        const remoteConfig = {
+          customEnrichment: { enabled: true },
+        };
+
+        updateBrowserConfigWithRemoteConfig(remoteConfig, localConfig);
+        expect(localConfig.customEnrichment).toBe(true);
+      });
+
+      test('should not modify customEnrichment when remote config delivers null', () => {
+        localConfig.customEnrichment = { enabled: true, body: 'return event;' };
+
+        const remoteConfig = {
+          customEnrichment: null,
+        };
+
+        updateBrowserConfigWithRemoteConfig(remoteConfig as any, localConfig);
+        expect(localConfig.customEnrichment).toStrictEqual({ enabled: true, body: 'return event;' });
+      });
+    });
   });
 
   describe('translateRemoteConfigToLocal', () => {
