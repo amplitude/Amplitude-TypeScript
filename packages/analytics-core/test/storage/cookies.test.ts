@@ -255,7 +255,7 @@ describe('cookies', () => {
 
       test('setSync exits without error', async () => {
         const cookies = new CookieStorage();
-        await expect(cookies.set('key', 'value')).resolves.not.toThrow();
+        await expect(cookies.set('key', 'value')).resolves.toBeUndefined();
         expect(document.cookie).toBe('');
         getGlobalScopeSpy.mockRestore();
       });
