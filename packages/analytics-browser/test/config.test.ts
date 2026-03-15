@@ -42,7 +42,7 @@ describe('config', () => {
 
   beforeEach(() => {
     // get random hex string
-    apiKey = Math.random().toString(16).substring(2, 15);
+    apiKey = Math.random().toString(16).substring(2, 15).padEnd(10, '0');
   });
 
   afterAll(() => {
