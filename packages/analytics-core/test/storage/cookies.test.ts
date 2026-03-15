@@ -20,7 +20,7 @@ const LEGAL_COOKIE_NAMES: Record<string, boolean> = {
   AMP_TLDTEST: true,
 };
 
-function applyStrictCookieNames() {
+function enforceStrictCookieNames() {
   const Proto = CookieStorage.prototype as unknown as { setSync: (key: string, value: unknown) => void };
   const originalSetSync = Proto.setSync;
   Proto.setSync = function (this: unknown, key: string, value: unknown) {
@@ -39,8 +39,8 @@ describe('cookies', () => {
   describe('isEnabled', () => {
     let undoStrictCookieNames: () => void;
     beforeEach(() => {
-      // Apply strict cookie names. This is important, do not remove it.
-      undoStrictCookieNames = applyStrictCookieNames();
+      // Enforce strict cookie names. This is important, do not remove it.
+      undoStrictCookieNames = enforceStrictCookieNames();
     });
 
     afterEach(() => {
@@ -504,7 +504,8 @@ describe('cookies', () => {
     let undoStrictCookieNames: () => void;
 
     beforeEach(() => {
-      undoStrictCookieNames = applyStrictCookieNames();
+      // Enforce strict cookie names. This is important, do not remove it.
+      undoStrictCookieNames = enforceStrictCookieNames();
       (CookieStorage as any).cachedTlds = {};
     });
 
