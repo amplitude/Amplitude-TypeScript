@@ -567,7 +567,9 @@ describe('config', () => {
     describe('with no cookie access', () => {
       let isDomainWritableSpy: jest.SpyInstance;
       beforeAll(() => {
-        isDomainWritableSpy = jest.spyOn(CookieStorage, 'isDomainWritable').mockResolvedValue(false);
+        isDomainWritableSpy = jest
+          .spyOn(CookieStorage, 'isDomainWritable')
+          .mockResolvedValue(false);
       });
 
       afterAll(() => {
