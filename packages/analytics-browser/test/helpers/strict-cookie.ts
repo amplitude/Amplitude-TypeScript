@@ -32,7 +32,6 @@ export function overrideCookieStoreStrict() {
       const first = params[0];
       const eqIndex = first?.indexOf('=') ?? -1;
       const name = eqIndex >= 0 ? first.substring(0, eqIndex) : undefined;
-      console.log('!!!name', name);
 
       if (
         !ALLOWED_COOKIE_PATTERNS.some((pattern: string | RegExp) => {
