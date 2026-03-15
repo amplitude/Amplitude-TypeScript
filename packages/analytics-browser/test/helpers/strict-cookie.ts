@@ -5,7 +5,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/restrict-template-expressions */
 /**
- * Patterns of cookies names that are allowed to be set
+ * Patterns of cookie names that are allowed to be set
  *
  * Do not add or modify patterns for this.
  * This is here to make sure cookie names are consistent
