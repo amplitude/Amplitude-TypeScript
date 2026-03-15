@@ -20,6 +20,7 @@ export const ALLOWED_COOKIE_PATTERNS = [
 
 export function overrideCookieStoreStrict() {
   const win = window as any;
+  const originalDescriptor = Object.getOwnPropertyDescriptor(win.document, 'cookie');
   let originalCookie = win.document.cookie;
   Object.defineProperty(win.document, 'cookie', {
     configurable: true,
@@ -50,13 +51,12 @@ export function overrideCookieStoreStrict() {
   });
 
   return () => {
-    Object.defineProperty(win.document, 'cookie', {
-      get() {
-        return originalCookie;
-      },
-      set(data: string) {
-        originalCookie = data;
-      },
-    });
+    if (originalDescriptor) {
+      Object.defineProperty(win.document, 'cookie', originalDescriptor);
+    } else {
+      // If there was no original descriptor, fall back to deleting the override.
+      // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+      delete (win.document as any).cookie;
+    }
   };
 }
