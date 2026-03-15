@@ -7,46 +7,20 @@ import { CookieStorage } from '../../src/storage/cookie';
 import { isDomainEqual, decodeCookieValue } from '../../src/index';
 import * as GlobalScopeModule from '../../src/global-scope';
 import { StorageSync } from '../../src/types/storage';
-
-/**
- * Cookie names that are allowed to be set.
- *
- * IMPORTANT: do not add or modify these without good reason and
- * without very careful consideration. Cookie names should be very
- * stable and not changed without a good reason.
- */
-const LEGAL_COOKIE_NAMES: Record<string, boolean> = {
-  AMP_TEST: true,
-  AMP_TLDTEST: true,
-};
-
-function enforceStrictCookieNames() {
-  const Proto = CookieStorage.prototype as unknown as { setSync: (key: string, value: unknown) => void };
-  const originalSetSync = Proto.setSync;
-  Proto.setSync = function (this: unknown, key: string, value: unknown) {
-    if (!LEGAL_COOKIE_NAMES[key]) {
-      throw new Error(`Illegal cookie name: ${key}`);
-    }
-    return originalSetSync.call(this, key, value);
-  };
-
-  return () => {
-    Proto.setSync = originalSetSync;
-  };
-}
+import { enforceStrictCookieNames } from '../helpers/util';
 
 describe('cookies', () => {
+  let undoStrictCookieNames: () => void;
+  beforeEach(() => {
+    // Enforce strict cookie names. This is important, do not remove it.
+    undoStrictCookieNames = enforceStrictCookieNames();
+  });
+
+  afterEach(() => {
+    undoStrictCookieNames();
+  });
+
   describe('isEnabled', () => {
-    let undoStrictCookieNames: () => void;
-    beforeEach(() => {
-      // Enforce strict cookie names. This is important, do not remove it.
-      undoStrictCookieNames = enforceStrictCookieNames();
-    });
-
-    afterEach(() => {
-      undoStrictCookieNames();
-    });
-
     describe('concurrent calls', () => {
       beforeEach(() => {
         jest.useFakeTimers();
@@ -164,6 +138,10 @@ describe('cookies', () => {
   });
 
   describe('get', () => {
+    beforeEach(() => {
+      undoStrictCookieNames?.();
+    });
+
     test('should return undefined for no cookie value', async () => {
       const cookies = new CookieStorage();
       expect(await cookies.get('hello')).toBe(undefined);
@@ -225,6 +203,10 @@ describe('cookies', () => {
   });
 
   describe('set', () => {
+    beforeEach(() => {
+      undoStrictCookieNames?.();
+    });
+
     test('should set cookie value', async () => {
       const cookies = new CookieStorage();
       await cookies.set('hello', 'world');
@@ -299,6 +281,10 @@ describe('cookies', () => {
   });
 
   describe('remove', () => {
+    beforeEach(() => {
+      undoStrictCookieNames?.();
+    });
+
     test('should call set', async () => {
       const cookies = new CookieStorage();
       const set = jest.spyOn(cookies, 'set');
@@ -317,6 +303,7 @@ describe('cookies', () => {
     let tldCookies: CookieStorage<Record<string, string>>;
     let subdomainCookies: CookieStorage<Record<string, string>>;
     beforeEach(() => {
+      undoStrictCookieNames?.();
       tldCookies = new CookieStorage<Record<string, string>>(
         {
           domain: 'example.com',
@@ -501,16 +488,8 @@ describe('cookies', () => {
   });
 
   describe('isDomainWritable', () => {
-    let undoStrictCookieNames: () => void;
-
     beforeEach(() => {
-      // Enforce strict cookie names. This is important, do not remove it.
-      undoStrictCookieNames = enforceStrictCookieNames();
       (CookieStorage as any).cachedTlds = {};
-    });
-
-    afterEach(() => {
-      undoStrictCookieNames();
     });
 
     test('should return true when domain is writable', async () => {
@@ -587,6 +566,10 @@ describe('cookies', () => {
   });
 
   describe('transaction', () => {
+    beforeEach(() => {
+      undoStrictCookieNames?.();
+    });
+
     test('should return the result of the callback', async () => {
       const cookies = new CookieStorage<string>();
       const result = await (cookies as any).transaction('test', (storageSync: StorageSync<string>) => {
