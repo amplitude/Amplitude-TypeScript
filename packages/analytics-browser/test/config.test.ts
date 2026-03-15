@@ -565,8 +565,13 @@ describe('config', () => {
     });
 
     describe('with no cookie access', () => {
+      let isDomainWritableSpy: jest.SpyInstance;
       beforeAll(() => {
-        CookieStorage.isDomainWritable = jest.fn().mockResolvedValue(false);
+        isDomainWritableSpy = jest.spyOn(CookieStorage, 'isDomainWritable').mockResolvedValue(false);
+      });
+
+      afterAll(() => {
+        isDomainWritableSpy.mockRestore();
       });
 
       test('should record a diagnostics event when no access to cookies', async () => {
