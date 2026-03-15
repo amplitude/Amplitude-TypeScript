@@ -8,8 +8,45 @@ import { isDomainEqual, decodeCookieValue } from '../../src/index';
 import * as GlobalScopeModule from '../../src/global-scope';
 import { StorageSync } from '../../src/types/storage';
 
+/**
+ * Cookie names that are allowed to be set.
+ *
+ * IMPORTANT: do not add or modify these without good reason and
+ * without very careful consideration. Cookie names should be very
+ * stable and not changed without a good reason.
+ */
+const LEGAL_COOKIE_NAMES: Record<string, boolean> = {
+  AMP_TEST: true,
+  AMP_TLDTEST: true,
+};
+
+function applyStrictCookieNames() {
+  const Proto = CookieStorage.prototype as unknown as { setSync: (key: string, value: unknown) => void };
+  const originalSetSync = Proto.setSync;
+  Proto.setSync = function (this: unknown, key: string, value: unknown) {
+    if (!LEGAL_COOKIE_NAMES[key]) {
+      throw new Error(`Illegal cookie name: ${key}`);
+    }
+    return originalSetSync.call(this, key, value);
+  };
+
+  return () => {
+    Proto.setSync = originalSetSync;
+  };
+}
+
 describe('cookies', () => {
   describe('isEnabled', () => {
+    let undoStrictCookieNames: () => void;
+    beforeEach(() => {
+      // Apply strict cookie names. This is important, do not remove it.
+      undoStrictCookieNames = applyStrictCookieNames();
+    });
+
+    afterEach(() => {
+      undoStrictCookieNames();
+    });
+
     describe('concurrent calls', () => {
       beforeEach(() => {
         jest.useFakeTimers();
@@ -464,9 +501,17 @@ describe('cookies', () => {
   });
 
   describe('isDomainWritable', () => {
+    let undoStrictCookieNames: () => void;
+
     beforeEach(() => {
+      undoStrictCookieNames = applyStrictCookieNames();
       (CookieStorage as any).cachedTlds = {};
     });
+
+    afterEach(() => {
+      undoStrictCookieNames();
+    });
+
     test('should return true when domain is writable', async () => {
       // jest env is https://www.example.com, so example.com should be writable
       const result = await CookieStorage.isDomainWritable('example.com');

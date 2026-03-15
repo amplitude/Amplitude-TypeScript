@@ -11,6 +11,7 @@ import {
   FetchTransport as CoreFetchTransport,
   Logger,
   BrowserConfig,
+  CookieStorage,
 } from '@amplitude/analytics-core';
 import * as BrowserUtils from '@amplitude/analytics-core';
 import { XHRTransport } from '../src/transports/xhr';
@@ -21,6 +22,7 @@ import { uuidPattern } from './helpers/constants';
 import { DEFAULT_IDENTITY_STORAGE, DEFAULT_SERVER_ZONE } from '../src/constants';
 import { AmplitudeBrowser } from '../src/browser-client';
 import { VERSION } from '../src/version';
+import { overrideCookieStoreStrict } from './helpers/strict-cookie';
 
 describe('config', () => {
   const someUUID: string = expect.stringMatching(uuidPattern) as string;
@@ -32,9 +34,19 @@ describe('config', () => {
   ) as LocalStorageModule.LocalStorage<UserSession>;
 
   let apiKey = '';
+  let unsubscribeCookieStoreStrict: () => void;
+
+  beforeAll(() => {
+    unsubscribeCookieStoreStrict = overrideCookieStoreStrict();
+  });
 
   beforeEach(() => {
-    apiKey = core.UUID();
+    // get random hex string
+    apiKey = Math.random().toString(16).substring(2, 15);
+  });
+
+  afterAll(() => {
+    unsubscribeCookieStoreStrict?.();
   });
 
   describe('BrowserConfig', () => {
@@ -552,18 +564,24 @@ describe('config', () => {
       });
     });
 
-    test('should record a diagnostics event when no access to cookies', async () => {
-      const mockDiagnosticsClient = {
-        recordEvent: jest.fn(),
-        setTag: jest.fn(),
-        increment: jest.fn(),
-        recordHistogram: jest.fn(),
-        _flush: jest.fn(),
-        _setSampleRate: jest.fn(),
-      };
-      await Config.getTopLevelDomain('www.amplitude.com', mockDiagnosticsClient);
-      expect(mockDiagnosticsClient.recordEvent).toHaveBeenCalledWith('cookies.tld.failure', {
-        reason: 'Could not determine TLD for host www.amplitude.com',
+    describe('with no cookie access', () => {
+      beforeAll(() => {
+        CookieStorage.isDomainWritable = jest.fn().mockResolvedValue(false);
+      });
+
+      test('should record a diagnostics event when no access to cookies', async () => {
+        const mockDiagnosticsClient = {
+          recordEvent: jest.fn(),
+          setTag: jest.fn(),
+          increment: jest.fn(),
+          recordHistogram: jest.fn(),
+          _flush: jest.fn(),
+          _setSampleRate: jest.fn(),
+        };
+        await Config.getTopLevelDomain('www.amplitude.com', mockDiagnosticsClient);
+        expect(mockDiagnosticsClient.recordEvent).toHaveBeenCalledWith('cookies.tld.failure', {
+          reason: 'Could not determine TLD for host www.amplitude.com',
+        });
       });
     });
 
