@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.33.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.32.2...@amplitude/session-replay-browser@1.33.0) (2026-03-16)
+
+
+### Features
+
+* **session-replay-browser:** add opt-in request and response body capture to network events ([#1582](https://github.com/amplitude/Amplitude-TypeScript/issues/1582)) ([3a67cf9](https://github.com/amplitude/Amplitude-TypeScript/commit/3a67cf91b0b07293f46405b33790bd5596d8d56d))
+
+
+
+
+
 ## [1.32.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.32.1...@amplitude/session-replay-browser@1.32.2) (2026-03-13)
 
 
