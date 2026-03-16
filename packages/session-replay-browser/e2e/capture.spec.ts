@@ -735,6 +735,24 @@ test.describe('network body capture', () => {
     expect(evt!.responseBodyStatus).toBeUndefined();
   });
 
+  test('does not capture fetch-request events for Amplitude track API calls', async ({ page }) => {
+    await mockRemoteConfig(page, remoteConfigWithNetworkBody());
+    const getFetchEvents = await mockTrackApiWithCapture(page);
+
+    await page.goto(buildUrl('/session-replay-browser/sr-capture-test.html', { sessionId: TEST_SESSION_ID }));
+    await waitForReady(page);
+    await waitForNetworkObservers(page);
+
+    // Trigger a flush, which causes the SDK to POST to api-sr.amplitude.com
+    await page.evaluate(() => window.dispatchEvent(new Event('blur')));
+    await page.evaluate(() => (window as any).sessionReplay.flush(false) as Promise<void>);
+    await page.waitForTimeout(500);
+
+    const fetchEvents = getFetchEvents();
+    const trackApiEvent = fetchEvents.find((e) => String(e.url).includes('api-sr.amplitude.com'));
+    expect(trackApiEvent).toBeUndefined();
+  });
+
   test('truncates response body exceeding maxBodySizeBytes', async ({ page }) => {
     await mockRemoteConfig(page, remoteConfigWithNetworkBody({ maxBodySizeBytes: 5 }));
     const getFetchEvents = await mockTrackApiWithCapture(page);
