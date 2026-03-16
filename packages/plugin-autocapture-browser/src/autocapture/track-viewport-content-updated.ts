@@ -58,6 +58,11 @@ export function fireViewportContentUpdated({
     pageScrollMaxState.maxX === lastScroll.maxX &&
     pageScrollMaxState.maxY === lastScroll.maxY
   ) {
+    if (isPageEnd) {
+      scrollTracker.reset();
+      elementExposedForPage.clear();
+      exposureTracker?.reset();
+    }
     return;
   }
 

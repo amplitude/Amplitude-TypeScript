@@ -335,6 +335,30 @@ describe('fireViewportContentUpdated - early return when no changes', () => {
     expect(trackSpy).not.toHaveBeenCalled();
   });
 
+  test('should still run page-end cleanup when early-returning with isPageEnd=true', () => {
+    const currentElementExposed = new Set<string>();
+    const elementExposedForPage = new Set<string>(['stale-element']);
+    const mockExposureTracker: ExposureTracker = { reset: jest.fn() };
+
+    fireViewportContentUpdated({
+      amplitude: mockAmplitude,
+      scrollTracker: mockScrollTracker,
+      currentElementExposed,
+      elementExposedForPage,
+      exposureTracker: mockExposureTracker,
+      isPageEnd: true,
+      lastScroll: { maxX: 100, maxY: 200 }, // Same as scrollTracker state
+    });
+
+    // Should NOT track an event (no new data)
+    expect(trackSpy).not.toHaveBeenCalled();
+
+    // But page-end cleanup MUST still run
+    expect(mockScrollTracker.reset).toHaveBeenCalled();
+    expect(elementExposedForPage.size).toBe(0);
+    expect(mockExposureTracker.reset).toHaveBeenCalled();
+  });
+
   test('should track when elements are exposed even if scroll position unchanged', () => {
     const currentElementExposed = new Set<string>(['element-1']);
     const elementExposedForPage = new Set<string>(['element-1']);
