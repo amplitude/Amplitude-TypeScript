@@ -1,4 +1,4 @@
-import { isValidObject } from './utils/valid-properties';
+import { filterValidProperties } from './utils/valid-properties';
 
 export interface IRevenue {
   getEventProperties(): RevenueEventProperties;
@@ -73,9 +73,7 @@ export class Revenue implements IRevenue {
   }
 
   setEventProperties(properties: { [key: string]: ValidPropertyType }) {
-    if (isValidObject(properties)) {
-      this.properties = properties;
-    }
+    this.properties = filterValidProperties(properties);
     return this;
   }
 
