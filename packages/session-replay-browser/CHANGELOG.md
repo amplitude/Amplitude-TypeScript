@@ -3,6 +3,39 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.33.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.32.2...@amplitude/session-replay-browser@1.33.0) (2026-03-16)
+
+
+### Features
+
+* **session-replay-browser:** add opt-in request and response body capture to network events ([#1582](https://github.com/amplitude/Amplitude-TypeScript/issues/1582)) ([3a67cf9](https://github.com/amplitude/Amplitude-TypeScript/commit/3a67cf91b0b07293f46405b33790bd5596d8d56d))
+
+
+
+
+
+## [1.32.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.32.1...@amplitude/session-replay-browser@1.32.2) (2026-03-13)
+
+
+### Bug Fixes
+
+* **session-replay:** add user-property targeting for session recording ([#1593](https://github.com/amplitude/Amplitude-TypeScript/issues/1593)) ([123b4a5](https://github.com/amplitude/Amplitude-TypeScript/commit/123b4a521e6f35353c09b60f1e3ab619e06e5f3b))
+
+
+
+
+
+## [1.32.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.32.0...@amplitude/session-replay-browser@1.32.1) (2026-03-12)
+
+
+### Bug Fixes
+
+* **session-replay:** prevent blob worker errors from surfacing as uncaught ([#1561](https://github.com/amplitude/Amplitude-TypeScript/issues/1561)) ([e55ca38](https://github.com/amplitude/Amplitude-TypeScript/commit/e55ca382e29ece3e7b5df6304d34258b460e91fe))
+
+
+
+
+
 # [1.32.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.31.7...@amplitude/session-replay-browser@1.32.0) (2026-03-11)
 
 

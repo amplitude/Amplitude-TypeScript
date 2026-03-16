@@ -12,9 +12,11 @@
     </div>
     <script type="module">  
       import * as amplitudeUnified from '@amplitude/unified';
-      const { initAll } = amplitudeUnified;
+      const { initAll, track, identify, Identify } = amplitudeUnified;
       initAll(import.meta.env.VITE_AMPLITUDE_API_KEY);
-      
+      initAll(import.meta.env.VITE_AMPLITUDE_API_KEY);
+      track('test event');
+      identify(new Identify().set('email', 'test@test.com'));
     </script>
   </body>
 </html>

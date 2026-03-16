@@ -1,4 +1,5 @@
 import { AmplitudeUnified } from '../src/unified';
+import { AmplitudeBrowser } from '@amplitude/analytics-browser';
 import { ILogger } from '@amplitude/analytics-core';
 import { SessionReplayPlugin } from '@amplitude/plugin-session-replay-browser';
 import { experimentPlugin, ExperimentPlugin } from '@amplitude/plugin-experiment-browser';
@@ -16,6 +17,13 @@ describe('AmplitudeUnified', () => {
     warn: jest.fn(),
     debug: mockLoggerProviderDebug,
   };
+
+  describe('constructor', () => {
+    test('should construct client with no in-flight initAll promise', () => {
+      const client = new AmplitudeUnified() as unknown as { _initAllPromise?: Promise<void> };
+      expect(client._initAllPromise).toBeUndefined();
+    });
+  });
 
   describe('initAll', () => {
     test.each([
@@ -102,6 +110,45 @@ describe('AmplitudeUnified', () => {
       await client.initAll('test-api-key');
 
       expect(spy).toHaveBeenCalled();
+    });
+
+    test('should not throw when called concurrently without await', async () => {
+      const client = new AmplitudeUnified();
+      const p1 = client.initAll('test-api-key');
+      const p2 = client.initAll('test-api-key');
+      await expect(Promise.all([p1, p2])).resolves.toEqual([undefined, undefined]);
+    });
+
+    test('should wait for in-flight initAll for concurrent callers', async () => {
+      const client = new AmplitudeUnified();
+      const originalInit = (AmplitudeBrowser.prototype as any)._init as (...args: any[]) => Promise<void>;
+
+      let unblockInit: () => void;
+      const initBlocked = new Promise<void>((resolve) => {
+        unblockInit = resolve;
+      });
+
+      const initSpy = jest
+        .spyOn(AmplitudeBrowser.prototype as any, '_init')
+        .mockImplementation(async function (this: AmplitudeBrowser, ...args: unknown[]) {
+          await initBlocked;
+          return originalInit.apply(this, args);
+        });
+
+      const p1 = client.initAll('test-api-key');
+      const p2 = client.initAll('test-api-key');
+
+      let secondCallResolved = false;
+      void p2.then(() => {
+        secondCallResolved = true;
+      });
+
+      await Promise.resolve();
+      expect(secondCallResolved).toBe(false);
+
+      unblockInit!();
+      await Promise.all([p1, p2]);
+      expect(initSpy).toHaveBeenCalledTimes(1);
     });
   });
 
