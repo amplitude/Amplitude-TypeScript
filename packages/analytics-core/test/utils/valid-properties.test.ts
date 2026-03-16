@@ -95,14 +95,6 @@ describe('filterValidProperties', () => {
     expect(filterValidProperties(properties)).toEqual({ name: 'test' });
   });
 
-  test('should warn via logger for each skipped property', () => {
-    const logger = { warn: jest.fn() };
-    const properties = { name: 'test', price: undefined };
-    filterValidProperties(properties, logger);
-    expect(logger.warn).toHaveBeenCalledTimes(1);
-    expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('price'));
-  });
-
   test('should return empty object when all properties are invalid', () => {
     const properties = { a: undefined, b: null };
     expect(filterValidProperties(properties)).toEqual({});

@@ -12,18 +12,13 @@ export const isValidObject = (properties: { [key: string]: any }): boolean => {
   return true;
 };
 
-export const filterValidProperties = (
-  properties: { [key: string]: any },
-  logger?: { warn: (msg: string) => void },
-): { [key: string]: any } => {
+export const filterValidProperties = (properties: { [key: string]: any }): { [key: string]: any } => {
   const result: { [key: string]: any } = {};
   for (const key in properties) {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const value: unknown = properties[key];
     if (isValidProperties(key, value)) {
       result[key] = value;
-    } else {
-      logger?.warn(`Skipping invalid event property: key="${key}", value=${String(value)}`);
     }
   }
   return result;
