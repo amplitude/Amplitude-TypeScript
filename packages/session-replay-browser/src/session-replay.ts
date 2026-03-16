@@ -33,11 +33,14 @@ import {
   INTERACTION_MIN_INTERVAL,
   MASK_TEXT_CLASS,
   SESSION_REPLAY_DEBUG_PROPERTY,
+  SESSION_REPLAY_EU_URL,
+  SESSION_REPLAY_SERVER_URL,
+  SESSION_REPLAY_STAGING_URL,
 } from './constants';
+import { getServerUrl, getDebugConfig, getPageUrl, getStorageSize, maskFn } from './helpers';
 import { EventCompressor } from './events/event-compressor';
 import { createEventsManager } from './events/events-manager';
 import { MultiEventManager } from './events/multi-manager';
-import { getDebugConfig, getPageUrl, getStorageSize, maskFn } from './helpers';
 import { clickBatcher, ClickHandler, clickNonBatcher } from './hooks/click';
 import { ScrollWatcher } from './hooks/scroll';
 import { SessionIdentifiers } from './identifiers';
@@ -673,7 +676,10 @@ export class SessionReplay implements AmplitudeSessionReplay {
     await this.initializeNetworkObservers();
 
     const networkLoggingConfig = config.loggingConfig?.network;
+    const trackUrl = getServerUrl(config.serverZone, config.trackServerUrl);
+    const ignoredUrls = [SESSION_REPLAY_SERVER_URL, SESSION_REPLAY_EU_URL, SESSION_REPLAY_STAGING_URL, trackUrl];
     this.networkObservers?.start((event: NetworkRequestEvent) => {
+      if (ignoredUrls.some((url) => event.url.startsWith(url))) return;
       void this.addCustomRRWebEvent(CustomRRwebEvent.FETCH_REQUEST, event);
     }, networkLoggingConfig);
     const { privacyConfig, interactionConfig, loggingConfig } = config;
