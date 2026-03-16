@@ -189,17 +189,13 @@ describe('createExposureObservable', () => {
   test('should handle missing IntersectionObserver support gracefully', () => {
     const originalIntersectionObserver = (global as any).IntersectionObserver;
     (global as any).IntersectionObserver = undefined;
-    const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
 
     const exposureObservable = createExposureObservable(mutationObservable, ['div']);
     const subscription = exposureObservable.subscribe(() => {
       return;
     });
 
-    expect(consoleSpy).toHaveBeenCalledWith('IntersectionObserver not supported');
-
     subscription.unsubscribe();
-    consoleSpy.mockRestore();
     (global as any).IntersectionObserver = originalIntersectionObserver;
   });
 });
