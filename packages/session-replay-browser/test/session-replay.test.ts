@@ -2696,6 +2696,12 @@ describe('SessionReplay', () => {
 
       expect(addCustomRRWebEventSpy).toHaveBeenCalledWith(CustomRRwebEvent.FETCH_REQUEST, mockNetworkEvent);
 
+      // Requests to the SR track URL should be filtered out
+      addCustomRRWebEventSpy.mockClear();
+      const trackUrlEvent = { ...mockNetworkEvent, url: 'https://api-sr.amplitude.com/sessions/v2/track?foo=bar' };
+      startCallback(trackUrlEvent);
+      expect(addCustomRRWebEventSpy).not.toHaveBeenCalled();
+
       jest.dontMock('../src/observers');
     });
   });
