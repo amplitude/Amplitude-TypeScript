@@ -92,7 +92,7 @@ describe('createExposureObservable', () => {
     expect(listener).toHaveBeenCalledWith(entry);
   });
 
-  test('should observe new elements added via mutation', () => {
+  test('should observe new elements added via mutation that match allowlist', () => {
     const exposureObservable = createExposureObservable(mutationObservable, ['div']);
     exposureObservable.subscribe(() => {
       return;
@@ -115,6 +115,64 @@ describe('createExposureObservable', () => {
     });
 
     expect(mockIntersectionObserver.observe).toHaveBeenCalledWith(newDiv);
+  });
+
+  test('should NOT observe new elements added via mutation that do not match allowlist', () => {
+    const exposureObservable = createExposureObservable(mutationObservable, ['.track-me']);
+    exposureObservable.subscribe(() => {
+      return;
+    });
+
+    // Reset observe calls from initial querySelectorAll
+    mockIntersectionObserver.observe.mockClear();
+
+    const newSpan = document.createElement('span');
+    const mutationRecord = {
+      addedNodes: [newSpan] as unknown as NodeList,
+    } as MutationRecord;
+
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+    observers.forEach((cb) => {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+      return cb({
+        event: [mutationRecord],
+        timestamp: Date.now(),
+      });
+    });
+
+    expect(mockIntersectionObserver.observe).not.toHaveBeenCalled();
+  });
+
+  test('should observe matching descendants within added mutation nodes', () => {
+    const exposureObservable = createExposureObservable(mutationObservable, ['.track-me']);
+    exposureObservable.subscribe(() => {
+      return;
+    });
+
+    mockIntersectionObserver.observe.mockClear();
+
+    // Container div that doesn't match, but has a child that does
+    const container = document.createElement('div');
+    const matchingChild = document.createElement('span');
+    matchingChild.className = 'track-me';
+    container.appendChild(matchingChild);
+
+    const mutationRecord = {
+      addedNodes: [container] as unknown as NodeList,
+    } as MutationRecord;
+
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+    observers.forEach((cb) => {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+      return cb({
+        event: [mutationRecord],
+        timestamp: Date.now(),
+      });
+    });
+
+    // Container doesn't match, but its child does
+    expect(mockIntersectionObserver.observe).not.toHaveBeenCalledWith(container);
+    expect(mockIntersectionObserver.observe).toHaveBeenCalledWith(matchingChild);
   });
 
   test('should disconnect observer on unsubscribe', () => {

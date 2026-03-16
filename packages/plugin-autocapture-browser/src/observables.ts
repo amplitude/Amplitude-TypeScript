@@ -105,10 +105,20 @@ export const createExposureObservable = (
       intersectionObserver.observe(element);
     });
 
-    // Use mutation observable to observe new elements
+    // Use mutation observable to observe new elements that match the allowlist
     const mutationSubscription = mutationObservable.subscribe(({ event }) =>
       event.forEach(({ addedNodes }) =>
-        addedNodes.forEach((node) => node instanceof Element && intersectionObserver.observe(node)),
+        addedNodes.forEach((node) => {
+          if (!(node instanceof Element)) {
+            return;
+          }
+          if (node.matches(selectorString)) {
+            intersectionObserver.observe(node);
+          }
+          node.querySelectorAll(selectorString).forEach((child) => {
+            intersectionObserver.observe(child);
+          });
+        }),
       ),
     );
 
