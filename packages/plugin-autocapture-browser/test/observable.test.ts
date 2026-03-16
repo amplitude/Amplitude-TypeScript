@@ -7,7 +7,7 @@ describe('createExposureObservable', () => {
   let mockMutationObserver: { subscribe: jest.Mock };
   let mockIntersectionObserver: { observe: jest.Mock; disconnect: jest.Mock };
   let intersectionCallback: (entries: IntersectionObserverEntry[]) => void;
-  let observers: any[] = [];
+  let observers: ((value: TimestampedEvent<MutationRecord[]>) => void)[] = [];
 
   beforeEach(() => {
     observers = [];
@@ -105,12 +105,11 @@ describe('createExposureObservable', () => {
     } as MutationRecord;
 
     // Trigger mutation subscription callback
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-call
     observers.forEach((cb) => {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-      return cb({
+      cb({
         event: [mutationRecord],
         timestamp: Date.now(),
+        type: 'mutation',
       });
     });
 
@@ -131,12 +130,11 @@ describe('createExposureObservable', () => {
       addedNodes: [newSpan] as unknown as NodeList,
     } as MutationRecord;
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-call
     observers.forEach((cb) => {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-      return cb({
+      cb({
         event: [mutationRecord],
         timestamp: Date.now(),
+        type: 'mutation',
       });
     });
 
@@ -161,18 +159,41 @@ describe('createExposureObservable', () => {
       addedNodes: [container] as unknown as NodeList,
     } as MutationRecord;
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-call
     observers.forEach((cb) => {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-      return cb({
+      cb({
         event: [mutationRecord],
         timestamp: Date.now(),
+        type: 'mutation',
       });
     });
 
     // Container doesn't match, but its child does
     expect(mockIntersectionObserver.observe).not.toHaveBeenCalledWith(container);
     expect(mockIntersectionObserver.observe).toHaveBeenCalledWith(matchingChild);
+  });
+
+  test('should skip non-Element nodes added via mutation', () => {
+    const exposureObservable = createExposureObservable(mutationObservable, ['div']);
+    exposureObservable.subscribe(() => {
+      return;
+    });
+
+    mockIntersectionObserver.observe.mockClear();
+
+    const textNode = document.createTextNode('hello');
+    const mutationRecord = {
+      addedNodes: [textNode] as unknown as NodeList,
+    } as MutationRecord;
+
+    observers.forEach((cb) => {
+      cb({
+        event: [mutationRecord],
+        timestamp: Date.now(),
+        type: 'mutation',
+      });
+    });
+
+    expect(mockIntersectionObserver.observe).not.toHaveBeenCalled();
   });
 
   test('should disconnect observer on unsubscribe', () => {

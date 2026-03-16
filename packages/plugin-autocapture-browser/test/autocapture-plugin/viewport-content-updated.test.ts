@@ -227,6 +227,26 @@ describe('fireViewportContentUpdated - exposureTracker optional chaining', () =>
     jest.clearAllMocks();
   });
 
+  test('should handle undefined exposureTracker gracefully when isPageEnd is true and early-returning', () => {
+    const currentElementExposed = new Set<string>();
+    const elementExposedForPage = new Set<string>(['stale-element']);
+
+    expect(() => {
+      fireViewportContentUpdated({
+        amplitude: mockAmplitude,
+        scrollTracker: mockScrollTracker,
+        currentElementExposed,
+        elementExposedForPage,
+        exposureTracker: undefined,
+        isPageEnd: true,
+        lastScroll: { maxX: 100, maxY: 200 }, // Same as scrollTracker state → triggers early return
+      });
+    }).not.toThrow();
+
+    expect(mockScrollTracker.reset).toHaveBeenCalled();
+    expect(elementExposedForPage.size).toBe(0);
+  });
+
   test('should handle undefined exposureTracker gracefully when isPageEnd is true', () => {
     const currentElementExposed = new Set<string>(['element-1']);
     const elementExposedForPage = new Set<string>(['element-1']);
