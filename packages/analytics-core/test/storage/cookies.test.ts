@@ -7,8 +7,19 @@ import { CookieStorage } from '../../src/storage/cookie';
 import { isDomainEqual, decodeCookieValue } from '../../src/index';
 import * as GlobalScopeModule from '../../src/global-scope';
 import { StorageSync } from '../../src/types/storage';
+import { enforceStrictCookieNames } from '../helpers/util';
 
 describe('cookies', () => {
+  let undoStrictCookieNames: () => void;
+  beforeEach(() => {
+    // Enforce strict cookie names. This is important, do not remove it.
+    undoStrictCookieNames = enforceStrictCookieNames();
+  });
+
+  afterEach(() => {
+    undoStrictCookieNames();
+  });
+
   describe('isEnabled', () => {
     describe('concurrent calls', () => {
       beforeEach(() => {
@@ -127,6 +138,10 @@ describe('cookies', () => {
   });
 
   describe('get', () => {
+    beforeEach(() => {
+      undoStrictCookieNames?.();
+    });
+
     test('should return undefined for no cookie value', async () => {
       const cookies = new CookieStorage();
       expect(await cookies.get('hello')).toBe(undefined);
@@ -188,6 +203,10 @@ describe('cookies', () => {
   });
 
   describe('set', () => {
+    beforeEach(() => {
+      undoStrictCookieNames?.();
+    });
+
     test('should set cookie value', async () => {
       const cookies = new CookieStorage();
       await cookies.set('hello', 'world');
@@ -262,6 +281,10 @@ describe('cookies', () => {
   });
 
   describe('remove', () => {
+    beforeEach(() => {
+      undoStrictCookieNames?.();
+    });
+
     test('should call set', async () => {
       const cookies = new CookieStorage();
       const set = jest.spyOn(cookies, 'set');
@@ -280,6 +303,7 @@ describe('cookies', () => {
     let tldCookies: CookieStorage<Record<string, string>>;
     let subdomainCookies: CookieStorage<Record<string, string>>;
     beforeEach(() => {
+      undoStrictCookieNames?.();
       tldCookies = new CookieStorage<Record<string, string>>(
         {
           domain: 'example.com',
@@ -467,6 +491,7 @@ describe('cookies', () => {
     beforeEach(() => {
       (CookieStorage as any).cachedTlds = {};
     });
+
     test('should return true when domain is writable', async () => {
       // jest env is https://www.example.com, so example.com should be writable
       const result = await CookieStorage.isDomainWritable('example.com');
@@ -541,6 +566,10 @@ describe('cookies', () => {
   });
 
   describe('transaction', () => {
+    beforeEach(() => {
+      undoStrictCookieNames?.();
+    });
+
     test('should return the result of the callback', async () => {
       const cookies = new CookieStorage<string>();
       const result = await (cookies as any).transaction('test', (storageSync: StorageSync<string>) => {
