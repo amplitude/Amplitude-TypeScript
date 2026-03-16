@@ -46,9 +46,9 @@ export const createScrollObservable = (): Observable<Event> => {
       observer.next(event);
     };
 
-    getGlobalScope()?.window.addEventListener('scroll', handler);
+    getGlobalScope()?.addEventListener('scroll', handler);
     return () => {
-      getGlobalScope()?.window.removeEventListener('scroll', handler);
+      getGlobalScope()?.removeEventListener('scroll', handler);
     };
   });
 };
@@ -79,7 +79,6 @@ export const createExposureObservable = (
     const globalScope = getGlobalScope();
 
     if (!globalScope?.IntersectionObserver) {
-      console.log('IntersectionObserver not supported');
       return () => {
         return;
       };
