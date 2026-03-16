@@ -61,9 +61,11 @@ function truncateToByteLimit(str: string, maxBytes: number): { value: string; tr
   if (new Blob([str]).size <= maxBytes) {
     return { value: str, truncated: false };
   }
-  // Binary search for the longest prefix whose UTF-8 byte length fits within maxBytes
+  // Binary search for the longest prefix whose UTF-8 byte length fits within maxBytes.
+  // Cap hi at maxBytes since each UTF-8 character is at least 1 byte, so no more than
+  // maxBytes characters can ever fit — this avoids large intermediate Blob allocations.
   let lo = 0;
-  let hi = str.length;
+  let hi = Math.min(str.length, maxBytes);
   while (lo < hi) {
     const mid = Math.ceil((lo + hi) / 2);
     if (new Blob([str.slice(0, mid)]).size <= maxBytes) {
