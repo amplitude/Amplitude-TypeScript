@@ -95,6 +95,16 @@ describe('filterValidProperties', () => {
     expect(filterValidProperties(properties)).toEqual({ name: 'test' });
   });
 
+  test('should return empty object when property count exceeds MAX_PROPERTY_KEYS', () => {
+    const properties: { [key: string]: number } = Array(1001)
+      .fill(true)
+      .reduce((acc: { [key: string]: number }, _, index) => {
+        acc[`key-${index}`] = index;
+        return acc;
+      }, {});
+    expect(filterValidProperties(properties)).toEqual({});
+  });
+
   test('should return empty object when all properties are invalid', () => {
     const properties = { a: undefined, b: null };
     expect(filterValidProperties(properties)).toEqual({});

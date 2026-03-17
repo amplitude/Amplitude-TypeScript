@@ -13,12 +13,15 @@ export const isValidObject = (properties: { [key: string]: any }): boolean => {
 };
 
 export const filterValidProperties = (properties: { [key: string]: any }): { [key: string]: any } => {
+  if (Object.keys(properties).length > MAX_PROPERTY_KEYS) {
+    return {};
+  }
   const result: { [key: string]: any } = {};
-  for (const key in properties) {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const value: unknown = properties[key];
+  for (const [key, value] of Object.entries(properties)) {
+    // typeof null === 'object' and typeof [] === 'object', so guard both explicitly
     if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
-      result[key] = filterValidProperties(value as { [key: string]: any });
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+      result[key] = filterValidProperties(value);
     } else if (isValidProperties(key, value)) {
       result[key] = value;
     }
