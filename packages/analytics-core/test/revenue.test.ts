@@ -113,7 +113,7 @@ describe('Revenue class', () => {
     expect(event.event_properties).toEqual(expectedProperties);
   });
 
-  test('setEventProperties filters out invalid properties instead of rejecting the whole object', () => {
+  test('setEventProperties filters out undefined properties instead of rejecting the whole object', () => {
     const property = { validKey: 'valid value', invalidKey: undefined as any };
     const revenue = new Revenue();
     revenue.setEventProperties(property);
