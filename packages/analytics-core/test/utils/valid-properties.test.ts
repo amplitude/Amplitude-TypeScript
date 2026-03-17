@@ -99,4 +99,18 @@ describe('filterValidProperties', () => {
     const properties = { a: undefined, b: null };
     expect(filterValidProperties(properties)).toEqual({});
   });
+
+  test('should recursively filter invalid properties in nested objects', () => {
+    const properties = {
+      someProp: {
+        validVal: 'val',
+        invalidVal: undefined,
+        someProp2: {
+          validVal: 'val',
+          invalidVal: undefined,
+        },
+      },
+    };
+    expect(filterValidProperties(properties)).toEqual({ someProp: { validVal: 'val', someProp2: { validVal: 'val' } } });
+  });
 });

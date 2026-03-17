@@ -17,7 +17,9 @@ export const filterValidProperties = (properties: { [key: string]: any }): { [ke
   for (const key in properties) {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const value: unknown = properties[key];
-    if (isValidProperties(key, value)) {
+    if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+      result[key] = filterValidProperties(value as { [key: string]: any });
+    } else if (isValidProperties(key, value)) {
       result[key] = value;
     }
   }
