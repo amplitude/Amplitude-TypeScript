@@ -13,9 +13,11 @@ export const isValidObject = (properties: { [key: string]: any }): boolean => {
 };
 
 export const filterValidProperties = (properties: { [key: string]: any }): { [key: string]: any } => {
+  // Backward compatibility with the old implementation
   if (Object.keys(properties).length > MAX_PROPERTY_KEYS) {
     return {};
   }
+  
   const result: { [key: string]: any } = {};
   for (const [key, value] of Object.entries(properties)) {
     // typeof null === 'object' and typeof [] === 'object', so guard both explicitly
