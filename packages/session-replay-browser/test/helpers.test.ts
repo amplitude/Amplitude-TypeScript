@@ -226,6 +226,33 @@ describe('SessionReplayPlugin helpers', () => {
       const result = maskAttributeFn({})('placeholder', 'Enter name', element);
       expect(result).toEqual('Enter name');
     });
+
+    test('returns value unchanged when element has unmask class even if attribute is listed', () => {
+      const unmaskedElement = document.createElement('input');
+      unmaskedElement.classList.add(UNMASK_TEXT_CLASS);
+      const result = maskAttributeFn({ maskAttributes: ['placeholder'] })('placeholder', 'Enter name', unmaskedElement);
+      expect(result).toEqual('Enter name');
+    });
+
+    test('masks attribute when element matches maskSelector', () => {
+      const selectedElement = document.createElement('input');
+      selectedElement.classList.add('mask-this');
+      const result = maskAttributeFn({
+        defaultMaskLevel: 'light',
+        maskSelector: ['.mask-this'],
+        maskAttributes: ['placeholder'],
+      })('placeholder', 'Enter name', selectedElement);
+      expect(result).toEqual('***** ****');
+    });
+
+    test('uses cached isMasked result for subsequent attributes on the same element', () => {
+      const cachedElement = document.createElement('input');
+      cachedElement.classList.add(UNMASK_TEXT_CLASS);
+      const fn = maskAttributeFn({ maskAttributes: ['placeholder', 'aria-label'] });
+      // Both attributes use the same element — isMasked is computed once and cached
+      expect(fn('placeholder', 'Enter name', cachedElement)).toEqual('Enter name');
+      expect(fn('aria-label', 'Submit', cachedElement)).toEqual('Submit');
+    });
   });
 
   describe('getServerUrl', () => {

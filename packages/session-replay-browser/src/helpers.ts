@@ -60,7 +60,7 @@ const isMaskedForLevel = (elementType: 'input' | 'text', level: MaskLevel, eleme
  *  1. [In code] Element/class based masking/unmasking <> [Config based] Selector based masking/unmasking
  *  2. Use app defaults
  */
-const isMasked = (
+export const isMasked = (
   elementType: 'input' | 'text',
   config: PrivacyConfig = { defaultMaskLevel: DEFAULT_MASK_LEVEL },
   element: HTMLElement | null,
@@ -99,20 +99,30 @@ export const maskFn =
     return isMasked(elementType, config, element) ? text.replace(/[^\s]/g, '*') : text;
   };
 
-export const maskAttributeFn =
-  (config?: PrivacyConfig) =>
-  (key: string, value: string, _element: HTMLElement): string => {
+export const maskAttributeFn = (config?: PrivacyConfig) => {
+  // Cache isMasked result per element — maskAttributeFn is called once per attribute per element,
+  // so without this, isMasked (which does multiple element.closest() DOM traversals) would run
+  // N times for the same element. WeakMap avoids memory leaks since keys are held weakly.
+  const cache = new WeakMap<HTMLElement, boolean>();
+  return (key: string, value: string, element: HTMLElement): string => {
     // Never mask style — rrweb has a separate styleDiff path for attribute mutations
     // that reads directly from the DOM, bypassing maskAttributeFn.
     if (key === 'style') return value;
 
-    // Mask any attribute explicitly listed in the config (user-configured in the UI)
-    if ((config?.maskAttributes ?? []).includes(key)) {
-      return value.replace(/[^\s]/g, '*');
+    // Short-circuit: only proceed if this attribute is in the allowlist.
+    if (!(config?.maskAttributes ?? []).includes(key)) return value;
+
+    // Delegate element/selector/level logic to isMasked so maskAttributes composes
+    // with maskSelector, defaultMaskLevel, amp-mask, etc. rather than acting standalone.
+    let masked = cache.get(element);
+    if (masked === undefined) {
+      masked = isMasked('text', config, element);
+      cache.set(element, masked);
     }
 
-    return value;
+    return masked ? value.replace(/[^\s]/g, '*') : value;
   };
+};
 
 export const getCurrentUrl = () => {
   const globalScope = getGlobalScope();
