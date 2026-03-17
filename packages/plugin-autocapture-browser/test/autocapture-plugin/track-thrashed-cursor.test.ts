@@ -394,7 +394,7 @@ describe('createThrashedCursorObservable', () => {
     }
     await jest.runAllTimersAsync();
 
-    // expect the start time to be the start of the last 10 changes and not the first change
+    // expect the start time to be the start of the last 20 changes and not the first change
     expect(emittedTimes).toEqual([expectedStartTime]);
   });
 });
