@@ -99,6 +99,21 @@ export const maskFn =
     return isMasked(elementType, config, element) ? text.replace(/[^\s]/g, '*') : text;
   };
 
+export const maskAttributeFn =
+  (config?: PrivacyConfig) =>
+  (key: string, value: string, _element: HTMLElement): string => {
+    // Never mask style — rrweb has a separate styleDiff path for attribute mutations
+    // that reads directly from the DOM, bypassing maskAttributeFn.
+    if (key === 'style') return value;
+
+    // Mask any attribute explicitly listed in the config (user-configured in the UI)
+    if ((config?.maskAttributes ?? []).includes(key)) {
+      return value.replace(/[^\s]/g, '*');
+    }
+
+    return value;
+  };
+
 export const getCurrentUrl = () => {
   const globalScope = getGlobalScope();
   return globalScope?.location ? globalScope.location.href : '';

@@ -61,6 +61,7 @@ export type PrivacyConfig = {
   defaultMaskLevel?: MaskLevel;
   maskSelector?: string[];
   unmaskSelector?: string[];
+  maskAttributes?: string[]; // HTML attribute names to mask (e.g. ["placeholder", "aria-label"])
 };
 
 /**

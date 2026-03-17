@@ -30,6 +30,7 @@ const privacyConfig: Required<PrivacyConfig> = {
   blockSelector: ['.anotherClassName'],
   maskSelector: [],
   unmaskSelector: [],
+  maskAttributes: [],
 };
 
 const mockLoggerProvider: MockedLogger = {
@@ -275,6 +276,7 @@ describe('SessionReplayJoinedConfigGenerator', () => {
               blockSelector: undefined,
               maskSelector: undefined,
               unmaskSelector: undefined,
+              maskAttributes: [],
             },
             ...{ [`${selectorType}Selector`]: ['.localClassName', '.remoteClassName'] },
           },
@@ -320,6 +322,7 @@ describe('SessionReplayJoinedConfigGenerator', () => {
             blockSelector: ['.className'],
             maskSelector: undefined,
             unmaskSelector: undefined,
+            maskAttributes: [],
           },
         });
       });
@@ -342,6 +345,51 @@ describe('SessionReplayJoinedConfigGenerator', () => {
             maskSelector: undefined,
             unmaskSelector: undefined,
           },
+        });
+      });
+
+      describe('with maskAttributes config', () => {
+        test('should merge local and remote maskAttributes', async () => {
+          const config = await privacySelectorTest(
+            { maskAttributes: ['aria-label'] },
+            await createSessionReplayJoinedConfigGenerator('static_key', {
+              ...mockOptions,
+              privacyConfig: { maskAttributes: ['placeholder'] },
+            }),
+          );
+          expect(config.privacyConfig?.maskAttributes).toEqual(['placeholder', 'aria-label']);
+        });
+
+        test('should deduplicate maskAttributes present in both local and remote', async () => {
+          const config = await privacySelectorTest(
+            { maskAttributes: ['placeholder', 'aria-label'] },
+            await createSessionReplayJoinedConfigGenerator('static_key', {
+              ...mockOptions,
+              privacyConfig: { maskAttributes: ['placeholder'] },
+            }),
+          );
+          expect(config.privacyConfig?.maskAttributes).toEqual(['placeholder', 'aria-label']);
+        });
+
+        test('should use only local maskAttributes when remote has none', async () => {
+          const config = await privacySelectorTest(
+            {},
+            await createSessionReplayJoinedConfigGenerator('static_key', {
+              ...mockOptions,
+              privacyConfig: { maskAttributes: ['placeholder'] },
+            }),
+          );
+          expect(config.privacyConfig?.maskAttributes).toEqual(['placeholder']);
+        });
+
+        test('should use only remote maskAttributes when local has none', async () => {
+          const config = await privacySelectorTest({ maskAttributes: ['aria-label'] });
+          expect(config.privacyConfig?.maskAttributes).toEqual(['aria-label']);
+        });
+
+        test('should produce empty maskAttributes when neither local nor remote has any', async () => {
+          const config = await privacySelectorTest({});
+          expect(config.privacyConfig?.maskAttributes).toEqual([]);
         });
       });
     });
