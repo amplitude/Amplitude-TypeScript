@@ -650,13 +650,10 @@ describe('cookies', () => {
         });
 
         const cookies = new CookieStorage<string>();
-        const transactionPromise = (cookies as any).transaction(
-          'test',
-          (storageSync: StorageSync<string>) => {
-            storageSync.set('VALUE_REJECTED_LOCK');
-            throw new Error('callback error');
-          },
-        );
+        const transactionPromise = (cookies as any).transaction('test', (storageSync: StorageSync<string>) => {
+          storageSync.set('VALUE_REJECTED_LOCK');
+          throw new Error('callback error');
+        });
 
         await expect(transactionPromise).rejects.toThrow('callback error');
       });
