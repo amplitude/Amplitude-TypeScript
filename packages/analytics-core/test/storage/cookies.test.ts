@@ -614,6 +614,26 @@ describe('cookies', () => {
         await cookies.remove('test');
         expect(lockCallList).toEqual(['com.amplitude:cookie-lock:test']);
       });
+
+      test('should fall back to callback when locks.request throws', async () => {
+        Object.defineProperty(global, 'navigator', {
+          value: {
+            locks: {
+              request: () => {
+                throw new Error('security error');
+              },
+            },
+          },
+          configurable: true,
+        });
+        const cookies = new CookieStorage<string>();
+        const result = await (cookies as any).transaction('test', (storageSync: StorageSync<string>) => {
+          storageSync.set('VALUE');
+          return storageSync.get();
+        });
+        expect(result).toBe('VALUE');
+        expect(await cookies.get('test')).toBe('VALUE');
+      });
     });
   });
 });
