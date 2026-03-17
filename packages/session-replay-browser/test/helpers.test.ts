@@ -9,7 +9,14 @@ import {
   UNMASK_TEXT_CLASS,
 } from '../src/constants';
 import { ServerZone } from '@amplitude/analytics-core';
-import { getServerUrl, getStorageSize, maskFn, getPageUrl, validateUGCFilterRules } from '../src/helpers';
+import {
+  getServerUrl,
+  getStorageSize,
+  maskFn,
+  maskAttributeFn,
+  getPageUrl,
+  validateUGCFilterRules,
+} from '../src/helpers';
 import * as AnalyticsCore from '@amplitude/analytics-core';
 
 describe('SessionReplayPlugin helpers', () => {
@@ -179,6 +186,45 @@ describe('SessionReplayPlugin helpers', () => {
       htmlElement.classList.add(UNMASK_TEXT_CLASS);
       const result = maskFn('text')('some text', htmlElement);
       expect(result).toEqual('some text');
+    });
+  });
+
+  describe('maskAttributeFn', () => {
+    const element = document.createElement('input');
+
+    test('returns value unchanged for style attribute', () => {
+      const result = maskAttributeFn({ maskAttributes: ['style'] })('style', 'color: red', element);
+      expect(result).toEqual('color: red');
+    });
+
+    test('masks attribute listed in maskAttributes', () => {
+      const result = maskAttributeFn({ maskAttributes: ['placeholder'] })('placeholder', 'Enter name', element);
+      expect(result).toEqual('***** ****');
+    });
+
+    test('preserves whitespace when masking', () => {
+      const result = maskAttributeFn({ maskAttributes: ['aria-label'] })('aria-label', 'first last', element);
+      expect(result).toEqual('***** ****');
+    });
+
+    test('returns value unchanged when key is not in maskAttributes', () => {
+      const result = maskAttributeFn({ maskAttributes: ['placeholder'] })('aria-label', 'some label', element);
+      expect(result).toEqual('some label');
+    });
+
+    test('returns value unchanged when maskAttributes is empty', () => {
+      const result = maskAttributeFn({ maskAttributes: [] })('placeholder', 'Enter name', element);
+      expect(result).toEqual('Enter name');
+    });
+
+    test('returns value unchanged when config is undefined', () => {
+      const result = maskAttributeFn(undefined)('placeholder', 'Enter name', element);
+      expect(result).toEqual('Enter name');
+    });
+
+    test('returns value unchanged when maskAttributes is undefined', () => {
+      const result = maskAttributeFn({})('placeholder', 'Enter name', element);
+      expect(result).toEqual('Enter name');
     });
   });
 

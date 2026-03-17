@@ -36,6 +36,49 @@ function remoteConfigWithNetworkBody(opts: { request?: boolean; response?: boole
 }
 
 /**
+ * Decodes all rrweb events out of a raw track-API request body.
+ */
+function decodeAllEvents(rawBody: string): Array<Record<string, unknown>> {
+  if (!rawBody) return [];
+  let payload: { events?: unknown[] };
+  try {
+    payload = JSON.parse(rawBody) as { events?: unknown[] };
+  } catch {
+    return [];
+  }
+  if (!Array.isArray(payload.events)) return [];
+  const results: Array<Record<string, unknown>> = [];
+  for (const eventStr of payload.events) {
+    if (typeof eventStr !== 'string') continue;
+    try {
+      results.push(unpack(JSON.parse(eventStr)) as Record<string, unknown>);
+    } catch {
+      // skip unparseable events
+    }
+  }
+  return results;
+}
+
+/**
+ * Recursively searches a serialized rrweb node tree for an element with the given
+ * `id` attribute and returns the value of `attr` on that element, or undefined.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function findAttrInNodeTree(node: any, id: string, attr: string): string | undefined {
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+  if (node?.attributes?.id === id) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    return node.attributes[attr] as string | undefined;
+  }
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+  for (const child of node?.childNodes ?? []) {
+    const result = findAttrInNodeTree(child, id, attr);
+    if (result !== undefined) return result;
+  }
+  return undefined;
+}
+
+/**
  * Decodes all custom 'fetch-request' events out of a raw track-API request body.
  * Each event string in payload.events is JSON.stringify(pack(rrwebEvent)).
  */
@@ -61,6 +104,20 @@ function decodeFetchRequestEvents(rawBody: string): Array<Record<string, unknown
     }
   }
   return results;
+}
+
+/**
+ * Builds a remote config that includes a privacy config (e.g. maskAttributes).
+ */
+function remoteConfigWithPrivacy(privacyConfig: object): object {
+  return {
+    configs: {
+      sessionReplay: {
+        sr_sampling_config: { capture_enabled: true, sample_rate: 1.0 },
+        sr_privacy_config: privacyConfig,
+      },
+    },
+  };
 }
 
 /**
@@ -776,5 +833,113 @@ test.describe('network body capture', () => {
     expect(evt).toBeDefined();
     expect(evt!.responseBody).toBe('hello');
     expect(evt!.responseBodyStatus).toBe('truncated');
+  });
+});
+
+// ─── Attribute masking ────────────────────────────────────────────────────────
+
+test.describe('attribute masking', () => {
+  /**
+   * Sets up a track-API mock that captures POST bodies. Returns an async function
+   * that flushes buffered events and decodes all rrweb events from the captured bodies.
+   */
+  async function mockTrackApiAndCaptureEvents(page: import('@playwright/test').Page) {
+    const rawBodies: string[] = [];
+    await page.route('https://api-sr.amplitude.com/**', (route: Route) => {
+      rawBodies.push(route.request().postData() ?? '');
+      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(SR_API_SUCCESS) });
+    });
+    return async (): Promise<Array<Record<string, unknown>>> => {
+      await page.evaluate(() => window.dispatchEvent(new Event('blur')));
+      await page.evaluate(() => (window as any).sessionReplay.flush(false) as Promise<void>);
+      await page.waitForTimeout(500);
+      return rawBodies.flatMap(decodeAllEvents);
+    };
+  }
+
+  test('masks attribute listed in maskAttributes in rrweb full snapshot', async ({ page }) => {
+    // placeholder="Enter your email" → "***** **** *****"
+    await mockRemoteConfig(page, remoteConfigWithPrivacy({ maskAttributes: ['placeholder'] }));
+    const flushAndGetEvents = await mockTrackApiAndCaptureEvents(page);
+
+    await page.goto(buildUrl('/session-replay-browser/sr-capture-test.html', { sessionId: TEST_SESSION_ID }));
+    await waitForReady(page);
+    await page.waitForTimeout(500);
+
+    const events = await flushAndGetEvents();
+    const snapshot = events.find((e) => e.type === 2);
+    expect(snapshot).toBeDefined();
+
+    const placeholderValue = findAttrInNodeTree((snapshot!.data as any).node, 'test-input', 'placeholder');
+    expect(placeholderValue).toBe('***** **** *****');
+  });
+
+  test('does not mask attribute not listed in maskAttributes', async ({ page }) => {
+    // 'type' is not in maskAttributes — should remain "text"
+    await mockRemoteConfig(page, remoteConfigWithPrivacy({ maskAttributes: ['placeholder'] }));
+    const flushAndGetEvents = await mockTrackApiAndCaptureEvents(page);
+
+    await page.goto(buildUrl('/session-replay-browser/sr-capture-test.html', { sessionId: TEST_SESSION_ID }));
+    await waitForReady(page);
+    await page.waitForTimeout(500);
+
+    const events = await flushAndGetEvents();
+    const snapshot = events.find((e) => e.type === 2);
+    expect(snapshot).toBeDefined();
+
+    const typeValue = findAttrInNodeTree((snapshot!.data as any).node, 'test-input', 'type');
+    expect(typeValue).toBe('text');
+  });
+
+  test('does not mask attribute when maskAttributes is empty', async ({ page }) => {
+    await mockRemoteConfig(page, remoteConfigWithPrivacy({ maskAttributes: [] }));
+    const flushAndGetEvents = await mockTrackApiAndCaptureEvents(page);
+
+    await page.goto(buildUrl('/session-replay-browser/sr-capture-test.html', { sessionId: TEST_SESSION_ID }));
+    await waitForReady(page);
+    await page.waitForTimeout(500);
+
+    const events = await flushAndGetEvents();
+    const snapshot = events.find((e) => e.type === 2);
+    expect(snapshot).toBeDefined();
+
+    const placeholderValue = findAttrInNodeTree((snapshot!.data as any).node, 'test-input', 'placeholder');
+    expect(placeholderValue).toBe('Enter your email');
+  });
+
+  test('masks aria-label when listed in maskAttributes', async ({ page }) => {
+    // aria-label="Submit form" → "****** ****"
+    await mockRemoteConfig(page, remoteConfigWithPrivacy({ maskAttributes: ['aria-label'] }));
+    const flushAndGetEvents = await mockTrackApiAndCaptureEvents(page);
+
+    await page.goto(buildUrl('/session-replay-browser/sr-capture-test.html', { sessionId: TEST_SESSION_ID }));
+    await waitForReady(page);
+    await page.waitForTimeout(500);
+
+    const events = await flushAndGetEvents();
+    const snapshot = events.find((e) => e.type === 2);
+    expect(snapshot).toBeDefined();
+
+    const ariaLabelValue = findAttrInNodeTree((snapshot!.data as any).node, 'test-button', 'aria-label');
+    expect(ariaLabelValue).toBe('****** ****');
+  });
+
+  test('does not mask style attribute even when listed in maskAttributes', async ({ page }) => {
+    // style is explicitly excluded from maskAttributeFn because rrweb handles style diffs separately
+    await mockRemoteConfig(page, remoteConfigWithPrivacy({ maskAttributes: ['style'] }));
+    const flushAndGetEvents = await mockTrackApiAndCaptureEvents(page);
+
+    await page.goto(buildUrl('/session-replay-browser/sr-capture-test.html', { sessionId: TEST_SESSION_ID }));
+    await waitForReady(page);
+    await page.waitForTimeout(500);
+
+    const events = await flushAndGetEvents();
+    const snapshot = events.find((e) => e.type === 2);
+    expect(snapshot).toBeDefined();
+
+    // test-input has style="display:block" — should be present and never replaced with stars
+    const styleValue = findAttrInNodeTree((snapshot!.data as any).node, 'test-input', 'style');
+    expect(typeof styleValue).toBe('string');
+    expect(styleValue).not.toMatch(/^\*+/);
   });
 });
