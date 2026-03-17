@@ -634,6 +634,36 @@ describe('cookies', () => {
         expect(result).toBe('VALUE');
         expect(await cookies.get('test')).toBe('VALUE');
       });
+
+      test('should propagate rejected locks.request and not execute callback twice', async () => {
+        let callbackCallCount = 0;
+
+        Object.defineProperty(global, 'navigator', {
+          value: {
+            locks: {
+              // Simulate an async locks.request where the callback throws,
+              // causing the returned promise to be rejected.
+              request: (_lockName: string, callback: () => any) => {
+                return Promise.resolve().then(() => callback());
+              },
+            },
+          },
+          configurable: true,
+        });
+
+        const cookies = new CookieStorage<string>();
+        const transactionPromise = (cookies as any).transaction(
+          'test',
+          (storageSync: StorageSync<string>) => {
+            callbackCallCount += 1;
+            storageSync.set('VALUE_REJECTED_LOCK');
+            throw new Error('callback error');
+          },
+        );
+
+        await expect(transactionPromise).rejects.toThrow('callback error');
+        expect(callbackCallCount).toBe(1);
+      });
     });
   });
 });
