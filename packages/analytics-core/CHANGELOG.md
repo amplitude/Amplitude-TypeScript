@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.41.7](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.41.6...@amplitude/analytics-core@2.41.7) (2026-03-17)
+
+
+### Bug Fixes
+
+* **analytics-browser:** catch navigator.locks exceptions and fallback to no-locking ([#1600](https://github.com/amplitude/Amplitude-TypeScript/issues/1600)) ([8f58ef7](https://github.com/amplitude/Amplitude-TypeScript/commit/8f58ef753ceeae958eb0f22fa1430b7e30133308))
+
+
+
+
+
 ## [2.41.6](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.41.5...@amplitude/analytics-core@2.41.6) (2026-03-16)
 
 **Note:** Version bump only for package @amplitude/analytics-core
