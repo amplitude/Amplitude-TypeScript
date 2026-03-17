@@ -102,25 +102,27 @@ describe('trackThrashedCursor', () => {
 
   it('should track thrashed cursor', async () => {
     // 22 iterations = 21 transitions = 20 direction changes per axis (threshold)
-    await setupAndSimulateThrashedCursor({
+    const { startTime } = await setupAndSimulateThrashedCursor({
       windowLocation: { href: 'http://localhost/' },
       mouseMovements: {
         iterations: 22,
         timeAdvance: 100,
       },
     });
+    const expectedTime = startTime + 2 * 100;
     expect(amplitude.track).toHaveBeenCalledWith(AMPLITUDE_THRASHED_CURSOR_EVENT, undefined, {
-      time: expect.any(Number),
+      time: expectedTime,
     });
   });
 
   it('should track thrashed cursor with custom threshold and window ms', async () => {
-    await setupAndSimulateThrashedCursor({
+    const { startTime } = await setupAndSimulateThrashedCursor({
       directionChanges: 5,
       thresholdMs: 100,
     });
+    const expectedTime = startTime + 2 * 1;
     expect(amplitude.track).toHaveBeenCalledWith(AMPLITUDE_THRASHED_CURSOR_EVENT, undefined, {
-      time: expect.any(Number),
+      time: expectedTime,
     });
   });
 
