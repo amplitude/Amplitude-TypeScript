@@ -267,7 +267,11 @@ export class CookieStorage<T> implements Storage<T> {
     if (!locks) {
       return callbackWrapper();
     }
-    return (await locks.request(`com.amplitude:cookie-lock:${key}`, callbackWrapper)) as ReturnType;
+    try {
+      return (await locks.request(`com.amplitude:cookie-lock:${key}`, callbackWrapper)) as ReturnType;
+    } catch (error) {
+      return callbackWrapper();
+    }
   }
 }
 
