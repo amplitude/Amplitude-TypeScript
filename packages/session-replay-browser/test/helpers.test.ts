@@ -245,13 +245,14 @@ describe('SessionReplayPlugin helpers', () => {
       expect(result).toEqual('***** ****');
     });
 
-    test('uses cached isMasked result for subsequent attributes on the same element', () => {
-      const cachedElement = document.createElement('input');
-      cachedElement.classList.add(UNMASK_TEXT_CLASS);
-      const fn = maskAttributeFn({ maskAttributes: ['placeholder', 'aria-label'] });
-      // Both attributes use the same element — isMasked is computed once and cached
-      expect(fn('placeholder', 'Enter name', cachedElement)).toEqual('Enter name');
-      expect(fn('aria-label', 'Submit', cachedElement)).toEqual('Submit');
+    test('recomputes isMasked result when element masking state changes', () => {
+      const dynamicElement = document.createElement('input');
+      dynamicElement.classList.add(UNMASK_TEXT_CLASS);
+      const fn = maskAttributeFn({ maskAttributes: ['placeholder'] });
+      expect(fn('placeholder', 'Enter name', dynamicElement)).toEqual('Enter name');
+
+      dynamicElement.classList.remove(UNMASK_TEXT_CLASS);
+      expect(fn('placeholder', 'Enter name', dynamicElement)).toEqual('***** ****');
     });
   });
 

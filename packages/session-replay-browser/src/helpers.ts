@@ -100,10 +100,6 @@ export const maskFn =
   };
 
 export const maskAttributeFn = (config?: PrivacyConfig) => {
-  // Cache isMasked result per element — maskAttributeFn is called once per attribute per element,
-  // so without this, isMasked (which does multiple element.closest() DOM traversals) would run
-  // N times for the same element. WeakMap avoids memory leaks since keys are held weakly.
-  const cache = new WeakMap<HTMLElement, boolean>();
   return (key: string, value: string, element: HTMLElement): string => {
     // Never mask style — rrweb has a separate styleDiff path for attribute mutations
     // that reads directly from the DOM, bypassing maskAttributeFn.
@@ -114,11 +110,7 @@ export const maskAttributeFn = (config?: PrivacyConfig) => {
 
     // Delegate element/selector/level logic to isMasked so maskAttributes composes
     // with maskSelector, defaultMaskLevel, amp-mask, etc. rather than acting standalone.
-    let masked = cache.get(element);
-    if (masked === undefined) {
-      masked = isMasked('text', config, element);
-      cache.set(element, masked);
-    }
+    const masked = isMasked('text', config, element);
 
     return masked ? value.replace(/[^\s]/g, '*') : value;
   };
