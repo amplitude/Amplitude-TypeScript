@@ -35,6 +35,8 @@ export const DEFAULT_DATA_ATTRIBUTE_PREFIX = 'data-amp-track-';
  */
 export const DEFAULT_ACTION_CLICK_ALLOWLIST = ['div', 'span', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'];
 
+export const DEFAULT_EXPOSURE_DURATION = 150;
+
 export interface ElementInteractionsOptions {
   /**
    * List of CSS selectors to allow auto tracking on.
@@ -92,7 +94,10 @@ export interface ElementInteractionsOptions {
   debounceTime?: number;
 
   /**
-   * CSS selector allowlist for tracking clicks that result in a DOM change/navigation on elements not already allowed by the cssSelectorAllowlist
+   * CSS selector allowlist for tracking clicks that result in a DOM change/navigation
+   * on elements not already allowed by the cssSelectorAllowlist.
+   * Only applies to click-based interaction tracking; has no effect on
+   * viewport/exposure-based features (e.g., zoning).
    */
   actionClickAllowlist?: string[];
 
@@ -108,6 +113,24 @@ export interface ElementInteractionsOptions {
    * RegExp pattern list to allow custom patterns for text masking
    */
   maskTextRegex?: (RegExp | { pattern: string; description: string })[];
+
+  /**
+   * Duration in milliseconds an element must be visible before it is considered exposed.
+   * Default is 150ms.
+   * @deprecated Use `viewportContentUpdated.exposureDuration` instead.
+   */
+  exposureDuration?: number;
+
+  /**
+   * Options for viewport content updated tracking (zoning).
+   */
+  viewportContentUpdated?: {
+    /**
+     * Duration in milliseconds an element must be visible before it is considered exposed.
+     * Default is 150ms.
+     */
+    exposureDuration?: number;
+  };
 }
 
 type MatchingCondition = {
