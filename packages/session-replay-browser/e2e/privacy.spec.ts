@@ -1,12 +1,16 @@
-import { test, expect, Route, Page } from '@playwright/test';
-import { unpack } from '@amplitude/rrweb-packer';
+import { test, expect } from '@playwright/test';
 import {
-  SR_API_SUCCESS,
   TEST_SESSION_ID,
   remoteConfigRecording,
   mockRemoteConfig,
   buildUrl,
   waitForReady,
+  captureTrackRequests,
+  flushRecording,
+  getSnapshotRoot,
+  findById,
+  getTextContent,
+  isMaskedText,
 } from './helpers';
 
 function remoteConfigWithPrivacy(privacy: object) {
@@ -18,90 +22,6 @@ function remoteConfigWithPrivacy(privacy: object) {
       },
     },
   };
-}
-
-// ─── RRweb snapshot helpers ───────────────────────────────────────────────────
-
-type SnapNode = {
-  type: number;
-  tagName?: string;
-  attributes?: Record<string, string | boolean | null>;
-  textContent?: string;
-  childNodes?: SnapNode[];
-  needBlock?: boolean;
-};
-
-const NODE_ELEMENT = 2;
-const NODE_TEXT = 3;
-const EVENT_FULL_SNAPSHOT = 2;
-
-function decodeRrwebEvents(rawBody: string): unknown[] {
-  if (!rawBody) return [];
-  try {
-    const payload = JSON.parse(rawBody) as { events?: unknown[] };
-    if (!Array.isArray(payload.events)) return [];
-    return payload.events.flatMap((eventStr) => {
-      if (typeof eventStr !== 'string') return [];
-      try {
-        return [unpack(JSON.parse(eventStr))];
-      } catch {
-        return [];
-      }
-    });
-  } catch {
-    return [];
-  }
-}
-
-function getSnapshotRoot(rawBodies: string[]): SnapNode | null {
-  const events = rawBodies.flatMap(decodeRrwebEvents) as Array<{ type: number; data: { node: SnapNode } }>;
-  const snap = events.find((e) => e.type === EVENT_FULL_SNAPSHOT);
-  return snap ? snap.data.node : null;
-}
-
-function findNode(node: SnapNode, predicate: (n: SnapNode) => boolean): SnapNode | undefined {
-  if (predicate(node)) return node;
-  for (const child of node.childNodes ?? []) {
-    const found = findNode(child, predicate);
-    if (found) return found;
-  }
-  return undefined;
-}
-
-function findById(root: SnapNode, id: string): SnapNode | undefined {
-  return findNode(root, (n) => n.type === NODE_ELEMENT && n.attributes?.id === id);
-}
-
-/** Recursively concatenates all text node content under a node. */
-function getTextContent(node: SnapNode): string {
-  if (node.type === NODE_TEXT) return node.textContent ?? '';
-  return (node.childNodes ?? []).map(getTextContent).join('');
-}
-
-/**
- * Returns true if the text consists only of asterisks (and whitespace).
- * maskFn replaces every non-whitespace char with '*', preserving spaces.
- */
-function isMaskedText(text: string): boolean {
-  const stripped = text.replace(/\s/g, '');
-  return stripped.length > 0 && /^\*+$/.test(stripped);
-}
-
-/** Mocks the track API and returns a getter for the raw POST bodies received. */
-async function captureTrackRequests(page: Page): Promise<() => string[]> {
-  const rawBodies: string[] = [];
-  await page.route('https://api-sr.amplitude.com/**', (route: Route) => {
-    rawBodies.push(route.request().postData() ?? '');
-    return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(SR_API_SUCCESS) });
-  });
-  return () => rawBodies;
-}
-
-/** Triggers a blur-flush cycle and waits for events to be delivered. */
-async function flushRecording(page: Page): Promise<void> {
-  await page.evaluate(() => window.dispatchEvent(new Event('blur')));
-  await page.evaluate(() => (window as any).sessionReplay.flush(false) as Promise<void>);
-  await page.waitForTimeout(500);
 }
 
 const PRIVACY_PAGE = '/session-replay-browser/sr-privacy-test.html';
