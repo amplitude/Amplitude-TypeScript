@@ -1,0 +1,74 @@
+name: Session Replay Browser E2E
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+    paths:
+      - 'packages/session-replay-browser/**'
+      - 'test-server/session-replay-browser/**'
+  push:
+    branches:
+      - main
+    paths:
+      - 'packages/session-replay-browser/**'
+      - 'test-server/session-replay-browser/**'
+
+# Non-blocking: failures are visible in the checks list but do not prevent merging.
+# Once the suite is stable this job can be added to required status checks.
+
+jobs:
+  e2e-session-replay:
+    name: Session Replay Browser E2E
+    if: github.actor != 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    permissions:
+      pull-requests: write
+    container:
+      image: mcr.microsoft.com/playwright:v1.55.0
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v3
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20.x'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build session-replay-browser and workspace dependencies
+        run: pnpm --filter @amplitude/session-replay-browser... build
+
+      - name: Run e2e tests (Chromium only)
+        working-directory: packages/session-replay-browser
+        run: npx playwright test --project=chromium
+
+      - name: Post test summary as PR comment
+        if: always() && github.event_name == 'pull_request'
+        uses: daun/playwright-report-summary@v3
+        with:
+          report-file: packages/session-replay-browser/e2e/results.json
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          comment-title: 'Session Replay Browser E2E Results'
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sr-e2e-playwright-report
+          path: packages/session-replay-browser/playwright-report/
+          retention-days: 14
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sr-e2e-test-results
+          path: packages/session-replay-browser/test-results/
+          retention-days: 14
