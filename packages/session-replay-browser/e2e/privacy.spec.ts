@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 import {
   TEST_SESSION_ID,
+  SNAPSHOT_SETTLE_MS,
   remoteConfigRecording,
   mockRemoteConfig,
   buildUrl,
@@ -35,7 +36,7 @@ test.describe('privacy — CSS classes', () => {
 
     await page.goto(buildUrl(PRIVACY_PAGE, { sessionId: TEST_SESSION_ID }));
     await waitForReady(page);
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
     await flushRecording(page);
 
     const root = getSnapshotRoot(getBodies());
@@ -51,7 +52,7 @@ test.describe('privacy — CSS classes', () => {
 
     await page.goto(buildUrl(PRIVACY_PAGE, { sessionId: TEST_SESSION_ID }));
     await waitForReady(page);
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
     await flushRecording(page);
 
     const root = getSnapshotRoot(getBodies());
@@ -73,7 +74,7 @@ test.describe('privacy — privacyConfig option', () => {
 
     await page.goto(buildUrl(PRIVACY_PAGE, { sessionId: TEST_SESSION_ID, privacyConfig }));
     await waitForReady(page);
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
     await flushRecording(page);
 
     const root = getSnapshotRoot(getBodies());
@@ -90,7 +91,7 @@ test.describe('privacy — privacyConfig option', () => {
 
     await page.goto(buildUrl(PRIVACY_PAGE, { sessionId: TEST_SESSION_ID, privacyConfig }));
     await waitForReady(page);
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
     await flushRecording(page);
 
     const root = getSnapshotRoot(getBodies());
@@ -109,7 +110,7 @@ test.describe('privacy — privacyConfig option', () => {
 
     await page.goto(buildUrl(PRIVACY_PAGE, { sessionId: TEST_SESSION_ID, privacyConfig }));
     await waitForReady(page);
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
     await flushRecording(page);
 
     const root = getSnapshotRoot(getBodies());
@@ -130,7 +131,7 @@ test.describe('privacy — privacyConfig option', () => {
 
     await page.goto(buildUrl(PRIVACY_PAGE, { sessionId: TEST_SESSION_ID, privacyConfig }));
     await waitForReady(page);
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
     await flushRecording(page);
 
     const root = getSnapshotRoot(getBodies());
@@ -156,7 +157,7 @@ test.describe('privacy — privacyConfig option', () => {
 
     await page.goto(buildUrl(PRIVACY_PAGE, { sessionId: TEST_SESSION_ID, privacyConfig }));
     await waitForReady(page);
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
     await flushRecording(page);
 
     const root = getSnapshotRoot(getBodies());
@@ -185,7 +186,7 @@ test.describe('privacy — remote sr_privacy_config', () => {
 
     await page.goto(buildUrl(PRIVACY_PAGE, { sessionId: TEST_SESSION_ID }));
     await waitForReady(page);
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
     await flushRecording(page);
 
     const root = getSnapshotRoot(getBodies());

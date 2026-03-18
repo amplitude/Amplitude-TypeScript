@@ -3,6 +3,7 @@ import { unpack } from '@amplitude/rrweb-packer';
 import {
   SR_API_SUCCESS,
   TEST_SESSION_ID,
+  SNAPSHOT_SETTLE_MS,
   remoteConfigRecording,
   mockRemoteConfig,
   buildUrl,
@@ -242,12 +243,12 @@ test.describe('session replay capture', () => {
     );
     await waitForReady(page);
     // recordEvents() is fire-and-forget inside init; give rrweb time to start and capture snapshot
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
 
     // Blur moves buffered rrweb events from the store into trackDestination; flush sends them
     await page.evaluate(() => window.dispatchEvent(new Event('blur')) as unknown as void);
     await page.evaluate(() => (window as any).sessionReplay.flush(false) as Promise<void>);
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
 
     expect(sentUrls.length).toBeGreaterThan(0);
   });
@@ -265,7 +266,7 @@ test.describe('session replay capture', () => {
     await waitForReady(page);
 
     await page.evaluate(() => (window as any).sessionReplay.flush(false) as Promise<void>);
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
 
     expect(sentUrls.length).toBe(0);
   });
@@ -303,7 +304,7 @@ test.describe('session replay capture', () => {
     );
     await waitForReady(page);
     // Give rrweb time to start recording and capture the initial snapshot
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
 
     // waitForRequest verifies that events were actually flushed to the API
     const trackRequestPromise = page.waitForRequest('https://api-sr.amplitude.com/**', { timeout: 5_000 });
@@ -334,7 +335,7 @@ test.describe('URL-based targeting', () => {
     await page.goto(buildUrl('/session-replay-browser/sr-capture-test.html', { sessionId: TEST_SESSION_ID }));
     await waitForReady(page);
     // Give targeting evaluation (async IDB + rrweb start) time to complete
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
 
     const props = await getProperties(page);
     expect(props[SR_PROPERTY_KEY]).toBeTruthy();
@@ -373,7 +374,7 @@ test.describe('URL-based targeting', () => {
 
     await page.goto(buildUrl('/session-replay-browser/sr-capture-test.html', { sessionId: TEST_SESSION_ID }));
     await waitForReady(page);
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
 
     // URL never matched — should not be recording
     const props = await getProperties(page);
@@ -387,11 +388,11 @@ test.describe('URL-based targeting', () => {
 
     await page.goto(buildUrl('/session-replay-browser/sr-capture-test.html', { sessionId: TEST_SESSION_ID }));
     await waitForReady(page);
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
 
     await page.evaluate(() => window.dispatchEvent(new Event('blur')) as unknown as void);
     await page.evaluate(() => (window as any).sessionReplay.flush(false) as Promise<void>);
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
 
     expect(sentUrls.length).toBe(0);
   });
@@ -402,7 +403,7 @@ test.describe('URL-based targeting', () => {
 
     await page.goto(buildUrl('/session-replay-browser/sr-capture-test.html', { sessionId: TEST_SESSION_ID }));
     await waitForReady(page);
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
 
     // Verify recording started on the matching URL
     const propsBefore = await getProperties(page);
@@ -410,7 +411,7 @@ test.describe('URL-based targeting', () => {
 
     // Navigate away to a non-matching URL
     await page.evaluate(() => history.pushState({}, '', '/some-other-route'));
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
 
     // Should still be recording — targeting match is monotonic within a session
     const propsAfter = await getProperties(page);
@@ -516,7 +517,7 @@ test.describe('URL-based targeting', () => {
     );
 
     // Give rrweb time to capture the initial snapshot
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
 
     const trackRequestPromise = page.waitForRequest('https://api-sr.amplitude.com/**', { timeout: 5_000 });
     await page.evaluate(() => window.dispatchEvent(new Event('blur')) as unknown as void);
@@ -559,7 +560,7 @@ test.describe('URL-based targeting', () => {
 
     await page.goto(buildUrl('/session-replay-browser/sr-capture-test.html', { sessionId: TEST_SESSION_ID }));
     await waitForReady(page);
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
 
     // Initial session is recording (URL matches)
     expect((await getProperties(page))[SR_PROPERTY_KEY]).toBeTruthy();
@@ -598,7 +599,7 @@ test.describe('URL-based targeting — URL pattern matching', () => {
       }),
     );
     await waitForReady(page);
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
 
     const props = await getProperties(page);
     expect(props[SR_PROPERTY_KEY]).toBeTruthy();
@@ -619,7 +620,7 @@ test.describe('URL-based targeting — URL pattern matching', () => {
       }),
     );
     await waitForReady(page);
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
 
     expect((await getProperties(page))[SR_PROPERTY_KEY]).toBeFalsy();
   });
@@ -633,7 +634,7 @@ test.describe('URL-based targeting — URL pattern matching', () => {
 
     await page.goto(buildUrl('/session-replay-browser/sr-capture-test.html', { sessionId: TEST_SESSION_ID }));
     await waitForReady(page);
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
 
     // URL contains 'sr-capture-test' and condition is 'SR-CAPTURE-TEST' — case-insensitive match
     const props = await getProperties(page);
@@ -651,7 +652,7 @@ test.describe('URL-based targeting — URL pattern matching', () => {
 
     await page.goto(buildUrl('/session-replay-browser/sr-capture-test.html', { sessionId: TEST_SESSION_ID }));
     await waitForReady(page);
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
 
     expect((await getProperties(page))[SR_PROPERTY_KEY]).toBeFalsy();
   });
@@ -704,7 +705,7 @@ test.describe('network body capture', () => {
 
     await page.evaluate(() => window.dispatchEvent(new Event('blur')));
     await page.evaluate(() => (window as any).sessionReplay.flush(false) as Promise<void>);
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
 
     const fetchEvents = getFetchEvents();
     expect(fetchEvents.length).toBeGreaterThan(0);
@@ -735,7 +736,7 @@ test.describe('network body capture', () => {
 
     await page.evaluate(() => window.dispatchEvent(new Event('blur')));
     await page.evaluate(() => (window as any).sessionReplay.flush(false) as Promise<void>);
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
 
     const fetchEvents = getFetchEvents();
     const evt = fetchEvents.find((e) => String(e.url).includes(TEST_FETCH_ORIGIN));
@@ -767,7 +768,7 @@ test.describe('network body capture', () => {
 
     await page.evaluate(() => window.dispatchEvent(new Event('blur')));
     await page.evaluate(() => (window as any).sessionReplay.flush(false) as Promise<void>);
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
 
     const fetchEvents = getFetchEvents();
     const evt = fetchEvents.find((e) => String(e.url).includes(TEST_FETCH_ORIGIN));
@@ -788,7 +789,7 @@ test.describe('network body capture', () => {
     // Trigger a flush, which causes the SDK to POST to api-sr.amplitude.com
     await page.evaluate(() => window.dispatchEvent(new Event('blur')));
     await page.evaluate(() => (window as any).sessionReplay.flush(false) as Promise<void>);
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
 
     const fetchEvents = getFetchEvents();
     const trackApiEvent = fetchEvents.find((e) => String(e.url).includes('api-sr.amplitude.com'));
@@ -811,7 +812,7 @@ test.describe('network body capture', () => {
 
     await page.evaluate(() => window.dispatchEvent(new Event('blur')));
     await page.evaluate(() => (window as any).sessionReplay.flush(false) as Promise<void>);
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
 
     const fetchEvents = getFetchEvents();
     const evt = fetchEvents.find((e) => String(e.url).includes(TEST_FETCH_ORIGIN));
@@ -939,7 +940,7 @@ test.describe('shutdown', () => {
     await page.goto(buildUrl('/session-replay-browser/sr-capture-test.html', { sessionId: TEST_SESSION_ID }));
     await waitForReady(page);
     // Give rrweb time to capture the initial snapshot so there are events to flush
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
 
     // shutdown() calls sendEvents() internally — it should trigger a track API request
     const trackRequestPromise = page.waitForRequest('https://api-sr.amplitude.com/**', { timeout: 5_000 });
@@ -954,17 +955,17 @@ test.describe('shutdown', () => {
 
     await page.goto(buildUrl('/session-replay-browser/sr-capture-test.html', { sessionId: TEST_SESSION_ID }));
     await waitForReady(page);
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
 
     // shutdown() removes the blur event listener and flushes pending events
     await page.evaluate(() => (window as any).sessionReplay.shutdown() as void);
-    await page.waitForTimeout(500); // let shutdown's own sendEvents() complete
+    await page.waitForTimeout(SNAPSHOT_SETTLE_MS); // let shutdown's own sendEvents() complete
 
     const countAfterShutdown = sentUrls.length;
 
     // Blur should no longer trigger a flush (listener was removed during shutdown)
     await page.evaluate(() => window.dispatchEvent(new Event('blur')));
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
 
     expect(sentUrls.length).toBe(countAfterShutdown);
   });
@@ -981,7 +982,7 @@ test.describe('capture_enabled', () => {
 
     await page.goto(buildUrl('/session-replay-browser/sr-capture-test.html', { sessionId: TEST_SESSION_ID }));
     await waitForReady(page);
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
 
     expect((await getProperties(page))[SR_PROPERTY_KEY]).toBeFalsy();
   });
@@ -997,7 +998,7 @@ test.describe('capture_enabled', () => {
     await waitForReady(page);
 
     await page.evaluate(() => (window as any).sessionReplay.flush(false) as Promise<void>);
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
 
     expect(sentUrls.length).toBe(0);
   });
@@ -1013,7 +1014,7 @@ test.describe('blur auto-flush', () => {
     await page.goto(buildUrl('/session-replay-browser/sr-capture-test.html', { sessionId: TEST_SESSION_ID }));
     await waitForReady(page);
     // Give rrweb time to capture the initial snapshot so there are events to send
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
 
     const trackRequestPromise = page.waitForRequest('https://api-sr.amplitude.com/**', { timeout: 5_000 });
     await page.evaluate(() => window.dispatchEvent(new Event('blur')));
@@ -1083,7 +1084,7 @@ test.describe('network logging — fields', () => {
 
     await page.evaluate(() => window.dispatchEvent(new Event('blur')));
     await page.evaluate(() => (window as any).sessionReplay.flush(false) as Promise<void>);
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
 
     const fetchEvents = getFetchEvents();
     const evt = fetchEvents.find((e) => String(e.url).includes(TEST_FETCH_ORIGIN));
@@ -1108,7 +1109,7 @@ test.describe('network logging — fields', () => {
 
     await page.evaluate(() => window.dispatchEvent(new Event('blur')));
     await page.evaluate(() => (window as any).sessionReplay.flush(false) as Promise<void>);
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
 
     const fetchEvents = getFetchEvents();
     const evt = fetchEvents.find((e) => String(e.url).includes(TEST_FETCH_ORIGIN));
@@ -1141,7 +1142,7 @@ test.describe('network logging — fields', () => {
 
     await page.evaluate(() => window.dispatchEvent(new Event('blur')));
     await page.evaluate(() => (window as any).sessionReplay.flush(false) as Promise<void>);
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
 
     const fetchEvents = getFetchEvents();
     const evt = fetchEvents.find((e) => String(e.url).includes(TEST_FETCH_ORIGIN));
@@ -1175,7 +1176,7 @@ test.describe('network logging — fields', () => {
 
     await page.evaluate(() => window.dispatchEvent(new Event('blur')));
     await page.evaluate(() => (window as any).sessionReplay.flush(false) as Promise<void>);
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
 
     const fetchEvents = getFetchEvents();
     const evt = fetchEvents.find((e) => String(e.url).includes(TEST_FETCH_ORIGIN));
@@ -1202,14 +1203,14 @@ test.describe('network logging — fields', () => {
     await page.goto(buildUrl('/session-replay-browser/sr-capture-test.html', { sessionId: TEST_SESSION_ID }));
     await waitForReady(page);
     // Network logging is disabled — fetch is not patched, so skip waitForNetworkObservers
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
 
     await page.evaluate((url) => fetch(url), `${TEST_FETCH_ORIGIN}/data`);
     await page.waitForTimeout(200);
 
     await page.evaluate(() => window.dispatchEvent(new Event('blur')));
     await page.evaluate(() => (window as any).sessionReplay.flush(false) as Promise<void>);
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
 
     const fetchEvents = getFetchEvents();
     const evt = fetchEvents.find((e) => String(e.url).includes(TEST_FETCH_ORIGIN));

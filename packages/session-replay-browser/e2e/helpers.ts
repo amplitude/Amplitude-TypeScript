@@ -3,6 +3,7 @@ import { unpack } from '@amplitude/rrweb-packer';
 
 export const SR_API_SUCCESS = { code: 200 };
 export const TEST_SESSION_ID = 1700000000000; // fixed timestamp always in sample at 100%
+export const SNAPSHOT_SETTLE_MS = 500; // time for rrweb to capture its initial full snapshot
 
 export const remoteConfigRecording = {
   configs: { sessionReplay: { sr_sampling_config: { capture_enabled: true, sample_rate: 1.0 } } },
@@ -104,5 +105,5 @@ export async function captureTrackRequests(page: Page): Promise<() => string[]> 
 export async function flushRecording(page: Page): Promise<void> {
   await page.evaluate(() => window.dispatchEvent(new Event('blur')));
   await page.evaluate(() => (window as any).sessionReplay.flush(false) as Promise<void>);
-  await page.waitForTimeout(500);
+  await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
 }
