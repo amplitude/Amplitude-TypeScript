@@ -27,6 +27,7 @@ export const EU_SERVER_URL = 'https://sr-client-cfg.eu.amplitude.com/config';
 export const DEFAULT_MAX_RETRIES = 3;
 const CODE_STATUS = {
   INVALID_API_KEY: 401,
+  FORBIDDEN: 403,
   RATE_LIMIT: 429,
 } as const;
 
@@ -356,9 +357,9 @@ export class RemoteConfigClient implements IRemoteConfigClient {
           const body = await res.text();
           this.logger.debug(`Remote config client fetch with retry time ${retries} failed with ${res.status}: ${body}`);
 
-          if (res.status === CODE_STATUS.INVALID_API_KEY) {
+          if (res.status === CODE_STATUS.INVALID_API_KEY || res.status === CODE_STATUS.FORBIDDEN) {
             this.logger.error(
-              `Remote config client fetch failed with ${CODE_STATUS.INVALID_API_KEY}. Invalid API key; future fetches will be skipped.`,
+              `Remote config client fetch failed with ${res.status}. Invalid API key; future fetches will be skipped.`,
             );
             this.isLastFetchInvalidApiKey = true;
             shouldRetry = false;

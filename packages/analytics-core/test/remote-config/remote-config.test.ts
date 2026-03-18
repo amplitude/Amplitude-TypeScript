@@ -936,6 +936,51 @@ describe('RemoteConfigClient', () => {
       );
     });
 
+    test('should not retry on forbidden (403) response and treat as invalid API key', async () => {
+      global.fetch = jest.fn(() =>
+        Promise.resolve({
+          ok: false,
+          status: 403,
+          text: () => Promise.resolve('Forbidden'),
+        } as Response),
+      );
+
+      const result = await client.fetch(3);
+      expect(result.remoteConfig).toBeNull();
+      expect(result.lastFetch).toBeInstanceOf(Date);
+      expect(global.fetch).toHaveBeenCalledTimes(1);
+      expect(client.isLastFetchInvalidApiKey).toBe(true);
+      expect(loggerDebug).toHaveBeenCalledTimes(1);
+      expect(loggerDebug).toHaveBeenCalledWith(expect.stringContaining('failed with 403'));
+      expect(loggerError).toHaveBeenCalledTimes(1);
+      expect(loggerError).toHaveBeenCalledWith(
+        expect.stringContaining('Remote config client fetch failed with 403. Invalid API key'),
+      );
+    });
+
+    test('should skip future fetches after a 403 response', async () => {
+      global.fetch = jest.fn(() =>
+        Promise.resolve({
+          ok: false,
+          status: 403,
+          text: () => Promise.resolve('Forbidden'),
+        } as Response),
+      );
+
+      // First call triggers the 403
+      await client.getOrCreateFetchPromise();
+      expect(global.fetch).toHaveBeenCalledTimes(1);
+      expect(client.isLastFetchInvalidApiKey).toBe(true);
+
+      jest.clearAllMocks();
+
+      // Subsequent call should be skipped entirely
+      const result = await client.getOrCreateFetchPromise();
+      expect(global.fetch).not.toHaveBeenCalled();
+      expect(result.remoteConfig).toBeNull();
+      expect(loggerDebug).toHaveBeenCalledWith('Remote config client skipping fetch: Invalid API key');
+    });
+
     test('should retry on rate limit and recover', async () => {
       global.fetch = jest
         .fn()
