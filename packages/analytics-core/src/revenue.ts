@@ -1,5 +1,4 @@
 import { isValidObject } from './utils/valid-properties';
-import { safeJsonStringify } from './utils/safe-stringify';
 
 export interface IRevenue {
   getEventProperties(): RevenueEventProperties;
@@ -75,10 +74,9 @@ export class Revenue implements IRevenue {
 
   setEventProperties(properties: { [key: string]: ValidPropertyType }) {
     try {
-      // safeJsonStringify drops undefined/function/symbol values before validation,
-      // and prevents circular references
+      // JSON.stringify drops undefined/function/symbol values before validation,
       // so a single undefined property no longer causes the whole object to be rejected.
-      const filtered = JSON.parse(safeJsonStringify(properties)) as { [key: string]: ValidPropertyType };
+      const filtered = JSON.parse(JSON.stringify(properties)) as { [key: string]: ValidPropertyType };
       if (isValidObject(filtered)) {
         this.properties = filtered;
       }

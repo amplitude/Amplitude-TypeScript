@@ -123,4 +123,14 @@ describe('Revenue class', () => {
 
     expect(event.event_properties).toEqual(expectedProperties);
   });
+
+  test('setEventProperties ignores properties with circular references', () => {
+    const property: { [key: string]: any } = { validKey: 'valid value' };
+    property.circular = property;
+    const revenue = new Revenue();
+    revenue.setEventProperties(property);
+    const event = createRevenueEvent(revenue);
+
+    expect(event.event_properties).toEqual(defaultRevenueProperty);
+  });
 });
