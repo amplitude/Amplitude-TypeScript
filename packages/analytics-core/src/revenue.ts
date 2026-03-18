@@ -74,11 +74,16 @@ export class Revenue implements IRevenue {
   }
 
   setEventProperties(properties: { [key: string]: ValidPropertyType }) {
-    // safeJsonStringify drops undefined/function/symbol values before validation,
-    // so a single undefined property no longer causes the whole object to be rejected.
-    const filtered = JSON.parse(safeJsonStringify(properties)) as { [key: string]: ValidPropertyType };
-    if (isValidObject(filtered)) {
-      this.properties = filtered;
+    try {
+      // safeJsonStringify drops undefined/function/symbol values before validation,
+      // and prevents circular references
+      // so a single undefined property no longer causes the whole object to be rejected.
+      const filtered = JSON.parse(safeJsonStringify(properties)) as { [key: string]: ValidPropertyType };
+      if (isValidObject(filtered)) {
+        this.properties = filtered;
+      }
+    } catch {
+      // no-op: invalid properties are ignored
     }
     return this;
   }
