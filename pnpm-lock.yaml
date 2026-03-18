@@ -165,7 +165,7 @@ importers:
         version: 15.3.1(rollup@2.79.2)
       '@rollup/plugin-typescript':
         specifier: ^10.0.1
-        version: 10.0.1(rollup@2.79.2)(tslib@2.8.1)(typescript@4.9.5)
+        version: 10.0.1(rollup@2.79.2)(tslib@2.8.1)(typescript@5.9.3)
       fake-indexeddb:
         specifier: 4.0.2
         version: 4.0.2
@@ -364,7 +364,7 @@ importers:
         version: 15.3.1(rollup@2.79.2)
       '@rollup/plugin-typescript':
         specifier: ^10.0.1
-        version: 10.0.1(rollup@2.79.2)(tslib@2.8.1)(typescript@4.9.5)
+        version: 10.0.1(rollup@2.79.2)(tslib@2.8.1)(typescript@5.9.3)
       css.escape:
         specifier: ^1.5.1
         version: 1.5.1
@@ -417,7 +417,7 @@ importers:
         version: 15.3.1(rollup@2.79.2)
       '@rollup/plugin-typescript':
         specifier: ^10.0.1
-        version: 10.0.1(rollup@2.79.2)(tslib@2.8.1)(typescript@4.9.5)
+        version: 10.0.1(rollup@2.79.2)(tslib@2.8.1)(typescript@5.9.3)
       rollup:
         specifier: ^2.79.1
         version: 2.79.2
@@ -451,7 +451,7 @@ importers:
         version: 15.3.1(rollup@2.79.2)
       '@rollup/plugin-typescript':
         specifier: ^10.0.1
-        version: 10.0.1(rollup@2.79.2)(tslib@2.8.1)(typescript@4.9.5)
+        version: 10.0.1(rollup@2.79.2)(tslib@2.8.1)(typescript@5.9.3)
       css.escape:
         specifier: ^1.5.1
         version: 1.5.1
@@ -488,7 +488,7 @@ importers:
         version: 15.3.1(rollup@2.79.2)
       '@rollup/plugin-typescript':
         specifier: ^10.0.1
-        version: 10.0.1(rollup@2.79.2)(tslib@2.8.1)(typescript@4.9.5)
+        version: 10.0.1(rollup@2.79.2)(tslib@2.8.1)(typescript@5.9.3)
       rollup:
         specifier: ^2.79.1
         version: 2.79.2
@@ -519,7 +519,7 @@ importers:
         version: 15.3.1(rollup@2.79.2)
       '@rollup/plugin-typescript':
         specifier: ^10.0.1
-        version: 10.0.1(rollup@2.79.2)(tslib@2.8.1)(typescript@4.9.5)
+        version: 10.0.1(rollup@2.79.2)(tslib@2.8.1)(typescript@5.9.3)
       rollup:
         specifier: ^2.79.1
         version: 2.79.2
@@ -545,11 +545,11 @@ importers:
         specifier: workspace:*
         version: link:../analytics-types
       '@amplitude/rrweb-plugin-console-record':
-        specifier: 2.0.0-alpha.35
-        version: 2.0.0-alpha.35(@amplitude/rrweb@2.0.0-alpha.36)
+        specifier: 2.0.0-alpha.36
+        version: 2.0.0-alpha.36(@amplitude/rrweb@2.0.0-alpha.36)
       '@amplitude/rrweb-record':
-        specifier: 2.0.0-alpha.35
-        version: 2.0.0-alpha.35
+        specifier: 2.0.0-alpha.36
+        version: 2.0.0-alpha.36
       '@amplitude/session-replay-browser':
         specifier: workspace:*
         version: link:../session-replay-browser
@@ -574,13 +574,13 @@ importers:
         version: 15.3.1(rollup@2.79.2)
       '@rollup/plugin-typescript':
         specifier: ^10.0.1
-        version: 10.0.1(rollup@2.79.2)(tslib@2.8.1)(typescript@4.9.5)
+        version: 10.0.1(rollup@2.79.2)(tslib@2.8.1)(typescript@5.9.3)
       fake-indexeddb:
         specifier: 4.0.2
         version: 4.0.2
       msw:
         specifier: ^2.3.1
-        version: 2.12.2(@types/node@24.10.1)(typescript@4.9.5)
+        version: 2.12.2(@types/node@24.10.1)(typescript@5.9.3)
       node-fetch:
         specifier: ^3.3.2
         version: 3.3.2
@@ -642,7 +642,7 @@ importers:
         version: 15.3.1(rollup@2.79.2)
       '@rollup/plugin-typescript':
         specifier: ^10.0.1
-        version: 10.0.1(rollup@2.79.2)(tslib@2.8.1)(typescript@4.9.5)
+        version: 10.0.1(rollup@2.79.2)(tslib@2.8.1)(typescript@5.9.3)
       css.escape:
         specifier: ^1.5.1
         version: 1.5.1
@@ -688,7 +688,7 @@ importers:
         version: 15.3.1(rollup@2.79.2)
       '@rollup/plugin-typescript':
         specifier: ^10.0.1
-        version: 10.0.1(rollup@2.79.2)(tslib@2.8.1)(typescript@4.9.5)
+        version: 10.0.1(rollup@2.79.2)(tslib@2.8.1)(typescript@5.9.3)
       rollup:
         specifier: ^2.79.1
         version: 2.79.2
@@ -722,7 +722,7 @@ importers:
         version: 15.3.1(rollup@2.79.2)
       '@rollup/plugin-typescript':
         specifier: ^10.0.1
-        version: 10.0.1(rollup@2.79.2)(tslib@2.8.1)(typescript@4.9.5)
+        version: 10.0.1(rollup@2.79.2)(tslib@2.8.1)(typescript@5.9.3)
       css.escape:
         specifier: ^1.5.1
         version: 1.5.1
@@ -765,7 +765,7 @@ importers:
         version: 15.3.1(rollup@2.79.2)
       '@rollup/plugin-typescript':
         specifier: ^10.0.1
-        version: 10.0.1(rollup@2.79.2)(tslib@2.8.1)(typescript@4.9.5)
+        version: 10.0.1(rollup@2.79.2)(tslib@2.8.1)(typescript@5.9.3)
       '@types/js-cookie':
         specifier: ^3.0.6
         version: 3.0.6
@@ -853,7 +853,7 @@ importers:
         version: 15.3.1(rollup@2.79.2)
       '@rollup/plugin-typescript':
         specifier: ^10.0.1
-        version: 10.0.1(rollup@2.79.2)(tslib@2.8.1)(typescript@4.9.5)
+        version: 10.0.1(rollup@2.79.2)(tslib@2.8.1)(typescript@5.9.3)
       '@ungap/structured-clone':
         specifier: ^1.2.0
         version: 1.3.0
@@ -930,7 +930,7 @@ importers:
         version: 15.3.1(rollup@2.79.2)
       '@rollup/plugin-typescript':
         specifier: ^10.0.1
-        version: 10.0.1(rollup@2.79.2)(tslib@2.8.1)(typescript@4.9.5)
+        version: 10.0.1(rollup@2.79.2)(tslib@2.8.1)(typescript@5.9.3)
       '@types/core-js':
         specifier: ^2.5.8
         version: 2.5.8
@@ -979,6 +979,7 @@ packages:
 
   '@amplitude/analytics-connector@1.6.4':
     resolution: {integrity: sha512-SpIv0IQMNIq6SH3UqFGiaZyGSc7PBZwRdq7lvP0pBxW8i4Ny+8zwI0pV+VMfMHQwWY3wdIbWw5WQphNjpdq1/Q==}
+
   '@amplitude/analytics-core@2.41.5':
     resolution: {integrity: sha512-RImmiQTtkwYPuNRsCvqOpz/QbBEt1H4GmYbiiwIXzgvoiIKTvE5h+yqkMGAKAb8Su9lA6cIWqiYucp605a0PkQ==}
 
@@ -1000,47 +1001,28 @@ packages:
   '@amplitude/experiment-js-client@1.20.0':
     resolution: {integrity: sha512-MMecqmDXJ81KH0dU2/Alshy8O3srBOO8A0CcIy958zUUFJwyB3z2zXbU2EYSF0s75xwWBAu/+F23Dp2ATmOerg==}
 
-  '@amplitude/rrdom@2.0.0-alpha.35':
-    resolution: {integrity: sha512-W9ImCKtgFB8oBKd7td0TH7JKkQ/3iwu5bfLXcOvzxLj7+RSD1k1gfDyncooyobwBV8j4FMiTyj2N53tJ6rFgaw==}
-
   '@amplitude/rrdom@2.0.0-alpha.36':
     resolution: {integrity: sha512-8jNhYEzjp6aaZON7qY/IpZIVbl8SUojb8kxD58StknlvnjKeGV7nHheXbkIz+T1LSVbWsdh+noIWuqhyFWzvgg==}
 
   '@amplitude/rrweb-packer@2.0.0-alpha.36':
     resolution: {integrity: sha512-kqKg6OGoxHZvG4jwyO4kIjLdf8MkL6JcY5iLB09PQNP7O36ysnrH+ecJfa4V1Rld99kX25Pefkw4bzKmmFAqcg==}
 
-  '@amplitude/rrweb-plugin-console-record@2.0.0-alpha.35':
-    resolution: {integrity: sha512-8hstBoMHMSEA3FGoQ0LKidhpQypKchyT2sjEDdwTC77xZSg+3LwtjElOSMVdgjrEfxvN4V1g72v+Pwy7LBGUDA==}
-    peerDependencies:
-      '@amplitude/rrweb': ^2.0.0-alpha.35
-
   '@amplitude/rrweb-plugin-console-record@2.0.0-alpha.36':
     resolution: {integrity: sha512-7VbXu36PpJA8dSOFxpfpMaoDTuPK5uy1C8mN+Wfdm0X4ROdmrvcTdlQj+jGzhLGeK+xbTixHEy23itCNUau7hQ==}
     peerDependencies:
       '@amplitude/rrweb': ^2.0.0-alpha.36
 
-  '@amplitude/rrweb-record@2.0.0-alpha.35':
-    resolution: {integrity: sha512-C8lr6LLMXLDINWE3SaebDrc4sj1pSFKm9s+zlW5e8CkAuAv8XfA5Wjx5cevxG3LMkIwXdugvrrjYKmEVCODI1g==}
   '@amplitude/rrweb-record@2.0.0-alpha.36':
     resolution: {integrity: sha512-zSHvmG5NUG4jNgWNVM7Oj3+rJPagv+TiHlnSiJ1X0WWLIg1GbUnOoTqpincZS5QupqTxQchNQaUg9MNu0MM3sQ==}
 
-  '@amplitude/rrweb-snapshot@2.0.0-alpha.35':
-    resolution: {integrity: sha512-n55AdmlRNZ7XuOlCRmSjH2kyyHS1oe5haUS+buxqjfQcamUtam+dSnP+6N1E8dLxIDjynJnbrCOC+8xvenpl1A==}
-
   '@amplitude/rrweb-snapshot@2.0.0-alpha.36':
     resolution: {integrity: sha512-vUvTXkNcu+cN736tykQDUVWERetFz1hyzgS0Yib5qSeWJwbse/4BaiWaZ7c5WevbbtcjLbDJqYKySJM92H5SxQ==}
-
-  '@amplitude/rrweb-types@2.0.0-alpha.35':
-    resolution: {integrity: sha512-cR/xlN5fu7Cw6Zh9O6iEgNleqT92wJ3HO2mV19yQE6SRqLGKXXeDeTrUBd5FKCZnXvRsv3JtK+VR4u9vmZze3g==}
 
   '@amplitude/rrweb-types@2.0.0-alpha.36':
     resolution: {integrity: sha512-Bd2r3Bs0XIJt5fgPRWVl8bhvA9FCjJn8vQlDTO8ffPxilGPIzUXLQ06+xoLYkK9v+PDKJnCapOTL4A2LilDmgA==}
 
   '@amplitude/rrweb-utils@2.0.0-alpha.36':
     resolution: {integrity: sha512-w5RGROLU1Kyrq9j+trxcvvfkTp05MEKJ70Ig+YvHyZsE0nElh1PCF8PHAjV0/kji68+KqB03c0hoyaV99CDaDw==}
-
-  '@amplitude/rrweb@2.0.0-alpha.35':
-    resolution: {integrity: sha512-qFaZDNMkjolZUVv1OxrWngGl38FH0iF0jtybd/vhuOzvwohJjyKL9Tgoulj8osj21/4BUpGEhWweGeJygjoJJw==}
 
   '@amplitude/rrweb@2.0.0-alpha.36':
     resolution: {integrity: sha512-8vhPOk4fvszfxYZTk37EObW3n7uwEgO//funRSMt/QiBWtgQ8jhpFV9FcOAYdgde0Yw1uIM8oUbWZfy/XrexNw==}
@@ -9457,10 +9439,6 @@ snapshots:
       base64-js: 1.5.1
       unfetch: 4.1.0
 
-  '@amplitude/rrdom@2.0.0-alpha.35':
-    dependencies:
-      '@amplitude/rrweb-snapshot': 2.0.0-alpha.35
-
   '@amplitude/rrdom@2.0.0-alpha.36':
     dependencies:
       '@amplitude/rrweb-snapshot': 2.0.0-alpha.36
@@ -9470,48 +9448,22 @@ snapshots:
       '@amplitude/rrweb-types': 2.0.0-alpha.36
       fflate: 0.4.8
 
-  '@amplitude/rrweb-plugin-console-record@2.0.0-alpha.35(@amplitude/rrweb@2.0.0-alpha.36)':
-    dependencies:
-      '@amplitude/rrweb': 2.0.0-alpha.36
-
   '@amplitude/rrweb-plugin-console-record@2.0.0-alpha.36(@amplitude/rrweb@2.0.0-alpha.36)':
     dependencies:
       '@amplitude/rrweb': 2.0.0-alpha.36
-
-  '@amplitude/rrweb-record@2.0.0-alpha.35':
-    dependencies:
-      '@amplitude/rrweb': 2.0.0-alpha.35
-      '@amplitude/rrweb-types': 2.0.0-alpha.35
 
   '@amplitude/rrweb-record@2.0.0-alpha.36':
     dependencies:
       '@amplitude/rrweb': 2.0.0-alpha.36
       '@amplitude/rrweb-types': 2.0.0-alpha.36
 
-  '@amplitude/rrweb-snapshot@2.0.0-alpha.35':
-    dependencies:
-      postcss: 8.5.6
-
   '@amplitude/rrweb-snapshot@2.0.0-alpha.36':
     dependencies:
       postcss: 8.5.6
 
-  '@amplitude/rrweb-types@2.0.0-alpha.35': {}
-
   '@amplitude/rrweb-types@2.0.0-alpha.36': {}
 
   '@amplitude/rrweb-utils@2.0.0-alpha.36': {}
-
-  '@amplitude/rrweb@2.0.0-alpha.35':
-    dependencies:
-      '@amplitude/rrdom': 2.0.0-alpha.35
-      '@amplitude/rrweb-snapshot': 2.0.0-alpha.35
-      '@amplitude/rrweb-types': 2.0.0-alpha.36
-      '@amplitude/rrweb-utils': 2.0.0-alpha.36
-      '@types/css-font-loading-module': 0.0.7
-      '@xstate/fsm': 1.6.5
-      base64-arraybuffer: 1.0.2
-      mitt: 3.0.1
 
   '@amplitude/rrweb@2.0.0-alpha.36':
     dependencies:
@@ -10974,7 +10926,7 @@ snapshots:
       '@types/node': 20.5.1
       chalk: 4.1.2
       cosmiconfig: 8.3.6(typescript@5.9.3)
-      cosmiconfig-typescript-loader: 4.4.0(@types/node@20.5.1)(cosmiconfig@8.3.6(typescript@4.9.5))(ts-node@10.9.2(@types/node@18.19.130)(typescript@4.9.5))(typescript@5.9.3)
+      cosmiconfig-typescript-loader: 4.4.0(@types/node@20.5.1)(cosmiconfig@8.3.6(typescript@5.9.3))(ts-node@10.9.2(@types/node@20.5.1)(typescript@5.9.3))(typescript@5.9.3)
       lodash.isplainobject: 4.0.6
       lodash.merge: 4.6.2
       lodash.uniq: 4.5.0
@@ -12565,11 +12517,11 @@ snapshots:
     optionalDependencies:
       rollup: 2.79.2
 
-  '@rollup/plugin-typescript@10.0.1(rollup@2.79.2)(tslib@2.8.1)(typescript@4.9.5)':
+  '@rollup/plugin-typescript@10.0.1(rollup@2.79.2)(tslib@2.8.1)(typescript@5.9.3)':
     dependencies:
       '@rollup/pluginutils': 5.3.0(rollup@2.79.2)
       resolve: 1.22.11
-      typescript: 4.9.5
+      typescript: 5.9.3
     optionalDependencies:
       rollup: 2.79.2
       tslib: 2.8.1
@@ -14764,7 +14716,7 @@ snapshots:
 
   corser@2.0.1: {}
 
-  cosmiconfig-typescript-loader@4.4.0(@types/node@20.5.1)(cosmiconfig@8.3.6(typescript@4.9.5))(ts-node@10.9.2(@types/node@18.19.130)(typescript@4.9.5))(typescript@5.9.3):
+  cosmiconfig-typescript-loader@4.4.0(@types/node@20.5.1)(cosmiconfig@8.3.6(typescript@5.9.3))(ts-node@10.9.2(@types/node@20.5.1)(typescript@5.9.3))(typescript@5.9.3):
     dependencies:
       '@types/node': 20.5.1
       cosmiconfig: 8.3.6(typescript@5.9.3)
@@ -18042,7 +17994,7 @@ snapshots:
 
   ms@2.1.3: {}
 
-  msw@2.12.2(@types/node@24.10.1)(typescript@4.9.5):
+  msw@2.12.2(@types/node@24.10.1)(typescript@5.9.3):
     dependencies:
       '@inquirer/confirm': 5.1.21(@types/node@24.10.1)
       '@mswjs/interceptors': 0.40.0
@@ -18063,7 +18015,7 @@ snapshots:
       until-async: 3.0.2
       yargs: 17.7.2
     optionalDependencies:
-      typescript: 4.9.5
+      typescript: 5.9.3
     transitivePeerDependencies:
       - '@types/node'
 
