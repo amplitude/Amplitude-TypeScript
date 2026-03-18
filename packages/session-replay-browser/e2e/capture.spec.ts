@@ -1,17 +1,17 @@
 import { test, expect, Route } from '@playwright/test';
 import { unpack } from '@amplitude/rrweb-packer';
+import {
+  SR_API_SUCCESS,
+  TEST_SESSION_ID,
+  remoteConfigRecording,
+  mockRemoteConfig,
+  buildUrl,
+  waitForReady,
+} from './helpers';
 
 const SR_PROPERTY_KEY = '[Amplitude] Session Replay ID';
-const TEST_SESSION_ID = 1700000000000; // fixed timestamp always in sample at 100%
-const SR_API_SUCCESS = { code: 200 };
 // Fake origin used for fetch calls made from the test page during network body capture tests.
 const TEST_FETCH_ORIGIN = 'https://test-fetch.amplitude.test';
-
-// Remote config responses. The key 'configs.sessionReplay' is traversed as a
-// dot-separated path by the RemoteConfigClient, so the response must be nested.
-const remoteConfigRecording = {
-  configs: { sessionReplay: { sr_sampling_config: { capture_enabled: true, sample_rate: 1.0 } } },
-};
 const remoteConfigNotRecording = {
   configs: { sessionReplay: { sr_sampling_config: { capture_enabled: true, sample_rate: 0.0 } } },
 };
@@ -156,26 +156,11 @@ function remoteConfigWithUrlTargeting(matchStr: string): object {
   };
 }
 
-function mockRemoteConfig(page: import('@playwright/test').Page, body: object) {
-  return page.route('https://sr-client-cfg.amplitude.com/**', (route: Route) =>
-    route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(body) }),
-  );
-}
-
 function mockTrackApi(page: import('@playwright/test').Page, onRequest?: (route: Route) => void) {
   return page.route('https://api-sr.amplitude.com/**', (route: Route) => {
     onRequest?.(route);
     return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(SR_API_SUCCESS) });
   });
-}
-
-function buildUrl(path: string, params: Record<string, string | number | boolean> = {}): string {
-  const qs = new URLSearchParams(Object.entries(params).map(([k, v]) => [k, String(v)]));
-  return `${path}?${qs.toString()}`;
-}
-
-async function waitForReady(page: import('@playwright/test').Page): Promise<void> {
-  await page.waitForFunction(() => (window as any).srReady === true, { timeout: 10_000 });
 }
 
 /**

@@ -1,12 +1,13 @@
 import { test, expect, Route, Page } from '@playwright/test';
 import { unpack } from '@amplitude/rrweb-packer';
-
-const SR_API_SUCCESS = { code: 200 };
-const TEST_SESSION_ID = 1700000000000;
-
-const remoteConfigRecording = {
-  configs: { sessionReplay: { sr_sampling_config: { capture_enabled: true, sample_rate: 1.0 } } },
-};
+import {
+  SR_API_SUCCESS,
+  TEST_SESSION_ID,
+  remoteConfigRecording,
+  mockRemoteConfig,
+  buildUrl,
+  waitForReady,
+} from './helpers';
 
 function remoteConfigWithPrivacy(privacy: object) {
   return {
@@ -17,21 +18,6 @@ function remoteConfigWithPrivacy(privacy: object) {
       },
     },
   };
-}
-
-function mockRemoteConfig(page: Page, body: object) {
-  return page.route('https://sr-client-cfg.amplitude.com/**', (route: Route) =>
-    route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(body) }),
-  );
-}
-
-function buildUrl(path: string, params: Record<string, string | number | boolean> = {}): string {
-  const qs = new URLSearchParams(Object.entries(params).map(([k, v]) => [k, String(v)]));
-  return `${path}?${qs.toString()}`;
-}
-
-async function waitForReady(page: Page): Promise<void> {
-  await page.waitForFunction(() => (window as any).srReady === true, { timeout: 10_000 });
 }
 
 // ─── RRweb snapshot helpers ───────────────────────────────────────────────────

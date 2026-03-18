@@ -64,8 +64,8 @@ module.exports = {
   },
   overrides: [
     {
-      // Allow test files to access globals
-      files: ['*.test.ts', '*.spec.ts'],
+      // Allow test files and e2e helpers to access globals
+      files: ['*.test.ts', '*.spec.ts', '**/e2e/**/*.ts'],
       rules: {
         'no-restricted-globals': 'off',
         'import/no-unresolved': 'off',
