@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SR Privacy Test</title>
+  </head>
+  <body>
+    <!-- Plain text — visible under 'light'/'medium', masked under 'conservative' -->
+    <p id="plain-text">Hello visible world</p>
+
+    <!-- Text masked via CSS class (rrweb maskTextClass) -->
+    <p id="amp-mask-text" class="amp-mask">Secret masked text</p>
+
+    <!-- Element blocked via CSS class (rrweb blockClass) -->
+    <div id="amp-block-element" class="amp-block">Blocked content</div>
+
+    <!-- Masked container with an explicitly unmasked child -->
+    <div id="masked-container" class="amp-mask">
+      Outer masked text
+      <span id="unmask-span">Inner visible text</span>
+    </div>
+
+    <!-- Text input: masked in 'medium'/'conservative', not in 'light' -->
+    <input id="text-input" type="text" value="visible input value" />
+
+    <!-- Password input: always masked ('light' and above) -->
+    <input id="password-input" type="password" value="secret123" />
+
+    <!-- Element for selector-based blocking via privacyConfig.blockSelector -->
+    <div id="selector-blocked">Selector blocked content</div>
+
+    <div id="status">loading</div>
+    <script type="module">
+      import * as sessionReplay from '@amplitude/session-replay-browser';
+
+      window.sessionReplay = sessionReplay;
+
+      const params = new URLSearchParams(location.search);
+      const sessionId = params.has('sessionId') ? Number(params.get('sessionId')) : Date.now();
+      const deviceId = params.get('deviceId') ?? 'test-device-id';
+      const logLevel = params.has('logLevel') ? Number(params.get('logLevel')) : 0;
+      const privacyConfig = params.has('privacyConfig') ? JSON.parse(params.get('privacyConfig')) : undefined;
+
+      void (async () => {
+        try {
+          await sessionReplay
+            .init('d90c5cf09ca2546a1626272906b99a76', {
+              deviceId,
+              sessionId,
+              logLevel,
+              privacyConfig,
+            })
+            .promise;
+        } catch (err) {
+          document.getElementById('status').textContent = 'error: ' + err.message;
+          window.srError = err.message;
+        }
+
+        window.srReady = true;
+        document.getElementById('status').textContent = 'ready';
+      })();
+    </script>
+  </body>
+</html>
