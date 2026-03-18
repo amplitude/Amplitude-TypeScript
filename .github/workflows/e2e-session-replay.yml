@@ -3,9 +3,15 @@ name: Session Replay Browser E2E
 on:
   pull_request:
     types: [opened, synchronize]
+    paths:
+      - 'packages/session-replay-browser/**'
+      - 'test-server/session-replay-browser/**'
   push:
     branches:
       - main
+    paths:
+      - 'packages/session-replay-browser/**'
+      - 'test-server/session-replay-browser/**'
 
 # Non-blocking: failures are visible in the checks list but do not prevent merging.
 # Once the suite is stable this job can be added to required status checks.
