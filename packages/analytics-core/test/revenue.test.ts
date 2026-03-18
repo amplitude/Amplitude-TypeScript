@@ -112,4 +112,25 @@ describe('Revenue class', () => {
 
     expect(event.event_properties).toEqual(expectedProperties);
   });
+
+  test('setEventProperties filters out undefined properties instead of rejecting the whole object', () => {
+    const property = { validKey: 'valid value', invalidKey: undefined as any };
+    const revenue = new Revenue();
+    revenue.setEventProperties(property);
+    const event = createRevenueEvent(revenue);
+
+    const expectedProperties = { ...defaultRevenueProperty, validKey: 'valid value' };
+
+    expect(event.event_properties).toEqual(expectedProperties);
+  });
+
+  test('setEventProperties ignores properties with circular references', () => {
+    const property: { [key: string]: any } = { validKey: 'valid value' };
+    property.circular = property;
+    const revenue = new Revenue();
+    revenue.setEventProperties(property);
+    const event = createRevenueEvent(revenue);
+
+    expect(event.event_properties).toEqual(defaultRevenueProperty);
+  });
 });
