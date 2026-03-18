@@ -16,6 +16,8 @@ jobs:
     if: github.actor != 'dependabot[bot]'
     runs-on: ubuntu-latest
     continue-on-error: true
+    permissions:
+      pull-requests: write
     container:
       image: mcr.microsoft.com/playwright:v1.55.0
 
@@ -40,6 +42,14 @@ jobs:
       - name: Run e2e tests (Chromium only)
         working-directory: packages/session-replay-browser
         run: npx playwright test --project=chromium
+
+      - name: Post test summary as PR comment
+        if: always() && github.event_name == 'pull_request'
+        uses: daun/playwright-report-summary@v3
+        with:
+          report-file: packages/session-replay-browser/e2e/results.json
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          comment-title: 'Session Replay Browser E2E Results'
 
       - name: Upload Playwright report
         if: always()
