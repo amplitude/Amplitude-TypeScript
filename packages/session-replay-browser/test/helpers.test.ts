@@ -245,13 +245,36 @@ describe('SessionReplayPlugin helpers', () => {
       expect(result).toEqual('***** ****');
     });
 
-    test('uses cached isMasked result for subsequent attributes on the same element', () => {
-      const cachedElement = document.createElement('input');
-      cachedElement.classList.add(UNMASK_TEXT_CLASS);
-      const fn = maskAttributeFn({ maskAttributes: ['placeholder', 'aria-label'] });
-      // Both attributes use the same element — isMasked is computed once and cached
-      expect(fn('placeholder', 'Enter name', cachedElement)).toEqual('Enter name');
-      expect(fn('aria-label', 'Submit', cachedElement)).toEqual('Submit');
+    test('re-evaluates masking after element class mutation', () => {
+      const dynamicElement = document.createElement('input');
+      dynamicElement.classList.add(UNMASK_TEXT_CLASS);
+      const fn = maskAttributeFn({ maskAttributes: ['placeholder'] });
+
+      // Initially unmasked because amp-unmask is present.
+      expect(fn('placeholder', 'Enter name', dynamicElement)).toEqual('Enter name');
+
+      // After removing amp-unmask, the same element should now be masked.
+      dynamicElement.classList.remove(UNMASK_TEXT_CLASS);
+      expect(fn('placeholder', 'Enter name', dynamicElement)).toEqual('***** ****');
+    });
+
+    test('re-evaluates masking after ancestor selector mutation', () => {
+      const wrapper = document.createElement('div');
+      wrapper.classList.add('unmask-parent');
+      const dynamicElement = document.createElement('input');
+      wrapper.appendChild(dynamicElement);
+
+      const fn = maskAttributeFn({
+        maskAttributes: ['placeholder'],
+        unmaskSelector: ['.unmask-parent'],
+      });
+
+      // Initially unmasked because ancestor matches unmaskSelector.
+      expect(fn('placeholder', 'Enter name', dynamicElement)).toEqual('Enter name');
+
+      // After ancestor no longer matches, element should be masked.
+      wrapper.classList.remove('unmask-parent');
+      expect(fn('placeholder', 'Enter name', dynamicElement)).toEqual('***** ****');
     });
   });
 
