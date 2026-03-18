@@ -60,7 +60,7 @@ const isMaskedForLevel = (elementType: 'input' | 'text', level: MaskLevel, eleme
  *  1. [In code] Element/class based masking/unmasking <> [Config based] Selector based masking/unmasking
  *  2. Use app defaults
  */
-const isMasked = (
+export const isMasked = (
   elementType: 'input' | 'text',
   config: PrivacyConfig = { defaultMaskLevel: DEFAULT_MASK_LEVEL },
   element: HTMLElement | null,
@@ -98,6 +98,21 @@ export const maskFn =
   (text: string, element: HTMLElement | null): string => {
     return isMasked(elementType, config, element) ? text.replace(/[^\s]/g, '*') : text;
   };
+
+export const maskAttributeFn = (config?: PrivacyConfig) => {
+  return (key: string, value: string, element: HTMLElement): string => {
+    // Never mask style — rrweb has a separate styleDiff path for attribute mutations
+    // that reads directly from the DOM, bypassing maskAttributeFn.
+    if (key === 'style') return value;
+
+    // Short-circuit: only proceed if this attribute is in the allowlist.
+    if (!(config?.maskAttributes ?? []).includes(key)) return value;
+
+    // Recompute masking every call so class/ancestor mutations do not stale-cache
+    // the decision for later attribute mutations on the same element.
+    return isMasked('text', config, element) ? value.replace(/[^\s]/g, '*') : value;
+  };
+};
 
 export const getCurrentUrl = () => {
   const globalScope = getGlobalScope();

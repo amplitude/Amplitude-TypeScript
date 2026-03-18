@@ -171,6 +171,9 @@ export class SessionReplayJoinedConfigGenerator {
         blockSelector: [],
         maskSelector: [],
         unmaskSelector: [],
+        maskAttributes: [
+          ...new Set([...(localPrivacyConfig.maskAttributes ?? []), ...(remotePrivacyConfig.maskAttributes ?? [])]),
+        ],
       };
 
       const privacyConfigSelectorMap = (privacyConfig: PrivacyConfig): Record<string, 'mask' | 'unmask' | 'block'> => {

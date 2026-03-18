@@ -31,6 +31,7 @@ export type RecordFunction = {
     blockSelector?: string;
     maskInputFn?: (text: string, element: HTMLElement | null) => string;
     maskTextFn?: (text: string, element: HTMLElement | null) => string;
+    maskAttributeFn?: (key: string, value: string, element: HTMLElement) => string;
     maskTextSelector?: string;
     recordCanvas?: boolean;
     slimDOMOptions?: {

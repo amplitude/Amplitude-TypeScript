@@ -545,11 +545,11 @@ importers:
         specifier: workspace:*
         version: link:../analytics-types
       '@amplitude/rrweb-plugin-console-record':
-        specifier: 2.0.0-alpha.35
-        version: 2.0.0-alpha.35(@amplitude/rrweb@2.0.0-alpha.35)
+        specifier: 2.0.0-alpha.36
+        version: 2.0.0-alpha.36(@amplitude/rrweb@2.0.0-alpha.36)
       '@amplitude/rrweb-record':
-        specifier: 2.0.0-alpha.35
-        version: 2.0.0-alpha.35
+        specifier: 2.0.0-alpha.36
+        version: 2.0.0-alpha.36
       '@amplitude/session-replay-browser':
         specifier: workspace:*
         version: link:../session-replay-browser
@@ -809,20 +809,20 @@ importers:
         specifier: 0.7.2
         version: 0.7.2
       '@amplitude/rrweb-packer':
-        specifier: 2.0.0-alpha.35
-        version: 2.0.0-alpha.35
+        specifier: 2.0.0-alpha.36
+        version: 2.0.0-alpha.36
       '@amplitude/rrweb-plugin-console-record':
-        specifier: 2.0.0-alpha.35
-        version: 2.0.0-alpha.35(@amplitude/rrweb@2.0.0-alpha.35)
+        specifier: 2.0.0-alpha.36
+        version: 2.0.0-alpha.36(@amplitude/rrweb@2.0.0-alpha.36)
       '@amplitude/rrweb-record':
-        specifier: 2.0.0-alpha.35
-        version: 2.0.0-alpha.35
+        specifier: 2.0.0-alpha.36
+        version: 2.0.0-alpha.36
       '@amplitude/rrweb-types':
-        specifier: 2.0.0-alpha.35
-        version: 2.0.0-alpha.35
+        specifier: 2.0.0-alpha.36
+        version: 2.0.0-alpha.36
       '@amplitude/rrweb-utils':
-        specifier: 2.0.0-alpha.35
-        version: 2.0.0-alpha.35
+        specifier: 2.0.0-alpha.36
+        version: 2.0.0-alpha.36
       '@amplitude/targeting':
         specifier: workspace:*
         version: link:../targeting
@@ -1001,31 +1001,31 @@ packages:
   '@amplitude/experiment-js-client@1.20.0':
     resolution: {integrity: sha512-MMecqmDXJ81KH0dU2/Alshy8O3srBOO8A0CcIy958zUUFJwyB3z2zXbU2EYSF0s75xwWBAu/+F23Dp2ATmOerg==}
 
-  '@amplitude/rrdom@2.0.0-alpha.35':
-    resolution: {integrity: sha512-W9ImCKtgFB8oBKd7td0TH7JKkQ/3iwu5bfLXcOvzxLj7+RSD1k1gfDyncooyobwBV8j4FMiTyj2N53tJ6rFgaw==}
+  '@amplitude/rrdom@2.0.0-alpha.36':
+    resolution: {integrity: sha512-8jNhYEzjp6aaZON7qY/IpZIVbl8SUojb8kxD58StknlvnjKeGV7nHheXbkIz+T1LSVbWsdh+noIWuqhyFWzvgg==}
 
-  '@amplitude/rrweb-packer@2.0.0-alpha.35':
-    resolution: {integrity: sha512-A6BlcBuiAI8pHJ51mcQWu2Uddnddxj9MaYZMNjIzFm1FK+qYAyYafO1xcoVPXoMUHE/qqITUgAn9tUVWj8N8NQ==}
+  '@amplitude/rrweb-packer@2.0.0-alpha.36':
+    resolution: {integrity: sha512-kqKg6OGoxHZvG4jwyO4kIjLdf8MkL6JcY5iLB09PQNP7O36ysnrH+ecJfa4V1Rld99kX25Pefkw4bzKmmFAqcg==}
 
-  '@amplitude/rrweb-plugin-console-record@2.0.0-alpha.35':
-    resolution: {integrity: sha512-8hstBoMHMSEA3FGoQ0LKidhpQypKchyT2sjEDdwTC77xZSg+3LwtjElOSMVdgjrEfxvN4V1g72v+Pwy7LBGUDA==}
+  '@amplitude/rrweb-plugin-console-record@2.0.0-alpha.36':
+    resolution: {integrity: sha512-7VbXu36PpJA8dSOFxpfpMaoDTuPK5uy1C8mN+Wfdm0X4ROdmrvcTdlQj+jGzhLGeK+xbTixHEy23itCNUau7hQ==}
     peerDependencies:
-      '@amplitude/rrweb': ^2.0.0-alpha.35
+      '@amplitude/rrweb': ^2.0.0-alpha.36
 
-  '@amplitude/rrweb-record@2.0.0-alpha.35':
-    resolution: {integrity: sha512-C8lr6LLMXLDINWE3SaebDrc4sj1pSFKm9s+zlW5e8CkAuAv8XfA5Wjx5cevxG3LMkIwXdugvrrjYKmEVCODI1g==}
+  '@amplitude/rrweb-record@2.0.0-alpha.36':
+    resolution: {integrity: sha512-zSHvmG5NUG4jNgWNVM7Oj3+rJPagv+TiHlnSiJ1X0WWLIg1GbUnOoTqpincZS5QupqTxQchNQaUg9MNu0MM3sQ==}
 
-  '@amplitude/rrweb-snapshot@2.0.0-alpha.35':
-    resolution: {integrity: sha512-n55AdmlRNZ7XuOlCRmSjH2kyyHS1oe5haUS+buxqjfQcamUtam+dSnP+6N1E8dLxIDjynJnbrCOC+8xvenpl1A==}
+  '@amplitude/rrweb-snapshot@2.0.0-alpha.36':
+    resolution: {integrity: sha512-vUvTXkNcu+cN736tykQDUVWERetFz1hyzgS0Yib5qSeWJwbse/4BaiWaZ7c5WevbbtcjLbDJqYKySJM92H5SxQ==}
 
-  '@amplitude/rrweb-types@2.0.0-alpha.35':
-    resolution: {integrity: sha512-cR/xlN5fu7Cw6Zh9O6iEgNleqT92wJ3HO2mV19yQE6SRqLGKXXeDeTrUBd5FKCZnXvRsv3JtK+VR4u9vmZze3g==}
+  '@amplitude/rrweb-types@2.0.0-alpha.36':
+    resolution: {integrity: sha512-Bd2r3Bs0XIJt5fgPRWVl8bhvA9FCjJn8vQlDTO8ffPxilGPIzUXLQ06+xoLYkK9v+PDKJnCapOTL4A2LilDmgA==}
 
-  '@amplitude/rrweb-utils@2.0.0-alpha.35':
-    resolution: {integrity: sha512-/OpyKKHYGwoy2fvWDg5jiH1LzWag4wlFTQjd2DUgndxlXccQF1+yxYljCDdM+J1GBeZ7DaLZa9qe2JUUtoNOOw==}
+  '@amplitude/rrweb-utils@2.0.0-alpha.36':
+    resolution: {integrity: sha512-w5RGROLU1Kyrq9j+trxcvvfkTp05MEKJ70Ig+YvHyZsE0nElh1PCF8PHAjV0/kji68+KqB03c0hoyaV99CDaDw==}
 
-  '@amplitude/rrweb@2.0.0-alpha.35':
-    resolution: {integrity: sha512-qFaZDNMkjolZUVv1OxrWngGl38FH0iF0jtybd/vhuOzvwohJjyKL9Tgoulj8osj21/4BUpGEhWweGeJygjoJJw==}
+  '@amplitude/rrweb@2.0.0-alpha.36':
+    resolution: {integrity: sha512-8vhPOk4fvszfxYZTk37EObW3n7uwEgO//funRSMt/QiBWtgQ8jhpFV9FcOAYdgde0Yw1uIM8oUbWZfy/XrexNw==}
 
   '@amplitude/ua-parser-js@0.7.33':
     resolution: {integrity: sha512-wKEtVR4vXuPT9cVEIJkYWnlF++Gx3BdLatPBM+SZ1ztVIvnhdGBZR/mn9x/PzyrMcRlZmyi6L56I2J3doVBnjA==}
@@ -5640,11 +5640,13 @@ packages:
   git-raw-commits@2.0.11:
     resolution: {integrity: sha512-VnctFhw+xfj8Va1xtfEqCUD2XDrbAPSJx+hSrE5K7fGdjZruW7XV+QOrN7LF/RJyvspRiD2I0asWsxFp0ya26A==}
     engines: {node: '>=10'}
+    deprecated: This package is no longer maintained. For the JavaScript API, please use @conventional-changelog/git-client instead.
     hasBin: true
 
   git-raw-commits@3.0.0:
     resolution: {integrity: sha512-b5OHmZ3vAgGrDn/X0kS+9qCfNKWe4K/jFnhwzVWWg0/k5eLa3060tZShrRg8Dja5kPc+YjS0Gc6y7cRr44Lpjw==}
     engines: {node: '>=14'}
+    deprecated: This package is no longer maintained. For the JavaScript API, please use @conventional-changelog/git-client instead.
     hasBin: true
 
   git-remote-origin-url@2.0.0:
@@ -5654,6 +5656,7 @@ packages:
   git-semver-tags@5.0.1:
     resolution: {integrity: sha512-hIvOeZwRbQ+7YEUmCkHqo8FOLQZCEn18yevLHADlFPZY02KJGsu5FZt9YW/lybfK2uhWFI7Qg/07LekJiTv7iA==}
     engines: {node: '>=14'}
+    deprecated: This package is no longer maintained. For the JavaScript API, please use @conventional-changelog/git-client instead.
     hasBin: true
 
   git-up@7.0.0:
@@ -8001,6 +8004,7 @@ packages:
 
   realistic-structured-clone@3.0.0:
     resolution: {integrity: sha512-rOjh4nuWkAqf9PWu6JVpOWD4ndI+JHfgiZeMmujYcPi+fvILUu7g6l26TC1K5aBIp34nV+jE1cDO75EKOfHC5Q==}
+    deprecated: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
 
   recast@0.21.5:
     resolution: {integrity: sha512-hjMmLaUXAm1hIuTqOdeYObMslq/q+Xff6QE3Y2P+uoHAg2nmVlLBps2hzh1UJDdMtDTMXOFewK6ky51JQIeECg==}
@@ -9435,38 +9439,38 @@ snapshots:
       base64-js: 1.5.1
       unfetch: 4.1.0
 
-  '@amplitude/rrdom@2.0.0-alpha.35':
+  '@amplitude/rrdom@2.0.0-alpha.36':
     dependencies:
-      '@amplitude/rrweb-snapshot': 2.0.0-alpha.35
+      '@amplitude/rrweb-snapshot': 2.0.0-alpha.36
 
-  '@amplitude/rrweb-packer@2.0.0-alpha.35':
+  '@amplitude/rrweb-packer@2.0.0-alpha.36':
     dependencies:
-      '@amplitude/rrweb-types': 2.0.0-alpha.35
+      '@amplitude/rrweb-types': 2.0.0-alpha.36
       fflate: 0.4.8
 
-  '@amplitude/rrweb-plugin-console-record@2.0.0-alpha.35(@amplitude/rrweb@2.0.0-alpha.35)':
+  '@amplitude/rrweb-plugin-console-record@2.0.0-alpha.36(@amplitude/rrweb@2.0.0-alpha.36)':
     dependencies:
-      '@amplitude/rrweb': 2.0.0-alpha.35
+      '@amplitude/rrweb': 2.0.0-alpha.36
 
-  '@amplitude/rrweb-record@2.0.0-alpha.35':
+  '@amplitude/rrweb-record@2.0.0-alpha.36':
     dependencies:
-      '@amplitude/rrweb': 2.0.0-alpha.35
-      '@amplitude/rrweb-types': 2.0.0-alpha.35
+      '@amplitude/rrweb': 2.0.0-alpha.36
+      '@amplitude/rrweb-types': 2.0.0-alpha.36
 
-  '@amplitude/rrweb-snapshot@2.0.0-alpha.35':
+  '@amplitude/rrweb-snapshot@2.0.0-alpha.36':
     dependencies:
       postcss: 8.5.6
 
-  '@amplitude/rrweb-types@2.0.0-alpha.35': {}
+  '@amplitude/rrweb-types@2.0.0-alpha.36': {}
 
-  '@amplitude/rrweb-utils@2.0.0-alpha.35': {}
+  '@amplitude/rrweb-utils@2.0.0-alpha.36': {}
 
-  '@amplitude/rrweb@2.0.0-alpha.35':
+  '@amplitude/rrweb@2.0.0-alpha.36':
     dependencies:
-      '@amplitude/rrdom': 2.0.0-alpha.35
-      '@amplitude/rrweb-snapshot': 2.0.0-alpha.35
-      '@amplitude/rrweb-types': 2.0.0-alpha.35
-      '@amplitude/rrweb-utils': 2.0.0-alpha.35
+      '@amplitude/rrdom': 2.0.0-alpha.36
+      '@amplitude/rrweb-snapshot': 2.0.0-alpha.36
+      '@amplitude/rrweb-types': 2.0.0-alpha.36
+      '@amplitude/rrweb-utils': 2.0.0-alpha.36
       '@types/css-font-loading-module': 0.0.7
       '@xstate/fsm': 1.6.5
       base64-arraybuffer: 1.0.2

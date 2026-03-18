@@ -9,7 +9,14 @@ import {
   UNMASK_TEXT_CLASS,
 } from '../src/constants';
 import { ServerZone } from '@amplitude/analytics-core';
-import { getServerUrl, getStorageSize, maskFn, getPageUrl, validateUGCFilterRules } from '../src/helpers';
+import {
+  getServerUrl,
+  getStorageSize,
+  maskFn,
+  maskAttributeFn,
+  getPageUrl,
+  validateUGCFilterRules,
+} from '../src/helpers';
 import * as AnalyticsCore from '@amplitude/analytics-core';
 
 describe('SessionReplayPlugin helpers', () => {
@@ -179,6 +186,95 @@ describe('SessionReplayPlugin helpers', () => {
       htmlElement.classList.add(UNMASK_TEXT_CLASS);
       const result = maskFn('text')('some text', htmlElement);
       expect(result).toEqual('some text');
+    });
+  });
+
+  describe('maskAttributeFn', () => {
+    const element = document.createElement('input');
+
+    test('returns value unchanged for style attribute', () => {
+      const result = maskAttributeFn({ maskAttributes: ['style'] })('style', 'color: red', element);
+      expect(result).toEqual('color: red');
+    });
+
+    test('masks attribute listed in maskAttributes', () => {
+      const result = maskAttributeFn({ maskAttributes: ['placeholder'] })('placeholder', 'Enter name', element);
+      expect(result).toEqual('***** ****');
+    });
+
+    test('preserves whitespace when masking', () => {
+      const result = maskAttributeFn({ maskAttributes: ['aria-label'] })('aria-label', 'first last', element);
+      expect(result).toEqual('***** ****');
+    });
+
+    test('returns value unchanged when key is not in maskAttributes', () => {
+      const result = maskAttributeFn({ maskAttributes: ['placeholder'] })('aria-label', 'some label', element);
+      expect(result).toEqual('some label');
+    });
+
+    test('returns value unchanged when maskAttributes is empty', () => {
+      const result = maskAttributeFn({ maskAttributes: [] })('placeholder', 'Enter name', element);
+      expect(result).toEqual('Enter name');
+    });
+
+    test('returns value unchanged when config is undefined', () => {
+      const result = maskAttributeFn(undefined)('placeholder', 'Enter name', element);
+      expect(result).toEqual('Enter name');
+    });
+
+    test('returns value unchanged when maskAttributes is undefined', () => {
+      const result = maskAttributeFn({})('placeholder', 'Enter name', element);
+      expect(result).toEqual('Enter name');
+    });
+
+    test('returns value unchanged when element has unmask class even if attribute is listed', () => {
+      const unmaskedElement = document.createElement('input');
+      unmaskedElement.classList.add(UNMASK_TEXT_CLASS);
+      const result = maskAttributeFn({ maskAttributes: ['placeholder'] })('placeholder', 'Enter name', unmaskedElement);
+      expect(result).toEqual('Enter name');
+    });
+
+    test('masks attribute when element matches maskSelector', () => {
+      const selectedElement = document.createElement('input');
+      selectedElement.classList.add('mask-this');
+      const result = maskAttributeFn({
+        defaultMaskLevel: 'light',
+        maskSelector: ['.mask-this'],
+        maskAttributes: ['placeholder'],
+      })('placeholder', 'Enter name', selectedElement);
+      expect(result).toEqual('***** ****');
+    });
+
+    test('re-evaluates masking after element class mutation', () => {
+      const dynamicElement = document.createElement('input');
+      dynamicElement.classList.add(UNMASK_TEXT_CLASS);
+      const fn = maskAttributeFn({ maskAttributes: ['placeholder'] });
+
+      // Initially unmasked because amp-unmask is present.
+      expect(fn('placeholder', 'Enter name', dynamicElement)).toEqual('Enter name');
+
+      // After removing amp-unmask, the same element should now be masked.
+      dynamicElement.classList.remove(UNMASK_TEXT_CLASS);
+      expect(fn('placeholder', 'Enter name', dynamicElement)).toEqual('***** ****');
+    });
+
+    test('re-evaluates masking after ancestor selector mutation', () => {
+      const wrapper = document.createElement('div');
+      wrapper.classList.add('unmask-parent');
+      const dynamicElement = document.createElement('input');
+      wrapper.appendChild(dynamicElement);
+
+      const fn = maskAttributeFn({
+        maskAttributes: ['placeholder'],
+        unmaskSelector: ['.unmask-parent'],
+      });
+
+      // Initially unmasked because ancestor matches unmaskSelector.
+      expect(fn('placeholder', 'Enter name', dynamicElement)).toEqual('Enter name');
+
+      // After ancestor no longer matches, element should be masked.
+      wrapper.classList.remove('unmask-parent');
+      expect(fn('placeholder', 'Enter name', dynamicElement)).toEqual('***** ****');
     });
   });
 

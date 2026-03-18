@@ -37,7 +37,7 @@ import {
   SESSION_REPLAY_SERVER_URL,
   SESSION_REPLAY_STAGING_URL,
 } from './constants';
-import { getServerUrl, getDebugConfig, getPageUrl, getStorageSize, maskFn } from './helpers';
+import { getServerUrl, getDebugConfig, getPageUrl, getStorageSize, maskFn, maskAttributeFn } from './helpers';
 import { EventCompressor } from './events/event-compressor';
 import { createEventsManager } from './events/events-manager';
 import { MultiEventManager } from './events/multi-manager';
@@ -733,6 +733,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
         applyBackgroundColorToBlockedElements: config.applyBackgroundColorToBlockedElements,
         maskInputFn: maskFn('input', privacyConfig),
         maskTextFn: maskFn('text', privacyConfig),
+        maskAttributeFn: maskAttributeFn(privacyConfig),
         maskTextSelector: this.getMaskTextSelectors(),
         recordCanvas: false,
         slimDOMOptions: {
