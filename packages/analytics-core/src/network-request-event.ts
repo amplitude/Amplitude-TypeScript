@@ -1,6 +1,6 @@
 import { getGlobalScope } from './global-scope';
 import { pruneJson } from './utils/json-query';
-import { SAFE_HEADERS, FORBIDDEN_HEADERS } from './';
+import { SAFE_HEADERS, FORBIDDEN_HEADERS } from './types/constants';
 
 /* SAFE TYPE DEFINITIONS
   These type definitions expose limited properties of the original types
