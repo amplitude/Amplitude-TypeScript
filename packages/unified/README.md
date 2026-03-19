@@ -69,6 +69,7 @@ The Unified SDK provides access to all Amplitude features through a single inter
 import {
   track,
   identify,
+  engagement,
   experiment,
   sessionReplay
 } from '@amplitude/unified';
