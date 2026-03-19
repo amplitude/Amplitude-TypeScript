@@ -11,8 +11,8 @@
       // strict cookie pattern to enforce cookie names
       const ALLOWED_COOKIE_PATTERNS = [
         'AMP_TEST', 'AMP_TLDTEST',
-        /AMP_MKTG_[A-Za-z0-9]{10}/,
-        /AMP_[A-Za-z0-9]{10}/,
+        /^AMP_MKTG_[A-Za-z0-9]{10}$/,
+        /^AMP_[A-Za-z0-9]{10}$/,
       ];
 
       const desc = Object.getOwnPropertyDescriptor(Document.prototype, "cookie");
