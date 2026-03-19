@@ -330,4 +330,9 @@ export interface RemoteTargetingConfig {
   /** Request timeout in ms. Defaults to 200 */
   timeoutMs?: number;
   decisionStrategy: RemoteTargetingDecisionStrategy;
+  /**
+   * Maximum number of rrweb events to buffer in lookback mode while waiting for
+   * the remote decision. Events beyond this limit are dropped. Defaults to 1000.
+   */
+  lookbackBufferMaxEvents?: number;
 }
