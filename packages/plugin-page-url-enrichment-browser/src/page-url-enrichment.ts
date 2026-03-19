@@ -122,8 +122,15 @@ export const pageUrlEnrichmentPlugin = ({ internalDomains = [] }: PageUrlEnrichm
       isTracking = true;
 
       if (globalScope) {
-        sessionStorage = new BrowserStorage<URLInfo>(globalScope.sessionStorage);
-        isStorageEnabled = await sessionStorage.isEnabled();
+        try {
+          sessionStorage = new BrowserStorage<URLInfo>(globalScope.sessionStorage);
+        } catch (error) {
+          /* istanbul ignore next */
+          const message = error instanceof Error ? error.message : String(error);
+          /* istanbul ignore next */
+          loggerProvider?.debug(`sessionStorage is not available in this environment. Reason=${message}`);
+        }
+        isStorageEnabled = (await sessionStorage?.isEnabled()) ?? false;
 
         globalScope.addEventListener('popstate', saveUrlInfoWrapper);
 
