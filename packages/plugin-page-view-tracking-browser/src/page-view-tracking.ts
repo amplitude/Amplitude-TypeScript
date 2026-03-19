@@ -112,7 +112,14 @@ export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (options: Op
       isTracking = true;
       if (globalScope) {
         // init session storage
-        sessionStorage = new BrowserStorage<PageViewSessionStorage>(globalScope.sessionStorage);
+        try {
+          sessionStorage = new BrowserStorage<PageViewSessionStorage>(globalScope.sessionStorage);
+        } catch (error) {
+          /* istanbul ignore next */
+          const message = error instanceof Error ? error.message : String(error);
+          /* istanbul ignore next */
+          loggerProvider?.debug(`sessionStorage is not available in this environment. Reason=${message}`);
+        }
 
         globalScope.addEventListener('popstate', handlePageChange);
 

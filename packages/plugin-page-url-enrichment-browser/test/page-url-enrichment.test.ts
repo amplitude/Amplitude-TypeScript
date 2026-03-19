@@ -708,6 +708,33 @@ describe('pageUrlEnrichmentPlugin', () => {
       await newPlugin.teardown?.();
       expect(Core.getGlobalScope).toHaveBeenCalledTimes(1);
     });
+    test('should handle sessionStorage throwing (e.g. sandboxed iframe) and continue without session storage', async () => {
+      const logger = new Logger();
+      const debugSpy = jest.spyOn(logger, 'debug');
+      const configWithLogger = { ...mockConfig, loggerProvider: logger };
+
+      // Build scope without spreading window so sessionStorage getter is only invoked when plugin accesses it
+      const scopeWithThrowingSessionStorage = {
+        addEventListener: window.addEventListener.bind(window),
+        removeEventListener: window.removeEventListener.bind(window),
+        history: window.history,
+        get sessionStorage() {
+          throw new DOMException('The operation is insecure', 'SecurityError');
+        },
+      };
+      jest
+        .spyOn(Core, 'getGlobalScope')
+        .mockReturnValue(scopeWithThrowingSessionStorage as unknown as typeof globalThis);
+
+      const newPlugin = pageUrlEnrichmentPlugin();
+      await expect(newPlugin.setup?.(configWithLogger, mockAmplitude)).resolves.not.toThrow();
+      expect(debugSpy).toHaveBeenCalledWith(
+        expect.stringContaining('sessionStorage is not available in this environment'),
+      );
+
+      await newPlugin.teardown?.();
+    });
+
     test('should handle when sessionStorage is not defined', async () => {
       const actual = jest.requireActual('@amplitude/analytics-core') as unknown as typeof Core;
       jest.spyOn(Core, 'getGlobalScope').mockReturnValue({
