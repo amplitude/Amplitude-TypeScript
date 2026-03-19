@@ -20,6 +20,9 @@ export async function fetchRemoteDecision(
       signal: controller.signal,
     });
     clearTimeout(timeoutId);
+    if (!response.ok) {
+      return { capture: false, reason: `http-${response.status}` };
+    }
     const data = (await response.json()) as Record<string, { key?: string }>;
     const variantKey = data[flagKey]?.key;
     return { capture: variantKey === 'on' };

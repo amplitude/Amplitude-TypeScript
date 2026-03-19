@@ -20,6 +20,7 @@ describe('fetchRemoteDecision', () => {
 
   it('returns capture: true when Amplitude eval returns variant "on"', async () => {
     global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
       json: jest.fn().mockResolvedValue({ [flagKey]: { key: 'on', value: 'on' } }),
     });
 
@@ -36,6 +37,7 @@ describe('fetchRemoteDecision', () => {
 
   it('returns capture: false when Amplitude eval returns variant "off"', async () => {
     global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
       json: jest.fn().mockResolvedValue({ [flagKey]: { key: 'off' } }),
     });
 
@@ -45,11 +47,32 @@ describe('fetchRemoteDecision', () => {
 
   it('returns capture: false when flag key is absent from response', async () => {
     global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
       json: jest.fn().mockResolvedValue({}),
     });
 
     const result = await fetchRemoteDecision(deploymentKey, user, flagKey, 200);
     expect(result).toEqual({ capture: false });
+  });
+
+  it('returns capture: false with reason "http-401" on HTTP 401', async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: false,
+      status: 401,
+    });
+
+    const result = await fetchRemoteDecision(deploymentKey, user, flagKey, 200);
+    expect(result).toEqual({ capture: false, reason: 'http-401' });
+  });
+
+  it('returns capture: false with reason "http-500" on HTTP 500', async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: false,
+      status: 500,
+    });
+
+    const result = await fetchRemoteDecision(deploymentKey, user, flagKey, 200);
+    expect(result).toEqual({ capture: false, reason: 'http-500' });
   });
 
   it('returns capture: false with reason "error" on network error', async () => {
@@ -80,6 +103,7 @@ describe('fetchRemoteDecision', () => {
 
   it('omits device_id and user_id query params when not provided', async () => {
     global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
       json: jest.fn().mockResolvedValue({ [flagKey]: { key: 'on' } }),
     });
 
@@ -92,6 +116,7 @@ describe('fetchRemoteDecision', () => {
 
   it('uses the correct flag key in the query params', async () => {
     global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
       json: jest.fn().mockResolvedValue({ 'custom-flag': { key: 'on' } }),
     });
 
