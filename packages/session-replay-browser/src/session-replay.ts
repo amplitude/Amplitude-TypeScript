@@ -108,6 +108,8 @@ export class SessionReplay implements AmplitudeSessionReplay {
   // Remote eval state
   private remoteDecision: RemoteDecision | null = null;
   private remoteDecisionPending = false;
+  /** Monotonic counter to discard stale remote eval results when sessions change quickly */
+  private latestRemoteEvalId = 0;
   private lookbackHoldUploads = false;
   private lookbackEventBuffer: Array<{ event: eventWithTime; sessionId: string | number }> = [];
   private static readonly LOOKBACK_BUFFER_MAX_EVENTS_DEFAULT = 1000;
@@ -586,26 +588,29 @@ export class SessionReplay implements AmplitudeSessionReplay {
 
     const { deploymentKey, flagKey = 'sr-capture-gate', timeoutMs = 200, decisionStrategy } = config.remoteTargeting;
 
+    // Capture the current eval ID so we can detect if a newer session superseded us.
+    const evalId = ++this.latestRemoteEvalId;
+
     let userId: string | undefined;
-    let userProperties: Record<string, unknown> | undefined = targetingParams.userProperties as
-      | Record<string, unknown>
-      | undefined;
 
     if (config.instanceName) {
       const identity = getAnalyticsConnector(config.instanceName).identityStore.getIdentity();
       userId = identity.userId;
-      if (identity.userProperties) {
-        userProperties = identity.userProperties;
-      }
     }
 
     const user = {
       device_id: this.getDeviceId(),
       user_id: userId,
-      user_properties: userProperties,
     };
 
     const decision = await fetchRemoteDecision(deploymentKey, user, flagKey, timeoutMs);
+
+    // Discard result if a newer session has already started a fresh eval.
+    if (evalId !== this.latestRemoteEvalId) {
+      this.loggerProvider.log(`Ignoring stale remote eval result #${evalId}; latest is #${this.latestRemoteEvalId}.`);
+      return;
+    }
+
     this.remoteDecision = decision;
     this.remoteDecisionPending = false;
 
@@ -640,13 +645,15 @@ export class SessionReplay implements AmplitudeSessionReplay {
         }
       }
 
-      // All checks passed — flush buffered events
+      // All checks passed — flush buffered events.
+      // Use addCompressedEvent directly (bypassing idle-callback deferral) so
+      // events land in the manager before sendEvents() fires.
       const buffer = this.lookbackEventBuffer;
       this.lookbackEventBuffer = [];
       this.lookbackHoldUploads = false;
       if (this.eventCompressor) {
         for (const { event, sessionId } of buffer) {
-          this.eventCompressor.enqueueEvent(event, sessionId);
+          this.eventCompressor.addCompressedEvent(event, sessionId);
         }
       }
       this.sendEvents();
