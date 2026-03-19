@@ -594,6 +594,11 @@ export class SessionReplay implements AmplitudeSessionReplay {
           this.eventCompressor.addCompressedEvent(event, sessionId);
         }
       }
+      // Also flush any events persisted in IDB from prior sessions.
+      const lookbackDeviceId = this.getDeviceId();
+      lookbackDeviceId &&
+        this.eventsManager &&
+        void this.eventsManager.sendStoredEvents({ deviceId: lookbackDeviceId });
       this.sendEvents();
     } else {
       // Conservative strategy — start recording now
@@ -607,9 +612,10 @@ export class SessionReplay implements AmplitudeSessionReplay {
       }
 
       if (config.targetingConfig) {
-        await this.evaluateTargetingAndCapture(params, false, false);
+        // isInit=true ensures sendStoredEvents is called (same as the non-remote init path).
+        await this.evaluateTargetingAndCapture(params, true, false);
       } else {
-        await this.recordEvents();
+        await this.initialize(true);
       }
     }
   }
