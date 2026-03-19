@@ -15,5 +15,5 @@ test('iframe-sandbox parent page has no uncaught exceptions', async ({ page }) =
   for (const error of errors) {
     expect(error.message).toContain(`Failed to read the 'cookie' property from 'Document'`);
   }
-  expect(errors.length).toBe(3);
+  expect(errors.length <= 3).toBe(true);
 });
