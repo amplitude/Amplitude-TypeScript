@@ -9,5 +9,6 @@ export const {
   evaluateTargetingAndCapture,
 } = sessionReplay;
 export { SessionReplayOptions, StoreType } from './typings/session-replay';
+export { RemoteTargetingConfig, RemoteDecision } from './config/types';
 export { SafeLoggerProvider } from './logger';
 export { AmplitudeSessionReplay } from './typings/session-replay';

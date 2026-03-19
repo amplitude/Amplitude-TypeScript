@@ -17,12 +17,14 @@ import { eventWithTime, EventType as RRWebEventType, scrollCallback } from '@amp
 import { createSessionReplayJoinedConfigGenerator } from './config/joined-config';
 import {
   LoggingConfig,
+  RemoteDecision,
   SessionReplayJoinedConfig,
   SessionReplayJoinedConfigGenerator,
   SessionReplayLocalConfig,
   SessionReplayMetadata,
   SessionReplayRemoteConfig,
 } from './config/types';
+import { fetchRemoteDecision } from './targeting/remote-eval-client';
 import {
   BLOCK_CLASS,
   CustomRRwebEvent,
@@ -102,6 +104,12 @@ export class SessionReplay implements AmplitudeSessionReplay {
   private currentPageUrl = '';
 
   private recordEventsPendingShouldLogMetadata: boolean | null = null;
+
+  // Remote eval state
+  private remoteDecision: RemoteDecision | null = null;
+  private remoteDecisionPending = false;
+  private lookbackHoldUploads = false;
+  private lookbackEventBuffer: Array<{ event: eventWithTime; sessionId: string | number }> = [];
 
   /** Cleanup for URL change listener used to re-evaluate targeting on SPA route changes */
   private urlChangeCleanup: (() => void) | null = null;
@@ -326,10 +334,21 @@ export class SessionReplay implements AmplitudeSessionReplay {
 
     this.teardownEventListeners(false);
 
-    await this.evaluateTargetingAndCapture(
-      { userProperties: options.userProperties, page: this.getCurrentPageForTargeting() },
-      true,
-    );
+    const rt = this.config.remoteTargeting;
+    if (rt?.enabled && rt.mode !== 'off') {
+      this.remoteDecision = null;
+      this.remoteDecisionPending = true;
+      if (rt.decisionStrategy === 'lookback') {
+        this.lookbackHoldUploads = true;
+        await this.recordEvents();
+      }
+      void this.runRemoteEval({ userProperties: options.userProperties });
+    } else {
+      await this.evaluateTargetingAndCapture(
+        { userProperties: options.userProperties, page: this.getCurrentPageForTargeting() },
+        true,
+      );
+    }
 
     const needsUrlTracking = this.config.targetingConfig || (this.config.privacyConfig?.urlMaskLevels?.length ?? 0) > 0;
     if (needsUrlTracking) {
@@ -351,6 +370,12 @@ export class SessionReplay implements AmplitudeSessionReplay {
     this.sessionTargetingMatch = false;
     this.lastShouldRecordDecision = undefined; // Reset targeting decision for new session
 
+    // Reset remote eval state for the new session
+    this.remoteDecision = null;
+    this.remoteDecisionPending = false;
+    this.lookbackHoldUploads = false;
+    this.lookbackEventBuffer = [];
+
     const previousSessionId = this.identifiers && this.identifiers.sessionId;
     if (previousSessionId) {
       this.sendEvents(previousSessionId);
@@ -367,6 +392,17 @@ export class SessionReplay implements AmplitudeSessionReplay {
     if (this.joinedConfigGenerator && previousSessionId) {
       const { joinedConfig } = await this.joinedConfigGenerator.generateJoinedConfig();
       this.config = joinedConfig;
+    }
+
+    const rt = this.config?.remoteTargeting;
+    if (rt?.enabled && rt.mode !== 'off') {
+      this.remoteDecisionPending = true;
+      if (rt.decisionStrategy === 'lookback') {
+        this.lookbackHoldUploads = true;
+        await this.recordEvents();
+      }
+      void this.runRemoteEval({ userProperties: options?.userProperties });
+      return;
     }
 
     if (this.config?.targetingConfig) {
@@ -541,6 +577,97 @@ export class SessionReplay implements AmplitudeSessionReplay {
     }
   };
 
+  private async runRemoteEval(targetingParams: { userProperties?: { [key: string]: any } }): Promise<void> {
+    const config = this.config;
+    if (!config?.remoteTargeting?.enabled) {
+      return;
+    }
+
+    const { deploymentKey, flagKey = 'sr-capture-gate', timeoutMs = 200, decisionStrategy } = config.remoteTargeting;
+
+    let userId: string | undefined;
+    let userProperties: Record<string, unknown> | undefined = targetingParams.userProperties as
+      | Record<string, unknown>
+      | undefined;
+
+    if (config.instanceName) {
+      const identity = getAnalyticsConnector(config.instanceName).identityStore.getIdentity();
+      userId = identity.userId;
+      if (identity.userProperties) {
+        userProperties = identity.userProperties;
+      }
+    }
+
+    const user = {
+      device_id: this.getDeviceId(),
+      user_id: userId,
+      user_properties: userProperties,
+    };
+
+    const decision = await fetchRemoteDecision(deploymentKey, user, flagKey, timeoutMs);
+    this.remoteDecision = decision;
+    this.remoteDecisionPending = false;
+
+    const page = this.getCurrentPageForTargeting();
+    const params = { userProperties: targetingParams.userProperties, page };
+
+    if (decisionStrategy === 'lookback') {
+      if (!decision.capture) {
+        if (this.recordCancelCallback) {
+          this.stopRecordingEvents();
+        }
+        this.lookbackEventBuffer = [];
+        this.lookbackHoldUploads = false;
+        this.loggerProvider.log(
+          `Session ${this.identifiers?.sessionId ?? 'unknown'} excluded by remote targeting gate: ${
+            decision.reason ?? 'denied'
+          }.`,
+        );
+        return;
+      }
+
+      // Remote granted — check TRC if configured
+      if (config.targetingConfig) {
+        await this.evaluateTargetingAndCapture(params, false, false);
+        if (!this.sessionTargetingMatch) {
+          if (this.recordCancelCallback) {
+            this.stopRecordingEvents();
+          }
+          this.lookbackEventBuffer = [];
+          this.lookbackHoldUploads = false;
+          return;
+        }
+      }
+
+      // All checks passed — flush buffered events
+      const buffer = this.lookbackEventBuffer;
+      this.lookbackEventBuffer = [];
+      this.lookbackHoldUploads = false;
+      if (this.eventCompressor) {
+        for (const { event, sessionId } of buffer) {
+          this.eventCompressor.enqueueEvent(event, sessionId);
+        }
+      }
+      this.sendEvents();
+    } else {
+      // Conservative strategy — start recording now
+      if (!decision.capture) {
+        this.loggerProvider.log(
+          `Session ${this.identifiers?.sessionId ?? 'unknown'} excluded by remote targeting gate: ${
+            decision.reason ?? 'denied'
+          }.`,
+        );
+        return;
+      }
+
+      if (config.targetingConfig) {
+        await this.evaluateTargetingAndCapture(params, false, false);
+      } else {
+        await this.recordEvents();
+      }
+    }
+  }
+
   sendEvents(sessionId?: string | number) {
     const sessionIdToSend = sessionId || this.identifiers?.sessionId;
     const deviceId = this.getDeviceId();
@@ -579,6 +706,22 @@ export class SessionReplay implements AmplitudeSessionReplay {
   getShouldRecord() {
     if (!this.identifiers || !this.config || !this.identifiers.sessionId) {
       this.loggerProvider.warn(`Session is not being recorded due to lack of config, please call sessionReplay.init.`);
+      return false;
+    }
+
+    if (this.remoteDecision?.capture === false) {
+      this.loggerProvider.log(
+        `Session ${this.identifiers.sessionId} excluded by remote targeting gate: ${
+          this.remoteDecision.reason ?? 'denied'
+        }.`,
+      );
+      return false;
+    }
+
+    if (this.remoteDecisionPending && this.config.remoteTargeting?.decisionStrategy === 'conservative') {
+      this.loggerProvider.log(
+        `Session ${this.identifiers.sessionId} not being recorded pending remote targeting decision.`,
+      );
       return false;
     }
 
@@ -819,7 +962,9 @@ export class SessionReplay implements AmplitudeSessionReplay {
             event.data.href = getPageUrl(event.data.href, ugcFilterRules);
           }
 
-          if (this.eventCompressor) {
+          if (this.lookbackHoldUploads) {
+            this.lookbackEventBuffer.push({ event, sessionId });
+          } else if (this.eventCompressor) {
             // Schedule processing during idle time if the browser supports requestIdleCallback
             this.eventCompressor.enqueueEvent(event, sessionId);
           }

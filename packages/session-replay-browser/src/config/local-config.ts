@@ -10,6 +10,7 @@ import {
   SessionReplayLocalConfig as ISessionReplayLocalConfig,
   InteractionConfig,
   PrivacyConfig,
+  RemoteTargetingConfig,
   SessionReplayPerformanceConfig,
   SessionReplayVersion,
 } from './types';
@@ -45,6 +46,7 @@ export class SessionReplayLocalConfig extends Config implements ISessionReplayLo
   urlChangePollingInterval?: number;
   captureDocumentTitle?: boolean;
   captureAdoptedStyleSheets?: boolean;
+  remoteTargeting?: RemoteTargetingConfig;
 
   constructor(apiKey: string, options: SessionReplayOptions) {
     const defaultConfig = getDefaultConfig();
@@ -100,5 +102,8 @@ export class SessionReplayLocalConfig extends Config implements ISessionReplayLo
       this.omitElementTags = options.omitElementTags;
     }
     this.captureAdoptedStyleSheets = options.captureAdoptedStyleSheets ?? true;
+    if (options.remoteTargeting) {
+      this.remoteTargeting = options.remoteTargeting;
+    }
   }
 }
