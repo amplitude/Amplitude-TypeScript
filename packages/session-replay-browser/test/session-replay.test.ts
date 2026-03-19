@@ -4924,6 +4924,56 @@ describe('SessionReplay', () => {
         resolveDecision({ capture: true });
       });
 
+      test('lookback flush calls sendStoredEvents when deviceId is available', async () => {
+        fetchRemoteDecisionSpy.mockResolvedValue({ capture: true });
+        const options: SessionReplayOptions = {
+          ...mockOptions,
+          remoteTargeting: { ...remoteTargetingBase, decisionStrategy: 'lookback' },
+        };
+        await sessionReplay.init(apiKey, options).promise;
+        for (let i = 0; i < 6; i++) {
+          await Promise.resolve();
+        }
+
+        // eventsManager is set; re-trigger lookback flush via a second session
+        const sendStoredEventsSpy = jest.spyOn((sessionReplay as any).eventsManager, 'sendStoredEvents');
+        (sessionReplay as any).lookbackHoldUploads = true;
+        fetchRemoteDecisionSpy.mockResolvedValue({ capture: true });
+        await (sessionReplay as any).runRemoteEval({});
+        for (let i = 0; i < 6; i++) {
+          await Promise.resolve();
+        }
+
+        expect(sendStoredEventsSpy).toHaveBeenCalledWith({ deviceId: mockOptions.deviceId });
+        sendStoredEventsSpy.mockRestore();
+      });
+
+      test('lookback flush skips sendStoredEvents when eventsManager is null', async () => {
+        fetchRemoteDecisionSpy.mockResolvedValue({ capture: true });
+        const options: SessionReplayOptions = {
+          ...mockOptions,
+          remoteTargeting: { ...remoteTargetingBase, decisionStrategy: 'lookback' },
+        };
+        await sessionReplay.init(apiKey, options).promise;
+        for (let i = 0; i < 6; i++) {
+          await Promise.resolve();
+        }
+
+        // Null out eventsManager to exercise the short-circuit branch
+        const savedEventsManager = (sessionReplay as any).eventsManager;
+        (sessionReplay as any).eventsManager = null;
+        (sessionReplay as any).lookbackHoldUploads = true;
+        fetchRemoteDecisionSpy.mockResolvedValue({ capture: true });
+        await (sessionReplay as any).runRemoteEval({});
+        for (let i = 0; i < 6; i++) {
+          await Promise.resolve();
+        }
+
+        // No error thrown; eventsManager was null so sendStoredEvents was skipped
+        expect((sessionReplay as any).lookbackHoldUploads).toBe(false);
+        (sessionReplay as any).eventsManager = savedEventsManager;
+      });
+
       test('buffered events are flushed to eventCompressor on capture=true', async () => {
         let capturedEmit: ((event: eventWithTime) => void) | undefined;
         mockRecordFunction.mockImplementation((options: { emit: (event: eventWithTime) => void }) => {
