@@ -2,16 +2,14 @@
 <html>
   <head>
     <meta charset="UTF-8" />
+    <script type="module">
+      window.API_KEY = import.meta.env.VITE_AMPLITUDE_API_KEY;
+      window.USER_ID = import.meta.env.VITE_AMPLITUDE_USER_ID || 'analytics-browser-local-test-user';
+    </script>
     <script type="text/javascript" src="/analytics-browser/lib/scripts/amplitude-min.js"></script>
     <script type="text/javascript">
-      amplitude.init('17fcb31e58fc138462fd64bfe7add49e', {
-        logLevel: 'none',
-      });
+      amplitude.init(window.API_KEY, window.USER_ID);
       amplitude.track('test');
-
-      window.addEventListener('error', (err) => {
-        console.log('!!!error', err);
-      });
     </script>
   </head>
   <body>
