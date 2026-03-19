@@ -49,7 +49,7 @@ Run `pnpm dev` to run the test server. It will open up to the home page automati
 
 For more details visit the [Test Server README.md](/test-server/README.md)
 
-## Troubleshooting
+### Troubleshooting
 
 If you ever see an error that looks like this while running an Nx command (pnpm test, pnpm build, etc...):
 
