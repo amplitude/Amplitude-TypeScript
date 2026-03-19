@@ -4266,6 +4266,41 @@ describe('SessionReplay', () => {
         resolveDecision({ capture: false });
       });
 
+      test('stale remote eval result is discarded when session changes mid-flight', async () => {
+        // First eval is held in-flight; second eval resolves capture=true.
+        let resolveFirstDecision!: (d: { capture: boolean }) => void;
+        let firstDecisionCallCount = 0;
+        fetchRemoteDecisionSpy.mockImplementation(() => {
+          firstDecisionCallCount++;
+          if (firstDecisionCallCount === 1) {
+            return new Promise<{ capture: boolean }>((resolve) => (resolveFirstDecision = resolve));
+          }
+          return Promise.resolve({ capture: true });
+        });
+
+        const options: SessionReplayOptions = {
+          ...mockOptions,
+          remoteTargeting: { ...remoteTargetingBase, decisionStrategy: 'conservative' },
+        };
+        await sessionReplay.init(apiKey, options).promise;
+
+        // New session starts — increments latestRemoteEvalId, fires a second eval
+        void sessionReplay.setSessionId(456).promise;
+        // Let second eval resolve
+        for (let i = 0; i < 6; i++) {
+          await Promise.resolve();
+        }
+
+        // Now resolve the stale first eval with capture=false — should be ignored
+        resolveFirstDecision({ capture: false });
+        for (let i = 0; i < 6; i++) {
+          await Promise.resolve();
+        }
+
+        // remoteDecision should reflect the second (non-stale) eval, not the stale one
+        expect((sessionReplay as any).remoteDecision).toEqual({ capture: true });
+      });
+
       test('lookback strategy in asyncSetSessionId re-fires recording and remote eval', async () => {
         fetchRemoteDecisionSpy.mockResolvedValue({ capture: true });
         const options: SessionReplayOptions = {
