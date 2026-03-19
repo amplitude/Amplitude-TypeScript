@@ -693,15 +693,19 @@ export class SessionReplay implements AmplitudeSessionReplay {
       return false;
     }
 
+    // During lookback hold, TRC and sample rate haven't been evaluated yet — record unconditionally.
+    // Actual eligibility is determined after the remote decision arrives in runRemoteEval.
+    if (this.lookbackHoldUploads) {
+      return true;
+    }
+
     let shouldRecord = false;
     let message = '';
     let matched = false;
 
     // If targetingConfig exists, we'll use the sessionTargetingMatch to determine whether to record
     // Otherwise, we'll evaluate the session against the overall sample rate
-    // Exception: during a lookback hold, TRC hasn't run yet — bypass the match check so
-    // recording can start immediately. TRC is evaluated after the remote decision arrives.
-    if (this.config.targetingConfig && !this.lookbackHoldUploads) {
+    if (this.config.targetingConfig) {
       if (!this.sessionTargetingMatch) {
         message = `Not capturing replays for session ${this.identifiers.sessionId} due to not matching targeting conditions.`;
         this.loggerProvider.log(message);
