@@ -135,7 +135,7 @@ function getPendingThrashedCursor(
   return startTime;
 }
 
-const DEFAULT_THRESHOLD = 10;
+const DEFAULT_THRESHOLD = 20;
 const DEFAULT_WINDOW_MS = 2_000;
 
 export const createThrashedCursorObservable = ({

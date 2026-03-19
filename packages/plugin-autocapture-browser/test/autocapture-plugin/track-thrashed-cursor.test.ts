@@ -101,22 +101,28 @@ describe('trackThrashedCursor', () => {
   }
 
   it('should track thrashed cursor', async () => {
+    // 22 iterations = 21 transitions = 20 direction changes per axis (threshold)
     const { startTime } = await setupAndSimulateThrashedCursor({
+      windowLocation: { href: 'http://localhost/' },
       mouseMovements: {
-        iterations: 20,
+        iterations: 22,
         timeAdvance: 100,
       },
     });
-    expect(amplitude.track).toHaveBeenCalledWith(AMPLITUDE_THRASHED_CURSOR_EVENT, undefined, { time: startTime + 200 });
+    const expectedTime = startTime + 2 * 100;
+    expect(amplitude.track).toHaveBeenCalledWith(AMPLITUDE_THRASHED_CURSOR_EVENT, undefined, {
+      time: expectedTime,
+    });
   });
 
   it('should track thrashed cursor with custom threshold and window ms', async () => {
-    await setupAndSimulateThrashedCursor({
+    const { startTime } = await setupAndSimulateThrashedCursor({
       directionChanges: 5,
       thresholdMs: 100,
     });
+    const expectedTime = startTime + 2 * 1;
     expect(amplitude.track).toHaveBeenCalledWith(AMPLITUDE_THRASHED_CURSOR_EVENT, undefined, {
-      time: expect.any(Number),
+      time: expectedTime,
     });
   });
 
@@ -224,7 +230,7 @@ describe('createThrashedCursorObservable', () => {
   let subscription: Unsubscribable | undefined;
   let emittedTimes: number[];
   let startTime: number;
-  const DEFAULT_THRESHOLD = 10;
+  const DEFAULT_THRESHOLD = 20;
   const DEFAULT_WINDOW_MS = 2000;
 
   beforeEach(() => {
@@ -278,7 +284,7 @@ describe('createThrashedCursorObservable', () => {
   });
 
   it('should emit when both X and Y axes meet threshold', async () => {
-    // Emit 10 X and Y direction changes
+    // Emit 20 X and Y direction changes
     for (let i = 0; i < DEFAULT_THRESHOLD; i++) {
       directionChangeObserver.next('x');
       jest.advanceTimersByTime(50);
@@ -380,7 +386,7 @@ describe('createThrashedCursorObservable', () => {
     directionChangeObserver.next('x');
     jest.advanceTimersByTime(DEFAULT_WINDOW_MS - 500);
 
-    // run 10 direction changes over 1 second; which will push the first change out of the window
+    // run 20 direction changes over 2 seconds; which will push the first change out of the window
     const expectedStartTime = +Date.now();
     for (let i = 0; i < DEFAULT_THRESHOLD; i++) {
       directionChangeObserver.next('x');
@@ -388,7 +394,7 @@ describe('createThrashedCursorObservable', () => {
     }
     await jest.runAllTimersAsync();
 
-    // expect the start time to be the start of the last 10 changes and not the first change
+    // expect the start time to be the start of the last 20 changes and not the first change
     expect(emittedTimes).toEqual([expectedStartTime]);
   });
 });
