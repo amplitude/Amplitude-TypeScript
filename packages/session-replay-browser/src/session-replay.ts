@@ -343,6 +343,10 @@ export class SessionReplay implements AmplitudeSessionReplay {
 
     const rt = this.config?.remoteTargeting;
     if (rt?.enabled && rt.mode !== 'off') {
+      // Stop any recording from the previous session before starting the new eval cycle.
+      if (this.recordCancelCallback) {
+        this.stopRecordingEvents();
+      }
       this.remoteDecisionPending = true;
       if (rt.decisionStrategy === 'lookback') {
         this.lookbackHoldUploads = true;
@@ -695,7 +699,9 @@ export class SessionReplay implements AmplitudeSessionReplay {
 
     // If targetingConfig exists, we'll use the sessionTargetingMatch to determine whether to record
     // Otherwise, we'll evaluate the session against the overall sample rate
-    if (this.config.targetingConfig) {
+    // Exception: during a lookback hold, TRC hasn't run yet — bypass the match check so
+    // recording can start immediately. TRC is evaluated after the remote decision arrives.
+    if (this.config.targetingConfig && !this.lookbackHoldUploads) {
       if (!this.sessionTargetingMatch) {
         message = `Not capturing replays for session ${this.identifiers.sessionId} due to not matching targeting conditions.`;
         this.loggerProvider.log(message);
