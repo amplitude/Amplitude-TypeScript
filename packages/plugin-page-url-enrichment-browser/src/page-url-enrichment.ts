@@ -126,9 +126,7 @@ export const pageUrlEnrichmentPlugin = ({ internalDomains = [] }: PageUrlEnrichm
           sessionStorage = new BrowserStorage<URLInfo>(globalScope.sessionStorage);
         } catch (error) {
           /* istanbul ignore next */
-          const message = error instanceof Error ? error.message : String(error);
-          /* istanbul ignore next */
-          loggerProvider?.debug(`sessionStorage is not available in this environment. Reason=${message}`);
+          loggerProvider?.debug('sessionStorage is not available in this environment.');
         }
         isStorageEnabled = (await sessionStorage?.isEnabled()) ?? false;
 
