@@ -2,14 +2,17 @@
 <html>
   <head>
     <meta charset="UTF-8" />
-    <script type="module">
-      window.API_KEY = import.meta.env.VITE_AMPLITUDE_API_KEY;
-      window.USER_ID = import.meta.env.VITE_AMPLITUDE_USER_ID || 'analytics-browser-local-test-user';
-    </script>
-    <script type="text/javascript" src="/analytics-browser/lib/scripts/amplitude-min.js"></script>
+    <script type="text/javascript" src="https://cdn.amplitude.com/libs/analytics-browser-2.36.7-min.js.gz"></script>
     <script type="text/javascript">
-      amplitude.init(window.API_KEY, window.USER_ID);
-      amplitude.track('test');
+      window.addEventListener('message', function (event) {
+        if (event.data?.type === 'AMPLITUDE_INIT' && window.amplitude) {
+          window.amplitude.init(event.data.apiKey, event.data.userId, {
+            autocapture: true,
+            //identityStorage: 'localStorage',
+          });
+          window.amplitude.track('test');
+        }
+      });
     </script>
   </head>
   <body>
