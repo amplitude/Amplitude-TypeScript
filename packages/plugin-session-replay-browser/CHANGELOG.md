@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.27.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@1.26.4...@amplitude/plugin-session-replay-browser@1.27.0) (2026-03-19)
+
+
+### Features
+
+* **session-replay-browser:** implement attribute masking functionality ([#1602](https://github.com/amplitude/Amplitude-TypeScript/issues/1602)) ([ad8b8ac](https://github.com/amplitude/Amplitude-TypeScript/commit/ad8b8ac383a698ab6727b3bff8147323eef3d36e))
+
+
+
+
+
 ## [1.26.4](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@1.26.3...@amplitude/plugin-session-replay-browser@1.26.4) (2026-03-17)
 
 **Note:** Version bump only for package @amplitude/plugin-session-replay-browser

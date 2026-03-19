@@ -3,6 +3,23 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.42.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.41.7...@amplitude/analytics-core@2.42.0) (2026-03-19)
+
+
+### Bug Fixes
+
+* **analytics-core:** filter invalid event properties instead of rejecting whole object ([#1598](https://github.com/amplitude/Amplitude-TypeScript/issues/1598)) ([882db5c](https://github.com/amplitude/Amplitude-TypeScript/commit/882db5c6361c6279fd4b487b5ce681263e18d35f))
+* **analytics-core:** treat 403 as invalid API key in remote config client ([#1603](https://github.com/amplitude/Amplitude-TypeScript/issues/1603)) ([1c70064](https://github.com/amplitude/Amplitude-TypeScript/commit/1c70064e347219b5c8f6283d05c6e609580140e5))
+
+
+### Features
+
+* **autocapture:** zoning beta  ([#1589](https://github.com/amplitude/Amplitude-TypeScript/issues/1589)) ([2bb3608](https://github.com/amplitude/Amplitude-TypeScript/commit/2bb36088dc1342512ba0289fb1108ed8a61361f6))
+
+
+
+
+
 ## [2.41.7](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.41.6...@amplitude/analytics-core@2.41.7) (2026-03-17)
 
 

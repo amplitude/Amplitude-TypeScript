@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.9.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-page-view-tracking-browser@2.8.7...@amplitude/plugin-page-view-tracking-browser@2.9.0) (2026-03-19)
+
+
+### Features
+
+* **autocapture:** zoning beta  ([#1589](https://github.com/amplitude/Amplitude-TypeScript/issues/1589)) ([2bb3608](https://github.com/amplitude/Amplitude-TypeScript/commit/2bb36088dc1342512ba0289fb1108ed8a61361f6))
+
+
+
+
+
 ## [2.8.7](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-page-view-tracking-browser@2.8.6...@amplitude/plugin-page-view-tracking-browser@2.8.7) (2026-03-17)
 
 **Note:** Version bump only for package @amplitude/plugin-page-view-tracking-browser
