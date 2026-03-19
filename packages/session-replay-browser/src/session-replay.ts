@@ -95,6 +95,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
   private remoteDecisionPending = false;
   private lookbackHoldUploads = false;
   private lookbackEventBuffer: Array<{ event: eventWithTime; sessionId: string | number }> = [];
+  private static readonly LOOKBACK_BUFFER_MAX_EVENTS_DEFAULT = 1000;
 
   /** Cleanup for URL change listener used to re-evaluate targeting on SPA route changes */
   private urlChangeCleanup: (() => void) | null = null;
@@ -807,6 +808,8 @@ export class SessionReplay implements AmplitudeSessionReplay {
     if (!shouldRecord || !sessionId || !config) {
       return;
     }
+    const lookbackBufferMaxEvents =
+      config.remoteTargeting?.lookbackBufferMaxEvents ?? SessionReplay.LOOKBACK_BUFFER_MAX_EVENTS_DEFAULT;
     this.stopRecordingEvents();
 
     const recordFunction = await this.getRecordFunction();
@@ -863,7 +866,9 @@ export class SessionReplay implements AmplitudeSessionReplay {
           }
 
           if (this.lookbackHoldUploads) {
-            this.lookbackEventBuffer.push({ event, sessionId });
+            if (this.lookbackEventBuffer.length < lookbackBufferMaxEvents) {
+              this.lookbackEventBuffer.push({ event, sessionId });
+            }
           } else if (this.eventCompressor) {
             // Schedule processing during idle time if the browser supports requestIdleCallback
             this.eventCompressor.enqueueEvent(event, sessionId);

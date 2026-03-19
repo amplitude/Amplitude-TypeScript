@@ -4239,6 +4239,33 @@ describe('SessionReplay', () => {
         expect((sessionReplay as any).lookbackHoldUploads).toBe(false);
       });
 
+      test('drops events beyond lookbackBufferMaxEvents', async () => {
+        let capturedEmit: ((event: eventWithTime) => void) | undefined;
+        mockRecordFunction.mockImplementation((options: { emit: (event: eventWithTime) => void }) => {
+          capturedEmit = options.emit;
+          return jest.fn();
+        });
+
+        let resolveDecision!: (d: { capture: boolean }) => void;
+        fetchRemoteDecisionSpy.mockReturnValue(
+          new Promise<{ capture: boolean }>((resolve) => (resolveDecision = resolve)),
+        );
+
+        const options: SessionReplayOptions = {
+          ...mockOptions,
+          remoteTargeting: { ...remoteTargetingBase, decisionStrategy: 'lookback', lookbackBufferMaxEvents: 3 },
+        };
+        await sessionReplay.init(apiKey, options).promise;
+
+        // Emit more events than the cap
+        for (let i = 0; i < 5; i++) {
+          capturedEmit?.(mockEvent as eventWithTime);
+        }
+
+        expect((sessionReplay as any).lookbackEventBuffer).toHaveLength(3);
+        resolveDecision({ capture: false });
+      });
+
       test('lookback strategy in asyncSetSessionId re-fires recording and remote eval', async () => {
         fetchRemoteDecisionSpy.mockResolvedValue({ capture: true });
         const options: SessionReplayOptions = {
