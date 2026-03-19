@@ -87,11 +87,11 @@ test.describe('remote eval gate — conservative strategy', () => {
     await mockTrackApi(page);
     await mockRemoteEval(page, { capture: false, reason: 'not in cohort' });
 
+    // Register before navigation to avoid race where request fires before listener is set up
+    const evalRequestPromise = page.waitForRequest(REMOTE_EVAL_URL, { timeout: 5_000 });
     await page.goto(buildUrl('/session-replay-browser/sr-capture-test.html', remoteEvalParams('conservative')));
     await waitForReady(page);
-
-    // Wait for remote eval request to complete
-    await page.waitForRequest(REMOTE_EVAL_URL, { timeout: 5_000 });
+    await evalRequestPromise;
     await page.waitForTimeout(300);
 
     const props = await getProperties(page);
@@ -197,9 +197,11 @@ test.describe('remote eval gate — conservative strategy', () => {
     });
     await mockRemoteEval(page, { capture: false });
 
+    // Register before navigation to avoid race where request fires before listener is set up
+    const evalRequestPromise = page.waitForRequest(REMOTE_EVAL_URL, { timeout: 5_000 });
     await page.goto(buildUrl('/session-replay-browser/sr-capture-test.html', remoteEvalParams('conservative')));
     await waitForReady(page);
-    await page.waitForRequest(REMOTE_EVAL_URL, { timeout: 5_000 });
+    await evalRequestPromise;
     await page.waitForTimeout(300);
 
     await page.evaluate(() => (window as any).sessionReplay.flush(false) as Promise<void>);
@@ -257,9 +259,11 @@ test.describe('remote eval gate — lookback strategy', () => {
     });
     await mockRemoteEval(page, { capture: false, reason: 'excluded' });
 
+    // Register before navigation to avoid race where request fires before listener is set up
+    const evalRequestPromise = page.waitForRequest(REMOTE_EVAL_URL, { timeout: 5_000 });
     await page.goto(buildUrl('/session-replay-browser/sr-capture-test.html', remoteEvalParams('lookback')));
     await waitForReady(page);
-    await page.waitForRequest(REMOTE_EVAL_URL, { timeout: 5_000 });
+    await evalRequestPromise;
     await page.waitForTimeout(300);
 
     await page.evaluate(() => (window as any).sessionReplay.flush(false) as Promise<void>);
@@ -370,6 +374,8 @@ test.describe('remote eval gate — request shape', () => {
       });
     });
 
+    // Register before navigation to avoid race where request fires before listener is set up
+    const evalRequestPromise = page.waitForRequest(REMOTE_EVAL_URL, { timeout: 5_000 });
     await page.goto(
       buildUrl('/session-replay-browser/sr-capture-test.html', {
         ...remoteEvalParams('conservative'),
@@ -378,7 +384,7 @@ test.describe('remote eval gate — request shape', () => {
       }),
     );
     await waitForReady(page);
-    await page.waitForRequest(REMOTE_EVAL_URL, { timeout: 5_000 });
+    await evalRequestPromise;
 
     expect(capturedUrl).toBeDefined();
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
