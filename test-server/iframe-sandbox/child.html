@@ -1,0 +1,22 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <script type="text/javascript" src="/analytics-browser/lib/scripts/amplitude-min.js"></script>
+    <script type="text/javascript">
+      window.addEventListener('message', function (event) {
+        if (event.data?.type === 'AMPLITUDE_INIT' && window.amplitude) {
+          window.amplitude.init(event.data.apiKey, event.data.userId, {
+            autocapture: true,
+            //identityStorage: 'localStorage',
+          });
+          window.amplitude.track('test');
+        }
+      });
+    </script>
+  </head>
+  <body>
+    <h2>Child frame that resembles Shopify's iframe sandbox</h2>
+    <p>This page is loaded inside the host shell iframe</p>
+  </body>
+</html>
