@@ -7,36 +7,7 @@
     <title>Browser SDK Test</title>
 
     <!-- script to enhance cookie enforcement-->
-    <script type="module">
-      // strict cookie pattern to enforce cookie names
-      const ALLOWED_COOKIE_PATTERNS = [
-        'AMP_TEST', 'AMP_TLDTEST',
-        /^AMP_MKTG_[A-Za-z0-9]{10}$/,
-        /^AMP_[A-Za-z0-9]{10}$/,
-      ];
-
-      const desc = Object.getOwnPropertyDescriptor(Document.prototype, "cookie");
-
-      Object.defineProperty(document, "cookie", {
-        configurable: true,
-        enumerable: true,
-        get() {
-          return desc.get.call(document);
-        },
-        set(value) {
-          const name = value.split("=")[0].trim();
-          if (!ALLOWED_COOKIE_PATTERNS.some((pattern) => {
-            if (pattern instanceof RegExp) {
-              return pattern.test(name);
-            }
-            return pattern === name;
-          })) {
-            throw new Error(`Illegal cookie name: ${name}`)
-          }
-          return desc.set.call(document, value);
-        },
-      });
-    </script>
+    <script type="module" src="/helpers/tough-cookie"></script>
   </head>
   <body>
     <div id="app">
