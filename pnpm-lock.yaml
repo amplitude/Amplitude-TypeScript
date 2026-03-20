@@ -138,6 +138,9 @@ importers:
       '@amplitude/plugin-autocapture-browser':
         specifier: workspace:*
         version: link:../plugin-autocapture-browser
+      '@amplitude/plugin-custom-enrichment-browser':
+        specifier: workspace:*
+        version: link:../plugin-custom-enrichment-browser
       '@amplitude/plugin-network-capture-browser':
         specifier: workspace:*
         version: link:../plugin-network-capture-browser
