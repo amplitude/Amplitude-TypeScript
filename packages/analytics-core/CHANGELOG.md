@@ -3,6 +3,24 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.43.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.42.0...@amplitude/analytics-core@2.43.0) (2026-03-20)
+
+
+### Bug Fixes
+
+* **analytics-browser:** double thrashed cursor threshold ([#1604](https://github.com/amplitude/Amplitude-TypeScript/issues/1604)) ([32cb4b6](https://github.com/amplitude/Amplitude-TypeScript/commit/32cb4b63ddce39dc6b68d3ae3b3798b0ae73ccd4))
+* **analytics-core:** network request event circular dependency ([#1606](https://github.com/amplitude/Amplitude-TypeScript/issues/1606)) ([12ef222](https://github.com/amplitude/Amplitude-TypeScript/commit/12ef222ee990188f5700a8dd27d31cabd36f0ffc))
+
+
+### Features
+
+* **plugin-custom-enrichment:** add custom enrichment plugin ([#1339](https://github.com/amplitude/Amplitude-TypeScript/issues/1339)) ([b236190](https://github.com/amplitude/Amplitude-TypeScript/commit/b236190fa30d0e4325c37b8896824e11f980e20c))
+* **plugin-custom-enrichment:** add plugin based on remote config settings ([#1586](https://github.com/amplitude/Amplitude-TypeScript/issues/1586)) ([617ebfe](https://github.com/amplitude/Amplitude-TypeScript/commit/617ebfe7aaee04b0aef3db09b48ed11bad9a6ca3))
+
+
+
+
+
 # [2.42.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.41.7...@amplitude/analytics-core@2.42.0) (2026-03-19)
 
 
