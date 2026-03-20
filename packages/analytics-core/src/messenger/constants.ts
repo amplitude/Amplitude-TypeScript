@@ -10,4 +10,4 @@ export const AMPLITUDE_ORIGINS_MAP: Record<string, string> = {
 
 // Background capture script URL (shared between autocapture and session-replay)
 export const AMPLITUDE_BACKGROUND_CAPTURE_SCRIPT_URL =
-  'https://cdn.amplitude.com/libs/background-capture-1.0.0-alpha.2.js.gz';
+  'https://cdn.amplitude.com/libs/background-capture-1.0.0-alpha.3.js.gz';
