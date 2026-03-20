@@ -422,6 +422,7 @@ export const useBrowserConfig = async (
     defaultCookieDomain,
     options.enableRequestBodyCompression,
     amplitudeInstance._enableRequestBodyCompressionExperimentalValue,
+    options.customEnrichment,
   );
 
   if (!(await browserConfig.storageProvider.isEnabled())) {
