@@ -27,6 +27,7 @@ import * as networkConnectivityChecker from '../src/plugins/network-connectivity
 import * as SnippetHelper from '../src/utils/snippet-helper';
 import * as joinedConfig from '../src/config/joined-config';
 import * as pageUrlEnrichment from '@amplitude/plugin-page-url-enrichment-browser';
+import * as customEnrichment from '@amplitude/plugin-custom-enrichment-browser';
 
 // Mock RemoteConfigClient constructor
 const mockRemoteConfigClient = {
@@ -938,6 +939,28 @@ describe('browser-client', () => {
         autocapture: {},
       }).promise;
       expect(pageUrlEnrichmentPlugin).toHaveBeenCalledTimes(1);
+    });
+
+    test('should add custom enrichment plugin when customEnrichment is an object with enabled=true', async () => {
+      const customEnrichmentPlugin = jest.spyOn(customEnrichment, 'customEnrichmentPlugin');
+      await client.init(apiKey, userId, {
+        customEnrichment: { enabled: true, body: 'test' },
+      }).promise;
+      expect(customEnrichmentPlugin).toHaveBeenCalledTimes(1);
+    });
+
+    test('should NOT add custom enrichment plugin when customEnrichment is undefined', async () => {
+      const customEnrichmentPlugin = jest.spyOn(customEnrichment, 'customEnrichmentPlugin');
+      await client.init(apiKey, userId).promise;
+      expect(customEnrichmentPlugin).toHaveBeenCalledTimes(0);
+    });
+
+    test('should NOT add custom enrichment plugin when customEnrichment is an object with enabled=false', async () => {
+      const customEnrichmentPlugin = jest.spyOn(customEnrichment, 'customEnrichmentPlugin');
+      await client.init(apiKey, userId, {
+        customEnrichment: { enabled: false, body: 'test' },
+      }).promise;
+      expect(customEnrichmentPlugin).toHaveBeenCalledTimes(0);
     });
 
     test.each([[url], [new URL(`https://www.example.com?deviceId=${testDeviceId}`)]])(

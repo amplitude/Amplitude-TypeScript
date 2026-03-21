@@ -1,3 +1,10 @@
-import { umd } from '../../scripts/build/rollup.config';
+import { iife, umd } from '../../scripts/build/rollup.config';
 
-export default [umd];
+iife.input = umd.input;
+iife.output.name = 'amplitudeCustomEnrichmentPlugin';
+
+
+if (process.env.NODE_ENV === 'development') {
+  iife.output.sourcemap = 'inline';
+}
+export default [umd, iife];
