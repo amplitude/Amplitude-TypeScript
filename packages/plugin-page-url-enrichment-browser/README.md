@@ -34,9 +34,6 @@ import { pageUrlEnrichmentPlugin } from '@amplitude/plugin-page-url-enrichment-b
 ```
 
 ### 2. Instantiate page url enrichment plugin
-
-The plugin accepts an optional parameter of type `Object` to configure the plugin based on your use case.
-
 ```typescript
 const pageUrlEnrichment = pageUrlEnrichmentPlugin();
 ```

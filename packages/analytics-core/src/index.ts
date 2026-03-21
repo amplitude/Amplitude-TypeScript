@@ -105,6 +105,7 @@ export { NetworkTrackingOptions, NetworkCaptureRule } from './types/network-trac
 export { SAFE_HEADERS, FORBIDDEN_HEADERS } from './types/constants';
 
 export { PageUrlEnrichmentOptions } from './types/page-url-enrichment';
+export { CustomEnrichmentOptions } from './types/custom-enrichment';
 
 // Campaign
 export { Campaign, UTMParameters, ReferrerParameters, ClickIdParameters, ICampaignParser } from './types/campaign';

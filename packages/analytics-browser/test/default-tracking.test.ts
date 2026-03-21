@@ -6,6 +6,7 @@ import {
   getNetworkTrackingConfig,
   getPageViewTrackingConfig,
   isAttributionTrackingEnabled,
+  isCustomEnrichmentEnabled,
   isElementInteractionsEnabled,
   isFileDownloadTrackingEnabled,
   isFormInteractionTrackingEnabled,
@@ -16,6 +17,36 @@ import {
   isSessionTrackingEnabled,
   isWebVitalsEnabled,
 } from '../src/default-tracking';
+
+describe('isCustomEnrichmentEnabled', () => {
+  test('should return false when customEnrichment is undefined', () => {
+    expect(isCustomEnrichmentEnabled(undefined)).toBe(false);
+  });
+
+  test('should return true when customEnrichment is an object with enabled=true', () => {
+    expect(isCustomEnrichmentEnabled({ enabled: true, body: 'test' })).toBe(true);
+  });
+
+  test('should return false when customEnrichment is an object with enabled=false', () => {
+    expect(isCustomEnrichmentEnabled({ enabled: false, body: 'test' })).toBe(false);
+  });
+
+  test('should return true when customEnrichment is true (from translated remote config)', () => {
+    expect(isCustomEnrichmentEnabled(true)).toBe(true);
+  });
+
+  test('should return false when customEnrichment is false (from translated remote config)', () => {
+    expect(isCustomEnrichmentEnabled(false)).toBe(false);
+  });
+
+  test('should return true when customEnrichment is an object without enabled (from translated remote config)', () => {
+    expect(isCustomEnrichmentEnabled({ body: 'test' })).toBe(true);
+  });
+
+  test('should return false when customEnrichment is null', () => {
+    expect(isCustomEnrichmentEnabled(null as unknown as undefined)).toBe(false);
+  });
+});
 
 describe('isWebVitalsEnabled', () => {
   describe('is true when', () => {

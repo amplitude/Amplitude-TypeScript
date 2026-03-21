@@ -30,7 +30,7 @@ export interface ThrashedCursorOptions {
    * Number of direction changes required to consider a thrashed cursor.
    * Minimum of 5
    * (x axis changes and y axis changes are counted separately)
-   * @default 10
+   * @default 20
    */
   directionChanges?: number;
   /**

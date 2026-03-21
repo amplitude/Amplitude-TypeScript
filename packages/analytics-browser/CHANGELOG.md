@@ -3,6 +3,25 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.37.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.36.8...@amplitude/analytics-browser@2.37.0) (2026-03-20)
+
+
+### Features
+
+* **plugin-custom-enrichment:** add plugin based on remote config settings ([#1586](https://github.com/amplitude/Amplitude-TypeScript/issues/1586)) ([617ebfe](https://github.com/amplitude/Amplitude-TypeScript/commit/617ebfe7aaee04b0aef3db09b48ed11bad9a6ca3))
+
+
+
+
+
+## [2.36.8](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.36.7...@amplitude/analytics-browser@2.36.8) (2026-03-19)
+
+**Note:** Version bump only for package @amplitude/analytics-browser
+
+
+
+
+
 ## [2.36.7](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.36.6...@amplitude/analytics-browser@2.36.7) (2026-03-17)
 
 **Note:** Version bump only for package @amplitude/analytics-browser

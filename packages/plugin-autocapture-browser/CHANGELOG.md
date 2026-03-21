@@ -3,6 +3,28 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.24.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.24.0...@amplitude/plugin-autocapture-browser@1.24.1) (2026-03-20)
+
+
+### Bug Fixes
+
+* **analytics-browser:** double thrashed cursor threshold ([#1604](https://github.com/amplitude/Amplitude-TypeScript/issues/1604)) ([32cb4b6](https://github.com/amplitude/Amplitude-TypeScript/commit/32cb4b63ddce39dc6b68d3ae3b3798b0ae73ccd4))
+
+
+
+
+
+# [1.24.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.23.7...@amplitude/plugin-autocapture-browser@1.24.0) (2026-03-19)
+
+
+### Features
+
+* **autocapture:** zoning beta  ([#1589](https://github.com/amplitude/Amplitude-TypeScript/issues/1589)) ([2bb3608](https://github.com/amplitude/Amplitude-TypeScript/commit/2bb36088dc1342512ba0289fb1108ed8a61361f6))
+
+
+
+
+
 ## [1.23.7](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.23.6...@amplitude/plugin-autocapture-browser@1.23.7) (2026-03-17)
 
 **Note:** Version bump only for package @amplitude/plugin-autocapture-browser
