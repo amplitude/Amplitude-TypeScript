@@ -7,30 +7,37 @@
  *
  * The caller transfers ownership of `encoded.buffer` for zero-copy passing;
  * the worker transfers ownership of `compressed.buffer` on the way back.
+ *
+ * NOTE: This file intentionally contains no TypeScript-specific syntax (no type annotations,
+ * no `as` casts, no `type` declarations). Multiple packages bundle this file via Rollup using
+ * different TypeScript plugin configurations; keeping it as plain JavaScript ensures it can be
+ * parsed by Rollup's acorn parser even when the TypeScript plugin is not active.
  */
 
-// Jest's coverage tool compiles this file against the Window lib, which doesn't include
-// the (message, transfer[]) overload of DedicatedWorkerGlobalScope.postMessage.
-// Cast at each call site rather than using a `declare function` override (which breaks Rollup's JS parser)
-// or a module-level alias (which would be captured before tests can mock postMessage).
-type WorkerPostMessage = (message: unknown, transfer: Transferable[]) => void;
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
+/* eslint-disable @typescript-eslint/no-unsafe-return */
+/* eslint-disable @typescript-eslint/restrict-plus-operands */
 
-onmessage = async (e: MessageEvent<{ id: number; encoded: Uint8Array }>) => {
+onmessage = async (e) => {
   const { id, encoded } = e.data;
 
   if (typeof CompressionStream === 'undefined') {
     // Fallback: send back uncompressed (caller will omit Content-Encoding header).
-    (postMessage as WorkerPostMessage)({ id, compressed: encoded, didCompress: false }, [encoded.buffer]);
+    // @ts-expect-error — DedicatedWorkerGlobalScope.postMessage(msg, transfer[]) is not in Window lib
+    postMessage({ id, compressed: encoded, didCompress: false }, [encoded.buffer]);
     return;
   }
 
   const cs = new CompressionStream('gzip');
   const writer = cs.writable.getWriter();
-  const reader = cs.readable.getReader() as ReadableStreamDefaultReader<Uint8Array>;
-  await writer.write(encoded as BufferSource);
+  const reader = cs.readable.getReader();
+  await writer.write(encoded);
   await writer.close();
 
-  const chunks: Uint8Array[] = [];
+  const chunks = [];
   for (;;) {
     const { done, value } = await reader.read();
     if (done) break;
@@ -45,7 +52,8 @@ onmessage = async (e: MessageEvent<{ id: number; encoded: Uint8Array }>) => {
     offset += chunk.length;
   }
 
-  (postMessage as WorkerPostMessage)({ id, compressed: out, didCompress: true }, [out.buffer]);
+  // @ts-expect-error — DedicatedWorkerGlobalScope.postMessage(msg, transfer[]) is not in Window lib
+  postMessage({ id, compressed: out, didCompress: true }, [out.buffer]);
 };
 
 // Exported for unit testing only.
