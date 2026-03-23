@@ -150,6 +150,10 @@ async function buildWorkerBundle(inputFile) {
     plugins: [
       typescript({
         tsconfig: 'tsconfig.es5.json',
+        compilerOptions: {
+          module: 'esnext',
+          moduleResolution: 'node',
+        },
       }),
       resolve({
         browser: true,
