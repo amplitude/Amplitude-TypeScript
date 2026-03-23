@@ -106,6 +106,7 @@ export { SAFE_HEADERS, FORBIDDEN_HEADERS } from './types/constants';
 
 export { PageUrlEnrichmentOptions } from './types/page-url-enrichment';
 export { CustomEnrichmentOptions } from './types/custom-enrichment';
+export { PerformanceTrackingOptions, LongTaskOptions } from './types/performance-tracking';
 
 // Campaign
 export { Campaign, UTMParameters, ReferrerParameters, ClickIdParameters, ICampaignParser } from './types/campaign';
