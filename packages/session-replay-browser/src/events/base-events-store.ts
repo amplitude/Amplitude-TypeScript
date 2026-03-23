@@ -38,33 +38,15 @@ export abstract class BaseEventsStore<KeyType> implements EventsStore<KeyType> {
   abstract cleanUpSessionEventsStore(sessionId: number, sequenceId: KeyType): Promise<void>;
 
   /**
-   * Estimates the byte size of a single event without serialization.
-   * For string events (JSON path) uses the string length directly.
-   * For object events (msgpack path) uses a recursive string-length walk —
-   * sums string key/value lengths plus small constants for structural overhead.
-   * This underestimates the true size but avoids JSON.stringify overhead; flushing
-   * slightly more often is the acceptable tradeoff.
+   * Returns the size of a single event for batch-splitting decisions.
+   * For string events (JSON path) uses string length directly.
+   * For object events (msgpack path) returns 0 — the events are not serialized
+   * until the batch is sent, so size-based splitting is not meaningful here.
+   * Time-based splitting handles flushing on the msgpack path instead.
    */
   protected getEventSize(event: EventData): number {
     if (typeof event === 'string') {
       return event.length;
-    }
-    return BaseEventsStore.roughObjectSize(event);
-  }
-
-  private static roughObjectSize(val: unknown, depth = 0): number {
-    if (depth > 10) return 0;
-    if (typeof val === 'string') return val.length;
-    if (typeof val === 'number' || typeof val === 'boolean') return 8;
-    if (val === null || val === undefined) return 4;
-    if (Array.isArray(val)) {
-      return val.reduce((sum: number, v) => sum + BaseEventsStore.roughObjectSize(v, depth + 1), 2);
-    }
-    if (typeof val === 'object') {
-      return Object.entries(val as Record<string, unknown>).reduce(
-        (sum, [k, v]) => sum + k.length + BaseEventsStore.roughObjectSize(v, depth + 1) + 3,
-        2,
-      );
     }
     return 0;
   }
