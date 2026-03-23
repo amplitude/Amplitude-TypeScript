@@ -26,7 +26,7 @@ onmessage = async (e: MessageEvent<{ id: number; encoded: Uint8Array }>) => {
   const cs = new CompressionStream('gzip');
   const writer = cs.writable.getWriter();
   const reader = cs.readable.getReader() as ReadableStreamDefaultReader<Uint8Array>;
-  await writer.write(encoded);
+  await writer.write(encoded as BufferSource);
   await writer.close();
 
   const chunks: Uint8Array[] = [];

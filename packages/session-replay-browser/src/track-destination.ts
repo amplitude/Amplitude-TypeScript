@@ -207,7 +207,7 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
               `, first 64 bytes: [${compressed.slice(0, 64).join(', ')}]`,
           );
         }
-        body = compressed;
+        body = compressed as BodyInit;
         contentType = 'application/x-msgpack';
         if (didCompress) {
           headers['Content-Encoding'] = 'gzip';
@@ -312,7 +312,7 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
       // Off-load gzip to the dedicated worker thread (zero-copy via buffer transfer).
       const id = ++this.gzipWorkerRequestId;
       return new Promise((resolve, reject) => {
-        this.gzipWorkerPending.set(id, { resolve, reject });
+        this.gzipWorkerPending.set(id, { resolve: (r) => resolve(r), reject });
         this.gzipWorker!.postMessage({ id, encoded: data }, [data.buffer]);
       });
     }
@@ -327,7 +327,7 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
     const cs = new CompressionStream('gzip');
     const writer = cs.writable.getWriter();
     const reader = cs.readable.getReader() as ReadableStreamDefaultReader<Uint8Array>;
-    await writer.write(data);
+    await writer.write(data as BufferSource);
     await writer.close();
     const chunks: Uint8Array[] = [];
     for (;;) {
