@@ -32,18 +32,23 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
   useMessagePack: boolean;
   debugMode: boolean;
   queue: SessionReplayDestinationContext[] = [];
+  private gzipWorker?: Worker;
+  private gzipWorkerRequestId = 0;
+  private gzipWorkerPending = new Map<number, { resolve: (r: { data: Uint8Array; didCompress: boolean }) => void }>();
 
   constructor({
     trackServerUrl,
     loggerProvider,
     payloadBatcher,
     useMessagePack,
+    msgpackGzipWorkerScript,
     debugMode,
   }: {
     trackServerUrl?: string;
     loggerProvider: ILogger;
     payloadBatcher?: PayloadBatcher;
     useMessagePack?: boolean;
+    msgpackGzipWorkerScript?: string;
     debugMode?: boolean;
   }) {
     this.loggerProvider = loggerProvider;
@@ -51,6 +56,34 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
     this.trackServerUrl = trackServerUrl;
     this.useMessagePack = useMessagePack ?? false;
     this.debugMode = debugMode ?? false;
+
+    if (useMessagePack && msgpackGzipWorkerScript) {
+      try {
+        const blob = new Blob([msgpackGzipWorkerScript], { type: 'application/javascript' });
+        const worker = new Worker(URL.createObjectURL(blob));
+        worker.onmessage = (e: MessageEvent<{ id: number; compressed: Uint8Array; didCompress: boolean }>) => {
+          const { id, compressed, didCompress } = e.data;
+          const pending = this.gzipWorkerPending.get(id);
+          if (pending) {
+            this.gzipWorkerPending.delete(id);
+            pending.resolve({ data: compressed, didCompress });
+          }
+        };
+        worker.onerror = (e) => {
+          e.preventDefault();
+          loggerProvider.warn('[msgpack] gzip worker error, falling back to main-thread compression:', e.message);
+          // Resolve all in-flight requests as uncompressed — the main-thread fallback
+          // in gzipCompress will handle future requests once worker is cleared.
+          this.gzipWorkerPending.forEach(({ resolve }) => resolve({ data: new Uint8Array(0), didCompress: false }));
+          this.gzipWorkerPending.clear();
+          this.gzipWorker = undefined;
+          worker.terminate();
+        };
+        this.gzipWorker = worker;
+      } catch (error) {
+        loggerProvider.warn('[msgpack] failed to create gzip worker, falling back to main-thread compression:', error);
+      }
+    }
   }
 
   sendEventsList(destinationData: SessionReplayDestination) {
@@ -269,7 +302,19 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
     await this.send(context, true);
   }
 
-  private async gzipCompress(data: Uint8Array): Promise<{ data: Uint8Array; didCompress: boolean }> {
+  private gzipCompress(data: Uint8Array): Promise<{ data: Uint8Array; didCompress: boolean }> {
+    if (this.gzipWorker) {
+      // Off-load gzip to the dedicated worker thread (zero-copy via buffer transfer).
+      const id = ++this.gzipWorkerRequestId;
+      return new Promise((resolve) => {
+        this.gzipWorkerPending.set(id, { resolve });
+        this.gzipWorker!.postMessage({ id, encoded: data }, [data.buffer]);
+      });
+    }
+    return this.gzipCompressMainThread(data);
+  }
+
+  private async gzipCompressMainThread(data: Uint8Array): Promise<{ data: Uint8Array; didCompress: boolean }> {
     if (typeof CompressionStream === 'undefined') {
       // CompressionStream not available (older browsers); send uncompressed.
       return { data, didCompress: false };

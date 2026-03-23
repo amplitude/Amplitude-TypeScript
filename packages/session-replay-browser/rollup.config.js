@@ -137,8 +137,8 @@ const webWorkerES5BundleConfig = {
   ],
 };
 
-async function buildWebWorker() {
-  const input = path.join(path.dirname(new URL(import.meta.url).pathname), './src/worker/compression.ts');
+async function buildWorkerBundle(inputFile) {
+  const input = path.join(path.dirname(new URL(import.meta.url).pathname), inputFile);
   const bundle = await rollup({
     input,
     output: {
@@ -164,17 +164,20 @@ async function buildWebWorker() {
     inlineDynamicImports: true,
     sourcemap: false,
   });
-  const webWorkerCode = output[0].code;
-
-  return webWorkerCode;
+  return output[0].code;
 }
 
 export async function webWorkerPlugins() {
+  const [compressionWorkerCode, msgpackGzipWorkerCode] = await Promise.all([
+    buildWorkerBundle('./src/worker/compression.ts'),
+    buildWorkerBundle('./src/worker/msgpack-gzip.ts'),
+  ]);
   return [
     replace({
       preventAssignment: true,
       values: {
-        'replace.COMPRESSION_WEBWORKER_BODY': JSON.stringify(await buildWebWorker()),
+        'replace.COMPRESSION_WEBWORKER_BODY': JSON.stringify(compressionWorkerCode),
+        'replace.MSGPACK_GZIP_WEBWORKER_BODY': JSON.stringify(msgpackGzipWorkerCode),
       },
     }),
   ];

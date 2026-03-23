@@ -200,6 +200,20 @@ export class SessionReplay implements AmplitudeSessionReplay {
       this.clickHandler = new ClickHandler(this.loggerProvider, scrollWatcher);
     }
 
+    // Load worker scripts before creating event managers so they can be threaded through.
+    let workerScript = undefined;
+    let msgpackGzipWorkerScript = undefined;
+    const globalScope = getGlobalScope();
+    if (globalScope?.Worker) {
+      const workerModule = await import('./worker');
+      if (this.config.useWebWorker) {
+        workerScript = workerModule.compressionScript;
+      }
+      if (this.config.useMessagePack) {
+        msgpackGzipWorkerScript = workerModule.msgpackGzipScript;
+      }
+    }
+
     const managers: EventsManagerWithType<EventType>[] = [];
     let { storeType } = this.config;
     if (storeType === 'idb' && !getGlobalScope()?.indexedDB) {
@@ -212,6 +226,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
         config: this.config,
         type: 'replay',
         storeType,
+        msgpackGzipWorkerScript,
       });
       managers.push({ name: 'replay', manager: rrwebEventManager });
     } catch (error) {
@@ -229,6 +244,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
           maxInterval: INTERACTION_MAX_INTERVAL,
           payloadBatcher,
           storeType,
+          msgpackGzipWorkerScript,
         });
         managers.push({ name: 'interaction', manager: interactionEventManager });
       } catch (error) {
@@ -241,14 +257,6 @@ export class SessionReplay implements AmplitudeSessionReplay {
     // To prevent too many threads.
     if (this.eventCompressor) {
       this.eventCompressor.terminate();
-    }
-
-    let workerScript = undefined;
-    const globalScope = getGlobalScope();
-    if (this.config.useWebWorker && globalScope && globalScope.Worker) {
-      const { compressionScript } = await import('./worker');
-
-      workerScript = compressionScript;
     }
 
     this.eventCompressor = new EventCompressor(this.eventsManager, this.config, this.getDeviceId(), workerScript);

@@ -20,6 +20,7 @@ export const createEventsManager = async <Type extends EventType>({
   type,
   payloadBatcher,
   storeType,
+  msgpackGzipWorkerScript,
 }: {
   config: SessionReplayJoinedConfig;
   type: Type;
@@ -27,11 +28,13 @@ export const createEventsManager = async <Type extends EventType>({
   maxInterval?: number;
   payloadBatcher?: PayloadBatcher;
   storeType: StoreType;
+  msgpackGzipWorkerScript?: string;
 }): Promise<AmplitudeSessionReplayEventsManager<Type>> => {
   const trackDestination = new SessionReplayTrackDestination({
     ...config,
     loggerProvider: config.loggerProvider,
     payloadBatcher,
+    msgpackGzipWorkerScript,
   });
 
   const getMemoryStore = (): EventsStore<number> => {
