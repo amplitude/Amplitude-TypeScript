@@ -15,7 +15,7 @@ import {
   SessionReplayDestinationContext,
 } from './typings/session-replay';
 import { VERSION } from './version';
-import { MAX_URL_LENGTH, KB_SIZE } from './constants';
+import { MAX_URL_LENGTH, KB_SIZE, MAX_MSGPACK_PAYLOAD_BYTES } from './constants';
 
 export type PayloadBatcher = ({ version, events }: { version: number; events: EventData[] }) => {
   version: number;
@@ -147,6 +147,16 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
         // Events are raw objects; msgpack-encode and gzip-compress the entire batch as one binary blob.
         const encoded = encode({ version: payload.version, events: payload.events });
         const { data: compressed, didCompress } = await this.gzipCompress(encoded);
+
+        // Pre-emptive split: if the compressed payload exceeds the size cap, split before sending.
+        if (compressed.byteLength > MAX_MSGPACK_PAYLOAD_BYTES && context.events.length > 1) {
+          this.loggerProvider.log(
+            `[msgpack] payload too large (${compressed.byteLength} bytes), splitting batch of ${context.events.length} events`,
+          );
+          this.splitAndRequeue(context);
+          return;
+        }
+
         if (this.debugMode) {
           this.loggerProvider.debug(
             `[msgpack] encoded: ${encoded.byteLength} bytes` +
@@ -196,6 +206,16 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
   }
 
   async handleReponse(status: number, context: SessionReplayDestinationContext) {
+    // Reactive split: a 413 means the payload was too large for the backend.
+    // Split and re-queue if possible rather than retrying the same oversized request.
+    if (status === 413 && context.events.length > 1) {
+      this.loggerProvider.log(
+        `[msgpack] received 413, splitting batch of ${context.events.length} events and re-queuing`,
+      );
+      this.splitAndRequeue(context);
+      return;
+    }
+
     const parsedStatus = new BaseTransport().buildStatus(status);
     switch (parsedStatus) {
       case Status.Success:
@@ -207,6 +227,21 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
       default:
         this.completeRequest({ context, err: UNEXPECTED_NETWORK_ERROR_MESSAGE });
     }
+  }
+
+  /**
+   * Splits the batch in half and re-queues both halves as independent requests.
+   * The original IDB record is cleaned up immediately since the events are already
+   * in memory; sub-batches use a no-op onComplete so cleanup doesn't fire twice.
+   */
+  private splitAndRequeue(context: SessionReplayDestinationContext): void {
+    const half = Math.floor(context.events.length / 2);
+    const noop = async () => undefined;
+    this.addToQueue(
+      { ...context, events: context.events.slice(0, half), attempts: 0, timeout: 0, onComplete: noop },
+      { ...context, events: context.events.slice(half), attempts: 0, timeout: 0, onComplete: noop },
+    );
+    void context.onComplete();
   }
 
   handleSuccessResponse(context: SessionReplayDestinationContext) {
