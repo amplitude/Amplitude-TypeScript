@@ -135,33 +135,38 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
       let contentType: string;
       let body: BodyInit;
       if (this.useMessagePack) {
-        // Parse stored JSON event strings back to objects, then encode the whole batch with MessagePack.
+        // Parse stored plain-JSON event strings back to objects, then msgpack-encode and gzip-compress
+        // the entire batch as a single binary blob.
         const parsedEvents = (payload.events as string[]).map((e) => JSON.parse(e) as unknown);
         const encoded = encode({ version: payload.version, events: parsedEvents });
+        const compressed = await this.gzipCompress(encoded);
         if (this.debugMode) {
           this.loggerProvider.debug(
-            `[msgpack] encoded payload: ${encoded.byteLength} bytes, first 64 bytes: [${encoded
-              .slice(0, 64)
-              .join(', ')}]`,
+            `[msgpack] encoded: ${encoded.byteLength} bytes, compressed: ${compressed.byteLength} bytes, ` +
+              `first 64 bytes: [${compressed.slice(0, 64).join(', ')}]`,
           );
         }
-        body = encoded;
+        body = compressed;
         contentType = 'application/x-msgpack';
       } else {
         body = JSON.stringify(payload);
         contentType = 'application/json';
       }
 
+      const headers: Record<string, string> = {
+        'Content-Type': contentType,
+        Accept: '*/*',
+        Authorization: `Bearer ${apiKey}`,
+        'X-Client-Version': version,
+        'X-Client-Library': sessionReplayLibrary,
+        'X-Client-Url': url.substring(0, MAX_URL_LENGTH), // limit url length to 1000 characters to avoid ELB 400 error
+        'X-Client-Sample-Rate': `${sampleRate}`,
+      };
+      if (this.useMessagePack) {
+        headers['Content-Encoding'] = 'gzip';
+      }
       const options: RequestInit = {
-        headers: {
-          'Content-Type': contentType,
-          Accept: '*/*',
-          Authorization: `Bearer ${apiKey}`,
-          'X-Client-Version': version,
-          'X-Client-Library': sessionReplayLibrary,
-          'X-Client-Url': url.substring(0, MAX_URL_LENGTH), // limit url length to 1000 characters to avoid ELB 400 error
-          'X-Client-Sample-Rate': `${sampleRate}`,
-        },
+        headers,
         body,
         method: 'POST',
       };
@@ -219,6 +224,32 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
     }
     await new Promise<void>((resolve) => setTimeout(resolve, delay));
     await this.send(context, true);
+  }
+
+  private async gzipCompress(data: Uint8Array): Promise<Uint8Array> {
+    if (typeof CompressionStream === 'undefined') {
+      // CompressionStream not available (older browsers); send uncompressed.
+      return data;
+    }
+    const cs = new CompressionStream('gzip');
+    const writer = cs.writable.getWriter();
+    const reader = cs.readable.getReader() as ReadableStreamDefaultReader<Uint8Array>;
+    await writer.write(data);
+    await writer.close();
+    const chunks: Uint8Array[] = [];
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      chunks.push(value);
+    }
+    const totalLength = chunks.reduce((len, c) => len + c.length, 0);
+    const out = new Uint8Array(totalLength);
+    let offset = 0;
+    for (const chunk of chunks) {
+      out.set(chunk, offset);
+      offset += chunk.length;
+    }
+    return out;
   }
 
   completeRequest({
