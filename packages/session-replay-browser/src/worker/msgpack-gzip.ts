@@ -8,6 +8,12 @@
  * The caller transfers ownership of `encoded.buffer` for zero-copy passing;
  * the worker transfers ownership of `compressed.buffer` on the way back.
  */
+
+// Override the Window postMessage signature with the DedicatedWorkerGlobalScope variant.
+// Jest's coverage tool compiles this file against the Window lib, which doesn't include
+// the (message, transfer[]) overload. The declaration below restores it for type-checking.
+declare function postMessage(message: unknown, transfer: Transferable[]): void;
+
 onmessage = async (e: MessageEvent<{ id: number; encoded: Uint8Array }>) => {
   const { id, encoded } = e.data;
 

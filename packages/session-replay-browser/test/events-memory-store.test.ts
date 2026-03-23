@@ -41,6 +41,14 @@ describe('InMemoryEventsStore', () => {
       expect(events).toStrictEqual(['test']);
       expect(sequenceSessionId).toStrictEqual(sessionId);
     });
+
+    test('handles missing batchSizes entry gracefully (defensive ?? 0 fallback)', async () => {
+      // Manually insert a sequence entry without a corresponding batchSizes entry
+      // to exercise the defensive `?? 0` fallbacks on lines 47 and 53.
+      (store as any).sequences[sessionId] = [];
+      // batchSizes has no entry for sessionId — should default to 0 without throwing
+      expect(await store.addEventToCurrentSequence(sessionId, 'test')).toBeUndefined();
+    });
   });
 
   describe('storeCurrentSequence', () => {

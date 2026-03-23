@@ -635,5 +635,170 @@ describe('SessionReplayTrackDestination', () => {
       expect(mockLoggerProvider.warn).toHaveBeenCalledTimes(1);
       expect(dest.queue).toHaveLength(0);
     });
+
+    test('logs debug info (uncompressed path) when debugMode is true', async () => {
+      const dest = new SessionReplayTrackDestination({
+        loggerProvider: mockLoggerProvider,
+        useMessagePack: true,
+        debugMode: true,
+      });
+      await dest.send(makeContext());
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockLoggerProvider.debug).toHaveBeenCalledWith(expect.stringContaining('[msgpack] encoded:'));
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockLoggerProvider.debug).toHaveBeenCalledWith(expect.stringContaining('uncompressed'));
+    });
+
+    test('logs debug info (compressed path) when debugMode is true and CompressionStream available', async () => {
+      const fakeOutput = new Uint8Array([31, 139, 0]);
+      (global as any).CompressionStream = jest.fn().mockImplementation(() => ({
+        writable: {
+          getWriter: () => ({
+            write: jest.fn().mockResolvedValue(undefined),
+            close: jest.fn().mockResolvedValue(undefined),
+          }),
+        },
+        readable: {
+          getReader: () => ({
+            read: jest
+              .fn()
+              .mockResolvedValueOnce({ done: false, value: fakeOutput })
+              .mockResolvedValueOnce({ done: true, value: undefined }),
+          }),
+        },
+      }));
+      try {
+        const dest = new SessionReplayTrackDestination({
+          loggerProvider: mockLoggerProvider,
+          useMessagePack: true,
+          debugMode: true,
+        });
+        await dest.send(makeContext());
+        // eslint-disable-next-line @typescript-eslint/unbound-method
+        expect(mockLoggerProvider.debug).toHaveBeenCalledWith(expect.stringContaining('compressed:'));
+      } finally {
+        delete (global as any).CompressionStream;
+      }
+    });
+
+    describe('gzip worker', () => {
+      let mockWorkerInstance: {
+        postMessage: jest.Mock;
+        terminate: jest.Mock;
+        onmessage: ((e: MessageEvent) => void) | null;
+        onerror: ((e: ErrorEvent) => void) | null;
+      };
+
+      beforeEach(() => {
+        mockWorkerInstance = {
+          postMessage: jest.fn(),
+          terminate: jest.fn(),
+          onmessage: null,
+          onerror: null,
+        };
+        (global as any).Worker = jest.fn().mockImplementation(() => mockWorkerInstance);
+        (global as any).URL = { createObjectURL: jest.fn().mockReturnValue('blob:fake') };
+      });
+
+      afterEach(() => {
+        delete (global as any).Worker;
+      });
+
+      test('offloads gzip compression to the worker', async () => {
+        const fakeCompressed = new Uint8Array([31, 139, 0]);
+        const dest = new SessionReplayTrackDestination({
+          loggerProvider: mockLoggerProvider,
+          useMessagePack: true,
+          msgpackGzipWorkerScript: 'workercode',
+        });
+
+        // Simulate worker responding after postMessage
+        mockWorkerInstance.postMessage.mockImplementation(({ id }: { id: number }) => {
+          // Fire onmessage synchronously
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+          mockWorkerInstance.onmessage!({
+            data: { id, compressed: fakeCompressed, didCompress: true },
+          } as unknown as MessageEvent);
+        });
+
+        await dest.send(makeContext());
+
+        expect(mockWorkerInstance.postMessage).toHaveBeenCalledTimes(1);
+        const headers = (fetch as jest.Mock).mock.calls[0][1].headers as Record<string, string>;
+        expect(headers['Content-Encoding']).toBe('gzip');
+      });
+
+      test('rejects pending promise and clears worker on worker onerror', async () => {
+        const dest = new SessionReplayTrackDestination({
+          loggerProvider: mockLoggerProvider,
+          useMessagePack: true,
+          msgpackGzipWorkerScript: 'workercode',
+        });
+
+        // Trigger send, which will call gzipCompress → postMessage to worker (but worker won't respond)
+        const sendPromise = dest.send(makeContext());
+
+        // Fire onerror — this should reject the pending gzip promise so send() catches and completeRequest is called
+        const errorEvent = { preventDefault: jest.fn(), message: 'boom' } as unknown as ErrorEvent;
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        mockWorkerInstance.onerror!(errorEvent);
+
+        await sendPromise;
+
+        // eslint-disable-next-line @typescript-eslint/unbound-method
+        expect(errorEvent.preventDefault).toHaveBeenCalled();
+        // eslint-disable-next-line @typescript-eslint/unbound-method
+        expect(mockLoggerProvider.warn).toHaveBeenCalledWith(
+          '[msgpack] gzip worker error, falling back to main-thread compression:',
+          'boom',
+        );
+        // gzipWorker should be cleared
+        expect(mockWorkerInstance.terminate).toHaveBeenCalled();
+      });
+
+      test('uses fallback error message when onerror has no message', async () => {
+        const dest = new SessionReplayTrackDestination({
+          loggerProvider: mockLoggerProvider,
+          useMessagePack: true,
+          msgpackGzipWorkerScript: 'workercode',
+        });
+
+        const sendPromise = dest.send(makeContext());
+
+        // Fire onerror with no message (e.message is undefined)
+        const errorEvent = { preventDefault: jest.fn(), message: undefined } as unknown as ErrorEvent;
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        mockWorkerInstance.onerror!(errorEvent);
+
+        await sendPromise;
+
+        // eslint-disable-next-line @typescript-eslint/unbound-method
+        expect(mockLoggerProvider.warn).toHaveBeenCalledWith(
+          '[msgpack] gzip worker error, falling back to main-thread compression:',
+          undefined,
+        );
+      });
+
+      test('falls back gracefully when Worker constructor throws', async () => {
+        (global as any).Worker = jest.fn().mockImplementation(() => {
+          throw new Error('Worker not supported');
+        });
+        const dest = new SessionReplayTrackDestination({
+          loggerProvider: mockLoggerProvider,
+          useMessagePack: true,
+          msgpackGzipWorkerScript: 'workercode',
+        });
+
+        // eslint-disable-next-line @typescript-eslint/unbound-method
+        expect(mockLoggerProvider.warn).toHaveBeenCalledWith(
+          '[msgpack] failed to create gzip worker, falling back to main-thread compression:',
+          expect.any(Error),
+        );
+
+        // Should still function via main-thread compression
+        await dest.send(makeContext());
+        expect(fetch).toHaveBeenCalledTimes(1);
+      });
+    });
   });
 });

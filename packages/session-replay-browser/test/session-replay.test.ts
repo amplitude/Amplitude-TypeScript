@@ -616,6 +616,42 @@ describe('SessionReplay', () => {
       globalSpy = originalGlobalScope;
     });
 
+    test('should load msgpackGzipScript when useMessagePack is true and Worker is available', async () => {
+      class MockWorker {
+        postMessage = jest.fn();
+        onmessage = jest.fn();
+        onerror = jest.fn();
+        terminate = jest.fn();
+      }
+
+      const originalWorker = global.Worker;
+      global.Worker = MockWorker as unknown as typeof global.Worker;
+
+      const originalCreateObjectURL = URL.createObjectURL;
+      const originalBlob = global.Blob;
+      URL.createObjectURL = jest.fn().mockReturnValue('blob:mock-url');
+      global.Blob = jest.fn().mockImplementation((parts, options) => ({ parts, options })) as any;
+
+      const originalGlobalScope = globalSpy;
+      globalSpy = jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue({
+        ...mockGlobalScope,
+        Worker: MockWorker as unknown as typeof global.Worker,
+      });
+
+      await sessionReplay.init(apiKey, {
+        ...mockOptions,
+        sampleRate: 0.5,
+        useMessagePack: true,
+      } as any).promise;
+
+      expect(sessionReplay.config?.useMessagePack).toBe(true);
+
+      global.Worker = originalWorker;
+      URL.createObjectURL = originalCreateObjectURL;
+      global.Blob = originalBlob;
+      globalSpy = originalGlobalScope;
+    });
+
     test('fallback to memory store if no indexeddb', async () => {
       globalSpy = jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue({
         ...mockGlobalScope,

@@ -496,6 +496,11 @@ describe('click', () => {
       expect(version).toBe(1);
       expect(events).toStrictEqual([]);
     });
+    test('skips non-string events (msgpack raw objects)', () => {
+      // In the msgpack path events are raw objects, not strings; the batcher should skip them.
+      const { events } = clickBatcher({ version: 1, events: [{ type: 'click', x: 1, y: 1 }] });
+      expect(events).toStrictEqual([]);
+    });
   });
 
   describe('clickNonBatcher', () => {
@@ -636,6 +641,11 @@ describe('click', () => {
     test('no events in, no events out', () => {
       const { version, events } = clickNonBatcher({ version: 1, events: [] });
       expect(version).toBe(1);
+      expect(events).toStrictEqual([]);
+    });
+    test('skips non-string events (msgpack raw objects)', () => {
+      // In the msgpack path events are raw objects, not strings; the batcher should skip them.
+      const { events } = clickNonBatcher({ version: 1, events: [{ type: 'click', x: 1, y: 1 }] });
       expect(events).toStrictEqual([]);
     });
   });
