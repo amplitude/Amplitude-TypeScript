@@ -204,7 +204,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
     let workerScript = undefined;
     let msgpackGzipWorkerScript = undefined;
     const globalScope = getGlobalScope();
-    if (globalScope?.Worker) {
+    if (globalScope?.Worker && (this.config.useWebWorker || this.config.useMessagePack)) {
       const workerModule = await import('./worker');
       if (this.config.useWebWorker) {
         workerScript = workerModule.compressionScript;
