@@ -74,6 +74,7 @@ export {
 export { Result } from './types/result';
 export {
   ElementInteractionsOptions,
+  ViewportContentUpdatedOptions,
   Messenger,
   ActionType,
   DEFAULT_CSS_SELECTOR_ALLOWLIST,

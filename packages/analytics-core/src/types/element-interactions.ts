@@ -122,15 +122,19 @@ export interface ElementInteractionsOptions {
   exposureDuration?: number;
 
   /**
-   * Options for viewport content updated tracking (zoning).
+   * Options for tracking when visible content in the viewport changes,
+   * such as from scrolling or dynamic page updates.
    */
-  viewportContentUpdated?: {
-    /**
-     * Duration in milliseconds an element must be visible before it is considered exposed.
-     * Default is 150ms.
-     */
-    exposureDuration?: number;
-  };
+  viewportContentUpdated?: ViewportContentUpdatedOptions;
+}
+
+export interface ViewportContentUpdatedOptions {
+  /**
+   * Minimum time in milliseconds that content must remain visible in the viewport
+   * before the event is fired.
+   * @defaultValue 150
+   */
+  exposureDuration?: number;
 }
 
 type MatchingCondition = {
