@@ -27,7 +27,7 @@ export type ClickEventWithCount = ClickEvent & { count: number };
 type Context = {
   sessionId: string | number;
   deviceIdFn: () => string | undefined;
-  eventsManager: AmplitudeSessionReplayEventsManager<'interaction', string>;
+  eventsManager: AmplitudeSessionReplayEventsManager<'interaction'>;
   mirror: Mirror;
   ugcFilterRules: UGCFilterRule[];
   performanceOptions?: InteractionPerformanceConfig;

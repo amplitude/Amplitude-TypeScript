@@ -69,7 +69,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
   config: SessionReplayJoinedConfig | undefined;
   joinedConfigGenerator: SessionReplayJoinedConfigGenerator | undefined;
   identifiers: ISessionIdentifiers | undefined;
-  eventsManager?: AmplitudeSessionReplayEventsManager<'replay' | 'interaction', string>;
+  eventsManager?: AmplitudeSessionReplayEventsManager<'replay' | 'interaction'>;
   loggerProvider: ILogger;
   recordCancelCallback: ReturnType<RecordFunction> | null = null;
   eventCount = 0;
@@ -200,7 +200,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
       this.clickHandler = new ClickHandler(this.loggerProvider, scrollWatcher);
     }
 
-    const managers: EventsManagerWithType<EventType, string>[] = [];
+    const managers: EventsManagerWithType<EventType>[] = [];
     let { storeType } = this.config;
     if (storeType === 'idb' && !getGlobalScope()?.indexedDB) {
       storeType = 'memory';
@@ -237,7 +237,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
       }
     }
 
-    this.eventsManager = new MultiEventManager<'replay' | 'interaction', string>(...managers);
+    this.eventsManager = new MultiEventManager<'replay' | 'interaction'>(...managers);
     // To prevent too many threads.
     if (this.eventCompressor) {
       this.eventCompressor.terminate();

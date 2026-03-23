@@ -13,7 +13,7 @@ export interface DebugInfo extends Partial<StorageData> {
   version: string;
 }
 
-export type Events = string[];
+export type Events = unknown[];
 
 export type StoreType = 'memory' | 'idb';
 
@@ -115,12 +115,12 @@ export interface SessionReplayTrackDestination {
   flush: (useRetry: boolean) => Promise<void>;
 }
 
-export type EventsManagerWithType<EventType, EventDataType> = {
+export type EventsManagerWithType<EventType> = {
   name: EventType;
-  manager: SessionReplayEventsManager<EventType, EventDataType>;
+  manager: SessionReplayEventsManager<EventType>;
 };
 
-export interface SessionReplayEventsManager<Type, Event> {
+export interface SessionReplayEventsManager<Type> {
   /**
    * For each sequence stored in the long term indexed DB send immediately to the track destination.
    */
@@ -134,7 +134,7 @@ export interface SessionReplayEventsManager<Type, Event> {
     deviceId,
   }: {
     sessionId: string | number;
-    event: { type: Type; data: Event };
+    event: { type: Type; data: unknown };
     deviceId: string;
   }): void;
   /**

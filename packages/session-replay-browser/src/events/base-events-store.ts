@@ -30,7 +30,7 @@ export abstract class BaseEventsStore<KeyType> implements EventsStore<KeyType> {
 
   abstract addEventToCurrentSequence(
     sessionId: string | number,
-    event: string,
+    event: unknown,
   ): Promise<SendingSequencesReturn<KeyType> | undefined>;
   abstract getSequencesToSend(): Promise<SendingSequencesReturn<KeyType>[] | undefined>;
   abstract storeCurrentSequence(sessionId: number): Promise<SendingSequencesReturn<KeyType> | undefined>;
@@ -38,11 +38,13 @@ export abstract class BaseEventsStore<KeyType> implements EventsStore<KeyType> {
   abstract cleanUpSessionEventsStore(sessionId: number, sequenceId: KeyType): Promise<void>;
 
   /**
-   * Calculates the character length of a string as size approximation
-   * Note: String length closely approximates byte size for most content
+   * Estimates the serialized character length of an event for size-based batching.
    */
-  private getStringSize(str: string): number {
-    return str.length;
+  private getEventSize(event: unknown): number {
+    if (typeof event === 'string') {
+      return event.length;
+    }
+    return JSON.stringify(event).length;
   }
 
   /**
@@ -52,13 +54,13 @@ export abstract class BaseEventsStore<KeyType> implements EventsStore<KeyType> {
   private getEventsArraySize(events: Events): number {
     let totalSize = 0;
     for (const event of events) {
-      totalSize += this.getStringSize(event);
+      totalSize += this.getEventSize(event);
     }
 
     // Additional overhead from using length instead of byte size
     // - Array brackets: [] = 2 characters
     // - Commas between events: events.length - 1
-    // - Double quotes around each event: events.length * 2
+    // - Double quotes around each event (strings only): events.length * 2
     const overhead = 2 + Math.max(0, events.length - 1) + events.length * 2;
 
     return totalSize + overhead;
@@ -67,11 +69,10 @@ export abstract class BaseEventsStore<KeyType> implements EventsStore<KeyType> {
   /**
    * Determines whether to send the events list to the backend and start a new
    * empty events list, based on the size of the list as well as the last time sent
-   * @param nextEventString
    * @returns boolean
    */
-  shouldSplitEventsList = (events: Events, nextEventString: string): boolean => {
-    const sizeOfNextEvent = this.getStringSize(nextEventString);
+  shouldSplitEventsList = (events: Events, nextEvent: unknown): boolean => {
+    const sizeOfNextEvent = this.getEventSize(nextEvent);
     const sizeOfEventsList = this.getEventsArraySize(events);
 
     // Check size constraint first (most likely to trigger)

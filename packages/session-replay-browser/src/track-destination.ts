@@ -16,7 +16,7 @@ import {
 import { VERSION } from './version';
 import { MAX_URL_LENGTH, KB_SIZE } from './constants';
 
-export type PayloadBatcher = ({ version, events }: { version: number; events: string[] }) => {
+export type PayloadBatcher = ({ version, events }: { version: number; events: unknown[] }) => {
   version: number;
   events: unknown[];
 };
@@ -132,29 +132,7 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
     }
 
     try {
-      let contentType: string;
-      let body: BodyInit;
-      if (this.useMessagePack) {
-        // Parse stored plain-JSON event strings back to objects, then msgpack-encode and gzip-compress
-        // the entire batch as a single binary blob.
-        const parsedEvents = (payload.events as string[]).map((e) => JSON.parse(e) as unknown);
-        const encoded = encode({ version: payload.version, events: parsedEvents });
-        const compressed = await this.gzipCompress(encoded);
-        if (this.debugMode) {
-          this.loggerProvider.debug(
-            `[msgpack] encoded: ${encoded.byteLength} bytes, compressed: ${compressed.byteLength} bytes, ` +
-              `first 64 bytes: [${compressed.slice(0, 64).join(', ')}]`,
-          );
-        }
-        body = compressed;
-        contentType = 'application/x-msgpack';
-      } else {
-        body = JSON.stringify(payload);
-        contentType = 'application/json';
-      }
-
       const headers: Record<string, string> = {
-        'Content-Type': contentType,
         Accept: '*/*',
         Authorization: `Bearer ${apiKey}`,
         'X-Client-Version': version,
@@ -162,9 +140,32 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
         'X-Client-Url': url.substring(0, MAX_URL_LENGTH), // limit url length to 1000 characters to avoid ELB 400 error
         'X-Client-Sample-Rate': `${sampleRate}`,
       };
+      let contentType: string;
+      let body: BodyInit;
       if (this.useMessagePack) {
-        headers['Content-Encoding'] = 'gzip';
+        // Events are raw objects; msgpack-encode and gzip-compress the entire batch as one binary blob.
+        const encoded = encode({ version: payload.version, events: payload.events });
+        const { data: compressed, didCompress } = await this.gzipCompress(encoded);
+        if (this.debugMode) {
+          this.loggerProvider.debug(
+            `[msgpack] encoded: ${encoded.byteLength} bytes` +
+              (didCompress
+                ? `, compressed: ${compressed.byteLength} bytes`
+                : ' (uncompressed, CompressionStream unavailable)') +
+              `, first 64 bytes: [${compressed.slice(0, 64).join(', ')}]`,
+          );
+        }
+        body = compressed;
+        contentType = 'application/x-msgpack';
+        if (didCompress) {
+          headers['Content-Encoding'] = 'gzip';
+        }
+      } else {
+        body = JSON.stringify(payload);
+        contentType = 'application/json';
       }
+
+      headers['Content-Type'] = contentType;
       const options: RequestInit = {
         headers,
         body,
@@ -208,7 +209,8 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
   }
 
   handleSuccessResponse(context: SessionReplayDestinationContext) {
-    const sizeOfEventsList = Math.round(new Blob(context.events).size / KB_SIZE);
+    const stringEvents = context.events.filter((e): e is string => typeof e === 'string');
+    const sizeOfEventsList = Math.round(new Blob(stringEvents).size / KB_SIZE);
     this.completeRequest({
       context,
       success: `Session replay event batch tracked successfully for session id ${context.sessionId}, size of events: ${sizeOfEventsList} KB`,
@@ -226,10 +228,10 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
     await this.send(context, true);
   }
 
-  private async gzipCompress(data: Uint8Array): Promise<Uint8Array> {
+  private async gzipCompress(data: Uint8Array): Promise<{ data: Uint8Array; didCompress: boolean }> {
     if (typeof CompressionStream === 'undefined') {
       // CompressionStream not available (older browsers); send uncompressed.
-      return data;
+      return { data, didCompress: false };
     }
     const cs = new CompressionStream('gzip');
     const writer = cs.writable.getWriter();
@@ -249,7 +251,7 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
       out.set(chunk, offset);
       offset += chunk.length;
     }
-    return out;
+    return { data: out, didCompress: true };
   }
 
   completeRequest({

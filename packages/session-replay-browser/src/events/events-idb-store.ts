@@ -141,7 +141,7 @@ export class SessionReplayEventsIDBStore extends BaseEventsStore<number> {
     return undefined;
   };
 
-  addEventToCurrentSequence = async (sessionId: number, event: string) => {
+  addEventToCurrentSequence = async (sessionId: number, event: unknown) => {
     try {
       const tx = this.db.transaction<'sessionCurrentSequence', 'readwrite'>(currentSequenceKey, 'readwrite');
       const sequenceEvents = await tx.store.get(sessionId);

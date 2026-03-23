@@ -13,7 +13,7 @@ const DEFAULT_TIMEOUT = 2000;
 export class EventCompressor {
   taskQueue: TaskQueue[] = [];
   isProcessing = false;
-  eventsManager?: SessionReplayEventsManager<'replay' | 'interaction', string>;
+  eventsManager?: SessionReplayEventsManager<'replay' | 'interaction'>;
   config: SessionReplayJoinedConfig;
   deviceId: string | undefined;
   canUseIdleCallback: boolean | undefined;
@@ -21,7 +21,7 @@ export class EventCompressor {
   worker?: Worker;
 
   constructor(
-    eventsManager: SessionReplayEventsManager<'replay' | 'interaction', string>,
+    eventsManager: SessionReplayEventsManager<'replay' | 'interaction'>,
     config: SessionReplayJoinedConfig,
     deviceId: string | undefined,
     workerScript?: string,
@@ -113,10 +113,10 @@ export class EventCompressor {
     return JSON.stringify(packedEvent);
   };
 
-  private addCompressedEventToManager = (compressedEvent: string, sessionId: string | number) => {
+  private addCompressedEventToManager = (eventData: unknown, sessionId: string | number) => {
     if (this.eventsManager && this.deviceId) {
       this.eventsManager.addEvent({
-        event: { type: 'replay', data: compressedEvent },
+        event: { type: 'replay', data: eventData },
         sessionId,
         deviceId: this.deviceId,
       });
@@ -125,10 +125,9 @@ export class EventCompressor {
 
   public addCompressedEvent = (event: eventWithTime, sessionId: string | number) => {
     if (this.config.useMessagePack) {
-      // In msgpack mode there is no per-event compression. Store the raw event as a plain JSON
-      // string so the storage layer is unchanged; the whole batch will be msgpack-encoded and
-      // compressed together at send time.
-      this.addCompressedEventToManager(JSON.stringify(event), sessionId);
+      // In msgpack mode there is no per-event compression. Store the raw event object directly;
+      // the whole batch will be msgpack-encoded and gzip-compressed together at send time.
+      this.addCompressedEventToManager(event, sessionId);
       return;
     }
     if (this.worker) {

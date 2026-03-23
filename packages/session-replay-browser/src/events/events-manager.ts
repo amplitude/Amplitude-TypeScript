@@ -25,7 +25,7 @@ export const createEventsManager = async <Type extends EventType>({
   maxInterval?: number;
   payloadBatcher?: PayloadBatcher;
   storeType: StoreType;
-}): Promise<AmplitudeSessionReplayEventsManager<Type, string>> => {
+}): Promise<AmplitudeSessionReplayEventsManager<Type>> => {
   const trackDestination = new SessionReplayTrackDestination({
     ...config,
     loggerProvider: config.loggerProvider,
@@ -135,7 +135,7 @@ export const createEventsManager = async <Type extends EventType>({
     sessionId,
     deviceId,
   }: {
-    event: { type: Type; data: string };
+    event: { type: Type; data: unknown };
     sessionId: number;
     deviceId: string;
   }) => {

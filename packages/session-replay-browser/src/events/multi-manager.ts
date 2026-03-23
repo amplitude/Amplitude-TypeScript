@@ -7,13 +7,11 @@ import {
  * "Registers" events managers internally. When an event is added this class routes the event to the correct
  * manager. For all send or flush methods this will invoke the event for all registered managers.
  */
-export class MultiEventManager<EventType, EventDataType>
-  implements AmplitudeSessionReplayEventsManager<EventType, EventDataType>
-{
-  private managers: Map<EventType, AmplitudeSessionReplayEventsManager<EventType, EventDataType>>;
+export class MultiEventManager<EventType> implements AmplitudeSessionReplayEventsManager<EventType> {
+  private managers: Map<EventType, AmplitudeSessionReplayEventsManager<EventType>>;
 
-  constructor(...managers: EventsManagerWithType<EventType, EventDataType>[]) {
-    const managersMap = new Map<EventType, AmplitudeSessionReplayEventsManager<EventType, EventDataType>>();
+  constructor(...managers: EventsManagerWithType<EventType>[]) {
+    const managersMap = new Map<EventType, AmplitudeSessionReplayEventsManager<EventType>>();
     managers.forEach((t) => {
       managersMap.set(t.name, t.manager);
     });
@@ -34,7 +32,7 @@ export class MultiEventManager<EventType, EventDataType>
     deviceId,
   }: {
     sessionId: number;
-    event: { type: EventType; data: EventDataType };
+    event: { type: EventType; data: unknown };
     deviceId: string;
   }): void {
     this.managers.get(event.type)?.addEvent({ sessionId, event, deviceId });
