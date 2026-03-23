@@ -148,10 +148,12 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
         const encoded = encode({ version: payload.version, events: payload.events });
         const { data: compressed, didCompress } = await this.gzipCompress(encoded);
 
-        // Pre-emptive split: if the compressed payload exceeds the size cap, split before sending.
-        if (compressed.byteLength > MAX_MSGPACK_PAYLOAD_BYTES && context.events.length > 1) {
-          this.loggerProvider.log(
-            `[msgpack] payload too large (${compressed.byteLength} bytes), splitting batch of ${context.events.length} events`,
+        // Pre-emptive split: check encoded (pre-gzip) size. Jetty decompresses before the servlet
+        // measures payload size, so we must compare against the uncompressed msgpack size, not
+        // the wire size. Exceeding MAX_MSGPACK_PAYLOAD_BYTES would hit the backend's transcode path.
+        if (encoded.byteLength > MAX_MSGPACK_PAYLOAD_BYTES && context.events.length > 1) {
+          this.loggerProvider.debug(
+            `[msgpack] encoded payload too large (${encoded.byteLength} bytes), splitting batch of ${context.events.length} events`,
           );
           this.splitAndRequeue(context);
           return;
@@ -209,7 +211,7 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
     // Reactive split: a 413 means the payload was too large for the backend.
     // Split and re-queue if possible rather than retrying the same oversized request.
     if (status === 413 && context.events.length > 1) {
-      this.loggerProvider.log(
+      this.loggerProvider.debug(
         `[msgpack] received 413, splitting batch of ${context.events.length} events and re-queuing`,
       );
       this.splitAndRequeue(context);

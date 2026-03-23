@@ -26,7 +26,9 @@ export const MIN_INTERVAL = 500; // 500 ms
 export const MAX_INTERVAL = 10 * 1000; // 10 seconds
 export const MAX_IDB_STORAGE_LENGTH = 1000 * 60 * 60 * 24 * 3; // 3 days
 export const KB_SIZE = 1024;
-export const MAX_MSGPACK_PAYLOAD_BYTES = 20 * 1024 * 1024; // 20 MB safety cap for msgpack+gzip batches
+// Pre-gzip msgpack encoded size cap. Jetty decompresses before the servlet checks size, so this
+// must be measured before CompressionStream runs. 8 MB keeps us below the backend's 10 MB threshold.
+export const MAX_MSGPACK_PAYLOAD_BYTES = 8 * 1024 * 1024;
 export const MAX_URL_LENGTH = 1000;
 
 export enum CustomRRwebEvent {
