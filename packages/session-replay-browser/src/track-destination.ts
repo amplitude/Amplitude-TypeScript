@@ -210,7 +210,7 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
   async handleReponse(status: number, context: SessionReplayDestinationContext) {
     // Reactive split: a 413 means the payload was too large for the backend.
     // Split and re-queue if possible rather than retrying the same oversized request.
-    if (status === 413 && context.events.length > 1) {
+    if (status === 413 && this.useMessagePack && context.events.length > 1) {
       this.loggerProvider.debug(
         `[msgpack] received 413, splitting batch of ${context.events.length} events and re-queuing`,
       );
@@ -247,11 +247,13 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
   }
 
   handleSuccessResponse(context: SessionReplayDestinationContext) {
-    const stringEvents = context.events.filter((e): e is string => typeof e === 'string');
-    const sizeOfEventsList = Math.round(new Blob(stringEvents).size / KB_SIZE);
+    // For msgpack, events are raw objects so Blob size would always be 0; report count instead.
+    const sizeInfo = this.useMessagePack
+      ? `${context.events.length} events`
+      : `${Math.round(new Blob(context.events.filter((e): e is string => typeof e === 'string')).size / KB_SIZE)} KB`;
     this.completeRequest({
       context,
-      success: `Session replay event batch tracked successfully for session id ${context.sessionId}, size of events: ${sizeOfEventsList} KB`,
+      success: `Session replay event batch tracked successfully for session id ${context.sessionId}, size of events: ${sizeInfo}`,
     });
   }
 
