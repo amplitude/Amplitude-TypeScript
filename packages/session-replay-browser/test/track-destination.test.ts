@@ -1,5 +1,7 @@
 import * as AnalyticsCore from '@amplitude/analytics-core';
 import { ILogger, ServerZone } from '@amplitude/analytics-core';
+import * as MsgPack from '@msgpack/msgpack';
+import { MAX_MSGPACK_PAYLOAD_BYTES } from '../src/constants';
 import { SessionReplayDestinationContext } from 'src/typings/session-replay';
 import { SessionReplayTrackDestination } from '../src/track-destination';
 import { VERSION } from '../src/version';
@@ -478,6 +480,160 @@ describe('SessionReplayTrackDestination', () => {
         context,
         err: 'Session replay event batch rejected due to exceeded retry count',
       });
+    });
+  });
+
+  describe('msgpack path', () => {
+    const mockObjectEvents = [
+      { type: 4, timestamp: 1687358660935, data: { href: 'https://example.com', width: 1728, height: 154 } },
+      { type: 3, timestamp: 1687358661000, data: { source: 2, positions: [] } },
+    ];
+
+    const makeContext = (
+      overrides: Partial<SessionReplayDestinationContext> = {},
+    ): SessionReplayDestinationContext => ({
+      events: mockObjectEvents,
+      sessionId: 123,
+      apiKey,
+      attempts: 0,
+      timeout: 0,
+      flushMaxRetries: 2,
+      deviceId: '1a2b3c',
+      sampleRate: 1,
+      serverZone: ServerZone.US,
+      type: 'replay',
+      onComplete: mockOnComplete,
+      ...overrides,
+    });
+
+    const makeDest = () =>
+      new SessionReplayTrackDestination({ loggerProvider: mockLoggerProvider, useMessagePack: true });
+
+    test('sends Content-Type: application/x-msgpack', async () => {
+      await makeDest().send(makeContext());
+      const headers = (fetch as jest.Mock).mock.calls[0][1].headers as Record<string, string>;
+      expect(headers['Content-Type']).toBe('application/x-msgpack');
+    });
+
+    test('payload decodes back to original events', async () => {
+      // CompressionStream is not available in Jest/Node — body is raw msgpack bytes
+      await makeDest().send(makeContext());
+      const body = (fetch as jest.Mock).mock.calls[0][1].body as Uint8Array;
+      const decoded = MsgPack.decode(body) as { version: number; events: unknown[] };
+      expect(decoded.version).toBe(1);
+      expect(decoded.events).toEqual(mockObjectEvents);
+    });
+
+    test('omits Content-Encoding when CompressionStream is unavailable', async () => {
+      await makeDest().send(makeContext());
+      const headers = (fetch as jest.Mock).mock.calls[0][1].headers as Record<string, string>;
+      expect(headers['Content-Encoding']).toBeUndefined();
+    });
+
+    test('sets Content-Encoding: gzip when CompressionStream is available', async () => {
+      const fakeOutput = new Uint8Array([31, 139, 0]); // gzip magic bytes
+      (global as any).CompressionStream = jest.fn().mockImplementation(() => ({
+        writable: {
+          getWriter: () => ({
+            write: jest.fn().mockResolvedValue(undefined),
+            close: jest.fn().mockResolvedValue(undefined),
+          }),
+        },
+        readable: {
+          getReader: () => ({
+            read: jest
+              .fn()
+              .mockResolvedValueOnce({ done: false, value: fakeOutput })
+              .mockResolvedValueOnce({ done: true, value: undefined }),
+          }),
+        },
+      }));
+      try {
+        await makeDest().send(makeContext());
+        const headers = (fetch as jest.Mock).mock.calls[0][1].headers as Record<string, string>;
+        expect(headers['Content-Encoding']).toBe('gzip');
+      } finally {
+        delete (global as any).CompressionStream;
+      }
+    });
+
+    test('pre-emptively splits when encoded size exceeds MAX_MSGPACK_PAYLOAD_BYTES', async () => {
+      jest.spyOn(MsgPack, 'encode').mockReturnValueOnce(new Uint8Array(MAX_MSGPACK_PAYLOAD_BYTES + 1));
+      const dest = makeDest();
+      const addToQueue = jest.spyOn(dest, 'addToQueue');
+      const context = makeContext({ events: [...mockObjectEvents, ...mockObjectEvents] }); // 4 events
+
+      await dest.send(context);
+
+      expect(fetch).not.toHaveBeenCalled();
+      expect(addToQueue).toHaveBeenCalledTimes(1);
+      const [first, second] = addToQueue.mock.calls[0];
+      expect(first.events).toHaveLength(2);
+      expect(second.events).toHaveLength(2);
+    });
+
+    test('calls original onComplete once when pre-emptively splitting', async () => {
+      jest.spyOn(MsgPack, 'encode').mockReturnValueOnce(new Uint8Array(MAX_MSGPACK_PAYLOAD_BYTES + 1));
+      const onComplete = jest.fn().mockResolvedValue(undefined);
+      const dest = makeDest();
+      jest.spyOn(dest, 'addToQueue').mockReturnValue(undefined);
+
+      await dest.send(makeContext({ onComplete }));
+
+      expect(onComplete).toHaveBeenCalledTimes(1);
+    });
+
+    test('does not split single-event batch even if encoded size is large', async () => {
+      jest.spyOn(MsgPack, 'encode').mockReturnValueOnce(new Uint8Array(MAX_MSGPACK_PAYLOAD_BYTES + 1));
+      const dest = makeDest();
+      const addToQueue = jest.spyOn(dest, 'addToQueue');
+
+      await dest.send(makeContext({ events: [mockObjectEvents[0]] }));
+
+      expect(addToQueue).not.toHaveBeenCalled();
+      expect(fetch).toHaveBeenCalledTimes(1);
+    });
+
+    test('splits and re-queues on 413 when useMessagePack is true', async () => {
+      (global.fetch as jest.Mock).mockResolvedValueOnce({ status: 413 });
+      const dest = makeDest();
+      const addToQueue = jest.spyOn(dest, 'addToQueue');
+
+      await dest.send(makeContext(), true);
+
+      expect(addToQueue).toHaveBeenCalledTimes(1);
+      const [first, second] = addToQueue.mock.calls[0];
+      expect(first.events).toHaveLength(1);
+      expect(second.events).toHaveLength(1);
+    });
+
+    test('413 split calls original onComplete and sub-batches get noop', async () => {
+      (global.fetch as jest.Mock).mockResolvedValueOnce({ status: 413 });
+      const onComplete = jest.fn().mockResolvedValue(undefined);
+      const dest = makeDest();
+      const addToQueue = jest.spyOn(dest, 'addToQueue');
+
+      await dest.send(makeContext({ onComplete }), true);
+
+      expect(onComplete).toHaveBeenCalledTimes(1);
+      const [first, second] = addToQueue.mock.calls[0];
+      await first.onComplete();
+      await second.onComplete();
+      // Sub-batch onComplete should be noops — original onComplete still only called once
+      expect(onComplete).toHaveBeenCalledTimes(1);
+    });
+
+    test('does NOT split on 413 when useMessagePack is false', async () => {
+      (global.fetch as jest.Mock).mockResolvedValueOnce({ status: 413 });
+      const dest = new SessionReplayTrackDestination({ loggerProvider: mockLoggerProvider });
+
+      await dest.send(makeContext({ events: [mockEventString, mockEventString] }), true);
+
+      // 413 on JSON path falls through to default → error logged, no re-queue
+      expect(fetch).toHaveBeenCalledTimes(1);
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockLoggerProvider.warn).toHaveBeenCalledTimes(1);
+      expect(dest.queue).toHaveLength(0);
     });
   });
 });

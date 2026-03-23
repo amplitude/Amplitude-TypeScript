@@ -36,6 +36,7 @@ export class SessionReplayLocalConfig extends Config implements ISessionReplayLo
   storeType: StoreType;
   performanceConfig?: SessionReplayPerformanceConfig;
   useWebWorker?: boolean;
+  useMessagePack?: boolean;
   applyBackgroundColorToBlockedElements?: boolean;
   omitElementTags?: {
     script?: boolean;
@@ -97,6 +98,9 @@ export class SessionReplayLocalConfig extends Config implements ISessionReplayLo
     }
     if (options.omitElementTags) {
       this.omitElementTags = options.omitElementTags;
+    }
+    if (options.useMessagePack) {
+      this.useMessagePack = options.useMessagePack;
     }
   }
 }
