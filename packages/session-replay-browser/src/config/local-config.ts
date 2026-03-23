@@ -99,7 +99,7 @@ export class SessionReplayLocalConfig extends Config implements ISessionReplayLo
     if (options.omitElementTags) {
       this.omitElementTags = options.omitElementTags;
     }
-    if (options.useMessagePack) {
+    if (options.useMessagePack !== undefined) {
       this.useMessagePack = options.useMessagePack;
     }
   }
