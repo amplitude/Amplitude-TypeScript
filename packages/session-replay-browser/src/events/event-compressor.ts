@@ -2,7 +2,7 @@ import { getGlobalScope } from '@amplitude/analytics-core';
 import { pack } from '@amplitude/rrweb-packer';
 import type { eventWithTime } from '@amplitude/rrweb-types';
 import { SessionReplayJoinedConfig } from '../config/types';
-import { SessionReplayEventsManager } from '../typings/session-replay';
+import { EventData, SessionReplayEventsManager } from '../typings/session-replay';
 
 interface TaskQueue {
   event: eventWithTime;
@@ -113,7 +113,7 @@ export class EventCompressor {
     return JSON.stringify(packedEvent);
   };
 
-  private addCompressedEventToManager = (eventData: unknown, sessionId: string | number) => {
+  private addCompressedEventToManager = (eventData: EventData, sessionId: string | number) => {
     if (this.eventsManager && this.deviceId) {
       this.eventsManager.addEvent({
         event: { type: 'replay', data: eventData },

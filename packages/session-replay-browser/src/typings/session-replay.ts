@@ -13,7 +13,8 @@ export interface DebugInfo extends Partial<StorageData> {
   version: string;
 }
 
-export type Events = unknown[];
+export type EventData = string | Record<string, unknown>;
+export type Events = EventData[];
 
 export type StoreType = 'memory' | 'idb';
 
@@ -63,7 +64,7 @@ export interface EventsStore<KeyType> {
    */
   addEventToCurrentSequence(
     sessionId: string | number,
-    event: string,
+    event: EventData,
   ): Promise<SendingSequencesReturn<KeyType> | undefined>;
   /**
    * Returns the sequence id associated with the events batch.
@@ -134,7 +135,7 @@ export interface SessionReplayEventsManager<Type> {
     deviceId,
   }: {
     sessionId: string | number;
-    event: { type: Type; data: unknown };
+    event: { type: Type; data: EventData };
     deviceId: string;
   }): void;
   /**

@@ -14,7 +14,7 @@ const mockEvent = {
 type MockedLogger = jest.Mocked<ILogger>;
 
 describe('EventCompressor', () => {
-  let eventsManager: SessionReplayEventsManager<'replay' | 'interaction', string>;
+  let eventsManager: SessionReplayEventsManager<'replay' | 'interaction'>;
   let eventCompressor: EventCompressor;
   const mockRequestIdleCallback = jest.fn((callback: (deadline: IdleDeadline) => void) => {
     const mockIdleDeadline: IdleDeadline = {

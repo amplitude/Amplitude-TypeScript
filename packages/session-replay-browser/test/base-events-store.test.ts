@@ -23,7 +23,7 @@ describe('BaseEventsStore', () => {
     await store.addEventToCurrentSequence(1234, 'test');
     jest.advanceTimersByTime(36_000_000);
 
-    expect(store.shouldSplitEventsList(['test'], 'test')).toBe(true);
+    expect(store.shouldSplitEventsList(4, 'test', true)).toBe(true);
     return;
   });
 });

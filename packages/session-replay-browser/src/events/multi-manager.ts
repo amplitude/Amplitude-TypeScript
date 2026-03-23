@@ -1,4 +1,5 @@
 import {
+  EventData,
   SessionReplayEventsManager as AmplitudeSessionReplayEventsManager,
   EventsManagerWithType,
 } from '../typings/session-replay';
@@ -32,7 +33,7 @@ export class MultiEventManager<EventType> implements AmplitudeSessionReplayEvent
     deviceId,
   }: {
     sessionId: number;
-    event: { type: EventType; data: unknown };
+    event: { type: EventType; data: EventData };
     deviceId: string;
   }): void {
     this.managers.get(event.type)?.addEvent({ sessionId, event, deviceId });

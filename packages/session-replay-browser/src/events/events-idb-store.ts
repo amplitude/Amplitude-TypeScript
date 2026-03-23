@@ -1,6 +1,6 @@
 import { DBSchema, IDBPDatabase, openDB } from 'idb';
 import { STORAGE_FAILURE } from '../messages';
-import { EventType, Events, SendingSequencesReturn } from '../typings/session-replay';
+import { EventData, EventType, Events, SendingSequencesReturn } from '../typings/session-replay';
 import { BaseEventsStore, InstanceArgs as BaseInstanceArgs } from './base-events-store';
 import { logIdbError } from '../utils/is-abort-error';
 
@@ -141,7 +141,7 @@ export class SessionReplayEventsIDBStore extends BaseEventsStore<number> {
     return undefined;
   };
 
-  addEventToCurrentSequence = async (sessionId: number, event: unknown) => {
+  addEventToCurrentSequence = async (sessionId: number, event: EventData) => {
     try {
       const tx = this.db.transaction<'sessionCurrentSequence', 'readwrite'>(currentSequenceKey, 'readwrite');
       const sequenceEvents = await tx.store.get(sessionId);
@@ -150,7 +150,8 @@ export class SessionReplayEventsIDBStore extends BaseEventsStore<number> {
         return;
       }
       let eventsToSend;
-      if (this.shouldSplitEventsList(sequenceEvents.events, event)) {
+      const currentBatchSize = sequenceEvents.events.reduce((sum, e) => sum + this.getEventSize(e), 0);
+      if (this.shouldSplitEventsList(currentBatchSize, event, sequenceEvents.events.length > 0)) {
         eventsToSend = sequenceEvents.events;
         // set store to empty array
         await tx.store.put({ sessionId, events: [event] });

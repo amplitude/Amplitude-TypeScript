@@ -1,4 +1,6 @@
 import {
+  EventData,
+  Events,
   SessionReplayEventsManager as AmplitudeSessionReplayEventsManager,
   EventsStore,
   EventType,
@@ -65,7 +67,7 @@ export const createEventsManager = async <Type extends EventType>({
     deviceId,
     sequenceId,
   }: {
-    events: string[];
+    events: Events;
     sessionId: string | number;
     deviceId: string;
     sequenceId?: number;
@@ -135,7 +137,7 @@ export const createEventsManager = async <Type extends EventType>({
     sessionId,
     deviceId,
   }: {
-    event: { type: Type; data: unknown };
+    event: { type: Type; data: EventData };
     sessionId: number;
     deviceId: string;
   }) => {

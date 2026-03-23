@@ -9,6 +9,7 @@ import {
   UNEXPECTED_NETWORK_ERROR_MESSAGE,
 } from './messages';
 import {
+  EventData,
   SessionReplayTrackDestination as AmplitudeSessionReplayTrackDestination,
   SessionReplayDestination,
   SessionReplayDestinationContext,
@@ -16,9 +17,9 @@ import {
 import { VERSION } from './version';
 import { MAX_URL_LENGTH, KB_SIZE } from './constants';
 
-export type PayloadBatcher = ({ version, events }: { version: number; events: unknown[] }) => {
+export type PayloadBatcher = ({ version, events }: { version: number; events: EventData[] }) => {
   version: number;
-  events: unknown[];
+  events: EventData[];
 };
 
 export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrackDestination {

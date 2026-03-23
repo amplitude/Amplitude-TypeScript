@@ -1,5 +1,5 @@
 import { MAX_EVENT_LIST_SIZE, MAX_INTERVAL, MIN_INTERVAL } from '../constants';
-import { Events, EventsStore, SendingSequencesReturn } from '../typings/session-replay';
+import { EventData, Events, EventsStore, SendingSequencesReturn } from '../typings/session-replay';
 import { ILogger } from '@amplitude/analytics-core';
 
 export type InstanceArgs = {
@@ -30,7 +30,7 @@ export abstract class BaseEventsStore<KeyType> implements EventsStore<KeyType> {
 
   abstract addEventToCurrentSequence(
     sessionId: string | number,
-    event: unknown,
+    event: EventData,
   ): Promise<SendingSequencesReturn<KeyType> | undefined>;
   abstract getSequencesToSend(): Promise<SendingSequencesReturn<KeyType>[] | undefined>;
   abstract storeCurrentSequence(sessionId: number): Promise<SendingSequencesReturn<KeyType> | undefined>;
@@ -38,9 +38,12 @@ export abstract class BaseEventsStore<KeyType> implements EventsStore<KeyType> {
   abstract cleanUpSessionEventsStore(sessionId: number, sequenceId: KeyType): Promise<void>;
 
   /**
-   * Estimates the serialized character length of an event for size-based batching.
+   * Estimates the serialized character length of a single event.
+   * For string events (JSON path) uses the string length directly.
+   * For object events (msgpack path) uses JSON.stringify as a proxy — called
+   * once per insertion via the running-counter pattern, not O(n) per call.
    */
-  private getEventSize(event: unknown): number {
+  protected getEventSize(event: EventData): number {
     if (typeof event === 'string') {
       return event.length;
     }
@@ -48,38 +51,22 @@ export abstract class BaseEventsStore<KeyType> implements EventsStore<KeyType> {
   }
 
   /**
-   * Calculates the total character length of events array
-   * Accounts for JSON serialization overhead when sent to backend
-   */
-  private getEventsArraySize(events: Events): number {
-    let totalSize = 0;
-    for (const event of events) {
-      totalSize += this.getEventSize(event);
-    }
-
-    // Additional overhead from using length instead of byte size
-    // - Array brackets: [] = 2 characters
-    // - Commas between events: events.length - 1
-    // - Double quotes around each event (strings only): events.length * 2
-    const overhead = 2 + Math.max(0, events.length - 1) + events.length * 2;
-
-    return totalSize + overhead;
-  }
-
-  /**
    * Determines whether to send the events list to the backend and start a new
-   * empty events list, based on the size of the list as well as the last time sent
-   * @returns boolean
+   * empty events list, based on the accumulated size of the current batch and
+   * the time since the last split.
+   *
+   * @param currentBatchSize - pre-computed running total of the current batch (characters)
+   * @param nextEvent - the event about to be appended
+   * @param hasEvents - whether the current batch is non-empty (for time-based split guard)
    */
-  shouldSplitEventsList = (events: Events, nextEvent: unknown): boolean => {
+  shouldSplitEventsList = (currentBatchSize: number, nextEvent: EventData, hasEvents: boolean): boolean => {
     const sizeOfNextEvent = this.getEventSize(nextEvent);
-    const sizeOfEventsList = this.getEventsArraySize(events);
 
     // Check size constraint first (most likely to trigger)
-    if (sizeOfEventsList + sizeOfNextEvent >= this.maxPersistedEventsSize) {
+    if (currentBatchSize + sizeOfNextEvent >= this.maxPersistedEventsSize) {
       return true;
     }
-    if (Date.now() - this.timeAtLastSplit > this.interval && events.length) {
+    if (Date.now() - this.timeAtLastSplit > this.interval && hasEvents) {
       this.interval = Math.min(this.maxInterval, this.interval + this.minInterval);
       this._timeAtLastSplit = Date.now();
       return true;

@@ -37,7 +37,7 @@ describe('click', () => {
   });
 
   describe('clickHook', () => {
-    const mockEventsManager: jest.Mocked<SessionReplayEventsManager<'interaction', string>> = {
+    const mockEventsManager: jest.Mocked<SessionReplayEventsManager<'interaction'>> = {
       sendStoredEvents: jest.fn(),
       addEvent: jest.fn(),
       sendCurrentSequenceEvents: jest.fn(),
@@ -156,7 +156,7 @@ describe('click', () => {
         y: 3,
       });
       expect(jest.spyOn(mockEventsManager, 'addEvent')).toHaveBeenCalledTimes(1);
-      expect(JSON.parse(mockEventsManager.addEvent.mock.calls[0][0].event.data)).toStrictEqual({
+      expect(JSON.parse(mockEventsManager.addEvent.mock.calls[0][0].event.data as string)).toStrictEqual({
         x: 3,
         y: 3,
         viewportHeight: 768,
@@ -183,7 +183,7 @@ describe('click', () => {
         y: 3,
       });
       expect(jest.spyOn(mockEventsManager, 'addEvent')).toHaveBeenCalledTimes(1);
-      expect(JSON.parse(mockEventsManager.addEvent.mock.calls[0][0].event.data)).toStrictEqual({
+      expect(JSON.parse(mockEventsManager.addEvent.mock.calls[0][0].event.data as string)).toStrictEqual({
         x: 3 + 4,
         y: 3 + 5,
         viewportHeight: 768,
@@ -215,7 +215,7 @@ describe('click', () => {
         y: 3,
       });
       expect(jest.spyOn(mockEventsManager, 'addEvent')).toHaveBeenCalledTimes(1);
-      expect(JSON.parse(mockEventsManager.addEvent.mock.calls[0][0].event.data)).toStrictEqual({
+      expect(JSON.parse(mockEventsManager.addEvent.mock.calls[0][0].event.data as string)).toStrictEqual({
         x: 3,
         y: 3,
         viewportHeight: 768,
@@ -253,7 +253,7 @@ describe('click', () => {
         y: 3,
       });
       expect(jest.spyOn(mockEventsManager, 'addEvent')).toHaveBeenCalledTimes(1);
-      expect(JSON.parse(mockEventsManager.addEvent.mock.calls[0][0].event.data)).toStrictEqual({
+      expect(JSON.parse(mockEventsManager.addEvent.mock.calls[0][0].event.data as string)).toStrictEqual({
         x: 3,
         y: 3,
         viewportHeight: 768,
@@ -359,7 +359,7 @@ describe('click', () => {
 
       expect(mockFinder).toHaveBeenCalledWith(expect.any(Element), undefined);
       expect(jest.spyOn(mockEventsManager, 'addEvent')).toHaveBeenCalledTimes(1);
-      const eventData = JSON.parse(mockEventsManager.addEvent.mock.calls[0][0].event.data);
+      const eventData = JSON.parse(mockEventsManager.addEvent.mock.calls[0][0].event.data as string);
       expect(eventData).toMatchObject({
         x: 3,
         y: 3,

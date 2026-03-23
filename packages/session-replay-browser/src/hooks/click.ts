@@ -37,7 +37,8 @@ const HOUR_IN_MILLISECONDS = 3_600_000;
 
 export const clickNonBatcher: PayloadBatcher = ({ version, events }) => {
   const clickEvents: ClickEvent[] = [];
-  events.forEach((evt: string) => {
+  events.forEach((evt) => {
+    if (typeof evt !== 'string') return;
     const record = JSON.parse(evt) as Record<string, unknown>;
     record.count = 1;
     if (record.type === 'click') {
@@ -49,7 +50,8 @@ export const clickNonBatcher: PayloadBatcher = ({ version, events }) => {
 
 export const clickBatcher: PayloadBatcher = ({ version, events }) => {
   const clickEvents: ClickEvent[] = [];
-  events.forEach((evt: string) => {
+  events.forEach((evt) => {
+    if (typeof evt !== 'string') return;
     const record = JSON.parse(evt) as Record<string, unknown>;
     if (record.type === 'click') {
       clickEvents.push(record as ClickEvent);
