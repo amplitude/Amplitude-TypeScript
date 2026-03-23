@@ -34,7 +34,10 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
   queue: SessionReplayDestinationContext[] = [];
   private gzipWorker?: Worker;
   private gzipWorkerRequestId = 0;
-  private gzipWorkerPending = new Map<number, { resolve: (r: { data: Uint8Array; didCompress: boolean }) => void }>();
+  private gzipWorkerPending = new Map<
+    number,
+    { resolve: (r: { data: Uint8Array; didCompress: boolean }) => void; reject: (err: unknown) => void }
+  >();
 
   constructor({
     trackServerUrl,
@@ -72,9 +75,9 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
         worker.onerror = (e) => {
           e.preventDefault();
           loggerProvider.warn('[msgpack] gzip worker error, falling back to main-thread compression:', e.message);
-          // Resolve all in-flight requests as uncompressed — the main-thread fallback
-          // in gzipCompress will handle future requests once worker is cleared.
-          this.gzipWorkerPending.forEach(({ resolve }) => resolve({ data: new Uint8Array(0), didCompress: false }));
+          // Reject all in-flight requests so send() catches the error and calls completeRequest.
+          // The transferred buffers are unrecoverable, so we cannot retry with the same data.
+          this.gzipWorkerPending.forEach(({ reject }) => reject(new Error(e.message ?? 'gzip worker error')));
           this.gzipWorkerPending.clear();
           this.gzipWorker = undefined;
           worker.terminate();
@@ -191,11 +194,13 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
           return;
         }
 
+        // Capture byte length before gzipCompress, which may transfer the buffer to a worker.
+        const encodedByteLength = encoded.byteLength;
         const { data: compressed, didCompress } = await this.gzipCompress(encoded);
 
         if (this.debugMode) {
           this.loggerProvider.debug(
-            `[msgpack] encoded: ${encoded.byteLength} bytes` +
+            `[msgpack] encoded: ${encodedByteLength} bytes` +
               (didCompress
                 ? `, compressed: ${compressed.byteLength} bytes`
                 : ' (uncompressed, CompressionStream unavailable)') +
@@ -306,8 +311,8 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
     if (this.gzipWorker) {
       // Off-load gzip to the dedicated worker thread (zero-copy via buffer transfer).
       const id = ++this.gzipWorkerRequestId;
-      return new Promise((resolve) => {
-        this.gzipWorkerPending.set(id, { resolve });
+      return new Promise((resolve, reject) => {
+        this.gzipWorkerPending.set(id, { resolve, reject });
         this.gzipWorker!.postMessage({ id, encoded: data }, [data.buffer]);
       });
     }
