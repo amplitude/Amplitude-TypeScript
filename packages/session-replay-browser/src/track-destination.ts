@@ -144,9 +144,8 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
       let contentType: string;
       let body: BodyInit;
       if (this.useMessagePack) {
-        // Events are raw objects; msgpack-encode and gzip-compress the entire batch as one binary blob.
+        // Events are raw objects; msgpack-encode the batch, then check size before compressing.
         const encoded = encode({ version: payload.version, events: payload.events });
-        const { data: compressed, didCompress } = await this.gzipCompress(encoded);
 
         // Pre-emptive split: check encoded (pre-gzip) size. Jetty decompresses before the servlet
         // measures payload size, so we must compare against the uncompressed msgpack size, not
@@ -158,6 +157,8 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
           this.splitAndRequeue(context);
           return;
         }
+
+        const { data: compressed, didCompress } = await this.gzipCompress(encoded);
 
         if (this.debugMode) {
           this.loggerProvider.debug(
