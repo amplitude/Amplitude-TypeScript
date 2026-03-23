@@ -109,6 +109,10 @@ export class EventCompressor {
   }
 
   compressEvent = (event: eventWithTime) => {
+    if (this.config.useMessagePack) {
+      // Skip zlib/pack compression; the batch will be msgpack-encoded at send time.
+      return JSON.stringify(event);
+    }
     const packedEvent = pack(event);
     return JSON.stringify(packedEvent);
   };
@@ -124,7 +128,7 @@ export class EventCompressor {
   };
 
   public addCompressedEvent = (event: eventWithTime, sessionId: string | number) => {
-    if (this.worker) {
+    if (this.worker && !this.config.useMessagePack) {
       // This indirectly compresses the event.
       try {
         this.worker.postMessage({ event, sessionId });

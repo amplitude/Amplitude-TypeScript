@@ -1,3 +1,4 @@
+import { encode } from '@msgpack/msgpack';
 import { BaseTransport, ILogger, Status } from '@amplitude/analytics-core';
 import { getCurrentUrl, getServerUrl } from './helpers';
 import {
@@ -27,20 +28,28 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
   retryTimeout = 1000;
   private scheduled: ReturnType<typeof setTimeout> | null = null;
   payloadBatcher: PayloadBatcher;
+  useMessagePack: boolean;
+  debugMode: boolean;
   queue: SessionReplayDestinationContext[] = [];
 
   constructor({
     trackServerUrl,
     loggerProvider,
     payloadBatcher,
+    useMessagePack,
+    debugMode,
   }: {
     trackServerUrl?: string;
     loggerProvider: ILogger;
     payloadBatcher?: PayloadBatcher;
+    useMessagePack?: boolean;
+    debugMode?: boolean;
   }) {
     this.loggerProvider = loggerProvider;
     this.payloadBatcher = payloadBatcher ? payloadBatcher : (payload) => payload;
     this.trackServerUrl = trackServerUrl;
+    this.useMessagePack = useMessagePack ?? false;
+    this.debugMode = debugMode ?? false;
   }
 
   sendEventsList(destinationData: SessionReplayDestination) {
@@ -123,9 +132,29 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
     }
 
     try {
+      let contentType: string;
+      let body: BodyInit;
+      if (this.useMessagePack) {
+        // Parse stored JSON event strings back to objects, then encode the whole batch with MessagePack.
+        const parsedEvents = (payload.events as string[]).map((e) => JSON.parse(e) as unknown);
+        const encoded = encode({ version: payload.version, events: parsedEvents });
+        if (this.debugMode) {
+          this.loggerProvider.debug(
+            `[msgpack] encoded payload: ${encoded.byteLength} bytes, first 64 bytes: [${encoded
+              .slice(0, 64)
+              .join(', ')}]`,
+          );
+        }
+        body = encoded;
+        contentType = 'application/x-msgpack';
+      } else {
+        body = JSON.stringify(payload);
+        contentType = 'application/json';
+      }
+
       const options: RequestInit = {
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': contentType,
           Accept: '*/*',
           Authorization: `Bearer ${apiKey}`,
           'X-Client-Version': version,
@@ -133,7 +162,7 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
           'X-Client-Url': url.substring(0, MAX_URL_LENGTH), // limit url length to 1000 characters to avoid ELB 400 error
           'X-Client-Sample-Rate': `${sampleRate}`,
         },
-        body: JSON.stringify(payload),
+        body,
         method: 'POST',
       };
 

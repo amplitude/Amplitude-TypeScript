@@ -150,6 +150,15 @@ export interface SessionReplayLocalConfig extends IConfig {
    */
   useWebWorker?: boolean;
 
+  /**
+   * If true, the SDK will serialize replay event batches using MessagePack instead of
+   * the default zlib + latin1 + JSON pipeline. The binary payload is sent with
+   * Content-Type: application/x-msgpack.
+   *
+   * @defaultValue false
+   */
+  useMessagePack?: boolean;
+
   userProperties?: { [key: string]: any };
 
   /**

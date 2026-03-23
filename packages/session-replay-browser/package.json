@@ -45,6 +45,7 @@
     "@amplitude/analytics-types": "workspace:*",
     "@amplitude/experiment-core": "0.7.2",
     "@amplitude/rrweb-packer": "2.0.0-alpha.36",
+    "@msgpack/msgpack": "^2.8.0",
     "@amplitude/rrweb-plugin-console-record": "2.0.0-alpha.36",
     "@amplitude/rrweb-record": "2.0.0-alpha.36",
     "@amplitude/rrweb-types": "2.0.0-alpha.36",
