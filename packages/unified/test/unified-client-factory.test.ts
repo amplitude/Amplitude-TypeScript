@@ -2,6 +2,7 @@ import instance from '../src/unified-client-factory';
 
 test('should create a UnifiedClient instance with expected methods', () => {
   expect(instance).toHaveProperty('experiment');
+  expect(instance).toHaveProperty('engagement');
   expect(instance).toHaveProperty('sessionReplay');
   expect(typeof instance.initAll).toBe('function');
   expect(typeof instance.init).toBe('function');
@@ -31,6 +32,7 @@ test('should return non undefined sessionReplay and experiment after initAll() b
   // Test that sessionReplay and experiment are undefined before initAll()
   expect(instance.sessionReplay()).toBeUndefined();
   expect(instance.experiment()).toBeUndefined();
+  expect(instance.engagement()).toBeUndefined();
 
   // Initialize with a test API key
   await instance.initAll('test-api-key');
