@@ -2,7 +2,7 @@ import { BrowserClient, ElementInteractionsOptions, PerformanceTrackingOptions }
 import { AMPLITUDE_MAIN_THREAD_BLOCK_EVENT } from '../constants';
 import { isUrlAllowed } from '../helpers';
 
-const DEFAULT_DURATION_THRESHOLD = 50; // ms, browser minimum for both LoAF and Long Tasks
+const DEFAULT_DURATION_THRESHOLD = 100; // ms
 const MEASURE_BUFFER_WINDOW_MS = 10_000;
 
 // LoAF and Long Task types are not yet in TypeScript's built-in DOM types
