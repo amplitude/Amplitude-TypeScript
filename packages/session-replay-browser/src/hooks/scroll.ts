@@ -117,6 +117,14 @@ export class ScrollWatcher {
     const deviceId = deviceIdFn();
     const globalScope = getGlobalScope();
     if (globalScope && deviceId) {
+      // Capture the true final scroll position directly from the window.
+      // rrweb's scroll observer throttles callbacks to 100ms using setTimeout,
+      // so the most recent scroll position may not have been delivered to the hook yet.
+      const scrollX = globalScope.scrollX ?? 0;
+      const scrollY = globalScope.scrollY ?? 0;
+      if (scrollX > 0 || scrollY > 0) {
+        this.update({ id: 1, x: scrollX, y: scrollY });
+      }
       this.transport.send(deviceId, {
         version: 1,
         events: [
