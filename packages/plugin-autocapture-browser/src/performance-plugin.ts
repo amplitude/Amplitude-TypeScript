@@ -11,7 +11,7 @@ import { trackMainThreadBlock } from './autocapture/track-long-task';
 
 type BrowserEnrichmentPlugin = EnrichmentPlugin<BrowserClient, BrowserConfig>;
 
-const DEFAULT_DURATION_THRESHOLD = 50; // ms, browser minimum
+const DEFAULT_DURATION_THRESHOLD = 100; // ms
 
 export const performancePlugin = (options: PerformanceTrackingOptions = {}): BrowserEnrichmentPlugin => {
   const name = constants.PLUGIN_NAME;

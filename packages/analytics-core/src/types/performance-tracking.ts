@@ -4,8 +4,7 @@
 export interface MainThreadBlockOptions {
   /**
    * Minimum duration in milliseconds to consider a main thread block.
-   * The browser minimum for both Long Animation Frames and Long Tasks is 50ms.
-   * @default 50
+   * @default 100
    */
   durationThreshold?: number;
 }
