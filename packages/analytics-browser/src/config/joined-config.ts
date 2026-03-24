@@ -1,7 +1,6 @@
 import {
   AutocaptureOptions,
   type ElementInteractionsOptions,
-  type ViewportContentUpdatedOptions,
   BrowserConfig,
   CustomEnrichmentOptions,
   RemoteConfig,
@@ -19,11 +18,6 @@ export interface ElementInteractionsOptionsRemoteConfig extends ElementInteracti
    * Related to pageUrlAllowlist but holds regex strings which will be initialized and appended to pageUrlAllowlist
    */
   pageUrlAllowlistRegex?: string[];
-  /**
-   * Override parent type to allow boolean, since the remote config `enabled` flag is translated to
-   * `true` (enabled with defaults) or `false` (disabled) by translateRemoteConfigToLocal.
-   */
-  viewportContentUpdated?: boolean | ViewportContentUpdatedOptions;
 }
 
 export interface NetworkCaptureRuleRemoteConfig extends NetworkCaptureRule {

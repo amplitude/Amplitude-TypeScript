@@ -104,12 +104,16 @@ export const autocapturePlugin = (
   options.cssSelectorAllowlist = options.cssSelectorAllowlist ?? DEFAULT_CSS_SELECTOR_ALLOWLIST;
   options.actionClickAllowlist = options.actionClickAllowlist ?? DEFAULT_ACTION_CLICK_ALLOWLIST;
   options.debounceTime = options.debounceTime ?? 0;
+  const viewportContentUpdatedOptions =
+    typeof options.viewportContentUpdated === 'object' ? options.viewportContentUpdated : undefined;
   const resolvedExposureDuration =
-    options.viewportContentUpdated?.exposureDuration ?? options.exposureDuration ?? DEFAULT_EXPOSURE_DURATION;
-  options.viewportContentUpdated = {
-    ...options.viewportContentUpdated,
-    exposureDuration: resolvedExposureDuration,
-  };
+    viewportContentUpdatedOptions?.exposureDuration ?? options.exposureDuration ?? DEFAULT_EXPOSURE_DURATION;
+  if (options.viewportContentUpdated !== false) {
+    options.viewportContentUpdated = {
+      ...viewportContentUpdatedOptions,
+      exposureDuration: resolvedExposureDuration,
+    };
+  }
 
   options.pageUrlExcludelist = options.pageUrlExcludelist?.reduce(
     (acc: (string | RegExp | { pattern: string })[], excludePattern) => {
@@ -337,94 +341,96 @@ export const autocapturePlugin = (
 
     const globalScope = getGlobalScope();
 
-    const handleViewportContentUpdated = (isPageEnd: boolean) => {
-      if (isPageEnd && pageViewEndFired) {
-        return;
-      }
-      setTimeout(() => {
-        pageViewEndFired = false;
-      }, 100);
+    if (options.viewportContentUpdated !== false) {
+      const handleViewportContentUpdated = (isPageEnd: boolean) => {
+        if (isPageEnd && pageViewEndFired) {
+          return;
+        }
+        setTimeout(() => {
+          pageViewEndFired = false;
+        }, 100);
 
-      pageViewEndFired = true;
-      fireViewportContentUpdated({
-        amplitude,
-        scrollTracker,
-        currentElementExposed,
-        elementExposedForPage,
-        exposureTracker: trackers.exposure,
-        isPageEnd,
-        lastScroll,
+        pageViewEndFired = true;
+        fireViewportContentUpdated({
+          amplitude,
+          scrollTracker,
+          currentElementExposed,
+          elementExposedForPage,
+          exposureTracker: trackers.exposure,
+          isPageEnd,
+          lastScroll,
+        });
+      };
+
+      const handleExposure = (elementPath: string) => {
+        onExposure(elementPath, elementExposedForPage, currentElementExposed, handleViewportContentUpdated);
+      };
+
+      trackers.exposure = trackExposure({
+        allObservables,
+        onExposure: handleExposure,
+        dataExtractor,
+        exposureDuration: resolvedExposureDuration,
       });
-    };
+      if (trackers.exposure) {
+        subscriptions.push(trackers.exposure);
+      }
 
-    const handleExposure = (elementPath: string) => {
-      onExposure(elementPath, elementExposedForPage, currentElementExposed, handleViewportContentUpdated);
-    };
-
-    trackers.exposure = trackExposure({
-      allObservables,
-      onExposure: handleExposure,
-      dataExtractor,
-      exposureDuration: resolvedExposureDuration,
-    });
-    if (trackers.exposure) {
-      subscriptions.push(trackers.exposure);
-    }
-
-    const beforeUnloadHandler = () => {
-      handleViewportContentUpdated(true);
-    };
-    /* istanbul ignore next */
-    globalScope?.addEventListener('beforeunload', beforeUnloadHandler);
-    beforeUnloadCleanup = () => {
-      /* istanbul ignore next */
-      globalScope?.removeEventListener('beforeunload', beforeUnloadHandler);
-    };
-    // Ensure cleanup on teardown as well
-    subscriptions.push({ unsubscribe: () => beforeUnloadCleanup() });
-
-    // Also track on navigation (SPA)
-    const navigateObservable = allObservables[ObservablesEnum.NavigateObservable];
-    if (navigateObservable) {
-      subscriptions.push(
-        navigateObservable.subscribe(() => {
-          handleViewportContentUpdated(true);
-        }),
-      );
-    } else if (globalScope) {
-      const popstateHandler = () => {
+      const beforeUnloadHandler = () => {
         handleViewportContentUpdated(true);
       };
       /* istanbul ignore next */
-      // Fallback for SPA tracking when Navigation API is not available
-      globalScope.addEventListener('popstate', popstateHandler);
+      globalScope?.addEventListener('beforeunload', beforeUnloadHandler);
+      beforeUnloadCleanup = () => {
+        /* istanbul ignore next */
+        globalScope?.removeEventListener('beforeunload', beforeUnloadHandler);
+      };
+      // Ensure cleanup on teardown as well
+      subscriptions.push({ unsubscribe: () => beforeUnloadCleanup() });
 
-      /* istanbul ignore next */
-      // There is no global browser listener for changes to history, so we have
-      // to modify pushState directly.
-      // https://stackoverflow.com/a/64927639
-      // eslint-disable-next-line @typescript-eslint/unbound-method
-      const originalPushState = globalScope.history.pushState;
-      if (globalScope.history && originalPushState) {
-        // eslint-disable-next-line @typescript-eslint/unbound-method
-        globalScope.history.pushState = new Proxy(originalPushState, {
-          apply: (target, thisArg, [state, unused, url]) => {
-            target.apply(thisArg, [state, unused, url]);
+      // Also track on navigation (SPA)
+      const navigateObservable = allObservables[ObservablesEnum.NavigateObservable];
+      if (navigateObservable) {
+        subscriptions.push(
+          navigateObservable.subscribe(() => {
             handleViewportContentUpdated(true);
+          }),
+        );
+      } else if (globalScope) {
+        const popstateHandler = () => {
+          handleViewportContentUpdated(true);
+        };
+        /* istanbul ignore next */
+        // Fallback for SPA tracking when Navigation API is not available
+        globalScope.addEventListener('popstate', popstateHandler);
+
+        /* istanbul ignore next */
+        // There is no global browser listener for changes to history, so we have
+        // to modify pushState directly.
+        // https://stackoverflow.com/a/64927639
+        // eslint-disable-next-line @typescript-eslint/unbound-method
+        const originalPushState = globalScope.history.pushState;
+        if (globalScope.history && originalPushState) {
+          // eslint-disable-next-line @typescript-eslint/unbound-method
+          globalScope.history.pushState = new Proxy(originalPushState, {
+            apply: (target, thisArg, [state, unused, url]) => {
+              target.apply(thisArg, [state, unused, url]);
+              handleViewportContentUpdated(true);
+            },
+          });
+        }
+
+        subscriptions.push({
+          unsubscribe: () => {
+            /* istanbul ignore next */
+            globalScope.removeEventListener('popstate', popstateHandler);
+            /* istanbul ignore next */
+            if (globalScope.history && originalPushState) {
+              globalScope.history.pushState = originalPushState;
+            }
           },
         });
       }
-
-      subscriptions.push({
-        unsubscribe: () => {
-          /* istanbul ignore next */
-          globalScope.removeEventListener('popstate', popstateHandler);
-          /* istanbul ignore next */
-          if (globalScope.history && originalPushState) {
-            globalScope.history.pushState = originalPushState;
-          }
-        },
-      });
     }
 
     /* istanbul ignore next */

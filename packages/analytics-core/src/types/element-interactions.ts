@@ -124,8 +124,9 @@ export interface ElementInteractionsOptions {
   /**
    * Options for tracking when visible content in the viewport changes,
    * such as from scrolling or dynamic page updates.
+   * Set to `false` to disable viewport content update tracking.
    */
-  viewportContentUpdated?: ViewportContentUpdatedOptions;
+  viewportContentUpdated?: boolean | ViewportContentUpdatedOptions;
 }
 
 export interface ViewportContentUpdatedOptions {
