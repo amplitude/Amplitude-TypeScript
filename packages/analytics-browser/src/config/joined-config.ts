@@ -150,11 +150,16 @@ export function translateRemoteConfigToLocal(config?: Record<string, any>) {
   // normalize viewportContentUpdated inside elementInteractions
   // translateRemoteConfigToLocal converts { enabled: true } (no other fields) to the boolean `true`,
   // but the SDK expects a ViewportContentUpdatedOptions object, so convert `true` → `{}`.
-  const elementInteractionsForViewport = config.autocapture?.elementInteractions;
-  if (elementInteractionsForViewport && typeof elementInteractionsForViewport === 'object') {
-    if (elementInteractionsForViewport.viewportContentUpdated === true) {
-      elementInteractionsForViewport.viewportContentUpdated = {};
+  try {
+    const elementInteractionsForViewport = config.autocapture?.elementInteractions;
+    if (elementInteractionsForViewport && typeof elementInteractionsForViewport === 'object') {
+      if (elementInteractionsForViewport.viewportContentUpdated === true) {
+        elementInteractionsForViewport.viewportContentUpdated = {};
+      }
     }
+  } catch (e) {
+    /* istanbul ignore next */
+    // surprise exception, so don't translate it
   }
 }
 
