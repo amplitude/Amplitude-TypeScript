@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.34.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.34.2...@amplitude/session-replay-browser@1.34.3) (2026-03-24)
+
+
+### Bug Fixes
+
+* **session-replay-browser:** inline targeting types to fix TS2344 for consumers ([#1627](https://github.com/amplitude/Amplitude-TypeScript/issues/1627)) ([f219575](https://github.com/amplitude/Amplitude-TypeScript/commit/f219575152ef029589345e17b6c27bc8c7f05a24))
+
+
+
+
+
 ## [1.34.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.34.1...@amplitude/session-replay-browser@1.34.2) (2026-03-23)
 
 **Note:** Version bump only for package @amplitude/session-replay-browser
