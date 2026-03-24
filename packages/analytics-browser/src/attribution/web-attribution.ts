@@ -8,12 +8,7 @@ import {
   BASE_CAMPAIGN,
   CampaignParser,
 } from '@amplitude/analytics-core';
-import {
-  Options,
-  getDefaultExcludedReferrers,
-  createCampaignEvent,
-  isNewCampaign,
-} from './helpers';
+import { Options, getDefaultExcludedReferrers, createCampaignEvent, isNewCampaign } from './helpers';
 import { getAttributionTrackingOptions } from './tracking-methods';
 
 export class WebAttribution {
