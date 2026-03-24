@@ -257,9 +257,10 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
       return;
     }
 
-    // Non-413 4xx on a msgpack request: the backend rejected the encoding (e.g. kill switch
-    // returned 400). Fall back to V4 JSON encoding and retry once rather than dropping events.
-    if (status >= 400 && status < 500 && status !== 413 && this.useMessagePack) {
+    // The kill-switch returns 400 to signal msgpack is disabled. Fall back to V4 JSON encoding
+    // and retry once. Other 4xx codes (401, 403, 408, 429, etc.) are not encoding rejections
+    // and must reach the normal buildStatus path so rate-limit back-off is respected.
+    if (status === 400 && this.useMessagePack) {
       this.loggerProvider.warn(
         `[msgpack] received ${status}, falling back to JSON encoding for session ${context.sessionId}`,
       );
