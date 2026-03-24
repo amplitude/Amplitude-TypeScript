@@ -1,13 +1,19 @@
 import { RemoteDecision } from '../config/types';
 
-const AMPLITUDE_EVAL_URL = 'https://api.lab.amplitude.com/sdk/v2/vardata';
+const EVAL_URLS: Record<string, string> = {
+  US: 'https://api.lab.amplitude.com/sdk/v2/vardata',
+  EU: 'https://api.lab.eu.amplitude.com/sdk/v2/vardata',
+};
+const DEFAULT_EVAL_URL = EVAL_URLS.US;
 
 export async function fetchRemoteDecision(
   deploymentKey: string,
   user: { device_id?: string; user_id?: string },
   flagKey: string,
   timeoutMs: number,
+  serverZone?: string,
 ): Promise<RemoteDecision> {
+  const baseUrl = (serverZone && EVAL_URLS[serverZone]) || DEFAULT_EVAL_URL;
   const params = new URLSearchParams({ flag_keys: flagKey });
   if (user.device_id) params.set('device_id', user.device_id);
   if (user.user_id) params.set('user_id', user.user_id);
@@ -15,7 +21,7 @@ export async function fetchRemoteDecision(
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    const response = await fetch(`${AMPLITUDE_EVAL_URL}?${params.toString()}`, {
+    const response = await fetch(`${baseUrl}?${params.toString()}`, {
       headers: { Authorization: `Api-Key ${deploymentKey}` },
       signal: controller.signal,
     });

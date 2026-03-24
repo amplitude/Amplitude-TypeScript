@@ -3856,6 +3856,7 @@ describe('SessionReplay', () => {
           expect.objectContaining({ device_id: mockOptions.deviceId }),
           remoteTargetingBase.flagKey,
           remoteTargetingBase.timeoutMs,
+          expect.any(String),
         );
         expect(recordEventsSpy).toHaveBeenCalled();
         expect(mockRecordFunction).toHaveBeenCalled();
@@ -4090,6 +4091,7 @@ describe('SessionReplay', () => {
           expect.any(Object),
           'sr-capture-gate', // default
           200, // default
+          expect.any(String),
         );
       });
 
@@ -4180,6 +4182,7 @@ describe('SessionReplay', () => {
           expect.objectContaining({ device_id: mockOptions.deviceId }),
           expect.any(String),
           expect.any(Number),
+          expect.any(String),
         );
       });
     });
