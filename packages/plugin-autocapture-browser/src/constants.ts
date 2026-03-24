@@ -8,7 +8,7 @@ export const AMPLITUDE_ELEMENT_ERROR_CLICKED_EVENT = '[Amplitude] Error Click';
 export const AMPLITUDE_ELEMENT_CHANGED_EVENT = '[Amplitude] Element Changed';
 export const AMPLITUDE_PAGE_SCROLLED_EVENT = '[Amplitude] Page Scrolled';
 export const AMPLITUDE_THRASHED_CURSOR_EVENT = '[Amplitude] Thrashed Cursor';
-export const AMPLITUDE_LONG_TASK_EVENT = '[Amplitude] Long Task';
+export const AMPLITUDE_MAIN_THREAD_BLOCK_EVENT = '[Amplitude] Main Thread Block';
 
 export const AMPLITUDE_EVENT_PROP_ELEMENT_ID = '[Amplitude] Element ID';
 export const AMPLITUDE_EVENT_PROP_ELEMENT_CLASS = '[Amplitude] Element Class';
