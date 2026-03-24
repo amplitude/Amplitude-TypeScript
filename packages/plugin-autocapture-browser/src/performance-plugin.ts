@@ -7,11 +7,11 @@ import {
   Unsubscribable,
 } from '@amplitude/analytics-core';
 import * as constants from './constants';
-import { trackLongTask } from './autocapture/track-long-task';
+import { trackMainThreadBlock } from './autocapture/track-long-task';
 
 type BrowserEnrichmentPlugin = EnrichmentPlugin<BrowserClient, BrowserConfig>;
 
-const DEFAULT_LONG_TASK_DURATION_THRESHOLD = 50; // ms, browser minimum
+const DEFAULT_DURATION_THRESHOLD = 50; // ms, browser minimum
 
 export const performancePlugin = (options: PerformanceTrackingOptions = {}): BrowserEnrichmentPlugin => {
   const name = constants.PLUGIN_NAME;
@@ -19,7 +19,7 @@ export const performancePlugin = (options: PerformanceTrackingOptions = {}): Bro
 
   const subscriptions: Unsubscribable[] = [];
 
-  const longTaskEnabled = options.longTask !== false && options.longTask !== null;
+  const mainThreadBlockEnabled = options.mainThreadBlock !== false && options.mainThreadBlock !== null;
 
   const setup: BrowserEnrichmentPlugin['setup'] = async (config, amplitude) => {
     /* istanbul ignore if */
@@ -27,18 +27,18 @@ export const performancePlugin = (options: PerformanceTrackingOptions = {}): Bro
       return;
     }
 
-    if (longTaskEnabled) {
-      let durationThreshold = DEFAULT_LONG_TASK_DURATION_THRESHOLD;
-      if (typeof options.longTask === 'object' && options.longTask.durationThreshold !== undefined) {
-        durationThreshold = options.longTask.durationThreshold;
+    if (mainThreadBlockEnabled) {
+      let durationThreshold = DEFAULT_DURATION_THRESHOLD;
+      if (typeof options.mainThreadBlock === 'object' && options.mainThreadBlock.durationThreshold !== undefined) {
+        durationThreshold = options.mainThreadBlock.durationThreshold;
       }
 
-      const longTaskSubscription = trackLongTask({
+      const subscription = trackMainThreadBlock({
         amplitude,
         options,
         durationThreshold,
       });
-      subscriptions.push(longTaskSubscription);
+      subscriptions.push(subscription);
     }
 
     /* istanbul ignore next */

@@ -1,10 +1,10 @@
 /**
- * Configuration options for long task tracking
+ * Configuration options for main thread block tracking
  */
-export interface LongTaskOptions {
+export interface MainThreadBlockOptions {
   /**
-   * Minimum duration in milliseconds to consider a long task.
-   * The browser minimum is 50ms.
+   * Minimum duration in milliseconds to consider a main thread block.
+   * The browser minimum for both Long Animation Frames and Long Tasks is 50ms.
    * @default 50
    */
   durationThreshold?: number;
@@ -30,10 +30,11 @@ export interface PerformanceTrackingOptions {
   pageUrlExcludelist?: (string | RegExp)[];
 
   /**
-   * Configuration for long task tracking.
-   * Set to `false` to disable long task tracking.
+   * Configuration for main thread block tracking.
+   * Uses the Long Animation Frames API where available, falling back to Long Tasks.
+   * Set to `false` to disable tracking.
    * Set to `true` or an options object to enable with default or custom settings.
    * Default is false.
    */
-  longTask?: boolean | LongTaskOptions;
+  mainThreadBlock?: boolean | MainThreadBlockOptions;
 }

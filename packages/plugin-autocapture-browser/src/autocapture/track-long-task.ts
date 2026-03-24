@@ -1,45 +1,110 @@
 import { BrowserClient, ElementInteractionsOptions, PerformanceTrackingOptions } from '@amplitude/analytics-core';
-import { AMPLITUDE_LONG_TASK_EVENT } from '../constants';
+import { AMPLITUDE_MAIN_THREAD_BLOCK_EVENT } from '../constants';
 import { isUrlAllowed } from '../helpers';
 
-const DEFAULT_LONG_TASK_DURATION_THRESHOLD = 50; // ms, browser minimum
+const DEFAULT_DURATION_THRESHOLD = 50; // ms, browser minimum for both LoAF and Long Tasks
+const MEASURE_BUFFER_WINDOW_MS = 10_000;
 
-// PerformanceLongTaskTiming is not yet in TypeScript's built-in DOM types
+// LoAF and Long Task types are not yet in TypeScript's built-in DOM types
+interface PerformanceScriptTiming extends PerformanceEntry {
+  sourceURL: string;
+  sourceFunctionName: string;
+  invokerType: string;
+  invoker: string;
+}
+
+interface PerformanceLongAnimationFrameTiming extends PerformanceEntry {
+  renderStart: number;
+  styleAndLayoutStart: number;
+  blockingDuration: number;
+  scripts: PerformanceScriptTiming[];
+}
+
 interface TaskAttributionTiming extends PerformanceEntry {
   name: string;
 }
+
 interface PerformanceLongTaskTiming extends PerformanceEntry {
   attribution: TaskAttributionTiming[];
 }
-// How long to keep measures in the buffer before pruning
-const MEASURE_BUFFER_WINDOW_MS = 10_000;
 
 function getOverlappingMeasures(entry: PerformanceEntry, measures: PerformanceEntry[]): string[] {
-  const taskStart = entry.startTime;
   const taskEnd = entry.startTime + entry.duration;
   return measures
-    .filter((measure) => {
-      const measureEnd = measure.startTime + measure.duration;
-      return measure.startTime < taskEnd && measureEnd > taskStart;
-    })
+    .filter((measure) => measure.startTime < taskEnd && measure.startTime + measure.duration > entry.startTime)
     .map((measure) => measure.name);
 }
 
-export function trackLongTask({
+function buildLoAFProperties(entry: PerformanceLongAnimationFrameTiming, measures: PerformanceEntry[]) {
+  const overlappingMeasures = getOverlappingMeasures(entry, measures);
+  const scripts = entry.scripts ?? [];
+
+  const scriptURLs = scripts.map((s) => s.sourceURL).filter(Boolean);
+  const scriptFunctions = scripts.map((s) => s.sourceFunctionName).filter(Boolean);
+  const invokerTypes = scripts.map((s) => s.invokerType).filter(Boolean);
+  const invokers = scripts.map((s) => s.invoker).filter(Boolean);
+
+  return {
+    '[Amplitude] Main Thread Block Source': 'long-animation-frame',
+    '[Amplitude] Main Thread Block Duration': entry.duration,
+    '[Amplitude] Main Thread Block Blocking Duration': entry.blockingDuration,
+    '[Amplitude] Main Thread Block Start Time': entry.startTime,
+    ...(overlappingMeasures.length > 0 && { '[Amplitude] Main Thread Block Measures': overlappingMeasures }),
+    '[Amplitude] Main Thread Block Render Start': entry.renderStart,
+    '[Amplitude] Main Thread Block Style And Layout Start': entry.styleAndLayoutStart,
+    '[Amplitude] Main Thread Block Script Count': scripts.length,
+    ...(scriptURLs.length > 0 && { '[Amplitude] Main Thread Block Script URLs': scriptURLs }),
+    ...(scriptFunctions.length > 0 && { '[Amplitude] Main Thread Block Script Functions': scriptFunctions }),
+    ...(invokerTypes.length > 0 && { '[Amplitude] Main Thread Block Invoker Types': invokerTypes }),
+    ...(invokers.length > 0 && { '[Amplitude] Main Thread Block Invokers': invokers }),
+  };
+}
+
+function buildLongTaskProperties(entry: PerformanceLongTaskTiming, measures: PerformanceEntry[]) {
+  const overlappingMeasures = getOverlappingMeasures(entry, measures);
+  const attribution = entry.attribution ?? [];
+
+  return {
+    '[Amplitude] Main Thread Block Source': 'long-task',
+    '[Amplitude] Main Thread Block Duration': entry.duration,
+    '[Amplitude] Main Thread Block Blocking Duration': entry.duration,
+    '[Amplitude] Main Thread Block Start Time': entry.startTime,
+    ...(overlappingMeasures.length > 0 && { '[Amplitude] Main Thread Block Measures': overlappingMeasures }),
+    ...(attribution.length > 0 && {
+      '[Amplitude] Main Thread Block Attribution': attribution.map((a: TaskAttributionTiming) => a.name),
+    }),
+  };
+}
+
+function getSupportedEntryType(): 'long-animation-frame' | 'longtask' | null {
+  /* istanbul ignore next */
+  if (typeof PerformanceObserver === 'undefined') return null;
+  try {
+    const supported = PerformanceObserver.supportedEntryTypes;
+    if (supported.includes('long-animation-frame')) return 'long-animation-frame';
+    if (supported.includes('longtask')) return 'longtask';
+  } catch {
+    // ignore
+  }
+  return null;
+}
+
+export function trackMainThreadBlock({
   amplitude,
   options,
-  durationThreshold = DEFAULT_LONG_TASK_DURATION_THRESHOLD,
+  durationThreshold = DEFAULT_DURATION_THRESHOLD,
 }: {
   amplitude: BrowserClient;
   options: PerformanceTrackingOptions;
   durationThreshold?: number;
 }) {
+  const entryType = getSupportedEntryType();
+
   /* istanbul ignore next */
-  if (typeof PerformanceObserver === 'undefined') {
+  if (!entryType) {
     return { unsubscribe: () => void 0 };
   }
 
-  // Rolling buffer of recent performance.measure() entries
   const measures: PerformanceEntry[] = [];
 
   const measureObserver = new PerformanceObserver((list) => {
@@ -47,7 +112,6 @@ export function trackLongTask({
     for (const entry of list.getEntries()) {
       measures.push(entry);
     }
-    // Prune measures outside the buffer window to avoid unbounded memory growth
     const cutoff = now - MEASURE_BUFFER_WINDOW_MS;
     while (measures.length > 0 && measures[0].startTime < cutoff) {
       measures.shift();
@@ -57,40 +121,36 @@ export function trackLongTask({
   try {
     measureObserver.observe({ entryTypes: ['measure'] });
   } catch {
-    // measure may not be supported — continue without it
+    // measure not supported — continue without it
   }
 
-  const longTaskObserver = new PerformanceObserver((list) => {
+  const blockObserver = new PerformanceObserver((list) => {
     for (const entry of list.getEntries()) {
       if (!isUrlAllowed(options as ElementInteractionsOptions)) {
         return;
       }
-      if (entry.duration >= durationThreshold) {
-        const attribution = (entry as PerformanceLongTaskTiming).attribution;
-        const overlappingMeasures = getOverlappingMeasures(entry, measures);
-        amplitude.track(AMPLITUDE_LONG_TASK_EVENT, {
-          '[Amplitude] Long Task Duration': entry.duration,
-          '[Amplitude] Long Task Start Time': entry.startTime,
-          ...(attribution && {
-            '[Amplitude] Long Task Attribution': attribution.map((a: TaskAttributionTiming) => a.name),
-          }),
-          ...(overlappingMeasures.length > 0 && { '[Amplitude] Long Task Measures': overlappingMeasures }),
-        });
+      if (entry.duration < durationThreshold) {
+        continue;
       }
+      const properties =
+        entryType === 'long-animation-frame'
+          ? buildLoAFProperties(entry as PerformanceLongAnimationFrameTiming, measures)
+          : buildLongTaskProperties(entry as PerformanceLongTaskTiming, measures);
+
+      amplitude.track(AMPLITUDE_MAIN_THREAD_BLOCK_EVENT, properties);
     }
   });
 
   try {
-    longTaskObserver.observe({ entryTypes: ['longtask'] });
+    blockObserver.observe({ entryTypes: [entryType] });
   } catch {
-    // longtask may not be supported in all browsers
     measureObserver.disconnect();
     return { unsubscribe: () => void 0 };
   }
 
   return {
     unsubscribe: () => {
-      longTaskObserver.disconnect();
+      blockObserver.disconnect();
       measureObserver.disconnect();
     },
   };
