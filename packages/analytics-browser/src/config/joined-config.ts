@@ -149,26 +149,24 @@ export function translateRemoteConfigToLocal(config?: Record<string, any>) {
 
   // normalize viewportContentUpdated inside elementInteractions
   try {
-    const ei = config.autocapture?.elementInteractions;
-    if (ei && typeof ei === 'object') {
-      // translateRemoteConfigToLocal converts { enabled: true } (no other fields) to the boolean `true`,
-      // but the SDK expects a ViewportContentUpdatedOptions object, so convert `true` → `{}`.
-      if (ei.viewportContentUpdated === true) {
-        ei.viewportContentUpdated = {};
+    const elementInteractions = config.autocapture?.elementInteractions;
+    if (elementInteractions && typeof elementInteractions === 'object') {
+      // { enabled: true } (no other fields) collapses to `true`; convert back to {} for the SDK.
+      if (elementInteractions.viewportContentUpdated === true) {
+        elementInteractions.viewportContentUpdated = {};
       }
-
-      // Migrate deprecated top-level exposureDuration into viewportContentUpdated.exposureDuration.
-      // This is analogous to rageClick → rageClicks for frustrationInteractions.
-      if (ei.exposureDuration !== undefined) {
-        if (ei.viewportContentUpdated === undefined || ei.viewportContentUpdated === true) {
-          ei.viewportContentUpdated = { exposureDuration: ei.exposureDuration };
+      // Migrate deprecated top-level exposureDuration to viewportContentUpdated.exposureDuration
+      if (elementInteractions.exposureDuration !== undefined) {
+        const viewportContentUpdated = elementInteractions.viewportContentUpdated;
+        if (viewportContentUpdated === undefined) {
+          elementInteractions.viewportContentUpdated = { exposureDuration: elementInteractions.exposureDuration };
         } else if (
-          typeof ei.viewportContentUpdated === 'object' &&
-          ei.viewportContentUpdated.exposureDuration === undefined
+          typeof viewportContentUpdated === 'object' &&
+          viewportContentUpdated.exposureDuration === undefined
         ) {
-          ei.viewportContentUpdated.exposureDuration = ei.exposureDuration;
+          viewportContentUpdated.exposureDuration = elementInteractions.exposureDuration;
         }
-        delete ei.exposureDuration;
+        delete elementInteractions.exposureDuration;
       }
     }
   } catch (e) {
