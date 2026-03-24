@@ -1,6 +1,7 @@
 import type { TargetingParameters } from '@amplitude/targeting';
 import { TargetingConfig } from '../config/types';
 import { Logger } from '@amplitude/analytics-types';
+import { SessionReplayTargetingInput } from '../typings/session-replay';
 import { targetingIDBStore } from './targeting-idb-store';
 
 export const evaluateTargetingAndStore = async ({
@@ -15,7 +16,7 @@ export const evaluateTargetingAndStore = async ({
   targetingConfig: TargetingConfig;
   loggerProvider: Logger;
   apiKey: string;
-  targetingParams?: Pick<TargetingParameters, 'event' | 'userProperties' | 'page'>;
+  targetingParams?: SessionReplayTargetingInput;
   urlChange?: boolean;
 }) => {
   await targetingIDBStore.clearStoreOfOldSessions({

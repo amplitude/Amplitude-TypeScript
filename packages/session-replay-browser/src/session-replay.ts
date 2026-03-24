@@ -15,7 +15,6 @@ import {
 
 // Import only specific types to avoid pulling in the entire rrweb-types package
 import { eventWithTime, EventType as RRWebEventType, scrollCallback } from '@amplitude/rrweb-types';
-import { TargetingParameters } from '@amplitude/targeting';
 import { createSessionReplayJoinedConfigGenerator } from './config/joined-config';
 import {
   LoggingConfig,
@@ -54,6 +53,7 @@ import {
   EventType,
   SessionIdentifiers as ISessionIdentifiers,
   SessionReplayOptions,
+  SessionReplayTargetingInput,
 } from './typings/session-replay';
 import { VERSION } from './version';
 
@@ -75,7 +75,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
   eventCount = 0;
   eventCompressor: EventCompressor | undefined;
   sessionTargetingMatch = false;
-  private lastTargetingParams?: Pick<TargetingParameters, 'event' | 'userProperties' | 'page'>;
+  private lastTargetingParams?: SessionReplayTargetingInput;
   private lastShouldRecordDecision?: boolean;
 
   // Visible for testing only
@@ -159,7 +159,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
     };
   }
 
-  private getCurrentPageForTargeting(): Pick<TargetingParameters, 'page'>['page'] {
+  private getCurrentPageForTargeting(): SessionReplayTargetingInput['page'] {
     const currentUrl = getGlobalScope()?.location?.href;
     return currentUrl != null ? { url: currentUrl } : undefined;
   }
@@ -384,7 +384,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
   };
 
   evaluateTargetingAndCapture = async (
-    targetingParams: Pick<TargetingParameters, 'event' | 'userProperties' | 'page'>,
+    targetingParams: SessionReplayTargetingInput,
     isInit = false,
     forceRestart = false,
     forceTargetingReevaluation = false,
