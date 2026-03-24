@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Long Task Test</title>
+    <style>
+      body { font-family: monospace; margin: 20px; }
+      h2 { margin-top: 32px; }
+      button { margin: 4px 0; display: block; }
+      .log { margin-top: 24px; background: #f4f4f4; padding: 12px; border-radius: 4px; min-height: 60px; white-space: pre; font-size: 13px; }
+      .tag { display: inline-block; background: #1a73e8; color: white; border-radius: 3px; padding: 1px 6px; font-size: 11px; margin-right: 4px; }
+      .tag.measure { background: #188038; }
+    </style>
+  </head>
+  <body>
+    <h1>Long Task Test</h1>
+    <p>Open the Network tab or Amplitude debugger to see <strong>[Amplitude] Long Task</strong> events fire. Each test below is designed to trigger a specific scenario.</p>
+
+    <h2>1. Basic long task (no measure)</h2>
+    <p>Blocks the main thread for 200ms. Expect: event with no <code>[Amplitude] Long Task Measures</code>.</p>
+    <button id="basic-long-task">Trigger 200ms long task</button>
+
+    <h2>2. Long task with measure correlation</h2>
+    <p>Wraps the busy work in a <code>performance.measure()</code>. Expect: event with <code>[Amplitude] Long Task Measures: ["heavy-calculation"]</code>.</p>
+    <button id="measured-long-task">Trigger long task with measure</button>
+
+    <h2>3. Long task after a click</h2>
+    <p>Simulates a click handler that triggers a long task. Useful for correlating tasks with user actions in Amplitude.</p>
+    <button id="click-long-task">Click me (triggers long task after 50ms)</button>
+
+    <h2>4. Multiple overlapping measures</h2>
+    <p>Two measures overlap the same long task. Expect: <code>[Amplitude] Long Task Measures: ["step-one", "step-two"]</code>.</p>
+    <button id="multi-measure-long-task">Trigger long task with multiple measures</button>
+
+    <h2>5. Short task (should NOT fire)</h2>
+    <p>Blocks for only 10ms — below the 50ms threshold. Expect: no event.</p>
+    <button id="short-task">Trigger 10ms task (no event expected)</button>
+
+    <div class="log" id="log">Waiting for events...</div>
+
+    <script>
+      function blockMainThread(ms) {
+        const start = performance.now();
+        while (performance.now() - start < ms) { /* busy wait */ }
+      }
+
+      function log(msg) {
+        const el = document.getElementById('log');
+        el.textContent = new Date().toISOString().slice(11, 23) + '  ' + msg + '\n' + el.textContent;
+      }
+
+      document.getElementById('basic-long-task').addEventListener('click', () => {
+        log('Triggering 200ms long task...');
+        blockMainThread(200);
+      });
+
+      document.getElementById('measured-long-task').addEventListener('click', () => {
+        log('Triggering long task with measure "heavy-calculation"...');
+        performance.mark('heavy-calculation-start');
+        blockMainThread(200);
+        performance.mark('heavy-calculation-end');
+        performance.measure('heavy-calculation', 'heavy-calculation-start', 'heavy-calculation-end');
+      });
+
+      document.getElementById('click-long-task').addEventListener('click', () => {
+        log('Click captured — triggering long task in 50ms...');
+        setTimeout(() => {
+          blockMainThread(200);
+        }, 50);
+      });
+
+      document.getElementById('multi-measure-long-task').addEventListener('click', () => {
+        log('Triggering long task with measures "step-one" and "step-two"...');
+        performance.mark('step-one-start');
+        blockMainThread(100);
+        performance.mark('step-one-end');
+        performance.measure('step-one', 'step-one-start', 'step-one-end');
+
+        performance.mark('step-two-start');
+        blockMainThread(100);
+        performance.mark('step-two-end');
+        performance.measure('step-two', 'step-two-start', 'step-two-end');
+      });
+
+      document.getElementById('short-task').addEventListener('click', () => {
+        log('Triggering 10ms task (no event expected)...');
+        blockMainThread(10);
+      });
+    </script>
+
+    <script type="module">
+      import * as amplitude from '@amplitude/analytics-browser';
+      import { performancePlugin } from '@amplitude/plugin-autocapture-browser';
+
+      window.amplitude = amplitude;
+
+      const plugin = performancePlugin({
+        longTask: { durationThreshold: 50 },
+      });
+
+      amplitude.init(
+        import.meta.env.VITE_AMPLITUDE_API_KEY,
+        import.meta.env.VITE_AMPLITUDE_USER_ID || 'amplitude-typescript test user',
+      );
+
+      // Mirror long task events to the on-page log via an enrichment plugin
+      amplitude.add({
+        name: 'long-task-logger',
+        type: 'enrichment',
+        execute: async (event) => {
+          if (event.event_type === '[Amplitude] Long Task') {
+            const props = event.event_properties ?? {};
+            const duration = props['[Amplitude] Long Task Duration'];
+            const measures = props['[Amplitude] Long Task Measures'];
+            const attribution = props['[Amplitude] Long Task Attribution'];
+            let msg = `[Amplitude] Long Task fired — duration: ${Math.round(duration)}ms`;
+            if (measures?.length) msg += ` | measures: ${measures.join(', ')}`;
+            if (attribution?.length) msg += ` | attribution: ${attribution.join(', ')}`;
+            document.getElementById('log').textContent =
+              new Date().toISOString().slice(11, 23) + '  ' + msg + '\n' +
+              document.getElementById('log').textContent;
+          }
+          return event;
+        },
+      });
+
+      amplitude.add(plugin);
+    </script>
+  </body>
+</html>
