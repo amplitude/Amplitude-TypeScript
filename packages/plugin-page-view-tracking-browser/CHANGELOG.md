@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.9.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-page-view-tracking-browser@2.9.2...@amplitude/plugin-page-view-tracking-browser@2.9.3) (2026-03-24)
+
+
+### Bug Fixes
+
+* swallow session storage errors ([#1618](https://github.com/amplitude/Amplitude-TypeScript/issues/1618)) ([6c8066b](https://github.com/amplitude/Amplitude-TypeScript/commit/6c8066ba365fd11dbdcb48ac15f249e089b6a912))
+
+
+
+
+
 ## [2.9.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-page-view-tracking-browser@2.9.1...@amplitude/plugin-page-view-tracking-browser@2.9.2) (2026-03-23)
 
 **Note:** Version bump only for package @amplitude/plugin-page-view-tracking-browser

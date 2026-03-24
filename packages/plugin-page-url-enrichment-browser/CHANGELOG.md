@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.7.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-page-url-enrichment-browser@0.7.1...@amplitude/plugin-page-url-enrichment-browser@0.7.2) (2026-03-24)
+
+
+### Bug Fixes
+
+* swallow session storage errors ([#1618](https://github.com/amplitude/Amplitude-TypeScript/issues/1618)) ([6c8066b](https://github.com/amplitude/Amplitude-TypeScript/commit/6c8066ba365fd11dbdcb48ac15f249e089b6a912))
+
+
+
+
+
 ## [0.7.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-page-url-enrichment-browser@0.7.0...@amplitude/plugin-page-url-enrichment-browser@0.7.1) (2026-03-23)
 
 **Note:** Version bump only for package @amplitude/plugin-page-url-enrichment-browser
