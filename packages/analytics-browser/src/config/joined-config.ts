@@ -148,13 +148,27 @@ export function translateRemoteConfigToLocal(config?: Record<string, any>) {
   }
 
   // normalize viewportContentUpdated inside elementInteractions
-  // translateRemoteConfigToLocal converts { enabled: true } (no other fields) to the boolean `true`,
-  // but the SDK expects a ViewportContentUpdatedOptions object, so convert `true` → `{}`.
   try {
-    const elementInteractionsForViewport = config.autocapture?.elementInteractions;
-    if (elementInteractionsForViewport && typeof elementInteractionsForViewport === 'object') {
-      if (elementInteractionsForViewport.viewportContentUpdated === true) {
-        elementInteractionsForViewport.viewportContentUpdated = {};
+    const ei = config.autocapture?.elementInteractions;
+    if (ei && typeof ei === 'object') {
+      // translateRemoteConfigToLocal converts { enabled: true } (no other fields) to the boolean `true`,
+      // but the SDK expects a ViewportContentUpdatedOptions object, so convert `true` → `{}`.
+      if (ei.viewportContentUpdated === true) {
+        ei.viewportContentUpdated = {};
+      }
+
+      // Migrate deprecated top-level exposureDuration into viewportContentUpdated.exposureDuration.
+      // This is analogous to rageClick → rageClicks for frustrationInteractions.
+      if (ei.exposureDuration !== undefined) {
+        if (ei.viewportContentUpdated === undefined || ei.viewportContentUpdated === true) {
+          ei.viewportContentUpdated = { exposureDuration: ei.exposureDuration };
+        } else if (
+          typeof ei.viewportContentUpdated === 'object' &&
+          ei.viewportContentUpdated.exposureDuration === undefined
+        ) {
+          ei.viewportContentUpdated.exposureDuration = ei.exposureDuration;
+        }
+        delete ei.exposureDuration;
       }
     }
   } catch (e) {
