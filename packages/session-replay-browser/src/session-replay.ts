@@ -607,7 +607,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
       user_id: userId,
     };
 
-    const decision = await fetchRemoteDecision(deploymentKey, user, flagKey, timeoutMs);
+    const decision = await fetchRemoteDecision(deploymentKey, user, flagKey, timeoutMs, config.serverZone);
 
     // Discard result if a newer session has already started a fresh eval.
     if (evalId !== this.latestRemoteEvalId) {

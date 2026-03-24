@@ -125,4 +125,28 @@ describe('fetchRemoteDecision', () => {
     const [url] = (global.fetch as jest.Mock).mock.calls[0] as [string, RequestInit];
     expect(url).toContain('flag_keys=custom-flag');
   });
+
+  it('uses EU eval URL when serverZone is EU', async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: jest.fn().mockResolvedValue({ [flagKey]: { key: 'on' } }),
+    });
+
+    await fetchRemoteDecision(deploymentKey, user, flagKey, 200, 'EU');
+
+    const [url] = (global.fetch as jest.Mock).mock.calls[0] as [string, RequestInit];
+    expect(url).toContain('https://api.lab.eu.amplitude.com/sdk/v2/vardata');
+  });
+
+  it('falls back to US eval URL for unknown serverZone', async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: jest.fn().mockResolvedValue({ [flagKey]: { key: 'on' } }),
+    });
+
+    await fetchRemoteDecision(deploymentKey, user, flagKey, 200, 'STAGING');
+
+    const [url] = (global.fetch as jest.Mock).mock.calls[0] as [string, RequestInit];
+    expect(url).toContain('https://api.lab.amplitude.com/sdk/v2/vardata');
+  });
 });
