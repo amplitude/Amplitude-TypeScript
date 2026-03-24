@@ -35,8 +35,6 @@ export const DEFAULT_DATA_ATTRIBUTE_PREFIX = 'data-amp-track-';
  */
 export const DEFAULT_ACTION_CLICK_ALLOWLIST = ['div', 'span', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'];
 
-export const DEFAULT_EXPOSURE_DURATION = 150;
-
 export interface ElementInteractionsOptions {
   /**
    * List of CSS selectors to allow auto tracking on.
@@ -86,21 +84,6 @@ export interface ElementInteractionsOptions {
    * CSS selector allowlist for tracking clicks that result in a DOM change/navigation on elements not already allowed by the cssSelectorAllowlist
    */
   actionClickAllowlist?: string[];
-
-  /**
-   * Options for tracking when visible content in the viewport changes,
-   * such as from scrolling or dynamic page updates.
-   */
-  viewportContentUpdated?: ViewportContentUpdatedOptions;
-}
-
-export interface ViewportContentUpdatedOptions {
-  /**
-   * Minimum time in milliseconds that content must remain visible in the viewport
-   * before the event is fired.
-   * @defaultValue 150
-   */
-  exposureDuration?: number;
 }
 
 export interface Messenger {
