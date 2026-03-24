@@ -1,6 +1,7 @@
 import {
   AutocaptureOptions,
   type ElementInteractionsOptions,
+  type ViewportContentUpdatedOptions,
   BrowserConfig,
   CustomEnrichmentOptions,
   RemoteConfig,
@@ -18,6 +19,11 @@ export interface ElementInteractionsOptionsRemoteConfig extends ElementInteracti
    * Related to pageUrlAllowlist but holds regex strings which will be initialized and appended to pageUrlAllowlist
    */
   pageUrlAllowlistRegex?: string[];
+  /**
+   * Override parent type to allow boolean, since the remote config `enabled` flag is translated to
+   * `true` (enabled with defaults) or `false` (disabled) by translateRemoteConfigToLocal.
+   */
+  viewportContentUpdated?: boolean | ViewportContentUpdatedOptions;
 }
 
 export interface NetworkCaptureRuleRemoteConfig extends NetworkCaptureRule {
@@ -144,6 +150,16 @@ export function translateRemoteConfigToLocal(config?: Record<string, any>) {
     if (frustrationInteractions.deadClick) {
       frustrationInteractions.deadClicks = frustrationInteractions.deadClick;
       delete frustrationInteractions.deadClick;
+    }
+  }
+
+  // normalize viewportContentUpdated inside elementInteractions
+  // translateRemoteConfigToLocal converts { enabled: true } (no other fields) to the boolean `true`,
+  // but the SDK expects a ViewportContentUpdatedOptions object, so convert `true` → `{}`.
+  const elementInteractionsForViewport = config.autocapture?.elementInteractions;
+  if (elementInteractionsForViewport && typeof elementInteractionsForViewport === 'object') {
+    if (elementInteractionsForViewport.viewportContentUpdated === true) {
+      elementInteractionsForViewport.viewportContentUpdated = {};
     }
   }
 }
