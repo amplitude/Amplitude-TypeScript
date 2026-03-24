@@ -79,23 +79,22 @@ const createConfigurationMock = (optOut = false, overrides: Partial<BrowserConfi
     ...overrides,
   } as BrowserConfig);
 
-const createCampaign = (overrides: Partial<Campaign> = {}) =>
-  ({
-    ...(Object.keys(BASE_CAMPAIGN).reduce(
-      (campaign, key, index) => ({
-        ...campaign,
-        [key]: `${key}-${index}`,
-      }),
-      {
-        ...BASE_CAMPAIGN,
-      } as Campaign,
-    ) as Campaign),
+const createCampaign = (overrides: Partial<Campaign> = {}): Campaign => {
+  const campaign = { ...BASE_CAMPAIGN };
+
+  for (const [index, key] of (Object.keys(BASE_CAMPAIGN) as (keyof Campaign)[]).entries()) {
+    campaign[key] = `${key}-${index}`;
+  }
+
+  return {
+    ...campaign,
     ...overrides,
-  } as Campaign);
+  };
+};
 
 describe('eventPropertyTrackingPlugin', () => {
-  const originalPushState = window.history.pushState;
-  const originalReplaceState = window.history.replaceState;
+  const originalPushState = window.history.pushState.bind(window.history);
+  const originalReplaceState = window.history.replaceState.bind(window.history);
   let plugin = eventPropertyTrackingPlugin();
 
   beforeEach(() => {
@@ -412,33 +411,34 @@ describe('eventPropertyTrackingPlugin', () => {
       fallbackAttributionEvent: true,
     });
     const client = createMockBrowserClient();
+    const trackCalls = client.track.mock.calls;
 
     await plugin.setup?.(createConfigurationMock(), client);
 
-    expect(client.track).toHaveBeenCalledTimes(1);
-    expect(client.track).toHaveBeenCalledWith(
+    expect(trackCalls).toHaveLength(1);
+    expect(trackCalls[0]).toEqual([
       '[Amplitude] Attribution',
       expect.objectContaining({
         utm_source: 'google',
       }),
-    );
+    ]);
 
     window.history.pushState(undefined, '', '/direct');
     await new Promise((resolve) => setTimeout(resolve, 0));
 
-    expect(client.track).toHaveBeenCalledTimes(2);
-    expect(client.track).toHaveBeenNthCalledWith(2, '[Amplitude] Attribution', {});
+    expect(trackCalls).toHaveLength(2);
+    expect(trackCalls[1]).toEqual(['[Amplitude] Attribution', {}]);
     expect(parseSpy).toHaveBeenCalledTimes(2);
 
     window.history.pushState(undefined, '', '/campaign');
     await new Promise((resolve) => setTimeout(resolve, 0));
 
-    expect(client.track).toHaveBeenCalledTimes(3);
-    expect(client.track).toHaveBeenLastCalledWith(
+    expect(trackCalls).toHaveLength(3);
+    expect(trackCalls[2]).toEqual([
       '[Amplitude] Attribution',
       expect.objectContaining({
         utm_source: 'bing',
       }),
-    );
+    ]);
   });
 });

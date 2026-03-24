@@ -17,10 +17,13 @@ describe('tracking-methods', () => {
   });
 
   test('should normalize and dedupe tracking methods', () => {
-    expect(normalizeTrackingMethod([USER_PROPERTY_TRACKING_METHOD, EVENT_PROPERTY_TRACKING_METHOD, USER_PROPERTY_TRACKING_METHOD])).toEqual([
-      USER_PROPERTY_TRACKING_METHOD,
-      EVENT_PROPERTY_TRACKING_METHOD,
-    ]);
+    expect(
+      normalizeTrackingMethod([
+        USER_PROPERTY_TRACKING_METHOD,
+        EVENT_PROPERTY_TRACKING_METHOD,
+        USER_PROPERTY_TRACKING_METHOD,
+      ]),
+    ).toEqual([USER_PROPERTY_TRACKING_METHOD, EVENT_PROPERTY_TRACKING_METHOD]);
   });
 
   test('should detect enabled tracking methods', () => {

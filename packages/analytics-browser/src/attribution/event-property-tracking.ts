@@ -37,8 +37,10 @@ export const eventPropertyTrackingPlugin = (
     eventPropertyCampaign = toEventPropertyCampaign(currentCampaign);
 
     if (pluginOptions.fallbackAttributionEvent) {
-      loggerProvider!.log('Tracking attribution fallback event.');
-      amplitude!.track(ATTRIBUTION_EVENT_TYPE, eventPropertyCampaign);
+      /* istanbul ignore next */
+      loggerProvider?.log('Tracking attribution fallback event.');
+      /* istanbul ignore next */
+      amplitude?.track(ATTRIBUTION_EVENT_TYPE, eventPropertyCampaign);
     }
   };
 
