@@ -257,6 +257,16 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
       return;
     }
 
+    // Non-413 4xx on a msgpack request: the backend rejected the encoding (e.g. kill switch
+    // returned 400). Fall back to V4 JSON encoding and retry once rather than dropping events.
+    if (status >= 400 && status < 500 && status !== 413 && this.useMessagePack) {
+      this.loggerProvider.warn(
+        `[msgpack] received ${status}, falling back to JSON encoding for session ${context.sessionId}`,
+      );
+      await this.retryAsJson(context);
+      return;
+    }
+
     const parsedStatus = new BaseTransport().buildStatus(status);
     switch (parsedStatus) {
       case Status.Success:
@@ -267,6 +277,53 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
         break;
       default:
         this.completeRequest({ context, err: UNEXPECTED_NETWORK_ERROR_MESSAGE });
+    }
+  }
+
+  /**
+   * Re-encodes the batch as V4 JSON and fires a single best-effort fetch.
+   * Called only when a msgpack request receives a non-413 4xx response (e.g. kill-switch 400).
+   * No further retry loop: success completes the request normally; any error is logged and dropped.
+   */
+  private async retryAsJson(context: SessionReplayDestinationContext): Promise<void> {
+    const payload = this.payloadBatcher({ version: 1, events: context.events });
+    const url = getCurrentUrl();
+    const version = VERSION;
+    const sampleRate = context.sampleRate;
+    const sessionReplayLibrary = `${context.version?.type || 'standalone'}/${context.version?.version || version}`;
+    const urlParams = new URLSearchParams({
+      device_id: context.deviceId as string,
+      session_id: `${context.sessionId}`,
+      type: `${context.type}`,
+    });
+    const headers: Record<string, string> = {
+      Accept: '*/*',
+      Authorization: `Bearer ${context.apiKey as string}`,
+      'Content-Type': 'application/json',
+      'X-Client-Version': version,
+      'X-Client-Library': sessionReplayLibrary,
+      'X-Client-Url': url.substring(0, MAX_URL_LENGTH),
+      'X-Client-Sample-Rate': `${sampleRate}`,
+    };
+    const body = JSON.stringify(payload);
+    const serverUrl = `${getServerUrl(context.serverZone, this.trackServerUrl)}?${urlParams.toString()}`;
+    try {
+      const res = await fetch(serverUrl, { headers, body, method: 'POST' });
+      if (res === null) {
+        this.completeRequest({ context, err: UNEXPECTED_ERROR_MESSAGE });
+        return;
+      }
+      const parsedStatus = new BaseTransport().buildStatus(res.status);
+      if (parsedStatus === Status.Success) {
+        this.handleSuccessResponse(context);
+      } else {
+        this.completeRequest({
+          context,
+          err: `[msgpack→json fallback] request failed with status ${res.status}`,
+        });
+      }
+    } catch (e) {
+      this.completeRequest({ context, err: e as string });
     }
   }
 

@@ -636,6 +636,134 @@ describe('SessionReplayTrackDestination', () => {
       expect(dest.queue).toHaveLength(0);
     });
 
+    describe('non-413 4xx fallback to JSON', () => {
+      test('retries as JSON on 400 and succeeds', async () => {
+        (global.fetch as jest.Mock)
+          .mockResolvedValueOnce({ status: 400 }) // msgpack request → kill switch fires
+          .mockResolvedValueOnce({ status: 200 }); // JSON retry → success
+        const dest = makeDest();
+
+        await dest.send(makeContext({ version: { type: 'plugin', version: '1.0.0' } }), true);
+
+        expect(fetch).toHaveBeenCalledTimes(2);
+        // Second call must use application/json
+        const retryHeaders = (fetch as jest.Mock).mock.calls[1][1].headers as Record<string, string>;
+        expect(retryHeaders['Content-Type']).toBe('application/json');
+        // eslint-disable-next-line @typescript-eslint/unbound-method
+        expect(mockLoggerProvider.warn).toHaveBeenCalledWith(
+          expect.stringContaining('[msgpack] received 400, falling back to JSON encoding'),
+        );
+        // eslint-disable-next-line @typescript-eslint/unbound-method
+        expect(mockLoggerProvider.log).toHaveBeenCalledWith(
+          expect.stringContaining('Session replay event batch tracked successfully'),
+        );
+      });
+
+      test('retry body is valid JSON-encoded payload', async () => {
+        (global.fetch as jest.Mock).mockResolvedValueOnce({ status: 400 }).mockResolvedValueOnce({ status: 200 });
+        const dest = makeDest();
+
+        await dest.send(makeContext(), true);
+
+        const retryBody = (fetch as jest.Mock).mock.calls[1][1].body as string;
+        const parsed = JSON.parse(retryBody) as { version: number; events: unknown[] };
+        expect(parsed.version).toBe(1);
+        expect(parsed.events).toEqual(mockObjectEvents);
+      });
+
+      test('completes with error when JSON retry also fails', async () => {
+        (global.fetch as jest.Mock)
+          .mockResolvedValueOnce({ status: 400 }) // msgpack fails
+          .mockResolvedValueOnce({ status: 500 }); // JSON retry also fails
+        const dest = makeDest();
+
+        await dest.send(makeContext(), true);
+
+        expect(fetch).toHaveBeenCalledTimes(2);
+        // eslint-disable-next-line @typescript-eslint/unbound-method
+        expect(mockLoggerProvider.warn).toHaveBeenCalledWith(
+          expect.stringContaining('[msgpack→json fallback] request failed with status 500'),
+        );
+      });
+
+      test('does not enter normal retry loop — JSON fallback fires exactly once', async () => {
+        (global.fetch as jest.Mock)
+          .mockResolvedValueOnce({ status: 400 }) // msgpack → triggers fallback
+          .mockResolvedValueOnce({ status: 500 }); // JSON fallback fires once, then done
+        const dest = makeDest();
+        const addToQueue = jest.spyOn(dest, 'addToQueue');
+
+        await dest.send(makeContext(), true);
+
+        // Two total fetches; addToQueue never called (no retry loop)
+        expect(fetch).toHaveBeenCalledTimes(2);
+        expect(addToQueue).not.toHaveBeenCalled();
+      });
+
+      test('does NOT trigger JSON fallback on non-413 4xx when useMessagePack is false', async () => {
+        (global.fetch as jest.Mock).mockResolvedValueOnce({ status: 400 });
+        const dest = new SessionReplayTrackDestination({ loggerProvider: mockLoggerProvider });
+
+        await dest.send(makeContext({ events: [mockEventString] }), true);
+
+        // JSON path: 400 falls through to default (network error) — no second fetch
+        expect(fetch).toHaveBeenCalledTimes(1);
+        // eslint-disable-next-line @typescript-eslint/unbound-method
+        expect(mockLoggerProvider.warn).toHaveBeenCalledWith(expect.stringContaining('Network error occurred'));
+      });
+
+      test('does NOT trigger JSON fallback on 413 (handled by split logic)', async () => {
+        (global.fetch as jest.Mock).mockResolvedValueOnce({ status: 413 });
+        const dest = makeDest();
+        const addToQueue = jest.spyOn(dest, 'addToQueue');
+
+        await dest.send(makeContext(), true);
+
+        // 413 goes to split path, not JSON fallback
+        expect(fetch).toHaveBeenCalledTimes(1);
+        expect(addToQueue).toHaveBeenCalledTimes(1);
+        // eslint-disable-next-line @typescript-eslint/unbound-method
+        expect(mockLoggerProvider.warn).not.toHaveBeenCalledWith(
+          expect.stringContaining('falling back to JSON encoding'),
+        );
+      });
+
+      test('onComplete is called exactly once after successful JSON fallback', async () => {
+        (global.fetch as jest.Mock).mockResolvedValueOnce({ status: 400 }).mockResolvedValueOnce({ status: 200 });
+        const onComplete = jest.fn().mockResolvedValue(undefined);
+        const dest = makeDest();
+
+        await dest.send(makeContext({ onComplete }), true);
+
+        expect(onComplete).toHaveBeenCalledTimes(1);
+      });
+
+      test('completes with unexpected error when JSON retry fetch returns null', async () => {
+        (global.fetch as jest.Mock)
+          .mockResolvedValueOnce({ status: 400 }) // msgpack → triggers fallback
+          .mockResolvedValueOnce(null); // JSON retry returns null
+        const dest = makeDest();
+
+        await dest.send(makeContext(), true);
+
+        // eslint-disable-next-line @typescript-eslint/unbound-method
+        expect(mockLoggerProvider.warn).toHaveBeenCalledWith(expect.stringContaining('Unexpected error occurred'));
+      });
+
+      test('completes with error when JSON retry fetch throws', async () => {
+        const err = new Error('network failure');
+        (global.fetch as jest.Mock)
+          .mockResolvedValueOnce({ status: 400 }) // msgpack → triggers fallback
+          .mockRejectedValueOnce(err); // JSON retry throws
+        const dest = makeDest();
+
+        await dest.send(makeContext(), true);
+
+        // eslint-disable-next-line @typescript-eslint/unbound-method
+        expect(mockLoggerProvider.warn).toHaveBeenCalledWith(err);
+      });
+    });
+
     test('logs debug info (uncompressed path) when debugMode is true', async () => {
       const dest = new SessionReplayTrackDestination({
         loggerProvider: mockLoggerProvider,
