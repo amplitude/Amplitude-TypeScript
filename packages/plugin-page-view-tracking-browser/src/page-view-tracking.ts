@@ -13,9 +13,9 @@ import {
   BASE_CAMPAIGN,
   BrowserStorage,
   UUID,
+  omitUndefined,
 } from '@amplitude/analytics-core';
 import { CreatePageViewTrackingPlugin, Options } from './typings/page-view-tracking';
-import { omitUndefined } from './utils';
 
 export const defaultPageViewEvent = '[Amplitude] Page Viewed';
 export const PAGE_VIEW_SESSION_STORAGE_KEY = 'AMP_PAGE_VIEW';

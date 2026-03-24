@@ -28,6 +28,7 @@ import * as SnippetHelper from '../src/utils/snippet-helper';
 import * as joinedConfig from '../src/config/joined-config';
 import * as pageUrlEnrichment from '@amplitude/plugin-page-url-enrichment-browser';
 import * as customEnrichment from '@amplitude/plugin-custom-enrichment-browser';
+import * as eventPropertyTracking from '../src/attribution/event-property-tracking';
 
 // Mock RemoteConfigClient constructor
 const mockRemoteConfigClient = {
@@ -941,6 +942,85 @@ describe('browser-client', () => {
       expect(pageUrlEnrichmentPlugin).toHaveBeenCalledTimes(1);
     });
 
+    test('should add event property attribution plugin for event property tracking', async () => {
+      jest.spyOn(core.CampaignParser.prototype, 'parse').mockResolvedValue({
+        ...core.BASE_CAMPAIGN,
+        utm_source: 'amp-test',
+      });
+      const eventPropertyTrackingPlugin = jest.spyOn(eventPropertyTracking, 'eventPropertyTrackingPlugin');
+      const webAttributionInit = jest.spyOn(WebAttribution.prototype, 'init');
+
+      await client.init(apiKey, userId, {
+        fetchRemoteConfig: false,
+        defaultTracking: {
+          attribution: {
+            trackingMethod: 'eventProperty',
+          },
+          pageViews: false,
+          sessions: false,
+        },
+      }).promise;
+
+      expect(eventPropertyTrackingPlugin).toHaveBeenCalledTimes(1);
+      expect(eventPropertyTrackingPlugin).toHaveBeenCalledWith(
+        expect.objectContaining({
+          trackingMethod: 'eventProperty',
+        }),
+      );
+      expect(webAttributionInit).not.toHaveBeenCalled();
+    });
+
+    test('should add web attribution plugin for user property tracking only', async () => {
+      jest.spyOn(core.CampaignParser.prototype, 'parse').mockResolvedValue({
+        ...core.BASE_CAMPAIGN,
+        utm_source: 'amp-test',
+      });
+      const eventPropertyTrackingPlugin = jest.spyOn(eventPropertyTracking, 'eventPropertyTrackingPlugin');
+      const webAttributionInit = jest.spyOn(WebAttribution.prototype, 'init');
+
+      await client.init(apiKey, userId, {
+        fetchRemoteConfig: false,
+        defaultTracking: {
+          attribution: {
+            trackingMethod: 'userProperty',
+          },
+          pageViews: false,
+          sessions: false,
+        },
+      }).promise;
+
+      expect(webAttributionInit).toHaveBeenCalledTimes(1);
+      expect(eventPropertyTrackingPlugin).not.toHaveBeenCalled();
+    });
+
+    test('should add both attribution plugins when both tracking methods are enabled', async () => {
+      jest.spyOn(core.CampaignParser.prototype, 'parse').mockResolvedValue({
+        ...core.BASE_CAMPAIGN,
+        utm_source: 'amp-test',
+      });
+      const eventPropertyTrackingPlugin = jest.spyOn(eventPropertyTracking, 'eventPropertyTrackingPlugin');
+      const webAttributionInit = jest.spyOn(WebAttribution.prototype, 'init');
+
+      await client.init(apiKey, userId, {
+        fetchRemoteConfig: false,
+        defaultTracking: {
+          attribution: {
+            trackingMethod: ['userProperty', 'eventProperty'],
+          },
+          pageViews: false,
+          sessions: false,
+        },
+      }).promise;
+
+      expect(webAttributionInit).toHaveBeenCalledTimes(1);
+      expect(eventPropertyTrackingPlugin).toHaveBeenCalledTimes(1);
+      expect(eventPropertyTrackingPlugin).toHaveBeenCalledWith(
+        expect.objectContaining({
+          trackingMethod: ['userProperty', 'eventProperty'],
+        }),
+      );
+    });
+
     test('should add custom enrichment plugin when customEnrichment is an object with enabled=true', async () => {
       const customEnrichmentPlugin = jest.spyOn(customEnrichment, 'customEnrichmentPlugin');
       await client.init(apiKey, userId, {
@@ -1146,6 +1226,38 @@ describe('browser-client', () => {
 
           // should only call init once
           expect(webAttributionInitCallCount).toBe(1);
+        });
+
+        test('should defer event property attribution plugin until optOut changes', async () => {
+          jest.spyOn(core.CampaignParser.prototype, 'parse').mockResolvedValue({
+            ...core.BASE_CAMPAIGN,
+            utm_source: 'amp-test',
+          });
+          const eventPropertyTrackingPlugin = jest.spyOn(eventPropertyTracking, 'eventPropertyTrackingPlugin');
+
+          await client.init(apiKey, userId, {
+            optOut: true,
+            fetchRemoteConfig: false,
+            defaultTracking: {
+              attribution: {
+                trackingMethod: 'eventProperty',
+              },
+              pageViews: false,
+              sessions: false,
+            },
+          }).promise;
+
+          expect(eventPropertyTrackingPlugin).not.toHaveBeenCalled();
+
+          client.setOptOut(false);
+          await new Promise((resolve) => setTimeout(resolve, 10));
+
+          expect(eventPropertyTrackingPlugin).toHaveBeenCalledTimes(1);
+          expect(eventPropertyTrackingPlugin).toHaveBeenCalledWith(
+            expect.objectContaining({
+              trackingMethod: 'eventProperty',
+            }),
+          );
         });
       });
 

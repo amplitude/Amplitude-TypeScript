@@ -5,6 +5,7 @@ import {
   Campaign,
   BASE_CAMPAIGN,
   getGlobalScope,
+  TrackingMethod,
 } from '@amplitude/analytics-core';
 
 import { ExcludeInternalReferrersOptions, EXCLUDE_INTERNAL_REFERRERS_CONDITIONS } from '../types';
@@ -14,6 +15,8 @@ export interface Options {
   excludeInternalReferrers?: true | false | ExcludeInternalReferrersOptions;
   initialEmptyValue?: string;
   resetSessionOnNewCampaign?: boolean;
+  trackingMethod?: TrackingMethod | TrackingMethod[];
+  fallbackAttributionEvent?: boolean;
   optOut?: boolean;
 }
 

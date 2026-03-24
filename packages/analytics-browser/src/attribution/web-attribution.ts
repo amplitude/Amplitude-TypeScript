@@ -8,7 +8,13 @@ import {
   BASE_CAMPAIGN,
   CampaignParser,
 } from '@amplitude/analytics-core';
-import { Options, getDefaultExcludedReferrers, createCampaignEvent, isNewCampaign } from './helpers';
+import {
+  Options,
+  getDefaultExcludedReferrers,
+  createCampaignEvent,
+  isNewCampaign,
+} from './helpers';
+import { getAttributionTrackingOptions } from './tracking-methods';
 
 export class WebAttribution {
   options: Options;
@@ -23,13 +29,13 @@ export class WebAttribution {
   logger: ILogger;
   topLevelDomain?: string;
   constructor(options: Options, config: BrowserConfig) {
-    this.options = {
+    this.options = getAttributionTrackingOptions({
       initialEmptyValue: 'EMPTY',
       resetSessionOnNewCampaign: false,
       excludeReferrers: getDefaultExcludedReferrers(config.cookieOptions?.domain || config.topLevelDomain),
       optOut: config.optOut,
       ...options,
-    };
+    });
     this.storage = config.cookieStorage as unknown as Storage<Campaign>;
     this.storageKey = getStorageKey(config.apiKey, 'MKTG');
     this.webExpStorageKey = getStorageKey(config.apiKey, 'MKTG_ORIGINAL');

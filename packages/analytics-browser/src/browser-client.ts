@@ -65,10 +65,12 @@ import { autocapturePlugin, frustrationPlugin } from '@amplitude/plugin-autocapt
 import { plugin as networkCapturePlugin } from '@amplitude/plugin-network-capture-browser';
 import { webVitalsPlugin } from '@amplitude/plugin-web-vitals-browser';
 import { WebAttribution } from './attribution/web-attribution';
+import { eventPropertyTrackingPlugin } from './attribution/event-property-tracking';
 import { LIBPREFIX } from './lib-prefix';
 import { VERSION } from './version';
 import { pageUrlEnrichmentPlugin } from '@amplitude/plugin-page-url-enrichment-browser';
 import { customEnrichmentPlugin } from '@amplitude/plugin-custom-enrichment-browser';
+import { isEventPropertyAttributionEnabled, isUserPropertyAttributionEnabled } from './attribution/tracking-methods';
 
 const UNSPECIFIED_SESSION_ID = -1;
 
@@ -241,18 +243,21 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
 
     this.config.remoteConfigClient = remoteConfigClient;
 
+    const attributionTrackingOptions = getAttributionTrackingConfig(this.config);
+
     // Add web attribution plugin
-    if (isAttributionTrackingEnabled(this.config.defaultTracking)) {
+    if (
+      isAttributionTrackingEnabled(this.config.defaultTracking) &&
+      isUserPropertyAttributionEnabled(attributionTrackingOptions)
+    ) {
       if (this.config.optOut) {
         this.timeline.addOptOutListener(async (optOut) => {
           if (!optOut) {
-            const attributionTrackingOptions = getAttributionTrackingConfig(this.config);
             this.webAttribution = new WebAttribution(attributionTrackingOptions, this.config);
             await this.webAttribution.init();
           }
         });
       }
-      const attributionTrackingOptions = getAttributionTrackingConfig(this.config);
       this.webAttribution = new WebAttribution(attributionTrackingOptions, this.config);
       // Fetch the current campaign, check if need to track web attribution later
       await this.webAttribution.init();
@@ -339,6 +344,25 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
           }
           this.config.loggerProvider.debug('Adding page view tracking plugin');
           await this.add(pageViewTrackingPlugin(getPageViewTrackingConfig(this.config))).promise;
+        });
+      }
+    }
+
+    if (
+      isAttributionTrackingEnabled(this.config.defaultTracking) &&
+      isEventPropertyAttributionEnabled(attributionTrackingOptions)
+    ) {
+      if (!this.config.optOut) {
+        this.config.loggerProvider.debug('Adding event property attribution plugin');
+        await this.add(eventPropertyTrackingPlugin(attributionTrackingOptions)).promise;
+      } else {
+        this.timeline.addOptOutListener(async (optOut) => {
+          /* istanbul ignore if */
+          if (optOut) {
+            return;
+          }
+          this.config.loggerProvider.debug('Adding event property attribution plugin');
+          await this.add(eventPropertyTrackingPlugin(attributionTrackingOptions)).promise;
         });
       }
     }
@@ -601,7 +625,11 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
   }
 
   private trackCampaignEventIfNeeded(lastEventId?: number, promises?: Promise<Result>[]) {
-    if (!this.webAttribution || !this.webAttribution.shouldTrackNewCampaign) {
+    if (
+      !this.webAttribution ||
+      !this.webAttribution.shouldTrackNewCampaign ||
+      !isUserPropertyAttributionEnabled(this.webAttribution.options)
+    ) {
       return false;
     }
 
