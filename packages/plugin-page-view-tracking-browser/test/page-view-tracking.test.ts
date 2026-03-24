@@ -237,6 +237,40 @@ describe('pageViewTrackingPlugin', () => {
       expect(track).toHaveBeenCalledTimes(0);
     });
 
+    test('should handle sessionStorage throwing (e.g. sandboxed iframe) and continue without session storage', async () => {
+      const logger = new Logger();
+      const debugSpy = jest.spyOn(logger, 'debug');
+      const configWithLogger = { ...mockConfig, loggerProvider: logger };
+
+      // Build scope without spreading window so sessionStorage getter is only invoked when plugin accesses it
+      const scopeWithThrowingSessionStorage = {
+        addEventListener: window.addEventListener.bind(window),
+        removeEventListener: window.removeEventListener.bind(window),
+        history: window.history,
+        get sessionStorage() {
+          throw new DOMException('The operation is insecure', 'SecurityError');
+        },
+      };
+      (getGlobalScope as jest.Mock).mockReturnValue(scopeWithThrowingSessionStorage);
+
+      const amplitude = createMockBrowserClient();
+      jest.spyOn(amplitude, 'track').mockReturnValue({
+        promise: Promise.resolve({
+          code: 200,
+          message: '',
+          event: { event_type: '[Amplitude] Page Viewed' },
+        }),
+      });
+
+      const plugin = pageViewTrackingPlugin();
+      await expect(plugin.setup?.(configWithLogger, amplitude)).resolves.not.toThrow();
+      expect(debugSpy).toHaveBeenCalledWith(
+        expect.stringContaining('sessionStorage is not available in this environment'),
+      );
+
+      (getGlobalScope as jest.Mock).mockImplementation(() => (typeof window !== 'undefined' ? window : undefined));
+    });
+
     test.each([
       { trackHistoryChanges: 'pathOnly' as const },
       {
