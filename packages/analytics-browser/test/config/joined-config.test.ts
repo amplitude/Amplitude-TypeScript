@@ -706,5 +706,83 @@ describe('joined-config', () => {
         expect(remoteConfig.browserSDK.autocapture.frustrationInteractions).toEqual({ deadClicks: true });
       });
     });
+
+    describe('viewportContentUpdated', () => {
+      test('should convert viewportContentUpdated: true to an empty object', () => {
+        // When { enabled: true } (no other props) is processed, translateRemoteConfigToLocal
+        // collapses it to the boolean `true`. This block converts that back to {} so the
+        // SDK receives a ViewportContentUpdatedOptions object instead of a bare boolean.
+        const config = {
+          autocapture: {
+            elementInteractions: {
+              viewportContentUpdated: true,
+            },
+          },
+        };
+        translateRemoteConfigToLocal(config);
+        expect(config.autocapture.elementInteractions.viewportContentUpdated).toEqual({});
+      });
+
+      test('should preserve viewportContentUpdated when it is already an object with properties', () => {
+        const config = {
+          autocapture: {
+            elementInteractions: {
+              viewportContentUpdated: { exposureDuration: 200 },
+            },
+          },
+        };
+        translateRemoteConfigToLocal(config);
+        expect(config.autocapture.elementInteractions.viewportContentUpdated).toEqual({ exposureDuration: 200 });
+      });
+
+      test('should set viewportContentUpdated to false when enabled is false', () => {
+        const config = {
+          autocapture: {
+            elementInteractions: {
+              viewportContentUpdated: { enabled: false, exposureDuration: 200 },
+            },
+          },
+        };
+        translateRemoteConfigToLocal(config);
+        expect(config.autocapture.elementInteractions.viewportContentUpdated).toBe(false);
+      });
+
+      test('should not modify elementInteractions when viewportContentUpdated is absent', () => {
+        const config = {
+          autocapture: {
+            elementInteractions: { cssSelectorAllowlist: ['a'] },
+          },
+        };
+        translateRemoteConfigToLocal(config);
+        expect(config.autocapture.elementInteractions).toEqual({ cssSelectorAllowlist: ['a'] });
+      });
+
+      test('should not throw when elementInteractions is false', () => {
+        const config = {
+          autocapture: {
+            elementInteractions: false,
+          },
+        };
+        translateRemoteConfigToLocal(config);
+        expect(config.autocapture.elementInteractions).toBe(false);
+      });
+
+      test('should not throw when autocapture has no elementInteractions', () => {
+        const config = { autocapture: {} };
+        translateRemoteConfigToLocal(config);
+        expect(config.autocapture).toEqual({});
+      });
+
+      test('should handle errors from elementInteractions accessor gracefully', () => {
+        const config = {
+          autocapture: {
+            get elementInteractions() {
+              throw new Error('accessor error');
+            },
+          },
+        };
+        expect(() => translateRemoteConfigToLocal(config)).not.toThrow();
+      });
+    });
   });
 });
