@@ -65,7 +65,7 @@ import { autocapturePlugin, frustrationPlugin } from '@amplitude/plugin-autocapt
 import { plugin as networkCapturePlugin } from '@amplitude/plugin-network-capture-browser';
 import { webVitalsPlugin } from '@amplitude/plugin-web-vitals-browser';
 import { WebAttribution } from './attribution/web-attribution';
-import { eventPropertyTrackingPlugin } from './attribution/event-property-tracking';
+import { eventPropertyTrackingPlugin } from '@amplitude/plugin-event-property-attribution-browser';
 import { LIBPREFIX } from './lib-prefix';
 import { VERSION } from './version';
 import { pageUrlEnrichmentPlugin } from '@amplitude/plugin-page-url-enrichment-browser';

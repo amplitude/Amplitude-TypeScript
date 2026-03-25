@@ -15,6 +15,7 @@ import {
 import { WebAttribution } from '../src/attribution/web-attribution';
 import * as core from '@amplitude/analytics-core';
 import * as pageViewTracking from '@amplitude/plugin-page-view-tracking-browser';
+import * as eventPropertyTracking from '@amplitude/plugin-event-property-attribution-browser';
 import * as autocapture from '@amplitude/plugin-autocapture-browser';
 import * as networkCapturePlugin from '@amplitude/plugin-network-capture-browser';
 import * as webVitals from '@amplitude/plugin-web-vitals-browser';
@@ -28,7 +29,6 @@ import * as SnippetHelper from '../src/utils/snippet-helper';
 import * as joinedConfig from '../src/config/joined-config';
 import * as pageUrlEnrichment from '@amplitude/plugin-page-url-enrichment-browser';
 import * as customEnrichment from '@amplitude/plugin-custom-enrichment-browser';
-import * as eventPropertyTracking from '../src/attribution/event-property-tracking';
 
 // Mock RemoteConfigClient constructor
 const mockRemoteConfigClient = {

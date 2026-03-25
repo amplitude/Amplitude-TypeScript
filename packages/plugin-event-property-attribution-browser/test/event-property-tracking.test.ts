@@ -9,7 +9,7 @@ import {
   Logger,
   UUID,
 } from '@amplitude/analytics-core';
-import { eventPropertyTrackingPlugin } from '../../src/attribution/event-property-tracking';
+import { eventPropertyTrackingPlugin } from '../src/event-property-tracking';
 import * as Core from '@amplitude/analytics-core';
 
 const createMockBrowserClient = (): jest.Mocked<BrowserClient> =>
@@ -49,7 +49,7 @@ const createMockBrowserClient = (): jest.Mocked<BrowserClient> =>
     _enableRequestBodyCompressionExperimental: jest.fn(),
   } as unknown as jest.Mocked<BrowserClient>);
 
-const createConfigurationMock = (optOut = false, overrides: Partial<BrowserConfig> = {}): BrowserConfig =>
+const createConfigurationMock = (overrides: Partial<BrowserConfig> = {}): BrowserConfig =>
   ({
     apiKey: UUID(),
     flushIntervalMillis: 0,
@@ -58,7 +58,7 @@ const createConfigurationMock = (optOut = false, overrides: Partial<BrowserConfi
     logLevel: LogLevel.None,
     loggerProvider: new Logger(),
     offline: false,
-    optOut,
+    optOut: false,
     serverUrl: undefined,
     transportProvider: new FetchTransport(),
     useBatch: false,
@@ -174,7 +174,7 @@ describe('eventPropertyTrackingPlugin', () => {
     });
 
     await plugin.setup?.(
-      createConfigurationMock(false, {
+      createConfigurationMock({
         topLevelDomain: '.amplitude.com',
       }),
       createMockBrowserClient(),
@@ -208,7 +208,7 @@ describe('eventPropertyTrackingPlugin', () => {
     });
 
     await plugin.setup?.(
-      createConfigurationMock(false, {
+      createConfigurationMock({
         topLevelDomain: '.amplitude.com',
       }),
       createMockBrowserClient(),
@@ -242,7 +242,7 @@ describe('eventPropertyTrackingPlugin', () => {
     });
 
     await plugin.setup?.(
-      createConfigurationMock(false, {
+      createConfigurationMock({
         topLevelDomain: '.amplitude.com',
       }),
       createMockBrowserClient(),

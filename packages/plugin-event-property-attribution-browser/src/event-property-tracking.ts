@@ -8,10 +8,9 @@ import {
   Event,
   getGlobalScope,
   ILogger,
-  SpecialEventType,
   omitUndefined,
+  SpecialEventType,
 } from '@amplitude/analytics-core';
-import { getAttributionTrackingOptions } from './tracking-methods';
 
 const ATTRIBUTION_EVENT_TYPE = '[Amplitude] Attribution';
 const EVENT_PROPERTY_EXCLUDED_EVENT_TYPES = new Set<string>([
@@ -24,7 +23,7 @@ const toEventPropertyCampaign = (campaign: Campaign): Partial<Campaign> => omitU
 export const eventPropertyTrackingPlugin = (
   options: AttributionOptions = {},
 ): EnrichmentPlugin<BrowserClient, BrowserConfig> => {
-  const pluginOptions = getAttributionTrackingOptions(options);
+  const fallbackAttributionEvent = options.fallbackAttributionEvent ?? false;
   const globalScope = getGlobalScope();
   let amplitude: BrowserClient | undefined;
   let loggerProvider: ILogger | undefined;
@@ -36,10 +35,8 @@ export const eventPropertyTrackingPlugin = (
     const currentCampaign = await new CampaignParser().parse();
     eventPropertyCampaign = toEventPropertyCampaign(currentCampaign);
 
-    if (pluginOptions.fallbackAttributionEvent) {
-      /* istanbul ignore next */
+    if (fallbackAttributionEvent) {
       loggerProvider?.log('Tracking attribution fallback event.');
-      /* istanbul ignore next */
       amplitude?.track(ATTRIBUTION_EVENT_TYPE, eventPropertyCampaign);
     }
   };
