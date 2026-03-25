@@ -659,7 +659,7 @@ describe('SessionReplayTrackDestination', () => {
         );
       });
 
-      test('retry body is valid JSON-encoded payload', async () => {
+      test('retry body re-encodes raw objects as pack()-compressed strings', async () => {
         (global.fetch as jest.Mock).mockResolvedValueOnce({ status: 400 }).mockResolvedValueOnce({ status: 200 });
         const dest = makeDest();
 
@@ -668,7 +668,10 @@ describe('SessionReplayTrackDestination', () => {
         const retryBody = (fetch as jest.Mock).mock.calls[1][1].body as string;
         const parsed = JSON.parse(retryBody) as { version: number; events: unknown[] };
         expect(parsed.version).toBe(1);
-        expect(parsed.events).toEqual(mockObjectEvents);
+        // On the msgpack path, events are raw objects; retryAsJson must pack()-compress them
+        // into strings so the V4 JSON backend can process them correctly.
+        expect(parsed.events).toHaveLength(mockObjectEvents.length);
+        parsed.events.forEach((e) => expect(typeof e).toBe('string'));
       });
 
       test('completes with error when JSON retry also fails', async () => {

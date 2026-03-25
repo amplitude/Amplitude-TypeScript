@@ -1,4 +1,5 @@
 import { encode } from '@msgpack/msgpack';
+import { pack } from '@amplitude/rrweb-packer';
 import { BaseTransport, ILogger, Status } from '@amplitude/analytics-core';
 import { getCurrentUrl, getServerUrl } from './helpers';
 import {
@@ -287,7 +288,11 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
    * No further retry loop: success completes the request normally; any error is logged and dropped.
    */
   private async retryAsJson(context: SessionReplayDestinationContext): Promise<void> {
-    const payload = this.payloadBatcher({ version: 1, events: context.events });
+    // On the msgpack path, context.events are raw eventWithTime objects. The V4 JSON
+    // backend expects each event to be a pack()-compressed JSON string (same as what
+    // event-compressor.ts produces on the normal JSON path). Convert before sending.
+    const jsonEvents = context.events.map((e) => JSON.stringify(pack(e as Parameters<typeof pack>[0])));
+    const payload = this.payloadBatcher({ version: 1, events: jsonEvents });
     const url = getCurrentUrl();
     const version = VERSION;
     const sampleRate = context.sampleRate;
