@@ -286,6 +286,9 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
    * Re-encodes the batch as V4 JSON and fires a single best-effort fetch.
    * Called only when a msgpack request receives a non-413 4xx response (e.g. kill-switch 400).
    * No further retry loop: success completes the request normally; any error is logged and dropped.
+   *
+   * TODO(SR-3063): This method duplicates header/URL/fetch logic from send(). Extract a shared
+   * buildFetchOptions() helper so both paths stay in sync when new headers are added.
    */
   private async retryAsJson(context: SessionReplayDestinationContext): Promise<void> {
     // On the msgpack path, context.events are raw eventWithTime objects. The V4 JSON
