@@ -342,6 +342,27 @@ describe('eventPropertyTrackingPlugin', () => {
     });
   });
 
+  test('should restore original history methods on teardown', async () => {
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    const pushState = window.history.pushState;
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    const replaceState = window.history.replaceState;
+
+    await plugin.setup?.(createConfigurationMock(), createMockBrowserClient());
+
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    expect(window.history.pushState).not.toBe(pushState);
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    expect(window.history.replaceState).not.toBe(replaceState);
+
+    await plugin.teardown?.();
+
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    expect(window.history.pushState).toBe(pushState);
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    expect(window.history.replaceState).toBe(replaceState);
+  });
+
   test('should not enrich identify events', async () => {
     const campaign = createCampaign();
     jest.spyOn(Core.CampaignParser.prototype, 'parse').mockResolvedValue(campaign);

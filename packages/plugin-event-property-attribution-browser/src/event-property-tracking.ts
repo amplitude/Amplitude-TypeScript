@@ -30,6 +30,8 @@ export const eventPropertyTrackingPlugin = (
   let eventPropertyCampaign: Partial<Campaign> = {};
   let isTracking = false;
   let isProxied = false;
+  let originalPushState: History['pushState'] | undefined;
+  let originalReplaceState: History['replaceState'] | undefined;
 
   const updateCampaignState = async () => {
     const currentCampaign = await new CampaignParser().parse();
@@ -67,6 +69,11 @@ export const eventPropertyTrackingPlugin = (
 
       if (!isProxied) {
         // There is no global browser listener for history mutations, so proxy both methods.
+        // eslint-disable-next-line @typescript-eslint/unbound-method
+        originalPushState = globalScope.history.pushState;
+        // eslint-disable-next-line @typescript-eslint/unbound-method
+        originalReplaceState = globalScope.history.replaceState;
+
         // eslint-disable-next-line @typescript-eslint/unbound-method
         globalScope.history.pushState = new Proxy(globalScope.history.pushState, {
           apply: (target, thisArg, [state, unused, url]) => {
@@ -107,9 +114,20 @@ export const eventPropertyTrackingPlugin = (
     teardown: async () => {
       if (globalScope) {
         globalScope.removeEventListener('popstate', onHistoryChange);
+
+        if (isProxied && originalPushState) {
+          globalScope.history.pushState = originalPushState;
+        }
+
+        if (isProxied && originalReplaceState) {
+          globalScope.history.replaceState = originalReplaceState;
+        }
       }
 
       isTracking = false;
+      isProxied = false;
+      originalPushState = undefined;
+      originalReplaceState = undefined;
       eventPropertyCampaign = {};
     },
   };
