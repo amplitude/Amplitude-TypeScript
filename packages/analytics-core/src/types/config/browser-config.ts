@@ -263,6 +263,10 @@ export interface AttributionOptions {
   resetSessionOnNewCampaign?: boolean;
   /**
    * The attribution persistence strategy for campaign parameters.
+   * Provide a single method to enable one strategy, or an array to enable multiple methods at the same time.
+   * When multiple methods are provided, each enabled method runs independently and their behaviors are combined.
+   * For example, `['userProperty', 'eventProperty']` updates user properties and also attaches campaign params
+   * to event properties.
    * @experimental this feature is experimental and may not be stable
    * @defaultValue `"userProperty"`
    */
