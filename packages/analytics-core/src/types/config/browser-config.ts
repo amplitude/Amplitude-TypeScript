@@ -257,7 +257,7 @@ export interface AttributionOptions {
   /**
    * The flag of if Amplitude to start a new session if any campaign parameter changes.
    * Applies only to `userProperty` tracking.
-   * Ignored by `eventProperty` tracking. 
+   * Ignored by `eventProperty` tracking.
    * @defaultValue `false`
    */
   resetSessionOnNewCampaign?: boolean;

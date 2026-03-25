@@ -50,6 +50,11 @@ export const eventPropertyTrackingPlugin = (
   };
 
   const onHistoryChange = () => {
+    // CampaignParser.parse() is async by type, but its current implementation computes synchronously.
+    // In the Browser SDK, this history-triggered refresh starts immediately and reaches its continuation
+    // before Timeline.scheduleApply(0) runs event enrichment, so pushState()/replaceState() followed by
+    // track() in the same tick does not currently race. Revisit this assumption if campaign parsing or
+    // timeline scheduling becomes truly async in the future.
     void updateCampaignState();
   };
 

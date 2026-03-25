@@ -1021,6 +1021,62 @@ describe('browser-client', () => {
       );
     });
 
+    test('should enrich same-tick track calls with the latest campaign after pushState', async () => {
+      jest
+        .spyOn(core.CampaignParser.prototype, 'parse')
+        .mockResolvedValueOnce({
+          ...core.BASE_CAMPAIGN,
+          utm_source: 'campaign-a',
+        })
+        .mockResolvedValueOnce({
+          ...core.BASE_CAMPAIGN,
+          utm_source: 'campaign-b',
+        });
+      let capturedEvent: core.Event | undefined;
+
+      await client.init(apiKey, userId, {
+        fetchRemoteConfig: false,
+        defaultTracking: {
+          attribution: {
+            trackingMethod: 'eventProperty',
+          },
+          pageViews: false,
+          sessions: false,
+        },
+      }).promise;
+
+      await client.add({
+        name: 'capture-event-property-attribution',
+        type: 'enrichment',
+        setup: async () => {
+          return;
+        },
+        execute: async (event) => {
+          capturedEvent = event;
+          return event;
+        },
+      }).promise;
+
+      window.history.pushState(undefined, '', '/next?utm_source=campaign-b');
+      void client
+        .track('test-event', {
+          existing: 'value',
+        })
+        .promise.catch(() => undefined);
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      expect(capturedEvent).toBeDefined();
+      expect(capturedEvent).toEqual(
+        expect.objectContaining({
+          event_type: 'test-event',
+          event_properties: expect.objectContaining({
+            existing: 'value',
+            utm_source: 'campaign-b',
+          }),
+        }),
+      );
+    });
+
     test('should add custom enrichment plugin when customEnrichment is an object with enabled=true', async () => {
       const customEnrichmentPlugin = jest.spyOn(customEnrichment, 'customEnrichmentPlugin');
       await client.init(apiKey, userId, {
@@ -1228,7 +1284,7 @@ describe('browser-client', () => {
           expect(webAttributionInitCallCount).toBe(1);
         });
 
-        test('should defer event property attribution plugin until optOut changes', async () => {
+        test('should add event property attribution plugin even when optOut is true', async () => {
           jest.spyOn(core.CampaignParser.prototype, 'parse').mockResolvedValue({
             ...core.BASE_CAMPAIGN,
             utm_source: 'amp-test',
@@ -1246,11 +1302,6 @@ describe('browser-client', () => {
               sessions: false,
             },
           }).promise;
-
-          expect(eventPropertyTrackingPlugin).not.toHaveBeenCalled();
-
-          client.setOptOut(false);
-          await new Promise((resolve) => setTimeout(resolve, 10));
 
           expect(eventPropertyTrackingPlugin).toHaveBeenCalledTimes(1);
           expect(eventPropertyTrackingPlugin).toHaveBeenCalledWith(
@@ -1511,7 +1562,11 @@ describe('browser-client', () => {
         expect(client.config.deviceId).not.toEqual(testDeviceId);
         expect(client.config.deviceId).toBeDefined();
         expect(typeof client.config.deviceId).toBe('string');
-        expect(client.config.deviceId!.length).toBeGreaterThan(0);
+        const { deviceId } = client.config;
+        if (typeof deviceId !== 'string') {
+          throw new Error('Expected deviceId to be a string');
+        }
+        expect(deviceId.length).toBeGreaterThan(0);
       });
     });
   });

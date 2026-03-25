@@ -352,19 +352,8 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
       isAttributionTrackingEnabled(this.config.defaultTracking) &&
       isEventPropertyAttributionEnabled(attributionTrackingOptions)
     ) {
-      if (!this.config.optOut) {
-        this.config.loggerProvider.debug('Adding event property attribution plugin');
-        await this.add(eventPropertyTrackingPlugin(attributionTrackingOptions)).promise;
-      } else {
-        this.timeline.addOptOutListener(async (optOut) => {
-          /* istanbul ignore if */
-          if (optOut) {
-            return;
-          }
-          this.config.loggerProvider.debug('Adding event property attribution plugin');
-          await this.add(eventPropertyTrackingPlugin(attributionTrackingOptions)).promise;
-        });
-      }
+      this.config.loggerProvider.debug('Adding event property attribution plugin');
+      await this.add(eventPropertyTrackingPlugin(attributionTrackingOptions)).promise;
     }
 
     if (isElementInteractionsEnabled(this.config.autocapture)) {
