@@ -674,6 +674,21 @@ describe('SessionReplayTrackDestination', () => {
         parsed.events.forEach((e) => expect(typeof e).toBe('string'));
       });
 
+      test('string interaction events are passed through unchanged in JSON fallback', async () => {
+        (global.fetch as jest.Mock).mockResolvedValueOnce({ status: 400 }).mockResolvedValueOnce({ status: 200 });
+        const dest = makeDest();
+        const mixedEvents = [mockEventString, mockObjectEvents[0]];
+
+        await dest.send(makeContext({ events: mixedEvents }), true);
+
+        const retryBody = (fetch as jest.Mock).mock.calls[1][1].body as string;
+        const parsed = JSON.parse(retryBody) as { version: number; events: unknown[] };
+        // String events (interaction path) pass through unchanged; object events are pack()-encoded
+        expect(parsed.events).toHaveLength(2);
+        expect(parsed.events[0]).toBe(mockEventString);
+        expect(typeof parsed.events[1]).toBe('string');
+      });
+
       test('completes with error when JSON retry also fails', async () => {
         (global.fetch as jest.Mock)
           .mockResolvedValueOnce({ status: 400 }) // msgpack fails

@@ -291,7 +291,12 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
     // On the msgpack path, context.events are raw eventWithTime objects. The V4 JSON
     // backend expects each event to be a pack()-compressed JSON string (same as what
     // event-compressor.ts produces on the normal JSON path). Convert before sending.
-    const jsonEvents = context.events.map((e) => JSON.stringify(pack(e as Parameters<typeof pack>[0])));
+    // On the replay msgpack path, events are raw objects; apply pack() to match V4 JSON format.
+    // On the interaction path, events are already JSON strings (set by the click handler),
+    // and must be passed through unchanged.
+    const jsonEvents = context.events.map((e) =>
+      typeof e === 'string' ? e : JSON.stringify(pack(e as Parameters<typeof pack>[0])),
+    );
     const payload = this.payloadBatcher({ version: 1, events: jsonEvents });
     const url = getCurrentUrl();
     const version = VERSION;
