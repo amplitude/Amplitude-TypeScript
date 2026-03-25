@@ -132,6 +132,7 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
           'X-Client-Library': sessionReplayLibrary,
           'X-Client-Url': url.substring(0, MAX_URL_LENGTH), // limit url length to 1000 characters to avoid ELB 400 error
           'X-Client-Sample-Rate': `${sampleRate}`,
+          'X-Sampling-Hash-Alg': 'xxhash32',
         },
         body: JSON.stringify(payload),
         method: 'POST',
