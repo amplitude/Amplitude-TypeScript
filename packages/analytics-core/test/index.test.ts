@@ -75,6 +75,7 @@ import {
   AMPLITUDE_ORIGINS_MAP,
   AMPLITUDE_BACKGROUND_CAPTURE_SCRIPT_URL,
   EXCLUDE_INTERNAL_REFERRERS_CONDITIONS,
+  omitUndefined,
 } from '../src/index';
 
 describe('index', () => {
@@ -169,6 +170,7 @@ describe('index', () => {
     expect(typeof AMPLITUDE_ORIGINS_MAP).toBe('object');
     expect(typeof AMPLITUDE_BACKGROUND_CAPTURE_SCRIPT_URL).toBe('string');
     expect(typeof EXCLUDE_INTERNAL_REFERRERS_CONDITIONS).toBe('object');
+    expect(typeof omitUndefined).toBe('function');
   });
 
   describe('EXCLUDE_INTERNAL_REFERRERS_CONDITIONS export', () => {
