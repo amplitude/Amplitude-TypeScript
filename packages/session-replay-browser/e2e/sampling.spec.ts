@@ -26,21 +26,24 @@ function mockTrackApi(page: import('@playwright/test').Page) {
 
 test.describe('sampling hash algorithm header', () => {
   test('sends X-Sampling-Hash-Alg: xxhash32 header on track API requests', async ({ page }) => {
-    let capturedHeaders: Record<string, string> = {};
     await mockRemoteConfig(page, remoteConfigRecording);
-    await page.route('https://api-sr.amplitude.com/**', (route) => {
-      capturedHeaders = route.request().headers();
-      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(SR_API_SUCCESS) });
-    });
+    await page.route('https://api-sr.amplitude.com/**', (route) =>
+      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(SR_API_SUCCESS) }),
+    );
 
     await page.goto(buildUrl('/session-replay-browser/sr-capture-test.html', { sessionId: SESSION_ID_IN_20_SAMPLE }));
     await waitForReady(page);
     await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
 
+    const requestPromise = page.waitForRequest(
+      (req) => req.url().includes('api-sr.amplitude.com') && req.method() === 'POST',
+      { timeout: 10_000 },
+    );
     await page.evaluate(() => window.dispatchEvent(new Event('blur')));
-    await page.waitForRequest('https://api-sr.amplitude.com/**', { timeout: 5_000 });
+    await page.evaluate(() => (window as any).sessionReplay.flush(false) as Promise<void>);
 
-    expect(capturedHeaders['x-sampling-hash-alg']).toBe('xxhash32');
+    const request = await requestPromise;
+    expect(request.headers()['x-sampling-hash-alg']).toBe('xxhash32');
   });
 });
 
