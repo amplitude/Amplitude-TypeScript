@@ -1,7 +1,6 @@
 import {
   EVENT_PROPERTY_TRACKING_METHOD,
   USER_PROPERTY_TRACKING_METHOD,
-  getAttributionTrackingOptions,
   hasTrackingMethod,
   isEventPropertyAttributionEnabled,
   isUserPropertyAttributionEnabled,
@@ -10,10 +9,7 @@ import {
 
 describe('tracking-methods', () => {
   test('should default to user property tracking', () => {
-    expect(getAttributionTrackingOptions()).toEqual({
-      fallbackAttributionEvent: false,
-      trackingMethod: [USER_PROPERTY_TRACKING_METHOD],
-    });
+    expect(normalizeTrackingMethod()).toEqual([USER_PROPERTY_TRACKING_METHOD]);
   });
 
   test('should normalize and dedupe tracking methods', () => {
@@ -27,10 +23,10 @@ describe('tracking-methods', () => {
   });
 
   test('should detect enabled tracking methods', () => {
-    const options = getAttributionTrackingOptions({
+    const options = {
       trackingMethod: [USER_PROPERTY_TRACKING_METHOD, EVENT_PROPERTY_TRACKING_METHOD],
       fallbackAttributionEvent: true,
-    });
+    };
 
     expect(hasTrackingMethod(options, USER_PROPERTY_TRACKING_METHOD)).toBe(true);
     expect(isUserPropertyAttributionEnabled(options)).toBe(true);
@@ -39,7 +35,7 @@ describe('tracking-methods', () => {
   });
 
   test('should enable user property tracking by default', () => {
-    const options = getAttributionTrackingOptions();
+    const options = {};
 
     expect(hasTrackingMethod(options, USER_PROPERTY_TRACKING_METHOD)).toBe(true);
     expect(isUserPropertyAttributionEnabled(options)).toBe(true);
