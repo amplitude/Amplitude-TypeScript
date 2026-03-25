@@ -2,7 +2,7 @@ import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
   testDir: '.',
-  testMatch: 'capture.spec.ts',
+  testMatch: '*.spec.ts',
   use: {
     baseURL: 'http://localhost:5173',
     trace: 'on-first-retry',
