@@ -18,6 +18,8 @@ const EVENT_PROPERTY_EXCLUDED_EVENT_TYPES = new Set<string>([
   SpecialEventType.GROUP_IDENTIFY,
 ]);
 
+type HistoryStateMethod = History['pushState'];
+
 const toEventPropertyCampaign = (campaign: Campaign): Partial<Campaign> => omitUndefined(campaign);
 
 export const eventPropertyTrackingPlugin = (
@@ -32,6 +34,8 @@ export const eventPropertyTrackingPlugin = (
   let isProxied = false;
   let originalPushState: History['pushState'] | undefined;
   let originalReplaceState: History['replaceState'] | undefined;
+  let installedPushState: History['pushState'] | undefined;
+  let installedReplaceState: History['replaceState'] | undefined;
 
   const updateCampaignState = async () => {
     const currentCampaign = await new CampaignParser().parse();
@@ -48,6 +52,16 @@ export const eventPropertyTrackingPlugin = (
   const onHistoryChange = () => {
     void updateCampaignState();
   };
+
+  const createHistoryStateProxy = (method: HistoryStateMethod): HistoryStateMethod =>
+    new Proxy(method, {
+      apply: (target, thisArg, args: Parameters<HistoryStateMethod>) => {
+        Reflect.apply(target, thisArg, args);
+        if (isTracking) {
+          onHistoryChange();
+        }
+      },
+    });
 
   return {
     name: '@amplitude/plugin-event-property-attribution-browser',
@@ -69,30 +83,19 @@ export const eventPropertyTrackingPlugin = (
 
       if (!isProxied) {
         // There is no global browser listener for history mutations, so proxy both methods.
-        // eslint-disable-next-line @typescript-eslint/unbound-method
-        originalPushState = globalScope.history.pushState;
-        // eslint-disable-next-line @typescript-eslint/unbound-method
-        originalReplaceState = globalScope.history.replaceState;
+        originalPushState = Reflect.get(globalScope.history, 'pushState') as History['pushState'] | undefined;
+        originalReplaceState = Reflect.get(globalScope.history, 'replaceState') as History['replaceState'] | undefined;
 
-        // eslint-disable-next-line @typescript-eslint/unbound-method
-        globalScope.history.pushState = new Proxy(globalScope.history.pushState, {
-          apply: (target, thisArg, [state, unused, url]) => {
-            target.apply(thisArg, [state, unused, url]);
-            if (isTracking) {
-              onHistoryChange();
-            }
-          },
-        });
+        /* istanbul ignore next */
+        if (!originalPushState || !originalReplaceState) {
+          return;
+        }
 
-        // eslint-disable-next-line @typescript-eslint/unbound-method
-        globalScope.history.replaceState = new Proxy(globalScope.history.replaceState, {
-          apply: (target, thisArg, [state, unused, url]) => {
-            target.apply(thisArg, [state, unused, url]);
-            if (isTracking) {
-              onHistoryChange();
-            }
-          },
-        });
+        installedPushState = createHistoryStateProxy(originalPushState);
+        globalScope.history.pushState = installedPushState;
+
+        installedReplaceState = createHistoryStateProxy(originalReplaceState);
+        globalScope.history.replaceState = installedReplaceState;
 
         isProxied = true;
       }
@@ -115,11 +118,16 @@ export const eventPropertyTrackingPlugin = (
       if (globalScope) {
         globalScope.removeEventListener('popstate', onHistoryChange);
 
-        if (isProxied && originalPushState) {
+        const currentPushState = Reflect.get(globalScope.history, 'pushState') as History['pushState'] | undefined;
+        const currentReplaceState = Reflect.get(globalScope.history, 'replaceState') as
+          | History['replaceState']
+          | undefined;
+
+        if (isProxied && currentPushState === installedPushState && originalPushState) {
           globalScope.history.pushState = originalPushState;
         }
 
-        if (isProxied && originalReplaceState) {
+        if (isProxied && currentReplaceState === installedReplaceState && originalReplaceState) {
           globalScope.history.replaceState = originalReplaceState;
         }
       }
@@ -128,6 +136,8 @@ export const eventPropertyTrackingPlugin = (
       isProxied = false;
       originalPushState = undefined;
       originalReplaceState = undefined;
+      installedPushState = undefined;
+      installedReplaceState = undefined;
       eventPropertyCampaign = {};
     },
   };

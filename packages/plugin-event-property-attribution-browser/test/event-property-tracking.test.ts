@@ -363,6 +363,23 @@ describe('eventPropertyTrackingPlugin', () => {
     expect(window.history.replaceState).toBe(replaceState);
   });
 
+  test('should not overwrite history wrappers installed after setup during teardown', async () => {
+    const pushStateWrapper: History['pushState'] = () => undefined;
+    const replaceStateWrapper: History['replaceState'] = () => undefined;
+
+    await plugin.setup?.(createConfigurationMock(), createMockBrowserClient());
+
+    window.history.pushState = pushStateWrapper;
+    window.history.replaceState = replaceStateWrapper;
+
+    await plugin.teardown?.();
+
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    expect(window.history.pushState).toBe(pushStateWrapper);
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    expect(window.history.replaceState).toBe(replaceStateWrapper);
+  });
+
   test('should not enrich identify events', async () => {
     const campaign = createCampaign();
     jest.spyOn(Core.CampaignParser.prototype, 'parse').mockResolvedValue(campaign);
