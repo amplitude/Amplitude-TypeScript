@@ -1,12 +1,10 @@
-export const omitUndefined = <T extends Record<string, string | undefined>>(input: T): Partial<T> => {
-  const output: Partial<T> = {};
-
+export const omitUndefined = (input: Record<string, string | undefined>) => {
+  const obj: Record<string, string> = {};
   for (const key in input) {
-    const value = input[key];
-    if (value) {
-      output[key] = value;
+    const val = input[key];
+    if (val) {
+      obj[key] = val;
     }
   }
-
-  return output;
+  return obj;
 };
