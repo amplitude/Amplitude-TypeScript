@@ -22,6 +22,17 @@ describe('tracking-methods', () => {
     ).toEqual([USER_PROPERTY_TRACKING_METHOD, EVENT_PROPERTY_TRACKING_METHOD]);
   });
 
+  test('should filter invalid tracking methods and keep supported ones', () => {
+    expect(
+      normalizeTrackingMethod([USER_PROPERTY_TRACKING_METHOD, 'event_property', 123, EVENT_PROPERTY_TRACKING_METHOD]),
+    ).toEqual([USER_PROPERTY_TRACKING_METHOD, EVENT_PROPERTY_TRACKING_METHOD]);
+  });
+
+  test('should fall back to user property tracking when runtime input is invalid', () => {
+    expect(normalizeTrackingMethod('event_property')).toEqual([USER_PROPERTY_TRACKING_METHOD]);
+    expect(normalizeTrackingMethod([123, false, null])).toEqual([USER_PROPERTY_TRACKING_METHOD]);
+  });
+
   test('should detect enabled tracking methods', () => {
     const options = {
       trackingMethod: [USER_PROPERTY_TRACKING_METHOD, EVENT_PROPERTY_TRACKING_METHOD],

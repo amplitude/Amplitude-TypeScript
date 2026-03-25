@@ -3,16 +3,19 @@ import { AttributionOptions, TrackingMethod } from '@amplitude/analytics-core';
 export const USER_PROPERTY_TRACKING_METHOD: TrackingMethod = 'userProperty';
 export const EVENT_PROPERTY_TRACKING_METHOD: TrackingMethod = 'eventProperty';
 
-export const normalizeTrackingMethod = (trackingMethod?: TrackingMethod | TrackingMethod[]): TrackingMethod[] => {
-  if (typeof trackingMethod === 'undefined') {
-    return [USER_PROPERTY_TRACKING_METHOD];
-  }
+const isTrackingMethod = (value: unknown): value is TrackingMethod =>
+  value === USER_PROPERTY_TRACKING_METHOD || value === EVENT_PROPERTY_TRACKING_METHOD;
 
-  if (!Array.isArray(trackingMethod)) {
-    return [trackingMethod];
-  }
+/**
+ * Normalizes attribution tracking methods from runtime config, drops unsupported values,
+ * and falls back to the legacy default when nothing valid is provided.
+ */
+export const normalizeTrackingMethod = (trackingMethod?: unknown): TrackingMethod[] => {
+  const normalized = [
+    ...new Set((Array.isArray(trackingMethod) ? trackingMethod : [trackingMethod]).filter(isTrackingMethod)),
+  ];
 
-  return [...new Set(trackingMethod)];
+  return normalized.length > 0 ? normalized : [USER_PROPERTY_TRACKING_METHOD];
 };
 
 export const hasTrackingMethod = (options: AttributionOptions, trackingMethod: TrackingMethod) =>
