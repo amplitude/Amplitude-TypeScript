@@ -735,7 +735,7 @@ describe('joined-config', () => {
           expect(config.autocapture.elementInteractions.viewportContentUpdated).toEqual({ exposureDuration: 200 });
         });
 
-        test('should set viewportContentUpdated to false when enabled is false', () => {
+        test('should convert viewportContentUpdated to { enabled: false } when enabled is false', () => {
           const config = {
             autocapture: {
               elementInteractions: {
@@ -744,7 +744,7 @@ describe('joined-config', () => {
             },
           };
           translateRemoteConfigToLocal(config);
-          expect(config.autocapture.elementInteractions.viewportContentUpdated).toBe(false);
+          expect(config.autocapture.elementInteractions.viewportContentUpdated).toEqual({ enabled: false });
         });
 
         test('should not modify elementInteractions when viewportContentUpdated is absent', () => {
@@ -843,7 +843,7 @@ describe('joined-config', () => {
           expect(config.autocapture.elementInteractions).not.toHaveProperty('exposureDuration');
         });
 
-        test('should remove deprecated exposureDuration even when viewportContentUpdated is false', () => {
+        test('should remove deprecated exposureDuration and convert false viewportContentUpdated to { enabled: false }', () => {
           const config = {
             autocapture: {
               elementInteractions: {
@@ -853,7 +853,7 @@ describe('joined-config', () => {
             },
           };
           translateRemoteConfigToLocal(config);
-          expect(config.autocapture.elementInteractions.viewportContentUpdated).toBe(false);
+          expect(config.autocapture.elementInteractions.viewportContentUpdated).toEqual({ enabled: false });
           expect(config.autocapture.elementInteractions).not.toHaveProperty('exposureDuration');
         });
 

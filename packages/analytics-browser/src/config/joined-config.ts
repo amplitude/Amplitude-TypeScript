@@ -155,6 +155,10 @@ export function translateRemoteConfigToLocal(config?: Record<string, any>) {
       if (elementInteractions.viewportContentUpdated === true) {
         elementInteractions.viewportContentUpdated = {};
       }
+      // { enabled: false, ... } collapses to `false`; convert back to { enabled: false } for the SDK.
+      if (elementInteractions.viewportContentUpdated === false) {
+        elementInteractions.viewportContentUpdated = { enabled: false };
+      }
       // Migrate deprecated top-level exposureDuration to viewportContentUpdated.exposureDuration
       if (elementInteractions.exposureDuration !== undefined) {
         const viewportContentUpdated = elementInteractions.viewportContentUpdated;
