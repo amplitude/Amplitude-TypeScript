@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.25.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.24.2...@amplitude/plugin-autocapture-browser@1.25.0) (2026-03-26)
+
+
+### Features
+
+* **autocapture:** add viewportContentUpdated support to remote config ([#1621](https://github.com/amplitude/Amplitude-TypeScript/issues/1621)) ([f40b150](https://github.com/amplitude/Amplitude-TypeScript/commit/f40b150ddb44da9c69bc97da69f9ba003d1eb7d6))
+
+
+
+
+
 ## [1.24.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.24.1...@amplitude/plugin-autocapture-browser@1.24.2) (2026-03-23)
 
 **Note:** Version bump only for package @amplitude/plugin-autocapture-browser

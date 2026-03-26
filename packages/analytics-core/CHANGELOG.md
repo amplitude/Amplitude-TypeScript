@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.44.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.43.1...@amplitude/analytics-core@2.44.0) (2026-03-26)
+
+
+### Features
+
+* **autocapture:** add viewportContentUpdated support to remote config ([#1621](https://github.com/amplitude/Amplitude-TypeScript/issues/1621)) ([f40b150](https://github.com/amplitude/Amplitude-TypeScript/commit/f40b150ddb44da9c69bc97da69f9ba003d1eb7d6))
+
+
+
+
+
 ## [2.43.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.43.0...@amplitude/analytics-core@2.43.1) (2026-03-23)
 
 **Note:** Version bump only for package @amplitude/analytics-core

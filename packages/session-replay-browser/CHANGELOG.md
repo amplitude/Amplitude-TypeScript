@@ -3,6 +3,22 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.35.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.34.3...@amplitude/session-replay-browser@1.35.0) (2026-03-26)
+
+
+### Bug Fixes
+
+* **session-replay-browser:** read window.scrollY on page leave to capture final scroll position ([#1626](https://github.com/amplitude/Amplitude-TypeScript/issues/1626)) ([fa924a2](https://github.com/amplitude/Amplitude-TypeScript/commit/fa924a23479ce150c8239a4c94ddff7009a2e8b9))
+
+
+### Features
+
+* **session-replay-browser:** migrate sampling from Java hashCode to xxHash32 ([#1629](https://github.com/amplitude/Amplitude-TypeScript/issues/1629)) ([eb15e44](https://github.com/amplitude/Amplitude-TypeScript/commit/eb15e4466594206c27a2ff38686921016588a12b))
+
+
+
+
+
 ## [1.34.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.34.2...@amplitude/session-replay-browser@1.34.3) (2026-03-24)
 
 
