@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.5.52](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-react-native@1.5.51...@amplitude/analytics-react-native@1.5.52) (2026-03-26)
+
+
+### Bug Fixes
+
+* **react-native:** remove buildscript block to prevent AGP conflicts with host app ([#1631](https://github.com/amplitude/Amplitude-TypeScript/issues/1631)) ([2f2319e](https://github.com/amplitude/Amplitude-TypeScript/commit/2f2319eff97c4bb4e1d4ff29c1732f0244c1cab6))
+
+
+
+
+
 ## [1.5.51](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-react-native@1.5.50...@amplitude/analytics-react-native@1.5.51) (2026-03-19)
 
 
