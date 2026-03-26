@@ -166,7 +166,8 @@ export function translateRemoteConfigToLocal(config?: Record<string, any>) {
           elementInteractions.viewportContentUpdated = { exposureDuration: elementInteractions.exposureDuration };
         } else if (
           typeof viewportContentUpdated === 'object' &&
-          viewportContentUpdated.exposureDuration === undefined
+          viewportContentUpdated.exposureDuration === undefined &&
+          viewportContentUpdated.enabled !== false
         ) {
           viewportContentUpdated.exposureDuration = elementInteractions.exposureDuration;
         }
