@@ -44,6 +44,8 @@ describe('scroll', () => {
         location: {
           href: 'http://localhost',
         } as any,
+        scrollX: 0,
+        scrollY: 0,
       });
       // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       mockTransportInstance = new mockTransport({} as any, {} as any);
@@ -181,6 +183,57 @@ describe('scroll', () => {
         expect(mockTransport.prototype.send.mock.calls[0][0]).toStrictEqual(deviceId);
         const payload = mockTransport.prototype.send.mock.calls[0][1] as ScrollEventPayload;
         expect(payload.events[0].pageUrl).toBe('http://localhost?user=123&token=abc');
+      });
+
+      test('captures window scroll position on send even when rrweb hook has not delivered latest position', () => {
+        // Simulate: rrweb hook delivered scroll to y=500, but user actually scrolled to y=3000
+        // before pagehide fired. The throttled rrweb callback never delivered y=3000.
+        mockGlobalScope({
+          location: { href: 'http://localhost' } as any,
+          scrollX: 0,
+          scrollY: 3000,
+        });
+
+        scrollWatcher.hook({ id: 1, x: 0, y: 500 });
+        const deviceId = randomUUID().toString();
+        scrollWatcher.send(() => deviceId)({} as Event);
+
+        const payload = mockTransport.prototype.send.mock.calls[0][1] as ScrollEventPayload;
+        expect(payload.events[0].maxScrollY).toBe(3000);
+      });
+
+      test('captures window scroll position on send even when no rrweb hook events fired', () => {
+        // Simulate: rrweb throttle dropped all events, but user scrolled to y=1500
+        mockGlobalScope({
+          location: { href: 'http://localhost' } as any,
+          scrollX: 100,
+          scrollY: 1500,
+        });
+
+        // No hook() calls at all
+        const deviceId = randomUUID().toString();
+        scrollWatcher.send(() => deviceId)({} as Event);
+
+        const payload = mockTransport.prototype.send.mock.calls[0][1] as ScrollEventPayload;
+        expect(payload.events[0].maxScrollX).toBe(100);
+        expect(payload.events[0].maxScrollY).toBe(1500);
+      });
+
+      test('does not regress maxScrollY when window scroll is lower than hook-delivered max', () => {
+        // User scrolled to 5000, then scrolled back up to 2000 before leaving
+        mockGlobalScope({
+          location: { href: 'http://localhost' } as any,
+          scrollX: 0,
+          scrollY: 2000,
+        });
+
+        scrollWatcher.hook({ id: 1, x: 0, y: 5000 });
+        const deviceId = randomUUID().toString();
+        scrollWatcher.send(() => deviceId)({} as Event);
+
+        const payload = mockTransport.prototype.send.mock.calls[0][1] as ScrollEventPayload;
+        // maxScrollY should still be 5000 (the highest seen), not 2000
+        expect(payload.events[0].maxScrollY).toBe(5000);
       });
 
       test('handles empty ugcFilterRules array', () => {
