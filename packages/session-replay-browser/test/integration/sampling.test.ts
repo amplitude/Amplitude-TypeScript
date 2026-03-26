@@ -4,6 +4,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import * as AnalyticsCore from '@amplitude/analytics-core';
 import { LogLevel, ILogger, ServerZone, RemoteConfig, Source } from '@amplitude/analytics-core';
+import * as Sampling from '../../src/sampling';
 import { IDBFactory } from 'fake-indexeddb';
 import { SessionReplayOptions } from 'src/typings/session-replay';
 import * as SessionReplayIDB from '../../src/events/events-idb-store';
@@ -197,12 +198,12 @@ describe('module level integration', () => {
         );
         // eslint-disable-next-line @typescript-eslint/unbound-method
         expect(mockLoggerProvider.log).toHaveBeenLastCalledWith(
-          'Session replay event batch tracked successfully for session id 1719847315000, size of events: 0 KB',
+          'Session replay event batch tracked successfully for session id 1719847315013, size of events: 0 KB',
         );
       });
 
       test('should use sampleRate from remote config', async () => {
-        const inSampleSpy = jest.spyOn(AnalyticsCore, 'isTimestampInSample');
+        const inSampleSpy = jest.spyOn(Sampling, 'isSessionInSample');
         const sessionReplay = new SessionReplay();
         await sessionReplay.init(apiKey, { ...mockOptions, sampleRate: 0.8 }).promise;
         expect(inSampleSpy).toHaveBeenCalledWith(sessionReplay.identifiers?.sessionId, 0.5);
@@ -260,7 +261,7 @@ describe('module level integration', () => {
         );
         // eslint-disable-next-line @typescript-eslint/unbound-method
         expect(mockLoggerProvider.log).toHaveBeenLastCalledWith(
-          'Session replay event batch tracked successfully for session id 1719847315000, size of events: 0 KB',
+          'Session replay event batch tracked successfully for session id 1719847315013, size of events: 0 KB',
         );
       });
     });
