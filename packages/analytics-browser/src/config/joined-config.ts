@@ -146,6 +146,38 @@ export function translateRemoteConfigToLocal(config?: Record<string, any>) {
       delete frustrationInteractions.deadClick;
     }
   }
+
+  // normalize viewportContentUpdated inside elementInteractions
+  try {
+    const elementInteractions = config.autocapture?.elementInteractions;
+    if (elementInteractions && typeof elementInteractions === 'object') {
+      // { enabled: true } (no other fields) collapses to `true`; convert back to {} for the SDK.
+      if (elementInteractions.viewportContentUpdated === true) {
+        elementInteractions.viewportContentUpdated = {};
+      }
+      // { enabled: false, ... } collapses to `false`; convert back to { enabled: false } for the SDK.
+      if (elementInteractions.viewportContentUpdated === false) {
+        elementInteractions.viewportContentUpdated = { enabled: false };
+      }
+      // Migrate deprecated top-level exposureDuration to viewportContentUpdated.exposureDuration
+      if (elementInteractions.exposureDuration !== undefined) {
+        const viewportContentUpdated = elementInteractions.viewportContentUpdated;
+        if (viewportContentUpdated === undefined) {
+          elementInteractions.viewportContentUpdated = { exposureDuration: elementInteractions.exposureDuration };
+        } else if (
+          typeof viewportContentUpdated === 'object' &&
+          viewportContentUpdated.exposureDuration === undefined &&
+          viewportContentUpdated.enabled !== false
+        ) {
+          viewportContentUpdated.exposureDuration = elementInteractions.exposureDuration;
+        }
+        delete elementInteractions.exposureDuration;
+      }
+    }
+  } catch (e) {
+    /* istanbul ignore next */
+    // surprise exception, so don't translate it
+  }
 }
 
 function mergeUrls(urlsExact: (string | RegExp)[], urlsRegex: string[] | undefined, browserConfig: BrowserConfig) {
