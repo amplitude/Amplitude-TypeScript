@@ -7,10 +7,21 @@ function getPlayData(videoEl: HTMLVideoElement) {
 }
 
 function getPauseData(videoEl: HTMLVideoElement) {
+  const currentTime = videoEl.currentTime;
+  const duration = videoEl.duration;
+
+  let percentCompleted = 0;
+
+  if (Number.isFinite(currentTime) && Number.isFinite(duration) && duration > 0) {
+    const rawPercent = (currentTime / duration) * 100;
+    // Clamp to [0, 100] to avoid invalid analytics values.
+    percentCompleted = Math.min(100, Math.max(0, rawPercent));
+  }
+
   return {
     ...getPlayData(videoEl),
-    last_position: videoEl.currentTime,
-    percent_completed: (videoEl.currentTime / videoEl.duration) * 100,
+    last_position: currentTime,
+    percent_completed: percentCompleted,
   };
 }
 
