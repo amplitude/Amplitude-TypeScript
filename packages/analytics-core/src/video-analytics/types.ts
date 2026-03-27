@@ -19,6 +19,7 @@ type MuxVideoMetadata = {
   mux_playback_id?: string | undefined | null;
   mux_video_id?: string | undefined | null;
   mux_video_title?: string | undefined | null;
+  mux_session_id?: string | undefined | null;
 };
 
 type StartVideoEvent = BaseVideoEvent & MuxVideoMetadata;
