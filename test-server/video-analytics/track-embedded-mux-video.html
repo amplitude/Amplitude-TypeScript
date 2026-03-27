@@ -31,6 +31,9 @@
         onEnded: (evt) => {
           console.log('video ended', evt);
         },
+        onError: (error) => {
+          console.log('video error', error);
+        },
       };
       
       trackMuxEmbeddedVideo(player, handler, {});

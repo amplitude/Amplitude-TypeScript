@@ -13,22 +13,24 @@ function getPlayData(videoEl: HTMLVideoElement | MuxElement) {
   };
 }
 
-function getPauseData(videoEl: HTMLVideoElement | MuxElement) {
-  const currentTime = videoEl.currentTime;
-  const duration = videoEl.duration;
-
+function calculatePercentCompleted(currentTime: number, duration: number) {
   let percentCompleted = 0;
-
   if (Number.isFinite(currentTime) && Number.isFinite(duration) && duration > 0) {
     const rawPercent = (currentTime / duration) * 100;
     // Clamp to [0, 100] to avoid invalid analytics values.
     percentCompleted = Math.min(100, Math.max(0, rawPercent));
   }
+  return percentCompleted;
+}
+
+function getPauseData(videoEl: HTMLVideoElement | MuxElement) {
+  const currentTime = videoEl.currentTime;
+  const duration = videoEl.duration;
 
   return {
     ...getPlayData(videoEl),
     last_position: currentTime,
-    percent_completed: percentCompleted,
+    percent_completed: calculatePercentCompleted(currentTime, duration),
   };
 }
 
@@ -133,7 +135,7 @@ async function getMuxIframeMetadata(player: MuxEmbeddedPlayer, elem: HTMLIFrameE
     // invalid or no src url, skip the header metadata
   }
   return {
-    percent_completed: (currentTime / duration) * 100,
+    percent_completed: calculatePercentCompleted(currentTime, duration),
     program_duration: duration,
     current_time: currentTime,
     mux_video_title: metadataVideoTitle,
