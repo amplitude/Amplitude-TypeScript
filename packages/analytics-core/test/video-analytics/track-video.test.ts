@@ -73,6 +73,7 @@ describe('trackMuxHtmlVideo', () => {
     expect(handler.onPlay).toHaveBeenCalledWith({
       program_duration: 10,
       hello: 'world',
+      mux_session_id: null,
       ...muxMetadata,
     });
 
@@ -82,6 +83,7 @@ describe('trackMuxHtmlVideo', () => {
       percent_completed: 50,
       program_duration: 10,
       hello: 'world',
+      mux_session_id: null,
       ...muxMetadata,
     });
 
@@ -91,6 +93,7 @@ describe('trackMuxHtmlVideo', () => {
       percent_completed: 100,
       program_duration: 10,
       hello: 'world',
+      mux_session_id: null,
       ...muxMetadata,
     });
 

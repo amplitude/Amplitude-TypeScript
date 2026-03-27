@@ -36,6 +36,7 @@ function getMuxMetadata(videoEl: MuxElement) {
     mux_playback_id: videoEl.getAttribute('playback-id'),
     mux_video_id: videoEl.getAttribute('metadata-video-id'),
     mux_video_title: videoEl.getAttribute('metadata-video-title'),
+    mux_session_id: videoEl.getAttribute('session-id'),
   };
 }
 
@@ -48,13 +49,15 @@ function getMuxMetadata(videoEl: MuxElement) {
  * @returns A function to untrack the video.
  */
 export function trackHtmlVideo(
-  videoEl: HTMLVideoElement,
+  videoEl: HTMLVideoElement | MuxElement,
   handlers: VideoHandler,
   customMetadata: Record<string, string | number | boolean>,
+  vendor?: 'mux', // if new vendors add them to this
 ) {
   const playHandler = () => {
     const startEvent: StartVideoEvent = {
       ...getPlayData(videoEl),
+      ...(vendor === 'mux' ? getMuxMetadata(videoEl) : {}),
       ...customMetadata,
     };
     handlers.onPlay(startEvent);
@@ -64,6 +67,7 @@ export function trackHtmlVideo(
   const pauseHandler = () => {
     const pauseEvent: PauseVideoEvent = {
       ...getPauseData(videoEl),
+      ...(vendor === 'mux' ? getMuxMetadata(videoEl) : {}),
       ...customMetadata,
     };
     handlers.onPause(pauseEvent);
@@ -73,6 +77,7 @@ export function trackHtmlVideo(
   const endedHandler = () => {
     const endedEvent: EndedVideoEvent = {
       ...getEndData(videoEl),
+      ...(vendor === 'mux' ? getMuxMetadata(videoEl) : {}),
       ...customMetadata,
     };
     handlers.onEnded(endedEvent);
@@ -99,41 +104,7 @@ export function trackMuxHtmlVideo(
   handlers: VideoHandler,
   customMetadata: Record<string, string | number | boolean>,
 ) {
-  const playHandler = () => {
-    const startEvent: StartVideoEvent = {
-      ...getPlayData(videoEl),
-      ...getMuxMetadata(videoEl),
-      ...customMetadata,
-    };
-    handlers.onPlay(startEvent);
-  };
-  videoEl.addEventListener('play', playHandler);
-
-  const pauseHandler = () => {
-    const pauseEvent: PauseVideoEvent = {
-      ...getPauseData(videoEl),
-      ...getMuxMetadata(videoEl),
-      ...customMetadata,
-    };
-    handlers.onPause(pauseEvent);
-  };
-  videoEl.addEventListener('pause', pauseHandler);
-
-  const endedHandler = () => {
-    const endedEvent: EndedVideoEvent = {
-      ...getEndData(videoEl),
-      ...getMuxMetadata(videoEl),
-      ...customMetadata,
-    };
-    handlers.onEnded(endedEvent);
-  };
-  videoEl.addEventListener('ended', endedHandler);
-
-  return () => {
-    videoEl.removeEventListener('play', playHandler);
-    videoEl.removeEventListener('pause', pauseHandler);
-    videoEl.removeEventListener('ended', endedHandler);
-  };
+  return trackHtmlVideo(videoEl, handlers, customMetadata, 'mux');
 }
 
 // export function trackMuxEmbeddedVideo;
