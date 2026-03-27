@@ -1,4 +1,4 @@
-import { VideoHandler, StartVideoEvent, PauseVideoEvent, EndedVideoEvent } from './types';
+import { VideoHandler, StartVideoEvent, PauseVideoEvent, EndedVideoEvent, MuxEmbeddedPlayer } from './types';
 
 function getPlayData(videoEl: HTMLVideoElement) {
   return {
@@ -122,7 +122,64 @@ export function trackMuxHtmlVideo(
   };
 }
 
-// export function trackMuxEmbeddedVideo;
+async function getMuxIframeMetadata(player: MuxEmbeddedPlayer, elem: HTMLIFrameElement) {
+  const [duration, currentTime] = await Promise.all([
+    new Promise<number>((resolve) => player.getDuration(resolve)),
+    new Promise<number>((resolve) => player.getCurrentTime(resolve)),
+  ]);
+  
+  const url = new URL(elem.getAttribute('src') || '');
+  const metadataVideoTitle = url.searchParams.get('metadata-video-title');
+  const metadataVideoId = url.searchParams.get('metadata-video-id');
+  const playerId = url.pathname.split('/').pop();
+  return {
+    percent_completed: (currentTime / duration) * 100,
+    program_duration: duration,
+    current_time: currentTime,
+    mux_video_title: metadataVideoTitle,
+    mux_video_id: metadataVideoId,
+    mux_playback_id: playerId,
+  };
+}
+
+export function trackMuxEmbeddedVideo(
+  player: MuxEmbeddedPlayer,
+  handlers: VideoHandler,
+  customMetadata: Record<string, string | number | boolean>,
+) {
+  player.on('ready', () => {
+    const { elem } = player;
+    const playHandler = async () => {
+      const playerState = await getMuxIframeMetadata(player, elem);
+      const startEvent: StartVideoEvent = {
+        ...playerState,
+        ...customMetadata,
+      };
+      handlers.onPlay(startEvent);
+    };
+    player.on('play', playHandler);
+
+    const pauseHandler = async () => {
+      const playerState = await getMuxIframeMetadata(player, elem);
+      const pauseEvent: PauseVideoEvent = {
+        ...playerState,
+        ...customMetadata,
+      };
+      handlers.onPause(pauseEvent);
+    };
+    player.on('pause', pauseHandler);
+  
+    const endedHandler = async () => {
+      const playerState = await getMuxIframeMetadata(player, elem);
+      const endedEvent: EndedVideoEvent = {
+        ...playerState,
+        ...customMetadata,
+      };
+      handlers.onEnded(endedEvent);
+    };
+    player.on('ended', endedHandler);
+  });
+}
 
 // export function trackYoutubeEmbeddedVideo;
 

@@ -26,6 +26,12 @@ type PauseVideoEvent = BaseVideoEvent & {
   percent_completed: number;
 };
 
+// TODO: implement this type to match Mux player
+type MuxEmbeddedPlayer = {
+  getCurrentTime: () => number;
+  getDuration: () => number;
+};
+
 type EndedVideoEvent = PauseVideoEvent; // & { ... }
 
 export { VideoHandler, BaseVideoEvent, StartVideoEvent, PauseVideoEvent, EndedVideoEvent };
