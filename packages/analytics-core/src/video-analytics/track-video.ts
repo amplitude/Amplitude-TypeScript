@@ -1,12 +1,12 @@
-import { VideoHandler, StartVideoEvent, PauseVideoEvent, EndedVideoEvent } from './types';
+import { VideoHandler, StartVideoEvent, PauseVideoEvent, EndedVideoEvent, MuxElement } from './types';
 
-function getPlayData(videoEl: HTMLVideoElement) {
+function getPlayData(videoEl: HTMLVideoElement | MuxElement) {
   return {
     program_duration: videoEl.duration,
   };
 }
 
-function getPauseData(videoEl: HTMLVideoElement) {
+function getPauseData(videoEl: HTMLVideoElement | MuxElement) {
   const currentTime = videoEl.currentTime;
   const duration = videoEl.duration;
 
@@ -25,13 +25,13 @@ function getPauseData(videoEl: HTMLVideoElement) {
   };
 }
 
-function getEndData(videoEl: HTMLVideoElement) {
+function getEndData(videoEl: HTMLVideoElement | MuxElement) {
   return {
     ...getPauseData(videoEl),
   };
 }
 
-function getMuxMetadata(videoEl: HTMLVideoElement) {
+function getMuxMetadata(videoEl: MuxElement) {
   return {
     mux_playback_id: videoEl.getAttribute('playback-id'),
     mux_video_id: videoEl.getAttribute('metadata-video-id'),
@@ -95,7 +95,7 @@ export function trackHtmlVideo(
  * @returns A function to untrack the video.
  */
 export function trackMuxHtmlVideo(
-  videoEl: HTMLVideoElement,
+  videoEl: MuxElement,
   handlers: VideoHandler,
   customMetadata: Record<string, string | number | boolean>,
 ) {

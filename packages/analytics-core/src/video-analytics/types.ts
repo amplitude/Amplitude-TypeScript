@@ -31,6 +31,9 @@ type PauseVideoEvent = BaseVideoEvent &
 
 type EndedVideoEvent = PauseVideoEvent; // & { ... }
 
+type MuxElement = EventTarget &
+  Element & { duration: number; currentTime: number; play?: () => Promise<unknown>; pause?: () => void };
+
 export {
   VideoHandler,
   BaseVideoEvent,
@@ -38,4 +41,5 @@ export {
   StartVideoEvent,
   PauseVideoEvent,
   EndedVideoEvent,
+  MuxElement,
 };
