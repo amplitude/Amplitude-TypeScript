@@ -328,6 +328,39 @@ describe('autoTrackingPlugin', () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (window as any).IntersectionObserver = undefined;
     });
+
+    test('should not fire Viewport Content Updated when enabled is false', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (window as any).IntersectionObserver = jest.fn(() => ({
+        observe: jest.fn(),
+        disconnect: jest.fn(),
+      }));
+
+      plugin = autocapturePlugin({
+        viewportContentUpdated: { enabled: false },
+      });
+      const loggerProvider: Partial<ILogger> = {
+        log: jest.fn(),
+        warn: jest.fn(),
+        error: jest.fn(),
+      };
+      const config: Partial<BrowserConfig> = {
+        defaultTracking: false,
+        loggerProvider: loggerProvider as ILogger,
+      };
+      const amplitude = createMockBrowserClient();
+      await amplitude.init('API_KEY', 'USER_ID').promise;
+      const track = jest.spyOn(amplitude, 'track').mockImplementation(jest.fn());
+
+      await plugin?.setup?.(config as BrowserConfig, amplitude);
+
+      window.dispatchEvent(new Event('beforeunload'));
+
+      expect(track).not.toHaveBeenCalledWith('[Amplitude] Viewport Content Updated', expect.anything());
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (window as any).IntersectionObserver = undefined;
+    });
   });
 
   describe('execute', () => {

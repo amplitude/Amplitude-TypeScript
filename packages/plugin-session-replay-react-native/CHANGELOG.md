@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.4.8](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-react-native@0.4.7...@amplitude/plugin-session-replay-react-native@0.4.8) (2026-03-26)
+
+
+### Bug Fixes
+
+* **react-native:** remove buildscript block to prevent AGP conflicts with host app ([#1631](https://github.com/amplitude/Amplitude-TypeScript/issues/1631)) ([2f2319e](https://github.com/amplitude/Amplitude-TypeScript/commit/2f2319eff97c4bb4e1d4ff29c1732f0244c1cab6))
+
+
+
+
+
 ## [0.4.7](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-react-native@0.4.6...@amplitude/plugin-session-replay-react-native@0.4.7) (2026-02-26)
 
 **Note:** Version bump only for package @amplitude/plugin-session-replay-react-native

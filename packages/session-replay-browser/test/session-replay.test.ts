@@ -13,6 +13,7 @@ import { LoggingConfig, SessionReplayJoinedConfig } from '../src/config/types';
 import { CustomRRwebEvent, DEFAULT_SAMPLE_RATE } from '../src/constants';
 import * as SessionReplayIDB from '../src/events/events-idb-store';
 import * as SessionReplayEventsManager from '../src/events/events-manager';
+import * as Sampling from '../src/sampling';
 import * as Helpers from '../src/helpers';
 import { SessionReplay } from '../src/session-replay';
 import * as targetingManager from '../src/targeting/targeting-manager';
@@ -1524,7 +1525,7 @@ describe('SessionReplay', () => {
     test('should return false if session not included in sample rate', async () => {
       // Mock as if remote config call fails
       mockRemoteConfig = null;
-      jest.spyOn(AnalyticsCore, 'isTimestampInSample').mockImplementationOnce(() => false);
+      jest.spyOn(Sampling, 'isSessionInSample').mockImplementationOnce(() => false);
 
       await sessionReplay.init(apiKey, { ...mockOptions, sampleRate: 0.2 }).promise;
       const sampleRate = sessionReplay.config?.sampleRate;
@@ -1534,7 +1535,7 @@ describe('SessionReplay', () => {
     });
     test('should set record as true if session is included in sample rate', async () => {
       await sessionReplay.init(apiKey, { ...mockOptions, sampleRate: 0.2 }).promise;
-      jest.spyOn(AnalyticsCore, 'isTimestampInSample').mockImplementationOnce(() => true);
+      jest.spyOn(Sampling, 'isSessionInSample').mockImplementationOnce(() => true);
       const shouldRecord = sessionReplay.getShouldRecord();
       expect(shouldRecord).toBe(true);
     });
@@ -1562,7 +1563,7 @@ describe('SessionReplay', () => {
     });
     test('should set record as false if sample rate is too low', async () => {
       await sessionReplay.init(apiKey, { ...mockOptions, sampleRate: 0.2 }).promise;
-      jest.spyOn(AnalyticsCore, 'isTimestampInSample').mockImplementationOnce(() => false);
+      jest.spyOn(Sampling, 'isSessionInSample').mockImplementationOnce(() => false);
       const shouldRecord = sessionReplay.getShouldRecord();
       expect(shouldRecord).toBe(false);
     });

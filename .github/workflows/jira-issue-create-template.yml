@@ -62,13 +62,17 @@ jobs:
           ELLIPSIS="..."
           MAX_TITLE_LENGTH=$((255 - ${#PREFIX} - ${#ELLIPSIS} - 1))
           # Use provided title or fall back to issue title for backward compatibility
-          RAW_TITLE="${{ inputs.title || github.event.issue.title }}"
+          DELIM_TITLE="EOF_$(uuidgen)"
+          RAW_TITLE=$(cat <<"$DELIM_TITLE"
+          ${{ inputs.title || github.event.issue.title }}
+          $DELIM_TITLE
+          )
           # Process and truncate title if needed
-          TITLE=$(echo "$RAW_TITLE" | tr '\n' ' ' | sed 's/"/\\"/g')
+          TITLE=$(printf "%s" "$RAW_TITLE" | tr '\n' ' ' | sed 's/"/\\"/g')
           if [ ${#TITLE} -gt $MAX_TITLE_LENGTH ]; then
-            TITLE="${TITLE:0:$MAX_TITLE_LENGTH}..."
+            TITLE="${TITLE:0:$MAX_TITLE_LENGTH}$ELLIPSIS"
           fi
-          echo "truncated_title=$TITLE" >> $GITHUB_OUTPUT
+          echo "truncated_title=$TITLE" >> "$GITHUB_OUTPUT"
 
       - name: Create issue
         id: create

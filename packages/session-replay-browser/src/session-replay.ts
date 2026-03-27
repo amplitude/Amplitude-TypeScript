@@ -7,7 +7,6 @@ import {
   returnWrapper,
   SpecialEventType,
   generateHashCode,
-  isTimestampInSample,
   getOrCreateWindowMessenger,
   enableBackgroundCapture,
   AMPLITUDE_ORIGINS_MAP,
@@ -55,6 +54,7 @@ import {
   SessionReplayOptions,
   SessionReplayTargetingInput,
 } from './typings/session-replay';
+import { isSessionInSample } from './sampling';
 import { VERSION } from './version';
 
 // Import only the type for NetworkRequestEvent to keep type safety
@@ -551,7 +551,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
         matched = true;
       }
     } else {
-      const isInSample = isTimestampInSample(this.identifiers.sessionId, this.config.sampleRate);
+      const isInSample = isSessionInSample(this.identifiers.sessionId, this.config.sampleRate);
       if (!isInSample) {
         message = `Opting session ${this.identifiers.sessionId} out of recording due to sample rate.`;
         this.loggerProvider.log(message);

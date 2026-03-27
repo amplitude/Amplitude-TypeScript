@@ -126,6 +126,11 @@ export interface ElementInteractionsOptions {
    */
   viewportContentUpdated?: {
     /**
+     * Whether viewport content updated tracking is enabled.
+     * Default is true.
+     */
+    enabled?: boolean;
+    /**
      * Duration in milliseconds an element must be visible before it is considered exposed.
      * Default is 150ms.
      */

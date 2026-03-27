@@ -14,11 +14,6 @@ import {
 import type { VideoHandler } from '../../src/video-analytics/types';
 import { createMockMuxEmbeddedPlayer, createMockVideo } from './mock-video';
 
-async function flushAsyncHandlers() {
-  await Promise.resolve();
-  await Promise.resolve();
-}
-
 describe('trackHtmlVideo', () => {
   let video: HTMLVideoElement;
   let handler: VideoHandler;
@@ -120,6 +115,7 @@ describe('trackMuxEmbeddedVideo', () => {
   let handler: VideoHandler;
 
   beforeEach(() => {
+    jest.useFakeTimers();
     ({ player } = createMockMuxEmbeddedPlayer());
     handler = {
       onPlay: jest.fn(),
@@ -127,6 +123,10 @@ describe('trackMuxEmbeddedVideo', () => {
       onEnded: jest.fn(),
       onError: jest.fn(),
     };
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
   });
 
   test('should track play, pause and ended events', async () => {
@@ -142,7 +142,7 @@ describe('trackMuxEmbeddedVideo', () => {
 
     player.setCurrentTime(0);
     player.emit('play');
-    await flushAsyncHandlers();
+    await jest.runAllTimersAsync();
     expect(handler.onPlay).toHaveBeenCalledWith({
       current_time: 0,
       percent_completed: 0,
@@ -153,7 +153,7 @@ describe('trackMuxEmbeddedVideo', () => {
 
     player.setCurrentTime(5);
     player.emit('pause');
-    await flushAsyncHandlers();
+    await jest.runAllTimersAsync();
     expect(handler.onPause).toHaveBeenCalledWith({
       current_time: 5,
       percent_completed: 50,
@@ -164,7 +164,7 @@ describe('trackMuxEmbeddedVideo', () => {
 
     player.setCurrentTime(10);
     player.emit('ended');
-    await flushAsyncHandlers();
+    await jest.runAllTimersAsync();
     expect(handler.onEnded).toHaveBeenCalledWith({
       current_time: 10,
       percent_completed: 100,
@@ -176,7 +176,7 @@ describe('trackMuxEmbeddedVideo', () => {
     untrack();
     handler.onPlay = jest.fn();
     player.emit('play');
-    await flushAsyncHandlers();
+    await jest.runAllTimersAsync();
     expect(handler.onPlay).not.toHaveBeenCalled();
   });
 
@@ -185,7 +185,7 @@ describe('trackMuxEmbeddedVideo', () => {
     const untrack = trackMuxEmbeddedVideo(player, handler, { foo: 'bar' });
     player.emit('ready');
     player.emit('play');
-    await flushAsyncHandlers();
+    await jest.runAllTimersAsync();
     expect(handler.onPlay).toHaveBeenCalledWith({
       current_time: 0,
       program_duration: 10,
@@ -198,14 +198,13 @@ describe('trackMuxEmbeddedVideo', () => {
     untrack();
     handler.onPlay = jest.fn();
     player.emit('play');
-    await flushAsyncHandlers();
+    await jest.runAllTimersAsync();
     expect(handler.onPlay).not.toHaveBeenCalled();
   });
 
   describe('when there is an error getting the metadata', () => {
     let originalGetDuration: typeof player.getDuration;
     beforeEach(() => {
-      jest.useFakeTimers();
       originalGetDuration = player.getDuration;
       player.getDuration = jest.fn().mockImplementation(() => {
         throw new Error('Error getting duration');
@@ -215,7 +214,6 @@ describe('trackMuxEmbeddedVideo', () => {
     });
 
     afterEach(() => {
-      jest.useRealTimers();
       player.getDuration = originalGetDuration;
     });
 

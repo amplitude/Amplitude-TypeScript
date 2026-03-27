@@ -706,5 +706,170 @@ describe('joined-config', () => {
         expect(remoteConfig.browserSDK.autocapture.frustrationInteractions).toEqual({ deadClicks: true });
       });
     });
+
+    describe('viewportContentUpdated', () => {
+      describe('enabled normalization', () => {
+        test('should convert viewportContentUpdated: true to an empty object', () => {
+          // { enabled: true } with no other props collapses to the boolean `true` by the generic
+          // pass; this block converts it back to {} so the SDK gets a VCU options object.
+          const config = {
+            autocapture: {
+              elementInteractions: {
+                viewportContentUpdated: true,
+              },
+            },
+          };
+          translateRemoteConfigToLocal(config);
+          expect(config.autocapture.elementInteractions.viewportContentUpdated).toEqual({});
+        });
+
+        test('should preserve viewportContentUpdated when it is already an object with properties', () => {
+          const config = {
+            autocapture: {
+              elementInteractions: {
+                viewportContentUpdated: { exposureDuration: 200 },
+              },
+            },
+          };
+          translateRemoteConfigToLocal(config);
+          expect(config.autocapture.elementInteractions.viewportContentUpdated).toEqual({ exposureDuration: 200 });
+        });
+
+        test('should convert viewportContentUpdated to { enabled: false } when enabled is false', () => {
+          const config = {
+            autocapture: {
+              elementInteractions: {
+                viewportContentUpdated: { enabled: false, exposureDuration: 200 },
+              },
+            },
+          };
+          translateRemoteConfigToLocal(config);
+          expect(config.autocapture.elementInteractions.viewportContentUpdated).toEqual({ enabled: false });
+        });
+
+        test('should not modify elementInteractions when viewportContentUpdated is absent', () => {
+          const config = {
+            autocapture: {
+              elementInteractions: { cssSelectorAllowlist: ['a'] },
+            },
+          };
+          translateRemoteConfigToLocal(config);
+          expect(config.autocapture.elementInteractions).toEqual({ cssSelectorAllowlist: ['a'] });
+        });
+
+        test('should not throw when elementInteractions is false', () => {
+          const config = {
+            autocapture: {
+              elementInteractions: false,
+            },
+          };
+          translateRemoteConfigToLocal(config);
+          expect(config.autocapture.elementInteractions).toBe(false);
+        });
+
+        test('should not throw when autocapture has no elementInteractions', () => {
+          const config = { autocapture: {} };
+          translateRemoteConfigToLocal(config);
+          expect(config.autocapture).toEqual({});
+        });
+
+        test('should handle errors from elementInteractions accessor gracefully', () => {
+          const config = {
+            autocapture: {
+              get elementInteractions() {
+                throw new Error('accessor error');
+              },
+            },
+          };
+          expect(() => translateRemoteConfigToLocal(config)).not.toThrow();
+        });
+      });
+
+      describe('exposureDuration migration', () => {
+        test('should migrate deprecated top-level exposureDuration to viewportContentUpdated when vcu is absent', () => {
+          const config = {
+            autocapture: {
+              elementInteractions: {
+                exposureDuration: 300,
+              } as any,
+            },
+          };
+          translateRemoteConfigToLocal(config);
+          expect(config.autocapture.elementInteractions.viewportContentUpdated).toEqual({ exposureDuration: 300 });
+          expect(config.autocapture.elementInteractions).not.toHaveProperty('exposureDuration');
+        });
+
+        test('should migrate deprecated top-level exposureDuration to viewportContentUpdated when vcu is true', () => {
+          // After the enabled-normalization pass, viewportContentUpdated may still be `true`
+          // (e.g. { enabled: true } → true) before this migration runs.
+          const config = {
+            autocapture: {
+              elementInteractions: {
+                viewportContentUpdated: true,
+                exposureDuration: 300,
+              } as any,
+            },
+          };
+          translateRemoteConfigToLocal(config);
+          expect(config.autocapture.elementInteractions.viewportContentUpdated).toEqual({ exposureDuration: 300 });
+          expect(config.autocapture.elementInteractions).not.toHaveProperty('exposureDuration');
+        });
+
+        test('should migrate deprecated exposureDuration when viewportContentUpdated object has no exposureDuration', () => {
+          const config = {
+            autocapture: {
+              elementInteractions: {
+                viewportContentUpdated: { exposureDuration: undefined },
+                exposureDuration: 300,
+              } as any,
+            },
+          };
+          translateRemoteConfigToLocal(config);
+          expect(config.autocapture.elementInteractions.viewportContentUpdated).toEqual({ exposureDuration: 300 });
+          expect(config.autocapture.elementInteractions).not.toHaveProperty('exposureDuration');
+        });
+
+        test('should not overwrite existing viewportContentUpdated.exposureDuration with deprecated value', () => {
+          const config = {
+            autocapture: {
+              elementInteractions: {
+                viewportContentUpdated: { exposureDuration: 500 },
+                exposureDuration: 300,
+              } as any,
+            },
+          };
+          translateRemoteConfigToLocal(config);
+          expect(config.autocapture.elementInteractions.viewportContentUpdated).toEqual({ exposureDuration: 500 });
+          expect(config.autocapture.elementInteractions).not.toHaveProperty('exposureDuration');
+        });
+
+        test('should remove deprecated exposureDuration and convert false viewportContentUpdated to { enabled: false }', () => {
+          const config = {
+            autocapture: {
+              elementInteractions: {
+                viewportContentUpdated: false,
+                exposureDuration: 300,
+              } as any,
+            },
+          };
+          translateRemoteConfigToLocal(config);
+          expect(config.autocapture.elementInteractions.viewportContentUpdated).toEqual({ enabled: false });
+          expect(config.autocapture.elementInteractions).not.toHaveProperty('exposureDuration');
+        });
+
+        test('should not touch elementInteractions when exposureDuration is absent', () => {
+          const config = {
+            autocapture: {
+              elementInteractions: {
+                viewportContentUpdated: { exposureDuration: 200 },
+              },
+            },
+          };
+          translateRemoteConfigToLocal(config);
+          expect(config.autocapture.elementInteractions.viewportContentUpdated).toEqual({ exposureDuration: 200 });
+          expect(config.autocapture.elementInteractions).not.toHaveProperty('exposureDuration');
+        });
+      });
+    });
   });
 });
