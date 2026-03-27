@@ -31,6 +31,14 @@ function getEndData(videoEl: HTMLVideoElement) {
   };
 }
 
+function getMuxMetadata(videoEl: HTMLVideoElement) {
+  return {
+    mux_playback_id: videoEl.getAttribute('playback-id'),
+    mux_video_id: videoEl.getAttribute('metadata-video-id'),
+    mux_video_title: videoEl.getAttribute('metadata-video-title'),
+  };
+}
+
 /**
  * Track a standard HTML video element.
  *
@@ -91,15 +99,10 @@ export function trackMuxHtmlVideo(
   handlers: VideoHandler,
   customMetadata: Record<string, string | number | boolean>,
 ) {
-  const muxMetadata = {
-    mux_playback_id: videoEl.getAttribute('playback-id'),
-    mux_video_id: videoEl.getAttribute('metadata-video-id'),
-    mux_video_title: videoEl.getAttribute('metadata-video-title'),
-  };
   const playHandler = () => {
     const startEvent: StartVideoEvent = {
       ...getPlayData(videoEl),
-      ...muxMetadata,
+      ...getMuxMetadata(videoEl),
       ...customMetadata,
     };
     handlers.onPlay(startEvent);
@@ -109,7 +112,7 @@ export function trackMuxHtmlVideo(
   const pauseHandler = () => {
     const pauseEvent: PauseVideoEvent = {
       ...getPauseData(videoEl),
-      ...muxMetadata,
+      ...getMuxMetadata(videoEl),
       ...customMetadata,
     };
     handlers.onPause(pauseEvent);
@@ -119,7 +122,7 @@ export function trackMuxHtmlVideo(
   const endedHandler = () => {
     const endedEvent: EndedVideoEvent = {
       ...getEndData(videoEl),
-      ...muxMetadata,
+      ...getMuxMetadata(videoEl),
       ...customMetadata,
     };
     handlers.onEnded(endedEvent);
