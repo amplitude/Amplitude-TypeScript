@@ -150,7 +150,7 @@ export function trackMuxEmbeddedVideo(
   customMetadata: Record<string, string | number | boolean>,
 ) {
   const onUnsubscribe: (() => void)[] = [];
-  player.on('ready', () => {
+  const readyHandler = () => {
     const { elem } = player;
     const playHandler = () => {
       getMuxIframeMetadata(player, elem)
@@ -199,9 +199,11 @@ export function trackMuxEmbeddedVideo(
     };
     player.on('ended', endedHandler);
     onUnsubscribe.push(() => player.off('ended', endedHandler));
-  });
+  };
+  player.on('ready', readyHandler);
 
   return () => {
+    player.off('ready', readyHandler);
     onUnsubscribe.forEach((unsubscribe) => unsubscribe());
   };
 }

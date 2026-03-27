@@ -36,7 +36,11 @@
         },
       };
       
-      trackMuxEmbeddedVideo(player, handler, {});
+      const unsub = trackMuxEmbeddedVideo(player, handler, {});
+      setTimeout(() => {
+        debugger;
+        unsub();
+      }, 10000);
     </script>
   </body>
 </html>
