@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Track Embedded Mux Video Test</title>
+  </head>
+  <body>
+    <h1>Track Embedded Mux Video Test</h1>
+    <iframe
+      id="player"
+      src="https://player.mux.com/dE02GfTAlJD4RcqNAlgiS2m00LqbdFqlBm?&metadata-video-title=All about thumbnails&metadata-user-id=user-1138"
+      style="width: 100%; border: none; aspect-ratio: 16/9;"
+      allow="autoplay; encrypted-media; picture-in-picture;"
+      allowfullscreen
+    ></iframe>
+    <script src="https://cdn.jsdelivr.net/npm/player.js@latest/dist/player.min.js"></script>
+    <script type="module">
+      // TODO: implement trackMuxEmbeddedVideo in track-video.ts
+      import { trackMuxEmbeddedVideo } from '../../packages/analytics-core/src/video-analytics/track-video';
+
+      // get the player iframe
+      const iframe = document.getElementById('player');
+      const player = new playerjs.Player(iframe);
+
+      const handler = {
+        onPlay: (evt) => {
+          console.log('video played', evt);
+        },
+        onPause: (evt) => {
+          console.log('video paused', evt);
+        },
+        onEnded: (evt) => {
+          console.log('video ended', evt);
+        },
+      };
+      
+      trackMuxEmbeddedVideo(player, handler, {});
+    </script>
+  </body>
+</html>
