@@ -107,8 +107,14 @@ export function trackMuxHtmlVideo(
   return trackHtmlVideo(videoEl, handlers, customMetadata, 'mux');
 }
 
-// export function trackMuxEmbeddedVideo;
+export function trackMuxEmbeddedVideo() {
+  throw new Error('Not implemented');
+}
 
-// export function trackYoutubeEmbeddedVideo;
+export function trackYoutubeEmbeddedVideo() {
+  throw new Error('Not implemented');
+}
 
-// export function trackVimeoEmbeddedVideo;
+export function trackVimeoEmbeddedVideo() {
+  throw new Error('Not implemented');
+}

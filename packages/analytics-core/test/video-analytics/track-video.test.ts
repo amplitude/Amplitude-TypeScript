@@ -4,7 +4,13 @@
 
 /* eslint-disable @typescript-eslint/no-floating-promises */
 
-import { trackHtmlVideo, trackMuxHtmlVideo } from '../../src/video-analytics/track-video';
+import {
+  trackHtmlVideo,
+  trackMuxEmbeddedVideo,
+  trackMuxHtmlVideo,
+  trackVimeoEmbeddedVideo,
+  trackYoutubeEmbeddedVideo,
+} from '../../src/video-analytics/track-video';
 import type { VideoHandler } from '../../src/video-analytics/types';
 import { createMockVideo } from './mock-video';
 
@@ -101,5 +107,23 @@ describe('trackMuxHtmlVideo', () => {
     handler.onPlay = jest.fn();
     video.play();
     expect(handler.onPlay).not.toHaveBeenCalled();
+  });
+});
+
+describe('trackMuxEmbeddedVideo', () => {
+  test('throws until implemented', () => {
+    expect(() => trackMuxEmbeddedVideo()).toThrow('Not implemented');
+  });
+});
+
+describe('trackYoutubeEmbeddedVideo', () => {
+  test('throws until implemented', () => {
+    expect(() => trackYoutubeEmbeddedVideo()).toThrow('Not implemented');
+  });
+});
+
+describe('trackVimeoEmbeddedVideo', () => {
+  test('throws until implemented', () => {
+    expect(() => trackVimeoEmbeddedVideo()).toThrow('Not implemented');
   });
 });
