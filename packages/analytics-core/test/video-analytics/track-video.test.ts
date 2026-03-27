@@ -144,7 +144,7 @@ describe('trackMuxEmbeddedVideo', () => {
     player.emit('play');
     await jest.runAllTimersAsync();
     expect(handler.onPlay).toHaveBeenCalledWith({
-      current_time: 0,
+      last_position: 0,
       percent_completed: 0,
       program_duration: 10,
       hello: 'world',
@@ -155,7 +155,7 @@ describe('trackMuxEmbeddedVideo', () => {
     player.emit('pause');
     await jest.runAllTimersAsync();
     expect(handler.onPause).toHaveBeenCalledWith({
-      current_time: 5,
+      last_position: 5,
       percent_completed: 50,
       program_duration: 10,
       hello: 'world',
@@ -166,7 +166,7 @@ describe('trackMuxEmbeddedVideo', () => {
     player.emit('ended');
     await jest.runAllTimersAsync();
     expect(handler.onEnded).toHaveBeenCalledWith({
-      current_time: 10,
+      last_position: 10,
       percent_completed: 100,
       program_duration: 10,
       hello: 'world',
@@ -187,7 +187,7 @@ describe('trackMuxEmbeddedVideo', () => {
     player.emit('play');
     await jest.runAllTimersAsync();
     expect(handler.onPlay).toHaveBeenCalledWith({
-      current_time: 0,
+      last_position: 0,
       program_duration: 10,
       percent_completed: 0,
       foo: 'bar',

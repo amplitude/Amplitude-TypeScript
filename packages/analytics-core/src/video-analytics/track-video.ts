@@ -137,7 +137,7 @@ async function getMuxIframeMetadata(player: MuxEmbeddedPlayer, elem: HTMLIFrameE
   return {
     percent_completed: calculatePercentCompleted(currentTime, duration),
     program_duration: duration,
-    current_time: currentTime,
+    last_position: currentTime,
     mux_video_title: metadataVideoTitle,
     mux_video_id: metadataVideoId,
     mux_playback_id: playerId,
