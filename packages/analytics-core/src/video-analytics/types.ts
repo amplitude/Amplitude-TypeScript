@@ -15,17 +15,27 @@ type BaseVideoEvent = {
   [key: string]: string | number | boolean | undefined | null;
 };
 
-type StartVideoEvent = BaseVideoEvent & {
+type MuxVideoMetadata = {
   mux_playback_id?: string | undefined | null;
   mux_video_id?: string | undefined | null;
   mux_video_title?: string | undefined | null;
 };
 
-type PauseVideoEvent = BaseVideoEvent & {
-  last_position?: number | undefined | null;
-  percent_completed: number;
-};
+type StartVideoEvent = BaseVideoEvent & MuxVideoMetadata;
+
+type PauseVideoEvent = BaseVideoEvent &
+  MuxVideoMetadata & {
+    last_position?: number | undefined | null;
+    percent_completed: number;
+  };
 
 type EndedVideoEvent = PauseVideoEvent; // & { ... }
 
-export { VideoHandler, BaseVideoEvent, StartVideoEvent, PauseVideoEvent, EndedVideoEvent };
+export {
+  VideoHandler,
+  BaseVideoEvent,
+  MuxVideoMetadata,
+  StartVideoEvent,
+  PauseVideoEvent,
+  EndedVideoEvent,
+};
