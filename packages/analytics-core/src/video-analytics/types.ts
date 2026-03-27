@@ -31,7 +31,6 @@ type PauseVideoEvent = BaseVideoEvent &
     percent_completed: number;
   };
 
-// TODO: implement this type to match Mux player
 type MuxEmbeddedPlayer = {
   getCurrentTime: (cb: (time: number) => void) => void;
   getDuration: (cb: (duration: number) => void) => void;
