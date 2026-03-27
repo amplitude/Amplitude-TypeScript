@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Track HTML Video Test</title>
+  </head>
+  <body>
+    <video id="video" controls width="640" preload="metadata">
+      <source src="https://www.w3schools.com/html/mov_bbb.mp4" type="video/mp4">
+      Your browser does not support the video tag.
+    </video>
+    <h1>Track HTML Video Test</h1>
+    <script type="module">
+      // TODO: export this from "analytics-core" package index
+      import { trackHtmlVideo } from '../../packages/analytics-core/src/video-analytics/track-video';
+
+      const handler = {
+        onPlay: (evt) => {
+          console.log('video played', evt);
+        },
+        onPause: (evt) => {
+          console.log('video paused', evt);
+        },
+        onEnded: (evt) => {
+          console.log('video ended', evt);
+        },
+      };
+      const video = document.getElementById('video');
+      trackHtmlVideo(video, handler, { title: 'Test Video' });
+    </script>
+  </body>
+</html>
