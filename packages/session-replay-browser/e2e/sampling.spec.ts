@@ -31,16 +31,15 @@ test.describe('sampling hash algorithm header', () => {
       route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(SR_API_SUCCESS) }),
     );
 
-    await page.goto(buildUrl('/session-replay-browser/sr-capture-test.html', { sessionId: SESSION_ID_IN_20_SAMPLE }));
-    await waitForReady(page);
-    await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
-
+    // Register the listener before goto so the immediate full-snapshot flush
+    // (which fires without any explicit blur/flush call) can satisfy it.
     const requestPromise = page.waitForRequest(
       (req) => req.url().includes('api-sr.amplitude.com') && req.method() === 'POST',
       { timeout: 10_000 },
     );
-    await page.evaluate(() => window.dispatchEvent(new Event('blur')));
-    await page.evaluate(() => (window as any).sessionReplay.flush(false) as Promise<void>);
+
+    await page.goto(buildUrl('/session-replay-browser/sr-capture-test.html', { sessionId: SESSION_ID_IN_20_SAMPLE }));
+    await waitForReady(page);
 
     const request = await requestPromise;
     expect(request.headers()['x-sampling-hash-alg']).toBe('xxhash32');

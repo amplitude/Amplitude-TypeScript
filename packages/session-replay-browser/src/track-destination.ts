@@ -32,18 +32,27 @@ async function gzipJson(jsonStr: string, globalScope: any): Promise<Uint8Array |
     const CS = globalScope.CompressionStream as typeof CompressionStream;
     const stream = new CS('gzip');
     const writer = stream.writable.getWriter();
-    // eslint-disable-next-line @typescript-eslint/no-floating-promises
-    writer.write(new TextEncoder().encode(jsonStr));
-    await writer.close();
-    const chunks: Uint8Array[] = [];
     const reader = stream.readable.getReader();
-    for (;;) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      const { done, value } = await reader.read();
-      if (done) break;
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-      chunks.push(value);
-    }
+
+    // Read concurrently with write+close. CompressionStream applies back-pressure:
+    // close() blocks until all compressed output is consumed, so the reader must
+    // run in parallel or close() will deadlock waiting for the readable side to drain.
+    const chunks: Uint8Array[] = [];
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    const readPromise: Promise<void> = (async () => {
+      for (;;) {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        const { done, value } = await reader.read();
+        if (done) break;
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+        chunks.push(value);
+      }
+    })();
+
+    await writer.write(new TextEncoder().encode(jsonStr));
+    await writer.close();
+    await readPromise;
+
     const totalLength = chunks.reduce((sum, c) => sum + c.length, 0);
     const result = new Uint8Array(totalLength);
     let offset = 0;

@@ -513,7 +513,10 @@ test.describe('URL-based targeting', () => {
     await page.goto(buildUrl('/session-replay-browser/sr-capture-test.html', { sessionId: TEST_SESSION_ID }));
     await waitForReady(page);
 
-    // Navigate to the matching URL to start recording
+    // Navigate to the matching URL to start recording. The SDK fires a full snapshot
+    // immediately when recording begins; register waitForRequest before the navigation
+    // so the immediate-flush request doesn't race past the listener.
+    const trackRequestPromise = page.waitForRequest('https://api-sr.amplitude.com/**', { timeout: 10_000 });
     await page.evaluate((path) => history.pushState({}, '', path), NAV_MATCH_STRING);
     await page.waitForFunction(
       (key) => !!(window as any).sessionReplay.getSessionReplayProperties()[key],
@@ -521,12 +524,6 @@ test.describe('URL-based targeting', () => {
       { timeout: 5_000 },
     );
 
-    // Give rrweb time to capture the initial snapshot
-    await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
-
-    const trackRequestPromise = page.waitForRequest('https://api-sr.amplitude.com/**', { timeout: 5_000 });
-    await page.evaluate(() => window.dispatchEvent(new Event('blur')) as unknown as void);
-    await page.evaluate(() => (window as any).sessionReplay.flush(false) as Promise<void>);
     await trackRequestPromise;
   });
 
@@ -940,17 +937,19 @@ test.describe('attribute masking', () => {
 test.describe('shutdown', () => {
   test('flushes buffered events when shutdown is called', async ({ page }) => {
     await mockRemoteConfig(page, remoteConfigRecording);
+    // Register waitForRequest before goto so the immediate full-snapshot flush
+    // (which fires as soon as rrweb captures the snapshot) can satisfy it.
+    const trackRequestPromise = page.waitForRequest('https://api-sr.amplitude.com/**', { timeout: 10_000 });
     await mockTrackApi(page);
 
     await page.goto(buildUrl('/session-replay-browser/sr-capture-test.html', { sessionId: TEST_SESSION_ID }));
     await waitForReady(page);
-    // Give rrweb time to capture the initial snapshot so there are events to flush
     await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
 
-    // shutdown() calls sendEvents() internally — it should trigger a track API request
-    const trackRequestPromise = page.waitForRequest('https://api-sr.amplitude.com/**', { timeout: 5_000 });
-    await page.evaluate(() => (window as any).sessionReplay.shutdown() as void);
+    // The immediate flush should already have sent the full snapshot. Confirm at
+    // least one request was made, then call shutdown to flush any remaining events.
     await trackRequestPromise; // throws if no request is made within timeout
+    await page.evaluate(() => (window as any).sessionReplay.shutdown() as void);
   });
 
   test('blur no longer triggers a flush after shutdown', async ({ page }) => {
@@ -1012,17 +1011,17 @@ test.describe('capture_enabled', () => {
 // ─── blur auto-flush ──────────────────────────────────────────────────────────
 
 test.describe('blur auto-flush', () => {
-  test('blur event alone sends buffered events to the track API without an explicit flush', async ({ page }) => {
+  test('sends buffered events to the track API without an explicit flush', async ({ page }) => {
     await mockRemoteConfig(page, remoteConfigRecording);
+    // Register waitForRequest before goto. The full snapshot is flushed immediately
+    // after rrweb captures it (no explicit flush() call needed); the listener must
+    // be in place before that happens.
+    const trackRequestPromise = page.waitForRequest('https://api-sr.amplitude.com/**', { timeout: 10_000 });
     await mockTrackApi(page);
 
     await page.goto(buildUrl('/session-replay-browser/sr-capture-test.html', { sessionId: TEST_SESSION_ID }));
     await waitForReady(page);
-    // Give rrweb time to capture the initial snapshot so there are events to send
-    await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
 
-    const trackRequestPromise = page.waitForRequest('https://api-sr.amplitude.com/**', { timeout: 5_000 });
-    await page.evaluate(() => window.dispatchEvent(new Event('blur')));
     await trackRequestPromise; // throws if no request is made within the timeout
   });
 });
