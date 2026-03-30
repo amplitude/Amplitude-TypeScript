@@ -15,6 +15,18 @@ import {
 import { VERSION } from './version';
 import { MAX_URL_LENGTH, KB_SIZE } from './constants';
 
+interface WorkerCompleteMessage {
+  type: 'complete';
+  id: string;
+  err?: string;
+}
+interface WorkerLogMessage {
+  type: 'log' | 'warn';
+  id: string;
+  message: string;
+}
+type WorkerMessage = WorkerCompleteMessage | WorkerLogMessage;
+
 export type PayloadBatcher = ({ version, events }: { version: number; events: string[] }) => {
   version: number;
   events: unknown[];
@@ -74,19 +86,61 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
   private scheduled: ReturnType<typeof setTimeout> | null = null;
   payloadBatcher: PayloadBatcher;
   queue: SessionReplayDestinationContext[] = [];
+  private worker?: Worker;
+  private sendIdCounter = 0;
+  private pendingWorkerRequests = new Map<string, { context: SessionReplayDestinationContext; resolve: () => void }>();
 
   constructor({
     trackServerUrl,
     loggerProvider,
     payloadBatcher,
+    workerScript,
   }: {
     trackServerUrl?: string;
     loggerProvider: ILogger;
     payloadBatcher?: PayloadBatcher;
+    workerScript?: string;
   }) {
     this.loggerProvider = loggerProvider;
     this.payloadBatcher = payloadBatcher ? payloadBatcher : (payload) => payload;
     this.trackServerUrl = trackServerUrl;
+
+    if (workerScript) {
+      try {
+        const blob = new Blob([workerScript], { type: 'application/javascript' });
+        const blobUrl = URL.createObjectURL(blob);
+        const worker = new Worker(blobUrl);
+        worker.onerror = (e) => {
+          e.preventDefault();
+          loggerProvider.error('Track destination worker failed, falling back to main-thread sending:', e);
+          worker.terminate();
+          this.worker = undefined;
+          // Resolve all pending requests so flush() doesn't hang
+          for (const [, pending] of this.pendingWorkerRequests) {
+            pending.resolve();
+          }
+          this.pendingWorkerRequests.clear();
+        };
+        worker.onmessage = (e: MessageEvent<WorkerMessage>) => {
+          const msg = e.data;
+          if (msg.type === 'log') {
+            loggerProvider.log(msg.message);
+          } else if (msg.type === 'warn') {
+            loggerProvider.warn(msg.message);
+          } else if (msg.type === 'complete') {
+            const pending = this.pendingWorkerRequests.get(msg.id);
+            if (pending) {
+              this.completeRequest({ context: pending.context });
+              pending.resolve();
+              this.pendingWorkerRequests.delete(msg.id);
+            }
+          }
+        };
+        this.worker = worker;
+      } catch (error) {
+        loggerProvider.error('Failed to create track destination worker, falling back to main-thread sending:', error);
+      }
+    }
   }
 
   sendEventsList(destinationData: SessionReplayDestination) {
@@ -149,15 +203,7 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
     if (!deviceId) {
       return this.completeRequest({ context, err: MISSING_DEVICE_ID_MESSAGE });
     }
-    const url = getCurrentUrl();
-    const version = VERSION;
-    const sampleRate = context.sampleRate;
-    const urlParams = new URLSearchParams({
-      device_id: deviceId,
-      session_id: `${context.sessionId}`,
-      type: `${context.type}`,
-    });
-    const sessionReplayLibrary = `${context.version?.type || 'standalone'}/${context.version?.version || version}`;
+
     const payload = this.payloadBatcher({
       version: 1,
       events: context.events,
@@ -167,6 +213,63 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
       this.completeRequest({ context });
       return;
     }
+
+    const { worker } = this;
+    if (worker) {
+      return this.sendViaWorker(worker, context, payload, useRetry);
+    }
+
+    return this.sendOnMainThread(apiKey, deviceId, context, payload, useRetry);
+  }
+
+  private async sendViaWorker(
+    worker: Worker,
+    context: SessionReplayDestinationContext,
+    payload: { version: number; events: unknown[] },
+    useRetry: boolean,
+  ): Promise<void> {
+    const id = `${++this.sendIdCounter}`;
+    return new Promise<void>((resolve) => {
+      this.pendingWorkerRequests.set(id, { context, resolve });
+      worker.postMessage({
+        type: 'send',
+        id,
+        payload,
+        useRetry,
+        context: {
+          apiKey: context.apiKey,
+          deviceId: context.deviceId,
+          sessionId: context.sessionId,
+          events: context.events,
+          eventType: context.type,
+          flushMaxRetries: context.flushMaxRetries ?? 0,
+          sampleRate: context.sampleRate,
+          serverZone: context.serverZone,
+          trackServerUrl: this.trackServerUrl,
+          version: context.version,
+          currentUrl: getCurrentUrl(),
+          sdkVersion: VERSION,
+        },
+      });
+    });
+  }
+
+  private async sendOnMainThread(
+    apiKey: string,
+    deviceId: string,
+    context: SessionReplayDestinationContext,
+    payload: { version: number; events: unknown[] },
+    useRetry: boolean,
+  ): Promise<void> {
+    const url = getCurrentUrl();
+    const version = VERSION;
+    const sampleRate = context.sampleRate;
+    const urlParams = new URLSearchParams({
+      device_id: deviceId,
+      session_id: `${context.sessionId}`,
+      type: `${context.type}`,
+    });
+    const sessionReplayLibrary = `${context.version?.type ?? 'standalone'}/${context.version?.version ?? version}`;
 
     try {
       const payloadJson = JSON.stringify(payload);

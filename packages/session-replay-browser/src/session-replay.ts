@@ -211,11 +211,21 @@ export class SessionReplay implements AmplitudeSessionReplay {
       this.loggerProvider.warn('Could not use preferred indexedDB storage, reverting to in memory option.');
     }
     this.loggerProvider.log(`Using ${storeType} for event storage.`);
+    let compressionWorkerScript: string | undefined;
+    let trackDestinationWorkerScript: string | undefined;
+    const globalScope = getGlobalScope();
+    if (this.config.useWebWorker && globalScope && globalScope.Worker) {
+      const { compressionScript, trackDestinationScript } = await import('./worker');
+      compressionWorkerScript = compressionScript;
+      trackDestinationWorkerScript = trackDestinationScript;
+    }
+
     try {
       const rrwebEventManager = await createEventsManager<'replay'>({
         config: this.config,
         type: 'replay',
         storeType,
+        trackDestinationWorkerScript,
       });
       this.replayEventsManager = rrwebEventManager;
       managers.push({ name: 'replay', manager: rrwebEventManager });
@@ -234,6 +244,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
           maxInterval: INTERACTION_MAX_INTERVAL,
           payloadBatcher,
           storeType,
+          trackDestinationWorkerScript,
         });
         managers.push({ name: 'interaction', manager: interactionEventManager });
       } catch (error) {
@@ -248,16 +259,12 @@ export class SessionReplay implements AmplitudeSessionReplay {
       this.eventCompressor.terminate();
     }
 
-    let workerScript = undefined;
-    const globalScope = getGlobalScope();
-    if (this.config.useWebWorker && globalScope && globalScope.Worker) {
-      const { compressionScript } = await import('./worker');
-
-      workerScript = compressionScript;
-    }
-
-    this.eventCompressor = new EventCompressor(this.eventsManager, this.config, this.getDeviceId(), workerScript, () =>
-      this.sendEvents(),
+    this.eventCompressor = new EventCompressor(
+      this.eventsManager,
+      this.config,
+      this.getDeviceId(),
+      compressionWorkerScript,
+      () => this.sendEvents(),
     );
 
     // Register beacon fallback for page exit. sendBeacon survives page unload

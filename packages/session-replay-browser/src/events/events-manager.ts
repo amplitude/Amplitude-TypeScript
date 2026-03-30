@@ -26,6 +26,7 @@ export const createEventsManager = async <Type extends EventType>({
   type,
   payloadBatcher,
   storeType,
+  trackDestinationWorkerScript,
 }: {
   config: SessionReplayJoinedConfig;
   type: Type;
@@ -33,11 +34,13 @@ export const createEventsManager = async <Type extends EventType>({
   maxInterval?: number;
   payloadBatcher?: PayloadBatcher;
   storeType: StoreType;
+  trackDestinationWorkerScript?: string;
 }): Promise<EventsManagerWithBeacon<Type>> => {
   const trackDestination = new SessionReplayTrackDestination({
     ...config,
     loggerProvider: config.loggerProvider,
     payloadBatcher,
+    workerScript: trackDestinationWorkerScript,
   });
 
   const getMemoryStore = (): EventsStore<number> => {

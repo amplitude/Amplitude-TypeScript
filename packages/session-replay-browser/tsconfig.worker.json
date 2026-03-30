@@ -1,0 +1,13 @@
+{
+  "extends": "./tsconfig.json",
+  "include": ["src/worker/compression.ts", "src/worker/track-destination.ts"],
+  "compilerOptions": {
+    "module": "commonjs",
+    "noEmit": false,
+    "outDir": "lib/cjs",
+    "rootDir": "./src",
+    "lib": ["ES2020", "WebWorker"],
+    "noUnusedLocals": false,
+    "noUnusedParameters": false
+  }
+}

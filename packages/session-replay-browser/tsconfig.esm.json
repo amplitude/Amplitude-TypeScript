@@ -1,7 +1,7 @@
 {
   "extends": "./tsconfig.json",
   "include": ["src/**/*"],
-  "exclude": ["src/worker/compression.ts"],
+  "exclude": ["src/worker/compression.ts", "src/worker/track-destination.ts"],
   "compilerOptions": {
     "module": "es2020",
     "noEmit": false,

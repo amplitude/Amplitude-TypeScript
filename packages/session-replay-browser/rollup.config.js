@@ -137,8 +137,9 @@ const webWorkerES5BundleConfig = {
   ],
 };
 
-async function buildWebWorker() {
-  const input = path.join(path.dirname(new URL(import.meta.url).pathname), './src/worker/compression.ts');
+async function buildWorkerBundle(entryFile) {
+  const packageDir = path.dirname(new URL(import.meta.url).pathname);
+  const input = path.join(packageDir, entryFile);
   const bundle = await rollup({
     input,
     output: {
@@ -149,7 +150,7 @@ async function buildWebWorker() {
     },
     plugins: [
       typescript({
-        tsconfig: 'tsconfig.es5.json',
+        tsconfig: path.join(packageDir, 'tsconfig.worker.json'),
       }),
       resolve({
         browser: true,
@@ -164,17 +165,21 @@ async function buildWebWorker() {
     inlineDynamicImports: true,
     sourcemap: false,
   });
-  const webWorkerCode = output[0].code;
 
-  return webWorkerCode;
+  return output[0].code;
 }
 
 export async function webWorkerPlugins() {
+  const [compressionWorkerCode, trackDestinationWorkerCode] = await Promise.all([
+    buildWorkerBundle('./src/worker/compression.ts'),
+    buildWorkerBundle('./src/worker/track-destination.ts'),
+  ]);
   return [
     replace({
       preventAssignment: true,
       values: {
-        'replace.COMPRESSION_WEBWORKER_BODY': JSON.stringify(await buildWebWorker()),
+        'replace.COMPRESSION_WEBWORKER_BODY': JSON.stringify(compressionWorkerCode),
+        'replace.TRACK_DESTINATION_WEBWORKER_BODY': JSON.stringify(trackDestinationWorkerCode),
       },
     }),
   ];
