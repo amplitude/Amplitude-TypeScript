@@ -189,6 +189,8 @@ export class SessionReplay implements AmplitudeSessionReplay {
       options.version?.type,
     );
 
+    this.pageLeaveFns = [];
+
     if (options.sessionId && this.config.interactionConfig?.enabled) {
       const scrollWatcher = ScrollWatcher.default(
         {
