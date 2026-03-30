@@ -37,7 +37,7 @@ import {
 } from './constants';
 import { getServerUrl, getDebugConfig, getPageUrl, getStorageSize, maskFn, maskAttributeFn } from './helpers';
 import { EventCompressor } from './events/event-compressor';
-import { createEventsManager } from './events/events-manager';
+import { createEventsManager, EventsManagerWithBeacon } from './events/events-manager';
 import { MultiEventManager } from './events/multi-manager';
 import { clickBatcher, ClickHandler, clickNonBatcher } from './hooks/click';
 import { ScrollWatcher } from './hooks/scroll';
@@ -74,6 +74,8 @@ export class SessionReplay implements AmplitudeSessionReplay {
   recordCancelCallback: ReturnType<RecordFunction> | null = null;
   eventCount = 0;
   eventCompressor: EventCompressor | undefined;
+  // Direct reference to the replay events manager for synchronous beacon access on page exit
+  private replayEventsManager: EventsManagerWithBeacon<'replay'> | undefined;
   sessionTargetingMatch = false;
   private lastTargetingParams?: SessionReplayTargetingInput;
   private lastShouldRecordDecision?: boolean;
@@ -213,6 +215,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
         type: 'replay',
         storeType,
       });
+      this.replayEventsManager = rrwebEventManager;
       managers.push({ name: 'replay', manager: rrwebEventManager });
     } catch (error) {
       const typedError = error as Error;
@@ -251,7 +254,13 @@ export class SessionReplay implements AmplitudeSessionReplay {
       workerScript = compressionScript;
     }
 
-    this.eventCompressor = new EventCompressor(this.eventsManager, this.config, this.getDeviceId(), workerScript);
+    this.eventCompressor = new EventCompressor(this.eventsManager, this.config, this.getDeviceId(), workerScript, () =>
+      this.sendEvents(),
+    );
+
+    // Register beacon fallback for page exit. sendBeacon survives page unload
+    // and delivers any incremental events that haven't been flushed via fetch yet.
+    this.pageLeaveFns = [...this.pageLeaveFns, () => this.sendEventsViaBeacon()];
 
     await this.initializeNetworkObservers();
 
@@ -486,6 +495,37 @@ export class SessionReplay implements AmplitudeSessionReplay {
       sessionIdToSend &&
       deviceId &&
       this.eventsManager.sendCurrentSequenceEvents({ sessionId: sessionIdToSend, deviceId });
+  }
+
+  /**
+   * Flushes any pending (unsent) replay events via navigator.sendBeacon on page exit.
+   * Beacon payloads are sent as uncompressed JSON because sendBeacon does not support
+   * Content-Encoding, and small incremental batches don't benefit much from compression.
+   * The full snapshot has already been sent eagerly via fetch, so the beacon only needs
+   * to cover the remaining incremental events since the last fetch flush.
+   */
+  private sendEventsViaBeacon() {
+    if (!this.config || !this.identifiers?.sessionId) return;
+    const events = this.replayEventsManager?.getBeaconEvents();
+    if (!events?.length) return;
+    const deviceId = this.getDeviceId();
+    if (!deviceId) return;
+
+    const payload = JSON.stringify({ version: 2, events });
+    const urlParams = new URLSearchParams({
+      device_id: deviceId,
+      session_id: String(this.identifiers.sessionId),
+      type: 'replay',
+      api_key: this.config.apiKey,
+    });
+    const serverUrl = `${getServerUrl(this.config.serverZone, this.config.trackServerUrl)}?${urlParams.toString()}`;
+
+    const globalScope = getGlobalScope();
+    try {
+      globalScope?.navigator?.sendBeacon?.(serverUrl, payload);
+    } catch {
+      // Best effort — no fallback on page exit.
+    }
   }
 
   async initialize(shouldSendStoredEvents = false) {

@@ -84,7 +84,7 @@ test.describe('xxHash32 sampling decisions', () => {
   });
 
   test('does not send events to track API when session is excluded by sample rate', async ({ page }) => {
-    const getRawBodies = await captureTrackRequests(page);
+    const { getBodies: getRawBodies } = await captureTrackRequests(page);
     await mockRemoteConfig(page, {
       configs: { sessionReplay: { sr_sampling_config: { capture_enabled: true, sample_rate: 0.1 } } },
     });
@@ -97,7 +97,7 @@ test.describe('xxHash32 sampling decisions', () => {
   });
 
   test('sends events to track API when session is included by sample rate', async ({ page }) => {
-    const getRawBodies = await captureTrackRequests(page);
+    const { getBodies: getRawBodies } = await captureTrackRequests(page);
     await mockRemoteConfig(page, {
       configs: { sessionReplay: { sr_sampling_config: { capture_enabled: true, sample_rate: 0.2 } } },
     });

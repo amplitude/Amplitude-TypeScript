@@ -1,9 +1,8 @@
 import { eventWithTime } from '@amplitude/rrweb-types';
 import { compressionOnMessage } from '../../src/worker/compression';
-import { pack } from '@amplitude/rrweb-packer';
 
 describe('compression', () => {
-  test('should compress event', async () => {
+  test('should serialize event with type and timestamp first', async () => {
     global.postMessage = jest.fn();
 
     const testEvent: eventWithTime = {
@@ -24,13 +23,44 @@ describe('compression', () => {
       },
     });
 
+    // Key ordering: type and timestamp must appear first
+    const expected = JSON.stringify({ type: testEvent.type, timestamp: testEvent.timestamp, data: testEvent.data });
     expect(global.postMessage).toHaveBeenCalledWith({
       sessionId: 1234,
-      compressedEvent: JSON.stringify(pack(testEvent)),
+      compressedEvent: expected,
     });
   });
 
-  test('should compress event from JSON string data when DataCloneError fallback is used', async () => {
+  test('should include delay field when present', async () => {
+    global.postMessage = jest.fn();
+
+    const testEventWithDelay = {
+      timestamp: 1,
+      type: 3,
+      delay: 50,
+      data: { source: 0 },
+    };
+
+    (compressionOnMessage as (_: unknown) => void)({
+      data: {
+        event: testEventWithDelay,
+        sessionId: 1234,
+      },
+    });
+
+    const expected = JSON.stringify({
+      type: testEventWithDelay.type,
+      timestamp: testEventWithDelay.timestamp,
+      delay: testEventWithDelay.delay,
+      data: testEventWithDelay.data,
+    });
+    expect(global.postMessage).toHaveBeenCalledWith({
+      sessionId: 1234,
+      compressedEvent: expected,
+    });
+  });
+
+  test('should serialize event from JSON string data when DataCloneError fallback is used', async () => {
     global.postMessage = jest.fn();
 
     const testEvent: eventWithTime = {
@@ -54,9 +84,10 @@ describe('compression', () => {
       data: jsonData,
     });
 
+    const expected = JSON.stringify({ type: testEvent.type, timestamp: testEvent.timestamp, data: testEvent.data });
     expect(global.postMessage).toHaveBeenCalledWith({
       sessionId: 5678,
-      compressedEvent: JSON.stringify(pack(testEvent)),
+      compressedEvent: expected,
     });
   });
 });

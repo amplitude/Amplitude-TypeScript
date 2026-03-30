@@ -1,4 +1,4 @@
-import { BaseTransport, ILogger, Status } from '@amplitude/analytics-core';
+import { BaseTransport, getGlobalScope, ILogger, Status } from '@amplitude/analytics-core';
 import { getCurrentUrl, getServerUrl } from './helpers';
 import {
   MAX_RETRIES_EXCEEDED_MESSAGE,
@@ -19,6 +19,43 @@ export type PayloadBatcher = ({ version, events }: { version: number; events: st
   version: number;
   events: unknown[];
 };
+
+/**
+ * Gzip-compresses a JSON string using the CompressionStream API.
+ * The caller is responsible for verifying that globalScope has CompressionStream.
+ * Returns null if compression fails for any reason.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function gzipJson(jsonStr: string, globalScope: any): Promise<Uint8Array | null> {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+    const CS = globalScope.CompressionStream as typeof CompressionStream;
+    const stream = new CS('gzip');
+    const writer = stream.writable.getWriter();
+    // eslint-disable-next-line @typescript-eslint/no-floating-promises
+    writer.write(new TextEncoder().encode(jsonStr));
+    await writer.close();
+    const chunks: Uint8Array[] = [];
+    const reader = stream.readable.getReader();
+    for (;;) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      const { done, value } = await reader.read();
+      if (done) break;
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+      chunks.push(value);
+    }
+    const totalLength = chunks.reduce((sum, c) => sum + c.length, 0);
+    const result = new Uint8Array(totalLength);
+    let offset = 0;
+    for (const chunk of chunks) {
+      result.set(chunk, offset);
+      offset += chunk.length;
+    }
+    return result;
+  } catch {
+    return null;
+  }
+}
 
 export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrackDestination {
   loggerProvider: ILogger;
@@ -123,6 +160,13 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
     }
 
     try {
+      const payloadJson = JSON.stringify(payload);
+      // Only await gzip when CompressionStream is actually available; skipping the
+      // await entirely preserves the synchronous fast-path for browsers/environments
+      // (e.g. Jest) that don't support it, keeping retry-timing tests unaffected.
+      const globalScope = getGlobalScope();
+      const gzipped =
+        globalScope && 'CompressionStream' in globalScope ? await gzipJson(payloadJson, globalScope) : null;
       const options: RequestInit = {
         headers: {
           'Content-Type': 'application/json',
@@ -133,8 +177,9 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
           'X-Client-Url': url.substring(0, MAX_URL_LENGTH), // limit url length to 1000 characters to avoid ELB 400 error
           'X-Client-Sample-Rate': `${sampleRate}`,
           'X-Sampling-Hash-Alg': 'xxhash32',
+          ...(gzipped ? { 'Content-Encoding': 'gzip' } : {}),
         },
-        body: JSON.stringify(payload),
+        body: (gzipped ?? payloadJson) as BodyInit,
         method: 'POST',
       };
 

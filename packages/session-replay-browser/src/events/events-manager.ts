@@ -11,6 +11,14 @@ import { PayloadBatcher, SessionReplayTrackDestination } from '../track-destinat
 import { SessionReplayEventsIDBStore } from './events-idb-store';
 import { InMemoryEventsStore } from './events-memory-store';
 
+export type EventsManagerWithBeacon<Type extends EventType> = AmplitudeSessionReplayEventsManager<Type, string> & {
+  /**
+   * Returns current pending events (since last flush) for synchronous access on page exit.
+   * Used to populate a sendBeacon payload when the page is unloading.
+   */
+  getBeaconEvents(): string[];
+};
+
 export const createEventsManager = async <Type extends EventType>({
   config,
   minInterval,
@@ -25,7 +33,7 @@ export const createEventsManager = async <Type extends EventType>({
   maxInterval?: number;
   payloadBatcher?: PayloadBatcher;
   storeType: StoreType;
-}): Promise<AmplitudeSessionReplayEventsManager<Type, string>> => {
+}): Promise<EventsManagerWithBeacon<Type>> => {
   const trackDestination = new SessionReplayTrackDestination({
     ...config,
     loggerProvider: config.loggerProvider,
@@ -55,6 +63,21 @@ export const createEventsManager = async <Type extends EventType>({
   };
 
   const store: EventsStore<number> = storeType === 'idb' ? await getIdbStoreOrFallback() : getMemoryStore();
+
+  // Beacon buffer: a sliding window of pending (unsent) event strings for synchronous
+  // access on page exit. Uses an absolute index counter to correctly handle concurrent
+  // async flushes without losing events added between the flush call and its resolution.
+  const beaconBuffer: string[] = [];
+  let beaconWindowStart = 0; // absolute index of the first element in beaconBuffer
+
+  const advanceBeaconWindow = (upToAbsoluteIdx: number) => {
+    if (upToAbsoluteIdx <= beaconWindowStart) return;
+    const trimCount = Math.min(upToAbsoluteIdx - beaconWindowStart, beaconBuffer.length);
+    if (trimCount > 0) {
+      beaconBuffer.splice(0, trimCount);
+      beaconWindowStart = upToAbsoluteIdx;
+    }
+  };
 
   /**
    * Immediately sends events to the track destination.
@@ -100,10 +123,14 @@ export const createEventsManager = async <Type extends EventType>({
   };
 
   const sendCurrentSequenceEvents = ({ sessionId, deviceId }: { sessionId: number; deviceId: string }) => {
+    // Snapshot the absolute end-index before the async store read so that any events
+    // pushed after this point are NOT considered sent and remain in the beacon buffer.
+    const snapshotAbsIdx = beaconWindowStart + beaconBuffer.length;
     store
       .storeCurrentSequence(sessionId)
       .then((currentSequence) => {
         if (currentSequence) {
+          advanceBeaconWindow(snapshotAbsIdx);
           sendEventsList({
             sequenceId: currentSequence.sequenceId,
             events: currentSequence.events,
@@ -139,18 +166,24 @@ export const createEventsManager = async <Type extends EventType>({
     sessionId: number;
     deviceId: string;
   }) => {
+    // Record the absolute index of this event in the beacon buffer before the async
+    // store operation. If a batch split occurs, we advance the window up to (but not
+    // including) this event so that it starts the next pending window.
+    const absIdx = beaconWindowStart + beaconBuffer.length;
+    beaconBuffer.push(event.data);
     store
       .addEventToCurrentSequence(sessionId, event.data)
       .then((sequenceToSend) => {
-        return (
-          sequenceToSend &&
+        if (sequenceToSend) {
+          // Events before absIdx belong to the split batch being sent; advance window.
+          advanceBeaconWindow(absIdx);
           sendEventsList({
             sequenceId: sequenceToSend.sequenceId,
             events: sequenceToSend.events,
             sessionId: sequenceToSend.sessionId,
             deviceId,
-          })
-        );
+          });
+        }
       })
       .catch((e) => {
         config.loggerProvider.warn('Failed to add event to session replay capture:', e);
@@ -161,10 +194,13 @@ export const createEventsManager = async <Type extends EventType>({
     return trackDestination.flush(useRetry);
   }
 
+  const getBeaconEvents = (): string[] => [...beaconBuffer];
+
   return {
     sendCurrentSequenceEvents,
     addEvent,
     sendStoredEvents,
     flush,
+    getBeaconEvents,
   };
 };
