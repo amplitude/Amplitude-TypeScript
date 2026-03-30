@@ -2,6 +2,7 @@ type VideoHandler = {
   onPlay: (startEvent: StartVideoEvent) => void;
   onPause: (pauseEvent: PauseVideoEvent) => void;
   onEnded: (endedEvent: EndedVideoEvent) => void;
+  onError: (error: string) => void;
 };
 
 type BaseVideoEvent = {
@@ -30,6 +31,14 @@ type PauseVideoEvent = BaseVideoEvent &
     percent_completed: number;
   };
 
+type MuxEmbeddedPlayer = {
+  getCurrentTime: (cb: (time: number) => void) => void;
+  getDuration: (cb: (duration: number) => void) => void;
+  on: (event: string, callback: () => void) => void;
+  off: (event: string, callback: () => void) => void;
+  elem: HTMLIFrameElement;
+};
+
 type EndedVideoEvent = PauseVideoEvent; // & { ... }
 
 type MuxElement = EventTarget &
@@ -43,4 +52,5 @@ export {
   PauseVideoEvent,
   EndedVideoEvent,
   MuxElement,
+  MuxEmbeddedPlayer,
 };
