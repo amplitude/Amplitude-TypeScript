@@ -376,7 +376,7 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
   }
 
   async handleOtherResponse(context: SessionReplayDestinationContext) {
-    const delay = context.attempts * this.retryTimeout;
+    const delay = Math.random() * context.attempts * this.retryTimeout;
     context.attempts++;
     if (context.attempts > (context.flushMaxRetries || 0)) {
       this.completeRequest({ context, err: MAX_RETRIES_EXCEEDED_MESSAGE });

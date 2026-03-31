@@ -124,7 +124,7 @@ async function sendWithRetry(id: string, payloadJson: string, context: SendConte
       return;
     }
     if (useRetry && result.shouldRetry && attempt < context.flushMaxRetries) {
-      await new Promise<void>((resolve) => setTimeout(resolve, attempt * RETRY_TIMEOUT_MS));
+      await new Promise<void>((resolve) => setTimeout(resolve, Math.random() * attempt * RETRY_TIMEOUT_MS));
       attempt++;
       continue;
     }
