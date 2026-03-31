@@ -1,16 +1,9 @@
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable no-restricted-globals */
 
-const SESSION_REPLAY_SERVER_URL = 'https://api-sr.amplitude.com/sessions/v2/track';
-const SESSION_REPLAY_EU_URL = 'https://api-sr.eu.amplitude.com/sessions/v2/track';
-const SESSION_REPLAY_STAGING_URL = 'https://api-sr.stag2.amplitude.com/sessions/v2/track';
-const MAX_URL_LENGTH = 1000;
-const KB_SIZE = 1024;
-const RETRY_TIMEOUT_MS = 1000;
-const MAX_RETRIES_EXCEEDED_MESSAGE = 'Session replay event batch rejected due to exceeded retry count';
-const UNEXPECTED_ERROR_MESSAGE = 'Unexpected error occurred';
-const UNEXPECTED_NETWORK_ERROR_MESSAGE = 'Network error occurred, event batch rejected';
+import { KB_SIZE, MAX_URL_LENGTH, RETRY_TIMEOUT_MS } from '../constants';
+import { MAX_RETRIES_EXCEEDED_MESSAGE, UNEXPECTED_ERROR_MESSAGE, UNEXPECTED_NETWORK_ERROR_MESSAGE } from '../messages';
+import { gzipJson } from '../utils/gzip';
+import { getServerUrl } from '../utils/server-url';
 
 interface SendContext {
   apiKey: string;
@@ -27,49 +20,12 @@ interface SendContext {
   sdkVersion: string;
 }
 
-function getServerUrl(serverZone?: string, trackServerUrl?: string): string {
-  if (trackServerUrl) return trackServerUrl;
-  if (serverZone === 'STAGING') return SESSION_REPLAY_STAGING_URL;
-  if (serverZone === 'EU') return SESSION_REPLAY_EU_URL;
-  return SESSION_REPLAY_SERVER_URL;
-}
-
-async function gzipJson(jsonStr: string): Promise<Uint8Array | null> {
-  try {
-    const CS = (self as any).CompressionStream as typeof CompressionStream;
-    const stream = new CS('gzip');
-    const writer = stream.writable.getWriter();
-    const reader = stream.readable.getReader();
-    const chunks: Uint8Array[] = [];
-    const readPromise: Promise<void> = (async () => {
-      for (;;) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        chunks.push(value as Uint8Array);
-      }
-    })();
-    await writer.write(new TextEncoder().encode(jsonStr));
-    await writer.close();
-    await readPromise;
-    const totalLength = chunks.reduce((sum, c) => sum + c.length, 0);
-    const result = new Uint8Array(totalLength);
-    let offset = 0;
-    for (const chunk of chunks) {
-      result.set(chunk, offset);
-      offset += chunk.length;
-    }
-    return result;
-  } catch {
-    return null;
-  }
-}
-
 async function doFetch(
   payloadJson: string,
   context: SendContext,
 ): Promise<{ shouldRetry: boolean; success: boolean; message: string }> {
   try {
-    const gzipped = 'CompressionStream' in self ? await gzipJson(payloadJson) : null;
+    const gzipped = 'CompressionStream' in self ? await gzipJson(payloadJson, self) : null;
     const sessionReplayLibrary = `${context.version?.type ?? 'standalone'}/${
       context.version?.version ?? context.sdkVersion
     }`;

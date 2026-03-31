@@ -8,6 +8,7 @@
     "rootDir": "./src",
     "lib": ["ES2020", "WebWorker"],
     "noUnusedLocals": false,
-    "noUnusedParameters": false
+    "noUnusedParameters": false,
+    "skipLibCheck": true
   }
 }
