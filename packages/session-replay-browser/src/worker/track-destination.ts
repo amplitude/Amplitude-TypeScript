@@ -112,7 +112,10 @@ async function doFetch(
 }
 
 async function sendWithRetry(id: string, payloadJson: string, context: SendContext, useRetry: boolean): Promise<void> {
-  let attempt = 0;
+  // Start at 1 to match the main-thread's addToQueue behaviour, which increments
+  // attempts to 1 before the first send. This ensures the same total number of
+  // attempts and the same per-retry delay as the main-thread path.
+  let attempt = 1;
   for (;;) {
     const result = await doFetch(payloadJson, context);
     if (result.success) {
