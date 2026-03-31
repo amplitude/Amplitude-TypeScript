@@ -545,4 +545,161 @@ describe('SessionReplayTrackDestination', () => {
       });
     });
   });
+
+  describe('worker support', () => {
+    const mockContext = {
+      events: [mockEventString],
+      sessionId: 123,
+      apiKey,
+      attempts: 0,
+      timeout: 0,
+      deviceId: '1a2b3c',
+      sampleRate: 1,
+      serverZone: ServerZone.US,
+      type: 'replay' as const,
+      flushMaxRetries: 2,
+      onComplete: jest.fn(),
+    };
+
+    let mockWorker: {
+      postMessage: jest.Mock;
+      terminate: jest.Mock;
+      onerror: ((e: ErrorEvent) => void) | null;
+      onmessage: ((e: MessageEvent) => void) | null;
+    };
+
+    beforeEach(() => {
+      mockWorker = {
+        postMessage: jest.fn(),
+        terminate: jest.fn(),
+        onerror: null,
+        onmessage: null,
+      };
+      global.Worker = jest.fn(() => mockWorker) as unknown as typeof Worker;
+      global.URL.createObjectURL = jest.fn().mockReturnValue('blob:mock');
+      global.Blob = jest.fn((parts) => ({ size: (parts as string[]).join('').length })) as unknown as typeof Blob;
+    });
+
+    test('constructor initializes worker from workerScript', () => {
+      const trackDestination = new SessionReplayTrackDestination({
+        loggerProvider: mockLoggerProvider,
+        workerScript: 'self.onmessage = () => {}',
+      });
+      expect(global.Worker).toHaveBeenCalledTimes(1);
+      expect((trackDestination as any).worker).toBeDefined();
+    });
+
+    test('constructor falls back gracefully when Worker constructor throws', () => {
+      global.Worker = jest.fn(() => {
+        throw new Error('Worker not supported');
+      }) as unknown as typeof Worker;
+      const trackDestination = new SessionReplayTrackDestination({
+        loggerProvider: mockLoggerProvider,
+        workerScript: 'self.onmessage = () => {}',
+      });
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockLoggerProvider.error).toHaveBeenCalledWith(
+        expect.stringContaining('Failed to create track destination worker'),
+        expect.any(Error),
+      );
+      expect((trackDestination as any).worker).toBeUndefined();
+    });
+
+    test('worker onerror clears worker and resolves pending requests', () => {
+      const trackDestination = new SessionReplayTrackDestination({
+        loggerProvider: mockLoggerProvider,
+        workerScript: 'self.onmessage = () => {}',
+      });
+
+      // Inject a fake pending request
+      const resolve = jest.fn();
+      (trackDestination as any).pendingWorkerRequests.set('1', { context: mockContext, resolve });
+
+      // Trigger onerror
+      const errorEvent = { preventDefault: jest.fn() } as unknown as ErrorEvent;
+      mockWorker.onerror?.(errorEvent);
+
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(errorEvent.preventDefault).toHaveBeenCalled();
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockLoggerProvider.error).toHaveBeenCalledWith(
+        expect.stringContaining('Track destination worker failed'),
+        errorEvent,
+      );
+      expect(resolve).toHaveBeenCalled();
+      expect((trackDestination as any).worker).toBeUndefined();
+      expect((trackDestination as any).pendingWorkerRequests.size).toBe(0);
+    });
+
+    test('worker onmessage logs for log type', () => {
+      new SessionReplayTrackDestination({
+        loggerProvider: mockLoggerProvider,
+        workerScript: 'self.onmessage = () => {}',
+      });
+      mockWorker.onmessage?.({ data: { type: 'log', id: '1', message: 'test log' } } as MessageEvent);
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockLoggerProvider.log).toHaveBeenCalledWith('test log');
+    });
+
+    test('worker onmessage warns for warn type', () => {
+      new SessionReplayTrackDestination({
+        loggerProvider: mockLoggerProvider,
+        workerScript: 'self.onmessage = () => {}',
+      });
+      mockWorker.onmessage?.({ data: { type: 'warn', id: '1', message: 'test warn' } } as MessageEvent);
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockLoggerProvider.warn).toHaveBeenCalledWith('test warn');
+    });
+
+    test('worker onmessage completes request for complete type', async () => {
+      const trackDestination = new SessionReplayTrackDestination({
+        loggerProvider: mockLoggerProvider,
+        workerScript: 'self.onmessage = () => {}',
+      });
+
+      const resolve = jest.fn();
+      (trackDestination as any).pendingWorkerRequests.set('1', { context: mockContext, resolve });
+
+      mockWorker.onmessage?.({ data: { type: 'complete', id: '1' } } as MessageEvent);
+
+      expect(resolve).toHaveBeenCalled();
+      expect((trackDestination as any).pendingWorkerRequests.size).toBe(0);
+    });
+
+    test('send routes to worker when worker is present', async () => {
+      const trackDestination = new SessionReplayTrackDestination({
+        loggerProvider: mockLoggerProvider,
+        workerScript: 'self.onmessage = () => {}',
+      });
+
+      const sendPromise = trackDestination.send(mockContext, false);
+
+      // Simulate worker completing immediately
+      const pendingEntries = [...(trackDestination as any).pendingWorkerRequests.entries()];
+      expect(pendingEntries).toHaveLength(1);
+      const [id] = pendingEntries[0] as [string, { resolve: () => void }];
+      mockWorker.onmessage?.({ data: { type: 'complete', id } } as MessageEvent);
+
+      await sendPromise;
+      expect(mockWorker.postMessage).toHaveBeenCalledWith(expect.objectContaining({ type: 'send' }));
+    });
+
+    test('send via worker uses 0 when flushMaxRetries is undefined', async () => {
+      const trackDestination = new SessionReplayTrackDestination({
+        loggerProvider: mockLoggerProvider,
+        workerScript: 'self.onmessage = () => {}',
+      });
+
+      const contextWithoutRetries = { ...mockContext, flushMaxRetries: undefined as unknown as number };
+      const sendPromise = trackDestination.send(contextWithoutRetries, false);
+
+      const pendingEntries = [...(trackDestination as any).pendingWorkerRequests.entries()];
+      const [id] = pendingEntries[0] as [string, { resolve: () => void }];
+      mockWorker.onmessage?.({ data: { type: 'complete', id } } as MessageEvent);
+
+      await sendPromise;
+      const postedMessage = mockWorker.postMessage.mock.calls[0][0] as Record<string, unknown>;
+      expect((postedMessage.context as Record<string, unknown>).flushMaxRetries).toBe(0);
+    });
+  });
 });

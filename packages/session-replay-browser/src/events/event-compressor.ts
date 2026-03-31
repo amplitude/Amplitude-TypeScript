@@ -126,6 +126,9 @@ export class EventCompressor {
     // Serialize with type+timestamp first for streaming parser compatibility.
     // JS engines serialize non-integer string keys in insertion order (ES2015 spec,
     // reliable across V8/SpiderMonkey/JSC), so explicit construction controls key order.
+    // `delay` is an rrweb player field: an optional ms offset applied on top of
+    // `timestamp` during replay to smooth out batched/throttled events. Preserve
+    // it when present so playback timing is accurate.
     const { type, timestamp, delay, data } = event as eventWithTime & { delay?: number };
     return delay != null ? JSON.stringify({ type, timestamp, delay, data }) : JSON.stringify({ type, timestamp, data });
   };

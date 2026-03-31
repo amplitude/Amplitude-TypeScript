@@ -17,6 +17,7 @@ export type EventsManagerWithBeacon<Type extends EventType> = AmplitudeSessionRe
    * Used to populate a sendBeacon payload when the page is unloading.
    */
   getBeaconEvents(): string[];
+  trackDestination: SessionReplayTrackDestination;
 };
 
 export const createEventsManager = async <Type extends EventType>({
@@ -205,5 +206,6 @@ export const createEventsManager = async <Type extends EventType>({
     sendStoredEvents,
     flush,
     getBeaconEvents,
+    trackDestination,
   };
 };

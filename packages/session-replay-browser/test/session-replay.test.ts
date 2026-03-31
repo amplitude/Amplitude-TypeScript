@@ -1570,8 +1570,11 @@ describe('SessionReplay', () => {
   });
 
   describe('sendEventsViaBeacon', () => {
-    // sendEventsViaBeacon is private — call it through pageLeaveFns (which includes it after init)
-    // or directly via (sessionReplay as any).sendEventsViaBeacon().
+    // The beacon logic is registered as the last entry in pageLeaveFns during initialize().
+    const triggerBeacon = (sr: SessionReplay) => {
+      const beaconFn = sr.pageLeaveFns[sr.pageLeaveFns.length - 1];
+      beaconFn(new Event('pagehide'));
+    };
 
     test('should call sendBeacon with pending events on page exit', async () => {
       await sessionReplay.init(apiKey, mockOptions).promise;
@@ -1589,8 +1592,7 @@ describe('SessionReplay', () => {
         deviceId: '1a2b3c',
       });
 
-      // Call the private beacon method directly
-      (sessionReplay as any).sendEventsViaBeacon();
+      triggerBeacon(sessionReplay);
 
       expect(mockSendBeacon).toHaveBeenCalledTimes(1);
       const [url, body] = mockSendBeacon.mock.calls[0] as [string, string];
@@ -1609,7 +1611,7 @@ describe('SessionReplay', () => {
         navigator: { sendBeacon: mockSendBeacon },
       } as unknown as typeof globalThis);
 
-      (sessionReplay as any).sendEventsViaBeacon();
+      triggerBeacon(sessionReplay);
 
       expect(mockSendBeacon).not.toHaveBeenCalled();
     });
@@ -1622,7 +1624,7 @@ describe('SessionReplay', () => {
         navigator: { sendBeacon: mockSendBeacon },
       } as unknown as typeof globalThis);
 
-      (sessionReplay as any).sendEventsViaBeacon();
+      triggerBeacon(sessionReplay);
 
       expect(mockSendBeacon).not.toHaveBeenCalled();
     });
@@ -1642,7 +1644,7 @@ describe('SessionReplay', () => {
         deviceId: '1a2b3c',
       });
 
-      (sessionReplay as any).sendEventsViaBeacon();
+      triggerBeacon(sessionReplay);
 
       expect(mockSendBeacon).not.toHaveBeenCalled();
     });
@@ -1664,18 +1666,29 @@ describe('SessionReplay', () => {
       });
 
       expect(() => {
-        (sessionReplay as any).sendEventsViaBeacon();
+        triggerBeacon(sessionReplay);
       }).not.toThrow();
     });
 
-    test('should invoke sendEventsViaBeacon via pageLeaveFns wrapper', async () => {
+    test('should invoke beacon via pageLeaveFns on page exit', async () => {
       await sessionReplay.init(apiKey, mockOptions).promise;
       await sessionReplay.initialize(true);
-      const spy = jest.spyOn(sessionReplay as any, 'sendEventsViaBeacon').mockImplementation(() => undefined);
+      const mockSendBeacon = jest.fn().mockReturnValue(true);
+      jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue({
+        navigator: { sendBeacon: mockSendBeacon },
+      } as unknown as typeof globalThis);
+
+      if (!sessionReplay.eventsManager) throw new Error('No eventsManager');
+      sessionReplay.eventsManager.addEvent({
+        sessionId: 123,
+        event: { type: 'replay', data: 'x' },
+        deviceId: '1a2b3c',
+      });
+
       // The beacon fn is always the last item added to pageLeaveFns during initialize()
       const beaconFn = sessionReplay.pageLeaveFns[sessionReplay.pageLeaveFns.length - 1];
       beaconFn(new Event('pagehide'));
-      expect(spy).toHaveBeenCalledTimes(1);
+      expect(mockSendBeacon).toHaveBeenCalledTimes(1);
     });
 
     test('should not call sendBeacon if identifiers is undefined', async () => {
@@ -1685,18 +1698,18 @@ describe('SessionReplay', () => {
       jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue({
         navigator: { sendBeacon: mockSendBeacon },
       } as unknown as typeof globalThis);
-      (sessionReplay as any).sendEventsViaBeacon();
+      triggerBeacon(sessionReplay);
       expect(mockSendBeacon).not.toHaveBeenCalled();
     });
 
-    test('should not call sendBeacon if replayEventsManager is undefined', async () => {
+    test('should not call sendBeacon if no pending events in beacon buffer', async () => {
       await sessionReplay.init(apiKey, mockOptions).promise;
-      (sessionReplay as any).replayEventsManager = undefined;
       const mockSendBeacon = jest.fn();
       jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue({
         navigator: { sendBeacon: mockSendBeacon },
       } as unknown as typeof globalThis);
-      (sessionReplay as any).sendEventsViaBeacon();
+      // No events added — beacon buffer is empty
+      triggerBeacon(sessionReplay);
       expect(mockSendBeacon).not.toHaveBeenCalled();
     });
 
@@ -1710,7 +1723,7 @@ describe('SessionReplay', () => {
       });
       jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue(null as unknown as typeof globalThis);
       expect(() => {
-        (sessionReplay as any).sendEventsViaBeacon();
+        triggerBeacon(sessionReplay);
       }).not.toThrow();
     });
 
@@ -1724,7 +1737,7 @@ describe('SessionReplay', () => {
       });
       jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue({} as unknown as typeof globalThis);
       expect(() => {
-        (sessionReplay as any).sendEventsViaBeacon();
+        triggerBeacon(sessionReplay);
       }).not.toThrow();
     });
 
@@ -1740,8 +1753,21 @@ describe('SessionReplay', () => {
         navigator: {},
       } as unknown as typeof globalThis);
       expect(() => {
-        (sessionReplay as any).sendEventsViaBeacon();
+        triggerBeacon(sessionReplay);
       }).not.toThrow();
+    });
+
+    test('should not call sendBeacon if rrwebEventManager failed to initialize', async () => {
+      // When createEventsManager throws for the 'replay' type, rrwebEventManager stays
+      // undefined in the pageLeaveFns closure — the beacon fn should handle this gracefully.
+      jest.spyOn(SessionReplayEventsManager, 'createEventsManager').mockRejectedValueOnce(new Error('init failed'));
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      const mockSendBeacon = jest.fn();
+      jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue({
+        navigator: { sendBeacon: mockSendBeacon },
+      } as unknown as typeof globalThis);
+      triggerBeacon(sessionReplay);
+      expect(mockSendBeacon).not.toHaveBeenCalled();
     });
   });
 

@@ -1,4 +1,4 @@
-import { BaseTransport, getGlobalScope, ILogger, Status } from '@amplitude/analytics-core';
+import { BaseTransport, getGlobalScope, ILogger, ServerZone, Status } from '@amplitude/analytics-core';
 import { getCurrentUrl, getServerUrl } from './helpers';
 import {
   MAX_RETRIES_EXCEEDED_MESSAGE,
@@ -149,6 +149,42 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
       attempts: 0,
       timeout: 0,
     });
+  }
+
+  /**
+   * Sends events via navigator.sendBeacon on page exit.
+   * Beacon payloads are sent as uncompressed JSON because sendBeacon does not support
+   * Content-Encoding, and small incremental batches don't benefit much from compression.
+   * The full snapshot has already been sent eagerly via fetch, so the beacon only needs
+   * to cover the remaining incremental events since the last fetch flush.
+   */
+  sendBeacon({
+    events,
+    sessionId,
+    deviceId,
+    apiKey,
+    serverZone,
+  }: {
+    events: string[];
+    sessionId: string | number;
+    deviceId: string;
+    apiKey: string;
+    serverZone?: keyof typeof ServerZone;
+  }) {
+    const payload = JSON.stringify({ version: 2, events });
+    const urlParams = new URLSearchParams({
+      device_id: deviceId,
+      session_id: String(sessionId),
+      type: 'replay',
+      api_key: apiKey,
+    });
+    const serverUrl = `${getServerUrl(serverZone, this.trackServerUrl)}?${urlParams.toString()}`;
+    const globalScope = getGlobalScope();
+    try {
+      globalScope?.navigator?.sendBeacon?.(serverUrl, payload);
+    } catch {
+      // Best effort — no fallback on page exit.
+    }
   }
 
   addToQueue(...list: SessionReplayDestinationContext[]) {
