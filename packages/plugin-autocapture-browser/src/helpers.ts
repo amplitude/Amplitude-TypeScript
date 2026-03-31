@@ -100,6 +100,20 @@ export const createShouldTrackEvent = (
   };
 };
 
+export const getFilteredUrlParameters = (search: string, blockList: string[] = []): Record<string, string> | null => {
+  const params = new URLSearchParams(search);
+  const blockSet = new Set(blockList.map((k) => k.toLowerCase()));
+  const result: Record<string, string> = {};
+  let hasEntries = false;
+  for (const [key, value] of params) {
+    if (!blockSet.has(key.toLowerCase())) {
+      result[key] = value;
+      hasEntries = true;
+    }
+  }
+  return hasEntries ? result : null;
+};
+
 export const isTextNode = (node: Node) => {
   return !!node && node.nodeType === 3;
 };
