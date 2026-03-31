@@ -574,6 +574,17 @@ describe('joined-config', () => {
         expect(localConfig.customEnrichment).toBe(true);
       });
 
+      test('should not override customEnrichment when locally set to false', () => {
+        localConfig.customEnrichment = false;
+
+        const remoteConfig = {
+          customEnrichment: { enabled: true, body: 'return event;' },
+        };
+
+        updateBrowserConfigWithRemoteConfig(remoteConfig, localConfig);
+        expect(localConfig.customEnrichment).toBe(false);
+      });
+
       test('should not modify customEnrichment when remote config delivers null', () => {
         localConfig.customEnrichment = { enabled: true, body: 'return event;' };
 

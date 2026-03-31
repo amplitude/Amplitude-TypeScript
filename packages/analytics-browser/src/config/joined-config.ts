@@ -302,7 +302,11 @@ export function updateBrowserConfigWithRemoteConfig(
     }
 
     if ('customEnrichment' in typedRemoteConfig && typedRemoteConfig.customEnrichment !== null) {
-      browserConfig.customEnrichment = typedRemoteConfig.customEnrichment;
+      // Respect a locally-explicit false: if the user disabled custom enrichment at init time,
+      // remote config must not re-enable it.
+      if (browserConfig.customEnrichment !== false) {
+        browserConfig.customEnrichment = typedRemoteConfig.customEnrichment;
+      }
     }
 
     browserConfig.loggerProvider.debug('Browser config after remote config update:', JSON.stringify(browserConfig));
