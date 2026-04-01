@@ -80,6 +80,7 @@ jobs:
         with:
           fetch-depth: 0
           token: ${{ secrets.GH_PUBLISH_TOKEN }}
+          ref: ${{ github.event.inputs.branch || github.ref_name }}
 
       - name: Build and Test
         uses: ./.github/actions/build-and-test
