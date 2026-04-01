@@ -77,7 +77,7 @@ jobs:
     steps:
       - name: Validate protected branch
         run: |
-          REF="${{ github.ref_name }}"
+          REF="${{ github.event.inputs.branch || github.ref_name }}"
           case "$REF" in
             main)
               echo "✅ Branch check passed: main"
