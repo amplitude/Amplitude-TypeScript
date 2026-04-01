@@ -1,11 +1,11 @@
-type VideoHandler = {
+export type VideoHandler = {
   onPlay: (startEvent: StartVideoEvent) => void;
   onPause: (pauseEvent: PauseVideoEvent) => void;
   onEnded: (endedEvent: EndedVideoEvent) => void;
   onError: (error: string) => void;
 };
 
-type BaseVideoEvent = {
+export type BaseVideoEvent = {
   program_duration: number;
   playback_id?: string | undefined;
   video_id?: string | undefined;
@@ -16,16 +16,16 @@ type BaseVideoEvent = {
   [key: string]: string | number | boolean | undefined | null;
 };
 
-type MuxVideoMetadata = {
+export type MuxVideoMetadata = {
   mux_playback_id?: string | undefined | null;
   mux_video_id?: string | undefined | null;
   mux_video_title?: string | undefined | null;
   mux_session_id?: string | undefined | null;
 };
 
-type StartVideoEvent = BaseVideoEvent & MuxVideoMetadata;
+export type StartVideoEvent = BaseVideoEvent & MuxVideoMetadata;
 
-type PauseVideoEvent = BaseVideoEvent &
+export type PauseVideoEvent = BaseVideoEvent &
   MuxVideoMetadata & {
     last_position?: number | undefined | null;
     percent_completed: number;
@@ -44,13 +44,4 @@ type EndedVideoEvent = PauseVideoEvent; // & { ... }
 type MuxElement = EventTarget &
   Element & { duration: number; currentTime: number; play?: () => Promise<unknown>; pause?: () => void };
 
-export {
-  VideoHandler,
-  BaseVideoEvent,
-  MuxVideoMetadata,
-  StartVideoEvent,
-  PauseVideoEvent,
-  EndedVideoEvent,
-  MuxElement,
-  MuxEmbeddedPlayer,
-};
+export { EndedVideoEvent, MuxElement, MuxEmbeddedPlayer };
