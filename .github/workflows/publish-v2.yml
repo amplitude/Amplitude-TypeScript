@@ -29,20 +29,12 @@ jobs:
             echo "Current branch: ${{ github.ref_name }}"
             exit 0
           fi
-          REF="${{ github.ref_name }}"
-          case "$REF" in
-            main)
-              echo "✅ Branch check passed: main"
-              ;;
-            hotfix/*)
-              echo "✅ Branch check passed: hotfix branch ($REF)"
-              ;;
-            *)
-              echo "❌ This workflow can only be triggered from main or hotfix/* branches."
-              echo "Current branch: $REF"
-              exit 1
-              ;;
-          esac
+          if [ "${{ github.ref_name }}" != "main" ]; then
+            echo "❌ This workflow can only be triggered from the main branch."
+            echo "Current branch: ${{ github.ref_name }}"
+            exit 1
+          fi
+          echo "✅ Branch check passed: workflow is running from main"
 
       - name: ${{ github.actor }} permission check to do a release
         uses: 'lannonbr/repo-permission-check-action@2bb8c89ba8bf115c4bfab344d6a6f442b24c9a1f'
