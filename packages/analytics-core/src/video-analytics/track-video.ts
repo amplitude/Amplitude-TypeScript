@@ -1,11 +1,4 @@
-import {
-  VideoHandler,
-  StartVideoEvent,
-  PauseVideoEvent,
-  EndedVideoEvent,
-  MuxEmbeddedPlayer,
-  MuxElement,
-} from './types';
+import { VideoHandler, VideoEvent, MuxEmbeddedPlayer, MuxElement } from './types';
 
 function getPlayData(videoEl: HTMLVideoElement | MuxElement) {
   return {
@@ -54,40 +47,35 @@ function getMuxMetadata(videoEl: MuxElement) {
  *
  * @param videoEl - The HTML video element to track.
  * @param handlers - The video handlers to call when on video lifecycle events.
- * @param customMetadata - Custom metadata to add to all the video events.
  * @returns A function to untrack the video.
  */
 export function trackHtmlVideo(
   videoEl: HTMLVideoElement | MuxElement,
   handlers: VideoHandler,
-  customMetadata: Record<string, string | number | boolean>,
   vendor?: 'mux', // if new vendors add them to this
 ) {
   const playHandler = () => {
-    const startEvent: StartVideoEvent = {
+    const startEvent: VideoEvent = {
       ...getPlayData(videoEl),
       ...(vendor === 'mux' ? getMuxMetadata(videoEl) : {}),
-      ...customMetadata,
     };
     handlers.onPlay(startEvent);
   };
   videoEl.addEventListener('play', playHandler);
 
   const pauseHandler = () => {
-    const pauseEvent: PauseVideoEvent = {
+    const pauseEvent: VideoEvent = {
       ...getPauseData(videoEl),
       ...(vendor === 'mux' ? getMuxMetadata(videoEl) : {}),
-      ...customMetadata,
     };
     handlers.onPause(pauseEvent);
   };
   videoEl.addEventListener('pause', pauseHandler);
 
   const endedHandler = () => {
-    const endedEvent: EndedVideoEvent = {
+    const endedEvent: VideoEvent = {
       ...getEndData(videoEl),
       ...(vendor === 'mux' ? getMuxMetadata(videoEl) : {}),
-      ...customMetadata,
     };
     handlers.onEnded(endedEvent);
   };
@@ -105,15 +93,10 @@ export function trackHtmlVideo(
  *
  * @param videoEl - The HTML Mux video element to track.
  * @param handlers - The video handlers to call when on video lifecycle events.
- * @param customMetadata - Custom metadata to add to all the video events.
  * @returns A function to untrack the video.
  */
-export function trackMuxHtmlVideo(
-  videoEl: MuxElement,
-  handlers: VideoHandler,
-  customMetadata: Record<string, string | number | boolean>,
-) {
-  return trackHtmlVideo(videoEl, handlers, customMetadata, 'mux');
+export function trackMuxHtmlVideo(videoEl: MuxElement, handlers: VideoHandler) {
+  return trackHtmlVideo(videoEl, handlers, 'mux');
 }
 
 async function getMuxIframeMetadata(player: MuxEmbeddedPlayer, elem: HTMLIFrameElement) {
@@ -144,20 +127,15 @@ async function getMuxIframeMetadata(player: MuxEmbeddedPlayer, elem: HTMLIFrameE
   };
 }
 
-export function trackMuxEmbeddedVideo(
-  player: MuxEmbeddedPlayer,
-  handlers: VideoHandler,
-  customMetadata: Record<string, string | number | boolean>,
-) {
+export function trackMuxEmbeddedVideo(player: MuxEmbeddedPlayer, handlers: VideoHandler) {
   const onUnsubscribe: (() => void)[] = [];
   const readyHandler = () => {
     const { elem } = player;
     const playHandler = () => {
       getMuxIframeMetadata(player, elem)
         .then((playerState) => {
-          const startEvent: StartVideoEvent = {
+          const startEvent: VideoEvent = {
             ...playerState,
-            ...customMetadata,
           };
           handlers.onPlay(startEvent);
         })
@@ -171,9 +149,8 @@ export function trackMuxEmbeddedVideo(
     const pauseHandler = () => {
       getMuxIframeMetadata(player, elem)
         .then((playerState) => {
-          const pauseEvent: PauseVideoEvent = {
+          const pauseEvent: VideoEvent = {
             ...playerState,
-            ...customMetadata,
           };
           handlers.onPause(pauseEvent);
         })
@@ -187,9 +164,8 @@ export function trackMuxEmbeddedVideo(
     const endedHandler = () => {
       getMuxIframeMetadata(player, elem)
         .then((playerState) => {
-          const endedEvent: EndedVideoEvent = {
+          const endedEvent: VideoEvent = {
             ...playerState,
-            ...customMetadata,
           };
           handlers.onEnded(endedEvent);
         })

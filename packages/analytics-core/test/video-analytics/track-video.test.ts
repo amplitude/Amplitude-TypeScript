@@ -25,12 +25,11 @@ describe('trackHtmlVideo', () => {
   });
 
   test('should track play, pause and ended events', () => {
-    const untrack = trackHtmlVideo(video, handler, { hello: 'world' });
+    const untrack = trackHtmlVideo(video, handler);
 
     video.play();
     expect(handler.onPlay).toHaveBeenCalledWith({
       program_duration: 10,
-      hello: 'world',
     });
 
     video.pause();
@@ -38,7 +37,6 @@ describe('trackHtmlVideo', () => {
       last_position: 5,
       percent_completed: 50,
       program_duration: 10,
-      hello: 'world',
     });
 
     (video as any).ended();
@@ -46,7 +44,6 @@ describe('trackHtmlVideo', () => {
       last_position: 10,
       percent_completed: 100,
       program_duration: 10,
-      hello: 'world',
     });
 
     untrack();
@@ -67,7 +64,7 @@ describe('trackMuxHtmlVideo', () => {
   });
 
   test('should track play, pause and ended events', () => {
-    const untrack = trackMuxHtmlVideo(video, handler, { hello: 'world' });
+    const untrack = trackMuxHtmlVideo(video, handler);
 
     const muxMetadata = {
       mux_playback_id: video.getAttribute('playback-id'),
@@ -78,7 +75,6 @@ describe('trackMuxHtmlVideo', () => {
     video.play();
     expect(handler.onPlay).toHaveBeenCalledWith({
       program_duration: 10,
-      hello: 'world',
       mux_session_id: null,
       ...muxMetadata,
     });
@@ -88,7 +84,6 @@ describe('trackMuxHtmlVideo', () => {
       last_position: 5,
       percent_completed: 50,
       program_duration: 10,
-      hello: 'world',
       mux_session_id: null,
       ...muxMetadata,
     });
@@ -98,7 +93,6 @@ describe('trackMuxHtmlVideo', () => {
       last_position: 10,
       percent_completed: 100,
       program_duration: 10,
-      hello: 'world',
       mux_session_id: null,
       ...muxMetadata,
     });
@@ -130,7 +124,7 @@ describe('trackMuxEmbeddedVideo', () => {
   });
 
   test('should track play, pause and ended events', async () => {
-    const untrack = trackMuxEmbeddedVideo(player, handler, { hello: 'world' });
+    const untrack = trackMuxEmbeddedVideo(player, handler);
 
     player.emit('ready');
 
@@ -147,7 +141,6 @@ describe('trackMuxEmbeddedVideo', () => {
       last_position: 0,
       percent_completed: 0,
       program_duration: 10,
-      hello: 'world',
       ...muxMetadata,
     });
 
@@ -158,7 +151,6 @@ describe('trackMuxEmbeddedVideo', () => {
       last_position: 5,
       percent_completed: 50,
       program_duration: 10,
-      hello: 'world',
       ...muxMetadata,
     });
 
@@ -169,7 +161,6 @@ describe('trackMuxEmbeddedVideo', () => {
       last_position: 10,
       percent_completed: 100,
       program_duration: 10,
-      hello: 'world',
       ...muxMetadata,
     });
 
@@ -182,7 +173,7 @@ describe('trackMuxEmbeddedVideo', () => {
 
   test('should work when there is no src url', async () => {
     player.elem.setAttribute('src', null as unknown as string);
-    const untrack = trackMuxEmbeddedVideo(player, handler, { foo: 'bar' });
+    const untrack = trackMuxEmbeddedVideo(player, handler);
     player.emit('ready');
     player.emit('play');
     await jest.runAllTimersAsync();
@@ -190,7 +181,6 @@ describe('trackMuxEmbeddedVideo', () => {
       last_position: 0,
       program_duration: 10,
       percent_completed: 0,
-      foo: 'bar',
       mux_playback_id: null,
       mux_video_id: null,
       mux_video_title: null,
@@ -209,7 +199,7 @@ describe('trackMuxEmbeddedVideo', () => {
       player.getDuration = jest.fn().mockImplementation(() => {
         throw new Error('Error getting duration');
       });
-      trackMuxEmbeddedVideo(player, handler, { hello: 'world' });
+      trackMuxEmbeddedVideo(player, handler);
       player.emit('ready');
     });
 

@@ -22,7 +22,6 @@ describe('VideoObserver', () => {
       new VideoObserver({
         videoEl: video,
         onStateChange: jest.fn(),
-        customMetadata: { hello: 'world' },
       });
       expect(trackHtmlVideo).toHaveBeenCalledTimes(1);
     });
@@ -34,7 +33,6 @@ describe('VideoObserver', () => {
         onStateChange: jest.fn(),
         vendor: 'mux',
         isEmbedded: true,
-        customMetadata: { hello: 'world' },
       });
       expect(trackMuxEmbeddedVideo).toHaveBeenCalledTimes(1);
     });
@@ -71,39 +69,36 @@ describe('VideoObserver', () => {
     it('should track state changes', () => {
       internalHandler.onPlay({
         program_duration: 10,
-        hello: 'world',
       });
       expect(onStateChange).toHaveBeenCalledWith(
         { videoState: 'paused', lastEvent: undefined },
-        { videoState: 'playing', lastEvent: { program_duration: 10, hello: 'world' } },
+        { videoState: 'playing', lastEvent: { program_duration: 10 } },
       );
       internalHandler.onPause({
         last_position: 5,
         percent_completed: 50,
         program_duration: 10,
-        hello: 'world',
       });
       expect(onStateChange).toHaveBeenCalledWith(
-        { videoState: 'playing', lastEvent: { program_duration: 10, hello: 'world' } },
+        { videoState: 'playing', lastEvent: { program_duration: 10 } },
         {
           videoState: 'paused',
-          lastEvent: { last_position: 5, percent_completed: 50, program_duration: 10, hello: 'world' },
+          lastEvent: { last_position: 5, percent_completed: 50, program_duration: 10 },
         },
       );
       internalHandler.onEnded({
         last_position: 10,
         percent_completed: 100,
         program_duration: 10,
-        hello: 'world',
       });
       expect(onStateChange).toHaveBeenCalledWith(
         {
           videoState: 'paused',
-          lastEvent: { last_position: 5, percent_completed: 50, program_duration: 10, hello: 'world' },
+          lastEvent: { last_position: 5, percent_completed: 50, program_duration: 10 },
         },
         {
           videoState: 'ended',
-          lastEvent: { last_position: 10, percent_completed: 100, program_duration: 10, hello: 'world' },
+          lastEvent: { last_position: 10, percent_completed: 100, program_duration: 10 },
         },
       );
       internalHandler.onError('test error');
