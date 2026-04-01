@@ -155,6 +155,7 @@ async function buildWorkerBundle(entryFile) {
       resolve({
         browser: true,
       }),
+      commonjs(),
       terser(),
     ],
   });

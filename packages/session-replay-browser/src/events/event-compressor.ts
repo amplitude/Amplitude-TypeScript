@@ -46,7 +46,9 @@ export class EventCompressor {
 
         worker.onerror = (e) => {
           e.preventDefault();
-          config.loggerProvider.error('Worker failed, falling back to non-worker compression:', e);
+          config.loggerProvider.error(
+            `Worker failed, falling back to non-worker compression: ${e.message} (${e.filename}:${e.lineno})`,
+          );
           worker.terminate();
           this.worker = undefined;
         };

@@ -394,14 +394,18 @@ describe('EventCompressor', () => {
     expect(capturedOnerror).toBeDefined();
 
     const mockPreventDefault = jest.fn();
-    const mockErrorEvent = { preventDefault: mockPreventDefault };
+    const mockErrorEvent = {
+      preventDefault: mockPreventDefault,
+      message: 'test error',
+      filename: 'blob:test',
+      lineno: 1,
+    };
 
     (capturedOnerror as (e: any) => void)(mockErrorEvent);
 
     expect(mockPreventDefault).toHaveBeenCalledTimes(1);
     expect(mockLoggerProvider['error']).toHaveBeenCalledWith(
-      'Worker failed, falling back to non-worker compression:',
-      mockErrorEvent,
+      expect.stringContaining('Worker failed, falling back to non-worker compression:'),
     );
     expect(mockTerminate).toHaveBeenCalledTimes(1);
     expect(eventCompressor.worker).toBeUndefined();

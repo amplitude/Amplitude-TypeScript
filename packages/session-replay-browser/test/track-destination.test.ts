@@ -616,16 +616,18 @@ describe('SessionReplayTrackDestination', () => {
       (trackDestination as any).pendingWorkerRequests.set('1', { context: mockContext, resolve });
 
       // Trigger onerror
-      const errorEvent = { preventDefault: jest.fn() } as unknown as ErrorEvent;
+      const errorEvent = {
+        preventDefault: jest.fn(),
+        message: 'test error',
+        filename: 'blob:test',
+        lineno: 1,
+      } as unknown as ErrorEvent;
       mockWorker.onerror?.(errorEvent);
 
       // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(errorEvent.preventDefault).toHaveBeenCalled();
       // eslint-disable-next-line @typescript-eslint/unbound-method
-      expect(mockLoggerProvider.error).toHaveBeenCalledWith(
-        expect.stringContaining('Track destination worker failed'),
-        errorEvent,
-      );
+      expect(mockLoggerProvider.error).toHaveBeenCalledWith(expect.stringContaining('Track destination worker failed'));
       expect(resolve).toHaveBeenCalled();
       expect((trackDestination as any).worker).toBeUndefined();
       expect((trackDestination as any).pendingWorkerRequests.size).toBe(0);

@@ -67,7 +67,9 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
         const worker = new Worker(blobUrl);
         worker.onerror = (e) => {
           e.preventDefault();
-          loggerProvider.error('Track destination worker failed, falling back to main-thread sending:', e);
+          loggerProvider.error(
+            `Track destination worker failed, falling back to main-thread sending: ${e.message} (${e.filename}:${e.lineno})`,
+          );
           worker.terminate();
           this.worker = undefined;
           // Resolve all pending requests so flush() doesn't hang
