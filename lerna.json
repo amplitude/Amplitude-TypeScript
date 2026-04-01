@@ -4,7 +4,7 @@
   "npmClient": "pnpm",
   "command": {
     "version": {
-      "allowBranch": "main",
+      "allowBranch": ["main", "hotfix/*"],
       "conventionalCommits": true,
       "message": "chore(release): publish",
       "preid": "beta",
