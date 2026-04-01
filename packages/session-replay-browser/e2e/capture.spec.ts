@@ -1222,6 +1222,79 @@ test.describe('network logging — fields', () => {
   });
 });
 
+// ─── web worker mode ─────────────────────────────────────────────────────────
+
+test.describe('web worker mode', () => {
+  test('sends full snapshot immediately without worker errors', async ({ page }) => {
+    await mockRemoteConfig(page, remoteConfigRecording);
+
+    // Capture any SDK error logs — a worker crash emits an Amplitude Logger [Error] line
+    const workerErrors: string[] = [];
+    page.on('console', (msg) => {
+      if (msg.type() === 'error' && msg.text().includes('worker')) {
+        workerErrors.push(msg.text());
+      }
+    });
+
+    const requestPromise = page.waitForRequest('https://api-sr.amplitude.com/**', { timeout: 10_000 });
+    await mockTrackApi(page);
+
+    await page.goto(
+      buildUrl('/session-replay-browser/sr-capture-test.html', {
+        sessionId: TEST_SESSION_ID,
+        useWebWorker: true,
+      }),
+    );
+    await waitForReady(page);
+
+    // Full snapshot should be sent immediately (worker delivers it)
+    await requestPromise;
+    expect(workerErrors).toHaveLength(0);
+  });
+
+  test('sends events to the track API via worker when flushed', async ({ page }) => {
+    await mockRemoteConfig(page, remoteConfigRecording);
+    const { getBodies } = await captureTrackRequests(page);
+
+    await page.goto(
+      buildUrl('/session-replay-browser/sr-capture-test.html', {
+        sessionId: TEST_SESSION_ID,
+        useWebWorker: true,
+      }),
+    );
+    await waitForReady(page);
+    await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
+
+    await page.evaluate(() => window.dispatchEvent(new Event('blur')));
+    await page.evaluate(() => (window as any).sessionReplay.flush(false) as Promise<void>);
+    await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
+
+    const bodies = getBodies();
+    expect(bodies.length).toBeGreaterThan(0);
+    const events = bodies.flatMap((b) => decodeAllEvents(b));
+    const fullSnapshot = events.find((e) => e['type'] === 2);
+    expect(fullSnapshot).toBeDefined();
+  });
+
+  test('sends payload with gzip Content-Encoding via worker', async ({ page }) => {
+    await mockRemoteConfig(page, remoteConfigRecording);
+    const { getHeaders } = await captureTrackRequests(page);
+
+    await page.goto(
+      buildUrl('/session-replay-browser/sr-capture-test.html', {
+        sessionId: TEST_SESSION_ID,
+        useWebWorker: true,
+      }),
+    );
+    await waitForReady(page);
+    await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
+
+    const headers = getHeaders();
+    expect(headers.length).toBeGreaterThan(0);
+    expect(headers[0]['content-encoding']).toBe('gzip');
+  });
+});
+
 // ─── SR-3115: improved replay data delivery ───────────────────────────────────
 
 test.describe('SR-3115: improved replay data delivery', () => {

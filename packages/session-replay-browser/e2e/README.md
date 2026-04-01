@@ -86,6 +86,7 @@ accepts URL params to configure the SDK:
 | `sampleRate` | `1.0` | Overrides the SDK-level sample rate (remote config mock takes precedence) |
 | `deviceId` | `test-device-id` | Device ID |
 | `logLevel` | `0` | SDK log level (4 = DEBUG, useful for troubleshooting) |
+| `useWebWorker` | `false` | Passes `useWebWorker: true` to `init()`, enabling the web worker send path |
 
 After `init()` resolves, the page sets `window.srReady = true`. Tests wait on this
 before asserting anything. The SDK instance is exposed as `window.sessionReplay`.
