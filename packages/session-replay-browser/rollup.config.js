@@ -151,6 +151,9 @@ async function buildWorkerBundle(entryFile) {
     plugins: [
       typescript({
         tsconfig: path.join(packageDir, 'tsconfig.worker.json'),
+        compilerOptions: {
+          module: 'esnext',
+        },
       }),
       resolve({
         browser: true,
