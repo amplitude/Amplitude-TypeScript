@@ -29,12 +29,20 @@ jobs:
             echo "Current branch: ${{ github.ref_name }}"
             exit 0
           fi
-          if [ "${{ github.ref_name }}" != "main" ]; then
-            echo "❌ This workflow can only be triggered from the main branch."
-            echo "Current branch: ${{ github.ref_name }}"
-            exit 1
-          fi
-          echo "✅ Branch check passed: running from main"
+          REF="${{ github.ref_name }}"
+          case "$REF" in
+            main)
+              echo "✅ Branch check passed: main"
+              ;;
+            hotfix/*)
+              echo "✅ Branch check passed: hotfix branch ($REF)"
+              ;;
+            *)
+              echo "❌ This workflow can only be triggered from main or hotfix/* branches."
+              echo "Current branch: $REF"
+              exit 1
+              ;;
+          esac
 
       - name: ${{ github.actor }} permission check to do a release
         uses: 'lannonbr/repo-permission-check-action@2bb8c89ba8bf115c4bfab344d6a6f442b24c9a1f'
@@ -75,6 +83,23 @@ jobs:
         node-version: [24.x] # Ensure npm 11.5.1 or later is installed for OIDC, node 24.6 is minimal 
 
     steps:
+      - name: Validate protected branch
+        run: |
+          REF="${{ github.ref_name }}"
+          case "$REF" in
+            main)
+              echo "✅ Branch check passed: main"
+              ;;
+            hotfix/*)
+              echo "✅ Branch check passed: hotfix branch ($REF)"
+              ;;
+            *)
+              echo "❌ Deploy can only run from main or hotfix/* branches."
+              echo "Current branch: $REF"
+              exit 1
+              ;;
+          esac
+
       - name: Check out git repository
         uses: actions/checkout@v3
         with:
