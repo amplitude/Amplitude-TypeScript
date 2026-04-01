@@ -29,16 +29,15 @@ jobs:
             echo "Current branch: ${{ github.ref_name }}"
             exit 0
           fi
-          REF="${{ github.ref_name }}"
-          if [[ "$REF" != "main" && "$REF" != hotfix/* ]]; then
-            echo "❌ This workflow can only be triggered from main or a hotfix/* branch."
-            echo "Current branch: $REF"
+          if [ "${{ github.ref_name }}" != "main" ]; then
+            echo "❌ This workflow can only be triggered from the main branch."
+            echo "Current branch: ${{ github.ref_name }}"
             exit 1
           fi
-          echo "✅ Branch check passed: running from $REF"
+          echo "✅ Branch check passed: running from main"
 
       - name: ${{ github.actor }} permission check to do a release
-        uses: 'lannonbr/repo-permission-check-action@2bb8c89ba8bf115c4bfab344d6a6f442b24c9a1f'
+        uses: 'lannonbr/repo-permission-check-action@2.0.2'
         with:
           permission: 'write'
         env:
