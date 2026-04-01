@@ -13,7 +13,7 @@ console.log('Reading analytics browser snippet...');
 const analyticsBrowserSnippet = fs.readFileSync(analyticsSnippetPath, 'utf8');
 
 // Read the plugin snippet
-const pluginSnippetPath = path.join(__dirname, '..', '..', 'plugin-session-replay-browser', 'lib', 'scripts','plugin-session-replay-browser-min.js');
+const pluginSnippetPath = path.join(__dirname, '..', 'plugin-session-replay-browser-v1.27.6.min.js');
 console.log('Reading plugin snippet...');
 const pluginSessionReplaySnippet = fs.readFileSync(pluginSnippetPath, 'utf8');
 
