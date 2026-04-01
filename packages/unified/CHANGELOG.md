@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.0.15](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/unified@1.0.14...@amplitude/unified@1.0.15) (2026-04-01)
+
+**Note:** Version bump only for package @amplitude/unified
+
+
+
+
+
 ## [1.0.14](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/unified@1.0.13...@amplitude/unified@1.0.14) (2026-03-26)
 
 **Note:** Version bump only for package @amplitude/unified

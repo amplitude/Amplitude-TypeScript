@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.38.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/gtm-snippet@2.37.3...@amplitude/gtm-snippet@2.38.1) (2026-04-01)
+
+**Note:** Version bump only for package @amplitude/gtm-snippet
+
+
+
+
+
 # [2.38.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/gtm-snippet@2.37.2...@amplitude/gtm-snippet@2.38.0) (2026-03-26)
 
 **Note:** Version bump only for package @amplitude/gtm-snippet
