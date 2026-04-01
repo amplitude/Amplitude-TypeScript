@@ -8,14 +8,14 @@ import type {
   MuxElement,
 } from '../video-analytics/types';
 
-type VideoState = 'playing' | 'paused' | 'ended' | 'error';
+type PlaybackState = 'playing' | 'paused' | 'ended' | 'error';
 
 type Vendor = 'mux'; // | 'vimeo' | 'youtube' | 'other'
 
 type VideoEvent = StartVideoEvent | PauseVideoEvent | EndedVideoEvent;
 
 type State = {
-  videoState: VideoState;
+  playbackState: PlaybackState;
   errorMessage?: string;
   lastEvent?: VideoEvent;
 };
@@ -30,7 +30,7 @@ type VideoObserverParams = {
 
 export class VideoObserver {
   private state: State = {
-    videoState: 'paused',
+    playbackState: 'paused',
   };
 
   private untrack: () => void;
@@ -60,7 +60,7 @@ export class VideoObserver {
     this.onStateChange = onStateChange;
   }
 
-  private updateState(videoState: VideoState, event?: VideoEvent) {
+  private updateState(videoState: PlaybackState, event?: VideoEvent) {
     const previousState = this.state;
     const nextState = {
       videoState,

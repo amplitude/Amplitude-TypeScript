@@ -61,7 +61,7 @@ export function trackHtmlVideo(
   videoEl: HTMLVideoElement | MuxElement,
   handlers: VideoHandler,
   customMetadata: Record<string, string | number | boolean>,
-  vendor?: 'mux', // if new vendors add them to this
+  vendor?: 'mux', // if new vendors add them to this as enum
 ) {
   const playHandler = () => {
     const startEvent: StartVideoEvent = {
