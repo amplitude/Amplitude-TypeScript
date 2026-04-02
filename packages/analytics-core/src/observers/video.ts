@@ -51,13 +51,13 @@ export class VideoObserver {
   };
 
   constructor({ videoEl, onStateChange, vendor, isEmbedded, customMetadata = {} }: VideoObserverParams) {
+    this.onStateChange = onStateChange;
     if (isEmbedded) {
       // TODO: support embedded iFrame video with no Vendor
       this.untrack = trackMuxEmbeddedVideo(videoEl as MuxEmbeddedPlayer, this.handler, customMetadata);
     } else {
       this.untrack = trackHtmlVideo(videoEl as HTMLVideoElement, this.handler, customMetadata, vendor);
     }
-    this.onStateChange = onStateChange;
   }
 
   private updateState(playbackState: PlaybackState, event?: VideoEvent) {
