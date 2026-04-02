@@ -567,6 +567,7 @@ describe('SessionReplayTrackDestination', () => {
       onerror: ((e: ErrorEvent) => void) | null;
       onmessage: ((e: MessageEvent) => void) | null;
     };
+    let originalBlob: typeof Blob;
 
     beforeEach(() => {
       mockWorker = {
@@ -577,7 +578,12 @@ describe('SessionReplayTrackDestination', () => {
       };
       global.Worker = jest.fn(() => mockWorker) as unknown as typeof Worker;
       global.URL.createObjectURL = jest.fn().mockReturnValue('blob:mock');
+      originalBlob = global.Blob;
       global.Blob = jest.fn((parts) => ({ size: (parts as string[]).join('').length })) as unknown as typeof Blob;
+    });
+
+    afterEach(() => {
+      global.Blob = originalBlob;
     });
 
     test('constructor initializes worker from workerScript', () => {
@@ -628,11 +634,14 @@ describe('SessionReplayTrackDestination', () => {
       expect(errorEvent.preventDefault).toHaveBeenCalled();
       // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockLoggerProvider.error).toHaveBeenCalledWith(expect.stringContaining('Track destination worker failed'));
-      // onComplete should be called via completeRequest so the caller is notified of the failure
-      expect(mockContext.onComplete).toHaveBeenCalled();
-      // warn should be emitted for the error
+      // onComplete must NOT be called — events were never delivered and must remain in
+      // the store for recovery by sendStoredEvents on next init
+      expect(mockContext.onComplete).not.toHaveBeenCalled();
+      // warn should be emitted per pending request
       // eslint-disable-next-line @typescript-eslint/unbound-method
-      expect(mockLoggerProvider.warn).toHaveBeenCalledWith('test error');
+      expect(mockLoggerProvider.warn).toHaveBeenCalledWith(
+        expect.stringContaining('Session replay event send failed due to worker crash'),
+      );
       expect(resolve).toHaveBeenCalled();
       expect((trackDestination as any).worker).toBeUndefined();
       expect((trackDestination as any).pendingWorkerRequests.size).toBe(0);

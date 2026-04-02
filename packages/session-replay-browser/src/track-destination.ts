@@ -72,9 +72,11 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
           );
           worker.terminate();
           this.worker = undefined;
-          // Complete and resolve all pending requests so flush() doesn't hang
+          // Resolve pending promises so flush() doesn't hang. Do NOT call completeRequest
+          // here — the events were never delivered, so onComplete must not fire and the
+          // IDB/memory store entries must remain intact for recovery by sendStoredEvents.
           for (const [, pending] of this.pendingWorkerRequests) {
-            this.completeRequest({ context: pending.context, err: e.message });
+            loggerProvider.warn(`Session replay event send failed due to worker crash: ${e.message}`);
             pending.resolve();
           }
           this.pendingWorkerRequests.clear();
@@ -130,15 +132,17 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
     serverZone?: keyof typeof ServerZone;
   }) {
     const MAX_BEACON_BYTES = 64 * 1024;
+    const byteLength = (s: string) => new Blob([s]).size;
     let trimmedEvents = events;
     let payload = JSON.stringify({ version: 2, events: trimmedEvents });
-    if (payload.length > MAX_BEACON_BYTES) {
+    if (byteLength(payload) > MAX_BEACON_BYTES) {
       // Binary search for the largest prefix that fits within the beacon size limit.
+      // Uses Blob.size to get the UTF-8 byte count, which is what sendBeacon measures.
       let lo = 0;
       let hi = trimmedEvents.length;
       while (lo < hi) {
         const mid = Math.floor((lo + hi + 1) / 2);
-        if (JSON.stringify({ version: 2, events: trimmedEvents.slice(0, mid) }).length <= MAX_BEACON_BYTES) {
+        if (byteLength(JSON.stringify({ version: 2, events: trimmedEvents.slice(0, mid) })) <= MAX_BEACON_BYTES) {
           lo = mid;
         } else {
           hi = mid - 1;
