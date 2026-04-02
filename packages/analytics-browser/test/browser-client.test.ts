@@ -754,6 +754,30 @@ describe('browser-client', () => {
       expect(frustrationInteractionsPlugin).toHaveBeenCalledTimes(1);
     });
 
+    test('should add performance tracking plugin when autocapture.performanceTracking is set', async () => {
+      const performanceTrackingPlugin = jest.spyOn(autocapture, 'performancePlugin');
+      await client.init(apiKey, userId, {
+        autocapture: {
+          performanceTracking: true,
+        },
+      }).promise;
+      expect(performanceTrackingPlugin).toHaveBeenCalledTimes(1);
+    });
+
+    test('should NOT add performance tracking plugin by default', async () => {
+      const performanceTrackingPlugin = jest.spyOn(autocapture, 'performancePlugin');
+      await client.init(apiKey, userId).promise;
+      expect(performanceTrackingPlugin).toHaveBeenCalledTimes(0);
+    });
+
+    test('should NOT add performance tracking plugin when autocapture=true', async () => {
+      const performanceTrackingPlugin = jest.spyOn(autocapture, 'performancePlugin');
+      await client.init(apiKey, userId, {
+        autocapture: true,
+      }).promise;
+      expect(performanceTrackingPlugin).toHaveBeenCalledTimes(0);
+    });
+
     test('should add page view tracking plugin by default', async () => {
       const pageViewTrackingPlugin = jest.spyOn(pageViewTracking, 'pageViewTrackingPlugin');
       await client.init(apiKey, userId).promise;
