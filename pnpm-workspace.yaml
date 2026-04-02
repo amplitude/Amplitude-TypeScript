@@ -19,3 +19,7 @@ onlyBuiltDependencies:
   - unrs-resolver
 
 trustPolicy: true
+
+publishBranch: 
+  - main
+  - hotfix/*
