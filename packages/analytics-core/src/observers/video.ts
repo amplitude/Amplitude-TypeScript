@@ -66,8 +66,12 @@ export class VideoObserver {
       videoState,
       lastEvent: event,
     };
-    this.onStateChange(previousState, nextState);
     this.state = nextState;
+    try {
+      this.onStateChange(previousState, nextState);
+    } catch (_error) {
+      // Swallow callback errors to keep observer state consistent.
+    }
   }
 
   destroy() {
