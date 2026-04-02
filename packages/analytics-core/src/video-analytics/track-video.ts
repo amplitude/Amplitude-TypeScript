@@ -1,5 +1,4 @@
-import { VideoHandler, VideoEvent, EmbeddedVideoPlayer, MuxElement } from './types';
-import { Vendor } from '../observers/video';
+import { VideoHandler, VideoEvent, EmbeddedVideoPlayer, MuxElement, Vendor } from './types';
 
 function getPlayData(videoEl: HTMLVideoElement | MuxElement) {
   return {
@@ -49,11 +48,7 @@ function getMuxMetadata(videoEl: MuxElement) {
  * @param handlers - The video handlers to call when on video lifecycle events.
  * @returns A function to untrack the video.
  */
-export function trackHtmlVideo(
-  videoEl: HTMLVideoElement | MuxElement,
-  handlers: VideoHandler,
-  vendor?: 'mux', // if new vendors add them to this as enum
-) {
+export function trackHtmlVideo(videoEl: HTMLVideoElement | MuxElement, handlers: VideoHandler, vendor?: Vendor) {
   const playHandler = () => {
     const startEvent: VideoEvent = {
       ...getPlayData(videoEl),
@@ -127,7 +122,7 @@ export function trackEmbeddedVideo(player: EmbeddedVideoPlayer, handlers: VideoH
           handlers.onPlay(startEvent);
         })
         .catch((error) => {
-          handlers.onError(`Error getting Mux iframe metadata from 'play' handler: ${error as string}`);
+          handlers.onError(`Error getting iframe metadata from 'play' handler: ${error as string}`);
         });
     };
     player.on('play', playHandler);
@@ -142,7 +137,7 @@ export function trackEmbeddedVideo(player: EmbeddedVideoPlayer, handlers: VideoH
           handlers.onPause(pauseEvent);
         })
         .catch((error) => {
-          handlers.onError(`Error getting Mux iframe metadata from 'pause' handler: ${error as string}`);
+          handlers.onError(`Error getting iframe metadata from 'pause' handler: ${error as string}`);
         });
     };
     player.on('pause', pauseHandler);
@@ -157,7 +152,7 @@ export function trackEmbeddedVideo(player: EmbeddedVideoPlayer, handlers: VideoH
           handlers.onEnded(endedEvent);
         })
         .catch((error) => {
-          handlers.onError(`Error getting Mux iframe metadata from 'ended' handler: ${error as string}`);
+          handlers.onError(`Error getting iframe metadata from 'ended' handler: ${error as string}`);
         });
     };
     player.on('ended', endedHandler);

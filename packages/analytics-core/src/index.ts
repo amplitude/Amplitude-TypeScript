@@ -166,5 +166,5 @@ export {
 
 export { ExcludeInternalReferrersOptions, EXCLUDE_INTERNAL_REFERRERS_CONDITIONS } from './types/config/browser-config';
 
-export { VideoObserver, State as VideoState, Vendor as VideoVendor, type VideoObserverParams } from './observers/video';
-export { EmbeddedVideoPlayer } from './video-analytics/types';
+export { VideoObserver, State as VideoState, type VideoObserverParams } from './observers/video';
+export { EmbeddedVideoPlayer, type Vendor as VideoVendor } from './video-analytics/types';
