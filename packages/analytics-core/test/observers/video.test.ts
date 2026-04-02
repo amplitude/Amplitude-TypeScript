@@ -74,8 +74,8 @@ describe('VideoObserver', () => {
         hello: 'world',
       });
       expect(onStateChange).toHaveBeenCalledWith(
-        { videoState: 'paused', lastEvent: undefined },
-        { videoState: 'playing', lastEvent: { program_duration: 10, hello: 'world' } },
+        { playbackState: 'paused', lastEvent: undefined },
+        { playbackState: 'playing', lastEvent: { program_duration: 10, hello: 'world' } },
       );
       internalHandler.onPause({
         last_position: 5,
@@ -84,9 +84,9 @@ describe('VideoObserver', () => {
         hello: 'world',
       });
       expect(onStateChange).toHaveBeenCalledWith(
-        { videoState: 'playing', lastEvent: { program_duration: 10, hello: 'world' } },
+        { playbackState: 'playing', lastEvent: { program_duration: 10, hello: 'world' } },
         {
-          videoState: 'paused',
+          playbackState: 'paused',
           lastEvent: { last_position: 5, percent_completed: 50, program_duration: 10, hello: 'world' },
         },
       );
@@ -98,11 +98,11 @@ describe('VideoObserver', () => {
       });
       expect(onStateChange).toHaveBeenCalledWith(
         {
-          videoState: 'paused',
+          playbackState: 'paused',
           lastEvent: { last_position: 5, percent_completed: 50, program_duration: 10, hello: 'world' },
         },
         {
-          videoState: 'ended',
+          playbackState: 'ended',
           lastEvent: { last_position: 10, percent_completed: 100, program_duration: 10, hello: 'world' },
         },
       );

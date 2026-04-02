@@ -52,12 +52,12 @@
       const videoObserver = new VideoObserver({
         videoEl: video, 
         onStateChange: (previousState, nextState) => {
-          if (previousState.videoState === 'playing' && nextState.videoState !== 'playing') {
+          if (previousState.playbackState === 'playing' && nextState.playbackState !== 'playing') {
             track('Video Stopped', {
               mux_view_session_id: muxViewSessionId,
               ...nextState.lastEvent,
             });
-          } else if (previousState.videoState !== 'playing' && nextState.videoState === 'playing') {
+          } else if (previousState.playbackState !== 'playing' && nextState.playbackState === 'playing') {
             track('Video Started', {
               mux_view_session_id: muxViewSessionId,
               ...nextState.lastEvent,
