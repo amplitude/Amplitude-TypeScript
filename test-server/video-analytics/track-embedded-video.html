@@ -2,17 +2,19 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <title>Track HTML Video Test</title>
+    <title>Track Embedded Mux Video Test</title>
   </head>
   <body>
-    <video id="video" controls width="640" preload="metadata" metadata-video-title="My Video" metadata-video-id="video-123">
-      <source src="https://stream.mux.com/iBXEG00ifc9cPSv005eKgQ01g3w42LUGdlFWlmeosVuGfU.m3u8" type="video/mp4">
-      Your browser does not support the video tag.
-    </video>
+    <h1>Track Embedded Mux Video Test</h1>
+    <iframe
+      id="player"
+      src="https://player.mux.com/dE02GfTAlJD4RcqNAlgiS2m00LqbdFqlBm?&metadata-video-title=All about thumbnails&metadata-user-id=user-1138"
+      style="width: 100%; border: none; aspect-ratio: 16/9;"
+      allow="autoplay; encrypted-media; picture-in-picture;"
+      allowfullscreen
+    ></iframe>
     <button id="stop-video">Stop Capturing</button>
-    <script src="https://cdn.jsdelivr.net/npm/@mux/mux-player" defer></script>
-    <script src="https://cdn.jsdelivr.net/npm/mux-embed@latest/dist/mux.min.js"></script>
-    <h1>Track HTML Video Test</h1>
+    <script src="https://cdn.jsdelivr.net/npm/player.js@latest/dist/player.min.js"></script>
     <script type="module">
       import * as amplitude from '@amplitude/analytics-browser';
       import { VideoCapture } from '../../packages/analytics-browser/src/video-capture/video-capture';
@@ -25,17 +27,9 @@
       // (do not use an ID with PII)
       const userId = 'random-user-id';
       
-      const video = document.getElementById('video');
+      const iframe = document.getElementById('player');
+      const player = new playerjs.Player(iframe);
       
-      // MUX VIDEO MONITORING
-      // monitor the video for Mux analytics
-      mux.monitor(video, {
-        data: {
-          view_session_id: muxViewSessionId,
-          viewer_user_id: userId,
-        },
-      });
-
       // AMPLITUDE VIDEO ANALYTICS
 
       // initialize Amplitude
@@ -44,15 +38,16 @@
         fetchRemoteConfig: false,
         autocapture: false,
       }).promise.then(() => {
-        mux.updateData(video, {
-          custom_1: amplitude.getDeviceId(),
-          custom_2: amplitude.getSessionId(),
-        });
+        // TODO: see if it's possible to update the player data with Amplitude data
+        // player.updateData({
+        //   custom_1: amplitude.getDeviceId(),
+        //   custom_2: amplitude.getSessionId(),
+        // });
       });
 
       // capture analytics events for Video Start and Video Stop
       const videoCapture = new VideoCapture(amplitude)
-        .withVideoElement(video)
+        .withEmbeddedPlayer(player)
         .withVendor('mux')
         .withExtraEventProperties({
           // capture this so client and server events can be linked together
