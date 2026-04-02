@@ -129,7 +129,30 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
     apiKey: string;
     serverZone?: keyof typeof ServerZone;
   }) {
-    const payload = JSON.stringify({ version: 2, events });
+    const MAX_BEACON_BYTES = 64 * 1024;
+    let trimmedEvents = events;
+    let payload = JSON.stringify({ version: 2, events: trimmedEvents });
+    if (payload.length > MAX_BEACON_BYTES) {
+      // Binary search for the largest prefix that fits within the beacon size limit.
+      let lo = 0;
+      let hi = trimmedEvents.length;
+      while (lo < hi) {
+        const mid = Math.floor((lo + hi + 1) / 2);
+        if (JSON.stringify({ version: 2, events: trimmedEvents.slice(0, mid) }).length <= MAX_BEACON_BYTES) {
+          lo = mid;
+        } else {
+          hi = mid - 1;
+        }
+      }
+      trimmedEvents = trimmedEvents.slice(0, lo);
+      payload = JSON.stringify({ version: 2, events: trimmedEvents });
+      this.loggerProvider.warn(
+        `sendBeacon payload exceeded 64 KB limit, trimmed from ${events.length} to ${trimmedEvents.length} events`,
+      );
+    }
+    if (trimmedEvents.length === 0) {
+      return;
+    }
     const urlParams = new URLSearchParams({
       device_id: deviceId,
       session_id: String(sessionId),
@@ -139,7 +162,10 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
     const serverUrl = `${getServerUrl(serverZone, this.trackServerUrl)}?${urlParams.toString()}`;
     const globalScope = getGlobalScope();
     try {
-      globalScope?.navigator?.sendBeacon?.(serverUrl, payload);
+      const sent = globalScope?.navigator?.sendBeacon?.(serverUrl, payload);
+      if (sent === false) {
+        this.loggerProvider.warn('sendBeacon failed to queue session replay payload');
+      }
     } catch {
       // Best effort — no fallback on page exit.
     }

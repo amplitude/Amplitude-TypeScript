@@ -709,4 +709,78 @@ describe('SessionReplayTrackDestination', () => {
       expect((postedMessage.context as Record<string, unknown>).flushMaxRetries).toBe(0);
     });
   });
+
+  describe('sendBeacon', () => {
+    const beaconArgs = {
+      sessionId: 123,
+      deviceId: 'device-abc',
+      apiKey: 'key-abc',
+      serverZone: 'US' as keyof typeof ServerZone,
+    };
+
+    test('calls sendBeacon with serialized payload', () => {
+      const mockSendBeacon = jest.fn().mockReturnValue(true);
+      jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue({
+        navigator: { sendBeacon: mockSendBeacon },
+      } as unknown as typeof globalThis);
+
+      const trackDestination = new SessionReplayTrackDestination({ loggerProvider: mockLoggerProvider });
+      const events = ['e1', 'e2'];
+      trackDestination.sendBeacon({ ...beaconArgs, events });
+
+      expect(mockSendBeacon).toHaveBeenCalledWith(
+        expect.stringContaining('device_id=device-abc'),
+        JSON.stringify({ version: 2, events }),
+      );
+    });
+
+    test('warns when sendBeacon returns false', () => {
+      const mockSendBeacon = jest.fn().mockReturnValue(false);
+      jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue({
+        navigator: { sendBeacon: mockSendBeacon },
+      } as unknown as typeof globalThis);
+
+      const trackDestination = new SessionReplayTrackDestination({ loggerProvider: mockLoggerProvider });
+      trackDestination.sendBeacon({ ...beaconArgs, events: ['e1'] });
+
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockLoggerProvider.warn).toHaveBeenCalledWith('sendBeacon failed to queue session replay payload');
+    });
+
+    test('trims events and warns when payload exceeds 64 KB', () => {
+      const mockSendBeacon = jest.fn().mockReturnValue(true);
+      jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue({
+        navigator: { sendBeacon: mockSendBeacon },
+      } as unknown as typeof globalThis);
+
+      // Create events large enough that many together exceed 64 KB
+      const bigEvent = 'x'.repeat(2000);
+      const events = Array.from({ length: 50 }, () => bigEvent); // ~100 KB total
+
+      const trackDestination = new SessionReplayTrackDestination({ loggerProvider: mockLoggerProvider });
+      trackDestination.sendBeacon({ ...beaconArgs, events });
+
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockLoggerProvider.warn).toHaveBeenCalledWith(
+        expect.stringMatching(/sendBeacon payload exceeded 64 KB limit, trimmed from 50 to \d+ events/),
+      );
+      // Sent payload must be within beacon limit
+      const sentPayload = mockSendBeacon.mock.calls[0][1] as string;
+      expect(sentPayload.length).toBeLessThanOrEqual(64 * 1024);
+    });
+
+    test('does not call sendBeacon when all events are too large to fit', () => {
+      const mockSendBeacon = jest.fn().mockReturnValue(true);
+      jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue({
+        navigator: { sendBeacon: mockSendBeacon },
+      } as unknown as typeof globalThis);
+
+      // A single event larger than 64 KB
+      const hugeEvent = 'x'.repeat(65 * 1024);
+      const trackDestination = new SessionReplayTrackDestination({ loggerProvider: mockLoggerProvider });
+      trackDestination.sendBeacon({ ...beaconArgs, events: [hugeEvent] });
+
+      expect(mockSendBeacon).not.toHaveBeenCalled();
+    });
+  });
 });
