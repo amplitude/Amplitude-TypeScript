@@ -11,7 +11,7 @@ export type State = {
   lastEvent?: VideoEvent;
 };
 
-type VideoObserverParams = {
+export type VideoObserverParams = {
   videoEl: HTMLVideoElement | EmbeddedVideoPlayer | MuxElement;
   onStateChange: (previousState: State, nextState: State) => void;
   vendor?: Vendor;
