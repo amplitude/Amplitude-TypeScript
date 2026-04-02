@@ -14,6 +14,8 @@ export function resetMockVideoObserver(): void {
 export class MockVideoObserver {
   readonly videoEl: VideoObserverParams['videoEl'];
 
+  private isDestroyed = false;
+
   readonly vendor: VideoObserverParams['vendor'];
 
   readonly isEmbedded: VideoObserverParams['isEmbedded'];
@@ -29,10 +31,13 @@ export class MockVideoObserver {
   }
 
   emitStateChange(previousState: VideoState, nextState: VideoState): void {
+    if (this.isDestroyed) {
+      return;
+    }
     this.onStateChange(previousState, nextState);
   }
 
   destroy(): void {
-    // no-op for tests
+    this.isDestroyed = true;
   }
 }

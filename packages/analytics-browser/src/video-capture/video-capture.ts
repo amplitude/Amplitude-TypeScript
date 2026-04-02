@@ -120,7 +120,6 @@ export class VideoCapture {
 
     this.onRemoveListeners.push(() => {
       videoObserver.destroy();
-      this.listeners = [];
     });
     return this;
   }
