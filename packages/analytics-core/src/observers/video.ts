@@ -1,18 +1,9 @@
 import { trackHtmlVideo, trackMuxEmbeddedVideo } from '../video-analytics/track-video';
-import type {
-  VideoHandler,
-  StartVideoEvent,
-  PauseVideoEvent,
-  EndedVideoEvent,
-  MuxEmbeddedPlayer,
-  MuxElement,
-} from '../video-analytics/types';
+import type { VideoHandler, VideoEvent, MuxEmbeddedPlayer, MuxElement } from '../video-analytics/types';
 
 type PlaybackState = 'playing' | 'paused' | 'ended' | 'error';
 
 type Vendor = 'mux'; // | 'vimeo' | 'youtube' | 'other'
-
-type VideoEvent = StartVideoEvent | PauseVideoEvent | EndedVideoEvent;
 
 type State = {
   playbackState: PlaybackState;
@@ -25,7 +16,6 @@ type VideoObserverParams = {
   onStateChange: (previousState: State, nextState: State) => void;
   vendor?: Vendor;
   isEmbedded?: boolean;
-  customMetadata?: Record<string, string | number | boolean>;
 };
 
 export class VideoObserver {
@@ -36,13 +26,13 @@ export class VideoObserver {
   private untrack: () => void;
   private onStateChange: (previousState: State, nextState: State) => void;
   private handler: VideoHandler = {
-    onPlay: (evt: StartVideoEvent) => {
+    onPlay: (evt: VideoEvent) => {
       this.updateState('playing', evt);
     },
-    onPause: (evt: PauseVideoEvent) => {
+    onPause: (evt: VideoEvent) => {
       this.updateState('paused', evt);
     },
-    onEnded: (evt: EndedVideoEvent) => {
+    onEnded: (evt: VideoEvent) => {
       this.updateState('ended', evt);
     },
     onError: () => {
@@ -50,13 +40,13 @@ export class VideoObserver {
     },
   };
 
-  constructor({ videoEl, onStateChange, vendor, isEmbedded, customMetadata = {} }: VideoObserverParams) {
+  constructor({ videoEl, onStateChange, vendor, isEmbedded }: VideoObserverParams) {
     this.onStateChange = onStateChange;
     if (isEmbedded) {
       // TODO: support embedded iFrame video with no Vendor
-      this.untrack = trackMuxEmbeddedVideo(videoEl as MuxEmbeddedPlayer, this.handler, customMetadata);
+      this.untrack = trackMuxEmbeddedVideo(videoEl as MuxEmbeddedPlayer, this.handler);
     } else {
-      this.untrack = trackHtmlVideo(videoEl as HTMLVideoElement, this.handler, customMetadata, vendor);
+      this.untrack = trackHtmlVideo(videoEl as HTMLVideoElement, this.handler, vendor);
     }
   }
 
