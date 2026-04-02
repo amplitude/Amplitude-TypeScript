@@ -3,6 +3,22 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.36.9](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/gtm-snippet@2.36.8...@amplitude/gtm-snippet@2.36.9) (2026-04-02)
+
+
+### Bug Fixes
+
+* **analytics-browser:** patch in new version of plugin-session-replay-browser to gtm-snippet ([#1645](https://github.com/amplitude/Amplitude-TypeScript/issues/1645)) ([f97fe4b](https://github.com/amplitude/Amplitude-TypeScript/commit/f97fe4b9c3ef57ee4e5055162007a002b832457f))
+
+
+### Reverts
+
+* Revert "chore(release): publish" ([90bfdad](https://github.com/amplitude/Amplitude-TypeScript/commit/90bfdadd26c6c11db92d70465424e0694ae988ce))
+
+
+
+
+
 ## [2.36.8](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/gtm-snippet@2.36.8...@amplitude/gtm-snippet@2.36.8) (2026-04-02)
 
 

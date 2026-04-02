@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.36.9](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.36.8...@amplitude/analytics-browser@2.36.9) (2026-04-02)
+
+
+### Bug Fixes
+
+* **analytics-browser:** dummy patch to force new GTM snippet version ([3deb99c](https://github.com/amplitude/Amplitude-TypeScript/commit/3deb99ca142426a4558830afb35460df7f834989))
+
+
+
+
+
 ## [2.36.8](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.36.7...@amplitude/analytics-browser@2.36.8) (2026-03-19)
 
 **Note:** Version bump only for package @amplitude/analytics-browser
