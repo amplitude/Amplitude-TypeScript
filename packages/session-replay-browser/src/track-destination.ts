@@ -72,8 +72,9 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
           );
           worker.terminate();
           this.worker = undefined;
-          // Resolve all pending requests so flush() doesn't hang
+          // Complete and resolve all pending requests so flush() doesn't hang
           for (const [, pending] of this.pendingWorkerRequests) {
+            this.completeRequest({ context: pending.context, err: e.message });
             pending.resolve();
           }
           this.pendingWorkerRequests.clear();

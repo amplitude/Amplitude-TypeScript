@@ -628,6 +628,11 @@ describe('SessionReplayTrackDestination', () => {
       expect(errorEvent.preventDefault).toHaveBeenCalled();
       // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockLoggerProvider.error).toHaveBeenCalledWith(expect.stringContaining('Track destination worker failed'));
+      // onComplete should be called via completeRequest so the caller is notified of the failure
+      expect(mockContext.onComplete).toHaveBeenCalled();
+      // warn should be emitted for the error
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockLoggerProvider.warn).toHaveBeenCalledWith('test error');
       expect(resolve).toHaveBeenCalled();
       expect((trackDestination as any).worker).toBeUndefined();
       expect((trackDestination as any).pendingWorkerRequests.size).toBe(0);
