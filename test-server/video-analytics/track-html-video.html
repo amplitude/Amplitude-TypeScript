@@ -5,28 +5,67 @@
     <title>Track HTML Video Test</title>
   </head>
   <body>
-    <video id="video" controls width="640" preload="metadata">
-      <source src="https://www.w3schools.com/html/mov_bbb.mp4" type="video/mp4">
+    <video id="video" controls width="640" preload="metadata" metadata-video-title="My Video" metadata-video-id="video-123">
+      <source src="https://stream.mux.com/iBXEG00ifc9cPSv005eKgQ01g3w42LUGdlFWlmeosVuGfU.m3u8" type="video/mp4">
       Your browser does not support the video tag.
     </video>
+    <script src="https://cdn.jsdelivr.net/npm/@mux/mux-player" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/mux-embed@latest/dist/mux.min.js"></script>
     <h1>Track HTML Video Test</h1>
     <script type="module">
       // TODO: export this from "analytics-core" package index
       import { trackHtmlVideo } from '../../packages/analytics-core/src/video-analytics/track-video';
+      import { init, track, setUserId, getDeviceId, setDeviceId, getSessionId, setSessionId } from '@amplitude/analytics-browser';
+      import { VideoObserver } from '../../packages/analytics-core/src/observers/video';
 
-      const handler = {
-        onPlay: (evt) => {
-          console.log('video played', evt);
-        },
-        onPause: (evt) => {
-          console.log('video paused', evt);
-        },
-        onEnded: (evt) => {
-          console.log('video ended', evt);
-        },
-      };
+
+      // generate a View Session ID to be used for Mux and Amplitude
+      // so that views can be linked together
+      const muxViewSessionId = Date.now();
+
+      // get this from the User ID of the logged-in user (if available)
+      const userId = 'random-user-id';
+
+      // initialize Amplitude
+      setUserId(userId);
+      init(import.meta.env.VITE_AMPLITUDE_API_KEY, {
+        fetchRemoteConfig: false,
+        autocapture: false,
+      }).promise.then(() => {
+        mux.updateData(video, {
+          custom_1: getDeviceId(),
+          custom_2: getSessionId(),
+        });
+      });
+      
       const video = document.getElementById('video');
-      trackHtmlVideo(video, handler, { title: 'Test Video' });
+      
+      // monitor the video for Mux analytics
+      mux.monitor(video, {
+        data: {
+          view_session_id: muxViewSessionId,
+          viewer_user_id: userId,
+        },
+      });
+
+      // capture video events and send to Amplitude
+      const videoObserver = new VideoObserver({
+        videoEl: video, 
+        onStateChange: (previousState, nextState) => {
+          if (previousState.playbackState === 'playing' && nextState.playbackState !== 'playing') {
+            track('Video Stopped', {
+              mux_view_session_id: muxViewSessionId,
+              ...nextState.lastEvent,
+            });
+          } else if (previousState.playbackState !== 'playing' && nextState.playbackState === 'playing') {
+            track('Video Started', {
+              mux_view_session_id: muxViewSessionId,
+              ...nextState.lastEvent,
+            });
+          }
+        },
+        vendor: 'mux',
+      });
     </script>
   </body>
 </html>
