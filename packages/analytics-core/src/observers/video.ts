@@ -16,7 +16,6 @@ type VideoObserverParams = {
   onStateChange: (previousState: State, nextState: State) => void;
   vendor?: Vendor;
   isEmbedded?: boolean;
-  customMetadata?: Record<string, string | number | boolean>;
 };
 
 export class VideoObserver {
