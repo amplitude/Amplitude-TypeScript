@@ -48,6 +48,8 @@ import {
   isWebVitalsEnabled,
   isFrustrationInteractionsEnabled,
   getFrustrationInteractionsConfig,
+  isPerformanceTrackingEnabled,
+  getPerformanceTrackingConfig,
   isPageUrlEnrichmentEnabled,
   isCustomEnrichmentEnabled,
 } from './default-tracking';
@@ -61,7 +63,7 @@ import { DEFAULT_SESSION_END_EVENT, DEFAULT_SESSION_START_EVENT, DEFAULT_SERVER_
 import { detNotify } from './det-notification';
 import { networkConnectivityCheckerPlugin } from './plugins/network-connectivity-checker';
 import { updateBrowserConfigWithRemoteConfig } from './config/joined-config';
-import { autocapturePlugin, frustrationPlugin } from '@amplitude/plugin-autocapture-browser';
+import { autocapturePlugin, frustrationPlugin, performancePlugin } from '@amplitude/plugin-autocapture-browser';
 import { plugin as networkCapturePlugin } from '@amplitude/plugin-network-capture-browser';
 import { webVitalsPlugin } from '@amplitude/plugin-web-vitals-browser';
 import { WebAttribution } from './attribution/web-attribution';
@@ -361,6 +363,11 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
     if (isWebVitalsEnabled(this.config.autocapture)) {
       this.config.loggerProvider.debug('Adding web vitals plugin');
       await this.add(webVitalsPlugin()).promise;
+    }
+
+    if (isPerformanceTrackingEnabled(this.config.autocapture)) {
+      this.config.loggerProvider.debug('Adding performance tracking plugin');
+      await this.add(performancePlugin(getPerformanceTrackingConfig(this.config))).promise;
     }
 
     if (isPageUrlEnrichmentEnabled(this.config.autocapture)) {

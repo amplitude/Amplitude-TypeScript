@@ -10,6 +10,7 @@ import {
   NetworkTrackingOptions,
   FrustrationInteractionsOptions,
   CustomEnrichmentOptions,
+  PerformanceTrackingOptions,
 } from '@amplitude/analytics-core';
 
 /**
@@ -132,6 +133,28 @@ export const isFrustrationInteractionsEnabled = (autocapture: AutocaptureOptions
   }
 
   return false;
+};
+
+export const isPerformanceTrackingEnabled = (autocapture: AutocaptureOptions | boolean | undefined): boolean => {
+  if (
+    typeof autocapture === 'object' &&
+    (autocapture.performanceTracking === true || typeof autocapture.performanceTracking === 'object')
+  ) {
+    return true;
+  }
+
+  return false;
+};
+
+export const getPerformanceTrackingConfig = (config: BrowserOptions): PerformanceTrackingOptions | undefined => {
+  if (
+    isPerformanceTrackingEnabled(config.autocapture) &&
+    typeof config.autocapture === 'object' &&
+    typeof config.autocapture.performanceTracking === 'object'
+  ) {
+    return config.autocapture.performanceTracking;
+  }
+  return undefined;
 };
 
 export const isCustomEnrichmentEnabled = (customEnrichment: boolean | CustomEnrichmentOptions | undefined) => {
