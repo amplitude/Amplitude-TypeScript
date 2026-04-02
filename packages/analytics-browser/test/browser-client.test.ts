@@ -963,6 +963,50 @@ describe('browser-client', () => {
       expect(customEnrichmentPlugin).toHaveBeenCalledTimes(0);
     });
 
+    test('should NOT add custom enrichment plugin when customEnrichment is false', async () => {
+      const customEnrichmentPluginSpy = jest.spyOn(customEnrichment, 'customEnrichmentPlugin');
+      await client.init(apiKey, userId, {
+        customEnrichment: false,
+      }).promise;
+      expect(customEnrichmentPluginSpy).toHaveBeenCalledTimes(0);
+    });
+
+    test('should NOT add custom enrichment plugin when customEnrichment is false even if remote config enables it', async () => {
+      const mockRemoteConfigWithCustomEnrichment = {
+        subscribe: jest
+          .fn()
+          .mockImplementation(
+            (
+              configKey: string,
+              _eventType: string,
+              callback: (remoteConfig: any, source: any, lastFetch: Date) => void,
+            ) => {
+              if (configKey === 'configs.analyticsSDK.browserSDK') {
+                callback({ customEnrichment: { enabled: true, body: 'return event;' } }, 'cache', new Date());
+              } else {
+                callback(null, 'cache', new Date());
+              }
+            },
+          ),
+        unsubscribe: jest.fn(),
+        updateConfigs: jest.fn(),
+      };
+
+      MockedRemoteConfigClient = jest.fn().mockImplementation(() => mockRemoteConfigWithCustomEnrichment);
+      Object.defineProperty(core, 'RemoteConfigClient', {
+        value: MockedRemoteConfigClient,
+        writable: true,
+        configurable: true,
+      });
+
+      const customEnrichmentPluginSpy = jest.spyOn(customEnrichment, 'customEnrichmentPlugin');
+      await client.init(apiKey, userId, {
+        fetchRemoteConfig: true,
+        customEnrichment: false,
+      }).promise;
+      expect(customEnrichmentPluginSpy).toHaveBeenCalledTimes(0);
+    });
+
     test.each([[url], [new URL(`https://www.example.com?deviceId=${testDeviceId}`)]])(
       'should set device id from url',
       async (mockedUrl) => {
