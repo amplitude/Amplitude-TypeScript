@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.4.42](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-client-common@2.4.41...@amplitude/analytics-client-common@2.4.42) (2026-04-01)
+
+**Note:** Version bump only for package @amplitude/analytics-client-common
+
+
+
+
+
 ## [2.4.41](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-client-common@2.4.40...@amplitude/analytics-client-common@2.4.41) (2026-03-26)
 
 **Note:** Version bump only for package @amplitude/analytics-client-common

@@ -52,7 +52,7 @@ function getMuxMetadata(videoEl: MuxElement) {
 export function trackHtmlVideo(
   videoEl: HTMLVideoElement | MuxElement,
   handlers: VideoHandler,
-  vendor?: 'mux', // if new vendors add them to this
+  vendor?: 'mux', // if new vendors add them to this as enum
 ) {
   const playHandler = () => {
     const startEvent: VideoEvent = {

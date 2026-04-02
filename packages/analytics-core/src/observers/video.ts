@@ -1,12 +1,12 @@
 import { trackHtmlVideo, trackMuxEmbeddedVideo } from '../video-analytics/track-video';
 import type { VideoHandler, VideoEvent, MuxEmbeddedPlayer, MuxElement } from '../video-analytics/types';
 
-type VideoState = 'playing' | 'paused' | 'ended' | 'error';
+type PlaybackState = 'playing' | 'paused' | 'ended' | 'error';
 
 type Vendor = 'mux'; // | 'vimeo' | 'youtube' | 'other'
 
 type State = {
-  videoState: VideoState;
+  playbackState: PlaybackState;
   errorMessage?: string;
   lastEvent?: VideoEvent;
 };
@@ -21,7 +21,7 @@ type VideoObserverParams = {
 
 export class VideoObserver {
   private state: State = {
-    videoState: 'paused',
+    playbackState: 'paused',
   };
 
   private untrack: () => void;
@@ -42,23 +42,27 @@ export class VideoObserver {
   };
 
   constructor({ videoEl, onStateChange, vendor, isEmbedded }: VideoObserverParams) {
+    this.onStateChange = onStateChange;
     if (isEmbedded) {
       // TODO: support embedded iFrame video with no Vendor
       this.untrack = trackMuxEmbeddedVideo(videoEl as MuxEmbeddedPlayer, this.handler);
     } else {
       this.untrack = trackHtmlVideo(videoEl as HTMLVideoElement, this.handler, vendor);
     }
-    this.onStateChange = onStateChange;
   }
 
-  private updateState(videoState: VideoState, event?: VideoEvent) {
+  private updateState(playbackState: PlaybackState, event?: VideoEvent) {
     const previousState = this.state;
-    const nextState = {
-      videoState,
+    const nextState: State = {
+      playbackState,
       lastEvent: event,
     };
-    this.onStateChange(previousState, nextState);
     this.state = nextState;
+    try {
+      this.onStateChange(previousState, nextState);
+    } catch (_error) {
+      // Swallow callback errors to keep observer state consistent.
+    }
   }
 
   destroy() {
