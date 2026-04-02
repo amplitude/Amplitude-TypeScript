@@ -8,7 +8,7 @@ const extension = 'min.js.br';
 const filename = 'analytics-browser-gtm-wrapper';
 const gtmWrapper = `./scripts/${filename}.${extension}`;
 
-const getVersion = () => analyticsBrowserPkg.version;
+const getVersion = () => '2.36.9';
 let deployed = false;
 const body = fs.readFileSync(path.join(process.cwd(), gtmWrapper));
 const key = `libs/${filename}-${getVersion()}.${extension}`;
