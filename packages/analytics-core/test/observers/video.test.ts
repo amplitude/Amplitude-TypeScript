@@ -4,12 +4,12 @@
 
 jest.mock('../../src/video-analytics/track-video', () => ({
   trackHtmlVideo: jest.fn(() => jest.fn()),
-  trackMuxEmbeddedVideo: jest.fn(() => jest.fn()),
+  trackEmbeddedVideo: jest.fn(() => jest.fn()),
 }));
 
-import { trackHtmlVideo, trackMuxEmbeddedVideo } from '../../src/video-analytics/track-video';
-import { VideoObserver } from '../../src/observers/video';
-import { MuxEmbeddedPlayer, VideoHandler } from '../../src/video-analytics/types';
+import { trackHtmlVideo, trackEmbeddedVideo } from '../../src/video-analytics/track-video';
+import { EmbeddedVideoPlayer, VideoHandler } from '../../src/video-analytics/types';
+import { VideoObserver } from '../../src/index';
 
 describe('VideoObserver', () => {
   beforeEach(() => {
@@ -26,7 +26,7 @@ describe('VideoObserver', () => {
       expect(trackHtmlVideo).toHaveBeenCalledTimes(1);
     });
 
-    it('should call trackMuxEmbeddedVideo when isEmbedded is true and vendor is mux', () => {
+    it('should call trackEmbeddedVideo when isEmbedded is true and vendor is mux', () => {
       const player = null;
       new VideoObserver({
         videoEl: player as unknown as any,
@@ -34,7 +34,7 @@ describe('VideoObserver', () => {
         vendor: 'mux',
         isEmbedded: true,
       });
-      expect(trackMuxEmbeddedVideo).toHaveBeenCalledTimes(1);
+      expect(trackEmbeddedVideo).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -44,10 +44,10 @@ describe('VideoObserver', () => {
     let onStateChange: jest.Mock;
 
     beforeEach(() => {
-      // trackMuxEmbeddedVideo returns untrack; capture the handler when it is *registered*,
+      // trackEmbeddedVideo returns untrack; capture the handler when it is *registered*,
       // not when destroy() runs the returned function.
-      (trackMuxEmbeddedVideo as jest.Mock).mockImplementation(
-        (_player: MuxEmbeddedPlayer, handler: VideoHandler, _metadata: Record<string, string | number | boolean>) => {
+      (trackEmbeddedVideo as jest.Mock).mockImplementation(
+        (_player: EmbeddedVideoPlayer, handler: VideoHandler, _metadata: Record<string, string | number | boolean>) => {
           internalHandler = handler;
           return jest.fn();
         },

@@ -16,7 +16,7 @@
     <h1>Track HTML Video Test</h1>
     <script type="module">
       // TODO: export this from "analytics-core" package index
-      import { trackMuxHtmlVideo } from '../../packages/analytics-core/src/video-analytics/track-video';
+      import { trackHtmlVideo } from '../../packages/analytics-core/src/video-analytics/track-video';
 
       const handler = {
         onPlay: (evt) => {
@@ -30,7 +30,7 @@
         },
       };
       const video = document.getElementById('test-video');
-      trackMuxHtmlVideo(video, handler, { title: 'Test Video' });
+      trackHtmlVideo(video, handler, 'mux');
     </script>
   </body>
 </html>

@@ -1,3 +1,5 @@
+export type Vendor = 'mux'; // | 'vimeo' | 'youtube' | 'other'
+
 export type VideoHandler = {
   onPlay: (startEvent: VideoEvent) => void;
   onPause: (pauseEvent: VideoEvent) => void;
@@ -21,7 +23,7 @@ export type VideoEvent = {
   percent_completed?: number;
 };
 
-type MuxEmbeddedPlayer = {
+type EmbeddedVideoPlayer = {
   getCurrentTime: (cb: (time: number) => void) => void;
   getDuration: (cb: (duration: number) => void) => void;
   on: (event: string, callback: () => void) => void;
@@ -32,4 +34,4 @@ type MuxEmbeddedPlayer = {
 type MuxElement = EventTarget &
   Element & { duration: number; currentTime: number; play?: () => Promise<unknown>; pause?: () => void };
 
-export { MuxElement, MuxEmbeddedPlayer };
+export { MuxElement, EmbeddedVideoPlayer };

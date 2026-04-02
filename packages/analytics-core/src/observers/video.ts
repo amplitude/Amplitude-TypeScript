@@ -1,18 +1,18 @@
-import { trackHtmlVideo, trackMuxEmbeddedVideo } from '../video-analytics/track-video';
-import type { VideoHandler, VideoEvent, MuxEmbeddedPlayer, MuxElement } from '../video-analytics/types';
+import { trackHtmlVideo, trackEmbeddedVideo } from '../video-analytics/track-video';
+import type { VideoHandler, VideoEvent, EmbeddedVideoPlayer, MuxElement, Vendor } from '../video-analytics/types';
+
+export type { Vendor };
 
 type PlaybackState = 'playing' | 'paused' | 'ended' | 'error';
 
-type Vendor = 'mux'; // | 'vimeo' | 'youtube' | 'other'
-
-type State = {
+export type State = {
   playbackState: PlaybackState;
   errorMessage?: string;
   lastEvent?: VideoEvent;
 };
 
 type VideoObserverParams = {
-  videoEl: HTMLVideoElement | MuxEmbeddedPlayer | MuxElement;
+  videoEl: HTMLVideoElement | EmbeddedVideoPlayer | MuxElement;
   onStateChange: (previousState: State, nextState: State) => void;
   vendor?: Vendor;
   isEmbedded?: boolean;
@@ -27,41 +27,55 @@ export class VideoObserver {
   private onStateChange: (previousState: State, nextState: State) => void;
   private handler: VideoHandler = {
     onPlay: (evt: VideoEvent) => {
-      this.updateState('playing', evt);
+      this.updatePlaybackState('playing', evt);
     },
     onPause: (evt: VideoEvent) => {
-      this.updateState('paused', evt);
+      this.updatePlaybackState('paused', evt);
     },
     onEnded: (evt: VideoEvent) => {
-      this.updateState('ended', evt);
+      this.updatePlaybackState('ended', evt);
     },
-    onError: () => {
-      this.updateState('error');
+    onError: (errorMessage: string) => {
+      this.updateStateWithError(errorMessage);
     },
   };
 
   constructor({ videoEl, onStateChange, vendor, isEmbedded }: VideoObserverParams) {
     this.onStateChange = onStateChange;
     if (isEmbedded) {
-      // TODO: support embedded iFrame video with no Vendor
-      this.untrack = trackMuxEmbeddedVideo(videoEl as MuxEmbeddedPlayer, this.handler);
+      this.untrack = trackEmbeddedVideo(videoEl as EmbeddedVideoPlayer, this.handler, vendor);
     } else {
       this.untrack = trackHtmlVideo(videoEl as HTMLVideoElement, this.handler, vendor);
     }
   }
 
-  private updateState(playbackState: PlaybackState, event?: VideoEvent) {
+  private stateChangeHandler(previousState: State, nextState: State) {
+    try {
+      this.onStateChange(previousState, nextState);
+    } catch (_error) {
+      // Swallow callback errors to keep observer state consistent.
+    }
+  }
+
+  private updateStateWithError(error: string) {
+    const previousState = this.state;
+    const nextState: State = {
+      playbackState: 'error',
+      errorMessage: error,
+      lastEvent: undefined,
+    };
+    this.state = nextState;
+    this.stateChangeHandler(previousState, nextState);
+  }
+
+  private updatePlaybackState(playbackState: PlaybackState, event?: VideoEvent) {
     const previousState = this.state;
     const nextState: State = {
       playbackState,
       lastEvent: event,
     };
     this.state = nextState;
-    try {
-      this.onStateChange(previousState, nextState);
-    } catch (_error) {
-      // Swallow callback errors to keep observer state consistent.
-    }
+    this.stateChangeHandler(previousState, nextState);
   }
 
   destroy() {

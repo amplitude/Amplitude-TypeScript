@@ -15,7 +15,7 @@
     ></iframe>
     <script src="https://cdn.jsdelivr.net/npm/player.js@latest/dist/player.min.js"></script>
     <script type="module">
-      import { trackMuxEmbeddedVideo } from '../../packages/analytics-core/src/video-analytics/track-video';
+      import { trackEmbeddedVideo } from '../../packages/analytics-core/src/video-analytics/track-video';
 
       // get the player iframe
       const iframe = document.getElementById('player');
@@ -36,7 +36,7 @@
         },
       };
       
-      const unsub = trackMuxEmbeddedVideo(player, handler, {});
+      const unsub = trackEmbeddedVideo(player, handler, 'mux');
       setTimeout(() => {
         unsub();
       }, 10000);
