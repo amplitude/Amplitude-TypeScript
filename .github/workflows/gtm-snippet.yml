@@ -1,0 +1,36 @@
+# Temporary Ad-hoc workflow to build and upload the GTM Snippet to S3. Will delete after done.
+name: GTM Snippet build and upload to S3
+
+on:
+  push:
+    branches:
+      - main
+      - v1.x
+
+jobs:
+  build:
+    name: Build
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: [24.x]
+        os: [ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Check out git repository
+        uses: actions/checkout@v3
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'pnpm'
+
+      - name: Upload GTM Snippet to S3
+        run: |
+          cd packages/gtm-snippet
+          node ./scripts/upload-to-s3-ad-hoc.js
