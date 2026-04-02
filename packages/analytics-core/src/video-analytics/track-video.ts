@@ -1,4 +1,5 @@
-import { VideoHandler, VideoEvent, MuxEmbeddedPlayer, MuxElement } from './types';
+import { VideoHandler, VideoEvent, EmbeddedVideoPlayer, MuxElement } from './types';
+import { Vendor } from '../observers/video';
 
 function getPlayData(videoEl: HTMLVideoElement | MuxElement) {
   return {
@@ -10,7 +11,6 @@ function calculatePercentCompleted(currentTime: number, duration: number) {
   let percentCompleted = 0;
   if (Number.isFinite(currentTime) && Number.isFinite(duration) && duration > 0) {
     const rawPercent = (currentTime / duration) * 100;
-    // Clamp to [0, 100] to avoid invalid analytics values.
     percentCompleted = Math.min(100, Math.max(0, rawPercent));
   }
   return percentCompleted;
@@ -88,51 +88,38 @@ export function trackHtmlVideo(
   };
 }
 
-/**
- * Track a Mux HTML video element.
- *
- * @param videoEl - The HTML Mux video element to track.
- * @param handlers - The video handlers to call when on video lifecycle events.
- * @returns A function to untrack the video.
- */
-export function trackMuxHtmlVideo(videoEl: MuxElement, handlers: VideoHandler) {
-  return trackHtmlVideo(videoEl, handlers, 'mux');
-}
-
-async function getMuxIframeMetadata(player: MuxEmbeddedPlayer, elem: HTMLIFrameElement) {
+async function getIframeMetadata(player: EmbeddedVideoPlayer, elem: HTMLIFrameElement, vendor: Vendor | null) {
   const [duration, currentTime] = await Promise.all([
     new Promise<number>((resolve) => player.getDuration(resolve)),
     new Promise<number>((resolve) => player.getCurrentTime(resolve)),
   ]);
 
-  let url,
-    metadataVideoTitle = null,
-    metadataVideoId = null,
-    playerId = null;
-  try {
-    url = new URL(elem.getAttribute('src') as string);
-    metadataVideoTitle = url.searchParams.get('metadata-video-title');
-    metadataVideoId = url.searchParams.get('metadata-video-id');
-    playerId = url.pathname.split('/').pop();
-  } catch (error) {
-    // invalid or no src url, skip the header metadata
+  const vendorMetadata: Record<string, string | null | undefined> = {};
+  if (vendor === 'mux') {
+    let url;
+    try {
+      url = new URL(elem.getAttribute('src') as string);
+      vendorMetadata.mux_video_title = url.searchParams.get('metadata-video-title');
+      vendorMetadata.mux_video_id = url.searchParams.get('metadata-video-id');
+      vendorMetadata.mux_playback_id = url.pathname.split('/').pop();
+    } catch (error) {
+      // invalid or no src url, skip the header metadata
+    }
   }
   return {
     percent_completed: calculatePercentCompleted(currentTime, duration),
     program_duration: duration,
     last_position: currentTime,
-    mux_video_title: metadataVideoTitle,
-    mux_video_id: metadataVideoId,
-    mux_playback_id: playerId,
+    ...vendorMetadata,
   };
 }
 
-export function trackMuxEmbeddedVideo(player: MuxEmbeddedPlayer, handlers: VideoHandler) {
+export function trackEmbeddedVideo(player: EmbeddedVideoPlayer, handlers: VideoHandler, vendor: Vendor | null = null) {
   const onUnsubscribe: (() => void)[] = [];
   const readyHandler = () => {
     const { elem } = player;
     const playHandler = () => {
-      getMuxIframeMetadata(player, elem)
+      getIframeMetadata(player, elem, vendor)
         .then((playerState) => {
           const startEvent: VideoEvent = {
             ...playerState,
@@ -147,7 +134,7 @@ export function trackMuxEmbeddedVideo(player: MuxEmbeddedPlayer, handlers: Video
     onUnsubscribe.push(() => player.off('play', playHandler));
 
     const pauseHandler = () => {
-      getMuxIframeMetadata(player, elem)
+      getIframeMetadata(player, elem, vendor)
         .then((playerState) => {
           const pauseEvent: VideoEvent = {
             ...playerState,
@@ -162,7 +149,7 @@ export function trackMuxEmbeddedVideo(player: MuxEmbeddedPlayer, handlers: Video
     onUnsubscribe.push(() => player.off('pause', pauseHandler));
 
     const endedHandler = () => {
-      getMuxIframeMetadata(player, elem)
+      getIframeMetadata(player, elem, vendor)
         .then((playerState) => {
           const endedEvent: VideoEvent = {
             ...playerState,
@@ -182,12 +169,4 @@ export function trackMuxEmbeddedVideo(player: MuxEmbeddedPlayer, handlers: Video
     player.off('ready', readyHandler);
     onUnsubscribe.forEach((unsubscribe) => unsubscribe());
   };
-}
-
-export function trackYoutubeEmbeddedVideo() {
-  throw new Error('Not implemented');
-}
-
-export function trackVimeoEmbeddedVideo() {
-  throw new Error('Not implemented');
 }

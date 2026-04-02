@@ -165,3 +165,6 @@ export {
 } from './messenger/constants';
 
 export { ExcludeInternalReferrersOptions, EXCLUDE_INTERNAL_REFERRERS_CONDITIONS } from './types/config/browser-config';
+
+export { VideoObserver, State as VideoState, Vendor as VideoVendor } from './observers/video';
+export { EmbeddedVideoPlayer } from './video-analytics/types';

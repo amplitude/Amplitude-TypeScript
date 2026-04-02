@@ -4,15 +4,9 @@
 
 /* eslint-disable @typescript-eslint/no-floating-promises */
 
-import {
-  trackHtmlVideo,
-  trackMuxEmbeddedVideo,
-  trackMuxHtmlVideo,
-  trackVimeoEmbeddedVideo,
-  trackYoutubeEmbeddedVideo,
-} from '../../src/video-analytics/track-video';
+import { trackHtmlVideo, trackEmbeddedVideo } from '../../src/video-analytics/track-video';
 import type { VideoHandler } from '../../src/video-analytics/types';
-import { createMockMuxEmbeddedPlayer, createMockVideo } from './mock-video';
+import { createMockEmbeddedVideoPlayer, createMockVideo } from './mock-video';
 
 describe('trackHtmlVideo', () => {
   let video: HTMLVideoElement;
@@ -53,7 +47,7 @@ describe('trackHtmlVideo', () => {
   });
 });
 
-describe('trackMuxHtmlVideo', () => {
+describe('trackHtmlVideo with Mux vendor', () => {
   let video: HTMLVideoElement;
   let handler: VideoHandler;
 
@@ -64,7 +58,7 @@ describe('trackMuxHtmlVideo', () => {
   });
 
   test('should track play, pause and ended events', () => {
-    const untrack = trackMuxHtmlVideo(video, handler);
+    const untrack = trackHtmlVideo(video, handler, 'mux');
 
     const muxMetadata = {
       mux_playback_id: video.getAttribute('playback-id'),
@@ -104,13 +98,13 @@ describe('trackMuxHtmlVideo', () => {
   });
 });
 
-describe('trackMuxEmbeddedVideo', () => {
-  let player: ReturnType<typeof createMockMuxEmbeddedPlayer>['player'];
+describe('trackEmbeddedVideo', () => {
+  let player: ReturnType<typeof createMockEmbeddedVideoPlayer>['player'];
   let handler: VideoHandler;
 
   beforeEach(() => {
     jest.useFakeTimers();
-    ({ player } = createMockMuxEmbeddedPlayer());
+    ({ player } = createMockEmbeddedVideoPlayer());
     handler = {
       onPlay: jest.fn(),
       onPause: jest.fn(),
@@ -123,118 +117,143 @@ describe('trackMuxEmbeddedVideo', () => {
     jest.useRealTimers();
   });
 
-  test('should track play, pause and ended events', async () => {
-    const untrack = trackMuxEmbeddedVideo(player, handler);
-
-    player.emit('ready');
-
-    const muxMetadata = {
-      mux_playback_id: 'dE02GfTAlJD4RcqNAlgiS2m00LqbdFqlBm',
-      mux_video_id: 'video-123',
-      mux_video_title: 'My Video',
-    };
-
-    player.setCurrentTime(0);
-    player.emit('play');
-    await jest.runAllTimersAsync();
-    expect(handler.onPlay).toHaveBeenCalledWith({
-      last_position: 0,
-      percent_completed: 0,
-      program_duration: 10,
-      ...muxMetadata,
-    });
-
-    player.setCurrentTime(5);
-    player.emit('pause');
-    await jest.runAllTimersAsync();
-    expect(handler.onPause).toHaveBeenCalledWith({
-      last_position: 5,
-      percent_completed: 50,
-      program_duration: 10,
-      ...muxMetadata,
-    });
-
-    player.setCurrentTime(10);
-    player.emit('ended');
-    await jest.runAllTimersAsync();
-    expect(handler.onEnded).toHaveBeenCalledWith({
-      last_position: 10,
-      percent_completed: 100,
-      program_duration: 10,
-      ...muxMetadata,
-    });
-
-    untrack();
-    handler.onPlay = jest.fn();
-    player.emit('play');
-    await jest.runAllTimersAsync();
-    expect(handler.onPlay).not.toHaveBeenCalled();
-  });
-
-  test('should work when there is no src url', async () => {
-    player.elem.setAttribute('src', null as unknown as string);
-    const untrack = trackMuxEmbeddedVideo(player, handler);
-    player.emit('ready');
-    player.emit('play');
-    await jest.runAllTimersAsync();
-    expect(handler.onPlay).toHaveBeenCalledWith({
-      last_position: 0,
-      program_duration: 10,
-      percent_completed: 0,
-      mux_playback_id: null,
-      mux_video_id: null,
-      mux_video_title: null,
-    });
-    untrack();
-    handler.onPlay = jest.fn();
-    player.emit('play');
-    await jest.runAllTimersAsync();
-    expect(handler.onPlay).not.toHaveBeenCalled();
-  });
-
-  describe('when there is an error getting the metadata', () => {
-    let originalGetDuration: typeof player.getDuration;
-    beforeEach(() => {
-      originalGetDuration = player.getDuration;
-      player.getDuration = jest.fn().mockImplementation(() => {
-        throw new Error('Error getting duration');
-      });
-      trackMuxEmbeddedVideo(player, handler);
+  describe('no vendor', () => {
+    test('should track play, pause and ended events', async () => {
+      const untrack = trackEmbeddedVideo(player, handler);
       player.emit('ready');
-    });
-
-    afterEach(() => {
-      player.getDuration = originalGetDuration;
-    });
-
-    test('should call the error handler (play)', async () => {
       player.emit('play');
       await jest.runAllTimersAsync();
-      expect(handler.onError).toHaveBeenCalledTimes(1);
-    });
+      expect(handler.onPlay).toHaveBeenCalledWith({
+        last_position: 0,
+        percent_completed: 0,
+        program_duration: 10,
+      });
 
-    test('should call the error handler (pause)', async () => {
+      player.setCurrentTime(5);
       player.emit('pause');
       await jest.runAllTimersAsync();
-      expect(handler.onError).toHaveBeenCalledTimes(1);
-    });
+      expect(handler.onPause).toHaveBeenCalledWith({
+        last_position: 5,
+        percent_completed: 50,
+        program_duration: 10,
+      });
 
-    test('should call the error handler (ended)', async () => {
+      player.setCurrentTime(10);
       player.emit('ended');
       await jest.runAllTimersAsync();
-      expect(handler.onError).toHaveBeenCalledTimes(1);
+      expect(handler.onEnded).toHaveBeenCalledWith({
+        last_position: 10,
+        percent_completed: 100,
+        program_duration: 10,
+      });
+
+      untrack();
+      handler.onPlay = jest.fn();
+      player.emit('play');
+      await jest.runAllTimersAsync();
+      expect(handler.onPlay).not.toHaveBeenCalled();
     });
   });
-});
 
-describe('trackYoutubeEmbeddedVideo', () => {
-  test('throws until implemented', () => {
-    expect(() => trackYoutubeEmbeddedVideo()).toThrow('Not implemented');
-  });
-});
+  describe('with Mux vendor', () => {
+    test('should track play, pause and ended events', async () => {
+      const untrack = trackEmbeddedVideo(player, handler, 'mux');
 
-describe('trackVimeoEmbeddedVideo', () => {
-  test('throws until implemented', () => {
-    expect(() => trackVimeoEmbeddedVideo()).toThrow('Not implemented');
+      player.emit('ready');
+
+      const muxMetadata = {
+        mux_playback_id: 'dE02GfTAlJD4RcqNAlgiS2m00LqbdFqlBm',
+        mux_video_id: 'video-123',
+        mux_video_title: 'My Video',
+      };
+
+      player.setCurrentTime(0);
+      player.emit('play');
+      await jest.runAllTimersAsync();
+      expect(handler.onPlay).toHaveBeenCalledWith({
+        last_position: 0,
+        percent_completed: 0,
+        program_duration: 10,
+        ...muxMetadata,
+      });
+
+      player.setCurrentTime(5);
+      player.emit('pause');
+      await jest.runAllTimersAsync();
+      expect(handler.onPause).toHaveBeenCalledWith({
+        last_position: 5,
+        percent_completed: 50,
+        program_duration: 10,
+        ...muxMetadata,
+      });
+
+      player.setCurrentTime(10);
+      player.emit('ended');
+      await jest.runAllTimersAsync();
+      expect(handler.onEnded).toHaveBeenCalledWith({
+        last_position: 10,
+        percent_completed: 100,
+        program_duration: 10,
+        ...muxMetadata,
+      });
+
+      untrack();
+      handler.onPlay = jest.fn();
+      player.emit('play');
+      await jest.runAllTimersAsync();
+      expect(handler.onPlay).not.toHaveBeenCalled();
+    });
+
+    test('should work when there is no src url', async () => {
+      player.elem.setAttribute('src', null as unknown as string);
+      const untrack = trackEmbeddedVideo(player, handler, 'mux');
+      player.emit('ready');
+      player.emit('play');
+      await jest.runAllTimersAsync();
+      expect(handler.onPlay).toHaveBeenCalledWith({
+        last_position: 0,
+        program_duration: 10,
+        percent_completed: 0,
+      });
+      untrack();
+      handler.onPlay = jest.fn();
+      player.emit('play');
+      await jest.runAllTimersAsync();
+      expect(handler.onPlay).not.toHaveBeenCalled();
+    });
+
+    describe('when there is an error getting the metadata', () => {
+      let originalGetDuration: typeof player.getDuration;
+      beforeEach(() => {
+        originalGetDuration = player.getDuration;
+        player.getDuration = jest.fn().mockImplementation(() => {
+          throw new Error('Error getting duration');
+        });
+        trackEmbeddedVideo(player, handler);
+        player.emit('ready');
+      });
+
+      afterEach(() => {
+        player.getDuration = originalGetDuration;
+      });
+
+      test('should call the error handler (play)', async () => {
+        player.emit('play');
+        await jest.runAllTimersAsync();
+        expect(handler.onError).toHaveBeenCalledTimes(1);
+      });
+
+      test('should call the error handler (pause)', async () => {
+        player.emit('pause');
+        await jest.runAllTimersAsync();
+        expect(handler.onError).toHaveBeenCalledTimes(1);
+      });
+
+      test('should call the error handler (ended)', async () => {
+        player.emit('ended');
+        await jest.runAllTimersAsync();
+        expect(handler.onError).toHaveBeenCalledTimes(1);
+      });
+    });
   });
 });

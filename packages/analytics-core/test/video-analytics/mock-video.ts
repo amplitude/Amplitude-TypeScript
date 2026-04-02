@@ -1,18 +1,18 @@
-import type { MuxEmbeddedPlayer, VideoHandler } from '../../src/video-analytics/types';
+import type { EmbeddedVideoPlayer, VideoHandler } from '../../src/video-analytics/types';
 
-export type MockMuxEmbeddedPlayer = MuxEmbeddedPlayer & {
+export type MockEmbeddedVideoPlayer = EmbeddedVideoPlayer & {
   emit: (event: string) => void;
   setCurrentTime: (time: number) => void;
 };
 
 /**
- * Minimal player.js-style mock for {@link trackMuxEmbeddedVideo} tests.
+ * Minimal player.js-style mock for {@link trackEmbeddedVideo} tests.
  */
-export function createMockMuxEmbeddedPlayer(options?: {
+export function createMockEmbeddedVideoPlayer(options?: {
   playbackId?: string;
   metadataVideoTitle?: string;
   metadataVideoId?: string;
-}): { player: MockMuxEmbeddedPlayer } {
+}): { player: MockEmbeddedVideoPlayer } {
   const playbackId = options?.playbackId ?? 'dE02GfTAlJD4RcqNAlgiS2m00LqbdFqlBm';
   const metadataVideoTitle = options?.metadataVideoTitle ?? 'My Video';
   const metadataVideoId = options?.metadataVideoId ?? 'video-123';
@@ -58,7 +58,7 @@ export function createMockMuxEmbeddedPlayer(options?: {
     cb(currentTime);
   };
 
-  const player: MockMuxEmbeddedPlayer = {
+  const player: MockEmbeddedVideoPlayer = {
     elem: iframe,
     on,
     off,
