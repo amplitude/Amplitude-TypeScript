@@ -8,7 +8,8 @@
       "conventionalCommits": true,
       "message": "chore(release): publish",
       "preid": "beta",
-      "exact": true
+      "exact": true,
+      "excludeDependents": true
     }
   },
   "$schema": "node_modules/lerna/schemas/lerna-schema.json"
