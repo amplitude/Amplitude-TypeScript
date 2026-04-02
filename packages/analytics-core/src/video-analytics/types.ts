@@ -1,3 +1,5 @@
+export type Vendor = 'mux'; // | 'vimeo' | 'youtube' | 'other'
+
 export type VideoHandler = {
   onPlay: (startEvent: VideoEvent) => void;
   onPause: (pauseEvent: VideoEvent) => void;

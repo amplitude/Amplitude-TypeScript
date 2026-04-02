@@ -1,9 +1,9 @@
 import { trackHtmlVideo, trackEmbeddedVideo } from '../video-analytics/track-video';
-import type { VideoHandler, VideoEvent, EmbeddedVideoPlayer, MuxElement } from '../video-analytics/types';
+import type { VideoHandler, VideoEvent, EmbeddedVideoPlayer, MuxElement, Vendor } from '../video-analytics/types';
+
+export type { Vendor };
 
 type PlaybackState = 'playing' | 'paused' | 'ended' | 'error';
-
-export type Vendor = 'mux'; // | 'vimeo' | 'youtube' | 'other'
 
 export type State = {
   playbackState: PlaybackState;
