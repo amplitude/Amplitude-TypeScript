@@ -122,7 +122,7 @@ export function trackEmbeddedVideo(player: EmbeddedVideoPlayer, handlers: VideoH
           handlers.onPlay(startEvent);
         })
         .catch((error) => {
-          handlers.onError(`Error getting Mux iframe metadata from 'play' handler: ${error as string}`);
+          handlers.onError(`Error getting iframe metadata from 'play' handler: ${error as string}`);
         });
     };
     player.on('play', playHandler);
@@ -137,7 +137,7 @@ export function trackEmbeddedVideo(player: EmbeddedVideoPlayer, handlers: VideoH
           handlers.onPause(pauseEvent);
         })
         .catch((error) => {
-          handlers.onError(`Error getting Mux iframe metadata from 'pause' handler: ${error as string}`);
+          handlers.onError(`Error getting iframe metadata from 'pause' handler: ${error as string}`);
         });
     };
     player.on('pause', pauseHandler);
@@ -152,7 +152,7 @@ export function trackEmbeddedVideo(player: EmbeddedVideoPlayer, handlers: VideoH
           handlers.onEnded(endedEvent);
         })
         .catch((error) => {
-          handlers.onError(`Error getting Mux iframe metadata from 'ended' handler: ${error as string}`);
+          handlers.onError(`Error getting iframe metadata from 'ended' handler: ${error as string}`);
         });
     };
     player.on('ended', endedHandler);
