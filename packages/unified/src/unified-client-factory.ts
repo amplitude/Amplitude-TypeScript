@@ -22,6 +22,12 @@ export const createInstance = (): UnifiedClient => {
       getClientLogConfig(client),
       getClientStates(client, ['config']),
     ),
+    engagement: debugWrapper(
+      client.engagement.bind(client),
+      'engagement',
+      getClientLogConfig(client),
+      getClientStates(client, ['config']),
+    ),
     sessionReplay: debugWrapper(
       client.sessionReplay.bind(client),
       'sessionReplay',

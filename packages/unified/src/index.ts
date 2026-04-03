@@ -6,6 +6,7 @@ export const {
   _enableRequestBodyCompressionExperimental,
   initAll,
   experiment,
+  engagement,
   sessionReplay,
   add,
   extendSession,

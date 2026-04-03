@@ -184,4 +184,18 @@ describe('AmplitudeUnified', () => {
       );
     });
   });
+
+  describe('engagement method', () => {
+    test('should return window engagement sdk instance', () => {
+      const client = new AmplitudeUnified();
+      const mockedEngagement = {
+        track: jest.fn(),
+      } as unknown as ReturnType<AmplitudeUnified['engagement']>;
+
+      (window as Window & { engagement?: unknown }).engagement = mockedEngagement;
+
+      expect(client.engagement()).toBe(mockedEngagement);
+      delete (window as Window & { engagement?: unknown }).engagement;
+    });
+  });
 });
