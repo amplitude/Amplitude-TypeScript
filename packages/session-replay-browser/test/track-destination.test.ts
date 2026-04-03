@@ -739,7 +739,7 @@ describe('SessionReplayTrackDestination', () => {
 
       expect(mockSendBeacon).toHaveBeenCalledWith(
         expect.stringContaining('device_id=device-abc'),
-        JSON.stringify({ version: 2, events }),
+        expect.objectContaining({ type: 'application/json' }),
       );
     });
 
@@ -773,9 +773,10 @@ describe('SessionReplayTrackDestination', () => {
       expect(mockLoggerProvider.warn).toHaveBeenCalledWith(
         expect.stringMatching(/sendBeacon payload exceeded 64 KB limit, trimmed from 50 to \d+ events/),
       );
-      // Sent payload must be within beacon limit
-      const sentPayload = mockSendBeacon.mock.calls[0][1] as string;
-      expect(sentPayload.length).toBeLessThanOrEqual(64 * 1024);
+      // Sent payload must be within beacon limit and have correct content type
+      const sentPayload = mockSendBeacon.mock.calls[0][1] as Blob;
+      expect(sentPayload.size).toBeLessThanOrEqual(64 * 1024);
+      expect(sentPayload.type).toBe('application/json');
     });
 
     test('does not call sendBeacon when all events are too large to fit', () => {

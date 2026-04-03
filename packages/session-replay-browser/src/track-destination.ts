@@ -166,7 +166,10 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
     const serverUrl = `${getServerUrl(serverZone, this.trackServerUrl)}?${urlParams.toString()}`;
     const globalScope = getGlobalScope();
     try {
-      const sent = globalScope?.navigator?.sendBeacon?.(serverUrl, payload);
+      // Wrap in a Blob to set Content-Type: application/json; a plain string would
+      // cause the browser to send Content-Type: text/plain, which the server rejects.
+      const payloadBlob = new Blob([payload], { type: 'application/json' });
+      const sent = globalScope?.navigator?.sendBeacon?.(serverUrl, payloadBlob);
       if (sent === false) {
         this.loggerProvider.warn('sendBeacon failed to queue session replay payload');
       }

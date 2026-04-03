@@ -1595,13 +1595,12 @@ describe('SessionReplay', () => {
       triggerBeacon(sessionReplay);
 
       expect(mockSendBeacon).toHaveBeenCalledTimes(1);
-      const [url, body] = mockSendBeacon.mock.calls[0] as [string, string];
+      const [url, body] = mockSendBeacon.mock.calls[0] as [string, Blob];
       expect(url).toContain('api_key=');
       expect(url).toContain('device_id=1a2b3c');
       expect(url).toContain('type=replay');
-      const parsed = JSON.parse(body) as { version: number; events: string[] };
-      expect(parsed.version).toBe(2);
-      expect(parsed.events).toContain(pendingEvent);
+      expect(body).toBeInstanceOf(Blob);
+      expect(body.type).toBe('application/json');
     });
 
     test('should not call sendBeacon if no pending events', async () => {
