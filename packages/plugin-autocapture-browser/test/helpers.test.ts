@@ -9,6 +9,7 @@ import {
   asyncLoadScript,
   generateUniqueId,
   createShouldTrackEvent,
+  getFilteredUrlParameters,
 } from '../src/helpers';
 import { autocapturePlugin } from '../src/autocapture-plugin';
 import { mockWindowLocationFromURL } from './utils';
@@ -710,6 +711,57 @@ describe('autocapture-plugin helpers', () => {
       );
 
       expect(shouldTrackEvent('click', element)).toEqual(true);
+    });
+  });
+});
+
+describe('getFilteredUrlParameters', () => {
+  it('returns null when search string is empty', () => {
+    expect(getFilteredUrlParameters('')).toBeNull();
+  });
+
+  it('returns all parameters when no blocklist is provided', () => {
+    expect(getFilteredUrlParameters('?utm_source=google&ref=home')).toEqual({
+      utm_source: 'google',
+      ref: 'home',
+    });
+  });
+
+  it('returns all parameters when blocklist is empty', () => {
+    expect(getFilteredUrlParameters('?utm_source=google&ref=home', [])).toEqual({
+      utm_source: 'google',
+      ref: 'home',
+    });
+  });
+
+  it('filters out blocked keys', () => {
+    expect(getFilteredUrlParameters('?utm_source=google&token=abc123&ref=home', ['token'])).toEqual({
+      utm_source: 'google',
+      ref: 'home',
+    });
+  });
+
+  it('matches blocklist keys case-insensitively', () => {
+    expect(getFilteredUrlParameters('?Token=abc123&utm_source=google', ['token'])).toEqual({
+      utm_source: 'google',
+    });
+  });
+
+  it('returns null when all parameters are blocked', () => {
+    expect(getFilteredUrlParameters('?token=abc&session_id=xyz', ['token', 'session_id'])).toBeNull();
+  });
+
+  it('handles parameters without values', () => {
+    expect(getFilteredUrlParameters('?flag&utm_source=google')).toEqual({
+      flag: '',
+      utm_source: 'google',
+    });
+  });
+
+  it('handles search string without leading ?', () => {
+    expect(getFilteredUrlParameters('utm_source=google&ref=home')).toEqual({
+      utm_source: 'google',
+      ref: 'home',
     });
   });
 });

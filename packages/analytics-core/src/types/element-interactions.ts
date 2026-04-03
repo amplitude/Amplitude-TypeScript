@@ -122,6 +122,19 @@ export interface ElementInteractionsOptions {
   exposureDuration?: number;
 
   /**
+   * When true, URL query parameters are captured as a separate event property
+   * (`[Amplitude] Page URL Parameters`). Defaults to false.
+   */
+  captureUrlParameters?: boolean;
+
+  /**
+   * Keys to exclude from captured URL parameters.
+   * Intended for PII-sensitive params (e.g. 'token', 'session_id').
+   * Matching is case-insensitive. Only applies when captureUrlParameters is true.
+   */
+  urlParameterBlocklist?: string[];
+
+  /**
    * Options for viewport content updated tracking (zoning).
    */
   viewportContentUpdated?: {

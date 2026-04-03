@@ -19,6 +19,7 @@ import {
   isElementBasedEvent,
   parseAttributesToMask,
   getCurrentPageViewId,
+  getFilteredUrlParameters,
 } from './helpers';
 import type { BaseTimestampedEvent, ElementBasedTimestampedEvent, TimestampedEvent, JSONValue } from './helpers';
 import { getAncestors, getElementProperties } from './hierarchy';
@@ -28,10 +29,14 @@ import { cssPath } from './libs/element-path';
 
 export class DataExtractor {
   private readonly additionalMaskTextPatterns: RegExp[];
+  private readonly captureUrlParameters: boolean;
+  private readonly urlParameterBlocklist: string[];
   diagnosticsClient?: IDiagnosticsClient;
 
   constructor(options: ElementInteractionsOptions, context?: { diagnosticsClient: IDiagnosticsClient }) {
     this.diagnosticsClient = context?.diagnosticsClient;
+    this.captureUrlParameters = options.captureUrlParameters ?? false;
+    this.urlParameterBlocklist = options.urlParameterBlocklist ?? [];
 
     const rawPatterns = options.maskTextRegex ?? [];
 
@@ -166,6 +171,12 @@ export class DataExtractor {
       [constants.AMPLITUDE_EVENT_PROP_ELEMENT_PATH]: this.getElementPath(element),
       [constants.AMPLITUDE_EVENT_PROP_ELEMENT_PARENT_LABEL]: nearestLabel,
       [constants.AMPLITUDE_EVENT_PROP_PAGE_URL]: getDecodeURI(window.location.href.split('?')[0]),
+      ...(this.captureUrlParameters
+        ? (() => {
+            const params = getFilteredUrlParameters(window.location.search, this.urlParameterBlocklist);
+            return params ? { [constants.AMPLITUDE_EVENT_PROP_PAGE_URL_PARAMETERS]: params } : {};
+          })()
+        : {}),
       [constants.AMPLITUDE_EVENT_PROP_PAGE_TITLE]: (
         getPageTitle as (parseTitleFunction: (title: string) => string) => string
       )(this.replaceSensitiveString),
@@ -322,11 +333,17 @@ export class DataExtractor {
     /* istanbul ignore next */
     const tag = element?.tagName?.toLowerCase?.();
 
-    const properties = {
+    const properties: Record<string, unknown> = {
       [constants.AMPLITUDE_EVENT_PROP_ELEMENT_TAG]: tag,
       [constants.AMPLITUDE_EVENT_PROP_ELEMENT_TEXT]: this.getText(element),
       [constants.AMPLITUDE_EVENT_PROP_PAGE_URL]: window.location.href.split('?')[0],
     };
+    if (this.captureUrlParameters) {
+      const params = getFilteredUrlParameters(window.location.search, this.urlParameterBlocklist);
+      if (params) {
+        properties[constants.AMPLITUDE_EVENT_PROP_PAGE_URL_PARAMETERS] = params;
+      }
+    }
     return removeEmptyProperties(properties) as Record<string, JSONValue>;
   };
 }
