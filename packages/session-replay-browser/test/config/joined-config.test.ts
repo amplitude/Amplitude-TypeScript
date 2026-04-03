@@ -654,6 +654,21 @@ describe('SessionReplayJoinedConfigGenerator', () => {
     });
   });
 
+  describe('generateJoinedConfig with undefined privacyConfig on joined config', () => {
+    test('should fall back to empty object when config.privacyConfig is undefined', async () => {
+      // Directly instantiate with a local config that has privacyConfig stripped,
+      // exercising the `config.privacyConfig ?? {}` branch in joined-config.ts.
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+      const generator = new SessionReplayJoinedConfigGenerator(mockRemoteConfigClient, {
+        ...mockLocalConfig,
+        privacyConfig: undefined,
+      } as any);
+      mockRemoteConfig = { sr_privacy_config: { blockSelector: ['.remote-block'] } };
+      const { joinedConfig } = await generator.generateJoinedConfig();
+      expect(joinedConfig.privacyConfig?.blockSelector).toEqual(['.remote-block']);
+    });
+  });
+
   describe('createSessionReplayJoinedConfigGenerator with config server url', () => {
     test('should create a SessionReplayJoinedConfigGenerator with the correct remote config client', async () => {
       const configServerUrl = 'https://config.amplitude.com';

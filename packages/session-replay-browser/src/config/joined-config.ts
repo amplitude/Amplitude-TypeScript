@@ -164,8 +164,7 @@ export class SessionReplayJoinedConfigGenerator {
     // };
 
     if (remotePrivacyConfig) {
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      const localPrivacyConfig: PrivacyConfig = config.privacyConfig!;
+      const localPrivacyConfig: PrivacyConfig = config.privacyConfig ?? {};
 
       const joinedPrivacyConfig: Required<PrivacyConfig> & { blockSelector: string[] } = {
         defaultMaskLevel: remotePrivacyConfig.defaultMaskLevel ?? localPrivacyConfig.defaultMaskLevel ?? 'medium',
