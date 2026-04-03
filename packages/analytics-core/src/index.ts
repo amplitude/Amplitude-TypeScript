@@ -22,6 +22,7 @@ export { UUID } from './utils/uuid';
 export { createIdentifyEvent } from './utils/event-builder';
 export { isUrlMatchAllowlist, getDecodeURI } from './utils/url-utils';
 export { generateHashCode, isTimestampInSample } from './utils/sampling';
+export { omitUndefined } from './utils/omit-undefined';
 
 export { MemoryStorage } from './storage/memory';
 export { CookieStorage, isDomainEqual, decodeCookieValue } from './storage/cookie';
@@ -127,6 +128,7 @@ export {
   BrowserOptions,
   DefaultTrackingOptions,
   TrackingOptions,
+  TrackingMethod,
   AutocaptureOptions,
   CookieOptions,
   AttributionOptions,
