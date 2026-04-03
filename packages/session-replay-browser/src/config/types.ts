@@ -195,6 +195,7 @@ export interface SessionReplayLocalConfig extends IConfig {
    */
   captureDocumentTitle?: boolean;
   interactionConfig?: InteractionConfig;
+  remoteTargeting?: RemoteTargetingConfig;
 }
 
 export interface SessionReplayJoinedConfig extends SessionReplayLocalConfig {
@@ -202,6 +203,7 @@ export interface SessionReplayJoinedConfig extends SessionReplayLocalConfig {
   interactionConfig?: InteractionConfig;
   loggingConfig?: LoggingConfig;
   targetingConfig?: TargetingConfig;
+  remoteTargeting?: RemoteTargetingConfig;
 }
 
 export interface SessionReplayConfigs {
@@ -280,3 +282,31 @@ export interface InteractionPerformanceConfig {
 }
 
 export type SessionReplayType = 'standalone' | 'plugin' | 'segment';
+
+export type RemoteTargetingMode = 'off' | 'session';
+
+export type RemoteTargetingDecisionStrategy = 'conservative' | 'lookback';
+
+export type RemoteDecision = {
+  capture: boolean;
+  reason?: string;
+  /** ms epoch — optional TTL */
+  expiresAt?: number;
+};
+
+export interface RemoteTargetingConfig {
+  enabled: boolean;
+  mode: RemoteTargetingMode;
+  /** Amplitude Experiment client-side deployment key */
+  deploymentKey: string;
+  /** Flag key to evaluate. Defaults to 'sr-capture-gate' */
+  flagKey?: string;
+  /** Request timeout in ms. Defaults to 200 */
+  timeoutMs?: number;
+  decisionStrategy: RemoteTargetingDecisionStrategy;
+  /**
+   * Maximum number of rrweb events to buffer in lookback mode while waiting for
+   * the remote decision. Events beyond this limit are dropped. Defaults to 1000.
+   */
+  lookbackBufferMaxEvents?: number;
+}
