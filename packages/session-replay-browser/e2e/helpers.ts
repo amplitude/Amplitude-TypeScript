@@ -1,5 +1,5 @@
+import { gunzipSync } from 'zlib';
 import { Route, Page } from '@playwright/test';
-import { unpack } from '@amplitude/rrweb-packer';
 
 export const SR_API_SUCCESS = { code: 200 };
 export const TEST_SESSION_ID = 1700000000000; // fixed timestamp always in sample at 100%
@@ -47,7 +47,7 @@ function decodeRrwebEvents(rawBody: string): unknown[] {
     return payload.events.flatMap((eventStr) => {
       if (typeof eventStr !== 'string') return [];
       try {
-        return [unpack(JSON.parse(eventStr))];
+        return [JSON.parse(eventStr) as unknown];
       } catch {
         return [];
       }
@@ -91,14 +91,31 @@ export function isMaskedText(text: string): boolean {
   return stripped.length > 0 && /^\*+$/.test(stripped);
 }
 
-/** Mocks the track API and returns a getter for the raw POST bodies received. */
-export async function captureTrackRequests(page: Page): Promise<() => string[]> {
+/**
+ * Reads the POST body from a Playwright Route, decompressing gzip if needed.
+ * Use this inside page.route() handlers for the track API.
+ */
+export function readRouteBody(route: Route): string {
+  const headers = route.request().headers();
+  if (headers['content-encoding'] === 'gzip') {
+    const buf = route.request().postDataBuffer();
+    return buf ? gunzipSync(buf).toString('utf-8') : '';
+  }
+  return route.request().postData() ?? '';
+}
+
+/** Mocks the track API and returns getters for the raw POST bodies and request headers received. */
+export async function captureTrackRequests(
+  page: Page,
+): Promise<{ getBodies: () => string[]; getHeaders: () => Record<string, string>[] }> {
   const rawBodies: string[] = [];
-  await page.route('https://api-sr.amplitude.com/**', (route: Route) => {
-    rawBodies.push(route.request().postData() ?? '');
-    return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(SR_API_SUCCESS) });
+  const requestHeaders: Record<string, string>[] = [];
+  await page.route('https://api-sr.amplitude.com/**', async (route: Route) => {
+    requestHeaders.push(route.request().headers());
+    rawBodies.push(readRouteBody(route));
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(SR_API_SUCCESS) });
   });
-  return () => rawBodies;
+  return { getBodies: () => rawBodies, getHeaders: () => requestHeaders };
 }
 
 /** Triggers a blur-flush cycle and waits for events to be delivered. */

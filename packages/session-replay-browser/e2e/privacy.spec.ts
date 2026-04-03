@@ -32,7 +32,7 @@ const PRIVACY_PAGE = '/session-replay-browser/sr-privacy-test.html';
 test.describe('privacy — CSS classes', () => {
   test('amp-block class removes element from the snapshot entirely', async ({ page }) => {
     await mockRemoteConfig(page, remoteConfigRecording);
-    const getBodies = await captureTrackRequests(page);
+    const { getBodies } = await captureTrackRequests(page);
 
     await page.goto(buildUrl(PRIVACY_PAGE, { sessionId: TEST_SESSION_ID }));
     await waitForReady(page);
@@ -48,7 +48,7 @@ test.describe('privacy — CSS classes', () => {
 
   test('amp-mask class replaces text content with asterisks in the snapshot', async ({ page }) => {
     await mockRemoteConfig(page, remoteConfigRecording);
-    const getBodies = await captureTrackRequests(page);
+    const { getBodies } = await captureTrackRequests(page);
 
     await page.goto(buildUrl(PRIVACY_PAGE, { sessionId: TEST_SESSION_ID }));
     await waitForReady(page);
@@ -70,7 +70,7 @@ test.describe('privacy — privacyConfig option', () => {
   test('blockSelector removes matching element from the snapshot entirely', async ({ page }) => {
     const privacyConfig = JSON.stringify({ blockSelector: ['#selector-blocked'] });
     await mockRemoteConfig(page, remoteConfigRecording);
-    const getBodies = await captureTrackRequests(page);
+    const { getBodies } = await captureTrackRequests(page);
 
     await page.goto(buildUrl(PRIVACY_PAGE, { sessionId: TEST_SESSION_ID, privacyConfig }));
     await waitForReady(page);
@@ -87,7 +87,7 @@ test.describe('privacy — privacyConfig option', () => {
   test('defaultMaskLevel conservative masks plain text content', async ({ page }) => {
     const privacyConfig = JSON.stringify({ defaultMaskLevel: 'conservative' });
     await mockRemoteConfig(page, remoteConfigRecording);
-    const getBodies = await captureTrackRequests(page);
+    const { getBodies } = await captureTrackRequests(page);
 
     await page.goto(buildUrl(PRIVACY_PAGE, { sessionId: TEST_SESSION_ID, privacyConfig }));
     await waitForReady(page);
@@ -106,7 +106,7 @@ test.describe('privacy — privacyConfig option', () => {
   test('defaultMaskLevel light does not mask plain text input values', async ({ page }) => {
     const privacyConfig = JSON.stringify({ defaultMaskLevel: 'light' });
     await mockRemoteConfig(page, remoteConfigRecording);
-    const getBodies = await captureTrackRequests(page);
+    const { getBodies } = await captureTrackRequests(page);
 
     await page.goto(buildUrl(PRIVACY_PAGE, { sessionId: TEST_SESSION_ID, privacyConfig }));
     await waitForReady(page);
@@ -127,7 +127,7 @@ test.describe('privacy — privacyConfig option', () => {
   test('defaultMaskLevel light still masks password input values', async ({ page }) => {
     const privacyConfig = JSON.stringify({ defaultMaskLevel: 'light' });
     await mockRemoteConfig(page, remoteConfigRecording);
-    const getBodies = await captureTrackRequests(page);
+    const { getBodies } = await captureTrackRequests(page);
 
     await page.goto(buildUrl(PRIVACY_PAGE, { sessionId: TEST_SESSION_ID, privacyConfig }));
     await waitForReady(page);
@@ -153,7 +153,7 @@ test.describe('privacy — privacyConfig option', () => {
       unmaskSelector: ['#plain-text'],
     });
     await mockRemoteConfig(page, remoteConfigRecording);
-    const getBodies = await captureTrackRequests(page);
+    const { getBodies } = await captureTrackRequests(page);
 
     await page.goto(buildUrl(PRIVACY_PAGE, { sessionId: TEST_SESSION_ID, privacyConfig }));
     await waitForReady(page);
@@ -182,7 +182,7 @@ test.describe('privacy — remote sr_privacy_config', () => {
   test('sr_privacy_config in remote config applies masking to plain text', async ({ page }) => {
     // No local privacyConfig — masking comes entirely from remote config
     await mockRemoteConfig(page, remoteConfigWithPrivacy({ defaultMaskLevel: 'conservative' }));
-    const getBodies = await captureTrackRequests(page);
+    const { getBodies } = await captureTrackRequests(page);
 
     await page.goto(buildUrl(PRIVACY_PAGE, { sessionId: TEST_SESSION_ID }));
     await waitForReady(page);

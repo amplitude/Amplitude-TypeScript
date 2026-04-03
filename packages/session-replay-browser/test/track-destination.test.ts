@@ -459,6 +459,69 @@ describe('SessionReplayTrackDestination', () => {
     });
   });
 
+  describe('gzip compression', () => {
+    const makeContext = (): SessionReplayDestinationContext => ({
+      events: [mockEventString],
+      sessionId: 123,
+      apiKey,
+      attempts: 0,
+      timeout: 0,
+      flushMaxRetries: 1,
+      deviceId: '1a2b3c',
+      sampleRate: 1,
+      serverZone: ServerZone.US,
+      type: 'replay',
+      onComplete: mockOnComplete,
+    });
+
+    test('should send with Content-Encoding: gzip when CompressionStream is available', async () => {
+      const mockCompressed = new Uint8Array([0x1f, 0x8b]); // minimal gzip magic bytes
+
+      // Mock a CompressionStream that returns a compressed chunk
+      const mockWriter = { write: jest.fn(), close: jest.fn().mockResolvedValue(undefined) };
+      const mockReader = {
+        read: jest
+          .fn()
+          .mockResolvedValueOnce({ done: false, value: mockCompressed })
+          .mockResolvedValueOnce({ done: true, value: undefined }),
+      };
+      class MockCompressionStream {
+        writable = { getWriter: () => mockWriter };
+        readable = { getReader: () => mockReader };
+      }
+      // Override getGlobalScope to expose CompressionStream
+      jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue({
+        CompressionStream: MockCompressionStream,
+      } as unknown as typeof globalThis);
+
+      const trackDestination = new SessionReplayTrackDestination({ loggerProvider: mockLoggerProvider });
+      await trackDestination.send(makeContext());
+
+      expect(fetch).toHaveBeenCalledTimes(1);
+      const options = (fetch as jest.Mock).mock.calls[0][1] as RequestInit;
+      expect((options.headers as Record<string, string>)['Content-Encoding']).toBe('gzip');
+      expect(options.body).toEqual(mockCompressed);
+    });
+
+    test('should send without Content-Encoding when CompressionStream throws', async () => {
+      class BrokenCompressionStream {
+        constructor() {
+          throw new Error('not supported');
+        }
+      }
+      jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue({
+        CompressionStream: BrokenCompressionStream,
+      } as unknown as typeof globalThis);
+
+      const trackDestination = new SessionReplayTrackDestination({ loggerProvider: mockLoggerProvider });
+      await trackDestination.send(makeContext());
+
+      const options = (fetch as jest.Mock).mock.calls[0][1] as RequestInit;
+      expect((options.headers as Record<string, string>)['Content-Encoding']).toBeUndefined();
+      expect(typeof options.body).toBe('string');
+    });
+  });
+
   describe('handleOtherResponse', () => {
     test('should complete request when flushMaxRetries is not set', async () => {
       const trackDestination = new SessionReplayTrackDestination({ loggerProvider: mockLoggerProvider });
@@ -480,6 +543,254 @@ describe('SessionReplayTrackDestination', () => {
         context,
         err: 'Session replay event batch rejected due to exceeded retry count',
       });
+    });
+  });
+
+  describe('worker support', () => {
+    const mockContext = {
+      events: [mockEventString],
+      sessionId: 123,
+      apiKey,
+      attempts: 0,
+      timeout: 0,
+      deviceId: '1a2b3c',
+      sampleRate: 1,
+      serverZone: ServerZone.US,
+      type: 'replay' as const,
+      flushMaxRetries: 2,
+      onComplete: jest.fn(),
+    };
+
+    let mockWorker: {
+      postMessage: jest.Mock;
+      terminate: jest.Mock;
+      onerror: ((e: ErrorEvent) => void) | null;
+      onmessage: ((e: MessageEvent) => void) | null;
+    };
+    let originalBlob: typeof Blob;
+
+    beforeEach(() => {
+      mockWorker = {
+        postMessage: jest.fn(),
+        terminate: jest.fn(),
+        onerror: null,
+        onmessage: null,
+      };
+      global.Worker = jest.fn(() => mockWorker) as unknown as typeof Worker;
+      global.URL.createObjectURL = jest.fn().mockReturnValue('blob:mock');
+      originalBlob = global.Blob;
+      global.Blob = jest.fn((parts) => ({ size: (parts as string[]).join('').length })) as unknown as typeof Blob;
+    });
+
+    afterEach(() => {
+      global.Blob = originalBlob;
+    });
+
+    test('constructor initializes worker from workerScript', () => {
+      const trackDestination = new SessionReplayTrackDestination({
+        loggerProvider: mockLoggerProvider,
+        workerScript: 'self.onmessage = () => {}',
+      });
+      expect(global.Worker).toHaveBeenCalledTimes(1);
+      expect((trackDestination as any).worker).toBeDefined();
+    });
+
+    test('constructor falls back gracefully when Worker constructor throws', () => {
+      global.Worker = jest.fn(() => {
+        throw new Error('Worker not supported');
+      }) as unknown as typeof Worker;
+      const trackDestination = new SessionReplayTrackDestination({
+        loggerProvider: mockLoggerProvider,
+        workerScript: 'self.onmessage = () => {}',
+      });
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockLoggerProvider.error).toHaveBeenCalledWith(
+        expect.stringContaining('Failed to create track destination worker'),
+        expect.any(Error),
+      );
+      expect((trackDestination as any).worker).toBeUndefined();
+    });
+
+    test('worker onerror clears worker and resolves pending requests', () => {
+      const trackDestination = new SessionReplayTrackDestination({
+        loggerProvider: mockLoggerProvider,
+        workerScript: 'self.onmessage = () => {}',
+      });
+
+      // Inject a fake pending request
+      const resolve = jest.fn();
+      (trackDestination as any).pendingWorkerRequests.set('1', { context: mockContext, resolve });
+
+      // Trigger onerror
+      const errorEvent = {
+        preventDefault: jest.fn(),
+        message: 'test error',
+        filename: 'blob:test',
+        lineno: 1,
+      } as unknown as ErrorEvent;
+      mockWorker.onerror?.(errorEvent);
+
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(errorEvent.preventDefault).toHaveBeenCalled();
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockLoggerProvider.error).toHaveBeenCalledWith(expect.stringContaining('Track destination worker failed'));
+      // onComplete must NOT be called — events were never delivered and must remain in
+      // the store for recovery by sendStoredEvents on next init
+      expect(mockContext.onComplete).not.toHaveBeenCalled();
+      // warn should be emitted per pending request
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockLoggerProvider.warn).toHaveBeenCalledWith(
+        expect.stringContaining('Session replay event send failed due to worker crash'),
+      );
+      expect(resolve).toHaveBeenCalled();
+      expect((trackDestination as any).worker).toBeUndefined();
+      expect((trackDestination as any).pendingWorkerRequests.size).toBe(0);
+    });
+
+    test('worker onmessage logs for log type', () => {
+      new SessionReplayTrackDestination({
+        loggerProvider: mockLoggerProvider,
+        workerScript: 'self.onmessage = () => {}',
+      });
+      mockWorker.onmessage?.({ data: { type: 'log', id: '1', message: 'test log' } } as MessageEvent);
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockLoggerProvider.log).toHaveBeenCalledWith('test log');
+    });
+
+    test('worker onmessage warns for warn type', () => {
+      new SessionReplayTrackDestination({
+        loggerProvider: mockLoggerProvider,
+        workerScript: 'self.onmessage = () => {}',
+      });
+      mockWorker.onmessage?.({ data: { type: 'warn', id: '1', message: 'test warn' } } as MessageEvent);
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockLoggerProvider.warn).toHaveBeenCalledWith('test warn');
+    });
+
+    test('worker onmessage completes request for complete type', async () => {
+      const trackDestination = new SessionReplayTrackDestination({
+        loggerProvider: mockLoggerProvider,
+        workerScript: 'self.onmessage = () => {}',
+      });
+
+      const resolve = jest.fn();
+      (trackDestination as any).pendingWorkerRequests.set('1', { context: mockContext, resolve });
+
+      mockWorker.onmessage?.({ data: { type: 'complete', id: '1' } } as MessageEvent);
+
+      expect(resolve).toHaveBeenCalled();
+      expect((trackDestination as any).pendingWorkerRequests.size).toBe(0);
+    });
+
+    test('send routes to worker when worker is present', async () => {
+      const trackDestination = new SessionReplayTrackDestination({
+        loggerProvider: mockLoggerProvider,
+        workerScript: 'self.onmessage = () => {}',
+      });
+
+      const sendPromise = trackDestination.send(mockContext, false);
+
+      // Simulate worker completing immediately
+      const pendingEntries = [...(trackDestination as any).pendingWorkerRequests.entries()];
+      expect(pendingEntries).toHaveLength(1);
+      const [id] = pendingEntries[0] as [string, { resolve: () => void }];
+      mockWorker.onmessage?.({ data: { type: 'complete', id } } as MessageEvent);
+
+      await sendPromise;
+      expect(mockWorker.postMessage).toHaveBeenCalledWith(expect.objectContaining({ type: 'send' }));
+    });
+
+    test('send via worker uses 0 when flushMaxRetries is undefined', async () => {
+      const trackDestination = new SessionReplayTrackDestination({
+        loggerProvider: mockLoggerProvider,
+        workerScript: 'self.onmessage = () => {}',
+      });
+
+      const contextWithoutRetries = { ...mockContext, flushMaxRetries: undefined as unknown as number };
+      const sendPromise = trackDestination.send(contextWithoutRetries, false);
+
+      const pendingEntries = [...(trackDestination as any).pendingWorkerRequests.entries()];
+      const [id] = pendingEntries[0] as [string, { resolve: () => void }];
+      mockWorker.onmessage?.({ data: { type: 'complete', id } } as MessageEvent);
+
+      await sendPromise;
+      const postedMessage = mockWorker.postMessage.mock.calls[0][0] as Record<string, unknown>;
+      expect((postedMessage.context as Record<string, unknown>).flushMaxRetries).toBe(0);
+    });
+  });
+
+  describe('sendBeacon', () => {
+    const beaconArgs = {
+      sessionId: 123,
+      deviceId: 'device-abc',
+      apiKey: 'key-abc',
+      serverZone: 'US' as keyof typeof ServerZone,
+    };
+
+    test('calls sendBeacon with serialized payload', () => {
+      const mockSendBeacon = jest.fn().mockReturnValue(true);
+      jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue({
+        navigator: { sendBeacon: mockSendBeacon },
+      } as unknown as typeof globalThis);
+
+      const trackDestination = new SessionReplayTrackDestination({ loggerProvider: mockLoggerProvider });
+      const events = ['e1', 'e2'];
+      trackDestination.sendBeacon({ ...beaconArgs, events });
+
+      expect(mockSendBeacon).toHaveBeenCalledWith(
+        expect.stringContaining('device_id=device-abc'),
+        expect.objectContaining({ type: 'application/json' }),
+      );
+    });
+
+    test('warns when sendBeacon returns false', () => {
+      const mockSendBeacon = jest.fn().mockReturnValue(false);
+      jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue({
+        navigator: { sendBeacon: mockSendBeacon },
+      } as unknown as typeof globalThis);
+
+      const trackDestination = new SessionReplayTrackDestination({ loggerProvider: mockLoggerProvider });
+      trackDestination.sendBeacon({ ...beaconArgs, events: ['e1'] });
+
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockLoggerProvider.warn).toHaveBeenCalledWith('sendBeacon failed to queue session replay payload');
+    });
+
+    test('trims events and warns when payload exceeds 64 KB', () => {
+      const mockSendBeacon = jest.fn().mockReturnValue(true);
+      jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue({
+        navigator: { sendBeacon: mockSendBeacon },
+      } as unknown as typeof globalThis);
+
+      // Create events large enough that many together exceed 64 KB
+      const bigEvent = 'x'.repeat(2000);
+      const events = Array.from({ length: 50 }, () => bigEvent); // ~100 KB total
+
+      const trackDestination = new SessionReplayTrackDestination({ loggerProvider: mockLoggerProvider });
+      trackDestination.sendBeacon({ ...beaconArgs, events });
+
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockLoggerProvider.warn).toHaveBeenCalledWith(
+        expect.stringMatching(/sendBeacon payload exceeded 64 KB limit, trimmed from 50 to \d+ events/),
+      );
+      // Sent payload must be within beacon limit and have correct content type
+      const sentPayload = mockSendBeacon.mock.calls[0][1] as Blob;
+      expect(sentPayload.size).toBeLessThanOrEqual(64 * 1024);
+      expect(sentPayload.type).toBe('application/json');
+    });
+
+    test('does not call sendBeacon when all events are too large to fit', () => {
+      const mockSendBeacon = jest.fn().mockReturnValue(true);
+      jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue({
+        navigator: { sendBeacon: mockSendBeacon },
+      } as unknown as typeof globalThis);
+
+      // A single event larger than 64 KB
+      const hugeEvent = 'x'.repeat(65 * 1024);
+      const trackDestination = new SessionReplayTrackDestination({ loggerProvider: mockLoggerProvider });
+      trackDestination.sendBeacon({ ...beaconArgs, events: [hugeEvent] });
+
+      expect(mockSendBeacon).not.toHaveBeenCalled();
     });
   });
 });

@@ -20,6 +20,7 @@
       const sessionId = params.has('sessionId') ? Number(params.get('sessionId')) : Date.now();
       const deviceId = params.get('deviceId') ?? 'test-device-id';
       const logLevel = params.has('logLevel') ? Number(params.get('logLevel')) : 0;
+      const useWebWorker = params.get('useWebWorker') === 'true';
 
       void (async () => {
         try {
@@ -29,6 +30,7 @@
             sampleRate,
             optOut,
             logLevel,
+            useWebWorker,
           }).promise;
         } catch (err) {
           document.getElementById('status').textContent = 'error: ' + err.message;

@@ -1,5 +1,5 @@
 import { getGlobalScope } from '@amplitude/analytics-core';
-import { pack } from '@amplitude/rrweb-packer';
+import { EventType as RRWebEventType } from '@amplitude/rrweb-types';
 import type { eventWithTime } from '@amplitude/rrweb-types';
 import { SessionReplayJoinedConfig } from '../config/types';
 import { SessionReplayEventsManager } from '../typings/session-replay';
@@ -19,12 +19,14 @@ export class EventCompressor {
   canUseIdleCallback: boolean | undefined;
   timeout: number;
   worker?: Worker;
+  onFullSnapshotProcessed?: () => void;
 
   constructor(
     eventsManager: SessionReplayEventsManager<'replay' | 'interaction', string>,
     config: SessionReplayJoinedConfig,
     deviceId: string | undefined,
     workerScript?: string,
+    onFullSnapshotProcessed?: () => void,
   ) {
     const globalScope = getGlobalScope();
     this.canUseIdleCallback = globalScope && 'requestIdleCallback' in globalScope;
@@ -32,6 +34,7 @@ export class EventCompressor {
     this.config = config;
     this.deviceId = deviceId;
     this.timeout = config.performanceConfig?.timeout || DEFAULT_TIMEOUT;
+    this.onFullSnapshotProcessed = onFullSnapshotProcessed;
 
     if (workerScript) {
       config.loggerProvider.log('Enabling web worker for compression');
@@ -43,7 +46,9 @@ export class EventCompressor {
 
         worker.onerror = (e) => {
           e.preventDefault();
-          config.loggerProvider.error('Worker failed, falling back to non-worker compression:', e);
+          config.loggerProvider.error(
+            `Worker failed, falling back to non-worker compression: ${e.message} (${e.filename}:${e.lineno})`,
+          );
           worker.terminate();
           this.worker = undefined;
         };
@@ -74,6 +79,17 @@ export class EventCompressor {
 
   // Add an event to the task queue if idle callback is supported or compress the event directly
   public enqueueEvent(event: eventWithTime, sessionId: string | number): void {
+    // Full snapshot (type 2) is the most critical event — a replay cannot be played without it.
+    // Process and flush immediately rather than waiting for the idle scheduler or web worker,
+    // maximising the chance it is delivered before the user exits the page.
+    if (event.type === RRWebEventType.FullSnapshot) {
+      this.config.loggerProvider.debug('Processing full snapshot immediately.');
+      const compressedEvent = this.compressEvent(event);
+      this.addCompressedEventToManager(compressedEvent, sessionId);
+      this.onFullSnapshotProcessed?.();
+      return;
+    }
+
     if (this.canUseIdleCallback && this.config.performanceConfig?.enabled) {
       this.config.loggerProvider.debug('Enqueuing event for processing during idle time.');
       this.taskQueue.push({ event, sessionId });
@@ -108,9 +124,15 @@ export class EventCompressor {
     }
   }
 
-  compressEvent = (event: eventWithTime) => {
-    const packedEvent = pack(event);
-    return JSON.stringify(packedEvent);
+  compressEvent = (event: eventWithTime): string => {
+    // Serialize with type+timestamp first for streaming parser compatibility.
+    // JS engines serialize non-integer string keys in insertion order (ES2015 spec,
+    // reliable across V8/SpiderMonkey/JSC), so explicit construction controls key order.
+    // `delay` is an rrweb player field: an optional ms offset applied on top of
+    // `timestamp` during replay to smooth out batched/throttled events. Preserve
+    // it when present so playback timing is accurate.
+    const { type, timestamp, delay, data } = event as eventWithTime & { delay?: number };
+    return delay != null ? JSON.stringify({ type, timestamp, delay, data }) : JSON.stringify({ type, timestamp, data });
   };
 
   private addCompressedEventToManager = (compressedEvent: string, sessionId: string | number) => {
