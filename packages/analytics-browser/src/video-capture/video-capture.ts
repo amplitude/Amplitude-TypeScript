@@ -38,10 +38,7 @@ export class VideoCapture {
    * @param vendor - The vendor of the video player. Currently only "mux" is supported.
    * @returns The VideoCapture instance.
    */
-  withVendor(vendor?: VideoVendor): VideoCapture {
-    if (!vendor) {
-      return this;
-    }
+  withVendor(vendor: VideoVendor): VideoCapture {
     this.vendor = vendor;
     return this;
   }
@@ -160,8 +157,10 @@ export function trackVideo(
   } else {
     videoCapture.withEmbeddedPlayer(videoEl);
   }
+  if (options.vendor) {
+    videoCapture.withVendor(options.vendor);
+  }
   videoCapture
-    .withVendor(options.vendor)
     .withExtraEventProperties(options.extraEventProperties ?? {})
     .captureVideoStarted()
     .captureVideoStopped()

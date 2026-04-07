@@ -109,8 +109,10 @@ describe('VideoCapture', () => {
     });
     it('should capture start and stop events', () => {
       const stopVideoCapture = trackVideo(mockAmplitude, document.createElement('video'), {
+        vendor: 'mux',
         extraEventProperties: { hello: 'world', number: 123 },
       });
+      expect(currentVideoObserver!.vendor).toBe('mux');
       currentVideoObserver!.emitStateChange(
         { playbackState: 'paused', lastEvent: undefined },
         { playbackState: 'playing', lastEvent: { program_duration: 10 } },
