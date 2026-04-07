@@ -78,7 +78,7 @@ export function trackHtmlVideo(videoEl: HTMLVideoElement | MuxElement, handlers:
 
   const seekingHandler = () => {
     const seekingEvent: VideoEvent = {
-      ...getPauseData(videoEl),
+      ...getPauseData(videoEl, 'seeking'),
       ...(vendor === 'mux' ? getMuxMetadata(videoEl) : {}),
     };
     handlers.onSeeking(seekingEvent);
