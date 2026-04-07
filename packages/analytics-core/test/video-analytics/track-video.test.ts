@@ -176,6 +176,7 @@ describe('trackEmbeddedVideo', () => {
         last_position: 5,
         percent_completed: 50,
         program_duration: 10,
+        stop_reason: 'paused',
       });
 
       player.setCurrentTime(10);
@@ -185,6 +186,7 @@ describe('trackEmbeddedVideo', () => {
         last_position: 10,
         percent_completed: 100,
         program_duration: 10,
+        stop_reason: 'ended',
       });
 
       untrack();
@@ -204,6 +206,7 @@ describe('trackEmbeddedVideo', () => {
         last_position: 6,
         percent_completed: 60,
         program_duration: 10,
+        stop_reason: 'seeking',
       });
 
       untrack();
@@ -243,6 +246,7 @@ describe('trackEmbeddedVideo', () => {
         last_position: 5,
         percent_completed: 50,
         program_duration: 10,
+        stop_reason: 'paused',
         ...muxMetadata,
       });
 
@@ -253,6 +257,7 @@ describe('trackEmbeddedVideo', () => {
         last_position: 10,
         percent_completed: 100,
         program_duration: 10,
+        stop_reason: 'ended',
         ...muxMetadata,
       });
 
@@ -280,6 +285,7 @@ describe('trackEmbeddedVideo', () => {
         last_position: 2,
         percent_completed: 20,
         program_duration: 10,
+        stop_reason: 'seeking',
         ...muxMetadata,
       });
     });

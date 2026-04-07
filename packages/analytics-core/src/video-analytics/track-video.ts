@@ -93,7 +93,12 @@ export function trackHtmlVideo(videoEl: HTMLVideoElement | MuxElement, handlers:
   };
 }
 
-async function getIframeMetadata(player: EmbeddedVideoPlayer, elem: HTMLIFrameElement, vendor: Vendor | null) {
+async function getIframeMetadata(
+  player: EmbeddedVideoPlayer,
+  elem: HTMLIFrameElement,
+  vendor: Vendor | null,
+  stopReason?: VideoStopReason,
+) {
   const [duration, currentTime] = await Promise.all([
     new Promise<number>((resolve) => player.getDuration(resolve)),
     new Promise<number>((resolve) => player.getCurrentTime(resolve)),
@@ -115,6 +120,7 @@ async function getIframeMetadata(player: EmbeddedVideoPlayer, elem: HTMLIFrameEl
     percent_completed: calculatePercentCompleted(currentTime, duration),
     program_duration: duration,
     last_position: currentTime,
+    ...(stopReason !== undefined ? { stop_reason: stopReason } : {}),
     ...vendorMetadata,
   };
 }
@@ -139,7 +145,7 @@ export function trackEmbeddedVideo(player: EmbeddedVideoPlayer, handlers: VideoH
     onUnsubscribe.push(() => player.off('play', playHandler));
 
     const pauseHandler = () => {
-      getIframeMetadata(player, elem, vendor)
+      getIframeMetadata(player, elem, vendor, 'paused')
         .then((playerState) => {
           const pauseEvent: VideoEvent = {
             ...playerState,
@@ -154,7 +160,7 @@ export function trackEmbeddedVideo(player: EmbeddedVideoPlayer, handlers: VideoH
     onUnsubscribe.push(() => player.off('pause', pauseHandler));
 
     const endedHandler = () => {
-      getIframeMetadata(player, elem, vendor)
+      getIframeMetadata(player, elem, vendor, 'ended')
         .then((playerState) => {
           const endedEvent: VideoEvent = {
             ...playerState,
@@ -169,7 +175,7 @@ export function trackEmbeddedVideo(player: EmbeddedVideoPlayer, handlers: VideoH
     onUnsubscribe.push(() => player.off('ended', endedHandler));
 
     const seekingHandler = () => {
-      getIframeMetadata(player, elem, vendor)
+      getIframeMetadata(player, elem, vendor, 'seeking')
         .then((playerState) => {
           const seekingEvent: VideoEvent = {
             ...playerState,
