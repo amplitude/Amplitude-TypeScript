@@ -76,7 +76,6 @@ export class VideoObserver {
     this.stateChangeHandler(previousState, nextState);
   }
 
-
   private updatePlaybackState(playbackState: PlaybackState, event?: VideoEvent) {
     const previousState = this.state;
     const nextState: State = {
