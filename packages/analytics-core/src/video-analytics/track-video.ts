@@ -1,4 +1,4 @@
-import { VideoHandler, VideoEvent, EmbeddedVideoPlayer, MuxElement, Vendor } from './types';
+import { VideoHandler, VideoEvent, EmbeddedVideoPlayer, MuxElement, Vendor, VideoStopReason } from './types';
 
 function getPlayData(videoEl: HTMLVideoElement | MuxElement) {
   return {
@@ -15,7 +15,7 @@ function calculatePercentCompleted(currentTime: number, duration: number) {
   return percentCompleted;
 }
 
-function getPauseData(videoEl: HTMLVideoElement | MuxElement, stopReason: string) {
+function getPauseData(videoEl: HTMLVideoElement | MuxElement, stopReason: VideoStopReason) {
   const currentTime = videoEl.currentTime;
   const duration = videoEl.duration;
 
