@@ -11,11 +11,7 @@ on:
 
 jobs:
   call-workflow-passing-data:
-<<<<<<< Updated upstream
-    uses: amplitude/Amplitude-TypeScript/.github/workflows/jira-issue-create-template.yml@8dadabbe62161729e3aa83c0d664e106b748c8cc # @amplitude/plugin-session-replay-react-native@0.4.9
-=======
     uses: amplitude/Amplitude-TypeScript/.github/workflows/jira-issue-create-template.yml@3af90e2f662d9ed82c56a506c8d2ef6d5da85bd8 # main pinned 2026-04-07 21:37 UTC
->>>>>>> Stashed changes
     with:
       label: "TS"
       subcomponent: "dx_typescript_browser_sdk"
