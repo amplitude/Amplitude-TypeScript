@@ -284,7 +284,8 @@ describe('SessionReplay', () => {
       }).promise;
       expect(sessionReplay.config?.privacyConfig?.blockSelector).toStrictEqual(undefined);
       expect(sessionReplay.config?.privacyConfig?.maskSelector).toStrictEqual(undefined);
-      expect(sessionReplay.config?.privacyConfig?.unmaskSelector).toStrictEqual(undefined);
+      // .amp-unmask is always injected as a default and is a valid selector, so it survives
+      expect(sessionReplay.config?.privacyConfig?.unmaskSelector).toStrictEqual(['.amp-unmask']);
     });
 
     test('should start network observers when network logging is enabled in remote config', async () => {

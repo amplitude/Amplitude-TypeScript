@@ -248,13 +248,13 @@ describe('SessionReplayJoinedConfigGenerator', () => {
           privacyConfig: {
             ...privacyConfig,
             maskSelector: undefined,
-            unmaskSelector: undefined,
+            unmaskSelector: ['.amp-unmask'],
             blockSelector: ['.className', '.anotherClassName'],
           },
         });
       });
 
-      test.each(['block', 'mask', 'unmask'])('should join %p selector from API', async (selectorType) => {
+      test.each(['block', 'mask'])('should join %p selector from API', async (selectorType) => {
         const config = await privacySelectorTest(
           {
             [`${selectorType}Selector`]: ['.remoteClassName'],
@@ -275,10 +275,32 @@ describe('SessionReplayJoinedConfigGenerator', () => {
               defaultMaskLevel: 'medium',
               blockSelector: undefined,
               maskSelector: undefined,
-              unmaskSelector: undefined,
+              unmaskSelector: ['.amp-unmask'],
               maskAttributes: [],
             },
             ...{ [`${selectorType}Selector`]: ['.localClassName', '.remoteClassName'] },
+          },
+        });
+      });
+
+      test('should join "unmask" selector from API', async () => {
+        const config = await privacySelectorTest(
+          { unmaskSelector: ['.remoteClassName'] },
+          await createSessionReplayJoinedConfigGenerator('static_key', {
+            ...mockOptions,
+            privacyConfig: { unmaskSelector: ['.localClassName'] },
+          }),
+        );
+        expect(config).toEqual({
+          ...mockLocalConfig,
+          captureEnabled: true,
+          optOut: mockLocalConfig.optOut,
+          privacyConfig: {
+            defaultMaskLevel: 'medium',
+            blockSelector: undefined,
+            maskSelector: undefined,
+            unmaskSelector: ['.amp-unmask', '.localClassName', '.remoteClassName'],
+            maskAttributes: [],
           },
         });
       });
@@ -297,7 +319,7 @@ describe('SessionReplayJoinedConfigGenerator', () => {
             ...privacyConfig,
             defaultMaskLevel: 'light',
             maskSelector: undefined,
-            unmaskSelector: undefined,
+            unmaskSelector: ['.amp-unmask'],
           },
           interactionConfig: undefined,
         });
@@ -321,7 +343,7 @@ describe('SessionReplayJoinedConfigGenerator', () => {
             defaultMaskLevel: 'medium',
             blockSelector: ['.className'],
             maskSelector: undefined,
-            unmaskSelector: undefined,
+            unmaskSelector: ['.amp-unmask'],
             maskAttributes: [],
           },
         });
@@ -343,7 +365,7 @@ describe('SessionReplayJoinedConfigGenerator', () => {
           privacyConfig: {
             ...privacyConfig,
             maskSelector: undefined,
-            unmaskSelector: undefined,
+            unmaskSelector: ['.amp-unmask'],
           },
         });
       });
@@ -391,6 +413,57 @@ describe('SessionReplayJoinedConfigGenerator', () => {
           const config = await privacySelectorTest({});
           expect(config.privacyConfig?.maskAttributes).toEqual([]);
         });
+      });
+    });
+
+    describe('SessionReplayLocalConfig privacyConfig', () => {
+      test('should include .amp-unmask in unmaskSelector when no privacyConfig is provided', () => {
+        const config = new SessionReplayLocalConfig('static_key', {
+          ...mockOptions,
+          privacyConfig: undefined,
+        });
+        expect(config.privacyConfig?.unmaskSelector).toEqual(['.amp-unmask']);
+      });
+
+      test('should include .amp-unmask in unmaskSelector when privacyConfig has no unmaskSelector', () => {
+        const config = new SessionReplayLocalConfig('static_key', {
+          ...mockOptions,
+          privacyConfig: { blockSelector: '.block-me' },
+        });
+        expect(config.privacyConfig?.unmaskSelector).toEqual(['.amp-unmask']);
+      });
+
+      test('should prepend .amp-unmask before user-provided unmaskSelector entries', () => {
+        const config = new SessionReplayLocalConfig('static_key', {
+          ...mockOptions,
+          privacyConfig: { unmaskSelector: ['.custom-unmask', '#my-id'] },
+        });
+        expect(config.privacyConfig?.unmaskSelector).toEqual(['.amp-unmask', '.custom-unmask', '#my-id']);
+      });
+
+      test('should preserve other privacyConfig properties alongside the injected unmaskSelector', () => {
+        const config = new SessionReplayLocalConfig('static_key', {
+          ...mockOptions,
+          privacyConfig: {
+            blockSelector: '.block-me',
+            maskSelector: ['.mask-me'],
+            defaultMaskLevel: 'conservative',
+          },
+        });
+        expect(config.privacyConfig).toEqual({
+          blockSelector: '.block-me',
+          maskSelector: ['.mask-me'],
+          defaultMaskLevel: 'conservative',
+          unmaskSelector: ['.amp-unmask'],
+        });
+      });
+
+      test('should always set privacyConfig (never undefined)', () => {
+        const config = new SessionReplayLocalConfig('static_key', {
+          ...mockOptions,
+          privacyConfig: undefined,
+        });
+        expect(config.privacyConfig).toBeDefined();
       });
     });
 
@@ -578,6 +651,21 @@ describe('SessionReplayJoinedConfigGenerator', () => {
         maskSelector: undefined,
         unmaskSelector: undefined,
       });
+    });
+  });
+
+  describe('generateJoinedConfig with undefined privacyConfig on joined config', () => {
+    test('should fall back to empty object when config.privacyConfig is undefined', async () => {
+      // Directly instantiate with a local config that has privacyConfig stripped,
+      // exercising the `config.privacyConfig ?? {}` branch in joined-config.ts.
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+      const generator = new SessionReplayJoinedConfigGenerator(mockRemoteConfigClient, {
+        ...mockLocalConfig,
+        privacyConfig: undefined,
+      } as any);
+      mockRemoteConfig = { sr_privacy_config: { blockSelector: ['.remote-block'] } };
+      const { joinedConfig } = await generator.generateJoinedConfig();
+      expect(joinedConfig.privacyConfig?.blockSelector).toEqual(['.remote-block']);
     });
   });
 
