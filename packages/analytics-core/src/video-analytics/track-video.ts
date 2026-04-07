@@ -1,6 +1,5 @@
 import { VideoHandler, VideoEvent, EmbeddedVideoPlayer, MuxElement, Vendor, VideoStopReason } from './types';
 
-
 function calculatePercentCompleted(currentTime: number, duration: number) {
   let percentCompleted = 0;
   if (Number.isFinite(currentTime) && Number.isFinite(duration) && duration > 0) {
@@ -9,7 +8,6 @@ function calculatePercentCompleted(currentTime: number, duration: number) {
   }
   return percentCompleted;
 }
-
 
 function getVideoData(videoEl: HTMLVideoElement | MuxElement, stopReason?: VideoStopReason) {
   const currentTime = videoEl.currentTime;
