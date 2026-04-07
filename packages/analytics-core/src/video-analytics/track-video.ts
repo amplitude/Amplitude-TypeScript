@@ -1,11 +1,5 @@
 import { VideoHandler, VideoEvent, EmbeddedVideoPlayer, MuxElement, Vendor, VideoStopReason } from './types';
 
-function getPlayData(videoEl: HTMLVideoElement | MuxElement) {
-  return {
-    duration: videoEl.duration,
-    start_time: videoEl.currentTime,
-  };
-}
 
 function calculatePercentCompleted(currentTime: number, duration: number) {
   let percentCompleted = 0;
@@ -16,28 +10,16 @@ function calculatePercentCompleted(currentTime: number, duration: number) {
   return percentCompleted;
 }
 
-function getPauseData(videoEl: HTMLVideoElement | MuxElement, stopReason?: VideoStopReason) {
+
+function getVideoData(videoEl: HTMLVideoElement | MuxElement, stopReason?: VideoStopReason) {
   const currentTime = videoEl.currentTime;
   const duration = videoEl.duration;
-
   return {
-    ...getPlayData(videoEl),
+    duration,
+    start_time: currentTime,
     last_position: currentTime,
     percent_completed: calculatePercentCompleted(currentTime, duration),
-    stop_reason: stopReason,
-  };
-}
-
-function getTimeUpdateData(videoEl: HTMLVideoElement | MuxElement) {
-  return {
-    ...getPlayData(videoEl),
-    last_position: videoEl.currentTime,
-  };
-}
-
-function getEndData(videoEl: HTMLVideoElement | MuxElement) {
-  return {
-    ...getPauseData(videoEl, 'ended'),
+    ...(stopReason !== undefined ? { stop_reason: stopReason } : {}),
   };
 }
 
@@ -59,7 +41,7 @@ function getMuxMetadata(videoEl: MuxElement) {
 export function trackHtmlVideo(videoEl: HTMLVideoElement | MuxElement, handlers: VideoHandler, vendor?: Vendor) {
   const playHandler = () => {
     const startEvent: VideoEvent = {
-      ...getPlayData(videoEl),
+      ...getVideoData(videoEl),
       ...(vendor === 'mux' ? getMuxMetadata(videoEl) : {}),
     };
     handlers.onPlay(startEvent);
@@ -68,7 +50,7 @@ export function trackHtmlVideo(videoEl: HTMLVideoElement | MuxElement, handlers:
 
   const pauseHandler = () => {
     const pauseEvent: VideoEvent = {
-      ...getPauseData(videoEl, 'paused'),
+      ...getVideoData(videoEl, 'paused'),
       ...(vendor === 'mux' ? getMuxMetadata(videoEl) : {}),
     };
     handlers.onPause(pauseEvent);
@@ -77,7 +59,7 @@ export function trackHtmlVideo(videoEl: HTMLVideoElement | MuxElement, handlers:
 
   const endedHandler = () => {
     const endedEvent: VideoEvent = {
-      ...getEndData(videoEl),
+      ...getVideoData(videoEl, 'ended'),
       ...(vendor === 'mux' ? getMuxMetadata(videoEl) : {}),
     };
     handlers.onEnded(endedEvent);
@@ -86,7 +68,7 @@ export function trackHtmlVideo(videoEl: HTMLVideoElement | MuxElement, handlers:
 
   const seekingHandler = () => {
     const seekingEvent: VideoEvent = {
-      ...getPauseData(videoEl, 'seeking'),
+      ...getVideoData(videoEl, 'seeking'),
       ...(vendor === 'mux' ? getMuxMetadata(videoEl) : {}),
     };
     handlers.onSeeking(seekingEvent);
@@ -95,7 +77,7 @@ export function trackHtmlVideo(videoEl: HTMLVideoElement | MuxElement, handlers:
 
   const timeupdateHandler = () => {
     const timeupdateEvent: VideoEvent = {
-      ...getTimeUpdateData(videoEl),
+      ...getVideoData(videoEl),
       ...(vendor === 'mux' ? getMuxMetadata(videoEl) : {}),
     };
     handlers.onTimeUpdate(timeupdateEvent);
@@ -135,10 +117,11 @@ async function getIframeMetadata(
     }
   }
   return {
-    percent_completed: calculatePercentCompleted(currentTime, duration),
     duration,
+    start_time: currentTime,
     last_position: currentTime,
-    stop_reason: stopReason,
+    percent_completed: calculatePercentCompleted(currentTime, duration),
+    ...(stopReason !== undefined ? { stop_reason: stopReason } : {}),
     ...vendorMetadata,
   };
 }

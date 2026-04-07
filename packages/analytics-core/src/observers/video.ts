@@ -79,7 +79,6 @@ export class VideoObserver {
   private updateTime(event: VideoEvent) {
     const previousState = this.state;
 
-    // update the watch time
     let watchTime = previousState.watchTime ?? 0;
     if (previousState.playbackState === 'playing' && previousState.lastEvent) {
       /* istanbul ignore next */
