@@ -189,7 +189,6 @@ export function trackEmbeddedVideo(player: EmbeddedVideoPlayer, handlers: VideoH
     onUnsubscribe.push(() => player.off('ended', endedHandler));
 
     const seekingHandler = () => {
-      console.log('seeking');
       getIframeMetadata(player, elem, vendor, 'seeking')
         .then((playerState) => {
           handlers.onSeeking(playerState);

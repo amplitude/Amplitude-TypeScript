@@ -42,7 +42,7 @@ jobs:
     name: SDK Bot Jira Issue Creation
     steps:
       - name: Login
-        uses: atlassian/gajira-login@master
+        uses: atlassian/gajira-login@c22a5debd482401472b285de4f6deedf70ddbb92 # master pinned 2026-04-07 21:37 UTC
         env:
           JIRA_BASE_URL: ${{ secrets.JIRA_BASE_URL }}
           JIRA_USER_EMAIL: ${{ secrets.JIRA_USER_EMAIL }}
@@ -50,7 +50,7 @@ jobs:
 
       - name: Convert Label String
         id: string
-        uses: ASzc/change-string-case-action@v1
+        uses: ASzc/change-string-case-action@84a9d7f751ded04b51ef679752b3e54aea018d55 # v1
         with:
           string: ${{ inputs.label }}
 
@@ -76,7 +76,7 @@ jobs:
 
       - name: Create issue
         id: create
-        uses: atlassian/gajira-create@master
+        uses: atlassian/gajira-create@1c54357fdde9dab6273a0e26d67cb175ffffe498 # master pinned 2026-04-07 21:37 UTC
         with:
           project: ${{ secrets.JIRA_PROJECT }}
           issuetype: Task
