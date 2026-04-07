@@ -35,8 +35,8 @@ export class VideoObserver {
     onEnded: (evt: VideoEvent) => {
       this.updatePlaybackState('ended', evt);
     },
-    onSeeking: (evt: VideoEvent) => {
-      this.updatePlaybackState('seeking', evt);
+    onSeeking: (/*evt: VideoEvent*/) => {
+      // no-op for now, may track events in the future
     },
     onError: (errorMessage: string) => {
       this.updateStateWithError(errorMessage);

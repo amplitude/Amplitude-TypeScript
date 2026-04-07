@@ -104,21 +104,18 @@ describe('VideoObserver', () => {
       internalHandler.onError('test error');
     });
 
-    it('should transition to seeking when onSeeking is called', () => {
+    it('should not transition to seeking when onSeeking is called', () => {
       internalHandler.onPlay({
         program_duration: 10,
       });
+      expect(onStateChange).toHaveBeenCalledTimes(1);
       internalHandler.onSeeking({
-        last_position: 3,
-        percent_completed: 30,
         program_duration: 10,
       });
+      expect(onStateChange).toHaveBeenCalledTimes(1);
       expect(onStateChange).toHaveBeenCalledWith(
+        { playbackState: 'paused', lastEvent: undefined },
         { playbackState: 'playing', lastEvent: { program_duration: 10 } },
-        {
-          playbackState: 'seeking',
-          lastEvent: { last_position: 3, percent_completed: 30, program_duration: 10 },
-        },
       );
     });
   });
