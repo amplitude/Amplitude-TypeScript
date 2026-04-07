@@ -15,7 +15,7 @@ function calculatePercentCompleted(currentTime: number, duration: number) {
   return percentCompleted;
 }
 
-function getPauseData(videoEl: HTMLVideoElement | MuxElement) {
+function getPauseData(videoEl: HTMLVideoElement | MuxElement, stopReason: string) {
   const currentTime = videoEl.currentTime;
   const duration = videoEl.duration;
 
@@ -23,12 +23,13 @@ function getPauseData(videoEl: HTMLVideoElement | MuxElement) {
     ...getPlayData(videoEl),
     last_position: currentTime,
     percent_completed: calculatePercentCompleted(currentTime, duration),
+    stop_reason: stopReason,
   };
 }
 
 function getEndData(videoEl: HTMLVideoElement | MuxElement) {
   return {
-    ...getPauseData(videoEl),
+    ...getPauseData(videoEl, 'ended'),
   };
 }
 
@@ -37,7 +38,6 @@ function getMuxMetadata(videoEl: MuxElement) {
     mux_playback_id: videoEl.getAttribute('playback-id'),
     mux_video_id: videoEl.getAttribute('metadata-video-id'),
     mux_video_title: videoEl.getAttribute('metadata-video-title'),
-    mux_session_id: videoEl.getAttribute('session-id'),
   };
 }
 
@@ -60,7 +60,7 @@ export function trackHtmlVideo(videoEl: HTMLVideoElement | MuxElement, handlers:
 
   const pauseHandler = () => {
     const pauseEvent: VideoEvent = {
-      ...getPauseData(videoEl),
+      ...getPauseData(videoEl, 'paused'),
       ...(vendor === 'mux' ? getMuxMetadata(videoEl) : {}),
     };
     handlers.onPause(pauseEvent);

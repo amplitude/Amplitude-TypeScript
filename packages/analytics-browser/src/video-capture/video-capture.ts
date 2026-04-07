@@ -136,7 +136,6 @@ export class VideoCapture {
 export type VideoCaptureOptions = {
   vendor?: VideoVendor;
   extraEventProperties?: Record<string, string | number | boolean>;
-  isEmbedded?: boolean;
 };
 
 /**

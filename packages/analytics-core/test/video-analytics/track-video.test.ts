@@ -31,6 +31,7 @@ describe('trackHtmlVideo', () => {
       last_position: 5,
       percent_completed: 50,
       program_duration: 10,
+      stop_reason: 'paused',
     });
 
     (video as any).ended();
@@ -38,6 +39,7 @@ describe('trackHtmlVideo', () => {
       last_position: 10,
       percent_completed: 100,
       program_duration: 10,
+      stop_reason: 'ended',
     });
 
     untrack();
@@ -86,7 +88,6 @@ describe('trackHtmlVideo with Mux vendor', () => {
     video.play();
     expect(handler.onPlay).toHaveBeenCalledWith({
       program_duration: 10,
-      mux_session_id: null,
       ...muxMetadata,
     });
 
@@ -95,7 +96,7 @@ describe('trackHtmlVideo with Mux vendor', () => {
       last_position: 5,
       percent_completed: 50,
       program_duration: 10,
-      mux_session_id: null,
+      stop_reason: 'paused',
       ...muxMetadata,
     });
 
@@ -104,7 +105,7 @@ describe('trackHtmlVideo with Mux vendor', () => {
       last_position: 10,
       percent_completed: 100,
       program_duration: 10,
-      mux_session_id: null,
+      stop_reason: 'ended',
       ...muxMetadata,
     });
 
