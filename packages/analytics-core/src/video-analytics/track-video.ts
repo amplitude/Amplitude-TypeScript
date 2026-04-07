@@ -1,4 +1,12 @@
-import { VideoHandler, VideoEvent, EmbeddedVideoPlayer, MuxElement, Vendor, VideoStopReason } from './types';
+import {
+  VideoHandler,
+  VideoEvent,
+  EmbeddedVideoPlayer,
+  MuxElement,
+  Vendor,
+  VideoStopReason,
+  TimeUpdateEvent,
+} from './types';
 
 function calculatePercentCompleted(currentTime: number, duration: number) {
   let percentCompleted = 0;
@@ -73,10 +81,20 @@ export function trackHtmlVideo(videoEl: HTMLVideoElement | MuxElement, handlers:
   };
   videoEl.addEventListener('seeking', seekingHandler);
 
-  const timeupdateHandler = () => {
-    const timeupdateEvent: VideoEvent = {
+  const seekedHandler = () => {
+    const seekedEvent: VideoEvent = {
       ...getVideoData(videoEl),
       ...(vendor === 'mux' ? getMuxMetadata(videoEl) : {}),
+    };
+    handlers.onSeeked(seekedEvent);
+  };
+  videoEl.addEventListener('seeked', seekedHandler);
+
+  const timeupdateHandler = () => {
+    const media = videoEl as HTMLVideoElement;
+    const timeupdateEvent: TimeUpdateEvent = {
+      position: videoEl.currentTime,
+      isSeeking: !!media.seeking,
     };
     handlers.onTimeUpdate(timeupdateEvent);
   };
@@ -87,8 +105,14 @@ export function trackHtmlVideo(videoEl: HTMLVideoElement | MuxElement, handlers:
     videoEl.removeEventListener('pause', pauseHandler);
     videoEl.removeEventListener('ended', endedHandler);
     videoEl.removeEventListener('seeking', seekingHandler);
+    videoEl.removeEventListener('seeked', seekedHandler);
     videoEl.removeEventListener('timeupdate', timeupdateHandler);
   };
+}
+
+async function getTimeUpdateInfo(player: EmbeddedVideoPlayer) {
+  const [currentTime] = await Promise.all([new Promise<number>((resolve) => player.getCurrentTime(resolve))]);
+  return { currentTime };
 }
 
 async function getIframeMetadata(
@@ -131,10 +155,7 @@ export function trackEmbeddedVideo(player: EmbeddedVideoPlayer, handlers: VideoH
     const playHandler = () => {
       getIframeMetadata(player, elem, vendor)
         .then((playerState) => {
-          const startEvent: VideoEvent = {
-            ...playerState,
-          };
-          handlers.onPlay(startEvent);
+          handlers.onPlay(playerState);
         })
         .catch((error) => {
           handlers.onError(`Error getting iframe metadata from 'play' handler: ${error as string}`);
@@ -146,10 +167,7 @@ export function trackEmbeddedVideo(player: EmbeddedVideoPlayer, handlers: VideoH
     const pauseHandler = () => {
       getIframeMetadata(player, elem, vendor, 'paused')
         .then((playerState) => {
-          const pauseEvent: VideoEvent = {
-            ...playerState,
-          };
-          handlers.onPause(pauseEvent);
+          handlers.onPause(playerState);
         })
         .catch((error) => {
           handlers.onError(`Error getting iframe metadata from 'pause' handler: ${error as string}`);
@@ -161,10 +179,7 @@ export function trackEmbeddedVideo(player: EmbeddedVideoPlayer, handlers: VideoH
     const endedHandler = () => {
       getIframeMetadata(player, elem, vendor, 'ended')
         .then((playerState) => {
-          const endedEvent: VideoEvent = {
-            ...playerState,
-          };
-          handlers.onEnded(endedEvent);
+          handlers.onEnded(playerState);
         })
         .catch((error) => {
           handlers.onError(`Error getting iframe metadata from 'ended' handler: ${error as string}`);
@@ -174,12 +189,10 @@ export function trackEmbeddedVideo(player: EmbeddedVideoPlayer, handlers: VideoH
     onUnsubscribe.push(() => player.off('ended', endedHandler));
 
     const seekingHandler = () => {
+      console.log('seeking');
       getIframeMetadata(player, elem, vendor, 'seeking')
         .then((playerState) => {
-          const seekingEvent: VideoEvent = {
-            ...playerState,
-          };
-          handlers.onSeeking(seekingEvent);
+          handlers.onSeeking(playerState);
         })
         .catch((error) => {
           handlers.onError(`Error getting iframe metadata from 'seeking' handler: ${error as string}`);
@@ -188,11 +201,24 @@ export function trackEmbeddedVideo(player: EmbeddedVideoPlayer, handlers: VideoH
     player.on('seeking', seekingHandler);
     onUnsubscribe.push(() => player.off('seeking', seekingHandler));
 
-    const timeupdateHandler = () => {
+    const seekedHandler = () => {
       getIframeMetadata(player, elem, vendor)
         .then((playerState) => {
-          const timeupdateEvent: VideoEvent = {
-            ...playerState,
+          handlers.onSeeked(playerState);
+        })
+        .catch((error) => {
+          handlers.onError(`Error getting iframe metadata from 'seeked' handler: ${error as string}`);
+        });
+    };
+    player.on('seeked', seekedHandler);
+    onUnsubscribe.push(() => player.off('seeked', seekedHandler));
+
+    const timeupdateHandler = () => {
+      getTimeUpdateInfo(player)
+        .then(({ currentTime }) => {
+          const timeupdateEvent: TimeUpdateEvent = {
+            position: currentTime,
+            isSeeking: false,
           };
           handlers.onTimeUpdate(timeupdateEvent);
         })

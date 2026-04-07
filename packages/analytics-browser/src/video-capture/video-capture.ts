@@ -82,6 +82,7 @@ export class VideoCapture {
         this.amplitude.track('Video Content Stopped', {
           ...this.extraEventProperties,
           ...nextState.lastEvent,
+          watch_duration: nextState.watchTime,
         });
       }
     });

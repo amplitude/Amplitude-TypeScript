@@ -7,8 +7,9 @@ export type VideoHandler = {
   onPause: (pauseEvent: VideoEvent) => void;
   onEnded: (endedEvent: VideoEvent) => void;
   onSeeking: (seekingEvent: VideoEvent) => void;
+  onSeeked: (seekedEvent: VideoEvent) => void;
   onError: (error: string) => void;
-  onTimeUpdate: (timeUpdateEvent: VideoEvent) => void;
+  onTimeUpdate: (timeUpdateEvent: TimeUpdateEvent) => void;
 };
 
 export type VideoEvent = {
@@ -29,6 +30,11 @@ export type VideoEvent = {
   stop_reason?: VideoStopReason;
 };
 
+export type TimeUpdateEvent = {
+  position: number;
+  isSeeking: boolean;
+};
+
 type EmbeddedVideoPlayer = {
   getCurrentTime: (cb: (time: number) => void) => void;
   getDuration: (cb: (duration: number) => void) => void;
@@ -38,6 +44,12 @@ type EmbeddedVideoPlayer = {
 };
 
 type MuxElement = EventTarget &
-  Element & { duration: number; currentTime: number; play?: () => Promise<unknown>; pause?: () => void };
+  Element & {
+    seeking: boolean;
+    duration: number;
+    currentTime: number;
+    play?: () => Promise<unknown>;
+    pause?: () => void;
+  };
 
 export { MuxElement, EmbeddedVideoPlayer };
