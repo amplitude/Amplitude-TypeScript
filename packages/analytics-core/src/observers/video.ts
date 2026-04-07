@@ -48,12 +48,10 @@ export class VideoObserver {
     onSeeking: () => {
       this.state = { ...this.state, isSeeking: true };
     },
-    onSeeked: (evt: VideoEvent) => {
+    onSeeked: () => {
       const nextState: State = {
         ...this.state,
         isSeeking: false,
-        lastEvent: evt,
-        position: evt.last_position,
       };
       this.updateState(nextState);
     },

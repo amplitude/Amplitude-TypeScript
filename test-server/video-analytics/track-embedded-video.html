@@ -17,7 +17,6 @@
     <script src="https://cdn.jsdelivr.net/npm/player.js@latest/dist/player.min.js"></script>
     <script type="module">
       import * as amplitude from '@amplitude/analytics-browser';
-      import { VideoCapture } from '../../packages/analytics-browser/src/video-capture/video-capture';
 
       // generate a View Session ID to be used for Mux and Amplitude
       // so that views can be linked together
@@ -46,17 +45,16 @@
       });
 
       // capture analytics events for Video Start and Video Stop
-      amplitude.trackVideo(amplitude, player, {
+      const stopVideoCapture = amplitude.trackVideo(amplitude, player, {
         vendor: 'mux',
         extraEventProperties: {
           // capture this so client and server events can be linked together
           mux_view_session_id: muxViewSessionId,
         },
-        isEmbedded: true,
       });
 
       document.getElementById('stop-video').addEventListener('click', () => {
-        videoCapture.stop();
+        stopVideoCapture();
       });
     </script>
   </body>

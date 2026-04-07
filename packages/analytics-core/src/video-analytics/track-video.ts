@@ -111,7 +111,7 @@ export function trackHtmlVideo(videoEl: HTMLVideoElement | MuxElement, handlers:
 }
 
 async function getTimeUpdateInfo(player: EmbeddedVideoPlayer) {
-  const [currentTime] = await Promise.all([new Promise<number>((resolve) => player.getCurrentTime(resolve))]);
+  const currentTime = await new Promise<number>((resolve) => player.getCurrentTime(resolve));
   return { currentTime };
 }
 
