@@ -9,6 +9,7 @@ export type State = {
   playbackState: PlaybackState;
   errorMessage?: string;
   lastEvent?: VideoEvent;
+  watchTime?: number;
 };
 
 export type VideoObserverParams = {
@@ -41,6 +42,9 @@ export class VideoObserver {
     onError: (errorMessage: string) => {
       this.updateStateWithError(errorMessage);
     },
+    onTimeUpdate: (/*evt: VideoEvent*/) => {
+      //this.updateTime(evt);
+    },
   };
 
   constructor({ videoEl, onStateChange, vendor, isEmbedded }: VideoObserverParams) {
@@ -63,6 +67,7 @@ export class VideoObserver {
   private updateStateWithError(error: string) {
     const previousState = this.state;
     const nextState: State = {
+      ...this.state,
       playbackState: 'error',
       errorMessage: error,
       lastEvent: undefined,
@@ -74,6 +79,7 @@ export class VideoObserver {
   private updatePlaybackState(playbackState: PlaybackState, event?: VideoEvent) {
     const previousState = this.state;
     const nextState: State = {
+      ...this.state,
       playbackState,
       lastEvent: event,
     };

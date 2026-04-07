@@ -8,10 +8,12 @@ export type VideoHandler = {
   onEnded: (endedEvent: VideoEvent) => void;
   onSeeking: (seekingEvent: VideoEvent) => void;
   onError: (error: string) => void;
+  onTimeUpdate: (timeUpdateEvent: VideoEvent) => void;
 };
 
 export type VideoEvent = {
-  program_duration: number;
+  duration: number;
+  start_time?: number;
   playback_id?: string | undefined;
   video_id?: string | undefined;
   video_title?: string | undefined;
