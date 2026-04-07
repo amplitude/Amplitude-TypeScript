@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion, @typescript-eslint/unbound-method -- jest expectations */
 import { AmplitudeBrowser } from '@amplitude/analytics-browser';
 import { EmbeddedVideoPlayer, VideoState } from '@amplitude/analytics-core';
-import { VideoCapture } from '../../src/video-capture/video-capture';
+import { VideoCapture, trackVideo } from '../../src/video-capture/video-capture';
 import { currentVideoObserver, resetMockVideoObserver } from './mock-video-observer';
 
 jest.mock('@amplitude/analytics-core', () => {
@@ -39,7 +39,7 @@ describe('VideoCapture', () => {
       let previousState: VideoState = { playbackState: 'paused', lastEvent: undefined };
       let nextState: VideoState = { playbackState: 'playing', lastEvent: { program_duration: 10 } };
       currentVideoObserver!.emitStateChange(previousState, nextState);
-      expect(mockAmplitude.track).toHaveBeenCalledWith('Video Started', {
+      expect(mockAmplitude.track).toHaveBeenCalledWith('Video Content Started', {
         program_duration: 10,
         hello: 'world',
         number: 123,
@@ -49,7 +49,7 @@ describe('VideoCapture', () => {
       previousState = nextState;
       nextState = { playbackState: 'paused', lastEvent: { program_duration: 10, last_position: 5 } };
       currentVideoObserver!.emitStateChange(previousState, nextState);
-      expect(mockAmplitude.track).toHaveBeenCalledWith('Video Stopped', {
+      expect(mockAmplitude.track).toHaveBeenCalledWith('Video Content Stopped', {
         program_duration: 10,
         last_position: 5,
         hello: 'world',
@@ -100,6 +100,67 @@ describe('VideoCapture', () => {
         .withVideoElement(document.createElement('video'))
         .withEmbeddedPlayer({} as unknown as EmbeddedVideoPlayer);
       expect(() => capture.start()).toThrow(/withVideoElement/g);
+    });
+  });
+
+  describe('trackVideo()', () => {
+    beforeEach(() => {
+      resetMockVideoObserver();
+    });
+    it('should capture start and stop events', () => {
+      const stopVideoCapture = trackVideo(mockAmplitude, document.createElement('video'), {
+        extraEventProperties: { hello: 'world', number: 123 },
+      });
+      currentVideoObserver!.emitStateChange(
+        { playbackState: 'paused', lastEvent: undefined },
+        { playbackState: 'playing', lastEvent: { program_duration: 10 } },
+      );
+      expect(mockAmplitude.track).toHaveBeenCalledWith('Video Content Started', {
+        program_duration: 10,
+        hello: 'world',
+        number: 123,
+      });
+      currentVideoObserver!.emitStateChange(
+        { playbackState: 'playing', lastEvent: { program_duration: 10 } },
+        { playbackState: 'paused', lastEvent: { program_duration: 10, last_position: 5 } },
+      );
+      expect(mockAmplitude.track).toHaveBeenCalledWith('Video Content Stopped', {
+        program_duration: 10,
+        last_position: 5,
+        hello: 'world',
+        number: 123,
+      });
+      stopVideoCapture();
+      currentVideoObserver!.emitStateChange(
+        { playbackState: 'paused', lastEvent: { program_duration: 10, last_position: 5 } },
+        { playbackState: 'playing', lastEvent: { program_duration: 10 } },
+      );
+      expect(mockAmplitude.track).toHaveBeenCalledTimes(2);
+    });
+
+    it('should capture start and stop events with embedded video player', () => {
+      const stopVideoCapture = trackVideo(mockAmplitude, {
+        onPlay: jest.fn(),
+        onPause: jest.fn(),
+        onEnded: jest.fn(),
+        onError: jest.fn(),
+      } as unknown as EmbeddedVideoPlayer);
+      currentVideoObserver!.emitStateChange(
+        { playbackState: 'paused', lastEvent: undefined },
+        { playbackState: 'playing', lastEvent: { program_duration: 10 } },
+      );
+      expect(mockAmplitude.track).toHaveBeenCalledWith('Video Content Started', {
+        program_duration: 10,
+      });
+      currentVideoObserver!.emitStateChange(
+        { playbackState: 'playing', lastEvent: { program_duration: 10 } },
+        { playbackState: 'paused', lastEvent: { program_duration: 10, last_position: 5 } },
+      );
+      expect(mockAmplitude.track).toHaveBeenCalledWith('Video Content Stopped', {
+        program_duration: 10,
+        last_position: 5,
+      });
+      stopVideoCapture();
     });
   });
 });

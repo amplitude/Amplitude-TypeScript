@@ -38,7 +38,10 @@ export class VideoCapture {
    * @param vendor - The vendor of the video player. Currently only "mux" is supported.
    * @returns The VideoCapture instance.
    */
-  withVendor(vendor: VideoVendor): VideoCapture {
+  withVendor(vendor?: VideoVendor): VideoCapture {
+    if (!vendor) {
+      return this;
+    }
     this.vendor = vendor;
     return this;
   }
@@ -62,7 +65,7 @@ export class VideoCapture {
     this.listeners.push((previousState, nextState) => {
       if (previousState.playbackState !== 'playing' && nextState.playbackState === 'playing') {
         // placeholder for Heartbeat Start Event
-        this.amplitude.track('Video Started', {
+        this.amplitude.track('Video Content Started', {
           ...this.extraEventProperties,
           ...nextState.lastEvent,
         });
@@ -79,7 +82,7 @@ export class VideoCapture {
     this.listeners.push((previousState, nextState) => {
       if (previousState.playbackState === 'playing' && nextState.playbackState !== 'playing') {
         // placeholder for Heartbeat Stop Event
-        this.amplitude.track('Video Stopped', {
+        this.amplitude.track('Video Content Stopped', {
           ...this.extraEventProperties,
           ...nextState.lastEvent,
         });
@@ -128,4 +131,42 @@ export class VideoCapture {
     this.onRemoveListeners.forEach((listener) => listener());
     this.onRemoveListeners = [];
   }
+}
+
+export type VideoCaptureOptions = {
+  vendor?: VideoVendor;
+  extraEventProperties?: Record<string, string | number | boolean>;
+  isEmbedded?: boolean;
+};
+
+/**
+ * Track video analytics events for an HTML video element or embedded video player.js instance.
+ *
+ * Captures Video Started and Video Stopped events.
+ *
+ * @experimental This function is experimental and may not be stable.
+ * @param amplitude - The Amplitude client instance.
+ * @param videoEl - The HTML video element or embedded video player.js instance to capture events from.
+ * @param options - The options for the video capture.
+ * @returns A function to stop the video capture.
+ */
+export function trackVideo(
+  amplitude: BrowserClient,
+  videoEl: HTMLVideoElement | EmbeddedVideoPlayer,
+  options: VideoCaptureOptions = {},
+): () => void {
+  const videoCapture = new VideoCapture(amplitude);
+  if (videoEl instanceof HTMLVideoElement) {
+    videoCapture.withVideoElement(videoEl);
+  } else {
+    videoCapture.withEmbeddedPlayer(videoEl);
+  }
+  videoCapture
+    .withVendor(options.vendor)
+    .withExtraEventProperties(options.extraEventProperties ?? {})
+    .captureVideoStarted()
+    .captureVideoStopped()
+    .start();
+
+  return () => videoCapture.stop();
 }
