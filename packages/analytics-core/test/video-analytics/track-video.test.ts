@@ -57,6 +57,7 @@ describe('trackHtmlVideo', () => {
       last_position: 7,
       percent_completed: 70,
       program_duration: 10,
+      stop_reason: 'seeking',
     });
 
     untrack();
@@ -130,7 +131,7 @@ describe('trackHtmlVideo with Mux vendor', () => {
       last_position: 4,
       percent_completed: 40,
       program_duration: 10,
-      mux_session_id: null,
+      stop_reason: 'seeking',
       ...muxMetadata,
     });
   });
