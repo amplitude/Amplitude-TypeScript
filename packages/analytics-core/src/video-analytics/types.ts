@@ -1,9 +1,12 @@
 export type Vendor = 'mux'; // | 'vimeo' | 'youtube' | 'other'
 
+export type VideoStopReason = 'paused' | 'ended' | 'seeking';
+
 export type VideoHandler = {
   onPlay: (startEvent: VideoEvent) => void;
   onPause: (pauseEvent: VideoEvent) => void;
   onEnded: (endedEvent: VideoEvent) => void;
+  onSeeking: (seekingEvent: VideoEvent) => void;
   onError: (error: string) => void;
 };
 
@@ -21,6 +24,7 @@ export type VideoEvent = {
   mux_session_id?: string | undefined | null;
   last_position?: number | undefined | null;
   percent_completed?: number;
+  stop_reason?: VideoStopReason;
 };
 
 type EmbeddedVideoPlayer = {

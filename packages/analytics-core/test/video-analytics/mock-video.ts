@@ -121,6 +121,18 @@ export function createMockVideo(options: { isMux: boolean } = { isMux: false }):
     }),
   });
 
+  Object.defineProperty(HTMLMediaElement.prototype, 'seeking', {
+    configurable: true,
+    value: jest.fn(function (this: HTMLVideoElement, time?: number) {
+      Object.defineProperty(this, 'currentTime', {
+        configurable: true,
+        value: time ?? 3,
+      });
+      this.dispatchEvent(new Event('seeking'));
+      return Promise.resolve(undefined);
+    }),
+  });
+
   video.src = 'https://example.com/video.mp4';
   video.width = 640;
   video.height = 360;
@@ -134,6 +146,7 @@ export function createMockVideo(options: { isMux: boolean } = { isMux: false }):
     onPause: jest.fn(),
     onEnded: jest.fn(),
     onError: jest.fn(),
+    onSeeking: jest.fn(),
   };
 
   return { video, handler };

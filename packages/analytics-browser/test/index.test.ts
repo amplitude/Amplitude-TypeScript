@@ -28,6 +28,7 @@ const {
   setUserId,
   track,
   AmplitudeBrowser,
+  trackVideo,
 } = amplitude;
 
 describe('index', () => {
@@ -73,5 +74,6 @@ describe('index', () => {
     expect(typeof setUserId).toBe('function');
     expect(typeof track).toBe('function');
     expect(typeof AmplitudeBrowser).toBe('function');
+    expect(typeof trackVideo).toBe('function');
   });
 });

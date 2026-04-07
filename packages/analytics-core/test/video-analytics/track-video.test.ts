@@ -31,6 +31,7 @@ describe('trackHtmlVideo', () => {
       last_position: 5,
       percent_completed: 50,
       program_duration: 10,
+      stop_reason: 'paused',
     });
 
     (video as any).ended();
@@ -38,12 +39,31 @@ describe('trackHtmlVideo', () => {
       last_position: 10,
       percent_completed: 100,
       program_duration: 10,
+      stop_reason: 'ended',
     });
 
     untrack();
     handler.onPlay = jest.fn();
     video.play();
     expect(handler.onPlay).not.toHaveBeenCalled();
+  });
+
+  test('should track seeking events', () => {
+    const untrack = trackHtmlVideo(video, handler);
+
+    video.play();
+    (video as any).seeking(7);
+    expect(handler.onSeeking).toHaveBeenCalledWith({
+      last_position: 7,
+      percent_completed: 70,
+      program_duration: 10,
+      stop_reason: 'seeking',
+    });
+
+    untrack();
+    handler.onSeeking = jest.fn();
+    (video as any).seeking(1);
+    expect(handler.onSeeking).not.toHaveBeenCalled();
   });
 });
 
@@ -69,7 +89,6 @@ describe('trackHtmlVideo with Mux vendor', () => {
     video.play();
     expect(handler.onPlay).toHaveBeenCalledWith({
       program_duration: 10,
-      mux_session_id: null,
       ...muxMetadata,
     });
 
@@ -78,7 +97,7 @@ describe('trackHtmlVideo with Mux vendor', () => {
       last_position: 5,
       percent_completed: 50,
       program_duration: 10,
-      mux_session_id: null,
+      stop_reason: 'paused',
       ...muxMetadata,
     });
 
@@ -87,7 +106,7 @@ describe('trackHtmlVideo with Mux vendor', () => {
       last_position: 10,
       percent_completed: 100,
       program_duration: 10,
-      mux_session_id: null,
+      stop_reason: 'ended',
       ...muxMetadata,
     });
 
@@ -95,6 +114,26 @@ describe('trackHtmlVideo with Mux vendor', () => {
     handler.onPlay = jest.fn();
     video.play();
     expect(handler.onPlay).not.toHaveBeenCalled();
+  });
+
+  test('should track seeking events with Mux metadata', () => {
+    trackHtmlVideo(video, handler, 'mux');
+
+    const muxMetadata = {
+      mux_playback_id: video.getAttribute('playback-id'),
+      mux_video_id: video.getAttribute('metadata-video-id'),
+      mux_video_title: video.getAttribute('metadata-video-title'),
+    };
+
+    video.play();
+    (video as any).seeking(4);
+    expect(handler.onSeeking).toHaveBeenCalledWith({
+      last_position: 4,
+      percent_completed: 40,
+      program_duration: 10,
+      stop_reason: 'seeking',
+      ...muxMetadata,
+    });
   });
 });
 
@@ -110,6 +149,7 @@ describe('trackEmbeddedVideo', () => {
       onPause: jest.fn(),
       onEnded: jest.fn(),
       onError: jest.fn(),
+      onSeeking: jest.fn(),
     };
   });
 
@@ -136,6 +176,7 @@ describe('trackEmbeddedVideo', () => {
         last_position: 5,
         percent_completed: 50,
         program_duration: 10,
+        stop_reason: 'paused',
       });
 
       player.setCurrentTime(10);
@@ -145,6 +186,7 @@ describe('trackEmbeddedVideo', () => {
         last_position: 10,
         percent_completed: 100,
         program_duration: 10,
+        stop_reason: 'ended',
       });
 
       untrack();
@@ -152,6 +194,26 @@ describe('trackEmbeddedVideo', () => {
       player.emit('play');
       await jest.runAllTimersAsync();
       expect(handler.onPlay).not.toHaveBeenCalled();
+    });
+
+    test('should track seeking events', async () => {
+      const untrack = trackEmbeddedVideo(player, handler);
+      player.emit('ready');
+      player.setCurrentTime(6);
+      player.emit('seeking');
+      await jest.runAllTimersAsync();
+      expect(handler.onSeeking).toHaveBeenCalledWith({
+        last_position: 6,
+        percent_completed: 60,
+        program_duration: 10,
+        stop_reason: 'seeking',
+      });
+
+      untrack();
+      handler.onSeeking = jest.fn();
+      player.emit('seeking');
+      await jest.runAllTimersAsync();
+      expect(handler.onSeeking).not.toHaveBeenCalled();
     });
   });
 
@@ -184,6 +246,7 @@ describe('trackEmbeddedVideo', () => {
         last_position: 5,
         percent_completed: 50,
         program_duration: 10,
+        stop_reason: 'paused',
         ...muxMetadata,
       });
 
@@ -194,6 +257,7 @@ describe('trackEmbeddedVideo', () => {
         last_position: 10,
         percent_completed: 100,
         program_duration: 10,
+        stop_reason: 'ended',
         ...muxMetadata,
       });
 
@@ -202,6 +266,28 @@ describe('trackEmbeddedVideo', () => {
       player.emit('play');
       await jest.runAllTimersAsync();
       expect(handler.onPlay).not.toHaveBeenCalled();
+    });
+
+    test('should track seeking events with Mux metadata', async () => {
+      trackEmbeddedVideo(player, handler, 'mux');
+      player.emit('ready');
+
+      const muxMetadata = {
+        mux_playback_id: 'dE02GfTAlJD4RcqNAlgiS2m00LqbdFqlBm',
+        mux_video_id: 'video-123',
+        mux_video_title: 'My Video',
+      };
+
+      player.setCurrentTime(2);
+      player.emit('seeking');
+      await jest.runAllTimersAsync();
+      expect(handler.onSeeking).toHaveBeenCalledWith({
+        last_position: 2,
+        percent_completed: 20,
+        program_duration: 10,
+        stop_reason: 'seeking',
+        ...muxMetadata,
+      });
     });
 
     test('should work when there is no src url', async () => {
@@ -253,6 +339,13 @@ describe('trackEmbeddedVideo', () => {
         player.emit('ended');
         await jest.runAllTimersAsync();
         expect(handler.onError).toHaveBeenCalledTimes(1);
+      });
+
+      test('should call the error handler (seeking)', async () => {
+        player.emit('seeking');
+        await jest.runAllTimersAsync();
+        expect(handler.onError).toHaveBeenCalledTimes(1);
+        expect(handler.onError).toHaveBeenCalledWith(expect.stringContaining("from 'seeking' handler"));
       });
     });
   });

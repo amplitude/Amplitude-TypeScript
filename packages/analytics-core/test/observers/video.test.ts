@@ -78,30 +78,63 @@ describe('VideoObserver', () => {
         last_position: 5,
         percent_completed: 50,
         program_duration: 10,
+        stop_reason: 'paused',
       });
       expect(onStateChange).toHaveBeenCalledWith(
         { playbackState: 'playing', lastEvent: { program_duration: 10 } },
         {
           playbackState: 'paused',
-          lastEvent: { last_position: 5, percent_completed: 50, program_duration: 10 },
+          lastEvent: {
+            last_position: 5,
+            percent_completed: 50,
+            program_duration: 10,
+            stop_reason: 'paused',
+          },
         },
       );
       internalHandler.onEnded({
         last_position: 10,
         percent_completed: 100,
         program_duration: 10,
+        stop_reason: 'ended',
       });
       expect(onStateChange).toHaveBeenCalledWith(
         {
           playbackState: 'paused',
-          lastEvent: { last_position: 5, percent_completed: 50, program_duration: 10 },
+          lastEvent: {
+            last_position: 5,
+            percent_completed: 50,
+            program_duration: 10,
+            stop_reason: 'paused',
+          },
         },
         {
           playbackState: 'ended',
-          lastEvent: { last_position: 10, percent_completed: 100, program_duration: 10 },
+          lastEvent: {
+            last_position: 10,
+            percent_completed: 100,
+            program_duration: 10,
+            stop_reason: 'ended',
+          },
         },
       );
       internalHandler.onError('test error');
+    });
+
+    it('should not transition to seeking when onSeeking is called', () => {
+      internalHandler.onPlay({
+        program_duration: 10,
+      });
+      expect(onStateChange).toHaveBeenCalledTimes(1);
+      internalHandler.onSeeking({
+        program_duration: 10,
+        stop_reason: 'seeking',
+      });
+      expect(onStateChange).toHaveBeenCalledTimes(1);
+      expect(onStateChange).toHaveBeenCalledWith(
+        { playbackState: 'paused', lastEvent: undefined },
+        { playbackState: 'playing', lastEvent: { program_duration: 10 } },
+      );
     });
   });
 });

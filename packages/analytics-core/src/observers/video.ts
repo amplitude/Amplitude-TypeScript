@@ -3,7 +3,7 @@ import type { VideoHandler, VideoEvent, EmbeddedVideoPlayer, MuxElement, Vendor 
 
 export type { Vendor };
 
-type PlaybackState = 'playing' | 'paused' | 'ended' | 'error';
+type PlaybackState = 'playing' | 'paused' | 'ended' | 'error' | 'seeking';
 
 export type State = {
   playbackState: PlaybackState;
@@ -34,6 +34,9 @@ export class VideoObserver {
     },
     onEnded: (evt: VideoEvent) => {
       this.updatePlaybackState('ended', evt);
+    },
+    onSeeking: (/*evt: VideoEvent*/) => {
+      // no-op for now, may track events in the future
     },
     onError: (errorMessage: string) => {
       this.updateStateWithError(errorMessage);
