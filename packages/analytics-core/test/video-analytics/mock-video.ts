@@ -147,6 +147,7 @@ export function createMockVideo(options: { isMux: boolean } = { isMux: false }):
     onEnded: jest.fn(),
     onError: jest.fn(),
     onSeeking: jest.fn(),
+    onTimeUpdate: jest.fn(),
   };
 
   return { video, handler };

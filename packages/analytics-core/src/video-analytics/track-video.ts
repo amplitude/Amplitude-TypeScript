@@ -2,7 +2,7 @@ import { VideoHandler, VideoEvent, EmbeddedVideoPlayer, MuxElement, Vendor, Vide
 
 function getPlayData(videoEl: HTMLVideoElement | MuxElement) {
   return {
-    program_duration: videoEl.duration,
+    duration: videoEl.duration,
   };
 }
 
@@ -15,7 +15,7 @@ function calculatePercentCompleted(currentTime: number, duration: number) {
   return percentCompleted;
 }
 
-function getPauseData(videoEl: HTMLVideoElement | MuxElement, stopReason: VideoStopReason) {
+function getPauseData(videoEl: HTMLVideoElement | MuxElement, stopReason?: VideoStopReason) {
   const currentTime = videoEl.currentTime;
   const duration = videoEl.duration;
 
@@ -24,6 +24,13 @@ function getPauseData(videoEl: HTMLVideoElement | MuxElement, stopReason: VideoS
     last_position: currentTime,
     percent_completed: calculatePercentCompleted(currentTime, duration),
     stop_reason: stopReason,
+  };
+}
+
+function getTimeUpdateData(videoEl: HTMLVideoElement | MuxElement) {
+  return {
+    ...getPlayData(videoEl),
+    last_position: videoEl.currentTime,
   };
 }
 
@@ -85,11 +92,21 @@ export function trackHtmlVideo(videoEl: HTMLVideoElement | MuxElement, handlers:
   };
   videoEl.addEventListener('seeking', seekingHandler);
 
+  const timeupdateHandler = () => {
+    const timeupdateEvent: VideoEvent = {
+      ...getTimeUpdateData(videoEl),
+      ...(vendor === 'mux' ? getMuxMetadata(videoEl) : {}),
+    };
+    handlers.onTimeUpdate(timeupdateEvent);
+  };
+  videoEl.addEventListener('timeupdate', timeupdateHandler);
+
   return () => {
     videoEl.removeEventListener('play', playHandler);
     videoEl.removeEventListener('pause', pauseHandler);
     videoEl.removeEventListener('ended', endedHandler);
     videoEl.removeEventListener('seeking', seekingHandler);
+    videoEl.removeEventListener('timeupdate', timeupdateHandler);
   };
 }
 
@@ -118,9 +135,9 @@ async function getIframeMetadata(
   }
   return {
     percent_completed: calculatePercentCompleted(currentTime, duration),
-    program_duration: duration,
+    duration,
     last_position: currentTime,
-    ...(stopReason !== undefined ? { stop_reason: stopReason } : {}),
+    stop_reason: stopReason,
     ...vendorMetadata,
   };
 }
@@ -188,6 +205,21 @@ export function trackEmbeddedVideo(player: EmbeddedVideoPlayer, handlers: VideoH
     };
     player.on('seeking', seekingHandler);
     onUnsubscribe.push(() => player.off('seeking', seekingHandler));
+
+    const timeupdateHandler = () => {
+      getIframeMetadata(player, elem, vendor)
+        .then((playerState) => {
+          const timeupdateEvent: VideoEvent = {
+            ...playerState,
+          };
+          handlers.onTimeUpdate(timeupdateEvent);
+        })
+        .catch((error) => {
+          handlers.onError(`Error getting iframe metadata from 'timeupdate' handler: ${error as string}`);
+        });
+    };
+    player.on('timeupdate', timeupdateHandler);
+    onUnsubscribe.push(() => player.off('timeupdate', timeupdateHandler));
   };
   player.on('ready', readyHandler);
 

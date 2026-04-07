@@ -9,6 +9,7 @@ export type State = {
   playbackState: PlaybackState;
   errorMessage?: string;
   lastEvent?: VideoEvent;
+  watchTime?: number;
 };
 
 export type VideoObserverParams = {
@@ -41,6 +42,9 @@ export class VideoObserver {
     onError: (errorMessage: string) => {
       this.updateStateWithError(errorMessage);
     },
+    onTimeUpdate: (evt: VideoEvent) => {
+      this.updateTime(evt);
+    },
   };
 
   constructor({ videoEl, onStateChange, vendor, isEmbedded }: VideoObserverParams) {
@@ -63,6 +67,7 @@ export class VideoObserver {
   private updateStateWithError(error: string) {
     const previousState = this.state;
     const nextState: State = {
+      ...this.state,
       playbackState: 'error',
       errorMessage: error,
       lastEvent: undefined,
@@ -71,9 +76,29 @@ export class VideoObserver {
     this.stateChangeHandler(previousState, nextState);
   }
 
+  private updateTime(event: VideoEvent) {
+    const previousState = this.state;
+
+    // update the watch time
+    let watchTime = previousState.watchTime ?? 0;
+    if (previousState.playbackState === 'playing' && previousState.lastEvent) {
+      /* istanbul ignore next */
+      const lastPosition = event.last_position ?? 0;
+      const previousPosition = previousState.lastEvent.last_position ?? 0;
+      watchTime += lastPosition - previousPosition;
+    }
+    const nextState: State = {
+      ...previousState,
+      watchTime,
+    };
+    this.state = nextState;
+    this.stateChangeHandler(previousState, nextState);
+  }
+
   private updatePlaybackState(playbackState: PlaybackState, event?: VideoEvent) {
     const previousState = this.state;
     const nextState: State = {
+      ...this.state,
       playbackState,
       lastEvent: event,
     };
