@@ -42,8 +42,8 @@ export class VideoObserver {
     onError: (errorMessage: string) => {
       this.updateStateWithError(errorMessage);
     },
-    onTimeUpdate: (evt: VideoEvent) => {
-      this.updateTime(evt);
+    onTimeUpdate: (/*evt: VideoEvent*/) => {
+      //this.updateTime(evt);
     },
   };
 
@@ -76,23 +76,23 @@ export class VideoObserver {
     this.stateChangeHandler(previousState, nextState);
   }
 
-  private updateTime(event: VideoEvent) {
-    const previousState = this.state;
+  // private updateTime(event: VideoEvent) {
+  //   const previousState = this.state;
 
-    let watchTime = previousState.watchTime ?? 0;
-    if (previousState.playbackState === 'playing' && previousState.lastEvent) {
-      /* istanbul ignore next */
-      const lastPosition = event.last_position ?? 0;
-      const previousPosition = previousState.lastEvent.last_position ?? 0;
-      watchTime += lastPosition - previousPosition;
-    }
-    const nextState: State = {
-      ...previousState,
-      watchTime,
-    };
-    this.state = nextState;
-    this.stateChangeHandler(previousState, nextState);
-  }
+  //   let watchTime = previousState.watchTime ?? 0;
+  //   if (previousState.playbackState === 'playing' && previousState.lastEvent) {
+  //     /* istanbul ignore next */
+  //     const lastPosition = event.last_position ?? 0;
+  //     const previousPosition = previousState.lastEvent.last_position ?? 0;
+  //     watchTime += lastPosition - previousPosition;
+  //   }
+  //   const nextState: State = {
+  //     ...previousState,
+  //     watchTime,
+  //   };
+  //   this.state = nextState;
+  //   this.stateChangeHandler(previousState, nextState);
+  // }
 
   private updatePlaybackState(playbackState: PlaybackState, event?: VideoEvent) {
     const previousState = this.state;
