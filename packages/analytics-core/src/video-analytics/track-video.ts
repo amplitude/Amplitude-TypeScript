@@ -1,6 +1,6 @@
-import { VideoHandler, VideoEvent, EmbeddedVideoPlayer, MuxElement, Vendor } from './types';
+import { VideoHandler, VideoEvent, EmbeddedVideoPlayer, Vendor } from './types';
 
-function getPlayData(videoEl: HTMLVideoElement | MuxElement) {
+function getPlayData(videoEl: HTMLVideoElement) {
   return {
     program_duration: videoEl.duration,
   };
@@ -15,7 +15,7 @@ function calculatePercentCompleted(currentTime: number, duration: number) {
   return percentCompleted;
 }
 
-function getPauseData(videoEl: HTMLVideoElement | MuxElement, stopReason: string) {
+function getPauseData(videoEl: HTMLVideoElement, stopReason: string) {
   const currentTime = videoEl.currentTime;
   const duration = videoEl.duration;
 
@@ -27,18 +27,22 @@ function getPauseData(videoEl: HTMLVideoElement | MuxElement, stopReason: string
   };
 }
 
-function getEndData(videoEl: HTMLVideoElement | MuxElement) {
+function getEndData(videoEl: HTMLVideoElement) {
   return {
     ...getPauseData(videoEl, 'ended'),
   };
 }
 
-function getMuxMetadata(videoEl: MuxElement) {
+function getMuxMetadata(videoEl: HTMLVideoElement) {
   return {
     mux_playback_id: videoEl.getAttribute('playback-id'),
     mux_video_id: videoEl.getAttribute('metadata-video-id'),
     mux_video_title: videoEl.getAttribute('metadata-video-title'),
   };
+}
+
+function isVideoPlaying(video: HTMLVideoElement) {
+  return video.currentTime > 0 && !video.paused && !video.ended && video.readyState > 2;
 }
 
 /**
@@ -48,7 +52,7 @@ function getMuxMetadata(videoEl: MuxElement) {
  * @param handlers - The video handlers to call when on video lifecycle events.
  * @returns A function to untrack the video.
  */
-export function trackHtmlVideo(videoEl: HTMLVideoElement | MuxElement, handlers: VideoHandler, vendor?: Vendor) {
+export function trackHtmlVideo(videoEl: HTMLVideoElement, handlers: VideoHandler, vendor?: Vendor) {
   const playHandler = () => {
     const startEvent: VideoEvent = {
       ...getPlayData(videoEl),
@@ -57,6 +61,10 @@ export function trackHtmlVideo(videoEl: HTMLVideoElement | MuxElement, handlers:
     handlers.onPlay(startEvent);
   };
   videoEl.addEventListener('play', playHandler);
+
+  if (isVideoPlaying(videoEl)) {
+    handlers.onPlay(getPlayData(videoEl));
+  }
 
   const pauseHandler = () => {
     const pauseEvent: VideoEvent = {

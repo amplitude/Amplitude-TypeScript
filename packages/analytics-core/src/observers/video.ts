@@ -1,5 +1,5 @@
 import { trackHtmlVideo, trackEmbeddedVideo } from '../video-analytics/track-video';
-import type { VideoHandler, VideoEvent, EmbeddedVideoPlayer, MuxElement, Vendor } from '../video-analytics/types';
+import type { VideoHandler, VideoEvent, EmbeddedVideoPlayer, Vendor } from '../video-analytics/types';
 
 export type { Vendor };
 
@@ -12,7 +12,7 @@ export type State = {
 };
 
 export type VideoObserverParams = {
-  videoEl: HTMLVideoElement | EmbeddedVideoPlayer | MuxElement;
+  videoEl: HTMLVideoElement | EmbeddedVideoPlayer;
   onStateChange: (previousState: State, nextState: State) => void;
   vendor?: Vendor;
   isEmbedded?: boolean;

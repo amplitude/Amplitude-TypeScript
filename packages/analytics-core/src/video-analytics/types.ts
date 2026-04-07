@@ -32,7 +32,4 @@ type EmbeddedVideoPlayer = {
   elem: HTMLIFrameElement;
 };
 
-type MuxElement = EventTarget &
-  Element & { duration: number; currentTime: number; play?: () => Promise<unknown>; pause?: () => void };
-
-export { MuxElement, EmbeddedVideoPlayer };
+export { EmbeddedVideoPlayer };

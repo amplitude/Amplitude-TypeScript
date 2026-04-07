@@ -48,6 +48,30 @@ describe('trackHtmlVideo', () => {
     expect(handler.onPlay).not.toHaveBeenCalled();
   });
 
+  test('should call onPlay immediately when the video is already playing', () => {
+    const alreadyPlaying = document.createElement('video');
+    Object.defineProperty(alreadyPlaying, 'duration', { configurable: true, value: 10 });
+    Object.defineProperty(alreadyPlaying, 'currentTime', { configurable: true, value: 5 });
+    Object.defineProperty(alreadyPlaying, 'paused', { configurable: true, value: false });
+    Object.defineProperty(alreadyPlaying, 'ended', { configurable: true, value: false });
+    Object.defineProperty(alreadyPlaying, 'readyState', { configurable: true, value: 4 });
+
+    const localHandler: VideoHandler = {
+      onPlay: jest.fn(),
+      onPause: jest.fn(),
+      onEnded: jest.fn(),
+      onSeeking: jest.fn(),
+      onError: jest.fn(),
+    };
+
+    trackHtmlVideo(alreadyPlaying, localHandler);
+
+    expect(localHandler.onPlay).toHaveBeenCalledTimes(1);
+    expect(localHandler.onPlay).toHaveBeenCalledWith({
+      program_duration: 10,
+    });
+  });
+
   test('should track seeking events', () => {
     const untrack = trackHtmlVideo(video, handler);
 
