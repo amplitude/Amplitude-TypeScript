@@ -76,10 +76,20 @@ export function trackHtmlVideo(videoEl: HTMLVideoElement | MuxElement, handlers:
   };
   videoEl.addEventListener('ended', endedHandler);
 
+  const seekingHandler = () => {
+    const seekingEvent: VideoEvent = {
+      ...getPauseData(videoEl),
+      ...(vendor === 'mux' ? getMuxMetadata(videoEl) : {}),
+    };
+    handlers.onSeeking(seekingEvent);
+  };
+  videoEl.addEventListener('seeking', seekingHandler);
+
   return () => {
     videoEl.removeEventListener('play', playHandler);
     videoEl.removeEventListener('pause', pauseHandler);
     videoEl.removeEventListener('ended', endedHandler);
+    videoEl.removeEventListener('seeking', seekingHandler);
   };
 }
 
@@ -157,6 +167,21 @@ export function trackEmbeddedVideo(player: EmbeddedVideoPlayer, handlers: VideoH
     };
     player.on('ended', endedHandler);
     onUnsubscribe.push(() => player.off('ended', endedHandler));
+
+    const seekingHandler = () => {
+      getIframeMetadata(player, elem, vendor)
+        .then((playerState) => {
+          const seekingEvent: VideoEvent = {
+            ...playerState,
+          };
+          handlers.onSeeking(seekingEvent);
+        })
+        .catch((error) => {
+          handlers.onError(`Error getting iframe metadata from 'seeking' handler: ${error as string}`);
+        });
+    };
+    player.on('seeking', seekingHandler);
+    onUnsubscribe.push(() => player.off('seeking', seekingHandler));
   };
   player.on('ready', readyHandler);
 

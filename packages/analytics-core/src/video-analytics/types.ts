@@ -4,6 +4,7 @@ export type VideoHandler = {
   onPlay: (startEvent: VideoEvent) => void;
   onPause: (pauseEvent: VideoEvent) => void;
   onEnded: (endedEvent: VideoEvent) => void;
+  onSeeking: (seekingEvent: VideoEvent) => void;
   onError: (error: string) => void;
 };
 
