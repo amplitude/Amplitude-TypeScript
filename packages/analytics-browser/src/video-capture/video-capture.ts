@@ -58,7 +58,7 @@ export class VideoCapture {
   }
 
   /**
-   * Track a "Video Started" event every time the video starts playing
+   * Track a "Video Content Started" event every time the video starts playing
    * @returns The VideoCapture instance.
    */
   captureVideoStarted(): VideoCapture {
@@ -75,7 +75,7 @@ export class VideoCapture {
   }
 
   /**
-   * Track a "Video Stopped" event every time the video stops playing
+   * Track a "Video Content Stopped" event every time the video stops playing
    * @returns The VideoCapture instance.
    */
   captureVideoStopped(): VideoCapture {
