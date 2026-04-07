@@ -3,6 +3,7 @@ import { VideoHandler, VideoEvent, EmbeddedVideoPlayer, MuxElement, Vendor, Vide
 function getPlayData(videoEl: HTMLVideoElement | MuxElement) {
   return {
     duration: videoEl.duration,
+    start_time: videoEl.currentTime,
   };
 }
 
