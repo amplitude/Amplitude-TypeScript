@@ -16,7 +16,7 @@ jobs:
       url: ${{ steps.pr-info.outputs.url }}
     steps:
       - name: Download PR info
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: pr-info
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -40,7 +40,7 @@ jobs:
 
   call-workflow-passing-data:
     needs: read-pr-info
-    uses: amplitude/Amplitude-TypeScript/.github/workflows/jira-issue-create-template.yml@main
+    uses: amplitude/Amplitude-TypeScript/.github/workflows/jira-issue-create-template.yml@3af90e2f662d9ed82c56a506c8d2ef6d5da85bd8 # main pinned 2026-04-07 21:37 UTC
     with:
       label: "TS"
       subcomponent: "dx_typescript_browser_sdk"
