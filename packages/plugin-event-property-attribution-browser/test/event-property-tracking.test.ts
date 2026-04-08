@@ -108,7 +108,7 @@ describe('eventPropertyTrackingPlugin', () => {
     jest.restoreAllMocks();
   });
 
-  test('should attach the current campaign to events', async () => {
+  test('should attach the current campaign to events without overwriting customer-supplied values', async () => {
     const campaign = createCampaign();
     const parseSpy = jest.spyOn(Core.CampaignParser.prototype, 'parse').mockResolvedValue(campaign);
     const client = createMockBrowserClient();
@@ -126,8 +126,9 @@ describe('eventPropertyTrackingPlugin', () => {
     expect(event).toEqual({
       event_type: 'test-event',
       event_properties: {
-        existing: 'value',
         ...campaign,
+        existing: 'value',
+        utm_source: 'stale',
       },
     });
     expect(parseSpy).toHaveBeenCalledTimes(1);

@@ -112,8 +112,8 @@ export const eventPropertyTrackingPlugin = (
       }
 
       event.event_properties = {
-        ...event.event_properties,
         ...eventPropertyCampaign,
+        ...event.event_properties,
       };
 
       return event;
