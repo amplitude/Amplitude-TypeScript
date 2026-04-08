@@ -3,6 +3,20 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.35.2-SR-3115-rc2.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.36.0-SR-3115.1...@amplitude/session-replay-browser@1.35.2-SR-3115-rc2.0) (2026-04-08)
+
+
+### Bug Fixes
+
+* **session-replay-browser:** drain idle queue before full snapshot to prevent event reordering ([1501afa](https://github.com/amplitude/Amplitude-TypeScript/commit/1501afa012a2bf31138e29d68f773f0b2b17a6b0))
+* **session-replay-browser:** send beacon payload as Blob with application/json content type ([bf71af5](https://github.com/amplitude/Amplitude-TypeScript/commit/bf71af5141ade0d8f72f53ae3a5fcca1883575d1))
+* **session-replay-browser:** trim oversized sendBeacon payloads and warn on failure ([799d58f](https://github.com/amplitude/Amplitude-TypeScript/commit/799d58f6b4a28cf89740f58db058d79931c0ddd9))
+* **session-replay-browser:** use Blob.size for beacon trimming; preserve store on worker crash ([11f8706](https://github.com/amplitude/Amplitude-TypeScript/commit/11f8706b2270004b157154590dc6c46c14fb8b84))
+
+
+
+
+
 ## [1.35.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.35.0...@amplitude/session-replay-browser@1.35.1) (2026-04-01)
 
 **Note:** Version bump only for package @amplitude/session-replay-browser

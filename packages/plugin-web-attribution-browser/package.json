@@ -1,6 +1,6 @@
 {
   "name": "@amplitude/plugin-web-attribution-browser",
-  "version": "2.2.5",
+  "version": "2.2.6-SR-3115-rc2.0",
   "description": "",
   "author": "Amplitude Inc",
   "homepage": "https://github.com/amplitude/Amplitude-TypeScript",

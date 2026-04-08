@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.38.2-SR-3115-rc2.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/gtm-snippet@2.38.1...@amplitude/gtm-snippet@2.38.2-SR-3115-rc2.0) (2026-04-08)
+
+
+### Bug Fixes
+
+* **gtm-snippet:** flush amplitude before waiting for beacon in E2E test ([006a224](https://github.com/amplitude/Amplitude-TypeScript/commit/006a22440efaee342c0d4358dcb7b32163081acc))
+
+
+
+
+
 ## [2.38.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/gtm-snippet@2.37.3...@amplitude/gtm-snippet@2.38.1) (2026-04-01)
 
 **Note:** Version bump only for package @amplitude/gtm-snippet
