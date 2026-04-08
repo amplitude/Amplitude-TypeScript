@@ -511,6 +511,33 @@ describe('EventCompressor', () => {
       expect(onFullSnapshotProcessed).not.toHaveBeenCalled();
     });
 
+    test('should drain idle-queue events before adding full snapshot to preserve ordering', () => {
+      // Simulate two incremental events sitting in the idle queue (not yet processed).
+      const incrementalA = { ...mockEvent, timestamp: 100 } as eventWithTime;
+      const incrementalB = { ...mockEvent, timestamp: 200 } as eventWithTime;
+      eventCompressor.taskQueue.push({ event: incrementalA, sessionId });
+      eventCompressor.taskQueue.push({ event: incrementalB, sessionId });
+
+      const addEventMock = jest.spyOn(eventsManager, 'addEvent');
+
+      eventCompressor.enqueueEvent(fullSnapshotEvent, sessionId);
+
+      // All three events should have been added to the manager
+      expect(addEventMock).toHaveBeenCalledTimes(3);
+
+      // Incremental events must come BEFORE the full snapshot
+      const calls = addEventMock.mock.calls.map(
+        (call) => JSON.parse(call[0].event.data) as { type: number; timestamp: number },
+      );
+      expect(calls[0].timestamp).toBe(100); // incrementalA
+      expect(calls[1].timestamp).toBe(200); // incrementalB
+      expect(calls[2].type).toBe(2); // FullSnapshot
+
+      // Idle queue should be empty after draining
+      expect(eventCompressor.taskQueue).toHaveLength(0);
+      expect(eventCompressor.isProcessing).toBe(false);
+    });
+
     test('should serialize full snapshot with key-ordered JSON', () => {
       const addEventMock = jest.spyOn(eventsManager, 'addEvent');
       eventCompressor.enqueueEvent(fullSnapshotEvent, sessionId);

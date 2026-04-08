@@ -84,6 +84,17 @@ export class EventCompressor {
     // maximising the chance it is delivered before the user exits the page.
     if (event.type === RRWebEventType.FullSnapshot) {
       this.config.loggerProvider.debug('Processing full snapshot immediately.');
+      // Drain any events still pending in the idle-callback queue first.
+      // Those events reference the pre-snapshot DOM and must be sent before
+      // the full snapshot; if we let them be processed later they'd arrive at
+      // the server after the snapshot and cause "node not found" replay errors.
+      if (this.taskQueue.length > 0) {
+        for (const task of this.taskQueue.splice(0)) {
+          const compressed = this.compressEvent(task.event);
+          this.addCompressedEventToManager(compressed, task.sessionId);
+        }
+        this.isProcessing = false;
+      }
       const compressedEvent = this.compressEvent(event);
       this.addCompressedEventToManager(compressedEvent, sessionId);
       this.onFullSnapshotProcessed?.();
