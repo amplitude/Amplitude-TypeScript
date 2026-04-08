@@ -1,0 +1,503 @@
+{
+  "config": {
+    "configFile": "/Users/lew.gordon/repos/Amplitude-TypeScript-worktrees/remote-eval-trc/packages/session-replay-browser/playwright.config.ts",
+    "rootDir": "/Users/lew.gordon/repos/Amplitude-TypeScript-worktrees/remote-eval-trc/packages/session-replay-browser",
+    "forbidOnly": false,
+    "fullyParallel": true,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 7
+    },
+    "preserveOutput": "always",
+    "reporter": [
+      [
+        "json",
+        {
+          "outputFile": "e2e/results.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "quiet": false,
+    "projects": [
+      {
+        "outputDir": "/Users/lew.gordon/repos/Amplitude-TypeScript-worktrees/remote-eval-trc/packages/session-replay-browser/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 7
+        },
+        "id": "chromium",
+        "name": "chromium",
+        "testDir": "/Users/lew.gordon/repos/Amplitude-TypeScript-worktrees/remote-eval-trc/packages/session-replay-browser",
+        "testIgnore": [],
+        "testMatch": [
+          "**/e2e/**/*.spec.ts"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "/Users/lew.gordon/repos/Amplitude-TypeScript-worktrees/remote-eval-trc/packages/session-replay-browser/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 7
+        },
+        "id": "webkit",
+        "name": "webkit",
+        "testDir": "/Users/lew.gordon/repos/Amplitude-TypeScript-worktrees/remote-eval-trc/packages/session-replay-browser",
+        "testIgnore": [],
+        "testMatch": [
+          "**/e2e/**/*.spec.ts"
+        ],
+        "timeout": 30000
+      }
+    ],
+    "shard": null,
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.55.0",
+    "workers": 7,
+    "webServer": {
+      "command": "pnpm exec vite dev --port 5173 --clearScreen=false",
+      "cwd": "/Users/lew.gordon/repos/Amplitude-TypeScript-worktrees/remote-eval-trc",
+      "url": "http://localhost:5173",
+      "reuseExistingServer": true,
+      "timeout": 30000
+    }
+  },
+  "suites": [
+    {
+      "title": "e2e/remote-eval.spec.ts",
+      "file": "e2e/remote-eval.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "remote eval gate — conservative strategy",
+          "file": "e2e/remote-eval.spec.ts",
+          "line": 64,
+          "column": 6,
+          "specs": [
+            {
+              "title": "records when remote eval returns capture=true",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 721,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-03-19T13:05:46.181Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "b8416e6db608869e1678-dfe3cb331910dc3d8ec3",
+              "file": "e2e/remote-eval.spec.ts",
+              "line": 65,
+              "column": 7
+            },
+            {
+              "title": "does not record when remote eval returns capture=false",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 984,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-03-19T13:05:46.163Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "b8416e6db608869e1678-f9db92648ac65507dce1",
+              "file": "e2e/remote-eval.spec.ts",
+              "line": 85,
+              "column": 7
+            },
+            {
+              "title": "does not record before remote decision arrives (no premature capture)",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 2,
+                      "status": "passed",
+                      "duration": 728,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-03-19T13:05:46.175Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "b8416e6db608869e1678-d3e619218847e5da95c4",
+              "file": "e2e/remote-eval.spec.ts",
+              "line": 101,
+              "column": 7
+            },
+            {
+              "title": "does not record when remote eval times out (conservative fallback)",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 3,
+                      "parallelIndex": 3,
+                      "status": "passed",
+                      "duration": 1286,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-03-19T13:05:46.169Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "b8416e6db608869e1678-081a0a695be6dde6faa4",
+              "file": "e2e/remote-eval.spec.ts",
+              "line": 138,
+              "column": 7
+            },
+            {
+              "title": "sends events to track API after conservative capture=true",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 4,
+                      "parallelIndex": 4,
+                      "status": "passed",
+                      "duration": 1702,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-03-19T13:05:46.172Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "b8416e6db608869e1678-d7a20a0017905d678241",
+              "file": "e2e/remote-eval.spec.ts",
+              "line": 164,
+              "column": 7
+            },
+            {
+              "title": "does not send events to track API after conservative capture=false",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 5,
+                      "parallelIndex": 5,
+                      "status": "passed",
+                      "duration": 1543,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-03-19T13:05:46.173Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "b8416e6db608869e1678-4cfde0f18e07fd17c8c2",
+              "file": "e2e/remote-eval.spec.ts",
+              "line": 191,
+              "column": 7
+            }
+          ]
+        },
+        {
+          "title": "remote eval gate — lookback strategy",
+          "file": "e2e/remote-eval.spec.ts",
+          "line": 216,
+          "column": 6,
+          "specs": [
+            {
+              "title": "begins recording immediately (before decision) and flushes events on capture=true",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 6,
+                      "parallelIndex": 6,
+                      "status": "passed",
+                      "duration": 1218,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-03-19T13:05:46.180Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "b8416e6db608869e1678-4e7504df1f2a6a1d5a3a",
+              "file": "e2e/remote-eval.spec.ts",
+              "line": 217,
+              "column": 7
+            },
+            {
+              "title": "discards buffered events and stops recording on capture=false",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 2,
+                      "status": "passed",
+                      "duration": 987,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-03-19T13:05:47.049Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "b8416e6db608869e1678-4a61212538210b70abf2",
+              "file": "e2e/remote-eval.spec.ts",
+              "line": 253,
+              "column": 7
+            }
+          ]
+        },
+        {
+          "title": "remote eval gate — session ID change",
+          "file": "e2e/remote-eval.spec.ts",
+          "line": 282,
+          "column": 6,
+          "specs": [
+            {
+              "title": "re-runs remote eval on setSessionId and records when capture=true",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 191,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-03-19T13:05:47.050Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "b8416e6db608869e1678-6f958e6ba99ba33595d7",
+              "file": "e2e/remote-eval.spec.ts",
+              "line": 285,
+              "column": 7
+            },
+            {
+              "title": "does not record new session when remote eval returns capture=false on session change",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 648,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-03-19T13:05:47.246Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "b8416e6db608869e1678-caa050332e7d0317d4c5",
+              "file": "e2e/remote-eval.spec.ts",
+              "line": 320,
+              "column": 7
+            }
+          ]
+        },
+        {
+          "title": "remote eval gate — request shape",
+          "file": "e2e/remote-eval.spec.ts",
+          "line": 362,
+          "column": 6,
+          "specs": [
+            {
+              "title": "sends correct flag_key and device_id as query params to Amplitude eval API",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 162,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-03-19T13:05:47.313Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "b8416e6db608869e1678-634243d462e1d0895fa6",
+              "file": "e2e/remote-eval.spec.ts",
+              "line": 363,
+              "column": 7
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-03-19T13:05:44.405Z",
+    "duration": 3667.131,
+    "expected": 11,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}
