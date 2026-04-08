@@ -52,10 +52,11 @@ export class VideoObserver {
       };
       this.updateState(nextState);
     },
-    onSeeked: () => {
+    onSeeked: (event: VideoEvent) => {
       const nextState: State = {
         ...this.state,
         isSeeking: false,
+        position: event.last_position,
       };
       this.updateState(nextState);
     },
