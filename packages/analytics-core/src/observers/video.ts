@@ -94,11 +94,12 @@ export class VideoObserver {
     this.updateState(nextState);
   }
 
-  private updatePlaybackState(playbackState: PlaybackState, event?: VideoEvent) {
+  private updatePlaybackState(playbackState: PlaybackState, event: VideoEvent) {
     const nextState: State = {
       ...this.state,
       playbackState,
       lastEvent: event,
+      position: event.last_position,
     };
     this.updateState(nextState);
   }

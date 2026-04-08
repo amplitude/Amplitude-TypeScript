@@ -25,7 +25,7 @@ export type VideoEvent = {
   mux_video_id?: string | undefined | null;
   mux_video_title?: string | undefined | null;
   mux_session_id?: string | undefined | null;
-  last_position?: number | undefined | null;
+  last_position: number | undefined | null;
   percent_completed?: number;
   stop_reason?: VideoStopReason;
 };
