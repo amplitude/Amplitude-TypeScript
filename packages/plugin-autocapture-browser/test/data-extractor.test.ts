@@ -1195,4 +1195,97 @@ describe('data extractor', () => {
       document.body.removeChild(element);
     });
   });
+
+  describe('getEventProperties with captureUrlParameters', () => {
+    const element = document.createElement('button');
+
+    beforeEach(() => {
+      document.body.appendChild(element);
+    });
+
+    afterEach(() => {
+      document.body.removeChild(element);
+    });
+
+    it('does not include URL parameters property by default', () => {
+      mockWindowLocationFromURL(new URL('https://www.example.com/page?utm_source=google&ref=home'));
+      const extractor = new DataExtractor({});
+      const result = extractor.getEventProperties('click', element, 'data-amp-track-');
+      expect(result[constants.AMPLITUDE_EVENT_PROP_PAGE_URL_PARAMETERS]).toBeUndefined();
+    });
+
+    it('does not include URL parameters property when captureUrlParameters is false', () => {
+      mockWindowLocationFromURL(new URL('https://www.example.com/page?utm_source=google'));
+      const extractor = new DataExtractor({ captureUrlParameters: false });
+      const result = extractor.getEventProperties('click', element, 'data-amp-track-');
+      expect(result[constants.AMPLITUDE_EVENT_PROP_PAGE_URL_PARAMETERS]).toBeUndefined();
+    });
+
+    it('includes URL parameters when captureUrlParameters is true', () => {
+      mockWindowLocationFromURL(new URL('https://www.example.com/page?utm_source=google&ref=home'));
+      const extractor = new DataExtractor({ captureUrlParameters: true });
+      const result = extractor.getEventProperties('click', element, 'data-amp-track-');
+      expect(result[constants.AMPLITUDE_EVENT_PROP_PAGE_URL_PARAMETERS]).toEqual({
+        utm_source: 'google',
+        ref: 'home',
+      });
+    });
+
+    it('excludes blocked parameters from URL parameters', () => {
+      mockWindowLocationFromURL(new URL('https://www.example.com/page?utm_source=google&token=secret'));
+      const extractor = new DataExtractor({ captureUrlParameters: true, urlParameterBlocklist: ['token'] });
+      const result = extractor.getEventProperties('click', element, 'data-amp-track-');
+      expect(result[constants.AMPLITUDE_EVENT_PROP_PAGE_URL_PARAMETERS]).toEqual({ utm_source: 'google' });
+    });
+
+    it('omits URL parameters property when all params are blocked', () => {
+      mockWindowLocationFromURL(new URL('https://www.example.com/page?token=secret'));
+      const extractor = new DataExtractor({ captureUrlParameters: true, urlParameterBlocklist: ['token'] });
+      const result = extractor.getEventProperties('click', element, 'data-amp-track-');
+      expect(result[constants.AMPLITUDE_EVENT_PROP_PAGE_URL_PARAMETERS]).toBeUndefined();
+    });
+
+    it('omits URL parameters property when there are no query params', () => {
+      mockWindowLocationFromURL(new URL('https://www.example.com/page'));
+      const extractor = new DataExtractor({ captureUrlParameters: true });
+      const result = extractor.getEventProperties('click', element, 'data-amp-track-');
+      expect(result[constants.AMPLITUDE_EVENT_PROP_PAGE_URL_PARAMETERS]).toBeUndefined();
+    });
+  });
+
+  describe('getEventTagProps with captureUrlParameters', () => {
+    beforeAll(() => {
+      Object.defineProperty(window, 'location', {
+        value: { hostname: '', href: '', pathname: '', search: '' },
+        writable: true,
+      });
+    });
+
+    it('does not include URL parameters by default', () => {
+      mockWindowLocationFromURL(new URL('https://www.example.com/page?utm_source=google'));
+      const element = document.createElement('div');
+      const extractor = new DataExtractor({});
+      const result = extractor.getEventTagProps(element);
+      expect(result[constants.AMPLITUDE_EVENT_PROP_PAGE_URL_PARAMETERS]).toBeUndefined();
+    });
+
+    it('includes URL parameters when captureUrlParameters is true', () => {
+      mockWindowLocationFromURL(new URL('https://www.example.com/page?utm_source=google&ref=home'));
+      const element = document.createElement('div');
+      const extractor = new DataExtractor({ captureUrlParameters: true });
+      const result = extractor.getEventTagProps(element);
+      expect(result[constants.AMPLITUDE_EVENT_PROP_PAGE_URL_PARAMETERS]).toEqual({
+        utm_source: 'google',
+        ref: 'home',
+      });
+    });
+
+    it('excludes blocked keys from URL parameters in getEventTagProps', () => {
+      mockWindowLocationFromURL(new URL('https://www.example.com/page?utm_source=google&session_id=abc'));
+      const element = document.createElement('div');
+      const extractor = new DataExtractor({ captureUrlParameters: true, urlParameterBlocklist: ['session_id'] });
+      const result = extractor.getEventTagProps(element);
+      expect(result[constants.AMPLITUDE_EVENT_PROP_PAGE_URL_PARAMETERS]).toEqual({ utm_source: 'google' });
+    });
+  });
 });
