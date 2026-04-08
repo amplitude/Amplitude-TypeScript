@@ -27,10 +27,19 @@ export type UnifiedOptions = UnifiedSharedOptions & {
   engagement?: Omit<InitOptions, keyof UnifiedSharedOptions>;
 };
 
+type EngagementSDK = {
+  boot?: (...args: unknown[]) => unknown;
+  shutdown?: (...args: unknown[]) => unknown;
+  [key: string]: unknown;
+};
+
+export type EngagementSDKPlugin = Omit<EngagementSDK, 'boot' | 'shutdown'>;
+
 export interface UnifiedClient extends BrowserClient {
   initAll(apiKey: string, unifiedOptions?: UnifiedOptions): Promise<void>;
   sessionReplay(): AmplitudeSessionReplay;
   experiment(): IExperimentClient | undefined;
+  engagement(): EngagementSDKPlugin | undefined;
 }
 
 export class AmplitudeUnified extends AmplitudeBrowser implements UnifiedClient {
@@ -59,6 +68,11 @@ export class AmplitudeUnified extends AmplitudeBrowser implements UnifiedClient 
       this.config.loggerProvider.debug(`Multiple instances of ${ExperimentPlugin.pluginName} are found.`);
       return undefined;
     }
+  }
+
+  engagement(): EngagementSDKPlugin | undefined {
+    // eslint-disable-next-line no-restricted-globals
+    return (window as Window & { engagement?: EngagementSDKPlugin }).engagement as EngagementSDKPlugin;
   }
 
   /**
