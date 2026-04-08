@@ -46,7 +46,11 @@ export class VideoObserver {
       this.updatePlaybackState('ended', evt);
     },
     onSeeking: () => {
-      this.state = { ...this.state, isSeeking: true };
+      const nextState: State = {
+        ...this.state,
+        isSeeking: true,
+      };
+      this.updateState(nextState);
     },
     onSeeked: () => {
       const nextState: State = {

@@ -131,7 +131,7 @@ describe('VideoObserver', () => {
         stop_reason: 'seeking',
       });
       internalHandler.onTimeUpdate({ position: 5, isSeeking: true });
-      expect(onStateChange).toHaveBeenCalledTimes(1);
+      expect(onStateChange).toHaveBeenCalledTimes(2);
       expect(onStateChange).toHaveBeenCalledWith(
         { playbackState: 'paused', lastEvent: undefined },
         { playbackState: 'playing', lastEvent: { duration: 10 } },
