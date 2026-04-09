@@ -90,10 +90,6 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
   // by calling amplitude._setDiagnosticsSampleRate(1); before amplitude.init()
   _diagnosticsSampleRate = 0;
 
-  // Backdoor to test request body compression
-  // by calling amplitude._enableRequestBodyCompressionExperimental(true); before amplitude.init()
-  _enableRequestBodyCompressionExperimentalValue = false;
-
   init(apiKey = '', userIdOrOptions?: string | BrowserOptions, maybeOptions?: BrowserOptions) {
     let userId: string | undefined;
     let options: BrowserOptions | undefined;
@@ -689,19 +685,6 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
     // Set diagnostics sample rate before initializing the config
     if (!this.config) {
       this._diagnosticsSampleRate = sampleRate;
-      return;
-    }
-  }
-
-  /**
-   * @experimental
-   * WARNING: This method is for internal testing only and is not part of the public API.
-   * It may be changed or removed at any time without notice.
-   */
-  _enableRequestBodyCompressionExperimental(enabled: boolean): void {
-    // Set request body compression experimental config before initializing the config
-    if (!this.config) {
-      this._enableRequestBodyCompressionExperimentalValue = enabled;
       return;
     }
   }

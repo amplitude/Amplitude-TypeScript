@@ -3,7 +3,6 @@ import client from './unified-client-factory';
 export { createInstance } from './unified-client-factory';
 export const {
   _setDiagnosticsSampleRate,
-  _enableRequestBodyCompressionExperimental,
   initAll,
   experiment,
   sessionReplay,
