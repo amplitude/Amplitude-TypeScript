@@ -3,6 +3,22 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.39.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.38.1...@amplitude/analytics-browser@2.39.0) (2026-04-09)
+
+
+### Bug Fixes
+
+* **plugin-custom-enrichment:** allow disable custom enrichment plugin over remote config settings ([#1638](https://github.com/amplitude/Amplitude-TypeScript/issues/1638)) ([385c4de](https://github.com/amplitude/Amplitude-TypeScript/commit/385c4ded2b2622fde1ac0930495805e11353d55f))
+
+
+### Features
+
+* **analytics-browser:** [experimental] add video tracking function ([#1652](https://github.com/amplitude/Amplitude-TypeScript/issues/1652)) ([3af90e2](https://github.com/amplitude/Amplitude-TypeScript/commit/3af90e2f662d9ed82c56a506c8d2ef6d5da85bd8))
+
+
+
+
+
 ## [2.38.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.38.0...@amplitude/analytics-browser@2.38.1) (2026-04-01)
 
 **Note:** Version bump only for package @amplitude/analytics-browser

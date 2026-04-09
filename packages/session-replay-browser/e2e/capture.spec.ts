@@ -1,5 +1,4 @@
 import { test, expect, Route } from '@playwright/test';
-import { unpack } from '@amplitude/rrweb-packer';
 import {
   SR_API_SUCCESS,
   TEST_SESSION_ID,
@@ -8,6 +7,8 @@ import {
   mockRemoteConfig,
   buildUrl,
   waitForReady,
+  readRouteBody,
+  captureTrackRequests,
 } from './helpers';
 
 const SR_PROPERTY_KEY = '[Amplitude] Session Replay ID';
@@ -38,6 +39,7 @@ function remoteConfigWithNetworkBody(opts: { request?: boolean; response?: boole
 
 /**
  * Decodes all rrweb events out of a raw track-API request body.
+ * Events are now plain JSON strings (no packing).
  */
 function decodeAllEvents(rawBody: string): Array<Record<string, unknown>> {
   if (!rawBody) return [];
@@ -52,7 +54,7 @@ function decodeAllEvents(rawBody: string): Array<Record<string, unknown>> {
   for (const eventStr of payload.events) {
     if (typeof eventStr !== 'string') continue;
     try {
-      results.push(unpack(JSON.parse(eventStr)) as Record<string, unknown>);
+      results.push(JSON.parse(eventStr) as Record<string, unknown>);
     } catch {
       // skip unparseable events
     }
@@ -81,7 +83,7 @@ function findAttrInNodeTree(node: any, id: string, attr: string): string | undef
 
 /**
  * Decodes all custom 'fetch-request' events out of a raw track-API request body.
- * Each event string in payload.events is JSON.stringify(pack(rrwebEvent)).
+ * Each event string in payload.events is a plain JSON string.
  */
 function decodeFetchRequestEvents(rawBody: string): Array<Record<string, unknown>> {
   if (!rawBody) return [];
@@ -96,9 +98,12 @@ function decodeFetchRequestEvents(rawBody: string): Array<Record<string, unknown
   for (const eventStr of payload.events) {
     if (typeof eventStr !== 'string') continue;
     try {
-      const event = unpack(JSON.parse(eventStr));
-      if (event.type === 5 && (event.data as any).tag === 'fetch-request') {
-        results.push((event.data as any).payload as Record<string, unknown>);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const event = JSON.parse(eventStr);
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      if (event.type === 5 && event.data?.tag === 'fetch-request') {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        results.push(event.data.payload as Record<string, unknown>);
       }
     } catch {
       // skip unparseable events
@@ -508,7 +513,10 @@ test.describe('URL-based targeting', () => {
     await page.goto(buildUrl('/session-replay-browser/sr-capture-test.html', { sessionId: TEST_SESSION_ID }));
     await waitForReady(page);
 
-    // Navigate to the matching URL to start recording
+    // Navigate to the matching URL to start recording. The SDK fires a full snapshot
+    // immediately when recording begins; register waitForRequest before the navigation
+    // so the immediate-flush request doesn't race past the listener.
+    const trackRequestPromise = page.waitForRequest('https://api-sr.amplitude.com/**', { timeout: 10_000 });
     await page.evaluate((path) => history.pushState({}, '', path), NAV_MATCH_STRING);
     await page.waitForFunction(
       (key) => !!(window as any).sessionReplay.getSessionReplayProperties()[key],
@@ -516,12 +524,6 @@ test.describe('URL-based targeting', () => {
       { timeout: 5_000 },
     );
 
-    // Give rrweb time to capture the initial snapshot
-    await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
-
-    const trackRequestPromise = page.waitForRequest('https://api-sr.amplitude.com/**', { timeout: 5_000 });
-    await page.evaluate(() => window.dispatchEvent(new Event('blur')) as unknown as void);
-    await page.evaluate(() => (window as any).sessionReplay.flush(false) as Promise<void>);
     await trackRequestPromise;
   });
 
@@ -665,9 +667,9 @@ test.describe('URL-based targeting — URL pattern matching', () => {
  */
 async function mockTrackApiWithCapture(page: import('@playwright/test').Page) {
   const rawBodies: string[] = [];
-  await page.route('https://api-sr.amplitude.com/**', (route: Route) => {
-    rawBodies.push(route.request().postData() ?? '');
-    return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(SR_API_SUCCESS) });
+  await page.route('https://api-sr.amplitude.com/**', async (route: Route) => {
+    rawBodies.push(readRouteBody(route));
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(SR_API_SUCCESS) });
   });
   return () => rawBodies.flatMap((body) => decodeFetchRequestEvents(body));
 }
@@ -831,9 +833,9 @@ test.describe('attribute masking', () => {
    */
   async function mockTrackApiAndCaptureEvents(page: import('@playwright/test').Page) {
     const rawBodies: string[] = [];
-    await page.route('https://api-sr.amplitude.com/**', (route: Route) => {
-      rawBodies.push(route.request().postData() ?? '');
-      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(SR_API_SUCCESS) });
+    await page.route('https://api-sr.amplitude.com/**', async (route: Route) => {
+      rawBodies.push(readRouteBody(route));
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(SR_API_SUCCESS) });
     });
     return async (): Promise<Array<Record<string, unknown>>> => {
       await page.evaluate(() => window.dispatchEvent(new Event('blur')));
@@ -935,17 +937,19 @@ test.describe('attribute masking', () => {
 test.describe('shutdown', () => {
   test('flushes buffered events when shutdown is called', async ({ page }) => {
     await mockRemoteConfig(page, remoteConfigRecording);
+    // Register waitForRequest before goto so the immediate full-snapshot flush
+    // (which fires as soon as rrweb captures the snapshot) can satisfy it.
+    const trackRequestPromise = page.waitForRequest('https://api-sr.amplitude.com/**', { timeout: 10_000 });
     await mockTrackApi(page);
 
     await page.goto(buildUrl('/session-replay-browser/sr-capture-test.html', { sessionId: TEST_SESSION_ID }));
     await waitForReady(page);
-    // Give rrweb time to capture the initial snapshot so there are events to flush
     await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
 
-    // shutdown() calls sendEvents() internally — it should trigger a track API request
-    const trackRequestPromise = page.waitForRequest('https://api-sr.amplitude.com/**', { timeout: 5_000 });
-    await page.evaluate(() => (window as any).sessionReplay.shutdown() as void);
+    // The immediate flush should already have sent the full snapshot. Confirm at
+    // least one request was made, then call shutdown to flush any remaining events.
     await trackRequestPromise; // throws if no request is made within timeout
+    await page.evaluate(() => (window as any).sessionReplay.shutdown() as void);
   });
 
   test('blur no longer triggers a flush after shutdown', async ({ page }) => {
@@ -1007,17 +1011,17 @@ test.describe('capture_enabled', () => {
 // ─── blur auto-flush ──────────────────────────────────────────────────────────
 
 test.describe('blur auto-flush', () => {
-  test('blur event alone sends buffered events to the track API without an explicit flush', async ({ page }) => {
+  test('sends buffered events to the track API without an explicit flush', async ({ page }) => {
     await mockRemoteConfig(page, remoteConfigRecording);
+    // Register waitForRequest before goto. The full snapshot is flushed immediately
+    // after rrweb captures it (no explicit flush() call needed); the listener must
+    // be in place before that happens.
+    const trackRequestPromise = page.waitForRequest('https://api-sr.amplitude.com/**', { timeout: 10_000 });
     await mockTrackApi(page);
 
     await page.goto(buildUrl('/session-replay-browser/sr-capture-test.html', { sessionId: TEST_SESSION_ID }));
     await waitForReady(page);
-    // Give rrweb time to capture the initial snapshot so there are events to send
-    await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
 
-    const trackRequestPromise = page.waitForRequest('https://api-sr.amplitude.com/**', { timeout: 5_000 });
-    await page.evaluate(() => window.dispatchEvent(new Event('blur')));
     await trackRequestPromise; // throws if no request is made within the timeout
   });
 });
@@ -1215,5 +1219,161 @@ test.describe('network logging — fields', () => {
     const fetchEvents = getFetchEvents();
     const evt = fetchEvents.find((e) => String(e.url).includes(TEST_FETCH_ORIGIN));
     expect(evt).toBeUndefined();
+  });
+});
+
+// ─── web worker mode ─────────────────────────────────────────────────────────
+
+test.describe('web worker mode', () => {
+  test('sends full snapshot immediately without worker errors', async ({ page }) => {
+    await mockRemoteConfig(page, remoteConfigRecording);
+
+    // Capture any SDK error logs — a worker crash emits an Amplitude Logger [Error] line
+    const workerErrors: string[] = [];
+    page.on('console', (msg) => {
+      if (msg.type() === 'error' && msg.text().includes('worker')) {
+        workerErrors.push(msg.text());
+      }
+    });
+
+    const requestPromise = page.waitForRequest('https://api-sr.amplitude.com/**', { timeout: 10_000 });
+    await mockTrackApi(page);
+
+    await page.goto(
+      buildUrl('/session-replay-browser/sr-capture-test.html', {
+        sessionId: TEST_SESSION_ID,
+        useWebWorker: true,
+      }),
+    );
+    await waitForReady(page);
+
+    // Full snapshot should be sent immediately (worker delivers it)
+    await requestPromise;
+    expect(workerErrors).toHaveLength(0);
+  });
+
+  test('sends events to the track API via worker when flushed', async ({ page }) => {
+    await mockRemoteConfig(page, remoteConfigRecording);
+    const { getBodies } = await captureTrackRequests(page);
+
+    await page.goto(
+      buildUrl('/session-replay-browser/sr-capture-test.html', {
+        sessionId: TEST_SESSION_ID,
+        useWebWorker: true,
+      }),
+    );
+    await waitForReady(page);
+    await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
+
+    await page.evaluate(() => window.dispatchEvent(new Event('blur')));
+    await page.evaluate(() => (window as any).sessionReplay.flush(false) as Promise<void>);
+    await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
+
+    const bodies = getBodies();
+    expect(bodies.length).toBeGreaterThan(0);
+    const events = bodies.flatMap((b) => decodeAllEvents(b));
+    const fullSnapshot = events.find((e) => e['type'] === 2);
+    expect(fullSnapshot).toBeDefined();
+  });
+
+  test('sends payload with gzip Content-Encoding via worker', async ({ page }) => {
+    await mockRemoteConfig(page, remoteConfigRecording);
+    const { getHeaders } = await captureTrackRequests(page);
+
+    await page.goto(
+      buildUrl('/session-replay-browser/sr-capture-test.html', {
+        sessionId: TEST_SESSION_ID,
+        useWebWorker: true,
+      }),
+    );
+    await waitForReady(page);
+    await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
+
+    const headers = getHeaders();
+    expect(headers.length).toBeGreaterThan(0);
+    expect(headers[0]['content-encoding']).toBe('gzip');
+  });
+});
+
+// ─── SR-3115: improved replay data delivery ───────────────────────────────────
+
+test.describe('SR-3115: improved replay data delivery', () => {
+  test('sends full snapshot immediately without waiting for explicit flush', async ({ page }) => {
+    await mockRemoteConfig(page, remoteConfigRecording);
+
+    // Wait for the API request to be made automatically — no explicit flush()
+    const requestPromise = page.waitForRequest('https://api-sr.amplitude.com/**', { timeout: 10_000 });
+    await page.route('https://api-sr.amplitude.com/**', (route: Route) =>
+      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(SR_API_SUCCESS) }),
+    );
+
+    await page.goto(buildUrl('/session-replay-browser/sr-capture-test.html', { sessionId: TEST_SESSION_ID }));
+    await waitForReady(page);
+
+    // The full snapshot should be sent immediately (no blur/flush needed)
+    const request = await requestPromise;
+    expect(request).toBeDefined();
+    expect(request.url()).toContain('api-sr.amplitude.com');
+  });
+
+  test('full snapshot request contains type 2 rrweb event', async ({ page }) => {
+    await mockRemoteConfig(page, remoteConfigRecording);
+    const { getBodies } = await captureTrackRequests(page);
+
+    await page.goto(buildUrl('/session-replay-browser/sr-capture-test.html', { sessionId: TEST_SESSION_ID }));
+    await waitForReady(page);
+    // Give rrweb a moment to send the immediate full-snapshot flush
+    await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
+
+    const bodies = getBodies();
+    expect(bodies.length).toBeGreaterThan(0);
+    const events = bodies.flatMap((b) => decodeAllEvents(b));
+    const fullSnapshot = events.find((e) => e['type'] === 2);
+    expect(fullSnapshot).toBeDefined();
+  });
+
+  test('sends payload with gzip Content-Encoding', async ({ page }) => {
+    await mockRemoteConfig(page, remoteConfigRecording);
+    const { getHeaders } = await captureTrackRequests(page);
+
+    await page.goto(buildUrl('/session-replay-browser/sr-capture-test.html', { sessionId: TEST_SESSION_ID }));
+    await waitForReady(page);
+    await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
+
+    const headers = getHeaders();
+    expect(headers.length).toBeGreaterThan(0);
+    // Chromium supports CompressionStream, so all requests should be gzip-encoded
+    expect(headers[0]['content-encoding']).toBe('gzip');
+  });
+
+  test('sendBeacon is called on page hide with pending events', async ({ page }) => {
+    await mockRemoteConfig(page, remoteConfigRecording);
+    // Intercept track API but intentionally delay responses so events accumulate
+    await page.route('https://api-sr.amplitude.com/**', async (route: Route) => {
+      await new Promise((r) => setTimeout(r, 5_000)); // hold response
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(SR_API_SUCCESS) });
+    });
+
+    await page.goto(buildUrl('/session-replay-browser/sr-capture-test.html', { sessionId: TEST_SESSION_ID }));
+    await waitForReady(page);
+    await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
+
+    // Spy on navigator.sendBeacon before triggering page hide
+    await page.evaluate(() => {
+      (window as any).__beaconCalls = [] as string[];
+      const orig = navigator.sendBeacon.bind(navigator);
+      navigator.sendBeacon = (url: string, data?: BodyInit | null) => {
+        (window as any).__beaconCalls.push(url);
+        return orig(url, data);
+      };
+    });
+
+    // Trigger page hide to invoke the beacon fallback
+    await page.evaluate(() => window.dispatchEvent(new Event('pagehide')));
+    await page.waitForTimeout(200);
+
+    const beaconCalls = await page.evaluate(() => (window as any).__beaconCalls as string[]);
+    // The beacon should have been called with the track API URL
+    expect(beaconCalls.some((url: string) => url.includes('api-sr.amplitude.com'))).toBe(true);
   });
 });

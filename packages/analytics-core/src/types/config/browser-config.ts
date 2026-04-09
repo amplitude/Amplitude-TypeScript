@@ -228,28 +228,57 @@ export interface TrackingOptions {
   platform?: boolean;
 }
 
+export type TrackingMethod = 'userProperty' | 'eventProperty';
+
 export interface AttributionOptions {
   /**
    * The rules to determine which referrers are excluded from being tracked as traffic source.
+   * Applies only to `userProperty` tracking.
+   * Ignored by `eventProperty` tracking.
    * @defaultValue `[/your-domain\.com$/]`
    */
   excludeReferrers?: (string | RegExp)[];
   /**
    * Exclude internal referrers from campaign attribution.
    * (a referrer is 'internal' if it is on the same domain as the current page)
+   * Applies only to `userProperty` tracking.
+   * Ignored by `eventProperty` tracking.
    * @defaultValue `false`
    */
   excludeInternalReferrers?: true | false | ExcludeInternalReferrersOptions;
   /**
    * The value to represent undefined/no initial campaign parameter for first-touch attribution.
+   * Applies only to `userProperty` tracking.
+   * Ignored by `eventProperty` tracking.
    * @defaultValue `"EMPTY"`
    */
   initialEmptyValue?: string;
   /**
    * The flag of if Amplitude to start a new session if any campaign parameter changes.
+   * Applies only to `userProperty` tracking.
+   * Ignored by `eventProperty` tracking.
    * @defaultValue `false`
    */
   resetSessionOnNewCampaign?: boolean;
+  /**
+   * The attribution persistence strategy for campaign parameters.
+   * Provide a single method to enable one strategy, or an array to enable multiple methods at the same time.
+   * When multiple methods are provided, each enabled method runs independently and their behaviors are combined.
+   * For example, `['userProperty', 'eventProperty']` updates user properties and also attaches campaign params
+   * to event properties.
+   * @experimental this feature is experimental and may not be stable
+   * @defaultValue `"userProperty"`
+   */
+  trackingMethod?: TrackingMethod | TrackingMethod[];
+  /**
+   * Fires an `[Amplitude] Attribution` event as a heartbeat on every page view,
+   * such as on page load and SPA URL changes.
+   * Applies only to `eventProperty` tracking.
+   * Ignored by `userProperty` tracking.
+   * @experimental this feature is experimental and may not be stable
+   * @defaultValue `false`
+   */
+  fallbackAttributionEvent?: boolean;
 }
 
 export const EXCLUDE_INTERNAL_REFERRERS_CONDITIONS = {

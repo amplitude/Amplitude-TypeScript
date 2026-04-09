@@ -37,7 +37,7 @@ import {
 } from './constants';
 import { getServerUrl, getDebugConfig, getPageUrl, getStorageSize, maskFn, maskAttributeFn } from './helpers';
 import { EventCompressor } from './events/event-compressor';
-import { createEventsManager } from './events/events-manager';
+import { createEventsManager, EventsManagerWithBeacon } from './events/events-manager';
 import { MultiEventManager } from './events/multi-manager';
 import { clickBatcher, ClickHandler, clickNonBatcher } from './hooks/click';
 import { ScrollWatcher } from './hooks/scroll';
@@ -187,6 +187,8 @@ export class SessionReplay implements AmplitudeSessionReplay {
       options.version?.type,
     );
 
+    this.pageLeaveFns = [];
+
     if (options.sessionId && this.config.interactionConfig?.enabled) {
       const scrollWatcher = ScrollWatcher.default(
         {
@@ -207,11 +209,22 @@ export class SessionReplay implements AmplitudeSessionReplay {
       this.loggerProvider.warn('Could not use preferred indexedDB storage, reverting to in memory option.');
     }
     this.loggerProvider.log(`Using ${storeType} for event storage.`);
+    let compressionWorkerScript: string | undefined;
+    let trackDestinationWorkerScript: string | undefined;
+    const globalScope = getGlobalScope();
+    if (this.config.useWebWorker && globalScope && globalScope.Worker) {
+      const { compressionScript, trackDestinationScript } = await import('./worker');
+      compressionWorkerScript = compressionScript;
+      trackDestinationWorkerScript = trackDestinationScript;
+    }
+
+    let rrwebEventManager: EventsManagerWithBeacon<'replay'> | undefined;
     try {
-      const rrwebEventManager = await createEventsManager<'replay'>({
+      rrwebEventManager = await createEventsManager<'replay'>({
         config: this.config,
         type: 'replay',
         storeType,
+        trackDestinationWorkerScript,
       });
       managers.push({ name: 'replay', manager: rrwebEventManager });
     } catch (error) {
@@ -229,6 +242,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
           maxInterval: INTERACTION_MAX_INTERVAL,
           payloadBatcher,
           storeType,
+          trackDestinationWorkerScript,
         });
         managers.push({ name: 'interaction', manager: interactionEventManager });
       } catch (error) {
@@ -243,15 +257,33 @@ export class SessionReplay implements AmplitudeSessionReplay {
       this.eventCompressor.terminate();
     }
 
-    let workerScript = undefined;
-    const globalScope = getGlobalScope();
-    if (this.config.useWebWorker && globalScope && globalScope.Worker) {
-      const { compressionScript } = await import('./worker');
+    this.eventCompressor = new EventCompressor(
+      this.eventsManager,
+      this.config,
+      this.getDeviceId(),
+      compressionWorkerScript,
+      () => this.sendEvents(),
+    );
 
-      workerScript = compressionScript;
-    }
-
-    this.eventCompressor = new EventCompressor(this.eventsManager, this.config, this.getDeviceId(), workerScript);
+    // Register beacon fallback for page exit. sendBeacon survives page unload
+    // and delivers any incremental events that haven't been flushed via fetch yet.
+    this.pageLeaveFns = [
+      ...this.pageLeaveFns,
+      () => {
+        if (!this.config || !this.identifiers?.sessionId || !rrwebEventManager) return;
+        const events = rrwebEventManager.getBeaconEvents();
+        if (!events.length) return;
+        const deviceId = this.getDeviceId();
+        if (!deviceId) return;
+        rrwebEventManager.trackDestination.sendBeacon({
+          events,
+          sessionId: this.identifiers.sessionId,
+          deviceId,
+          apiKey: this.config.apiKey,
+          serverZone: this.config.serverZone,
+        });
+      },
+    ];
 
     await this.initializeNetworkObservers();
 

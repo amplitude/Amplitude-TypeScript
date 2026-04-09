@@ -109,7 +109,6 @@ export interface FrustrationInteractionsOptions {
    * Set to `false` to disable error click tracking.
    * Set to `true` or an options object to enable with default settings.
    * Default is false.
-   * @experimental this feature is experimental and may not be stable
    */
   errorClicks?: boolean | ErrorClickOptions;
   /**
@@ -117,7 +116,6 @@ export interface FrustrationInteractionsOptions {
    * Set to `false` to disable thrashed cursor tracking.
    * Set to `true` or an options object to enable with default settings.
    * Default is false.
-   * @experimental this feature is experimental and may not be stable
    */
   thrashedCursor?: boolean | ThrashedCursorOptions;
 

@@ -1428,9 +1428,9 @@ describe('SessionReplay', () => {
     });
 
     test.each([
-      { enabled: true, expectedLength: 1 },
-      { enabled: false, expectedLength: 0 },
-      { enabled: undefined, expectedLength: 0 },
+      { enabled: true, expectedLength: 2 }, // scroll fn + beacon fn
+      { enabled: false, expectedLength: 1 }, // beacon fn only
+      { enabled: undefined, expectedLength: 1 }, // beacon fn only
     ])('should not register scroll if interaction config not enabled', async ({ enabled, expectedLength }) => {
       mockRemoteConfig = {
         sr_sampling_config: samplingConfig,
@@ -1566,6 +1566,207 @@ describe('SessionReplay', () => {
       jest.spyOn(Sampling, 'isSessionInSample').mockImplementationOnce(() => false);
       const shouldRecord = sessionReplay.getShouldRecord();
       expect(shouldRecord).toBe(false);
+    });
+  });
+
+  describe('sendEventsViaBeacon', () => {
+    // The beacon logic is registered as the last entry in pageLeaveFns during initialize().
+    const triggerBeacon = (sr: SessionReplay) => {
+      const beaconFn = sr.pageLeaveFns[sr.pageLeaveFns.length - 1];
+      beaconFn(new Event('pagehide'));
+    };
+
+    test('should call sendBeacon with pending events on page exit', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      const mockSendBeacon = jest.fn().mockReturnValue(true);
+      jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue({
+        navigator: { sendBeacon: mockSendBeacon },
+      } as unknown as typeof globalThis);
+
+      // Simulate pending events in the replay manager
+      const pendingEvent = JSON.stringify({ type: 3, timestamp: 1 });
+      if (!sessionReplay.eventsManager) throw new Error('No eventsManager');
+      sessionReplay.eventsManager.addEvent({
+        sessionId: 123,
+        event: { type: 'replay', data: pendingEvent },
+        deviceId: '1a2b3c',
+      });
+
+      triggerBeacon(sessionReplay);
+
+      expect(mockSendBeacon).toHaveBeenCalledTimes(1);
+      const [url, body] = mockSendBeacon.mock.calls[0] as [string, Blob];
+      expect(url).toContain('api_key=');
+      expect(url).toContain('device_id=1a2b3c');
+      expect(url).toContain('type=replay');
+      expect(body).toBeInstanceOf(Blob);
+      expect(body.type).toBe('application/json');
+    });
+
+    test('should not call sendBeacon if no pending events', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      const mockSendBeacon = jest.fn();
+      jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue({
+        navigator: { sendBeacon: mockSendBeacon },
+      } as unknown as typeof globalThis);
+
+      triggerBeacon(sessionReplay);
+
+      expect(mockSendBeacon).not.toHaveBeenCalled();
+    });
+
+    test('should not call sendBeacon if no config', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      sessionReplay.config = undefined;
+      const mockSendBeacon = jest.fn();
+      jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue({
+        navigator: { sendBeacon: mockSendBeacon },
+      } as unknown as typeof globalThis);
+
+      triggerBeacon(sessionReplay);
+
+      expect(mockSendBeacon).not.toHaveBeenCalled();
+    });
+
+    test('should not call sendBeacon if no device id', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      sessionReplay.identifiers!.deviceId = undefined;
+      const mockSendBeacon = jest.fn();
+      jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue({
+        navigator: { sendBeacon: mockSendBeacon },
+      } as unknown as typeof globalThis);
+
+      if (!sessionReplay.eventsManager) throw new Error('No eventsManager');
+      sessionReplay.eventsManager.addEvent({
+        sessionId: 123,
+        event: { type: 'replay', data: 'x' },
+        deviceId: '1a2b3c',
+      });
+
+      triggerBeacon(sessionReplay);
+
+      expect(mockSendBeacon).not.toHaveBeenCalled();
+    });
+
+    test('should swallow sendBeacon errors', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      const mockSendBeacon = jest.fn().mockImplementation(() => {
+        throw new Error('beacon error');
+      });
+      jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue({
+        navigator: { sendBeacon: mockSendBeacon },
+      } as unknown as typeof globalThis);
+
+      if (!sessionReplay.eventsManager) throw new Error('No eventsManager');
+      sessionReplay.eventsManager.addEvent({
+        sessionId: 123,
+        event: { type: 'replay', data: 'x' },
+        deviceId: '1a2b3c',
+      });
+
+      expect(() => {
+        triggerBeacon(sessionReplay);
+      }).not.toThrow();
+    });
+
+    test('should invoke beacon via pageLeaveFns on page exit', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      await sessionReplay.initialize(true);
+      const mockSendBeacon = jest.fn().mockReturnValue(true);
+      jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue({
+        navigator: { sendBeacon: mockSendBeacon },
+      } as unknown as typeof globalThis);
+
+      if (!sessionReplay.eventsManager) throw new Error('No eventsManager');
+      sessionReplay.eventsManager.addEvent({
+        sessionId: 123,
+        event: { type: 'replay', data: 'x' },
+        deviceId: '1a2b3c',
+      });
+
+      // The beacon fn is always the last item added to pageLeaveFns during initialize()
+      const beaconFn = sessionReplay.pageLeaveFns[sessionReplay.pageLeaveFns.length - 1];
+      beaconFn(new Event('pagehide'));
+      expect(mockSendBeacon).toHaveBeenCalledTimes(1);
+    });
+
+    test('should not call sendBeacon if identifiers is undefined', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      (sessionReplay as any).identifiers = undefined;
+      const mockSendBeacon = jest.fn();
+      jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue({
+        navigator: { sendBeacon: mockSendBeacon },
+      } as unknown as typeof globalThis);
+      triggerBeacon(sessionReplay);
+      expect(mockSendBeacon).not.toHaveBeenCalled();
+    });
+
+    test('should not call sendBeacon if no pending events in beacon buffer', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      const mockSendBeacon = jest.fn();
+      jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue({
+        navigator: { sendBeacon: mockSendBeacon },
+      } as unknown as typeof globalThis);
+      // No events added — beacon buffer is empty
+      triggerBeacon(sessionReplay);
+      expect(mockSendBeacon).not.toHaveBeenCalled();
+    });
+
+    test('should not throw when globalScope is null', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      if (!sessionReplay.eventsManager) throw new Error('No eventsManager');
+      sessionReplay.eventsManager.addEvent({
+        sessionId: 123,
+        event: { type: 'replay', data: 'x' },
+        deviceId: '1a2b3c',
+      });
+      jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue(null as unknown as typeof globalThis);
+      expect(() => {
+        triggerBeacon(sessionReplay);
+      }).not.toThrow();
+    });
+
+    test('should not throw when navigator is undefined', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      if (!sessionReplay.eventsManager) throw new Error('No eventsManager');
+      sessionReplay.eventsManager.addEvent({
+        sessionId: 123,
+        event: { type: 'replay', data: 'x' },
+        deviceId: '1a2b3c',
+      });
+      jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue({} as unknown as typeof globalThis);
+      expect(() => {
+        triggerBeacon(sessionReplay);
+      }).not.toThrow();
+    });
+
+    test('should not throw when sendBeacon is undefined', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      if (!sessionReplay.eventsManager) throw new Error('No eventsManager');
+      sessionReplay.eventsManager.addEvent({
+        sessionId: 123,
+        event: { type: 'replay', data: 'x' },
+        deviceId: '1a2b3c',
+      });
+      jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue({
+        navigator: {},
+      } as unknown as typeof globalThis);
+      expect(() => {
+        triggerBeacon(sessionReplay);
+      }).not.toThrow();
+    });
+
+    test('should not call sendBeacon if rrwebEventManager failed to initialize', async () => {
+      // When createEventsManager throws for the 'replay' type, rrwebEventManager stays
+      // undefined in the pageLeaveFns closure — the beacon fn should handle this gracefully.
+      jest.spyOn(SessionReplayEventsManager, 'createEventsManager').mockRejectedValueOnce(new Error('init failed'));
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      const mockSendBeacon = jest.fn();
+      jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue({
+        navigator: { sendBeacon: mockSendBeacon },
+      } as unknown as typeof globalThis);
+      triggerBeacon(sessionReplay);
+      expect(mockSendBeacon).not.toHaveBeenCalled();
     });
   });
 
