@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.39.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/gtm-snippet@2.38.1...@amplitude/gtm-snippet@2.39.0) (2026-04-09)
+
+
+### Features
+
+* **session-replay-browser:** improve replay data delivery (SR-3115) ([#1637](https://github.com/amplitude/Amplitude-TypeScript/issues/1637)) ([21bd1c8](https://github.com/amplitude/Amplitude-TypeScript/commit/21bd1c870eea801878aea0fc4e952fe2b8908675))
+
+
+
+
+
 ## [2.38.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/gtm-snippet@2.37.3...@amplitude/gtm-snippet@2.38.1) (2026-04-01)
 
 **Note:** Version bump only for package @amplitude/gtm-snippet

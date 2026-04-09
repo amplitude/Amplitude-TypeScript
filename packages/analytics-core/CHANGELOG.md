@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.45.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.44.1...@amplitude/analytics-core@2.45.0) (2026-04-09)
+
+
+### Features
+
+* **analytics-browser:** [experimental] add video tracking function ([#1652](https://github.com/amplitude/Amplitude-TypeScript/issues/1652)) ([3af90e2](https://github.com/amplitude/Amplitude-TypeScript/commit/3af90e2f662d9ed82c56a506c8d2ef6d5da85bd8))
+
+
+
+
+
 ## [2.44.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.44.0...@amplitude/analytics-core@2.44.1) (2026-04-01)
 
 **Note:** Version bump only for package @amplitude/analytics-core
