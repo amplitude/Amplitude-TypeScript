@@ -51,7 +51,7 @@
     "@commitlint/cli": "^17.3.0",
     "@commitlint/config-conventional": "^17.3.0",
     "@nx/workspace": "^21.2.1",
-    "@playwright/test": "1.55.0",
+    "@playwright/test": "1.59.1",
     "@types/jest": "^29.2.4",
     "@types/node": "^18.11.14",
     "@typescript-eslint/eslint-plugin": "^5.46.1",
