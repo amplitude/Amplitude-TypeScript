@@ -1,4 +1,4 @@
-import { BaseTransport, ILogger, Status } from '@amplitude/analytics-core';
+import { BaseTransport, getGlobalScope, ILogger, ServerZone, Status } from '@amplitude/analytics-core';
 import { getCurrentUrl, getServerUrl } from './helpers';
 import {
   MAX_RETRIES_EXCEEDED_MESSAGE,
@@ -14,6 +14,19 @@ import {
 } from './typings/session-replay';
 import { VERSION } from './version';
 import { MAX_URL_LENGTH, KB_SIZE } from './constants';
+import { gzipJson } from './utils/gzip';
+
+interface WorkerCompleteMessage {
+  type: 'complete';
+  id: string;
+  err?: string;
+}
+interface WorkerLogMessage {
+  type: 'log' | 'warn';
+  id: string;
+  message: string;
+}
+type WorkerMessage = WorkerCompleteMessage | WorkerLogMessage;
 
 export type PayloadBatcher = ({ version, events }: { version: number; events: string[] }) => {
   version: number;
@@ -28,19 +41,66 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
   private scheduled: ReturnType<typeof setTimeout> | null = null;
   payloadBatcher: PayloadBatcher;
   queue: SessionReplayDestinationContext[] = [];
+  private worker?: Worker;
+  private sendIdCounter = 0;
+  private pendingWorkerRequests = new Map<string, { context: SessionReplayDestinationContext; resolve: () => void }>();
 
   constructor({
     trackServerUrl,
     loggerProvider,
     payloadBatcher,
+    workerScript,
   }: {
     trackServerUrl?: string;
     loggerProvider: ILogger;
     payloadBatcher?: PayloadBatcher;
+    workerScript?: string;
   }) {
     this.loggerProvider = loggerProvider;
     this.payloadBatcher = payloadBatcher ? payloadBatcher : (payload) => payload;
     this.trackServerUrl = trackServerUrl;
+
+    if (workerScript) {
+      try {
+        const blob = new Blob([workerScript], { type: 'application/javascript' });
+        const blobUrl = URL.createObjectURL(blob);
+        const worker = new Worker(blobUrl);
+        worker.onerror = (e) => {
+          e.preventDefault();
+          loggerProvider.error(
+            `Track destination worker failed, falling back to main-thread sending: ${e.message} (${e.filename}:${e.lineno})`,
+          );
+          worker.terminate();
+          this.worker = undefined;
+          // Resolve pending promises so flush() doesn't hang. Do NOT call completeRequest
+          // here — the events were never delivered, so onComplete must not fire and the
+          // IDB/memory store entries must remain intact for recovery by sendStoredEvents.
+          for (const [, pending] of this.pendingWorkerRequests) {
+            loggerProvider.warn(`Session replay event send failed due to worker crash: ${e.message}`);
+            pending.resolve();
+          }
+          this.pendingWorkerRequests.clear();
+        };
+        worker.onmessage = (e: MessageEvent<WorkerMessage>) => {
+          const msg = e.data;
+          if (msg.type === 'log') {
+            loggerProvider.log(msg.message);
+          } else if (msg.type === 'warn') {
+            loggerProvider.warn(msg.message);
+          } else if (msg.type === 'complete') {
+            const pending = this.pendingWorkerRequests.get(msg.id);
+            if (pending) {
+              this.completeRequest({ context: pending.context });
+              pending.resolve();
+              this.pendingWorkerRequests.delete(msg.id);
+            }
+          }
+        };
+        this.worker = worker;
+      } catch (error) {
+        loggerProvider.error('Failed to create track destination worker, falling back to main-thread sending:', error);
+      }
+    }
   }
 
   sendEventsList(destinationData: SessionReplayDestination) {
@@ -49,6 +109,73 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
       attempts: 0,
       timeout: 0,
     });
+  }
+
+  /**
+   * Sends events via navigator.sendBeacon on page exit.
+   * Beacon payloads are sent as uncompressed JSON because sendBeacon does not support
+   * Content-Encoding, and small incremental batches don't benefit much from compression.
+   * The full snapshot has already been sent eagerly via fetch, so the beacon only needs
+   * to cover the remaining incremental events since the last fetch flush.
+   */
+  sendBeacon({
+    events,
+    sessionId,
+    deviceId,
+    apiKey,
+    serverZone,
+  }: {
+    events: string[];
+    sessionId: string | number;
+    deviceId: string;
+    apiKey: string;
+    serverZone?: keyof typeof ServerZone;
+  }) {
+    const MAX_BEACON_BYTES = 64 * 1024;
+    const byteLength = (s: string) => new Blob([s]).size;
+    let trimmedEvents = events;
+    let payload = JSON.stringify({ version: 2, events: trimmedEvents });
+    if (byteLength(payload) > MAX_BEACON_BYTES) {
+      // Binary search for the largest prefix that fits within the beacon size limit.
+      // Uses Blob.size to get the UTF-8 byte count, which is what sendBeacon measures.
+      let lo = 0;
+      let hi = trimmedEvents.length;
+      while (lo < hi) {
+        const mid = Math.floor((lo + hi + 1) / 2);
+        if (byteLength(JSON.stringify({ version: 2, events: trimmedEvents.slice(0, mid) })) <= MAX_BEACON_BYTES) {
+          lo = mid;
+        } else {
+          hi = mid - 1;
+        }
+      }
+      trimmedEvents = trimmedEvents.slice(0, lo);
+      payload = JSON.stringify({ version: 2, events: trimmedEvents });
+      this.loggerProvider.warn(
+        `sendBeacon payload exceeded 64 KB limit, trimmed from ${events.length} to ${trimmedEvents.length} events`,
+      );
+    }
+    if (trimmedEvents.length === 0) {
+      return;
+    }
+    const urlParams = new URLSearchParams({
+      device_id: deviceId,
+      session_id: String(sessionId),
+      type: 'replay',
+      api_key: apiKey,
+    });
+    const serverUrl = `${getServerUrl(serverZone, this.trackServerUrl)}?${urlParams.toString()}`;
+    const globalScope = getGlobalScope();
+    try {
+      // Wrap in a Blob to set Content-Type: application/json; a plain string would
+      // cause the browser to send Content-Type: text/plain, which the server rejects.
+      const payloadBlob = new Blob([payload], { type: 'application/json' });
+      const sent = globalScope?.navigator?.sendBeacon?.(serverUrl, payloadBlob);
+      if (sent === false) {
+        this.loggerProvider.warn('sendBeacon failed to queue session replay payload');
+      }
+    } catch {
+      // Best effort — no fallback on page exit.
+    }
   }
 
   addToQueue(...list: SessionReplayDestinationContext[]) {
@@ -103,15 +230,7 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
     if (!deviceId) {
       return this.completeRequest({ context, err: MISSING_DEVICE_ID_MESSAGE });
     }
-    const url = getCurrentUrl();
-    const version = VERSION;
-    const sampleRate = context.sampleRate;
-    const urlParams = new URLSearchParams({
-      device_id: deviceId,
-      session_id: `${context.sessionId}`,
-      type: `${context.type}`,
-    });
-    const sessionReplayLibrary = `${context.version?.type || 'standalone'}/${context.version?.version || version}`;
+
     const payload = this.payloadBatcher({
       version: 1,
       events: context.events,
@@ -122,7 +241,71 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
       return;
     }
 
+    const { worker } = this;
+    if (worker) {
+      return this.sendViaWorker(worker, context, payload, useRetry);
+    }
+
+    return this.sendOnMainThread(apiKey, deviceId, context, payload, useRetry);
+  }
+
+  private async sendViaWorker(
+    worker: Worker,
+    context: SessionReplayDestinationContext,
+    payload: { version: number; events: unknown[] },
+    useRetry: boolean,
+  ): Promise<void> {
+    const id = `${++this.sendIdCounter}`;
+    return new Promise<void>((resolve) => {
+      this.pendingWorkerRequests.set(id, { context, resolve });
+      worker.postMessage({
+        type: 'send',
+        id,
+        payload,
+        useRetry,
+        context: {
+          apiKey: context.apiKey,
+          deviceId: context.deviceId,
+          sessionId: context.sessionId,
+          events: context.events,
+          eventType: context.type,
+          flushMaxRetries: context.flushMaxRetries ?? 0,
+          sampleRate: context.sampleRate,
+          serverZone: context.serverZone,
+          trackServerUrl: this.trackServerUrl,
+          version: context.version,
+          currentUrl: getCurrentUrl(),
+          sdkVersion: VERSION,
+        },
+      });
+    });
+  }
+
+  private async sendOnMainThread(
+    apiKey: string,
+    deviceId: string,
+    context: SessionReplayDestinationContext,
+    payload: { version: number; events: unknown[] },
+    useRetry: boolean,
+  ): Promise<void> {
+    const url = getCurrentUrl();
+    const version = VERSION;
+    const sampleRate = context.sampleRate;
+    const urlParams = new URLSearchParams({
+      device_id: deviceId,
+      session_id: `${context.sessionId}`,
+      type: `${context.type}`,
+    });
+    const sessionReplayLibrary = `${context.version?.type ?? 'standalone'}/${context.version?.version ?? version}`;
+
     try {
+      const payloadJson = JSON.stringify(payload);
+      // Only await gzip when CompressionStream is actually available; skipping the
+      // await entirely preserves the synchronous fast-path for browsers/environments
+      // (e.g. Jest) that don't support it, keeping retry-timing tests unaffected.
+      const globalScope = getGlobalScope();
+      const gzipped =
+        globalScope && 'CompressionStream' in globalScope ? await gzipJson(payloadJson, globalScope) : null;
       const options: RequestInit = {
         headers: {
           'Content-Type': 'application/json',
@@ -133,8 +316,9 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
           'X-Client-Url': url.substring(0, MAX_URL_LENGTH), // limit url length to 1000 characters to avoid ELB 400 error
           'X-Client-Sample-Rate': `${sampleRate}`,
           'X-Sampling-Hash-Alg': 'xxhash32',
+          ...(gzipped ? { 'Content-Encoding': 'gzip' } : {}),
         },
-        body: JSON.stringify(payload),
+        body: (gzipped ?? payloadJson) as BodyInit,
         method: 'POST',
       };
 
@@ -183,7 +367,7 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
   }
 
   async handleOtherResponse(context: SessionReplayDestinationContext) {
-    const delay = context.attempts * this.retryTimeout;
+    const delay = Math.random() * context.attempts * this.retryTimeout;
     context.attempts++;
     if (context.attempts > (context.flushMaxRetries || 0)) {
       this.completeRequest({ context, err: MAX_RETRIES_EXCEEDED_MESSAGE });

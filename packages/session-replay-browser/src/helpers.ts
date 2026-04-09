@@ -1,15 +1,9 @@
-import { getGlobalScope, ServerZone } from '@amplitude/analytics-core';
+import { getGlobalScope } from '@amplitude/analytics-core';
 import { DEFAULT_MASK_LEVEL, MaskLevel, PrivacyConfig, SessionReplayJoinedConfig, UGCFilterRule } from './config/types';
-import {
-  KB_SIZE,
-  MASK_TEXT_CLASS,
-  SESSION_REPLAY_EU_URL,
-  SESSION_REPLAY_SERVER_URL,
-  SESSION_REPLAY_STAGING_URL,
-  UNMASK_TEXT_CLASS,
-} from './constants';
+import { KB_SIZE, MASK_TEXT_CLASS, UNMASK_TEXT_CLASS } from './constants';
 import { StorageData } from './typings/session-replay';
 import { getInputType } from './utils/get-input-type';
+export { getServerUrl } from './utils/server-url';
 
 type ChromeStorageEstimate = {
   quota?: number;
@@ -121,22 +115,6 @@ export const getCurrentUrl = () => {
 
 export const generateSessionReplayId = (sessionId: string | number, deviceId: string): string => {
   return `${deviceId}/${sessionId}`;
-};
-
-export const getServerUrl = (serverZone?: keyof typeof ServerZone, trackServerUrl?: string): string => {
-  if (trackServerUrl) {
-    return trackServerUrl;
-  }
-
-  if (serverZone === ServerZone.STAGING) {
-    return SESSION_REPLAY_STAGING_URL;
-  }
-
-  if (serverZone === ServerZone.EU) {
-    return SESSION_REPLAY_EU_URL;
-  }
-
-  return SESSION_REPLAY_SERVER_URL;
 };
 
 const isValidGlobUrl = (globUrl: string): boolean => {

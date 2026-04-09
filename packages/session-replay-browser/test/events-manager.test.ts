@@ -402,4 +402,86 @@ describe('createEventsManager', () => {
       expect(flushMock).toHaveBeenCalledWith(false);
     });
   });
+
+  describe('getBeaconEvents', () => {
+    test('should return empty array initially', async () => {
+      const eventsManager = await createEventsManager({
+        config,
+        type: 'replay',
+        storeType: 'memory',
+      });
+      expect(eventsManager.getBeaconEvents()).toEqual([]);
+    });
+
+    test('should accumulate events as they are added', async () => {
+      const eventsManager = await createEventsManager({
+        config,
+        type: 'replay',
+        storeType: 'memory',
+      });
+      const eventA = JSON.stringify({ type: 3, timestamp: 1 });
+      const eventB = JSON.stringify({ type: 3, timestamp: 2 });
+
+      eventsManager.addEvent({ event: { type: 'replay', data: eventA }, sessionId: 123, deviceId: '1a2b3c' });
+      eventsManager.addEvent({ event: { type: 'replay', data: eventB }, sessionId: 123, deviceId: '1a2b3c' });
+
+      expect(eventsManager.getBeaconEvents()).toEqual([eventA, eventB]);
+    });
+
+    test('should advance window when sendCurrentSequenceEvents finalises events', async () => {
+      (mockIDBStore.addEventToCurrentSequence as jest.Mock).mockResolvedValue(undefined);
+      (mockIDBStore.storeCurrentSequence as jest.Mock).mockResolvedValue({
+        sequenceId: 0,
+        events: [mockEventString],
+        sessionId: 123,
+      });
+      const eventsManager = await createEventsManager({
+        config,
+        type: 'replay',
+        storeType: 'idb',
+      });
+      eventsManager.addEvent({ event: { type: 'replay', data: mockEventString }, sessionId: 123, deviceId: '1a2b3c' });
+      await Promise.resolve(); // let the addEvent async chain settle
+      expect(eventsManager.getBeaconEvents()).toEqual([mockEventString]);
+
+      eventsManager.sendCurrentSequenceEvents({ sessionId: 123, deviceId: '1a2b3c' });
+      await (mockIDBStore.storeCurrentSequence as jest.Mock).mock.results[0].value;
+
+      expect(eventsManager.getBeaconEvents()).toEqual([]);
+    });
+
+    test('should advance window on batch split and keep only current event', async () => {
+      const eventsManager = await createEventsManager({
+        config,
+        type: 'replay',
+        storeType: 'memory',
+      });
+      // Use the real memory store so shouldSplitEventsList can trigger a split.
+      // eventA must be large enough that eventA + eventB >= MAX_EVENT_LIST_SIZE (1_000_000).
+      const eventA = 'a'.repeat(999_990);
+      const eventB = JSON.stringify({ type: 3, timestamp: 2 });
+
+      eventsManager.addEvent({ event: { type: 'replay', data: eventA }, sessionId: 123, deviceId: '1a2b3c' });
+      // Force split: eventB pushes the batch over the 1 MB limit
+      eventsManager.addEvent({ event: { type: 'replay', data: eventB }, sessionId: 123, deviceId: '1a2b3c' });
+
+      // Let the async addEventToCurrentSequence chains settle (two microtask ticks).
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect(eventsManager.getBeaconEvents()).toEqual([eventB]);
+    });
+
+    test('should return a copy of the buffer (mutation-safe)', async () => {
+      const eventsManager = await createEventsManager({
+        config,
+        type: 'replay',
+        storeType: 'memory',
+      });
+      eventsManager.addEvent({ event: { type: 'replay', data: mockEventString }, sessionId: 123, deviceId: '1a2b3c' });
+      const snapshot = eventsManager.getBeaconEvents();
+      snapshot.push('extra');
+      expect(eventsManager.getBeaconEvents()).toHaveLength(1);
+    });
+  });
 });

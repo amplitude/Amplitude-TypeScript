@@ -6,8 +6,14 @@ import { SessionReplayEventsManager } from '../src/typings/session-replay';
 import { eventWithTime } from '@amplitude/rrweb-types';
 
 const mockEvent = {
-  type: 4,
+  type: 4, // Meta — not a FullSnapshot
   data: { href: 'https://analytics.amplitude.com/', width: 1728, height: 154 },
+  timestamp: 1687358660935,
+};
+
+const fullSnapshotEvent: eventWithTime = {
+  type: 2, // FullSnapshot
+  data: { node: { type: 0, childNodes: [] as any[], id: 1 }, initialOffset: { left: 0, top: 0 } },
   timestamp: 1687358660935,
 };
 
@@ -388,14 +394,18 @@ describe('EventCompressor', () => {
     expect(capturedOnerror).toBeDefined();
 
     const mockPreventDefault = jest.fn();
-    const mockErrorEvent = { preventDefault: mockPreventDefault };
+    const mockErrorEvent = {
+      preventDefault: mockPreventDefault,
+      message: 'test error',
+      filename: 'blob:test',
+      lineno: 1,
+    };
 
     (capturedOnerror as (e: any) => void)(mockErrorEvent);
 
     expect(mockPreventDefault).toHaveBeenCalledTimes(1);
     expect(mockLoggerProvider['error']).toHaveBeenCalledWith(
-      'Worker failed, falling back to non-worker compression:',
-      mockErrorEvent,
+      expect.stringContaining('Worker failed, falling back to non-worker compression:'),
     );
     expect(mockTerminate).toHaveBeenCalledTimes(1);
     expect(eventCompressor.worker).toBeUndefined();
@@ -444,5 +454,121 @@ describe('EventCompressor', () => {
     }).not.toThrow();
 
     global.Worker = originalWorker;
+  });
+
+  describe('FullSnapshot immediate processing', () => {
+    test('should process full snapshot immediately without idle scheduling', () => {
+      const scheduleIdleProcessingMock = jest.spyOn(eventCompressor, 'scheduleIdleProcessing');
+      const addEventMock = jest.spyOn(eventsManager, 'addEvent');
+
+      eventCompressor.enqueueEvent(fullSnapshotEvent, sessionId);
+
+      expect(scheduleIdleProcessingMock).not.toHaveBeenCalled();
+      expect(eventCompressor.taskQueue).toHaveLength(0);
+      expect(addEventMock).toHaveBeenCalledTimes(1);
+    });
+
+    test('should bypass web worker and process full snapshot on main thread', async () => {
+      let postMessageCount = 0;
+      class MockWorker {
+        postMessage = () => {
+          postMessageCount++;
+        };
+        onmessage: any = null;
+        onerror: any = null;
+        terminate = jest.fn();
+      }
+      global.Worker = MockWorker as unknown as typeof global.Worker;
+      URL.createObjectURL = jest.fn();
+
+      eventsManager = await createEventsManager<'replay'>({ config, type: 'replay', storeType: 'memory' });
+      eventCompressor = new EventCompressor(eventsManager, config, deviceId, 'console.log("hi")');
+
+      const addEventMock = jest.spyOn(eventsManager, 'addEvent');
+      eventCompressor.enqueueEvent(fullSnapshotEvent, sessionId);
+
+      // Worker should NOT be used for FullSnapshot
+      expect(postMessageCount).toBe(0);
+      // addEvent should be called synchronously
+      expect(addEventMock).toHaveBeenCalledTimes(1);
+    });
+
+    test('should call onFullSnapshotProcessed callback after adding full snapshot', () => {
+      const onFullSnapshotProcessed = jest.fn();
+      eventCompressor.onFullSnapshotProcessed = onFullSnapshotProcessed;
+
+      eventCompressor.enqueueEvent(fullSnapshotEvent, sessionId);
+
+      expect(onFullSnapshotProcessed).toHaveBeenCalledTimes(1);
+    });
+
+    test('should not call onFullSnapshotProcessed for non-full-snapshot events', () => {
+      const onFullSnapshotProcessed = jest.fn();
+      eventCompressor.onFullSnapshotProcessed = onFullSnapshotProcessed;
+
+      eventCompressor.enqueueEvent(mockEvent, sessionId); // type 4 — not FullSnapshot
+
+      expect(onFullSnapshotProcessed).not.toHaveBeenCalled();
+    });
+
+    test('should drain idle-queue events before adding full snapshot to preserve ordering', () => {
+      // Simulate two incremental events sitting in the idle queue (not yet processed).
+      const incrementalA = { ...mockEvent, timestamp: 100 } as eventWithTime;
+      const incrementalB = { ...mockEvent, timestamp: 200 } as eventWithTime;
+      eventCompressor.taskQueue.push({ event: incrementalA, sessionId });
+      eventCompressor.taskQueue.push({ event: incrementalB, sessionId });
+
+      const addEventMock = jest.spyOn(eventsManager, 'addEvent');
+
+      eventCompressor.enqueueEvent(fullSnapshotEvent, sessionId);
+
+      // All three events should have been added to the manager
+      expect(addEventMock).toHaveBeenCalledTimes(3);
+
+      // Incremental events must come BEFORE the full snapshot
+      const calls = addEventMock.mock.calls.map(
+        (call) => JSON.parse(call[0].event.data) as { type: number; timestamp: number },
+      );
+      expect(calls[0].timestamp).toBe(100); // incrementalA
+      expect(calls[1].timestamp).toBe(200); // incrementalB
+      expect(calls[2].type).toBe(2); // FullSnapshot
+
+      // Idle queue should be empty after draining
+      expect(eventCompressor.taskQueue).toHaveLength(0);
+      expect(eventCompressor.isProcessing).toBe(false);
+    });
+
+    test('should serialize full snapshot with key-ordered JSON', () => {
+      const addEventMock = jest.spyOn(eventsManager, 'addEvent');
+      eventCompressor.enqueueEvent(fullSnapshotEvent, sessionId);
+
+      const callArg = addEventMock.mock.calls[0][0];
+      const serialized = JSON.parse(callArg.event.data);
+      const keys = Object.keys(serialized);
+      expect(keys[0]).toBe('type');
+      expect(keys[1]).toBe('timestamp');
+    });
+  });
+
+  describe('compressEvent key ordering', () => {
+    test('should serialize without delay when delay is absent', () => {
+      const result = eventCompressor.compressEvent(mockEvent as eventWithTime);
+      const parsed = JSON.parse(result);
+      const keys = Object.keys(parsed);
+      expect(keys[0]).toBe('type');
+      expect(keys[1]).toBe('timestamp');
+      expect(keys).not.toContain('delay');
+    });
+
+    test('should include delay when present and place it after timestamp', () => {
+      const eventWithDelay = { ...mockEvent, delay: 50 } as eventWithTime & { delay: number };
+      const result = eventCompressor.compressEvent(eventWithDelay);
+      const parsed = JSON.parse(result);
+      const keys = Object.keys(parsed);
+      expect(keys[0]).toBe('type');
+      expect(keys[1]).toBe('timestamp');
+      expect(keys[2]).toBe('delay');
+      expect(parsed.delay).toBe(50);
+    });
   });
 });
