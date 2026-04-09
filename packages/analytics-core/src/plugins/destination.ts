@@ -60,6 +60,14 @@ function getErrorMessage(error: unknown) {
   return String(error);
 }
 
+function getResponseMessage(res: Response) {
+  if ('body' in res) {
+    return `${res.status}: ${getResponseBodyString(res)}`;
+  }
+
+  return res.status;
+}
+
 export function getResponseBodyString(res: Response) {
   let responseBodyString = '';
   try {
@@ -137,6 +145,7 @@ export class Destination implements DestinationPlugin {
       if (context.attempts < this.config.flushMaxRetries) {
         return true;
       }
+      this.notifyUploadError(MAX_RETRIES_EXCEEDED_MESSAGE);
       void this.fulfillRequest([context], 500, MAX_RETRIES_EXCEEDED_MESSAGE);
       return false;
     });
@@ -248,21 +257,23 @@ export class Destination implements DestinationPlugin {
         this.config._enableRequestBodyCompressionExperimental && shouldCompressUploadBody,
       );
       if (res === null) {
+        this.notifyUploadError(UNEXPECTED_ERROR_MESSAGE);
         this.fulfillRequest(list, 0, UNEXPECTED_ERROR_MESSAGE);
         return;
       }
+      const responseMessage = getResponseMessage(res);
+      if (res.statusCode === 0) {
+        this.notifyUploadError(responseMessage);
+      }
       if (!useRetry) {
-        if ('body' in res) {
-          this.fulfillRequest(list, res.statusCode, `${res.status}: ${getResponseBodyString(res)}`);
-        } else {
-          this.fulfillRequest(list, res.statusCode, res.status);
-        }
+        this.fulfillRequest(list, res.statusCode, responseMessage);
         return;
       }
       this.handleResponse(res, list);
     } catch (e) {
       const errorMessage = getErrorMessage(e);
       this.config.loggerProvider.error(errorMessage);
+      this.notifyUploadError(errorMessage);
 
       this.diagnosticsClient?.recordEvent('analytics.events.unsuccessful.from.catch.error', {
         events: list.map((context) => context.event.event_type),
@@ -419,6 +430,18 @@ export class Destination implements DestinationPlugin {
     }
     this.removeEvents(list);
     list.forEach((context) => context.callback(buildResult(context.event, code, message)));
+  }
+
+  notifyUploadError(message: string) {
+    if (!this.config.onUploadError) {
+      return;
+    }
+
+    try {
+      this.config.onUploadError(message);
+    } catch (error) {
+      this.config.loggerProvider.error('Error calling onUploadError callback', error);
+    }
   }
 
   /**

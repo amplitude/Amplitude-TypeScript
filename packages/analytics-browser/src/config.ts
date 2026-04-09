@@ -47,6 +47,7 @@ import { getDomain, KNOWN_2LDS } from './attribution/helpers';
 // Exported for testing purposes only. Do not expose to public interface.
 export class BrowserConfig extends Config implements IBrowserConfig {
   public readonly version = VERSION;
+  declare onUploadError?: IBrowserConfig['onUploadError'];
   protected _cookieStorage: Storage<UserSession>;
   protected _deviceId?: string;
   protected _lastEventId?: number;
@@ -292,6 +293,11 @@ export interface EarlyConfig {
   diagnosticsSampleRate: number;
 }
 
+const isLocalhost = (hostname?: string) => {
+  const currentHostname = hostname ?? (typeof location === 'undefined' ? undefined : location.hostname);
+  return currentHostname === 'localhost' || currentHostname === '127.0.0.1';
+};
+
 export const useBrowserConfig = async (
   apiKey: string,
   options: BrowserOptions = {},
@@ -366,6 +372,7 @@ export const useBrowserConfig = async (
     language: options.trackingOptions?.language ?? true,
     platform: options.trackingOptions?.platform ?? true,
   };
+  const shouldUseLocalhostFlushDefaults = isLocalhost();
   const pageCounter = previousCookies?.pageCounter;
   const debugLogsEnabled = previousCookies?.debugLogsEnabled;
 
@@ -382,9 +389,9 @@ export const useBrowserConfig = async (
     options.defaultTracking,
     options.autocapture,
     deviceId,
-    options.flushIntervalMillis,
+    options.flushIntervalMillis ?? (shouldUseLocalhostFlushDefaults ? 0 : undefined),
     options.flushMaxRetries,
-    options.flushQueueSize,
+    options.flushQueueSize ?? (shouldUseLocalhostFlushDefaults ? 1 : undefined),
     identityStorage,
     options.ingestionMetadata,
     options.instanceName,
@@ -424,6 +431,10 @@ export const useBrowserConfig = async (
     amplitudeInstance._enableRequestBodyCompressionExperimentalValue,
     options.customEnrichment,
   );
+
+  if (options.onUploadError) {
+    browserConfig.onUploadError = options.onUploadError;
+  }
 
   if (!(await browserConfig.storageProvider.isEnabled())) {
     browserConfig.loggerProvider.warn(
