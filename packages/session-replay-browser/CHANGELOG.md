@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.36.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.35.1...@amplitude/session-replay-browser@1.36.0) (2026-04-09)
+
+
+### Features
+
+* **session-replay-browser:** improve replay data delivery (SR-3115) ([#1637](https://github.com/amplitude/Amplitude-TypeScript/issues/1637)) ([21bd1c8](https://github.com/amplitude/Amplitude-TypeScript/commit/21bd1c870eea801878aea0fc4e952fe2b8908675))
+
+
+
+
+
 ## [1.35.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.35.0...@amplitude/session-replay-browser@1.35.1) (2026-04-01)
 
 **Note:** Version bump only for package @amplitude/session-replay-browser

@@ -1,4 +1,4 @@
-import { test, expect, Page } from '@playwright/test';
+import { test, expect } from '@playwright/test';
 
 test.describe('GTM Snippet Page', () => {
   let requests: any[] = [];
@@ -28,9 +28,12 @@ test.describe('GTM Snippet Page', () => {
     expect(response?.status()).toBe(200);
 
     // Wait for the Amplitude SDK to be available
-    await page.waitForFunction(() => {
-      return typeof (window as any).amplitude !== 'undefined';
-    }, { timeout: 10000 });
+    await page.waitForFunction(
+      () => {
+        return typeof (window as any).amplitude !== 'undefined';
+      },
+      { timeout: 10000 },
+    );
 
     // Verify amplitude is defined
     const amplitudeDefined = await page.evaluate(() => {
@@ -38,9 +41,10 @@ test.describe('GTM Snippet Page', () => {
     });
     expect(amplitudeDefined).toBe(true);
 
-    // track an event
-    await page.evaluate(() => {
+    // track an event and immediately flush to avoid batching delay
+    await page.evaluate(async () => {
       (window as any).amplitude.track('GTM Snippet Test');
+      await (window as any).amplitude.flush();
     });
 
     // Wait for network requests to complete
@@ -60,4 +64,3 @@ test.describe('GTM Snippet Page', () => {
     expect(gtmSnippetEvent.event_type).toBe('GTM Snippet Test');
   });
 });
-
