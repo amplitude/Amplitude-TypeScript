@@ -1,11 +1,7 @@
 {
-  "name": "@amplitude/analytics-browser",
-  "version": "2.39.0",
-  "description": "Official Amplitude SDK for Web",
-  "keywords": [
-    "analytics",
-    "amplitude"
-  ],
+  "name": "@amplitude/plugin-event-property-attribution-browser",
+  "version": "0.0.1",
+  "description": "",
   "author": "Amplitude Inc",
   "homepage": "https://github.com/amplitude/Amplitude-TypeScript",
   "license": "MIT",
@@ -34,41 +30,23 @@
     "lint": "pnpm lint:eslint & pnpm lint:prettier",
     "lint:eslint": "eslint '{src,test}/**/*.ts'",
     "lint:prettier": "prettier --check \"{src,test}/**/*.ts\"",
-    "playground:html": "cp lib/scripts/amplitude-min.js playground/html/amplitude.js && http-server ./playground/html",
-    "playground:react-spa": "cp lib/scripts/amplitude-min.js playground/react-spa/public/amplitude.js && cd ./playground/react-spa && pnpm install && pnpm start",
-    "publish": "node ../../scripts/publish/upload-to-s3.js",
     "test": "jest",
-    "test:playwright": "playwright test",
-    "typecheck": "tsc -p ./tsconfig.json",
-    "version": "pnpm version-file && GENERATE_SNIPPET=true pnpm build && cp lib/scripts/amplitude-min.js playground/html/amplitude.js && cp lib/scripts/amplitude-min.js playground/react-spa/public/amplitude.js",
-    "version-file": "node -p \"'export const VERSION = \\'' + require('./package.json').version + '\\';'\" > src/version.ts"
+    "typecheck": "tsc -p ./tsconfig.json"
   },
   "bugs": {
     "url": "https://github.com/amplitude/Amplitude-TypeScript/issues"
   },
   "dependencies": {
     "@amplitude/analytics-core": "workspace:*",
-    "@amplitude/plugin-autocapture-browser": "workspace:*",
-    "@amplitude/plugin-custom-enrichment-browser": "workspace:*",
-    "@amplitude/plugin-event-property-attribution-browser": "workspace:*",
-    "@amplitude/plugin-network-capture-browser": "workspace:*",
-    "@amplitude/plugin-page-url-enrichment-browser": "workspace:*",
-    "@amplitude/plugin-page-view-tracking-browser": "workspace:*",
-    "@amplitude/plugin-web-vitals-browser": "workspace:*",
     "tslib": "^2.4.1"
   },
   "devDependencies": {
-    "@aws-sdk/client-s3": "^3.229.0",
     "@rollup/plugin-commonjs": "^23.0.4",
     "@rollup/plugin-node-resolve": "^15.0.1",
     "@rollup/plugin-typescript": "^10.0.1",
-    "fake-indexeddb": "4.0.2",
-    "http-server": "^14.1.1",
-    "isomorphic-fetch": "^3.0.0",
     "rollup": "^2.79.1",
     "rollup-plugin-execute": "^1.1.1",
     "rollup-plugin-gzip": "^3.1.0",
-    "rollup-plugin-sourcemaps": "^0.6.3",
     "rollup-plugin-terser": "^7.0.2"
   },
   "files": [

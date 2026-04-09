@@ -144,6 +144,9 @@ importers:
       '@amplitude/plugin-custom-enrichment-browser':
         specifier: workspace:*
         version: link:../plugin-custom-enrichment-browser
+      '@amplitude/plugin-event-property-attribution-browser':
+        specifier: workspace:*
+        version: link:../plugin-event-property-attribution-browser
       '@amplitude/plugin-network-capture-browser':
         specifier: workspace:*
         version: link:../plugin-network-capture-browser
@@ -554,6 +557,37 @@ importers:
       '@rollup/plugin-typescript':
         specifier: ^10.0.1
         version: 10.0.1(rollup@2.79.2)(tslib@2.8.1)(typescript@4.9.5)
+      rollup:
+        specifier: ^2.79.1
+        version: 2.79.2
+      rollup-plugin-execute:
+        specifier: ^1.1.1
+        version: 1.1.1
+      rollup-plugin-gzip:
+        specifier: ^3.1.0
+        version: 3.1.2(rollup@2.79.2)
+      rollup-plugin-terser:
+        specifier: ^7.0.2
+        version: 7.0.2(rollup@2.79.2)
+
+  packages/plugin-event-property-attribution-browser:
+    dependencies:
+      '@amplitude/analytics-core':
+        specifier: workspace:*
+        version: link:../analytics-core
+      tslib:
+        specifier: ^2.4.1
+        version: 2.8.1
+    devDependencies:
+      '@rollup/plugin-commonjs':
+        specifier: ^23.0.4
+        version: 23.0.7(rollup@2.79.2)
+      '@rollup/plugin-node-resolve':
+        specifier: ^15.0.1
+        version: 15.3.1(rollup@2.79.2)
+      '@rollup/plugin-typescript':
+        specifier: ^10.0.1
+        version: 10.0.1(rollup@2.79.2)(tslib@2.8.1)(typescript@5.9.3)
       rollup:
         specifier: ^2.79.1
         version: 2.79.2

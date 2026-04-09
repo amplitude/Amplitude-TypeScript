@@ -505,8 +505,9 @@ describe('cookies', () => {
       const lockQueue: Array<() => Promise<unknown>> = [];
       const processQueue = (): void => {
         if (lockQueue.length === 0) return;
-        const run = lockQueue.shift()!;
-        run().then(processQueue, processQueue);
+        const run = lockQueue.shift();
+        if (!run) return;
+        void run().then(processQueue, processQueue);
       };
       const locks = {
         request: (_lockName: string, callback: () => unknown) => {
@@ -517,7 +518,7 @@ describe('cookies', () => {
                 .then(resolve, reject),
             );
             if (lockQueue.length === 1) {
-              Promise.resolve().then(processQueue);
+              void Promise.resolve().then(processQueue);
             }
           });
           return promise;
