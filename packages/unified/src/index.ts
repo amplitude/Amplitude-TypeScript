@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 import client from './unified-client-factory';
 export { createInstance } from './unified-client-factory';
+export type { UnifiedClient, UnifiedOptions, UnifiedSharedOptions } from './unified';
 export const {
   _setDiagnosticsSampleRate,
   _enableRequestBodyCompressionExperimental,
