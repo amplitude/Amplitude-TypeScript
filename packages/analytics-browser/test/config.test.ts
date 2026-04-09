@@ -101,6 +101,22 @@ describe('config', () => {
   });
 
   describe('useBrowserConfig', () => {
+    const originalLocation = window.location;
+
+    beforeEach(() => {
+      Object.defineProperty(window, 'location', {
+        value: { hostname: 'amplitude.com' },
+        configurable: true,
+      });
+    });
+
+    afterEach(() => {
+      Object.defineProperty(window, 'location', {
+        value: originalLocation,
+        configurable: true,
+      });
+    });
+
     test('should create default config', async () => {
       const getTopLevelDomain = jest.spyOn(Config, 'getTopLevelDomain').mockResolvedValueOnce('.amplitude.com');
       const logger = new core.Logger();
@@ -160,6 +176,40 @@ describe('config', () => {
         _enableRequestBodyCompressionExperimental: false,
       });
       expect(getTopLevelDomain).toHaveBeenCalledTimes(1);
+    });
+
+    test.each(['localhost', '127.0.0.1'])(
+      'should enable immediate flush defaults on %s',
+      async (hostname: string) => {
+        Object.defineProperty(window, 'location', {
+          value: { hostname },
+          configurable: true,
+        });
+
+        const config = await Config.useBrowserConfig(apiKey, undefined, new AmplitudeBrowser());
+
+        expect(config.flushIntervalMillis).toBe(0);
+        expect(config.flushQueueSize).toBe(1);
+      },
+    );
+
+    test('should allow localhost flush defaults to be overridden explicitly', async () => {
+      Object.defineProperty(window, 'location', {
+        value: { hostname: 'localhost' },
+        configurable: true,
+      });
+
+      const config = await Config.useBrowserConfig(
+        apiKey,
+        {
+          flushIntervalMillis: 5000,
+          flushQueueSize: 10,
+        },
+        new AmplitudeBrowser(),
+      );
+
+      expect(config.flushIntervalMillis).toBe(5000);
+      expect(config.flushQueueSize).toBe(10);
     });
 
     test('should fall back to memoryStorage when storageProvider is not enabled', async () => {
