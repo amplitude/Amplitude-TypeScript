@@ -152,6 +152,8 @@ export function trackEmbeddedVideo(player: EmbeddedVideoPlayer, handlers: VideoH
   const onUnsubscribe: (() => void)[] = [];
   const readyHandler = () => {
     const { elem } = player;
+    let isSeeking = false;
+
     const playHandler = () => {
       getIframeMetadata(player, elem, vendor)
         .then((playerState) => {
@@ -189,6 +191,7 @@ export function trackEmbeddedVideo(player: EmbeddedVideoPlayer, handlers: VideoH
     onUnsubscribe.push(() => player.off('ended', endedHandler));
 
     const seekingHandler = () => {
+      isSeeking = true;
       getIframeMetadata(player, elem, vendor, 'seeking')
         .then((playerState) => {
           handlers.onSeeking(playerState);
@@ -201,6 +204,7 @@ export function trackEmbeddedVideo(player: EmbeddedVideoPlayer, handlers: VideoH
     onUnsubscribe.push(() => player.off('seeking', seekingHandler));
 
     const seekedHandler = () => {
+      isSeeking = false;
       getIframeMetadata(player, elem, vendor)
         .then((playerState) => {
           handlers.onSeeked(playerState);
@@ -217,7 +221,7 @@ export function trackEmbeddedVideo(player: EmbeddedVideoPlayer, handlers: VideoH
         .then(({ currentTime }) => {
           const timeupdateEvent: TimeUpdateEvent = {
             position: currentTime,
-            isSeeking: false,
+            isSeeking: isSeeking,
           };
           handlers.onTimeUpdate(timeupdateEvent);
         })

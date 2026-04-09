@@ -172,6 +172,13 @@ describe('VideoObserver', () => {
         expect(onStateChange).not.toHaveBeenCalled();
       });
 
+      it('should not inflate watch time when isSeeking is true on timeupdate before observer onSeeking runs (embedded race)', () => {
+        internalHandler.onPlay({ duration: 10, last_position: 10 });
+        onStateChange.mockClear();
+        internalHandler.onTimeUpdate({ position: 100, isSeeking: true });
+        expect(onStateChange).not.toHaveBeenCalled();
+      });
+
       it('should accumulate watch time from last_position while playing (delta from lastEvent.last_position)', () => {
         internalHandler.onPlay({ duration: 10, last_position: 0 });
         onStateChange.mockClear();

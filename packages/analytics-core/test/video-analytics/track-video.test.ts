@@ -341,6 +341,20 @@ describe('trackEmbeddedVideo', () => {
       await jest.runAllTimersAsync();
       expect(handler.onTimeUpdate).not.toHaveBeenCalled();
     });
+
+    test('should set isSeeking on timeupdate before async seeking metadata resolves', async () => {
+      const untrack = trackEmbeddedVideo(player, handler);
+      player.emit('ready');
+      player.setCurrentTime(6);
+      player.emit('seeking');
+      player.emit('timeupdate');
+      await jest.runAllTimersAsync();
+      expect(handler.onTimeUpdate).toHaveBeenCalledWith({
+        position: 6,
+        isSeeking: true,
+      });
+      untrack();
+    });
   });
 
   describe('with Mux vendor', () => {
