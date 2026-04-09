@@ -68,4 +68,36 @@ Once the SDK is initialize, you can start tracking events.
 amplitude.track('Page Viewed');
 ```
 
+## Configuration
+
+### Request body compression
+
+The SDK supports gzip compression for event upload request bodies to reduce network bandwidth usage. This feature is automatically enabled for Amplitude's default ingestion endpoints and can be optionally enabled for custom proxy servers.
+
+#### How it works
+
+- **Default Amplitude endpoints**: Compression is automatically enabled when using Amplitude's standard ingestion URLs
+- **Custom `serverUrl`**: Compression is disabled by default but can be enabled via the `enableRequestBodyCompression` configuration option
+- **Size threshold**: Payloads are only compressed if they are 2KB or larger
+- **Browser support**: Compression requires the browser to support the `CompressionStream` API (available in modern browsers)
+- **Transport compatibility**: Compression works with `fetch` and `xhr` transports but not with `beacon` (which cannot set custom headers)
+
+#### Configuration options
+
+```ts
+// Enable compression for custom proxy servers
+amplitude.init('<YOUR_API_KEY>', {
+  serverUrl: 'https://your-proxy-server.com/events',
+  enableRequestBodyCompression: true,
+});
+```
+
+```ts
+// Compression is automatic for default Amplitude endpoints
+amplitude.init('<YOUR_API_KEY>');
+// No configuration needed - compression is enabled by default
+```
+
+**Note**: When using the `beacon` transport, compression is not applied even if enabled, as the `sendBeacon` API does not support setting custom headers required for gzip encoding.
+
 For in-depth documentation, please visit to our [Developer Center](https://www.docs.developers.amplitude.com/data/sdks/sdk-quickstart/#browser).
