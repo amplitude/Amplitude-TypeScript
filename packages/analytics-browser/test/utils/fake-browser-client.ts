@@ -190,8 +190,4 @@ export class FakeBrowserClient implements BrowserClient {
   _setDiagnosticsSampleRate(sampleRate: number): void {
     console.log('FakeBrowserClient.setDiagnosticsSampleRate called with:', { sampleRate });
   }
-
-  _enableRequestBodyCompressionExperimental(enabled: boolean): void {
-    console.log('FakeBrowserClient.enableRequestBodyCompressionExperimental called with:', { enabled });
-  }
 }

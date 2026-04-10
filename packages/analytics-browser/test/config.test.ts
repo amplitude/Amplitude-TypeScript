@@ -157,7 +157,6 @@ describe('config', () => {
         },
         topLevelDomain: '.amplitude.com',
         enableRequestBodyCompression: false,
-        _enableRequestBodyCompressionExperimental: false,
       });
       expect(getTopLevelDomain).toHaveBeenCalledTimes(1);
     });
@@ -286,7 +285,6 @@ describe('config', () => {
           },
           topLevelDomain: 'amplitude.com',
           enableRequestBodyCompression: false,
-          _enableRequestBodyCompressionExperimental: false,
         });
       });
     });
