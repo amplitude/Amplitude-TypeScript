@@ -81,7 +81,7 @@ export class VideoCapture {
         // placeholder for Heartbeat Stop Event
         this.amplitude.track('Video Content Stopped', {
           ...nextState.lastEvent,
-          watch_duration: nextState.watchTime ?? 0,
+          watch_duration: nextState.watchTime,
           ...this.extraEventProperties,
         });
       }
