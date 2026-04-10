@@ -63,8 +63,8 @@ export class VideoCapture {
       if (previousState.playbackState !== 'playing' && nextState.playbackState === 'playing') {
         // placeholder for Heartbeat Start Event
         this.amplitude.track('Video Content Started', {
-          ...this.extraEventProperties,
           ...nextState.lastEvent,
+          ...this.extraEventProperties,
         });
       }
     });
