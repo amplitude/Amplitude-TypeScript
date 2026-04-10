@@ -69,10 +69,14 @@ describe('VideoObserver', () => {
     it('should track state changes', () => {
       internalHandler.onPlay({
         duration: 10,
+        last_position: undefined,
       });
       expect(onStateChange).toHaveBeenCalledWith(
         { playbackState: 'paused', lastEvent: undefined },
-        { playbackState: 'playing', lastEvent: { duration: 10 } },
+        expect.objectContaining({
+          playbackState: 'playing',
+          lastEvent: { duration: 10, last_position: undefined },
+        }),
       );
       internalHandler.onPause({
         last_position: 5,
@@ -81,8 +85,11 @@ describe('VideoObserver', () => {
         stop_reason: 'paused',
       });
       expect(onStateChange).toHaveBeenCalledWith(
-        { playbackState: 'playing', lastEvent: { duration: 10 } },
-        {
+        expect.objectContaining({
+          playbackState: 'playing',
+          lastEvent: { duration: 10, last_position: undefined },
+        }),
+        expect.objectContaining({
           playbackState: 'paused',
           lastEvent: {
             last_position: 5,
@@ -90,7 +97,7 @@ describe('VideoObserver', () => {
             duration: 10,
             stop_reason: 'paused',
           },
-        },
+        }),
       );
       internalHandler.onEnded({
         last_position: 10,
@@ -99,7 +106,7 @@ describe('VideoObserver', () => {
         stop_reason: 'ended',
       });
       expect(onStateChange).toHaveBeenCalledWith(
-        {
+        expect.objectContaining({
           playbackState: 'paused',
           lastEvent: {
             last_position: 5,
@@ -107,8 +114,8 @@ describe('VideoObserver', () => {
             duration: 10,
             stop_reason: 'paused',
           },
-        },
-        {
+        }),
+        expect.objectContaining({
           playbackState: 'ended',
           lastEvent: {
             last_position: 10,
@@ -116,7 +123,7 @@ describe('VideoObserver', () => {
             duration: 10,
             stop_reason: 'ended',
           },
-        },
+        }),
       );
       internalHandler.onError('test error');
     });
@@ -124,49 +131,82 @@ describe('VideoObserver', () => {
     it('should not transition to seeking when onSeeking is called', () => {
       internalHandler.onPlay({
         duration: 10,
+        last_position: undefined,
       });
       expect(onStateChange).toHaveBeenCalledTimes(1);
       internalHandler.onSeeking({
         duration: 10,
+        last_position: undefined,
         stop_reason: 'seeking',
       });
-      internalHandler.onTimeUpdate({ duration: 10, last_position: 5 });
-      expect(onStateChange).toHaveBeenCalledTimes(1);
+      internalHandler.onTimeUpdate({ position: 5, isSeeking: true });
+      expect(onStateChange).toHaveBeenCalledTimes(2);
       expect(onStateChange).toHaveBeenCalledWith(
         { playbackState: 'paused', lastEvent: undefined },
-        { playbackState: 'playing', lastEvent: { duration: 10 } },
+        { playbackState: 'playing', lastEvent: { duration: 10, last_position: undefined } },
       );
     });
 
-    describe.skip('watch time (onTimeUpdate)', () => {
+    it('should clear isSeeking and sync position on onSeeked', () => {
+      internalHandler.onSeeking({
+        duration: 10,
+        last_position: undefined,
+      });
+      internalHandler.onSeeked({
+        duration: 10,
+        last_position: 8,
+      });
+      expect(onStateChange).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          isSeeking: true,
+        }),
+        expect.objectContaining({
+          isSeeking: false,
+        }),
+      );
+    });
+
+    describe('watch time (onTimeUpdate)', () => {
       it('should not add position delta to watch time when not playing', () => {
-        internalHandler.onTimeUpdate({ duration: 10, last_position: 4 });
-        expect(onStateChange).toHaveBeenCalledWith(
-          { playbackState: 'paused', lastEvent: undefined },
-          { playbackState: 'paused', lastEvent: undefined, watchTime: 0 },
-        );
+        internalHandler.onTimeUpdate({ position: 4, isSeeking: false });
+        expect(onStateChange).not.toHaveBeenCalled();
+      });
+
+      it('should not inflate watch time when isSeeking is true on timeupdate before observer onSeeking runs (embedded race)', () => {
+        internalHandler.onPlay({ duration: 10, last_position: 10 });
+        onStateChange.mockClear();
+        internalHandler.onTimeUpdate({ position: 100, isSeeking: true });
+        expect(onStateChange).not.toHaveBeenCalled();
       });
 
       it('should accumulate watch time from last_position while playing (delta from lastEvent.last_position)', () => {
-        internalHandler.onPlay({ duration: 10 });
+        internalHandler.onPlay({ duration: 10, last_position: 0 });
         onStateChange.mockClear();
 
-        internalHandler.onTimeUpdate({ duration: 10, last_position: 2 });
+        internalHandler.onTimeUpdate({ position: 2, isSeeking: false });
         expect(onStateChange).toHaveBeenLastCalledWith(
-          expect.objectContaining({ playbackState: 'playing', lastEvent: { duration: 10 } }),
+          expect.objectContaining({ playbackState: 'playing', lastEvent: { duration: 10, last_position: 0 } }),
           expect.objectContaining({ playbackState: 'playing', watchTime: 2 }),
         );
 
-        internalHandler.onTimeUpdate({ duration: 10, last_position: 5 });
+        internalHandler.onTimeUpdate({ position: 5, isSeeking: false });
         expect(onStateChange).toHaveBeenLastCalledWith(
           expect.objectContaining({ playbackState: 'playing', watchTime: 2 }),
-          expect.objectContaining({ playbackState: 'playing', watchTime: 7 }),
+          expect.objectContaining({ playbackState: 'playing', watchTime: 5 }),
+        );
+
+        // seeking should not add to watch time
+        internalHandler.onTimeUpdate({ position: 20, isSeeking: true });
+        internalHandler.onTimeUpdate({ position: 23, isSeeking: false });
+        expect(onStateChange).toHaveBeenLastCalledWith(
+          expect.objectContaining({ playbackState: 'playing', watchTime: 5 }),
+          expect.objectContaining({ playbackState: 'playing', watchTime: 8 }),
         );
       });
 
       it('should use last_position on lastEvent as the previous position when present', () => {
         internalHandler.onPlay({ duration: 10, last_position: 0 });
-        internalHandler.onTimeUpdate({ duration: 10, last_position: 3 });
+        internalHandler.onTimeUpdate({ position: 3, isSeeking: false });
         internalHandler.onPause({
           duration: 10,
           last_position: 3,
@@ -176,7 +216,7 @@ describe('VideoObserver', () => {
         onStateChange.mockClear();
 
         internalHandler.onPlay({ duration: 10, last_position: 3 });
-        internalHandler.onTimeUpdate({ duration: 10, last_position: 5 });
+        internalHandler.onTimeUpdate({ position: 5, isSeeking: false });
 
         expect(onStateChange).toHaveBeenLastCalledWith(
           expect.objectContaining({ playbackState: 'playing', watchTime: 3 }),

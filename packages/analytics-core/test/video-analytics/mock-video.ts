@@ -121,14 +121,30 @@ export function createMockVideo(options: { isMux: boolean } = { isMux: false }):
     }),
   });
 
-  Object.defineProperty(HTMLMediaElement.prototype, 'seeking', {
+  Object.defineProperty(HTMLMediaElement.prototype, 'simulateSeek', {
     configurable: true,
     value: jest.fn(function (this: HTMLVideoElement, time?: number) {
       Object.defineProperty(this, 'currentTime', {
         configurable: true,
         value: time ?? 3,
       });
+      Object.defineProperty(this, 'seeking', { configurable: true, value: true });
       this.dispatchEvent(new Event('seeking'));
+      return Promise.resolve(undefined);
+    }),
+  });
+
+  Object.defineProperty(HTMLMediaElement.prototype, 'seeked', {
+    configurable: true,
+    value: jest.fn(function (this: HTMLVideoElement, time?: number) {
+      if (time !== undefined) {
+        Object.defineProperty(this, 'currentTime', {
+          configurable: true,
+          value: time,
+        });
+      }
+      Object.defineProperty(this, 'seeking', { configurable: true, value: false });
+      this.dispatchEvent(new Event('seeked'));
       return Promise.resolve(undefined);
     }),
   });
@@ -147,6 +163,7 @@ export function createMockVideo(options: { isMux: boolean } = { isMux: false }):
     onEnded: jest.fn(),
     onError: jest.fn(),
     onSeeking: jest.fn(),
+    onSeeked: jest.fn(),
     onTimeUpdate: jest.fn(),
   };
 

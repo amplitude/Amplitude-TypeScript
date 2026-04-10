@@ -63,8 +63,8 @@ export class VideoCapture {
       if (previousState.playbackState !== 'playing' && nextState.playbackState === 'playing') {
         // placeholder for Heartbeat Start Event
         this.amplitude.track('Video Content Started', {
-          ...this.extraEventProperties,
           ...nextState.lastEvent,
+          ...this.extraEventProperties,
         });
       }
     });
@@ -80,8 +80,9 @@ export class VideoCapture {
       if (previousState.playbackState === 'playing' && nextState.playbackState !== 'playing') {
         // placeholder for Heartbeat Stop Event
         this.amplitude.track('Video Content Stopped', {
-          ...this.extraEventProperties,
           ...nextState.lastEvent,
+          watch_duration: nextState.watchTime,
+          ...this.extraEventProperties,
         });
       }
     });

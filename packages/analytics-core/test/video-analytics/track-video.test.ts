@@ -57,7 +57,7 @@ describe('trackHtmlVideo', () => {
     const untrack = trackHtmlVideo(video, handler);
 
     video.play();
-    (video as any).seeking(7);
+    (video as any).simulateSeek(7);
     expect(handler.onSeeking).toHaveBeenCalledWith({
       last_position: 7,
       start_time: 7,
@@ -68,8 +68,27 @@ describe('trackHtmlVideo', () => {
 
     untrack();
     handler.onSeeking = jest.fn();
-    (video as any).seeking(1);
+    (video as any).simulateSeek(1);
     expect(handler.onSeeking).not.toHaveBeenCalled();
+  });
+
+  test('should track seeked events', () => {
+    const untrack = trackHtmlVideo(video, handler);
+
+    video.play();
+    (video as any).simulateSeek(7);
+    (video as any).seeked();
+    expect(handler.onSeeked).toHaveBeenCalledWith({
+      last_position: 7,
+      start_time: 7,
+      percent_completed: 70,
+      duration: 10,
+    });
+
+    untrack();
+    handler.onSeeked = jest.fn();
+    (video as any).seeked(2);
+    expect(handler.onSeeked).not.toHaveBeenCalled();
   });
 
   test('should track timeupdate events', () => {
@@ -79,10 +98,8 @@ describe('trackHtmlVideo', () => {
     Object.defineProperty(video, 'currentTime', { configurable: true, value: 4 });
     video.dispatchEvent(new Event('timeupdate'));
     expect(handler.onTimeUpdate).toHaveBeenCalledWith({
-      duration: 10,
-      start_time: 4,
-      last_position: 4,
-      percent_completed: 40,
+      position: 4,
+      isSeeking: false,
     });
 
     untrack();
@@ -157,7 +174,7 @@ describe('trackHtmlVideo with Mux vendor', () => {
     };
 
     video.play();
-    (video as any).seeking(4);
+    (video as any).simulateSeek(4);
     expect(handler.onSeeking).toHaveBeenCalledWith({
       last_position: 4,
       start_time: 4,
@@ -168,7 +185,7 @@ describe('trackHtmlVideo with Mux vendor', () => {
     });
   });
 
-  test('should track timeupdate events with Mux metadata', () => {
+  test('should track seeked events with Mux metadata', () => {
     trackHtmlVideo(video, handler, 'mux');
 
     const muxMetadata = {
@@ -178,14 +195,26 @@ describe('trackHtmlVideo with Mux vendor', () => {
     };
 
     video.play();
+    (video as any).simulateSeek(3);
+    (video as any).seeked();
+    expect(handler.onSeeked).toHaveBeenCalledWith({
+      last_position: 3,
+      start_time: 3,
+      percent_completed: 30,
+      duration: 10,
+      ...muxMetadata,
+    });
+  });
+
+  test('should track timeupdate events with Mux metadata', () => {
+    trackHtmlVideo(video, handler, 'mux');
+
+    video.play();
     Object.defineProperty(video, 'currentTime', { configurable: true, value: 2.5 });
     video.dispatchEvent(new Event('timeupdate'));
     expect(handler.onTimeUpdate).toHaveBeenCalledWith({
-      duration: 10,
-      start_time: 2.5,
-      last_position: 2.5,
-      percent_completed: 25,
-      ...muxMetadata,
+      position: 2.5,
+      isSeeking: false,
     });
   });
 });
@@ -203,6 +232,7 @@ describe('trackEmbeddedVideo', () => {
       onEnded: jest.fn(),
       onError: jest.fn(),
       onSeeking: jest.fn(),
+      onSeeked: jest.fn(),
       onTimeUpdate: jest.fn(),
     };
   });
@@ -274,6 +304,26 @@ describe('trackEmbeddedVideo', () => {
       expect(handler.onSeeking).not.toHaveBeenCalled();
     });
 
+    test('should track seeked events', async () => {
+      const untrack = trackEmbeddedVideo(player, handler);
+      player.emit('ready');
+      player.setCurrentTime(8);
+      player.emit('seeked');
+      await jest.runAllTimersAsync();
+      expect(handler.onSeeked).toHaveBeenCalledWith({
+        last_position: 8,
+        start_time: 8,
+        percent_completed: 80,
+        duration: 10,
+      });
+
+      untrack();
+      handler.onSeeked = jest.fn();
+      player.emit('seeked');
+      await jest.runAllTimersAsync();
+      expect(handler.onSeeked).not.toHaveBeenCalled();
+    });
+
     test('should track timeupdate events', async () => {
       const untrack = trackEmbeddedVideo(player, handler);
       player.emit('ready');
@@ -281,10 +331,8 @@ describe('trackEmbeddedVideo', () => {
       player.emit('timeupdate');
       await jest.runAllTimersAsync();
       expect(handler.onTimeUpdate).toHaveBeenCalledWith({
-        last_position: 4,
-        start_time: 4,
-        percent_completed: 40,
-        duration: 10,
+        position: 4,
+        isSeeking: false,
       });
 
       untrack();
@@ -292,6 +340,20 @@ describe('trackEmbeddedVideo', () => {
       player.emit('timeupdate');
       await jest.runAllTimersAsync();
       expect(handler.onTimeUpdate).not.toHaveBeenCalled();
+    });
+
+    test('should set isSeeking on timeupdate before async seeking metadata resolves', async () => {
+      const untrack = trackEmbeddedVideo(player, handler);
+      player.emit('ready');
+      player.setCurrentTime(6);
+      player.emit('seeking');
+      player.emit('timeupdate');
+      await jest.runAllTimersAsync();
+      expect(handler.onTimeUpdate).toHaveBeenCalledWith({
+        position: 6,
+        isSeeking: true,
+      });
+      untrack();
     });
   });
 
@@ -372,7 +434,7 @@ describe('trackEmbeddedVideo', () => {
       });
     });
 
-    test('should track timeupdate events with Mux metadata', async () => {
+    test('should track seeked events with Mux metadata', async () => {
       trackEmbeddedVideo(player, handler, 'mux');
       player.emit('ready');
 
@@ -382,15 +444,28 @@ describe('trackEmbeddedVideo', () => {
         mux_video_title: 'My Video',
       };
 
+      player.setCurrentTime(4);
+      player.emit('seeked');
+      await jest.runAllTimersAsync();
+      expect(handler.onSeeked).toHaveBeenCalledWith({
+        last_position: 4,
+        start_time: 4,
+        percent_completed: 40,
+        duration: 10,
+        ...muxMetadata,
+      });
+    });
+
+    test('should track timeupdate events with Mux metadata', async () => {
+      trackEmbeddedVideo(player, handler, 'mux');
+      player.emit('ready');
+
       player.setCurrentTime(3);
       player.emit('timeupdate');
       await jest.runAllTimersAsync();
       expect(handler.onTimeUpdate).toHaveBeenCalledWith({
-        last_position: 3,
-        start_time: 3,
-        percent_completed: 30,
-        duration: 10,
-        ...muxMetadata,
+        position: 3,
+        isSeeking: false,
       });
     });
 
@@ -453,11 +528,26 @@ describe('trackEmbeddedVideo', () => {
         expect(handler.onError).toHaveBeenCalledWith(expect.stringContaining("from 'seeking' handler"));
       });
 
-      test('should call the error handler (timeupdate)', async () => {
-        player.emit('timeupdate');
+      test('should call the error handler (seeked)', async () => {
+        player.emit('seeked');
         await jest.runAllTimersAsync();
         expect(handler.onError).toHaveBeenCalledTimes(1);
-        expect(handler.onError).toHaveBeenCalledWith(expect.stringContaining("from 'timeupdate' handler"));
+        expect(handler.onError).toHaveBeenCalledWith(expect.stringContaining("from 'seeked' handler"));
+      });
+
+      test('should call the error handler (timeupdate)', async () => {
+        const originalGetCurrentTime = player.getCurrentTime;
+        player.getCurrentTime = jest.fn().mockImplementation(() => {
+          throw new Error('Error getting current time');
+        });
+        try {
+          player.emit('timeupdate');
+          await jest.runAllTimersAsync();
+          expect(handler.onError).toHaveBeenCalledTimes(1);
+          expect(handler.onError).toHaveBeenCalledWith(expect.stringContaining("from 'timeupdate' handler"));
+        } finally {
+          player.getCurrentTime = originalGetCurrentTime;
+        }
       });
     });
   });

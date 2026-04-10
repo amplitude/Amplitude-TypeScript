@@ -37,7 +37,7 @@ describe('VideoCapture', () => {
 
       // mock a play event
       let previousState: VideoState = { playbackState: 'paused', lastEvent: undefined };
-      let nextState: VideoState = { playbackState: 'playing', lastEvent: { duration: 10 } };
+      let nextState: VideoState = { playbackState: 'playing', lastEvent: { duration: 10, last_position: undefined } };
       currentVideoObserver!.emitStateChange(previousState, nextState);
       expect(mockAmplitude.track).toHaveBeenCalledWith('Video Content Started', {
         duration: 10,
@@ -62,7 +62,7 @@ describe('VideoCapture', () => {
 
       // mock another play event
       previousState = nextState;
-      nextState = { playbackState: 'playing', lastEvent: { duration: 10 } };
+      nextState = { playbackState: 'playing', lastEvent: { duration: 10, last_position: undefined } };
       currentVideoObserver!.emitStateChange(previousState, nextState);
 
       // assert that the track method was not called again
@@ -115,7 +115,7 @@ describe('VideoCapture', () => {
       expect(currentVideoObserver!.vendor).toBe('mux');
       currentVideoObserver!.emitStateChange(
         { playbackState: 'paused', lastEvent: undefined },
-        { playbackState: 'playing', lastEvent: { duration: 10 } },
+        { playbackState: 'playing', lastEvent: { duration: 10, last_position: undefined } },
       );
       expect(mockAmplitude.track).toHaveBeenCalledWith('Video Content Started', {
         duration: 10,
@@ -123,7 +123,7 @@ describe('VideoCapture', () => {
         number: 123,
       });
       currentVideoObserver!.emitStateChange(
-        { playbackState: 'playing', lastEvent: { duration: 10 } },
+        { playbackState: 'playing', lastEvent: { duration: 10, last_position: undefined } },
         { playbackState: 'paused', lastEvent: { duration: 10, last_position: 5 } },
       );
       expect(mockAmplitude.track).toHaveBeenCalledWith('Video Content Stopped', {
@@ -135,7 +135,7 @@ describe('VideoCapture', () => {
       stopVideoCapture();
       currentVideoObserver!.emitStateChange(
         { playbackState: 'paused', lastEvent: { duration: 10, last_position: 5 } },
-        { playbackState: 'playing', lastEvent: { duration: 10 } },
+        { playbackState: 'playing', lastEvent: { duration: 10, last_position: undefined } },
       );
       expect(mockAmplitude.track).toHaveBeenCalledTimes(2);
     });
@@ -149,13 +149,13 @@ describe('VideoCapture', () => {
       } as unknown as EmbeddedVideoPlayer);
       currentVideoObserver!.emitStateChange(
         { playbackState: 'paused', lastEvent: undefined },
-        { playbackState: 'playing', lastEvent: { duration: 10 } },
+        { playbackState: 'playing', lastEvent: { duration: 10, last_position: undefined } },
       );
       expect(mockAmplitude.track).toHaveBeenCalledWith('Video Content Started', {
         duration: 10,
       });
       currentVideoObserver!.emitStateChange(
-        { playbackState: 'playing', lastEvent: { duration: 10 } },
+        { playbackState: 'playing', lastEvent: { duration: 10, last_position: undefined } },
         { playbackState: 'paused', lastEvent: { duration: 10, last_position: 5 } },
       );
       expect(mockAmplitude.track).toHaveBeenCalledWith('Video Content Stopped', {

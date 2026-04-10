@@ -1,5 +1,12 @@
 import { trackHtmlVideo, trackEmbeddedVideo } from '../video-analytics/track-video';
-import type { VideoHandler, VideoEvent, EmbeddedVideoPlayer, MuxElement, Vendor } from '../video-analytics/types';
+import type {
+  VideoHandler,
+  VideoEvent,
+  EmbeddedVideoPlayer,
+  MuxElement,
+  Vendor,
+  TimeUpdateEvent,
+} from '../video-analytics/types';
 
 export type { Vendor };
 
@@ -10,6 +17,8 @@ export type State = {
   errorMessage?: string;
   lastEvent?: VideoEvent;
   watchTime?: number;
+  position?: number | null;
+  isSeeking?: boolean;
 };
 
 export type VideoObserverParams = {
@@ -36,14 +45,26 @@ export class VideoObserver {
     onEnded: (evt: VideoEvent) => {
       this.updatePlaybackState('ended', evt);
     },
-    onSeeking: (/*evt: VideoEvent*/) => {
-      // no-op for now, may track events in the future
+    onSeeking: () => {
+      const nextState: State = {
+        ...this.state,
+        isSeeking: true,
+      };
+      this.updateState(nextState);
+    },
+    onSeeked: (event: VideoEvent) => {
+      const nextState: State = {
+        ...this.state,
+        isSeeking: false,
+        position: event.last_position,
+      };
+      this.updateState(nextState);
     },
     onError: (errorMessage: string) => {
       this.updateStateWithError(errorMessage);
     },
-    onTimeUpdate: (/*evt: VideoEvent*/) => {
-      //this.updateTime(evt);
+    onTimeUpdate: (evt: TimeUpdateEvent) => {
+      this.updateTime(evt);
     },
   };
 
@@ -67,22 +88,49 @@ export class VideoObserver {
   private updateStateWithError(error: string) {
     const previousState = this.state;
     const nextState: State = {
-      ...this.state,
+      ...previousState,
       playbackState: 'error',
       errorMessage: error,
-      lastEvent: undefined,
     };
-    this.state = nextState;
-    this.stateChangeHandler(previousState, nextState);
+    this.updateState(nextState);
   }
 
-  private updatePlaybackState(playbackState: PlaybackState, event?: VideoEvent) {
-    const previousState = this.state;
+  private updatePlaybackState(playbackState: PlaybackState, event: VideoEvent) {
     const nextState: State = {
       ...this.state,
       playbackState,
       lastEvent: event,
+      position: event.last_position,
     };
+    this.updateState(nextState);
+  }
+
+  private updateTime(event: TimeUpdateEvent) {
+    const lastVideoEvent = this.state.lastEvent;
+    if (!lastVideoEvent || this.state.playbackState !== 'playing') {
+      return;
+    }
+    const isSeeking = event.isSeeking || this.state.isSeeking;
+    const lastPosition = this.state.position ?? 0;
+    const nextPosition = event.position;
+    if (isSeeking) {
+      this.state = {
+        ...this.state,
+        position: nextPosition,
+      };
+      return;
+    }
+    const timeDelta = nextPosition - lastPosition;
+    const nextState: State = {
+      ...this.state,
+      position: nextPosition,
+      watchTime: (this.state.watchTime ?? 0) + timeDelta,
+    };
+    this.updateState(nextState);
+  }
+
+  private updateState(nextState: State) {
+    const previousState = this.state;
     this.state = nextState;
     this.stateChangeHandler(previousState, nextState);
   }
