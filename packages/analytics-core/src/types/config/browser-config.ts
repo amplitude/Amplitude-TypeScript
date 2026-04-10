@@ -243,7 +243,6 @@ export interface AttributionOptions {
    * (a referrer is 'internal' if it is on the same domain as the current page)
    * Applies only to `userProperty` tracking.
    * Ignored by `eventProperty` tracking.
-   * @experimental this feature is experimental and may not be stable
    * @defaultValue `false`
    */
   excludeInternalReferrers?: true | false | ExcludeInternalReferrersOptions;
