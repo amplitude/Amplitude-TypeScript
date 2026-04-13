@@ -1,27 +1,29 @@
-# Security-focused PR review (Bugbot)
+# Bugbot: default review + added security bar
 
-When this repository is reviewed by Bugbot (including when triggered with `bugbot run` or `cursor review`), treat the review as a **security code review** of the **pull request diff and changed files**. This is not a general code review: focus only on **new or modified code** in the PR and its security implications. Do not comment on pre-existing security concerns unrelated to this change set.
+Do **not** replace Bugbot’s normal pull request review. Continue to report **bugs, regressions, correctness issues, and code quality** problems the way you usually would (including ordinary security mistakes when they are clear bugs).
 
-## Objective
+This file **adds** repository-specific expectations: on top of that default behavior, also perform a **structured security pass** on **new or modified code in the PR**. Scope that security pass to what this PR changes (plus minimal context needed to judge exploitability). Avoid re-litigating unrelated, pre-existing issues unless this PR makes them materially worse.
 
-Identify **high-confidence** security vulnerabilities that could have real exploitation potential.
+## Added objective (security pass)
 
-### Critical instructions
+Within the security pass, prioritize **high-confidence** security vulnerabilities that could have real exploitation potential.
 
-1. **Minimize false positives**: Only flag issues where you are more than 50% confident of actual exploitability.
-2. **Avoid noise**: Skip theoretical issues, style concerns, or low-impact findings.
-3. **Focus on impact**: Prioritize unauthorized access, data breaches, or meaningful system compromise.
-4. **Exclusions**: Do **not** report:
+### Critical instructions (security pass)
+
+1. **Minimize false positives** for security-labeled findings: only treat something as a **security** issue when you are more than 50% confident of actual exploitability.
+2. **Avoid noise** in the security pass: skip theoretical security issues; handle style and routine quality outside the security pass (normal Bugbot behavior).
+3. **Focus security impact**: unauthorized access, data breaches, or meaningful system compromise.
+4. **Security pass exclusions** (do **not** file these as **security** findings; other non-security bugs may still be in scope for normal review):
    - Denial of service (DoS) or resource exhaustion
    - Secrets or sensitive data stored on disk (handled elsewhere)
    - Rate limiting concerns
 
-### Preparation (diff-based)
+### Preparation (diff-based, security pass)
 
 - When `package.json`, `pnpm-lock.yaml`, or similar manifests change, consider **supply-chain and dependency** risk visible in the diff.
 - Prefer **static analysis** of the changed code; do not assume you can run `pnpm install` or `pnpm build` unless the review environment actually does so.
 
-## Security categories to examine
+## Security categories to examine (security pass)
 
 **Input validation**
 
@@ -45,15 +47,15 @@ Identify **high-confidence** security vulnerabilities that could have real explo
 
 **Note**: Issues exploitable only from a local network can still be **high** severity if the impact is serious.
 
-## Analysis methodology
+## Analysis methodology (security pass)
 
 1. **Context**: Infer security patterns from the codebase (validation, sanitization, threat model) using the diff and surrounding files as needed.
 2. **Comparison**: Compare new code to existing secure patterns; flag new attack surface or inconsistent protections.
 3. **Assessment**: Trace data flow from untrusted inputs to sensitive operations; flag injection and unsafe deserialization; respect trust boundaries.
 
-## Required output format for findings
+## Output format for **security-class** findings
 
-Use markdown. For each finding include: **file**, **line** (approximate if needed), **severity**, **category** (e.g. `sql_injection`, `xss`), **description**, **exploit scenario**, **fix recommendation**.
+For issues you present as **security** vulnerabilities, prefer this detail in the comment body (adapt to Bugbot’s normal PR comment style). Include: **file**, **line** (approximate if needed), **severity**, **category** (e.g. `sql_injection`, `xss`), **description**, **exploit scenario**, **fix recommendation**.
 
 Example:
 
@@ -79,13 +81,13 @@ Example:
 - **0.7–0.8**: Suspicious, conditional exploit
 - **Below 0.7**: Do not report
 
-Focus on **High** and **Medium** only. Prefer missing a theoretical issue over flooding the PR.
+For the **security pass**, focus on **High** and **Medium** only. Prefer missing a theoretical security issue over flooding the PR with security noise.
 
-## False positive filtering
+## False positive filtering (security pass)
 
 Rely on reading the code; **do not** write to the repository or execute commands solely to “prove” exploitability unless the review product explicitly supports safe reproduction.
 
-### Hard exclusions
+### Hard exclusions (for **security** findings)
 
 1. DoS or resource exhaustion.
 2. Secrets on disk if otherwise appropriately scoped/handled.
@@ -105,7 +107,7 @@ Rely on reading the code; **do not** write to the repository or execute commands
 16. Findings **only in documentation** (markdown, comments-as-docs) — out of scope.
 17. Missing audit logs — out of scope.
 
-### Precedents
+### Precedents (security pass)
 
 1. Logging **high-value secrets** in plaintext is a problem; logging URLs is generally assumed acceptable.
 2. **UUIDs** can be treated as unguessable identifiers unless the code suggests otherwise.
@@ -120,20 +122,20 @@ Rely on reading the code; **do not** write to the repository or execute commands
 11. Logging non-PII “sensitive” business data — not a logging vulnerability unless secrets or **PII**.
 12. **Shell scripts**: command injection only with a clear untrusted-input path.
 
-### Signal quality (for anything you keep)
+### Signal quality (for security findings you keep)
 
 1. Concrete exploit path?
 2. Real risk vs best-practice nit?
 3. Specific locations and steps?
 4. Actionable for security?
 
-Use a 1–10 confidence score; **do not report** findings below **8** after applying the filters above.
+Use a 1–10 confidence score for **security-class** reports; **do not report** those below **8** after applying the filters above. **Non-security** bugs and quality issues are not subject to this gate—use ordinary Bugbot judgment.
 
 ## Final workflow
 
-1. Map the PR changes and relevant context.
-2. Identify candidate vulnerabilities per the categories above.
-3. Apply **false positive filtering** and precedents to each candidate.
-4. Emit the markdown report for surviving findings only; keep noise low.
+1. Run your **standard Bugbot review** (bugs, quality, regressions, typical issue triage).
+2. Map the PR changes and minimal context for a **security pass**.
+3. Identify candidate vulnerabilities per the categories above; apply **false positive filtering** and precedents.
+4. Report **high-signal security** issues clearly; keep the security portion of the review low-noise.
 
-Your review comment should prioritize **clear, actionable security issues** introduced or worsened by this PR.
+The PR should receive both **normal Bugbot value** and **this stricter security bar** where it matters.
