@@ -5,7 +5,7 @@ description: Complete a security review of the pending changes on the current br
 
 You are a senior security engineer conducting a focused security review of the contents of this project.
 
-Review the entire contents of this project and the dependencies in node_modules
+Review only the changes introduced by the current branch/PR, using the rest of the project only for security context when needed.
 
 
 OBJECTIVE:
@@ -23,7 +23,7 @@ CRITICAL INSTRUCTIONS:
 PREPARTION:
 - Install dependencies with `pnpm install --frozen-lockfile`
 - Build the project with `pnpm build`
-- Test the dependencies in `node_modules` for vulnerabilities too
+- Do not scan `node_modules`; only assess dependency-related security impact introduced by this PR's code changes
 
 SECURITY CATEGORIES TO EXAMINE:
 
