@@ -135,10 +135,11 @@ export class SessionReplay implements AmplitudeSessionReplay {
   };
 
   /**
-   * Subscribes to SPA URL changes via the URL tracking plugin and re-evaluates targeting so we
-   * can start/stop recording when the user navigates to a page that matches or no longer matches.
+   * Subscribes to SPA URL changes via the URL tracking plugin. Always keeps
+   * `currentPageUrl` in sync (needed for URL-based masking). When a targeting
+   * config is present it also re-evaluates targeting on every navigation.
    */
-  private setupUrlChangeListenerForTargeting(): void {
+  private setupUrlChangeListener(): void {
     // If init() runs multiple times, remove the previous URL-change subscription first
     // so we don't leak callbacks and trigger duplicate targeting evaluations.
     this.urlChangeCleanup?.();
@@ -148,20 +149,25 @@ export class SessionReplay implements AmplitudeSessionReplay {
       return;
     }
 
+    const hasTargeting = !!this.config?.targetingConfig;
+
     const onUrlChange = (href: string): void => {
       this.currentPageUrl = href;
-      const evaluationId = ++this.latestUrlChangeTargetingEvaluationId;
-      void this.evaluateTargetingAndCapture(
-        {
-          userProperties: {},
-          event: undefined,
-          page: { url: href },
-        },
-        false,
-        false,
-        true,
-      );
-      this.loggerProvider.debug(`Queued URL-change targeting re-evaluation #${evaluationId} for ${href}.`);
+
+      if (hasTargeting) {
+        const evaluationId = ++this.latestUrlChangeTargetingEvaluationId;
+        void this.evaluateTargetingAndCapture(
+          {
+            userProperties: {},
+            event: undefined,
+            page: { url: href },
+          },
+          false,
+          false,
+          true,
+        );
+        this.loggerProvider.debug(`Queued URL-change targeting re-evaluation #${evaluationId} for ${href}.`);
+      }
     };
     type UrlUnsubscribe = (scope: Window | undefined, cb: (href: string) => void) => () => void;
     const unsubscribe = (subscribeToUrlChanges as UrlUnsubscribe)(globalScope, onUrlChange);
@@ -322,8 +328,9 @@ export class SessionReplay implements AmplitudeSessionReplay {
       true,
     );
 
-    if (this.config.targetingConfig) {
-      this.setupUrlChangeListenerForTargeting();
+    const needsUrlTracking = this.config.targetingConfig || (this.config.privacyConfig?.urlMaskLevels?.length ?? 0) > 0;
+    if (needsUrlTracking) {
+      this.setupUrlChangeListener();
     }
   }
 
@@ -639,6 +646,14 @@ export class SessionReplay implements AmplitudeSessionReplay {
     const effectiveLevel = privacyConfig ? getEffectiveMaskLevel(this.currentPageUrl, privacyConfig) : undefined;
 
     if (effectiveLevel === 'conservative') {
+      return '*';
+    }
+
+    // If any urlMaskLevels rule uses 'conservative', always route all text nodes
+    // through maskTextFn so the dynamic URL getter can decide at call time.
+    // Without this, rrweb's static maskTextSelector would miss text nodes when
+    // the user navigates from a non-conservative page to a conservative one.
+    if (privacyConfig?.urlMaskLevels?.some((rule) => rule.maskLevel === 'conservative')) {
       return '*';
     }
 

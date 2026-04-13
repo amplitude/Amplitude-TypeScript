@@ -3682,7 +3682,7 @@ describe('SessionReplay', () => {
       const sessionReplay = new SessionReplay();
       sessionReplay.config = { targetingConfig: {} } as any;
       sessionReplay.identifiers = { sessionId: 123 } as any;
-      (sessionReplay as any).setupUrlChangeListenerForTargeting();
+      (sessionReplay as any).setupUrlChangeListener();
       expect(subscribeToUrlChanges).not.toHaveBeenCalled();
     });
 
@@ -3691,7 +3691,7 @@ describe('SessionReplay', () => {
       const sessionReplay = new SessionReplay();
       sessionReplay.config = { targetingConfig: {} } as any;
       sessionReplay.identifiers = { sessionId: 123 } as any;
-      (sessionReplay as any).setupUrlChangeListenerForTargeting();
+      (sessionReplay as any).setupUrlChangeListener();
       expect(subscribeToUrlChanges).not.toHaveBeenCalled();
     });
 
@@ -3847,7 +3847,7 @@ describe('SessionReplay', () => {
       );
     });
 
-    test('should clean up existing URL subscription when setupUrlChangeListenerForTargeting is called again', () => {
+    test('should clean up existing URL subscription when setupUrlChangeListener is called again', () => {
       jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue({
         location: { href: 'https://example.com/current' },
       } as any);
@@ -3858,14 +3858,14 @@ describe('SessionReplay', () => {
         .mockImplementationOnce(() => secondCleanup);
 
       const sessionReplay = new SessionReplay();
-      (sessionReplay as any).setupUrlChangeListenerForTargeting();
-      (sessionReplay as any).setupUrlChangeListenerForTargeting();
+      (sessionReplay as any).setupUrlChangeListener();
+      (sessionReplay as any).setupUrlChangeListener();
 
       expect(firstCleanup).toHaveBeenCalledTimes(1);
       expect(secondCleanup).not.toHaveBeenCalled();
     });
 
-    test('should not call subscribeToUrlChanges when init completes with no targetingConfig', async () => {
+    test('should not call subscribeToUrlChanges when init completes with no targetingConfig and no urlMaskLevels', async () => {
       (subscribeToUrlChanges as jest.Mock).mockClear();
       mockRemoteConfig = {
         sr_sampling_config: samplingConfig,
