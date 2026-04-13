@@ -35,7 +35,16 @@ import {
   SESSION_REPLAY_SERVER_URL,
   SESSION_REPLAY_STAGING_URL,
 } from './constants';
-import { getServerUrl, getDebugConfig, getPageUrl, getStorageSize, maskFn, maskAttributeFn } from './helpers';
+import {
+  getServerUrl,
+  getDebugConfig,
+  getEffectiveMaskLevel,
+  getPageUrl,
+  getStorageSize,
+  getCurrentUrl,
+  maskFn,
+  maskAttributeFn,
+} from './helpers';
 import { EventCompressor } from './events/event-compressor';
 import { createEventsManager, EventsManagerWithBeacon } from './events/events-manager';
 import { MultiEventManager } from './events/multi-manager';
@@ -88,6 +97,9 @@ export class SessionReplay implements AmplitudeSessionReplay {
   // Cache the dynamically imported record function
   private recordFunction: RecordFunction | null = null;
 
+  /** Current page URL, kept in sync with SPA navigations for URL-based masking */
+  private currentPageUrl = '';
+
   /** Cleanup for URL change listener used to re-evaluate targeting on SPA route changes */
   private urlChangeCleanup: (() => void) | null = null;
   /** Monotonic counter to ignore stale URL-change targeting results */
@@ -137,6 +149,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
     }
 
     const onUrlChange = (href: string): void => {
+      this.currentPageUrl = href;
       const evaluationId = ++this.latestUrlChangeTargetingEvaluationId;
       void this.evaluateTargetingAndCapture(
         {
@@ -172,6 +185,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
     this.loggerProvider = new SafeLoggerProvider(options.loggerProvider || new Logger());
     Object.prototype.hasOwnProperty.call(options, 'logLevel') &&
       this.loggerProvider.enable(options.logLevel as LogLevel);
+    this.currentPageUrl = getCurrentUrl();
     this.identifiers = new SessionIdentifiers({ sessionId: options.sessionId, deviceId: options.deviceId });
     this.joinedConfigGenerator = await createSessionReplayJoinedConfigGenerator(apiKey, options);
     const { joinedConfig, localConfig, remoteConfig } = await this.joinedConfigGenerator.generateJoinedConfig();
@@ -621,11 +635,14 @@ export class SessionReplay implements AmplitudeSessionReplay {
   }
 
   getMaskTextSelectors(): string | undefined {
-    if (this.config?.privacyConfig?.defaultMaskLevel === 'conservative') {
+    const privacyConfig = this.config?.privacyConfig;
+    const effectiveLevel = privacyConfig ? getEffectiveMaskLevel(this.currentPageUrl, privacyConfig) : undefined;
+
+    if (effectiveLevel === 'conservative') {
       return '*';
     }
 
-    const maskSelector = this.config?.privacyConfig?.maskSelector;
+    const maskSelector = privacyConfig?.maskSelector;
     if (!maskSelector) {
       return;
     }
@@ -763,9 +780,9 @@ export class SessionReplay implements AmplitudeSessionReplay {
         blockClass: BLOCK_CLASS,
         blockSelector: this.getBlockSelectors() as string | undefined,
         applyBackgroundColorToBlockedElements: config.applyBackgroundColorToBlockedElements,
-        maskInputFn: maskFn('input', privacyConfig),
-        maskTextFn: maskFn('text', privacyConfig),
-        maskAttributeFn: maskAttributeFn(privacyConfig),
+        maskInputFn: maskFn('input', privacyConfig, () => this.currentPageUrl),
+        maskTextFn: maskFn('text', privacyConfig, () => this.currentPageUrl),
+        maskAttributeFn: maskAttributeFn(privacyConfig, () => this.currentPageUrl),
         maskTextSelector: this.getMaskTextSelectors(),
         recordCanvas: false,
         slimDOMOptions: {

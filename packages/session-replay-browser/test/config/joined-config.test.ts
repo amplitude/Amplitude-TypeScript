@@ -31,6 +31,7 @@ const privacyConfig: Required<PrivacyConfig> = {
   maskSelector: [],
   unmaskSelector: [],
   maskAttributes: [],
+  urlMaskLevels: [],
 };
 
 const mockLoggerProvider: MockedLogger = {
@@ -277,6 +278,7 @@ describe('SessionReplayJoinedConfigGenerator', () => {
               maskSelector: undefined,
               unmaskSelector: undefined,
               maskAttributes: [],
+              urlMaskLevels: [],
             },
             ...{ [`${selectorType}Selector`]: ['.localClassName', '.remoteClassName'] },
           },
@@ -323,6 +325,7 @@ describe('SessionReplayJoinedConfigGenerator', () => {
             maskSelector: undefined,
             unmaskSelector: undefined,
             maskAttributes: [],
+            urlMaskLevels: [],
           },
         });
       });
