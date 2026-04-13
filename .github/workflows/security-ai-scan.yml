@@ -11,7 +11,7 @@ jobs:
   security:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4 # TODO: make this a SHA
+      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 2
@@ -27,7 +27,7 @@ jobs:
         run: |
           pnpm build
 
-      - uses: anthropics/claude-code-security-review@main # TODO: make this a SHA
+      - uses: anthropics/claude-code-security-review@0c6a49f1fa56a1d472575da86a94dbc1edb78eda # TODO: make this a SHA
         with:
           comment-pr: true
           claude-api-key: ${{ secrets.CLAUDE_API_KEY }}
