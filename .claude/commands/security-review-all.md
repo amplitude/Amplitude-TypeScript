@@ -3,10 +3,9 @@ allowed-tools: Bash(git diff:*), Bash(git status:*), Bash(git log:*), Bash(git s
 description: Complete a security review of the pending changes on the current branch
 ---
 
-You are a senior security engineer conducting a focused security review of the contents of this project.
+You are a senior security engineer conducting a **diff-scoped** security review: assess **what this branch / PR changes**, not the whole repository or all of `node_modules`.
 
-Review the entire contents of this project and the dependencies in node_modules
-
+**Scope**: New or modified **first-party** source and config, plus **dependency changes visible in the PR** (for example `package.json`, `pnpm-lock.yaml`, or similar). Read surrounding code only when needed to judge exploitability of those changes. Do **not** run a full-repo scan, audit every file under `node_modules`, or report unrelated transitive CVEs unless this PR introduces or materially changes the relevant dependency surface.
 
 OBJECTIVE:
 Perform a security-focused code review to identify HIGH-CONFIDENCE security vulnerabilities that could have real exploitation potential. Focus ONLY on security implications newly added by this PR. Do not comment on existing security concerns.
@@ -20,10 +19,9 @@ CRITICAL INSTRUCTIONS:
    - Secrets or sensitive data stored on disk (these are handled by other processes)
    - Rate limiting or resource exhaustion issues
 
-PREPARTION:
-- Install dependencies with `pnpm install --frozen-lockfile`
-- Build the project with `pnpm build`
-- Test the dependencies in `node_modules` for vulnerabilities too
+PREPARATION (optional, if the environment runs commands and you need build context):
+- From the repo root: `pnpm install --frozen-lockfile` and `pnpm build`.
+- For **dependencies**, rely on the **manifest/lockfile diff** in this PR for supply-chain signal; do **not** treat a broad `node_modules` vulnerability sweep as part of this review (see HARD EXCLUSIONS: outdated third-party libraries handled elsewhere).
 
 SECURITY CATEGORIES TO EXAMINE:
 
@@ -67,8 +65,8 @@ Additional notes:
 
 ANALYSIS METHODOLOGY:
 
-Phase 1 - Repository Context Research (Use file search tools):
-- Identify existing security frameworks and libraries in use
+Phase 1 - Repository Context Research (Use file search tools; prioritize files and imports touched by the PR diff):
+- Identify existing security frameworks and libraries relevant to the changed code
 - Look for established secure coding patterns in the codebase
 - Examine existing sanitization and validation patterns
 - Understand the project's security model and threat model

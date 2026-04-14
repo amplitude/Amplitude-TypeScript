@@ -24,9 +24,8 @@ pnpm build
 
 1. `pnpm install`
 2. `pnpm build`
-3. `pnpm docs:check`
-4. `pnpm test`
-5. `pnpm lint`
+3. `pnpm test`
+4. `pnpm lint`
 
 ## Compatibility
 
