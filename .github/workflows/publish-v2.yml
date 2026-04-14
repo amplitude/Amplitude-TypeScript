@@ -18,7 +18,7 @@ on:
         required: false
       skipLernaVersion:
         type: boolean
-        description: Skip `lerna version` for release/prerelease and only run the publish step. Use this to recover from a partial npm publish where some packages were already released.
+        description: Skip `lerna version` and E2E for release/prerelease recovery runs, then only run the publish step. Use this to recover from a partial npm publish where some packages were already released.
         required: false
         default: false
 
@@ -56,13 +56,19 @@ jobs:
       image: mcr.microsoft.com/playwright:v1.55.0
 
     steps:
+      - name: Skip E2E for recovery publish
+        if: ${{ github.event.inputs.skipLernaVersion == 'true' }}
+        run: echo "Skipping E2E because skipLernaVersion is true"
+
       - name: Check out git repository
+        if: ${{ github.event.inputs.skipLernaVersion != 'true' }}
         uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3
         with:
           fetch-depth: 0
           ref: ${{ github.event.inputs.branch || github.ref_name }}
 
       - name: Run E2E tests
+        if: ${{ github.event.inputs.skipLernaVersion != 'true' }}
         uses: ./.github/actions/e2e-test
         with:
           amplitude-api-key: ${{ secrets.AMPLITUDE_API_KEY }}
