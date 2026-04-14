@@ -3,6 +3,19 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.46.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.45.0...@amplitude/analytics-core@2.46.0) (2026-04-14)
+
+
+### Features
+
+* **analytics-browser:** event property attribution ([#1628](https://github.com/amplitude/Amplitude-TypeScript/issues/1628)) ([6d37e79](https://github.com/amplitude/Amplitude-TypeScript/commit/6d37e797976e0e77dc11046b9259eb4b80259996))
+* **analytics-browser:** make "attribution.excludeInternalReferrers" GA ([#1660](https://github.com/amplitude/Amplitude-TypeScript/issues/1660)) ([72bcc33](https://github.com/amplitude/Amplitude-TypeScript/commit/72bcc335ad78c54512d26c0e359ae0c47611fd30))
+* **analytics-browser:** make errorClicks and thrashedCursor GA ([#1658](https://github.com/amplitude/Amplitude-TypeScript/issues/1658)) ([bfd0b9f](https://github.com/amplitude/Amplitude-TypeScript/commit/bfd0b9fbe9f0b7f954b20012ecc448afd3535be5))
+
+
+
+
+
 # [2.45.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.44.1...@amplitude/analytics-core@2.45.0) (2026-04-09)
 
 

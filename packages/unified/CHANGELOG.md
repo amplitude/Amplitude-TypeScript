@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.0.17](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/unified@1.0.16...@amplitude/unified@1.0.17) (2026-04-14)
+
+
+### Bug Fixes
+
+* **unified:** export public unified types ([#1664](https://github.com/amplitude/Amplitude-TypeScript/issues/1664)) ([daf5137](https://github.com/amplitude/Amplitude-TypeScript/commit/daf51376a5ac2b8b4abbf0c5c37a9da3a9d75c17))
+
+
+
+
+
 ## [1.0.16](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/unified@1.0.15...@amplitude/unified@1.0.16) (2026-04-09)
 
 **Note:** Version bump only for package @amplitude/unified

@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.40.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.39.0...@amplitude/analytics-browser@2.40.0) (2026-04-14)
+
+
+### Features
+
+* **analytics-browser:** event property attribution ([#1628](https://github.com/amplitude/Amplitude-TypeScript/issues/1628)) ([6d37e79](https://github.com/amplitude/Amplitude-TypeScript/commit/6d37e797976e0e77dc11046b9259eb4b80259996))
+
+
+
+
+
 # [2.39.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.38.1...@amplitude/analytics-browser@2.39.0) (2026-04-09)
 
 
