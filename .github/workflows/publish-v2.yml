@@ -16,6 +16,11 @@ on:
         type: string
         description: Branch to create pre-release from (only applies to prerelease/dry-run).
         required: false
+      publishOnly:
+        type: boolean
+        description: Skip `lerna version` and only run the publish step. Use this to recover from a partial publish where some packages were already released.
+        required: false
+        default: false
 
 jobs:
   authorize:
@@ -107,6 +112,7 @@ jobs:
       # Only create release version when using from-git (default behavior)
       # from-package mode uses existing package.json versions and doesn't need git tags
       - name: Create release version
+        if: ${{ github.event.inputs.publishOnly != 'true' }}
         run: |
           echo "Running lerna version..."
           
@@ -195,7 +201,7 @@ jobs:
           GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} pnpm deploy:version:dry-run -y --preid ${{ env.PREID }}
 
       - name: Pre-release version
-        if: ${{ github.event.inputs.releaseType == 'prerelease' }}
+        if: ${{ github.event.inputs.releaseType == 'prerelease' && github.event.inputs.publishOnly != 'true' }}
         run: |
             GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} pnpm deploy:version -y --no-private --conventional-prerelease --preid ${{ env.PREID }} --allow-branch ${{ steps.determine-branch.outputs.branch }} --create-release github
 
