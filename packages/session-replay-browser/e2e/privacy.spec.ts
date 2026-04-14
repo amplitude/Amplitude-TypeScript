@@ -197,3 +197,134 @@ test.describe('privacy — remote sr_privacy_config', () => {
     expect(isMaskedText(getTextContent(el!))).toBe(true);
   });
 });
+
+// ─── urlMaskLevels — page-level masking overrides ─────────────────────────────
+//
+// The test page runs at http://localhost:5173/session-replay-browser/sr-privacy-test.html
+// Glob patterns are anchored full-URL matches (globToRegex wraps with ^...$).
+
+test.describe('privacy — urlMaskLevels (page-level masking)', () => {
+  // Pattern that matches the test page URL.
+  const MATCHING_PATTERN = 'http://localhost:5173/session-replay-browser/*';
+  // Pattern that does NOT match the test page URL.
+  const NON_MATCHING_PATTERN = 'http://localhost:5173/other-page/*';
+
+  test('URL matches rule with conservative → plain text is masked', async ({ page }) => {
+    // defaultMaskLevel is left at its default (medium) — the urlMaskLevels rule
+    // overrides it to conservative for this specific page.
+    await mockRemoteConfig(
+      page,
+      remoteConfigWithPrivacy({
+        urlMaskLevels: [{ match: MATCHING_PATTERN, maskLevel: 'conservative' }],
+      }),
+    );
+    const { getBodies } = await captureTrackRequests(page);
+
+    await page.goto(buildUrl(PRIVACY_PAGE, { sessionId: TEST_SESSION_ID }));
+    await waitForReady(page);
+    await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
+    await flushRecording(page);
+
+    const root = getSnapshotRoot(getBodies());
+    expect(root).not.toBeNull();
+
+    // conservative mode masks all plain text
+    const el = findById(root!, 'plain-text');
+    expect(el).toBeDefined();
+    expect(isMaskedText(getTextContent(el!))).toBe(true);
+  });
+
+  test('URL matches rule with light → plain text input is not masked', async ({ page }) => {
+    // defaultMaskLevel is left at its default (medium) — the urlMaskLevels rule
+    // overrides it to light for this specific page.
+    await mockRemoteConfig(
+      page,
+      remoteConfigWithPrivacy({
+        urlMaskLevels: [{ match: MATCHING_PATTERN, maskLevel: 'light' }],
+      }),
+    );
+    const { getBodies } = await captureTrackRequests(page);
+
+    await page.goto(buildUrl(PRIVACY_PAGE, { sessionId: TEST_SESSION_ID }));
+    await waitForReady(page);
+    await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
+    await flushRecording(page);
+
+    const root = getSnapshotRoot(getBodies());
+    expect(root).not.toBeNull();
+
+    // light mode does NOT mask plain text inputs
+    const textInput = findById(root!, 'text-input');
+    expect(textInput).toBeDefined();
+    const value = String(textInput!.attributes?.value ?? '');
+    expect(value).toBe('visible input value');
+    expect(isMaskedText(value)).toBe(false);
+  });
+
+  test('URL does not match any rule → defaultMaskLevel (light) applies to plain text input', async ({ page }) => {
+    // The urlMaskLevels rule targets a different page, so it never fires.
+    // defaultMaskLevel is 'light': plain text inputs are NOT masked, but password
+    // inputs remain masked. This distinguishes light from the no-match-at-all case.
+    await mockRemoteConfig(
+      page,
+      remoteConfigWithPrivacy({
+        defaultMaskLevel: 'light',
+        urlMaskLevels: [{ match: NON_MATCHING_PATTERN, maskLevel: 'conservative' }],
+      }),
+    );
+    const { getBodies } = await captureTrackRequests(page);
+
+    await page.goto(buildUrl(PRIVACY_PAGE, { sessionId: TEST_SESSION_ID }));
+    await waitForReady(page);
+    await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
+    await flushRecording(page);
+
+    const root = getSnapshotRoot(getBodies());
+    expect(root).not.toBeNull();
+
+    // Under light (the unmatched fallback), a plain text input is NOT masked
+    const textInput = findById(root!, 'text-input');
+    expect(textInput).toBeDefined();
+    const value = String(textInput!.attributes?.value ?? '');
+    expect(value).toBe('visible input value');
+    expect(isMaskedText(value)).toBe(false);
+
+    // password inputs are still masked under light
+    const passwordInput = findById(root!, 'password-input');
+    expect(passwordInput).toBeDefined();
+    expect(isMaskedText(String(passwordInput!.attributes?.value ?? ''))).toBe(true);
+  });
+
+  test('urlMaskLevels light rule wins over defaultMaskLevel conservative', async ({ page }) => {
+    // defaultMaskLevel is conservative but the urlMaskLevels rule overrides it to
+    // light for this specific page — the per-URL rule takes precedence.
+    await mockRemoteConfig(
+      page,
+      remoteConfigWithPrivacy({
+        defaultMaskLevel: 'conservative',
+        urlMaskLevels: [{ match: MATCHING_PATTERN, maskLevel: 'light' }],
+      }),
+    );
+    const { getBodies } = await captureTrackRequests(page);
+
+    await page.goto(buildUrl(PRIVACY_PAGE, { sessionId: TEST_SESSION_ID }));
+    await waitForReady(page);
+    await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
+    await flushRecording(page);
+
+    const root = getSnapshotRoot(getBodies());
+    expect(root).not.toBeNull();
+
+    // The urlMaskLevels light override wins: plain text input is NOT masked
+    const textInput = findById(root!, 'text-input');
+    expect(textInput).toBeDefined();
+    const value = String(textInput!.attributes?.value ?? '');
+    expect(value).toBe('visible input value');
+    expect(isMaskedText(value)).toBe(false);
+
+    // password inputs are always masked regardless of mask level
+    const passwordInput = findById(root!, 'password-input');
+    expect(passwordInput).toBeDefined();
+    expect(isMaskedText(String(passwordInput!.attributes?.value ?? ''))).toBe(true);
+  });
+});

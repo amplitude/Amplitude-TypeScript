@@ -2573,6 +2573,33 @@ describe('SessionReplay', () => {
       }).promise;
       expect(sessionReplay.getMaskTextSelectors()).toEqual('*');
     });
+
+    test('should return * when any urlMaskLevels rule is conservative, even if default is not', async () => {
+      await sessionReplay.init(apiKey, {
+        ...mockOptions,
+        privacyConfig: {
+          defaultMaskLevel: 'light',
+          urlMaskLevels: [
+            { match: 'https://example.com/admin/*', maskLevel: 'conservative' },
+            { match: 'https://example.com/public/*', maskLevel: 'light' },
+          ],
+        },
+      }).promise;
+      // Any conservative URL rule → '*' so rrweb routes all text nodes through maskTextFn
+      expect(sessionReplay.getMaskTextSelectors()).toEqual('*');
+    });
+
+    test('should not return * when urlMaskLevels has no conservative rule', async () => {
+      await sessionReplay.init(apiKey, {
+        ...mockOptions,
+        privacyConfig: {
+          defaultMaskLevel: 'light',
+          urlMaskLevels: [{ match: 'https://example.com/checkout/*', maskLevel: 'medium' }],
+        },
+      }).promise;
+      // No conservative rule → falls through to maskSelector logic (no selectors configured)
+      expect(sessionReplay.getMaskTextSelectors()).toBeUndefined();
+    });
   });
 
   describe('getBlockSelectors', () => {
@@ -3874,6 +3901,47 @@ describe('SessionReplay', () => {
       const sessionReplay = new SessionReplay();
       await sessionReplay.init(apiKey, mockOptions).promise;
       expect(subscribeToUrlChanges).not.toHaveBeenCalled();
+    });
+
+    test('should call subscribeToUrlChanges when urlMaskLevels has entries and there is no targetingConfig', async () => {
+      (subscribeToUrlChanges as jest.Mock).mockClear();
+      mockRemoteConfig = {
+        sr_sampling_config: samplingConfig,
+        sr_privacy_config: {},
+      };
+      const sessionReplay = new SessionReplay();
+      await sessionReplay.init(apiKey, {
+        ...mockOptions,
+        privacyConfig: {
+          defaultMaskLevel: 'light',
+          urlMaskLevels: [{ match: 'https://example.com/admin/*', maskLevel: 'conservative' }],
+        },
+      }).promise;
+      expect(subscribeToUrlChanges).toHaveBeenCalled();
+    });
+
+    test('should update currentPageUrl on URL change even without targetingConfig', async () => {
+      mockRemoteConfig = {
+        sr_sampling_config: samplingConfig,
+        sr_privacy_config: {},
+      };
+      const subscribeMock = subscribeToUrlChanges as jest.MockedFunction<typeof subscribeToUrlChanges>;
+      const callCountBefore = subscribeMock.mock.calls.length;
+      const sessionReplay = new SessionReplay();
+      await sessionReplay.init(apiKey, {
+        ...mockOptions,
+        privacyConfig: {
+          defaultMaskLevel: 'light',
+          urlMaskLevels: [{ match: 'https://example.com/admin/*', maskLevel: 'conservative' }],
+        },
+      }).promise;
+
+      const lastCall = subscribeMock.mock.calls[callCountBefore];
+      const onUrlChange = lastCall?.[1] as ((href: string) => void) | undefined;
+      expect(onUrlChange).toBeDefined();
+
+      onUrlChange?.('https://example.com/admin/dashboard');
+      expect((sessionReplay as any).currentPageUrl).toBe('https://example.com/admin/dashboard');
     });
   });
 

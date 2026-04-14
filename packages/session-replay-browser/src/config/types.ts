@@ -62,6 +62,18 @@ export type PrivacyConfig = {
   maskSelector?: string[];
   unmaskSelector?: string[];
   maskAttributes?: string[]; // HTML attribute names to mask (e.g. ["placeholder", "aria-label"])
+  /**
+   * Per-URL overrides for `defaultMaskLevel`. Each entry contains a glob pattern (`match`)
+   * and a `maskLevel` to apply when the current page URL matches that pattern.
+   * Rules are evaluated in order; the first match wins. Remote rules take precedence
+   * over local rules (remote entries are prepended before local entries).
+   *
+   * @example
+   * urlMaskLevels: [
+   *   { match: 'https://example.com/checkout/*', maskLevel: 'conservative' },
+   *   { match: 'https://example.com/public/*',   maskLevel: 'light' },
+   * ]
+   */
   urlMaskLevels?: Array<{ match: string; maskLevel: MaskLevel }>;
 };
 
