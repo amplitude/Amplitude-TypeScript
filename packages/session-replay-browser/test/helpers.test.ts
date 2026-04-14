@@ -473,6 +473,28 @@ describe('SessionReplayPlugin helpers', () => {
       };
       expect(getEffectiveMaskLevel('https://shop.example.com/checkout/payment', config)).toBe('conservative');
     });
+
+    test('should fall back to defaultMaskLevel when urlMaskLevels is an empty array', () => {
+      const config: PrivacyConfig = {
+        defaultMaskLevel: 'light',
+        urlMaskLevels: [],
+      };
+      expect(getEffectiveMaskLevel('https://example.com/page', config)).toBe('light');
+    });
+
+    test('first-match-wins: first rule matching different patterns selects the first', () => {
+      const config: PrivacyConfig = {
+        defaultMaskLevel: 'medium',
+        urlMaskLevels: [
+          { match: 'https://example.com/checkout/*', maskLevel: 'conservative' },
+          { match: 'https://example.com/*', maskLevel: 'light' },
+        ],
+      };
+      // /checkout/payment matches the first rule
+      expect(getEffectiveMaskLevel('https://example.com/checkout/payment', config)).toBe('conservative');
+      // /public only matches the second rule
+      expect(getEffectiveMaskLevel('https://example.com/public', config)).toBe('light');
+    });
   });
 
   describe('isMasked with currentUrl', () => {
