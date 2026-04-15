@@ -185,7 +185,13 @@ export class EventCompressor {
       const task = this.taskQueue.shift();
       if (task) {
         const { event, sessionId } = task;
-        this.addCompressedEvent(event, sessionId);
+        // Bypass the web worker: compress synchronously on the main thread and
+        // write directly to the manager. postMessage is async — during page
+        // unload the worker response would never arrive and events would be
+        // silently dropped. This mirrors the pattern used for full snapshots in
+        // enqueueEvent().
+        const compressed = this.compressEvent(event);
+        this.addCompressedEventToManager(compressed, sessionId);
       }
     }
     this.isProcessing = false;
