@@ -574,6 +574,36 @@ describe('EventCompressor', () => {
       expect(addEventMock).not.toHaveBeenCalled();
       expect(eventCompressor.isProcessing).toBe(false);
     });
+
+    test('should bypass web worker and compress synchronously even when a worker is present', async () => {
+      const postMessageMock = jest.fn();
+      class MockWorker {
+        postMessage = postMessageMock;
+        onmessage: any = null;
+        onerror: any = null;
+        terminate = jest.fn();
+      }
+      global.Worker = MockWorker as unknown as typeof global.Worker;
+      URL.createObjectURL = jest.fn();
+
+      const workerEventsManager = await createEventsManager<'replay'>({
+        config,
+        type: 'replay',
+        storeType: 'memory',
+      });
+      const addEventMock = jest.spyOn(workerEventsManager, 'addEvent');
+      const workerCompressor = new EventCompressor(workerEventsManager, config, deviceId, 'console.log("hi")');
+
+      workerCompressor.taskQueue.push({ event: mockEvent as eventWithTime, sessionId });
+      workerCompressor.flushQueue();
+
+      // Worker must NOT be used — postMessage is async and events would be lost on unload
+      expect(postMessageMock).not.toHaveBeenCalled();
+      // Event must be written directly to the manager
+      expect(addEventMock).toHaveBeenCalledTimes(1);
+      expect(workerCompressor.taskQueue).toHaveLength(0);
+      expect(workerCompressor.isProcessing).toBe(false);
+    });
   });
 
   describe('compressEvent key ordering', () => {
