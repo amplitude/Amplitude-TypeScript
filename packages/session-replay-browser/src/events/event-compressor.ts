@@ -185,7 +185,8 @@ export class EventCompressor {
       const task = this.taskQueue.shift();
       if (task) {
         const { event, sessionId } = task;
-        this.addCompressedEvent(event, sessionId);
+        const compressed = this.compressEvent(event);
+        this.addCompressedEventToManager(compressed, sessionId);
       }
     }
     this.isProcessing = false;
