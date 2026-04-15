@@ -278,6 +278,18 @@ describe('SessionReplayPlugin helpers', () => {
       wrapper.classList.remove('unmask-parent');
       expect(fn('placeholder', 'Enter name', dynamicElement)).toEqual('***** ****');
     });
+
+    test('returns value unchanged when getCurrentUrl is provided but element has unmask class', () => {
+      const unmaskedElement = document.createElement('input');
+      unmaskedElement.classList.add(UNMASK_TEXT_CLASS);
+      const getCurrentUrl = () => 'http://localhost/page';
+      const result = maskAttributeFn({ maskAttributes: ['placeholder'] }, getCurrentUrl)(
+        'placeholder',
+        'Enter name',
+        unmaskedElement,
+      );
+      expect(result).toEqual('Enter name');
+    });
   });
 
   describe('getServerUrl', () => {

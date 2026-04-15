@@ -2428,6 +2428,33 @@ describe('SessionReplay', () => {
         expect(metaEvent.data.href).toBe(originalHref);
       });
     });
+
+    test('maskInputFn, maskTextFn, and maskAttributeFn closures read currentPageUrl dynamically', async () => {
+      const sessionReplay = new SessionReplay();
+      await sessionReplay.init(apiKey, {
+        ...mockOptions,
+        privacyConfig: {
+          defaultMaskLevel: 'medium',
+          maskAttributes: ['placeholder'],
+        },
+      }).promise;
+      await sessionReplay.recordEvents();
+      const recordArg = mockRecordFunction.mock.calls[0][0];
+
+      const inputEl = document.createElement('input');
+      const textEl = document.createElement('div');
+      const attrEl = document.createElement('input');
+
+      // Invoking the functions exercises the () => this.currentPageUrl closures on lines 798–800.
+      const maskedInput = recordArg.maskInputFn('secret', inputEl);
+      const maskedText = recordArg.maskTextFn('some text', textEl);
+      const maskedAttr = recordArg.maskAttributeFn('placeholder', 'hint', attrEl);
+
+      // Medium level masks all inputs and text; maskAttributes list includes 'placeholder'.
+      expect(maskedInput).toEqual('******');
+      expect(maskedText).toEqual('**** ****');
+      expect(maskedAttr).toEqual('****');
+    });
   });
 
   describe('getDeviceId', () => {
@@ -2569,6 +2596,17 @@ describe('SessionReplay', () => {
         ...mockOptions,
         privacyConfig: {
           defaultMaskLevel: 'conservative',
+        },
+      }).promise;
+      expect(sessionReplay.getMaskTextSelectors()).toEqual('*');
+    });
+
+    test('should return * when a urlMaskLevels rule uses conservative mask level', async () => {
+      await sessionReplay.init(apiKey, {
+        ...mockOptions,
+        privacyConfig: {
+          defaultMaskLevel: 'medium',
+          urlMaskLevels: [{ match: 'http://localhost/secure/*', maskLevel: 'conservative' }],
         },
       }).promise;
       expect(sessionReplay.getMaskTextSelectors()).toEqual('*');
