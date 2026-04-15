@@ -657,6 +657,83 @@ describe('SessionReplayJoinedConfigGenerator', () => {
     });
   });
 
+  describe('with sr_experiment_config', () => {
+    let joinedConfigGenerator: SessionReplayJoinedConfigGenerator;
+
+    beforeEach(async () => {
+      jest.spyOn(document, 'createDocumentFragment').mockReturnValue({
+        querySelector: () => true,
+      } as unknown as DocumentFragment);
+    });
+
+    it('populates remoteTargeting.deploymentKey from remote config when not set in SDK options', async () => {
+      const optionsWithRemoteTargeting = {
+        ...mockOptions,
+        remoteTargeting: {
+          enabled: true,
+          mode: 'session' as const,
+          decisionStrategy: 'conservative' as const,
+          deploymentKey: '',
+        },
+      };
+      joinedConfigGenerator = await createSessionReplayJoinedConfigGenerator('static_key', optionsWithRemoteTargeting);
+      mockRemoteConfig = {
+        sr_sampling_config: samplingConfig,
+        sr_experiment_config: { flagId: 'flag-123', deploymentKey: 'remote-deploy-key' },
+      };
+      const { joinedConfig: config } = await joinedConfigGenerator.generateJoinedConfig();
+      expect(config.remoteTargeting?.deploymentKey).toBe('remote-deploy-key');
+    });
+
+    it('does not overwrite deploymentKey when already set in SDK init options', async () => {
+      const optionsWithRemoteTargeting = {
+        ...mockOptions,
+        remoteTargeting: {
+          enabled: true,
+          mode: 'session' as const,
+          decisionStrategy: 'conservative' as const,
+          deploymentKey: 'sdk-deploy-key',
+        },
+      };
+      joinedConfigGenerator = await createSessionReplayJoinedConfigGenerator('static_key', optionsWithRemoteTargeting);
+      mockRemoteConfig = {
+        sr_sampling_config: samplingConfig,
+        sr_experiment_config: { flagId: 'flag-123', deploymentKey: 'remote-deploy-key' },
+      };
+      const { joinedConfig: config } = await joinedConfigGenerator.generateJoinedConfig();
+      expect(config.remoteTargeting?.deploymentKey).toBe('sdk-deploy-key');
+    });
+
+    it('does not set deploymentKey when sr_experiment_config has no deploymentKey', async () => {
+      const optionsWithRemoteTargeting = {
+        ...mockOptions,
+        remoteTargeting: {
+          enabled: true,
+          mode: 'session' as const,
+          decisionStrategy: 'conservative' as const,
+          deploymentKey: '',
+        },
+      };
+      joinedConfigGenerator = await createSessionReplayJoinedConfigGenerator('static_key', optionsWithRemoteTargeting);
+      mockRemoteConfig = {
+        sr_sampling_config: samplingConfig,
+        sr_experiment_config: { flagId: 'flag-123' },
+      };
+      const { joinedConfig: config } = await joinedConfigGenerator.generateJoinedConfig();
+      expect(config.remoteTargeting?.deploymentKey).toBe('');
+    });
+
+    it('does not set deploymentKey when remoteTargeting is not configured in SDK options', async () => {
+      joinedConfigGenerator = await createSessionReplayJoinedConfigGenerator('static_key', mockOptions);
+      mockRemoteConfig = {
+        sr_sampling_config: samplingConfig,
+        sr_experiment_config: { flagId: 'flag-123', deploymentKey: 'remote-deploy-key' },
+      };
+      const { joinedConfig: config } = await joinedConfigGenerator.generateJoinedConfig();
+      expect(config.remoteTargeting).toBeUndefined();
+    });
+  });
+
   describe('removeInvalidSelectorsFromPrivacyConfig', () => {
     test('should handle string block selector correctly', async () => {
       const privacyConfig = {

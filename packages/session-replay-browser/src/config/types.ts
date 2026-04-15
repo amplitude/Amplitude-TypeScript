@@ -34,12 +34,18 @@ export interface LoggingConfig {
 
 export type TargetingConfig = TargetingFlag;
 
+export type ExperimentConfig = {
+  flagId?: string;
+  deploymentKey?: string;
+};
+
 export type SessionReplayRemoteConfig = {
   sr_sampling_config?: SamplingConfig;
   sr_privacy_config?: PrivacyConfig;
   sr_interaction_config?: InteractionConfig;
   sr_logging_config?: LoggingConfig;
   sr_targeting_config?: TargetingConfig;
+  sr_experiment_config?: ExperimentConfig;
 };
 
 export interface SessionReplayRemoteConfigAPIResponse {
