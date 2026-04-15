@@ -3,6 +3,24 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.37.0-sr-3176-rc.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.36.1...@amplitude/session-replay-browser@1.37.0-sr-3176-rc.0) (2026-04-15)
+
+
+### Bug Fixes
+
+* **session-replay-browser:** fix URL tracking and maskTextSelector staleness (SR-3176) ([02daadc](https://github.com/amplitude/Amplitude-TypeScript/commit/02daadc34094391395f8d247772dc7ad3075a384))
+* **session-replay-browser:** mask text when conservative default meets urlMaskLevels (SR-3176) ([8700e2c](https://github.com/amplitude/Amplitude-TypeScript/commit/8700e2c7686041631d18c100186bad7dfba86044))
+* **session-replay-browser:** url-aware masking, light text fix, 100% coverage (SR-3176) ([e7c6706](https://github.com/amplitude/Amplitude-TypeScript/commit/e7c67064d887d0448921280f27f8a6b75b3791b4))
+
+
+### Features
+
+* **session-replay-browser:** add page-level masking via urlMaskLevels (SR-3176) ([b733297](https://github.com/amplitude/Amplitude-TypeScript/commit/b73329763c82aa52a91a96e97635236d6230d03b))
+
+
+
+
+
 ## [1.36.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.36.0...@amplitude/session-replay-browser@1.36.1) (2026-04-14)
 
 **Note:** Version bump only for package @amplitude/session-replay-browser
