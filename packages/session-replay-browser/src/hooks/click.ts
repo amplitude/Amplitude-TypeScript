@@ -33,6 +33,8 @@ type Context = {
   performanceOptions?: InteractionPerformanceConfig;
 };
 
+const HOUR_IN_MILLISECONDS = 3_600_000;
+
 export const clickNonBatcher: PayloadBatcher = ({ version, events }) => {
   const clickEvents: ClickEvent[] = [];
   events.forEach((evt: string) => {
@@ -55,10 +57,14 @@ export const clickBatcher: PayloadBatcher = ({ version, events }) => {
   });
 
   const reduced = clickEvents.reduce<Record<string, ClickEventWithCount>>((prev, curr) => {
-    const { x, y, selector } = curr;
-    const k = `${x}:${y}:${selector ?? ''}`;
+    const { x, y, selector, timestamp } = curr;
+
+    // round down to nearest hour.
+    const hour = timestamp - (timestamp % HOUR_IN_MILLISECONDS);
+
+    const k = `${x}:${y}:${selector ?? ''}:${hour}`;
     if (!prev[k]) {
-      prev[k] = { ...curr, count: 1 };
+      prev[k] = { ...curr, timestamp: hour, count: 1 };
     } else {
       prev[k].count += 1;
     }
