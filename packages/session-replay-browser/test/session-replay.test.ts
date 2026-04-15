@@ -2573,6 +2573,137 @@ describe('SessionReplay', () => {
       }).promise;
       expect(sessionReplay.getMaskTextSelectors()).toEqual('*');
     });
+
+    test('should return * when any urlMaskLevels rule is conservative, even if default is not', async () => {
+      await sessionReplay.init(apiKey, {
+        ...mockOptions,
+        privacyConfig: {
+          defaultMaskLevel: 'light',
+          urlMaskLevels: [
+            { match: 'https://example.com/admin/*', maskLevel: 'conservative' },
+            { match: 'https://example.com/public/*', maskLevel: 'light' },
+          ],
+        },
+      }).promise;
+      // Any conservative URL rule → '*' so rrweb routes all text nodes through maskTextFn
+      expect(sessionReplay.getMaskTextSelectors()).toEqual('*');
+    });
+
+    test('should not return * when urlMaskLevels has no conservative rule', async () => {
+      await sessionReplay.init(apiKey, {
+        ...mockOptions,
+        privacyConfig: {
+          defaultMaskLevel: 'light',
+          urlMaskLevels: [{ match: 'https://example.com/checkout/*', maskLevel: 'medium' }],
+        },
+      }).promise;
+      // No conservative rule → falls through to maskSelector logic (no selectors configured)
+      expect(sessionReplay.getMaskTextSelectors()).toBeUndefined();
+    });
+
+    test('should return * when defaultMaskLevel is conservative and urlMaskLevels are present', async () => {
+      // Bug scenario: session starts on a URL matching a non-conservative rule (effective level ≠
+      // conservative), so the first branch doesn't fire. No rule in urlMaskLevels is conservative,
+      // so the second branch doesn't fire either. But defaultMaskLevel is conservative, meaning any
+      // page that matches NO rule at all falls back to conservative masking — rrweb must be told to
+      // route all text through maskTextFn from the start.
+      await sessionReplay.init(apiKey, {
+        ...mockOptions,
+        privacyConfig: {
+          defaultMaskLevel: 'conservative',
+          urlMaskLevels: [{ match: 'https://example.com/public/*', maskLevel: 'light' }],
+        },
+      }).promise;
+      expect(sessionReplay.getMaskTextSelectors()).toEqual('*');
+    });
+
+    test('should return * when defaultMaskLevel is conservative and urlMaskLevels is non-empty even if current URL matches a non-conservative rule', async () => {
+      // Even if the recording-start URL happens to match a light rule (effectiveLevel = light),
+      // the fallback path (no rule match → conservative) still needs rrweb to call maskTextFn.
+      jest.spyOn(Helpers, 'getCurrentUrl').mockReturnValue('https://example.com/public/page');
+      await sessionReplay.init(apiKey, {
+        ...mockOptions,
+        privacyConfig: {
+          defaultMaskLevel: 'conservative',
+          urlMaskLevels: [{ match: 'https://example.com/public/*', maskLevel: 'light' }],
+        },
+      }).promise;
+      expect(sessionReplay.getMaskTextSelectors()).toEqual('*');
+    });
+
+    test('should not return * when defaultMaskLevel is conservative but urlMaskLevels is empty', async () => {
+      // defaultMaskLevel: conservative with no URL rules → effectiveLevel is always conservative,
+      // which is handled by the first branch. The third branch only fires when urlMaskLevels is non-empty.
+      await sessionReplay.init(apiKey, {
+        ...mockOptions,
+        privacyConfig: {
+          defaultMaskLevel: 'conservative',
+          urlMaskLevels: [],
+        },
+      }).promise;
+      // effectiveLevel = conservative → caught by the first branch, still returns '*'
+      expect(sessionReplay.getMaskTextSelectors()).toEqual('*');
+    });
+
+    test('should return * when defaultMaskLevel is conservative and urlMaskLevels is undefined', async () => {
+      // urlMaskLevels not set at all (undefined) — exercises the ?. optional chain short-circuit path
+      // in the third guard of getMaskTextSelectors. With no urlMaskLevels, effectiveLevel is always
+      // conservative, so the first guard fires instead — result is still '*'.
+      await sessionReplay.init(apiKey, {
+        ...mockOptions,
+        privacyConfig: {
+          defaultMaskLevel: 'conservative',
+          // urlMaskLevels intentionally absent
+        },
+      }).promise;
+      expect(sessionReplay.getMaskTextSelectors()).toEqual('*');
+    });
+  });
+
+  describe('mask function URL getters (currentPageUrl integration)', () => {
+    test('maskInputFn, maskTextFn, and maskAttributeFn closures expose currentPageUrl dynamically', async () => {
+      // This test exercises the three `() => this.currentPageUrl` arrow functions passed to
+      // maskFn/maskAttributeFn at lines 805-807 of session-replay.ts.
+      await sessionReplay.init(apiKey, {
+        ...mockOptions,
+        privacyConfig: {
+          defaultMaskLevel: 'light',
+          maskAttributes: ['placeholder'],
+          urlMaskLevels: [{ match: 'https://example.com/admin/*', maskLevel: 'conservative' }],
+        },
+      }).promise;
+
+      await sessionReplay.recordEvents();
+      expect(mockRecordFunction).toHaveBeenCalled();
+
+      const recordArg = mockRecordFunction.mock.calls[mockRecordFunction.mock.calls.length - 1][0];
+      const { maskInputFn, maskTextFn, maskAttributeFn: attrFn } = recordArg;
+      expect(maskInputFn).toBeDefined();
+      expect(maskTextFn).toBeDefined();
+      expect(attrFn).toBeDefined();
+
+      const divElement = document.createElement('div');
+      const inputElement = document.createElement('input');
+      inputElement.type = 'text';
+
+      // currentPageUrl starts as '' (jsdom has no real location) → light level → not conservative
+      // maskTextFn: light does not mask plain text
+      expect(maskTextFn('hello', divElement)).toEqual('hello');
+      // maskInputFn: light does not mask plain text inputs
+      expect(maskInputFn('hello', inputElement)).toEqual('hello');
+      // maskAttributeFn: attribute in allowlist but light level → not masked
+      expect(attrFn('placeholder', 'Enter name', inputElement)).toEqual('Enter name');
+
+      // Now simulate navigation to a conservative URL
+      (sessionReplay as any).currentPageUrl = 'https://example.com/admin/dashboard';
+
+      // maskTextFn: conservative URL → text IS masked
+      expect(maskTextFn('hello', divElement)).toEqual('*****');
+      // maskInputFn: conservative URL → input IS masked
+      expect(maskInputFn('hello', inputElement)).toEqual('*****');
+      // maskAttributeFn: conservative URL + attribute in allowlist → masked
+      expect(attrFn('placeholder', 'Enter name', inputElement)).toEqual('***** ****');
+    });
   });
 
   describe('getBlockSelectors', () => {
@@ -3682,7 +3813,7 @@ describe('SessionReplay', () => {
       const sessionReplay = new SessionReplay();
       sessionReplay.config = { targetingConfig: {} } as any;
       sessionReplay.identifiers = { sessionId: 123 } as any;
-      (sessionReplay as any).setupUrlChangeListenerForTargeting();
+      (sessionReplay as any).setupUrlChangeListener();
       expect(subscribeToUrlChanges).not.toHaveBeenCalled();
     });
 
@@ -3691,7 +3822,7 @@ describe('SessionReplay', () => {
       const sessionReplay = new SessionReplay();
       sessionReplay.config = { targetingConfig: {} } as any;
       sessionReplay.identifiers = { sessionId: 123 } as any;
-      (sessionReplay as any).setupUrlChangeListenerForTargeting();
+      (sessionReplay as any).setupUrlChangeListener();
       expect(subscribeToUrlChanges).not.toHaveBeenCalled();
     });
 
@@ -3847,7 +3978,7 @@ describe('SessionReplay', () => {
       );
     });
 
-    test('should clean up existing URL subscription when setupUrlChangeListenerForTargeting is called again', () => {
+    test('should clean up existing URL subscription when setupUrlChangeListener is called again', () => {
       jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue({
         location: { href: 'https://example.com/current' },
       } as any);
@@ -3858,14 +3989,14 @@ describe('SessionReplay', () => {
         .mockImplementationOnce(() => secondCleanup);
 
       const sessionReplay = new SessionReplay();
-      (sessionReplay as any).setupUrlChangeListenerForTargeting();
-      (sessionReplay as any).setupUrlChangeListenerForTargeting();
+      (sessionReplay as any).setupUrlChangeListener();
+      (sessionReplay as any).setupUrlChangeListener();
 
       expect(firstCleanup).toHaveBeenCalledTimes(1);
       expect(secondCleanup).not.toHaveBeenCalled();
     });
 
-    test('should not call subscribeToUrlChanges when init completes with no targetingConfig', async () => {
+    test('should not call subscribeToUrlChanges when init completes with no targetingConfig and no urlMaskLevels', async () => {
       (subscribeToUrlChanges as jest.Mock).mockClear();
       mockRemoteConfig = {
         sr_sampling_config: samplingConfig,
@@ -3874,6 +4005,47 @@ describe('SessionReplay', () => {
       const sessionReplay = new SessionReplay();
       await sessionReplay.init(apiKey, mockOptions).promise;
       expect(subscribeToUrlChanges).not.toHaveBeenCalled();
+    });
+
+    test('should call subscribeToUrlChanges when urlMaskLevels has entries and there is no targetingConfig', async () => {
+      (subscribeToUrlChanges as jest.Mock).mockClear();
+      mockRemoteConfig = {
+        sr_sampling_config: samplingConfig,
+        sr_privacy_config: {},
+      };
+      const sessionReplay = new SessionReplay();
+      await sessionReplay.init(apiKey, {
+        ...mockOptions,
+        privacyConfig: {
+          defaultMaskLevel: 'light',
+          urlMaskLevels: [{ match: 'https://example.com/admin/*', maskLevel: 'conservative' }],
+        },
+      }).promise;
+      expect(subscribeToUrlChanges).toHaveBeenCalled();
+    });
+
+    test('should update currentPageUrl on URL change even without targetingConfig', async () => {
+      mockRemoteConfig = {
+        sr_sampling_config: samplingConfig,
+        sr_privacy_config: {},
+      };
+      const subscribeMock = subscribeToUrlChanges as jest.MockedFunction<typeof subscribeToUrlChanges>;
+      const callCountBefore = subscribeMock.mock.calls.length;
+      const sessionReplay = new SessionReplay();
+      await sessionReplay.init(apiKey, {
+        ...mockOptions,
+        privacyConfig: {
+          defaultMaskLevel: 'light',
+          urlMaskLevels: [{ match: 'https://example.com/admin/*', maskLevel: 'conservative' }],
+        },
+      }).promise;
+
+      const lastCall = subscribeMock.mock.calls[callCountBefore];
+      const onUrlChange = lastCall?.[1] as ((href: string) => void) | undefined;
+      expect(onUrlChange).toBeDefined();
+
+      onUrlChange?.('https://example.com/admin/dashboard');
+      expect((sessionReplay as any).currentPageUrl).toBe('https://example.com/admin/dashboard');
     });
   });
 

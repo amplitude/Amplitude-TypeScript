@@ -63,6 +63,14 @@ export function getSnapshotRoot(rawBodies: string[]): SnapNode | null {
   return snap ? snap.data.node : null;
 }
 
+/** Returns the root of the LAST full snapshot across all collected bodies. */
+export function getLastSnapshotRoot(rawBodies: string[]): SnapNode | null {
+  const events = rawBodies.flatMap(decodeRrwebEvents) as Array<{ type: number; data: { node: SnapNode } }>;
+  const snaps = events.filter((e) => e.type === EVENT_FULL_SNAPSHOT);
+  const last = snaps[snaps.length - 1];
+  return last ? last.data.node : null;
+}
+
 export function findNode(node: SnapNode, predicate: (n: SnapNode) => boolean): SnapNode | undefined {
   if (predicate(node)) return node;
   for (const child of node.childNodes ?? []) {

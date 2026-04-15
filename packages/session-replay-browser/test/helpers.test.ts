@@ -10,8 +10,10 @@ import {
 } from '../src/constants';
 import { ServerZone } from '@amplitude/analytics-core';
 import {
+  getEffectiveMaskLevel,
   getServerUrl,
   getStorageSize,
+  isMasked,
   maskFn,
   maskAttributeFn,
   getPageUrl,
@@ -174,12 +176,11 @@ describe('SessionReplayPlugin helpers', () => {
       const result = maskFn('text', { defaultMaskLevel: 'conservative' })('some text', htmlElement);
       expect(result).toEqual('**** ****');
     });
-    // this will never happen in reality since rrweb will not call this
-    // function if we had not registered selectors
-    test('should mask an element on light mask level', () => {
+    test('should not mask a text element on light mask level', () => {
+      // light level only masks a subset of sensitive inputs; text nodes are never masked at light.
       const htmlElement = document.createElement('div');
       const result = maskFn('text', { defaultMaskLevel: 'light' })('some text', htmlElement);
-      expect(result).toEqual('**** ****');
+      expect(result).toEqual('some text');
     });
     test('should not mask an element whose class list has amp-unmask in it', () => {
       const htmlElement = document.createElement('div');
@@ -275,6 +276,34 @@ describe('SessionReplayPlugin helpers', () => {
       // After ancestor no longer matches, element should be masked.
       wrapper.classList.remove('unmask-parent');
       expect(fn('placeholder', 'Enter name', dynamicElement)).toEqual('***** ****');
+    });
+
+    test('masks attribute when getCurrentUrl returns a conservative URL via urlMaskLevels', () => {
+      const maskedElement = document.createElement('input');
+      const fn = maskAttributeFn(
+        {
+          defaultMaskLevel: 'light',
+          maskAttributes: ['placeholder'],
+          urlMaskLevels: [{ match: 'https://example.com/admin/*', maskLevel: 'conservative' }],
+        },
+        () => 'https://example.com/admin/settings',
+      );
+      expect(fn('placeholder', 'Enter name', maskedElement)).toEqual('***** ****');
+    });
+
+    test('returns value unmasked when getCurrentUrl returns a light URL via urlMaskLevels', () => {
+      // Exercises the false branch of the ternary on the isMasked call when getCurrentUrl is provided.
+      const element = document.createElement('input');
+      const fn = maskAttributeFn(
+        {
+          defaultMaskLevel: 'conservative',
+          maskAttributes: ['placeholder'],
+          urlMaskLevels: [{ match: 'https://example.com/public/*', maskLevel: 'light' }],
+        },
+        () => 'https://example.com/public/page',
+      );
+      // light level does not mask attributes (isMasked returns false for text-type at light)
+      expect(fn('placeholder', 'Enter name', element)).toEqual('Enter name');
     });
   });
 
@@ -399,6 +428,185 @@ describe('SessionReplayPlugin helpers', () => {
       ];
       const result = getPageUrl(url, rules);
       expect(result).toBe('https://example.com/page');
+    });
+  });
+
+  describe('getEffectiveMaskLevel', () => {
+    test('should return defaultMaskLevel when no urlMaskLevels are configured', () => {
+      const config: PrivacyConfig = { defaultMaskLevel: 'light' };
+      expect(getEffectiveMaskLevel('https://example.com/page', config)).toBe('light');
+    });
+
+    test('should fall back to medium when no defaultMaskLevel and no urlMaskLevels match', () => {
+      const config: PrivacyConfig = {};
+      expect(getEffectiveMaskLevel('https://example.com/page', config)).toBe('medium');
+    });
+
+    test('should return matching urlMaskLevel for exact URL', () => {
+      const config: PrivacyConfig = {
+        defaultMaskLevel: 'medium',
+        urlMaskLevels: [{ match: 'https://example.com/settings', maskLevel: 'conservative' }],
+      };
+      expect(getEffectiveMaskLevel('https://example.com/settings', config)).toBe('conservative');
+    });
+
+    test('should return matching urlMaskLevel for glob pattern', () => {
+      const config: PrivacyConfig = {
+        defaultMaskLevel: 'medium',
+        urlMaskLevels: [{ match: 'https://example.com/admin/*', maskLevel: 'conservative' }],
+      };
+      expect(getEffectiveMaskLevel('https://example.com/admin/users', config)).toBe('conservative');
+    });
+
+    test('should return first matching rule (first-match wins)', () => {
+      const config: PrivacyConfig = {
+        defaultMaskLevel: 'medium',
+        urlMaskLevels: [
+          { match: 'https://example.com/admin/*', maskLevel: 'conservative' },
+          { match: 'https://example.com/admin/*', maskLevel: 'light' },
+        ],
+      };
+      expect(getEffectiveMaskLevel('https://example.com/admin/users', config)).toBe('conservative');
+    });
+
+    test('should fall back to defaultMaskLevel when no urlMaskLevels match', () => {
+      const config: PrivacyConfig = {
+        defaultMaskLevel: 'light',
+        urlMaskLevels: [{ match: 'https://example.com/admin/*', maskLevel: 'conservative' }],
+      };
+      expect(getEffectiveMaskLevel('https://example.com/public/page', config)).toBe('light');
+    });
+
+    test('should fall back to defaultMaskLevel when url is undefined', () => {
+      const config: PrivacyConfig = {
+        defaultMaskLevel: 'light',
+        urlMaskLevels: [{ match: 'https://example.com/*', maskLevel: 'conservative' }],
+      };
+      expect(getEffectiveMaskLevel(undefined, config)).toBe('light');
+    });
+
+    test('should fall back to defaultMaskLevel when url is empty', () => {
+      const config: PrivacyConfig = {
+        defaultMaskLevel: 'light',
+        urlMaskLevels: [{ match: 'https://example.com/*', maskLevel: 'conservative' }],
+      };
+      expect(getEffectiveMaskLevel('', config)).toBe('light');
+    });
+
+    test('should handle wildcard subdomain matching', () => {
+      const config: PrivacyConfig = {
+        defaultMaskLevel: 'medium',
+        urlMaskLevels: [{ match: 'https://*.example.com/checkout/*', maskLevel: 'conservative' }],
+      };
+      expect(getEffectiveMaskLevel('https://shop.example.com/checkout/payment', config)).toBe('conservative');
+    });
+
+    test('should fall back to defaultMaskLevel when urlMaskLevels is an empty array', () => {
+      const config: PrivacyConfig = {
+        defaultMaskLevel: 'light',
+        urlMaskLevels: [],
+      };
+      expect(getEffectiveMaskLevel('https://example.com/page', config)).toBe('light');
+    });
+
+    test('first-match-wins: first rule matching different patterns selects the first', () => {
+      const config: PrivacyConfig = {
+        defaultMaskLevel: 'medium',
+        urlMaskLevels: [
+          { match: 'https://example.com/checkout/*', maskLevel: 'conservative' },
+          { match: 'https://example.com/*', maskLevel: 'light' },
+        ],
+      };
+      // /checkout/payment matches the first rule
+      expect(getEffectiveMaskLevel('https://example.com/checkout/payment', config)).toBe('conservative');
+      // /public only matches the second rule
+      expect(getEffectiveMaskLevel('https://example.com/public', config)).toBe('light');
+    });
+  });
+
+  describe('isMasked with currentUrl', () => {
+    test('should use urlMaskLevels when currentUrl is provided', () => {
+      const config: PrivacyConfig = {
+        defaultMaskLevel: 'light',
+        urlMaskLevels: [{ match: 'https://example.com/admin/*', maskLevel: 'conservative' }],
+      };
+      const element = document.createElement('div');
+      // On /admin/*, effective level is conservative → text should be masked
+      expect(isMasked('text', config, element, 'https://example.com/admin/dashboard')).toBe(true);
+    });
+
+    test('should use defaultMaskLevel when currentUrl does not match any rule', () => {
+      const config: PrivacyConfig = {
+        defaultMaskLevel: 'light',
+        urlMaskLevels: [{ match: 'https://example.com/admin/*', maskLevel: 'conservative' }],
+      };
+      const element = document.createElement('div');
+      // On /public, effective level is light → input without sensitive type should not be masked
+      expect(isMasked('input', config, element, 'https://example.com/public')).toBe(false);
+    });
+
+    test('should still respect per-element mask overrides over urlMaskLevels', () => {
+      const config: PrivacyConfig = {
+        defaultMaskLevel: 'light',
+        urlMaskLevels: [{ match: 'https://example.com/public/*', maskLevel: 'light' }],
+        unmaskSelector: [],
+      };
+      const element = document.createElement('div');
+      element.classList.add(MASK_TEXT_CLASS);
+      // amp-mask class takes priority even though URL-level says light
+      expect(isMasked('input', config, element, 'https://example.com/public/page')).toBe(true);
+    });
+
+    test('should still respect per-element unmask overrides over urlMaskLevels', () => {
+      const config: PrivacyConfig = {
+        defaultMaskLevel: 'conservative',
+        urlMaskLevels: [{ match: 'https://example.com/*', maskLevel: 'conservative' }],
+      };
+      const element = document.createElement('div');
+      element.classList.add(UNMASK_TEXT_CLASS);
+      // amp-unmask class takes priority even though URL-level says conservative
+      expect(isMasked('text', config, element, 'https://example.com/page')).toBe(false);
+    });
+
+    test('should fall back to default behavior when currentUrl is not provided', () => {
+      const config: PrivacyConfig = {
+        defaultMaskLevel: 'light',
+        urlMaskLevels: [{ match: 'https://example.com/*', maskLevel: 'conservative' }],
+      };
+      const element = document.createElement('div');
+      // No URL → falls back to defaultMaskLevel (light); text is NOT masked at light level
+      expect(isMasked('text', config, element)).toBe(false);
+      // Input with light level → not masked for non-sensitive inputs
+      expect(isMasked('input', config, element)).toBe(false);
+    });
+  });
+
+  describe('maskFn with getCurrentUrl', () => {
+    test('should use URL-aware masking when getCurrentUrl is provided', () => {
+      const config: PrivacyConfig = {
+        defaultMaskLevel: 'light',
+        urlMaskLevels: [{ match: 'https://example.com/admin/*', maskLevel: 'conservative' }],
+      };
+      const element = document.createElement('div');
+      const fn = maskFn('input', config, () => 'https://example.com/admin/dashboard');
+      expect(fn('some text', element)).toEqual('**** ****');
+    });
+
+    test('should reflect URL changes dynamically via getter', () => {
+      const config: PrivacyConfig = {
+        defaultMaskLevel: 'light',
+        urlMaskLevels: [{ match: 'https://example.com/admin/*', maskLevel: 'conservative' }],
+      };
+      let currentUrl = 'https://example.com/public/page';
+      const fn = maskFn('input', config, () => currentUrl);
+      const element = document.createElement('div');
+
+      // On /public, light level → non-sensitive input not masked
+      expect(fn('some text', element)).toEqual('some text');
+
+      // Simulate SPA navigation to /admin
+      currentUrl = 'https://example.com/admin/dashboard';
+      expect(fn('some text', element)).toEqual('**** ****');
     });
   });
 

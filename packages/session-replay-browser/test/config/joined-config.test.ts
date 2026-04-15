@@ -31,6 +31,7 @@ const privacyConfig: Required<PrivacyConfig> = {
   maskSelector: [],
   unmaskSelector: [],
   maskAttributes: [],
+  urlMaskLevels: [],
 };
 
 const mockLoggerProvider: MockedLogger = {
@@ -277,6 +278,7 @@ describe('SessionReplayJoinedConfigGenerator', () => {
               maskSelector: undefined,
               unmaskSelector: undefined,
               maskAttributes: [],
+              urlMaskLevels: [],
             },
             ...{ [`${selectorType}Selector`]: ['.localClassName', '.remoteClassName'] },
           },
@@ -323,6 +325,7 @@ describe('SessionReplayJoinedConfigGenerator', () => {
             maskSelector: undefined,
             unmaskSelector: undefined,
             maskAttributes: [],
+            urlMaskLevels: [],
           },
         });
       });
@@ -390,6 +393,43 @@ describe('SessionReplayJoinedConfigGenerator', () => {
         test('should produce empty maskAttributes when neither local nor remote has any', async () => {
           const config = await privacySelectorTest({});
           expect(config.privacyConfig?.maskAttributes).toEqual([]);
+        });
+      });
+
+      describe('with urlMaskLevels config', () => {
+        const remoteRule = { match: 'https://example.com/admin/*', maskLevel: 'conservative' as const };
+        const localRule = { match: 'https://example.com/public/*', maskLevel: 'light' as const };
+
+        test('should prepend remote urlMaskLevels before local (remote has priority)', async () => {
+          const config = await privacySelectorTest(
+            { urlMaskLevels: [remoteRule] },
+            await createSessionReplayJoinedConfigGenerator('static_key', {
+              ...mockOptions,
+              privacyConfig: { urlMaskLevels: [localRule] },
+            }),
+          );
+          expect(config.privacyConfig?.urlMaskLevels).toEqual([remoteRule, localRule]);
+        });
+
+        test('should use only local urlMaskLevels when remote has none', async () => {
+          const config = await privacySelectorTest(
+            {},
+            await createSessionReplayJoinedConfigGenerator('static_key', {
+              ...mockOptions,
+              privacyConfig: { urlMaskLevels: [localRule] },
+            }),
+          );
+          expect(config.privacyConfig?.urlMaskLevels).toEqual([localRule]);
+        });
+
+        test('should use only remote urlMaskLevels when local has none', async () => {
+          const config = await privacySelectorTest({ urlMaskLevels: [remoteRule] });
+          expect(config.privacyConfig?.urlMaskLevels).toEqual([remoteRule]);
+        });
+
+        test('should produce empty urlMaskLevels when neither local nor remote has any', async () => {
+          const config = await privacySelectorTest({});
+          expect(config.privacyConfig?.urlMaskLevels).toEqual([]);
         });
       });
     });

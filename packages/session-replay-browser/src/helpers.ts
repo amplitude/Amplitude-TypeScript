@@ -12,7 +12,7 @@ type ChromeStorageEstimate = {
 };
 
 /**
- * Light: Subset of inputs
+ * Light: Subset of inputs (sensitive types only — password, hidden, email, tel, cc-*)
  * Medium: All inputs
  * Conservative: All inputs and all texts
  */
@@ -20,7 +20,8 @@ const isMaskedForLevel = (elementType: 'input' | 'text', level: MaskLevel, eleme
   switch (level) {
     case 'light': {
       if (elementType !== 'input') {
-        return true;
+        // light only masks a subset of inputs; text nodes are not masked at this level.
+        return false;
       }
 
       const inputType = element ? getInputType(element) : '';
@@ -48,6 +49,21 @@ const isMaskedForLevel = (elementType: 'input' | 'text', level: MaskLevel, eleme
 };
 
 /**
+ * Returns the effective mask level for a given URL by checking `urlMaskLevels`
+ * (first match wins) and falling back to `defaultMaskLevel`.
+ */
+export const getEffectiveMaskLevel = (url: string | undefined, config: PrivacyConfig): MaskLevel => {
+  if (url && config.urlMaskLevels) {
+    for (const rule of config.urlMaskLevels) {
+      if (globToRegex(rule.match).test(url)) {
+        return rule.maskLevel;
+      }
+    }
+  }
+  return config.defaultMaskLevel ?? DEFAULT_MASK_LEVEL;
+};
+
+/**
  * Checks if the given element set to be masked by rrweb
  *
  * Priority is:
@@ -58,6 +74,7 @@ export const isMasked = (
   elementType: 'input' | 'text',
   config: PrivacyConfig = { defaultMaskLevel: DEFAULT_MASK_LEVEL },
   element: HTMLElement | null,
+  currentUrl?: string,
 ): boolean => {
   if (element) {
     // Element or parent is explicitly instrumented in code to mask
@@ -84,16 +101,16 @@ export const isMasked = (
     }
   }
 
-  return isMaskedForLevel(elementType, config.defaultMaskLevel ?? DEFAULT_MASK_LEVEL, element);
+  return isMaskedForLevel(elementType, getEffectiveMaskLevel(currentUrl, config), element);
 };
 
 export const maskFn =
-  (elementType: 'text' | 'input', config?: PrivacyConfig) =>
+  (elementType: 'text' | 'input', config?: PrivacyConfig, getCurrentUrl?: () => string) =>
   (text: string, element: HTMLElement | null): string => {
-    return isMasked(elementType, config, element) ? text.replace(/[^\s]/g, '*') : text;
+    return isMasked(elementType, config, element, getCurrentUrl?.()) ? text.replace(/[^\s]/g, '*') : text;
   };
 
-export const maskAttributeFn = (config?: PrivacyConfig) => {
+export const maskAttributeFn = (config?: PrivacyConfig, getCurrentUrl?: () => string) => {
   return (key: string, value: string, element: HTMLElement): string => {
     // Never mask style — rrweb has a separate styleDiff path for attribute mutations
     // that reads directly from the DOM, bypassing maskAttributeFn.
@@ -104,7 +121,7 @@ export const maskAttributeFn = (config?: PrivacyConfig) => {
 
     // Recompute masking every call so class/ancestor mutations do not stale-cache
     // the decision for later attribute mutations on the same element.
-    return isMasked('text', config, element) ? value.replace(/[^\s]/g, '*') : value;
+    return isMasked('text', config, element, getCurrentUrl?.()) ? value.replace(/[^\s]/g, '*') : value;
   };
 };
 
@@ -124,14 +141,21 @@ const isValidGlobUrl = (globUrl: string): boolean => {
   return true;
 };
 
+const globRegexCache = new Map<string, RegExp>();
+
 const globToRegex = (glob: string): RegExp => {
+  const cached = globRegexCache.get(glob);
+  if (cached) return cached;
+
   // Escape special regex characters, then convert globs
   const escaped = glob
     .replace(/[.+^${}()|[\]\\]/g, '\\$&') // Escape regex specials
     .replace(/\*/g, '.*') // Convert * to .*
     .replace(/\?/g, '.'); // Convert ? to .
 
-  return new RegExp(`^${escaped}$`);
+  const regex = new RegExp(`^${escaped}$`);
+  globRegexCache.set(glob, regex);
+  return regex;
 };
 
 export const validateUGCFilterRules = (ugcFilterRules: UGCFilterRule[]) => {
