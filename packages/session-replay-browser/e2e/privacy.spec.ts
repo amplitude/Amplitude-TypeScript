@@ -350,10 +350,11 @@ test.describe('privacy — urlMaskLevels (page-level masking)', () => {
     await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
 
     // Simulate SPA navigation to a URL that matches no urlMaskLevels rule.
+    // NOTE: MATCHING_PATTERN covers /session-replay-browser/*, so navigate outside that path.
     // The SDK's URL-change listener updates currentPageUrl; subsequent maskTextFn
     // calls then resolve to the conservative fallback.
     await page.evaluate(() => {
-      history.pushState({}, '', '/session-replay-browser/unmatched-page');
+      history.pushState({}, '', '/other-section/dashboard');
       // Dispatch a focus event to make rrweb take a new full snapshot with the updated URL context.
       window.dispatchEvent(new Event('focus'));
     });
@@ -367,5 +368,88 @@ test.describe('privacy — urlMaskLevels (page-level masking)', () => {
     const el = findById(root!, 'plain-text');
     expect(el).toBeDefined();
     expect(isMaskedText(getTextContent(el!))).toBe(true);
+  });
+
+  test('SPA navigation from conservative URL to light URL unmasks text', async ({ page }) => {
+    // Verifies maskFn URL-awareness: session starts on a conservative URL rule, then navigates
+    // to a light URL rule. After navigation, maskTextFn should resolve to light level and NOT
+    // mask plain text in the new snapshot.
+    // Use exact URL patterns to avoid first-match-wins overlap with the wildcard MATCHING_PATTERN.
+    const CONSERVATIVE_PATTERN = 'http://localhost:5173/session-replay-browser/sr-privacy-test.html*';
+    const LIGHT_PATTERN = 'http://localhost:5173/section-light/*';
+    await mockRemoteConfig(
+      page,
+      remoteConfigWithPrivacy({
+        defaultMaskLevel: 'medium',
+        urlMaskLevels: [
+          { match: CONSERVATIVE_PATTERN, maskLevel: 'conservative' },
+          { match: LIGHT_PATTERN, maskLevel: 'light' },
+        ],
+      }),
+    );
+    const { getBodies } = await captureTrackRequests(page);
+
+    await page.goto(buildUrl(PRIVACY_PAGE, { sessionId: TEST_SESSION_ID }));
+    await waitForReady(page);
+    await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
+
+    // Initial snapshot: on the conservative URL — plain text should be masked.
+    await flushRecording(page);
+    const firstRoot = getSnapshotRoot(getBodies());
+    expect(firstRoot).not.toBeNull();
+    expect(isMaskedText(getTextContent(findById(firstRoot!, 'plain-text')!))).toBe(true);
+
+    // Navigate to the light URL rule page via SPA pushState.
+    await page.evaluate(() => {
+      history.pushState({}, '', '/section-light/dashboard');
+      window.dispatchEvent(new Event('focus'));
+    });
+    await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
+    await flushRecording(page);
+
+    // The LAST full snapshot was taken on the light URL — plain text must NOT be masked.
+    const lastRoot = getLastSnapshotRoot(getBodies());
+    expect(lastRoot).not.toBeNull();
+    const plainEl = findById(lastRoot!, 'plain-text');
+    expect(plainEl).toBeDefined();
+    expect(isMaskedText(getTextContent(plainEl!))).toBe(false);
+  });
+
+  test('SPA navigation from light URL to conservative URL masks text', async ({ page }) => {
+    // Verifies maskFn URL-awareness in the other direction: session starts on a light URL,
+    // navigates to a conservative URL — maskTextFn should pick up the new URL and mask text.
+    // Use exact URL patterns to avoid first-match-wins overlap.
+    const LIGHT_PATTERN = 'http://localhost:5173/session-replay-browser/sr-privacy-test.html*';
+    const CONSERVATIVE_PATTERN = 'http://localhost:5173/section-secure/*';
+    await mockRemoteConfig(
+      page,
+      remoteConfigWithPrivacy({
+        defaultMaskLevel: 'medium',
+        urlMaskLevels: [
+          { match: LIGHT_PATTERN, maskLevel: 'light' },
+          { match: CONSERVATIVE_PATTERN, maskLevel: 'conservative' },
+        ],
+      }),
+    );
+    const { getBodies } = await captureTrackRequests(page);
+
+    await page.goto(buildUrl(PRIVACY_PAGE, { sessionId: TEST_SESSION_ID }));
+    await waitForReady(page);
+    await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
+
+    // Navigate to the conservative URL rule page via SPA pushState.
+    await page.evaluate(() => {
+      history.pushState({}, '', '/section-secure/checkout');
+      window.dispatchEvent(new Event('focus'));
+    });
+    await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
+    await flushRecording(page);
+
+    // The LAST full snapshot was taken on the conservative URL — plain text must be masked.
+    const lastRoot = getLastSnapshotRoot(getBodies());
+    expect(lastRoot).not.toBeNull();
+    const plainEl = findById(lastRoot!, 'plain-text');
+    expect(plainEl).toBeDefined();
+    expect(isMaskedText(getTextContent(plainEl!))).toBe(true);
   });
 });

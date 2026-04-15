@@ -12,7 +12,7 @@ type ChromeStorageEstimate = {
 };
 
 /**
- * Light: Subset of inputs
+ * Light: Subset of inputs (sensitive types only — password, hidden, email, tel, cc-*)
  * Medium: All inputs
  * Conservative: All inputs and all texts
  */
@@ -20,7 +20,8 @@ const isMaskedForLevel = (elementType: 'input' | 'text', level: MaskLevel, eleme
   switch (level) {
     case 'light': {
       if (elementType !== 'input') {
-        return true;
+        // light only masks a subset of inputs; text nodes are not masked at this level.
+        return false;
       }
 
       const inputType = element ? getInputType(element) : '';
@@ -140,14 +141,21 @@ const isValidGlobUrl = (globUrl: string): boolean => {
   return true;
 };
 
+const globRegexCache = new Map<string, RegExp>();
+
 const globToRegex = (glob: string): RegExp => {
+  const cached = globRegexCache.get(glob);
+  if (cached) return cached;
+
   // Escape special regex characters, then convert globs
   const escaped = glob
     .replace(/[.+^${}()|[\]\\]/g, '\\$&') // Escape regex specials
     .replace(/\*/g, '.*') // Convert * to .*
     .replace(/\?/g, '.'); // Convert ? to .
 
-  return new RegExp(`^${escaped}$`);
+  const regex = new RegExp(`^${escaped}$`);
+  globRegexCache.set(glob, regex);
+  return regex;
 };
 
 export const validateUGCFilterRules = (ugcFilterRules: UGCFilterRule[]) => {
