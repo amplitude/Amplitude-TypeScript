@@ -55,8 +55,11 @@ function gzipServePlugin() {
             res.setHeader('Content-Type', 'application/octet-stream');
           }
           
-          // Add Vary header to indicate that the response varies by Accept-Encoding
-          res.setHeader('Vary', 'Accept-Encoding');
+          const existingVary = res.getHeader('Vary');
+          res.setHeader(
+            'Vary',
+            existingVary ? `${existingVary}, Accept-Encoding` : 'Accept-Encoding',
+          );
         }
         next();
       });
@@ -148,10 +151,12 @@ export default defineConfig({
     host: true,
   },
   plugins: [
+    // createMockApi registers Private Network Access CORS first; keep this plugin
+    // before other configureServer hooks so that middleware runs first.
+    createMockApi(),
     htmlEntriesPlugin('**/*.html', { cwd: path.resolve(__dirname, 'test-server') }),
     gzipServePlugin(),
     fileListingPlugin(),
     spaRoutingPlugin(),
-    createMockApi(),
   ],
 });
