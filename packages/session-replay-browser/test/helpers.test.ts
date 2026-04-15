@@ -176,12 +176,11 @@ describe('SessionReplayPlugin helpers', () => {
       const result = maskFn('text', { defaultMaskLevel: 'conservative' })('some text', htmlElement);
       expect(result).toEqual('**** ****');
     });
-    // this will never happen in reality since rrweb will not call this
-    // function if we had not registered selectors
-    test('should mask an element on light mask level', () => {
+    test('should not mask a text element on light mask level', () => {
+      // light level only masks a subset of sensitive inputs; text nodes are never masked at light.
       const htmlElement = document.createElement('div');
       const result = maskFn('text', { defaultMaskLevel: 'light' })('some text', htmlElement);
-      expect(result).toEqual('**** ****');
+      expect(result).toEqual('some text');
     });
     test('should not mask an element whose class list has amp-unmask in it', () => {
       const htmlElement = document.createElement('div');
@@ -277,6 +276,34 @@ describe('SessionReplayPlugin helpers', () => {
       // After ancestor no longer matches, element should be masked.
       wrapper.classList.remove('unmask-parent');
       expect(fn('placeholder', 'Enter name', dynamicElement)).toEqual('***** ****');
+    });
+
+    test('masks attribute when getCurrentUrl returns a conservative URL via urlMaskLevels', () => {
+      const maskedElement = document.createElement('input');
+      const fn = maskAttributeFn(
+        {
+          defaultMaskLevel: 'light',
+          maskAttributes: ['placeholder'],
+          urlMaskLevels: [{ match: 'https://example.com/admin/*', maskLevel: 'conservative' }],
+        },
+        () => 'https://example.com/admin/settings',
+      );
+      expect(fn('placeholder', 'Enter name', maskedElement)).toEqual('***** ****');
+    });
+
+    test('returns value unmasked when getCurrentUrl returns a light URL via urlMaskLevels', () => {
+      // Exercises the false branch of the ternary on the isMasked call when getCurrentUrl is provided.
+      const element = document.createElement('input');
+      const fn = maskAttributeFn(
+        {
+          defaultMaskLevel: 'conservative',
+          maskAttributes: ['placeholder'],
+          urlMaskLevels: [{ match: 'https://example.com/public/*', maskLevel: 'light' }],
+        },
+        () => 'https://example.com/public/page',
+      );
+      // light level does not mask attributes (isMasked returns false for text-type at light)
+      expect(fn('placeholder', 'Enter name', element)).toEqual('Enter name');
     });
   });
 
@@ -547,8 +574,8 @@ describe('SessionReplayPlugin helpers', () => {
         urlMaskLevels: [{ match: 'https://example.com/*', maskLevel: 'conservative' }],
       };
       const element = document.createElement('div');
-      // No URL → falls back to defaultMaskLevel (light), text is still masked by light
-      expect(isMasked('text', config, element)).toBe(true);
+      // No URL → falls back to defaultMaskLevel (light); text is NOT masked at light level
+      expect(isMasked('text', config, element)).toBe(false);
       // Input with light level → not masked for non-sensitive inputs
       expect(isMasked('input', config, element)).toBe(false);
     });
