@@ -9,6 +9,7 @@ import {
   captureTrackRequests,
   flushRecording,
   getSnapshotRoot,
+  getLastSnapshotRoot,
   findById,
   getTextContent,
   isMaskedText,
@@ -326,5 +327,45 @@ test.describe('privacy — urlMaskLevels (page-level masking)', () => {
     const passwordInput = findById(root!, 'password-input');
     expect(passwordInput).toBeDefined();
     expect(isMaskedText(String(passwordInput!.attributes?.value ?? ''))).toBe(true);
+  });
+
+  test('SPA navigation to unmatched URL falls back to conservative default and masks text', async ({ page }) => {
+    // Regression test for the bugbot-identified privacy gap:
+    // defaultMaskLevel:'conservative' + a non-conservative URL rule. Session starts on the test
+    // page (MATCHING_PATTERN → light). After a SPA pushState to an unmatched URL, the effective
+    // level falls back to 'conservative'. Because getMaskTextSelectors() now returns '*' in this
+    // config (fix applied), rrweb routes all text through maskTextFn — which picks up the new URL
+    // via the dynamic getter and masks text accordingly.
+    await mockRemoteConfig(
+      page,
+      remoteConfigWithPrivacy({
+        defaultMaskLevel: 'conservative',
+        urlMaskLevels: [{ match: MATCHING_PATTERN, maskLevel: 'light' }],
+      }),
+    );
+    const { getBodies } = await captureTrackRequests(page);
+
+    await page.goto(buildUrl(PRIVACY_PAGE, { sessionId: TEST_SESSION_ID }));
+    await waitForReady(page);
+    await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
+
+    // Simulate SPA navigation to a URL that matches no urlMaskLevels rule.
+    // The SDK's URL-change listener updates currentPageUrl; subsequent maskTextFn
+    // calls then resolve to the conservative fallback.
+    await page.evaluate(() => {
+      history.pushState({}, '', '/session-replay-browser/unmatched-page');
+      // Dispatch a focus event to make rrweb take a new full snapshot with the updated URL context.
+      window.dispatchEvent(new Event('focus'));
+    });
+    await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
+    await flushRecording(page);
+
+    // The LAST full snapshot was taken after the URL change — plain text must be masked.
+    const root = getLastSnapshotRoot(getBodies());
+    expect(root).not.toBeNull();
+
+    const el = findById(root!, 'plain-text');
+    expect(el).toBeDefined();
+    expect(isMaskedText(getTextContent(el!))).toBe(true);
   });
 });
