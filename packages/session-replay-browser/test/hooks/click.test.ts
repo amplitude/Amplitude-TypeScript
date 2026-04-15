@@ -413,7 +413,7 @@ describe('click', () => {
       const expectedEvents: ClickEventWithCount[] = [
         {
           ...clickEventFixture({
-            timestamp: 1718326800000,
+            timestamp: 1718327016000,
             x: 3,
             y: 3,
           }),
@@ -421,7 +421,7 @@ describe('click', () => {
         },
         {
           ...clickEventFixture({
-            timestamp: 1718265600000,
+            timestamp: 1718267012000,
             x: 4,
             y: 3,
           }),
@@ -465,7 +465,7 @@ describe('click', () => {
         {
           count: 1,
           ...clickEventFixture({
-            timestamp: 1718226000000,
+            timestamp: 1718227016000,
             x: 3,
             y: 3,
             selector: '.foo',
@@ -474,7 +474,7 @@ describe('click', () => {
         {
           count: 1,
           ...clickEventFixture({
-            timestamp: 1718215200000,
+            timestamp: 1718217012000,
             x: 3,
             y: 3,
           }),
@@ -482,7 +482,7 @@ describe('click', () => {
         {
           count: 2,
           ...clickEventFixture({
-            timestamp: 1717326000000,
+            timestamp: 1717327012000,
             x: 4,
             y: 3,
             selector: '.bar',

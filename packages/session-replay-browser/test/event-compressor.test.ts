@@ -550,6 +550,32 @@ describe('EventCompressor', () => {
     });
   });
 
+  describe('flushQueue', () => {
+    test('should synchronously drain all queued events and reset isProcessing', () => {
+      const addEventMock = jest.spyOn(eventsManager, 'addEvent');
+
+      eventCompressor.taskQueue.push({ event: mockEvent as eventWithTime, sessionId });
+      eventCompressor.taskQueue.push({ event: mockEvent as eventWithTime, sessionId });
+      eventCompressor.isProcessing = true;
+
+      eventCompressor.flushQueue();
+
+      expect(addEventMock).toHaveBeenCalledTimes(2);
+      expect(eventCompressor.taskQueue).toHaveLength(0);
+      expect(eventCompressor.isProcessing).toBe(false);
+    });
+
+    test('should be a no-op and reset isProcessing when queue is empty', () => {
+      const addEventMock = jest.spyOn(eventsManager, 'addEvent');
+      eventCompressor.isProcessing = true;
+
+      eventCompressor.flushQueue();
+
+      expect(addEventMock).not.toHaveBeenCalled();
+      expect(eventCompressor.isProcessing).toBe(false);
+    });
+  });
+
   describe('compressEvent key ordering', () => {
     test('should serialize without delay when delay is absent', () => {
       const result = eventCompressor.compressEvent(mockEvent as eventWithTime);
