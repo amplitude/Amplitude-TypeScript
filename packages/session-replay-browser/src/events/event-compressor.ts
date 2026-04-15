@@ -185,6 +185,21 @@ export class EventCompressor {
     }
   };
 
+  /**
+   * Synchronously drain all queued events. Called during page unload to prevent
+   * data loss from events waiting in the requestIdleCallback queue.
+   */
+  public flushQueue = () => {
+    while (this.taskQueue.length > 0) {
+      const task = this.taskQueue.shift();
+      if (task) {
+        const { event, sessionId } = task;
+        this.addCompressedEvent(event, sessionId);
+      }
+    }
+    this.isProcessing = false;
+  };
+
   // Merge consecutive mutation tasks with the same sessionId before processing,
   // reducing the number of events serialized and stored without changing replay semantics.
   // Only runs when performanceConfig.mergeMutations is explicitly enabled.

@@ -25,6 +25,7 @@ import {
 } from './config/types';
 import {
   BLOCK_CLASS,
+  CHECKOUT_EVERY_NMS,
   CustomRRwebEvent,
   DEFAULT_SESSION_REPLAY_PROPERTY,
   INTERACTION_MAX_INTERVAL,
@@ -443,6 +444,10 @@ export class SessionReplay implements AmplitudeSessionReplay {
    * prevent duplicate listener actions from firing.
    */
   private pageLeaveListener = (e: PageTransitionEvent | Event) => {
+    // Synchronously drain any events still queued in the requestIdleCallback
+    // pipeline so they are available to send before the page unloads.
+    this.eventCompressor?.flushQueue();
+    this.sendEvents();
     this.pageLeaveFns.forEach((fn) => {
       fn(e);
     });
