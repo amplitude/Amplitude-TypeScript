@@ -47,6 +47,7 @@ export class SessionReplayLocalConfig extends Config implements ISessionReplayLo
   captureDocumentTitle?: boolean;
   captureAdoptedStyleSheets?: boolean;
   crossOriginIframes?: CrossOriginIframesConfig;
+  checkoutEveryNms?: number;
 
   constructor(apiKey: string, options: SessionReplayOptions) {
     const defaultConfig = getDefaultConfig();
@@ -74,6 +75,9 @@ export class SessionReplayLocalConfig extends Config implements ISessionReplayLo
     this.enableUrlChangePolling = options.enableUrlChangePolling ?? false;
     this.urlChangePollingInterval = options.urlChangePollingInterval ?? DEFAULT_URL_CHANGE_POLLING_INTERVAL;
     this.captureDocumentTitle = options.captureDocumentTitle ?? false;
+    if (options.checkoutEveryNms !== undefined) {
+      this.checkoutEveryNms = options.checkoutEveryNms;
+    }
 
     if (options.privacyConfig) {
       this.privacyConfig = options.privacyConfig;
