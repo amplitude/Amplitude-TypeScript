@@ -903,7 +903,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
       maskTextFn: maskFn('text', privacyConfig, () => this.currentPageUrl),
       maskAttributeFn: maskAttributeFn(privacyConfig, () => this.currentPageUrl),
       maskTextSelector: this.getMaskTextSelectors(),
-      ...(config.checkoutEveryNms !== undefined && { checkoutEveryNms: config.checkoutEveryNms }),
+      ...(config.fullSnapshotIntervalMs !== undefined && { checkoutEveryNms: config.fullSnapshotIntervalMs }),
       recordCanvas: false,
       captureAdoptedStyleSheets: config.captureAdoptedStyleSheets,
       slimDOMOptions: {
