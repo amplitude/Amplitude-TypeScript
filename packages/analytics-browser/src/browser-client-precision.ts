@@ -1,0 +1,356 @@
+import {
+  AmplitudeCore,
+  Identify,
+  returnWrapper,
+  Revenue,
+  UUID,
+  getAnalyticsConnector,
+  setConnectorDeviceId,
+  setConnectorUserId,
+  isNewSession,
+  getQueryParams,
+  Event,
+  EventOptions,
+  IIdentify,
+  IRevenue,
+  TransportTypeOrOptions,
+  Result,
+  BrowserOptions,
+  BrowserConfig,
+  BrowserClient,
+  AnalyticsClient,
+  AnalyticsIdentity,
+  createIdentifyEvent,
+  Logger,
+  safeJsonStringify,
+  LogLevel,
+} from '@amplitude/analytics-core';
+import { convertProxyObjectToRealObject, isInstanceProxy } from './utils/snippet-helper';
+import { useBrowserConfig, createTransport } from './config';
+import { DEFAULT_SERVER_ZONE } from './constants';
+
+const UNSPECIFIED_SESSION_ID = -1;
+
+/**
+ * Exported for `@amplitude/unified` or integration with blade plugins.
+ * If you only use `@amplitude/analytics-browser`, use `amplitude.init()` or `amplitude.createInstance()` instead.
+ */
+export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, AnalyticsClient {
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-ignore
+  config: BrowserConfig;
+  previousSessionDeviceId: string | undefined;
+  previousSessionUserId: string | undefined;
+
+  // Backdoor to set diagnostics sample rate
+  // by calling amplitude._setDiagnosticsSampleRate(1); before amplitude.init()
+  _diagnosticsSampleRate = 0;
+
+  // Backdoor to test request body compression
+  // by calling amplitude._enableRequestBodyCompressionExperimental(true); before amplitude.init()
+  _enableRequestBodyCompressionExperimentalValue = false;
+
+  init(apiKey = '', userIdOrOptions?: string | BrowserOptions, maybeOptions?: BrowserOptions) {
+    let userId: string | undefined;
+    let options: BrowserOptions | undefined;
+    if (arguments.length > 2) {
+      userId = userIdOrOptions as string | undefined;
+      options = maybeOptions;
+    } else {
+      if (typeof userIdOrOptions === 'string') {
+        userId = userIdOrOptions;
+        options = undefined;
+      } else {
+        userId = userIdOrOptions?.userId;
+        options = userIdOrOptions;
+      }
+    }
+    return returnWrapper(this._init({ ...options, userId, apiKey }));
+  }
+  protected async _init(options: BrowserOptions & { apiKey: string }) {
+    // Step 1: Block concurrent initialization
+    if (this.initializing) {
+      return;
+    }
+    this.initializing = true;
+
+    // Set up early dependencies needed for remote config client
+    // These use options directly or fall back to defaults
+    const loggerProvider = options.loggerProvider ?? new Logger();
+    if (!options.loggerProvider) {
+      loggerProvider.enable(options.logLevel ?? LogLevel.Warn);
+    }
+    const serverZone = options.serverZone ?? DEFAULT_SERVER_ZONE;
+
+    // Step 2.4: Create browser config with diagnosticsClient and earlyConfig
+    // earlyConfig ensures consistent logger/serverZone/diagnostics settings across all components
+    const browserOptions = await useBrowserConfig(options.apiKey, options, this, {
+      loggerProvider,
+      serverZone,
+    });
+
+    await super._init(browserOptions);
+    this.logBrowserOptions(browserOptions);
+
+    // Step 3: Set session ID
+    // Priority 1: `options.sessionId`
+    // Priority 2: sessionId from url if it's Number and ampTimestamp is valid
+    // Priority 3: last known sessionId from user identity storage
+    // Default: `Date.now()`
+    // Session ID is handled differently than device ID and user ID due to session events
+    const queryParams = getQueryParams();
+
+    // Check if ampTimestamp is present and valid
+    const ampTimestamp = queryParams.ampTimestamp ? Number(queryParams.ampTimestamp) : undefined;
+    const isWithinTimeLimit = ampTimestamp ? Date.now() < ampTimestamp : true;
+
+    // check if we need to set the sessionId
+    const querySessionId =
+      isWithinTimeLimit && !Number.isNaN(Number(queryParams.ampSessionId))
+        ? Number(queryParams.ampSessionId)
+        : undefined;
+
+    let deferredSessionId = this.config.deferredSessionId;
+    if (deferredSessionId === UNSPECIFIED_SESSION_ID && !this.config.optOut) {
+      deferredSessionId = Date.now();
+    }
+
+    this.setSessionId(options.sessionId ?? querySessionId ?? deferredSessionId ?? this.config.sessionId);
+
+    if (this.config.optOut) {
+      this.timeline.addOptOutListener(async (optOut) => {
+        if (!optOut && this.config.deferredSessionId) {
+          if (this.config.deferredSessionId === UNSPECIFIED_SESSION_ID) {
+            this.setSessionId(undefined);
+          } else {
+            this.setSessionId(this.config.deferredSessionId);
+          }
+        }
+      });
+    }
+
+    // Set up the analytics connector to integrate with the experiment SDK.
+    // Send events from the experiment SDK and forward identifies to the
+    // identity store.
+    const connector = getAnalyticsConnector(options.instanceName);
+    connector.identityStore.setIdentity({
+      userId: this.config.userId,
+      deviceId: this.config.deviceId,
+    });
+
+    // no plugins because precision
+
+    this.initializing = false;
+
+    // Step 6: Run queued dispatch functions
+    await this.runQueuedFunctions('dispatchQ');
+
+    // Step 7: Add the event receiver after running remaining queued functions.
+    connector.eventBridge.setEventReceiver((event) => {
+      const { time, ...cleanEventProperties } = event.eventProperties || {};
+      const eventOptions = typeof time === 'number' ? { time } : undefined;
+      void this.track(event.eventType, cleanEventProperties, eventOptions);
+    });
+  }
+
+  getUserId() {
+    return this.config?.userId;
+  }
+
+  setUserId(userId: string | undefined) {
+    if (!this.config) {
+      this.q.push(this.setUserId.bind(this, userId));
+      return;
+    }
+    this.config.loggerProvider.debug('function setUserId: ', userId);
+    if (userId !== this.config.userId || userId === undefined) {
+      this.config.userId = userId;
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+      this.timeline.onIdentityChanged({ userId: userId });
+      setConnectorUserId(userId, this.config.instanceName);
+    }
+  }
+
+  getDeviceId() {
+    return this.config?.deviceId;
+  }
+
+  setDeviceId(deviceId: string) {
+    if (!this.config) {
+      this.q.push(this.setDeviceId.bind(this, deviceId));
+      return;
+    }
+    this.config.loggerProvider.debug('function setDeviceId: ', deviceId);
+    if (deviceId !== this.config.deviceId) {
+      this.config.deviceId = deviceId;
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+      this.timeline.onIdentityChanged({ deviceId: deviceId });
+      setConnectorDeviceId(deviceId, this.config.instanceName);
+    }
+  }
+
+  reset() {
+    this.setDeviceId(UUID());
+    this.setUserId(undefined);
+    this.timeline.onReset();
+  }
+
+  getIdentity() {
+    return {
+      deviceId: this.config?.deviceId,
+      userId: this.config?.userId,
+      userProperties: this.userProperties,
+    };
+  }
+
+  setIdentity(identity: Partial<AnalyticsIdentity>) {
+    // Handle userId change
+    if ('userId' in identity) {
+      this.setUserId(identity.userId);
+    }
+
+    // Handle deviceId change
+    if ('deviceId' in identity && identity.deviceId) {
+      this.setDeviceId(identity.deviceId);
+    }
+
+    // Handle userProperties change - auto-send identify
+    if ('userProperties' in identity) {
+      this.userProperties = identity.userProperties;
+      // Auto-send identify event with $set operations
+      const identifyObj = new Identify();
+      // istanbul ignore next
+      const userProperties = identity.userProperties ?? {};
+      for (const [key, value] of Object.entries(userProperties)) {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+        identifyObj.set(key, value);
+      }
+      // The identify event processing in core-client already calls onIdentityChanged,
+      // so we don't need to call it explicitly here to avoid duplicate notifications.
+      this.identify(identifyObj);
+    }
+  }
+
+  getOptOut(): boolean | undefined {
+    return this.config?.optOut;
+  }
+
+  getSessionId() {
+    return this.config?.sessionId;
+  }
+
+  setSessionId(sessionId: number | undefined) {
+    const promises: Promise<Result>[] = [];
+    if (!this.config) {
+      this.q.push(this.setSessionId.bind(this, sessionId));
+      return returnWrapper(Promise.resolve());
+    }
+    // do not start a new session if optOut is true
+    if (this.config.optOut) {
+      // save the sessionId to storage to be used when optOut is false
+      this.config.deferredSessionId = sessionId ?? UNSPECIFIED_SESSION_ID;
+      return returnWrapper(Promise.resolve());
+    }
+
+    // default sessionId to current time
+    if (sessionId === undefined) {
+      sessionId = Date.now();
+    }
+
+    // Prevents starting a new session with the same session ID
+    if (sessionId === this.config.sessionId) {
+      return returnWrapper(Promise.resolve());
+    }
+
+    this.config.loggerProvider.debug('function setSessionId: ', sessionId);
+
+    const previousSessionId = this.getSessionId();
+    if (previousSessionId !== sessionId) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+      this.timeline.onSessionIdChanged(sessionId);
+    }
+
+    this.config.sessionId = sessionId;
+    this.config.lastEventTime = undefined;
+    this.config.pageCounter = 0;
+
+    // track the identify event if an Identify object is provided in the config
+    if (this.config.identify) {
+      promises.push(this.track(createIdentifyEvent(this.config.identify)).promise);
+    }
+
+    this.previousSessionDeviceId = this.config.deviceId;
+    this.previousSessionUserId = this.config.userId;
+    return returnWrapper(Promise.all(promises));
+  }
+
+  extendSession() {
+    if (!this.config) {
+      this.q.push(this.extendSession.bind(this));
+      return;
+    }
+    this.config.lastEventTime = Date.now();
+  }
+
+  setTransport(transport: TransportTypeOrOptions) {
+    if (!this.config) {
+      this.q.push(this.setTransport.bind(this, transport));
+      return;
+    }
+    this.config.transportProvider = createTransport(transport);
+  }
+
+  identify(identify: IIdentify, eventOptions?: EventOptions) {
+    if (isInstanceProxy(identify)) {
+      const queue = identify._q;
+      identify._q = [];
+      identify = convertProxyObjectToRealObject(new Identify(), queue);
+    }
+    if (eventOptions?.user_id) {
+      this.setUserId(eventOptions.user_id);
+    }
+    if (eventOptions?.device_id) {
+      this.setDeviceId(eventOptions.device_id);
+    }
+    return super.identify(identify, eventOptions);
+  }
+
+  groupIdentify(groupType: string, groupName: string | string[], identify: IIdentify, eventOptions?: EventOptions) {
+    if (isInstanceProxy(identify)) {
+      const queue = identify._q;
+      identify._q = [];
+      identify = convertProxyObjectToRealObject(new Identify(), queue);
+    }
+    return super.groupIdentify(groupType, groupName, identify, eventOptions);
+  }
+
+  revenue(revenue: IRevenue, eventOptions?: EventOptions) {
+    if (isInstanceProxy(revenue)) {
+      const queue = revenue._q;
+      revenue._q = [];
+      revenue = convertProxyObjectToRealObject(new Revenue(), queue);
+    }
+    return super.revenue(revenue, eventOptions);
+  }
+
+  async process(event: Event) {
+    return super.process(event);
+  }
+
+  private logBrowserOptions(browserConfig: BrowserOptions & { apiKey: string }) {
+    try {
+      const browserConfigCopy = {
+        ...browserConfig,
+        apiKey: browserConfig.apiKey.substring(0, 10) + '********',
+      };
+      this.config.loggerProvider.debug(
+        'Initialized Amplitude with BrowserConfig:',
+        safeJsonStringify(browserConfigCopy),
+      );
+    } catch (e) {
+      /* istanbul ignore next */
+      this.config.loggerProvider.error('Error logging browser config', e);
+    }
+  }
+}
