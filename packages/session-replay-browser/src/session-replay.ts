@@ -657,6 +657,13 @@ export class SessionReplay implements AmplitudeSessionReplay {
       return '*';
     }
 
+    // If defaultMaskLevel is 'conservative' and URL rules exist, always route text through
+    // maskTextFn — a page matching no rule falls back to the conservative default, and
+    // rrweb must be set up at start to call maskTextFn for those text nodes.
+    if (privacyConfig?.defaultMaskLevel === 'conservative' && privacyConfig?.urlMaskLevels?.length) {
+      return '*';
+    }
+
     const maskSelector = privacyConfig?.maskSelector;
     if (!maskSelector) {
       return;
