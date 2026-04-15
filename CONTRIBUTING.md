@@ -92,6 +92,23 @@ To publish a package for the first time (administrators only):
 7. copy the same configuration used in [analytics browser](https://www.npmjs.com/package/@amplitude/analytics-browser/access). **case sensitive**
 8. now that it's in NPM and Trusted Publishing is enabled, this package can now be published from workflows
 
+#### Recovering a partial `publish-v2` workflow run
+
+Use this only when a previous `Publish v2.x` workflow run already created the release version and partially published packages to npm, but the workflow failed before all packages finished publishing.
+
+To recover from that state:
+
+1. Open the `Publish v2.x` workflow in GitHub Actions.
+2. Click `Run workflow`.
+3. Select the same `releaseType` that the failed run used.
+4. Select the same branch that the failed run used, if applicable.
+5. Enable the `skipLernaVersion` checkbox.
+6. Run the workflow again.
+
+When `skipLernaVersion` is enabled, the workflow skips the `lerna version` step for `release` and `prerelease` runs and skips the E2E test step. This lets the workflow continue to the publish step without trying to create a second release version.
+
+Do not use `skipLernaVersion` for a normal release. It is only intended for recovery after a partial `publish-v2` run.
+
 ## Practices
 
 ### PR Commit Title Conventions
