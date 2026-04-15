@@ -25,7 +25,6 @@ import {
 } from './config/types';
 import {
   BLOCK_CLASS,
-  CHECKOUT_EVERY_NMS,
   CustomRRwebEvent,
   DEFAULT_SESSION_REPLAY_PROPERTY,
   INTERACTION_MAX_INTERVAL,
@@ -772,7 +771,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
         maskTextFn: maskFn('text', privacyConfig),
         maskAttributeFn: maskAttributeFn(privacyConfig),
         maskTextSelector: this.getMaskTextSelectors(),
-        checkoutEveryNms: CHECKOUT_EVERY_NMS,
+        ...(config.checkoutEveryNms !== undefined && { checkoutEveryNms: config.checkoutEveryNms }),
         recordCanvas: false,
         slimDOMOptions: {
           script: config.omitElementTags?.script,
