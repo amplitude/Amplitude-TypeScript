@@ -1971,6 +1971,20 @@ describe('SessionReplay', () => {
       expect(recordArg?.slimDOMOptions).toEqual({ script: true, comment: true });
     });
 
+    test('should pass checkoutEveryNms to record function when configured', async () => {
+      await sessionReplay.init(apiKey, { ...mockOptions, checkoutEveryNms: 300000 }).promise;
+      await sessionReplay.recordEvents();
+      const recordArg = mockRecordFunction.mock.calls[0][0];
+      expect(recordArg?.checkoutEveryNms).toBe(300000);
+    });
+
+    test('should not pass checkoutEveryNms to record function when not configured', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      await sessionReplay.recordEvents();
+      const recordArg = mockRecordFunction.mock.calls[0][0];
+      expect(recordArg?.checkoutEveryNms).toBeUndefined();
+    });
+
     test('should rethrow CSSStylesheet errors', async () => {
       const sessionReplay = new SessionReplay();
       await sessionReplay.init(apiKey, mockOptions).promise;
