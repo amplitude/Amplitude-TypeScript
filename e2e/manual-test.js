@@ -1,12 +1,12 @@
-// playwright-proxy.ts
+// manual-test.js
 import { chromium } from 'playwright';
 
 // Get URL from command line args
 const targetUrl = process.argv[2];
 
 if (!targetUrl) {
-  console.error('Usage: npx ts-node playwright-proxy.ts <url>');
-  console.error('Example: npx ts-node playwright-proxy.ts https://example.com');
+  console.error('Usage: node ./e2e/manual-test.js <website-url>');
+  console.error('Example: node ./e2e/manual-test.js https://example.com');
   process.exit(1);
 }
 
