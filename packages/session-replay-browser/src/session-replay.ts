@@ -771,7 +771,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
         maskTextFn: maskFn('text', privacyConfig),
         maskAttributeFn: maskAttributeFn(privacyConfig),
         maskTextSelector: this.getMaskTextSelectors(),
-        ...(config.checkoutEveryNms !== undefined && { checkoutEveryNms: config.checkoutEveryNms }),
+        ...(config.fullSnapshotIntervalMs !== undefined && { checkoutEveryNms: config.fullSnapshotIntervalMs }),
         recordCanvas: false,
         slimDOMOptions: {
           script: config.omitElementTags?.script,

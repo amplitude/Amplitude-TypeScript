@@ -195,8 +195,8 @@ export interface SessionReplayLocalConfig extends IConfig {
    */
   captureDocumentTitle?: boolean;
   interactionConfig?: InteractionConfig;
-  /** Interval in ms at which rrweb takes a full DOM snapshot. Disabled by default — periodic snapshots are expensive. Recommended value: 300000 (5 min). */
-  checkoutEveryNms?: number;
+  /** Interval in ms at which the SDK takes a full DOM snapshot. Disabled by default — periodic snapshots are expensive. Recommended value: 300000 (5 min). */
+  fullSnapshotIntervalMs?: number;
 }
 
 export interface SessionReplayJoinedConfig extends SessionReplayLocalConfig {

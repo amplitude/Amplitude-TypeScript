@@ -1971,14 +1971,14 @@ describe('SessionReplay', () => {
       expect(recordArg?.slimDOMOptions).toEqual({ script: true, comment: true });
     });
 
-    test('should pass checkoutEveryNms to record function when configured', async () => {
-      await sessionReplay.init(apiKey, { ...mockOptions, checkoutEveryNms: 300000 }).promise;
+    test('should pass fullSnapshotIntervalMs to record function as checkoutEveryNms when configured', async () => {
+      await sessionReplay.init(apiKey, { ...mockOptions, fullSnapshotIntervalMs: 300000 }).promise;
       await sessionReplay.recordEvents();
       const recordArg = mockRecordFunction.mock.calls[0][0];
       expect(recordArg?.checkoutEveryNms).toBe(300000);
     });
 
-    test('should not pass checkoutEveryNms to record function when not configured', async () => {
+    test('should not pass checkoutEveryNms to record function when fullSnapshotIntervalMs is not configured', async () => {
       await sessionReplay.init(apiKey, mockOptions).promise;
       await sessionReplay.recordEvents();
       const recordArg = mockRecordFunction.mock.calls[0][0];
