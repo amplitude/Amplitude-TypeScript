@@ -464,4 +464,87 @@ describe('SessionReplayEventsIDBStore', () => {
       expect(mockLoggerProvider.warn).toHaveBeenCalled();
     });
   });
+
+  describe('persistent failure tracking', () => {
+    test('calls onPersistentFailure after consecutive failures reach threshold', async () => {
+      mockStoreForError();
+      const onPersistentFailure = jest.fn();
+      const eventsStorage = await SessionReplayEventsIDBStore.new('replay', {
+        apiKey,
+        loggerProvider: mockLoggerProvider,
+        onPersistentFailure,
+        consecutiveFailureThreshold: 2,
+      });
+
+      await eventsStorage?.getSequencesToSend(); // failure 1
+      expect(onPersistentFailure).not.toHaveBeenCalled();
+      await eventsStorage?.getSequencesToSend(); // failure 2 — triggers callback
+      expect(onPersistentFailure).toHaveBeenCalledTimes(1);
+    });
+
+    test('does not call onPersistentFailure before threshold is reached', async () => {
+      mockStoreForError();
+      const onPersistentFailure = jest.fn();
+      const eventsStorage = await SessionReplayEventsIDBStore.new('replay', {
+        apiKey,
+        loggerProvider: mockLoggerProvider,
+        onPersistentFailure,
+        consecutiveFailureThreshold: 3,
+      });
+
+      await eventsStorage?.getSequencesToSend(); // failure 1
+      await eventsStorage?.getSequencesToSend(); // failure 2
+      expect(onPersistentFailure).not.toHaveBeenCalled();
+    });
+
+    test('calls onPersistentFailure only once regardless of further failures', async () => {
+      mockStoreForError();
+      const onPersistentFailure = jest.fn();
+      const eventsStorage = await SessionReplayEventsIDBStore.new('replay', {
+        apiKey,
+        loggerProvider: mockLoggerProvider,
+        onPersistentFailure,
+        consecutiveFailureThreshold: 1,
+      });
+
+      await eventsStorage?.getSequencesToSend();
+      await eventsStorage?.getSequencesToSend();
+      await eventsStorage?.getSequencesToSend();
+      expect(onPersistentFailure).toHaveBeenCalledTimes(1);
+    });
+
+    test('does not throw when threshold is reached with no callback registered', async () => {
+      mockStoreForError();
+      const eventsStorage = await SessionReplayEventsIDBStore.new('replay', {
+        apiKey,
+        loggerProvider: mockLoggerProvider,
+        consecutiveFailureThreshold: 1,
+        // no onPersistentFailure
+      });
+
+      await expect(eventsStorage?.getSequencesToSend()).resolves.toBeUndefined();
+    });
+
+    test('resets consecutive failure count on successful operation', async () => {
+      const mockDB = mockStoreForError();
+      const onPersistentFailure = jest.fn();
+      const eventsStorage = await SessionReplayEventsIDBStore.new('replay', {
+        apiKey,
+        loggerProvider: mockLoggerProvider,
+        onPersistentFailure,
+        consecutiveFailureThreshold: 2,
+      });
+
+      await eventsStorage?.storeSendingEvents(123, [mockEventString]); // failure 1
+      expect(onPersistentFailure).not.toHaveBeenCalled();
+
+      // Make next put succeed so recordSuccess() resets the counter
+      (mockDB.put as jest.Mock).mockResolvedValueOnce(1);
+      await eventsStorage?.storeSendingEvents(123, [mockEventString]); // success — resets counter
+
+      // One more failure — counter is back to 1, threshold is 2, no callback yet
+      await eventsStorage?.storeSendingEvents(123, [mockEventString]); // failure 1 (fresh)
+      expect(onPersistentFailure).not.toHaveBeenCalled();
+    });
+  });
 });
