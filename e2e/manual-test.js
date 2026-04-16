@@ -71,7 +71,7 @@ async function main() {
         const response = await route.fetch();
         let body = await response.text();
         for (const hash of INTEGRITY_HASHES) {
-          body = body.replace(hash, '');
+          body = body.replaceAll(hash, '');
         }
         await route.fulfill({
           status: response.status(),
@@ -102,23 +102,22 @@ async function main() {
     }
     let content = await response.text();
     for (const hash of INTEGRITY_HASHES) {
-      content = content.replace(hash, '');
+      content = content.replaceAll(hash, '');
     }
 
     const ct = (response.headers()['content-type'] || '').toLowerCase();
     if (!ct.includes('text/html')) {
-      return route.fulfill({ response, body: content });
-    }
-    let html = content;
-
-    for (const hash of INTEGRITY_HASHES) {
-      html = html.replace(hash, '');
+      return route.fulfill({
+        status: response.status(),
+        headers: dropEncodingHeaders(response.headers()),
+        body: content,
+      });
     }
 
     await route.fulfill({
       status: response.status(),
       headers: dropEncodingHeaders(response.headers()),
-      body: html,
+      body: content,
     });
   });
 
