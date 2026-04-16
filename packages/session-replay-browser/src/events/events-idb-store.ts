@@ -93,9 +93,20 @@ export class SessionReplayEventsIDBStore extends BaseEventsStore<number> {
   }
 
   getSequencesToSend = async (): Promise<SendingSequencesReturn<number>[] | undefined> => {
+    let errorLogged = false;
     try {
       const sequences: SendingSequencesReturn<number>[] = [];
-      let cursor = await this.db.transaction('sequencesToSend').store.openCursor();
+      const tx = this.db.transaction('sequencesToSend');
+      // Attach a catch handler immediately so tx.done rejections (e.g. AbortError after
+      // cursor traversal completes) are always handled without blocking the return path.
+      // The errorLogged flag prevents double-logging when the outer catch already fired
+      // for the same abort (e.g. cursor.continue() threw mid-traversal).
+      tx.done.catch((e: unknown) => {
+        if (!errorLogged) {
+          logIdbError(this.loggerProvider, `${STORAGE_FAILURE}: ${e as string}`, e);
+        }
+      });
+      let cursor = await tx.store.openCursor();
       while (cursor) {
         const { sessionId, events } = cursor.value;
         sequences.push({
@@ -108,6 +119,7 @@ export class SessionReplayEventsIDBStore extends BaseEventsStore<number> {
 
       return sequences;
     } catch (e) {
+      errorLogged = true;
       logIdbError(this.loggerProvider, `${STORAGE_FAILURE}: ${e as string}`, e);
     }
     return undefined;
@@ -142,15 +154,23 @@ export class SessionReplayEventsIDBStore extends BaseEventsStore<number> {
   };
 
   addEventToCurrentSequence = async (sessionId: number, event: string) => {
+    let errorLogged = false;
     try {
       const tx = this.db.transaction<'sessionCurrentSequence', 'readwrite'>(currentSequenceKey, 'readwrite');
+      // Attach a catch handler immediately so tx.done rejections (e.g. AbortError after
+      // put succeeds but before auto-commit) are always handled without blocking.
+      // The errorLogged flag prevents double-logging when the outer catch already fired
+      // for the same abort (e.g. tx.store.put() threw).
+      tx.done.catch((e: unknown) => {
+        if (!errorLogged) {
+          logIdbError(this.loggerProvider, `${STORAGE_FAILURE}: ${e as string}`, e);
+        }
+      });
       const sequenceEvents = await tx.store.get(sessionId);
+      let eventsToSend: Events | undefined;
       if (!sequenceEvents) {
         await tx.store.put({ sessionId, events: [event] });
-        return;
-      }
-      let eventsToSend;
-      if (this.shouldSplitEventsList(sequenceEvents.events, event)) {
+      } else if (this.shouldSplitEventsList(sequenceEvents.events, event)) {
         eventsToSend = sequenceEvents.events;
         // set store to empty array
         await tx.store.put({ sessionId, events: [event] });
@@ -160,7 +180,6 @@ export class SessionReplayEventsIDBStore extends BaseEventsStore<number> {
         await tx.store.put({ sessionId, events: updatedEvents });
       }
 
-      await tx.done;
       if (!eventsToSend) {
         return undefined;
       }
@@ -177,6 +196,7 @@ export class SessionReplayEventsIDBStore extends BaseEventsStore<number> {
         sequenceId,
       };
     } catch (e) {
+      errorLogged = true;
       logIdbError(this.loggerProvider, `${STORAGE_FAILURE}: ${e as string}`, e);
     }
     return undefined;

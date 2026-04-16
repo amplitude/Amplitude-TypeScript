@@ -111,6 +111,38 @@ describe('SessionReplayEventsIDBStore', () => {
       expect(mockLoggerProvider.warn).toHaveBeenCalled();
       expect(unsentSequences).toBeUndefined();
     });
+
+    test('should log at debug (not warn) when tx.done rejects with AbortError', async () => {
+      // Repro: transaction aborts after cursor exhaustion; tx.done rejection must be caught
+      const abortError = new DOMException(
+        'The transaction was aborted, so the request cannot be fulfilled.',
+        'AbortError',
+      );
+      const txDone = Promise.reject(abortError);
+      // eslint-disable-next-line @typescript-eslint/no-empty-function
+      txDone.catch(() => {}); // prevent unhandled rejection in test runner
+      const mockDB = {
+        transaction: jest.fn().mockReturnValue({
+          store: { openCursor: jest.fn().mockResolvedValue(null) },
+          done: txDone,
+        }),
+      } as unknown as IDBPDatabase<SessionReplayDB>;
+      jest.spyOn(EventsIDBStore, 'createStore').mockResolvedValue(mockDB);
+
+      const eventsStorage = await SessionReplayEventsIDBStore.new('replay', {
+        apiKey,
+        loggerProvider: mockLoggerProvider,
+      });
+
+      const result = await eventsStorage?.getSequencesToSend();
+      // With the .catch() approach the function returns whatever sequences were
+      // collected before the abort (an empty array here since the cursor was null).
+      expect(result).toEqual([]);
+      expect(mockLoggerProvider.debug).toHaveBeenCalledWith(
+        expect.stringContaining('Failed to store session replay events in IndexedDB'),
+      );
+      expect(mockLoggerProvider.warn).not.toHaveBeenCalled();
+    });
   });
 
   describe('storeCurrentSequence', () => {
@@ -260,6 +292,41 @@ describe('SessionReplayEventsIDBStore', () => {
       const eventsToSend = await eventsStorage?.addEventToCurrentSequence(123, mockEventString2);
       expect(mockLoggerProvider.warn).toHaveBeenCalled();
       expect(eventsToSend).toBeUndefined();
+    });
+
+    test('should log at debug (not warn) when tx.done rejects with AbortError on first event for session', async () => {
+      // Repro: tx.done rejects with AbortError after put succeeds (transaction aborts before commit).
+      // The old code had an early `return` before `await tx.done` in the !sequenceEvents branch,
+      // meaning this rejection was silently unhandled instead of being routed through logIdbError.
+      const abortError = new DOMException(
+        'The transaction was aborted, so the request cannot be fulfilled.',
+        'AbortError',
+      );
+      const txDone = Promise.reject(abortError);
+      // eslint-disable-next-line @typescript-eslint/no-empty-function
+      txDone.catch(() => {}); // prevent unhandled rejection in test runner
+      const mockDB = {
+        transaction: jest.fn().mockReturnValue({
+          store: {
+            get: jest.fn().mockResolvedValue(undefined), // no existing sequence
+            put: jest.fn().mockResolvedValue(undefined), // put succeeds
+          },
+          done: txDone, // but transaction aborts before commit
+        }),
+      } as unknown as IDBPDatabase<SessionReplayDB>;
+      jest.spyOn(EventsIDBStore, 'createStore').mockResolvedValue(mockDB);
+
+      const eventsStorage = await SessionReplayEventsIDBStore.new('replay', {
+        apiKey,
+        loggerProvider: mockLoggerProvider,
+      });
+
+      const result = await eventsStorage?.addEventToCurrentSequence(123, mockEventString);
+      expect(result).toBeUndefined();
+      expect(mockLoggerProvider.debug).toHaveBeenCalledWith(
+        expect.stringContaining('Failed to store session replay events in IndexedDB'),
+      );
+      expect(mockLoggerProvider.warn).not.toHaveBeenCalled();
     });
     test('should handle undefined store', async () => {
       mockStoreForError();
