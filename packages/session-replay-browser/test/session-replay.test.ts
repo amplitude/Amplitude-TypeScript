@@ -2611,6 +2611,111 @@ describe('SessionReplay', () => {
       }).promise;
       expect(sessionReplay.getMaskTextSelectors()).toEqual('*');
     });
+
+    test('should return * when any urlMaskLevels rule is conservative, even if default is not', async () => {
+      await sessionReplay.init(apiKey, {
+        ...mockOptions,
+        privacyConfig: {
+          defaultMaskLevel: 'light',
+          urlMaskLevels: [
+            { match: 'https://example.com/admin/*', maskLevel: 'conservative' },
+            { match: 'https://example.com/public/*', maskLevel: 'light' },
+          ],
+        },
+      }).promise;
+      expect(sessionReplay.getMaskTextSelectors()).toEqual('*');
+    });
+
+    test('should not return * when urlMaskLevels has no conservative rule', async () => {
+      await sessionReplay.init(apiKey, {
+        ...mockOptions,
+        privacyConfig: {
+          defaultMaskLevel: 'light',
+          urlMaskLevels: [{ match: 'https://example.com/checkout/*', maskLevel: 'medium' }],
+        },
+      }).promise;
+      expect(sessionReplay.getMaskTextSelectors()).toBeUndefined();
+    });
+
+    test('should return * when defaultMaskLevel is conservative and urlMaskLevels are present', async () => {
+      await sessionReplay.init(apiKey, {
+        ...mockOptions,
+        privacyConfig: {
+          defaultMaskLevel: 'conservative',
+          urlMaskLevels: [{ match: 'https://example.com/public/*', maskLevel: 'light' }],
+        },
+      }).promise;
+      expect(sessionReplay.getMaskTextSelectors()).toEqual('*');
+    });
+
+    test('should return * when defaultMaskLevel is conservative and urlMaskLevels is non-empty even if current URL matches a non-conservative rule', async () => {
+      jest.spyOn(Helpers, 'getCurrentUrl').mockReturnValue('https://example.com/public/page');
+      await sessionReplay.init(apiKey, {
+        ...mockOptions,
+        privacyConfig: {
+          defaultMaskLevel: 'conservative',
+          urlMaskLevels: [{ match: 'https://example.com/public/*', maskLevel: 'light' }],
+        },
+      }).promise;
+      expect(sessionReplay.getMaskTextSelectors()).toEqual('*');
+    });
+
+    test('should not return * when defaultMaskLevel is conservative but urlMaskLevels is empty', async () => {
+      await sessionReplay.init(apiKey, {
+        ...mockOptions,
+        privacyConfig: {
+          defaultMaskLevel: 'conservative',
+          urlMaskLevels: [],
+        },
+      }).promise;
+      expect(sessionReplay.getMaskTextSelectors()).toEqual('*');
+    });
+
+    test('should return * when defaultMaskLevel is conservative and urlMaskLevels is undefined', async () => {
+      await sessionReplay.init(apiKey, {
+        ...mockOptions,
+        privacyConfig: {
+          defaultMaskLevel: 'conservative',
+        },
+      }).promise;
+      expect(sessionReplay.getMaskTextSelectors()).toEqual('*');
+    });
+  });
+
+  describe('mask function URL getters (currentPageUrl integration)', () => {
+    test('maskInputFn, maskTextFn, and maskAttributeFn closures expose currentPageUrl dynamically', async () => {
+      await sessionReplay.init(apiKey, {
+        ...mockOptions,
+        privacyConfig: {
+          defaultMaskLevel: 'light',
+          maskAttributes: ['placeholder'],
+          urlMaskLevels: [{ match: 'https://example.com/admin/*', maskLevel: 'conservative' }],
+        },
+      }).promise;
+
+      await sessionReplay.recordEvents();
+      expect(mockRecordFunction).toHaveBeenCalled();
+
+      const recordArg = mockRecordFunction.mock.calls[mockRecordFunction.mock.calls.length - 1][0];
+      const { maskInputFn, maskTextFn, maskAttributeFn: attrFn } = recordArg;
+      expect(maskInputFn).toBeDefined();
+      expect(maskTextFn).toBeDefined();
+      expect(attrFn).toBeDefined();
+
+      const divElement = document.createElement('div');
+      const inputElement = document.createElement('input');
+      inputElement.type = 'text';
+
+      expect(maskTextFn('hello', divElement)).toEqual('hello');
+      expect(maskInputFn('hello', inputElement)).toEqual('hello');
+      expect(attrFn('placeholder', 'Enter name', inputElement)).toEqual('Enter name');
+
+      (sessionReplay as any).currentPageUrl = 'https://example.com/admin/dashboard';
+
+      expect(maskTextFn('hello', divElement)).toEqual('*****');
+      expect(maskInputFn('hello', inputElement)).toEqual('*****');
+      expect(attrFn('placeholder', 'Enter name', inputElement)).toEqual('***** ****');
+    });
   });
 
   describe('getBlockSelectors', () => {
@@ -3912,6 +4017,47 @@ describe('SessionReplay', () => {
       const sessionReplay = new SessionReplay();
       await sessionReplay.init(apiKey, mockOptions).promise;
       expect(subscribeToUrlChanges).not.toHaveBeenCalled();
+    });
+
+    test('should call subscribeToUrlChanges when urlMaskLevels has entries and there is no targetingConfig', async () => {
+      (subscribeToUrlChanges as jest.Mock).mockClear();
+      mockRemoteConfig = {
+        sr_sampling_config: samplingConfig,
+        sr_privacy_config: {},
+      };
+      const sessionReplay = new SessionReplay();
+      await sessionReplay.init(apiKey, {
+        ...mockOptions,
+        privacyConfig: {
+          defaultMaskLevel: 'light',
+          urlMaskLevels: [{ match: 'https://example.com/admin/*', maskLevel: 'conservative' }],
+        },
+      }).promise;
+      expect(subscribeToUrlChanges).toHaveBeenCalled();
+    });
+
+    test('should update currentPageUrl on URL change even without targetingConfig', async () => {
+      mockRemoteConfig = {
+        sr_sampling_config: samplingConfig,
+        sr_privacy_config: {},
+      };
+      const subscribeMock = subscribeToUrlChanges as jest.MockedFunction<typeof subscribeToUrlChanges>;
+      const callCountBefore = subscribeMock.mock.calls.length;
+      const sessionReplay = new SessionReplay();
+      await sessionReplay.init(apiKey, {
+        ...mockOptions,
+        privacyConfig: {
+          defaultMaskLevel: 'light',
+          urlMaskLevels: [{ match: 'https://example.com/admin/*', maskLevel: 'conservative' }],
+        },
+      }).promise;
+
+      const lastCall = subscribeMock.mock.calls[callCountBefore];
+      const onUrlChange = lastCall?.[1] as ((href: string) => void) | undefined;
+      expect(onUrlChange).toBeDefined();
+
+      onUrlChange?.('https://example.com/admin/dashboard');
+      expect((sessionReplay as any).currentPageUrl).toBe('https://example.com/admin/dashboard');
     });
   });
 

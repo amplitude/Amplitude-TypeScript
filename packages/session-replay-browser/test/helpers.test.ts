@@ -164,6 +164,41 @@ describe('SessionReplayPlugin helpers', () => {
     });
   });
 
+  describe('maskFn -- text (medium level)', () => {
+    test('should NOT mask text nodes at medium level', () => {
+      const htmlElement = document.createElement('div');
+      const result = maskFn('text', { defaultMaskLevel: 'medium' })('some text', htmlElement);
+      expect(result).toEqual('some text');
+    });
+
+    test('should mask inputs at medium level', () => {
+      const htmlElement = document.createElement('input');
+      const result = maskFn('input', { defaultMaskLevel: 'medium' })('some text', htmlElement);
+      expect(result).toEqual('**** ****');
+    });
+
+    test('maskFn with urlMaskLevels medium on matching URL does NOT mask text', () => {
+      const config: PrivacyConfig = {
+        defaultMaskLevel: 'conservative',
+        urlMaskLevels: [{ match: 'https://example.com/docs/*', maskLevel: 'medium' }],
+      };
+      const element = document.createElement('div');
+      const fn = maskFn('text', config, () => 'https://example.com/docs/intro');
+      expect(fn('some text', element)).toEqual('some text');
+    });
+
+    test('maskFn with urlMaskLevels medium on non-matching URL falls through to defaultMaskLevel', () => {
+      const config: PrivacyConfig = {
+        defaultMaskLevel: 'conservative',
+        urlMaskLevels: [{ match: 'https://example.com/docs/*', maskLevel: 'medium' }],
+      };
+      const element = document.createElement('div');
+      const fn = maskFn('text', config, () => 'https://example.com/other/page');
+      // defaultMaskLevel is conservative, so text IS masked
+      expect(fn('some text', element)).toEqual('**** ****');
+    });
+  });
+
   describe('maskFn -- text', () => {
     test('should mask on amp mask', () => {
       const htmlElement = document.createElement('text');
@@ -176,12 +211,11 @@ describe('SessionReplayPlugin helpers', () => {
       const result = maskFn('text', { defaultMaskLevel: 'conservative' })('some text', htmlElement);
       expect(result).toEqual('**** ****');
     });
-    // this will never happen in reality since rrweb will not call this
-    // function if we had not registered selectors
-    test('should mask an element on light mask level', () => {
+    test('should not mask a text element on light mask level', () => {
+      // light level only masks a subset of sensitive inputs; text nodes are never masked at light.
       const htmlElement = document.createElement('div');
       const result = maskFn('text', { defaultMaskLevel: 'light' })('some text', htmlElement);
-      expect(result).toEqual('**** ****');
+      expect(result).toEqual('some text');
     });
     test('should not mask an element whose class list has amp-unmask in it', () => {
       const htmlElement = document.createElement('div');
@@ -289,6 +323,41 @@ describe('SessionReplayPlugin helpers', () => {
         unmaskedElement,
       );
       expect(result).toEqual('Enter name');
+    });
+
+    test('masks attribute when getCurrentUrl returns a conservative URL via urlMaskLevels', () => {
+      const maskedElement = document.createElement('input');
+      const fn = maskAttributeFn(
+        {
+          defaultMaskLevel: 'light',
+          maskAttributes: ['placeholder'],
+          urlMaskLevels: [{ match: 'https://example.com/admin/*', maskLevel: 'conservative' }],
+        },
+        () => 'https://example.com/admin/settings',
+      );
+      expect(fn('placeholder', 'Enter name', maskedElement)).toEqual('***** ****');
+    });
+
+    test('returns value unmasked when getCurrentUrl returns a light URL via urlMaskLevels', () => {
+      const element = document.createElement('input');
+      const fn = maskAttributeFn(
+        {
+          defaultMaskLevel: 'conservative',
+          maskAttributes: ['placeholder'],
+          urlMaskLevels: [{ match: 'https://example.com/public/*', maskLevel: 'light' }],
+        },
+        () => 'https://example.com/public/page',
+      );
+      expect(fn('placeholder', 'Enter name', element)).toEqual('Enter name');
+    });
+
+    test('still masks input placeholder at medium level (regression guard)', () => {
+      const inputElement = document.createElement('input');
+      const fn = maskAttributeFn({
+        defaultMaskLevel: 'medium',
+        maskAttributes: ['placeholder'],
+      });
+      expect(fn('placeholder', 'Enter name', inputElement)).toEqual('***** ****');
     });
   });
 
@@ -485,6 +554,111 @@ describe('SessionReplayPlugin helpers', () => {
       };
       expect(getEffectiveMaskLevel('https://shop.example.com/checkout/payment', config)).toBe('conservative');
     });
+
+    test('should fall back to defaultMaskLevel when urlMaskLevels is an empty array', () => {
+      const config: PrivacyConfig = {
+        defaultMaskLevel: 'light',
+        urlMaskLevels: [],
+      };
+      expect(getEffectiveMaskLevel('https://example.com/page', config)).toBe('light');
+    });
+
+    test('first-match-wins: first rule matching different patterns selects the first', () => {
+      const config: PrivacyConfig = {
+        defaultMaskLevel: 'medium',
+        urlMaskLevels: [
+          { match: 'https://example.com/checkout/*', maskLevel: 'conservative' },
+          { match: 'https://example.com/*', maskLevel: 'light' },
+        ],
+      };
+      // /checkout/payment matches the first rule
+      expect(getEffectiveMaskLevel('https://example.com/checkout/payment', config)).toBe('conservative');
+      // /public only matches the second rule
+      expect(getEffectiveMaskLevel('https://example.com/public', config)).toBe('light');
+    });
+
+    // ── globToRegex /** behaviour (SR-3176 bug fix) ──────────────────────────
+
+    test('trailing /** matches the base path without a trailing slash', () => {
+      // Bug: docs/** previously required a literal / after docs, so https://example.com/docs
+      // (no trailing slash) did not match. The fix makes /** expand to (/.*)?
+      const config: PrivacyConfig = {
+        defaultMaskLevel: 'medium',
+        urlMaskLevels: [{ match: 'https://example.com/docs/**', maskLevel: 'conservative' }],
+      };
+      expect(getEffectiveMaskLevel('https://example.com/docs', config)).toBe('conservative');
+    });
+
+    test('trailing /** still matches the base path with a trailing slash', () => {
+      const config: PrivacyConfig = {
+        defaultMaskLevel: 'medium',
+        urlMaskLevels: [{ match: 'https://example.com/docs/**', maskLevel: 'conservative' }],
+      };
+      expect(getEffectiveMaskLevel('https://example.com/docs/', config)).toBe('conservative');
+    });
+
+    test('trailing /** matches deep subpaths', () => {
+      const config: PrivacyConfig = {
+        defaultMaskLevel: 'medium',
+        urlMaskLevels: [{ match: 'https://example.com/docs/**', maskLevel: 'conservative' }],
+      };
+      expect(getEffectiveMaskLevel('https://example.com/docs/latest/commands/get', config)).toBe('conservative');
+    });
+
+    test('trailing /** does not over-match a different path prefix', () => {
+      const config: PrivacyConfig = {
+        defaultMaskLevel: 'medium',
+        urlMaskLevels: [{ match: 'https://example.com/docs/**', maskLevel: 'conservative' }],
+      };
+      expect(getEffectiveMaskLevel('https://example.com/documentation', config)).toBe('medium');
+      expect(getEffectiveMaskLevel('https://example.com/docs-extra/foo', config)).toBe('medium');
+    });
+
+    test('middle /**/ matches zero intermediate path segments (docs/**/commands = docs/commands)', () => {
+      // Bug: docs/**/commands/** previously required at least one segment between docs and commands
+      // because ** expanded to .*.* which was greedy. The fix makes /**/ expand to /(.*\/)?
+      const config: PrivacyConfig = {
+        defaultMaskLevel: 'medium',
+        urlMaskLevels: [{ match: 'https://example.com/docs/**/commands/**', maskLevel: 'conservative' }],
+      };
+      expect(getEffectiveMaskLevel('https://example.com/docs/commands', config)).toBe('conservative');
+      expect(getEffectiveMaskLevel('https://example.com/docs/commands/', config)).toBe('conservative');
+    });
+
+    test('middle /**/ matches one or more intermediate path segments', () => {
+      const config: PrivacyConfig = {
+        defaultMaskLevel: 'medium',
+        urlMaskLevels: [{ match: 'https://example.com/docs/**/commands/**', maskLevel: 'conservative' }],
+      };
+      expect(getEffectiveMaskLevel('https://example.com/docs/v1/commands/get', config)).toBe('conservative');
+      expect(getEffectiveMaskLevel('https://example.com/docs/a/b/c/commands/set', config)).toBe('conservative');
+    });
+
+    test('middle /**/ does not match when required literal segment is absent', () => {
+      const config: PrivacyConfig = {
+        defaultMaskLevel: 'medium',
+        urlMaskLevels: [{ match: 'https://example.com/docs/**/commands/**', maskLevel: 'conservative' }],
+      };
+      expect(getEffectiveMaskLevel('https://example.com/docs/', config)).toBe('medium');
+      expect(getEffectiveMaskLevel('https://example.com/docs', config)).toBe('medium');
+    });
+
+    test('single /* does NOT match the base path without a trailing slash (/* is unchanged)', () => {
+      // /* still requires the literal / separator — only /** gets the optional-slash treatment.
+      const config: PrivacyConfig = {
+        defaultMaskLevel: 'medium',
+        urlMaskLevels: [{ match: 'https://example.com/docs/*', maskLevel: 'conservative' }],
+      };
+      expect(getEffectiveMaskLevel('https://example.com/docs', config)).toBe('medium');
+    });
+
+    test('single /* still matches when a trailing slash is present', () => {
+      const config: PrivacyConfig = {
+        defaultMaskLevel: 'medium',
+        urlMaskLevels: [{ match: 'https://example.com/docs/*', maskLevel: 'conservative' }],
+      };
+      expect(getEffectiveMaskLevel('https://example.com/docs/', config)).toBe('conservative');
+    });
   });
 
   describe('isMasked with currentUrl', () => {
@@ -537,8 +711,8 @@ describe('SessionReplayPlugin helpers', () => {
         urlMaskLevels: [{ match: 'https://example.com/*', maskLevel: 'conservative' }],
       };
       const element = document.createElement('div');
-      // No URL → falls back to defaultMaskLevel (light), text is still masked by light
-      expect(isMasked('text', config, element)).toBe(true);
+      // No URL → falls back to defaultMaskLevel (light); text is NOT masked at light level
+      expect(isMasked('text', config, element)).toBe(false);
       // Input with light level → not masked for non-sensitive inputs
       expect(isMasked('input', config, element)).toBe(false);
     });

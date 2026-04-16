@@ -12,7 +12,7 @@ type ChromeStorageEstimate = {
 };
 
 /**
- * Light: Subset of inputs
+ * Light: Subset of inputs (sensitive types only — password, hidden, email, tel, cc-*)
  * Medium: All inputs
  * Conservative: All inputs and all texts
  */
@@ -20,7 +20,8 @@ const isMaskedForLevel = (elementType: 'input' | 'text', level: MaskLevel, eleme
   switch (level) {
     case 'light': {
       if (elementType !== 'input') {
-        return true;
+        // light only masks a subset of inputs; text nodes are not masked at this level.
+        return false;
       }
 
       const inputType = element ? getInputType(element) : '';
@@ -40,6 +41,7 @@ const isMaskedForLevel = (elementType: 'input' | 'text', level: MaskLevel, eleme
       return false;
     }
     case 'medium':
+      return elementType === 'input';
     case 'conservative':
       return true;
     default:
@@ -120,7 +122,8 @@ export const maskAttributeFn = (config?: PrivacyConfig, getCurrentUrl?: () => st
 
     // Recompute masking every call so class/ancestor mutations do not stale-cache
     // the decision for later attribute mutations on the same element.
-    return isMasked('text', config, element, getCurrentUrl?.()) ? value.replace(/[^\s]/g, '*') : value;
+    const elementType = ['INPUT', 'SELECT', 'TEXTAREA'].includes(element.tagName) ? 'input' : 'text';
+    return isMasked(elementType, config, element, getCurrentUrl?.()) ? value.replace(/[^\s]/g, '*') : value;
   };
 };
 
@@ -140,14 +143,50 @@ const isValidGlobUrl = (globUrl: string): boolean => {
   return true;
 };
 
-const globToRegex = (glob: string): RegExp => {
-  // Escape special regex characters, then convert globs
-  const escaped = glob
-    .replace(/[.+^${}()|[\]\\]/g, '\\$&') // Escape regex specials
-    .replace(/\*/g, '.*') // Convert * to .*
-    .replace(/\?/g, '.'); // Convert ? to .
+const globRegexCache = new Map<string, RegExp>();
 
-  return new RegExp(`^${escaped}$`);
+const globToRegex = (glob: string): RegExp => {
+  const cached = globRegexCache.get(glob);
+  if (cached) return cached;
+
+  // Glob → regex conversion. Glob substitution must happen BEFORE regex escaping so that
+  // the escaper does not corrupt the glob characters (e.g. turning `/**` into `/\*\*`).
+  // Placeholder tokens use null bytes, which are illegal in HTTP URLs and therefore can
+  // never collide with real pattern content.
+  //
+  // Substitution order (most-specific first):
+  //   trailing /**   → (/.*)?          — path with or without a trailing slash/subpath
+  //   middle  /**/   → /(.*\/)?        — zero-or-more path segments (including zero)
+  //   bare    **     → .*              — graceful fallback for ** not adjacent to /
+  //   single  *      → .*              — any characters (preserves existing behaviour)
+  //   ?              → .               — single character wildcard
+  const T_TRAILING = '\x00TRAIL\x00';
+  const T_MIDDLE = '\x00MID\x00';
+  const T_DSTAR = '\x00DS\x00';
+  const T_STAR = '\x00ST\x00';
+  const T_QUEST = '\x00QU\x00';
+
+  let s = glob;
+  s = s.replace(/\/\*\*$/, T_TRAILING); // trailing /**
+  s = s.replace(/\/\*\*\//g, T_MIDDLE); // /**/ in the middle
+  s = s.replace(/\*\*/g, T_DSTAR); // bare ** (e.g. **.example.com)
+  s = s.replace(/\*/g, T_STAR); // single *
+  s = s.replace(/\?/g, T_QUEST); // ?
+
+  // Escape all remaining regex special characters.
+  s = s.replace(/[.+^${}()|[\]\\]/g, '\\$&');
+
+  // Expand tokens into their regex equivalents.
+  // Use split/join (not regex) to avoid the no-control-regex lint rule on the token strings.
+  s = s.split(T_TRAILING).join('(/.*)?'); // /** → optional /anything
+  s = s.split(T_MIDDLE).join('/(.*\\/)?'); // /**/ → /zero-or-more-segments/
+  s = s.split(T_DSTAR).join('.*'); // bare ** → .*
+  s = s.split(T_STAR).join('.*'); // * → .*
+  s = s.split(T_QUEST).join('.'); // ? → .
+
+  const regex = new RegExp(`^${s}$`);
+  globRegexCache.set(glob, regex);
+  return regex;
 };
 
 export const validateUGCFilterRules = (ugcFilterRules: UGCFilterRule[]) => {
