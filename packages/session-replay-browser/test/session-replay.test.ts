@@ -2450,9 +2450,9 @@ describe('SessionReplay', () => {
       const maskedText = recordArg.maskTextFn('some text', textEl);
       const maskedAttr = recordArg.maskAttributeFn('placeholder', 'hint', attrEl);
 
-      // Medium level masks all inputs and text; maskAttributes list includes 'placeholder'.
+      // Medium level masks inputs (not text); maskAttributes list includes 'placeholder'.
       expect(maskedInput).toEqual('******');
-      expect(maskedText).toEqual('**** ****');
+      expect(maskedText).toEqual('some text'); // medium does not mask text nodes
       expect(maskedAttr).toEqual('****');
     });
   });
