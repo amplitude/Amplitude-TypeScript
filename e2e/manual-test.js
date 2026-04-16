@@ -71,7 +71,7 @@ async function main() {
         const response = await route.fetch();
         let body = await response.text();
         for (const hash of INTEGRITY_HASHES) {
-          body = body.replace(hash, '');
+          body = body.replaceAll(hash, '');
         }
         await route.fulfill({
           status: response.status(),
@@ -102,7 +102,7 @@ async function main() {
     }
     let content = await response.text();
     for (const hash of INTEGRITY_HASHES) {
-      content = content.replace(hash, '');
+      content = content.replaceAll(hash, '');
     }
 
     const ct = (response.headers()['content-type'] || '').toLowerCase();
@@ -112,7 +112,7 @@ async function main() {
     let html = content;
 
     for (const hash of INTEGRITY_HASHES) {
-      html = html.replace(hash, '');
+      html = html.replaceAll(hash, '');
     }
 
     await route.fulfill({
