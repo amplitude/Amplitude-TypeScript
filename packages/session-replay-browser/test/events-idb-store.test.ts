@@ -316,14 +316,12 @@ describe('SessionReplayEventsIDBStore', () => {
       const txDone = Promise.reject(abortError);
       // eslint-disable-next-line @typescript-eslint/no-empty-function
       txDone.catch(() => {}); // prevent unhandled rejection in test runner
-      const mockStore = {
-        get: jest.fn().mockResolvedValue(undefined), // no existing sequence
-        put: jest.fn().mockResolvedValue(undefined), // put succeeds
-      };
       const mockDB = {
         transaction: jest.fn().mockReturnValue({
-          // addEventToCurrentSequence now uses tx.objectStore(name) rather than tx.store
-          objectStore: jest.fn().mockReturnValue(mockStore),
+          store: {
+            get: jest.fn().mockResolvedValue(undefined), // no existing sequence
+            put: jest.fn().mockResolvedValue(undefined), // put succeeds
+          },
           done: txDone, // but transaction aborts before commit
         }),
       } as unknown as IDBPDatabase<SessionReplayDB>;
@@ -336,6 +334,54 @@ describe('SessionReplayEventsIDBStore', () => {
 
       const result = await eventsStorage?.addEventToCurrentSequence(123, mockEventString);
       expect(result).toBeUndefined();
+      expect(mockLoggerProvider.debug).toHaveBeenCalledWith(
+        expect.stringContaining('Failed to store session replay events in IndexedDB'),
+      );
+      expect(mockLoggerProvider.warn).not.toHaveBeenCalled();
+    });
+    test('should log at debug (not warn) when splitTx.done rejects with AbortError on split path', async () => {
+      // Repro: the split transaction opens both stores atomically. If the browser
+      // aborts the transaction after the puts succeed (e.g. due to resource pressure),
+      // the AbortError from splitTx.done must be caught and logged at debug, not warn.
+      const abortError = new DOMException(
+        'The transaction was aborted, so the request cannot be fulfilled.',
+        'AbortError',
+      );
+      const splitTxDone = Promise.reject(abortError);
+      // eslint-disable-next-line @typescript-eslint/no-empty-function
+      splitTxDone.catch(() => {}); // prevent unhandled rejection in test runner
+
+      let txCallCount = 0;
+      const mockDB = {
+        transaction: jest.fn().mockImplementation(() => {
+          txCallCount++;
+          if (txCallCount === 1) {
+            // Narrow tx: returns existing events so the split path is triggered
+            return {
+              store: {
+                get: jest.fn().mockResolvedValue({ sessionId: 123, events: [mockEventString] }),
+              },
+              done: Promise.resolve(),
+            };
+          }
+          // splitTx: puts succeed but the transaction aborts before commit
+          return {
+            objectStore: jest.fn().mockReturnValue({ put: jest.fn().mockResolvedValue(1) }),
+            done: splitTxDone,
+          };
+        }),
+      } as unknown as IDBPDatabase<SessionReplayDB>;
+      jest.spyOn(EventsIDBStore, 'createStore').mockResolvedValue(mockDB);
+
+      const eventsStorage = await SessionReplayEventsIDBStore.new('replay', {
+        apiKey,
+        loggerProvider: mockLoggerProvider,
+      });
+      eventsStorage!.shouldSplitEventsList = jest.fn().mockReturnValue(true);
+
+      await eventsStorage?.addEventToCurrentSequence(123, mockEventString2);
+      // Allow microtasks to settle so the splitTx.done.catch() handler fires
+      await Promise.resolve();
       expect(mockLoggerProvider.debug).toHaveBeenCalledWith(
         expect.stringContaining('Failed to store session replay events in IndexedDB'),
       );
