@@ -156,45 +156,39 @@ export class SessionReplayEventsIDBStore extends BaseEventsStore<number> {
   addEventToCurrentSequence = async (sessionId: number, event: string) => {
     let errorLogged = false;
     try {
-      // Open a narrow transaction for the common case (no split) so we don't hold
-      // a readwrite lock on sequencesToSend on every recorded event.
-      const tx = this.db.transaction(currentSequenceKey, 'readwrite');
+      // Always open a readwrite transaction over both stores so that the read and
+      // any subsequent write are atomic.  IDB serializes readwrite transactions on
+      // overlapping stores, so concurrent fire-and-forget callers (events-manager
+      // does not await this method) are queued by the engine rather than interleaving
+      // — eliminating the TOCTOU race that a narrow-read + separate-write approach
+      // would introduce on the split path.
+      const tx = this.db.transaction([currentSequenceKey, sequencesToSendKey], 'readwrite');
       // Attach a catch handler immediately so tx.done rejections (e.g. AbortError after
       // put succeeds but before auto-commit) are always handled without blocking.
       // The errorLogged flag prevents double-logging when the outer catch already fired
-      // for the same abort (e.g. tx.store.put() threw).
+      // for the same abort (e.g. a put() threw).
       tx.done.catch((e: unknown) => {
         if (!errorLogged) {
           logIdbError(this.loggerProvider, `${STORAGE_FAILURE}: ${e as string}`, e);
         }
       });
-      const sequenceEvents = await tx.store.get(sessionId);
+      const sequenceEvents = await tx.objectStore(currentSequenceKey).get(sessionId);
 
       if (!sequenceEvents) {
-        await tx.store.put({ sessionId, events: [event] });
+        await tx.objectStore(currentSequenceKey).put({ sessionId, events: [event] });
         return undefined;
       }
 
       if (!this.shouldSplitEventsList(sequenceEvents.events, event)) {
-        // Common case: append the event and return.
-        await tx.store.put({ sessionId, events: sequenceEvents.events.concat(event) });
+        await tx.objectStore(currentSequenceKey).put({ sessionId, events: sequenceEvents.events.concat(event) });
         return undefined;
       }
 
       // Split path: reset sessionCurrentSequence and write the old events to
-      // sequencesToSend atomically in a single transaction covering both stores.
-      // The narrow tx above has no pending requests at this point and will
-      // auto-commit (read-only result); IDB serializes readwrite transactions on
-      // the same store, so splitTx is guaranteed to start after tx commits.
+      // sequencesToSend atomically within the same transaction.
       const eventsToSend = sequenceEvents.events;
-      const splitTx = this.db.transaction([currentSequenceKey, sequencesToSendKey], 'readwrite');
-      splitTx.done.catch((e: unknown) => {
-        if (!errorLogged) {
-          logIdbError(this.loggerProvider, `${STORAGE_FAILURE}: ${e as string}`, e);
-        }
-      });
-      await splitTx.objectStore(currentSequenceKey).put({ sessionId, events: [event] });
-      const sequenceId = await splitTx.objectStore(sequencesToSendKey).put({
+      await tx.objectStore(currentSequenceKey).put({ sessionId, events: [event] });
+      const sequenceId = await tx.objectStore(sequencesToSendKey).put({
         sessionId,
         events: eventsToSend,
       });
