@@ -95,7 +95,6 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
   init(apiKey = '', userIdOrOptions?: string | BrowserOptions, maybeOptions?: BrowserOptions) {
     let userId: string | undefined;
     let options: BrowserOptions | undefined;
-    console.log('AI WEEK CODING CHANGES');
     if (arguments.length > 2) {
       userId = userIdOrOptions as string | undefined;
       options = maybeOptions;
