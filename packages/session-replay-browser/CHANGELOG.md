@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.36.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.36.1...@amplitude/session-replay-browser@1.36.2) (2026-04-16)
+
+
+### Bug Fixes
+
+* **session-replay-browser:** handle IDB tx.done AbortError as debug not warn ([#1683](https://github.com/amplitude/Amplitude-TypeScript/issues/1683)) ([cd4aaed](https://github.com/amplitude/Amplitude-TypeScript/commit/cd4aaed237ad38d91b4d7491292069207aaeabeb))
+
+
+
+
+
 ## [1.36.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.36.0...@amplitude/session-replay-browser@1.36.1) (2026-04-14)
 
 **Note:** Version bump only for package @amplitude/session-replay-browser
