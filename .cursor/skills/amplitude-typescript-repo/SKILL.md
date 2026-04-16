@@ -43,7 +43,7 @@ Use [Conventional Commits](https://www.conventionalcommits.org/) and include the
 
 ## Customer site manual test of analytics (`e2e/manual-test.js`)
 
-**Tell the user up front:** this flow only applies to sites that load Amplitude’s **unified script** from `cdn.amplitude.com` (the synchronous `script/` bundle path). It does **not** cover the `.async.js` loader today; rerouting in `e2e/manual-test.js` intentionally skips `.async.js` URLs.
+**Tell the user up front:** this flow only applies to sites that load Amplitude’s **unified script** or that use cdn.amplitude.com tags.
 
 ### Why `dev:ssh`
 
@@ -56,3 +56,7 @@ Use [Conventional Commits](https://www.conventionalcommits.org/) and include the
    Example: `node ./e2e/manual-test.js https://example.com`
 
 Playwright opens a headed browser, proxies HTML to strip SRI on Amplitude script tags, and swaps the unified script for the local `test-server/unified-script-local.js` chain. Leave Terminal A running until finished; stop with Ctrl+C in each terminal when done.
+
+### Integrity Hashes
+
+If the user experiences a problem with the proxying not working due to SRI failures, instruct the user to take the shasum of the failing integrity hash and add it to manual-test.js under INTEGRITY_HASHES.
