@@ -266,20 +266,31 @@ describe('SessionReplayEventsIDBStore', () => {
       expect(allSessionCurrentSequence).toEqual([{ events: [mockEventString2], sessionId: 123 }]);
     });
 
-    test('should return undefined if storeSendingEvents fails', async () => {
+    test('should return undefined if the split-path transaction fails', async () => {
+      // The split path now uses a single multi-store transaction for both
+      // sessionCurrentSequence and sequencesToSend. Verify that a transaction
+      // error still results in undefined being returned and a warn being logged.
       const eventsStorage = await SessionReplayEventsIDBStore.new('replay', {
         apiKey,
         loggerProvider: mockLoggerProvider,
       });
 
-      // Fake as if there are events to send
       eventsStorage!.shouldSplitEventsList = jest.fn().mockReturnValue(true);
-      eventsStorage!.storeSendingEvents = jest.fn().mockResolvedValue(undefined);
 
+      // Seed one event so shouldSplitEventsList can trigger on the next call
       await eventsStorage?.addEventToCurrentSequence(123, mockEventString);
+
+      // Sabotage the db so the next transaction() call throws
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (eventsStorage as any).db = {
+        transaction: () => {
+          throw new Error('transaction failed');
+        },
+      };
 
       const eventsToSend = await eventsStorage?.addEventToCurrentSequence(123, mockEventString2);
       expect(eventsToSend).toBeUndefined();
+      expect(mockLoggerProvider.warn).toHaveBeenCalled();
     });
 
     test('should catch errors', async () => {
@@ -305,12 +316,14 @@ describe('SessionReplayEventsIDBStore', () => {
       const txDone = Promise.reject(abortError);
       // eslint-disable-next-line @typescript-eslint/no-empty-function
       txDone.catch(() => {}); // prevent unhandled rejection in test runner
+      const mockStore = {
+        get: jest.fn().mockResolvedValue(undefined), // no existing sequence
+        put: jest.fn().mockResolvedValue(undefined), // put succeeds
+      };
       const mockDB = {
         transaction: jest.fn().mockReturnValue({
-          store: {
-            get: jest.fn().mockResolvedValue(undefined), // no existing sequence
-            put: jest.fn().mockResolvedValue(undefined), // put succeeds
-          },
+          // addEventToCurrentSequence now uses tx.objectStore(name) rather than tx.store
+          objectStore: jest.fn().mockReturnValue(mockStore),
           done: txDone, // but transaction aborts before commit
         }),
       } as unknown as IDBPDatabase<SessionReplayDB>;

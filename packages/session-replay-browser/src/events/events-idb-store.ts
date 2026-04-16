@@ -156,7 +156,10 @@ export class SessionReplayEventsIDBStore extends BaseEventsStore<number> {
   addEventToCurrentSequence = async (sessionId: number, event: string) => {
     let errorLogged = false;
     try {
-      const tx = this.db.transaction<'sessionCurrentSequence', 'readwrite'>(currentSequenceKey, 'readwrite');
+      // Use a multi-store transaction when a split is needed so that both the
+      // sessionCurrentSequence reset and the sequencesToSend write are atomic.
+      // If the transaction aborts, neither write persists — avoiding duplicates.
+      const tx = this.db.transaction([currentSequenceKey, sequencesToSendKey], 'readwrite');
       // Attach a catch handler immediately so tx.done rejections (e.g. AbortError after
       // put succeeds but before auto-commit) are always handled without blocking.
       // The errorLogged flag prevents double-logging when the outer catch already fired
@@ -166,27 +169,27 @@ export class SessionReplayEventsIDBStore extends BaseEventsStore<number> {
           logIdbError(this.loggerProvider, `${STORAGE_FAILURE}: ${e as string}`, e);
         }
       });
-      const sequenceEvents = await tx.store.get(sessionId);
+      const currentSequenceStore = tx.objectStore(currentSequenceKey);
+      const sequenceEvents = await currentSequenceStore.get(sessionId);
       let eventsToSend: Events | undefined;
+      let sequenceId: number | undefined;
       if (!sequenceEvents) {
-        await tx.store.put({ sessionId, events: [event] });
+        await currentSequenceStore.put({ sessionId, events: [event] });
       } else if (this.shouldSplitEventsList(sequenceEvents.events, event)) {
         eventsToSend = sequenceEvents.events;
-        // set store to empty array
-        await tx.store.put({ sessionId, events: [event] });
+        // Reset current sequence and write to sequencesToSend atomically
+        await currentSequenceStore.put({ sessionId, events: [event] });
+        sequenceId = await tx.objectStore(sequencesToSendKey).put({
+          sessionId,
+          events: eventsToSend,
+        });
       } else {
         // add event to array
         const updatedEvents = sequenceEvents.events.concat(event);
-        await tx.store.put({ sessionId, events: updatedEvents });
+        await currentSequenceStore.put({ sessionId, events: updatedEvents });
       }
 
-      if (!eventsToSend) {
-        return undefined;
-      }
-
-      const sequenceId = await this.storeSendingEvents(sessionId, eventsToSend);
-
-      if (!sequenceId) {
+      if (!eventsToSend || !sequenceId) {
         return undefined;
       }
 
