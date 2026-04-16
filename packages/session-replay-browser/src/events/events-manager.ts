@@ -52,21 +52,43 @@ export const createEventsManager = async <Type extends EventType>({
     });
   };
 
+  let lastKnownDeviceId: string | undefined;
+  let usingIdbStore = false;
+  let store!: EventsStore<number>;
+
+  const switchToMemoryStore = async () => {
+    if (!usingIdbStore) return;
+    usingIdbStore = false;
+    config.loggerProvider.warn('IDB store is experiencing repeated failures; falling back to in-memory event store.');
+    const sequences = lastKnownDeviceId ? await store.getSequencesToSend() : undefined;
+    store = getMemoryStore();
+    if (sequences && lastKnownDeviceId) {
+      const deviceId = lastKnownDeviceId;
+      sequences.forEach((seq) => {
+        sendEventsList({ sequenceId: seq.sequenceId, events: seq.events, sessionId: seq.sessionId, deviceId });
+      });
+    }
+  };
+
   const getIdbStoreOrFallback = async (): Promise<EventsStore<number>> => {
-    const store = await SessionReplayEventsIDBStore.new(type, {
+    const idb = await SessionReplayEventsIDBStore.new(type, {
       loggerProvider: config.loggerProvider,
       minInterval,
       maxInterval,
       apiKey: config.apiKey,
+      onPersistentFailure: () => {
+        void switchToMemoryStore();
+      },
     });
-    if (!store) {
+    if (!idb) {
       config.loggerProvider.log('Failed to initialize idb store, falling back to memory store.');
       return getMemoryStore();
     }
-    return store;
+    usingIdbStore = true;
+    return idb;
   };
 
-  const store: EventsStore<number> = storeType === 'idb' ? await getIdbStoreOrFallback() : getMemoryStore();
+  store = storeType === 'idb' ? await getIdbStoreOrFallback() : getMemoryStore();
 
   // Beacon buffer: a sliding window of pending (unsent) event strings for synchronous
   // access on page exit. Uses an absolute index counter to correctly handle concurrent
@@ -127,6 +149,7 @@ export const createEventsManager = async <Type extends EventType>({
   };
 
   const sendCurrentSequenceEvents = ({ sessionId, deviceId }: { sessionId: number; deviceId: string }) => {
+    lastKnownDeviceId = deviceId;
     // Snapshot the absolute end-index before the async store read so that any events
     // pushed after this point are NOT considered sent and remain in the beacon buffer.
     const snapshotAbsIdx = beaconWindowStart + beaconBuffer.length;
@@ -149,6 +172,7 @@ export const createEventsManager = async <Type extends EventType>({
   };
 
   const sendStoredEvents = async ({ deviceId }: { deviceId: string }) => {
+    lastKnownDeviceId = deviceId;
     const sequencesToSend = await store.getSequencesToSend();
     sequencesToSend &&
       sequencesToSend.forEach((sequence) => {
@@ -170,6 +194,7 @@ export const createEventsManager = async <Type extends EventType>({
     sessionId: number;
     deviceId: string;
   }) => {
+    lastKnownDeviceId = deviceId;
     // Record the absolute index of this event in the beacon buffer before the async
     // store operation. If a batch split occurs, we advance the window up to (but not
     // including) this event so that it starts the next pending window.

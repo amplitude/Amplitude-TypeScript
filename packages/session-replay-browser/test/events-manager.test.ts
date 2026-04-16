@@ -484,4 +484,114 @@ describe('createEventsManager', () => {
       expect(eventsManager.getBeaconEvents()).toHaveLength(1);
     });
   });
+
+  describe('mid-session IDB fallback', () => {
+    let capturedOnPersistentFailure: (() => void) | undefined;
+
+    beforeEach(() => {
+      capturedOnPersistentFailure = undefined;
+      jest.spyOn(SessionReplayIDB.SessionReplayEventsIDBStore, 'new').mockImplementation((_type, args) => {
+        capturedOnPersistentFailure = (args as { onPersistentFailure?: () => void }).onPersistentFailure;
+        return Promise.resolve(mockIDBStore);
+      });
+    });
+
+    test('logs warning when falling back to in-memory store', async () => {
+      await createEventsManager<'replay'>({ config, type: 'replay', storeType: 'idb' });
+
+      capturedOnPersistentFailure?.();
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect(mockLoggerProvider.warn).toHaveBeenCalledWith(
+        'IDB store is experiencing repeated failures; falling back to in-memory event store.',
+      );
+    });
+
+    test('drains and sends pending IDB sequences when falling back', async () => {
+      (mockIDBStore.getSequencesToSend as jest.Mock).mockResolvedValueOnce([
+        { events: [mockEventString], sequenceId: 1, sessionId: 123 },
+      ]);
+      (mockIDBStore.addEventToCurrentSequence as jest.Mock).mockResolvedValue(undefined);
+
+      const eventsManager = await createEventsManager<'replay'>({ config, type: 'replay', storeType: 'idb' });
+      eventsManager.addEvent({ event: { type: 'replay', data: mockEventString }, sessionId: 123, deviceId: '1a2b3c' });
+
+      capturedOnPersistentFailure?.();
+      await Promise.resolve();
+      await Promise.resolve();
+
+      const trackDestinationInstance = (SessionReplayTrackDestination as jest.Mock).mock.instances[0];
+      expect(trackDestinationInstance.sendEventsList).toHaveBeenCalledWith(
+        expect.objectContaining({ events: [mockEventString], sessionId: 123, deviceId: '1a2b3c' }),
+      );
+    });
+
+    test('skips IDB drain when no deviceId is known yet', async () => {
+      await createEventsManager<'replay'>({ config, type: 'replay', storeType: 'idb' });
+      // no addEvent / sendStoredEvents call, so lastKnownDeviceId is still undefined
+
+      capturedOnPersistentFailure?.();
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect(mockIDBStore.getSequencesToSend).not.toHaveBeenCalled();
+    });
+
+    test('new events after fallback go to in-memory store, not IDB', async () => {
+      (mockIDBStore.getSequencesToSend as jest.Mock).mockResolvedValueOnce([]);
+      (mockIDBStore.addEventToCurrentSequence as jest.Mock).mockResolvedValue(undefined);
+
+      const eventsManager = await createEventsManager<'replay'>({ config, type: 'replay', storeType: 'idb' });
+      // Establish lastKnownDeviceId
+      eventsManager.addEvent({ event: { type: 'replay', data: mockEventString }, sessionId: 123, deviceId: '1a2b3c' });
+      await Promise.resolve();
+
+      capturedOnPersistentFailure?.();
+      await Promise.resolve();
+      await Promise.resolve(); // switchToMemoryStore settles
+
+      (mockIDBStore.addEventToCurrentSequence as jest.Mock).mockClear();
+
+      eventsManager.addEvent({ event: { type: 'replay', data: mockEventString }, sessionId: 123, deviceId: '1a2b3c' });
+      await Promise.resolve();
+
+      expect(mockIDBStore.addEventToCurrentSequence).not.toHaveBeenCalled();
+    });
+
+    test('fallback is a no-op when store is already in-memory (startup fallback)', async () => {
+      jest.spyOn(SessionReplayIDB.SessionReplayEventsIDBStore, 'new').mockResolvedValueOnce(undefined);
+
+      await createEventsManager<'replay'>({ config, type: 'replay', storeType: 'idb' });
+      // capturedOnPersistentFailure is undefined here since IDB.new returned undefined (startup fallback)
+      // Simulate calling it anyway to confirm no error / double-warn
+      capturedOnPersistentFailure?.();
+
+      // Only the startup fallback log should appear, not the mid-session warn
+      expect(mockLoggerProvider.warn).not.toHaveBeenCalledWith(
+        expect.stringContaining('IDB store is experiencing repeated failures'),
+      );
+    });
+
+    test('second switchToMemoryStore call is a no-op (already on memory)', async () => {
+      (mockIDBStore.getSequencesToSend as jest.Mock).mockResolvedValue([]);
+      (mockIDBStore.addEventToCurrentSequence as jest.Mock).mockResolvedValue(undefined);
+
+      const eventsManager = await createEventsManager<'replay'>({ config, type: 'replay', storeType: 'idb' });
+      eventsManager.addEvent({ event: { type: 'replay', data: mockEventString }, sessionId: 123, deviceId: '1a2b3c' });
+
+      // First trigger — switches to memory store
+      capturedOnPersistentFailure?.();
+      await Promise.resolve();
+      await Promise.resolve();
+
+      // Second trigger — should be a no-op (usingIdbStore is already false)
+      capturedOnPersistentFailure?.();
+      await Promise.resolve();
+      await Promise.resolve();
+
+      // Warning should only be logged once
+      expect(mockLoggerProvider.warn).toHaveBeenCalledTimes(1);
+    });
+  });
 });

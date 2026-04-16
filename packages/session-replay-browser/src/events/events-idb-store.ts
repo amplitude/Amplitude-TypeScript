@@ -50,14 +50,34 @@ export const createStore = async (dbName: string) => {
 type InstanceArgs = {
   apiKey: string;
   db: IDBPDatabase<SessionReplayDB>;
+  onPersistentFailure?: () => void;
+  consecutiveFailureThreshold?: number;
 } & BaseInstanceArgs;
 
 export class SessionReplayEventsIDBStore extends BaseEventsStore<number> {
   private readonly db: IDBPDatabase<SessionReplayDB>;
+  private readonly onPersistentFailure?: () => void;
+  private readonly consecutiveFailureThreshold: number;
+  private consecutiveFailures = 0;
+  private hasTriggeredFallback = false;
 
   constructor(args: InstanceArgs) {
     super(args);
     this.db = args.db;
+    this.onPersistentFailure = args.onPersistentFailure;
+    this.consecutiveFailureThreshold = args.consecutiveFailureThreshold ?? 3;
+  }
+
+  private recordFailure() {
+    this.consecutiveFailures++;
+    if (!this.hasTriggeredFallback && this.consecutiveFailures >= this.consecutiveFailureThreshold) {
+      this.hasTriggeredFallback = true;
+      this.onPersistentFailure?.();
+    }
+  }
+
+  private recordSuccess() {
+    this.consecutiveFailures = 0;
   }
 
   static async new(type: EventType, args: Omit<InstanceArgs, 'db'>): Promise<SessionReplayEventsIDBStore | undefined> {
@@ -106,9 +126,11 @@ export class SessionReplayEventsIDBStore extends BaseEventsStore<number> {
         cursor = await cursor.continue();
       }
 
+      this.recordSuccess();
       return sequences;
     } catch (e) {
       logIdbError(this.loggerProvider, `${STORAGE_FAILURE}: ${e as string}`, e);
+      this.recordFailure();
     }
     return undefined;
   };
@@ -117,6 +139,7 @@ export class SessionReplayEventsIDBStore extends BaseEventsStore<number> {
     try {
       const currentSequenceData = await this.db.get<'sessionCurrentSequence'>(currentSequenceKey, sessionId);
       if (!currentSequenceData) {
+        this.recordSuccess();
         return undefined;
       }
 
@@ -130,6 +153,7 @@ export class SessionReplayEventsIDBStore extends BaseEventsStore<number> {
         events: [],
       });
 
+      this.recordSuccess();
       return {
         ...currentSequenceData,
         sessionId,
@@ -137,6 +161,7 @@ export class SessionReplayEventsIDBStore extends BaseEventsStore<number> {
       };
     } catch (e) {
       logIdbError(this.loggerProvider, `${STORAGE_FAILURE}: ${e as string}`, e);
+      this.recordFailure();
     }
     return undefined;
   };
@@ -147,6 +172,7 @@ export class SessionReplayEventsIDBStore extends BaseEventsStore<number> {
       const sequenceEvents = await tx.store.get(sessionId);
       if (!sequenceEvents) {
         await tx.store.put({ sessionId, events: [event] });
+        this.recordSuccess();
         return;
       }
       let eventsToSend;
@@ -162,6 +188,7 @@ export class SessionReplayEventsIDBStore extends BaseEventsStore<number> {
 
       await tx.done;
       if (!eventsToSend) {
+        this.recordSuccess();
         return undefined;
       }
 
@@ -171,6 +198,7 @@ export class SessionReplayEventsIDBStore extends BaseEventsStore<number> {
         return undefined;
       }
 
+      this.recordSuccess();
       return {
         events: eventsToSend,
         sessionId,
@@ -178,6 +206,7 @@ export class SessionReplayEventsIDBStore extends BaseEventsStore<number> {
       };
     } catch (e) {
       logIdbError(this.loggerProvider, `${STORAGE_FAILURE}: ${e as string}`, e);
+      this.recordFailure();
     }
     return undefined;
   };
@@ -188,9 +217,11 @@ export class SessionReplayEventsIDBStore extends BaseEventsStore<number> {
         sessionId: sessionId,
         events: events,
       });
+      this.recordSuccess();
       return sequenceId;
     } catch (e) {
       logIdbError(this.loggerProvider, `${STORAGE_FAILURE}: ${e as string}`, e);
+      this.recordFailure();
     }
     return undefined;
   };
@@ -201,8 +232,10 @@ export class SessionReplayEventsIDBStore extends BaseEventsStore<number> {
     }
     try {
       await this.db.delete<'sequencesToSend'>(sequencesToSendKey, sequenceId);
+      this.recordSuccess();
     } catch (e) {
       logIdbError(this.loggerProvider, `${STORAGE_FAILURE}: ${e as string}`, e);
+      this.recordFailure();
     }
   };
 }
