@@ -359,6 +359,16 @@ describe('SessionReplayPlugin helpers', () => {
       });
       expect(fn('placeholder', 'Enter name', inputElement)).toEqual('***** ****');
     });
+
+    test('uses text elementType for non-input elements (SELECT/TEXTAREA/div)', () => {
+      // Covers the 'text' branch of `['INPUT','SELECT','TEXTAREA'].includes(tagName) ? 'input' : 'text'`
+      const divElement = document.createElement('div');
+      const fn = maskAttributeFn({
+        defaultMaskLevel: 'conservative',
+        maskAttributes: ['aria-label'],
+      });
+      expect(fn('aria-label', 'Search', divElement)).toEqual('******');
+    });
   });
 
   describe('getServerUrl', () => {
