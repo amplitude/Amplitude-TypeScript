@@ -431,6 +431,35 @@ describe('SessionReplayJoinedConfigGenerator', () => {
           const config = await privacySelectorTest({});
           expect(config.privacyConfig?.urlMaskLevels).toEqual([]);
         });
+
+        test('remote defaultMaskLevel wins over local defaultMaskLevel', async () => {
+          // P1: remote config must override local when both specify defaultMaskLevel.
+          // Local says 'conservative'; remote says 'light' — joined config must reflect 'light'.
+          const config = await privacySelectorTest(
+            { defaultMaskLevel: 'light' },
+            await createSessionReplayJoinedConfigGenerator('static_key', {
+              ...mockOptions,
+              privacyConfig: { defaultMaskLevel: 'conservative' },
+            }),
+          );
+          expect(config.privacyConfig?.defaultMaskLevel).toBe('light');
+        });
+
+        test('local urlMaskLevels are preserved when sr_privacy_config is absent from remote', async () => {
+          // P1: when the remote response has no sr_privacy_config key at all, the joined config
+          // should fall back to the local config as-is — local urlMaskLevels must not be lost.
+          const localRule = { match: 'https://example.com/admin/*', maskLevel: 'conservative' as const };
+          mockRemoteConfig = {
+            sr_sampling_config: samplingConfig,
+            // intentionally no sr_privacy_config key
+          };
+          const configGenerator = await createSessionReplayJoinedConfigGenerator('static_key', {
+            ...mockOptions,
+            privacyConfig: { urlMaskLevels: [localRule] },
+          });
+          const { joinedConfig: config } = await configGenerator.generateJoinedConfig();
+          expect(config.privacyConfig?.urlMaskLevels).toEqual([localRule]);
+        });
       });
     });
 

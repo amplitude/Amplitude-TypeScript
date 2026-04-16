@@ -197,6 +197,33 @@ test.describe('privacy — remote sr_privacy_config', () => {
     expect(el).toBeDefined();
     expect(isMaskedText(getTextContent(el!))).toBe(true);
   });
+
+  test('remote urlMaskLevels conservative rule masks plain text end-to-end', async ({ page }) => {
+    // P0: exercises the full remote → join → apply pipeline for urlMaskLevels.
+    // No local privacyConfig — the conservative urlMaskLevels rule comes entirely from
+    // sr_privacy_config. defaultMaskLevel is left at the default (medium) so text masking
+    // is driven solely by the URL rule matching the test page.
+    await mockRemoteConfig(
+      page,
+      remoteConfigWithPrivacy({
+        urlMaskLevels: [{ match: 'http://localhost:5173/session-replay-browser/*', maskLevel: 'conservative' }],
+      }),
+    );
+    const { getBodies } = await captureTrackRequests(page);
+
+    await page.goto(buildUrl(PRIVACY_PAGE, { sessionId: TEST_SESSION_ID }));
+    await waitForReady(page);
+    await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
+    await flushRecording(page);
+
+    const root = getSnapshotRoot(getBodies());
+    expect(root).not.toBeNull();
+
+    // The conservative urlMaskLevels rule matches this page — plain text must be masked.
+    const el = findById(root!, 'plain-text');
+    expect(el).toBeDefined();
+    expect(isMaskedText(getTextContent(el!))).toBe(true);
+  });
 });
 
 // ─── urlMaskLevels — page-level masking overrides ─────────────────────────────
@@ -260,6 +287,34 @@ test.describe('privacy — urlMaskLevels (page-level masking)', () => {
     const value = String(textInput!.attributes?.value ?? '');
     expect(value).toBe('visible input value');
     expect(isMaskedText(value)).toBe(false);
+  });
+
+  test('URL does not match any rule → defaultMaskLevel (conservative) masks plain text', async ({ page }) => {
+    // The urlMaskLevels rule targets a different page, so it never fires.
+    // defaultMaskLevel is 'conservative': plain text must still be masked even though
+    // no URL rule matched. Mirrors the redis.io homepage scenario where the homepage
+    // URL matches no rule and should fall back to conservative.
+    await mockRemoteConfig(
+      page,
+      remoteConfigWithPrivacy({
+        defaultMaskLevel: 'conservative',
+        urlMaskLevels: [{ match: NON_MATCHING_PATTERN, maskLevel: 'light' }],
+      }),
+    );
+    const { getBodies } = await captureTrackRequests(page);
+
+    await page.goto(buildUrl(PRIVACY_PAGE, { sessionId: TEST_SESSION_ID }));
+    await waitForReady(page);
+    await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
+    await flushRecording(page);
+
+    const root = getSnapshotRoot(getBodies());
+    expect(root).not.toBeNull();
+
+    // Under conservative (the unmatched fallback), plain text IS masked
+    const el = findById(root!, 'plain-text');
+    expect(el).toBeDefined();
+    expect(isMaskedText(getTextContent(el!))).toBe(true);
   });
 
   test('URL does not match any rule → defaultMaskLevel (light) applies to plain text input', async ({ page }) => {
@@ -451,5 +506,46 @@ test.describe('privacy — urlMaskLevels (page-level masking)', () => {
     const plainEl = findById(lastRoot!, 'plain-text');
     expect(plainEl).toBeDefined();
     expect(isMaskedText(getTextContent(plainEl!))).toBe(true);
+  });
+
+  test('first-match-wins: second rule (light) applies when first rule does not match', async ({ page }) => {
+    // P1: regression guard for rule evaluation order.
+    // Three rules; only the second matches the test page URL.
+    // Rule 1 (conservative): targets a different path — must NOT match.
+    // Rule 2 (light):        targets the test page — MUST match and apply.
+    // Rule 3 (conservative): also targets the test page but comes after rule 2 — must NOT be evaluated.
+    // Effective level must be 'light': plain text input is NOT masked.
+    await mockRemoteConfig(
+      page,
+      remoteConfigWithPrivacy({
+        defaultMaskLevel: 'medium',
+        urlMaskLevels: [
+          { match: 'http://localhost:5173/other-section/*', maskLevel: 'conservative' },
+          { match: 'http://localhost:5173/session-replay-browser/*', maskLevel: 'light' },
+          { match: 'http://localhost:5173/session-replay-browser/*', maskLevel: 'conservative' },
+        ],
+      }),
+    );
+    const { getBodies } = await captureTrackRequests(page);
+
+    await page.goto(buildUrl(PRIVACY_PAGE, { sessionId: TEST_SESSION_ID }));
+    await waitForReady(page);
+    await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
+    await flushRecording(page);
+
+    const root = getSnapshotRoot(getBodies());
+    expect(root).not.toBeNull();
+
+    // Rule 2 (light) wins: plain text input is NOT masked.
+    const textInput = findById(root!, 'text-input');
+    expect(textInput).toBeDefined();
+    const value = String(textInput!.attributes?.value ?? '');
+    expect(value).toBe('visible input value');
+    expect(isMaskedText(value)).toBe(false);
+
+    // Password inputs are always masked regardless of mask level.
+    const passwordInput = findById(root!, 'password-input');
+    expect(passwordInput).toBeDefined();
+    expect(isMaskedText(String(passwordInput!.attributes?.value ?? ''))).toBe(true);
   });
 });
