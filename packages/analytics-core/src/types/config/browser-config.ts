@@ -7,6 +7,7 @@ import { FormInteractionsOptions } from '../form-interactions';
 import { PageTrackingOptions } from '../page-view-tracking';
 import { NetworkTrackingOptions } from '../network-tracking';
 import { FrustrationInteractionsOptions } from '../frustration-interactions';
+import { PerformanceTrackingOptions } from '../performance-tracking';
 import { IDiagnosticsClient } from '../../diagnostics/diagnostics-client';
 import { IRemoteConfigClient } from '../../remote-config/remote-config';
 import { CustomEnrichmentOptions } from '../custom-enrichment';
@@ -202,6 +203,11 @@ export interface AutocaptureOptions {
    * @defaultValue `false`
    */
   webVitals?: boolean;
+  /**
+   * Enables/disables performance tracking.
+   * @defaultValue `false`
+   */
+  performanceTracking?: boolean | PerformanceTrackingOptions;
   /**
    * Enables/disables page url enrichment.
    * @defaultValue `true`

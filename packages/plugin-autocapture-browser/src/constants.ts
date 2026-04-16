@@ -1,5 +1,6 @@
 export const PLUGIN_NAME = '@amplitude/plugin-autocapture-browser';
 export const FRUSTRATION_PLUGIN_NAME = '@amplitude/plugin-frustration-browser';
+export const PERFORMANCE_PLUGIN_NAME = '@amplitude/plugin-performance-browser';
 
 export const AMPLITUDE_ELEMENT_CLICKED_EVENT = '[Amplitude] Element Clicked';
 export const AMPLITUDE_ELEMENT_DEAD_CLICKED_EVENT = '[Amplitude] Dead Click';
@@ -8,6 +9,7 @@ export const AMPLITUDE_ELEMENT_ERROR_CLICKED_EVENT = '[Amplitude] Error Click';
 export const AMPLITUDE_ELEMENT_CHANGED_EVENT = '[Amplitude] Element Changed';
 export const AMPLITUDE_PAGE_SCROLLED_EVENT = '[Amplitude] Page Scrolled';
 export const AMPLITUDE_THRASHED_CURSOR_EVENT = '[Amplitude] Thrashed Cursor';
+export const AMPLITUDE_MAIN_THREAD_BLOCK_EVENT = '[Amplitude] Main Thread Block';
 
 export const AMPLITUDE_EVENT_PROP_ELEMENT_ID = '[Amplitude] Element ID';
 export const AMPLITUDE_EVENT_PROP_ELEMENT_CLASS = '[Amplitude] Element Class';

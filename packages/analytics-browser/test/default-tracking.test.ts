@@ -5,6 +5,7 @@ import {
   getFrustrationInteractionsConfig,
   getNetworkTrackingConfig,
   getPageViewTrackingConfig,
+  getPerformanceTrackingConfig,
   isAttributionTrackingEnabled,
   isCustomEnrichmentEnabled,
   isElementInteractionsEnabled,
@@ -14,6 +15,7 @@ import {
   isNetworkTrackingEnabled,
   isPageUrlEnrichmentEnabled,
   isPageViewTrackingEnabled,
+  isPerformanceTrackingEnabled,
   isSessionTrackingEnabled,
   isWebVitalsEnabled,
 } from '../src/default-tracking';
@@ -123,6 +125,63 @@ describe('isFrustrationInteractionsEnabled', () => {
       autocapture: true,
     });
     expect(config).toBeUndefined();
+  });
+});
+
+describe('isPerformanceTrackingEnabled', () => {
+  test('should return false with undefined parameter', () => {
+    expect(isPerformanceTrackingEnabled(undefined)).toBe(false);
+  });
+
+  test('should return false when autocapture=true', () => {
+    expect(isPerformanceTrackingEnabled(true)).toBe(false);
+  });
+
+  test('should return false when autocapture=false', () => {
+    expect(isPerformanceTrackingEnabled(false)).toBe(false);
+  });
+
+  test('should return true with performanceTracking=true', () => {
+    expect(isPerformanceTrackingEnabled({ performanceTracking: true })).toBe(true);
+  });
+
+  test('should return true with performanceTracking as object', () => {
+    expect(isPerformanceTrackingEnabled({ performanceTracking: { mainThreadBlock: true } })).toBe(true);
+  });
+
+  test('should return false with performanceTracking=false', () => {
+    expect(isPerformanceTrackingEnabled({ performanceTracking: false })).toBe(false);
+  });
+
+  test('should return false when performanceTracking is undefined', () => {
+    expect(isPerformanceTrackingEnabled({ webVitals: true })).toBe(false);
+  });
+});
+
+describe('getPerformanceTrackingConfig', () => {
+  test('should return config when performanceTracking is an object', () => {
+    const config = getPerformanceTrackingConfig({
+      autocapture: {
+        performanceTracking: {
+          mainThreadBlock: { durationThreshold: 200 },
+        },
+      },
+    });
+    expect(config).toEqual({ mainThreadBlock: { durationThreshold: 200 } });
+  });
+
+  test('should return undefined when autocapture is true', () => {
+    expect(getPerformanceTrackingConfig({ autocapture: true })).toBeUndefined();
+  });
+
+  test('should return mainThreadBlock true when performanceTracking=true (explicit autocapture opt-in)', () => {
+    expect(getPerformanceTrackingConfig({ autocapture: { performanceTracking: true } })).toEqual({
+      mainThreadBlock: true,
+    });
+  });
+
+  test('should return undefined when performanceTracking is disabled', () => {
+    expect(getPerformanceTrackingConfig({ autocapture: { performanceTracking: false } })).toBeUndefined();
   });
 });
 
