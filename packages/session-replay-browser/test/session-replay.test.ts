@@ -2428,6 +2428,33 @@ describe('SessionReplay', () => {
         expect(metaEvent.data.href).toBe(originalHref);
       });
     });
+
+    test('maskInputFn, maskTextFn, and maskAttributeFn closures read currentPageUrl dynamically', async () => {
+      const sessionReplay = new SessionReplay();
+      await sessionReplay.init(apiKey, {
+        ...mockOptions,
+        privacyConfig: {
+          defaultMaskLevel: 'medium',
+          maskAttributes: ['placeholder'],
+        },
+      }).promise;
+      await sessionReplay.recordEvents();
+      const recordArg = mockRecordFunction.mock.calls[0][0];
+
+      const inputEl = document.createElement('input');
+      const textEl = document.createElement('div');
+      const attrEl = document.createElement('input');
+
+      // Invoking the functions exercises the () => this.currentPageUrl closures on lines 798–800.
+      const maskedInput = recordArg.maskInputFn('secret', inputEl);
+      const maskedText = recordArg.maskTextFn('some text', textEl);
+      const maskedAttr = recordArg.maskAttributeFn('placeholder', 'hint', attrEl);
+
+      // Medium level masks all inputs and text; maskAttributes list includes 'placeholder'.
+      expect(maskedInput).toEqual('******');
+      expect(maskedText).toEqual('**** ****');
+      expect(maskedAttr).toEqual('****');
+    });
   });
 
   describe('getDeviceId', () => {
@@ -2569,6 +2596,17 @@ describe('SessionReplay', () => {
         ...mockOptions,
         privacyConfig: {
           defaultMaskLevel: 'conservative',
+        },
+      }).promise;
+      expect(sessionReplay.getMaskTextSelectors()).toEqual('*');
+    });
+
+    test('should return * when a urlMaskLevels rule uses conservative mask level', async () => {
+      await sessionReplay.init(apiKey, {
+        ...mockOptions,
+        privacyConfig: {
+          defaultMaskLevel: 'medium',
+          urlMaskLevels: [{ match: 'http://localhost/secure/*', maskLevel: 'conservative' }],
         },
       }).promise;
       expect(sessionReplay.getMaskTextSelectors()).toEqual('*');
@@ -3682,7 +3720,7 @@ describe('SessionReplay', () => {
       const sessionReplay = new SessionReplay();
       sessionReplay.config = { targetingConfig: {} } as any;
       sessionReplay.identifiers = { sessionId: 123 } as any;
-      (sessionReplay as any).setupUrlChangeListenerForTargeting();
+      (sessionReplay as any).setupUrlChangeListener();
       expect(subscribeToUrlChanges).not.toHaveBeenCalled();
     });
 
@@ -3691,7 +3729,7 @@ describe('SessionReplay', () => {
       const sessionReplay = new SessionReplay();
       sessionReplay.config = { targetingConfig: {} } as any;
       sessionReplay.identifiers = { sessionId: 123 } as any;
-      (sessionReplay as any).setupUrlChangeListenerForTargeting();
+      (sessionReplay as any).setupUrlChangeListener();
       expect(subscribeToUrlChanges).not.toHaveBeenCalled();
     });
 
@@ -3847,7 +3885,7 @@ describe('SessionReplay', () => {
       );
     });
 
-    test('should clean up existing URL subscription when setupUrlChangeListenerForTargeting is called again', () => {
+    test('should clean up existing URL subscription when setupUrlChangeListener is called again', () => {
       jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue({
         location: { href: 'https://example.com/current' },
       } as any);
@@ -3858,14 +3896,14 @@ describe('SessionReplay', () => {
         .mockImplementationOnce(() => secondCleanup);
 
       const sessionReplay = new SessionReplay();
-      (sessionReplay as any).setupUrlChangeListenerForTargeting();
-      (sessionReplay as any).setupUrlChangeListenerForTargeting();
+      (sessionReplay as any).setupUrlChangeListener();
+      (sessionReplay as any).setupUrlChangeListener();
 
       expect(firstCleanup).toHaveBeenCalledTimes(1);
       expect(secondCleanup).not.toHaveBeenCalled();
     });
 
-    test('should not call subscribeToUrlChanges when init completes with no targetingConfig', async () => {
+    test('should not call subscribeToUrlChanges when init completes with no targetingConfig and no urlMaskLevels', async () => {
       (subscribeToUrlChanges as jest.Mock).mockClear();
       mockRemoteConfig = {
         sr_sampling_config: samplingConfig,
