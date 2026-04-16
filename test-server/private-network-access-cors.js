@@ -30,7 +30,9 @@ export function configurePrivateNetworkAccessCorsMiddleware(middlewares) {
       if (acrh) {
         res.setHeader('Access-Control-Allow-Headers', acrh);
       }
-      res.statusCode = 204;
+      // Use 200 (not 204): this middleware runs before mock-api; OPTIONS to
+      // /api/status/* must match the status mock and network-capture e2e tests.
+      res.statusCode = 200;
       res.end();
       return;
     }
