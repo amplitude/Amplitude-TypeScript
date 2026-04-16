@@ -174,8 +174,10 @@ describe('getPerformanceTrackingConfig', () => {
     expect(getPerformanceTrackingConfig({ autocapture: true })).toBeUndefined();
   });
 
-  test('should return undefined when performanceTracking=true (no options object)', () => {
-    expect(getPerformanceTrackingConfig({ autocapture: { performanceTracking: true } })).toBeUndefined();
+  test('should return mainThreadBlock true when performanceTracking=true (explicit autocapture opt-in)', () => {
+    expect(getPerformanceTrackingConfig({ autocapture: { performanceTracking: true } })).toEqual({
+      mainThreadBlock: true,
+    });
   });
 
   test('should return undefined when performanceTracking is disabled', () => {

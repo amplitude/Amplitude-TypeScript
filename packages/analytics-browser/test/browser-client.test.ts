@@ -762,6 +762,7 @@ describe('browser-client', () => {
         },
       }).promise;
       expect(performanceTrackingPlugin).toHaveBeenCalledTimes(1);
+      expect(performanceTrackingPlugin).toHaveBeenCalledWith({ mainThreadBlock: true });
     });
 
     test('should NOT add performance tracking plugin by default', async () => {
@@ -776,6 +777,18 @@ describe('browser-client', () => {
         autocapture: true,
       }).promise;
       expect(performanceTrackingPlugin).toHaveBeenCalledTimes(0);
+    });
+
+    test('should register autocapture and performance plugins when both element interactions and performance tracking are enabled', async () => {
+      await client.init(apiKey, userId, {
+        autocapture: {
+          elementInteractions: true,
+          performanceTracking: true,
+        },
+      }).promise;
+      const names = client.timeline.plugins.map((p) => p.name);
+      expect(names).toContain('@amplitude/plugin-autocapture-browser');
+      expect(names).toContain('@amplitude/plugin-performance-browser');
     });
 
     test('should add page view tracking plugin by default', async () => {

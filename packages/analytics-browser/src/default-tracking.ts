@@ -147,13 +147,20 @@ export const isPerformanceTrackingEnabled = (autocapture: AutocaptureOptions | b
 };
 
 export const getPerformanceTrackingConfig = (config: BrowserOptions): PerformanceTrackingOptions | undefined => {
-  if (
-    isPerformanceTrackingEnabled(config.autocapture) &&
-    typeof config.autocapture === 'object' &&
-    typeof config.autocapture.performanceTracking === 'object'
-  ) {
-    return config.autocapture.performanceTracking;
+  if (typeof config.autocapture !== 'object') {
+    return undefined;
   }
+
+  const performanceTracking = config.autocapture.performanceTracking;
+
+  if (performanceTracking === true) {
+    return { mainThreadBlock: true };
+  }
+
+  if (typeof performanceTracking === 'object' && performanceTracking !== null) {
+    return performanceTracking;
+  }
+
   return undefined;
 };
 

@@ -14,12 +14,14 @@ type BrowserEnrichmentPlugin = EnrichmentPlugin<BrowserClient, BrowserConfig>;
 const DEFAULT_DURATION_THRESHOLD = 100; // ms
 
 export const performancePlugin = (options: PerformanceTrackingOptions = {}): BrowserEnrichmentPlugin => {
-  const name = constants.PLUGIN_NAME;
+  const name = constants.PERFORMANCE_PLUGIN_NAME;
   const type = 'enrichment';
 
   const subscriptions: Unsubscribable[] = [];
 
-  const mainThreadBlockEnabled = options.mainThreadBlock !== false && options.mainThreadBlock !== null;
+  const mainThreadBlockEnabled =
+    options.mainThreadBlock === true ||
+    (typeof options.mainThreadBlock === 'object' && options.mainThreadBlock !== null);
 
   const setup: BrowserEnrichmentPlugin['setup'] = async (config, amplitude) => {
     /* istanbul ignore if */

@@ -1,5 +1,6 @@
 export const PLUGIN_NAME = '@amplitude/plugin-autocapture-browser';
 export const FRUSTRATION_PLUGIN_NAME = '@amplitude/plugin-frustration-browser';
+export const PERFORMANCE_PLUGIN_NAME = '@amplitude/plugin-performance-browser';
 
 export const AMPLITUDE_ELEMENT_CLICKED_EVENT = '[Amplitude] Element Clicked';
 export const AMPLITUDE_ELEMENT_DEAD_CLICKED_EVENT = '[Amplitude] Dead Click';

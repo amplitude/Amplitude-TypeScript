@@ -1,5 +1,6 @@
 import { BrowserConfig, EnrichmentPlugin, ILogger } from '@amplitude/analytics-core';
 import { performancePlugin } from '../../src/performance-plugin';
+import { PERFORMANCE_PLUGIN_NAME } from '../../src/constants';
 import { trackMainThreadBlock } from '../../src/autocapture/track-long-task';
 import { createMockBrowserClient } from '../mock-browser-client';
 
@@ -24,6 +25,11 @@ describe('performancePlugin', () => {
     jest.clearAllMocks();
     mockUnsubscribe = jest.fn();
     (trackMainThreadBlock as jest.Mock).mockReturnValue({ unsubscribe: mockUnsubscribe });
+  });
+
+  it('should use a plugin name distinct from autocapturePlugin', () => {
+    const plugin = performancePlugin();
+    expect(plugin.name).toBe(PERFORMANCE_PLUGIN_NAME);
   });
 
   describe('setup', () => {
@@ -71,12 +77,20 @@ describe('performancePlugin', () => {
       expect(trackMainThreadBlock).not.toHaveBeenCalled();
     });
 
-    it('should call trackMainThreadBlock when no options provided (default enables mainThreadBlock)', async () => {
+    it('should not call trackMainThreadBlock when no options provided (mainThreadBlock defaults off)', async () => {
       const plugin = performancePlugin();
       const amplitude = createMockBrowserClient();
       await plugin.setup!(config as BrowserConfig, amplitude);
 
-      expect(trackMainThreadBlock).toHaveBeenCalledTimes(1);
+      expect(trackMainThreadBlock).not.toHaveBeenCalled();
+    });
+
+    it('should not call trackMainThreadBlock when options omit mainThreadBlock', async () => {
+      const plugin = performancePlugin({});
+      const amplitude = createMockBrowserClient();
+      await plugin.setup!(config as BrowserConfig, amplitude);
+
+      expect(trackMainThreadBlock).not.toHaveBeenCalled();
     });
   });
 
@@ -101,6 +115,13 @@ describe('performancePlugin', () => {
 
     it('should not throw when there are no subscriptions', async () => {
       const plugin = performancePlugin({ mainThreadBlock: false });
+      await expect(plugin.teardown!()).resolves.toBeUndefined();
+    });
+
+    it('should not throw on teardown when mainThreadBlock was omitted (no subscriptions)', async () => {
+      const plugin = performancePlugin();
+      const amplitude = createMockBrowserClient();
+      await plugin.setup!(config as BrowserConfig, amplitude);
       await expect(plugin.teardown!()).resolves.toBeUndefined();
     });
   });
