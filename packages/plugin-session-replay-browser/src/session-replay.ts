@@ -101,7 +101,6 @@ export class SessionReplayPlugin implements EnrichmentPlugin<BrowserClient, Brow
         storeType: this.options.storeType,
         useWebWorker: this.options.useWebWorker ?? this.options.experimental?.useWebWorker,
         userProperties: userProperties,
-        omitElementTags: this.options.omitElementTags,
         applyBackgroundColorToBlockedElements: this.options.applyBackgroundColorToBlockedElements,
         interactionConfig: this.options.interactionConfig,
         captureDocumentTitle: this.options.captureDocumentTitle,
