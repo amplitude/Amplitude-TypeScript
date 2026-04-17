@@ -11,7 +11,7 @@ if (!targetUrl) {
 }
 
 // Integrity Hashes to rip out
-// (why: proxying fails if the integrity hash is present so just remove them
+// (RATIONALE: proxying fails if the integrity hash is set so just remove them
 // from all HTML and JS responses for testing only)
 // when you encounter a new integrity hash that's failing, just add it here
 const INTEGRITY_HASHES = [
@@ -30,6 +30,9 @@ function dropEncodingHeaders(headers) {
   }
   return out;
 }
+
+const SESSION_REPLAY_VERSION = process.env.SESSION_REPLAY_VERSION;
+const ANALYTICS_BROWSER_VERSION = process.env.ANALYTICS_BROWSER_VERSION;
 
 async function main() {
   const browser = await chromium.launch({ headless: false });
@@ -50,7 +53,9 @@ async function main() {
       url.includes('cdn.amplitude.com/libs/analytics-browser-gtm-')
     ) {
       console.log('Rerouting analytics-browser-gtm bundle');
-      const redirectedUrl = 'https://local.website.com:5173/analytics-browser/lib/scripts/amplitude-gtm-min.js.gz';
+      const redirectedUrl = ANALYTICS_BROWSER_VERSION
+        ? `https://cdn.amplitude.com/libs/analytics-browser-gtm-${ANALYTICS_BROWSER_VERSION}-min.js.gz`
+        : 'https://local.website.com:5173/analytics-browser/lib/scripts/amplitude-gtm-min.js.gz';
       return route.continue({ url: redirectedUrl });
     }
 
@@ -58,8 +63,37 @@ async function main() {
       url.includes('cdn.amplitude.com/libs/analytics-browser-')
     ) {
       console.log('Rerouting analytics-browser bundle');
-      const redirectedUrl = 'https://local.website.com:5173/analytics-browser/lib/scripts/amplitude-min.js.gz';
+      const redirectedUrl = ANALYTICS_BROWSER_VERSION
+        ? `https://cdn.amplitude.com/libs/analytics-browser-${ANALYTICS_BROWSER_VERSION}-min.js.gz`
+        : 'https://local.website.com:5173/analytics-browser/lib/scripts/amplitude-min.js.gz';
       return route.continue({ url: redirectedUrl });
+    }
+
+    if(
+      url.includes('cdn.amplitude.com/libs/plugin-session-replay-browser-')
+    ) {
+      console.log('Rerouting plugin-session-replay-browser bundle');
+      const redirectedUrl = SESSION_REPLAY_VERSION
+        ? `https://cdn.amplitude.com/libs/plugin-session-replay-browser-${SESSION_REPLAY_VERSION}-min.js.gz`
+        : 'https://local.website.com:5173/plugin-session-replay-browser/lib/scripts/plugin-session-replay-browser-min.js.gz';
+      return route.continue({ url: redirectedUrl });
+    }
+
+    const AMPLITUDE_API_KEY = process.env.AMPLITUDE_API_KEY;
+
+    if (
+      url.includes('amplitude.com/2/httpapi') &&
+      AMPLITUDE_API_KEY
+    ) {
+      // Change API Key to your own local API Key
+      const request = route.request();
+      const postData = request.postDataJSON();
+      const modifiedPostData = { ...postData, api_key: AMPLITUDE_API_KEY };
+
+      // re-direct to EU API endpoint
+      const modifiedUrl = url.replace('api.eu.amplitude.com', 'api.amplitude.com');
+
+      return await route.continue({ url: modifiedUrl, postData: JSON.stringify(modifiedPostData) });
     }
 
     // GTM injects Amplitude loader tags with SRI inside JS; strip so rerouted local bytes validate.
