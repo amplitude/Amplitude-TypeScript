@@ -100,6 +100,8 @@ export class SessionReplay implements AmplitudeSessionReplay {
   /** Current page URL, kept in sync with SPA navigations for URL-based masking */
   private currentPageUrl = '';
 
+  private recordEventsInFlight = false;
+
   /** Cleanup for URL change listener used to re-evaluate targeting on SPA route changes */
   private urlChangeCleanup: (() => void) | null = null;
   /** Monotonic counter to ignore stale URL-change targeting results */
@@ -730,6 +732,16 @@ export class SessionReplay implements AmplitudeSessionReplay {
   }
 
   async recordEvents(shouldLogMetadata = true) {
+    if (this.recordEventsInFlight) return;
+    this.recordEventsInFlight = true;
+    try {
+      await this._recordEvents(shouldLogMetadata);
+    } finally {
+      this.recordEventsInFlight = false;
+    }
+  }
+
+  private async _recordEvents(shouldLogMetadata = true) {
     const config = this.config;
     const shouldRecord = this.getShouldRecord();
     const sessionId = this.identifiers?.sessionId;
