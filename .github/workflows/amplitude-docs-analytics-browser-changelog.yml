@@ -26,14 +26,14 @@ jobs:
     env:
       DOCS_DIR: amplitude-docs
       DOCS_REPO: amplitude/amplitude-docs
-      GH_TOKEN: ${{ secrets.AMPLITUDE_DOCS_GITHUB_TOKEN }}
+      GH_TOKEN: ${{ secrets.GH_PUBLISH_TOKEN }}
 
     steps:
       - name: Check out amplitude-docs
         uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3
         with:
           repository: amplitude/amplitude-docs
-          token: ${{ secrets.AMPLITUDE_DOCS_GITHUB_TOKEN }}
+          token: ${{ secrets.GH_PUBLISH_TOKEN }}
           path: ${{ env.DOCS_DIR }}
 
       - name: Push empty commit and open draft PR
