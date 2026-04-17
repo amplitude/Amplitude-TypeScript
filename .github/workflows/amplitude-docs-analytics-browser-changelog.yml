@@ -12,6 +12,7 @@ name: Amplitude Docs — analytics-browser changelog
 on:
   workflow_dispatch:
   manual:
+  pull_request:
 
 permissions:
   contents: read
