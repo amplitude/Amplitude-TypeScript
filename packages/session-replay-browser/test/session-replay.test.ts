@@ -165,9 +165,11 @@ describe('SessionReplay', () => {
   function createMockRecordFunction() {
     const mockRecordFn = jest.fn().mockReturnValue(jest.fn()) as jest.Mock & {
       addCustomEvent: jest.Mock;
+      takeFullSnapshot: jest.Mock;
       mirror: { getNode: jest.Mock };
     };
     mockRecordFn.addCustomEvent = jest.fn();
+    mockRecordFn.takeFullSnapshot = jest.fn();
     mockRecordFn.mirror = {
       getNode: jest.fn().mockReturnValue(null),
     };
@@ -844,8 +846,12 @@ describe('SessionReplay', () => {
     test('should set up blur and focus event listeners', async () => {
       const initialize = jest.spyOn(sessionReplay, 'initialize');
       await sessionReplay.init(apiKey, mockOptions).promise;
-      const recordMock = jest.fn();
+      const recordMock = jest.fn().mockResolvedValue(undefined);
       sessionReplay.recordEvents = recordMock;
+      // Clear recordCancelCallback and recordEventsInFlight so focusListener takes the fallback recordEvents path
+      sessionReplay.recordCancelCallback = null;
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      (sessionReplay as any).recordEventsInFlight = false;
       initialize.mockReset();
       expect(addEventListenerMock).toHaveBeenCalledTimes(3);
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
@@ -861,8 +867,56 @@ describe('SessionReplay', () => {
       const focusCallback = addEventListenerMock.mock.calls[1][1];
       // eslint-disable-next-line @typescript-eslint/no-unsafe-call
       focusCallback();
-      expect(recordMock).toHaveBeenCalled();
+      expect(recordMock).toHaveBeenCalledWith(false);
     });
+
+    describe('focusListener', () => {
+      test('calls takeFullSnapshot(true) when already recording, does not call recordEvents', async () => {
+        await sessionReplay.init(apiKey, mockOptions).promise;
+        const takeFullSnapshotMock = jest.fn();
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        (sessionReplay as any).recordCancelCallback = jest.fn();
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        (sessionReplay as any).recordFunction = { takeFullSnapshot: takeFullSnapshotMock };
+        const recordEventsSpy = jest.spyOn(sessionReplay, 'recordEvents');
+
+        sessionReplay.focusListener();
+
+        expect(takeFullSnapshotMock).toHaveBeenCalledWith(true);
+        expect(recordEventsSpy).not.toHaveBeenCalled();
+      });
+
+      test('calls recordEvents(false) when not recording and not in-flight', async () => {
+        await sessionReplay.init(apiKey, mockOptions).promise;
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        (sessionReplay as any).recordCancelCallback = null;
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        (sessionReplay as any).recordEventsInFlight = false;
+        const recordEventsSpy = jest.spyOn(sessionReplay, 'recordEvents').mockResolvedValue(undefined);
+
+        sessionReplay.focusListener();
+
+        expect(recordEventsSpy).toHaveBeenCalledWith(false);
+      });
+
+      test('does nothing when not recording but already in-flight', async () => {
+        await sessionReplay.init(apiKey, mockOptions).promise;
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        (sessionReplay as any).recordCancelCallback = null;
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        (sessionReplay as any).recordEventsInFlight = true;
+        const recordEventsSpy = jest.spyOn(sessionReplay, 'recordEvents');
+        const takeFullSnapshotMock = jest.fn();
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        (sessionReplay as any).recordFunction = { takeFullSnapshot: takeFullSnapshotMock };
+
+        sessionReplay.focusListener();
+
+        expect(takeFullSnapshotMock).not.toHaveBeenCalled();
+        expect(recordEventsSpy).not.toHaveBeenCalled();
+      });
+    });
+
     test('it should not call initialize if the document does not have focus', () => {
       const initialize = jest.spyOn(sessionReplay, 'initialize');
       jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue({

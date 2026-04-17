@@ -96,11 +96,11 @@ export class SessionReplay implements AmplitudeSessionReplay {
 
   // Cache the dynamically imported record function
   private recordFunction: RecordFunction | null = null;
+  private recordEventsInFlight = false;
 
   /** Current page URL, kept in sync with SPA navigations for URL-based masking */
   private currentPageUrl = '';
 
-  private recordEventsInFlight = false;
   private recordEventsPendingShouldLogMetadata: boolean | null = null;
 
   /** Cleanup for URL change listener used to re-evaluate targeting on SPA route changes */
@@ -423,9 +423,11 @@ export class SessionReplay implements AmplitudeSessionReplay {
   };
 
   focusListener = () => {
-    // Restart recording on focus to ensure that when user
-    // switches tabs, we take a full snapshot
-    void this.recordEvents(false);
+    if (this.recordCancelCallback && this.recordFunction) {
+      this.recordFunction.takeFullSnapshot(true);
+    } else if (!this.recordEventsInFlight) {
+      void this.recordEvents(false);
+    }
   };
 
   /**

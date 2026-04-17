@@ -43,5 +43,6 @@ export type RecordFunction = {
     applyBackgroundColorToBlockedElements?: boolean;
   }): (() => void) | undefined;
   addCustomEvent: (eventName: string, eventData: any) => void;
+  takeFullSnapshot: (isCheckout?: boolean) => void;
   mirror: Mirror;
 };
