@@ -39,10 +39,6 @@ export class SessionReplayLocalConfig extends Config implements ISessionReplayLo
   performanceConfig?: SessionReplayPerformanceConfig;
   useWebWorker?: boolean;
   applyBackgroundColorToBlockedElements?: boolean;
-  omitElementTags?: {
-    script?: boolean;
-    comment?: boolean;
-  };
   enableUrlChangePolling?: boolean;
   urlChangePollingInterval?: number;
   captureDocumentTitle?: boolean;
@@ -105,9 +101,6 @@ export class SessionReplayLocalConfig extends Config implements ISessionReplayLo
       if (legacyOptions.experimental?.useWebWorker !== undefined) {
         this.useWebWorker = legacyOptions.experimental.useWebWorker;
       }
-    }
-    if (options.omitElementTags) {
-      this.omitElementTags = options.omitElementTags;
     }
     this.captureAdoptedStyleSheets = options.captureAdoptedStyleSheets ?? true;
     if (options.crossOriginIframes) {
