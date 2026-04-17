@@ -94,7 +94,7 @@ async function sendWithRetry(id: string, payloadJson: string, context: SendConte
       postMessage({ type: 'complete', id });
       return;
     }
-    if (result.payloadTooLarge) {
+    if (result.payloadTooLarge && useRetry) {
       postMessage({ type: 'payload_too_large', id, isWaf: result.isWaf === true });
       return;
     }

@@ -105,6 +105,14 @@ describe('worker/track-destination', () => {
     expect(mockPostMessage).toHaveBeenCalledWith({ type: 'payload_too_large', id: '10', isWaf: false });
   });
 
+  test('does not bisect on 413 when useRetry=false', async () => {
+    mockFetch.mockResolvedValueOnce({ status: 413, text: () => Promise.resolve('Payload Too Large') });
+    await invokeOnMessage({ type: 'send', id: '11', payload: basePayload, context: baseContext, useRetry: false });
+
+    expect(mockPostMessage).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'payload_too_large' }));
+    expect(mockPostMessage).toHaveBeenCalledWith({ type: 'complete', id: '11' });
+  });
+
   test('retries on 5xx and succeeds on second attempt', async () => {
     // Use a real timer but patch setTimeout to fire immediately so the test is fast
     const realSetTimeout = global.setTimeout;

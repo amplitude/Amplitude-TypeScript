@@ -1944,11 +1944,22 @@ describe('SessionReplay', () => {
       expect(errorHandlerReturn).toBe(true);
     });
 
-    test('should add slim dom options', async () => {
-      await sessionReplay.init(apiKey, { ...mockOptions, omitElementTags: { script: true, comment: true } }).promise;
+    test('should enable all slim dom options by default', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
       await sessionReplay.recordEvents();
       const recordArg = mockRecordFunction.mock.calls[0][0];
-      expect(recordArg?.slimDOMOptions).toEqual({ script: true, comment: true });
+      expect(recordArg?.slimDOMOptions).toEqual({
+        script: true,
+        comment: true,
+        headFavicon: true,
+        headWhitespace: true,
+        headMetaDescKeywords: true,
+        headMetaSocial: true,
+        headMetaRobots: true,
+        headMetaHttpEquiv: true,
+        headMetaAuthorship: true,
+        headMetaVerification: true,
+      });
     });
 
     test('should rethrow CSSStylesheet errors', async () => {

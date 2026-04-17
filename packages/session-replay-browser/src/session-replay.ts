@@ -769,8 +769,16 @@ export class SessionReplay implements AmplitudeSessionReplay {
         maskTextSelector: this.getMaskTextSelectors(),
         recordCanvas: false,
         slimDOMOptions: {
-          script: config.omitElementTags?.script,
-          comment: config.omitElementTags?.comment,
+          script: true,
+          comment: true,
+          headFavicon: true,
+          headWhitespace: true,
+          headMetaDescKeywords: true,
+          headMetaSocial: true,
+          headMetaRobots: true,
+          headMetaHttpEquiv: true,
+          headMetaAuthorship: true,
+          headMetaVerification: true,
         },
         errorHandler: (error: unknown) => {
           const typedError = error as Error & { _external_?: boolean };
