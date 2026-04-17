@@ -522,6 +522,30 @@ describe('SessionReplayTrackDestination', () => {
     });
   });
 
+  describe('handleReponse', () => {
+    test('handles 413 without responseBody argument (uses default empty string)', async () => {
+      const trackDestination = new SessionReplayTrackDestination({ loggerProvider: mockLoggerProvider });
+      const handlePayloadTooLarge = jest
+        .spyOn(trackDestination, 'handlePayloadTooLargeResponse')
+        .mockReturnValueOnce(undefined);
+      const context: SessionReplayDestinationContext = {
+        events: [mockEventString],
+        sessionId: 123,
+        apiKey,
+        attempts: 1,
+        timeout: 0,
+        deviceId: '1a2b3c',
+        sampleRate: 1,
+        serverZone: ServerZone.US,
+        type: 'replay',
+        onComplete: mockOnComplete,
+      };
+      // Call without the optional responseBody argument to exercise the default
+      await trackDestination.handleReponse(413, context);
+      expect(handlePayloadTooLarge).toHaveBeenCalledWith(context, false);
+    });
+  });
+
   describe('handleOtherResponse', () => {
     test('should complete request when flushMaxRetries is not set', async () => {
       const trackDestination = new SessionReplayTrackDestination({ loggerProvider: mockLoggerProvider });
@@ -543,6 +567,78 @@ describe('SessionReplayTrackDestination', () => {
         context,
         err: 'Session replay event batch rejected due to exceeded retry count',
       });
+    });
+  });
+
+  describe('handlePayloadTooLargeResponse', () => {
+    const baseContext = (overrides = {}): SessionReplayDestinationContext => ({
+      events: [mockEventString],
+      sessionId: 123,
+      apiKey,
+      attempts: 1,
+      timeout: 0,
+      deviceId: '1a2b3c',
+      sampleRate: 1,
+      serverZone: ServerZone.US,
+      type: 'replay',
+      onComplete: mockOnComplete,
+      ...overrides,
+    });
+
+    test('drops single event and logs error with size', () => {
+      const trackDestination = new SessionReplayTrackDestination({ loggerProvider: mockLoggerProvider });
+      const completeRequest = jest.spyOn(trackDestination, 'completeRequest').mockReturnValueOnce(undefined);
+      const context = baseContext();
+
+      trackDestination.handlePayloadTooLargeResponse(context, false);
+
+      expect(completeRequest).toHaveBeenCalledWith({
+        context,
+        err: expect.stringContaining('single event'),
+      });
+      expect(completeRequest.mock.calls[0][0].err).toContain('cannot split further');
+    });
+
+    test('names WAF as source when isWaf is true', () => {
+      const trackDestination = new SessionReplayTrackDestination({ loggerProvider: mockLoggerProvider });
+      jest.spyOn(trackDestination, 'completeRequest').mockReturnValueOnce(undefined);
+      const context = baseContext();
+
+      trackDestination.handlePayloadTooLargeResponse(context, true);
+
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      const errArg = (trackDestination.completeRequest as jest.Mock).mock.calls[0][0].err as string;
+      expect(errArg).toContain('WAF');
+    });
+
+    test('bisects multi-event batch and re-enqueues both halves', () => {
+      const trackDestination = new SessionReplayTrackDestination({ loggerProvider: mockLoggerProvider });
+      const capturedOnCompletes: Array<() => Promise<void>> = [];
+      jest.spyOn(trackDestination, 'sendEventsList').mockImplementation((dest) => {
+        capturedOnCompletes.push(dest.onComplete);
+      });
+      const context = baseContext({ events: ['event1', 'event2', 'event3', 'event4'] });
+
+      trackDestination.handlePayloadTooLargeResponse(context, false);
+
+      expect((trackDestination.sendEventsList as jest.Mock).mock.calls).toHaveLength(2);
+      expect((trackDestination.sendEventsList as jest.Mock).mock.calls[0][0].events).toEqual(['event1', 'event2']);
+      expect((trackDestination.sendEventsList as jest.Mock).mock.calls[1][0].events).toEqual(['event3', 'event4']);
+      expect(mockOnComplete).toHaveBeenCalledTimes(1);
+      // The noop onComplete passed to each half must be callable
+      expect(capturedOnCompletes).toHaveLength(2);
+      void Promise.all(capturedOnCompletes.map((fn) => fn()));
+    });
+
+    test('logs warn with event count and size when bisecting', () => {
+      const trackDestination = new SessionReplayTrackDestination({ loggerProvider: mockLoggerProvider });
+      jest.spyOn(trackDestination, 'sendEventsList').mockReturnValue(undefined);
+      const context = baseContext({ events: ['event1', 'event2'] });
+
+      trackDestination.handlePayloadTooLargeResponse(context, false);
+
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockLoggerProvider.warn).toHaveBeenCalledWith(expect.stringContaining('splitting'));
     });
   });
 
@@ -665,6 +761,22 @@ describe('SessionReplayTrackDestination', () => {
       mockWorker.onmessage?.({ data: { type: 'warn', id: '1', message: 'test warn' } } as MessageEvent);
       // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockLoggerProvider.warn).toHaveBeenCalledWith('test warn');
+    });
+
+    test('worker onmessage handles payload_too_large by invoking handlePayloadTooLargeResponse', () => {
+      const trackDestination = new SessionReplayTrackDestination({
+        loggerProvider: mockLoggerProvider,
+        workerScript: 'self.onmessage = () => {}',
+      });
+      const handleSpy = jest.spyOn(trackDestination, 'handlePayloadTooLargeResponse').mockReturnValueOnce(undefined);
+      const resolve = jest.fn();
+      (trackDestination as any).pendingWorkerRequests.set('1', { context: mockContext, resolve });
+
+      mockWorker.onmessage?.({ data: { type: 'payload_too_large', id: '1', isWaf: false } } as MessageEvent);
+
+      expect(handleSpy).toHaveBeenCalledWith(mockContext, false);
+      expect(resolve).toHaveBeenCalled();
+      expect((trackDestination as any).pendingWorkerRequests.size).toBe(0);
     });
 
     test('worker onmessage completes request for complete type', async () => {

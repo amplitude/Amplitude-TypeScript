@@ -23,7 +23,7 @@ interface SendContext {
 async function doFetch(
   payloadJson: string,
   context: SendContext,
-): Promise<{ shouldRetry: boolean; success: boolean; message: string }> {
+): Promise<{ shouldRetry: boolean; success: boolean; message: string; payloadTooLarge?: boolean; isWaf?: boolean }> {
   try {
     const gzipped = 'CompressionStream' in self ? await gzipJson(payloadJson, self) : null;
     const sessionReplayLibrary = `${context.version?.type ?? 'standalone'}/${
@@ -58,6 +58,21 @@ async function doFetch(
         message: `Session replay event batch tracked successfully for session id ${context.sessionId}, size of events: ${sizeKB} KB`,
       };
     }
+    if (res.status === 413) {
+      let body = '';
+      try {
+        body = await res.text();
+      } catch {
+        // best effort
+      }
+      return {
+        shouldRetry: false,
+        success: false,
+        message: UNEXPECTED_NETWORK_ERROR_MESSAGE,
+        payloadTooLarge: true,
+        isWaf: body.includes('Payload exceeds'),
+      };
+    }
     if (res.status >= 500) {
       return { shouldRetry: true, success: false, message: `HTTP ${res.status}` };
     }
@@ -77,6 +92,10 @@ async function sendWithRetry(id: string, payloadJson: string, context: SendConte
     if (result.success) {
       postMessage({ type: 'log', id, message: result.message });
       postMessage({ type: 'complete', id });
+      return;
+    }
+    if (result.payloadTooLarge) {
+      postMessage({ type: 'payload_too_large', id, isWaf: result.isWaf === true });
       return;
     }
     if (useRetry && result.shouldRetry && attempt < context.flushMaxRetries) {

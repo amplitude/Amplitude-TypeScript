@@ -227,17 +227,12 @@ describe('module level integration', () => {
       const createEventsIDBStoreInstance = await (SessionReplayIDB.SessionReplayEventsIDBStore.new as jest.Mock).mock
         .results[0].value;
       jest.spyOn(createEventsIDBStoreInstance, 'storeCurrentSequence');
-      (fetch as jest.Mock)
-        .mockImplementationOnce(() => {
-          return Promise.resolve({
-            status: 413,
-          });
-        })
-        .mockImplementationOnce(() => {
-          return Promise.resolve({
-            status: 200,
-          });
+      (fetch as jest.Mock).mockImplementationOnce(() => {
+        return Promise.resolve({
+          status: 413,
+          text: () => Promise.resolve(''),
         });
+      });
 
       if (!sessionReplay.eventsManager) {
         throw new Error('did not init');
@@ -250,12 +245,9 @@ describe('module level integration', () => {
       sessionReplay.sendEvents();
       await (createEventsIDBStoreInstance.storeCurrentSequence as jest.Mock).mock.results[0].value;
       await runScheduleTimers();
-      expect(fetch).toHaveBeenLastCalledWith(
-        `${SESSION_REPLAY_EU_SERVER_URL}?device_id=1a2b3c&session_id=123&type=replay`,
-        expect.anything(),
-      );
+      expect(fetch).toHaveBeenCalledTimes(1);
       // eslint-disable-next-line @typescript-eslint/unbound-method
-      expect(mockLoggerProvider.warn).toHaveBeenCalledWith('Network error occurred, event batch rejected');
+      expect(mockLoggerProvider.warn).toHaveBeenCalledWith(expect.stringMatching(/single event.*cannot split further/));
     });
     test('should handle retry for 500 error', async () => {
       const sessionReplay = new SessionReplay();
