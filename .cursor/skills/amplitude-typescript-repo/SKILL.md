@@ -49,14 +49,24 @@ Use [Conventional Commits](https://www.conventionalcommits.org/) and include the
 
 `e2e/manual-test.js` rewrites the CDN request to `https://local.website.com:5173/unified-script-local.js`. The Vite test server must be reachable at that **HTTPS** origin. Use `pnpm dev:ssh` after the one-time HTTPS setup in [test-server/README.md](../../../test-server/README.md) (`/etc/hosts`, `generate-signed-cert`, trust cert in Keychain). If that setup is missing, the manual test will not load the local bundle. If the user struggles to find the script, make sure they ran `dev:ssh` first.
 
-### Steps (two terminals, repo root)
+### Run the manual test
 
-1. **Terminal A — test server:** `pnpm dev:ssh` (wait until Vite is ready on port **5173**).
-2. **Terminal B — manual test:** `node ./e2e/manual-test.js <website-url>`  
-   Example: `node ./e2e/manual-test.js https://example.com`
+`node ./e2e/manual-test.js <website-url>`. Example: `node ./e2e/manual-test.js https://example.com`
 
 Playwright opens a headed browser, proxies HTML to strip SRI on Amplitude script tags, and swaps the unified script for the local `test-server/unified-script-local.js` chain. Leave Terminal A running until finished; stop with Ctrl+C in each terminal when done.
 
 ### Integrity Hashes
 
 If the user experiences a problem with the proxying not working due to SRI failures, instruct the user to take the shasum of the failing integrity hash and add it to manual-test.js under INTEGRITY_HASHES.
+
+### Testing specific versions
+
+Aside from testing local versions, users need to be able to go back and test old versions of the analytics or session replay SDK. If the user asks to test a specific version (e.g.: session replay v1.22.7) than set the environment variable (e.g.: SESSION_REPLAY_VERSION) to have it set to that instead of using local
+
+### Building before testing
+
+Don't build bundles before testing. Leave that up to the user. But notify them if they're having troubles that they may be using a stale bundle.
+
+### Manual tests not automatic
+
+These tests should be manual. The manual script opens the browser and the user tests. Never use HEADLESS and always leave the script running indefinitely
