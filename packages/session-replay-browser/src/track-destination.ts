@@ -26,7 +26,12 @@ interface WorkerLogMessage {
   id: string;
   message: string;
 }
-type WorkerMessage = WorkerCompleteMessage | WorkerLogMessage;
+interface WorkerPayloadTooLargeMessage {
+  type: 'payload_too_large';
+  id: string;
+  isWaf: boolean;
+}
+type WorkerMessage = WorkerCompleteMessage | WorkerLogMessage | WorkerPayloadTooLargeMessage;
 
 export type PayloadBatcher = ({ version, events }: { version: number; events: string[] }) => {
   version: number;
@@ -87,6 +92,13 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
             loggerProvider.log(msg.message);
           } else if (msg.type === 'warn') {
             loggerProvider.warn(msg.message);
+          } else if (msg.type === 'payload_too_large') {
+            const pending = this.pendingWorkerRequests.get(msg.id);
+            if (pending) {
+              this.handlePayloadTooLargeResponse(pending.context, msg.isWaf);
+              pending.resolve();
+              this.pendingWorkerRequests.delete(msg.id);
+            }
           } else if (msg.type === 'complete') {
             const pending = this.pendingWorkerRequests.get(msg.id);
             if (pending) {
@@ -341,14 +353,22 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
         }
         this.completeRequest({ context, success: `${res.status}: ${responseBody}` });
       } else {
-        await this.handleReponse(res.status, context);
+        let responseBody = '';
+        if (res.status === 413) {
+          try {
+            responseBody = await res.text();
+          } catch {
+            // best effort
+          }
+        }
+        await this.handleReponse(res.status, context, responseBody);
       }
     } catch (e) {
       this.completeRequest({ context, err: e as string });
     }
   }
 
-  async handleReponse(status: number, context: SessionReplayDestinationContext) {
+  async handleReponse(status: number, context: SessionReplayDestinationContext, responseBody = '') {
     const parsedStatus = new BaseTransport().buildStatus(status);
     switch (parsedStatus) {
       case Status.Success:
@@ -362,6 +382,9 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
       case Status.RateLimit: // 429: retry with existing backoff rather than silently dropping
         await this.handleOtherResponse(context);
         break;
+      case Status.PayloadTooLarge:
+        this.handlePayloadTooLargeResponse(context, responseBody.includes('Payload exceeds'));
+        break;
       default:
         // 499 (client closed connection / upstream dropped) is also retryable
         if (status === 499) {
@@ -372,32 +395,28 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
     }
   }
 
-  // Split depth is naturally bounded: each 413 halves the batch until events.length <= 1,
-  // at which point the single oversized event is dropped. A batch of N events produces
-  // at most N sequential retry requests before all are resolved.
-  private handlePayloadTooLargeResponse(context: SessionReplayDestinationContext) {
-    if (context.events.length <= 1) {
-      // Cannot split further — drop the single oversized event.
+  handlePayloadTooLargeResponse(context: SessionReplayDestinationContext, isWaf: boolean): void {
+    const source = isWaf ? 'WAF (compressed payload too large)' : 'server (event too large)';
+    const totalSizeKB = Math.round(context.events.reduce((sum, e) => sum + e.length, 0) / KB_SIZE);
+
+    if (context.events.length === 1) {
       this.completeRequest({
         context,
-        err: `Session replay event batch too large to send (413) and cannot be split further; dropping.`,
+        err: `Session replay event dropped: single event (${totalSizeKB} KB, 1 event) rejected by ${source} — cannot split further`,
       });
       return;
     }
+
     this.loggerProvider.warn(
-      `Session replay event batch got 413 (${context.events.length} events); splitting in half and retrying.`,
+      `Session replay event batch rejected by ${source} (${context.events.length} events, ${totalSizeKB} KB total) — splitting and retrying`,
     );
-    const half = Math.floor(context.events.length / 2);
-    // Track when both halves complete so the original onComplete fires exactly once.
-    let completedCount = 0;
-    const splitOnComplete = async () => {
-      completedCount++;
-      if (completedCount === 2) {
-        await context.onComplete();
-      }
-    };
-    this.addToQueue({ ...context, events: context.events.slice(0, half), attempts: 0, onComplete: splitOnComplete });
-    this.addToQueue({ ...context, events: context.events.slice(half), attempts: 0, onComplete: splitOnComplete });
+
+    // Clean up the original IDB record, then re-enqueue both halves as new in-memory batches
+    void context.onComplete();
+    const noop = (): Promise<void> => Promise.resolve();
+    const mid = Math.floor(context.events.length / 2);
+    this.sendEventsList({ ...context, events: context.events.slice(0, mid), onComplete: noop });
+    this.sendEventsList({ ...context, events: context.events.slice(mid), onComplete: noop });
   }
 
   handleSuccessResponse(context: SessionReplayDestinationContext) {

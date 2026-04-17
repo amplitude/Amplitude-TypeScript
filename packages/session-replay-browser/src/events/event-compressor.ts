@@ -2,7 +2,7 @@ import { getGlobalScope } from '@amplitude/analytics-core';
 import { EventType as RRWebEventType } from '@amplitude/rrweb-types';
 import type { eventWithTime } from '@amplitude/rrweb-types';
 import { SessionReplayJoinedConfig } from '../config/types';
-import { MAX_FULL_SNAPSHOT_SIZE } from '../constants';
+import { MAX_FULL_SNAPSHOT_SIZE, MAX_SINGLE_EVENT_SIZE } from '../constants';
 import { SessionReplayEventsManager } from '../typings/session-replay';
 import { mergeMutationEvents } from './merge-mutation-events';
 
@@ -166,6 +166,14 @@ export class EventCompressor {
   };
 
   private addCompressedEventToManager = (compressedEvent: string, sessionId: string | number) => {
+    if (compressedEvent.length > MAX_SINGLE_EVENT_SIZE) {
+      this.config.loggerProvider.warn(
+        `Session replay event dropped: serialized size ${Math.round(
+          compressedEvent.length / 1024,
+        )} KB exceeds maximum allowed event size`,
+      );
+      return;
+    }
     if (this.eventsManager && this.deviceId) {
       this.eventsManager.addEvent({
         event: { type: 'replay', data: compressedEvent },

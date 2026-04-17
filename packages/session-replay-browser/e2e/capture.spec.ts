@@ -1295,6 +1295,82 @@ test.describe('web worker mode', () => {
   });
 });
 
+// ─── 413 payload-too-large handling ──────────────────────────────────────────
+
+test.describe('413 payload-too-large handling', () => {
+  test('retries with a split batch after receiving a 413', async ({ page }) => {
+    await mockRemoteConfig(page, remoteConfigRecording);
+
+    let callCount = 0;
+    const deliveredBodies: string[] = [];
+
+    await page.route('https://api-sr.amplitude.com/**', async (route: Route) => {
+      callCount++;
+      if (callCount === 1) {
+        // Simulate the server rejecting the initial payload as too large
+        await route.fulfill({ status: 413, contentType: 'application/json', body: '{"code":413}' });
+      } else {
+        deliveredBodies.push(readRouteBody(route));
+        await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(SR_API_SUCCESS) });
+      }
+    });
+
+    await page.goto(buildUrl('/session-replay-browser/sr-capture-test.html', { sessionId: TEST_SESSION_ID }));
+    await waitForReady(page);
+    await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
+
+    await page.evaluate(() => window.dispatchEvent(new Event('blur')));
+    await page.evaluate(() => (window as any).sessionReplay.flush(false) as Promise<void>);
+    await page.waitForTimeout(SNAPSHOT_SETTLE_MS * 4);
+
+    // After a 413 the SDK must retry — more than one request should be made
+    expect(callCount).toBeGreaterThan(1);
+    // Events must ultimately be delivered in the retry attempts
+    const events = deliveredBodies.flatMap((b) => decodeAllEvents(b));
+    expect(events.length).toBeGreaterThan(0);
+  });
+
+  test('does not enter a broken state after a 413 — subsequent flushes still deliver events', async ({ page }) => {
+    await mockRemoteConfig(page, remoteConfigRecording);
+
+    let callCount = 0;
+    const deliveredBodies: string[] = [];
+
+    await page.route('https://api-sr.amplitude.com/**', async (route: Route) => {
+      callCount++;
+      if (callCount <= 2) {
+        await route.fulfill({ status: 413, contentType: 'application/json', body: '{"code":413}' });
+      } else {
+        deliveredBodies.push(readRouteBody(route));
+        await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(SR_API_SUCCESS) });
+      }
+    });
+
+    await page.goto(buildUrl('/session-replay-browser/sr-capture-test.html', { sessionId: TEST_SESSION_ID }));
+    await waitForReady(page);
+    await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
+
+    // First flush — will hit 413s
+    await page.evaluate(() => window.dispatchEvent(new Event('blur')));
+    await page.evaluate(() => (window as any).sessionReplay.flush(false) as Promise<void>);
+    await page.waitForTimeout(SNAPSHOT_SETTLE_MS * 2);
+
+    // Add DOM activity and flush again — SDK must still be operational
+    await page.evaluate(() => {
+      const div = document.createElement('div');
+      div.textContent = 'post-413 activity';
+      document.body.appendChild(div);
+    });
+    await page.waitForTimeout(200);
+    await page.evaluate(() => (window as any).sessionReplay.flush(false) as Promise<void>);
+    await page.waitForTimeout(SNAPSHOT_SETTLE_MS * 2);
+
+    // SDK should have made requests after the 413s and delivered events
+    expect(callCount).toBeGreaterThan(2);
+    expect(deliveredBodies.length).toBeGreaterThan(0);
+  });
+});
+
 // ─── SR-3115: improved replay data delivery ───────────────────────────────────
 
 test.describe('SR-3115: improved replay data delivery', () => {

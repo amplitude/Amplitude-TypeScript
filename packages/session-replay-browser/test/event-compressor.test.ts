@@ -92,6 +92,22 @@ describe('EventCompressor', () => {
     expect(addEventMock).toHaveBeenCalled();
   });
 
+  test('drops oversized event and warns instead of storing it', () => {
+    eventCompressor.canUseIdleCallback = false;
+    const addEventMock = jest.spyOn(eventsManager, 'addEvent');
+
+    // Build a mock event whose JSON serialization exceeds MAX_SINGLE_EVENT_SIZE (9 MB)
+    const oversizedEvent = {
+      ...mockEvent,
+      data: { payload: 'x'.repeat(9 * 1000 * 1000 + 1) },
+    } as unknown as eventWithTime;
+    eventCompressor.enqueueEvent(oversizedEvent, sessionId);
+
+    expect(addEventMock).not.toHaveBeenCalled();
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    expect(mockLoggerProvider.warn).toHaveBeenCalledWith(expect.stringContaining('exceeds maximum allowed event size'));
+  });
+
   test('should process events in the queue and add compressed events', () => {
     eventCompressor.taskQueue.push({ event: mockEvent, sessionId });
     eventCompressor.taskQueue.push({ event: mockEvent, sessionId });
