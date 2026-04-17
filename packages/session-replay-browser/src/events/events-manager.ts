@@ -106,7 +106,9 @@ export const createEventsManager = async <Type extends EventType>({
       config.loggerProvider.warn(
         `Dropping ${oversized.length} oversized event(s) from session replay sequence before send. Sizes: ${oversized
           .map((e) => `${Math.round(e.length / 1024)} KB`)
-          .join(', ')}`,
+          .join(
+            ', ',
+          )}. If this recurs, please open a GitHub issue at https://github.com/amplitude/Amplitude-TypeScript/issues or contact Amplitude support.`,
       );
     }
     const events = oversized.length > 0 ? rawEvents.filter((e) => e.length <= MAX_SINGLE_EVENT_SIZE) : rawEvents;

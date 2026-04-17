@@ -152,7 +152,7 @@ export class EventCompressor {
       this.config.loggerProvider.warn(
         `Session replay event dropped: serialized size ${Math.round(
           compressedEvent.length / 1024,
-        )} KB exceeds maximum allowed event size`,
+        )} KB exceeds maximum allowed event size. If this recurs, please open a GitHub issue at https://github.com/amplitude/Amplitude-TypeScript/issues or contact Amplitude support.`,
       );
       return;
     }
