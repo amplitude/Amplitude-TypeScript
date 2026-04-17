@@ -187,6 +187,48 @@ describe('createEventsManager', () => {
     });
   });
 
+  describe('sendEventsList — oversized event guard', () => {
+    const oversizedEvent = 'x'.repeat(9 * 1000 * 1000 + 1);
+
+    test('drops oversized events and warns before sending the rest', async () => {
+      (mockIDBStore.getSequencesToSend as jest.Mock).mockResolvedValue([
+        { events: [mockEventString, oversizedEvent], sequenceId: 1, sessionId: 123 },
+      ]);
+      const eventsManager = await createEventsManager<'replay'>({
+        config,
+        type: 'replay',
+        storeType: 'idb',
+      });
+      await eventsManager.sendStoredEvents({ deviceId: '1a2b3c' });
+      jest.runAllTimers();
+
+      const trackDestinationInstance = (SessionReplayTrackDestination as jest.Mock).mock.instances[0];
+      const mockSendEventsList = trackDestinationInstance.sendEventsList;
+      expect(mockLoggerProvider.warn).toHaveBeenCalledWith(expect.stringContaining('oversized'));
+      // Valid event is still sent
+      expect(mockSendEventsList).toHaveBeenCalledTimes(1);
+      expect(mockSendEventsList).toHaveBeenCalledWith(expect.objectContaining({ events: [mockEventString] }));
+    });
+
+    test('skips send and calls cleanUpSessionEventsStore when all events are oversized', async () => {
+      (mockIDBStore.getSequencesToSend as jest.Mock).mockResolvedValue([
+        { events: [oversizedEvent], sequenceId: 7, sessionId: 456 },
+      ]);
+      const eventsManager = await createEventsManager<'replay'>({
+        config,
+        type: 'replay',
+        storeType: 'idb',
+      });
+      await eventsManager.sendStoredEvents({ deviceId: '1a2b3c' });
+      jest.runAllTimers();
+
+      const trackDestinationInstance = (SessionReplayTrackDestination as jest.Mock).mock.instances[0];
+      const mockSendEventsList = trackDestinationInstance.sendEventsList;
+      expect(mockSendEventsList).not.toHaveBeenCalled();
+      expect(mockIDBStore.cleanUpSessionEventsStore).toHaveBeenCalledWith(456, 7);
+    });
+  });
+
   describe('addEvent', () => {
     test('should store events in IDB and send any returned', async () => {
       const mockAddEventPromise = Promise.resolve({ events: [mockEventString], sequenceId: 1, sessionId: 123 });

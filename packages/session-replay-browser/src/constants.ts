@@ -20,6 +20,7 @@ export const SESSION_REPLAY_EU_URL = 'https://api-sr.eu.amplitude.com/sessions/v
 export const SESSION_REPLAY_STAGING_URL = 'https://api-sr.stag2.amplitude.com/sessions/v2/track';
 export const STORAGE_PREFIX = `${AMPLITUDE_PREFIX}_replay_unsent`;
 export const MAX_EVENT_LIST_SIZE = 1 * 1000000; // ~1 MB limit for JSON serialized events payload
+export const MAX_SINGLE_EVENT_SIZE = 9 * 1000000; // 9 MB, just under server's 10 MB per-event threshold
 export const INTERACTION_MIN_INTERVAL = 30_000; // 30 seconds
 export const INTERACTION_MAX_INTERVAL = 60_000; // 1 minute
 export const MIN_INTERVAL = 500; // 500 ms

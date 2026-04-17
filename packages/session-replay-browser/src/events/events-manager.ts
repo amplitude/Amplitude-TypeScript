@@ -6,6 +6,7 @@ import {
 } from '../typings/session-replay';
 
 import { SessionReplayJoinedConfig } from '../config/types';
+import { MAX_SINGLE_EVENT_SIZE } from '../constants';
 import { getStorageSize } from '../helpers';
 import { PayloadBatcher, SessionReplayTrackDestination } from '../track-destination';
 import { SessionReplayEventsIDBStore } from './events-idb-store';
@@ -109,7 +110,7 @@ export const createEventsManager = async <Type extends EventType>({
    * Immediately sends events to the track destination.
    */
   const sendEventsList = ({
-    events,
+    events: rawEvents,
     sessionId,
     deviceId,
     sequenceId,
@@ -119,6 +120,25 @@ export const createEventsManager = async <Type extends EventType>({
     deviceId: string;
     sequenceId?: number;
   }) => {
+    // Backstop for events that entered IDB before the per-event size guard in
+    // addCompressedEventToManager (e.g. stored by a previous SDK version or via
+    // storeCurrentSequence/sendStoredEvents which bypass the capture-time check).
+    const oversized = rawEvents.filter((e) => e.length > MAX_SINGLE_EVENT_SIZE);
+    if (oversized.length > 0) {
+      config.loggerProvider.warn(
+        `Dropping ${oversized.length} oversized event(s) from session replay sequence before send. Sizes: ${oversized
+          .map((e) => `${Math.round(e.length / 1024)} KB`)
+          .join(
+            ', ',
+          )}. If this recurs, please open a GitHub issue at https://github.com/amplitude/Amplitude-TypeScript/issues or contact Amplitude support.`,
+      );
+    }
+    const events = oversized.length > 0 ? rawEvents.filter((e) => e.length <= MAX_SINGLE_EVENT_SIZE) : rawEvents;
+    if (events.length === 0) {
+      void store.cleanUpSessionEventsStore(sessionId, sequenceId);
+      return;
+    }
+
     if (config.debugMode) {
       getStorageSize()
         .then(({ totalStorageSize, percentOfQuota, usageDetails }) => {

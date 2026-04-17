@@ -2,6 +2,7 @@ import { getGlobalScope } from '@amplitude/analytics-core';
 import { EventType as RRWebEventType } from '@amplitude/rrweb-types';
 import type { eventWithTime } from '@amplitude/rrweb-types';
 import { SessionReplayJoinedConfig } from '../config/types';
+import { MAX_SINGLE_EVENT_SIZE } from '../constants';
 import { SessionReplayEventsManager } from '../typings/session-replay';
 
 interface TaskQueue {
@@ -147,6 +148,14 @@ export class EventCompressor {
   };
 
   private addCompressedEventToManager = (compressedEvent: string, sessionId: string | number) => {
+    if (compressedEvent.length > MAX_SINGLE_EVENT_SIZE) {
+      this.config.loggerProvider.warn(
+        `Session replay event dropped: serialized size ${Math.round(
+          compressedEvent.length / 1024,
+        )} KB exceeds maximum allowed event size. If this recurs, please open a GitHub issue at https://github.com/amplitude/Amplitude-TypeScript/issues or contact Amplitude support.`,
+      );
+      return;
+    }
     if (this.eventsManager && this.deviceId) {
       this.eventsManager.addEvent({
         event: { type: 'replay', data: compressedEvent },

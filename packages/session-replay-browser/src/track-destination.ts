@@ -26,7 +26,12 @@ interface WorkerLogMessage {
   id: string;
   message: string;
 }
-type WorkerMessage = WorkerCompleteMessage | WorkerLogMessage;
+interface WorkerPayloadTooLargeMessage {
+  type: 'payload_too_large';
+  id: string;
+  isWaf: boolean;
+}
+type WorkerMessage = WorkerCompleteMessage | WorkerLogMessage | WorkerPayloadTooLargeMessage;
 
 export type PayloadBatcher = ({ version, events }: { version: number; events: string[] }) => {
   version: number;
@@ -87,6 +92,13 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
             loggerProvider.log(msg.message);
           } else if (msg.type === 'warn') {
             loggerProvider.warn(msg.message);
+          } else if (msg.type === 'payload_too_large') {
+            const pending = this.pendingWorkerRequests.get(msg.id);
+            if (pending) {
+              this.handlePayloadTooLargeResponse(pending.context, msg.isWaf);
+              pending.resolve();
+              this.pendingWorkerRequests.delete(msg.id);
+            }
           } else if (msg.type === 'complete') {
             const pending = this.pendingWorkerRequests.get(msg.id);
             if (pending) {
@@ -337,14 +349,22 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
         }
         this.completeRequest({ context, success: `${res.status}: ${responseBody}` });
       } else {
-        await this.handleReponse(res.status, context);
+        let responseBody = '';
+        if (res.status === 413) {
+          try {
+            responseBody = await res.text();
+          } catch {
+            // best effort
+          }
+        }
+        await this.handleReponse(res.status, context, responseBody);
       }
     } catch (e) {
       this.completeRequest({ context, err: e as string });
     }
   }
 
-  async handleReponse(status: number, context: SessionReplayDestinationContext) {
+  async handleReponse(status: number, context: SessionReplayDestinationContext, responseBody = '') {
     const parsedStatus = new BaseTransport().buildStatus(status);
     switch (parsedStatus) {
       case Status.Success:
@@ -353,9 +373,36 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
       case Status.Failed:
         await this.handleOtherResponse(context);
         break;
+      case Status.PayloadTooLarge:
+        this.handlePayloadTooLargeResponse(context, responseBody.includes('Payload exceeds'));
+        break;
       default:
         this.completeRequest({ context, err: UNEXPECTED_NETWORK_ERROR_MESSAGE });
     }
+  }
+
+  handlePayloadTooLargeResponse(context: SessionReplayDestinationContext, isWaf: boolean): void {
+    const source = isWaf ? 'WAF (compressed payload too large)' : 'server (event too large)';
+    const totalSizeKB = Math.round(context.events.reduce((sum, e) => sum + e.length, 0) / KB_SIZE);
+
+    if (context.events.length === 1) {
+      this.completeRequest({
+        context,
+        err: `Session replay event dropped: single event (${totalSizeKB} KB, 1 event) rejected by ${source} — cannot split further`,
+      });
+      return;
+    }
+
+    this.loggerProvider.warn(
+      `Session replay event batch rejected by ${source} (${context.events.length} events, ${totalSizeKB} KB total) — splitting and retrying`,
+    );
+
+    // Clean up the original IDB record, then re-enqueue both halves as new in-memory batches
+    void context.onComplete();
+    const noop = (): Promise<void> => Promise.resolve();
+    const mid = Math.floor(context.events.length / 2);
+    this.sendEventsList({ ...context, events: context.events.slice(0, mid), onComplete: noop });
+    this.sendEventsList({ ...context, events: context.events.slice(mid), onComplete: noop });
   }
 
   handleSuccessResponse(context: SessionReplayDestinationContext) {
