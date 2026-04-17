@@ -768,6 +768,8 @@ export class SessionReplay implements AmplitudeSessionReplay {
         maskAttributeFn: maskAttributeFn(privacyConfig),
         maskTextSelector: this.getMaskTextSelectors(),
         recordCanvas: false,
+        // Strip nodes that are never rendered by the rrweb replay player.
+        // None of these affect visual fidelity; omitting them reduces snapshot size.
         slimDOMOptions: {
           script: true,
           comment: true,
