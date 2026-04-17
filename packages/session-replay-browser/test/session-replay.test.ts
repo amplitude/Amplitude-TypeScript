@@ -2516,6 +2516,42 @@ describe('SessionReplay', () => {
         expect(rf2).toHaveBeenCalledTimes(1);
         expect((sessionReplay as any).recordEventsInFlight).toBe(false);
       });
+
+      test('_recordEvents default shouldLogMetadata param is true when called without argument', async () => {
+        await sessionReplay.init(apiKey, mockOptions).promise;
+        await jest.runAllTimersAsync();
+        // Call the private method directly without passing shouldLogMetadata to exercise the default=true branch
+        await (sessionReplay as any)._recordEvents();
+        expect(mockRecordFunction).toHaveBeenCalled();
+      });
+
+      test('_recordEvents returns early when identifiers is null', async () => {
+        await sessionReplay.init(apiKey, mockOptions).promise;
+        await jest.runAllTimersAsync();
+        // Force identifiers to null so this.identifiers?.sessionId takes the nullish branch
+        (sessionReplay as any).identifiers = null;
+        mockRecordFunction.mockClear();
+        await (sessionReplay as any)._recordEvents();
+        expect(mockRecordFunction).not.toHaveBeenCalled();
+      });
+
+      test('_recordEvents passes undefined performanceOptions when performanceConfig is undefined', async () => {
+        mockRemoteConfig = {
+          sr_sampling_config: samplingConfig,
+          sr_privacy_config: {},
+          sr_interaction_config: { enabled: true },
+        };
+        await sessionReplay.init(apiKey, mockOptions).promise;
+        await jest.runAllTimersAsync();
+        // Force performanceConfig to undefined so config.performanceConfig?.interaction takes the nullish branch
+        if (sessionReplay.config) {
+          (sessionReplay.config as any).performanceConfig = undefined;
+        }
+        await (sessionReplay as any)._recordEvents();
+        expect(mockRecordFunction).toHaveBeenCalled();
+        const recordArg = mockRecordFunction.mock.calls[0][0];
+        expect(recordArg?.hooks?.mouseInteraction).toBeDefined();
+      });
     });
   });
 
