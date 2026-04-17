@@ -920,6 +920,8 @@ export class SessionReplay implements AmplitudeSessionReplay {
       ...(config.fullSnapshotIntervalMs !== undefined && { checkoutEveryNms: config.fullSnapshotIntervalMs }),
       recordCanvas: false,
       captureAdoptedStyleSheets: config.captureAdoptedStyleSheets,
+      // Strip nodes that are never rendered by the rrweb replay player.
+      // None of these affect visual fidelity; omitting them reduces snapshot size.
       slimDOMOptions: {
         script: true,
         comment: true,
