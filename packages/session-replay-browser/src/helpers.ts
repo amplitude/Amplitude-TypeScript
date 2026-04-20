@@ -13,7 +13,7 @@ type ChromeStorageEstimate = {
 
 /**
  * Light: Subset of inputs (sensitive types only — password, hidden, email, tel, cc-*)
- * Medium: All inputs
+ * Medium: All inputs and all texts
  * Conservative: All inputs and all texts
  */
 const isMaskedForLevel = (elementType: 'input' | 'text', level: MaskLevel, element: HTMLElement | null): boolean => {
@@ -41,7 +41,6 @@ const isMaskedForLevel = (elementType: 'input' | 'text', level: MaskLevel, eleme
       return false;
     }
     case 'medium':
-      return elementType === 'input';
     case 'conservative':
       return true;
     default:

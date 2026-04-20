@@ -165,10 +165,10 @@ describe('SessionReplayPlugin helpers', () => {
   });
 
   describe('maskFn -- text (medium level)', () => {
-    test('should NOT mask text nodes at medium level', () => {
+    test('should mask text nodes at medium level', () => {
       const htmlElement = document.createElement('div');
       const result = maskFn('text', { defaultMaskLevel: 'medium' })('some text', htmlElement);
-      expect(result).toEqual('some text');
+      expect(result).toEqual('**** ****');
     });
 
     test('should mask inputs at medium level', () => {
@@ -177,25 +177,25 @@ describe('SessionReplayPlugin helpers', () => {
       expect(result).toEqual('**** ****');
     });
 
-    test('maskFn with urlMaskLevels medium on matching URL does NOT mask text', () => {
+    test('maskFn with urlMaskLevels medium on matching URL masks text', () => {
       const config: PrivacyConfig = {
-        defaultMaskLevel: 'conservative',
+        defaultMaskLevel: 'light',
         urlMaskLevels: [{ match: 'https://example.com/docs/*', maskLevel: 'medium' }],
       };
       const element = document.createElement('div');
       const fn = maskFn('text', config, () => 'https://example.com/docs/intro');
-      expect(fn('some text', element)).toEqual('some text');
+      expect(fn('some text', element)).toEqual('**** ****');
     });
 
     test('maskFn with urlMaskLevels medium on non-matching URL falls through to defaultMaskLevel', () => {
       const config: PrivacyConfig = {
-        defaultMaskLevel: 'conservative',
+        defaultMaskLevel: 'light',
         urlMaskLevels: [{ match: 'https://example.com/docs/*', maskLevel: 'medium' }],
       };
       const element = document.createElement('div');
       const fn = maskFn('text', config, () => 'https://example.com/other/page');
-      // defaultMaskLevel is conservative, so text IS masked
-      expect(fn('some text', element)).toEqual('**** ****');
+      // defaultMaskLevel is light, so text is NOT masked
+      expect(fn('some text', element)).toEqual('some text');
     });
   });
 
