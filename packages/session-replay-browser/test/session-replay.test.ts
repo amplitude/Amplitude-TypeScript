@@ -302,6 +302,7 @@ describe('SessionReplay', () => {
       };
 
       await sessionReplay.init(apiKey, mockOptions).promise;
+      await jest.runAllTimersAsync();
       const startSpy = jest.spyOn(NetworkObservers.prototype, 'start');
       await sessionReplay.recordEvents();
       expect(startSpy).toHaveBeenCalled();
@@ -1390,6 +1391,7 @@ describe('SessionReplay', () => {
     });
     test('should send stored events and record events', async () => {
       await sessionReplay.init(apiKey, mockOptions).promise;
+      await jest.runAllTimersAsync();
 
       if (!sessionReplay.eventsManager) {
         throw new Error('Did not call init');
@@ -1410,6 +1412,7 @@ describe('SessionReplay', () => {
     });
     test('should not send stored events if shouldSendStoredEvents is false', async () => {
       await sessionReplay.init(apiKey, mockOptions).promise;
+      await jest.runAllTimersAsync();
 
       if (!sessionReplay.eventsManager) {
         throw new Error('Did not call init');
@@ -1902,6 +1905,8 @@ describe('SessionReplay', () => {
 
     test('should stop recording before starting anew', async () => {
       await sessionReplay.init(apiKey, mockOptions).promise;
+      // Drain any background recordEvents() call fired via `void initialize()`
+      await jest.runAllTimersAsync();
       const stopRecordingMock = jest.fn();
       sessionReplay.recordCancelCallback = stopRecordingMock;
       await sessionReplay.recordEvents();
@@ -2021,10 +2026,9 @@ describe('SessionReplay', () => {
       delete optionsWithoutSessionId.sessionId;
       await sessionReplay.init(apiKey, optionsWithoutSessionId).promise;
 
-      // Set sessionId after init
-      sessionReplay.setSessionId(123456);
+      // Set sessionId after init — await so the internal recordEvents() call completes
+      await sessionReplay.setSessionId(123456).promise;
 
-      await sessionReplay.recordEvents();
       const recordArg = mockRecordFunction.mock.calls[0][0];
       // mouseInteraction should be undefined because clickHandler was never initialized
       expect(recordArg?.hooks?.mouseInteraction).toBeUndefined();
@@ -2426,6 +2430,127 @@ describe('SessionReplay', () => {
 
         expect(getPageUrlSpy).toHaveBeenCalledWith(originalHref, []);
         expect(metaEvent.data.href).toBe(originalHref);
+      });
+    });
+
+    describe('recordEventsInFlight guard', () => {
+      test('concurrent call is dropped — rrweb record() invoked only once', async () => {
+        await sessionReplay.init(apiKey, mockOptions).promise;
+        // Drain the background recordEvents() fired by `void initialize()` during init
+        await jest.runAllTimersAsync();
+
+        // Make _recordEvents hang until we resolve this promise, simulating in-flight async work
+        let resolveInFlight: () => void;
+        const inFlightBarrier = new Promise<void>((res) => {
+          resolveInFlight = res;
+        });
+
+        const recordFunctionForGuardTest = createMockRecordFunction();
+        jest.spyOn(SessionReplay.prototype, 'getRecordFunction' as any).mockImplementation(async () => {
+          await inFlightBarrier;
+          return recordFunctionForGuardTest;
+        });
+
+        // Start first call (will be suspended at the barrier)
+        const first = sessionReplay.recordEvents();
+        // Second call should see in-flight=true and return immediately
+        const second = sessionReplay.recordEvents();
+
+        // Let the first call complete
+        resolveInFlight!();
+        await Promise.all([first, second]);
+
+        expect(recordFunctionForGuardTest).toHaveBeenCalledTimes(1);
+      });
+
+      test('guard resets to false after successful completion', async () => {
+        await sessionReplay.init(apiKey, mockOptions).promise;
+        await jest.runAllTimersAsync();
+
+        await sessionReplay.recordEvents();
+        expect((sessionReplay as any).recordEventsInFlight).toBe(false);
+
+        // A second sequential call should also complete normally
+        const recordFunctionAfter = createMockRecordFunction();
+        jest.spyOn(SessionReplay.prototype, 'getRecordFunction' as any).mockResolvedValue(recordFunctionAfter);
+        await sessionReplay.recordEvents();
+
+        expect(recordFunctionAfter).toHaveBeenCalledTimes(1);
+        expect((sessionReplay as any).recordEventsInFlight).toBe(false);
+      });
+
+      test('guard resets to false after _recordEvents throws', async () => {
+        await sessionReplay.init(apiKey, mockOptions).promise;
+        await jest.runAllTimersAsync();
+
+        // Simulate a throw inside the try/catch in _recordEvents (recordFunction() call throws)
+        (mockRecordFunction as unknown as jest.Mock).mockImplementationOnce(() => {
+          throw new Error('record failed');
+        });
+
+        // Should not propagate — the throw is caught by the try/catch inside _recordEvents
+        await sessionReplay.recordEvents();
+
+        expect((sessionReplay as any).recordEventsInFlight).toBe(false);
+
+        // Subsequent call proceeds normally
+        const recordFunctionAfterError = createMockRecordFunction();
+        jest.spyOn(SessionReplay.prototype, 'getRecordFunction' as any).mockResolvedValue(recordFunctionAfterError);
+        await sessionReplay.recordEvents();
+        expect(recordFunctionAfterError).toHaveBeenCalledTimes(1);
+      });
+
+      test('sequential calls both run _recordEvents fully', async () => {
+        await sessionReplay.init(apiKey, mockOptions).promise;
+        await jest.runAllTimersAsync();
+
+        const rf1 = createMockRecordFunction();
+        const rf2 = createMockRecordFunction();
+        const getRecordFunctionSpy = jest.spyOn(SessionReplay.prototype, 'getRecordFunction' as any);
+        getRecordFunctionSpy.mockResolvedValueOnce(rf1).mockResolvedValueOnce(rf2);
+
+        await sessionReplay.recordEvents();
+        await sessionReplay.recordEvents();
+
+        expect(rf1).toHaveBeenCalledTimes(1);
+        expect(rf2).toHaveBeenCalledTimes(1);
+        expect((sessionReplay as any).recordEventsInFlight).toBe(false);
+      });
+
+      test('_recordEvents default shouldLogMetadata param is true when called without argument', async () => {
+        await sessionReplay.init(apiKey, mockOptions).promise;
+        await jest.runAllTimersAsync();
+        // Call the private method directly without passing shouldLogMetadata to exercise the default=true branch
+        await (sessionReplay as any)._recordEvents();
+        expect(mockRecordFunction).toHaveBeenCalled();
+      });
+
+      test('_recordEvents returns early when identifiers is null', async () => {
+        await sessionReplay.init(apiKey, mockOptions).promise;
+        await jest.runAllTimersAsync();
+        // Force identifiers to null so this.identifiers?.sessionId takes the nullish branch
+        (sessionReplay as any).identifiers = null;
+        mockRecordFunction.mockClear();
+        await (sessionReplay as any)._recordEvents();
+        expect(mockRecordFunction).not.toHaveBeenCalled();
+      });
+
+      test('_recordEvents passes undefined performanceOptions when performanceConfig is undefined', async () => {
+        mockRemoteConfig = {
+          sr_sampling_config: samplingConfig,
+          sr_privacy_config: {},
+          sr_interaction_config: { enabled: true },
+        };
+        await sessionReplay.init(apiKey, mockOptions).promise;
+        await jest.runAllTimersAsync();
+        // Force performanceConfig to undefined so config.performanceConfig?.interaction takes the nullish branch
+        if (sessionReplay.config) {
+          (sessionReplay.config as any).performanceConfig = undefined;
+        }
+        await (sessionReplay as any)._recordEvents();
+        expect(mockRecordFunction).toHaveBeenCalled();
+        const recordArg = mockRecordFunction.mock.calls[0][0];
+        expect(recordArg?.hooks?.mouseInteraction).toBeDefined();
       });
     });
   });
@@ -3131,6 +3256,7 @@ describe('SessionReplay', () => {
 
     test('should return early if recordFunction is null', async () => {
       await sessionReplay.init(apiKey, mockOptions).promise;
+      await jest.runAllTimersAsync();
 
       // Mock getRecordFunction to return null (simulating import failure)
       const getRecordFunctionSpy = jest.spyOn(SessionReplay.prototype, 'getRecordFunction' as any);
@@ -3149,6 +3275,7 @@ describe('SessionReplay', () => {
 
     test('should return early if recordFunction is undefined', async () => {
       await sessionReplay.init(apiKey, mockOptions).promise;
+      await jest.runAllTimersAsync();
 
       const getRecordFunctionSpy = jest.spyOn(SessionReplay.prototype, 'getRecordFunction' as any);
       getRecordFunctionSpy.mockResolvedValue(undefined);
