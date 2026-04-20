@@ -35,7 +35,16 @@ import {
   SESSION_REPLAY_SERVER_URL,
   SESSION_REPLAY_STAGING_URL,
 } from './constants';
-import { getServerUrl, getDebugConfig, getPageUrl, getStorageSize, maskFn, maskAttributeFn } from './helpers';
+import {
+  getServerUrl,
+  getDebugConfig,
+  getEffectiveMaskLevel,
+  getPageUrl,
+  getStorageSize,
+  getCurrentUrl,
+  maskFn,
+  maskAttributeFn,
+} from './helpers';
 import { EventCompressor } from './events/event-compressor';
 import { createEventsManager, EventsManagerWithBeacon } from './events/events-manager';
 import { MultiEventManager } from './events/multi-manager';
@@ -88,6 +97,9 @@ export class SessionReplay implements AmplitudeSessionReplay {
   // Cache the dynamically imported record function
   private recordFunction: RecordFunction | null = null;
 
+  /** Current page URL, kept in sync with SPA navigations for URL-based masking */
+  private currentPageUrl = '';
+
   /** Cleanup for URL change listener used to re-evaluate targeting on SPA route changes */
   private urlChangeCleanup: (() => void) | null = null;
   /** Monotonic counter to ignore stale URL-change targeting results */
@@ -123,10 +135,11 @@ export class SessionReplay implements AmplitudeSessionReplay {
   };
 
   /**
-   * Subscribes to SPA URL changes via the URL tracking plugin and re-evaluates targeting so we
-   * can start/stop recording when the user navigates to a page that matches or no longer matches.
+   * Subscribes to SPA URL changes via the URL tracking plugin. Always keeps
+   * `currentPageUrl` in sync (needed for URL-based masking). When a targeting
+   * config is present it also re-evaluates targeting on every navigation.
    */
-  private setupUrlChangeListenerForTargeting(): void {
+  private setupUrlChangeListener(): void {
     // If init() runs multiple times, remove the previous URL-change subscription first
     // so we don't leak callbacks and trigger duplicate targeting evaluations.
     this.urlChangeCleanup?.();
@@ -136,19 +149,25 @@ export class SessionReplay implements AmplitudeSessionReplay {
       return;
     }
 
+    const hasTargeting = !!this.config?.targetingConfig;
+
     const onUrlChange = (href: string): void => {
-      const evaluationId = ++this.latestUrlChangeTargetingEvaluationId;
-      void this.evaluateTargetingAndCapture(
-        {
-          userProperties: {},
-          event: undefined,
-          page: { url: href },
-        },
-        false,
-        false,
-        true,
-      );
-      this.loggerProvider.debug(`Queued URL-change targeting re-evaluation #${evaluationId} for ${href}.`);
+      this.currentPageUrl = href;
+
+      if (hasTargeting) {
+        const evaluationId = ++this.latestUrlChangeTargetingEvaluationId;
+        void this.evaluateTargetingAndCapture(
+          {
+            userProperties: {},
+            event: undefined,
+            page: { url: href },
+          },
+          false,
+          false,
+          true,
+        );
+        this.loggerProvider.debug(`Queued URL-change targeting re-evaluation #${evaluationId} for ${href}.`);
+      }
     };
     type UrlUnsubscribe = (scope: Window | undefined, cb: (href: string) => void) => () => void;
     const unsubscribe = (subscribeToUrlChanges as UrlUnsubscribe)(globalScope, onUrlChange);
@@ -172,6 +191,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
     this.loggerProvider = new SafeLoggerProvider(options.loggerProvider || new Logger());
     Object.prototype.hasOwnProperty.call(options, 'logLevel') &&
       this.loggerProvider.enable(options.logLevel as LogLevel);
+    this.currentPageUrl = getCurrentUrl();
     this.identifiers = new SessionIdentifiers({ sessionId: options.sessionId, deviceId: options.deviceId });
     this.joinedConfigGenerator = await createSessionReplayJoinedConfigGenerator(apiKey, options);
     const { joinedConfig, localConfig, remoteConfig } = await this.joinedConfigGenerator.generateJoinedConfig();
@@ -308,8 +328,9 @@ export class SessionReplay implements AmplitudeSessionReplay {
       true,
     );
 
-    if (this.config.targetingConfig) {
-      this.setupUrlChangeListenerForTargeting();
+    const needsUrlTracking = this.config.targetingConfig || (this.config.privacyConfig?.urlMaskLevels?.length ?? 0) > 0;
+    if (needsUrlTracking) {
+      this.setupUrlChangeListener();
     }
   }
 
@@ -621,11 +642,30 @@ export class SessionReplay implements AmplitudeSessionReplay {
   }
 
   getMaskTextSelectors(): string | undefined {
-    if (this.config?.privacyConfig?.defaultMaskLevel === 'conservative') {
+    const privacyConfig = this.config?.privacyConfig;
+    const effectiveLevel = privacyConfig ? getEffectiveMaskLevel(this.currentPageUrl, privacyConfig) : undefined;
+
+    if (effectiveLevel === 'conservative') {
       return '*';
     }
 
-    const maskSelector = this.config?.privacyConfig?.maskSelector;
+    // If any urlMaskLevels rule uses 'conservative', always route all text nodes
+    // through maskTextFn so the dynamic URL getter can decide at call time.
+    // Without this, rrweb's static maskTextSelector would miss text nodes when
+    // the user navigates from a non-conservative page to a conservative one.
+    if (privacyConfig?.urlMaskLevels?.some((rule) => rule.maskLevel === 'conservative')) {
+      return '*';
+    }
+
+    // If defaultMaskLevel is 'conservative' and URL rules exist, always route text through
+    // maskTextFn — a page matching no rule falls back to the conservative default, and
+    // rrweb must be set up at start to call maskTextFn for those text nodes.
+    const urlMaskLevels = privacyConfig?.urlMaskLevels;
+    if (privacyConfig?.defaultMaskLevel === 'conservative' && urlMaskLevels && urlMaskLevels.length > 0) {
+      return '*';
+    }
+
+    const maskSelector = privacyConfig?.maskSelector;
     if (!maskSelector) {
       return;
     }
@@ -763,9 +803,9 @@ export class SessionReplay implements AmplitudeSessionReplay {
         blockClass: BLOCK_CLASS,
         blockSelector: this.getBlockSelectors() as string | undefined,
         applyBackgroundColorToBlockedElements: config.applyBackgroundColorToBlockedElements,
-        maskInputFn: maskFn('input', privacyConfig),
-        maskTextFn: maskFn('text', privacyConfig),
-        maskAttributeFn: maskAttributeFn(privacyConfig),
+        maskInputFn: maskFn('input', privacyConfig, () => this.currentPageUrl),
+        maskTextFn: maskFn('text', privacyConfig, () => this.currentPageUrl),
+        maskAttributeFn: maskAttributeFn(privacyConfig, () => this.currentPageUrl),
         maskTextSelector: this.getMaskTextSelectors(),
         recordCanvas: false,
         slimDOMOptions: {
