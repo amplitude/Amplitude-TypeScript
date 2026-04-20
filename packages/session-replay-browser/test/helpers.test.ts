@@ -351,6 +351,19 @@ describe('SessionReplayPlugin helpers', () => {
       });
       expect(fn('placeholder', 'Enter name', inputElement)).toEqual('***** ****');
     });
+
+    test('uses text elementType for non-form elements (div) — covers the else branch of tagName ternary', () => {
+      // maskAttributeFn computes elementType as 'input' for INPUT/SELECT/TEXTAREA and 'text' for
+      // everything else. This test exercises the 'text' branch using a div element, which is not
+      // masked at medium level (medium only masks inputs, not text nodes).
+      const divElement = document.createElement('div');
+      const fn = maskAttributeFn({
+        defaultMaskLevel: 'medium',
+        maskAttributes: ['aria-label'],
+      });
+      // medium level does NOT mask text-type elements, so aria-label on a div is returned as-is.
+      expect(fn('aria-label', 'some label', divElement)).toEqual('some label');
+    });
   });
 
   describe('getServerUrl', () => {
