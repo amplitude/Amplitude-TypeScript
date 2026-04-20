@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.47.0-sr-3531-rc-2.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.46.0...@amplitude/analytics-core@2.47.0-sr-3531-rc-2.0) (2026-04-20)
+
+
+### Features
+
+* add long task tracking ([#1622](https://github.com/amplitude/Amplitude-TypeScript/issues/1622)) ([d995e1f](https://github.com/amplitude/Amplitude-TypeScript/commit/d995e1f2c098441808d65f6c171e171587e37ac2))
+
+
+
+
+
 # [2.46.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.45.0...@amplitude/analytics-core@2.46.0) (2026-04-14)
 
 

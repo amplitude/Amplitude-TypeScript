@@ -3,6 +3,22 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.37.0-sr-3531-rc-2.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.36.2...@amplitude/session-replay-browser@1.37.0-sr-3531-rc-2.0) (2026-04-20)
+
+
+### Bug Fixes
+
+* **session-replay-browser:** add in-flight guard to recordEvents() to prevent concurrent rrweb races ([53ff8aa](https://github.com/amplitude/Amplitude-TypeScript/commit/53ff8aa50c89103eaedaef0b65a80d4b4d198336))
+
+
+### Features
+
+* **session-replay-browser:** fall back to in-memory store when IDB repeatedly fails ([#1684](https://github.com/amplitude/Amplitude-TypeScript/issues/1684)) ([a901f48](https://github.com/amplitude/Amplitude-TypeScript/commit/a901f48579ff8c7b7d0078b7b67f161d83eab314))
+
+
+
+
+
 ## [1.36.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.36.1...@amplitude/session-replay-browser@1.36.2) (2026-04-16)
 
 
