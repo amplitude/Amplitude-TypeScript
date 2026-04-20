@@ -465,6 +465,26 @@ describe('SessionReplay', () => {
       expect(mockFn).toHaveBeenCalled();
     });
 
+    test('should not throw when pageLeaveListener fires with no eventCompressor', async () => {
+      const invokeEventMap = new Map<string, any>();
+      jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue({
+        document: {
+          hasFocus: () => false,
+        },
+        location: {
+          href: 'http://localhost',
+        },
+        addEventListener: jest.fn((eventName, listenerFn): any => {
+          invokeEventMap.set(eventName as string, listenerFn);
+        }) as jest.Mock<typeof window.addEventListener<'blur' | 'focus' | 'pagehide' | 'beforeunload'>>,
+        removeEventListener: removeEventListenerMock,
+      } as unknown as typeof globalThis);
+      await sessionReplay.init(apiKey, { ...mockOptions, sampleRate: 0.5 }).promise;
+      sessionReplay.eventCompressor = undefined;
+      const trigger = invokeEventMap.get('beforeunload') as (e: Event) => void;
+      expect(() => trigger(new Event('beforeunload'))).not.toThrow();
+    });
+
     test('should setup sdk with privacy config', async () => {
       await sessionReplay.init(apiKey, {
         ...mockOptions,
@@ -1949,6 +1969,20 @@ describe('SessionReplay', () => {
       await sessionReplay.recordEvents();
       const recordArg = mockRecordFunction.mock.calls[0][0];
       expect(recordArg?.slimDOMOptions).toEqual({ script: true, comment: true });
+    });
+
+    test('should pass fullSnapshotIntervalMs to record function as checkoutEveryNms when configured', async () => {
+      await sessionReplay.init(apiKey, { ...mockOptions, fullSnapshotIntervalMs: 300000 }).promise;
+      await sessionReplay.recordEvents();
+      const recordArg = mockRecordFunction.mock.calls[0][0];
+      expect(recordArg?.checkoutEveryNms).toBe(300000);
+    });
+
+    test('should not pass checkoutEveryNms to record function when fullSnapshotIntervalMs is not configured', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      await sessionReplay.recordEvents();
+      const recordArg = mockRecordFunction.mock.calls[0][0];
+      expect(recordArg?.checkoutEveryNms).toBeUndefined();
     });
 
     test('should rethrow CSSStylesheet errors', async () => {

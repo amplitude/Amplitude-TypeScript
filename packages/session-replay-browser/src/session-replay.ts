@@ -410,6 +410,10 @@ export class SessionReplay implements AmplitudeSessionReplay {
    * prevent duplicate listener actions from firing.
    */
   private pageLeaveListener = (e: PageTransitionEvent | Event) => {
+    // Synchronously drain any events still queued in the requestIdleCallback
+    // pipeline so they are available to send before the page unloads.
+    this.eventCompressor?.flushQueue();
+    this.sendEvents();
     this.pageLeaveFns.forEach((fn) => {
       fn(e);
     });
@@ -767,6 +771,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
         maskTextFn: maskFn('text', privacyConfig),
         maskAttributeFn: maskAttributeFn(privacyConfig),
         maskTextSelector: this.getMaskTextSelectors(),
+        ...(config.fullSnapshotIntervalMs !== undefined && { checkoutEveryNms: config.fullSnapshotIntervalMs }),
         recordCanvas: false,
         slimDOMOptions: {
           script: config.omitElementTags?.script,
