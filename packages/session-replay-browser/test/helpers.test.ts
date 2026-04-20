@@ -340,8 +340,6 @@ describe('SessionReplayPlugin helpers', () => {
     });
 
     test('still masks input placeholder at medium level (regression guard)', () => {
-      // maskAttributeFn uses 'input' as elementType so isMaskedForLevel returns true at medium
-      // for any element (including actual <input> elements).
       const inputElement = document.createElement('input');
       const fn = maskAttributeFn({
         defaultMaskLevel: 'medium',
@@ -351,8 +349,6 @@ describe('SessionReplayPlugin helpers', () => {
     });
 
     test('masks aria-label on non-form elements (div) at medium level', () => {
-      // maskAttributeFn uses 'input' as the element type for all elements so that medium level
-      // masks attributes listed in maskAttributes regardless of the element tag.
       const divElement = document.createElement('div');
       const fn = maskAttributeFn({
         defaultMaskLevel: 'medium',
