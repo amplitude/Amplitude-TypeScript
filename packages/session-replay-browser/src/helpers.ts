@@ -122,8 +122,10 @@ export const maskAttributeFn = (config?: PrivacyConfig, getCurrentUrl?: () => st
 
     // Recompute masking every call so class/ancestor mutations do not stale-cache
     // the decision for later attribute mutations on the same element.
-    const elementType = ['INPUT', 'SELECT', 'TEXTAREA'].includes(element.tagName) ? 'input' : 'text';
-    return isMasked(elementType, config, element, getCurrentUrl?.()) ? value.replace(/[^\s]/g, '*') : value;
+    // Use 'input' as the element type: maskAttributes is an explicit override that applies
+    // to any element tag at medium/conservative level. At light level, isMaskedForLevel
+    // for 'input' returns false for non-sensitive types, naturally skipping masking.
+    return isMasked('input', config, element, getCurrentUrl?.()) ? value.replace(/[^\s]/g, '*') : value;
   };
 };
 

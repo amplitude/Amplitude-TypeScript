@@ -342,8 +342,8 @@ describe('SessionReplayPlugin helpers', () => {
     });
 
     test('still masks input placeholder at medium level (regression guard)', () => {
-      // After Fix 1, medium no longer masks text nodes. Fix 2 ensures input elements
-      // are still recognised as 'input' type so their attributes remain masked at medium.
+      // maskAttributeFn uses 'input' as elementType so isMaskedForLevel returns true at medium
+      // for any element (including actual <input> elements).
       const inputElement = document.createElement('input');
       const fn = maskAttributeFn({
         defaultMaskLevel: 'medium',
@@ -352,17 +352,15 @@ describe('SessionReplayPlugin helpers', () => {
       expect(fn('placeholder', 'Enter name', inputElement)).toEqual('***** ****');
     });
 
-    test('uses text elementType for non-form elements (div) — covers the else branch of tagName ternary', () => {
-      // maskAttributeFn computes elementType as 'input' for INPUT/SELECT/TEXTAREA and 'text' for
-      // everything else. This test exercises the 'text' branch using a div element, which is not
-      // masked at medium level (medium only masks inputs, not text nodes).
+    test('masks aria-label on non-form elements (div) at medium level', () => {
+      // maskAttributeFn uses 'input' as the element type for all elements so that medium level
+      // masks attributes listed in maskAttributes regardless of the element tag.
       const divElement = document.createElement('div');
       const fn = maskAttributeFn({
         defaultMaskLevel: 'medium',
         maskAttributes: ['aria-label'],
       });
-      // medium level does NOT mask text-type elements, so aria-label on a div is returned as-is.
-      expect(fn('aria-label', 'some label', divElement)).toEqual('some label');
+      expect(fn('aria-label', 'some label', divElement)).toEqual('**** *****');
     });
   });
 
