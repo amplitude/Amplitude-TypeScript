@@ -194,8 +194,8 @@ describe('SessionReplayPlugin helpers', () => {
       };
       const element = document.createElement('div');
       const fn = maskFn('text', config, () => 'https://example.com/other/page');
-      // defaultMaskLevel is light, so text is NOT masked
-      expect(fn('some text', element)).toEqual('some text');
+      // defaultMaskLevel is light; light masks text nodes
+      expect(fn('some text', element)).toEqual('**** ****');
     });
   });
 
@@ -211,11 +211,10 @@ describe('SessionReplayPlugin helpers', () => {
       const result = maskFn('text', { defaultMaskLevel: 'conservative' })('some text', htmlElement);
       expect(result).toEqual('**** ****');
     });
-    test('should not mask a text element on light mask level', () => {
-      // light level only masks a subset of sensitive inputs; text nodes are never masked at light.
+    test('should mask a text element on light mask level', () => {
       const htmlElement = document.createElement('div');
       const result = maskFn('text', { defaultMaskLevel: 'light' })('some text', htmlElement);
-      expect(result).toEqual('some text');
+      expect(result).toEqual('**** ****');
     });
     test('should not mask an element whose class list has amp-unmask in it', () => {
       const htmlElement = document.createElement('div');
@@ -326,8 +325,7 @@ describe('SessionReplayPlugin helpers', () => {
       expect(fn('placeholder', 'Enter name', maskedElement)).toEqual('***** ****');
     });
 
-    test('returns value unmasked when getCurrentUrl returns a light URL via urlMaskLevels', () => {
-      // Exercises the false branch of the ternary on the isMasked call when getCurrentUrl is provided.
+    test('masks attribute when getCurrentUrl returns a light URL via urlMaskLevels', () => {
       const element = document.createElement('input');
       const fn = maskAttributeFn(
         {
@@ -337,8 +335,8 @@ describe('SessionReplayPlugin helpers', () => {
         },
         () => 'https://example.com/public/page',
       );
-      // light level does not mask attributes (isMasked returns false for text-type at light)
-      expect(fn('placeholder', 'Enter name', element)).toEqual('Enter name');
+      // light masks text nodes (and therefore attributes), so placeholder is masked
+      expect(fn('placeholder', 'Enter name', element)).toEqual('***** ****');
     });
 
     test('still masks input placeholder at medium level (regression guard)', () => {
@@ -714,8 +712,8 @@ describe('SessionReplayPlugin helpers', () => {
         urlMaskLevels: [{ match: 'https://example.com/*', maskLevel: 'conservative' }],
       };
       const element = document.createElement('div');
-      // No URL → falls back to defaultMaskLevel (light); text is NOT masked at light level
-      expect(isMasked('text', config, element)).toBe(false);
+      // No URL → falls back to defaultMaskLevel (light); light masks text nodes
+      expect(isMasked('text', config, element)).toBe(true);
       // Input with light level → not masked for non-sensitive inputs
       expect(isMasked('input', config, element)).toBe(false);
     });

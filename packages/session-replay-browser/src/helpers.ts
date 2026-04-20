@@ -12,7 +12,7 @@ type ChromeStorageEstimate = {
 };
 
 /**
- * Light: Subset of inputs (sensitive types only — password, hidden, email, tel, cc-*)
+ * Light: Subset of inputs (sensitive types only — password, hidden, email, tel, cc-*); all texts
  * Medium: All inputs and all texts
  * Conservative: All inputs and all texts
  */
@@ -20,8 +20,7 @@ const isMaskedForLevel = (elementType: 'input' | 'text', level: MaskLevel, eleme
   switch (level) {
     case 'light': {
       if (elementType !== 'input') {
-        // light only masks a subset of inputs; text nodes are not masked at this level.
-        return false;
+        return true;
       }
 
       const inputType = element ? getInputType(element) : '';
@@ -121,10 +120,7 @@ export const maskAttributeFn = (config?: PrivacyConfig, getCurrentUrl?: () => st
 
     // Recompute masking every call so class/ancestor mutations do not stale-cache
     // the decision for later attribute mutations on the same element.
-    // Use 'input' as the element type: maskAttributes is an explicit override that applies
-    // to any element tag at medium/conservative level. At light level, isMaskedForLevel
-    // for 'input' returns false for non-sensitive types, naturally skipping masking.
-    return isMasked('input', config, element, getCurrentUrl?.()) ? value.replace(/[^\s]/g, '*') : value;
+    return isMasked('text', config, element, getCurrentUrl?.()) ? value.replace(/[^\s]/g, '*') : value;
   };
 };
 
