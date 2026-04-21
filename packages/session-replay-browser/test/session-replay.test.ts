@@ -2455,7 +2455,7 @@ describe('SessionReplay', () => {
         const first = sessionReplay.recordEvents();
         // Second call should see in-flight=true, set pending=true, and return immediately
         const second = sessionReplay.recordEvents();
-        expect((sessionReplay as any).recordEventsPending).toBe(true);
+        expect((sessionReplay as any).recordEventsPendingShouldLogMetadata).toBe(true);
 
         // Let the first call complete — it will then replay _recordEvents for the pending call
         resolveInFlight!();
@@ -2464,7 +2464,7 @@ describe('SessionReplay', () => {
         // _recordEvents ran once for the original call and once for the pending replay
         expect(recordFunctionForGuardTest).toHaveBeenCalledTimes(2);
         expect((sessionReplay as any).recordEventsInFlight).toBe(false);
-        expect((sessionReplay as any).recordEventsPending).toBe(false);
+        expect((sessionReplay as any).recordEventsPendingShouldLogMetadata).toBeNull();
       });
 
       test('guard resets to false after successful completion', async () => {
@@ -2584,7 +2584,7 @@ describe('SessionReplay', () => {
         const first = sessionReplay.recordEvents();
         // Fire concurrent call while first is suspended — sets pending flag
         const second = sessionReplay.recordEvents();
-        expect((sessionReplay as any).recordEventsPending).toBe(true);
+        expect((sessionReplay as any).recordEventsPendingShouldLogMetadata).toBe(true);
 
         resolveInFlight!();
         await Promise.all([first, second]);
@@ -2594,7 +2594,7 @@ describe('SessionReplay', () => {
         expect(rf2).toHaveBeenCalledTimes(1);
         // State is fully reset
         expect((sessionReplay as any).recordEventsInFlight).toBe(false);
-        expect((sessionReplay as any).recordEventsPending).toBe(false);
+        expect((sessionReplay as any).recordEventsPendingShouldLogMetadata).toBeNull();
         // The pending replay picked up the new sessionId
         expect(sessionReplay.identifiers?.sessionId).toBe(999);
       });
@@ -2641,7 +2641,7 @@ describe('SessionReplay', () => {
 
         // Second call while first is in-flight — sets pending
         void sessionReplay.recordEvents();
-        expect((sessionReplay as any).recordEventsPending).toBe(true);
+        expect((sessionReplay as any).recordEventsPendingShouldLogMetadata).toBe(true);
 
         // Unblock first run; while loop clears pending and starts the replay
         resolveFirst!();
@@ -2651,7 +2651,7 @@ describe('SessionReplay', () => {
 
         // Third concurrent call arrives while replay is in-flight — sets pending again
         void sessionReplay.recordEvents();
-        expect((sessionReplay as any).recordEventsPending).toBe(true);
+        expect((sessionReplay as any).recordEventsPendingShouldLogMetadata).toBe(true);
 
         // Unblock the replay; while loop fires one more _recordEvents (rf3) and exits
         resolveReplay!();
@@ -2662,7 +2662,7 @@ describe('SessionReplay', () => {
         expect(rf2).toHaveBeenCalledTimes(1);
         expect(rf3).toHaveBeenCalledTimes(1);
         expect((sessionReplay as any).recordEventsInFlight).toBe(false);
-        expect((sessionReplay as any).recordEventsPending).toBe(false);
+        expect((sessionReplay as any).recordEventsPendingShouldLogMetadata).toBeNull();
       });
     });
   });

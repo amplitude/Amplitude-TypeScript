@@ -101,7 +101,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
   private currentPageUrl = '';
 
   private recordEventsInFlight = false;
-  private recordEventsPending = false;
+  private recordEventsPendingShouldLogMetadata: boolean | null = null;
 
   /** Cleanup for URL change listener used to re-evaluate targeting on SPA route changes */
   private urlChangeCleanup: (() => void) | null = null;
@@ -734,19 +734,20 @@ export class SessionReplay implements AmplitudeSessionReplay {
 
   async recordEvents(shouldLogMetadata = true) {
     if (this.recordEventsInFlight) {
-      this.recordEventsPending = true;
+      this.recordEventsPendingShouldLogMetadata = shouldLogMetadata;
       return;
     }
     this.recordEventsInFlight = true;
     try {
       await this._recordEvents(shouldLogMetadata);
-      while (this.recordEventsPending) {
-        this.recordEventsPending = false;
-        await this._recordEvents(shouldLogMetadata);
+      while (this.recordEventsPendingShouldLogMetadata !== null) {
+        const pendingArgs = this.recordEventsPendingShouldLogMetadata;
+        this.recordEventsPendingShouldLogMetadata = null;
+        await this._recordEvents(pendingArgs);
       }
     } finally {
       this.recordEventsInFlight = false;
-      this.recordEventsPending = false;
+      this.recordEventsPendingShouldLogMetadata = null;
     }
   }
 
