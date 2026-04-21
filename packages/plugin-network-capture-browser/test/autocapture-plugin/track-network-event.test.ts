@@ -793,8 +793,8 @@ describe('track-network-event', () => {
           {
             hosts: ['example.com'],
             statusCodeRange: '500-599',
-            responseBody: { allowlist: allow, excludelist: exclude, blocklist: ['/secret'] },
-            requestBody: { allowlist: allow, excludelist: exclude, blocklist: ['/secret'] },
+            responseBody: { allowlist: allow, excludelist: exclude, blocklist: ['/ignore-me'] },
+            requestBody: { allowlist: allow, excludelist: exclude, blocklist: ['/ignore-me'] },
           },
         ],
       };
@@ -809,7 +809,7 @@ describe('track-network-event', () => {
       const responseJsonSpy = jest.spyOn(networkEvent.responseWrapper, 'json');
       const requestJsonSpy = jest.spyOn(networkEvent.requestWrapper, 'json');
       const allow = ['**'];
-      const block = ['/secret'];
+      const block = ['/ignore-me'];
       const networkTracking = {
         captureRules: [
           {
