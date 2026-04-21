@@ -740,7 +740,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
     this.recordEventsInFlight = true;
     try {
       await this._recordEvents(shouldLogMetadata);
-      if (this.recordEventsPending) {
+      while (this.recordEventsPending) {
         this.recordEventsPending = false;
         await this._recordEvents(shouldLogMetadata);
       }

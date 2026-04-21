@@ -2598,6 +2598,72 @@ describe('SessionReplay', () => {
         // The pending replay picked up the new sessionId
         expect(sessionReplay.identifiers?.sessionId).toBe(999);
       });
+
+      test('concurrent call during replay is also picked up — _recordEvents runs three times total', async () => {
+        await sessionReplay.init(apiKey, mockOptions).promise;
+        await jest.runAllTimersAsync();
+
+        let resolveFirst: () => void;
+        let notifyReplayStarted: () => void;
+        let resolveReplay: () => void;
+        const firstBarrier = new Promise<void>((res) => {
+          resolveFirst = res;
+        });
+        // Signal from mock to test: replay _recordEvents has started
+        const replayStarted = new Promise<void>((res) => {
+          notifyReplayStarted = res;
+        });
+        // Signal from test to mock: let the replay _recordEvents finish
+        const replayBarrier = new Promise<void>((res) => {
+          resolveReplay = res;
+        });
+
+        const rf1 = createMockRecordFunction();
+        const rf2 = createMockRecordFunction();
+        const rf3 = createMockRecordFunction();
+        let callCount = 0;
+        jest.spyOn(SessionReplay.prototype, 'getRecordFunction' as any).mockImplementation(async () => {
+          callCount++;
+          if (callCount === 1) {
+            await firstBarrier;
+            return rf1;
+          }
+          if (callCount === 2) {
+            notifyReplayStarted();
+            await replayBarrier;
+            return rf2;
+          }
+          return rf3;
+        });
+
+        // First call — suspended at firstBarrier
+        const first = sessionReplay.recordEvents();
+
+        // Second call while first is in-flight — sets pending
+        void sessionReplay.recordEvents();
+        expect((sessionReplay as any).recordEventsPending).toBe(true);
+
+        // Unblock first run; while loop clears pending and starts the replay
+        resolveFirst!();
+
+        // Wait until the replay _recordEvents has actually started before firing the third call
+        await replayStarted;
+
+        // Third concurrent call arrives while replay is in-flight — sets pending again
+        void sessionReplay.recordEvents();
+        expect((sessionReplay as any).recordEventsPending).toBe(true);
+
+        // Unblock the replay; while loop fires one more _recordEvents (rf3) and exits
+        resolveReplay!();
+        await first;
+        await jest.runAllTimersAsync();
+
+        expect(rf1).toHaveBeenCalledTimes(1);
+        expect(rf2).toHaveBeenCalledTimes(1);
+        expect(rf3).toHaveBeenCalledTimes(1);
+        expect((sessionReplay as any).recordEventsInFlight).toBe(false);
+        expect((sessionReplay as any).recordEventsPending).toBe(false);
+      });
     });
   });
 
