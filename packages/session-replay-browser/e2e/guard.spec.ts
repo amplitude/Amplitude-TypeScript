@@ -68,12 +68,14 @@ test.describe('recordEventsInFlight guard (SR-3531)', () => {
   });
 
   /**
-   * Guard test: dispatch a focus event immediately after page load (while the
-   * async init chain — getRecordFunction / initializeNetworkObservers — is still
-   * in flight). The focusListener calls recordEvents(false), which should be
-   * dropped by the in-flight guard so that only one FullSnapshot is emitted.
+   * Focus event during async init is deferred and produces a second sequential snapshot
+   * (no concurrent race). The in-flight guard queues the focus-triggered recordEvents(false)
+   * as a pending call. After init's recordEvents() completes, the pending call replays
+   * sequentially, producing a second FullSnapshot. No concurrent rrweb init race occurs.
    */
-  test('focus event during async init does not produce a duplicate FullSnapshot', async ({ page }) => {
+  test('focus event during async init is deferred and produces a second sequential snapshot (no concurrent race)', async ({
+    page,
+  }) => {
     await mockRemoteConfig(page, remoteConfigRecording);
 
     const rawBodies: string[] = [];
@@ -94,13 +96,14 @@ test.describe('recordEventsInFlight guard (SR-3531)', () => {
     await requestPromise;
     await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
 
-    // Extra flush to capture any delayed events
+    // Extra flush to capture any delayed events from the deferred pending replay
     await page.evaluate(() => window.dispatchEvent(new Event('blur')));
     await page.evaluate(() => (window as any).sessionReplay.flush(false) as Promise<void>);
     await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
 
+    // Two FullSnapshots: one from init's recordEvents(), one from the deferred focus replay
     const count = countFullSnapshots(rawBodies);
-    expect(count).toBe(1);
+    expect(count).toBe(2);
   });
 
   /**
