@@ -915,6 +915,24 @@ describe('SessionReplay', () => {
         expect(takeFullSnapshotMock).not.toHaveBeenCalled();
         expect(recordEventsSpy).not.toHaveBeenCalled();
       });
+
+      test('warns via loggerProvider when takeFullSnapshot throws', async () => {
+        await sessionReplay.init(apiKey, mockOptions).promise;
+        const warnSpy = jest.spyOn(sessionReplay.loggerProvider, 'warn');
+        const testError = new Error('rrweb snapshot failed');
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        (sessionReplay as any).recordCancelCallback = jest.fn();
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        (sessionReplay as any).recordFunction = {
+          takeFullSnapshot: jest.fn().mockImplementation(() => {
+            throw testError;
+          }),
+        };
+
+        sessionReplay.focusListener();
+
+        expect(warnSpy).toHaveBeenCalledWith('Failed to take full snapshot on focus:', testError);
+      });
     });
 
     test('it should not call initialize if the document does not have focus', () => {
