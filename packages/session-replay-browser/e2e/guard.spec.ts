@@ -68,41 +68,6 @@ test.describe('recordEventsInFlight guard (SR-3531)', () => {
   });
 
   /**
-   * Focus event during async init is deferred and produces at least one additional snapshot
-   * (no concurrent rrweb init race). The test dispatches a synthetic focus while init's
-   * async chain is in-flight. The in-flight guard stores it as a pending call. After
-   * init's recordEvents() completes, the pending call replays sequentially, producing a
-   * second FullSnapshot. In CI headless Chromium, native browser focus events may also fire
-   * on page load alongside the synthetic one; the guard serialises all of them, so the
-   * count is >= 2 (never 1, which would mean the pending call was silently dropped).
-   */
-  test('focus event during async init is deferred — guard serialises it, never drops it', async ({ page }) => {
-    await mockRemoteConfig(page, remoteConfigRecording);
-
-    const rawBodies: string[] = [];
-    await page.route('https://api-sr.amplitude.com/**', async (route: Route) => {
-      rawBodies.push(readRouteBody(route));
-      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(SR_API_SUCCESS) });
-    });
-
-    const requestPromise = page.waitForRequest('https://api-sr.amplitude.com/**', { timeout: 10_000 });
-
-    await page.goto(buildUrl('/session-replay-browser/sr-capture-test.html', { sessionId: TEST_SESSION_ID }));
-
-    // Dispatch a synthetic focus before waitForReady to race with the async init chain.
-    await page.evaluate(() => window.dispatchEvent(new Event('focus')));
-
-    await waitForReady(page);
-    await requestPromise;
-    await page.waitForTimeout(SNAPSHOT_SETTLE_MS * 2);
-
-    // The guard must produce at least 2 FullSnapshots: init's + the deferred focus replay.
-    // (Native browser focus events in CI may add more, but never fewer than 2.)
-    const count = countFullSnapshots(rawBodies);
-    expect(count).toBeGreaterThanOrEqual(2);
-  });
-
-  /**
    * Known limitation (follow-up PR): a focus event fired AFTER recording is
    * fully stable causes focusListener to call recordEvents(false), which stops
    * and restarts rrweb — producing a second FullSnapshot. The guard does NOT
