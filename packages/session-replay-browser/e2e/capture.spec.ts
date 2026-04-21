@@ -1387,6 +1387,12 @@ test.describe('retry behavior', () => {
 
       let callCount = 0;
       const receivedBodies: string[] = [];
+      // Resolved by the route handler when the retry succeeds — avoids predicate race conditions.
+      let resolveRetry!: () => void;
+      const retryPromise = new Promise<void>((resolve) => {
+        resolveRetry = resolve;
+      });
+
       await page.route('https://api-sr.amplitude.com/**', async (route: Route) => {
         callCount++;
         if (callCount === 1) {
@@ -1394,18 +1400,13 @@ test.describe('retry behavior', () => {
         } else {
           receivedBodies.push(readRouteBody(route));
           await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(SR_API_SUCCESS) });
+          resolveRetry();
         }
       });
 
-      // Register before goto so the immediate full-snapshot flush doesn't race past the listener
-      const retryRequestPromise = page.waitForRequest(
-        (req) => req.url().includes('api-sr.amplitude.com') && callCount >= 2,
-        { timeout: 10_000 },
-      );
-
       await page.goto(buildUrl('/session-replay-browser/sr-capture-test.html', { sessionId: TEST_SESSION_ID }));
       await waitForReady(page);
-      await retryRequestPromise;
+      await retryPromise;
 
       expect(callCount).toBeGreaterThanOrEqual(2);
       expect(receivedBodies.length).toBeGreaterThan(0);
@@ -1416,6 +1417,11 @@ test.describe('retry behavior', () => {
 
       let callCount = 0;
       const receivedBodies: string[] = [];
+      let resolveRetry!: () => void;
+      const retryPromise = new Promise<void>((resolve) => {
+        resolveRetry = resolve;
+      });
+
       await page.route('https://api-sr.amplitude.com/**', async (route: Route) => {
         callCount++;
         if (callCount === 1) {
@@ -1423,19 +1429,15 @@ test.describe('retry behavior', () => {
         } else {
           receivedBodies.push(readRouteBody(route));
           await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(SR_API_SUCCESS) });
+          resolveRetry();
         }
       });
-
-      const retryRequestPromise = page.waitForRequest(
-        (req) => req.url().includes('api-sr.amplitude.com') && callCount >= 2,
-        { timeout: 10_000 },
-      );
 
       await page.goto(
         buildUrl('/session-replay-browser/sr-capture-test.html', { sessionId: TEST_SESSION_ID, useWebWorker: true }),
       );
       await waitForReady(page);
-      await retryRequestPromise;
+      await retryPromise;
 
       expect(callCount).toBeGreaterThanOrEqual(2);
       expect(receivedBodies.length).toBeGreaterThan(0);
