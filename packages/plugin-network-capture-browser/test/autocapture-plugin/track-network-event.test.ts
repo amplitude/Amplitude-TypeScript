@@ -815,8 +815,8 @@ describe('track-network-event', () => {
           {
             hosts: ['example.com'],
             statusCodeRange: '500-599',
-            responseBody: { allowlist: allow, excludelist: [], blocklist: block },
-            requestBody: { allowlist: allow, excludelist: [], blocklist: block },
+            responseBody: { allowlist: allow, excludelist: undefined, blocklist: block },
+            requestBody: { allowlist: allow, excludelist: undefined, blocklist: block },
           },
         ],
       };
