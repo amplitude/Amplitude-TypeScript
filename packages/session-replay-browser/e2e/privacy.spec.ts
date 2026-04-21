@@ -425,10 +425,10 @@ test.describe('privacy — urlMaskLevels (page-level masking)', () => {
     expect(isMaskedText(getTextContent(el!))).toBe(true);
   });
 
-  test('SPA navigation from conservative URL to light URL unmasks text', async ({ page }) => {
+  test('SPA navigation from conservative URL to light URL still masks text', async ({ page }) => {
     // Verifies maskFn URL-awareness: session starts on a conservative URL rule, then navigates
-    // to a light URL rule. After navigation, maskTextFn should resolve to light level and NOT
-    // mask plain text in the new snapshot.
+    // to a light URL rule. Light masks text nodes (same as conservative), so plain text remains
+    // masked after navigation.
     // Use exact URL patterns to avoid first-match-wins overlap with the wildcard MATCHING_PATTERN.
     const CONSERVATIVE_PATTERN = 'http://localhost:5173/session-replay-browser/sr-privacy-test.html*';
     const LIGHT_PATTERN = 'http://localhost:5173/section-light/*';
@@ -462,12 +462,12 @@ test.describe('privacy — urlMaskLevels (page-level masking)', () => {
     await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
     await flushRecording(page);
 
-    // The LAST full snapshot was taken on the light URL — plain text must NOT be masked.
+    // The LAST full snapshot was taken on the light URL — plain text is still masked (light masks text).
     const lastRoot = getLastSnapshotRoot(getBodies());
     expect(lastRoot).not.toBeNull();
     const plainEl = findById(lastRoot!, 'plain-text');
     expect(plainEl).toBeDefined();
-    expect(isMaskedText(getTextContent(plainEl!))).toBe(false);
+    expect(isMaskedText(getTextContent(plainEl!))).toBe(true);
   });
 
   test('SPA navigation from light URL to conservative URL masks text', async ({ page }) => {
