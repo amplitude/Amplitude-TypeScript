@@ -2434,7 +2434,7 @@ describe('SessionReplay', () => {
     });
 
     describe('recordEventsInFlight guard', () => {
-      test('concurrent call is dropped — rrweb record() invoked only once', async () => {
+      test('concurrent call sets pending and _recordEvents runs twice total', async () => {
         await sessionReplay.init(apiKey, mockOptions).promise;
         // Drain the background recordEvents() fired by `void initialize()` during init
         await jest.runAllTimersAsync();
@@ -2453,14 +2453,18 @@ describe('SessionReplay', () => {
 
         // Start first call (will be suspended at the barrier)
         const first = sessionReplay.recordEvents();
-        // Second call should see in-flight=true and return immediately
+        // Second call should see in-flight=true, set pending=true, and return immediately
         const second = sessionReplay.recordEvents();
+        expect((sessionReplay as any).recordEventsPending).toBe(true);
 
-        // Let the first call complete
+        // Let the first call complete — it will then replay _recordEvents for the pending call
         resolveInFlight!();
         await Promise.all([first, second]);
 
-        expect(recordFunctionForGuardTest).toHaveBeenCalledTimes(1);
+        // _recordEvents ran once for the original call and once for the pending replay
+        expect(recordFunctionForGuardTest).toHaveBeenCalledTimes(2);
+        expect((sessionReplay as any).recordEventsInFlight).toBe(false);
+        expect((sessionReplay as any).recordEventsPending).toBe(false);
       });
 
       test('guard resets to false after successful completion', async () => {
@@ -2551,6 +2555,48 @@ describe('SessionReplay', () => {
         expect(mockRecordFunction).toHaveBeenCalled();
         const recordArg = mockRecordFunction.mock.calls[0][0];
         expect(recordArg?.hooks?.mouseInteraction).toBeDefined();
+      });
+
+      test('pending call is replayed after in-flight completes, picking up updated state', async () => {
+        await sessionReplay.init(apiKey, mockOptions).promise;
+        await jest.runAllTimersAsync();
+
+        // Suspend the first _recordEvents at getRecordFunction
+        let resolveInFlight: () => void;
+        const inFlightBarrier = new Promise<void>((res) => {
+          resolveInFlight = res;
+        });
+
+        const rf1 = createMockRecordFunction();
+        const rf2 = createMockRecordFunction();
+        let callCount = 0;
+        jest.spyOn(SessionReplay.prototype, 'getRecordFunction' as any).mockImplementation(async () => {
+          callCount++;
+          if (callCount === 1) {
+            await inFlightBarrier;
+            return rf1;
+          }
+          // Simulate state change: new sessionId visible on the second (pending replay) run
+          sessionReplay.identifiers = { ...sessionReplay.identifiers!, sessionId: 999 };
+          return rf2;
+        });
+
+        const first = sessionReplay.recordEvents();
+        // Fire concurrent call while first is suspended — sets pending flag
+        const second = sessionReplay.recordEvents();
+        expect((sessionReplay as any).recordEventsPending).toBe(true);
+
+        resolveInFlight!();
+        await Promise.all([first, second]);
+
+        // rf1 called for the original run, rf2 for the pending replay with updated sessionId
+        expect(rf1).toHaveBeenCalledTimes(1);
+        expect(rf2).toHaveBeenCalledTimes(1);
+        // State is fully reset
+        expect((sessionReplay as any).recordEventsInFlight).toBe(false);
+        expect((sessionReplay as any).recordEventsPending).toBe(false);
+        // The pending replay picked up the new sessionId
+        expect(sessionReplay.identifiers?.sessionId).toBe(999);
       });
     });
   });
