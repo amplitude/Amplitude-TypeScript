@@ -68,6 +68,42 @@ test.describe('recordEventsInFlight guard (SR-3531)', () => {
   });
 
   /**
+   * Guard test: dispatch a focus event immediately after page load (while the
+   * async init chain — getRecordFunction / initializeNetworkObservers — is still
+   * in flight). The focusListener calls recordEvents(false), which should be
+   * dropped by the in-flight guard so that only one FullSnapshot is emitted.
+   */
+  test('focus event during async init does not produce a duplicate FullSnapshot', async ({ page }) => {
+    await mockRemoteConfig(page, remoteConfigRecording);
+
+    const rawBodies: string[] = [];
+    await page.route('https://api-sr.amplitude.com/**', async (route: Route) => {
+      rawBodies.push(readRouteBody(route));
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(SR_API_SUCCESS) });
+    });
+
+    // Register the listener early so the immediate flush doesn't escape.
+    const requestPromise = page.waitForRequest('https://api-sr.amplitude.com/**', { timeout: 10_000 });
+
+    await page.goto(buildUrl('/session-replay-browser/sr-capture-test.html', { sessionId: TEST_SESSION_ID }));
+
+    // Fire focus immediately — before waitForReady — to race with the async init chain.
+    await page.evaluate(() => window.dispatchEvent(new Event('focus')));
+
+    await waitForReady(page);
+    await requestPromise;
+    await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
+
+    // Extra flush to capture any delayed events
+    await page.evaluate(() => window.dispatchEvent(new Event('blur')));
+    await page.evaluate(() => (window as any).sessionReplay.flush(false) as Promise<void>);
+    await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
+
+    const count = countFullSnapshots(rawBodies);
+    expect(count).toBe(1);
+  });
+
+  /**
    * Known limitation (follow-up PR): a focus event fired AFTER recording is
    * fully stable causes focusListener to call recordEvents(false), which stops
    * and restarts rrweb — producing a second FullSnapshot. The guard does NOT
