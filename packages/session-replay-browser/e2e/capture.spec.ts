@@ -1397,12 +1397,15 @@ test.describe('retry behavior', () => {
         }
       });
 
+      // Register before goto so the immediate full-snapshot flush doesn't race past the listener
+      const retryRequestPromise = page.waitForRequest(
+        (req) => req.url().includes('api-sr.amplitude.com') && callCount >= 2,
+        { timeout: 10_000 },
+      );
+
       await page.goto(buildUrl('/session-replay-browser/sr-capture-test.html', { sessionId: TEST_SESSION_ID }));
       await waitForReady(page);
-
-      // Wait for the retry to succeed — SDK retries with backoff so allow generous timeout
-      await page.waitForFunction(() => (window as any).__srRetrySucceeded !== undefined || true, { timeout: 10_000 });
-      await page.waitForTimeout(3_000);
+      await retryRequestPromise;
 
       expect(callCount).toBeGreaterThanOrEqual(2);
       expect(receivedBodies.length).toBeGreaterThan(0);
@@ -1423,12 +1426,16 @@ test.describe('retry behavior', () => {
         }
       });
 
+      const retryRequestPromise = page.waitForRequest(
+        (req) => req.url().includes('api-sr.amplitude.com') && callCount >= 2,
+        { timeout: 10_000 },
+      );
+
       await page.goto(
         buildUrl('/session-replay-browser/sr-capture-test.html', { sessionId: TEST_SESSION_ID, useWebWorker: true }),
       );
       await waitForReady(page);
-
-      await page.waitForTimeout(3_000);
+      await retryRequestPromise;
 
       expect(callCount).toBeGreaterThanOrEqual(2);
       expect(receivedBodies.length).toBeGreaterThan(0);
