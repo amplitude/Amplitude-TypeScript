@@ -2561,7 +2561,9 @@ describe('SessionReplay', () => {
     });
     test('returns mask text selectors', async () => {
       await sessionReplay.init(apiKey, mockOptions).promise;
-      expect(sessionReplay.getMaskTextSelectors()).toEqual(['.className1', '.className2']);
+      // mockOptions has no defaultMaskLevel, so it defaults to 'medium'.
+      // Since 'medium' masks text, getMaskTextSelectors returns '*'.
+      expect(sessionReplay.getMaskTextSelectors()).toEqual('*');
     });
 
     test('should track all text elements when level is conservative', async () => {
@@ -2589,7 +2591,7 @@ describe('SessionReplay', () => {
       expect(sessionReplay.getMaskTextSelectors()).toEqual('*');
     });
 
-    test('should not return * when urlMaskLevels has no conservative rule', async () => {
+    test('should return * when urlMaskLevels has medium rule and defaultMaskLevel is light', async () => {
       await sessionReplay.init(apiKey, {
         ...mockOptions,
         privacyConfig: {
@@ -2597,8 +2599,9 @@ describe('SessionReplay', () => {
           urlMaskLevels: [{ match: 'https://example.com/checkout/*', maskLevel: 'medium' }],
         },
       }).promise;
-      // No conservative rule → falls through to maskSelector logic (no selectors configured)
-      expect(sessionReplay.getMaskTextSelectors()).toBeUndefined();
+      // defaultMaskLevel is 'light' (masks text) and urlMaskLevels exists with 'medium' (also masks text).
+      // Both light and medium mask text, so getMaskTextSelectors returns '*'.
+      expect(sessionReplay.getMaskTextSelectors()).toEqual('*');
     });
 
     test('should return * when defaultMaskLevel is conservative and urlMaskLevels are present', async () => {

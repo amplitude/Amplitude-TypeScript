@@ -645,23 +645,32 @@ export class SessionReplay implements AmplitudeSessionReplay {
     const privacyConfig = this.config?.privacyConfig;
     const effectiveLevel = privacyConfig ? getEffectiveMaskLevel(this.currentPageUrl, privacyConfig) : undefined;
 
-    if (effectiveLevel === 'conservative') {
+    if (effectiveLevel === 'conservative' || effectiveLevel === 'medium' || effectiveLevel === 'light') {
       return '*';
     }
 
-    // If any urlMaskLevels rule uses 'conservative', always route all text nodes
-    // through maskTextFn so the dynamic URL getter can decide at call time.
+    // If any urlMaskLevels rule uses a level that masks text ('conservative', 'medium', 'light'),
+    // always route all text nodes through maskTextFn so the dynamic URL getter can decide at call time.
     // Without this, rrweb's static maskTextSelector would miss text nodes when
-    // the user navigates from a non-conservative page to a conservative one.
-    if (privacyConfig?.urlMaskLevels?.some((rule) => rule.maskLevel === 'conservative')) {
+    // the user navigates from one page to another with different masking levels.
+    if (
+      privacyConfig?.urlMaskLevels?.some(
+        (rule) => rule.maskLevel === 'conservative' || rule.maskLevel === 'medium' || rule.maskLevel === 'light',
+      )
+    ) {
       return '*';
     }
 
-    // If defaultMaskLevel is 'conservative' and URL rules exist, always route text through
-    // maskTextFn — a page matching no rule falls back to the conservative default, and
-    // rrweb must be set up at start to call maskTextFn for those text nodes.
+    // If defaultMaskLevel masks text ('conservative', 'medium', 'light') and URL rules exist,
+    // always route text through maskTextFn — a page matching no rule falls back to the default,
+    // and rrweb must be set up at start to call maskTextFn for those text nodes.
     const urlMaskLevels = privacyConfig?.urlMaskLevels;
-    if (privacyConfig?.defaultMaskLevel === 'conservative' && urlMaskLevels && urlMaskLevels.length > 0) {
+    const defaultLevel = privacyConfig?.defaultMaskLevel;
+    if (
+      (defaultLevel === 'conservative' || defaultLevel === 'medium' || defaultLevel === 'light') &&
+      urlMaskLevels &&
+      urlMaskLevels.length > 0
+    ) {
       return '*';
     }
 
