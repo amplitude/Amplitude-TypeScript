@@ -431,6 +431,32 @@ describe('SessionReplayTrackDestination', () => {
       expect(fetch).toHaveBeenCalledTimes(2);
     });
 
+    test.each([408, 429, 499])('should retry on %i', async (statusCode) => {
+      const trackDestination = new SessionReplayTrackDestination({ loggerProvider: mockLoggerProvider });
+      const context: SessionReplayDestinationContext = {
+        events: [mockEventString],
+        sessionId: 123,
+        apiKey,
+        attempts: 0,
+        timeout: 0,
+        flushMaxRetries: 2,
+        deviceId: '1a2b3c',
+        sampleRate: 1,
+        serverZone: ServerZone.US,
+        type: 'replay',
+        onComplete: mockOnComplete,
+      };
+      (global.fetch as jest.Mock)
+        .mockImplementationOnce(() => Promise.resolve({ status: statusCode }))
+        .mockImplementationOnce(() => Promise.resolve({ status: 200 }));
+
+      const sendPromise = trackDestination.send(context, true);
+      await jest.runAllTimersAsync();
+      await sendPromise;
+
+      expect(fetch).toHaveBeenCalledTimes(2);
+    });
+
     test('should not retry if retry param is false', async () => {
       const trackDestination = new SessionReplayTrackDestination({ loggerProvider: mockLoggerProvider });
       const context: SessionReplayDestinationContext = {
