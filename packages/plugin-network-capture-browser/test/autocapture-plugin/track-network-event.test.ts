@@ -757,6 +757,75 @@ describe('track-network-event', () => {
       expect(networkEvent.requestBodyJson).toBeDefined();
       expect(networkEvent.responseBodyJson).toBeDefined();
     });
+
+    test.each(['excludelist', 'blocklist'] as const)(
+      'should pass allowlist and %s to request and response json()',
+      (excludelist) => {
+        const responseJsonSpy = jest.spyOn(networkEvent.responseWrapper, 'json');
+        const requestJsonSpy = jest.spyOn(networkEvent.requestWrapper, 'json');
+        const allow = ['**'];
+        const exclude = ['/secret'];
+        const networkTracking = {
+          captureRules: [
+            {
+              hosts: ['example.com'],
+              statusCodeRange: '500-599',
+              responseBody: { allowlist: allow, [excludelist]: exclude },
+              requestBody: { allowlist: allow, [excludelist]: exclude },
+            },
+          ],
+        };
+        networkEvent.status = 500;
+        networkEvent.url = 'https://example.com/track';
+        shouldTrackNetworkEvent(networkEvent, networkTracking);
+        expect(responseJsonSpy).toHaveBeenCalledWith(allow, exclude);
+        expect(requestJsonSpy).toHaveBeenCalledWith(allow, exclude);
+      },
+    );
+
+    test('should prioritize excludelist over blocklist', () => {
+      const responseJsonSpy = jest.spyOn(networkEvent.responseWrapper, 'json');
+      const requestJsonSpy = jest.spyOn(networkEvent.requestWrapper, 'json');
+      const allow = ['**'];
+      const exclude = ['/secret'];
+      const networkTracking = {
+        captureRules: [
+          {
+            hosts: ['example.com'],
+            statusCodeRange: '500-599',
+            responseBody: { allowlist: allow, excludelist: exclude, blocklist: ['/secret'] },
+            requestBody: { allowlist: allow, excludelist: exclude, blocklist: ['/secret'] },
+          },
+        ],
+      };
+      networkEvent.status = 500;
+      networkEvent.url = 'https://example.com/track';
+      shouldTrackNetworkEvent(networkEvent, networkTracking);
+      expect(responseJsonSpy).toHaveBeenCalledWith(allow, exclude);
+      expect(requestJsonSpy).toHaveBeenCalledWith(allow, exclude);
+    });
+
+    test('should use blocklist if excludelist is empty', () => {
+      const responseJsonSpy = jest.spyOn(networkEvent.responseWrapper, 'json');
+      const requestJsonSpy = jest.spyOn(networkEvent.requestWrapper, 'json');
+      const allow = ['**'];
+      const block = ['/secret'];
+      const networkTracking = {
+        captureRules: [
+          {
+            hosts: ['example.com'],
+            statusCodeRange: '500-599',
+            responseBody: { allowlist: allow, excludelist: [], blocklist: block },
+            requestBody: { allowlist: allow, excludelist: [], blocklist: block },
+          },
+        ],
+      };
+      networkEvent.status = 500;
+      networkEvent.url = 'https://example.com/track';
+      shouldTrackNetworkEvent(networkEvent, networkTracking);
+      expect(responseJsonSpy).toHaveBeenCalledWith(allow, block);
+      expect(requestJsonSpy).toHaveBeenCalledWith(allow, block);
+    });
   });
 
   describe('logNetworkAnalyticsEvent', () => {

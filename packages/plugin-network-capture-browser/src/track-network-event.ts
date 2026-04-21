@@ -150,7 +150,7 @@ export function parseHeaderCaptureRule(rule: string[] | boolean | undefined | nu
 
 function isBodyCaptureRuleEmpty(rule: BodyCaptureRule) {
   /* istanbul ignore next */
-  return !rule?.allowlist?.length && !rule?.blocklist?.length;
+  return !rule?.allowlist?.length && !rule?.blocklist?.length && !rule?.excludelist?.length;
 }
 
 export function shouldTrackNetworkEvent(networkEvent: NetworkRequestEvent, options: NetworkTrackingOptions = {}) {
@@ -213,18 +213,20 @@ export function shouldTrackNetworkEvent(networkEvent: NetworkRequestEvent, optio
 
         // if responseBody rule is specified, enrich the event with the response body
         if (networkEvent.responseWrapper && rule.responseBody && !isBodyCaptureRuleEmpty(rule.responseBody)) {
-          networkEvent.responseBodyJson = networkEvent.responseWrapper.json(
-            rule.responseBody.allowlist,
-            rule.responseBody.blocklist,
-          );
+          let excludelist = rule.responseBody.excludelist || [];
+          if (excludelist.length === 0) {
+            excludelist = rule.responseBody.blocklist || [];
+          }
+          networkEvent.responseBodyJson = networkEvent.responseWrapper.json(rule.responseBody.allowlist, excludelist);
         }
 
         // if requestBody rule is specified, enrich the event with the request body
         if (networkEvent.requestWrapper && rule.requestBody && !isBodyCaptureRuleEmpty(rule.requestBody)) {
-          networkEvent.requestBodyJson = networkEvent.requestWrapper.json(
-            rule.requestBody.allowlist,
-            rule.requestBody.blocklist,
-          );
+          let excludelist = rule.requestBody.excludelist || [];
+          if (excludelist.length === 0) {
+            excludelist = rule.requestBody.blocklist || [];
+          }
+          networkEvent.requestBodyJson = networkEvent.requestWrapper.json(rule.requestBody.allowlist, excludelist);
         }
       }
 

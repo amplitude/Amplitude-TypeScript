@@ -35,8 +35,15 @@ export interface BodyCaptureRule {
    * List of JSON pointers to exclude from a request or response body (JSON objects only)
    *
    * This "uncaptures" any attributes that are captured by the allowlist.
+   * @deprecated this property is deprecated in favor of "excludelist"
    */
   blocklist?: string[];
+  /**
+   * List of JSON pointers to exclude from a request or response body (JSON objects only)
+   *
+   * This "uncaptures" any attributes that are captured by the allowlist.
+   */
+  excludelist?: string[];
 }
 
 export interface NetworkCaptureRule {
