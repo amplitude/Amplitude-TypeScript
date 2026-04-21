@@ -424,7 +424,11 @@ export class SessionReplay implements AmplitudeSessionReplay {
 
   focusListener = () => {
     if (this.recordCancelCallback && this.recordFunction) {
-      this.recordFunction.takeFullSnapshot(true);
+      try {
+        this.recordFunction.takeFullSnapshot(true);
+      } catch (error) {
+        this.loggerProvider.warn('Failed to take full snapshot on focus:', error);
+      }
     } else if (!this.recordEventsInFlight) {
       void this.recordEvents(false);
     }
