@@ -351,9 +351,16 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
         this.handleSuccessResponse(context);
         break;
       case Status.Failed:
+      case Status.Timeout: // 408: server timed out waiting for request, data not received
+      case Status.RateLimit: // 429: retry with existing backoff rather than silently dropping
         await this.handleOtherResponse(context);
         break;
       default:
+        // 499 (client closed connection / upstream dropped) is also retryable
+        if (status === 499) {
+          await this.handleOtherResponse(context);
+          break;
+        }
         this.completeRequest({ context, err: UNEXPECTED_NETWORK_ERROR_MESSAGE });
     }
   }

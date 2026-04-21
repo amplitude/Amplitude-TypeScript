@@ -58,7 +58,7 @@ async function doFetch(
         message: `Session replay event batch tracked successfully for session id ${context.sessionId}, size of events: ${sizeKB} KB`,
       };
     }
-    if (res.status >= 500) {
+    if (res.status >= 500 || res.status === 408 || res.status === 429 || res.status === 499) {
       return { shouldRetry: true, success: false, message: `HTTP ${res.status}` };
     }
     return { shouldRetry: false, success: false, message: UNEXPECTED_NETWORK_ERROR_MESSAGE };

@@ -71,6 +71,29 @@ describe('worker/track-destination', () => {
     expect(mockPostMessage).toHaveBeenCalledWith({ type: 'complete', id: '2' });
   });
 
+  test.each([408, 429, 499])('retries on %i and succeeds on second attempt', async (statusCode) => {
+    const realSetTimeout = global.setTimeout;
+    jest
+      .spyOn(global, 'setTimeout')
+      .mockImplementation((fn) => realSetTimeout(fn, 0) as unknown as ReturnType<typeof setTimeout>);
+
+    mockFetch.mockResolvedValueOnce({ status: statusCode }).mockResolvedValueOnce({ status: 200 });
+
+    await invokeOnMessage({
+      type: 'send',
+      id: '3b',
+      payload: basePayload,
+      context: { ...baseContext, flushMaxRetries: 2 },
+      useRetry: true,
+    });
+
+    expect(mockFetch).toHaveBeenCalledTimes(2);
+    expect(mockPostMessage).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'log', id: '3b', message: expect.stringContaining('tracked successfully') }),
+    );
+    expect(mockPostMessage).toHaveBeenCalledWith({ type: 'complete', id: '3b' });
+  });
+
   test('retries on 5xx and succeeds on second attempt', async () => {
     // Use a real timer but patch setTimeout to fire immediately so the test is fast
     const realSetTimeout = global.setTimeout;

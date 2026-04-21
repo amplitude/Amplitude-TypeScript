@@ -1377,3 +1377,70 @@ test.describe('SR-3115: improved replay data delivery', () => {
     expect(beaconCalls.some((url: string) => url.includes('api-sr.amplitude.com'))).toBe(true);
   });
 });
+
+// ─── retry behavior ───────────────────────────────────────────────────────────
+
+test.describe('retry behavior', () => {
+  for (const statusCode of [408, 429, 499]) {
+    test(`retries and delivers events after initial ${statusCode}`, async ({ page }) => {
+      await mockRemoteConfig(page, remoteConfigRecording);
+
+      let callCount = 0;
+      const receivedBodies: string[] = [];
+      // Resolved by the route handler when the retry succeeds — avoids predicate race conditions.
+      let resolveRetry!: () => void;
+      const retryPromise = new Promise<void>((resolve) => {
+        resolveRetry = resolve;
+      });
+
+      await page.route('https://api-sr.amplitude.com/**', async (route: Route) => {
+        callCount++;
+        if (callCount === 1) {
+          await route.fulfill({ status: statusCode, body: '' });
+        } else {
+          receivedBodies.push(readRouteBody(route));
+          await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(SR_API_SUCCESS) });
+          resolveRetry();
+        }
+      });
+
+      await page.goto(buildUrl('/session-replay-browser/sr-capture-test.html', { sessionId: TEST_SESSION_ID }));
+      await waitForReady(page);
+      await retryPromise;
+
+      expect(callCount).toBeGreaterThanOrEqual(2);
+      expect(receivedBodies.length).toBeGreaterThan(0);
+    });
+
+    test(`retries and delivers events after initial ${statusCode} (web worker)`, async ({ page }) => {
+      await mockRemoteConfig(page, remoteConfigRecording);
+
+      let callCount = 0;
+      const receivedBodies: string[] = [];
+      let resolveRetry!: () => void;
+      const retryPromise = new Promise<void>((resolve) => {
+        resolveRetry = resolve;
+      });
+
+      await page.route('https://api-sr.amplitude.com/**', async (route: Route) => {
+        callCount++;
+        if (callCount === 1) {
+          await route.fulfill({ status: statusCode, body: '' });
+        } else {
+          receivedBodies.push(readRouteBody(route));
+          await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(SR_API_SUCCESS) });
+          resolveRetry();
+        }
+      });
+
+      await page.goto(
+        buildUrl('/session-replay-browser/sr-capture-test.html', { sessionId: TEST_SESSION_ID, useWebWorker: true }),
+      );
+      await waitForReady(page);
+      await retryPromise;
+
+      expect(callCount).toBeGreaterThanOrEqual(2);
+      expect(receivedBodies.length).toBeGreaterThan(0);
+    });
+  }
+});
