@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.26.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.25.3...@amplitude/plugin-autocapture-browser@1.26.0) (2026-04-21)
+
+
+### Features
+
+* add long task tracking ([#1622](https://github.com/amplitude/Amplitude-TypeScript/issues/1622)) ([d995e1f](https://github.com/amplitude/Amplitude-TypeScript/commit/d995e1f2c098441808d65f6c171e171587e37ac2))
+
+
+
+
+
 ## [1.25.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.25.2...@amplitude/plugin-autocapture-browser@1.25.3) (2026-04-14)
 
 **Note:** Version bump only for package @amplitude/plugin-autocapture-browser

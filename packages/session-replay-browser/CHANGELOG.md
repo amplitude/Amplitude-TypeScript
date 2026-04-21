@@ -3,6 +3,26 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.37.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.36.2...@amplitude/session-replay-browser@1.37.0) (2026-04-21)
+
+
+### Bug Fixes
+
+* **session-replay-browser:** add in-flight guard to recordEvents() to prevent concurrent rrweb races ([#1686](https://github.com/amplitude/Amplitude-TypeScript/issues/1686)) ([7d96a75](https://github.com/amplitude/Amplitude-TypeScript/commit/7d96a752f175976cb7ecc87cff3e79c718ac46dd))
+* **session-replay-browser:** restore medium mask level to mask all text (SR-3176) ([#1690](https://github.com/amplitude/Amplitude-TypeScript/issues/1690)) ([3b8a774](https://github.com/amplitude/Amplitude-TypeScript/commit/3b8a774b910cd4921153a5a6a31dc67308a6598f))
+* **session-replay-browser:** retry on 408, 429, and 499 status codes (SR-3581) ([#1691](https://github.com/amplitude/Amplitude-TypeScript/issues/1691)) ([62db518](https://github.com/amplitude/Amplitude-TypeScript/commit/62db518d3515916a1fc8f4c608a858ed408791f7))
+* **session-replay-browser:** use takeFullSnapshot on focus instead of full rrweb restart (SR-3531) ([#1689](https://github.com/amplitude/Amplitude-TypeScript/issues/1689)) ([48f38da](https://github.com/amplitude/Amplitude-TypeScript/commit/48f38dad155c810c85acf684bbc70e97fbe2ce82))
+
+
+### Features
+
+* **session-replay-browser:** fall back to in-memory store when IDB repeatedly fails ([#1684](https://github.com/amplitude/Amplitude-TypeScript/issues/1684)) ([a901f48](https://github.com/amplitude/Amplitude-TypeScript/commit/a901f48579ff8c7b7d0078b7b67f161d83eab314))
+* **session-replay-browser:** URL-aware masking via urlMaskLevels (SR-3176) ([#1679](https://github.com/amplitude/Amplitude-TypeScript/issues/1679)) ([aebc6fa](https://github.com/amplitude/Amplitude-TypeScript/commit/aebc6fa77164011022a909c5db835de7150d9a91))
+
+
+
+
+
 ## [1.36.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.36.1...@amplitude/session-replay-browser@1.36.2) (2026-04-16)
 
 
