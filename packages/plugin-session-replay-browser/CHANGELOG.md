@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.28.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@1.27.10...@amplitude/plugin-session-replay-browser@1.28.0) (2026-04-22)
+
+
+### Features
+
+* **session-replay-browser:** expose captureAdoptedStyleSheets option ([#1695](https://github.com/amplitude/Amplitude-TypeScript/issues/1695)) ([9cec47c](https://github.com/amplitude/Amplitude-TypeScript/commit/9cec47c14b6e8f9057309922e36fb4c0714f06e1))
+
+
+
+
+
 ## [1.27.10](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@1.27.9...@amplitude/plugin-session-replay-browser@1.27.10) (2026-04-21)
 
 **Note:** Version bump only for package @amplitude/plugin-session-replay-browser

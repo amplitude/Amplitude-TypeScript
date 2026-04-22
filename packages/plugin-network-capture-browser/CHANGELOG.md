@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.9.16](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-network-capture-browser@1.9.15...@amplitude/plugin-network-capture-browser@1.9.16) (2026-04-22)
+
+
+### Bug Fixes
+
+* **analytics-browser:** replace "blocklist" with "excludelist" in networkTracking ([#1692](https://github.com/amplitude/Amplitude-TypeScript/issues/1692)) ([f84374e](https://github.com/amplitude/Amplitude-TypeScript/commit/f84374eb0a4754e9fedfec0fbb9694531ba021e9))
+
+
+
+
+
 ## [1.9.15](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-network-capture-browser@1.9.14...@amplitude/plugin-network-capture-browser@1.9.15) (2026-04-21)
 
 **Note:** Version bump only for package @amplitude/plugin-network-capture-browser

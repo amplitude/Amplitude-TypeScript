@@ -51,10 +51,10 @@
     s.parentNode.insertBefore(autoTrackingPluginScript, s);
     var as = document.createElement('script');
     as.type = 'text/javascript';
-    as.integrity = 'sha384-RNkxDQG8qqD+emAsO3//dhS7t3U2wHaS05t86ToSpqt0y4NEM3E1zwl+TLZNIeH7';
+    as.integrity = 'sha384-rc8El1kInlJmYhNrnVYoSC97GRmeWfCYHpZ5YthGJAXzqqUMcoHDoqwyN1bv7CfU';
     as.crossOrigin = 'anonymous';
     as.async = false;
-    as.src = 'https://cdn.amplitude.com/libs/analytics-browser-2.41.0-min.js.gz';
+    as.src = 'https://cdn.amplitude.com/libs/analytics-browser-2.41.1-min.js.gz';
     as.onload = function () {
       if (!window.amplitude.runQueuedFunctions) {
         console.log('[Amplitude] Error: could not load SDK');

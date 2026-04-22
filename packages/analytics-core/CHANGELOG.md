@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.47.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.47.0...@amplitude/analytics-core@2.47.1) (2026-04-22)
+
+
+### Bug Fixes
+
+* **analytics-browser:** replace "blocklist" with "excludelist" in networkTracking ([#1692](https://github.com/amplitude/Amplitude-TypeScript/issues/1692)) ([f84374e](https://github.com/amplitude/Amplitude-TypeScript/commit/f84374eb0a4754e9fedfec0fbb9694531ba021e9))
+
+
+
+
+
 # [2.47.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.46.0...@amplitude/analytics-core@2.47.0) (2026-04-21)
 
 
