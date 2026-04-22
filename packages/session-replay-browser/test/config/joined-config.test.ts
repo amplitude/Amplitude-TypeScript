@@ -502,6 +502,27 @@ describe('SessionReplayJoinedConfigGenerator', () => {
         expect(config.urlChangePollingInterval).toBe(0);
       });
 
+      test('should leave captureAdoptedStyleSheets undefined when not provided', () => {
+        const config = new SessionReplayLocalConfig('static_key', mockOptions);
+        expect(config.captureAdoptedStyleSheets).toBeUndefined();
+      });
+
+      test('should set captureAdoptedStyleSheets to true when provided', () => {
+        const config = new SessionReplayLocalConfig('static_key', {
+          ...mockOptions,
+          captureAdoptedStyleSheets: true,
+        });
+        expect(config.captureAdoptedStyleSheets).toBe(true);
+      });
+
+      test('should set captureAdoptedStyleSheets to false when provided', () => {
+        const config = new SessionReplayLocalConfig('static_key', {
+          ...mockOptions,
+          captureAdoptedStyleSheets: false,
+        });
+        expect(config.captureAdoptedStyleSheets).toBe(false);
+      });
+
       test('should throw error for invalid UGC filter rules with non-string selector', () => {
         const invalidRules = [{ selector: 123, replacement: 'replacement' }] as unknown as UGCFilterRule[];
         expect(() => {

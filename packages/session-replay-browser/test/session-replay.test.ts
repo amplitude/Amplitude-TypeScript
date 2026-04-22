@@ -936,6 +936,34 @@ describe('SessionReplay', () => {
       expect(recordArg?.applyBackgroundColorToBlockedElements).toBe(expectedValue);
     });
 
+    test.each([
+      {
+        description: 'should pass captureAdoptedStyleSheets=true to rrweb when option is true',
+        options: { captureAdoptedStyleSheets: true },
+        expectedValue: true,
+      },
+      {
+        description: 'should pass captureAdoptedStyleSheets=false to rrweb when option is false',
+        options: { captureAdoptedStyleSheets: false },
+        expectedValue: false,
+      },
+      {
+        description: 'should pass captureAdoptedStyleSheets=undefined to rrweb when option is not provided',
+        options: {},
+        expectedValue: undefined,
+      },
+    ])('$description', async ({ options, expectedValue }) => {
+      const sessionReplay = new SessionReplay();
+      await sessionReplay.init(apiKey, {
+        ...mockOptions,
+        ...options,
+      }).promise;
+      await sessionReplay.recordEvents();
+
+      const recordArg = mockRecordFunction.mock.calls[0][0];
+      expect(recordArg?.captureAdoptedStyleSheets).toBe(expectedValue);
+    });
+
     describe('background capture', () => {
       let mockMessenger: { setup: jest.Mock };
       let getOrCreateSpy: jest.SpyInstance;
