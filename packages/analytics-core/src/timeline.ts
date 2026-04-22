@@ -15,6 +15,9 @@ export class Timeline {
   // Flag indicates whether timeline is ready to process event
   // Events collected before timeline is ready will stay in the queue to be processed later
   plugins: Plugin[] = [];
+  // Tracks registrations whose setup() is in flight so concurrent register() calls with
+  // the same name dedupe and inherit the winner's outcome.
+  _pendingRegistrations: Map<string, Promise<void>> = new Map();
   // loggerProvider is set by the client at _init()
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore
@@ -24,22 +27,39 @@ export class Timeline {
   constructor(private client: CoreClient) {}
 
   async register(plugin: Plugin, config: IConfig) {
-    if (this.plugins.some((existingPlugin) => existingPlugin.name === plugin.name)) {
-      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
-      this.loggerProvider.warn(`Plugin with name ${plugin.name} already exists, skipping registration`);
-      return;
-    }
-
     if (plugin.name === undefined) {
       plugin.name = UUID();
-      this.loggerProvider.warn(`Plugin name is undefined. 
-      Generating a random UUID for plugin name: ${plugin.name}. 
+      this.loggerProvider.warn(`Plugin name is undefined.
+      Generating a random UUID for plugin name: ${plugin.name}.
       Set a name for the plugin to prevent it from being added multiple times.`);
     }
 
+    const name = plugin.name;
+
+    const inflight = this._pendingRegistrations.get(name);
+    if (inflight) {
+      this.loggerProvider.warn(`Plugin with name ${name} already exists, skipping registration`);
+      await inflight;
+      return;
+    }
+    if (this.plugins.some((existingPlugin) => existingPlugin.name === name)) {
+      this.loggerProvider.warn(`Plugin with name ${name} already exists, skipping registration`);
+      return;
+    }
+
     plugin.type = plugin.type ?? 'enrichment';
-    await plugin.setup?.(config, this.client);
-    this.plugins.push(plugin);
+    // Defer setup() to the next microtask so _pendingRegistrations is populated before
+    // user code runs — otherwise a plugin whose setup() re-enters register() recurses.
+    const pending = Promise.resolve().then(async () => {
+      await plugin.setup?.(config, this.client);
+      this.plugins.push(plugin);
+    });
+    this._pendingRegistrations.set(name, pending);
+    try {
+      await pending;
+    } finally {
+      this._pendingRegistrations.delete(name);
+    }
   }
 
   async deregister(pluginName: string, config: IConfig) {

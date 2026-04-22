@@ -91,6 +91,123 @@ describe('timeline', () => {
       expect(mockLoggerProvider.warn).toHaveBeenCalledTimes(1);
       expect(mockLoggerProvider.warn).toHaveBeenCalledWith(expect.stringContaining('Plugin name is undefined'));
     });
+
+    test('should deduplicate concurrent registrations with the same name', async () => {
+      // Regression: the dedup check used to race against an async setup(), letting two
+      // concurrent register() calls both slip past before either pushed to `plugins`.
+      // Session Replay RN customers saw this as two native recorders running in parallel.
+      const pluginName = 'ConcurrentPlugin';
+      let resolveSetup!: () => void;
+      const setupPromise = new Promise<void>((resolve) => {
+        resolveSetup = resolve;
+      });
+      const setup = jest.fn(() => setupPromise);
+      const plugin: EnrichmentPlugin = {
+        name: pluginName,
+        type: 'enrichment',
+        setup,
+        teardown: jest.fn(),
+        execute: jest.fn(),
+      };
+
+      const first = timeline.register(plugin, config);
+      // Second register() fires before the first awaits through setup()
+      const second = timeline.register(plugin, config);
+
+      resolveSetup();
+      await Promise.all([first, second]);
+
+      expect(setup).toHaveBeenCalledTimes(1);
+      expect(timeline.plugins).toHaveLength(1);
+      expect(mockLoggerProvider.warn).toHaveBeenCalledWith(
+        `Plugin with name ${pluginName} already exists, skipping registration`,
+      );
+    });
+
+    test('duplicate register should await the in-flight registration before resolving', async () => {
+      // If the loser returned immediately, callers that awaited `add(plugin)` could try
+      // to use the plugin before it was actually pushed to `this.plugins`.
+      let resolveSetup!: () => void;
+      const setupPromise = new Promise<void>((resolve) => {
+        resolveSetup = resolve;
+      });
+      const setup = jest.fn(() => setupPromise);
+      const plugin: EnrichmentPlugin = {
+        name: 'InflightPlugin',
+        type: 'enrichment',
+        setup,
+        teardown: jest.fn(),
+        execute: jest.fn(),
+      };
+
+      const first = timeline.register(plugin, config);
+      const second = timeline.register(plugin, config);
+
+      // Before setup resolves, neither caller's register() should have settled.
+      expect(await promiseState(second)).toBe('pending');
+      expect(timeline.plugins).toHaveLength(0);
+
+      resolveSetup();
+      await Promise.all([first, second]);
+
+      // After setup resolves, both callers observe the plugin registered.
+      expect(timeline.plugins).toHaveLength(1);
+      expect(timeline.plugins[0].name).toBe('InflightPlugin');
+    });
+
+    test('duplicate register should reject when the in-flight setup rejects', async () => {
+      // If the winner's setup fails, the duplicate caller must see the same failure —
+      // otherwise it thinks the plugin is installed when it isn't.
+      const setupError = new Error('setup failed');
+      let rejectSetup!: (err: Error) => void;
+      const setupPromise = new Promise<void>((_, reject) => {
+        rejectSetup = reject;
+      });
+      const setup = jest.fn(() => setupPromise);
+      const plugin: EnrichmentPlugin = {
+        name: 'FailingPlugin',
+        type: 'enrichment',
+        setup,
+        teardown: jest.fn(),
+        execute: jest.fn(),
+      };
+
+      const first = timeline.register(plugin, config);
+      const second = timeline.register(plugin, config);
+
+      rejectSetup(setupError);
+
+      await expect(first).rejects.toBe(setupError);
+      await expect(second).rejects.toBe(setupError);
+      expect(timeline.plugins).toHaveLength(0);
+    });
+
+    test('nested register() from inside setup() should not double-invoke setup', async () => {
+      // Re-entrancy: if a plugin's setup() synchronously re-registers itself (or another
+      // plugin with the same name), the dedupe must still kick in. Otherwise setup() runs
+      // twice and the plugin ends up registered twice.
+      const pluginName = 'ReentrantPlugin';
+      const setup = jest.fn(async () => {
+        // Fire a re-entrant register() before yielding — this is the scenario the original
+        // Set-based guard covered but the IIFE-based promise variant regressed.
+        void timeline.register(plugin, config);
+      });
+      const plugin: EnrichmentPlugin = {
+        name: pluginName,
+        type: 'enrichment',
+        setup,
+        teardown: jest.fn(),
+        execute: jest.fn(),
+      };
+
+      await timeline.register(plugin, config);
+
+      expect(setup).toHaveBeenCalledTimes(1);
+      expect(timeline.plugins).toHaveLength(1);
+      expect(mockLoggerProvider.warn).toHaveBeenCalledWith(
+        `Plugin with name ${pluginName} already exists, skipping registration`,
+      );
+    });
   });
 
   describe('deregister', () => {
