@@ -61,7 +61,9 @@ export class Timeline {
     try {
       await pending;
     } finally {
-      this._pendingRegistrations.delete(name);
+      if (this._pendingRegistrations.get(name) === pending) {
+        this._pendingRegistrations.delete(name);
+      }
     }
   }
 
