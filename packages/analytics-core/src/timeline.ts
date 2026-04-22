@@ -79,6 +79,7 @@ export class Timeline {
     const plugins = this.plugins;
     plugins.map((plugin) => plugin.teardown?.());
     this.plugins = [];
+    this._pendingRegistrations.clear();
     this.client = client;
   }
 
