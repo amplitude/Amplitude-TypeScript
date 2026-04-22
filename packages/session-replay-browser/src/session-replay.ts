@@ -836,6 +836,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
         maskAttributeFn: maskAttributeFn(privacyConfig, () => this.currentPageUrl),
         maskTextSelector: this.getMaskTextSelectors(),
         recordCanvas: false,
+        captureAdoptedStyleSheets: config.captureAdoptedStyleSheets,
         slimDOMOptions: {
           script: config.omitElementTags?.script,
           comment: config.omitElementTags?.comment,

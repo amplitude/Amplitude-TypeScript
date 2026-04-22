@@ -44,6 +44,7 @@ export class SessionReplayLocalConfig extends Config implements ISessionReplayLo
   enableUrlChangePolling?: boolean;
   urlChangePollingInterval?: number;
   captureDocumentTitle?: boolean;
+  captureAdoptedStyleSheets?: boolean;
 
   constructor(apiKey: string, options: SessionReplayOptions) {
     const defaultConfig = getDefaultConfig();
@@ -98,5 +99,6 @@ export class SessionReplayLocalConfig extends Config implements ISessionReplayLo
     if (options.omitElementTags) {
       this.omitElementTags = options.omitElementTags;
     }
+    this.captureAdoptedStyleSheets = options.captureAdoptedStyleSheets ?? true;
   }
 }

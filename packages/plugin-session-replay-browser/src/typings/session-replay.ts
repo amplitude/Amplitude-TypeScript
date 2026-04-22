@@ -172,4 +172,8 @@ export interface SessionReplayOptions {
    * @defaultValue false
    */
   captureDocumentTitle?: boolean;
+  /**
+   * @see {@link StandaloneSessionReplayOptions.captureAdoptedStyleSheets}
+   */
+  captureAdoptedStyleSheets?: boolean;
 }

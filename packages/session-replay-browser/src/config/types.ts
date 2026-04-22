@@ -208,6 +208,19 @@ export interface SessionReplayLocalConfig extends IConfig {
    */
   captureDocumentTitle?: boolean;
   interactionConfig?: InteractionConfig;
+  /**
+   * When true (default), the CSS rules of any `adoptedStyleSheets` on shadow roots and
+   * the document are serialized **inline** within the full snapshot. This makes the snapshot
+   * self-contained so that shadow DOM styles are replayed correctly even if subsequent
+   * incremental `AdoptedStyleSheet` events are dropped in transit.
+   *
+   * Set to `false` to revert to the legacy behavior where adopted stylesheet rules are
+   * emitted as separate incremental events (which may be lost if delivery is unreliable).
+   * Only consider opting out if snapshot payload size is a critical concern.
+   *
+   * @defaultValue true
+   */
+  captureAdoptedStyleSheets?: boolean;
 }
 
 export interface SessionReplayJoinedConfig extends SessionReplayLocalConfig {
