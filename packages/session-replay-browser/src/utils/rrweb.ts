@@ -41,6 +41,12 @@ export type RecordFunction = {
     errorHandler?: (error: unknown) => boolean;
     plugins?: any[];
     applyBackgroundColorToBlockedElements?: boolean;
+    /**
+     * When true (default), adoptedStyleSheets CSS rules are serialized inline in the full snapshot
+     * rather than emitted as separate incremental events that can be dropped in transit.
+     * Set to false to revert to the legacy incremental-event path if snapshot size is a concern.
+     */
+    captureAdoptedStyleSheets?: boolean;
   }): (() => void) | undefined;
   addCustomEvent: (eventName: string, eventData: any) => void;
   mirror: Mirror;
