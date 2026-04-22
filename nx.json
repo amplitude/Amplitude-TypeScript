@@ -37,14 +37,5 @@
     ],
     "sharedGlobals": ["{workspaceRoot}/nx.json"]
   },
-  "release": {
-    "groups": {
-      "analytics-browser": {
-        "projects": ["@amplitude/analytics-browser", "@amplitude/gtm-snippet"],
-        "projectsRelationship": "fixed"
-      }
-    },
-    "releaseTagPattern": "${version}"
-  },
   "defaultBase": "main"
 }
