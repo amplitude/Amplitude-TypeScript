@@ -219,7 +219,7 @@ export function shouldTrackNetworkEvent(networkEvent: NetworkRequestEvent, optio
 
         // if requestBody rule is specified, enrich the event with the request body
         if (networkEvent.requestWrapper && rule.requestBody && !isBodyCaptureRuleEmpty(rule.requestBody)) {
-          let excludelist = rule.requestBody.excludelist || rule.requestBody.blocklist || [];
+          let excludelist = rule.requestBody.excludelist || rule.requestBody.blocklist;
           networkEvent.requestBodyJson = networkEvent.requestWrapper.json(rule.requestBody.allowlist, excludelist);
         }
       }
