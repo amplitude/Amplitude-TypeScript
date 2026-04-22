@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.41.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.40.0...@amplitude/analytics-browser@2.41.0) (2026-04-21)
+
+
+### Features
+
+* add long task tracking ([#1622](https://github.com/amplitude/Amplitude-TypeScript/issues/1622)) ([d995e1f](https://github.com/amplitude/Amplitude-TypeScript/commit/d995e1f2c098441808d65f6c171e171587e37ac2))
+
+
+
+
+
 # [2.40.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.39.0...@amplitude/analytics-browser@2.40.0) (2026-04-14)
 
 
