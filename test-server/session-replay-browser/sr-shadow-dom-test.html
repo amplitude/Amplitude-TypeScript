@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SR Shadow DOM Test</title>
+  </head>
+  <body>
+    <div id="status">loading</div>
+    <!--
+      Shadow host: a custom element with an adoptedStyleSheet and content inside
+      the shadow root. Used to verify captureAdoptedStyleSheets wiring.
+    -->
+    <div id="shadow-host"></div>
+    <script type="module">
+      import * as sessionReplay from '@amplitude/session-replay-browser';
+
+      window.sessionReplay = sessionReplay;
+
+      const params = new URLSearchParams(location.search);
+      const sessionId = params.has('sessionId') ? Number(params.get('sessionId')) : Date.now();
+      const deviceId = params.get('deviceId') ?? 'test-device-id';
+      const logLevel = params.has('logLevel') ? Number(params.get('logLevel')) : 0;
+      // captureAdoptedStyleSheets: omit param → SDK default (true); pass 'false' to opt out
+      const captureAdoptedStyleSheetsParam = params.get('captureAdoptedStyleSheets');
+      const captureAdoptedStyleSheets =
+        captureAdoptedStyleSheetsParam === null ? undefined : captureAdoptedStyleSheetsParam !== 'false';
+
+      // Build a shadow root with an adoptedStyleSheet before the SDK initializes
+      // so that the full-snapshot captures it.
+      const host = document.getElementById('shadow-host');
+      const shadow = host.attachShadow({ mode: 'open' });
+      const sheet = new CSSStyleSheet();
+      sheet.replaceSync('#shadow-content { color: red; font-size: 14px; }');
+      shadow.adoptedStyleSheets = [sheet];
+      const inner = document.createElement('span');
+      inner.id = 'shadow-content';
+      inner.textContent = 'hello from shadow DOM';
+      shadow.appendChild(inner);
+
+      void (async () => {
+        try {
+          const initOptions = {
+            deviceId,
+            sessionId,
+            sampleRate: 1.0,
+            logLevel,
+          };
+          if (captureAdoptedStyleSheets !== undefined) {
+            initOptions.captureAdoptedStyleSheets = captureAdoptedStyleSheets;
+          }
+          await sessionReplay.init('d90c5cf09ca2546a1626272906b99a76', initOptions).promise;
+        } catch (err) {
+          document.getElementById('status').textContent = 'error: ' + err.message;
+          window.srError = err.message;
+        }
+
+        window.srReady = true;
+        document.getElementById('status').textContent = 'ready';
+      })();
+    </script>
+  </body>
+</html>
