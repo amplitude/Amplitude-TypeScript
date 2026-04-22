@@ -948,9 +948,9 @@ describe('SessionReplay', () => {
         expectedValue: false,
       },
       {
-        description: 'should pass captureAdoptedStyleSheets=undefined to rrweb when option is not provided',
+        description: 'should pass captureAdoptedStyleSheets=true to rrweb when option is not provided (default)',
         options: {},
-        expectedValue: undefined,
+        expectedValue: true,
       },
     ])('$description', async ({ options, expectedValue }) => {
       const sessionReplay = new SessionReplay();

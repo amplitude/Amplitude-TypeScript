@@ -502,9 +502,9 @@ describe('SessionReplayJoinedConfigGenerator', () => {
         expect(config.urlChangePollingInterval).toBe(0);
       });
 
-      test('should leave captureAdoptedStyleSheets undefined when not provided', () => {
+      test('should default captureAdoptedStyleSheets to true when not provided', () => {
         const config = new SessionReplayLocalConfig('static_key', mockOptions);
-        expect(config.captureAdoptedStyleSheets).toBeUndefined();
+        expect(config.captureAdoptedStyleSheets).toBe(true);
       });
 
       test('should set captureAdoptedStyleSheets to true when provided', () => {

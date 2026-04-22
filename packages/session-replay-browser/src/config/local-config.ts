@@ -99,8 +99,6 @@ export class SessionReplayLocalConfig extends Config implements ISessionReplayLo
     if (options.omitElementTags) {
       this.omitElementTags = options.omitElementTags;
     }
-    if (options.captureAdoptedStyleSheets !== undefined) {
-      this.captureAdoptedStyleSheets = options.captureAdoptedStyleSheets;
-    }
+    this.captureAdoptedStyleSheets = options.captureAdoptedStyleSheets ?? true;
   }
 }
