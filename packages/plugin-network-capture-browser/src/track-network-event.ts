@@ -213,13 +213,13 @@ export function shouldTrackNetworkEvent(networkEvent: NetworkRequestEvent, optio
 
         // if responseBody rule is specified, enrich the event with the response body
         if (networkEvent.responseWrapper && rule.responseBody && !isBodyCaptureRuleEmpty(rule.responseBody)) {
-          let excludelist = rule.responseBody.excludelist || rule.responseBody.blocklist;
+          const excludelist = rule.responseBody.excludelist || rule.responseBody.blocklist;
           networkEvent.responseBodyJson = networkEvent.responseWrapper.json(rule.responseBody.allowlist, excludelist);
         }
 
         // if requestBody rule is specified, enrich the event with the request body
         if (networkEvent.requestWrapper && rule.requestBody && !isBodyCaptureRuleEmpty(rule.requestBody)) {
-          let excludelist = rule.requestBody.excludelist || rule.requestBody.blocklist;
+          const excludelist = rule.requestBody.excludelist || rule.requestBody.blocklist;
           networkEvent.requestBodyJson = networkEvent.requestWrapper.json(rule.requestBody.allowlist, excludelist);
         }
       }
