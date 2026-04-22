@@ -805,7 +805,7 @@ describe('track-network-event', () => {
       expect(requestJsonSpy).toHaveBeenCalledWith(allow, exclude);
     });
 
-    test('should use blocklist if excludelist is empty', () => {
+    test('should use blocklist if excludelist is undefined', () => {
       const responseJsonSpy = jest.spyOn(networkEvent.responseWrapper, 'json');
       const requestJsonSpy = jest.spyOn(networkEvent.requestWrapper, 'json');
       const allow = ['**'];
