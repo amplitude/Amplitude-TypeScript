@@ -73,6 +73,8 @@ export type PrivacyConfig = {
    *   { match: 'https://example.com/checkout/*', maskLevel: 'conservative' },
    *   { match: 'https://example.com/public/*',   maskLevel: 'light' },
    * ]
+   *
+   * @since session-replay-browser@1.37.0 / plugin-session-replay-browser@1.27.10
    */
   urlMaskLevels?: Array<{ match: string; maskLevel: MaskLevel }>;
 };
