@@ -15,9 +15,10 @@ export class Timeline {
   // Flag indicates whether timeline is ready to process event
   // Events collected before timeline is ready will stay in the queue to be processed later
   plugins: Plugin[] = [];
-  // Tracks registrations whose setup() is in flight so concurrent register() calls with
-  // the same name dedupe and inherit the winner's outcome.
-  _pendingRegistrations: Map<string, Promise<void>> = new Map();
+  // Names reserved by register(). Populated before setup() runs so a concurrent or
+  // re-entrant register() with the same name is skipped; freed on setup() failure and
+  // on deregister() so the name can be reused.
+  _reservedPluginNames: Set<string> = new Set();
   // loggerProvider is set by the client at _init()
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore
@@ -36,34 +37,23 @@ export class Timeline {
 
     const name = plugin.name;
 
-    const inflight = this._pendingRegistrations.get(name);
-    if (inflight) {
-      this.loggerProvider.warn(`Plugin with name ${name} already exists, skipping registration`);
-      await inflight;
-      return;
-    }
-    if (this.plugins.some((existingPlugin) => existingPlugin.name === name)) {
+    if (this._reservedPluginNames.has(name)) {
       this.loggerProvider.warn(`Plugin with name ${name} already exists, skipping registration`);
       return;
     }
 
-    plugin.type = plugin.type ?? 'enrichment';
-    // Capture the current plugins array so a post-reset resolve pushes into the orphaned
-    // (old) array instead of the freshly reset one. Defer to the next microtask so
-    // _pendingRegistrations is populated before user code runs — otherwise a plugin whose
-    // setup() re-enters register() recurses.
+    this._reservedPluginNames.add(name);
+
+    // Capture the plugins array so a post-reset resolve pushes into the orphaned (old)
+    // array instead of the freshly reset one.
     const targetPlugins = this.plugins;
-    const pending = Promise.resolve().then(async () => {
+    try {
+      plugin.type = plugin.type ?? 'enrichment';
       await plugin.setup?.(config, this.client);
       targetPlugins.push(plugin);
-    });
-    this._pendingRegistrations.set(name, pending);
-    try {
-      await pending;
-    } finally {
-      if (this._pendingRegistrations.get(name) === pending) {
-        this._pendingRegistrations.delete(name);
-      }
+    } catch (error) {
+      this._reservedPluginNames.delete(name);
+      throw error;
     }
   }
 
@@ -75,12 +65,13 @@ export class Timeline {
     }
     const plugin = this.plugins[index];
     this.plugins.splice(index, 1);
+    this._reservedPluginNames.delete(pluginName);
     await plugin.teardown?.();
   }
 
   reset(client: CoreClient) {
     this._clearOptOutListeners();
-    this._pendingRegistrations.clear();
+    this._reservedPluginNames.clear();
     this.applying = false;
     const plugins = this.plugins;
     plugins.map((plugin) => plugin.teardown?.());

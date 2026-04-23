@@ -124,62 +124,22 @@ describe('timeline', () => {
       );
     });
 
-    test('duplicate register should await the in-flight registration before resolving', async () => {
-      // If the loser returned immediately, callers that awaited `add(plugin)` could try
-      // to use the plugin before it was actually pushed to `this.plugins`.
-      let resolveSetup!: () => void;
-      const setupPromise = new Promise<void>((resolve) => {
-        resolveSetup = resolve;
-      });
-      const setup = jest.fn(() => setupPromise);
+    test('register should free the reserved name when setup fails, so retry works', async () => {
+      // The name is reserved synchronously when register() starts. If setup() throws,
+      // we must release the name — otherwise the plugin is permanently locked out.
       const plugin: EnrichmentPlugin = {
-        name: 'InflightPlugin',
+        name: 'RetryPlugin',
         type: 'enrichment',
-        setup,
+        setup: jest.fn<Promise<void>, []>().mockRejectedValueOnce(new Error('boom')).mockResolvedValueOnce(undefined),
         teardown: jest.fn(),
         execute: jest.fn(),
       };
 
-      const first = timeline.register(plugin, config);
-      const second = timeline.register(plugin, config);
-
-      // Before setup resolves, neither caller's register() should have settled.
-      expect(await promiseState(second)).toBe('pending');
+      await expect(timeline.register(plugin, config)).rejects.toThrow('boom');
       expect(timeline.plugins).toHaveLength(0);
 
-      resolveSetup();
-      await Promise.all([first, second]);
-
-      // After setup resolves, both callers observe the plugin registered.
+      await timeline.register(plugin, config);
       expect(timeline.plugins).toHaveLength(1);
-      expect(timeline.plugins[0].name).toBe('InflightPlugin');
-    });
-
-    test('duplicate register should reject when the in-flight setup rejects', async () => {
-      // If the winner's setup fails, the duplicate caller must see the same failure —
-      // otherwise it thinks the plugin is installed when it isn't.
-      const setupError = new Error('setup failed');
-      let rejectSetup!: (err: Error) => void;
-      const setupPromise = new Promise<void>((_, reject) => {
-        rejectSetup = reject;
-      });
-      const setup = jest.fn(() => setupPromise);
-      const plugin: EnrichmentPlugin = {
-        name: 'FailingPlugin',
-        type: 'enrichment',
-        setup,
-        teardown: jest.fn(),
-        execute: jest.fn(),
-      };
-
-      const first = timeline.register(plugin, config);
-      const second = timeline.register(plugin, config);
-
-      rejectSetup(setupError);
-
-      await expect(first).rejects.toBe(setupError);
-      await expect(second).rejects.toBe(setupError);
-      expect(timeline.plugins).toHaveLength(0);
     });
 
     test('nested register() from inside setup() should not double-invoke setup', async () => {
@@ -188,8 +148,6 @@ describe('timeline', () => {
       // twice and the plugin ends up registered twice.
       const pluginName = 'ReentrantPlugin';
       const setup = jest.fn(async () => {
-        // Fire a re-entrant register() before yielding — this is the scenario the original
-        // Set-based guard covered but the IIFE-based promise variant regressed.
         void timeline.register(plugin, config);
       });
       const plugin: EnrichmentPlugin = {
@@ -207,39 +165,6 @@ describe('timeline', () => {
       expect(mockLoggerProvider.warn).toHaveBeenCalledWith(
         `Plugin with name ${pluginName} already exists, skipping registration`,
       );
-    });
-  });
-
-  describe('reset', () => {
-    test('reset clears pending registrations so re-registration succeeds and setup does not push into new plugins array', async () => {
-      let resolveSetup!: () => void;
-      const setupPromise = new Promise<void>((resolve) => {
-        resolveSetup = resolve;
-      });
-      const setup = jest.fn(() => setupPromise);
-      const plugin: EnrichmentPlugin = {
-        name: 'ResetPlugin',
-        type: 'enrichment',
-        setup,
-        teardown: jest.fn(),
-        execute: jest.fn(),
-      };
-
-      const registration = timeline.register(plugin, config);
-
-      // Reset fires while setup() is still in flight
-      timeline.reset(new AmplitudeCore());
-
-      // After reset the plugins array is clear
-      expect(timeline.plugins).toHaveLength(0);
-
-      // Re-registering the same name must not block on the pre-reset in-flight promise
-      const reRegistration = timeline.register(plugin, config);
-      resolveSetup(); // let both the old and new setup settle
-      await Promise.allSettled([registration, reRegistration]);
-
-      // Only the post-reset registration should have pushed into the current array
-      expect(timeline.plugins).toHaveLength(1);
     });
   });
 
@@ -304,6 +229,37 @@ describe('timeline', () => {
       expect(teardown).toHaveBeenCalledTimes(1);
       expect(timeline.applying).toEqual(false);
       expect(timeline.plugins).toEqual([]);
+    });
+
+    test('reset frees reserved names and an in-flight setup does not push into the new plugins array', async () => {
+      let resolveSetup!: () => void;
+      const setupPromise = new Promise<void>((resolve) => {
+        resolveSetup = resolve;
+      });
+      const setup = jest.fn(() => setupPromise);
+      const plugin: EnrichmentPlugin = {
+        name: 'ResetPlugin',
+        type: 'enrichment',
+        setup,
+        teardown: jest.fn(),
+        execute: jest.fn(),
+      };
+
+      const registration = timeline.register(plugin, config);
+
+      // Reset fires while setup() is still in flight
+      timeline.reset(new AmplitudeCore());
+
+      // After reset the plugins array is clear
+      expect(timeline.plugins).toHaveLength(0);
+
+      // Re-registering the same name must not block on the pre-reset in-flight promise
+      const reRegistration = timeline.register(plugin, config);
+      resolveSetup(); // let both the old and new setup settle
+      await Promise.allSettled([registration, reRegistration]);
+
+      // Only the post-reset registration should have pushed into the current array
+      expect(timeline.plugins).toHaveLength(1);
     });
   });
 
