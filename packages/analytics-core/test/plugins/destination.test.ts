@@ -7,6 +7,7 @@ import { Response } from '../../src/types/response';
 import { API_KEY, useDefaultConfig } from '../helpers/default';
 import {
   INVALID_API_KEY,
+  MAX_RETRIES_EXCEEDED_MESSAGE,
   MISSING_API_KEY_MESSAGE,
   SUCCESS_MESSAGE,
   UNEXPECTED_ERROR_MESSAGE,
@@ -145,6 +146,27 @@ describe('destination', () => {
       expect(fulfillRequest).toHaveBeenCalledTimes(2);
       expect(result.length).toBe(1);
       expect(result[0].event.event_type).toBe('event_3');
+    });
+
+    test('should call onUploadError when retries are exhausted', () => {
+      const onUploadError = jest.fn();
+      const destination = new Destination();
+      destination.config = {
+        ...useDefaultConfig(),
+        flushMaxRetries: 1,
+        onUploadError,
+      };
+
+      destination.removeEventsExceedFlushMaxRetries([
+        {
+          event: { event_type: 'event_1' },
+          attempts: 0,
+          callback: () => undefined,
+          timeout: 0,
+        },
+      ]);
+
+      expect(onUploadError).toHaveBeenCalledWith(MAX_RETRIES_EXCEEDED_MESSAGE);
     });
   });
 
@@ -911,6 +933,25 @@ describe('destination', () => {
       const recordEventCall = recordEventSpy.mock.calls[0];
       expect(Array.isArray(recordEventCall[1].stack_trace)).toBe(true);
       expect(recordEventCall[1].stack_trace.length).toBeGreaterThan(0);
+    });
+
+    test('should call onUploadError when send throws an error', async () => {
+      const onUploadError = jest.fn();
+      const destination = new Destination();
+      const transportProvider = {
+        send: jest.fn().mockImplementationOnce(() => {
+          throw new Error('Network error');
+        }),
+      };
+      await destination.setup({
+        ...useDefaultConfig(),
+        onUploadError,
+        transportProvider,
+      });
+
+      await destination.send([{ event: { event_type: 'event1' }, attempts: 0, callback: jest.fn(), timeout: 0 }]);
+
+      expect(onUploadError).toHaveBeenCalledWith('Network error');
     });
   });
 

@@ -1,18 +1,18 @@
 import * as Config from '../src/config';
 import * as LocalStorageModule from '../src/storage/local-storage';
 import * as SessionStorageModule from '../src/storage/session-storage';
-import * as core from '@amplitude/analytics-core';
 import {
+  BrowserConfig,
+  CookieStorage,
+  FetchTransport as CoreFetchTransport,
+  getCookieName,
   LogLevel,
+  Logger,
+  MemoryStorage,
   Storage,
   UserSession,
-  MemoryStorage,
-  getCookieName,
-  FetchTransport as CoreFetchTransport,
-  Logger,
-  BrowserConfig,
+  UUID,
 } from '@amplitude/analytics-core';
-import * as BrowserUtils from '@amplitude/analytics-core';
 import { XHRTransport } from '../src/transports/xhr';
 import { createTransport, useBrowserConfig, shouldFetchRemoteConfig } from '../src/config';
 import { FetchTransport } from '../src/transports/fetch';
@@ -24,9 +24,7 @@ import { VERSION } from '../src/version';
 
 describe('config', () => {
   const someUUID: string = expect.stringMatching(uuidPattern) as string;
-  const someCookieStorage: BrowserUtils.CookieStorage<UserSession> = expect.any(
-    BrowserUtils.CookieStorage,
-  ) as BrowserUtils.CookieStorage<UserSession>;
+  const someCookieStorage: CookieStorage<UserSession> = expect.any(CookieStorage) as CookieStorage<UserSession>;
   const someLocalStorage: LocalStorageModule.LocalStorage<UserSession> = expect.any(
     LocalStorageModule.LocalStorage,
   ) as LocalStorageModule.LocalStorage<UserSession>;
@@ -34,7 +32,7 @@ describe('config', () => {
   let apiKey = '';
 
   beforeEach(() => {
-    apiKey = core.UUID();
+    apiKey = UUID();
   });
 
   describe('BrowserConfig', () => {
@@ -101,9 +99,25 @@ describe('config', () => {
   });
 
   describe('useBrowserConfig', () => {
+    const originalLocation = window.location;
+
+    beforeEach(() => {
+      Object.defineProperty(window, 'location', {
+        value: { hostname: 'amplitude.com' },
+        configurable: true,
+      });
+    });
+
+    afterEach(() => {
+      Object.defineProperty(window, 'location', {
+        value: originalLocation,
+        configurable: true,
+      });
+    });
+
     test('should create default config', async () => {
       const getTopLevelDomain = jest.spyOn(Config, 'getTopLevelDomain').mockResolvedValueOnce('.amplitude.com');
-      const logger = new core.Logger();
+      const logger = new Logger();
       logger.enable(LogLevel.Warn);
       const config = await Config.useBrowserConfig(apiKey, undefined, new AmplitudeBrowser());
       expect(config).toEqual({
@@ -162,11 +176,42 @@ describe('config', () => {
       expect(getTopLevelDomain).toHaveBeenCalledTimes(1);
     });
 
+    test.each(['localhost', '127.0.0.1'])('should enable immediate flush defaults on %s', async (hostname: string) => {
+      Object.defineProperty(window, 'location', {
+        value: { hostname },
+        configurable: true,
+      });
+
+      const config = await Config.useBrowserConfig(apiKey, undefined, new AmplitudeBrowser());
+
+      expect(config.flushIntervalMillis).toBe(0);
+      expect(config.flushQueueSize).toBe(1);
+    });
+
+    test('should allow localhost flush defaults to be overridden explicitly', async () => {
+      Object.defineProperty(window, 'location', {
+        value: { hostname: 'localhost' },
+        configurable: true,
+      });
+
+      const config = await Config.useBrowserConfig(
+        apiKey,
+        {
+          flushIntervalMillis: 5000,
+          flushQueueSize: 10,
+        },
+        new AmplitudeBrowser(),
+      );
+
+      expect(config.flushIntervalMillis).toBe(5000);
+      expect(config.flushQueueSize).toBe(10);
+    });
+
     test('should fall back to memoryStorage when storageProvider is not enabled', async () => {
       const localStorageIsEnabledSpy = jest
         .spyOn(LocalStorageModule.LocalStorage.prototype, 'isEnabled')
         .mockResolvedValueOnce(false);
-      const loggerProviderSpy = jest.spyOn(core.Logger.prototype, 'warn');
+      const loggerProviderSpy = jest.spyOn(Logger.prototype, 'warn');
       const config = await Config.useBrowserConfig(apiKey, undefined, new AmplitudeBrowser());
       expect(localStorageIsEnabledSpy).toHaveBeenCalledTimes(1);
       expect(loggerProviderSpy).toHaveBeenCalledWith(
@@ -193,7 +238,7 @@ describe('config', () => {
           },
           configurable: true,
         });
-        const cookieStorage = new core.MemoryStorage<UserSession>();
+        const cookieStorage = new MemoryStorage<UserSession>();
         await cookieStorage.set(getCookieName(apiKey), {
           deviceId: 'device-device-device',
           sessionId: -1,
@@ -202,7 +247,7 @@ describe('config', () => {
           lastEventTime: 1,
           optOut: false,
         });
-        const logger = new core.Logger();
+        const logger = new Logger();
         logger.enable(LogLevel.Warn);
         jest.spyOn(Config, 'createCookieStorage').mockReturnValueOnce(cookieStorage);
         const config = await Config.useBrowserConfig(
@@ -376,7 +421,7 @@ describe('config', () => {
   describe('createCookieStorage', () => {
     test('should return cookies', async () => {
       const storage = Config.createCookieStorage(DEFAULT_IDENTITY_STORAGE);
-      expect(storage).toBeInstanceOf(BrowserUtils.CookieStorage);
+      expect(storage).toBeInstanceOf(CookieStorage);
     });
 
     test('should use return storage', async () => {
@@ -391,7 +436,7 @@ describe('config', () => {
 
     test('should use memory', async () => {
       const storage = Config.createCookieStorage('none');
-      expect(storage).toBeInstanceOf(core.MemoryStorage);
+      expect(storage).toBeInstanceOf(MemoryStorage);
     });
   });
 
@@ -437,7 +482,7 @@ describe('config', () => {
 
   describe('getTopLevelDomain', () => {
     test('should return empty string for localhost', async () => {
-      const isDomainWritableSpy = jest.spyOn(BrowserUtils.CookieStorage, 'isDomainWritable');
+      const isDomainWritableSpy = jest.spyOn(CookieStorage, 'isDomainWritable');
       const domain = await Config.getTopLevelDomain(undefined);
       expect(isDomainWritableSpy).not.toHaveBeenCalled();
       expect(domain).toBe('');
@@ -445,7 +490,7 @@ describe('config', () => {
     });
 
     test('should return empty string for single part hostname', async () => {
-      const isDomainWritableSpy = jest.spyOn(BrowserUtils.CookieStorage, 'isDomainWritable');
+      const isDomainWritableSpy = jest.spyOn(CookieStorage, 'isDomainWritable');
       const domain = await Config.getTopLevelDomain('mylocaldomain');
       expect(isDomainWritableSpy).not.toHaveBeenCalled();
       expect(domain).toBe('');
@@ -460,11 +505,11 @@ describe('config', () => {
         remove: jest.fn().mockResolvedValueOnce(Promise.resolve(undefined)),
         reset: jest.fn().mockResolvedValueOnce(Promise.resolve(undefined)),
       };
-      jest.spyOn(BrowserUtils, 'CookieStorage').mockReturnValueOnce({
+      jest.spyOn({ CookieStorage }, 'CookieStorage').mockReturnValueOnce({
         ...testCookieStorage,
         options: {},
         config: {},
-      } as unknown as BrowserUtils.CookieStorage<unknown>);
+      } as unknown as CookieStorage<unknown>);
       const domain = await Config.getTopLevelDomain();
       expect(domain).toBe('');
     });
@@ -487,24 +532,24 @@ describe('config', () => {
         reset: jest.fn().mockResolvedValue(Promise.resolve(undefined)),
         // CookieStorage.transaction is used by getTopLevelDomain; first domain fails, second succeeds
         transaction: jest.fn().mockResolvedValueOnce(false).mockResolvedValueOnce(true),
-      } as unknown as BrowserUtils.CookieStorage<number>;
+      } as unknown as CookieStorage<number>;
       jest
-        .spyOn(BrowserUtils, 'CookieStorage')
+        .spyOn({ CookieStorage }, 'CookieStorage')
         .mockReturnValueOnce({
           ...testCookieStorage,
           options: {},
           config: {},
-        } as unknown as BrowserUtils.CookieStorage<unknown>)
+        } as unknown as CookieStorage<unknown>)
         .mockReturnValue({
           ...actualCookieStorage,
           options: {},
           config: {},
-        } as unknown as BrowserUtils.CookieStorage<unknown>);
+        } as unknown as CookieStorage<unknown>);
 
       // eslint-disable-next-line @typescript-eslint/unbound-method
-      const isDomainWritableBefore = BrowserUtils.CookieStorage.isDomainWritable;
+      const isDomainWritableBefore = CookieStorage.isDomainWritable;
       try {
-        BrowserUtils.CookieStorage.isDomainWritable = jest.fn().mockImplementation((domain: string) => {
+        CookieStorage.isDomainWritable = jest.fn().mockImplementation((domain: string) => {
           if (domain === 'gov.uk') return Promise.resolve(false);
           if (domain === 'ac.be') return Promise.resolve(false);
           if (domain === 'legislation.gov.uk') return Promise.resolve(true);
@@ -516,7 +561,7 @@ describe('config', () => {
         expect(await Config.getTopLevelDomain('www.website.com')).toBe('.website.com');
         expect(await Config.getTopLevelDomain('www.hello.ac.be')).toBe('.hello.ac.be');
       } finally {
-        BrowserUtils.CookieStorage.isDomainWritable = isDomainWritableBefore;
+        CookieStorage.isDomainWritable = isDomainWritableBefore;
       }
     });
 
@@ -579,16 +624,16 @@ describe('config', () => {
       };
 
       // eslint-disable-next-line @typescript-eslint/unbound-method
-      const isDomainWritableBefore = BrowserUtils.CookieStorage.isDomainWritable;
+      const isDomainWritableBefore = CookieStorage.isDomainWritable;
       try {
-        BrowserUtils.CookieStorage.isDomainWritable = jest.fn().mockRejectedValue(tldError);
+        CookieStorage.isDomainWritable = jest.fn().mockRejectedValue(tldError);
         expect(await Config.getTopLevelDomain('www.example.com', mockDiagnosticsClient)).toBe('');
         expect(mockDiagnosticsClient.recordEvent).toHaveBeenCalledWith('cookies.tld.failure', {
           reason: 'Unexpected exception checking domain is writable: example.com',
           error: 'cookie access denied',
         });
       } finally {
-        BrowserUtils.CookieStorage.isDomainWritable = isDomainWritableBefore;
+        CookieStorage.isDomainWritable = isDomainWritableBefore;
       }
     });
   });
@@ -628,7 +673,7 @@ describe('config', () => {
     const encodeJson = (session: UserSession) => btoa(encodeURIComponent(JSON.stringify(session)));
 
     let config: BrowserConfig;
-    let cookieStorage: BrowserUtils.CookieStorage<UserSession>;
+    let cookieStorage: CookieStorage<UserSession>;
     let duplicateResolverFn: ((value: string) => boolean) | undefined;
 
     beforeEach(async () => {
@@ -637,7 +682,7 @@ describe('config', () => {
         { cookieOptions: { domain: '.amplitude.com' } },
         new AmplitudeBrowser(),
       );
-      cookieStorage = config.cookieStorage as BrowserUtils.CookieStorage<UserSession>;
+      cookieStorage = config.cookieStorage as CookieStorage<UserSession>;
       duplicateResolverFn = cookieStorage.config.duplicateResolverFn;
     });
 
@@ -682,7 +727,7 @@ describe('config', () => {
 
   describe('useBrowserConfig with earlyConfig', () => {
     test('should use earlyConfig values when provided', async () => {
-      const customLogger = new core.Logger();
+      const customLogger = new Logger();
       customLogger.enable(LogLevel.Debug);
 
       const earlyConfig: Config.EarlyConfig = {

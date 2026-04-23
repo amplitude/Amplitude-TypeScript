@@ -38,6 +38,7 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 ### Bug Fixes
 
+* **analytics-browser:** auto-flush immediately on localhost and surface upload errors via `onUploadError`
 * **plugin-custom-enrichment:** allow disable custom enrichment plugin over remote config settings ([#1638](https://github.com/amplitude/Amplitude-TypeScript/issues/1638)) ([385c4de](https://github.com/amplitude/Amplitude-TypeScript/commit/385c4ded2b2622fde1ac0930495805e11353d55f))
 
 
