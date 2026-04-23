@@ -5,6 +5,9 @@ import AmplitudeSessionReplay
 class PluginSessionReplayReactNative: NSObject {
     
     var sessionReplay: SessionReplay!
+    // `sessionReplay` is a var (not a let), so it can be re-assigned; we need our own
+    // flag to distinguish "never set up" from "set up and active".
+    private var isActive: Bool = false
     
     @objc(setup:deviceId:sessionId:serverZone:sampleRate:enableRemoteConfig:logLevel:autoStart:resolve:reject:)
     func setup(_ apiKey: String,
@@ -30,6 +33,12 @@ class PluginSessionReplayReactNative: NSObject {
             Auto Start: \(autoStart)
             """
         )
+        // Guard against double-init; callers that want to re-init must teardown() first.
+        if isActive {
+            print("SessionReplay.setup called while a prior instance is active. Skipping — call teardown() first to re-initialize.")
+            resolve(nil)
+            return
+        }
         sessionReplay = SessionReplay(apiKey:apiKey,
                                       deviceId: deviceId,
                                       sessionId: sessionId.int64Value,
@@ -40,6 +49,7 @@ class PluginSessionReplayReactNative: NSObject {
         if (autoStart) {
             sessionReplay.start()
         }
+        isActive = true
         resolve(nil)
     }
     
@@ -87,6 +97,7 @@ class PluginSessionReplayReactNative: NSObject {
     func teardown(_ resolve: RCTPromiseResolveBlock, reject: RCTPromiseRejectBlock) -> Void {
       print("teardown")
       sessionReplay.stop()
+      isActive = false
       resolve(nil)
     }
 }
