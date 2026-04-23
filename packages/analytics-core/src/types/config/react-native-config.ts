@@ -2,7 +2,7 @@ import { IConfig } from './core-config';
 import { Storage } from '../storage';
 import { UserSession } from '../user-session';
 
-type HiddenOptions = 'apiKey' | 'lastEventId' | '_enableRequestBodyCompressionExperimental';
+type HiddenOptions = 'apiKey' | 'lastEventId';
 
 export type ReactNativeOptions = Omit<Partial<ReactNativeConfig>, HiddenOptions>;
 
