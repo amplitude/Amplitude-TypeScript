@@ -177,6 +177,66 @@ test.describe('privacy — privacyConfig option', () => {
   });
 });
 
+// ─── amp-unmask CSS class (SR-2945) ──────────────────────────────────────────
+
+test.describe('privacy — amp-unmask CSS class', () => {
+  test('amp-unmask class unmasks text under conservative masking from remote config without explicit unmaskSelector', async ({
+    page,
+  }) => {
+    // Before SR-2945, .amp-unmask had no effect unless the user explicitly added
+    // '.amp-unmask' to privacyConfig.unmaskSelector. Now it's wired as a default.
+    await mockRemoteConfig(page, remoteConfigWithPrivacy({ defaultMaskLevel: 'conservative' }));
+    const getBodies = await captureTrackRequests(page);
+
+    // No local privacyConfig — masking comes entirely from remote config
+    await page.goto(buildUrl(PRIVACY_PAGE, { sessionId: TEST_SESSION_ID }));
+    await waitForReady(page);
+    await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
+    await flushRecording(page);
+
+    const root = getSnapshotRoot(getBodies());
+    expect(root).not.toBeNull();
+
+    // #amp-unmask-text has the .amp-unmask class — should NOT be masked
+    const unmaskEl = findById(root!, 'amp-unmask-text');
+    expect(unmaskEl).toBeDefined();
+    expect(getTextContent(unmaskEl!)).toContain('Unmask class visible text');
+    expect(isMaskedText(getTextContent(unmaskEl!))).toBe(false);
+
+    // #plain-text has no special class — should be masked under conservative
+    const plainEl = findById(root!, 'plain-text');
+    expect(plainEl).toBeDefined();
+    expect(isMaskedText(getTextContent(plainEl!))).toBe(true);
+  });
+
+  test('amp-unmask class unmasks text under conservative masking from local privacyConfig without explicit unmaskSelector', async ({
+    page,
+  }) => {
+    const privacyConfig = JSON.stringify({ defaultMaskLevel: 'conservative' });
+    await mockRemoteConfig(page, remoteConfigRecording);
+    const getBodies = await captureTrackRequests(page);
+
+    await page.goto(buildUrl(PRIVACY_PAGE, { sessionId: TEST_SESSION_ID, privacyConfig }));
+    await waitForReady(page);
+    await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
+    await flushRecording(page);
+
+    const root = getSnapshotRoot(getBodies());
+    expect(root).not.toBeNull();
+
+    // #amp-unmask-text has the .amp-unmask class — should NOT be masked
+    const unmaskEl = findById(root!, 'amp-unmask-text');
+    expect(unmaskEl).toBeDefined();
+    expect(getTextContent(unmaskEl!)).toContain('Unmask class visible text');
+    expect(isMaskedText(getTextContent(unmaskEl!))).toBe(false);
+
+    // #plain-text has no special class — should be masked under conservative
+    const plainEl = findById(root!, 'plain-text');
+    expect(plainEl).toBeDefined();
+    expect(isMaskedText(getTextContent(plainEl!))).toBe(true);
+  });
+});
+
 // ─── Remote privacy config ────────────────────────────────────────────────────
 
 test.describe('privacy — remote sr_privacy_config', () => {
