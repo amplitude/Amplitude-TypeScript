@@ -108,6 +108,7 @@ export class SessionReplayPlugin implements EnrichmentPlugin<BrowserClient, Brow
         enableUrlChangePolling: this.options.enableUrlChangePolling,
         urlChangePollingInterval: this.options.urlChangePollingInterval,
         captureAdoptedStyleSheets: this.options.captureAdoptedStyleSheets,
+        remoteTargeting: this.options.remoteTargeting,
       };
 
       await this.sessionReplay.init(config.apiKey, this.srInitOptions).promise;

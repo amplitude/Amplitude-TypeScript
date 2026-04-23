@@ -17,6 +17,8 @@ import * as Sampling from '../src/sampling';
 import * as Helpers from '../src/helpers';
 import { SessionReplay } from '../src/session-replay';
 import * as targetingManager from '../src/targeting/targeting-manager';
+import * as remoteEvalClient from '../src/targeting/remote-eval-client';
+import { eventWithTime } from '@amplitude/rrweb-types';
 
 // Mock the worker module
 jest.mock(
@@ -4433,6 +4435,804 @@ describe('SessionReplay', () => {
           mockOptions.sessionId?.toString() || ''
         } due to matching targeting conditions.`,
       );
+    });
+
+    describe('remote targeting gate', () => {
+      test('getShouldRecord returns false when remoteDecision.capture is false', async () => {
+        await sessionReplay.init(apiKey, mockOptions).promise;
+        (sessionReplay as any).remoteDecision = { capture: false, reason: 'denied' };
+        expect(sessionReplay.getShouldRecord()).toBe(false);
+        expect(mockLoggerProvider.log).toHaveBeenCalledWith(
+          expect.stringContaining('excluded by remote targeting gate'),
+        );
+      });
+
+      test('getShouldRecord returns false when pending + conservative', async () => {
+        await sessionReplay.init(apiKey, mockOptions).promise;
+        if (sessionReplay.config) {
+          sessionReplay.config.remoteTargeting = {
+            enabled: true,
+            mode: 'session',
+            deploymentKey: 'client-test-key',
+            decisionStrategy: 'conservative',
+          };
+        }
+        (sessionReplay as any).remoteDecisionPending = true;
+        (sessionReplay as any).remoteDecision = null;
+        expect(sessionReplay.getShouldRecord()).toBe(false);
+        expect(mockLoggerProvider.log).toHaveBeenCalledWith(
+          expect.stringContaining('pending remote targeting decision'),
+        );
+      });
+
+      test('getShouldRecord proceeds normally when pending + lookback', async () => {
+        await sessionReplay.init(apiKey, mockOptions).promise;
+        if (sessionReplay.config) {
+          sessionReplay.config.remoteTargeting = {
+            enabled: true,
+            mode: 'session',
+            deploymentKey: 'client-test-key',
+            decisionStrategy: 'lookback',
+          };
+        }
+        (sessionReplay as any).remoteDecisionPending = true;
+        (sessionReplay as any).remoteDecision = null;
+        // Should not return false due to remote pending in lookback mode
+        // (still subject to captureEnabled / sample rate / targeting checks)
+        const result = sessionReplay.getShouldRecord();
+        expect(result).toBe(true); // sample rate = 1 in mockOptions
+      });
+    });
+  });
+
+  describe('remote eval gate', () => {
+    let fetchRemoteDecisionSpy: jest.SpyInstance;
+    const remoteTargetingBase = {
+      enabled: true,
+      mode: 'session' as const,
+      deploymentKey: 'client-test-deployment-key',
+      flagKey: 'sr-capture-gate',
+      timeoutMs: 200,
+    };
+
+    beforeEach(() => {
+      fetchRemoteDecisionSpy = jest.spyOn(remoteEvalClient, 'fetchRemoteDecision');
+    });
+
+    afterEach(() => {
+      fetchRemoteDecisionSpy.mockRestore();
+    });
+
+    describe('mode: off (or remoteTargeting not set)', () => {
+      test('uses existing evaluateTargetingAndCapture flow when remoteTargeting not configured', async () => {
+        const evaluateTargetingAndCaptureSpy = jest.spyOn(sessionReplay, 'evaluateTargetingAndCapture');
+        await sessionReplay.init(apiKey, mockOptions).promise;
+        // fetchRemoteDecision should not be called
+        expect(fetchRemoteDecisionSpy).not.toHaveBeenCalled();
+        // evaluateTargetingAndCapture should have been called (existing path)
+        expect(evaluateTargetingAndCaptureSpy).toHaveBeenCalledWith(
+          expect.objectContaining({ page: { url: 'http://localhost' } }),
+          true,
+        );
+      });
+
+      test('uses existing flow when mode is off', async () => {
+        const evaluateTargetingAndCaptureSpy = jest.spyOn(sessionReplay, 'evaluateTargetingAndCapture');
+        const optionsWithOff: SessionReplayOptions = {
+          ...mockOptions,
+          remoteTargeting: { ...remoteTargetingBase, mode: 'off', decisionStrategy: 'conservative' },
+        };
+        await sessionReplay.init(apiKey, optionsWithOff).promise;
+        expect(fetchRemoteDecisionSpy).not.toHaveBeenCalled();
+        expect(evaluateTargetingAndCaptureSpy).toHaveBeenCalledWith(expect.anything(), true);
+      });
+    });
+
+    describe('conservative strategy', () => {
+      const conservativeOptions: SessionReplayOptions = {
+        ...mockOptions,
+        remoteTargeting: { ...remoteTargetingBase, decisionStrategy: 'conservative' },
+      };
+
+      test('does not start recording before remote decision arrives', async () => {
+        // Delay remote decision resolution
+        let resolveDecision!: (d: { capture: boolean }) => void;
+        fetchRemoteDecisionSpy.mockReturnValue(
+          new Promise<{ capture: boolean }>((resolve) => {
+            resolveDecision = resolve;
+          }),
+        );
+        const recordEventsSpy = jest.spyOn(sessionReplay, 'recordEvents' as any);
+
+        await sessionReplay.init(apiKey, conservativeOptions).promise;
+
+        // getShouldRecord should return false while pending
+        expect(sessionReplay.getShouldRecord()).toBe(false);
+        // recordEvents should not have been called yet (no recording)
+        expect(recordEventsSpy).not.toHaveBeenCalled();
+
+        resolveDecision({ capture: true });
+      });
+
+      test('starts recording after remote decision: capture=true (no targetingConfig)', async () => {
+        fetchRemoteDecisionSpy.mockResolvedValue({ capture: true });
+        const recordEventsSpy = jest.spyOn(sessionReplay, 'recordEvents' as any);
+
+        await sessionReplay.init(apiKey, conservativeOptions).promise;
+        // Drain microtask queue: fetchRemoteDecision → runRemoteEval → recordEvents → getRecordFunction → initNetworkObservers → record()
+        for (let i = 0; i < 6; i++) {
+          await Promise.resolve();
+        }
+
+        expect(fetchRemoteDecisionSpy).toHaveBeenCalledWith(
+          remoteTargetingBase.deploymentKey,
+          expect.objectContaining({ device_id: mockOptions.deviceId }),
+          remoteTargetingBase.flagKey,
+          remoteTargetingBase.timeoutMs,
+          expect.any(String),
+        );
+        expect(recordEventsSpy).toHaveBeenCalled();
+        expect(mockRecordFunction).toHaveBeenCalled();
+      });
+
+      test('does not start recording after remote decision: capture=false', async () => {
+        fetchRemoteDecisionSpy.mockResolvedValue({ capture: false, reason: 'not in cohort' });
+        const recordEventsSpy = jest.spyOn(sessionReplay, 'recordEvents' as any);
+
+        await sessionReplay.init(apiKey, conservativeOptions).promise;
+        await Promise.resolve();
+        await Promise.resolve();
+
+        expect(recordEventsSpy).not.toHaveBeenCalled();
+        expect(mockRecordFunction).not.toHaveBeenCalled();
+        expect(sessionReplay.getShouldRecord()).toBe(false);
+      });
+
+      test('does not record on timeout (conservative fallback)', async () => {
+        fetchRemoteDecisionSpy.mockResolvedValue({ capture: false, reason: 'timeout' });
+        const recordEventsSpy = jest.spyOn(sessionReplay, 'recordEvents' as any);
+
+        await sessionReplay.init(apiKey, conservativeOptions).promise;
+        await Promise.resolve();
+        await Promise.resolve();
+
+        expect(recordEventsSpy).not.toHaveBeenCalled();
+        expect(sessionReplay.getShouldRecord()).toBe(false);
+      });
+    });
+
+    describe('lookback strategy', () => {
+      const lookbackOptions: SessionReplayOptions = {
+        ...mockOptions,
+        remoteTargeting: { ...remoteTargetingBase, decisionStrategy: 'lookback' },
+      };
+
+      test('starts recording immediately before remote decision arrives', async () => {
+        let resolveDecision!: (d: { capture: boolean }) => void;
+        fetchRemoteDecisionSpy.mockReturnValue(
+          new Promise<{ capture: boolean }>((resolve) => (resolveDecision = resolve)),
+        );
+
+        await sessionReplay.init(apiKey, lookbackOptions).promise;
+
+        // rrweb recording should have started immediately
+        expect(mockRecordFunction).toHaveBeenCalled();
+        // But uploads are held
+        expect((sessionReplay as any).lookbackHoldUploads).toBe(true);
+
+        resolveDecision({ capture: true });
+        await Promise.resolve();
+        await Promise.resolve();
+      });
+
+      test('flushes buffered events and continues recording on capture=true', async () => {
+        fetchRemoteDecisionSpy.mockResolvedValue({ capture: true });
+
+        await sessionReplay.init(apiKey, lookbackOptions).promise;
+        await Promise.resolve();
+        await Promise.resolve();
+
+        expect((sessionReplay as any).lookbackHoldUploads).toBe(false);
+        expect((sessionReplay as any).lookbackEventBuffer).toHaveLength(0);
+      });
+
+      test('stops recording and discards buffer on capture=false', async () => {
+        fetchRemoteDecisionSpy.mockResolvedValue({ capture: false, reason: 'denied' });
+        const stopRecordingSpy = jest.spyOn(sessionReplay, 'stopRecordingEvents');
+
+        await sessionReplay.init(apiKey, lookbackOptions).promise;
+        await Promise.resolve();
+        await Promise.resolve();
+
+        expect(stopRecordingSpy).toHaveBeenCalled();
+        expect((sessionReplay as any).lookbackHoldUploads).toBe(false);
+        expect((sessionReplay as any).lookbackEventBuffer).toHaveLength(0);
+        expect(sessionReplay.getShouldRecord()).toBe(false);
+      });
+    });
+
+    describe('session ID change re-runs remote eval', () => {
+      test('resets remote eval state and re-fires runRemoteEval on asyncSetSessionId', async () => {
+        fetchRemoteDecisionSpy.mockResolvedValue({ capture: true });
+        const options: SessionReplayOptions = {
+          ...mockOptions,
+          remoteTargeting: { ...remoteTargetingBase, decisionStrategy: 'conservative' },
+        };
+        await sessionReplay.init(apiKey, options).promise;
+        await Promise.resolve();
+        await Promise.resolve();
+
+        fetchRemoteDecisionSpy.mockClear();
+        fetchRemoteDecisionSpy.mockResolvedValue({ capture: true });
+
+        await sessionReplay.setSessionId(456).promise;
+        await Promise.resolve();
+        await Promise.resolve();
+
+        // Should have called fetchRemoteDecision again for the new session
+        expect(fetchRemoteDecisionSpy).toHaveBeenCalledTimes(1);
+        // Remote decision state should be reset and re-applied
+        expect((sessionReplay as any).remoteDecision).toEqual({ capture: true });
+      });
+
+      test('remote eval state is reset on session change even when previous decision was capture=false', async () => {
+        fetchRemoteDecisionSpy.mockResolvedValue({ capture: false });
+        const options: SessionReplayOptions = {
+          ...mockOptions,
+          remoteTargeting: { ...remoteTargetingBase, decisionStrategy: 'conservative' },
+        };
+        await sessionReplay.init(apiKey, options).promise;
+        await Promise.resolve();
+        await Promise.resolve();
+        expect(sessionReplay.getShouldRecord()).toBe(false);
+
+        // New session - new chance
+        fetchRemoteDecisionSpy.mockResolvedValue({ capture: true });
+        await sessionReplay.setSessionId(789).promise;
+        await Promise.resolve();
+        await Promise.resolve();
+
+        expect((sessionReplay as any).remoteDecision).toEqual({ capture: true });
+        expect(sessionReplay.getShouldRecord()).toBe(true);
+      });
+
+      test('asyncSetSessionId stops previous lookback recording before starting new eval', async () => {
+        fetchRemoteDecisionSpy.mockResolvedValue({ capture: true });
+        const options: SessionReplayOptions = {
+          ...mockOptions,
+          remoteTargeting: { ...remoteTargetingBase, decisionStrategy: 'lookback' },
+        };
+        await sessionReplay.init(apiKey, options).promise;
+        for (let i = 0; i < 6; i++) {
+          await Promise.resolve();
+        }
+
+        // Recording is active after lookback + capture=true
+        expect((sessionReplay as any).recordCancelCallback).not.toBeNull();
+
+        const stopRecordingSpy = jest.spyOn(sessionReplay, 'stopRecordingEvents');
+        fetchRemoteDecisionSpy.mockClear();
+        fetchRemoteDecisionSpy.mockResolvedValue({ capture: true });
+
+        await sessionReplay.setSessionId(456).promise;
+
+        // stopRecordingEvents must have been called to clean up the prior session's recording
+        expect(stopRecordingSpy).toHaveBeenCalled();
+      });
+
+      test('session change clears old lookback buffer before buffering new-session events', async () => {
+        let capturedEmit: ((event: eventWithTime) => void) | undefined;
+        mockRecordFunction.mockImplementation((options: { emit: (event: eventWithTime) => void }) => {
+          capturedEmit = options.emit;
+          return jest.fn();
+        });
+
+        let resolveFirstDecision!: (d: { capture: boolean }) => void;
+        fetchRemoteDecisionSpy.mockReturnValue(
+          new Promise<{ capture: boolean }>((resolve) => (resolveFirstDecision = resolve)),
+        );
+
+        const options: SessionReplayOptions = {
+          ...mockOptions,
+          remoteTargeting: { ...remoteTargetingBase, decisionStrategy: 'lookback' },
+        };
+        await sessionReplay.init(apiKey, options).promise;
+
+        // Emit two events during session 1 lookback hold
+        expect((sessionReplay as any).lookbackHoldUploads).toBe(true);
+        capturedEmit?.(mockEvent as eventWithTime);
+        capturedEmit?.(mockEvent as eventWithTime);
+        expect((sessionReplay as any).lookbackEventBuffer).toHaveLength(2);
+
+        // Set up a new pending decision for session 2
+        let resolveSecondDecision!: (d: { capture: boolean }) => void;
+        fetchRemoteDecisionSpy.mockReturnValue(
+          new Promise<{ capture: boolean }>((resolve) => (resolveSecondDecision = resolve)),
+        );
+
+        // Transition to a new session — old buffer must be cleared
+        await sessionReplay.setSessionId(456).promise;
+        expect((sessionReplay as any).lookbackEventBuffer).toHaveLength(0);
+
+        // Events emitted during session 2 must land in the new buffer with the new session id
+        capturedEmit?.(mockEvent as eventWithTime);
+        expect((sessionReplay as any).lookbackEventBuffer).toHaveLength(1);
+        expect((sessionReplay as any).lookbackEventBuffer[0].sessionId).toBe(456);
+
+        // Resolve decisions to avoid unhandled promise rejections
+        resolveFirstDecision({ capture: false });
+        resolveSecondDecision({ capture: false });
+      });
+    });
+
+    describe('remote eval + targetingConfig: both must pass', () => {
+      const flagConfig = {
+        key: 'sr_targeting_config',
+        variants: { on: { key: 'on' }, off: { key: 'off' } },
+        segments: [],
+      };
+
+      test('conservative: does not record when remote=true but TRC fails', async () => {
+        fetchRemoteDecisionSpy.mockResolvedValue({ capture: true });
+        jest.spyOn(targetingManager, 'evaluateTargetingAndStore').mockResolvedValue(false);
+
+        const options: SessionReplayOptions = {
+          ...mockOptions,
+          remoteTargeting: { ...remoteTargetingBase, decisionStrategy: 'conservative' },
+        };
+        await sessionReplay.init(apiKey, options).promise;
+        // Manually inject targetingConfig after init to simulate both being set
+        if (sessionReplay.config) {
+          sessionReplay.config.targetingConfig = flagConfig;
+        }
+        // Reset to re-run
+        (sessionReplay as any).remoteDecision = null;
+        (sessionReplay as any).remoteDecisionPending = true;
+        await (sessionReplay as any).runRemoteEval({ userProperties: {} });
+
+        expect(sessionReplay.getShouldRecord()).toBe(false);
+      });
+
+      test('lookback: stops recording and clears buffer when remote=true but TRC fails', async () => {
+        fetchRemoteDecisionSpy.mockResolvedValue({ capture: true });
+        jest.spyOn(targetingManager, 'evaluateTargetingAndStore').mockResolvedValue(false);
+        const stopRecordingSpy = jest.spyOn(sessionReplay, 'stopRecordingEvents');
+
+        const options: SessionReplayOptions = {
+          ...mockOptions,
+          remoteTargeting: { ...remoteTargetingBase, decisionStrategy: 'lookback' },
+        };
+        await sessionReplay.init(apiKey, options).promise;
+        // Inject targetingConfig and force a re-run
+        if (sessionReplay.config) {
+          sessionReplay.config.targetingConfig = flagConfig;
+        }
+        (sessionReplay as any).remoteDecision = null;
+        (sessionReplay as any).remoteDecisionPending = true;
+        // Simulate recording active with buffered events
+        (sessionReplay as any).recordCancelCallback = jest.fn();
+        (sessionReplay as any).lookbackEventBuffer = [{ event: mockEvent, sessionId: 123 }];
+        (sessionReplay as any).lookbackHoldUploads = true;
+
+        await (sessionReplay as any).runRemoteEval({ userProperties: {} });
+
+        expect(stopRecordingSpy).toHaveBeenCalled();
+        expect((sessionReplay as any).lookbackEventBuffer).toHaveLength(0);
+        expect((sessionReplay as any).lookbackHoldUploads).toBe(false);
+      });
+
+      test('lookback: flushes buffer and continues recording when TRC also passes', async () => {
+        fetchRemoteDecisionSpy.mockResolvedValue({ capture: true });
+        jest.spyOn(targetingManager, 'evaluateTargetingAndStore').mockResolvedValue(true);
+
+        const options: SessionReplayOptions = {
+          ...mockOptions,
+          remoteTargeting: { ...remoteTargetingBase, decisionStrategy: 'lookback' },
+        };
+        await sessionReplay.init(apiKey, options).promise;
+        if (sessionReplay.config) {
+          sessionReplay.config.targetingConfig = flagConfig;
+        }
+        (sessionReplay as any).remoteDecision = null;
+        (sessionReplay as any).remoteDecisionPending = true;
+        (sessionReplay as any).recordCancelCallback = jest.fn();
+        (sessionReplay as any).lookbackEventBuffer = [{ event: mockEvent, sessionId: 123 }];
+        (sessionReplay as any).lookbackHoldUploads = true;
+
+        // Create spy after init so we only observe calls from the re-run
+        const stopRecordingSpy = jest.spyOn(sessionReplay, 'stopRecordingEvents');
+
+        await (sessionReplay as any).runRemoteEval({ userProperties: {} });
+
+        // Both gates passed: buffer flushed, hold released, and recording NOT stopped
+        expect((sessionReplay as any).lookbackEventBuffer).toHaveLength(0);
+        expect((sessionReplay as any).lookbackHoldUploads).toBe(false);
+        expect(stopRecordingSpy).not.toHaveBeenCalled();
+      });
+
+      test('conservative: starts recording when TRC also passes', async () => {
+        fetchRemoteDecisionSpy.mockResolvedValue({ capture: true });
+        jest.spyOn(targetingManager, 'evaluateTargetingAndStore').mockResolvedValue(true);
+        const recordEventsSpy = jest.spyOn(sessionReplay, 'recordEvents' as any);
+
+        const options: SessionReplayOptions = {
+          ...mockOptions,
+          remoteTargeting: { ...remoteTargetingBase, decisionStrategy: 'conservative' },
+        };
+        await sessionReplay.init(apiKey, options).promise;
+        if (sessionReplay.config) {
+          sessionReplay.config.targetingConfig = flagConfig;
+        }
+        (sessionReplay as any).remoteDecision = null;
+        (sessionReplay as any).remoteDecisionPending = true;
+        recordEventsSpy.mockClear();
+
+        await (sessionReplay as any).runRemoteEval({ userProperties: {} });
+        for (let i = 0; i < 6; i++) {
+          await Promise.resolve();
+        }
+
+        expect(recordEventsSpy).toHaveBeenCalled();
+        expect(mockRecordFunction).toHaveBeenCalled();
+      });
+    });
+
+    describe('runRemoteEval early return', () => {
+      test('returns early when config is null', async () => {
+        // Do NOT call init — config is undefined
+        await (sessionReplay as any).runRemoteEval({ userProperties: {} });
+        expect(fetchRemoteDecisionSpy).not.toHaveBeenCalled();
+      });
+
+      test('returns early when remoteTargeting is not enabled on config', async () => {
+        await sessionReplay.init(apiKey, mockOptions).promise;
+        // config has no remoteTargeting — call runRemoteEval directly
+        await (sessionReplay as any).runRemoteEval({ userProperties: {} });
+        expect(fetchRemoteDecisionSpy).not.toHaveBeenCalled();
+      });
+
+      test('returns early when remoteTargeting.enabled is false', async () => {
+        await sessionReplay.init(apiKey, mockOptions).promise;
+        if (sessionReplay.config) {
+          sessionReplay.config.remoteTargeting = {
+            enabled: false,
+            mode: 'session',
+            deploymentKey: 'client-test-key',
+            decisionStrategy: 'conservative',
+          };
+        }
+        await (sessionReplay as any).runRemoteEval({ userProperties: {} });
+        expect(fetchRemoteDecisionSpy).not.toHaveBeenCalled();
+      });
+
+      test('uses default flagKey and timeoutMs when not provided in config', async () => {
+        fetchRemoteDecisionSpy.mockResolvedValue({ capture: true });
+        // Config without flagKey or timeoutMs — defaults should be used
+        const options: SessionReplayOptions = {
+          ...mockOptions,
+          remoteTargeting: {
+            enabled: true,
+            mode: 'session',
+            deploymentKey: remoteTargetingBase.deploymentKey,
+            decisionStrategy: 'conservative',
+            // flagKey and timeoutMs deliberately omitted
+          },
+        };
+        await sessionReplay.init(apiKey, options).promise;
+        for (let i = 0; i < 6; i++) {
+          await Promise.resolve();
+        }
+        expect(fetchRemoteDecisionSpy).toHaveBeenCalledWith(
+          remoteTargetingBase.deploymentKey,
+          expect.any(Object),
+          'sr-capture-gate', // default
+          200, // default
+          expect.any(String),
+        );
+      });
+
+      test('logs "unknown" for sessionId when identifiers is null at deny time (lookback)', async () => {
+        fetchRemoteDecisionSpy.mockResolvedValue({ capture: false });
+        const options: SessionReplayOptions = {
+          ...mockOptions,
+          remoteTargeting: { ...remoteTargetingBase, decisionStrategy: 'lookback' },
+        };
+        await sessionReplay.init(apiKey, options).promise;
+        // Simulate identifiers being null before decision arrives
+        (sessionReplay as any).identifiers = undefined;
+        await (sessionReplay as any).runRemoteEval({ userProperties: {} });
+        expect(mockLoggerProvider.log).toHaveBeenCalledWith(expect.stringContaining('unknown'));
+      });
+
+      test('logs "unknown" for sessionId when identifiers is null at deny time (conservative)', async () => {
+        fetchRemoteDecisionSpy.mockResolvedValue({ capture: false });
+        const options: SessionReplayOptions = {
+          ...mockOptions,
+          remoteTargeting: { ...remoteTargetingBase, decisionStrategy: 'conservative' },
+        };
+        await sessionReplay.init(apiKey, options).promise;
+        // Simulate identifiers being null before decision arrives
+        (sessionReplay as any).identifiers = undefined;
+        await (sessionReplay as any).runRemoteEval({ userProperties: {} });
+        expect(mockLoggerProvider.log).toHaveBeenCalledWith(expect.stringContaining('unknown'));
+      });
+
+      test('passes config.serverZone to fetchRemoteDecision', async () => {
+        fetchRemoteDecisionSpy.mockResolvedValue({ capture: true });
+        // mockOptions includes serverZone: ServerZone.EU
+        const options: SessionReplayOptions = {
+          ...mockOptions,
+          remoteTargeting: { ...remoteTargetingBase, decisionStrategy: 'conservative' },
+        };
+        await sessionReplay.init(apiKey, options).promise;
+        for (let i = 0; i < 6; i++) {
+          await Promise.resolve();
+        }
+        expect(fetchRemoteDecisionSpy).toHaveBeenCalledWith(
+          remoteTargetingBase.deploymentKey,
+          expect.any(Object),
+          remoteTargetingBase.flagKey,
+          remoteTargetingBase.timeoutMs,
+          ServerZone.EU,
+        );
+      });
+    });
+
+    describe('getShouldRecord with remoteDecisionPending but no remoteTargeting config', () => {
+      test('does not block when remoteDecisionPending=true but remoteTargeting is undefined', async () => {
+        await sessionReplay.init(apiKey, mockOptions).promise;
+        // Simulate a weird state: pending=true but config has no remoteTargeting
+        (sessionReplay as any).remoteDecisionPending = true;
+        // Without remoteTargeting config, the conservative check doesn't apply
+        const result = sessionReplay.getShouldRecord();
+        expect(result).toBe(true);
+      });
+    });
+
+    describe('decision.reason fallback', () => {
+      test('lookback: logs "denied" when decision has no reason', async () => {
+        // capture=false with no reason field
+        fetchRemoteDecisionSpy.mockResolvedValue({ capture: false });
+        const options: SessionReplayOptions = {
+          ...mockOptions,
+          remoteTargeting: { ...remoteTargetingBase, decisionStrategy: 'lookback' },
+        };
+        await sessionReplay.init(apiKey, options).promise;
+        for (let i = 0; i < 6; i++) {
+          await Promise.resolve();
+        }
+        expect(mockLoggerProvider.log).toHaveBeenCalledWith(expect.stringContaining('denied'));
+      });
+
+      test('conservative: logs "denied" when decision has no reason', async () => {
+        fetchRemoteDecisionSpy.mockResolvedValue({ capture: false });
+        const options: SessionReplayOptions = {
+          ...mockOptions,
+          remoteTargeting: { ...remoteTargetingBase, decisionStrategy: 'conservative' },
+        };
+        await sessionReplay.init(apiKey, options).promise;
+        for (let i = 0; i < 6; i++) {
+          await Promise.resolve();
+        }
+        expect(mockLoggerProvider.log).toHaveBeenCalledWith(expect.stringContaining('denied'));
+      });
+    });
+
+    describe('asyncSetSessionId with userProperties in options', () => {
+      test('fires remote eval when asyncSetSessionId called with options containing userProperties', async () => {
+        fetchRemoteDecisionSpy.mockResolvedValue({ capture: true });
+        const options: SessionReplayOptions = {
+          ...mockOptions,
+          remoteTargeting: { ...remoteTargetingBase, decisionStrategy: 'conservative' },
+        };
+        await sessionReplay.init(apiKey, options).promise;
+
+        fetchRemoteDecisionSpy.mockClear();
+        fetchRemoteDecisionSpy.mockResolvedValue({ capture: true });
+
+        // Call asyncSetSessionId with options.userProperties defined (covers options?.userProperties branch)
+        await (sessionReplay as any).asyncSetSessionId(789, undefined, { userProperties: { plan: 'pro' } });
+
+        expect(fetchRemoteDecisionSpy).toHaveBeenCalledWith(
+          remoteTargetingBase.deploymentKey,
+          expect.objectContaining({ device_id: mockOptions.deviceId }),
+          expect.any(String),
+          expect.any(Number),
+          expect.any(String),
+        );
+      });
+    });
+
+    describe('lookback event buffering', () => {
+      test('events are pushed to lookbackEventBuffer during lookback hold', async () => {
+        let capturedEmit: ((event: eventWithTime) => void) | undefined;
+        mockRecordFunction.mockImplementation((options: { emit: (event: eventWithTime) => void }) => {
+          capturedEmit = options.emit;
+          return jest.fn();
+        });
+
+        let resolveDecision!: (d: { capture: boolean }) => void;
+        fetchRemoteDecisionSpy.mockReturnValue(
+          new Promise<{ capture: boolean }>((resolve) => (resolveDecision = resolve)),
+        );
+
+        const options: SessionReplayOptions = {
+          ...mockOptions,
+          remoteTargeting: { ...remoteTargetingBase, decisionStrategy: 'lookback' },
+        };
+        await sessionReplay.init(apiKey, options).promise;
+
+        // Simulate rrweb emitting an event while hold is active
+        expect((sessionReplay as any).lookbackHoldUploads).toBe(true);
+        capturedEmit?.(mockEvent as eventWithTime);
+        expect((sessionReplay as any).lookbackEventBuffer).toHaveLength(1);
+
+        resolveDecision({ capture: true });
+      });
+
+      test('lookback flush calls sendStoredEvents when deviceId is available', async () => {
+        fetchRemoteDecisionSpy.mockResolvedValue({ capture: true });
+        const options: SessionReplayOptions = {
+          ...mockOptions,
+          remoteTargeting: { ...remoteTargetingBase, decisionStrategy: 'lookback' },
+        };
+        await sessionReplay.init(apiKey, options).promise;
+        for (let i = 0; i < 6; i++) {
+          await Promise.resolve();
+        }
+
+        // eventsManager is set; re-trigger lookback flush via a second session
+        const sendStoredEventsSpy = jest.spyOn((sessionReplay as any).eventsManager, 'sendStoredEvents');
+        (sessionReplay as any).lookbackHoldUploads = true;
+        fetchRemoteDecisionSpy.mockResolvedValue({ capture: true });
+        await (sessionReplay as any).runRemoteEval({});
+        for (let i = 0; i < 6; i++) {
+          await Promise.resolve();
+        }
+
+        expect(sendStoredEventsSpy).toHaveBeenCalledWith({ deviceId: mockOptions.deviceId });
+        sendStoredEventsSpy.mockRestore();
+      });
+
+      test('lookback flush skips sendStoredEvents when eventsManager is null', async () => {
+        fetchRemoteDecisionSpy.mockResolvedValue({ capture: true });
+        const options: SessionReplayOptions = {
+          ...mockOptions,
+          remoteTargeting: { ...remoteTargetingBase, decisionStrategy: 'lookback' },
+        };
+        await sessionReplay.init(apiKey, options).promise;
+        for (let i = 0; i < 6; i++) {
+          await Promise.resolve();
+        }
+
+        // Null out eventsManager to exercise the short-circuit branch
+        const savedEventsManager = (sessionReplay as any).eventsManager;
+        (sessionReplay as any).eventsManager = null;
+        (sessionReplay as any).lookbackHoldUploads = true;
+        fetchRemoteDecisionSpy.mockResolvedValue({ capture: true });
+        await (sessionReplay as any).runRemoteEval({});
+        for (let i = 0; i < 6; i++) {
+          await Promise.resolve();
+        }
+
+        // No error thrown; eventsManager was null so sendStoredEvents was skipped
+        expect((sessionReplay as any).lookbackHoldUploads).toBe(false);
+        (sessionReplay as any).eventsManager = savedEventsManager;
+      });
+
+      test('buffered events are flushed to eventCompressor on capture=true', async () => {
+        let capturedEmit: ((event: eventWithTime) => void) | undefined;
+        mockRecordFunction.mockImplementation((options: { emit: (event: eventWithTime) => void }) => {
+          capturedEmit = options.emit;
+          return jest.fn();
+        });
+
+        fetchRemoteDecisionSpy.mockResolvedValue({ capture: true });
+
+        const options: SessionReplayOptions = {
+          ...mockOptions,
+          remoteTargeting: { ...remoteTargetingBase, decisionStrategy: 'lookback' },
+        };
+        await sessionReplay.init(apiKey, options).promise;
+
+        // Simulate an event before decision arrives
+        capturedEmit?.(mockEvent as eventWithTime);
+
+        // Allow runRemoteEval to complete
+        for (let i = 0; i < 6; i++) {
+          await Promise.resolve();
+        }
+
+        // After decision: buffer should be drained
+        expect((sessionReplay as any).lookbackEventBuffer).toHaveLength(0);
+        expect((sessionReplay as any).lookbackHoldUploads).toBe(false);
+      });
+
+      test('drops events beyond lookbackBufferMaxEvents', async () => {
+        let capturedEmit: ((event: eventWithTime) => void) | undefined;
+        mockRecordFunction.mockImplementation((options: { emit: (event: eventWithTime) => void }) => {
+          capturedEmit = options.emit;
+          return jest.fn();
+        });
+
+        let resolveDecision!: (d: { capture: boolean }) => void;
+        fetchRemoteDecisionSpy.mockReturnValue(
+          new Promise<{ capture: boolean }>((resolve) => (resolveDecision = resolve)),
+        );
+
+        const options: SessionReplayOptions = {
+          ...mockOptions,
+          remoteTargeting: { ...remoteTargetingBase, decisionStrategy: 'lookback', lookbackBufferMaxEvents: 3 },
+        };
+        await sessionReplay.init(apiKey, options).promise;
+
+        // Emit more events than the cap
+        for (let i = 0; i < 5; i++) {
+          capturedEmit?.(mockEvent as eventWithTime);
+        }
+
+        expect((sessionReplay as any).lookbackEventBuffer).toHaveLength(3);
+        resolveDecision({ capture: false });
+      });
+
+      test('stale remote eval result is discarded when session changes mid-flight', async () => {
+        // First eval is held in-flight; second eval resolves capture=true.
+        let resolveFirstDecision!: (d: { capture: boolean }) => void;
+        let firstDecisionCallCount = 0;
+        fetchRemoteDecisionSpy.mockImplementation(() => {
+          firstDecisionCallCount++;
+          if (firstDecisionCallCount === 1) {
+            return new Promise<{ capture: boolean }>((resolve) => (resolveFirstDecision = resolve));
+          }
+          return Promise.resolve({ capture: true });
+        });
+
+        const options: SessionReplayOptions = {
+          ...mockOptions,
+          remoteTargeting: { ...remoteTargetingBase, decisionStrategy: 'conservative' },
+        };
+        await sessionReplay.init(apiKey, options).promise;
+
+        // New session starts — increments latestRemoteEvalId, fires a second eval
+        void sessionReplay.setSessionId(456).promise;
+        // Let second eval resolve
+        for (let i = 0; i < 6; i++) {
+          await Promise.resolve();
+        }
+
+        // Now resolve the stale first eval with capture=false — should be ignored
+        resolveFirstDecision({ capture: false });
+        for (let i = 0; i < 6; i++) {
+          await Promise.resolve();
+        }
+
+        // remoteDecision should reflect the second (non-stale) eval, not the stale one
+        expect((sessionReplay as any).remoteDecision).toEqual({ capture: true });
+      });
+
+      test('lookback strategy in asyncSetSessionId re-fires recording and remote eval', async () => {
+        fetchRemoteDecisionSpy.mockResolvedValue({ capture: true });
+        const options: SessionReplayOptions = {
+          ...mockOptions,
+          remoteTargeting: { ...remoteTargetingBase, decisionStrategy: 'lookback' },
+        };
+        await sessionReplay.init(apiKey, options).promise;
+        for (let i = 0; i < 6; i++) {
+          await Promise.resolve();
+        }
+
+        fetchRemoteDecisionSpy.mockClear();
+        fetchRemoteDecisionSpy.mockResolvedValue({ capture: true });
+
+        await sessionReplay.setSessionId(456).promise;
+        for (let i = 0; i < 6; i++) {
+          await Promise.resolve();
+        }
+
+        // lookback: recording should start immediately and remote eval re-fires
+        expect(mockRecordFunction.mock.calls.length).toBeGreaterThanOrEqual(2);
+        expect(fetchRemoteDecisionSpy).toHaveBeenCalledTimes(1);
+      });
     });
   });
 });

@@ -3,6 +3,7 @@ import {
   StoreType,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   type SessionReplayOptions as StandaloneSessionReplayOptions, // used for documentation
+  type RemoteTargetingConfig,
 } from '@amplitude/session-replay-browser';
 
 export type MaskLevel =
@@ -176,4 +177,5 @@ export interface SessionReplayOptions {
    * @see {@link StandaloneSessionReplayOptions.captureAdoptedStyleSheets}
    */
   captureAdoptedStyleSheets?: boolean;
+  remoteTargeting?: RemoteTargetingConfig;
 }
