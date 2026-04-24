@@ -315,5 +315,28 @@ describe('mergeMutationEvents', () => {
       expect(data.adds).toEqual([{ parentId: 1, nextId: null, node: { id: 20 } as any }]);
       expect(data.removes).toEqual([{ parentId: 1, id: 99 }]);
     });
+
+    test('preserves initial remove in remove-add-remove sequence', () => {
+      // Bug: remove→add→remove for same node ID should preserve the first remove
+      // The node is removed (pre-existing), re-added, then removed again (transient).
+      // The first remove targets a pre-existing DOM node and must be preserved.
+      const e1 = makeMutation(1000, {
+        removes: [{ parentId: 1, id: 10 }], // pre-existing node removal
+      });
+      const e2 = makeMutation(1010, {
+        adds: [{ parentId: 2, nextId: null, node: { id: 10 } as any }], // re-creation
+      });
+      const e3 = makeMutation(1020, {
+        removes: [{ parentId: 2, id: 10 }], // transient removal
+      });
+
+      const result = mergeMutationEvents([e1, e2, e3]);
+
+      const data = result[0].data as mutationData;
+      // The first remove (from e1) should be preserved
+      expect(data.removes).toEqual([{ parentId: 1, id: 10 }]);
+      // Both the add and the second remove should be elided (transient)
+      expect(data.adds).toHaveLength(0);
+    });
   });
 });

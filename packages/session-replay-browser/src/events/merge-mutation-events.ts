@@ -10,7 +10,7 @@ function isMergeableMutation(event: eventWithTime): boolean {
 function mergeGroup(events: eventWithTime[]): eventWithTime {
   const first = events[0];
 
-  const allRemoves = events.flatMap((e) => (e.data as mutationData).removes);
+  const allRemoves = events.flatMap((e, i) => (e.data as mutationData).removes.map((r) => ({ ...r, eventIndex: i })));
   const allAdds = events.flatMap((e) => (e.data as mutationData).adds);
 
   // Elide transient nodes: a node added in an earlier event and removed in a later one
@@ -26,6 +26,7 @@ function mergeGroup(events: eventWithTime[]): eventWithTime {
   // node is created in event0 and moved (remove+re-add) in event1, lastAddIdx=1 equals
   // lastRemoveIdx=1 so the node is not transient and the move is preserved.
   const lastAddEventIndex = new Map<number, number>();
+  const firstAddEventIndex = new Map<number, number>();
   const lastRemoveEventIndex = new Map<number, number>();
   // lastParentById: a node's parentId from its most recent add (last-write-wins).
   // Used in the cascade so a child moved away from a transient parent is not wrongly elided.
@@ -34,6 +35,7 @@ function mergeGroup(events: eventWithTime[]): eventWithTime {
     const data = e.data as mutationData;
     for (const add of data.adds) {
       lastAddEventIndex.set(add.node.id, i);
+      if (!firstAddEventIndex.has(add.node.id)) firstAddEventIndex.set(add.node.id, i);
       lastParentById.set(add.node.id, add.parentId);
     }
     for (const remove of data.removes) {
@@ -68,7 +70,16 @@ function mergeGroup(events: eventWithTime[]): eventWithTime {
 
   const merged: mutationData = {
     source: IncrementalSource.Mutation,
-    removes: transientIds.size > 0 ? allRemoves.filter((r) => !transientIds.has(r.id)) : allRemoves,
+    removes:
+      transientIds.size > 0
+        ? allRemoves
+            .filter((r) => {
+              if (!transientIds.has(r.id)) return true;
+              const firstAdd = firstAddEventIndex.get(r.id);
+              return firstAdd === undefined || r.eventIndex < firstAdd;
+            })
+            .map((r) => ({ id: r.id, parentId: r.parentId }))
+        : allRemoves.map((r) => ({ id: r.id, parentId: r.parentId })),
     adds: transientIds.size > 0 ? allAdds.filter((a) => !transientIds.has(a.node.id)) : allAdds,
     texts: transientIds.size > 0 ? allTexts.filter((t) => !transientIds.has(t.id)) : allTexts,
     attributes: transientIds.size > 0 ? allAttributes.filter((a) => !transientIds.has(a.id)) : allAttributes,
