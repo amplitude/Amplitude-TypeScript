@@ -19,6 +19,9 @@ export class Timeline {
   // re-entrant register() with the same name is skipped; freed on setup() failure and
   // on deregister() so the name can be reused.
   _reservedPluginNames: Set<string> = new Set();
+  // Incremented on reset() so in-flight catch blocks from before the reset don't
+  // delete name reservations made by a post-reset registration.
+  _registrationGeneration = 0;
   // loggerProvider is set by the client at _init()
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore
@@ -43,6 +46,7 @@ export class Timeline {
     }
 
     this._reservedPluginNames.add(name);
+    const generation = this._registrationGeneration;
 
     // Capture the plugins array so a post-reset resolve pushes into the orphaned (old)
     // array instead of the freshly reset one.
@@ -52,7 +56,9 @@ export class Timeline {
       await plugin.setup?.(config, this.client);
       targetPlugins.push(plugin);
     } catch (error) {
-      this._reservedPluginNames.delete(name);
+      if (this._registrationGeneration === generation) {
+        this._reservedPluginNames.delete(name);
+      }
       throw error;
     }
   }
@@ -72,6 +78,7 @@ export class Timeline {
   reset(client: CoreClient) {
     this._clearOptOutListeners();
     this._reservedPluginNames.clear();
+    this._registrationGeneration++;
     this.applying = false;
     const plugins = this.plugins;
     plugins.map((plugin) => plugin.teardown?.());

@@ -96,6 +96,10 @@ class PluginSessionReplayReactNative: NSObject {
     @objc(teardown:reject:)
     func teardown(_ resolve: RCTPromiseResolveBlock, reject: RCTPromiseRejectBlock) -> Void {
       print("teardown")
+      guard isActive else {
+        resolve(nil)
+        return
+      }
       sessionReplay.stop()
       isActive = false
       resolve(nil)
