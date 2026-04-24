@@ -148,4 +148,76 @@ describe('mergeMutationEvents', () => {
   test('empty array returns empty array', () => {
     expect(mergeMutationEvents([])).toEqual([]);
   });
+
+  describe('transient node elision', () => {
+    test('elides a node added then removed in the same merge window', () => {
+      const e1 = makeMutation(1000, {
+        adds: [{ parentId: 1, nextId: null, node: { id: 10 } as any }],
+      });
+      const e2 = makeMutation(1010, {
+        removes: [{ parentId: 1, id: 10 }],
+      });
+
+      const result = mergeMutationEvents([e1, e2]);
+
+      expect(result).toHaveLength(1);
+      const data = result[0].data as mutationData;
+      expect(data.adds).toHaveLength(0);
+      expect(data.removes).toHaveLength(0);
+    });
+
+    test('keeps removes for pre-existing nodes not in the adds set', () => {
+      const e1 = makeMutation(1000, {
+        removes: [{ parentId: 1, id: 99 }], // pre-existing node
+      });
+      const e2 = makeMutation(1010, {
+        adds: [{ parentId: 1, nextId: null, node: { id: 10 } as any }],
+      });
+
+      const result = mergeMutationEvents([e1, e2]);
+
+      const data = result[0].data as mutationData;
+      expect(data.removes).toEqual([{ parentId: 1, id: 99 }]);
+      expect(data.adds).toHaveLength(1);
+    });
+
+    test('cascades elision to children of a transient parent', () => {
+      const e1 = makeMutation(1000, {
+        adds: [
+          { parentId: 1, nextId: null, node: { id: 10 } as any }, // parent
+          { parentId: 10, nextId: null, node: { id: 11 } as any }, // child of transient parent
+        ],
+      });
+      const e2 = makeMutation(1010, {
+        removes: [{ parentId: 1, id: 10 }], // removes the parent
+      });
+
+      const result = mergeMutationEvents([e1, e2]);
+
+      const data = result[0].data as mutationData;
+      expect(data.adds).toHaveLength(0); // parent and child both elided
+      expect(data.removes).toHaveLength(0);
+    });
+
+    test('only elides the transient node, keeps non-transient adds and removes', () => {
+      const e1 = makeMutation(1000, {
+        adds: [
+          { parentId: 1, nextId: null, node: { id: 10 } as any }, // transient
+          { parentId: 1, nextId: null, node: { id: 20 } as any }, // stays
+        ],
+      });
+      const e2 = makeMutation(1010, {
+        removes: [
+          { parentId: 1, id: 10 }, // removes transient
+          { parentId: 1, id: 99 }, // removes pre-existing node
+        ],
+      });
+
+      const result = mergeMutationEvents([e1, e2]);
+
+      const data = result[0].data as mutationData;
+      expect(data.adds).toEqual([{ parentId: 1, nextId: null, node: { id: 20 } as any }]);
+      expect(data.removes).toEqual([{ parentId: 1, id: 99 }]);
+    });
+  });
 });

@@ -9,10 +9,36 @@ function isMergeableMutation(event: eventWithTime): boolean {
 
 function mergeGroup(events: eventWithTime[]): eventWithTime {
   const first = events[0];
+
+  const allRemoves = events.flatMap((e) => (e.data as mutationData).removes);
+  const allAdds = events.flatMap((e) => (e.data as mutationData).adds);
+
+  // Elide transient nodes: a node added in an earlier event and removed in a later one
+  // would otherwise have its remove execute before its add (since we put all removes
+  // first), leaving the node permanently in the DOM. Cancel both the add and the remove,
+  // and cascade to any adds whose parent is also transient.
+  const removedIds = new Set(allRemoves.map((r) => r.id));
+  const transientIds = new Set<number>();
+  for (const add of allAdds) {
+    if (removedIds.has(add.node.id)) transientIds.add(add.node.id);
+  }
+  if (transientIds.size > 0) {
+    let changed = true;
+    while (changed) {
+      changed = false;
+      for (const add of allAdds) {
+        if (!transientIds.has(add.node.id) && transientIds.has(add.parentId)) {
+          transientIds.add(add.node.id);
+          changed = true;
+        }
+      }
+    }
+  }
+
   const merged: mutationData = {
     source: IncrementalSource.Mutation,
-    removes: events.flatMap((e) => (e.data as mutationData).removes),
-    adds: events.flatMap((e) => (e.data as mutationData).adds),
+    removes: transientIds.size > 0 ? allRemoves.filter((r) => !transientIds.has(r.id)) : allRemoves,
+    adds: transientIds.size > 0 ? allAdds.filter((a) => !transientIds.has(a.node.id)) : allAdds,
     texts: events.flatMap((e) => (e.data as mutationData).texts),
     attributes: events.flatMap((e) => (e.data as mutationData).attributes),
   };
