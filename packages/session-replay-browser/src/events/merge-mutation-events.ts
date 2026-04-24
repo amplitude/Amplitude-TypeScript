@@ -27,10 +27,14 @@ function mergeGroup(events: eventWithTime[]): eventWithTime {
   // lastRemoveIdx=1 so the node is not transient and the move is preserved.
   const lastAddEventIndex = new Map<number, number>();
   const lastRemoveEventIndex = new Map<number, number>();
+  // lastParentById: a node's parentId from its most recent add (last-write-wins).
+  // Used in the cascade so a child moved away from a transient parent is not wrongly elided.
+  const lastParentById = new Map<number, number>();
   events.forEach((e, i) => {
     const data = e.data as mutationData;
     for (const add of data.adds) {
       lastAddEventIndex.set(add.node.id, i);
+      lastParentById.set(add.node.id, add.parentId);
     }
     for (const remove of data.removes) {
       lastRemoveEventIndex.set(remove.id, i);
@@ -44,13 +48,15 @@ function mergeGroup(events: eventWithTime[]): eventWithTime {
   }
 
   if (transientIds.size > 0) {
-    // Cascade: children of a transient parent would be orphaned after elision
+    // Cascade: children whose FINAL parent is transient would be orphaned after elision.
+    // Use lastParentById (not allAdds) so a node moved away from a transient parent
+    // to a non-transient parent is not incorrectly elided.
     let changed = true;
     while (changed) {
       changed = false;
-      for (const add of allAdds) {
-        if (!transientIds.has(add.node.id) && transientIds.has(add.parentId)) {
-          transientIds.add(add.node.id);
+      for (const [nodeId, parentId] of lastParentById) {
+        if (!transientIds.has(nodeId) && transientIds.has(parentId)) {
+          transientIds.add(nodeId);
           changed = true;
         }
       }

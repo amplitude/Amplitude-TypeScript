@@ -268,6 +268,33 @@ describe('mergeMutationEvents', () => {
       expect(data.attributes).toHaveLength(0);
     });
 
+    test('does not elide a child that was moved away from a transient parent', () => {
+      // Child C is added under transient parent P, then moved to non-transient parent Q.
+      // P is added then removed (transient). C ends up under Q and must survive.
+      const e1 = makeMutation(1000, {
+        adds: [
+          { parentId: 1, nextId: null, node: { id: 10 } as any }, // transient parent P
+          { parentId: 10, nextId: null, node: { id: 11 } as any }, // child C under P
+        ],
+      });
+      const e2 = makeMutation(1010, {
+        removes: [
+          { parentId: 1, id: 10 }, // remove P (transient)
+          { parentId: 10, id: 11 }, // move C away from P
+        ],
+        adds: [{ parentId: 2, nextId: null, node: { id: 11 } as any }], // C re-added under Q
+      });
+
+      const result = mergeMutationEvents([e1, e2]);
+
+      const data = result[0].data as mutationData;
+      // P (id=10) should be elided (add + remove cancelled)
+      expect(data.adds.some((a) => (a.node as any).id === 10)).toBe(false);
+      expect(data.removes.some((r) => r.id === 10)).toBe(false);
+      // C (id=11) should survive at its final parent Q (parentId=2)
+      expect(data.adds.some((a) => (a.node as any).id === 11 && a.parentId === 2)).toBe(true);
+    });
+
     test('only elides the transient node, keeps non-transient adds and removes', () => {
       const e1 = makeMutation(1000, {
         adds: [
