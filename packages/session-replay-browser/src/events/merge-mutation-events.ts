@@ -44,13 +44,24 @@ function mergeGroup(events: eventWithTime[]): eventWithTime {
   }
 
   if (transientIds.size > 0) {
+    // Build a map of each node's last parentId to match lastAddEventIndex logic
+    const lastParentId = new Map<number, number>();
+    events.forEach((e, i) => {
+      const data = e.data as mutationData;
+      for (const add of data.adds) {
+        if (lastAddEventIndex.get(add.node.id) === i) {
+          lastParentId.set(add.node.id, add.parentId);
+        }
+      }
+    });
+
     // Cascade: children of a transient parent would be orphaned after elision
     let changed = true;
     while (changed) {
       changed = false;
-      for (const add of allAdds) {
-        if (!transientIds.has(add.node.id) && transientIds.has(add.parentId)) {
-          transientIds.add(add.node.id);
+      for (const [nodeId, parentId] of lastParentId) {
+        if (!transientIds.has(nodeId) && transientIds.has(parentId)) {
+          transientIds.add(nodeId);
           changed = true;
         }
       }
