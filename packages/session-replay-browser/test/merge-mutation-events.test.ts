@@ -148,4 +148,30 @@ describe('mergeMutationEvents', () => {
   test('empty array returns empty array', () => {
     expect(mergeMutationEvents([])).toEqual([]);
   });
+
+  test('does not merge when a node added in one event is removed in a later event', () => {
+    // This is the bug scenario: E1 adds node 100, E2 removes node 100.
+    // If merged, the replayer would process removes before adds, causing:
+    // 1. Try to remove 100 (doesn't exist yet, no-op)
+    // 2. Add 100
+    // Result: node 100 persists incorrectly
+    //
+    // By not merging, we preserve the correct order:
+    // 1. E1: add 100
+    // 2. E2: remove 100
+    // Result: node 100 is correctly removed
+    const e1 = makeMutation(1000, {
+      adds: [{ parentId: 1, nextId: null, node: { id: 100 } as any }],
+    });
+    const e2 = makeMutation(1010, {
+      removes: [{ parentId: 1, id: 100 }],
+    });
+
+    const result = mergeMutationEvents([e1, e2]);
+
+    // Should NOT merge - must keep as separate events to preserve execution order
+    expect(result).toHaveLength(2);
+    expect(result[0]).toBe(e1);
+    expect(result[1]).toBe(e2);
+  });
 });

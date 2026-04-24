@@ -7,6 +7,33 @@ function isMergeableMutation(event: eventWithTime): boolean {
   return data.source === IncrementalSource.Mutation && !data.isAttachIframe;
 }
 
+function canSafelyMerge(events: eventWithTime[]): boolean {
+  // The replayer processes all removes before all adds in a merged event. This changes
+  // cross-event ordering: originally E1.adds execute before E2.removes, but after merging
+  // E2.removes execute before E1.adds. Check if any node added in an earlier event is
+  // removed in a later event - if so, merging would cause the remove to execute before
+  // the add, leaving the node permanently in the DOM.
+  const addedNodeIds = new Set<number>();
+
+  for (const event of events) {
+    const data = event.data as mutationData;
+
+    // Check if this event removes any node that was added in a previous event
+    for (const remove of data.removes) {
+      if (addedNodeIds.has(remove.id)) {
+        return false;
+      }
+    }
+
+    // Track nodes added in this event
+    for (const add of data.adds) {
+      addedNodeIds.add(add.node.id);
+    }
+  }
+
+  return true;
+}
+
 function mergeGroup(events: eventWithTime[]): eventWithTime {
   const first = events[0];
   const merged: mutationData = {
@@ -44,7 +71,12 @@ export function mergeMutationEvents(events: eventWithTime[]): eventWithTime[] {
       j++;
     }
 
-    result.push(j > i + 1 ? mergeGroup(events.slice(i, j)) : events[i]);
+    const group = events.slice(i, j);
+    if (j > i + 1 && canSafelyMerge(group)) {
+      result.push(mergeGroup(group));
+    } else {
+      result.push(...group);
+    }
     i = j;
   }
 
