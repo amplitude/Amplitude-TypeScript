@@ -13,6 +13,7 @@ interface TaskQueue {
 const DEFAULT_TIMEOUT = 2000;
 export class EventCompressor {
   taskQueue: TaskQueue[] = [];
+  pendingQueue: TaskQueue[] = [];
   isProcessing = false;
   eventsManager?: SessionReplayEventsManager<'replay' | 'interaction', string>;
   config: SessionReplayJoinedConfig;
@@ -89,8 +90,9 @@ export class EventCompressor {
       // Those events reference the pre-snapshot DOM and must be sent before
       // the full snapshot; if we let them be processed later they'd arrive at
       // the server after the snapshot and cause "node not found" replay errors.
-      if (this.taskQueue.length > 0) {
-        for (const task of this.mergeMutationTasks(this.taskQueue.splice(0))) {
+      if (this.taskQueue.length > 0 || this.pendingQueue.length > 0) {
+        const allTasks = [...this.taskQueue.splice(0), ...this.mergeMutationTasks(this.pendingQueue.splice(0))];
+        for (const task of allTasks) {
           const compressed = this.compressEvent(task.event);
           this.addCompressedEventToManager(compressed, task.sessionId);
         }
@@ -104,7 +106,7 @@ export class EventCompressor {
 
     if (this.canUseIdleCallback && this.config.performanceConfig?.enabled) {
       this.config.loggerProvider.debug('Enqueuing event for processing during idle time.');
-      this.taskQueue.push({ event, sessionId });
+      this.pendingQueue.push({ event, sessionId });
       this.scheduleIdleProcessing();
     } else {
       this.config.loggerProvider.debug('Processing event without idle callback.');
@@ -114,7 +116,12 @@ export class EventCompressor {
 
   // Process the task queue during idle time
   public processQueue(idleDeadline: IdleDeadline): void {
-    this.taskQueue = this.mergeMutationTasks(this.taskQueue);
+    // Merge newly-arrived pending events and append to the already-merged taskQueue.
+    // Keeping them separate prevents re-merging already-merged tasks on subsequent calls,
+    // which would corrupt move semantics for nodes that appear in multiple merge passes.
+    if (this.pendingQueue.length > 0) {
+      this.taskQueue.push(...this.mergeMutationTasks(this.pendingQueue.splice(0)));
+    }
     // Process tasks while there's idle time or until the max number of tasks is reached
     while (this.taskQueue.length > 0 && (idleDeadline.timeRemaining() > 0 || idleDeadline.didTimeout)) {
       const task = this.taskQueue.shift();
@@ -125,7 +132,7 @@ export class EventCompressor {
     }
 
     // If there are still tasks in the queue, schedule the next idle callback
-    if (this.taskQueue.length > 0) {
+    if (this.taskQueue.length > 0 || this.pendingQueue.length > 0) {
       requestIdleCallback(
         (idleDeadline) => {
           this.processQueue(idleDeadline);

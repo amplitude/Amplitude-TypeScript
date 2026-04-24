@@ -216,6 +216,24 @@ describe('mergeMutationEvents', () => {
       expect((data.adds[0].node as any).id).toBe(10);
     });
 
+    test('does not elide a node added then moved (add-then-move)', () => {
+      // add in event1, move (remove+re-add to new parent) in event2 — node should survive at new parent
+      const e1 = makeMutation(1000, {
+        adds: [{ parentId: 1, nextId: null, node: { id: 10 } as any }],
+      });
+      const e2 = makeMutation(1010, {
+        removes: [{ parentId: 1, id: 10 }],
+        adds: [{ parentId: 2, nextId: null, node: { id: 10 } as any }],
+      });
+
+      const result = mergeMutationEvents([e1, e2]);
+
+      const data = result[0].data as mutationData;
+      // Node 10 should appear as a remove from parent 1 and add to parent 2
+      expect(data.removes.some((r) => r.id === 10)).toBe(true);
+      expect(data.adds.some((a) => (a.node as any).id === 10 && a.parentId === 2)).toBe(true);
+    });
+
     test('filters texts for transient node IDs', () => {
       const e1 = makeMutation(1000, {
         adds: [{ parentId: 1, nextId: null, node: { id: 10 } as any }],
