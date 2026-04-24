@@ -15,6 +15,10 @@ class PluginSessionReplayReactNativeModule(private val reactContext: ReactApplic
   ReactContextBaseJavaModule(reactContext) {
   private lateinit var sessionReplay: SessionReplay
 
+  // `lateinit isInitialized` latches true on first assignment forever, so we need our
+  // own flag that can flip back to false on teardown to support re-init.
+  private var isActive: Boolean = false
+
   override fun getName(): String {
     return "PluginSessionReplayReactNative"
   }
@@ -42,6 +46,15 @@ class PluginSessionReplayReactNativeModule(private val reactContext: ReactApplic
         Auto Start: $autoStart
     """.trimIndent())
 
+    // Guard against double-init; callers that want to re-init must teardown() first.
+    if (isActive) {
+      LogcatLogger.logger.warn(
+        "SessionReplay.setup called while a prior instance is active (sessionId=${sessionReplay.getSessionId()}). " +
+          "Skipping — call teardown() first to re-initialize."
+      )
+      return
+    }
+
     sessionReplay = SessionReplay(
       apiKey,
       reactContext.applicationContext,
@@ -56,6 +69,7 @@ class PluginSessionReplayReactNativeModule(private val reactContext: ReactApplic
       },
       autoStart = autoStart
     )
+    isActive = true
   }
 
   @ReactMethod
@@ -105,12 +119,16 @@ class PluginSessionReplayReactNativeModule(private val reactContext: ReactApplic
 
   @ReactMethod
   fun teardown() {
-    sessionReplay.shutdown()
+    if (isActive) {
+      sessionReplay.shutdown()
+      isActive = false
+    }
   }
 
   override fun invalidate() {
-    if (::sessionReplay.isInitialized) {
+    if (isActive) {
       sessionReplay.shutdown()
+      isActive = false
     }
   }
 }
