@@ -199,6 +199,57 @@ describe('mergeMutationEvents', () => {
       expect(data.removes).toHaveLength(0);
     });
 
+    test('does not elide a node removed then re-added (DOM move)', () => {
+      // remove in event1, re-add in event2 — this is a cross-event DOM move, not transient
+      const e1 = makeMutation(1000, {
+        removes: [{ parentId: 1, id: 10 }],
+      });
+      const e2 = makeMutation(1010, {
+        adds: [{ parentId: 2, nextId: null, node: { id: 10 } as any }],
+      });
+
+      const result = mergeMutationEvents([e1, e2]);
+
+      const data = result[0].data as mutationData;
+      expect(data.removes).toEqual([{ parentId: 1, id: 10 }]);
+      expect(data.adds).toHaveLength(1);
+      expect((data.adds[0].node as any).id).toBe(10);
+    });
+
+    test('filters texts for transient node IDs', () => {
+      const e1 = makeMutation(1000, {
+        adds: [{ parentId: 1, nextId: null, node: { id: 10 } as any }],
+        texts: [{ id: 10, value: 'hello' }],
+      });
+      const e2 = makeMutation(1010, {
+        removes: [{ parentId: 1, id: 10 }],
+      });
+
+      const result = mergeMutationEvents([e1, e2]);
+
+      const data = result[0].data as mutationData;
+      expect(data.adds).toHaveLength(0);
+      expect(data.removes).toHaveLength(0);
+      expect(data.texts).toHaveLength(0);
+    });
+
+    test('filters attributes for transient node IDs', () => {
+      const e1 = makeMutation(1000, {
+        adds: [{ parentId: 1, nextId: null, node: { id: 10 } as any }],
+        attributes: [{ id: 10, attributes: { class: 'foo' } }],
+      });
+      const e2 = makeMutation(1010, {
+        removes: [{ parentId: 1, id: 10 }],
+      });
+
+      const result = mergeMutationEvents([e1, e2]);
+
+      const data = result[0].data as mutationData;
+      expect(data.adds).toHaveLength(0);
+      expect(data.removes).toHaveLength(0);
+      expect(data.attributes).toHaveLength(0);
+    });
+
     test('only elides the transient node, keeps non-transient adds and removes', () => {
       const e1 = makeMutation(1000, {
         adds: [
