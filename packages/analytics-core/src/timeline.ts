@@ -52,7 +52,9 @@ export class Timeline {
       await plugin.setup?.(config, this.client);
       targetPlugins.push(plugin);
     } catch (error) {
-      this._reservedPluginNames.delete(name);
+      if (this.plugins === targetPlugins) {
+        this._reservedPluginNames.delete(name);
+      }
       throw error;
     }
   }
