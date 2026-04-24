@@ -21,6 +21,7 @@ export class EventCompressor {
   timeout: number;
   worker?: Worker;
   onFullSnapshotProcessed?: () => void;
+  mergedUpToIndex = 0;
 
   constructor(
     eventsManager: SessionReplayEventsManager<'replay' | 'interaction', string>,
@@ -95,6 +96,7 @@ export class EventCompressor {
           this.addCompressedEventToManager(compressed, task.sessionId);
         }
         this.isProcessing = false;
+        this.mergedUpToIndex = 0;
       }
       const compressedEvent = this.compressEvent(event);
       this.addCompressedEventToManager(compressedEvent, sessionId);
@@ -114,10 +116,18 @@ export class EventCompressor {
 
   // Process the task queue during idle time
   public processQueue(idleDeadline: IdleDeadline): void {
-    this.taskQueue = this.mergeMutationTasks(this.taskQueue);
+    // Only merge new tasks that haven't been merged yet
+    if (this.mergedUpToIndex < this.taskQueue.length) {
+      const unmerged = this.taskQueue.slice(this.mergedUpToIndex);
+      const merged = this.mergeMutationTasks(unmerged);
+      this.taskQueue.splice(this.mergedUpToIndex, unmerged.length, ...merged);
+      this.mergedUpToIndex = this.taskQueue.length;
+    }
+
     // Process tasks while there's idle time or until the max number of tasks is reached
     while (this.taskQueue.length > 0 && (idleDeadline.timeRemaining() > 0 || idleDeadline.didTimeout)) {
       const task = this.taskQueue.shift();
+      this.mergedUpToIndex--;
       if (task) {
         const { event, sessionId } = task;
         this.addCompressedEvent(event, sessionId);
@@ -134,6 +144,7 @@ export class EventCompressor {
       );
     } else {
       this.isProcessing = false;
+      this.mergedUpToIndex = 0;
     }
   }
 

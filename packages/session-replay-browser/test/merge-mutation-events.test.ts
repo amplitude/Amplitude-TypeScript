@@ -216,6 +216,27 @@ describe('mergeMutationEvents', () => {
       expect((data.adds[0].node as any).id).toBe(10);
     });
 
+    test('does not elide a node added then moved (creation followed by DOM move)', () => {
+      // add in event1, remove+re-add in event2 — this is creation followed by a move, not transient
+      const e1 = makeMutation(1000, {
+        adds: [{ parentId: 1, nextId: null, node: { id: 10 } as any }],
+      });
+      const e2 = makeMutation(1010, {
+        removes: [{ parentId: 1, id: 10 }],
+        adds: [{ parentId: 2, nextId: null, node: { id: 10 } as any }],
+      });
+
+      const result = mergeMutationEvents([e1, e2]);
+
+      const data = result[0].data as mutationData;
+      expect(data.removes).toEqual([{ parentId: 1, id: 10 }]);
+      expect(data.adds).toHaveLength(2);
+      expect((data.adds[0].node as any).id).toBe(10);
+      expect(data.adds[0].parentId).toBe(1);
+      expect((data.adds[1].node as any).id).toBe(10);
+      expect(data.adds[1].parentId).toBe(2);
+    });
+
     test('filters texts for transient node IDs', () => {
       const e1 = makeMutation(1000, {
         adds: [{ parentId: 1, nextId: null, node: { id: 10 } as any }],

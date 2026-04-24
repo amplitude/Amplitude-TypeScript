@@ -19,14 +19,14 @@ function mergeGroup(events: eventWithTime[]): eventWithTime {
   // and cascade to any adds whose parent is also transient.
   //
   // Order matters: a node removed in event1 and re-added in event2 (a DOM move) must NOT
-  // be elided. We track the first event index each node is added and the last event index
+  // be elided. We track the last event index each node is added and the last event index
   // it is removed; a node is transient only when addIdx < removeIdx.
-  const firstAddEventIndex = new Map<number, number>();
+  const lastAddEventIndex = new Map<number, number>();
   const lastRemoveEventIndex = new Map<number, number>();
   events.forEach((e, i) => {
     const data = e.data as mutationData;
     for (const add of data.adds) {
-      if (!firstAddEventIndex.has(add.node.id)) firstAddEventIndex.set(add.node.id, i);
+      lastAddEventIndex.set(add.node.id, i);
     }
     for (const remove of data.removes) {
       lastRemoveEventIndex.set(remove.id, i);
@@ -34,7 +34,7 @@ function mergeGroup(events: eventWithTime[]): eventWithTime {
   });
 
   const transientIds = new Set<number>();
-  for (const [id, addIdx] of firstAddEventIndex) {
+  for (const [id, addIdx] of lastAddEventIndex) {
     const removeIdx = lastRemoveEventIndex.get(id);
     if (removeIdx !== undefined && addIdx < removeIdx) transientIds.add(id);
   }
