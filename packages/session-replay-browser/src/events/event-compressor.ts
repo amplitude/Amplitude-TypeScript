@@ -3,6 +3,7 @@ import { EventType as RRWebEventType } from '@amplitude/rrweb-types';
 import type { eventWithTime } from '@amplitude/rrweb-types';
 import { SessionReplayJoinedConfig } from '../config/types';
 import { SessionReplayEventsManager } from '../typings/session-replay';
+import { mergeMutationEvents } from './merge-mutation-events';
 
 interface TaskQueue {
   event: eventWithTime;
@@ -89,7 +90,7 @@ export class EventCompressor {
       // the full snapshot; if we let them be processed later they'd arrive at
       // the server after the snapshot and cause "node not found" replay errors.
       if (this.taskQueue.length > 0) {
-        for (const task of this.taskQueue.splice(0)) {
+        for (const task of this.mergeMutationTasks(this.taskQueue.splice(0))) {
           const compressed = this.compressEvent(task.event);
           this.addCompressedEventToManager(compressed, task.sessionId);
         }
@@ -113,6 +114,7 @@ export class EventCompressor {
 
   // Process the task queue during idle time
   public processQueue(idleDeadline: IdleDeadline): void {
+    this.taskQueue = this.mergeMutationTasks(this.taskQueue);
     // Process tasks while there's idle time or until the max number of tasks is reached
     while (this.taskQueue.length > 0 && (idleDeadline.timeRemaining() > 0 || idleDeadline.didTimeout)) {
       const task = this.taskQueue.shift();
@@ -175,6 +177,35 @@ export class EventCompressor {
       this.addCompressedEventToManager(compressedEvent, sessionId);
     }
   };
+
+  // Merge consecutive mutation tasks with the same sessionId before processing,
+  // reducing the number of events serialized and stored without changing replay semantics.
+  private mergeMutationTasks(tasks: TaskQueue[]): TaskQueue[] {
+    if (tasks.length <= 1) return tasks;
+
+    const result: TaskQueue[] = [];
+    let i = 0;
+
+    while (i < tasks.length) {
+      const sessionId = tasks[i].sessionId;
+
+      // Find the end of the current session run
+      let j = i + 1;
+      while (j < tasks.length && tasks[j].sessionId === sessionId) {
+        j++;
+      }
+
+      // Merge consecutive mutations within this session run; non-mutations pass through unchanged
+      const merged = mergeMutationEvents(tasks.slice(i, j).map((t) => t.event));
+      for (const event of merged) {
+        result.push({ event, sessionId });
+      }
+
+      i = j;
+    }
+
+    return result;
+  }
 
   public terminate = () => {
     this.worker?.terminate();
