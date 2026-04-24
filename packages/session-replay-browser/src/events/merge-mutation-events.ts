@@ -1,0 +1,119 @@
+import { EventType, IncrementalSource } from '@amplitude/rrweb-types';
+import type { eventWithTime, mutationData } from '@amplitude/rrweb-types';
+
+function isMergeableMutation(event: eventWithTime): boolean {
+  if (event.type !== EventType.IncrementalSnapshot) return false;
+  const data = event.data as mutationData;
+  return data.source === IncrementalSource.Mutation && !data.isAttachIframe;
+}
+
+function mergeGroup(events: eventWithTime[]): eventWithTime {
+  const first = events[0];
+
+  const allRemoves = events.flatMap((e) => (e.data as mutationData).removes);
+  const allAdds = events.flatMap((e) => (e.data as mutationData).adds);
+
+  // Elide transient nodes: a node added in an earlier event and removed in a later one
+  // would otherwise have its remove execute before its add (since we put all removes
+  // first), leaving the node permanently in the DOM. Cancel both the add and the remove,
+  // and cascade to any adds whose parent is also transient.
+  //
+  // Order matters: a node removed in event1 and re-added in event2 (a DOM move) must NOT
+  // be elided. We track the LAST event index each node is added and the last event index
+  // it is removed; a node is transient only when lastAddIdx < lastRemoveIdx.
+  //
+  // Using lastAddIdx (not firstAddIdx) correctly handles add-then-move sequences: when a
+  // node is created in event0 and moved (remove+re-add) in event1, lastAddIdx=1 equals
+  // lastRemoveIdx=1 so the node is not transient and the move is preserved.
+  const firstAddEventIndex = new Map<number, number>();
+  const lastAddEventIndex = new Map<number, number>();
+  const firstRemoveEventIndex = new Map<number, number>();
+  const lastRemoveEventIndex = new Map<number, number>();
+  // lastParentById: a node's parentId from its most recent add (last-write-wins).
+  // Used in the cascade so a child moved away from a transient parent is not wrongly elided.
+  const lastParentById = new Map<number, number>();
+  events.forEach((e, i) => {
+    const data = e.data as mutationData;
+    for (const add of data.adds) {
+      if (!firstAddEventIndex.has(add.node.id)) firstAddEventIndex.set(add.node.id, i);
+      lastAddEventIndex.set(add.node.id, i);
+      lastParentById.set(add.node.id, add.parentId);
+    }
+    for (const remove of data.removes) {
+      if (!firstRemoveEventIndex.has(remove.id)) firstRemoveEventIndex.set(remove.id, i);
+      lastRemoveEventIndex.set(remove.id, i);
+    }
+  });
+
+  const transientIds = new Set<number>();
+  for (const [id, addIdx] of lastAddEventIndex) {
+    const removeIdx = lastRemoveEventIndex.get(id);
+    if (removeIdx === undefined) continue;
+    // A node is transient only when it was first seen as an add (not pre-existing).
+    // If firstRemoveIdx < firstAddIdx the node pre-existed and was removed before being
+    // re-added; marking it transient would incorrectly drop the pre-existing remove.
+    const firstAddIdx = firstAddEventIndex.get(id)!;
+    const firstRemoveIdx = firstRemoveEventIndex.get(id)!;
+    if (addIdx < removeIdx && firstAddIdx < firstRemoveIdx) transientIds.add(id);
+  }
+
+  if (transientIds.size > 0) {
+    // Cascade: children whose FINAL parent is transient would be orphaned after elision.
+    // Use lastParentById (not allAdds) so a node moved away from a transient parent
+    // to a non-transient parent is not incorrectly elided.
+    let changed = true;
+    while (changed) {
+      changed = false;
+      for (const [nodeId, parentId] of lastParentById) {
+        if (!transientIds.has(nodeId) && transientIds.has(parentId)) {
+          transientIds.add(nodeId);
+          changed = true;
+        }
+      }
+    }
+  }
+
+  const allTexts = events.flatMap((e) => (e.data as mutationData).texts);
+  const allAttributes = events.flatMap((e) => (e.data as mutationData).attributes);
+
+  const merged: mutationData = {
+    source: IncrementalSource.Mutation,
+    removes: transientIds.size > 0 ? allRemoves.filter((r) => !transientIds.has(r.id)) : allRemoves,
+    adds: transientIds.size > 0 ? allAdds.filter((a) => !transientIds.has(a.node.id)) : allAdds,
+    texts: transientIds.size > 0 ? allTexts.filter((t) => !transientIds.has(t.id)) : allTexts,
+    attributes: transientIds.size > 0 ? allAttributes.filter((a) => !transientIds.has(a.id)) : allAttributes,
+  };
+  return { ...first, data: merged } as eventWithTime;
+}
+
+/**
+ * Merges consecutive IncrementalSnapshot mutation events into a single event,
+ * reducing overall event count without changing replay semantics.
+ *
+ * isAttachIframe events are never merged — they carry a full iframe document
+ * tree and must remain isolated.
+ */
+export function mergeMutationEvents(events: eventWithTime[]): eventWithTime[] {
+  if (events.length <= 1) return events;
+
+  const result: eventWithTime[] = [];
+  let i = 0;
+
+  while (i < events.length) {
+    if (!isMergeableMutation(events[i])) {
+      result.push(events[i]);
+      i++;
+      continue;
+    }
+
+    let j = i + 1;
+    while (j < events.length && isMergeableMutation(events[j])) {
+      j++;
+    }
+
+    result.push(j > i + 1 ? mergeGroup(events.slice(i, j)) : events[i]);
+    i = j;
+  }
+
+  return result;
+}
