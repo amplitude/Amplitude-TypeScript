@@ -295,6 +295,21 @@ describe('mergeMutationEvents', () => {
       expect(data.adds.some((a) => (a.node as any).id === 11 && a.parentId === 2)).toBe(true);
     });
 
+    test('does not mark as transient a pre-existing node removed, re-added, then removed again', () => {
+      // Node 99 pre-exists: removed in e1, re-added in e2, removed again in e3.
+      // lastAddIdx(1) < lastRemoveIdx(2) would be true, but firstRemoveIdx(0) < firstAddIdx(1)
+      // indicates the node was not created within this window — must not be elided.
+      const e1 = makeMutation(1000, { removes: [{ parentId: 1, id: 99 }] });
+      const e2 = makeMutation(1010, { adds: [{ parentId: 2, nextId: null, node: { id: 99 } as any }] });
+      const e3 = makeMutation(1020, { removes: [{ parentId: 2, id: 99 }] });
+
+      const result = mergeMutationEvents([e1, e2, e3]);
+
+      const data = result[0].data as mutationData;
+      expect(data.removes.some((r) => r.id === 99)).toBe(true);
+      expect(data.adds.some((a) => (a.node as any).id === 99)).toBe(true);
+    });
+
     test('only elides the transient node, keeps non-transient adds and removes', () => {
       const e1 = makeMutation(1000, {
         adds: [

@@ -25,7 +25,9 @@ function mergeGroup(events: eventWithTime[]): eventWithTime {
   // Using lastAddIdx (not firstAddIdx) correctly handles add-then-move sequences: when a
   // node is created in event0 and moved (remove+re-add) in event1, lastAddIdx=1 equals
   // lastRemoveIdx=1 so the node is not transient and the move is preserved.
+  const firstAddEventIndex = new Map<number, number>();
   const lastAddEventIndex = new Map<number, number>();
+  const firstRemoveEventIndex = new Map<number, number>();
   const lastRemoveEventIndex = new Map<number, number>();
   // lastParentById: a node's parentId from its most recent add (last-write-wins).
   // Used in the cascade so a child moved away from a transient parent is not wrongly elided.
@@ -33,10 +35,12 @@ function mergeGroup(events: eventWithTime[]): eventWithTime {
   events.forEach((e, i) => {
     const data = e.data as mutationData;
     for (const add of data.adds) {
+      if (!firstAddEventIndex.has(add.node.id)) firstAddEventIndex.set(add.node.id, i);
       lastAddEventIndex.set(add.node.id, i);
       lastParentById.set(add.node.id, add.parentId);
     }
     for (const remove of data.removes) {
+      if (!firstRemoveEventIndex.has(remove.id)) firstRemoveEventIndex.set(remove.id, i);
       lastRemoveEventIndex.set(remove.id, i);
     }
   });
@@ -44,7 +48,13 @@ function mergeGroup(events: eventWithTime[]): eventWithTime {
   const transientIds = new Set<number>();
   for (const [id, addIdx] of lastAddEventIndex) {
     const removeIdx = lastRemoveEventIndex.get(id);
-    if (removeIdx !== undefined && addIdx < removeIdx) transientIds.add(id);
+    if (removeIdx === undefined) continue;
+    // A node is transient only when it was first seen as an add (not pre-existing).
+    // If firstRemoveIdx < firstAddIdx the node pre-existed and was removed before being
+    // re-added; marking it transient would incorrectly drop the pre-existing remove.
+    const firstAddIdx = firstAddEventIndex.get(id)!;
+    const firstRemoveIdx = firstRemoveEventIndex.get(id)!;
+    if (addIdx < removeIdx && firstAddIdx < firstRemoveIdx) transientIds.add(id);
   }
 
   if (transientIds.size > 0) {
