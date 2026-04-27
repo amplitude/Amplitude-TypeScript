@@ -396,6 +396,88 @@ describe('mergeMutationEvents', () => {
       expect(data.adds.some((a) => (a.node as any).id === 100)).toBe(false);
     });
 
+    test('preserves same-event-moved pre-existing node remove when final parent is transient (cascadeDropAddsOnly)', () => {
+      // B (id=11) is pre-existing. In e0, B is same-event moved: removed from Q (parentId=5)
+      // and added to C (id=10) in the SAME rrweb event. C is a new node added to body in e0.
+      // In e1, C is removed — making C a pure transient.
+      // Cascade fires: B's lastParent C is transient. nodeFirstRemoveIdx(B) === nodeFirstAddIdx(B)
+      // (both 0) → cascadeDropAddsOnlyIds. B's add to C is dropped; B's remove from Q is kept.
+      const e0 = makeMutation(1000, {
+        adds: [
+          { parentId: 1, nextId: null, node: { id: 10 } as any }, // C: new node
+          { parentId: 10, nextId: null, node: { id: 11 } as any }, // B: same-event add to C
+        ],
+        removes: [{ parentId: 5, id: 11 }], // B: same-event remove from Q
+      });
+      const e1 = makeMutation(1010, {
+        removes: [{ parentId: 1, id: 10 }], // C removed → pure transient
+      });
+
+      const result = mergeMutationEvents([e0, e1]);
+      const data = result[0].data as mutationData;
+
+      // C (id=10) is pure transient — elided entirely
+      expect(data.adds.some((a) => (a.node as any).id === 10)).toBe(false);
+      expect(data.removes.some((r) => r.id === 10)).toBe(false);
+      // B (id=11): add to C must be dropped (C is cancelled)
+      expect(data.adds.some((a) => (a.node as any).id === 11)).toBe(false);
+      // B (id=11): remove from Q (parentId=5) must be preserved
+      expect(data.removes.some((r) => r.id === 11 && r.parentId === 5)).toBe(true);
+    });
+
+    test('filters texts and attributes for cascadeDropAddsOnly nodes', () => {
+      // B (id=11) is same-event moved to transient C (id=10).
+      // A text and attribute mutation on B during the re-add phase should be dropped.
+      const e0 = makeMutation(1000, {
+        adds: [
+          { parentId: 1, nextId: null, node: { id: 10 } as any },
+          { parentId: 10, nextId: null, node: { id: 11 } as any },
+        ],
+        removes: [{ parentId: 5, id: 11 }],
+        texts: [{ id: 11, value: 'during move' }],
+        attributes: [{ id: 11, attributes: { class: 'moved' } }],
+      });
+      const e1 = makeMutation(1010, { removes: [{ parentId: 1, id: 10 }] });
+
+      const result = mergeMutationEvents([e0, e1]);
+      const data = result[0].data as mutationData;
+
+      expect(data.texts).toHaveLength(0);
+      expect(data.attributes).toHaveLength(0);
+      expect(data.removes.some((r) => r.id === 11 && r.parentId === 5)).toBe(true);
+    });
+
+    test('drops remove from cancelled parent for cascadeDropAddsOnly node', () => {
+      // B (id=11) is same-event moved to C (id=10) in e0, then explicitly removed from C in e1,
+      // then C is removed in e2. Because the "remove from C" is from a cancelled parent (transient C),
+      // it should be dropped — keeping only the original remove from Q (parentId=5).
+      const e0 = makeMutation(1000, {
+        adds: [
+          { parentId: 1, nextId: null, node: { id: 10 } as any }, // C: new node
+          { parentId: 10, nextId: null, node: { id: 11 } as any }, // B: same-event add to C
+        ],
+        removes: [{ parentId: 5, id: 11 }], // B: same-event remove from Q
+      });
+      const e1 = makeMutation(1010, {
+        removes: [{ parentId: 10, id: 11 }], // B explicitly removed from C
+      });
+      const e2 = makeMutation(1020, {
+        removes: [{ parentId: 1, id: 10 }], // C removed → pure transient
+      });
+
+      const result = mergeMutationEvents([e0, e1, e2]);
+      const data = result[0].data as mutationData;
+
+      // C (id=10) is pure transient — elided
+      expect(data.adds.some((a) => (a.node as any).id === 10)).toBe(false);
+      expect(data.removes.some((r) => r.id === 10)).toBe(false);
+      // B (id=11): add to C and remove from C (cancelled parent) must both be dropped
+      expect(data.adds.some((a) => (a.node as any).id === 11)).toBe(false);
+      expect(data.removes.some((r) => r.id === 11 && r.parentId === 10)).toBe(false);
+      // B (id=11): original remove from Q must be preserved
+      expect(data.removes.some((r) => r.id === 11 && r.parentId === 5)).toBe(true);
+    });
+
     test('preserves pre-existing child original remove when cascaded from a transient parent', () => {
       // Node 10 is pure transient (added then removed within window).
       // Node 11 pre-existed: removed from parent 5 in e1, then re-added under transient 10 in e2.

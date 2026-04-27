@@ -63,8 +63,15 @@ function mergeGroup(events: eventWithTime[]): eventWithTime {
   }
 
   // Cascade: nodes whose FINAL parent is effectively cancelled (transient or pre-existing-transient)
-  // would be orphaned, so treat them as pure transients too.
+  // would be orphaned, so treat them as cancelled too.
   // Use lastParentById so a node moved away from a cancelled parent to a live one is not wrongly elided.
+  //
+  // Three cascade outcomes mirror the main-loop classification:
+  //   transientIds:            no pre-existing removes (node created in window), or no remove/add overlap
+  //   preExistingTransientIds: nodeFirstRemoveIdx < nodeFirstAddIdx (pre-existing, removed before re-add)
+  //   cascadeDropAddsOnlyIds:  nodeFirstRemoveIdx === nodeFirstAddIdx (same-event move to cancelled parent)
+  //                            → drop adds but preserve removes from non-cancelled parents
+  const cascadeDropAddsOnlyIds = new Set<number>();
   if (transientIds.size > 0 || preExistingTransientIds.size > 0) {
     let changed = true;
     while (changed) {
@@ -73,7 +80,8 @@ function mergeGroup(events: eventWithTime[]): eventWithTime {
         if (
           !transientIds.has(nodeId) &&
           !preExistingTransientIds.has(nodeId) &&
-          (transientIds.has(parentId) || preExistingTransientIds.has(parentId))
+          !cascadeDropAddsOnlyIds.has(nodeId) &&
+          (transientIds.has(parentId) || preExistingTransientIds.has(parentId) || cascadeDropAddsOnlyIds.has(parentId))
         ) {
           const nodeFirstRemoveIdx = firstRemoveEventIndex.get(nodeId);
           const nodeFirstAddIdx = firstAddEventIndex.get(nodeId);
@@ -83,6 +91,12 @@ function mergeGroup(events: eventWithTime[]): eventWithTime {
             nodeFirstRemoveIdx < nodeFirstAddIdx
           ) {
             preExistingTransientIds.add(nodeId);
+          } else if (
+            nodeFirstRemoveIdx !== undefined &&
+            nodeFirstAddIdx !== undefined &&
+            nodeFirstRemoveIdx === nodeFirstAddIdx
+          ) {
+            cascadeDropAddsOnlyIds.add(nodeId);
           } else {
             transientIds.add(nodeId);
           }
@@ -92,17 +106,27 @@ function mergeGroup(events: eventWithTime[]): eventWithTime {
     }
   }
 
-  const needsFilter = transientIds.size > 0 || preExistingTransientIds.size > 0;
+  const needsFilter = transientIds.size > 0 || preExistingTransientIds.size > 0 || cascadeDropAddsOnlyIds.size > 0;
 
   // Build filtered removes by iterating per event so we know each remove's event index.
   // Pure transients:          drop all removes.
   // Pre-existing transients:  drop removes at eventIdx >= firstAddIdx (the cancelled re-add cycle);
   //                           keep removes at eventIdx < firstAddIdx (legitimate pre-window removal).
+  // Cascade drop-adds-only:   keep removes from non-cancelled parents; drop removes from cancelled parents
+  //                           (the cancelled parent is never added in the replay, so a remove from it
+  //                           would reference a non-existent node in the replayer).
   const filteredRemoves: mutationData['removes'][0][] = [];
   events.forEach((e, eventIdx) => {
     for (const r of (e.data as mutationData).removes) {
       if (transientIds.has(r.id)) continue;
       if (preExistingTransientIds.has(r.id) && eventIdx >= firstAddEventIndex.get(r.id)!) continue;
+      if (
+        cascadeDropAddsOnlyIds.has(r.id) &&
+        (transientIds.has(r.parentId) ||
+          preExistingTransientIds.has(r.parentId) ||
+          cascadeDropAddsOnlyIds.has(r.parentId))
+      )
+        continue;
       filteredRemoves.push(r);
     }
   });
@@ -115,13 +139,22 @@ function mergeGroup(events: eventWithTime[]): eventWithTime {
     source: IncrementalSource.Mutation,
     removes: filteredRemoves,
     adds: needsFilter
-      ? allAdds.filter((a) => !transientIds.has(a.node.id) && !preExistingTransientIds.has(a.node.id))
+      ? allAdds.filter(
+          (a) =>
+            !transientIds.has(a.node.id) &&
+            !preExistingTransientIds.has(a.node.id) &&
+            !cascadeDropAddsOnlyIds.has(a.node.id),
+        )
       : allAdds,
     texts: needsFilter
-      ? allTexts.filter((t) => !transientIds.has(t.id) && !preExistingTransientIds.has(t.id))
+      ? allTexts.filter(
+          (t) => !transientIds.has(t.id) && !preExistingTransientIds.has(t.id) && !cascadeDropAddsOnlyIds.has(t.id),
+        )
       : allTexts,
     attributes: needsFilter
-      ? allAttributes.filter((a) => !transientIds.has(a.id) && !preExistingTransientIds.has(a.id))
+      ? allAttributes.filter(
+          (a) => !transientIds.has(a.id) && !preExistingTransientIds.has(a.id) && !cascadeDropAddsOnlyIds.has(a.id),
+        )
       : allAttributes,
   };
   return { ...first, data: merged } as eventWithTime;
