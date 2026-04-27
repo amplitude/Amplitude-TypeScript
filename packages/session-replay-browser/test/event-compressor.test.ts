@@ -3,7 +3,7 @@ import { SessionReplayLocalConfig } from '../src/config/local-config';
 import { EventCompressor } from '../src/events/event-compressor';
 import { createEventsManager } from '../src/events/events-manager';
 import { SessionReplayEventsManager } from '../src/typings/session-replay';
-import { eventWithTime } from '@amplitude/rrweb-types';
+import { EventType, IncrementalSource, eventWithTime, mutationData } from '@amplitude/rrweb-types';
 
 const mockEvent = {
   type: 4, // Meta — not a FullSnapshot
@@ -547,6 +547,50 @@ describe('EventCompressor', () => {
       const keys = Object.keys(serialized);
       expect(keys[0]).toBe('type');
       expect(keys[1]).toBe('timestamp');
+    });
+  });
+
+  describe('mergeMutationTasks via processQueue', () => {
+    function makeMutationEvent(timestamp: number): eventWithTime {
+      return {
+        type: EventType.IncrementalSnapshot,
+        timestamp,
+        data: { source: IncrementalSource.Mutation, texts: [], attributes: [], removes: [], adds: [] } as mutationData,
+      };
+    }
+
+    test('merges pending mutation events into a single task before processing', () => {
+      const addEventMock = jest.spyOn(eventsManager, 'addEvent');
+      const m1 = makeMutationEvent(100);
+      const m2 = makeMutationEvent(200);
+      eventCompressor.pendingQueue.push({ event: m1, sessionId });
+      eventCompressor.pendingQueue.push({ event: m2, sessionId });
+
+      const mockIdleDeadline = { timeRemaining: () => 50, didTimeout: false } as IdleDeadline;
+      eventCompressor.processQueue(mockIdleDeadline);
+
+      // Two pending mutations → merged into one → one compressed event
+      expect(addEventMock).toHaveBeenCalledTimes(1);
+      expect(eventCompressor.pendingQueue).toHaveLength(0);
+    });
+
+    test('keeps tasks from different sessions separate when merging', () => {
+      const addEventMock = jest.spyOn(eventsManager, 'addEvent');
+      const sessionA = 111;
+      const sessionB = 222;
+      const m1 = makeMutationEvent(100);
+      const m2 = makeMutationEvent(200);
+      const m3 = makeMutationEvent(300);
+      // Two mutations for sessionA, one for sessionB — sessionA run merges; sessionB stays as-is
+      eventCompressor.pendingQueue.push({ event: m1, sessionId: sessionA });
+      eventCompressor.pendingQueue.push({ event: m2, sessionId: sessionA });
+      eventCompressor.pendingQueue.push({ event: m3, sessionId: sessionB });
+
+      const mockIdleDeadline = { timeRemaining: () => 50, didTimeout: false } as IdleDeadline;
+      eventCompressor.processQueue(mockIdleDeadline);
+
+      // sessionA: 2 → 1 merged; sessionB: 1 stays → 2 total compressed events
+      expect(addEventMock).toHaveBeenCalledTimes(2);
     });
   });
 

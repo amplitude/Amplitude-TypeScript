@@ -97,6 +97,19 @@ describe('mergeMutationEvents', () => {
     expect(result[2]).toBe(e2);
   });
 
+  test('does not merge mutations separated by a FullSnapshot event', () => {
+    const e1 = makeMutation(1000);
+    const full = makeFullSnapshot(1010);
+    const e2 = makeMutation(1020);
+
+    const result = mergeMutationEvents([e1, full, e2]);
+
+    expect(result).toHaveLength(3);
+    expect(result[0]).toBe(e1);
+    expect(result[1]).toBe(full);
+    expect(result[2]).toBe(e2);
+  });
+
   test('passes non-mutation IncrementalSnapshot events through unchanged', () => {
     const scroll = makeScroll(1000);
     const result = mergeMutationEvents([scroll]);
