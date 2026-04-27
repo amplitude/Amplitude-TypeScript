@@ -20,9 +20,9 @@
  * Mutations made synchronously within a single evaluate() call all land in
  * one MutationObserver batch → one rrweb event.  Tests that exercise the
  * multi-event merge path (cross-batch) use separate evaluate() calls so MO
- * fires between them.  The pre-existing-transient test is intentionally
- * structured with separate calls and is proven correct for any timing split
- * of the three events.
+ * fires between them.  The pre-existing-transient test freezes
+ * requestIdleCallback before the mutations to guarantee all three events
+ * accumulate in pendingQueue and are merged in a single window.
  */
 
 import { test, expect, Page } from '@playwright/test';
