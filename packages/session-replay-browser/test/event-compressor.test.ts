@@ -559,6 +559,19 @@ describe('EventCompressor', () => {
       };
     }
 
+    test('passes through a single pending event unchanged when merging is enabled', () => {
+      eventCompressor.config.performanceConfig = { enabled: true, mergeMutations: true };
+      const addEventMock = jest.spyOn(eventsManager, 'addEvent');
+      const m1 = makeMutationEvent(100);
+      eventCompressor.pendingQueue.push({ event: m1, sessionId });
+
+      const mockIdleDeadline = { timeRemaining: () => 50, didTimeout: false } as IdleDeadline;
+      eventCompressor.processQueue(mockIdleDeadline);
+
+      expect(addEventMock).toHaveBeenCalledTimes(1);
+      expect(eventCompressor.pendingQueue).toHaveLength(0);
+    });
+
     test('merges pending mutation events into a single task before processing', () => {
       eventCompressor.config.performanceConfig = { enabled: true, mergeMutations: true };
       const addEventMock = jest.spyOn(eventsManager, 'addEvent');
