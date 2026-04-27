@@ -187,7 +187,9 @@ test.describe('mutation merge', () => {
     await mockRemoteConfig(page, remoteConfigRecording);
     const { getBodies } = await captureTrackRequests(page);
 
-    await page.goto(buildUrl('/session-replay-browser/sr-capture-test.html', { sessionId: TEST_SESSION_ID }));
+    await page.goto(
+      buildUrl('/session-replay-browser/sr-capture-test.html', { sessionId: TEST_SESSION_ID, mergeMutations: true }),
+    );
     await waitForReady(page);
     await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
 
