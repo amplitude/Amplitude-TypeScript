@@ -308,10 +308,11 @@ describe('mergeMutationEvents', () => {
       expect(data.adds.some((a) => (a.node as any).id === 11 && a.parentId === 2)).toBe(true);
     });
 
-    test('does not mark as transient a pre-existing node removed, re-added, then removed again', () => {
-      // Node 99 pre-exists: removed in e1, re-added in e2, removed again in e3.
-      // lastAddIdx(1) < lastRemoveIdx(2) would be true, but firstRemoveIdx(0) < firstAddIdx(1)
-      // indicates the node was not created within this window — must not be elided.
+    test('cancels re-add and post-add remove for pre-existing node removed, re-added, and removed again', () => {
+      // Node 99 pre-exists: removed from parent1 in e1, re-added to parent2 in e2, removed from parent2 in e3.
+      // The rrweb replayer applies all removes first: both removes fire, then the add re-creates the node
+      // at parent2 — leaving it present when it should be absent.
+      // Fix: cancel the re-add and the post-add remove; keep only the original pre-add remove.
       const e1 = makeMutation(1000, { removes: [{ parentId: 1, id: 99 }] });
       const e2 = makeMutation(1010, { adds: [{ parentId: 2, nextId: null, node: { id: 99 } as any }] });
       const e3 = makeMutation(1020, { removes: [{ parentId: 2, id: 99 }] });
@@ -319,8 +320,60 @@ describe('mergeMutationEvents', () => {
       const result = mergeMutationEvents([e1, e2, e3]);
 
       const data = result[0].data as mutationData;
-      expect(data.removes.some((r) => r.id === 99)).toBe(true);
-      expect(data.adds.some((a) => (a.node as any).id === 99)).toBe(true);
+      // Original remove (from parent1) must survive
+      expect(data.removes.some((r) => r.id === 99 && r.parentId === 1)).toBe(true);
+      // Re-add and post-add remove must be cancelled
+      expect(data.removes.some((r) => r.id === 99 && r.parentId === 2)).toBe(false);
+      expect(data.adds.some((a) => (a.node as any).id === 99)).toBe(false);
+    });
+
+    test('filters texts belonging to pre-existing-transient nodes', () => {
+      const e1 = makeMutation(1000, { removes: [{ parentId: 1, id: 99 }] });
+      const e2 = makeMutation(1010, {
+        adds: [{ parentId: 2, nextId: null, node: { id: 99 } as any }],
+        texts: [{ id: 99, value: 'during re-add' }],
+      });
+      const e3 = makeMutation(1020, { removes: [{ parentId: 2, id: 99 }] });
+
+      const result = mergeMutationEvents([e1, e2, e3]);
+
+      const data = result[0].data as mutationData;
+      expect(data.texts).toHaveLength(0);
+    });
+
+    test('filters attributes belonging to pre-existing-transient nodes', () => {
+      const e1 = makeMutation(1000, { removes: [{ parentId: 1, id: 99 }] });
+      const e2 = makeMutation(1010, {
+        adds: [{ parentId: 2, nextId: null, node: { id: 99 } as any }],
+        attributes: [{ id: 99, attributes: { class: 'during-readd' } }],
+      });
+      const e3 = makeMutation(1020, { removes: [{ parentId: 2, id: 99 }] });
+
+      const result = mergeMutationEvents([e1, e2, e3]);
+
+      const data = result[0].data as mutationData;
+      expect(data.attributes).toHaveLength(0);
+    });
+
+    test('cascades elision to children added under a pre-existing-transient re-add', () => {
+      // Node 99 pre-exists: removed in e1, re-added in e2 with a new child 100, removed in e3.
+      // The re-add of 99 is cancelled; child 100 (whose final parent is the cancelled re-add)
+      // is also elided.
+      const e1 = makeMutation(1000, { removes: [{ parentId: 1, id: 99 }] });
+      const e2 = makeMutation(1010, {
+        adds: [
+          { parentId: 1, nextId: null, node: { id: 99 } as any },
+          { parentId: 99, nextId: null, node: { id: 100 } as any },
+        ],
+      });
+      const e3 = makeMutation(1020, { removes: [{ parentId: 1, id: 99 }] });
+
+      const result = mergeMutationEvents([e1, e2, e3]);
+
+      const data = result[0].data as mutationData;
+      expect(data.removes.some((r) => r.id === 99 && r.parentId === 1)).toBe(true);
+      expect(data.adds.some((a) => (a.node as any).id === 99)).toBe(false);
+      expect(data.adds.some((a) => (a.node as any).id === 100)).toBe(false);
     });
 
     test('only elides the transient node, keeps non-transient adds and removes', () => {
