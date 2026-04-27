@@ -4,7 +4,6 @@ export { createInstance } from './unified-client-factory';
 export type { UnifiedClient, UnifiedOptions, UnifiedSharedOptions } from './unified';
 export const {
   _setDiagnosticsSampleRate,
-  _enableRequestBodyCompressionExperimental,
   initAll,
   experiment,
   sessionReplay,

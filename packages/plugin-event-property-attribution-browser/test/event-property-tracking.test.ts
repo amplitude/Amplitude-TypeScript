@@ -46,7 +46,6 @@ const createMockBrowserClient = (): jest.Mocked<BrowserClient> =>
     reset: jest.fn(),
     setTransport: jest.fn(),
     _setDiagnosticsSampleRate: jest.fn(),
-    _enableRequestBodyCompressionExperimental: jest.fn(),
   } as unknown as jest.Mocked<BrowserClient>);
 
 const createConfigurationMock = (overrides: Partial<BrowserConfig> = {}): BrowserConfig =>
