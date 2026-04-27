@@ -560,6 +560,7 @@ describe('EventCompressor', () => {
     }
 
     test('merges pending mutation events into a single task before processing', () => {
+      eventCompressor.config.performanceConfig = { enabled: true, mergeMutations: true };
       const addEventMock = jest.spyOn(eventsManager, 'addEvent');
       const m1 = makeMutationEvent(100);
       const m2 = makeMutationEvent(200);
@@ -575,6 +576,7 @@ describe('EventCompressor', () => {
     });
 
     test('keeps tasks from different sessions separate when merging', () => {
+      eventCompressor.config.performanceConfig = { enabled: true, mergeMutations: true };
       const addEventMock = jest.spyOn(eventsManager, 'addEvent');
       const sessionA = 111;
       const sessionB = 222;

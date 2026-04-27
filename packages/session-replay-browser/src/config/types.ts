@@ -276,6 +276,12 @@ export interface SessionReplayPerformanceConfig {
    */
   timeout?: number;
   /**
+   * If enabled, consecutive mutation events will be merged into a single event before
+   * compression, reducing stored event count without changing replay semantics.
+   * Defaults to false.
+   */
+  mergeMutations?: boolean;
+  /**
    * Performance configuration for interaction tracking (clicks, scrolls).
    */
   interaction?: InteractionPerformanceConfig;
