@@ -308,6 +308,26 @@ describe('mergeMutationEvents', () => {
       expect(data.adds.some((a) => (a.node as any).id === 11 && a.parentId === 2)).toBe(true);
     });
 
+    test('preserves same-event move followed by a later remove (does not misclassify as pre-existing transient)', () => {
+      // Node 10 is moved (remove+add in e1 — same event index) then removed in e2.
+      // firstAddIdx === firstRemoveIdx (both 0): must NOT be classified as pre-existing transient.
+      // All operations must survive so the move and final removal are both applied.
+      const e1 = makeMutation(1000, {
+        removes: [{ parentId: 1, id: 10 }],
+        adds: [{ parentId: 2, nextId: null, node: { id: 10 } as any }],
+      });
+      const e2 = makeMutation(1010, { removes: [{ parentId: 2, id: 10 }] });
+
+      const result = mergeMutationEvents([e1, e2]);
+
+      const data = result[0].data as mutationData;
+      // Both removes must survive (not erased by pre-existing-transient misclassification)
+      expect(data.removes.some((r) => r.id === 10 && r.parentId === 1)).toBe(true);
+      expect(data.removes.some((r) => r.id === 10 && r.parentId === 2)).toBe(true);
+      // The add (move destination) must survive
+      expect(data.adds.some((a) => (a.node as any).id === 10 && a.parentId === 2)).toBe(true);
+    });
+
     test('cancels re-add and post-add remove for pre-existing node removed, re-added, and removed again', () => {
       // Node 99 pre-exists: removed from parent1 in e1, re-added to parent2 in e2, removed from parent2 in e3.
       // The rrweb replayer applies all removes first: both removes fire, then the add re-creates the node

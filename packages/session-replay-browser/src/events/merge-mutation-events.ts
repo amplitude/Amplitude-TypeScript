@@ -54,10 +54,12 @@ function mergeGroup(events: eventWithTime[]): eventWithTime {
 
     if (firstAddIdx < firstRemoveIdx) {
       transientIds.add(id);
-    } else {
+    } else if (firstRemoveIdx < firstAddIdx) {
       // firstRemoveIdx < firstAddIdx: pre-existing node removed, re-added, then removed again
       preExistingTransientIds.add(id);
     }
+    // firstAddIdx === firstRemoveIdx: same-event move (remove+add in one rrweb event) followed
+    // by a later remove — keep all operations so the move and final removal survive
   }
 
   // Cascade: nodes whose FINAL parent is effectively cancelled (transient or pre-existing-transient)
