@@ -396,6 +396,28 @@ describe('mergeMutationEvents', () => {
       expect(data.adds.some((a) => (a.node as any).id === 100)).toBe(false);
     });
 
+    test('preserves pre-existing child original remove when cascaded from a transient parent', () => {
+      // Node 10 is pure transient (added then removed within window).
+      // Node 11 pre-existed: removed from parent 5 in e1, then re-added under transient 10 in e2.
+      // Cascade classifies 11 as pre-existing transient (not pure transient) so its e1 remove is kept.
+      const e1 = makeMutation(1000, {
+        adds: [{ parentId: 1, nextId: null, node: { id: 10 } as any }], // 10: pure transient
+        removes: [{ parentId: 5, id: 11 }], // 11: removed from original parent
+      });
+      const e2 = makeMutation(1010, {
+        adds: [{ parentId: 10, nextId: null, node: { id: 11 } as any }], // 11: re-added under 10
+        removes: [{ parentId: 1, id: 10 }], // 10: removed
+      });
+
+      const result = mergeMutationEvents([e1, e2]);
+      const data = result[0].data as mutationData;
+
+      expect(data.adds.some((a) => (a.node as any).id === 10)).toBe(false); // 10 erased
+      expect(data.removes.some((r) => r.id === 10)).toBe(false); // 10 erased
+      expect(data.adds.some((a) => (a.node as any).id === 11)).toBe(false); // 11 re-add cancelled
+      expect(data.removes.some((r) => r.id === 11 && r.parentId === 5)).toBe(true); // 11 original remove kept
+    });
+
     test('only elides the transient node, keeps non-transient adds and removes', () => {
       const e1 = makeMutation(1000, {
         adds: [

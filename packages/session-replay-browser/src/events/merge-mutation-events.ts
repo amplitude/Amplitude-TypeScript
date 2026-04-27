@@ -75,7 +75,17 @@ function mergeGroup(events: eventWithTime[]): eventWithTime {
           !preExistingTransientIds.has(nodeId) &&
           (transientIds.has(parentId) || preExistingTransientIds.has(parentId))
         ) {
-          transientIds.add(nodeId);
+          const nodeFirstRemoveIdx = firstRemoveEventIndex.get(nodeId);
+          const nodeFirstAddIdx = firstAddEventIndex.get(nodeId);
+          if (
+            nodeFirstRemoveIdx !== undefined &&
+            nodeFirstAddIdx !== undefined &&
+            nodeFirstRemoveIdx < nodeFirstAddIdx
+          ) {
+            preExistingTransientIds.add(nodeId);
+          } else {
+            transientIds.add(nodeId);
+          }
           changed = true;
         }
       }
