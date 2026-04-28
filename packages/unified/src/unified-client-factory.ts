@@ -10,12 +10,6 @@ export const createInstance = (): UnifiedClient => {
       getClientLogConfig(client),
       getClientStates(client, ['config']),
     ),
-    _enableRequestBodyCompressionExperimental: debugWrapper(
-      client._enableRequestBodyCompressionExperimental.bind(client),
-      '_enableRequestBodyCompressionExperimental',
-      getClientLogConfig(client),
-      getClientStates(client, ['config']),
-    ),
     experiment: debugWrapper(
       client.experiment.bind(client),
       'experiment',

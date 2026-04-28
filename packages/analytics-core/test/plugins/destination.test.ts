@@ -565,50 +565,38 @@ describe('destination', () => {
       });
     });
 
-    test.each([
-      [false, false],
-      [true, true],
-    ])(
-      'should keep compression enabled for default server URL (experimental=%s)',
-      async (enableRequestBodyCompressionExperimental, expectedShouldCompress) => {
-        const destination = new Destination();
-        const callback = jest.fn();
-        const event = { event_type: 'event_type' };
-        const context = {
-          attempts: 0,
-          callback,
-          event,
-          timeout: 0,
-        };
-        const transportProvider = {
-          send: jest.fn().mockResolvedValueOnce({
-            status: Status.Success,
-            statusCode: 200,
-            body: {
-              eventsIngested: 1,
-              payloadSizeBytes: 1,
-              serverUploadTime: 1,
-            },
-          }),
-        };
-        await destination.setup({
-          ...useDefaultConfig(),
-          transportProvider,
-          apiKey: API_KEY,
-          serverUrl: AMPLITUDE_SERVER_URL,
-          enableRequestBodyCompression: true,
-          _enableRequestBodyCompressionExperimental: enableRequestBodyCompressionExperimental,
-        });
+    test('should keep compression enabled for default server URL', async () => {
+      const destination = new Destination();
+      const callback = jest.fn();
+      const event = { event_type: 'event_type' };
+      const context = {
+        attempts: 0,
+        callback,
+        event,
+        timeout: 0,
+      };
+      const transportProvider = {
+        send: jest.fn().mockResolvedValueOnce({
+          status: Status.Success,
+          statusCode: 200,
+          body: {
+            eventsIngested: 1,
+            payloadSizeBytes: 1,
+            serverUploadTime: 1,
+          },
+        }),
+      };
+      await destination.setup({
+        ...useDefaultConfig(),
+        transportProvider,
+        apiKey: API_KEY,
+        serverUrl: AMPLITUDE_SERVER_URL,
+      });
 
-        await destination.send([context]);
+      await destination.send([context]);
 
-        expect(transportProvider.send).toHaveBeenCalledWith(
-          AMPLITUDE_SERVER_URL,
-          expect.any(Object),
-          expectedShouldCompress,
-        );
-      },
-    );
+      expect(transportProvider.send).toHaveBeenCalledWith(AMPLITUDE_SERVER_URL, expect.any(Object), true);
+    });
 
     test.each([
       [false, false],
@@ -643,53 +631,6 @@ describe('destination', () => {
           apiKey: API_KEY,
           serverUrl: customServerUrl,
           enableRequestBodyCompression,
-          _enableRequestBodyCompressionExperimental: true, // Delete this when enableRequestBodyCompressionExperimental is deleted
-        });
-
-        await destination.send([context]);
-
-        expect(transportProvider.send).toHaveBeenCalledWith(
-          customServerUrl,
-          expect.any(Object),
-          expectedShouldCompress,
-        );
-      },
-    );
-
-    test.each([
-      [false, false, false],
-      [true, false, false],
-    ])(
-      'should OR experimental override with custom server URL setting (experimental=%s, enable=%s)',
-      async (enableRequestBodyCompressionExperimental, enableRequestBodyCompression, expectedShouldCompress) => {
-        const destination = new Destination();
-        const callback = jest.fn();
-        const event = { event_type: 'event_type' };
-        const context = {
-          attempts: 0,
-          callback,
-          event,
-          timeout: 0,
-        };
-        const transportProvider = {
-          send: jest.fn().mockResolvedValueOnce({
-            status: Status.Success,
-            statusCode: 200,
-            body: {
-              eventsIngested: 1,
-              payloadSizeBytes: 1,
-              serverUploadTime: 1,
-            },
-          }),
-        };
-        const customServerUrl = 'https://custom.example.com/2/httpapi';
-        await destination.setup({
-          ...useDefaultConfig(),
-          transportProvider,
-          apiKey: API_KEY,
-          serverUrl: customServerUrl,
-          enableRequestBodyCompression,
-          _enableRequestBodyCompressionExperimental: enableRequestBodyCompressionExperimental,
         });
 
         await destination.send([context]);

@@ -25,8 +25,6 @@
           return;
         }
 
-        //amplitude._enableRequestBodyCompressionExperimental(true);
-
         // Use test defaults; set VITE_AMPLITUDE_API_KEY in .env when using the Vite dev server with module-based pages
         var apiKey = import.meta.env.VITE_AMPLITUDE_API_KEY;
         var userId = import.meta.env.VITE_AMPLITUDE_USER_ID || 'analytics-browser-local-test-user';
