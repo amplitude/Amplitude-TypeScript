@@ -8,6 +8,8 @@ import { Result } from './types/result';
 import { buildResult } from './utils/result-builder';
 import { UUID } from './utils/uuid';
 
+type PluginStatus = 'installing' | 'installed' | 'failed';
+
 export class Timeline {
   queue: [Event, EventCallback][] = [];
   // Flag to guarantee one schedule apply is running
@@ -15,6 +17,7 @@ export class Timeline {
   // Flag indicates whether timeline is ready to process event
   // Events collected before timeline is ready will stay in the queue to be processed later
   plugins: Plugin[] = [];
+  pluginStatus: Map<string, PluginStatus> = new Map();
   // loggerProvider is set by the client at _init()
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore
@@ -24,22 +27,35 @@ export class Timeline {
   constructor(private client: CoreClient) {}
 
   async register(plugin: Plugin, config: IConfig) {
-    if (this.plugins.some((existingPlugin) => existingPlugin.name === plugin.name)) {
-      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
-      this.loggerProvider.warn(`Plugin with name ${plugin.name} already exists, skipping registration`);
+    if (plugin.name === undefined) {
+      plugin.name = UUID();
+      this.loggerProvider.warn(`Plugin name is undefined.
+      Generating a random UUID for plugin name: ${plugin.name}.
+      Set a name for the plugin to prevent it from being added multiple times.`);
+    }
+    const name = plugin.name;
+
+    const existing = this.pluginStatus.get(name);
+    if (existing === 'installing' || existing === 'installed') {
+      this.loggerProvider.warn(`Plugin with name ${name} already exists, skipping registration`);
       return;
     }
 
-    if (plugin.name === undefined) {
-      plugin.name = UUID();
-      this.loggerProvider.warn(`Plugin name is undefined. 
-      Generating a random UUID for plugin name: ${plugin.name}. 
-      Set a name for the plugin to prevent it from being added multiple times.`);
-    }
-
     plugin.type = plugin.type ?? 'enrichment';
-    await plugin.setup?.(config, this.client);
-    this.plugins.push(plugin);
+    // Reserve the name synchronously to close the TOCTOU window across `await setup`.
+    this.pluginStatus.set(name, 'installing');
+    try {
+      await plugin.setup?.(config, this.client);
+      // reset() may have cleared the status map while setup was awaiting.
+      if (this.pluginStatus.get(name) !== 'installing') {
+        return;
+      }
+      this.plugins.push(plugin);
+      this.pluginStatus.set(name, 'installed');
+    } catch (e) {
+      this.pluginStatus.set(name, 'failed');
+      throw e;
+    }
   }
 
   async deregister(pluginName: string, config: IConfig) {
@@ -50,6 +66,7 @@ export class Timeline {
     }
     const plugin = this.plugins[index];
     this.plugins.splice(index, 1);
+    this.pluginStatus.delete(pluginName);
     await plugin.teardown?.();
   }
 
@@ -59,6 +76,7 @@ export class Timeline {
     const plugins = this.plugins;
     plugins.map((plugin) => plugin.teardown?.());
     this.plugins = [];
+    this.pluginStatus.clear();
     this.client = client;
   }
 

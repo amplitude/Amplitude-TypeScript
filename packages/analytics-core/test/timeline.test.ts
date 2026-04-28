@@ -91,6 +91,117 @@ describe('timeline', () => {
       expect(mockLoggerProvider.warn).toHaveBeenCalledTimes(1);
       expect(mockLoggerProvider.warn).toHaveBeenCalledWith(expect.stringContaining('Plugin name is undefined'));
     });
+
+    test('should not register the same plugin twice when called concurrently', async () => {
+      let resolveSetup!: () => void;
+      const setupPromise = new Promise<void>((resolve) => {
+        resolveSetup = resolve;
+      });
+      const setup = jest.fn().mockReturnValue(setupPromise);
+      const plugin: EnrichmentPlugin = {
+        name: 'TestPlugin',
+        type: 'enrichment',
+        setup,
+        teardown: jest.fn(),
+        execute: jest.fn(),
+      };
+
+      const registrations = Promise.all([timeline.register(plugin, config), timeline.register(plugin, config)]);
+      resolveSetup();
+      await registrations;
+
+      expect(setup).toHaveBeenCalledTimes(1);
+      expect(timeline.plugins).toHaveLength(1);
+      expect(mockLoggerProvider.warn).toHaveBeenCalledWith(
+        `Plugin with name TestPlugin already exists, skipping registration`,
+      );
+    });
+
+    test('should mark plugin as failed and re-throw when setup throws', async () => {
+      const setupError = new Error('setup failed');
+      const setup = jest.fn().mockRejectedValue(setupError);
+      const plugin: EnrichmentPlugin = {
+        name: 'FailingPlugin',
+        type: 'enrichment',
+        setup,
+      };
+
+      await expect(timeline.register(plugin, config)).rejects.toBe(setupError);
+      expect(timeline.plugins).toHaveLength(0);
+      expect(timeline.pluginStatus.get('FailingPlugin')).toBe('failed');
+    });
+
+    test('should allow re-registration after a failed setup', async () => {
+      const setup = jest.fn().mockRejectedValueOnce(new Error('boom')).mockResolvedValueOnce(undefined);
+      const plugin: EnrichmentPlugin = {
+        name: 'RetryPlugin',
+        type: 'enrichment',
+        setup,
+      };
+
+      await expect(timeline.register(plugin, config)).rejects.toThrow('boom');
+      await timeline.register(plugin, config);
+
+      expect(setup).toHaveBeenCalledTimes(2);
+      expect(timeline.plugins).toHaveLength(1);
+      expect(timeline.plugins[0].name).toBe('RetryPlugin');
+      expect(timeline.pluginStatus.get('RetryPlugin')).toBe('installed');
+    });
+
+    test('should not push a plugin if reset() is called during setup', async () => {
+      let resolveSetup!: () => void;
+      const setupPromise = new Promise<void>((resolve) => {
+        resolveSetup = resolve;
+      });
+      const setup = jest.fn().mockReturnValue(setupPromise);
+      const plugin: EnrichmentPlugin = {
+        name: 'InterruptedPlugin',
+        type: 'enrichment',
+        setup,
+      };
+
+      const registration = timeline.register(plugin, config);
+      timeline.reset(new AmplitudeCore());
+      resolveSetup();
+      await registration;
+
+      expect(timeline.plugins).toHaveLength(0);
+      expect(timeline.pluginStatus.size).toBe(0);
+    });
+
+    test('should register two unnamed plugins concurrently with unique UUIDs', async () => {
+      const plugin1: EnrichmentPlugin = { type: 'enrichment', setup: jest.fn() };
+      const plugin2: EnrichmentPlugin = { type: 'enrichment', setup: jest.fn() };
+
+      await Promise.all([timeline.register(plugin1, config), timeline.register(plugin2, config)]);
+
+      expect(timeline.plugins).toHaveLength(2);
+      expect(timeline.plugins[0].name).not.toBe(timeline.plugins[1].name);
+    });
+
+    test('apply() should not invoke execute on a plugin while its setup is in flight', async () => {
+      let resolveSetup!: () => void;
+      const setupPromise = new Promise<void>((resolve) => {
+        resolveSetup = resolve;
+      });
+      const execute = jest.fn().mockImplementation((event: Event) => Promise.resolve(event));
+      const plugin: EnrichmentPlugin = {
+        name: 'SlowPlugin',
+        type: 'enrichment',
+        setup: jest.fn().mockReturnValue(setupPromise),
+        execute,
+      };
+
+      const registration = timeline.register(plugin, config);
+      await timeline.apply([{ event_type: 'mid-install' }, jest.fn()]);
+      expect(execute).not.toHaveBeenCalled();
+
+      resolveSetup();
+      await registration;
+
+      await timeline.apply([{ event_type: 'after-install' }, jest.fn()]);
+      expect(execute).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe('deregister', () => {
