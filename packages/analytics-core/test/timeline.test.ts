@@ -117,7 +117,7 @@ describe('timeline', () => {
       );
     });
 
-    test('should mark plugin as failed and re-throw when setup throws', async () => {
+    test('should re-throw when setup throws and block re-registration of the same name', async () => {
       const setupError = new Error('setup failed');
       const setup = jest.fn().mockRejectedValue(setupError);
       const plugin: EnrichmentPlugin = {
@@ -128,24 +128,14 @@ describe('timeline', () => {
 
       await expect(timeline.register(plugin, config)).rejects.toBe(setupError);
       expect(timeline.plugins).toHaveLength(0);
-      expect(timeline.pluginStatus.get('FailingPlugin')).toBe('failed');
-    });
+      // Status remains 'installing' so the slot is locked — same name would just fail again.
+      expect(timeline.pluginStatus.get('FailingPlugin')).toBe('installing');
 
-    test('should allow re-registration after a failed setup', async () => {
-      const setup = jest.fn().mockRejectedValueOnce(new Error('boom')).mockResolvedValueOnce(undefined);
-      const plugin: EnrichmentPlugin = {
-        name: 'RetryPlugin',
-        type: 'enrichment',
-        setup,
-      };
-
-      await expect(timeline.register(plugin, config)).rejects.toThrow('boom');
       await timeline.register(plugin, config);
-
-      expect(setup).toHaveBeenCalledTimes(2);
-      expect(timeline.plugins).toHaveLength(1);
-      expect(timeline.plugins[0].name).toBe('RetryPlugin');
-      expect(timeline.pluginStatus.get('RetryPlugin')).toBe('installed');
+      expect(setup).toHaveBeenCalledTimes(1);
+      expect(mockLoggerProvider.warn).toHaveBeenCalledWith(
+        `Plugin with name FailingPlugin already exists, skipping registration`,
+      );
     });
 
     test('should not push a plugin if reset() is called during setup', async () => {

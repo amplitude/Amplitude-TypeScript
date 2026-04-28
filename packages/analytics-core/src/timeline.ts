@@ -8,7 +8,7 @@ import { Result } from './types/result';
 import { buildResult } from './utils/result-builder';
 import { UUID } from './utils/uuid';
 
-type PluginStatus = 'installing' | 'installed' | 'failed';
+type PluginStatus = 'installing' | 'installed';
 
 export class Timeline {
   queue: [Event, EventCallback][] = [];
@@ -35,27 +35,23 @@ export class Timeline {
     }
     const name = plugin.name;
 
-    const existing = this.pluginStatus.get(name);
-    if (existing === 'installing' || existing === 'installed') {
+    if (this.pluginStatus.has(name)) {
       this.loggerProvider.warn(`Plugin with name ${name} already exists, skipping registration`);
       return;
     }
 
     plugin.type = plugin.type ?? 'enrichment';
     // Reserve the name synchronously to close the TOCTOU window across `await setup`.
+    // If setup throws, the entry stays as 'installing' and blocks future re-registration —
+    // a same-named plugin would just fail again, so retry isn't useful.
     this.pluginStatus.set(name, 'installing');
-    try {
-      await plugin.setup?.(config, this.client);
-      // reset() may have cleared the status map while setup was awaiting.
-      if (this.pluginStatus.get(name) !== 'installing') {
-        return;
-      }
-      this.plugins.push(plugin);
-      this.pluginStatus.set(name, 'installed');
-    } catch (e) {
-      this.pluginStatus.set(name, 'failed');
-      throw e;
+    await plugin.setup?.(config, this.client);
+    // reset() may have cleared the status map while setup was awaiting.
+    if (this.pluginStatus.get(name) !== 'installing') {
+      return;
     }
+    this.plugins.push(plugin);
+    this.pluginStatus.set(name, 'installed');
   }
 
   async deregister(pluginName: string, config: IConfig) {
