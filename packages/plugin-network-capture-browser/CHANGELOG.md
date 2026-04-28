@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.10.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-network-capture-browser@1.9.16...@amplitude/plugin-network-capture-browser@1.10.0) (2026-04-28)
+
+
+### Features
+
+* remove experimental request body compression backdoor ([#1699](https://github.com/amplitude/Amplitude-TypeScript/issues/1699)) ([98ecb9d](https://github.com/amplitude/Amplitude-TypeScript/commit/98ecb9dc1f3658cf6d0dfae1e9784335c9d33b5e))
+
+
+
+
+
 ## [1.9.16](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-network-capture-browser@1.9.15...@amplitude/plugin-network-capture-browser@1.9.16) (2026-04-22)
 
 

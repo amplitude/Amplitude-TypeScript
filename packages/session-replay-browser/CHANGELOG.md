@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.39.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.38.0...@amplitude/session-replay-browser@1.39.0) (2026-04-28)
+
+
+### Features
+
+* **session-replay-browser:** merge consecutive mutation incremental snapshots ([#1698](https://github.com/amplitude/Amplitude-TypeScript/issues/1698)) ([634ac97](https://github.com/amplitude/Amplitude-TypeScript/commit/634ac979d3b700295b43aa65fb9e70ada45ddd7d))
+
+
+
+
+
 # [1.38.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.37.0...@amplitude/session-replay-browser@1.38.0) (2026-04-22)
 
 

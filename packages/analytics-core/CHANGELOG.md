@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.48.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.47.1...@amplitude/analytics-core@2.48.0) (2026-04-28)
+
+
+### Features
+
+* remove experimental request body compression backdoor ([#1699](https://github.com/amplitude/Amplitude-TypeScript/issues/1699)) ([98ecb9d](https://github.com/amplitude/Amplitude-TypeScript/commit/98ecb9dc1f3658cf6d0dfae1e9784335c9d33b5e))
+
+
+
+
+
 ## [2.47.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.47.0...@amplitude/analytics-core@2.47.1) (2026-04-22)
 
 

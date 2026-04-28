@@ -1,6 +1,6 @@
 {
   "name": "@amplitude/plugin-page-view-tracking-browser",
-  "version": "2.10.2",
+  "version": "2.11.0",
   "description": "",
   "author": "Amplitude Inc",
   "homepage": "https://github.com/amplitude/Amplitude-TypeScript",
