@@ -21,6 +21,7 @@
       const deviceId = params.get('deviceId') ?? 'test-device-id';
       const logLevel = params.has('logLevel') ? Number(params.get('logLevel')) : 0;
       const useWebWorker = params.get('useWebWorker') === 'true';
+      const mergeMutations = params.get('mergeMutations') === 'true';
 
       void (async () => {
         try {
@@ -31,6 +32,7 @@
             optOut,
             logLevel,
             useWebWorker,
+            performanceConfig: { enabled: true, mergeMutations },
           }).promise;
         } catch (err) {
           document.getElementById('status').textContent = 'error: ' + err.message;

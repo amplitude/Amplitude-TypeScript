@@ -3,6 +3,7 @@ import { EventType as RRWebEventType } from '@amplitude/rrweb-types';
 import type { eventWithTime } from '@amplitude/rrweb-types';
 import { SessionReplayJoinedConfig } from '../config/types';
 import { SessionReplayEventsManager } from '../typings/session-replay';
+import { mergeMutationEvents } from './merge-mutation-events';
 
 interface TaskQueue {
   event: eventWithTime;
@@ -12,6 +13,7 @@ interface TaskQueue {
 const DEFAULT_TIMEOUT = 2000;
 export class EventCompressor {
   taskQueue: TaskQueue[] = [];
+  pendingQueue: TaskQueue[] = [];
   isProcessing = false;
   eventsManager?: SessionReplayEventsManager<'replay' | 'interaction', string>;
   config: SessionReplayJoinedConfig;
@@ -88,8 +90,9 @@ export class EventCompressor {
       // Those events reference the pre-snapshot DOM and must be sent before
       // the full snapshot; if we let them be processed later they'd arrive at
       // the server after the snapshot and cause "node not found" replay errors.
-      if (this.taskQueue.length > 0) {
-        for (const task of this.taskQueue.splice(0)) {
+      if (this.taskQueue.length > 0 || this.pendingQueue.length > 0) {
+        const allTasks = [...this.taskQueue.splice(0), ...this.mergeMutationTasks(this.pendingQueue.splice(0))];
+        for (const task of allTasks) {
           const compressed = this.compressEvent(task.event);
           this.addCompressedEventToManager(compressed, task.sessionId);
         }
@@ -103,7 +106,7 @@ export class EventCompressor {
 
     if (this.canUseIdleCallback && this.config.performanceConfig?.enabled) {
       this.config.loggerProvider.debug('Enqueuing event for processing during idle time.');
-      this.taskQueue.push({ event, sessionId });
+      this.pendingQueue.push({ event, sessionId });
       this.scheduleIdleProcessing();
     } else {
       this.config.loggerProvider.debug('Processing event without idle callback.');
@@ -113,6 +116,12 @@ export class EventCompressor {
 
   // Process the task queue during idle time
   public processQueue(idleDeadline: IdleDeadline): void {
+    // Merge newly-arrived pending events and append to the already-merged taskQueue.
+    // Keeping them separate prevents re-merging already-merged tasks on subsequent calls,
+    // which would corrupt move semantics for nodes that appear in multiple merge passes.
+    if (this.pendingQueue.length > 0) {
+      this.taskQueue.push(...this.mergeMutationTasks(this.pendingQueue.splice(0)));
+    }
     // Process tasks while there's idle time or until the max number of tasks is reached
     while (this.taskQueue.length > 0 && (idleDeadline.timeRemaining() > 0 || idleDeadline.didTimeout)) {
       const task = this.taskQueue.shift();
@@ -123,7 +132,7 @@ export class EventCompressor {
     }
 
     // If there are still tasks in the queue, schedule the next idle callback
-    if (this.taskQueue.length > 0) {
+    if (this.taskQueue.length > 0 || this.pendingQueue.length > 0) {
       requestIdleCallback(
         (idleDeadline) => {
           this.processQueue(idleDeadline);
@@ -175,6 +184,37 @@ export class EventCompressor {
       this.addCompressedEventToManager(compressedEvent, sessionId);
     }
   };
+
+  // Merge consecutive mutation tasks with the same sessionId before processing,
+  // reducing the number of events serialized and stored without changing replay semantics.
+  // Only runs when performanceConfig.mergeMutations is explicitly enabled.
+  private mergeMutationTasks(tasks: TaskQueue[]): TaskQueue[] {
+    if (!this.config.performanceConfig?.mergeMutations) return tasks;
+    if (tasks.length <= 1) return tasks;
+
+    const result: TaskQueue[] = [];
+    let i = 0;
+
+    while (i < tasks.length) {
+      const sessionId = tasks[i].sessionId;
+
+      // Find the end of the current session run
+      let j = i + 1;
+      while (j < tasks.length && tasks[j].sessionId === sessionId) {
+        j++;
+      }
+
+      // Merge consecutive mutations within this session run; non-mutations pass through unchanged
+      const merged = mergeMutationEvents(tasks.slice(i, j).map((t) => t.event));
+      for (const event of merged) {
+        result.push({ event, sessionId });
+      }
+
+      i = j;
+    }
+
+    return result;
+  }
 
   public terminate = () => {
     this.worker?.terminate();
