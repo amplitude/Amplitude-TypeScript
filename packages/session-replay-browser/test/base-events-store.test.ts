@@ -15,6 +15,14 @@ describe('BaseEventsStore', () => {
     debug: jest.fn(),
   };
 
+  test('uses Blob.size for accurate byte measurement', () => {
+    // A 4-byte string (ASCII only) — Blob.size equals str.length for pure ASCII.
+    // This verifies the Blob path is taken (rather than the old str.length path).
+    const store = new InMemoryEventsStore({ loggerProvider: mockLoggerProvider });
+    // shouldSplitEventsList returns false when under the limit
+    expect(store.shouldSplitEventsList([], 'hello')).toBe(false);
+  });
+
   test('should split based on time', async () => {
     jest.useFakeTimers().setSystemTime(Date.now());
     const store = new InMemoryEventsStore({

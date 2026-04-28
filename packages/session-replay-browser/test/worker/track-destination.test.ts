@@ -71,6 +71,76 @@ describe('worker/track-destination', () => {
     expect(mockPostMessage).toHaveBeenCalledWith({ type: 'complete', id: '2' });
   });
 
+  test('splits multi-event batch on 413 and retries each half', async () => {
+    const twoEventPayload = { version: 1, events: ['event1', 'event2'] };
+    // First request (both events): 413; half-1 succeeds; half-2 succeeds
+    mockFetch
+      .mockResolvedValueOnce({ status: 413 })
+      .mockResolvedValueOnce({ status: 200 })
+      .mockResolvedValueOnce({ status: 200 });
+
+    await invokeOnMessage({
+      type: 'send',
+      id: 'split-1',
+      payload: twoEventPayload,
+      context: { ...baseContext, flushMaxRetries: 2 },
+      useRetry: true,
+    });
+
+    expect(mockFetch).toHaveBeenCalledTimes(3);
+    // Should have logged success for the split batches and posted complete once
+    expect(mockPostMessage).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'log', id: 'split-1', message: expect.stringContaining('tracked successfully') }),
+    );
+    expect(mockPostMessage).toHaveBeenCalledWith({ type: 'complete', id: 'split-1' });
+    // complete posted exactly once
+    const completeCalls = (mockPostMessage.mock.calls as unknown[][]).filter(
+      (c) => (c[0] as { type: string }).type === 'complete',
+    );
+    expect(completeCalls).toHaveLength(1);
+  });
+
+  test('drops single-event 413 batch with warn (cannot split further)', async () => {
+    mockFetch.mockResolvedValueOnce({ status: 413 });
+
+    await invokeOnMessage({
+      type: 'send',
+      id: 'no-split',
+      payload: { version: 1, events: ['single-event'] },
+      context: { ...baseContext, flushMaxRetries: 2 },
+      useRetry: true,
+    });
+
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+    expect(mockPostMessage).toHaveBeenCalledWith(expect.objectContaining({ type: 'warn', id: 'no-split' }));
+    expect(mockPostMessage).toHaveBeenCalledWith({ type: 'complete', id: 'no-split' });
+  });
+
+  test('aborts split early when first half fails permanently', async () => {
+    const twoEventPayload = { version: 1, events: ['event1', 'event2'] };
+    // Full batch: 413 → split; first half: 400 (non-retryable); second half never tried
+    mockFetch
+      .mockResolvedValueOnce({ status: 413 }) // full batch
+      .mockResolvedValueOnce({ status: 400 }); // first half (event1)
+
+    await invokeOnMessage({
+      type: 'send',
+      id: 'split-fail',
+      payload: twoEventPayload,
+      context: { ...baseContext, flushMaxRetries: 2 },
+      useRetry: true,
+    });
+
+    // Only 2 fetches: original 413 + first-half failure; second half not tried
+    expect(mockFetch).toHaveBeenCalledTimes(2);
+    expect(mockPostMessage).toHaveBeenCalledWith(expect.objectContaining({ type: 'warn', id: 'split-fail' }));
+    expect(mockPostMessage).toHaveBeenCalledWith({ type: 'complete', id: 'split-fail' });
+    const completeCalls = (mockPostMessage.mock.calls as unknown[][]).filter(
+      (c) => (c[0] as { type: string }).type === 'complete',
+    );
+    expect(completeCalls).toHaveLength(1);
+  });
+
   test.each([408, 429, 499])('retries on %i and succeeds on second attempt', async (statusCode) => {
     const realSetTimeout = global.setTimeout;
     jest

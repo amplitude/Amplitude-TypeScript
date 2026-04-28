@@ -350,6 +350,9 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
       case Status.Success:
         this.handleSuccessResponse(context);
         break;
+      case Status.PayloadTooLarge: // 413: split batch in half and retry each half
+        this.handlePayloadTooLargeResponse(context);
+        break;
       case Status.Failed:
       case Status.Timeout: // 408: server timed out waiting for request, data not received
       case Status.RateLimit: // 429: retry with existing backoff rather than silently dropping
@@ -363,6 +366,31 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
         }
         this.completeRequest({ context, err: UNEXPECTED_NETWORK_ERROR_MESSAGE });
     }
+  }
+
+  handlePayloadTooLargeResponse(context: SessionReplayDestinationContext) {
+    if (context.events.length <= 1) {
+      // Cannot split further — drop the single oversized event.
+      this.completeRequest({
+        context,
+        err: `[Session Replay] Event batch too large to send (413) and cannot be split further; dropping.`,
+      });
+      return;
+    }
+    this.loggerProvider.warn(
+      `[Session Replay] Event batch got 413 (${context.events.length} events); splitting in half and retrying.`,
+    );
+    const half = Math.floor(context.events.length / 2);
+    // Track when both halves complete so the original onComplete fires exactly once.
+    let completedCount = 0;
+    const splitOnComplete = async () => {
+      completedCount++;
+      if (completedCount >= 2) {
+        await context.onComplete();
+      }
+    };
+    this.addToQueue({ ...context, events: context.events.slice(0, half), attempts: 0, onComplete: splitOnComplete });
+    this.addToQueue({ ...context, events: context.events.slice(half), attempts: 0, onComplete: splitOnComplete });
   }
 
   handleSuccessResponse(context: SessionReplayDestinationContext) {

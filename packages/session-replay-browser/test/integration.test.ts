@@ -221,23 +221,13 @@ describe('module level integration', () => {
       // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockLoggerProvider.warn).toHaveBeenCalledWith('Network error occurred, event batch rejected');
     });
-    test('should not retry for 413 error', async () => {
+    test('should drop single-event batch on 413 with a warning (cannot split further)', async () => {
       const sessionReplay = new SessionReplay();
       await sessionReplay.init(apiKey, { ...mockOptions, flushMaxRetries: 2 }).promise;
       const createEventsIDBStoreInstance = await (SessionReplayIDB.SessionReplayEventsIDBStore.new as jest.Mock).mock
         .results[0].value;
       jest.spyOn(createEventsIDBStoreInstance, 'storeCurrentSequence');
-      (fetch as jest.Mock)
-        .mockImplementationOnce(() => {
-          return Promise.resolve({
-            status: 413,
-          });
-        })
-        .mockImplementationOnce(() => {
-          return Promise.resolve({
-            status: 200,
-          });
-        });
+      (fetch as jest.Mock).mockImplementationOnce(() => Promise.resolve({ status: 413 }));
 
       if (!sessionReplay.eventsManager) {
         throw new Error('did not init');
@@ -250,12 +240,14 @@ describe('module level integration', () => {
       sessionReplay.sendEvents();
       await (createEventsIDBStoreInstance.storeCurrentSequence as jest.Mock).mock.results[0].value;
       await runScheduleTimers();
-      expect(fetch).toHaveBeenLastCalledWith(
+      // fetch called exactly once — no retry for an unsplittable single-event 413
+      expect(fetch).toHaveBeenCalledTimes(1);
+      expect(fetch).toHaveBeenCalledWith(
         `${SESSION_REPLAY_EU_SERVER_URL}?device_id=1a2b3c&session_id=123&type=replay`,
         expect.anything(),
       );
       // eslint-disable-next-line @typescript-eslint/unbound-method
-      expect(mockLoggerProvider.warn).toHaveBeenCalledWith('Network error occurred, event batch rejected');
+      expect(mockLoggerProvider.warn).toHaveBeenCalledWith(expect.stringContaining('cannot be split further'));
     });
     test('should handle retry for 500 error', async () => {
       const sessionReplay = new SessionReplay();

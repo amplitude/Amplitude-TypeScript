@@ -38,11 +38,11 @@ export abstract class BaseEventsStore<KeyType> implements EventsStore<KeyType> {
   abstract cleanUpSessionEventsStore(sessionId: number, sequenceId: KeyType): Promise<void>;
 
   /**
-   * Calculates the character length of a string as size approximation
-   * Note: String length closely approximates byte size for most content
+   * Returns the UTF-8 byte size of a string using Blob, which matches what the browser
+   * actually sends over the wire (important for Base64 image data and non-ASCII content).
    */
   private getStringSize(str: string): number {
-    return str.length;
+    return new Blob([str]).size;
   }
 
   /**
