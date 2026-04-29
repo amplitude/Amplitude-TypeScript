@@ -75,6 +75,8 @@ async function doFetch(payloadJson: string, context: SendContext): Promise<Fetch
   }
 }
 
+const MAX_SPLIT_DEPTH = 5;
+
 // Sends a single payload batch, splitting on 413 and retrying on transient errors.
 // Returns { success, message } without posting any postMessage — the caller handles that.
 async function sendBatch(
@@ -82,6 +84,7 @@ async function sendBatch(
   context: SendContext,
   useRetry: boolean,
   attempt: number,
+  splitDepth = 0,
 ): Promise<{ success: boolean; message: string }> {
   const payloadJson = JSON.stringify(payload);
   const result = await doFetch(payloadJson, context);
@@ -90,12 +93,26 @@ async function sendBatch(
     return result;
   }
 
-  if (result.is413 && payload.events.length > 1) {
-    // Split in half and retry each portion independently.
+  if (result.is413 && payload.events.length > 1 && splitDepth < MAX_SPLIT_DEPTH) {
+    // Split in half and attempt both portions independently.
     const half = Math.floor(payload.events.length / 2);
-    const r1 = await sendBatch({ ...payload, events: payload.events.slice(0, half) }, context, useRetry, 1);
+    const r1 = await sendBatch(
+      { ...payload, events: payload.events.slice(0, half) },
+      context,
+      useRetry,
+      1,
+      splitDepth + 1,
+    );
+    const r2 = await sendBatch(
+      { ...payload, events: payload.events.slice(half) },
+      context,
+      useRetry,
+      1,
+      splitDepth + 1,
+    );
+    // Return the first failure encountered, or success if both halves succeeded.
     if (!r1.success) return r1;
-    return sendBatch({ ...payload, events: payload.events.slice(half) }, context, useRetry, 1);
+    return r2;
   }
 
   if (useRetry && result.shouldRetry && attempt < context.flushMaxRetries) {

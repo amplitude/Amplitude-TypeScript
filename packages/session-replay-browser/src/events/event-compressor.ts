@@ -105,6 +105,8 @@ export class EventCompressor {
         this.config.loggerProvider.warn(
           `[Session Replay] FullSnapshot (${eventByteSize} bytes) exceeds max single-event size (${MAX_SINGLE_EVENT_SIZE} bytes); dropping to prevent guaranteed 413.`,
         );
+        // Still flush any buffered events that arrived before this snapshot.
+        this.onFullSnapshotProcessed?.();
         return;
       }
       this.addCompressedEventToManager(compressedEvent, sessionId);

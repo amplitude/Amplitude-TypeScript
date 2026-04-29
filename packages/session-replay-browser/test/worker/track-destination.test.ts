@@ -116,12 +116,13 @@ describe('worker/track-destination', () => {
     expect(mockPostMessage).toHaveBeenCalledWith({ type: 'complete', id: 'no-split' });
   });
 
-  test('aborts split early when first half fails permanently', async () => {
+  test('attempts both halves even when first half fails permanently', async () => {
     const twoEventPayload = { version: 1, events: ['event1', 'event2'] };
-    // Full batch: 413 → split; first half: 400 (non-retryable); second half never tried
+    // Full batch: 413 → split; first half: 400 (non-retryable); second half: 200 success
     mockFetch
       .mockResolvedValueOnce({ status: 413 }) // full batch
-      .mockResolvedValueOnce({ status: 400 }); // first half (event1)
+      .mockResolvedValueOnce({ status: 400 }) // first half (event1) — fails
+      .mockResolvedValueOnce({ status: 200 }); // second half (event2) — succeeds
 
     await invokeOnMessage({
       type: 'send',
@@ -131,8 +132,9 @@ describe('worker/track-destination', () => {
       useRetry: true,
     });
 
-    // Only 2 fetches: original 413 + first-half failure; second half not tried
-    expect(mockFetch).toHaveBeenCalledTimes(2);
+    // 3 fetches: original 413 + both halves attempted independently
+    expect(mockFetch).toHaveBeenCalledTimes(3);
+    // First failure is reported (r1 failed)
     expect(mockPostMessage).toHaveBeenCalledWith(expect.objectContaining({ type: 'warn', id: 'split-fail' }));
     expect(mockPostMessage).toHaveBeenCalledWith({ type: 'complete', id: 'split-fail' });
     const completeCalls = (mockPostMessage.mock.calls as unknown[][]).filter(

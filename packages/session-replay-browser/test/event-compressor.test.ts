@@ -626,7 +626,8 @@ describe('EventCompressor', () => {
       }
 
       expect(addEventMock).not.toHaveBeenCalled();
-      expect(onFullSnapshotProcessed).not.toHaveBeenCalled();
+      // Callback is still fired even on drop so downstream processing isn't stalled.
+      expect(onFullSnapshotProcessed).toHaveBeenCalledTimes(1);
       // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockLoggerProvider.warn).toHaveBeenCalledWith(expect.stringContaining('exceeds max single-event size'));
     });

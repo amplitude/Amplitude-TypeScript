@@ -38,11 +38,12 @@ export abstract class BaseEventsStore<KeyType> implements EventsStore<KeyType> {
   abstract cleanUpSessionEventsStore(sessionId: number, sequenceId: KeyType): Promise<void>;
 
   /**
-   * Returns the UTF-8 byte size of a string using Blob, which matches what the browser
-   * actually sends over the wire (important for Base64 image data and non-ASCII content).
+   * Returns the UTF-8 byte size of a string using TextEncoder, which matches the actual
+   * wire byte count for non-ASCII content (Base64 image data, emoji, etc.) without the
+   * allocation overhead of constructing a Blob.
    */
   private getStringSize(str: string): number {
-    return new Blob([str]).size;
+    return new TextEncoder().encode(str).byteLength;
   }
 
   /**
