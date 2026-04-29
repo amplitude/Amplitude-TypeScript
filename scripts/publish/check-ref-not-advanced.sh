@@ -1,20 +1,21 @@
 #!/bin/bash
 
 # Guard against the race where a PR merges to the publish ref between
-# workflow dispatch and the lerna version push. If the ref has advanced
-# past the dispatch SHA, the chore(release): publish commit would land
-# on top of code that this run never tested in E2E, making the git
-# history misleading. Re-dispatch is the right recovery — it re-runs
-# E2E against the new HEAD.
+# the e2e job's checkout and the lerna version push. If the ref has
+# advanced past the SHA E2E ran against, the chore(release): publish
+# commit would land on top of code this run never tested in E2E, making
+# the git history misleading. Re-dispatch is the right recovery — it
+# re-runs E2E against the new HEAD.
 #
 # Required env vars:
-#   DISPATCH_SHA - the SHA captured at workflow dispatch (github.sha)
+#   EXPECTED_SHA - the SHA the ref is expected to still be at
+#                  (typically the e2e job's HEAD after checkout)
 #   REF          - the branch name to compare against (e.g. main)
 
 set -euo pipefail
 
-if [ -z "${DISPATCH_SHA:-}" ] || [ -z "${REF:-}" ]; then
-  echo "❌ DISPATCH_SHA and REF must be set in the environment."
+if [ -z "${EXPECTED_SHA:-}" ] || [ -z "${REF:-}" ]; then
+  echo "❌ EXPECTED_SHA and REF must be set in the environment."
   exit 1
 fi
 
@@ -28,17 +29,26 @@ fi
 # Read the current remote SHA directly. A plain `git fetch <refspec>`
 # without an explicit destination is not guaranteed to update
 # refs/remotes/origin/$REF, so reading the remote-tracking ref afterwards
-# can return a stale SHA and defeat the guard.
-REMOTE_SHA=$(git ls-remote origin "refs/heads/$REF" | awk '{print $1}')
-
-if [ -z "$REMOTE_SHA" ]; then
-  echo "❌ Could not resolve remote SHA for refs/heads/$REF"
+# can return a stale SHA and defeat the guard. Capture the command's
+# exit status explicitly so transient/auth failures surface a
+# diagnosable error rather than just a bare non-zero exit from set -e.
+# stderr is left to flow to the runner log so git's own error message
+# (auth failure, network error, etc.) is visible above our own.
+if ! LS_OUTPUT=$(git ls-remote origin "refs/heads/$REF"); then
+  echo "❌ git ls-remote failed for origin refs/heads/$REF (see error above)"
   exit 1
 fi
 
-if [ "$REMOTE_SHA" != "$DISPATCH_SHA" ]; then
-  echo "❌ $REF has advanced since this publish was dispatched."
-  echo "   Dispatch SHA:      $DISPATCH_SHA"
+REMOTE_SHA=$(echo "$LS_OUTPUT" | awk '{print $1}')
+
+if [ -z "$REMOTE_SHA" ]; then
+  echo "❌ Could not resolve remote SHA for refs/heads/$REF on origin"
+  exit 1
+fi
+
+if [ "$REMOTE_SHA" != "$EXPECTED_SHA" ]; then
+  echo "❌ $REF has advanced since this run's E2E checkout."
+  echo "   Expected SHA: $EXPECTED_SHA"
   echo "   Current $REF: $REMOTE_SHA"
   echo ""
   echo "A commit landed on $REF while this workflow was running. The"
@@ -49,4 +59,4 @@ if [ "$REMOTE_SHA" != "$DISPATCH_SHA" ]; then
   exit 1
 fi
 
-echo "✅ $REF is still at dispatch SHA: $DISPATCH_SHA"
+echo "✅ $REF is still at expected SHA: $EXPECTED_SHA"
