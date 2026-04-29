@@ -23,7 +23,7 @@
  */
 import { ILogger } from '@amplitude/analytics-core';
 import * as EventsIDBStore from '../src/events/events-idb-store';
-import { SessionReplayEventsIDBStore, withTimeout } from '../src/events/events-idb-store';
+import { SessionReplayEventsIDBStore, withTimeout, generateUUID } from '../src/events/events-idb-store';
 
 type MockedLogger = jest.Mocked<ILogger>;
 
@@ -401,6 +401,29 @@ describe('IDB timeout / hang protection', () => {
       // threshold=10, only the timeout's single recordFailure happened, so
       // onPersistentFailure should still NOT have fired.
       expect(onPersistentFailure).not.toHaveBeenCalled();
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // generateUUID fallback: Math.random path when crypto.randomUUID unavailable
+  // ---------------------------------------------------------------------------
+  describe('generateUUID', () => {
+    test('returns a UUID-shaped string via crypto.randomUUID when available', () => {
+      const id = generateUUID();
+      expect(id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+    });
+
+    test('falls back to Math.random UUID when crypto.randomUUID throws', () => {
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      const orig = crypto.randomUUID;
+      // Simulate a non-secure context where randomUUID is absent.
+      (crypto as any).randomUUID = undefined;
+      try {
+        const id = generateUUID();
+        expect(id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+      } finally {
+        crypto.randomUUID = orig;
+      }
     });
   });
 });

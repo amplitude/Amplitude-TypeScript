@@ -4,6 +4,20 @@ import { EventType, Events, SendingSequencesReturn } from '../typings/session-re
 import { BaseEventsStore, InstanceArgs as BaseInstanceArgs } from './base-events-store';
 import { logIdbError } from '../utils/is-abort-error';
 
+// crypto.randomUUID() requires a secure context (https). Fall back to a
+// Math.random-based UUID for http origins or older browsers — tab IDs don't
+// need to be cryptographically secure, just unique within a session.
+export function generateUUID(): string {
+  try {
+    return crypto.randomUUID();
+  } catch {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+      const r = (Math.random() * 16) | 0;
+      return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16);
+    });
+  }
+}
+
 export const currentSequenceKey = 'sessionCurrentSequence';
 export const sequencesToSendKey = 'sequencesToSend';
 export const remoteConfigKey = 'remoteConfig';
@@ -183,12 +197,12 @@ export class SessionReplayEventsIDBStore extends BaseEventsStore<number> {
           try {
             let id = sessionStorage.getItem('_amp_sr_tab_id');
             if (!id) {
-              id = crypto.randomUUID();
+              id = generateUUID();
               sessionStorage.setItem('_amp_sr_tab_id', id);
             }
             return id;
           } catch {
-            return crypto.randomUUID();
+            return generateUUID();
           }
         })();
       return new SessionReplayEventsIDBStore({
