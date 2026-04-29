@@ -17,9 +17,7 @@ describe('BaseEventsStore', () => {
 
   test('uses byte-accurate size measurement for multi-byte characters', () => {
     // '🌍' has str.length = 2 (surrogate pair) but UTF-8 byte size = 4.
-    // Set maxPersistedEventsSize = 3 so that byte-accurate measurement triggers a
-    // split (size 4 >= 3) but a str.length-based check would not (2 < 3).
-    // With an empty events list, getEventsArraySize overhead = 2 bytes (for "[]").
+    // With an empty events list, getEventsArraySize adds 2 bytes of overhead ("[]").
     // Total = 2 (overhead) + byte_size('🌍').
     // Byte-accurate: 2 + 4 = 6  →  6 >= 5  → split = true
     // str.length:    2 + 2 = 4  →  4 >= 5  → split = false (wrong)

@@ -1,6 +1,9 @@
+import { ILogger } from '@amplitude/analytics-core';
 import { MAX_EVENT_LIST_SIZE, MAX_INTERVAL, MIN_INTERVAL } from '../constants';
 import { Events, EventsStore, SendingSequencesReturn } from '../typings/session-replay';
-import { ILogger } from '@amplitude/analytics-core';
+
+// Reuse a single encoder instance to avoid per-call allocation overhead.
+const utf8Encoder = new TextEncoder();
 
 export type InstanceArgs = {
   loggerProvider: ILogger;
@@ -38,11 +41,11 @@ export abstract class BaseEventsStore<KeyType> implements EventsStore<KeyType> {
   abstract cleanUpSessionEventsStore(sessionId: number, sequenceId: KeyType): Promise<void>;
 
   /**
-   * Returns the UTF-8 byte size of a string using Blob, which matches the actual wire
-   * byte count for non-ASCII content (Base64 image data, emoji, etc.).
+   * Returns the UTF-8 byte size of a string, matching the actual wire byte count for
+   * non-ASCII content (Base64 image data, emoji, etc.).
    */
   private getStringSize(str: string): number {
-    return new Blob([str]).size;
+    return utf8Encoder.encode(str).byteLength;
   }
 
   /**

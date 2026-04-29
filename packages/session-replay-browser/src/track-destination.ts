@@ -368,6 +368,9 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
     }
   }
 
+  // Split depth is naturally bounded: each 413 halves the batch until events.length <= 1,
+  // at which point the single oversized event is dropped. A batch of N events produces
+  // at most N sequential retry requests before all are resolved.
   handlePayloadTooLargeResponse(context: SessionReplayDestinationContext) {
     if (context.events.length <= 1) {
       // Cannot split further — drop the single oversized event.
