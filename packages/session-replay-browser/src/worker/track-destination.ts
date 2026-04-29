@@ -55,7 +55,7 @@ async function doFetch(payloadJson: string, context: SendContext): Promise<Fetch
       return { shouldRetry: false, is413: false, success: false, message: UNEXPECTED_ERROR_MESSAGE };
     }
     if (res.status >= 200 && res.status < 300) {
-      const sizeKB = Math.round(new Blob(context.events).size / KB_SIZE);
+      const sizeKB = Math.round(new Blob([payloadJson]).size / KB_SIZE);
       return {
         shouldRetry: false,
         is413: false,

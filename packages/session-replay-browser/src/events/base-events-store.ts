@@ -2,9 +2,6 @@ import { ILogger } from '@amplitude/analytics-core';
 import { MAX_EVENT_LIST_SIZE, MAX_INTERVAL, MIN_INTERVAL } from '../constants';
 import { Events, EventsStore, SendingSequencesReturn } from '../typings/session-replay';
 
-// Reuse a single encoder instance to avoid per-call allocation overhead.
-const utf8Encoder = new TextEncoder();
-
 export type InstanceArgs = {
   loggerProvider: ILogger;
   minInterval?: number;
@@ -41,11 +38,26 @@ export abstract class BaseEventsStore<KeyType> implements EventsStore<KeyType> {
   abstract cleanUpSessionEventsStore(sessionId: number, sequenceId: KeyType): Promise<void>;
 
   /**
-   * Returns the UTF-8 byte size of a string, matching the actual wire byte count for
-   * non-ASCII content (Base64 image data, emoji, etc.).
+   * Returns the UTF-8 byte size of a string without buffer allocation, matching the
+   * actual wire byte count for non-ASCII content (Base64 image data, emoji, etc.).
    */
   private getStringSize(str: string): number {
-    return utf8Encoder.encode(str).byteLength;
+    let bytes = 0;
+    for (let i = 0; i < str.length; i++) {
+      const code = str.charCodeAt(i);
+      if (code <= 0x7f) {
+        bytes++;
+      } else if (code <= 0x7ff) {
+        bytes += 2;
+      } else if (code >= 0xd800 && code <= 0xdbff) {
+        // Surrogate pair — represents a code point above U+FFFF (4 UTF-8 bytes).
+        bytes += 4;
+        i++;
+      } else {
+        bytes += 3;
+      }
+    }
+    return bytes;
   }
 
   /**
@@ -58,10 +70,10 @@ export abstract class BaseEventsStore<KeyType> implements EventsStore<KeyType> {
       totalSize += this.getStringSize(event);
     }
 
-    // Additional overhead from using length instead of byte size
-    // - Array brackets: [] = 2 characters
-    // - Commas between events: events.length - 1
-    // - Double quotes around each event: events.length * 2
+    // Overhead from the JSON framing added at send time ({ version, events } wrapper):
+    // - Array brackets: [] = 2 bytes
+    // - Commas between events: events.length - 1 bytes
+    // - Double quotes wrapping each event string: events.length * 2 bytes
     const overhead = 2 + Math.max(0, events.length - 1) + events.length * 2;
 
     return totalSize + overhead;
