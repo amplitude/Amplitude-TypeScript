@@ -94,23 +94,15 @@ export class SessionReplayEventsIDBStore extends BaseEventsStore<number> {
       const tabId =
         args.tabId ??
         (() => {
-          const generateId = () =>
-            // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-            'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-              // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-              const r = (Math.random() * 16) | 0;
-              // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-              return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16);
-            });
           try {
             let id = sessionStorage.getItem('_amp_sr_tab_id');
             if (!id) {
-              id = generateId();
+              id = crypto.randomUUID();
               sessionStorage.setItem('_amp_sr_tab_id', id);
             }
             return id;
           } catch {
-            return generateId();
+            return crypto.randomUUID();
           }
         })();
       return new SessionReplayEventsIDBStore({
