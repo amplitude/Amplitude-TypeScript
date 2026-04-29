@@ -75,7 +75,8 @@ async function doFetch(payloadJson: string, context: SendContext): Promise<Fetch
   }
 }
 
-const MAX_SPLIT_DEPTH = 5;
+// Maximum number of 413-triggered splits: caps concurrent requests at 2^MAX_SPLIT_DEPTH=8.
+const MAX_SPLIT_DEPTH = 3;
 
 // Sends a single payload batch, splitting on 413 and retrying on transient errors.
 // Returns { success, message } without posting any postMessage — the caller handles that.
@@ -109,7 +110,8 @@ async function sendBatch(
     if (!r1.success && r2.success) {
       return { success: false, message: `Partial delivery: first half failed, second half succeeded: ${r1.message}` };
     }
-    return r2;
+    // Both halves succeeded.
+    return { success: true, message: `${r1.message}; ${r2.message}` };
   }
 
   if (useRetry && result.shouldRetry && attempt < context.flushMaxRetries) {

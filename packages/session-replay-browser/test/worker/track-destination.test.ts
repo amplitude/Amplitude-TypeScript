@@ -170,6 +170,29 @@ describe('worker/track-destination', () => {
     expect(completeCalls).toHaveLength(1);
   });
 
+  test('stops splitting at MAX_SPLIT_DEPTH and reports failure (depth exhaustion)', async () => {
+    // A batch of 16 events + a server that 413s everything will exhaust MAX_SPLIT_DEPTH=3
+    // (splits down to 2-event batches; single-event 413s are then dropped).
+    // All fetches return 413.
+    mockFetch.mockResolvedValue({ status: 413 });
+
+    await invokeOnMessage({
+      type: 'send',
+      id: 'depth-exhaust',
+      payload: { version: 1, events: Array.from({ length: 16 }, (_, i) => `event${i}`) },
+      context: { ...baseContext, flushMaxRetries: 1 },
+      useRetry: false,
+    });
+
+    // Regardless of split count, complete is posted exactly once and warn is posted.
+    expect(mockPostMessage).toHaveBeenCalledWith(expect.objectContaining({ type: 'warn', id: 'depth-exhaust' }));
+    expect(mockPostMessage).toHaveBeenCalledWith({ type: 'complete', id: 'depth-exhaust' });
+    const completeCalls = (mockPostMessage.mock.calls as unknown[][]).filter(
+      (c) => (c[0] as { type: string }).type === 'complete',
+    );
+    expect(completeCalls).toHaveLength(1);
+  });
+
   test.each([408, 429, 499])('retries on %i and succeeds on second attempt', async (statusCode) => {
     const realSetTimeout = global.setTimeout;
     jest
