@@ -110,14 +110,16 @@ async function sendBatch(
       1,
       splitDepth + 1,
     );
-    // Return the first failure encountered, or success if both halves succeeded.
+    if (r1.success && !r2.success) {
+      return { success: false, message: `Partial delivery: first half succeeded, second half failed: ${r2.message}` };
+    }
     if (!r1.success) return r1;
     return r2;
   }
 
   if (useRetry && result.shouldRetry && attempt < context.flushMaxRetries) {
     await new Promise<void>((resolve) => setTimeout(resolve, Math.random() * attempt * RETRY_TIMEOUT_MS));
-    return sendBatch(payload, context, useRetry, attempt + 1);
+    return sendBatch(payload, context, useRetry, attempt + 1, splitDepth);
   }
 
   const message = attempt >= context.flushMaxRetries ? MAX_RETRIES_EXCEEDED_MESSAGE : result.message;
