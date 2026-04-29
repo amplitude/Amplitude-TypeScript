@@ -610,7 +610,7 @@ describe('EventCompressor', () => {
   });
 
   describe('FullSnapshot size guard', () => {
-    test('drops FullSnapshot and warns when it exceeds MAX_SINGLE_EVENT_SIZE', () => {
+    test('drops FullSnapshot and warns when it exceeds MAX_FULL_SNAPSHOT_SIZE', () => {
       const addEventMock = jest.spyOn(eventsManager, 'addEvent');
       const onFullSnapshotProcessed = jest.fn();
       eventCompressor.onFullSnapshotProcessed = onFullSnapshotProcessed;
@@ -644,7 +644,7 @@ describe('EventCompressor', () => {
       }
     });
 
-    test('adds FullSnapshot normally when it is within MAX_SINGLE_EVENT_SIZE', () => {
+    test('adds FullSnapshot normally when it is within MAX_FULL_SNAPSHOT_SIZE', () => {
       const addEventMock = jest.spyOn(eventsManager, 'addEvent');
       const onFullSnapshotProcessed = jest.fn();
       eventCompressor.onFullSnapshotProcessed = onFullSnapshotProcessed;

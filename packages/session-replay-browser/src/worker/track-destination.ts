@@ -94,26 +94,21 @@ async function sendBatch(
   }
 
   if (result.is413 && payload.events.length > 1 && splitDepth < MAX_SPLIT_DEPTH) {
-    // Split in half and attempt both portions independently.
+    // Split in half and attempt both portions in parallel.
     const half = Math.floor(payload.events.length / 2);
-    const r1 = await sendBatch(
-      { ...payload, events: payload.events.slice(0, half) },
-      context,
-      useRetry,
-      1,
-      splitDepth + 1,
-    );
-    const r2 = await sendBatch(
-      { ...payload, events: payload.events.slice(half) },
-      context,
-      useRetry,
-      1,
-      splitDepth + 1,
-    );
+    const [r1, r2] = await Promise.all([
+      sendBatch({ ...payload, events: payload.events.slice(0, half) }, context, useRetry, 1, splitDepth + 1),
+      sendBatch({ ...payload, events: payload.events.slice(half) }, context, useRetry, 1, splitDepth + 1),
+    ]);
+    if (!r1.success && !r2.success) {
+      return { success: false, message: `${r1.message}; ${r2.message}` };
+    }
     if (r1.success && !r2.success) {
       return { success: false, message: `Partial delivery: first half succeeded, second half failed: ${r2.message}` };
     }
-    if (!r1.success) return r1;
+    if (!r1.success && r2.success) {
+      return { success: false, message: `Partial delivery: first half failed, second half succeeded: ${r1.message}` };
+    }
     return r2;
   }
 

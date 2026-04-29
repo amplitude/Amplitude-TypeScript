@@ -25,7 +25,7 @@ export const STORAGE_PREFIX = `${AMPLITUDE_PREFIX}_replay_unsent`;
 export const MAX_EVENT_LIST_SIZE = 700_000;
 // FullSnapshot events larger than this byte threshold are dropped rather than sent,
 // because an extremely large DOM snapshot (>20 MB uncompressed) will always 413.
-export const MAX_SINGLE_EVENT_SIZE = 20 * 1024 * 1024; // 20 MB
+export const MAX_FULL_SNAPSHOT_SIZE = 20 * 1024 * 1024; // 20 MB
 export const INTERACTION_MIN_INTERVAL = 30_000; // 30 seconds
 export const INTERACTION_MAX_INTERVAL = 60_000; // 1 minute
 export const MIN_INTERVAL = 500; // 500 ms
