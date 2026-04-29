@@ -46,7 +46,7 @@ export abstract class BaseEventsStore<KeyType> implements EventsStore<KeyType> {
   }
 
   /**
-   * Calculates the total character length of events array
+   * Calculates the total UTF-8 byte size of events array
    * Accounts for JSON serialization overhead when sent to backend
    */
   private getEventsArraySize(events: Events): number {
