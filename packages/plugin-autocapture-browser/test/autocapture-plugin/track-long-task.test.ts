@@ -166,6 +166,39 @@ describe('trackMainThreadBlock', () => {
       expect(call['[Amplitude] Main Thread Block Script Positions']).toBeUndefined();
     });
 
+    it('should filter out -1 sentinel values from sourceCharPosition', () => {
+      trackMainThreadBlock({ amplitude, options: {} });
+
+      getBlockObserver().fire([
+        {
+          duration: 150,
+          startTime: 1000,
+          blockingDuration: 120,
+          renderStart: 1050,
+          styleAndLayoutStart: 1080,
+          scripts: [
+            {
+              sourceURL: 'app.js',
+              sourceFunctionName: 'onClick',
+              sourceCharPosition: 42,
+              invokerType: 'event-listener',
+              invoker: 'click',
+            },
+            {
+              sourceURL: 'vendor.js',
+              sourceFunctionName: 'handle',
+              sourceCharPosition: -1,
+              invokerType: 'event-listener',
+              invoker: 'scroll',
+            },
+          ],
+        } as any,
+      ]);
+
+      const call = (amplitude.track as jest.Mock).mock.calls[0][1];
+      expect(call['[Amplitude] Main Thread Block Script Positions']).toEqual([42]);
+    });
+
     it('should include overlapping measures', () => {
       trackMainThreadBlock({ amplitude, options: {} });
 
