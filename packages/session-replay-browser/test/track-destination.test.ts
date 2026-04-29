@@ -568,7 +568,7 @@ describe('SessionReplayTrackDestination', () => {
       const completeRequest = jest.spyOn(trackDestination, 'completeRequest').mockReturnValue(undefined);
       const context = makeContext([mockEventString]);
 
-      trackDestination.handlePayloadTooLargeResponse(context);
+      (trackDestination as any).handlePayloadTooLargeResponse(context);
 
       expect(completeRequest).toHaveBeenCalledWith(
         expect.objectContaining({ context, err: expect.stringContaining('cannot be split') }),
@@ -581,7 +581,7 @@ describe('SessionReplayTrackDestination', () => {
       const events = ['event1', 'event2', 'event3', 'event4'];
       const context = makeContext(events);
 
-      trackDestination.handlePayloadTooLargeResponse(context);
+      (trackDestination as any).handlePayloadTooLargeResponse(context);
 
       expect(addToQueue).toHaveBeenCalledTimes(2);
       const [firstCall, secondCall] = addToQueue.mock.calls as [
@@ -606,7 +606,7 @@ describe('SessionReplayTrackDestination', () => {
         capturedContexts.push(...ctxs);
       });
 
-      trackDestination.handlePayloadTooLargeResponse(context);
+      (trackDestination as any).handlePayloadTooLargeResponse(context);
 
       expect(capturedContexts).toHaveLength(2);
 

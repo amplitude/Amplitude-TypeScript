@@ -60,7 +60,7 @@ async function doFetch(payloadJson: string, context: SendContext): Promise<Fetch
         shouldRetry: false,
         is413: false,
         success: true,
-        message: `Session replay event batch tracked successfully for session id ${context.sessionId}, size of events: ${uncompressedSizeKB} KB`,
+        message: `Session replay event batch tracked successfully for session id ${context.sessionId}, payload size (uncompressed): ${uncompressedSizeKB} KB`,
       };
     }
     if (res.status === 413) {
