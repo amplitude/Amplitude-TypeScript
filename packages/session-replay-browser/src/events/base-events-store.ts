@@ -60,7 +60,11 @@ export abstract class BaseEventsStore<KeyType> implements EventsStore<KeyType> {
           // Orphaned high surrogate — treated as a replacement character (3 UTF-8 bytes).
           bytes += 3;
         }
+      } else if (code >= 0xdc00 && code <= 0xdfff) {
+        // Orphaned low surrogate — treated as a replacement character (3 UTF-8 bytes).
+        bytes += 3;
       } else {
+        // Other BMP character (U+0800–U+FFFF, excluding surrogates): 3 UTF-8 bytes.
         bytes += 3;
       }
     }
@@ -77,10 +81,13 @@ export abstract class BaseEventsStore<KeyType> implements EventsStore<KeyType> {
       totalSize += this.getStringSize(event);
     }
 
-    // Overhead from the JSON framing added at send time ({ version, events } wrapper):
+    // Approximate overhead from the array portion of the JSON payload:
     // - Array brackets: [] = 2 bytes
     // - Commas between events: events.length - 1 bytes
     // - Double quotes wrapping each event string: events.length * 2 bytes
+    // Note: does not include the outer { version, events } wrapper (~22 bytes) or
+    // per-event JSON-escaping of " and \ characters; the reduced MAX_EVENT_LIST_SIZE
+    // cap (700 KB vs 1 MB) provides headroom for those.
     const overhead = 2 + Math.max(0, events.length - 1) + events.length * 2;
 
     return totalSize + overhead;

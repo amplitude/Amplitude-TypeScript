@@ -249,6 +249,40 @@ describe('module level integration', () => {
       // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockLoggerProvider.warn).toHaveBeenCalledWith(expect.stringContaining('cannot be split further'));
     });
+    test('should split multi-event batch in half and retry each half on 413', async () => {
+      const sessionReplay = new SessionReplay();
+      await sessionReplay.init(apiKey, { ...mockOptions, flushMaxRetries: 2 }).promise;
+      const createEventsIDBStoreInstance = await (SessionReplayIDB.SessionReplayEventsIDBStore.new as jest.Mock).mock
+        .results[0].value;
+      jest.spyOn(createEventsIDBStoreInstance, 'storeCurrentSequence');
+
+      // First request: 413; both halves: 200
+      (fetch as jest.Mock).mockResolvedValueOnce({ status: 413 }).mockResolvedValue({ status: 200 });
+
+      if (!sessionReplay.eventsManager) {
+        throw new Error('did not init');
+      }
+      // Add two events so the batch can be split
+      sessionReplay.eventsManager.addEvent({
+        sessionId: 123,
+        event: { type: 'replay', data: mockEventString },
+        deviceId: '1a2b3c',
+      });
+      sessionReplay.eventsManager.addEvent({
+        sessionId: 123,
+        event: { type: 'replay', data: mockEventString },
+        deviceId: '1a2b3c',
+      });
+      sessionReplay.sendEvents();
+      await (createEventsIDBStoreInstance.storeCurrentSequence as jest.Mock).mock.results[0].value;
+      await runScheduleTimers();
+      await runScheduleTimers();
+      // The 413 should have triggered a split-and-retry warning (not a silent drop).
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockLoggerProvider.warn).toHaveBeenCalledWith(expect.stringContaining('splitting in half'));
+      // At least the original 413 request + at least one split half were made.
+      expect((fetch as jest.Mock).mock.calls.length).toBeGreaterThanOrEqual(2);
+    });
     test('should handle retry for 500 error', async () => {
       const sessionReplay = new SessionReplay();
       await sessionReplay.init(apiKey, { ...mockOptions, flushMaxRetries: 2 }).promise;
