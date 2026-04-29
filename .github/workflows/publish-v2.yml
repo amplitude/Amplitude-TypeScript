@@ -115,6 +115,32 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
 
+      # Guard against the race where a PR merges to main between dispatch and
+      # the lerna version push. If main has advanced past the dispatch SHA, the
+      # chore(release): publish commit would land on top of code that this run
+      # never tested in E2E, making the git history misleading. Re-dispatch is
+      # the right recovery — it re-runs E2E against the new HEAD.
+      - name: Verify main has not advanced since dispatch
+        if: ${{ github.event.inputs.skipLernaVersion != 'true' && (github.event.inputs.branch == '' || github.event.inputs.branch == github.ref_name) }}
+        run: |
+          DISPATCH_SHA="${{ github.sha }}"
+          REF="${{ github.event.inputs.branch || github.ref_name }}"
+          git fetch origin "$REF"
+          REMOTE_SHA=$(git rev-parse "origin/$REF")
+          if [ "$REMOTE_SHA" != "$DISPATCH_SHA" ]; then
+            echo "❌ $REF has advanced since this publish was dispatched."
+            echo "   Dispatch SHA:      $DISPATCH_SHA"
+            echo "   Current $REF: $REMOTE_SHA"
+            echo ""
+            echo "A commit landed on $REF while this workflow was running. The"
+            echo "chore(release): publish commit would appear after it in history,"
+            echo "falsely implying the new commit was tested by this run's E2E."
+            echo ""
+            echo "Re-dispatch this workflow to include the new commits and re-run E2E."
+            exit 1
+          fi
+          echo "✅ $REF is still at dispatch SHA: $DISPATCH_SHA"
+
       # Only create release version when using from-git (default behavior)
       # from-package mode uses existing package.json versions and doesn't need git tags
       - name: Create release version
