@@ -174,15 +174,18 @@ export const createEventsManager = async <Type extends EventType>({
   const sendStoredEvents = async ({ deviceId }: { deviceId: string }) => {
     lastKnownDeviceId = deviceId;
     const sequencesToSend = await store.getSequencesToSend();
-    sequencesToSend &&
-      sequencesToSend.forEach((sequence) => {
-        sendEventsList({
-          sequenceId: sequence.sequenceId,
-          events: sequence.events,
-          sessionId: sequence.sessionId,
-          deviceId,
-        });
+    if (!sequencesToSend?.length) {
+      return;
+    }
+    config.loggerProvider.log(`[SR] Draining ${sequencesToSend.length} stored sequence(s) from previous session.`);
+    sequencesToSend.forEach((sequence) => {
+      sendEventsList({
+        sequenceId: sequence.sequenceId,
+        events: sequence.events,
+        sessionId: sequence.sessionId,
+        deviceId,
       });
+    });
   };
 
   const addEvent = ({
