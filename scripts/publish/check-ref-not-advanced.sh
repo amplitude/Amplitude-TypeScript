@@ -25,8 +25,16 @@ if ! git check-ref-format --branch "$REF" >/dev/null 2>&1; then
   exit 1
 fi
 
-git fetch origin "refs/heads/$REF"
-REMOTE_SHA=$(git rev-parse "refs/remotes/origin/$REF")
+# Read the current remote SHA directly. A plain `git fetch <refspec>`
+# without an explicit destination is not guaranteed to update
+# refs/remotes/origin/$REF, so reading the remote-tracking ref afterwards
+# can return a stale SHA and defeat the guard.
+REMOTE_SHA=$(git ls-remote origin "refs/heads/$REF" | awk '{print $1}')
+
+if [ -z "$REMOTE_SHA" ]; then
+  echo "❌ Could not resolve remote SHA for refs/heads/$REF"
+  exit 1
+fi
 
 if [ "$REMOTE_SHA" != "$DISPATCH_SHA" ]; then
   echo "❌ $REF has advanced since this publish was dispatched."
