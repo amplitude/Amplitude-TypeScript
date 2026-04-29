@@ -277,11 +277,12 @@ describe('module level integration', () => {
       await (createEventsIDBStoreInstance.storeCurrentSequence as jest.Mock).mock.results[0].value;
       await runScheduleTimers();
       await runScheduleTimers();
+      await runScheduleTimers();
       // The 413 should have triggered a split-and-retry warning (not a silent drop).
       // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockLoggerProvider.warn).toHaveBeenCalledWith(expect.stringContaining('splitting in half'));
-      // At least the original 413 request + at least one split half were made.
-      expect((fetch as jest.Mock).mock.calls.length).toBeGreaterThanOrEqual(2);
+      // Exactly 3 requests: original 413 + one per half (both 200).
+      expect(fetch).toHaveBeenCalledTimes(3);
     });
     test('should handle retry for 500 error', async () => {
       const sessionReplay = new SessionReplay();
