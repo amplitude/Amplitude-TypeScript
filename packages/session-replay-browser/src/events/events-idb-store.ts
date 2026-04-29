@@ -124,6 +124,7 @@ export class SessionReplayEventsIDBStore extends BaseEventsStore<number> {
       tx.done.catch((e: unknown) => {
         if (!errorLogged) {
           logIdbError(this.loggerProvider, `${STORAGE_FAILURE}: ${e as string}`, e);
+          this.recordFailure();
         }
       });
       let cursor = await tx.store.openCursor();
@@ -195,6 +196,7 @@ export class SessionReplayEventsIDBStore extends BaseEventsStore<number> {
       tx.done.catch((e: unknown) => {
         if (!errorLogged) {
           logIdbError(this.loggerProvider, `${STORAGE_FAILURE}: ${e as string}`, e);
+          this.recordFailure();
         }
       });
       const sequenceEvents = await tx.objectStore(currentSequenceKey).get(sessionId);
