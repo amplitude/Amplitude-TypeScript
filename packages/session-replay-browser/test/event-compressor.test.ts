@@ -662,6 +662,25 @@ describe('EventCompressor', () => {
       expect(addEventMock).toHaveBeenCalledTimes(1);
       expect(onFullSnapshotProcessed).toHaveBeenCalledTimes(1);
     });
+
+    test('allows FullSnapshot at exactly MAX_FULL_SNAPSHOT_SIZE bytes (> not >=)', () => {
+      // The guard uses strict >, so a snapshot of exactly 20 MB is allowed through.
+      const addEventMock = jest.spyOn(eventsManager, 'addEvent');
+      const onFullSnapshotProcessed = jest.fn();
+      eventCompressor.onFullSnapshotProcessed = onFullSnapshotProcessed;
+
+      const originalBlob = global.Blob;
+      global.Blob = jest.fn().mockReturnValue({ size: 20 * 1024 * 1024 }) as unknown as typeof Blob;
+
+      try {
+        eventCompressor.enqueueEvent(fullSnapshotEvent, sessionId);
+      } finally {
+        global.Blob = originalBlob;
+      }
+
+      expect(addEventMock).toHaveBeenCalledTimes(1);
+      expect(onFullSnapshotProcessed).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe('compressEvent key ordering', () => {

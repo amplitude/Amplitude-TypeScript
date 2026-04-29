@@ -55,12 +55,12 @@ async function doFetch(payloadJson: string, context: SendContext): Promise<Fetch
       return { shouldRetry: false, is413: false, success: false, message: UNEXPECTED_ERROR_MESSAGE };
     }
     if (res.status >= 200 && res.status < 300) {
-      const sizeKB = Math.round(new Blob([payloadJson]).size / KB_SIZE);
+      const uncompressedSizeKB = Math.round(new Blob([payloadJson]).size / KB_SIZE);
       return {
         shouldRetry: false,
         is413: false,
         success: true,
-        message: `Session replay event batch tracked successfully for session id ${context.sessionId}, size of events: ${sizeKB} KB`,
+        message: `Session replay event batch tracked successfully for session id ${context.sessionId}, size of events: ${uncompressedSizeKB} KB`,
       };
     }
     if (res.status === 413) {
