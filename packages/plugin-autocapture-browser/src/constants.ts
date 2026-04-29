@@ -32,6 +32,7 @@ export const AMPLITUDE_EVENT_PROP_MAX_PAGE_X = '[Amplitude] Max Page X';
 export const AMPLITUDE_EVENT_PROP_MAX_PAGE_Y = '[Amplitude] Max Page Y';
 
 export const AMPLITUDE_EVENT_PROP_PAGE_VIEW_ID = '[Amplitude] Page View ID';
+export const AMPLITUDE_EVENT_PROP_PAGE_URL_PARAMETERS = '[Amplitude] Page URL Parameters';
 
 // Origin constants are now shared via analytics-core; re-export for backwards compatibility
 export {
