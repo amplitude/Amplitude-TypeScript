@@ -45,7 +45,9 @@ function buildLoAFProperties(entry: PerformanceLongAnimationFrameTiming, measure
 
   const scriptURLs = scripts.map((s) => s.sourceURL).filter(Boolean);
   const scriptFunctions = scripts.map((s) => s.sourceFunctionName).filter(Boolean);
-  const scriptPositions = scripts.map((s) => s.sourceCharPosition).filter((p): p is number => typeof p === 'number');
+  const scriptPositions = scripts
+    .map((s) => s.sourceCharPosition)
+    .filter((p): p is number => typeof p === 'number' && p >= 0);
   const invokerTypes = scripts.map((s) => s.invokerType).filter(Boolean);
   const invokers = scripts.map((s) => s.invoker).filter(Boolean);
 
