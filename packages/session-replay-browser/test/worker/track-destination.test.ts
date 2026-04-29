@@ -116,6 +116,33 @@ describe('worker/track-destination', () => {
     expect(mockPostMessage).toHaveBeenCalledWith({ type: 'complete', id: 'no-split' });
   });
 
+  test('reports partial delivery when first half succeeds but second half fails', async () => {
+    const twoEventPayload = { version: 1, events: ['event1', 'event2'] };
+    // Full batch: 413 → split; first half: 200 success; second half: 400 failure
+    mockFetch
+      .mockResolvedValueOnce({ status: 413 }) // full batch
+      .mockResolvedValueOnce({ status: 200 }) // first half (event1) — succeeds
+      .mockResolvedValueOnce({ status: 400 }); // second half (event2) — fails
+
+    await invokeOnMessage({
+      type: 'send',
+      id: 'partial',
+      payload: twoEventPayload,
+      context: { ...baseContext, flushMaxRetries: 2 },
+      useRetry: true,
+    });
+
+    expect(mockFetch).toHaveBeenCalledTimes(3);
+    expect(mockPostMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'warn',
+        id: 'partial',
+        message: expect.stringContaining('Partial delivery'),
+      }),
+    );
+    expect(mockPostMessage).toHaveBeenCalledWith({ type: 'complete', id: 'partial' });
+  });
+
   test('attempts both halves even when first half fails permanently', async () => {
     const twoEventPayload = { version: 1, events: ['event1', 'event2'] };
     // Full batch: 413 → split; first half: 400 (non-retryable); second half: 200 success
