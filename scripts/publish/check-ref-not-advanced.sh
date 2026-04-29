@@ -18,8 +18,15 @@ if [ -z "${DISPATCH_SHA:-}" ] || [ -z "${REF:-}" ]; then
   exit 1
 fi
 
-git fetch origin "$REF"
-REMOTE_SHA=$(git rev-parse "origin/$REF")
+# Validate REF as a branch name to prevent it being interpreted as a git
+# flag (e.g. a value starting with '-') or a tag with the same short name.
+if ! git check-ref-format --branch "$REF" >/dev/null 2>&1; then
+  echo "❌ REF is not a valid branch name: $REF"
+  exit 1
+fi
+
+git fetch origin "refs/heads/$REF"
+REMOTE_SHA=$(git rev-parse "refs/remotes/origin/$REF")
 
 if [ "$REMOTE_SHA" != "$DISPATCH_SHA" ]; then
   echo "❌ $REF has advanced since this publish was dispatched."

@@ -115,12 +115,12 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
 
-      - name: Verify main has not advanced since dispatch
+      - name: Verify ref has not advanced since dispatch
         if: ${{ github.event.inputs.skipLernaVersion != 'true' && (github.event.inputs.branch == '' || github.event.inputs.branch == github.ref_name) }}
         env:
           DISPATCH_SHA: ${{ github.sha }}
           REF: ${{ github.event.inputs.branch || github.ref_name }}
-        run: bash scripts/publish/check-main-not-advanced.sh
+        run: bash scripts/publish/check-ref-not-advanced.sh
 
       # Only create release version when using from-git (default behavior)
       # from-package mode uses existing package.json versions and doesn't need git tags
