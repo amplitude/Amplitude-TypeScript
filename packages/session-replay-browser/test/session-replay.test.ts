@@ -2765,6 +2765,66 @@ describe('SessionReplay', () => {
         expect((sessionReplay as any).recordEventsPendingShouldLogMetadata).toBeNull();
       });
     });
+
+    describe('pendingEmitEvents — eventCompressor not yet ready', () => {
+      test('FullSnapshot emitted before eventCompressor is ready is buffered and flushed once compressor is assigned', async () => {
+        await sessionReplay.init(apiKey, mockOptions).promise;
+        await jest.runAllTimersAsync();
+
+        // Simulate the race: null out eventCompressor as it would be before _init() line 283
+        const realCompressor = sessionReplay.eventCompressor!;
+        sessionReplay.eventCompressor = undefined;
+
+        // Run _recordEvents() — simulates a concurrent setSessionId() call during _init()'s async gap
+        const concurrentRf = createMockRecordFunction();
+        jest.spyOn(SessionReplay.prototype, 'getRecordFunction' as any).mockResolvedValueOnce(concurrentRf);
+        await (sessionReplay as any)._recordEvents();
+
+        // Grab the emit callback passed to the concurrent record function
+        const concurrentEmit = concurrentRf.mock.calls[0]?.[0]?.emit;
+        expect(concurrentEmit).toBeDefined();
+
+        // Fire a FullSnapshot event through the emit callback
+        const fullSnapshotEvent = { type: 2, timestamp: Date.now(), data: { node: {}, initialOffset: {} } };
+        concurrentEmit(fullSnapshotEvent);
+
+        // Event should be buffered — not yet forwarded to eventsManager
+        expect((sessionReplay as any).pendingEmitEvents).toHaveLength(1);
+        expect((sessionReplay as any).pendingEmitEvents[0].event).toBe(fullSnapshotEvent);
+
+        // Now simulate _init() completing: restore eventCompressor and drain the buffer
+        sessionReplay.eventCompressor = realCompressor;
+        const enqueueSpy = jest.spyOn(realCompressor, 'enqueueEvent');
+        const pending = (sessionReplay as any).pendingEmitEvents.splice(0);
+        for (const { event, sessionId } of pending) {
+          sessionReplay.eventCompressor.enqueueEvent(event, sessionId);
+        }
+
+        // The buffered FullSnapshot was delivered to the compressor
+        expect(enqueueSpy).toHaveBeenCalledTimes(1);
+        expect(enqueueSpy).toHaveBeenCalledWith(fullSnapshotEvent, expect.anything());
+      });
+
+      test('after _init() assigns eventCompressor, subsequent emit calls go directly without buffering', async () => {
+        await sessionReplay.init(apiKey, mockOptions).promise;
+        await jest.runAllTimersAsync();
+
+        // With a real eventCompressor set, emit should not populate pendingEmitEvents
+        expect(sessionReplay.eventCompressor).toBeDefined();
+        const enqueueSpy = jest.spyOn(sessionReplay.eventCompressor!, 'enqueueEvent');
+
+        await (sessionReplay as any)._recordEvents();
+        const recordArg = mockRecordFunction.mock.calls[mockRecordFunction.mock.calls.length - 1]?.[0];
+        const emitFn = recordArg?.emit;
+        expect(emitFn).toBeDefined();
+
+        const event = { type: 2, timestamp: Date.now(), data: { node: {}, initialOffset: {} } };
+        emitFn(event);
+
+        expect((sessionReplay as any).pendingEmitEvents).toHaveLength(0);
+        expect(enqueueSpy).toHaveBeenCalledWith(event, expect.anything());
+      });
+    });
   });
 
   describe('getDeviceId', () => {

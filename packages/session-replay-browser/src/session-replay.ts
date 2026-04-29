@@ -97,6 +97,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
   // Cache the dynamically imported record function
   private recordFunction: RecordFunction | null = null;
   private recordEventsInFlight = false;
+  private pendingEmitEvents: Array<{ event: eventWithTime; sessionId: string | number }> = [];
 
   /** Current page URL, kept in sync with SPA navigations for URL-based masking */
   private currentPageUrl = '';
@@ -287,6 +288,15 @@ export class SessionReplay implements AmplitudeSessionReplay {
       compressionWorkerScript,
       () => this.sendEvents(),
     );
+
+    // Flush any events that arrived while eventCompressor was not yet ready
+    // (e.g. a concurrent setSessionId() call that raced _init()'s async setup).
+    if (this.pendingEmitEvents.length > 0) {
+      const pending = this.pendingEmitEvents.splice(0);
+      for (const { event, sessionId } of pending) {
+        this.eventCompressor.enqueueEvent(event, sessionId);
+      }
+    }
 
     // Register beacon fallback for page exit. sendBeacon survives page unload
     // and delivers any incremental events that haven't been flushed via fetch yet.
@@ -822,6 +832,10 @@ export class SessionReplay implements AmplitudeSessionReplay {
           if (this.eventCompressor) {
             // Schedule processing during idle time if the browser supports requestIdleCallback
             this.eventCompressor.enqueueEvent(event, sessionId);
+          } else {
+            // eventCompressor is not yet ready (concurrent call racing _init()).
+            // Buffer the event so it can be flushed once the compressor is initialized.
+            this.pendingEmitEvents.push({ event, sessionId });
           }
         },
         inlineStylesheet: config.shouldInlineStylesheet,
