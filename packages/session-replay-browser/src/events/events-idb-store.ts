@@ -11,11 +11,11 @@ export const remoteConfigKey = 'remoteConfig';
 export interface SessionReplayDB extends DBSchema {
   sessionCurrentSequence: {
     key: number;
-    value: Omit<SendingSequencesReturn<number>, 'sequenceId'>;
+    value: Omit<SendingSequencesReturn<number>, 'sequenceId'> & { tabId?: string };
   };
   sequencesToSend: {
     key: number;
-    value: Omit<SendingSequencesReturn<number>, 'sequenceId'>;
+    value: Omit<SendingSequencesReturn<number>, 'sequenceId'> & { tabId?: string };
     indexes: { sessionId: string | number };
   };
 }
@@ -50,12 +50,14 @@ export const createStore = async (dbName: string) => {
 type InstanceArgs = {
   apiKey: string;
   db: IDBPDatabase<SessionReplayDB>;
+  tabId: string;
   onPersistentFailure?: () => void;
   consecutiveFailureThreshold?: number;
 } & BaseInstanceArgs;
 
 export class SessionReplayEventsIDBStore extends BaseEventsStore<number> {
   private readonly db: IDBPDatabase<SessionReplayDB>;
+  private readonly tabId: string;
   private readonly onPersistentFailure?: () => void;
   private readonly consecutiveFailureThreshold: number;
   private consecutiveFailures = 0;
@@ -64,6 +66,7 @@ export class SessionReplayEventsIDBStore extends BaseEventsStore<number> {
   constructor(args: InstanceArgs) {
     super(args);
     this.db = args.db;
+    this.tabId = args.tabId;
     this.onPersistentFailure = args.onPersistentFailure;
     this.consecutiveFailureThreshold = args.consecutiveFailureThreshold ?? 3;
   }
@@ -80,14 +83,40 @@ export class SessionReplayEventsIDBStore extends BaseEventsStore<number> {
     this.consecutiveFailures = 0;
   }
 
-  static async new(type: EventType, args: Omit<InstanceArgs, 'db'>): Promise<SessionReplayEventsIDBStore | undefined> {
+  static async new(
+    type: EventType,
+    args: Omit<InstanceArgs, 'db' | 'tabId'> & { tabId?: string },
+  ): Promise<SessionReplayEventsIDBStore | undefined> {
     try {
       const dbSuffix = type === 'replay' ? '' : `_${type}`;
       const dbName = `${args.apiKey.substring(0, 10)}_amp_session_replay_events${dbSuffix}`;
       const db = await createStore(dbName);
+      const tabId =
+        args.tabId ??
+        (() => {
+          const generateId = () =>
+            // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+            'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+              // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+              const r = (Math.random() * 16) | 0;
+              // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+              return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16);
+            });
+          try {
+            let id = sessionStorage.getItem('_amp_sr_tab_id');
+            if (!id) {
+              id = generateId();
+              sessionStorage.setItem('_amp_sr_tab_id', id);
+            }
+            return id;
+          } catch {
+            return generateId();
+          }
+        })();
       return new SessionReplayEventsIDBStore({
         ...args,
         db,
+        tabId,
       });
     } catch (e) {
       logIdbError(args.loggerProvider, `${STORAGE_FAILURE}: ${e as string}`, e);
@@ -97,16 +126,18 @@ export class SessionReplayEventsIDBStore extends BaseEventsStore<number> {
 
   async getCurrentSequenceEvents(sessionId?: number) {
     if (sessionId) {
-      const events = await this.db.get('sessionCurrentSequence', sessionId);
-      if (!events) {
+      const record = await this.db.get('sessionCurrentSequence', sessionId);
+      if (!record) {
         return undefined;
       }
-      return [events];
+      const { tabId: _tabId, ...rest } = record;
+      return [rest];
     }
 
     const allEvents = [];
-    for (const events of await this.db.getAll('sessionCurrentSequence')) {
-      allEvents.push(events);
+    for (const record of await this.db.getAll('sessionCurrentSequence')) {
+      const { tabId: _tabId, ...rest } = record;
+      allEvents.push(rest);
     }
 
     return allEvents;
@@ -129,12 +160,16 @@ export class SessionReplayEventsIDBStore extends BaseEventsStore<number> {
       });
       let cursor = await tx.store.openCursor();
       while (cursor) {
-        const { sessionId, events } = cursor.value;
-        sequences.push({
-          events,
-          sequenceId: cursor.key,
-          sessionId,
-        });
+        const { sessionId, events, tabId } = cursor.value;
+        // Only include records owned by this tab; untagged legacy records are included
+        // for backward compatibility with data written before tab-keying was added.
+        if (!tabId || tabId === this.tabId) {
+          sequences.push({
+            events,
+            sequenceId: cursor.key,
+            sessionId,
+          });
+        }
         cursor = await cursor.continue();
       }
 
@@ -159,16 +194,19 @@ export class SessionReplayEventsIDBStore extends BaseEventsStore<number> {
       const sequenceId = await this.db.put<'sequencesToSend'>(sequencesToSendKey, {
         sessionId: sessionId,
         events: currentSequenceData.events,
+        tabId: this.tabId,
       });
 
       await this.db.put<'sessionCurrentSequence'>(currentSequenceKey, {
         sessionId,
         events: [],
+        tabId: this.tabId,
       });
 
       this.recordSuccess();
+      const { tabId: _tabId, ...rest } = currentSequenceData;
       return {
-        ...currentSequenceData,
+        ...rest,
         sessionId,
         sequenceId,
       };
@@ -201,25 +239,31 @@ export class SessionReplayEventsIDBStore extends BaseEventsStore<number> {
       });
       const sequenceEvents = await tx.objectStore(currentSequenceKey).get(sessionId);
 
-      if (!sequenceEvents) {
-        await tx.objectStore(currentSequenceKey).put({ sessionId, events: [event] });
+      // Treat as empty if this record belongs to a different tab (same sessionId, different tab).
+      const ownedSequence = sequenceEvents?.tabId && sequenceEvents.tabId !== this.tabId ? undefined : sequenceEvents;
+
+      if (!ownedSequence) {
+        await tx.objectStore(currentSequenceKey).put({ sessionId, events: [event], tabId: this.tabId });
         this.recordSuccess();
         return undefined;
       }
 
-      if (!this.shouldSplitEventsList(sequenceEvents.events, event)) {
-        await tx.objectStore(currentSequenceKey).put({ sessionId, events: sequenceEvents.events.concat(event) });
+      if (!this.shouldSplitEventsList(ownedSequence.events, event)) {
+        await tx
+          .objectStore(currentSequenceKey)
+          .put({ sessionId, events: ownedSequence.events.concat(event), tabId: this.tabId });
         this.recordSuccess();
         return undefined;
       }
 
       // Split path: reset sessionCurrentSequence and write the old events to
       // sequencesToSend atomically within the same transaction.
-      const eventsToSend = sequenceEvents.events;
-      await tx.objectStore(currentSequenceKey).put({ sessionId, events: [event] });
+      const eventsToSend = ownedSequence.events;
+      await tx.objectStore(currentSequenceKey).put({ sessionId, events: [event], tabId: this.tabId });
       const sequenceId = await tx.objectStore(sequencesToSendKey).put({
         sessionId,
         events: eventsToSend,
+        tabId: this.tabId,
       });
 
       this.recordSuccess();
@@ -241,6 +285,7 @@ export class SessionReplayEventsIDBStore extends BaseEventsStore<number> {
       const sequenceId = await this.db.put<'sequencesToSend'>(sequencesToSendKey, {
         sessionId: sessionId,
         events: events,
+        tabId: this.tabId,
       });
       this.recordSuccess();
       return sequenceId;

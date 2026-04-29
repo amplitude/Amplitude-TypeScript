@@ -72,14 +72,17 @@ describe('multi-tab IDB contamination', () => {
         const loggerA = makeLogger();
         const loggerB = makeLogger();
 
-        // Two instances, different logical "tabs", but same IDB database name.
+        // Two instances share the same IDB database name but have distinct tabIds,
+        // simulating two browser tabs open to the same page.
         const tabA = await SessionReplayEventsIDBStore.new('replay', {
           apiKey,
           loggerProvider: loggerA,
+          tabId: 'tab-a',
         });
         const tabB = await SessionReplayEventsIDBStore.new('replay', {
           apiKey,
           loggerProvider: loggerB,
+          tabId: 'tab-b',
         });
 
         expect(tabA).toBeDefined();
@@ -91,18 +94,14 @@ describe('multi-tab IDB contamination', () => {
         // Tab A stores its own sequence under session 1111.
         await tabA!.storeSendingEvents(1111, [mockEvent]);
 
-        // Tab A asks for sequences to send.  On the current (buggy) code it
-        // receives a cursor over ALL sequences in the shared DB — including
-        // Tab B's session 9999 entry.  After the fix it should only see its
-        // own sequences (keyed by a tab/instance identifier).
+        // Tab A asks for sequences to send. With the fix, records are stamped
+        // with tabId and the cursor skips records belonging to other tabs.
         const sequencesSeenByA = await tabA!.getSequencesToSend();
 
-        // EXPECTED (post-fix): Tab A only sees its own session 1111.
-        // ACTUAL (pre-fix): Tab A also sees session 9999 from Tab B → FAILS.
         expect(sequencesSeenByA).toBeDefined();
         const sessionIdsSeen = (sequencesSeenByA ?? []).map((s) => s.sessionId);
-        expect(sessionIdsSeen).toContain(1111);
-        expect(sessionIdsSeen).not.toContain(9999); // BUG: currently this assertion fails
+        expect(sessionIdsSeen).toEqual([1111]); // Tab A sees only its own session
+        expect(sessionIdsSeen).not.toContain(9999); // Tab B's session is filtered out
       } finally {
         restore();
       }
