@@ -141,7 +141,11 @@ async function main() {
 
     const ct = (response.headers()['content-type'] || '').toLowerCase();
     if (!ct.includes('text/html')) {
-      return route.fulfill({ response, body: content });
+      return route.fulfill({
+        status: response.status(),
+        headers: dropEncodingHeaders(response.headers()),
+        body: content,
+      });
     }
     let html = content;
 
