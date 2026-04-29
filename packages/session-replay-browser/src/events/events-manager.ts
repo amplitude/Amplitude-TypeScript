@@ -174,6 +174,11 @@ export const createEventsManager = async <Type extends EventType>({
   const sendStoredEvents = async ({ deviceId }: { deviceId: string }) => {
     lastKnownDeviceId = deviceId;
     const sequencesToSend = await store.getSequencesToSend();
+    if (sequencesToSend && sequencesToSend.length > 0) {
+      config.loggerProvider.log(
+        `[SR] Draining ${sequencesToSend.length} orphaned sequence(s) from previous session (crash-recovery path).`,
+      );
+    }
     sequencesToSend &&
       sequencesToSend.forEach((sequence) => {
         sendEventsList({
