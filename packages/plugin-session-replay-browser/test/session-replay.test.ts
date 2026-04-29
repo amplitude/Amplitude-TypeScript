@@ -134,6 +134,22 @@ describe('SessionReplayPlugin', () => {
       expect(sessionReplay.config).toBeDefined();
     });
 
+    test('should default storeType to memory when not specified', async () => {
+      const sessionReplay = new SessionReplayPlugin();
+
+      await sessionReplay.setup?.(mockConfig, mockAmplitude);
+
+      expect(init).toHaveBeenCalledWith('static_key', expect.objectContaining({ storeType: 'memory' }));
+    });
+
+    test('should use explicitly provided storeType', async () => {
+      const sessionReplay = new SessionReplayPlugin({ storeType: 'idb' });
+
+      await sessionReplay.setup?.(mockConfig, mockAmplitude);
+
+      expect(init).toHaveBeenCalledWith('static_key', expect.objectContaining({ storeType: 'idb' }));
+    });
+
     describe('defaultTracking', () => {
       test('should not change defaultTracking when forceSessionTracking is not defined', async () => {
         const sessionReplay = new SessionReplayPlugin();
