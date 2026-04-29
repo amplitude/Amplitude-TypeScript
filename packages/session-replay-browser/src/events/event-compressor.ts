@@ -2,6 +2,7 @@ import { getGlobalScope } from '@amplitude/analytics-core';
 import { EventType as RRWebEventType } from '@amplitude/rrweb-types';
 import type { eventWithTime } from '@amplitude/rrweb-types';
 import { SessionReplayJoinedConfig } from '../config/types';
+import { MAX_FULL_SNAPSHOT_SIZE } from '../constants';
 import { SessionReplayEventsManager } from '../typings/session-replay';
 import { mergeMutationEvents } from './merge-mutation-events';
 
@@ -99,6 +100,15 @@ export class EventCompressor {
         this.isProcessing = false;
       }
       const compressedEvent = this.compressEvent(event);
+      const eventByteSize = new Blob([compressedEvent]).size;
+      if (eventByteSize > MAX_FULL_SNAPSHOT_SIZE) {
+        this.config.loggerProvider.warn(
+          `[Session Replay] FullSnapshot (${eventByteSize} bytes) exceeds max single-event size (${MAX_FULL_SNAPSHOT_SIZE} bytes); dropping to prevent guaranteed 413.`,
+        );
+        // Still flush any buffered events that arrived before this snapshot.
+        this.onFullSnapshotProcessed?.();
+        return;
+      }
       this.addCompressedEventToManager(compressedEvent, sessionId);
       this.onFullSnapshotProcessed?.();
       return;

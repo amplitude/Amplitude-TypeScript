@@ -1,6 +1,6 @@
+import { ILogger } from '@amplitude/analytics-core';
 import { MAX_EVENT_LIST_SIZE, MAX_INTERVAL, MIN_INTERVAL } from '../constants';
 import { Events, EventsStore, SendingSequencesReturn } from '../typings/session-replay';
-import { ILogger } from '@amplitude/analytics-core';
 
 export type InstanceArgs = {
   loggerProvider: ILogger;
@@ -38,15 +38,41 @@ export abstract class BaseEventsStore<KeyType> implements EventsStore<KeyType> {
   abstract cleanUpSessionEventsStore(sessionId: number, sequenceId: KeyType): Promise<void>;
 
   /**
-   * Calculates the character length of a string as size approximation
-   * Note: String length closely approximates byte size for most content
+   * Returns the UTF-8 byte size of a string without buffer allocation, matching the
+   * actual wire byte count for non-ASCII content (Base64 image data, emoji, etc.).
    */
   private getStringSize(str: string): number {
-    return str.length;
+    let bytes = 0;
+    for (let i = 0; i < str.length; i++) {
+      const code = str.charCodeAt(i);
+      if (code <= 0x7f) {
+        bytes++;
+      } else if (code <= 0x7ff) {
+        bytes += 2;
+      } else if (code >= 0xd800 && code <= 0xdbff) {
+        // High surrogate — check for a valid low surrogate before consuming the pair.
+        const next = i + 1 < str.length ? str.charCodeAt(i + 1) : NaN;
+        if (next >= 0xdc00 && next <= 0xdfff) {
+          // Valid surrogate pair → encodes a code point above U+FFFF (4 UTF-8 bytes).
+          bytes += 4;
+          i++;
+        } else {
+          // Orphaned high surrogate — treated as a replacement character (3 UTF-8 bytes).
+          bytes += 3;
+        }
+      } else if (code >= 0xdc00 && code <= 0xdfff) {
+        // Orphaned low surrogate — treated as a replacement character (3 UTF-8 bytes).
+        bytes += 3;
+      } else {
+        // Other BMP character (U+0800–U+FFFF, excluding surrogates): 3 UTF-8 bytes.
+        bytes += 3;
+      }
+    }
+    return bytes;
   }
 
   /**
-   * Calculates the total character length of events array
+   * Calculates the total UTF-8 byte size of events array
    * Accounts for JSON serialization overhead when sent to backend
    */
   private getEventsArraySize(events: Events): number {
@@ -55,10 +81,13 @@ export abstract class BaseEventsStore<KeyType> implements EventsStore<KeyType> {
       totalSize += this.getStringSize(event);
     }
 
-    // Additional overhead from using length instead of byte size
-    // - Array brackets: [] = 2 characters
-    // - Commas between events: events.length - 1
-    // - Double quotes around each event: events.length * 2
+    // Approximate overhead from the array portion of the JSON payload:
+    // - Array brackets: [] = 2 bytes
+    // - Commas between events: events.length - 1 bytes
+    // - Double quotes wrapping each event string: events.length * 2 bytes
+    // Note: does not include the outer { version, events } wrapper (~22 bytes) or
+    // per-event JSON-escaping of " and \ characters; the reduced MAX_EVENT_LIST_SIZE
+    // cap (700 KB vs 1 MB) provides headroom for those.
     const overhead = 2 + Math.max(0, events.length - 1) + events.length * 2;
 
     return totalSize + overhead;

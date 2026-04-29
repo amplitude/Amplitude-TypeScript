@@ -609,6 +609,80 @@ describe('EventCompressor', () => {
     });
   });
 
+  describe('FullSnapshot size guard', () => {
+    test('drops FullSnapshot and warns when it exceeds MAX_FULL_SNAPSHOT_SIZE', () => {
+      const addEventMock = jest.spyOn(eventsManager, 'addEvent');
+      const onFullSnapshotProcessed = jest.fn();
+      eventCompressor.onFullSnapshotProcessed = onFullSnapshotProcessed;
+
+      // Stub Blob to report an oversized byte length
+      const originalBlob = global.Blob;
+      global.Blob = jest.fn().mockReturnValue({ size: 21 * 1024 * 1024 }) as unknown as typeof Blob;
+
+      try {
+        eventCompressor.enqueueEvent(fullSnapshotEvent, sessionId);
+      } finally {
+        global.Blob = originalBlob;
+      }
+
+      expect(addEventMock).not.toHaveBeenCalled();
+      // Callback is still fired even on drop so downstream processing isn't stalled.
+      expect(onFullSnapshotProcessed).toHaveBeenCalledTimes(1);
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockLoggerProvider.warn).toHaveBeenCalledWith(expect.stringContaining('exceeds max single-event size'));
+    });
+
+    test('drops FullSnapshot without error when onFullSnapshotProcessed is not set', () => {
+      // Verify the optional-chain on the callback doesn't throw when undefined.
+      eventCompressor.onFullSnapshotProcessed = undefined;
+      const originalBlob = global.Blob;
+      global.Blob = jest.fn().mockReturnValue({ size: 21 * 1024 * 1024 }) as unknown as typeof Blob;
+      try {
+        expect(() => eventCompressor.enqueueEvent(fullSnapshotEvent, sessionId)).not.toThrow();
+      } finally {
+        global.Blob = originalBlob;
+      }
+    });
+
+    test('adds FullSnapshot normally when it is within MAX_FULL_SNAPSHOT_SIZE', () => {
+      const addEventMock = jest.spyOn(eventsManager, 'addEvent');
+      const onFullSnapshotProcessed = jest.fn();
+      eventCompressor.onFullSnapshotProcessed = onFullSnapshotProcessed;
+
+      // Stub Blob to report a small byte length
+      const originalBlob = global.Blob;
+      global.Blob = jest.fn().mockReturnValue({ size: 100 }) as unknown as typeof Blob;
+
+      try {
+        eventCompressor.enqueueEvent(fullSnapshotEvent, sessionId);
+      } finally {
+        global.Blob = originalBlob;
+      }
+
+      expect(addEventMock).toHaveBeenCalledTimes(1);
+      expect(onFullSnapshotProcessed).toHaveBeenCalledTimes(1);
+    });
+
+    test('allows FullSnapshot at exactly MAX_FULL_SNAPSHOT_SIZE bytes (> not >=)', () => {
+      // The guard uses strict >, so a snapshot of exactly 20 MB is allowed through.
+      const addEventMock = jest.spyOn(eventsManager, 'addEvent');
+      const onFullSnapshotProcessed = jest.fn();
+      eventCompressor.onFullSnapshotProcessed = onFullSnapshotProcessed;
+
+      const originalBlob = global.Blob;
+      global.Blob = jest.fn().mockReturnValue({ size: 20 * 1024 * 1024 }) as unknown as typeof Blob;
+
+      try {
+        eventCompressor.enqueueEvent(fullSnapshotEvent, sessionId);
+      } finally {
+        global.Blob = originalBlob;
+      }
+
+      expect(addEventMock).toHaveBeenCalledTimes(1);
+      expect(onFullSnapshotProcessed).toHaveBeenCalledTimes(1);
+    });
+  });
+
   describe('compressEvent key ordering', () => {
     test('should serialize without delay when delay is absent', () => {
       const result = eventCompressor.compressEvent(mockEvent as eventWithTime);

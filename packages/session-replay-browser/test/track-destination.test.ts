@@ -548,6 +548,94 @@ describe('SessionReplayTrackDestination', () => {
     });
   });
 
+  describe('handlePayloadTooLargeResponse', () => {
+    const makeContext = (events: string[]): SessionReplayDestinationContext => ({
+      events,
+      sessionId: 123,
+      apiKey,
+      attempts: 1,
+      timeout: 0,
+      flushMaxRetries: 2,
+      deviceId: '1a2b3c',
+      sampleRate: 1,
+      serverZone: ServerZone.US,
+      type: 'replay',
+      onComplete: jest.fn().mockResolvedValue(undefined),
+    });
+
+    test('drops single-event batch with error when it cannot be split', () => {
+      const trackDestination = new SessionReplayTrackDestination({ loggerProvider: mockLoggerProvider });
+      const completeRequest = jest.spyOn(trackDestination, 'completeRequest').mockReturnValue(undefined);
+      const context = makeContext([mockEventString]);
+
+      (trackDestination as any).handlePayloadTooLargeResponse(context);
+
+      expect(completeRequest).toHaveBeenCalledWith(
+        expect.objectContaining({ context, err: expect.stringContaining('cannot be split') }),
+      );
+    });
+
+    test('splits multi-event batch in half and re-queues both halves', () => {
+      const trackDestination = new SessionReplayTrackDestination({ loggerProvider: mockLoggerProvider });
+      const addToQueue = jest.spyOn(trackDestination, 'addToQueue').mockReturnValue(undefined);
+      const events = ['event1', 'event2', 'event3', 'event4'];
+      const context = makeContext(events);
+
+      (trackDestination as any).handlePayloadTooLargeResponse(context);
+
+      expect(addToQueue).toHaveBeenCalledTimes(2);
+      const [firstCall, secondCall] = addToQueue.mock.calls as [
+        SessionReplayDestinationContext[],
+        SessionReplayDestinationContext[],
+      ];
+      expect(firstCall[0].events).toEqual(['event1', 'event2']);
+      expect(secondCall[0].events).toEqual(['event3', 'event4']);
+      // Both halves should start fresh
+      expect(firstCall[0].attempts).toBe(0);
+      expect(secondCall[0].attempts).toBe(0);
+    });
+
+    test('calls original onComplete exactly once after both halves complete', async () => {
+      const trackDestination = new SessionReplayTrackDestination({ loggerProvider: mockLoggerProvider });
+      const onComplete = jest.fn().mockResolvedValue(undefined);
+      const context = makeContext(['event1', 'event2']);
+      context.onComplete = onComplete;
+
+      const capturedContexts: SessionReplayDestinationContext[] = [];
+      jest.spyOn(trackDestination, 'addToQueue').mockImplementation((...ctxs) => {
+        capturedContexts.push(...ctxs);
+      });
+
+      (trackDestination as any).handlePayloadTooLargeResponse(context);
+
+      expect(capturedContexts).toHaveLength(2);
+
+      // Trigger onComplete for both halves
+      await capturedContexts[0].onComplete();
+      expect(onComplete).not.toHaveBeenCalled(); // only 1 of 2 done
+
+      await capturedContexts[1].onComplete();
+      expect(onComplete).toHaveBeenCalledTimes(1); // both done → fires
+    });
+
+    test('413 response triggers split-and-retry via send', async () => {
+      const trackDestination = new SessionReplayTrackDestination({ loggerProvider: mockLoggerProvider });
+      const events = ['event1', 'event2'];
+      const context = makeContext(events);
+
+      // First request: 413; subsequent: 200
+      (global.fetch as jest.Mock).mockResolvedValueOnce({ status: 413 }).mockResolvedValue({ status: 200 });
+
+      // send enqueues the halves via addToQueue which uses setTimeout(0); advance timers.
+      const sendPromise = trackDestination.send(context, true);
+      await jest.runAllTimersAsync();
+      await sendPromise;
+
+      // Should have fetched 3 times: one 413 + two retries (one per half)
+      expect(fetch).toHaveBeenCalledTimes(3);
+    });
+  });
+
   describe('handleOtherResponse', () => {
     test('should complete request when flushMaxRetries is not set', async () => {
       const trackDestination = new SessionReplayTrackDestination({ loggerProvider: mockLoggerProvider });
