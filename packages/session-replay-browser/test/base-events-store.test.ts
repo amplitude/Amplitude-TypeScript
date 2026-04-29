@@ -61,6 +61,17 @@ describe('BaseEventsStore', () => {
       });
       expect(store.shouldSplitEventsList([], '\uD800')).toBe(true);
     });
+
+    test('handles orphaned low surrogate as 3 bytes', () => {
+      // '\uDC00' is a lone low surrogate with no preceding high surrogate.
+      // Falls into the else branch → treated as a 3-byte BMP character.
+      // overhead(2) + 3 = 5  →  5 >= 5  → split = true
+      const store = new InMemoryEventsStore({
+        loggerProvider: mockLoggerProvider,
+        maxPersistedEventsSize: 5,
+      });
+      expect(store.shouldSplitEventsList([], '\uDC00')).toBe(true);
+    });
   });
 
   test('should split based on time', async () => {

@@ -51,7 +51,8 @@ export abstract class BaseEventsStore<KeyType> implements EventsStore<KeyType> {
         bytes += 2;
       } else if (code >= 0xd800 && code <= 0xdbff) {
         // High surrogate — check for a valid low surrogate before consuming the pair.
-        if (i + 1 < str.length && str.charCodeAt(i + 1) >= 0xdc00 && str.charCodeAt(i + 1) <= 0xdfff) {
+        const next = i + 1 < str.length ? str.charCodeAt(i + 1) : NaN;
+        if (next >= 0xdc00 && next <= 0xdfff) {
           // Valid surrogate pair → encodes a code point above U+FFFF (4 UTF-8 bytes).
           bytes += 4;
           i++;
