@@ -632,6 +632,18 @@ describe('EventCompressor', () => {
       expect(mockLoggerProvider.warn).toHaveBeenCalledWith(expect.stringContaining('exceeds max single-event size'));
     });
 
+    test('drops FullSnapshot without error when onFullSnapshotProcessed is not set', () => {
+      // Verify the optional-chain on the callback doesn't throw when undefined.
+      eventCompressor.onFullSnapshotProcessed = undefined;
+      const originalBlob = global.Blob;
+      global.Blob = jest.fn().mockReturnValue({ size: 21 * 1024 * 1024 }) as unknown as typeof Blob;
+      try {
+        expect(() => eventCompressor.enqueueEvent(fullSnapshotEvent, sessionId)).not.toThrow();
+      } finally {
+        global.Blob = originalBlob;
+      }
+    });
+
     test('adds FullSnapshot normally when it is within MAX_SINGLE_EVENT_SIZE', () => {
       const addEventMock = jest.spyOn(eventsManager, 'addEvent');
       const onFullSnapshotProcessed = jest.fn();
