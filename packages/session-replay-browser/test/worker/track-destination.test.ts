@@ -170,21 +170,20 @@ describe('worker/track-destination', () => {
     expect(completeCalls).toHaveLength(1);
   });
 
-  test('stops splitting at MAX_SPLIT_DEPTH and reports failure (depth exhaustion)', async () => {
-    // A batch of 16 events + a server that 413s everything will exhaust MAX_SPLIT_DEPTH=3
-    // (splits down to 2-event batches; single-event 413s are then dropped).
-    // All fetches return 413.
+  test('splits all the way to single-event batches when server 413s every batch', async () => {
+    // A batch of 4 events where every request returns 413 will be split down to single
+    // events (depth naturally bounded), each of which is then dropped individually.
     mockFetch.mockResolvedValue({ status: 413 });
 
     await invokeOnMessage({
       type: 'send',
       id: 'depth-exhaust',
-      payload: { version: 1, events: Array.from({ length: 16 }, (_, i) => `event${i}`) },
+      payload: { version: 1, events: ['e0', 'e1', 'e2', 'e3'] },
       context: { ...baseContext, flushMaxRetries: 1 },
       useRetry: false,
     });
 
-    // Regardless of split count, complete is posted exactly once and warn is posted.
+    // Regardless of total fetch count, complete is posted exactly once and warn is posted.
     expect(mockPostMessage).toHaveBeenCalledWith(expect.objectContaining({ type: 'warn', id: 'depth-exhaust' }));
     expect(mockPostMessage).toHaveBeenCalledWith({ type: 'complete', id: 'depth-exhaust' });
     const completeCalls = (mockPostMessage.mock.calls as unknown[][]).filter(

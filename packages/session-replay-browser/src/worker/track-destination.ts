@@ -75,17 +75,15 @@ async function doFetch(payloadJson: string, context: SendContext): Promise<Fetch
   }
 }
 
-// Maximum number of 413-triggered splits: caps concurrent requests at 2^MAX_SPLIT_DEPTH=8.
-const MAX_SPLIT_DEPTH = 3;
-
 // Sends a single payload batch, splitting on 413 and retrying on transient errors.
 // Returns { success, message } without posting any postMessage — the caller handles that.
+// Depth is naturally bounded: each 413 halves the batch until events.length <= 1,
+// at which point the single oversized event is dropped (same bound as the main thread).
 async function sendBatch(
   payload: { version: number; events: unknown[] },
   context: SendContext,
   useRetry: boolean,
   attempt: number,
-  splitDepth = 0,
 ): Promise<{ success: boolean; message: string }> {
   const payloadJson = JSON.stringify(payload);
   const result = await doFetch(payloadJson, context);
@@ -94,13 +92,12 @@ async function sendBatch(
     return result;
   }
 
-  if (result.is413 && payload.events.length > 1 && splitDepth < MAX_SPLIT_DEPTH) {
-    // Split in half and attempt both portions in parallel.
+  if (result.is413 && payload.events.length > 1) {
+    // Split in half and send sequentially to avoid amplifying load on an already-
+    // struggling endpoint (the main-thread path also serialises via addToQueue).
     const half = Math.floor(payload.events.length / 2);
-    const [r1, r2] = await Promise.all([
-      sendBatch({ ...payload, events: payload.events.slice(0, half) }, context, useRetry, 1, splitDepth + 1),
-      sendBatch({ ...payload, events: payload.events.slice(half) }, context, useRetry, 1, splitDepth + 1),
-    ]);
+    const r1 = await sendBatch({ ...payload, events: payload.events.slice(0, half) }, context, useRetry, 1);
+    const r2 = await sendBatch({ ...payload, events: payload.events.slice(half) }, context, useRetry, 1);
     if (!r1.success && !r2.success) {
       return { success: false, message: `${r1.message}; ${r2.message}` };
     }
@@ -116,7 +113,7 @@ async function sendBatch(
 
   if (useRetry && result.shouldRetry && attempt < context.flushMaxRetries) {
     await new Promise<void>((resolve) => setTimeout(resolve, Math.random() * attempt * RETRY_TIMEOUT_MS));
-    return sendBatch(payload, context, useRetry, attempt + 1, splitDepth);
+    return sendBatch(payload, context, useRetry, attempt + 1);
   }
 
   const message = attempt >= context.flushMaxRetries ? MAX_RETRIES_EXCEEDED_MESSAGE : result.message;

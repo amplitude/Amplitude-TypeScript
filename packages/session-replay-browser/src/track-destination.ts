@@ -388,7 +388,7 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
     let completedCount = 0;
     const splitOnComplete = async () => {
       completedCount++;
-      if (completedCount >= 2) {
+      if (completedCount === 2) {
         await context.onComplete();
       }
     };

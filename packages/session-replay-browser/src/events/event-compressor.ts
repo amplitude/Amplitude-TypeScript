@@ -100,13 +100,7 @@ export class EventCompressor {
         this.isProcessing = false;
       }
       const compressedEvent = this.compressEvent(event);
-      // str.length is a UTF-8 lower bound (each char ≥ 1 byte). Skip the Blob allocation
-      // when the snapshot is already over the threshold based on character count alone.
-      const lengthLowerBound = compressedEvent.length;
-      const eventByteSize =
-        lengthLowerBound >= MAX_FULL_SNAPSHOT_SIZE
-          ? lengthLowerBound // definitely over — byte_size ≥ str.length ≥ threshold
-          : new Blob([compressedEvent]).size; // measure exactly for borderline cases
+      const eventByteSize = new Blob([compressedEvent]).size;
       if (eventByteSize > MAX_FULL_SNAPSHOT_SIZE) {
         this.config.loggerProvider.warn(
           `[Session Replay] FullSnapshot (${eventByteSize} bytes) exceeds max single-event size (${MAX_FULL_SNAPSHOT_SIZE} bytes); dropping to prevent guaranteed 413.`,
