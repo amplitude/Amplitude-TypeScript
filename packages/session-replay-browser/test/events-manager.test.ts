@@ -128,7 +128,7 @@ describe('createEventsManager', () => {
       expect(mockSendEventsList).not.toHaveBeenCalled();
     });
 
-    test('should log drain message when orphaned sequences are found', async () => {
+    test('should log drain message when stored sequences are found', async () => {
       (mockIDBStore.getSequencesToSend as jest.Mock).mockResolvedValue([
         { events: [mockEventString], sequenceId: 1, sessionId: 123 },
         { events: [mockEventString], sequenceId: 2, sessionId: 123 },
@@ -139,18 +139,29 @@ describe('createEventsManager', () => {
         storeType: 'idb',
       });
       await eventsManager.sendStoredEvents({ deviceId: '1a2b3c' });
-      expect(mockLoggerProvider.log).toHaveBeenCalledWith(
-        '[SR] Draining 2 orphaned sequence(s) from previous session (crash-recovery path).',
-      );
+      expect(mockLoggerProvider.log).toHaveBeenCalledWith('[SR] Draining 2 stored sequence(s) from previous session.');
     });
 
-    test('should not log drain message when no sequences are found', async () => {
+    test('should not log drain message when sequences are empty', async () => {
       (mockIDBStore.getSequencesToSend as jest.Mock).mockResolvedValue([]);
       const eventsManager = await createEventsManager<'replay'>({
         config,
         type: 'replay',
         storeType: 'idb',
       });
+      mockLoggerProvider.log.mockClear();
+      await eventsManager.sendStoredEvents({ deviceId: '1a2b3c' });
+      expect(mockLoggerProvider.log).not.toHaveBeenCalledWith(expect.stringContaining('[SR] Draining'));
+    });
+
+    test('should not log drain message when sequences is null', async () => {
+      (mockIDBStore.getSequencesToSend as jest.Mock).mockResolvedValue(null);
+      const eventsManager = await createEventsManager<'replay'>({
+        config,
+        type: 'replay',
+        storeType: 'idb',
+      });
+      mockLoggerProvider.log.mockClear();
       await eventsManager.sendStoredEvents({ deviceId: '1a2b3c' });
       expect(mockLoggerProvider.log).not.toHaveBeenCalledWith(expect.stringContaining('[SR] Draining'));
     });
