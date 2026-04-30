@@ -17,6 +17,10 @@ export class Timeline {
   // Flag indicates whether timeline is ready to process event
   // Events collected before timeline is ready will stay in the queue to be processed later
   plugins: Plugin[] = [];
+  // Reserves plugin names synchronously before `await plugin.setup?.()` so a concurrent
+  // register() with the same name bails. plugins[] only contains fully-installed plugins,
+  // so this map is the only source of truth for in-flight installs. Cleared per-name by
+  // deregister() and en masse by reset().
   pluginStatus: Map<string, PluginStatus> = new Map();
   // loggerProvider is set by the client at _init()
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
