@@ -8,13 +8,18 @@ import { Result } from './types/result';
 import { buildResult } from './utils/result-builder';
 import { UUID } from './utils/uuid';
 
+type PluginStatus = 'locked' | 'installed';
+
 export class Timeline {
   queue: [Event, EventCallback][] = [];
   // Flag to guarantee one schedule apply is running
   applying = false;
-  // Flag indicates whether timeline is ready to process event
-  // Events collected before timeline is ready will stay in the queue to be processed later
   plugins: Plugin[] = [];
+  // Locks plugin names synchronously before `await plugin.setup?.()` so a concurrent
+  // register() with the same name bails. plugins[] only contains fully-installed plugins,
+  // so this map is the only source of truth for in-flight installs. Cleared per-name by
+  // deregister() and en masse by reset().
+  pluginStatus: Map<string, PluginStatus> = new Map();
   // loggerProvider is set by the client at _init()
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore
@@ -24,25 +29,37 @@ export class Timeline {
   constructor(private client: CoreClient) {}
 
   async register(plugin: Plugin, config: IConfig) {
-    if (this.plugins.some((existingPlugin) => existingPlugin.name === plugin.name)) {
-      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
-      this.loggerProvider.warn(`Plugin with name ${plugin.name} already exists, skipping registration`);
+    if (plugin.name === undefined) {
+      plugin.name = UUID();
+      this.loggerProvider.warn(`Plugin name is undefined.
+      Generating a random UUID for plugin name: ${plugin.name}.
+      Set a name for the plugin to prevent it from being added multiple times.`);
+    }
+    const name = plugin.name;
+
+    if (this.pluginStatus.has(name)) {
+      this.loggerProvider.warn(`Plugin with name ${name} already exists, skipping registration`);
       return;
     }
 
-    if (plugin.name === undefined) {
-      plugin.name = UUID();
-      this.loggerProvider.warn(`Plugin name is undefined. 
-      Generating a random UUID for plugin name: ${plugin.name}. 
-      Set a name for the plugin to prevent it from being added multiple times.`);
-    }
-
     plugin.type = plugin.type ?? 'enrichment';
+    // Lock the name synchronously to close the TOCTOU window across `await setup`.
+    // If setup throws, the entry stays as 'locked' and blocks future re-registration —
+    // a same-named plugin would just fail again, so retry isn't useful.
+    this.pluginStatus.set(name, 'locked');
     await plugin.setup?.(config, this.client);
+    // reset() may have cleared the status map while setup was awaiting.
+    if (this.pluginStatus.get(name) !== 'locked') {
+      return;
+    }
     this.plugins.push(plugin);
+    this.pluginStatus.set(name, 'installed');
   }
 
   async deregister(pluginName: string, config: IConfig) {
+    // Clear the status first so a name stuck in 'locked' (mid-install, or setup() threw)
+    // can be unlocked via deregister(). Map.delete is a no-op if the key is missing.
+    this.pluginStatus.delete(pluginName);
     const index = this.plugins.findIndex((plugin) => plugin.name === pluginName);
     if (index === -1) {
       config.loggerProvider.warn(`Plugin with name ${pluginName} does not exist, skipping deregistration`);
@@ -59,6 +76,7 @@ export class Timeline {
     const plugins = this.plugins;
     plugins.map((plugin) => plugin.teardown?.());
     this.plugins = [];
+    this.pluginStatus.clear();
     this.client = client;
   }
 
