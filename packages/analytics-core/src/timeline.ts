@@ -8,14 +8,14 @@ import { Result } from './types/result';
 import { buildResult } from './utils/result-builder';
 import { UUID } from './utils/uuid';
 
-type PluginStatus = 'reserved' | 'installed';
+type PluginStatus = 'locked' | 'installed';
 
 export class Timeline {
   queue: [Event, EventCallback][] = [];
   // Flag to guarantee one schedule apply is running
   applying = false;
   plugins: Plugin[] = [];
-  // Reserves plugin names synchronously before `await plugin.setup?.()` so a concurrent
+  // Locks plugin names synchronously before `await plugin.setup?.()` so a concurrent
   // register() with the same name bails. plugins[] only contains fully-installed plugins,
   // so this map is the only source of truth for in-flight installs. Cleared per-name by
   // deregister() and en masse by reset().
@@ -43,13 +43,13 @@ export class Timeline {
     }
 
     plugin.type = plugin.type ?? 'enrichment';
-    // Reserve the name synchronously to close the TOCTOU window across `await setup`.
-    // If setup throws, the entry stays as 'reserved' and blocks future re-registration —
+    // Lock the name synchronously to close the TOCTOU window across `await setup`.
+    // If setup throws, the entry stays as 'locked' and blocks future re-registration —
     // a same-named plugin would just fail again, so retry isn't useful.
-    this.pluginStatus.set(name, 'reserved');
+    this.pluginStatus.set(name, 'locked');
     await plugin.setup?.(config, this.client);
     // reset() may have cleared the status map while setup was awaiting.
-    if (this.pluginStatus.get(name) !== 'reserved') {
+    if (this.pluginStatus.get(name) !== 'locked') {
       return;
     }
     this.plugins.push(plugin);
@@ -57,8 +57,8 @@ export class Timeline {
   }
 
   async deregister(pluginName: string, config: IConfig) {
-    // Clear the status first so a name stuck in 'reserved' (mid-install, or setup() threw)
-    // can be unblocked via deregister(). Map.delete is a no-op if the key is missing.
+    // Clear the status first so a name stuck in 'locked' (mid-install, or setup() threw)
+    // can be unlocked via deregister(). Map.delete is a no-op if the key is missing.
     this.pluginStatus.delete(pluginName);
     const index = this.plugins.findIndex((plugin) => plugin.name === pluginName);
     if (index === -1) {
