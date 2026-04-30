@@ -55,6 +55,9 @@ export class Timeline {
   }
 
   async deregister(pluginName: string, config: IConfig) {
+    // Clear the status first so a name stuck in 'installing' (mid-install, or setup() threw)
+    // can be unblocked via deregister(). Map.delete is a no-op if the key is missing.
+    this.pluginStatus.delete(pluginName);
     const index = this.plugins.findIndex((plugin) => plugin.name === pluginName);
     if (index === -1) {
       config.loggerProvider.warn(`Plugin with name ${pluginName} does not exist, skipping deregistration`);
@@ -62,7 +65,6 @@ export class Timeline {
     }
     const plugin = this.plugins[index];
     this.plugins.splice(index, 1);
-    this.pluginStatus.delete(pluginName);
     await plugin.teardown?.();
   }
 

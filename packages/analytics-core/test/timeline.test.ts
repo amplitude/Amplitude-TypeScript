@@ -218,6 +218,26 @@ describe('timeline', () => {
       await timeline.deregister('bad-test-plugin', config);
       expect(timeline.plugins.length).toBe(1);
     });
+
+    test('should clear the status lock for a name stuck in installing', async () => {
+      const failingSetup = jest.fn().mockRejectedValueOnce(new Error('boom'));
+      const plugin: EnrichmentPlugin = {
+        name: 'StuckPlugin',
+        type: 'enrichment',
+        setup: failingSetup,
+      };
+      await expect(timeline.register(plugin, config)).rejects.toThrow('boom');
+      expect(timeline.pluginStatus.get('StuckPlugin')).toBe('installing');
+
+      await timeline.deregister('StuckPlugin', config);
+      expect(timeline.pluginStatus.has('StuckPlugin')).toBe(false);
+
+      // Lock is gone, so the same name can be re-registered.
+      const successSetup = jest.fn().mockResolvedValueOnce(undefined);
+      await timeline.register({ name: 'StuckPlugin', type: 'enrichment', setup: successSetup }, config);
+      expect(timeline.plugins).toHaveLength(1);
+      expect(successSetup).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe('reset', () => {
