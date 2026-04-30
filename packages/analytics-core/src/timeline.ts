@@ -8,7 +8,7 @@ import { Result } from './types/result';
 import { buildResult } from './utils/result-builder';
 import { UUID } from './utils/uuid';
 
-type PluginStatus = 'registering' | 'registered';
+type PluginStatus = 'installing' | 'installed';
 
 export class Timeline {
   queue: [Event, EventCallback][] = [];
@@ -16,9 +16,9 @@ export class Timeline {
   applying = false;
   plugins: Plugin[] = [];
   // Reserves plugin names synchronously before `await plugin.setup?.()` so a concurrent
-  // register() with the same name bails. plugins[] only contains fully-registered plugins,
-  // so this map is the only source of truth for in-flight registrations. Cleared per-name
-  // by deregister() and en masse by reset().
+  // register() with the same name bails. plugins[] only contains fully-installed plugins,
+  // so this map is the only source of truth for in-flight installs. Cleared per-name by
+  // deregister() and en masse by reset().
   pluginStatus: Map<string, PluginStatus> = new Map();
   // loggerProvider is set by the client at _init()
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -44,21 +44,21 @@ export class Timeline {
 
     plugin.type = plugin.type ?? 'enrichment';
     // Reserve the name synchronously to close the TOCTOU window across `await setup`.
-    // If setup throws, the entry stays as 'registering' and blocks future re-registration —
+    // If setup throws, the entry stays as 'installing' and blocks future re-registration —
     // a same-named plugin would just fail again, so retry isn't useful.
-    this.pluginStatus.set(name, 'registering');
+    this.pluginStatus.set(name, 'installing');
     await plugin.setup?.(config, this.client);
     // reset() may have cleared the status map while setup was awaiting.
-    if (this.pluginStatus.get(name) !== 'registering') {
+    if (this.pluginStatus.get(name) !== 'installing') {
       return;
     }
     this.plugins.push(plugin);
-    this.pluginStatus.set(name, 'registered');
+    this.pluginStatus.set(name, 'installed');
   }
 
   async deregister(pluginName: string, config: IConfig) {
-    // Clear the status first so a name stuck in 'registering' (mid-registration, or setup()
-    // threw) can be unblocked via deregister(). Map.delete is a no-op if the key is missing.
+    // Clear the status first so a name stuck in 'installing' (mid-install, or setup() threw)
+    // can be unblocked via deregister(). Map.delete is a no-op if the key is missing.
     this.pluginStatus.delete(pluginName);
     const index = this.plugins.findIndex((plugin) => plugin.name === pluginName);
     if (index === -1) {
