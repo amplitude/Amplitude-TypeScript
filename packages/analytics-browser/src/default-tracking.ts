@@ -11,6 +11,7 @@ import {
   FrustrationInteractionsOptions,
   CustomEnrichmentOptions,
   PerformanceTrackingOptions,
+  isChromeExtension,
 } from '@amplitude/analytics-core';
 
 /**
@@ -36,6 +37,10 @@ const isTrackingEnabled = (
 
   if (autocapture?.[event] === false) {
     return false;
+  }
+
+  if (isChromeExtension()) {
+    return !!autocapture?.[event];
   }
 
   return true;
