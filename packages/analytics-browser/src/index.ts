@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/unbound-method */
+// dummy patch analytics-browser to force GTM deploy
 import client from './browser-client-factory';
 export { createInstance } from './browser-client-factory';
 export const {
