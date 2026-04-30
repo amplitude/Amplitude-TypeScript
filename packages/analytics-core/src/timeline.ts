@@ -8,7 +8,7 @@ import { Result } from './types/result';
 import { buildResult } from './utils/result-builder';
 import { UUID } from './utils/uuid';
 
-type PluginStatus = 'installing' | 'installed';
+type PluginStatus = 'reserved' | 'installed';
 
 export class Timeline {
   queue: [Event, EventCallback][] = [];
@@ -44,12 +44,12 @@ export class Timeline {
 
     plugin.type = plugin.type ?? 'enrichment';
     // Reserve the name synchronously to close the TOCTOU window across `await setup`.
-    // If setup throws, the entry stays as 'installing' and blocks future re-registration —
+    // If setup throws, the entry stays as 'reserved' and blocks future re-registration —
     // a same-named plugin would just fail again, so retry isn't useful.
-    this.pluginStatus.set(name, 'installing');
+    this.pluginStatus.set(name, 'reserved');
     await plugin.setup?.(config, this.client);
     // reset() may have cleared the status map while setup was awaiting.
-    if (this.pluginStatus.get(name) !== 'installing') {
+    if (this.pluginStatus.get(name) !== 'reserved') {
       return;
     }
     this.plugins.push(plugin);
@@ -57,7 +57,7 @@ export class Timeline {
   }
 
   async deregister(pluginName: string, config: IConfig) {
-    // Clear the status first so a name stuck in 'installing' (mid-install, or setup() threw)
+    // Clear the status first so a name stuck in 'reserved' (mid-install, or setup() threw)
     // can be unblocked via deregister(). Map.delete is a no-op if the key is missing.
     this.pluginStatus.delete(pluginName);
     const index = this.plugins.findIndex((plugin) => plugin.name === pluginName);

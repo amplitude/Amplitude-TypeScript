@@ -128,8 +128,8 @@ describe('timeline', () => {
 
       await expect(timeline.register(plugin, config)).rejects.toBe(setupError);
       expect(timeline.plugins).toHaveLength(0);
-      // Status remains 'installing' so the slot is locked — same name would just fail again.
-      expect(timeline.pluginStatus.get('FailingPlugin')).toBe('installing');
+      // Status remains 'reserved' so the slot is locked — same name would just fail again.
+      expect(timeline.pluginStatus.get('FailingPlugin')).toBe('reserved');
 
       await timeline.register(plugin, config);
       expect(setup).toHaveBeenCalledTimes(1);
@@ -220,7 +220,7 @@ describe('timeline', () => {
       expect(timeline.plugins.length).toBe(1);
     });
 
-    test('should clear the status lock for a name stuck in installing', async () => {
+    test('should clear the status lock for a name stuck in reserved', async () => {
       const failingSetup = jest.fn().mockRejectedValueOnce(new Error('boom'));
       const plugin: EnrichmentPlugin = {
         name: 'StuckPlugin',
@@ -228,7 +228,7 @@ describe('timeline', () => {
         setup: failingSetup,
       };
       await expect(timeline.register(plugin, config)).rejects.toThrow('boom');
-      expect(timeline.pluginStatus.get('StuckPlugin')).toBe('installing');
+      expect(timeline.pluginStatus.get('StuckPlugin')).toBe('reserved');
 
       await timeline.deregister('StuckPlugin', config);
       expect(timeline.pluginStatus.has('StuckPlugin')).toBe(false);
