@@ -14,8 +14,6 @@ export class Timeline {
   queue: [Event, EventCallback][] = [];
   // Flag to guarantee one schedule apply is running
   applying = false;
-  // Flag indicates whether timeline is ready to process event
-  // Events collected before timeline is ready will stay in the queue to be processed later
   plugins: Plugin[] = [];
   // Reserves plugin names synchronously before `await plugin.setup?.()` so a concurrent
   // register() with the same name bails. plugins[] only contains fully-installed plugins,
