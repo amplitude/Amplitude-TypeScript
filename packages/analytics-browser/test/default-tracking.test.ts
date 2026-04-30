@@ -381,8 +381,12 @@ describe('isSessionTrackingEnabled', () => {
       jest.spyOn(analyticsCoreModule, 'isChromeExtension').mockReturnValue(true);
     });
 
-    test('should return false', () => {
+    test('should return false if not set', () => {
       expect(isSessionTrackingEnabled(undefined)).toBe(false);
+    });
+
+    test('should return true if set to true', () => {
+      expect(isSessionTrackingEnabled({ sessions: true })).toBe(true);
     });
   });
 });

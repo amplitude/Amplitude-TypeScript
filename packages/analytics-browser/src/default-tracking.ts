@@ -40,7 +40,7 @@ const isTrackingEnabled = (
   }
 
   if (isChromeExtension()) {
-    return false;
+    return !!autocapture?.[event];
   }
 
   return true;
