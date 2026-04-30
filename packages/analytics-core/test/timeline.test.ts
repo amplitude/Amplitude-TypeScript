@@ -133,6 +133,7 @@ describe('timeline', () => {
 
       await timeline.register(plugin, config);
       expect(setup).toHaveBeenCalledTimes(1);
+      expect(timeline.plugins).toHaveLength(0);
       expect(mockLoggerProvider.warn).toHaveBeenCalledWith(
         `Plugin with name FailingPlugin already exists, skipping registration`,
       );
