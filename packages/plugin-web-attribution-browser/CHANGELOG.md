@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.2.11-sr-idb-multitab-test-rc.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-web-attribution-browser@2.2.10...@amplitude/plugin-web-attribution-browser@2.2.11-sr-idb-multitab-test-rc.0) (2026-05-04)
+
+**Note:** Version bump only for package @amplitude/plugin-web-attribution-browser
+
+
+
+
+
 ## [2.2.10](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-web-attribution-browser@2.2.9...@amplitude/plugin-web-attribution-browser@2.2.10) (2026-04-28)
 
 **Note:** Version bump only for package @amplitude/plugin-web-attribution-browser

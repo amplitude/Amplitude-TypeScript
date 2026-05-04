@@ -3,6 +3,21 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.39.1-sr-idb-multitab-test-rc.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.39.0...@amplitude/session-replay-browser@1.39.1-sr-idb-multitab-test-rc.0) (2026-05-04)
+
+
+### Bug Fixes
+
+* **session-replay:** atomic storeCurrentSequence, foreign-tab promotion, hang timeouts ([222d634](https://github.com/amplitude/Amplitude-TypeScript/commit/222d6343a585a08a6d7b709b67d0e76852807e56))
+* **session-replay:** call recordFailure in tx.done.catch handlers ([01ca822](https://github.com/amplitude/Amplitude-TypeScript/commit/01ca8223572cad115767c5522ac9f95ac869ec3d))
+* **session-replay:** fallback UUID generator when crypto.randomUUID unavailable ([7ea53b6](https://github.com/amplitude/Amplitude-TypeScript/commit/7ea53b6d9eebf2ffb9ff3d791a18bd6f174bb730))
+* **session-replay:** stamp IDB records with tabId to prevent cross-tab contamination ([811be0d](https://github.com/amplitude/Amplitude-TypeScript/commit/811be0de27381ff113edcd495929c7cb1c29d84a))
+* **session-replay:** use crypto.randomUUID for tabId; polyfill in jest-setup ([64f2acb](https://github.com/amplitude/Amplitude-TypeScript/commit/64f2acb6270d2500a17615dd58b8dbf21d810107))
+
+
+
+
+
 # [1.39.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.38.0...@amplitude/session-replay-browser@1.39.0) (2026-04-28)
 
 

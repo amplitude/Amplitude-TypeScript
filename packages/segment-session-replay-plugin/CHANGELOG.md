@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.0.20-sr-idb-multitab-test-rc.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/segment-session-replay-plugin@0.0.19...@amplitude/segment-session-replay-plugin@0.0.20-sr-idb-multitab-test-rc.0) (2026-05-04)
+
+**Note:** Version bump only for package @amplitude/segment-session-replay-plugin
+
+
+
+
+
 ## [0.0.19](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/segment-session-replay-plugin@0.0.18...@amplitude/segment-session-replay-plugin@0.0.19) (2026-04-28)
 
 **Note:** Version bump only for package @amplitude/segment-session-replay-plugin

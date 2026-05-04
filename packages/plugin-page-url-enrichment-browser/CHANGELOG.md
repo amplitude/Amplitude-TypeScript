@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.7.10-sr-idb-multitab-test-rc.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-page-url-enrichment-browser@0.7.9...@amplitude/plugin-page-url-enrichment-browser@0.7.10-sr-idb-multitab-test-rc.0) (2026-05-04)
+
+**Note:** Version bump only for package @amplitude/plugin-page-url-enrichment-browser
+
+
+
+
+
 ## [0.7.9](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-page-url-enrichment-browser@0.7.8...@amplitude/plugin-page-url-enrichment-browser@0.7.9) (2026-04-28)
 
 **Note:** Version bump only for package @amplitude/plugin-page-url-enrichment-browser

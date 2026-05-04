@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.42.1-sr-idb-multitab-test-rc.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.42.0...@amplitude/analytics-browser@2.42.1-sr-idb-multitab-test-rc.0) (2026-05-04)
+
+
+### Bug Fixes
+
+* **analytics-browser:** make autocapture opt-in within Chrome Extension ([#1710](https://github.com/amplitude/Amplitude-TypeScript/issues/1710)) ([de5ff6e](https://github.com/amplitude/Amplitude-TypeScript/commit/de5ff6e4fc9bfcf5d880fb291c796614ef86cc59))
+
+
+
+
+
 # [2.42.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.41.1...@amplitude/analytics-browser@2.42.0) (2026-04-28)
 
 

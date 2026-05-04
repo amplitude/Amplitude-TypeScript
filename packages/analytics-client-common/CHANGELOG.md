@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.4.48-sr-idb-multitab-test-rc.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-client-common@2.4.47...@amplitude/analytics-client-common@2.4.48-sr-idb-multitab-test-rc.0) (2026-05-04)
+
+**Note:** Version bump only for package @amplitude/analytics-client-common
+
+
+
+
+
 ## [2.4.47](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-client-common@2.4.46...@amplitude/analytics-client-common@2.4.47) (2026-04-28)
 
 **Note:** Version bump only for package @amplitude/analytics-client-common
