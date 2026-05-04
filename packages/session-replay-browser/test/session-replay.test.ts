@@ -2035,8 +2035,18 @@ describe('SessionReplay', () => {
       });
       expect(stopRecordingMock).toHaveBeenCalled();
       expect(sessionReplay.recordCancelCallback).toEqual(null);
-      const updatedCurrentSequenceEvents = await createEventsIDBStoreInstance.getCurrentSequenceEvents(123);
-      expect(updatedCurrentSequenceEvents).toEqual([{ events: [mockEventString], sessionId: 123 }]); // events should not change, emmitted event should be ignored
+      // The emitted mockEvent must be ignored due to opt-out — opt-out path returns
+      // before any addEvent call.  After the (now atomic) storeCurrentSequence
+      // promotes the pre-existing mockEventString to sequencesToSend, the original
+      // event still exists exactly once in the combined view across both stores —
+      // no duplication, no extra event from the emit.
+      const updatedCurrentSequenceEvents = (await createEventsIDBStoreInstance.getCurrentSequenceEvents(123)) ?? [];
+      const sequencesToSend = (await createEventsIDBStoreInstance.getSequencesToSend()) ?? [];
+      const allEvents = [
+        ...updatedCurrentSequenceEvents.flatMap((s) => s.events),
+        ...sequencesToSend.flatMap((s) => s.events),
+      ];
+      expect(allEvents).toEqual([mockEventString]); // exactly the one pre-existing event
     });
 
     test('should add an error handler', async () => {
