@@ -5,7 +5,7 @@ settings:
   excludeLinksFromLockfile: false
 
 overrides:
-  typescript: 4.9.5
+  typescript: ^4.9.4
 
 importers:
 
@@ -127,7 +127,7 @@ importers:
         specifier: ^0.23.22
         version: 0.23.28(typescript@4.9.5)
       typescript:
-        specifier: 4.9.5
+        specifier: ^4.9.4
         version: 4.9.5
       vite:
         specifier: ^6.3.4
@@ -3066,7 +3066,7 @@ packages:
     peerDependencies:
       rollup: ^2.14.0||^3.0.0
       tslib: '*'
-      typescript: 4.9.5
+      typescript: ^4.9.4
     peerDependenciesMeta:
       rollup:
         optional: true
@@ -4837,7 +4837,7 @@ packages:
       '@types/node': '*'
       cosmiconfig: '>=7'
       ts-node: '>=10'
-      typescript: 4.9.5
+      typescript: ^4.9.4
 
   cosmiconfig@5.2.1:
     resolution: {integrity: sha512-H65gsXo1SKjf8zmrJ67eJk8aIRKV5ff2D4uKZIBZShbhGSpEmsQOPW/SKMKYhSTrqR7ufy6RP69rPogdaPh/kA==}
@@ -4851,7 +4851,7 @@ packages:
     resolution: {integrity: sha512-kcZ6+W5QzcJ3P1Mt+83OUv/oHFqZHIx8DuxG6eZ5RGMERoLqp4BuGjhHLYGK+Kf5XVkQvqBSmAy/nGWN3qDgEA==}
     engines: {node: '>=14'}
     peerDependencies:
-      typescript: 4.9.5
+      typescript: ^4.9.4
     peerDependenciesMeta:
       typescript:
         optional: true
@@ -4860,7 +4860,7 @@ packages:
     resolution: {integrity: sha512-itvL5h8RETACmOTFc4UfIyB2RfEHi71Ax6E/PivVxq9NseKbOWpeyHEOIbmAw1rs8Ak0VursQNww7lf7YtUwzg==}
     engines: {node: '>=14'}
     peerDependencies:
-      typescript: 4.9.5
+      typescript: ^4.9.4
     peerDependenciesMeta:
       typescript:
         optional: true
@@ -7275,7 +7275,7 @@ packages:
     engines: {node: '>=18'}
     hasBin: true
     peerDependencies:
-      typescript: 4.9.5
+      typescript: ^4.9.4
     peerDependenciesMeta:
       typescript:
         optional: true
@@ -8885,7 +8885,7 @@ packages:
       esbuild: '*'
       jest: ^29.0.0 || ^30.0.0
       jest-util: ^29.0.0 || ^30.0.0
-      typescript: 4.9.5
+      typescript: ^4.9.4
     peerDependenciesMeta:
       '@babel/core':
         optional: true
@@ -8907,7 +8907,7 @@ packages:
       '@swc/core': '>=1.2.50'
       '@swc/wasm': '>=1.2.50'
       '@types/node': '*'
-      typescript: 4.9.5
+      typescript: ^4.9.4
     peerDependenciesMeta:
       '@swc/core':
         optional: true
@@ -8931,7 +8931,7 @@ packages:
     resolution: {integrity: sha512-mHKK3iUXL+3UF6xL5k0PEhKRUBKPBCv/+RkEOpjRWxxx27KKRBmmA60A9pgOUvMi8GKhRMPEmjBRPzs2W7O1OA==}
     engines: {node: '>= 6'}
     peerDependencies:
-      typescript: 4.9.5
+      typescript: ^4.9.4
 
   tuf-js@4.0.0:
     resolution: {integrity: sha512-Lq7ieeGvXDXwpoSmOSgLWVdsGGV9J4a77oDTAPe/Ltrqnnm/ETaRlBAQTH5JatEh8KXuE6sddf9qAv1Q2282Hg==}
@@ -9005,7 +9005,7 @@ packages:
     engines: {node: '>= 14.14'}
     hasBin: true
     peerDependencies:
-      typescript: 4.9.5
+      typescript: ^4.9.4
 
   typescript@4.9.5:
     resolution: {integrity: sha512-1FXk9E2Hm+QzZQ7z+McJiHL4NW1F2EzMu9Nq9i3zAaGqibafqYwCVU6WyWAuyQRRzOlxou8xZSyXLEN8oKj24g==}
