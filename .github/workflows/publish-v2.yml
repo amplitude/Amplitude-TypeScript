@@ -76,6 +76,10 @@ jobs:
           fetch-depth: 0
           ref: ${{ github.event.inputs.branch || github.ref_name }}
 
+      - name: Mark repository as safe for git
+        if: ${{ github.event.inputs.skipLernaVersion != 'true' }}
+        run: git config --global --add safe.directory /__w/Amplitude-TypeScript/Amplitude-TypeScript
+
       - name: Capture E2E HEAD SHA
         id: head-sha
         if: ${{ github.event.inputs.skipLernaVersion != 'true' }}
