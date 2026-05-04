@@ -70,7 +70,7 @@ describe('CrossOriginIframeCoordinator', () => {
     expect(pm2).toHaveBeenCalledWith({ type: CROSS_ORIGIN_IFRAME_MESSAGE_TYPE, action: 'start' }, '*');
   });
 
-  it('sends start signal to dynamically added iframes', async () => {
+  it('sends start signal to dynamically added iframes after they load', async () => {
     coordinator.start();
 
     const dynamicIframe = document.createElement('iframe');
@@ -84,7 +84,14 @@ describe('CrossOriginIframeCoordinator', () => {
     // MutationObserver callbacks fire asynchronously
     await new Promise((r) => setTimeout(r, 0));
 
+    // No message before the iframe's load event — it would go to about:blank otherwise
+    expect(mockPostMessage).not.toHaveBeenCalled();
+
+    // Simulate the child page finishing its load
+    dynamicIframe.dispatchEvent(new Event('load'));
+
     expect(mockPostMessage).toHaveBeenCalledWith({ type: CROSS_ORIGIN_IFRAME_MESSAGE_TYPE, action: 'start' }, '*');
+    expect(mockPostMessage).toHaveBeenCalledTimes(1);
     dynamicIframe.remove();
   });
 
@@ -98,9 +105,8 @@ describe('CrossOriginIframeCoordinator', () => {
     expect(pm2).toHaveBeenCalledWith({ type: CROSS_ORIGIN_IFRAME_MESSAGE_TYPE, action: 'stop' }, '*');
   });
 
-  it('does not send to dynamically added iframes after stop()', async () => {
+  it('cancels pending load listener when stopped before iframe finishes loading', async () => {
     coordinator.start();
-    coordinator.stop();
 
     const dynamicIframe = document.createElement('iframe');
     const mockPostMessage = jest.fn();
@@ -112,8 +118,33 @@ describe('CrossOriginIframeCoordinator', () => {
 
     await new Promise((r) => setTimeout(r, 0));
 
-    expect(mockPostMessage).not.toHaveBeenCalled();
+    // Stop before the iframe loads — the pending listener should be removed
+    coordinator.stop();
+
+    // Simulate the child page finishing its load (listener should already be gone)
+    dynamicIframe.dispatchEvent(new Event('load'));
+
+    expect(mockPostMessage).not.toHaveBeenCalledWith({ type: CROSS_ORIGIN_IFRAME_MESSAGE_TYPE, action: 'start' }, '*');
     dynamicIframe.remove();
+  });
+
+  it('does not accumulate MutationObservers when start() is called twice', async () => {
+    coordinator.start();
+
+    const dynamicIframe1 = document.createElement('iframe');
+    const mockPm1 = jest.fn();
+    Object.defineProperty(dynamicIframe1, 'contentWindow', { value: { postMessage: mockPm1 }, configurable: true });
+
+    // Second start() should disconnect the first observer before creating a new one
+    coordinator.start();
+
+    document.body.appendChild(dynamicIframe1);
+    await new Promise((r) => setTimeout(r, 0));
+    dynamicIframe1.dispatchEvent(new Event('load'));
+
+    // Only one start signal, not two (from two observers)
+    expect(mockPm1).toHaveBeenCalledTimes(1);
+    dynamicIframe1.remove();
   });
 
   it('handles iframes with no contentWindow gracefully', () => {

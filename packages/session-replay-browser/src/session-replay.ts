@@ -905,6 +905,9 @@ export class SessionReplay implements AmplitudeSessionReplay {
   ) {
     // In child mode, rrweb detects window.parent !== window and routes events via
     // postMessage to the parent instead of calling emit. The emit callback is unused.
+    // Note: recording plugins (URL tracking, console capture) are intentionally omitted
+    // here — the child's events are merged into the parent stream, so URL changes inside
+    // the iframe should not be recorded as parent page-view events.
     try {
       this.stopRecordingEvents();
       const { privacyConfig } = config;
@@ -940,7 +943,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
           this.loggerProvider.warn('Error while capturing replay (child iframe): ', typedError.toString());
           return true;
         },
-        recordCrossOriginIframes: true,
+        recordCrossOriginIframes: true, // child mode is only entered when crossOriginIframes.enabled is true
       });
       this.loggerProvider.log(`Session Replay child iframe capture beginning for session ${sessionId}.`);
     } catch (error) {

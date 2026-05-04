@@ -25,8 +25,11 @@ type IframeMessage = { type: typeof CROSS_ORIGIN_IFRAME_MESSAGE_TYPE; action: 's
  */
 export class CrossOriginIframeCoordinator {
   private mutationObserver: MutationObserver | undefined;
+  // Tracks pending load listeners for dynamically added iframes so stop() can cancel them.
+  private pendingLoadListeners = new Map<HTMLIFrameElement, () => void>();
 
   start() {
+    this.mutationObserver?.disconnect(); // guard against double-start
     const globalScope = getGlobalScope();
     if (!globalScope) {
       return;
@@ -36,7 +39,11 @@ export class CrossOriginIframeCoordinator {
       for (const mutation of mutations) {
         for (const node of Array.from(mutation.addedNodes)) {
           if (node instanceof HTMLIFrameElement) {
-            this.sendToIframe(node, { type: CROSS_ORIGIN_IFRAME_MESSAGE_TYPE, action: 'start' });
+            // Send the start signal after the child page has loaded, not at insertion
+            // time. At insertion the contentWindow is still about:blank; the message
+            // sent there is discarded when the iframe navigates to its src, and the
+            // child SDK never receives it.
+            this.sendToIframeAfterLoad(node);
           }
         }
       }
@@ -47,7 +54,21 @@ export class CrossOriginIframeCoordinator {
   stop() {
     this.mutationObserver?.disconnect();
     this.mutationObserver = undefined;
+    // Cancel any start signals that were waiting for a pending iframe load.
+    this.pendingLoadListeners.forEach((listener, iframe) => {
+      iframe.removeEventListener('load', listener);
+    });
+    this.pendingLoadListeners.clear();
     this.sendToAllIframes({ type: CROSS_ORIGIN_IFRAME_MESSAGE_TYPE, action: 'stop' });
+  }
+
+  private sendToIframeAfterLoad(iframe: HTMLIFrameElement) {
+    const sendStart = () => {
+      this.pendingLoadListeners.delete(iframe);
+      this.sendToIframe(iframe, { type: CROSS_ORIGIN_IFRAME_MESSAGE_TYPE, action: 'start' });
+    };
+    this.pendingLoadListeners.set(iframe, sendStart);
+    iframe.addEventListener('load', sendStart, { once: true });
   }
 
   private sendToAllIframes(message: IframeMessage) {
