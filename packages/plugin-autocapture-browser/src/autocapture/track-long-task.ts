@@ -9,6 +9,10 @@ const MEASURE_BUFFER_WINDOW_MS = 10_000;
 interface PerformanceScriptTiming extends PerformanceEntry {
   sourceURL: string;
   sourceFunctionName: string;
+  // Character offset into the source URL's script where the function was defined.
+  // Used downstream for sourcemap resolution. Optional because coverage varies
+  // across browsers and entry origins (inline handlers, new Function, etc.).
+  sourceCharPosition?: number;
   invokerType: string;
   invoker: string;
 }
@@ -41,6 +45,9 @@ function buildLoAFProperties(entry: PerformanceLongAnimationFrameTiming, measure
 
   const scriptURLs = scripts.map((s) => s.sourceURL).filter(Boolean);
   const scriptFunctions = scripts.map((s) => s.sourceFunctionName).filter(Boolean);
+  const scriptPositions = scripts
+    .map((s) => s.sourceCharPosition)
+    .filter((p): p is number => typeof p === 'number' && p >= 0);
   const invokerTypes = scripts.map((s) => s.invokerType).filter(Boolean);
   const invokers = scripts.map((s) => s.invoker).filter(Boolean);
 
@@ -55,6 +62,7 @@ function buildLoAFProperties(entry: PerformanceLongAnimationFrameTiming, measure
     '[Amplitude] Main Thread Block Script Count': scripts.length,
     ...(scriptURLs.length > 0 && { '[Amplitude] Main Thread Block Script URLs': scriptURLs }),
     ...(scriptFunctions.length > 0 && { '[Amplitude] Main Thread Block Script Functions': scriptFunctions }),
+    ...(scriptPositions.length > 0 && { '[Amplitude] Main Thread Block Script Positions': scriptPositions }),
     ...(invokerTypes.length > 0 && { '[Amplitude] Main Thread Block Invoker Types': invokerTypes }),
     ...(invokers.length > 0 && { '[Amplitude] Main Thread Block Invokers': invokers }),
   };
