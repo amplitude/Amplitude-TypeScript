@@ -374,6 +374,71 @@ describe('createEventsManager', () => {
     });
   });
 
+  describe('shouldSend callback', () => {
+    test('should block sendEventsList in addEvent when shouldSend returns false', async () => {
+      const mockAddEventPromise = Promise.resolve({ events: [mockEventString], sequenceId: 1, sessionId: 123 });
+      (mockIDBStore.addEventToCurrentSequence as jest.Mock).mockReturnValue(mockAddEventPromise);
+      const eventsManager = await createEventsManager<'replay'>({
+        config,
+        type: 'replay',
+        storeType: 'idb',
+        shouldSend: () => false,
+      });
+      eventsManager.addEvent({ event: { type: 'replay', data: mockEventString }, sessionId: 123, deviceId: '1a2b3c' });
+      jest.runAllTimers();
+      return mockAddEventPromise
+        .catch(() => {
+          // ignore
+        })
+        .finally(() => {
+          const trackDestinationInstance = (SessionReplayTrackDestination as jest.Mock).mock.instances[0];
+          expect(trackDestinationInstance.sendEventsList).not.toHaveBeenCalled();
+        });
+    });
+
+    test('should block sendEventsList in sendCurrentSequenceEvents when shouldSend returns false', async () => {
+      const mockStoreEventPromise = Promise.resolve({ events: [mockEventString], sequenceId: 1, sessionId: 123 });
+      (mockIDBStore.storeCurrentSequence as jest.Mock).mockReturnValue(mockStoreEventPromise);
+      const eventsManager = await createEventsManager<'replay'>({
+        config,
+        type: 'replay',
+        storeType: 'idb',
+        shouldSend: () => false,
+      });
+      eventsManager.sendCurrentSequenceEvents({ sessionId: 123, deviceId: '1a2b3c' });
+      jest.runAllTimers();
+      return mockStoreEventPromise
+        .catch(() => {
+          // ignore
+        })
+        .finally(() => {
+          const trackDestinationInstance = (SessionReplayTrackDestination as jest.Mock).mock.instances[0];
+          expect(trackDestinationInstance.sendEventsList).not.toHaveBeenCalled();
+        });
+    });
+
+    test('should allow sendEventsList when shouldSend returns true', async () => {
+      const mockAddEventPromise = Promise.resolve({ events: [mockEventString], sequenceId: 1, sessionId: 123 });
+      (mockIDBStore.addEventToCurrentSequence as jest.Mock).mockReturnValue(mockAddEventPromise);
+      const eventsManager = await createEventsManager<'replay'>({
+        config,
+        type: 'replay',
+        storeType: 'idb',
+        shouldSend: () => true,
+      });
+      eventsManager.addEvent({ event: { type: 'replay', data: mockEventString }, sessionId: 123, deviceId: '1a2b3c' });
+      jest.runAllTimers();
+      return mockAddEventPromise
+        .catch(() => {
+          // ignore
+        })
+        .finally(() => {
+          const trackDestinationInstance = (SessionReplayTrackDestination as jest.Mock).mock.instances[0];
+          expect(trackDestinationInstance.sendEventsList).toHaveBeenCalledTimes(1);
+        });
+    });
+  });
+
   describe('flush', () => {
     test('should call track destination flush with useRetry as true', async () => {
       const eventsManager = await createEventsManager<'replay'>({

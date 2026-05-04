@@ -28,6 +28,7 @@ export const createEventsManager = async <Type extends EventType>({
   payloadBatcher,
   storeType,
   trackDestinationWorkerScript,
+  shouldSend,
 }: {
   config: SessionReplayJoinedConfig;
   type: Type;
@@ -36,6 +37,7 @@ export const createEventsManager = async <Type extends EventType>({
   payloadBatcher?: PayloadBatcher;
   storeType: StoreType;
   trackDestinationWorkerScript?: string;
+  shouldSend?: () => boolean;
 }): Promise<EventsManagerWithBeacon<Type>> => {
   const trackDestination = new SessionReplayTrackDestination({
     ...config,
@@ -131,6 +133,9 @@ export const createEventsManager = async <Type extends EventType>({
         });
     }
 
+    if (shouldSend && !shouldSend()) {
+      return;
+    }
     trackDestination.sendEventsList({
       events: events,
       sessionId: sessionId,

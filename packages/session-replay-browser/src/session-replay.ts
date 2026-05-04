@@ -197,6 +197,8 @@ export class SessionReplay implements AmplitudeSessionReplay {
       this.loggerProvider.enable(options.logLevel as LogLevel);
     this.currentPageUrl = getCurrentUrl();
     this.identifiers = new SessionIdentifiers({ sessionId: options.sessionId, deviceId: options.deviceId });
+    // Use the session ID itself as the start time if it's a numeric timestamp, otherwise Date.now()
+    this.sessionStartTime = typeof options.sessionId === 'number' ? options.sessionId : Date.now();
     this.joinedConfigGenerator = await createSessionReplayJoinedConfigGenerator(apiKey, options);
     const { joinedConfig, localConfig, remoteConfig } = await this.joinedConfigGenerator.generateJoinedConfig();
     this.config = joinedConfig;
@@ -249,6 +251,12 @@ export class SessionReplay implements AmplitudeSessionReplay {
         type: 'replay',
         storeType,
         trackDestinationWorkerScript,
+        shouldSend: () => {
+          const { minSessionDurationMs } = this.config ?? {};
+          if (minSessionDurationMs === undefined || this.sessionStartTime === undefined) return true;
+          const elapsed = Date.now() - this.sessionStartTime;
+          return elapsed >= minSessionDurationMs;
+        },
       });
       managers.push({ name: 'replay', manager: rrwebEventManager });
     } catch (error) {
@@ -549,7 +557,8 @@ export class SessionReplay implements AmplitudeSessionReplay {
     if (this.eventsManager && sessionIdToSend && deviceId) {
       if (this.config?.minSessionDurationMs !== undefined && this.sessionStartTime !== undefined) {
         const sessionDuration = Date.now() - this.sessionStartTime;
-        if (sessionDuration < this.config.minSessionDurationMs) {
+        const willSend = sessionDuration >= this.config.minSessionDurationMs;
+        if (!willSend) {
           this.loggerProvider.log(
             `Session ${sessionIdToSend} not sent: duration ${sessionDuration}ms is below minimum ${this.config.minSessionDurationMs}ms.`,
           );

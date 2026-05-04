@@ -261,6 +261,19 @@ describe('SessionReplay', () => {
     }
   });
   describe('init', () => {
+    test('should set sessionStartTime from numeric sessionId', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      expect(sessionReplay.sessionStartTime).toBe(123);
+    });
+
+    test('should set sessionStartTime to Date.now() when sessionId is not a number', async () => {
+      const before = Date.now();
+      await sessionReplay.init(apiKey, { ...mockOptions, sessionId: undefined }).promise;
+      const after = Date.now();
+      expect(sessionReplay.sessionStartTime).toBeGreaterThanOrEqual(before);
+      expect(sessionReplay.sessionStartTime).toBeLessThanOrEqual(after);
+    });
+
     test('should pass current page to evaluateTargetingAndCapture during init', async () => {
       const evaluateTargetingAndCaptureSpy = jest.spyOn(sessionReplay, 'evaluateTargetingAndCapture');
       await sessionReplay.init(apiKey, mockOptions).promise;
