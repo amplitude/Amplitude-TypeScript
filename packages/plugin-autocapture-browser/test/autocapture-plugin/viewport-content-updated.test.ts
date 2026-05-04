@@ -493,6 +493,48 @@ describe('fireViewportContentUpdated - early return when no changes', () => {
     }
   });
 
+  test('should decode URI-encoded characters in Page URL property', () => {
+    const originalLocation = window.location;
+    const locationMock = {
+      ...originalLocation,
+      href: 'https://www.topps.com/products/2025-bowman-chrome%C2%AE-baseball-mega-box?foo=bar',
+    } as unknown as Location;
+    Object.defineProperty(window, 'location', {
+      value: locationMock,
+      writable: true,
+      configurable: true,
+    });
+
+    const currentElementExposed = new Set<string>(['element-1']);
+    const elementExposedForPage = new Set<string>(['element-1']);
+
+    try {
+      fireViewportContentUpdated({
+        amplitude: mockAmplitude,
+        scrollTracker: mockScrollTracker,
+        currentElementExposed,
+        elementExposedForPage,
+        exposureTracker: undefined,
+        isPageEnd: false,
+        lastScroll: { maxX: undefined, maxY: undefined },
+      });
+
+      expect(trackSpy).toHaveBeenCalledWith(
+        '[Amplitude] Viewport Content Updated',
+        expect.objectContaining({
+          [constants.AMPLITUDE_EVENT_PROP_PAGE_URL]:
+            'https://www.topps.com/products/2025-bowman-chrome®-baseball-mega-box',
+        }),
+      );
+    } finally {
+      Object.defineProperty(window, 'location', {
+        value: originalLocation,
+        writable: true,
+        configurable: true,
+      });
+    }
+  });
+
   test('should preserve Page URL when no query parameters are present', () => {
     const originalLocation = window.location;
     const locationMock = {
