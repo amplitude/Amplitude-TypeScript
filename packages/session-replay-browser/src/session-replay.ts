@@ -819,11 +819,18 @@ export class SessionReplay implements AmplitudeSessionReplay {
         this.crossOriginParentSignalCleanup = listenForParentSignals({
           onStart: () => this._recordEventsInChildMode(recordFunction, sessionId, config, hooks),
           onStop: () => {
-            // Only cancel the rrweb recording — do NOT call stopRecordingEvents() here,
-            // which would clear crossOriginParentSignalCleanup and make the child deaf
-            // to subsequent start/stop cycles from the parent.
-            this.recordCancelCallback && this.recordCancelCallback();
-            this.recordCancelCallback = null;
+            try {
+              // Only cancel the rrweb recording — do NOT call stopRecordingEvents() here,
+              // which would clear crossOriginParentSignalCleanup and make the child deaf
+              // to subsequent start/stop cycles from the parent.
+              this.recordCancelCallback && this.recordCancelCallback();
+              this.recordCancelCallback = null;
+            } catch (error) {
+              const typedError = error as Error;
+              this.loggerProvider.warn(
+                `Error occurred while stopping child iframe replay capture: ${typedError.toString()}`,
+              );
+            }
           },
         });
         return;

@@ -4596,6 +4596,26 @@ describe('SessionReplay', () => {
         expect(() => onStop()).not.toThrow();
       });
 
+      test('onStop logs warning if cancel callback throws', async () => {
+        await sessionReplay.init(apiKey, crossOriginOptions).promise;
+        await sessionReplay.recordEvents();
+        await jest.runAllTimersAsync();
+
+        const { onStart, onStop } = (mockListenForParentSignals as jest.Mock).mock.calls[0][0] as {
+          onStart: () => void;
+          onStop: () => void;
+        };
+        onStart();
+        const cancelCallback = mockRecordFunction.mock.results[0].value as jest.Mock;
+        cancelCallback.mockImplementation(() => {
+          throw new Error('cancel failure');
+        });
+        onStop();
+        expect(mockLoggerProvider.warn).toHaveBeenCalledWith(
+          expect.stringContaining('Error occurred while stopping child iframe replay capture:'),
+        );
+      });
+
       test('parent signal listener stays alive across onStop/onStart cycles', async () => {
         await sessionReplay.init(apiKey, crossOriginOptions).promise;
         await sessionReplay.recordEvents();
