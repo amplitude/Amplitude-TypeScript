@@ -29,7 +29,7 @@ jobs:
             echo "Current branch: ${{ github.ref_name }}"
             exit 0
           fi
-          if [ "${{ github.ref_name }}" != "main" ]; then
+          if [ "${{ github.ref_name }}" != "main" && "${{ github.ref_name }}" != "hotfix/*" ]; then
             echo "❌ This workflow can only be triggered from the main branch."
             echo "Current branch: ${{ github.ref_name }}"
             exit 1
