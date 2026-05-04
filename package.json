@@ -11,7 +11,7 @@
     "clean": "lerna run clean --stream && rimraf node_modules docs",
     "deploy:version": "lerna version",
     "deploy:version:dry-run": "DRY_RUN=true lerna version --no-push --no-git-tag-version --allow-branch \"$(git rev-parse --abbrev-ref HEAD)\" --conventional-prerelease --no-changelog --no-push --no-git-tag-version",
-    "deploy:publish": "pnpm -r --filter \"./packages/**\" publish",
+    "deploy:publish": "pnpm -r --filter \"./packages/**\" publish --no-git-checks",
     "deploy:publish:dry-run": "DRY_RUN=true pnpm -r --filter \"./packages/**\" publish --dry-run --no-git-checks",
     "deploy:pack": "DRY_RUN=true pnpm -r --filter \"./packages/**\" pack",
     "dev": "concurrently \"pnpm run watch\" \"vite dev --open\"",
