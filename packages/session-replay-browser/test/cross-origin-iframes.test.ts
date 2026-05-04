@@ -173,6 +173,42 @@ describe('CrossOriginIframeCoordinator', () => {
     wrapper.remove();
   });
 
+  it('cancels pending load listener when iframe is removed from DOM before loading', async () => {
+    coordinator.start();
+
+    const dynamicIframe = document.createElement('iframe');
+    const mockPostMessage = jest.fn();
+    Object.defineProperty(dynamicIframe, 'contentWindow', {
+      value: { postMessage: mockPostMessage },
+      configurable: true,
+    });
+    document.body.appendChild(dynamicIframe);
+    await new Promise((r) => setTimeout(r, 0));
+
+    // Remove the iframe before it loads — pending listener should be cleaned up
+    dynamicIframe.remove();
+    await new Promise((r) => setTimeout(r, 0));
+
+    // Simulate the load event firing anyway (shouldn't send start)
+    dynamicIframe.dispatchEvent(new Event('load'));
+
+    expect(mockPostMessage).not.toHaveBeenCalledWith({ type: CROSS_ORIGIN_IFRAME_MESSAGE_TYPE, action: 'start' }, '*');
+  });
+
+  it('ignores removed non-iframe nodes', async () => {
+    coordinator.start();
+    const pm1 = (iframe1.contentWindow as any).postMessage as jest.Mock;
+    pm1.mockClear();
+
+    const div = document.createElement('div');
+    document.body.appendChild(div);
+    await new Promise((r) => setTimeout(r, 0));
+    div.remove();
+    await new Promise((r) => setTimeout(r, 0));
+
+    expect(pm1).not.toHaveBeenCalled();
+  });
+
   it('ignores non-element added nodes such as text nodes', async () => {
     coordinator.start();
     const pm1 = (iframe1.contentWindow as any).postMessage as jest.Mock;

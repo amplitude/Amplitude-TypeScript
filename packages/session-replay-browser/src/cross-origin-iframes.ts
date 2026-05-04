@@ -54,6 +54,15 @@ export class CrossOriginIframeCoordinator {
             });
           }
         }
+        for (const node of Array.from(mutation.removedNodes)) {
+          if (node instanceof HTMLIFrameElement) {
+            const listener = this.pendingLoadListeners.get(node);
+            if (listener) {
+              node.removeEventListener('load', listener);
+              this.pendingLoadListeners.delete(node);
+            }
+          }
+        }
       }
     });
     this.mutationObserver.observe(document.documentElement, { childList: true, subtree: true });
