@@ -8,6 +8,7 @@ import {
 import { SessionReplayOptions, StoreType } from '../typings/session-replay';
 import {
   SessionReplayLocalConfig as ISessionReplayLocalConfig,
+  CrossOriginIframesConfig,
   InteractionConfig,
   PrivacyConfig,
   SessionReplayPerformanceConfig,
@@ -45,6 +46,7 @@ export class SessionReplayLocalConfig extends Config implements ISessionReplayLo
   urlChangePollingInterval?: number;
   captureDocumentTitle?: boolean;
   captureAdoptedStyleSheets?: boolean;
+  crossOriginIframes?: CrossOriginIframesConfig;
 
   constructor(apiKey: string, options: SessionReplayOptions) {
     const defaultConfig = getDefaultConfig();
@@ -100,5 +102,8 @@ export class SessionReplayLocalConfig extends Config implements ISessionReplayLo
       this.omitElementTags = options.omitElementTags;
     }
     this.captureAdoptedStyleSheets = options.captureAdoptedStyleSheets ?? true;
+    if (options.crossOriginIframes) {
+      this.crossOriginIframes = options.crossOriginIframes;
+    }
   }
 }

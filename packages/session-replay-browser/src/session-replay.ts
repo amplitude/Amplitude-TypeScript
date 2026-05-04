@@ -70,6 +70,7 @@ import { VERSION } from './version';
 import type { NetworkObservers, NetworkRequestEvent } from './observers';
 import { createUrlTrackingPlugin, subscribeToUrlChanges } from './plugins/url-tracking-plugin';
 import type { RecordFunction } from './utils/rrweb';
+import { isInIframe, CrossOriginIframeCoordinator, listenForParentSignals } from './cross-origin-iframes';
 
 type PageLeaveFn = (e: PageTransitionEvent | Event) => void;
 
@@ -105,6 +106,8 @@ export class SessionReplay implements AmplitudeSessionReplay {
 
   /** Cleanup for URL change listener used to re-evaluate targeting on SPA route changes */
   private urlChangeCleanup: (() => void) | null = null;
+  private crossOriginIframeCoordinator: CrossOriginIframeCoordinator | null = null;
+  private crossOriginParentSignalCleanup: (() => void) | null = null;
   /** Monotonic counter to ignore stale URL-change targeting results */
   private latestUrlChangeTargetingEvaluationId = 0;
 
@@ -806,6 +809,20 @@ export class SessionReplay implements AmplitudeSessionReplay {
     this.loggerProvider.log(`Session Replay capture beginning for ${sessionId}.`);
 
     try {
+      const crossOriginIframesEnabled = !!config.crossOriginIframes?.enabled;
+      const coordinateChildren = config.crossOriginIframes?.coordinateChildren !== false;
+      const childMode = crossOriginIframesEnabled && isInIframe();
+
+      if (childMode && coordinateChildren) {
+        // Child mode: don't self-start; wait for a start signal from the parent.
+        this.crossOriginParentSignalCleanup?.();
+        this.crossOriginParentSignalCleanup = listenForParentSignals({
+          onStart: () => this._recordEventsInChildMode(recordFunction, sessionId, config, hooks),
+          onStop: () => this.stopRecordingEvents(),
+        });
+        return;
+      }
+
       this.recordCancelCallback = recordFunction({
         emit: (event: eventWithTime) => {
           if (this.shouldOptOut()) {
@@ -861,7 +878,15 @@ export class SessionReplay implements AmplitudeSessionReplay {
           return true;
         },
         plugins: await this.getRecordingPlugins(loggingConfig),
+        recordCrossOriginIframes: crossOriginIframesEnabled,
       });
+
+      if (crossOriginIframesEnabled && !childMode && coordinateChildren) {
+        if (!this.crossOriginIframeCoordinator) {
+          this.crossOriginIframeCoordinator = new CrossOriginIframeCoordinator();
+        }
+        this.crossOriginIframeCoordinator.start();
+      }
 
       void this.addCustomRRWebEvent(CustomRRwebEvent.DEBUG_INFO);
       if (shouldLogMetadata) {
@@ -869,6 +894,57 @@ export class SessionReplay implements AmplitudeSessionReplay {
       }
     } catch (error) {
       this.loggerProvider.warn('Failed to initialize session replay:', error);
+    }
+  }
+
+  private _recordEventsInChildMode(
+    recordFunction: RecordFunction,
+    sessionId: string | number,
+    config: SessionReplayJoinedConfig,
+    hooks: { mouseInteraction?: any; scroll?: scrollCallback },
+  ) {
+    // In child mode, rrweb detects window.parent !== window and routes events via
+    // postMessage to the parent instead of calling emit. The emit callback is unused.
+    try {
+      this.stopRecordingEvents();
+      const { privacyConfig } = config;
+      this.recordCancelCallback = recordFunction({
+        emit: () => {
+          // no-op: child events are forwarded to parent via postMessage by rrweb
+        },
+        inlineStylesheet: config.shouldInlineStylesheet,
+        hooks,
+        maskAllInputs: true,
+        maskTextClass: MASK_TEXT_CLASS,
+        blockClass: BLOCK_CLASS,
+        blockSelector: this.getBlockSelectors() as string | undefined,
+        applyBackgroundColorToBlockedElements: config.applyBackgroundColorToBlockedElements,
+        maskInputFn: maskFn('input', privacyConfig, () => this.currentPageUrl),
+        maskTextFn: maskFn('text', privacyConfig, () => this.currentPageUrl),
+        maskAttributeFn: maskAttributeFn(privacyConfig, () => this.currentPageUrl),
+        maskTextSelector: this.getMaskTextSelectors(),
+        recordCanvas: false,
+        captureAdoptedStyleSheets: config.captureAdoptedStyleSheets,
+        slimDOMOptions: {
+          script: config.omitElementTags?.script,
+          comment: config.omitElementTags?.comment,
+        },
+        errorHandler: (error: unknown) => {
+          const typedError = error as Error & { _external_?: boolean };
+          if (typedError.message.includes('insertRule') && typedError.message.includes('CSSStyleSheet')) {
+            throw typedError;
+          }
+          if (typedError._external_) {
+            throw typedError;
+          }
+          this.loggerProvider.warn('Error while capturing replay (child iframe): ', typedError.toString());
+          return true;
+        },
+        recordCrossOriginIframes: true,
+      });
+      this.loggerProvider.log(`Session Replay child iframe capture beginning for session ${sessionId}.`);
+    } catch (error) {
+      this.loggerProvider.warn('Failed to initialize session replay in child iframe mode:', error);
     }
   }
 
@@ -916,6 +992,8 @@ export class SessionReplay implements AmplitudeSessionReplay {
       this.recordCancelCallback && this.recordCancelCallback();
       this.recordCancelCallback = null;
       this.networkObservers?.stop();
+      this.crossOriginIframeCoordinator?.stop();
+      this.crossOriginIframeCoordinator = null;
     } catch (error) {
       const typedError = error as Error;
       this.loggerProvider.warn(`Error occurred while stopping replay capture: ${typedError.toString()}`);
@@ -936,6 +1014,8 @@ export class SessionReplay implements AmplitudeSessionReplay {
 
   shutdown() {
     this.urlChangeCleanup?.();
+    this.crossOriginParentSignalCleanup?.();
+    this.crossOriginParentSignalCleanup = null;
     this.teardownEventListeners(true);
     this.stopRecordingEvents();
     this.sendEvents();

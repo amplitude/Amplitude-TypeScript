@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>SR Cross-Origin Iframe Child</title>
+  </head>
+  <body>
+    <div id="child-content">Child iframe unique content</div>
+    <div id="status">loading</div>
+    <script>
+      // Set up the start-signal listener BEFORE the SDK loads so we never miss a message
+      // even if the parent's coordinator fires before the SDK is fully initialized.
+      window.receivedStartSignal = false;
+      window.receivedStopSignal = false;
+      window.addEventListener('message', function (event) {
+        if (event.data && event.data.type === 'amplitude-sr-iframe') {
+          if (event.data.action === 'start') window.receivedStartSignal = true;
+          if (event.data.action === 'stop') window.receivedStopSignal = true;
+        }
+      });
+
+      window.childModeDetected = window.parent !== window;
+    </script>
+    <script type="module">
+      import * as sessionReplay from '@amplitude/session-replay-browser';
+
+      window.sessionReplay = sessionReplay;
+
+      const params = new URLSearchParams(location.search);
+      const sessionId = params.has('sessionId') ? Number(params.get('sessionId')) : Date.now();
+      const deviceId = params.get('deviceId') ?? 'test-device-id';
+
+      void (async () => {
+        try {
+          await sessionReplay.init('d90c5cf09ca2546a1626272906b99a76', {
+            deviceId,
+            sessionId,
+            sampleRate: 1,
+            crossOriginIframes: { enabled: true },
+          }).promise;
+        } catch (err) {
+          document.getElementById('status').textContent = 'error: ' + err.message;
+          window.srError = err.message;
+        }
+
+        window.srReady = true;
+        document.getElementById('status').textContent = 'ready';
+      })();
+    </script>
+  </body>
+</html>
