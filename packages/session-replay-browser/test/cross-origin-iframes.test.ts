@@ -124,6 +124,8 @@ describe('CrossOriginIframeCoordinator', () => {
     // Simulate the child page finishing its load (listener should already be gone)
     dynamicIframe.dispatchEvent(new Event('load'));
 
+    // stop() sends a stop signal (via sendToAllIframes) but must NOT send a start signal
+    expect(mockPostMessage).toHaveBeenCalledWith({ type: CROSS_ORIGIN_IFRAME_MESSAGE_TYPE, action: 'stop' }, '*');
     expect(mockPostMessage).not.toHaveBeenCalledWith({ type: CROSS_ORIGIN_IFRAME_MESSAGE_TYPE, action: 'start' }, '*');
     dynamicIframe.remove();
   });
