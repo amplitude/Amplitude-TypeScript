@@ -149,6 +149,43 @@ describe('CrossOriginIframeCoordinator', () => {
     dynamicIframe1.remove();
   });
 
+  it('sends start signal to iframes nested inside a dynamically added container element', async () => {
+    coordinator.start();
+
+    // Simulate a framework inserting a wrapper div that already contains an iframe
+    const wrapper = document.createElement('div');
+    const nestedIframe = document.createElement('iframe');
+    const mockPostMessage = jest.fn();
+    Object.defineProperty(nestedIframe, 'contentWindow', {
+      value: { postMessage: mockPostMessage },
+      configurable: true,
+    });
+    wrapper.appendChild(nestedIframe);
+    document.body.appendChild(wrapper);
+
+    await new Promise((r) => setTimeout(r, 0));
+
+    // No message yet — waiting for load
+    expect(mockPostMessage).not.toHaveBeenCalled();
+
+    nestedIframe.dispatchEvent(new Event('load'));
+    expect(mockPostMessage).toHaveBeenCalledWith({ type: CROSS_ORIGIN_IFRAME_MESSAGE_TYPE, action: 'start' }, '*');
+    wrapper.remove();
+  });
+
+  it('ignores non-element added nodes such as text nodes', async () => {
+    coordinator.start();
+    const pm1 = (iframe1.contentWindow as any).postMessage as jest.Mock;
+    pm1.mockClear(); // clear the start call from coordinator.start()
+
+    const textNode = document.createTextNode('hello');
+    document.body.appendChild(textNode);
+    await new Promise((r) => setTimeout(r, 0));
+
+    expect(pm1).not.toHaveBeenCalled();
+    textNode.remove();
+  });
+
   it('handles iframes with no contentWindow gracefully', () => {
     Object.defineProperty(iframe1, 'contentWindow', { value: null, configurable: true });
     expect(() => coordinator.start()).not.toThrow();

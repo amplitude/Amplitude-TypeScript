@@ -4541,6 +4541,21 @@ describe('SessionReplay', () => {
         );
       });
 
+      test('re-entering child mode cancels the previous parent signal listener', async () => {
+        const firstCleanup = jest.fn();
+        (mockListenForParentSignals as jest.Mock).mockReturnValueOnce(firstCleanup);
+
+        await sessionReplay.init(apiKey, crossOriginOptions).promise;
+        await sessionReplay.recordEvents();
+        await jest.runAllTimersAsync();
+
+        // Record again (e.g. after a session-ID rotation) — should tear down the old listener
+        await sessionReplay.recordEvents();
+        await jest.runAllTimersAsync();
+
+        expect(firstCleanup).toHaveBeenCalled();
+      });
+
       test('starts recording when onStart callback is invoked', async () => {
         await sessionReplay.init(apiKey, crossOriginOptions).promise;
         await sessionReplay.recordEvents();
@@ -4579,6 +4594,18 @@ describe('SessionReplay', () => {
         await jest.runAllTimersAsync();
 
         sessionReplay.shutdown();
+        expect(mockCleanup).toHaveBeenCalled();
+      });
+
+      test('stopRecordingEvents cleans up parent signal listener to prevent stale mode', async () => {
+        const mockCleanup = jest.fn();
+        (mockListenForParentSignals as jest.Mock).mockReturnValueOnce(mockCleanup);
+
+        await sessionReplay.init(apiKey, crossOriginOptions).promise;
+        await sessionReplay.recordEvents();
+        await jest.runAllTimersAsync();
+
+        sessionReplay.stopRecordingEvents();
         expect(mockCleanup).toHaveBeenCalled();
       });
 

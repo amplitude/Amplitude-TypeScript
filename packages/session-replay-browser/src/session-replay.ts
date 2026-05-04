@@ -815,7 +815,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
 
       if (childMode && coordinateChildren) {
         // Child mode: don't self-start; wait for a start signal from the parent.
-        this.crossOriginParentSignalCleanup?.();
+        // (The previous listener, if any, was already removed by stopRecordingEvents above.)
         this.crossOriginParentSignalCleanup = listenForParentSignals({
           onStart: () => this._recordEventsInChildMode(recordFunction, sessionId, config, hooks),
           onStop: () => this.stopRecordingEvents(),
@@ -997,6 +997,10 @@ export class SessionReplay implements AmplitudeSessionReplay {
       this.networkObservers?.stop();
       this.crossOriginIframeCoordinator?.stop();
       this.crossOriginIframeCoordinator = null;
+      // Remove the child-mode parent signal listener so a later mode change
+      // (e.g. crossOriginIframes disabled) does not leave a stale listener.
+      this.crossOriginParentSignalCleanup?.();
+      this.crossOriginParentSignalCleanup = null;
     } catch (error) {
       const typedError = error as Error;
       this.loggerProvider.warn(`Error occurred while stopping replay capture: ${typedError.toString()}`);

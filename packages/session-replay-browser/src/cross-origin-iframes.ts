@@ -44,6 +44,14 @@ export class CrossOriginIframeCoordinator {
             // sent there is discarded when the iframe navigates to its src, and the
             // child SDK never receives it.
             this.sendToIframeAfterLoad(node);
+          } else if (node instanceof Element) {
+            // A container element (e.g. a React-rendered div) may already have
+            // iframe descendants when it is inserted. These iframes do NOT appear
+            // in addedNodes — only the container does. Query the subtree so we
+            // don't miss them.
+            node.querySelectorAll<HTMLIFrameElement>('iframe').forEach((iframe) => {
+              this.sendToIframeAfterLoad(iframe);
+            });
           }
         }
       }
