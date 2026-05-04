@@ -4585,6 +4585,50 @@ describe('SessionReplay', () => {
         expect(cancelCallback).toHaveBeenCalled();
       });
 
+      test('onStop before onStart does not throw', async () => {
+        await sessionReplay.init(apiKey, crossOriginOptions).promise;
+        await sessionReplay.recordEvents();
+        await jest.runAllTimersAsync();
+
+        const { onStop } = (mockListenForParentSignals as jest.Mock).mock.calls[0][0] as {
+          onStop: () => void;
+        };
+        expect(() => onStop()).not.toThrow();
+      });
+
+      test('parent signal listener stays alive across onStop/onStart cycles', async () => {
+        await sessionReplay.init(apiKey, crossOriginOptions).promise;
+        await sessionReplay.recordEvents();
+        await jest.runAllTimersAsync();
+
+        const { onStart, onStop } = (mockListenForParentSignals as jest.Mock).mock.calls[0][0] as {
+          onStart: () => void;
+          onStop: () => void;
+        };
+        onStart();
+        onStop();
+
+        // Listener must still be alive — a subsequent onStart should work
+        mockRecordFunction.mockClear();
+        onStart();
+        expect(mockRecordFunction).toHaveBeenCalledWith(expect.objectContaining({ recordCrossOriginIframes: true }));
+      });
+
+      test('subsequent onStart cancels previous rrweb recording before starting a new one', async () => {
+        await sessionReplay.init(apiKey, crossOriginOptions).promise;
+        await sessionReplay.recordEvents();
+        await jest.runAllTimersAsync();
+
+        const { onStart } = (mockListenForParentSignals as jest.Mock).mock.calls[0][0] as {
+          onStart: () => void;
+        };
+        onStart();
+        const firstCancelCallback = mockRecordFunction.mock.results[0].value as jest.Mock;
+        // Second onStart (e.g. parent session rotated) should cancel the first recording
+        onStart();
+        expect(firstCancelCallback).toHaveBeenCalled();
+      });
+
       test('cleans up parent signal listener on shutdown', async () => {
         const mockCleanup = jest.fn();
         (mockListenForParentSignals as jest.Mock).mockReturnValueOnce(mockCleanup);

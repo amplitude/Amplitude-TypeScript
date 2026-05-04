@@ -818,7 +818,13 @@ export class SessionReplay implements AmplitudeSessionReplay {
         // (The previous listener, if any, was already removed by stopRecordingEvents above.)
         this.crossOriginParentSignalCleanup = listenForParentSignals({
           onStart: () => this._recordEventsInChildMode(recordFunction, sessionId, config, hooks),
-          onStop: () => this.stopRecordingEvents(),
+          onStop: () => {
+            // Only cancel the rrweb recording — do NOT call stopRecordingEvents() here,
+            // which would clear crossOriginParentSignalCleanup and make the child deaf
+            // to subsequent start/stop cycles from the parent.
+            this.recordCancelCallback && this.recordCancelCallback();
+            this.recordCancelCallback = null;
+          },
         });
         return;
       }
@@ -909,7 +915,11 @@ export class SessionReplay implements AmplitudeSessionReplay {
     // here — the child's events are merged into the parent stream, so URL changes inside
     // the iframe should not be recorded as parent page-view events.
     try {
-      this.stopRecordingEvents();
+      // Stop only the previous rrweb recording. Do NOT call stopRecordingEvents() here:
+      // that would clear crossOriginParentSignalCleanup — the very listener that invoked
+      // this method — making the child permanently deaf to subsequent stop/start cycles.
+      this.recordCancelCallback && this.recordCancelCallback();
+      this.recordCancelCallback = null;
       const { privacyConfig } = config;
       this.recordCancelCallback = recordFunction({
         emit: () => {
