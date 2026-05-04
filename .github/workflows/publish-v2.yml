@@ -79,7 +79,9 @@ jobs:
       - name: Capture E2E HEAD SHA
         id: head-sha
         if: ${{ github.event.inputs.skipLernaVersion != 'true' }}
-        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
       - name: Run E2E tests
         if: ${{ github.event.inputs.skipLernaVersion != 'true' }}
