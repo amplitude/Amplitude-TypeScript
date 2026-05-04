@@ -89,6 +89,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
 
   // Visible for testing only
   pageLeaveFns: PageLeaveFn[] = [];
+  sessionStartTime: number | undefined;
   private scrollHook?: scrollCallback;
   private clickHandler?: ClickHandler;
   private networkObservers?: NetworkObservers;
@@ -361,6 +362,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
       sessionId: sessionId,
       deviceId: deviceIdForReplayId,
     });
+    this.sessionStartTime = Date.now();
 
     // If there is no previous session id, SDK is being initialized for the first time,
     // and config was just fetched in initialization, so no need to fetch it a second time
@@ -544,10 +546,18 @@ export class SessionReplay implements AmplitudeSessionReplay {
   sendEvents(sessionId?: string | number) {
     const sessionIdToSend = sessionId || this.identifiers?.sessionId;
     const deviceId = this.getDeviceId();
-    this.eventsManager &&
-      sessionIdToSend &&
-      deviceId &&
+    if (this.eventsManager && sessionIdToSend && deviceId) {
+      if (this.config?.minSessionDurationMs !== undefined && this.sessionStartTime !== undefined) {
+        const sessionDuration = Date.now() - this.sessionStartTime;
+        if (sessionDuration < this.config.minSessionDurationMs) {
+          this.loggerProvider.log(
+            `Session ${sessionIdToSend} not sent: duration ${sessionDuration}ms is below minimum ${this.config.minSessionDurationMs}ms.`,
+          );
+          return;
+        }
+      }
       this.eventsManager.sendCurrentSequenceEvents({ sessionId: sessionIdToSend, deviceId });
+    }
   }
 
   async initialize(shouldSendStoredEvents = false) {

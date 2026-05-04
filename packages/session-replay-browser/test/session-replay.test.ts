@@ -1911,6 +1911,33 @@ describe('SessionReplay', () => {
       sessionReplay.sendEvents();
       expect(sendEventsMock).not.toHaveBeenCalled();
     });
+    test('it should not send if session duration is below minSessionDurationMs', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      if (!sessionReplay.eventsManager || !sessionReplay.config) {
+        throw new Error('Did not call init');
+      }
+      const sendEventsMock = jest.fn();
+      sessionReplay.eventsManager.sendCurrentSequenceEvents = sendEventsMock;
+      sessionReplay.config.minSessionDurationMs = 5000;
+      sessionReplay.sessionStartTime = Date.now() - 1000;
+      sessionReplay.sendEvents();
+      expect(sendEventsMock).not.toHaveBeenCalled();
+    });
+    test('it should send if session duration meets minSessionDurationMs', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      if (!sessionReplay.eventsManager || !sessionReplay.config) {
+        throw new Error('Did not call init');
+      }
+      const sendEventsMock = jest.fn();
+      sessionReplay.eventsManager.sendCurrentSequenceEvents = sendEventsMock;
+      sessionReplay.config.minSessionDurationMs = 1000;
+      sessionReplay.sessionStartTime = Date.now() - 5000;
+      sessionReplay.sendEvents();
+      expect(sendEventsMock).toHaveBeenCalledWith({
+        sessionId: 123,
+        deviceId: '1a2b3c',
+      });
+    });
   });
   describe('stopRecordingEvents', () => {
     test('it should catch errors as warnings', async () => {

@@ -139,6 +139,10 @@ export class SessionReplayJoinedConfigGenerator {
       if (Object.prototype.hasOwnProperty.call(samplingConfig, 'sample_rate')) {
         config.sampleRate = samplingConfig.sample_rate;
       }
+
+      if (Object.prototype.hasOwnProperty.call(samplingConfig, 'min_session_duration_ms')) {
+        config.minSessionDurationMs = samplingConfig.min_session_duration_ms;
+      }
     } else {
       // If config API response was valid (ie 200), but no config returned, assume that
       // customer has not yet set up config, and use sample rate from SDK options,
