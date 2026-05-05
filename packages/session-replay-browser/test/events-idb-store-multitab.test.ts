@@ -496,6 +496,102 @@ describe('multi-tab IDB contamination', () => {
   });
 
   // ---------------------------------------------------------------------------
+  // getCurrentSequenceEvents tab-ID filtering
+  // ---------------------------------------------------------------------------
+  describe('getCurrentSequenceEvents tab filtering', () => {
+    test('getCurrentSequenceEvents(sessionId) returns undefined for a foreign-tab record', async () => {
+      const { restore } = useSharedIDBFactory();
+      try {
+        const tabA = await SessionReplayEventsIDBStore.new('replay', {
+          apiKey,
+          loggerProvider: makeLogger(),
+          tabId: 'tab-a',
+        });
+        const tabB = await SessionReplayEventsIDBStore.new('replay', {
+          apiKey,
+          loggerProvider: makeLogger(),
+          tabId: 'tab-b',
+        });
+
+        const sessionId = 321;
+        await tabB!.addEventToCurrentSequence(sessionId, mockEvent);
+
+        // Tab A asks for the current sequence by session ID — it belongs to tab B.
+        const result = await tabA!.getCurrentSequenceEvents(sessionId);
+        expect(result).toBeUndefined();
+      } finally {
+        restore();
+      }
+    });
+
+    test('getCurrentSequenceEvents() (no sessionId) filters out foreign-tab records', async () => {
+      const { restore } = useSharedIDBFactory();
+      try {
+        const tabA = await SessionReplayEventsIDBStore.new('replay', {
+          apiKey,
+          loggerProvider: makeLogger(),
+          tabId: 'tab-a',
+        });
+        const tabB = await SessionReplayEventsIDBStore.new('replay', {
+          apiKey,
+          loggerProvider: makeLogger(),
+          tabId: 'tab-b',
+        });
+
+        // Each tab writes to a different session so both records land in the store.
+        await tabA!.addEventToCurrentSequence(111, mockEvent);
+        await tabB!.addEventToCurrentSequence(222, mockEvent2);
+
+        // Tab A sees only its own record.
+        const eventsA = await tabA!.getCurrentSequenceEvents();
+        expect(eventsA).toHaveLength(1);
+        expect(eventsA![0].sessionId).toBe(111);
+
+        // Tab B sees only its own record.
+        const eventsB = await tabB!.getCurrentSequenceEvents();
+        expect(eventsB).toHaveLength(1);
+        expect(eventsB![0].sessionId).toBe(222);
+      } finally {
+        restore();
+      }
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // storeCurrentSequence skips empty current sequences
+  // ---------------------------------------------------------------------------
+  describe('storeCurrentSequence empty-sequence guard', () => {
+    test('storeCurrentSequence returns undefined and writes no row when current sequence is empty', async () => {
+      const { restore } = useSharedIDBFactory();
+      try {
+        const store = await SessionReplayEventsIDBStore.new('replay', {
+          apiKey,
+          loggerProvider: makeLogger(),
+          tabId: 'tab-only',
+        });
+
+        const sessionId = 9876;
+
+        // Write one event, then flush it (current sequence becomes []).
+        await store!.addEventToCurrentSequence(sessionId, mockEvent);
+        await store!.storeCurrentSequence(sessionId);
+
+        // Now the slot is reset to events: [].  A second storeCurrentSequence
+        // call should be a no-op: no empty row written to sequencesToSend.
+        const result = await store!.storeCurrentSequence(sessionId);
+        expect(result).toBeUndefined();
+
+        // Only the original flush sequence is present.
+        const sequences = await store!.getSequencesToSend();
+        expect(sequences).toHaveLength(1);
+        expect(sequences![0].events).toEqual([mockEvent]);
+      } finally {
+        restore();
+      }
+    });
+  });
+
+  // ---------------------------------------------------------------------------
   // Default consecutiveFailureThreshold lowered to 1 (eager fallback to memory)
   // ---------------------------------------------------------------------------
   describe('default consecutiveFailureThreshold', () => {

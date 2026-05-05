@@ -222,12 +222,19 @@ export class SessionReplayEventsIDBStore extends BaseEventsStore<number> {
       if (!record) {
         return undefined;
       }
+      // Only return our own tab's record (or legacy untagged records).
+      if (record.tabId && record.tabId !== this.tabId) {
+        return undefined;
+      }
       const { tabId: _tabId, ...rest } = record;
       return [rest];
     }
 
     const allEvents = [];
     for (const record of await this.db.getAll('sessionCurrentSequence')) {
+      if (record.tabId && record.tabId !== this.tabId) {
+        continue;
+      }
       const { tabId: _tabId, ...rest } = record;
       allEvents.push(rest);
     }
@@ -282,9 +289,11 @@ export class SessionReplayEventsIDBStore extends BaseEventsStore<number> {
       cancelTimeout();
       return sequences;
     } catch (e) {
-      errorLogged = true;
-      logIdbError(this.loggerProvider, `${STORAGE_FAILURE}: ${e as string}`, e);
-      this.recordFailure();
+      if (!timedOut) {
+        errorLogged = true;
+        logIdbError(this.loggerProvider, `${STORAGE_FAILURE}: ${e as string}`, e);
+        this.recordFailure();
+      }
     }
     return undefined;
   };
@@ -319,8 +328,15 @@ export class SessionReplayEventsIDBStore extends BaseEventsStore<number> {
       // Skip promotion if the slot is empty or owned by another tab — let the owning
       // tab promote its own events on its next addEventToCurrentSequence/storeCurrentSequence
       // call (via Bug 1's foreign-tab promotion path).
+      // Don't call recordSuccess() here: no write was performed, so this is not
+      // evidence the storage layer is healthy — leave the failure counter unchanged.
       if (!currentSequenceData || (currentSequenceData.tabId && currentSequenceData.tabId !== this.tabId)) {
-        this.recordSuccess();
+        cancelTimeout();
+        return undefined;
+      }
+
+      // Skip empty sequences — no point writing a zero-event row to sequencesToSend.
+      if (currentSequenceData.events.length === 0) {
         cancelTimeout();
         return undefined;
       }
@@ -346,9 +362,11 @@ export class SessionReplayEventsIDBStore extends BaseEventsStore<number> {
         sequenceId,
       };
     } catch (e) {
-      errorLogged = true;
-      logIdbError(this.loggerProvider, `${STORAGE_FAILURE}: ${e as string}`, e);
-      this.recordFailure();
+      if (!timedOut) {
+        errorLogged = true;
+        logIdbError(this.loggerProvider, `${STORAGE_FAILURE}: ${e as string}`, e);
+        this.recordFailure();
+      }
     }
     return undefined;
   };
@@ -441,9 +459,11 @@ export class SessionReplayEventsIDBStore extends BaseEventsStore<number> {
         sequenceId,
       };
     } catch (e) {
-      errorLogged = true;
-      logIdbError(this.loggerProvider, `${STORAGE_FAILURE}: ${e as string}`, e);
-      this.recordFailure();
+      if (!timedOut) {
+        errorLogged = true;
+        logIdbError(this.loggerProvider, `${STORAGE_FAILURE}: ${e as string}`, e);
+        this.recordFailure();
+      }
     }
     return undefined;
   };
