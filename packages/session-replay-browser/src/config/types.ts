@@ -91,6 +91,25 @@ export type UGCFilterRule = {
   replacement: string;
 };
 
+export interface CrossOriginIframesConfig {
+  enabled: boolean;
+  /**
+   * When true (default), the parent SDK sends start/stop signals to child iframes via
+   * postMessage, keeping their recording lifecycle in sync with the parent.
+   *
+   * **Privacy note:** The child page's rrweb instance performs its own DOM serialization,
+   * so the parent's privacy config (mask levels, block selectors) does NOT automatically
+   * apply inside the iframe. Privacy settings must be configured independently on the child page.
+   *
+   * **Third-party iframes:** Cannot capture iframes you don't control (e.g. Stripe, Google
+   * Maps) — both parent and child pages must load the SDK with `crossOriginIframes.enabled: true`.
+   *
+   * Set to `false` to skip coordination and manage the child recording lifecycle yourself.
+   * @defaultValue true
+   */
+  coordinateChildren?: boolean;
+}
+
 export interface SessionReplayLocalConfig extends IConfig {
   apiKey: string;
   loggerProvider: ILogger;
@@ -221,6 +240,14 @@ export interface SessionReplayLocalConfig extends IConfig {
    * @defaultValue true
    */
   captureAdoptedStyleSheets?: boolean;
+  /**
+   * Enables recording of cross-origin iframes. Both the parent page and each child iframe
+   * page must load the Amplitude Session Replay SDK with this option enabled.
+   *
+   * When enabled, rrweb uses `postMessage` to relay child DOM events to the parent, which
+   * merges them into a single unified event stream.
+   */
+  crossOriginIframes?: CrossOriginIframesConfig;
 }
 
 export interface SessionReplayJoinedConfig extends SessionReplayLocalConfig {

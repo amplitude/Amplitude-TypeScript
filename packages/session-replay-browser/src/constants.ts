@@ -30,6 +30,8 @@ export const MAX_URL_LENGTH = 1000;
 export const RETRY_TIMEOUT_MS = 1000;
 export const MAX_KEEPALIVE_BYTES = 64 * 1024; // browser keepalive budget shared with sendBeacon
 
+export const CROSS_ORIGIN_IFRAME_MESSAGE_TYPE = 'amplitude-sr-iframe';
+
 export enum CustomRRwebEvent {
   GET_SR_PROPS = 'get-sr-props',
   DEBUG_INFO = 'debug-info',

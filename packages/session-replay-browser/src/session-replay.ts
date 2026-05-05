@@ -70,6 +70,7 @@ import { VERSION } from './version';
 import type { NetworkObservers, NetworkRequestEvent } from './observers';
 import { createUrlTrackingPlugin, subscribeToUrlChanges } from './plugins/url-tracking-plugin';
 import type { RecordFunction } from './utils/rrweb';
+import { isInIframe, CrossOriginIframeCoordinator, listenForParentSignals } from './cross-origin-iframes';
 
 type PageLeaveFn = (e: PageTransitionEvent | Event) => void;
 
@@ -105,6 +106,8 @@ export class SessionReplay implements AmplitudeSessionReplay {
 
   /** Cleanup for URL change listener used to re-evaluate targeting on SPA route changes */
   private urlChangeCleanup: (() => void) | null = null;
+  private crossOriginIframeCoordinator: CrossOriginIframeCoordinator | null = null;
+  private crossOriginParentSignalCleanup: (() => void) | null = null;
   /** Monotonic counter to ignore stale URL-change targeting results */
   private latestUrlChangeTargetingEvaluationId = 0;
 
@@ -782,7 +785,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
       if (ignoredUrls.some((url) => event.url.startsWith(url))) return;
       void this.addCustomRRWebEvent(CustomRRwebEvent.FETCH_REQUEST, event);
     }, networkLoggingConfig);
-    const { privacyConfig, interactionConfig, loggingConfig } = config;
+    const { interactionConfig, loggingConfig } = config;
 
     const hooks = interactionConfig?.enabled
       ? {
@@ -806,62 +809,66 @@ export class SessionReplay implements AmplitudeSessionReplay {
     this.loggerProvider.log(`Session Replay capture beginning for ${sessionId}.`);
 
     try {
+      const crossOriginIframesEnabled = !!config.crossOriginIframes?.enabled;
+      const coordinateChildren = config.crossOriginIframes?.coordinateChildren !== false;
+      const childMode = crossOriginIframesEnabled && isInIframe();
+
+      if (childMode && coordinateChildren) {
+        // Child mode: don't self-start; wait for a start signal from the parent.
+        // (The previous listener, if any, was already removed by stopRecordingEvents above.)
+        this.crossOriginParentSignalCleanup = listenForParentSignals({
+          onStart: () => this._recordEventsInChildMode(recordFunction, sessionId, config, hooks),
+          onStop: () => {
+            try {
+              // Only cancel the rrweb recording — do NOT call stopRecordingEvents() here,
+              // which would clear crossOriginParentSignalCleanup and make the child deaf
+              // to subsequent start/stop cycles from the parent.
+              this.recordCancelCallback && this.recordCancelCallback();
+              this.recordCancelCallback = null;
+            } catch (error) {
+              const typedError = error as Error;
+              this.loggerProvider.warn(
+                `Error occurred while stopping child iframe replay capture: ${typedError.toString()}`,
+              );
+            }
+          },
+        });
+        return;
+      }
+
       this.recordCancelCallback = recordFunction({
-        emit: (event: eventWithTime) => {
-          if (this.shouldOptOut()) {
-            this.loggerProvider.log(`Opting session ${sessionId} out of recording due to optOut config.`);
-            this.stopRecordingEvents();
-            this.sendEvents();
-            return;
-          }
+        ...this.buildRRWebRecordOptions(
+          config,
+          hooks,
+          (event: eventWithTime) => {
+            if (this.shouldOptOut()) {
+              this.loggerProvider.log(`Opting session ${sessionId} out of recording due to optOut config.`);
+              this.stopRecordingEvents();
+              this.sendEvents();
+              return;
+            }
 
-          if (event.type === RRWebEventType.Meta) {
-            event.data.href = getPageUrl(event.data.href, ugcFilterRules);
-          }
+            if (event.type === RRWebEventType.Meta) {
+              event.data.href = getPageUrl(event.data.href, ugcFilterRules);
+            }
 
-          if (this.eventCompressor) {
-            // Schedule processing during idle time if the browser supports requestIdleCallback
-            this.eventCompressor.enqueueEvent(event, sessionId);
-          }
-        },
-        inlineStylesheet: config.shouldInlineStylesheet,
-        hooks,
-        maskAllInputs: true,
-        maskTextClass: MASK_TEXT_CLASS,
-        blockClass: BLOCK_CLASS,
-        blockSelector: this.getBlockSelectors() as string | undefined,
-        applyBackgroundColorToBlockedElements: config.applyBackgroundColorToBlockedElements,
-        maskInputFn: maskFn('input', privacyConfig, () => this.currentPageUrl),
-        maskTextFn: maskFn('text', privacyConfig, () => this.currentPageUrl),
-        maskAttributeFn: maskAttributeFn(privacyConfig, () => this.currentPageUrl),
-        maskTextSelector: this.getMaskTextSelectors(),
-        recordCanvas: false,
-        captureAdoptedStyleSheets: config.captureAdoptedStyleSheets,
-        slimDOMOptions: {
-          script: config.omitElementTags?.script,
-          comment: config.omitElementTags?.comment,
-        },
-        errorHandler: (error: unknown) => {
-          const typedError = error as Error & { _external_?: boolean };
-
-          // styled-components relies on this error being thrown and bubbled up, rrweb is otherwise suppressing it
-          if (typedError.message.includes('insertRule') && typedError.message.includes('CSSStyleSheet')) {
-            throw typedError;
-          }
-
-          // rrweb does monkey patching on certain window functions such as CSSStyleSheet.proptype.insertRule,
-          // and errors from external clients calling these functions can get suppressed. Styled components depend
-          // on these errors being re-thrown.
-          if (typedError._external_) {
-            throw typedError;
-          }
-
-          this.loggerProvider.warn('Error while capturing replay: ', typedError.toString());
-          // Return true so that we don't clutter user's consoles with internal rrweb errors
-          return true;
-        },
+            if (this.eventCompressor) {
+              // Schedule processing during idle time if the browser supports requestIdleCallback
+              this.eventCompressor.enqueueEvent(event, sessionId);
+            }
+          },
+          'Error while capturing replay: ',
+        ),
         plugins: await this.getRecordingPlugins(loggingConfig),
+        recordCrossOriginIframes: crossOriginIframesEnabled,
       });
+
+      if (crossOriginIframesEnabled && !childMode && coordinateChildren) {
+        if (!this.crossOriginIframeCoordinator) {
+          this.crossOriginIframeCoordinator = new CrossOriginIframeCoordinator();
+        }
+        this.crossOriginIframeCoordinator.start();
+      }
 
       void this.addCustomRRWebEvent(CustomRRwebEvent.DEBUG_INFO);
       if (shouldLogMetadata) {
@@ -869,6 +876,84 @@ export class SessionReplay implements AmplitudeSessionReplay {
       }
     } catch (error) {
       this.loggerProvider.warn('Failed to initialize session replay:', error);
+    }
+  }
+
+  private buildRRWebRecordOptions(
+    config: SessionReplayJoinedConfig,
+    hooks: { mouseInteraction?: any; scroll?: scrollCallback },
+    emit: (event: eventWithTime) => void,
+    errorLogPrefix: string,
+  ): Parameters<RecordFunction>[0] {
+    const { privacyConfig } = config;
+    return {
+      emit,
+      inlineStylesheet: config.shouldInlineStylesheet,
+      hooks,
+      maskAllInputs: true,
+      maskTextClass: MASK_TEXT_CLASS,
+      blockClass: BLOCK_CLASS,
+      blockSelector: this.getBlockSelectors() as string | undefined,
+      applyBackgroundColorToBlockedElements: config.applyBackgroundColorToBlockedElements,
+      maskInputFn: maskFn('input', privacyConfig, () => this.currentPageUrl),
+      maskTextFn: maskFn('text', privacyConfig, () => this.currentPageUrl),
+      maskAttributeFn: maskAttributeFn(privacyConfig, () => this.currentPageUrl),
+      maskTextSelector: this.getMaskTextSelectors(),
+      recordCanvas: false,
+      captureAdoptedStyleSheets: config.captureAdoptedStyleSheets,
+      slimDOMOptions: {
+        script: config.omitElementTags?.script,
+        comment: config.omitElementTags?.comment,
+      },
+      errorHandler: (error: unknown) => {
+        const typedError = error as Error & { _external_?: boolean };
+        // styled-components relies on this error being thrown and bubbled up, rrweb is otherwise suppressing it
+        if (typedError.message.includes('insertRule') && typedError.message.includes('CSSStyleSheet')) {
+          throw typedError;
+        }
+        // rrweb monkey-patches window functions like CSSStyleSheet.insertRule; errors from external callers
+        // (e.g. styled-components) must be re-thrown so they aren't silently swallowed.
+        if (typedError._external_) {
+          throw typedError;
+        }
+        this.loggerProvider.warn(errorLogPrefix, typedError.toString());
+        // Return true so that we don't clutter user's consoles with internal rrweb errors
+        return true;
+      },
+    };
+  }
+
+  private _recordEventsInChildMode(
+    recordFunction: RecordFunction,
+    sessionId: string | number,
+    config: SessionReplayJoinedConfig,
+    hooks: { mouseInteraction?: any; scroll?: scrollCallback },
+  ) {
+    // In child mode, rrweb detects window.parent !== window and routes events via
+    // postMessage to the parent instead of calling emit. The emit callback is unused.
+    // Note: recording plugins (URL tracking, console capture) are intentionally omitted
+    // here — the child's events are merged into the parent stream, so URL changes inside
+    // the iframe should not be recorded as parent page-view events.
+    try {
+      // Stop only the previous rrweb recording. Do NOT call stopRecordingEvents() here:
+      // that would clear crossOriginParentSignalCleanup — the very listener that invoked
+      // this method — making the child permanently deaf to subsequent stop/start cycles.
+      this.recordCancelCallback && this.recordCancelCallback();
+      this.recordCancelCallback = null;
+      this.recordCancelCallback = recordFunction({
+        ...this.buildRRWebRecordOptions(
+          config,
+          hooks,
+          () => {
+            // no-op: child events are forwarded to parent via postMessage by rrweb
+          },
+          'Error while capturing replay (child iframe): ',
+        ),
+        recordCrossOriginIframes: true, // child mode is only entered when crossOriginIframes.enabled is true
+      });
+      this.loggerProvider.log(`Session Replay child iframe capture beginning for session ${sessionId}.`);
+    } catch (error) {
+      this.loggerProvider.warn('Failed to initialize session replay in child iframe mode:', error);
     }
   }
 
@@ -916,6 +1001,12 @@ export class SessionReplay implements AmplitudeSessionReplay {
       this.recordCancelCallback && this.recordCancelCallback();
       this.recordCancelCallback = null;
       this.networkObservers?.stop();
+      this.crossOriginIframeCoordinator?.stop();
+      this.crossOriginIframeCoordinator = null;
+      // Remove the child-mode parent signal listener so a later mode change
+      // (e.g. crossOriginIframes disabled) does not leave a stale listener.
+      this.crossOriginParentSignalCleanup?.();
+      this.crossOriginParentSignalCleanup = null;
     } catch (error) {
       const typedError = error as Error;
       this.loggerProvider.warn(`Error occurred while stopping replay capture: ${typedError.toString()}`);
@@ -936,6 +1027,8 @@ export class SessionReplay implements AmplitudeSessionReplay {
 
   shutdown() {
     this.urlChangeCleanup?.();
+    this.crossOriginParentSignalCleanup?.();
+    this.crossOriginParentSignalCleanup = null;
     this.teardownEventListeners(true);
     this.stopRecordingEvents();
     this.sendEvents();

@@ -47,6 +47,7 @@ export type RecordFunction = {
      * Set to false to revert to the legacy incremental-event path if snapshot size is a concern.
      */
     captureAdoptedStyleSheets?: boolean;
+    recordCrossOriginIframes?: boolean;
   }): (() => void) | undefined;
   addCustomEvent: (eventName: string, eventData: any) => void;
   takeFullSnapshot: (isCheckout?: boolean) => void;
