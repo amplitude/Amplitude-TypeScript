@@ -1,6 +1,6 @@
 /* eslint-disable no-restricted-globals */
 
-import { KB_SIZE, MAX_URL_LENGTH, RETRY_TIMEOUT_MS } from '../constants';
+import { KB_SIZE, MAX_URL_LENGTH, MAX_KEEPALIVE_BYTES, RETRY_TIMEOUT_MS } from '../constants';
 import { MAX_RETRIES_EXCEEDED_MESSAGE, UNEXPECTED_ERROR_MESSAGE, UNEXPECTED_NETWORK_ERROR_MESSAGE } from '../messages';
 import { gzipJson } from '../utils/gzip';
 import { getServerUrl } from '../utils/server-url';
@@ -46,7 +46,15 @@ async function doFetch(
       'X-Sampling-Hash-Alg': 'xxhash32',
       ...(gzipped ? { 'Content-Encoding': 'gzip' } : {}),
     };
-    const res = await fetch(serverUrl, { method: 'POST', headers, body: (gzipped ?? payloadJson) as BodyInit });
+    const payloadSize = gzipped ? gzipped.byteLength : new Blob([payloadJson]).size;
+    const res = await fetch(serverUrl, {
+      method: 'POST',
+      headers,
+      body: (gzipped ?? payloadJson) as BodyInit,
+      // keepalive lets the request survive page navigation, preventing 499 (client-closed) errors.
+      // Must stay under the browser's 64 KB keepalive budget; large payloads skip it.
+      keepalive: payloadSize <= MAX_KEEPALIVE_BYTES,
+    });
     if (res === null) {
       return { shouldRetry: false, success: false, message: UNEXPECTED_ERROR_MESSAGE };
     }

@@ -354,6 +354,7 @@ describe('SessionReplayTrackDestination', () => {
             'X-Client-Version': VERSION,
           },
           method: 'POST',
+          keepalive: true,
         },
       );
     });
@@ -392,6 +393,7 @@ describe('SessionReplayTrackDestination', () => {
             'X-Client-Version': VERSION,
           },
           method: 'POST',
+          keepalive: true,
         },
       );
     });
@@ -482,6 +484,50 @@ describe('SessionReplayTrackDestination', () => {
 
       await trackDestination.send(context, false);
       expect(addToQueue).toHaveBeenCalledTimes(0);
+    });
+  });
+
+  describe('keepalive', () => {
+    test('sets keepalive true for small payloads', async () => {
+      const trackDestination = new SessionReplayTrackDestination({ loggerProvider: mockLoggerProvider });
+      const context: SessionReplayDestinationContext = {
+        events: [mockEventString],
+        sessionId: 123,
+        apiKey,
+        attempts: 0,
+        timeout: 0,
+        flushMaxRetries: 1,
+        deviceId: '1a2b3c',
+        sampleRate: 1,
+        serverZone: ServerZone.US,
+        type: 'replay',
+        onComplete: mockOnComplete,
+      };
+      await trackDestination.send(context);
+      const options = (fetch as jest.Mock).mock.calls[0][1] as RequestInit;
+      expect(options.keepalive).toBe(true);
+    });
+
+    test('sets keepalive false when uncompressed payload exceeds 64 KB', async () => {
+      const trackDestination = new SessionReplayTrackDestination({ loggerProvider: mockLoggerProvider });
+      // ~66 KB of event data
+      const bigEvent = 'x'.repeat(66 * 1024);
+      const context: SessionReplayDestinationContext = {
+        events: [bigEvent],
+        sessionId: 123,
+        apiKey,
+        attempts: 0,
+        timeout: 0,
+        flushMaxRetries: 1,
+        deviceId: '1a2b3c',
+        sampleRate: 1,
+        serverZone: ServerZone.US,
+        type: 'replay',
+        onComplete: mockOnComplete,
+      };
+      await trackDestination.send(context);
+      const options = (fetch as jest.Mock).mock.calls[0][1] as RequestInit;
+      expect(options.keepalive).toBe(false);
     });
   });
 
