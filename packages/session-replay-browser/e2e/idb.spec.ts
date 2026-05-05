@@ -469,8 +469,8 @@ test.describe('IDB multi-tab and fallback behaviour', () => {
    */
   test('multi-tab: events from both tabs survive in shared IDB (cross-tab promote)', async ({ browser }) => {
     // Single context = shared origin, shared IndexedDB.  Each `page` in the
-    // context is a real browser tab from the SDK's perspective (separate
-    // sessionStorage → distinct tabId).
+    // context is a real browser tab from the SDK's perspective (each gets a
+    // distinct in-memory UUID as its tabId).
     const context = await browser.newContext();
     const tabA = await context.newPage();
     const tabB = await context.newPage();
@@ -490,7 +490,7 @@ test.describe('IDB multi-tab and fallback behaviour', () => {
       }
 
       // Load Tab A, then Tab B with the same sessionId.  They will share the
-      // same IDB database (same origin) and pick up unique tabIds via sessionStorage.
+      // same IDB database (same origin) and pick up unique in-memory tabIds.
       const url = buildUrl('/session-replay-browser/sr-capture-test.html', {
         sessionId: TEST_SESSION_ID,
         logLevel: LOG_LEVEL_DEBUG,
@@ -501,13 +501,6 @@ test.describe('IDB multi-tab and fallback behaviour', () => {
 
       await tabB.goto(url);
       await waitForReady(tabB);
-
-      // Confirm distinct tabIds (sessionStorage is per-tab).
-      const tabIdA = await tabA.evaluate(() => sessionStorage.getItem('_amp_sr_tab_id'));
-      const tabIdB = await tabB.evaluate(() => sessionStorage.getItem('_amp_sr_tab_id'));
-      expect(tabIdA).toBeTruthy();
-      expect(tabIdB).toBeTruthy();
-      expect(tabIdA).not.toBe(tabIdB);
 
       // Generate events on each tab. Interleave clicks so the two tabs ping-pong
       // writes to the shared sessionCurrentSequence slot.
