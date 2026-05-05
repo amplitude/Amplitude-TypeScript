@@ -133,9 +133,6 @@ export const createEventsManager = async <Type extends EventType>({
         });
     }
 
-    if (shouldSend && !shouldSend()) {
-      return;
-    }
     trackDestination.sendEventsList({
       events: events,
       sessionId: sessionId,
@@ -155,6 +152,11 @@ export const createEventsManager = async <Type extends EventType>({
 
   const sendCurrentSequenceEvents = ({ sessionId, deviceId }: { sessionId: number; deviceId: string }) => {
     lastKnownDeviceId = deviceId;
+    // Evaluate shouldSend synchronously before the async store read. asyncSetSessionId
+    // updates sessionStartTime immediately after calling sendEvents(), so by the time
+    // storeCurrentSequence resolves the start time would reflect the new session and
+    // the elapsed check would compute ~0ms, silently dropping the previous session's events.
+    if (shouldSend && !shouldSend()) return;
     // Snapshot the absolute end-index before the async store read so that any events
     // pushed after this point are NOT considered sent and remain in the beacon buffer.
     const snapshotAbsIdx = beaconWindowStart + beaconBuffer.length;
@@ -209,6 +211,7 @@ export const createEventsManager = async <Type extends EventType>({
       .addEventToCurrentSequence(sessionId, event.data)
       .then((sequenceToSend) => {
         if (sequenceToSend) {
+          if (shouldSend && !shouldSend()) return;
           // Events before absIdx belong to the split batch being sent; advance window.
           advanceBeaconWindow(absIdx);
           sendEventsList({

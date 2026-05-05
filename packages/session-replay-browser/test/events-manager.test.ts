@@ -406,15 +406,12 @@ describe('createEventsManager', () => {
         shouldSend: () => false,
       });
       eventsManager.sendCurrentSequenceEvents({ sessionId: 123, deviceId: '1a2b3c' });
+      // shouldSend is evaluated synchronously — storeCurrentSequence must not be called at all.
+      expect(mockIDBStore.storeCurrentSequence).not.toHaveBeenCalled();
       jest.runAllTimers();
-      return mockStoreEventPromise
-        .catch(() => {
-          // ignore
-        })
-        .finally(() => {
-          const trackDestinationInstance = (SessionReplayTrackDestination as jest.Mock).mock.instances[0];
-          expect(trackDestinationInstance.sendEventsList).not.toHaveBeenCalled();
-        });
+      await mockStoreEventPromise;
+      const trackDestinationInstance = (SessionReplayTrackDestination as jest.Mock).mock.instances[0];
+      expect(trackDestinationInstance.sendEventsList).not.toHaveBeenCalled();
     });
 
     test('should allow sendEventsList when shouldSend returns true', async () => {

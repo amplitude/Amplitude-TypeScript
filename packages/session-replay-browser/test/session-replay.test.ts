@@ -1872,6 +1872,42 @@ describe('SessionReplay', () => {
       }).not.toThrow();
     });
 
+    test('should not call sendBeacon if session duration is below minSessionDurationMs', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      if (!sessionReplay.eventsManager || !sessionReplay.config) throw new Error('No eventsManager or config');
+      sessionReplay.config.minSessionDurationMs = 5000;
+      sessionReplay.sessionStartTime = Date.now() - 1000;
+      const mockSendBeacon = jest.fn().mockReturnValue(true);
+      jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue({
+        navigator: { sendBeacon: mockSendBeacon },
+      } as unknown as typeof globalThis);
+      sessionReplay.eventsManager.addEvent({
+        sessionId: 123,
+        event: { type: 'replay', data: 'x' },
+        deviceId: '1a2b3c',
+      });
+      triggerBeacon(sessionReplay);
+      expect(mockSendBeacon).not.toHaveBeenCalled();
+    });
+
+    test('should call sendBeacon if session duration meets minSessionDurationMs', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      if (!sessionReplay.eventsManager || !sessionReplay.config) throw new Error('No eventsManager or config');
+      sessionReplay.config.minSessionDurationMs = 1000;
+      sessionReplay.sessionStartTime = Date.now() - 5000;
+      const mockSendBeacon = jest.fn().mockReturnValue(true);
+      jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue({
+        navigator: { sendBeacon: mockSendBeacon },
+      } as unknown as typeof globalThis);
+      sessionReplay.eventsManager.addEvent({
+        sessionId: 123,
+        event: { type: 'replay', data: 'x' },
+        deviceId: '1a2b3c',
+      });
+      triggerBeacon(sessionReplay);
+      expect(mockSendBeacon).toHaveBeenCalledTimes(1);
+    });
+
     test('should not call sendBeacon if rrwebEventManager failed to initialize', async () => {
       // When createEventsManager throws for the 'replay' type, rrwebEventManager stays
       // undefined in the pageLeaveFns closure — the beacon fn should handle this gracefully.

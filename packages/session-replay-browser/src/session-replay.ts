@@ -307,6 +307,10 @@ export class SessionReplay implements AmplitudeSessionReplay {
         if (!events.length) return;
         const deviceId = this.getDeviceId();
         if (!deviceId) return;
+        const { minSessionDurationMs } = this.config;
+        if (minSessionDurationMs !== undefined && this.sessionStartTime !== undefined) {
+          if (Date.now() - this.sessionStartTime < minSessionDurationMs) return;
+        }
         rrwebEventManager.trackDestination.sendBeacon({
           events,
           sessionId: this.identifiers.sessionId,
