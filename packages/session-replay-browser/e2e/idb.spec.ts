@@ -767,7 +767,7 @@ test.describe('IDB multi-tab and fallback behaviour', () => {
       // calls go through.  The SDK's DB name is derived from the API key
       // (first 10 chars).  Match anything starting with our test key prefix.
       indexedDB.open = function (name: string, version?: number): IDBOpenDBRequest {
-        if (name.startsWith('d90c5cf09c')) {
+        if (name.startsWith(IDB_NAME.substring(0, 10))) {
           return stuckOpen();
         }
         return origOpen(name, version);

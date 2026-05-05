@@ -205,7 +205,7 @@ describe('multi-tab IDB contamination', () => {
 
       // EXPECTED (post-fix): onPersistentFailure called once.
       // ACTUAL (pre-fix): onPersistentFailure never called → this assertion FAILS.
-      expect(onPersistentFailure).toHaveBeenCalledTimes(1); // BUG: currently 0
+      expect(onPersistentFailure).toHaveBeenCalledTimes(1);
     });
 
     test('AbortError from getSequencesToSend tx.done.catch should also trigger onPersistentFailure', async () => {
@@ -257,7 +257,7 @@ describe('multi-tab IDB contamination', () => {
 
       // EXPECTED (post-fix): onPersistentFailure called once.
       // ACTUAL (pre-fix): never called → FAILS.
-      expect(onPersistentFailure).toHaveBeenCalledTimes(1); // BUG: currently 0
+      expect(onPersistentFailure).toHaveBeenCalledTimes(1);
     });
   });
 

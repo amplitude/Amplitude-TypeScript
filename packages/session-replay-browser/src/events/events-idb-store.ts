@@ -79,7 +79,11 @@ export function withTimeout<T>(promise: Promise<T>, ms: number, message = 'IDB o
  * resolved successfully" case — a case where tx.done is overwhelmingly
  * likely to settle imminently in production.  If it doesn't, callers can
  * still detect the failure on the NEXT operation (which will fail to open
- * a transaction or hit the same pressure).
+ * a transaction or hit the same pressure), because all three methods use
+ * readwrite transactions on the same two stores, which IDB serializes:
+ * if T1's tx.done never settles, T2 is blocked waiting for T1 to commit or
+ * abort — T2's put/get requests never resolve, T2 never reaches its
+ * soft-cancel, and T2's watchdog fires, calling recordFailure().
  */
 function armTxDoneTimeout(txDone: Promise<unknown>, ms: number, onTimeout: () => void): () => void {
   const timer = setTimeout(onTimeout, ms);
