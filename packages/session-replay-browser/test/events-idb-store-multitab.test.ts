@@ -72,45 +72,45 @@ describe('multi-tab IDB contamination', () => {
   });
 
   // ---------------------------------------------------------------------------
-  // BUG 1: getSequencesToSend() returns sequences belonging to the other tab
+  // getSequencesToSend returns ALL completed sequences (any tab may flush them)
   // ---------------------------------------------------------------------------
-  describe('BUG 1 – cross-tab sequence contamination', () => {
-    test('tab A should NOT read sequences written by tab B', async () => {
+  // Note: completed sequences in sequencesToSend are intentionally visible to
+  // all tabs.  Filtering by tabId would cause event loss on page reload because
+  // a new store instance gets a fresh in-memory UUID and would never see
+  // sequences written before the reload.  Completed sequences are safe to flush
+  // by any tab — the server deduplicates and cleanUpSessionEventsStore on an
+  // already-deleted key is a no-op.
+  describe('getSequencesToSend – cross-tab visibility', () => {
+    test('both tabs see all completed sequences (any instance can flush)', async () => {
       const { restore } = useSharedIDBFactory();
       try {
-        const loggerA = makeLogger();
-        const loggerB = makeLogger();
-
-        // Two instances share the same IDB database name but have distinct tabIds,
-        // simulating two browser tabs open to the same page.
         const tabA = await SessionReplayEventsIDBStore.new('replay', {
           apiKey,
-          loggerProvider: loggerA,
+          loggerProvider: makeLogger(),
           tabId: 'tab-a',
         });
         const tabB = await SessionReplayEventsIDBStore.new('replay', {
           apiKey,
-          loggerProvider: loggerB,
+          loggerProvider: makeLogger(),
           tabId: 'tab-b',
         });
 
         expect(tabA).toBeDefined();
         expect(tabB).toBeDefined();
 
-        // Tab B stores a sequence under session 9999.
         await tabB!.storeSendingEvents(9999, [mockEvent2]);
-
-        // Tab A stores its own sequence under session 1111.
         await tabA!.storeSendingEvents(1111, [mockEvent]);
 
-        // Tab A asks for sequences to send. With the fix, records are stamped
-        // with tabId and the cursor skips records belonging to other tabs.
-        const sequencesSeenByA = await tabA!.getSequencesToSend();
+        // Both tabs see all sequences — this ensures a page-reloaded instance
+        // (which gets a fresh UUID) can still flush sequences from before the reload.
+        const seenByA = (await tabA!.getSequencesToSend()) ?? [];
+        const seenByB = (await tabB!.getSequencesToSend()) ?? [];
 
-        expect(sequencesSeenByA).toBeDefined();
-        const sessionIdsSeen = (sequencesSeenByA ?? []).map((s) => s.sessionId);
-        expect(sessionIdsSeen).toEqual([1111]); // Tab A sees only its own session
-        expect(sessionIdsSeen).not.toContain(9999); // Tab B's session is filtered out
+        const sessionIdsSeenByA = seenByA.map((s) => s.sessionId).sort();
+        const sessionIdsSeenByB = seenByB.map((s) => s.sessionId).sort();
+
+        expect(sessionIdsSeenByA).toEqual([1111, 9999]);
+        expect(sessionIdsSeenByB).toEqual([1111, 9999]);
       } finally {
         restore();
       }
@@ -299,16 +299,14 @@ describe('multi-tab IDB contamination', () => {
         const a1 = JSON.stringify({ type: 4, src: 'a', n: 1 });
         await tabA!.addEventToCurrentSequence(sessionId, a1);
 
-        // Tab A's view: should only see its own ([a1]) sequence in current; should
-        // NOT see tab-b's events promoted with tab-b's tabId, because the cursor
-        // filters by tabId.
+        // Tab A's current-sequence slot now holds only its own [a1].
         const aCurrent = await tabA!.getCurrentSequenceEvents(sessionId);
         expect(aCurrent).toEqual([{ events: [a1], sessionId }]);
 
-        // The promoted tab-b sequence is in sequencesToSend tagged tab-b — only
-        // tab-b's getSequencesToSend cursor will pick it up.
+        // The promoted tab-b sequence is in sequencesToSend — visible to both
+        // tabs since completed sequences are not filtered by tabId.
         const tabASequences = await tabA!.getSequencesToSend();
-        expect(tabASequences).toEqual([]); // tab-a sees none of tab-b's promoted records
+        expect(tabASequences).toEqual([{ sessionId, sequenceId: expect.any(Number), events: [b1, b2, b3] }]);
         const tabBSequences = await tabB!.getSequencesToSend();
         expect(tabBSequences).toEqual([{ sessionId, sequenceId: expect.any(Number), events: [b1, b2, b3] }]);
       } finally {
@@ -355,11 +353,11 @@ describe('multi-tab IDB contamination', () => {
       }
     });
 
-    test('both tabs eventually see ALL events from both tabs in sequencesToSend (no events dropped)', async () => {
+    test('every event from both tabs is recoverable via getSequencesToSend (no events dropped)', async () => {
       // End-to-end invariant: when two tabs interleave addEventToCurrentSequence
-      // calls on the same sessionId, every event eventually lands in some
-      // sequence-to-send (visible to its owning tab).  Total events in === total
-      // events out (across both tabs' views combined).
+      // calls on the same sessionId, every event lands in sequencesToSend and is
+      // visible to any tab that calls getSequencesToSend — including a reloaded
+      // instance with a fresh UUID.
       const { restore } = useSharedIDBFactory();
       try {
         const tabA = await SessionReplayEventsIDBStore.new('replay', {
@@ -387,12 +385,11 @@ describe('multi-tab IDB contamination', () => {
         await tabA!.storeCurrentSequence(sessionId);
         await tabB!.storeCurrentSequence(sessionId);
 
-        const tabASeqs = (await tabA!.getSequencesToSend()) ?? [];
-        const tabBSeqs = (await tabB!.getSequencesToSend()) ?? [];
-        const allEvents = [...tabASeqs.flatMap((s) => s.events), ...tabBSeqs.flatMap((s) => s.events)];
+        // Either tab's view must contain every event — since completed sequences
+        // are not filtered by tabId, both views are identical.
+        const seenByA = (await tabA!.getSequencesToSend()) ?? [];
+        const allEvents = seenByA.flatMap((s) => s.events);
 
-        // Every single event from both tabs must appear exactly once across the
-        // combined view (no drops, no duplicates).
         const expected = [...aEvents, ...bEvents].sort();
         expect(allEvents.slice().sort()).toEqual(expected);
       } finally {
@@ -620,35 +617,6 @@ describe('multi-tab IDB contamination', () => {
       // Single failure should trigger fallback immediately.
       await store!.getSequencesToSend();
       expect(onPersistentFailure).toHaveBeenCalledTimes(1);
-    });
-  });
-
-  // ---------------------------------------------------------------------------
-  // Edge: sessionStorage unavailable falls back to a fresh randomUUID
-  // ---------------------------------------------------------------------------
-  describe('sessionStorage unavailable', () => {
-    test('tabId falls back to crypto.randomUUID when sessionStorage throws', async () => {
-      // Sabotage sessionStorage.getItem so the try/catch in tabId resolution falls
-      // through to the catch branch and uses a fresh randomUUID instead.  Verify
-      // the store still constructs successfully and operates normally.
-      // eslint-disable-next-line @typescript-eslint/unbound-method
-      const origGetItem = Storage.prototype.getItem;
-      Storage.prototype.getItem = function () {
-        throw new Error('sessionStorage unavailable (e.g. SecurityError in cross-origin iframe)');
-      };
-      try {
-        const store = await SessionReplayEventsIDBStore.new('replay', {
-          apiKey,
-          loggerProvider: makeLogger(),
-        });
-        expect(store).toBeDefined();
-        // Confirm normal operation: writes and reads succeed.
-        await store!.addEventToCurrentSequence(99, mockEvent);
-        const currentSequence = await store!.getCurrentSequenceEvents(99);
-        expect(currentSequence).toEqual([{ events: [mockEvent], sessionId: 99 }]);
-      } finally {
-        Storage.prototype.getItem = origGetItem;
-      }
     });
   });
 

@@ -191,20 +191,12 @@ export class SessionReplayEventsIDBStore extends BaseEventsStore<number> {
       const dbSuffix = type === 'replay' ? '' : `_${type}`;
       const dbName = `${args.apiKey.substring(0, 10)}_amp_session_replay_events${dbSuffix}`;
       const db = await createStore(dbName);
-      const tabId =
-        args.tabId ??
-        (() => {
-          try {
-            let id = sessionStorage.getItem('_amp_sr_tab_id');
-            if (!id) {
-              id = generateUUID();
-              sessionStorage.setItem('_amp_sr_tab_id', id);
-            }
-            return id;
-          } catch {
-            return generateUUID();
-          }
-        })();
+      // Generate a fresh in-memory UUID per store instance.  sessionStorage is
+      // intentionally avoided: standalone session-replay customers (without the
+      // analytics-browser SDK) would be exposed to a new storage surface they
+      // did not consent to, and persistence across page reloads is not needed —
+      // completed sequences in sequencesToSend are flushed by any tab/instance.
+      const tabId = args.tabId ?? generateUUID();
       return new SessionReplayEventsIDBStore({
         ...args,
         db,
@@ -272,16 +264,18 @@ export class SessionReplayEventsIDBStore extends BaseEventsStore<number> {
       });
       let cursor = await tx.store.openCursor();
       while (cursor) {
-        const { sessionId, events, tabId } = cursor.value;
-        // Only include records owned by this tab; untagged legacy records are included
-        // for backward compatibility with data written before tab-keying was added.
-        if (!tabId || tabId === this.tabId) {
-          sequences.push({
-            events,
-            sequenceId: cursor.key,
-            sessionId,
-          });
-        }
+        const { sessionId, events } = cursor.value;
+        // Return all completed sequences regardless of tabId.  Filtering by tab
+        // would cause event loss on page reload: a new store instance gets a
+        // fresh in-memory UUID and would never see sequences written by the
+        // previous instance.  Completed sequences are safe to flush by any
+        // tab/instance; the server deduplicates, and cleanUpSessionEventsStore
+        // on an already-deleted key is a no-op.
+        sequences.push({
+          events,
+          sequenceId: cursor.key,
+          sessionId,
+        });
         cursor = await cursor.continue();
       }
 
@@ -404,10 +398,9 @@ export class SessionReplayEventsIDBStore extends BaseEventsStore<number> {
 
       // Foreign-tab record path: another tab owns the current-sequence slot for this
       // sessionId.  Don't silently overwrite — that would drop the foreign tab's
-      // in-progress events.  Promote them to sequencesToSend (still tagged with the
-      // foreign tabId so they are NOT picked up by this tab's getSequencesToSend cursor)
-      // before claiming the slot for ourselves.  The owning tab will discover the
-      // promoted sequence on its next getSequencesToSend call and flush it normally.
+      // in-progress events.  Promote them to sequencesToSend (tabId kept for forensics)
+      // before claiming the slot for ourselves.  getSequencesToSend no longer filters
+      // by tabId, so either tab may flush the promoted sequence; server deduplicates.
       if (sequenceEvents?.tabId && sequenceEvents.tabId !== this.tabId) {
         if (sequenceEvents.events.length > 0) {
           await tx.objectStore(sequencesToSendKey).put({
