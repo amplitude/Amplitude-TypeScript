@@ -733,7 +733,9 @@ test.describe('IDB multi-tab and fallback behaviour', () => {
     // Patch indexedDB.open BEFORE any SDK code runs.  The returned request
     // never fires onsuccess or onerror — the open hangs indefinitely, simulating
     // a foreign tab holding an open connection during a version upgrade.
-    await page.addInitScript(() => {
+    // Pass the prefix as an arg so the serialized browser-context function can
+    // access it — addInitScript closures do not capture Node-side variables.
+    await page.addInitScript((idbPrefix: string) => {
       const stuckOpen = () => {
         // Construct a fake IDBOpenDBRequest-like object.  Since real
         // IDBOpenDBRequest cannot be instantiated directly, we return a duck
@@ -767,12 +769,12 @@ test.describe('IDB multi-tab and fallback behaviour', () => {
       // calls go through.  The SDK's DB name is derived from the API key
       // (first 10 chars).  Match anything starting with our test key prefix.
       indexedDB.open = function (name: string, version?: number): IDBOpenDBRequest {
-        if (name.startsWith(IDB_NAME.substring(0, 10))) {
+        if (name.startsWith(idbPrefix)) {
           return stuckOpen();
         }
         return origOpen(name, version);
       } as typeof indexedDB.open;
-    });
+    }, IDB_NAME.substring(0, 10));
 
     const { pageErrors } = listenForIdbErrors(page);
     const { getBodies } = await captureTrackRequests(page);
