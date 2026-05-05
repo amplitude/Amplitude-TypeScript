@@ -297,12 +297,15 @@ describe('SessionReplayJoinedConfigGenerator', () => {
           ...mockLocalConfig,
           captureEnabled: true,
           optOut: mockLocalConfig.optOut,
+          loggingConfig: undefined,
+          interactionConfig: undefined,
           privacyConfig: {
             defaultMaskLevel: 'medium',
             blockSelector: undefined,
             maskSelector: undefined,
             unmaskSelector: ['.amp-unmask', '.localClassName', '.remoteClassName'],
             maskAttributes: [],
+            urlMaskLevels: [],
           },
         });
       });
