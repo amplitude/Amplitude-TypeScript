@@ -55,6 +55,7 @@ describe('worker/track-destination', () => {
     expect(url).toContain('type=replay');
     expect((options.headers as Record<string, string>)['Authorization']).toBe('Bearer test-api-key');
     expect(options.method).toBe('POST');
+    expect(options.keepalive).toBe(true);
 
     expect(mockPostMessage).toHaveBeenCalledWith(
       expect.objectContaining({ type: 'log', id: '1', message: expect.stringContaining('tracked successfully') }),

@@ -13,7 +13,7 @@ import {
   SessionReplayDestinationContext,
 } from './typings/session-replay';
 import { VERSION } from './version';
-import { MAX_URL_LENGTH, KB_SIZE } from './constants';
+import { MAX_URL_LENGTH, KB_SIZE, MAX_KEEPALIVE_BYTES } from './constants';
 import { gzipJson } from './utils/gzip';
 
 interface WorkerCompleteMessage {
@@ -306,6 +306,7 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
       const globalScope = getGlobalScope();
       const gzipped =
         globalScope && 'CompressionStream' in globalScope ? await gzipJson(payloadJson, globalScope) : null;
+      const payloadSize = gzipped ? gzipped.byteLength : new Blob([payloadJson]).size;
       const options: RequestInit = {
         headers: {
           'Content-Type': 'application/json',
@@ -320,6 +321,9 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
         },
         body: (gzipped ?? payloadJson) as BodyInit,
         method: 'POST',
+        // keepalive lets the request survive page navigation, preventing 499 (client-closed) errors.
+        // Must stay under the browser's 64 KB keepalive budget; large payloads skip it.
+        keepalive: payloadSize <= MAX_KEEPALIVE_BYTES,
       };
 
       const serverUrl = `${getServerUrl(context.serverZone, this.trackServerUrl)}?${urlParams.toString()}`;
