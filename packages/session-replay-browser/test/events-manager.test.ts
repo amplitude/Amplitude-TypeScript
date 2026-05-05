@@ -378,13 +378,19 @@ describe('createEventsManager', () => {
     test('should block sendEventsList in addEvent when shouldSend returns false', async () => {
       const mockAddEventPromise = Promise.resolve({ events: [mockEventString], sequenceId: 1, sessionId: 123 });
       (mockIDBStore.addEventToCurrentSequence as jest.Mock).mockReturnValue(mockAddEventPromise);
+      let shouldSendCallCount = 0;
       const eventsManager = await createEventsManager<'replay'>({
         config,
         type: 'replay',
         storeType: 'idb',
-        shouldSend: () => false,
+        shouldSend: () => {
+          shouldSendCallCount++;
+          return false;
+        },
       });
       eventsManager.addEvent({ event: { type: 'replay', data: mockEventString }, sessionId: 123, deviceId: '1a2b3c' });
+      // shouldSend must be evaluated synchronously (before the async store resolves).
+      expect(shouldSendCallCount).toBe(1);
       jest.runAllTimers();
       return mockAddEventPromise
         .catch(() => {

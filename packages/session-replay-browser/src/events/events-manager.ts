@@ -202,6 +202,11 @@ export const createEventsManager = async <Type extends EventType>({
     deviceId: string;
   }) => {
     lastKnownDeviceId = deviceId;
+    // Capture shouldSend synchronously before the async store write, for the same
+    // reason as sendCurrentSequenceEvents: asyncSetSessionId updates sessionStartTime
+    // synchronously, so evaluating inside the .then() would use the new session's
+    // start time and compute ~0ms elapsed, silently dropping a valid batch.
+    const canSend = !shouldSend || shouldSend();
     // Record the absolute index of this event in the beacon buffer before the async
     // store operation. If a batch split occurs, we advance the window up to (but not
     // including) this event so that it starts the next pending window.
@@ -211,7 +216,7 @@ export const createEventsManager = async <Type extends EventType>({
       .addEventToCurrentSequence(sessionId, event.data)
       .then((sequenceToSend) => {
         if (sequenceToSend) {
-          if (shouldSend && !shouldSend()) return;
+          if (!canSend) return;
           // Events before absIdx belong to the split batch being sent; advance window.
           advanceBeaconWindow(absIdx);
           sendEventsList({
