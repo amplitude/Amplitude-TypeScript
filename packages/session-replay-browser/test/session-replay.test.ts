@@ -1972,6 +1972,29 @@ describe('SessionReplay', () => {
       sessionReplay.sendEvents();
       expect(sendEventsMock).not.toHaveBeenCalled();
     });
+    test('it should send if minSessionDurationMs is set but sessionStartTime is undefined', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      if (!sessionReplay.eventsManager || !sessionReplay.config) {
+        throw new Error('Did not call init');
+      }
+      const sendEventsMock = jest.fn();
+      sessionReplay.eventsManager.sendCurrentSequenceEvents = sendEventsMock;
+      sessionReplay.config.minSessionDurationMs = 5000;
+      sessionReplay.sessionStartTime = undefined;
+      sessionReplay.sendEvents();
+      expect(sendEventsMock).toHaveBeenCalled();
+    });
+    test('it should send if config is undefined', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      if (!sessionReplay.eventsManager) {
+        throw new Error('Did not call init');
+      }
+      const sendEventsMock = jest.fn();
+      sessionReplay.eventsManager.sendCurrentSequenceEvents = sendEventsMock;
+      sessionReplay.config = undefined;
+      sessionReplay.sendEvents();
+      expect(sendEventsMock).toHaveBeenCalled();
+    });
     test('it should send if session duration meets minSessionDurationMs', async () => {
       await sessionReplay.init(apiKey, mockOptions).promise;
       if (!sessionReplay.eventsManager || !sessionReplay.config) {

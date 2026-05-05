@@ -177,6 +177,13 @@ describe('SessionReplayJoinedConfigGenerator', () => {
           captureEnabled: false,
         });
       });
+      test('should use min_session_duration_ms from API', async () => {
+        mockRemoteConfig = {
+          sr_sampling_config: { ...samplingConfig, min_session_duration_ms: 3000 },
+        };
+        const { joinedConfig: config } = await joinedConfigGenerator.generateJoinedConfig();
+        expect(config.minSessionDurationMs).toBe(3000);
+      });
       test('should set captureEnabled to true if no values returned from API', async () => {
         mockRemoteConfig = {
           sr_sampling_config: {} as any,
