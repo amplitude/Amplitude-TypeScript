@@ -655,30 +655,6 @@ describe('SessionReplayJoinedConfigGenerator', () => {
         });
       });
     });
-
-    describe('with store config (SR-3878 experiment flag)', () => {
-      test('should override storeType to memory when use_memory_store is true', async () => {
-        mockRemoteConfig = {
-          sr_store_config: { use_memory_store: true },
-        };
-        const { joinedConfig: config } = await joinedConfigGenerator.generateJoinedConfig();
-        expect(config.storeType).toBe('memory');
-      });
-
-      test('should leave storeType unchanged when use_memory_store is false', async () => {
-        mockRemoteConfig = {
-          sr_store_config: { use_memory_store: false },
-        };
-        const { joinedConfig: config } = await joinedConfigGenerator.generateJoinedConfig();
-        expect(config.storeType).toBe(mockLocalConfig.storeType);
-      });
-
-      test('should leave storeType unchanged when sr_store_config is omitted', async () => {
-        mockRemoteConfig = {};
-        const { joinedConfig: config } = await joinedConfigGenerator.generateJoinedConfig();
-        expect(config.storeType).toBe(mockLocalConfig.storeType);
-      });
-    });
   });
 
   describe('removeInvalidSelectorsFromPrivacyConfig', () => {

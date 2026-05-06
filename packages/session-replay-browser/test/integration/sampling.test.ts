@@ -68,6 +68,7 @@ describe('module level integration', () => {
     sampleRate: 1,
     sessionId: SESSION_ID_IN_20_SAMPLE,
     serverZone: ServerZone.US,
+    storeType: 'idb',
   };
   const mockEmptyOptions: SessionReplayOptions = {
     flushIntervalMillis: 0,
