@@ -177,7 +177,7 @@ export const createEventsManager = async <Type extends EventType>({
     if (!sequencesToSend?.length) {
       return;
     }
-    config.loggerProvider.log(`[SR] Draining ${sequencesToSend.length} stored sequence(s) from previous session.`);
+    config.loggerProvider.log(`Draining ${sequencesToSend.length} stored sequence(s) from previous session.`);
     sequencesToSend.forEach((sequence) => {
       sendEventsList({
         sequenceId: sequence.sequenceId,

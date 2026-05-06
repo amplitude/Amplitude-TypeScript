@@ -139,7 +139,7 @@ describe('createEventsManager', () => {
         storeType: 'idb',
       });
       await eventsManager.sendStoredEvents({ deviceId: '1a2b3c' });
-      expect(mockLoggerProvider.log).toHaveBeenCalledWith('[SR] Draining 2 stored sequence(s) from previous session.');
+      expect(mockLoggerProvider.log).toHaveBeenCalledWith('Draining 2 stored sequence(s) from previous session.');
     });
 
     test('should not log drain message when sequences are empty', async () => {
@@ -151,7 +151,7 @@ describe('createEventsManager', () => {
       });
       mockLoggerProvider.log.mockClear();
       await eventsManager.sendStoredEvents({ deviceId: '1a2b3c' });
-      expect(mockLoggerProvider.log).not.toHaveBeenCalledWith(expect.stringContaining('[SR] Draining'));
+      expect(mockLoggerProvider.log).not.toHaveBeenCalledWith(expect.stringContaining('Draining'));
     });
 
     test('should not log drain message when sequences is null', async () => {
@@ -163,7 +163,7 @@ describe('createEventsManager', () => {
       });
       mockLoggerProvider.log.mockClear();
       await eventsManager.sendStoredEvents({ deviceId: '1a2b3c' });
-      expect(mockLoggerProvider.log).not.toHaveBeenCalledWith(expect.stringContaining('[SR] Draining'));
+      expect(mockLoggerProvider.log).not.toHaveBeenCalledWith(expect.stringContaining('Draining'));
     });
 
     test('should log the current storage size', async () => {
