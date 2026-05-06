@@ -310,6 +310,17 @@ describe('SessionReplayJoinedConfigGenerator', () => {
         });
       });
 
+      test('should dedupe .amp-unmask when user explicitly passes it alongside the auto-injected default', async () => {
+        const config = await privacySelectorTest(
+          { unmaskSelector: ['.remoteClassName'] },
+          await createSessionReplayJoinedConfigGenerator('static_key', {
+            ...mockOptions,
+            privacyConfig: { unmaskSelector: ['.amp-unmask', '.localClassName'] },
+          }),
+        );
+        expect(config.privacyConfig?.unmaskSelector).toEqual(['.amp-unmask', '.localClassName', '.remoteClassName']);
+      });
+
       test('should use default mask level from API', async () => {
         const config = await privacySelectorTest({
           ...privacyConfig,
@@ -511,6 +522,14 @@ describe('SessionReplayJoinedConfigGenerator', () => {
           privacyConfig: { unmaskSelector: ['.custom-unmask', '#my-id'] },
         });
         expect(config.privacyConfig?.unmaskSelector).toEqual(['.amp-unmask', '.custom-unmask', '#my-id']);
+      });
+
+      test('should dedupe .amp-unmask when user explicitly includes it in unmaskSelector', () => {
+        const config = new SessionReplayLocalConfig('static_key', {
+          ...mockOptions,
+          privacyConfig: { unmaskSelector: ['.amp-unmask', '.foo'] },
+        });
+        expect(config.privacyConfig?.unmaskSelector).toEqual(['.amp-unmask', '.foo']);
       });
 
       test('should preserve other privacyConfig properties alongside the injected unmaskSelector', () => {

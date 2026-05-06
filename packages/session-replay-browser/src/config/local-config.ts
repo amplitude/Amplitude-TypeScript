@@ -80,7 +80,7 @@ export class SessionReplayLocalConfig extends Config implements ISessionReplayLo
     // symmetrically with amp-mask/amp-block without requiring explicit config (SR-2945).
     this.privacyConfig = {
       ...(options.privacyConfig ?? {}),
-      unmaskSelector: [`.${UNMASK_TEXT_CLASS}`, ...(options.privacyConfig?.unmaskSelector ?? [])],
+      unmaskSelector: Array.from(new Set([`.${UNMASK_TEXT_CLASS}`, ...(options.privacyConfig?.unmaskSelector ?? [])])),
     };
     if (options.interactionConfig) {
       this.interactionConfig = options.interactionConfig;
