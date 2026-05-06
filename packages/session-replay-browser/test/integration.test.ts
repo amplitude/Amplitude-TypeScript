@@ -248,7 +248,7 @@ describe('module level integration', () => {
       await runScheduleTimers();
       expect(fetch).toHaveBeenCalledTimes(1);
       // eslint-disable-next-line @typescript-eslint/unbound-method
-      expect(mockLoggerProvider.warn).toHaveBeenCalledWith(expect.stringMatching(/single event.*cannot split further/));
+      expect(mockLoggerProvider.warn).toHaveBeenCalledWith(expect.stringContaining('not retrying non-WAF 413'));
     });
     test('should handle retry for 500 error', async () => {
       const sessionReplay = new SessionReplay();

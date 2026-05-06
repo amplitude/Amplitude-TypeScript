@@ -399,6 +399,14 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
     const source = isWaf ? 'WAF (compressed payload too large)' : 'server (event too large)';
     const totalSizeKB = Math.round(context.events.reduce((sum, e) => sum + e.length, 0) / KB_SIZE);
 
+    if (!isWaf) {
+      this.completeRequest({
+        context,
+        err: `Session replay event batch dropped: ${source} rejected payload (${context.events.length} events, ${totalSizeKB} KB) — not retrying non-WAF 413`,
+      });
+      return;
+    }
+
     if (context.events.length === 1) {
       this.completeRequest({
         context,

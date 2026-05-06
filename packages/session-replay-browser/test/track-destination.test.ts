@@ -657,12 +657,27 @@ describe('SessionReplayTrackDestination', () => {
       ...overrides,
     });
 
-    test('drops single event and logs error with size', () => {
+    test('drops non-WAF batch immediately without bisecting', () => {
+      const trackDestination = new SessionReplayTrackDestination({ loggerProvider: mockLoggerProvider });
+      const completeRequest = jest.spyOn(trackDestination, 'completeRequest').mockReturnValueOnce(undefined);
+      const sendEventsList = jest.spyOn(trackDestination, 'sendEventsList');
+      const context = baseContext({ events: ['event1', 'event2'] });
+
+      trackDestination.handlePayloadTooLargeResponse(context, false);
+
+      expect(completeRequest).toHaveBeenCalledWith({
+        context,
+        err: expect.stringContaining('not retrying non-WAF 413'),
+      });
+      expect(sendEventsList).not.toHaveBeenCalled();
+    });
+
+    test('drops single WAF event and logs error with size', () => {
       const trackDestination = new SessionReplayTrackDestination({ loggerProvider: mockLoggerProvider });
       const completeRequest = jest.spyOn(trackDestination, 'completeRequest').mockReturnValueOnce(undefined);
       const context = baseContext();
 
-      trackDestination.handlePayloadTooLargeResponse(context, false);
+      trackDestination.handlePayloadTooLargeResponse(context, true);
 
       expect(completeRequest).toHaveBeenCalledWith({
         context,
@@ -683,7 +698,7 @@ describe('SessionReplayTrackDestination', () => {
       expect(errArg).toContain('WAF');
     });
 
-    test('bisects multi-event batch and re-enqueues both halves', () => {
+    test('bisects multi-event WAF batch and re-enqueues both halves', () => {
       const trackDestination = new SessionReplayTrackDestination({ loggerProvider: mockLoggerProvider });
       const capturedOnCompletes: Array<() => Promise<void>> = [];
       jest.spyOn(trackDestination, 'sendEventsList').mockImplementation((dest) => {
@@ -691,7 +706,7 @@ describe('SessionReplayTrackDestination', () => {
       });
       const context = baseContext({ events: ['event1', 'event2', 'event3', 'event4'] });
 
-      trackDestination.handlePayloadTooLargeResponse(context, false);
+      trackDestination.handlePayloadTooLargeResponse(context, true);
 
       expect((trackDestination.sendEventsList as jest.Mock).mock.calls).toHaveLength(2);
       expect((trackDestination.sendEventsList as jest.Mock).mock.calls[0][0].events).toEqual(['event1', 'event2']);
@@ -702,12 +717,12 @@ describe('SessionReplayTrackDestination', () => {
       void Promise.all(capturedOnCompletes.map((fn) => fn()));
     });
 
-    test('logs warn with event count and size when bisecting', () => {
+    test('logs warn with event count and size when bisecting WAF batch', () => {
       const trackDestination = new SessionReplayTrackDestination({ loggerProvider: mockLoggerProvider });
       jest.spyOn(trackDestination, 'sendEventsList').mockReturnValue(undefined);
       const context = baseContext({ events: ['event1', 'event2'] });
 
-      trackDestination.handlePayloadTooLargeResponse(context, false);
+      trackDestination.handlePayloadTooLargeResponse(context, true);
 
       // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockLoggerProvider.warn).toHaveBeenCalledWith(expect.stringContaining('splitting'));
