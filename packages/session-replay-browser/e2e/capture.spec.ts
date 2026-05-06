@@ -1308,7 +1308,11 @@ test.describe('413 payload-too-large handling', () => {
       callCount++;
       if (callCount === 1) {
         // Simulate the server rejecting the initial payload as too large
-        await route.fulfill({ status: 413, contentType: 'application/json', body: '{"code":413}' });
+        await route.fulfill({
+          status: 413,
+          contentType: 'application/json',
+          body: '{"error":"Payload exceeds the maximum allowed size of 10MB"}',
+        });
       } else {
         deliveredBodies.push(readRouteBody(route));
         await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(SR_API_SUCCESS) });
@@ -1339,7 +1343,11 @@ test.describe('413 payload-too-large handling', () => {
     await page.route('https://api-sr.amplitude.com/**', async (route: Route) => {
       callCount++;
       if (callCount <= 2) {
-        await route.fulfill({ status: 413, contentType: 'application/json', body: '{"code":413}' });
+        await route.fulfill({
+          status: 413,
+          contentType: 'application/json',
+          body: '{"error":"Payload exceeds the maximum allowed size of 10MB"}',
+        });
       } else {
         deliveredBodies.push(readRouteBody(route));
         await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(SR_API_SUCCESS) });
