@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>SR Cross-Origin Iframe Parent</title>
+  </head>
+  <body>
+    <div id="parent-content">Parent page content</div>
+    <div id="status">loading</div>
+    <script type="module">
+      import * as sessionReplay from '@amplitude/session-replay-browser';
+
+      window.sessionReplay = sessionReplay;
+
+      const params = new URLSearchParams(location.search);
+      const sessionId = params.has('sessionId') ? Number(params.get('sessionId')) : Date.now();
+      const deviceId = params.get('deviceId') ?? 'test-device-id';
+      const coordinateChildren = params.get('coordinateChildren') !== 'false';
+      // Child URL may be a different origin to test real cross-origin behaviour.
+      // Defaults to the same origin so CI works without a second server.
+      const childSrc = params.get('childSrc') ?? '/session-replay-browser/sr-cross-origin-iframe-child.html';
+
+      void (async () => {
+        try {
+          await sessionReplay.init('d90c5cf09ca2546a1626272906b99a76', {
+            deviceId,
+            sessionId,
+            sampleRate: 1,
+            crossOriginIframes: { enabled: true, coordinateChildren },
+          }).promise;
+        } catch (err) {
+          document.getElementById('status').textContent = 'error: ' + err.message;
+          window.srError = err.message;
+        }
+
+        window.srReady = true;
+        document.getElementById('status').textContent = 'ready';
+
+        // Add the child iframe dynamically so the MutationObserver picks it up
+        // after the coordinator has started. This is the canonical usage pattern.
+        const iframe = document.createElement('iframe');
+        iframe.id = 'child-frame';
+        iframe.src =
+          childSrc +
+          '?sessionId=' +
+          sessionId +
+          '&deviceId=' +
+          deviceId;
+        iframe.style.width = '100%';
+        iframe.style.height = '200px';
+        document.body.appendChild(iframe);
+        window.iframeAdded = true;
+      })();
+    </script>
+  </body>
+</html>

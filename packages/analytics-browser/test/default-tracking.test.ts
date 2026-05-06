@@ -1,3 +1,4 @@
+import * as analyticsCoreModule from '@amplitude/analytics-core';
 import {
   getAttributionTrackingConfig,
   getElementInteractionsConfig,
@@ -373,6 +374,20 @@ describe('isSessionTrackingEnabled', () => {
         sessions: false,
       }),
     ).toBe(false);
+  });
+
+  describe('when environment is a Chrome extension', () => {
+    beforeEach(() => {
+      jest.spyOn(analyticsCoreModule, 'isChromeExtension').mockReturnValue(true);
+    });
+
+    test('should return false if not set', () => {
+      expect(isSessionTrackingEnabled(undefined)).toBe(false);
+    });
+
+    test('should return true if set to true', () => {
+      expect(isSessionTrackingEnabled({ sessions: true })).toBe(true);
+    });
   });
 });
 

@@ -3,6 +3,34 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.41.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.40.0...@amplitude/session-replay-browser@1.41.0) (2026-05-05)
+
+
+### Bug Fixes
+
+* **session-replay:** multi-tab IDB correctness, hang protection, memory fallback ([#1705](https://github.com/amplitude/Amplitude-TypeScript/issues/1705)) ([4133398](https://github.com/amplitude/Amplitude-TypeScript/commit/413339817b7c377f3a68c15243a09a99eaf46f0d))
+
+
+### Features
+
+* **session-replay-browser:** cross-origin iframe recording (SR-4094) ([#1715](https://github.com/amplitude/Amplitude-TypeScript/issues/1715)) ([26cb847](https://github.com/amplitude/Amplitude-TypeScript/commit/26cb847199014ceab5d921184af7b58f95ac7d0d))
+* **session-replay:** add fetch keepalive to reduce 499 errors on page navigation ([#1729](https://github.com/amplitude/Amplitude-TypeScript/issues/1729)) ([fa5f84a](https://github.com/amplitude/Amplitude-TypeScript/commit/fa5f84af9a499e7bc12fbd5a1b8ab06ac89c2271))
+
+
+
+
+
+# [1.40.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.39.0...@amplitude/session-replay-browser@1.40.0) (2026-05-05)
+
+
+### Features
+
+* **session-replay:** upgrade rrweb to 2.0.0-alpha.40 ([#1714](https://github.com/amplitude/Amplitude-TypeScript/issues/1714)) ([8474dd5](https://github.com/amplitude/Amplitude-TypeScript/commit/8474dd52448ddb9190f1b8b8ac96f11a371807be))
+
+
+
+
+
 # [1.39.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.38.0...@amplitude/session-replay-browser@1.39.0) (2026-04-28)
 
 

@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.27.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.27.0...@amplitude/plugin-autocapture-browser@1.27.1) (2026-05-05)
+
+
+### Bug Fixes
+
+* **autocapture:** add code lines to event properties for long task ([#1701](https://github.com/amplitude/Amplitude-TypeScript/issues/1701)) ([dbca5c0](https://github.com/amplitude/Amplitude-TypeScript/commit/dbca5c000447907d7ae5570ef9fa03f7ad4d5a81))
+* **plugin-autocapture-browser:** strip URL params from Page URL in Viewport Content Updated ([#1713](https://github.com/amplitude/Amplitude-TypeScript/issues/1713)) ([9797cd7](https://github.com/amplitude/Amplitude-TypeScript/commit/9797cd74790efa89fc7ef218a919993898d0dbee))
+
+
+
+
+
 # [1.27.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.26.1...@amplitude/plugin-autocapture-browser@1.27.0) (2026-04-28)
 
 

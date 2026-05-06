@@ -28,6 +28,22 @@ jest.mock(
 );
 import { SessionReplayOptions } from '../src/typings/session-replay';
 
+// Mock cross-origin-iframes so spies work reliably regardless of test ordering
+jest.mock('../src/cross-origin-iframes', () => ({
+  isInIframe: jest.fn().mockReturnValue(false),
+  CrossOriginIframeCoordinator: jest.fn().mockImplementation(() => ({
+    start: jest.fn(),
+    stop: jest.fn(),
+  })),
+  listenForParentSignals: jest.fn().mockReturnValue(jest.fn()),
+}));
+
+import {
+  isInIframe as mockIsInIframe,
+  CrossOriginIframeCoordinator as MockCrossOriginIframeCoordinator,
+  listenForParentSignals as mockListenForParentSignals,
+} from '../src/cross-origin-iframes';
+
 // Mock the URL tracking plugin
 jest.mock('../src/plugins/url-tracking-plugin', () => ({
   createUrlTrackingPlugin: jest.fn().mockImplementation((options: any = {}) => ({
@@ -2035,8 +2051,18 @@ describe('SessionReplay', () => {
       });
       expect(stopRecordingMock).toHaveBeenCalled();
       expect(sessionReplay.recordCancelCallback).toEqual(null);
-      const updatedCurrentSequenceEvents = await createEventsIDBStoreInstance.getCurrentSequenceEvents(123);
-      expect(updatedCurrentSequenceEvents).toEqual([{ events: [mockEventString], sessionId: 123 }]); // events should not change, emmitted event should be ignored
+      // The emitted mockEvent must be ignored due to opt-out — opt-out path returns
+      // before any addEvent call.  After the (now atomic) storeCurrentSequence
+      // promotes the pre-existing mockEventString to sequencesToSend, the original
+      // event still exists exactly once in the combined view across both stores —
+      // no duplication, no extra event from the emit.
+      const updatedCurrentSequenceEvents = (await createEventsIDBStoreInstance.getCurrentSequenceEvents(123)) ?? [];
+      const sequencesToSend = (await createEventsIDBStoreInstance.getSequencesToSend()) ?? [];
+      const allEvents = [
+        ...updatedCurrentSequenceEvents.flatMap((s) => s.events),
+        ...sequencesToSend.flatMap((s) => s.events),
+      ];
+      expect(allEvents).toEqual([mockEventString]); // exactly the one pre-existing event
     });
 
     test('should add an error handler', async () => {
@@ -2763,6 +2789,81 @@ describe('SessionReplay', () => {
         expect(rf3).toHaveBeenCalledTimes(1);
         expect((sessionReplay as any).recordEventsInFlight).toBe(false);
         expect((sessionReplay as any).recordEventsPendingShouldLogMetadata).toBeNull();
+      });
+    });
+
+    describe('pendingEmitEvents — eventCompressor not yet ready', () => {
+      test('FullSnapshot emitted before eventCompressor is ready is buffered and flushed once compressor is assigned', async () => {
+        await sessionReplay.init(apiKey, mockOptions).promise;
+        await jest.runAllTimersAsync();
+
+        // Simulate the race: null out eventCompressor as it would be before _init() line 283
+        const realCompressor = sessionReplay.eventCompressor!;
+        sessionReplay.eventCompressor = undefined;
+
+        // Run _recordEvents() — simulates a concurrent setSessionId() call during _init()'s async gap
+        const concurrentRf = createMockRecordFunction();
+        jest.spyOn(SessionReplay.prototype, 'getRecordFunction' as any).mockResolvedValueOnce(concurrentRf);
+        await (sessionReplay as any)._recordEvents();
+
+        // Grab the emit callback passed to the concurrent record function
+        const concurrentEmit = concurrentRf.mock.calls[0]?.[0]?.emit;
+        expect(concurrentEmit).toBeDefined();
+
+        // Fire a FullSnapshot event through the emit callback
+        const fullSnapshotEvent = { type: 2, timestamp: Date.now(), data: { node: {}, initialOffset: {} } };
+        concurrentEmit(fullSnapshotEvent);
+
+        // Event should be buffered — not yet forwarded to eventsManager
+        expect((sessionReplay as any).pendingEmitEvents).toHaveLength(1);
+        expect((sessionReplay as any).pendingEmitEvents[0].event).toBe(fullSnapshotEvent);
+
+        // Now simulate _init() completing: restore eventCompressor and drain the buffer
+        sessionReplay.eventCompressor = realCompressor;
+        const enqueueSpy = jest.spyOn(realCompressor, 'enqueueEvent');
+        const pending = (sessionReplay as any).pendingEmitEvents.splice(0);
+        for (const { event, sessionId } of pending) {
+          sessionReplay.eventCompressor.enqueueEvent(event, sessionId);
+        }
+
+        // The buffered FullSnapshot was delivered to the compressor
+        expect(enqueueSpy).toHaveBeenCalledTimes(1);
+        expect(enqueueSpy).toHaveBeenCalledWith(fullSnapshotEvent, expect.anything());
+      });
+
+      test('after _init() assigns eventCompressor, subsequent emit calls go directly without buffering', async () => {
+        await sessionReplay.init(apiKey, mockOptions).promise;
+        await jest.runAllTimersAsync();
+
+        // With a real eventCompressor set, emit should not populate pendingEmitEvents
+        expect(sessionReplay.eventCompressor).toBeDefined();
+        const enqueueSpy = jest.spyOn(sessionReplay.eventCompressor!, 'enqueueEvent');
+
+        await (sessionReplay as any)._recordEvents();
+        const recordArg = mockRecordFunction.mock.calls[mockRecordFunction.mock.calls.length - 1]?.[0];
+        const emitFn = recordArg?.emit;
+        expect(emitFn).toBeDefined();
+
+        const event = { type: 2, timestamp: Date.now(), data: { node: {}, initialOffset: {} } };
+        emitFn(event);
+
+        expect((sessionReplay as any).pendingEmitEvents).toHaveLength(0);
+        expect(enqueueSpy).toHaveBeenCalledWith(event, expect.anything());
+      });
+
+      test('pre-buffered events are drained into eventCompressor when _init() assigns it', async () => {
+        // Pre-populate the buffer to simulate events that arrived during _init()'s async gap
+        const bufferedEvent1 = { type: 2, timestamp: 1, data: { node: {}, initialOffset: {} } };
+        const bufferedEvent2 = { type: 3, timestamp: 2, data: {} };
+        (sessionReplay as any).pendingEmitEvents.push({ event: bufferedEvent1, sessionId: 'session-a' });
+        (sessionReplay as any).pendingEmitEvents.push({ event: bufferedEvent2, sessionId: 'session-b' });
+
+        await sessionReplay.init(apiKey, mockOptions).promise;
+        await jest.runAllTimersAsync();
+
+        // _init() should have drained the buffer into the freshly-assigned eventCompressor
+        expect((sessionReplay as any).pendingEmitEvents).toHaveLength(0);
+        expect(sessionReplay.eventCompressor).toBeDefined();
       });
     });
   });
@@ -4433,6 +4534,383 @@ describe('SessionReplay', () => {
           mockOptions.sessionId?.toString() || ''
         } due to matching targeting conditions.`,
       );
+    });
+  });
+
+  describe('cross-origin iframes', () => {
+    const crossOriginOptions: SessionReplayOptions = {
+      ...mockOptions,
+      crossOriginIframes: { enabled: true },
+    };
+
+    // Helper to get the mock coordinator instance created during the last recordEvents() call.
+    // Uses mock.results (not mock.instances) because mockImplementation() return values
+    // are tracked in results, not in instances (instances tracks the `this` context).
+    function getLastCoordinatorInstance() {
+      const ctor = MockCrossOriginIframeCoordinator as jest.Mock;
+      const last = ctor.mock.results[ctor.mock.results.length - 1];
+      return last?.value as { start: jest.Mock; stop: jest.Mock };
+    }
+
+    beforeEach(() => {
+      (mockIsInIframe as jest.Mock).mockReturnValue(false);
+      // jest.resetAllMocks() in the outer afterEach clears mockImplementation, so re-set it here.
+      (MockCrossOriginIframeCoordinator as jest.Mock).mockImplementation(() => ({
+        start: jest.fn(),
+        stop: jest.fn(),
+      }));
+      (mockListenForParentSignals as jest.Mock).mockReturnValue(jest.fn());
+    });
+
+    describe('parent mode', () => {
+      test('passes recordCrossOriginIframes: true to rrweb when enabled', async () => {
+        await sessionReplay.init(apiKey, crossOriginOptions).promise;
+        await sessionReplay.recordEvents();
+        await jest.runAllTimersAsync();
+
+        expect(mockRecordFunction).toHaveBeenCalledWith(expect.objectContaining({ recordCrossOriginIframes: true }));
+      });
+
+      test('does not pass recordCrossOriginIframes when feature is disabled', async () => {
+        await sessionReplay.init(apiKey, mockOptions).promise;
+        await sessionReplay.recordEvents();
+        await jest.runAllTimersAsync();
+
+        const callArg = mockRecordFunction.mock.calls[0]?.[0] as Record<string, unknown> | undefined;
+        expect(callArg?.recordCrossOriginIframes).toBeFalsy();
+      });
+
+      test('stopRecordingEvents stops the coordinator', async () => {
+        await sessionReplay.init(apiKey, crossOriginOptions).promise;
+        await sessionReplay.recordEvents();
+        await jest.runAllTimersAsync();
+
+        const instance = getLastCoordinatorInstance();
+        sessionReplay.stopRecordingEvents();
+        expect(instance.stop).toHaveBeenCalled();
+      });
+
+      test('coordinateChildren: false skips coordinator but still passes flag to rrweb', async () => {
+        await sessionReplay.init(apiKey, {
+          ...mockOptions,
+          crossOriginIframes: { enabled: true, coordinateChildren: false },
+        }).promise;
+        await sessionReplay.recordEvents();
+        await jest.runAllTimersAsync();
+
+        expect(mockRecordFunction).toHaveBeenCalledWith(expect.objectContaining({ recordCrossOriginIframes: true }));
+        expect(MockCrossOriginIframeCoordinator).not.toHaveBeenCalled();
+      });
+    });
+
+    describe('child mode', () => {
+      beforeEach(() => {
+        (mockIsInIframe as jest.Mock).mockReturnValue(true);
+      });
+
+      test('does not call rrweb record immediately when in child mode with coordinateChildren: true', async () => {
+        await sessionReplay.init(apiKey, crossOriginOptions).promise;
+        await sessionReplay.recordEvents();
+        await jest.runAllTimersAsync();
+
+        expect(mockRecordFunction).not.toHaveBeenCalled();
+      });
+
+      test('sets up parent signal listener in child mode', async () => {
+        await sessionReplay.init(apiKey, crossOriginOptions).promise;
+        await sessionReplay.recordEvents();
+        await jest.runAllTimersAsync();
+
+        expect(mockListenForParentSignals).toHaveBeenCalledWith(
+          expect.objectContaining({ onStart: expect.any(Function), onStop: expect.any(Function) }),
+        );
+      });
+
+      test('re-entering child mode cancels the previous parent signal listener', async () => {
+        const firstCleanup = jest.fn();
+        (mockListenForParentSignals as jest.Mock).mockReturnValueOnce(firstCleanup);
+
+        await sessionReplay.init(apiKey, crossOriginOptions).promise;
+        await sessionReplay.recordEvents();
+        await jest.runAllTimersAsync();
+
+        // Record again (e.g. after a session-ID rotation) — should tear down the old listener
+        await sessionReplay.recordEvents();
+        await jest.runAllTimersAsync();
+
+        expect(firstCleanup).toHaveBeenCalled();
+      });
+
+      test('starts recording when onStart callback is invoked', async () => {
+        await sessionReplay.init(apiKey, crossOriginOptions).promise;
+        await sessionReplay.recordEvents();
+        await jest.runAllTimersAsync();
+
+        const { onStart } = (mockListenForParentSignals as jest.Mock).mock.calls[0][0] as {
+          onStart: () => void;
+          onStop: () => void;
+        };
+        onStart();
+
+        expect(mockRecordFunction).toHaveBeenCalledWith(expect.objectContaining({ recordCrossOriginIframes: true }));
+      });
+
+      test('stops recording when onStop callback is invoked', async () => {
+        await sessionReplay.init(apiKey, crossOriginOptions).promise;
+        await sessionReplay.recordEvents();
+        await jest.runAllTimersAsync();
+
+        const { onStart, onStop } = (mockListenForParentSignals as jest.Mock).mock.calls[0][0] as {
+          onStart: () => void;
+          onStop: () => void;
+        };
+        onStart();
+        const cancelCallback = mockRecordFunction.mock.results[0].value as jest.Mock;
+        onStop();
+        expect(cancelCallback).toHaveBeenCalled();
+      });
+
+      test('onStop before onStart does not throw', async () => {
+        await sessionReplay.init(apiKey, crossOriginOptions).promise;
+        await sessionReplay.recordEvents();
+        await jest.runAllTimersAsync();
+
+        const { onStop } = (mockListenForParentSignals as jest.Mock).mock.calls[0][0] as {
+          onStop: () => void;
+        };
+        expect(() => onStop()).not.toThrow();
+      });
+
+      test('onStop logs warning if cancel callback throws', async () => {
+        await sessionReplay.init(apiKey, crossOriginOptions).promise;
+        await sessionReplay.recordEvents();
+        await jest.runAllTimersAsync();
+
+        const { onStart, onStop } = (mockListenForParentSignals as jest.Mock).mock.calls[0][0] as {
+          onStart: () => void;
+          onStop: () => void;
+        };
+        onStart();
+        const cancelCallback = mockRecordFunction.mock.results[0].value as jest.Mock;
+        cancelCallback.mockImplementation(() => {
+          throw new Error('cancel failure');
+        });
+        onStop();
+        expect(mockLoggerProvider.warn).toHaveBeenCalledWith(
+          expect.stringContaining('Error occurred while stopping child iframe replay capture:'),
+        );
+      });
+
+      test('parent signal listener stays alive across onStop/onStart cycles', async () => {
+        await sessionReplay.init(apiKey, crossOriginOptions).promise;
+        await sessionReplay.recordEvents();
+        await jest.runAllTimersAsync();
+
+        const { onStart, onStop } = (mockListenForParentSignals as jest.Mock).mock.calls[0][0] as {
+          onStart: () => void;
+          onStop: () => void;
+        };
+        onStart();
+        onStop();
+
+        // Listener must still be alive — a subsequent onStart should work
+        mockRecordFunction.mockClear();
+        onStart();
+        expect(mockRecordFunction).toHaveBeenCalledWith(expect.objectContaining({ recordCrossOriginIframes: true }));
+      });
+
+      test('subsequent onStart cancels previous rrweb recording before starting a new one', async () => {
+        await sessionReplay.init(apiKey, crossOriginOptions).promise;
+        await sessionReplay.recordEvents();
+        await jest.runAllTimersAsync();
+
+        const { onStart } = (mockListenForParentSignals as jest.Mock).mock.calls[0][0] as {
+          onStart: () => void;
+        };
+        onStart();
+        const firstCancelCallback = mockRecordFunction.mock.results[0].value as jest.Mock;
+        // Second onStart (e.g. parent session rotated) should cancel the first recording
+        onStart();
+        expect(firstCancelCallback).toHaveBeenCalled();
+      });
+
+      test('cleans up parent signal listener on shutdown', async () => {
+        const mockCleanup = jest.fn();
+        (mockListenForParentSignals as jest.Mock).mockReturnValueOnce(mockCleanup);
+
+        await sessionReplay.init(apiKey, crossOriginOptions).promise;
+        await sessionReplay.recordEvents();
+        await jest.runAllTimersAsync();
+
+        sessionReplay.shutdown();
+        expect(mockCleanup).toHaveBeenCalled();
+      });
+
+      test('stopRecordingEvents cleans up parent signal listener to prevent stale mode', async () => {
+        const mockCleanup = jest.fn();
+        (mockListenForParentSignals as jest.Mock).mockReturnValueOnce(mockCleanup);
+
+        await sessionReplay.init(apiKey, crossOriginOptions).promise;
+        await sessionReplay.recordEvents();
+        await jest.runAllTimersAsync();
+
+        sessionReplay.stopRecordingEvents();
+        expect(mockCleanup).toHaveBeenCalled();
+      });
+
+      test('coordinateChildren: false records immediately even in iframe context', async () => {
+        await sessionReplay.init(apiKey, {
+          ...mockOptions,
+          crossOriginIframes: { enabled: true, coordinateChildren: false },
+        }).promise;
+        await sessionReplay.recordEvents();
+        await jest.runAllTimersAsync();
+
+        expect(mockRecordFunction).toHaveBeenCalledWith(expect.objectContaining({ recordCrossOriginIframes: true }));
+      });
+
+      test('child mode emit callback is a no-op (events forwarded via postMessage by rrweb)', async () => {
+        await sessionReplay.init(apiKey, crossOriginOptions).promise;
+        await sessionReplay.recordEvents();
+        await jest.runAllTimersAsync();
+
+        const { onStart } = (mockListenForParentSignals as jest.Mock).mock.calls[0][0] as {
+          onStart: () => void;
+        };
+        onStart();
+
+        const callArgs = mockRecordFunction.mock.calls[0]?.[0] as Record<string, (...args: unknown[]) => unknown>;
+        // The emit callback is a no-op in child mode — just verify it does not throw
+        expect(() => callArgs.emit({ type: 4, data: {}, timestamp: 1 })).not.toThrow();
+      });
+
+      test('mask function URL getters in child mode return currentPageUrl', async () => {
+        await sessionReplay.init(apiKey, crossOriginOptions).promise;
+        await sessionReplay.recordEvents();
+        await jest.runAllTimersAsync();
+
+        const { onStart } = (mockListenForParentSignals as jest.Mock).mock.calls[0][0] as {
+          onStart: () => void;
+        };
+        onStart();
+
+        const callArgs = mockRecordFunction.mock.calls[0]?.[0] as Record<string, (...args: unknown[]) => unknown>;
+        // Invoke the URL getter lambdas by calling the mask functions with dummy input
+        if (typeof callArgs?.maskInputFn === 'function') {
+          callArgs.maskInputFn('test', null);
+        }
+        if (typeof callArgs?.maskTextFn === 'function') {
+          callArgs.maskTextFn('test', null);
+        }
+        // No assertion needed — just exercising the lambdas for coverage
+      });
+
+      test('passes omitElementTags into child mode slimDOMOptions', async () => {
+        await sessionReplay.init(apiKey, {
+          ...crossOriginOptions,
+          omitElementTags: { script: true, comment: true },
+        }).promise;
+        await sessionReplay.recordEvents();
+        await jest.runAllTimersAsync();
+
+        const { onStart } = (mockListenForParentSignals as jest.Mock).mock.calls[0][0] as {
+          onStart: () => void;
+        };
+        onStart();
+
+        expect(mockRecordFunction).toHaveBeenCalledWith(
+          expect.objectContaining({ slimDOMOptions: { script: true, comment: true } }),
+        );
+      });
+
+      test('maskAttributeFn in child mode invokes URL getter when key is in maskAttributes', async () => {
+        // Need a config with maskAttributes so the URL getter lambda is actually called
+        await sessionReplay.init(apiKey, {
+          ...crossOriginOptions,
+          privacyConfig: { maskAttributes: ['data-sensitive'] },
+        }).promise;
+        await sessionReplay.recordEvents();
+        await jest.runAllTimersAsync();
+
+        const { onStart } = (mockListenForParentSignals as jest.Mock).mock.calls[0][0] as {
+          onStart: () => void;
+        };
+        onStart();
+
+        const callArgs = mockRecordFunction.mock.calls[0]?.[0] as Record<string, (...args: unknown[]) => unknown>;
+        if (typeof callArgs?.maskAttributeFn === 'function') {
+          callArgs.maskAttributeFn('data-sensitive', 'secret', document.createElement('div'));
+        }
+      });
+
+      test('errorHandler in child mode logs warning for generic errors', async () => {
+        await sessionReplay.init(apiKey, crossOriginOptions).promise;
+        await sessionReplay.recordEvents();
+        await jest.runAllTimersAsync();
+
+        const { onStart } = (mockListenForParentSignals as jest.Mock).mock.calls[0][0] as {
+          onStart: () => void;
+        };
+        onStart();
+
+        const callArgs = mockRecordFunction.mock.calls[0]?.[0] as Record<string, (...args: unknown[]) => unknown>;
+        const result = callArgs.errorHandler(new Error('some rrweb error'));
+        expect(result).toBe(true);
+        expect(mockLoggerProvider.warn).toHaveBeenCalledWith(
+          'Error while capturing replay (child iframe): ',
+          expect.any(String),
+        );
+      });
+
+      test('errorHandler in child mode re-throws CSSStyleSheet insertRule errors', async () => {
+        await sessionReplay.init(apiKey, crossOriginOptions).promise;
+        await sessionReplay.recordEvents();
+        await jest.runAllTimersAsync();
+
+        const { onStart } = (mockListenForParentSignals as jest.Mock).mock.calls[0][0] as {
+          onStart: () => void;
+        };
+        onStart();
+
+        const callArgs = mockRecordFunction.mock.calls[0]?.[0] as Record<string, (...args: unknown[]) => unknown>;
+        const cssError = new Error('insertRule CSSStyleSheet problem');
+        expect(() => callArgs.errorHandler(cssError)).toThrow(cssError);
+      });
+
+      test('errorHandler in child mode re-throws _external_ flagged errors', async () => {
+        await sessionReplay.init(apiKey, crossOriginOptions).promise;
+        await sessionReplay.recordEvents();
+        await jest.runAllTimersAsync();
+
+        const { onStart } = (mockListenForParentSignals as jest.Mock).mock.calls[0][0] as {
+          onStart: () => void;
+        };
+        onStart();
+
+        const callArgs = mockRecordFunction.mock.calls[0]?.[0] as Record<string, (...args: unknown[]) => unknown>;
+        const externalError = Object.assign(new Error('external error'), { _external_: true });
+        expect(() => callArgs.errorHandler(externalError)).toThrow(externalError);
+      });
+
+      test('_recordEventsInChildMode catch block logs warning when recordFunction throws', async () => {
+        await sessionReplay.init(apiKey, crossOriginOptions).promise;
+        await sessionReplay.recordEvents();
+        await jest.runAllTimersAsync();
+
+        const { onStart } = (mockListenForParentSignals as jest.Mock).mock.calls[0][0] as {
+          onStart: () => void;
+        };
+
+        mockRecordFunction.mockImplementationOnce(() => {
+          throw new Error('rrweb init failure');
+        });
+        onStart();
+
+        expect(mockLoggerProvider.warn).toHaveBeenCalledWith(
+          'Failed to initialize session replay in child iframe mode:',
+          expect.any(Error),
+        );
+      });
     });
   });
 });

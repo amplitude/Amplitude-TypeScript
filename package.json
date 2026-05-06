@@ -11,7 +11,7 @@
     "clean": "lerna run clean --stream && rimraf node_modules docs",
     "deploy:version": "lerna version",
     "deploy:version:dry-run": "DRY_RUN=true lerna version --no-push --no-git-tag-version --allow-branch \"$(git rev-parse --abbrev-ref HEAD)\" --conventional-prerelease --no-changelog --no-push --no-git-tag-version",
-    "deploy:publish": "pnpm -r --filter \"./packages/**\" publish",
+    "deploy:publish": "pnpm -r --filter \"./packages/**\" publish --no-git-checks",
     "deploy:publish:dry-run": "DRY_RUN=true pnpm -r --filter \"./packages/**\" publish --dry-run --no-git-checks",
     "deploy:pack": "DRY_RUN=true pnpm -r --filter \"./packages/**\" pack",
     "dev": "concurrently \"pnpm run watch\" \"vite dev --open\"",
@@ -97,5 +97,10 @@
   "dependencies": {
     "tslib": "^2.4.1"
   },
-  "packageManager": "pnpm@10.26.1+sha512.664074abc367d2c9324fdc18037097ce0a8f126034160f709928e9e9f95d98714347044e5c3164d65bd5da6c59c6be362b107546292a8eecb7999196e5ce58fa"
+  "packageManager": "pnpm@10.26.1+sha512.664074abc367d2c9324fdc18037097ce0a8f126034160f709928e9e9f95d98714347044e5c3164d65bd5da6c59c6be362b107546292a8eecb7999196e5ce58fa",
+  "pnpm": {
+    "overrides": {
+      "typescript": "^4.9.4"
+    }
+  }
 }

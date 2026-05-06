@@ -8,6 +8,7 @@ import {
 import { SessionReplayOptions, StoreType } from '../typings/session-replay';
 import {
   SessionReplayLocalConfig as ISessionReplayLocalConfig,
+  CrossOriginIframesConfig,
   InteractionConfig,
   PrivacyConfig,
   SessionReplayPerformanceConfig,
@@ -45,6 +46,7 @@ export class SessionReplayLocalConfig extends Config implements ISessionReplayLo
   urlChangePollingInterval?: number;
   captureDocumentTitle?: boolean;
   captureAdoptedStyleSheets?: boolean;
+  crossOriginIframes?: CrossOriginIframesConfig;
 
   constructor(apiKey: string, options: SessionReplayOptions) {
     const defaultConfig = getDefaultConfig();
@@ -67,7 +69,7 @@ export class SessionReplayLocalConfig extends Config implements ISessionReplayLo
     this.shouldInlineStylesheet = options.shouldInlineStylesheet;
     this.version = options.version;
     this.performanceConfig = options.performanceConfig || DEFAULT_PERFORMANCE_CONFIG;
-    this.storeType = options.storeType ?? 'idb';
+    this.storeType = options.storeType ?? 'memory';
     this.applyBackgroundColorToBlockedElements = options.applyBackgroundColorToBlockedElements ?? false;
     this.enableUrlChangePolling = options.enableUrlChangePolling ?? false;
     this.urlChangePollingInterval = options.urlChangePollingInterval ?? DEFAULT_URL_CHANGE_POLLING_INTERVAL;
@@ -100,5 +102,8 @@ export class SessionReplayLocalConfig extends Config implements ISessionReplayLo
       this.omitElementTags = options.omitElementTags;
     }
     this.captureAdoptedStyleSheets = options.captureAdoptedStyleSheets ?? true;
+    if (options.crossOriginIframes) {
+      this.crossOriginIframes = options.crossOriginIframes;
+    }
   }
 }

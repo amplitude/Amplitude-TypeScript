@@ -107,8 +107,96 @@ describe('trackMainThreadBlock', () => {
       const call = (amplitude.track as jest.Mock).mock.calls[0][1];
       expect(call['[Amplitude] Main Thread Block Script URLs']).toBeUndefined();
       expect(call['[Amplitude] Main Thread Block Script Functions']).toBeUndefined();
+      expect(call['[Amplitude] Main Thread Block Script Positions']).toBeUndefined();
       expect(call['[Amplitude] Main Thread Block Invoker Types']).toBeUndefined();
       expect(call['[Amplitude] Main Thread Block Invokers']).toBeUndefined();
+    });
+
+    it('should include script positions when sourceCharPosition is present', () => {
+      trackMainThreadBlock({ amplitude, options: {} });
+
+      getBlockObserver().fire([
+        {
+          duration: 150,
+          startTime: 1000,
+          blockingDuration: 120,
+          renderStart: 1050,
+          styleAndLayoutStart: 1080,
+          scripts: [
+            {
+              sourceURL: 'app.js',
+              sourceFunctionName: 'onClick',
+              sourceCharPosition: 1234,
+              invokerType: 'event-listener',
+              invoker: 'click',
+            },
+            {
+              sourceURL: 'vendor.js',
+              sourceFunctionName: 'handle',
+              // 0 is a valid character position and must not be filtered out
+              sourceCharPosition: 0,
+              invokerType: 'event-listener',
+              invoker: 'scroll',
+            },
+          ],
+        } as any,
+      ]);
+
+      const call = (amplitude.track as jest.Mock).mock.calls[0][1];
+      expect(call['[Amplitude] Main Thread Block Script Positions']).toEqual([1234, 0]);
+    });
+
+    it('should omit script positions when sourceCharPosition is missing on all scripts', () => {
+      trackMainThreadBlock({ amplitude, options: {} });
+
+      getBlockObserver().fire([
+        {
+          duration: 150,
+          startTime: 1000,
+          blockingDuration: 120,
+          renderStart: 1050,
+          styleAndLayoutStart: 1080,
+          scripts: [
+            { sourceURL: 'app.js', sourceFunctionName: 'onClick', invokerType: 'event-listener', invoker: 'click' },
+          ],
+        } as any,
+      ]);
+
+      const call = (amplitude.track as jest.Mock).mock.calls[0][1];
+      expect(call['[Amplitude] Main Thread Block Script Positions']).toBeUndefined();
+    });
+
+    it('should filter out -1 sentinel values from sourceCharPosition', () => {
+      trackMainThreadBlock({ amplitude, options: {} });
+
+      getBlockObserver().fire([
+        {
+          duration: 150,
+          startTime: 1000,
+          blockingDuration: 120,
+          renderStart: 1050,
+          styleAndLayoutStart: 1080,
+          scripts: [
+            {
+              sourceURL: 'app.js',
+              sourceFunctionName: 'onClick',
+              sourceCharPosition: 42,
+              invokerType: 'event-listener',
+              invoker: 'click',
+            },
+            {
+              sourceURL: 'vendor.js',
+              sourceFunctionName: 'handle',
+              sourceCharPosition: -1,
+              invokerType: 'event-listener',
+              invoker: 'scroll',
+            },
+          ],
+        } as any,
+      ]);
+
+      const call = (amplitude.track as jest.Mock).mock.calls[0][1];
+      expect(call['[Amplitude] Main Thread Block Script Positions']).toEqual([42]);
     });
 
     it('should include overlapping measures', () => {

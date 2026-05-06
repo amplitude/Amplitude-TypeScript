@@ -96,6 +96,7 @@ describe('module level integration', () => {
     sampleRate: 1,
     sessionId: 123,
     serverZone: ServerZone.EU,
+    storeType: 'idb',
   };
   beforeEach(() => {
     // Initialize mockRemoteConfig with null (no remote config by default for these tests)

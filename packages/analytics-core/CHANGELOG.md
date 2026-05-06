@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.48.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.48.0...@amplitude/analytics-core@2.48.1) (2026-05-05)
+
+
+### Bug Fixes
+
+* **analytics-browser:** make autocapture opt-in within Chrome Extension ([#1710](https://github.com/amplitude/Amplitude-TypeScript/issues/1710)) ([de5ff6e](https://github.com/amplitude/Amplitude-TypeScript/commit/de5ff6e4fc9bfcf5d880fb291c796614ef86cc59))
+* **analytics-core:** close TOCTOU race in Timeline.register() ([#1702](https://github.com/amplitude/Amplitude-TypeScript/issues/1702)) ([3c399a5](https://github.com/amplitude/Amplitude-TypeScript/commit/3c399a5770097e657dafb7394023b4518076eca5))
+
+
+
+
+
 # [2.48.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.47.1...@amplitude/analytics-core@2.48.0) (2026-04-28)
 
 

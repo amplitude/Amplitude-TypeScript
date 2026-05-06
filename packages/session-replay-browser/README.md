@@ -104,6 +104,91 @@ sessionReplay.shutdown()
 |`performanceConfig.enabled`|`boolean`|No|`true`|If enabled, event compression will be deferred to occur during the browser's idle periods.|
 |`performanceConfig.timeout`|`number`|No|`undefined`|Optional timeout in milliseconds for the `requestIdleCallback` API. If specified, this value will be used to set a maximum time for the browser to wait before executing the deferred compression task, even if the browser is not idle.|
 |`useWebWorker`|`boolean`|No|`false`|If true, the SDK will compress replay events using a web worker. This offloads compression to a separate thread, improving performance on the main thread.|
+|`crossOriginIframes.enabled`|`boolean`|No|`false`|Enables cross-origin iframe recording. Must be set to `true` on both the parent page and each child iframe page. See [Cross-Origin Iframe Recording](#cross-origin-iframe-recording).|
+|`crossOriginIframes.coordinateChildren`|`boolean`|No|`true`|When `true`, the parent SDK automatically sends start/stop signals to child iframes via `postMessage`. Set to `false` to manage child recording lifecycle yourself.|
+
+## Cross-Origin Iframe Recording
+
+The SDK can capture events inside cross-origin `<iframe>` elements and merge them into the parent page's session replay.
+
+### How it works
+
+Both the parent page and each iframe page must load the SDK with `crossOriginIframes.enabled: true`. The parent SDK coordinates recording across all child iframes using `postMessage` signals and rrweb's built-in cross-origin relay.
+
+```
+Parent page (yoursite.com)
+┌─────────────────────────────────────────────────────────────────┐
+│  sessionReplay.init(API_KEY, { crossOriginIframes: { enabled: true } })
+│                                                                   │
+│  CrossOriginIframeCoordinator                                     │
+│  ┌────────────────────────┐                                       │
+│  │ MutationObserver       │  postMessage("start") ──────────────► │
+│  │ watches for <iframe>   │                                       │
+│  │ additions/removals     │  postMessage("stop")  ──────────────► │
+│  └────────────────────────┘                                       │
+│                                                                   │
+│  rrweb (recordCrossOriginIframes: true)                           │
+│  ◄─────────────── child rrweb events relayed via postMessage ──── │
+│  Merges child events into parent snapshot stream                  │
+└─────────────────────────────────────────────────────────────────┘
+         │ postMessage("start" / "stop")
+         ▼
+Child iframe page (payments.example.com)
+┌─────────────────────────────────────────────────────────────────┐
+│  sessionReplay.init(API_KEY, { crossOriginIframes: { enabled: true } })
+│                                                                   │
+│  isInIframe() === true → child mode                               │
+│  listenForParentSignals()                                         │
+│  ┌──────────────────────────────────┐                            │
+│  │ Waits for "start" signal         │                            │
+│  │   → initialises rrweb recording  │                            │
+│  │ On "stop" signal                 │                            │
+│  │   → stops rrweb, flushes events  │                            │
+│  └──────────────────────────────────┘                            │
+│                                                                   │
+│  rrweb events ──► postMessage relay ──► parent rrweb             │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+Child events are serialized by the child page's own rrweb instance and relayed to the parent via `postMessage`. The parent rrweb stream stores them inline, so the replay viewer can reconstruct both frames from a single session.
+
+### Setup
+
+**Parent page:**
+```typescript
+sessionReplay.init(API_KEY, {
+  deviceId: DEVICE_ID,
+  sessionId: SESSION_ID,
+  crossOriginIframes: { enabled: true },
+});
+```
+
+**Child iframe page** (must also load the SDK):
+```typescript
+sessionReplay.init(API_KEY, {
+  deviceId: DEVICE_ID,
+  sessionId: SESSION_ID,
+  crossOriginIframes: { enabled: true },
+});
+```
+
+The child SDK detects it is running inside an iframe and automatically enters child mode — it will wait for a start signal from the parent rather than begin recording immediately.
+
+### Options
+
+| Name | Type | Required | Default | Description |
+|-|-|-|-|-|
+| `crossOriginIframes.enabled` | `boolean` | Yes | — | Enables cross-origin iframe recording on both parent and child pages. |
+| `crossOriginIframes.coordinateChildren` | `boolean` | No | `true` | When `true`, the parent SDK sends start/stop signals to child iframes and keeps their recording lifecycle in sync. Set to `false` to manage child recording yourself. |
+
+### Privacy
+
+The child page's rrweb instance performs its own DOM serialisation. The parent's privacy config (mask levels, block selectors, etc.) does **not** automatically apply inside the iframe — configure privacy settings independently on the child page.
+
+### Limitations
+
+- **Third-party iframes** (e.g. Stripe, Google Maps) cannot be captured. Both the parent and child pages must load the SDK with `crossOriginIframes.enabled: true`.
+- `coordinateChildren: false` opts out of the coordinator; in this mode the child SDK will not start recording until you manage its lifecycle directly.
 
 ## Network Request Capture
 
