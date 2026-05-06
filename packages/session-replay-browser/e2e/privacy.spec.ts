@@ -186,7 +186,7 @@ test.describe('privacy — amp-unmask CSS class', () => {
     // Before SR-2945, .amp-unmask had no effect unless the user explicitly added
     // '.amp-unmask' to privacyConfig.unmaskSelector. Now it's wired as a default.
     await mockRemoteConfig(page, remoteConfigWithPrivacy({ defaultMaskLevel: 'conservative' }));
-    const getBodies = await captureTrackRequests(page);
+    const { getBodies } = await captureTrackRequests(page);
 
     // No local privacyConfig — masking comes entirely from remote config
     await page.goto(buildUrl(PRIVACY_PAGE, { sessionId: TEST_SESSION_ID }));
@@ -214,7 +214,7 @@ test.describe('privacy — amp-unmask CSS class', () => {
   }) => {
     const privacyConfig = JSON.stringify({ defaultMaskLevel: 'conservative' });
     await mockRemoteConfig(page, remoteConfigRecording);
-    const getBodies = await captureTrackRequests(page);
+    const { getBodies } = await captureTrackRequests(page);
 
     await page.goto(buildUrl(PRIVACY_PAGE, { sessionId: TEST_SESSION_ID, privacyConfig }));
     await waitForReady(page);

@@ -6,6 +6,7 @@
 import * as AnalyticsCore from '@amplitude/analytics-core';
 import { LogLevel, ILogger, ServerZone, SpecialEventType, RemoteConfig, Source } from '@amplitude/analytics-core';
 import { SessionReplayLocalConfig } from '../src/config/local-config';
+import * as JoinedConfigModule from '../src/config/joined-config';
 import { NetworkObservers, NetworkRequestEvent } from '../src/observers';
 
 import { IDBFactory } from 'fake-indexeddb';
@@ -4388,6 +4389,33 @@ describe('SessionReplay', () => {
         },
       }).promise;
       expect(subscribeToUrlChanges).toHaveBeenCalled();
+    });
+
+    test('should not call subscribeToUrlChanges when privacyConfig is undefined and no targetingConfig', async () => {
+      (subscribeToUrlChanges as jest.Mock).mockClear();
+      const mockLocalConfig = new SessionReplayLocalConfig(apiKey, mockOptions);
+      const mockJoinedConfig: SessionReplayJoinedConfig = {
+        ...mockLocalConfig,
+        optOut: false,
+        privacyConfig: undefined,
+        captureEnabled: true,
+      };
+      const mockGenerator = {
+        generateJoinedConfig: jest.fn().mockResolvedValue({
+          joinedConfig: mockJoinedConfig,
+          localConfig: mockLocalConfig,
+          remoteConfig: undefined,
+        }),
+      };
+      const createGeneratorSpy = jest
+        .spyOn(JoinedConfigModule, 'createSessionReplayJoinedConfigGenerator')
+        .mockResolvedValue(mockGenerator as any);
+
+      const sessionReplay = new SessionReplay();
+      await sessionReplay.init(apiKey, mockOptions).promise;
+
+      expect(subscribeToUrlChanges).not.toHaveBeenCalled();
+      createGeneratorSpy.mockRestore();
     });
 
     test('should update currentPageUrl on URL change even without targetingConfig', async () => {
