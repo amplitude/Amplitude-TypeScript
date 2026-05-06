@@ -125,7 +125,7 @@ async function sendBatch(
   }
 
   const dropMessage = result.is413
-    ? `[Session Replay] Event batch too large to send (413) and cannot be split further; dropping.`
+    ? `Session replay event batch too large to send (413) and cannot be split further; dropping.`
     : undefined;
   const message = dropMessage ?? (attempt >= context.flushMaxRetries ? MAX_RETRIES_EXCEEDED_MESSAGE : result.message);
   return { success: false, message };

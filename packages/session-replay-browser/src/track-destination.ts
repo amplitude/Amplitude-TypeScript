@@ -380,12 +380,12 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
       // Cannot split further — drop the single oversized event.
       this.completeRequest({
         context,
-        err: `[Session Replay] Event batch too large to send (413) and cannot be split further; dropping.`,
+        err: `Session replay event batch too large to send (413) and cannot be split further; dropping.`,
       });
       return;
     }
     this.loggerProvider.warn(
-      `[Session Replay] Event batch got 413 (${context.events.length} events); splitting in half and retrying.`,
+      `Session replay event batch got 413 (${context.events.length} events); splitting in half and retrying.`,
     );
     const half = Math.floor(context.events.length / 2);
     // Track when both halves complete so the original onComplete fires exactly once.
