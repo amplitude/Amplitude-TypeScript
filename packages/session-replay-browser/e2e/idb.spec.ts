@@ -166,6 +166,7 @@ async function loadPage(page: import('@playwright/test').Page, sessionId = TEST_
     buildUrl('/session-replay-browser/sr-capture-test.html', {
       sessionId,
       logLevel: LOG_LEVEL_DEBUG,
+      storeType: 'idb',
     }),
   );
   await waitForReady(page);
@@ -361,6 +362,7 @@ test.describe('IDB transaction abort handling', () => {
       buildUrl('/session-replay-browser/sr-capture-test.html', {
         sessionId: TEST_SESSION_ID,
         logLevel: LOG_LEVEL_DEBUG,
+        storeType: 'idb',
       }),
     );
     await waitForReady(page);
@@ -494,6 +496,7 @@ test.describe('IDB multi-tab and fallback behaviour', () => {
       const url = buildUrl('/session-replay-browser/sr-capture-test.html', {
         sessionId: TEST_SESSION_ID,
         logLevel: LOG_LEVEL_DEBUG,
+        storeType: 'idb',
       });
 
       await tabA.goto(url);
@@ -583,6 +586,7 @@ test.describe('IDB multi-tab and fallback behaviour', () => {
       const url = buildUrl('/session-replay-browser/sr-capture-test.html', {
         sessionId: TEST_SESSION_ID,
         logLevel: LOG_LEVEL_DEBUG,
+        storeType: 'idb',
       });
 
       await tabA.goto(url);
@@ -682,6 +686,7 @@ test.describe('IDB multi-tab and fallback behaviour', () => {
       buildUrl('/session-replay-browser/sr-capture-test.html', {
         sessionId: TEST_SESSION_ID,
         logLevel: LOG_LEVEL_DEBUG,
+        storeType: 'idb',
       }),
     );
     await waitForReady(page);
@@ -785,6 +790,7 @@ test.describe('IDB multi-tab and fallback behaviour', () => {
       buildUrl('/session-replay-browser/sr-capture-test.html', {
         sessionId: TEST_SESSION_ID,
         logLevel: LOG_LEVEL_DEBUG,
+        storeType: 'idb',
       }),
     );
     await waitForReady(page);
@@ -831,6 +837,7 @@ test.describe('IDB multi-tab and fallback behaviour', () => {
       const url = buildUrl('/session-replay-browser/sr-capture-test.html', {
         sessionId: TEST_SESSION_ID,
         logLevel: LOG_LEVEL_DEBUG,
+        storeType: 'idb',
       });
 
       await tabA.goto(url);

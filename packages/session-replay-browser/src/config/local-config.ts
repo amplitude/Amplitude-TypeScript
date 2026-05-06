@@ -69,7 +69,7 @@ export class SessionReplayLocalConfig extends Config implements ISessionReplayLo
     this.shouldInlineStylesheet = options.shouldInlineStylesheet;
     this.version = options.version;
     this.performanceConfig = options.performanceConfig || DEFAULT_PERFORMANCE_CONFIG;
-    this.storeType = options.storeType ?? 'idb';
+    this.storeType = options.storeType ?? 'memory';
     this.applyBackgroundColorToBlockedElements = options.applyBackgroundColorToBlockedElements ?? false;
     this.enableUrlChangePolling = options.enableUrlChangePolling ?? false;
     this.urlChangePollingInterval = options.urlChangePollingInterval ?? DEFAULT_URL_CHANGE_POLLING_INTERVAL;
