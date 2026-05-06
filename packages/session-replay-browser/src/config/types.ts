@@ -34,12 +34,23 @@ export interface LoggingConfig {
 
 export type TargetingConfig = TargetingFlag;
 
+export interface StoreConfig {
+  /**
+   * Experiment flag (SR-3878). When true, forces the in-memory event store regardless of
+   * the locally-configured `storeType`. Lets the experiment ramp via remote config without
+   * requiring an SDK release. When false or unset, `storeType` is whatever the SDK was
+   * initialized with.
+   */
+  use_memory_store?: boolean;
+}
+
 export type SessionReplayRemoteConfig = {
   sr_sampling_config?: SamplingConfig;
   sr_privacy_config?: PrivacyConfig;
   sr_interaction_config?: InteractionConfig;
   sr_logging_config?: LoggingConfig;
   sr_targeting_config?: TargetingConfig;
+  sr_store_config?: StoreConfig;
 };
 
 export interface SessionReplayRemoteConfigAPIResponse {

@@ -88,6 +88,12 @@ export class SessionReplayJoinedConfigGenerator {
             // This is intentionally forced to only be set through the remote config.
             config.loggingConfig = namespaceConfig.sr_logging_config;
 
+            // SR-3878 experiment: remote flag can force the in-memory event store.
+            // Local `storeType` stays untouched if the flag is unset or false.
+            if (namespaceConfig.sr_store_config?.use_memory_store === true) {
+              config.storeType = 'memory';
+            }
+
             if (samplingConfig || privacyConfig || targetingConfig) {
               sessionReplayRemoteConfig = {};
               if (samplingConfig) {

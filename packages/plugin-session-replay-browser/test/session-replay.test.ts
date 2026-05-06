@@ -134,12 +134,12 @@ describe('SessionReplayPlugin', () => {
       expect(sessionReplay.config).toBeDefined();
     });
 
-    test('should default storeType to memory when not specified', async () => {
+    test('should pass storeType through to session replay (undefined when not set)', async () => {
       const sessionReplay = new SessionReplayPlugin();
 
       await sessionReplay.setup?.(mockConfig, mockAmplitude);
 
-      expect(init).toHaveBeenCalledWith('static_key', expect.objectContaining({ storeType: 'memory' }));
+      expect(init).toHaveBeenCalledWith('static_key', expect.objectContaining({ storeType: undefined }));
     });
 
     test('should use explicitly provided storeType', async () => {
