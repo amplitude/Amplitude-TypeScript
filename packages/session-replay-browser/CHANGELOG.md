@@ -3,6 +3,22 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.42.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.41.0...@amplitude/session-replay-browser@1.42.0) (2026-05-06)
+
+
+### Bug Fixes
+
+* **session-replay-browser:** buffer emit events when eventCompressor not yet ready ([#1706](https://github.com/amplitude/Amplitude-TypeScript/issues/1706)) ([fa4d38b](https://github.com/amplitude/Amplitude-TypeScript/commit/fa4d38b1f05c5ae7051cd74869a99495b38a094b))
+
+
+### Features
+
+* **session-replay-browser:** default storeType to memory (SR-3878 experiment) ([#1704](https://github.com/amplitude/Amplitude-TypeScript/issues/1704)) ([a893023](https://github.com/amplitude/Amplitude-TypeScript/commit/a8930230a7822fb2ae1fb5150d98f9c150a617bb))
+
+
+
+
+
 # [1.41.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.40.0...@amplitude/session-replay-browser@1.41.0) (2026-05-05)
 
 

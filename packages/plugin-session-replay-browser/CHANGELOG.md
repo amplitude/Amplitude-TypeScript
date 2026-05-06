@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.30.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@1.29.0...@amplitude/plugin-session-replay-browser@1.30.0) (2026-05-06)
+
+
+### Features
+
+* **session-replay-browser:** default storeType to memory (SR-3878 experiment) ([#1704](https://github.com/amplitude/Amplitude-TypeScript/issues/1704)) ([a893023](https://github.com/amplitude/Amplitude-TypeScript/commit/a8930230a7822fb2ae1fb5150d98f9c150a617bb))
+
+
+
+
+
 # [1.29.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@1.28.1...@amplitude/plugin-session-replay-browser@1.29.0) (2026-05-05)
 
 
