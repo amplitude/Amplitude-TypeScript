@@ -575,6 +575,39 @@ describe('EventCompressor', () => {
       expect(eventCompressor.isProcessing).toBe(false);
     });
 
+    test('should drain pendingQueue events before processing taskQueue on flush', () => {
+      const addEventMock = jest.spyOn(eventsManager, 'addEvent');
+
+      // Simulate events that arrived in pendingQueue before idle callback fired
+      eventCompressor.pendingQueue.push({ event: mockEvent as eventWithTime, sessionId });
+      eventCompressor.pendingQueue.push({ event: mockEvent as eventWithTime, sessionId });
+      eventCompressor.isProcessing = true;
+
+      eventCompressor.flushQueue();
+
+      // Both pending events must be compressed and added to the manager
+      expect(addEventMock).toHaveBeenCalledTimes(2);
+      expect(eventCompressor.pendingQueue).toHaveLength(0);
+      expect(eventCompressor.taskQueue).toHaveLength(0);
+      expect(eventCompressor.isProcessing).toBe(false);
+    });
+
+    test('should drain both pendingQueue and taskQueue events on flush', () => {
+      const addEventMock = jest.spyOn(eventsManager, 'addEvent');
+
+      // One event already promoted to taskQueue, one still in pendingQueue
+      eventCompressor.taskQueue.push({ event: mockEvent as eventWithTime, sessionId });
+      eventCompressor.pendingQueue.push({ event: mockEvent as eventWithTime, sessionId });
+      eventCompressor.isProcessing = true;
+
+      eventCompressor.flushQueue();
+
+      expect(addEventMock).toHaveBeenCalledTimes(2);
+      expect(eventCompressor.pendingQueue).toHaveLength(0);
+      expect(eventCompressor.taskQueue).toHaveLength(0);
+      expect(eventCompressor.isProcessing).toBe(false);
+    });
+
     test('should bypass web worker and compress synchronously even when a worker is present', async () => {
       const postMessageMock = jest.fn();
       class MockWorker {

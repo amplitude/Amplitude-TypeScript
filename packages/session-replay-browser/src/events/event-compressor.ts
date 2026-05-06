@@ -190,6 +190,12 @@ export class EventCompressor {
    * data loss from events waiting in the requestIdleCallback queue.
    */
   public flushQueue = () => {
+    // Merge any events still in pendingQueue into taskQueue first.
+    // Events land in pendingQueue when the idle callback hasn't fired yet;
+    // without this step they would be silently lost on page unload.
+    if (this.pendingQueue.length > 0) {
+      this.taskQueue.push(...this.mergeMutationTasks(this.pendingQueue.splice(0)));
+    }
     while (this.taskQueue.length > 0) {
       const task = this.taskQueue.shift();
       if (task) {
