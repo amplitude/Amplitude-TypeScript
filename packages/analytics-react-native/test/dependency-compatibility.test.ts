@@ -130,9 +130,12 @@ describe('dependency-compatibility', () => {
       test('should handle checking for document existence', () => {
         const globalScope = AnalyticsCore.getGlobalScope();
         expect(globalScope).toBeDefined();
+        expect(typeof globalScope).toBe('object');
 
         // Verify we can check for document existence without errors
-        const hasDocument = 'document' in globalScope && globalScope.document !== undefined;
+        // TypeScript knows globalScope is defined from the type 'object' check above
+        const scopeObject = globalScope as typeof globalThis;
+        const hasDocument = 'document' in scopeObject && scopeObject.document !== undefined;
         // hasDocument may be true or false depending on environment
         expect(typeof hasDocument).toBe('boolean');
       });
