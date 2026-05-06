@@ -22,6 +22,7 @@
       const logLevel = params.has('logLevel') ? Number(params.get('logLevel')) : 0;
       const useWebWorker = params.get('useWebWorker') === 'true';
       const mergeMutations = params.get('mergeMutations') === 'true';
+      const storeType = params.get('storeType') ?? undefined;
 
       void (async () => {
         try {
@@ -33,6 +34,7 @@
             logLevel,
             useWebWorker,
             performanceConfig: { enabled: true, mergeMutations },
+            ...(storeType ? { storeType } : {}),
           }).promise;
         } catch (err) {
           document.getElementById('status').textContent = 'error: ' + err.message;
