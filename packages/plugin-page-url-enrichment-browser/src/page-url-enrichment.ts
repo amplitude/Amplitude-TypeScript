@@ -134,14 +134,23 @@ export const pageUrlEnrichmentPlugin = ({ internalDomains = [] }: PageUrlEnrichm
           const referrer = (typeof document !== 'undefined' && document.referrer) || '';
           const referrerHostname = referrer ? getHostname(referrer) : undefined;
           const currentHostname = (typeof location !== 'undefined' && location.hostname) || '';
+          const currentURL = getDecodeURI((typeof location !== 'undefined' && location.href) || '');
 
-          const arrivedFromDifferentOrigin = !!referrerHostname && referrerHostname !== currentHostname;
+          const existingURLInfo = await sessionStorage.get(URL_INFO_STORAGE_KEY);
+          const storedCurrentURL = existingURLInfo?.[CURRENT_PAGE_STORAGE_KEY] || '';
+
+          // document.referrer is preserved across pushState navigations and full-page
+          // reloads, so a different referrer hostname alone does not prove an external
+          // arrival. Also require the stored "current" to differ from location.href —
+          // that's what distinguishes a genuine new landing in this tab from a refresh
+          // of an already-tracked page (where storage holds the truthful previous).
+          const arrivedFromDifferentOrigin =
+            !!referrerHostname && referrerHostname !== currentHostname && storedCurrentURL !== currentURL;
 
           if (arrivedFromDifferentOrigin) {
             // sessionStorage survives same-tab cross-origin trips (siteA -> external -> siteA),
             // leaving stale "current" that would wrongly become "previous". document.referrer
             // is the truthful previous, so overwrite — at the cost of dropping the prior siteA page.
-            const currentURL = getDecodeURI((typeof location !== 'undefined' && location.href) || '');
             await sessionStorage.set(URL_INFO_STORAGE_KEY, {
               [CURRENT_PAGE_STORAGE_KEY]: currentURL,
               [PREVIOUS_PAGE_STORAGE_KEY]: referrer,

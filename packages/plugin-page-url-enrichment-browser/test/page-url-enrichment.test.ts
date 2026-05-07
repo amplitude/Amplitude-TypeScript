@@ -621,6 +621,52 @@ describe('pageUrlEnrichmentPlugin', () => {
       await newPlugin.teardown?.();
     });
 
+    test('should keep stored previous page on refresh even when document.referrer is a stale external origin', async () => {
+      // Repro of the SPA-refresh bug: user arrived at /landing from Google,
+      // pushState-navigated to /about, then hit refresh on /about. Browsers
+      // preserve document.referrer (still google.com) across pushState and
+      // full-page reloads, so a referrer-hostname-only check would mistakenly
+      // re-fire the external-origin branch and clobber the truthful internal
+      // previous page (/landing) that pushState had stored.
+      sessionStorage.setItem(
+        URL_INFO_STORAGE_KEY,
+        JSON.stringify({
+          [CURRENT_PAGE_STORAGE_KEY]: 'https://www.example.com/about',
+          [PREVIOUS_PAGE_STORAGE_KEY]: 'https://www.example.com/landing',
+        }),
+      );
+
+      Object.defineProperty(document, 'referrer', {
+        value: 'https://www.google.com/search?q=example',
+        configurable: true,
+      });
+
+      const refreshedUrl = new URL('https://www.example.com/about');
+      mockWindowLocationFromURL(refreshedUrl);
+      mockDocumentTitle('About - Example');
+
+      const newPlugin = pageUrlEnrichmentPlugin();
+      await newPlugin.setup?.(mockConfig, mockAmplitude);
+
+      const urlInfoStr = sessionStorage?.getItem(URL_INFO_STORAGE_KEY) || '';
+      expect(JSON.parse(urlInfoStr)).toStrictEqual({
+        [CURRENT_PAGE_STORAGE_KEY]: 'https://www.example.com/about',
+        [PREVIOUS_PAGE_STORAGE_KEY]: 'https://www.example.com/landing',
+      });
+
+      const event = await newPlugin.execute?.({
+        event_type: 'test_event',
+      });
+
+      expect(event?.event_properties).toMatchObject({
+        '[Amplitude] Page Location': 'https://www.example.com/about',
+        '[Amplitude] Previous Page Location': 'https://www.example.com/landing',
+        '[Amplitude] Previous Page Type': 'internal',
+      });
+
+      await newPlugin.teardown?.();
+    });
+
     test('should fall back to empty previous page when sessionStorage is wiped mid-session', async () => {
       await plugin.setup?.(mockConfig, mockAmplitude);
 
