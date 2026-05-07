@@ -17,13 +17,15 @@ import {
  *
  * Scenario 2 — Stale-cache behavior with the SR-4234 fix:
  *   joined-config now subscribes with { timeout } delivery mode, so the SDK waits for the
- *   remote response and uses it when it arrives. Stale localStorage no longer wins the
- *   Promise.race in 'all' mode — that race is gone. Two cases here:
+ *   remote response and uses it when it arrives. Two cases here:
  *     • Live network → SDK uses the fresh remote config, recording does NOT start on the
- *       non-matching URL (this is the bug the fix closes).
- *     • Blocked network → SDK waits out the timeout and falls back to the stale cache,
- *       so recording still starts incorrectly. Cache TTL / fail-closed targeting are the
- *       defense-in-depth follow-ups that close this last gap.
+ *       non-matching URL (this is the primary bug the fix closes).
+ *     • Network blocked (fast failure) → fetch resolves with a null result; joined-config
+ *       rejects and captureEnabled becomes false, so no recording starts. This is the
+ *       desirable fail-closed outcome.
+ *   The residual gap is genuinely-slow networks (response > timeout) where the outer
+ *   timeout fires and the SDK falls back to whatever cache exists. Cache TTL / fail-closed
+ *   targeting are the defense-in-depth follow-ups that close that last case.
  */
 
 const SR_PROPERTY_KEY = '[Amplitude] Session Replay ID';
@@ -192,14 +194,22 @@ test.describe('TRC URL rule — happy path', () => {
 test.describe('TRC URL rule — stale localStorage cache', () => {
   test.setTimeout(30_000);
 
-  test('stale cache causes recording on non-matching URL when network is blocked (bug: SDK records when it should not)', async ({
-    page,
-  }) => {
+  test('network blocked + stale cache: SDK fails closed (does not record)', async ({ page }) => {
     await seedStaleCache(page);
 
-    // Block the remote-config fetch entirely so the stale cache is the only input
-    // to joined-config. This simulates an adblocker / CSP / network failure —
-    // the real-world condition under which this bug manifested at Qonto.
+    // Block the remote-config fetch entirely. route.abort() fails the request fast,
+    // so analytics-core's `subscribeWaitForRemote` resolves on the failed-fetch result
+    // (remoteConfig=null) before the outer timeout fires — the cache-fallback path
+    // (which only triggers on outer timeout) is NOT taken. joined-config sees a null
+    // remote config and rejects, captureEnabled becomes false, and no recording starts.
+    // This is the desirable fail-closed outcome for firewalled/adblocked customers:
+    // no recording is strictly better than recording against a stale config.
+    //
+    // Caveat: a genuinely slow network (response > 1500ms but eventually returns) WOULD
+    // hit the outer timeout and fall back to (potentially stale) cache. That residual
+    // gap is what the defense-in-depth follow-ups (cache TTL, fail-closed targeting
+    // default) close. Not exercised here because page.route doesn't simulate slow
+    // success — only fast failure or fast success.
     await page.route('https://sr-client-cfg.amplitude.com/**', (route) => route.abort());
 
     const { getBodies } = await captureTrackRequests(page);
@@ -215,17 +225,8 @@ test.describe('TRC URL rule — stale localStorage cache', () => {
     await page.evaluate(() => (window as any).sessionReplay.flush(false) as Promise<void>);
     await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
 
-    // After SR-4234: joined-config now subscribes with { timeout } delivery mode, so a
-    // blocked network causes the SDK to wait out the timeout and then fall back to the
-    // (stale) cache. Recording then starts based on the stale config — the fix here is
-    // partial: it prevents the live-network case from regressing, but a blocked network
-    // with a stale cache still records against the old config. Defense-in-depth follow-ups
-    // (TTL on cache, fail-closed targeting default) tracked separately.
-    //
-    // IMPORTANT: when the cache TTL / fail-closed work lands, BOTH of the assertions below
-    // must flip to `false` / `0`. Test will silently start failing otherwise.
-    expect(isRecording).toBe(true);
-    expect(getBodies().length).toBeGreaterThan(0);
+    expect(isRecording).toBe(false);
+    expect(getBodies().length).toBe(0);
   });
 
   test('stale cache with live network: documents whether SDK self-corrects within the same session', async ({
