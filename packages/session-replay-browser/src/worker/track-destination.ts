@@ -1,6 +1,12 @@
 /* eslint-disable no-restricted-globals */
 
-import { KB_SIZE, MAX_URL_LENGTH, MAX_KEEPALIVE_BYTES, RETRY_TIMEOUT_MS } from '../constants';
+import {
+  KB_SIZE,
+  MAX_URL_LENGTH,
+  MAX_KEEPALIVE_BYTES,
+  RETRY_TIMEOUT_MS,
+  WAF_PAYLOAD_TOO_LARGE_PATTERN,
+} from '../constants';
 import { MAX_RETRIES_EXCEEDED_MESSAGE, UNEXPECTED_ERROR_MESSAGE, UNEXPECTED_NETWORK_ERROR_MESSAGE } from '../messages';
 import { gzipJson } from '../utils/gzip';
 import { getServerUrl } from '../utils/server-url';
@@ -78,7 +84,7 @@ async function doFetch(
         success: false,
         message: UNEXPECTED_NETWORK_ERROR_MESSAGE,
         payloadTooLarge: true,
-        isWaf: body.includes('Payload exceeds'),
+        isWaf: WAF_PAYLOAD_TOO_LARGE_PATTERN.test(body),
       };
     }
     if (res.status >= 500 || res.status === 408 || res.status === 429 || res.status === 499) {

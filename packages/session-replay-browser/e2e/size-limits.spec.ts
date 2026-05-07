@@ -9,11 +9,13 @@ import {
   waitForReady,
   readRouteBody,
 } from './helpers';
+import { MAX_SINGLE_EVENT_SIZE } from '../src/constants';
 
-// 9.1 M chars: just over MAX_SINGLE_EVENT_SIZE = 9 * 1_000_000.
+// Just over the byte cap so the next full snapshot is guaranteed oversized.
+// Derived from the constant so the test stays in sync if the threshold is bumped.
 // Passed as a number to page.evaluate so only the integer crosses CDP;
 // the browser generates the large string entirely in-process.
-const OVERSIZED_ATTR_LENGTH = 9_100_000;
+const OVERSIZED_ATTR_LENGTH = MAX_SINGLE_EVENT_SIZE + 100_000;
 
 /**
  * Appends a <div data-large="xxx..."> whose single attribute value is
@@ -92,7 +94,7 @@ test.describe('oversized single event — capture-time guard', () => {
       .flatMap((c) => c.events);
 
     for (const event of newSessionEvents) {
-      expect(JSON.stringify(event).length).toBeLessThan(9_000_000);
+      expect(new Blob([JSON.stringify(event)]).size).toBeLessThanOrEqual(MAX_SINGLE_EVENT_SIZE);
     }
 
     // The ORIGINAL session must have delivered a full snapshot, confirming that
@@ -194,7 +196,9 @@ test.describe('WAF 413 bisect-retry', () => {
     // Wait long enough for an infinite loop to be detectable
     await page.waitForTimeout(SNAPSHOT_SETTLE_MS * 10);
 
-    // Bisect bottoms out at single events; total calls must be bounded (O(n) not infinite)
-    expect(callCount).toBeLessThan(20);
+    // Non-WAF 413 short-circuits to completeRequest without bisecting, so the batch
+    // produces at most one tracking call. Allow a small slack for an unrelated follow-up
+    // flush during the wait, but flag a regression that re-enables bisect on app-layer 413s.
+    expect(callCount).toBeLessThanOrEqual(2);
   });
 });

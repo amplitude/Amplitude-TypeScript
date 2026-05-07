@@ -123,17 +123,22 @@ export const createEventsManager = async <Type extends EventType>({
     // Backstop for events that entered IDB before the per-event size guard in
     // addCompressedEventToManager (e.g. stored by a previous SDK version or via
     // storeCurrentSequence/sendStoredEvents which bypass the capture-time check).
-    const oversized = rawEvents.filter((e) => e.length > MAX_SINGLE_EVENT_SIZE);
+    // Compare UTF-8 byte size, not JS char count, to match the server-side limit.
+    const sizedEvents = rawEvents.map((e) => ({ event: e, bytes: new Blob([e]).size }));
+    const oversized = sizedEvents.filter((s) => s.bytes > MAX_SINGLE_EVENT_SIZE);
     if (oversized.length > 0) {
       config.loggerProvider.warn(
         `Dropping ${oversized.length} oversized event(s) from session replay sequence before send. Sizes: ${oversized
-          .map((e) => `${Math.round(e.length / 1024)} KB`)
+          .map((s) => `${Math.round(s.bytes / 1024)} KB`)
           .join(
             ', ',
           )}. If this recurs, please open a GitHub issue at https://github.com/amplitude/Amplitude-TypeScript/issues or contact Amplitude support.`,
       );
     }
-    const events = oversized.length > 0 ? rawEvents.filter((e) => e.length <= MAX_SINGLE_EVENT_SIZE) : rawEvents;
+    const events =
+      oversized.length > 0
+        ? sizedEvents.filter((s) => s.bytes <= MAX_SINGLE_EVENT_SIZE).map((s) => s.event)
+        : rawEvents;
     if (events.length === 0) {
       void store.cleanUpSessionEventsStore(sessionId, sequenceId);
       return;

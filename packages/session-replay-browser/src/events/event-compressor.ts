@@ -166,10 +166,13 @@ export class EventCompressor {
   };
 
   private addCompressedEventToManager = (compressedEvent: string, sessionId: string | number) => {
-    if (compressedEvent.length > MAX_SINGLE_EVENT_SIZE) {
+    // UTF-8 byte size, not JS char count: a 9 M-char string of CJK/emoji can be 18–27 MB
+    // on the wire and would otherwise slip past a char-count guard.
+    const eventSizeBytes = new Blob([compressedEvent]).size;
+    if (eventSizeBytes > MAX_SINGLE_EVENT_SIZE) {
       this.config.loggerProvider.warn(
         `Session replay event dropped: serialized size ${Math.round(
-          compressedEvent.length / 1024,
+          eventSizeBytes / 1024,
         )} KB exceeds maximum allowed event size. If this recurs, please open a GitHub issue at https://github.com/amplitude/Amplitude-TypeScript/issues or contact Amplitude support.`,
       );
       return;

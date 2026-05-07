@@ -13,7 +13,7 @@ import {
   SessionReplayDestinationContext,
 } from './typings/session-replay';
 import { VERSION } from './version';
-import { MAX_URL_LENGTH, KB_SIZE, MAX_KEEPALIVE_BYTES } from './constants';
+import { MAX_URL_LENGTH, KB_SIZE, MAX_KEEPALIVE_BYTES, WAF_PAYLOAD_TOO_LARGE_PATTERN } from './constants';
 import { gzipJson } from './utils/gzip';
 
 interface WorkerCompleteMessage {
@@ -383,7 +383,7 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
         await this.handleOtherResponse(context);
         break;
       case Status.PayloadTooLarge:
-        this.handlePayloadTooLargeResponse(context, responseBody.includes('Payload exceeds'));
+        this.handlePayloadTooLargeResponse(context, WAF_PAYLOAD_TOO_LARGE_PATTERN.test(responseBody));
         break;
       default:
         // 499 (client closed connection / upstream dropped) is also retryable

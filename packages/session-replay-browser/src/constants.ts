@@ -26,7 +26,14 @@ export const MAX_EVENT_LIST_SIZE = 700_000;
 // FullSnapshot events larger than this byte threshold are dropped rather than sent,
 // because an extremely large DOM snapshot (>20 MB uncompressed) will always 413.
 export const MAX_FULL_SNAPSHOT_SIZE = 20 * 1024 * 1024; // 20 MB
-export const MAX_SINGLE_EVENT_SIZE = 9 * 1000000; // 9 MB, just under server's 10 MB per-event threshold
+// 9 MB UTF-8 bytes — just under the server's 10 MB per-event threshold. Compared against the
+// UTF-8 byte length of the serialized event (via Blob/TextEncoder), not the JS string length,
+// so multi-byte payloads (CJK, emoji) are gated correctly.
+export const MAX_SINGLE_EVENT_SIZE = 9 * 1000000;
+// WAF rejects oversized compressed payloads with a body containing wording like
+// "Payload exceeds the maximum allowed size of 10MB". Match loosely so vendor wording
+// tweaks (rule updates, capitalization, etc.) don't silently disable bisect-retry.
+export const WAF_PAYLOAD_TOO_LARGE_PATTERN = /payload.*exceed/i;
 export const INTERACTION_MIN_INTERVAL = 30_000; // 30 seconds
 export const INTERACTION_MAX_INTERVAL = 60_000; // 1 minute
 export const MIN_INTERVAL = 500; // 500 ms
