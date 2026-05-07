@@ -37,13 +37,14 @@ describe('createEventsManager', () => {
   const mockIDBStore = {
     storeCurrentSequence: jest.fn(),
     getSequencesToSend: jest.fn(),
-    cleanUpSessionEventsStore: jest.fn(),
+    cleanUpSessionEventsStore: jest.fn().mockResolvedValue(undefined),
     addEventToCurrentSequence: jest.fn(),
     initialize: jest.fn(),
     storeSendingEvents: jest.fn(),
   } as unknown as SessionReplayIDB.SessionReplayEventsIDBStore;
   beforeEach(() => {
     jest.spyOn(SessionReplayIDB.SessionReplayEventsIDBStore, 'new').mockResolvedValue(mockIDBStore);
+    (mockIDBStore.cleanUpSessionEventsStore as jest.Mock).mockResolvedValue(undefined);
     jest.useFakeTimers();
     originalFetch = global.fetch;
     global.fetch = jest.fn(() =>
@@ -264,6 +265,27 @@ describe('createEventsManager', () => {
       const mockSendEventsList = trackDestinationInstance.sendEventsList;
       expect(mockSendEventsList).not.toHaveBeenCalled();
       expect(mockIDBStore.cleanUpSessionEventsStore).toHaveBeenCalledWith(456, 7);
+    });
+
+    test('warns when cleanUpSessionEventsStore rejects after dropping all oversized events', async () => {
+      (mockIDBStore.getSequencesToSend as jest.Mock).mockResolvedValue([
+        { events: [oversizedEvent], sequenceId: 7, sessionId: 456 },
+      ]);
+      const cleanUpError = new Error('idb cleanup failed');
+      (mockIDBStore.cleanUpSessionEventsStore as jest.Mock).mockRejectedValueOnce(cleanUpError);
+      const eventsManager = await createEventsManager<'replay'>({
+        config,
+        type: 'replay',
+        storeType: 'idb',
+      });
+      await eventsManager.sendStoredEvents({ deviceId: '1a2b3c' });
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect(mockLoggerProvider.warn).toHaveBeenCalledWith(
+        'Failed to clean up session replay events store:',
+        cleanUpError,
+      );
     });
   });
 

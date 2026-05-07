@@ -140,7 +140,9 @@ export const createEventsManager = async <Type extends EventType>({
         ? sizedEvents.filter((s) => s.bytes <= MAX_SINGLE_EVENT_SIZE).map((s) => s.event)
         : rawEvents;
     if (events.length === 0) {
-      void store.cleanUpSessionEventsStore(sessionId, sequenceId);
+      store.cleanUpSessionEventsStore(sessionId, sequenceId).catch((e) => {
+        config.loggerProvider.warn('Failed to clean up session replay events store:', e);
+      });
       return;
     }
 
