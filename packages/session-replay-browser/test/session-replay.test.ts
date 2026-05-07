@@ -4879,11 +4879,8 @@ describe('SessionReplay', () => {
         // No assertion needed — just exercising the lambdas for coverage
       });
 
-      test('passes omitElementTags into child mode slimDOMOptions', async () => {
-        await sessionReplay.init(apiKey, {
-          ...crossOriginOptions,
-          omitElementTags: { script: true, comment: true },
-        }).promise;
+      test('passes full slimDOMOptions into child mode', async () => {
+        await sessionReplay.init(apiKey, crossOriginOptions).promise;
         await sessionReplay.recordEvents();
         await jest.runAllTimersAsync();
 
@@ -4893,7 +4890,20 @@ describe('SessionReplay', () => {
         onStart();
 
         expect(mockRecordFunction).toHaveBeenCalledWith(
-          expect.objectContaining({ slimDOMOptions: { script: true, comment: true } }),
+          expect.objectContaining({
+            slimDOMOptions: {
+              script: true,
+              comment: true,
+              headFavicon: true,
+              headWhitespace: true,
+              headMetaDescKeywords: true,
+              headMetaSocial: true,
+              headMetaRobots: true,
+              headMetaHttpEquiv: true,
+              headMetaAuthorship: true,
+              headMetaVerification: true,
+            },
+          }),
         );
       });
 
