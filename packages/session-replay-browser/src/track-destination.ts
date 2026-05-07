@@ -374,9 +374,6 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
       case Status.Success:
         this.handleSuccessResponse(context);
         break;
-      case Status.PayloadTooLarge: // 413: split batch in half and retry each half
-        this.handlePayloadTooLargeResponse(context);
-        break;
       case Status.Failed:
       case Status.Timeout: // 408: server timed out waiting for request, data not received
       case Status.RateLimit: // 429: retry with existing backoff rather than silently dropping

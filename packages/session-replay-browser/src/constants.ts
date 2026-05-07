@@ -23,9 +23,6 @@ export const STORAGE_PREFIX = `${AMPLITUDE_PREFIX}_replay_unsent`;
 // uncompressed fallback path. The HTTP body is ~10-30% larger than raw string length
 // because events are re-serialized inside the { version, events } wrapper at send time.
 export const MAX_EVENT_LIST_SIZE = 700_000;
-// FullSnapshot events larger than this byte threshold are dropped rather than sent,
-// because an extremely large DOM snapshot (>20 MB uncompressed) will always 413.
-export const MAX_FULL_SNAPSHOT_SIZE = 20 * 1024 * 1024; // 20 MB
 // 9 MB UTF-8 bytes — just under the server's 10 MB per-event threshold. Compared against the
 // UTF-8 byte length of the serialized event (via Blob/TextEncoder), not the JS string length,
 // so multi-byte payloads (CJK, emoji) are gated correctly.
