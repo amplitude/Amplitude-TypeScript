@@ -216,7 +216,13 @@ export const createEventsManager = async <Type extends EventType>({
       .addEventToCurrentSequence(sessionId, event.data)
       .then((sequenceToSend) => {
         if (sequenceToSend) {
-          if (!canSend) return;
+          if (!canSend) {
+            // The split atomically moved events to sequencesToSend; without cleanup
+            // they would be unconditionally replayed on next page load via
+            // sendStoredEvents, bypassing the min session duration gate.
+            void store.cleanUpSessionEventsStore(sequenceToSend.sessionId, sequenceToSend.sequenceId);
+            return;
+          }
           // Events before absIdx belong to the split batch being sent; advance window.
           advanceBeaconWindow(absIdx);
           sendEventsList({

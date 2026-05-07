@@ -399,6 +399,9 @@ describe('createEventsManager', () => {
         .finally(() => {
           const trackDestinationInstance = (SessionReplayTrackDestination as jest.Mock).mock.instances[0];
           expect(trackDestinationInstance.sendEventsList).not.toHaveBeenCalled();
+          // Split events were atomically moved to sequencesToSend by the store; if we don't
+          // clean them up they'd be unconditionally replayed via sendStoredEvents on next load.
+          expect(mockIDBStore.cleanUpSessionEventsStore).toHaveBeenCalledWith(123, 1);
         });
     });
 
