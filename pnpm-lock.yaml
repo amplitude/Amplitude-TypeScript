@@ -138,28 +138,28 @@ importers:
   packages/analytics-browser:
     dependencies:
       '@amplitude/analytics-core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../analytics-core
       '@amplitude/plugin-autocapture-browser':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../plugin-autocapture-browser
       '@amplitude/plugin-custom-enrichment-browser':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../plugin-custom-enrichment-browser
       '@amplitude/plugin-event-property-attribution-browser':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../plugin-event-property-attribution-browser
       '@amplitude/plugin-network-capture-browser':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../plugin-network-capture-browser
       '@amplitude/plugin-page-url-enrichment-browser':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../plugin-page-url-enrichment-browser
       '@amplitude/plugin-page-view-tracking-browser':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../plugin-page-view-tracking-browser
       '@amplitude/plugin-web-vitals-browser':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../plugin-web-vitals-browser
       tslib:
         specifier: ^2.4.1
@@ -220,10 +220,10 @@ importers:
         specifier: ^1.4.8
         version: 1.6.4
       '@amplitude/analytics-core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../analytics-core
       '@amplitude/analytics-types':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../analytics-types
       tslib:
         specifier: ^2.4.1
@@ -254,7 +254,7 @@ importers:
   packages/analytics-node:
     dependencies:
       '@amplitude/analytics-core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../analytics-core
       tslib:
         specifier: ^2.4.1
@@ -276,7 +276,7 @@ importers:
   packages/analytics-react-native:
     dependencies:
       '@amplitude/analytics-core':
-        specifier: 2.41.5
+        specifier: ^2.41.5
         version: 2.41.5
       '@amplitude/ua-parser-js':
         specifier: ^0.7.31
@@ -312,10 +312,10 @@ importers:
   packages/gtm-snippet:
     dependencies:
       '@amplitude/analytics-browser':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../analytics-browser
       '@amplitude/plugin-session-replay-browser':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../plugin-session-replay-browser
     devDependencies:
       '@amplitude/eslint-plugin-amplitude':
@@ -358,7 +358,7 @@ importers:
   packages/plugin-autocapture-browser:
     dependencies:
       '@amplitude/analytics-core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../analytics-core
       tslib:
         specifier: ^2.4.1
@@ -398,7 +398,7 @@ importers:
   packages/plugin-custom-enrichment-browser:
     dependencies:
       '@amplitude/analytics-core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../analytics-core
       tslib:
         specifier: ^2.4.1
@@ -429,7 +429,7 @@ importers:
   packages/plugin-event-property-attribution-browser:
     dependencies:
       '@amplitude/analytics-core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../analytics-core
       tslib:
         specifier: ^2.4.1
@@ -460,7 +460,7 @@ importers:
   packages/plugin-experiment-browser:
     dependencies:
       '@amplitude/analytics-core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../analytics-core
       '@amplitude/experiment-js-client':
         specifier: ^1.15.5
@@ -473,7 +473,7 @@ importers:
   packages/plugin-global-user-properties:
     dependencies:
       '@amplitude/analytics-types':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../analytics-types
       tslib:
         specifier: ^2.4.1
@@ -504,7 +504,7 @@ importers:
   packages/plugin-network-capture-browser:
     dependencies:
       '@amplitude/analytics-core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../analytics-core
       tslib:
         specifier: ^2.4.1
@@ -544,7 +544,7 @@ importers:
   packages/plugin-page-url-enrichment-browser:
     dependencies:
       '@amplitude/analytics-core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../analytics-core
       tslib:
         specifier: ^2.4.1
@@ -575,7 +575,7 @@ importers:
   packages/plugin-page-view-tracking-browser:
     dependencies:
       '@amplitude/analytics-core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../analytics-core
       tslib:
         specifier: ^2.4.1
@@ -606,13 +606,13 @@ importers:
   packages/plugin-session-replay-browser:
     dependencies:
       '@amplitude/analytics-client-common':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../analytics-client-common
       '@amplitude/analytics-core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../analytics-core
       '@amplitude/analytics-types':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../analytics-types
       '@amplitude/rrweb-plugin-console-record':
         specifier: 2.0.0-alpha.40
@@ -621,7 +621,7 @@ importers:
         specifier: 2.0.0-alpha.40
         version: 2.0.0-alpha.40
       '@amplitude/session-replay-browser':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../session-replay-browser
       idb-keyval:
         specifier: ^6.2.1
@@ -689,7 +689,7 @@ importers:
   packages/plugin-stub-browser:
     dependencies:
       '@amplitude/analytics-core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../analytics-core
       tslib:
         specifier: ^2.4.1
@@ -732,13 +732,13 @@ importers:
   packages/plugin-web-attribution-browser:
     dependencies:
       '@amplitude/analytics-client-common':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../analytics-client-common
       '@amplitude/analytics-core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../analytics-core
       '@amplitude/analytics-types':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../analytics-types
       tslib:
         specifier: ^2.4.1
@@ -769,7 +769,7 @@ importers:
   packages/plugin-web-vitals-browser:
     dependencies:
       '@amplitude/analytics-core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../analytics-core
       tslib:
         specifier: ^2.4.1
@@ -809,7 +809,7 @@ importers:
   packages/segment-session-replay-plugin:
     dependencies:
       '@amplitude/session-replay-browser':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../session-replay-browser
       '@segment/analytics-next':
         specifier: ^1.81.0
@@ -861,13 +861,13 @@ importers:
   packages/session-replay-browser:
     dependencies:
       '@amplitude/analytics-client-common':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../analytics-client-common
       '@amplitude/analytics-core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../analytics-core
       '@amplitude/analytics-types':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../analytics-types
       '@amplitude/experiment-core':
         specifier: 0.7.2
@@ -888,7 +888,7 @@ importers:
         specifier: 2.0.0-alpha.40
         version: 2.0.0-alpha.40
       '@amplitude/targeting':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../targeting
       '@rollup/plugin-replace':
         specifier: ^6.0.1
@@ -965,13 +965,13 @@ importers:
   packages/targeting:
     dependencies:
       '@amplitude/analytics-client-common':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../analytics-client-common
       '@amplitude/analytics-core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../analytics-core
       '@amplitude/analytics-types':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../analytics-types
       '@amplitude/experiment-core':
         specifier: 0.7.2
@@ -1020,19 +1020,19 @@ importers:
   packages/unified:
     dependencies:
       '@amplitude/analytics-browser':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../analytics-browser
       '@amplitude/analytics-core':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../analytics-core
       '@amplitude/engagement-browser':
         specifier: ^1.0.3
         version: 1.0.5
       '@amplitude/plugin-experiment-browser':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../plugin-experiment-browser
       '@amplitude/plugin-session-replay-browser':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../plugin-session-replay-browser
     devDependencies:
       rollup:
