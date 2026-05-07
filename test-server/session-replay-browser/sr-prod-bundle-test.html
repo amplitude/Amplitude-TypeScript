@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SR Prod Bundle TRC Test</title>
+  </head>
+  <body style="margin: 0;">
+    <div id="status" style="position: fixed; top: 0; right: 0; background: #ff0; padding: 4px 8px; font-family: monospace; font-size: 12px; z-index: 9999;">loading</div>
+    <header style="background: #ff0080; color: white; padding: 24px; font-family: system-ui;">
+      <h1 style="margin: 0; font-size: 32px;">⚠️ TRC E2E TEST PAGE — SR-2945 STALE CACHE REPRO ⚠️</h1>
+      <p style="margin: 8px 0 0; font-size: 18px;">Project 813518 · plugin-session-replay-browser@1.27.9</p>
+    </header>
+    <main style="font-family: system-ui; max-width: 720px; margin: 32px auto; padding: 24px;">
+      <div id="meta" style="background: #f0f0f0; padding: 16px; margin-bottom: 24px; font-family: monospace; font-size: 14px; border-left: 4px solid #ff0080;">
+        <div>scenario: <span id="meta-scenario" style="font-weight: bold;">—</span></div>
+        <div>url: <span id="meta-url"></span></div>
+        <div>sessionId: <span id="meta-session-id"></span></div>
+        <div>deviceId: <span id="meta-device-id"></span></div>
+        <div>started: <span id="meta-started"></span></div>
+        <div>elapsed: <span id="meta-elapsed">0s</span></div>
+      </div>
+      <section>
+        <h2>Interactive area</h2>
+        <button id="btn-a" type="button" style="padding: 8px 16px; margin-right: 8px;">Button A</button>
+        <button id="btn-b" type="button" style="padding: 8px 16px; margin-right: 8px;">Button B</button>
+        <button id="btn-c" type="button" style="padding: 8px 16px;">Button C</button>
+      </section>
+      <section style="margin-top: 24px;">
+        <input id="text-input" type="text" placeholder="Type something" style="padding: 8px; width: 280px;" />
+      </section>
+      <ul id="event-log" style="margin-top: 24px; padding: 12px; border: 1px solid #ddd; min-height: 120px;"></ul>
+      <div id="filler" style="height: 400px; background: linear-gradient(#fff, #eef);"></div>
+    </main>
+    <script>
+      document.querySelectorAll('button').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const li = document.createElement('li');
+          li.textContent = `${btn.id} clicked at ${new Date().toISOString()}`;
+          document.getElementById('event-log').prepend(li);
+        });
+      });
+    </script>
+    <!-- Production bundles served from /public/ (downloaded from cdn.amplitude.com) -->
+    <script src="/public/analytics-browser-2.11.13-min.umd.js"></script>
+    <script src="/public/plugin-session-replay-browser-1.27.9-min.js"></script>
+    <script>
+      // window.amplitude = analytics-browser 2.11.13 UMD global
+      // window.sessionReplay = plugin-session-replay-browser 1.27.9 UMD global
+
+      const params = new URLSearchParams(location.search);
+      const sessionId = params.has('sessionId') ? Number(params.get('sessionId')) : Date.now();
+      const deviceId = params.get('deviceId') ?? 'test-device-id';
+      const logLevel = params.has('logLevel') ? Number(params.get('logLevel')) : 0;
+      const scenario = params.get('scenario') ?? 'unspecified';
+      const API_KEY = 'ab98798b93c5d4437aab71c3b0f771e0';
+
+      const startedAt = new Date();
+      document.getElementById('meta-scenario').textContent = scenario;
+      document.getElementById('meta-url').textContent = location.href;
+      document.getElementById('meta-session-id').textContent = String(sessionId);
+      document.getElementById('meta-device-id').textContent = deviceId;
+      document.getElementById('meta-started').textContent = startedAt.toISOString();
+      setInterval(() => {
+        const elapsed = Math.floor((Date.now() - startedAt.getTime()) / 1000);
+        document.getElementById('meta-elapsed').textContent = `${elapsed}s`;
+      }, 250);
+
+      window.addEventListener('popstate', () => { document.getElementById('meta-url').textContent = location.href; });
+      const origPush = history.pushState.bind(history);
+      history.pushState = function(...args) {
+        origPush(...args);
+        document.getElementById('meta-url').textContent = location.href;
+      };
+
+      const srPlugin = sessionReplay.sessionReplayPlugin({ logLevel });
+      // Expose plugin instance so the spec can call getSessionReplayProperties() and
+      // srPlugin.sessionReplay.flush() — both are preserved (not mangled) in the bundle.
+      window.srPlugin = srPlugin;
+
+      // Expose a helper for the spec to track a synthetic event, which drives
+      // the plugin's execute() → evaluateTargetingAndCapture() flow.
+      window.trackTestEvent = (eventName) => amplitude.track(eventName ?? 'sr_test_event');
+
+      amplitude.add(srPlugin);
+      // amplitude.init() returns a result with a .promise that resolves after all plugins
+      // have completed their setup() calls — i.e., after sessionReplay.init() finishes
+      // inside the plugin, which is when joined-config has settled from cache or network.
+      const result = amplitude.init(API_KEY, undefined, {
+        sessionId,
+        deviceId,
+        logLevel,
+        defaultTracking: { sessions: true, pageViews: false, formInteractions: false, fileDownloads: false },
+      });
+      Promise.resolve(result && result.promise ? result.promise : result).then(() => {
+        window.srReady = true;
+        document.getElementById('status').textContent = 'ready';
+      }).catch(() => {
+        window.srReady = true;
+        document.getElementById('status').textContent = 'ready (error)';
+      });
+    </script>
+  </body>
+</html>
