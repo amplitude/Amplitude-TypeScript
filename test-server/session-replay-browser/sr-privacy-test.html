@@ -30,6 +30,10 @@
     <!-- Element for selector-based blocking via privacyConfig.blockSelector -->
     <div id="selector-blocked">Selector blocked content</div>
 
+    <!-- Text with amp-unmask class: should be visible under conservative masking
+         without requiring an explicit unmaskSelector in privacyConfig (SR-2945) -->
+    <p id="amp-unmask-text" class="amp-unmask">Unmask class visible text</p>
+
     <div id="status">loading</div>
     <script type="module">
       import * as sessionReplay from '@amplitude/session-replay-browser';
