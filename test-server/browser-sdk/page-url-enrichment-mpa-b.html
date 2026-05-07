@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/amplitude.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script type="module" src="/helpers/tough-cookie"></script>
+    <title>Page URL Enrichment — MPA repro: Page B</title>
+    <style>
+      body { font-family: system-ui, sans-serif; padding: 24px; max-width: 900px; }
+      h1 { margin-bottom: 4px; }
+      nav a { margin-right: 12px; }
+      .panel { border: 1px solid #ccc; border-radius: 6px; padding: 12px; margin-top: 16px; }
+      .panel h3 { margin: 0 0 8px; font-size: 14px; color: #555; text-transform: uppercase; }
+      pre { background: #f5f5f5; padding: 8px; border-radius: 4px; overflow: auto; margin: 0; }
+      button { margin-right: 8px; }
+    </style>
+  </head>
+  <body>
+    <h1>Page B (MPA repro)</h1>
+
+    <nav>
+      <a href="/browser-sdk/page-url-enrichment-mpa-a.html">→ Page A</a>
+      <a href="/browser-sdk/page-url-enrichment-mpa-b.html">→ Page B</a>
+      <a href="/browser-sdk/page-url-enrichment-mpa-c.html">→ Page C</a>
+    </nav>
+
+    <div class="panel">
+      <h3>Live sessionStorage[AMP_URL_INFO]</h3>
+      <pre id="storage"></pre>
+    </div>
+
+    <div class="panel">
+      <h3>Events tracked from this page</h3>
+      <button id="wipe">Wipe AMP_URL_INFO</button>
+      <pre id="events">(none yet — page-view events from autocapture will show here too)</pre>
+    </div>
+
+    <script type="module">
+      import * as amplitude from '@amplitude/analytics-browser';
+
+      const STORAGE_KEY = 'AMP_URL_INFO';
+      const storageEl = document.getElementById('storage');
+      const eventsEl = document.getElementById('events');
+
+      const renderStorage = () => {
+        const raw = sessionStorage.getItem(STORAGE_KEY);
+        try {
+          storageEl.textContent = raw ? JSON.stringify(JSON.parse(raw), null, 2) : '(empty)';
+        } catch {
+          storageEl.textContent = raw ?? '(empty)';
+        }
+      };
+      renderStorage();
+      setInterval(renderStorage, 250);
+
+      const inspectorPlugin = {
+        name: 'mpa-repro-inspector',
+        type: 'enrichment',
+        setup: async () => {},
+        execute: async (event) => {
+          const summary = {
+            type: event.event_type,
+            'Page Location': event.event_properties?.['[Amplitude] Page Location'],
+            'Previous Page Location': event.event_properties?.['[Amplitude] Previous Page Location'],
+            'Previous Page Type': event.event_properties?.['[Amplitude] Previous Page Type'],
+          };
+          const line = `[${new Date().toLocaleTimeString()}] ${JSON.stringify(summary, null, 2)}`;
+          eventsEl.textContent =
+            eventsEl.textContent.startsWith('(none')
+              ? line
+              : `${line}\n\n${eventsEl.textContent}`;
+          return event;
+        },
+      };
+
+      amplitude.init(
+        import.meta.env.VITE_AMPLITUDE_API_KEY,
+        import.meta.env.VITE_AMPLITUDE_USER_ID || 'amplitude-typescript test user',
+        {
+          autocapture: {
+            pageViews: true,
+            pageUrlEnrichment: true,
+          },
+        },
+      );
+      amplitude.add(inspectorPlugin);
+
+      document.getElementById('wipe').addEventListener('click', () => {
+        sessionStorage.removeItem(STORAGE_KEY);
+        renderStorage();
+      });
+    </script>
+  </body>
+</html>

@@ -130,6 +130,27 @@ export const pageUrlEnrichmentPlugin = ({ internalDomains = [] }: PageUrlEnrichm
         }
         isStorageEnabled = (await sessionStorage?.isEnabled()) ?? false;
 
+        if (sessionStorage && isStorageEnabled) {
+          const referrer = (typeof document !== 'undefined' && document.referrer) || '';
+          const referrerHostname = referrer ? getHostname(referrer) : undefined;
+          const currentHostname = (typeof location !== 'undefined' && location.hostname) || '';
+
+          const arrivedFromDifferentOrigin = !!referrerHostname && referrerHostname !== currentHostname;
+
+          if (arrivedFromDifferentOrigin) {
+            // sessionStorage survives same-tab cross-origin trips (siteA -> external -> siteA),
+            // leaving stale "current" that would wrongly become "previous". document.referrer
+            // is the truthful previous, so overwrite — at the cost of dropping the prior siteA page.
+            const currentURL = getDecodeURI((typeof location !== 'undefined' && location.href) || '');
+            await sessionStorage.set(URL_INFO_STORAGE_KEY, {
+              [CURRENT_PAGE_STORAGE_KEY]: currentURL,
+              [PREVIOUS_PAGE_STORAGE_KEY]: referrer,
+            });
+          } else {
+            await saveURLInfo();
+          }
+        }
+
         globalScope.addEventListener('popstate', saveUrlInfoWrapper);
 
         if (!isProxied) {
@@ -165,19 +186,10 @@ export const pageUrlEnrichmentPlugin = ({ internalDomains = [] }: PageUrlEnrichm
       const locationHREF = getDecodeURI((typeof location !== 'undefined' && location.href) || '');
 
       if (sessionStorage && isStorageEnabled) {
+        // setup() seeds AMP_URL_INFO via saveURLInfo(), and pushState/replaceState/popstate
+        // keep it in sync, so we just read the previous page here.
         const URLInfo = await sessionStorage.get(URL_INFO_STORAGE_KEY);
-        if (!URLInfo?.[CURRENT_PAGE_STORAGE_KEY]) {
-          await sessionStorage.set(URL_INFO_STORAGE_KEY, {
-            [CURRENT_PAGE_STORAGE_KEY]: locationHREF,
-            [PREVIOUS_PAGE_STORAGE_KEY]: document.referrer || '',
-          });
-        }
-
-        const updatedURLInfo = await sessionStorage.get(URL_INFO_STORAGE_KEY);
-        let previousPage = '';
-        if (updatedURLInfo) {
-          previousPage = updatedURLInfo[PREVIOUS_PAGE_STORAGE_KEY] || '';
-        }
+        const previousPage = URLInfo?.[PREVIOUS_PAGE_STORAGE_KEY] || '';
 
         // no need to proceed to add additional properties if the event is one of the default event types to be excluded
         if (EXCLUDED_DEFAULT_EVENT_TYPES.has(event.event_type)) {
