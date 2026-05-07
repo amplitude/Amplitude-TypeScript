@@ -33,6 +33,7 @@ export type RecordFunction = {
     maskTextFn?: (text: string, element: HTMLElement | null) => string;
     maskAttributeFn?: (key: string, value: string, element: HTMLElement) => string;
     maskTextSelector?: string;
+    checkoutEveryNms?: number;
     recordCanvas?: boolean;
     slimDOMOptions?: {
       script?: boolean;

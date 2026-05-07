@@ -48,6 +48,7 @@ export class SessionReplayLocalConfig extends Config implements ISessionReplayLo
   captureDocumentTitle?: boolean;
   captureAdoptedStyleSheets?: boolean;
   crossOriginIframes?: CrossOriginIframesConfig;
+  fullSnapshotIntervalMs?: number;
 
   constructor(apiKey: string, options: SessionReplayOptions) {
     const defaultConfig = getDefaultConfig();
@@ -75,6 +76,9 @@ export class SessionReplayLocalConfig extends Config implements ISessionReplayLo
     this.enableUrlChangePolling = options.enableUrlChangePolling ?? false;
     this.urlChangePollingInterval = options.urlChangePollingInterval ?? DEFAULT_URL_CHANGE_POLLING_INTERVAL;
     this.captureDocumentTitle = options.captureDocumentTitle ?? false;
+    if (options.fullSnapshotIntervalMs !== undefined) {
+      this.fullSnapshotIntervalMs = options.fullSnapshotIntervalMs;
+    }
 
     // Auto-include .amp-unmask as a default unmaskSelector entry so it works
     // symmetrically with amp-mask/amp-block without requiring explicit config (SR-2945).
