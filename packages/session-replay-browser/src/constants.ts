@@ -19,7 +19,13 @@ export const SESSION_REPLAY_SERVER_URL = 'https://api-sr.amplitude.com/sessions/
 export const SESSION_REPLAY_EU_URL = 'https://api-sr.eu.amplitude.com/sessions/v2/track';
 export const SESSION_REPLAY_STAGING_URL = 'https://api-sr.stag2.amplitude.com/sessions/v2/track';
 export const STORAGE_PREFIX = `${AMPLITUDE_PREFIX}_replay_unsent`;
-export const MAX_EVENT_LIST_SIZE = 1 * 1000000; // ~1 MB limit for JSON serialized events payload
+// Reduced from 1,000,000 to leave headroom for double-JSON-encoding overhead and the
+// uncompressed fallback path. The HTTP body is ~10-30% larger than raw string length
+// because events are re-serialized inside the { version, events } wrapper at send time.
+export const MAX_EVENT_LIST_SIZE = 700_000;
+// FullSnapshot events larger than this byte threshold are dropped rather than sent,
+// because an extremely large DOM snapshot (>20 MB uncompressed) will always 413.
+export const MAX_FULL_SNAPSHOT_SIZE = 20 * 1024 * 1024; // 20 MB
 export const INTERACTION_MIN_INTERVAL = 30_000; // 30 seconds
 export const INTERACTION_MAX_INTERVAL = 60_000; // 1 minute
 export const MIN_INTERVAL = 500; // 500 ms
