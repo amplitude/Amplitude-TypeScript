@@ -1962,14 +1962,31 @@ describe('SessionReplay', () => {
     });
     test('it should not send if session duration is below minSessionDurationMs', async () => {
       await sessionReplay.init(apiKey, mockOptions).promise;
+      if (!sessionReplay.eventsManager || !sessionReplay.config || !sessionReplay.rrwebEventManager) {
+        throw new Error('Did not call init');
+      }
+      const sendEventsMock = jest.fn();
+      const dropBeaconMock = jest.fn();
+      sessionReplay.eventsManager.sendCurrentSequenceEvents = sendEventsMock;
+      sessionReplay.rrwebEventManager.dropPendingBeaconEvents = dropBeaconMock;
+      sessionReplay.config.minSessionDurationMs = 5000;
+      sessionReplay.sessionStartTime = Date.now() - 1000;
+      sessionReplay.sendEvents();
+      expect(sendEventsMock).not.toHaveBeenCalled();
+      // Pending beacon events must be dropped so they can't leak into a later session.
+      expect(dropBeaconMock).toHaveBeenCalledTimes(1);
+    });
+    test('it should not throw on below-threshold drop when rrwebEventManager is undefined', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
       if (!sessionReplay.eventsManager || !sessionReplay.config) {
         throw new Error('Did not call init');
       }
       const sendEventsMock = jest.fn();
       sessionReplay.eventsManager.sendCurrentSequenceEvents = sendEventsMock;
+      sessionReplay.rrwebEventManager = undefined;
       sessionReplay.config.minSessionDurationMs = 5000;
       sessionReplay.sessionStartTime = Date.now() - 1000;
-      sessionReplay.sendEvents();
+      expect(() => sessionReplay.sendEvents()).not.toThrow();
       expect(sendEventsMock).not.toHaveBeenCalled();
     });
     test('it should send if minSessionDurationMs is set but sessionStartTime is undefined', async () => {

@@ -402,7 +402,31 @@ describe('createEventsManager', () => {
           // Split events were atomically moved to sequencesToSend by the store; if we don't
           // clean them up they'd be unconditionally replayed via sendStoredEvents on next load.
           expect(mockIDBStore.cleanUpSessionEventsStore).toHaveBeenCalledWith(123, 1);
+          // The split batch must also be removed from the beacon buffer so it can't be
+          // sent via sendBeacon on page unload (potentially attributed to a later session).
+          expect(eventsManager.getBeaconEvents()).toEqual([mockEventString]);
         });
+    });
+
+    test('should log warning when cleanUpSessionEventsStore rejects on canSend=false split', async () => {
+      const mockAddEventPromise = Promise.resolve({ events: [mockEventString], sequenceId: 1, sessionId: 123 });
+      (mockIDBStore.addEventToCurrentSequence as jest.Mock).mockReturnValue(mockAddEventPromise);
+      (mockIDBStore.cleanUpSessionEventsStore as jest.Mock).mockRejectedValueOnce(new Error('idb gone'));
+      const eventsManager = await createEventsManager<'replay'>({
+        config,
+        type: 'replay',
+        storeType: 'idb',
+        shouldSend: () => false,
+      });
+      eventsManager.addEvent({ event: { type: 'replay', data: mockEventString }, sessionId: 123, deviceId: '1a2b3c' });
+      // Let the addEvent .then() chain and the cleanUp .catch() chain both settle.
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+      expect(mockLoggerProvider.warn).toHaveBeenCalledWith(
+        'Failed to clean up dropped session replay sequence:',
+        expect.any(Error),
+      );
     });
 
     test('should block sendEventsList in sendCurrentSequenceEvents when shouldSend returns false', async () => {
@@ -553,6 +577,27 @@ describe('createEventsManager', () => {
       const snapshot = eventsManager.getBeaconEvents();
       snapshot.push('extra');
       expect(eventsManager.getBeaconEvents()).toHaveLength(1);
+    });
+  });
+
+  describe('dropPendingBeaconEvents', () => {
+    test('should clear the buffer and not affect later events added under a new session', async () => {
+      const eventsManager = await createEventsManager({
+        config,
+        type: 'replay',
+        storeType: 'memory',
+      });
+      const oldEvent = JSON.stringify({ type: 3, timestamp: 1 });
+      const newEvent = JSON.stringify({ type: 3, timestamp: 2 });
+      eventsManager.addEvent({ event: { type: 'replay', data: oldEvent }, sessionId: 1, deviceId: '1a2b3c' });
+      expect(eventsManager.getBeaconEvents()).toEqual([oldEvent]);
+
+      eventsManager.dropPendingBeaconEvents();
+      expect(eventsManager.getBeaconEvents()).toEqual([]);
+
+      // Subsequent events from a new session must accumulate cleanly without the dropped events.
+      eventsManager.addEvent({ event: { type: 'replay', data: newEvent }, sessionId: 2, deviceId: '1a2b3c' });
+      expect(eventsManager.getBeaconEvents()).toEqual([newEvent]);
     });
   });
 

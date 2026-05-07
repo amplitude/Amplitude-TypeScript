@@ -90,6 +90,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
   // Visible for testing only
   pageLeaveFns: PageLeaveFn[] = [];
   sessionStartTime: number | undefined;
+  rrwebEventManager: EventsManagerWithBeacon<'replay'> | undefined;
   private scrollHook?: scrollCallback;
   private clickHandler?: ClickHandler;
   private networkObservers?: NetworkObservers;
@@ -258,6 +259,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
           return elapsed >= minSessionDurationMs;
         },
       });
+      this.rrwebEventManager = rrwebEventManager;
       managers.push({ name: 'replay', manager: rrwebEventManager });
     } catch (error) {
       const typedError = error as Error;
@@ -566,6 +568,9 @@ export class SessionReplay implements AmplitudeSessionReplay {
           this.loggerProvider.log(
             `Session ${sessionIdToSend} not sent: duration ${sessionDuration}ms is below minimum ${this.config.minSessionDurationMs}ms.`,
           );
+          // Drop pending beacon events so this below-threshold session's data
+          // can't leak into a later session's beacon flush on page unload.
+          this.rrwebEventManager?.dropPendingBeaconEvents();
           return;
         }
       }

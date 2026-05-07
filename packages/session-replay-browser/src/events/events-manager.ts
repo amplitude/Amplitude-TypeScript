@@ -17,6 +17,11 @@ export type EventsManagerWithBeacon<Type extends EventType> = AmplitudeSessionRe
    * Used to populate a sendBeacon payload when the page is unloading.
    */
   getBeaconEvents(): string[];
+  /**
+   * Drops all pending beacon events. Used when the session is decided to be below
+   * the min duration threshold so its events don't leak into a later session's beacon.
+   */
+  dropPendingBeaconEvents(): void;
   trackDestination: SessionReplayTrackDestination;
 };
 
@@ -219,8 +224,13 @@ export const createEventsManager = async <Type extends EventType>({
           if (!canSend) {
             // The split atomically moved events to sequencesToSend; without cleanup
             // they would be unconditionally replayed on next page load via
-            // sendStoredEvents, bypassing the min session duration gate.
-            void store.cleanUpSessionEventsStore(sequenceToSend.sessionId, sequenceToSend.sequenceId);
+            // sendStoredEvents, bypassing the min session duration gate. The split
+            // batch must also be dropped from the beacon buffer so it isn't sent
+            // via sendBeacon on page unload (potentially attributed to a later session).
+            store.cleanUpSessionEventsStore(sequenceToSend.sessionId, sequenceToSend.sequenceId).catch((e) => {
+              config.loggerProvider.warn('Failed to clean up dropped session replay sequence:', e);
+            });
+            advanceBeaconWindow(absIdx);
             return;
           }
           // Events before absIdx belong to the split batch being sent; advance window.
@@ -244,12 +254,17 @@ export const createEventsManager = async <Type extends EventType>({
 
   const getBeaconEvents = (): string[] => [...beaconBuffer];
 
+  const dropPendingBeaconEvents = () => {
+    advanceBeaconWindow(beaconWindowStart + beaconBuffer.length);
+  };
+
   return {
     sendCurrentSequenceEvents,
     addEvent,
     sendStoredEvents,
     flush,
     getBeaconEvents,
+    dropPendingBeaconEvents,
     trackDestination,
   };
 };
