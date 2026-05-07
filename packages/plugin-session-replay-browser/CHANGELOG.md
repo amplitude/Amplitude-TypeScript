@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.30.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@1.30.0...@amplitude/plugin-session-replay-browser@1.30.1) (2026-05-07)
+
+
+### Bug Fixes
+
+* **session-replay-browser:** reduce snapshot size and handle 413s ([#1685](https://github.com/amplitude/Amplitude-TypeScript/issues/1685)) ([36db705](https://github.com/amplitude/Amplitude-TypeScript/commit/36db705d3b4b648aeab09c9e4dc89cf6b8dbf64b))
+
+
+
+
+
 # [1.30.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@1.29.0...@amplitude/plugin-session-replay-browser@1.30.0) (2026-05-06)
 
 
