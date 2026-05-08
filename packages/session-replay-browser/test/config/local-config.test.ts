@@ -60,7 +60,7 @@ describe('SessionReplayLocalConfig', () => {
       expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('less than minIntervalMs'));
     });
 
-    test('accepts only minIntervalMs without maxIntervalMs', () => {
+    test('accepts only minIntervalMs without maxIntervalMs when below default max', () => {
       const config = new SessionReplayLocalConfig('static_key', {
         loggerProvider: logger,
         flushIntervalConfig: { minIntervalMs: 3000 },
@@ -68,12 +68,30 @@ describe('SessionReplayLocalConfig', () => {
       expect(config.flushIntervalConfig).toEqual({ minIntervalMs: 3000 });
     });
 
-    test('accepts only maxIntervalMs without minIntervalMs', () => {
+    test('accepts only maxIntervalMs without minIntervalMs when above default min', () => {
       const config = new SessionReplayLocalConfig('static_key', {
         loggerProvider: logger,
         flushIntervalConfig: { maxIntervalMs: 30_000 },
       });
       expect(config.flushIntervalConfig).toEqual({ maxIntervalMs: 30_000 });
+    });
+
+    test('raises max to match user min when only minIntervalMs is set above the default max', () => {
+      const config = new SessionReplayLocalConfig('static_key', {
+        loggerProvider: logger,
+        flushIntervalConfig: { minIntervalMs: 30_000 },
+      });
+      expect(config.flushIntervalConfig).toEqual({ minIntervalMs: 30_000, maxIntervalMs: 30_000 });
+      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('exceeds the default maxIntervalMs'));
+    });
+
+    test('lowers min to match user max when only maxIntervalMs is set below the default min', () => {
+      const config = new SessionReplayLocalConfig('static_key', {
+        loggerProvider: logger,
+        flushIntervalConfig: { maxIntervalMs: 200 },
+      });
+      expect(config.flushIntervalConfig).toEqual({ minIntervalMs: 200, maxIntervalMs: 200 });
+      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('below the default minIntervalMs'));
     });
   });
 });

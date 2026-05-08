@@ -4,6 +4,8 @@ import {
   DEFAULT_SAMPLE_RATE,
   DEFAULT_SERVER_ZONE,
   DEFAULT_URL_CHANGE_POLLING_INTERVAL,
+  MAX_INTERVAL,
+  MIN_INTERVAL,
   UNMASK_TEXT_CLASS,
 } from '../constants';
 import { SessionReplayOptions, StoreType } from '../typings/session-replay';
@@ -141,15 +143,33 @@ function sanitizeFlushIntervalConfig(raw: FlushIntervalConfig, loggerProvider: I
       sanitized.maxIntervalMs = raw.maxIntervalMs;
     }
   }
-  if (
-    sanitized.minIntervalMs !== undefined &&
-    sanitized.maxIntervalMs !== undefined &&
-    sanitized.maxIntervalMs < sanitized.minIntervalMs
-  ) {
-    loggerProvider.warn(
-      `flushIntervalConfig.maxIntervalMs (${sanitized.maxIntervalMs}) is less than minIntervalMs (${sanitized.minIntervalMs}); raising max to match min.`,
-    );
-    sanitized.maxIntervalMs = sanitized.minIntervalMs;
+  // Cross-validate against the SDK's effective defaults so that a partial config (only one of
+  // {minIntervalMs, maxIntervalMs}) doesn't get silently clamped by the unspecified default.
+  // Concrete failure mode without this: customer sets only `minIntervalMs: 30_000`, the store's
+  // `maxInterval` falls back to `MAX_INTERVAL = 10_000`, and `shouldSplitEventsList` then
+  // caps the effective interval at 10s — silently negating the customer's tune-up.
+  // The user-supplied value always wins; we fill in the other side to match.
+  if (sanitized.minIntervalMs !== undefined || sanitized.maxIntervalMs !== undefined) {
+    const effectiveMin = sanitized.minIntervalMs ?? MIN_INTERVAL;
+    const effectiveMax = sanitized.maxIntervalMs ?? MAX_INTERVAL;
+    if (effectiveMax < effectiveMin) {
+      if (sanitized.maxIntervalMs === undefined) {
+        loggerProvider.warn(
+          `flushIntervalConfig.minIntervalMs (${effectiveMin}) exceeds the default maxIntervalMs (${MAX_INTERVAL}); raising max to match min.`,
+        );
+        sanitized.maxIntervalMs = effectiveMin;
+      } else if (sanitized.minIntervalMs === undefined) {
+        loggerProvider.warn(
+          `flushIntervalConfig.maxIntervalMs (${effectiveMax}) is below the default minIntervalMs (${MIN_INTERVAL}); lowering min to match max.`,
+        );
+        sanitized.minIntervalMs = effectiveMax;
+      } else {
+        loggerProvider.warn(
+          `flushIntervalConfig.maxIntervalMs (${sanitized.maxIntervalMs}) is less than minIntervalMs (${sanitized.minIntervalMs}); raising max to match min.`,
+        );
+        sanitized.maxIntervalMs = sanitized.minIntervalMs;
+      }
+    }
   }
   return sanitized;
 }
