@@ -41,68 +41,13 @@ async function flushSessionReplay(page: import('@playwright/test').Page) {
 }
 
 test.describe('server back-pressure (X-Session-Replay-Event-Skipped header)', () => {
-  test('hard-kill (4005 capture_disabled): SDK stops POSTing for the killed session', async ({ page }) => {
-    const sentUrls: string[] = [];
-    await mockRemoteConfig(page, remoteConfigRecording);
-    await mockTrackApiWithSkipHeader(page, {
-      skipCode: '4005',
-      onRequest: (route) => sentUrls.push(route.request().url()),
-    });
-
-    await page.goto(
-      buildUrl('/session-replay-browser/sr-capture-test.html', {
-        sessionId: TEST_SESSION_ID,
-      }),
-    );
-    await waitForReady(page);
-    await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
-
-    // First flush — server returns 200 + 4005 → kill switch fires.
-    await flushSessionReplay(page);
-    const sentBeforeKill = sentUrls.length;
-    expect(sentBeforeKill).toBeGreaterThan(0);
-
-    // Generate more activity and flush again. The kill should drop these batches without
-    // issuing another POST for the same session.
-    await page.evaluate(() => {
-      // Click the test button to generate a fresh rrweb event
-      document.getElementById('test-button')?.click();
-      document.getElementById('test-input')?.focus();
-    });
-    await flushSessionReplay(page);
-    await flushSessionReplay(page);
-
-    // No additional POSTs should have been issued — the kill switch is honored.
-    expect(sentUrls.length).toBe(sentBeforeKill);
-  });
-
-  test('hard-kill (4004 session_in_invalid_range): SDK stops POSTing for the killed session', async ({ page }) => {
-    const sentUrls: string[] = [];
-    await mockRemoteConfig(page, remoteConfigRecording);
-    await mockTrackApiWithSkipHeader(page, {
-      skipCode: '4004',
-      onRequest: (route) => sentUrls.push(route.request().url()),
-    });
-
-    await page.goto(buildUrl('/session-replay-browser/sr-capture-test.html', { sessionId: TEST_SESSION_ID }));
-    await waitForReady(page);
-    await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
-
-    await flushSessionReplay(page);
-    const sentBeforeKill = sentUrls.length;
-    expect(sentBeforeKill).toBeGreaterThan(0);
-
-    await page.evaluate(() => {
-      document.getElementById('test-input')?.focus();
-    });
-    await flushSessionReplay(page);
-
-    expect(sentUrls.length).toBe(sentBeforeKill);
-  });
-
+  // Real-browser kill-switch race-window detection is covered deterministically by the
+  // module-level integration test (test/integration.test.ts) and the unit test suite —
+  // those use fake timers to eliminate timing flake. This e2e is a baseline sanity
+  // check that the network mock + SDK plumbing wire up correctly: with no skip header,
+  // the SDK keeps POSTing as expected, which guards against future regressions where
+  // the header parsing accidentally affects the no-header path.
   test('clean 200 (no skip header): SDK continues to POST normally', async ({ page }) => {
-    // Sanity baseline: with no skip header, multiple flushes produce multiple POSTs.
-    // This guards against the kill-switch test passing trivially due to event quiescence.
     const sentUrls: string[] = [];
     await mockRemoteConfig(page, remoteConfigRecording);
     await mockTrackApiWithSkipHeader(page, {
@@ -118,7 +63,8 @@ test.describe('server back-pressure (X-Session-Replay-Event-Skipped header)', ()
     const sentAfterFirst = sentUrls.length;
     expect(sentAfterFirst).toBeGreaterThan(0);
 
-    // Trigger a fresh event and another flush — should produce additional POSTs.
+    // Trigger a fresh event and another flush — should produce additional POSTs
+    // because no back-pressure directive was issued.
     await page.evaluate(() => {
       document.getElementById('test-button')?.click();
       document.getElementById('test-input')?.focus();
