@@ -60,7 +60,7 @@ describe('worker/track-destination', () => {
     expect(mockPostMessage).toHaveBeenCalledWith(
       expect.objectContaining({ type: 'log', id: '1', message: expect.stringContaining('tracked successfully') }),
     );
-    expect(mockPostMessage).toHaveBeenCalledWith({ type: 'complete', id: '1' });
+    expect(mockPostMessage).toHaveBeenCalledWith({ type: 'complete', id: '1', skipCode: null });
   });
 
   test('posts warn and complete on non-retryable failure (4xx)', async () => {
@@ -92,7 +92,7 @@ describe('worker/track-destination', () => {
     expect(mockPostMessage).toHaveBeenCalledWith(
       expect.objectContaining({ type: 'log', id: '3b', message: expect.stringContaining('tracked successfully') }),
     );
-    expect(mockPostMessage).toHaveBeenCalledWith({ type: 'complete', id: '3b' });
+    expect(mockPostMessage).toHaveBeenCalledWith({ type: 'complete', id: '3b', skipCode: null });
   });
 
   test('posts payload_too_large with isWaf=false for app-layer 413', async () => {
@@ -158,7 +158,7 @@ describe('worker/track-destination', () => {
     expect(mockPostMessage).toHaveBeenCalledWith(
       expect.objectContaining({ type: 'log', id: '3', message: expect.stringContaining('tracked successfully') }),
     );
-    expect(mockPostMessage).toHaveBeenCalledWith({ type: 'complete', id: '3' });
+    expect(mockPostMessage).toHaveBeenCalledWith({ type: 'complete', id: '3', skipCode: null });
   });
 
   test('posts warn with max retries message when retries exhausted', async () => {
@@ -276,6 +276,46 @@ describe('worker/track-destination', () => {
       expect.objectContaining({ type: 'warn', id: '11', message: 'Unexpected error occurred' }),
     );
     expect(mockPostMessage).toHaveBeenCalledWith({ type: 'complete', id: '11' });
+  });
+
+  describe('X-Session-Replay-Event-Skipped header', () => {
+    test('forwards throttled (429) skip code on the complete message', async () => {
+      mockFetch.mockResolvedValueOnce({
+        status: 200,
+        headers: { get: jest.fn().mockReturnValue('429') },
+      });
+      await invokeOnMessage({ type: 'send', id: 's1', payload: basePayload, context: baseContext, useRetry: false });
+
+      expect(mockPostMessage).toHaveBeenCalledWith({ type: 'complete', id: 's1', skipCode: '429' });
+    });
+
+    test.each(['4004', '4005'])('forwards hard-kill skip code %s on the complete message', async (code) => {
+      mockFetch.mockResolvedValueOnce({
+        status: 200,
+        headers: { get: jest.fn().mockReturnValue(code) },
+      });
+      await invokeOnMessage({ type: 'send', id: 's2', payload: basePayload, context: baseContext, useRetry: false });
+
+      expect(mockPostMessage).toHaveBeenCalledWith({ type: 'complete', id: 's2', skipCode: code });
+    });
+
+    test('emits skipCode=null when 2xx has no skip header (header.get returns null)', async () => {
+      mockFetch.mockResolvedValueOnce({
+        status: 200,
+        headers: { get: jest.fn().mockReturnValue(null) },
+      });
+      await invokeOnMessage({ type: 'send', id: 's3', payload: basePayload, context: baseContext, useRetry: false });
+
+      expect(mockPostMessage).toHaveBeenCalledWith({ type: 'complete', id: 's3', skipCode: null });
+    });
+
+    test('omits skipCode field on non-2xx (failure) complete messages', async () => {
+      mockFetch.mockResolvedValueOnce({ status: 400 });
+      await invokeOnMessage({ type: 'send', id: 's4', payload: basePayload, context: baseContext, useRetry: false });
+
+      // Failure path emits a plain complete (no skipCode), so the main thread won't apply any directive.
+      expect(mockPostMessage).toHaveBeenCalledWith({ type: 'complete', id: 's4' });
+    });
   });
 
   test('falls back to uncompressed when CompressionStream throws', async () => {
