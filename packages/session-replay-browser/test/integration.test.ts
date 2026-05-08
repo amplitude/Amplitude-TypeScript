@@ -347,6 +347,74 @@ describe('module level integration', () => {
       await runScheduleTimers();
       expect(fetch).toHaveBeenCalledTimes(2);
     });
+    describe('server back-pressure (X-Session-Replay-Event-Skipped header)', () => {
+      const mockSkippedResponse = (skipCode: string | null) => ({
+        status: 200,
+        headers: { get: jest.fn().mockReturnValue(skipCode) },
+      });
+
+      test('hard-kill (4005): subsequent flushes for the same session do not POST', async () => {
+        const sessionReplay = new SessionReplay();
+        await sessionReplay.init(apiKey, { ...mockOptions, flushMaxRetries: 2 }).promise;
+        const idbInstance = await (SessionReplayIDB.SessionReplayEventsIDBStore.new as jest.Mock).mock.results[0].value;
+        jest.spyOn(idbInstance, 'storeCurrentSequence');
+        (fetch as jest.Mock).mockReset();
+        (fetch as jest.Mock).mockResolvedValueOnce(mockSkippedResponse('4005'));
+
+        if (!sessionReplay.eventsManager) throw new Error('did not init');
+
+        // First batch: server replies 200 + 4005 → kill switch fires for session 123.
+        sessionReplay.eventsManager.addEvent({
+          sessionId: 123,
+          event: { type: 'replay', data: mockEventString },
+          deviceId: '1a2b3c',
+        });
+        sessionReplay.sendEvents();
+        await (idbInstance.storeCurrentSequence as jest.Mock).mock.results[0].value;
+        await runScheduleTimers();
+        expect(fetch).toHaveBeenCalledTimes(1);
+
+        // Second batch for the same killed session — must not produce another POST.
+        sessionReplay.eventsManager.addEvent({
+          sessionId: 123,
+          event: { type: 'replay', data: mockEventString },
+          deviceId: '1a2b3c',
+        });
+        sessionReplay.sendEvents();
+        await runScheduleTimers();
+        expect(fetch).toHaveBeenCalledTimes(1);
+      });
+
+      test('hard-kill (4004 session_in_invalid_range): subsequent flushes for the same session do not POST', async () => {
+        const sessionReplay = new SessionReplay();
+        await sessionReplay.init(apiKey, { ...mockOptions, flushMaxRetries: 2 }).promise;
+        const idbInstance = await (SessionReplayIDB.SessionReplayEventsIDBStore.new as jest.Mock).mock.results[0].value;
+        jest.spyOn(idbInstance, 'storeCurrentSequence');
+        (fetch as jest.Mock).mockReset();
+        (fetch as jest.Mock).mockResolvedValueOnce(mockSkippedResponse('4004'));
+
+        if (!sessionReplay.eventsManager) throw new Error('did not init');
+        sessionReplay.eventsManager.addEvent({
+          sessionId: 123,
+          event: { type: 'replay', data: mockEventString },
+          deviceId: '1a2b3c',
+        });
+        sessionReplay.sendEvents();
+        await (idbInstance.storeCurrentSequence as jest.Mock).mock.results[0].value;
+        await runScheduleTimers();
+        expect(fetch).toHaveBeenCalledTimes(1);
+
+        sessionReplay.eventsManager.addEvent({
+          sessionId: 123,
+          event: { type: 'replay', data: mockEventString },
+          deviceId: '1a2b3c',
+        });
+        sessionReplay.sendEvents();
+        await runScheduleTimers();
+        expect(fetch).toHaveBeenCalledTimes(1);
+      });
+    });
+
     test('should handle unexpected error where fetch response is null', async () => {
       const sessionReplay = new SessionReplay();
       await sessionReplay.init(apiKey, { ...mockOptions, flushMaxRetries: 2 }).promise;
