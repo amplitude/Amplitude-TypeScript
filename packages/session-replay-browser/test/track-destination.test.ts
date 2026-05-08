@@ -1150,7 +1150,7 @@ describe('SessionReplayTrackDestination', () => {
       expect(sendSpy).toHaveBeenCalledTimes(2);
     });
 
-    test('merged context inherits the highest attempts count from sources', async () => {
+    test('merged context starts with a fresh retry budget (attempts = 0)', async () => {
       const trackDestination = new SessionReplayTrackDestination({ loggerProvider: mockLoggerProvider });
       const sendSpy = jest.spyOn(trackDestination, 'send').mockResolvedValue(undefined);
 
@@ -1163,8 +1163,11 @@ describe('SessionReplayTrackDestination', () => {
 
       await trackDestination.flush(true);
 
+      // Resetting to 0 prevents one retry exhaustion from end-of-life'ing every source IDB
+      // record. The throttle pause already absorbed back-pressure — recovery deserves a
+      // full budget.
       const merged = sendSpy.mock.calls[0][0];
-      expect(merged.attempts).toBe(3);
+      expect(merged.attempts).toBe(0);
     });
 
     test('grouping uses safe fallbacks when optional identity fields are absent', async () => {
@@ -1264,6 +1267,148 @@ describe('SessionReplayTrackDestination', () => {
       // Both source IDB records get cleaned up.
       expect(onCompleteA).toHaveBeenCalled();
       expect(onCompleteB).toHaveBeenCalled();
+    });
+
+    test('worker path: merged context onComplete fans out to source IDB cleanups on worker complete', async () => {
+      const mockWorker = {
+        postMessage: jest.fn(),
+        terminate: jest.fn(),
+        onerror: null as ((e: ErrorEvent) => void) | null,
+        onmessage: null as ((e: MessageEvent) => void) | null,
+      };
+      global.Worker = jest.fn(() => mockWorker) as unknown as typeof Worker;
+      global.URL.createObjectURL = jest.fn().mockReturnValue('blob:mock');
+
+      const trackDestination = new SessionReplayTrackDestination({
+        loggerProvider: mockLoggerProvider,
+        workerScript: 'self.onmessage = () => {}',
+      });
+
+      const onCompleteA = jest.fn().mockResolvedValue(undefined);
+      const onCompleteB = jest.fn().mockResolvedValue(undefined);
+      trackDestination.queue = [
+        baseCtx({ events: ['a'], onComplete: onCompleteA }),
+        baseCtx({ events: ['b'], onComplete: onCompleteB }),
+      ];
+      (trackDestination as any).mergeOnNextFlush = true;
+
+      const flushPromise = trackDestination.flush(true);
+
+      // The merge sends one postMessage with merged events.
+      expect(mockWorker.postMessage).toHaveBeenCalledTimes(1);
+      const posted = mockWorker.postMessage.mock.calls[0][0];
+      expect(posted.payload.events).toEqual(['a', 'b']);
+
+      // Worker reports back complete; merged onComplete must fan out to both sources.
+      mockWorker.onmessage?.({ data: { type: 'complete', id: posted.id, skipCode: null } } as MessageEvent);
+      await flushPromise;
+
+      expect(onCompleteA).toHaveBeenCalledTimes(1);
+      expect(onCompleteB).toHaveBeenCalledTimes(1);
+    });
+
+    test('killSession during merge window drains affected contexts before flush merges them', async () => {
+      const trackDestination = new SessionReplayTrackDestination({ loggerProvider: mockLoggerProvider });
+      const sendSpy = jest.spyOn(trackDestination, 'send').mockResolvedValue(undefined);
+
+      const onCompleteA = jest.fn().mockResolvedValue(undefined);
+      const onCompleteB = jest.fn().mockResolvedValue(undefined);
+      const onCompleteOther = jest.fn().mockResolvedValue(undefined);
+      trackDestination.queue = [
+        baseCtx({ sessionId: 999, events: ['a'], onComplete: onCompleteA }),
+        baseCtx({ sessionId: 999, events: ['b'], onComplete: onCompleteB }),
+        baseCtx({ sessionId: 1000, events: ['c'], onComplete: onCompleteOther }),
+      ];
+      (trackDestination as any).mergeOnNextFlush = true;
+
+      // Kill session 999 before flush runs — drains its contexts immediately.
+      (trackDestination as any).killSession(999, '4005');
+      expect(onCompleteA).toHaveBeenCalled();
+      expect(onCompleteB).toHaveBeenCalled();
+
+      await trackDestination.flush(true);
+
+      // Only the unaffected session-1000 context goes through.
+      expect(sendSpy).toHaveBeenCalledTimes(1);
+      const sent = sendSpy.mock.calls[0][0];
+      expect(sent.sessionId).toBe(1000);
+      expect(sent.events).toEqual(['c']);
+    });
+
+    test('413 on merged context cleans up all source IDB records via fanned-out onComplete', () => {
+      const trackDestination = new SessionReplayTrackDestination({ loggerProvider: mockLoggerProvider });
+      const sendEventsListSpy = jest.spyOn(trackDestination, 'sendEventsList').mockImplementation(() => undefined);
+
+      const onCompleteA = jest.fn().mockResolvedValue(undefined);
+      const onCompleteB = jest.fn().mockResolvedValue(undefined);
+
+      // Build a merged context as mergeQueueAfterThrottle would: events from two sources,
+      // onComplete fanning out to both source callbacks.
+      const mergedOnComplete = async () => {
+        await Promise.all([onCompleteA(), onCompleteB()]);
+      };
+      const mergedContext: SessionReplayDestinationContext = {
+        events: ['a1', 'a2', 'b1', 'b2'],
+        sessionId: 123,
+        apiKey,
+        attempts: 0,
+        timeout: 0,
+        flushMaxRetries: 2,
+        deviceId: '1a2b3c',
+        sampleRate: 1,
+        serverZone: ServerZone.US,
+        type: 'replay',
+        onComplete: mergedOnComplete,
+      };
+
+      // Trigger the WAF 413 path — splits and re-enqueues both halves with noop onCompletes.
+      trackDestination.handlePayloadTooLargeResponse(mergedContext, true);
+
+      // Both source records get cleaned up exactly once.
+      expect(onCompleteA).toHaveBeenCalledTimes(1);
+      expect(onCompleteB).toHaveBeenCalledTimes(1);
+
+      // Halves re-enqueued with noop onComplete (so they don't double-clean source records).
+      expect(sendEventsListSpy).toHaveBeenCalledTimes(2);
+      const half1 = sendEventsListSpy.mock.calls[0][0];
+      const half2 = sendEventsListSpy.mock.calls[1][0];
+      expect(half1.events).toEqual(['a1', 'a2']);
+      expect(half2.events).toEqual(['b1', 'b2']);
+      // The halves' onComplete is the noop, NOT the merged fan-out.
+      expect(half1.onComplete).not.toBe(mergedOnComplete);
+      expect(half2.onComplete).not.toBe(mergedOnComplete);
+    });
+
+    test('merge log fires once per pause window, not on every release', async () => {
+      const trackDestination = new SessionReplayTrackDestination({ loggerProvider: mockLoggerProvider });
+      jest.spyOn(trackDestination, 'send').mockResolvedValue(undefined);
+
+      // First merge during the pause: log fires.
+      trackDestination.queue = [baseCtx({ events: ['a'] }), baseCtx({ events: ['b'] })];
+      (trackDestination as any).mergeOnNextFlush = true;
+      await trackDestination.flush(true);
+
+      // Same pause window, another merge happens (e.g., a second deferred flush in the same
+      // sustained throttle): log should NOT fire again.
+      trackDestination.queue = [baseCtx({ events: ['c'] }), baseCtx({ events: ['d'] })];
+      (trackDestination as any).mergeOnNextFlush = true;
+      await trackDestination.flush(true);
+
+      const mergeLogs = (mockLoggerProvider.log as jest.Mock).mock.calls.filter(
+        (c) => typeof c[0] === 'string' && c[0].includes('throttle pause ended; merged'),
+      );
+      expect(mergeLogs).toHaveLength(1);
+
+      // After a clean 200 (pause clears), the gate resets — next merge logs again.
+      (trackDestination as any).applyServerDirective(123, null);
+      trackDestination.queue = [baseCtx({ events: ['e'] }), baseCtx({ events: ['f'] })];
+      (trackDestination as any).mergeOnNextFlush = true;
+      await trackDestination.flush(true);
+
+      const mergeLogsAfter = (mockLoggerProvider.log as jest.Mock).mock.calls.filter(
+        (c) => typeof c[0] === 'string' && c[0].includes('throttle pause ended; merged'),
+      );
+      expect(mergeLogsAfter).toHaveLength(2);
     });
   });
 

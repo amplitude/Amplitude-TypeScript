@@ -76,6 +76,9 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
   // flush() to merge same-session contexts before sending. Throttling is enforced by request
   // count, so collapsing N queued batches into one POST directly reduces throttle pressure.
   private mergeOnNextFlush = false;
+  // Gates the merge log to once per throttle pause window — mirroring the throttle log's
+  // transition-only gating — so a sustained throttle scenario doesn't spam logs every cycle.
+  private mergeLogFiredThisPause = false;
   private killedSessions = new Set<string | number>();
 
   constructor({
@@ -338,13 +341,17 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
       for (const ctx of group) {
         const ctxChars = ctx.events.reduce((sum, e) => sum + e.length, 0);
         if (current === null) {
-          current = { ...ctx, events: [...ctx.events] };
+          // Reset attempts to 0 on the merged context so the post-throttle delivery gets a
+          // full retry budget. The throttle pause has already absorbed back-pressure; the
+          // alternative (Math.max of source attempts) would collapse N source budgets into
+          // one and end-of-life all N IDB records on a single retry exhaustion.
+          current = { ...ctx, events: [...ctx.events], attempts: 0 };
           currentChars = ctxChars;
           continue;
         }
         if (currentChars + ctxChars > MERGE_AFTER_THROTTLE_SOFT_CAP) {
           flushCurrent();
-          current = { ...ctx, events: [...ctx.events] };
+          current = { ...ctx, events: [...ctx.events], attempts: 0 };
           currentChars = ctxChars;
           continue;
         }
@@ -352,10 +359,6 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
         const ctxOnComplete = ctx.onComplete;
         current.events = current.events.concat(ctx.events);
         currentChars += ctxChars;
-        // Most conservative: don't reset the retry budget if any source context had
-        // already burned attempts. addToQueue increments attempts on enqueue, so the
-        // merged context inherits the highest count.
-        current.attempts = Math.max(current.attempts, ctx.attempts);
         current.onComplete = async () => {
           // Run both in parallel; an underlying store cleanup failure in one shouldn't
           // block the other. Errors are surfaced per the source callbacks' own handlers.
@@ -365,7 +368,8 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
       flushCurrent();
     }
 
-    if (merged.length < list.length) {
+    if (merged.length < list.length && !this.mergeLogFiredThisPause) {
+      this.mergeLogFiredThisPause = true;
       this.loggerProvider.log(
         `Session replay throttle pause ended; merged ${list.length} queued batches into ${merged.length} request(s)`,
       );
@@ -566,7 +570,14 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
       `Session replay event batch rejected by ${source} (${context.events.length} events, ${totalSizeKB} KB total) — splitting and retrying`,
     );
 
-    // Clean up the original IDB record, then re-enqueue both halves as new in-memory batches
+    // Clean up the original IDB record, then re-enqueue both halves as new in-memory batches.
+    // For a merged-on-throttle context (mergeQueueAfterThrottle), this onComplete is the
+    // fanned-out callback covering N source IDB records — they'll all be cleaned up here.
+    // Halves get noop onCompletes, so a page-close between this cleanup and a half delivery
+    // means up to N source sequences are lost. The merge soft cap (1.4MB chars) is well under
+    // the 10MB compressed 413 ceiling, so a 413 on a merged context is exceedingly rare in
+    // practice; the alternative — deferring source cleanup until both halves complete — would
+    // significantly complicate the retry path for marginal benefit.
     void context.onComplete();
     const noop = (): Promise<void> => Promise.resolve();
     const mid = Math.floor(context.events.length / 2);
@@ -624,6 +635,7 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
   private applyServerDirective(sessionId: string | number, skipCode: string | null) {
     if (skipCode === null) {
       this.flushPauseUntilMs = 0;
+      this.mergeLogFiredThisPause = false;
       return;
     }
     if (skipCode === EVENT_SKIP_CODE_THROTTLED) {
