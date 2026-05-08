@@ -23,6 +23,21 @@
       const useWebWorker = params.get('useWebWorker') === 'true';
       const mergeMutations = params.get('mergeMutations') === 'true';
       const storeType = params.get('storeType') ?? undefined;
+      const parseIntervalMs = (raw) => {
+        if (raw === null) return undefined;
+        if (raw === 'Infinity') return Infinity;
+        const n = Number(raw);
+        return Number.isNaN(n) ? undefined : n;
+      };
+      const flushMinIntervalMs = parseIntervalMs(params.get('flushMinIntervalMs'));
+      const flushMaxIntervalMs = parseIntervalMs(params.get('flushMaxIntervalMs'));
+      const flushIntervalConfig =
+        flushMinIntervalMs !== undefined || flushMaxIntervalMs !== undefined
+          ? {
+              ...(flushMinIntervalMs !== undefined ? { minIntervalMs: flushMinIntervalMs } : {}),
+              ...(flushMaxIntervalMs !== undefined ? { maxIntervalMs: flushMaxIntervalMs } : {}),
+            }
+          : undefined;
 
       void (async () => {
         try {
@@ -35,6 +50,7 @@
             useWebWorker,
             performanceConfig: { enabled: true, mergeMutations },
             ...(storeType ? { storeType } : {}),
+            ...(flushIntervalConfig ? { flushIntervalConfig } : {}),
           }).promise;
         } catch (err) {
           document.getElementById('status').textContent = 'error: ' + err.message;
