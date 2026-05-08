@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.42.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.42.1...@amplitude/session-replay-browser@1.42.2) (2026-05-08)
+
+
+### Bug Fixes
+
+* **session-replay-browser:** honor X-Session-Replay-Event-Skipped server back-pressure (SR-4280) ([#1741](https://github.com/amplitude/Amplitude-TypeScript/issues/1741)) ([1ef7bc8](https://github.com/amplitude/Amplitude-TypeScript/commit/1ef7bc889d69f24c4b5690164b72d88b12a88303))
+
+
+
+
+
 ## [1.42.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.42.0...@amplitude/session-replay-browser@1.42.1) (2026-05-07)
 
 
