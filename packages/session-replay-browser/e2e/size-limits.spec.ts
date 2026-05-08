@@ -238,20 +238,22 @@ test.describe('empty batch leak (SR-4284)', () => {
       await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(SR_API_SUCCESS) });
     });
 
-    // Capture console.warn output. The SR-4284 store-layer guards emit a sampled
-    // (1-in-100, first hit deterministic) warn whose presence proves the guards
-    // actually fired — without this signal, the test would also pass when only the
-    // upstream events-manager guard catches the empty (the older, weaker protection).
-    const warnings: string[] = [];
+    // Capture console.log output. The SR-4284 store-layer guards emit a sampled
+    // (1-in-100, first hit deterministic) debug message whose presence proves the
+    // guards actually fired — without this signal, the test would also pass when
+    // only the upstream events-manager guard catches the empty (the older, weaker
+    // protection). The SDK's logger routes debug() to console.log (see Logger),
+    // so we capture 'log' type messages and filter for the [Debug] prefix.
+    const debugMessages: string[] = [];
     page.on('console', (msg) => {
-      if (msg.type() === 'warning') warnings.push(msg.text());
+      if (msg.type() === 'log' && msg.text().includes('[Debug]')) debugMessages.push(msg.text());
     });
 
-    // logLevel=2 (Warn) so the SDK's loggerProvider.warn calls reach the console.
+    // logLevel=4 (Debug) so the SDK's loggerProvider.debug calls reach the console.
     await page.goto(
       buildUrl('/session-replay-browser/sr-capture-test.html', {
         sessionId: TEST_SESSION_ID,
-        logLevel: 2,
+        logLevel: 4,
       }),
     );
     await waitForReady(page);
@@ -284,7 +286,7 @@ test.describe('empty batch leak (SR-4284)', () => {
     // This is the strongest signal that the bug pathway was actually exercised AND
     // caught at the store layer — not just the events-manager fallback cleanup.
     expect(
-      warnings.some((w) => w.includes('Filtered empty session replay sequence at addEventToCurrentSequence')),
+      debugMessages.some((m) => m.includes('Filtered empty session replay sequence at addEventToCurrentSequence')),
     ).toBe(true);
 
     // Assertion 2: no POST body had an empty events array.

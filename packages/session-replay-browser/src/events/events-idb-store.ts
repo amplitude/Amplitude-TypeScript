@@ -163,13 +163,14 @@ export class SessionReplayEventsIDBStore extends BaseEventsStore<number> {
   private hasTriggeredFallback = false;
   private emptyFilteredCount = 0;
 
-  // Sampled (1 in 100) warn so we can observe whether the store-layer guards are
-  // catching empty-batch cases that would otherwise hit the empty-body 400 path on
-  // the server. Per-store-instance counter (rather than Math.random) keeps the first
-  // hit deterministic for tests and dev consoles.
-  private maybeWarnEmptyFiltered(source: string) {
+  // Sampled (1 in 100) debug log so we can observe whether the store-layer guards
+  // are catching empty-batch cases that would otherwise hit the empty-body 400 path
+  // on the server. Logged at debug, not warn — this is operational telemetry for
+  // post-deploy verification, not a customer-actionable warning. Per-store-instance
+  // counter (rather than Math.random) keeps the first hit deterministic for tests.
+  private maybeLogEmptyFiltered(source: string) {
     if (this.emptyFilteredCount++ % 100 === 0) {
-      this.loggerProvider.warn(`Filtered empty session replay sequence at ${source} (idb store)`);
+      this.loggerProvider.debug(`Filtered empty session replay sequence at ${source} (idb store)`);
     }
   }
 
@@ -256,7 +257,7 @@ export class SessionReplayEventsIDBStore extends BaseEventsStore<number> {
       const sequences: SendingSequencesReturn<number>[] = [];
       // readwrite mode so we can prune stale empty rows in-place. Without that,
       // older-SDK-persisted events:[] rows sit in IDB indefinitely and re-fire the
-      // sampled warn on every flush cycle, creating Datadog noise indistinguishable
+      // sampled log on every flush cycle, creating Datadog noise indistinguishable
       // from active bug occurrences.
       const tx = this.db.transaction('sequencesToSend', 'readwrite');
       // Attach a catch handler immediately so tx.done rejections (e.g. AbortError after
@@ -288,11 +289,11 @@ export class SessionReplayEventsIDBStore extends BaseEventsStore<number> {
         // wrote zero-event sequences via addEventToCurrentSequence's split path
         // (when a single oversized event triggered a split with empty buffer);
         // flushing them produces empty-body POSTs the server rejects with 400.
-        // Delete them in-place so they don't re-fire the sampled warn on every
+        // Delete them in-place so they don't re-fire the sampled log on every
         // subsequent flush — by construction (this fix) we never write empty rows
         // anymore, so any empty row is unambiguously stale.
         if (events.length === 0) {
-          this.maybeWarnEmptyFiltered('getSequencesToSend');
+          this.maybeLogEmptyFiltered('getSequencesToSend');
           await cursor.delete();
         } else {
           // Return all completed sequences regardless of tabId.  Filtering by tab
@@ -363,7 +364,7 @@ export class SessionReplayEventsIDBStore extends BaseEventsStore<number> {
       // Skip empty sequences — no point writing a zero-event row to sequencesToSend
       // (would later POST as an empty body and 400 on the server).
       if (currentSequenceData.events.length === 0) {
-        this.maybeWarnEmptyFiltered('storeCurrentSequence');
+        this.maybeLogEmptyFiltered('storeCurrentSequence');
         cancelTimeout();
         return undefined;
       }
@@ -480,7 +481,7 @@ export class SessionReplayEventsIDBStore extends BaseEventsStore<number> {
       // Datadog can confirm the new SDK is actually preventing the bug at its source
       // (vs. only seeing leftover-state hits at the get/storeCurrentSequence layers).
       if (eventsToSend.length === 0) {
-        this.maybeWarnEmptyFiltered('addEventToCurrentSequence');
+        this.maybeLogEmptyFiltered('addEventToCurrentSequence');
         await tx.objectStore(currentSequenceKey).put({ sessionId, events: [event], tabId: this.tabId });
         this.recordSuccess();
         cancelTimeout();

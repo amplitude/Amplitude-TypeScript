@@ -105,14 +105,14 @@ describe('SessionReplayEventsIDBStore', () => {
       const unsentSequences = await eventsStorage?.getSequencesToSend();
       expect(unsentSequences).toEqual([{ sessionId: 456, sequenceId: 2, events: [mockEventString] }]);
       // Sampled warn (1-of-100, first hit deterministic) should fire when filter triggers.
-      expect(mockLoggerProvider.warn).toHaveBeenCalledWith(
+      expect(mockLoggerProvider.debug).toHaveBeenCalledWith(
         expect.stringContaining('Filtered empty session replay sequence'),
       );
 
       // The empty rows should have been pruned in-place — a second call must
       // see them gone and not re-fire the sampled warn (otherwise older-SDK
       // residue produces Datadog noise indefinitely across page reloads).
-      (mockLoggerProvider.warn as jest.Mock).mockClear();
+      (mockLoggerProvider.debug as jest.Mock).mockClear();
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const rawDb = (eventsStorage as any).db as IDBPDatabase<SessionReplayDB>;
       const allRows = await rawDb.getAll('sequencesToSend');
@@ -121,7 +121,7 @@ describe('SessionReplayEventsIDBStore', () => {
 
       const second = await eventsStorage?.getSequencesToSend();
       expect(second).toEqual([{ sessionId: 456, sequenceId: 2, events: [mockEventString] }]);
-      expect(mockLoggerProvider.warn).not.toHaveBeenCalled();
+      expect(mockLoggerProvider.debug).not.toHaveBeenCalled();
     });
     test('should handle undefined store', async () => {
       mockStoreForError();
@@ -228,7 +228,7 @@ describe('SessionReplayEventsIDBStore', () => {
       const sequenceData = await eventsStorage?.storeCurrentSequence(123);
       expect(sequenceData).toBeUndefined();
       // Sampled warn (1-of-100, deterministic on first hit) should have fired.
-      expect(mockLoggerProvider.warn).toHaveBeenCalledWith(
+      expect(mockLoggerProvider.debug).toHaveBeenCalledWith(
         expect.stringContaining('Filtered empty session replay sequence'),
       );
     });
@@ -337,7 +337,7 @@ describe('SessionReplayEventsIDBStore', () => {
       expect(allRows[0].events).toEqual([mockEventString]);
       // Sampled warn fires at the root-cause filter site so post-deploy Datadog can
       // confirm the new SDK is preventing the bug at its source.
-      expect(mockLoggerProvider.warn).toHaveBeenCalledWith(
+      expect(mockLoggerProvider.debug).toHaveBeenCalledWith(
         expect.stringContaining('Filtered empty session replay sequence at addEventToCurrentSequence'),
       );
     });

@@ -19,13 +19,14 @@ export class InMemoryEventsStore extends BaseEventsStore<number> {
     return { sequenceId, events, sessionId };
   }
 
-  // Sampled (1 in 100) warn so we can observe whether the store-layer guards are
-  // actually catching cases that would otherwise hit the empty-body 400 path on the
-  // server. Per-store-instance counter rather than Math.random keeps the first hit
-  // deterministic for tests and visible in dev consoles.
-  private maybeWarnEmptyFiltered(source: string) {
+  // Sampled (1 in 100) debug log so we can observe whether the store-layer guards
+  // are actually catching cases that would otherwise hit the empty-body 400 path on
+  // the server. Logged at debug, not warn — this is operational telemetry for
+  // post-deploy verification, not a customer-actionable warning. Per-store-instance
+  // counter rather than Math.random keeps the first hit deterministic for tests.
+  private maybeLogEmptyFiltered(source: string) {
     if (this.emptyFilteredCount++ % 100 === 0) {
-      this.loggerProvider.warn(`Filtered empty session replay sequence at ${source} (in-memory store)`);
+      this.loggerProvider.debug(`Filtered empty session replay sequence at ${source} (in-memory store)`);
     }
   }
 
@@ -36,9 +37,9 @@ export class InMemoryEventsStore extends BaseEventsStore<number> {
         // Prune in-place for consistency with the IDB store: by construction we
         // never write empty sequences anymore, so any empty entry is unambiguously
         // stale residue. Without the delete, every subsequent getSequencesToSend
-        // would re-iterate the empty entry and re-fire the sampled warn, producing
+        // would re-iterate the empty entry and re-fire the sampled log, producing
         // repeated noise that's indistinguishable from active bug occurrences.
-        this.maybeWarnEmptyFiltered('getSequencesToSend');
+        this.maybeLogEmptyFiltered('getSequencesToSend');
         delete this.finalizedSequences[Number(sequenceId)];
         continue;
       }
@@ -55,7 +56,7 @@ export class InMemoryEventsStore extends BaseEventsStore<number> {
     if (buffered.length === 0) {
       // Slot exists but is empty (e.g. drained by a prior storeCurrentSequence then
       // re-flushed before any new event landed). Don't finalize a zero-event row.
-      this.maybeWarnEmptyFiltered('storeCurrentSequence');
+      this.maybeLogEmptyFiltered('storeCurrentSequence');
       return undefined;
     }
     return this.addSequence(sessionId);
@@ -78,7 +79,7 @@ export class InMemoryEventsStore extends BaseEventsStore<number> {
     // (see base-events-store.ts), so calling it on an empty buffer has no side effects.
     if (this.shouldSplitEventsList(this.sequences[sessionId], event)) {
       if (this.sequences[sessionId].length === 0) {
-        this.maybeWarnEmptyFiltered('addEventToCurrentSequence');
+        this.maybeLogEmptyFiltered('addEventToCurrentSequence');
       } else {
         sequenceReturn = this.addSequence(sessionId);
       }

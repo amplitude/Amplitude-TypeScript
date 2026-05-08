@@ -66,11 +66,11 @@ describe('InMemoryEventsStore', () => {
       // Now buffer for sessionId is [] (touched, empty). Reset the warn spy so we
       // only see calls from the next operation.
       // eslint-disable-next-line @typescript-eslint/unbound-method
-      (mockLoggerProvider.warn as jest.Mock).mockClear();
+      (mockLoggerProvider.debug as jest.Mock).mockClear();
 
       expect(await store.storeCurrentSequence(sessionId)).toBeUndefined();
       // eslint-disable-next-line @typescript-eslint/unbound-method
-      expect(mockLoggerProvider.warn).toHaveBeenCalledWith(
+      expect(mockLoggerProvider.debug).toHaveBeenCalledWith(
         expect.stringContaining('Filtered empty session replay sequence at storeCurrentSequence'),
       );
     });
@@ -107,7 +107,7 @@ describe('InMemoryEventsStore', () => {
       expect(sequences).toHaveLength(1);
       expect(sequences[0].events).toStrictEqual(['real']);
       // eslint-disable-next-line @typescript-eslint/unbound-method
-      expect(mockLoggerProvider.warn).toHaveBeenCalledWith(
+      expect(mockLoggerProvider.debug).toHaveBeenCalledWith(
         expect.stringContaining('Filtered empty session replay sequence'),
       );
 
@@ -115,11 +115,11 @@ describe('InMemoryEventsStore', () => {
       // and not re-fire the sampled warn, otherwise old residue produces noise
       // indefinitely on every flush cycle.
       // eslint-disable-next-line @typescript-eslint/unbound-method
-      (mockLoggerProvider.warn as jest.Mock).mockClear();
+      (mockLoggerProvider.debug as jest.Mock).mockClear();
       const second = (await store.getSequencesToSend())!;
       expect(second).toHaveLength(1);
       // eslint-disable-next-line @typescript-eslint/unbound-method
-      expect(mockLoggerProvider.warn).not.toHaveBeenCalled();
+      expect(mockLoggerProvider.debug).not.toHaveBeenCalled();
     });
   });
 
@@ -131,7 +131,7 @@ describe('InMemoryEventsStore', () => {
     // empty body and 400s on the server.
     test('does not finalize a zero-event sequence when buffer is empty', async () => {
       // eslint-disable-next-line @typescript-eslint/unbound-method
-      (mockLoggerProvider.warn as jest.Mock).mockClear();
+      (mockLoggerProvider.debug as jest.Mock).mockClear();
       store.shouldSplitEventsList = jest.fn().mockReturnValue(true);
       const result = await store.addEventToCurrentSequence(sessionId, 'huge-event');
       expect(result).toBeUndefined();
@@ -139,7 +139,7 @@ describe('InMemoryEventsStore', () => {
       // Sampled warn fires at the root-cause filter site so post-deploy Datadog can
       // confirm the new SDK is preventing the bug at its source.
       // eslint-disable-next-line @typescript-eslint/unbound-method
-      expect(mockLoggerProvider.warn).toHaveBeenCalledWith(
+      expect(mockLoggerProvider.debug).toHaveBeenCalledWith(
         expect.stringContaining('Filtered empty session replay sequence at addEventToCurrentSequence'),
       );
     });
