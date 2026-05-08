@@ -40,14 +40,30 @@ describe('SessionReplayLocalConfig', () => {
       expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('minIntervalMs'));
     });
 
-    test('clamps non-finite values (NaN, Infinity) to the floor', () => {
+    test('clamps non-finite minIntervalMs (NaN, Infinity) to the floor', () => {
       const config = new SessionReplayLocalConfig('static_key', {
         loggerProvider: logger,
-        flushIntervalConfig: { minIntervalMs: NaN, maxIntervalMs: Infinity },
+        flushIntervalConfig: { minIntervalMs: NaN },
       });
       expect(config.flushIntervalConfig?.minIntervalMs).toBe(100);
-      expect(config.flushIntervalConfig?.maxIntervalMs).toBe(100);
       expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('minIntervalMs'));
+    });
+
+    test('preserves Infinity for maxIntervalMs as "no upper bound"', () => {
+      const config = new SessionReplayLocalConfig('static_key', {
+        loggerProvider: logger,
+        flushIntervalConfig: { minIntervalMs: 5000, maxIntervalMs: Infinity },
+      });
+      expect(config.flushIntervalConfig?.maxIntervalMs).toBe(Infinity);
+      expect(warnSpy).not.toHaveBeenCalledWith(expect.stringContaining('maxIntervalMs'));
+    });
+
+    test('clamps NaN maxIntervalMs to the floor', () => {
+      const config = new SessionReplayLocalConfig('static_key', {
+        loggerProvider: logger,
+        flushIntervalConfig: { maxIntervalMs: NaN },
+      });
+      expect(config.flushIntervalConfig?.maxIntervalMs).toBe(100);
       expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('maxIntervalMs'));
     });
 

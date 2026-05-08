@@ -134,7 +134,10 @@ function sanitizeFlushIntervalConfig(raw: FlushIntervalConfig, loggerProvider: I
     }
   }
   if (raw.maxIntervalMs !== undefined) {
-    if (!Number.isFinite(raw.maxIntervalMs) || raw.maxIntervalMs < MIN_FLUSH_INTERVAL_FLOOR_MS) {
+    // Unlike min, `Infinity` is a meaningful value here: it means "no upper bound on interval
+    // growth" (Math.min(Infinity, x) === x in BaseEventsStore.shouldSplitEventsList). Reject
+    // only NaN and sub-floor values; pass Infinity through.
+    if (Number.isNaN(raw.maxIntervalMs) || raw.maxIntervalMs < MIN_FLUSH_INTERVAL_FLOOR_MS) {
       loggerProvider.warn(
         `flushIntervalConfig.maxIntervalMs ${raw.maxIntervalMs} is below floor ${MIN_FLUSH_INTERVAL_FLOOR_MS}ms; clamping.`,
       );
