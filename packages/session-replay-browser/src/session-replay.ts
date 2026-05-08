@@ -250,6 +250,8 @@ export class SessionReplay implements AmplitudeSessionReplay {
       rrwebEventManager = await createEventsManager<'replay'>({
         config: this.config,
         type: 'replay',
+        minInterval: this.config.flushIntervalConfig?.minIntervalMs,
+        maxInterval: this.config.flushIntervalConfig?.maxIntervalMs,
         storeType,
         trackDestinationWorkerScript,
       });

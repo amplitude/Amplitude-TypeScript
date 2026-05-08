@@ -1,4 +1,4 @@
-import { Config, Logger, FetchTransport, LogLevel } from '@amplitude/analytics-core';
+import { Config, ILogger, Logger, FetchTransport, LogLevel } from '@amplitude/analytics-core';
 import {
   DEFAULT_PERFORMANCE_CONFIG,
   DEFAULT_SAMPLE_RATE,
@@ -10,6 +10,7 @@ import { SessionReplayOptions, StoreType } from '../typings/session-replay';
 import {
   SessionReplayLocalConfig as ISessionReplayLocalConfig,
   CrossOriginIframesConfig,
+  FlushIntervalConfig,
   InteractionConfig,
   PrivacyConfig,
   SessionReplayPerformanceConfig,
@@ -45,6 +46,7 @@ export class SessionReplayLocalConfig extends Config implements ISessionReplayLo
   captureAdoptedStyleSheets?: boolean;
   crossOriginIframes?: CrossOriginIframesConfig;
   fullSnapshotIntervalMs?: number;
+  flushIntervalConfig?: FlushIntervalConfig;
 
   constructor(apiKey: string, options: SessionReplayOptions) {
     const defaultConfig = getDefaultConfig();
@@ -106,5 +108,48 @@ export class SessionReplayLocalConfig extends Config implements ISessionReplayLo
     if (options.crossOriginIframes) {
       this.crossOriginIframes = options.crossOriginIframes;
     }
+    if (options.flushIntervalConfig) {
+      this.flushIntervalConfig = sanitizeFlushIntervalConfig(options.flushIntervalConfig, this.loggerProvider);
+    }
   }
+}
+
+// 100ms floor avoids degenerate configs (0/negative) that would split on every event.
+// Customers wanting fewer requests should be raising the value, not lowering it; the floor
+// is just a defensive guard against typos and unsigned-int rollovers.
+const MIN_FLUSH_INTERVAL_FLOOR_MS = 100;
+
+function sanitizeFlushIntervalConfig(raw: FlushIntervalConfig, loggerProvider: ILogger): FlushIntervalConfig {
+  const sanitized: FlushIntervalConfig = {};
+  if (raw.minIntervalMs !== undefined) {
+    if (!Number.isFinite(raw.minIntervalMs) || raw.minIntervalMs < MIN_FLUSH_INTERVAL_FLOOR_MS) {
+      loggerProvider.warn(
+        `flushIntervalConfig.minIntervalMs ${raw.minIntervalMs} is below floor ${MIN_FLUSH_INTERVAL_FLOOR_MS}ms; clamping.`,
+      );
+      sanitized.minIntervalMs = MIN_FLUSH_INTERVAL_FLOOR_MS;
+    } else {
+      sanitized.minIntervalMs = raw.minIntervalMs;
+    }
+  }
+  if (raw.maxIntervalMs !== undefined) {
+    if (!Number.isFinite(raw.maxIntervalMs) || raw.maxIntervalMs < MIN_FLUSH_INTERVAL_FLOOR_MS) {
+      loggerProvider.warn(
+        `flushIntervalConfig.maxIntervalMs ${raw.maxIntervalMs} is below floor ${MIN_FLUSH_INTERVAL_FLOOR_MS}ms; clamping.`,
+      );
+      sanitized.maxIntervalMs = MIN_FLUSH_INTERVAL_FLOOR_MS;
+    } else {
+      sanitized.maxIntervalMs = raw.maxIntervalMs;
+    }
+  }
+  if (
+    sanitized.minIntervalMs !== undefined &&
+    sanitized.maxIntervalMs !== undefined &&
+    sanitized.maxIntervalMs < sanitized.minIntervalMs
+  ) {
+    loggerProvider.warn(
+      `flushIntervalConfig.maxIntervalMs (${sanitized.maxIntervalMs}) is less than minIntervalMs (${sanitized.minIntervalMs}); raising max to match min.`,
+    );
+    sanitized.maxIntervalMs = sanitized.minIntervalMs;
+  }
+  return sanitized;
 }
