@@ -321,6 +321,11 @@ describe('SessionReplayEventsIDBStore', () => {
       const allRows = await rawDb.getAll('sequencesToSend');
       expect(allRows).toHaveLength(1);
       expect(allRows[0].events).toEqual([mockEventString]);
+      // Sampled warn fires at the root-cause filter site so post-deploy Datadog can
+      // confirm the new SDK is preventing the bug at its source.
+      expect(mockLoggerProvider.warn).toHaveBeenCalledWith(
+        expect.stringContaining('Filtered empty session replay sequence at addEventToCurrentSequence'),
+      );
     });
 
     test('should split the events list at max size and send', async () => {

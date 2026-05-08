@@ -43,7 +43,13 @@ export class InMemoryEventsStore extends BaseEventsStore<number> {
 
   async storeCurrentSequence(sessionId: string | number): Promise<SendingSequencesReturn<number> | undefined> {
     const buffered = this.sequences[sessionId];
-    if (!buffered || buffered.length === 0) {
+    if (!buffered) {
+      return undefined;
+    }
+    if (buffered.length === 0) {
+      // Slot exists but is empty (e.g. drained by a prior storeCurrentSequence then
+      // re-flushed before any new event landed). Don't finalize a zero-event row.
+      this.maybeWarnEmptyFiltered('storeCurrentSequence');
       return undefined;
     }
     return this.addSequence(sessionId);
@@ -58,13 +64,18 @@ export class InMemoryEventsStore extends BaseEventsStore<number> {
     }
 
     let sequenceReturn: SendingSequencesReturn<number> | undefined;
-    // Only finalize a split batch when there's something to send. shouldSplitEventsList
-    // can return true with an empty buffer when a single incoming event is larger than
-    // MAX_EVENT_LIST_SIZE (700 KB) — the size-constraint branch fires regardless of
-    // current length. Without this guard we'd finalize an empty sequence that the
-    // network layer would later POST as an empty body (the SR-4284 root cause).
-    if (this.sequences[sessionId].length > 0 && this.shouldSplitEventsList(this.sequences[sessionId], event)) {
-      sequenceReturn = this.addSequence(sessionId);
+    // shouldSplitEventsList can return true with an empty buffer when a single
+    // incoming event is larger than MAX_EVENT_LIST_SIZE (700 KB) — the size-constraint
+    // branch fires regardless of current length. Don't finalize a zero-event sequence
+    // (the SR-4284 root cause); just hold the incoming event in the buffer.
+    // shouldSplitEventsList's time-elapsed branch only fires when events.length > 0
+    // (see base-events-store.ts), so calling it on an empty buffer has no side effects.
+    if (this.shouldSplitEventsList(this.sequences[sessionId], event)) {
+      if (this.sequences[sessionId].length === 0) {
+        this.maybeWarnEmptyFiltered('addEventToCurrentSequence');
+      } else {
+        sequenceReturn = this.addSequence(sessionId);
+      }
     }
 
     this.sequences[sessionId].push(event);

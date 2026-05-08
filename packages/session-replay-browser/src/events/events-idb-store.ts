@@ -468,7 +468,11 @@ export class SessionReplayEventsIDBStore extends BaseEventsStore<number> {
       // branch fires regardless of current length. Don't write a zero-event row to
       // sequencesToSend (which would later POST as an empty body, the SR-4284 root
       // cause); just claim the slot for the new event without finalizing anything.
+      // This is the *primary* root-cause filter site: warn here so post-deploy
+      // Datadog can confirm the new SDK is actually preventing the bug at its source
+      // (vs. only seeing leftover-state hits at the get/storeCurrentSequence layers).
       if (eventsToSend.length === 0) {
+        this.maybeWarnEmptyFiltered('addEventToCurrentSequence');
         await tx.objectStore(currentSequenceKey).put({ sessionId, events: [event], tabId: this.tabId });
         this.recordSuccess();
         cancelTimeout();
