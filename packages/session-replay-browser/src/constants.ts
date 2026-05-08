@@ -41,6 +41,16 @@ export const MAX_URL_LENGTH = 1000;
 export const RETRY_TIMEOUT_MS = 1000;
 export const MAX_KEEPALIVE_BYTES = 64 * 1024; // browser keepalive budget shared with sendBeacon
 
+// Server returns 200 + this header for "no-retry" drops (throttle / capture disabled / out-of-range).
+// See projects/sessionreplay/sessionreplay-ingestion/.../SessionReplayError.java.
+// Header value is the numeric error code as a string.
+export const EVENT_SKIPPED_HEADER = 'X-Session-Replay-Event-Skipped';
+export const EVENT_SKIP_CODE_THROTTLED = '429';
+export const EVENT_SKIP_CODE_INVALID_RANGE = '4004';
+export const EVENT_SKIP_CODE_CAPTURE_DISABLED = '4005';
+// How long to pause the flush schedule after the server signals a throttle.
+export const THROTTLED_FLUSH_PAUSE_MS = 60_000;
+
 export const CROSS_ORIGIN_IFRAME_MESSAGE_TYPE = 'amplitude-sr-iframe';
 
 export enum CustomRRwebEvent {
