@@ -836,14 +836,15 @@ describe('SessionReplayTrackDestination', () => {
       expect(trackDestination.queue).toEqual([queuedOther]);
     });
 
-    test('killing a session is idempotent (second directive does not re-drain queue)', async () => {
+    test('killing a session is idempotent (re-killing the same session is a no-op)', () => {
+      // killSession() can be reached twice for the same session if a worker request
+      // that started before the kill completes after — its skipCode loops through
+      // applyServerDirective again. The early-return guards against re-draining and
+      // re-logging in that case.
       const trackDestination = new SessionReplayTrackDestination({ loggerProvider: mockLoggerProvider });
-      mockFetchWithHeader(200, '4005');
-      mockFetchWithHeader(200, '4005');
-      await trackDestination.send(baseDirectiveContext({ sessionId: 42 }), true);
-      await trackDestination.send(baseDirectiveContext({ sessionId: 42 }), true);
+      (trackDestination as any).killSession(42, '4005');
+      (trackDestination as any).killSession(42, '4005');
 
-      // The kill log should fire exactly once.
       const killLogCalls = (mockLoggerProvider.log as jest.Mock).mock.calls.filter(
         (c) => typeof c[0] === 'string' && c[0].includes('capture stopped for session 42'),
       );
