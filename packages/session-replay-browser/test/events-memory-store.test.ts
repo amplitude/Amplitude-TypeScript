@@ -96,7 +96,7 @@ describe('InMemoryEventsStore', () => {
     // SR-4284: empty finalized sequences (e.g. drained from a previous SDK build via
     // storeSendingEvents, or from a future regression) must not be returned to the
     // network layer — they would POST as empty bodies and 400 on the server.
-    test('filters out empty finalized sequences', async () => {
+    test('filters out and prunes empty finalized sequences', async () => {
       // storeSendingEvents accepts any events array, including the [] case that older
       // SDK builds could emit via the split-with-empty-buffer path.
       await store.storeSendingEvents(sessionId, []);
@@ -110,6 +110,16 @@ describe('InMemoryEventsStore', () => {
       expect(mockLoggerProvider.warn).toHaveBeenCalledWith(
         expect.stringContaining('Filtered empty session replay sequence'),
       );
+
+      // Empty entries should have been pruned — a second call must see them gone
+      // and not re-fire the sampled warn, otherwise old residue produces noise
+      // indefinitely on every flush cycle.
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      (mockLoggerProvider.warn as jest.Mock).mockClear();
+      const second = (await store.getSequencesToSend())!;
+      expect(second).toHaveLength(1);
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockLoggerProvider.warn).not.toHaveBeenCalled();
     });
   });
 

@@ -33,7 +33,13 @@ export class InMemoryEventsStore extends BaseEventsStore<number> {
     const result: SendingSequencesReturn<number>[] = [];
     for (const [sequenceId, { sessionId, events }] of Object.entries(this.finalizedSequences)) {
       if (events.length === 0) {
+        // Prune in-place for consistency with the IDB store: by construction we
+        // never write empty sequences anymore, so any empty entry is unambiguously
+        // stale residue. Without the delete, every subsequent getSequencesToSend
+        // would re-iterate the empty entry and re-fire the sampled warn, producing
+        // repeated noise that's indistinguishable from active bug occurrences.
         this.maybeWarnEmptyFiltered('getSequencesToSend');
+        delete this.finalizedSequences[Number(sequenceId)];
         continue;
       }
       result.push({ sequenceId: Number(sequenceId), sessionId, events });
