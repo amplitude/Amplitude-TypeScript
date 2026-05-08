@@ -254,7 +254,11 @@ export class SessionReplayEventsIDBStore extends BaseEventsStore<number> {
     let timedOut = false;
     try {
       const sequences: SendingSequencesReturn<number>[] = [];
-      const tx = this.db.transaction('sequencesToSend');
+      // readwrite mode so we can prune stale empty rows in-place. Without that,
+      // older-SDK-persisted events:[] rows sit in IDB indefinitely and re-fire the
+      // sampled warn on every flush cycle, creating Datadog noise indistinguishable
+      // from active bug occurrences.
+      const tx = this.db.transaction('sequencesToSend', 'readwrite');
       // Attach a catch handler immediately so tx.done rejections (e.g. AbortError after
       // cursor traversal completes) are always handled without blocking the return path.
       // The errorLogged / timedOut flags prevent double-logging and double-recording
@@ -284,8 +288,12 @@ export class SessionReplayEventsIDBStore extends BaseEventsStore<number> {
         // wrote zero-event sequences via addEventToCurrentSequence's split path
         // (when a single oversized event triggered a split with empty buffer);
         // flushing them produces empty-body POSTs the server rejects with 400.
+        // Delete them in-place so they don't re-fire the sampled warn on every
+        // subsequent flush — by construction (this fix) we never write empty rows
+        // anymore, so any empty row is unambiguously stale.
         if (events.length === 0) {
           this.maybeWarnEmptyFiltered('getSequencesToSend');
+          await cursor.delete();
         } else {
           // Return all completed sequences regardless of tabId.  Filtering by tab
           // would cause event loss on page reload: a new store instance gets a

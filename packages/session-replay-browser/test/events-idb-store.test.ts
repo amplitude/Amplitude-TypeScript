@@ -93,7 +93,7 @@ describe('SessionReplayEventsIDBStore', () => {
     // that older SDK builds persisted (e.g. via the addEventToCurrentSequence
     // split-with-empty-buffer path before the SR-4284 fix). Those rows must be
     // filtered out so the network layer never POSTs an empty body.
-    test('filters out empty sequences (stale records persisted by older SDK builds)', async () => {
+    test('filters out and deletes empty sequences (stale records persisted by older SDK builds)', async () => {
       const eventsStorage = await SessionReplayEventsIDBStore.new('replay', {
         apiKey,
         loggerProvider: mockLoggerProvider,
@@ -108,6 +108,20 @@ describe('SessionReplayEventsIDBStore', () => {
       expect(mockLoggerProvider.warn).toHaveBeenCalledWith(
         expect.stringContaining('Filtered empty session replay sequence'),
       );
+
+      // The empty rows should have been pruned in-place — a second call must
+      // see them gone and not re-fire the sampled warn (otherwise older-SDK
+      // residue produces Datadog noise indefinitely across page reloads).
+      (mockLoggerProvider.warn as jest.Mock).mockClear();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const rawDb = (eventsStorage as any).db as IDBPDatabase<SessionReplayDB>;
+      const allRows = await rawDb.getAll('sequencesToSend');
+      expect(allRows).toHaveLength(1);
+      expect(allRows[0].events).toEqual([mockEventString]);
+
+      const second = await eventsStorage?.getSequencesToSend();
+      expect(second).toEqual([{ sessionId: 456, sequenceId: 2, events: [mockEventString] }]);
+      expect(mockLoggerProvider.warn).not.toHaveBeenCalled();
     });
     test('should handle undefined store', async () => {
       mockStoreForError();
