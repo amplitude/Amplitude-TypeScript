@@ -274,6 +274,31 @@ describe('SessionReplayTrackDestination', () => {
       await trackDestination.send(context);
       expect(fetch).not.toHaveBeenCalled();
     });
+    // SR-4284: defensive belt-and-braces guard immediately before fetch. The send()
+    // post-batcher check at the top is the primary line of defense, but a payloadBatcher
+    // that strips events to zero AFTER that check (or any future regression) must still
+    // not produce an empty-body POST. We invoke sendOnMainThread directly with an empty
+    // payload to exercise the literal pre-fetch guard rather than the upstream check.
+    test('pre-fetch guard skips fetch when payload events array is empty', async () => {
+      const trackDestination = new SessionReplayTrackDestination({ loggerProvider: mockLoggerProvider });
+      const context: SessionReplayDestinationContext = {
+        events: [mockEventString],
+        sessionId: 123,
+        attempts: 0,
+        timeout: 0,
+        flushMaxRetries: 1,
+        deviceId: '1a2b3c',
+        sampleRate: 1,
+        serverZone: ServerZone.US,
+        type: 'replay',
+        apiKey,
+        onComplete: mockOnComplete,
+      };
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (trackDestination as any).sendOnMainThread(apiKey, '1a2b3c', context, { version: 1, events: [] }, false);
+      expect(fetch).not.toHaveBeenCalled();
+      expect(mockOnComplete).toHaveBeenCalled();
+    });
     test('should not send anything if api key not set', async () => {
       const trackDestination = new SessionReplayTrackDestination({ loggerProvider: mockLoggerProvider });
       trackDestination.loggerProvider = mockLoggerProvider;

@@ -89,6 +89,26 @@ describe('SessionReplayEventsIDBStore', () => {
         },
       ]);
     });
+    // SR-4284: IDB drain on init can encounter sequencesToSend rows with events:[]
+    // that older SDK builds persisted (e.g. via the addEventToCurrentSequence
+    // split-with-empty-buffer path before the SR-4284 fix). Those rows must be
+    // filtered out so the network layer never POSTs an empty body.
+    test('filters out empty sequences (stale records persisted by older SDK builds)', async () => {
+      const eventsStorage = await SessionReplayEventsIDBStore.new('replay', {
+        apiKey,
+        loggerProvider: mockLoggerProvider,
+      });
+      await eventsStorage?.storeSendingEvents(123, []);
+      await eventsStorage?.storeSendingEvents(456, [mockEventString]);
+      await eventsStorage?.storeSendingEvents(789, []);
+
+      const unsentSequences = await eventsStorage?.getSequencesToSend();
+      expect(unsentSequences).toEqual([{ sessionId: 456, sequenceId: 2, events: [mockEventString] }]);
+      // Sampled warn (1-of-100, first hit deterministic) should fire when filter triggers.
+      expect(mockLoggerProvider.warn).toHaveBeenCalledWith(
+        expect.stringContaining('Filtered empty session replay sequence'),
+      );
+    });
     test('should handle undefined store', async () => {
       mockStoreForError();
       const eventsStorage = await SessionReplayEventsIDBStore.new('replay', {
@@ -176,6 +196,28 @@ describe('SessionReplayEventsIDBStore', () => {
 
       expect(sequenceData).toBeUndefined();
     });
+    // SR-4284: a current-sequence record with events:[] should NOT be promoted to
+    // sequencesToSend (would POST as an empty body and 400 on the server).
+    test('returns undefined when current-sequence record exists with zero events', async () => {
+      const eventsStorage = await SessionReplayEventsIDBStore.new('replay', {
+        apiKey,
+        loggerProvider: mockLoggerProvider,
+      });
+
+      // Seed a session row, then split it so the current-sequence slot is reset
+      // to events:[] but still owned by this tab.
+      eventsStorage!.shouldSplitEventsList = jest.fn().mockReturnValue(false);
+      await eventsStorage?.addEventToCurrentSequence(123, mockEventString);
+      await eventsStorage?.storeCurrentSequence(123);
+      // After storeCurrentSequence the current-sequence slot for 123 is { events: [], tabId }.
+
+      const sequenceData = await eventsStorage?.storeCurrentSequence(123);
+      expect(sequenceData).toBeUndefined();
+      // Sampled warn (1-of-100, deterministic on first hit) should have fired.
+      expect(mockLoggerProvider.warn).toHaveBeenCalledWith(
+        expect.stringContaining('Filtered empty session replay sequence'),
+      );
+    });
     test('should catch errors', async () => {
       mockStoreForError();
       const eventsStorage = await SessionReplayEventsIDBStore.new('replay', {
@@ -243,6 +285,42 @@ describe('SessionReplayEventsIDBStore', () => {
       expect(eventsToSend).toEqual({ sessionId: 123, events: [mockEventString], sequenceId: 1 });
       const allSessionCurrentSequence = await eventsStorage?.getCurrentSequenceEvents(123);
       expect(allSessionCurrentSequence).toEqual([{ events: [mockEventString2], sessionId: 123 }]);
+    });
+
+    // SR-4284: shouldSplitEventsList can return true with an empty buffer when a
+    // single incoming event is larger than MAX_EVENT_LIST_SIZE (700 KB) — the size
+    // branch fires regardless of current length. The split path must NOT write a
+    // zero-event row to sequencesToSend; just claim the slot for the incoming event.
+    test('does not write empty sequencesToSend row when split fires on empty buffer', async () => {
+      const eventsStorage = await SessionReplayEventsIDBStore.new('replay', {
+        apiKey,
+        loggerProvider: mockLoggerProvider,
+      });
+      // Set up the precondition: an existing current-sequence row owned by this tab
+      // with events:[]. addEventToCurrentSequence's first-time path (no record) won't
+      // exercise the split branch — we need an existing empty slot.
+      eventsStorage!.shouldSplitEventsList = jest.fn().mockReturnValue(false);
+      await eventsStorage?.addEventToCurrentSequence(123, mockEventString);
+      await eventsStorage?.storeCurrentSequence(123);
+      // Slot is now { events: [], tabId } and sequencesToSend has 1 row (sequenceId=1).
+
+      // Now flip shouldSplit to true and add a new event — the split path will run
+      // with eventsToSend=[]. Without the SR-4284 fix this writes an empty row.
+      eventsStorage!.shouldSplitEventsList = jest.fn().mockReturnValue(true);
+      const result = await eventsStorage?.addEventToCurrentSequence(123, mockEventString2);
+
+      // No completed sequence returned (nothing was finalized).
+      expect(result).toBeUndefined();
+      // The incoming event is held in the current-sequence slot for next time.
+      const allSessionCurrentSequence = await eventsStorage?.getCurrentSequenceEvents(123);
+      expect(allSessionCurrentSequence).toEqual([{ events: [mockEventString2], sessionId: 123 }]);
+      // Inspect raw DB directly — the getSequencesToSend filter would mask a buggy
+      // empty write, so we open a cursor and count rows ourselves.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const rawDb = (eventsStorage as any).db as IDBPDatabase<SessionReplayDB>;
+      const allRows = await rawDb.getAll('sequencesToSend');
+      expect(allRows).toHaveLength(1);
+      expect(allRows[0].events).toEqual([mockEventString]);
     });
 
     test('should split the events list at max size and send', async () => {

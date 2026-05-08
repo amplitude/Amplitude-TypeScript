@@ -161,6 +161,17 @@ export class SessionReplayEventsIDBStore extends BaseEventsStore<number> {
   private readonly consecutiveFailureThreshold: number;
   private consecutiveFailures = 0;
   private hasTriggeredFallback = false;
+  private emptyFilteredCount = 0;
+
+  // Sampled (1 in 100) warn so we can observe whether the store-layer guards are
+  // catching empty-batch cases that would otherwise hit the empty-body 400 path on
+  // the server. Per-store-instance counter (rather than Math.random) keeps the first
+  // hit deterministic for tests and dev consoles.
+  private maybeWarnEmptyFiltered(source: string) {
+    if (this.emptyFilteredCount++ % 100 === 0) {
+      this.loggerProvider.warn(`Filtered empty session replay sequence at ${source} (idb store)`);
+    }
+  }
 
   constructor(args: InstanceArgs) {
     super(args);
@@ -269,17 +280,25 @@ export class SessionReplayEventsIDBStore extends BaseEventsStore<number> {
       let cursor = await tx.store.openCursor();
       while (cursor) {
         const { sessionId, events } = cursor.value;
-        // Return all completed sequences regardless of tabId.  Filtering by tab
-        // would cause event loss on page reload: a new store instance gets a
-        // fresh in-memory UUID and would never see sequences written by the
-        // previous instance.  Completed sequences are safe to flush by any
-        // tab/instance; the server deduplicates, and cleanUpSessionEventsStore
-        // on an already-deleted key is a no-op.
-        sequences.push({
-          events,
-          sequenceId: cursor.key,
-          sessionId,
-        });
+        // Skip empty persisted records. These can come from older SDK builds that
+        // wrote zero-event sequences via addEventToCurrentSequence's split path
+        // (when a single oversized event triggered a split with empty buffer);
+        // flushing them produces empty-body POSTs the server rejects with 400.
+        if (events.length === 0) {
+          this.maybeWarnEmptyFiltered('getSequencesToSend');
+        } else {
+          // Return all completed sequences regardless of tabId.  Filtering by tab
+          // would cause event loss on page reload: a new store instance gets a
+          // fresh in-memory UUID and would never see sequences written by the
+          // previous instance.  Completed sequences are safe to flush by any
+          // tab/instance; the server deduplicates, and cleanUpSessionEventsStore
+          // on an already-deleted key is a no-op.
+          sequences.push({
+            events,
+            sequenceId: cursor.key,
+            sessionId,
+          });
+        }
         cursor = await cursor.continue();
       }
 
@@ -333,8 +352,10 @@ export class SessionReplayEventsIDBStore extends BaseEventsStore<number> {
         return undefined;
       }
 
-      // Skip empty sequences — no point writing a zero-event row to sequencesToSend.
+      // Skip empty sequences — no point writing a zero-event row to sequencesToSend
+      // (would later POST as an empty body and 400 on the server).
       if (currentSequenceData.events.length === 0) {
+        this.maybeWarnEmptyFiltered('storeCurrentSequence');
         cancelTimeout();
         return undefined;
       }
@@ -441,6 +462,19 @@ export class SessionReplayEventsIDBStore extends BaseEventsStore<number> {
       // Split path: reset sessionCurrentSequence and write the old events to
       // sequencesToSend atomically within the same transaction.
       const eventsToSend = ownedSequence.events;
+
+      // shouldSplitEventsList can return true with an empty buffer when a single
+      // incoming event is larger than MAX_EVENT_LIST_SIZE (700 KB) — the size-constraint
+      // branch fires regardless of current length. Don't write a zero-event row to
+      // sequencesToSend (which would later POST as an empty body, the SR-4284 root
+      // cause); just claim the slot for the new event without finalizing anything.
+      if (eventsToSend.length === 0) {
+        await tx.objectStore(currentSequenceKey).put({ sessionId, events: [event], tabId: this.tabId });
+        this.recordSuccess();
+        cancelTimeout();
+        return undefined;
+      }
+
       await tx.objectStore(currentSequenceKey).put({ sessionId, events: [event], tabId: this.tabId });
       const sequenceId = await tx.objectStore(sequencesToSendKey).put({
         sessionId,

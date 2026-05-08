@@ -384,6 +384,15 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
       };
 
       const serverUrl = `${getServerUrl(context.serverZone, this.trackServerUrl)}?${urlParams.toString()}`;
+      // Final defensive guard: never POST a zero-event payload. Upper layers (events-manager
+      // oversize filter, send()'s post-batcher check, store-layer filters) should already
+      // have caught this — but SR-4284 fleet logs show ~416 empty-body 400s/24h slipping
+      // through somehow, so a cheap belt-and-braces check immediately before fetch prevents
+      // any future regression from re-introducing the same server rejection.
+      if (payload.events.length === 0) {
+        this.completeRequest({ context });
+        return;
+      }
       const res = await fetch(serverUrl, options);
       if (res === null) {
         this.completeRequest({ context, err: UNEXPECTED_ERROR_MESSAGE });
