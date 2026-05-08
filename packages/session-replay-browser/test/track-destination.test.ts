@@ -1170,6 +1170,30 @@ describe('SessionReplayTrackDestination', () => {
       expect(merged.attempts).toBe(0);
     });
 
+    test('one source onComplete rejection does not block the other source onComplete', async () => {
+      const trackDestination = new SessionReplayTrackDestination({ loggerProvider: mockLoggerProvider });
+      const sendSpy = jest.spyOn(trackDestination, 'send').mockResolvedValue(undefined);
+
+      const onCompleteFails = jest.fn().mockRejectedValue(new Error('IDB cleanup failed'));
+      const onCompleteSucceeds = jest.fn().mockResolvedValue(undefined);
+
+      trackDestination.queue = [
+        baseCtx({ events: ['a'], onComplete: onCompleteFails }),
+        baseCtx({ events: ['b'], onComplete: onCompleteSucceeds }),
+      ];
+      (trackDestination as any).mergeOnNextFlush = true;
+
+      await trackDestination.flush(true);
+
+      const merged = sendSpy.mock.calls[0][0];
+      // allSettled: the failing onComplete must NOT prevent the succeeding one from running,
+      // and the merged onComplete itself must resolve (not reject) so its fire-and-forget
+      // caller doesn't produce an unhandled rejection.
+      await expect(merged.onComplete()).resolves.toBeUndefined();
+      expect(onCompleteFails).toHaveBeenCalledTimes(1);
+      expect(onCompleteSucceeds).toHaveBeenCalledTimes(1);
+    });
+
     test('grouping uses safe fallbacks when optional identity fields are absent', async () => {
       const trackDestination = new SessionReplayTrackDestination({ loggerProvider: mockLoggerProvider });
       const sendSpy = jest.spyOn(trackDestination, 'send').mockResolvedValue(undefined);
