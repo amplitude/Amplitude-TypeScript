@@ -24,6 +24,7 @@ import {
   EVENT_SKIP_CODE_INVALID_RANGE,
   EVENT_SKIP_CODE_CAPTURE_DISABLED,
   THROTTLED_FLUSH_PAUSE_MS,
+  MERGE_AFTER_THROTTLE_SOFT_CAP,
 } from './constants';
 import { gzipJson } from './utils/gzip';
 
@@ -71,6 +72,10 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
   // The server uses this header (instead of 4xx) to signal a deliberate no-retry drop so SDKs
   // don't retry-storm. We honor it here by slowing or stopping our flush schedule.
   private flushPauseUntilMs = 0;
+  // Set when schedule() defers a flush because we're inside a throttle pause; consumed by
+  // flush() to merge same-session contexts before sending. Throttling is enforced by request
+  // count, so collapsing N queued batches into one POST directly reduces throttle pressure.
+  private mergeOnNextFlush = false;
   private killedSessions = new Set<string | number>();
 
   constructor({
@@ -248,7 +253,13 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
     // If the server signaled throttling on a recent 200, defer the next flush until the
     // pause window ends. This lets us keep batching events without retry-storming the server.
     const pauseRemaining = this.flushPauseUntilMs - Date.now();
+    const isPaused = pauseRemaining > 0;
     const effectiveTimeout = pauseRemaining > timeout ? pauseRemaining : timeout;
+    if (isPaused) {
+      // Mark the upcoming flush for merge: contexts piling up during the pause should
+      // be coalesced into one POST per (session, device, api, type, ...) group.
+      this.mergeOnNextFlush = true;
+    }
     this.scheduled = setTimeout(() => {
       void this.flush(true).then(() => {
         if (this.queue.length > 0) {
@@ -259,7 +270,7 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
   }
 
   async flush(useRetry = false) {
-    const list = this.queue;
+    let list = this.queue;
     this.queue = [];
 
     if (this.scheduled) {
@@ -267,9 +278,99 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
       this.scheduled = null;
     }
 
+    if (this.mergeOnNextFlush) {
+      this.mergeOnNextFlush = false;
+      list = this.mergeQueueAfterThrottle(list);
+    }
+
     for (const context of list) {
       await this.send(context, useRetry);
     }
+  }
+
+  /**
+   * Coalesces queued contexts that share the same destination identity so the post-throttle
+   * release sends fewer requests. Identity covers everything that affects the request URL,
+   * routing, or per-request semantics — splitting on any difference keeps each merged POST
+   * indistinguishable from the source contexts it replaced.
+   *
+   * Greedy concat with a soft char-length cap (`MERGE_AFTER_THROTTLE_SOFT_CAP`) keeps merged
+   * payloads well under the 413 ceiling; on the rare oversized merge, the existing
+   * split-and-retry path still bisects safely.
+   *
+   * The merged context's `onComplete` fans out to every source context's callback so each
+   * underlying IDB sequence record is cleaned up exactly once on success.
+   */
+  private mergeQueueAfterThrottle(list: SessionReplayDestinationContext[]): SessionReplayDestinationContext[] {
+    if (list.length <= 1) return list;
+
+    const groups = new Map<string, SessionReplayDestinationContext[]>();
+    for (const ctx of list) {
+      // Anything that can change the URL, headers, or backend routing must split groups.
+      const key = [
+        ctx.sessionId,
+        ctx.deviceId ?? '',
+        ctx.apiKey ?? '',
+        ctx.type,
+        ctx.serverZone ?? '',
+        ctx.sampleRate,
+        ctx.version?.type ?? '',
+        ctx.version?.version ?? '',
+      ].join('|');
+      const arr = groups.get(key);
+      if (arr) arr.push(ctx);
+      else groups.set(key, [ctx]);
+    }
+
+    const merged: SessionReplayDestinationContext[] = [];
+    for (const group of groups.values()) {
+      if (group.length === 1) {
+        merged.push(group[0]);
+        continue;
+      }
+      let current: SessionReplayDestinationContext | null = null;
+      let currentChars = 0;
+      const flushCurrent = () => {
+        if (current) merged.push(current);
+        current = null;
+        currentChars = 0;
+      };
+      for (const ctx of group) {
+        const ctxChars = ctx.events.reduce((sum, e) => sum + e.length, 0);
+        if (current === null) {
+          current = { ...ctx, events: [...ctx.events] };
+          currentChars = ctxChars;
+          continue;
+        }
+        if (currentChars + ctxChars > MERGE_AFTER_THROTTLE_SOFT_CAP) {
+          flushCurrent();
+          current = { ...ctx, events: [...ctx.events] };
+          currentChars = ctxChars;
+          continue;
+        }
+        const prevOnComplete = current.onComplete;
+        const ctxOnComplete = ctx.onComplete;
+        current.events = current.events.concat(ctx.events);
+        currentChars += ctxChars;
+        // Most conservative: don't reset the retry budget if any source context had
+        // already burned attempts. addToQueue increments attempts on enqueue, so the
+        // merged context inherits the highest count.
+        current.attempts = Math.max(current.attempts, ctx.attempts);
+        current.onComplete = async () => {
+          // Run both in parallel; an underlying store cleanup failure in one shouldn't
+          // block the other. Errors are surfaced per the source callbacks' own handlers.
+          await Promise.all([prevOnComplete(), ctxOnComplete()]);
+        };
+      }
+      flushCurrent();
+    }
+
+    if (merged.length < list.length) {
+      this.loggerProvider.log(
+        `Session replay throttle pause ended; merged ${list.length} queued batches into ${merged.length} request(s)`,
+      );
+    }
+    return merged;
   }
 
   async send(context: SessionReplayDestinationContext, useRetry = true) {

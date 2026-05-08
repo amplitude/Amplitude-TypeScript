@@ -50,6 +50,13 @@ export const EVENT_SKIP_CODE_INVALID_RANGE = '4004';
 export const EVENT_SKIP_CODE_CAPTURE_DISABLED = '4005';
 // How long to pause the flush schedule after the server signals a throttle.
 export const THROTTLED_FLUSH_PAUSE_MS = 60_000;
+// Soft char-length cap for merging same-session contexts after a throttle pause.
+// Set to 2 * MAX_EVENT_LIST_SIZE so we'll merge at most ~2 max-size sequences (or many
+// small ones) into one POST — fewer requests during recovery without pushing close to
+// the server's 10MB-compressed 413 ceiling. Compared against `event.length` (char count)
+// to match the per-sequence limit's units; UTF-8 bytes may be larger but the cap is
+// intentionally far below the 413 threshold.
+export const MERGE_AFTER_THROTTLE_SOFT_CAP = 2 * MAX_EVENT_LIST_SIZE;
 
 export const CROSS_ORIGIN_IFRAME_MESSAGE_TYPE = 'amplitude-sr-iframe';
 
