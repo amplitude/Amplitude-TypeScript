@@ -93,7 +93,8 @@ export class SessionReplay implements AmplitudeSessionReplay {
   private lastTargetingParams?: SessionReplayTargetingInput;
   private lastShouldRecordDecision?: boolean;
 
-  // Visible for testing only
+  // Visible for testing only — the next three fields are intentionally public so
+  // tests can stub/inspect page-leave behavior and the min-session-duration gate.
   pageLeaveFns: PageLeaveFn[] = [];
   sessionStartTime: number | undefined;
   rrwebEventManager: EventsManagerWithBeacon<'replay'> | undefined;
