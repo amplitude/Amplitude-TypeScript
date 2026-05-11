@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.42.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.42.2...@amplitude/session-replay-browser@1.42.3) (2026-05-11)
+
+
+### Bug Fixes
+
+* **session-replay-browser:** wait for remote config to avoid stale cache race (SR-4234) ([#1739](https://github.com/amplitude/Amplitude-TypeScript/issues/1739)) ([cf8f806](https://github.com/amplitude/Amplitude-TypeScript/commit/cf8f8067bdee16951ade4501e0d89b98881df75f))
+
+
+
+
+
 ## [1.42.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.42.1...@amplitude/session-replay-browser@1.42.2) (2026-05-08)
 
 

@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.30.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@1.30.2...@amplitude/plugin-session-replay-browser@1.30.3) (2026-05-11)
+
+
+### Bug Fixes
+
+* **plugin-session-replay-browser:** forward crossOriginIframes to underlying SDK ([#1745](https://github.com/amplitude/Amplitude-TypeScript/issues/1745)) ([e944a13](https://github.com/amplitude/Amplitude-TypeScript/commit/e944a1381a9e70146f1d31c413636579554b30db))
+
+
+
+
+
 ## [1.30.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@1.30.1...@amplitude/plugin-session-replay-browser@1.30.2) (2026-05-08)
 
 **Note:** Version bump only for package @amplitude/plugin-session-replay-browser
