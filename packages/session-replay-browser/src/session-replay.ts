@@ -52,6 +52,12 @@ import { clickBatcher, ClickHandler, clickNonBatcher } from './hooks/click';
 import { ScrollWatcher } from './hooks/scroll';
 import { SessionIdentifiers } from './identifiers';
 import { SafeLoggerProvider } from './logger';
+import {
+  getOrInitReplayStartTime,
+  pruneStaleReplayStartTimes,
+  removeReplayStartTime,
+  setReplayStartTime,
+} from './replay-start-time-store';
 import { evaluateTargetingAndStore } from './targeting/targeting-manager';
 import {
   AmplitudeSessionReplay,
@@ -198,8 +204,15 @@ export class SessionReplay implements AmplitudeSessionReplay {
       this.loggerProvider.enable(options.logLevel as LogLevel);
     this.currentPageUrl = getCurrentUrl();
     this.identifiers = new SessionIdentifiers({ sessionId: options.sessionId, deviceId: options.deviceId });
-    // Use the session ID itself as the start time if it's a numeric timestamp, otherwise Date.now()
-    this.sessionStartTime = typeof options.sessionId === 'number' ? options.sessionId : Date.now();
+    // Persist replay start time per sessionId so the min_session_duration_ms gate
+    // measures replay duration (survives page reloads within a session) rather than
+    // page-load duration. Storage failures fall back to a transient Date.now().
+    const now = Date.now();
+    pruneStaleReplayStartTimes(apiKey, now, this.loggerProvider);
+    this.sessionStartTime =
+      options.sessionId !== undefined
+        ? getOrInitReplayStartTime(apiKey, options.sessionId, now, this.loggerProvider) ?? now
+        : now;
     this.joinedConfigGenerator = await createSessionReplayJoinedConfigGenerator(apiKey, options);
     const { joinedConfig, localConfig, remoteConfig } = await this.joinedConfigGenerator.generateJoinedConfig();
     this.config = joinedConfig;
@@ -377,6 +390,17 @@ export class SessionReplay implements AmplitudeSessionReplay {
       deviceId: deviceIdForReplayId,
     });
     this.sessionStartTime = Date.now();
+    // Persist new session's start time so a page reload mid-session resumes the gate.
+    // Also drop the previous session's entry — the localStorage cleanup deliberately
+    // happens here (and via TTL prune on init) rather than after a successful send:
+    // mid-session reloads would otherwise re-init the start time to Date.now() and
+    // re-suppress already-eligible sessions.
+    if (this.config?.apiKey) {
+      setReplayStartTime(this.config.apiKey, sessionId, this.sessionStartTime, this.loggerProvider);
+      if (previousSessionId !== undefined) {
+        removeReplayStartTime(this.config.apiKey, previousSessionId, this.loggerProvider);
+      }
+    }
 
     // If there is no previous session id, SDK is being initialized for the first time,
     // and config was just fetched in initialization, so no need to fetch it a second time

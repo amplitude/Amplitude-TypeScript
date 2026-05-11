@@ -116,6 +116,9 @@ describe('SessionReplay', () => {
       href: 'http://localhost',
     },
     indexedDB: new IDBFactory(),
+    // jsdom provides a working localStorage; expose it so the replay-start-time-store
+    // (which reads through getGlobalScope) sees a real storage in tests.
+    localStorage: globalThis.localStorage,
     navigator: {
       storage: {
         estimate: () => {
@@ -260,20 +263,82 @@ describe('SessionReplay', () => {
       });
     }
   });
-  describe('init', () => {
-    test('should set sessionStartTime from numeric sessionId', async () => {
-      await sessionReplay.init(apiKey, mockOptions).promise;
-      expect(sessionReplay.sessionStartTime).toBe(123);
+  describe('init: sessionStartTime persistence', () => {
+    beforeEach(() => {
+      globalThis.localStorage.clear();
     });
 
-    test('should set sessionStartTime to Date.now() when sessionId is not a number', async () => {
+    test('fresh init writes Date.now() and reads it back', async () => {
+      const before = Date.now();
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      const after = Date.now();
+      expect(sessionReplay.sessionStartTime).toBeGreaterThanOrEqual(before);
+      expect(sessionReplay.sessionStartTime).toBeLessThanOrEqual(after);
+      const stored = globalThis.localStorage.getItem(`AMP_SR_START_${apiKey.substring(0, 10)}_123`);
+      expect(Number(stored)).toBe(sessionReplay.sessionStartTime);
+    });
+
+    test('second init for same sessionId recovers stored value', async () => {
+      // Seed storage to simulate a prior init having written the start time.
+      const original = Date.now() - 60_000;
+      globalThis.localStorage.setItem(`AMP_SR_START_${apiKey.substring(0, 10)}_123`, String(original));
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      expect(sessionReplay.sessionStartTime).toBe(original);
+    });
+
+    test('corrupt stored value falls back to Date.now() and overwrites', async () => {
+      globalThis.localStorage.setItem(`AMP_SR_START_${apiKey.substring(0, 10)}_123`, 'not-a-number');
+      const before = Date.now();
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      const after = Date.now();
+      expect(sessionReplay.sessionStartTime).toBeGreaterThanOrEqual(before);
+      expect(sessionReplay.sessionStartTime).toBeLessThanOrEqual(after);
+      const stored = Number(globalThis.localStorage.getItem(`AMP_SR_START_${apiKey.substring(0, 10)}_123`));
+      expect(stored).toBe(sessionReplay.sessionStartTime);
+    });
+
+    test('TTL prune drops stale entries on init', async () => {
+      const staleKey = `AMP_SR_START_${apiKey.substring(0, 10)}_999`;
+      // 25 hours ago, beyond REPLAY_START_TIME_TTL_MS (24h).
+      globalThis.localStorage.setItem(staleKey, String(Date.now() - 25 * 60 * 60 * 1000));
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      expect(globalThis.localStorage.getItem(staleKey)).toBeNull();
+    });
+
+    test('falls back to Date.now() when localStorage access throws', async () => {
+      // jsdom's localStorage methods live on Storage.prototype, not as own properties,
+      // so jest.spyOn doesn't bind — patch the prototype directly.
+      const proto = Object.getPrototypeOf(globalThis.localStorage) as Storage;
+      const origGet = proto.getItem;
+      const origSet = proto.setItem;
+      proto.getItem = () => {
+        throw new Error('storage disabled');
+      };
+      proto.setItem = () => {
+        throw new Error('storage disabled');
+      };
+      try {
+        const before = Date.now();
+        await sessionReplay.init(apiKey, mockOptions).promise;
+        const after = Date.now();
+        expect(sessionReplay.sessionStartTime).toBeGreaterThanOrEqual(before);
+        expect(sessionReplay.sessionStartTime).toBeLessThanOrEqual(after);
+      } finally {
+        proto.getItem = origGet;
+        proto.setItem = origSet;
+      }
+    });
+
+    test('uses Date.now() when sessionId is undefined', async () => {
       const before = Date.now();
       await sessionReplay.init(apiKey, { ...mockOptions, sessionId: undefined }).promise;
       const after = Date.now();
       expect(sessionReplay.sessionStartTime).toBeGreaterThanOrEqual(before);
       expect(sessionReplay.sessionStartTime).toBeLessThanOrEqual(after);
     });
+  });
 
+  describe('init', () => {
     test('should pass current page to evaluateTargetingAndCapture during init', async () => {
       const evaluateTargetingAndCaptureSpy = jest.spyOn(sessionReplay, 'evaluateTargetingAndCapture');
       await sessionReplay.init(apiKey, mockOptions).promise;
@@ -1340,6 +1405,20 @@ describe('SessionReplay', () => {
           }
         ).latestUrlChangeTargetingEvaluationId,
       ).toBe(2);
+    });
+
+    test('writes new session start time and removes previous session entry', async () => {
+      globalThis.localStorage.clear();
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      const prevKey = `AMP_SR_START_${apiKey.substring(0, 10)}_123`;
+      const nextKey = `AMP_SR_START_${apiKey.substring(0, 10)}_456`;
+      expect(globalThis.localStorage.getItem(prevKey)).not.toBeNull();
+
+      await (sessionReplay as any).asyncSetSessionId(456, '9l8m7n');
+
+      expect(globalThis.localStorage.getItem(prevKey)).toBeNull();
+      const newStart = Number(globalThis.localStorage.getItem(nextKey));
+      expect(newStart).toBe(sessionReplay.sessionStartTime);
     });
   });
 
