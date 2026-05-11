@@ -352,36 +352,39 @@ describe('config', () => {
       expect(await Config.getTopLevelDomain('www.legislation.gov.uk')).toBe('.legislation.gov.uk');
     });
 
-    test('should not throw an error when location is an empty object', async () => {
-      const originalLocation = window.location;
+    // `window.location` is web-only; these cases don't apply on RN.
+    if (isWeb()) {
+      test('should not throw an error when location is an empty object', async () => {
+        const originalLocation = window.location;
 
-      Object.defineProperty(window, 'location', {
-        value: {} as Location,
-        configurable: true,
+        Object.defineProperty(window, 'location', {
+          value: {} as Location,
+          configurable: true,
+        });
+
+        expect(await Config.getTopLevelDomain()).toBe('');
+
+        Object.defineProperty(window, 'location', {
+          value: originalLocation,
+          configurable: true,
+        });
       });
 
-      expect(await Config.getTopLevelDomain()).toBe('');
+      test('should return empty string when location is undefined', async () => {
+        const originalLocation = window.location;
 
-      Object.defineProperty(window, 'location', {
-        value: originalLocation,
-        configurable: true,
+        Object.defineProperty(window, 'location', {
+          value: undefined,
+          configurable: true,
+        });
+
+        expect(await Config.getTopLevelDomain()).toBe('');
+
+        Object.defineProperty(window, 'location', {
+          value: originalLocation,
+          configurable: true,
+        });
       });
-    });
-
-    test('should return empty string when location is undefined', async () => {
-      const originalLocation = window.location;
-
-      Object.defineProperty(window, 'location', {
-        value: undefined,
-        configurable: true,
-      });
-
-      expect(await Config.getTopLevelDomain()).toBe('');
-
-      Object.defineProperty(window, 'location', {
-        value: originalLocation,
-        configurable: true,
-      });
-    });
+    }
   });
 });

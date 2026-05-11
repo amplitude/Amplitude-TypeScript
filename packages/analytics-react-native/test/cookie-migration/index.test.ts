@@ -6,8 +6,10 @@ import { isWeb } from '../../src/utils/platform';
 describe('cookie-migration', () => {
   const API_KEY = 'asdfasdf';
   afterEach(() => {
-    // clean up cookies
-    document.cookie = `${getOldCookieName(API_KEY)}=null; expires=-1`;
+    // clean up cookies (web-only — RN has no `document`)
+    if (typeof document !== 'undefined') {
+      document.cookie = `${getOldCookieName(API_KEY)}=null; expires=-1`;
+    }
   });
 
   describe('parseOldCookies', () => {

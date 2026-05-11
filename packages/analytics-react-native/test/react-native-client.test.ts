@@ -23,9 +23,10 @@ describe('react-native-client', () => {
   };
 
   afterEach(async () => {
-    // clean up cookies
-    // due to jest env, cookies are always preset and needs to be cleaned up
-    document.cookie = 'AMP_API_KEY=null; expires=-1';
+    // clean up cookies (web-only — RN has no `document`)
+    if (typeof document !== 'undefined') {
+      document.cookie = 'AMP_API_KEY=null; expires=-1';
+    }
     if (!isWeb()) {
       await AsyncStorage.clear();
     }
