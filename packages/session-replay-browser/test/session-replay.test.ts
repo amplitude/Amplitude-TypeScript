@@ -1420,6 +1420,36 @@ describe('SessionReplay', () => {
       const newStart = Number(globalThis.localStorage.getItem(nextKey));
       expect(newStart).toBe(sessionReplay.sessionStartTime);
     });
+
+    test('resets per-session gate-decision state on session change', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      if (!sessionReplay.eventsManager || !sessionReplay.config) throw new Error('init');
+      sessionReplay.eventsManager.sendCurrentSequenceEvents = jest.fn();
+      const addCustomSpy = jest.spyOn(sessionReplay, 'addCustomRRWebEvent').mockResolvedValue(undefined);
+      sessionReplay.config.minSessionDurationMs = 1000;
+      sessionReplay.sessionStartTime = Date.now() - 5000;
+
+      // First send for session A emits gate-decision and trips hasEmittedGateDecision.
+      sessionReplay.sendEvents();
+      const sessionAGateCall = addCustomSpy.mock.calls.find((c) => c[0] === 'replay-gate-decision');
+      expect(sessionAGateCall).toBeDefined();
+      expect(sessionAGateCall?.[1]).toEqual(expect.objectContaining({ sessionId: 123 }));
+
+      await (sessionReplay as any).asyncSetSessionId(456, '9l8m7n');
+      // asyncSetSessionId regenerates the joined config; restore the threshold so the new
+      // session is gated identically to the prior one.
+      if (sessionReplay.config) sessionReplay.config.minSessionDurationMs = 1000;
+      // Drop calls from the session-id transition itself (debug-info / targeting-decision)
+      // so we can assert specifically that the next sendEvents re-emits gate-decision.
+      addCustomSpy.mockClear();
+      sessionReplay.sessionStartTime = Date.now() - 5000;
+      sessionReplay.sendEvents();
+      expect(addCustomSpy).toHaveBeenCalledWith(
+        'replay-gate-decision',
+        expect.objectContaining({ sessionId: 456, suppressedSendCount: 0 }),
+        false,
+      );
+    });
   });
 
   describe('getSessionId', () => {
@@ -2105,6 +2135,70 @@ describe('SessionReplay', () => {
         sessionId: 123,
         deviceId: '1a2b3c',
       });
+    });
+    test('emits REPLAY_GATE_DECISION on first send-after-pass with suppressed count', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      if (!sessionReplay.eventsManager || !sessionReplay.config) {
+        throw new Error('Did not call init');
+      }
+      sessionReplay.eventsManager.sendCurrentSequenceEvents = jest.fn();
+      const addCustomSpy = jest.spyOn(sessionReplay, 'addCustomRRWebEvent').mockResolvedValue(undefined);
+      sessionReplay.config.minSessionDurationMs = 5000;
+
+      // First call: below threshold, suppressed.
+      sessionReplay.sessionStartTime = Date.now() - 1000;
+      sessionReplay.sendEvents();
+      // Second call: still below threshold, suppressed.
+      sessionReplay.sendEvents();
+      expect(addCustomSpy).not.toHaveBeenCalled();
+
+      // Third call: now above threshold — emits gate-decision event with the two prior suppressions.
+      sessionReplay.sessionStartTime = Date.now() - 6000;
+      sessionReplay.sendEvents();
+      expect(addCustomSpy).toHaveBeenCalledWith(
+        'replay-gate-decision',
+        expect.objectContaining({
+          sessionId: 123,
+          suppressedSendCount: 2,
+          minSessionDurationMs: 5000,
+          elapsedMs: expect.any(Number),
+        }),
+        false,
+      );
+
+      // Fourth call: subsequent send doesn't re-emit (once per session).
+      addCustomSpy.mockClear();
+      sessionReplay.sendEvents();
+      expect(addCustomSpy).not.toHaveBeenCalled();
+    });
+    test('does not emit REPLAY_GATE_DECISION when minSessionDurationMs is unset', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      if (!sessionReplay.eventsManager || !sessionReplay.config) {
+        throw new Error('Did not call init');
+      }
+      sessionReplay.eventsManager.sendCurrentSequenceEvents = jest.fn();
+      const addCustomSpy = jest.spyOn(sessionReplay, 'addCustomRRWebEvent').mockResolvedValue(undefined);
+      sessionReplay.config.minSessionDurationMs = undefined;
+      sessionReplay.sendEvents();
+      expect(addCustomSpy).not.toHaveBeenCalled();
+    });
+    test('emits elapsedMs as undefined when sessionStartTime is missing at first send-after-pass', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      if (!sessionReplay.eventsManager || !sessionReplay.config) {
+        throw new Error('Did not call init');
+      }
+      sessionReplay.eventsManager.sendCurrentSequenceEvents = jest.fn();
+      const addCustomSpy = jest.spyOn(sessionReplay, 'addCustomRRWebEvent').mockResolvedValue(undefined);
+      sessionReplay.config.minSessionDurationMs = 5000;
+      // sessionStartTime undefined makes isBelowMinSessionDuration() return false, so the
+      // pass-path fires but elapsedMs can't be computed.
+      sessionReplay.sessionStartTime = undefined;
+      sessionReplay.sendEvents();
+      expect(addCustomSpy).toHaveBeenCalledWith(
+        'replay-gate-decision',
+        expect.objectContaining({ elapsedMs: undefined }),
+        false,
+      );
     });
   });
   describe('stopRecordingEvents', () => {

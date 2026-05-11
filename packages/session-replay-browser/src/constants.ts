@@ -35,4 +35,14 @@ export enum CustomRRwebEvent {
   FETCH_REQUEST = 'fetch-request',
   METADATA = 'metadata',
   TARGETING_DECISION = 'targeting-decision',
+  /**
+   * Emitted once per session, on the first send that passes the min_session_duration_ms
+   * gate. Captures how many sends were suppressed before passing and the elapsed time
+   * spent below the threshold. Lets backend ingestion diff intended replay count vs
+   * actual ingestion so on-call can spot start-time-tracking regressions.
+   *
+   * Sessions that bounce before crossing the threshold never emit this event by design
+   * (the whole payload is suppressed); their absence is the signal.
+   */
+  REPLAY_GATE_DECISION = 'replay-gate-decision',
 }

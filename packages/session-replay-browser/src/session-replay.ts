@@ -98,6 +98,13 @@ export class SessionReplay implements AmplitudeSessionReplay {
   pageLeaveFns: PageLeaveFn[] = [];
   sessionStartTime: number | undefined;
   rrwebEventManager: EventsManagerWithBeacon<'replay'> | undefined;
+  /**
+   * Count of sendEvents() calls suppressed by the min-session-duration gate for the
+   * current session. Drives the REPLAY_GATE_DECISION rrweb event on first send-after-pass.
+   */
+  private suppressedSendCount = 0;
+  /** True once REPLAY_GATE_DECISION has been emitted for the current session. */
+  private hasEmittedGateDecision = false;
   private scrollHook?: scrollCallback;
   private clickHandler?: ClickHandler;
   private networkObservers?: NetworkObservers;
@@ -407,6 +414,8 @@ export class SessionReplay implements AmplitudeSessionReplay {
       deviceId: deviceIdForReplayId,
     });
     this.sessionStartTime = Date.now();
+    this.suppressedSendCount = 0;
+    this.hasEmittedGateDecision = false;
     // Persist new session's start time so a page reload mid-session resumes the gate.
     // Also drop the previous session's entry — the localStorage cleanup deliberately
     // happens here (and via TTL prune on init) rather than after a successful send:
@@ -613,7 +622,25 @@ export class SessionReplay implements AmplitudeSessionReplay {
         // Drop pending beacon events so this below-threshold session's data
         // can't leak into a later session's beacon flush on page unload.
         this.rrwebEventManager?.dropPendingBeaconEvents();
+        this.suppressedSendCount++;
         return;
+      }
+      // On the first send-after-pass for the session, emit a custom rrweb event so the
+      // payload itself carries the gate verdict. Lets backend ingestion diff intended
+      // vs actual replay counts to spot start-time-tracking regressions.
+      if (!this.hasEmittedGateDecision && this.config?.minSessionDurationMs !== undefined) {
+        this.hasEmittedGateDecision = true;
+        const elapsedMs = this.sessionStartTime !== undefined ? Date.now() - this.sessionStartTime : undefined;
+        void this.addCustomRRWebEvent(
+          CustomRRwebEvent.REPLAY_GATE_DECISION,
+          {
+            sessionId: sessionIdToSend,
+            suppressedSendCount: this.suppressedSendCount,
+            elapsedMs,
+            minSessionDurationMs: this.config.minSessionDurationMs,
+          },
+          false,
+        );
       }
       this.eventsManager.sendCurrentSequenceEvents({ sessionId: sessionIdToSend, deviceId });
     }
