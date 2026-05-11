@@ -12,7 +12,6 @@
     "lib": ["esnext", "dom"],
     "module": "esnext",
     "moduleResolution": "node",
-    "noEmit": true,
     "noImplicitUseStrict": false,
     "noStrictGenericChecks": false,
     "skipLibCheck": true,

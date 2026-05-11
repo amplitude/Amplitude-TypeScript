@@ -36,7 +36,7 @@
     "test": "pnpm test:web && pnpm test:mobile",
     "test:web": "jest --setupFiles './test/mock/setup-web.ts' --testEnvironment jsdom",
     "test:mobile": "jest --setupFiles './test/mock/setup-mobile.ts' --testEnvironment node",
-    "typecheck": "tsc -p ./tsconfig.json",
+    "typecheck": "tsc --noEmit -p ./tsconfig.json",
     "version": "pnpm version-file && pnpm build",
     "version-file": "node -p \"'export const VERSION = \\'' + require('./package.json').version + '\\';'\" > src/version.ts",
     "typescript": "tsc --noEmit",

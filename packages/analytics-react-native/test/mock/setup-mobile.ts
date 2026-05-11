@@ -13,14 +13,21 @@ jest.mock('@react-native-async-storage/async-storage', () => mockAsyncStorage);
 
 /*
  * Mock navigator. This is what the navigator looks like on mobile.
- * In React Native there is no `window` global — the navigator lives on
- * `globalThis` — so we attach it there. (Under jsdom, `globalThis.navigator`
- * and `window.navigator` refer to the same object, so either env works.)
+ *
+ * Use `Object.defineProperty` rather than direct assignment because Node 21+
+ * defines `globalThis.navigator` as a non-writable getter. A plain assignment
+ * (`globalThis.navigator = …`) throws `TypeError: Cannot set property …` in
+ * strict-mode ES modules. The built-in descriptor is `configurable: true`, so
+ * `defineProperty` overrides it cleanly on Node 22 / 24 while still working
+ * on Node 18/20 (where the property doesn't exist yet) and under jsdom
+ * (where `window.navigator` and `globalThis.navigator` alias).
  */
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore
 // eslint-disable-next-line no-restricted-globals
-(globalThis as unknown as { navigator: { product: string } }).navigator = { product: 'ReactNative' };
+Object.defineProperty(globalThis, 'navigator', {
+  value: { product: 'ReactNative' },
+  configurable: true,
+  writable: true,
+});
 
 /*
  * Mock Native Module
