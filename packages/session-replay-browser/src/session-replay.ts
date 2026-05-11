@@ -190,6 +190,24 @@ export class SessionReplay implements AmplitudeSessionReplay {
     };
   }
 
+  /**
+   * Single source of truth for the min_session_duration_ms gate. Returns true when the
+   * current session has not yet reached the configured threshold (and we have both a
+   * configured value and a recorded start time). Returns false when there's no
+   * threshold, no recorded start time, or the threshold has been met — i.e. it
+   * answers "should this batch be suppressed?".
+   *
+   * Centralizing the check means future changes (clock-skew tolerance, switching to
+   * performance.now(), etc.) are one-line edits.
+   */
+  private isBelowMinSessionDuration(): boolean {
+    const minSessionDurationMs = this.config?.minSessionDurationMs;
+    if (minSessionDurationMs === undefined || this.sessionStartTime === undefined) {
+      return false;
+    }
+    return Date.now() - this.sessionStartTime < minSessionDurationMs;
+  }
+
   private getCurrentPageForTargeting(): SessionReplayTargetingInput['page'] {
     const currentUrl = getGlobalScope()?.location?.href;
     return currentUrl != null ? { url: currentUrl } : undefined;
@@ -266,12 +284,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
         type: 'replay',
         storeType,
         trackDestinationWorkerScript,
-        shouldSend: () => {
-          const { minSessionDurationMs } = this.config ?? {};
-          if (minSessionDurationMs === undefined || this.sessionStartTime === undefined) return true;
-          const elapsed = Date.now() - this.sessionStartTime;
-          return elapsed >= minSessionDurationMs;
-        },
+        shouldSend: () => !this.isBelowMinSessionDuration(),
       });
       this.rrwebEventManager = rrwebEventManager;
       managers.push({ name: 'replay', manager: rrwebEventManager });
@@ -323,10 +336,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
         if (!events.length) return;
         const deviceId = this.getDeviceId();
         if (!deviceId) return;
-        const { minSessionDurationMs } = this.config;
-        if (minSessionDurationMs !== undefined && this.sessionStartTime !== undefined) {
-          if (Date.now() - this.sessionStartTime < minSessionDurationMs) return;
-        }
+        if (this.isBelowMinSessionDuration()) return;
         rrwebEventManager.trackDestination.sendBeacon({
           events,
           sessionId: this.identifiers.sessionId,
@@ -586,18 +596,18 @@ export class SessionReplay implements AmplitudeSessionReplay {
     const sessionIdToSend = sessionId || this.identifiers?.sessionId;
     const deviceId = this.getDeviceId();
     if (this.eventsManager && sessionIdToSend && deviceId) {
-      if (this.config?.minSessionDurationMs !== undefined && this.sessionStartTime !== undefined) {
-        const sessionDuration = Date.now() - this.sessionStartTime;
-        const willSend = sessionDuration >= this.config.minSessionDurationMs;
-        if (!willSend) {
-          this.loggerProvider.log(
-            `Session ${sessionIdToSend} not sent: duration ${sessionDuration}ms is below minimum ${this.config.minSessionDurationMs}ms.`,
-          );
-          // Drop pending beacon events so this below-threshold session's data
-          // can't leak into a later session's beacon flush on page unload.
-          this.rrwebEventManager?.dropPendingBeaconEvents();
-          return;
-        }
+      if (this.isBelowMinSessionDuration()) {
+        // Safe to dereference: isBelowMinSessionDuration() only returns true when both
+        // this.config and this.sessionStartTime are defined.
+        const startTime = this.sessionStartTime as number;
+        const minMs = (this.config as SessionReplayJoinedConfig).minSessionDurationMs as number;
+        this.loggerProvider.log(
+          `Session ${sessionIdToSend} not sent: duration ${Date.now() - startTime}ms is below minimum ${minMs}ms.`,
+        );
+        // Drop pending beacon events so this below-threshold session's data
+        // can't leak into a later session's beacon flush on page unload.
+        this.rrwebEventManager?.dropPendingBeaconEvents();
+        return;
       }
       this.eventsManager.sendCurrentSequenceEvents({ sessionId: sessionIdToSend, deviceId });
     }
