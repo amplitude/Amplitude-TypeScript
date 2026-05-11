@@ -10,6 +10,17 @@ import {
   SessionReplayRemoteConfig,
 } from './types';
 
+// Budget for waiting on the remote config response before falling back to the local cache.
+// The inner fetch in analytics-core uses a 1000ms per-attempt AbortController timeout with
+// up to 3 retries — but this outer timeout is the only thing the SR plugin waits on, so
+// only the first attempt can possibly complete in time (attempt 2 starts at ~1000-1333ms
+// after backoff jitter and runs to ~2000-2333ms, well past any reasonable outer budget).
+// 1500ms is set above the 1000ms inner abort to avoid a tie with the inner cutoff and
+// give the first attempt's resolution path room to finish; everything else falls through
+// to the cache fallback. See SR-4234: prefer remote over a stale cache that would
+// otherwise win the synchronous race in 'all' mode.
+const REMOTE_CONFIG_TIMEOUT_MS = 1500;
+
 export const removeInvalidSelectorsFromPrivacyConfig = (privacyConfig: PrivacyConfig, loggerProvider: ILogger) => {
   // This allows us to not search the DOM.
   const fragment = document.createDocumentFragment();
@@ -56,11 +67,14 @@ export class SessionReplayJoinedConfigGenerator {
     let sessionReplayRemoteConfig: SessionReplayRemoteConfig | undefined;
 
     try {
-      // Subscribe to remote config client to get the config (uses cache if available)
+      // Subscribe with a timeout so the SDK prefers the remote response and only falls back
+      // to cache after the budget elapses. 'all' mode would race a synchronous cache read
+      // against the network and resolve on whichever fires first — cache always wins, so a
+      // stale cache silently overrides the live config (SR-4234).
       await new Promise<void>((resolve, reject) => {
         this.remoteConfigClient.subscribe(
           'configs.sessionReplay',
-          'all',
+          { timeout: REMOTE_CONFIG_TIMEOUT_MS },
           (remoteConfig: RemoteConfig | null, source: Source) => {
             this.localConfig.loggerProvider.debug(
               `Session Replay remote configuration received from ${source}:`,
@@ -101,7 +115,6 @@ export class SessionReplayJoinedConfigGenerator {
               }
             }
 
-            // Resolve on first callback
             resolve();
           },
         );

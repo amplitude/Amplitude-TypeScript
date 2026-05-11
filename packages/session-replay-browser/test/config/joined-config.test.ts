@@ -119,6 +119,26 @@ describe('SessionReplayJoinedConfigGenerator', () => {
       joinedConfigGenerator = await createSessionReplayJoinedConfigGenerator('static_key', mockOptions);
     });
 
+    describe('remote config subscription', () => {
+      // SR-4234: subscribing in 'all' mode races a synchronous localStorage cache read
+      // against the network fetch, and the cache always wins. This pins the fix —
+      // subscribe must use a wait-for-remote delivery mode so the SDK prefers the live
+      // config and only falls back to cache after the budget elapses.
+      test('subscribes with { timeout } delivery mode (not "all")', async () => {
+        await joinedConfigGenerator.generateJoinedConfig();
+        // eslint-disable-next-line @typescript-eslint/unbound-method
+        expect(mockRemoteConfigClient.subscribe).toHaveBeenCalledWith(
+          'configs.sessionReplay',
+          expect.objectContaining({ timeout: expect.any(Number) }),
+          expect.any(Function),
+        );
+        // eslint-disable-next-line @typescript-eslint/unbound-method
+        const deliveryMode = mockRemoteConfigClient.subscribe.mock.calls[0][1];
+        expect(deliveryMode).not.toBe('all');
+        expect(deliveryMode.timeout).toBeGreaterThan(0);
+      });
+    });
+
     describe('with successful sampling config fetch', () => {
       test('should use sample_rate and capture_enabled from API', async () => {
         mockRemoteConfig = {
