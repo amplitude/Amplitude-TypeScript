@@ -395,6 +395,19 @@ describe('SessionReplayPlugin', () => {
         }),
       );
     });
+
+    test('should forward crossOriginIframes to session-replay SDK', async () => {
+      const crossOriginIframes = { enabled: true, coordinateChildren: false };
+      const sessionReplay = new SessionReplayPlugin({ crossOriginIframes });
+      await sessionReplay.setup?.(mockConfig, mockAmplitude);
+
+      expect(init).toHaveBeenCalledTimes(1);
+      expect(init.mock.calls[0][1]).toEqual(
+        expect.objectContaining({
+          crossOriginIframes,
+        }),
+      );
+    });
   });
 
   describe('onSessionIdChanged', () => {

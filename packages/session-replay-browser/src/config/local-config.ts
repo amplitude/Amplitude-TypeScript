@@ -4,6 +4,7 @@ import {
   DEFAULT_SAMPLE_RATE,
   DEFAULT_SERVER_ZONE,
   DEFAULT_URL_CHANGE_POLLING_INTERVAL,
+  UNMASK_TEXT_CLASS,
 } from '../constants';
 import { SessionReplayOptions, StoreType } from '../typings/session-replay';
 import {
@@ -38,15 +39,12 @@ export class SessionReplayLocalConfig extends Config implements ISessionReplayLo
   performanceConfig?: SessionReplayPerformanceConfig;
   useWebWorker?: boolean;
   applyBackgroundColorToBlockedElements?: boolean;
-  omitElementTags?: {
-    script?: boolean;
-    comment?: boolean;
-  };
   enableUrlChangePolling?: boolean;
   urlChangePollingInterval?: number;
   captureDocumentTitle?: boolean;
   captureAdoptedStyleSheets?: boolean;
   crossOriginIframes?: CrossOriginIframesConfig;
+  fullSnapshotIntervalMs?: number;
 
   constructor(apiKey: string, options: SessionReplayOptions) {
     const defaultConfig = getDefaultConfig();
@@ -74,10 +72,16 @@ export class SessionReplayLocalConfig extends Config implements ISessionReplayLo
     this.enableUrlChangePolling = options.enableUrlChangePolling ?? false;
     this.urlChangePollingInterval = options.urlChangePollingInterval ?? DEFAULT_URL_CHANGE_POLLING_INTERVAL;
     this.captureDocumentTitle = options.captureDocumentTitle ?? false;
-
-    if (options.privacyConfig) {
-      this.privacyConfig = options.privacyConfig;
+    if (options.fullSnapshotIntervalMs !== undefined) {
+      this.fullSnapshotIntervalMs = options.fullSnapshotIntervalMs;
     }
+
+    // Auto-include .amp-unmask as a default unmaskSelector entry so it works
+    // symmetrically with amp-mask/amp-block without requiring explicit config (SR-2945).
+    this.privacyConfig = {
+      ...(options.privacyConfig ?? {}),
+      unmaskSelector: Array.from(new Set([`.${UNMASK_TEXT_CLASS}`, ...(options.privacyConfig?.unmaskSelector ?? [])])),
+    };
     if (options.interactionConfig) {
       this.interactionConfig = options.interactionConfig;
 
@@ -97,9 +101,6 @@ export class SessionReplayLocalConfig extends Config implements ISessionReplayLo
       if (legacyOptions.experimental?.useWebWorker !== undefined) {
         this.useWebWorker = legacyOptions.experimental.useWebWorker;
       }
-    }
-    if (options.omitElementTags) {
-      this.omitElementTags = options.omitElementTags;
     }
     this.captureAdoptedStyleSheets = options.captureAdoptedStyleSheets ?? true;
     if (options.crossOriginIframes) {

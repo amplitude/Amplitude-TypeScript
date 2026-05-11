@@ -453,6 +453,10 @@ export class SessionReplay implements AmplitudeSessionReplay {
    * prevent duplicate listener actions from firing.
    */
   private pageLeaveListener = (e: PageTransitionEvent | Event) => {
+    // Synchronously drain any events still queued in the requestIdleCallback
+    // pipeline so they are available to send before the page unloads.
+    this.eventCompressor?.flushQueue();
+    this.sendEvents();
     this.pageLeaveFns.forEach((fn) => {
       fn(e);
     });
@@ -913,11 +917,22 @@ export class SessionReplay implements AmplitudeSessionReplay {
       maskTextFn: maskFn('text', privacyConfig, () => this.currentPageUrl),
       maskAttributeFn: maskAttributeFn(privacyConfig, () => this.currentPageUrl),
       maskTextSelector: this.getMaskTextSelectors(),
+      ...(config.fullSnapshotIntervalMs !== undefined && { checkoutEveryNms: config.fullSnapshotIntervalMs }),
       recordCanvas: false,
       captureAdoptedStyleSheets: config.captureAdoptedStyleSheets,
+      // Strip nodes that are never rendered by the rrweb replay player.
+      // None of these affect visual fidelity; omitting them reduces snapshot size.
       slimDOMOptions: {
-        script: config.omitElementTags?.script,
-        comment: config.omitElementTags?.comment,
+        script: true,
+        comment: true,
+        headFavicon: true,
+        headWhitespace: true,
+        headMetaDescKeywords: true,
+        headMetaSocial: true,
+        headMetaRobots: true,
+        headMetaHttpEquiv: true,
+        headMetaAuthorship: true,
+        headMetaVerification: true,
       },
       errorHandler: (error: unknown) => {
         const typedError = error as Error & { _external_?: boolean };

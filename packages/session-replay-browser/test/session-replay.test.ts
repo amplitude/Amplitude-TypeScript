@@ -6,6 +6,7 @@
 import * as AnalyticsCore from '@amplitude/analytics-core';
 import { LogLevel, ILogger, ServerZone, SpecialEventType, RemoteConfig, Source } from '@amplitude/analytics-core';
 import { SessionReplayLocalConfig } from '../src/config/local-config';
+import * as JoinedConfigModule from '../src/config/joined-config';
 import { NetworkObservers, NetworkRequestEvent } from '../src/observers';
 
 import { IDBFactory } from 'fake-indexeddb';
@@ -302,7 +303,8 @@ describe('SessionReplay', () => {
       }).promise;
       expect(sessionReplay.config?.privacyConfig?.blockSelector).toStrictEqual(undefined);
       expect(sessionReplay.config?.privacyConfig?.maskSelector).toStrictEqual(undefined);
-      expect(sessionReplay.config?.privacyConfig?.unmaskSelector).toStrictEqual(undefined);
+      // .amp-unmask is always injected as a default and is a valid selector, so it survives
+      expect(sessionReplay.config?.privacyConfig?.unmaskSelector).toStrictEqual(['.amp-unmask']);
     });
 
     test('should start network observers when network logging is enabled in remote config', async () => {
@@ -482,6 +484,26 @@ describe('SessionReplay', () => {
       sessionReplay.pageLeaveFns = [mockFn];
       invokeEventMap.get('beforeunload')({});
       expect(mockFn).toHaveBeenCalled();
+    });
+
+    test('should not throw when pageLeaveListener fires with no eventCompressor', async () => {
+      const invokeEventMap = new Map<string, any>();
+      jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue({
+        document: {
+          hasFocus: () => false,
+        },
+        location: {
+          href: 'http://localhost',
+        },
+        addEventListener: jest.fn((eventName, listenerFn): any => {
+          invokeEventMap.set(eventName as string, listenerFn);
+        }) as jest.Mock<typeof window.addEventListener<'blur' | 'focus' | 'pagehide' | 'beforeunload'>>,
+        removeEventListener: removeEventListenerMock,
+      } as unknown as typeof globalThis);
+      await sessionReplay.init(apiKey, { ...mockOptions, sampleRate: 0.5 }).promise;
+      sessionReplay.eventCompressor = undefined;
+      const trigger = invokeEventMap.get('beforeunload') as (e: Event) => void;
+      expect(() => trigger(new Event('beforeunload'))).not.toThrow();
     });
 
     test('should setup sdk with privacy config', async () => {
@@ -2075,11 +2097,36 @@ describe('SessionReplay', () => {
       expect(errorHandlerReturn).toBe(true);
     });
 
-    test('should add slim dom options', async () => {
-      await sessionReplay.init(apiKey, { ...mockOptions, omitElementTags: { script: true, comment: true } }).promise;
+    test('should enable all slim dom options by default', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
       await sessionReplay.recordEvents();
       const recordArg = mockRecordFunction.mock.calls[0][0];
-      expect(recordArg?.slimDOMOptions).toEqual({ script: true, comment: true });
+      expect(recordArg?.slimDOMOptions).toEqual({
+        script: true,
+        comment: true,
+        headFavicon: true,
+        headWhitespace: true,
+        headMetaDescKeywords: true,
+        headMetaSocial: true,
+        headMetaRobots: true,
+        headMetaHttpEquiv: true,
+        headMetaAuthorship: true,
+        headMetaVerification: true,
+      });
+    });
+
+    test('should pass fullSnapshotIntervalMs to record function as checkoutEveryNms when configured', async () => {
+      await sessionReplay.init(apiKey, { ...mockOptions, fullSnapshotIntervalMs: 300000 }).promise;
+      await sessionReplay.recordEvents();
+      const recordArg = mockRecordFunction.mock.calls[0][0];
+      expect(recordArg?.checkoutEveryNms).toBe(300000);
+    });
+
+    test('should not pass checkoutEveryNms to record function when fullSnapshotIntervalMs is not configured', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      await sessionReplay.recordEvents();
+      const recordArg = mockRecordFunction.mock.calls[0][0];
+      expect(recordArg?.checkoutEveryNms).toBeUndefined();
     });
 
     test('should rethrow CSSStylesheet errors', async () => {
@@ -4464,6 +4511,33 @@ describe('SessionReplay', () => {
       expect(subscribeToUrlChanges).toHaveBeenCalled();
     });
 
+    test('should not call subscribeToUrlChanges when privacyConfig is undefined and no targetingConfig', async () => {
+      (subscribeToUrlChanges as jest.Mock).mockClear();
+      const mockLocalConfig = new SessionReplayLocalConfig(apiKey, mockOptions);
+      const mockJoinedConfig: SessionReplayJoinedConfig = {
+        ...mockLocalConfig,
+        optOut: false,
+        privacyConfig: undefined,
+        captureEnabled: true,
+      };
+      const mockGenerator = {
+        generateJoinedConfig: jest.fn().mockResolvedValue({
+          joinedConfig: mockJoinedConfig,
+          localConfig: mockLocalConfig,
+          remoteConfig: undefined,
+        }),
+      };
+      const createGeneratorSpy = jest
+        .spyOn(JoinedConfigModule, 'createSessionReplayJoinedConfigGenerator')
+        .mockResolvedValue(mockGenerator as any);
+
+      const sessionReplay = new SessionReplay();
+      await sessionReplay.init(apiKey, mockOptions).promise;
+
+      expect(subscribeToUrlChanges).not.toHaveBeenCalled();
+      createGeneratorSpy.mockRestore();
+    });
+
     test('should update currentPageUrl on URL change even without targetingConfig', async () => {
       mockRemoteConfig = {
         sr_sampling_config: samplingConfig,
@@ -4805,11 +4879,8 @@ describe('SessionReplay', () => {
         // No assertion needed — just exercising the lambdas for coverage
       });
 
-      test('passes omitElementTags into child mode slimDOMOptions', async () => {
-        await sessionReplay.init(apiKey, {
-          ...crossOriginOptions,
-          omitElementTags: { script: true, comment: true },
-        }).promise;
+      test('passes full slimDOMOptions into child mode', async () => {
+        await sessionReplay.init(apiKey, crossOriginOptions).promise;
         await sessionReplay.recordEvents();
         await jest.runAllTimersAsync();
 
@@ -4819,7 +4890,20 @@ describe('SessionReplay', () => {
         onStart();
 
         expect(mockRecordFunction).toHaveBeenCalledWith(
-          expect.objectContaining({ slimDOMOptions: { script: true, comment: true } }),
+          expect.objectContaining({
+            slimDOMOptions: {
+              script: true,
+              comment: true,
+              headFavicon: true,
+              headWhitespace: true,
+              headMetaDescKeywords: true,
+              headMetaSocial: true,
+              headMetaRobots: true,
+              headMetaHttpEquiv: true,
+              headMetaAuthorship: true,
+              headMetaVerification: true,
+            },
+          }),
         );
       });
 

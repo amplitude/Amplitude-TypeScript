@@ -1,6 +1,13 @@
 /* eslint-disable no-restricted-globals */
 
-import { KB_SIZE, MAX_URL_LENGTH, MAX_KEEPALIVE_BYTES, RETRY_TIMEOUT_MS } from '../constants';
+import {
+  EVENT_SKIPPED_HEADER,
+  KB_SIZE,
+  MAX_URL_LENGTH,
+  MAX_KEEPALIVE_BYTES,
+  RETRY_TIMEOUT_MS,
+  WAF_PAYLOAD_TOO_LARGE_PATTERN,
+} from '../constants';
 import { MAX_RETRIES_EXCEEDED_MESSAGE, UNEXPECTED_ERROR_MESSAGE, UNEXPECTED_NETWORK_ERROR_MESSAGE } from '../messages';
 import { gzipJson } from '../utils/gzip';
 import { getServerUrl } from '../utils/server-url';
@@ -23,7 +30,16 @@ interface SendContext {
 async function doFetch(
   payloadJson: string,
   context: SendContext,
-): Promise<{ shouldRetry: boolean; success: boolean; message: string }> {
+): Promise<{
+  shouldRetry: boolean;
+  success: boolean;
+  message: string;
+  payloadTooLarge?: boolean;
+  isWaf?: boolean;
+  // null when the server returned a 2xx with no skip header; the code string when present;
+  // undefined when the response was not a 2xx (caller should not interpret as a directive).
+  skipCode?: string | null;
+}> {
   try {
     const gzipped = 'CompressionStream' in self ? await gzipJson(payloadJson, self) : null;
     const sessionReplayLibrary = `${context.version?.type ?? 'standalone'}/${
@@ -60,10 +76,27 @@ async function doFetch(
     }
     if (res.status >= 200 && res.status < 300) {
       const sizeKB = Math.round(new Blob(context.events).size / KB_SIZE);
+      const skipCode = res.headers?.get?.(EVENT_SKIPPED_HEADER) ?? null;
       return {
         shouldRetry: false,
         success: true,
         message: `Session replay event batch tracked successfully for session id ${context.sessionId}, size of events: ${sizeKB} KB`,
+        skipCode,
+      };
+    }
+    if (res.status === 413) {
+      let body = '';
+      try {
+        body = await res.text();
+      } catch {
+        // best effort
+      }
+      return {
+        shouldRetry: false,
+        success: false,
+        message: UNEXPECTED_NETWORK_ERROR_MESSAGE,
+        payloadTooLarge: true,
+        isWaf: WAF_PAYLOAD_TOO_LARGE_PATTERN.test(body),
       };
     }
     if (res.status >= 500 || res.status === 408 || res.status === 429 || res.status === 499) {
@@ -84,7 +117,11 @@ async function sendWithRetry(id: string, payloadJson: string, context: SendConte
     const result = await doFetch(payloadJson, context);
     if (result.success) {
       postMessage({ type: 'log', id, message: result.message });
-      postMessage({ type: 'complete', id });
+      postMessage({ type: 'complete', id, skipCode: result.skipCode ?? null });
+      return;
+    }
+    if (result.payloadTooLarge && useRetry) {
+      postMessage({ type: 'payload_too_large', id, isWaf: result.isWaf === true });
       return;
     }
     if (useRetry && result.shouldRetry && attempt < context.flushMaxRetries) {

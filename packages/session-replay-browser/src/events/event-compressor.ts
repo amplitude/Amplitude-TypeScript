@@ -2,6 +2,7 @@ import { getGlobalScope } from '@amplitude/analytics-core';
 import { EventType as RRWebEventType } from '@amplitude/rrweb-types';
 import type { eventWithTime } from '@amplitude/rrweb-types';
 import { SessionReplayJoinedConfig } from '../config/types';
+import { MAX_SINGLE_EVENT_SIZE } from '../constants';
 import { SessionReplayEventsManager } from '../typings/session-replay';
 import { mergeMutationEvents } from './merge-mutation-events';
 
@@ -156,6 +157,17 @@ export class EventCompressor {
   };
 
   private addCompressedEventToManager = (compressedEvent: string, sessionId: string | number) => {
+    // UTF-8 byte size, not JS char count: a 9 M-char string of CJK/emoji can be 18–27 MB
+    // on the wire and would otherwise slip past a char-count guard.
+    const eventSizeBytes = new Blob([compressedEvent]).size;
+    if (eventSizeBytes > MAX_SINGLE_EVENT_SIZE) {
+      this.config.loggerProvider.warn(
+        `Session replay event dropped: serialized size ${Math.round(
+          eventSizeBytes / 1024,
+        )} KB exceeds maximum allowed event size. If this recurs, please open a GitHub issue at https://github.com/amplitude/Amplitude-TypeScript/issues or contact Amplitude support.`,
+      );
+      return;
+    }
     if (this.eventsManager && this.deviceId) {
       this.eventsManager.addEvent({
         event: { type: 'replay', data: compressedEvent },
@@ -183,6 +195,33 @@ export class EventCompressor {
       const compressedEvent = this.compressEvent(event);
       this.addCompressedEventToManager(compressedEvent, sessionId);
     }
+  };
+
+  /**
+   * Synchronously drain all queued events. Called during page unload to prevent
+   * data loss from events waiting in the requestIdleCallback queue.
+   */
+  public flushQueue = () => {
+    // Merge any events still in pendingQueue into taskQueue first.
+    // Events land in pendingQueue when the idle callback hasn't fired yet;
+    // without this step they would be silently lost on page unload.
+    if (this.pendingQueue.length > 0) {
+      this.taskQueue.push(...this.mergeMutationTasks(this.pendingQueue.splice(0)));
+    }
+    while (this.taskQueue.length > 0) {
+      const task = this.taskQueue.shift();
+      if (task) {
+        const { event, sessionId } = task;
+        // Bypass the web worker: compress synchronously on the main thread and
+        // write directly to the manager. postMessage is async — during page
+        // unload the worker response would never arrive and events would be
+        // silently dropped. This mirrors the pattern used for full snapshots in
+        // enqueueEvent().
+        const compressed = this.compressEvent(event);
+        this.addCompressedEventToManager(compressed, sessionId);
+      }
+    }
+    this.isProcessing = false;
   };
 
   // Merge consecutive mutation tasks with the same sessionId before processing,

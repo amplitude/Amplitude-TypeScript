@@ -19,7 +19,18 @@ export const SESSION_REPLAY_SERVER_URL = 'https://api-sr.amplitude.com/sessions/
 export const SESSION_REPLAY_EU_URL = 'https://api-sr.eu.amplitude.com/sessions/v2/track';
 export const SESSION_REPLAY_STAGING_URL = 'https://api-sr.stag2.amplitude.com/sessions/v2/track';
 export const STORAGE_PREFIX = `${AMPLITUDE_PREFIX}_replay_unsent`;
-export const MAX_EVENT_LIST_SIZE = 1 * 1000000; // ~1 MB limit for JSON serialized events payload
+// Reduced from 1,000,000 to leave headroom for double-JSON-encoding overhead and the
+// uncompressed fallback path. The HTTP body is ~10-30% larger than raw string length
+// because events are re-serialized inside the { version, events } wrapper at send time.
+export const MAX_EVENT_LIST_SIZE = 700_000;
+// 9 MB UTF-8 bytes — just under the server's 10 MB per-event threshold. Compared against the
+// UTF-8 byte length of the serialized event (via Blob/TextEncoder), not the JS string length,
+// so multi-byte payloads (CJK, emoji) are gated correctly.
+export const MAX_SINGLE_EVENT_SIZE = 9 * 1000000;
+// WAF rejects oversized compressed payloads with a body containing wording like
+// "Payload exceeds the maximum allowed size of 10MB". Match loosely so vendor wording
+// tweaks (rule updates, capitalization, etc.) don't silently disable bisect-retry.
+export const WAF_PAYLOAD_TOO_LARGE_PATTERN = /payload.*exceed/i;
 export const INTERACTION_MIN_INTERVAL = 30_000; // 30 seconds
 export const INTERACTION_MAX_INTERVAL = 60_000; // 1 minute
 export const MIN_INTERVAL = 500; // 500 ms
@@ -29,6 +40,16 @@ export const KB_SIZE = 1024;
 export const MAX_URL_LENGTH = 1000;
 export const RETRY_TIMEOUT_MS = 1000;
 export const MAX_KEEPALIVE_BYTES = 64 * 1024; // browser keepalive budget shared with sendBeacon
+
+// Server returns 200 + this header for "no-retry" drops (throttle / capture disabled / out-of-range).
+// See projects/sessionreplay/sessionreplay-ingestion/.../SessionReplayError.java.
+// Header value is the numeric error code as a string.
+export const EVENT_SKIPPED_HEADER = 'X-Session-Replay-Event-Skipped';
+export const EVENT_SKIP_CODE_THROTTLED = '429';
+export const EVENT_SKIP_CODE_INVALID_RANGE = '4004';
+export const EVENT_SKIP_CODE_CAPTURE_DISABLED = '4005';
+// How long to pause the flush schedule after the server signals a throttle.
+export const THROTTLED_FLUSH_PAUSE_MS = 60_000;
 
 export const CROSS_ORIGIN_IFRAME_MESSAGE_TYPE = 'amplitude-sr-iframe';
 

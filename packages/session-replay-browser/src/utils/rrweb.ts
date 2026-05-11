@@ -33,10 +33,19 @@ export type RecordFunction = {
     maskTextFn?: (text: string, element: HTMLElement | null) => string;
     maskAttributeFn?: (key: string, value: string, element: HTMLElement) => string;
     maskTextSelector?: string;
+    checkoutEveryNms?: number;
     recordCanvas?: boolean;
     slimDOMOptions?: {
       script?: boolean;
       comment?: boolean;
+      headFavicon?: boolean;
+      headWhitespace?: boolean;
+      headMetaDescKeywords?: boolean;
+      headMetaSocial?: boolean;
+      headMetaRobots?: boolean;
+      headMetaHttpEquiv?: boolean;
+      headMetaAuthorship?: boolean;
+      headMetaVerification?: boolean;
     };
     errorHandler?: (error: unknown) => boolean;
     plugins?: any[];

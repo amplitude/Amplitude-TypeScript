@@ -185,20 +185,6 @@ export interface SessionReplayLocalConfig extends IConfig {
   userProperties?: { [key: string]: any };
 
   /**
-   * Remove certain parts of the DOM from being captured. These are typically ignored when blocking by selectors.
-   */
-  omitElementTags?: {
-    /**
-     * If true, removes script tags from the DOM, but not noscript tags.
-     */
-    script?: boolean;
-    /**
-     * If true, removes comment tags from the DOM.
-     */
-    comment?: boolean;
-  };
-
-  /**
    * If true, applies a background color to blocked elements in the replay.
    * This helps visualize which elements are blocked from being captured.
    */
@@ -248,6 +234,8 @@ export interface SessionReplayLocalConfig extends IConfig {
    * merges them into a single unified event stream.
    */
   crossOriginIframes?: CrossOriginIframesConfig;
+  /** Interval in ms at which the SDK takes a full DOM snapshot. Disabled by default — periodic snapshots are expensive. Recommended value: 300000 (5 min). */
+  fullSnapshotIntervalMs?: number;
 }
 
 export interface SessionReplayJoinedConfig extends SessionReplayLocalConfig {

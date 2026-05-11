@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.42.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.42.1...@amplitude/analytics-browser@2.42.2) (2026-05-11)
+
+
+### Bug Fixes
+
+* **analytics-browser:** remove plugin-session-replay-browser template ([#1746](https://github.com/amplitude/Amplitude-TypeScript/issues/1746)) ([809abdc](https://github.com/amplitude/Amplitude-TypeScript/commit/809abdca353926f9518547bcb967b6bd14b23e57))
+
+
+
+
+
 ## [2.42.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.42.0...@amplitude/analytics-browser@2.42.1) (2026-05-05)
 
 

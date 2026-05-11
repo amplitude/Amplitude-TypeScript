@@ -5,6 +5,12 @@ import {
   type SessionReplayOptions as StandaloneSessionReplayOptions, // used for documentation
 } from '@amplitude/session-replay-browser';
 
+/**
+ * Configuration for cross-origin iframe support.
+ * Extracted from the standalone SDK's SessionReplayOptions.
+ */
+export type CrossOriginIframesConfig = NonNullable<StandaloneSessionReplayOptions['crossOriginIframes']>;
+
 export type MaskLevel =
   | 'light' // only mask a subset of inputs that’s deemed sensitive - password, credit card, telephone #, email. These are information we never want to capture.
   | 'medium' // mask all inputs
@@ -136,13 +142,6 @@ export interface SessionReplayOptions {
     useWebWorker: boolean;
   };
   /**
-   * @see {@link StandaloneSessionReplayOptions.omitElementTags}
-   */
-  omitElementTags?: {
-    script?: boolean;
-    comment?: boolean;
-  };
-  /**
    * If true, applies a background color to blocked elements for visual masking. Defaults to false.
    */
   applyBackgroundColorToBlockedElements?: boolean;
@@ -176,4 +175,8 @@ export interface SessionReplayOptions {
    * @see {@link StandaloneSessionReplayOptions.captureAdoptedStyleSheets}
    */
   captureAdoptedStyleSheets?: boolean;
+  /**
+   * @see {@link StandaloneSessionReplayOptions.crossOriginIframes}
+   */
+  crossOriginIframes?: CrossOriginIframesConfig;
 }

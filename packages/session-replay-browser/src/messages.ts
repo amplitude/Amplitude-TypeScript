@@ -4,3 +4,5 @@ export const MAX_RETRIES_EXCEEDED_MESSAGE = 'Session replay event batch rejected
 export const STORAGE_FAILURE = 'Failed to store session replay events in IndexedDB';
 export const MISSING_DEVICE_ID_MESSAGE = 'Session replay event batch not sent due to missing device ID';
 export const MISSING_API_KEY_MESSAGE = 'Session replay event batch not sent due to missing api key';
+export const SESSION_KILLED_MESSAGE =
+  'Session replay event batch dropped: server signalled capture disabled or session out of valid range for this session';

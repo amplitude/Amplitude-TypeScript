@@ -6,6 +6,7 @@ import {
 } from '../typings/session-replay';
 
 import { SessionReplayJoinedConfig } from '../config/types';
+import { MAX_SINGLE_EVENT_SIZE } from '../constants';
 import { getStorageSize } from '../helpers';
 import { PayloadBatcher, SessionReplayTrackDestination } from '../track-destination';
 import { SessionReplayEventsIDBStore } from './events-idb-store';
@@ -109,7 +110,7 @@ export const createEventsManager = async <Type extends EventType>({
    * Immediately sends events to the track destination.
    */
   const sendEventsList = ({
-    events,
+    events: rawEvents,
     sessionId,
     deviceId,
     sequenceId,
@@ -119,6 +120,32 @@ export const createEventsManager = async <Type extends EventType>({
     deviceId: string;
     sequenceId?: number;
   }) => {
+    // Backstop for events that entered IDB before the per-event size guard in
+    // addCompressedEventToManager (e.g. stored by a previous SDK version or via
+    // storeCurrentSequence/sendStoredEvents which bypass the capture-time check).
+    // Compare UTF-8 byte size, not JS char count, to match the server-side limit.
+    const sizedEvents = rawEvents.map((e) => ({ event: e, bytes: new Blob([e]).size }));
+    const oversized = sizedEvents.filter((s) => s.bytes > MAX_SINGLE_EVENT_SIZE);
+    if (oversized.length > 0) {
+      config.loggerProvider.warn(
+        `Dropping ${oversized.length} oversized event(s) from session replay sequence before send. Sizes: ${oversized
+          .map((s) => `${Math.round(s.bytes / 1024)} KB`)
+          .join(
+            ', ',
+          )}. If this recurs, please open a GitHub issue at https://github.com/amplitude/Amplitude-TypeScript/issues or contact Amplitude support.`,
+      );
+    }
+    const events =
+      oversized.length > 0
+        ? sizedEvents.filter((s) => s.bytes <= MAX_SINGLE_EVENT_SIZE).map((s) => s.event)
+        : rawEvents;
+    if (events.length === 0) {
+      store.cleanUpSessionEventsStore(sessionId, sequenceId).catch((e) => {
+        config.loggerProvider.warn('Failed to clean up session replay events store:', e);
+      });
+      return;
+    }
+
     if (config.debugMode) {
       getStorageSize()
         .then(({ totalStorageSize, percentOfQuota, usageDetails }) => {
