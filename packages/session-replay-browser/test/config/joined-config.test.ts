@@ -184,6 +184,44 @@ describe('SessionReplayJoinedConfigGenerator', () => {
         const { joinedConfig: config } = await joinedConfigGenerator.generateJoinedConfig();
         expect(config.minSessionDurationMs).toBe(3000);
       });
+      test('should clamp min_session_duration_ms above ceiling and warn', async () => {
+        mockRemoteConfig = {
+          sr_sampling_config: { ...samplingConfig, min_session_duration_ms: 30_000_000 },
+        };
+        const { joinedConfig: config } = await joinedConfigGenerator.generateJoinedConfig();
+        expect(config.minSessionDurationMs).toBe(60_000);
+        // eslint-disable-next-line @typescript-eslint/unbound-method
+        expect(mockLocalConfig.loggerProvider.warn).toHaveBeenCalledWith(
+          expect.stringContaining('exceeds 60000ms ceiling; clamping'),
+        );
+      });
+      test('should drop negative min_session_duration_ms and warn', async () => {
+        mockRemoteConfig = {
+          sr_sampling_config: { ...samplingConfig, min_session_duration_ms: -100 },
+        };
+        const { joinedConfig: config } = await joinedConfigGenerator.generateJoinedConfig();
+        expect(config.minSessionDurationMs).toBeUndefined();
+        // eslint-disable-next-line @typescript-eslint/unbound-method
+        expect(mockLocalConfig.loggerProvider.warn).toHaveBeenCalledWith(expect.stringContaining('is negative'));
+      });
+      test('should drop non-finite min_session_duration_ms and warn', async () => {
+        mockRemoteConfig = {
+          sr_sampling_config: { ...samplingConfig, min_session_duration_ms: 'not-a-number' as unknown as number },
+        };
+        const { joinedConfig: config } = await joinedConfigGenerator.generateJoinedConfig();
+        expect(config.minSessionDurationMs).toBeUndefined();
+        // eslint-disable-next-line @typescript-eslint/unbound-method
+        expect(mockLocalConfig.loggerProvider.warn).toHaveBeenCalledWith(
+          expect.stringContaining('not a finite number'),
+        );
+      });
+      test('should drop NaN min_session_duration_ms and warn', async () => {
+        mockRemoteConfig = {
+          sr_sampling_config: { ...samplingConfig, min_session_duration_ms: NaN },
+        };
+        const { joinedConfig: config } = await joinedConfigGenerator.generateJoinedConfig();
+        expect(config.minSessionDurationMs).toBeUndefined();
+      });
       test('should set captureEnabled to true if no values returned from API', async () => {
         mockRemoteConfig = {
           sr_sampling_config: {} as any,
