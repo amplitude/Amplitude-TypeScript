@@ -1027,6 +1027,11 @@ export class SessionReplay implements AmplitudeSessionReplay {
   }
 
   async flush(useRetry = false) {
+    // Intentionally not gated on min_session_duration_ms. flush() forwards payloads
+    // already queued in trackDestination, and every code path that queues into it —
+    // sendCurrentSequenceEvents, addEvent's batch-split path, sendStoredEvents reading
+    // sequencesToSend from IDB — has already passed the gate at the time of queuing.
+    // A duplicate gate here would be unreachable.
     return this.eventsManager?.flush(useRetry);
   }
 
