@@ -51,6 +51,9 @@ NativeModules.AmplitudeReactNative = {
       deviceManufacturer: 'react-native-tests',
       deviceModel: 'react-native-tests',
       carrier: 'react-native-tests',
+      adid: 'react-native-tests',
+      appSetId: 'react-native-tests',
+      idfv: 'react-native-tests',
     };
   },
   getLegacySessionData: () => ({}),
