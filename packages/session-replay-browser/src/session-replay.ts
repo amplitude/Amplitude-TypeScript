@@ -328,6 +328,12 @@ export class SessionReplay implements AmplitudeSessionReplay {
 
     // Register beacon fallback for page exit. sendBeacon survives page unload
     // and delivers any incremental events that haven't been flushed via fetch yet.
+    //
+    // Known cross-session race: if asyncSetSessionId fired and its async
+    // storeCurrentSequence hasn't resolved before unload, the beacon buffer can still
+    // hold previous-session events. The gate below reads the *new* session's
+    // sessionStartTime, so legitimately-sendable old-session events get suppressed.
+    // Follow-up: track start time per buffered batch instead of globally.
     this.pageLeaveFns = [
       ...this.pageLeaveFns,
       () => {
