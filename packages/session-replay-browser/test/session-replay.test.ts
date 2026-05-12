@@ -1421,6 +1421,22 @@ describe('SessionReplay', () => {
       expect(newStart).toBe(sessionReplay.sessionStartTime);
     });
 
+    test('does not delete its own start-time entry when sessionId is unchanged', async () => {
+      globalThis.localStorage.clear();
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      const key = `AMP_SR_START_${apiKey.substring(0, 10)}_123`;
+      const beforeStart = Number(globalThis.localStorage.getItem(key));
+      expect(beforeStart).toBeGreaterThan(0);
+
+      // Caller passes the current sessionId redundantly — must not leave storage empty.
+      await (sessionReplay as any).asyncSetSessionId(123, '1a2b3c');
+
+      const afterStart = Number(globalThis.localStorage.getItem(key));
+      expect(afterStart).toBeGreaterThan(0);
+      // The freshly-written entry should match the new sessionStartTime.
+      expect(afterStart).toBe(sessionReplay.sessionStartTime);
+    });
+
     test('drops previous-session beacon buffer on session transition', async () => {
       await sessionReplay.init(apiKey, mockOptions).promise;
       if (!sessionReplay.rrwebEventManager) throw new Error('init');

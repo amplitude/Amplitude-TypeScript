@@ -429,7 +429,10 @@ export class SessionReplay implements AmplitudeSessionReplay {
     // re-suppress already-eligible sessions.
     if (this.config?.apiKey) {
       setReplayStartTime(this.config.apiKey, sessionId, this.sessionStartTime, this.loggerProvider);
-      if (previousSessionId !== undefined) {
+      // Only clear the prior entry when the id actually changed. A caller that passes the
+      // current sessionId redundantly would otherwise have its just-written entry deleted
+      // here, restarting the gate clock from Date.now() on the next page reload.
+      if (previousSessionId !== undefined && previousSessionId !== sessionId) {
         removeReplayStartTime(this.config.apiKey, previousSessionId, this.loggerProvider);
       }
     }
