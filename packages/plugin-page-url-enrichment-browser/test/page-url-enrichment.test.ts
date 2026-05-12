@@ -121,6 +121,9 @@ describe('pageUrlEnrichmentPlugin', () => {
   afterEach(async () => {
     await plugin.teardown?.();
     window.sessionStorage.setItem('AMP_URL_INFO', '{}');
+    // Reset document.referrer so tests that set it can't leak into later tests;
+    // setup()'s external-origin shortcut depends on this value.
+    Object.defineProperty(document, 'referrer', { value: '', configurable: true });
     jest.restoreAllMocks();
   });
 
@@ -497,32 +500,50 @@ describe('pageUrlEnrichmentPlugin', () => {
       });
     });
 
-    test('should update current page if there is no current info', async () => {
-      await plugin.setup?.(mockConfig, mockAmplitude);
+    test('should shift current to previous on setup when stale storage exists (MPA / full-page reload)', async () => {
+      // Simulate stale sessionStorage left over from the previous page load,
+      // e.g. user clicked an <a href> link triggering a full-page navigation.
+      sessionStorage.setItem(
+        URL_INFO_STORAGE_KEY,
+        JSON.stringify({
+          [CURRENT_PAGE_STORAGE_KEY]: 'https://www.example.com/home',
+          [PREVIOUS_PAGE_STORAGE_KEY]: 'https://google.com/search',
+        }),
+      );
 
-      const firstUrl = new URL('https://www.example.com/about');
-      mockWindowLocationFromURL(firstUrl);
+      // Same-origin referrer simulates a real <a href> click within the site;
+      // the external-origin shortcut in setup() should NOT fire here.
+      Object.defineProperty(document, 'referrer', {
+        value: 'https://www.example.com/home',
+        configurable: true,
+      });
 
-      sessionStorage.clear();
+      // The new page has now booted; location is the new URL.
+      const newUrl = new URL('https://www.example.com/about');
+      mockWindowLocationFromURL(newUrl);
+      mockDocumentTitle('About - Example');
 
-      await plugin.execute?.({
+      const newPlugin = pageUrlEnrichmentPlugin();
+      await newPlugin.setup?.(mockConfig, mockAmplitude);
+
+      const urlInfoStr = sessionStorage?.getItem(URL_INFO_STORAGE_KEY) || '';
+      expect(JSON.parse(urlInfoStr)).toStrictEqual({
+        [CURRENT_PAGE_STORAGE_KEY]: 'https://www.example.com/about',
+        [PREVIOUS_PAGE_STORAGE_KEY]: 'https://www.example.com/home',
+      });
+
+      // The first event after setup should also report the prior page as the previous location.
+      const event = await newPlugin.execute?.({
         event_type: 'test_event',
       });
 
-      const urlInfo = {
-        [CURRENT_PAGE_STORAGE_KEY]: 'https://www.example.com/about',
-        [PREVIOUS_PAGE_STORAGE_KEY]: '',
-      };
+      expect(event?.event_properties).toMatchObject({
+        '[Amplitude] Page Location': 'https://www.example.com/about',
+        '[Amplitude] Previous Page Location': 'https://www.example.com/home',
+        '[Amplitude] Previous Page Type': 'internal',
+      });
 
-      const urlInfoStr = sessionStorage?.getItem(URL_INFO_STORAGE_KEY) || '';
-      expect(JSON.parse(urlInfoStr)).toStrictEqual(urlInfo);
-
-      expect(sessionStorage?.getItem(URL_INFO_STORAGE_KEY)).toStrictEqual(
-        JSON.stringify({
-          [CURRENT_PAGE_STORAGE_KEY]: 'https://www.example.com/about',
-          [PREVIOUS_PAGE_STORAGE_KEY]: '',
-        }),
-      );
+      await newPlugin.teardown?.();
     });
 
     test('should not add properties if they already exist', async () => {
@@ -551,6 +572,118 @@ describe('pageUrlEnrichmentPlugin', () => {
         '[Amplitude] Page Path': '/existingexample',
         '[Amplitude] Page Title': 'Existing Example',
         '[Amplitude] Page URL': 'https://www.existingexample.com/about',
+        '[Amplitude] Previous Page Location': '',
+        '[Amplitude] Previous Page Type': 'direct',
+      });
+    });
+
+    test('should prefer document.referrer over stale storage when arriving from a different origin', async () => {
+      // Simulate the round-trip-away case: user was on /home, left to google.com,
+      // then arrived back on the site (e.g. by clicking a Google search result
+      // pointing at /about). The stored "current" of /home is stale and should NOT
+      // be used as the previous page; document.referrer is the truthful answer.
+      sessionStorage.setItem(
+        URL_INFO_STORAGE_KEY,
+        JSON.stringify({
+          [CURRENT_PAGE_STORAGE_KEY]: 'https://www.example.com/home',
+          [PREVIOUS_PAGE_STORAGE_KEY]: 'https://www.example.com/landing',
+        }),
+      );
+
+      Object.defineProperty(document, 'referrer', {
+        value: 'https://www.google.com/search?q=example',
+        configurable: true,
+      });
+
+      const newUrl = new URL('https://www.example.com/about');
+      mockWindowLocationFromURL(newUrl);
+      mockDocumentTitle('About - Example');
+
+      const newPlugin = pageUrlEnrichmentPlugin();
+      await newPlugin.setup?.(mockConfig, mockAmplitude);
+
+      const urlInfoStr = sessionStorage?.getItem(URL_INFO_STORAGE_KEY) || '';
+      expect(JSON.parse(urlInfoStr)).toStrictEqual({
+        [CURRENT_PAGE_STORAGE_KEY]: 'https://www.example.com/about',
+        [PREVIOUS_PAGE_STORAGE_KEY]: 'https://www.google.com/search?q=example',
+      });
+
+      const event = await newPlugin.execute?.({
+        event_type: 'test_event',
+      });
+
+      expect(event?.event_properties).toMatchObject({
+        '[Amplitude] Page Location': 'https://www.example.com/about',
+        '[Amplitude] Previous Page Location': 'https://www.google.com/search?q=example',
+        '[Amplitude] Previous Page Type': 'external',
+      });
+
+      await newPlugin.teardown?.();
+    });
+
+    test('should keep stored previous page on refresh even when document.referrer is a stale external origin', async () => {
+      // Repro of the SPA-refresh bug: user arrived at /landing from Google,
+      // pushState-navigated to /about, then hit refresh on /about. Browsers
+      // preserve document.referrer (still google.com) across pushState and
+      // full-page reloads, so a referrer-hostname-only check would mistakenly
+      // re-fire the external-origin branch and clobber the truthful internal
+      // previous page (/landing) that pushState had stored.
+      sessionStorage.setItem(
+        URL_INFO_STORAGE_KEY,
+        JSON.stringify({
+          [CURRENT_PAGE_STORAGE_KEY]: 'https://www.example.com/about',
+          [PREVIOUS_PAGE_STORAGE_KEY]: 'https://www.example.com/landing',
+        }),
+      );
+
+      Object.defineProperty(document, 'referrer', {
+        value: 'https://www.google.com/search?q=example',
+        configurable: true,
+      });
+
+      const refreshedUrl = new URL('https://www.example.com/about');
+      mockWindowLocationFromURL(refreshedUrl);
+      mockDocumentTitle('About - Example');
+
+      const newPlugin = pageUrlEnrichmentPlugin();
+      await newPlugin.setup?.(mockConfig, mockAmplitude);
+
+      const urlInfoStr = sessionStorage?.getItem(URL_INFO_STORAGE_KEY) || '';
+      expect(JSON.parse(urlInfoStr)).toStrictEqual({
+        [CURRENT_PAGE_STORAGE_KEY]: 'https://www.example.com/about',
+        [PREVIOUS_PAGE_STORAGE_KEY]: 'https://www.example.com/landing',
+      });
+
+      const event = await newPlugin.execute?.({
+        event_type: 'test_event',
+      });
+
+      expect(event?.event_properties).toMatchObject({
+        '[Amplitude] Page Location': 'https://www.example.com/about',
+        '[Amplitude] Previous Page Location': 'https://www.example.com/landing',
+        '[Amplitude] Previous Page Type': 'internal',
+      });
+
+      await newPlugin.teardown?.();
+    });
+
+    test('should fall back to empty previous page when sessionStorage is wiped mid-session', async () => {
+      await plugin.setup?.(mockConfig, mockAmplitude);
+
+      const url = new URL('https://www.example.com/about');
+      mockWindowLocationFromURL(url);
+      mockDocumentTitle('About - Example');
+
+      // Externally wipe AMP_URL_INFO after setup has seeded it. execute() should
+      // gracefully degrade to an empty previous page rather than throw.
+      sessionStorage.removeItem(URL_INFO_STORAGE_KEY);
+
+      const event = await plugin.execute?.({
+        event_type: 'test_event',
+      });
+
+      expect(event?.event_properties).toMatchObject({
+        '[Amplitude] Page Location': 'https://www.example.com/about',
         '[Amplitude] Previous Page Location': '',
         '[Amplitude] Previous Page Type': 'direct',
       });
