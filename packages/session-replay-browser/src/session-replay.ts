@@ -411,32 +411,36 @@ export class SessionReplay implements AmplitudeSessionReplay {
       this.sendEvents(previousSessionId);
     }
 
+    const isSessionChange = previousSessionId !== sessionId;
+
     // Drop any beacon-buffered events from the previous session BEFORE installing the
     // new identifiers / start time. Otherwise the page-leave beacon path could attribute
     // old-session events to the new session id, and the gate (using the new start time)
-    // would compute the wrong elapsed duration.
-    this.rrwebEventManager?.dropPendingBeaconEvents();
+    // would compute the wrong elapsed duration. Skip on a redundant same-sessionId call —
+    // the buffer belongs to the *continuing* session and should ship via beacon as normal.
+    if (isSessionChange) {
+      this.rrwebEventManager?.dropPendingBeaconEvents();
+    }
 
     const deviceIdForReplayId = deviceId || this.getDeviceId();
     this.identifiers = new SessionIdentifiers({
       sessionId: sessionId,
       deviceId: deviceIdForReplayId,
     });
-    this.sessionStartTime = Date.now();
-    this.suppressedSendCount = 0;
-    this.hasEmittedGateDecision = false;
-    // Persist new session's start time so a page reload mid-session resumes the gate.
-    // Also drop the previous session's entry — the localStorage cleanup deliberately
-    // happens here (and via TTL prune on init) rather than after a successful send:
-    // mid-session reloads would otherwise re-init the start time to Date.now() and
-    // re-suppress already-eligible sessions.
-    if (this.config?.apiKey) {
-      setReplayStartTime(this.config.apiKey, sessionId, this.sessionStartTime, this.loggerProvider);
-      // Only clear the prior entry when the id actually changed. A caller that passes the
-      // current sessionId redundantly would otherwise have its just-written entry deleted
-      // here, restarting the gate clock from Date.now() on the next page reload.
-      if (previousSessionId !== undefined && previousSessionId !== sessionId) {
-        removeReplayStartTime(this.config.apiKey, previousSessionId, this.loggerProvider);
+
+    // Gate state and persisted start time only get reset on an actual session boundary.
+    // A redundant setSessionId(currentId) call would otherwise overwrite both the in-memory
+    // and stored start time with a fresh Date.now() — restarting the gate clock for what is
+    // supposed to be a continuing session.
+    if (isSessionChange) {
+      this.sessionStartTime = Date.now();
+      this.suppressedSendCount = 0;
+      this.hasEmittedGateDecision = false;
+      if (this.config?.apiKey) {
+        setReplayStartTime(this.config.apiKey, sessionId, this.sessionStartTime, this.loggerProvider);
+        if (previousSessionId !== undefined) {
+          removeReplayStartTime(this.config.apiKey, previousSessionId, this.loggerProvider);
+        }
       }
     }
 

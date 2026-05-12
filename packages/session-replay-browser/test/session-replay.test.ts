@@ -1421,20 +1421,43 @@ describe('SessionReplay', () => {
       expect(newStart).toBe(sessionReplay.sessionStartTime);
     });
 
-    test('does not delete its own start-time entry when sessionId is unchanged', async () => {
+    test('preserves stored and in-memory start time when sessionId is unchanged', async () => {
       globalThis.localStorage.clear();
       await sessionReplay.init(apiKey, mockOptions).promise;
+      if (!sessionReplay.config) throw new Error('init');
       const key = `AMP_SR_START_${apiKey.substring(0, 10)}_123`;
-      const beforeStart = Number(globalThis.localStorage.getItem(key));
-      expect(beforeStart).toBeGreaterThan(0);
+      // Pin a known start time so a regression (overwrite to Date.now()) is visible
+      // regardless of how Date.now() advances during the asyncSetSessionId call.
+      const pinned = 1_700_000_000_000;
+      sessionReplay.sessionStartTime = pinned;
+      globalThis.localStorage.setItem(key, String(pinned));
+      // Trip gate-decision state so we can assert it survives.
+      (sessionReplay as any).hasEmittedGateDecision = true;
+      (sessionReplay as any).suppressedSendCount = 7;
 
-      // Caller passes the current sessionId redundantly — must not leave storage empty.
+      // Caller passes the current sessionId redundantly — must NOT restart the gate clock.
       await (sessionReplay as any).asyncSetSessionId(123, '1a2b3c');
 
-      const afterStart = Number(globalThis.localStorage.getItem(key));
-      expect(afterStart).toBeGreaterThan(0);
-      // The freshly-written entry should match the new sessionStartTime.
-      expect(afterStart).toBe(sessionReplay.sessionStartTime);
+      expect(Number(globalThis.localStorage.getItem(key))).toBe(pinned);
+      expect(sessionReplay.sessionStartTime).toBe(pinned);
+      // Per-session gate state must also be preserved.
+      expect((sessionReplay as any).hasEmittedGateDecision).toBe(true);
+      expect((sessionReplay as any).suppressedSendCount).toBe(7);
+    });
+
+    test('drops previous-session beacon buffer ONLY on real session change', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      if (!sessionReplay.rrwebEventManager) throw new Error('init');
+      const dropBeaconMock = jest.fn();
+      sessionReplay.rrwebEventManager.dropPendingBeaconEvents = dropBeaconMock;
+
+      // Redundant same-id call: buffer must NOT be dropped (it belongs to the continuing session).
+      await (sessionReplay as any).asyncSetSessionId(123, '1a2b3c');
+      expect(dropBeaconMock).not.toHaveBeenCalled();
+
+      // Real change: buffer MUST be dropped.
+      await (sessionReplay as any).asyncSetSessionId(456, '9l8m7n');
+      expect(dropBeaconMock).toHaveBeenCalledTimes(1);
     });
 
     test('drops previous-session beacon buffer on session transition', async () => {
