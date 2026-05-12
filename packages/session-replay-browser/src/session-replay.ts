@@ -639,7 +639,18 @@ export class SessionReplay implements AmplitudeSessionReplay {
       // On the first send-after-pass for the session, emit a custom rrweb event so the
       // payload itself carries the gate verdict. Lets backend ingestion diff intended
       // vs actual replay counts to spot start-time-tracking regressions.
-      if (!this.hasEmittedGateDecision && this.config?.minSessionDurationMs !== undefined) {
+      //
+      // Gate on recording being active too: addCustomRRWebEvent is a no-op when
+      // recordCancelCallback/recordFunction aren't set yet (e.g. a blur-listener-fired
+      // sendEvents reaches us before _recordEvents() activates on a reloaded long-lived
+      // session). Tripping hasEmittedGateDecision unconditionally would lose the signal
+      // for that session's first real send.
+      if (
+        !this.hasEmittedGateDecision &&
+        this.config?.minSessionDurationMs !== undefined &&
+        this.recordCancelCallback &&
+        this.recordFunction
+      ) {
         this.hasEmittedGateDecision = true;
         const elapsedMs = this.sessionStartTime !== undefined ? Date.now() - this.sessionStartTime : undefined;
         void this.addCustomRRWebEvent(

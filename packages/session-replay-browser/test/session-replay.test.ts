@@ -1455,6 +1455,9 @@ describe('SessionReplay', () => {
       if (!sessionReplay.eventsManager || !sessionReplay.config) throw new Error('init');
       sessionReplay.eventsManager.sendCurrentSequenceEvents = jest.fn();
       const addCustomSpy = jest.spyOn(sessionReplay, 'addCustomRRWebEvent').mockResolvedValue(undefined);
+      // Recording must be active for the gate-decision emission to fire.
+      sessionReplay.recordCancelCallback = jest.fn();
+      (sessionReplay as any).recordFunction = { addCustomEvent: jest.fn() };
       sessionReplay.config.minSessionDurationMs = 1000;
       sessionReplay.sessionStartTime = Date.now() - 5000;
 
@@ -2174,6 +2177,10 @@ describe('SessionReplay', () => {
       }
       sessionReplay.eventsManager.sendCurrentSequenceEvents = jest.fn();
       const addCustomSpy = jest.spyOn(sessionReplay, 'addCustomRRWebEvent').mockResolvedValue(undefined);
+      // Recording must be active for the gate-decision event to fire; addCustomRRWebEvent
+      // is a no-op when recordCancelCallback / recordFunction are unset.
+      sessionReplay.recordCancelCallback = jest.fn();
+      (sessionReplay as any).recordFunction = { addCustomEvent: jest.fn() };
       sessionReplay.config.minSessionDurationMs = 5000;
 
       // First call: below threshold, suppressed.
@@ -2209,9 +2216,36 @@ describe('SessionReplay', () => {
       }
       sessionReplay.eventsManager.sendCurrentSequenceEvents = jest.fn();
       const addCustomSpy = jest.spyOn(sessionReplay, 'addCustomRRWebEvent').mockResolvedValue(undefined);
+      sessionReplay.recordCancelCallback = jest.fn();
+      (sessionReplay as any).recordFunction = { addCustomEvent: jest.fn() };
       sessionReplay.config.minSessionDurationMs = undefined;
       sessionReplay.sendEvents();
       expect(addCustomSpy).not.toHaveBeenCalled();
+    });
+    test('does not emit or trip the gate-decision flag when recording is inactive', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      if (!sessionReplay.eventsManager || !sessionReplay.config) {
+        throw new Error('Did not call init');
+      }
+      sessionReplay.eventsManager.sendCurrentSequenceEvents = jest.fn();
+      const addCustomSpy = jest.spyOn(sessionReplay, 'addCustomRRWebEvent').mockResolvedValue(undefined);
+      sessionReplay.config.minSessionDurationMs = 5000;
+      sessionReplay.sessionStartTime = Date.now() - 6000;
+      // Recording not started yet — emission is a no-op so the flag must NOT trip.
+      sessionReplay.recordCancelCallback = null;
+      (sessionReplay as any).recordFunction = null;
+      sessionReplay.sendEvents();
+      expect(addCustomSpy).not.toHaveBeenCalled();
+
+      // Once recording activates, the next send should emit.
+      sessionReplay.recordCancelCallback = jest.fn();
+      (sessionReplay as any).recordFunction = { addCustomEvent: jest.fn() };
+      sessionReplay.sendEvents();
+      expect(addCustomSpy).toHaveBeenCalledWith(
+        'replay-gate-decision',
+        expect.objectContaining({ sessionId: 123 }),
+        false,
+      );
     });
     test('emits elapsedMs as undefined when sessionStartTime is missing at first send-after-pass', async () => {
       await sessionReplay.init(apiKey, mockOptions).promise;
@@ -2220,6 +2254,8 @@ describe('SessionReplay', () => {
       }
       sessionReplay.eventsManager.sendCurrentSequenceEvents = jest.fn();
       const addCustomSpy = jest.spyOn(sessionReplay, 'addCustomRRWebEvent').mockResolvedValue(undefined);
+      sessionReplay.recordCancelCallback = jest.fn();
+      (sessionReplay as any).recordFunction = { addCustomEvent: jest.fn() };
       sessionReplay.config.minSessionDurationMs = 5000;
       // sessionStartTime undefined makes isBelowMinSessionDuration() return false, so the
       // pass-path fires but elapsedMs can't be computed.
