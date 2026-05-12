@@ -720,6 +720,77 @@ test.describe('IDB multi-tab and fallback behaviour', () => {
   });
 
   /**
+   * SR-4356 regression guard: when IDB is failing, the SDK must NOT flood
+   * the console with repeated "Failed to store session replay events"
+   * warnings.  Pre-fix, every fire-and-forget addEventToCurrentSequence call
+   * after the wedge opened its own readwrite tx and armed its own 5s
+   * watchdog, so hundreds of warns landed in a single burst (devtools
+   * collapsed them into "429×").  With the tripped flag, only the first
+   * failure logs and subsequent calls short-circuit before opening a tx.
+   *
+   * Strategy: patch IDBObjectStore.prototype.put to throw synchronously on
+   * every call, then generate many rapid events.  Assert that the storage-
+   * failure warn was logged at most once even though many events were
+   * captured.
+   */
+  test('IDB burst suppression: at most one storage-failure warn under sustained failure', async ({ page }) => {
+    await page.addInitScript(() => {
+      let putCallCount = 0;
+      (window as any).__idbPutCalls = () => putCallCount;
+      IDBObjectStore.prototype.put = function () {
+        putCallCount++;
+        throw new DOMException('Simulated IDB put failure', 'QuotaExceededError');
+      } as typeof IDBObjectStore.prototype.put;
+    });
+
+    const { pageErrors, idbWarns } = listenForIdbErrors(page);
+
+    await mockRemoteConfig(page, remoteConfigRecording);
+    await page.route('https://api-sr.amplitude.com/**', (route) =>
+      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(SR_API_SUCCESS) }),
+    );
+    await page.goto(
+      buildUrl('/session-replay-browser/sr-capture-test.html', {
+        sessionId: TEST_SESSION_ID,
+        logLevel: LOG_LEVEL_DEBUG,
+        storeType: 'idb',
+      }),
+    );
+    await waitForReady(page);
+
+    // Generate enough events to overrun the pre-fix burst threshold.  Mouse
+    // moves trigger rrweb captures at high frequency without needing real
+    // DOM interactions, which is the closest analogue to the customer
+    // scenario (rrweb + console-record + Sentry feedback loop).
+    for (let i = 0; i < 40; i++) {
+      await page.mouse.move(100 + i * 5, 200 + i);
+    }
+    await page.click('#test-button');
+    await page.click('#test-input');
+    await page.click('#test-button');
+    await page.waitForTimeout(500);
+
+    await page.evaluate(() => window.dispatchEvent(new Event('blur')));
+    await page.evaluate(() => void (window as any).sessionReplay.flush(false));
+    await page.waitForTimeout(500);
+
+    // Sanity check: the put mock actually fired (so we know IDB writes were
+    // attempted and the failure path was exercised).  Without this guard the
+    // warn-count assertion below could pass trivially if the SDK never even
+    // tried to write.
+    const putCalls = await page.evaluate(() => (window as any).__idbPutCalls() as number);
+    expect(putCalls).toBeGreaterThanOrEqual(1);
+
+    // The whole point of SR-4356: even under sustained IDB failure with
+    // many rapid captures, the warn fires exactly once (the first failure
+    // that trips the store).  Pre-fix this would be in the dozens or hundreds.
+    expect(idbWarns.length).toBe(1);
+
+    // No unhandled promise rejections from the in-flight failed txs.
+    expect(pageErrors).toHaveLength(0);
+  });
+
+  /**
    * Hang-protection regression guard: if `indexedDB.open()` never fires
    * `onsuccess`/`onerror` (the documented Chrome-blocked-by-other-tab and
    * "closing" scenarios), the SDK must NOT hang waiting for IDB.  The 2s

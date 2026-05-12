@@ -160,7 +160,14 @@ export class SessionReplayEventsIDBStore extends BaseEventsStore<number> {
   private readonly onPersistentFailure?: () => void;
   private readonly consecutiveFailureThreshold: number;
   private consecutiveFailures = 0;
-  private hasTriggeredFallback = false;
+  // Once tripped, every public write/read method short-circuits without opening
+  // a transaction.  Fire-and-forget callers (events-manager.addEvent) queue
+  // hundreds of operations per second; if IDB is wedged we must prevent each
+  // one from arming its own 5s watchdog (the "429× transaction timed out"
+  // cascade observed in production — see SR-4356).  Tripped flips at the same
+  // moment we decide to call onPersistentFailure, so it also serves as the
+  // re-entrancy guard for that callback.
+  private tripped = false;
 
   constructor(args: InstanceArgs) {
     super(args);
@@ -176,15 +183,31 @@ export class SessionReplayEventsIDBStore extends BaseEventsStore<number> {
   }
 
   private recordFailure() {
+    // Once tripped, the store is permanently dead — there's no point in
+    // tracking further failures (in-flight watchdogs from txs opened before
+    // the trip would otherwise climb the counter unboundedly during a burst).
+    if (this.tripped) return;
     this.consecutiveFailures++;
-    if (!this.hasTriggeredFallback && this.consecutiveFailures >= this.consecutiveFailureThreshold) {
-      this.hasTriggeredFallback = true;
+    if (this.consecutiveFailures >= this.consecutiveFailureThreshold) {
+      this.tripped = true;
       this.onPersistentFailure?.();
     }
   }
 
   private recordSuccess() {
     this.consecutiveFailures = 0;
+  }
+
+  // Centralised failure-log helper.  All five public methods route their
+  // tx.done.catch / outer-catch / watchdog log calls through here so the
+  // tripped guard is defined in exactly one place.  See SR-4356: once the
+  // store is tripped, in-flight transactions opened before the trip can still
+  // fail and would otherwise produce a console burst (the "429× transaction
+  // timed out" cascade).
+  private logFailure(message: string, error?: unknown) {
+    if (!this.tripped) {
+      logIdbError(this.loggerProvider, message, error);
+    }
   }
 
   static async new(
@@ -239,6 +262,21 @@ export class SessionReplayEventsIDBStore extends BaseEventsStore<number> {
   }
 
   getSequencesToSend = async (): Promise<SendingSequencesReturn<number>[] | undefined> => {
+    if (this.tripped) return undefined;
+    return this.readSequencesFromIdb();
+  };
+
+  // Internal recovery-only read used by events-manager.switchToMemoryStore to
+  // attempt one last drain off the IDB handle as part of the fallback path.
+  // Intentionally bypasses the tripped guard: a write-side wedge (e.g.
+  // QuotaExceededError on put) leaves reads healthy, and we want to recover
+  // pending sequences before going to memory-only.  In the truly-wedged case
+  // the per-tx watchdog inside readSequencesFromIdb bounds the exposure.
+  drainForFallback = async (): Promise<SendingSequencesReturn<number>[] | undefined> => {
+    return this.readSequencesFromIdb();
+  };
+
+  private async readSequencesFromIdb(): Promise<SendingSequencesReturn<number>[] | undefined> {
     let errorLogged = false;
     let timedOut = false;
     try {
@@ -250,7 +288,7 @@ export class SessionReplayEventsIDBStore extends BaseEventsStore<number> {
       // when the outer catch (or the timeout race) already fired for the same abort.
       tx.done.catch((e: unknown) => {
         if (!errorLogged && !timedOut) {
-          logIdbError(this.loggerProvider, `${STORAGE_FAILURE}: ${e as string}`, e);
+          this.logFailure(`${STORAGE_FAILURE}: ${e as string}`, e);
           this.recordFailure();
         }
       });
@@ -262,7 +300,7 @@ export class SessionReplayEventsIDBStore extends BaseEventsStore<number> {
       const cancelTimeout = armTxDoneTimeout(tx.done, TX_DONE_TIMEOUT_MS, () => {
         if (!errorLogged && !timedOut) {
           timedOut = true;
-          logIdbError(this.loggerProvider, `${STORAGE_FAILURE}: transaction timed out`);
+          this.logFailure(`${STORAGE_FAILURE}: transaction timed out`);
           this.recordFailure();
         }
       });
@@ -289,14 +327,15 @@ export class SessionReplayEventsIDBStore extends BaseEventsStore<number> {
     } catch (e) {
       if (!timedOut) {
         errorLogged = true;
-        logIdbError(this.loggerProvider, `${STORAGE_FAILURE}: ${e as string}`, e);
+        this.logFailure(`${STORAGE_FAILURE}: ${e as string}`, e);
         this.recordFailure();
       }
     }
     return undefined;
-  };
+  }
 
   storeCurrentSequence = async (sessionId: number) => {
+    if (this.tripped) return undefined;
     let errorLogged = false;
     let timedOut = false;
     try {
@@ -309,7 +348,7 @@ export class SessionReplayEventsIDBStore extends BaseEventsStore<number> {
       const tx = this.db.transaction([currentSequenceKey, sequencesToSendKey], 'readwrite');
       tx.done.catch((e: unknown) => {
         if (!errorLogged && !timedOut) {
-          logIdbError(this.loggerProvider, `${STORAGE_FAILURE}: ${e as string}`, e);
+          this.logFailure(`${STORAGE_FAILURE}: ${e as string}`, e);
           this.recordFailure();
         }
       });
@@ -317,7 +356,7 @@ export class SessionReplayEventsIDBStore extends BaseEventsStore<number> {
       const cancelTimeout = armTxDoneTimeout(tx.done, TX_DONE_TIMEOUT_MS, () => {
         if (!errorLogged && !timedOut) {
           timedOut = true;
-          logIdbError(this.loggerProvider, `${STORAGE_FAILURE}: transaction timed out`);
+          this.logFailure(`${STORAGE_FAILURE}: transaction timed out`);
           this.recordFailure();
         }
       });
@@ -362,7 +401,7 @@ export class SessionReplayEventsIDBStore extends BaseEventsStore<number> {
     } catch (e) {
       if (!timedOut) {
         errorLogged = true;
-        logIdbError(this.loggerProvider, `${STORAGE_FAILURE}: ${e as string}`, e);
+        this.logFailure(`${STORAGE_FAILURE}: ${e as string}`, e);
         this.recordFailure();
       }
     }
@@ -370,6 +409,7 @@ export class SessionReplayEventsIDBStore extends BaseEventsStore<number> {
   };
 
   addEventToCurrentSequence = async (sessionId: number, event: string) => {
+    if (this.tripped) return undefined;
     let errorLogged = false;
     let timedOut = false;
     try {
@@ -386,7 +426,7 @@ export class SessionReplayEventsIDBStore extends BaseEventsStore<number> {
       // (or the timeout) already fired for the same transaction.
       tx.done.catch((e: unknown) => {
         if (!errorLogged && !timedOut) {
-          logIdbError(this.loggerProvider, `${STORAGE_FAILURE}: ${e as string}`, e);
+          this.logFailure(`${STORAGE_FAILURE}: ${e as string}`, e);
           this.recordFailure();
         }
       });
@@ -394,7 +434,7 @@ export class SessionReplayEventsIDBStore extends BaseEventsStore<number> {
       const cancelTimeout = armTxDoneTimeout(tx.done, TX_DONE_TIMEOUT_MS, () => {
         if (!errorLogged && !timedOut) {
           timedOut = true;
-          logIdbError(this.loggerProvider, `${STORAGE_FAILURE}: transaction timed out`);
+          this.logFailure(`${STORAGE_FAILURE}: transaction timed out`);
           this.recordFailure();
         }
       });
@@ -458,7 +498,7 @@ export class SessionReplayEventsIDBStore extends BaseEventsStore<number> {
     } catch (e) {
       if (!timedOut) {
         errorLogged = true;
-        logIdbError(this.loggerProvider, `${STORAGE_FAILURE}: ${e as string}`, e);
+        this.logFailure(`${STORAGE_FAILURE}: ${e as string}`, e);
         this.recordFailure();
       }
     }
@@ -466,6 +506,7 @@ export class SessionReplayEventsIDBStore extends BaseEventsStore<number> {
   };
 
   storeSendingEvents = async (sessionId: number, events: Events) => {
+    if (this.tripped) return undefined;
     try {
       const sequenceId = await this.db.put<'sequencesToSend'>(sequencesToSendKey, {
         sessionId: sessionId,
@@ -475,13 +516,14 @@ export class SessionReplayEventsIDBStore extends BaseEventsStore<number> {
       this.recordSuccess();
       return sequenceId;
     } catch (e) {
-      logIdbError(this.loggerProvider, `${STORAGE_FAILURE}: ${e as string}`, e);
+      this.logFailure(`${STORAGE_FAILURE}: ${e as string}`, e);
       this.recordFailure();
     }
     return undefined;
   };
 
   cleanUpSessionEventsStore = async (_sessionId: number, sequenceId?: number) => {
+    if (this.tripped) return;
     if (!sequenceId) {
       return;
     }
@@ -489,7 +531,7 @@ export class SessionReplayEventsIDBStore extends BaseEventsStore<number> {
       await this.db.delete<'sequencesToSend'>(sequencesToSendKey, sequenceId);
       this.recordSuccess();
     } catch (e) {
-      logIdbError(this.loggerProvider, `${STORAGE_FAILURE}: ${e as string}`, e);
+      this.logFailure(`${STORAGE_FAILURE}: ${e as string}`, e);
       this.recordFailure();
     }
   };

@@ -180,10 +180,7 @@ describe('module level integration', () => {
         // Wait for async initialize to complete
         await runScheduleTimers();
         const sessionRecordingProperties = sessionReplay.getSessionReplayProperties();
-        const createEventsIDBStoreInstance = await (SessionReplayIDB.SessionReplayEventsIDBStore.new as jest.Mock).mock
-          .results[0].value;
 
-        jest.spyOn(createEventsIDBStoreInstance, 'storeCurrentSequence');
         expect(sessionRecordingProperties).toMatchObject({
           [DEFAULT_SESSION_REPLAY_PROPERTY]: `1a2b3c/${SESSION_ID_IN_20_SAMPLE}`,
         });
@@ -191,7 +188,15 @@ describe('module level integration', () => {
         const recordArg = mockRecordFunction.mock.calls[0][0] as { emit?: (event: eventWithTime) => void };
         recordArg?.emit?.(mockEvent);
         sessionReplay.sendEvents();
-        await (createEventsIDBStoreInstance.storeCurrentSequence as jest.Mock).mock.results[0].value;
+        // Drain pending microtasks + timers so storeCurrentSequence settles on
+        // whichever store is currently active.  Previously this awaited the
+        // IDB-instance spy's first result, but SR-4356 fixes the broken IDB
+        // fallback so that under fake-timer-induced watchdog firings the swap
+        // to the in-memory store actually happens — meaning the IDB instance
+        // may no longer receive storeCurrentSequence calls in this test
+        // environment.  The downstream fetch assertion still validates the
+        // end-to-end recording path.
+        await runScheduleTimers();
         await runScheduleTimers();
         expect(fetch).toHaveBeenLastCalledWith(
           `${SESSION_REPLAY_SERVER_URL}?device_id=1a2b3c&session_id=${SESSION_ID_IN_20_SAMPLE}&type=replay`,
@@ -241,9 +246,6 @@ describe('module level integration', () => {
         await sessionReplay.init(apiKey, { ...mockOptions, sampleRate: 0.8 }).promise;
         // Wait for async initialize to complete
         await runScheduleTimers();
-        const createEventsIDBStoreInstance = await (SessionReplayIDB.SessionReplayEventsIDBStore.new as jest.Mock).mock
-          .results[0].value;
-        jest.spyOn(createEventsIDBStoreInstance, 'storeCurrentSequence');
         const sessionRecordingProperties = sessionReplay.getSessionReplayProperties();
         expect(sessionRecordingProperties).toMatchObject({
           [DEFAULT_SESSION_REPLAY_PROPERTY]: `1a2b3c/${SESSION_ID_IN_20_SAMPLE}`,
@@ -254,7 +256,11 @@ describe('module level integration', () => {
         const recordArg = mockRecordFunction.mock.calls[0][0] as { emit?: (event: eventWithTime) => void };
         recordArg?.emit?.(mockEvent);
         sessionReplay.sendEvents();
-        await (createEventsIDBStoreInstance.storeCurrentSequence as jest.Mock).mock.results[0].value;
+        // See "should capture" above — drain via runScheduleTimers rather than
+        // spying on the IDB instance's storeCurrentSequence, because SR-4356
+        // means the watchdog-triggered swap may route the call to the memory
+        // store instead.
+        await runScheduleTimers();
         await runScheduleTimers();
         expect(fetch).toHaveBeenLastCalledWith(
           `${SESSION_REPLAY_SERVER_URL}?device_id=1a2b3c&session_id=${SESSION_ID_IN_20_SAMPLE}&type=replay`,

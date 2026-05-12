@@ -405,6 +405,223 @@ describe('IDB timeout / hang protection', () => {
   });
 
   // ---------------------------------------------------------------------------
+  // SR-4356: burst suppression after the store trips
+  // ---------------------------------------------------------------------------
+  describe('burst suppression after trip', () => {
+    test('public methods short-circuit without opening a tx once tripped', async () => {
+      // Set up a working-but-trackable mock so we can observe transaction
+      // counts.  The first call fails and trips the store; subsequent calls
+      // should not call .transaction() / .put() / .delete() at all.
+      let txCalls = 0;
+      let putCalls = 0;
+      let deleteCalls = 0;
+      const okStuckTx = () => ({
+        objectStore: jest.fn().mockReturnValue({
+          // Throw inside the operation so the outer try/catch records a
+          // failure on the very first call.  After that, tripped=true and
+          // public methods must short-circuit.
+          get: jest.fn().mockRejectedValue(new Error('boom')),
+          put: jest.fn().mockRejectedValue(new Error('boom')),
+        }),
+        done: Promise.resolve(),
+      });
+      const mockDB = {
+        transaction: jest.fn().mockImplementation(() => {
+          txCalls++;
+          return okStuckTx();
+        }),
+        put: jest.fn().mockImplementation(() => {
+          putCalls++;
+          return Promise.reject(new Error('boom'));
+        }),
+        delete: jest.fn().mockImplementation(() => {
+          deleteCalls++;
+          return Promise.reject(new Error('boom'));
+        }),
+      } as unknown as EventsIDBStore.SessionReplayDB;
+
+      jest
+        .spyOn(EventsIDBStore, 'createStore')
+        .mockResolvedValue(mockDB as unknown as import('idb').IDBPDatabase<EventsIDBStore.SessionReplayDB>);
+
+      const onPersistentFailure = jest.fn();
+      const store = await SessionReplayEventsIDBStore.new('replay', {
+        apiKey,
+        loggerProvider: makeLogger(),
+        onPersistentFailure,
+        consecutiveFailureThreshold: 1,
+      });
+      expect(store).toBeDefined();
+
+      // First call fails synchronously inside the try → recordFailure runs →
+      // tripped flips to true and onPersistentFailure fires.
+      await store!.addEventToCurrentSequence(123, mockEvent);
+      expect(onPersistentFailure).toHaveBeenCalledTimes(1);
+      const baselineTxCalls = txCalls;
+
+      // Every subsequent call must short-circuit.  No new tx opened, no put/
+      // delete on the db handle, and crucially no watchdog armed.
+      await store!.addEventToCurrentSequence(123, mockEvent);
+      await store!.getSequencesToSend();
+      await store!.storeCurrentSequence(123);
+      await store!.storeSendingEvents(123, [mockEvent]);
+      await store!.cleanUpSessionEventsStore(123, 1);
+
+      expect(txCalls).toBe(baselineTxCalls);
+      expect(putCalls).toBe(0);
+      expect(deleteCalls).toBe(0);
+      // Callback must not have fired a second time.
+      expect(onPersistentFailure).toHaveBeenCalledTimes(1);
+    });
+
+    test('drainForFallback bypasses tripped and still reads sequences (SR-4356 recovery path)', async () => {
+      // drainForFallback is the one method that MUST NOT honour the tripped
+      // short-circuit — switchToMemoryStore calls it on the already-tripped
+      // store to recover sequences that were persisted before the wedge.
+      // Regression guard: if a future change ever adds `if (this.tripped)
+      // return undefined;` to drainForFallback, this test fails.
+      const seededSequences = [{ sessionId: 7, events: ['evt-a', 'evt-b'], sequenceId: 1 }];
+
+      // Build a mock that:
+      //   (a) makes addEventToCurrentSequence fail, tripping the store,
+      //   (b) lets a subsequent sequencesToSend cursor read succeed.
+      let openCursorIdx = 0;
+      const failingObjectStore = {
+        get: jest.fn().mockRejectedValue(new Error('boom')),
+        put: jest.fn().mockRejectedValue(new Error('boom')),
+      };
+      const readCursor = (
+        idx: number,
+      ): { value: (typeof seededSequences)[number]; key: number; continue: () => Promise<unknown> } | null => {
+        if (idx >= seededSequences.length) return null;
+        const seq = seededSequences[idx];
+        return {
+          value: seq,
+          key: seq.sequenceId,
+          continue: () => Promise.resolve(readCursor(idx + 1)),
+        };
+      };
+      const readingStore = {
+        openCursor: jest.fn().mockImplementation(() => Promise.resolve(readCursor(openCursorIdx++))),
+      };
+      const mockDB = {
+        transaction: jest.fn().mockImplementation((storeName: string | string[]) => {
+          // The failing transaction (used by addEventToCurrentSequence) is over
+          // [currentSequenceKey, sequencesToSendKey]; the read transaction (used
+          // by readSequencesFromIdb) is over 'sequencesToSend' alone.
+          if (Array.isArray(storeName)) {
+            return {
+              objectStore: jest.fn().mockReturnValue(failingObjectStore),
+              done: Promise.resolve(),
+            };
+          }
+          return {
+            store: readingStore,
+            done: Promise.resolve(),
+          };
+        }),
+      } as unknown as EventsIDBStore.SessionReplayDB;
+
+      jest
+        .spyOn(EventsIDBStore, 'createStore')
+        .mockResolvedValue(mockDB as unknown as import('idb').IDBPDatabase<EventsIDBStore.SessionReplayDB>);
+
+      const onPersistentFailure = jest.fn();
+      const store = await SessionReplayEventsIDBStore.new('replay', {
+        apiKey,
+        loggerProvider: makeLogger(),
+        onPersistentFailure,
+        consecutiveFailureThreshold: 1,
+      });
+      expect(store).toBeDefined();
+
+      // Trip the store via a failing write.
+      await store!.addEventToCurrentSequence(123, mockEvent);
+      expect(onPersistentFailure).toHaveBeenCalledTimes(1);
+
+      // Confirm the public read short-circuits (regression guard for the
+      // other half of the contract).
+      const blocked = await store!.getSequencesToSend();
+      expect(blocked).toBeUndefined();
+
+      // The recovery drain MUST still read the data — this is the whole
+      // point of having a separate method.
+      const recovered = await store!.drainForFallback();
+      expect(recovered).toEqual(seededSequences);
+    });
+
+    test('only the first watchdog logs; later ones in the same burst stay silent', async () => {
+      // Production scenario: hundreds of in-flight readwrite txs all stalling.
+      // Each one armed its own 5s setTimeout BEFORE the store tripped.  When
+      // the burst window arrives, only the first to fire should log — the
+      // rest must stay silent so the console doesn't get the 429× cascade.
+      const txDone = new Promise<void>(() => {
+        // never settles
+      });
+      const stuckOp = new Promise<undefined>(() => {
+        // never resolves
+      });
+
+      const transactionMock = jest.fn().mockReturnValue({
+        objectStore: jest.fn().mockReturnValue({
+          get: jest.fn().mockReturnValue(stuckOp),
+          put: jest.fn().mockReturnValue(stuckOp),
+        }),
+        done: txDone,
+      });
+      const mockDB = {
+        transaction: transactionMock,
+      } as unknown as EventsIDBStore.SessionReplayDB;
+
+      jest
+        .spyOn(EventsIDBStore, 'createStore')
+        .mockResolvedValue(mockDB as unknown as import('idb').IDBPDatabase<EventsIDBStore.SessionReplayDB>);
+
+      const logger = makeLogger();
+      const onPersistentFailure = jest.fn();
+      const store = await SessionReplayEventsIDBStore.new('replay', {
+        apiKey,
+        loggerProvider: logger,
+        onPersistentFailure,
+        consecutiveFailureThreshold: 1,
+      });
+
+      // Queue many in-flight calls before any watchdog fires.  Each is
+      // fire-and-forget (matches events-manager.addEvent behaviour); each
+      // opens its own readwrite tx and arms its own 5s watchdog.
+      const N = 50;
+      for (let i = 0; i < N; i++) {
+        void store!.addEventToCurrentSequence(123, mockEvent);
+      }
+      // Let each call run up to its first await.
+      for (let i = 0; i < 5; i++) {
+        await Promise.resolve();
+      }
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(logger.warn).not.toHaveBeenCalled();
+      // Side-channel: prove that all N calls actually opened transactions
+      // (and therefore armed N watchdogs).  Otherwise the warn==1 assertion
+      // below could pass trivially if some bug short-circuited the calls
+      // before they got to arm timers.
+      expect(transactionMock).toHaveBeenCalledTimes(N);
+
+      // Fire the burst.
+      jest.advanceTimersByTime(EventsIDBStore.TX_DONE_TIMEOUT_MS + 100);
+      for (let i = 0; i < 10; i++) {
+        await Promise.resolve();
+      }
+
+      // Exactly one warn, regardless of how many watchdogs fired.
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(logger.warn).toHaveBeenCalledTimes(1);
+      const message = (logger.warn.mock.calls[0]?.[0] ?? '') as string;
+      expect(message).toContain('transaction timed out');
+      // The fallback callback also fires exactly once.
+      expect(onPersistentFailure).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  // ---------------------------------------------------------------------------
   // generateUUID fallback: Math.random path when crypto.randomUUID unavailable
   // ---------------------------------------------------------------------------
   describe('generateUUID', () => {

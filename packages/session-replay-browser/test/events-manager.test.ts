@@ -37,6 +37,7 @@ describe('createEventsManager', () => {
   const mockIDBStore = {
     storeCurrentSequence: jest.fn(),
     getSequencesToSend: jest.fn(),
+    drainForFallback: jest.fn(),
     cleanUpSessionEventsStore: jest.fn().mockResolvedValue(undefined),
     addEventToCurrentSequence: jest.fn(),
     initialize: jest.fn(),
@@ -611,7 +612,7 @@ describe('createEventsManager', () => {
     });
 
     test('drains and sends pending IDB sequences when falling back', async () => {
-      (mockIDBStore.getSequencesToSend as jest.Mock).mockResolvedValueOnce([
+      (mockIDBStore.drainForFallback as jest.Mock).mockResolvedValueOnce([
         { events: [mockEventString], sequenceId: 1, sessionId: 123 },
       ]);
       (mockIDBStore.addEventToCurrentSequence as jest.Mock).mockResolvedValue(undefined);
@@ -637,11 +638,11 @@ describe('createEventsManager', () => {
       await Promise.resolve();
       await Promise.resolve();
 
-      expect(mockIDBStore.getSequencesToSend).not.toHaveBeenCalled();
+      expect(mockIDBStore.drainForFallback).not.toHaveBeenCalled();
     });
 
     test('new events after fallback go to in-memory store, not IDB', async () => {
-      (mockIDBStore.getSequencesToSend as jest.Mock).mockResolvedValueOnce([]);
+      (mockIDBStore.drainForFallback as jest.Mock).mockResolvedValueOnce([]);
       (mockIDBStore.addEventToCurrentSequence as jest.Mock).mockResolvedValue(undefined);
 
       const eventsManager = await createEventsManager<'replay'>({ config, type: 'replay', storeType: 'idb' });
@@ -676,7 +677,7 @@ describe('createEventsManager', () => {
     });
 
     test('second switchToMemoryStore call is a no-op (already on memory)', async () => {
-      (mockIDBStore.getSequencesToSend as jest.Mock).mockResolvedValue([]);
+      (mockIDBStore.drainForFallback as jest.Mock).mockResolvedValue([]);
       (mockIDBStore.addEventToCurrentSequence as jest.Mock).mockResolvedValue(undefined);
 
       const eventsManager = await createEventsManager<'replay'>({ config, type: 'replay', storeType: 'idb' });
@@ -694,6 +695,71 @@ describe('createEventsManager', () => {
 
       // Warning should only be logged once
       expect(mockLoggerProvider.warn).toHaveBeenCalledTimes(1);
+    });
+
+    test('events added during drain go to memory store, not the broken IDB handle (SR-4356)', async () => {
+      // The pre-fix recovery path awaited `store.getSequencesToSend()` on the
+      // broken IDB handle BEFORE swapping `store` to the memory store, so any
+      // addEvent calls in the await window still hit IDB.  The fix swaps
+      // synchronously; this test pins that ordering by holding the drain on a
+      // controllable promise and asserting subsequent addEvents don't touch
+      // the IDB mock.
+      let resolveDrain: (v: never[]) => void = () => undefined;
+      const drainPromise = new Promise<never[]>((resolve) => {
+        resolveDrain = resolve;
+      });
+      (mockIDBStore.drainForFallback as jest.Mock).mockReturnValueOnce(drainPromise);
+      (mockIDBStore.addEventToCurrentSequence as jest.Mock).mockResolvedValue(undefined);
+
+      const eventsManager = await createEventsManager<'replay'>({ config, type: 'replay', storeType: 'idb' });
+      // Establish lastKnownDeviceId so switchToMemoryStore attempts a drain.
+      eventsManager.addEvent({ event: { type: 'replay', data: mockEventString }, sessionId: 123, deviceId: '1a2b3c' });
+      await Promise.resolve();
+
+      // Reset IDB mock to count post-fallback calls only.
+      (mockIDBStore.addEventToCurrentSequence as jest.Mock).mockClear();
+
+      // Trigger fallback.  switchToMemoryStore must swap synchronously and
+      // then await the drain — which is still pending.
+      capturedOnPersistentFailure?.();
+      // Yield to let the synchronous swap settle.
+      await Promise.resolve();
+
+      // While drain is still in flight, push more events.  These must NOT hit
+      // the IDB mock (proves the swap happened before the await).
+      eventsManager.addEvent({ event: { type: 'replay', data: mockEventString }, sessionId: 123, deviceId: '1a2b3c' });
+      eventsManager.addEvent({ event: { type: 'replay', data: mockEventString }, sessionId: 123, deviceId: '1a2b3c' });
+      await Promise.resolve();
+
+      expect(mockIDBStore.addEventToCurrentSequence).not.toHaveBeenCalled();
+
+      // Releasing the drain shouldn't change anything — events are already in memory.
+      resolveDrain([]);
+      await Promise.resolve();
+      expect(mockIDBStore.addEventToCurrentSequence).not.toHaveBeenCalled();
+    });
+
+    test('drain rejection is swallowed and does not block fallback', async () => {
+      // Defence in depth: even if the broken IDB rejects the drain (rather
+      // than returning undefined via the tripped short-circuit), the recovery
+      // path must accept the loss and keep recording in memory.
+      (mockIDBStore.drainForFallback as jest.Mock).mockRejectedValueOnce(new Error('idb is gone'));
+      (mockIDBStore.addEventToCurrentSequence as jest.Mock).mockResolvedValue(undefined);
+
+      const eventsManager = await createEventsManager<'replay'>({ config, type: 'replay', storeType: 'idb' });
+      eventsManager.addEvent({ event: { type: 'replay', data: mockEventString }, sessionId: 123, deviceId: '1a2b3c' });
+      await Promise.resolve();
+
+      const beforeCalls = (mockIDBStore.addEventToCurrentSequence as jest.Mock).mock.calls.length;
+
+      capturedOnPersistentFailure?.();
+      await Promise.resolve();
+      await Promise.resolve();
+
+      // Recording continues — new events land on the memory store, not IDB.
+      eventsManager.addEvent({ event: { type: 'replay', data: mockEventString }, sessionId: 123, deviceId: '1a2b3c' });
+      await Promise.resolve();
+      expect((mockIDBStore.addEventToCurrentSequence as jest.Mock).mock.calls.length).toBe(beforeCalls);
     });
   });
 });

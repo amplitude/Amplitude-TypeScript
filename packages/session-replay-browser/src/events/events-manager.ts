@@ -61,13 +61,36 @@ export const createEventsManager = async <Type extends EventType>({
     if (!usingIdbStore) return;
     usingIdbStore = false;
     config.loggerProvider.warn('IDB store is experiencing repeated failures; falling back to in-memory event store.');
-    const sequences = lastKnownDeviceId ? await store.getSequencesToSend() : undefined;
+
+    // Swap-first: replace `store` synchronously so any further addEvent /
+    // sendCurrentSequenceEvents calls land on the in-memory store immediately.
+    // The previous implementation awaited getSequencesToSend on the broken IDB
+    // handle BEFORE swapping, which kept new captures gated on the very thing
+    // that was stalling (SR-4356).
+    const idbStore = store;
     store = getMemoryStore();
-    if (sequences && lastKnownDeviceId) {
-      const deviceId = lastKnownDeviceId;
-      sequences.forEach((seq) => {
-        sendEventsList({ sequenceId: seq.sequenceId, events: seq.events, sessionId: seq.sessionId, deviceId });
-      });
+
+    if (!lastKnownDeviceId) return;
+    const deviceId = lastKnownDeviceId;
+
+    // Best-effort recovery drain.  Uses drainForFallback (not the public
+    // getSequencesToSend) so it bypasses the tripped short-circuit and actually
+    // attempts a read off the IDB handle.  A write-side wedge (e.g.
+    // QuotaExceededError on put) often leaves reads healthy, so this can
+    // recover sequences already in sequencesToSend before the failure.  The
+    // per-tx watchdog inside drainForFallback bounds exposure if reads are also
+    // wedged.  The early-return at the top of switchToMemoryStore guarantees
+    // usingIdbStore was true at entry, so idbStore is a SessionReplayEventsIDBStore.
+    try {
+      const sequences = await (idbStore as SessionReplayEventsIDBStore).drainForFallback();
+      if (sequences) {
+        sequences.forEach((seq) => {
+          sendEventsList({ sequenceId: seq.sequenceId, events: seq.events, sessionId: seq.sessionId, deviceId });
+        });
+      }
+    } catch {
+      // Drain failed — IDB is fully wedged.  Accept the loss; new events are
+      // already landing in the memory store.
     }
   };
 
