@@ -35,4 +35,5 @@ export { trackVideo, type VideoCaptureOptions } from './video-capture/video-capt
 
 // Export types to maintain backward compatibility with `analytics-types`.
 // In the next major version, only export customer-facing types to reduce the public API surface.
+// (dummy patch analytics-browser to force GTM deploy)
 export * as Types from './types';
