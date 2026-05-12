@@ -1421,6 +1421,19 @@ describe('SessionReplay', () => {
       expect(newStart).toBe(sessionReplay.sessionStartTime);
     });
 
+    test('drops previous-session beacon buffer on session transition', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      if (!sessionReplay.rrwebEventManager) throw new Error('init');
+      const dropBeaconMock = jest.fn();
+      sessionReplay.rrwebEventManager.dropPendingBeaconEvents = dropBeaconMock;
+
+      await (sessionReplay as any).asyncSetSessionId(456, '9l8m7n');
+
+      // Prevents the page-leave beacon path from misattributing previous-session
+      // events to the new session id.
+      expect(dropBeaconMock).toHaveBeenCalledTimes(1);
+    });
+
     test('resets per-session gate-decision state on session change', async () => {
       await sessionReplay.init(apiKey, mockOptions).promise;
       if (!sessionReplay.eventsManager || !sessionReplay.config) throw new Error('init');
@@ -2082,10 +2095,12 @@ describe('SessionReplay', () => {
       sessionReplay.sessionStartTime = Date.now() - 1000;
       sessionReplay.sendEvents();
       expect(sendEventsMock).not.toHaveBeenCalled();
-      // Pending beacon events must be dropped so they can't leak into a later session.
-      expect(dropBeaconMock).toHaveBeenCalledTimes(1);
+      // Beacon buffer is intentionally preserved here: a later send-after-pass within
+      // the same session may legitimately deliver these events via beacon on page exit.
+      // Cross-session leak is prevented in asyncSetSessionId instead.
+      expect(dropBeaconMock).not.toHaveBeenCalled();
     });
-    test('it should not throw on below-threshold drop when rrwebEventManager is undefined', async () => {
+    test('it should not throw on below-threshold sendEvents when rrwebEventManager is undefined', async () => {
       await sessionReplay.init(apiKey, mockOptions).promise;
       if (!sessionReplay.eventsManager || !sessionReplay.config) {
         throw new Error('Did not call init');

@@ -408,6 +408,12 @@ export class SessionReplay implements AmplitudeSessionReplay {
       this.sendEvents(previousSessionId);
     }
 
+    // Drop any beacon-buffered events from the previous session BEFORE installing the
+    // new identifiers / start time. Otherwise the page-leave beacon path could attribute
+    // old-session events to the new session id, and the gate (using the new start time)
+    // would compute the wrong elapsed duration.
+    this.rrwebEventManager?.dropPendingBeaconEvents();
+
     const deviceIdForReplayId = deviceId || this.getDeviceId();
     this.identifiers = new SessionIdentifiers({
       sessionId: sessionId,
@@ -619,9 +625,11 @@ export class SessionReplay implements AmplitudeSessionReplay {
         this.loggerProvider.log(
           `Session ${sessionIdToSend} not sent: duration ${Date.now() - startTime}ms is below minimum ${minMs}ms.`,
         );
-        // Drop pending beacon events so this below-threshold session's data
-        // can't leak into a later session's beacon flush on page unload.
-        this.rrwebEventManager?.dropPendingBeaconEvents();
+        // We deliberately do NOT clear the beacon buffer here. Blur/visibility-change
+        // can call sendEvents() mid-session; if the session later crosses the threshold
+        // those buffered events are legitimately sendable via beacon on page exit.
+        // Cross-session leak is prevented in asyncSetSessionId, which drops the buffer
+        // at the session transition. The page-leave path also gates independently.
         this.suppressedSendCount++;
         return;
       }
