@@ -27,6 +27,12 @@
     <!-- Password input: always masked ('light' and above) -->
     <input id="password-input" type="password" value="secret123" />
 
+    <!-- Textarea: under medium/conservative, value is masked; under light (non-sensitive), visible -->
+    <textarea id="text-area">multi-line textarea content</textarea>
+
+    <!-- Select: under medium/conservative, value is masked -->
+    <select id="select-input"><option value="option-one" selected>option-one</option></select>
+
     <!-- Element for selector-based blocking via privacyConfig.blockSelector -->
     <div id="selector-blocked">Selector blocked content</div>
 

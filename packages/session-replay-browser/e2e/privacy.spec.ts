@@ -169,6 +169,33 @@ test.describe('privacy — privacyConfig option', () => {
     expect(isMaskedText(getTextContent(plainEl!))).toBe(false);
   });
 
+  test('defaultMaskLevel medium masks textarea and select values', async ({ page }) => {
+    // Per public docs, medium masks all form fields including <textarea> and <select>.
+    // rrweb routes their values through maskInputFn → isMaskedForLevel('input', medium) = true.
+    const privacyConfig = JSON.stringify({
+      defaultMaskLevel: 'conservative',
+      urlMaskLevels: [{ match: 'http://localhost:5173/session-replay-browser/*', maskLevel: 'medium' }],
+    });
+    await mockRemoteConfig(page, remoteConfigRecording);
+    const { getBodies } = await captureTrackRequests(page);
+
+    await page.goto(buildUrl(PRIVACY_PAGE, { sessionId: TEST_SESSION_ID, privacyConfig }));
+    await waitForReady(page);
+    await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
+    await flushRecording(page);
+
+    const root = getSnapshotRoot(getBodies());
+    expect(root).not.toBeNull();
+
+    const textarea = findById(root!, 'text-area');
+    expect(textarea).toBeDefined();
+    expect(isMaskedText(String(textarea!.attributes?.value ?? ''))).toBe(true);
+
+    const select = findById(root!, 'select-input');
+    expect(select).toBeDefined();
+    expect(isMaskedText(String(select!.attributes?.value ?? ''))).toBe(true);
+  });
+
   test('defaultMaskLevel light still masks password input values', async ({ page }) => {
     const privacyConfig = JSON.stringify({ defaultMaskLevel: 'light' });
     await mockRemoteConfig(page, remoteConfigRecording);
