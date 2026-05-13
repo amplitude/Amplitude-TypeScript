@@ -12,15 +12,15 @@ type ChromeStorageEstimate = {
 };
 
 /**
- * Light: Subset of inputs (sensitive types only — password, hidden, email, tel, cc-*); all texts
- * Medium: All inputs and all texts
+ * Light: Subset of inputs (sensitive types only — password, hidden, email, tel, cc-*)
+ * Medium: All inputs (form fields), text is NOT masked
  * Conservative: All inputs and all texts
  */
 const isMaskedForLevel = (elementType: 'input' | 'text', level: MaskLevel, element: HTMLElement | null): boolean => {
   switch (level) {
     case 'light': {
       if (elementType !== 'input') {
-        return true;
+        return false;
       }
 
       const inputType = element ? getInputType(element) : '';
@@ -40,6 +40,7 @@ const isMaskedForLevel = (elementType: 'input' | 'text', level: MaskLevel, eleme
       return false;
     }
     case 'medium':
+      return elementType === 'input';
     case 'conservative':
       return true;
     default:
@@ -118,9 +119,11 @@ export const maskAttributeFn = (config?: PrivacyConfig, getCurrentUrl?: () => st
     // Short-circuit: only proceed if this attribute is in the allowlist.
     if (!(config?.maskAttributes ?? []).includes(key)) return value;
 
-    // Recompute masking every call so class/ancestor mutations do not stale-cache
-    // the decision for later attribute mutations on the same element.
-    return isMasked('text', config, element, getCurrentUrl?.()) ? value.replace(/[^\s]/g, '*') : value;
+    // Use 'input' for form elements so that `medium` (which masks inputs but not text)
+    // still masks attributes on inputs/selects/textareas. For non-form elements, use
+    // 'text' so medium leaves them visible.
+    const elementType = ['INPUT', 'SELECT', 'TEXTAREA'].includes(element.tagName) ? 'input' : 'text';
+    return isMasked(elementType, config, element, getCurrentUrl?.()) ? value.replace(/[^\s]/g, '*') : value;
   };
 };
 
