@@ -34,9 +34,9 @@
     "lint:eslint": "eslint '{src,test}/**/*.ts'",
     "lint:prettier": "prettier --check \"{src,test}/**/*.ts\"",
     "test": "pnpm test:web && pnpm test:mobile",
-    "test:web": "jest --setupFiles './test/mock/setup-web.ts'",
-    "test:mobile": "jest --setupFiles './test/mock/setup-mobile.ts'",
-    "typecheck": "tsc -p ./tsconfig.json",
+    "test:web": "jest --setupFiles './test/mock/setup-web.ts' --testEnvironment jsdom",
+    "test:mobile": "jest --setupFiles './test/mock/setup-mobile.ts' --testEnvironment node",
+    "typecheck": "tsc --noEmit -p ./tsconfig.json",
     "version": "pnpm version-file && pnpm build",
     "version-file": "node -p \"'export const VERSION = \\'' + require('./package.json').version + '\\';'\" > src/version.ts",
     "typescript": "tsc --noEmit",
@@ -58,7 +58,7 @@
     "url": "https://github.com/amplitude/Amplitude-TypeScript/issues"
   },
   "dependencies": {
-    "@amplitude/analytics-core": "2.41.5",
+    "@amplitude/analytics-core": "2.48.1",
     "@amplitude/ua-parser-js": "^0.7.31",
     "@react-native-async-storage/async-storage": "^1.17.11",
     "tslib": "^2.4.1"
