@@ -1,6 +1,6 @@
 {
   "name": "@amplitude/analytics-browser",
-  "version": "2.42.2",
+  "version": "2.42.3",
   "description": "Official Amplitude SDK for Web",
   "keywords": [
     "analytics",

@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.7.10](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-page-url-enrichment-browser@0.7.9...@amplitude/plugin-page-url-enrichment-browser@0.7.10) (2026-05-13)
+
+
+### Bug Fixes
+
+* **autocapture:** fix stale URL storage for MPAs, also for leave-and-returns ([#1737](https://github.com/amplitude/Amplitude-TypeScript/issues/1737)) ([a736be2](https://github.com/amplitude/Amplitude-TypeScript/commit/a736be216331064dc3646a9c495ea7165cd0f683))
+
+
+
+
+
 ## [0.7.9](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-page-url-enrichment-browser@0.7.8...@amplitude/plugin-page-url-enrichment-browser@0.7.9) (2026-04-28)
 
 **Note:** Version bump only for package @amplitude/plugin-page-url-enrichment-browser

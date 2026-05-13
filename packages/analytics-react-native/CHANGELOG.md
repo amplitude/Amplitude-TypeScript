@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.5.53](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-react-native@1.5.52...@amplitude/analytics-react-native@1.5.53) (2026-05-13)
+
+
+### Bug Fixes
+
+* **analytics-react-native:** use node test environment for mobile and bump analytics-core to 2.48.1 ([#1747](https://github.com/amplitude/Amplitude-TypeScript/issues/1747)) ([27d4ddd](https://github.com/amplitude/Amplitude-TypeScript/commit/27d4ddd1ae1d089779b9a7afc5e3ba46814611ac))
+
+
+
+
+
 ## [1.5.52](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-react-native@1.5.51...@amplitude/analytics-react-native@1.5.52) (2026-03-26)
 
 
