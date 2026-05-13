@@ -125,6 +125,50 @@ test.describe('privacy — privacyConfig option', () => {
     expect(isMaskedText(value)).toBe(false);
   });
 
+  test('defaultMaskLevel light → plain body text is visible (no urlMaskLevels)', async ({ page }) => {
+    // Bug repro #1: with no urlMaskLevels, getMaskTextSelectors() returns undefined for
+    // light/medium effective levels, so rrweb never routes text through maskTextFn. Text
+    // should be visible in the snapshot regardless of isMaskedForLevel.
+    const privacyConfig = JSON.stringify({ defaultMaskLevel: 'light' });
+    await mockRemoteConfig(page, remoteConfigRecording);
+    const { getBodies } = await captureTrackRequests(page);
+
+    await page.goto(buildUrl(PRIVACY_PAGE, { sessionId: TEST_SESSION_ID, privacyConfig }));
+    await waitForReady(page);
+    await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
+    await flushRecording(page);
+
+    const root = getSnapshotRoot(getBodies());
+    expect(root).not.toBeNull();
+
+    const plainEl = findById(root!, 'plain-text');
+    expect(plainEl).toBeDefined();
+    expect(getTextContent(plainEl!)).toContain('Hello visible world');
+    expect(isMaskedText(getTextContent(plainEl!))).toBe(false);
+  });
+
+  test('defaultMaskLevel medium → plain body text is visible (no urlMaskLevels)', async ({ page }) => {
+    // Bug repro #2: same as above for medium. The unit-test "medium masks text" assertion
+    // does not reflect the actual rrweb flow when urlMaskLevels is absent — rrweb is
+    // never told to route text through maskTextFn.
+    const privacyConfig = JSON.stringify({ defaultMaskLevel: 'medium' });
+    await mockRemoteConfig(page, remoteConfigRecording);
+    const { getBodies } = await captureTrackRequests(page);
+
+    await page.goto(buildUrl(PRIVACY_PAGE, { sessionId: TEST_SESSION_ID, privacyConfig }));
+    await waitForReady(page);
+    await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
+    await flushRecording(page);
+
+    const root = getSnapshotRoot(getBodies());
+    expect(root).not.toBeNull();
+
+    const plainEl = findById(root!, 'plain-text');
+    expect(plainEl).toBeDefined();
+    expect(getTextContent(plainEl!)).toContain('Hello visible world');
+    expect(isMaskedText(getTextContent(plainEl!))).toBe(false);
+  });
+
   test('defaultMaskLevel light still masks password input values', async ({ page }) => {
     const privacyConfig = JSON.stringify({ defaultMaskLevel: 'light' });
     await mockRemoteConfig(page, remoteConfigRecording);
@@ -485,10 +529,10 @@ test.describe('privacy — urlMaskLevels (page-level masking)', () => {
     expect(isMaskedText(getTextContent(el!))).toBe(true);
   });
 
-  test('SPA navigation from conservative URL to light URL still masks text', async ({ page }) => {
+  test('SPA navigation from conservative URL to light URL leaves text visible', async ({ page }) => {
     // Verifies maskFn URL-awareness: session starts on a conservative URL rule, then navigates
-    // to a light URL rule. Light masks text nodes (same as conservative), so plain text remains
-    // masked after navigation.
+    // to a light URL rule. Light leaves text nodes visible, so plain text becomes unmasked
+    // after navigation.
     // Use exact URL patterns to avoid first-match-wins overlap with the wildcard MATCHING_PATTERN.
     const CONSERVATIVE_PATTERN = 'http://localhost:5173/session-replay-browser/sr-privacy-test.html*';
     const LIGHT_PATTERN = 'http://localhost:5173/section-light/*';
@@ -522,12 +566,12 @@ test.describe('privacy — urlMaskLevels (page-level masking)', () => {
     await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
     await flushRecording(page);
 
-    // The LAST full snapshot was taken on the light URL — plain text is still masked (light masks text).
+    // The LAST full snapshot was taken on the light URL — plain text is NOT masked under light.
     const lastRoot = getLastSnapshotRoot(getBodies());
     expect(lastRoot).not.toBeNull();
     const plainEl = findById(lastRoot!, 'plain-text');
     expect(plainEl).toBeDefined();
-    expect(isMaskedText(getTextContent(plainEl!))).toBe(true);
+    expect(isMaskedText(getTextContent(plainEl!))).toBe(false);
   });
 
   test('SPA navigation from light URL to conservative URL masks text', async ({ page }) => {
@@ -566,6 +610,63 @@ test.describe('privacy — urlMaskLevels (page-level masking)', () => {
     const plainEl = findById(lastRoot!, 'plain-text');
     expect(plainEl).toBeDefined();
     expect(isMaskedText(getTextContent(plainEl!))).toBe(true);
+  });
+
+  // Repro for GoFundMe customer report (Slack C0AJHTHCB96 / 2026-05-12):
+  // defaultMaskLevel: conservative + a urlMaskLevels rule routing the page to 'light'.
+  // Under the light URL rule, plain <p> body text on the matched page is visible.
+  test('urlMaskLevels light rule leaves plain body text visible (GFM repro)', async ({ page }) => {
+    await mockRemoteConfig(
+      page,
+      remoteConfigWithPrivacy({
+        defaultMaskLevel: 'conservative',
+        urlMaskLevels: [{ match: MATCHING_PATTERN, maskLevel: 'light' }],
+      }),
+    );
+    const { getBodies } = await captureTrackRequests(page);
+
+    await page.goto(buildUrl(PRIVACY_PAGE, { sessionId: TEST_SESSION_ID }));
+    await waitForReady(page);
+    await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
+    await flushRecording(page);
+
+    const root = getSnapshotRoot(getBodies());
+    expect(root).not.toBeNull();
+
+    const plainEl = findById(root!, 'plain-text');
+    expect(plainEl).toBeDefined();
+    expect(getTextContent(plainEl!)).toContain('Hello visible world');
+    expect(isMaskedText(getTextContent(plainEl!))).toBe(false);
+  });
+
+  // Bug repro #3: defaultMaskLevel medium + a matching medium URL rule.
+  // The unit tests assert "medium masks text", but the documented intent of medium
+  // (per the doc comment) is "all inputs". When urlMaskLevels triggers getMaskTextSelectors()
+  // to return '*', rrweb routes text through maskTextFn and isMaskedForLevel(text, medium)
+  // returns true today — which means text gets masked even though medium is supposed to
+  // be inputs-only. Marked test.fail() because the current behavior diverges from intent.
+  test.fail('urlMaskLevels medium rule should leave plain body text visible', async ({ page }) => {
+    await mockRemoteConfig(
+      page,
+      remoteConfigWithPrivacy({
+        defaultMaskLevel: 'conservative',
+        urlMaskLevels: [{ match: MATCHING_PATTERN, maskLevel: 'medium' }],
+      }),
+    );
+    const { getBodies } = await captureTrackRequests(page);
+
+    await page.goto(buildUrl(PRIVACY_PAGE, { sessionId: TEST_SESSION_ID }));
+    await waitForReady(page);
+    await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
+    await flushRecording(page);
+
+    const root = getSnapshotRoot(getBodies());
+    expect(root).not.toBeNull();
+
+    const plainEl = findById(root!, 'plain-text');
+    expect(plainEl).toBeDefined();
+    expect(getTextContent(plainEl!)).toContain('Hello visible world');
+    expect(isMaskedText(getTextContent(plainEl!))).toBe(false);
   });
 
   test('first-match-wins: second rule (light) applies when first rule does not match', async ({ page }) => {
