@@ -639,13 +639,11 @@ test.describe('privacy — urlMaskLevels (page-level masking)', () => {
     expect(isMaskedText(getTextContent(plainEl!))).toBe(false);
   });
 
-  // Bug repro #3: defaultMaskLevel medium + a matching medium URL rule.
-  // The unit tests assert "medium masks text", but the documented intent of medium
-  // (per the doc comment) is "all inputs". When urlMaskLevels triggers getMaskTextSelectors()
-  // to return '*', rrweb routes text through maskTextFn and isMaskedForLevel(text, medium)
-  // returns true today — which means text gets masked even though medium is supposed to
-  // be inputs-only. Marked test.fail() because the current behavior diverges from intent.
-  test.fail('urlMaskLevels medium rule should leave plain body text visible', async ({ page }) => {
+  // urlMaskLevels medium rule masks text (matches the documented MaskLevel contract:
+  // medium = "All inputs and all texts"). When the URL rule triggers
+  // getMaskTextSelectors() to return '*', rrweb routes text through maskTextFn and
+  // isMaskedForLevel(text, medium) returns true → text masked.
+  test('urlMaskLevels medium rule masks plain body text', async ({ page }) => {
     await mockRemoteConfig(
       page,
       remoteConfigWithPrivacy({
@@ -665,8 +663,7 @@ test.describe('privacy — urlMaskLevels (page-level masking)', () => {
 
     const plainEl = findById(root!, 'plain-text');
     expect(plainEl).toBeDefined();
-    expect(getTextContent(plainEl!)).toContain('Hello visible world');
-    expect(isMaskedText(getTextContent(plainEl!))).toBe(false);
+    expect(isMaskedText(getTextContent(plainEl!))).toBe(true);
   });
 
   test('first-match-wins: second rule (light) applies when first rule does not match', async ({ page }) => {
