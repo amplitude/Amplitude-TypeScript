@@ -676,6 +676,7 @@ test.describe('privacy — urlMaskLevels (page-level masking)', () => {
     // Rule 2 (light):        targets the test page — MUST match and apply.
     // Rule 3 (conservative): also targets the test page but comes after rule 2 — must NOT be evaluated.
     // Effective level must be 'light': plain text input is NOT masked.
+    // TC-07: covered — three rules, second wins.
     await mockRemoteConfig(
       page,
       remoteConfigWithPrivacy({
@@ -708,5 +709,348 @@ test.describe('privacy — urlMaskLevels (page-level masking)', () => {
     const passwordInput = findById(root!, 'password-input');
     expect(passwordInput).toBeDefined();
     expect(isMaskedText(String(passwordInput!.attributes?.value ?? ''))).toBe(true);
+  });
+
+  // TC-08: first-match-wins blocks more-specific later rules.
+  test('first-match-wins: broad /** rule fires before more-specific path rule', async ({ page }) => {
+    // TC-08: Rules in order: [1] matching conservative /**,  [2] matching light /path/*.
+    // Rule 1 fires first because it appears first — rule 2 must never be evaluated.
+    // Effective level must be 'conservative': plain text IS masked.
+    await mockRemoteConfig(
+      page,
+      remoteConfigWithPrivacy({
+        defaultMaskLevel: 'medium',
+        urlMaskLevels: [
+          // Rule 1: broad /** — matches the test page, conservative.
+          { match: 'http://localhost:5173/**', maskLevel: 'conservative' },
+          // Rule 2: more-specific path — also matches, but comes AFTER rule 1.
+          { match: 'http://localhost:5173/session-replay-browser/*', maskLevel: 'light' },
+        ],
+      }),
+    );
+    const { getBodies } = await captureTrackRequests(page);
+
+    await page.goto(buildUrl(PRIVACY_PAGE, { sessionId: TEST_SESSION_ID }));
+    await waitForReady(page);
+    await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
+    await flushRecording(page);
+
+    const root = getSnapshotRoot(getBodies());
+    expect(root).not.toBeNull();
+
+    // Rule 1 (conservative) wins: plain text IS masked.
+    const el = findById(root!, 'plain-text');
+    expect(el).toBeDefined();
+    expect(isMaskedText(getTextContent(el!))).toBe(true);
+  });
+
+  // TC-09: trailing /** matches base path (no trailing slash on the URL).
+  test('trailing /** pattern matches the test page URL (no trailing slash)', async ({ page }) => {
+    // TC-09: The pattern http://localhost:5173/session-replay-browser/** should match
+    // the test page URL (which has a path but no trailing slash after the filename).
+    // globToRegex converts trailing /** to (/.*)?  — the optional group covers the
+    // /file.html portion of the URL.
+    await mockRemoteConfig(
+      page,
+      remoteConfigWithPrivacy({
+        defaultMaskLevel: 'light',
+        urlMaskLevels: [{ match: 'http://localhost:5173/session-replay-browser/**', maskLevel: 'conservative' }],
+      }),
+    );
+    const { getBodies } = await captureTrackRequests(page);
+
+    await page.goto(buildUrl(PRIVACY_PAGE, { sessionId: TEST_SESSION_ID }));
+    await waitForReady(page);
+    await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
+    await flushRecording(page);
+
+    const root = getSnapshotRoot(getBodies());
+    expect(root).not.toBeNull();
+
+    // The conservative /** rule matched — plain text IS masked.
+    const el = findById(root!, 'plain-text');
+    expect(el).toBeDefined();
+    expect(isMaskedText(getTextContent(el!))).toBe(true);
+  });
+
+  // TC-10: middle /**/ matches zero intermediate segments.
+  test('middle /**/ glob matches URL with zero intermediate path segments', async ({ page }) => {
+    // TC-10: Pattern http://localhost:5173/**/sr-privacy-test.html should match
+    // the test page URL where there are no intermediate path segments between
+    // the origin and the filename (zero-segment match for /**/).
+    // globToRegex converts /**/ to /(.*\/)?  — the optional group covers the zero-segment case.
+    await mockRemoteConfig(
+      page,
+      remoteConfigWithPrivacy({
+        defaultMaskLevel: 'light',
+        urlMaskLevels: [{ match: 'http://localhost:5173/**/sr-privacy-test.html*', maskLevel: 'conservative' }],
+      }),
+    );
+    const { getBodies } = await captureTrackRequests(page);
+
+    await page.goto(buildUrl(PRIVACY_PAGE, { sessionId: TEST_SESSION_ID }));
+    await waitForReady(page);
+    await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
+    await flushRecording(page);
+
+    const root = getSnapshotRoot(getBodies());
+    expect(root).not.toBeNull();
+
+    // The conservative /**/ rule matched — plain text IS masked.
+    const el = findById(root!, 'plain-text');
+    expect(el).toBeDefined();
+    expect(isMaskedText(getTextContent(el!))).toBe(true);
+  });
+
+  // TC-13: blur + SPA nav to light URL + focus uses fresh URL — input visible in new snapshot.
+  test('SPA navigation to light URL: fresh snapshot shows text input not masked', async ({ page }) => {
+    // TC-13: Start on a conservative URL rule. SPA-pushState to a URL that matches a light
+    // rule. Dispatch blur then focus to force rrweb to take a new full snapshot.
+    // Verify the new snapshot captures the text input as NOT masked (light level for inputs).
+    // The existing conservative→light test only checks plain text (which is masked at both levels).
+    // This test specifically checks that the input masking decision uses the NEW URL.
+    const CONSERVATIVE_PATTERN = 'http://localhost:5173/session-replay-browser/sr-privacy-test.html*';
+    const LIGHT_PATTERN = 'http://localhost:5173/section-light-inputs/*';
+    await mockRemoteConfig(
+      page,
+      remoteConfigWithPrivacy({
+        defaultMaskLevel: 'medium',
+        urlMaskLevels: [
+          { match: CONSERVATIVE_PATTERN, maskLevel: 'conservative' },
+          { match: LIGHT_PATTERN, maskLevel: 'light' },
+        ],
+      }),
+    );
+    const { getBodies } = await captureTrackRequests(page);
+
+    await page.goto(buildUrl(PRIVACY_PAGE, { sessionId: TEST_SESSION_ID }));
+    await waitForReady(page);
+    await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
+
+    // Initial snapshot on the conservative URL: text input MUST be masked.
+    await flushRecording(page);
+    const firstRoot = getSnapshotRoot(getBodies());
+    expect(firstRoot).not.toBeNull();
+    expect(isMaskedText(String(findById(firstRoot!, 'text-input')!.attributes?.value ?? ''))).toBe(true);
+
+    // SPA navigate to the light URL and force a fresh full snapshot via blur→focus cycle.
+    await page.evaluate(() => {
+      history.pushState({}, '', '/section-light-inputs/page');
+      // blur flushes pending events; focus triggers rrweb's full-snapshot on re-focus.
+      window.dispatchEvent(new Event('blur'));
+      window.dispatchEvent(new Event('focus'));
+    });
+    await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
+    await flushRecording(page);
+
+    // The LAST full snapshot was taken on the light URL — text input must NOT be masked.
+    const lastRoot = getLastSnapshotRoot(getBodies());
+    expect(lastRoot).not.toBeNull();
+    const textInput = findById(lastRoot!, 'text-input');
+    expect(textInput).toBeDefined();
+    const value = String(textInput!.attributes?.value ?? '');
+    expect(value).toBe('visible input value');
+    expect(isMaskedText(value)).toBe(false);
+  });
+});
+
+// ─── urlMaskLevels — glob pattern edge cases ──────────────────────────────────
+
+test.describe('privacy — urlMaskLevels glob edge cases', () => {
+  // The exact (no-wildcard) URL of the test page, used for TC-01 and TC-03.
+  // buildUrl() appends ?sessionId=… so the actual browser URL always has a query string.
+  // An exact-match pattern (no glob chars) compiles to /^…\.html$/ which does NOT match.
+  const EXACT_PATTERN = 'http://localhost:5173/session-replay-browser/sr-privacy-test.html';
+
+  // TC-01: exact pattern without wildcard does NOT match a URL that carries a query string.
+  test('TC-01: exact pattern (no wildcard) does not match URL with query string → text input visible', async ({
+    page,
+  }) => {
+    // The actual page URL from buildUrl() is http://…/sr-privacy-test.html?sessionId=…
+    // The exact EXACT_PATTERN has no wildcard, so it compiles to /^…\.html$/ which
+    // fails to match the URL that includes ?sessionId=…  The rule does not fire, so
+    // the effective mask level falls back to defaultMaskLevel: light.
+    // Under light, plain text input values are NOT masked.
+    await mockRemoteConfig(
+      page,
+      remoteConfigWithPrivacy({
+        defaultMaskLevel: 'light',
+        urlMaskLevels: [{ match: EXACT_PATTERN, maskLevel: 'conservative' }],
+      }),
+    );
+    const { getBodies } = await captureTrackRequests(page);
+
+    await page.goto(buildUrl(PRIVACY_PAGE, { sessionId: TEST_SESSION_ID }));
+    await waitForReady(page);
+    await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
+    await flushRecording(page);
+
+    const root = getSnapshotRoot(getBodies());
+    expect(root).not.toBeNull();
+
+    // The conservative rule did NOT match (query string present) — light fallback applies.
+    // Under light, text input values are NOT masked.
+    const textInput = findById(root!, 'text-input');
+    expect(textInput).toBeDefined();
+    const value = String(textInput!.attributes?.value ?? '');
+    expect(value).toBe('visible input value');
+    expect(isMaskedText(value)).toBe(false);
+  });
+
+  // TC-02: workaround — pattern ending in /** DOES match a URL with a query string.
+  test('TC-02: pattern ending in /** matches URL with query string → text input masked', async ({ page }) => {
+    // The /** suffix compiles to (/.*)?  which matches /sr-privacy-test.html?sessionId=…
+    // (the .* inside the group covers everything including the ? and query params).
+    // Rule fires → conservative → plain text inputs ARE masked.
+    // Contrast with TC-01 where the exact pattern misses and the light fallback leaves
+    // plain text inputs visible.
+    await mockRemoteConfig(
+      page,
+      remoteConfigWithPrivacy({
+        defaultMaskLevel: 'light',
+        urlMaskLevels: [{ match: 'http://localhost:5173/session-replay-browser/**', maskLevel: 'conservative' }],
+      }),
+    );
+    const { getBodies } = await captureTrackRequests(page);
+
+    await page.goto(buildUrl(PRIVACY_PAGE, { sessionId: TEST_SESSION_ID }));
+    await waitForReady(page);
+    await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
+    await flushRecording(page);
+
+    const root = getSnapshotRoot(getBodies());
+    expect(root).not.toBeNull();
+
+    // The conservative /** rule matched — plain text input IS masked (conservative masks all inputs).
+    // Under light (the fallback if the rule had not matched) the text input would be visible.
+    const textInput = findById(root!, 'text-input');
+    expect(textInput).toBeDefined();
+    const value = String(textInput!.attributes?.value ?? '');
+    expect(isMaskedText(value)).toBe(true);
+  });
+
+  // TC-03: exact pattern without wildcard does NOT match a URL with a hash fragment.
+  test('TC-03: exact pattern (no wildcard) does not match URL with hash fragment → text input visible', async ({
+    page,
+  }) => {
+    // Navigate to the page appending a #fragment AFTER the query string.
+    // window.location.href includes the hash, so the SDK sees the full URL with #frag.
+    // The exact EXACT_PATTERN regex /^…\.html$/ does NOT match — rule misses.
+    // Effective level falls back to defaultMaskLevel: light → text input NOT masked.
+    await mockRemoteConfig(
+      page,
+      remoteConfigWithPrivacy({
+        defaultMaskLevel: 'light',
+        urlMaskLevels: [{ match: EXACT_PATTERN, maskLevel: 'conservative' }],
+      }),
+    );
+    const { getBodies } = await captureTrackRequests(page);
+
+    // Append a hash fragment to the URL so the SDK's location.href differs from EXACT_PATTERN.
+    await page.goto(buildUrl(PRIVACY_PAGE, { sessionId: TEST_SESSION_ID }) + '#myfragment');
+    await waitForReady(page);
+    await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
+    await flushRecording(page);
+
+    const root = getSnapshotRoot(getBodies());
+    expect(root).not.toBeNull();
+
+    // The conservative rule did NOT match (hash fragment present) — light fallback applies.
+    // Under light, text input values are NOT masked.
+    const textInput = findById(root!, 'text-input');
+    expect(textInput).toBeDefined();
+    const value = String(textInput!.attributes?.value ?? '');
+    expect(value).toBe('visible input value');
+    expect(isMaskedText(value)).toBe(false);
+  });
+});
+
+// ─── Remote-config / local-config merge priority ─────────────────────────────
+
+test.describe('privacy — remote vs local config merge priority', () => {
+  // TC-04: remote-config-only conservative urlMaskLevels rule → already covered by
+  //   'remote urlMaskLevels conservative rule masks plain text end-to-end' above.
+  //   Skipped here to avoid duplication.
+
+  // TC-05: remote conservative rule + local light rule for same URL → remote wins.
+  test('TC-05: remote conservative urlMaskLevels rule wins over local light rule (remote prepended)', async ({
+    page,
+  }) => {
+    // joined-config prepends remote urlMaskLevels before local ones, so the remote
+    // conservative rule appears first in the merged list and fires first.
+    // The local light rule (passed via privacyConfig URL param) is never reached.
+    // Expected: plain text IS masked (conservative wins).
+    const localPrivacyConfig = JSON.stringify({
+      urlMaskLevels: [{ match: 'http://localhost:5173/session-replay-browser/*', maskLevel: 'light' }],
+    });
+
+    await mockRemoteConfig(
+      page,
+      remoteConfigWithPrivacy({
+        urlMaskLevels: [{ match: 'http://localhost:5173/session-replay-browser/*', maskLevel: 'conservative' }],
+      }),
+    );
+    const { getBodies } = await captureTrackRequests(page);
+
+    await page.goto(buildUrl(PRIVACY_PAGE, { sessionId: TEST_SESSION_ID, privacyConfig: localPrivacyConfig }));
+    await waitForReady(page);
+    await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
+    await flushRecording(page);
+
+    const root = getSnapshotRoot(getBodies());
+    expect(root).not.toBeNull();
+
+    // Remote conservative rule prepended → it matches first → plain text IS masked.
+    const el = findById(root!, 'plain-text');
+    expect(el).toBeDefined();
+    expect(isMaskedText(getTextContent(el!))).toBe(true);
+  });
+
+  // TC-06: remote defaultMaskLevel overrides local conservative.
+  test('TC-06: remote defaultMaskLevel medium overrides local conservative → text input not masked', async ({
+    page,
+  }) => {
+    // joined-config uses remote defaultMaskLevel when set, ignoring local.
+    // Remote says 'medium', local (via URL param) says 'conservative'.
+    // No URL rules match. Effective defaultMaskLevel is 'medium'.
+    //
+    // Under medium, getMaskTextSelectors() returns undefined (not '*') so rrweb does NOT
+    // route text nodes through maskTextFn — plain text is not masked at snapshot time.
+    // Text inputs ARE masked under medium (medium masks all inputs).
+    //
+    // We verify via text-input: under medium all inputs are masked (value = asterisks).
+    // We also verify no conservative over-masking occurred by checking text-input is masked
+    // (medium) rather than checking it's unmasked — the key assertion is that remote medium
+    // wins, not local conservative (which would also mask inputs). Instead we use the
+    // existing 'URL does not match any rule → defaultMaskLevel (light) applies' pattern and
+    // verify that the remote medium default does NOT mask the text input less than conservative:
+    // both mask inputs, so the distinguishing check is that remote medium beats local
+    // conservative by using the remote value and that getMaskTextSelectors does not
+    // set maskTextSelector='*' (which would mask plain text nodes).
+    //
+    // Practical assertion: plain text paragraph is NOT masked (medium doesn't use maskTextSelector='*').
+    const localPrivacyConfig = JSON.stringify({ defaultMaskLevel: 'conservative' });
+
+    await mockRemoteConfig(
+      page,
+      remoteConfigWithPrivacy({
+        defaultMaskLevel: 'medium',
+      }),
+    );
+    const { getBodies } = await captureTrackRequests(page);
+
+    await page.goto(buildUrl(PRIVACY_PAGE, { sessionId: TEST_SESSION_ID, privacyConfig: localPrivacyConfig }));
+    await waitForReady(page);
+    await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
+    await flushRecording(page);
+
+    const root = getSnapshotRoot(getBodies());
+    expect(root).not.toBeNull();
+
+    // Remote medium wins over local conservative.
+    // getMaskTextSelectors() returns undefined under medium (no '*') → plain text NOT masked at snapshot.
+    const el = findById(root!, 'plain-text');
+    expect(el).toBeDefined();
+    expect(isMaskedText(getTextContent(el!))).toBe(false);
   });
 });
