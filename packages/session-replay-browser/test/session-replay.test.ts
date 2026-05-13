@@ -133,6 +133,9 @@ describe('SessionReplay', () => {
       href: 'http://localhost',
     },
     indexedDB: new IDBFactory(),
+    // jsdom provides a working localStorage; expose it so the replay-start-time-store
+    // (which reads through getGlobalScope) sees a real storage in tests.
+    localStorage: globalThis.localStorage,
     navigator: {
       storage: {
         estimate: () => {
@@ -277,6 +280,81 @@ describe('SessionReplay', () => {
       });
     }
   });
+  describe('init: sessionStartTime persistence', () => {
+    beforeEach(() => {
+      globalThis.localStorage.clear();
+    });
+
+    test('fresh init writes Date.now() and reads it back', async () => {
+      const before = Date.now();
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      const after = Date.now();
+      expect(sessionReplay.sessionStartTime).toBeGreaterThanOrEqual(before);
+      expect(sessionReplay.sessionStartTime).toBeLessThanOrEqual(after);
+      const stored = globalThis.localStorage.getItem(`AMP_SR_START_${apiKey.substring(0, 10)}_123`);
+      expect(Number(stored)).toBe(sessionReplay.sessionStartTime);
+    });
+
+    test('second init for same sessionId recovers stored value', async () => {
+      // Seed storage to simulate a prior init having written the start time.
+      const original = Date.now() - 60_000;
+      globalThis.localStorage.setItem(`AMP_SR_START_${apiKey.substring(0, 10)}_123`, String(original));
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      expect(sessionReplay.sessionStartTime).toBe(original);
+    });
+
+    test('corrupt stored value falls back to Date.now() and overwrites', async () => {
+      globalThis.localStorage.setItem(`AMP_SR_START_${apiKey.substring(0, 10)}_123`, 'not-a-number');
+      const before = Date.now();
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      const after = Date.now();
+      expect(sessionReplay.sessionStartTime).toBeGreaterThanOrEqual(before);
+      expect(sessionReplay.sessionStartTime).toBeLessThanOrEqual(after);
+      const stored = Number(globalThis.localStorage.getItem(`AMP_SR_START_${apiKey.substring(0, 10)}_123`));
+      expect(stored).toBe(sessionReplay.sessionStartTime);
+    });
+
+    test('TTL prune drops stale entries on init', async () => {
+      const staleKey = `AMP_SR_START_${apiKey.substring(0, 10)}_999`;
+      // 25 hours ago, beyond REPLAY_START_TIME_TTL_MS (24h).
+      globalThis.localStorage.setItem(staleKey, String(Date.now() - 25 * 60 * 60 * 1000));
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      expect(globalThis.localStorage.getItem(staleKey)).toBeNull();
+    });
+
+    test('falls back to Date.now() when localStorage access throws', async () => {
+      // jsdom's localStorage methods live on Storage.prototype, not as own properties,
+      // so jest.spyOn doesn't bind — patch the prototype directly.
+      const proto = Object.getPrototypeOf(globalThis.localStorage) as Storage;
+      const origGet = proto.getItem;
+      const origSet = proto.setItem;
+      proto.getItem = () => {
+        throw new Error('storage disabled');
+      };
+      proto.setItem = () => {
+        throw new Error('storage disabled');
+      };
+      try {
+        const before = Date.now();
+        await sessionReplay.init(apiKey, mockOptions).promise;
+        const after = Date.now();
+        expect(sessionReplay.sessionStartTime).toBeGreaterThanOrEqual(before);
+        expect(sessionReplay.sessionStartTime).toBeLessThanOrEqual(after);
+      } finally {
+        proto.getItem = origGet;
+        proto.setItem = origSet;
+      }
+    });
+
+    test('uses Date.now() when sessionId is undefined', async () => {
+      const before = Date.now();
+      await sessionReplay.init(apiKey, { ...mockOptions, sessionId: undefined }).promise;
+      const after = Date.now();
+      expect(sessionReplay.sessionStartTime).toBeGreaterThanOrEqual(before);
+      expect(sessionReplay.sessionStartTime).toBeLessThanOrEqual(after);
+    });
+  });
+
   describe('init', () => {
     test('should pass current page to evaluateTargetingAndCapture during init', async () => {
       const evaluateTargetingAndCaptureSpy = jest.spyOn(sessionReplay, 'evaluateTargetingAndCapture');
@@ -1366,6 +1444,105 @@ describe('SessionReplay', () => {
         ).latestUrlChangeTargetingEvaluationId,
       ).toBe(2);
     });
+
+    test('writes new session start time and removes previous session entry', async () => {
+      globalThis.localStorage.clear();
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      const prevKey = `AMP_SR_START_${apiKey.substring(0, 10)}_123`;
+      const nextKey = `AMP_SR_START_${apiKey.substring(0, 10)}_456`;
+      expect(globalThis.localStorage.getItem(prevKey)).not.toBeNull();
+
+      await (sessionReplay as any).asyncSetSessionId(456, '9l8m7n');
+
+      expect(globalThis.localStorage.getItem(prevKey)).toBeNull();
+      const newStart = Number(globalThis.localStorage.getItem(nextKey));
+      expect(newStart).toBe(sessionReplay.sessionStartTime);
+    });
+
+    test('preserves stored and in-memory start time when sessionId is unchanged', async () => {
+      globalThis.localStorage.clear();
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      if (!sessionReplay.config) throw new Error('init');
+      const key = `AMP_SR_START_${apiKey.substring(0, 10)}_123`;
+      // Pin a known start time so a regression (overwrite to Date.now()) is visible
+      // regardless of how Date.now() advances during the asyncSetSessionId call.
+      const pinned = 1_700_000_000_000;
+      sessionReplay.sessionStartTime = pinned;
+      globalThis.localStorage.setItem(key, String(pinned));
+      // Trip gate-decision state so we can assert it survives.
+      (sessionReplay as any).hasEmittedGateDecision = true;
+      (sessionReplay as any).suppressedSendCount = 7;
+
+      // Caller passes the current sessionId redundantly — must NOT restart the gate clock.
+      await (sessionReplay as any).asyncSetSessionId(123, '1a2b3c');
+
+      expect(Number(globalThis.localStorage.getItem(key))).toBe(pinned);
+      expect(sessionReplay.sessionStartTime).toBe(pinned);
+      // Per-session gate state must also be preserved.
+      expect((sessionReplay as any).hasEmittedGateDecision).toBe(true);
+      expect((sessionReplay as any).suppressedSendCount).toBe(7);
+    });
+
+    test('drops previous-session beacon buffer ONLY on real session change', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      if (!sessionReplay.rrwebEventManager) throw new Error('init');
+      const dropBeaconMock = jest.fn();
+      sessionReplay.rrwebEventManager.dropPendingBeaconEvents = dropBeaconMock;
+
+      // Redundant same-id call: buffer must NOT be dropped (it belongs to the continuing session).
+      await (sessionReplay as any).asyncSetSessionId(123, '1a2b3c');
+      expect(dropBeaconMock).not.toHaveBeenCalled();
+
+      // Real change: buffer MUST be dropped.
+      await (sessionReplay as any).asyncSetSessionId(456, '9l8m7n');
+      expect(dropBeaconMock).toHaveBeenCalledTimes(1);
+    });
+
+    test('drops previous-session beacon buffer on session transition', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      if (!sessionReplay.rrwebEventManager) throw new Error('init');
+      const dropBeaconMock = jest.fn();
+      sessionReplay.rrwebEventManager.dropPendingBeaconEvents = dropBeaconMock;
+
+      await (sessionReplay as any).asyncSetSessionId(456, '9l8m7n');
+
+      // Prevents the page-leave beacon path from misattributing previous-session
+      // events to the new session id.
+      expect(dropBeaconMock).toHaveBeenCalledTimes(1);
+    });
+
+    test('resets per-session gate-decision state on session change', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      if (!sessionReplay.eventsManager || !sessionReplay.config) throw new Error('init');
+      sessionReplay.eventsManager.sendCurrentSequenceEvents = jest.fn();
+      const addCustomSpy = jest.spyOn(sessionReplay, 'addCustomRRWebEvent').mockResolvedValue(undefined);
+      // Recording must be active for the gate-decision emission to fire.
+      sessionReplay.recordCancelCallback = jest.fn();
+      (sessionReplay as any).recordFunction = { addCustomEvent: jest.fn() };
+      sessionReplay.config.minSessionDurationMs = 1000;
+      sessionReplay.sessionStartTime = Date.now() - 5000;
+
+      // First send for session A emits gate-decision and trips hasEmittedGateDecision.
+      sessionReplay.sendEvents();
+      const sessionAGateCall = addCustomSpy.mock.calls.find((c) => c[0] === 'replay-gate-decision');
+      expect(sessionAGateCall).toBeDefined();
+      expect(sessionAGateCall?.[1]).toEqual(expect.objectContaining({ sessionId: 123 }));
+
+      await (sessionReplay as any).asyncSetSessionId(456, '9l8m7n');
+      // asyncSetSessionId regenerates the joined config; restore the threshold so the new
+      // session is gated identically to the prior one.
+      if (sessionReplay.config) sessionReplay.config.minSessionDurationMs = 1000;
+      // Drop calls from the session-id transition itself (debug-info / targeting-decision)
+      // so we can assert specifically that the next sendEvents re-emits gate-decision.
+      addCustomSpy.mockClear();
+      sessionReplay.sessionStartTime = Date.now() - 5000;
+      sessionReplay.sendEvents();
+      expect(addCustomSpy).toHaveBeenCalledWith(
+        'replay-gate-decision',
+        expect.objectContaining({ sessionId: 456, suppressedSendCount: 0 }),
+        false,
+      );
+    });
   });
 
   describe('getSessionId', () => {
@@ -1897,6 +2074,42 @@ describe('SessionReplay', () => {
       }).not.toThrow();
     });
 
+    test('should not call sendBeacon if session duration is below minSessionDurationMs', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      if (!sessionReplay.eventsManager || !sessionReplay.config) throw new Error('No eventsManager or config');
+      sessionReplay.config.minSessionDurationMs = 5000;
+      sessionReplay.sessionStartTime = Date.now() - 1000;
+      const mockSendBeacon = jest.fn().mockReturnValue(true);
+      jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue({
+        navigator: { sendBeacon: mockSendBeacon },
+      } as unknown as typeof globalThis);
+      sessionReplay.eventsManager.addEvent({
+        sessionId: 123,
+        event: { type: 'replay', data: 'x' },
+        deviceId: '1a2b3c',
+      });
+      triggerBeacon(sessionReplay);
+      expect(mockSendBeacon).not.toHaveBeenCalled();
+    });
+
+    test('should call sendBeacon if session duration meets minSessionDurationMs', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      if (!sessionReplay.eventsManager || !sessionReplay.config) throw new Error('No eventsManager or config');
+      sessionReplay.config.minSessionDurationMs = 1000;
+      sessionReplay.sessionStartTime = Date.now() - 5000;
+      const mockSendBeacon = jest.fn().mockReturnValue(true);
+      jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue({
+        navigator: { sendBeacon: mockSendBeacon },
+      } as unknown as typeof globalThis);
+      sessionReplay.eventsManager.addEvent({
+        sessionId: 123,
+        event: { type: 'replay', data: 'x' },
+        deviceId: '1a2b3c',
+      });
+      triggerBeacon(sessionReplay);
+      expect(mockSendBeacon).toHaveBeenCalledTimes(1);
+    });
+
     test('should not call sendBeacon if rrwebEventManager failed to initialize', async () => {
       // When createEventsManager throws for the 'replay' type, rrwebEventManager stays
       // undefined in the pageLeaveFns closure — the beacon fn should handle this gracefully.
@@ -1948,6 +2161,172 @@ describe('SessionReplay', () => {
       sessionReplay.eventsManager.sendCurrentSequenceEvents = sendEventsMock;
       sessionReplay.sendEvents();
       expect(sendEventsMock).not.toHaveBeenCalled();
+    });
+    test('it should not send if session duration is below minSessionDurationMs', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      if (!sessionReplay.eventsManager || !sessionReplay.config || !sessionReplay.rrwebEventManager) {
+        throw new Error('Did not call init');
+      }
+      const sendEventsMock = jest.fn();
+      const dropBeaconMock = jest.fn();
+      sessionReplay.eventsManager.sendCurrentSequenceEvents = sendEventsMock;
+      sessionReplay.rrwebEventManager.dropPendingBeaconEvents = dropBeaconMock;
+      sessionReplay.config.minSessionDurationMs = 5000;
+      sessionReplay.sessionStartTime = Date.now() - 1000;
+      sessionReplay.sendEvents();
+      expect(sendEventsMock).not.toHaveBeenCalled();
+      // Beacon buffer is intentionally preserved here: a later send-after-pass within
+      // the same session may legitimately deliver these events via beacon on page exit.
+      // Cross-session leak is prevented in asyncSetSessionId instead.
+      expect(dropBeaconMock).not.toHaveBeenCalled();
+    });
+    test('it should not throw on below-threshold sendEvents when rrwebEventManager is undefined', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      if (!sessionReplay.eventsManager || !sessionReplay.config) {
+        throw new Error('Did not call init');
+      }
+      const sendEventsMock = jest.fn();
+      sessionReplay.eventsManager.sendCurrentSequenceEvents = sendEventsMock;
+      sessionReplay.rrwebEventManager = undefined;
+      sessionReplay.config.minSessionDurationMs = 5000;
+      sessionReplay.sessionStartTime = Date.now() - 1000;
+      expect(() => sessionReplay.sendEvents()).not.toThrow();
+      expect(sendEventsMock).not.toHaveBeenCalled();
+    });
+    test('it should send if minSessionDurationMs is set but sessionStartTime is undefined', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      if (!sessionReplay.eventsManager || !sessionReplay.config) {
+        throw new Error('Did not call init');
+      }
+      const sendEventsMock = jest.fn();
+      sessionReplay.eventsManager.sendCurrentSequenceEvents = sendEventsMock;
+      sessionReplay.config.minSessionDurationMs = 5000;
+      sessionReplay.sessionStartTime = undefined;
+      sessionReplay.sendEvents();
+      expect(sendEventsMock).toHaveBeenCalled();
+    });
+    test('it should send if config is undefined', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      if (!sessionReplay.eventsManager) {
+        throw new Error('Did not call init');
+      }
+      const sendEventsMock = jest.fn();
+      sessionReplay.eventsManager.sendCurrentSequenceEvents = sendEventsMock;
+      sessionReplay.config = undefined;
+      sessionReplay.sendEvents();
+      expect(sendEventsMock).toHaveBeenCalled();
+    });
+    test('it should send if session duration meets minSessionDurationMs', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      if (!sessionReplay.eventsManager || !sessionReplay.config) {
+        throw new Error('Did not call init');
+      }
+      const sendEventsMock = jest.fn();
+      sessionReplay.eventsManager.sendCurrentSequenceEvents = sendEventsMock;
+      sessionReplay.config.minSessionDurationMs = 1000;
+      sessionReplay.sessionStartTime = Date.now() - 5000;
+      sessionReplay.sendEvents();
+      expect(sendEventsMock).toHaveBeenCalledWith({
+        sessionId: 123,
+        deviceId: '1a2b3c',
+      });
+    });
+    test('emits REPLAY_GATE_DECISION on first send-after-pass with suppressed count', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      if (!sessionReplay.eventsManager || !sessionReplay.config) {
+        throw new Error('Did not call init');
+      }
+      sessionReplay.eventsManager.sendCurrentSequenceEvents = jest.fn();
+      const addCustomSpy = jest.spyOn(sessionReplay, 'addCustomRRWebEvent').mockResolvedValue(undefined);
+      // Recording must be active for the gate-decision event to fire; addCustomRRWebEvent
+      // is a no-op when recordCancelCallback / recordFunction are unset.
+      sessionReplay.recordCancelCallback = jest.fn();
+      (sessionReplay as any).recordFunction = { addCustomEvent: jest.fn() };
+      sessionReplay.config.minSessionDurationMs = 5000;
+
+      // First call: below threshold, suppressed.
+      sessionReplay.sessionStartTime = Date.now() - 1000;
+      sessionReplay.sendEvents();
+      // Second call: still below threshold, suppressed.
+      sessionReplay.sendEvents();
+      expect(addCustomSpy).not.toHaveBeenCalled();
+
+      // Third call: now above threshold — emits gate-decision event with the two prior suppressions.
+      sessionReplay.sessionStartTime = Date.now() - 6000;
+      sessionReplay.sendEvents();
+      expect(addCustomSpy).toHaveBeenCalledWith(
+        'replay-gate-decision',
+        expect.objectContaining({
+          sessionId: 123,
+          suppressedSendCount: 2,
+          minSessionDurationMs: 5000,
+          elapsedMs: expect.any(Number),
+        }),
+        false,
+      );
+
+      // Fourth call: subsequent send doesn't re-emit (once per session).
+      addCustomSpy.mockClear();
+      sessionReplay.sendEvents();
+      expect(addCustomSpy).not.toHaveBeenCalled();
+    });
+    test('does not emit REPLAY_GATE_DECISION when minSessionDurationMs is unset', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      if (!sessionReplay.eventsManager || !sessionReplay.config) {
+        throw new Error('Did not call init');
+      }
+      sessionReplay.eventsManager.sendCurrentSequenceEvents = jest.fn();
+      const addCustomSpy = jest.spyOn(sessionReplay, 'addCustomRRWebEvent').mockResolvedValue(undefined);
+      sessionReplay.recordCancelCallback = jest.fn();
+      (sessionReplay as any).recordFunction = { addCustomEvent: jest.fn() };
+      sessionReplay.config.minSessionDurationMs = undefined;
+      sessionReplay.sendEvents();
+      expect(addCustomSpy).not.toHaveBeenCalled();
+    });
+    test('does not emit or trip the gate-decision flag when recording is inactive', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      if (!sessionReplay.eventsManager || !sessionReplay.config) {
+        throw new Error('Did not call init');
+      }
+      sessionReplay.eventsManager.sendCurrentSequenceEvents = jest.fn();
+      const addCustomSpy = jest.spyOn(sessionReplay, 'addCustomRRWebEvent').mockResolvedValue(undefined);
+      sessionReplay.config.minSessionDurationMs = 5000;
+      sessionReplay.sessionStartTime = Date.now() - 6000;
+      // Recording not started yet — emission is a no-op so the flag must NOT trip.
+      sessionReplay.recordCancelCallback = null;
+      (sessionReplay as any).recordFunction = null;
+      sessionReplay.sendEvents();
+      expect(addCustomSpy).not.toHaveBeenCalled();
+
+      // Once recording activates, the next send should emit.
+      sessionReplay.recordCancelCallback = jest.fn();
+      (sessionReplay as any).recordFunction = { addCustomEvent: jest.fn() };
+      sessionReplay.sendEvents();
+      expect(addCustomSpy).toHaveBeenCalledWith(
+        'replay-gate-decision',
+        expect.objectContaining({ sessionId: 123 }),
+        false,
+      );
+    });
+    test('emits elapsedMs as undefined when sessionStartTime is missing at first send-after-pass', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      if (!sessionReplay.eventsManager || !sessionReplay.config) {
+        throw new Error('Did not call init');
+      }
+      sessionReplay.eventsManager.sendCurrentSequenceEvents = jest.fn();
+      const addCustomSpy = jest.spyOn(sessionReplay, 'addCustomRRWebEvent').mockResolvedValue(undefined);
+      sessionReplay.recordCancelCallback = jest.fn();
+      (sessionReplay as any).recordFunction = { addCustomEvent: jest.fn() };
+      sessionReplay.config.minSessionDurationMs = 5000;
+      // sessionStartTime undefined makes isBelowMinSessionDuration() return false, so the
+      // pass-path fires but elapsedMs can't be computed.
+      sessionReplay.sessionStartTime = undefined;
+      sessionReplay.sendEvents();
+      expect(addCustomSpy).toHaveBeenCalledWith(
+        'replay-gate-decision',
+        expect.objectContaining({ elapsedMs: undefined }),
+        false,
+      );
     });
   });
   describe('stopRecordingEvents', () => {

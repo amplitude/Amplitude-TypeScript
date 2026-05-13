@@ -52,6 +52,12 @@ import { clickBatcher, ClickHandler, clickNonBatcher } from './hooks/click';
 import { ScrollWatcher } from './hooks/scroll';
 import { SessionIdentifiers } from './identifiers';
 import { SafeLoggerProvider } from './logger';
+import {
+  getOrInitReplayStartTime,
+  pruneStaleReplayStartTimes,
+  removeReplayStartTime,
+  setReplayStartTime,
+} from './replay-start-time-store';
 import { evaluateTargetingAndStore } from './targeting/targeting-manager';
 import {
   AmplitudeSessionReplay,
@@ -88,8 +94,21 @@ export class SessionReplay implements AmplitudeSessionReplay {
   private lastTargetingParams?: SessionReplayTargetingInput;
   private lastShouldRecordDecision?: boolean;
 
-  // Visible for testing only
+  // Public on purpose. `pageLeaveFns` is iterated by `pageLeaveListener`,
+  // `rrwebEventManager` is dereferenced in `asyncSetSessionId` to drop the beacon buffer
+  // at a session boundary, and `sessionStartTime` drives `isBelowMinSessionDuration()`.
+  // Tests also stub/inspect these — privatizing them would break both production callers
+  // and the gate's test coverage.
   pageLeaveFns: PageLeaveFn[] = [];
+  sessionStartTime: number | undefined;
+  rrwebEventManager: EventsManagerWithBeacon<'replay'> | undefined;
+  /**
+   * Count of sendEvents() calls suppressed by the min-session-duration gate for the
+   * current session. Drives the REPLAY_GATE_DECISION rrweb event on first send-after-pass.
+   */
+  private suppressedSendCount = 0;
+  /** True once REPLAY_GATE_DECISION has been emitted for the current session. */
+  private hasEmittedGateDecision = false;
   private scrollHook?: scrollCallback;
   private clickHandler?: ClickHandler;
   private networkObservers?: NetworkObservers;
@@ -185,6 +204,24 @@ export class SessionReplay implements AmplitudeSessionReplay {
     };
   }
 
+  /**
+   * Single source of truth for the min_session_duration_ms gate. Returns true when the
+   * current session has not yet reached the configured threshold (and we have both a
+   * configured value and a recorded start time). Returns false when there's no
+   * threshold, no recorded start time, or the threshold has been met — i.e. it
+   * answers "should this batch be suppressed?".
+   *
+   * Centralizing the check means future changes (clock-skew tolerance, switching to
+   * performance.now(), etc.) are one-line edits.
+   */
+  private isBelowMinSessionDuration(): boolean {
+    const minSessionDurationMs = this.config?.minSessionDurationMs;
+    if (minSessionDurationMs === undefined || this.sessionStartTime === undefined) {
+      return false;
+    }
+    return Date.now() - this.sessionStartTime < minSessionDurationMs;
+  }
+
   private getCurrentPageForTargeting(): SessionReplayTargetingInput['page'] {
     const currentUrl = getGlobalScope()?.location?.href;
     return currentUrl != null ? { url: currentUrl } : undefined;
@@ -200,6 +237,15 @@ export class SessionReplay implements AmplitudeSessionReplay {
       this.loggerProvider.enable(options.logLevel as LogLevel);
     this.currentPageUrl = getCurrentUrl();
     this.identifiers = new SessionIdentifiers({ sessionId: options.sessionId, deviceId: options.deviceId });
+    // Persist replay start time per sessionId so the min_session_duration_ms gate
+    // measures replay duration (survives page reloads within a session) rather than
+    // page-load duration. Storage failures fall back to a transient Date.now().
+    const now = Date.now();
+    pruneStaleReplayStartTimes(apiKey, now, this.loggerProvider);
+    this.sessionStartTime =
+      options.sessionId !== undefined
+        ? getOrInitReplayStartTime(apiKey, options.sessionId, now, this.loggerProvider) ?? now
+        : now;
     this.joinedConfigGenerator = await createSessionReplayJoinedConfigGenerator(apiKey, options);
     const { joinedConfig, localConfig, remoteConfig } = await this.joinedConfigGenerator.generateJoinedConfig();
     this.config = joinedConfig;
@@ -252,7 +298,9 @@ export class SessionReplay implements AmplitudeSessionReplay {
         type: 'replay',
         storeType,
         trackDestinationWorkerScript,
+        shouldSend: () => !this.isBelowMinSessionDuration(),
       });
+      this.rrwebEventManager = rrwebEventManager;
       managers.push({ name: 'replay', manager: rrwebEventManager });
     } catch (error) {
       const typedError = error as Error;
@@ -303,6 +351,12 @@ export class SessionReplay implements AmplitudeSessionReplay {
 
     // Register beacon fallback for page exit. sendBeacon survives page unload
     // and delivers any incremental events that haven't been flushed via fetch yet.
+    //
+    // Known cross-session race: if asyncSetSessionId fired and its async
+    // storeCurrentSequence hasn't resolved before unload, the beacon buffer can still
+    // hold previous-session events. The gate below reads the *new* session's
+    // sessionStartTime, so legitimately-sendable old-session events get suppressed.
+    // Follow-up: track start time per buffered batch instead of globally.
     this.pageLeaveFns = [
       ...this.pageLeaveFns,
       () => {
@@ -311,6 +365,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
         if (!events.length) return;
         const deviceId = this.getDeviceId();
         if (!deviceId) return;
+        if (this.isBelowMinSessionDuration()) return;
         rrwebEventManager.trackDestination.sendBeacon({
           events,
           sessionId: this.identifiers.sessionId,
@@ -369,11 +424,38 @@ export class SessionReplay implements AmplitudeSessionReplay {
       this.sendEvents(previousSessionId);
     }
 
+    const isSessionChange = previousSessionId !== sessionId;
+
+    // Drop any beacon-buffered events from the previous session BEFORE installing the
+    // new identifiers / start time. Otherwise the page-leave beacon path could attribute
+    // old-session events to the new session id, and the gate (using the new start time)
+    // would compute the wrong elapsed duration. Skip on a redundant same-sessionId call —
+    // the buffer belongs to the *continuing* session and should ship via beacon as normal.
+    if (isSessionChange) {
+      this.rrwebEventManager?.dropPendingBeaconEvents();
+    }
+
     const deviceIdForReplayId = deviceId || this.getDeviceId();
     this.identifiers = new SessionIdentifiers({
       sessionId: sessionId,
       deviceId: deviceIdForReplayId,
     });
+
+    // Gate state and persisted start time only get reset on an actual session boundary.
+    // A redundant setSessionId(currentId) call would otherwise overwrite both the in-memory
+    // and stored start time with a fresh Date.now() — restarting the gate clock for what is
+    // supposed to be a continuing session.
+    if (isSessionChange) {
+      this.sessionStartTime = Date.now();
+      this.suppressedSendCount = 0;
+      this.hasEmittedGateDecision = false;
+      if (this.config?.apiKey) {
+        setReplayStartTime(this.config.apiKey, sessionId, this.sessionStartTime, this.loggerProvider);
+        if (previousSessionId !== undefined) {
+          removeReplayStartTime(this.config.apiKey, previousSessionId, this.loggerProvider);
+        }
+      }
+    }
 
     // If there is no previous session id, SDK is being initialized for the first time,
     // and config was just fetched in initialization, so no need to fetch it a second time
@@ -561,10 +643,53 @@ export class SessionReplay implements AmplitudeSessionReplay {
   sendEvents(sessionId?: string | number) {
     const sessionIdToSend = sessionId || this.identifiers?.sessionId;
     const deviceId = this.getDeviceId();
-    this.eventsManager &&
-      sessionIdToSend &&
-      deviceId &&
+    if (this.eventsManager && sessionIdToSend && deviceId) {
+      if (this.isBelowMinSessionDuration()) {
+        // Safe to dereference: isBelowMinSessionDuration() only returns true when both
+        // this.config and this.sessionStartTime are defined.
+        const startTime = this.sessionStartTime as number;
+        const minMs = (this.config as SessionReplayJoinedConfig).minSessionDurationMs as number;
+        this.loggerProvider.log(
+          `Session ${sessionIdToSend} not sent: duration ${Date.now() - startTime}ms is below minimum ${minMs}ms.`,
+        );
+        // We deliberately do NOT clear the beacon buffer here. Blur/visibility-change
+        // can call sendEvents() mid-session; if the session later crosses the threshold
+        // those buffered events are legitimately sendable via beacon on page exit.
+        // Cross-session leak is prevented in asyncSetSessionId, which drops the buffer
+        // at the session transition. The page-leave path also gates independently.
+        this.suppressedSendCount++;
+        return;
+      }
+      // On the first send-after-pass for the session, emit a custom rrweb event so the
+      // payload itself carries the gate verdict. Lets backend ingestion diff intended
+      // vs actual replay counts to spot start-time-tracking regressions.
+      //
+      // Gate on recording being active too: addCustomRRWebEvent is a no-op when
+      // recordCancelCallback/recordFunction aren't set yet (e.g. a blur-listener-fired
+      // sendEvents reaches us before _recordEvents() activates on a reloaded long-lived
+      // session). Tripping hasEmittedGateDecision unconditionally would lose the signal
+      // for that session's first real send.
+      if (
+        !this.hasEmittedGateDecision &&
+        this.config?.minSessionDurationMs !== undefined &&
+        this.recordCancelCallback &&
+        this.recordFunction
+      ) {
+        this.hasEmittedGateDecision = true;
+        const elapsedMs = this.sessionStartTime !== undefined ? Date.now() - this.sessionStartTime : undefined;
+        void this.addCustomRRWebEvent(
+          CustomRRwebEvent.REPLAY_GATE_DECISION,
+          {
+            sessionId: sessionIdToSend,
+            suppressedSendCount: this.suppressedSendCount,
+            elapsedMs,
+            minSessionDurationMs: this.config.minSessionDurationMs,
+          },
+          false,
+        );
+      }
       this.eventsManager.sendCurrentSequenceEvents({ sessionId: sessionIdToSend, deviceId });
+    }
   }
 
   async initialize(shouldSendStoredEvents = false) {
@@ -1051,6 +1176,11 @@ export class SessionReplay implements AmplitudeSessionReplay {
   }
 
   async flush(useRetry = false) {
+    // Intentionally not gated on min_session_duration_ms. flush() forwards payloads
+    // already queued in trackDestination, and every code path that queues into it —
+    // sendCurrentSequenceEvents, addEvent's batch-split path, sendStoredEvents reading
+    // sequencesToSend from IDB — has already passed the gate at the time of queuing.
+    // A duplicate gate here would be unreachable.
     return this.eventsManager?.flush(useRetry);
   }
 
