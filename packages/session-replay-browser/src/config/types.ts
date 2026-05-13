@@ -5,6 +5,7 @@ import { TargetingFlag } from '@amplitude/targeting';
 export interface SamplingConfig {
   sample_rate: number;
   capture_enabled: boolean;
+  min_session_duration_ms?: number;
 }
 
 export interface InteractionConfig {
@@ -243,6 +244,7 @@ export interface SessionReplayJoinedConfig extends SessionReplayLocalConfig {
   interactionConfig?: InteractionConfig;
   loggingConfig?: LoggingConfig;
   targetingConfig?: TargetingConfig;
+  minSessionDurationMs?: number;
 }
 
 export interface SessionReplayConfigs {

@@ -152,6 +152,10 @@ export class SessionReplayJoinedConfigGenerator {
       if (Object.prototype.hasOwnProperty.call(samplingConfig, 'sample_rate')) {
         config.sampleRate = samplingConfig.sample_rate;
       }
+
+      if (Object.prototype.hasOwnProperty.call(samplingConfig, 'min_session_duration_ms')) {
+        config.minSessionDurationMs = this.sanitizeMinSessionDurationMs(samplingConfig.min_session_duration_ms);
+      }
     } else {
       // If config API response was valid (ie 200), but no config returned, assume that
       // customer has not yet set up config, and use sample rate from SDK options,
@@ -243,7 +247,42 @@ export class SessionReplayJoinedConfigGenerator {
       remoteConfig: sessionReplayRemoteConfig,
     };
   }
+
+  /**
+   * Defensive bounds for the remote-supplied min_session_duration_ms. A misconfigured
+   * value (e.g. 30_000_000) would silently suppress every replay until the config is
+   * pushed again, so we clamp to a sane ceiling and warn on out-of-range inputs.
+   * Returns undefined for clearly invalid values so the gate falls back to disabled
+   * rather than carrying a NaN through downstream comparisons.
+   */
+  private sanitizeMinSessionDurationMs(raw: unknown): number | undefined {
+    if (typeof raw !== 'number' || !Number.isFinite(raw)) {
+      this.localConfig.loggerProvider.warn(
+        `min_session_duration_ms remote value is not a finite number (got ${String(raw)}); ignoring.`,
+      );
+      return undefined;
+    }
+    if (raw < 0) {
+      this.localConfig.loggerProvider.warn(`min_session_duration_ms remote value is negative (${raw}); ignoring.`);
+      return undefined;
+    }
+    if (raw > MAX_MIN_SESSION_DURATION_MS) {
+      this.localConfig.loggerProvider.warn(
+        `min_session_duration_ms remote value ${raw} exceeds ${MAX_MIN_SESSION_DURATION_MS}ms ceiling; clamping.`,
+      );
+      return MAX_MIN_SESSION_DURATION_MS;
+    }
+    return raw;
+  }
 }
+
+/**
+ * Upper bound for the remote-configured replay min duration. 60 seconds is well above
+ * any reasonable bounce threshold; values higher than this are almost certainly typos
+ * (e.g. seconds confused for milliseconds, or an extra zero) and would otherwise
+ * suppress every replay until the config is corrected.
+ */
+export const MAX_MIN_SESSION_DURATION_MS = 60_000;
 
 export const createSessionReplayJoinedConfigGenerator = async (apiKey: string, options: SessionReplayOptions) => {
   const localConfig = new SessionReplayLocalConfig(apiKey, options);

@@ -18,6 +18,11 @@ export type EventsManagerWithBeacon<Type extends EventType> = AmplitudeSessionRe
    * Used to populate a sendBeacon payload when the page is unloading.
    */
   getBeaconEvents(): string[];
+  /**
+   * Drops all pending beacon events. Used when the session is decided to be below
+   * the min duration threshold so its events don't leak into a later session's beacon.
+   */
+  dropPendingBeaconEvents(): void;
   trackDestination: SessionReplayTrackDestination;
 };
 
@@ -29,6 +34,7 @@ export const createEventsManager = async <Type extends EventType>({
   payloadBatcher,
   storeType,
   trackDestinationWorkerScript,
+  shouldSend,
 }: {
   config: SessionReplayJoinedConfig;
   type: Type;
@@ -37,6 +43,7 @@ export const createEventsManager = async <Type extends EventType>({
   payloadBatcher?: PayloadBatcher;
   storeType: StoreType;
   trackDestinationWorkerScript?: string;
+  shouldSend?: () => boolean;
 }): Promise<EventsManagerWithBeacon<Type>> => {
   const trackDestination = new SessionReplayTrackDestination({
     ...config,
@@ -177,6 +184,11 @@ export const createEventsManager = async <Type extends EventType>({
 
   const sendCurrentSequenceEvents = ({ sessionId, deviceId }: { sessionId: number; deviceId: string }) => {
     lastKnownDeviceId = deviceId;
+    // Evaluate shouldSend synchronously before the async store read. asyncSetSessionId
+    // updates sessionStartTime immediately after calling sendEvents(), so by the time
+    // storeCurrentSequence resolves the start time would reflect the new session and
+    // the elapsed check would compute ~0ms, silently dropping the previous session's events.
+    if (shouldSend && !shouldSend()) return;
     // Snapshot the absolute end-index before the async store read so that any events
     // pushed after this point are NOT considered sent and remain in the beacon buffer.
     const snapshotAbsIdx = beaconWindowStart + beaconBuffer.length;
@@ -225,6 +237,11 @@ export const createEventsManager = async <Type extends EventType>({
     deviceId: string;
   }) => {
     lastKnownDeviceId = deviceId;
+    // Capture shouldSend synchronously before the async store write, for the same
+    // reason as sendCurrentSequenceEvents: asyncSetSessionId updates sessionStartTime
+    // synchronously, so evaluating inside the .then() would use the new session's
+    // start time and compute ~0ms elapsed, silently dropping a valid batch.
+    const canSend = !shouldSend || shouldSend();
     // Record the absolute index of this event in the beacon buffer before the async
     // store operation. If a batch split occurs, we advance the window up to (but not
     // including) this event so that it starts the next pending window.
@@ -234,6 +251,18 @@ export const createEventsManager = async <Type extends EventType>({
       .addEventToCurrentSequence(sessionId, event.data)
       .then((sequenceToSend) => {
         if (sequenceToSend) {
+          if (!canSend) {
+            // The split atomically moved events to sequencesToSend; without cleanup
+            // they would be unconditionally replayed on next page load via
+            // sendStoredEvents, bypassing the min session duration gate. The split
+            // batch must also be dropped from the beacon buffer so it isn't sent
+            // via sendBeacon on page unload (potentially attributed to a later session).
+            store.cleanUpSessionEventsStore(sequenceToSend.sessionId, sequenceToSend.sequenceId).catch((e) => {
+              config.loggerProvider.warn('Failed to clean up dropped session replay sequence:', e);
+            });
+            advanceBeaconWindow(absIdx);
+            return;
+          }
           // Events before absIdx belong to the split batch being sent; advance window.
           advanceBeaconWindow(absIdx);
           sendEventsList({
@@ -255,12 +284,17 @@ export const createEventsManager = async <Type extends EventType>({
 
   const getBeaconEvents = (): string[] => [...beaconBuffer];
 
+  const dropPendingBeaconEvents = () => {
+    advanceBeaconWindow(beaconWindowStart + beaconBuffer.length);
+  };
+
   return {
     sendCurrentSequenceEvents,
     addEvent,
     sendStoredEvents,
     flush,
     getBeaconEvents,
+    dropPendingBeaconEvents,
     trackDestination,
   };
 };
