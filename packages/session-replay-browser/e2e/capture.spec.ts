@@ -895,9 +895,12 @@ test.describe('attribute masking', () => {
     expect(placeholderValue).toBe('Enter your email');
   });
 
-  test('masks aria-label when listed in maskAttributes', async ({ page }) => {
-    // aria-label="Submit form" → "****** ****"
-    await mockRemoteConfig(page, remoteConfigWithPrivacy({ maskAttributes: ['aria-label'] }));
+  test('masks aria-label on non-form element under conservative', async ({ page }) => {
+    // Under conservative, aria-label="Submit form" on a <button> is masked → "****** ****"
+    await mockRemoteConfig(
+      page,
+      remoteConfigWithPrivacy({ defaultMaskLevel: 'conservative', maskAttributes: ['aria-label'] }),
+    );
     const flushAndGetEvents = await mockTrackApiAndCaptureEvents(page);
 
     await page.goto(buildUrl('/session-replay-browser/sr-capture-test.html', { sessionId: TEST_SESSION_ID }));
@@ -910,6 +913,27 @@ test.describe('attribute masking', () => {
 
     const ariaLabelValue = findAttrInNodeTree((snapshot!.data as any).node, 'test-button', 'aria-label');
     expect(ariaLabelValue).toBe('****** ****');
+  });
+
+  test('does NOT mask aria-label on non-form element under medium', async ({ page }) => {
+    // Per public docs, medium masks form fields but captures other text as-is.
+    // A <button>'s aria-label is treated as text → not masked under medium.
+    await mockRemoteConfig(
+      page,
+      remoteConfigWithPrivacy({ defaultMaskLevel: 'medium', maskAttributes: ['aria-label'] }),
+    );
+    const flushAndGetEvents = await mockTrackApiAndCaptureEvents(page);
+
+    await page.goto(buildUrl('/session-replay-browser/sr-capture-test.html', { sessionId: TEST_SESSION_ID }));
+    await waitForReady(page);
+    await page.waitForTimeout(500);
+
+    const events = await flushAndGetEvents();
+    const snapshot = events.find((e) => e.type === 2);
+    expect(snapshot).toBeDefined();
+
+    const ariaLabelValue = findAttrInNodeTree((snapshot!.data as any).node, 'test-button', 'aria-label');
+    expect(ariaLabelValue).toBe('Submit form');
   });
 
   test('does not mask style attribute even when listed in maskAttributes', async ({ page }) => {
