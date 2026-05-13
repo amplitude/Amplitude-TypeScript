@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.42.4-sr-3176-rc4.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.42.3...@amplitude/session-replay-browser@1.42.4-sr-3176-rc4.0) (2026-05-13)
+
+
+### Bug Fixes
+
+* **session-replay-browser:** light mask level should leave text visible (SR-3176 follow-up) ([a087c37](https://github.com/amplitude/Amplitude-TypeScript/commit/a087c37691ace206a57d6ed41a3a0fa8e5411c45)), closes [#1690](https://github.com/amplitude/Amplitude-TypeScript/issues/1690) [#1679](https://github.com/amplitude/Amplitude-TypeScript/issues/1679) [pre-#1679](https://github.com/pre-/issues/1679)
+* **session-replay-browser:** medium mask level should leave text visible ([5ae2a00](https://github.com/amplitude/Amplitude-TypeScript/commit/5ae2a008cd09fc47325823c0c5071cc74e5a4f50))
+
+
+
+
+
 ## [1.42.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.42.2...@amplitude/session-replay-browser@1.42.3) (2026-05-11)
 
 
