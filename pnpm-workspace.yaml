@@ -1,6 +1,7 @@
 packages:
   - packages/*
   - apps/*
+  - examples/react-native/app
 
 blockExoticSubdeps: true
 

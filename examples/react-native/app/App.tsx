@@ -24,7 +24,6 @@ import {
   init,
   track,
 } from '@amplitude/analytics-react-native';
-import {LogLevel} from '@amplitude/analytics-types';
 
 import {
   Colors,
@@ -38,9 +37,10 @@ type SectionProps = PropsWithChildren<{
   title: string;
 }>;
 
-init('API_KEY', 'example_user_id', {
-    logLevel: LogLevel.Verbose,
-});
+// Module-scope init mirrors the reproduce pattern from issue #181 — the SDK's
+// full module graph loads before any component renders, so any top-level
+// crash in the SDK (e.g. CJS circular-dep regression) surfaces on app launch.
+init('YOUR_API_KEY');
 
 function App(): React.JSX.Element {
   const isDarkMode = useColorScheme() === 'dark';
