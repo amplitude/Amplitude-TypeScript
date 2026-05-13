@@ -639,11 +639,9 @@ test.describe('privacy — urlMaskLevels (page-level masking)', () => {
     expect(isMaskedText(getTextContent(plainEl!))).toBe(false);
   });
 
-  // urlMaskLevels medium rule masks text (matches the documented MaskLevel contract:
-  // medium = "All inputs and all texts"). When the URL rule triggers
-  // getMaskTextSelectors() to return '*', rrweb routes text through maskTextFn and
-  // isMaskedForLevel(text, medium) returns true → text masked.
-  test('urlMaskLevels medium rule masks plain body text', async ({ page }) => {
+  // urlMaskLevels medium rule leaves plain text visible (per public docs: medium
+  // "masks all form fields and text inputs. Amplitude captures all other text as-is").
+  test('urlMaskLevels medium rule leaves plain body text visible', async ({ page }) => {
     await mockRemoteConfig(
       page,
       remoteConfigWithPrivacy({
@@ -663,7 +661,13 @@ test.describe('privacy — urlMaskLevels (page-level masking)', () => {
 
     const plainEl = findById(root!, 'plain-text');
     expect(plainEl).toBeDefined();
-    expect(isMaskedText(getTextContent(plainEl!))).toBe(true);
+    expect(getTextContent(plainEl!)).toContain('Hello visible world');
+    expect(isMaskedText(getTextContent(plainEl!))).toBe(false);
+
+    // Under medium, inputs are still masked
+    const textInput = findById(root!, 'text-input');
+    expect(textInput).toBeDefined();
+    expect(isMaskedText(String(textInput!.attributes?.value ?? ''))).toBe(true);
   });
 
   test('first-match-wins: second rule (light) applies when first rule does not match', async ({ page }) => {

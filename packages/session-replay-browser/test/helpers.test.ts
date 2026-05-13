@@ -165,10 +165,10 @@ describe('SessionReplayPlugin helpers', () => {
   });
 
   describe('maskFn -- text (medium level)', () => {
-    test('should mask text nodes at medium level', () => {
+    test('should NOT mask text nodes at medium level (medium masks inputs only)', () => {
       const htmlElement = document.createElement('div');
       const result = maskFn('text', { defaultMaskLevel: 'medium' })('some text', htmlElement);
-      expect(result).toEqual('**** ****');
+      expect(result).toEqual('some text');
     });
 
     test('should mask inputs at medium level', () => {
@@ -177,14 +177,14 @@ describe('SessionReplayPlugin helpers', () => {
       expect(result).toEqual('**** ****');
     });
 
-    test('maskFn with urlMaskLevels medium on matching URL masks text', () => {
+    test('maskFn with urlMaskLevels medium on matching URL does NOT mask text', () => {
       const config: PrivacyConfig = {
         defaultMaskLevel: 'light',
         urlMaskLevels: [{ match: 'https://example.com/docs/*', maskLevel: 'medium' }],
       };
       const element = document.createElement('div');
       const fn = maskFn('text', config, () => 'https://example.com/docs/intro');
-      expect(fn('some text', element)).toEqual('**** ****');
+      expect(fn('some text', element)).toEqual('some text');
     });
 
     test('maskFn with urlMaskLevels medium on non-matching URL falls through to defaultMaskLevel', () => {
@@ -348,13 +348,14 @@ describe('SessionReplayPlugin helpers', () => {
       expect(fn('placeholder', 'Enter name', inputElement)).toEqual('***** ****');
     });
 
-    test('masks aria-label on non-form elements (div) at medium level', () => {
+    test('does NOT mask aria-label on non-form elements (div) at medium level', () => {
+      // medium masks form fields only; a div's aria-label is treated as text and left visible.
       const divElement = document.createElement('div');
       const fn = maskAttributeFn({
         defaultMaskLevel: 'medium',
         maskAttributes: ['aria-label'],
       });
-      expect(fn('aria-label', 'some label', divElement)).toEqual('**** *****');
+      expect(fn('aria-label', 'some label', divElement)).toEqual('some label');
     });
   });
 
