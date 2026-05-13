@@ -31,7 +31,7 @@ jobs:
           cache: 'pnpm'
 
       - name: Setup Ruby for CocoaPods
-        uses: ruby/setup-ruby@36e80287a96bfe23df88aa61afa28e7f9e0eb6f4 # v1
+        uses: ruby/setup-ruby@6aaa311d81eba98ae12eaffbcb63296ace0efcde # v1.307.0
         with:
           ruby-version: '3.2'
           bundler-cache: true
