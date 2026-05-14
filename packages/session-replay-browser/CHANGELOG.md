@@ -3,6 +3,22 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.43.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.42.3...@amplitude/session-replay-browser@1.43.0) (2026-05-14)
+
+
+### Bug Fixes
+
+* **session-replay-browser:** light mask level leaves text visible under urlMaskLevels (SR-3176 follow-up) ([#1752](https://github.com/amplitude/Amplitude-TypeScript/issues/1752)) ([5d449c9](https://github.com/amplitude/Amplitude-TypeScript/commit/5d449c9f6f58e33da31b9df6a9fdea28deefb81c))
+
+
+### Features
+
+* **session-replay:** enforce min_session_duration_ms from remote config ([#1725](https://github.com/amplitude/Amplitude-TypeScript/issues/1725)) ([317bbfd](https://github.com/amplitude/Amplitude-TypeScript/commit/317bbfdf2fff3bf1321ea3f6dac34dfd328cc09d))
+
+
+
+
+
 ## [1.42.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.42.2...@amplitude/session-replay-browser@1.42.3) (2026-05-11)
 
 

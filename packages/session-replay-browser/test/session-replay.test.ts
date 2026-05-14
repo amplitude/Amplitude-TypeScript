@@ -3551,12 +3551,12 @@ describe('SessionReplay', () => {
       inputElement.type = 'text';
 
       // currentPageUrl starts as '' (jsdom has no real location) → light level → not conservative
-      // maskTextFn: light masks text nodes
-      expect(maskTextFn('hello', divElement)).toEqual('*****');
+      // maskTextFn: light does NOT mask text nodes
+      expect(maskTextFn('hello', divElement)).toEqual('hello');
       // maskInputFn: light does not mask plain text inputs (non-sensitive input type)
       expect(maskInputFn('hello', inputElement)).toEqual('hello');
-      // maskAttributeFn: attribute in allowlist, light level → masked (light masks text nodes)
-      expect(attrFn('placeholder', 'Enter name', inputElement)).toEqual('***** ****');
+      // maskAttributeFn: attribute in allowlist, light level → not masked (light leaves text visible)
+      expect(attrFn('placeholder', 'Enter name', inputElement)).toEqual('Enter name');
 
       // Now simulate navigation to a conservative URL
       (sessionReplay as any).currentPageUrl = 'https://example.com/admin/dashboard';

@@ -51,7 +51,7 @@ export interface SessionReplayRemoteConfigAPIResponse {
 
 export type MaskLevel =
   | 'light' // only mask a subset of inputs that's deemed sensitive - password, credit card, telephone #, email. These are information we never want to capture.
-  | 'medium' // mask all inputs
+  | 'medium' // mask all form fields (inputs); page text is captured as-is
   | 'conservative'; // mask all inputs and all texts
 
 export const DEFAULT_MASK_LEVEL = 'medium';
