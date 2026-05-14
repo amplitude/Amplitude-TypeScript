@@ -66,6 +66,7 @@ jobs:
       - name: Build iOS app (Release, simulator)
         working-directory: ${{ env.APP_DIR }}
         run: |
+          set -o pipefail
           xcodebuild \
             -workspace ios/app.xcworkspace \
             -scheme app \
@@ -76,7 +77,7 @@ jobs:
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO \
-            | xcpretty || true
+            | xcpretty
           test -d build/Build/Products/Release-iphonesimulator/app.app
 
       - name: Boot iOS simulator
