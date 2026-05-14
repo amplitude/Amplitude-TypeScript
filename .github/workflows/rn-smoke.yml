@@ -61,7 +61,20 @@ jobs:
 
       - name: Pod install
         working-directory: ${{ env.APP_DIR }}/ios
-        run: bundle exec pod install
+        # Even with LANG/LC_ALL pinned, cocoapods 1.14.3 + pnpm intermittently
+        # raises `ArgumentError - pathname contains null byte` in
+        # Pathname#realdirpath (cocoapods/cocoapods#12866). Retry on failure
+        # before giving up — failures so far have always passed on the next try.
+        run: |
+          for attempt in 1 2 3; do
+            if bundle exec pod install; then
+              exit 0
+            fi
+            echo "::warning::pod install attempt $attempt failed, retrying..."
+            sleep 5
+          done
+          echo "::error::pod install failed 3 times"
+          exit 1
 
       - name: Build iOS app (Release, simulator)
         working-directory: ${{ env.APP_DIR }}
