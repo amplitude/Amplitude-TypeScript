@@ -16,6 +16,12 @@ jobs:
       APP_DIR: examples/react-native/app
       BUNDLE_ID: org.reactjs.native.example.app
       SIM_NAME: iPhone 15
+      # CocoaPods 1.14.3 hits `ArgumentError - pathname contains null byte` in
+      # Pathname#realdirpath on pnpm monorepos when the locale is not UTF-8
+      # (see https://github.com/CocoaPods/CocoaPods/issues/12866). macos-14
+      # runners default to an unset/C locale; pin it here.
+      LANG: en_US.UTF-8
+      LC_ALL: en_US.UTF-8
 
     steps:
       - name: Check out git repository
