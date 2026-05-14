@@ -65,8 +65,10 @@ jobs:
 
       - name: Build iOS app (Release, simulator)
         working-directory: ${{ env.APP_DIR }}
+        # Raw xcodebuild output is noisy; xcpretty would be nicer but isn't
+        # installed by default on macos-14 runners, and adding it as a Gemfile
+        # dependency for cosmetics isn't worth the install time.
         run: |
-          set -o pipefail
           xcodebuild \
             -workspace ios/app.xcworkspace \
             -scheme app \
@@ -76,8 +78,7 @@ jobs:
             -derivedDataPath build \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGNING_ALLOWED=NO \
-            | xcpretty
+            CODE_SIGNING_ALLOWED=NO
           test -d build/Build/Products/Release-iphonesimulator/app.app
 
       - name: Boot iOS simulator
