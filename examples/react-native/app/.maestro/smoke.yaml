@@ -1,0 +1,7 @@
+appId: org.reactjs.native.example.app
+---
+- launchApp
+- extendedWaitUntil:
+    visible:
+      text: "Test Amplitude App"
+    timeout: 15000

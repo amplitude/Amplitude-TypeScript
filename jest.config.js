@@ -18,5 +18,5 @@ module.exports = {
   },
   verbose: true,
   modulePathIgnorePatterns: ['<rootDir>/lib'],
-  testPathIgnorePatterns: ['/e2e/']
+  testPathIgnorePatterns: ['/e2e/', '/examples/react-native/']
 };
