@@ -44,6 +44,11 @@ jobs:
       - name: Build all packages
         run: pnpm build
 
+      - uses: daniel-statsig/size-limit-action@710d41ebc34634c011e8a91fe165d6ff49536a74 # v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+
       - name: Build docs
         run: pnpm docs:check
 
