@@ -10,7 +10,9 @@ jest.mock('@amplitude/analytics-react-native', () => ({
   init: jest.fn(),
   track: jest.fn(() => ({promise: Promise.resolve({message: 'mocked'})})),
   identify: jest.fn(() => ({promise: Promise.resolve({message: 'mocked'})})),
-  Identify: jest.fn().mockImplementation(() => ({set: jest.fn().mockReturnThis()})),
+  Identify: jest
+    .fn()
+    .mockImplementation(() => ({set: jest.fn().mockReturnThis()})),
 }));
 
 import 'react-native';
