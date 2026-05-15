@@ -72,13 +72,31 @@ jobs:
         run: |
           git fetch origin main:main --depth=1 || git fetch origin main --depth=1
 
+      - name: Restore Nx cache
+        uses: actions/cache/restore@d4323d4df104b026a6aa633fdb11d772146be0bf # v4
+        with:
+          path: .nx/cache
+          key: nx-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'nx.json') }}
+          restore-keys: |
+            nx-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'nx.json') }}-
+            nx-${{ runner.os }}-
+
       - uses: daniel-statsig/size-limit-action@710d41ebc34634c011e8a91fe165d6ff49536a74 # v1
         # TEMPORARILY ALLOW FAILURE UNTIL size-limit is added to 'main' branch
         continue-on-error: true
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           package_manager: pnpm
-          build_script: build:nx-affected
+          build_script: build:nx
+
+      - name: Save Nx cache
+        uses: actions/cache/save@d4323d4df104b026a6aa633fdb11d772146be0bf # v4
+        with:
+          path: .nx/cache
+          key: nx-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'nx.json') }}
+          save-keys: |
+            nx-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'nx.json') }}-
+            nx-${{ runner.os }}-
 
   build:
     name: Build

@@ -572,6 +572,7 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
       this.q.push(this.extendSession.bind(this));
       return;
     }
+    console.log('HELLO WORLD!!!!');
     this.config.lastEventTime = Date.now();
   }
 
