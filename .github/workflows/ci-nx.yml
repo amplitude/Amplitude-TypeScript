@@ -73,6 +73,8 @@ jobs:
           git fetch origin main:main --depth=1 || git fetch origin main --depth=1
 
       - uses: daniel-statsig/size-limit-action@710d41ebc34634c011e8a91fe165d6ff49536a74 # v1
+        # TEMPORARILY ALLOW FAILURE UNTIL size-limit is added to 'main' branch
+        continue-on-error: true
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           package_manager: pnpm
