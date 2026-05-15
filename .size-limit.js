@@ -22,6 +22,4 @@ const limits = [
   },
 ]
 
-module.exports = limits.filter((entry) =>
-  fs.existsSync(path.resolve(__dirname, entry.path)),
-)
+module.exports = limits;
