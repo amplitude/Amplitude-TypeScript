@@ -32,7 +32,7 @@ export { runQueuedFunctions } from './utils/snippet-helper';
 export { Revenue, Identify } from '@amplitude/analytics-core';
 
 export { trackVideo, type VideoCaptureOptions } from './video-capture/video-capture';
-
+console.log('HELLO WORLD!!!!');
 // Export types to maintain backward compatibility with `analytics-types`.
 // In the next major version, only export customer-facing types to reduce the public API surface.
 export * as Types from './types';
