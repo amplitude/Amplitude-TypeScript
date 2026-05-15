@@ -25,6 +25,9 @@ jobs:
           node-version: 24
           cache: 'pnpm'
 
+      - name: Install project dependencies
+        run: pnpm install --frozen-lockfile
+
       - name: Restore Nx cache
         uses: actions/cache/restore@d4323d4df104b026a6aa633fdb11d772146be0bf # v4
         with:
