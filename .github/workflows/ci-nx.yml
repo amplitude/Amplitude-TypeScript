@@ -50,9 +50,6 @@ jobs:
   check-size-limits:
     name: Check Size Limits
     runs-on: ubuntu-latest
-    env:
-      NX_BASE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || 'origin/main~1' }}
-      NX_HEAD: ${{ github.sha }}
     steps:
       - name: Check out git repository
         uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3
