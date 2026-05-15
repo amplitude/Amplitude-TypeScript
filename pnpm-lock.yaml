@@ -33,7 +33,7 @@ importers:
       '@playwright/test':
         specifier: 1.55.0
         version: 1.55.0
-      '@size-limit/preset-big-lib':
+      '@size-limit/preset-app':
         specifier: ^12.1.0
         version: 12.1.0(size-limit@12.1.0)
       '@types/jest':
@@ -3546,19 +3546,13 @@ packages:
     peerDependencies:
       size-limit: 12.1.0
 
-  '@size-limit/preset-big-lib@12.1.0':
-    resolution: {integrity: sha512-e7Bny+U93Zkcr3XjMyc08GEkTuTKvmFOg44SbyqwhSdJq33jZlZkb4BMNjRoe2SP9NLlhnvqRVsAmL2iBrCUnA==}
+  '@size-limit/preset-app@12.1.0':
+    resolution: {integrity: sha512-pGGOxzDMM6MUXCzTwUjIcgex9RYbGdvQYni1rUtsZ1oojm7JvOSbBMiJPe9PhpmDq/aMsVzjP1oN0guq1RptVw==}
     peerDependencies:
       size-limit: 12.1.0
 
   '@size-limit/time@12.1.0':
     resolution: {integrity: sha512-ekYPeZcvkPSLsHtqNmz7F5jx3R0HV7CpY7kGasBW2yKR3NrD0JWMAcswS9OCR8OzK9hyLACRTNYTpLI9PXLczQ==}
-    engines: {node: ^20.0.0 || ^22.0.0 || >=24.0.0}
-    peerDependencies:
-      size-limit: 12.1.0
-
-  '@size-limit/webpack@12.1.0':
-    resolution: {integrity: sha512-3v/evOHskR0eVD6hpRO9jFpRPkpJb+GhqKJGxrqf1j1ZeoYu9A8v8iT3+U4TJOXTZbCbJ+Q6lWRBPFEcLZbNuw==}
     engines: {node: ^20.0.0 || ^22.0.0 || >=24.0.0}
     peerDependencies:
       size-limit: 12.1.0
@@ -7790,19 +7784,9 @@ packages:
     resolution: {integrity: sha512-WWdIxpyjEn+FhQJQQv9aQAYlHoNVdzIzUySNV1gHUPDSdZJ3yZn7pAAbQcV7B56Mvu881q9FZV+0Vx2xC44VWA==}
     engines: {node: ^18.17.0 || >=20.5.0}
 
-  nanoid@3.3.11:
-    resolution: {integrity: sha512-N8SpfPUnUp1bK+PMYW8qSWdl9U+wwNWI4QKxOYDy9JAro3WMX7p2OeVRF9v+347pnakNevPmiHhNmZ2HbFA76w==}
-    engines: {node: ^10 || ^12 || ^13.7 || ^14 || >=15.0.1}
-    hasBin: true
-
   nanoid@3.3.12:
     resolution: {integrity: sha512-ZB9RH/39qpq5Vu6Y+NmUaFhQR6pp+M2Xt76XBnEwDaGcVAqhlvxrl3B2bKS5D3NH3QR76v3aSrKaF/Kiy7lEtQ==}
     engines: {node: ^10 || ^12 || ^13.7 || ^14 || >=15.0.1}
-    hasBin: true
-
-  nanoid@5.1.11:
-    resolution: {integrity: sha512-v+KEsUv2ps74PaSKv0gHTxTCgMXOIfBEbaqa6w6ISIGC7ZsvHN4N9oJ8d4cmf0n5oTzQz2SLmThbQWhjd/8eKg==}
-    engines: {node: ^18 || >=20}
     hasBin: true
 
   nanoid@5.1.5:
@@ -13887,23 +13871,18 @@ snapshots:
     dependencies:
       size-limit: 12.1.0
 
-  '@size-limit/preset-big-lib@12.1.0(size-limit@12.1.0)':
+  '@size-limit/preset-app@12.1.0(size-limit@12.1.0)':
     dependencies:
       '@size-limit/file': 12.1.0(size-limit@12.1.0)
       '@size-limit/time': 12.1.0(size-limit@12.1.0)
-      '@size-limit/webpack': 12.1.0(size-limit@12.1.0)
       size-limit: 12.1.0
     transitivePeerDependencies:
-      - '@swc/core'
       - bare-abort-controller
       - bare-buffer
       - bufferutil
-      - esbuild
       - react-native-b4a
       - supports-color
-      - uglify-js
       - utf-8-validate
-      - webpack-cli
 
   '@size-limit/time@12.1.0(size-limit@12.1.0)':
     dependencies:
@@ -13916,17 +13895,6 @@ snapshots:
       - react-native-b4a
       - supports-color
       - utf-8-validate
-
-  '@size-limit/webpack@12.1.0(size-limit@12.1.0)':
-    dependencies:
-      nanoid: 5.1.11
-      size-limit: 12.1.0
-      webpack: 5.106.2
-    transitivePeerDependencies:
-      - '@swc/core'
-      - esbuild
-      - uglify-js
-      - webpack-cli
 
   '@smithy/abort-controller@4.2.5':
     dependencies:
@@ -19619,11 +19587,7 @@ snapshots:
 
   mute-stream@2.0.0: {}
 
-  nanoid@3.3.11: {}
-
   nanoid@3.3.12: {}
-
-  nanoid@5.1.11: {}
 
   nanoid@5.1.5: {}
 
@@ -20373,7 +20337,7 @@ snapshots:
 
   postcss@8.5.8:
     dependencies:
-      nanoid: 3.3.11
+      nanoid: 3.3.12
       picocolors: 1.1.1
       source-map-js: 1.2.1
 
