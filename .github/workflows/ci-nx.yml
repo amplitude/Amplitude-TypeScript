@@ -62,15 +62,11 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
 
-      - name: Setup Node.js 20
+      - name: Setup Node.js 24
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
-          node-version: 20
+          node-version: 24
           cache: 'pnpm'
-
-      - name: Set up NX base for affected commands
-        run: |
-          git fetch origin main:main --depth=1 || git fetch origin main --depth=1
 
       - name: Restore Nx cache
         uses: actions/cache/restore@d4323d4df104b026a6aa633fdb11d772146be0bf # v4
@@ -82,7 +78,7 @@ jobs:
             nx-${{ runner.os }}-
 
       - uses: daniel-statsig/size-limit-action@710d41ebc34634c011e8a91fe165d6ff49536a74 # v1
-        # TEMPORARILY ALLOW FAILURE UNTIL size-limit is added to 'main' branch
+        # TODO: TEMPORARILY ALLOW FAILURE UNTIL size-limit is added to 'main' branch
         continue-on-error: true
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
