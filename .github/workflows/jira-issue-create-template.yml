@@ -37,6 +37,8 @@ on:
 
 jobs:
   build:
+    # TODO: once we've migrated to Linear, we can remove this
+    if: false
     runs-on: ubuntu-latest
     environment: Jira
     name: SDK Bot Jira Issue Creation
