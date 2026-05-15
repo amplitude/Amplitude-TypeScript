@@ -56,17 +56,10 @@ jobs:
       
       - name: Setup pnpm
         uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
-
-      - name: Install project dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Build all packages
-        run: pnpm build
       
       - uses: daniel-statsig/size-limit-action@710d41ebc34634c011e8a91fe165d6ff49536a74 # v1
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          script: pnpm exec size-limit --json
           package_manager: pnpm
 
   build:
