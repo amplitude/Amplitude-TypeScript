@@ -115,3 +115,8 @@ jobs:
           GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} npm run deploy:publish -- from-git -y --pre-dist-tag v1-beta
         env:
           S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
+
+      # Report bundle size to Amplitude
+      - name: Report bundle size to Amplitude
+        run: |
+          node ./.scripts/report-bundle-size.js
