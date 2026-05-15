@@ -1,4 +1,7 @@
-module.exports = [
+const fs = require('fs')
+const path = require('path')
+
+const limits = [
   {
     // analytics-browser bundle
     path: './packages/analytics-browser/lib/scripts/amplitude-min.js.gz',
@@ -18,3 +21,7 @@ module.exports = [
     brotli: false,
   },
 ]
+
+module.exports = limits.filter((entry) =>
+  fs.existsSync(path.resolve(__dirname, entry.path)),
+)
