@@ -254,4 +254,4 @@ jobs:
         env:
           AMPLITUDE_API_KEY: ${{ secrets.AMPLITUDE_API_KEY }}
         run: |
-          node ./.scripts/report-bundle-size.js
+          node ./scripts/report-bundle-size.js
