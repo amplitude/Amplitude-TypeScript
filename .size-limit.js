@@ -11,6 +11,7 @@ const limits = [
     // session-replay standalone bundle
     packageJsonPath: './packages/session-replay-browser/package.json',
     path: `./packages/session-replay-browser/lib/scripts/session-replay-browser-min.js.gz`,
+    name: 'session-replay-browser.min.js.gz',
     limit: '150kb',
     brotli: false,
   },
@@ -22,6 +23,6 @@ const limits = [
     limit: '225kb',
     brotli: false,
   },
-]
+];
 
 module.exports = limits;

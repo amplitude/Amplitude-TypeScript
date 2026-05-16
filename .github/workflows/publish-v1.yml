@@ -119,4 +119,6 @@ jobs:
       # Report bundle size to Amplitude
       - name: Report bundle size to Amplitude
         run: |
-          node ./.scripts/report-bundle-size.js
+          node ./scripts/report-bundle-size.js
+        env:
+          AMPLITUDE_API_KEY: ${{ secrets.AMPLITUDE_API_KEY }}

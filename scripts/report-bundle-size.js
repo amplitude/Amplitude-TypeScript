@@ -18,7 +18,7 @@ function getBundleSizeEvent(filepath, size, filename, packageJsonPath) {
   };
 }
 
-const events = [];  
+const events = [];
 for (const limit of sizeLimits) {
   const size = fs.statSync(limit.path).size;
   events.push(getBundleSizeEvent(limit.path, size, limit.name, limit.packageJsonPath));
@@ -26,17 +26,22 @@ for (const limit of sizeLimits) {
 
 fetch('https://api.amplitude.com/2/httpapi', {
   method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+  },
   body: JSON.stringify({
     api_key: process.env.AMPLITUDE_API_KEY,
     events: events,
   }),
-}).then(response => {
-  console.log(response.status);
-  response.json().then(data => {
-    console.log(data);
-    process.exit(response.status >= 400 ? 1 : 0);
+})
+  .then((response) => {
+    console.log(response.status);
+    response.json().then((data) => {
+      console.log(data);
+      process.exit(response.status >= 400 ? 1 : 0);
+    });
+  })
+  .catch((error) => {
+    console.error('Error reporting bundle size to Amplitude:', error);
+    process.exit(1);
   });
-}).catch(error => {
-  console.error('Error reporting bundle size to Amplitude:', error);
-  process.exit(1);
-});
