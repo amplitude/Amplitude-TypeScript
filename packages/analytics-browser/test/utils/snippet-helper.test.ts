@@ -50,12 +50,7 @@ describe('snippet-helper', () => {
 
     test('should return instance when queue is undefined', () => {
       const instance = { init: jest.fn() };
-      expect(
-        SnippetHelper.convertProxyObjectToRealObject(
-          instance,
-          undefined as unknown as Parameters<typeof SnippetHelper.convertProxyObjectToRealObject>[1],
-        ),
-      ).toBe(instance);
+      expect(SnippetHelper.convertProxyObjectToRealObject(instance, undefined)).toBe(instance);
       expect(instance.init).not.toHaveBeenCalled();
     });
   });
