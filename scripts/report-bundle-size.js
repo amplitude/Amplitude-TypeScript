@@ -26,6 +26,9 @@ for (const limit of sizeLimits) {
 
 fetch('https://api.amplitude.com/2/httpapi', {
   method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+  },
   body: JSON.stringify({
     api_key: process.env.AMPLITUDE_API_KEY,
     events: events,
