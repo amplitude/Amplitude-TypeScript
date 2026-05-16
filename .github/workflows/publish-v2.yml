@@ -248,3 +248,8 @@ jobs:
           DRY_RUN: true
         run: |
           pnpm deploy:publish:dry-run
+
+      # Report bundle size to Amplitude
+      - name: Report bundle size to Amplitude
+        run: |
+          node ./.scripts/report-bundle-size.js
