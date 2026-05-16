@@ -35,7 +35,7 @@ fetch('https://api.amplitude.com/2/httpapi', {
   }),
 }).then(response => {
   console.log(response.status);
-  response.json().then(data => {
+  return response.json().then(data => {
     console.log(data);
     process.exit(response.status >= 400 ? 1 : 0);
   });
