@@ -49,7 +49,7 @@ function resolveCurrentScriptUrl(): string | undefined {
     GlobalScope.amplitude._q = [];
     runQueuedFunctions(amplitude, queue);
 
-    const instanceNames = Object.keys(GlobalScope.amplitude._iq) || [];
+    const instanceNames = Object.keys(GlobalScope.amplitude._iq || {});
     for (let i = 0; i < instanceNames.length; i++) {
       const instanceName = instanceNames[i];
       const instance = Object.assign(GlobalScope.amplitude._iq[instanceName], createNamedInstance(instanceName));

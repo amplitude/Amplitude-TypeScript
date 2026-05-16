@@ -32,7 +32,7 @@ import { runQueuedFunctions } from './utils/snippet-helper';
     GlobalScope.amplitudeGTM._q = [];
     runQueuedFunctions(amplitudeGTM, queue);
 
-    const instanceNames = Object.keys(GlobalScope.amplitudeGTM._iq) || [];
+    const instanceNames = Object.keys(GlobalScope.amplitudeGTM._iq || {});
     for (let i = 0; i < instanceNames.length; i++) {
       const instanceName = instanceNames[i];
       const instance = Object.assign(GlobalScope.amplitudeGTM._iq[instanceName], createNamedInstance(instanceName));

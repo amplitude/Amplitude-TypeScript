@@ -26,6 +26,9 @@ export const runQueuedFunctions = (instance: object, queue: QueueProxy) => {
  * Used to convert proxied Identify and Revenue objects.
  */
 export const convertProxyObjectToRealObject = <T>(instance: T, queue: QueueProxy): T => {
+  if (!queue) {
+    return instance;
+  }
   for (let i = 0; i < queue.length; i++) {
     const { name, args, resolve } = queue[i];
     const fn = instance && instance[name as keyof T];
