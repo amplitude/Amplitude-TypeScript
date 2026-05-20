@@ -543,6 +543,25 @@ describe('SessionReplay', () => {
       expect(sessionReplay.loggerProvider).toBeDefined();
     });
 
+    test('forwards flushIntervalConfig to the replay events manager', async () => {
+      const createEventsManagerSpy = jest.spyOn(SessionReplayEventsManager, 'createEventsManager');
+      await sessionReplay.init(apiKey, {
+        ...mockOptions,
+        flushIntervalConfig: { minIntervalMs: 2500, maxIntervalMs: 30_000 },
+      }).promise;
+      const replayCall = createEventsManagerSpy.mock.calls.find(([args]) => args.type === 'replay');
+      expect(replayCall).toBeDefined();
+      expect(replayCall?.[0]).toEqual(expect.objectContaining({ minInterval: 2500, maxInterval: 30_000 }));
+    });
+
+    test('omits flush interval values when flushIntervalConfig is not set', async () => {
+      const createEventsManagerSpy = jest.spyOn(SessionReplayEventsManager, 'createEventsManager');
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      const replayCall = createEventsManagerSpy.mock.calls.find(([args]) => args.type === 'replay');
+      expect(replayCall?.[0].minInterval).toBeUndefined();
+      expect(replayCall?.[0].maxInterval).toBeUndefined();
+    });
+
     test('should invoke page leave listeners', async () => {
       const invokeEventMap = new Map<string, any>();
       jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue({
