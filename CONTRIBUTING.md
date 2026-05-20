@@ -84,7 +84,7 @@ Because the workflow uses Trusted Publishing, a new package can't be published f
 
 To publish a package for the first time (administrators only):
 1. run `pnpm install` from the root
-2. run `bash scripts/publish/bootstrap-npm-package.sh` and enter the full npm package name (e.g. `@amplitude/my-new-package`). The script publishes an empty package (package.json only); `npm publish` will prompt for your 2FA code.
+2. run `pnpm deploy:publish:bootstrap` and enter the full npm package name (e.g. `@amplitude/my-new-package`) when prompted. The script publishes an empty package (package.json only); this requires you to be logged into an NPM admin account with 2FA enabled.
 3. navigate to the NPM homepage of the new package
 4. open "Settings" and configure it to use Trusted Publishing
 5. copy the same configuration used in [analytics browser](https://www.npmjs.com/package/@amplitude/analytics-browser/access). **case sensitive**

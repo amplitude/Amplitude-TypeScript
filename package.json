@@ -15,6 +15,7 @@
     "deploy:publish": "pnpm -r --filter \"./packages/**\" publish --no-git-checks",
     "deploy:publish:dry-run": "DRY_RUN=true pnpm -r --filter \"./packages/**\" publish --dry-run --no-git-checks",
     "deploy:pack": "DRY_RUN=true pnpm -r --filter \"./packages/**\" pack",
+    "deploy:publish:bootstrap": "sh ./scripts/publish/bootstrap-npm-package.sh",
     "dev": "concurrently \"pnpm run watch\" \"vite dev --open\"",
     "dev:ssh": "pnpm run setup-dev-ssh && export SSH=true && pnpm run dev",
     "docs": "typedoc",
