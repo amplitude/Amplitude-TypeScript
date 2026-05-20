@@ -639,10 +639,10 @@ test.describe('privacy — urlMaskLevels (page-level masking)', () => {
     expect(isMaskedText(getTextContent(plainEl!))).toBe(true);
   });
 
-  // Repro for GoFundMe customer report (Slack C0AJHTHCB96 / 2026-05-12):
+  // Repro for customer report (Slack C0AJHTHCB96 / 2026-05-12):
   // defaultMaskLevel: conservative + a urlMaskLevels rule routing the page to 'light'.
   // Under the light URL rule, plain <p> body text on the matched page is visible.
-  test('urlMaskLevels light rule leaves plain body text visible (GFM repro)', async ({ page }) => {
+  test('urlMaskLevels light rule leaves plain body text visible', async ({ page }) => {
     await mockRemoteConfig(
       page,
       remoteConfigWithPrivacy({
