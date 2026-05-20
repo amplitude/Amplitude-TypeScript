@@ -752,6 +752,7 @@ describe('getElementInteractionsConfig', () => {
     const testPageUrlAllowlist = ['example.com'];
     const mockedShouldTrackEventResolver = jest.fn(() => true);
     const testDataAttributePrefix = 'data-amp-track';
+    const testCaptureCssClasses = false;
     const config = getElementInteractionsConfig({
       autocapture: {
         elementInteractions: {
@@ -759,6 +760,7 @@ describe('getElementInteractionsConfig', () => {
           pageUrlAllowlist: testPageUrlAllowlist,
           shouldTrackEventResolver: mockedShouldTrackEventResolver,
           dataAttributePrefix: testDataAttributePrefix,
+          captureCssClasses: testCaptureCssClasses,
         },
       },
     });
@@ -767,6 +769,7 @@ describe('getElementInteractionsConfig', () => {
     expect(config?.pageUrlAllowlist).toBe(testPageUrlAllowlist);
     expect(config?.shouldTrackEventResolver).toBe(mockedShouldTrackEventResolver);
     expect(config?.dataAttributePrefix).toBe(testDataAttributePrefix);
+    expect(config?.captureCssClasses).toBe(testCaptureCssClasses);
   });
 });
 

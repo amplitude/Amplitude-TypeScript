@@ -28,10 +28,12 @@ import { cssPath } from './libs/element-path';
 
 export class DataExtractor {
   private readonly additionalMaskTextPatterns: RegExp[];
+  private readonly captureCssClasses: boolean;
   diagnosticsClient?: IDiagnosticsClient;
 
   constructor(options: ElementInteractionsOptions, context?: { diagnosticsClient: IDiagnosticsClient }) {
     this.diagnosticsClient = context?.diagnosticsClient;
+    this.captureCssClasses = options.captureCssClasses ?? true;
 
     const rawPatterns = options.maskTextRegex ?? [];
 
@@ -89,7 +91,7 @@ export class DataExtractor {
     }
 
     hierarchy = ancestors.map((el) =>
-      getElementProperties(el, elementToAttributesToMaskMap.get(el) ?? new Set<string>()),
+      getElementProperties(el, elementToAttributesToMaskMap.get(el) ?? new Set<string>(), this.captureCssClasses),
     );
 
     // Search for and mask any sensitive attribute values

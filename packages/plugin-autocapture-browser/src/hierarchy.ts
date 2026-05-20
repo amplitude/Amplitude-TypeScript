@@ -44,6 +44,7 @@ export const MAX_HIERARCHY_LENGTH = 1024;
 export function getElementProperties(
   element: Element | null,
   userMaskedAttributeNames: Set<string>,
+  captureCssClasses = true,
 ): HierarchyNode | null {
   if (element === null) {
     return null;
@@ -70,7 +71,7 @@ export function getElementProperties(
     properties.id = String(id);
   }
 
-  const classes = Array.from(element.classList);
+  const classes = captureCssClasses ? Array.from(element.classList) : [];
   if (classes.length) {
     properties.classes = classes;
   }
