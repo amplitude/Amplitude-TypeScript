@@ -5,6 +5,7 @@
     "build": {
       "dependsOn": ["^build"],
       "inputs": ["production", "^production"],
+      "outputs": ["{projectRoot}/lib/**"],
       "cache": true
     },
     "test": {

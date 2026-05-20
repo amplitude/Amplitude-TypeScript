@@ -5,6 +5,7 @@
   ],
   "scripts": {
     "build": "lerna run build --stream --include-dependencies --skip-nx-cache",
+    "build:nx": "nx run-many --target=build --all",
     "build:vite": "rm -rf ./test-server/dist/ && vite build",
     "build:nx-affected": "nx affected --target=build",
     "watch": "nx run-many --target=watch --all --parallel 9999 --output-style=stream --maxParallel=0",
@@ -52,6 +53,7 @@
     "@commitlint/config-conventional": "^17.3.0",
     "@nx/workspace": "^21.2.1",
     "@playwright/test": "1.55.0",
+    "@size-limit/file": "^12.1.0",
     "@types/jest": "^29.2.4",
     "@types/node": "^18.11.14",
     "@typescript-eslint/eslint-plugin": "^5.46.1",
@@ -80,6 +82,7 @@
     "nx": "^21.2.1",
     "prettier": "^2.8.1",
     "rimraf": "^3.0.2",
+    "size-limit": "^12.1.0",
     "source-map": "^0.7.4",
     "ts-jest": "^29.0.3",
     "tslib": "^2.4.1",

@@ -33,6 +33,9 @@ importers:
       '@playwright/test':
         specifier: 1.55.0
         version: 1.55.0
+      '@size-limit/file':
+        specifier: ^12.1.0
+        version: 12.1.0(size-limit@12.1.0)
       '@types/jest':
         specifier: ^29.2.4
         version: 29.5.14
@@ -117,6 +120,9 @@ importers:
       rimraf:
         specifier: ^3.0.2
         version: 3.0.2
+      size-limit:
+        specifier: ^12.1.0
+        version: 12.1.0
       source-map:
         specifier: ^0.7.4
         version: 0.7.6
@@ -394,7 +400,7 @@ importers:
         version: 5.0.0(rollup@2.79.2)
       compression-webpack-plugin:
         specifier: ^11.1.0
-        version: 11.1.0(webpack@5.104.1)
+        version: 11.1.0(webpack@5.106.2)
       ejs:
         specifier: ^3.1.9
         version: 3.1.10
@@ -3525,6 +3531,12 @@ packages:
   '@sinonjs/fake-timers@10.3.0':
     resolution: {integrity: sha512-V4BG07kuYSUkTCSBHG8G8TNhM+F19jXFWnQtzj+we8DrkpSBCee9Z3Ms8yiGer/dlmhe35/Xdgyo3/0rQKg7YA==}
 
+  '@size-limit/file@12.1.0':
+    resolution: {integrity: sha512-eGwDcIufnNnvJRzv3liDOn6MAOGgmOTUdpeGQ2KuRTlgIgO54AJH1ilvktlJc6PIjNfwpYY0dOGyap1QgM1swQ==}
+    engines: {node: ^20.0.0 || ^22.0.0 || >=24.0.0}
+    peerDependencies:
+      size-limit: 12.1.0
+
   '@smithy/abort-controller@4.2.5':
     resolution: {integrity: sha512-j7HwVkBw68YW8UmFRcjZOmssE77Rvk0GWAIN1oFBhsaovQmZWYCIcGa9/pwRB0ExI8Sk9MWNALTjftjHZea7VA==}
     engines: {node: '>=18.0.0'}
@@ -4748,6 +4760,10 @@ packages:
   byte-size@8.1.1:
     resolution: {integrity: sha512-tUkzZWK0M/qdoLEqikxBWe4kumyuwjl3HO6zHTr4yEI23EojPtLYXdG1+AQY7MN0cGyNDvEaJ8wiYQm6P2bPxg==}
     engines: {node: '>=12.17'}
+
+  bytes-iec@3.1.1:
+    resolution: {integrity: sha512-fey6+4jDK7TFtFg/klGSvNKJctyU7n2aQdnM+CO0ruLPbqqMOM8Tio0Pc+deqUeVKX1tL5DQep1zQ7+37aTAsA==}
+    engines: {node: '>= 0.8'}
 
   bytes@3.1.2:
     resolution: {integrity: sha512-/Nf7TyzTx6S3yRJObOAV7956r8cr2+Oj8AC5dt8wSP3BQAoeX58NoHyCU8P8zGkNXStjTSi6fzO6F0pBdcYbEg==}
@@ -7631,15 +7647,13 @@ packages:
     resolution: {integrity: sha512-WWdIxpyjEn+FhQJQQv9aQAYlHoNVdzIzUySNV1gHUPDSdZJ3yZn7pAAbQcV7B56Mvu881q9FZV+0Vx2xC44VWA==}
     engines: {node: ^18.17.0 || >=20.5.0}
 
-  nanoid@3.3.11:
-    resolution: {integrity: sha512-N8SpfPUnUp1bK+PMYW8qSWdl9U+wwNWI4QKxOYDy9JAro3WMX7p2OeVRF9v+347pnakNevPmiHhNmZ2HbFA76w==}
-    engines: {node: ^10 || ^12 || ^13.7 || ^14 || >=15.0.1}
-    hasBin: true
-
   nanoid@3.3.12:
     resolution: {integrity: sha512-ZB9RH/39qpq5Vu6Y+NmUaFhQR6pp+M2Xt76XBnEwDaGcVAqhlvxrl3B2bKS5D3NH3QR76v3aSrKaF/Kiy7lEtQ==}
     engines: {node: ^10 || ^12 || ^13.7 || ^14 || >=15.0.1}
     hasBin: true
+
+  nanospinner@1.2.2:
+    resolution: {integrity: sha512-Zt/AmG6qRU3e+WnzGGLuMCEAO/dAu45stNbHY223tUxldaDAeE+FxSPsd9Q+j+paejmm0ZbrNVs5Sraqy3dRxA==}
 
   napi-postinstall@0.3.4:
     resolution: {integrity: sha512-PHI5f1O0EP5xJ9gQmFGMS6IZcrVvTjpXjz7Na41gTE7eE2hK11lg04CECCYEEjdc17EV4DO+fkGEtt7TpTaTiQ==}
@@ -8871,6 +8885,16 @@ packages:
   sisteransi@1.0.5:
     resolution: {integrity: sha512-bLGGlR1QxBcynn2d5YmDX4MGjlZvy2MRBDRNHLJ8VI6l6+9FUiyTFNJ0IveOSP0bcXgVDPRcfGqA0pjaqUpfVg==}
 
+  size-limit@12.1.0:
+    resolution: {integrity: sha512-VnDS2fycANrJFVPQwjaD+h+hkISY7EB3LsPsYWje4lBCjQwwsZLxjwwRwVJKHrcj2ZqyG+DdXykWm9mbZklZrw==}
+    engines: {node: ^20.0.0 || ^22.0.0 || >=24.0.0}
+    hasBin: true
+    peerDependencies:
+      jiti: ^2.0.0
+    peerDependenciesMeta:
+      jiti:
+        optional: true
+
   slash@1.0.0:
     resolution: {integrity: sha512-3TYDR7xWt4dIqV2JauJr+EJeW356RXijHeUlO+8djJ+uBXPn8/2dpzBc8yQhh583sVvc9CvFAeQVgijsH+PNNg==}
     engines: {node: '>=0.10.0'}
@@ -9213,6 +9237,10 @@ packages:
 
   tinyglobby@0.2.15:
     resolution: {integrity: sha512-j2Zq4NyQYG5XMST4cbs02Ak8iJUdxRM0XI5QyxXuZOzKOINmWurp3smXu3y5wDcJrptwpSjgXHzIQxR0omXljQ==}
+    engines: {node: '>=12.0.0'}
+
+  tinyglobby@0.2.16:
+    resolution: {integrity: sha512-pn99VhoACYR8nFHhxqix+uvsbXineAasWm5ojXoN8xEwK5Kd3/TrhNn1wByuD52UxWRLy8pu+kRMniEi6Eq9Zg==}
     engines: {node: '>=12.0.0'}
 
   tldts-core@7.0.18:
@@ -9683,8 +9711,8 @@ packages:
     resolution: {integrity: sha512-eACpxRN02yaawnt+uUNIF7Qje6A9zArxBbcAJjK1PK3S9Ycg5jIuJ8pW4q8EMnwNZCEGltcjkRx1QzOxOkKD8A==}
     engines: {node: '>=10.13.0'}
 
-  webpack@5.104.1:
-    resolution: {integrity: sha512-Qphch25abbMNtekmEGJmeRUhLDbe+QfiWTiqpKYkpCOWY64v9eyl+KRRLmqOFA2AvKPpc9DC6+u2n76tQLBoaA==}
+  webpack@5.106.2:
+    resolution: {integrity: sha512-wGN3qcrBQIFmQ/c0AiOAQBvrZ5lmY8vbbMv4Mxfgzqd/B6+9pXtLo73WuS1dSGXM5QYY3hZnIbvx+K1xxe6FyA==}
     engines: {node: '>=10.13.0'}
     hasBin: true
     peerDependencies:
@@ -11458,7 +11486,7 @@ snapshots:
       '@types/node': 20.5.1
       chalk: 4.1.2
       cosmiconfig: 8.3.6(typescript@4.9.5)
-      cosmiconfig-typescript-loader: 4.4.0(@types/node@20.5.1)(cosmiconfig@8.3.6(typescript@4.9.5))(ts-node@10.9.2(@types/node@20.5.1)(typescript@4.9.5))(typescript@4.9.5)
+      cosmiconfig-typescript-loader: 4.4.0(@types/node@20.5.1)(cosmiconfig@8.3.6(typescript@4.9.5))(ts-node@10.9.2(@types/node@18.19.130)(typescript@4.9.5))(typescript@4.9.5)
       lodash.isplainobject: 4.0.6
       lodash.merge: 4.6.2
       lodash.uniq: 4.5.0
@@ -13622,6 +13650,10 @@ snapshots:
     dependencies:
       '@sinonjs/commons': 3.0.1
 
+  '@size-limit/file@12.1.0(size-limit@12.1.0)':
+    dependencies:
+      size-limit: 12.1.0
+
   '@smithy/abort-controller@4.2.5':
     dependencies:
       '@smithy/types': 4.9.0
@@ -15326,6 +15358,8 @@ snapshots:
 
   byte-size@8.1.1: {}
 
+  bytes-iec@3.1.1: {}
+
   bytes@3.1.2: {}
 
   cacache@19.0.1:
@@ -15582,11 +15616,11 @@ snapshots:
     dependencies:
       mime-db: 1.54.0
 
-  compression-webpack-plugin@11.1.0(webpack@5.104.1):
+  compression-webpack-plugin@11.1.0(webpack@5.106.2):
     dependencies:
       schema-utils: 4.3.3
       serialize-javascript: 6.0.2
-      webpack: 5.104.1
+      webpack: 5.106.2
 
   compression@1.8.1:
     dependencies:
@@ -15720,7 +15754,7 @@ snapshots:
 
   corser@2.0.1: {}
 
-  cosmiconfig-typescript-loader@4.4.0(@types/node@20.5.1)(cosmiconfig@8.3.6(typescript@4.9.5))(ts-node@10.9.2(@types/node@20.5.1)(typescript@4.9.5))(typescript@4.9.5):
+  cosmiconfig-typescript-loader@4.4.0(@types/node@20.5.1)(cosmiconfig@8.3.6(typescript@4.9.5))(ts-node@10.9.2(@types/node@18.19.130)(typescript@4.9.5))(typescript@4.9.5):
     dependencies:
       '@types/node': 20.5.1
       cosmiconfig: 8.3.6(typescript@4.9.5)
@@ -18628,7 +18662,7 @@ snapshots:
   metro-minify-terser@0.80.12:
     dependencies:
       flow-enums-runtime: 0.0.6
-      terser: 5.44.1
+      terser: 5.46.2
 
   metro-minify-uglify@0.72.4:
     dependencies:
@@ -19188,9 +19222,11 @@ snapshots:
 
   mute-stream@2.0.0: {}
 
-  nanoid@3.3.11: {}
-
   nanoid@3.3.12: {}
+
+  nanospinner@1.2.2:
+    dependencies:
+      picocolors: 1.1.1
 
   napi-postinstall@0.3.4: {}
 
@@ -19261,7 +19297,7 @@ snapshots:
       proc-log: 5.0.0
       semver: 7.7.3
       tar: 7.5.2
-      tinyglobby: 0.2.12
+      tinyglobby: 0.2.15
       which: 5.0.0
     transitivePeerDependencies:
       - supports-color
@@ -19276,7 +19312,7 @@ snapshots:
       proc-log: 6.0.0
       semver: 7.7.3
       tar: 7.5.2
-      tinyglobby: 0.2.12
+      tinyglobby: 0.2.15
       which: 6.0.0
     transitivePeerDependencies:
       - supports-color
@@ -19912,7 +19948,7 @@ snapshots:
 
   postcss@8.5.8:
     dependencies:
-      nanoid: 3.3.11
+      nanoid: 3.3.12
       picocolors: 1.1.1
       source-map-js: 1.2.1
 
@@ -20771,6 +20807,14 @@ snapshots:
 
   sisteransi@1.0.5: {}
 
+  size-limit@12.1.0:
+    dependencies:
+      bytes-iec: 3.1.1
+      lilconfig: 3.1.3
+      nanospinner: 1.2.2
+      picocolors: 1.1.1
+      tinyglobby: 0.2.16
+
   slash@1.0.0: {}
 
   slash@3.0.0: {}
@@ -21069,13 +21113,13 @@ snapshots:
     dependencies:
       rimraf: 2.6.3
 
-  terser-webpack-plugin@5.5.0(webpack@5.104.1):
+  terser-webpack-plugin@5.5.0(webpack@5.106.2):
     dependencies:
       '@jridgewell/trace-mapping': 0.3.31
       jest-worker: 27.5.1
       schema-utils: 4.3.3
       terser: 5.46.2
-      webpack: 5.104.1
+      webpack: 5.106.2
 
   terser@5.44.1:
     dependencies:
@@ -21120,6 +21164,11 @@ snapshots:
       picomatch: 4.0.4
 
   tinyglobby@0.2.15:
+    dependencies:
+      fdir: 6.5.0(picomatch@4.0.4)
+      picomatch: 4.0.4
+
+  tinyglobby@0.2.16:
     dependencies:
       fdir: 6.5.0(picomatch@4.0.4)
       picomatch: 4.0.4
@@ -21541,7 +21590,7 @@ snapshots:
 
   webpack-sources@3.4.1: {}
 
-  webpack@5.104.1:
+  webpack@5.106.2:
     dependencies:
       '@types/eslint-scope': 3.7.7
       '@types/estree': 1.0.8
@@ -21559,13 +21608,12 @@ snapshots:
       events: 3.3.0
       glob-to-regexp: 0.4.1
       graceful-fs: 4.2.11
-      json-parse-even-better-errors: 2.3.1
       loader-runner: 4.3.2
-      mime-types: 2.1.35
+      mime-db: 1.54.0
       neo-async: 2.6.2
       schema-utils: 4.3.3
       tapable: 2.3.3
-      terser-webpack-plugin: 5.5.0(webpack@5.104.1)
+      terser-webpack-plugin: 5.5.0(webpack@5.106.2)
       watchpack: 2.5.1
       webpack-sources: 3.4.1
     transitivePeerDependencies:
