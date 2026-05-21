@@ -9,7 +9,7 @@
 #
 # Prerequisites:
 #   - npm login (admin account with publish + 2FA)
-#   - package name must not already exist on npm (or you intend to overwrite)
+#   - package name must not already exist on npm
 #
 # Usage:
 #   bash scripts/publish/bootstrap-npm-package.sh
