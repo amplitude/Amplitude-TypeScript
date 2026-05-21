@@ -21,8 +21,8 @@
   "author": "Amplitude <support@amplitude.com>",
   "license": "MIT",
   "dependencies": {
-    "@amplitude/analytics-browser": "workspace:*",
-    "@amplitude/plugin-session-replay-browser": "workspace:*"
+    "@amplitude/analytics-browser": "workspace:^",
+    "@amplitude/plugin-session-replay-browser": "workspace:^"
   },
   "devDependencies": {
     "@amplitude/eslint-plugin-amplitude": "^1.0.1",
