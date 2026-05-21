@@ -76,9 +76,6 @@ jobs:
           restore-keys: |
             nx-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'nx.json') }}
 
-      # - uses: amplitude/actions/size-limit-action@1de003d03c7860f70bf5511f2ed3e2953cf4506f # v1
-      - uses: daniel-statsig/size-limit-action@710d41ebc34634c011e8a91fe165d6ff49536a74 # v1
-
       - uses: daniel-statsig/size-limit-action@710d41ebc34634c011e8a91fe165d6ff49536a74 # v1
         # TODO: TEMPORARILY ALLOW FAILURE UNTIL size-limit is added to 'main' branch
         continue-on-error: true
