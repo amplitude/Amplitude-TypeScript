@@ -83,14 +83,12 @@ As soon as your changes are approved, a team member will merge your PR to main a
 Because the workflow uses Trusted Publishing, a new package can't be published from the publish workflow on the first try. 
 
 To publish a package for the first time (administrators only):
-1. run `pnpm install` from the route
-2. navigate to the root of the new package
-3. run `pnpm build`
-4. run `pnpm publish` (requires admin credentials with 2FA)
-5. navigate to the NPM homepage of the new package
-6. open "Settings" and configure it to use Trusted Publishing
-7. copy the same configuration used in [analytics browser](https://www.npmjs.com/package/@amplitude/analytics-browser/access). **case sensitive**
-8. now that it's in NPM and Trusted Publishing is enabled, this package can now be published from workflows
+1. run `pnpm install` from the root
+2. run `pnpm deploy:publish:bootstrap` and enter the full npm package name (e.g. `@amplitude/my-new-package`) when prompted. The script publishes an empty package (package.json only); this requires you to be logged into an NPM admin account with 2FA enabled.
+3. navigate to the NPM homepage of the new package
+4. open "Settings" and configure it to use Trusted Publishing
+5. copy the same configuration used in [analytics browser](https://www.npmjs.com/package/@amplitude/analytics-browser/access). **case sensitive**
+6. now that it's in NPM and Trusted Publishing is enabled, this package can now be published from workflows
 
 #### Recovering a partial `publish-v2` workflow run
 
