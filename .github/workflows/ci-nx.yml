@@ -77,8 +77,6 @@ jobs:
             nx-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'nx.json') }}
 
       - uses: daniel-statsig/size-limit-action@710d41ebc34634c011e8a91fe165d6ff49536a74 # v1
-        # TODO: TEMPORARILY ALLOW FAILURE UNTIL size-limit is added to 'main' branch
-        continue-on-error: true
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           package_manager: pnpm
