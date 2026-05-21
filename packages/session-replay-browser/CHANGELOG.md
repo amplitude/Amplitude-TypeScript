@@ -3,6 +3,23 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.44.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.43.0...@amplitude/session-replay-browser@1.44.0) (2026-05-21)
+
+
+### Bug Fixes
+
+* **session-replay-browser:** drop empty batches at the store layer (SR-4284) ([#1742](https://github.com/amplitude/Amplitude-TypeScript/issues/1742)) ([302a08f](https://github.com/amplitude/Amplitude-TypeScript/commit/302a08f143a707543e510df90c475475e4181f1d))
+* **session-replay-browser:** merge queued sends after throttle pause (SR-4286) ([#1743](https://github.com/amplitude/Amplitude-TypeScript/issues/1743)) ([0cdd90a](https://github.com/amplitude/Amplitude-TypeScript/commit/0cdd90ae0810f592b7e50bcef04f6eb5c5e297b1))
+
+
+### Features
+
+* **session-replay-browser:** add flushIntervalConfig to tune rrweb event-split cadence ([#1744](https://github.com/amplitude/Amplitude-TypeScript/issues/1744)) ([c242dc3](https://github.com/amplitude/Amplitude-TypeScript/commit/c242dc3b965423cf2c2e4c23b5dfe11117b86c3d))
+
+
+
+
+
 # [1.43.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.42.3...@amplitude/session-replay-browser@1.43.0) (2026-05-14)
 
 
