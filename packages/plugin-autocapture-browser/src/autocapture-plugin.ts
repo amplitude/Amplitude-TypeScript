@@ -446,6 +446,13 @@ export const autocapturePlugin = (
         isElementSelectable: createShouldTrackEvent(options, [...allowlist, ...actionClickAllowlist]),
         cssSelectorAllowlist: allowlist,
         actionClickAllowlist,
+        // Expose the full effective `elementInteractions` options bag
+        // (live reference; reads through to remote-config-driven
+        // mutations of `options` in place) to the Visual Labeling
+        // handshake so the selector iframe / AI flow can branch on
+        // `captureCssClasses` and any future `elementInteractions`
+        // capture toggle.
+        elementInteractionsOptions: options,
       });
       enableBackgroundCapture(messenger);
       /* istanbul ignore next */

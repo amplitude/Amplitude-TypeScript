@@ -1,7 +1,7 @@
 /* istanbul ignore file */
 /* eslint-disable no-restricted-globals */
 import { AMPLITUDE_VISUAL_TAGGING_SELECTOR_SCRIPT_URL, AMPLITUDE_VISUAL_TAGGING_HIGHLIGHT_CLASS } from '../constants';
-import type { BaseWindowMessenger } from '@amplitude/analytics-core';
+import type { BaseWindowMessenger, ElementInteractionsOptions } from '@amplitude/analytics-core';
 import { ActionType } from '@amplitude/analytics-core';
 import { VERSION } from '../version';
 import { DataExtractor } from '../data-extractor';
@@ -83,6 +83,19 @@ export function enableVisualTagging(
     cssSelectorAllowlist?: string[];
     actionClickAllowlist?: string[];
     dataExtractor: DataExtractor;
+    /**
+     * Live reference to the autocapture plugin's effective
+     * `ElementInteractionsOptions` bag (post-merge of local options +
+     * remote-config delivery). Because mutations to this bag — the
+     * channel the SDK's existing `elementInteractions` remote-config
+     * delivery uses, mirroring the `pageActions` pattern — are visible
+     * through this same reference, no getter indirection is needed.
+     * Forwarded to the visual-tagging selector instance so the iframe
+     * can branch on `captureCssClasses` and any future
+     * `elementInteractions` capture toggle without re-extending the
+     * messenger contract.
+     */
+    elementInteractionsOptions?: ElementInteractionsOptions;
   },
 ): void {
   // Idempotency guard — works across bundle boundaries
@@ -92,7 +105,8 @@ export function enableVisualTagging(
   }
   branded[VISUAL_TAGGING_BRAND] = true;
 
-  const { dataExtractor, isElementSelectable, cssSelectorAllowlist, actionClickAllowlist } = options;
+  const { dataExtractor, isElementSelectable, cssSelectorAllowlist, actionClickAllowlist, elementInteractionsOptions } =
+    options;
 
   let amplitudeVisualTaggingSelectorInstance: any = null;
 
@@ -131,6 +145,13 @@ export function enableVisualTagging(
             actionClickAllowlist,
             extractDataFromDataSource: dataExtractor.extractDataFromDataSource,
             dataExtractor,
+            // Live reference to the effective `elementInteractions`
+            // options bag. The selector iframe reads
+            // `captureCssClasses` (and any future `elementInteractions`
+            // capture toggle) directly off this object so the UI / AI
+            // flows stay consistent with what the SDK is actually
+            // capturing.
+            elementInteractionsOptions,
             diagnostics: {
               autocapture: {
                 version: VERSION,

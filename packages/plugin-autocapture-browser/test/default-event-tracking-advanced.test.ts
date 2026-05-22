@@ -5,6 +5,7 @@ import { BrowserConfig, EnrichmentPlugin, ILogger, BrowserClient, IDiagnosticsCl
 import { mockWindowLocationFromURL } from './utils';
 import { VERSION } from '../src/version';
 import { createMockBrowserClient } from './mock-browser-client';
+import * as messengerLib from '../src/libs/messenger';
 
 const TESTING_DEBOUNCE_TIME = 4;
 
@@ -125,6 +126,55 @@ describe('autoTrackingPlugin', () => {
 
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       expect((messengerMock as any).setup).toHaveBeenCalledTimes(1);
+    });
+
+    // The autocapture plugin must pass a live reference to the
+    // effective `elementInteractions` options bag to
+    // `enableVisualTagging` so the selector iframe / AI flow can read
+    // `captureCssClasses` (and any future toggle) from it via the
+    // messenger handshake.
+    test('passes a live elementInteractionsOptions reference to enableVisualTagging', async () => {
+      window.opener = true;
+      const messengerMock = {
+        setup: jest.fn(),
+        registerActionHandler: jest.fn(),
+      };
+      jest.spyOn(AnalyticsCore, 'getOrCreateWindowMessenger').mockReturnValue(messengerMock as any);
+      jest.spyOn(AnalyticsCore, 'enableBackgroundCapture').mockImplementation(jest.fn());
+      const enableVisualTaggingSpy = jest.spyOn(messengerLib, 'enableVisualTagging').mockImplementation(jest.fn());
+
+      plugin = autocapturePlugin({
+        visualTaggingOptions: { enabled: true },
+        captureCssClasses: true,
+      });
+      const loggerProvider: Partial<ILogger> = {
+        log: jest.fn(),
+        warn: jest.fn(),
+        error: jest.fn(),
+      };
+      const config: Partial<BrowserConfig> = {
+        defaultTracking: false,
+        loggerProvider: loggerProvider as ILogger,
+      };
+      const amplitude: Partial<BrowserClient> = {};
+      await plugin?.setup?.(config as BrowserConfig, amplitude as BrowserClient);
+
+      expect(enableVisualTaggingSpy).toHaveBeenCalledTimes(1);
+      const callArgs = enableVisualTaggingSpy.mock.calls[0][1] as {
+        elementInteractionsOptions?: AnalyticsCore.ElementInteractionsOptions;
+      };
+      // The passed value is the live options bag itself (not a getter).
+      expect(typeof callArgs.elementInteractionsOptions).toBe('object');
+      expect(callArgs.elementInteractionsOptions).not.toBeNull();
+      expect(callArgs.elementInteractionsOptions!.captureCssClasses).toBe(true);
+
+      // Mutating the plugin's options bag in place (the same mutation
+      // pattern the SDK's existing remote-config delivery uses for
+      // `elementInteractions`) surfaces through the same reference —
+      // this is how the iframe will pick up remote-config flips
+      // without having to re-handshake.
+      callArgs.elementInteractionsOptions!.captureCssClasses = false;
+      expect(callArgs.elementInteractionsOptions!.captureCssClasses).toBe(false);
     });
 
     test('should use custom exposureDuration from deprecated flat option', async () => {

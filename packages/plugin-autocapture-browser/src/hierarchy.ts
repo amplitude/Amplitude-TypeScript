@@ -44,6 +44,7 @@ export const MAX_HIERARCHY_LENGTH = 1024;
 export function getElementProperties(
   element: Element | null,
   userMaskedAttributeNames: Set<string>,
+  captureCssClasses = true,
 ): HierarchyNode | null {
   if (element === null) {
     return null;
@@ -70,9 +71,14 @@ export function getElementProperties(
     properties.id = String(id);
   }
 
-  const classes = Array.from(element.classList);
-  if (classes.length) {
-    properties.classes = classes;
+  // When captureCssClasses is false, omit the `classes` field from each
+  // hierarchy entry entirely (never `null`, never `[]`). Default `true`
+  // preserves byte-equivalent behavior with previous SDK versions.
+  if (captureCssClasses) {
+    const classes = Array.from(element.classList);
+    if (classes.length) {
+      properties.classes = classes;
+    }
   }
 
   const attributes: Record<string, string> = {};
