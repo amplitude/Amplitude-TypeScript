@@ -6,7 +6,7 @@ class PluginSessionReplayReactNative: NSObject {
     
     var sessionReplay: SessionReplay!
     
-    @objc(setup:deviceId:sessionId:serverZone:sampleRate:enableRemoteConfig:logLevel:autoStart:resolve:reject:)
+    @objc(setup:deviceId:sessionId:serverZone:sampleRate:enableRemoteConfig:logLevel:autoStart:maskLevel:resolve:reject:)
     func setup(_ apiKey: String,
                deviceId: String,
                sessionId: NSNumber,
@@ -15,6 +15,7 @@ class PluginSessionReplayReactNative: NSObject {
                enableRemoteConfig: Bool,
                logLevel: Int,
                autoStart: Bool,
+               maskLevel: String,
                resolve: RCTPromiseResolveBlock,
                reject: RCTPromiseRejectBlock) -> Void {
         print(
@@ -28,6 +29,7 @@ class PluginSessionReplayReactNative: NSObject {
             Enable Remote Config: \(enableRemoteConfig)
             Log Level: \(logLevel)
             Auto Start: \(autoStart)
+            Mask Level: \(maskLevel)
             """
         )
         sessionReplay = SessionReplay(apiKey:apiKey,
@@ -36,6 +38,7 @@ class PluginSessionReplayReactNative: NSObject {
                                       sampleRate: sampleRate,
                                       logger:ConsoleLogger(logLevel: logLevel),
                                       serverZone: serverZone == "EU" ? .EU : .US,
+                                      maskLevel: .fromString(maskLevel),
                                       enableRemoteConfig: enableRemoteConfig)
         if (autoStart) {
             sessionReplay.start()
@@ -88,5 +91,20 @@ class PluginSessionReplayReactNative: NSObject {
       print("teardown")
       sessionReplay.stop()
       resolve(nil)
+    }
+}
+
+extension MaskLevel {
+    static func fromString(_ input: String) -> MaskLevel {
+        switch input.lowercased() {
+        case "light":
+            return .light
+        case "medium":
+            return .medium
+        case "conservative":
+            return .conservative
+        default:
+            return .medium
+        }
     }
 }
