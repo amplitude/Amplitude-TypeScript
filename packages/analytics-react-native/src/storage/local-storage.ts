@@ -29,8 +29,17 @@ const getAsyncStorage = (): AsyncStorageLike | undefined => {
     // shapes — e.g. `jest.mock(..., () => mockAsyncStorage)` returns the mock
     // directly without a `default` wrapper.
     asyncStorage = mod?.default ?? mod;
-  } catch {
+  } catch (e) {
     asyncStorage = undefined;
+    // Only swallow "package not installed" silently — that's the supported
+    // opt-out path. Anything else (broken install, syntax error in the package,
+    // permission issues) should be surfaced so it can be diagnosed instead of
+    // silently degrading to in-memory storage.
+    const code = (e as NodeJS.ErrnoException | undefined)?.code;
+    if (code !== 'MODULE_NOT_FOUND') {
+      // eslint-disable-next-line no-console
+      console.warn('[Amplitude] Failed to load @react-native-async-storage/async-storage; persistence is disabled.', e);
+    }
   }
   /* eslint-enable @typescript-eslint/no-var-requires, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access */
   return asyncStorage;
@@ -80,7 +89,15 @@ export class LocalStorage<T> implements Storage<T> {
     if (!storage) {
       return undefined;
     }
-    return (await storage.getItem(key)) || undefined;
+    try {
+      return (await storage.getItem(key)) || undefined;
+    } catch {
+      // AsyncStorage's JS package is resolvable but the native bridge is null
+      // (e.g. customer excluded it via autolinking but the JS package is still
+      // in node_modules). Callers like `parseOldCookies` consume `getRaw`
+      // directly without their own try/catch, so we must not propagate.
+      return undefined;
+    }
   }
 
   async set(key: string, value: T): Promise<void> {
