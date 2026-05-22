@@ -1,31 +1,30 @@
 // @refresh reset
 
 import { NativeSessionReplay, type NativeSessionReplayConfig } from './native-module';
-import {
-  getDefaultConfig,
-  PrivacyConfig,
-  SessionReplayConfig,
-  SessionReplayConfigInternal,
-} from './session-replay-config';
+import { getDefaultConfig, SessionReplayConfig, SessionReplayConfigInternal } from './session-replay-config';
 import { createSessionReplayLogger } from './logger';
 import { VERSION } from './version';
 
-type ResolvedSessionReplayConfig = Required<Omit<SessionReplayConfigInternal, 'apiKey'>> &
-  Pick<SessionReplayConfig, 'apiKey'>;
+type ResolvedSessionReplayConfig = Required<SessionReplayConfigInternal>;
 
 /**
  * Translates the public `SessionReplayConfig` into the internal shape by
  * folding the deprecated top-level `maskLevel` into `privacyConfig`. After
  * this step, the rest of the SDK only ever sees `privacyConfig`.
+ *
+ * `privacyConfig` wins when explicitly set; otherwise translate the
+ * deprecated `maskLevel`; otherwise leave the field out so the default
+ * supplied by `getDefaultConfig()` survives the shallow merge in `init()`.
  */
 function normalizeConfig(config: SessionReplayConfig): SessionReplayConfigInternal {
   const { maskLevel, privacyConfig, ...rest } = config;
-  // `privacyConfig` wins when explicitly set; otherwise translate the
-  // deprecated `maskLevel`; otherwise leave the field out so the default
-  // supplied by `getDefaultConfig()` survives the shallow merge in `init()`.
-  const normalizedPrivacyConfig: PrivacyConfig | undefined =
-    privacyConfig ?? (maskLevel !== undefined ? { maskLevel } : undefined);
-  return normalizedPrivacyConfig === undefined ? rest : { ...rest, privacyConfig: normalizedPrivacyConfig };
+  if (privacyConfig !== undefined) {
+    return { ...rest, privacyConfig };
+  }
+  if (maskLevel !== undefined) {
+    return { ...rest, privacyConfig: { maskLevel } };
+  }
+  return rest;
 }
 
 let fullConfig: ResolvedSessionReplayConfig | null = null;
@@ -243,6 +242,7 @@ function nativeConfig(config: ResolvedSessionReplayConfig): NativeSessionReplayC
   return {
     ...rest,
     logLevel: rest.logLevel as NativeSessionReplayConfig['logLevel'],
+    // TODO(SDKRN-15): Migrate native bridge to accept the full privacyConfig object instead of a flat maskLevel string.
     maskLevel: privacyConfig.maskLevel as NativeSessionReplayConfig['maskLevel'],
   };
 }
