@@ -20,7 +20,7 @@ const config: SessionReplayConfig = {
     enableRemoteConfig: true, // default true
     sampleRate: 1, // default 0
     logLevel: LogLevel.Warn, // default LogLevel.Warn
-    maskLevel: MaskLevel.Medium, // default MaskLevel.Medium
+    privacyConfig: { maskLevel: MaskLevel.Medium }, // default MaskLevel.Medium
 };
 await init('YOUR_API_KEY').promise;
 await add(new SessionReplayPlugin(config)).promise;
@@ -29,7 +29,7 @@ await add(new SessionReplayPlugin(config)).promise;
 
 ## Mask levels
 
-Control how aggressively Session Replay masks sensitive content via the `maskLevel` config option:
+Control how aggressively Session Replay masks sensitive content via the `privacyConfig.maskLevel` config option:
 
 | Value | What gets masked |
 |---|---|
@@ -41,7 +41,7 @@ Control how aggressively Session Replay masks sensitive content via the `maskLev
 import { SessionReplayPlugin, MaskLevel } from '@amplitude/plugin-session-replay-react-native';
 
 const config: SessionReplayConfig = {
-    maskLevel: MaskLevel.Conservative, // mask all text and inputs
+    privacyConfig: { maskLevel: MaskLevel.Conservative }, // mask all text and inputs
 };
 ```
 

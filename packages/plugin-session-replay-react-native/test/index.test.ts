@@ -23,9 +23,9 @@ describe('Session Replay default config', () => {
     expect(config.autoStart).toBe(true);
   });
 
-  it('should have maskLevel default to Medium', () => {
+  it('should have privacyConfig.maskLevel default to Medium', () => {
     const config = getDefaultConfig();
-    expect(config.maskLevel).toBe(MaskLevel.Medium);
+    expect(config.privacyConfig?.maskLevel).toBe(MaskLevel.Medium);
   });
 });
 
@@ -52,7 +52,7 @@ describe('SessionReplayPlugin.setup forwards maskLevel to native', () => {
   const setupArgs = () => nativeSetupMock.mock.calls[0];
 
   it('forwards Conservative as the 9th positional argument', async () => {
-    const plugin = new SessionReplayPlugin({ maskLevel: MaskLevel.Conservative });
+    const plugin = new SessionReplayPlugin({ privacyConfig: { maskLevel: MaskLevel.Conservative } });
     await plugin.setup(baseConfig as never, {} as never);
     expect(nativeSetupMock).toHaveBeenCalledTimes(1);
     expect(setupArgs()[8]).toBe(MaskLevel.Conservative);
@@ -60,14 +60,14 @@ describe('SessionReplayPlugin.setup forwards maskLevel to native', () => {
   });
 
   it('forwards Light as the 9th positional argument', async () => {
-    const plugin = new SessionReplayPlugin({ maskLevel: MaskLevel.Light });
+    const plugin = new SessionReplayPlugin({ privacyConfig: { maskLevel: MaskLevel.Light } });
     await plugin.setup(baseConfig as never, {} as never);
     expect(setupArgs()[8]).toBe(MaskLevel.Light);
     expect(setupArgs()[8]).toBe('light');
   });
 
   it('forwards Medium as the 9th positional argument', async () => {
-    const plugin = new SessionReplayPlugin({ maskLevel: MaskLevel.Medium });
+    const plugin = new SessionReplayPlugin({ privacyConfig: { maskLevel: MaskLevel.Medium } });
     await plugin.setup(baseConfig as never, {} as never);
     expect(setupArgs()[8]).toBe(MaskLevel.Medium);
     expect(setupArgs()[8]).toBe('medium');
@@ -85,7 +85,7 @@ describe('SessionReplayPlugin.setup forwards maskLevel to native', () => {
       enableRemoteConfig: false,
       logLevel: LogLevel.Debug,
       autoStart: false,
-      maskLevel: MaskLevel.Conservative,
+      privacyConfig: { maskLevel: MaskLevel.Conservative },
     });
     await plugin.setup(baseConfig as never, {} as never);
     const args = setupArgs();

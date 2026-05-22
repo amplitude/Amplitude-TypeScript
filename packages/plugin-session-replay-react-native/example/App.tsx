@@ -286,7 +286,7 @@ function App(): React.JSX.Element {
       enableRemoteConfig: false,
       sampleRate: 1,
       logLevel: LogLevel.Debug,
-      maskLevel: MaskLevel.Medium,
+      privacyConfig: { maskLevel: MaskLevel.Medium },
     };
     (async () => {
       await init('YOUR-API-KEY', 'example_user_id', {

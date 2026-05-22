@@ -41,7 +41,7 @@ export class SessionReplayPlugin implements EnrichmentPlugin<ReactNativeClient, 
       this.sessionReplayConfig.enableRemoteConfig ?? true,
       this.sessionReplayConfig.logLevel ?? LogLevel.Warn,
       this.sessionReplayConfig.autoStart ?? true,
-      this.sessionReplayConfig.maskLevel ?? MaskLevel.Medium,
+      this.sessionReplayConfig.privacyConfig?.maskLevel ?? MaskLevel.Medium,
     );
     this.isInitialized = true;
   }

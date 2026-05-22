@@ -18,6 +18,10 @@ export enum MaskLevel {
   Conservative = 'conservative',
 }
 
+export interface PrivacyConfig {
+  maskLevel?: MaskLevel;
+}
+
 /**
  * Configuration for Session Replay React Native SDK
  */
@@ -56,8 +60,15 @@ export interface SessionReplayConfig {
   /**
    * Level of masking applied to sensitive content
    * @default MaskLevel.Medium
+   * @deprecated Use `privacyConfig.maskLevel` instead.
    */
   maskLevel?: MaskLevel;
+
+  /**
+   * Privacy configuration for session replay
+   * @default { maskLevel: MaskLevel.Medium }
+   */
+  privacyConfig?: PrivacyConfig;
 
   /**
    * Whether to opt out of session replay collection
@@ -95,6 +106,7 @@ export const getDefaultConfig: () => Required<Omit<SessionReplayConfig, 'apiKey'
     logLevel: LogLevel.Warn,
     maskLevel: MaskLevel.Medium,
     optOut: false,
+    privacyConfig: { maskLevel: MaskLevel.Medium },
     sampleRate: 0,
     serverZone: 'US',
     sessionId: -1,

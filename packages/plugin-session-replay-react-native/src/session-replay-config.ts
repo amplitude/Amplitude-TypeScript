@@ -18,12 +18,16 @@ export enum MaskLevel {
   Conservative = 'conservative',
 }
 
+export interface PrivacyConfig {
+  maskLevel?: MaskLevel;
+}
+
 export interface SessionReplayConfig {
   sampleRate?: number;
   enableRemoteConfig?: boolean;
   logLevel?: LogLevel;
   autoStart?: boolean;
-  maskLevel?: MaskLevel;
+  privacyConfig?: PrivacyConfig;
 }
 
 export const getDefaultConfig: () => SessionReplayConfig = () => {
@@ -32,6 +36,6 @@ export const getDefaultConfig: () => SessionReplayConfig = () => {
     enableRemoteConfig: true,
     logLevel: LogLevel.Warn,
     autoStart: true,
-    maskLevel: MaskLevel.Medium,
+    privacyConfig: { maskLevel: MaskLevel.Medium },
   };
 };

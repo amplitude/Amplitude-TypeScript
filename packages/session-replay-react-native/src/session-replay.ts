@@ -207,10 +207,11 @@ export async function stop(): Promise<void> {
 }
 
 function nativeConfig(config: Required<SessionReplayConfig>): NativeSessionReplayConfig {
+  const resolvedMaskLevel = config.privacyConfig?.maskLevel ?? config.maskLevel;
   return {
     ...config,
     logLevel: config.logLevel as NativeSessionReplayConfig['logLevel'],
-    maskLevel: config.maskLevel.toString() as NativeSessionReplayConfig['maskLevel'],
+    maskLevel: resolvedMaskLevel.toString() as NativeSessionReplayConfig['maskLevel'],
   };
 }
 
