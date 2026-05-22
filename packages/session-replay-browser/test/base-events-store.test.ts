@@ -85,4 +85,34 @@ describe('BaseEventsStore', () => {
     expect(store.shouldSplitEventsList(['test'], 'test')).toBe(true);
     return;
   });
+
+  describe('first-split interval honors caller-supplied minInterval', () => {
+    // Regression: class-field initializer `private interval = this.minInterval` ran before
+    // the constructor body, so `interval` froze at the class-field default (500ms) regardless
+    // of `args.minInterval`. The fix moves that assignment into the constructor body.
+    test('does not split before minInterval has elapsed', async () => {
+      jest.useFakeTimers().setSystemTime(Date.now());
+      const store = new InMemoryEventsStore({
+        loggerProvider: mockLoggerProvider,
+        minInterval: 5_000,
+        maxInterval: 30_000,
+      });
+      await store.addEventToCurrentSequence(1, 'a');
+      // Advance past the class-field default (500ms) but well under the configured 5s min.
+      jest.advanceTimersByTime(1_000);
+      expect(store.shouldSplitEventsList(['a'], 'b')).toBe(false);
+    });
+
+    test('splits once minInterval has elapsed', async () => {
+      jest.useFakeTimers().setSystemTime(Date.now());
+      const store = new InMemoryEventsStore({
+        loggerProvider: mockLoggerProvider,
+        minInterval: 5_000,
+        maxInterval: 30_000,
+      });
+      await store.addEventToCurrentSequence(1, 'a');
+      jest.advanceTimersByTime(5_001);
+      expect(store.shouldSplitEventsList(['a'], 'b')).toBe(true);
+    });
+  });
 });

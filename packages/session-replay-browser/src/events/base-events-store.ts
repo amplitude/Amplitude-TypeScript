@@ -14,7 +14,11 @@ export abstract class BaseEventsStore<KeyType> implements EventsStore<KeyType> {
   private minInterval = MIN_INTERVAL;
   private maxInterval = MAX_INTERVAL;
   private maxPersistedEventsSize = MAX_EVENT_LIST_SIZE;
-  private interval = this.minInterval;
+  // Assigned in the constructor after `minInterval` is overridden by `args`. Class-field
+  // initializers run before the constructor body, so initializing here would freeze
+  // `interval` at the class-field default (500ms) — defeating any caller-supplied minInterval
+  // for the very first split.
+  private interval!: number;
   private _timeAtLastSplit = Date.now(); // Initialize this so we have a point of comparison when events are recorded
 
   public get timeAtLastSplit() {
@@ -26,6 +30,7 @@ export abstract class BaseEventsStore<KeyType> implements EventsStore<KeyType> {
     this.minInterval = args.minInterval ?? this.minInterval;
     this.maxInterval = args.maxInterval ?? this.maxInterval;
     this.maxPersistedEventsSize = args.maxPersistedEventsSize ?? this.maxPersistedEventsSize;
+    this.interval = this.minInterval;
   }
 
   abstract addEventToCurrentSequence(

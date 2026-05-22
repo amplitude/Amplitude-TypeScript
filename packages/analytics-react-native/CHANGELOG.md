@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.5.54](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-react-native@1.5.53...@amplitude/analytics-react-native@1.5.54) (2026-05-21)
+
+
+### Bug Fixes
+
+* **analytics-react-native:** use workspace:* for analytics-core dep ([#1766](https://github.com/amplitude/Amplitude-TypeScript/issues/1766)) ([ab2e029](https://github.com/amplitude/Amplitude-TypeScript/commit/ab2e029421516dd2f533ebaa99ac61d2d9a9cbe0))
+
+
+
+
+
 ## [1.5.53](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-react-native@1.5.52...@amplitude/analytics-react-native@1.5.53) (2026-05-13)
 
 

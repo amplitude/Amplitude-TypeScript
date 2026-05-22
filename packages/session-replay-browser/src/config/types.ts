@@ -237,6 +237,34 @@ export interface SessionReplayLocalConfig extends IConfig {
   crossOriginIframes?: CrossOriginIframesConfig;
   /** Interval in ms at which the SDK takes a full DOM snapshot. Disabled by default — periodic snapshots are expensive. Recommended value: 300000 (5 min). */
   fullSnapshotIntervalMs?: number;
+  /**
+   * Controls how often the SDK splits buffered rrweb events into a sequence and dispatches
+   * the resulting batch to the server. The interval starts at `minIntervalMs` and grows by
+   * `minIntervalMs` after each split, capped at `maxIntervalMs`. Lowering values increases
+   * replay availability latency improvements at the cost of more requests; raising them
+   * reduces request volume (and 200+`X-Session-Replay-Event-Skipped` throttling responses)
+   * at the cost of slightly delayed replay availability.
+   *
+   * Defaults: `{ minIntervalMs: 500, maxIntervalMs: 10_000 }`. Tune up if the server is
+   * back-pressuring the SDK on session start.
+   */
+  flushIntervalConfig?: FlushIntervalConfig;
+}
+
+export interface FlushIntervalConfig {
+  /**
+   * Lower bound on the rrweb event-split interval in milliseconds. Also the increment
+   * added to the interval after each split. Must be > 0; values are clamped to a 100ms floor.
+   *
+   * @defaultValue 500
+   */
+  minIntervalMs?: number;
+  /**
+   * Upper bound on the rrweb event-split interval in milliseconds. Must be >= `minIntervalMs`.
+   *
+   * @defaultValue 10000
+   */
+  maxIntervalMs?: number;
 }
 
 export interface SessionReplayJoinedConfig extends SessionReplayLocalConfig {

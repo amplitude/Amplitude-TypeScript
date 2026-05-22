@@ -161,6 +161,18 @@ export class SessionReplayEventsIDBStore extends BaseEventsStore<number> {
   private readonly consecutiveFailureThreshold: number;
   private consecutiveFailures = 0;
   private hasTriggeredFallback = false;
+  private emptyFilteredCount = 0;
+
+  // Sampled (1 in 100) debug log so we can observe whether the store-layer guards
+  // are catching empty-batch cases that would otherwise hit the empty-body 400 path
+  // on the server. Logged at debug, not warn — this is operational telemetry for
+  // post-deploy verification, not a customer-actionable warning. Per-store-instance
+  // counter (rather than Math.random) keeps the first hit deterministic for tests.
+  private maybeLogEmptyFiltered(source: string) {
+    if (this.emptyFilteredCount++ % 100 === 0) {
+      this.loggerProvider.debug(`Filtered empty session replay sequence at ${source} (idb store)`);
+    }
+  }
 
   constructor(args: InstanceArgs) {
     super(args);
@@ -243,7 +255,11 @@ export class SessionReplayEventsIDBStore extends BaseEventsStore<number> {
     let timedOut = false;
     try {
       const sequences: SendingSequencesReturn<number>[] = [];
-      const tx = this.db.transaction('sequencesToSend');
+      // readwrite mode so we can prune stale empty rows in-place. Without that,
+      // older-SDK-persisted events:[] rows sit in IDB indefinitely and re-fire the
+      // sampled log on every flush cycle, creating Datadog noise indistinguishable
+      // from active bug occurrences.
+      const tx = this.db.transaction('sequencesToSend', 'readwrite');
       // Attach a catch handler immediately so tx.done rejections (e.g. AbortError after
       // cursor traversal completes) are always handled without blocking the return path.
       // The errorLogged / timedOut flags prevent double-logging and double-recording
@@ -269,17 +285,29 @@ export class SessionReplayEventsIDBStore extends BaseEventsStore<number> {
       let cursor = await tx.store.openCursor();
       while (cursor) {
         const { sessionId, events } = cursor.value;
-        // Return all completed sequences regardless of tabId.  Filtering by tab
-        // would cause event loss on page reload: a new store instance gets a
-        // fresh in-memory UUID and would never see sequences written by the
-        // previous instance.  Completed sequences are safe to flush by any
-        // tab/instance; the server deduplicates, and cleanUpSessionEventsStore
-        // on an already-deleted key is a no-op.
-        sequences.push({
-          events,
-          sequenceId: cursor.key,
-          sessionId,
-        });
+        // Skip empty persisted records. These can come from older SDK builds that
+        // wrote zero-event sequences via addEventToCurrentSequence's split path
+        // (when a single oversized event triggered a split with empty buffer);
+        // flushing them produces empty-body POSTs the server rejects with 400.
+        // Delete them in-place so they don't re-fire the sampled log on every
+        // subsequent flush — by construction (this fix) we never write empty rows
+        // anymore, so any empty row is unambiguously stale.
+        if (events.length === 0) {
+          this.maybeLogEmptyFiltered('getSequencesToSend');
+          await cursor.delete();
+        } else {
+          // Return all completed sequences regardless of tabId.  Filtering by tab
+          // would cause event loss on page reload: a new store instance gets a
+          // fresh in-memory UUID and would never see sequences written by the
+          // previous instance.  Completed sequences are safe to flush by any
+          // tab/instance; the server deduplicates, and cleanUpSessionEventsStore
+          // on an already-deleted key is a no-op.
+          sequences.push({
+            events,
+            sequenceId: cursor.key,
+            sessionId,
+          });
+        }
         cursor = await cursor.continue();
       }
 
@@ -333,8 +361,10 @@ export class SessionReplayEventsIDBStore extends BaseEventsStore<number> {
         return undefined;
       }
 
-      // Skip empty sequences — no point writing a zero-event row to sequencesToSend.
+      // Skip empty sequences — no point writing a zero-event row to sequencesToSend
+      // (would later POST as an empty body and 400 on the server).
       if (currentSequenceData.events.length === 0) {
+        this.maybeLogEmptyFiltered('storeCurrentSequence');
         cancelTimeout();
         return undefined;
       }
@@ -441,6 +471,23 @@ export class SessionReplayEventsIDBStore extends BaseEventsStore<number> {
       // Split path: reset sessionCurrentSequence and write the old events to
       // sequencesToSend atomically within the same transaction.
       const eventsToSend = ownedSequence.events;
+
+      // shouldSplitEventsList can return true with an empty buffer when a single
+      // incoming event is larger than MAX_EVENT_LIST_SIZE (700 KB) — the size-constraint
+      // branch fires regardless of current length. Don't write a zero-event row to
+      // sequencesToSend (which would later POST as an empty body, the SR-4284 root
+      // cause); just claim the slot for the new event without finalizing anything.
+      // This is the *primary* root-cause filter site: warn here so post-deploy
+      // Datadog can confirm the new SDK is actually preventing the bug at its source
+      // (vs. only seeing leftover-state hits at the get/storeCurrentSequence layers).
+      if (eventsToSend.length === 0) {
+        this.maybeLogEmptyFiltered('addEventToCurrentSequence');
+        await tx.objectStore(currentSequenceKey).put({ sessionId, events: [event], tabId: this.tabId });
+        this.recordSuccess();
+        cancelTimeout();
+        return undefined;
+      }
+
       await tx.objectStore(currentSequenceKey).put({ sessionId, events: [event], tabId: this.tabId });
       const sequenceId = await tx.objectStore(sequencesToSendKey).put({
         sessionId,

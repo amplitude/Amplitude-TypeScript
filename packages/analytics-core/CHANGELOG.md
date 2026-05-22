@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.48.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.48.1...@amplitude/analytics-core@2.48.2) (2026-05-21)
+
+
+### Bug Fixes
+
+* **analytics-browser:** bump background capture version ([#1750](https://github.com/amplitude/Amplitude-TypeScript/issues/1750)) ([516719a](https://github.com/amplitude/Amplitude-TypeScript/commit/516719a2ff5e8d7da48612032bb8ae77639f4fe6))
+
+
+
+
+
 ## [2.48.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.48.0...@amplitude/analytics-core@2.48.1) (2026-05-05)
 
 
