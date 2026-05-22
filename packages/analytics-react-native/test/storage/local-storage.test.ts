@@ -64,9 +64,10 @@ describe('local-storage', () => {
   describe('without AsyncStorage installed', () => {
     test('should degrade to a no-op when the package cannot be resolved', async () => {
       jest.resetModules();
-      jest.doMock('@react-native-async-storage/async-storage', () => {
+      const factory = jest.fn(() => {
         throw new Error('Module not found');
       });
+      jest.doMock('@react-native-async-storage/async-storage', factory);
       try {
         // eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/no-unsafe-member-access
         const { LocalStorage: LocalStorageNoAS } = require('../../src/storage/local-storage') as {
@@ -79,6 +80,11 @@ describe('local-storage', () => {
         await storage.set('k', 'v');
         await storage.remove('k');
         await storage.reset();
+        // The factory is invoked exactly once: on the first `getAsyncStorage()`
+        // call. Each subsequent storage method must short-circuit on the cached
+        // `undefined` value — otherwise we'd see additional `require()` attempts
+        // (or, worse, crashes from calling methods on undefined).
+        expect(factory).toHaveBeenCalledTimes(1);
       } finally {
         jest.dontMock('@react-native-async-storage/async-storage');
         jest.resetModules();

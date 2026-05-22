@@ -55,7 +55,7 @@ If you'd rather use your own storage backend (for example `react-native-mmkv`, a
 
    The JS package stays in `node_modules` (~1 KB) but is never invoked at runtime, and AsyncStorage is no longer linked into your iOS or Android binaries.
 
-3. For React Native Web, configure Metro to tree-shake the AsyncStorage import out of your web bundle.
+3. For React Native Web (webpack), the `@react-native-async-storage/async-storage` JS package will still be reachable from the web bundle. If you want to remove it entirely, alias the package to a stub in your webpack config.
 
 ## Usage
 

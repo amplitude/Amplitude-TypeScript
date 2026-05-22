@@ -13,22 +13,26 @@ let asyncStorage: AsyncStorageLike | undefined;
 // Resolve AsyncStorage lazily so the module can be opted out of via custom
 // `storageProvider` + `react-native.config.js` autolinking exclusion without
 // the SDK throwing at module-load time.
+//
+// The result is cached for the app lifetime: `require()` is synchronous in
+// React Native and the module registry is stable, so retrying after a failed
+// resolution would never produce a different result.
 const getAsyncStorage = (): AsyncStorageLike | undefined => {
   if (resolved) {
     return asyncStorage;
   }
   resolved = true;
+  /* eslint-disable @typescript-eslint/no-var-requires, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access */
   try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/no-unsafe-assignment
     const mod = require('@react-native-async-storage/async-storage');
     // Handles both ES-module (`{ default: AsyncStorage }`) and direct-export
     // shapes — e.g. `jest.mock(..., () => mockAsyncStorage)` returns the mock
     // directly without a `default` wrapper.
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
     asyncStorage = mod?.default ?? mod;
   } catch {
     asyncStorage = undefined;
   }
+  /* eslint-enable @typescript-eslint/no-var-requires, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access */
   return asyncStorage;
 };
 
