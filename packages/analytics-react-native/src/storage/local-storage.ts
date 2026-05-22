@@ -1,10 +1,44 @@
 import { Storage, getGlobalScope } from '@amplitude/analytics-core';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+
+interface AsyncStorageLike {
+  getItem(key: string): Promise<string | null>;
+  setItem(key: string, value: string): Promise<void>;
+  removeItem(key: string): Promise<void>;
+  clear(): Promise<void>;
+}
+
+let resolved = false;
+let asyncStorage: AsyncStorageLike | undefined;
+
+// Resolve AsyncStorage lazily so the module can be opted out of via custom
+// `storageProvider` + `react-native.config.js` autolinking exclusion without
+// the SDK throwing at module-load time.
+const getAsyncStorage = (): AsyncStorageLike | undefined => {
+  if (resolved) {
+    return asyncStorage;
+  }
+  resolved = true;
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/no-unsafe-assignment
+    const mod = require('@react-native-async-storage/async-storage');
+    // Handles both ES-module (`{ default: AsyncStorage }`) and direct-export
+    // shapes — e.g. `jest.mock(..., () => mockAsyncStorage)` returns the mock
+    // directly without a `default` wrapper.
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+    asyncStorage = mod?.default ?? mod;
+  } catch {
+    asyncStorage = undefined;
+  }
+  return asyncStorage;
+};
 
 export class LocalStorage<T> implements Storage<T> {
   async isEnabled(): Promise<boolean> {
     /* istanbul ignore if */
     if (!getGlobalScope()) {
+      return false;
+    }
+    if (!getAsyncStorage()) {
       return false;
     }
 
@@ -38,28 +72,44 @@ export class LocalStorage<T> implements Storage<T> {
   }
 
   async getRaw(key: string): Promise<string | undefined> {
-    return (await AsyncStorage.getItem(key)) || undefined;
+    const storage = getAsyncStorage();
+    if (!storage) {
+      return undefined;
+    }
+    return (await storage.getItem(key)) || undefined;
   }
 
   async set(key: string, value: T): Promise<void> {
+    const storage = getAsyncStorage();
+    if (!storage) {
+      return;
+    }
     try {
-      await AsyncStorage.setItem(key, JSON.stringify(value));
+      await storage.setItem(key, JSON.stringify(value));
     } catch {
       //
     }
   }
 
   async remove(key: string): Promise<void> {
+    const storage = getAsyncStorage();
+    if (!storage) {
+      return;
+    }
     try {
-      await AsyncStorage.removeItem(key);
+      await storage.removeItem(key);
     } catch {
       //
     }
   }
 
   async reset(): Promise<void> {
+    const storage = getAsyncStorage();
+    if (!storage) {
+      return;
+    }
     try {
-      await AsyncStorage.clear();
+      await storage.clear();
     } catch {
       //
     }

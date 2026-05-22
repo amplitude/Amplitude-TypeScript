@@ -60,4 +60,29 @@ describe('local-storage', () => {
       expect(await localStorage.get('2')).toBe(undefined);
     });
   });
+
+  describe('without AsyncStorage installed', () => {
+    test('should degrade to a no-op when the package cannot be resolved', async () => {
+      jest.resetModules();
+      jest.doMock('@react-native-async-storage/async-storage', () => {
+        throw new Error('Module not found');
+      });
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/no-unsafe-member-access
+        const { LocalStorage: LocalStorageNoAS } = require('../../src/storage/local-storage') as {
+          LocalStorage: typeof LocalStorage;
+        };
+        const storage = new LocalStorageNoAS<string>();
+        expect(await storage.isEnabled()).toBe(false);
+        expect(await storage.get('k')).toBe(undefined);
+        expect(await storage.getRaw('k')).toBe(undefined);
+        await storage.set('k', 'v');
+        await storage.remove('k');
+        await storage.reset();
+      } finally {
+        jest.dontMock('@react-native-async-storage/async-storage');
+        jest.resetModules();
+      }
+    });
+  });
 });

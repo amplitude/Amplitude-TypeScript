@@ -15,7 +15,7 @@ Please visit our :100:[Developer Center](https://www.docs.developers.amplitude.c
 
 ## Installation
 
-To get started with using Amplitude React Native SDK, install the package to your project via NPM. In addition, this package relies on `@react-native-async-storage/async-storage`, which must also be installed.
+To get started with using Amplitude React Native SDK, install the package to your project via NPM. By default the SDK uses `@react-native-async-storage/async-storage` to persist identity and event queue across app launches, so install it alongside the SDK.
 
 ```sh
 # npm
@@ -26,6 +26,36 @@ npm install @react-native-async-storage/async-storage
 yarn add @amplitude/analytics-react-native
 yarn add @react-native-async-storage/async-storage
 ```
+
+## Opting out of AsyncStorage
+
+If you'd rather use your own storage backend (for example `react-native-mmkv`, an encrypted store, or SQLite), you can supply a custom storage provider and exclude AsyncStorage from your native build entirely.
+
+1. Implement the `Storage` interface and pass it as `storageProvider`:
+
+   ```typescript
+   import { init } from '@amplitude/analytics-react-native';
+
+   init(API_KEY, {
+     storageProvider: myStorageProvider,
+   });
+   ```
+
+2. Exclude AsyncStorage from native autolinking by adding to your `react-native.config.js`:
+
+   ```js
+   module.exports = {
+     dependencies: {
+       '@react-native-async-storage/async-storage': {
+         platforms: { ios: null, android: null },
+       },
+     },
+   };
+   ```
+
+   The JS package stays in `node_modules` (~1 KB) but is never invoked at runtime, and AsyncStorage is no longer linked into your iOS or Android binaries.
+
+3. For React Native Web, configure Metro to tree-shake the AsyncStorage import out of your web bundle.
 
 ## Usage
 
