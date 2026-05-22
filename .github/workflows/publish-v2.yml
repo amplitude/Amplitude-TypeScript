@@ -179,7 +179,7 @@ jobs:
 
       # Report bundle size to Amplitude
       - name: Report bundle size to Amplitude
-        allow-failure: true
+        continue-on-error: true
         env:
           AMPLITUDE_API_KEY: ${{ secrets.AMPLITUDE_API_KEY }}
         run: |
