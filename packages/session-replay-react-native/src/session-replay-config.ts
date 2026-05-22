@@ -98,15 +98,16 @@ export interface SessionReplayConfig {
   sessionId?: number;
 }
 
-export const getDefaultConfig: () => Required<Omit<SessionReplayConfig, 'apiKey'>> = () => {
+export const getDefaultConfig: () => Required<Omit<SessionReplayConfig, 'apiKey' | 'privacyConfig' | 'maskLevel'>> & {
+  privacyConfig?: PrivacyConfig;
+  maskLevel?: MaskLevel;
+} = () => {
   return {
     autoStart: true,
     deviceId: null,
     enableRemoteConfig: true,
     logLevel: LogLevel.Warn,
-    maskLevel: MaskLevel.Medium,
     optOut: false,
-    privacyConfig: { maskLevel: MaskLevel.Medium },
     sampleRate: 0,
     serverZone: 'US',
     sessionId: -1,

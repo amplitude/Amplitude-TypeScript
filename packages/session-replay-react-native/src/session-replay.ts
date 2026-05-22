@@ -1,11 +1,16 @@
 // @refresh reset
 
 import { NativeSessionReplay, type NativeSessionReplayConfig } from './native-module';
-import { getDefaultConfig, SessionReplayConfig } from './session-replay-config';
+import { getDefaultConfig, MaskLevel, PrivacyConfig, SessionReplayConfig } from './session-replay-config';
 import { createSessionReplayLogger } from './logger';
 import { VERSION } from './version';
 
-let fullConfig: Required<SessionReplayConfig> | null = null;
+type ResolvedSessionReplayConfig = Required<Omit<SessionReplayConfig, 'privacyConfig' | 'maskLevel'>> & {
+  privacyConfig?: PrivacyConfig;
+  maskLevel?: MaskLevel;
+};
+
+let fullConfig: ResolvedSessionReplayConfig | null = null;
 let isInitialized = false;
 let logger = createSessionReplayLogger();
 
@@ -206,8 +211,8 @@ export async function stop(): Promise<void> {
   await NativeSessionReplay.stop();
 }
 
-function nativeConfig(config: Required<SessionReplayConfig>): NativeSessionReplayConfig {
-  const resolvedMaskLevel = config.privacyConfig?.maskLevel ?? config.maskLevel;
+function nativeConfig(config: ResolvedSessionReplayConfig): NativeSessionReplayConfig {
+  const resolvedMaskLevel = config.privacyConfig?.maskLevel ?? config.maskLevel ?? MaskLevel.Medium;
   return {
     ...config,
     logLevel: config.logLevel as NativeSessionReplayConfig['logLevel'],
