@@ -114,5 +114,23 @@ describe('Session Replay Integration Tests', () => {
 
       expect(setupMock).toHaveBeenCalledWith(expect.objectContaining({ maskLevel: 'medium' }));
     });
+
+    it('forwards a user-supplied `privacyConfig.maskLevel` to the native module without the default overwriting it', async () => {
+      const setupMock = await runInIsolatedModule({
+        apiKey: 'test-api-key',
+        privacyConfig: { maskLevel: MaskLevel.Conservative },
+      });
+
+      expect(setupMock).toHaveBeenCalledWith(expect.objectContaining({ maskLevel: 'conservative' }));
+    });
+
+    it('does not pass the internal `privacyConfig` object through to the native module', async () => {
+      const setupMock = await runInIsolatedModule({
+        apiKey: 'test-api-key',
+        privacyConfig: { maskLevel: MaskLevel.Light },
+      });
+
+      expect(setupMock).toHaveBeenCalledWith(expect.not.objectContaining({ privacyConfig: expect.anything() }));
+    });
   });
 });

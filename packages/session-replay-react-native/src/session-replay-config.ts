@@ -98,16 +98,25 @@ export interface SessionReplayConfig {
   sessionId?: number;
 }
 
-export const getDefaultConfig: () => Required<Omit<SessionReplayConfig, 'apiKey' | 'privacyConfig' | 'maskLevel'>> & {
-  privacyConfig?: PrivacyConfig;
-  maskLevel?: MaskLevel;
-} = () => {
+/**
+ * Internal config shape used by the SDK after the public `SessionReplayConfig`
+ * is normalized at the input boundary. The deprecated top-level `maskLevel` is
+ * folded into `privacyConfig` by `normalizeConfig`, so nothing past that point
+ * needs to know the deprecated field ever existed.
+ *
+ * Not exported from `index.tsx` on purpose — this is an implementation detail
+ * of the session replay module.
+ */
+export type SessionReplayConfigInternal = Omit<SessionReplayConfig, 'maskLevel'>;
+
+export const getDefaultConfig: () => Required<Omit<SessionReplayConfigInternal, 'apiKey'>> = () => {
   return {
     autoStart: true,
     deviceId: null,
     enableRemoteConfig: true,
     logLevel: LogLevel.Warn,
     optOut: false,
+    privacyConfig: { maskLevel: MaskLevel.Medium },
     sampleRate: 0,
     serverZone: 'US',
     sessionId: -1,

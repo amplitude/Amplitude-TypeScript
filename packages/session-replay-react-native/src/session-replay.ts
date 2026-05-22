@@ -1,14 +1,32 @@
 // @refresh reset
 
 import { NativeSessionReplay, type NativeSessionReplayConfig } from './native-module';
-import { getDefaultConfig, MaskLevel, PrivacyConfig, SessionReplayConfig } from './session-replay-config';
+import {
+  getDefaultConfig,
+  PrivacyConfig,
+  SessionReplayConfig,
+  SessionReplayConfigInternal,
+} from './session-replay-config';
 import { createSessionReplayLogger } from './logger';
 import { VERSION } from './version';
 
-type ResolvedSessionReplayConfig = Required<Omit<SessionReplayConfig, 'privacyConfig' | 'maskLevel'>> & {
-  privacyConfig?: PrivacyConfig;
-  maskLevel?: MaskLevel;
-};
+type ResolvedSessionReplayConfig = Required<Omit<SessionReplayConfigInternal, 'apiKey'>> &
+  Pick<SessionReplayConfig, 'apiKey'>;
+
+/**
+ * Translates the public `SessionReplayConfig` into the internal shape by
+ * folding the deprecated top-level `maskLevel` into `privacyConfig`. After
+ * this step, the rest of the SDK only ever sees `privacyConfig`.
+ */
+function normalizeConfig(config: SessionReplayConfig): SessionReplayConfigInternal {
+  const { maskLevel, privacyConfig, ...rest } = config;
+  // `privacyConfig` wins when explicitly set; otherwise translate the
+  // deprecated `maskLevel`; otherwise leave the field out so the default
+  // supplied by `getDefaultConfig()` survives the shallow merge in `init()`.
+  const normalizedPrivacyConfig: PrivacyConfig | undefined =
+    privacyConfig ?? (maskLevel !== undefined ? { maskLevel } : undefined);
+  return normalizedPrivacyConfig === undefined ? rest : { ...rest, privacyConfig: normalizedPrivacyConfig };
+}
 
 let fullConfig: ResolvedSessionReplayConfig | null = null;
 let isInitialized = false;
@@ -38,9 +56,13 @@ export async function init(config: SessionReplayConfig): Promise<void> {
     return;
   }
 
+  // TODO: this is a shallow merge — a user-supplied `privacyConfig` replaces
+  // the default object wholesale. That's fine while `PrivacyConfig` only
+  // carries `maskLevel`, but if it ever grows more fields a deeper merge will
+  // be needed so partial user configs don't drop defaults.
   fullConfig = {
     ...getDefaultConfig(),
-    ...config,
+    ...normalizeConfig(config),
   };
 
   logger.setLogLevel(fullConfig.logLevel);
@@ -212,11 +234,16 @@ export async function stop(): Promise<void> {
 }
 
 function nativeConfig(config: ResolvedSessionReplayConfig): NativeSessionReplayConfig {
-  const resolvedMaskLevel = config.privacyConfig?.maskLevel ?? config.maskLevel ?? MaskLevel.Medium;
+  // `privacyConfig.maskLevel` is guaranteed to be set by the merge in
+  // `init()`: `getDefaultConfig()` supplies `{ maskLevel: Medium }` and the
+  // shallow spread only overwrites it with a normalized `privacyConfig` that
+  // carries a `maskLevel`. Strip `privacyConfig` from the spread because the
+  // native bridge only takes a flat `maskLevel` string.
+  const { privacyConfig, ...rest } = config;
   return {
-    ...config,
-    logLevel: config.logLevel as NativeSessionReplayConfig['logLevel'],
-    maskLevel: resolvedMaskLevel.toString() as NativeSessionReplayConfig['maskLevel'],
+    ...rest,
+    logLevel: rest.logLevel as NativeSessionReplayConfig['logLevel'],
+    maskLevel: privacyConfig.maskLevel as NativeSessionReplayConfig['maskLevel'],
   };
 }
 
