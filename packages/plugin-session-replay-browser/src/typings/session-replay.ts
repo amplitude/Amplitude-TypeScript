@@ -11,6 +11,12 @@ import {
  */
 export type CrossOriginIframesConfig = NonNullable<StandaloneSessionReplayOptions['crossOriginIframes']>;
 
+/**
+ * Configuration for rrweb event-split flush cadence.
+ * Extracted from the standalone SDK's SessionReplayOptions.
+ */
+export type FlushIntervalConfig = NonNullable<StandaloneSessionReplayOptions['flushIntervalConfig']>;
+
 export type MaskLevel =
   | 'light' // only mask a subset of inputs that’s deemed sensitive - password, credit card, telephone #, email. These are information we never want to capture.
   | 'medium' // mask all inputs
@@ -179,4 +185,8 @@ export interface SessionReplayOptions {
    * @see {@link StandaloneSessionReplayOptions.crossOriginIframes}
    */
   crossOriginIframes?: CrossOriginIframesConfig;
+  /**
+   * @see {@link StandaloneSessionReplayOptions.flushIntervalConfig}
+   */
+  flushIntervalConfig?: FlushIntervalConfig;
 }

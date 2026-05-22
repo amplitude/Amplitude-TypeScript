@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.31.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@1.30.5...@amplitude/plugin-session-replay-browser@1.31.0) (2026-05-22)
+
+
+### Features
+
+* **plugin-session-replay-browser:** add flushIntervalConfig passthrough ([#1769](https://github.com/amplitude/Amplitude-TypeScript/issues/1769)) ([9ef2365](https://github.com/amplitude/Amplitude-TypeScript/commit/9ef2365e1f4645a675581fe1a4e98e65bb9ead38))
+
+
+
+
+
 ## [1.30.5](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@1.30.4...@amplitude/plugin-session-replay-browser@1.30.5) (2026-05-21)
 
 **Note:** Version bump only for package @amplitude/plugin-session-replay-browser

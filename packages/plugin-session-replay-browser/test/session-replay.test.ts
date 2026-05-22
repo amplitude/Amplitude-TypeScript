@@ -150,6 +150,26 @@ describe('SessionReplayPlugin', () => {
       expect(init).toHaveBeenCalledWith('static_key', expect.objectContaining({ storeType: 'idb' }));
     });
 
+    test('should pass flushIntervalConfig through to session replay (undefined when not set)', async () => {
+      const sessionReplay = new SessionReplayPlugin();
+
+      await sessionReplay.setup?.(mockConfig, mockAmplitude);
+
+      expect(init).toHaveBeenCalledWith('static_key', expect.objectContaining({ flushIntervalConfig: undefined }));
+    });
+
+    test('should pass flushIntervalConfig through to session replay when provided', async () => {
+      const flushIntervalConfig = { minIntervalMs: 1000, maxIntervalMs: 5000 };
+      const sessionReplay = new SessionReplayPlugin({ flushIntervalConfig });
+
+      await sessionReplay.setup?.(mockConfig, mockAmplitude);
+
+      expect(init).toHaveBeenCalledWith(
+        'static_key',
+        expect.objectContaining({ flushIntervalConfig: { minIntervalMs: 1000, maxIntervalMs: 5000 } }),
+      );
+    });
+
     describe('defaultTracking', () => {
       test('should not change defaultTracking when forceSessionTracking is not defined', async () => {
         const sessionReplay = new SessionReplayPlugin();
