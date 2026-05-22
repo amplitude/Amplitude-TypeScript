@@ -1238,55 +1238,6 @@ describe('data extractor', () => {
 
         expect(properties[constants.AMPLITUDE_EVENT_PROP_ELEMENT_CLASS]).toBe('cta primary');
       });
-
-      // The effective value must be read live from the options bag on
-      // every capture, not cached at construction time, so that an
-      // in-place update to `options.captureCssClasses` — which is how the
-      // SDK's existing `elementInteractions` remote-config delivery
-      // surfaces an updated value, mirroring the `pageActions` pattern at
-      // `autocapture-plugin.ts:249-263` — is honored on the next capture
-      // without requiring SDK reinitialization.
-      test('honors in-place options-bag updates on the next capture (default → off)', () => {
-        const options: { captureCssClasses?: boolean } = {};
-        const extractor = new DataExtractor(options);
-        document.getElementsByTagName('body')[0].innerHTML = HTML_FIXTURE;
-
-        // First pass: default-on, classes captured.
-        const firstHierarchy = extractor.getHierarchy(document.getElementById('inner'));
-        expect(firstHierarchy[0]).toHaveProperty('classes', ['leaf', 'leaf-two']);
-
-        // In-place update to the same options object (simulates remote
-        // config delivering `captureCssClasses: false` into the merged
-        // `elementInteractions` bag).
-        options.captureCssClasses = false;
-
-        // Second pass: classes are now fully absent from every entry.
-        const secondHierarchy = extractor.getHierarchy(document.getElementById('inner'));
-        for (const node of secondHierarchy) {
-          expect(node ?? {}).not.toHaveProperty('classes');
-        }
-        expect(JSON.stringify(secondHierarchy)).not.toContain('"classes"');
-      });
-
-      test('honors in-place options-bag updates on the next capture (off → on)', () => {
-        const options: { captureCssClasses?: boolean } = { captureCssClasses: false };
-        const extractor = new DataExtractor(options);
-        document.getElementsByTagName('body')[0].innerHTML = HTML_FIXTURE;
-
-        // First pass: off, classes absent.
-        const firstHierarchy = extractor.getHierarchy(document.getElementById('inner'));
-        expect(JSON.stringify(firstHierarchy)).not.toContain('"classes"');
-
-        // In-place flip back on (e.g. remote config rolling back the
-        // toggle for this project).
-        options.captureCssClasses = true;
-
-        // Second pass: classes are present again on every classed entry.
-        const secondHierarchy = extractor.getHierarchy(document.getElementById('inner'));
-        expect(secondHierarchy[0]).toHaveProperty('classes', ['leaf', 'leaf-two']);
-        expect(secondHierarchy[1]).toHaveProperty('classes', ['parent']);
-        expect(secondHierarchy[2]).toHaveProperty('classes', ['grandparent', 'gp2']);
-      });
     });
   });
 

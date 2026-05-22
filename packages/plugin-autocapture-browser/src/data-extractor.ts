@@ -28,12 +28,6 @@ import { cssPath } from './libs/element-path';
 
 export class DataExtractor {
   private readonly additionalMaskTextPatterns: RegExp[];
-  // Live reference to the autocapture plugin's `ElementInteractionsOptions`
-  // bag. Read per-capture (not cached at construction time) so that updates
-  // delivered via the SDK's existing `elementInteractions` remote-config
-  // delivery — which mutates this bag in place, the same way `pageActions`
-  // is updated at `autocapture-plugin.ts:249-263` — are honored on the
-  // next capture without requiring SDK reinitialization.
   private readonly options: ElementInteractionsOptions;
   diagnosticsClient?: IDiagnosticsClient;
 
@@ -96,12 +90,6 @@ export class DataExtractor {
       }
     }
 
-    // Read the effective `captureCssClasses` value live from the options
-    // bag on every capture. Default `true` (option `undefined` or `true`)
-    // preserves the previous wire-format. Setting `false` — whether at
-    // plugin construction or via a later in-place update to the
-    // already-merged `elementInteractions` options bag — omits the
-    // `classes` field from every hierarchy entry on the next capture.
     const captureCssClasses = this.options.captureCssClasses !== false;
 
     hierarchy = ancestors.map((el) =>

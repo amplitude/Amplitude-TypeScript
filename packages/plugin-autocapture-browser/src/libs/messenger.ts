@@ -83,18 +83,6 @@ export function enableVisualTagging(
     cssSelectorAllowlist?: string[];
     actionClickAllowlist?: string[];
     dataExtractor: DataExtractor;
-    /**
-     * Live reference to the autocapture plugin's effective
-     * `ElementInteractionsOptions` bag (post-merge of local options +
-     * remote-config delivery). Because mutations to this bag — the
-     * channel the SDK's existing `elementInteractions` remote-config
-     * delivery uses, mirroring the `pageActions` pattern — are visible
-     * through this same reference, no getter indirection is needed.
-     * Forwarded to the visual-tagging selector instance so the iframe
-     * can branch on `captureCssClasses` and any future
-     * `elementInteractions` capture toggle without re-extending the
-     * messenger contract.
-     */
     elementInteractionsOptions?: ElementInteractionsOptions;
   },
 ): void {
@@ -145,12 +133,6 @@ export function enableVisualTagging(
             actionClickAllowlist,
             extractDataFromDataSource: dataExtractor.extractDataFromDataSource,
             dataExtractor,
-            // Live reference to the effective `elementInteractions`
-            // options bag. The selector iframe reads
-            // `captureCssClasses` (and any future `elementInteractions`
-            // capture toggle) directly off this object so the UI / AI
-            // flows stay consistent with what the SDK is actually
-            // capturing.
             elementInteractionsOptions,
             diagnostics: {
               autocapture: {

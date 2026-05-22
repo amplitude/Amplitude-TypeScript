@@ -71,9 +71,6 @@ export function getElementProperties(
     properties.id = String(id);
   }
 
-  // When captureCssClasses is false, omit the `classes` field from each
-  // hierarchy entry entirely (never `null`, never `[]`). Default `true`
-  // preserves byte-equivalent behavior with previous SDK versions.
   if (captureCssClasses) {
     const classes = Array.from(element.classList);
     if (classes.length) {

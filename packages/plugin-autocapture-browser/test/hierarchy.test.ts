@@ -100,7 +100,6 @@ describe('autocapture-plugin hierarchy', () => {
         `;
 
         const inner = document.getElementById('inner');
-        // No third argument — must behave byte-equivalent to today.
         expect(HierarchyUtil.getElementProperties(inner, new Set())).toEqual({
           id: 'inner',
           index: 0,

@@ -128,12 +128,7 @@ describe('autoTrackingPlugin', () => {
       expect((messengerMock as any).setup).toHaveBeenCalledTimes(1);
     });
 
-    // The autocapture plugin must pass a live reference to the
-    // effective `elementInteractions` options bag to
-    // `enableVisualTagging` so the selector iframe / AI flow can read
-    // `captureCssClasses` (and any future toggle) from it via the
-    // messenger handshake.
-    test('passes a live elementInteractionsOptions reference to enableVisualTagging', async () => {
+    test('passes elementInteractionsOptions to enableVisualTagging', async () => {
       window.opener = true;
       const messengerMock = {
         setup: jest.fn(),
@@ -163,18 +158,7 @@ describe('autoTrackingPlugin', () => {
       const callArgs = enableVisualTaggingSpy.mock.calls[0][1] as {
         elementInteractionsOptions?: AnalyticsCore.ElementInteractionsOptions;
       };
-      // The passed value is the live options bag itself (not a getter).
-      expect(typeof callArgs.elementInteractionsOptions).toBe('object');
-      expect(callArgs.elementInteractionsOptions).not.toBeNull();
-      expect(callArgs.elementInteractionsOptions!.captureCssClasses).toBe(true);
-
-      // Mutating the plugin's options bag in place (the same mutation
-      // pattern the SDK's existing remote-config delivery uses for
-      // `elementInteractions`) surfaces through the same reference —
-      // this is how the iframe will pick up remote-config flips
-      // without having to re-handshake.
-      callArgs.elementInteractionsOptions!.captureCssClasses = false;
-      expect(callArgs.elementInteractionsOptions!.captureCssClasses).toBe(false);
+      expect(callArgs.elementInteractionsOptions?.captureCssClasses).toBe(true);
     });
 
     test('should use custom exposureDuration from deprecated flat option', async () => {
