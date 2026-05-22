@@ -179,4 +179,8 @@ export interface SessionReplayOptions {
    * @see {@link StandaloneSessionReplayOptions.crossOriginIframes}
    */
   crossOriginIframes?: CrossOriginIframesConfig;
+  /**
+   * @see {@link StandaloneSessionReplayOptions.flushIntervalConfig}
+   */
+  flushIntervalConfig?: NonNullable<StandaloneSessionReplayOptions['flushIntervalConfig']>;
 }
