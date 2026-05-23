@@ -119,6 +119,30 @@ describe('local-storage', () => {
       }
     });
 
+    test('should warn when MODULE_NOT_FOUND is about a transitive dependency, not our package', async () => {
+      jest.resetModules();
+      jest.doMock('@react-native-async-storage/async-storage', () => {
+        const err = new Error("Cannot find module 'some-transitive-dep'") as NodeJS.ErrnoException;
+        err.code = 'MODULE_NOT_FOUND';
+        throw err;
+      });
+      const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/no-unsafe-member-access
+        const { LocalStorage: LS } = require('../../src/storage/local-storage') as {
+          LocalStorage: typeof LocalStorage;
+        };
+        const storage = new LS<string>();
+        expect(await storage.isEnabled()).toBe(false);
+        // A broken transitive install must NOT be silently swallowed: we want
+        // the customer to see the error so they can fix their install.
+        expect(warnSpy).toHaveBeenCalledTimes(1);
+      } finally {
+        warnSpy.mockRestore();
+        jest.resetModules();
+      }
+    });
+
     test('getRaw should swallow native bridge errors when the JS package is present', async () => {
       jest.resetModules();
       jest.doMock('@react-native-async-storage/async-storage', () => ({

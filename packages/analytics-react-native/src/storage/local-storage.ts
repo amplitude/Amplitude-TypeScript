@@ -31,12 +31,16 @@ const getAsyncStorage = (): AsyncStorageLike | undefined => {
     asyncStorage = mod?.default ?? mod;
   } catch (e) {
     asyncStorage = undefined;
-    // Only swallow "package not installed" silently — that's the supported
-    // opt-out path. Anything else (broken install, syntax error in the package,
-    // permission issues) should be surfaced so it can be diagnosed instead of
+    // Only swallow "this exact package is not installed" silently — that's
+    // the supported opt-out path. Anything else — including a `MODULE_NOT_FOUND`
+    // that's actually about a transitive dependency, or syntax/eval errors in
+    // the package itself — should be surfaced so it can be diagnosed instead of
     // silently degrading to in-memory storage.
     const code = (e as NodeJS.ErrnoException | undefined)?.code;
-    if (code !== 'MODULE_NOT_FOUND') {
+    const message = e instanceof Error ? e.message : '';
+    const ourPackageMissing =
+      code === 'MODULE_NOT_FOUND' && message.includes('@react-native-async-storage/async-storage');
+    if (!ourPackageMissing) {
       // eslint-disable-next-line no-console
       console.warn('[Amplitude] Failed to load @react-native-async-storage/async-storage; persistence is disabled.', e);
     }
