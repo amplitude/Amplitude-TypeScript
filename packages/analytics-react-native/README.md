@@ -29,15 +29,23 @@ yarn add @react-native-async-storage/async-storage
 
 ## Opting out of AsyncStorage
 
-If you'd rather use your own storage backend (for example `react-native-mmkv`, an encrypted store, or SQLite), you can supply a custom storage provider and exclude AsyncStorage from your native build entirely.
+If you'd rather use your own storage backend (for example `react-native-mmkv`, an encrypted store, or SQLite), you can supply your own storage and exclude AsyncStorage from your native build.
 
-1. Implement the `Storage` interface and pass it as `storageProvider`:
+The SDK uses two separate storage slots:
+
+- `storageProvider` — the event queue (events waiting to be flushed to Amplitude).
+- `cookieStorage` — identity / session state (device ID, user ID, session ID).
+
+To fully opt out, override **both**. If you only override `storageProvider`, the SDK still tries to read/write identity through the default chain, which falls back to AsyncStorage on native — and if you've also removed AsyncStorage, identity degrades to in-memory and resets on every app launch.
+
+1. Implement the `Storage` interface and pass both slots:
 
    ```typescript
    import { init } from '@amplitude/analytics-react-native';
 
    init(API_KEY, {
-     storageProvider: myStorageProvider,
+     storageProvider: myEventQueueStorage,
+     cookieStorage: myIdentityStorage,
    });
    ```
 
@@ -53,7 +61,7 @@ If you'd rather use your own storage backend (for example `react-native-mmkv`, a
    };
    ```
 
-   The JS package stays in `node_modules` (~1 KB) but is never invoked at runtime, and AsyncStorage is no longer linked into your iOS or Android binaries.
+   AsyncStorage is no longer linked into your iOS or Android binaries. The JS package stays in `node_modules` so `require()` still resolves, but with both storage slots overridden, the SDK never invokes any AsyncStorage methods.
 
 3. For React Native Web (webpack), the `@react-native-async-storage/async-storage` JS package will still be reachable from the web bundle. If you want to remove it entirely, alias the package to a stub in your webpack config.
 
