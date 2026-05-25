@@ -4,13 +4,21 @@ appId: org.reactjs.native.example.app
 #
 # This example app deliberately exercises the SDK's "opt out of AsyncStorage"
 # path:
-#   - react-native.config.js excludes RNCAsyncStorage from native autolinking
-#   - App.tsx overrides storageProvider + cookieStorage with in-memory storage
-#   - @react-native-async-storage/async-storage is not in this app's package.json
+#   - react-native.config.js excludes RNCAsyncStorage from native autolinking,
+#     so the RNCAsyncStorage native module is null at runtime (verifiable by
+#     grepping ios/Podfile.lock for RNCAsyncStorage — 0 matches).
+#   - App.tsx overrides storageProvider + cookieStorage with in-memory storage,
+#     so the SDK never reaches the default LocalStorage fallback chain.
 #
-# If the SDK regresses to its old static `import AsyncStorage` (or any code path
-# that touches AsyncStorage method without graceful handling), the app crashes
-# at boot with:
+# Note: the JS package @react-native-async-storage/async-storage is still
+# resolvable from node_modules (it's a transitive dep of the SDK), so the JS
+# side of require() succeeds. The crash we're guarding against happens when
+# *any* code path actually calls a method on the resolved AsyncStorage object —
+# at that point the missing native module throws synchronously.
+#
+# If the SDK regresses to its old static `import AsyncStorage` (or any code
+# path that touches an AsyncStorage method without graceful handling), the
+# app crashes at boot with:
 #   Unhandled JS Exception: [@RNC/AsyncStorage]: NativeModule: AsyncStorage is null
 # In that case the title below would never render and this flow fails.
 #
