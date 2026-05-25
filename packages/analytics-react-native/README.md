@@ -38,12 +38,12 @@ The SDK uses two separate storage slots:
 
 To fully opt out, override **both**. If you only override `storageProvider`, the SDK still tries to read/write identity through the default chain, which falls back to AsyncStorage on native — and if you've also removed AsyncStorage, identity degrades to in-memory and resets on every app launch.
 
-1. Implement the `Storage` interface and pass both slots:
+1. Implement the `Storage` interface and pass both slots. Note that `init`'s signature is `(apiKey, userId, options)` — pass `undefined` for `userId` so the overrides land in the options slot, not on `userId`:
 
    ```typescript
    import { init } from '@amplitude/analytics-react-native';
 
-   init(API_KEY, {
+   init(API_KEY, undefined, {
      storageProvider: myEventQueueStorage,
      cookieStorage: myIdentityStorage,
    });
@@ -63,7 +63,137 @@ To fully opt out, override **both**. If you only override `storageProvider`, the
 
    AsyncStorage is no longer linked into your iOS or Android binaries. The JS package stays in `node_modules` so `require()` still resolves, but with both storage slots overridden, the SDK never invokes any AsyncStorage methods.
 
-3. For React Native Web (webpack), the `@react-native-async-storage/async-storage` JS package will still be reachable from the web bundle. If you want to remove it entirely, alias the package to a stub in your webpack config.
+3. For React Native Web, exclude AsyncStorage from your web bundle.
+
+   Once you've completed steps 1 and 2, the SDK never calls AsyncStorage at runtime — but the `@react-native-async-storage/async-storage` package is still reachable from `node_modules`, so any web bundler will pull it into the JS bundle by default. To shrink the bundle and remove the dead code, configure your bundler to resolve the package to an empty stub.
+
+   First, create a stub file at a path of your choice (e.g. `stubs/async-storage.js`):
+
+   ```js
+   // stubs/async-storage.js
+   //
+   // No-op AsyncStorage stub used in web builds. The SDK should never call these
+   // methods because `storageProvider` and `cookieStorage` are both overridden,
+   // but exposing the full surface avoids any runtime surprises if some path
+   // does reach here.
+   const noop = async () => undefined;
+   const noopReturningNull = async () => null;
+
+   const stub = {
+     getItem: noopReturningNull,
+     setItem: noop,
+     removeItem: noop,
+     clear: noop,
+     getAllKeys: async () => [],
+     multiGet: async () => [],
+     multiSet: noop,
+     multiRemove: noop,
+     mergeItem: noop,
+     multiMerge: noop,
+   };
+
+   module.exports = stub;
+   module.exports.default = stub;
+   ```
+
+   Then wire the stub in for each bundler you use:
+
+   **Webpack** (Create React App ejected, Craco, custom webpack, react-native-web template, etc.)
+
+   ```js
+   // webpack.config.js
+   const path = require('path');
+
+   module.exports = {
+     // ...existing config
+     resolve: {
+       alias: {
+         '@react-native-async-storage/async-storage': path.resolve(
+           __dirname,
+           'stubs/async-storage.js',
+         ),
+       },
+     },
+   };
+   ```
+
+   If you don't want to maintain a stub file, webpack 5 also accepts `false` to resolve the import to an empty module. The SDK's internal try/catch will swallow the resulting "method is not a function" errors, but every storage call still attempts the import, so the stub file above is preferred.
+
+   **Next.js** (using next-transpile-modules or built-in transpilePackages for RN Web)
+
+   ```js
+   // next.config.js
+   const path = require('path');
+
+   module.exports = {
+     // ...existing config
+     webpack: (config) => {
+       config.resolve.alias['@react-native-async-storage/async-storage'] = path.resolve(
+         __dirname,
+         'stubs/async-storage.js',
+       );
+       return config;
+     },
+   };
+   ```
+
+   **Vite** (used by some RN Web setups, e.g. via `vite-plugin-react-native-web`)
+
+   ```js
+   // vite.config.js
+   import path from 'node:path';
+   import { defineConfig } from 'vite';
+
+   export default defineConfig({
+     resolve: {
+       alias: {
+         '@react-native-async-storage/async-storage': path.resolve(
+           __dirname,
+           'stubs/async-storage.js',
+         ),
+       },
+     },
+   });
+   ```
+
+   **Expo Web (Metro)** — Expo SDK 50+ uses Metro for web bundling. Use Metro's `resolveRequest` to short-circuit the package on the `web` platform only, so native builds still resolve the real package (or its native exclusion via step 2):
+
+   ```js
+   // metro.config.js
+   const { getDefaultConfig } = require('expo/metro-config');
+   const path = require('node:path');
+
+   const config = getDefaultConfig(__dirname);
+
+   const stubPath = path.resolve(__dirname, 'stubs/async-storage.js');
+
+   const originalResolveRequest = config.resolver.resolveRequest;
+   config.resolver.resolveRequest = (context, moduleName, platform) => {
+     if (platform === 'web' && moduleName === '@react-native-async-storage/async-storage') {
+       return { type: 'sourceFile', filePath: stubPath };
+     }
+     if (originalResolveRequest) {
+       return originalResolveRequest(context, moduleName, platform);
+     }
+     return context.resolveRequest(context, moduleName, platform);
+   };
+
+   module.exports = config;
+   ```
+
+   **Verifying the bundle no longer contains AsyncStorage**
+
+   After rebuilding, you can confirm AsyncStorage is gone in one of two ways:
+
+   - Run `npx source-map-explorer build/static/js/*.js` (or your bundler's equivalent) and search for `react-native-async-storage`. If the alias is wired correctly, only the stub file shows up.
+   - In a dev build, set a breakpoint inside the stub's `getItem` / `setItem`. If neither hits during a session that triggers identity reads (e.g. calling `getUserId()`), then steps 1 and 2 are also correctly applied and the stub is genuinely unused — at which point you can safely keep the stub purely as a build-time guard.
+
+   **Common gotchas**
+
+   - If your project uses both a server (SSR / Next.js API routes) and a browser bundle, apply the alias to both bundler configs. Otherwise the server-side render will still pull in the real package and may attempt to access `window`/`document`.
+   - Yarn PnP and pnpm with `nodeLinker: hoisted` resolve alias targets relative to a different root than npm. Use absolute paths (`path.resolve(__dirname, ...)`) rather than relative paths to avoid drift.
+   - If you're using Jest in the same project, your Jest config has its own `moduleNameMapper` — adding the alias to webpack/Vite/Metro does not apply to Jest. Add a matching entry in your Jest config if you want consistent behavior in tests.
+   - The Amplitude SDK package itself does not need to be transpiled differently after this change; the SDK's lazy `require()` runs at first storage method call, and the bundler's resolution picks up the stub at that point.
 
 ## Usage
 

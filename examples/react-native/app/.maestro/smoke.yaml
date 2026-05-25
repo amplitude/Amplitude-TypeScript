@@ -1,7 +1,39 @@
 appId: org.reactjs.native.example.app
 ---
+# Regression guard for SDKRN-8.
+#
+# This example app deliberately exercises the SDK's "opt out of AsyncStorage"
+# path:
+#   - react-native.config.js excludes RNCAsyncStorage from native autolinking
+#   - App.tsx overrides storageProvider + cookieStorage with in-memory storage
+#   - @react-native-async-storage/async-storage is not in this app's package.json
+#
+# If the SDK regresses to its old static `import AsyncStorage` (or any code path
+# that touches AsyncStorage method without graceful handling), the app crashes
+# at boot with:
+#   Unhandled JS Exception: [@RNC/AsyncStorage]: NativeModule: AsyncStorage is null
+# In that case the title below would never render and this flow fails.
+#
+# We also tap both Track buttons to exercise the SDK's runtime storage paths
+# (event queue + identity update) under the opted-out configuration. Each tap
+# should produce a toast labelled "Amplitude Response", proving the SDK's
+# promise pipeline completes without throwing.
 - launchApp
 - extendedWaitUntil:
     visible:
       text: "Test Amplitude App"
     timeout: 15000
+- tapOn: "Track Event"
+- extendedWaitUntil:
+    visible:
+      text: "Amplitude Response"
+    timeout: 10000
+- assertVisible:
+    text: "Test Amplitude App"
+- tapOn: "Track Identify"
+- extendedWaitUntil:
+    visible:
+      text: "Amplitude Response"
+    timeout: 10000
+- assertVisible:
+    text: "Test Amplitude App"
