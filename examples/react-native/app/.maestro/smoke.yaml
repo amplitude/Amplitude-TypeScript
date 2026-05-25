@@ -38,6 +38,14 @@ appId: org.reactjs.native.example.app
     timeout: 10000
 - assertVisible:
     text: "Test Amplitude App"
+# Wait for the first toast to dismiss before tapping the next button, so the
+# second `extendedWaitUntil: Amplitude Response` actually waits for the new
+# toast rather than passing immediately on the lingering one. react-native-
+# toast-message auto-dismisses after ~4s.
+- extendedWaitUntil:
+    notVisible:
+      text: "Amplitude Response"
+    timeout: 10000
 - tapOn: "Track Identify"
 - extendedWaitUntil:
     visible:
