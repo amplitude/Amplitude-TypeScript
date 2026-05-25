@@ -29,7 +29,7 @@ yarn add @react-native-async-storage/async-storage
 
 ## Opting out of AsyncStorage
 
-If you'd rather use your own storage client (for example `react-native-mmkv`, an encrypted store, or SQLite), you can supply your own storage and exclude AsyncStorage from your native build.
+If you'd rather use your own storage backend (for example `react-native-mmkv`, an encrypted store, or SQLite), you can supply your own storage and exclude AsyncStorage from your native build.
 
 The SDK uses two separate storage slots:
 
@@ -38,7 +38,7 @@ The SDK uses two separate storage slots:
 
 To fully opt out, override **both**. If you only override `storageProvider`, the SDK still tries to read/write identity through the default chain, which falls back to AsyncStorage on native — and if you've also removed AsyncStorage, identity degrades to in-memory and resets on every app launch.
 
-1. Implement the `Storage` interface and pass both slots. Note that `init`'s signature is `(apiKey, userId, options)` — pass `undefined` for `userId` so the overrides land in the options slot, not on `userId`:
+1. Implement the `Storage` interface and pass both slots. Note that `init`'s signature is `(apiKey, userId, options)` — pass `undefined` or the desired user ID for `userId` so the overrides land in the options slot:
 
    ```typescript
    import { init } from '@amplitude/analytics-react-native';
