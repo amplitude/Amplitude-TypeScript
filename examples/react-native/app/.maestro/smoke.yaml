@@ -23,9 +23,11 @@ appId: org.reactjs.native.example.app
 # In that case the title below would never render and this flow fails.
 #
 # We also tap both Track buttons to exercise the SDK's runtime storage paths
-# (event queue + identity update) under the opted-out configuration. Each tap
-# should produce a toast labelled "Amplitude Response", proving the SDK's
-# promise pipeline completes without throwing.
+# (event queue + identity update) under the opted-out configuration. App.tsx
+# shows a toast labelled "Amplitude Response" *synchronously* on each tap, so
+# the assertion below verifies the SDK call returned without throwing — without
+# depending on the SDK's promise resolution (which only fires when the event
+# is flushed to api2.amplitude.com, and that's slow / unreachable in CI).
 - launchApp
 - extendedWaitUntil:
     visible:

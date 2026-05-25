@@ -92,16 +92,24 @@ function App(): React.JSX.Element {
     });
   };
 
+  // Show a toast immediately on tap so the Maestro regression guard can
+  // verify the SDK call didn't crash without depending on network timing
+  // (the SDK's `.promise` only resolves once the event is actually flushed
+  // to api2.amplitude.com — which is slow / unreachable in CI runners).
+  // The SDK's eventual response is still surfaced in a second toast for
+  // local-dev visibility.
   const trackEventAndShowToast = (eventName: string) => {
-    track(eventName).promise.then(e => {
-      showToast(e.message);
-    });
+    showToast(`Track Event called: ${eventName}`);
+    track(eventName)
+      .promise.then(e => showToast(e.message))
+      .catch(e => showToast(`Error: ${String(e)}`));
   };
 
   const trackIdentifyAndShowToast = () => {
-    identify(new Identify().set('react-native-test', 'yes')).promise.then(e => {
-      showToast(e.message);
-    });
+    showToast('Track Identify called');
+    identify(new Identify().set('react-native-test', 'yes'))
+      .promise.then(e => showToast(e.message))
+      .catch(e => showToast(`Error: ${String(e)}`));
   };
 
   return (
