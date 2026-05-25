@@ -29,7 +29,7 @@ yarn add @react-native-async-storage/async-storage
 
 ## Opting out of AsyncStorage
 
-If you'd rather use your own storage backend (for example `react-native-mmkv`, an encrypted store, or SQLite), you can supply your own storage and exclude AsyncStorage from your native build.
+If you'd rather use your own storage client (for example `react-native-mmkv`, an encrypted store, or SQLite), you can supply your own storage and exclude AsyncStorage from your native build.
 
 The SDK uses two separate storage slots:
 
