@@ -7,30 +7,38 @@ interface AsyncStorageLike {
   clear(): Promise<void>;
 }
 
-let resolved = false;
-let asyncStorage: AsyncStorageLike | undefined;
-
+// Three sentinel states:
+//   undefined - not tried yet
+//   null      - tried, package isn't available (don't retry)
+//   object    - tried, succeeded
+//
 // Resolve AsyncStorage lazily so the module can be opted out of via custom
 // `storageProvider` + `react-native.config.js` autolinking exclusion without
 // the SDK throwing at module-load time.
 //
 // The result is cached for the app lifetime: `require()` is synchronous in
 // React Native and the module registry is stable, so retrying after a failed
-// resolution would never produce a different result.
-const getAsyncStorage = (): AsyncStorageLike | undefined => {
-  if (resolved) {
+// resolution would never produce a different result. Caching the failure as
+// `null` lets us skip re-running `require()` on every storage call — Metro
+// doesn't cache failed module resolutions, so without this we'd re-throw on
+// every storage call. See https://nodejs.org/api/modules.html#requirecache
+// for the success-case caching that `require()` gives us for free.
+let asyncStorage: AsyncStorageLike | null | undefined = undefined;
+
+const getAsyncStorage = (): AsyncStorageLike | null | undefined => {
+  if (asyncStorage !== undefined) {
     return asyncStorage;
   }
-  resolved = true;
   /* eslint-disable @typescript-eslint/no-var-requires, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access */
   try {
     const mod = require('@react-native-async-storage/async-storage');
     // Handles both ES-module (`{ default: AsyncStorage }`) and direct-export
     // shapes — e.g. `jest.mock(..., () => mockAsyncStorage)` returns the mock
-    // directly without a `default` wrapper.
-    asyncStorage = mod?.default ?? mod;
+    // directly without a `default` wrapper. The outer `?? null` ensures we
+    // never cache a falsy success value, which would be misread as "not tried".
+    asyncStorage = mod?.default ?? mod ?? null;
   } catch (e) {
-    asyncStorage = undefined;
+    asyncStorage = null;
     // Only swallow "this exact package is not installed" silently — that's
     // the supported opt-out path. Anything else — including a `MODULE_NOT_FOUND`
     // that's actually about a transitive dependency, or syntax/eval errors in
