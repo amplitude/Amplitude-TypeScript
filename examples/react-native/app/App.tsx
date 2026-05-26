@@ -72,7 +72,12 @@ class InMemoryStorage<T> implements Types.Storage<T> {
 // userId so the storage overrides land in the options slot — otherwise they
 // silently get bound to userId and the SDK falls back to the default storage
 // chain (which then tries to use AsyncStorage and throws at runtime).
-init('YOUR_API_KEY', undefined, {
+// AMPLITUDE_API_KEY is inlined at bundle time by
+// babel-plugin-transform-inline-environment-variables (see babel.config.js).
+// CI provides the value from a GitHub secret on the xcodebuild step; local
+// devs can `export AMPLITUDE_API_KEY=…` (or use direnv) before running
+// pnpm ios. With no env set, the fallback keeps the example app self-contained.
+init(process.env.AMPLITUDE_API_KEY || 'YOUR_API_KEY', undefined, {
   storageProvider: new InMemoryStorage(),
   cookieStorage: new InMemoryStorage(),
 });
