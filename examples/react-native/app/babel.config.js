@@ -7,6 +7,9 @@ module.exports = {
     // GitHub secret as an env to the xcodebuild step; local devs can
     // `export AMPLITUDE_API_KEY=…` (or use direnv) before running pnpm ios.
     // With no env var set, App.tsx falls back to the literal 'YOUR_API_KEY'.
-    ['transform-inline-environment-variables', {include: ['AMPLITUDE_API_KEY']}],
+    [
+      'transform-inline-environment-variables',
+      {include: ['AMPLITUDE_API_KEY']},
+    ],
   ],
 };
