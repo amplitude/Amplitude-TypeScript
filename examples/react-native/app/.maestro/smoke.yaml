@@ -1,6 +1,6 @@
 appId: org.reactjs.native.example.app
 ---
-># Regression guard for SDKRN-8.
+# Regression guard for SDKRN-8.
 #
 # This example app exercises the documented AsyncStorage opt-out recipe:
 #
