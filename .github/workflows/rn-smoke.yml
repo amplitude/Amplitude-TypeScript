@@ -36,6 +36,11 @@ jobs:
           node-version: 20
           cache: 'pnpm'
 
+      - name: Skip test if analytics-react-native is not changed
+        run: sh scripts/is-package-affected.sh @amplitude/analytics-react-native
+        if: failure()
+        run: exit 0
+
       - name: Setup Ruby for CocoaPods
         uses: ruby/setup-ruby@6aaa311d81eba98ae12eaffbcb63296ace0efcde # v1.307.0
         with:

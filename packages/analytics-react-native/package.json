@@ -41,7 +41,8 @@
     "version-file": "node -p \"'export const VERSION = \\'' + require('./package.json').version + '\\';'\" > src/version.ts",
     "typescript": "tsc --noEmit",
     "example": "yarn --cwd example",
-    "pods": "cd example && pod-install --quiet"
+    "pods": "cd example && pod-install --quiet",
+    "is-affected": ""
   },
   "source": "src/index",
   "files": [
