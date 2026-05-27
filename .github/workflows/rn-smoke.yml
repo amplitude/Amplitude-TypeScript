@@ -50,9 +50,9 @@ jobs:
           code=$?
           set -e
           if [ "$code" -eq 0 ]; then
-            echo "unaffected=false" >> "$GITHUB_OUTPUT"
-          else
             echo "unaffected=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "unaffected=false" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Skip smoke test (package not affected)
