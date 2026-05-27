@@ -40,8 +40,6 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Check if analytics-react-native is affected
-        id: package-affected
-        if: github.event_name == 'pull_request'
         run: |
           set +e
           sh scripts/is-package-unaffected.sh @amplitude/analytics-react-native
@@ -56,11 +54,6 @@ jobs:
       - name: Skip smoke test (package not affected)
         if: steps.package-affected.outputs.affected == 'false'
         run: echo "Skipping React Native smoke test — @amplitude/analytics-react-native is not in the affected set."
-
-      - name: Do not skip smoke test if not PR
-        id: package-affected
-        if: github.event_name != 'pull_request'
-        run: echo "affected=true" >> "$GITHUB_OUTPUT"
 
       - name: Setup Ruby for CocoaPods
         if: steps.package-affected.outputs.affected == 'true'
