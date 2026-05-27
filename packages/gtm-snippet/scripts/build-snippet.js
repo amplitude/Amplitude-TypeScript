@@ -20,7 +20,7 @@ const pluginSessionReplaySnippet = fs.readFileSync(pluginSnippetPath, 'utf8');
 // Read the engagement snippet (built from assistance-browser dynamic-script.ts).
 // Defaults to sibling repo layout: Documents/assistance-browser alongside Documents/Amplitude-TypeScript.
 // Override with ENGAGEMENT_SNIPPET_PATH env var if repos are arranged differently.
-const defaultEngagementPath = path.join(__dirname, '..', '..', '..', '..', '..', 'assistance-browser', 'packages', 'browser', 'build', 'engagement-script.min.js');
+const defaultEngagementPath = path.join(__dirname, '..', '..', '..', '..', 'assistance-browser', 'packages', 'browser', 'build', 'engagement-script.min.js');
 const engagementSnippetPath = process.env.ENGAGEMENT_SNIPPET_PATH || defaultEngagementPath;
 console.log('Reading engagement snippet from', engagementSnippetPath);
 const engagementSnippet = fs.readFileSync(engagementSnippetPath, 'utf8');
