@@ -58,6 +58,7 @@ jobs:
         run: echo "Skipping React Native smoke test — @amplitude/analytics-react-native is not in the affected set."
 
       - name: Do not skip smoke test if not PR
+        id: package-affected
         if: github.event_name != 'pull_request'
         run: echo "affected=true" >> "$GITHUB_OUTPUT"
 
