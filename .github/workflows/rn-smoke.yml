@@ -40,6 +40,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Check if analytics-react-native is affected
+        id: package-unaffected
         run: |
           set +e
           sh scripts/is-package-unaffected.sh @amplitude/analytics-react-native
@@ -52,11 +53,11 @@ jobs:
           fi
 
       - name: Skip smoke test (package not affected)
-        if: steps.package-affected.outputs.affected == 'false'
+        if: steps.package-unaffected.outputs.affected == 'false'
         run: echo "Skipping React Native smoke test — @amplitude/analytics-react-native is not in the affected set."
 
       - name: Setup Ruby for CocoaPods
-        if: steps.package-affected.outputs.affected == 'true'
+        if: steps.package-unaffected.outputs.affected == 'true'
         uses: ruby/setup-ruby@6aaa311d81eba98ae12eaffbcb63296ace0efcde # v1.307.0
         with:
           ruby-version: '3.2'
@@ -64,11 +65,11 @@ jobs:
           working-directory: ${{ env.APP_DIR }}
 
       - name: Build SDK and its workspace deps
-        if: steps.package-affected.outputs.affected == 'true'
+        if: steps.package-unaffected.outputs.affected == 'true'
         run: pnpm --filter @amplitude/analytics-react-native... build
 
       - name: Cache CocoaPods
-        if: steps.package-affected.outputs.affected == 'true'
+        if: steps.package-unaffected.outputs.affected == 'true'
         uses: actions/cache@d4323d4df104b026a6aa633fdb11d772146be0bf # v4
         with:
           path: |
@@ -79,7 +80,7 @@ jobs:
             pods-${{ runner.os }}-
 
       - name: Pod install
-        if: steps.package-affected.outputs.affected == 'true'
+        if: steps.package-unaffected.outputs.affected == 'true'
         working-directory: ${{ env.APP_DIR }}/ios
         # Even with LANG/LC_ALL pinned, cocoapods 1.14.3 + pnpm intermittently
         # raises `ArgumentError - pathname contains null byte` in
@@ -97,7 +98,7 @@ jobs:
           exit 1
 
       - name: Build iOS app (Release, simulator)
-        if: steps.package-affected.outputs.affected == 'true'
+        if: steps.package-unaffected.outputs.affected == 'true'
         working-directory: ${{ env.APP_DIR }}
         # Raw xcodebuild output is noisy; xcpretty would be nicer but isn't
         # installed by default on macos-14 runners, and adding it as a Gemfile
@@ -116,7 +117,7 @@ jobs:
           test -d build/Build/Products/Release-iphonesimulator/app.app
 
       - name: Boot iOS simulator
-        if: steps.package-affected.outputs.affected == 'true'
+        if: steps.package-unaffected.outputs.affected == 'true'
         run: |
           UDID=$(xcrun simctl list devices "$SIM_NAME" available -j | node -e "
             const data = JSON.parse(require('fs').readFileSync(0, 'utf8'));
@@ -130,22 +131,22 @@ jobs:
           xcrun simctl bootstatus "$UDID" -b
 
       - name: Install app on simulator
-        if: steps.package-affected.outputs.affected == 'true'
+        if: steps.package-unaffected.outputs.affected == 'true'
         working-directory: ${{ env.APP_DIR }}
         run: xcrun simctl install "$SIM_UDID" build/Build/Products/Release-iphonesimulator/app.app
 
       - name: Install Maestro
-        if: steps.package-affected.outputs.affected == 'true'
+        if: steps.package-unaffected.outputs.affected == 'true'
         run: |
           curl -fsSL "https://get.maestro.mobile.dev" | bash
           echo "$HOME/.maestro/bin" >> $GITHUB_PATH
 
       - name: Run Maestro smoke flow
-        if: steps.package-affected.outputs.affected == 'true'
+        if: steps.package-unaffected.outputs.affected == 'true'
         working-directory: ${{ env.APP_DIR }}
         run: maestro test .maestro/smoke.yaml
 
       - name: Dump simulator logs on failure
-        if: failure() && steps.package-affected.outputs.affected == 'true'
+        if: failure() && steps.package-unaffected.outputs.affected == 'true'
         run: |
           xcrun simctl spawn "$SIM_UDID" log show --last 5m --predicate 'process == "app"' || true

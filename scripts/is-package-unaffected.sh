@@ -8,7 +8,7 @@ fi
 
 pnpm exec nx show projects --affected --base="$NX_BASE" --head="$NX_HEAD" | grep "$PACKAGE"
 if [ $? -eq 0 ]; then
-  exit 0
-else
   exit 1
+else
+  exit 0
 fi
