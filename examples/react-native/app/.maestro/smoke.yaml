@@ -1,7 +1,59 @@
 appId: org.reactjs.native.example.app
 ---
+# Regression guard for SDKRN-8.
+#
+# This example app exercises the documented AsyncStorage opt-out recipe:
+#
+#   1. @react-native-async-storage/async-storage is NOT declared in this app's
+#      package.json. In a pnpm setup, that means there is no top-level
+#      node_modules/@react-native-async-storage/async-storage symlink; the JS
+#      package only exists nested under .pnpm/..., where RN's autolinking
+#      doesn't walk. Pod install therefore leaves RNCAsyncStorage out of the
+#      iOS binary (verifiable: `grep -c RNCAsyncStorage ios/Podfile.lock` = 0).
+#
+#   2. App.tsx overrides both storageProvider AND cookieStorage with an
+#      in-memory implementation. With both slots overridden, the SDK never
+#      reaches its default LocalStorage fallback chain — so getAsyncStorage()
+#      is never called, the lazy require to @react-native-async-storage is
+#      never triggered, and the package's top-level NativeModule-null throw
+#      never fires.
+#
+# If the SDK regresses to its old static `import AsyncStorage` (i.e. anything
+# that requires @react-native-async-storage/async-storage at module-load),
+# the app crashes at boot with:
+#   Unhandled JS Exception: [@RNC/AsyncStorage]: NativeModule: AsyncStorage is null
+# In that case the title below would never render and this flow fails.
+#
+# We also tap both Track buttons to exercise the SDK's runtime storage paths
+# (event queue + identity update) under the opted-out configuration. App.tsx
+# shows a toast labelled "Amplitude Response" *synchronously* on each tap, so
+# the assertion below verifies the SDK call returned without throwing — without
+# depending on the SDK's promise resolution (which only fires when the event
+# is flushed to api2.amplitude.com, and that's slow / unreachable in CI).
 - launchApp
 - extendedWaitUntil:
     visible:
       text: "Test Amplitude App"
     timeout: 15000
+- tapOn: "Track Event"
+- extendedWaitUntil:
+    visible:
+      text: "Amplitude Response"
+    timeout: 10000
+- assertVisible:
+    text: "Test Amplitude App"
+# Wait for the first toast to dismiss before tapping the next button, so the
+# second `extendedWaitUntil: Amplitude Response` actually waits for the new
+# toast rather than passing immediately on the lingering one. react-native-
+# toast-message auto-dismisses after ~4s.
+- extendedWaitUntil:
+    notVisible:
+      text: "Amplitude Response"
+    timeout: 10000
+- tapOn: "Track Identify"
+- extendedWaitUntil:
+    visible:
+      text: "Amplitude Response"
+    timeout: 10000
+- assertVisible:
+    text: "Test Amplitude App"

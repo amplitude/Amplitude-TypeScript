@@ -1,5 +1,5 @@
 PODS:
-  - amplitude-react-native (1.5.53):
+  - amplitude-react-native (1.5.54):
     - React-Core
   - boost (1.83.0)
   - DoubleConversion (1.1.6)
@@ -1166,8 +1166,6 @@ PODS:
     - React-logger (= 0.74.1)
     - React-perflogger (= 0.74.1)
     - React-utils (= 0.74.1)
-  - RNCAsyncStorage (1.24.0):
-    - React-Core
   - SocketRocket (0.7.0)
   - Yoga (0.0.0)
 
@@ -1228,7 +1226,6 @@ DEPENDENCIES:
   - React-runtimescheduler (from `../node_modules/react-native/ReactCommon/react/renderer/runtimescheduler`)
   - React-utils (from `../node_modules/react-native/ReactCommon/react/utils`)
   - ReactCommon/turbomodule/core (from `../node_modules/react-native/ReactCommon`)
-  - "RNCAsyncStorage (from `../node_modules/@react-native-async-storage/async-storage`)"
   - Yoga (from `../node_modules/react-native/ReactCommon/yoga`)
 
 SPEC REPOS:
@@ -1345,13 +1342,11 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native/ReactCommon/react/utils"
   ReactCommon:
     :path: "../node_modules/react-native/ReactCommon"
-  RNCAsyncStorage:
-    :path: "../node_modules/@react-native-async-storage/async-storage"
   Yoga:
     :path: "../node_modules/react-native/ReactCommon/yoga"
 
 SPEC CHECKSUMS:
-  amplitude-react-native: ca773f7d7529a797536d346380ffef0569faf280
+  amplitude-react-native: 63743b22ffb128178b277abe575ac7439c84f215
   boost: d3f49c53809116a5d38da093a8aa78bf551aed09
   DoubleConversion: 76ab83afb40bddeeee456813d9c04f67f78771b5
   FBLazyVector: 898d14d17bf19e2435cafd9ea2a1033efe445709
@@ -1405,7 +1400,6 @@ SPEC CHECKSUMS:
   React-runtimescheduler: 87b14969bb0b10538014fb8407d472f9904bc8cd
   React-utils: 67574b07bff4429fd6c4d43a7fad8254d814ee20
   ReactCommon: 64c64f4ae1f2debe3fab1800e00cb8466a4477b7
-  RNCAsyncStorage: b6410dead2732b5c72a7fdb1ecb5651bbcf4674b
   SocketRocket: abac6f5de4d4d62d24e11868d7a2f427e0ef940d
   Yoga: 348f8b538c3ed4423eb58a8e5730feec50bce372
 

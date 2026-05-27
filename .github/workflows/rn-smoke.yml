@@ -81,6 +81,16 @@ jobs:
         # Raw xcodebuild output is noisy; xcpretty would be nicer but isn't
         # installed by default on macos-14 runners, and adding it as a Gemfile
         # dependency for cosmetics isn't worth the install time.
+        #
+        # AMPLITUDE_API_KEY is read by babel-plugin-transform-inline-environment-variables
+        # at bundle time (see examples/react-native/app/babel.config.js) and inlined into
+        # the JS bundle so the example app can send events end-to-end to api2.amplitude.com
+        # under our test project. Mirrors the Playwright VITE_AMPLITUDE_API_KEY pattern in
+        # .github/actions/e2e-test/action.yml. With no secret, the bundle falls back to
+        # the literal 'YOUR_API_KEY' and the Maestro test still passes the crash-guard
+        # assertions (only the api2 round-trip is skipped).
+        env:
+          AMPLITUDE_API_KEY: ${{ secrets.AMPLITUDE_API_KEY }}
         run: |
           xcodebuild \
             -workspace ios/app.xcworkspace \

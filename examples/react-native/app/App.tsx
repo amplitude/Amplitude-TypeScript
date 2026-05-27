@@ -22,14 +22,65 @@ import {
   identify,
   init,
   track,
+  Types,
 } from '@amplitude/analytics-react-native';
 
 import {Colors, Header} from 'react-native/Libraries/NewAppScreen';
 
+// Regression guard for SDKRN-8: this example app deliberately exercises the
+// SDK's "opt out of AsyncStorage" path. AsyncStorage is excluded from native
+// autolinking (see react-native.config.js) and the SDK's two storage slots
+// are overridden with the in-memory implementation below. The SDK's lazy
+// require of @react-native-async-storage/async-storage must not crash at
+// module-load, and track/identify must keep working with persistence in
+// memory only.
+class InMemoryStorage<T> implements Types.Storage<T> {
+  private store = new Map<string, T>();
+
+  async isEnabled(): Promise<boolean> {
+    return true;
+  }
+
+  async get(key: string): Promise<T | undefined> {
+    return this.store.get(key);
+  }
+
+  async getRaw(key: string): Promise<string | undefined> {
+    const value = this.store.get(key);
+    return value === undefined ? undefined : JSON.stringify(value);
+  }
+
+  async set(key: string, value: T): Promise<void> {
+    this.store.set(key, value);
+  }
+
+  async remove(key: string): Promise<void> {
+    this.store.delete(key);
+  }
+
+  async reset(): Promise<void> {
+    this.store.clear();
+  }
+}
+
 // Module-scope init mirrors the reproduce pattern from issue #181 — the SDK's
 // full module graph loads before any component renders, so any top-level
-// crash in the SDK (e.g. CJS circular-dep regression) surfaces on app launch.
-init('YOUR_API_KEY');
+// crash in the SDK (e.g. CJS circular-dep regression, or the static
+// AsyncStorage import from before SDKRN-8) surfaces on app launch.
+//
+// Note: init's signature is (apiKey, userId, options). Pass `undefined` for
+// userId so the storage overrides land in the options slot — otherwise they
+// silently get bound to userId and the SDK falls back to the default storage
+// chain (which then tries to use AsyncStorage and throws at runtime).
+// AMPLITUDE_API_KEY is inlined at bundle time by
+// babel-plugin-transform-inline-environment-variables (see babel.config.js).
+// CI provides the value from a GitHub secret on the xcodebuild step; local
+// devs can `export AMPLITUDE_API_KEY=…` (or use direnv) before running
+// pnpm ios. With no env set, the fallback keeps the example app self-contained.
+init(process.env.AMPLITUDE_API_KEY || 'YOUR_API_KEY', undefined, {
+  storageProvider: new InMemoryStorage(),
+  cookieStorage: new InMemoryStorage(),
+});
 
 function App(): React.JSX.Element {
   const isDarkMode = useColorScheme() === 'dark';
@@ -46,16 +97,24 @@ function App(): React.JSX.Element {
     });
   };
 
+  // Show a toast immediately on tap so the Maestro regression guard can
+  // verify the SDK call didn't crash without depending on network timing
+  // (the SDK's `.promise` only resolves once the event is actually flushed
+  // to api2.amplitude.com — which is slow / unreachable in CI runners).
+  // The SDK's eventual response is still surfaced in a second toast for
+  // local-dev visibility.
   const trackEventAndShowToast = (eventName: string) => {
-    track(eventName).promise.then(e => {
-      showToast(e.message);
-    });
+    showToast(`Track Event called: ${eventName}`);
+    track(eventName)
+      .promise.then(e => showToast(e.message))
+      .catch(e => showToast(`Error: ${String(e)}`));
   };
 
   const trackIdentifyAndShowToast = () => {
-    identify(new Identify().set('react-native-test', 'yes')).promise.then(e => {
-      showToast(e.message);
-    });
+    showToast('Track Identify called');
+    identify(new Identify().set('react-native-test', 'yes'))
+      .promise.then(e => showToast(e.message))
+      .catch(e => showToast(`Error: ${String(e)}`));
   };
 
   return (
