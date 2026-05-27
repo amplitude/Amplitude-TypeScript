@@ -1,6 +1,7 @@
 {
   "name": "@amplitude/element-selector",
   "version": "0.1.0",
+  "private": true,
   "description": "Shared element-selector algorithm consumed by autocapture, the Amplitude dashboard, and the Chrome extension visual tagger.",
   "author": "Amplitude Inc",
   "homepage": "https://github.com/amplitude/Amplitude-TypeScript",
