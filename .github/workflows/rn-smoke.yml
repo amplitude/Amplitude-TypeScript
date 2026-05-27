@@ -44,15 +44,13 @@ jobs:
         if: github.event_name == 'pull_request'
         run: |
           set +e
-          sh scripts/is-package-affected.sh @amplitude/analytics-react-native
+          sh scripts/is-package-unaffected.sh @amplitude/analytics-react-native
           code=$?
           set -e
           if [ "$code" -eq 0 ]; then
-            echo "affected=true" >> "$GITHUB_OUTPUT"
-          elif [ "$code" -eq 1 ]; then
             echo "affected=false" >> "$GITHUB_OUTPUT"
           else
-            exit "$code"
+            echo "affected=true" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Skip smoke test (package not affected)
