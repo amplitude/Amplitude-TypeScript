@@ -127,6 +127,7 @@ describe('fetch transport', () => {
       });
       expect(options?.body).toBeInstanceOf(ArrayBuffer);
       expect(new Uint8Array(options?.body as ArrayBuffer)).toEqual(mockCompressedBytes);
+      expect(options?.keepalive).toBe(true);
 
       (global as { Response?: unknown }).Response = OriginalResponse;
       delete (Blob.prototype as unknown as { stream?: () => ReadableStream }).stream;
@@ -148,7 +149,7 @@ describe('fetch transport', () => {
     test('should disable keepalive for bodies over the budget', async () => {
       const transport = new FetchTransport();
       const url = 'http://localhost:3000';
-      // Build an uncompressed body larger than the keepalive budget.
+      // 'a' is single-byte in UTF-8, so char count equals the byte count the code measures.
       const payload = {
         api_key: '',
         events: [{ event_type: 'large', event_properties: { value: 'a'.repeat(MAX_KEEPALIVE_BYTES + 1) } }],
@@ -159,6 +160,50 @@ describe('fetch transport', () => {
 
       const [, options] = fetchSpy.mock.calls[0];
       expect(options?.keepalive).toBe(false);
+    });
+
+    test('should disable keepalive when the compressed body exceeds the budget', async () => {
+      // Gate the keepalive flag on the compressed ArrayBuffer size, not the original string.
+      const oversizedCompressed = new ArrayBuffer(MAX_KEEPALIVE_BYTES + 1);
+      const OriginalResponse = (global as { Response?: typeof Response }).Response;
+      (global as { Response?: unknown }).Response = jest.fn().mockImplementation(() => ({
+        arrayBuffer: () => Promise.resolve(oversizedCompressed),
+      }));
+      (global as { CompressionStream?: unknown }).CompressionStream = jest.fn().mockImplementation(() => ({
+        readable: new ReadableStream<Uint8Array>({
+          start(controller) {
+            controller.close();
+          },
+        }),
+        writable: new WritableStream(),
+      }));
+      Object.defineProperty(Blob.prototype, 'stream', {
+        value: () => new ReadableStream<Uint8Array>(),
+        configurable: true,
+        writable: true,
+      });
+
+      const transport = new FetchTransport();
+      const url = 'http://localhost:3000';
+      const payload = {
+        api_key: '',
+        events: [
+          { event_type: 'large-payload', event_properties: { value: 'a'.repeat(MIN_GZIP_UPLOAD_BODY_SIZE_BYTES) } },
+        ],
+      };
+
+      const fetchSpy = jest
+        .spyOn(window, 'fetch')
+        .mockReturnValueOnce(Promise.resolve({ text: () => Promise.resolve('{}') } as Response));
+      await transport.send(url, payload, true);
+
+      const [, options] = fetchSpy.mock.calls[0];
+      expect(options?.body).toBe(oversizedCompressed);
+      expect(options?.keepalive).toBe(false);
+
+      (global as { Response?: unknown }).Response = OriginalResponse;
+      delete (Blob.prototype as unknown as { stream?: () => ReadableStream }).stream;
+      delete (global as { CompressionStream?: unknown }).CompressionStream;
     });
 
     test('should respect Content-Encoding header when compression is enabled', async () => {

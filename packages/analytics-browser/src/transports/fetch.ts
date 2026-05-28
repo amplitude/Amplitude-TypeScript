@@ -8,18 +8,11 @@ import {
   Transport,
 } from '@amplitude/analytics-core';
 
-/**
- * Upper bound on the request body size (in bytes) for which `keepalive` is enabled.
- *
- * The Fetch spec caps the *combined* size of all in-flight `keepalive` requests in a
- * document at 64 KiB; exceeding it makes fetch return a network error rather than
- * sending the request (see "HTTP-network-or-cache fetch":
- * https://fetch.spec.whatwg.org/#http-network-or-cache-fetch). That budget is shared
- * with anything else using keepalive in the same document (e.g. session-replay, the
- * customer's own beacons), so we gate at half the budget to leave headroom and reduce
- * the chance of a contention-induced rejection. Larger bodies fall back to a plain
- * fetch (no size limit) that simply won't survive a page navigation.
- */
+// keepalive lets a request survive page navigation, but the browser caps the *combined*
+// size of all in-flight keepalive requests in a document at 64 KiB and rejects anything
+// over it (https://fetch.spec.whatwg.org/#http-network-or-cache-fetch). Since that budget
+// is shared (e.g. with session-replay), we gate at half to leave headroom; larger bodies
+// fall back to a plain fetch that won't survive navigation.
 export const MAX_KEEPALIVE_BYTES = 32 * 1024;
 
 // Temporary browser-specific fetch transport with gzip support.
@@ -63,10 +56,6 @@ export class FetchTransport extends BaseTransport implements Transport {
       ...headers,
     };
 
-    // keepalive lets the request survive page navigation (e.g. a redirect), preventing
-    // the browser from cancelling the in-flight upload. It is gated on body size because
-    // the browser rejects keepalive requests that would exceed the shared 64 KiB budget;
-    // larger bodies fall back to a plain fetch. See MAX_KEEPALIVE_BYTES above.
     const bodyByteLength = typeof body === 'string' ? new Blob([body]).size : body.byteLength;
 
     const options: RequestInit = {
