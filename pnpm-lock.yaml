@@ -379,7 +379,7 @@ importers:
 
   packages/analytics-types: {}
 
-  packages/element-selector:
+  packages/utils-element-selector:
     dependencies:
       tslib:
         specifier: ^2.4.1
