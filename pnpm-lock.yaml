@@ -379,6 +379,12 @@ importers:
 
   packages/analytics-types: {}
 
+  packages/utils-element-selector:
+    dependencies:
+      tslib:
+        specifier: ^2.4.1
+        version: 2.8.1
+
   packages/gtm-snippet:
     dependencies:
       '@amplitude/analytics-browser':
