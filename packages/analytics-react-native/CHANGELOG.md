@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.5.55](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-react-native@1.5.54...@amplitude/analytics-react-native@1.5.55) (2026-05-28)
+
+
+### Bug Fixes
+
+* **analytics-react-native:** lazy-load AsyncStorage so customers can opt out (SDKRN-8) ([#1772](https://github.com/amplitude/Amplitude-TypeScript/issues/1772)) ([22e0b59](https://github.com/amplitude/Amplitude-TypeScript/commit/22e0b59597a4a5494c8caa55c1e0ff0eea24ca52))
+
+
+
+
+
 ## [1.5.54](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-react-native@1.5.53...@amplitude/analytics-react-native@1.5.54) (2026-05-21)
 
 
