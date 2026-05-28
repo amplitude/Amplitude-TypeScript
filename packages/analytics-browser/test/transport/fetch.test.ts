@@ -1,7 +1,7 @@
 import { ReadableStream, WritableStream } from 'stream/web';
 import { TextEncoder } from 'util';
 import { MIN_GZIP_UPLOAD_BODY_SIZE_BYTES, Status } from '@amplitude/analytics-core';
-import { FetchTransport } from '../../src/transports/fetch';
+import { FetchTransport, MAX_KEEPALIVE_BYTES } from '../../src/transports/fetch';
 import 'isomorphic-fetch';
 
 if (typeof global.TextEncoder === 'undefined') {
@@ -47,6 +47,7 @@ describe('fetch transport', () => {
         },
         body: JSON.stringify(payload),
         method: 'POST',
+        keepalive: true,
       });
     });
 
@@ -67,6 +68,7 @@ describe('fetch transport', () => {
         },
         body: JSON.stringify(payload),
         method: 'POST',
+        keepalive: true,
       });
       expect(mockCompressionStream).not.toHaveBeenCalled();
 
@@ -129,6 +131,34 @@ describe('fetch transport', () => {
       (global as { Response?: unknown }).Response = OriginalResponse;
       delete (Blob.prototype as unknown as { stream?: () => ReadableStream }).stream;
       delete (global as { CompressionStream?: unknown }).CompressionStream;
+    });
+
+    test('should enable keepalive for bodies at or under the budget', async () => {
+      const transport = new FetchTransport();
+      const url = 'http://localhost:3000';
+      const payload = { api_key: '', events: [{ event_type: 'test', device_id: 'test_device_id' }] };
+
+      const fetchSpy = jest.spyOn(window, 'fetch').mockReturnValueOnce(Promise.resolve(new Response('{}')));
+      await transport.send(url, payload, false);
+
+      const [, options] = fetchSpy.mock.calls[0];
+      expect(options?.keepalive).toBe(true);
+    });
+
+    test('should disable keepalive for bodies over the budget', async () => {
+      const transport = new FetchTransport();
+      const url = 'http://localhost:3000';
+      // Build an uncompressed body larger than the keepalive budget.
+      const payload = {
+        api_key: '',
+        events: [{ event_type: 'large', event_properties: { value: 'a'.repeat(MAX_KEEPALIVE_BYTES + 1) } }],
+      };
+
+      const fetchSpy = jest.spyOn(window, 'fetch').mockReturnValueOnce(Promise.resolve(new Response('{}')));
+      await transport.send(url, payload, false);
+
+      const [, options] = fetchSpy.mock.calls[0];
+      expect(options?.keepalive).toBe(false);
     });
 
     test('should respect Content-Encoding header when compression is enabled', async () => {
