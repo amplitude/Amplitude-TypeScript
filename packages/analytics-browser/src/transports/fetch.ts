@@ -8,18 +8,8 @@ import {
   Transport,
 } from '@amplitude/analytics-core';
 
-// keepalive lets a request survive page navigation, but the browser caps the *combined*
-// size of all in-flight keepalive requests in a document at 64 KiB and rejects anything
-// over it (https://fetch.spec.whatwg.org/#http-network-or-cache-fetch). Since that budget
-// is shared (e.g. with session-replay), we gate at half to leave headroom; larger bodies
-// fall back to a plain fetch that won't survive navigation. The headroom also covers using
-// the cheap string length as a rough byte estimate (like the gzip threshold below) instead
-// of measuring exact UTF-8 bytes.
-export const KEEPALIVE_MAX_BODY_SIZE_BYTES = 32 * 1024;
+export const KEEPALIVE_MAX_BODY_SIZE_BYTES = 16 * 1024;
 
-// Temporary browser-specific fetch transport with gzip support.
-// TODO: Merge this implementation back into @amplitude/analytics-core FetchTransport
-// once React Native SDK supports request body gzip.
 export class FetchTransport extends BaseTransport implements Transport {
   private customHeaders: Record<string, string>;
 
@@ -58,8 +48,6 @@ export class FetchTransport extends BaseTransport implements Transport {
       ...headers,
     };
 
-    // Use string length as a rough byte estimate (the compressed path already has an exact
-    // byte count) to avoid allocating a Blob on every request.
     const bodySize = typeof body === 'string' ? body.length : body.byteLength;
 
     const options: RequestInit = {

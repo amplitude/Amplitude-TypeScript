@@ -163,8 +163,6 @@ describe('fetch transport', () => {
     });
 
     test('should disable keepalive when the compressed body exceeds the budget', async () => {
-      // Gate the keepalive flag on the compressed ArrayBuffer size, not the original string.
-      // Mock the compression helper directly so the test stays decoupled from its internals.
       const oversizedCompressed = new ArrayBuffer(KEEPALIVE_MAX_BODY_SIZE_BYTES + 1);
       const isAvailableSpy = jest.spyOn(analyticsCore, 'isCompressionStreamAvailable').mockReturnValue(true);
       const compressSpy = jest.spyOn(analyticsCore, 'compressToGzipArrayBuffer').mockResolvedValue(oversizedCompressed);
