@@ -150,7 +150,6 @@ describe('fetch transport', () => {
     test('should disable keepalive for bodies over the budget', async () => {
       const transport = new FetchTransport();
       const url = 'http://localhost:3000';
-      // 'a' is single-byte in UTF-8, so char count equals the byte count the code measures.
       const payload = {
         api_key: '',
         events: [{ event_type: 'large', event_properties: { value: 'a'.repeat(MAX_KEEPALIVE_BYTES + 1) } }],
