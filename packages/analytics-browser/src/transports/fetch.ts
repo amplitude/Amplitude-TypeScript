@@ -10,6 +10,9 @@ import {
 
 export const KEEPALIVE_MAX_BODY_SIZE_BYTES = 16 * 1024;
 
+// Temporary browser-specific fetch transport with gzip support.
+// TODO: Merge this implementation back into @amplitude/analytics-core FetchTransport
+// once React Native SDK supports request body gzip.
 export class FetchTransport extends BaseTransport implements Transport {
   private customHeaders: Record<string, string>;
 
