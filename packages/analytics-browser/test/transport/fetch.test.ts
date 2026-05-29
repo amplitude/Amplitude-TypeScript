@@ -1,5 +1,6 @@
 import { ReadableStream, WritableStream } from 'stream/web';
 import { TextEncoder } from 'util';
+import * as analyticsCore from '@amplitude/analytics-core';
 import { MIN_GZIP_UPLOAD_BODY_SIZE_BYTES, Status } from '@amplitude/analytics-core';
 import { FetchTransport, MAX_KEEPALIVE_BYTES } from '../../src/transports/fetch';
 import 'isomorphic-fetch';
@@ -164,24 +165,10 @@ describe('fetch transport', () => {
 
     test('should disable keepalive when the compressed body exceeds the budget', async () => {
       // Gate the keepalive flag on the compressed ArrayBuffer size, not the original string.
+      // Mock the compression helper directly so the test stays decoupled from its internals.
       const oversizedCompressed = new ArrayBuffer(MAX_KEEPALIVE_BYTES + 1);
-      const OriginalResponse = (global as { Response?: typeof Response }).Response;
-      (global as { Response?: unknown }).Response = jest.fn().mockImplementation(() => ({
-        arrayBuffer: () => Promise.resolve(oversizedCompressed),
-      }));
-      (global as { CompressionStream?: unknown }).CompressionStream = jest.fn().mockImplementation(() => ({
-        readable: new ReadableStream<Uint8Array>({
-          start(controller) {
-            controller.close();
-          },
-        }),
-        writable: new WritableStream(),
-      }));
-      Object.defineProperty(Blob.prototype, 'stream', {
-        value: () => new ReadableStream<Uint8Array>(),
-        configurable: true,
-        writable: true,
-      });
+      const isAvailableSpy = jest.spyOn(analyticsCore, 'isCompressionStreamAvailable').mockReturnValue(true);
+      const compressSpy = jest.spyOn(analyticsCore, 'compressToGzipArrayBuffer').mockResolvedValue(oversizedCompressed);
 
       const transport = new FetchTransport();
       const url = 'http://localhost:3000';
@@ -201,9 +188,8 @@ describe('fetch transport', () => {
       expect(options?.body).toBe(oversizedCompressed);
       expect(options?.keepalive).toBe(false);
 
-      (global as { Response?: unknown }).Response = OriginalResponse;
-      delete (Blob.prototype as unknown as { stream?: () => ReadableStream }).stream;
-      delete (global as { CompressionStream?: unknown }).CompressionStream;
+      compressSpy.mockRestore();
+      isAvailableSpy.mockRestore();
     });
 
     test('should respect Content-Encoding header when compression is enabled', async () => {
