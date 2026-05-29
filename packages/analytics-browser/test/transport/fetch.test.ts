@@ -2,7 +2,7 @@ import { ReadableStream, WritableStream } from 'stream/web';
 import { TextEncoder } from 'util';
 import * as analyticsCore from '@amplitude/analytics-core';
 import { MIN_GZIP_UPLOAD_BODY_SIZE_BYTES, Status } from '@amplitude/analytics-core';
-import { FetchTransport, MAX_KEEPALIVE_BYTES } from '../../src/transports/fetch';
+import { FetchTransport, KEEPALIVE_MAX_BODY_SIZE_BYTES } from '../../src/transports/fetch';
 import 'isomorphic-fetch';
 
 if (typeof global.TextEncoder === 'undefined') {
@@ -152,7 +152,7 @@ describe('fetch transport', () => {
       const url = 'http://localhost:3000';
       const payload = {
         api_key: '',
-        events: [{ event_type: 'large', event_properties: { value: 'a'.repeat(MAX_KEEPALIVE_BYTES + 1) } }],
+        events: [{ event_type: 'large', event_properties: { value: 'a'.repeat(KEEPALIVE_MAX_BODY_SIZE_BYTES + 1) } }],
       };
 
       const fetchSpy = jest.spyOn(window, 'fetch').mockReturnValueOnce(Promise.resolve(new Response('{}')));
@@ -165,7 +165,7 @@ describe('fetch transport', () => {
     test('should disable keepalive when the compressed body exceeds the budget', async () => {
       // Gate the keepalive flag on the compressed ArrayBuffer size, not the original string.
       // Mock the compression helper directly so the test stays decoupled from its internals.
-      const oversizedCompressed = new ArrayBuffer(MAX_KEEPALIVE_BYTES + 1);
+      const oversizedCompressed = new ArrayBuffer(KEEPALIVE_MAX_BODY_SIZE_BYTES + 1);
       const isAvailableSpy = jest.spyOn(analyticsCore, 'isCompressionStreamAvailable').mockReturnValue(true);
       const compressSpy = jest.spyOn(analyticsCore, 'compressToGzipArrayBuffer').mockResolvedValue(oversizedCompressed);
 

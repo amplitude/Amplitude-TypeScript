@@ -15,7 +15,7 @@ import {
 // fall back to a plain fetch that won't survive navigation. The headroom also covers using
 // the cheap string length as a rough byte estimate (like the gzip threshold below) instead
 // of measuring exact UTF-8 bytes.
-export const MAX_KEEPALIVE_BYTES = 32 * 1024;
+export const KEEPALIVE_MAX_BODY_SIZE_BYTES = 32 * 1024;
 
 // Temporary browser-specific fetch transport with gzip support.
 // TODO: Merge this implementation back into @amplitude/analytics-core FetchTransport
@@ -66,7 +66,7 @@ export class FetchTransport extends BaseTransport implements Transport {
       headers,
       body,
       method: 'POST',
-      keepalive: bodySize <= MAX_KEEPALIVE_BYTES,
+      keepalive: bodySize <= KEEPALIVE_MAX_BODY_SIZE_BYTES,
     };
 
     const response = await fetch(serverUrl, options);
