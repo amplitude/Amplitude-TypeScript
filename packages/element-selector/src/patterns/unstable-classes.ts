@@ -47,7 +47,7 @@ export const DEFAULT_UNSTABLE_CLASS_PATTERNS: ReadonlyArray<RegExp> = [
   // Emotion: css-1abcd23, css-9xyzkw0.
   /^css-[a-z0-9]{6,}$/,
   // CSS modules: Button_root__abc123, Card_container__xyz789.
-  /^[a-zA-Z][a-zA-Z0-9]*_[a-zA-Z0-9-]+__[a-zA-Z0-9]{5,}$/,
+  /^[a-zA-Z]+_[a-zA-Z0-9]{5,}__[a-zA-Z0-9]{5,}$/,
   // styled-components: sc-bdVaJa, sc-1jjuPXC0.
   /^sc-[a-zA-Z0-9]{6,}$/,
   // styled-jsx (Next.js): jsx-1234567.
