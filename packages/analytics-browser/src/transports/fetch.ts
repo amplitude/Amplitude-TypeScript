@@ -56,13 +56,11 @@ export class FetchTransport extends BaseTransport implements Transport {
       ...headers,
     };
 
-    const bodyByteLength = typeof body === 'string' ? new Blob([body]).size : body.byteLength;
-
     const options: RequestInit = {
       headers,
       body,
       method: 'POST',
-      keepalive: bodyByteLength <= MAX_KEEPALIVE_BYTES,
+      keepalive: isWithinKeepaliveBudget(body),
     };
 
     const response = await fetch(serverUrl, options);
@@ -75,3 +73,12 @@ export class FetchTransport extends BaseTransport implements Transport {
     }
   }
 }
+
+const isWithinKeepaliveBudget = (body: string | ArrayBuffer): boolean => {
+  if (typeof body !== 'string') {
+    return body.byteLength <= MAX_KEEPALIVE_BYTES;
+  }
+  // UTF-8 byte length is always >= the JS (UTF-16) string length, so a string longer than the
+  // budget is already over it — skip the Blob allocation in that case.
+  return body.length <= MAX_KEEPALIVE_BYTES && new Blob([body]).size <= MAX_KEEPALIVE_BYTES;
+};
