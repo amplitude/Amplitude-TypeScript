@@ -49,7 +49,7 @@
   "dependencies": {
     "@amplitude/analytics-browser": "workspace:*",
     "@amplitude/analytics-core": "workspace:*",
-    "@amplitude/engagement-browser": "^1.0.3",
+    "@amplitude/engagement-browser": "^1.0.10",
     "@amplitude/plugin-experiment-browser": "workspace:*",
     "@amplitude/plugin-session-replay-browser": "workspace:*"
   },
