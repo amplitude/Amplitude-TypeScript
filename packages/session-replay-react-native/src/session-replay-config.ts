@@ -1,22 +1,17 @@
 import { LogLevel } from '@amplitude/analytics-types';
 
 /**
- * Masking levels for sensitive content in session replay
+ * Masking levels for sensitive content in session replay.
+ *
+ * Declared as a string-literal union (rather than an `enum`) to match the
+ * Session Replay browser SDK and avoid the const-enum inlining pitfalls of
+ * string enums under aggressive compilers.
+ *
+ * - `light`: mask only inputs that are always sensitive (password, etc.).
+ * - `medium`: mask all `<TextInput>` fields.
+ * - `conservative`: mask all `<TextInput>` fields and all `<Text>` content.
  */
-export enum MaskLevel {
-  /**
-   * Light masking - minimal content is masked
-   */
-  Light = 'light',
-  /**
-   * Medium masking - balanced approach to content masking
-   */
-  Medium = 'medium',
-  /**
-   * Conservative masking - maximum content masking for privacy
-   */
-  Conservative = 'conservative',
-}
+export type MaskLevel = 'light' | 'medium' | 'conservative';
 
 export interface PrivacyConfig {
   maskLevel?: MaskLevel;
@@ -59,14 +54,15 @@ export interface SessionReplayConfig {
 
   /**
    * Level of masking applied to sensitive content
-   * @default MaskLevel.Medium
+   * @default 'medium'
    * @deprecated Use `privacyConfig.maskLevel` instead.
    */
   maskLevel?: MaskLevel;
 
   /**
-   * Privacy configuration for session replay
-   * @default { maskLevel: MaskLevel.Medium }
+   * Privacy configuration for session replay.
+   * When `maskLevel` is omitted it resolves to `'medium'` at the native boundary.
+   * @default {}
    */
   privacyConfig?: PrivacyConfig;
 
@@ -116,7 +112,11 @@ export const getDefaultConfig: () => Required<Omit<SessionReplayConfigInternal, 
     enableRemoteConfig: true,
     logLevel: LogLevel.Warn,
     optOut: false,
-    privacyConfig: { maskLevel: MaskLevel.Medium },
+    // Intentionally left without a `maskLevel`: the effective default
+    // (`'medium'`) is resolved once at the native boundary in `nativeConfig()`.
+    // Baking it in here would make the deprecated top-level `maskLevel`
+    // unreachable through the `?? 'medium'` fallback (silent privacy downgrade).
+    privacyConfig: {},
     sampleRate: 0,
     serverZone: 'US',
     sessionId: -1,

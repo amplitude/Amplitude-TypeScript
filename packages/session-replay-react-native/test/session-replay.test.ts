@@ -10,15 +10,7 @@ jest.mock('react-native');
 
 jest.mock('../src/logger', () => require('./utils/logger'));
 
-import {
-  init,
-  start,
-  stop,
-  getSessionId,
-  getSessionReplayProperties,
-  MaskLevel,
-  type SessionReplayConfig,
-} from '../src/index';
+import { init, start, stop, getSessionId, getSessionReplayProperties, type SessionReplayConfig } from '../src/index';
 import { NativeModules } from 'react-native';
 import { LogLevel } from '@amplitude/analytics-types';
 
@@ -91,7 +83,7 @@ describe('Session Replay Integration Tests', () => {
     it('forwards the deprecated `maskLevel` to the native module when no `privacyConfig` is provided', async () => {
       const setupMock = await runInIsolatedModule({
         apiKey: 'test-api-key',
-        maskLevel: MaskLevel.Conservative,
+        maskLevel: 'conservative',
       });
 
       expect(setupMock).toHaveBeenCalledWith(expect.objectContaining({ maskLevel: 'conservative' }));
@@ -100,8 +92,8 @@ describe('Session Replay Integration Tests', () => {
     it('prefers `privacyConfig.maskLevel` over the deprecated `maskLevel` when both are provided', async () => {
       const setupMock = await runInIsolatedModule({
         apiKey: 'test-api-key',
-        maskLevel: MaskLevel.Conservative,
-        privacyConfig: { maskLevel: MaskLevel.Light },
+        maskLevel: 'conservative',
+        privacyConfig: { maskLevel: 'light' },
       });
 
       expect(setupMock).toHaveBeenCalledWith(expect.objectContaining({ maskLevel: 'light' }));
@@ -115,10 +107,19 @@ describe('Session Replay Integration Tests', () => {
       expect(setupMock).toHaveBeenCalledWith(expect.objectContaining({ maskLevel: 'medium' }));
     });
 
+    it('falls back to `medium` when an explicit empty `privacyConfig` omits `maskLevel`', async () => {
+      const setupMock = await runInIsolatedModule({
+        apiKey: 'test-api-key',
+        privacyConfig: {},
+      });
+
+      expect(setupMock).toHaveBeenCalledWith(expect.objectContaining({ maskLevel: 'medium' }));
+    });
+
     it('forwards a user-supplied `privacyConfig.maskLevel` to the native module without the default overwriting it', async () => {
       const setupMock = await runInIsolatedModule({
         apiKey: 'test-api-key',
-        privacyConfig: { maskLevel: MaskLevel.Conservative },
+        privacyConfig: { maskLevel: 'conservative' },
       });
 
       expect(setupMock).toHaveBeenCalledWith(expect.objectContaining({ maskLevel: 'conservative' }));
@@ -127,7 +128,7 @@ describe('Session Replay Integration Tests', () => {
     it('does not pass the internal `privacyConfig` object through to the native module', async () => {
       const setupMock = await runInIsolatedModule({
         apiKey: 'test-api-key',
-        privacyConfig: { maskLevel: MaskLevel.Light },
+        privacyConfig: { maskLevel: 'light' },
       });
 
       expect(setupMock).toHaveBeenCalledWith(expect.not.objectContaining({ privacyConfig: expect.anything() }));

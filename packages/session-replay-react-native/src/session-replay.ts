@@ -233,17 +233,19 @@ export async function stop(): Promise<void> {
 }
 
 function nativeConfig(config: ResolvedSessionReplayConfig): NativeSessionReplayConfig {
-  // `privacyConfig.maskLevel` is guaranteed to be set by the merge in
-  // `init()`: `getDefaultConfig()` supplies `{ maskLevel: Medium }` and the
-  // shallow spread only overwrites it with a normalized `privacyConfig` that
-  // carries a `maskLevel`. Strip `privacyConfig` from the spread because the
-  // native bridge only takes a flat `maskLevel` string.
+  // Resolve the effective mask level here — the single source of truth for the
+  // default. `normalizeConfig()` already folded the deprecated top-level
+  // `maskLevel` into `privacyConfig`, but `privacyConfig.maskLevel` can still be
+  // `undefined` (no user value and no baked-in default), so fall back to
+  // `'medium'`. Strip `privacyConfig` from the spread because the native bridge
+  // only takes a flat `maskLevel` string.
   const { privacyConfig, ...rest } = config;
+  const resolvedMaskLevel: NativeSessionReplayConfig['maskLevel'] = privacyConfig.maskLevel ?? 'medium';
   return {
     ...rest,
     logLevel: rest.logLevel as NativeSessionReplayConfig['logLevel'],
     // TODO(SDKRN-15): Migrate native bridge to accept the full privacyConfig object instead of a flat maskLevel string.
-    maskLevel: privacyConfig.maskLevel as NativeSessionReplayConfig['maskLevel'],
+    maskLevel: resolvedMaskLevel,
   };
 }
 

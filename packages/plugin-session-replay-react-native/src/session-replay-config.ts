@@ -1,22 +1,20 @@
 import { LogLevel } from '@amplitude/analytics-types';
 
 /**
- * Masking levels for sensitive content in session replay
+ * Masking levels for sensitive content in session replay.
+ *
+ * Declared as a string-literal union (rather than an `enum`) to match the
+ * Session Replay browser SDK and avoid the const-enum inlining pitfalls of
+ * string enums under aggressive compilers. Kept structurally identical to the
+ * standalone `@amplitude/session-replay-react-native` SDK's `MaskLevel` so the
+ * two packages stay in lockstep without coupling the plugin's runtime to the
+ * standalone native module.
+ *
+ * - `light`: mask only inputs that are always sensitive (password, etc.).
+ * - `medium`: mask all `<TextInput>` fields.
+ * - `conservative`: mask all `<TextInput>` fields and all `<Text>` content.
  */
-export enum MaskLevel {
-  /**
-   * Light masking - minimal content is masked
-   */
-  Light = 'light',
-  /**
-   * Medium masking - balanced approach to content masking
-   */
-  Medium = 'medium',
-  /**
-   * Conservative masking - maximum content masking for privacy
-   */
-  Conservative = 'conservative',
-}
+export type MaskLevel = 'light' | 'medium' | 'conservative';
 
 export interface PrivacyConfig {
   maskLevel?: MaskLevel;
@@ -53,8 +51,9 @@ export interface SessionReplayConfig {
   logLevel?: LogLevel;
 
   /**
-   * Privacy configuration for session replay
-   * @default { maskLevel: MaskLevel.Medium }
+   * Privacy configuration for session replay.
+   * When `maskLevel` is omitted it resolves to `'medium'` at the native boundary.
+   * @default {}
    */
   privacyConfig?: PrivacyConfig;
 
@@ -71,7 +70,11 @@ export const getDefaultConfig: () => Required<SessionReplayConfig> = () => {
     autoStart: true,
     enableRemoteConfig: true,
     logLevel: LogLevel.Warn,
-    privacyConfig: { maskLevel: MaskLevel.Medium },
+    // Intentionally left without a `maskLevel`: the effective default
+    // (`'medium'`) is resolved once at the native boundary in `setup()`.
+    // Baking it in here would make a partial user `privacyConfig` (e.g. `{}`)
+    // unable to fall through to the `?? 'medium'` resolution.
+    privacyConfig: {},
     sampleRate: 0,
   };
 };

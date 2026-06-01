@@ -12,7 +12,7 @@ npm install @amplitude/plugin-session-replay-react-native
 Add the session replay plugin to your Amplitude instance as follows
 
 ```js
-import { SessionReplayPlugin, MaskLevel } from '@amplitude/plugin-session-replay-react-native';
+import { SessionReplayPlugin } from '@amplitude/plugin-session-replay-react-native';
 
 // ...
 
@@ -20,7 +20,7 @@ const config: SessionReplayConfig = {
     enableRemoteConfig: true, // default true
     sampleRate: 1, // default 0
     logLevel: LogLevel.Warn, // default LogLevel.Warn
-    privacyConfig: { maskLevel: MaskLevel.Medium }, // default MaskLevel.Medium
+    privacyConfig: { maskLevel: 'medium' }, // 'medium' is the default
 };
 await init('YOUR_API_KEY').promise;
 await add(new SessionReplayPlugin(config)).promise;
@@ -33,15 +33,15 @@ Control how aggressively Session Replay masks sensitive content via the `privacy
 
 | Value | What gets masked |
 |---|---|
-| `MaskLevel.Light` | Password and phone-number `<TextInput>` fields only |
-| `MaskLevel.Medium` (default) | All `<TextInput>` fields |
-| `MaskLevel.Conservative` | All `<TextInput>` fields **and** all `<Text>` elements |
+| `'light'` | Password and phone-number `<TextInput>` fields only |
+| `'medium'` (default) | All `<TextInput>` fields |
+| `'conservative'` | All `<TextInput>` fields **and** all `<Text>` elements |
 
 ```js
-import { SessionReplayPlugin, MaskLevel } from '@amplitude/plugin-session-replay-react-native';
+import { SessionReplayPlugin } from '@amplitude/plugin-session-replay-react-native';
 
 const config: SessionReplayConfig = {
-    privacyConfig: { maskLevel: MaskLevel.Conservative }, // mask all text and inputs
+    privacyConfig: { maskLevel: 'conservative' }, // mask all text and inputs
 };
 ```
 

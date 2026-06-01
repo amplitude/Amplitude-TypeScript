@@ -42,7 +42,8 @@ import {
 import { LogLevel } from '@amplitude/analytics-types';
 import { NavigationContainer } from '@react-navigation/native';
 
-import { SessionReplayPlugin, AmpMaskView, SessionReplayConfig, MaskLevel } from '@amplitude/plugin-session-replay-react-native';
+import { SessionReplayPlugin, AmpMaskView } from '@amplitude/plugin-session-replay-react-native';
+import type { SessionReplayConfig } from '@amplitude/plugin-session-replay-react-native';
 import {
   createNativeStackNavigator,
   type NativeStackScreenProps,
@@ -286,7 +287,7 @@ function App(): React.JSX.Element {
       enableRemoteConfig: false,
       sampleRate: 1,
       logLevel: LogLevel.Debug,
-      privacyConfig: { maskLevel: MaskLevel.Medium },
+      privacyConfig: { maskLevel: 'medium' },
     };
     (async () => {
       await init('YOUR-API-KEY', 'example_user_id', {

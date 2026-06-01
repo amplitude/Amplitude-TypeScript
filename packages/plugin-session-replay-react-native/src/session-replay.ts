@@ -36,10 +36,11 @@ export class SessionReplayPlugin implements EnrichmentPlugin<ReactNativeClient, 
     // `apiKey`, `deviceId`, `sessionId`, and `serverZone` are sourced from the
     // analytics client's `ReactNativeConfig` because the plugin runs inside an
     // initialized Amplitude SDK and inherits identity from it.
-    // `privacyConfig.maskLevel` is guaranteed to be set by the merge in the
-    // constructor: `getDefaultConfig()` supplies `{ maskLevel: Medium }` and a
-    // user-supplied `privacyConfig` always carries a `maskLevel`.
-    const { privacyConfig } = this.sessionReplayConfig;
+    // Resolve the effective mask level here — the single source of truth for
+    // the default. `privacyConfig.maskLevel` can be `undefined` when a partial
+    // `privacyConfig` (e.g. `{}`) is supplied, so fall back to `'medium'` rather
+    // than forwarding `undefined` across the native bridge.
+    const resolvedMaskLevel = this.sessionReplayConfig.privacyConfig.maskLevel ?? 'medium';
     await PluginSessionReplayReactNative.setup(
       config.apiKey,
       config.deviceId,
@@ -50,7 +51,7 @@ export class SessionReplayPlugin implements EnrichmentPlugin<ReactNativeClient, 
       this.sessionReplayConfig.logLevel,
       this.sessionReplayConfig.autoStart,
       // TODO(SDKRN-15): Migrate native bridge to accept the full privacyConfig object instead of a flat maskLevel string.
-      privacyConfig.maskLevel,
+      resolvedMaskLevel,
     );
     this.isInitialized = true;
   }
