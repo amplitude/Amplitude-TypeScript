@@ -162,6 +162,31 @@ describe('fetch transport', () => {
       expect(options?.keepalive).toBe(false);
     });
 
+    test('should disable keepalive when enableKeepalive is false', async () => {
+      const transport = new FetchTransport({}, false);
+      const url = 'http://localhost:3000';
+      const payload = { api_key: '', events: [{ event_type: 'test', device_id: 'test_device_id' }] };
+
+      const fetchSpy = jest.spyOn(window, 'fetch').mockReturnValueOnce(Promise.resolve(new Response('{}')));
+      await transport.send(url, payload, false);
+
+      const [, options] = fetchSpy.mock.calls[0];
+      expect(options?.keepalive).toBe(false);
+    });
+
+    test('should enable keepalive when enableKeepalive is undefined or true', async () => {
+      const url = 'http://localhost:3000';
+      const payload = { api_key: '', events: [{ event_type: 'test', device_id: 'test_device_id' }] };
+
+      for (const transport of [new FetchTransport(), new FetchTransport({}, true)]) {
+        const fetchSpy = jest.spyOn(window, 'fetch').mockReturnValueOnce(Promise.resolve(new Response('{}')));
+        await transport.send(url, payload, false);
+        const [, options] = fetchSpy.mock.calls[0];
+        expect(options?.keepalive).toBe(true);
+        fetchSpy.mockRestore();
+      }
+    });
+
     test('should disable keepalive when the compressed body exceeds the budget', async () => {
       const oversizedCompressed = new ArrayBuffer(KEEPALIVE_MAX_BODY_SIZE_BYTES + 1);
       const isAvailableSpy = jest.spyOn(analyticsCore, 'isCompressionStreamAvailable').mockReturnValue(true);

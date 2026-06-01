@@ -16,10 +16,13 @@ export const KEEPALIVE_MAX_BODY_SIZE_BYTES = 16 * 1024;
 // once React Native SDK supports request body gzip.
 export class FetchTransport extends BaseTransport implements Transport {
   private customHeaders: Record<string, string>;
+  private enableKeepalive: boolean;
 
-  constructor(customHeaders: Record<string, string> = {}) {
+  constructor(customHeaders: Record<string, string> = {}, enableKeepalive?: boolean) {
     super();
     this.customHeaders = customHeaders;
+    // Enabled unless explicitly disabled.
+    this.enableKeepalive = enableKeepalive !== false;
   }
 
   async send(serverUrl: string, payload: Payload, shouldCompressUploadBody = false): Promise<Response | null> {
@@ -58,7 +61,7 @@ export class FetchTransport extends BaseTransport implements Transport {
       headers,
       body,
       method: 'POST',
-      keepalive: bodySize <= KEEPALIVE_MAX_BODY_SIZE_BYTES,
+      keepalive: this.enableKeepalive && bodySize <= KEEPALIVE_MAX_BODY_SIZE_BYTES,
     };
 
     const response = await fetch(serverUrl, options);

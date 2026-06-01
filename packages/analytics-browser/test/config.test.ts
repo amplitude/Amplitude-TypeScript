@@ -431,6 +431,16 @@ describe('config', () => {
       expect(transport).toBeInstanceOf(FetchTransport);
       expect(transport).not.toBeInstanceOf(CoreFetchTransport);
     });
+
+    test('should pass enableKeepalive: false through to the fetch transport', async () => {
+      const transport = createTransport({ type: 'fetch', enableKeepalive: false });
+      const fetchMock = jest.fn().mockResolvedValue({ text: () => Promise.resolve('{}') });
+      (global as { fetch?: unknown }).fetch = fetchMock;
+      await transport.send('http://localhost:3000', { api_key: '', events: [] });
+      const [, options] = fetchMock.mock.calls[0];
+      expect(options?.keepalive).toBe(false);
+      delete (global as { fetch?: unknown }).fetch;
+    });
   });
 
   describe('getTopLevelDomain', () => {
