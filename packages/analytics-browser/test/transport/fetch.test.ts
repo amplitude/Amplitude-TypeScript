@@ -162,6 +162,25 @@ describe('fetch transport', () => {
       expect(options?.keepalive).toBe(false);
     });
 
+    test('should enable keepalive for a body exactly at the budget', async () => {
+      const transport = new FetchTransport();
+      const url = 'http://localhost:3000';
+      // Pad the value so the serialized body length is exactly the cap (the <= boundary).
+      const overhead = JSON.stringify({
+        api_key: '',
+        events: [{ event_type: 'x', event_properties: { value: '' } }],
+      }).length;
+      const value = 'a'.repeat(KEEPALIVE_MAX_BODY_SIZE_BYTES - overhead);
+      const payload = { api_key: '', events: [{ event_type: 'x', event_properties: { value } }] };
+      expect(JSON.stringify(payload).length).toBe(KEEPALIVE_MAX_BODY_SIZE_BYTES);
+
+      const fetchSpy = jest.spyOn(window, 'fetch').mockReturnValueOnce(Promise.resolve(new Response('{}')));
+      await transport.send(url, payload, false);
+
+      const [, options] = fetchSpy.mock.calls[0];
+      expect(options?.keepalive).toBe(true);
+    });
+
     test('should disable keepalive when enableKeepalive is false', async () => {
       const transport = new FetchTransport({}, false);
       const url = 'http://localhost:3000';
