@@ -8,6 +8,7 @@ import {
   Transport,
 } from '@amplitude/analytics-core';
 
+// Conservative 1/4 of the shared 64 KiB keepalive budget. Why 16K: https://github.com/amplitude/Amplitude-TypeScript/pull/1781
 export const KEEPALIVE_MAX_BODY_SIZE_BYTES = 16 * 1024;
 
 // Temporary browser-specific fetch transport with gzip support.
