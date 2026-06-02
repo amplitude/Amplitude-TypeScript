@@ -110,6 +110,26 @@ describe('createSelectorEngine', () => {
       expect(() => engine.updateConfig(enabledConfig())).not.toThrow();
       expect(ok).toHaveBeenCalledTimes(1);
     });
+
+    it('forwards subscriber exceptions to the provided logger at warn level', () => {
+      const logger = {
+        log: jest.fn(),
+        warn: jest.fn(),
+        error: jest.fn(),
+        debug: jest.fn(),
+        disable: jest.fn(),
+        enable: jest.fn(),
+      };
+      const engine = createSelectorEngine(enabledConfig(), { logger });
+      engine.onConfigChange(() => {
+        throw new Error('listener exploded');
+      });
+
+      engine.updateConfig(enabledConfig());
+
+      expect(logger.warn).toHaveBeenCalledTimes(1);
+      expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('listener exploded'));
+    });
   });
 
   describe('isolation across instances', () => {

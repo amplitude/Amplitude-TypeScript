@@ -23,6 +23,7 @@
  *   packages/plugin-autocapture-browser/element-selector-strategy-v1-no-classes.md
  */
 
+import type { ILogger } from '@amplitude/analytics-core';
 import { ResolvedSelectorConfig, Strategy, StrategyContext } from './types';
 import { explicitTrackingAttribute } from './strategies/explicit-tracking-attribute';
 import { stableId as stableIdStrategy } from './strategies/stable-id';
@@ -40,6 +41,12 @@ export interface OrchestratorOptions {
   strategies?: ReadonlyArray<Strategy>;
   /** Document or shadow root used for uniqueness checks. Defaults to the target's owner document. */
   scope?: ParentNode;
+  /**
+   * Optional logger. When provided, the orchestrator emits a `debug` log if a
+   * strategy produces a malformed selector that throws during the uniqueness
+   * check — useful for diagnosing strategy bugs without crashing the engine.
+   */
+  logger?: ILogger;
 }
 
 /**
@@ -81,7 +88,7 @@ export function runOrchestrator(
 
       // Anchor was the target itself — no descent needed.
       if (i === 0) {
-        if (isUniqueMatch(scope, anchorSelector, el)) {
+        if (isUniqueMatch(scope, anchorSelector, el, strategy.name, options.logger)) {
           return anchorSelector;
         }
         continue;
@@ -91,7 +98,7 @@ export function runOrchestrator(
       const trail = walk.slice(0, i).reverse();
       const descent = describeRelative(anchor, trail);
       const composed = `${anchorSelector} > ${descent}`;
-      if (isUniqueMatch(scope, composed, el)) {
+      if (isUniqueMatch(scope, composed, el, strategy.name, options.logger)) {
         return composed;
       }
     }
@@ -121,14 +128,27 @@ function collectWalk(el: Element, maxDepth: number | undefined): Element[] {
  * `scope`. The strategies themselves don't run uniqueness checks — that's the
  * orchestrator's job, so strategies stay pure transforms and stay testable in
  * isolation.
+ *
+ * When the selector is malformed (which is a strategy bug rather than user
+ * input), we log at `debug` and return false rather than throwing. The log
+ * lets engineers diagnose a misbehaving strategy without the engine taking
+ * down whatever it's wired into.
  */
-function isUniqueMatch(scope: ParentNode, selector: string, el: Element): boolean {
+function isUniqueMatch(
+  scope: ParentNode,
+  selector: string,
+  el: Element,
+  strategyName: string,
+  logger?: ILogger,
+): boolean {
   let matches: NodeListOf<Element>;
   try {
     matches = scope.querySelectorAll(selector);
-  } catch (_e) {
-    // Malformed selector — strategies aren't supposed to emit one, but guard
-    // defensively so a single bad strategy doesn't crash the whole walk.
+  } catch (e) {
+    const message = e instanceof Error ? e.message : String(e);
+    logger?.debug(
+      `@amplitude/element-selector: strategy "${strategyName}" emitted a malformed selector "${selector}" (${message})`,
+    );
     return false;
   }
   return matches.length === 1 && matches[0] === el;
