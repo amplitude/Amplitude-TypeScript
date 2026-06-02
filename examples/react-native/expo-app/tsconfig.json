@@ -4,12 +4,7 @@
     "strict": true,
     "baseUrl": ".",
     "paths": {
-      "@amplitude/analytics-react-native": [
-        "../../../packages/analytics-react-native/lib/typescript/index"
-      ],
-      "@amplitude/plugin-page-view-tracking-browser": [
-        "../../../packages/plugin-page-view-tracking-browser/lib/esm/index"
-      ]
+      "@amplitude/*": ["../../../packages/*"]
     },
     "typeRoots": ["./node_modules/@types"]
   },
