@@ -11,6 +11,7 @@ import {
 import { isWeb } from '../src/utils/platform';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Config from '../src/config';
+import * as NetworkChecker from '../src/plugins/network-connectivity-checker';
 
 describe('react-native-client', () => {
   const API_KEY = 'API_KEY';
@@ -220,6 +221,31 @@ describe('react-native-client', () => {
       });
     });
   }
+
+  describe('network connectivity checker plugin', () => {
+    test('should install the network connectivity checker by default', async () => {
+      jest.spyOn(CookieMigration, 'parseOldCookies').mockResolvedValueOnce({ optOut: false });
+      const installSpy = jest.spyOn(NetworkChecker, 'networkConnectivityCheckerPlugin');
+      const client = new AmplitudeReactNative();
+      await client.init(API_KEY, USER_ID, { ...attributionConfig }).promise;
+      expect(installSpy).toHaveBeenCalledTimes(1);
+      installSpy.mockRestore();
+    });
+
+    test('should not install the network connectivity checker when offline is OfflineDisabled', async () => {
+      jest.spyOn(CookieMigration, 'parseOldCookies').mockResolvedValueOnce({ optOut: false });
+      const installSpy = jest.spyOn(NetworkChecker, 'networkConnectivityCheckerPlugin');
+      const client = new AmplitudeReactNative();
+      await client.init(API_KEY, USER_ID, {
+        ...attributionConfig,
+        // `offline` is omitted from the public ReactNativeOptions type but is
+        // honored by the underlying core Config.
+        offline: core.OfflineDisabled,
+      } as core.ReactNativeOptions).promise;
+      expect(installSpy).not.toHaveBeenCalled();
+      installSpy.mockRestore();
+    });
+  });
 
   describe('getUserId', () => {
     test('should get user id', async () => {
