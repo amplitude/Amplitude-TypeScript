@@ -291,7 +291,7 @@ dependencies {
     implementation fileTree(dir: "libs", include: ["*.jar"])
 
     //noinspection GradleDynamicVersion
-    implementation "com.facebook.react:react-native:+"  // From node_modules
+    implementation "com.facebook.react:react-android"  // From node_modules
 
     def isGifEnabled = (findProperty('expo.gif.enabled') ?: "") == "true";
     def isWebpEnabled = (findProperty('expo.webp.enabled') ?: "") == "true";
@@ -346,7 +346,7 @@ if (isNewArchitectureEnabled()) {
     // This will be applied to all the imported transtitive dependency.
     configurations.all {
         resolutionStrategy.dependencySubstitution {
-            substitute(module("com.facebook.react:react-native"))
+            substitute(module("com.facebook.react:react-android"))
                     .using(project(":ReactAndroid"))
                     .because("On New Architecture we're building React Native from source")
             substitute(module("com.facebook.react:hermes-engine"))

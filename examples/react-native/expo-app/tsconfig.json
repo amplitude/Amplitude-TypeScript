@@ -1,6 +1,18 @@
 {
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
-    "strict": true
-  }
+    "strict": true,
+    "baseUrl": ".",
+    "paths": {
+      "@amplitude/analytics-react-native": [
+        "../../../packages/analytics-react-native/lib/typescript/index"
+      ],
+      "@amplitude/plugin-page-view-tracking-browser": [
+        "../../../packages/plugin-page-view-tracking-browser/lib/esm/index"
+      ]
+    },
+    "typeRoots": ["./node_modules/@types"]
+  },
+  "include": ["**/*.ts", "**/*.tsx"],
+  "exclude": ["node_modules"]
 }

@@ -184,6 +184,7 @@ export class CookieStorage<T> implements Storage<T> {
         date.setTime(date.getTime() + expires * 24 * 60 * 60 * 1000);
         expireDate = date;
       }
+      const globalScope = getGlobalScope();
       let str = `${key}=${btoa(encodeURIComponent(JSON.stringify(value)))}`;
       if (expireDate) {
         str += `; expires=${expireDate.toUTCString()}`;
@@ -198,7 +199,6 @@ export class CookieStorage<T> implements Storage<T> {
       if (this.options.sameSite) {
         str += `; SameSite=${this.options.sameSite}`;
       }
-      const globalScope = getGlobalScope();
       if (globalScope?.document) {
         globalScope.document.cookie = str;
       }
