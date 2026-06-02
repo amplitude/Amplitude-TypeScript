@@ -62,6 +62,10 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
   storageKey = '';
   trackServerUrl?: string;
   retryTimeout = 1000;
+  // Defaults to true (gzip enabled) so existing call sites that don't pass the flag
+  // retain pre-flag behavior. The local-config layer also defaults to true; this
+  // belt-and-braces default protects direct constructor callers (e.g. tests).
+  private enableTransportCompression: boolean;
   private scheduled: ReturnType<typeof setTimeout> | null = null;
   payloadBatcher: PayloadBatcher;
   queue: SessionReplayDestinationContext[] = [];
@@ -86,15 +90,18 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
     loggerProvider,
     payloadBatcher,
     workerScript,
+    enableTransportCompression,
   }: {
     trackServerUrl?: string;
     loggerProvider: ILogger;
     payloadBatcher?: PayloadBatcher;
     workerScript?: string;
+    enableTransportCompression?: boolean;
   }) {
     this.loggerProvider = loggerProvider;
     this.payloadBatcher = payloadBatcher ? payloadBatcher : (payload) => payload;
     this.trackServerUrl = trackServerUrl;
+    this.enableTransportCompression = enableTransportCompression ?? true;
 
     if (workerScript) {
       try {
@@ -443,6 +450,7 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
           version: context.version,
           currentUrl: getCurrentUrl(),
           sdkVersion: VERSION,
+          enableTransportCompression: this.enableTransportCompression,
         },
       });
     });
@@ -467,12 +475,15 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
 
     try {
       const payloadJson = JSON.stringify(payload);
-      // Only await gzip when CompressionStream is actually available; skipping the
-      // await entirely preserves the synchronous fast-path for browsers/environments
-      // (e.g. Jest) that don't support it, keeping retry-timing tests unaffected.
+      // Only await gzip when (a) the customer hasn't opted out and (b) CompressionStream
+      // is actually available; skipping the await entirely preserves the synchronous
+      // fast-path for browsers/environments (e.g. Jest) that don't support it, keeping
+      // retry-timing tests unaffected.
       const globalScope = getGlobalScope();
       const gzipped =
-        globalScope && 'CompressionStream' in globalScope ? await gzipJson(payloadJson, globalScope) : null;
+        this.enableTransportCompression && globalScope && 'CompressionStream' in globalScope
+          ? await gzipJson(payloadJson, globalScope)
+          : null;
       const payloadSize = gzipped ? gzipped.byteLength : new Blob([payloadJson]).size;
       const options: RequestInit = {
         headers: {
