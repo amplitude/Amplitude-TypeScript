@@ -77,27 +77,21 @@ describe('appLifecyclePlugin', () => {
   describe('app state changes', () => {
     test('should track Application Opened when app becomes active', async () => {
       const { client } = await setupPlugin();
-
       changeListener('active');
-
       expect(client.track).toHaveBeenCalledWith('[Amplitude] Application Opened');
     });
 
     test('should track Application Backgrounded when app enters background', async () => {
       const { client } = await setupPlugin();
-
       changeListener('background');
-
       expect(client.track).toHaveBeenCalledWith('[Amplitude] Application Backgrounded');
     });
 
     test('should not track for other app state transitions', async () => {
       const { client } = await setupPlugin();
-
       changeListener('inactive');
       changeListener('unknown' as AppStateStatus);
       changeListener('extension');
-
       expect(client.track).not.toHaveBeenCalled();
     });
   });
@@ -106,7 +100,6 @@ describe('appLifecyclePlugin', () => {
     test('should pass through the event unchanged', async () => {
       const plugin = appLifecyclePlugin();
       const event = { event_type: 'custom_event' };
-
       await expect(plugin.execute?.(event)).resolves.toBe(event);
     });
   });
@@ -114,9 +107,7 @@ describe('appLifecyclePlugin', () => {
   describe('teardown', () => {
     test('should remove the subscription when remove is available', async () => {
       const { plugin } = await setupPlugin();
-
       await plugin.teardown?.();
-
       expect(mockRemove).toHaveBeenCalled();
     });
 
