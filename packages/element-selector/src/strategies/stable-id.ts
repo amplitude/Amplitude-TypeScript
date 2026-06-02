@@ -1,5 +1,6 @@
 import { Strategy } from '../types';
 import { getStableId } from '../helpers/get-stable-id';
+import { escapeCssIdentifier } from '../helpers/escape-css-identifier';
 
 /**
  * Second strategy in the chain. Anchors on the element's `id` when the id is
@@ -20,6 +21,6 @@ export const stableId: Strategy = {
     if (id === null) {
       return null;
     }
-    return `${el.tagName.toLowerCase()}#${CSS.escape(id)}`;
+    return `${el.tagName.toLowerCase()}#${escapeCssIdentifier(id)}`;
   },
 };
