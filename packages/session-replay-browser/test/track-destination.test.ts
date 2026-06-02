@@ -617,6 +617,33 @@ describe('SessionReplayTrackDestination', () => {
       expect((options.headers as Record<string, string>)['Content-Encoding']).toBeUndefined();
       expect(typeof options.body).toBe('string');
     });
+
+    test('should send uncompressed when enableTransportCompression is false even if CompressionStream is available', async () => {
+      // Reach into CompressionStream to fail the test if the opt-out path falls through:
+      // if the gate is broken, the constructor will throw and a different code path will
+      // run, so this lets us assert that we never even touched CompressionStream.
+      const cs = jest.fn();
+      class FailIfConstructed {
+        constructor() {
+          cs();
+          throw new Error('CompressionStream should not be constructed when opted out');
+        }
+      }
+      jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue({
+        CompressionStream: FailIfConstructed,
+      } as unknown as typeof globalThis);
+
+      const trackDestination = new SessionReplayTrackDestination({
+        loggerProvider: mockLoggerProvider,
+        enableTransportCompression: false,
+      });
+      await trackDestination.send(makeContext());
+
+      expect(cs).not.toHaveBeenCalled();
+      const options = (fetch as jest.Mock).mock.calls[0][1] as RequestInit;
+      expect((options.headers as Record<string, string>)['Content-Encoding']).toBeUndefined();
+      expect(typeof options.body).toBe('string');
+    });
   });
 
   describe('handleReponse', () => {

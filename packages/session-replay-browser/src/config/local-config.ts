@@ -41,6 +41,7 @@ export class SessionReplayLocalConfig extends Config implements ISessionReplayLo
   storeType: StoreType;
   performanceConfig?: SessionReplayPerformanceConfig;
   useWebWorker?: boolean;
+  enableTransportCompression?: boolean;
   applyBackgroundColorToBlockedElements?: boolean;
   enableUrlChangePolling?: boolean;
   urlChangePollingInterval?: number;
@@ -106,6 +107,7 @@ export class SessionReplayLocalConfig extends Config implements ISessionReplayLo
         this.useWebWorker = legacyOptions.experimental.useWebWorker;
       }
     }
+    this.enableTransportCompression = options.enableTransportCompression ?? true;
     this.captureAdoptedStyleSheets = options.captureAdoptedStyleSheets ?? true;
     if (options.crossOriginIframes) {
       this.crossOriginIframes = options.crossOriginIframes;

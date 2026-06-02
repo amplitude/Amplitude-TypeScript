@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Session Replay — enableTransportCompression test</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.5;
+            color: #222;
+        }
+        h1 { margin-bottom: 6px; }
+        .lede { color: #555; margin-top: 0; }
+        .panel {
+            background: #f6f8fa;
+            border: 1px solid #d0d7de;
+            border-radius: 6px;
+            padding: 14px 18px;
+            margin: 14px 0;
+        }
+        .panel h2 { margin-top: 0; font-size: 16px; }
+        button {
+            background: #0969da;
+            color: #fff;
+            border: 0;
+            border-radius: 6px;
+            padding: 8px 16px;
+            margin-right: 8px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        button.secondary { background: #6e7781; }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+        .verdict {
+            padding: 12px 16px;
+            border-radius: 6px;
+            margin: 12px 0;
+            font-weight: 600;
+        }
+        .verdict.pass { background: #dafbe1; color: #1a7f37; border: 1px solid #aceebb; }
+        .verdict.fail { background: #ffebe9; color: #cf222e; border: 1px solid #ffcecb; }
+        .verdict.info { background: #ddf4ff; color: #0969da; border: 1px solid #b6e3ff; }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 8px 0;
+            font-size: 13px;
+        }
+        th, td {
+            text-align: left;
+            padding: 6px 10px;
+            border-bottom: 1px solid #d0d7de;
+            vertical-align: top;
+        }
+        th { background: #eaeef2; font-weight: 600; }
+        td.k { white-space: nowrap; font-weight: 500; color: #57606a; width: 180px; }
+        code, pre {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+            background: #eaeef2;
+            border-radius: 4px;
+            padding: 1px 5px;
+            font-size: 12px;
+        }
+        pre {
+            padding: 8px 10px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        .row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+        .badge {
+            display: inline-block;
+            padding: 1px 7px;
+            border-radius: 10px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .badge.gzip { background: #fff1c2; color: #7d4e00; }
+        .badge.raw  { background: #d2eaff; color: #0a3069; }
+        #recordable {
+            border: 2px dashed #d0d7de;
+            border-radius: 6px;
+            padding: 12px 16px;
+            min-height: 60px;
+            background: #fff;
+        }
+        #recordable li { margin: 2px 0; }
+        small { color: #57606a; }
+    </style>
+</head>
+<body>
+    <h1>Session Replay — <code>enableTransportCompression</code> test</h1>
+    <p class="lede">
+        This page boots the standalone Session Replay SDK and asserts whether the outbound
+        track POST uses <code>Content-Encoding: gzip</code> based on the
+        <code>enableTransportCompression</code> option. <code>fetch()</code> is intercepted
+        so no real network calls are made.
+    </p>
+
+    <div class="panel">
+        <h2>Environment</h2>
+        <div id="env"></div>
+    </div>
+
+    <div class="panel">
+        <h2>Run a test</h2>
+        <div class="row">
+            <button id="run-compressed">Run with compression ON (default)</button>
+            <button id="run-uncompressed">Run with <code>enableTransportCompression: false</code></button>
+            <button id="clear" class="secondary">Reset</button>
+        </div>
+        <p><small>
+            Each run does a full page reload before initializing the SDK, so there is no
+            cross-run state (no leftover scheduled flushes from the previous run, no in-memory
+            event queue carry-over). After reload, the page automatically initializes the SDK
+            with the chosen config, drives DOM activity for rrweb, calls <code>flush(false)</code>,
+            and inspects the captured request.
+        </small></p>
+    </div>
+
+    <div class="panel">
+        <h2>Recordable content (rrweb captures mutations here)</h2>
+        <div id="recordable">
+            <p>Click a button above to start a run. Activity will be appended below:</p>
+            <ul id="event-target"></ul>
+        </div>
+    </div>
+
+    <div class="panel">
+        <h2>Captured track POSTs</h2>
+        <div id="verdict"></div>
+        <div id="log"></div>
+    </div>
+
+    <script src="../../lib/scripts/session-replay-browser-min.js"></script>
+
+    <script>
+        // ----------------------------------------------------------------------
+        // Network interception. The SDK's track-destination calls `fetch()` (and
+        // `navigator.sendBeacon`) directly against the global. We patch both BEFORE
+        // SDK init so every request is captured + answered with a synthetic 200.
+        // We also fake the remote-config endpoint so the SDK doesn't block on it.
+        // ----------------------------------------------------------------------
+        const captured = [];
+        const originalFetch = window.fetch.bind(window);
+        const TRACK_URL_FRAGMENT = '/sessions/v2/track';
+
+        function summarizeBody(body) {
+            if (body == null) return { type: 'null', size: 0, preview: '' };
+            if (body instanceof Uint8Array) {
+                const hex = Array.from(body.slice(0, 16))
+                    .map((b) => b.toString(16).padStart(2, '0'))
+                    .join(' ');
+                return { type: 'Uint8Array', size: body.byteLength, preview: hex + (body.byteLength > 16 ? ' …' : '') };
+            }
+            if (typeof body === 'string') {
+                return { type: 'string', size: body.length, preview: body.slice(0, 200) + (body.length > 200 ? ' …' : '') };
+            }
+            if (body instanceof Blob) {
+                return { type: 'Blob', size: body.size, preview: '(blob)' };
+            }
+            return { type: typeof body, size: -1, preview: String(body).slice(0, 200) };
+        }
+
+        function headerSummary(headers) {
+            if (!headers) return {};
+            if (headers instanceof Headers) {
+                const out = {};
+                headers.forEach((v, k) => (out[k] = v));
+                return out;
+            }
+            return { ...headers };
+        }
+
+        window.fetch = async function patchedFetch(url, opts) {
+            opts = opts || {};
+            const u = String(url);
+            const isTrack = u.includes(TRACK_URL_FRAGMENT);
+
+            if (isTrack) {
+                const headers = headerSummary(opts.headers);
+                const bodyInfo = summarizeBody(opts.body);
+                captured.push({
+                    timestamp: new Date().toISOString(),
+                    url: u,
+                    method: opts.method || 'GET',
+                    contentEncoding: headers['Content-Encoding'] || headers['content-encoding'] || null,
+                    headers,
+                    bodyInfo,
+                });
+                renderLog();
+                return new Response('{}', {
+                    status: 200,
+                    headers: { 'content-type': 'application/json' },
+                });
+            }
+
+            // Remote-config (or any other amplitude endpoint) — return a minimal valid shape
+            // so the SDK doesn't block on remote config or error out during init.
+            if (/amplitude\.com|amplitude\.io|sessions\/v2\/config/i.test(u)) {
+                return new Response(
+                    JSON.stringify({ configs: { sessionReplay: {} } }),
+                    { status: 200, headers: { 'content-type': 'application/json' } },
+                );
+            }
+            return originalFetch(url, opts);
+        };
+
+        // sendBeacon is called on pagehide / unload with the tail of unsent incremental events.
+        // Stub it so any beacon path triggered during the run is captured too.
+        const originalSendBeacon = navigator.sendBeacon && navigator.sendBeacon.bind(navigator);
+        navigator.sendBeacon = function patchedSendBeacon(url, body) {
+            const u = String(url);
+            if (u.includes(TRACK_URL_FRAGMENT)) {
+                captured.push({
+                    timestamp: new Date().toISOString(),
+                    url: u,
+                    method: 'POST (beacon)',
+                    contentEncoding: null, // beacons can't set Content-Encoding
+                    headers: { '(sendBeacon)': 'no headers' },
+                    bodyInfo: summarizeBody(body),
+                });
+                renderLog();
+                return true;
+            }
+            return originalSendBeacon ? originalSendBeacon(url, body) : false;
+        };
+
+        // ----------------------------------------------------------------------
+        // Environment fingerprint
+        // ----------------------------------------------------------------------
+        function renderEnv() {
+            const csAvailable = typeof window.CompressionStream === 'function';
+            const sdkLoaded = typeof window.sessionReplay === 'object' && window.sessionReplay !== null;
+            const env = document.getElementById('env');
+            env.innerHTML = `
+                <table>
+                    <tr><td class="k">User agent</td><td><code>${navigator.userAgent}</code></td></tr>
+                    <tr><td class="k">window.CompressionStream</td><td>${csAvailable ? '✅ available' : '❌ missing'}</td></tr>
+                    <tr><td class="k">window.sessionReplay (SDK)</td><td>${sdkLoaded ? '✅ loaded' : '❌ not loaded'}</td></tr>
+                    <tr><td class="k">fetch + sendBeacon</td><td>🔌 intercepted (no real network calls)</td></tr>
+                </table>
+            `;
+        }
+
+        // ----------------------------------------------------------------------
+        // Test runner. Each Run button persists the requested mode to sessionStorage
+        // and triggers a full page reload — this guarantees a fresh SDK pipeline with
+        // no leftover timers, queues, or in-memory state from any previous run.
+        // ----------------------------------------------------------------------
+        const RUN_STORAGE_KEY = 'sr-transport-compression-run';
+
+        function scheduleRun(mode /* 'on' | 'off' */) {
+            sessionStorage.setItem(RUN_STORAGE_KEY, mode);
+            window.location.reload();
+        }
+
+        function setIdleVerdict(text) {
+            const verdict = document.getElementById('verdict');
+            verdict.className = text ? 'verdict info' : '';
+            verdict.textContent = text || '';
+        }
+
+        async function runTest(mode /* 'on' | 'off' */) {
+            const enableTransportCompression = mode !== 'off';
+            const sessionId = Date.now();
+            const deviceId = 'testbed-device-' + sessionId;
+
+            const initOpts = {
+                sessionId,
+                deviceId,
+                sampleRate: 1.0,
+                logLevel: 3,           // Verbose
+                debugMode: true,
+                // useWebWorker stays false: this test intercepts main-thread fetch only.
+                // The worker path is covered by the jest worker-track-destination test.
+                useWebWorker: false,
+            };
+            if (!enableTransportCompression) {
+                initOpts.enableTransportCompression = false;
+            }
+            // (omit when true to also exercise the "default is gzip" branch)
+
+            const verdict = document.getElementById('verdict');
+            verdict.className = 'verdict info';
+            verdict.textContent = `Run (mode=${mode}): initializing with ${JSON.stringify(initOpts)} …`;
+
+            try {
+                await Promise.resolve(window.sessionReplay.init('testbed-api-key', initOpts).promise);
+            } catch (e) {
+                verdict.className = 'verdict fail';
+                verdict.textContent = `Run (mode=${mode}): init failed — ${e && e.message ? e.message : e}`;
+                return;
+            }
+
+            // Generate DOM activity so rrweb has something to record
+            const target = document.getElementById('event-target');
+            for (let i = 0; i < 5; i++) {
+                const li = document.createElement('li');
+                li.textContent = `Run (mode=${mode}) event ${i + 1} at ${new Date().toLocaleTimeString()}`;
+                target.appendChild(li);
+                // Small async gap so rrweb batches into multiple mutations
+                await new Promise((r) => setTimeout(r, 30));
+            }
+
+            try {
+                await Promise.resolve(window.sessionReplay.flush(false));
+            } catch (e) {
+                verdict.className = 'verdict fail';
+                verdict.textContent = `Run (mode=${mode}): flush failed — ${e && e.message ? e.message : e}`;
+                return;
+            }
+
+            // Give the destination's setTimeout(0) scheduler a tick to drain.
+            await new Promise((r) => setTimeout(r, 400));
+
+            const trackReqs = captured.filter((c) => c.url.includes(TRACK_URL_FRAGMENT) && c.method !== 'POST (beacon)');
+            if (trackReqs.length === 0) {
+                verdict.className = 'verdict fail';
+                verdict.textContent = `Run (mode=${mode}): no track POST captured. Did the SDK initialize? ` +
+                    `Check DevTools console for diagnostics.`;
+                return;
+            }
+            const expectGzip = enableTransportCompression;
+            const actuallyGzip = trackReqs.every((r) => r.contentEncoding === 'gzip');
+            const noneGzip = trackReqs.every((r) => r.contentEncoding == null);
+            const bodyTypeOk = expectGzip
+                ? trackReqs.every((r) => r.bodyInfo.type === 'Uint8Array')
+                : trackReqs.every((r) => r.bodyInfo.type === 'string');
+
+            const pass = (expectGzip ? actuallyGzip : noneGzip) && bodyTypeOk;
+            verdict.className = pass ? 'verdict pass' : 'verdict fail';
+            verdict.textContent = pass
+                ? `Run (mode=${mode}) PASS — ${trackReqs.length} track POST(s), ` +
+                  `Content-Encoding=${expectGzip ? 'gzip' : '(none)'}, ` +
+                  `body type=${expectGzip ? 'Uint8Array' : 'string'}.`
+                : `Run (mode=${mode}) FAIL — expected Content-Encoding=${expectGzip ? 'gzip' : '(none)'}, ` +
+                  `body type=${expectGzip ? 'Uint8Array' : 'string'}, but saw mixed results below.`;
+        }
+
+        // ----------------------------------------------------------------------
+        // Rendering
+        // ----------------------------------------------------------------------
+        function renderLog() {
+            const log = document.getElementById('log');
+            if (captured.length === 0) {
+                log.innerHTML = '<p><small>No requests captured yet.</small></p>';
+                return;
+            }
+            log.innerHTML = captured
+                .map((c, i) => {
+                    const ce = c.contentEncoding;
+                    const badge = ce === 'gzip'
+                        ? '<span class="badge gzip">gzip</span>'
+                        : '<span class="badge raw">no Content-Encoding</span>';
+                    const headerRows = Object.entries(c.headers)
+                        .map(([k, v]) => `<tr><td class="k">${k}</td><td><code>${v}</code></td></tr>`)
+                        .join('');
+                    return `
+                        <table>
+                            <tr><th colspan="2">Request #${i + 1} — ${c.method} ${badge}</th></tr>
+                            <tr><td class="k">Timestamp</td><td>${c.timestamp}</td></tr>
+                            <tr><td class="k">URL</td><td><code>${c.url}</code></td></tr>
+                            <tr><td class="k">Content-Encoding</td><td>${ce ? `<code>${ce}</code>` : '<em>(not set)</em>'}</td></tr>
+                            <tr><td class="k">Body type</td><td><code>${c.bodyInfo.type}</code></td></tr>
+                            <tr><td class="k">Body size</td><td>${c.bodyInfo.size} ${c.bodyInfo.type === 'Uint8Array' ? 'bytes' : 'chars'}</td></tr>
+                            <tr><td class="k">Body preview</td><td><pre>${escapeHtml(c.bodyInfo.preview)}</pre></td></tr>
+                            ${headerRows ? `<tr><td class="k">All headers</td><td><table>${headerRows}</table></td></tr>` : ''}
+                        </table>
+                    `;
+                })
+                .join('');
+        }
+
+        function escapeHtml(s) {
+            return String(s).replace(/[&<>"']/g, (c) =>
+                ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]),
+            );
+        }
+
+        // ----------------------------------------------------------------------
+        // Wire up buttons + initial paint. If a run was scheduled by a previous
+        // click (we reload between runs so each one starts from a clean slate),
+        // pick it up here and auto-execute.
+        // ----------------------------------------------------------------------
+        window.addEventListener('load', () => {
+            renderEnv();
+            renderLog();
+
+            document.getElementById('run-compressed').addEventListener('click', () => scheduleRun('on'));
+            document.getElementById('run-uncompressed').addEventListener('click', () => scheduleRun('off'));
+            document.getElementById('clear').addEventListener('click', () => {
+                sessionStorage.removeItem(RUN_STORAGE_KEY);
+                window.location.reload();
+            });
+
+            const pending = sessionStorage.getItem(RUN_STORAGE_KEY);
+            if (pending === 'on' || pending === 'off') {
+                // Consume the flag immediately so a manual refresh after this run
+                // goes back to idle (no infinite re-run).
+                sessionStorage.removeItem(RUN_STORAGE_KEY);
+                runTest(pending);
+            } else {
+                setIdleVerdict('Idle. Click a "Run" button — the page will reload to ensure a fresh SDK state, then execute the test automatically.');
+            }
+        });
+    </script>
+</body>
+</html>
