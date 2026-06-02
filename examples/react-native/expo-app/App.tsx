@@ -1,8 +1,6 @@
-import {StatusBar} from 'expo-status-bar';
 import {Button, StyleSheet, Text, View} from 'react-native';
 import {useEffect} from 'react';
-import {identify, Identify, init, track, add, Types} from '@amplitude/analytics-react-native';
-import { pageViewTrackingPlugin } from '@amplitude/plugin-page-view-tracking-browser';
+import {identify, Identify, init, track, add, Types, appLifecyclePlugin} from '@amplitude/analytics-react-native';
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 
@@ -30,20 +28,20 @@ export default function App() {
   useEffect(() => {
     (async () => {
         // AMPLITUDE_API_KEY is inlined at bundle time (see babel.config.js).
-        await init(process.env.AMPLITUDE_API_KEY || 'YOUR_API_KEY', 'react-native-user-id', {
+        await init(process.env.AMPLITUDE_API_KEY || 'YOUR_API_KEY', 'React Native Autocapture', {
           logLevel: Types.LogLevel.Error,
-          autocapture: {
-            sessions: true,
-            pageViews: false,
-          },
         }).promise;
-        add(pageViewTrackingPlugin());
+        add(appLifecyclePlugin());
         track('expo-app/react-native/test-event');
         await identify(new Identify().set('react-native-test', 'yes')).promise;
     })();
   }, []);
   return (
-    <NavigationContainer>
+    <NavigationContainer
+      onStateChange={(state) => {
+        console.log('state changed', state);
+      }}
+    >
       <Stack.Navigator>
         <Stack.Screen name="Home" component={HomeScreen} />
         <Stack.Screen name="Settings" component={SettingsScreen} />
