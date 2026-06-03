@@ -30,10 +30,7 @@ export default function App() {
         // AMPLITUDE_API_KEY is inlined at bundle time (see babel.config.js).
         await init(process.env.AMPLITUDE_API_KEY || 'YOUR_API_KEY', 'react-native-user-id', {
           logLevel: Types.LogLevel.Error,
-          autocapture: {
-            sessions: true,
-            pageViews: false,
-          },
+          // autocapture: { } // <-- todo
         }).promise;
         track('expo-app/react-native/test-event');
         await identify(new Identify().set('react-native-test', 'yes')).promise;
