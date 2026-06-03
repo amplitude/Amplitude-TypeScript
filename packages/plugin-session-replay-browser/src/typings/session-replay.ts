@@ -193,4 +193,12 @@ export interface SessionReplayOptions {
    * @see {@link StandaloneSessionReplayOptions.eagerFullSnapshotSend}
    */
   eagerFullSnapshotSend?: boolean;
+  /**
+   * @see {@link StandaloneSessionReplayOptions.maxPersistedEventsSizeBytes}
+   */
+  maxPersistedEventsSizeBytes?: number;
+  /**
+   * @see {@link StandaloneSessionReplayOptions.maxSingleEventSizeBytes}
+   */
+  maxSingleEventSizeBytes?: number;
 }

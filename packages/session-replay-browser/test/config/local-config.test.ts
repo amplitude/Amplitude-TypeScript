@@ -162,4 +162,120 @@ describe('SessionReplayLocalConfig', () => {
       expect(config.eagerFullSnapshotSend).toBe(true);
     });
   });
+
+  describe('maxPersistedEventsSizeBytes', () => {
+    let warnSpy: jest.SpyInstance;
+    let logger: ILogger;
+
+    beforeEach(() => {
+      logger = new Logger();
+      warnSpy = jest.spyOn(logger, 'warn').mockImplementation(() => {
+        /* swallow */
+      });
+    });
+
+    afterEach(() => {
+      warnSpy.mockRestore();
+    });
+
+    test('is undefined when option is omitted (defaults to MAX_EVENT_LIST_SIZE downstream)', () => {
+      const config = new SessionReplayLocalConfig('static_key', { loggerProvider: logger });
+      expect(config.maxPersistedEventsSizeBytes).toBeUndefined();
+      expect(warnSpy).not.toHaveBeenCalled();
+    });
+
+    test('passes through an in-range value', () => {
+      const config = new SessionReplayLocalConfig('static_key', {
+        loggerProvider: logger,
+        maxPersistedEventsSizeBytes: 1_000_000,
+      });
+      expect(config.maxPersistedEventsSizeBytes).toBe(1_000_000);
+      expect(warnSpy).not.toHaveBeenCalled();
+    });
+
+    test('clamps a value below the floor', () => {
+      const config = new SessionReplayLocalConfig('static_key', {
+        loggerProvider: logger,
+        maxPersistedEventsSizeBytes: 10,
+      });
+      expect(config.maxPersistedEventsSizeBytes).toBe(1_000);
+      expect(warnSpy).toHaveBeenCalled();
+    });
+
+    test('clamps a value above the ceiling', () => {
+      const config = new SessionReplayLocalConfig('static_key', {
+        loggerProvider: logger,
+        maxPersistedEventsSizeBytes: 50_000_000,
+      });
+      expect(config.maxPersistedEventsSizeBytes).toBe(8_000_000);
+      expect(warnSpy).toHaveBeenCalled();
+    });
+
+    test('ignores a non-finite value', () => {
+      const config = new SessionReplayLocalConfig('static_key', {
+        loggerProvider: logger,
+        maxPersistedEventsSizeBytes: Infinity,
+      });
+      expect(config.maxPersistedEventsSizeBytes).toBeUndefined();
+      expect(warnSpy).toHaveBeenCalled();
+    });
+  });
+
+  describe('maxSingleEventSizeBytes', () => {
+    let warnSpy: jest.SpyInstance;
+    let logger: ILogger;
+
+    beforeEach(() => {
+      logger = new Logger();
+      warnSpy = jest.spyOn(logger, 'warn').mockImplementation(() => {
+        /* swallow */
+      });
+    });
+
+    afterEach(() => {
+      warnSpy.mockRestore();
+    });
+
+    test('is undefined when option is omitted (defaults to MAX_SINGLE_EVENT_SIZE downstream)', () => {
+      const config = new SessionReplayLocalConfig('static_key', { loggerProvider: logger });
+      expect(config.maxSingleEventSizeBytes).toBeUndefined();
+      expect(warnSpy).not.toHaveBeenCalled();
+    });
+
+    test('passes through an in-range value', () => {
+      const config = new SessionReplayLocalConfig('static_key', {
+        loggerProvider: logger,
+        maxSingleEventSizeBytes: 5_000_000,
+      });
+      expect(config.maxSingleEventSizeBytes).toBe(5_000_000);
+      expect(warnSpy).not.toHaveBeenCalled();
+    });
+
+    test('clamps a value below the floor', () => {
+      const config = new SessionReplayLocalConfig('static_key', {
+        loggerProvider: logger,
+        maxSingleEventSizeBytes: 0,
+      });
+      expect(config.maxSingleEventSizeBytes).toBe(1_000);
+      expect(warnSpy).toHaveBeenCalled();
+    });
+
+    test('clamps a value above the ceiling', () => {
+      const config = new SessionReplayLocalConfig('static_key', {
+        loggerProvider: logger,
+        maxSingleEventSizeBytes: 50_000_000,
+      });
+      expect(config.maxSingleEventSizeBytes).toBe(10_000_000);
+      expect(warnSpy).toHaveBeenCalled();
+    });
+
+    test('ignores a non-finite value', () => {
+      const config = new SessionReplayLocalConfig('static_key', {
+        loggerProvider: logger,
+        maxSingleEventSizeBytes: NaN,
+      });
+      expect(config.maxSingleEventSizeBytes).toBeUndefined();
+      expect(warnSpy).toHaveBeenCalled();
+    });
+  });
 });
