@@ -115,39 +115,3 @@ test.describe('eagerFullSnapshotSend config', () => {
     expect(getBodies().length).toBeGreaterThan(afterInit);
   });
 });
-
-// ─── maxPersistedEventsSizeBytes ──────────────────────────────────────────────
-
-test.describe('maxPersistedEventsSizeBytes config', () => {
-  test('a small cap splits buffered events into multiple requests as activity accumulates', async ({ page }) => {
-    await mockRemoteConfig(page, remoteConfigRecording);
-    const { getBodies } = await captureTrackRequests(page);
-
-    // Tiny cap + high flush interval + eager send off: the ONLY thing that can send is a
-    // size-driven split. Generating well over the cap in DOM mutations must therefore produce
-    // multiple requests with no explicit flush.
-    await page.goto(
-      buildUrl('/session-replay-browser/sr-capture-test.html', {
-        sessionId: TEST_SESSION_ID,
-        eagerFullSnapshotSend: false,
-        maxPersistedEventsSizeBytes: 2_000,
-        ...HIGH_FLUSH,
-      }),
-    );
-    await waitForReady(page);
-    await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
-
-    // Produce a large volume of mutation events, each comfortably larger than the 2 KB cap.
-    for (let i = 0; i < 10; i++) {
-      await page.evaluate((n) => {
-        const div = document.createElement('div');
-        div.textContent = `payload-${n}-` + 'x'.repeat(1_500);
-        document.body.appendChild(div);
-      }, i);
-      await page.waitForTimeout(100);
-    }
-    await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
-
-    expect(getBodies().length).toBeGreaterThanOrEqual(2);
-  });
-});

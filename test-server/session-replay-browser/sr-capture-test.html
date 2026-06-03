@@ -41,9 +41,6 @@
       const eagerFullSnapshotSend = params.has('eagerFullSnapshotSend')
         ? params.get('eagerFullSnapshotSend') === 'true'
         : undefined;
-      const maxPersistedEventsSizeBytes = params.has('maxPersistedEventsSizeBytes')
-        ? Number(params.get('maxPersistedEventsSizeBytes'))
-        : undefined;
 
       void (async () => {
         try {
@@ -58,7 +55,6 @@
             ...(storeType ? { storeType } : {}),
             ...(flushIntervalConfig ? { flushIntervalConfig } : {}),
             ...(eagerFullSnapshotSend !== undefined ? { eagerFullSnapshotSend } : {}),
-            ...(maxPersistedEventsSizeBytes !== undefined ? { maxPersistedEventsSizeBytes } : {}),
           }).promise;
         } catch (err) {
           document.getElementById('status').textContent = 'error: ' + err.message;

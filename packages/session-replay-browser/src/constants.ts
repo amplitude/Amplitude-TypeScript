@@ -19,22 +19,17 @@ export const SESSION_REPLAY_SERVER_URL = 'https://api-sr.amplitude.com/sessions/
 export const SESSION_REPLAY_EU_URL = 'https://api-sr.eu.amplitude.com/sessions/v2/track';
 export const SESSION_REPLAY_STAGING_URL = 'https://api-sr.stag2.amplitude.com/sessions/v2/track';
 export const STORAGE_PREFIX = `${AMPLITUDE_PREFIX}_replay_unsent`;
-// Default raw (uncompressed) UTF-8 byte cap for a single batched events list before the
-// store splits it into its own request. Tunable per-instance via the
-// `maxPersistedEventsSizeBytes` option (raising it means fewer, larger requests).
-// Reduced from 1,000,000 to leave headroom for double-JSON-encoding overhead and the
-// uncompressed fallback path. The HTTP body is ~10-30% larger than raw string length
-// because events are re-serialized inside the { version, events } wrapper at send time.
-export const MAX_EVENT_LIST_SIZE = 700_000;
-// Lower bound for the tunable maxPersistedEventsSizeBytes option. A tiny cap would split
-// on nearly every event (one request per event), so reject values below this floor.
-export const MIN_EVENT_LIST_SIZE = 1_000;
-// Upper bound for the tunable maxPersistedEventsSizeBytes option. The SR ingest service
-// (nova SessionReplayServletV2) measures the DECOMPRESSED request size against a
-// 10,000,000-byte threshold and splits batches above it server-side. We cap the raw events
-// list at 80% of that (8 MB) so a single batched list always stays under the server split
-// point with headroom for the { version, events } wrapper and Kafka message overhead.
-export const MAX_EVENT_LIST_SIZE_CEILING = 8_000_000;
+// Raw (uncompressed) UTF-8 byte cap for a single batched events list before the store splits
+// it into its own request. Larger batches mean fewer requests — the primary steady-state lever
+// for request volume — while the time-based flush (flushIntervalConfig) still controls send
+// cadence, so this only decides whether a single high-activity flush gets split into multiple
+// requests. Set to 2 MB: gzipped on the wire that's ~0.2 MB, far under the SR ingest service's
+// 10,000,000-byte DECOMPRESSED split threshold (nova SessionReplayServletV2 splits batches above
+// it server-side and only 413s a single >10 MB event), and just above nova's 1.5 MB "large
+// request" marker with ~5x headroom. Kept at 2 MB (not higher) so it stays a safe POST body on
+// the no-CompressionStream fallback path (raw == wire there) and keeps per-session memory/IDB
+// buffering modest on low-end devices, where bigger buys nothing server-side.
+export const MAX_EVENT_LIST_SIZE = 2_000_000;
 // 9 MB UTF-8 bytes — just under the server's 10 MB per-event threshold. Compared against the
 // UTF-8 byte length of the serialized event (via Blob/TextEncoder), not the JS string length,
 // so multi-byte payloads (CJK, emoji) are gated correctly.

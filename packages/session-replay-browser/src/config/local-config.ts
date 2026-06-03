@@ -4,9 +4,7 @@ import {
   DEFAULT_SAMPLE_RATE,
   DEFAULT_SERVER_ZONE,
   DEFAULT_URL_CHANGE_POLLING_INTERVAL,
-  MAX_EVENT_LIST_SIZE_CEILING,
   MAX_INTERVAL,
-  MIN_EVENT_LIST_SIZE,
   MIN_INTERVAL,
   UNMASK_TEXT_CLASS,
 } from '../constants';
@@ -53,7 +51,6 @@ export class SessionReplayLocalConfig extends Config implements ISessionReplayLo
   fullSnapshotIntervalMs?: number;
   flushIntervalConfig?: FlushIntervalConfig;
   eagerFullSnapshotSend?: boolean;
-  maxPersistedEventsSizeBytes?: number;
 
   constructor(apiKey: string, options: SessionReplayOptions) {
     const defaultConfig = getDefaultConfig();
@@ -86,12 +83,6 @@ export class SessionReplayLocalConfig extends Config implements ISessionReplayLo
     }
     if (options.eagerFullSnapshotSend !== undefined) {
       this.eagerFullSnapshotSend = options.eagerFullSnapshotSend;
-    }
-    if (options.maxPersistedEventsSizeBytes !== undefined) {
-      this.maxPersistedEventsSizeBytes = sanitizeMaxPersistedEventsSizeBytes(
-        options.maxPersistedEventsSizeBytes,
-        this.loggerProvider,
-      );
     }
 
     // Auto-include .amp-unmask as a default unmaskSelector entry so it works
@@ -135,24 +126,6 @@ export class SessionReplayLocalConfig extends Config implements ISessionReplayLo
 // Customers wanting fewer requests should be raising the value, not lowering it; the floor
 // is just a defensive guard against typos and unsigned-int rollovers.
 const MIN_FLUSH_INTERVAL_FLOOR_MS = 100;
-
-// Clamps the tunable batch-size cap to a sane range. A non-finite or sub-floor value
-// (0, negative, NaN) would make shouldSplitEventsList fire on nearly every event, reintroducing
-// the per-event request storm this option exists to prevent. A value above the ceiling would
-// push batches into the server's decompressed-size split zone (see MAX_EVENT_LIST_SIZE_CEILING).
-function sanitizeMaxPersistedEventsSizeBytes(raw: number, loggerProvider: ILogger): number {
-  if (!Number.isFinite(raw) || raw < MIN_EVENT_LIST_SIZE) {
-    loggerProvider.warn(`maxPersistedEventsSizeBytes ${raw} is below floor ${MIN_EVENT_LIST_SIZE} bytes; clamping.`);
-    return MIN_EVENT_LIST_SIZE;
-  }
-  if (raw > MAX_EVENT_LIST_SIZE_CEILING) {
-    loggerProvider.warn(
-      `maxPersistedEventsSizeBytes ${raw} exceeds ceiling ${MAX_EVENT_LIST_SIZE_CEILING} bytes; clamping.`,
-    );
-    return MAX_EVENT_LIST_SIZE_CEILING;
-  }
-  return raw;
-}
 
 function sanitizeFlushIntervalConfig(raw: FlushIntervalConfig, loggerProvider: ILogger): FlushIntervalConfig {
   const sanitized: FlushIntervalConfig = {};

@@ -267,20 +267,6 @@ export interface SessionReplayLocalConfig extends IConfig {
    */
   eagerFullSnapshotSend?: boolean;
   /**
-   * Maximum raw (uncompressed) UTF-8 byte size of a buffered events list before it is split
-   * into its own request. Larger values produce fewer, larger requests (the primary
-   * steady-state lever for reducing request volume); smaller values produce more frequent,
-   * smaller requests. Payloads are gzipped on the wire, so several MB of replay JSON
-   * compresses to well under 1 MB.
-   *
-   * Clamped to the range [1 KB, 8 MB]. The 8 MB ceiling keeps a batched list under the SR
-   * ingest service's 10 MB decompressed-size threshold (above which the server splits the
-   * batch itself), leaving headroom for the request wrapper and message overhead.
-   *
-   * @defaultValue 700000
-   */
-  maxPersistedEventsSizeBytes?: number;
-  /**
    * Controls how often the SDK splits buffered rrweb events into a sequence and dispatches
    * the resulting batch to the server. The interval starts at `minIntervalMs` and grows by
    * `minIntervalMs` after each split, capped at `maxIntervalMs`. Lowering values increases
