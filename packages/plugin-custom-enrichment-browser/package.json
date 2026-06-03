@@ -1,6 +1,6 @@
 {
   "name": "@amplitude/plugin-custom-enrichment-browser",
-  "version": "0.1.9",
+  "version": "0.1.10-sr-4646-rc.0",
   "description": "",
   "author": "Amplitude Inc",
   "homepage": "https://github.com/amplitude/Amplitude-TypeScript",

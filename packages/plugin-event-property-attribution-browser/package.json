@@ -1,6 +1,6 @@
 {
   "name": "@amplitude/plugin-event-property-attribution-browser",
-  "version": "0.2.1",
+  "version": "0.2.2-sr-4646-rc.0",
   "description": "",
   "author": "Amplitude Inc",
   "homepage": "https://github.com/amplitude/Amplitude-TypeScript",

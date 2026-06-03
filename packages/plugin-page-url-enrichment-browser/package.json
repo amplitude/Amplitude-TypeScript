@@ -1,6 +1,6 @@
 {
   "name": "@amplitude/plugin-page-url-enrichment-browser",
-  "version": "0.7.11",
+  "version": "0.7.12-sr-4646-rc.0",
   "description": "",
   "author": "Amplitude Inc",
   "homepage": "https://github.com/amplitude/Amplitude-TypeScript",

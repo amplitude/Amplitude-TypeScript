@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.43.0-sr-4646-rc.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.42.5...@amplitude/analytics-browser@2.43.0-sr-4646-rc.0) (2026-06-03)
+
+
+### Features
+
+* **analytics-browser:** enable fetch keepalive by default to survive page navigation ([#1781](https://github.com/amplitude/Amplitude-TypeScript/issues/1781)) ([8b51b6e](https://github.com/amplitude/Amplitude-TypeScript/commit/8b51b6e75726454c32cdeea2c01a9b3ccb5a96d7))
+
+
+
+
+
 ## [2.42.5](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.42.4...@amplitude/analytics-browser@2.42.5) (2026-05-28)
 
 
