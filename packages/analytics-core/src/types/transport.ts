@@ -10,6 +10,9 @@ export type TransportType = 'xhr' | 'beacon' | 'fetch';
 export interface TransportOptions {
   type?: TransportType;
   headers?: Record<string, string>;
+  // Whether the fetch transport sets `keepalive` so uploads survive page navigation.
+  // Enabled unless explicitly set to false. Has no effect on the xhr/beacon transports.
+  enableKeepalive?: boolean;
 }
 
 export type TransportTypeOrOptions = TransportType | TransportOptions;

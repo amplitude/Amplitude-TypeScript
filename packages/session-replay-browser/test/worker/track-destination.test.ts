@@ -371,4 +371,37 @@ describe('worker/track-destination', () => {
       delete (global as any).CompressionStream;
     }
   });
+
+  test('sends uncompressed when enableTransportCompression is false even if CompressionStream is available', async () => {
+    // Sentinel: if the opt-out gate is broken, the worker will try to construct
+    // CompressionStream and we want the test to flag it explicitly rather than just
+    // falling through to a happy path.
+    const cs = jest.fn();
+    class FailIfConstructed {
+      constructor() {
+        cs();
+        throw new Error('CompressionStream should not be constructed when opted out');
+      }
+    }
+    (global as any).CompressionStream = FailIfConstructed;
+
+    try {
+      mockFetch.mockResolvedValueOnce({ status: 200 });
+      await invokeOnMessage({
+        type: 'send',
+        id: 'opt-out-1',
+        payload: basePayload,
+        context: { ...baseContext, enableTransportCompression: false },
+        useRetry: false,
+      });
+
+      expect(cs).not.toHaveBeenCalled();
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+      const [, options] = mockFetch.mock.calls[0] as [string, RequestInit];
+      expect((options.headers as Record<string, string>)['Content-Encoding']).toBeUndefined();
+      expect(typeof options.body).toBe('string');
+    } finally {
+      delete (global as any).CompressionStream;
+    }
+  });
 });

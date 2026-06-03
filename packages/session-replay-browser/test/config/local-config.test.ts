@@ -110,4 +110,27 @@ describe('SessionReplayLocalConfig', () => {
       expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('below the default minIntervalMs'));
     });
   });
+
+  describe('enableTransportCompression', () => {
+    test('defaults to true when option is omitted', () => {
+      const config = new SessionReplayLocalConfig('static_key', { loggerProvider: new Logger() });
+      expect(config.enableTransportCompression).toBe(true);
+    });
+
+    test('respects explicit false (opt-out)', () => {
+      const config = new SessionReplayLocalConfig('static_key', {
+        loggerProvider: new Logger(),
+        enableTransportCompression: false,
+      });
+      expect(config.enableTransportCompression).toBe(false);
+    });
+
+    test('respects explicit true', () => {
+      const config = new SessionReplayLocalConfig('static_key', {
+        loggerProvider: new Logger(),
+        enableTransportCompression: true,
+      });
+      expect(config.enableTransportCompression).toBe(true);
+    });
+  });
 });

@@ -183,6 +183,23 @@ export interface SessionReplayLocalConfig extends IConfig {
    */
   useWebWorker?: boolean;
 
+  /**
+   * Controls transport-layer gzip compression of session replay request bodies.
+   * When true (default), the SDK gzip-compresses the JSON request body via the browser's
+   * `CompressionStream` API and sets `Content-Encoding: gzip` on the POST. When false,
+   * the SDK sends the raw JSON body with no `Content-Encoding` header.
+   *
+   * Disabling is intended as a debugging / safety opt-out (e.g. for diagnosing
+   * server-side decompression issues); it increases egress bytes and is not
+   * recommended for production.
+   *
+   * Note: This is independent of `useWebWorker` / `performanceConfig`, which control
+   * per-event rrweb compression that runs before events are queued.
+   *
+   * @defaultValue true
+   */
+  enableTransportCompression?: boolean;
+
   userProperties?: { [key: string]: any };
 
   /**

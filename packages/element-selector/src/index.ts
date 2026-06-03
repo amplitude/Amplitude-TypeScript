@@ -1,5 +1,5 @@
 /**
- * @amplitude/utils-element-selector
+ * @amplitude/element-selector
  *
  * Shared element-selector algorithm. The actual implementation (strategies,
  * orchestrator, fallback walker, pattern packs) lands in subsequent tickets;
@@ -9,4 +9,4 @@
  *   packages/plugin-autocapture-browser/element-selector-strategy-v1-no-classes.md
  */
 
-export const PACKAGE_NAME = '@amplitude/utils-element-selector';
+export const PACKAGE_NAME = '@amplitude/element-selector';

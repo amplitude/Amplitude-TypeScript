@@ -25,6 +25,10 @@ interface SendContext {
   version?: { type: string; version: string };
   currentUrl: string;
   sdkVersion: string;
+  // When false, the worker sends the raw JSON body with no Content-Encoding header.
+  // Optional for backwards compatibility with messages from older main-thread code
+  // that doesn't forward the flag; absence is treated as enabled (default true).
+  enableTransportCompression?: boolean;
 }
 
 async function doFetch(
@@ -41,7 +45,10 @@ async function doFetch(
   skipCode?: string | null;
 }> {
   try {
-    const gzipped = 'CompressionStream' in self ? await gzipJson(payloadJson, self) : null;
+    // Treat an absent flag as enabled so messages from older main-thread builds that
+    // don't forward the field keep working unchanged. Only an explicit `false` opts out.
+    const compressionEnabled = context.enableTransportCompression !== false;
+    const gzipped = compressionEnabled && 'CompressionStream' in self ? await gzipJson(payloadJson, self) : null;
     const sessionReplayLibrary = `${context.version?.type ?? 'standalone'}/${
       context.version?.version ?? context.sdkVersion
     }`;

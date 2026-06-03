@@ -379,12 +379,6 @@ importers:
 
   packages/analytics-types: {}
 
-  packages/utils-element-selector:
-    dependencies:
-      tslib:
-        specifier: ^2.4.1
-        version: 2.8.1
-
   packages/gtm-snippet:
     dependencies:
       '@amplitude/analytics-browser':
@@ -1102,8 +1096,8 @@ importers:
         specifier: workspace:*
         version: link:../analytics-core
       '@amplitude/engagement-browser':
-        specifier: ^1.0.3
-        version: 1.0.5
+        specifier: ^1.0.10
+        version: 1.0.10
       '@amplitude/plugin-experiment-browser':
         specifier: workspace:*
         version: link:../plugin-experiment-browser
@@ -1115,6 +1109,12 @@ importers:
         specifier: ^2.79.1
         version: 2.79.2
 
+  packages/element-selector:
+    dependencies:
+      tslib:
+        specifier: ^2.4.1
+        version: 2.8.1
+
 packages:
   '@amplitude/analytics-connector@1.6.4':
     resolution:
@@ -1124,9 +1124,9 @@ packages:
     resolution:
       { integrity: sha512-RiMPHBqdrJ8ktTqG+Wzj2htnN/PCG9jGZG0SXtTFnWwVvcAJYbYm55/nrP1TTyrx1OlLhvF2VG3lVUP/xGAU8w== }
 
-  '@amplitude/engagement-browser@1.0.5':
+  '@amplitude/engagement-browser@1.0.10':
     resolution:
-      { integrity: sha512-Sr+smknZFWpvylnGE2EtTn/alCZN9hp0j8q57R+Q5qGgCJddUaJbd0oouawfOEvpV1L2eXrdj4xzi9lrgvA0Gw== }
+      { integrity: sha512-sv8ei+Xy2qMs31lvW3bJCOZBg8LRuorAxlzM8fmh3FyVaRMbs5WyQGaWSfJ8y5tqmllJnLfbBS5R38Mv6G3h7w== }
 
   '@amplitude/eslint-plugin-amplitude@1.1.1':
     resolution:
@@ -12098,7 +12098,7 @@ snapshots:
 
   '@amplitude/analytics-types@1.4.0': {}
 
-  '@amplitude/engagement-browser@1.0.5':
+  '@amplitude/engagement-browser@1.0.10':
     dependencies:
       '@amplitude/analytics-types': 1.4.0
 
