@@ -15,6 +15,12 @@ module.exports = {
     '<rootDir>/example/',
   ],
   moduleFileExtensions: ['tsx', 'ts', 'js', 'jsx', 'json'],
+  // Resolve the standalone package to its TypeScript source so the plugin's
+  // tests exercise the current source of truth rather than a previously built
+  // `lib/` artifact.
+  moduleNameMapper: {
+    '^@amplitude/session-replay-react-native$': '<rootDir>/../session-replay-react-native/src/index',
+  },
   transformIgnorePatterns: [
     'node_modules/(?!(.pnpm|@react-native|react-native|@segment)/)',
   ],
