@@ -17,7 +17,7 @@ function HomeScreen({ navigation }) {
   );
 }
 
-function SettingsScreen({ navigation }) {
+function SettingsScreen({navigation}: {navigation: any}) {
   return (
     <View style={styles.container}>
       <Text>Settings Screen</Text>
