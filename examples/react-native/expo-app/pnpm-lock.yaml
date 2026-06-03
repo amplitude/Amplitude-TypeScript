@@ -11,9 +11,6 @@ importers:
       '@amplitude/analytics-react-native':
         specifier: workspace:*
         version: link:../../../packages/analytics-react-native
-      '@amplitude/plugin-page-view-tracking-browser':
-        specifier: workspace:*
-        version: link:../../../packages/plugin-page-view-tracking-browser
       '@babel/runtime':
         specifier: ^7.20.0
         version: 7.28.6
@@ -63,6 +60,9 @@ importers:
       '@types/react':
         specifier: ~18.0.26
         version: 18.0.38
+      babel-plugin-transform-inline-environment-variables:
+        specifier: ^0.4.4
+        version: 0.4.4
       expo-doctor:
         specifier: ^1.19.8
         version: 1.19.8
@@ -3047,6 +3047,9 @@ packages:
 
   babel-plugin-transform-flow-enums@0.0.2:
     resolution: {integrity: sha512-g4aaCrDDOsWjbm0PUUeVnkcVd6AKJsVc/MbnPhEotEpkeJQP6b8nzewohQi7+QS8UyPehOhGWn0nOwjvWpmMvQ==}
+
+  babel-plugin-transform-inline-environment-variables@0.4.4:
+    resolution: {integrity: sha512-bJILBtn5a11SmtR2j/3mBOjX4K3weC6cq+NNZ7hG22wCAqpc3qtj/iN7dSe9HDiS46lgp1nHsQgeYrea/RUe+g==}
 
   babel-preset-current-node-syntax@1.2.0:
     resolution: {integrity: sha512-E/VlAEzRrsLEb2+dv8yp3bo4scof3l9nR4lrld+Iy5NyVqgVYUJnDAmunkhPMisRI32Qc4iRiz425d8vM++2fg==}
@@ -10126,6 +10129,8 @@ snapshots:
       '@babel/plugin-syntax-flow': 7.28.6(@babel/core@7.28.6)
     transitivePeerDependencies:
       - '@babel/core'
+
+  babel-plugin-transform-inline-environment-variables@0.4.4: {}
 
   babel-preset-current-node-syntax@1.2.0(@babel/core@7.28.6):
     dependencies:

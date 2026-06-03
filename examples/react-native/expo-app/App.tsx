@@ -1,8 +1,6 @@
-import {StatusBar} from 'expo-status-bar';
 import {Button, StyleSheet, Text, View} from 'react-native';
 import {useEffect} from 'react';
 import {identify, Identify, init, track, add, Types} from '@amplitude/analytics-react-native';
-import { pageViewTrackingPlugin } from '@amplitude/plugin-page-view-tracking-browser';
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 
@@ -37,7 +35,6 @@ export default function App() {
             pageViews: false,
           },
         }).promise;
-        add(pageViewTrackingPlugin());
         track('expo-app/react-native/test-event');
         await identify(new Identify().set('react-native-test', 'yes')).promise;
     })();
