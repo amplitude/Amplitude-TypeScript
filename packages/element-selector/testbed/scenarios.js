@@ -1,49 +1,26 @@
 /**
- * @jest-environment jsdom
+ * Testbed scenarios — mirror of the differential corpus in `test/scenarios/`.
+ *
+ * Kept in sync with `test/scenarios/engine.scenarios.test.ts` by hand for now;
+ * the two files share an HTML/expected pair per fixture. The test file is the
+ * authoritative regression guard; this one exists so the testbed page doesn't
+ * need a TypeScript build step.
+ *
+ * Each entry:
+ *   - name:             short slug used as the section id
+ *   - exercises:        plain-English description of what this scenario probes
+ *   - html:             self-contained HTML, dropped straight into a sandbox
+ *                       container in the page
+ *   - targetSelector:   CSS selector finding the target element within the
+ *                       rendered fragment; the testbed highlights this element
+ *                       and uses `engine.generate(target)` against it
+ *   - expectedSelector: what the engine should emit. Shown next to the live
+ *                       emission so you can spot regressions at a glance.
  */
-
-/**
- * Differential scenarios corpus.
- *
- * Each fixture stores the input DOM and the expected selector that
- * `createSelectorEngine(...).generate(target)` should produce. A parameterized
- * test runs every fixture and asserts the output matches the snapshot.
- *
- * This is the regression guard for the engine: a strategy tweak or pattern
- * change that silently shifts the selector format for ANY of these scenarios
- * will fail CI. The corpus is intentionally diverse — it draws from the same
- * scenarios that drove the v1 design (Swiper, MUI, Tailwind, semantic HTML)
- * plus a few synthetic edge cases.
- *
- * Adding a new scenario:
- *   1. Add a fixture object to SCENARIOS below
- *   2. Set `expectedSelector` to whatever the engine actually produces today
- *      (run the test once, copy the actual into expected, verify by hand
- *      that it's reasonable)
- *   3. Keep the fixture's DOM HTML self-contained — no shared state between
- *      scenarios
- */
-
-import { createSelectorEngine } from '../../src/engine';
-import { resolveSelectorConfig } from '../../src/config/resolve-config';
-
-interface Scenario {
-  /** Short name shown in test output. */
-  name: string;
-  /** Human-readable note about what this scenario exercises. */
-  exercises: string;
-  /** Self-contained HTML — replaces document.body.innerHTML. */
-  html: string;
-  /** CSS selector identifying the target element within the rendered DOM. */
-  targetQuery: string;
-  /** The selector the engine is expected to emit for the target. */
-  expectedSelector: string;
-}
-
-const SCENARIOS: Scenario[] = [
+export const SCENARIOS = [
   {
     name: 'plain-semantic-html',
-    exercises: 'baseline — id on an ancestor, descent via nth-of-type',
+    exercises: 'Baseline — id on an ancestor, descent via nth-of-type',
     html: `
       <section id="hero">
         <div>
@@ -51,33 +28,30 @@ const SCENARIOS: Scenario[] = [
         </div>
       </section>
     `,
-    targetQuery: 'button',
+    targetSelector: 'button',
     expectedSelector: 'section#hero > div:nth-of-type(1) > button:nth-of-type(1)',
   },
-
   {
     name: 'explicit-tracking-attribute-on-target',
     exercises: 'explicitTrackingAttribute strategy wins over everything',
     html: `<section id="hero"><button data-amp-track-id="signup-cta">Sign up</button></section>`,
-    targetQuery: 'button',
+    targetSelector: 'button',
     expectedSelector: '[data-amp-track-id="signup-cta"]',
   },
-
   {
     name: 'explicit-tracking-attribute-on-ancestor',
-    exercises: 'explicit anchor walked up, descent assembled via describeRelative',
+    exercises: 'Explicit anchor walked up; descent assembled via describeRelative',
     html: `
       <section data-amp-track-id="signup-section">
         <div><button>Sign up</button></div>
       </section>
     `,
-    targetQuery: 'button',
+    targetSelector: 'button',
     expectedSelector: '[data-amp-track-id="signup-section"] > div:nth-of-type(1) > button:nth-of-type(1)',
   },
-
   {
     name: 'react-useid-filtered',
-    exercises: 'React useId pattern (:r5:) is filtered, walk continues to stable ancestor',
+    exercises: 'React useId pattern (:r5:) filtered; walk continues to stable ancestor',
     html: `
       <section id="hero">
         <div id=":r5:">
@@ -85,13 +59,12 @@ const SCENARIOS: Scenario[] = [
         </div>
       </section>
     `,
-    targetQuery: 'button',
+    targetSelector: 'button',
     expectedSelector: 'section#hero > div:nth-of-type(1) > button:nth-of-type(1)',
   },
-
   {
     name: 'radix-id-filtered',
-    exercises: 'Radix-prefixed ids are filtered (broader than just colon-suffixed forms)',
+    exercises: 'Radix-prefixed ids filtered (broader than colon-suffixed forms)',
     html: `
       <main id="content">
         <div id="radix-1B2C3D">
@@ -99,13 +72,12 @@ const SCENARIOS: Scenario[] = [
         </div>
       </main>
     `,
-    targetQuery: 'button',
+    targetSelector: 'button',
     expectedSelector: 'main#content > div:nth-of-type(1) > button:nth-of-type(1)',
   },
-
   {
     name: 'swiper-carousel-slide',
-    exercises: 'Swiper state classes filtered, third slide identified by position not state',
+    exercises: 'Swiper state classes filtered; third slide identified by position not state',
     html: `
       <section id="featured">
         <div class="swiper">
@@ -117,21 +89,13 @@ const SCENARIOS: Scenario[] = [
         </div>
       </section>
     `,
-    targetQuery: '.swiper-slide-next',
+    targetSelector: '.swiper-slide-next',
     expectedSelector: 'section#featured > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(3)',
   },
-
   {
-    // Stripped-down Rooms To Go featured-products carousel. Combines the two
-    // failure modes legacy cssPath couldn't handle in one DOM:
-    //   1. A Swiper-generated wrapper id with a long random suffix —
-    //      autogen filter must drop it via the `\d{4,}` rule
-    //   2. swiper-slide-active / swiper-slide-next state classes that move
-    //      between elements as the carousel scrolls — unstable-class filter
-    //      handles those via /^swiper-slide-(active|next|...)$/
     name: 'rooms-to-go-product-carousel',
     exercises:
-      "Rooms To Go featured-products carousel (stripped): autogen wrapper id (swiper-wrapper-…41039) gets filtered AND swiper-slide-active/-next state classes don't pollute the descent",
+      "Stripped-down version of the Rooms To Go featured-products carousel — combines the two v1 wins in one DOM: a Swiper wrapper id with a long random suffix (caught by the 4+-digit-run autogen pattern) AND swiper-slide-active/swiper-slide-next state classes that move between elements as the carousel scrolls.",
     html: `
       <section id="featured-products">
         <div class="swiper">
@@ -149,23 +113,14 @@ const SCENARIOS: Scenario[] = [
         </div>
       </section>
     `,
-    targetQuery: '.swiper-slide-next .btn-cart',
+    targetSelector: '.swiper-slide-next .btn-cart',
     expectedSelector:
       'section#featured-products > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(3) > button:nth-of-type(1)',
   },
-
   {
-    // Same Swiper structure after the user has scrolled the carousel — the
-    // prev/active/next state classes have shifted onto different slide
-    // elements. This is the *temporal* failure mode for legacy cssPath:
-    // legacy would have emitted
-    //   div#swiper-wrapper-{hash} > div.swiper-slide.swiper-slide-prev
-    // and that selector flips to point at a different slide every time the
-    // user scrolls. v1 emits the same positional selector regardless of
-    // which slide currently holds the state class.
     name: 'swiper-carousel-prev-slide',
     exercises:
-      "Swiper carousel post-scroll — prev/active/next state classes shifted onto different slides. v1 stays positionally stable; legacy's `div.swiper-slide.swiper-slide-prev` selector tracks state, not position",
+      "Swiper carousel after a user scroll — the same DOM but with prev/active/next state classes shifted onto different slides. Demonstrates that the v1 selector for the same button stays consistent regardless of which Swiper state class is currently attached, while legacy emits a different selector after every scroll because it anchors on the volatile swiper-wrapper id + state classes.",
     html: `
       <section id="featured-products">
         <div class="swiper">
@@ -183,11 +138,10 @@ const SCENARIOS: Scenario[] = [
         </div>
       </section>
     `,
-    targetQuery: '.swiper-slide-prev .btn-cart',
+    targetSelector: '.swiper-slide-prev .btn-cart',
     expectedSelector:
       'section#featured-products > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > button:nth-of-type(1)',
   },
-
   {
     name: 'mui-button-state-classes',
     exercises: 'MUI focusVisible / selected state classes do not pollute the selector',
@@ -198,13 +152,12 @@ const SCENARIOS: Scenario[] = [
         <button class="MuiButton-root">Pricing</button>
       </nav>
     `,
-    targetQuery: 'button.Mui-selected',
+    targetSelector: 'button.Mui-selected',
     expectedSelector: 'nav#primary-nav > button:nth-of-type(2)',
   },
-
   {
     name: 'tailwind-utility-soup',
-    exercises: 'Tailwind utility classes are ignored by the fallback; positional descent only',
+    exercises: 'Tailwind utility classes ignored; positional descent only',
     html: `
       <header id="masthead">
         <div class="flex items-center justify-between px-4 py-2 bg-blue-500 text-white">
@@ -213,25 +166,23 @@ const SCENARIOS: Scenario[] = [
         </div>
       </header>
     `,
-    targetQuery: 'button',
+    targetSelector: 'button',
     expectedSelector: 'header#masthead > div:nth-of-type(1) > button:nth-of-type(1)',
   },
-
   {
     name: 'tailwind-arbitrary-variants',
-    exercises: 'Tailwind arbitrary-syntax variants (data-[state=open]:, [&_.foo]:) are filtered',
+    exercises: 'Tailwind arbitrary-syntax variants (data-[…]:, [&_.foo]:) filtered',
     html: `
       <section id="dropdown">
         <button class="data-[state=open]:bg-white [&_.swiper-slide]:h-auto" data-state="open">Toggle</button>
       </section>
     `,
-    targetQuery: 'button',
+    targetSelector: 'button',
     expectedSelector: 'section#dropdown > button:nth-of-type(1)',
   },
-
   {
     name: 'css-in-js-hashes',
-    exercises: 'Emotion, styled-components, CSS modules, styled-jsx hashes are filtered',
+    exercises: 'Emotion, styled-components, CSS modules, styled-jsx hashes filtered',
     html: `
       <main id="app">
         <article class="css-1abcd23 sc-bdVaJa jsx-1234567 Button_root__abc123">
@@ -239,10 +190,9 @@ const SCENARIOS: Scenario[] = [
         </article>
       </main>
     `,
-    targetQuery: 'button',
+    targetSelector: 'button',
     expectedSelector: 'main#app > article:nth-of-type(1) > button:nth-of-type(1)',
   },
-
   {
     name: 'suppression-signal',
     exercises: 'Empty data-amp-track-id on the target suppresses anchoring on its id',
@@ -251,18 +201,22 @@ const SCENARIOS: Scenario[] = [
         <button id="dynamic-cta-1234" data-amp-track-id="">Buy</button>
       </section>
     `,
-    targetQuery: 'button',
+    targetSelector: 'button',
     expectedSelector: 'section#hero > button:nth-of-type(1)',
   },
-
   {
     name: 'walk-to-root-when-no-id-available',
-    exercises: 'No id anywhere → fallback walks to <html>',
+    exercises: 'No id anywhere → fallback walks rooted at the sandbox container',
     html: `<div><button>Click</button></div>`,
-    targetQuery: 'button',
-    expectedSelector: 'html > body:nth-of-type(1) > div:nth-of-type(1) > button:nth-of-type(1)',
+    targetSelector: 'button',
+    // Note: when rendered inside a sandbox <div id="..."> in the testbed, the
+    // fallback terminates at that container's id rather than walking to <html>
+    // — that's why the expected here is shorter than the Jest scenario's.
+    // The testbed.js compares against `engine.generate(target)`'s actual
+    // output rather than this static string for this scenario; the field is
+    // kept for documentation.
+    expectedSelector: '(testbed-relative — see live output)',
   },
-
   {
     name: 'siblings-positional-disambiguation',
     exercises: 'Multiple same-tag children → nth-of-type counts correctly',
@@ -274,41 +228,7 @@ const SCENARIOS: Scenario[] = [
         <li><a>Blog</a></li>
       </ul>
     `,
-    targetQuery: 'li:nth-of-type(4) a',
+    targetSelector: 'li:nth-of-type(4) a',
     expectedSelector: 'ul#menu > li:nth-of-type(4) > a:nth-of-type(1)',
   },
 ];
-
-describe('engine scenarios — differential regression guard', () => {
-  let engine: ReturnType<typeof createSelectorEngine>;
-
-  beforeAll(() => {
-    engine = createSelectorEngine(resolveSelectorConfig({ enabled: true }));
-  });
-
-  afterEach(() => {
-    document.body.innerHTML = '';
-  });
-
-  SCENARIOS.forEach((scenario) => {
-    it(`[${scenario.name}] ${scenario.exercises}`, () => {
-      document.body.innerHTML = scenario.html;
-      const target = document.querySelector(scenario.targetQuery);
-      expect(target).not.toBeNull();
-      const selector = engine.generate(target as Element);
-      expect(selector).toBe(scenario.expectedSelector);
-    });
-  });
-
-  // Round-trip check: every emitted selector should resolve to exactly the
-  // target element. This catches "we shipped a selector that looks reasonable
-  // but doesn't actually match the target" regressions.
-  SCENARIOS.forEach((scenario) => {
-    it(`[${scenario.name}] round-trips — selector resolves back to the original target`, () => {
-      document.body.innerHTML = scenario.html;
-      const target = document.querySelector(scenario.targetQuery) as Element;
-      const selector = engine.generate(target);
-      expect(document.querySelector(selector)).toBe(target);
-    });
-  });
-});

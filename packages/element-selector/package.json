@@ -31,6 +31,8 @@
     "lint:eslint": "eslint '{src,test}/**/*.ts'",
     "lint:prettier": "prettier --check \"{src,test}/**/*.ts\"",
     "test": "jest",
+    "testbed": "pnpm testbed:build && python3 -m http.server --directory testbed 4567",
+    "testbed:build": "pnpm build && esbuild testbed/testbed.js --bundle --format=esm --outfile=testbed/build/bundle.js",
     "typecheck": "tsc -p ./tsconfig.json"
   },
   "bugs": {
@@ -39,6 +41,9 @@
   "dependencies": {
     "@amplitude/analytics-core": "workspace:*",
     "tslib": "^2.4.1"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0"
   },
   "files": [
     "lib"
