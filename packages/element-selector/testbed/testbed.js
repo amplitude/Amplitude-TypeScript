@@ -1,5 +1,12 @@
+// nosemgrep: insecure-document-method -- test-only DOM fixture with static strings; no user input, not production code
 /**
  * Testbed entry point.
+ *
+ * NOT shipped to npm and NOT included in the package build pipeline. This
+ * file lives under `packages/element-selector/testbed/` purely as a local
+ * dev tool — `package.json`'s `"files": ["lib"]` excludes it from the
+ * published artifact, and `tsconfig.{json,esm.json,es5.json}` only compile
+ * `src/**`.
  *
  * Imports the real, built `@amplitude/element-selector` engine from
  * `../lib/esm/index.js` so this page exercises exactly the code that ships

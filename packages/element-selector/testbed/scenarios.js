@@ -1,3 +1,4 @@
+// nosemgrep: insecure-document-method -- test-only DOM fixture with static strings; no user input, not production code
 /**
  * Testbed scenarios — mirror of the differential corpus in `test/scenarios/`.
  *
