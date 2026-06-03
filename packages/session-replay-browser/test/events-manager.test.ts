@@ -654,12 +654,12 @@ describe('createEventsManager', () => {
         storeType: 'memory',
       });
       // Use the real memory store so shouldSplitEventsList can trigger a split.
-      // eventA must be large enough that eventA + eventB >= MAX_EVENT_LIST_SIZE (1_000_000).
-      const eventA = 'a'.repeat(999_990);
+      // eventA must be large enough that eventA + eventB >= MAX_EVENT_LIST_SIZE (2_000_000).
+      const eventA = 'a'.repeat(1_999_990);
       const eventB = JSON.stringify({ type: 3, timestamp: 2 });
 
       eventsManager.addEvent({ event: { type: 'replay', data: eventA }, sessionId: 123, deviceId: '1a2b3c' });
-      // Force split: eventB pushes the batch over the 1 MB limit
+      // Force split: eventB pushes the batch over the 2 MB limit
       eventsManager.addEvent({ event: { type: 'replay', data: eventB }, sessionId: 123, deviceId: '1a2b3c' });
 
       // Let the async addEventToCurrentSequence chains settle (two microtask ticks).

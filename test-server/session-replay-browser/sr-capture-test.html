@@ -38,6 +38,9 @@
               ...(flushMaxIntervalMs !== undefined ? { maxIntervalMs: flushMaxIntervalMs } : {}),
             }
           : undefined;
+      const eagerFullSnapshotSend = params.has('eagerFullSnapshotSend')
+        ? params.get('eagerFullSnapshotSend') === 'true'
+        : undefined;
 
       void (async () => {
         try {
@@ -51,6 +54,7 @@
             performanceConfig: { enabled: true, mergeMutations },
             ...(storeType ? { storeType } : {}),
             ...(flushIntervalConfig ? { flushIntervalConfig } : {}),
+            ...(eagerFullSnapshotSend !== undefined ? { eagerFullSnapshotSend } : {}),
           }).promise;
         } catch (err) {
           document.getElementById('status').textContent = 'error: ' + err.message;

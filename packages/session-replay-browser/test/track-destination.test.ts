@@ -1179,7 +1179,7 @@ describe('SessionReplayTrackDestination', () => {
       const sendSpy = jest.spyOn(trackDestination, 'send').mockResolvedValue(undefined);
 
       // Each context is just under the cap; together they exceed it. Expect a split into 3.
-      const big = 'x'.repeat(800_000); // > MERGE_AFTER_THROTTLE_SOFT_CAP / 2 (= 700_000)
+      const big = 'x'.repeat(2_100_000); // > MERGE_AFTER_THROTTLE_SOFT_CAP / 2 (= 2_000_000)
       trackDestination.queue = [baseCtx({ events: [big] }), baseCtx({ events: [big] }), baseCtx({ events: [big] })];
       (trackDestination as any).mergeOnNextFlush = true;
 

@@ -133,4 +133,33 @@ describe('SessionReplayLocalConfig', () => {
       expect(config.enableTransportCompression).toBe(true);
     });
   });
+
+  describe('eagerFullSnapshotSend', () => {
+    let logger: ILogger;
+
+    beforeEach(() => {
+      logger = new Logger();
+    });
+
+    test('is undefined when option is omitted (defaults to eager send downstream)', () => {
+      const config = new SessionReplayLocalConfig('static_key', { loggerProvider: logger });
+      expect(config.eagerFullSnapshotSend).toBeUndefined();
+    });
+
+    test('passes through false', () => {
+      const config = new SessionReplayLocalConfig('static_key', {
+        loggerProvider: logger,
+        eagerFullSnapshotSend: false,
+      });
+      expect(config.eagerFullSnapshotSend).toBe(false);
+    });
+
+    test('passes through true', () => {
+      const config = new SessionReplayLocalConfig('static_key', {
+        loggerProvider: logger,
+        eagerFullSnapshotSend: true,
+      });
+      expect(config.eagerFullSnapshotSend).toBe(true);
+    });
+  });
 });

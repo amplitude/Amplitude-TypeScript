@@ -255,6 +255,18 @@ export interface SessionReplayLocalConfig extends IConfig {
   /** Interval in ms at which the SDK takes a full DOM snapshot. Disabled by default — periodic snapshots are expensive. Recommended value: 300000 (5 min). */
   fullSnapshotIntervalMs?: number;
   /**
+   * When true (default), every rrweb full snapshot is flushed to the server immediately so
+   * replays become playable as early as possible. Set to `false` to defer full-snapshot
+   * sends to the normal interval/size flush cadence instead. The snapshot is still compressed
+   * and buffered immediately either way (ordering and page-exit beacon coverage are preserved);
+   * only the eager network send is suppressed. Disabling reduces request volume for pages that
+   * produce many full snapshots (e.g. focus-driven or `fullSnapshotIntervalMs` checkouts),
+   * especially when many SDK instances run on the same page.
+   *
+   * @defaultValue true
+   */
+  eagerFullSnapshotSend?: boolean;
+  /**
    * Controls how often the SDK splits buffered rrweb events into a sequence and dispatches
    * the resulting batch to the server. The interval starts at `minIntervalMs` and grows by
    * `minIntervalMs` after each split, capped at `maxIntervalMs`. Lowering values increases

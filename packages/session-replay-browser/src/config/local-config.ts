@@ -50,6 +50,7 @@ export class SessionReplayLocalConfig extends Config implements ISessionReplayLo
   crossOriginIframes?: CrossOriginIframesConfig;
   fullSnapshotIntervalMs?: number;
   flushIntervalConfig?: FlushIntervalConfig;
+  eagerFullSnapshotSend?: boolean;
 
   constructor(apiKey: string, options: SessionReplayOptions) {
     const defaultConfig = getDefaultConfig();
@@ -79,6 +80,9 @@ export class SessionReplayLocalConfig extends Config implements ISessionReplayLo
     this.captureDocumentTitle = options.captureDocumentTitle ?? false;
     if (options.fullSnapshotIntervalMs !== undefined) {
       this.fullSnapshotIntervalMs = options.fullSnapshotIntervalMs;
+    }
+    if (options.eagerFullSnapshotSend !== undefined) {
+      this.eagerFullSnapshotSend = options.eagerFullSnapshotSend;
     }
 
     // Auto-include .amp-unmask as a default unmaskSelector entry so it works

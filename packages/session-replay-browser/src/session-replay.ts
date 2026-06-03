@@ -334,12 +334,20 @@ export class SessionReplay implements AmplitudeSessionReplay {
       this.eventCompressor.terminate();
     }
 
+    // Eager full-snapshot send is tunable. When `eagerFullSnapshotSend` is true (default),
+    // every full snapshot triggers an immediate flush so replays are playable as early as
+    // possible (the SR-3115 contract). Setting it to false keeps the snapshot compressed and
+    // buffered immediately (ordering + beacon coverage on page exit preserved) but defers the
+    // network send to the normal interval/size cadence — useful for customers running many
+    // SDK instances per page where eager per-snapshot sends (focus/checkout driven) multiply
+    // into a request storm.
+    const onFullSnapshotProcessed = this.config.eagerFullSnapshotSend === false ? undefined : () => this.sendEvents();
     this.eventCompressor = new EventCompressor(
       this.eventsManager,
       this.config,
       this.getDeviceId(),
       compressionWorkerScript,
-      () => this.sendEvents(),
+      onFullSnapshotProcessed,
     );
 
     // Flush any events that arrived while eventCompressor was not yet ready
