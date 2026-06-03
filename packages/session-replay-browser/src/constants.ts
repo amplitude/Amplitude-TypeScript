@@ -19,10 +19,22 @@ export const SESSION_REPLAY_SERVER_URL = 'https://api-sr.amplitude.com/sessions/
 export const SESSION_REPLAY_EU_URL = 'https://api-sr.eu.amplitude.com/sessions/v2/track';
 export const SESSION_REPLAY_STAGING_URL = 'https://api-sr.stag2.amplitude.com/sessions/v2/track';
 export const STORAGE_PREFIX = `${AMPLITUDE_PREFIX}_replay_unsent`;
+// Default raw (uncompressed) UTF-8 byte cap for a single batched events list before the
+// store splits it into its own request. Tunable per-instance via the
+// `maxPersistedEventsSizeBytes` option (raising it means fewer, larger requests).
 // Reduced from 1,000,000 to leave headroom for double-JSON-encoding overhead and the
 // uncompressed fallback path. The HTTP body is ~10-30% larger than raw string length
 // because events are re-serialized inside the { version, events } wrapper at send time.
 export const MAX_EVENT_LIST_SIZE = 700_000;
+// Lower bound for the tunable maxPersistedEventsSizeBytes option. A tiny cap would split
+// on nearly every event (one request per event), so reject values below this floor.
+export const MIN_EVENT_LIST_SIZE = 1_000;
+// Upper bound for the tunable maxPersistedEventsSizeBytes option. The SR ingest service
+// (nova SessionReplayServletV2) measures the DECOMPRESSED request size against a
+// 10,000,000-byte threshold and splits batches above it server-side. We cap the raw events
+// list at 80% of that (8 MB) so a single batched list always stays under the server split
+// point with headroom for the { version, events } wrapper and Kafka message overhead.
+export const MAX_EVENT_LIST_SIZE_CEILING = 8_000_000;
 // 9 MB UTF-8 bytes — just under the server's 10 MB per-event threshold. Compared against the
 // UTF-8 byte length of the serialized event (via Blob/TextEncoder), not the JS string length,
 // so multi-byte payloads (CJK, emoji) are gated correctly.

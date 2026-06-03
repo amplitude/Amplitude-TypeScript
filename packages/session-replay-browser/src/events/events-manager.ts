@@ -30,6 +30,7 @@ export const createEventsManager = async <Type extends EventType>({
   config,
   minInterval,
   maxInterval,
+  maxPersistedEventsSize,
   type,
   payloadBatcher,
   storeType,
@@ -40,6 +41,7 @@ export const createEventsManager = async <Type extends EventType>({
   type: Type;
   minInterval?: number;
   maxInterval?: number;
+  maxPersistedEventsSize?: number;
   payloadBatcher?: PayloadBatcher;
   storeType: StoreType;
   trackDestinationWorkerScript?: string;
@@ -57,6 +59,7 @@ export const createEventsManager = async <Type extends EventType>({
       loggerProvider: config.loggerProvider,
       maxInterval,
       minInterval,
+      maxPersistedEventsSize,
     });
   };
 
@@ -83,6 +86,7 @@ export const createEventsManager = async <Type extends EventType>({
       loggerProvider: config.loggerProvider,
       minInterval,
       maxInterval,
+      maxPersistedEventsSize,
       apiKey: config.apiKey,
       onPersistentFailure: () => {
         void switchToMemoryStore();

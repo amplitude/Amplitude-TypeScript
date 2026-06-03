@@ -255,6 +255,32 @@ export interface SessionReplayLocalConfig extends IConfig {
   /** Interval in ms at which the SDK takes a full DOM snapshot. Disabled by default — periodic snapshots are expensive. Recommended value: 300000 (5 min). */
   fullSnapshotIntervalMs?: number;
   /**
+   * When true (default), every rrweb full snapshot is flushed to the server immediately so
+   * replays become playable as early as possible. Set to `false` to defer full-snapshot
+   * sends to the normal interval/size flush cadence instead. The snapshot is still compressed
+   * and buffered immediately either way (ordering and page-exit beacon coverage are preserved);
+   * only the eager network send is suppressed. Disabling reduces request volume for pages that
+   * produce many full snapshots (e.g. focus-driven or `fullSnapshotIntervalMs` checkouts),
+   * especially when many SDK instances run on the same page.
+   *
+   * @defaultValue true
+   */
+  eagerFullSnapshotSend?: boolean;
+  /**
+   * Maximum raw (uncompressed) UTF-8 byte size of a buffered events list before it is split
+   * into its own request. Larger values produce fewer, larger requests (the primary
+   * steady-state lever for reducing request volume); smaller values produce more frequent,
+   * smaller requests. Payloads are gzipped on the wire, so several MB of replay JSON
+   * compresses to well under 1 MB.
+   *
+   * Clamped to the range [1 KB, 8 MB]. The 8 MB ceiling keeps a batched list under the SR
+   * ingest service's 10 MB decompressed-size threshold (above which the server splits the
+   * batch itself), leaving headroom for the request wrapper and message overhead.
+   *
+   * @defaultValue 700000
+   */
+  maxPersistedEventsSizeBytes?: number;
+  /**
    * Controls how often the SDK splits buffered rrweb events into a sequence and dispatches
    * the resulting batch to the server. The interval starts at `minIntervalMs` and grows by
    * `minIntervalMs` after each split, capped at `maxIntervalMs`. Lowering values increases

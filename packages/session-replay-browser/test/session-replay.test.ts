@@ -2527,6 +2527,16 @@ describe('SessionReplay', () => {
       expect(recordArg?.checkoutEveryNms).toBeUndefined();
     });
 
+    test('wires an eager full-snapshot send callback by default', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      expect(typeof sessionReplay.eventCompressor?.onFullSnapshotProcessed).toBe('function');
+    });
+
+    test('does not wire an eager full-snapshot send callback when eagerFullSnapshotSend is false', async () => {
+      await sessionReplay.init(apiKey, { ...mockOptions, eagerFullSnapshotSend: false }).promise;
+      expect(sessionReplay.eventCompressor?.onFullSnapshotProcessed).toBeUndefined();
+    });
+
     test('should rethrow CSSStylesheet errors', async () => {
       const sessionReplay = new SessionReplay();
       await sessionReplay.init(apiKey, mockOptions).promise;

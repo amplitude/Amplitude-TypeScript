@@ -680,6 +680,28 @@ describe('createEventsManager', () => {
       snapshot.push('extra');
       expect(eventsManager.getBeaconEvents()).toHaveLength(1);
     });
+
+    test('honors a custom maxPersistedEventsSize so a small cap splits sooner', async () => {
+      // With the default 700 KB cap these two tiny events would never split; a 50-byte cap
+      // forces the store to finalize the first event when the second arrives.
+      const eventsManager = await createEventsManager({
+        config,
+        type: 'replay',
+        storeType: 'memory',
+        maxPersistedEventsSize: 50,
+      });
+      const eventA = 'a'.repeat(40);
+      const eventB = JSON.stringify({ type: 3, timestamp: 2 });
+
+      eventsManager.addEvent({ event: { type: 'replay', data: eventA }, sessionId: 123, deviceId: '1a2b3c' });
+      eventsManager.addEvent({ event: { type: 'replay', data: eventB }, sessionId: 123, deviceId: '1a2b3c' });
+
+      await Promise.resolve();
+      await Promise.resolve();
+
+      // The first event was split off into its own sequence; only the second remains buffered.
+      expect(eventsManager.getBeaconEvents()).toEqual([eventB]);
+    });
   });
 
   describe('dropPendingBeaconEvents', () => {

@@ -133,4 +133,90 @@ describe('SessionReplayLocalConfig', () => {
       expect(config.enableTransportCompression).toBe(true);
     });
   });
+
+  describe('eagerFullSnapshotSend', () => {
+    let logger: ILogger;
+
+    beforeEach(() => {
+      logger = new Logger();
+    });
+
+    test('is undefined when option is omitted (defaults to eager send downstream)', () => {
+      const config = new SessionReplayLocalConfig('static_key', { loggerProvider: logger });
+      expect(config.eagerFullSnapshotSend).toBeUndefined();
+    });
+
+    test('passes through false', () => {
+      const config = new SessionReplayLocalConfig('static_key', {
+        loggerProvider: logger,
+        eagerFullSnapshotSend: false,
+      });
+      expect(config.eagerFullSnapshotSend).toBe(false);
+    });
+
+    test('passes through true', () => {
+      const config = new SessionReplayLocalConfig('static_key', {
+        loggerProvider: logger,
+        eagerFullSnapshotSend: true,
+      });
+      expect(config.eagerFullSnapshotSend).toBe(true);
+    });
+  });
+
+  describe('maxPersistedEventsSizeBytes', () => {
+    let warnSpy: jest.SpyInstance;
+    let logger: ILogger;
+
+    beforeEach(() => {
+      logger = new Logger();
+      warnSpy = jest.spyOn(logger, 'warn').mockImplementation(() => {
+        /* swallow */
+      });
+    });
+
+    afterEach(() => {
+      warnSpy.mockRestore();
+    });
+
+    test('is undefined when option is omitted (store falls back to its default cap)', () => {
+      const config = new SessionReplayLocalConfig('static_key', { loggerProvider: logger });
+      expect(config.maxPersistedEventsSizeBytes).toBeUndefined();
+    });
+
+    test('passes through a valid larger value without warning', () => {
+      const config = new SessionReplayLocalConfig('static_key', {
+        loggerProvider: logger,
+        maxPersistedEventsSizeBytes: 2_000_000,
+      });
+      expect(config.maxPersistedEventsSizeBytes).toBe(2_000_000);
+      expect(warnSpy).not.toHaveBeenCalled();
+    });
+
+    test('clamps a sub-floor value to the floor and warns', () => {
+      const config = new SessionReplayLocalConfig('static_key', {
+        loggerProvider: logger,
+        maxPersistedEventsSizeBytes: 500,
+      });
+      expect(config.maxPersistedEventsSizeBytes).toBe(1_000);
+      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('maxPersistedEventsSizeBytes'));
+    });
+
+    test('clamps a non-finite value (NaN) to the floor and warns', () => {
+      const config = new SessionReplayLocalConfig('static_key', {
+        loggerProvider: logger,
+        maxPersistedEventsSizeBytes: NaN,
+      });
+      expect(config.maxPersistedEventsSizeBytes).toBe(1_000);
+      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('maxPersistedEventsSizeBytes'));
+    });
+
+    test('clamps a value above the 8 MB ceiling to the ceiling and warns', () => {
+      const config = new SessionReplayLocalConfig('static_key', {
+        loggerProvider: logger,
+        maxPersistedEventsSizeBytes: 50_000_000,
+      });
+      expect(config.maxPersistedEventsSizeBytes).toBe(8_000_000);
+      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('exceeds ceiling'));
+    });
+  });
 });
