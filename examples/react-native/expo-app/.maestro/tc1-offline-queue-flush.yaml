@@ -1,0 +1,92 @@
+appId: com.amplitude.expoapp
+# iOS bundle id is com.amplitude.expo-app — change `appId` above to run on iOS.
+# (setAirplaneMode is Android-only, so the connectivity toggle below is Android.)
+---
+# =============================================================================
+# TC1 — offline queue -> reconnect flush (SDKRN-5)
+#
+# Sequence under test:
+#   launch online -> events upload -> go offline -> track (events must QUEUE,
+#   not send) -> reconnect -> queued events FLUSH.
+#
+# Maestro asserts on visible UI only, so this flow relies on the TC1 status panel
+# added to App.tsx (Offline / Queued / Uploaded / Last). See App.tsx for how each
+# label maps to SDK state.
+#
+# CONNECTIVITY TOGGLE — IMPORTANT CAVEAT:
+# This flow uses Maestro's in-flow `setAirplaneMode`, which keeps the app process
+# (and therefore the in-memory queue + counters) alive across the toggle. Airplane
+# mode drops ALL radios, so the default network is lost (onLost) and the SDK sees
+# isConnected=false. This is the clean, self-contained path and works on physical
+# devices and on emulators that propagate airplane mode as a real network loss.
+#
+# On many Android *emulators*, airplane mode does NOT reliably register as offline
+# for this SDK: on API >= 23 the connectivity checker requires
+# NET_CAPABILITY_VALIDATED, and the emulator can keep reporting a validated
+# network. If the "Offline: true" assertion below times out on your emulator, use
+# the adb-driven driver instead, which toggles the radios directly:
+#       examples/react-native/expo-app/.maestro/run-tc1.sh
+# (it runs `adb shell svc wifi disable && adb shell svc data disable`, the trigger
+# verified during manual TC1 testing — see SDKRN-5-offline-followups.md).
+#
+# PREREQUISITES:
+#   * A real AMPLITUDE_API_KEY inlined at build time (babel.config.js) and network
+#     reachability to api2.amplitude.com, so "Uploaded"/200 assertions hold. With a
+#     dummy key the queue still drains on reconnect but Uploaded won't increment;
+#     in that case assert on "Queued: 0" + "Offline: false" only.
+#   * Built with the deduped Metro config (`expo start --clear` after the
+#     metro.config.js react-native dedupe fix), otherwise live connectivity change
+#     events never reach the plugin and offline mode only sees the initial seed.
+# =============================================================================
+
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible:
+      text: "Home Screen"
+    timeout: 30000
+
+# --- Phase 1: online baseline -------------------------------------------------
+# The launch-time event and any prior taps should upload while online, draining
+# the in-memory queue back to 0.
+- extendedWaitUntil:
+    visible:
+      text: "Offline: false"
+    timeout: 30000
+- tapOn: "Online test"
+- extendedWaitUntil:
+    visible:
+      text: "Queued: 0"
+    timeout: 30000
+
+# --- Phase 2: go offline; tracked events must QUEUE, not send -----------------
+- setAirplaneMode: enabled
+- extendedWaitUntil:
+    visible:
+      text: "Offline: true"
+    timeout: 30000
+- tapOn: "Offline test"
+- tapOn: "Offline test"
+# Both events are held in memory: flush() is short-circuited while offline.
+# (RN flushIntervalMillis is 1s, so if offline mode were broken these would have
+# drained by the time this assertion runs.)
+- assertVisible:
+    text: "Queued: 2"
+# UI-observable equivalent of the "Skipping flush while offline." debug log:
+- assertVisible:
+    text: "Last: RN Expo Offline Test → queued (offline)"
+
+# --- Phase 3: reconnect; queued events must FLUSH -----------------------------
+- setAirplaneMode: disabled
+- extendedWaitUntil:
+    visible:
+      text: "Offline: false"
+    timeout: 30000
+# On reconnect the plugin flushes immediately; the two queued events drain.
+- extendedWaitUntil:
+    visible:
+      text: "Queued: 0"
+    timeout: 30000
+# Proof the drained events were actually uploaded (requires a real key + network).
+- assertVisible:
+    text: "Last: RN Expo Offline Test → 200 Event tracked successfully"
