@@ -287,6 +287,56 @@ describe('createEventsManager', () => {
         cleanUpError,
       );
     });
+
+    test('uses configurable maxSingleEventSizeBytes to drop events below the default cap', async () => {
+      const smallCapConfig = new SessionReplayLocalConfig('static_key', {
+        loggerProvider: mockLoggerProvider,
+        sampleRate: 1,
+        maxSingleEventSizeBytes: 2000,
+      });
+      const keptEvent = 'k'.repeat(500); // 500 bytes, under the 2000-byte override
+      const droppedEvent = 'd'.repeat(3000); // 3000 bytes, over the override but well under the 9 MB default
+      (mockIDBStore.getSequencesToSend as jest.Mock).mockResolvedValue([
+        { events: [keptEvent, droppedEvent], sequenceId: 1, sessionId: 123 },
+      ]);
+      const eventsManager = await createEventsManager<'replay'>({
+        config: smallCapConfig,
+        type: 'replay',
+        storeType: 'idb',
+      });
+      await eventsManager.sendStoredEvents({ deviceId: '1a2b3c' });
+      jest.runAllTimers();
+
+      const trackDestinationInstance = (SessionReplayTrackDestination as jest.Mock).mock.instances[0];
+      const mockSendEventsList = trackDestinationInstance.sendEventsList;
+      expect(mockLoggerProvider.warn).toHaveBeenCalledWith(expect.stringContaining('oversized'));
+      expect(mockSendEventsList).toHaveBeenCalledTimes(1);
+      expect(mockSendEventsList).toHaveBeenCalledWith(expect.objectContaining({ events: [keptEvent] }));
+    });
+  });
+
+  describe('configurable maxPersistedEventsSize', () => {
+    test('forwards a smaller batch cap to the store so it splits sooner', async () => {
+      const eventsManager = await createEventsManager({
+        config,
+        type: 'replay',
+        storeType: 'memory',
+        // A 100-byte cap forces a split between two tiny events that would never split
+        // under the 2 MB default — proving the override reaches BaseEventsStore.
+        maxPersistedEventsSize: 100,
+      });
+      const eventA = 'a'.repeat(90);
+      const eventB = 'b'.repeat(90);
+
+      eventsManager.addEvent({ event: { type: 'replay', data: eventA }, sessionId: 123, deviceId: '1a2b3c' });
+      eventsManager.addEvent({ event: { type: 'replay', data: eventB }, sessionId: 123, deviceId: '1a2b3c' });
+
+      await Promise.resolve();
+      await Promise.resolve();
+
+      // eventA was split off into its own batch; only eventB remains pending.
+      expect(eventsManager.getBeaconEvents()).toEqual([eventB]);
+    });
   });
 
   describe('addEvent', () => {

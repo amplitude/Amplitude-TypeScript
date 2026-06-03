@@ -108,6 +108,28 @@ describe('EventCompressor', () => {
     expect(mockLoggerProvider.warn).toHaveBeenCalledWith(expect.stringContaining('exceeds maximum allowed event size'));
   });
 
+  test('drops event exceeding a configurable maxSingleEventSizeBytes below the default cap', () => {
+    const smallCapConfig = new SessionReplayLocalConfig('static_key', {
+      loggerProvider: mockLoggerProvider,
+      sampleRate: 1,
+      maxSingleEventSizeBytes: 2000,
+    });
+    const smallCapCompressor = new EventCompressor(eventsManager, smallCapConfig, deviceId);
+    smallCapCompressor.canUseIdleCallback = false;
+    const addEventMock = jest.spyOn(eventsManager, 'addEvent');
+
+    // ~3000 bytes serialized: over the 2000-byte override, but far under the 9 MB default cap.
+    const overCapEvent = {
+      ...mockEvent,
+      data: { payload: 'x'.repeat(3000) },
+    } as unknown as eventWithTime;
+    smallCapCompressor.enqueueEvent(overCapEvent, sessionId);
+
+    expect(addEventMock).not.toHaveBeenCalled();
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    expect(mockLoggerProvider.warn).toHaveBeenCalledWith(expect.stringContaining('exceeds maximum allowed event size'));
+  });
+
   test('should process events in the queue and add compressed events', () => {
     eventCompressor.taskQueue.push({ event: mockEvent, sessionId });
     eventCompressor.taskQueue.push({ event: mockEvent, sessionId });

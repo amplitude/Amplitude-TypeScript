@@ -170,6 +170,33 @@ describe('SessionReplayPlugin', () => {
       );
     });
 
+    test('should pass eagerFullSnapshotSend through to session replay when provided', async () => {
+      const sessionReplay = new SessionReplayPlugin({ eagerFullSnapshotSend: false });
+
+      await sessionReplay.setup?.(mockConfig, mockAmplitude);
+
+      expect(init).toHaveBeenCalledWith('static_key', expect.objectContaining({ eagerFullSnapshotSend: false }));
+    });
+
+    test('should pass maxPersistedEventsSizeBytes through to session replay when provided', async () => {
+      const sessionReplay = new SessionReplayPlugin({ maxPersistedEventsSizeBytes: 1_000_000 });
+
+      await sessionReplay.setup?.(mockConfig, mockAmplitude);
+
+      expect(init).toHaveBeenCalledWith(
+        'static_key',
+        expect.objectContaining({ maxPersistedEventsSizeBytes: 1_000_000 }),
+      );
+    });
+
+    test('should pass maxSingleEventSizeBytes through to session replay when provided', async () => {
+      const sessionReplay = new SessionReplayPlugin({ maxSingleEventSizeBytes: 5_000_000 });
+
+      await sessionReplay.setup?.(mockConfig, mockAmplitude);
+
+      expect(init).toHaveBeenCalledWith('static_key', expect.objectContaining({ maxSingleEventSizeBytes: 5_000_000 }));
+    });
+
     describe('defaultTracking', () => {
       test('should not change defaultTracking when forceSessionTracking is not defined', async () => {
         const sessionReplay = new SessionReplayPlugin();

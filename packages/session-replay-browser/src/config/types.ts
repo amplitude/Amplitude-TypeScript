@@ -278,6 +278,30 @@ export interface SessionReplayLocalConfig extends IConfig {
    * back-pressuring the SDK on session start.
    */
   flushIntervalConfig?: FlushIntervalConfig;
+  /**
+   * Raw (uncompressed) UTF-8 byte cap for a single buffered events list before the store
+   * splits it into its own request. Larger values produce fewer, larger requests (the primary
+   * steady-state lever for request volume); smaller values split sooner. Payloads are gzipped
+   * on the wire, so several MB of replay JSON compresses to well under 1 MB.
+   *
+   * Advanced/debug knob — the default already balances request volume against the server's
+   * decompressed-size split threshold. Clamped to a safe range; values outside it are clamped
+   * and logged.
+   *
+   * @defaultValue 2000000 (2 MB, {@link MAX_EVENT_LIST_SIZE})
+   */
+  maxPersistedEventsSizeBytes?: number;
+  /**
+   * Raw (uncompressed) UTF-8 byte cap for a single rrweb event. Events larger than this are
+   * dropped (with a warning) both at capture time and as a pre-send backstop, because the SR
+   * ingest service rejects a single event above ~10 MB. Lower this to exercise drop behavior
+   * for large full snapshots while debugging.
+   *
+   * Advanced/debug knob. Clamped to a safe range; values outside it are clamped and logged.
+   *
+   * @defaultValue 9000000 (9 MB, {@link MAX_SINGLE_EVENT_SIZE})
+   */
+  maxSingleEventSizeBytes?: number;
 }
 
 export interface FlushIntervalConfig {
