@@ -223,12 +223,17 @@ describe('react-native-client', () => {
   }
 
   describe('network connectivity checker plugin', () => {
+    const NETWORK_CHECKER_PLUGIN_NAME = '@amplitude/plugin-network-checker-react-native';
+
     test('should install the network connectivity checker by default', async () => {
       jest.spyOn(CookieMigration, 'parseOldCookies').mockResolvedValueOnce({ optOut: false });
       const installSpy = jest.spyOn(NetworkChecker, 'networkConnectivityCheckerPlugin');
       const client = new AmplitudeReactNative();
+      const addSpy = jest.spyOn(client, 'add');
       await client.init(API_KEY, USER_ID, { ...attributionConfig }).promise;
       expect(installSpy).toHaveBeenCalledTimes(1);
+      // Assert it actually lands in the timeline under the expected name.
+      expect(addSpy).toHaveBeenCalledWith(expect.objectContaining({ name: NETWORK_CHECKER_PLUGIN_NAME }));
       installSpy.mockRestore();
     });
 
@@ -236,6 +241,7 @@ describe('react-native-client', () => {
       jest.spyOn(CookieMigration, 'parseOldCookies').mockResolvedValueOnce({ optOut: false });
       const installSpy = jest.spyOn(NetworkChecker, 'networkConnectivityCheckerPlugin');
       const client = new AmplitudeReactNative();
+      const addSpy = jest.spyOn(client, 'add');
       await client.init(API_KEY, USER_ID, {
         ...attributionConfig,
         // `offline` is omitted from the public ReactNativeOptions type but is
@@ -243,6 +249,8 @@ describe('react-native-client', () => {
         offline: core.OfflineDisabled,
       } as core.ReactNativeOptions).promise;
       expect(installSpy).not.toHaveBeenCalled();
+      // And it never reaches the timeline.
+      expect(addSpy).not.toHaveBeenCalledWith(expect.objectContaining({ name: NETWORK_CHECKER_PLUGIN_NAME }));
       installSpy.mockRestore();
     });
   });

@@ -90,10 +90,7 @@ class AmplitudeReactNativeConnectivityModule(
             }
 
             override fun onCapabilitiesChanged(network: Network, capabilities: NetworkCapabilities) {
-                handleConnectivityChange(
-                    capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
-                        capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
-                )
+                handleConnectivityChange(hasInternetCapability(capabilities))
             }
         }
 
@@ -149,11 +146,23 @@ class AmplitudeReactNativeConnectivityModule(
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             val network = manager.activeNetwork ?: return false
             val capabilities = manager.getNetworkCapabilities(network) ?: return false
-            capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
-                capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+            hasInternetCapability(capabilities)
         } else {
             @Suppress("DEPRECATION")
             manager.activeNetworkInfo?.isConnected ?: false
+        }
+    }
+
+    // NET_CAPABILITY_VALIDATED was added in API 23 (M); on API 21-22 it is never
+    // reported, so requiring it there would make the device read as permanently
+    // offline. Gate the validation requirement behind M and require only
+    // INTERNET on 21-22.
+    private fun hasInternetCapability(capabilities: NetworkCapabilities): Boolean {
+        val hasInternet = capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            hasInternet && capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+        } else {
+            hasInternet
         }
     }
 

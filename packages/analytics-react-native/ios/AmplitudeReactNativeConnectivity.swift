@@ -14,6 +14,11 @@ import Network
 /// available (iOS 12+). The podspec targets iOS 10, so on iOS 10/11 we fall
 /// back to `SCNetworkReachability` (SystemConfiguration) rather than bumping
 /// the deployment target.
+///
+/// The current connectivity state is always computed on demand from a fresh
+/// `SCNetworkReachability` probe (see `currentConnectivity()`), so the initial
+/// state JS reads via `getNetworkConnectivityStatus` is correct even before the
+/// path monitor has started, and there is no shared mutable state to race on.
 @objc(AmplitudeReactNativeConnectivity)
 class AmplitudeReactNativeConnectivity: RCTEventEmitter {
 
@@ -27,13 +32,6 @@ class AmplitudeReactNativeConnectivity: RCTEventEmitter {
 
     // iOS 10/11 fallback
     private var reachability: SCNetworkReachability?
-
-    // Last known connectivity state, used to seed JS and to dedupe.
-    private var isConnected = true
-
-    override init() {
-        super.init()
-    }
 
     deinit {
         stopMonitoring()
@@ -64,7 +62,8 @@ class AmplitudeReactNativeConnectivity: RCTEventEmitter {
 
     /// Returns the current connectivity state. `startObserving` only fires on
     /// subsequent changes, so JS reads this once on setup to seed the initial
-    /// `offline` value.
+    /// `offline` value. The value is computed from a fresh reachability probe so
+    /// it is correct even before monitoring has started.
     @objc
     func getNetworkConnectivityStatus(
         _ resolve: @escaping RCTPromiseResolveBlock,
@@ -76,6 +75,8 @@ class AmplitudeReactNativeConnectivity: RCTEventEmitter {
     // MARK: Monitoring
 
     private func startMonitoring() {
+        // Replace any existing monitor so repeated startObserving calls don't leak.
+        stopMonitoring()
         if #available(iOS 12, tvOS 12, *) {
             startPathMonitor()
         } else {
@@ -99,28 +100,16 @@ class AmplitudeReactNativeConnectivity: RCTEventEmitter {
 
     @available(iOS 12, tvOS 12, *)
     private func startPathMonitor() {
-        guard pathMonitor == nil else { return }
         let monitor = NWPathMonitor()
         monitor.pathUpdateHandler = { [weak self] path in
-            self?.handleConnectivityChange(path.status == .satisfied)
+            self?.emitConnectivityChange(path.status == .satisfied)
         }
         monitor.start(queue: monitorQueue)
         pathMonitor = monitor
     }
 
     private func startReachability() {
-        guard reachability == nil else { return }
-        var zeroAddress = sockaddr_in()
-        zeroAddress.sin_len = UInt8(MemoryLayout<sockaddr_in>.size)
-        zeroAddress.sin_family = sa_family_t(AF_INET)
-
-        guard let reachability = withUnsafePointer(to: &zeroAddress, { pointer in
-            pointer.withMemoryRebound(to: sockaddr.self, capacity: 1) { address in
-                SCNetworkReachabilityCreateWithAddress(nil, address)
-            }
-        }) else {
-            return
-        }
+        guard let reachability = createReachability() else { return }
         self.reachability = reachability
 
         var context = SCNetworkReachabilityContext(
@@ -134,20 +123,16 @@ class AmplitudeReactNativeConnectivity: RCTEventEmitter {
         let callback: SCNetworkReachabilityCallBack = { (_, flags, info) in
             guard let info = info else { return }
             let instance = Unmanaged<AmplitudeReactNativeConnectivity>.fromOpaque(info).takeUnretainedValue()
-            instance.handleConnectivityChange(AmplitudeReactNativeConnectivity.isReachable(flags))
+            instance.emitConnectivityChange(AmplitudeReactNativeConnectivity.isReachable(flags))
         }
 
         SCNetworkReachabilitySetCallback(reachability, callback, &context)
         SCNetworkReachabilitySetDispatchQueue(reachability, monitorQueue)
-
-        // Emit the current state once monitoring starts.
-        handleConnectivityChange(currentConnectivity())
     }
 
     // MARK: Helpers
 
-    private func handleConnectivityChange(_ connected: Bool) {
-        isConnected = connected
+    private func emitConnectivityChange(_ connected: Bool) {
         guard hasListeners else { return }
         sendEvent(
             withName: AmplitudeReactNativeConnectivity.connectivityEventName,
@@ -155,24 +140,34 @@ class AmplitudeReactNativeConnectivity: RCTEventEmitter {
         )
     }
 
+    /// Computes the current connectivity from a fresh `SCNetworkReachability`
+    /// probe. This does not depend on the monitor being started, so it returns a
+    /// correct value when JS seeds the initial state. Defaults to connected when
+    /// the state can't be determined, so we never wrongly suppress sends.
     private func currentConnectivity() -> Bool {
-        if #available(iOS 12, tvOS 12, *) {
-            if let monitor = pathMonitor as? NWPathMonitor {
-                return monitor.currentPath.status == .satisfied
+        guard let reachability = createReachability() else { return true }
+        var flags = SCNetworkReachabilityFlags()
+        guard SCNetworkReachabilityGetFlags(reachability, &flags) else { return true }
+        return AmplitudeReactNativeConnectivity.isReachable(flags)
+    }
+
+    private func createReachability() -> SCNetworkReachability? {
+        var zeroAddress = sockaddr_in()
+        zeroAddress.sin_len = UInt8(MemoryLayout<sockaddr_in>.size)
+        zeroAddress.sin_family = sa_family_t(AF_INET)
+
+        return withUnsafePointer(to: &zeroAddress) { pointer in
+            pointer.withMemoryRebound(to: sockaddr.self, capacity: 1) { address in
+                SCNetworkReachabilityCreateWithAddress(nil, address)
             }
         }
-        var flags = SCNetworkReachabilityFlags()
-        if let reachability = reachability, SCNetworkReachabilityGetFlags(reachability, &flags) {
-            return AmplitudeReactNativeConnectivity.isReachable(flags)
-        }
-        // Default to connected when we can't determine the state, so we never
-        // wrongly suppress event delivery.
-        return isConnected
     }
 
     private static func isReachable(_ flags: SCNetworkReachabilityFlags) -> Bool {
-        let isReachable = flags.contains(.reachable)
-        let needsConnection = flags.contains(.connectionRequired)
-        return isReachable && !needsConnection
+        let reachable = flags.contains(.reachable)
+        let requiresConnection = flags.contains(.connectionRequired)
+        let canConnectAutomatically = flags.contains(.connectionOnDemand) || flags.contains(.connectionOnTraffic)
+        let canConnectWithoutUserInteraction = canConnectAutomatically && !flags.contains(.interventionRequired)
+        return reachable && (!requiresConnection || canConnectWithoutUserInteraction)
     }
 }
