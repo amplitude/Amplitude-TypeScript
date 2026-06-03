@@ -22,7 +22,7 @@ import {
   AmpMaskView,
   type SessionReplayConfig,
   type SessionReplayPluginConfig,
-  MaskLevel,
+  type MaskLevel,
 } from '../src/index';
 import { NativeModules } from 'react-native';
 import { LogLevel } from '@amplitude/analytics-types';
@@ -120,7 +120,7 @@ describe('Index Exports', () => {
         apiKey: 'test-api-key',
         serverZone: 'US',
         logLevel: LogLevel.Warn,
-        maskLevel: MaskLevel.Medium,
+        maskLevel: 'medium',
         autoStart: true,
         deviceId: 'test-device',
         enableRemoteConfig: true,
@@ -143,11 +143,9 @@ describe('Index Exports', () => {
       expect(config).toBeTruthy();
     });
 
-    it('should export MaskLevel enum', () => {
-      expect(MaskLevel.Light).toBe('light');
-      expect(MaskLevel.Medium).toBe('medium');
-      expect(MaskLevel.Conservative).toBe('conservative');
-      expect(Object.keys(MaskLevel)).toHaveLength(3);
+    it('should export MaskLevel type', () => {
+      const level: MaskLevel = 'conservative';
+      expect(level).toBe('conservative');
     });
   });
 });

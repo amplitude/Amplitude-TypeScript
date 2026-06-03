@@ -10,6 +10,11 @@ module.exports = {
   modulePathIgnorePatterns: [
     "<rootDir>/lib/"
   ],
+  testPathIgnorePatterns: [
+    ...(baseConfig.testPathIgnorePatterns || []),
+    '<rootDir>/example/',
+  ],
+  moduleFileExtensions: ['tsx', 'ts', 'js', 'jsx', 'json'],
   transformIgnorePatterns: [
     'node_modules/(?!(.pnpm|@react-native|react-native|@segment)/)',
   ],
