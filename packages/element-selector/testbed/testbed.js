@@ -1,4 +1,3 @@
-// nosemgrep: insecure-document-method -- test-only DOM fixture with static strings; no user input, not production code
 /**
  * Testbed entry point.
  *
@@ -44,6 +43,7 @@ function appendLog(level, args) {
   const li = document.createElement('li');
   li.classList.add('log-line', `log-${level}`);
   const time = new Date().toLocaleTimeString();
+  // nosemgrep: insecure-document-method -- static template; `time` and `level` are produced locally (Date#toLocaleTimeString + a 5-element enum), no user input
   li.innerHTML = `<span class="log-time">${time}</span><span class="log-level">${level.toUpperCase()}</span><span class="log-message"></span>`;
   li.querySelector('.log-message').textContent = message;
   loggerStreamEl.appendChild(li);
@@ -60,6 +60,7 @@ const panelLogger = {
 };
 
 document.getElementById('logger-clear').addEventListener('click', () => {
+  // nosemgrep: insecure-document-method -- assigns an empty string to clear the logger stream; no template interpolation
   loggerStreamEl.innerHTML = '';
 });
 
@@ -217,6 +218,7 @@ function simulateSessions(scenario, n = SESSIONS_PER_RUN) {
   document.body.appendChild(offscreen);
   try {
     for (let i = 0; i < n; i++) {
+      // nosemgrep: insecure-document-method -- `scenario.html` is a static string literal defined in scenarios.js; `regenerateAutogenIds` only substitutes hardcoded autogen-id patterns
       offscreen.innerHTML = regenerateAutogenIds(scenario.html);
       const target = offscreen.querySelector(scenario.targetSelector);
       if (!target) continue;
@@ -247,11 +249,13 @@ function renderAggregationResult(card, result) {
 const scenariosGridEl = document.getElementById('scenarios-grid');
 
 function renderScenarios() {
+  // nosemgrep: insecure-document-method -- assigns an empty string to reset the grid before re-rendering scenarios; no template interpolation
   scenariosGridEl.innerHTML = '';
   for (const scenario of SCENARIOS) {
     const card = document.createElement('article');
     card.className = 'scenario-card';
     card.dataset.scenario = scenario.name;
+    // nosemgrep: insecure-document-method -- card markup with only static-string interpolations: `scenario.name` and `scenario.exercises` come from scenarios.js (hardcoded fixtures), `scenario.expectedSelector` is passed through escapeHtml()
     card.innerHTML = `
       <header>
         <h3>${scenario.name}</h3>
@@ -277,6 +281,7 @@ function renderScenarios() {
       </div>
     `;
     const sandbox = card.querySelector('.sandbox');
+    // nosemgrep: insecure-document-method -- `scenario.html` is a static string literal defined in scenarios.js; not user input
     sandbox.innerHTML = scenario.html;
     // Highlight the canonical target for the scenario
     const target = sandbox.querySelector(scenario.targetSelector);
@@ -365,9 +370,11 @@ document.addEventListener('click', (event) => {
 const playgroundHtmlEl = document.getElementById('playground-html');
 const playgroundOutputEl = document.getElementById('playground-output');
 document.getElementById('playground-render').addEventListener('click', () => {
+  // nosemgrep: insecure-document-method -- intentional: the playground exists precisely so devs can paste arbitrary HTML and inspect the engine's selector output. The testbed is a local dev tool served only on localhost:4567 via the `pnpm testbed` script; no third-party input path reaches this line.
   playgroundOutputEl.innerHTML = playgroundHtmlEl.value;
 });
 // Initial render
+// nosemgrep: insecure-document-method -- same rationale as above; renders the default playground HTML seed on first load
 playgroundOutputEl.innerHTML = playgroundHtmlEl.value;
 
 // ---------- Remote-config editor ----------

@@ -1,4 +1,3 @@
-// nosemgrep: insecure-document-method -- test-only DOM fixture with static strings; no user input, not production code
 /**
  * Vendored copy of the legacy autocapture cssPath algorithm.
  *
