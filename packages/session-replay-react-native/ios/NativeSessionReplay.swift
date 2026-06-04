@@ -125,6 +125,13 @@ class NativeSessionReplay: NSObject, RCTBridgeModule {
         resolve(nil)
     }
     
+    @objc(teardown)
+    func teardown() {
+        logger.debug(message: "teardown")
+        sessionReplay?.stop()
+        sessionReplay = nil
+    }
+    
     @objc(invalidate)
     func invalidate() {
         print("invalidate")

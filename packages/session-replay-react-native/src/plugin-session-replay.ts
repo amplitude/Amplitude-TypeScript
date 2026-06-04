@@ -6,8 +6,17 @@ import {
 } from '@amplitude/analytics-types';
 
 import { SessionReplayPluginConfig, getDefaultSessionReplayPluginConfig } from './plugin-session-replay-config';
-import { getSessionId, getSessionReplayProperties, privateInit, setSessionId, start, stop } from './session-replay';
+import {
+  getSessionId,
+  getSessionReplayProperties,
+  privateInit,
+  privateTeardown,
+  setSessionId,
+  start,
+  stop,
+} from './session-replay';
 import { createSessionReplayLogger } from './logger';
+import { NativeSessionReplay } from './native-module';
 
 /**
  * Session Replay Plugin for React Native Amplitude SDK.
@@ -63,21 +72,26 @@ export class SessionReplayPlugin implements EnrichmentPlugin<ReactNativeClient, 
    */
   async setup(config: ReactNativeConfig, _: ReactNativeClient): Promise<void> {
     this.config = config;
-    await privateInit(
-      {
-        apiKey: config.apiKey,
-        deviceId: config.deviceId,
-        sessionId: config.sessionId,
-        serverZone: config.serverZone as 'EU' | 'US',
-        sampleRate: this.sessionReplayConfig.sampleRate,
-        enableRemoteConfig: this.sessionReplayConfig.enableRemoteConfig,
-        logLevel: this.sessionReplayConfig.logLevel,
-        autoStart: this.sessionReplayConfig.autoStart,
-        privacyConfig: this.sessionReplayConfig.privacyConfig,
-      },
-      this.logger,
-    );
-    this.isInitialized = true;
+    try {
+      await privateInit(
+        {
+          apiKey: config.apiKey,
+          deviceId: config.deviceId,
+          sessionId: config.sessionId,
+          serverZone: config.serverZone as 'EU' | 'US',
+          sampleRate: this.sessionReplayConfig.sampleRate,
+          enableRemoteConfig: this.sessionReplayConfig.enableRemoteConfig,
+          logLevel: this.sessionReplayConfig.logLevel,
+          autoStart: this.sessionReplayConfig.autoStart,
+          privacyConfig: this.sessionReplayConfig.privacyConfig,
+        },
+        this.logger,
+      );
+      this.isInitialized = true;
+    } catch (error) {
+      this.logger.error('Failed to initialize session replay plugin', error);
+      throw error;
+    }
   }
 
   async execute(event: Event): Promise<Event | null> {
@@ -130,6 +144,12 @@ export class SessionReplayPlugin implements EnrichmentPlugin<ReactNativeClient, 
   async teardown(): Promise<void> {
     if (this.isInitialized) {
       await stop();
+      try {
+        NativeSessionReplay.teardown();
+      } catch (error) {
+        this.logger.warn('Failed to call native teardown', error);
+      }
+      privateTeardown();
     }
 
     this.config = null;

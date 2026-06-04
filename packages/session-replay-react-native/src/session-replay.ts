@@ -73,6 +73,7 @@ export async function init(config: SessionReplayConfig): Promise<void> {
     isInitialized = true;
   } catch (error) {
     logger.error('Error initializing SessionReplay', error);
+    throw error;
   }
 }
 
@@ -255,4 +256,9 @@ export async function privateInit(
 ): Promise<void> {
   logger = newLogger;
   return init(config);
+}
+
+export function privateTeardown(): void {
+  isInitialized = false;
+  fullConfig = null;
 }

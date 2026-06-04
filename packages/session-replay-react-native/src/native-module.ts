@@ -110,4 +110,11 @@ export interface NativeSessionReplaySpec {
    * Ends the current recording session and processes any captured data.
    */
   stop(): Promise<void>;
+
+  /**
+   * Cleans up native session replay resources.
+   * On Android, calls shutdown() to release native resources.
+   * On iOS, handled via invalidate() lifecycle method.
+   */
+  teardown(): void;
 }
