@@ -163,6 +163,35 @@ describe('SessionReplayLocalConfig', () => {
     });
   });
 
+  describe('captureFullSnapshotOnFocus', () => {
+    let logger: ILogger;
+
+    beforeEach(() => {
+      logger = new Logger();
+    });
+
+    test('is undefined when option is omitted (defaults to on-focus snapshot downstream)', () => {
+      const config = new SessionReplayLocalConfig('static_key', { loggerProvider: logger });
+      expect(config.captureFullSnapshotOnFocus).toBeUndefined();
+    });
+
+    test('passes through false', () => {
+      const config = new SessionReplayLocalConfig('static_key', {
+        loggerProvider: logger,
+        captureFullSnapshotOnFocus: false,
+      });
+      expect(config.captureFullSnapshotOnFocus).toBe(false);
+    });
+
+    test('passes through true', () => {
+      const config = new SessionReplayLocalConfig('static_key', {
+        loggerProvider: logger,
+        captureFullSnapshotOnFocus: true,
+      });
+      expect(config.captureFullSnapshotOnFocus).toBe(true);
+    });
+  });
+
   describe('maxPersistedEventsSizeBytes', () => {
     let warnSpy: jest.SpyInstance;
     let logger: ILogger;

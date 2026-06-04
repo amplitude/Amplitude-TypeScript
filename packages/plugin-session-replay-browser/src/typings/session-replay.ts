@@ -194,6 +194,10 @@ export interface SessionReplayOptions {
    */
   eagerFullSnapshotSend?: boolean;
   /**
+   * @see {@link StandaloneSessionReplayOptions.captureFullSnapshotOnFocus}
+   */
+  captureFullSnapshotOnFocus?: boolean;
+  /**
    * @see {@link StandaloneSessionReplayOptions.maxPersistedEventsSizeBytes}
    */
   maxPersistedEventsSizeBytes?: number;
