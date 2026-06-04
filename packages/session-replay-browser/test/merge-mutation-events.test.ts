@@ -692,6 +692,21 @@ describe('mergeMutationEvents', () => {
         { id: 6, attributes: { style: { color: 'red', background: 'blue' } } },
       ]);
     });
+
+    test('leaves single style writes untouched when no node has multiple', () => {
+      // Each node id has exactly one style write, so there is nothing to coalesce
+      // and every write is preserved verbatim.
+      const e1 = makeMutation(1000, { attributes: [{ id: 1, attributes: { style: { color: 'red' } } }] });
+      const e2 = makeMutation(1010, { attributes: [{ id: 2, attributes: { style: 'opacity: 1;' } }] });
+
+      const result = mergeMutationEvents([e1, e2]);
+
+      const data = result[0].data as mutationData;
+      expect(data.attributes).toEqual([
+        { id: 1, attributes: { style: { color: 'red' } } },
+        { id: 2, attributes: { style: 'opacity: 1;' } },
+      ]);
+    });
   });
 
   describe('transient node elision (continued)', () => {
