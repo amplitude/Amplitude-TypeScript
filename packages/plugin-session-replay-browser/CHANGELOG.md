@@ -3,6 +3,22 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.32.0-sr-4646-rc.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@1.31.1-sr-4646-rc.0...@amplitude/plugin-session-replay-browser@1.32.0-sr-4646-rc.0) (2026-06-04)
+
+
+### Bug Fixes
+
+* **session-replay:** expose eagerFullSnapshotSend on plugin options ([dad55c1](https://github.com/amplitude/Amplitude-TypeScript/commit/dad55c1f8e7e985865e58f97f28edb28d5f65a18))
+
+
+### Features
+
+* **session-replay:** add configurable maxPersistedEventsSizeBytes and maxSingleEventSizeBytes ([129fbd4](https://github.com/amplitude/Amplitude-TypeScript/commit/129fbd452a5fc9fa298f2123464900fdf91a1819))
+
+
+
+
+
 ## [1.31.1-sr-4646-rc.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@1.31.0...@amplitude/plugin-session-replay-browser@1.31.1-sr-4646-rc.0) (2026-06-03)
 
 **Note:** Version bump only for package @amplitude/plugin-session-replay-browser
