@@ -582,6 +582,118 @@ describe('mergeMutationEvents', () => {
     });
   });
 
+  describe('style attribute coalescing (object-form partial diffs)', () => {
+    test('deep-merges disjoint object-form style diffs, retaining both properties', () => {
+      // Object-form style values are PARTIAL diffs applied cumulatively by the
+      // replayer. Naive last-write-wins would keep only B and silently drop color.
+      const e1 = makeMutation(1000, { attributes: [{ id: 42, attributes: { style: { color: 'red' } } }] });
+      const e2 = makeMutation(1050, { attributes: [{ id: 42, attributes: { style: { background: 'blue' } } }] });
+
+      const result = mergeMutationEvents([e1, e2]);
+
+      const data = result[0].data as mutationData;
+      // Cumulative replay sets both color and background — the merge must too.
+      expect(data.attributes).toEqual([{ id: 42, attributes: { style: { color: 'red', background: 'blue' } } }]);
+    });
+
+    test('preserves a false (delete) value when merging object-form diffs', () => {
+      // B deletes `color` (false). The merged write must keep color: false so the
+      // replayer still removes the property, while unrelated `display` survives.
+      const e1 = makeMutation(1000, {
+        attributes: [{ id: 7, attributes: { style: { color: 'red', display: 'block' } } }],
+      });
+      const e2 = makeMutation(1010, { attributes: [{ id: 7, attributes: { style: { color: false } } }] });
+
+      const result = mergeMutationEvents([e1, e2]);
+
+      const data = result[0].data as mutationData;
+      expect(data.attributes).toEqual([{ id: 7, attributes: { style: { color: false, display: 'block' } } }]);
+    });
+
+    test('later object-form value wins for the same property', () => {
+      const e1 = makeMutation(1000, { attributes: [{ id: 3, attributes: { style: { color: 'red' } } }] });
+      const e2 = makeMutation(1010, { attributes: [{ id: 3, attributes: { style: { color: 'green' } } }] });
+
+      const result = mergeMutationEvents([e1, e2]);
+
+      const data = result[0].data as mutationData;
+      expect(data.attributes).toEqual([{ id: 3, attributes: { style: { color: 'green' } } }]);
+    });
+
+    test('preserves styleValueWithPriority tuples when merging', () => {
+      const e1 = makeMutation(1000, {
+        attributes: [{ id: 5, attributes: { style: { color: ['red', 'important'] } } }],
+      });
+      const e2 = makeMutation(1010, { attributes: [{ id: 5, attributes: { style: { background: ['blue', ''] } } }] });
+
+      const result = mergeMutationEvents([e1, e2]);
+
+      const data = result[0].data as mutationData;
+      expect(data.attributes).toEqual([
+        { id: 5, attributes: { style: { color: ['red', 'important'], background: ['blue', ''] } } },
+      ]);
+    });
+
+    test('keeps a preceding string-form base when an object-form partial follows', () => {
+      // A string is a full reset; the following object diff applies on top of it.
+      // Both writes must survive (base must not be lost) and stay in order.
+      const e1 = makeMutation(1000, { attributes: [{ id: 9, attributes: { style: 'color: red;' } }] });
+      const e2 = makeMutation(1010, { attributes: [{ id: 9, attributes: { style: { background: 'blue' } } }] });
+
+      const result = mergeMutationEvents([e1, e2]);
+
+      const data = result[0].data as mutationData;
+      expect(data.attributes).toEqual([
+        { id: 9, attributes: { style: 'color: red;' } },
+        { id: 9, attributes: { style: { background: 'blue' } } },
+      ]);
+    });
+
+    test('drops object-form writes superseded by a later string-form reset', () => {
+      // A string write after an object diff is a full replacement, so the earlier
+      // object diff is correctly dropped (last-write-wins on the reset).
+      const e1 = makeMutation(1000, { attributes: [{ id: 11, attributes: { style: { color: 'red' } } }] });
+      const e2 = makeMutation(1010, { attributes: [{ id: 11, attributes: { style: 'opacity: 1;' } }] });
+
+      const result = mergeMutationEvents([e1, e2]);
+
+      const data = result[0].data as mutationData;
+      expect(data.attributes).toEqual([{ id: 11, attributes: { style: 'opacity: 1;' } }]);
+    });
+
+    test('merges object diffs after the last reset and drops everything before it', () => {
+      // object -> string(reset) -> object -> object: the reset wipes the first
+      // object; the two trailing objects merge on top of the surviving string.
+      const e1 = makeMutation(1000, { attributes: [{ id: 4, attributes: { style: { color: 'red' } } }] });
+      const e2 = makeMutation(1010, { attributes: [{ id: 4, attributes: { style: 'opacity: 0;' } }] });
+      const e3 = makeMutation(1020, { attributes: [{ id: 4, attributes: { style: { background: 'blue' } } }] });
+      const e4 = makeMutation(1030, { attributes: [{ id: 4, attributes: { style: { top: '5px' } } }] });
+
+      const result = mergeMutationEvents([e1, e2, e3, e4]);
+
+      const data = result[0].data as mutationData;
+      expect(data.attributes).toEqual([
+        { id: 4, attributes: { style: 'opacity: 0;' } },
+        { id: 4, attributes: { style: { background: 'blue', top: '5px' } } },
+      ]);
+    });
+
+    test('preserves non-style keys when coalescing object-form diffs', () => {
+      const e1 = makeMutation(1000, {
+        attributes: [{ id: 6, attributes: { style: { color: 'red' }, class: 'foo' } }],
+      });
+      const e2 = makeMutation(1010, { attributes: [{ id: 6, attributes: { style: { background: 'blue' } } }] });
+
+      const result = mergeMutationEvents([e1, e2]);
+
+      const data = result[0].data as mutationData;
+      expect(data.attributes).toEqual([
+        { id: 6, attributes: { class: 'foo' } },
+        { id: 6, attributes: { style: { color: 'red', background: 'blue' } } },
+      ]);
+    });
+  });
+
   describe('transient node elision (continued)', () => {
     test('only elides the transient node, keeps non-transient adds and removes', () => {
       const e1 = makeMutation(1000, {
