@@ -1,19 +1,15 @@
-// FIXME: remove these eslint rules
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unsafe-call */
-/* eslint-disable @typescript-eslint/no-unsafe-return */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
-/* eslint-disable @typescript-eslint/no-var-requires */
-
-// Use the mock from the local __mocks__ directory. The plugin now delegates to
-// the standalone package, which talks to the `AMPNativeSessionReplay` native
-// module, so the mock provides that surface.
-jest.mock('react-native');
+// `react-native` is mapped to the standalone package's shared mock via the
+// plugin's jest `moduleNameMapper` (SDKRN-14), so no per-file
+// `jest.mock('react-native')` is needed. The plugin delegates to the standalone
+// package, which is the only code that talks to the native
+// `AMPNativeSessionReplay` module; the shared mock provides that surface.
 
 import type { SessionReplayConfig, SessionReplayPluginConfig, PrivacyConfig } from '../src/index';
 import { LogLevel } from '@amplitude/analytics-types';
 import type { ReactNativeConfig } from '@amplitude/analytics-types';
 import mockReactNativeClient from './utils/reactNativeClient';
+
+type SessionReplayNativeMock = Record<string, jest.Mock>;
 
 const minimalConfig: ReactNativeConfig = {
   apiKey: 'test-api-key',
@@ -54,14 +50,22 @@ describe('plugin-session-replay-react-native public API', () => {
   // fresh `react-native` mock it actually calls into.
   let SessionReplayPlugin: typeof import('../src/index').SessionReplayPlugin;
   let AmpMaskView: typeof import('../src/index').AmpMaskView;
-  let nativeModule: Record<string, jest.Mock>;
+  let nativeModule: SessionReplayNativeMock;
 
   beforeEach(() => {
     jest.resetModules();
-    const index = require('../src/index');
+    // `require` (not `import`) is required so each test re-resolves a fresh copy
+    // after `jest.resetModules()`; the result is fully typed so no unsafe access
+    // is introduced.
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const index = require('../src/index') as typeof import('../src/index');
     SessionReplayPlugin = index.SessionReplayPlugin;
     AmpMaskView = index.AmpMaskView;
-    nativeModule = require('react-native').NativeModules.AMPNativeSessionReplay;
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const reactNative = require('react-native') as {
+      NativeModules: { AMPNativeSessionReplay: SessionReplayNativeMock };
+    };
+    nativeModule = reactNative.NativeModules.AMPNativeSessionReplay;
     jest.clearAllMocks();
     nativeModule.getSessionReplayProperties.mockResolvedValue({ replayId: 'test-id' });
   });
