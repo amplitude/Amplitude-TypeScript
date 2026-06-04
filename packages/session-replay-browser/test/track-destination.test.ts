@@ -279,6 +279,35 @@ describe('SessionReplayTrackDestination', () => {
     // that strips events to zero AFTER that check (or any future regression) must still
     // not produce an empty-body POST. We invoke sendOnMainThread directly with an empty
     // payload to exercise the literal pre-fetch guard rather than the upstream check.
+    test('completes with error when fetch returns null', async () => {
+      const trackDestination = new SessionReplayTrackDestination({ loggerProvider: mockLoggerProvider });
+      (fetch as jest.Mock).mockResolvedValueOnce(null);
+      const context: SessionReplayDestinationContext = {
+        events: [mockEventString],
+        sessionId: 123,
+        attempts: 0,
+        timeout: 0,
+        flushMaxRetries: 1,
+        deviceId: '1a2b3c',
+        sampleRate: 1,
+        serverZone: ServerZone.US,
+        type: 'replay',
+        apiKey,
+        onComplete: mockOnComplete,
+      };
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (trackDestination as any).sendOnMainThread(
+        apiKey,
+        '1a2b3c',
+        context,
+        { version: 1, events: [mockEventString] },
+        false,
+      );
+      expect(mockOnComplete).toHaveBeenCalled();
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockLoggerProvider.warn).toHaveBeenCalledWith(expect.stringContaining('Unexpected'));
+    });
+
     test('pre-fetch guard skips fetch when payload events array is empty', async () => {
       const trackDestination = new SessionReplayTrackDestination({ loggerProvider: mockLoggerProvider });
       const context: SessionReplayDestinationContext = {
@@ -607,6 +636,39 @@ describe('SessionReplayTrackDestination', () => {
       const options = (fetch as jest.Mock).mock.calls[0][1] as RequestInit;
       expect((options.headers as Record<string, string>)['Content-Encoding']).toBeUndefined();
       expect(typeof options.body).toBe('string');
+    });
+
+    test('should gzip body when enableTransportCompression is true', async () => {
+      const gzipBytes = new Uint8Array([1, 2, 3]);
+      class MockCompressionStream {
+        writable = {
+          getWriter: () => ({
+            write: jest.fn(),
+            close: jest.fn().mockResolvedValue(undefined),
+          }),
+        };
+        readable = {
+          getReader: () => ({
+            read: jest
+              .fn()
+              .mockResolvedValueOnce({ done: false, value: gzipBytes })
+              .mockResolvedValueOnce({ done: true, value: undefined }),
+          }),
+        };
+      }
+      jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue({
+        CompressionStream: MockCompressionStream,
+      } as unknown as typeof globalThis);
+
+      const trackDestination = new SessionReplayTrackDestination({
+        loggerProvider: mockLoggerProvider,
+        enableTransportCompression: true,
+      });
+      await trackDestination.send(makeContext());
+
+      const options = (fetch as jest.Mock).mock.calls[0][1] as RequestInit;
+      expect((options.headers as Record<string, string>)['Content-Encoding']).toBe('gzip');
+      expect(options.body).toEqual(gzipBytes);
     });
   });
 

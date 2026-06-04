@@ -13,6 +13,7 @@ import { IDBFactory } from 'fake-indexeddb';
 import { LoggingConfig, SessionReplayJoinedConfig } from '../src/config/types';
 import { CustomRRwebEvent, DEFAULT_SAMPLE_RATE } from '../src/constants';
 import * as SessionReplayIDB from '../src/events/events-idb-store';
+import * as EventCompressorModule from '../src/events/event-compressor';
 import * as SessionReplayEventsManager from '../src/events/events-manager';
 import * as Sampling from '../src/sampling';
 import * as Helpers from '../src/helpers';
@@ -698,6 +699,147 @@ describe('SessionReplay', () => {
       expect(sessionReplay.config?.flushMaxRetries).toBe(1);
       expect(sessionReplay.config?.optOut).toBe(false);
       expect(sessionReplay.config?.sampleRate).toBe(1);
+    });
+
+    test('passes compression worker script with useWebWorker and zlib encoding', async () => {
+      class MockWorker {
+        postMessage = jest.fn();
+        onmessage = jest.fn();
+        onerror = jest.fn();
+        terminate = jest.fn();
+      }
+      const eventCompressorSpy = jest.spyOn(EventCompressorModule, 'EventCompressor');
+      globalSpy = jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue({
+        ...mockGlobalScope,
+        Worker: MockWorker as unknown as typeof global.Worker,
+      });
+
+      await sessionReplay.init(apiKey, {
+        ...mockOptions,
+        useWebWorker: true,
+        performanceConfig: { enabled: false, legacyReplayEventEncoding: false },
+      }).promise;
+
+      expect(eventCompressorSpy).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.anything(),
+        expect.anything(),
+        'console.log("webworker script");',
+        expect.any(Function),
+      );
+      eventCompressorSpy.mockRestore();
+    });
+
+    test('passes compression worker script when zlib replay encoding is enabled', async () => {
+      class MockWorker {
+        postMessage = jest.fn();
+        onmessage = jest.fn();
+        onerror = jest.fn();
+        terminate = jest.fn();
+      }
+      const eventCompressorSpy = jest.spyOn(EventCompressorModule, 'EventCompressor');
+      globalSpy = jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue({
+        ...mockGlobalScope,
+        Worker: MockWorker as unknown as typeof global.Worker,
+      });
+
+      await sessionReplay.init(apiKey, {
+        ...mockOptions,
+        performanceConfig: { enabled: false, legacyReplayEventEncoding: false },
+      }).promise;
+
+      expect(eventCompressorSpy).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.anything(),
+        expect.anything(),
+        'console.log("webworker script");',
+        expect.any(Function),
+      );
+      eventCompressorSpy.mockRestore();
+    });
+
+    test('skips worker scripts when Worker is unavailable', async () => {
+      const eventCompressorSpy = jest.spyOn(EventCompressorModule, 'EventCompressor');
+      globalSpy = jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue(mockGlobalScope);
+
+      await sessionReplay.init(apiKey, {
+        ...mockOptions,
+        performanceConfig: { enabled: false, legacyReplayEventEncoding: false },
+      }).promise;
+
+      expect(eventCompressorSpy).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.anything(),
+        expect.anything(),
+        undefined,
+        expect.any(Function),
+      );
+      eventCompressorSpy.mockRestore();
+    });
+
+    test('omits compression worker script when legacyReplayEventEncoding is true', async () => {
+      class MockWorker {
+        postMessage = jest.fn();
+        onmessage = jest.fn();
+        onerror = jest.fn();
+        terminate = jest.fn();
+      }
+      const eventCompressorSpy = jest.spyOn(EventCompressorModule, 'EventCompressor');
+      globalSpy = jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue({
+        ...mockGlobalScope,
+        Worker: MockWorker as unknown as typeof global.Worker,
+      });
+
+      await sessionReplay.init(apiKey, {
+        ...mockOptions,
+        performanceConfig: { enabled: false, legacyReplayEventEncoding: true },
+      }).promise;
+
+      expect(eventCompressorSpy).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.anything(),
+        expect.anything(),
+        undefined,
+        expect.any(Function),
+      );
+      eventCompressorSpy.mockRestore();
+    });
+
+    test('treats legacyReplayEventEncoding true as legacy wire format', async () => {
+      await sessionReplay.init(apiKey, {
+        ...mockOptions,
+        performanceConfig: { enabled: false, legacyReplayEventEncoding: true },
+      }).promise;
+      expect(sessionReplay.config?.performanceConfig?.legacyReplayEventEncoding).toBe(true);
+    });
+
+    test('loads compression worker for useWebWorker even when legacy encoding is enabled', async () => {
+      class MockWorker {
+        postMessage = jest.fn();
+        onmessage = jest.fn();
+        onerror = jest.fn();
+        terminate = jest.fn();
+      }
+      const eventCompressorSpy = jest.spyOn(EventCompressorModule, 'EventCompressor');
+      globalSpy = jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue({
+        ...mockGlobalScope,
+        Worker: MockWorker as unknown as typeof global.Worker,
+      });
+
+      await sessionReplay.init(apiKey, {
+        ...mockOptions,
+        useWebWorker: true,
+        performanceConfig: { enabled: false, legacyReplayEventEncoding: true },
+      }).promise;
+
+      expect(eventCompressorSpy).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.anything(),
+        expect.anything(),
+        'console.log("webworker script");',
+        expect.any(Function),
+      );
+      eventCompressorSpy.mockRestore();
     });
 
     test('should support legacy experimental.useWebWorker config for backwards compatibility', async () => {
@@ -5274,7 +5416,7 @@ describe('SessionReplay', () => {
         if (typeof callArgs?.maskTextFn === 'function') {
           callArgs.maskTextFn('test', null);
         }
-        // No assertion needed — just exercising the lambdas for coverage
+        expect(mockRecordFunction).toHaveBeenCalled();
       });
 
       test('passes full slimDOMOptions into child mode', async () => {
@@ -5323,6 +5465,7 @@ describe('SessionReplay', () => {
         if (typeof callArgs?.maskAttributeFn === 'function') {
           callArgs.maskAttributeFn('data-sensitive', 'secret', document.createElement('div'));
         }
+        expect(typeof callArgs?.maskAttributeFn).toBe('function');
       });
 
       test('errorHandler in child mode logs warning for generic errors', async () => {

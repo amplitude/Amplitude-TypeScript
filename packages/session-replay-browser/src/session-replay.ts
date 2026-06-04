@@ -285,14 +285,18 @@ export class SessionReplay implements AmplitudeSessionReplay {
     let compressionWorkerScript: string | undefined;
     let trackDestinationWorkerScript: string | undefined;
     const globalScope = getGlobalScope();
-    const useLegacyReplayEncoding = this.config.performanceConfig?.legacyReplayEventEncoding === true;
+    const performanceConfig = this.config.performanceConfig;
+    const useLegacyReplayEncoding =
+      performanceConfig !== undefined && performanceConfig.legacyReplayEventEncoding === true;
     if (globalScope && globalScope.Worker) {
       const { compressionScript, trackDestinationScript } = await import('./worker');
       if (!useLegacyReplayEncoding) {
         compressionWorkerScript = compressionScript;
       }
       if (this.config.useWebWorker) {
-        compressionWorkerScript = compressionWorkerScript ?? compressionScript;
+        if (compressionWorkerScript === undefined) {
+          compressionWorkerScript = compressionScript;
+        }
         trackDestinationWorkerScript = trackDestinationScript;
       }
     }

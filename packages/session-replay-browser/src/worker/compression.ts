@@ -31,3 +31,5 @@ export const compressionOnMessage = onmessage;
 export const resetCompressionChainForTests = () => {
   encodeChain = Promise.resolve();
 };
+
+export const waitForCompressionChainForTests = () => encodeChain;

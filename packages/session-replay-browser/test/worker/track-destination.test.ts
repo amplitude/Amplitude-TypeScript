@@ -328,6 +328,82 @@ describe('worker/track-destination', () => {
     expect(options.body).toBe(JSON.stringify(basePayload));
   });
 
+  test('gzips body when enableTransportCompression is true', async () => {
+    const gzipBytes = new Uint8Array([9, 8, 7]);
+    class MockCompressionStream {
+      writable = {
+        getWriter: () => ({
+          write: jest.fn(),
+          close: jest.fn().mockResolvedValue(undefined),
+        }),
+      };
+      readable = {
+        getReader: () => ({
+          read: jest
+            .fn()
+            .mockResolvedValueOnce({ done: false, value: gzipBytes })
+            .mockResolvedValueOnce({ done: true, value: undefined }),
+        }),
+      };
+    }
+    (global as any).CompressionStream = MockCompressionStream;
+
+    try {
+      mockFetch.mockResolvedValueOnce({ status: 200 });
+      await invokeOnMessage({
+        type: 'send',
+        id: 'gzip-1',
+        payload: basePayload,
+        context: { ...baseContext, enableTransportCompression: true },
+        useRetry: false,
+      });
+
+      const [, options] = mockFetch.mock.calls[0] as [string, RequestInit];
+      expect((options.headers as Record<string, string>)['Content-Encoding']).toBe('gzip');
+      expect(options.body).toEqual(gzipBytes);
+      expect(options.keepalive).toBe(true);
+    } finally {
+      delete (global as any).CompressionStream;
+    }
+  });
+
+  test('disables keepalive for large gzipped payloads', async () => {
+    const gzipBytes = new Uint8Array(70 * 1024);
+    class MockCompressionStream {
+      writable = {
+        getWriter: () => ({
+          write: jest.fn(),
+          close: jest.fn().mockResolvedValue(undefined),
+        }),
+      };
+      readable = {
+        getReader: () => ({
+          read: jest
+            .fn()
+            .mockResolvedValueOnce({ done: false, value: gzipBytes })
+            .mockResolvedValueOnce({ done: true, value: undefined }),
+        }),
+      };
+    }
+    (global as any).CompressionStream = MockCompressionStream;
+
+    try {
+      mockFetch.mockResolvedValueOnce({ status: 200 });
+      await invokeOnMessage({
+        type: 'send',
+        id: 'gzip-large',
+        payload: basePayload,
+        context: { ...baseContext, enableTransportCompression: true },
+        useRetry: false,
+      });
+
+      const [, options] = mockFetch.mock.calls[0] as [string, RequestInit];
+      expect(options.keepalive).toBe(false);
+    } finally {
+      delete (global as any).CompressionStream;
+    }
+  });
+
   test('sends uncompressed when enableTransportCompression is false even if CompressionStream is available', async () => {
     // Sentinel: if the opt-out gate is broken, the worker will try to construct
     // CompressionStream and we want the test to flag it explicitly rather than just

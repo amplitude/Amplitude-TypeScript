@@ -1,7 +1,11 @@
 import { deflateSync, inflateSync } from 'node:zlib';
 import { eventWithTime } from '@amplitude/rrweb-types';
 import { RRWEB_PACK_MARKER } from '../../src/utils/replay-event-encoding';
-import { compressionOnMessage, resetCompressionChainForTests } from '../../src/worker/compression';
+import {
+  compressionOnMessage,
+  resetCompressionChainForTests,
+  waitForCompressionChainForTests,
+} from '../../src/worker/compression';
 
 const runCompressionWorker = async (data: unknown) => {
   (compressionOnMessage as (event: { data: unknown }) => void)({ data });
@@ -99,6 +103,26 @@ describe('compression', () => {
     delete (global as unknown as { CompressionStream?: unknown }).CompressionStream;
   });
 
+  test('accepts JSON string payloads from DataClone fallback', async () => {
+    global.postMessage = jest.fn();
+    const testEvent: eventWithTime = {
+      timestamp: 2,
+      type: 4,
+      data: { height: 1, width: 1, href: 'http://localhost' },
+    };
+    await runCompressionWorker(
+      JSON.stringify({
+        event: testEvent,
+        sessionId: 5,
+        gzipReplayEvents: false,
+      }),
+    );
+    expect(global.postMessage).toHaveBeenCalledWith({
+      sessionId: 5,
+      compressedEvent: JSON.stringify({ type: 4, timestamp: 2, data: testEvent.data }),
+    });
+  });
+
   test('processes worker jobs in post order', async () => {
     const order: number[] = [];
     global.postMessage = jest.fn((msg: { compressedEvent: string; sessionId: number }) => {
@@ -139,10 +163,7 @@ describe('compression', () => {
     (compressionOnMessage as (e: { data: unknown }) => void)({
       data: { event, sessionId: 2, gzipReplayEvents: true },
     });
-    await new Promise<void>((resolve) => {
-      (compressionOnMessage as (e: { data: unknown }) => void)({ data: { flush: true } });
-      setTimeout(resolve, 50);
-    });
+    await waitForCompressionChainForTests();
 
     expect(order).toEqual([1, 2]);
 

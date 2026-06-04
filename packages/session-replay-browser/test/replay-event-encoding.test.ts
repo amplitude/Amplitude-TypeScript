@@ -59,4 +59,61 @@ describe('replay-event-encoding', () => {
     expect(unpacked.v).toBe(RRWEB_PACK_MARKER);
     expect(unpacked.type).toBe(mockEvent.type);
   });
+
+  test('encodeReplayEventForStorage falls back without CompressionStream', async () => {
+    const encoded = await encodeReplayEventForStorage(mockEvent, { compress: true, scope: {} });
+    expect(encoded).toBe(serializeReplayEvent(mockEvent));
+  });
+
+  test('encodeReplayEventForStorage zlib path preserves delay field', async () => {
+    const eventWithDelay = { ...mockEvent, delay: 25 } as eventWithTime & { delay: number };
+    const json = JSON.stringify({
+      type: eventWithDelay.type,
+      timestamp: eventWithDelay.timestamp,
+      delay: eventWithDelay.delay,
+      data: eventWithDelay.data,
+      v: RRWEB_PACK_MARKER,
+    });
+    const zlibBytes = deflateSync(Buffer.from(json, 'utf-8'));
+    class MockCompressionStream {
+      writable = { getWriter: () => ({ write: jest.fn(), close: jest.fn().mockResolvedValue(undefined) }) };
+      readable = {
+        getReader: () => ({
+          read: jest
+            .fn()
+            .mockResolvedValueOnce({ done: false, value: new Uint8Array(zlibBytes) })
+            .mockResolvedValueOnce({ done: true, value: undefined }),
+        }),
+      };
+    }
+    const stored = await encodeReplayEventForStorage(eventWithDelay, {
+      compress: true,
+      scope: { CompressionStream: MockCompressionStream },
+    });
+    const unpacked = JSON.parse(inflateSync(Buffer.from(JSON.parse(stored) as string, 'latin1')).toString('utf-8')) as {
+      delay: number;
+    };
+    expect(unpacked.delay).toBe(25);
+  });
+
+  test('encodeReplayEventForStorage falls back when deflate fails', async () => {
+    class FailingCompressionStream {
+      writable = {
+        getWriter: () => ({
+          write: jest.fn().mockRejectedValue(new Error('fail')),
+          close: jest.fn(),
+        }),
+      };
+      readable = {
+        getReader: () => ({
+          read: jest.fn().mockResolvedValue({ done: true, value: undefined }),
+        }),
+      };
+    }
+    const encoded = await encodeReplayEventForStorage(mockEvent, {
+      compress: true,
+      scope: { CompressionStream: FailingCompressionStream },
+    });
+    expect(encoded).toBe(serializeReplayEvent(mockEvent));
+  });
 });
