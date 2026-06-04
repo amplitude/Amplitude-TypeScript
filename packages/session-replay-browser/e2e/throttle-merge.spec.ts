@@ -7,6 +7,7 @@ import {
   buildUrl,
   waitForReady,
   readRouteBody,
+  bodyContainsInDecodedEvents,
 } from './helpers';
 
 /**
@@ -145,8 +146,8 @@ test.describe('post-throttle release merges queued sends (SR-4286)', () => {
     // The merged POST must carry events from all three activity windows — proving the
     // queued contexts were coalesced rather than reordered, dropped, or split per-marker.
     const mergedBody = getFetchBodies()[getFetchBodies().length - 1];
-    expect(mergedBody).toContain('marker-A');
-    expect(mergedBody).toContain('marker-B');
-    expect(mergedBody).toContain('marker-C');
+    expect(bodyContainsInDecodedEvents(mergedBody, 'marker-A')).toBe(true);
+    expect(bodyContainsInDecodedEvents(mergedBody, 'marker-B')).toBe(true);
+    expect(bodyContainsInDecodedEvents(mergedBody, 'marker-C')).toBe(true);
   });
 });

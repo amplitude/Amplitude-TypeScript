@@ -252,6 +252,9 @@ test.describe('empty batch leak (SR-4284)', () => {
       buildUrl('/session-replay-browser/sr-capture-test.html', {
         sessionId: TEST_SESSION_ID,
         logLevel: 4,
+        // Store-layer size guards key off serialized event byte size; zlib would shrink
+        // the mid-size fixture below the list cap and skip the SR-4284 path.
+        legacyReplayEventEncoding: true,
       }),
     );
     await waitForReady(page);

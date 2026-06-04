@@ -56,7 +56,7 @@ export function unpackStoredReplayEvent(eventStr: string): unknown | null {
   return null;
 }
 
-function decodeRrwebEvents(rawBody: string): unknown[] {
+export function decodeAllEventsFromBody(rawBody: string): unknown[] {
   if (!rawBody) return [];
   try {
     const payload = JSON.parse(rawBody) as { events?: unknown[] };
@@ -71,15 +71,22 @@ function decodeRrwebEvents(rawBody: string): unknown[] {
   }
 }
 
+export function bodyContainsInDecodedEvents(rawBody: string, substring: string): boolean {
+  return decodeAllEventsFromBody(rawBody).some((event) => {
+    const serialized = JSON.stringify(event);
+    return serialized.includes(substring);
+  });
+}
+
 export function getSnapshotRoot(rawBodies: string[]): SnapNode | null {
-  const events = rawBodies.flatMap(decodeRrwebEvents) as Array<{ type: number; data: { node: SnapNode } }>;
+  const events = rawBodies.flatMap(decodeAllEventsFromBody) as Array<{ type: number; data: { node: SnapNode } }>;
   const snap = events.find((e) => e.type === EVENT_FULL_SNAPSHOT);
   return snap ? snap.data.node : null;
 }
 
 /** Returns the root of the LAST full snapshot across all collected bodies. */
 export function getLastSnapshotRoot(rawBodies: string[]): SnapNode | null {
-  const events = rawBodies.flatMap(decodeRrwebEvents) as Array<{ type: number; data: { node: SnapNode } }>;
+  const events = rawBodies.flatMap(decodeAllEventsFromBody) as Array<{ type: number; data: { node: SnapNode } }>;
   const snaps = events.filter((e) => e.type === EVENT_FULL_SNAPSHOT);
   const last = snaps[snaps.length - 1];
   return last ? last.data.node : null;

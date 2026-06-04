@@ -22,6 +22,7 @@
       const logLevel = params.has('logLevel') ? Number(params.get('logLevel')) : 0;
       const useWebWorker = params.get('useWebWorker') === 'true';
       const mergeMutations = params.get('mergeMutations') === 'true';
+      const legacyReplayEventEncoding = params.get('legacyReplayEventEncoding') === 'true';
       const storeType = params.get('storeType') ?? undefined;
       const parseIntervalMs = (raw) => {
         if (raw === null) return undefined;
@@ -48,7 +49,11 @@
             optOut,
             logLevel,
             useWebWorker,
-            performanceConfig: { enabled: true, mergeMutations },
+            performanceConfig: {
+              enabled: true,
+              mergeMutations,
+              ...(legacyReplayEventEncoding ? { legacyReplayEventEncoding: true } : {}),
+            },
             ...(storeType ? { storeType } : {}),
             ...(flushIntervalConfig ? { flushIntervalConfig } : {}),
           }).promise;
