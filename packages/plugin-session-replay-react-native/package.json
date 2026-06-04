@@ -66,16 +66,17 @@
     "url": "https://github.com/amplitude/Amplitude-TypeScript/issues"
   },
   "dependencies": {
-    "@amplitude/analytics-types": "^1.3.4",
-    "@amplitude/session-replay-react-native": "workspace:*"
+    "@amplitude/analytics-types": "^1.3.4"
   },
   "devDependencies": {
+    "@amplitude/session-replay-react-native": "workspace:*",
     "@types/react": "^18.0.26",
     "react": "18.2.0",
     "react-native": "0.73.0",
     "react-native-builder-bob": "^0.20.3"
   },
   "peerDependencies": {
+    "@amplitude/session-replay-react-native": "*",
     "react": "*",
     "react-native": "*"
   },
