@@ -108,6 +108,23 @@ export interface NativeSessionReplaySpec {
   /**
    * Stops session replay recording.
    * Ends the current recording session and processes any captured data.
+   *
+   * This is a reversible pause: the native recording session, its listeners,
+   * and timers are kept alive so a subsequent `start()` can resume on the same
+   * native instance.
    */
   stop(): Promise<void>;
+
+  /**
+   * Fully tears down the native session replay instance.
+   *
+   * Unlike `stop()` (a reversible pause), this releases native resources:
+   * on Android it calls the underlying SDK's `shutdown()`, which removes the
+   * recording listeners and renders the instance unusable until a fresh
+   * `setup()` recreates it. On iOS the underlying SDK has no separate
+   * shutdown, so this maps to `stop()` (matching the legacy plugin's native
+   * `teardown`). Used by the plugin's `teardown()` lifecycle hook to avoid
+   * leaking native listeners when the plugin is removed at runtime.
+   */
+  teardown(): Promise<void>;
 }

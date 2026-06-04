@@ -6,7 +6,15 @@ import {
 } from '@amplitude/analytics-types';
 
 import { SessionReplayPluginConfig, getDefaultSessionReplayPluginConfig } from './plugin-session-replay-config';
-import { getSessionId, getSessionReplayProperties, privateInit, setSessionId, start, stop } from './session-replay';
+import {
+  getSessionId,
+  getSessionReplayProperties,
+  privateInit,
+  setSessionId,
+  start,
+  stop,
+  teardown as teardownSessionReplay,
+} from './session-replay';
 import { createSessionReplayLogger } from './logger';
 
 /**
@@ -129,7 +137,12 @@ export class SessionReplayPlugin implements EnrichmentPlugin<ReactNativeClient, 
 
   async teardown(): Promise<void> {
     if (this.isInitialized) {
-      await stop();
+      // Use the native `teardown` (Android `shutdown()` / iOS `stop()`) rather
+      // than `stop()`. `stop()` only pauses recording and leaves the native
+      // listeners/recording session alive; on Android that leaks resources when
+      // the plugin is removed at runtime. This mirrors the pre-consolidation
+      // plugin, whose native `teardown` called the Android SDK's `shutdown()`.
+      await teardownSessionReplay();
     }
 
     this.config = null;

@@ -110,15 +110,20 @@ describe('plugin-session-replay-react-native public API', () => {
       expect(nativeModule.setup).toHaveBeenCalledWith(expect.objectContaining({ maskLevel: 'medium' }));
     });
 
-    it('delegates start, stop, and teardown to native', async () => {
+    it('delegates start and stop to native, and teardown to native teardown (full shutdown)', async () => {
       const plugin = new SessionReplayPlugin();
       await plugin.setup(minimalConfig, mockReactNativeClient);
       await plugin.start();
       expect(nativeModule.start).toHaveBeenCalled();
       await plugin.stop();
-      expect(nativeModule.stop).toHaveBeenCalled();
+      expect(nativeModule.stop).toHaveBeenCalledTimes(1);
       await plugin.teardown();
-      expect(nativeModule.stop).toHaveBeenCalledTimes(2);
+      // teardown must release native resources via the native `teardown`
+      // (Android `shutdown()` / iOS `stop()`), NOT merely pause via `stop()`.
+      // Pausing instead would leak native recording listeners on Android when
+      // the plugin is removed at runtime (SDKRN-14 regression guard).
+      expect(nativeModule.teardown).toHaveBeenCalledTimes(1);
+      expect(nativeModule.stop).toHaveBeenCalledTimes(1);
     });
 
     it('enriches events with session replay properties once initialized', async () => {

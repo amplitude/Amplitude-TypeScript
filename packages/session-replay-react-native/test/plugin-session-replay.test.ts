@@ -95,10 +95,12 @@ describe('SessionReplayPlugin Integration', () => {
     await plugin.start();
     expect(NativeModules.AMPNativeSessionReplay.start).toHaveBeenCalled();
     await plugin.stop();
-    expect(NativeModules.AMPNativeSessionReplay.stop).toHaveBeenCalled();
+    expect(NativeModules.AMPNativeSessionReplay.stop).toHaveBeenCalledTimes(1);
     await plugin.teardown();
-    // teardown should call stop again (idempotent)
-    expect(NativeModules.AMPNativeSessionReplay.stop).toHaveBeenCalledTimes(2);
+    // teardown performs a full native shutdown (Android `shutdown()` / iOS
+    // `stop()`) via the native `teardown` method, not another `stop()`.
+    expect(NativeModules.AMPNativeSessionReplay.teardown).toHaveBeenCalledTimes(1);
+    expect(NativeModules.AMPNativeSessionReplay.stop).toHaveBeenCalledTimes(1);
   });
 
   it('should call getSessionReplayProperties', async () => {
