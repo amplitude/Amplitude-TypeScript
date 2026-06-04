@@ -47,17 +47,68 @@ describe('cookies', () => {
       expect(await cookies.isEnabled()).toBe(true);
     });
 
-    describe('when document is not available', () => {
+    describe('when environment is missing global scope', () => {
+      let consoleErrorSpy: jest.SpyInstance;
       let getGlobalScopeSpy: jest.SpyInstance;
       beforeEach(() => {
         getGlobalScopeSpy = jest.spyOn(GlobalScopeModule, 'getGlobalScope').mockReturnValue({} as typeof globalThis);
+        consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => undefined);
       });
       afterEach(() => {
+        consoleErrorSpy.mockRestore();
         getGlobalScopeSpy.mockRestore();
       });
-      test('should return false', async () => {
-        const cookies = new CookieStorage();
-        expect(await cookies.isEnabled()).toBe(false);
+
+      describe('where global scope is undefined', () => {
+        beforeEach(() => {
+          getGlobalScopeSpy.mockImplementation(() => undefined);
+        });
+        test('should return false', async () => {
+          const cookies = new CookieStorage();
+          expect(await cookies.isEnabled()).toBe(false);
+          expect(consoleErrorSpy.mock.calls.length).toBe(0);
+        });
+      });
+
+      describe('where document is not available', () => {
+        beforeEach(() => {
+          getGlobalScopeSpy.mockImplementation(() => ({ document: undefined }));
+        });
+        test('should return false', async () => {
+          const cookies = new CookieStorage();
+          expect(await cookies.isEnabled()).toBe(false);
+          expect(consoleErrorSpy.mock.calls.length).toBe(0);
+        });
+      });
+
+      describe('where btoa are not available in global scope', () => {
+        beforeEach(() => {
+          getGlobalScopeSpy.mockImplementation(() => ({
+            document: {},
+            btoa: undefined,
+            encodeURIComponent: undefined,
+          }));
+        });
+        test('should return false', async () => {
+          const cookies = new CookieStorage();
+          expect(await cookies.isEnabled()).toBe(false);
+          expect(consoleErrorSpy.mock.calls.length).toBe(0);
+        });
+      });
+
+      describe('where encodeURIComponent are not available in global scope', () => {
+        beforeEach(() => {
+          getGlobalScopeSpy.mockImplementation(() => ({
+            document: {},
+            btoa: () => ({}),
+            encodeURIComponent: undefined,
+          }));
+        });
+        test('should return false', async () => {
+          const cookies = new CookieStorage();
+          expect(await cookies.isEnabled()).toBe(false);
+          expect(consoleErrorSpy.mock.calls.length).toBe(0);
+        });
       });
     });
 
