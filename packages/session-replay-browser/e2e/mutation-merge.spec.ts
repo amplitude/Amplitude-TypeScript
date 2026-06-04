@@ -34,6 +34,7 @@ import {
   buildUrl,
   waitForReady,
   captureTrackRequests,
+  unpackStoredReplayEvent,
 } from './helpers';
 
 const MUTATION_SOURCE = 0; // IncrementalSource.Mutation
@@ -76,8 +77,8 @@ function decodeMutationEvents(rawBodies: string[]): MutationData[] {
     for (const eventStr of payload.events) {
       if (typeof eventStr !== 'string') continue;
       try {
-        const event = JSON.parse(eventStr) as { type: number; data: MutationData };
-        if (event.type === EVENT_INCREMENTAL_SNAPSHOT && event.data.source === MUTATION_SOURCE) {
+        const event = unpackStoredReplayEvent(eventStr) as { type: number; data: MutationData } | null;
+        if (event?.type === EVENT_INCREMENTAL_SNAPSHOT && event.data.source === MUTATION_SOURCE) {
           results.push(event.data);
         }
       } catch {

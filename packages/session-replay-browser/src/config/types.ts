@@ -344,6 +344,15 @@ export interface SessionReplayPerformanceConfig {
    */
   mergeMutations?: boolean;
   /**
+   * When true, replay events are stored as plain key-ordered JSON strings (legacy wire format).
+   * By default the SDK zlib-compresses each serialized event via CompressionStream('deflate')
+   * and stores `JSON.stringify(latin1(zlibBytes))`, matching legacy rrweb pack wire format.
+   * Use the compression web worker when available; otherwise encoding runs on the main thread.
+   *
+   * @defaultValue false
+   */
+  legacyReplayEventEncoding?: boolean;
+  /**
    * Performance configuration for interaction tracking (clicks, scrolls).
    */
   interaction?: InteractionPerformanceConfig;

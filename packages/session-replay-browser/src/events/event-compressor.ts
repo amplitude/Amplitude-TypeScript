@@ -4,6 +4,7 @@ import type { eventWithTime } from '@amplitude/rrweb-types';
 import { SessionReplayJoinedConfig } from '../config/types';
 import { MAX_SINGLE_EVENT_SIZE } from '../constants';
 import { SessionReplayEventsManager } from '../typings/session-replay';
+import { encodeReplayEventForStorage, serializeReplayEvent } from '../utils/replay-event-encoding';
 import { mergeMutationEvents } from './merge-mutation-events';
 
 interface TaskQueue {
@@ -23,6 +24,7 @@ export class EventCompressor {
   timeout: number;
   worker?: Worker;
   onFullSnapshotProcessed?: () => void;
+  private readonly gzipReplayEvents: boolean;
 
   constructor(
     eventsManager: SessionReplayEventsManager<'replay' | 'interaction', string>,
@@ -38,6 +40,8 @@ export class EventCompressor {
     this.deviceId = deviceId;
     this.timeout = config.performanceConfig?.timeout || DEFAULT_TIMEOUT;
     this.onFullSnapshotProcessed = onFullSnapshotProcessed;
+
+    this.gzipReplayEvents = config.performanceConfig?.legacyReplayEventEncoding !== true;
 
     if (workerScript) {
       config.loggerProvider.log('Enabling web worker for compression');
@@ -86,22 +90,11 @@ export class EventCompressor {
     // Process and flush immediately rather than waiting for the idle scheduler or web worker,
     // maximising the chance it is delivered before the user exits the page.
     if (event.type === RRWebEventType.FullSnapshot) {
-      this.config.loggerProvider.debug('Processing full snapshot immediately.');
-      // Drain any events still pending in the idle-callback queue first.
-      // Those events reference the pre-snapshot DOM and must be sent before
-      // the full snapshot; if we let them be processed later they'd arrive at
-      // the server after the snapshot and cause "node not found" replay errors.
-      if (this.taskQueue.length > 0 || this.pendingQueue.length > 0) {
-        const allTasks = [...this.taskQueue.splice(0), ...this.mergeMutationTasks(this.pendingQueue.splice(0))];
-        for (const task of allTasks) {
-          const compressed = this.compressEvent(task.event);
-          this.addCompressedEventToManager(compressed, task.sessionId);
-        }
-        this.isProcessing = false;
+      if (this.gzipReplayEvents) {
+        void this.processFullSnapshotImmediatelyAsync(event, sessionId);
+      } else {
+        this.processFullSnapshotImmediatelySync(event, sessionId);
       }
-      const compressedEvent = this.compressEvent(event);
-      this.addCompressedEventToManager(compressedEvent, sessionId);
-      this.onFullSnapshotProcessed?.();
       return;
     }
 
@@ -114,6 +107,39 @@ export class EventCompressor {
       this.addCompressedEvent(event, sessionId);
     }
   }
+
+  private processFullSnapshotImmediatelySync = (event: eventWithTime, sessionId: string | number) => {
+    this.config.loggerProvider.debug('Processing full snapshot immediately.');
+    // Drain any events still pending in the idle-callback queue first.
+    // Those events reference the pre-snapshot DOM and must be sent before
+    // the full snapshot; if we let them be processed later they'd arrive at
+    // the server after the snapshot and cause "node not found" replay errors.
+    if (this.taskQueue.length > 0 || this.pendingQueue.length > 0) {
+      const allTasks = [...this.taskQueue.splice(0), ...this.mergeMutationTasks(this.pendingQueue.splice(0))];
+      for (const task of allTasks) {
+        this.addCompressedEventToManager(serializeReplayEvent(task.event), task.sessionId);
+      }
+      this.isProcessing = false;
+    }
+    this.addCompressedEventToManager(serializeReplayEvent(event), sessionId);
+    this.onFullSnapshotProcessed?.();
+  };
+
+  private processFullSnapshotImmediatelyAsync = async (event: eventWithTime, sessionId: string | number) => {
+    this.config.loggerProvider.debug('Processing full snapshot immediately.');
+    const scope = getGlobalScope();
+    if (this.taskQueue.length > 0 || this.pendingQueue.length > 0) {
+      const allTasks = [...this.taskQueue.splice(0), ...this.mergeMutationTasks(this.pendingQueue.splice(0))];
+      for (const task of allTasks) {
+        const compressed = await encodeReplayEventForStorage(task.event, { compress: true, scope });
+        this.addCompressedEventToManager(compressed, task.sessionId);
+      }
+      this.isProcessing = false;
+    }
+    const compressedEvent = await encodeReplayEventForStorage(event, { compress: true, scope });
+    this.addCompressedEventToManager(compressedEvent, sessionId);
+    this.onFullSnapshotProcessed?.();
+  };
 
   // Process the task queue during idle time
   public processQueue(idleDeadline: IdleDeadline): void {
@@ -145,16 +171,7 @@ export class EventCompressor {
     }
   }
 
-  compressEvent = (event: eventWithTime): string => {
-    // Serialize with type+timestamp first for streaming parser compatibility.
-    // JS engines serialize non-integer string keys in insertion order (ES2015 spec,
-    // reliable across V8/SpiderMonkey/JSC), so explicit construction controls key order.
-    // `delay` is an rrweb player field: an optional ms offset applied on top of
-    // `timestamp` during replay to smooth out batched/throttled events. Preserve
-    // it when present so playback timing is accurate.
-    const { type, timestamp, delay, data } = event as eventWithTime & { delay?: number };
-    return delay != null ? JSON.stringify({ type, timestamp, delay, data }) : JSON.stringify({ type, timestamp, data });
-  };
+  compressEvent = (event: eventWithTime): string => serializeReplayEvent(event);
 
   private addCompressedEventToManager = (compressedEvent: string, sessionId: string | number) => {
     // UTF-8 byte size, not JS char count: a 9 M-char string of CJK/emoji can be 18–27 MB
@@ -177,24 +194,33 @@ export class EventCompressor {
     }
   };
 
+  private postToCompressionWorker = (event: eventWithTime, sessionId: string | number) => {
+    const payload = { event, sessionId, gzipReplayEvents: this.gzipReplayEvents };
+    try {
+      this.worker?.postMessage(payload);
+    } catch (err: unknown) {
+      if (err instanceof Error && err.name === 'DataCloneError') {
+        this.worker?.postMessage(JSON.stringify(payload));
+      } else {
+        this.config.loggerProvider.warn('Unexpected error while posting message to worker:', err);
+      }
+    }
+  };
+
   public addCompressedEvent = (event: eventWithTime, sessionId: string | number) => {
     if (this.worker) {
-      // This indirectly compresses the event.
-      try {
-        this.worker.postMessage({ event, sessionId });
-      } catch (err: any) {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        if (err.name === 'DataCloneError') {
-          // fallback: serialize
-          this.worker.postMessage(JSON.stringify({ event, sessionId }));
-        } else {
-          this.config.loggerProvider.warn('Unexpected error while posting message to worker:', err);
-        }
-      }
-    } else {
-      const compressedEvent = this.compressEvent(event);
-      this.addCompressedEventToManager(compressedEvent, sessionId);
+      this.postToCompressionWorker(event, sessionId);
+      return;
     }
+    if (this.gzipReplayEvents) {
+      const scope = getGlobalScope();
+      void encodeReplayEventForStorage(event, { compress: true, scope }).then((compressedEvent) => {
+        this.addCompressedEventToManager(compressedEvent, sessionId);
+      });
+      return;
+    }
+    const compressedEvent = serializeReplayEvent(event);
+    this.addCompressedEventToManager(compressedEvent, sessionId);
   };
 
   /**
@@ -216,8 +242,8 @@ export class EventCompressor {
         // write directly to the manager. postMessage is async — during page
         // unload the worker response would never arrive and events would be
         // silently dropped. This mirrors the pattern used for full snapshots in
-        // enqueueEvent().
-        const compressed = this.compressEvent(event);
+        // enqueueEvent(). Per-event deflate is skipped here for the same reason.
+        const compressed = serializeReplayEvent(event);
         this.addCompressedEventToManager(compressed, sessionId);
       }
     }

@@ -285,10 +285,16 @@ export class SessionReplay implements AmplitudeSessionReplay {
     let compressionWorkerScript: string | undefined;
     let trackDestinationWorkerScript: string | undefined;
     const globalScope = getGlobalScope();
-    if (this.config.useWebWorker && globalScope && globalScope.Worker) {
+    const useLegacyReplayEncoding = this.config.performanceConfig?.legacyReplayEventEncoding === true;
+    if (globalScope && globalScope.Worker) {
       const { compressionScript, trackDestinationScript } = await import('./worker');
-      compressionWorkerScript = compressionScript;
-      trackDestinationWorkerScript = trackDestinationScript;
+      if (!useLegacyReplayEncoding) {
+        compressionWorkerScript = compressionScript;
+      }
+      if (this.config.useWebWorker) {
+        compressionWorkerScript = compressionWorkerScript ?? compressionScript;
+        trackDestinationWorkerScript = trackDestinationScript;
+      }
     }
 
     let rrwebEventManager: EventsManagerWithBeacon<'replay'> | undefined;

@@ -9,6 +9,7 @@ import {
   waitForReady,
   readRouteBody,
   captureTrackRequests,
+  unpackStoredReplayEvent,
 } from './helpers';
 
 const SR_PROPERTY_KEY = '[Amplitude] Session Replay ID';
@@ -53,10 +54,9 @@ function decodeAllEvents(rawBody: string): Array<Record<string, unknown>> {
   const results: Array<Record<string, unknown>> = [];
   for (const eventStr of payload.events) {
     if (typeof eventStr !== 'string') continue;
-    try {
-      results.push(JSON.parse(eventStr) as Record<string, unknown>);
-    } catch {
-      // skip unparseable events
+    const event = unpackStoredReplayEvent(eventStr);
+    if (event != null && typeof event === 'object') {
+      results.push(event as Record<string, unknown>);
     }
   }
   return results;
@@ -98,8 +98,8 @@ function decodeFetchRequestEvents(rawBody: string): Array<Record<string, unknown
   for (const eventStr of payload.events) {
     if (typeof eventStr !== 'string') continue;
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const event = JSON.parse(eventStr);
+      const event = unpackStoredReplayEvent(eventStr) as Record<string, unknown> | null;
+      if (!event) continue;
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       if (event.type === 5 && event.data?.tag === 'fetch-request') {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
@@ -1300,9 +1300,9 @@ test.describe('web worker mode', () => {
     expect(fullSnapshot).toBeDefined();
   });
 
-  test('sends payload with gzip Content-Encoding via worker', async ({ page }) => {
+  test('sends uncompressed JSON body via worker (zlib is per-event)', async ({ page }) => {
     await mockRemoteConfig(page, remoteConfigRecording);
-    const { getHeaders } = await captureTrackRequests(page);
+    const { getHeaders, getBodies } = await captureTrackRequests(page);
 
     await page.goto(
       buildUrl('/session-replay-browser/sr-capture-test.html', {
@@ -1315,7 +1315,12 @@ test.describe('web worker mode', () => {
 
     const headers = getHeaders();
     expect(headers.length).toBeGreaterThan(0);
-    expect(headers[0]['content-encoding']).toBe('gzip');
+    expect(headers[0]['content-encoding']).toBeUndefined();
+    expect(
+      getBodies()
+        .flatMap((b) => decodeAllEvents(b))
+        .some((e) => e['type'] === 2),
+    ).toBe(true);
   });
 });
 
@@ -1440,9 +1445,9 @@ test.describe('SR-3115: improved replay data delivery', () => {
     expect(fullSnapshot).toBeDefined();
   });
 
-  test('sends payload with gzip Content-Encoding', async ({ page }) => {
+  test('POST body is raw JSON without Content-Encoding gzip', async ({ page }) => {
     await mockRemoteConfig(page, remoteConfigRecording);
-    const { getHeaders } = await captureTrackRequests(page);
+    const { getHeaders, getBodies } = await captureTrackRequests(page);
 
     await page.goto(buildUrl('/session-replay-browser/sr-capture-test.html', { sessionId: TEST_SESSION_ID }));
     await waitForReady(page);
@@ -1450,8 +1455,11 @@ test.describe('SR-3115: improved replay data delivery', () => {
 
     const headers = getHeaders();
     expect(headers.length).toBeGreaterThan(0);
-    // Chromium supports CompressionStream, so all requests should be gzip-encoded
-    expect(headers[0]['content-encoding']).toBe('gzip');
+    expect(headers[0]['content-encoding']).toBeUndefined();
+    const body = getBodies()[0] ?? '';
+    expect(() => {
+      void (JSON.parse(body) as unknown);
+    }).not.toThrow();
   });
 
   test('sendBeacon is called on page hide with pending events', async ({ page }) => {

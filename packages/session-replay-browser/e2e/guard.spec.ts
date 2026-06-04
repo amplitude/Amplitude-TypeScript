@@ -8,6 +8,7 @@ import {
   buildUrl,
   waitForReady,
   readRouteBody,
+  unpackStoredReplayEvent,
 } from './helpers';
 
 const EVENT_FULL_SNAPSHOT = 2;
@@ -24,10 +25,9 @@ function decodeAllEvents(rawBody: string): Array<Record<string, unknown>> {
   const results: Array<Record<string, unknown>> = [];
   for (const eventStr of payload.events) {
     if (typeof eventStr !== 'string') continue;
-    try {
-      results.push(JSON.parse(eventStr) as Record<string, unknown>);
-    } catch {
-      // skip unparseable events
+    const event = unpackStoredReplayEvent(eventStr);
+    if (event != null && typeof event === 'object') {
+      results.push(event as Record<string, unknown>);
     }
   }
   return results;

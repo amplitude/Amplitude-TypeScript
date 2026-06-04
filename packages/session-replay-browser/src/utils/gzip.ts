@@ -1,16 +1,20 @@
+export type CompressionStreamFormat = 'deflate' | 'gzip';
+
 /**
- * Gzip-compresses a JSON string using the CompressionStream API.
- * The `scope` parameter must be the global object (window or self) that
- * owns the CompressionStream constructor. The caller is responsible for
- * verifying that CompressionStream exists on that scope before calling.
- * Returns null if compression fails for any reason.
+ * Compresses a UTF-8 string with the CompressionStream API (`deflate` or `gzip`).
+ * The `scope` parameter must be the global object (window or self) that owns
+ * CompressionStream. Returns null if compression fails for any reason.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function gzipJson(jsonStr: string, scope: any): Promise<Uint8Array | null> {
+export async function compressUtf8Json(
+  jsonStr: string,
+  scope: any,
+  format: CompressionStreamFormat,
+): Promise<Uint8Array | null> {
   try {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
     const CS = scope.CompressionStream as typeof CompressionStream;
-    const stream = new CS('gzip');
+    const stream = new CS(format);
     const writer = stream.writable.getWriter();
     const reader = stream.readable.getReader();
 
@@ -44,4 +48,16 @@ export async function gzipJson(jsonStr: string, scope: any): Promise<Uint8Array 
   } catch {
     return null;
   }
+}
+
+/** Gzip-compresses a JSON string (whole-request uploads). */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function gzipJson(jsonStr: string, scope: any): Promise<Uint8Array | null> {
+  return compressUtf8Json(jsonStr, scope, 'gzip');
+}
+
+/** Zlib-compresses a JSON string (per-event replay payloads; CompressionStream `deflate`). */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function deflateJson(jsonStr: string, scope: any): Promise<Uint8Array | null> {
+  return compressUtf8Json(jsonStr, scope, 'deflate');
 }

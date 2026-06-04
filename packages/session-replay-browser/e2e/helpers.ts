@@ -1,4 +1,4 @@
-import { gunzipSync } from 'zlib';
+import { gunzipSync, inflateSync } from 'zlib';
 import { Route, Page } from '@playwright/test';
 
 export const SR_API_SUCCESS = { code: 200 };
@@ -39,6 +39,23 @@ export const NODE_ELEMENT = 2;
 export const NODE_TEXT = 3;
 export const EVENT_FULL_SNAPSHOT = 2;
 
+/** Mirrors ~/scripts/unpack_events.js: plain JSON event or JSON.stringify(zlib latin1). */
+export function unpackStoredReplayEvent(eventStr: string): unknown | null {
+  try {
+    const first = JSON.parse(eventStr) as unknown;
+    if (typeof first === 'object' && first !== null && 'type' in first) {
+      return first;
+    }
+    if (typeof first === 'string') {
+      const json = inflateSync(Buffer.from(first, 'latin1')).toString('utf-8');
+      return JSON.parse(json) as unknown;
+    }
+  } catch {
+    return null;
+  }
+  return null;
+}
+
 function decodeRrwebEvents(rawBody: string): unknown[] {
   if (!rawBody) return [];
   try {
@@ -46,11 +63,8 @@ function decodeRrwebEvents(rawBody: string): unknown[] {
     if (!Array.isArray(payload.events)) return [];
     return payload.events.flatMap((eventStr) => {
       if (typeof eventStr !== 'string') return [];
-      try {
-        return [JSON.parse(eventStr) as unknown];
-      } catch {
-        return [];
-      }
+      const event = unpackStoredReplayEvent(eventStr);
+      return event != null ? [event] : [];
     });
   } catch {
     return [];

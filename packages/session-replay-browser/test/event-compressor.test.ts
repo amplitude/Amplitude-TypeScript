@@ -47,11 +47,17 @@ describe('EventCompressor', () => {
     performanceConfig: {
       enabled: true,
       timeout: 2000,
+      legacyReplayEventEncoding: true,
     },
     useWebWorker: true,
   });
 
   beforeEach(async () => {
+    config.performanceConfig = {
+      enabled: true,
+      timeout: 2000,
+      legacyReplayEventEncoding: true,
+    };
     eventsManager = await createEventsManager<'replay'>({
       config,
       type: 'replay',
@@ -505,7 +511,6 @@ describe('EventCompressor', () => {
 
       // Worker should NOT be used for FullSnapshot
       expect(postMessageCount).toBe(0);
-      // addEvent should be called synchronously
       expect(addEventMock).toHaveBeenCalledTimes(1);
     });
 
@@ -711,6 +716,25 @@ describe('EventCompressor', () => {
 
       // sessionA: 2 → 1 merged; sessionB: 1 stays → 2 total compressed events
       expect(addEventMock).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe('deflate replay event encoding (default)', () => {
+    test('compression is enabled unless legacyReplayEventEncoding is true', () => {
+      const gzipConfig = new SessionReplayLocalConfig('static_key', {
+        loggerProvider: mockLoggerProvider,
+        sampleRate: 1,
+        performanceConfig: { enabled: false },
+      });
+      const legacyConfig = new SessionReplayLocalConfig('static_key', {
+        loggerProvider: mockLoggerProvider,
+        sampleRate: 1,
+        performanceConfig: { enabled: false, legacyReplayEventEncoding: true },
+      });
+      const gzipCompressor = new EventCompressor(eventsManager, gzipConfig, deviceId);
+      const legacyCompressor = new EventCompressor(eventsManager, legacyConfig, deviceId);
+      expect((gzipCompressor as unknown as { gzipReplayEvents: boolean }).gzipReplayEvents).toBe(true);
+      expect((legacyCompressor as unknown as { gzipReplayEvents: boolean }).gzipReplayEvents).toBe(false);
     });
   });
 

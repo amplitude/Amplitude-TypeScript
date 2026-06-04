@@ -318,58 +318,14 @@ describe('worker/track-destination', () => {
     });
   });
 
-  test('falls back to uncompressed when CompressionStream throws', async () => {
-    class BrokenCompressionStream {
-      constructor() {
-        throw new Error('not supported');
-      }
-    }
-    (global as any).CompressionStream = BrokenCompressionStream;
+  test('sends uncompressed JSON without Content-Encoding', async () => {
+    mockFetch.mockResolvedValueOnce({ status: 200 });
+    await invokeOnMessage({ type: 'send', id: '12', payload: basePayload, context: baseContext, useRetry: false });
 
-    try {
-      mockFetch.mockResolvedValueOnce({ status: 200 });
-      await invokeOnMessage({ type: 'send', id: '13', payload: basePayload, context: baseContext, useRetry: false });
-
-      expect(mockFetch).toHaveBeenCalledTimes(1);
-      const [, options] = mockFetch.mock.calls[0] as [string, RequestInit];
-      expect((options.headers as Record<string, string>)['Content-Encoding']).toBeUndefined();
-      expect(typeof options.body).toBe('string');
-    } finally {
-      delete (global as any).CompressionStream;
-    }
-  });
-
-  test('gzip-compresses payload when CompressionStream is available', async () => {
-    // Mock CompressionStream with mock reader/writer objects (avoids ReadableStream/WritableStream
-    // availability issues in the jsdom test environment).
-    const mockCompressed = new Uint8Array([0x1f, 0x8b]);
-    const mockWriter = { write: jest.fn().mockResolvedValue(undefined), close: jest.fn().mockResolvedValue(undefined) };
-    const mockReader = {
-      read: jest
-        .fn()
-        .mockResolvedValueOnce({ done: false, value: mockCompressed })
-        .mockResolvedValueOnce({ done: true, value: undefined }),
-    };
-    class MockCompressionStream {
-      writable = { getWriter: () => mockWriter };
-      readable = { getReader: () => mockReader };
-    }
-
-    // In jest+jsdom, 'CompressionStream' is checked via `'CompressionStream' in self`
-    // where `self === global`. Set it on global so the check passes.
-    (global as any).CompressionStream = MockCompressionStream;
-
-    try {
-      mockFetch.mockResolvedValueOnce({ status: 200 });
-      await invokeOnMessage({ type: 'send', id: '12', payload: basePayload, context: baseContext, useRetry: false });
-
-      expect(mockFetch).toHaveBeenCalledTimes(1);
-      const [, options] = mockFetch.mock.calls[0] as [string, RequestInit];
-      expect((options.headers as Record<string, string>)['Content-Encoding']).toBe('gzip');
-      expect(options.body).toEqual(mockCompressed);
-    } finally {
-      delete (global as any).CompressionStream;
-    }
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+    const [, options] = mockFetch.mock.calls[0] as [string, RequestInit];
+    expect((options.headers as Record<string, string>)['Content-Encoding']).toBeUndefined();
+    expect(options.body).toBe(JSON.stringify(basePayload));
   });
 
   test('sends uncompressed when enableTransportCompression is false even if CompressionStream is available', async () => {

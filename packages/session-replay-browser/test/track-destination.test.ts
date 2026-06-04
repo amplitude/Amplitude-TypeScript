@@ -556,7 +556,7 @@ describe('SessionReplayTrackDestination', () => {
     });
   });
 
-  describe('gzip compression', () => {
+  describe('request body encoding', () => {
     const makeContext = (): SessionReplayDestinationContext => ({
       events: [mockEventString],
       sessionId: 123,
@@ -571,51 +571,15 @@ describe('SessionReplayTrackDestination', () => {
       onComplete: mockOnComplete,
     });
 
-    test('should send with Content-Encoding: gzip when CompressionStream is available', async () => {
-      const mockCompressed = new Uint8Array([0x1f, 0x8b]); // minimal gzip magic bytes
-
-      // Mock a CompressionStream that returns a compressed chunk
-      const mockWriter = { write: jest.fn(), close: jest.fn().mockResolvedValue(undefined) };
-      const mockReader = {
-        read: jest
-          .fn()
-          .mockResolvedValueOnce({ done: false, value: mockCompressed })
-          .mockResolvedValueOnce({ done: true, value: undefined }),
-      };
-      class MockCompressionStream {
-        writable = { getWriter: () => mockWriter };
-        readable = { getReader: () => mockReader };
-      }
-      // Override getGlobalScope to expose CompressionStream
-      jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue({
-        CompressionStream: MockCompressionStream,
-      } as unknown as typeof globalThis);
-
+    test('should send uncompressed JSON without Content-Encoding', async () => {
       const trackDestination = new SessionReplayTrackDestination({ loggerProvider: mockLoggerProvider });
       await trackDestination.send(makeContext());
 
       expect(fetch).toHaveBeenCalledTimes(1);
       const options = (fetch as jest.Mock).mock.calls[0][1] as RequestInit;
-      expect((options.headers as Record<string, string>)['Content-Encoding']).toBe('gzip');
-      expect(options.body).toEqual(mockCompressed);
-    });
-
-    test('should send without Content-Encoding when CompressionStream throws', async () => {
-      class BrokenCompressionStream {
-        constructor() {
-          throw new Error('not supported');
-        }
-      }
-      jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue({
-        CompressionStream: BrokenCompressionStream,
-      } as unknown as typeof globalThis);
-
-      const trackDestination = new SessionReplayTrackDestination({ loggerProvider: mockLoggerProvider });
-      await trackDestination.send(makeContext());
-
-      const options = (fetch as jest.Mock).mock.calls[0][1] as RequestInit;
       expect((options.headers as Record<string, string>)['Content-Encoding']).toBeUndefined();
       expect(typeof options.body).toBe('string');
+      expect(JSON.parse(options.body as string)).toEqual({ version: 1, events: [mockEventString] });
     });
 
     test('should send uncompressed when enableTransportCompression is false even if CompressionStream is available', async () => {
