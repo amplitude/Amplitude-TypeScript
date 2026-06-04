@@ -1,13 +1,25 @@
 import { deflateSync, inflateSync } from 'node:zlib';
 import { eventWithTime } from '@amplitude/rrweb-types';
 import { RRWEB_PACK_MARKER } from '../../src/utils/replay-event-encoding';
-import { compressionOnMessage } from '../../src/worker/compression';
+import { compressionOnMessage, resetCompressionChainForTests } from '../../src/worker/compression';
 
 const runCompressionWorker = async (data: unknown) => {
-  await (compressionOnMessage as (event: { data: unknown }) => Promise<void>)({ data });
+  (compressionOnMessage as (event: { data: unknown }) => void)({ data });
+  if (data && typeof data === 'object' && 'flush' in data) {
+    await Promise.resolve();
+    return;
+  }
+  await new Promise<void>((resolve) => {
+    (compressionOnMessage as (event: { data: unknown }) => void)({ data: { flush: true } });
+    setTimeout(resolve, 0);
+  });
 };
 
 describe('compression', () => {
+  beforeEach(() => {
+    resetCompressionChainForTests();
+  });
+
   test('should serialize event with type and timestamp first when compression disabled', async () => {
     global.postMessage = jest.fn();
 
@@ -75,10 +87,64 @@ describe('compression', () => {
       gzipReplayEvents: true,
     });
 
-    const posted = (global.postMessage as jest.Mock).mock.calls[0][0] as { compressedEvent: string };
-    const latin1 = JSON.parse(posted.compressedEvent) as string;
+    const calls = (global.postMessage as jest.Mock).mock.calls.map(
+      (c: [msg: { compressedEvent?: string; flushed?: boolean }]) => c[0],
+    );
+    const posted = calls.find((c) => c.compressedEvent != null);
+    expect(posted?.compressedEvent).toBeDefined();
+    const latin1 = JSON.parse(posted?.compressedEvent ?? '""') as string;
     const unpacked = JSON.parse(inflateSync(Buffer.from(latin1, 'latin1')).toString('utf-8')) as { v: string };
     expect(unpacked.v).toBe(RRWEB_PACK_MARKER);
+
+    delete (global as unknown as { CompressionStream?: unknown }).CompressionStream;
+  });
+
+  test('processes worker jobs in post order', async () => {
+    const order: number[] = [];
+    global.postMessage = jest.fn((msg: { compressedEvent: string; sessionId: number }) => {
+      order.push(msg.sessionId);
+    });
+
+    class SlowCompressionStream {
+      constructor() {
+        (global as unknown as { __slowId?: number }).__slowId = 0;
+      }
+      writable = {
+        getWriter: () => ({
+          write: jest.fn().mockImplementation(async () => {
+            const id = (global as unknown as { __slowId: number }).__slowId++;
+            if (id === 0) {
+              await new Promise((r) => setTimeout(r, 20));
+            }
+          }),
+          close: jest.fn().mockResolvedValue(undefined),
+        }),
+      };
+      readable = {
+        getReader: () => ({
+          read: jest
+            .fn()
+            .mockResolvedValueOnce({ done: false, value: deflateSync(Buffer.from('{"v":"v1","type":1}')) })
+            .mockResolvedValueOnce({ done: true, value: undefined }),
+        }),
+      };
+    }
+    (global as unknown as { CompressionStream: typeof SlowCompressionStream }).CompressionStream =
+      SlowCompressionStream;
+
+    const event = { type: 4, timestamp: 1, data: {} } as eventWithTime;
+    (compressionOnMessage as (e: { data: unknown }) => void)({
+      data: { event, sessionId: 1, gzipReplayEvents: true },
+    });
+    (compressionOnMessage as (e: { data: unknown }) => void)({
+      data: { event, sessionId: 2, gzipReplayEvents: true },
+    });
+    await new Promise<void>((resolve) => {
+      (compressionOnMessage as (e: { data: unknown }) => void)({ data: { flush: true } });
+      setTimeout(resolve, 50);
+    });
+
+    expect(order).toEqual([1, 2]);
 
     delete (global as unknown as { CompressionStream?: unknown }).CompressionStream;
   });

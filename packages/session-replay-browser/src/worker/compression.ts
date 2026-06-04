@@ -4,14 +4,30 @@
 import type { eventWithTime } from '@amplitude/rrweb-types';
 import { encodeReplayEventForStorage } from '../utils/replay-event-encoding';
 
-onmessage = async (e) => {
-  const { event, sessionId, gzipReplayEvents } = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
-  const compressedEvent = await encodeReplayEventForStorage(event as eventWithTime, {
-    compress: Boolean(gzipReplayEvents),
-    scope: self,
+let encodeChain: Promise<void> = Promise.resolve();
+
+onmessage = (e) => {
+  const data = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
+
+  if (data.flush) {
+    encodeChain = encodeChain.then(() => {
+      postMessage({ flushed: true });
+    });
+    return;
+  }
+
+  const { event, sessionId, gzipReplayEvents } = data;
+  encodeChain = encodeChain.then(async () => {
+    const compressedEvent = await encodeReplayEventForStorage(event as eventWithTime, {
+      compress: Boolean(gzipReplayEvents),
+      scope: self,
+    });
+    postMessage({ compressedEvent, sessionId });
   });
-  postMessage({ compressedEvent, sessionId });
 };
 
 // added for testing
 export const compressionOnMessage = onmessage;
+export const resetCompressionChainForTests = () => {
+  encodeChain = Promise.resolve();
+};
