@@ -6,6 +6,7 @@ import {
   OfflineDisabled,
 } from '@amplitude/analytics-core';
 import { NativeModules, NativeEventEmitter, EmitterSubscription } from 'react-native';
+import { isWeb } from '../utils/platform';
 
 export const CONNECTIVITY_EVENT_NAME = 'AmplitudeNetworkConnectivityChanged';
 
@@ -100,7 +101,14 @@ export const networkConnectivityCheckerPlugin = (): BeforePlugin => {
     }
 
     // Web mode (react-native-web): fall back to `navigator.onLine` + events.
-    if (typeof navigator !== 'undefined') {
+    // Gate on `isWeb()` (not just `typeof navigator`): React Native defines a
+    // `navigator` polyfill that has no `onLine`, so on a native app where the
+    // connectivity module is missing (e.g. JS upgraded without rebuilding
+    // native, or an autolink failure) this branch would otherwise read
+    // `!navigator.onLine === !undefined === true` and wrongly pin the SDK
+    // offline forever. Offline mode is best-effort: when there's no reliable
+    // connectivity source we fall through to `offline = false` below.
+    if (isWeb() && typeof navigator !== 'undefined') {
       config.offline = !navigator.onLine;
 
       addWebNetworkListener('online', () => {
@@ -119,9 +127,10 @@ export const networkConnectivityCheckerPlugin = (): BeforePlugin => {
       return;
     }
 
-    // No connectivity source available: assume always online.
+    // Best-effort fallback: no reliable connectivity source (no native module,
+    // not web) → assume online so we never wrongly suppress sends.
     config.loggerProvider.debug(
-      'Network connectivity checker plugin is disabled because no connectivity source is available.',
+      'Network connectivity checker plugin found no connectivity source; defaulting to online.',
     );
     config.offline = false;
   };

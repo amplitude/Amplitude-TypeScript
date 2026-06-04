@@ -7,6 +7,7 @@ import {
   CONNECTIVITY_EVENT_NAME,
 } from '../../src/plugins/network-connectivity-checker';
 import { useDefaultConfig } from '../helpers/default';
+import * as platform from '../../src/utils/platform';
 
 /**
  * A controllable stand-in for the web global scope so the web-fallback path can
@@ -163,6 +164,9 @@ describe('networkConnectivityCheckerPlugin', () => {
     beforeEach(() => {
       originalModule = NativeModules.AmplitudeReactNativeConnectivity;
       delete (NativeModules as { AmplitudeReactNativeConnectivity?: unknown }).AmplitudeReactNativeConnectivity;
+      // The web branch is gated on isWeb(); force it so this runs under the
+      // node (test:mobile) suite too, not just jsdom.
+      jest.spyOn(platform, 'isWeb').mockReturnValue(true);
     });
 
     afterEach(() => {
@@ -244,6 +248,7 @@ describe('networkConnectivityCheckerPlugin', () => {
     });
 
     afterEach(() => {
+      jest.restoreAllMocks();
       (NativeModules as { AmplitudeReactNativeConnectivity?: unknown }).AmplitudeReactNativeConnectivity =
         originalModule;
     });
@@ -260,6 +265,26 @@ describe('networkConnectivityCheckerPlugin', () => {
         expect(offlineOf(config)).toBe(false);
         // teardown is a no-op here and should not throw.
         await expect(plugin.teardown?.()).resolves.not.toThrow();
+      });
+    });
+
+    // Regression: on a NATIVE app where the connectivity module is missing
+    // (e.g. JS upgraded without rebuilding native, or autolink failure), RN
+    // still defines a `navigator` polyfill that has no `onLine`. The plugin
+    // must NOT enter the web branch and pin `offline = !undefined === true`;
+    // offline mode is best-effort, so it defaults to online.
+    test('native app without the connectivity module defaults to online (not stuck offline)', async () => {
+      jest.spyOn(platform, 'isWeb').mockReturnValue(false);
+      // React Native's navigator: defined, but no `onLine` property.
+      await withNavigator({ product: 'ReactNative' } as unknown as { onLine: boolean }, async () => {
+        const config = useDefaultConfig();
+        // Start offline to prove the best-effort fallback resets it to online.
+        (config as { offline?: boolean | null }).offline = true;
+        const plugin = networkConnectivityCheckerPlugin();
+
+        await plugin.setup?.(config, createAmplitudeMock());
+
+        expect(offlineOf(config)).toBe(false);
       });
     });
   });
