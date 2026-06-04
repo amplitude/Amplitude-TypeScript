@@ -10,6 +10,8 @@ function HomeScreen({ navigation }) {
   return (
     <View style={styles.container}>
       <Text>Home Screen</Text>
+      <Button title="Online test" onPress={() => track('RN Expo Online Test')} />
+      <Button title="Offline test" onPress={() => track('RN Expo Offline Test')} />
       <Button title="Go to Settings" onPress={() => navigation.navigate('Settings')} />
     </View>
   );
@@ -29,7 +31,9 @@ export default function App() {
     (async () => {
         // AMPLITUDE_API_KEY is inlined at bundle time (see babel.config.js).
         await init(process.env.AMPLITUDE_API_KEY || 'YOUR_API_KEY', 'react-native-user-id', {
-          logLevel: Types.LogLevel.Error,
+          // Debug so offline-mode log lines ("Skipping flush while offline.",
+          // flush/upload) are visible when manually testing connectivity.
+          logLevel: Types.LogLevel.Debug,
           // autocapture: { } // <-- todo
         }).promise;
         track('expo-app/react-native/test-event');
