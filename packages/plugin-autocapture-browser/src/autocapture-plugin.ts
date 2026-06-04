@@ -46,7 +46,7 @@ import {
   createSelectorEngine,
   resolveSelectorConfig,
   type ElementSelectorRemoteConfig,
-  type SelectorEngine,
+  type ResolvedSelectorConfig,
 } from '@amplitude/element-selector';
 import { trackExposure } from './autocapture/track-exposure';
 import { fireViewportContentUpdated, onExposure, ExposureTracker } from './autocapture/track-viewport-content-updated';
@@ -59,13 +59,6 @@ type NavigationType = {
 declare global {
   interface Window {
     navigation: NavigationType;
-    // Stashed by the autocapture plugin so the Chrome extension visual
-    // tagger (Phase 3) can read the live engine + subscribe to config
-    // updates. Optional because (a) the plugin may not be loaded on every
-    // page, and (b) the engine is only constructed when v1 is in scope.
-    amplitude?: {
-      elementSelector?: SelectorEngine;
-    };
   }
 }
 
@@ -306,29 +299,45 @@ export const autocapturePlugin = (
     // the kill-switch comment in `data-extractor.ts`.
     //
     // The engine subscribes to remote-config updates on the elementSelector
-    // namespace; each update re-resolves the config and calls
-    // `engine.updateConfig(...)`, which takes effect on the next selector
-    // emission with no further plumbing.
+    // namespace (nested under autocapture, alongside pageActions if that
+    // namespace eventually migrates). Each update re-resolves the config
+    // and calls `engine.updateConfig(...)`, which takes effect on the next
+    // selector emission with no further plumbing.
     const initialSelectorConfig = resolveSelectorConfig(undefined, config.loggerProvider);
     const selectorEngine = createSelectorEngine(initialSelectorConfig, { logger: config.loggerProvider });
     dataExtractor.setSelectorEngine(selectorEngine);
 
-    // Stash the live engine for cross-surface consumers (Phase 3 Chrome
-    // extension visual tagger reads this).
+    // Expose a narrowed, read-only surface of the engine on the customer's
+    // BrowserClient instance so downstream consumers (the dashboard tagger
+    // via window-messenger, the Chrome extension visual tagger via direct
+    // page access) can use the same engine the SDK is running. Notable:
+    //
+    //   - Attaches to `amplitude` (the BrowserClient param), NOT to
+    //     `window.amplitude`. Per-instance, survives custom global names,
+    //     no multi-instance clobbering.
+    //   - `updateConfig` is intentionally not exposed — only the SDK
+    //     should mutate the engine's config, and only via the remote-config
+    //     subscription below. Consumers that need live updates use
+    //     `onConfigChange`.
     /* istanbul ignore next */
-    if (typeof window !== 'undefined') {
-      window.amplitude = window.amplitude ?? {};
-      window.amplitude.elementSelector = selectorEngine;
-    }
+    (amplitude as unknown as { elementSelector?: unknown }).elementSelector = {
+      generate: (el: Element): string => selectorEngine.generate(el),
+      getConfig: () => selectorEngine.getConfig(),
+      onConfigChange: (cb: (config: ResolvedSelectorConfig) => void): (() => void) => selectorEngine.onConfigChange(cb),
+    };
 
     if (config.fetchRemoteConfig && config.remoteConfigClient) {
-      config.remoteConfigClient.subscribe('configs.analyticsSDK.elementSelector', 'all', (remoteSelectorConfig) => {
-        const nextResolved = resolveSelectorConfig(
-          remoteSelectorConfig as ElementSelectorRemoteConfig | undefined,
-          config.loggerProvider,
-        );
-        selectorEngine.updateConfig(nextResolved);
-      });
+      config.remoteConfigClient.subscribe(
+        'configs.analyticsSDK.autocapture.elementSelector',
+        'all',
+        (remoteSelectorConfig) => {
+          const nextResolved = resolveSelectorConfig(
+            remoteSelectorConfig as ElementSelectorRemoteConfig | undefined,
+            config.loggerProvider,
+          );
+          selectorEngine.updateConfig(nextResolved);
+        },
+      );
     }
 
     // Create should track event functions the different allowlists
