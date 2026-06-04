@@ -17,18 +17,12 @@ config.watchFolders = [
 ];
 config.resolver.nodeModulesPaths = [path.resolve(projectRoot, 'node_modules')];
 
-// Force a SINGLE copy of react-native / react for the whole bundle.
-//
-// `packages/analytics-react-native` pins its own `react-native` devDep (0.70.6),
-// so Metro resolves the workspace-linked SDK's `react-native` imports to that
-// NESTED copy — a second react-native in the bundle alongside the app's 0.71.x.
-// A duplicate react-native means a duplicate `RCTDeviceEventEmitter` singleton:
-// the native bridge emits connectivity events on the APP's emitter, but the SDK's
-// `NativeEventEmitter` listener is registered on the duplicate's emitter, so the
-// SDK never receives `AmplitudeNetworkConnectivityChanged` events and offline mode
-// only ever sees the initial seed (never live changes). `extraNodeModules` is just
-// a resolution *fallback* and doesn't override the nested copy, so redirect
-// explicitly via `resolveRequest`.
+// Force a single copy of react-native / react across the bundle. The SDK pins
+// its own react-native devDep, so Metro would otherwise resolve the workspace-
+// linked SDK's imports to that nested copy and bundle two react-natives (two
+// RCTDeviceEventEmitter singletons, so the SDK misses connectivity events).
+// extraNodeModules is only a fallback and won't override the nested copy, so
+// redirect explicitly via resolveRequest.
 const forcedSingletons = {
   'react-native': path.resolve(projectRoot, 'node_modules/react-native'),
   react: path.resolve(projectRoot, 'node_modules/react'),
