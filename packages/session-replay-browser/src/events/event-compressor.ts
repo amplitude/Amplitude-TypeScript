@@ -25,9 +25,8 @@ export class EventCompressor {
   worker?: Worker;
   onFullSnapshotProcessed?: () => void;
   private readonly gzipReplayEvents: boolean;
-  /** Serializes delivery to eventsManager so async zlib cannot reorder events. */
-  private encodeDeliveryChain = Promise.resolve();
-  private workerFlushResolve?: () => void;
+  /** Main-thread zlib is async; chain preserves event order when not using the worker. */
+  private encodeChain = Promise.resolve();
 
   constructor(
     eventsManager: SessionReplayEventsManager<'replay' | 'interaction', string>,
@@ -48,7 +47,6 @@ export class EventCompressor {
       this.timeout = DEFAULT_TIMEOUT;
     }
     this.onFullSnapshotProcessed = onFullSnapshotProcessed;
-
     if (performanceConfig !== undefined && performanceConfig.legacyReplayEventEncoding === true) {
       this.gzipReplayEvents = false;
     } else {
@@ -72,20 +70,11 @@ export class EventCompressor {
           this.worker = undefined;
         };
         worker.onmessage = (e) => {
-          const data = e.data as { flushed?: boolean; compressedEvent?: string; sessionId?: string | number };
-          if (data.flushed) {
-            if (this.workerFlushResolve) {
-              this.workerFlushResolve();
-            }
-            return;
-          }
-          const { compressedEvent, sessionId } = data;
-          if (compressedEvent == null || sessionId == null) {
-            return;
-          }
-          this.encodeDeliveryChain = this.encodeDeliveryChain.then(() => {
-            this.addCompressedEventToManager(compressedEvent, sessionId);
-          });
+          const { compressedEvent, sessionId } = e.data as {
+            compressedEvent: string;
+            sessionId: string | number;
+          };
+          this.addCompressedEventToManager(compressedEvent, sessionId);
         };
 
         this.worker = worker;
@@ -115,7 +104,7 @@ export class EventCompressor {
     // maximising the chance it is delivered before the user exits the page.
     if (event.type === RRWebEventType.FullSnapshot) {
       if (this.gzipReplayEvents) {
-        void this.processFullSnapshotImmediatelyAsync(event, sessionId);
+        void this.processFullSnapshotImmediately(event, sessionId);
       } else {
         this.processFullSnapshotImmediatelySync(event, sessionId);
       }
@@ -132,31 +121,6 @@ export class EventCompressor {
     }
   }
 
-  private waitForEncoderIdle = async (): Promise<void> => {
-    await this.encodeDeliveryChain;
-    const worker = this.worker;
-    if (worker) {
-      await new Promise<void>((resolve) => {
-        this.workerFlushResolve = resolve;
-        worker.postMessage({ flush: true });
-      });
-      this.workerFlushResolve = undefined;
-      await this.encodeDeliveryChain;
-    }
-  };
-
-  private encodeAndStore = async (event: eventWithTime, sessionId: string | number, compress: boolean) => {
-    const scope = getGlobalScope();
-    const compressed = await encodeReplayEventForStorage(event, { compress, scope });
-    this.addCompressedEventToManager(compressed, sessionId);
-  };
-
-  private scheduleEncodeAndStore = (event: eventWithTime, sessionId: string | number) => {
-    this.encodeDeliveryChain = this.encodeDeliveryChain.then(() =>
-      this.encodeAndStore(event, sessionId, this.gzipReplayEvents),
-    );
-  };
-
   private processFullSnapshotImmediatelySync = (event: eventWithTime, sessionId: string | number) => {
     this.config.loggerProvider.debug('Processing full snapshot immediately.');
     if (this.taskQueue.length > 0 || this.pendingQueue.length > 0) {
@@ -167,34 +131,49 @@ export class EventCompressor {
       this.isProcessing = false;
     }
     this.addCompressedEventToManager(serializeReplayEvent(event), sessionId);
-    if (this.onFullSnapshotProcessed) {
-      this.onFullSnapshotProcessed();
-    }
+    this.onFullSnapshotProcessed?.();
   };
 
-  private processFullSnapshotImmediatelyAsync = async (event: eventWithTime, sessionId: string | number) => {
+  private processFullSnapshotImmediately = async (event: eventWithTime, sessionId: string | number) => {
     this.config.loggerProvider.debug('Processing full snapshot immediately.');
-    this.isProcessing = true;
-    await this.waitForEncoderIdle();
+    await this.encodeChain;
 
     if (this.taskQueue.length > 0 || this.pendingQueue.length > 0) {
       const allTasks = [...this.taskQueue.splice(0), ...this.mergeMutationTasks(this.pendingQueue.splice(0))];
       for (const task of allTasks) {
-        await this.encodeAndStore(task.event, task.sessionId, true);
+        const compressed = await this.compressForStorage(task.event);
+        this.addCompressedEventToManager(compressed, task.sessionId);
       }
+      this.isProcessing = false;
     }
-    await this.encodeAndStore(event, sessionId, true);
-    this.isProcessing = false;
-    if (this.onFullSnapshotProcessed) {
-      this.onFullSnapshotProcessed();
-    }
+    const compressedEvent = await this.compressForStorage(event);
+    this.addCompressedEventToManager(compressedEvent, sessionId);
+    this.onFullSnapshotProcessed?.();
+  };
+
+  private compressForStorage = async (event: eventWithTime): Promise<string> => {
+    return encodeReplayEventForStorage(event, {
+      compress: this.gzipReplayEvents,
+      scope: getGlobalScope(),
+    });
+  };
+
+  private scheduleCompressAndStore = (event: eventWithTime, sessionId: string | number) => {
+    this.encodeChain = this.encodeChain.then(async () => {
+      const compressed = await this.compressForStorage(event);
+      this.addCompressedEventToManager(compressed, sessionId);
+    });
   };
 
   // Process the task queue during idle time
   public processQueue(idleDeadline: IdleDeadline): void {
+    // Merge newly-arrived pending events and append to the already-merged taskQueue.
+    // Keeping them separate prevents re-merging already-merged tasks on subsequent calls,
+    // which would corrupt move semantics for nodes that appear in multiple merge passes.
     if (this.pendingQueue.length > 0) {
       this.taskQueue.push(...this.mergeMutationTasks(this.pendingQueue.splice(0)));
     }
+    // Process tasks while there's idle time or until the max number of tasks is reached
     while (this.taskQueue.length > 0 && (idleDeadline.timeRemaining() > 0 || idleDeadline.didTimeout)) {
       const task = this.taskQueue.shift();
       if (task) {
@@ -203,6 +182,7 @@ export class EventCompressor {
       }
     }
 
+    // If there are still tasks in the queue, schedule the next idle callback
     if (this.taskQueue.length > 0 || this.pendingQueue.length > 0) {
       requestIdleCallback(
         (idleDeadline) => {
@@ -218,6 +198,8 @@ export class EventCompressor {
   compressEvent = (event: eventWithTime): string => serializeReplayEvent(event);
 
   private addCompressedEventToManager = (compressedEvent: string, sessionId: string | number) => {
+    // UTF-8 byte size, not JS char count: a 9 M-char string of CJK/emoji can be 18–27 MB
+    // on the wire and would otherwise slip past a char-count guard.
     const eventSizeBytes = new Blob([compressedEvent]).size;
     if (eventSizeBytes > MAX_SINGLE_EVENT_SIZE) {
       this.config.loggerProvider.warn(
@@ -236,36 +218,30 @@ export class EventCompressor {
     }
   };
 
-  private postToCompressionWorker = (event: eventWithTime, sessionId: string | number) => {
-    const worker = this.worker;
-    if (!worker) {
-      return;
-    }
-    const payload = { event, sessionId, gzipReplayEvents: this.gzipReplayEvents };
-    try {
-      worker.postMessage(payload);
-    } catch (err: unknown) {
-      if (err instanceof Error && err.name === 'DataCloneError') {
-        worker.postMessage(JSON.stringify(payload));
-      } else {
-        this.config.loggerProvider.warn('Unexpected error while posting message to worker:', err);
-      }
-    }
-  };
-
   public addCompressedEvent = (event: eventWithTime, sessionId: string | number) => {
     if (this.worker) {
-      this.postToCompressionWorker(event, sessionId);
+      try {
+        this.worker.postMessage({ event, sessionId, gzipReplayEvents: this.gzipReplayEvents });
+      } catch (err: unknown) {
+        if (err instanceof Error && err.name === 'DataCloneError') {
+          this.worker.postMessage(JSON.stringify({ event, sessionId, gzipReplayEvents: this.gzipReplayEvents }));
+        } else {
+          this.config.loggerProvider.warn('Unexpected error while posting message to worker:', err);
+        }
+      }
       return;
     }
     if (this.gzipReplayEvents) {
-      this.scheduleEncodeAndStore(event, sessionId);
+      this.scheduleCompressAndStore(event, sessionId);
       return;
     }
-    const compressedEvent = serializeReplayEvent(event);
-    this.addCompressedEventToManager(compressedEvent, sessionId);
+    this.addCompressedEventToManager(serializeReplayEvent(event), sessionId);
   };
 
+  /**
+   * Synchronously drain all queued events. Called during page unload to prevent
+   * data loss from events waiting in the requestIdleCallback queue.
+   */
   public flushQueue = () => {
     if (this.pendingQueue.length > 0) {
       this.taskQueue.push(...this.mergeMutationTasks(this.pendingQueue.splice(0)));
@@ -274,7 +250,12 @@ export class EventCompressor {
       const task = this.taskQueue.shift();
       if (task) {
         const { event, sessionId } = task;
-        const compressed = serializeReplayEvent(event);
+        // Bypass the web worker: compress synchronously on the main thread and
+        // write directly to the manager. postMessage is async — during page
+        // unload the worker response would never arrive and events would be
+        // silently dropped. This mirrors the pattern used for full snapshots in
+        // enqueueEvent().
+        const compressed = this.compressEvent(event);
         this.addCompressedEventToManager(compressed, sessionId);
       }
     }
@@ -283,7 +264,7 @@ export class EventCompressor {
 
   private mergeMutationTasks(tasks: TaskQueue[]): TaskQueue[] {
     const performanceConfig = this.config.performanceConfig;
-    if (performanceConfig === undefined || !performanceConfig.mergeMutations) {
+    if (performanceConfig == null || !performanceConfig.mergeMutations) {
       return tasks;
     }
     if (tasks.length <= 1) return tasks;
@@ -311,8 +292,6 @@ export class EventCompressor {
   }
 
   public terminate = () => {
-    if (this.worker) {
-      this.worker.terminate();
-    }
+    this.worker?.terminate();
   };
 }

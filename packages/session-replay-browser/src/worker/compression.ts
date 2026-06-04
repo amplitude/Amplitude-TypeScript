@@ -4,32 +4,32 @@
 import type { eventWithTime } from '@amplitude/rrweb-types';
 import { encodeReplayEventForStorage } from '../utils/replay-event-encoding';
 
-let encodeChain: Promise<void> = Promise.resolve();
+let encodeChain = Promise.resolve();
 
-onmessage = (e) => {
+const handleMessage = async (e: MessageEvent) => {
   const data = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
-
-  if (data.flush) {
-    encodeChain = encodeChain.then(() => {
-      postMessage({ flushed: true });
-    });
-    return;
-  }
-
-  const { event, sessionId, gzipReplayEvents } = data;
-  encodeChain = encodeChain.then(async () => {
-    const compressedEvent = await encodeReplayEventForStorage(event as eventWithTime, {
-      compress: Boolean(gzipReplayEvents),
-      scope: self,
-    });
-    postMessage({ compressedEvent, sessionId });
+  const { event, sessionId, gzipReplayEvents } = data as {
+    event: eventWithTime;
+    sessionId: string | number;
+    gzipReplayEvents?: boolean;
+  };
+  const compressedEvent = await encodeReplayEventForStorage(event, {
+    compress: Boolean(gzipReplayEvents),
+    scope: self,
   });
+  postMessage({ compressedEvent, sessionId });
+};
+
+onmessage = (e: MessageEvent) => {
+  encodeChain = encodeChain.then(() => handleMessage(e));
 };
 
 // added for testing
-export const compressionOnMessage = onmessage;
+export const compressionOnMessage = handleMessage;
+export const postCompressionWorkerMessageForTests = (data: unknown) => {
+  encodeChain = encodeChain.then(() => handleMessage({ data } as MessageEvent));
+};
 export const resetCompressionChainForTests = () => {
   encodeChain = Promise.resolve();
 };
-
 export const waitForCompressionChainForTests = () => encodeChain;

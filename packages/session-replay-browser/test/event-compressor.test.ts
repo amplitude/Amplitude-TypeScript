@@ -719,7 +719,7 @@ describe('EventCompressor', () => {
     });
   });
 
-  describe('deflate replay event encoding (default)', () => {
+  describe('zlib replay event encoding (default)', () => {
     const flushMicrotasks = async () => {
       for (let i = 0; i < 5; i++) {
         await new Promise<void>((resolve) => {
@@ -766,7 +766,7 @@ describe('EventCompressor', () => {
       delete (global as unknown as { CompressionStream?: unknown }).CompressionStream;
     });
 
-    test('full snapshot async path drains queued events before snapshot', async () => {
+    test('full snapshot drains queued events before snapshot', async () => {
       const zlibConfig = new SessionReplayLocalConfig('static_key', {
         loggerProvider: mockLoggerProvider,
         sampleRate: 1,
@@ -788,22 +788,14 @@ describe('EventCompressor', () => {
       delete (global as unknown as { CompressionStream?: unknown }).CompressionStream;
     });
 
-    test('worker flush and compressed messages update delivery chain', async () => {
+    test('worker delivers compressed payloads', async () => {
       const zlibConfig = new SessionReplayLocalConfig('static_key', {
         loggerProvider: mockLoggerProvider,
         sampleRate: 1,
         performanceConfig: { enabled: false, legacyReplayEventEncoding: false },
       });
-      type MockWorker = {
-        onmessage: ((e: { data: unknown }) => void) | null;
-        onerror:
-          | ((e: { preventDefault: () => void; message: string; filename: string; lineno: number }) => void)
-          | null;
-        postMessage: jest.Mock;
-        terminate: jest.Mock;
-      };
-      const mockWorker: MockWorker = {
-        onmessage: null,
+      const mockWorker = {
+        onmessage: null as ((e: { data: unknown }) => void) | null,
         onerror: null,
         postMessage: jest.fn(),
         terminate: jest.fn(),
@@ -814,21 +806,16 @@ describe('EventCompressor', () => {
       const zlibCompressor = new EventCompressor(eventsManager, zlibConfig, deviceId, '/*worker*/');
       const addEventMock = jest.spyOn(eventsManager, 'addEvent');
 
-      zlibCompressor.enqueueEvent(fullSnapshotEvent, sessionId);
-      await flushMicrotasks();
-      expect(mockWorker.postMessage).toHaveBeenCalledWith(expect.objectContaining({ flush: true }));
+      zlibCompressor.addCompressedEvent(mockEvent as eventWithTime, sessionId);
+      expect(mockWorker.postMessage).toHaveBeenCalledWith(
+        expect.objectContaining({ gzipReplayEvents: true, sessionId }),
+      );
 
-      const worker = (zlibCompressor as unknown as { worker: MockWorker }).worker;
-      worker.onmessage?.({ data: { flushed: true } });
-      await flushMicrotasks();
-      worker.onmessage?.({ data: { compressedEvent: '"wrapped"', sessionId } });
-      worker.onmessage?.({ data: {} });
-      await flushMicrotasks();
-
+      mockWorker.onmessage?.({ data: { compressedEvent: '"wrapped"', sessionId } });
       expect(addEventMock).toHaveBeenCalled();
     });
 
-    test('postToCompressionWorker logs unexpected errors', () => {
+    test('addCompressedEvent logs unexpected worker postMessage errors', () => {
       const zlibConfig = new SessionReplayLocalConfig('static_key', {
         loggerProvider: mockLoggerProvider,
         sampleRate: 1,
@@ -847,7 +834,7 @@ describe('EventCompressor', () => {
       expect(mockLoggerProvider.warn).toHaveBeenCalled();
     });
 
-    test('postToCompressionWorker retries with JSON on DataCloneError', () => {
+    test('addCompressedEvent retries JSON on DataCloneError', () => {
       const zlibConfig = new SessionReplayLocalConfig('static_key', {
         loggerProvider: mockLoggerProvider,
         sampleRate: 1,
@@ -896,59 +883,7 @@ describe('EventCompressor', () => {
       expect((zlibCompressor as unknown as { worker?: Worker }).worker).toBeUndefined();
     });
 
-    test('honors explicit performance timeout', () => {
-      const cfg = new SessionReplayLocalConfig('static_key', {
-        loggerProvider: mockLoggerProvider,
-        sampleRate: 1,
-        performanceConfig: { enabled: true, timeout: 1234, legacyReplayEventEncoding: false },
-      });
-      const compressor = new EventCompressor(eventsManager, cfg, deviceId);
-      expect((compressor as unknown as { timeout: number }).timeout).toBe(1234);
-    });
-
-    test('postToCompressionWorker is a no-op without a worker', () => {
-      const zlibConfig = new SessionReplayLocalConfig('static_key', {
-        loggerProvider: mockLoggerProvider,
-        sampleRate: 1,
-        performanceConfig: { enabled: false, legacyReplayEventEncoding: false },
-      });
-      const zlibCompressor = new EventCompressor(eventsManager, zlibConfig, deviceId);
-      (zlibCompressor as unknown as { worker?: Worker }).worker = undefined;
-      (
-        zlibCompressor as unknown as { postToCompressionWorker: (e: eventWithTime, s: number) => void }
-      ).postToCompressionWorker(mockEvent as eventWithTime, sessionId);
-      // eslint-disable-next-line @typescript-eslint/unbound-method
-      expect(mockLoggerProvider.warn).not.toHaveBeenCalled();
-    });
-
-    test('uses default idle timeout when performance timeout is omitted', () => {
-      const cfg = new SessionReplayLocalConfig('static_key', {
-        loggerProvider: mockLoggerProvider,
-        sampleRate: 1,
-        performanceConfig: { enabled: true, legacyReplayEventEncoding: false },
-      });
-      const compressor = new EventCompressor(eventsManager, cfg, deviceId);
-      expect((compressor as unknown as { timeout: number }).timeout).toBe(2000);
-    });
-
-    test('async full snapshot does not require onFullSnapshotProcessed callback', async () => {
-      const zlibConfig = new SessionReplayLocalConfig('static_key', {
-        loggerProvider: mockLoggerProvider,
-        sampleRate: 1,
-        performanceConfig: { enabled: false, legacyReplayEventEncoding: false },
-      });
-      (global as unknown as { CompressionStream: unknown }).CompressionStream = mockCompressionStream(
-        new Uint8Array([2]),
-      );
-      const zlibCompressor = new EventCompressor(eventsManager, zlibConfig, deviceId);
-      zlibCompressor.enqueueEvent(fullSnapshotEvent, sessionId);
-      await flushMicrotasks();
-      await flushMicrotasks();
-      expect(zlibCompressor.isProcessing).toBe(false);
-      delete (global as unknown as { CompressionStream?: unknown }).CompressionStream;
-    });
-
-    test('calls onFullSnapshotProcessed on async zlib path', async () => {
+    test('calls onFullSnapshotProcessed on zlib full snapshot path', async () => {
       const zlibConfig = new SessionReplayLocalConfig('static_key', {
         loggerProvider: mockLoggerProvider,
         sampleRate: 1,
@@ -961,147 +896,12 @@ describe('EventCompressor', () => {
       const zlibCompressor = new EventCompressor(eventsManager, zlibConfig, deviceId);
       zlibCompressor.onFullSnapshotProcessed = onFullSnapshotProcessed;
 
-      await (
-        zlibCompressor as unknown as {
-          processFullSnapshotImmediatelyAsync: (e: eventWithTime, s: number) => Promise<void>;
-        }
-      ).processFullSnapshotImmediatelyAsync(fullSnapshotEvent, sessionId);
+      zlibCompressor.enqueueEvent(fullSnapshotEvent, sessionId);
+      await flushMicrotasks();
+      await flushMicrotasks();
 
       expect(onFullSnapshotProcessed).toHaveBeenCalled();
       delete (global as unknown as { CompressionStream?: unknown }).CompressionStream;
-    });
-
-    test('mergeMutationTasks merges multiple events for the same session', () => {
-      eventCompressor.config.performanceConfig = { enabled: true, mergeMutations: true };
-      const m1 = {
-        type: EventType.IncrementalSnapshot,
-        timestamp: 100,
-        data: { source: IncrementalSource.Mutation, texts: [], attributes: [], removes: [], adds: [] },
-      } as eventWithTime;
-      const m2 = {
-        type: EventType.IncrementalSnapshot,
-        timestamp: 200,
-        data: { source: IncrementalSource.Mutation, texts: [], attributes: [], removes: [], adds: [] },
-      } as eventWithTime;
-      const merged = (
-        eventCompressor as unknown as {
-          mergeMutationTasks: (t: { event: eventWithTime; sessionId: number }[]) => unknown;
-        }
-      ).mergeMutationTasks([
-        { event: m1, sessionId },
-        { event: m2, sessionId },
-      ]);
-      expect(Array.isArray(merged)).toBe(true);
-      expect((merged as unknown[]).length).toBeLessThanOrEqual(2);
-    });
-
-    test('mergeMutationTasks returns tasks unchanged when mergeMutations is false', () => {
-      eventCompressor.config.performanceConfig = { enabled: true, mergeMutations: false };
-      const tasks = [
-        { event: mockEvent as eventWithTime, sessionId },
-        { event: { ...mockEvent, timestamp: 2 } as eventWithTime, sessionId },
-      ];
-      const merged = (
-        eventCompressor as unknown as { mergeMutationTasks: (t: typeof tasks) => typeof tasks }
-      ).mergeMutationTasks(tasks);
-      expect(merged).toEqual(tasks);
-    });
-
-    test('mergeMutationTasks returns a single task without merging', () => {
-      eventCompressor.config.performanceConfig = { enabled: true, mergeMutations: true };
-      const tasks = [{ event: mockEvent as eventWithTime, sessionId }];
-      const merged = (
-        eventCompressor as unknown as { mergeMutationTasks: (t: typeof tasks) => typeof tasks }
-      ).mergeMutationTasks(tasks);
-      expect(merged).toEqual(tasks);
-    });
-
-    test('waitForEncoderIdle is a no-op without a worker', async () => {
-      const zlibConfig = new SessionReplayLocalConfig('static_key', {
-        loggerProvider: mockLoggerProvider,
-        sampleRate: 1,
-        performanceConfig: { enabled: false, legacyReplayEventEncoding: false },
-      });
-      const zlibCompressor = new EventCompressor(eventsManager, zlibConfig, deviceId);
-      await expect(
-        (zlibCompressor as unknown as { waitForEncoderIdle: () => Promise<void> }).waitForEncoderIdle(),
-      ).resolves.toBeUndefined();
-    });
-
-    test('waitForEncoderIdle resolves on worker flushed message', async () => {
-      const mockWorker = {
-        onmessage: null as ((e: { data: unknown }) => void) | null,
-        postMessage: jest.fn(),
-        terminate: jest.fn(),
-      };
-      global.Worker = jest.fn(() => mockWorker) as unknown as typeof Worker;
-      URL.createObjectURL = jest.fn(() => 'blob:mock');
-      const zlibConfig = new SessionReplayLocalConfig('static_key', {
-        loggerProvider: mockLoggerProvider,
-        sampleRate: 1,
-        performanceConfig: { enabled: false, legacyReplayEventEncoding: false },
-      });
-      const zlibCompressor = new EventCompressor(eventsManager, zlibConfig, deviceId, '/*worker*/');
-
-      const idlePromise = (
-        zlibCompressor as unknown as { waitForEncoderIdle: () => Promise<void> }
-      ).waitForEncoderIdle();
-      await flushMicrotasks();
-      expect(mockWorker.postMessage).toHaveBeenCalledWith({ flush: true });
-      mockWorker.onmessage?.({ data: { flushed: true } });
-      await idlePromise;
-    });
-
-    test('worker onmessage ignores malformed payloads', () => {
-      const mockWorker = {
-        onmessage: null as ((e: { data: unknown }) => void) | null,
-        postMessage: jest.fn(),
-        terminate: jest.fn(),
-      };
-      global.Worker = jest.fn(() => mockWorker) as unknown as typeof Worker;
-      URL.createObjectURL = jest.fn(() => 'blob:mock');
-      const zlibConfig = new SessionReplayLocalConfig('static_key', {
-        loggerProvider: mockLoggerProvider,
-        sampleRate: 1,
-        performanceConfig: { enabled: false, legacyReplayEventEncoding: false },
-      });
-      new EventCompressor(eventsManager, zlibConfig, deviceId, '/*worker*/');
-      mockWorker.onmessage?.({ data: { compressedEvent: '"x"' } });
-      mockWorker.onmessage?.({ data: { sessionId: 1 } });
-      // eslint-disable-next-line @typescript-eslint/unbound-method
-      expect(mockLoggerProvider.warn).not.toHaveBeenCalled();
-    });
-
-    test('terminate is safe when no worker was created', () => {
-      const cfg = new SessionReplayLocalConfig('static_key', {
-        loggerProvider: mockLoggerProvider,
-        sampleRate: 1,
-      });
-      const compressor = new EventCompressor(eventsManager, cfg, deviceId);
-      expect(() => compressor.terminate()).not.toThrow();
-    });
-
-    test('uses default timeout when performanceConfig is absent', () => {
-      const cfg = new SessionReplayLocalConfig('static_key', {
-        loggerProvider: mockLoggerProvider,
-        sampleRate: 1,
-      });
-      const compressor = new EventCompressor(eventsManager, cfg, deviceId);
-      expect((compressor as unknown as { timeout: number }).timeout).toBe(2000);
-    });
-
-    test('terminates active compression worker', () => {
-      const mockWorker = { onmessage: null, onerror: null, postMessage: jest.fn(), terminate: jest.fn() };
-      global.Worker = jest.fn(() => mockWorker) as unknown as typeof Worker;
-      URL.createObjectURL = jest.fn(() => 'blob:mock');
-      const zlibConfig = new SessionReplayLocalConfig('static_key', {
-        loggerProvider: mockLoggerProvider,
-        sampleRate: 1,
-        performanceConfig: { enabled: false, legacyReplayEventEncoding: false },
-      });
-      const zlibCompressor = new EventCompressor(eventsManager, zlibConfig, deviceId, '/*worker*/');
-      zlibCompressor.terminate();
-      expect(mockWorker.terminate).toHaveBeenCalled();
     });
 
     test('compression is enabled unless legacyReplayEventEncoding is true', () => {

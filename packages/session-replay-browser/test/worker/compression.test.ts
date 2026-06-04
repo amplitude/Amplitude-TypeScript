@@ -2,21 +2,14 @@ import { deflateSync, inflateSync } from 'node:zlib';
 import { eventWithTime } from '@amplitude/rrweb-types';
 import { RRWEB_PACK_MARKER } from '../../src/utils/replay-event-encoding';
 import {
-  compressionOnMessage,
+  postCompressionWorkerMessageForTests,
   resetCompressionChainForTests,
   waitForCompressionChainForTests,
 } from '../../src/worker/compression';
 
 const runCompressionWorker = async (data: unknown) => {
-  (compressionOnMessage as (event: { data: unknown }) => void)({ data });
-  if (data && typeof data === 'object' && 'flush' in data) {
-    await Promise.resolve();
-    return;
-  }
-  await new Promise<void>((resolve) => {
-    (compressionOnMessage as (event: { data: unknown }) => void)({ data: { flush: true } });
-    setTimeout(resolve, 0);
-  });
+  postCompressionWorkerMessageForTests(data);
+  await waitForCompressionChainForTests();
 };
 
 describe('compression', () => {
@@ -91,9 +84,7 @@ describe('compression', () => {
       gzipReplayEvents: true,
     });
 
-    const calls = (global.postMessage as jest.Mock).mock.calls.map(
-      (c: [msg: { compressedEvent?: string; flushed?: boolean }]) => c[0],
-    );
+    const calls = (global.postMessage as jest.Mock).mock.calls.map((c: [msg: { compressedEvent?: string }]) => c[0]);
     const posted = calls.find((c) => c.compressedEvent != null);
     expect(posted?.compressedEvent).toBeDefined();
     const latin1 = JSON.parse(posted?.compressedEvent ?? '""') as string;
@@ -157,12 +148,8 @@ describe('compression', () => {
       SlowCompressionStream;
 
     const event = { type: 4, timestamp: 1, data: {} } as eventWithTime;
-    (compressionOnMessage as (e: { data: unknown }) => void)({
-      data: { event, sessionId: 1, gzipReplayEvents: true },
-    });
-    (compressionOnMessage as (e: { data: unknown }) => void)({
-      data: { event, sessionId: 2, gzipReplayEvents: true },
-    });
+    postCompressionWorkerMessageForTests({ event, sessionId: 1, gzipReplayEvents: true });
+    postCompressionWorkerMessageForTests({ event, sessionId: 2, gzipReplayEvents: true });
     await waitForCompressionChainForTests();
 
     expect(order).toEqual([1, 2]);
