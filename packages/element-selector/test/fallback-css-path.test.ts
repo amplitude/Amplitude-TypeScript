@@ -150,4 +150,37 @@ describe('fallbackCssPath', () => {
       expect(document.querySelector(selector)).toBe(target);
     });
   });
+
+  describe('ambiguous id anchors', () => {
+    it('skips a duplicate id and emits a selector that resolves to the target', () => {
+      setBody(`
+        <section>
+          <div id="dupe"><button>a</button></div>
+          <div id="dupe"><button>b</button></div>
+        </section>
+      `);
+      const target = document.querySelectorAll('button')[1] as Element;
+      const selector = fallbackCssPath(target, baseConfig);
+
+      expect(selector).not.toContain('#dupe');
+      expect(selector).toBe(
+        'html > body:nth-of-type(1) > section:nth-of-type(1) > div:nth-of-type(2) > button:nth-of-type(1)',
+      );
+      expect(document.querySelector(selector)).toBe(target);
+    });
+
+    it('still uses a unique ancestor id after skipping a duplicate id', () => {
+      setBody(`
+        <section id="hero">
+          <div id="dupe"><button>a</button></div>
+          <div id="dupe"><button>b</button></div>
+        </section>
+      `);
+      const target = document.querySelectorAll('button')[1] as Element;
+      const selector = fallbackCssPath(target, baseConfig);
+
+      expect(selector).toBe('section#hero > div:nth-of-type(2) > button:nth-of-type(1)');
+      expect(document.querySelector(selector)).toBe(target);
+    });
+  });
 });
