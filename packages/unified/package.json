@@ -1,6 +1,6 @@
 {
   "name": "@amplitude/unified",
-  "version": "1.1.12-sr-4646-rc.0",
+  "version": "1.1.12-sr-4646-rc2.0",
   "description": "Official Amplitude SDK for Web analytics, experiment, session replay, and more.",
   "keywords": [
     "amplitude",

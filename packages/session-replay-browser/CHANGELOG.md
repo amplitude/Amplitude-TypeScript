@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.45.0-sr-4646-rc2.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.45.0-sr-4646-rc.0...@amplitude/session-replay-browser@1.45.0-sr-4646-rc2.0) (2026-06-04)
+
+
+### Features
+
+* **session-replay:** add configurable captureFullSnapshotOnFocus ([968c9f4](https://github.com/amplitude/Amplitude-TypeScript/commit/968c9f4b2cc126957402a1d2315a8ee686deb6cc))
+* **session-replay:** add configurable maxPersistedEventsSizeBytes and maxSingleEventSizeBytes ([129fbd4](https://github.com/amplitude/Amplitude-TypeScript/commit/129fbd452a5fc9fa298f2123464900fdf91a1819))
+
+
+
+
+
 # [1.45.0-sr-4646-rc.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.44.0...@amplitude/session-replay-browser@1.45.0-sr-4646-rc.0) (2026-06-03)
 
 
