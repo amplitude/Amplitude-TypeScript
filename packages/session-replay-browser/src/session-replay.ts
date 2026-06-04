@@ -531,6 +531,12 @@ export class SessionReplay implements AmplitudeSessionReplay {
 
   focusListener = () => {
     if (this.recordCancelCallback && this.recordFunction) {
+      // Recording is already active. The on-focus full snapshot is tunable: when
+      // `captureFullSnapshotOnFocus` is false we skip it entirely so high focus-churn pages
+      // don't generate a full snapshot (and, with eager send, a network request) per focus.
+      if (this.config?.captureFullSnapshotOnFocus === false) {
+        return;
+      }
       try {
         this.recordFunction.takeFullSnapshot(true);
       } catch (error) {

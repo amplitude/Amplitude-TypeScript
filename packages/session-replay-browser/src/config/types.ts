@@ -267,6 +267,21 @@ export interface SessionReplayLocalConfig extends IConfig {
    */
   eagerFullSnapshotSend?: boolean;
   /**
+   * When true (default), the window `focus` listener forces a fresh rrweb full snapshot
+   * (`takeFullSnapshot`) every time the page regains focus, so the replay reflects any DOM
+   * changes that happened while the tab was backgrounded. Set to `false` to skip the
+   * on-focus full snapshot entirely (recording simply continues from the existing stream).
+   *
+   * On pages with heavy focus churn (e.g. embedded iframes, inline editors that repeatedly
+   * steal and return focus) this fires constantly, and when combined with
+   * `eagerFullSnapshotSend` each focus produces an immediate network send — the primary
+   * driver of focus-driven request storms. Disabling removes the snapshot (and therefore the
+   * send) at the cost of slightly staler post-focus frames.
+   *
+   * @defaultValue true
+   */
+  captureFullSnapshotOnFocus?: boolean;
+  /**
    * Controls how often the SDK splits buffered rrweb events into a sequence and dispatches
    * the resulting batch to the server. The interval starts at `minIntervalMs` and grows by
    * `minIntervalMs` after each split, capped at `maxIntervalMs`. Lowering values increases

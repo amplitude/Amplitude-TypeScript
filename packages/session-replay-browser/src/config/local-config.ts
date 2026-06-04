@@ -51,6 +51,7 @@ export class SessionReplayLocalConfig extends Config implements ISessionReplayLo
   fullSnapshotIntervalMs?: number;
   flushIntervalConfig?: FlushIntervalConfig;
   eagerFullSnapshotSend?: boolean;
+  captureFullSnapshotOnFocus?: boolean;
   maxPersistedEventsSizeBytes?: number;
   maxSingleEventSizeBytes?: number;
 
@@ -85,6 +86,9 @@ export class SessionReplayLocalConfig extends Config implements ISessionReplayLo
     }
     if (options.eagerFullSnapshotSend !== undefined) {
       this.eagerFullSnapshotSend = options.eagerFullSnapshotSend;
+    }
+    if (options.captureFullSnapshotOnFocus !== undefined) {
+      this.captureFullSnapshotOnFocus = options.captureFullSnapshotOnFocus;
     }
     if (options.maxPersistedEventsSizeBytes !== undefined) {
       this.maxPersistedEventsSizeBytes = sanitizeByteSize(
