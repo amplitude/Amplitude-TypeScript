@@ -499,7 +499,90 @@ describe('mergeMutationEvents', () => {
       expect(data.adds.some((a) => (a.node as any).id === 11)).toBe(false); // 11 re-add cancelled
       expect(data.removes.some((r) => r.id === 11 && r.parentId === 5)).toBe(true); // 11 original remove kept
     });
+  });
 
+  describe('style attribute coalescing (last-write-wins)', () => {
+    test('collapses consecutive style-only mutations on the same node to the last value', () => {
+      // Mirrors the GoFundMe ticker crossfade: a burst of inline-style updates on
+      // one node. After merging, only the final style write should survive.
+      const e1 = makeMutation(1000, {
+        attributes: [{ id: 42, attributes: { style: 'opacity: 0.5; transform: translateY(4px);' } }],
+      });
+      const e2 = makeMutation(1050, {
+        attributes: [{ id: 42, attributes: { style: 'opacity: 1; transform: translateY(0px);' } }],
+      });
+
+      const result = mergeMutationEvents([e1, e2]);
+
+      expect(result).toHaveLength(1);
+      const data = result[0].data as mutationData;
+      const forNode = data.attributes.filter((a) => a.id === 42);
+      expect(forNode).toEqual([{ id: 42, attributes: { style: 'opacity: 1; transform: translateY(0px);' } }]);
+    });
+
+    test('collapses three style-only mutations to the final value', () => {
+      const e1 = makeMutation(1000, { attributes: [{ id: 7, attributes: { style: 'opacity: 0;' } }] });
+      const e2 = makeMutation(1010, { attributes: [{ id: 7, attributes: { style: 'opacity: 0.5;' } }] });
+      const e3 = makeMutation(1020, { attributes: [{ id: 7, attributes: { style: 'opacity: 1;' } }] });
+
+      const result = mergeMutationEvents([e1, e2, e3]);
+
+      const data = result[0].data as mutationData;
+      expect(data.attributes).toEqual([{ id: 7, attributes: { style: 'opacity: 1;' } }]);
+    });
+
+    test('does not collapse non-style attribute changes', () => {
+      const e1 = makeMutation(1000, { attributes: [{ id: 8, attributes: { class: 'a' } }] });
+      const e2 = makeMutation(1010, { attributes: [{ id: 8, attributes: { 'aria-hidden': 'true' } }] });
+
+      const result = mergeMutationEvents([e1, e2]);
+
+      const data = result[0].data as mutationData;
+      expect(data.attributes).toEqual([
+        { id: 8, attributes: { class: 'a' } },
+        { id: 8, attributes: { 'aria-hidden': 'true' } },
+      ]);
+    });
+
+    test('coalesces style but preserves non-style keys on superseded entries', () => {
+      const e1 = makeMutation(1000, { attributes: [{ id: 9, attributes: { style: 'opacity: 0;', class: 'foo' } }] });
+      const e2 = makeMutation(1010, { attributes: [{ id: 9, attributes: { style: 'opacity: 1;' } }] });
+
+      const result = mergeMutationEvents([e1, e2]);
+
+      const data = result[0].data as mutationData;
+      // The non-style `class` change survives; the superseded style is dropped from e1's entry.
+      expect(data.attributes).toEqual([
+        { id: 9, attributes: { class: 'foo' } },
+        { id: 9, attributes: { style: 'opacity: 1;' } },
+      ]);
+    });
+
+    test('coalesces style per node id independently', () => {
+      const e1 = makeMutation(1000, {
+        attributes: [
+          { id: 1, attributes: { style: 'opacity: 0;' } },
+          { id: 2, attributes: { style: 'left: 0px;' } },
+        ],
+      });
+      const e2 = makeMutation(1010, {
+        attributes: [
+          { id: 1, attributes: { style: 'opacity: 1;' } },
+          { id: 2, attributes: { style: 'left: 10px;' } },
+        ],
+      });
+
+      const result = mergeMutationEvents([e1, e2]);
+
+      const data = result[0].data as mutationData;
+      expect(data.attributes).toEqual([
+        { id: 1, attributes: { style: 'opacity: 1;' } },
+        { id: 2, attributes: { style: 'left: 10px;' } },
+      ]);
+    });
+  });
+
+  describe('transient node elision (continued)', () => {
     test('only elides the transient node, keeps non-transient adds and removes', () => {
       const e1 = makeMutation(1000, {
         adds: [

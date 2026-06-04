@@ -7,6 +7,51 @@ function isMergeableMutation(event: eventWithTime): boolean {
   return data.source === IncrementalSource.Mutation && !data.isAttachIframe;
 }
 
+/**
+ * Coalesces `style` attribute mutations within a merged group using
+ * last-write-wins per node id.
+ *
+ * rrweb's replayer applies attribute mutations in order, so a burst of inline
+ * `style` updates on the same node (e.g. an opacity crossfade ticker) only
+ * needs its final `style` value to reproduce the same end state. Collapsing the
+ * superseded `style` writes keeps the merged payload small without changing
+ * replay semantics — otherwise N intermediate style writes stay as N attribute
+ * entries even after merging, which makes animated text replay as stacked text.
+ *
+ * Only the `style` key is coalesced. Any other attribute keys on a superseded
+ * entry are preserved in place, and non-style-only entries are left untouched.
+ */
+function coalesceStyleAttributes(attributes: mutationData['attributes']): mutationData['attributes'] {
+  // Index of the final attribute mutation carrying a `style` key, per node id.
+  const lastStyleIndexById = new Map<number, number>();
+  attributes.forEach((attr, i) => {
+    if (attr.attributes && 'style' in attr.attributes) {
+      lastStyleIndexById.set(attr.id, i);
+    }
+  });
+
+  if (lastStyleIndexById.size === 0) return attributes;
+
+  const result: mutationData['attributes'] = [];
+  attributes.forEach((attr, i) => {
+    const hasStyle = !!attr.attributes && 'style' in attr.attributes;
+    // Keep entries with no style change and the final style write for each id.
+    if (!hasStyle || lastStyleIndexById.get(attr.id) === i) {
+      result.push(attr);
+      return;
+    }
+    // Superseded style write: drop only the `style` key, preserving any other
+    // attribute keys. If the entry was style-only, it is dropped entirely.
+    const rest = { ...attr.attributes };
+    delete rest.style;
+    if (Object.keys(rest).length > 0) {
+      result.push({ ...attr, attributes: rest });
+    }
+  });
+
+  return result;
+}
+
 function mergeGroup(events: eventWithTime[]): eventWithTime {
   const first = events[0];
 
@@ -135,6 +180,12 @@ function mergeGroup(events: eventWithTime[]): eventWithTime {
   const allTexts = events.flatMap((e) => (e.data as mutationData).texts);
   const allAttributes = events.flatMap((e) => (e.data as mutationData).attributes);
 
+  const mergedAttributes = needsFilter
+    ? allAttributes.filter(
+        (a) => !transientIds.has(a.id) && !preExistingTransientIds.has(a.id) && !cascadeDropAddsOnlyIds.has(a.id),
+      )
+    : allAttributes;
+
   const merged: mutationData = {
     source: IncrementalSource.Mutation,
     removes: filteredRemoves,
@@ -151,11 +202,7 @@ function mergeGroup(events: eventWithTime[]): eventWithTime {
           (t) => !transientIds.has(t.id) && !preExistingTransientIds.has(t.id) && !cascadeDropAddsOnlyIds.has(t.id),
         )
       : allTexts,
-    attributes: needsFilter
-      ? allAttributes.filter(
-          (a) => !transientIds.has(a.id) && !preExistingTransientIds.has(a.id) && !cascadeDropAddsOnlyIds.has(a.id),
-        )
-      : allAttributes,
+    attributes: coalesceStyleAttributes(mergedAttributes),
   };
   return { ...first, data: merged } as eventWithTime;
 }
