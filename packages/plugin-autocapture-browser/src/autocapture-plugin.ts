@@ -42,6 +42,12 @@ import {
 } from './pageActions/triggers';
 import { DataExtractor } from './data-extractor';
 import { Observable, Unsubscribable } from '@amplitude/analytics-core';
+import {
+  createSelectorEngine,
+  resolveSelectorConfig,
+  type ElementSelectorRemoteConfig,
+  type SelectorEngine,
+} from '@amplitude/element-selector';
 import { trackExposure } from './autocapture/track-exposure';
 import { fireViewportContentUpdated, onExposure, ExposureTracker } from './autocapture/track-viewport-content-updated';
 
@@ -53,6 +59,13 @@ type NavigationType = {
 declare global {
   interface Window {
     navigation: NavigationType;
+    // Stashed by the autocapture plugin so the Chrome extension visual
+    // tagger (Phase 3) can read the live engine + subscribe to config
+    // updates. Optional because (a) the plugin may not be loaded on every
+    // page, and (b) the engine is only constructed when v1 is in scope.
+    amplitude?: {
+      elementSelector?: SelectorEngine;
+    };
   }
 }
 
@@ -282,6 +295,40 @@ export const autocapturePlugin = (
           recomputePageActionsData(remoteConfig as ElementInteractionsOptions['pageActions']);
         });
       }
+    }
+
+    // ===== v1 element-selector engine =====
+    //
+    // Construct the engine eagerly with defaults so `dataExtractor.getElementPath`
+    // can route through it from the first emission. When `enabled` is false
+    // in the resolved config (the default), the engine still exists but
+    // `getElementPath` falls back to the legacy `cssPath` algorithm — see
+    // the kill-switch comment in `data-extractor.ts`.
+    //
+    // The engine subscribes to remote-config updates on the elementSelector
+    // namespace; each update re-resolves the config and calls
+    // `engine.updateConfig(...)`, which takes effect on the next selector
+    // emission with no further plumbing.
+    const initialSelectorConfig = resolveSelectorConfig(undefined, config.loggerProvider);
+    const selectorEngine = createSelectorEngine(initialSelectorConfig, { logger: config.loggerProvider });
+    dataExtractor.setSelectorEngine(selectorEngine);
+
+    // Stash the live engine for cross-surface consumers (Phase 3 Chrome
+    // extension visual tagger reads this).
+    /* istanbul ignore next */
+    if (typeof window !== 'undefined') {
+      window.amplitude = window.amplitude ?? {};
+      window.amplitude.elementSelector = selectorEngine;
+    }
+
+    if (config.fetchRemoteConfig && config.remoteConfigClient) {
+      config.remoteConfigClient.subscribe('configs.analyticsSDK.elementSelector', 'all', (remoteSelectorConfig) => {
+        const nextResolved = resolveSelectorConfig(
+          remoteSelectorConfig as ElementSelectorRemoteConfig | undefined,
+          config.loggerProvider,
+        );
+        selectorEngine.updateConfig(nextResolved);
+      });
     }
 
     // Create should track event functions the different allowlists
