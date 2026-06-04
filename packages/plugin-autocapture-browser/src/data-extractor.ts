@@ -10,6 +10,7 @@ import {
   replaceSensitiveString,
 } from '@amplitude/analytics-core';
 import type { DataSource } from '@amplitude/analytics-core/lib/esm/types/element-interactions';
+import type { SelectorEngine } from '@amplitude/element-selector';
 import * as constants from './constants';
 import {
   removeEmptyProperties,
@@ -29,6 +30,19 @@ import { cssPath } from './libs/element-path';
 export class DataExtractor {
   private readonly additionalMaskTextPatterns: RegExp[];
   diagnosticsClient?: IDiagnosticsClient;
+
+  /**
+   * Optional v1 selector engine. When set AND `engine.getConfig().enabled` is
+   * true, `getElementPath()` routes through the v1 engine instead of the
+   * legacy positional `cssPath`. When the engine is absent or its `enabled`
+   * flag is false, this is a no-op and selector emission is byte-identical to
+   * pre-integration behavior.
+   *
+   * The engine is set after construction (via `setSelectorEngine`) because
+   * it depends on `config.loggerProvider` and `config.remoteConfigClient`,
+   * which only become available in the plugin's async `setup()` flow.
+   */
+  private selectorEngine?: SelectorEngine;
 
   constructor(options: ElementInteractionsOptions, context?: { diagnosticsClient: IDiagnosticsClient }) {
     this.diagnosticsClient = context?.diagnosticsClient;
@@ -128,13 +142,35 @@ export class DataExtractor {
     return this.getNearestLabel(parent);
   };
 
+  /**
+   * Attach (or replace) the v1 selector engine. Called by the autocapture
+   * plugin's `setup()` once `config.loggerProvider` / `remoteConfigClient`
+   * are available; the engine is shared (not copied) so subsequent
+   * `engine.updateConfig(...)` calls driven by remote config take effect on
+   * the very next selector emission with no additional plumbing.
+   */
+  setSelectorEngine = (engine: SelectorEngine | undefined): void => {
+    this.selectorEngine = engine;
+  };
+
   getElementPath = (element: Element | null): string => {
     if (!element) {
       return '';
     }
     const startTime = performance.now();
 
-    const elementPath = cssPath(element);
+    // Kill-switch routing — mirrors what the design doc calls out:
+    // `enabled: true` in remote config opts the org into the v1 engine;
+    // otherwise we stay on the legacy positional cssPath that ships today.
+    // When the engine isn't attached at all (frustration-plugin code path,
+    // pre-setup, or remote-config never loaded), the fallback is identical
+    // to pre-integration behavior.
+    let elementPath: string;
+    if (this.selectorEngine && this.selectorEngine.getConfig().enabled) {
+      elementPath = this.selectorEngine.generate(element);
+    } else {
+      elementPath = cssPath(element);
+    }
 
     const endTime = performance.now();
     this.diagnosticsClient?.recordHistogram('autocapturePlugin.getElementPath', endTime - startTime);
