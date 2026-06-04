@@ -66,6 +66,14 @@ android {
     targetCompatibility JavaVersion.VERSION_1_8
   }
 
+  testOptions {
+    unitTests {
+      // Robolectric needs the merged Android resources/manifest on the test classpath.
+      includeAndroidResources = true
+      returnDefaultValues = true
+    }
+  }
+
 }
 
 repositories {
@@ -81,6 +89,15 @@ dependencies {
   //noinspection GradleDynamicVersion
   implementation "com.facebook.react:react-native:+"
   implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
+
+  // Unit tests for the framework-free connectivity logic (ConnectivityChecker).
+  // Robolectric provides the android.net.* stubs so we can mock ConnectivityManager
+  // without a device; see src/test/.../ConnectivityCheckerTest.kt.
+  testImplementation "junit:junit:4.13.2"
+  testImplementation "org.robolectric:robolectric:4.10.3"
+  // mockk 1.13.3 is the last release built against Kotlin 1.7; newer mockk drags in
+  // kotlin-stdlib 1.9.x which the example app's 1.7 Kotlin compiler can't read.
+  testImplementation "io.mockk:mockk:1.13.3"
 }
 
 if (isNewArchitectureEnabled()) {
