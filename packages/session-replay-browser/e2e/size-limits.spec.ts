@@ -8,6 +8,7 @@ import {
   buildUrl,
   waitForReady,
   readRouteBody,
+  unpackStoredReplayEvent,
 } from './helpers';
 import { MAX_EVENT_LIST_SIZE, MAX_SINGLE_EVENT_SIZE } from '../src/constants';
 
@@ -38,11 +39,8 @@ function decodeEvents(rawBody: string): Array<Record<string, unknown>> {
     if (!Array.isArray(payload.events)) return [];
     return payload.events.flatMap((s) => {
       if (typeof s !== 'string') return [];
-      try {
-        return [JSON.parse(s) as Record<string, unknown>];
-      } catch {
-        return [];
-      }
+      const event = unpackStoredReplayEvent(s);
+      return event != null && typeof event === 'object' ? [event as Record<string, unknown>] : [];
     });
   } catch {
     return [];

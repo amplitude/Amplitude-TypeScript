@@ -69,6 +69,7 @@ describe('module level integration', () => {
     sessionId: SESSION_ID_IN_20_SAMPLE,
     serverZone: ServerZone.US,
     storeType: 'idb',
+    performanceConfig: { enabled: false, legacyReplayEventEncoding: true },
   };
   const mockEmptyOptions: SessionReplayOptions = {
     flushIntervalMillis: 0,
