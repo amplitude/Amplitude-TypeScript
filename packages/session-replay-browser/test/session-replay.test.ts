@@ -1038,6 +1038,21 @@ describe('SessionReplay', () => {
         expect(recordEventsSpy).not.toHaveBeenCalled();
       });
 
+      test('takes full snapshot on focus when config is unset', async () => {
+        await sessionReplay.init(apiKey, mockOptions).promise;
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        (sessionReplay as any).config = undefined;
+        const takeFullSnapshotMock = jest.fn();
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        (sessionReplay as any).recordCancelCallback = jest.fn();
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        (sessionReplay as any).recordFunction = { takeFullSnapshot: takeFullSnapshotMock };
+
+        sessionReplay.focusListener();
+
+        expect(takeFullSnapshotMock).toHaveBeenCalledWith(true);
+      });
+
       test('calls recordEvents(false) when not recording and not in-flight', async () => {
         await sessionReplay.init(apiKey, mockOptions).promise;
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
