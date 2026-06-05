@@ -202,6 +202,85 @@ describe('worker/track-destination', () => {
     expect(mockPostMessage).toHaveBeenCalledWith({ type: 'complete', id: '5' });
   });
 
+  // A fetch that hangs until its AbortSignal fires, simulating a stuck "pending" request.
+  // The rejection mirrors real browser behavior: an Error whose name is 'AbortError'.
+  const abortError = () => {
+    const e = new Error('The operation was aborted');
+    e.name = 'AbortError';
+    return e;
+  };
+  const hangUntilAborted = () => (_url: string, options: RequestInit) =>
+    new Promise((_resolve, reject) => {
+      options.signal?.addEventListener('abort', () => reject(abortError()));
+    });
+
+  test('aborts a hung request on timeout and retries when useRetry=true', async () => {
+    // Fire all timers (the abort timeout and the retry backoff) immediately so the test is fast.
+    const realSetTimeout = global.setTimeout;
+    jest
+      .spyOn(global, 'setTimeout')
+      .mockImplementation((fn) => realSetTimeout(fn, 0) as unknown as ReturnType<typeof setTimeout>);
+
+    mockFetch.mockImplementationOnce(hangUntilAborted()).mockResolvedValueOnce({ status: 200 });
+
+    await invokeOnMessage({
+      type: 'send',
+      id: 'to1',
+      payload: basePayload,
+      context: { ...baseContext, flushMaxRetries: 2 },
+      useRetry: true,
+    });
+
+    expect(mockFetch).toHaveBeenCalledTimes(2);
+    expect(mockPostMessage).toHaveBeenCalledWith({ type: 'complete', id: 'to1', skipCode: null });
+  });
+
+  test('timeout with useRetry=false posts a timed-out warn and completes without retrying', async () => {
+    const realSetTimeout = global.setTimeout;
+    jest
+      .spyOn(global, 'setTimeout')
+      .mockImplementation((fn) => realSetTimeout(fn, 0) as unknown as ReturnType<typeof setTimeout>);
+
+    mockFetch.mockImplementationOnce(hangUntilAborted());
+
+    await invokeOnMessage({ type: 'send', id: 'to2', payload: basePayload, context: baseContext, useRetry: false });
+
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+    expect(mockPostMessage).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'warn', id: 'to2', message: expect.stringContaining('timed out') }),
+    );
+    expect(mockPostMessage).toHaveBeenCalledWith({ type: 'complete', id: 'to2' });
+  });
+
+  test('retries a DOMException abort (not an Error instance) when useRetry=true', async () => {
+    const realSetTimeout = global.setTimeout;
+    jest
+      .spyOn(global, 'setTimeout')
+      .mockImplementation((fn) => realSetTimeout(fn, 0) as unknown as ReturnType<typeof setTimeout>);
+
+    // Browsers reject an aborted fetch with a DOMException named 'AbortError', which is NOT an
+    // Error instance. It must still be detected as a retryable timeout.
+    mockFetch
+      .mockImplementationOnce(
+        (_url: string, options: RequestInit) =>
+          new Promise((_resolve, reject) => {
+            options.signal?.addEventListener('abort', () => reject({ name: 'AbortError', message: 'aborted' }));
+          }),
+      )
+      .mockResolvedValueOnce({ status: 200 });
+
+    await invokeOnMessage({
+      type: 'send',
+      id: 'to3',
+      payload: basePayload,
+      context: { ...baseContext, flushMaxRetries: 2 },
+      useRetry: true,
+    });
+
+    expect(mockFetch).toHaveBeenCalledTimes(2);
+    expect(mockPostMessage).toHaveBeenCalledWith({ type: 'complete', id: 'to3', skipCode: null });
+  });
+
   test('posts warn and complete on fetch network error', async () => {
     mockFetch.mockRejectedValueOnce(new Error('network failure'));
     await invokeOnMessage({ type: 'send', id: '6', payload: basePayload, context: baseContext, useRetry: false });
@@ -210,6 +289,18 @@ describe('worker/track-destination', () => {
       expect.objectContaining({ type: 'warn', id: '6', message: expect.stringContaining('network failure') }),
     );
     expect(mockPostMessage).toHaveBeenCalledWith({ type: 'complete', id: '6' });
+  });
+
+  test('treats a non-Error rejection as a non-retryable failure (not a timeout)', async () => {
+    // A thrown non-Error value (e.g. a bare string) must not be mistaken for an AbortError,
+    // so it completes without retrying.
+    mockFetch.mockRejectedValueOnce('string failure');
+    await invokeOnMessage({ type: 'send', id: '6b', payload: basePayload, context: baseContext, useRetry: false });
+
+    expect(mockPostMessage).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'warn', id: '6b', message: expect.stringContaining('string failure') }),
+    );
+    expect(mockPostMessage).toHaveBeenCalledWith({ type: 'complete', id: '6b' });
   });
 
   test('uses EU server URL when serverZone is EU', async () => {
