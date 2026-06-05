@@ -13,11 +13,22 @@ import * as CookieMigration from '../../src/cookie-migration';
 describe('offline mode integration', () => {
   const API_KEY = 'API_KEY';
 
+  // Run pending fake timers and flush microtasks in lockstep, repeatedly, to
+  // drive the Timeline's async `setTimeout(0)` apply chain to completion under
+  // fake timers (the async timer helpers can't be used in the RN jest env).
+  const drainTimers = async () => {
+    for (let i = 0; i < 20; i++) {
+      jest.runOnlyPendingTimers();
+      await Promise.resolve();
+    }
+  };
+
   const connectivityModule = NativeModules.AmplitudeReactNativeConnectivity as {
     getNetworkConnectivityStatus: jest.Mock;
   };
 
   afterEach(() => {
+    jest.useRealTimers();
     jest.clearAllMocks();
     connectivityModule.getNetworkConnectivityStatus.mockResolvedValue({ isConnected: true });
     DeviceEventEmitter.removeAllListeners(CONNECTIVITY_EVENT_NAME);
@@ -57,11 +68,16 @@ describe('offline mode integration', () => {
 
     // Track events while offline; their promises won't resolve until flushed,
     // so don't await them here.
+    jest.useFakeTimers();
     void client.track('event_while_offline_1').promise;
     void client.track('event_while_offline_2').promise;
-
-    // Allow the events to be enqueued and persisted to storage.
-    await new Promise((resolve) => setTimeout(resolve, 50));
+    // Deterministically drain the Timeline instead of waiting a fixed delay.
+    // The Timeline applies events via a chain of `setTimeout(0)` callbacks, each
+    // awaiting async plugin work. The react-native jest environment can't use the
+    // async timer helpers (they deadlock on its `setImmediate` polyfill), so
+    // alternate running pending timers with microtask flushes.
+    await drainTimers();
+    jest.useRealTimers();
 
     // Nothing is sent while offline, and the queue is persisted.
     await client.flush().promise;
