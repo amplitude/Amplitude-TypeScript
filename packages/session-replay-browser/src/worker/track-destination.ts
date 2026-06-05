@@ -6,6 +6,7 @@ import {
   MAX_URL_LENGTH,
   MAX_KEEPALIVE_BYTES,
   RETRY_TIMEOUT_MS,
+  SEND_TIMEOUT_MS,
   WAF_PAYLOAD_TOO_LARGE_PATTERN,
 } from '../constants';
 import { MAX_RETRIES_EXCEEDED_MESSAGE, UNEXPECTED_ERROR_MESSAGE, UNEXPECTED_NETWORK_ERROR_MESSAGE } from '../messages';
@@ -70,14 +71,26 @@ async function doFetch(
       ...(gzipped ? { 'Content-Encoding': 'gzip' } : {}),
     };
     const payloadSize = gzipped ? gzipped.byteLength : new Blob([payloadJson]).size;
-    const res = await fetch(serverUrl, {
-      method: 'POST',
-      headers,
-      body: (gzipped ?? payloadJson) as BodyInit,
-      // keepalive lets the request survive page navigation, preventing 499 (client-closed) errors.
-      // Must stay under the browser's 64 KB keepalive budget; large payloads skip it.
-      keepalive: payloadSize <= MAX_KEEPALIVE_BYTES,
-    });
+    // fetch() has no native timeout; abort a hung request so it surfaces as a retryable
+    // failure instead of silently wedging the worker (and the awaiting orchestrator).
+    const controller = new AbortController();
+    const timeout = setTimeout(() => {
+      controller.abort();
+    }, SEND_TIMEOUT_MS);
+    let res: Response | null;
+    try {
+      res = await fetch(serverUrl, {
+        method: 'POST',
+        headers,
+        body: (gzipped ?? payloadJson) as BodyInit,
+        // keepalive lets the request survive page navigation, preventing 499 (client-closed) errors.
+        // Must stay under the browser's 64 KB keepalive budget; large payloads skip it.
+        keepalive: payloadSize <= MAX_KEEPALIVE_BYTES,
+        signal: controller.signal,
+      });
+    } finally {
+      clearTimeout(timeout);
+    }
     if (res === null) {
       return { shouldRetry: false, success: false, message: UNEXPECTED_ERROR_MESSAGE };
     }
@@ -111,6 +124,16 @@ async function doFetch(
     }
     return { shouldRetry: false, success: false, message: UNEXPECTED_NETWORK_ERROR_MESSAGE };
   } catch (e) {
+    // A timeout aborts the fetch, rejecting with an AbortError. That's transient — let
+    // sendWithRetry's budget retry it, mirroring the 5xx/408/429/499 path. Other errors
+    // stay non-retryable as before.
+    if (e instanceof Error && e.name === 'AbortError') {
+      return {
+        shouldRetry: true,
+        success: false,
+        message: `Session replay worker request timed out after ${SEND_TIMEOUT_MS}ms`,
+      };
+    }
     return { shouldRetry: false, success: false, message: String(e) };
   }
 }
