@@ -43,3 +43,17 @@ export { describeRelative } from './helpers/describe-relative';
 // ===== Strategies =====
 export { explicitTrackingAttribute } from './strategies/explicit-tracking-attribute';
 export { stableId as stableIdStrategy } from './strategies/stable-id';
+
+// ===== Orchestrator + fallback =====
+// Exposed publicly so the dashboard / Chrome extension can call them ad-hoc
+// without instantiating a full engine — useful for preview / debugging flows.
+export { runOrchestrator, DEFAULT_STRATEGIES } from './orchestrator';
+export type { OrchestratorOptions } from './orchestrator';
+export { fallbackCssPath } from './fallback-css-path';
+
+// ===== Config resolver =====
+export { resolveSelectorConfig, DEFAULT_RESOLVED_CONFIG } from './config/resolve-config';
+
+// ===== Engine factory =====
+export { createSelectorEngine } from './engine';
+export type { CreateSelectorEngineOptions } from './engine';
