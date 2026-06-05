@@ -1862,6 +1862,131 @@ describe('SessionReplayTrackDestination', () => {
       expect(mockLoggerProvider.warn).not.toHaveBeenCalledWith(expect.stringContaining('worker send timed out'));
     });
 
+    test('late worker complete (success) for a timed-out request settles the store record', async () => {
+      const trackDestination = new SessionReplayTrackDestination({
+        loggerProvider: mockLoggerProvider,
+        workerScript: 'self.onmessage = () => {}',
+      });
+      const completeSpy = jest.spyOn(trackDestination, 'completeRequest');
+      const directiveSpy = jest.spyOn(trackDestination as any, 'applyServerDirective');
+
+      const sendPromise = trackDestination.send(mockContext, true);
+      const [id] = [...(trackDestination as any).pendingWorkerRequests.keys()] as string[];
+      jest.advanceTimersByTime(SEND_TIMEOUT_MS);
+      await sendPromise;
+      expect(completeSpy).not.toHaveBeenCalled();
+      expect((trackDestination as any).timedOutWorkerRequests.size).toBe(1);
+
+      // The worker finished delivering after the main thread already stopped awaiting it.
+      mockWorker.onmessage?.({ data: { type: 'complete', id, skipCode: null } } as MessageEvent);
+
+      expect(directiveSpy).toHaveBeenCalledWith(mockContext.sessionId, null);
+      expect(completeSpy).toHaveBeenCalledWith({ context: mockContext });
+      expect((trackDestination as any).timedOutWorkerRequests.size).toBe(0);
+    });
+
+    test('late worker complete (retries exhausted) for a timed-out request settles without directive', async () => {
+      const trackDestination = new SessionReplayTrackDestination({
+        loggerProvider: mockLoggerProvider,
+        workerScript: 'self.onmessage = () => {}',
+      });
+      const completeSpy = jest.spyOn(trackDestination, 'completeRequest');
+      const directiveSpy = jest.spyOn(trackDestination as any, 'applyServerDirective');
+
+      const sendPromise = trackDestination.send(mockContext, true);
+      const [id] = [...(trackDestination as any).pendingWorkerRequests.keys()] as string[];
+      jest.advanceTimersByTime(SEND_TIMEOUT_MS);
+      await sendPromise;
+
+      // No skipCode → the worker exhausted retries without a 2xx; settle (drop) the record.
+      mockWorker.onmessage?.({ data: { type: 'complete', id } } as MessageEvent);
+
+      expect(directiveSpy).not.toHaveBeenCalled();
+      expect(completeSpy).toHaveBeenCalledWith({ context: mockContext });
+      expect((trackDestination as any).timedOutWorkerRequests.size).toBe(0);
+    });
+
+    test('late worker complete for an unknown id is a no-op', () => {
+      const trackDestination = new SessionReplayTrackDestination({
+        loggerProvider: mockLoggerProvider,
+        workerScript: 'self.onmessage = () => {}',
+      });
+      const completeSpy = jest.spyOn(trackDestination, 'completeRequest');
+      mockWorker.onmessage?.({ data: { type: 'complete', id: 'never-existed', skipCode: null } } as MessageEvent);
+      expect(completeSpy).not.toHaveBeenCalled();
+    });
+
+    test('late worker payload_too_large for a timed-out request splits off the original record', async () => {
+      const trackDestination = new SessionReplayTrackDestination({
+        loggerProvider: mockLoggerProvider,
+        workerScript: 'self.onmessage = () => {}',
+      });
+      const handleSpy = jest.spyOn(trackDestination, 'handlePayloadTooLargeResponse').mockReturnValue(undefined);
+
+      const sendPromise = trackDestination.send(mockContext, true);
+      const [id] = [...(trackDestination as any).pendingWorkerRequests.keys()] as string[];
+      jest.advanceTimersByTime(SEND_TIMEOUT_MS);
+      await sendPromise;
+
+      mockWorker.onmessage?.({ data: { type: 'payload_too_large', id, isWaf: true } } as MessageEvent);
+
+      expect(handleSpy).toHaveBeenCalledWith(mockContext, true);
+      expect((trackDestination as any).timedOutWorkerRequests.size).toBe(0);
+    });
+
+    test('late worker payload_too_large for an unknown id is a no-op', () => {
+      const trackDestination = new SessionReplayTrackDestination({
+        loggerProvider: mockLoggerProvider,
+        workerScript: 'self.onmessage = () => {}',
+      });
+      const handleSpy = jest.spyOn(trackDestination, 'handlePayloadTooLargeResponse').mockReturnValue(undefined);
+      mockWorker.onmessage?.({
+        data: { type: 'payload_too_large', id: 'never-existed', isWaf: false },
+      } as MessageEvent);
+      expect(handleSpy).not.toHaveBeenCalled();
+    });
+
+    test('timed-out worker requests are bounded (oldest evicted past the cap)', () => {
+      const trackDestination = new SessionReplayTrackDestination({
+        loggerProvider: mockLoggerProvider,
+        workerScript: 'self.onmessage = () => {}',
+      });
+      const cap = 256;
+      for (let i = 0; i < cap + 5; i++) {
+        (trackDestination as any).rememberTimedOutRequest(`id-${i}`, mockContext);
+      }
+      const map = (trackDestination as any).timedOutWorkerRequests as Map<string, unknown>;
+      expect(map.size).toBe(cap);
+      // The first five inserted ids are the oldest and must have been evicted.
+      expect(map.has('id-0')).toBe(false);
+      expect(map.has('id-4')).toBe(false);
+      expect(map.has('id-5')).toBe(true);
+    });
+
+    test('worker onerror drops retained timed-out requests', async () => {
+      const trackDestination = new SessionReplayTrackDestination({
+        loggerProvider: mockLoggerProvider,
+        workerScript: 'self.onmessage = () => {}',
+      });
+      const completeSpy = jest.spyOn(trackDestination, 'completeRequest');
+
+      const sendPromise = trackDestination.send(mockContext, true);
+      jest.advanceTimersByTime(SEND_TIMEOUT_MS);
+      await sendPromise;
+      expect((trackDestination as any).timedOutWorkerRequests.size).toBe(1);
+
+      mockWorker.onerror?.({
+        preventDefault: jest.fn(),
+        message: 'boom',
+        filename: 'blob:test',
+        lineno: 1,
+      } as unknown as ErrorEvent);
+
+      // Memory freed, but the record is intentionally NOT completed (left for sendStoredEvents).
+      expect((trackDestination as any).timedOutWorkerRequests.size).toBe(0);
+      expect(completeSpy).not.toHaveBeenCalled();
+    });
+
     test('send via worker uses 0 when flushMaxRetries is undefined', async () => {
       const trackDestination = new SessionReplayTrackDestination({
         loggerProvider: mockLoggerProvider,

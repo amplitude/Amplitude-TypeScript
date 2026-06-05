@@ -58,6 +58,11 @@ export type PayloadBatcher = ({ version, events }: { version: number; events: st
 // sessions are time-bounded in practice, this cap is just a defensive ceiling.
 const MAX_KILLED_SESSIONS = 256;
 
+// Defensive ceiling on retained timed-out worker requests (see timedOutWorkerRequests).
+// In normal operation each entry is removed when the worker's late message arrives; this
+// cap only guards the pathological case of a wedged worker that never replies at all.
+const MAX_TIMED_OUT_WORKER_REQUESTS = 256;
+
 export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrackDestination {
   loggerProvider: ILogger;
   storageKey = '';
@@ -76,6 +81,13 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
     string,
     { context: SessionReplayDestinationContext; resolve: () => void; timeout?: ReturnType<typeof setTimeout> }
   >();
+  // Requests the main thread stopped awaiting after SEND_TIMEOUT_MS (so the serial flush
+  // loop could proceed) but whose worker may still be retrying in the background. We keep
+  // the context — bounded, like killedSessions — so a *late* worker complete/payload_too_large
+  // can still run completeRequest and settle the store record. Without this the late message
+  // is dropped (its id is gone from pendingWorkerRequests), so a successful late delivery would
+  // leave the IDB/memory record behind for sendStoredEvents to re-upload as duplicate replay data.
+  private timedOutWorkerRequests = new Map<string, SessionReplayDestinationContext>();
   // Server back-pressure state, fed by the X-Session-Replay-Event-Skipped header on 200s.
   // The server uses this header (instead of 4xx) to signal a deliberate no-retry drop so SDKs
   // don't retry-storm. We honor it here by slowing or stopping our flush schedule.
@@ -130,6 +142,10 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
             pending.resolve();
           }
           this.pendingWorkerRequests.clear();
+          // The worker is gone, so no late completion can arrive for timed-out requests either.
+          // Drop the retained contexts to free memory; their store records stay intact (we never
+          // completeRequest here) so sendStoredEvents can recover them on next init.
+          this.timedOutWorkerRequests.clear();
         };
         worker.onmessage = (e: MessageEvent<WorkerMessage>) => {
           const msg = e.data;
@@ -144,6 +160,14 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
               this.handlePayloadTooLargeResponse(pending.context, msg.isWaf);
               pending.resolve();
               this.pendingWorkerRequests.delete(msg.id);
+            } else {
+              // Late message for a request the main thread already timed out: the worker still
+              // determined the payload was too large, so split-and-retry off the original record.
+              const timedOut = this.timedOutWorkerRequests.get(msg.id);
+              if (timedOut) {
+                this.timedOutWorkerRequests.delete(msg.id);
+                this.handlePayloadTooLargeResponse(timedOut, msg.isWaf);
+              }
             }
           } else if (msg.type === 'complete') {
             const pending = this.pendingWorkerRequests.get(msg.id);
@@ -155,6 +179,18 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
               this.completeRequest({ context: pending.context });
               pending.resolve();
               this.pendingWorkerRequests.delete(msg.id);
+            } else {
+              // Late completion for a request the main thread already timed out. The worker's
+              // actual outcome (delivered, or retries exhausted) is authoritative, so settle the
+              // store record by it rather than leaving it behind for sendStoredEvents to re-upload.
+              const timedOut = this.timedOutWorkerRequests.get(msg.id);
+              if (timedOut) {
+                this.timedOutWorkerRequests.delete(msg.id);
+                if (msg.skipCode !== undefined) {
+                  this.applyServerDirective(timedOut.sessionId, msg.skipCode);
+                }
+                this.completeRequest({ context: timedOut });
+              }
             }
           }
         };
@@ -451,6 +487,10 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
         const pending = this.pendingWorkerRequests.get(id);
         if (!pending) return;
         this.pendingWorkerRequests.delete(id);
+        // Retain the context so a *late* worker complete/payload_too_large can still settle the
+        // store record (see timedOutWorkerRequests). Without this, a worker that ultimately
+        // delivers after we stopped awaiting would leave the record behind → duplicate upload.
+        this.rememberTimedOutRequest(id, pending.context);
         this.loggerProvider.warn(
           `Session replay worker send timed out after ${SEND_TIMEOUT_MS}ms; leaving events for retry`,
         );
@@ -479,6 +519,18 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
         },
       });
     });
+  }
+
+  private rememberTimedOutRequest(id: string, context: SessionReplayDestinationContext) {
+    this.timedOutWorkerRequests.set(id, context);
+    // Bound memory: a wedged worker that never replies must not let this grow without limit.
+    // Map preserves insertion order, so deleting the first key evicts the oldest entry.
+    if (this.timedOutWorkerRequests.size > MAX_TIMED_OUT_WORKER_REQUESTS) {
+      for (const oldest of this.timedOutWorkerRequests.keys()) {
+        this.timedOutWorkerRequests.delete(oldest);
+        break;
+      }
+    }
   }
 
   private async sendOnMainThread(
