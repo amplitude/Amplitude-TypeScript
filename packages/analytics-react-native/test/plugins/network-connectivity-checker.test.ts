@@ -119,7 +119,7 @@ describe('networkConnectivityCheckerPlugin', () => {
       expect(amplitude.flush).toHaveBeenCalledTimes(1);
     });
 
-    test('debounces repeated same-state events (no flush storm)', async () => {
+    test('ignores repeated same-state events (no redundant flush)', async () => {
       const config = useDefaultConfig();
       const amplitude = createAmplitudeMock();
       const plugin = networkConnectivityCheckerPlugin();

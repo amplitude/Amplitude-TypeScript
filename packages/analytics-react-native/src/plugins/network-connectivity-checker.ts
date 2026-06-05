@@ -48,8 +48,8 @@ export const networkConnectivityCheckerPlugin = (): BeforePlugin => {
   const setup = async (config: ReactNativeConfig, amplitude: ReactNativeClient) => {
     const nativeModule = NativeModules.AmplitudeReactNativeConnectivity as ConnectivityNativeModule | undefined;
 
-    // Comparing against current `config.offline` debounces repeated same-state
-    // signals so we don't flush-storm on reconnect flapping.
+    // Only act on actual state transitions: ignore updates that match the
+    // current `config.offline`, since native platforms re-emit the same state.
     const handleConnectivityChange = (isConnected: boolean) => {
       const offline = !isConnected;
       if (config.offline === offline) {
