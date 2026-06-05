@@ -40,6 +40,11 @@ export const KB_SIZE = 1024;
 export const MAX_URL_LENGTH = 1000;
 export const RETRY_TIMEOUT_MS = 1000;
 export const MAX_KEEPALIVE_BYTES = 64 * 1024; // browser keepalive budget shared with sendBeacon
+// Per-request send timeout. fetch() has no native timeout, so a single hung request
+// (stuck "pending" forever) would otherwise block the serial flush loop indefinitely —
+// head-of-line blocking that stalls every queued batch behind it. We abort after this
+// many ms so each send always settles and the queue keeps draining.
+export const SEND_TIMEOUT_MS = 10_000;
 
 // Server returns 200 + this header for "no-retry" drops (throttle / capture disabled / out-of-range).
 // See projects/sessionreplay/sessionreplay-ingestion/.../SessionReplayError.java.

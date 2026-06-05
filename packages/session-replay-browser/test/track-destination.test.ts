@@ -2,6 +2,7 @@ import * as AnalyticsCore from '@amplitude/analytics-core';
 import { ILogger, ServerZone } from '@amplitude/analytics-core';
 import { SessionReplayDestinationContext } from 'src/typings/session-replay';
 import { SessionReplayTrackDestination } from '../src/track-destination';
+import { SEND_TIMEOUT_MS } from '../src/constants';
 import { VERSION } from '../src/version';
 
 type MockedLogger = jest.Mocked<ILogger>;
@@ -380,6 +381,7 @@ describe('SessionReplayTrackDestination', () => {
           },
           method: 'POST',
           keepalive: true,
+          signal: expect.any(AbortSignal),
         },
       );
     });
@@ -419,6 +421,7 @@ describe('SessionReplayTrackDestination', () => {
           },
           method: 'POST',
           keepalive: true,
+          signal: expect.any(AbortSignal),
         },
       );
     });
@@ -509,6 +512,100 @@ describe('SessionReplayTrackDestination', () => {
 
       await trackDestination.send(context, false);
       expect(addToQueue).toHaveBeenCalledTimes(0);
+    });
+  });
+
+  describe('send timeout (AbortController)', () => {
+    const timeoutContext = (
+      overrides: Partial<SessionReplayDestinationContext> = {},
+    ): SessionReplayDestinationContext => ({
+      events: [mockEventString],
+      sessionId: 123,
+      apiKey,
+      attempts: 0,
+      timeout: 0,
+      flushMaxRetries: 2,
+      deviceId: '1a2b3c',
+      sampleRate: 1,
+      serverZone: ServerZone.US,
+      type: 'replay',
+      onComplete: mockOnComplete,
+      ...overrides,
+    });
+
+    // A fetch that never settles on its own — it only rejects when its AbortSignal fires,
+    // simulating a request stuck "pending" forever until our timeout aborts it. The rejection
+    // mirrors the real browser behavior: an Error whose name is 'AbortError'.
+    const abortError = () => {
+      const e = new Error('The operation was aborted');
+      e.name = 'AbortError';
+      return e;
+    };
+    const hangUntilAborted = () =>
+      jest.fn((_url: string, options: RequestInit) => {
+        return new Promise((_resolve, reject) => {
+          options.signal?.addEventListener('abort', () => reject(abortError()));
+        });
+      });
+
+    test('timeout fires and triggers a retry when useRetry=true', async () => {
+      const trackDestination = new SessionReplayTrackDestination({ loggerProvider: mockLoggerProvider });
+      (global.fetch as jest.Mock)
+        .mockImplementationOnce(hangUntilAborted())
+        .mockImplementationOnce(() => Promise.resolve({ status: 200 }));
+
+      const sendPromise = trackDestination.send(timeoutContext(), true);
+      // Drains the abort timer (rejects fetch), then the retry backoff timer and the
+      // successful second send.
+      await jest.runAllTimersAsync();
+      await sendPromise;
+
+      expect(fetch).toHaveBeenCalledTimes(2);
+    });
+
+    test('timeout with useRetry=false completes with error and does not retry', async () => {
+      const trackDestination = new SessionReplayTrackDestination({ loggerProvider: mockLoggerProvider });
+      const addToQueue = jest.spyOn(trackDestination, 'addToQueue');
+      (global.fetch as jest.Mock).mockImplementationOnce(hangUntilAborted());
+
+      const sendPromise = trackDestination.send(timeoutContext(), false);
+      await jest.runAllTimersAsync();
+      await sendPromise;
+
+      expect(fetch).toHaveBeenCalledTimes(1);
+      expect(addToQueue).not.toHaveBeenCalled();
+      expect(mockOnComplete).toHaveBeenCalledTimes(1);
+    });
+
+    test('timer is cleared on normal completion so no stray abort fires', async () => {
+      const trackDestination = new SessionReplayTrackDestination({ loggerProvider: mockLoggerProvider });
+      const clearSpy = jest.spyOn(global, 'clearTimeout');
+      (global.fetch as jest.Mock).mockImplementationOnce(() => Promise.resolve({ status: 200 }));
+
+      await trackDestination.send(timeoutContext(), false);
+      // The send timeout must have been cleared in the finally block on the success path.
+      expect(clearSpy).toHaveBeenCalled();
+
+      // Advancing past the timeout window must not fire a stray abort/warn or re-complete.
+      jest.advanceTimersByTime(SEND_TIMEOUT_MS + 1);
+      expect(mockOnComplete).toHaveBeenCalledTimes(1);
+    });
+
+    test('a non-abort fetch rejection completes with error and does not retry even when useRetry=true', async () => {
+      const trackDestination = new SessionReplayTrackDestination({ loggerProvider: mockLoggerProvider });
+      const handleOther = jest.spyOn(trackDestination, 'handleOtherResponse');
+      // A plain network Error (not an AbortError) must keep the original complete-with-error
+      // behavior rather than being misrouted through the timeout retry path.
+      (global.fetch as jest.Mock).mockImplementationOnce(() => Promise.reject(new Error('boom')));
+
+      const sendPromise = trackDestination.send(timeoutContext(), true);
+      await jest.runAllTimersAsync();
+      await sendPromise;
+
+      expect(handleOther).not.toHaveBeenCalled();
+      expect(mockOnComplete).toHaveBeenCalledTimes(1);
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockLoggerProvider.warn).toHaveBeenCalledWith(expect.any(Error));
     });
   });
 
@@ -1026,6 +1123,9 @@ describe('SessionReplayTrackDestination', () => {
 
       expect((trackDestination as any).flushPauseUntilMs).toBe(0);
 
+      // send() now registers (and immediately clears) its own request-timeout setTimeout, so
+      // reset the spy to isolate the schedule() call we're asserting on.
+      setTimeoutSpy.mockClear();
       // A fresh schedule call now uses the requested timeout, with no pause carry-over.
       trackDestination.schedule(500);
       expect(setTimeoutSpy.mock.calls[0][1]).toBe(500);
@@ -1656,6 +1756,110 @@ describe('SessionReplayTrackDestination', () => {
 
       await sendPromise;
       expect(mockWorker.postMessage).toHaveBeenCalledWith(expect.objectContaining({ type: 'send' }));
+    });
+
+    test('worker send timeout resolves the pending promise without completeRequest', async () => {
+      const trackDestination = new SessionReplayTrackDestination({
+        loggerProvider: mockLoggerProvider,
+        workerScript: 'self.onmessage = () => {}',
+      });
+      const completeSpy = jest.spyOn(trackDestination, 'completeRequest');
+
+      // The worker never posts back — emulating its own fetch hanging forever.
+      const sendPromise = trackDestination.send(mockContext, true);
+      expect((trackDestination as any).pendingWorkerRequests.size).toBe(1);
+
+      jest.advanceTimersByTime(SEND_TIMEOUT_MS);
+      await sendPromise;
+
+      // Must resolve so flush() proceeds, but must NOT completeRequest — events were never
+      // confirmed delivered, so onComplete stays unfired and the store entry is left for recovery.
+      expect(completeSpy).not.toHaveBeenCalled();
+      expect(mockContext.onComplete).not.toHaveBeenCalled();
+      expect((trackDestination as any).pendingWorkerRequests.size).toBe(0);
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockLoggerProvider.warn).toHaveBeenCalledWith(expect.stringContaining('worker send timed out'));
+    });
+
+    test('worker timeout timer is cleared when a real response arrives', async () => {
+      const trackDestination = new SessionReplayTrackDestination({
+        loggerProvider: mockLoggerProvider,
+        workerScript: 'self.onmessage = () => {}',
+      });
+
+      const sendPromise = trackDestination.send(mockContext, false);
+      const pendingEntries = [...(trackDestination as any).pendingWorkerRequests.entries()];
+      const [id] = pendingEntries[0] as [string, { resolve: () => void }];
+      mockWorker.onmessage?.({ data: { type: 'complete', id } } as MessageEvent);
+      await sendPromise;
+
+      // After a real completion the timer is cleared, so advancing past the timeout window
+      // must not fire the timeout warn.
+      jest.advanceTimersByTime(SEND_TIMEOUT_MS + 1);
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockLoggerProvider.warn).not.toHaveBeenCalledWith(expect.stringContaining('worker send timed out'));
+    });
+
+    test('worker onerror clears the per-request timeout for in-flight sends', async () => {
+      const trackDestination = new SessionReplayTrackDestination({
+        loggerProvider: mockLoggerProvider,
+        workerScript: 'self.onmessage = () => {}',
+      });
+
+      const sendPromise = trackDestination.send(mockContext, true);
+      mockWorker.onerror?.({
+        preventDefault: jest.fn(),
+        message: 'boom',
+        filename: 'blob:test',
+        lineno: 1,
+      } as unknown as ErrorEvent);
+      await sendPromise;
+
+      // onerror cleared the per-request timer, so advancing past the window must not also
+      // fire the timeout warn.
+      jest.advanceTimersByTime(SEND_TIMEOUT_MS + 1);
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockLoggerProvider.warn).not.toHaveBeenCalledWith(expect.stringContaining('worker send timed out'));
+    });
+
+    test('worker payload_too_large clears the per-request timeout', async () => {
+      const trackDestination = new SessionReplayTrackDestination({
+        loggerProvider: mockLoggerProvider,
+        workerScript: 'self.onmessage = () => {}',
+      });
+      jest.spyOn(trackDestination, 'handlePayloadTooLargeResponse').mockReturnValue(undefined);
+
+      const sendPromise = trackDestination.send(mockContext, true);
+      const [id] = [...(trackDestination as any).pendingWorkerRequests.keys()] as string[];
+      mockWorker.onmessage?.({ data: { type: 'payload_too_large', id, isWaf: false } } as MessageEvent);
+      await sendPromise;
+
+      jest.advanceTimersByTime(SEND_TIMEOUT_MS + 1);
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockLoggerProvider.warn).not.toHaveBeenCalledWith(expect.stringContaining('worker send timed out'));
+    });
+
+    test('worker send timeout is a no-op if the request was already settled (race guard)', async () => {
+      const trackDestination = new SessionReplayTrackDestination({
+        loggerProvider: mockLoggerProvider,
+        workerScript: 'self.onmessage = () => {}',
+      });
+
+      const sendPromise = trackDestination.send(mockContext, true);
+      const pending = [...(trackDestination as any).pendingWorkerRequests.entries()][0] as [
+        string,
+        { resolve: () => void },
+      ];
+      const [id, entry] = pending;
+      // Simulate the entry being removed by another path without the timer being cleared, so
+      // the timeout fires with no pending request — the guard must return without warning.
+      (trackDestination as any).pendingWorkerRequests.delete(id);
+      jest.advanceTimersByTime(SEND_TIMEOUT_MS);
+      entry.resolve();
+      await sendPromise;
+
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockLoggerProvider.warn).not.toHaveBeenCalledWith(expect.stringContaining('worker send timed out'));
     });
 
     test('send via worker uses 0 when flushMaxRetries is undefined', async () => {
