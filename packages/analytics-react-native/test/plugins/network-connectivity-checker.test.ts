@@ -222,6 +222,25 @@ describe('networkConnectivityCheckerPlugin', () => {
       });
     });
 
+    test('ignores offline events while already offline (no redundant work)', async () => {
+      const { scope, trigger } = createFakeGlobalScope();
+      jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue(scope);
+
+      await withNavigator({ onLine: false }, async () => {
+        const config = useDefaultConfig();
+        const plugin = networkConnectivityCheckerPlugin();
+
+        await plugin.setup?.(config, createAmplitudeMock());
+        expect(config.offline).toBe(true);
+
+        const debugSpy = jest.spyOn(config.loggerProvider, 'debug');
+        trigger('offline');
+        trigger('offline');
+        expect(config.offline).toBe(true);
+        expect(debugSpy).not.toHaveBeenCalled();
+      });
+    });
+
     test('sets offline true when navigator starts offline', async () => {
       const { scope } = createFakeGlobalScope();
       jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue(scope);

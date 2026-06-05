@@ -99,6 +99,9 @@ export const networkConnectivityCheckerPlugin = (): BeforePlugin => {
       });
 
       addWebNetworkListener('offline', () => {
+        if (config.offline === true) {
+          return;
+        }
         config.loggerProvider.debug('Network connectivity changed to offline.');
         config.offline = true;
       });
