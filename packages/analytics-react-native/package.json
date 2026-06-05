@@ -1,6 +1,6 @@
 {
   "name": "@amplitude/analytics-react-native",
-  "version": "1.5.55",
+  "version": "1.5.56-sr-perf-reliability-rc.0",
   "description": "Official React Native SDK",
   "keywords": [
     "analytics",

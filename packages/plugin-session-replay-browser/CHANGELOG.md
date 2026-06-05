@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.31.1-sr-perf-reliability-rc.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@1.31.0...@amplitude/plugin-session-replay-browser@1.31.1-sr-perf-reliability-rc.0) (2026-06-05)
+
+**Note:** Version bump only for package @amplitude/plugin-session-replay-browser
+
+
+
+
+
 # [1.31.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@1.30.5...@amplitude/plugin-session-replay-browser@1.31.0) (2026-05-22)
 
 

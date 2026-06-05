@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [0.5.0-sr-perf-reliability-rc.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-react-native@0.4.10...@amplitude/plugin-session-replay-react-native@0.5.0-sr-perf-reliability-rc.0) (2026-06-05)
+
+
+### Features
+
+* **plugin-session-replay-react-native:** pass maskLevel through to native SessionReplay ([#1771](https://github.com/amplitude/Amplitude-TypeScript/issues/1771)) ([9e5c3c3](https://github.com/amplitude/Amplitude-TypeScript/commit/9e5c3c3a363f30a1462e5ec13062dbb9c23632a7))
+
+
+
+
+
 ## [0.4.10](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-react-native@0.4.9...@amplitude/plugin-session-replay-react-native@0.4.10) (2026-04-14)
 
 **Note:** Version bump only for package @amplitude/plugin-session-replay-react-native

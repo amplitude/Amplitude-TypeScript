@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.27.3-sr-perf-reliability-rc.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.27.2...@amplitude/plugin-autocapture-browser@1.27.3-sr-perf-reliability-rc.0) (2026-06-05)
+
+**Note:** Version bump only for package @amplitude/plugin-autocapture-browser
+
+
+
+
+
 ## [1.27.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.27.1...@amplitude/plugin-autocapture-browser@1.27.2) (2026-05-21)
 
 **Note:** Version bump only for package @amplitude/plugin-autocapture-browser

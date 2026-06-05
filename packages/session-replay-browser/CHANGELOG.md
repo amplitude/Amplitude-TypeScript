@@ -3,6 +3,27 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.45.0-sr-perf-reliability-rc.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.44.0...@amplitude/session-replay-browser@1.45.0-sr-perf-reliability-rc.0) (2026-06-05)
+
+
+### Bug Fixes
+
+* **session-replay-browser:** add request timeout/AbortController to send path ([84b65c7](https://github.com/amplitude/Amplitude-TypeScript/commit/84b65c70026071cef62eb6f94a4c62669dfb0899))
+* **session-replay:** add compression enabled config ([#1786](https://github.com/amplitude/Amplitude-TypeScript/issues/1786)) ([96ca226](https://github.com/amplitude/Amplitude-TypeScript/commit/96ca2265cb44db3e92ba32ac918ce8a5b7c7afc7))
+* **session-replay:** consume coalesce flag even when drain enqueues nothing ([44b050e](https://github.com/amplitude/Amplitude-TypeScript/commit/44b050ef12d5da5826a0166ffd5248b8c1bdd8e3))
+* **session-replay:** detect aborted fetch via DOMException name ([fe4b4b1](https://github.com/amplitude/Amplitude-TypeScript/commit/fe4b4b170b12f65cd5f99cd7351a54632ad1780b))
+* **session-replay:** settle late worker completions after send timeout ([7c8d208](https://github.com/amplitude/Amplitude-TypeScript/commit/7c8d2082168ad2031e489618602c8285721f5878))
+
+
+### Features
+
+* **session-replay-browser:** add eager send, focus snapshot, and max event size knobs ([56b0cf4](https://github.com/amplitude/Amplitude-TypeScript/commit/56b0cf4c8c9514742f544df72bf1f71bb084b7f8))
+* **session-replay-browser:** coalesce persisted-sequence page-load backlog drain ([3af50e4](https://github.com/amplitude/Amplitude-TypeScript/commit/3af50e420f55f288ff92d2fea9cea6ca0d2fa260))
+
+
+
+
+
 # [1.44.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.43.0...@amplitude/session-replay-browser@1.44.0) (2026-05-21)
 
 
