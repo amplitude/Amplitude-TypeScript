@@ -45,10 +45,6 @@ const createAmplitudeMock = () =>
     flush: jest.fn(() => ({ promise: Promise.resolve() })),
   } as unknown as ReactNativeClient);
 
-// `offline` is omitted from the public ReactNativeConfig type but exists on the
-// underlying core Config instance at runtime.
-const offlineOf = (config: object): boolean | null | undefined => (config as { offline?: boolean | null }).offline;
-
 describe('networkConnectivityCheckerPlugin', () => {
   const connectivityModule = NativeModules.AmplitudeReactNativeConnectivity as {
     getNetworkConnectivityStatus: jest.Mock;
@@ -71,7 +67,7 @@ describe('networkConnectivityCheckerPlugin', () => {
       await plugin.setup?.(config, createAmplitudeMock());
 
       expect(connectivityModule.getNetworkConnectivityStatus).toHaveBeenCalledTimes(1);
-      expect(offlineOf(config)).toBe(false);
+      expect(config.offline).toBe(false);
     });
 
     test('seeds initial offline state from the native module (offline)', async () => {
@@ -81,7 +77,7 @@ describe('networkConnectivityCheckerPlugin', () => {
 
       await plugin.setup?.(config, createAmplitudeMock());
 
-      expect(offlineOf(config)).toBe(true);
+      expect(config.offline).toBe(true);
     });
 
     test('defaults to online if the initial status read rejects', async () => {
@@ -91,20 +87,20 @@ describe('networkConnectivityCheckerPlugin', () => {
 
       await plugin.setup?.(config, createAmplitudeMock());
 
-      expect(offlineOf(config)).toBe(false);
+      expect(config.offline).toBe(false);
     });
 
     test('toggles config.offline on connectivity events', async () => {
       const config = useDefaultConfig();
       const plugin = networkConnectivityCheckerPlugin();
       await plugin.setup?.(config, createAmplitudeMock());
-      expect(offlineOf(config)).toBe(false);
+      expect(config.offline).toBe(false);
 
       DeviceEventEmitter.emit(CONNECTIVITY_EVENT_NAME, { isConnected: false });
-      expect(offlineOf(config)).toBe(true);
+      expect(config.offline).toBe(true);
 
       DeviceEventEmitter.emit(CONNECTIVITY_EVENT_NAME, { isConnected: true });
-      expect(offlineOf(config)).toBe(false);
+      expect(config.offline).toBe(false);
     });
 
     test('flushes immediately on reconnect', async () => {
@@ -132,7 +128,7 @@ describe('networkConnectivityCheckerPlugin', () => {
 
       DeviceEventEmitter.emit(CONNECTIVITY_EVENT_NAME, { isConnected: false });
       DeviceEventEmitter.emit(CONNECTIVITY_EVENT_NAME, { isConnected: false });
-      expect(offlineOf(config)).toBe(true);
+      expect(config.offline).toBe(true);
 
       DeviceEventEmitter.emit(CONNECTIVITY_EVENT_NAME, { isConnected: true });
       DeviceEventEmitter.emit(CONNECTIVITY_EVENT_NAME, { isConnected: true });
@@ -149,7 +145,7 @@ describe('networkConnectivityCheckerPlugin', () => {
       expect(connectivityModule.removeListeners).toHaveBeenCalled();
       // After teardown, further events must not mutate config.offline.
       DeviceEventEmitter.emit(CONNECTIVITY_EVENT_NAME, { isConnected: false });
-      expect(offlineOf(config)).toBe(false);
+      expect(config.offline).toBe(false);
     });
   });
 
@@ -186,21 +182,42 @@ describe('networkConnectivityCheckerPlugin', () => {
 
         await plugin.setup?.(config, amplitude);
 
-        expect(offlineOf(config)).toBe(false);
+        expect(config.offline).toBe(false);
         expect(scope.addEventListener).toHaveBeenCalledWith('online', expect.any(Function));
         expect(scope.addEventListener).toHaveBeenCalledWith('offline', expect.any(Function));
 
         trigger('offline');
-        expect(offlineOf(config)).toBe(true);
+        expect(config.offline).toBe(true);
 
         jest.useFakeTimers();
         trigger('online');
-        expect(offlineOf(config)).toBe(false);
+        expect(config.offline).toBe(false);
         // Web fallback delays the flush by flushIntervalMillis to avoid
         // ERR_NETWORK_CHANGED.
         expect(amplitude.flush).not.toHaveBeenCalled();
         jest.advanceTimersByTime(config.flushIntervalMillis);
         expect(amplitude.flush).toHaveBeenCalledTimes(1);
+        jest.useRealTimers();
+      });
+    });
+
+    test('ignores online events while already online (no redundant flush)', async () => {
+      const { scope, trigger } = createFakeGlobalScope();
+      jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue(scope);
+
+      await withNavigator({ onLine: true }, async () => {
+        const config = useDefaultConfig();
+        const amplitude = createAmplitudeMock();
+        const plugin = networkConnectivityCheckerPlugin();
+
+        await plugin.setup?.(config, amplitude);
+        expect(config.offline).toBe(false);
+
+        jest.useFakeTimers();
+        trigger('online');
+        trigger('online');
+        jest.advanceTimersByTime(config.flushIntervalMillis);
+        expect(amplitude.flush).not.toHaveBeenCalled();
         jest.useRealTimers();
       });
     });
@@ -215,7 +232,7 @@ describe('networkConnectivityCheckerPlugin', () => {
 
         await plugin.setup?.(config, createAmplitudeMock());
 
-        expect(offlineOf(config)).toBe(true);
+        expect(config.offline).toBe(true);
       });
     });
 
@@ -257,12 +274,12 @@ describe('networkConnectivityCheckerPlugin', () => {
       await withNavigator(undefined, async () => {
         const config = useDefaultConfig();
         // Start non-default to prove the fallback resets it to online.
-        (config as { offline?: boolean | null }).offline = true;
+        config.offline = true;
         const plugin = networkConnectivityCheckerPlugin();
 
         await plugin.setup?.(config, createAmplitudeMock());
 
-        expect(offlineOf(config)).toBe(false);
+        expect(config.offline).toBe(false);
         // teardown is a no-op here and should not throw.
         await expect(plugin.teardown?.()).resolves.not.toThrow();
       });
@@ -279,12 +296,12 @@ describe('networkConnectivityCheckerPlugin', () => {
       await withNavigator({ product: 'ReactNative' } as unknown as { onLine: boolean }, async () => {
         const config = useDefaultConfig();
         // Start offline to prove the best-effort fallback resets it to online.
-        (config as { offline?: boolean | null }).offline = true;
+        config.offline = true;
         const plugin = networkConnectivityCheckerPlugin();
 
         await plugin.setup?.(config, createAmplitudeMock());
 
-        expect(offlineOf(config)).toBe(false);
+        expect(config.offline).toBe(false);
       });
     });
   });
