@@ -176,6 +176,17 @@ export class CookieStorage<T> implements Storage<T> {
 
   private setSync(key: string, value: T | null): void {
     try {
+      const globalScope = getGlobalScope() as GlobalScopeWithCookieStore;
+
+      // typeguard for non-browser environments
+      if (
+        !globalScope ||
+        !globalScope.document ||
+        typeof globalScope.btoa !== 'function' ||
+        typeof globalScope.encodeURIComponent !== 'function'
+      ) {
+        return;
+      }
       const expirationDays = this.options.expirationDays ?? 0;
       const expires = value !== null ? expirationDays : -1;
       let expireDate: Date | undefined = undefined;
@@ -184,7 +195,7 @@ export class CookieStorage<T> implements Storage<T> {
         date.setTime(date.getTime() + expires * 24 * 60 * 60 * 1000);
         expireDate = date;
       }
-      let str = `${key}=${btoa(encodeURIComponent(JSON.stringify(value)))}`;
+      let str = `${key}=${globalScope.btoa(globalScope.encodeURIComponent(JSON.stringify(value)))}`;
       if (expireDate) {
         str += `; expires=${expireDate.toUTCString()}`;
       }
@@ -198,10 +209,7 @@ export class CookieStorage<T> implements Storage<T> {
       if (this.options.sameSite) {
         str += `; SameSite=${this.options.sameSite}`;
       }
-      const globalScope = getGlobalScope();
-      if (globalScope?.document) {
-        globalScope.document.cookie = str;
-      }
+      globalScope.document.cookie = str;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       console.error(`Amplitude Logger [Error]: Failed to set cookie for key: ${key}. Error: ${errorMessage}`);

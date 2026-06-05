@@ -1,11 +1,33 @@
 // @refresh reset
 
 import { NativeSessionReplay, type NativeSessionReplayConfig } from './native-module';
-import { getDefaultConfig, SessionReplayConfig } from './session-replay-config';
+import { getDefaultConfig, SessionReplayConfig, SessionReplayConfigInternal } from './session-replay-config';
 import { createSessionReplayLogger } from './logger';
 import { VERSION } from './version';
 
-let fullConfig: Required<SessionReplayConfig> | null = null;
+type ResolvedSessionReplayConfig = Required<SessionReplayConfigInternal>;
+
+/**
+ * Translates the public `SessionReplayConfig` into the internal shape by
+ * folding the deprecated top-level `maskLevel` into `privacyConfig`. After
+ * this step, the rest of the SDK only ever sees `privacyConfig`.
+ *
+ * `privacyConfig` wins when explicitly set; otherwise translate the
+ * deprecated `maskLevel`; otherwise leave the field out so the default
+ * supplied by `getDefaultConfig()` survives the shallow merge in `init()`.
+ */
+function normalizeConfig(config: SessionReplayConfig): SessionReplayConfigInternal {
+  const { maskLevel, privacyConfig, ...rest } = config;
+  if (privacyConfig !== undefined) {
+    return { ...rest, privacyConfig };
+  }
+  if (maskLevel !== undefined) {
+    return { ...rest, privacyConfig: { maskLevel } };
+  }
+  return rest;
+}
+
+let fullConfig: ResolvedSessionReplayConfig | null = null;
 let isInitialized = false;
 let logger = createSessionReplayLogger();
 
@@ -33,9 +55,13 @@ export async function init(config: SessionReplayConfig): Promise<void> {
     return;
   }
 
+  // TODO: this is a shallow merge — a user-supplied `privacyConfig` replaces
+  // the default object wholesale. That's fine while `PrivacyConfig` only
+  // carries `maskLevel`, but if it ever grows more fields a deeper merge will
+  // be needed so partial user configs don't drop defaults.
   fullConfig = {
     ...getDefaultConfig(),
-    ...config,
+    ...normalizeConfig(config),
   };
 
   logger.setLogLevel(fullConfig.logLevel);
@@ -206,11 +232,20 @@ export async function stop(): Promise<void> {
   await NativeSessionReplay.stop();
 }
 
-function nativeConfig(config: Required<SessionReplayConfig>): NativeSessionReplayConfig {
+function nativeConfig(config: ResolvedSessionReplayConfig): NativeSessionReplayConfig {
+  // Resolve the effective mask level here — the single source of truth for the
+  // default. `normalizeConfig()` already folded the deprecated top-level
+  // `maskLevel` into `privacyConfig`, but `privacyConfig.maskLevel` can still be
+  // `undefined` (no user value and no baked-in default), so fall back to
+  // `'medium'`. Strip `privacyConfig` from the spread because the native bridge
+  // only takes a flat `maskLevel` string.
+  const { privacyConfig, ...rest } = config;
+  const resolvedMaskLevel: NativeSessionReplayConfig['maskLevel'] = privacyConfig.maskLevel ?? 'medium';
   return {
-    ...config,
-    logLevel: config.logLevel as NativeSessionReplayConfig['logLevel'],
-    maskLevel: config.maskLevel.toString() as NativeSessionReplayConfig['maskLevel'],
+    ...rest,
+    logLevel: rest.logLevel as NativeSessionReplayConfig['logLevel'],
+    // TODO(SDKRN-15): Migrate native bridge to accept the full privacyConfig object instead of a flat maskLevel string.
+    maskLevel: resolvedMaskLevel,
   };
 }
 

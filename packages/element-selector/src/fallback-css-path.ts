@@ -22,8 +22,12 @@
  *      filtering helper is wired through so future iterations can opt back in
  *      surgically without re-deriving the policy.
  *
- *   3. An anchor id terminates the walk early — once we hit `body#main`, we
- *      don't need to keep walking up to `<html>`.
+ *   3. A unique anchor id terminates the walk early — once we hit `body#main`,
+ *      we don't need to keep walking up to `<html>`.
+ *
+ *   4. Ambiguous id anchors are skipped. Duplicate ids are invalid HTML but
+ *      common enough in the wild that fallback must not emit selectors that
+ *      resolve to the wrong target.
  *
  * Output format mirrors the orchestrator's output: `<anchor> > <descent>`.
  * When no usable id is found anywhere on the walk, the fallback emits a
@@ -37,6 +41,11 @@ import { ResolvedSelectorConfig } from './types';
 import { getStableId } from './helpers/get-stable-id';
 import { escapeIdForCss } from './helpers/escape-id';
 
+export interface FallbackCssPathOptions {
+  /** Document or shadow root used for uniqueness checks. Defaults to the target's owner document. */
+  scope?: ParentNode;
+}
+
 /**
  * Build a positional CSS selector for `el`, using stable ids as anchors when
  * available and falling back to `tag:nth-of-type(n)` for disambiguation.
@@ -45,7 +54,12 @@ import { escapeIdForCss } from './helpers/escape-id';
  * reached, the walker stops and returns whatever it has built so far rooted at
  * the deepest reached ancestor.
  */
-export function fallbackCssPath(el: Element, config: ResolvedSelectorConfig): string {
+export function fallbackCssPath(
+  el: Element,
+  config: ResolvedSelectorConfig,
+  options: FallbackCssPathOptions = {},
+): string {
+  const scope: ParentNode = options.scope ?? el.ownerDocument ?? document;
   const segments: string[] = [];
   let cursor: Element | null = el;
   let depth = 0;
@@ -57,10 +71,14 @@ export function fallbackCssPath(el: Element, config: ResolvedSelectorConfig): st
 
     const id = getStableId(cursor, config);
     if (id !== null) {
-      // Anchor found — terminate the walk. Anchor format mirrors the stableId
-      // strategy: `tag#id` with the id CSS-escaped.
-      segments.unshift(`${cursor.tagName.toLowerCase()}#${escapeIdForCss(id)}`);
-      return segments.join(' > ');
+      // Anchor format mirrors the stableId strategy: `tag#id` with the id
+      // CSS-escaped. Only terminate if the composed selector uniquely resolves
+      // to the target; duplicate ids should fall through to positional steps.
+      const anchorSegment = `${cursor.tagName.toLowerCase()}#${escapeIdForCss(id)}`;
+      const candidate = [anchorSegment, ...segments].join(' > ');
+      if (isUniqueMatch(scope, candidate, el)) {
+        return candidate;
+      }
     }
 
     segments.unshift(stepFor(cursor));
@@ -102,4 +120,14 @@ function sameTypeIndex(el: Element, parent: Element): number {
     }
   }
   return 1;
+}
+
+function isUniqueMatch(scope: ParentNode, selector: string, el: Element): boolean {
+  let matches: NodeListOf<Element>;
+  try {
+    matches = scope.querySelectorAll(selector);
+  } catch (_e) {
+    return false;
+  }
+  return matches.length === 1 && matches[0] === el;
 }

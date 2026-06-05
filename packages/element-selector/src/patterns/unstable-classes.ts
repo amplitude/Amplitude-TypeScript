@@ -1,4 +1,4 @@
-import type { ILogger } from '@amplitude/analytics-core';
+import { ElementSelectorLogger } from '../types';
 
 /**
  * Unstable-class pattern pack.
@@ -83,7 +83,7 @@ export const DEFAULT_UNSTABLE_CLASS_PATTERNS: ReadonlyArray<RegExp> = [
  * or use it as a full replacement. That policy lives in the config resolver,
  * not here.
  */
-export function compile(patterns: string[], logger?: ILogger): RegExp[] {
+export function compile(patterns: string[], logger?: ElementSelectorLogger): RegExp[] {
   const compiled: RegExp[] = [];
   for (const pattern of patterns) {
     try {

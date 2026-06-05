@@ -42,6 +42,21 @@ describe('createSelectorEngine', () => {
       const result = engine.generate(target);
       expect(result).toBe('html > body:nth-of-type(1) > div:nth-of-type(1) > button:nth-of-type(1)');
     });
+
+    it('does not return an ambiguous fallback selector when duplicate ids exist', () => {
+      setBody(`
+        <section>
+          <div id="dupe"><button>a</button></div>
+          <div id="dupe"><button>b</button></div>
+        </section>
+      `);
+      const engine = createSelectorEngine(enabledConfig());
+      const target = document.querySelectorAll('button')[1] as Element;
+      const result = engine.generate(target);
+
+      expect(result).not.toContain('#dupe');
+      expect(document.querySelector(result)).toBe(target);
+    });
   });
 
   describe('getConfig', () => {
