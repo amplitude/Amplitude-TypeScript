@@ -120,6 +120,7 @@ jobs:
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: ${{ matrix.node-version }}
+          registry-url: 'https://registry.npmjs.org'
           cache: "pnpm"
 
       # Install all project dependencies
@@ -199,13 +200,6 @@ jobs:
       - name: Lint package
         run: |
           pnpm lint
-
-      # Configure NPM authentication for publishing
-      - name: Configure NPM User
-        if: ${{ env.DRY_RUN == 'false' }}
-        run: |
-          echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_PUBLISH_TOKEN }}" > ~/.npmrc
-          npm whoami
 
       # Temporarily make package public for publishing (will be restored to private later)
       - name: Make package public for publishing
