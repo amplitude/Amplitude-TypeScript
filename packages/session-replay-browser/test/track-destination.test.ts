@@ -1671,6 +1671,23 @@ describe('SessionReplayTrackDestination', () => {
         expect((trackDestination as any).coalesceNextFlush).toBe(false);
       });
 
+      test('markCoalesceNextFlush self-schedules a flush so the flag never sticks when nothing is enqueued', async () => {
+        const trackDestination = new SessionReplayTrackDestination({ loggerProvider: mockLoggerProvider });
+        const sendSpy = jest.spyOn(trackDestination, 'send').mockResolvedValue(undefined);
+
+        // Mimic the page-load drain where every persisted sequence is dropped before reaching
+        // the queue (e.g. all events oversized), so no addToQueue/schedule runs.
+        trackDestination.markCoalesceNextFlush();
+        expect((trackDestination as any).coalesceNextFlush).toBe(true);
+
+        await jest.runAllTimersAsync();
+
+        // The self-scheduled flush consumes the flag with an empty queue — no POST, and a later
+        // unrelated live flush can't be mis-coalesced as a page-load drain.
+        expect(sendSpy).not.toHaveBeenCalled();
+        expect((trackDestination as any).coalesceNextFlush).toBe(false);
+      });
+
       test('drain of multiple same-identity batches collapses into one POST and fans out onComplete', async () => {
         const trackDestination = new SessionReplayTrackDestination({ loggerProvider: mockLoggerProvider });
         const sendSpy = jest.spyOn(trackDestination, 'send').mockResolvedValue(undefined);
