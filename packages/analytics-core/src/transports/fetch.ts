@@ -5,10 +5,12 @@ import { Response } from '../types/response';
 
 export class FetchTransport extends BaseTransport implements Transport {
   private customHeaders: Record<string, string>;
+  private referrerPolicy: ReferrerPolicy;
 
-  constructor(customHeaders: Record<string, string> = {}) {
+  constructor(customHeaders: Record<string, string> = {}, referrerPolicy?: ReferrerPolicy) {
     super();
     this.customHeaders = customHeaders;
+    this.referrerPolicy = referrerPolicy || '';
   }
 
   async send(serverUrl: string, payload: Payload): Promise<Response | null> {
@@ -17,6 +19,7 @@ export class FetchTransport extends BaseTransport implements Transport {
       throw new Error('FetchTransport is not supported');
     }
     const options: RequestInit = {
+      referrerPolicy: this.referrerPolicy,
       headers: {
         'Content-Type': 'application/json',
         Accept: '*/*',

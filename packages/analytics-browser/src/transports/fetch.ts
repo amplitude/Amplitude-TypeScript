@@ -17,12 +17,15 @@ export const KEEPALIVE_MAX_BODY_SIZE_BYTES = 16 * 1024;
 export class FetchTransport extends BaseTransport implements Transport {
   private customHeaders: Record<string, string>;
   private enableKeepalive: boolean;
+  private referrerPolicy: ReferrerPolicy;
 
-  constructor(customHeaders: Record<string, string> = {}, enableKeepalive?: boolean) {
+  constructor(customHeaders: Record<string, string> = {}, enableKeepalive?: boolean, referrerPolicy?: ReferrerPolicy) {
     super();
     this.customHeaders = customHeaders;
     // Enabled unless explicitly disabled.
     this.enableKeepalive = enableKeepalive !== false;
+    // Enable when you have a security requirement to control the referrer information sent with the request. Otherwise, leave it as the default browser behavior.
+    this.referrerPolicy = referrerPolicy || '';
   }
 
   async send(serverUrl: string, payload: Payload, shouldCompressUploadBody = false): Promise<Response | null> {
@@ -62,6 +65,7 @@ export class FetchTransport extends BaseTransport implements Transport {
       body,
       method: 'POST',
       keepalive: this.enableKeepalive && bodySize <= KEEPALIVE_MAX_BODY_SIZE_BYTES,
+      referrerPolicy: this.referrerPolicy,
     };
 
     const response = await fetch(serverUrl, options);
