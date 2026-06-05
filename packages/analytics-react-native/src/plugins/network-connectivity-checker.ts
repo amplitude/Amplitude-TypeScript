@@ -4,14 +4,10 @@ import { isWeb } from '../utils/platform';
 
 export const CONNECTIVITY_EVENT_NAME = 'AmplitudeNetworkConnectivityChanged';
 
-/**
- * Shape of the native `AmplitudeReactNativeConnectivity` module bridged from
- * iOS (`RCTEventEmitter` subclass) and Android (`ReactContextBaseJavaModule`).
- */
+/** Native `AmplitudeReactNativeConnectivity` module bridged from iOS/Android. */
 interface ConnectivityNativeModule {
   getNetworkConnectivityStatus(): Promise<{ isConnected: boolean }>;
-  // `addListener`/`removeListeners` are required by `NativeEventEmitter` so it
-  // doesn't warn; they are no-ops on the JS side here.
+  // Required by `NativeEventEmitter`; no-ops on the JS side.
   addListener(eventName: string): void;
   removeListeners(count: number): void;
 }
@@ -52,10 +48,8 @@ export const networkConnectivityCheckerPlugin = (): BeforePlugin => {
   const setup = async (config: ReactNativeConfig, amplitude: ReactNativeClient) => {
     const nativeModule = NativeModules.AmplitudeReactNativeConnectivity as ConnectivityNativeModule | undefined;
 
-    // Apply a connectivity change. Comparing against the current `config.offline`
-    // value naturally debounces repeated same-state signals (e.g. Android's
-    // `onCapabilitiesChanged` firing multiple times) so we don't flush-storm on
-    // transient reconnect flapping.
+    // Comparing against current `config.offline` debounces repeated same-state
+    // signals so we don't flush-storm on reconnect flapping.
     const handleConnectivityChange = (isConnected: boolean) => {
       const offline = !isConnected;
       if (config.offline === offline) {
@@ -64,18 +58,17 @@ export const networkConnectivityCheckerPlugin = (): BeforePlugin => {
       config.offline = offline;
       if (isConnected) {
         config.loggerProvider.debug('Network connectivity changed to online.');
-        // No `ERR_NETWORK_CHANGED` concern on native, so flush immediately.
+        // No `ERR_NETWORK_CHANGED` on native, so flush immediately.
         void amplitude.flush();
       } else {
         config.loggerProvider.debug('Network connectivity changed to offline.');
       }
     };
 
-    // Native mode (iOS / Android): use the bridged connectivity module.
+    // Native (iOS/Android): use the bridged module.
     if (nativeModule) {
       const eventEmitter = new NativeEventEmitter(nativeModule);
-      // `startObserving` only fires on subsequent changes, so seed the initial
-      // state from the native module.
+      // `startObserving` only fires on changes, so seed the initial state.
       try {
         const status = await nativeModule.getNetworkConnectivityStatus();
         config.offline = !status.isConnected;
@@ -89,21 +82,16 @@ export const networkConnectivityCheckerPlugin = (): BeforePlugin => {
       return;
     }
 
-    // Web mode (react-native-web): fall back to `navigator.onLine` + events.
-    // Gate on `isWeb()` (not just `typeof navigator`): React Native defines a
-    // `navigator` polyfill that has no `onLine`, so on a native app where the
-    // connectivity module is missing (e.g. JS upgraded without rebuilding
-    // native, or an autolink failure) this branch would otherwise read
-    // `!navigator.onLine === !undefined === true` and wrongly pin the SDK
-    // offline forever. Offline mode is best-effort: when there's no reliable
-    // connectivity source we fall through to `offline = false` below.
+    // Web (react-native-web): use `navigator.onLine`. Gate on `isWeb()` because
+    // RN's `navigator` polyfill has no `onLine` — without this, a native app
+    // missing the module would read `!undefined === true` and pin itself offline.
     if (isWeb() && typeof navigator !== 'undefined') {
       config.offline = !navigator.onLine;
 
       addWebNetworkListener('online', () => {
         config.loggerProvider.debug('Network connectivity changed to online.');
         config.offline = false;
-        // Flushing immediately on web causes ERR_NETWORK_CHANGED, so delay it.
+        // Immediate flush on web causes ERR_NETWORK_CHANGED, so delay it.
         setTimeout(() => {
           void amplitude.flush();
         }, config.flushIntervalMillis);
@@ -116,8 +104,7 @@ export const networkConnectivityCheckerPlugin = (): BeforePlugin => {
       return;
     }
 
-    // Best-effort fallback: no reliable connectivity source (no native module,
-    // not web) → assume online so we never wrongly suppress sends.
+    // No connectivity source (no native module, not web) → assume online.
     config.loggerProvider.debug(
       'Network connectivity checker plugin found no connectivity source; defaulting to online.',
     );
