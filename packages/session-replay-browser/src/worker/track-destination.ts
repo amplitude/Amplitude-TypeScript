@@ -126,8 +126,9 @@ async function doFetch(
   } catch (e) {
     // A timeout aborts the fetch, rejecting with an AbortError. That's transient — let
     // sendWithRetry's budget retry it, mirroring the 5xx/408/429/499 path. Other errors
-    // stay non-retryable as before.
-    if (e instanceof Error && e.name === 'AbortError') {
+    // stay non-retryable as before. Browsers reject with a DOMException named 'AbortError'
+    // (not an Error instance), so match on the name rather than using `instanceof Error`.
+    if (!!e && typeof e === 'object' && (e as { name?: unknown }).name === 'AbortError') {
       return {
         shouldRetry: true,
         success: false,

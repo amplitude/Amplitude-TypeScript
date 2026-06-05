@@ -642,7 +642,11 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
       // are enabled. completeRequest fires onComplete exactly once via either branch
       // (handleOtherResponse only completes on retry exhaustion), so onComplete can't fire
       // twice. Non-abort errors keep the original complete-with-error behavior.
-      const isAbort = e instanceof Error && e.name === 'AbortError';
+      // Browsers reject an aborted fetch with a DOMException named 'AbortError', which is NOT an
+      // Error instance — an `instanceof Error` check would misroute every send-timeout abort to
+      // the fatal completeRequest path, defeating the retry. Match on the name across any thrown
+      // object (DOMException or Error) instead.
+      const isAbort = !!e && typeof e === 'object' && (e as { name?: unknown }).name === 'AbortError';
       if (isAbort && useRetry) {
         await this.handleOtherResponse(context);
       } else {
