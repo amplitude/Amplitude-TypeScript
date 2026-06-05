@@ -607,6 +607,28 @@ describe('SessionReplayTrackDestination', () => {
       // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockLoggerProvider.warn).toHaveBeenCalledWith(expect.any(Error));
     });
+
+    test('a DOMException abort (not an Error instance) is still retried when useRetry=true', async () => {
+      const trackDestination = new SessionReplayTrackDestination({ loggerProvider: mockLoggerProvider });
+      const handleOther = jest.spyOn(trackDestination, 'handleOtherResponse');
+      // Real browsers reject an aborted fetch with a DOMException named 'AbortError', which is
+      // NOT an Error instance — the retry path must still trigger instead of completing fatally.
+      (global.fetch as jest.Mock)
+        .mockImplementationOnce(
+          (_url: string, options: RequestInit) =>
+            new Promise((_resolve, reject) => {
+              options.signal?.addEventListener('abort', () => reject({ name: 'AbortError', message: 'aborted' }));
+            }),
+        )
+        .mockImplementationOnce(() => Promise.resolve({ status: 200 }));
+
+      const sendPromise = trackDestination.send(timeoutContext(), true);
+      await jest.runAllTimersAsync();
+      await sendPromise;
+
+      expect(handleOther).toHaveBeenCalledTimes(1);
+      expect(fetch).toHaveBeenCalledTimes(2);
+    });
   });
 
   describe('keepalive', () => {
