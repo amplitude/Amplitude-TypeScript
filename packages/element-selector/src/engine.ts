@@ -26,8 +26,7 @@
  *   packages/plugin-autocapture-browser/element-selector-strategy-v1-no-classes.md
  */
 
-import type { ILogger } from '@amplitude/analytics-core';
-import { ResolvedSelectorConfig, SelectorEngine } from './types';
+import { ElementSelectorLogger, ResolvedSelectorConfig, SelectorEngine } from './types';
 import { runOrchestrator, OrchestratorOptions } from './orchestrator';
 import { fallbackCssPath } from './fallback-css-path';
 
@@ -43,7 +42,7 @@ export interface CreateSelectorEngineOptions {
    * silent — preserving the legacy "fire-and-forget" semantics existing
    * consumers may rely on.
    */
-  logger?: ILogger;
+  logger?: ElementSelectorLogger;
 }
 
 /**

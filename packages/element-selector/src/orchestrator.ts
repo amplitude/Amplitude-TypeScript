@@ -23,8 +23,7 @@
  *   packages/plugin-autocapture-browser/element-selector-strategy-v1-no-classes.md
  */
 
-import type { ILogger } from '@amplitude/analytics-core';
-import { ResolvedSelectorConfig, Strategy, StrategyContext } from './types';
+import { ElementSelectorLogger, ResolvedSelectorConfig, Strategy, StrategyContext } from './types';
 import { explicitTrackingAttribute } from './strategies/explicit-tracking-attribute';
 import { stableId as stableIdStrategy } from './strategies/stable-id';
 import { describeRelative } from './helpers/describe-relative';
@@ -46,7 +45,7 @@ export interface OrchestratorOptions {
    * strategy produces a malformed selector that throws during the uniqueness
    * check — useful for diagnosing strategy bugs without crashing the engine.
    */
-  logger?: ILogger;
+  logger?: ElementSelectorLogger;
 }
 
 /**
@@ -139,7 +138,7 @@ function isUniqueMatch(
   selector: string,
   el: Element,
   strategyName: string,
-  logger?: ILogger,
+  logger?: ElementSelectorLogger,
 ): boolean {
   let matches: NodeListOf<Element>;
   try {
