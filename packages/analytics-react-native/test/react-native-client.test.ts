@@ -225,23 +225,29 @@ describe('react-native-client', () => {
   describe('network connectivity checker plugin', () => {
     const NETWORK_CHECKER_PLUGIN_NAME = '@amplitude/plugin-network-checker-react-native';
 
-    test('should install the network connectivity checker by default', async () => {
+    let installSpy: jest.SpyInstance;
+    let client: AmplitudeReactNative;
+    let addSpy: jest.SpyInstance;
+
+    beforeEach(() => {
       jest.spyOn(CookieMigration, 'parseOldCookies').mockResolvedValueOnce({ optOut: false });
-      const installSpy = jest.spyOn(NetworkChecker, 'networkConnectivityCheckerPlugin');
-      const client = new AmplitudeReactNative();
-      const addSpy = jest.spyOn(client, 'add');
+      installSpy = jest.spyOn(NetworkChecker, 'networkConnectivityCheckerPlugin');
+      client = new AmplitudeReactNative();
+      addSpy = jest.spyOn(client, 'add');
+    });
+
+    afterEach(() => {
+      installSpy.mockRestore();
+    });
+
+    test('should install the network connectivity checker by default', async () => {
       await client.init(API_KEY, USER_ID, { ...attributionConfig }).promise;
       expect(installSpy).toHaveBeenCalledTimes(1);
       // Assert it actually lands in the timeline under the expected name.
       expect(addSpy).toHaveBeenCalledWith(expect.objectContaining({ name: NETWORK_CHECKER_PLUGIN_NAME }));
-      installSpy.mockRestore();
     });
 
     test('should not install the network connectivity checker when offline is OfflineDisabled', async () => {
-      jest.spyOn(CookieMigration, 'parseOldCookies').mockResolvedValueOnce({ optOut: false });
-      const installSpy = jest.spyOn(NetworkChecker, 'networkConnectivityCheckerPlugin');
-      const client = new AmplitudeReactNative();
-      const addSpy = jest.spyOn(client, 'add');
       await client.init(API_KEY, USER_ID, {
         ...attributionConfig,
         offline: core.OfflineDisabled,
@@ -249,7 +255,6 @@ describe('react-native-client', () => {
       expect(installSpy).not.toHaveBeenCalled();
       // And it never reaches the timeline.
       expect(addSpy).not.toHaveBeenCalledWith(expect.objectContaining({ name: NETWORK_CHECKER_PLUGIN_NAME }));
-      installSpy.mockRestore();
     });
   });
 

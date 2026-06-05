@@ -48,22 +48,25 @@ export const networkConnectivityCheckerPlugin = (): BeforePlugin => {
   const setup = async (config: ReactNativeConfig, amplitude: ReactNativeClient) => {
     const nativeModule = NativeModules.AmplitudeReactNativeConnectivity as ConnectivityNativeModule | undefined;
 
-    const handleConnectivityChange = (isConnected: boolean) => {
+    const handleConnectivityChange = (isConnected: boolean, { deferFlush = false } = {}) => {
+      config.loggerProvider.debug(`Network connectivity status: ${isConnected ? 'online' : 'offline'}.`);
       const offline = !isConnected;
       if (config.offline === offline) {
         return;
       }
       config.offline = offline;
-      if (isConnected) {
-        config.loggerProvider.debug('Network connectivity changed to online.');
-        // No `ERR_NETWORK_CHANGED` on native, so flush immediately.
-        void amplitude.flush();
+      if (!isConnected) {
+        return;
+      }
+      if (deferFlush) {
+        setTimeout(() => {
+          void amplitude.flush();
+        }, config.flushIntervalMillis);
       } else {
-        config.loggerProvider.debug('Network connectivity changed to offline.');
+        void amplitude.flush();
       }
     };
 
-    // Native (iOS/Android): use the bridged module.
     if (nativeModule) {
       const eventEmitter = new NativeEventEmitter(nativeModule);
       // `startObserving` only fires on changes, so seed the initial state.
@@ -71,7 +74,7 @@ export const networkConnectivityCheckerPlugin = (): BeforePlugin => {
         const status = await nativeModule.getNetworkConnectivityStatus();
         config.offline = !status.isConnected;
       } catch (e) {
-        config.loggerProvider.debug(`Failed to read initial network connectivity status: ${String(e)}`);
+        config.loggerProvider.warn(`Failed to read initial network connectivity status: ${String(e)}`);
         config.offline = false;
       }
       subscription = eventEmitter.addListener(CONNECTIVITY_EVENT_NAME, (event: ConnectivityEvent) => {
@@ -83,33 +86,15 @@ export const networkConnectivityCheckerPlugin = (): BeforePlugin => {
     // Web (react-native-web): use `navigator.onLine`. Gate on `isWeb()` because
     // RN's `navigator` polyfill has no `onLine` — without this, a native app
     // missing the module would read `!undefined === true` and pin itself offline.
-    if (isWeb() && typeof navigator !== 'undefined') {
-      config.offline = !navigator.onLine;
-
-      addWebNetworkListener('online', () => {
-        if (config.offline === false) {
-          return;
-        }
-        config.loggerProvider.debug('Network connectivity changed to online.');
-        config.offline = false;
-        // Immediate flush on web causes ERR_NETWORK_CHANGED, so delay it.
-        setTimeout(() => {
-          void amplitude.flush();
-        }, config.flushIntervalMillis);
-      });
-
-      addWebNetworkListener('offline', () => {
-        if (config.offline === true) {
-          return;
-        }
-        config.loggerProvider.debug('Network connectivity changed to offline.');
-        config.offline = true;
-      });
+    const nav = globalScope?.navigator;
+    if (isWeb() && nav) {
+      config.offline = !nav.onLine;
+      addWebNetworkListener('online', () => handleConnectivityChange(true, { deferFlush: true }));
+      addWebNetworkListener('offline', () => handleConnectivityChange(false));
       return;
     }
 
-    // No connectivity source (no native module, not web) → assume online.
-    config.loggerProvider.debug(
+    config.loggerProvider.warn(
       'Network connectivity checker plugin found no connectivity source; defaulting to online.',
     );
     config.offline = false;

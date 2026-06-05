@@ -10,13 +10,14 @@ import { useDefaultConfig } from '../helpers/default';
 import * as platform from '../../src/utils/platform';
 
 /**
- * A controllable stand-in for the web global scope so the web-fallback path can
- * be exercised under both the node (test:mobile) and jsdom (test:web) suites.
+ * A controllable stand-in for the web global scope so the web-mode path can be
+ * exercised under both the node (test:mobile) and jsdom (test:web) suites.
  */
-const createFakeGlobalScope = () => {
+const createFakeGlobalScope = (navigator?: { onLine: boolean }) => {
   const handlers: Record<string, Array<() => void>> = {};
   return {
     scope: {
+      navigator,
       addEventListener: jest.fn((type: string, handler: () => void) => {
         (handlers[type] = handlers[type] || []).push(handler);
       }),
@@ -59,12 +60,20 @@ describe('networkConnectivityCheckerPlugin', () => {
   });
 
   describe('native mode', () => {
+    let config: ReturnType<typeof useDefaultConfig>;
+    let amplitude: ReactNativeClient;
+    let plugin: ReturnType<typeof networkConnectivityCheckerPlugin>;
+
+    beforeEach(() => {
+      config = useDefaultConfig();
+      amplitude = createAmplitudeMock();
+      plugin = networkConnectivityCheckerPlugin();
+    });
+
     test('seeds initial offline state from the native module (online)', async () => {
       connectivityModule.getNetworkConnectivityStatus.mockResolvedValueOnce({ isConnected: true });
-      const config = useDefaultConfig();
-      const plugin = networkConnectivityCheckerPlugin();
 
-      await plugin.setup?.(config, createAmplitudeMock());
+      await plugin.setup?.(config, amplitude);
 
       expect(connectivityModule.getNetworkConnectivityStatus).toHaveBeenCalledTimes(1);
       expect(config.offline).toBe(false);
@@ -72,28 +81,22 @@ describe('networkConnectivityCheckerPlugin', () => {
 
     test('seeds initial offline state from the native module (offline)', async () => {
       connectivityModule.getNetworkConnectivityStatus.mockResolvedValueOnce({ isConnected: false });
-      const config = useDefaultConfig();
-      const plugin = networkConnectivityCheckerPlugin();
 
-      await plugin.setup?.(config, createAmplitudeMock());
+      await plugin.setup?.(config, amplitude);
 
       expect(config.offline).toBe(true);
     });
 
     test('defaults to online if the initial status read rejects', async () => {
       connectivityModule.getNetworkConnectivityStatus.mockRejectedValueOnce(new Error('boom'));
-      const config = useDefaultConfig();
-      const plugin = networkConnectivityCheckerPlugin();
 
-      await plugin.setup?.(config, createAmplitudeMock());
+      await plugin.setup?.(config, amplitude);
 
       expect(config.offline).toBe(false);
     });
 
     test('toggles config.offline on connectivity events', async () => {
-      const config = useDefaultConfig();
-      const plugin = networkConnectivityCheckerPlugin();
-      await plugin.setup?.(config, createAmplitudeMock());
+      await plugin.setup?.(config, amplitude);
       expect(config.offline).toBe(false);
 
       DeviceEventEmitter.emit(CONNECTIVITY_EVENT_NAME, { isConnected: false });
@@ -104,9 +107,6 @@ describe('networkConnectivityCheckerPlugin', () => {
     });
 
     test('flushes immediately on reconnect', async () => {
-      const config = useDefaultConfig();
-      const amplitude = createAmplitudeMock();
-      const plugin = networkConnectivityCheckerPlugin();
       await plugin.setup?.(config, amplitude);
 
       DeviceEventEmitter.emit(CONNECTIVITY_EVENT_NAME, { isConnected: false });
@@ -116,9 +116,6 @@ describe('networkConnectivityCheckerPlugin', () => {
     });
 
     test('ignores repeated same-state events (no redundant flush)', async () => {
-      const config = useDefaultConfig();
-      const amplitude = createAmplitudeMock();
-      const plugin = networkConnectivityCheckerPlugin();
       await plugin.setup?.(config, amplitude);
 
       // Already online from the initial seed; repeated "online" events are no-ops.
@@ -136,9 +133,7 @@ describe('networkConnectivityCheckerPlugin', () => {
     });
 
     test('teardown removes the native subscription', async () => {
-      const config = useDefaultConfig();
-      const plugin = networkConnectivityCheckerPlugin();
-      await plugin.setup?.(config, createAmplitudeMock());
+      await plugin.setup?.(config, amplitude);
 
       await plugin.teardown?.();
 
@@ -150,11 +145,11 @@ describe('networkConnectivityCheckerPlugin', () => {
   });
 
   /*
-   * Web fallback exercises `navigator.onLine` + online/offline events. The
-   * global scope and navigator are mocked so this runs under both the node
-   * (test:mobile) and jsdom (test:web) suites.
+   * Web mode uses `navigator.onLine` + online/offline events. The global scope
+   * and navigator are mocked so this runs under both the node (test:mobile) and
+   * jsdom (test:web) suites.
    */
-  describe('web fallback', () => {
+  describe('web mode', () => {
     let originalModule: unknown;
 
     beforeEach(() => {
@@ -172,102 +167,91 @@ describe('networkConnectivityCheckerPlugin', () => {
     });
 
     test('tracks navigator.onLine and online/offline events', async () => {
-      const { scope, trigger } = createFakeGlobalScope();
+      const { scope, trigger } = createFakeGlobalScope({ onLine: true });
       jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue(scope);
 
-      await withNavigator({ onLine: true }, async () => {
-        const config = useDefaultConfig();
-        const amplitude = createAmplitudeMock();
-        const plugin = networkConnectivityCheckerPlugin();
+      const config = useDefaultConfig();
+      const amplitude = createAmplitudeMock();
+      const plugin = networkConnectivityCheckerPlugin();
 
-        await plugin.setup?.(config, amplitude);
+      await plugin.setup?.(config, amplitude);
 
-        expect(config.offline).toBe(false);
-        expect(scope.addEventListener).toHaveBeenCalledWith('online', expect.any(Function));
-        expect(scope.addEventListener).toHaveBeenCalledWith('offline', expect.any(Function));
+      expect(config.offline).toBe(false);
+      expect(scope.addEventListener).toHaveBeenCalledWith('online', expect.any(Function));
+      expect(scope.addEventListener).toHaveBeenCalledWith('offline', expect.any(Function));
 
-        trigger('offline');
-        expect(config.offline).toBe(true);
+      trigger('offline');
+      expect(config.offline).toBe(true);
 
-        jest.useFakeTimers();
-        trigger('online');
-        expect(config.offline).toBe(false);
-        // Web fallback delays the flush by flushIntervalMillis to avoid
-        // ERR_NETWORK_CHANGED.
-        expect(amplitude.flush).not.toHaveBeenCalled();
-        jest.advanceTimersByTime(config.flushIntervalMillis);
-        expect(amplitude.flush).toHaveBeenCalledTimes(1);
-        jest.useRealTimers();
-      });
+      jest.useFakeTimers();
+      trigger('online');
+      expect(config.offline).toBe(false);
+      // Web mode delays the flush by flushIntervalMillis to avoid ERR_NETWORK_CHANGED.
+      expect(amplitude.flush).not.toHaveBeenCalled();
+      jest.advanceTimersByTime(config.flushIntervalMillis);
+      expect(amplitude.flush).toHaveBeenCalledTimes(1);
+      jest.useRealTimers();
     });
 
     test('ignores online events while already online (no redundant flush)', async () => {
-      const { scope, trigger } = createFakeGlobalScope();
+      const { scope, trigger } = createFakeGlobalScope({ onLine: true });
       jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue(scope);
 
-      await withNavigator({ onLine: true }, async () => {
-        const config = useDefaultConfig();
-        const amplitude = createAmplitudeMock();
-        const plugin = networkConnectivityCheckerPlugin();
+      const config = useDefaultConfig();
+      const amplitude = createAmplitudeMock();
+      const plugin = networkConnectivityCheckerPlugin();
 
-        await plugin.setup?.(config, amplitude);
-        expect(config.offline).toBe(false);
+      await plugin.setup?.(config, amplitude);
+      expect(config.offline).toBe(false);
 
-        jest.useFakeTimers();
-        trigger('online');
-        trigger('online');
-        jest.advanceTimersByTime(config.flushIntervalMillis);
-        expect(amplitude.flush).not.toHaveBeenCalled();
-        jest.useRealTimers();
-      });
+      jest.useFakeTimers();
+      trigger('online');
+      trigger('online');
+      jest.advanceTimersByTime(config.flushIntervalMillis);
+      expect(amplitude.flush).not.toHaveBeenCalled();
+      jest.useRealTimers();
     });
 
-    test('ignores offline events while already offline (no redundant work)', async () => {
-      const { scope, trigger } = createFakeGlobalScope();
+    test('stays offline on repeated offline events (no flush)', async () => {
+      const { scope, trigger } = createFakeGlobalScope({ onLine: false });
       jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue(scope);
 
-      await withNavigator({ onLine: false }, async () => {
-        const config = useDefaultConfig();
-        const plugin = networkConnectivityCheckerPlugin();
+      const config = useDefaultConfig();
+      const amplitude = createAmplitudeMock();
+      const plugin = networkConnectivityCheckerPlugin();
 
-        await plugin.setup?.(config, createAmplitudeMock());
-        expect(config.offline).toBe(true);
+      await plugin.setup?.(config, amplitude);
+      expect(config.offline).toBe(true);
 
-        const debugSpy = jest.spyOn(config.loggerProvider, 'debug');
-        trigger('offline');
-        trigger('offline');
-        expect(config.offline).toBe(true);
-        expect(debugSpy).not.toHaveBeenCalled();
-      });
+      trigger('offline');
+      trigger('offline');
+      expect(config.offline).toBe(true);
+      expect(amplitude.flush).not.toHaveBeenCalled();
     });
 
     test('sets offline true when navigator starts offline', async () => {
-      const { scope } = createFakeGlobalScope();
+      const { scope } = createFakeGlobalScope({ onLine: false });
       jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue(scope);
 
-      await withNavigator({ onLine: false }, async () => {
-        const config = useDefaultConfig();
-        const plugin = networkConnectivityCheckerPlugin();
+      const config = useDefaultConfig();
+      const plugin = networkConnectivityCheckerPlugin();
 
-        await plugin.setup?.(config, createAmplitudeMock());
+      await plugin.setup?.(config, createAmplitudeMock());
 
-        expect(config.offline).toBe(true);
-      });
+      expect(config.offline).toBe(true);
     });
 
     test('teardown removes web listeners', async () => {
-      const { scope } = createFakeGlobalScope();
+      const { scope } = createFakeGlobalScope({ onLine: true });
       jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue(scope);
 
-      await withNavigator({ onLine: true }, async () => {
-        const plugin = networkConnectivityCheckerPlugin();
+      const plugin = networkConnectivityCheckerPlugin();
 
-        await plugin.setup?.(useDefaultConfig(), createAmplitudeMock());
-        await plugin.teardown?.();
+      await plugin.setup?.(useDefaultConfig(), createAmplitudeMock());
+      await plugin.teardown?.();
 
-        expect(scope.removeEventListener).toHaveBeenCalledWith('online', expect.any(Function));
-        expect(scope.removeEventListener).toHaveBeenCalledWith('offline', expect.any(Function));
-      });
+      expect(scope.removeEventListener).toHaveBeenCalledWith('online', expect.any(Function));
+      expect(scope.removeEventListener).toHaveBeenCalledWith('offline', expect.any(Function));
     });
   });
 
