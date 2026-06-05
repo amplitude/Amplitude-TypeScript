@@ -13,22 +13,11 @@ import * as CookieMigration from '../../src/cookie-migration';
 describe('offline mode integration', () => {
   const API_KEY = 'API_KEY';
 
-  // Run pending fake timers and flush microtasks in lockstep, repeatedly, to
-  // drive the Timeline's async `setTimeout(0)` apply chain to completion under
-  // fake timers (the async timer helpers can't be used in the RN jest env).
-  const drainTimers = async () => {
-    for (let i = 0; i < 20; i++) {
-      jest.runOnlyPendingTimers();
-      await Promise.resolve();
-    }
-  };
-
   const connectivityModule = NativeModules.AmplitudeReactNativeConnectivity as {
     getNetworkConnectivityStatus: jest.Mock;
   };
 
   afterEach(() => {
-    jest.useRealTimers();
     jest.clearAllMocks();
     connectivityModule.getNetworkConnectivityStatus.mockResolvedValue({ isConnected: true });
     DeviceEventEmitter.removeAllListeners(CONNECTIVITY_EVENT_NAME);
@@ -52,6 +41,20 @@ describe('offline mode integration', () => {
     });
     const transportProvider: Transport = { send };
     const storageProvider = new MemoryStorage<Event[]>();
+    const storageKey = `${STORAGE_PREFIX}_${API_KEY.substring(0, 10)}`;
+
+    // Resolves once both offline events have been persisted. The Destination
+    // calls storageProvider.set() as it queues each event, so awaiting this is
+    // deterministic — no fixed delay or timer polling needed.
+    const realSet = storageProvider.set.bind(storageProvider);
+    const bothEventsPersisted = new Promise<void>((resolve) => {
+      jest.spyOn(storageProvider, 'set').mockImplementation(async (key, value) => {
+        await realSet(key, value);
+        if (value.length === 2) {
+          resolve();
+        }
+      });
+    });
 
     const client = new AmplitudeReactNative();
     await client.init(API_KEY, undefined, {
@@ -68,21 +71,14 @@ describe('offline mode integration', () => {
 
     // Track events while offline; their promises won't resolve until flushed,
     // so don't await them here.
-    jest.useFakeTimers();
     void client.track('event_while_offline_1').promise;
     void client.track('event_while_offline_2').promise;
-    // Deterministically drain the Timeline instead of waiting a fixed delay.
-    // The Timeline applies events via a chain of `setTimeout(0)` callbacks, each
-    // awaiting async plugin work. The react-native jest environment can't use the
-    // async timer helpers (they deadlock on its `setImmediate` polyfill), so
-    // alternate running pending timers with microtask flushes.
-    await drainTimers();
-    jest.useRealTimers();
+    await bothEventsPersisted;
 
     // Nothing is sent while offline, and the queue is persisted.
     await client.flush().promise;
     expect(send).not.toHaveBeenCalled();
-    const queued = await storageProvider.get(`${STORAGE_PREFIX}_${API_KEY.substring(0, 10)}`);
+    const queued = await storageProvider.get(storageKey);
     expect(queued?.length).toBe(2);
 
     // Reconnect → plugin flips config.offline=false and flushes immediately.
@@ -95,7 +91,7 @@ describe('offline mode integration', () => {
     );
 
     // Storage queue drains after a successful flush.
-    const remaining = await storageProvider.get(`${STORAGE_PREFIX}_${API_KEY.substring(0, 10)}`);
+    const remaining = await storageProvider.get(storageKey);
     expect(remaining ?? []).toEqual([]);
 
     client.shutdown();
