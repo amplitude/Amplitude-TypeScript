@@ -20,15 +20,35 @@ const config: SessionReplayConfig = {
     enableRemoteConfig: true, // default true
     sampleRate: 1, // default 0
     logLevel: LogLevel.Warn, // default LogLevel.Warn
+    privacyConfig: { maskLevel: 'medium' }, // 'medium' is the default
 };
 await init('YOUR_API_KEY').promise;
 await add(new SessionReplayPlugin(config)).promise;
 
 ```
 
+## Mask levels
+
+Control how aggressively Session Replay masks sensitive content via the `privacyConfig.maskLevel` config option:
+
+| Value | What gets masked |
+|---|---|
+| `'light'` | Password and phone-number `<TextInput>` fields only |
+| `'medium'` (default) | All `<TextInput>` fields |
+| `'conservative'` | All `<TextInput>` fields **and** all `<Text>` elements |
+
+```js
+import { SessionReplayPlugin } from '@amplitude/plugin-session-replay-react-native';
+
+const config: SessionReplayConfig = {
+    privacyConfig: { maskLevel: 'conservative' }, // mask all text and inputs
+};
+```
+
+> **Note:** Third-party text renderers that bypass UIKit/Android's standard text views (for example `react-native-svg`, `@shopify/react-native-skia`) are not detected by automatic masking. Wrap such content in `<AmpMaskView mask="amp-mask">` to mask it manually.
 
 ## Masking views
-To maks certain views, add the `AmpMaskView` tag with the mask property `amp-mask` around the section to be masked
+To mask certain views, add the `AmpMaskView` tag with the mask property `amp-mask` around the section to be masked
 
 ```js
 import { AmpMaskView } from '@amplitude/plugin-session-replay-react-native';

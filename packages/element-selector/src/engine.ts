@@ -77,8 +77,8 @@ export function createSelectorEngine(
         return composed;
       }
       // Strategy chain found nothing usable — fall back to the hardened
-      // positional walker.
-      return fallbackCssPath(el, config);
+      // positional walker with the same scope used by the orchestrator.
+      return fallbackCssPath(el, config, { scope: options.scope ?? el.ownerDocument ?? document });
     },
 
     getConfig(): Readonly<ResolvedSelectorConfig> {
