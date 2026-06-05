@@ -1,10 +1,4 @@
-import {
-  getGlobalScope,
-  BeforePlugin,
-  ReactNativeClient,
-  ReactNativeConfig,
-  OfflineDisabled,
-} from '@amplitude/analytics-core';
+import { getGlobalScope, BeforePlugin, ReactNativeClient, ReactNativeConfig } from '@amplitude/analytics-core';
 import { NativeModules, NativeEventEmitter, EmitterSubscription } from 'react-native';
 import { isWeb } from '../utils/platform';
 
@@ -31,11 +25,6 @@ interface WebEventListener {
   handler: () => void;
 }
 
-// `offline` is intentionally omitted from the public `ReactNativeConfig` type,
-// but it exists on the underlying core `Config` instance at runtime and is what
-// the shared `Destination` plugin reads to short-circuit network requests.
-type OfflineConfig = ReactNativeConfig & { offline?: boolean | typeof OfflineDisabled };
-
 export const networkConnectivityCheckerPlugin = (): BeforePlugin => {
   const name = '@amplitude/plugin-network-checker-react-native';
   const type = 'before' as const;
@@ -60,7 +49,7 @@ export const networkConnectivityCheckerPlugin = (): BeforePlugin => {
     webEventListeners = [];
   };
 
-  const setup = async (config: OfflineConfig, amplitude: ReactNativeClient) => {
+  const setup = async (config: ReactNativeConfig, amplitude: ReactNativeClient) => {
     const nativeModule = NativeModules.AmplitudeReactNativeConnectivity as ConnectivityNativeModule | undefined;
 
     // Apply a connectivity change. Comparing against the current `config.offline`

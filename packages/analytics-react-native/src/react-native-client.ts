@@ -82,7 +82,7 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
     // Install the network connectivity checker before Destination so that
     // `config.offline` is set before any flush is scheduled. Skip when offline
     // mode has been explicitly disabled via the OfflineDisabled sentinel.
-    if ((this.config as { offline?: boolean | typeof OfflineDisabled }).offline !== OfflineDisabled) {
+    if (this.config.offline !== OfflineDisabled) {
       await this.add(networkConnectivityCheckerPlugin()).promise;
     }
     await this.add(new Destination()).promise;
