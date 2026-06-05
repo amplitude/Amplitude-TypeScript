@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.44.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.44.0...@amplitude/session-replay-browser@1.44.1) (2026-06-05)
+
+
+### Bug Fixes
+
+* **session-replay:** add compression enabled config ([#1786](https://github.com/amplitude/Amplitude-TypeScript/issues/1786)) ([96ca226](https://github.com/amplitude/Amplitude-TypeScript/commit/96ca2265cb44db3e92ba32ac918ce8a5b7c7afc7))
+
+
+
+
+
 # [1.44.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.43.0...@amplitude/session-replay-browser@1.44.0) (2026-05-21)
 
 
