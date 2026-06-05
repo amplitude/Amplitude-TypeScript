@@ -176,9 +176,15 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
    * lands in the queue before the flag is consumed — collapsing N small POSTs into far fewer
    * and avoiding the request flood observed on page load (SR-4660). Steady-state live capture
    * never sets this flag, so its sending behavior is unchanged.
+   *
+   * Schedules a flush so the flag is always consumed by the next flush, even when every
+   * backlog sequence is dropped before reaching the queue (e.g. all events oversized) and no
+   * enqueue schedules one itself. Otherwise the flag would stick and a later unrelated live
+   * flush could coalesce live batches as if they were a page-load drain.
    */
   markCoalesceNextFlush() {
     this.coalesceNextFlush = true;
+    this.schedule(0);
   }
 
   /**
