@@ -287,6 +287,31 @@ describe('createEventsManager', () => {
         cleanUpError,
       );
     });
+
+    test('uses a lowered maxSingleEventSizeBytes as the pre-send drop threshold', async () => {
+      const smallCapConfig = new SessionReplayLocalConfig('static_key', {
+        loggerProvider: mockLoggerProvider,
+        sampleRate: 1,
+        maxSingleEventSizeBytes: 1_000,
+      });
+      // ~2 KB event: under the 9 MB default but over the 1 KB override.
+      const mediumEvent = 'y'.repeat(2_000);
+      (mockIDBStore.getSequencesToSend as jest.Mock).mockResolvedValue([
+        { events: [mockEventString, mediumEvent], sequenceId: 1, sessionId: 123 },
+      ]);
+      const eventsManager = await createEventsManager<'replay'>({
+        config: smallCapConfig,
+        type: 'replay',
+        storeType: 'idb',
+      });
+      await eventsManager.sendStoredEvents({ deviceId: '1a2b3c' });
+      jest.runAllTimers();
+
+      const trackDestinationInstance = (SessionReplayTrackDestination as jest.Mock).mock.instances[0];
+      const mockSendEventsList = trackDestinationInstance.sendEventsList;
+      expect(mockLoggerProvider.warn).toHaveBeenCalledWith(expect.stringContaining('oversized'));
+      expect(mockSendEventsList).toHaveBeenCalledWith(expect.objectContaining({ events: [mockEventString] }));
+    });
   });
 
   describe('addEvent', () => {

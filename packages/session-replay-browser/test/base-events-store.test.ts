@@ -74,6 +74,28 @@ describe('BaseEventsStore', () => {
     });
   });
 
+  describe('maxPersistedEventsSize threshold', () => {
+    test('splits when the buffered list reaches the configured byte cap', () => {
+      // cap = 1000. One 996-byte ASCII event + overhead(2) = 998 < 1000 → no split.
+      // Adding another 996-byte event would push well past 1000 → split.
+      const store = new InMemoryEventsStore({
+        loggerProvider: mockLoggerProvider,
+        maxPersistedEventsSize: 1_000,
+      });
+      const event = 'a'.repeat(996);
+      expect(store.shouldSplitEventsList([], event)).toBe(false);
+      expect(store.shouldSplitEventsList([event], event)).toBe(true);
+    });
+
+    test('does not split a small event under the default cap when omitted', () => {
+      // Default MAX_EVENT_LIST_SIZE (700 KB) — a tiny event is nowhere near it.
+      const store = new InMemoryEventsStore({
+        loggerProvider: mockLoggerProvider,
+      });
+      expect(store.shouldSplitEventsList([], 'small-event')).toBe(false);
+    });
+  });
+
   test('should split based on time', async () => {
     jest.useFakeTimers().setSystemTime(Date.now());
     const store = new InMemoryEventsStore({
