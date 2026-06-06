@@ -177,6 +177,14 @@ jobs:
         env:
           S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
 
+      # Report bundle size to Amplitude
+      - name: Report bundle size to Amplitude
+        continue-on-error: true
+        env:
+          AMPLITUDE_API_KEY: ${{ secrets.AMPLITUDE_API_KEY }}
+        run: |
+          node ./scripts/report-bundle-size.js
+
   prerelease:
     name: Prerelease feature branch
     runs-on: ubuntu-latest
