@@ -1,15 +1,18 @@
 import { SourceMapConsumer } from 'source-map';
 import https from 'https';
+import { configurePrivateNetworkAccessCorsMiddleware } from './private-network-access-cors.js';
 
 // Mock API endpoints for Vite dev server
 export function createMockApi() {
   return {
     name: 'mock-api',
     configureServer(server) {
+      configurePrivateNetworkAccessCorsMiddleware(server.middlewares);
       configureMockApiMiddleware(server.middlewares);
       configureUnminifyMiddleware(server.middlewares);
     },
     configurePreviewServer(server) {
+      configurePrivateNetworkAccessCorsMiddleware(server.middlewares);
       configureMockApiMiddleware(server.middlewares);
       configureUnminifyMiddleware(server.middlewares);
     }
