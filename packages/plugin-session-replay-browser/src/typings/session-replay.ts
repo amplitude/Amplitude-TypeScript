@@ -189,4 +189,20 @@ export interface SessionReplayOptions {
    * @see {@link StandaloneSessionReplayOptions.flushIntervalConfig}
    */
   flushIntervalConfig?: FlushIntervalConfig;
+  /**
+   * @see {@link StandaloneSessionReplayOptions.eagerFullSnapshotSend}
+   */
+  eagerFullSnapshotSend?: boolean;
+  /**
+   * @see {@link StandaloneSessionReplayOptions.captureFullSnapshotOnFocus}
+   */
+  captureFullSnapshotOnFocus?: boolean;
+  /**
+   * @see {@link StandaloneSessionReplayOptions.maxPersistedEventsSizeBytes}
+   */
+  maxPersistedEventsSizeBytes?: number;
+  /**
+   * @see {@link StandaloneSessionReplayOptions.maxSingleEventSizeBytes}
+   */
+  maxSingleEventSizeBytes?: number;
 }
