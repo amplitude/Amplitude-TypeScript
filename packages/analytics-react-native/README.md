@@ -173,4 +173,3 @@ import { reset } from '@amplitude/analytics-react-native';
 reset();
 ```
 
-<!-- SDKRN-28: temporary touch to put this package in the nx "affected" set so the New Architecture smoke matrix in rn-smoke.yml runs. Revert before merge. -->
