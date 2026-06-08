@@ -77,6 +77,26 @@ cd examples/react-native/app
 maestro test .maestro/smoke.yaml
 ```
 
+# New Architecture (Fabric/TurboModules)
+
+CI builds and smoke-tests this app on both the legacy and the New Architecture
+(see [CI](#ci)) to confirm the SDK's legacy-bridge native modules load through
+the New Architecture interop layer without crashing the app. To build with the
+New Architecture enabled locally:
+
+```bash
+# iOS — regenerate Pods with codegen, then build & run
+cd examples/react-native/app/ios
+RCT_NEW_ARCH_ENABLED=1 bundle exec pod install
+cd .. && pnpm ios
+
+# Android — set newArchEnabled=true in android/gradle.properties, then `pnpm android`
+```
+
+Switching architecture regenerates `Pods/`; if a later build fails on missing
+Yoga headers, wipe `ios/Pods ios/build` and re-run `pod install` (see
+[Troubleshooting](#troubleshooting)).
+
 # Monorepo notes
 
 Three pieces make the workspace setup work — keep them in sync if you change any of them:
@@ -89,7 +109,7 @@ The app is registered as a workspace package in [`pnpm-workspace.yaml`](../../..
 
 # CI
 
-Pull requests run an iOS Maestro smoke test via [`.github/workflows/rn-smoke.yml`](../../../.github/workflows/rn-smoke.yml) on `macos-14` with an iPhone 15 simulator. If a local build fails, the workflow is the canonical reproduction — its step order matches this README.
+Pull requests run the iOS Maestro smoke test via [`.github/workflows/rn-smoke.yml`](../../../.github/workflows/rn-smoke.yml) on `macos-14` with an iPhone 15 simulator, once per architecture (old-arch and New Architecture) via a build matrix. If a local build fails, the workflow is the canonical reproduction — its step order matches this README.
 
 # Troubleshooting
 
