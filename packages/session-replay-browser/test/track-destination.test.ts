@@ -1,6 +1,7 @@
 import * as AnalyticsCore from '@amplitude/analytics-core';
 import { ILogger, ServerZone } from '@amplitude/analytics-core';
 import { SessionReplayDestinationContext } from 'src/typings/session-replay';
+import { MERGE_AFTER_THROTTLE_SOFT_CAP } from '../src/constants';
 import { SessionReplayTrackDestination } from '../src/track-destination';
 import { VERSION } from '../src/version';
 
@@ -1151,8 +1152,9 @@ describe('SessionReplayTrackDestination', () => {
       const trackDestination = new SessionReplayTrackDestination({ loggerProvider: mockLoggerProvider });
       const sendSpy = jest.spyOn(trackDestination, 'send').mockResolvedValue(undefined);
 
-      // Each context is just under the cap; together they exceed it. Expect a split into 3.
-      const big = 'x'.repeat(800_000); // > MERGE_AFTER_THROTTLE_SOFT_CAP / 2 (= 700_000)
+      // Each context is just over half the cap, so any two together exceed it. Expect a split
+      // into 3. Derived from the constant so it tracks MAX_EVENT_LIST_SIZE changes.
+      const big = 'x'.repeat(Math.floor(MERGE_AFTER_THROTTLE_SOFT_CAP / 2) + 100_000);
       trackDestination.queue = [baseCtx({ events: [big] }), baseCtx({ events: [big] }), baseCtx({ events: [big] })];
       (trackDestination as any).mergeOnNextFlush = true;
 
