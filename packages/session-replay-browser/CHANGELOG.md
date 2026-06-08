@@ -3,6 +3,29 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.45.0-sr-perf-reliability-rc2.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.44.1...@amplitude/session-replay-browser@1.45.0-sr-perf-reliability-rc2.0) (2026-06-08)
+
+
+### Bug Fixes
+
+* **session-replay-browser:** add request timeout/AbortController to send path ([84b65c7](https://github.com/amplitude/Amplitude-TypeScript/commit/84b65c70026071cef62eb6f94a4c62669dfb0899))
+* **session-replay-browser:** preserve object-form style diffs when coalescing ([ad27b32](https://github.com/amplitude/Amplitude-TypeScript/commit/ad27b329dc63489f06d51aa69bafae1319df1ce3))
+* **session-replay-browser:** restore 2 MB MAX_EVENT_LIST_SIZE default ([bb0465d](https://github.com/amplitude/Amplitude-TypeScript/commit/bb0465dd4efc5a3e0a6805d1cf58ba512e90f8d7))
+* **session-replay:** consume coalesce flag even when drain enqueues nothing ([44b050e](https://github.com/amplitude/Amplitude-TypeScript/commit/44b050ef12d5da5826a0166ffd5248b8c1bdd8e3))
+* **session-replay:** detect aborted fetch via DOMException name ([fe4b4b1](https://github.com/amplitude/Amplitude-TypeScript/commit/fe4b4b170b12f65cd5f99cd7351a54632ad1780b))
+* **session-replay:** settle late worker completions after send timeout ([7c8d208](https://github.com/amplitude/Amplitude-TypeScript/commit/7c8d2082168ad2031e489618602c8285721f5878))
+
+
+### Features
+
+* **session-replay-browser:** add eager send, focus snapshot, and max event size knobs ([56b0cf4](https://github.com/amplitude/Amplitude-TypeScript/commit/56b0cf4c8c9514742f544df72bf1f71bb084b7f8))
+* **session-replay-browser:** coalesce persisted-sequence page-load backlog drain ([3af50e4](https://github.com/amplitude/Amplitude-TypeScript/commit/3af50e420f55f288ff92d2fea9cea6ca0d2fa260))
+* **session-replay-browser:** coalesce style attribute mutations when merging ([9468770](https://github.com/amplitude/Amplitude-TypeScript/commit/9468770a6efdadc56cfd2f1e9dfcc4624dbaf573))
+
+
+
+
+
 ## [1.44.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.44.0...@amplitude/session-replay-browser@1.44.1) (2026-06-05)
 
 

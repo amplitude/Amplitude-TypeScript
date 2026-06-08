@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.32.0-sr-perf-reliability-rc2.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@1.31.1...@amplitude/plugin-session-replay-browser@1.32.0-sr-perf-reliability-rc2.0) (2026-06-08)
+
+
+### Features
+
+* **plugin-session-replay-browser:** forward GA perf knobs to standalone SDK ([ce91c67](https://github.com/amplitude/Amplitude-TypeScript/commit/ce91c67f075796b7eea3b4579227373a2641b6e3))
+* **session-replay-browser:** coalesce style attribute mutations when merging ([9468770](https://github.com/amplitude/Amplitude-TypeScript/commit/9468770a6efdadc56cfd2f1e9dfcc4624dbaf573))
+
+
+
+
+
 ## [1.31.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@1.31.0...@amplitude/plugin-session-replay-browser@1.31.1) (2026-06-05)
 
 **Note:** Version bump only for package @amplitude/plugin-session-replay-browser
