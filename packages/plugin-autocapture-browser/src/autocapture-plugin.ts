@@ -63,6 +63,12 @@ declare global {
 }
 
 type BrowserEnrichmentPlugin = EnrichmentPlugin<BrowserClient, BrowserConfig>;
+type ElementSelectorPublicSurface = {
+  generate: (el: Element) => string;
+  getConfig: () => Readonly<ResolvedSelectorConfig>;
+  onConfigChange: (cb: (config: ResolvedSelectorConfig) => void) => () => void;
+};
+type BrowserClientWithElementSelector = BrowserClient & { elementSelector?: unknown };
 
 export type AutoCaptureOptionsWithDefaults = Required<
   Pick<ElementInteractionsOptions, 'debounceTime' | 'cssSelectorAllowlist' | 'actionClickAllowlist'>
@@ -284,8 +290,17 @@ export const autocapturePlugin = (
         // TODO(xinyi): Diagnostics.recordEvent
         config.loggerProvider.debug('Remote config client is not provided, skipping remote config fetch');
       } else {
-        config.remoteConfigClient.subscribe('configs.analyticsSDK.pageActions', 'all', (remoteConfig) => {
-          recomputePageActionsData(remoteConfig as ElementInteractionsOptions['pageActions']);
+        const pageActionsSubscriptionId = config.remoteConfigClient.subscribe(
+          'configs.analyticsSDK.pageActions',
+          'all',
+          (remoteConfig) => {
+            recomputePageActionsData(remoteConfig as ElementInteractionsOptions['pageActions']);
+          },
+        );
+        subscriptions.push({
+          unsubscribe: () => {
+            config.remoteConfigClient?.unsubscribe(pageActionsSubscriptionId);
+          },
         });
       }
     }
@@ -319,15 +334,28 @@ export const autocapturePlugin = (
     //     should mutate the engine's config, and only via the remote-config
     //     subscription below. Consumers that need live updates use
     //     `onConfigChange`.
-    /* istanbul ignore next */
-    (amplitude as unknown as { elementSelector?: unknown }).elementSelector = {
+    const elementSelectorClient = amplitude as BrowserClientWithElementSelector;
+    const hadPreviousElementSelector = Object.prototype.hasOwnProperty.call(elementSelectorClient, 'elementSelector');
+    const previousElementSelector = elementSelectorClient.elementSelector;
+    const elementSelectorSurface: ElementSelectorPublicSurface = {
       generate: (el: Element): string => selectorEngine.generate(el),
       getConfig: () => selectorEngine.getConfig(),
       onConfigChange: (cb: (config: ResolvedSelectorConfig) => void): (() => void) => selectorEngine.onConfigChange(cb),
     };
+    /* istanbul ignore next */
+    elementSelectorClient.elementSelector = elementSelectorSurface;
+    subscriptions.push({
+      unsubscribe: () => {
+        if (hadPreviousElementSelector) {
+          elementSelectorClient.elementSelector = previousElementSelector;
+        } else {
+          delete elementSelectorClient.elementSelector;
+        }
+      },
+    });
 
     if (config.fetchRemoteConfig && config.remoteConfigClient) {
-      config.remoteConfigClient.subscribe(
+      const elementSelectorSubscriptionId = config.remoteConfigClient.subscribe(
         'configs.analyticsSDK.autocapture.elementSelector',
         'all',
         (remoteSelectorConfig) => {
@@ -338,6 +366,11 @@ export const autocapturePlugin = (
           selectorEngine.updateConfig(nextResolved);
         },
       );
+      subscriptions.push({
+        unsubscribe: () => {
+          config.remoteConfigClient?.unsubscribe(elementSelectorSubscriptionId);
+        },
+      });
     }
 
     // Create should track event functions the different allowlists
