@@ -17,6 +17,8 @@ import {
   PrivacyConfig,
   SessionReplayPerformanceConfig,
   SessionReplayVersion,
+  SessionReplaySendEventsHandler,
+  SessionReplayFetchConfigHandler,
 } from './types';
 import { SafeLoggerProvider } from '../logger';
 import { validateUGCFilterRules } from '../helpers';
@@ -50,6 +52,8 @@ export class SessionReplayLocalConfig extends Config implements ISessionReplayLo
   crossOriginIframes?: CrossOriginIframesConfig;
   fullSnapshotIntervalMs?: number;
   flushIntervalConfig?: FlushIntervalConfig;
+  handleSendEvents?: SessionReplaySendEventsHandler;
+  handleFetchConfig?: SessionReplayFetchConfigHandler;
 
   constructor(apiKey: string, options: SessionReplayOptions) {
     const defaultConfig = getDefaultConfig();
@@ -115,6 +119,8 @@ export class SessionReplayLocalConfig extends Config implements ISessionReplayLo
     if (options.flushIntervalConfig) {
       this.flushIntervalConfig = sanitizeFlushIntervalConfig(options.flushIntervalConfig, this.loggerProvider);
     }
+    this.handleSendEvents = options.handleSendEvents;
+    this.handleFetchConfig = options.handleFetchConfig;
   }
 }
 

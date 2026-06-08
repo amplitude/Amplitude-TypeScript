@@ -92,6 +92,64 @@ export type UGCFilterRule = {
   replacement: string;
 };
 
+/**
+ * The fully-formed request the SDK hands to a custom `handleSendEvents` transport when
+ * uploading recorded replay events. The callback's only job is to execute this request and
+ * return the resulting `Response`; the SDK owns batching, retry, serialization and error
+ * handling around it.
+ */
+export interface SendEventsRequest {
+  /** The resolved track URL (respects `trackServerUrl`) including query params. */
+  url: string;
+  method: 'POST';
+  /**
+   * SDK-supplied default headers. When the body was gzipped, this includes
+   * `Content-Encoding: gzip` — drop it only if you also stop forwarding the gzipped body,
+   * otherwise the payload will not decode server-side.
+   */
+  headers: Record<string, string>;
+  /**
+   * The serialized payload, ready to send. A gzipped `Uint8Array` when transport compression
+   * is active, otherwise the raw JSON string. Forward it unchanged — do not re-serialize.
+   */
+  body: BodyInit;
+  /**
+   * Whether the built-in path would set `keepalive` on this request. `true` for page-exit
+   * sends (so the request survives unload) and for small in-session batches. Forward it to
+   * your `fetch` call — i.e. `fetch(url, { method, headers, body, keepalive })` — so exit-time
+   * batches are not dropped when the page is tearing down.
+   */
+  keepalive: boolean;
+}
+
+/**
+ * The fully-formed request the SDK hands to a custom `handleFetchConfig` transport when
+ * fetching remote configuration.
+ */
+export interface FetchConfigRequest {
+  /** The resolved config URL (respects `configServerUrl`) including query params. */
+  url: string;
+  method: 'GET';
+  /** SDK-supplied default headers. */
+  headers: Record<string, string>;
+  /** Abort signal the SDK uses to enforce the remote-config fetch timeout. Honor it in your fetch. */
+  signal?: AbortSignal;
+}
+
+/**
+ * Custom transport for replay event uploads. Invoked by the SDK in place of its internal
+ * `fetch`. Must return a `Response` (or Response-like with `ok`, `status`, `text()`). Called
+ * once per logical request attempt — retry is handled by the SDK around the callback, so do
+ * not implement your own retry. Thrown errors / rejected promises are surfaced to the SDK's
+ * existing retry logic.
+ */
+export type SessionReplaySendEventsHandler = (request: SendEventsRequest) => Promise<Response>;
+
+/**
+ * Custom transport for remote-config fetches. Same contract as {@link SessionReplaySendEventsHandler}.
+ */
+export type SessionReplayFetchConfigHandler = (request: FetchConfigRequest) => Promise<Response>;
+
 export interface CrossOriginIframesConfig {
   enabled: boolean;
   /**
@@ -266,6 +324,21 @@ export interface SessionReplayLocalConfig extends IConfig {
    * back-pressuring the SDK on session start.
    */
   flushIntervalConfig?: FlushIntervalConfig;
+  /**
+   * Optional custom transport for replay event uploads. When provided, the SDK invokes this
+   * callback in place of its internal `fetch` for every event-upload attempt, passing a
+   * fully-formed {@link SendEventsRequest} (resolved URL, headers, serialized body). The SDK
+   * still owns batching, retry, serialization and error handling. Use it to attach custom
+   * auth (e.g. a JWT `Authorization` header) and route through an authenticated proxy.
+   *
+   * Works alongside `trackServerUrl`: the URL passed to the callback already respects it.
+   */
+  handleSendEvents?: SessionReplaySendEventsHandler;
+  /**
+   * Optional custom transport for the remote-config fetch. Same contract as `handleSendEvents`
+   * but for the config GET. The URL passed to the callback already respects `configServerUrl`.
+   */
+  handleFetchConfig?: SessionReplayFetchConfigHandler;
 }
 
 export interface FlushIntervalConfig {

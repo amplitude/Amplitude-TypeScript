@@ -31,9 +31,85 @@ interface SendContext {
   enableTransportCompression?: boolean;
 }
 
+// Minimal subset of `Response` that doFetch's status handling relies on. Both the built-in
+// `fetch` path and the main-thread delegation path produce something of this shape, so the
+// status/skip-header/413-body logic below stays identical regardless of which transport runs.
+interface ResponseLike {
+  status: number;
+  headers?: { get?: (name: string) => string | null };
+  text: () => Promise<string>;
+}
+
+interface RequestOptions {
+  method: 'POST';
+  headers: Record<string, string>;
+  body: BodyInit;
+  keepalive: boolean;
+}
+
+type DoRequest = (url: string, options: RequestOptions) => Promise<ResponseLike>;
+
+// ---- Main-thread fetch delegation (custom transport / handleSendEvents) -------------------
+// Functions can't cross postMessage, so when the customer supplies a custom transport the
+// worker can't run it. Instead the worker delegates each network attempt to the main thread:
+// it posts a `fetch-request`, the main thread runs handleSendEvents, and posts back a
+// `fetch-response`. Retry stays in the worker (sendWithRetry), so the callback is still
+// invoked once per attempt with retry wrapped around it — identical to the main-thread path.
+// Both ends of this protocol ship in the same build, so the main thread always sends
+// well-formed messages: `skipHeader` is the EVENT_SKIPPED_HEADER value on a 2xx (else null),
+// and `body` is always a string ('' when there's nothing to read, or the error text). They
+// are therefore required, which keeps the worker-side reconstruction free of defensive
+// nullish handling.
+interface FetchResponseMessage {
+  type: 'fetch-response';
+  requestId: string;
+  status: number;
+  skipHeader: string | null;
+  body: string;
+  // True when the main-thread transport threw / rejected.
+  error?: boolean;
+}
+
+let delegationCounter = 0;
+const pendingDelegations = new Map<string, (resp: FetchResponseMessage) => void>();
+
+const defaultRequest: DoRequest = (url, options) => fetch(url, options) as Promise<ResponseLike>;
+
+// Posts a fetch-request to the main thread and resolves once the matching fetch-response
+// arrives. Rejects if the main-thread transport errored, so doFetch's catch surfaces it the
+// same way a thrown fetch would (no retry) — matching the non-worker custom-transport path.
+const delegateRequest: DoRequest = (url, options) => {
+  const requestId = `${++delegationCounter}`;
+  return new Promise<ResponseLike>((resolve, reject) => {
+    pendingDelegations.set(requestId, (resp) => {
+      if (resp.error) {
+        reject(new Error(resp.body));
+        return;
+      }
+      // Reconstruct just the slice of Response that doFetch consumes. get() is only ever
+      // queried for EVENT_SKIPPED_HEADER, so it returns the forwarded skip header directly.
+      resolve({
+        status: resp.status,
+        headers: { get: () => resp.skipHeader },
+        text: () => Promise.resolve(resp.body),
+      });
+    });
+    postMessage({
+      type: 'fetch-request',
+      requestId,
+      url,
+      method: 'POST',
+      headers: options.headers,
+      body: options.body,
+      keepalive: options.keepalive,
+    });
+  });
+};
+
 async function doFetch(
   payloadJson: string,
   context: SendContext,
+  doRequest: DoRequest,
 ): Promise<{
   shouldRetry: boolean;
   success: boolean;
@@ -70,7 +146,7 @@ async function doFetch(
       ...(gzipped ? { 'Content-Encoding': 'gzip' } : {}),
     };
     const payloadSize = gzipped ? gzipped.byteLength : new Blob([payloadJson]).size;
-    const res = await fetch(serverUrl, {
+    const res = await doRequest(serverUrl, {
       method: 'POST',
       headers,
       body: (gzipped ?? payloadJson) as BodyInit,
@@ -115,13 +191,19 @@ async function doFetch(
   }
 }
 
-async function sendWithRetry(id: string, payloadJson: string, context: SendContext, useRetry: boolean): Promise<void> {
+async function sendWithRetry(
+  id: string,
+  payloadJson: string,
+  context: SendContext,
+  useRetry: boolean,
+  doRequest: DoRequest,
+): Promise<void> {
   // Start at 1 to match the main-thread's addToQueue behaviour, which increments
   // attempts to 1 before the first send. This ensures the same total number of
   // attempts and the same per-retry delay as the main-thread path.
   let attempt = 1;
   for (;;) {
-    const result = await doFetch(payloadJson, context);
+    const result = await doFetch(payloadJson, context, doRequest);
     if (result.success) {
       postMessage({ type: 'log', id, message: result.message });
       postMessage({ type: 'complete', id, skipCode: result.skipCode ?? null });
@@ -144,16 +226,33 @@ async function sendWithRetry(id: string, payloadJson: string, context: SendConte
 }
 
 onmessage = async (e: MessageEvent) => {
-  const { type, id, payload, context, useRetry } = e.data as {
+  const data = e.data as {
     type: string;
     id: string;
     payload: { version: number; events: unknown[] };
     context: SendContext;
     useRetry: boolean;
-  };
-  if (type === 'send') {
+    // When true, delegate each network attempt to the main thread (custom transport).
+    useCustomTransport?: boolean;
+  } & Partial<FetchResponseMessage>;
+
+  // Reply from the main thread to a delegated fetch — resolve the waiting attempt.
+  if (data.type === 'fetch-response') {
+    const resolver = pendingDelegations.get(data.requestId as string);
+    if (resolver) {
+      pendingDelegations.delete(data.requestId as string);
+      resolver(data as FetchResponseMessage);
+    }
+    return;
+  }
+
+  if (data.type === 'send') {
+    const { id, payload, context, useRetry, useCustomTransport } = data;
     const payloadJson = JSON.stringify(payload);
-    await sendWithRetry(id, payloadJson, context, useRetry);
+    // Only enter the delegation protocol when a custom transport is configured; otherwise the
+    // worker keeps doing its own fetch with no round-trip to the main thread (unchanged path).
+    const doRequest = useCustomTransport ? delegateRequest : defaultRequest;
+    await sendWithRetry(id, payloadJson, context, useRetry, doRequest);
   }
 };
 

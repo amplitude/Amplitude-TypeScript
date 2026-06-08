@@ -189,4 +189,15 @@ export interface SessionReplayOptions {
    * @see {@link StandaloneSessionReplayOptions.flushIntervalConfig}
    */
   flushIntervalConfig?: FlushIntervalConfig;
+  /**
+   * Optional custom transport for replay event uploads. Use to attach custom auth (e.g. a JWT
+   * `Authorization` header) and route through an authenticated proxy.
+   * @see {@link StandaloneSessionReplayOptions.handleSendEvents}
+   */
+  handleSendEvents?: StandaloneSessionReplayOptions['handleSendEvents'];
+  /**
+   * Optional custom transport for the remote-config fetch.
+   * @see {@link StandaloneSessionReplayOptions.handleFetchConfig}
+   */
+  handleFetchConfig?: StandaloneSessionReplayOptions['handleFetchConfig'];
 }
