@@ -126,7 +126,7 @@ describe('InMemoryEventsStore', () => {
   describe('addEventToCurrentSequence empty-buffer split guard (SR-4284)', () => {
     // Repro for the SR-4284 root cause: shouldSplitEventsList can return true even when
     // the current buffer is empty, because the size-constraint branch fires when a
-    // single incoming event is larger than MAX_EVENT_LIST_SIZE (700 KB). Without the
+    // single incoming event is larger than MAX_EVENT_LIST_SIZE (2 MB). Without the
     // guard, addSequence would finalize a zero-event sequence that later POSTs as an
     // empty body and 400s on the server.
     test('does not finalize a zero-event sequence when buffer is empty', async () => {

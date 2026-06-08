@@ -3,6 +3,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { ILogger } from '@amplitude/analytics-core';
 import { SessionReplayLocalConfig } from '../src/config/local-config';
+import { MAX_EVENT_LIST_SIZE } from '../src/constants';
 import * as SessionReplayIDB from '../src/events/events-idb-store';
 import { createEventsManager } from '../src/events/events-manager';
 import { SessionReplayTrackDestination } from '../src/track-destination';
@@ -679,12 +680,13 @@ describe('createEventsManager', () => {
         storeType: 'memory',
       });
       // Use the real memory store so shouldSplitEventsList can trigger a split.
-      // eventA must be large enough that eventA + eventB >= MAX_EVENT_LIST_SIZE (1_000_000).
-      const eventA = 'a'.repeat(999_990);
+      // eventA sits just under the cap so it doesn't split on its own; eventB then pushes the
+      // batch over MAX_EVENT_LIST_SIZE. Derived from the constant so it tracks cap changes.
+      const eventA = 'a'.repeat(MAX_EVENT_LIST_SIZE - 10);
       const eventB = JSON.stringify({ type: 3, timestamp: 2 });
 
       eventsManager.addEvent({ event: { type: 'replay', data: eventA }, sessionId: 123, deviceId: '1a2b3c' });
-      // Force split: eventB pushes the batch over the 1 MB limit
+      // Force split: eventB pushes the batch over the MAX_EVENT_LIST_SIZE limit
       eventsManager.addEvent({ event: { type: 'replay', data: eventB }, sessionId: 123, deviceId: '1a2b3c' });
 
       // Let the async addEventToCurrentSequence chains settle (two microtask ticks).
