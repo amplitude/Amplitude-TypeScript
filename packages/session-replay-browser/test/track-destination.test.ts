@@ -1640,6 +1640,37 @@ describe('SessionReplayTrackDestination', () => {
       expect((trackDestination as any).pendingWorkerRequests.size).toBe(0);
     });
 
+    test('worker delegated fetch logs rejected fire-and-forget handler', async () => {
+      const trackDestination = new SessionReplayTrackDestination({
+        loggerProvider: mockLoggerProvider,
+        workerScript: 'self.onmessage = () => {}',
+      });
+      const error = new Error('worker terminated');
+      const delegatedFetch = jest
+        .spyOn(
+          trackDestination as unknown as { handleDelegatedFetch: (worker: Worker, msg: unknown) => Promise<void> },
+          'handleDelegatedFetch',
+        )
+        .mockRejectedValueOnce(error);
+
+      mockWorker.onmessage?.({
+        data: {
+          type: 'fetch-request',
+          requestId: 'req-1',
+          url: 'https://example.com',
+          method: 'POST',
+          headers: {},
+          body: 'payload',
+          keepalive: false,
+        },
+      } as MessageEvent);
+      await Promise.resolve();
+
+      expect(delegatedFetch).toHaveBeenCalled();
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockLoggerProvider.warn).toHaveBeenCalledWith('Failed to handle delegated session replay fetch:', error);
+    });
+
     test('send routes to worker when worker is present', async () => {
       const trackDestination = new SessionReplayTrackDestination({
         loggerProvider: mockLoggerProvider,
@@ -1749,6 +1780,27 @@ describe('SessionReplayTrackDestination', () => {
       trackDestination.sendBeacon({ ...beaconArgs, events: [hugeEvent] });
 
       expect(mockSendBeacon).not.toHaveBeenCalled();
+    });
+
+    test('custom transport page-exit failures are logged', async () => {
+      const error = new Error('exit transport failed');
+      const handleSendEvents = jest.fn().mockRejectedValue(error);
+      const trackDestination = new SessionReplayTrackDestination({
+        loggerProvider: mockLoggerProvider,
+        handleSendEvents,
+      });
+
+      trackDestination.sendBeacon({ ...beaconArgs, events: ['e1'] });
+      await Promise.resolve();
+
+      expect(handleSendEvents).toHaveBeenCalledWith(
+        expect.objectContaining({
+          keepalive: true,
+          headers: expect.objectContaining({ Authorization: 'Bearer key-abc' }),
+        }),
+      );
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockLoggerProvider.warn).toHaveBeenCalledWith('Failed to send session replay events on page exit:', error);
     });
   });
 });

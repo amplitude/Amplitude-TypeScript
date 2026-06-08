@@ -174,7 +174,9 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
           } else if (msg.type === 'fetch-request') {
             // Worker is delegating one network attempt to the custom transport (which lives on
             // the main thread). Run it and post the result back into the worker's retry loop.
-            void this.handleDelegatedFetch(worker, msg);
+            void this.handleDelegatedFetch(worker, msg).catch((e) => {
+              loggerProvider.warn('Failed to handle delegated session replay fetch:', e);
+            });
           }
         };
         this.worker = worker;
@@ -255,16 +257,17 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
         Accept: '*/*',
         Authorization: `Bearer ${apiKey}`,
       };
+      const warnExitSendFailure = (e: unknown) => {
+        this.loggerProvider.warn('Failed to send session replay events on page exit:', e);
+      };
       try {
         // Fire-and-forget: we cannot await during unload. The request is well under 64 KB
         // (trimmed above) and keepalive: true is requested so it survives page teardown.
         void this.handleSendEvents({ url: exitUrl, method: 'POST', headers, body: payload, keepalive: true }).catch(
-          () => {
-            // best effort on exit
-          },
+          warnExitSendFailure,
         );
-      } catch {
-        // best effort on exit
+      } catch (e) {
+        warnExitSendFailure(e);
       }
       return;
     }
