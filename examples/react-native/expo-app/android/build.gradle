@@ -8,9 +8,7 @@ buildscript {
         minSdkVersion = Integer.parseInt(findProperty('android.minSdkVersion') ?: '21')
         compileSdkVersion = Integer.parseInt(findProperty('android.compileSdkVersion') ?: '31')
         targetSdkVersion = Integer.parseInt(findProperty('android.targetSdkVersion') ?: '31')
-        if (findProperty('android.kotlinVersion')) {
-            kotlinVersion = findProperty('android.kotlinVersion')
-        }
+        kotlinVersion = findProperty('android.kotlinVersion') ?: '1.7.22'
         frescoVersion = findProperty('expo.frescoVersion') ?: '2.5.0'
 
         if (System.properties['os.arch'] == 'aarch64') {
@@ -28,6 +26,7 @@ buildscript {
     dependencies {
         classpath('com.android.tools.build:gradle:7.2.1')
         classpath('com.facebook.react:react-native-gradle-plugin')
+        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion")
         classpath('de.undercouch:gradle-download-task:5.0.1')
         // NOTE: Do not place your application dependencies here; they belong
         // in the individual module build.gradle files
@@ -39,7 +38,12 @@ def REACT_NATIVE_VERSION = new File(['node', '--print', "JSON.parse(require('fs'
 allprojects {
     configurations.all {
         resolutionStrategy {
-            force "com.facebook.react:react-native:" + REACT_NATIVE_VERSION
+            force "com.facebook.react:react-android:" + REACT_NATIVE_VERSION
+            dependencySubstitution {
+                substitute(module("com.facebook.react:react-native"))
+                        .using(module("com.facebook.react:react-android:" + REACT_NATIVE_VERSION))
+                        .because("react-native artifact was renamed to react-android in RN 0.71+")
+            }
         }
     }
 
@@ -55,13 +59,7 @@ allprojects {
         }
 
         google()
-        mavenCentral {
-            // We don't want to fetch react-native from Maven Central as there are
-            // older versions over there.
-            content {
-                excludeGroup 'com.facebook.react'
-            }
-        }
+        mavenCentral()
         maven { url 'https://www.jitpack.io' }
     }
 }

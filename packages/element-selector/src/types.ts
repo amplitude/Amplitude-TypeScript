@@ -38,6 +38,18 @@ export interface StrategyContext {
 }
 
 /**
+ * Logger shape accepted by element-selector diagnostics.
+ *
+ * This is intentionally structural so callers can pass the SDK's
+ * `@amplitude/analytics-core` ILogger without this package needing to import
+ * analytics-core types during standalone tests/builds.
+ */
+export interface ElementSelectorLogger {
+  warn(...args: unknown[]): void;
+  debug(...args: unknown[]): void;
+}
+
+/**
  * Fully-resolved configuration consumed at runtime. Produced by
  * `resolveSelectorConfig` (lands in the orchestration PR) from the
  * `ElementSelectorRemoteConfig` payload plus built-in defaults.

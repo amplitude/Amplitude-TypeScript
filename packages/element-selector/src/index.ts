@@ -21,6 +21,7 @@ export type {
   StrategyContext,
   ResolvedSelectorConfig,
   ElementSelectorRemoteConfig,
+  ElementSelectorLogger,
   SelectorEngine,
 } from './types';
 

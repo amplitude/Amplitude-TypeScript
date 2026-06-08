@@ -1,6 +1,8 @@
 package com.amplitude.pluginsessionreplayreactnative
 
 import com.amplitude.android.sessionreplay.SessionReplay
+import com.amplitude.android.sessionreplay.config.MaskLevel
+import com.amplitude.android.sessionreplay.config.PrivacyConfig
 import com.amplitude.common.Logger
 import com.amplitude.common.android.LogcatLogger
 import com.amplitude.core.ServerZone
@@ -20,7 +22,7 @@ class PluginSessionReplayReactNativeModule(private val reactContext: ReactApplic
   }
 
   @ReactMethod
-  fun setup(apiKey: String, deviceId: String?, sessionId: Double, serverZone: String?, sampleRate: Double, enableRemoteConfig: Boolean, logLevel: Int, autoStart: Boolean) {
+  fun setup(apiKey: String, deviceId: String?, sessionId: Double, serverZone: String?, sampleRate: Double, enableRemoteConfig: Boolean, logLevel: Int, autoStart: Boolean, maskLevel: String) {
     LogcatLogger.logger.logMode = when (logLevel) {
         0 -> Logger.LogMode.OFF
         1 -> Logger.LogMode.ERROR
@@ -28,6 +30,13 @@ class PluginSessionReplayReactNativeModule(private val reactContext: ReactApplic
         3 -> Logger.LogMode.INFO
         4 -> Logger.LogMode.DEBUG
         else -> Logger.LogMode.WARN
+    }
+
+    val mappedMaskLevel = when (maskLevel.lowercase()) {
+        "light" -> MaskLevel.LIGHT
+        "medium" -> MaskLevel.MEDIUM
+        "conservative" -> MaskLevel.CONSERVATIVE
+        else -> MaskLevel.MEDIUM
     }
 
     LogcatLogger.logger.debug("""
@@ -40,6 +49,7 @@ class PluginSessionReplayReactNativeModule(private val reactContext: ReactApplic
         Enable Remote Config: $enableRemoteConfig
         Log Level: $logLevel
         Auto Start: $autoStart
+        Mask Level: $maskLevel
     """.trimIndent())
 
     sessionReplay = SessionReplay(
@@ -54,7 +64,8 @@ class PluginSessionReplayReactNativeModule(private val reactContext: ReactApplic
         "EU" -> ServerZone.EU
         else -> ServerZone.US
       },
-      autoStart = autoStart
+      autoStart = autoStart,
+      privacyConfig = PrivacyConfig(maskLevel = mappedMaskLevel)
     )
   }
 
@@ -87,7 +98,7 @@ class PluginSessionReplayReactNativeModule(private val reactContext: ReactApplic
     }
     promise.resolve(map)
   }
-  
+
   @ReactMethod
   fun start() {
     sessionReplay.start()
