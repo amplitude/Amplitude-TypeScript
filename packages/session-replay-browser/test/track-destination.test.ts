@@ -1488,6 +1488,157 @@ describe('SessionReplayTrackDestination', () => {
       );
       expect(mergeLogsAfter).toHaveLength(2);
     });
+
+    describe('coalesce page-load backlog drain (SR-4660)', () => {
+      test('markCoalesceNextFlush sets the drain flag, consumed by the next flush', async () => {
+        const trackDestination = new SessionReplayTrackDestination({ loggerProvider: mockLoggerProvider });
+        jest.spyOn(trackDestination, 'send').mockResolvedValue(undefined);
+
+        expect((trackDestination as any).coalesceNextFlush).toBe(false);
+        trackDestination.markCoalesceNextFlush();
+        expect((trackDestination as any).coalesceNextFlush).toBe(true);
+
+        trackDestination.queue = [baseCtx({ events: ['a'] }), baseCtx({ events: ['b'] })];
+        await trackDestination.flush(true);
+
+        // Flag is consumed so a later unrelated flush isn't accidentally coalesced.
+        expect((trackDestination as any).coalesceNextFlush).toBe(false);
+      });
+
+      test('markCoalesceNextFlush self-schedules a flush so the flag never sticks when nothing is enqueued', async () => {
+        const trackDestination = new SessionReplayTrackDestination({ loggerProvider: mockLoggerProvider });
+        const sendSpy = jest.spyOn(trackDestination, 'send').mockResolvedValue(undefined);
+
+        // Mimic the page-load drain where every persisted sequence is dropped before reaching
+        // the queue (e.g. all events oversized), so no addToQueue/schedule runs.
+        trackDestination.markCoalesceNextFlush();
+        expect((trackDestination as any).coalesceNextFlush).toBe(true);
+
+        await jest.runAllTimersAsync();
+
+        // The self-scheduled flush consumes the flag with an empty queue — no POST, and a later
+        // unrelated live flush can't be mis-coalesced as a page-load drain.
+        expect(sendSpy).not.toHaveBeenCalled();
+        expect((trackDestination as any).coalesceNextFlush).toBe(false);
+      });
+
+      test('drain of multiple same-identity batches collapses into one POST and fans out onComplete', async () => {
+        const trackDestination = new SessionReplayTrackDestination({ loggerProvider: mockLoggerProvider });
+        const sendSpy = jest.spyOn(trackDestination, 'send').mockResolvedValue(undefined);
+
+        const onCompleteA = jest.fn().mockResolvedValue(undefined);
+        const onCompleteB = jest.fn().mockResolvedValue(undefined);
+        const onCompleteC = jest.fn().mockResolvedValue(undefined);
+        trackDestination.queue = [
+          baseCtx({ events: ['a1', 'a2'], onComplete: onCompleteA }),
+          baseCtx({ events: ['b1'], onComplete: onCompleteB }),
+          baseCtx({ events: ['c1', 'c2'], onComplete: onCompleteC }),
+        ];
+        trackDestination.markCoalesceNextFlush();
+
+        await trackDestination.flush(true);
+
+        expect(sendSpy).toHaveBeenCalledTimes(1);
+        const merged = sendSpy.mock.calls[0][0];
+        expect(merged.events).toEqual(['a1', 'a2', 'b1', 'c1', 'c2']);
+
+        // Each source IDB record is cleaned up exactly once.
+        await merged.onComplete();
+        expect(onCompleteA).toHaveBeenCalledTimes(1);
+        expect(onCompleteB).toHaveBeenCalledTimes(1);
+        expect(onCompleteC).toHaveBeenCalledTimes(1);
+      });
+
+      test('drain logs the coalesced backlog count when a merge actually happened', async () => {
+        const trackDestination = new SessionReplayTrackDestination({ loggerProvider: mockLoggerProvider });
+        jest.spyOn(trackDestination, 'send').mockResolvedValue(undefined);
+
+        trackDestination.queue = [baseCtx({ events: ['a'] }), baseCtx({ events: ['b'] }), baseCtx({ events: ['c'] })];
+        trackDestination.markCoalesceNextFlush();
+
+        await trackDestination.flush(true);
+
+        const drainLogs = (mockLoggerProvider.log as jest.Mock).mock.calls.filter(
+          (c) => typeof c[0] === 'string' && c[0].includes('persisted page-load backlog batches into'),
+        );
+        expect(drainLogs).toHaveLength(1);
+        expect(drainLogs[0][0]).toContain('coalesced 3 persisted page-load backlog batches into 1 request(s)');
+      });
+
+      test('drain does NOT merge different-identity batches', async () => {
+        const trackDestination = new SessionReplayTrackDestination({ loggerProvider: mockLoggerProvider });
+        const sendSpy = jest.spyOn(trackDestination, 'send').mockResolvedValue(undefined);
+
+        // Different sessions must not be coalesced — each keeps its own POST.
+        trackDestination.queue = [baseCtx({ sessionId: 1, events: ['a'] }), baseCtx({ sessionId: 2, events: ['b'] })];
+        trackDestination.markCoalesceNextFlush();
+
+        await trackDestination.flush(true);
+
+        expect(sendSpy).toHaveBeenCalledTimes(2);
+        // A no-op merge (no group shrank) must not emit the drain log.
+        const drainLogs = (mockLoggerProvider.log as jest.Mock).mock.calls.filter(
+          (c) => typeof c[0] === 'string' && c[0].includes('persisted page-load backlog batches into'),
+        );
+        expect(drainLogs).toHaveLength(0);
+      });
+
+      test('drain still splits an oversized merge across multiple POSTs', async () => {
+        const trackDestination = new SessionReplayTrackDestination({ loggerProvider: mockLoggerProvider });
+        const sendSpy = jest.spyOn(trackDestination, 'send').mockResolvedValue(undefined);
+
+        // Each event is just over half the soft cap, so any two together exceed it — the
+        // greedy merge must flush one-per-context, mirroring the throttle path's behavior.
+        const big = 'x'.repeat(800_000);
+        trackDestination.queue = [baseCtx({ events: [big] }), baseCtx({ events: [big] }), baseCtx({ events: [big] })];
+        trackDestination.markCoalesceNextFlush();
+
+        await trackDestination.flush(true);
+
+        expect(sendSpy).toHaveBeenCalledTimes(3);
+      });
+
+      test('a throttle merge on the same flush consumes the drain flag too (no double merge)', async () => {
+        const trackDestination = new SessionReplayTrackDestination({ loggerProvider: mockLoggerProvider });
+        jest.spyOn(trackDestination, 'send').mockResolvedValue(undefined);
+
+        // Both flags set: throttle takes precedence and its merge already coalesces, so the
+        // drain flag must be cleared to avoid a redundant second merge on a later flush.
+        trackDestination.queue = [baseCtx({ events: ['a'] }), baseCtx({ events: ['b'] })];
+        (trackDestination as any).mergeOnNextFlush = true;
+        (trackDestination as any).coalesceNextFlush = true;
+
+        await trackDestination.flush(true);
+
+        expect((trackDestination as any).mergeOnNextFlush).toBe(false);
+        expect((trackDestination as any).coalesceNextFlush).toBe(false);
+      });
+
+      test('end-to-end: drained backlog enqueued via sendEventsList flushes as one coalesced POST', async () => {
+        const trackDestination = new SessionReplayTrackDestination({ loggerProvider: mockLoggerProvider });
+        (global.fetch as jest.Mock).mockResolvedValue({
+          status: 200,
+          headers: { get: jest.fn().mockReturnValue(null) },
+        });
+
+        // Mirror events-manager.sendStoredEvents: mark, then enqueue each persisted sequence.
+        trackDestination.markCoalesceNextFlush();
+        const onCompleteA = jest.fn().mockResolvedValue(undefined);
+        const onCompleteB = jest.fn().mockResolvedValue(undefined);
+        trackDestination.sendEventsList(baseCtx({ events: ['a'], onComplete: onCompleteA }) as any);
+        trackDestination.sendEventsList(baseCtx({ events: ['b'], onComplete: onCompleteB }) as any);
+
+        await runScheduleTimers();
+
+        // One coalesced POST instead of one-per-sequence.
+        const fetchCalls = (global.fetch as jest.Mock).mock.calls;
+        expect(fetchCalls).toHaveLength(1);
+        const body = JSON.parse(fetchCalls[0][1].body as string);
+        expect(body.events).toEqual(['a', 'b']);
+        expect(onCompleteA).toHaveBeenCalled();
+        expect(onCompleteB).toHaveBeenCalled();
+      });
+    });
   });
 
   describe('worker support', () => {

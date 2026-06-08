@@ -144,6 +144,40 @@ describe('createEventsManager', () => {
       expect(mockLoggerProvider.log).toHaveBeenCalledWith('Draining 2 stored sequence(s) from previous session.');
     });
 
+    test('coalesces the page-load backlog drain when more than one sequence is stored', async () => {
+      (mockIDBStore.getSequencesToSend as jest.Mock).mockResolvedValue([
+        { events: [mockEventString], sequenceId: 1, sessionId: 123 },
+        { events: [mockEventString], sequenceId: 2, sessionId: 123 },
+        { events: [mockEventString], sequenceId: 3, sessionId: 123 },
+      ]);
+      const eventsManager = await createEventsManager<'replay'>({
+        config,
+        type: 'replay',
+        storeType: 'idb',
+      });
+      await eventsManager.sendStoredEvents({ deviceId: '1a2b3c' });
+      const trackDestinationInstance = (SessionReplayTrackDestination as jest.Mock).mock.instances[0];
+      // The drain marks the imminent flush to coalesce, then enqueues every sequence so the
+      // backlog flushes as fewer POSTs (SR-4660) instead of one request per stored sequence.
+      expect(trackDestinationInstance.markCoalesceNextFlush).toHaveBeenCalledTimes(1);
+      expect(trackDestinationInstance.sendEventsList).toHaveBeenCalledTimes(3);
+    });
+
+    test('does not coalesce when only a single sequence is stored (nothing to merge)', async () => {
+      (mockIDBStore.getSequencesToSend as jest.Mock).mockResolvedValue([
+        { events: [mockEventString], sequenceId: 1, sessionId: 123 },
+      ]);
+      const eventsManager = await createEventsManager<'replay'>({
+        config,
+        type: 'replay',
+        storeType: 'idb',
+      });
+      await eventsManager.sendStoredEvents({ deviceId: '1a2b3c' });
+      const trackDestinationInstance = (SessionReplayTrackDestination as jest.Mock).mock.instances[0];
+      expect(trackDestinationInstance.markCoalesceNextFlush).not.toHaveBeenCalled();
+      expect(trackDestinationInstance.sendEventsList).toHaveBeenCalledTimes(1);
+    });
+
     test('should not log drain message when sequences are empty', async () => {
       (mockIDBStore.getSequencesToSend as jest.Mock).mockResolvedValue([]);
       const eventsManager = await createEventsManager<'replay'>({
