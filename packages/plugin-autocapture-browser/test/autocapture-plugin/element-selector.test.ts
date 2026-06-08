@@ -28,14 +28,14 @@ describe('autocapturePlugin - element selector integration', () => {
       error: jest.fn(),
       debug: jest.fn(),
     } as unknown as ILogger;
-    instance = createMockBrowserClient() as BrowserClientWithElementSelector;
+    instance = createMockBrowserClient();
     remoteConfigCallbacks = {};
     remoteConfigClient = {
       subscribe: jest.fn((key, _deliveryMode, callback) => {
         remoteConfigCallbacks[key] = callback;
         return `${key}-subscription`;
       }),
-      unsubscribe: jest.fn(() => true),
+      unsubscribe: jest.fn((_id: string) => true),
     };
     document.body.innerHTML = '';
   });
