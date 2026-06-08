@@ -4,9 +4,10 @@
  * Shared element-selector algorithm consumed by autocapture, the
  * app.amplitude.com tagging UI, and the Chrome extension visual tagger.
  *
- * This file is the package's public API surface. Subsequent PRs land the
- * orchestrator, fallback, config resolver, and factory; the strategies +
- * primitives below are the foundation everything composes on top of.
+ * This file is the package's public API surface. The orchestrator, fallback,
+ * config resolver, and engine factory compose on top of the primitives
+ * (types, pattern packs, helpers, strategies) to produce the runtime engine
+ * consumers actually call.
  *
  * See the design doc:
  *   packages/plugin-autocapture-browser/element-selector-strategy-v1-no-classes.md
@@ -20,6 +21,7 @@ export type {
   StrategyContext,
   ResolvedSelectorConfig,
   ElementSelectorRemoteConfig,
+  ElementSelectorLogger,
   SelectorEngine,
 } from './types';
 

@@ -66,6 +66,34 @@ describe('compile()', () => {
     expect(result[0].test('valid')).toBe(true);
     expect(result[1].test('another-valid')).toBe(true);
   });
+
+  it('emits a warn through the provided logger for each invalid pattern', () => {
+    const logger = {
+      log: jest.fn(),
+      warn: jest.fn(),
+      error: jest.fn(),
+      debug: jest.fn(),
+      disable: jest.fn(),
+      enable: jest.fn(),
+    };
+    compile(['^valid$', '[unclosed', '(also-bad'], logger);
+    expect(logger.warn).toHaveBeenCalledTimes(2);
+    expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('[unclosed'));
+    expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('(also-bad'));
+  });
+
+  it('does not invoke the logger when no patterns are invalid', () => {
+    const logger = {
+      log: jest.fn(),
+      warn: jest.fn(),
+      error: jest.fn(),
+      debug: jest.fn(),
+      disable: jest.fn(),
+      enable: jest.fn(),
+    };
+    compile(['^valid$', '^also-valid$'], logger);
+    expect(logger.warn).not.toHaveBeenCalled();
+  });
 });
 
 describe('isStableId()', () => {

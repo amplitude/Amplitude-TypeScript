@@ -89,6 +89,20 @@ describe('compile()', () => {
     const result = compile(['^valid$', '[unclosed', '^another-valid$']);
     expect(result).toHaveLength(2);
   });
+
+  it('emits a warn through the provided logger for each invalid pattern', () => {
+    const logger = {
+      log: jest.fn(),
+      warn: jest.fn(),
+      error: jest.fn(),
+      debug: jest.fn(),
+      disable: jest.fn(),
+      enable: jest.fn(),
+    };
+    compile(['^valid$', '[unclosed'], logger);
+    expect(logger.warn).toHaveBeenCalledTimes(1);
+    expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('unstable-class pattern'));
+  });
 });
 
 describe('filterClasses()', () => {

@@ -26,7 +26,7 @@
  *   packages/plugin-autocapture-browser/element-selector-strategy-v1-no-classes.md
  */
 
-import { ResolvedSelectorConfig, SelectorEngine } from './types';
+import { ElementSelectorLogger, ResolvedSelectorConfig, SelectorEngine } from './types';
 import { runOrchestrator, OrchestratorOptions } from './orchestrator';
 import { fallbackCssPath } from './fallback-css-path';
 
@@ -35,6 +35,14 @@ export interface CreateSelectorEngineOptions {
   scope?: ParentNode;
   /** Optional override of the strategy chain. Primarily for testing / dashboard ad-hoc runs. */
   strategies?: OrchestratorOptions['strategies'];
+  /**
+   * Optional logger threaded through the orchestrator and the subscriber-fan-out
+   * inside `updateConfig`. When provided, the engine surfaces malformed
+   * selectors (`debug`) and listener exceptions (`warn`); when absent it stays
+   * silent — preserving the legacy "fire-and-forget" semantics existing
+   * consumers may rely on.
+   */
+  logger?: ElementSelectorLogger;
 }
 
 /**
@@ -52,10 +60,12 @@ export function createSelectorEngine(
 ): SelectorEngine {
   let config: ResolvedSelectorConfig = initialConfig;
   const subscribers = new Set<(config: ResolvedSelectorConfig) => void>();
+  const logger = options.logger;
 
   const orchestratorOptions: OrchestratorOptions = {
     strategies: options.strategies,
     scope: options.scope,
+    logger,
   };
 
   return {
@@ -83,9 +93,9 @@ export function createSelectorEngine(
       for (const cb of subscribers) {
         try {
           cb(next);
-        } catch (_e) {
-          // Intentionally swallowed. Logger integration arrives in the
-          // verification PR alongside `@amplitude/analytics-core`.
+        } catch (e) {
+          const message = e instanceof Error ? e.message : String(e);
+          logger?.warn(`@amplitude/element-selector: onConfigChange subscriber threw — ${message}`);
         }
       }
     },
