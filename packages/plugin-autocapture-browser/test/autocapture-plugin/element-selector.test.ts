@@ -65,16 +65,21 @@ describe('autocapturePlugin - element selector integration', () => {
       expect.any(Function),
     );
 
+    const onConfigChange = jest.fn();
+    const unsubscribeConfigChange = instance.elementSelector?.onConfigChange(onConfigChange);
+
     remoteConfigCallbacks['configs.analyticsSDK.autocapture.elementSelector']({ enabled: true });
 
     document.body.innerHTML = '<section id="hero"><div><button>Click</button></div></section>';
     const button = document.querySelector('button') as Element;
 
     expect(instance.elementSelector?.getConfig().enabled).toBe(true);
+    expect(onConfigChange).toHaveBeenCalledWith(expect.objectContaining({ enabled: true }));
     expect(instance.elementSelector?.generate(button)).toBe(
       'section#hero > div:nth-of-type(1) > button:nth-of-type(1)',
     );
 
+    unsubscribeConfigChange?.();
     await plugin.teardown?.();
   });
 
