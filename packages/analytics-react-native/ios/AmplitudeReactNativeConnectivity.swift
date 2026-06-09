@@ -10,10 +10,12 @@ import Network
 /// request/response `AmplitudeReactNative` module so the `RCTEventEmitter`
 /// lifecycle (listener tracking, start/stop observing) stays isolated.
 ///
-/// Connectivity is monitored with `NWPathMonitor` (Network framework) when
-/// available (iOS 12+). The podspec targets iOS 10, so on iOS 10/11 we fall
-/// back to `SCNetworkReachability` (SystemConfiguration) rather than bumping
-/// the deployment target.
+/// Connectivity is monitored with `NWPathMonitor` (Network framework, iOS 12+).
+/// The podspec targets iOS 10, so offline detection is best-effort: below
+/// iOS/tvOS 12 the module always reports connected — both the initial seed and
+/// change events — which preserves the pre-offline SDK behavior (send always,
+/// existing retry handles failures). Reporting offline without a monitor to
+/// flip it back would buffer events forever.
 ///
 /// The current connectivity state is always computed on demand from a fresh
 /// `SCNetworkReachability` probe (see `currentConnectivity()`), so the initial
@@ -29,9 +31,6 @@ class AmplitudeReactNativeConnectivity: RCTEventEmitter {
 
     // iOS 12+ path
     private var pathMonitor: AnyObject?
-
-    // iOS 10/11 fallback
-    private var reachability: SCNetworkReachability?
 
     deinit {
         stopMonitoring()
@@ -77,10 +76,9 @@ class AmplitudeReactNativeConnectivity: RCTEventEmitter {
     private func startMonitoring() {
         // Replace any existing monitor so repeated startObserving calls don't leak.
         stopMonitoring()
+        // Below iOS/tvOS 12 monitoring is unsupported; connectivity stays "connected".
         if #available(iOS 12, tvOS 12, *) {
             startPathMonitor()
-        } else {
-            startReachability()
         }
     }
 
@@ -90,11 +88,6 @@ class AmplitudeReactNativeConnectivity: RCTEventEmitter {
                 monitor.cancel()
             }
             pathMonitor = nil
-        }
-        if let reachability = reachability {
-            SCNetworkReachabilitySetCallback(reachability, nil, nil)
-            SCNetworkReachabilitySetDispatchQueue(reachability, nil)
-            self.reachability = nil
         }
     }
 
@@ -106,28 +99,6 @@ class AmplitudeReactNativeConnectivity: RCTEventEmitter {
         }
         monitor.start(queue: monitorQueue)
         pathMonitor = monitor
-    }
-
-    private func startReachability() {
-        guard let reachability = createReachability() else { return }
-        self.reachability = reachability
-
-        var context = SCNetworkReachabilityContext(
-            version: 0,
-            info: Unmanaged.passUnretained(self).toOpaque(),
-            retain: nil,
-            release: nil,
-            copyDescription: nil
-        )
-
-        let callback: SCNetworkReachabilityCallBack = { (_, flags, info) in
-            guard let info = info else { return }
-            let instance = Unmanaged<AmplitudeReactNativeConnectivity>.fromOpaque(info).takeUnretainedValue()
-            instance.emitConnectivityChange(AmplitudeReactNativeConnectivity.isReachable(flags))
-        }
-
-        SCNetworkReachabilitySetCallback(reachability, callback, &context)
-        SCNetworkReachabilitySetDispatchQueue(reachability, monitorQueue)
     }
 
     // MARK: Helpers
@@ -144,7 +115,12 @@ class AmplitudeReactNativeConnectivity: RCTEventEmitter {
     /// probe. This does not depend on the monitor being started, so it returns a
     /// correct value when JS seeds the initial state. Defaults to connected when
     /// the state can't be determined, so we never wrongly suppress sends.
+    ///
+    /// Below iOS/tvOS 12 this must report connected unconditionally: there is no
+    /// monitor to emit a later change, so seeding offline would buffer events
+    /// forever.
     private func currentConnectivity() -> Bool {
+        guard #available(iOS 12, tvOS 12, *) else { return true }
         guard let reachability = createReachability() else { return true }
         var flags = SCNetworkReachabilityFlags()
         guard SCNetworkReachabilityGetFlags(reachability, &flags) else { return true }
