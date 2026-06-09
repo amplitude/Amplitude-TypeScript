@@ -1,6 +1,6 @@
 {
   "name": "@amplitude/analytics-browser",
-  "version": "2.43.0",
+  "version": "2.43.1-jessewangsr-4659-autocapture.0",
   "description": "Official Amplitude SDK for Web",
   "keywords": [
     "analytics",

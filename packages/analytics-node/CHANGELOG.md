@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.5.60-jessewangsr-4659-autocapture.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-node@1.5.59...@amplitude/analytics-node@1.5.60-jessewangsr-4659-autocapture.0) (2026-06-09)
+
+**Note:** Version bump only for package @amplitude/analytics-node
+
+
+
+
+
 ## [1.5.59](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-node@1.5.58...@amplitude/analytics-node@1.5.59) (2026-06-05)
 
 **Note:** Version bump only for package @amplitude/analytics-node

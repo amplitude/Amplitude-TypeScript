@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.44.2-jessewangsr-4659-autocapture.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.44.1...@amplitude/session-replay-browser@1.44.2-jessewangsr-4659-autocapture.0) (2026-06-09)
+
+**Note:** Version bump only for package @amplitude/session-replay-browser
+
+
+
+
+
 ## [1.44.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.44.0...@amplitude/session-replay-browser@1.44.1) (2026-06-05)
 
 

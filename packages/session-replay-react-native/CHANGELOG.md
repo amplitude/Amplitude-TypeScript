@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [0.1.0-jessewangsr-4659-autocapture.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-react-native@0.1.0-beta.0...@amplitude/session-replay-react-native@0.1.0-jessewangsr-4659-autocapture.0) (2026-06-09)
+
+**Note:** Version bump only for package @amplitude/session-replay-react-native
+
+
+
+
+
 # [0.1.0-beta.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-react-native@0.0.1-beta.3...@amplitude/session-replay-react-native@0.1.0-beta.0) (2026-06-06)
 
 

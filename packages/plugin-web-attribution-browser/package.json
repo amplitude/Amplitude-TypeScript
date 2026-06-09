@@ -1,6 +1,6 @@
 {
   "name": "@amplitude/plugin-web-attribution-browser",
-  "version": "2.2.12",
+  "version": "2.2.13-jessewangsr-4659-autocapture.0",
   "description": "",
   "author": "Amplitude Inc",
   "homepage": "https://github.com/amplitude/Amplitude-TypeScript",

@@ -1,6 +1,6 @@
 {
   "name": "@amplitude/analytics-react-native",
-  "version": "1.5.56",
+  "version": "1.5.57-jessewangsr-4659-autocapture.0",
   "description": "Official React Native SDK",
   "keywords": [
     "analytics",
