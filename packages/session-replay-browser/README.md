@@ -153,6 +153,53 @@ sessionReplay.init(API_KEY, {
 For a cookie-authenticated proxy, omit the `Authorization` header and add `credentials: 'include'`
 instead — the shape is otherwise identical.
 
+### Wiring it up for your integration
+
+The two callbacks are the same no matter how you install Session Replay — only *where you pass them
+in* changes. The example above is the **standalone** SDK. If you use the analytics plugin or the
+unified SDK, drop the same `handleSendEvents` / `handleFetchConfig` into your existing init instead:
+
+**Plugin — `@amplitude/plugin-session-replay-browser`** (alongside `@amplitude/analytics-browser`):
+
+```ts
+import * as amplitude from '@amplitude/analytics-browser';
+import { sessionReplayPlugin } from '@amplitude/plugin-session-replay-browser';
+
+amplitude.add(
+  sessionReplayPlugin({
+    sampleRate: 1,
+    trackServerUrl: 'https://my-proxy.example.com/sr-events',
+    configServerUrl: 'https://my-proxy.example.com/sr-config',
+    handleSendEvents: async ({ url, method, headers, body, keepalive }) =>
+      fetch(url, { method, headers: { ...headers, Authorization: `Bearer ${getJwt()}` }, body, keepalive }),
+    handleFetchConfig: async ({ url, method, headers, signal }) =>
+      fetch(url, { method, headers: { ...headers, Authorization: `Bearer ${getJwt()}` }, signal }),
+  }),
+);
+amplitude.init(API_KEY);
+```
+
+**Unified — `@amplitude/unified`** (the callbacks go under the `sessionReplay` block):
+
+```ts
+import { initAll } from '@amplitude/unified';
+
+initAll(API_KEY, {
+  sessionReplay: {
+    sampleRate: 1,
+    trackServerUrl: 'https://my-proxy.example.com/sr-events',
+    configServerUrl: 'https://my-proxy.example.com/sr-config',
+    handleSendEvents: async ({ url, method, headers, body, keepalive }) =>
+      fetch(url, { method, headers: { ...headers, Authorization: `Bearer ${getJwt()}` }, body, keepalive }),
+    handleFetchConfig: async ({ url, method, headers, signal }) =>
+      fetch(url, { method, headers: { ...headers, Authorization: `Bearer ${getJwt()}` }, signal }),
+  },
+});
+```
+
+Everything else in this section — the contract, the proxy-side requirements, web-worker support —
+applies identically across all three.
+
 ### Contract
 
 What the SDK guarantees to your callback:
