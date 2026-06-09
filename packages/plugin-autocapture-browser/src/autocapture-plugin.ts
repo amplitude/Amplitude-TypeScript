@@ -47,6 +47,7 @@ import {
   resolveSelectorConfig,
   type ElementSelectorRemoteConfig,
   type ResolvedSelectorConfig,
+  type SelectorEngine,
 } from '@amplitude/element-selector';
 import { trackExposure } from './autocapture/track-exposure';
 import { fireViewportContentUpdated, onExposure, ExposureTracker } from './autocapture/track-viewport-content-updated';
@@ -63,6 +64,93 @@ declare global {
 }
 
 type BrowserEnrichmentPlugin = EnrichmentPlugin<BrowserClient, BrowserConfig>;
+type ElementSelectorPublicSurface = {
+  generate: (el: Element) => string;
+  getConfig: () => Readonly<ResolvedSelectorConfig>;
+  onConfigChange: (cb: (config: ResolvedSelectorConfig) => void) => () => void;
+};
+type BrowserClientWithElementSelector = BrowserClient & { elementSelector?: unknown };
+type RemoteConfigCallback = Parameters<NonNullable<BrowserConfig['remoteConfigClient']>['subscribe']>[2];
+
+const subscribeRemoteConfig = (
+  config: BrowserConfig,
+  key: string,
+  callback: RemoteConfigCallback,
+): Unsubscribable | undefined => {
+  if (!config.remoteConfigClient) {
+    return undefined;
+  }
+  const subscriptionId = config.remoteConfigClient.subscribe(key, 'all', callback);
+  return {
+    unsubscribe: () => {
+      config.remoteConfigClient?.unsubscribe(subscriptionId);
+    },
+  };
+};
+
+const attachElementSelectorSurface = (amplitude: BrowserClient, selectorEngine: SelectorEngine): Unsubscribable => {
+  // Expose a narrowed, read-only surface of the engine on the customer's
+  // BrowserClient instance so downstream consumers can use the same engine the
+  // SDK is running. Attach to the instance, not window.amplitude, so custom
+  // global names and multiple SDK instances do not clobber each other.
+  const elementSelectorClient = amplitude as BrowserClientWithElementSelector;
+  const hadPreviousElementSelector = Object.prototype.hasOwnProperty.call(elementSelectorClient, 'elementSelector');
+  const previousElementSelector = elementSelectorClient.elementSelector;
+  const elementSelectorSurface: ElementSelectorPublicSurface = {
+    generate: (el: Element): string => selectorEngine.generate(el),
+    getConfig: () => selectorEngine.getConfig(),
+    onConfigChange: (cb: (config: ResolvedSelectorConfig) => void): (() => void) => selectorEngine.onConfigChange(cb),
+  };
+  /* istanbul ignore next */
+  elementSelectorClient.elementSelector = elementSelectorSurface;
+
+  return {
+    unsubscribe: () => {
+      if (hadPreviousElementSelector) {
+        elementSelectorClient.elementSelector = previousElementSelector;
+      } else {
+        delete elementSelectorClient.elementSelector;
+      }
+    },
+  };
+};
+
+const setupElementSelector = (
+  config: BrowserConfig,
+  amplitude: BrowserClient,
+  dataExtractor: DataExtractor,
+): Unsubscribable[] => {
+  const subscriptions: Unsubscribable[] = [];
+
+  // Construct the engine eagerly with defaults so `dataExtractor.getElementPath`
+  // can route through it from the first emission. When `enabled` is false in
+  // the resolved config (the default), `getElementPath` falls back to the
+  // legacy `cssPath` algorithm.
+  const initialSelectorConfig = resolveSelectorConfig(undefined, config.loggerProvider);
+  const selectorEngine = createSelectorEngine(initialSelectorConfig, { logger: config.loggerProvider });
+  dataExtractor.setSelectorEngine(selectorEngine);
+
+  subscriptions.push(attachElementSelectorSurface(amplitude, selectorEngine));
+
+  if (config.fetchRemoteConfig) {
+    const elementSelectorSubscription = subscribeRemoteConfig(
+      config,
+      'configs.analyticsSDK.autocapture.elementSelector',
+      (remoteSelectorConfig) => {
+        const nextResolved = resolveSelectorConfig(
+          remoteSelectorConfig as ElementSelectorRemoteConfig | undefined,
+          config.loggerProvider,
+        );
+        selectorEngine.updateConfig(nextResolved);
+      },
+    );
+    if (elementSelectorSubscription) {
+      subscriptions.push(elementSelectorSubscription);
+    }
+  }
+
+  return subscriptions;
+};
 
 export type AutoCaptureOptionsWithDefaults = Required<
   Pick<ElementInteractionsOptions, 'debounceTime' | 'cssSelectorAllowlist' | 'actionClickAllowlist'>
@@ -284,61 +372,20 @@ export const autocapturePlugin = (
         // TODO(xinyi): Diagnostics.recordEvent
         config.loggerProvider.debug('Remote config client is not provided, skipping remote config fetch');
       } else {
-        config.remoteConfigClient.subscribe('configs.analyticsSDK.pageActions', 'all', (remoteConfig) => {
-          recomputePageActionsData(remoteConfig as ElementInteractionsOptions['pageActions']);
-        });
+        const pageActionsSubscription = subscribeRemoteConfig(
+          config,
+          'configs.analyticsSDK.pageActions',
+          (remoteConfig) => {
+            recomputePageActionsData(remoteConfig as ElementInteractionsOptions['pageActions']);
+          },
+        );
+        if (pageActionsSubscription) {
+          subscriptions.push(pageActionsSubscription);
+        }
       }
     }
 
-    // ===== v1 element-selector engine =====
-    //
-    // Construct the engine eagerly with defaults so `dataExtractor.getElementPath`
-    // can route through it from the first emission. When `enabled` is false
-    // in the resolved config (the default), the engine still exists but
-    // `getElementPath` falls back to the legacy `cssPath` algorithm — see
-    // the kill-switch comment in `data-extractor.ts`.
-    //
-    // The engine subscribes to remote-config updates on the elementSelector
-    // namespace (nested under autocapture, alongside pageActions if that
-    // namespace eventually migrates). Each update re-resolves the config
-    // and calls `engine.updateConfig(...)`, which takes effect on the next
-    // selector emission with no further plumbing.
-    const initialSelectorConfig = resolveSelectorConfig(undefined, config.loggerProvider);
-    const selectorEngine = createSelectorEngine(initialSelectorConfig, { logger: config.loggerProvider });
-    dataExtractor.setSelectorEngine(selectorEngine);
-
-    // Expose a narrowed, read-only surface of the engine on the customer's
-    // BrowserClient instance so downstream consumers (the dashboard tagger
-    // via window-messenger, the Chrome extension visual tagger via direct
-    // page access) can use the same engine the SDK is running. Notable:
-    //
-    //   - Attaches to `amplitude` (the BrowserClient param), NOT to
-    //     `window.amplitude`. Per-instance, survives custom global names,
-    //     no multi-instance clobbering.
-    //   - `updateConfig` is intentionally not exposed — only the SDK
-    //     should mutate the engine's config, and only via the remote-config
-    //     subscription below. Consumers that need live updates use
-    //     `onConfigChange`.
-    /* istanbul ignore next */
-    (amplitude as unknown as { elementSelector?: unknown }).elementSelector = {
-      generate: (el: Element): string => selectorEngine.generate(el),
-      getConfig: () => selectorEngine.getConfig(),
-      onConfigChange: (cb: (config: ResolvedSelectorConfig) => void): (() => void) => selectorEngine.onConfigChange(cb),
-    };
-
-    if (config.fetchRemoteConfig && config.remoteConfigClient) {
-      config.remoteConfigClient.subscribe(
-        'configs.analyticsSDK.autocapture.elementSelector',
-        'all',
-        (remoteSelectorConfig) => {
-          const nextResolved = resolveSelectorConfig(
-            remoteSelectorConfig as ElementSelectorRemoteConfig | undefined,
-            config.loggerProvider,
-          );
-          selectorEngine.updateConfig(nextResolved);
-        },
-      );
-    }
+    subscriptions.push(...setupElementSelector(config, amplitude, dataExtractor));
 
     // Create should track event functions the different allowlists
     const shouldTrackEvent = createShouldTrackEvent(
