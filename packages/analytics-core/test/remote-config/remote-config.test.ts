@@ -1143,6 +1143,19 @@ describe('RemoteConfigClient', () => {
       expect(result.remoteConfig).toEqual({ key: 'value' });
     });
 
+    test('treats custom transport responses without ok as successful for 2xx status', async () => {
+      global.fetch = jest.fn();
+      const customFetch = jest.fn(() =>
+        Promise.resolve({ status: 200, json: () => Promise.resolve({ key: 'value' }) } as Response),
+      );
+      const customClient = new RemoteConfigClient(mockApiKey, mockLogger, 'US', undefined, customFetch);
+
+      const result = await customClient.fetch();
+
+      expect(customFetch).toHaveBeenCalledTimes(1);
+      expect(result.remoteConfig).toEqual({ key: 'value' });
+    });
+
     test('retry stays in the client around the custom transport (5xx then 200)', async () => {
       global.fetch = jest.fn();
       const customFetch = jest

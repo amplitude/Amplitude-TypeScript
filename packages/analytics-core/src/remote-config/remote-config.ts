@@ -386,8 +386,10 @@ export class RemoteConfigClient implements IRemoteConfigClient {
               signal: abortController.signal,
             });
 
+        const ok = (res as { ok?: boolean }).ok ?? (res.status >= 200 && res.status < 300);
+
         // Handle unsuccessful fetch
-        if (!res.ok) {
+        if (!ok) {
           const body = await res.text();
           this.logger.debug(`Remote config client fetch with retry time ${retries} failed with ${res.status}: ${body}`);
 
