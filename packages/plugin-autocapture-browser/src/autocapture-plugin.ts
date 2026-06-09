@@ -77,13 +77,14 @@ const subscribeRemoteConfig = (
   key: string,
   callback: RemoteConfigCallback,
 ): Unsubscribable | undefined => {
-  if (!config.remoteConfigClient) {
+  const remoteConfigClient = config.remoteConfigClient;
+  if (!remoteConfigClient) {
     return undefined;
   }
-  const subscriptionId = config.remoteConfigClient.subscribe(key, 'all', callback);
+  const subscriptionId = remoteConfigClient.subscribe(key, 'all', callback);
   return {
     unsubscribe: () => {
-      config.remoteConfigClient?.unsubscribe(subscriptionId);
+      remoteConfigClient.unsubscribe(subscriptionId);
     },
   };
 };
