@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.43.1-SR-4497-custom-transport-hooks.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.43.0...@amplitude/analytics-browser@2.43.1-SR-4497-custom-transport-hooks.0) (2026-06-09)
+
+**Note:** Version bump only for package @amplitude/analytics-browser
+
+
+
+
+
 # [2.43.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.42.5...@amplitude/analytics-browser@2.43.0) (2026-06-05)
 
 

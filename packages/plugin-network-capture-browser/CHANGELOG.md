@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.10.3-SR-4497-custom-transport-hooks.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-network-capture-browser@1.10.2...@amplitude/plugin-network-capture-browser@1.10.3-SR-4497-custom-transport-hooks.0) (2026-06-09)
+
+**Note:** Version bump only for package @amplitude/plugin-network-capture-browser
+
+
+
+
+
 ## [1.10.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-network-capture-browser@1.10.1...@amplitude/plugin-network-capture-browser@1.10.2) (2026-06-05)
 
 **Note:** Version bump only for package @amplitude/plugin-network-capture-browser
