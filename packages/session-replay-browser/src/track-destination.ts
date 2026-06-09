@@ -261,6 +261,9 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
         Accept: '*/*',
         Authorization: `Bearer ${apiKey}`,
       };
+      this.loggerProvider.debug(
+        `Routing session replay exit batch (${trimmedEvents.length} events) through custom transport for session id ${sessionId}.`,
+      );
       try {
         // Fire-and-forget: we cannot await during unload. The request is well under 64 KB
         // (trimmed above) and keepalive: true is requested so it survives page teardown.
@@ -553,8 +556,10 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
           // best effort
         }
       }
+      this.loggerProvider.debug(`Delegated session replay fetch (request ${requestId}) returned status ${status}.`);
       worker.postMessage({ type: 'fetch-response', requestId, status, skipHeader, body: responseBody });
     } catch (e) {
+      this.loggerProvider.debug(`Delegated session replay fetch (request ${requestId}) failed:`, e);
       worker.postMessage({
         type: 'fetch-response',
         requestId,
