@@ -43,7 +43,8 @@ interface ResponseLike {
 interface RequestOptions {
   method: 'POST';
   headers: Record<string, string>;
-  body: BodyInit;
+  // string | Uint8Array (not BodyInit) so it stays structured-cloneable across postMessage.
+  body: string | Uint8Array;
   keepalive: boolean;
 }
 
@@ -70,6 +71,10 @@ interface FetchResponseMessage {
   error?: boolean;
 }
 
+// Module-level state, scoped to this worker bundle. Each SessionReplayTrackDestination spins up
+// its own Worker (and a shutdown()+re-init in a SPA creates a fresh one), so a new session gets a
+// brand-new module scope — these are never shared across sessions and requestIds can't collide
+// between them. They intentionally hold only in-flight delegations for the single owning instance.
 let delegationCounter = 0;
 const pendingDelegations = new Map<string, (resp: FetchResponseMessage) => void>();
 
@@ -87,10 +92,13 @@ const delegateRequest: DoRequest = (url, options) => {
         return;
       }
       // Reconstruct just the slice of Response that doFetch consumes. get() is only ever
-      // queried for EVENT_SKIPPED_HEADER, so it returns the forwarded skip header directly.
+      // queried for EVENT_SKIPPED_HEADER today; the name check keeps it self-documenting and
+      // safe if a future reader adds another header lookup (the other branch is unreachable now).
       resolve({
         status: resp.status,
-        headers: { get: () => resp.skipHeader },
+        headers: {
+          get: (name: string) => (name === EVENT_SKIPPED_HEADER ? resp.skipHeader : /* istanbul ignore next */ null),
+        },
         text: () => Promise.resolve(resp.body),
       });
     });
@@ -149,7 +157,7 @@ async function doFetch(
     const res = await doRequest(serverUrl, {
       method: 'POST',
       headers,
-      body: (gzipped ?? payloadJson) as BodyInit,
+      body: gzipped ?? payloadJson,
       // keepalive lets the request survive page navigation, preventing 499 (client-closed) errors.
       // Must stay under the browser's 64 KB keepalive budget; large payloads skip it.
       keepalive: payloadSize <= MAX_KEEPALIVE_BYTES,

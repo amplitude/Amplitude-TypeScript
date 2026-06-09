@@ -880,5 +880,22 @@ describe('SessionReplayJoinedConfigGenerator', () => {
         undefined,
       );
     });
+
+    test('should pass handleFetchConfig through to RemoteConfigClient as the custom transport', async () => {
+      const handleFetchConfig = jest.fn(() =>
+        Promise.resolve({ ok: true, json: () => Promise.resolve({}) } as Response),
+      );
+
+      await createSessionReplayJoinedConfigGenerator('static_key', { ...mockOptions, handleFetchConfig });
+
+      // The customer's handleFetchConfig must arrive as the 5th (customFetch) constructor arg.
+      expect(MockedRemoteConfigClient).toHaveBeenCalledWith(
+        'static_key',
+        mockLoggerProvider,
+        ServerZone.EU,
+        undefined,
+        handleFetchConfig,
+      );
+    });
   });
 });

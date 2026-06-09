@@ -1,6 +1,8 @@
 import { Event } from '@amplitude/analytics-core';
 import {
   StoreType,
+  type SessionReplaySendEventsHandler,
+  type SessionReplayFetchConfigHandler,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   type SessionReplayOptions as StandaloneSessionReplayOptions, // used for documentation
 } from '@amplitude/session-replay-browser';
@@ -194,10 +196,10 @@ export interface SessionReplayOptions {
    * `Authorization` header) and route through an authenticated proxy.
    * @see {@link StandaloneSessionReplayOptions.handleSendEvents}
    */
-  handleSendEvents?: StandaloneSessionReplayOptions['handleSendEvents'];
+  handleSendEvents?: SessionReplaySendEventsHandler;
   /**
    * Optional custom transport for the remote-config fetch.
    * @see {@link StandaloneSessionReplayOptions.handleFetchConfig}
    */
-  handleFetchConfig?: StandaloneSessionReplayOptions['handleFetchConfig'];
+  handleFetchConfig?: SessionReplayFetchConfigHandler;
 }

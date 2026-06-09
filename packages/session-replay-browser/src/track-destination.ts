@@ -56,7 +56,8 @@ interface WorkerFetchRequestMessage {
   url: string;
   method: 'POST';
   headers: Record<string, string>;
-  body: BodyInit;
+  // string | Uint8Array (not BodyInit) so it stays structured-cloneable across postMessage.
+  body: string | Uint8Array;
   keepalive: boolean;
 }
 type WorkerMessage =
@@ -174,7 +175,12 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
           } else if (msg.type === 'fetch-request') {
             // Worker is delegating one network attempt to the custom transport (which lives on
             // the main thread). Run it and post the result back into the worker's retry loop.
-            void this.handleDelegatedFetch(worker, msg);
+            // Guard the fire-and-forget call: if posting the result back fails (e.g. the worker
+            // was terminated mid-flight), surface it to the logger instead of leaving an
+            // unhandled rejection.
+            void this.handleDelegatedFetch(worker, msg).catch((e) => {
+              loggerProvider.warn('Failed to handle delegated session replay fetch:', e);
+            });
           }
         };
         this.worker = worker;
@@ -259,12 +265,13 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
         // Fire-and-forget: we cannot await during unload. The request is well under 64 KB
         // (trimmed above) and keepalive: true is requested so it survives page teardown.
         void this.handleSendEvents({ url: exitUrl, method: 'POST', headers, body: payload, keepalive: true }).catch(
-          () => {
-            // best effort on exit
+          (e) => {
+            // best effort on exit, but still surface the failure so it's diagnosable in logs.
+            this.loggerProvider.warn('Custom transport failed to send session replay exit batch:', e);
           },
         );
-      } catch {
-        // best effort on exit
+      } catch (e) {
+        this.loggerProvider.warn('Custom transport threw while sending session replay exit batch:', e);
       }
       return;
     }
@@ -526,6 +533,10 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
   private async handleDelegatedFetch(worker: Worker, msg: WorkerFetchRequestMessage): Promise<void> {
     const { requestId, url, method, headers, body, keepalive } = msg;
     try {
+      // In practice this.handleSendEvents is always set here: the worker only emits
+      // 'fetch-request' when useCustomTransport (= !!this.handleSendEvents) was true. The
+      // built-in fetch is a defensive fallback for the impossible case so we never accidentally
+      // drop a delegated send; it is not a supported "run without a transport" path.
       const res = this.handleSendEvents
         ? await this.handleSendEvents({ url, method, headers, body, keepalive })
         : await fetch(url, { method, headers, body, keepalive });
@@ -595,7 +606,7 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
         'X-Sampling-Hash-Alg': 'xxhash32',
         ...(gzipped ? { 'Content-Encoding': 'gzip' } : {}),
       };
-      const body = (gzipped ?? payloadJson) as BodyInit;
+      const body: string | Uint8Array = gzipped ?? payloadJson;
       // keepalive lets the request survive page navigation, preventing 499 (client-closed) errors.
       // Must stay under the browser's 64 KB keepalive budget; large payloads skip it.
       const keepalive = payloadSize <= MAX_KEEPALIVE_BYTES;

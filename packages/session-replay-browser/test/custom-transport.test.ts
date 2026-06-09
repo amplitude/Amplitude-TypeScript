@@ -186,7 +186,7 @@ describe('custom transport (handleSendEvents)', () => {
       expect(request.headers.Authorization).toBe('Bearer key-abc');
     });
 
-    test('swallows a rejected exit-path callback (best effort on unload)', async () => {
+    test('warns (does not throw) when the exit-path callback rejects on unload', async () => {
       jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue({
         navigator: { sendBeacon: jest.fn() },
       } as unknown as typeof globalThis);
@@ -201,6 +201,31 @@ describe('custom transport (handleSendEvents)', () => {
       expect(handleSendEvents).toHaveBeenCalledTimes(1);
       // Let the rejected promise settle so the .catch handler runs.
       await Promise.resolve();
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockLoggerProvider.warn).toHaveBeenCalledWith(
+        'Custom transport failed to send session replay exit batch:',
+        expect.any(Error),
+      );
+    });
+
+    test('warns (does not throw) when the exit-path callback throws synchronously', () => {
+      jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue({
+        navigator: { sendBeacon: jest.fn() },
+      } as unknown as typeof globalThis);
+      const handleSendEvents = jest.fn(() => {
+        throw new Error('sync boom');
+      }) as unknown as () => Promise<Response>;
+      const trackDestination = new SessionReplayTrackDestination({
+        loggerProvider: mockLoggerProvider,
+        handleSendEvents,
+      });
+
+      expect(() => trackDestination.sendBeacon({ ...beaconArgs, events: ['e1'] })).not.toThrow();
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockLoggerProvider.warn).toHaveBeenCalledWith(
+        'Custom transport threw while sending session replay exit batch:',
+        expect.any(Error),
+      );
     });
 
     test('still uses navigator.sendBeacon when no callback is configured', () => {
@@ -347,6 +372,46 @@ describe('custom transport (handleSendEvents)', () => {
       } as MessageEvent);
 
       expect(spy).toHaveBeenCalledTimes(1);
+    });
+
+    test('worker.onmessage logs (does not leave an unhandled rejection) when handleDelegatedFetch rejects', async () => {
+      const mockWorker = {
+        postMessage: jest.fn(),
+        terminate: jest.fn(),
+        onerror: null as ((e: ErrorEvent) => void) | null,
+        onmessage: null as ((e: MessageEvent) => void) | null,
+      };
+      global.Worker = jest.fn(() => mockWorker) as unknown as typeof Worker;
+      global.URL.createObjectURL = jest.fn().mockReturnValue('blob:mock');
+
+      const trackDestination = new SessionReplayTrackDestination({
+        loggerProvider: mockLoggerProvider,
+        workerScript: 'self.onmessage = () => {}',
+        handleSendEvents: jest.fn(() => Promise.resolve({ status: 200 } as Response)),
+      });
+      jest
+        .spyOn(trackDestination as unknown as { handleDelegatedFetch: () => Promise<void> }, 'handleDelegatedFetch')
+        .mockRejectedValue(new Error('postMessage failed'));
+
+      mockWorker.onmessage?.({
+        data: {
+          type: 'fetch-request',
+          requestId: 'r9',
+          url: 'u',
+          method: 'POST',
+          headers: {},
+          body: '{}',
+          keepalive: true,
+        },
+      } as MessageEvent);
+      // Let the rejected promise settle so the .catch handler runs.
+      await Promise.resolve();
+
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockLoggerProvider.warn).toHaveBeenCalledWith(
+        'Failed to handle delegated session replay fetch:',
+        expect.any(Error),
+      );
     });
   });
 });

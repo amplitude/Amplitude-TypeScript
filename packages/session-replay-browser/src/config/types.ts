@@ -111,8 +111,12 @@ export interface SendEventsRequest {
   /**
    * The serialized payload, ready to send. A gzipped `Uint8Array` when transport compression
    * is active, otherwise the raw JSON string. Forward it unchanged — do not re-serialize.
+   *
+   * Typed as `string | Uint8Array` (not the broader `BodyInit`) because the body must be
+   * structured-cloneable to cross `postMessage` in web-worker mode; `Blob`/`FormData`/
+   * `ReadableStream` are not, and the SDK never produces them here.
    */
-  body: BodyInit;
+  body: string | Uint8Array;
   /**
    * Whether the built-in path would set `keepalive` on this request. `true` for page-exit
    * sends (so the request survives unload) and for small in-session batches. Forward it to
