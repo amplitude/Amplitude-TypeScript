@@ -1,6 +1,5 @@
 import Foundation
 import React
-import SystemConfiguration
 #if canImport(Network)
 import Network
 #endif
@@ -12,15 +11,14 @@ import Network
 ///
 /// Connectivity is monitored with `NWPathMonitor` (Network framework, iOS 12+).
 /// The podspec targets iOS 10, so offline detection is best-effort: below
-/// iOS/tvOS 12 the module always reports connected — both the initial seed and
-/// change events — which preserves the pre-offline SDK behavior (send always,
-/// existing retry handles failures). Reporting offline without a monitor to
-/// flip it back would buffer events forever.
+/// iOS/tvOS 12 the module never reports offline, which preserves the
+/// pre-offline SDK behavior (send always, existing retry handles failures).
 ///
-/// The current connectivity state is always computed on demand from a fresh
-/// `SCNetworkReachability` probe (see `currentConnectivity()`), so the initial
-/// state JS reads via `getNetworkConnectivityStatus` is correct even before the
-/// path monitor has started, and there is no shared mutable state to race on.
+/// `getNetworkConnectivityStatus` resolves connected unconditionally. The real
+/// initial state arrives via the monitor's first update instead:
+/// `nw_path_monitor_set_update_handler` is documented to call the handler
+/// "with the current path when start is called", so the first emit after JS
+/// subscribes carries the actual state — no separate probe needed.
 @objc(AmplitudeReactNativeConnectivity)
 class AmplitudeReactNativeConnectivity: RCTEventEmitter {
 
@@ -59,16 +57,17 @@ class AmplitudeReactNativeConnectivity: RCTEventEmitter {
 
     // MARK: Exported methods
 
-    /// Returns the current connectivity state. `startObserving` only fires on
-    /// subsequent changes, so JS reads this once on setup to seed the initial
-    /// `offline` value. The value is computed from a fresh reachability probe so
-    /// it is correct even before monitoring has started.
+    /// Seed read JS performs once on setup (Android answers it with a real
+    /// `ConnectivityManager` read, mirroring Amplitude-Kotlin). On iOS it
+    /// resolves connected unconditionally: `NWPathMonitor` delivers the current
+    /// path as its first update once JS subscribes, correcting the seed within
+    /// milliseconds, and below iOS 12 best-effort means always connected.
     @objc
     func getNetworkConnectivityStatus(
         _ resolve: @escaping RCTPromiseResolveBlock,
         rejecter reject: @escaping RCTPromiseRejectBlock
     ) -> Void {
-        resolve(["isConnected": currentConnectivity()])
+        resolve(["isConnected": true])
     }
 
     // MARK: Monitoring
@@ -111,39 +110,4 @@ class AmplitudeReactNativeConnectivity: RCTEventEmitter {
         )
     }
 
-    /// Computes the current connectivity from a fresh `SCNetworkReachability`
-    /// probe. This does not depend on the monitor being started, so it returns a
-    /// correct value when JS seeds the initial state. Defaults to connected when
-    /// the state can't be determined, so we never wrongly suppress sends.
-    ///
-    /// Below iOS/tvOS 12 this must report connected unconditionally: there is no
-    /// monitor to emit a later change, so seeding offline would buffer events
-    /// forever.
-    private func currentConnectivity() -> Bool {
-        guard #available(iOS 12, tvOS 12, *) else { return true }
-        guard let reachability = createReachability() else { return true }
-        var flags = SCNetworkReachabilityFlags()
-        guard SCNetworkReachabilityGetFlags(reachability, &flags) else { return true }
-        return AmplitudeReactNativeConnectivity.isReachable(flags)
-    }
-
-    private func createReachability() -> SCNetworkReachability? {
-        var zeroAddress = sockaddr_in()
-        zeroAddress.sin_len = UInt8(MemoryLayout<sockaddr_in>.size)
-        zeroAddress.sin_family = sa_family_t(AF_INET)
-
-        return withUnsafePointer(to: &zeroAddress) { pointer in
-            pointer.withMemoryRebound(to: sockaddr.self, capacity: 1) { address in
-                SCNetworkReachabilityCreateWithAddress(nil, address)
-            }
-        }
-    }
-
-    private static func isReachable(_ flags: SCNetworkReachabilityFlags) -> Bool {
-        let reachable = flags.contains(.reachable)
-        let requiresConnection = flags.contains(.connectionRequired)
-        let canConnectAutomatically = flags.contains(.connectionOnDemand) || flags.contains(.connectionOnTraffic)
-        let canConnectWithoutUserInteraction = canConnectAutomatically && !flags.contains(.interventionRequired)
-        return reachable && (!requiresConnection || canConnectWithoutUserInteraction)
-    }
 }
