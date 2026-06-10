@@ -92,6 +92,7 @@ jobs:
   deploy:
     name: Deploy
     runs-on: ubuntu-latest
+    environment: npm-release
     needs: [authorize, e2e]
     if: ${{ github.event.inputs.releaseType == 'release' }}
     permissions:
@@ -180,6 +181,7 @@ jobs:
   prerelease:
     name: Prerelease feature branch
     runs-on: ubuntu-latest
+    environment: npm-release
     needs: [authorize, e2e]
     if: ${{ github.event.inputs.releaseType == 'prerelease' || github.event.inputs.releaseType == 'dry-run' }}
     permissions:
