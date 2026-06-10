@@ -657,6 +657,9 @@ describe('createEventsManager', () => {
       // Use the real memory store so shouldSplitEventsList can trigger a split.
       // eventA sits just under the cap so it doesn't split on its own; eventB then pushes the
       // batch over MAX_EVENT_LIST_SIZE. Derived from the constant so it tracks cap changes.
+      // 10 bytes of slack exceeds getEventsArraySize's 4-byte overhead for a 1-event list
+      // (2 + 0 + 2) plus eventB's payload, so eventA stays under the cap alone but crosses
+      // it once eventB is appended.
       const eventA = 'a'.repeat(MAX_EVENT_LIST_SIZE - 10);
       const eventB = JSON.stringify({ type: 3, timestamp: 2 });
 
