@@ -36,21 +36,22 @@ class AmplitudeReactNativeConnectivity: RCTEventEmitter {
     }
 
     override func startObserving() {
-        hasListeners = true
+        // hasListeners is read by the pathUpdateHandler on monitorQueue, so write
+        // it there too; otherwise a queued update could read a stale value and
+        // emit after teardown.
+        monitorQueue.async { self.hasListeners = true }
         startMonitoring()
     }
 
     override func stopObserving() {
-        hasListeners = false
+        monitorQueue.async { self.hasListeners = false }
         stopMonitoring()
     }
 
     // MARK: Exported methods
 
-    /// Always seed connected because `NWPathMonitor` delivers the current
-    /// path as its first update once JS subscribes, correcting the seed within
-    /// milliseconds.
-    /// https://github.com/xybp888/iOS-SDKs/blob/master/iPhoneOS26.5.sdk/System/Library/Frameworks/Network.framework/Headers/path_monitor.h#L152-L153
+    /// Always seed connected because `NWPathMonitor` delivers the current path
+    /// as its first update once JS subscribes
     @objc
     func getNetworkConnectivityStatus(
         _ resolve: @escaping RCTPromiseResolveBlock,
