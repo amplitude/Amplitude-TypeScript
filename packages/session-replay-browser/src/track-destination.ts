@@ -101,7 +101,7 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
   // count, so collapsing N queued batches into one POST directly reduces throttle pressure.
   private mergeOnNextFlush = false;
   // Set by markCoalesceNextFlush() before the page-load backlog is enqueued; consumed by
-  // flush() to coalesce the drained persisted sequences (SR-4660). Distinct from
+  // flush() to coalesce the drained persisted sequences. Distinct from
   // mergeOnNextFlush so the drain isn't conflated with a throttle pause for logging.
   private coalesceNextFlush = false;
   // Gates the merge log to once per throttle pause window — mirroring the throttle log's
@@ -226,7 +226,7 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
    * sequences replayed back-to-back on init via sendStoredEvents). Because those enqueues are
    * synchronous and the flush is deferred to the next tick via schedule(0), the whole backlog
    * lands in the queue before the flag is consumed — collapsing N small POSTs into far fewer
-   * and avoiding the request flood observed on page load (SR-4660). Steady-state live capture
+   * and avoiding the request flood observed on page load. Steady-state live capture
    * never sets this flag, so its sending behavior is unchanged.
    *
    * Schedules a flush so the flag is always consumed by the next flush, even when every
@@ -396,7 +396,7 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
   }
 
   /**
-   * Page-load backlog drain path (SR-4660): on init the SDK replays every persisted sequence
+   * Page-load backlog drain path: on init the SDK replays every persisted sequence
    * from a prior session via sendStoredEvents. Enqueued back-to-back they would flush as N
    * separate POSTs — a request flood on page load that feeds volume spikes and throttling.
    * Reuses the exact same identity-grouped merge as the post-throttle path so the backlog

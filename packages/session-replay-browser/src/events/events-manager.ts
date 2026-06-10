@@ -222,7 +222,7 @@ export const createEventsManager = async <Type extends EventType>({
       return;
     }
     config.loggerProvider.log(`Draining ${sequencesToSend.length} stored sequence(s) from previous session.`);
-    // SR-4660: these persisted sequences are about to be enqueued back-to-back. Without
+    // These persisted sequences are about to be enqueued back-to-back. Without
     // coalescing they flush as N separate POSTs — a request flood on page load. Mark the
     // imminent flush to merge same-identity batches (the enqueues below are synchronous, so
     // the whole backlog lands in the queue before the deferred flush consumes the flag). Skip
