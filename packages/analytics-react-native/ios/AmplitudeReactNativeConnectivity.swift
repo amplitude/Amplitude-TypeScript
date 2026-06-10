@@ -15,7 +15,7 @@ class AmplitudeReactNativeConnectivity: RCTEventEmitter {
     private var pathMonitor: NWPathMonitor?
 
     deinit {
-        stopMonitoring()
+        pathMonitor?.cancel()
     }
 
     // MARK: RCTEventEmitter
