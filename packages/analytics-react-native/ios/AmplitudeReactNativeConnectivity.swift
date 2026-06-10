@@ -5,20 +5,10 @@ import Network
 #endif
 
 /// Connectivity-only native module bridged back to JS as
-/// `AmplitudeReactNativeConnectivity`. It is intentionally separate from the
-/// request/response `AmplitudeReactNative` module so the `RCTEventEmitter`
-/// lifecycle (listener tracking, start/stop observing) stays isolated.
+/// `AmplitudeReactNativeConnectivity`.
 ///
-/// Connectivity is monitored with `NWPathMonitor` (Network framework, iOS 12+).
-/// The podspec targets iOS 10, so offline detection is best-effort: below
-/// iOS/tvOS 12 the module never reports offline, which preserves the
-/// pre-offline SDK behavior (send always, existing retry handles failures).
-///
-/// `getNetworkConnectivityStatus` resolves connected unconditionally. The real
-/// initial state arrives via the monitor's first update instead:
-/// `nw_path_monitor_set_update_handler` is documented to call the handler
-/// "with the current path when start is called", so the first emit after JS
-/// subscribes carries the actual state — no separate probe needed.
+/// Monitors connectivity with `NWPathMonitor` (iOS/tvOS 12+). Below 12 detection is best-effort: the module never
+/// reports offline.
 @objc(AmplitudeReactNativeConnectivity)
 class AmplitudeReactNativeConnectivity: RCTEventEmitter {
 
@@ -27,7 +17,7 @@ class AmplitudeReactNativeConnectivity: RCTEventEmitter {
     private var hasListeners = false
     private let monitorQueue = DispatchQueue(label: "com.amplitude.reactnative.connectivity")
 
-    // iOS 12+ path
+    // NWPathMonitor; AnyObject because stored properties can't be @available-gated.
     private var pathMonitor: AnyObject?
 
     deinit {
@@ -57,11 +47,10 @@ class AmplitudeReactNativeConnectivity: RCTEventEmitter {
 
     // MARK: Exported methods
 
-    /// Seed read JS performs once on setup (Android answers it with a real
-    /// `ConnectivityManager` read, mirroring Amplitude-Kotlin). On iOS it
-    /// resolves connected unconditionally: `NWPathMonitor` delivers the current
+    /// Always seed connected because `NWPathMonitor` delivers the current
     /// path as its first update once JS subscribes, correcting the seed within
-    /// milliseconds, and below iOS 12 best-effort means always connected.
+    /// milliseconds.
+    /// https://github.com/xybp888/iOS-SDKs/blob/master/iPhoneOS26.5.sdk/System/Library/Frameworks/Network.framework/Headers/path_monitor.h#L152-L153
     @objc
     func getNetworkConnectivityStatus(
         _ resolve: @escaping RCTPromiseResolveBlock,
@@ -75,7 +64,6 @@ class AmplitudeReactNativeConnectivity: RCTEventEmitter {
     private func startMonitoring() {
         // Replace any existing monitor so repeated startObserving calls don't leak.
         stopMonitoring()
-        // Below iOS/tvOS 12 monitoring is unsupported; connectivity stays "connected".
         if #available(iOS 12, tvOS 12, *) {
             startPathMonitor()
         }
