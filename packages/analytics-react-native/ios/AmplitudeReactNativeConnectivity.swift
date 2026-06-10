@@ -4,8 +4,11 @@ import Network
 
 /// Connectivity-only native module bridged back to JS as
 /// `AmplitudeReactNativeConnectivity`. Monitors connectivity with `NWPathMonitor`.
+///
+/// `open` so the XCTest suite in `ios/Tests` can subclass it and capture
+/// events without a live `RCTBridge`.
 @objc(AmplitudeReactNativeConnectivity)
-class AmplitudeReactNativeConnectivity: RCTEventEmitter {
+open class AmplitudeReactNativeConnectivity: RCTEventEmitter {
 
     private static let connectivityEventName = "AmplitudeNetworkConnectivityChanged"
 
@@ -27,24 +30,26 @@ class AmplitudeReactNativeConnectivity: RCTEventEmitter {
 
     // MARK: RCTEventEmitter
 
-    override func supportedEvents() -> [String]! {
+    open override func supportedEvents() -> [String]! {
         return [AmplitudeReactNativeConnectivity.connectivityEventName]
     }
 
     @objc
-    override static func requiresMainQueueSetup() -> Bool {
+    public override static func requiresMainQueueSetup() -> Bool {
         return false
     }
 
-    override func startObserving() {
+    open override func startObserving() {
+        // Set the listener flag and start the monitor atomically on monitorQueue,
+        // where the pathUpdateHandler reads the flag. sync (not async) so the flag
+        // is set before the monitor's first update fires.
         monitorQueue.sync {
             hasListeners = true
             pathMonitor.start(queue: monitorQueue)
         }
     }
 
-    override func stopObserving() {
-        // Don't cancel here — a cancelled NWPathMonitor can't be restarted; cancel only in deinit.
+    open override func stopObserving() {
         monitorQueue.sync {
             hasListeners = false
         }
@@ -57,7 +62,7 @@ class AmplitudeReactNativeConnectivity: RCTEventEmitter {
     /// real status. Seeding connected would risk sending startup events while
     /// actually offline.
     @objc
-    func getNetworkConnectivityStatus(
+    public func getNetworkConnectivityStatus(
         _ resolve: @escaping RCTPromiseResolveBlock,
         rejecter reject: @escaping RCTPromiseRejectBlock
     ) -> Void {
