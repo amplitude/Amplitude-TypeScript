@@ -191,9 +191,6 @@ jobs:
             console.log(match.udid);
           ")
           echo "SIM_UDID=$UDID" >> $GITHUB_ENV
-          # bootstatus -b boots only if needed and waits either way; a bare
-          # `simctl boot` would fail here because the XCTest step above
-          # leaves its destination simulator booted.
           xcrun simctl bootstatus "$UDID" -b
 
       - name: Install app on simulator
