@@ -113,6 +113,7 @@ export class SessionReplayPlugin implements EnrichmentPlugin<BrowserClient, Brow
         captureFullSnapshotOnFocus: this.options.captureFullSnapshotOnFocus,
         maxPersistedEventsSizeBytes: this.options.maxPersistedEventsSizeBytes,
         maxSingleEventSizeBytes: this.options.maxSingleEventSizeBytes,
+        sendTimeoutMs: this.options.sendTimeoutMs,
       };
 
       await this.sessionReplay.init(config.apiKey, this.srInitOptions).promise;
