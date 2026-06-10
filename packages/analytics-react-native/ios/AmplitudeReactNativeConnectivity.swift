@@ -30,16 +30,21 @@ class AmplitudeReactNativeConnectivity: RCTEventEmitter {
     }
 
     override func startObserving() {
-        // hasListeners is read by the pathUpdateHandler on monitorQueue, so write
-        // it there too; otherwise a queued update could read a stale value and
-        // emit after teardown.
-        monitorQueue.async { self.hasListeners = true }
-        startMonitoring()
+        // Set the listener flag and start/stop the monitor atomically on
+        // monitorQueue, where the pathUpdateHandler reads the flag. sync (not
+        // async) so the flag is set before the monitor's first update fires, and
+        // so the monitor is fully torn down before stopObserving returns.
+        monitorQueue.sync {
+            hasListeners = true
+            startMonitoring()
+        }
     }
 
     override func stopObserving() {
-        monitorQueue.async { self.hasListeners = false }
-        stopMonitoring()
+        monitorQueue.sync {
+            hasListeners = false
+            stopMonitoring()
+        }
     }
 
     // MARK: Exported methods
