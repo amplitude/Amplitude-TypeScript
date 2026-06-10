@@ -107,27 +107,5 @@ describe('fetch', () => {
         method: 'POST',
       });
     });
-
-    test('should include referrerPolicy in request', async () => {
-      const transport = new FetchTransport({}, 'no-referrer');
-      const url = 'http://localhost:3000';
-      const payload = {
-        api_key: '',
-        events: [],
-      };
-      const fetchSpy = jest.spyOn(window, 'fetch').mockReturnValueOnce(Promise.resolve(new Response('{}')));
-
-      await transport.send(url, payload);
-
-      expect(fetchSpy).toHaveBeenCalledWith(url, {
-        referrerPolicy: 'no-referrer',
-        headers: {
-          'Content-Type': 'application/json',
-          Accept: '*/*',
-        },
-        body: JSON.stringify(payload),
-        method: 'POST',
-      });
-    });
   });
 });
