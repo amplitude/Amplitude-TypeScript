@@ -1847,6 +1847,32 @@ describe('SessionReplayTrackDestination', () => {
       expect(mockLoggerProvider.warn).toHaveBeenCalledWith(expect.stringContaining('worker send timed out'));
     });
 
+    test('sendTimeoutMs of 0 arms no worker-wait timer (send relies on the worker reply)', async () => {
+      const trackDestination = new SessionReplayTrackDestination({
+        loggerProvider: mockLoggerProvider,
+        workerScript: 'self.onmessage = () => {}',
+        sendTimeoutMs: 0,
+      });
+
+      const sendPromise = trackDestination.send(mockContext, true);
+      const [, entry] = [...(trackDestination as any).pendingWorkerRequests.entries()][0] as [
+        string,
+        { timeout?: ReturnType<typeof setTimeout> },
+      ];
+      // No wait timer is armed when the timeout is disabled.
+      expect(entry.timeout).toBeUndefined();
+
+      // Advancing past the default window must not fire the timeout warn (there is no timer).
+      jest.advanceTimersByTime(SEND_TIMEOUT_MS + 1);
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockLoggerProvider.warn).not.toHaveBeenCalledWith(expect.stringContaining('worker send timed out'));
+
+      // Settle via the worker reply so the pending promise resolves.
+      const [id] = [...(trackDestination as any).pendingWorkerRequests.keys()] as string[];
+      mockWorker.onmessage?.({ data: { type: 'complete', id } } as MessageEvent);
+      await sendPromise;
+    });
+
     test('worker timeout timer is cleared when a real response arrives', async () => {
       const trackDestination = new SessionReplayTrackDestination({
         loggerProvider: mockLoggerProvider,
