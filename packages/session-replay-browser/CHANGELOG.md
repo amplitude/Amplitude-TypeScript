@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.45.0-sr-perf-reliability-rc3.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.45.0-sr-perf-reliability-rc2.0...@amplitude/session-replay-browser@1.45.0-sr-perf-reliability-rc3.0) (2026-06-10)
+
+
+### Features
+
+* **session-replay-browser:** make send timeout configurable via sendTimeoutMs ([a891581](https://github.com/amplitude/Amplitude-TypeScript/commit/a891581b6e832529a8de0401ef2e0ad585f0f74a))
+
+
+
+
+
 # [1.45.0-sr-perf-reliability-rc2.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.44.1...@amplitude/session-replay-browser@1.45.0-sr-perf-reliability-rc2.0) (2026-06-08)
 
 
