@@ -261,7 +261,7 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
       await this.webAttribution.init();
     }
 
-    // Step 3: Set session ID
+    // Step 3: Resolve initial session ID (session events are sent after plugins are installed)
     // Priority 1: `options.sessionId`
     // Priority 2: sessionId from url if it's Number and ampTimestamp is valid
     // Priority 3: last known sessionId from user identity storage
@@ -284,7 +284,7 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
       deferredSessionId = Date.now();
     }
 
-    this.setSessionId(options.sessionId ?? querySessionId ?? deferredSessionId ?? this.config.sessionId);
+    const initialSessionId = options.sessionId ?? querySessionId ?? deferredSessionId ?? this.config.sessionId;
 
     if (this.config.optOut) {
       this.timeline.addOptOutListener(async (optOut) => {
@@ -315,6 +315,9 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
     await this.add(new Destination({ diagnosticsClient })).promise;
     await this.add(new Context()).promise;
     await this.add(new IdentityEventSender()).promise;
+
+    // Emit session events only after Context plugin can enrich them with device_id and library.
+    this.setSessionId(initialSessionId);
 
     // Notify if DET is enabled
     detNotify(this.config);
