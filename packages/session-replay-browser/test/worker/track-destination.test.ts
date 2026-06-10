@@ -252,6 +252,38 @@ describe('worker/track-destination', () => {
     expect(mockPostMessage).toHaveBeenCalledWith({ type: 'complete', id: 'to2' });
   });
 
+  test('arms the abort timer at context.sendTimeoutMs when provided', async () => {
+    const setSpy = jest.spyOn(global, 'setTimeout');
+    mockFetch.mockResolvedValueOnce({ status: 200 });
+
+    await invokeOnMessage({
+      type: 'send',
+      id: 'st1',
+      payload: basePayload,
+      context: { ...baseContext, sendTimeoutMs: 25_000 },
+      useRetry: false,
+    });
+
+    expect(setSpy).toHaveBeenCalledWith(expect.any(Function), 25_000);
+  });
+
+  test('does not arm an abort timer when context.sendTimeoutMs is 0', async () => {
+    const setSpy = jest.spyOn(global, 'setTimeout');
+    mockFetch.mockResolvedValueOnce({ status: 200 });
+
+    await invokeOnMessage({
+      type: 'send',
+      id: 'st2',
+      payload: basePayload,
+      context: { ...baseContext, sendTimeoutMs: 0 },
+      useRetry: false,
+    });
+
+    // A successful single-attempt send with the abort disabled schedules no timer at all.
+    expect(setSpy).not.toHaveBeenCalled();
+    expect(mockPostMessage).toHaveBeenCalledWith({ type: 'complete', id: 'st2', skipCode: null });
+  });
+
   test('retries a DOMException abort (not an Error instance) when useRetry=true', async () => {
     const realSetTimeout = global.setTimeout;
     jest

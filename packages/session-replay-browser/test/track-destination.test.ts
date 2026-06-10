@@ -591,6 +591,50 @@ describe('SessionReplayTrackDestination', () => {
       expect(mockOnComplete).toHaveBeenCalledTimes(1);
     });
 
+    test('arms the abort timer at the configured sendTimeoutMs instead of the default', async () => {
+      const setSpy = jest.spyOn(global, 'setTimeout');
+      const trackDestination = new SessionReplayTrackDestination({
+        loggerProvider: mockLoggerProvider,
+        sendTimeoutMs: 30_000,
+      });
+      (global.fetch as jest.Mock)
+        .mockImplementationOnce(hangUntilAborted())
+        .mockImplementationOnce(() => Promise.resolve({ status: 200 }));
+
+      const sendPromise = trackDestination.send(timeoutContext(), true);
+      await jest.runAllTimersAsync();
+      await sendPromise;
+
+      // The abort must be scheduled at the configured value, not SEND_TIMEOUT_MS.
+      expect(setSpy).toHaveBeenCalledWith(expect.any(Function), 30_000);
+      // And it still aborts → retries to the successful second attempt.
+      expect(fetch).toHaveBeenCalledTimes(2);
+    });
+
+    test('sendTimeoutMs of 0 disables the abort: a slow request is not aborted past the default window', async () => {
+      const trackDestination = new SessionReplayTrackDestination({
+        loggerProvider: mockLoggerProvider,
+        sendTimeoutMs: 0,
+      });
+      // Succeeds on its own well after the default timeout would have aborted it.
+      const slowSuccess = jest.fn(
+        (_url: string, options: RequestInit) =>
+          new Promise((resolve, reject) => {
+            options.signal?.addEventListener('abort', () => reject(abortError()));
+            setTimeout(() => resolve({ status: 200 } as Response), SEND_TIMEOUT_MS * 2);
+          }),
+      );
+      (global.fetch as jest.Mock).mockImplementationOnce(slowSuccess);
+
+      const sendPromise = trackDestination.send(timeoutContext(), true);
+      await jest.runAllTimersAsync();
+      await sendPromise;
+
+      // No abort-triggered retry — the single slow request completed successfully.
+      expect(fetch).toHaveBeenCalledTimes(1);
+      expect(mockOnComplete).toHaveBeenCalledTimes(1);
+    });
+
     test('a non-abort fetch rejection completes with error and does not retry even when useRetry=true', async () => {
       const trackDestination = new SessionReplayTrackDestination({ loggerProvider: mockLoggerProvider });
       const handleOther = jest.spyOn(trackDestination, 'handleOtherResponse');

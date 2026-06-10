@@ -42,6 +42,7 @@ export class SessionReplayLocalConfig extends Config implements ISessionReplayLo
   performanceConfig?: SessionReplayPerformanceConfig;
   useWebWorker?: boolean;
   enableTransportCompression?: boolean;
+  sendTimeoutMs?: number;
   applyBackgroundColorToBlockedElements?: boolean;
   enableUrlChangePolling?: boolean;
   urlChangePollingInterval?: number;
@@ -108,6 +109,9 @@ export class SessionReplayLocalConfig extends Config implements ISessionReplayLo
       }
     }
     this.enableTransportCompression = options.enableTransportCompression ?? true;
+    // Pass through undefined so the track destination applies its SEND_TIMEOUT_MS default;
+    // an explicit 0 is preserved (disables the timeout).
+    this.sendTimeoutMs = options.sendTimeoutMs;
     this.captureAdoptedStyleSheets = options.captureAdoptedStyleSheets ?? true;
     if (options.crossOriginIframes) {
       this.crossOriginIframes = options.crossOriginIframes;

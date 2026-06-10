@@ -30,6 +30,10 @@ interface SendContext {
   // Optional for backwards compatibility with messages from older main-thread code
   // that doesn't forward the flag; absence is treated as enabled (default true).
   enableTransportCompression?: boolean;
+  // Milliseconds before the worker aborts the in-flight fetch; <= 0 disables the abort.
+  // Optional for backwards compatibility with older main-thread code that doesn't forward
+  // it; absence falls back to SEND_TIMEOUT_MS.
+  sendTimeoutMs?: number;
 }
 
 async function doFetch(
@@ -45,6 +49,10 @@ async function doFetch(
   // undefined when the response was not a 2xx (caller should not interpret as a directive).
   skipCode?: string | null;
 }> {
+  // <= 0 disables the abort (no timer); otherwise honor the forwarded value, falling back
+  // to the default when older main-thread code doesn't send one. Declared here (not inside
+  // try) so the AbortError message in catch can reference it.
+  const sendTimeoutMs = context.sendTimeoutMs ?? SEND_TIMEOUT_MS;
   try {
     // Treat an absent flag as enabled so messages from older main-thread builds that
     // don't forward the field keep working unchanged. Only an explicit `false` opts out.
@@ -74,9 +82,12 @@ async function doFetch(
     // fetch() has no native timeout; abort a hung request so it surfaces as a retryable
     // failure instead of silently wedging the worker (and the awaiting orchestrator).
     const controller = new AbortController();
-    const timeout = setTimeout(() => {
-      controller.abort();
-    }, SEND_TIMEOUT_MS);
+    const timeout =
+      sendTimeoutMs > 0
+        ? setTimeout(() => {
+            controller.abort();
+          }, sendTimeoutMs)
+        : undefined;
     let res: Response | null;
     try {
       res = await fetch(serverUrl, {
@@ -89,7 +100,7 @@ async function doFetch(
         signal: controller.signal,
       });
     } finally {
-      clearTimeout(timeout);
+      if (timeout) clearTimeout(timeout);
     }
     if (res === null) {
       return { shouldRetry: false, success: false, message: UNEXPECTED_ERROR_MESSAGE };
@@ -132,7 +143,7 @@ async function doFetch(
       return {
         shouldRetry: true,
         success: false,
-        message: `Session replay worker request timed out after ${SEND_TIMEOUT_MS}ms`,
+        message: `Session replay worker request timed out after ${sendTimeoutMs}ms`,
       };
     }
     return { shouldRetry: false, success: false, message: String(e) };

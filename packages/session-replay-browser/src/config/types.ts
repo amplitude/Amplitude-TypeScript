@@ -200,6 +200,23 @@ export interface SessionReplayLocalConfig extends IConfig {
    */
   enableTransportCompression?: boolean;
 
+  /**
+   * Milliseconds to wait for a send request before aborting it. `fetch()` has no native
+   * timeout, so a request stuck "pending" would block the serial flush loop indefinitely;
+   * the SDK aborts after this many ms and routes the abort as a retryable failure.
+   *
+   * Set to `0` (or a negative value) to disable the timeout entirely — note this
+   * reintroduces the head-of-line-blocking risk a wedged request can cause, so it is
+   * intended only as a diagnostic/experiment opt-out.
+   *
+   * Tuning this higher is useful when large, slow-but-succeeding uploads are being aborted
+   * at the default and counted as failures (which also triggers a retry, inflating request
+   * volume / throttle pressure).
+   *
+   * @defaultValue 10000
+   */
+  sendTimeoutMs?: number;
+
   userProperties?: { [key: string]: any };
 
   /**

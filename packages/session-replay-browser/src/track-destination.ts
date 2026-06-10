@@ -72,6 +72,10 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
   // retain pre-flag behavior. The local-config layer also defaults to true; this
   // belt-and-braces default protects direct constructor callers (e.g. tests).
   private enableTransportCompression: boolean;
+  // Milliseconds before an in-flight send is aborted; <= 0 disables the abort/timeout.
+  // Defaults to SEND_TIMEOUT_MS. Configurable so large slow-but-succeeding uploads aren't
+  // killed (and retried) at an over-aggressive default. See config.sendTimeoutMs.
+  private sendTimeoutMs: number;
   private scheduled: ReturnType<typeof setTimeout> | null = null;
   payloadBatcher: PayloadBatcher;
   queue: SessionReplayDestinationContext[] = [];
@@ -107,17 +111,20 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
     payloadBatcher,
     workerScript,
     enableTransportCompression,
+    sendTimeoutMs,
   }: {
     trackServerUrl?: string;
     loggerProvider: ILogger;
     payloadBatcher?: PayloadBatcher;
     workerScript?: string;
     enableTransportCompression?: boolean;
+    sendTimeoutMs?: number;
   }) {
     this.loggerProvider = loggerProvider;
     this.payloadBatcher = payloadBatcher ? payloadBatcher : (payload) => payload;
     this.trackServerUrl = trackServerUrl;
     this.enableTransportCompression = enableTransportCompression ?? true;
+    this.sendTimeoutMs = sendTimeoutMs ?? SEND_TIMEOUT_MS;
 
     if (workerScript) {
       try {
@@ -483,19 +490,25 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
       // completeRequest: like the worker-crash path above, the events were never confirmed
       // delivered, so onComplete must not fire and the IDB/memory store must stay intact for
       // recovery by sendStoredEvents.
-      const timeout = setTimeout(() => {
-        const pending = this.pendingWorkerRequests.get(id);
-        if (!pending) return;
-        this.pendingWorkerRequests.delete(id);
-        // Retain the context so a *late* worker complete/payload_too_large can still settle the
-        // store record (see timedOutWorkerRequests). Without this, a worker that ultimately
-        // delivers after we stopped awaiting would leave the record behind → duplicate upload.
-        this.rememberTimedOutRequest(id, pending.context);
-        this.loggerProvider.warn(
-          `Session replay worker send timed out after ${SEND_TIMEOUT_MS}ms; leaving events for retry`,
-        );
-        pending.resolve();
-      }, SEND_TIMEOUT_MS);
+      // sendTimeoutMs <= 0 disables the wait timer entirely: we then rely solely on the
+      // worker's own complete/payload_too_large message to settle. This reintroduces the
+      // hang risk this timer guards against, so it is an explicit experiment opt-out.
+      const timeout =
+        this.sendTimeoutMs > 0
+          ? setTimeout(() => {
+              const pending = this.pendingWorkerRequests.get(id);
+              if (!pending) return;
+              this.pendingWorkerRequests.delete(id);
+              // Retain the context so a *late* worker complete/payload_too_large can still settle the
+              // store record (see timedOutWorkerRequests). Without this, a worker that ultimately
+              // delivers after we stopped awaiting would leave the record behind → duplicate upload.
+              this.rememberTimedOutRequest(id, pending.context);
+              this.loggerProvider.warn(
+                `Session replay worker send timed out after ${this.sendTimeoutMs}ms; leaving events for retry`,
+              );
+              pending.resolve();
+            }, this.sendTimeoutMs)
+          : undefined;
       this.pendingWorkerRequests.set(id, { context, resolve, timeout });
       worker.postMessage({
         type: 'send',
@@ -516,6 +529,7 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
           currentUrl: getCurrentUrl(),
           sdkVersion: VERSION,
           enableTransportCompression: this.enableTransportCompression,
+          sendTimeoutMs: this.sendTimeoutMs,
         },
       });
     });
@@ -597,16 +611,21 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
         this.completeRequest({ context });
         return;
       }
-      const sendTimeout = setTimeout(() => {
-        controller.abort();
-      }, SEND_TIMEOUT_MS);
+      // sendTimeoutMs <= 0 disables the abort: the request can then hang indefinitely
+      // (head-of-line blocking the serial flush). Explicit experiment opt-out only.
+      const sendTimeout =
+        this.sendTimeoutMs > 0
+          ? setTimeout(() => {
+              controller.abort();
+            }, this.sendTimeoutMs)
+          : undefined;
       let res: Response;
       try {
         res = await fetch(serverUrl, options);
       } finally {
         // Clear on success and on error alike so a settled request never leaves an armed
         // timer that would abort a later reused controller or fire a stray callback.
-        clearTimeout(sendTimeout);
+        if (sendTimeout) clearTimeout(sendTimeout);
       }
       if (res === null) {
         this.completeRequest({ context, err: UNEXPECTED_ERROR_MESSAGE });

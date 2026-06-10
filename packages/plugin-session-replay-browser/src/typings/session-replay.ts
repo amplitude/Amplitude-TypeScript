@@ -189,4 +189,8 @@ export interface SessionReplayOptions {
    * @see {@link StandaloneSessionReplayOptions.flushIntervalConfig}
    */
   flushIntervalConfig?: FlushIntervalConfig;
+  /**
+   * @see {@link StandaloneSessionReplayOptions.sendTimeoutMs}
+   */
+  sendTimeoutMs?: number;
 }
