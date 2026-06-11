@@ -48,6 +48,7 @@ jobs:
   publish-package:
     name: Publish New Package (Beta/Alpha with Latest Tag)
     runs-on: ubuntu-latest
+    environment: npm-release
     needs: [authorize]
     permissions:
       id-token: write
