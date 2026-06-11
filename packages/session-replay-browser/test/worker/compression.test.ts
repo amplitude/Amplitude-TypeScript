@@ -1,5 +1,6 @@
 import { deflateSync, inflateSync } from 'node:zlib';
 import { eventWithTime } from '@amplitude/rrweb-types';
+import * as replayEventEncoding from '../../src/utils/replay-event-encoding';
 import { RRWEB_PACK_MARKER } from '../../src/utils/replay-event-encoding';
 import {
   postCompressionWorkerMessageForTests,
@@ -112,6 +113,41 @@ describe('compression', () => {
       sessionId: 5,
       compressedEvent: JSON.stringify({ type: 4, timestamp: 2, data: testEvent.data }),
     });
+  });
+
+  test('onmessage handler processes events', async () => {
+    global.postMessage = jest.fn();
+    const testEvent: eventWithTime = {
+      timestamp: 3,
+      type: 4,
+      data: { height: 1, width: 1, href: 'http://localhost' },
+    };
+
+    const onMessageHandler = (global as unknown as { onmessage?: (e: MessageEvent) => void }).onmessage;
+    onMessageHandler?.({ data: { event: testEvent, sessionId: 7, gzipReplayEvents: false } } as MessageEvent);
+    await waitForCompressionChainForTests();
+
+    expect(global.postMessage).toHaveBeenCalledWith({
+      sessionId: 7,
+      compressedEvent: JSON.stringify({ type: 4, timestamp: 3, data: testEvent.data }),
+    });
+  });
+
+  test('continues processing after a failed encode', async () => {
+    global.postMessage = jest.fn();
+    const encodeSpy = jest.spyOn(replayEventEncoding, 'encodeReplayEventForStorage');
+    encodeSpy.mockRejectedValueOnce(new Error('encode failed')).mockResolvedValueOnce('{"type":4}');
+
+    const event = { type: 4, timestamp: 1, data: {} } as eventWithTime;
+    postCompressionWorkerMessageForTests({ event, sessionId: 10, gzipReplayEvents: true });
+    postCompressionWorkerMessageForTests({ event, sessionId: 11, gzipReplayEvents: false });
+    await waitForCompressionChainForTests();
+
+    expect(global.postMessage).toHaveBeenCalledWith({
+      sessionId: 11,
+      compressedEvent: '{"type":4}',
+    });
+    encodeSpy.mockRestore();
   });
 
   test('processes worker jobs in post order', async () => {

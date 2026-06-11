@@ -3,6 +3,7 @@ import { SessionReplayLocalConfig } from '../src/config/local-config';
 import { EventCompressor } from '../src/events/event-compressor';
 import { createEventsManager } from '../src/events/events-manager';
 import { SessionReplayEventsManager } from '../src/typings/session-replay';
+import * as replayEventEncoding from '../src/utils/replay-event-encoding';
 import { EventType, IncrementalSource, eventWithTime, mutationData } from '@amplitude/rrweb-types';
 
 const mockEvent = {
@@ -919,6 +920,72 @@ describe('EventCompressor', () => {
       const legacyCompressor = new EventCompressor(eventsManager, legacyConfig, deviceId);
       expect((gzipCompressor as unknown as { gzipReplayEvents: boolean }).gzipReplayEvents).toBe(true);
       expect((legacyCompressor as unknown as { gzipReplayEvents: boolean }).gzipReplayEvents).toBe(false);
+    });
+
+    test('logs warning when full snapshot zlib encoding fails', async () => {
+      const zlibConfig = new SessionReplayLocalConfig('static_key', {
+        loggerProvider: mockLoggerProvider,
+        sampleRate: 1,
+        performanceConfig: { enabled: false, legacyReplayEventEncoding: false },
+      });
+      const zlibCompressor = new EventCompressor(eventsManager, zlibConfig, deviceId);
+      const encodeSpy = jest
+        .spyOn(replayEventEncoding, 'encodeReplayEventForStorage')
+        .mockRejectedValue(new Error('zlib failed'));
+
+      zlibCompressor.enqueueEvent(fullSnapshotEvent, sessionId);
+      await flushMicrotasks();
+      await flushMicrotasks();
+
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockLoggerProvider.warn).toHaveBeenCalledWith(
+        'Failed to process full snapshot immediately:',
+        expect.objectContaining({ message: 'zlib failed' }),
+      );
+      encodeSpy.mockRestore();
+    });
+
+    test('logs warning when main-thread zlib encoding fails', async () => {
+      const zlibConfig = new SessionReplayLocalConfig('static_key', {
+        loggerProvider: mockLoggerProvider,
+        sampleRate: 1,
+        performanceConfig: { enabled: false, legacyReplayEventEncoding: false },
+      });
+      const zlibCompressor = new EventCompressor(eventsManager, zlibConfig, deviceId);
+      const encodeSpy = jest
+        .spyOn(replayEventEncoding, 'encodeReplayEventForStorage')
+        .mockRejectedValue(new Error('encode failed'));
+
+      zlibCompressor.addCompressedEvent(mockEvent as eventWithTime, sessionId);
+      await flushMicrotasks();
+      await flushMicrotasks();
+
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockLoggerProvider.warn).toHaveBeenCalledWith(
+        'Replay event compression failed:',
+        expect.objectContaining({ message: 'encode failed' }),
+      );
+      encodeSpy.mockRestore();
+    });
+
+    test('flushQueue schedules zlib encoding when compression is enabled', async () => {
+      const zlibConfig = new SessionReplayLocalConfig('static_key', {
+        loggerProvider: mockLoggerProvider,
+        sampleRate: 1,
+        performanceConfig: { enabled: false, legacyReplayEventEncoding: false },
+      });
+      (global as unknown as { CompressionStream: unknown }).CompressionStream = mockCompressionStream(
+        new Uint8Array([7]),
+      );
+      const zlibCompressor = new EventCompressor(eventsManager, zlibConfig, deviceId);
+      const addEventMock = jest.spyOn(eventsManager, 'addEvent');
+
+      zlibCompressor.taskQueue.push({ event: mockEvent as eventWithTime, sessionId });
+      zlibCompressor.flushQueue();
+      await flushMicrotasks();
+
+      expect(addEventMock).toHaveBeenCalled();
+      delete (global as unknown as { CompressionStream?: unknown }).CompressionStream;
     });
   });
 
