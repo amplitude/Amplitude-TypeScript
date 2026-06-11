@@ -107,7 +107,7 @@ export class SessionReplayLocalConfig extends Config implements ISessionReplayLo
         this.useWebWorker = legacyOptions.experimental.useWebWorker;
       }
     }
-    this.enableTransportCompression = options.enableTransportCompression ?? true;
+    this.enableTransportCompression = options.enableTransportCompression ?? false;
     this.captureAdoptedStyleSheets = options.captureAdoptedStyleSheets ?? true;
     if (options.crossOriginIframes) {
       this.crossOriginIframes = options.crossOriginIframes;

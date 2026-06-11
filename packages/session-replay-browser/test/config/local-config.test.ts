@@ -112,9 +112,9 @@ describe('SessionReplayLocalConfig', () => {
   });
 
   describe('enableTransportCompression', () => {
-    test('defaults to true when option is omitted', () => {
+    test('defaults to false when option is omitted', () => {
       const config = new SessionReplayLocalConfig('static_key', { loggerProvider: new Logger() });
-      expect(config.enableTransportCompression).toBe(true);
+      expect(config.enableTransportCompression).toBe(false);
     });
 
     test('respects explicit false (opt-out)', () => {

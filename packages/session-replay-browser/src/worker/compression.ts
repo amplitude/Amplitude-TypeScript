@@ -35,6 +35,9 @@ export const compressionOnMessage = handleMessage;
 export const postCompressionWorkerMessageForTests = (data: unknown) => {
   appendToEncodeChain(() => handleMessage({ data } as MessageEvent));
 };
+export const invokeCompressionWorkerOnmessageForTests = (data: unknown) => {
+  (onmessage as (e: MessageEvent) => void)({ data } as MessageEvent);
+};
 export const resetCompressionChainForTests = () => {
   encodeChain = Promise.resolve();
 };

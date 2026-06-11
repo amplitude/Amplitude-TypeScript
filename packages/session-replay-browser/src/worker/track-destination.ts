@@ -45,9 +45,7 @@ async function doFetch(
   skipCode?: string | null;
 }> {
   try {
-    // Treat an absent flag as enabled so messages from older main-thread builds that
-    // don't forward the field keep working unchanged. Only an explicit `false` opts out.
-    const compressionEnabled = context.enableTransportCompression !== false;
+    const compressionEnabled = context.enableTransportCompression === true;
     const gzipped = compressionEnabled && 'CompressionStream' in self ? await gzipJson(payloadJson, self) : null;
     const sessionReplayLibrary = `${context.version?.type ?? 'standalone'}/${
       context.version?.version ?? context.sdkVersion

@@ -1,8 +1,9 @@
 import { deflateSync, inflateSync } from 'node:zlib';
 import { eventWithTime } from '@amplitude/rrweb-types';
 import * as replayEventEncoding from '../../src/utils/replay-event-encoding';
-import { RRWEB_PACK_MARKER } from '../../src/utils/replay-event-encoding';
+const { RRWEB_PACK_MARKER } = replayEventEncoding;
 import {
+  invokeCompressionWorkerOnmessageForTests,
   postCompressionWorkerMessageForTests,
   resetCompressionChainForTests,
   waitForCompressionChainForTests,
@@ -123,8 +124,7 @@ describe('compression', () => {
       data: { height: 1, width: 1, href: 'http://localhost' },
     };
 
-    const onMessageHandler = (global as unknown as { onmessage?: (e: MessageEvent) => void }).onmessage;
-    onMessageHandler?.({ data: { event: testEvent, sessionId: 7, gzipReplayEvents: false } } as MessageEvent);
+    invokeCompressionWorkerOnmessageForTests({ event: testEvent, sessionId: 7, gzipReplayEvents: false });
     await waitForCompressionChainForTests();
 
     expect(global.postMessage).toHaveBeenCalledWith({

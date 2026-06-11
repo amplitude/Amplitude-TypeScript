@@ -101,7 +101,7 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
     this.loggerProvider = loggerProvider;
     this.payloadBatcher = payloadBatcher ? payloadBatcher : (payload) => payload;
     this.trackServerUrl = trackServerUrl;
-    this.enableTransportCompression = enableTransportCompression ?? true;
+    this.enableTransportCompression = enableTransportCompression ?? false;
 
     if (workerScript) {
       try {
