@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.44.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.44.0...@amplitude/analytics-browser@2.44.1) (2026-06-11)
+
+
+### Bug Fixes
+
+* **analytics-browser:** use safe JSON stringify in remote config log messages ([#1826](https://github.com/amplitude/Amplitude-TypeScript/issues/1826)) ([477cda8](https://github.com/amplitude/Amplitude-TypeScript/commit/477cda8d05565b22d1dd5ec1febcc2cb955f8e19))
+
+
+
+
+
 # [2.44.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.43.0...@amplitude/analytics-browser@2.44.0) (2026-06-11)
 
 
