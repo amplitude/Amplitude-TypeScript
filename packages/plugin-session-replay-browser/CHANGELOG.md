@@ -3,6 +3,22 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.32.0-SR-4497-custom-transport-hooks.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@1.31.1...@amplitude/plugin-session-replay-browser@1.32.0-SR-4497-custom-transport-hooks.0) (2026-06-09)
+
+
+### Bug Fixes
+
+* **session-replay-browser:** address PR review feedback on custom transport hooks (SR-4497) ([583df80](https://github.com/amplitude/Amplitude-TypeScript/commit/583df80ddba3817669758fa1b6dc738dc1407146))
+
+
+### Features
+
+* **session-replay-browser:** custom transport hooks for authenticated proxies (SR-4497) ([ecb7041](https://github.com/amplitude/Amplitude-TypeScript/commit/ecb704128f6861a4e2b77c0baf0f0de742ccb328))
+
+
+
+
+
 ## [1.31.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@1.31.0...@amplitude/plugin-session-replay-browser@1.31.1) (2026-06-05)
 
 **Note:** Version bump only for package @amplitude/plugin-session-replay-browser

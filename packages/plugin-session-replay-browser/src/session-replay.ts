@@ -109,6 +109,8 @@ export class SessionReplayPlugin implements EnrichmentPlugin<BrowserClient, Brow
         captureAdoptedStyleSheets: this.options.captureAdoptedStyleSheets,
         crossOriginIframes: this.options.crossOriginIframes,
         flushIntervalConfig: this.options.flushIntervalConfig,
+        handleSendEvents: this.options.handleSendEvents,
+        handleFetchConfig: this.options.handleFetchConfig,
       };
 
       await this.sessionReplay.init(config.apiKey, this.srInitOptions).promise;

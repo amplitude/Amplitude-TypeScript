@@ -72,6 +72,54 @@ export function configureMockApiMiddleware(middlewares) {
     next();
   });
 
+  // Session Replay custom-transport echo endpoint (SR-4497).
+  // Used to verify that handleSendEvents / handleFetchConfig actually attach a custom auth
+  // header to outbound requests. Point trackServerUrl / configServerUrl at this endpoint and
+  // watch the server console: it logs the Authorization header it received (i.e. the JWT the
+  // callback injected), simulating a customer's authenticating proxy.
+  //
+  //   - GET  /api/sr-echo/config/<apiKey>?config_group=browser  → returns a minimal SR remote
+  //          config (capture enabled) so the SDK proceeds to capture and send events.
+  //   - POST /api/sr-echo/track?device_id=...                   → 200, so the send is treated
+  //          as successful.
+  middlewares.use('/api/sr-echo', (req, res) => {
+    const auth = req.headers['authorization'];
+    const isConfig = req.method === 'GET';
+    // eslint-disable-next-line no-console
+    console.log(
+      `\n🔐 [sr-echo] ${req.method} ${req.url}\n   Authorization: ${auth ?? '(none — header NOT attached!)'}\n`,
+    );
+
+    // Same-origin in the test server, but set permissive CORS + allow Authorization so this
+    // also works if the page is served from a different origin or a proxy is added later.
+    res.setHeader('Access-Control-Allow-Origin', req.headers.origin || '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Client-Version, X-Client-Library');
+
+    if (req.method === 'OPTIONS') {
+      res.statusCode = 204;
+      res.end();
+      return;
+    }
+
+    res.setHeader('Content-Type', 'application/json');
+    res.statusCode = 200;
+    if (isConfig) {
+      // Minimal remote config that enables capture so handleSendEvents will subsequently fire.
+      res.end(
+        JSON.stringify({
+          configs: {
+            sessionReplay: {
+              sr_sampling_config: { sample_rate: 1, capture_enabled: true },
+            },
+          },
+        }),
+      );
+    } else {
+      res.end(JSON.stringify({ ok: true, receivedAuthorization: auth ?? null }));
+    }
+  });
+
   // Simple test endpoint
   middlewares.use('/api/test', (req, res) => {
     res.setHeader('Content-Type', 'application/json');

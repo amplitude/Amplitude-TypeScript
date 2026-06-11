@@ -1,6 +1,6 @@
 {
   "name": "@amplitude/analytics-core",
-  "version": "2.49.0",
+  "version": "2.50.0-SR-4497-custom-transport-hooks.0",
   "description": "",
   "author": "Amplitude Inc",
   "homepage": "https://github.com/amplitude/Amplitude-TypeScript",

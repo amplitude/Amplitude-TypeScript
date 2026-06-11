@@ -22,6 +22,26 @@ export type DeliveryMode = 'all' | { timeout: number };
  */
 export type Source = 'cache' | 'remote';
 
+/**
+ * The fully-formed remote-config request handed to a custom transport. Consumers that need to
+ * own the network call (e.g. to attach auth headers and route through a proxy) supply a
+ * {@link RemoteConfigCustomFetch} via the client constructor; the client builds this request
+ * (resolved URL, headers, abort signal) and the callback executes it.
+ */
+export interface RemoteConfigFetchRequest {
+  url: string;
+  method: 'GET';
+  headers: Record<string, string>;
+  /** Abort signal the client uses to enforce the fetch timeout; honor it in your fetch call. */
+  signal?: AbortSignal;
+}
+
+/**
+ * Custom transport for the remote-config fetch. Must return a `Response`. Retry/backoff stays
+ * in the client around this callback, so it is invoked once per attempt.
+ */
+export type RemoteConfigCustomFetch = (request: RemoteConfigFetchRequest) => Promise<Response>;
+
 export const US_SERVER_URL = 'https://sr-client-cfg.amplitude.com/config';
 export const EU_SERVER_URL = 'https://sr-client-cfg.eu.amplitude.com/config';
 export const DEFAULT_MAX_RETRIES = 3;
@@ -128,12 +148,22 @@ export class RemoteConfigClient implements IRemoteConfigClient {
   fetchPromise: Promise<RemoteConfigInfo> | null = null;
   // Used to skip periodic updateConfigs calls when API key is invalid.
   isLastFetchInvalidApiKey = false;
+  // Optional custom transport. When provided, it replaces the internal fetch for the config GET
+  // (e.g. to attach auth and route through a proxy). Retry stays in the client around it.
+  readonly customFetch?: RemoteConfigCustomFetch;
 
-  constructor(apiKey: string, logger: ILogger, serverZone: ServerZoneType = 'US', serverUrl?: string) {
+  constructor(
+    apiKey: string,
+    logger: ILogger,
+    serverZone: ServerZoneType = 'US',
+    serverUrl?: string,
+    customFetch?: RemoteConfigCustomFetch,
+  ) {
     this.apiKey = apiKey;
     this.serverUrl = serverUrl || (serverZone === 'US' ? US_SERVER_URL : EU_SERVER_URL);
     this.logger = logger;
     this.storage = new RemoteConfigLocalStorage(apiKey, logger);
+    this.customFetch = customFetch;
   }
 
   subscribe(key: string | undefined, deliveryMode: DeliveryMode, callback: RemoteConfigCallback): string {
@@ -344,13 +374,17 @@ export class RemoteConfigClient implements IRemoteConfigClient {
       const timeoutId = setTimeout(() => abortController.abort(), timeout);
 
       try {
-        const res = await fetch(this.getUrlParams(), {
-          method: 'GET',
-          headers: {
-            Accept: '*/*',
-          },
-          signal: abortController.signal,
-        });
+        const url = this.getUrlParams();
+        const headers: Record<string, string> = { Accept: '*/*' };
+        // When a custom transport is configured, hand it the fully-formed request and let it own
+        // the network call; otherwise use the built-in fetch. Retry/response handling is identical.
+        const res = this.customFetch
+          ? await this.customFetch({ url, method: 'GET', headers, signal: abortController.signal })
+          : await fetch(url, {
+              method: 'GET',
+              headers,
+              signal: abortController.signal,
+            });
 
         // Handle unsuccessful fetch
         if (!res.ok) {

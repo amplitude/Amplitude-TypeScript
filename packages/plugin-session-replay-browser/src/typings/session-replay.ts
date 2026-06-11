@@ -1,6 +1,8 @@
 import { Event } from '@amplitude/analytics-core';
 import {
   StoreType,
+  type SessionReplaySendEventsHandler,
+  type SessionReplayFetchConfigHandler,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   type SessionReplayOptions as StandaloneSessionReplayOptions, // used for documentation
 } from '@amplitude/session-replay-browser';
@@ -189,4 +191,15 @@ export interface SessionReplayOptions {
    * @see {@link StandaloneSessionReplayOptions.flushIntervalConfig}
    */
   flushIntervalConfig?: FlushIntervalConfig;
+  /**
+   * Optional custom transport for replay event uploads. Use to attach custom auth (e.g. a JWT
+   * `Authorization` header) and route through an authenticated proxy.
+   * @see {@link StandaloneSessionReplayOptions.handleSendEvents}
+   */
+  handleSendEvents?: SessionReplaySendEventsHandler;
+  /**
+   * Optional custom transport for the remote-config fetch.
+   * @see {@link StandaloneSessionReplayOptions.handleFetchConfig}
+   */
+  handleFetchConfig?: SessionReplayFetchConfigHandler;
 }
