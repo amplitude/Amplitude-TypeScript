@@ -178,6 +178,35 @@ jobs:
         env:
           S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
 
+      # Record the published release in Linear (continuous pipeline). Runs only after a
+      # successful npm publish, so each Linear release maps 1:1 to a real release, named
+      # after the analytics-browser version. Because lerna versions packages independently,
+      # only sync when this release actually bumped analytics-browser (its package.json
+      # changed in the lerna release commit) — otherwise its unchanged version would collide
+      # with the label of a previous Linear release. Tracking is best-effort: a Linear
+      # failure must not fail an already-published release.
+      - name: Determine analytics-browser release
+        id: linear-version
+        run: |
+          version=$(node -p "require('./packages/analytics-browser/package.json').version")
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          if git diff --name-only HEAD~1 HEAD -- packages/analytics-browser/package.json | grep -q .; then
+            echo "published=true" >> "$GITHUB_OUTPUT"
+            echo "analytics-browser bumped to $version in this release; will sync to Linear"
+          else
+            echo "published=false" >> "$GITHUB_OUTPUT"
+            echo "analytics-browser not part of this release; skipping Linear sync"
+          fi
+
+      - name: Sync release to Linear
+        if: ${{ steps.linear-version.outputs.published == 'true' }}
+        continue-on-error: true
+        uses: linear/linear-release-action@3b634623620454bac33390451a1dd15ba78e3dc4 # v0
+        with:
+          access_key: ${{ secrets.LINEAR_ACCESS_KEY }}
+          command: sync
+          version: ${{ steps.linear-version.outputs.version }}
+
   prerelease:
     name: Prerelease feature branch
     runs-on: ubuntu-latest
