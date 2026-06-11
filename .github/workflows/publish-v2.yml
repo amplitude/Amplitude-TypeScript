@@ -178,6 +178,21 @@ jobs:
         env:
           S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
 
+      # Record the published release in Linear (continuous pipeline). Runs only after a
+      # successful npm publish, so each Linear release maps 1:1 to a real release. The
+      # release is named after the analytics-browser version since lerna versions packages
+      # independently and there is no single repo-wide version.
+      - name: Read analytics-browser version
+        id: linear-version
+        run: echo "version=$(node -p "require('./packages/analytics-browser/package.json').version")" >> "$GITHUB_OUTPUT"
+
+      - name: Sync release to Linear
+        uses: linear/linear-release-action@3b634623620454bac33390451a1dd15ba78e3dc4 # v0
+        with:
+          access_key: ${{ secrets.LINEAR_ACCESS_KEY }}
+          command: sync
+          version: ${{ steps.linear-version.outputs.version }}
+
   prerelease:
     name: Prerelease feature branch
     runs-on: ubuntu-latest
