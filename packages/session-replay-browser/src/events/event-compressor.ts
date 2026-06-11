@@ -104,7 +104,9 @@ export class EventCompressor {
     // maximising the chance it is delivered before the user exits the page.
     if (event.type === RRWebEventType.FullSnapshot) {
       if (this.gzipReplayEvents) {
-        void this.processFullSnapshotImmediately(event, sessionId);
+        void this.processFullSnapshotImmediately(event, sessionId).catch((err) => {
+          this.config.loggerProvider.warn('Failed to process full snapshot immediately:', err);
+        });
       } else {
         this.processFullSnapshotImmediatelySync(event, sessionId);
       }
@@ -158,8 +160,14 @@ export class EventCompressor {
     });
   };
 
+  private appendToEncodeChain = (task: () => Promise<void>) => {
+    this.encodeChain = this.encodeChain.then(task, task).catch((err) => {
+      this.config.loggerProvider.warn('Replay event compression failed:', err);
+    });
+  };
+
   private scheduleCompressAndStore = (event: eventWithTime, sessionId: string | number) => {
-    this.encodeChain = this.encodeChain.then(async () => {
+    this.appendToEncodeChain(async () => {
       const compressed = await this.compressForStorage(event);
       this.addCompressedEventToManager(compressed, sessionId);
     });
@@ -250,13 +258,13 @@ export class EventCompressor {
       const task = this.taskQueue.shift();
       if (task) {
         const { event, sessionId } = task;
-        // Bypass the web worker: compress synchronously on the main thread and
-        // write directly to the manager. postMessage is async — during page
-        // unload the worker response would never arrive and events would be
-        // silently dropped. This mirrors the pattern used for full snapshots in
-        // enqueueEvent().
-        const compressed = this.compressEvent(event);
-        this.addCompressedEventToManager(compressed, sessionId);
+        // Bypass the web worker: postMessage is async — during page unload the
+        // worker response would never arrive and events would be silently dropped.
+        if (this.gzipReplayEvents) {
+          this.scheduleCompressAndStore(event, sessionId);
+        } else {
+          this.addCompressedEventToManager(serializeReplayEvent(event), sessionId);
+        }
       }
     }
     this.isProcessing = false;

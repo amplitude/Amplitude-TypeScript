@@ -6,6 +6,12 @@ import { encodeReplayEventForStorage } from '../utils/replay-event-encoding';
 
 let encodeChain = Promise.resolve();
 
+const appendToEncodeChain = (task: () => Promise<void>) => {
+  encodeChain = encodeChain.then(task, task).catch(() => {
+    // Keep the queue alive so one failed encode does not stall later jobs.
+  });
+};
+
 const handleMessage = async (e: MessageEvent) => {
   const data = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
   const { event, sessionId, gzipReplayEvents } = data as {
@@ -21,13 +27,13 @@ const handleMessage = async (e: MessageEvent) => {
 };
 
 onmessage = (e: MessageEvent) => {
-  encodeChain = encodeChain.then(() => handleMessage(e));
+  appendToEncodeChain(() => handleMessage(e));
 };
 
 // added for testing
 export const compressionOnMessage = handleMessage;
 export const postCompressionWorkerMessageForTests = (data: unknown) => {
-  encodeChain = encodeChain.then(() => handleMessage({ data } as MessageEvent));
+  appendToEncodeChain(() => handleMessage({ data } as MessageEvent));
 };
 export const resetCompressionChainForTests = () => {
   encodeChain = Promise.resolve();
