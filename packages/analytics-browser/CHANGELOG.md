@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.43.1-featzoning-selectors.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.43.0...@amplitude/analytics-browser@2.43.1-featzoning-selectors.0) (2026-06-11)
+
+
+### Bug Fixes
+
+* **analytics-browser:** return trackVideo errors instead of throwing ([#1804](https://github.com/amplitude/Amplitude-TypeScript/issues/1804)) ([af76af9](https://github.com/amplitude/Amplitude-TypeScript/commit/af76af9c803fc4cf72e832a20bdd69dd4db82903))
+
+
+
+
+
 # [2.43.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.42.5...@amplitude/analytics-browser@2.43.0) (2026-06-05)
 
 

@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.5.57-featzoning-selectors.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-react-native@1.5.56...@amplitude/analytics-react-native@1.5.57-featzoning-selectors.0) (2026-06-11)
+
+**Note:** Version bump only for package @amplitude/analytics-react-native
+
+
+
+
+
 ## [1.5.56](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-react-native@1.5.55...@amplitude/analytics-react-native@1.5.56) (2026-06-05)
 
 **Note:** Version bump only for package @amplitude/analytics-react-native
