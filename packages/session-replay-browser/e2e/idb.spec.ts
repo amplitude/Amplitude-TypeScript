@@ -303,35 +303,37 @@ test.describe('IDB transaction abort handling', () => {
    *
    * Fix: save `tx` and attach `tx.done.catch(logIdbError)` before any await.
    *
-   * Because `getSequencesToSend` is only triggered on page load, this test uses a
-   * two-navigation approach:
-   *   1. Load normally so IDB is populated.
-   *   2. Arm via sessionStorage (persists across reloads).
-   *   3. Reload — init() → sendStoredEvents → getSequencesToSend → cursor abort.
+   * `getSequencesToSend` is triggered by `sendStoredEvents` during init's
+   * `initialize(true)` path. Re-init after arming the interceptor exercises that
+   * path without relying on reload + sessionStorage init-script ordering (which
+   * can miss the arm on slow CI hosts before sendStoredEvents runs).
    */
   test('getSequencesToSend cursor abort: AbortError logged at debug not warn', async ({ page }) => {
     await injectIdbAbortInterceptor(page);
-    // Second init script: arm the cursor abort on reload if the sessionStorage flag is set.
-    // Runs after injectIdbAbortInterceptor so __armIdbAbort is already defined.
-    await page.addInitScript(() => {
-      if (sessionStorage.getItem('__armCursorAbort') === '1') {
-        sessionStorage.removeItem('__armCursorAbort');
-        (window as any).__armIdbAbort('sequencesToSend');
-      }
-    });
 
     const { pageErrors, idbWarns, idbDebug } = listenForIdbErrors(page);
 
-    // First load: SDK initialises and records normally (cursor abort not yet armed)
+    // First init: SDK records normally (cursor abort not yet armed)
     await loadPage(page);
 
-    // Arm for the next navigation via sessionStorage
-    await page.evaluate(() => sessionStorage.setItem('__armCursorAbort', '1'));
+    // Re-init with abort armed → initialize(true) → sendStoredEvents → getSequencesToSend
+    await page.evaluate(
+      async ({ sessionId, logLevel }: { sessionId: number; logLevel: number }) => {
+        (window as any).__armIdbAbort('sequencesToSend');
+        await (window as any).sessionReplay.init('d90c5cf09ca2546a1626272906b99a76', {
+          deviceId: 'test-device-id',
+          sessionId,
+          sampleRate: 1,
+          optOut: false,
+          logLevel,
+          storeType: 'idb',
+          performanceConfig: { enabled: true, mergeMutations: false },
+        }).promise;
+      },
+      { sessionId: TEST_SESSION_ID, logLevel: LOG_LEVEL_DEBUG },
+    );
 
-    // Reload: init() → initialize(true) → sendStoredEvents → getSequencesToSend → abort
-    await page.reload();
-    await waitForReady(page);
-    await page.waitForTimeout(300);
+    await page.waitForFunction(() => (window as any).__idbAbortFired === true, { timeout: 15_000 });
 
     expect(await page.evaluate(() => (window as any).__idbAbortFired as boolean)).toBe(true);
     expect(pageErrors).toHaveLength(0);
