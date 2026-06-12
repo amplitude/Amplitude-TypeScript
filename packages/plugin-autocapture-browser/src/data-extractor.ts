@@ -25,7 +25,7 @@ import type { BaseTimestampedEvent, ElementBasedTimestampedEvent, TimestampedEve
 import { getAncestors, getElementProperties } from './hierarchy';
 import { getDataSource } from './pageActions/actions';
 import { Hierarchy } from './typings/autocapture';
-import { cssPath } from './libs/element-path';
+import { DEFAULT_RESOLVED_CONFIG, generateSelector } from '@amplitude/element-selector';
 
 export class DataExtractor {
   private readonly additionalMaskTextPatterns: RegExp[];
@@ -159,18 +159,19 @@ export class DataExtractor {
     }
     const startTime = performance.now();
 
-    // Kill-switch routing — mirrors what the design doc calls out:
-    // `enabled: true` in remote config opts the org into the v1 engine;
-    // otherwise we stay on the legacy positional cssPath that ships today.
-    // When the engine isn't attached at all (frustration-plugin code path,
-    // pre-setup, or remote-config never loaded), the fallback is identical
-    // to pre-integration behavior.
-    let elementPath: string;
-    if (this.selectorEngine && this.selectorEngine.getConfig().enabled) {
-      elementPath = this.selectorEngine.generate(element);
-    } else {
-      elementPath = cssPath(element);
-    }
+    // All routing — engine vs. legacy `cssPath`, plus the strategy-chain
+    // safety net — lives inside `@amplitude/element-selector` now. We pass
+    // the engine if we have one (any value of `getConfig().enabled`; the
+    // engine itself handles the kill switch internally) and `null` when
+    // we don't (frustration-plugin code path, pre-setup, remote-config
+    // never loaded). In the null branch, `generateSelector` calls
+    // `legacyCssPath` directly, byte-identical to the pre-integration
+    // behavior.
+    //
+    // The `DEFAULT_RESOLVED_CONFIG` passed here is only consulted on the
+    // null-engine branch where it functions as a placeholder; when the
+    // engine is present, the engine's own internal config wins.
+    const elementPath = generateSelector(element, this.selectorEngine ?? null, DEFAULT_RESOLVED_CONFIG);
 
     const endTime = performance.now();
     this.diagnosticsClient?.recordHistogram('autocapturePlugin.getElementPath', endTime - startTime);

@@ -29,6 +29,7 @@
 import { ElementSelectorLogger, ResolvedSelectorConfig, SelectorEngine } from './types';
 import { runOrchestrator, OrchestratorOptions } from './orchestrator';
 import { fallbackCssPath } from './fallback-css-path';
+import { legacyCssPath } from './legacy-css-path';
 
 export interface CreateSelectorEngineOptions {
   /** Optional document or shadow root for uniqueness checks. Defaults per-call to the target's owner document. */
@@ -70,14 +71,33 @@ export function createSelectorEngine(
 
   return {
     generate(el: Element): string {
-      // Try the strategy chain first.
-      const composed = runOrchestrator(el, config, orchestratorOptions);
-      if (composed !== null) {
-        return composed;
+      // Kill switch: when the customer's remote config has the engine
+      // disabled (the default for orgs that haven't opted in), emit the same
+      // Chromium-derived selector autocapture has shipped since before the
+      // strategy chain existed. This is what makes "flip enabled back to
+      // false" a one-config-fetch revert for both the SDK and the dashboard —
+      // they both go through this entry point now.
+      if (!config.enabled) {
+        return safeLegacyCssPath(el);
       }
-      // Strategy chain found nothing usable — fall back to the hardened
-      // positional walker with the same scope used by the orchestrator.
-      return fallbackCssPath(el, config, { scope: options.scope ?? el.ownerDocument ?? document });
+
+      // Engine path: try the strategy chain, then the hardened fallback. Both
+      // are wrapped so a runtime exception (malformed config slipped past the
+      // resolver, browser API quirks, a bad scope) still produces a usable
+      // selector. Without this, an autocapture click handler could throw
+      // mid-flow and the customer would silently lose the event — a worse
+      // outcome than emitting a less-stable selector.
+      try {
+        const composed = runOrchestrator(el, config, orchestratorOptions);
+        if (composed !== null) {
+          return composed;
+        }
+        return fallbackCssPath(el, config, { scope: options.scope ?? el.ownerDocument ?? document });
+      } catch (e) {
+        const message = e instanceof Error ? e.message : String(e);
+        logger?.warn(`@amplitude/element-selector: strategy chain threw — falling back to legacy cssPath: ${message}`);
+        return safeLegacyCssPath(el);
+      }
     },
 
     getConfig(): Readonly<ResolvedSelectorConfig> {
@@ -107,4 +127,19 @@ export function createSelectorEngine(
       };
     },
   };
+
+  // Local wrapper so a thrown error in the legacy walker (extremely unlikely
+  // — Element inputs only — but defensible if a host environment is missing
+  // `CSS.escape` or `Node` constants) doesn't escape `generate` and crash the
+  // caller. Returns the empty string in that pathological case; consumers
+  // already coalesce empty results to a sentinel.
+  function safeLegacyCssPath(el: Element): string {
+    try {
+      return legacyCssPath(el);
+    } catch (e) {
+      const message = e instanceof Error ? e.message : String(e);
+      logger?.warn(`@amplitude/element-selector: legacyCssPath threw — emitting empty selector: ${message}`);
+      return '';
+    }
+  }
 }
