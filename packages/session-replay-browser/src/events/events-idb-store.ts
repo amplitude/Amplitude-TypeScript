@@ -473,7 +473,7 @@ export class SessionReplayEventsIDBStore extends BaseEventsStore<number> {
       const eventsToSend = ownedSequence.events;
 
       // shouldSplitEventsList can return true with an empty buffer when a single
-      // incoming event is larger than MAX_EVENT_LIST_SIZE (700 KB) — the size-constraint
+      // incoming event is larger than MAX_EVENT_LIST_SIZE (2 MB) — the size-constraint
       // branch fires regardless of current length. Don't write a zero-event row to
       // sequencesToSend (which would later POST as an empty body, the SR-4284 root
       // cause); just claim the slot for the new event without finalizing anything.

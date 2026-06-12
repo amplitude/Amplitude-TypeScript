@@ -1068,6 +1068,66 @@ describe('SessionReplay', () => {
 
         expect(warnSpy).toHaveBeenCalledWith('Failed to take full snapshot on focus:', testError);
       });
+
+      test('takes the on-focus full snapshot by default (captureFullSnapshotOnFocus omitted)', async () => {
+        await sessionReplay.init(apiKey, mockOptions).promise;
+        const takeFullSnapshotMock = jest.fn();
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        (sessionReplay as any).recordCancelCallback = jest.fn();
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        (sessionReplay as any).recordFunction = { takeFullSnapshot: takeFullSnapshotMock };
+
+        sessionReplay.focusListener();
+
+        expect(takeFullSnapshotMock).toHaveBeenCalledWith(true);
+      });
+
+      test('suppresses the on-focus full snapshot when captureFullSnapshotOnFocus is false', async () => {
+        await sessionReplay.init(apiKey, { ...mockOptions, captureFullSnapshotOnFocus: false }).promise;
+        const takeFullSnapshotMock = jest.fn();
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        (sessionReplay as any).recordCancelCallback = jest.fn();
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        (sessionReplay as any).recordFunction = { takeFullSnapshot: takeFullSnapshotMock };
+        const recordEventsSpy = jest.spyOn(sessionReplay, 'recordEvents');
+
+        sessionReplay.focusListener();
+
+        expect(takeFullSnapshotMock).not.toHaveBeenCalled();
+        expect(recordEventsSpy).not.toHaveBeenCalled();
+      });
+
+      test('still takes the on-focus full snapshot when config is not yet set', async () => {
+        await sessionReplay.init(apiKey, mockOptions).promise;
+        const takeFullSnapshotMock = jest.fn();
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        (sessionReplay as any).recordCancelCallback = jest.fn();
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        (sessionReplay as any).recordFunction = { takeFullSnapshot: takeFullSnapshotMock };
+        // Defensive nullish branch: config absent → default (take the snapshot).
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        (sessionReplay as any).config = undefined;
+
+        sessionReplay.focusListener();
+
+        expect(takeFullSnapshotMock).toHaveBeenCalledWith(true);
+      });
+    });
+
+    describe('eagerFullSnapshotSend', () => {
+      test('wires an onFullSnapshotProcessed callback that flushes by default', async () => {
+        await sessionReplay.init(apiKey, mockOptions).promise;
+        const sendEventsSpy = jest.spyOn(sessionReplay, 'sendEvents').mockImplementation(() => undefined);
+
+        expect(sessionReplay.eventCompressor?.onFullSnapshotProcessed).toBeDefined();
+        sessionReplay.eventCompressor?.onFullSnapshotProcessed?.();
+        expect(sendEventsSpy).toHaveBeenCalledTimes(1);
+      });
+
+      test('leaves onFullSnapshotProcessed undefined when eagerFullSnapshotSend is false', async () => {
+        await sessionReplay.init(apiKey, { ...mockOptions, eagerFullSnapshotSend: false }).promise;
+        expect(sessionReplay.eventCompressor?.onFullSnapshotProcessed).toBeUndefined();
+      });
     });
 
     test('it should not call initialize if the document does not have focus', () => {

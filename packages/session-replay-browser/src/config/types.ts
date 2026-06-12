@@ -200,6 +200,23 @@ export interface SessionReplayLocalConfig extends IConfig {
    */
   enableTransportCompression?: boolean;
 
+  /**
+   * Milliseconds to wait for a send request before aborting it. `fetch()` has no native
+   * timeout, so a request stuck "pending" would block the serial flush loop indefinitely;
+   * the SDK aborts after this many ms and routes the abort as a retryable failure.
+   *
+   * Set to `0` (or a negative value) to disable the timeout entirely — note this
+   * reintroduces the head-of-line-blocking risk a wedged request can cause, so it is
+   * intended only as a diagnostic/experiment opt-out.
+   *
+   * Tuning this higher is useful when large, slow-but-succeeding uploads are being aborted
+   * at the default and counted as failures (which also triggers a retry, inflating request
+   * volume / throttle pressure).
+   *
+   * @defaultValue 10000
+   */
+  sendTimeoutMs?: number;
+
   userProperties?: { [key: string]: any };
 
   /**
@@ -266,6 +283,58 @@ export interface SessionReplayLocalConfig extends IConfig {
    * back-pressuring the SDK on session start.
    */
   flushIntervalConfig?: FlushIntervalConfig;
+  /**
+   * When true (default), every rrweb full snapshot is flushed to the server immediately so
+   * replays become playable as early as possible. Set to `false` to defer full-snapshot
+   * sends to the normal interval/size flush cadence instead. The snapshot is still compressed
+   * and buffered immediately either way (ordering and page-exit beacon coverage are preserved);
+   * only the eager network send is suppressed. Disabling reduces request volume for pages that
+   * produce many full snapshots (e.g. focus-driven or `fullSnapshotIntervalMs` checkouts),
+   * especially when many SDK instances run on the same page.
+   *
+   * @defaultValue true
+   */
+  eagerFullSnapshotSend?: boolean;
+  /**
+   * When true (default), the window `focus` listener forces a fresh rrweb full snapshot
+   * (`takeFullSnapshot`) every time the page regains focus, so the replay reflects any DOM
+   * changes that happened while the tab was backgrounded. Set to `false` to skip the
+   * on-focus full snapshot entirely (recording simply continues from the existing stream).
+   *
+   * On pages with heavy focus churn (e.g. embedded iframes, inline editors that repeatedly
+   * steal and return focus) this fires constantly, and when combined with
+   * `eagerFullSnapshotSend` each focus produces an immediate network send — the primary
+   * driver of focus-driven request storms. Disabling removes the snapshot (and therefore the
+   * send) at the cost of slightly staler post-focus frames.
+   *
+   * @defaultValue true
+   */
+  captureFullSnapshotOnFocus?: boolean;
+  /**
+   * Raw (uncompressed) UTF-8 byte cap for a single buffered events list before the store
+   * splits it into its own request. Larger values produce fewer, larger requests (the primary
+   * steady-state lever for request volume); smaller values split sooner. Payloads are gzipped
+   * on the wire, so several hundred KB of replay JSON compresses to well under 100 KB.
+   *
+   * Advanced/debug knob — the default already balances request volume against the server's
+   * decompressed-size split threshold. Clamped to a safe range; values outside it are clamped
+   * and logged. Defaults to the SDK's internal `MAX_EVENT_LIST_SIZE`.
+   *
+   * @defaultValue 700000
+   */
+  maxPersistedEventsSizeBytes?: number;
+  /**
+   * Raw (uncompressed) UTF-8 byte cap for a single rrweb event. Events larger than this are
+   * dropped (with a warning) both at capture time and as a pre-send backstop, because the SR
+   * ingest service rejects a single event above ~10 MB. Lower this to exercise drop behavior
+   * for large full snapshots while debugging.
+   *
+   * Advanced/debug knob. Clamped to a safe range; values outside it are clamped and logged.
+   * Defaults to the SDK's internal `MAX_SINGLE_EVENT_SIZE`.
+   *
+   * @defaultValue 9000000
+   */
+  maxSingleEventSizeBytes?: number;
 }
 
 export interface FlushIntervalConfig {
