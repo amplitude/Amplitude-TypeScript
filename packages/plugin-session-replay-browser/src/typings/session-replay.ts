@@ -57,6 +57,13 @@ export interface SessionReplayPerformanceConfig {
   enabled: boolean;
   timeout?: number;
   /**
+   * If enabled, consecutive mutation events are merged into a single event before
+   * compression. This reduces the stored event count and coalesces bursts of
+   * inline `style` mutations on the same node (last-write-wins), without changing
+   * replay semantics. Defaults to false.
+   */
+  mergeMutations?: boolean;
+  /**
    * Performance configuration for interaction tracking (clicks, scrolls).
    */
   interaction?: InteractionPerformanceConfig;
