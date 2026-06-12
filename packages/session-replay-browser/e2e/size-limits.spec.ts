@@ -206,7 +206,7 @@ test.describe('WAF 413 bisect-retry', () => {
 // ─── Empty-batch leak (SR-4284) ───────────────────────────────────────────────
 
 test.describe('empty batch leak (SR-4284)', () => {
-  // A single rrweb event between MAX_EVENT_LIST_SIZE (700 KB) and MAX_SINGLE_EVENT_SIZE
+  // A single rrweb event between MAX_EVENT_LIST_SIZE (2 MB) and MAX_SINGLE_EVENT_SIZE
   // (9 MB) passes the per-event capture-time guard but, when it lands in
   // addEventToCurrentSequence with an empty buffer, drives shouldSplitEventsList's
   // size-constraint branch true on a zero-event buffer. Pre-fix the split path
@@ -216,7 +216,7 @@ test.describe('empty batch leak (SR-4284)', () => {
   // POSTs and no empty rows to ever be persisted in IDB.
 
   // 2× the list cap: comfortably under the per-event cap. The rrweb full snapshot
-  // serializing this attribute will be > 700 KB but << 9 MB, so it bypasses the
+  // serializing this attribute will be > 2 MB but << 9 MB, so it bypasses the
   // capture-time drop and exercises the SR-4284 store-layer path.
   const MID_SIZE_ATTR_LENGTH = MAX_EVENT_LIST_SIZE * 2;
 
@@ -266,7 +266,7 @@ test.describe('empty batch leak (SR-4284)', () => {
     await page.evaluate(() => (window as any).sessionReplay.flush(false) as Promise<void>);
     await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
 
-    // Now mutate the DOM with a > 700 KB attribute. rrweb emits an incremental
+    // Now mutate the DOM with a > 2 MB attribute. rrweb emits an incremental
     // mutation event that, serialized, exceeds MAX_EVENT_LIST_SIZE. It lands in
     // addEventToCurrentSequence on a slot that already exists with events:[] —
     // shouldSplitEventsList's size-constraint branch fires on a zero-event buffer.
