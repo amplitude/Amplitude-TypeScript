@@ -416,12 +416,21 @@ export class SessionReplay implements AmplitudeSessionReplay {
     deviceId?: string,
     options?: { userProperties?: { [key: string]: any } },
   ) {
+    const previousSessionId = this.identifiers?.sessionId;
+    const currentDeviceId = this.getDeviceId();
+    if (
+      previousSessionId !== undefined &&
+      previousSessionId === sessionId &&
+      (deviceId === undefined || deviceId === currentDeviceId) &&
+      !options?.userProperties
+    ) {
+      return;
+    }
+
     // Invalidate any in-flight URL-change re-evaluations from the previous session.
     this.latestUrlChangeTargetingEvaluationId++;
     this.sessionTargetingMatch = false;
     this.lastShouldRecordDecision = undefined; // Reset targeting decision for new session
-
-    const previousSessionId = this.identifiers && this.identifiers.sessionId;
     if (previousSessionId) {
       this.sendEvents(previousSessionId);
     }

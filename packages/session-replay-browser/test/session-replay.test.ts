@@ -1492,6 +1492,10 @@ describe('SessionReplay', () => {
       (sessionReplay as any).hasEmittedGateDecision = true;
       (sessionReplay as any).suppressedSendCount = 7;
 
+      const sendEventsSpy = jest.spyOn(sessionReplay, 'sendEvents');
+      const recordEventsSpy = jest.spyOn(sessionReplay, 'recordEvents').mockResolvedValue(undefined);
+      const evaluateTargetingAndCaptureSpy = jest.spyOn(sessionReplay, 'evaluateTargetingAndCapture');
+
       // Caller passes the current sessionId redundantly — must NOT restart the gate clock.
       await (sessionReplay as any).asyncSetSessionId(123, '1a2b3c');
 
@@ -1500,6 +1504,42 @@ describe('SessionReplay', () => {
       // Per-session gate state must also be preserved.
       expect((sessionReplay as any).hasEmittedGateDecision).toBe(true);
       expect((sessionReplay as any).suppressedSendCount).toBe(7);
+      expect(sendEventsSpy).not.toHaveBeenCalled();
+      expect(recordEventsSpy).not.toHaveBeenCalled();
+      expect(evaluateTargetingAndCaptureSpy).not.toHaveBeenCalled();
+    });
+
+    test('still proceeds when sessionId is unchanged but deviceId changes', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      const sendEventsSpy = jest.spyOn(sessionReplay, 'sendEvents');
+      const recordEventsSpy = jest.spyOn(sessionReplay, 'recordEvents').mockResolvedValue(undefined);
+
+      await (sessionReplay as any).asyncSetSessionId(123, 'new-device-id');
+
+      expect(sessionReplay.identifiers?.deviceId).toBe('new-device-id');
+      expect(sendEventsSpy).toHaveBeenCalledWith(123);
+      expect(recordEventsSpy).toHaveBeenCalled();
+    });
+
+    test('no-ops redundant setSessionId without sendEvents, recordEvents, or targeting reset', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      if (!sessionReplay.joinedConfigGenerator) throw new Error('init');
+
+      const sendEventsSpy = jest.spyOn(sessionReplay, 'sendEvents');
+      const recordEventsSpy = jest.spyOn(sessionReplay, 'recordEvents');
+      const evaluateTargetingAndCaptureSpy = jest.spyOn(sessionReplay, 'evaluateTargetingAndCapture');
+      const generateJoinedConfigSpy = jest.spyOn(sessionReplay.joinedConfigGenerator, 'generateJoinedConfig');
+      const priorTargetingMatch = sessionReplay.sessionTargetingMatch;
+      const priorUrlEvaluationId = (sessionReplay as any).latestUrlChangeTargetingEvaluationId;
+
+      await (sessionReplay as any).asyncSetSessionId(123, '1a2b3c');
+
+      expect(sendEventsSpy).not.toHaveBeenCalled();
+      expect(recordEventsSpy).not.toHaveBeenCalled();
+      expect(evaluateTargetingAndCaptureSpy).not.toHaveBeenCalled();
+      expect(generateJoinedConfigSpy).not.toHaveBeenCalled();
+      expect(sessionReplay.sessionTargetingMatch).toBe(priorTargetingMatch);
+      expect((sessionReplay as any).latestUrlChangeTargetingEvaluationId).toBe(priorUrlEvaluationId);
     });
 
     test('drops previous-session beacon buffer ONLY on real session change', async () => {
