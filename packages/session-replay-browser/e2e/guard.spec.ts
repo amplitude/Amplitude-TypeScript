@@ -57,7 +57,14 @@ test.describe('recordEventsInFlight guard (SR-3531)', () => {
     // (fired as soon as rrweb captures the snapshot) doesn't race past the listener.
     const requestPromise = page.waitForRequest('https://api-sr.amplitude.com/**', { timeout: 10_000 });
 
-    await page.goto(buildUrl('/session-replay-browser/sr-capture-test.html', { sessionId: TEST_SESSION_ID }));
+    await page.goto(
+      buildUrl('/session-replay-browser/sr-capture-test.html', {
+        sessionId: TEST_SESSION_ID,
+        // Opt into eager send so the initial snapshot is delivered promptly; the SDK default is
+        // now false (SR-4646) and these guard tests observe the FullSnapshot via an immediate POST.
+        eagerFullSnapshotSend: true,
+      }),
+    );
     await waitForReady(page);
 
     await requestPromise;
@@ -85,7 +92,14 @@ test.describe('recordEventsInFlight guard (SR-3531)', () => {
     // Register the listener early so the immediate flush doesn't escape.
     const requestPromise = page.waitForRequest('https://api-sr.amplitude.com/**', { timeout: 10_000 });
 
-    await page.goto(buildUrl('/session-replay-browser/sr-capture-test.html', { sessionId: TEST_SESSION_ID }));
+    await page.goto(
+      buildUrl('/session-replay-browser/sr-capture-test.html', {
+        sessionId: TEST_SESSION_ID,
+        // Opt into eager send so the initial snapshot is delivered promptly; the SDK default is
+        // now false (SR-4646) and these guard tests observe the FullSnapshot via an immediate POST.
+        eagerFullSnapshotSend: true,
+      }),
+    );
 
     // Fire focus immediately — before waitForReady — to race with the async init chain.
     await page.evaluate(() => window.dispatchEvent(new Event('focus')));
@@ -122,7 +136,14 @@ test.describe('recordEventsInFlight guard (SR-3531)', () => {
 
     const requestPromise = page.waitForRequest('https://api-sr.amplitude.com/**', { timeout: 10_000 });
 
-    await page.goto(buildUrl('/session-replay-browser/sr-capture-test.html', { sessionId: TEST_SESSION_ID }));
+    await page.goto(
+      buildUrl('/session-replay-browser/sr-capture-test.html', {
+        sessionId: TEST_SESSION_ID,
+        // Opt into eager send so the initial snapshot is delivered promptly; the SDK default is
+        // now false (SR-4646) and these guard tests observe the FullSnapshot via an immediate POST.
+        eagerFullSnapshotSend: true,
+      }),
+    );
     await waitForReady(page);
     await requestPromise;
     // Let the initial recording fully stabilize

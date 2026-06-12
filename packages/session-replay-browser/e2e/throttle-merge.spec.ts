@@ -108,7 +108,14 @@ test.describe('post-throttle release merges queued sends (SR-4286)', () => {
     await mockRemoteConfig(page, remoteConfigRecording);
     const { getFetchBodies, throttle } = await mockTrackApiWithToggleableThrottle(page);
 
-    await page.goto(buildUrl('/session-replay-browser/sr-capture-test.html', { sessionId: TEST_SESSION_ID }));
+    // Opt into eager send so the initial snapshot POSTs during the settle window and picks up
+    // the throttle header (the SDK eager default is now false, SR-4646).
+    await page.goto(
+      buildUrl('/session-replay-browser/sr-capture-test.html', {
+        sessionId: TEST_SESSION_ID,
+        eagerFullSnapshotSend: true,
+      }),
+    );
     await waitForReady(page);
     // Generous settle window: rrweb captures the full snapshot, the metadata/debug-info
     // events flow through eventCompressor's idle queue, and the first natural sequence

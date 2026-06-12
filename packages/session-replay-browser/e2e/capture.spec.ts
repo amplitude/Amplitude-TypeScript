@@ -510,7 +510,14 @@ test.describe('URL-based targeting', () => {
     await mockRemoteConfig(page, remoteConfigWithUrlTargeting(NAV_MATCH_STRING));
     await mockTrackApi(page);
 
-    await page.goto(buildUrl('/session-replay-browser/sr-capture-test.html', { sessionId: TEST_SESSION_ID }));
+    // Opt into eager send so the URL-triggered recording's snapshot POSTs promptly (the SDK
+    // eager default is now false, SR-4646).
+    await page.goto(
+      buildUrl('/session-replay-browser/sr-capture-test.html', {
+        sessionId: TEST_SESSION_ID,
+        eagerFullSnapshotSend: true,
+      }),
+    );
     await waitForReady(page);
 
     // Navigate to the matching URL to start recording. The SDK fires a full snapshot
@@ -966,7 +973,14 @@ test.describe('shutdown', () => {
     const trackRequestPromise = page.waitForRequest('https://api-sr.amplitude.com/**', { timeout: 10_000 });
     await mockTrackApi(page);
 
-    await page.goto(buildUrl('/session-replay-browser/sr-capture-test.html', { sessionId: TEST_SESSION_ID }));
+    // Opt into eager send so the immediate full-snapshot flush POSTs before shutdown (the SDK
+    // eager default is now false, SR-4646).
+    await page.goto(
+      buildUrl('/session-replay-browser/sr-capture-test.html', {
+        sessionId: TEST_SESSION_ID,
+        eagerFullSnapshotSend: true,
+      }),
+    );
     await waitForReady(page);
     await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
 
@@ -1043,7 +1057,14 @@ test.describe('blur auto-flush', () => {
     const trackRequestPromise = page.waitForRequest('https://api-sr.amplitude.com/**', { timeout: 10_000 });
     await mockTrackApi(page);
 
-    await page.goto(buildUrl('/session-replay-browser/sr-capture-test.html', { sessionId: TEST_SESSION_ID }));
+    // This test validates the eager-send path: the snapshot is delivered without an explicit
+    // flush. The SDK eager default is now false (SR-4646), so opt in explicitly here.
+    await page.goto(
+      buildUrl('/session-replay-browser/sr-capture-test.html', {
+        sessionId: TEST_SESSION_ID,
+        eagerFullSnapshotSend: true,
+      }),
+    );
     await waitForReady(page);
 
     await trackRequestPromise; // throws if no request is made within the timeout
@@ -1263,10 +1284,13 @@ test.describe('web worker mode', () => {
     const requestPromise = page.waitForRequest('https://api-sr.amplitude.com/**', { timeout: 10_000 });
     await mockTrackApi(page);
 
+    // Opt into eager send so the worker delivers the snapshot immediately (the SDK eager
+    // default is now false, SR-4646).
     await page.goto(
       buildUrl('/session-replay-browser/sr-capture-test.html', {
         sessionId: TEST_SESSION_ID,
         useWebWorker: true,
+        eagerFullSnapshotSend: true,
       }),
     );
     await waitForReady(page);
@@ -1304,10 +1328,13 @@ test.describe('web worker mode', () => {
     await mockRemoteConfig(page, remoteConfigRecording);
     const { getHeaders } = await captureTrackRequests(page);
 
+    // Opt into eager send so the worker POSTs the snapshot without an explicit flush (the SDK
+    // eager default is now false, SR-4646).
     await page.goto(
       buildUrl('/session-replay-browser/sr-capture-test.html', {
         sessionId: TEST_SESSION_ID,
         useWebWorker: true,
+        eagerFullSnapshotSend: true,
       }),
     );
     await waitForReady(page);
@@ -1415,7 +1442,14 @@ test.describe('SR-3115: improved replay data delivery', () => {
       route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(SR_API_SUCCESS) }),
     );
 
-    await page.goto(buildUrl('/session-replay-browser/sr-capture-test.html', { sessionId: TEST_SESSION_ID }));
+    // This SR-3115 test validates the eager-send contract; the SDK eager default is now false
+    // (SR-4646), so opt in explicitly.
+    await page.goto(
+      buildUrl('/session-replay-browser/sr-capture-test.html', {
+        sessionId: TEST_SESSION_ID,
+        eagerFullSnapshotSend: true,
+      }),
+    );
     await waitForReady(page);
 
     // The full snapshot should be sent immediately (no blur/flush needed)
@@ -1428,7 +1462,13 @@ test.describe('SR-3115: improved replay data delivery', () => {
     await mockRemoteConfig(page, remoteConfigRecording);
     const { getBodies } = await captureTrackRequests(page);
 
-    await page.goto(buildUrl('/session-replay-browser/sr-capture-test.html', { sessionId: TEST_SESSION_ID }));
+    // SR-3115 eager-send contract; the SDK eager default is now false (SR-4646), so opt in.
+    await page.goto(
+      buildUrl('/session-replay-browser/sr-capture-test.html', {
+        sessionId: TEST_SESSION_ID,
+        eagerFullSnapshotSend: true,
+      }),
+    );
     await waitForReady(page);
     // Give rrweb a moment to send the immediate full-snapshot flush
     await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
@@ -1444,7 +1484,13 @@ test.describe('SR-3115: improved replay data delivery', () => {
     await mockRemoteConfig(page, remoteConfigRecording);
     const { getHeaders } = await captureTrackRequests(page);
 
-    await page.goto(buildUrl('/session-replay-browser/sr-capture-test.html', { sessionId: TEST_SESSION_ID }));
+    // SR-3115 eager-send contract; the SDK eager default is now false (SR-4646), so opt in.
+    await page.goto(
+      buildUrl('/session-replay-browser/sr-capture-test.html', {
+        sessionId: TEST_SESSION_ID,
+        eagerFullSnapshotSend: true,
+      }),
+    );
     await waitForReady(page);
     await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
 
@@ -1512,11 +1558,18 @@ test.describe('retry behavior', () => {
         }
       });
 
-      await page.goto(buildUrl('/session-replay-browser/sr-capture-test.html', { sessionId: TEST_SESSION_ID }));
-      await waitForReady(page);
-      await retryPromise;
+    // The retry path is exercised via the eager initial send; the SDK eager default is now
+    // false (SR-4646), so opt in so the first (failing) request is made.
+    await page.goto(
+      buildUrl('/session-replay-browser/sr-capture-test.html', {
+        sessionId: TEST_SESSION_ID,
+        eagerFullSnapshotSend: true,
+      }),
+    );
+    await waitForReady(page);
+    await retryPromise;
 
-      expect(callCount).toBeGreaterThanOrEqual(2);
+    expect(callCount).toBeGreaterThanOrEqual(2);
       expect(receivedBodies.length).toBeGreaterThan(0);
     });
 
@@ -1541,8 +1594,14 @@ test.describe('retry behavior', () => {
         }
       });
 
+      // The retry path is exercised via the eager initial send; the SDK eager default is now
+      // false (SR-4646), so opt in so the first (failing) request is made.
       await page.goto(
-        buildUrl('/session-replay-browser/sr-capture-test.html', { sessionId: TEST_SESSION_ID, useWebWorker: true }),
+        buildUrl('/session-replay-browser/sr-capture-test.html', {
+          sessionId: TEST_SESSION_ID,
+          useWebWorker: true,
+          eagerFullSnapshotSend: true,
+        }),
       );
       await waitForReady(page);
       await retryPromise;

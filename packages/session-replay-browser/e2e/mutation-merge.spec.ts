@@ -114,7 +114,14 @@ test.describe('mutation merge', () => {
     await mockRemoteConfig(page, remoteConfigRecording);
     const { getBodies } = await captureTrackRequests(page);
 
-    await page.goto(buildUrl('/session-replay-browser/sr-capture-test.html', { sessionId: TEST_SESSION_ID }));
+    // Opt into eager send so the focus-triggered FullSnapshot (which drains/merges the
+    // pending mutations) is delivered promptly; the SDK eager default is now false (SR-4646).
+    await page.goto(
+      buildUrl('/session-replay-browser/sr-capture-test.html', {
+        sessionId: TEST_SESSION_ID,
+        eagerFullSnapshotSend: true,
+      }),
+    );
     await waitForReady(page);
     await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
 
@@ -187,8 +194,14 @@ test.describe('mutation merge', () => {
     await mockRemoteConfig(page, remoteConfigRecording);
     const { getBodies } = await captureTrackRequests(page);
 
+    // Opt into eager send so the focus-triggered FullSnapshot is delivered promptly; the SDK
+    // eager default is now false (SR-4646).
     await page.goto(
-      buildUrl('/session-replay-browser/sr-capture-test.html', { sessionId: TEST_SESSION_ID, mergeMutations: true }),
+      buildUrl('/session-replay-browser/sr-capture-test.html', {
+        sessionId: TEST_SESSION_ID,
+        mergeMutations: true,
+        eagerFullSnapshotSend: true,
+      }),
     );
     await waitForReady(page);
     await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
@@ -238,7 +251,14 @@ test.describe('mutation merge', () => {
     await mockRemoteConfig(page, remoteConfigRecording);
     const { getBodies } = await captureTrackRequests(page);
 
-    await page.goto(buildUrl('/session-replay-browser/sr-capture-test.html', { sessionId: TEST_SESSION_ID }));
+    // Opt into eager send so the focus-triggered FullSnapshot is delivered promptly; the SDK
+    // eager default is now false (SR-4646).
+    await page.goto(
+      buildUrl('/session-replay-browser/sr-capture-test.html', {
+        sessionId: TEST_SESSION_ID,
+        eagerFullSnapshotSend: true,
+      }),
+    );
     await waitForReady(page);
     await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
 

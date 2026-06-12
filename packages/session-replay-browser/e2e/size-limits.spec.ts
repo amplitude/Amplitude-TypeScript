@@ -111,7 +111,14 @@ test.describe('oversized single event — capture-time guard', () => {
     await mockRemoteConfig(page, remoteConfigRecording);
     const getCalls = await captureBySession(page);
 
-    await page.goto(buildUrl('/session-replay-browser/sr-capture-test.html', { sessionId: TEST_SESSION_ID }));
+    // Opt into eager send so the recovery session's snapshot is delivered promptly (no later
+    // rotation flushes it); the SDK eager default is now false (SR-4646).
+    await page.goto(
+      buildUrl('/session-replay-browser/sr-capture-test.html', {
+        sessionId: TEST_SESSION_ID,
+        eagerFullSnapshotSend: true,
+      }),
+    );
     await waitForReady(page);
     await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
 
@@ -250,10 +257,14 @@ test.describe('empty batch leak (SR-4284)', () => {
     });
 
     // logLevel=4 (Debug) so the SDK's loggerProvider.debug calls reach the console.
+    // Pin the persisted-events cap to MAX_EVENT_LIST_SIZE (2 MB) so the 4 MB mid-size
+    // event deterministically exceeds it. The SDK default cap is now 6 MB (SR-4646), which
+    // the 4 MB event would not cross — pinning keeps this guard test decoupled from the default.
     await page.goto(
       buildUrl('/session-replay-browser/sr-capture-test.html', {
         sessionId: TEST_SESSION_ID,
         logLevel: 4,
+        maxPersistedEventsSizeBytes: MAX_EVENT_LIST_SIZE,
       }),
     );
     await waitForReady(page);
