@@ -170,6 +170,43 @@ describe('SessionReplayPlugin', () => {
       );
     });
 
+    test('should pass the GA perf knobs through to session replay when provided', async () => {
+      const sessionReplay = new SessionReplayPlugin({
+        eagerFullSnapshotSend: false,
+        captureFullSnapshotOnFocus: false,
+        maxPersistedEventsSizeBytes: 2000000,
+        maxSingleEventSizeBytes: 1000000,
+      });
+
+      await sessionReplay.setup?.(mockConfig, mockAmplitude);
+
+      expect(init).toHaveBeenCalledWith(
+        'static_key',
+        expect.objectContaining({
+          eagerFullSnapshotSend: false,
+          captureFullSnapshotOnFocus: false,
+          maxPersistedEventsSizeBytes: 2000000,
+          maxSingleEventSizeBytes: 1000000,
+        }),
+      );
+    });
+
+    test('should pass the GA perf knobs as undefined when not set', async () => {
+      const sessionReplay = new SessionReplayPlugin();
+
+      await sessionReplay.setup?.(mockConfig, mockAmplitude);
+
+      expect(init).toHaveBeenCalledWith(
+        'static_key',
+        expect.objectContaining({
+          eagerFullSnapshotSend: undefined,
+          captureFullSnapshotOnFocus: undefined,
+          maxPersistedEventsSizeBytes: undefined,
+          maxSingleEventSizeBytes: undefined,
+        }),
+      );
+    });
+
     describe('defaultTracking', () => {
       test('should not change defaultTracking when forceSessionTracking is not defined', async () => {
         const sessionReplay = new SessionReplayPlugin();

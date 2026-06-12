@@ -160,7 +160,7 @@ export class EventCompressor {
     // UTF-8 byte size, not JS char count: a 9 M-char string of CJK/emoji can be 18–27 MB
     // on the wire and would otherwise slip past a char-count guard.
     const eventSizeBytes = new Blob([compressedEvent]).size;
-    if (eventSizeBytes > MAX_SINGLE_EVENT_SIZE) {
+    if (eventSizeBytes > (this.config.maxSingleEventSizeBytes ?? MAX_SINGLE_EVENT_SIZE)) {
       this.config.loggerProvider.warn(
         `Session replay event dropped: serialized size ${Math.round(
           eventSizeBytes / 1024,
