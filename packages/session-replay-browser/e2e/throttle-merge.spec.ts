@@ -114,6 +114,10 @@ test.describe('post-throttle release merges queued sends (SR-4286)', () => {
       buildUrl('/session-replay-browser/sr-capture-test.html', {
         sessionId: TEST_SESSION_ID,
         eagerFullSnapshotSend: true,
+        // This test depends on the time-based split cadence with the historical 500ms floor to
+        // enqueue multiple sequences during the throttle pause; the SDK default minIntervalMs
+        // moved to 1000ms (SR-4646), so pin it back.
+        flushMinIntervalMs: 500,
       }),
     );
     await waitForReady(page);

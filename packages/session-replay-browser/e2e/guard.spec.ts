@@ -142,6 +142,9 @@ test.describe('recordEventsInFlight guard (SR-3531)', () => {
         // Opt into eager send so the initial snapshot is delivered promptly; the SDK default is
         // now false (SR-4646) and these guard tests observe the FullSnapshot via an immediate POST.
         eagerFullSnapshotSend: true,
+        // This test asserts the focus-triggered FullSnapshot; captureFullSnapshotOnFocus now
+        // defaults to false (SR-4646), so opt in explicitly.
+        captureFullSnapshotOnFocus: true,
       }),
     );
     await waitForReady(page);
