@@ -212,4 +212,8 @@ export interface SessionReplayOptions {
    * @see {@link StandaloneSessionReplayOptions.maxSingleEventSizeBytes}
    */
   maxSingleEventSizeBytes?: number;
+  /**
+   * @see {@link StandaloneSessionReplayOptions.sendTimeoutMs}
+   */
+  sendTimeoutMs?: number;
 }

@@ -25,6 +25,7 @@ import {
   EVENT_SKIP_CODE_CAPTURE_DISABLED,
   THROTTLED_FLUSH_PAUSE_MS,
   MERGE_AFTER_THROTTLE_SOFT_CAP,
+  SEND_TIMEOUT_MS,
 } from './constants';
 import { gzipJson } from './utils/gzip';
 
@@ -57,6 +58,11 @@ export type PayloadBatcher = ({ version, events }: { version: number; events: st
 // sessions are time-bounded in practice, this cap is just a defensive ceiling.
 const MAX_KILLED_SESSIONS = 256;
 
+// Defensive ceiling on retained timed-out worker requests (see timedOutWorkerRequests).
+// In normal operation each entry is removed when the worker's late message arrives; this
+// cap only guards the pathological case of a wedged worker that never replies at all.
+const MAX_TIMED_OUT_WORKER_REQUESTS = 256;
+
 export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrackDestination {
   loggerProvider: ILogger;
   storageKey = '';
@@ -66,12 +72,26 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
   // retain pre-flag behavior. The local-config layer also defaults to true; this
   // belt-and-braces default protects direct constructor callers (e.g. tests).
   private enableTransportCompression: boolean;
+  // Milliseconds before an in-flight send is aborted; <= 0 disables the abort/timeout.
+  // Defaults to SEND_TIMEOUT_MS. Configurable so large slow-but-succeeding uploads aren't
+  // killed (and retried) at an over-aggressive default. See config.sendTimeoutMs.
+  private sendTimeoutMs: number;
   private scheduled: ReturnType<typeof setTimeout> | null = null;
   payloadBatcher: PayloadBatcher;
   queue: SessionReplayDestinationContext[] = [];
   private worker?: Worker;
   private sendIdCounter = 0;
-  private pendingWorkerRequests = new Map<string, { context: SessionReplayDestinationContext; resolve: () => void }>();
+  private pendingWorkerRequests = new Map<
+    string,
+    { context: SessionReplayDestinationContext; resolve: () => void; timeout?: ReturnType<typeof setTimeout> }
+  >();
+  // Requests the main thread stopped awaiting after SEND_TIMEOUT_MS (so the serial flush
+  // loop could proceed) but whose worker may still be retrying in the background. We keep
+  // the context — bounded, like killedSessions — so a *late* worker complete/payload_too_large
+  // can still run completeRequest and settle the store record. Without this the late message
+  // is dropped (its id is gone from pendingWorkerRequests), so a successful late delivery would
+  // leave the IDB/memory record behind for sendStoredEvents to re-upload as duplicate replay data.
+  private timedOutWorkerRequests = new Map<string, SessionReplayDestinationContext>();
   // Server back-pressure state, fed by the X-Session-Replay-Event-Skipped header on 200s.
   // The server uses this header (instead of 4xx) to signal a deliberate no-retry drop so SDKs
   // don't retry-storm. We honor it here by slowing or stopping our flush schedule.
@@ -91,17 +111,20 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
     payloadBatcher,
     workerScript,
     enableTransportCompression,
+    sendTimeoutMs,
   }: {
     trackServerUrl?: string;
     loggerProvider: ILogger;
     payloadBatcher?: PayloadBatcher;
     workerScript?: string;
     enableTransportCompression?: boolean;
+    sendTimeoutMs?: number;
   }) {
     this.loggerProvider = loggerProvider;
     this.payloadBatcher = payloadBatcher ? payloadBatcher : (payload) => payload;
     this.trackServerUrl = trackServerUrl;
     this.enableTransportCompression = enableTransportCompression ?? true;
+    this.sendTimeoutMs = sendTimeoutMs ?? SEND_TIMEOUT_MS;
 
     if (workerScript) {
       try {
@@ -119,10 +142,17 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
           // here — the events were never delivered, so onComplete must not fire and the
           // IDB/memory store entries must remain intact for recovery by sendStoredEvents.
           for (const [, pending] of this.pendingWorkerRequests) {
+            // Cancel the per-request timeout — onerror already settles every pending
+            // promise, so leaving the timer armed would fire a spurious timeout warn later.
+            if (pending.timeout) clearTimeout(pending.timeout);
             loggerProvider.warn(`Session replay event send failed due to worker crash: ${e.message}`);
             pending.resolve();
           }
           this.pendingWorkerRequests.clear();
+          // The worker is gone, so no late completion can arrive for timed-out requests either.
+          // Drop the retained contexts to free memory; their store records stay intact (we never
+          // completeRequest here) so sendStoredEvents can recover them on next init.
+          this.timedOutWorkerRequests.clear();
         };
         worker.onmessage = (e: MessageEvent<WorkerMessage>) => {
           const msg = e.data;
@@ -133,19 +163,41 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
           } else if (msg.type === 'payload_too_large') {
             const pending = this.pendingWorkerRequests.get(msg.id);
             if (pending) {
+              if (pending.timeout) clearTimeout(pending.timeout);
               this.handlePayloadTooLargeResponse(pending.context, msg.isWaf);
               pending.resolve();
               this.pendingWorkerRequests.delete(msg.id);
+            } else {
+              // Late message for a request the main thread already timed out: the worker still
+              // determined the payload was too large, so split-and-retry off the original record.
+              const timedOut = this.timedOutWorkerRequests.get(msg.id);
+              if (timedOut) {
+                this.timedOutWorkerRequests.delete(msg.id);
+                this.handlePayloadTooLargeResponse(timedOut, msg.isWaf);
+              }
             }
           } else if (msg.type === 'complete') {
             const pending = this.pendingWorkerRequests.get(msg.id);
             if (pending) {
+              if (pending.timeout) clearTimeout(pending.timeout);
               if (msg.skipCode !== undefined) {
                 this.applyServerDirective(pending.context.sessionId, msg.skipCode);
               }
               this.completeRequest({ context: pending.context });
               pending.resolve();
               this.pendingWorkerRequests.delete(msg.id);
+            } else {
+              // Late completion for a request the main thread already timed out. The worker's
+              // actual outcome (delivered, or retries exhausted) is authoritative, so settle the
+              // store record by it rather than leaving it behind for sendStoredEvents to re-upload.
+              const timedOut = this.timedOutWorkerRequests.get(msg.id);
+              if (timedOut) {
+                this.timedOutWorkerRequests.delete(msg.id);
+                if (msg.skipCode !== undefined) {
+                  this.applyServerDirective(timedOut.sessionId, msg.skipCode);
+                }
+                this.completeRequest({ context: timedOut });
+              }
             }
           }
         };
@@ -431,7 +483,33 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
   ): Promise<void> {
     const id = `${++this.sendIdCounter}`;
     return new Promise<void>((resolve) => {
-      this.pendingWorkerRequests.set(id, { context, resolve });
+      // The worker only resolves this promise when it posts back complete/payload_too_large.
+      // If the worker's own fetch hangs, no message ever arrives, so this promise — and the
+      // serial flush loop awaiting it — would hang forever while pendingWorkerRequests grows
+      // unbounded. On timeout we resolve so flush() proceeds, but deliberately do NOT call
+      // completeRequest: like the worker-crash path above, the events were never confirmed
+      // delivered, so onComplete must not fire and the IDB/memory store must stay intact for
+      // recovery by sendStoredEvents.
+      // sendTimeoutMs <= 0 disables the wait timer entirely: we then rely solely on the
+      // worker's own complete/payload_too_large message to settle. This reintroduces the
+      // hang risk this timer guards against, so it is an explicit experiment opt-out.
+      const timeout =
+        this.sendTimeoutMs > 0
+          ? setTimeout(() => {
+              const pending = this.pendingWorkerRequests.get(id);
+              if (!pending) return;
+              this.pendingWorkerRequests.delete(id);
+              // Retain the context so a *late* worker complete/payload_too_large can still settle the
+              // store record (see timedOutWorkerRequests). Without this, a worker that ultimately
+              // delivers after we stopped awaiting would leave the record behind → duplicate upload.
+              this.rememberTimedOutRequest(id, pending.context);
+              this.loggerProvider.warn(
+                `Session replay worker send timed out after ${this.sendTimeoutMs}ms; leaving events for retry`,
+              );
+              pending.resolve();
+            }, this.sendTimeoutMs)
+          : undefined;
+      this.pendingWorkerRequests.set(id, { context, resolve, timeout });
       worker.postMessage({
         type: 'send',
         id,
@@ -451,9 +529,22 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
           currentUrl: getCurrentUrl(),
           sdkVersion: VERSION,
           enableTransportCompression: this.enableTransportCompression,
+          sendTimeoutMs: this.sendTimeoutMs,
         },
       });
     });
+  }
+
+  private rememberTimedOutRequest(id: string, context: SessionReplayDestinationContext) {
+    this.timedOutWorkerRequests.set(id, context);
+    // Bound memory: a wedged worker that never replies must not let this grow without limit.
+    // Map preserves insertion order, so deleting the first key evicts the oldest entry.
+    if (this.timedOutWorkerRequests.size > MAX_TIMED_OUT_WORKER_REQUESTS) {
+      for (const oldest of this.timedOutWorkerRequests.keys()) {
+        this.timedOutWorkerRequests.delete(oldest);
+        break;
+      }
+    }
   }
 
   private async sendOnMainThread(
@@ -485,6 +576,11 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
           ? await gzipJson(payloadJson, globalScope)
           : null;
       const payloadSize = gzipped ? gzipped.byteLength : new Blob([payloadJson]).size;
+      // fetch() has no native timeout. A request stuck "pending" forever would block the
+      // serial flush loop indefinitely (head-of-line blocking), so we abort it after
+      // SEND_TIMEOUT_MS. The abort surfaces as an AbortError in the catch below, where it's
+      // routed as a retryable network failure when useRetry is true.
+      const controller = new AbortController();
       const options: RequestInit = {
         headers: {
           'Content-Type': 'application/json',
@@ -502,6 +598,7 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
         // keepalive lets the request survive page navigation, preventing 499 (client-closed) errors.
         // Must stay under the browser's 64 KB keepalive budget; large payloads skip it.
         keepalive: payloadSize <= MAX_KEEPALIVE_BYTES,
+        signal: controller.signal,
       };
 
       const serverUrl = `${getServerUrl(context.serverZone, this.trackServerUrl)}?${urlParams.toString()}`;
@@ -514,7 +611,22 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
         this.completeRequest({ context });
         return;
       }
-      const res = await fetch(serverUrl, options);
+      // sendTimeoutMs <= 0 disables the abort: the request can then hang indefinitely
+      // (head-of-line blocking the serial flush). Explicit experiment opt-out only.
+      const sendTimeout =
+        this.sendTimeoutMs > 0
+          ? setTimeout(() => {
+              controller.abort();
+            }, this.sendTimeoutMs)
+          : undefined;
+      let res: Response;
+      try {
+        res = await fetch(serverUrl, options);
+      } finally {
+        // Clear on success and on error alike so a settled request never leaves an armed
+        // timer that would abort a later reused controller or fire a stray callback.
+        if (sendTimeout) clearTimeout(sendTimeout);
+      }
       if (res === null) {
         this.completeRequest({ context, err: UNEXPECTED_ERROR_MESSAGE });
         return;
@@ -543,7 +655,22 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
         await this.handleReponse(res.status, context, responseBody);
       }
     } catch (e) {
-      this.completeRequest({ context, err: e as string });
+      // A send timeout aborts the fetch, which rejects with an AbortError. Treat that as a
+      // transient network failure and route it through the same retry budget/backoff as a
+      // 5xx (so a single stalled request doesn't permanently drop the batch) when retries
+      // are enabled. completeRequest fires onComplete exactly once via either branch
+      // (handleOtherResponse only completes on retry exhaustion), so onComplete can't fire
+      // twice. Non-abort errors keep the original complete-with-error behavior.
+      // Browsers reject an aborted fetch with a DOMException named 'AbortError', which is NOT an
+      // Error instance — an `instanceof Error` check would misroute every send-timeout abort to
+      // the fatal completeRequest path, defeating the retry. Match on the name across any thrown
+      // object (DOMException or Error) instead.
+      const isAbort = !!e && typeof e === 'object' && (e as { name?: unknown }).name === 'AbortError';
+      if (isAbort && useRetry) {
+        await this.handleOtherResponse(context);
+      } else {
+        this.completeRequest({ context, err: e as string });
+      }
     }
   }
 
