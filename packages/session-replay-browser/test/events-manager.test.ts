@@ -712,6 +712,9 @@ describe('createEventsManager', () => {
         config,
         type: 'replay',
         storeType: 'memory',
+        // Pin the split cap so the test controls the threshold rather than relying on the
+        // SDK default (now 6 MB via DEFAULT_MAX_PERSISTED_EVENTS_SIZE_BYTES).
+        maxPersistedEventsSize: MAX_EVENT_LIST_SIZE,
       });
       // Use the real memory store so shouldSplitEventsList can trigger a split.
       // eventA sits just under the cap so it doesn't split on its own; eventB then pushes the

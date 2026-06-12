@@ -1,5 +1,5 @@
 import { ILogger } from '@amplitude/analytics-core';
-import { MAX_EVENT_LIST_SIZE, MAX_INTERVAL, MIN_INTERVAL } from '../constants';
+import { DEFAULT_MAX_PERSISTED_EVENTS_SIZE_BYTES, MAX_INTERVAL, MIN_INTERVAL } from '../constants';
 import { Events, EventsStore, SendingSequencesReturn } from '../typings/session-replay';
 
 export type InstanceArgs = {
@@ -13,7 +13,7 @@ export abstract class BaseEventsStore<KeyType> implements EventsStore<KeyType> {
   protected readonly loggerProvider: ILogger;
   private minInterval = MIN_INTERVAL;
   private maxInterval = MAX_INTERVAL;
-  private maxPersistedEventsSize = MAX_EVENT_LIST_SIZE;
+  private maxPersistedEventsSize = DEFAULT_MAX_PERSISTED_EVENTS_SIZE_BYTES;
   // Assigned in the constructor after `minInterval` is overridden by `args`. Class-field
   // initializers run before the constructor body, so initializing here would freeze
   // `interval` at the class-field default (500ms) — defeating any caller-supplied minInterval

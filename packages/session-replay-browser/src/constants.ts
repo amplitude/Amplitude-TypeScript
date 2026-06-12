@@ -31,6 +31,15 @@ export const STORAGE_PREFIX = `${AMPLITUDE_PREFIX}_replay_unsent`;
 // buffering modest on low-end devices. A smaller cap (e.g. 700 KB) splits busy-page flushes
 // into several more requests/session and drives SR ingest request-rate throttling.
 export const MAX_EVENT_LIST_SIZE = 2_000_000;
+// Default raw (uncompressed) UTF-8 byte cap for a single buffered events list when the
+// consumer does not set `maxPersistedEventsSizeBytes`. Set to 6 MB — the value validated in
+// the amp-on-amp canary (appid 187520, session-replay-sdk-perf-config onenav-prod payload):
+// larger batches mean fewer requests and materially less SR ingest request-rate throttling
+// (rc3 0.02% throttle vs prod 1.31.0 2.95%) while staying under the server's 10 MB
+// decompressed split threshold. Kept distinct from MAX_EVENT_LIST_SIZE (2 MB) because that
+// constant is still used to derive MERGE_AFTER_THROTTLE_SOFT_CAP and as a documented per-batch
+// reference; this constant only governs the default buffer cap. Reverses PR #1814's 2 MB default.
+export const DEFAULT_MAX_PERSISTED_EVENTS_SIZE_BYTES = 6_000_000;
 // 9 MB UTF-8 bytes — just under the server's 10 MB per-event threshold. Compared against the
 // UTF-8 byte length of the serialized event (via Blob/TextEncoder), not the JS string length,
 // so multi-byte payloads (CJK, emoji) are gated correctly.

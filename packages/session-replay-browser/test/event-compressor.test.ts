@@ -747,6 +747,39 @@ describe('EventCompressor', () => {
       // sessionA: 2 → 1 merged; sessionB: 1 stays → 2 total compressed events
       expect(addEventMock).toHaveBeenCalledTimes(2);
     });
+
+    test('merges by default when mergeMutations is not specified', () => {
+      // performanceConfig present but mergeMutations unset → merging is on by default (SR-4646).
+      eventCompressor.config.performanceConfig = { enabled: true };
+      const addEventMock = jest.spyOn(eventsManager, 'addEvent');
+      const m1 = makeMutationEvent(100);
+      const m2 = makeMutationEvent(200);
+      eventCompressor.pendingQueue.push({ event: m1, sessionId });
+      eventCompressor.pendingQueue.push({ event: m2, sessionId });
+
+      const mockIdleDeadline = { timeRemaining: () => 50, didTimeout: false } as IdleDeadline;
+      eventCompressor.processQueue(mockIdleDeadline);
+
+      // Two pending mutations → merged into one → one compressed event
+      expect(addEventMock).toHaveBeenCalledTimes(1);
+      expect(eventCompressor.pendingQueue).toHaveLength(0);
+    });
+
+    test('does not merge when mergeMutations is explicitly false', () => {
+      eventCompressor.config.performanceConfig = { enabled: true, mergeMutations: false };
+      const addEventMock = jest.spyOn(eventsManager, 'addEvent');
+      const m1 = makeMutationEvent(100);
+      const m2 = makeMutationEvent(200);
+      eventCompressor.pendingQueue.push({ event: m1, sessionId });
+      eventCompressor.pendingQueue.push({ event: m2, sessionId });
+
+      const mockIdleDeadline = { timeRemaining: () => 50, didTimeout: false } as IdleDeadline;
+      eventCompressor.processQueue(mockIdleDeadline);
+
+      // Merging disabled → each mutation stays separate → two compressed events
+      expect(addEventMock).toHaveBeenCalledTimes(2);
+      expect(eventCompressor.pendingQueue).toHaveLength(0);
+    });
   });
 
   describe('compressEvent key ordering', () => {

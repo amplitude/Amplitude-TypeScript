@@ -172,6 +172,10 @@ export interface SessionReplayLocalConfig extends IConfig {
    * Specifies how replay events should be stored. `idb` uses IndexedDB to persist replay events
    * when all events cannot be sent during capture. `memory` stores replay events only in memory,
    * meaning events are lost when the page is closed. If IndexedDB is unavailable, the system falls back to `memory`.
+   *
+   * @defaultValue 'memory' — reflects the validated amp-on-amp perf config (SR-4646). `memory`
+   * drops cross-navigation persistence (unsent events do not survive a full page reload), which
+   * is the intended trade-off for lower IDB overhead.
    */
   storeType: StoreType;
 
@@ -284,15 +288,17 @@ export interface SessionReplayLocalConfig extends IConfig {
    */
   flushIntervalConfig?: FlushIntervalConfig;
   /**
-   * When true (default), every rrweb full snapshot is flushed to the server immediately so
-   * replays become playable as early as possible. Set to `false` to defer full-snapshot
-   * sends to the normal interval/size flush cadence instead. The snapshot is still compressed
-   * and buffered immediately either way (ordering and page-exit beacon coverage are preserved);
-   * only the eager network send is suppressed. Disabling reduces request volume for pages that
-   * produce many full snapshots (e.g. focus-driven or `fullSnapshotIntervalMs` checkouts),
-   * especially when many SDK instances run on the same page.
+   * When true, every rrweb full snapshot is flushed to the server immediately so replays
+   * become playable as early as possible. When false (default), full-snapshot sends are
+   * deferred to the normal interval/size flush cadence instead. The snapshot is still
+   * compressed and buffered immediately either way (ordering and page-exit beacon coverage
+   * are preserved); only the eager network send is suppressed. The default-off behavior
+   * reduces request volume for pages that produce many full snapshots (e.g. focus-driven or
+   * `fullSnapshotIntervalMs` checkouts), especially when many SDK instances run on the same
+   * page.
    *
-   * @defaultValue true
+   * @defaultValue false — reflects the validated amp-on-amp perf config (SR-4646). Was `true`
+   * prior to that change.
    */
   eagerFullSnapshotSend?: boolean;
   /**
@@ -318,9 +324,10 @@ export interface SessionReplayLocalConfig extends IConfig {
    *
    * Advanced/debug knob — the default already balances request volume against the server's
    * decompressed-size split threshold. Clamped to a safe range; values outside it are clamped
-   * and logged. Defaults to the SDK's internal `MAX_EVENT_LIST_SIZE`.
+   * and logged. Defaults to the SDK's internal `DEFAULT_MAX_PERSISTED_EVENTS_SIZE_BYTES`.
    *
-   * @defaultValue 700000
+   * @defaultValue 6000000 — reflects the validated amp-on-amp perf config (SR-4646). Was
+   * `MAX_EVENT_LIST_SIZE` (2000000) prior to that change.
    */
   maxPersistedEventsSizeBytes?: number;
   /**
@@ -409,7 +416,8 @@ export interface SessionReplayPerformanceConfig {
   /**
    * If enabled, consecutive mutation events will be merged into a single event before
    * compression, reducing stored event count without changing replay semantics.
-   * Defaults to false.
+   * Defaults to true, reflecting the validated amp-on-amp perf config (SR-4646); set to
+   * false to disable merging.
    */
   mergeMutations?: boolean;
   /**

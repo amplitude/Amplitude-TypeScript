@@ -88,7 +88,7 @@ describe('BaseEventsStore', () => {
     });
 
     test('does not split a small event under the default cap when omitted', () => {
-      // Default MAX_EVENT_LIST_SIZE (700 KB) — a tiny event is nowhere near it.
+      // Default DEFAULT_MAX_PERSISTED_EVENTS_SIZE_BYTES (6 MB) — a tiny event is nowhere near it.
       const store = new InMemoryEventsStore({
         loggerProvider: mockLoggerProvider,
       });

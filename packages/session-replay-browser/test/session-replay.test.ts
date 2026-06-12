@@ -1115,8 +1115,13 @@ describe('SessionReplay', () => {
     });
 
     describe('eagerFullSnapshotSend', () => {
-      test('wires an onFullSnapshotProcessed callback that flushes by default', async () => {
+      test('leaves onFullSnapshotProcessed undefined by default', async () => {
         await sessionReplay.init(apiKey, mockOptions).promise;
+        expect(sessionReplay.eventCompressor?.onFullSnapshotProcessed).toBeUndefined();
+      });
+
+      test('wires an onFullSnapshotProcessed callback that flushes when eagerFullSnapshotSend is true', async () => {
+        await sessionReplay.init(apiKey, { ...mockOptions, eagerFullSnapshotSend: true }).promise;
         const sendEventsSpy = jest.spyOn(sessionReplay, 'sendEvents').mockImplementation(() => undefined);
 
         expect(sessionReplay.eventCompressor?.onFullSnapshotProcessed).toBeDefined();
