@@ -3,6 +3,24 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.28.0-feat-element-selectors.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.27.4...@amplitude/plugin-autocapture-browser@1.28.0-feat-element-selectors.0) (2026-06-12)
+
+
+### Bug Fixes
+
+* **autocapture:** element selector namespace under autocapture ([caf2080](https://github.com/amplitude/Amplitude-TypeScript/commit/caf2080ede660874a318ef338cb01bc073869088))
+* **plugin-autocapture-browser:** clean up selector lifecycle ([37aaa7f](https://github.com/amplitude/Amplitude-TypeScript/commit/37aaa7f245a9c64288fd96e34fb6239ac8022fa5))
+* **plugin-autocapture-browser:** cover selector surface callback ([6eef0f4](https://github.com/amplitude/Amplitude-TypeScript/commit/6eef0f422a1132cabcacf58a532cfac1eaac9f2b))
+
+
+### Features
+
+* **autocapture:** consume @amplitude/element-selector with kill-switch routing ([9c65db1](https://github.com/amplitude/Amplitude-TypeScript/commit/9c65db1ff4cae249324ecc7333d28fcf1f66e7cd))
+
+
+
+
+
 ## [1.27.4](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.27.3...@amplitude/plugin-autocapture-browser@1.27.4) (2026-06-11)
 
 **Note:** Version bump only for package @amplitude/plugin-autocapture-browser

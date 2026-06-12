@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.1.15-feat-element-selectors.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/unified@1.1.14...@amplitude/unified@1.1.15-feat-element-selectors.0) (2026-06-12)
+
+**Note:** Version bump only for package @amplitude/unified
+
+
+
+
+
 ## [1.1.14](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/unified@1.1.13...@amplitude/unified@1.1.14) (2026-06-11)
 
 **Note:** Version bump only for package @amplitude/unified

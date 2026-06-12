@@ -1,6 +1,6 @@
 {
   "name": "@amplitude/analytics-browser",
-  "version": "2.44.1",
+  "version": "2.44.2-feat-element-selectors.0",
   "description": "Official Amplitude SDK for Web",
   "keywords": [
     "analytics",
