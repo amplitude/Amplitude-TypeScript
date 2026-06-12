@@ -1521,6 +1521,31 @@ describe('SessionReplay', () => {
       expect(recordEventsSpy).toHaveBeenCalled();
     });
 
+    test('still re-evaluates targeting when same sessionId has new userProperties', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      const mockConfigWithTargeting = new SessionReplayLocalConfig(apiKey, mockOptions);
+      (mockConfigWithTargeting as SessionReplayJoinedConfig).targetingConfig = {
+        key: 'sr_targeting_config',
+        variants: { on: { key: 'on' }, off: { key: 'off' } },
+        segments: [],
+      };
+      jest.spyOn(sessionReplay.joinedConfigGenerator!, 'generateJoinedConfig').mockResolvedValue({
+        joinedConfig: mockConfigWithTargeting,
+        localConfig: mockConfigWithTargeting,
+        remoteConfig: undefined,
+      });
+      const evaluateTargetingAndCaptureSpy = jest.spyOn(sessionReplay, 'evaluateTargetingAndCapture');
+      const userProperties = { plan: 'enterprise' };
+
+      await (sessionReplay as any).asyncSetSessionId(123, '1a2b3c', { userProperties });
+
+      expect(evaluateTargetingAndCaptureSpy).toHaveBeenCalledWith(
+        { userProperties, page: { url: 'http://localhost' } },
+        false,
+        true,
+      );
+    });
+
     test('no-ops redundant setSessionId without sendEvents, recordEvents, or targeting reset', async () => {
       await sessionReplay.init(apiKey, mockOptions).promise;
       if (!sessionReplay.joinedConfigGenerator) throw new Error('init');
@@ -1540,6 +1565,33 @@ describe('SessionReplay', () => {
       expect(generateJoinedConfigSpy).not.toHaveBeenCalled();
       expect(sessionReplay.sessionTargetingMatch).toBe(priorTargetingMatch);
       expect((sessionReplay as any).latestUrlChangeTargetingEvaluationId).toBe(priorUrlEvaluationId);
+    });
+
+    test('still proceeds when sessionId and deviceId unchanged but userProperties provided', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+
+      const mockConfigWithTargeting = new SessionReplayLocalConfig(apiKey, mockOptions);
+      (mockConfigWithTargeting as SessionReplayJoinedConfig).targetingConfig = {
+        key: 'sr_targeting_config',
+        variants: { on: { key: 'on' }, off: { key: 'off' } },
+        segments: [],
+      };
+      jest.spyOn(sessionReplay.joinedConfigGenerator!, 'generateJoinedConfig').mockResolvedValue({
+        joinedConfig: mockConfigWithTargeting,
+        localConfig: mockConfigWithTargeting,
+        remoteConfig: undefined,
+      });
+
+      const evaluateTargetingAndCaptureSpy = jest.spyOn(sessionReplay, 'evaluateTargetingAndCapture');
+      const userProperties = { plan: 'enterprise' };
+
+      await (sessionReplay as any).asyncSetSessionId(123, '1a2b3c', { userProperties });
+
+      expect(evaluateTargetingAndCaptureSpy).toHaveBeenCalledWith(
+        { userProperties, page: { url: 'http://localhost' } },
+        false,
+        true,
+      );
     });
 
     test('drops previous-session beacon buffer ONLY on real session change', async () => {
