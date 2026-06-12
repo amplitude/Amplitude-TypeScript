@@ -15,7 +15,7 @@ import {
  * E2E coverage for the GA'd SR performance knobs promoted to top-level
  * SessionReplayLocalConfig options in PR #1806. SDK defaults (post SR-4646):
  *   - eagerFullSnapshotSend (SDK default false; delivery tests opt in with true)
- *   - captureFullSnapshotOnFocus (default true)
+ *   - captureFullSnapshotOnFocus (SDK default false; on-focus tests opt in with true)
  *   - maxSingleEventSizeBytes (default 9_000_000)
  *   - maxPersistedEventsSizeBytes (SDK default 6_000_000)
  *
@@ -69,12 +69,12 @@ async function blurAndFlush(page: Page): Promise<void> {
 // ─── captureFullSnapshotOnFocus ───────────────────────────────────────────────
 //
 // A window `focus` event fired after recording is stable forces an extra
-// takeFullSnapshot when the knob is enabled (the default). When disabled, the
-// focusListener returns early and no additional full snapshot is produced. We
-// count EVENT_FULL_SNAPSHOT (type 2) events in the decoded request bodies.
+// takeFullSnapshot when the knob is enabled. When disabled (the SDK default post
+// SR-4646), the focusListener returns early and no additional full snapshot is
+// produced. We count EVENT_FULL_SNAPSHOT (type 2) events in the decoded request bodies.
 
 test.describe('captureFullSnapshotOnFocus', () => {
-  test('default (true): a focus event after stable recording produces an additional full snapshot', async ({
+  test('enabled (true): a focus event after stable recording produces an additional full snapshot', async ({
     page,
   }) => {
     await mockRemoteConfig(page, remoteConfigRecording);

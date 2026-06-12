@@ -86,9 +86,9 @@ accepts URL params to configure the SDK:
 | `sampleRate` | `1.0` | Overrides the SDK-level sample rate (remote config mock takes precedence) |
 | `deviceId` | `test-device-id` | Device ID |
 | `logLevel` | `0` | SDK log level (4 = DEBUG, useful for troubleshooting) |
-| `useWebWorker` | `false` | Passes `useWebWorker: true` to `init()`, enabling the web worker send path |
+| `useWebWorker` | _unset_ | Passes `useWebWorker` (`true`/`false`) to `init()`; omitted preserves the SDK default (now `true` post SR-4646, so the worker send path is on by default). Pass `false` explicitly to force the main-thread path. |
 | `eagerFullSnapshotSend` | _unset_ | Passes `eagerFullSnapshotSend` (`true`/`false`) to `init()`; omitted preserves the SDK default (now `false` post SR-4646). Delivery tests that need the prompt initial send pass `true` explicitly. |
-| `captureFullSnapshotOnFocus` | _unset_ | Passes `captureFullSnapshotOnFocus` (`true`/`false`) to `init()`; omitted preserves the SDK default |
+| `captureFullSnapshotOnFocus` | _unset_ | Passes `captureFullSnapshotOnFocus` (`true`/`false`) to `init()`; omitted preserves the SDK default (now `false` post SR-4646). Tests that need the on-focus snapshot pass `true` explicitly. |
 | `maxPersistedEventsSizeBytes` | _unset_ | Passes `maxPersistedEventsSizeBytes` (number) to `init()`; omitted preserves the SDK default |
 | `maxSingleEventSizeBytes` | _unset_ | Passes `maxSingleEventSizeBytes` (number) to `init()`; omitted preserves the SDK default |
 

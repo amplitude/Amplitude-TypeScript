@@ -182,8 +182,10 @@ export interface SessionReplayLocalConfig extends IConfig {
   /**
    * If true, the SDK will compress replay events using a web worker.
    * This offloads compression to a separate thread, improving performance on the main thread.
+   * Set to `false` to keep compression on the main thread.
    *
-   * @defaultValue false
+   * @defaultValue true — reflects the validated amp-on-amp perf config (SR-4646). Was `false`
+   * prior to that change.
    */
   useWebWorker?: boolean;
 
@@ -283,8 +285,9 @@ export interface SessionReplayLocalConfig extends IConfig {
    * reduces request volume (and 200+`X-Session-Replay-Event-Skipped` throttling responses)
    * at the cost of slightly delayed replay availability.
    *
-   * Defaults: `{ minIntervalMs: 500, maxIntervalMs: 10_000 }`. Tune up if the server is
-   * back-pressuring the SDK on session start.
+   * Defaults to `{ minIntervalMs: 1000, maxIntervalMs: 10_000 }`, reflecting the validated
+   * amp-on-amp perf config (SR-4646); the `minIntervalMs` default was `500` prior to that
+   * change. Tune up if the server is back-pressuring the SDK on session start.
    */
   flushIntervalConfig?: FlushIntervalConfig;
   /**
@@ -302,18 +305,19 @@ export interface SessionReplayLocalConfig extends IConfig {
    */
   eagerFullSnapshotSend?: boolean;
   /**
-   * When true (default), the window `focus` listener forces a fresh rrweb full snapshot
+   * When true, the window `focus` listener forces a fresh rrweb full snapshot
    * (`takeFullSnapshot`) every time the page regains focus, so the replay reflects any DOM
-   * changes that happened while the tab was backgrounded. Set to `false` to skip the
-   * on-focus full snapshot entirely (recording simply continues from the existing stream).
+   * changes that happened while the tab was backgrounded. When false (default), the on-focus
+   * full snapshot is skipped entirely (recording simply continues from the existing stream).
    *
    * On pages with heavy focus churn (e.g. embedded iframes, inline editors that repeatedly
    * steal and return focus) this fires constantly, and when combined with
    * `eagerFullSnapshotSend` each focus produces an immediate network send — the primary
-   * driver of focus-driven request storms. Disabling removes the snapshot (and therefore the
-   * send) at the cost of slightly staler post-focus frames.
+   * driver of focus-driven request storms. The default-off behavior removes the snapshot (and
+   * therefore the send) at the cost of slightly staler post-focus frames.
    *
-   * @defaultValue true
+   * @defaultValue false — reflects the validated amp-on-amp perf config (SR-4646). Was `true`
+   * prior to that change.
    */
   captureFullSnapshotOnFocus?: boolean;
   /**
@@ -349,7 +353,8 @@ export interface FlushIntervalConfig {
    * Lower bound on the rrweb event-split interval in milliseconds. Also the increment
    * added to the interval after each split. Must be > 0; values are clamped to a 100ms floor.
    *
-   * @defaultValue 500
+   * @defaultValue 1000 — reflects the validated amp-on-amp perf config (SR-4646). Was `500`
+   * prior to that change.
    */
   minIntervalMs?: number;
   /**

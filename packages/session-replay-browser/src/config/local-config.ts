@@ -1,5 +1,7 @@
 import { Config, ILogger, Logger, FetchTransport, LogLevel } from '@amplitude/analytics-core';
 import {
+  DEFAULT_FLUSH_MAX_INTERVAL_MS,
+  DEFAULT_FLUSH_MIN_INTERVAL_MS,
   DEFAULT_PERFORMANCE_CONFIG,
   DEFAULT_SAMPLE_RATE,
   DEFAULT_SERVER_ZONE,
@@ -88,9 +90,10 @@ export class SessionReplayLocalConfig extends Config implements ISessionReplayLo
     if (options.eagerFullSnapshotSend !== undefined) {
       this.eagerFullSnapshotSend = options.eagerFullSnapshotSend;
     }
-    if (options.captureFullSnapshotOnFocus !== undefined) {
-      this.captureFullSnapshotOnFocus = options.captureFullSnapshotOnFocus;
-    }
+    // Defaults to false per the validated amp-on-amp perf config (SR-4646): the on-focus full
+    // snapshot is off unless the consumer explicitly opts in. focusListener honors this by
+    // skipping the snapshot whenever the value is not true.
+    this.captureFullSnapshotOnFocus = options.captureFullSnapshotOnFocus ?? false;
     if (options.maxPersistedEventsSizeBytes !== undefined) {
       this.maxPersistedEventsSizeBytes = sanitizeByteSize(
         options.maxPersistedEventsSizeBytes,
@@ -127,15 +130,12 @@ export class SessionReplayLocalConfig extends Config implements ISessionReplayLo
     if (options.debugMode) {
       this.debugMode = options.debugMode;
     }
-    // Support both new useWebWorker and legacy experimental.useWebWorker for backwards compatibility
-    if (options.useWebWorker !== undefined) {
-      this.useWebWorker = options.useWebWorker;
-    } else {
-      const legacyOptions = options as { experimental?: { useWebWorker?: boolean } };
-      if (legacyOptions.experimental?.useWebWorker !== undefined) {
-        this.useWebWorker = legacyOptions.experimental.useWebWorker;
-      }
-    }
+    // Support both new useWebWorker and legacy experimental.useWebWorker for backwards
+    // compatibility. Defaults to true per the validated amp-on-amp perf config (SR-4646):
+    // compression runs off the main thread unless the consumer explicitly sets either flag
+    // to false. The top-level option wins over the legacy experimental one when both are set.
+    const legacyOptions = options as { experimental?: { useWebWorker?: boolean } };
+    this.useWebWorker = options.useWebWorker ?? legacyOptions.experimental?.useWebWorker ?? true;
     this.enableTransportCompression = options.enableTransportCompression ?? true;
     // Pass through undefined so the track destination applies its SEND_TIMEOUT_MS default;
     // an explicit 0 is preserved (disables the timeout).
@@ -146,6 +146,13 @@ export class SessionReplayLocalConfig extends Config implements ISessionReplayLo
     }
     if (options.flushIntervalConfig) {
       this.flushIntervalConfig = sanitizeFlushIntervalConfig(options.flushIntervalConfig, this.loggerProvider);
+    } else {
+      // Default to the validated amp-on-amp perf config (SR-4646). The values are known-valid
+      // (min <= max, both above the floor), so no sanitization is required.
+      this.flushIntervalConfig = {
+        minIntervalMs: DEFAULT_FLUSH_MIN_INTERVAL_MS,
+        maxIntervalMs: DEFAULT_FLUSH_MAX_INTERVAL_MS,
+      };
     }
   }
 }
