@@ -31,6 +31,15 @@ export const STORAGE_PREFIX = `${AMPLITUDE_PREFIX}_replay_unsent`;
 // buffering modest on low-end devices. A smaller cap (e.g. 700 KB) splits busy-page flushes
 // into several more requests/session and drives SR ingest request-rate throttling.
 export const MAX_EVENT_LIST_SIZE = 2_000_000;
+// Default raw (uncompressed) UTF-8 byte cap for a single buffered events list when the
+// consumer does not set `maxPersistedEventsSizeBytes`. Set to 6 MB — the value validated in
+// the amp-on-amp canary (appid 187520, session-replay-sdk-perf-config onenav-prod payload):
+// larger batches mean fewer requests and materially less SR ingest request-rate throttling
+// (rc3 0.02% throttle vs prod 1.31.0 2.95%) while staying under the server's 10 MB
+// decompressed split threshold. Kept distinct from MAX_EVENT_LIST_SIZE (2 MB) because that
+// constant is still used to derive MERGE_AFTER_THROTTLE_SOFT_CAP and as a documented per-batch
+// reference; this constant only governs the default buffer cap. Reverses PR #1814's 2 MB default.
+export const DEFAULT_MAX_PERSISTED_EVENTS_SIZE_BYTES = 6_000_000;
 // 9 MB UTF-8 bytes — just under the server's 10 MB per-event threshold. Compared against the
 // UTF-8 byte length of the serialized event (via Blob/TextEncoder), not the JS string length,
 // so multi-byte payloads (CJK, emoji) are gated correctly.
@@ -43,6 +52,13 @@ export const INTERACTION_MIN_INTERVAL = 30_000; // 30 seconds
 export const INTERACTION_MAX_INTERVAL = 60_000; // 1 minute
 export const MIN_INTERVAL = 500; // 500 ms
 export const MAX_INTERVAL = 10 * 1000; // 10 seconds
+// Default flush-interval bounds applied when the consumer does not pass `flushIntervalConfig`.
+// Set to the values validated in the amp-on-amp canary (session-replay-sdk-perf-config
+// onenav-prod payload, SR-4646): a 1s floor (up from the MIN_INTERVAL 500ms hard floor) reduces
+// request volume on busy pages while the 10s ceiling matches MAX_INTERVAL. MIN_INTERVAL/
+// MAX_INTERVAL remain the absolute clamp bounds and partial-config cross-validation defaults.
+export const DEFAULT_FLUSH_MIN_INTERVAL_MS = 1000; // 1 second
+export const DEFAULT_FLUSH_MAX_INTERVAL_MS = 10 * 1000; // 10 seconds
 export const MAX_IDB_STORAGE_LENGTH = 1000 * 60 * 60 * 24 * 3; // 3 days
 export const KB_SIZE = 1024;
 export const MAX_URL_LENGTH = 1000;

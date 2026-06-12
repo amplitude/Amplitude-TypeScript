@@ -554,12 +554,45 @@ describe('SessionReplay', () => {
       expect(replayCall?.[0]).toEqual(expect.objectContaining({ minInterval: 2500, maxInterval: 30_000 }));
     });
 
-    test('omits flush interval values when flushIntervalConfig is not set', async () => {
+    test('forwards the default flush interval values when flushIntervalConfig is not set', async () => {
       const createEventsManagerSpy = jest.spyOn(SessionReplayEventsManager, 'createEventsManager');
       await sessionReplay.init(apiKey, mockOptions).promise;
       const replayCall = createEventsManagerSpy.mock.calls.find(([args]) => args.type === 'replay');
+      // Defaults to the validated amp-on-amp config { minIntervalMs: 1000, maxIntervalMs: 10000 }.
+      expect(replayCall?.[0].minInterval).toBe(1000);
+      expect(replayCall?.[0].maxInterval).toBe(10_000);
+    });
+
+    test('passes undefined min/max when the joined config has no flushIntervalConfig', async () => {
+      // Defensive optional-chaining branch: a joined config without flushIntervalConfig falls back
+      // to the events manager's own interval defaults instead of throwing.
+      const createEventsManagerSpy = jest.spyOn(SessionReplayEventsManager, 'createEventsManager');
+      const mockLocalConfig = new SessionReplayLocalConfig(apiKey, mockOptions);
+      const mockJoinedConfig: SessionReplayJoinedConfig = {
+        ...mockLocalConfig,
+        optOut: false,
+        captureEnabled: true,
+        flushIntervalConfig: undefined,
+      };
+      const mockGenerator = {
+        generateJoinedConfig: jest.fn().mockResolvedValue({
+          joinedConfig: mockJoinedConfig,
+          localConfig: mockLocalConfig,
+          remoteConfig: undefined,
+        }),
+      };
+      const createGeneratorSpy = jest
+        .spyOn(JoinedConfigModule, 'createSessionReplayJoinedConfigGenerator')
+        .mockResolvedValue(mockGenerator as any);
+
+      const localSessionReplay = new SessionReplay();
+      await localSessionReplay.init(apiKey, mockOptions).promise;
+
+      const replayCall = createEventsManagerSpy.mock.calls.find(([args]) => args.type === 'replay');
+      expect(replayCall).toBeDefined();
       expect(replayCall?.[0].minInterval).toBeUndefined();
       expect(replayCall?.[0].maxInterval).toBeUndefined();
+      createGeneratorSpy.mockRestore();
     });
 
     test('should invoke page leave listeners', async () => {
@@ -687,17 +720,28 @@ describe('SessionReplay', () => {
       globalSpy = originalGlobalScope;
     });
 
-    test('should not use webworker when useWebWorker is not provided (default)', async () => {
+    test('defaults useWebWorker to true when not provided', async () => {
       await sessionReplay.init(apiKey, {
         ...mockOptions,
         sampleRate: 0.5,
       }).promise;
 
-      expect(sessionReplay.config?.useWebWorker).toBeUndefined();
+      // Defaults to true per the validated amp-on-amp config (SR-4646).
+      expect(sessionReplay.config?.useWebWorker).toBe(true);
       expect(sessionReplay.config?.transportProvider).toBeDefined();
       expect(sessionReplay.config?.flushMaxRetries).toBe(1);
       expect(sessionReplay.config?.optOut).toBe(false);
       expect(sessionReplay.config?.sampleRate).toBe(1);
+    });
+
+    test('respects an explicit useWebWorker: false', async () => {
+      await sessionReplay.init(apiKey, {
+        ...mockOptions,
+        sampleRate: 0.5,
+        useWebWorker: false,
+      }).promise;
+
+      expect(sessionReplay.config?.useWebWorker).toBe(false);
     });
 
     test('should support legacy experimental.useWebWorker config for backwards compatibility', async () => {
@@ -1007,7 +1051,7 @@ describe('SessionReplay', () => {
 
     describe('focusListener', () => {
       test('calls takeFullSnapshot(true) when already recording, does not call recordEvents', async () => {
-        await sessionReplay.init(apiKey, mockOptions).promise;
+        await sessionReplay.init(apiKey, { ...mockOptions, captureFullSnapshotOnFocus: true }).promise;
         const takeFullSnapshotMock = jest.fn();
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         (sessionReplay as any).recordCancelCallback = jest.fn();
@@ -1052,7 +1096,7 @@ describe('SessionReplay', () => {
       });
 
       test('warns via loggerProvider when takeFullSnapshot throws', async () => {
-        await sessionReplay.init(apiKey, mockOptions).promise;
+        await sessionReplay.init(apiKey, { ...mockOptions, captureFullSnapshotOnFocus: true }).promise;
         const warnSpy = jest.spyOn(sessionReplay.loggerProvider, 'warn');
         const testError = new Error('rrweb snapshot failed');
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
@@ -1069,8 +1113,24 @@ describe('SessionReplay', () => {
         expect(warnSpy).toHaveBeenCalledWith('Failed to take full snapshot on focus:', testError);
       });
 
-      test('takes the on-focus full snapshot by default (captureFullSnapshotOnFocus omitted)', async () => {
+      test('suppresses the on-focus full snapshot by default (captureFullSnapshotOnFocus omitted)', async () => {
         await sessionReplay.init(apiKey, mockOptions).promise;
+        const takeFullSnapshotMock = jest.fn();
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        (sessionReplay as any).recordCancelCallback = jest.fn();
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        (sessionReplay as any).recordFunction = { takeFullSnapshot: takeFullSnapshotMock };
+        const recordEventsSpy = jest.spyOn(sessionReplay, 'recordEvents');
+
+        sessionReplay.focusListener();
+
+        // Default is now false per the validated amp-on-amp config (SR-4646).
+        expect(takeFullSnapshotMock).not.toHaveBeenCalled();
+        expect(recordEventsSpy).not.toHaveBeenCalled();
+      });
+
+      test('takes the on-focus full snapshot when captureFullSnapshotOnFocus is explicitly true', async () => {
+        await sessionReplay.init(apiKey, { ...mockOptions, captureFullSnapshotOnFocus: true }).promise;
         const takeFullSnapshotMock = jest.fn();
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         (sessionReplay as any).recordCancelCallback = jest.fn();
@@ -1115,8 +1175,13 @@ describe('SessionReplay', () => {
     });
 
     describe('eagerFullSnapshotSend', () => {
-      test('wires an onFullSnapshotProcessed callback that flushes by default', async () => {
+      test('leaves onFullSnapshotProcessed undefined by default', async () => {
         await sessionReplay.init(apiKey, mockOptions).promise;
+        expect(sessionReplay.eventCompressor?.onFullSnapshotProcessed).toBeUndefined();
+      });
+
+      test('wires an onFullSnapshotProcessed callback that flushes when eagerFullSnapshotSend is true', async () => {
+        await sessionReplay.init(apiKey, { ...mockOptions, eagerFullSnapshotSend: true }).promise;
         const sendEventsSpy = jest.spyOn(sessionReplay, 'sendEvents').mockImplementation(() => undefined);
 
         expect(sessionReplay.eventCompressor?.onFullSnapshotProcessed).toBeDefined();

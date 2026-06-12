@@ -13,11 +13,11 @@ import {
 
 /**
  * E2E coverage for the GA'd SR performance knobs promoted to top-level
- * SessionReplayLocalConfig options in PR #1806. Defaults preserve current behavior:
- *   - eagerFullSnapshotSend (default true)
- *   - captureFullSnapshotOnFocus (default true)
+ * SessionReplayLocalConfig options in PR #1806. SDK defaults (post SR-4646):
+ *   - eagerFullSnapshotSend (SDK default false; delivery tests opt in with true)
+ *   - captureFullSnapshotOnFocus (SDK default false; on-focus tests opt in with true)
  *   - maxSingleEventSizeBytes (default 9_000_000)
- *   - maxPersistedEventsSizeBytes (default 700_000)
+ *   - maxPersistedEventsSizeBytes (SDK default 6_000_000)
  *
  * Each test asserts a behavior-visible difference between the knob's enabled and
  * disabled states through the full real-browser pipeline (Vite + worker + rrweb +
@@ -69,12 +69,12 @@ async function blurAndFlush(page: Page): Promise<void> {
 // ─── captureFullSnapshotOnFocus ───────────────────────────────────────────────
 //
 // A window `focus` event fired after recording is stable forces an extra
-// takeFullSnapshot when the knob is enabled (the default). When disabled, the
-// focusListener returns early and no additional full snapshot is produced. We
-// count EVENT_FULL_SNAPSHOT (type 2) events in the decoded request bodies.
+// takeFullSnapshot when the knob is enabled. When disabled (the SDK default post
+// SR-4646), the focusListener returns early and no additional full snapshot is
+// produced. We count EVENT_FULL_SNAPSHOT (type 2) events in the decoded request bodies.
 
 test.describe('captureFullSnapshotOnFocus', () => {
-  test('default (true): a focus event after stable recording produces an additional full snapshot', async ({
+  test('enabled (true): a focus event after stable recording produces an additional full snapshot', async ({
     page,
   }) => {
     await mockRemoteConfig(page, remoteConfigRecording);
@@ -87,6 +87,9 @@ test.describe('captureFullSnapshotOnFocus', () => {
       buildUrl('/session-replay-browser/sr-capture-test.html', {
         sessionId: TEST_SESSION_ID,
         captureFullSnapshotOnFocus: true,
+        // Opt into eager send so the initial snapshot is delivered promptly; the SDK default
+        // is now false (SR-4646) and this test observes delivery via an immediate POST.
+        eagerFullSnapshotSend: true,
       }),
     );
     await waitForReady(page);
@@ -116,6 +119,9 @@ test.describe('captureFullSnapshotOnFocus', () => {
       buildUrl('/session-replay-browser/sr-capture-test.html', {
         sessionId: TEST_SESSION_ID,
         captureFullSnapshotOnFocus: false,
+        // Opt into eager send so the initial snapshot is delivered promptly (SDK default is now
+        // false, SR-4646); this test observes delivery via an immediate POST.
+        eagerFullSnapshotSend: true,
       }),
     );
     await waitForReady(page);
@@ -136,13 +142,13 @@ test.describe('captureFullSnapshotOnFocus', () => {
 
 // ─── eagerFullSnapshotSend ────────────────────────────────────────────────────
 //
-// With the knob enabled (default), the initial full snapshot is sent to the track
-// API immediately on capture — without any blur/flush. With it disabled, the eager
-// send is suppressed: no request goes out on a quiet page until an explicit
-// blur+flush drains the buffer (the snapshot is still buffered, just not sent eagerly).
+// With the knob enabled, the initial full snapshot is sent to the track API immediately
+// on capture — without any blur/flush. With it disabled (the SDK default post SR-4646), the
+// eager send is suppressed: no request goes out on a quiet page until an explicit blur+flush
+// drains the buffer (the snapshot is still buffered, just not sent eagerly).
 
 test.describe('eagerFullSnapshotSend', () => {
-  test('default (true): the initial full snapshot is sent promptly without an explicit flush', async ({ page }) => {
+  test('enabled (true): the initial full snapshot is sent promptly without an explicit flush', async ({ page }) => {
     await mockRemoteConfig(page, remoteConfigRecording);
     const { getBodies } = await captureBodies(page);
 
@@ -271,8 +277,14 @@ test.describe('maxSingleEventSizeBytes', () => {
     await mockRemoteConfig(page, remoteConfigRecording);
     const getCalls = await captureBySession(page);
 
-    // No maxSingleEventSizeBytes param → SDK default (9 MB).
-    await page.goto(buildUrl('/session-replay-browser/sr-capture-test.html', { sessionId: TEST_SESSION_ID }));
+    // No maxSingleEventSizeBytes param → SDK default (9 MB). Opt into eager send so the
+    // rotated-session snapshot is delivered promptly (SDK eager default is now false, SR-4646).
+    await page.goto(
+      buildUrl('/session-replay-browser/sr-capture-test.html', {
+        sessionId: TEST_SESSION_ID,
+        eagerFullSnapshotSend: true,
+      }),
+    );
     await waitForReady(page);
     await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
 

@@ -226,9 +226,10 @@ export class EventCompressor {
 
   // Merge consecutive mutation tasks with the same sessionId before processing,
   // reducing the number of events serialized and stored without changing replay semantics.
-  // Only runs when performanceConfig.mergeMutations is explicitly enabled.
+  // Enabled by default (validated amp-on-amp perf config, SR-4646); only skipped when
+  // performanceConfig.mergeMutations is explicitly set to false.
   private mergeMutationTasks(tasks: TaskQueue[]): TaskQueue[] {
-    if (!this.config.performanceConfig?.mergeMutations) return tasks;
+    if (this.config.performanceConfig?.mergeMutations === false) return tasks;
     if (tasks.length <= 1) return tasks;
 
     const result: TaskQueue[] = [];

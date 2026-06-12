@@ -17,9 +17,9 @@ describe('SessionReplayLocalConfig', () => {
       warnSpy.mockRestore();
     });
 
-    test('is undefined when option is omitted', () => {
+    test('defaults to the validated amp-on-amp config when option is omitted', () => {
       const config = new SessionReplayLocalConfig('static_key', { loggerProvider: logger });
-      expect(config.flushIntervalConfig).toBeUndefined();
+      expect(config.flushIntervalConfig).toEqual({ minIntervalMs: 1000, maxIntervalMs: 10_000 });
     });
 
     test('passes through custom min/max when both are valid', () => {
@@ -170,9 +170,9 @@ describe('SessionReplayLocalConfig', () => {
       logger = new Logger();
     });
 
-    test('is undefined when option is omitted (defaults to on-focus snapshot downstream)', () => {
+    test('defaults to false when option is omitted', () => {
       const config = new SessionReplayLocalConfig('static_key', { loggerProvider: logger });
-      expect(config.captureFullSnapshotOnFocus).toBeUndefined();
+      expect(config.captureFullSnapshotOnFocus).toBe(false);
     });
 
     test('passes through false', () => {

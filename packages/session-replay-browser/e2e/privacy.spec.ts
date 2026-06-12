@@ -531,7 +531,9 @@ test.describe('privacy — urlMaskLevels (page-level masking)', () => {
     );
     const { getBodies } = await captureTrackRequests(page);
 
-    await page.goto(buildUrl(PRIVACY_PAGE, { sessionId: TEST_SESSION_ID }));
+    // captureFullSnapshotOnFocus now defaults to false (SR-4646); this SPA test forces a fresh
+    // full snapshot via a focus event, so opt in explicitly.
+    await page.goto(buildUrl(PRIVACY_PAGE, { sessionId: TEST_SESSION_ID, captureFullSnapshotOnFocus: true }));
     await waitForReady(page);
     await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
 
@@ -575,7 +577,9 @@ test.describe('privacy — urlMaskLevels (page-level masking)', () => {
     );
     const { getBodies } = await captureTrackRequests(page);
 
-    await page.goto(buildUrl(PRIVACY_PAGE, { sessionId: TEST_SESSION_ID }));
+    // captureFullSnapshotOnFocus now defaults to false (SR-4646); this SPA test forces a fresh
+    // full snapshot via a focus event, so opt in explicitly.
+    await page.goto(buildUrl(PRIVACY_PAGE, { sessionId: TEST_SESSION_ID, captureFullSnapshotOnFocus: true }));
     await waitForReady(page);
     await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
 
@@ -619,7 +623,9 @@ test.describe('privacy — urlMaskLevels (page-level masking)', () => {
     );
     const { getBodies } = await captureTrackRequests(page);
 
-    await page.goto(buildUrl(PRIVACY_PAGE, { sessionId: TEST_SESSION_ID }));
+    // captureFullSnapshotOnFocus now defaults to false (SR-4646); this SPA test forces a fresh
+    // full snapshot via a focus event, so opt in explicitly.
+    await page.goto(buildUrl(PRIVACY_PAGE, { sessionId: TEST_SESSION_ID, captureFullSnapshotOnFocus: true }));
     await waitForReady(page);
     await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
 
@@ -851,7 +857,9 @@ test.describe('privacy — urlMaskLevels (page-level masking)', () => {
     );
     const { getBodies } = await captureTrackRequests(page);
 
-    await page.goto(buildUrl(PRIVACY_PAGE, { sessionId: TEST_SESSION_ID }));
+    // captureFullSnapshotOnFocus now defaults to false (SR-4646); this SPA test forces a fresh
+    // full snapshot via a blur→focus cycle, so opt in explicitly.
+    await page.goto(buildUrl(PRIVACY_PAGE, { sessionId: TEST_SESSION_ID, captureFullSnapshotOnFocus: true }));
     await waitForReady(page);
     await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
 

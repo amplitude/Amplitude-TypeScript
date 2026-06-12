@@ -172,14 +172,20 @@ export interface SessionReplayLocalConfig extends IConfig {
    * Specifies how replay events should be stored. `idb` uses IndexedDB to persist replay events
    * when all events cannot be sent during capture. `memory` stores replay events only in memory,
    * meaning events are lost when the page is closed. If IndexedDB is unavailable, the system falls back to `memory`.
+   *
+   * @defaultValue 'memory' — reflects the validated amp-on-amp perf config (SR-4646). `memory`
+   * drops cross-navigation persistence (unsent events do not survive a full page reload), which
+   * is the intended trade-off for lower IDB overhead.
    */
   storeType: StoreType;
 
   /**
    * If true, the SDK will compress replay events using a web worker.
    * This offloads compression to a separate thread, improving performance on the main thread.
+   * Set to `false` to keep compression on the main thread.
    *
-   * @defaultValue false
+   * @defaultValue true — reflects the validated amp-on-amp perf config (SR-4646). Was `false`
+   * prior to that change.
    */
   useWebWorker?: boolean;
 
@@ -279,35 +285,39 @@ export interface SessionReplayLocalConfig extends IConfig {
    * reduces request volume (and 200+`X-Session-Replay-Event-Skipped` throttling responses)
    * at the cost of slightly delayed replay availability.
    *
-   * Defaults: `{ minIntervalMs: 500, maxIntervalMs: 10_000 }`. Tune up if the server is
-   * back-pressuring the SDK on session start.
+   * Defaults to `{ minIntervalMs: 1000, maxIntervalMs: 10_000 }`, reflecting the validated
+   * amp-on-amp perf config (SR-4646); the `minIntervalMs` default was `500` prior to that
+   * change. Tune up if the server is back-pressuring the SDK on session start.
    */
   flushIntervalConfig?: FlushIntervalConfig;
   /**
-   * When true (default), every rrweb full snapshot is flushed to the server immediately so
-   * replays become playable as early as possible. Set to `false` to defer full-snapshot
-   * sends to the normal interval/size flush cadence instead. The snapshot is still compressed
-   * and buffered immediately either way (ordering and page-exit beacon coverage are preserved);
-   * only the eager network send is suppressed. Disabling reduces request volume for pages that
-   * produce many full snapshots (e.g. focus-driven or `fullSnapshotIntervalMs` checkouts),
-   * especially when many SDK instances run on the same page.
+   * When true, every rrweb full snapshot is flushed to the server immediately so replays
+   * become playable as early as possible. When false (default), full-snapshot sends are
+   * deferred to the normal interval/size flush cadence instead. The snapshot is still
+   * compressed and buffered immediately either way (ordering and page-exit beacon coverage
+   * are preserved); only the eager network send is suppressed. The default-off behavior
+   * reduces request volume for pages that produce many full snapshots (e.g. focus-driven or
+   * `fullSnapshotIntervalMs` checkouts), especially when many SDK instances run on the same
+   * page.
    *
-   * @defaultValue true
+   * @defaultValue false — reflects the validated amp-on-amp perf config (SR-4646). Was `true`
+   * prior to that change.
    */
   eagerFullSnapshotSend?: boolean;
   /**
-   * When true (default), the window `focus` listener forces a fresh rrweb full snapshot
+   * When true, the window `focus` listener forces a fresh rrweb full snapshot
    * (`takeFullSnapshot`) every time the page regains focus, so the replay reflects any DOM
-   * changes that happened while the tab was backgrounded. Set to `false` to skip the
-   * on-focus full snapshot entirely (recording simply continues from the existing stream).
+   * changes that happened while the tab was backgrounded. When false (default), the on-focus
+   * full snapshot is skipped entirely (recording simply continues from the existing stream).
    *
    * On pages with heavy focus churn (e.g. embedded iframes, inline editors that repeatedly
    * steal and return focus) this fires constantly, and when combined with
    * `eagerFullSnapshotSend` each focus produces an immediate network send — the primary
-   * driver of focus-driven request storms. Disabling removes the snapshot (and therefore the
-   * send) at the cost of slightly staler post-focus frames.
+   * driver of focus-driven request storms. The default-off behavior removes the snapshot (and
+   * therefore the send) at the cost of slightly staler post-focus frames.
    *
-   * @defaultValue true
+   * @defaultValue false — reflects the validated amp-on-amp perf config (SR-4646). Was `true`
+   * prior to that change.
    */
   captureFullSnapshotOnFocus?: boolean;
   /**
@@ -318,9 +328,10 @@ export interface SessionReplayLocalConfig extends IConfig {
    *
    * Advanced/debug knob — the default already balances request volume against the server's
    * decompressed-size split threshold. Clamped to a safe range; values outside it are clamped
-   * and logged. Defaults to the SDK's internal `MAX_EVENT_LIST_SIZE`.
+   * and logged. Defaults to the SDK's internal `DEFAULT_MAX_PERSISTED_EVENTS_SIZE_BYTES`.
    *
-   * @defaultValue 700000
+   * @defaultValue 6000000 — reflects the validated amp-on-amp perf config (SR-4646). Was
+   * `MAX_EVENT_LIST_SIZE` (2000000) prior to that change.
    */
   maxPersistedEventsSizeBytes?: number;
   /**
@@ -342,7 +353,8 @@ export interface FlushIntervalConfig {
    * Lower bound on the rrweb event-split interval in milliseconds. Also the increment
    * added to the interval after each split. Must be > 0; values are clamped to a 100ms floor.
    *
-   * @defaultValue 500
+   * @defaultValue 1000 — reflects the validated amp-on-amp perf config (SR-4646). Was `500`
+   * prior to that change.
    */
   minIntervalMs?: number;
   /**
@@ -409,7 +421,8 @@ export interface SessionReplayPerformanceConfig {
   /**
    * If enabled, consecutive mutation events will be merged into a single event before
    * compression, reducing stored event count without changing replay semantics.
-   * Defaults to false.
+   * Defaults to true, reflecting the validated amp-on-amp perf config (SR-4646); set to
+   * false to disable merging.
    */
   mergeMutations?: boolean;
   /**
