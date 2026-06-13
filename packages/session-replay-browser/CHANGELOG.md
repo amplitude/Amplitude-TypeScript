@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.46.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.45.0...@amplitude/session-replay-browser@1.46.0) (2026-06-13)
+
+
+### Features
+
+* SR-4646 default SR perf/reliability knobs to validated amp-on-amp values [session-replay-browser] ([#1829](https://github.com/amplitude/Amplitude-TypeScript/issues/1829)) ([78b61fe](https://github.com/amplitude/Amplitude-TypeScript/commit/78b61fe208efefdaeb5cf82ffe8543c8346b08eb))
+
+
+
+
+
 # [1.45.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.44.2...@amplitude/session-replay-browser@1.45.0) (2026-06-12)
 
 
