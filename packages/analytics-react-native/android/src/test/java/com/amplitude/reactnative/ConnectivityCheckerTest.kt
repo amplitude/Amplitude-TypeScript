@@ -4,7 +4,6 @@ import android.content.Context
 import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkCapabilities
-import android.net.NetworkInfo
 import android.net.NetworkRequest
 import android.os.Build
 import io.mockk.every
@@ -116,47 +115,13 @@ class ConnectivityCheckerTest {
 
     // endregion
 
-    // region currentConnectivity() — API 21–22 (deprecated activeNetworkInfo path)
+    // region hasInternetCapability()
 
     @Test
-    @Config(sdk = [Build.VERSION_CODES.LOLLIPOP])
-    fun `currentConnectivity uses activeNetworkInfo isConnected true on API 21-22`() {
-        every { connectivityManager.activeNetworkInfo } returns mockk<NetworkInfo> { every { isConnected } returns true }
-        assertTrue(checker.currentConnectivity())
-    }
-
-    @Test
-    @Config(sdk = [Build.VERSION_CODES.LOLLIPOP])
-    fun `currentConnectivity uses activeNetworkInfo isConnected false on API 21-22`() {
-        every { connectivityManager.activeNetworkInfo } returns mockk<NetworkInfo> { every { isConnected } returns false }
-        assertFalse(checker.currentConnectivity())
-    }
-
-    @Test
-    @Config(sdk = [Build.VERSION_CODES.LOLLIPOP])
-    fun `currentConnectivity returns false when activeNetworkInfo is null on API 21-22`() {
-        every { connectivityManager.activeNetworkInfo } returns null
-        assertFalse(checker.currentConnectivity())
-    }
-
-    // endregion
-
-    // region hasInternetCapability() — API gating (commit 7173529a)
-
-    @Test
-    fun `hasInternetCapability requires INTERNET and VALIDATED on API 23+`() {
+    fun `hasInternetCapability requires both INTERNET and VALIDATED`() {
         assertTrue(checker.hasInternetCapability(capabilities(internet = true, validated = true)))
         assertFalse(checker.hasInternetCapability(capabilities(internet = true, validated = false)))
         assertFalse(checker.hasInternetCapability(capabilities(internet = false, validated = true)))
-        assertFalse(checker.hasInternetCapability(capabilities(internet = false, validated = false)))
-    }
-
-    @Test
-    @Config(sdk = [Build.VERSION_CODES.LOLLIPOP])
-    fun `hasInternetCapability requires only INTERNET on API 21-22 (does not require VALIDATED)`() {
-        // The 7173529a fix: VALIDATED is never reported on API 21-22, so requiring
-        // it there would read as permanently offline. INTERNET alone must suffice.
-        assertTrue(checker.hasInternetCapability(capabilities(internet = true, validated = false)))
         assertFalse(checker.hasInternetCapability(capabilities(internet = false, validated = false)))
     }
 
@@ -184,16 +149,6 @@ class ConnectivityCheckerTest {
         // the API 23 framework Robolectric loads here — we cannot verify(exactly=0)
         // against it (NoSuchMethodError). The positive assertion below suffices: the
         // API check in start() is mutually exclusive.
-        verify(exactly = 1) {
-            connectivityManager.registerNetworkCallback(any<NetworkRequest>(), any<ConnectivityManager.NetworkCallback>())
-        }
-    }
-
-    @Test
-    @Config(sdk = [Build.VERSION_CODES.LOLLIPOP])
-    fun `start uses registerNetworkCallback with a request on API 21-22`() {
-        every { connectivityManager.activeNetworkInfo } returns null // seed disconnected
-        checker.start()
         verify(exactly = 1) {
             connectivityManager.registerNetworkCallback(any<NetworkRequest>(), any<ConnectivityManager.NetworkCallback>())
         }
@@ -289,18 +244,18 @@ class ConnectivityCheckerTest {
     }
 
     @Test
-    @Config(sdk = [Build.VERSION_CODES.LOLLIPOP])
-    fun `onLost stays online when another matching network is still active on API 21-22`() {
-        // API 21-23 registers with registerNetworkCallback(request, ...), which reports
-        // every matching network, not just the default. Losing one (e.g. Wi-Fi) must not
-        // force offline while another (e.g. cellular) is still active.
-        every { connectivityManager.activeNetworkInfo } returns mockk<NetworkInfo> { every { isConnected } returns true }
+    @Config(sdk = [Build.VERSION_CODES.M])
+    fun `onLost stays online when another matching network is still active on API 23`() {
+        // API 23 registers with registerNetworkCallback(request, ...), which reports every
+        // matching network, not just the default. Losing one (e.g. Wi-Fi) must not force
+        // offline while another (e.g. cellular) is still the validated active network.
+        seedConnectedApi23Plus()
         val callbackSlot = slot<ConnectivityManager.NetworkCallback>()
         every { connectivityManager.registerNetworkCallback(any<NetworkRequest>(), capture(callbackSlot)) } returns Unit
         checker.start()
         assertTrue(checker.isConnected)
 
-        callbackSlot.captured.onLost(mockk()) // a matching network dropped; activeNetworkInfo still connected
+        callbackSlot.captured.onLost(mockk()) // a matching network dropped; the active network is still validated
         assertTrue(changes.isEmpty())
         assertTrue(checker.isConnected)
     }

@@ -1,5 +1,6 @@
 package com.amplitude.reactnative
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.net.ConnectivityManager
 import android.net.Network
@@ -14,9 +15,8 @@ import android.os.Build
  * bridge (promise resolution + event emission); this class owns everything that
  * only depends on the Android networking APIs.
  *
- * Connectivity is monitored with [ConnectivityManager]. `registerDefaultNetworkCallback`
- * is API 24+, while `minSdkVersion` is 21, so we fall back to
- * `registerNetworkCallback(NetworkRequest, callback)` on API 21–23.
+ * Connectivity is monitored with [ConnectivityManager] on API 23+; below that
+ * [currentConnectivity] best-effort reports online.
  *
  * @param onConnectivityChanged invoked (off the registration thread) whenever the
  *   connectivity state actually changes — repeated same-state callbacks are deduped.
@@ -114,28 +114,28 @@ internal class ConnectivityChecker(
     fun currentConnectivity(): Boolean {
         try {
             val manager = connectivityManager ?: return true
-            return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                val network = manager.activeNetwork ?: return false
-                val capabilities = manager.getNetworkCapabilities(network) ?: return false
-                hasInternetCapability(capabilities)
-            } else {
-                @Suppress("DEPRECATION")
-                manager.activeNetworkInfo?.isConnected ?: false
+            // Offline mode requires API 23+ (NetworkCapabilities validation). Below that we
+            // best-effort report online so we never suppress sends on unsupported devices.
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
+                return true
             }
+            val network = manager.activeNetwork ?: return false
+            val capabilities = manager.getNetworkCapabilities(network) ?: return false
+            return hasInternetCapability(capabilities)
         } catch (t: Throwable) {
             return true
         }
     }
 
-    // Decides whether a given network counts as usable internet (shared by the seed and live capability-change events).
+    // Decides whether a given network counts as usable internet (shared by the seed and
+    // live capability-change events). Only invoked from the API 23+ path in
+    // [currentConnectivity], where both capabilities are available.
+    @SuppressLint("NewApi")
     internal fun hasInternetCapability(capabilities: NetworkCapabilities): Boolean {
-        // NET_CAPABILITY_INTERNET: the network advertises internet access (still true on a captive portal).
-        val hasInternet = capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            // NET_CAPABILITY_VALIDATED: Android probed and confirmed real internet (false on a captive portal); added in API 23 (M), so 21-22 require INTERNET only.
-            hasInternet && capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
-        } else {
-            hasInternet
-        }
+        // Require both NET_CAPABILITY_INTERNET (advertised — still true on a captive portal)
+        // and NET_CAPABILITY_VALIDATED (Android probed and confirmed real internet — false on
+        // a captive portal, so we treat portals as offline and queue rather than lose events).
+        return capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
+            capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
     }
 }
