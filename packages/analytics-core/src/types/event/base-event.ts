@@ -1,6 +1,11 @@
 import { Plan } from './plan';
 import { IngestionMetadataEventProperty } from './ingestion-metadata';
 
+export interface Delay {
+  id: string;
+  timeout?: number;
+}
+
 export interface BaseEvent extends EventOptions {
   event_type: string;
   event_properties?: { [key: string]: any } | undefined;
@@ -52,4 +57,5 @@ export interface EventOptions {
   android_app_set_id?: string;
   extra?: { [key: string]: any };
   groups?: { [key: string]: any } | undefined;
+  delay?: Delay;
 }

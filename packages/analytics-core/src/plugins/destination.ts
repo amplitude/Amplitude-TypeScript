@@ -1,5 +1,6 @@
 import { DestinationPlugin } from '../types/plugin';
 import { Event } from '../types/event/event';
+import { Delay } from '../types/event/base-event';
 import { Result } from '../types/result';
 import { Status } from '../types/status';
 import {
@@ -32,6 +33,7 @@ import { EventCallback } from '../types/event-callback';
 import { IDiagnosticsClient } from '../diagnostics/diagnostics-client';
 import { isSuccessStatusCode } from '../utils/status-code';
 import { getStacktrace } from '../utils/debug';
+import { DelayedPayload, Payload } from '../types/payload';
 
 export interface Context {
   event: Event;
@@ -125,6 +127,10 @@ export class Destination implements DestinationPlugin {
         callback: (result: Result) => resolve(result),
         timeout: 0,
       };
+      // remove any delayed events with the same insert_id
+      if (event.delay?.id) {
+        this.queue = this.queue.filter((queuedContext) => queuedContext.event.insert_id !== event.insert_id);
+      }
       this.queue.push(context);
       this.schedule(this.config.flushIntervalMillis);
       this.saveEvents();
@@ -198,17 +204,34 @@ export class Destination implements DestinationPlugin {
     this.resetSchedule();
 
     const list: Context[] = [];
+    const delayed: Record<string, [Delay, Context[]]> = {};
     const later: Context[] = [];
-    this.queue.forEach((context) => (context.timeout === 0 ? list.push(context) : later.push(context)));
+    this.queue.forEach((context) => {
+      if (context.timeout !== 0) {
+        later.push(context);
+      } else if (context.event.delay?.id) {
+        const delay = context.event.delay;
+        delayed[delay.id] = delayed[delay.id] || [delay, []];
+        delayed[delay.id][1].push(context);
+      } else {
+        list.push(context);
+      }
+    });
 
     const batches = chunk(list, this.config.flushQueueSize);
 
     // Promise.all() doesn't guarantee resolve order.
     // Sequentially resolve to make sure backend receives events in order
-    await batches.reduce(async (promise, batch) => {
+    const regularEventBatch = batches.reduce(async (promise, batch) => {
       await promise;
       return await this.send(batch, useRetry);
     }, Promise.resolve());
+    const eventPromises = [regularEventBatch];
+
+    const delayedEventBatches = this.getDelayedEventsBatches(delayed, useRetry);
+    eventPromises.push(...delayedEventBatches);
+
+    await Promise.all(eventPromises);
 
     // Mark current flush is done
     this.flushId = null;
@@ -216,16 +239,42 @@ export class Destination implements DestinationPlugin {
     this.scheduleEvents(this.queue);
   }
 
-  async send(list: Context[], useRetry = true) {
+  getDelayedEventsBatches(delayed: Record<string, [Delay, Context[]]>, useRetry: boolean) {
+    const eventPromises = [];
+    try {
+      for (const [delay, contexts] of Object.values(delayed)) {
+        const delayedBatches = chunk(contexts, this.config.flushQueueSize);
+        const delayedEventBatch = delayedBatches.reduce(async (promise, batch) => {
+          await promise;
+          return await this.send(batch, useRetry, delay);
+        }, Promise.resolve());
+        eventPromises.push(delayedEventBatch);
+      }
+    } catch (e) {}
+    return eventPromises;
+  }
+
+  translatePayloadToDelayedPayload(payload: Payload, list: Context[], delay: Delay): DelayedPayload {
+    const delayedPayload: DelayedPayload = {
+      ...payload,
+      id: delay.id,
+      timeout: list.reduce((max, context) => Math.max(max, context.event.delay!.timeout || 0), 0),
+      instant_events: payload.events.filter((_event, index) => !list[index].event.delay!.timeout),
+      events: payload.events.filter((_event, index) => list[index].event.delay!.timeout),
+    };
+    return delayedPayload;
+  }
+
+  async send(list: Context[], useRetry = true, delay?: Delay) {
     if (!this.config.apiKey) {
       return this.fulfillRequest(list, 400, MISSING_API_KEY_MESSAGE);
     }
 
-    const payload = {
+    let payload: Payload = {
       api_key: this.config.apiKey,
       events: list.map((context) => {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { extra, ...eventWithoutExtra } = context.event;
+        const { extra, delay, ...eventWithoutExtra } = context.event;
         return eventWithoutExtra;
       }),
       options: {
@@ -237,11 +286,16 @@ export class Destination implements DestinationPlugin {
     this.config.requestMetadata = new RequestMetadata();
 
     try {
-      const { serverUrl } = createServerConfig(this.config.serverUrl, this.config.serverZone, this.config.useBatch);
+      let { serverUrl } = createServerConfig(this.config.serverUrl, this.config.serverZone, this.config.useBatch);
       const shouldCompressUploadBody = shouldCompressUploadBodyForRequest(
         serverUrl,
         this.config.enableRequestBodyCompression,
       );
+      if (delay) {
+        serverUrl = `${serverUrl}/delayed`;
+        payload = this.translatePayloadToDelayedPayload(payload, list, delay);
+        // TODO: if /delayed can't handle compression, then turn it off here
+      }
       const res = await this.config.transportProvider.send(serverUrl, payload, shouldCompressUploadBody);
       if (res === null) {
         this.fulfillRequest(list, 0, UNEXPECTED_ERROR_MESSAGE);
