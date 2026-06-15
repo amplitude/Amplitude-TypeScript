@@ -1754,6 +1754,29 @@ describe('destination', () => {
       });
     });
 
+    test('should send delayed events later when timeout is non-zero', async () => {
+      const destination = new Destination();
+      const delayId = 'delay-123';
+      destination.config = {
+        ...useDefaultConfig(),
+      };
+      destination.queue = [
+        {
+          attempts: 0,
+          callback: jest.fn(),
+          event: { event_type: 'delayed_event', delay_id: delayId },
+          timeout: 1000,
+        },
+      ];
+      const send = jest.spyOn(destination, 'send').mockReturnValueOnce(Promise.resolve());
+      const schedule = jest.spyOn(destination, 'schedule').mockImplementation(jest.fn);
+
+      await destination.flush(true);
+
+      expect(send).toHaveBeenCalledTimes(0);
+      expect(schedule).toHaveBeenCalledWith(1000);
+    });
+
     test('should send /delayed and regular events on same flush', async () => {
       const destination = new Destination();
       const regularCallback = jest.fn();

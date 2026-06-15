@@ -202,7 +202,7 @@ export class Destination implements DestinationPlugin {
     const delayed: Record<string, Context[]> = {};
     const later: Context[] = [];
     this.queue.forEach((context) => {
-      if (context.event.delay_id) {
+      if (context.timeout === 0 && context.event.delay_id) {
         delayed[context.event.delay_id] = delayed[context.event.delay_id] || [];
         delayed[context.event.delay_id].push(context);
       } else if (context.timeout === 0) {
