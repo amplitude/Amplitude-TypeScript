@@ -16,6 +16,8 @@
     const config = {
       autocapture: true,
     }
+    amplitude.track('DUMMY EVENT', { event_properties: { name: 'HTML' } })
+      .promise.then((evt) => console.log(`DUMMY_EVENT: `, evt));
     amplitude.init(import.meta.env.VITE_AMPLITUDE_API_KEY, config);
     amplitude.track('DUMMY EVENT', { name: 'HTML' });
     amplitude.identify(new amplitude.Identify().set('role', 'engineer'));

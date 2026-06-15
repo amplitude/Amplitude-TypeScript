@@ -32,6 +32,7 @@ import { EventCallback } from '../types/event-callback';
 import { IDiagnosticsClient } from '../diagnostics/diagnostics-client';
 import { isSuccessStatusCode } from '../utils/status-code';
 import { getStacktrace } from '../utils/debug';
+import { DelayedPayload, Payload } from '../types/payload';
 
 export interface Context {
   event: Event;
@@ -198,8 +199,18 @@ export class Destination implements DestinationPlugin {
     this.resetSchedule();
 
     const list: Context[] = [];
+    const delayed: Record<string, Context[]> = {};
     const later: Context[] = [];
-    this.queue.forEach((context) => (context.timeout === 0 ? list.push(context) : later.push(context)));
+    this.queue.forEach((context) => {
+      if (context.event.delay_id) {
+        delayed[context.event.delay_id] = delayed[context.event.delay_id] || [];
+        delayed[context.event.delay_id].push(context);
+      } else if (context.timeout === 0) {
+        list.push(context);
+      } else {
+        later.push(context);
+      }
+    });
 
     const batches = chunk(list, this.config.flushQueueSize);
 
@@ -210,18 +221,26 @@ export class Destination implements DestinationPlugin {
       return await this.send(batch, useRetry);
     }, Promise.resolve());
 
+    for (const delayId of Object.keys(delayed)) {
+      const delayedBatches = chunk(delayed[delayId], this.config.flushQueueSize);
+      await delayedBatches.reduce(async (promise, batch) => {
+        await promise;
+        return await this.send(batch, useRetry, delayId);
+      }, Promise.resolve());
+    }
+
     // Mark current flush is done
     this.flushId = null;
 
     this.scheduleEvents(this.queue);
   }
 
-  async send(list: Context[], useRetry = true) {
+  async send(list: Context[], useRetry = true, delayId?: string) {
     if (!this.config.apiKey) {
       return this.fulfillRequest(list, 400, MISSING_API_KEY_MESSAGE);
     }
 
-    const payload = {
+    const payload: Payload = {
       api_key: this.config.apiKey,
       events: list.map((context) => {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -237,11 +256,15 @@ export class Destination implements DestinationPlugin {
     this.config.requestMetadata = new RequestMetadata();
 
     try {
-      const { serverUrl } = createServerConfig(this.config.serverUrl, this.config.serverZone, this.config.useBatch);
+      let { serverUrl } = createServerConfig(this.config.serverUrl, this.config.serverZone, this.config.useBatch);
       const shouldCompressUploadBody = shouldCompressUploadBodyForRequest(
         serverUrl,
         this.config.enableRequestBodyCompression,
       );
+      if (delayId) {
+        serverUrl = `${serverUrl}/delayed`;
+        (payload as DelayedPayload).id = delayId;
+      }
       const res = await this.config.transportProvider.send(serverUrl, payload, shouldCompressUploadBody);
       if (res === null) {
         this.fulfillRequest(list, 0, UNEXPECTED_ERROR_MESSAGE);
