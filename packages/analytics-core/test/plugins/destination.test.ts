@@ -1700,4 +1700,151 @@ describe('destination', () => {
       expect(result).toBe('');
     });
   });
+
+  describe('delayed events', () => {
+    const successResponse = {
+      status: Status.Success,
+      statusCode: 200,
+      body: {
+        eventsIngested: 1,
+        payloadSizeBytes: 1,
+        serverUploadTime: 1,
+      },
+    };
+    const delayedUrl = `${AMPLITUDE_SERVER_URL}/delayed`;
+
+    let destination: Destination;
+    let transportProvider: { send: jest.Mock };
+
+    const createContext = (
+      event: { event_type: string; delay_id?: string },
+      callback = jest.fn(),
+      timeout = 0,
+    ): Context => ({
+      attempts: 0,
+      callback,
+      event,
+      timeout,
+    });
+
+    const flushQueue = async (contexts: Context[]) => {
+      destination.queue = contexts;
+      await destination.flush(true);
+    };
+
+    const expectSuccess = (callback: jest.Mock, event: Context['event']) => {
+      expect(callback).toHaveBeenCalledWith({
+        event,
+        code: 200,
+        message: SUCCESS_MESSAGE,
+      });
+    };
+
+    beforeEach(async () => {
+      destination = new Destination();
+      transportProvider = {
+        send: jest.fn().mockResolvedValue(successResponse),
+      };
+      await destination.setup({
+        ...useDefaultConfig(),
+        transportProvider,
+        apiKey: API_KEY,
+        serverUrl: AMPLITUDE_SERVER_URL,
+      });
+    });
+
+    test('should send delayed events to /delayed endpoint', async () => {
+      const delayId = 'delay-123';
+      const event = { event_type: 'delayed_event', delay_id: delayId };
+      const callback = jest.fn();
+      await flushQueue([createContext(event, callback)]);
+
+      expect(transportProvider.send).toHaveBeenCalledTimes(1);
+      expect(transportProvider.send).toHaveBeenCalledWith(
+        delayedUrl,
+        expect.objectContaining({
+          id: delayId,
+          events: [expect.objectContaining({ event_type: 'delayed_event', delay_id: delayId })],
+        }),
+        true,
+      );
+      expectSuccess(callback, event);
+    });
+
+    test('should send /delayed and regular events on same flush', async () => {
+      const delayId = 'delay-123';
+      const regularCallback = jest.fn();
+      const delayedCallback = jest.fn();
+      const regularContext = createContext({ event_type: 'regular_event' }, regularCallback);
+      const delayedContext = createContext({ event_type: 'delayed_event', delay_id: delayId }, delayedCallback);
+
+      await flushQueue([regularContext, delayedContext]);
+
+      expect(transportProvider.send).toHaveBeenCalledTimes(2);
+      expect(transportProvider.send).toHaveBeenNthCalledWith(
+        1,
+        AMPLITUDE_SERVER_URL,
+        expect.objectContaining({
+          events: [expect.objectContaining({ event_type: 'regular_event' })],
+        }),
+        true,
+      );
+      expect(transportProvider.send).toHaveBeenNthCalledWith(
+        2,
+        delayedUrl,
+        expect.objectContaining({
+          id: delayId,
+          events: [expect.objectContaining({ event_type: 'delayed_event', delay_id: delayId })],
+        }),
+        true,
+      );
+      expectSuccess(regularCallback, regularContext.event);
+      expectSuccess(delayedCallback, delayedContext.event);
+    });
+
+    test('should send delayed events with different delay_ids on same flush', async () => {
+      const callbackA = jest.fn();
+      const callbackB = jest.fn();
+      const delayedContextA = createContext({ event_type: 'delayed_event_a', delay_id: 'delay-a' }, callbackA);
+      const delayedContextB = createContext({ event_type: 'delayed_event_b', delay_id: 'delay-b' }, callbackB);
+
+      await flushQueue([delayedContextA, delayedContextB]);
+
+      expect(transportProvider.send).toHaveBeenCalledTimes(2);
+      expect(transportProvider.send).toHaveBeenNthCalledWith(
+        1,
+        delayedUrl,
+        expect.objectContaining({
+          id: 'delay-a',
+          events: [expect.objectContaining({ event_type: 'delayed_event_a', delay_id: 'delay-a' })],
+        }),
+        true,
+      );
+      expect(transportProvider.send).toHaveBeenNthCalledWith(
+        2,
+        delayedUrl,
+        expect.objectContaining({
+          id: 'delay-b',
+          events: [expect.objectContaining({ event_type: 'delayed_event_b', delay_id: 'delay-b' })],
+        }),
+        true,
+      );
+      expectSuccess(callbackA, delayedContextA.event);
+      expectSuccess(callbackB, delayedContextB.event);
+    });
+
+    test('should not send delayed events while backoff timeout is active', async () => {
+      const delayId = 'delay-123';
+      const event = { event_type: 'delayed_event', delay_id: delayId };
+      const callback = jest.fn();
+      const context = createContext(event, callback, 1000);
+
+      destination.queue = [context];
+      await destination.flush(true);
+
+      expect(transportProvider.send).not.toHaveBeenCalled();
+      expect(callback).not.toHaveBeenCalled();
+      expect(destination.queue).toEqual([context]);
+    });
+  });
 });

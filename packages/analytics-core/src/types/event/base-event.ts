@@ -52,4 +52,5 @@ export interface EventOptions {
   android_app_set_id?: string;
   extra?: { [key: string]: any };
   groups?: { [key: string]: any } | undefined;
+  delay_id?: string;
 }
