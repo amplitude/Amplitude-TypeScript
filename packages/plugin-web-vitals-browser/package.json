@@ -1,6 +1,6 @@
 {
   "name": "@amplitude/plugin-web-vitals-browser",
-  "version": "1.1.35",
+  "version": "1.1.36-featelement-selector-v1.0",
   "description": "",
   "author": "Amplitude Inc",
   "homepage": "https://github.com/amplitude/Amplitude-TypeScript",

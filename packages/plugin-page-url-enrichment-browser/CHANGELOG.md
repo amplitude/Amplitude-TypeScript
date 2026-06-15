@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.7.14-featelement-selector-v1.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-page-url-enrichment-browser@0.7.13...@amplitude/plugin-page-url-enrichment-browser@0.7.14-featelement-selector-v1.0) (2026-06-15)
+
+**Note:** Version bump only for package @amplitude/plugin-page-url-enrichment-browser
+
+
+
+
+
 ## [0.7.13](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-page-url-enrichment-browser@0.7.12...@amplitude/plugin-page-url-enrichment-browser@0.7.13) (2026-06-11)
 
 **Note:** Version bump only for package @amplitude/plugin-page-url-enrichment-browser

@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.50.1-featelement-selector-v1.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.50.0...@amplitude/analytics-core@2.50.1-featelement-selector-v1.0) (2026-06-15)
+
+**Note:** Version bump only for package @amplitude/analytics-core
+
+
+
+
+
 # [2.50.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.49.0...@amplitude/analytics-core@2.50.0) (2026-06-11)
 
 

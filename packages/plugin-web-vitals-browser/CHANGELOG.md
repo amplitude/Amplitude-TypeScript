@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.1.36-featelement-selector-v1.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-web-vitals-browser@1.1.35...@amplitude/plugin-web-vitals-browser@1.1.36-featelement-selector-v1.0) (2026-06-15)
+
+**Note:** Version bump only for package @amplitude/plugin-web-vitals-browser
+
+
+
+
+
 ## [1.1.35](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-web-vitals-browser@1.1.34...@amplitude/plugin-web-vitals-browser@1.1.35) (2026-06-11)
 
 **Note:** Version bump only for package @amplitude/plugin-web-vitals-browser

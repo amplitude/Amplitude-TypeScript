@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.10.4-featelement-selector-v1.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-network-capture-browser@1.10.3...@amplitude/plugin-network-capture-browser@1.10.4-featelement-selector-v1.0) (2026-06-15)
+
+**Note:** Version bump only for package @amplitude/plugin-network-capture-browser
+
+
+
+
+
 ## [1.10.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-network-capture-browser@1.10.2...@amplitude/plugin-network-capture-browser@1.10.3) (2026-06-11)
 
 **Note:** Version bump only for package @amplitude/plugin-network-capture-browser

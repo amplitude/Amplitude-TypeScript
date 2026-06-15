@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.44.2-featelement-selector-v1.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.44.1...@amplitude/analytics-browser@2.44.2-featelement-selector-v1.0) (2026-06-15)
+
+**Note:** Version bump only for package @amplitude/analytics-browser
+
+
+
+
+
 ## [2.44.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.44.0...@amplitude/analytics-browser@2.44.1) (2026-06-11)
 
 

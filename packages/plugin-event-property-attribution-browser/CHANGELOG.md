@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.2.4-featelement-selector-v1.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-event-property-attribution-browser@0.2.3...@amplitude/plugin-event-property-attribution-browser@0.2.4-featelement-selector-v1.0) (2026-06-15)
+
+**Note:** Version bump only for package @amplitude/plugin-event-property-attribution-browser
+
+
+
+
+
 ## [0.2.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-event-property-attribution-browser@0.2.2...@amplitude/plugin-event-property-attribution-browser@0.2.3) (2026-06-11)
 
 **Note:** Version bump only for package @amplitude/plugin-event-property-attribution-browser

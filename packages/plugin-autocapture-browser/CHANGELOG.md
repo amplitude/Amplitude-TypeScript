@@ -3,6 +3,30 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.28.0-featelement-selector-v1.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.27.4...@amplitude/plugin-autocapture-browser@1.28.0-featelement-selector-v1.0) (2026-06-15)
+
+
+### Bug Fixes
+
+* **autocapture:** element selector namespace under autocapture ([fcf31ef](https://github.com/amplitude/Amplitude-TypeScript/commit/fcf31eff90a24ae84fd93eb2a9a231d6ad346138))
+* **element-selector:** all paths inside element selector ([a7236e1](https://github.com/amplitude/Amplitude-TypeScript/commit/a7236e1daa67408577be002a1d38d6399f064c89))
+* **plugin-autocapture-browser:** clean up selector lifecycle ([9115b16](https://github.com/amplitude/Amplitude-TypeScript/commit/9115b16450ae0abc98cd279dfa1916a040d38ea9))
+* **plugin-autocapture-browser:** cover selector surface callback ([3dcb26a](https://github.com/amplitude/Amplitude-TypeScript/commit/3dcb26a56b2b2cd26c6edadddc3cec7c8f11f528))
+
+
+### Features
+
+* **autocapture:** consume @amplitude/element-selector with kill-switch routing ([0e7a109](https://github.com/amplitude/Amplitude-TypeScript/commit/0e7a1096d73ac6edf51bc2ecd9c94eceb0d94be3))
+
+
+### Reverts
+
+* Revert "chore(release): publish" ([cbc5226](https://github.com/amplitude/Amplitude-TypeScript/commit/cbc5226e5024c3b86230787145ad7a690abbe71d))
+
+
+
+
+
 ## [1.27.4](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.27.3...@amplitude/plugin-autocapture-browser@1.27.4) (2026-06-11)
 
 **Note:** Version bump only for package @amplitude/plugin-autocapture-browser
