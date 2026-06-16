@@ -44,7 +44,7 @@ class AmplitudeReactNativeConnectivityModule(
     @ReactMethod
     fun removeListeners(count: Int) {
         // No-op: we keep the single callback registered for the lifetime of the
-        // module and unregister it in invalidate()/onCatalystInstanceDestroy().
+        // module and unregister it in invalidate().
     }
 
     /**
@@ -70,12 +70,5 @@ class AmplitudeReactNativeConnectivityModule(
     override fun invalidate() {
         connectivityChecker.stop()
         super.invalidate()
-    }
-
-    @Deprecated("Deprecated in Java")
-    override fun onCatalystInstanceDestroy() {
-        connectivityChecker.stop()
-        @Suppress("DEPRECATION")
-        super.onCatalystInstanceDestroy()
     }
 }

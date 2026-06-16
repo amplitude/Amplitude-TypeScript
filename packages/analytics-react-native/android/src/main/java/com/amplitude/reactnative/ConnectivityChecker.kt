@@ -1,12 +1,12 @@
 package com.amplitude.reactnative
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkCapabilities
 import android.net.NetworkRequest
 import android.os.Build
-import androidx.annotation.RequiresApi
 
 /**
  * Framework-free connectivity logic extracted from
@@ -40,6 +40,7 @@ internal class ConnectivityChecker(
      * callback is already registered is a no-op.
      */
     @Synchronized
+    @SuppressLint("ObsoleteSdkInt")
     fun start() {
         if (networkCallback != null) {
             return
@@ -116,6 +117,7 @@ internal class ConnectivityChecker(
     // that throws (missing ACCESS_NETWORK_STATE -> SecurityException, or a device
     // ConnectivityManager crash; see Amplitude-Kotlin issues #220/#197) — so we never
     // pin the SDK offline and wrongly suppress sends.
+    @SuppressLint("ObsoleteSdkInt")
     fun currentConnectivity(): Boolean {
         try {
             val manager = connectivityManager ?: return true
@@ -133,8 +135,9 @@ internal class ConnectivityChecker(
     }
 
     // Decides whether a given network counts as usable internet (shared by the seed and
-    // live capability-change events). NET_CAPABILITY_VALIDATED was added in API 23 (M).
-    @RequiresApi(Build.VERSION_CODES.M)
+    // live capability-change events). Only invoked from the API 23+ path in
+    // [currentConnectivity]; NET_CAPABILITY_VALIDATED was added in API 23 (M).
+    @SuppressLint("NewApi")
     internal fun hasInternetCapability(capabilities: NetworkCapabilities): Boolean {
         // Require both NET_CAPABILITY_INTERNET (advertised — still true on a captive portal)
         // and NET_CAPABILITY_VALIDATED (Android probed and confirmed real internet — false on
