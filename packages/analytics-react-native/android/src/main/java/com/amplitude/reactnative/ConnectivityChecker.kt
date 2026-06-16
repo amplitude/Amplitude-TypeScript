@@ -1,12 +1,12 @@
 package com.amplitude.reactnative
 
-import android.annotation.SuppressLint
 import android.content.Context
 import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkCapabilities
 import android.net.NetworkRequest
 import android.os.Build
+import androidx.annotation.RequiresApi
 
 /**
  * Framework-free connectivity logic extracted from
@@ -44,6 +44,11 @@ internal class ConnectivityChecker(
         if (networkCallback != null) {
             return
         }
+        // Offline mode requires API 23+; below that leave monitoring unregistered and rely
+        // on the best-effort online seed.
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
+            return
+        }
         val manager = connectivityManager ?: return
 
         // Seed the current state so we don't wait for the first change to know
@@ -52,8 +57,8 @@ internal class ConnectivityChecker(
 
         // Re-derive the real state from the active network on every event rather than
         // trusting the event type: onAvailable can fire before the network is VALIDATED
-        // (or for a captive portal), and the API 21-23 request-based callback reports
-        // onLost for a non-default network while another is still up. currentConnectivity()
+        // (or for a captive portal), and the API 23 request-based callback reports onLost
+        // for a non-default network while another is still up. currentConnectivity()
         // reflects the active, validated network in both cases.
         val callback = object : ConnectivityManager.NetworkCallback() {
             override fun onAvailable(network: Network) {
@@ -128,9 +133,8 @@ internal class ConnectivityChecker(
     }
 
     // Decides whether a given network counts as usable internet (shared by the seed and
-    // live capability-change events). Only invoked from the API 23+ path in
-    // [currentConnectivity], where both capabilities are available.
-    @SuppressLint("NewApi")
+    // live capability-change events). NET_CAPABILITY_VALIDATED was added in API 23 (M).
+    @RequiresApi(Build.VERSION_CODES.M)
     internal fun hasInternetCapability(capabilities: NetworkCapabilities): Boolean {
         // Require both NET_CAPABILITY_INTERNET (advertised — still true on a captive portal)
         // and NET_CAPABILITY_VALIDATED (Android probed and confirmed real internet — false on
