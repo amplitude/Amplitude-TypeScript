@@ -122,6 +122,13 @@ class AmplitudeReactNativeConnectivityModuleTest {
     }
 
     @Test
+    fun `addListener ignores an unexpected event name`() {
+        module.addListener("SomeUnrelatedEvent")
+
+        verify(exactly = 0) { connectivityManager.registerDefaultNetworkCallback(any()) }
+    }
+
+    @Test
     fun `removeListeners keeps monitoring while listeners remain`() {
         every { connectivityManager.activeNetwork } returns null // seed disconnected
         every { connectivityManager.registerDefaultNetworkCallback(any()) } returns Unit

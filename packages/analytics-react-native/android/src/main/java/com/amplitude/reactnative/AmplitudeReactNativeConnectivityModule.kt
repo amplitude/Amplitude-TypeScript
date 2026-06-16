@@ -40,6 +40,9 @@ class AmplitudeReactNativeConnectivityModule(
     // is lazy and starts on the first listener (see [ConnectivityChecker.start]).
     @ReactMethod
     fun addListener(eventName: String) {
+        if (eventName != CONNECTIVITY_EVENT_NAME) {
+            return
+        }
         if (listenerCount == 0) {
             connectivityChecker.start()
         }
