@@ -111,12 +111,24 @@ class AmplitudeReactNativeConnectivityModuleTest {
     }
 
     @Test
-    fun `removeListeners is a no-op and does not unregister the callback`() {
+    fun `removeListeners unregisters the callback when the last listener is removed`() {
         every { connectivityManager.activeNetwork } returns null // seed disconnected
         every { connectivityManager.registerDefaultNetworkCallback(any()) } returns Unit
         module.addListener("AmplitudeNetworkConnectivityChanged")
 
         module.removeListeners(1)
+
+        verify(exactly = 1) { connectivityManager.unregisterNetworkCallback(any<ConnectivityManager.NetworkCallback>()) }
+    }
+
+    @Test
+    fun `removeListeners keeps monitoring while listeners remain`() {
+        every { connectivityManager.activeNetwork } returns null // seed disconnected
+        every { connectivityManager.registerDefaultNetworkCallback(any()) } returns Unit
+        module.addListener("AmplitudeNetworkConnectivityChanged")
+        module.addListener("AmplitudeNetworkConnectivityChanged")
+
+        module.removeListeners(1) // one of two listeners removed -> still subscribed
 
         verify(exactly = 0) { connectivityManager.unregisterNetworkCallback(any<ConnectivityManager.NetworkCallback>()) }
     }

@@ -116,7 +116,8 @@ internal class ConnectivityChecker(
     // assumes online (true) whenever it can't tell — no ConnectivityManager, or a query
     // that throws (missing ACCESS_NETWORK_STATE -> SecurityException, or a device
     // ConnectivityManager crash; see Amplitude-Kotlin issues #220/#197) — so we never
-    // pin the SDK offline and wrongly suppress sends.
+    // pin the SDK offline and wrongly suppress sends. Catches Exception (not Throwable)
+    // so unrecoverable Errors (OOM, linkage) propagate rather than being masked as online.
     @SuppressLint("ObsoleteSdkInt")
     fun currentConnectivity(): Boolean {
         try {
@@ -129,7 +130,7 @@ internal class ConnectivityChecker(
             val network = manager.activeNetwork ?: return false
             val capabilities = manager.getNetworkCapabilities(network) ?: return false
             return hasInternetCapability(capabilities)
-        } catch (t: Throwable) {
+        } catch (e: Exception) {
             return true
         }
     }

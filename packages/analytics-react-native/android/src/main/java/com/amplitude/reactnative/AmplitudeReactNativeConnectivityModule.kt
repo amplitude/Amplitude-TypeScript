@@ -34,17 +34,24 @@ class AmplitudeReactNativeConnectivityModule(
         return CONNECTIVITY_MODULE_NAME
     }
 
-    // Required so `NativeEventEmitter` doesn't warn on the JS side. The actual
-    // registration is lazy (see [ConnectivityChecker.start]).
+    private var listenerCount = 0
+
+    // Required so `NativeEventEmitter` doesn't warn on the JS side. Registration
+    // is lazy and starts on the first listener (see [ConnectivityChecker.start]).
     @ReactMethod
     fun addListener(eventName: String) {
-        connectivityChecker.start()
+        if (listenerCount == 0) {
+            connectivityChecker.start()
+        }
+        listenerCount += 1
     }
 
     @ReactMethod
     fun removeListeners(count: Int) {
-        // No-op: we keep the single callback registered for the lifetime of the
-        // module and unregister it in invalidate().
+        listenerCount = (listenerCount - count).coerceAtLeast(0)
+        if (listenerCount == 0) {
+            connectivityChecker.stop()
+        }
     }
 
     /**
