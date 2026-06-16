@@ -95,9 +95,6 @@ dependencies {
   // without a device; see src/test/.../ConnectivityCheckerTest.kt.
   testImplementation "junit:junit:4.13.2"
   testImplementation "org.robolectric:robolectric:4.10.3"
-  // mockk 1.13.3 is the last release built against Kotlin 1.7, which matches the module's
-  // fallback AmplitudeReactNative_kotlinVersion (see gradle.properties). Newer mockk pulls in
-  // kotlin-stdlib 1.9.x and can break builds for hosts still on Kotlin 1.7.
   testImplementation "io.mockk:mockk:1.13.3"
 }
 

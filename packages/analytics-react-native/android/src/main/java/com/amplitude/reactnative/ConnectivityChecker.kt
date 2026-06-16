@@ -1,7 +1,9 @@
 package com.amplitude.reactnative
 
+import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Context
+import android.content.pm.PackageManager
 import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkCapabilities
@@ -85,9 +87,12 @@ internal class ConnectivityChecker(
                 manager.registerNetworkCallback(request, callback)
             }
             networkCallback = callback
-        } catch (e: SecurityException) {
-            // Some devices throw if ACCESS_NETWORK_STATE is missing; leave the
-            // callback unregistered and rely on the seeded state.
+        } catch (e: RuntimeException) {
+            // Registration can throw SecurityException (missing ACCESS_NETWORK_STATE) or
+            // RuntimeException ("Too many NetworkRequests filed" at the per-uid limit). Leave
+            // the callback unregistered and best-effort report online so a failed probe never
+            // pins the SDK offline.
+            isConnected = true
         }
     }
 
@@ -113,11 +118,11 @@ internal class ConnectivityChecker(
     }
 
     // Reads the device's current online state from the active network. Best-effort:
-    // assumes online (true) whenever it can't tell — no ConnectivityManager, or a query
-    // that throws (missing ACCESS_NETWORK_STATE -> SecurityException, or a device
-    // ConnectivityManager crash; see Amplitude-Kotlin issues #220/#197) — so we never
-    // pin the SDK offline and wrongly suppress sends. Catches Exception (not Throwable)
-    // so unrecoverable Errors (OOM, linkage) propagate rather than being masked as online.
+    // assumes online (true) whenever it can't tell — no ConnectivityManager, missing
+    // ACCESS_NETWORK_STATE, or a query that throws (SecurityException / a device
+    // ConnectivityManager crash, see Amplitude-Kotlin issues #220/#197, or an OEM-fork
+    // LinkageError) — so we never pin the SDK offline and wrongly suppress sends.
+    // VirtualMachineError (OOM/StackOverflow) still propagates.
     @SuppressLint("ObsoleteSdkInt")
     fun currentConnectivity(): Boolean {
         try {
@@ -127,10 +132,19 @@ internal class ConnectivityChecker(
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
                 return true
             }
+            // Without ACCESS_NETWORK_STATE the ConnectivityManager queries can return null
+            // (rather than throw) and pin us offline; treat a missing permission as online.
+            if (context.checkSelfPermission(Manifest.permission.ACCESS_NETWORK_STATE) != PackageManager.PERMISSION_GRANTED) {
+                return true
+            }
             val network = manager.activeNetwork ?: return false
             val capabilities = manager.getNetworkCapabilities(network) ?: return false
             return hasInternetCapability(capabilities)
         } catch (e: Exception) {
+            return true
+        } catch (e: LinkageError) {
+            // OEM-forked ConnectivityManager/NetworkCapabilities can throw linkage errors
+            // (e.g. NoSuchMethodError); best-effort online rather than crash.
             return true
         }
     }

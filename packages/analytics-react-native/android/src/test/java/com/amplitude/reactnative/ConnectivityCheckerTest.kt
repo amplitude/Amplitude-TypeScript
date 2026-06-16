@@ -1,6 +1,8 @@
 package com.amplitude.reactnative
 
+import android.Manifest
 import android.content.Context
+import android.content.pm.PackageManager
 import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkCapabilities
@@ -43,6 +45,7 @@ class ConnectivityCheckerTest {
     @Before
     fun setUp() {
         every { context.getSystemService(Context.CONNECTIVITY_SERVICE) } returns connectivityManager
+        every { context.checkSelfPermission(Manifest.permission.ACCESS_NETWORK_STATE) } returns PackageManager.PERMISSION_GRANTED
         checker = ConnectivityChecker(context) { connected -> changes.add(connected) }
     }
 
@@ -113,6 +116,22 @@ class ConnectivityCheckerTest {
         assertTrue(checker.currentConnectivity())
     }
 
+    @Test
+    fun `currentConnectivity returns true (best-effort) when the query throws a LinkageError`() {
+        // OEM-forked ConnectivityManager/NetworkCapabilities can throw NoSuchMethodError etc.
+        every { connectivityManager.activeNetwork } throws NoSuchMethodError("OEM fork")
+        assertTrue(checker.currentConnectivity())
+    }
+
+    @Test
+    fun `currentConnectivity returns true (best-effort) when ACCESS_NETWORK_STATE is not granted`() {
+        // Missing permission: ConnectivityManager can return null rather than throw, which
+        // would pin us offline; treat a denied permission as online.
+        every { context.checkSelfPermission(Manifest.permission.ACCESS_NETWORK_STATE) } returns PackageManager.PERMISSION_DENIED
+        every { connectivityManager.activeNetwork } returns null // would read offline if reached
+        assertTrue(checker.currentConnectivity())
+    }
+
     // endregion
 
     // region hasInternetCapability()
@@ -172,6 +191,21 @@ class ConnectivityCheckerTest {
         checker.start() // must not throw
 
         // No callback was stored, so a later stop() must not try to unregister one.
+        checker.stop()
+        verify(exactly = 0) { connectivityManager.unregisterNetworkCallback(any<ConnectivityManager.NetworkCallback>()) }
+    }
+
+    @Test
+    @Config(sdk = [Build.VERSION_CODES.N])
+    fun `start swallows RuntimeException from registration and best-effort reports online`() {
+        seedDisconnectedApi23Plus() // seed would be false (activeNetwork null)
+        every {
+            connectivityManager.registerDefaultNetworkCallback(any())
+        } throws RuntimeException("Too many NetworkRequests filed")
+
+        checker.start() // must not throw despite a non-SecurityException register failure
+
+        assertTrue(checker.isConnected) // best-effort online after registration failed
         checker.stop()
         verify(exactly = 0) { connectivityManager.unregisterNetworkCallback(any<ConnectivityManager.NetworkCallback>()) }
     }
