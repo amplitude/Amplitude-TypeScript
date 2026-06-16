@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.33.0-sr-trc-debug-log.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@1.32.1...@amplitude/plugin-session-replay-browser@1.33.0-sr-trc-debug-log.0) (2026-06-16)
+
+
+### Features
+
+* **session-replay-browser:** add TRC recording-decision diagnostics ([916d570](https://github.com/amplitude/Amplitude-TypeScript/commit/916d570d35dfc363b601024441d12f19ac4bc9b0))
+
+
+
+
+
 ## [1.32.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@1.32.0...@amplitude/plugin-session-replay-browser@1.32.1) (2026-06-13)
 
 **Note:** Version bump only for package @amplitude/plugin-session-replay-browser
