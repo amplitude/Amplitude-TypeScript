@@ -62,8 +62,6 @@ class AmplitudeReactNativeConnectivity: RCTEventEmitter {
     // MARK: Monitoring
 
     private func startMonitoring() {
-        // Replace any existing monitor so repeated startObserving calls don't leak.
-        stopMonitoring()
         let monitor = NWPathMonitor()
         monitor.pathUpdateHandler = { [weak self] path in
             self?.emitConnectivityChange(path.status == .satisfied)
