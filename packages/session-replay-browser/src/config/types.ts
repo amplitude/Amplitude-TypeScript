@@ -1,4 +1,4 @@
-import { IConfig, LogLevel, ILogger } from '@amplitude/analytics-core';
+import { IConfig, LogLevel, ILogger, IDiagnosticsClient } from '@amplitude/analytics-core';
 import { StoreType, ConsoleLogLevel } from '../typings/session-replay';
 import { TargetingFlag } from '@amplitude/targeting';
 
@@ -114,6 +114,24 @@ export interface CrossOriginIframesConfig {
 export interface SessionReplayLocalConfig extends IConfig {
   apiKey: string;
   loggerProvider: ILogger;
+  /**
+   * Optional diagnostics client used to ship SR decision/targeting telemetry to Amplitude's
+   * diagnostics backend (independent of whether a replay is recorded). In plugin mode this is
+   * forwarded from the analytics SDK's already-initialized client. No-op when absent or when
+   * diagnostics is not sampled in. See DiagnosticsClient in @amplitude/analytics-core.
+   */
+  diagnosticsClient?: IDiagnosticsClient;
+  /**
+   * Standalone SR only: when no `diagnosticsClient` is provided (i.e. SR is not running as the
+   * analytics plugin), opt in to having SR create its own client so TRC/recording diagnostics are
+   * still shipped. Ignored when a `diagnosticsClient` is supplied. @defaultValue false
+   */
+  diagnosticsEnabled?: boolean;
+  /**
+   * Standalone SR only: sample rate (0..1) for the diagnostics client SR creates when none is
+   * provided. A positive value also implies opting in. @defaultValue 0
+   */
+  diagnosticsSampleRate?: number;
   /**
    * LogLevel.None or LogLevel.Error or LogLevel.Warn or LogLevel.Verbose or LogLevel.Debug.
    * Sets the log level.

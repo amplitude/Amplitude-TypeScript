@@ -1,5 +1,6 @@
 import { ILogger, IRemoteConfigClient, RemoteConfigClient, RemoteConfig, Source } from '@amplitude/analytics-core';
 import { getDebugConfig } from '../helpers';
+import { SrDiagnostic } from '../diagnostics';
 import { SessionReplayOptions } from '../typings/session-replay';
 import { SessionReplayLocalConfig } from './local-config';
 import {
@@ -51,10 +52,19 @@ export const removeInvalidSelectorsFromPrivacyConfig = (privacyConfig: PrivacyCo
 export class SessionReplayJoinedConfigGenerator {
   private readonly localConfig: ISessionReplayLocalConfig;
   private readonly remoteConfigClient: IRemoteConfigClient;
+  // Identity for diagnostics correlation (config fetch is per-session). Sourced from init options.
+  private readonly sessionId?: string | number;
+  private readonly deviceId?: string;
 
-  constructor(remoteConfigClient: IRemoteConfigClient, localConfig: ISessionReplayLocalConfig) {
+  constructor(
+    remoteConfigClient: IRemoteConfigClient,
+    localConfig: ISessionReplayLocalConfig,
+    identity?: { sessionId?: string | number; deviceId?: string },
+  ) {
     this.localConfig = localConfig;
     this.remoteConfigClient = remoteConfigClient;
+    this.sessionId = identity?.sessionId;
+    this.deviceId = identity?.deviceId;
   }
 
   async generateJoinedConfig(): Promise<SessionReplayConfigs> {
@@ -92,6 +102,11 @@ export class SessionReplayJoinedConfigGenerator {
             const privacyConfig = namespaceConfig.sr_privacy_config;
             const targetingConfig = namespaceConfig.sr_targeting_config;
 
+            // Captured for the sr.trc.config.received diagnostics event below (remote vs cache is
+            // the crux of SR-4234 stale-cache reports).
+            const samplingForLog = samplingConfig as { capture_enabled?: boolean; sample_rate?: number } | undefined;
+            const targetingSegments = (targetingConfig as unknown as { segments?: unknown[] } | undefined)?.segments;
+
             const ugcFilterRules = config.interactionConfig?.ugcFilterRules;
             // This is intentionally forced to only be set through the remote config.
             config.interactionConfig = namespaceConfig.sr_interaction_config;
@@ -101,6 +116,33 @@ export class SessionReplayJoinedConfigGenerator {
 
             // This is intentionally forced to only be set through the remote config.
             config.loggingConfig = namespaceConfig.sr_logging_config;
+
+            // Team-visible diagnostics: which SOURCE the config came from (remote vs cache — the
+            // crux of SR-4234) and whether targeting was present. Counters aggregate across the
+            // customer's sessions; the event carries the full context (source, sample rate,
+            // segment count) as queryable log fields. No-op when diagnostics isn't configured.
+            try {
+              const diagnosticsClient = this.localConfig.diagnosticsClient;
+              diagnosticsClient?.increment(SrDiagnostic.configSource(String(source)));
+              diagnosticsClient?.increment(
+                targetingConfig ? SrDiagnostic.configHasTargeting : SrDiagnostic.configNoTargeting,
+              );
+              diagnosticsClient?.recordEvent(SrDiagnostic.configReceived, {
+                sessionId: this.sessionId,
+                deviceId: this.deviceId,
+                srId:
+                  this.deviceId != null && this.sessionId != null ? `${this.deviceId}/${this.sessionId}` : undefined,
+                source: String(source),
+                hasSampling: !!samplingConfig,
+                captureEnabled: samplingForLog?.capture_enabled,
+                sampleRate: samplingForLog?.sample_rate,
+                hasTargeting: !!targetingConfig,
+                targetingSegmentCount: Array.isArray(targetingSegments) ? targetingSegments.length : undefined,
+                hasPrivacy: !!privacyConfig,
+              });
+            } catch {
+              // diagnostics is best-effort
+            }
 
             if (samplingConfig || privacyConfig || targetingConfig) {
               sessionReplayRemoteConfig = {};
@@ -121,6 +163,11 @@ export class SessionReplayJoinedConfigGenerator {
       });
     } catch (error) {
       this.localConfig.loggerProvider.error('Failed to generate joined config: ', error);
+      try {
+        this.localConfig.diagnosticsClient?.increment(SrDiagnostic.configFetchFailed);
+      } catch {
+        // diagnostics is best-effort
+      }
       config.captureEnabled = false;
       return {
         localConfig: this.localConfig,
@@ -294,5 +341,8 @@ export const createSessionReplayJoinedConfigGenerator = async (apiKey: string, o
     options.configServerUrl,
   );
 
-  return new SessionReplayJoinedConfigGenerator(remoteConfigClient, localConfig);
+  return new SessionReplayJoinedConfigGenerator(remoteConfigClient, localConfig, {
+    sessionId: options.sessionId,
+    deviceId: options.deviceId,
+  });
 };

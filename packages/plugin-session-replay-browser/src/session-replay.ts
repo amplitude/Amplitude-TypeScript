@@ -114,6 +114,9 @@ export class SessionReplayPlugin implements EnrichmentPlugin<BrowserClient, Brow
         maxPersistedEventsSizeBytes: this.options.maxPersistedEventsSizeBytes,
         maxSingleEventSizeBytes: this.options.maxSingleEventSizeBytes,
         sendTimeoutMs: this.options.sendTimeoutMs,
+        // Forward the analytics SDK's diagnostics client so SR can ship TRC/recording-decision
+        // telemetry to Amplitude's diagnostics backend even when no replay is recorded.
+        diagnosticsClient: this.config.diagnosticsClient,
       };
 
       await this.sessionReplay.init(config.apiKey, this.srInitOptions).promise;

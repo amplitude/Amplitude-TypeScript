@@ -280,6 +280,39 @@ describe('SessionReplay', () => {
       });
     }
   });
+  describe('diagnostics: srId on every event', () => {
+    const makeDiagnosticsClient = () => ({
+      setTag: jest.fn(),
+      increment: jest.fn(),
+      recordHistogram: jest.fn(),
+      recordEvent: jest.fn(),
+      _flush: jest.fn(),
+      _setSampleRate: jest.fn(),
+    });
+
+    test('every recorded diagnostics event includes srId, sessionId and deviceId', async () => {
+      const diagnosticsClient = makeDiagnosticsClient();
+      await sessionReplay.init(apiKey, { ...mockOptions, diagnosticsClient }).promise;
+
+      // At least the init event should have fired.
+      expect(diagnosticsClient.recordEvent).toHaveBeenCalled();
+      const calls = diagnosticsClient.recordEvent.mock.calls as Array<[string, Record<string, unknown>]>;
+      expect(calls.map(([name]) => name)).toContain('sr.trc.init');
+
+      const expectedSrId = `${String(mockOptions.deviceId)}/${String(mockOptions.sessionId)}`;
+      for (const [name, props] of calls) {
+        expect(props).toEqual(
+          expect.objectContaining({
+            srId: expectedSrId,
+            sessionId: mockOptions.sessionId,
+            deviceId: mockOptions.deviceId,
+          }),
+        );
+        expect(name).toMatch(/^sr\.trc\./);
+      }
+    });
+  });
+
   describe('init: sessionStartTime persistence', () => {
     beforeEach(() => {
       globalThis.localStorage.clear();

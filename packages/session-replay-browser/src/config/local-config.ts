@@ -1,4 +1,12 @@
-import { Config, ILogger, Logger, FetchTransport, LogLevel } from '@amplitude/analytics-core';
+import {
+  Config,
+  ILogger,
+  Logger,
+  FetchTransport,
+  LogLevel,
+  IDiagnosticsClient,
+  DiagnosticsClient,
+} from '@amplitude/analytics-core';
 import {
   DEFAULT_FLUSH_MAX_INTERVAL_MS,
   DEFAULT_FLUSH_MIN_INTERVAL_MS,
@@ -57,6 +65,9 @@ export class SessionReplayLocalConfig extends Config implements ISessionReplayLo
   captureFullSnapshotOnFocus?: boolean;
   maxPersistedEventsSizeBytes?: number;
   maxSingleEventSizeBytes?: number;
+  diagnosticsClient?: IDiagnosticsClient;
+  diagnosticsEnabled?: boolean;
+  diagnosticsSampleRate?: number;
 
   constructor(apiKey: string, options: SessionReplayOptions) {
     const defaultConfig = getDefaultConfig();
@@ -154,6 +165,29 @@ export class SessionReplayLocalConfig extends Config implements ISessionReplayLo
         maxIntervalMs: DEFAULT_FLUSH_MAX_INTERVAL_MS,
       };
     }
+    this.diagnosticsEnabled = options.diagnosticsEnabled;
+    this.diagnosticsSampleRate = options.diagnosticsSampleRate;
+    // Single diagnostics client: in plugin mode the analytics SDK passes its own client in
+    // (reused, not duplicated). Standalone SR has no analytics SDK, so create one here — but only
+    // when explicitly opted in, to avoid imposing IndexedDB + flush-timer overhead on standalone
+    // users who don't want diagnostics.
+    this.diagnosticsClient = options.diagnosticsClient ?? this.createStandaloneDiagnosticsClient(apiKey, options);
+  }
+
+  private createStandaloneDiagnosticsClient(
+    apiKey: string,
+    options: SessionReplayOptions,
+  ): IDiagnosticsClient | undefined {
+    const { diagnosticsEnabled, diagnosticsSampleRate } = options;
+    const optedIn =
+      diagnosticsEnabled === true || (typeof diagnosticsSampleRate === 'number' && diagnosticsSampleRate > 0);
+    if (!optedIn) {
+      return undefined;
+    }
+    return new DiagnosticsClient(apiKey, this.loggerProvider, this.serverZone, {
+      enabled: diagnosticsEnabled ?? true,
+      sampleRate: diagnosticsSampleRate ?? 0,
+    });
   }
 }
 

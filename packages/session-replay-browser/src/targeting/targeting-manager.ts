@@ -1,8 +1,10 @@
 import type { TargetingParameters } from '@amplitude/targeting';
 import { TargetingConfig } from '../config/types';
 import { Logger } from '@amplitude/analytics-types';
+import { IDiagnosticsClient } from '@amplitude/analytics-core';
 import { SessionReplayTargetingInput } from '../typings/session-replay';
 import { targetingIDBStore } from './targeting-idb-store';
+import { SrDiagnostic } from '../diagnostics';
 
 export const evaluateTargetingAndStore = async ({
   sessionId,
@@ -11,6 +13,8 @@ export const evaluateTargetingAndStore = async ({
   apiKey,
   targetingParams,
   urlChange = false,
+  diagnosticsClient,
+  deviceId,
 }: {
   sessionId: string | number;
   targetingConfig: TargetingConfig;
@@ -18,6 +22,8 @@ export const evaluateTargetingAndStore = async ({
   apiKey: string;
   targetingParams?: SessionReplayTargetingInput;
   urlChange?: boolean;
+  diagnosticsClient?: IDiagnosticsClient;
+  deviceId?: string;
 }) => {
   await targetingIDBStore.clearStoreOfOldSessions({
     loggerProvider: loggerProvider,
@@ -30,6 +36,7 @@ export const evaluateTargetingAndStore = async ({
     apiKey: apiKey,
     sessionId: sessionId,
   });
+
   // Skip IDB cache when re-evaluating with a new page (e.g. URL change); otherwise we'd never
   // re-evaluate and would keep returning true after navigating to a non-matching page.
   if (idbTargetingMatch === true && !urlChange) {
@@ -64,6 +71,20 @@ export const evaluateTargetingAndStore = async ({
     });
   } catch (err: unknown) {
     const knownError = err as Error;
+    // Q3 "is the TRC failing?": the targeting engine threw — record it so the team sees TRC
+    // errors in DataDog (this exception is otherwise swallowed). Best-effort, never re-throws.
+    try {
+      diagnosticsClient?.increment(SrDiagnostic.evalError);
+      diagnosticsClient?.recordEvent(SrDiagnostic.evalError, {
+        sessionId,
+        deviceId,
+        srId: deviceId != null && sessionId != null ? `${deviceId}/${sessionId}` : undefined,
+        pageUrl: targetingParams?.page?.url,
+        message: knownError.message,
+      });
+    } catch {
+      // diagnostics is best-effort
+    }
     loggerProvider.warn(knownError.message);
   }
   return sessionTargetingMatch;

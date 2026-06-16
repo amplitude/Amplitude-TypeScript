@@ -59,6 +59,7 @@ import {
   setReplayStartTime,
 } from './replay-start-time-store';
 import { evaluateTargetingAndStore } from './targeting/targeting-manager';
+import { SrDiagnostic } from './diagnostics';
 import {
   AmplitudeSessionReplay,
   SessionReplayEventsManager as AmplitudeSessionReplayEventsManager,
@@ -93,6 +94,10 @@ export class SessionReplay implements AmplitudeSessionReplay {
   sessionTargetingMatch = false;
   private lastTargetingParams?: SessionReplayTargetingInput;
   private lastShouldRecordDecision?: boolean;
+  // Session for which the one-per-session TRC diagnostic event was already emitted. The
+  // diagnostics client caps in-memory events, so per-call signals go through counters and only
+  // a single rich snapshot event is recorded per session.
+  private trcDiagnosticSessionId: string | number | undefined = undefined;
 
   // Public on purpose. `pageLeaveFns` is iterated by `pageLeaveListener`,
   // `rrwebEventManager` is dereferenced in `asyncSetSessionId` to drop the beacon buffer
@@ -179,6 +184,16 @@ export class SessionReplay implements AmplitudeSessionReplay {
 
     const onUrlChange = (href: string): void => {
       this.currentPageUrl = href;
+
+      // Team-visible signal that an SPA navigation was detected at all (covers the "is the SDK
+      // even seeing route changes in this framework?" question — counter + a log with the href
+      // and whether it triggered a targeting re-eval).
+      this.incrementDiagnostic(SrDiagnostic.urlChange);
+      this.recordDiagnosticEvent(SrDiagnostic.urlChangeEvent, {
+        href,
+        hasTargeting,
+        alreadyMatched: this.sessionTargetingMatch,
+      });
 
       if (hasTargeting) {
         const evaluationId = ++this.latestUrlChangeTargetingEvaluationId;
@@ -406,6 +421,19 @@ export class SessionReplay implements AmplitudeSessionReplay {
 
     this.teardownEventListeners(false);
 
+    // Q1 "did init happen?": its presence in DataDog proves init() ran to completion for this
+    // session; the props show whether the prerequisites (session/device id, config) were present.
+    this.incrementDiagnostic(SrDiagnostic.init);
+    this.recordDiagnosticEvent(SrDiagnostic.init, {
+      hasSessionId: !!this.identifiers?.sessionId,
+      hasDeviceId: !!this.getDeviceId(),
+      captureEnabled: this.config.captureEnabled,
+      hasTargetingConfig: !!this.config.targetingConfig,
+      sampleRate: this.config.sampleRate,
+      optOut: this.shouldOptOut(),
+      currentUrl: this.getCurrentPageForTargeting()?.url,
+    });
+
     await this.evaluateTargetingAndCapture(
       { userProperties: options.userProperties, page: this.getCurrentPageForTargeting() },
       true,
@@ -582,7 +610,20 @@ export class SessionReplay implements AmplitudeSessionReplay {
     forceRestart = false,
     forceTargetingReevaluation = false,
   ) => {
+    // What triggered this evaluation (init vs SPA URL change vs analytics event) — shows in
+    // DataDog how often re-evaluation actually runs.
+    this.incrementDiagnostic(
+      SrDiagnostic.evalTrigger(isInit ? 'init' : forceTargetingReevaluation ? 'urlchange' : 'event'),
+    );
     if (!this.identifiers || !this.identifiers.sessionId || !this.config) {
+      // Q4: eval can't run because a prerequisite is missing — record exactly which one.
+      this.incrementDiagnostic(SrDiagnostic.evalMissingPrereq);
+      this.recordDiagnosticEvent(SrDiagnostic.evalMissingPrereq, {
+        hasIdentifiers: !!this.identifiers,
+        hasSessionId: !!this.identifiers?.sessionId,
+        hasConfig: !!this.config,
+        hasDeviceId: !!this.getDeviceId(),
+      });
       if (this.identifiers && !this.identifiers.sessionId) {
         this.loggerProvider.log('Session ID has not been set yet, cannot evaluate targeting for Session Replay.');
       } else {
@@ -593,6 +634,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
 
     // Handle cases where there's no targeting config
     if (!this.config.targetingConfig) {
+      this.incrementDiagnostic(SrDiagnostic.evalNoConfig);
       if (isInit) {
         this.loggerProvider.log('Targeting config has not been set yet, cannot evaluate targeting.');
       } else {
@@ -622,6 +664,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
       const pageUrl = targetingParams.page?.url ?? getGlobalScope()?.location?.href ?? '';
       const pageForTargeting = targetingParams.page ?? (pageUrl !== '' ? { url: pageUrl } : undefined);
 
+      const evalStart = Date.now();
       const targetingMatch = await evaluateTargetingAndStore({
         sessionId: this.identifiers.sessionId,
         targetingConfig,
@@ -633,22 +676,54 @@ export class SessionReplay implements AmplitudeSessionReplay {
           page: pageForTargeting,
         },
         urlChange: forceTargetingReevaluation,
+        diagnosticsClient: this.config.diagnosticsClient,
+        deviceId: this.getDeviceId(),
       });
+      const evalDurationMs = Date.now() - evalStart;
+      const trigger = isInit ? 'init' : forceTargetingReevaluation ? 'urlchange' : 'event';
+      // Evaluation latency — surfaces the slow-network residual gap (SR-4234) in DataDog as
+      // sdk.diagnostics.sr.trc.eval.duration_ms.{avg,max,...}.
+      this.recordDiagnosticHistogram(SrDiagnostic.evalDurationMs, evalDurationMs);
 
       if (
         forceTargetingReevaluation &&
         urlChangeEvaluationId !== undefined &&
         urlChangeEvaluationId !== this.latestUrlChangeTargetingEvaluationId
       ) {
+        this.incrementDiagnostic(SrDiagnostic.evalStaleDiscarded);
+        this.recordDiagnosticEvent(SrDiagnostic.evalStaleDiscarded, {
+          sessionId: this.identifiers.sessionId,
+          pageUrl: pageForTargeting?.url,
+          evaluationId: urlChangeEvaluationId,
+          latestEvaluationId: this.latestUrlChangeTargetingEvaluationId,
+          evalDurationMs,
+        });
         this.loggerProvider.debug(
           `Ignoring stale URL-change targeting result #${urlChangeEvaluationId}; latest is #${this.latestUrlChangeTargetingEvaluationId}.`,
         );
         return;
       }
+      // Per-evaluation outcome (distinct from the per-session sr.gate.* gate counters).
+      this.incrementDiagnostic(targetingMatch ? SrDiagnostic.evalMatch : SrDiagnostic.evalNoMatch);
       // Keep targeting match monotonic within a session: once true, always true.
       // This avoids races where an older in-flight evaluation resolves false after
       // a newer evaluation already resolved true.
       this.sessionTargetingMatch = this.sessionTargetingMatch || targetingMatch;
+      // Q5: record ALL evaluation params (→ DataDog Logs) so a single evaluation can be fully
+      // reconstructed by URL, identifiers, inputs, outcome, trigger and latency. userProperties
+      // values are intentionally reduced to keys to avoid logging PII.
+      this.recordDiagnosticEvent(SrDiagnostic.evalEvent, {
+        // sessionId + deviceId are stamped by recordDiagnosticEvent.
+        trigger,
+        matched: targetingMatch,
+        sessionTargetingMatch: this.sessionTargetingMatch,
+        pageUrl: pageForTargeting?.url,
+        hasDeviceId: !!this.getDeviceId(),
+        hasEvent: !!eventForTargeting,
+        eventType: eventForTargeting?.event_type,
+        userPropertyKeys: targetingParams.userProperties ? Object.keys(targetingParams.userProperties) : [],
+        evalDurationMs,
+      });
 
       this.loggerProvider.debug(
         JSON.stringify(
@@ -662,6 +737,9 @@ export class SessionReplay implements AmplitudeSessionReplay {
           2,
         ),
       );
+    } else if (targetingConfig && this.sessionTargetingMatch) {
+      // Already matched earlier this session — recording continues without re-evaluation.
+      this.incrementDiagnostic(SrDiagnostic.evalSkippedAlreadyMatched);
     }
 
     if (isInit) {
@@ -750,9 +828,83 @@ export class SessionReplay implements AmplitudeSessionReplay {
     return identityStoreOptOut !== undefined ? identityStoreOptOut : this.config?.optOut;
   }
 
+  /**
+   * Increment a diagnostics counter so the team can see the distribution of recording decisions
+   * across a customer's sessions (e.g. lots of sr.gate.trc_no_match => rule isn't matching).
+   * Ships via the analytics SDK's DiagnosticsClient. No-op when there's no client or diagnostics
+   * isn't sampled in; never throws — diagnostics must never interfere with recording.
+   */
+  private incrementDiagnostic(counter: string) {
+    try {
+      this.config?.diagnosticsClient?.increment(counter);
+    } catch {
+      // swallow — diagnostics is best-effort
+    }
+  }
+
+  /**
+   * Record a diagnostics histogram value (min/max/avg/count in DataDog). Same best-effort, never-
+   * throws contract as incrementDiagnostic. Use for latencies/sizes, not per-call counts.
+   */
+  private recordDiagnosticHistogram(name: string, value: number) {
+    try {
+      this.config?.diagnosticsClient?.recordHistogram(name, value);
+    } catch {
+      // swallow — diagnostics is best-effort
+    }
+  }
+
+  /**
+   * Record a diagnostics EVENT with properties. Events are forwarded to DataDog Logs, so the
+   * properties become queryable fields (e.g. @matched, @pageUrl). Use sparingly vs counters: the
+   * client caps in-memory events (~10 per save interval), so this is for context-rich signals at
+   * meaningful decision points, not per-call tallies. Best-effort, never throws.
+   */
+  private recordDiagnosticEvent(name: string, properties: { [key: string]: unknown }) {
+    try {
+      const sessionId = this.identifiers?.sessionId;
+      const deviceId = this.getDeviceId();
+      // Always stamp sessionId, deviceId and srId so every diagnostics event (→ DataDog Logs) can
+      // be correlated to a single session/device — and to the actual replay, since the Session
+      // Replay ID is `${deviceId}/${sessionId}`. Caller props override if they pass their own.
+      this.config?.diagnosticsClient?.recordEvent(name, {
+        sessionId,
+        deviceId,
+        srId: deviceId != null && sessionId != null ? `${deviceId}/${sessionId}` : undefined,
+        ...properties,
+      });
+    } catch {
+      // swallow — diagnostics is best-effort
+    }
+  }
+
+  /**
+   * Emit a single rich TRC decision snapshot per session to diagnostics — surfaced even when
+   * nothing records (the exact case customers can't reproduce locally).
+   */
+  private recordTrcDecisionDiagnostic(shouldRecord: boolean) {
+    const diagnosticsClient = this.config?.diagnosticsClient;
+    const sessionId = this.identifiers?.sessionId;
+    if (!diagnosticsClient || sessionId === undefined || sessionId === this.trcDiagnosticSessionId) {
+      return;
+    }
+    this.trcDiagnosticSessionId = sessionId;
+    // Goes through recordDiagnosticEvent so it carries sessionId + deviceId like every other event.
+    this.recordDiagnosticEvent(SrDiagnostic.decision, {
+      shouldRecord,
+      captureEnabled: this.config?.captureEnabled,
+      hasTargetingConfig: !!this.config?.targetingConfig,
+      sessionTargetingMatch: this.sessionTargetingMatch,
+      sampleRate: this.config?.sampleRate,
+      pageUrl: this.getCurrentPageForTargeting()?.url,
+      sdkVersion: VERSION,
+    });
+  }
+
   getShouldRecord() {
     if (!this.identifiers || !this.config || !this.identifiers.sessionId) {
       this.loggerProvider.warn(`Session is not being recorded due to lack of config, please call sessionReplay.init.`);
+      this.incrementDiagnostic(SrDiagnostic.gateNoIdentifiers);
       return false;
     }
 
@@ -760,11 +912,15 @@ export class SessionReplay implements AmplitudeSessionReplay {
       this.loggerProvider.log(
         `Session ${this.identifiers.sessionId} not being captured due to capture being disabled for project or because the remote config could not be fetched.`,
       );
+      this.incrementDiagnostic(SrDiagnostic.gateCaptureDisabled);
+      this.recordTrcDecisionDiagnostic(false);
       return false;
     }
 
     if (this.shouldOptOut()) {
       this.loggerProvider.log(`Opting session ${this.identifiers.sessionId} out of recording due to optOut config.`);
+      this.incrementDiagnostic(SrDiagnostic.gateOptOut);
+      this.recordTrcDecisionDiagnostic(false);
       return false;
     }
 
@@ -780,11 +936,13 @@ export class SessionReplay implements AmplitudeSessionReplay {
         this.loggerProvider.log(message);
         shouldRecord = false;
         matched = false;
+        this.incrementDiagnostic(SrDiagnostic.gateTrcNoMatch);
       } else {
         message = `Capturing replays for session ${this.identifiers.sessionId} due to matching targeting conditions.`;
         this.loggerProvider.log(message);
         shouldRecord = true;
         matched = true;
+        this.incrementDiagnostic(SrDiagnostic.gateTrcMatch);
       }
     } else {
       const isInSample = isSessionInSample(this.identifiers.sessionId, this.config.sampleRate);
@@ -793,9 +951,11 @@ export class SessionReplay implements AmplitudeSessionReplay {
         this.loggerProvider.log(message);
         shouldRecord = false;
         matched = false;
+        this.incrementDiagnostic(SrDiagnostic.gateSampleOut);
       } else {
         shouldRecord = true;
         matched = true;
+        this.incrementDiagnostic(SrDiagnostic.gateSampleIn);
       }
     }
 
@@ -809,6 +969,8 @@ export class SessionReplay implements AmplitudeSessionReplay {
       });
       this.lastShouldRecordDecision = shouldRecord;
     }
+
+    this.recordTrcDecisionDiagnostic(shouldRecord);
 
     return shouldRecord;
   }
