@@ -817,6 +817,102 @@ describe('SessionReplayJoinedConfigGenerator', () => {
     });
   });
 
+  describe('diagnostics', () => {
+    const makeDiagnosticsClient = () => ({
+      setTag: jest.fn(),
+      increment: jest.fn(),
+      recordHistogram: jest.fn(),
+      recordEvent: jest.fn(),
+      _flush: jest.fn(),
+      _setSampleRate: jest.fn(),
+    });
+
+    const makeGeneratorWithDiagnostics = (diagnosticsClient: ReturnType<typeof makeDiagnosticsClient>) => {
+      const localConfig = new SessionReplayLocalConfig('static_key', mockOptions);
+      (localConfig as { diagnosticsClient?: unknown }).diagnosticsClient = diagnosticsClient;
+      return new SessionReplayJoinedConfigGenerator(mockRemoteConfigClient, localConfig, {
+        sessionId: 123,
+        deviceId: '1a2b3c',
+      });
+    };
+
+    test('records config.received event and source/has_targeting counters when targeting present', async () => {
+      const diagnosticsClient = makeDiagnosticsClient();
+      mockRemoteConfig = {
+        sr_sampling_config: samplingConfig,
+        sr_privacy_config: {},
+        sr_targeting_config: {
+          key: 'sr_targeting_config',
+          variants: { on: { key: 'on' }, off: { key: 'off' } },
+          segments: [{}, {}],
+        },
+      } as unknown as RemoteConfig;
+      const generator = makeGeneratorWithDiagnostics(diagnosticsClient);
+      await generator.generateJoinedConfig();
+
+      expect(diagnosticsClient.increment).toHaveBeenCalledWith('sr.trc.config.source.cache');
+      expect(diagnosticsClient.increment).toHaveBeenCalledWith('sr.trc.config.has_targeting');
+      expect(diagnosticsClient.recordEvent).toHaveBeenCalledWith(
+        'sr.trc.config.received',
+        expect.objectContaining({
+          sessionId: 123,
+          deviceId: '1a2b3c',
+          srId: '1a2b3c/123',
+          source: 'cache',
+          hasSampling: true,
+          hasTargeting: true,
+          targetingSegmentCount: 2,
+        }),
+      );
+    });
+
+    test('records no_targeting counter when targeting absent', async () => {
+      const diagnosticsClient = makeDiagnosticsClient();
+      mockRemoteConfig = {
+        sr_sampling_config: samplingConfig,
+        sr_privacy_config: {},
+      };
+      const generator = makeGeneratorWithDiagnostics(diagnosticsClient);
+      await generator.generateJoinedConfig();
+
+      expect(diagnosticsClient.increment).toHaveBeenCalledWith('sr.trc.config.no_targeting');
+      expect(diagnosticsClient.recordEvent).toHaveBeenCalledWith(
+        'sr.trc.config.received',
+        expect.objectContaining({ hasTargeting: false, targetingSegmentCount: undefined }),
+      );
+    });
+
+    test('records config.received with undefined sampling fields when sampling config absent', async () => {
+      const diagnosticsClient = makeDiagnosticsClient();
+      mockRemoteConfig = {
+        // No sr_sampling_config -> samplingForLog is undefined, exercising the optional-chain branch.
+        sr_privacy_config: { blockSelector: ['.foo'] },
+      };
+      const generator = makeGeneratorWithDiagnostics(diagnosticsClient);
+      await generator.generateJoinedConfig();
+
+      expect(diagnosticsClient.recordEvent).toHaveBeenCalledWith(
+        'sr.trc.config.received',
+        expect.objectContaining({
+          hasSampling: false,
+          captureEnabled: undefined,
+          sampleRate: undefined,
+          hasPrivacy: true,
+        }),
+      );
+    });
+
+    test('increments config.fetch_failed when remote config fetch fails', async () => {
+      const diagnosticsClient = makeDiagnosticsClient();
+      mockRemoteConfig = null;
+      const generator = makeGeneratorWithDiagnostics(diagnosticsClient);
+      const { joinedConfig } = await generator.generateJoinedConfig();
+
+      expect(diagnosticsClient.increment).toHaveBeenCalledWith('sr.trc.config.fetch_failed');
+      expect(joinedConfig.captureEnabled).toBe(false);
+    });
+  });
+
   describe('removeInvalidSelectorsFromPrivacyConfig', () => {
     test('should handle string block selector correctly', async () => {
       const privacyConfig = {

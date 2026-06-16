@@ -185,6 +185,155 @@ describe('Targeting Manager', () => {
       expect(mockLoggerProvider.warn.mock.calls[0][0]).toEqual('storage error');
     });
 
+    const makeDiagnosticsClient = () => ({
+      setTag: jest.fn(),
+      increment: jest.fn(),
+      recordHistogram: jest.fn(),
+      recordEvent: jest.fn(),
+      _flush: jest.fn(),
+      _setSampleRate: jest.fn(),
+    });
+
+    test('should record eval.result diagnostics event with srId on success', async () => {
+      jest.spyOn(targetingIDBStore, 'getTargetingMatchForSession').mockResolvedValueOnce(false);
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call,@typescript-eslint/no-unsafe-member-access
+      (evaluateTargeting as jest.Mock).mockResolvedValueOnce({
+        sr_targeting_config: { key: 'on' },
+      });
+      const diagnosticsClient = makeDiagnosticsClient();
+      const sessionTargetingMatch = await evaluateTargetingAndStore({
+        sessionId: 123,
+        loggerProvider: config.loggerProvider,
+        apiKey: config.apiKey,
+        targetingConfig: flagConfig,
+        targetingParams: { page: { url: 'https://example.com/analytics' } },
+        diagnosticsClient,
+        deviceId: 'dev-1',
+      });
+      expect(sessionTargetingMatch).toBe(true);
+      expect(diagnosticsClient.recordEvent).toHaveBeenCalledWith(
+        'sr.trc.eval.result',
+        expect.objectContaining({
+          sessionId: 123,
+          deviceId: 'dev-1',
+          srId: 'dev-1/123',
+          pageUrl: 'https://example.com/analytics',
+          variantKey: 'on',
+          matched: true,
+        }),
+      );
+    });
+
+    test('should set srId undefined when deviceId is missing on success', async () => {
+      jest.spyOn(targetingIDBStore, 'getTargetingMatchForSession').mockResolvedValueOnce(false);
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call,@typescript-eslint/no-unsafe-member-access
+      (evaluateTargeting as jest.Mock).mockResolvedValueOnce({ sr_targeting_config: { key: 'off' } });
+      const diagnosticsClient = makeDiagnosticsClient();
+      await evaluateTargetingAndStore({
+        sessionId: 123,
+        loggerProvider: config.loggerProvider,
+        apiKey: config.apiKey,
+        targetingConfig: flagConfig,
+        diagnosticsClient,
+        // deviceId intentionally omitted -> srId ternary falls to undefined
+      });
+      expect(diagnosticsClient.recordEvent).toHaveBeenCalledWith(
+        'sr.trc.eval.result',
+        expect.objectContaining({ srId: undefined, matched: false, variantKey: 'off' }),
+      );
+    });
+
+    test('should record variantKey null when targeting result is undefined', async () => {
+      jest.spyOn(targetingIDBStore, 'getTargetingMatchForSession').mockResolvedValueOnce(false);
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call,@typescript-eslint/no-unsafe-member-access
+      (evaluateTargeting as jest.Mock).mockResolvedValueOnce(undefined);
+      const diagnosticsClient = makeDiagnosticsClient();
+      const sessionTargetingMatch = await evaluateTargetingAndStore({
+        sessionId: 123,
+        loggerProvider: config.loggerProvider,
+        apiKey: config.apiKey,
+        targetingConfig: flagConfig,
+        diagnosticsClient,
+        deviceId: 'dev-1',
+      });
+      expect(sessionTargetingMatch).toBe(true);
+      expect(diagnosticsClient.recordEvent).toHaveBeenCalledWith(
+        'sr.trc.eval.result',
+        expect.objectContaining({ variantKey: null, matched: true }),
+      );
+    });
+
+    test('should record variantKey null when targeting result has no sr_targeting_config', async () => {
+      jest.spyOn(targetingIDBStore, 'getTargetingMatchForSession').mockResolvedValueOnce(false);
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call,@typescript-eslint/no-unsafe-member-access
+      (evaluateTargeting as jest.Mock).mockResolvedValueOnce({});
+      const diagnosticsClient = makeDiagnosticsClient();
+      const sessionTargetingMatch = await evaluateTargetingAndStore({
+        sessionId: 123,
+        loggerProvider: config.loggerProvider,
+        apiKey: config.apiKey,
+        targetingConfig: flagConfig,
+        diagnosticsClient,
+        deviceId: 'dev-1',
+      });
+      // No sr_targeting_config => default match true; raw verdict logged as null.
+      expect(sessionTargetingMatch).toBe(true);
+      expect(diagnosticsClient.recordEvent).toHaveBeenCalledWith(
+        'sr.trc.eval.result',
+        expect.objectContaining({ variantKey: null, matched: true }),
+      );
+    });
+
+    test('should set srId undefined when deviceId is missing in error path', async () => {
+      jest.spyOn(targetingIDBStore, 'getTargetingMatchForSession').mockResolvedValueOnce(false);
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call,@typescript-eslint/no-unsafe-member-access
+      (evaluateTargeting as jest.Mock).mockRejectedValueOnce(new Error('boom'));
+      const diagnosticsClient = makeDiagnosticsClient();
+      await evaluateTargetingAndStore({
+        sessionId: 123,
+        loggerProvider: config.loggerProvider,
+        apiKey: config.apiKey,
+        targetingConfig: flagConfig,
+        diagnosticsClient,
+        // deviceId intentionally omitted
+      });
+      expect(diagnosticsClient.recordEvent).toHaveBeenCalledWith(
+        'sr.trc.eval.error',
+        expect.objectContaining({ srId: undefined, message: 'boom' }),
+      );
+    });
+
+    test('should record eval.error diagnostics when evaluateTargeting throws', async () => {
+      jest.spyOn(targetingIDBStore, 'getTargetingMatchForSession').mockResolvedValueOnce(false);
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call,@typescript-eslint/no-unsafe-member-access
+      (evaluateTargeting as jest.Mock).mockRejectedValueOnce(new Error('engine boom'));
+      const diagnosticsClient = makeDiagnosticsClient();
+      const sessionTargetingMatch = await evaluateTargetingAndStore({
+        sessionId: 123,
+        loggerProvider: config.loggerProvider,
+        apiKey: config.apiKey,
+        targetingConfig: flagConfig,
+        targetingParams: { page: { url: 'https://example.com/analytics' } },
+        diagnosticsClient,
+        deviceId: 'dev-1',
+      });
+      // Best-effort: still resolves true (default match) even when the engine throws.
+      expect(sessionTargetingMatch).toBe(true);
+      expect(diagnosticsClient.increment).toHaveBeenCalledWith('sr.trc.eval.error');
+      expect(diagnosticsClient.recordEvent).toHaveBeenCalledWith(
+        'sr.trc.eval.error',
+        expect.objectContaining({
+          sessionId: 123,
+          deviceId: 'dev-1',
+          srId: 'dev-1/123',
+          pageUrl: 'https://example.com/analytics',
+          message: 'engine boom',
+        }),
+      );
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockLoggerProvider.warn).toHaveBeenCalledWith('engine boom');
+    });
+
     test('should parse string sessionId to number when calling evaluateTargeting', async () => {
       jest.spyOn(targetingIDBStore, 'getTargetingMatchForSession').mockResolvedValueOnce(false);
       // eslint-disable-next-line @typescript-eslint/no-unsafe-call,@typescript-eslint/no-unsafe-member-access

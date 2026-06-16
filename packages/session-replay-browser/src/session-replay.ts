@@ -425,7 +425,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
     // session; the props show whether the prerequisites (session/device id, config) were present.
     this.incrementDiagnostic(SrDiagnostic.init);
     this.recordDiagnosticEvent(SrDiagnostic.init, {
-      hasSessionId: !!this.identifiers?.sessionId,
+      // sessionId is always stamped by recordDiagnosticEvent, so no separate hasSessionId here.
       hasDeviceId: !!this.getDeviceId(),
       captureEnabled: this.config.captureEnabled,
       hasTargetingConfig: !!this.config.targetingConfig,
@@ -851,6 +851,10 @@ export class SessionReplay implements AmplitudeSessionReplay {
    */
   private recordDiagnosticHistogram(name: string, value: number) {
     try {
+      // The only caller runs inside evaluateTargetingAndCapture's `this.config` guard, so the
+      // `config == null` arm of this optional chain is unreachable here (kept as defensive parity
+      // with recordDiagnosticEvent). The diagnosticsClient-absent arm IS exercised by no-client tests.
+      /* istanbul ignore next */
       this.config?.diagnosticsClient?.recordHistogram(name, value);
     } catch {
       // swallow — diagnostics is best-effort
@@ -886,19 +890,29 @@ export class SessionReplay implements AmplitudeSessionReplay {
    * nothing records (the exact case customers can't reproduce locally).
    */
   private recordTrcDecisionDiagnostic(shouldRecord: boolean) {
-    const diagnosticsClient = this.config?.diagnosticsClient;
+    const config = this.config;
+    // Every caller is past getShouldRecord's `!this.identifiers`/`!this.config` guard, so both are
+    // defined here; the `?.` arms below are unreachable defensive narrowing and excluded from
+    // coverage. The reachable guards (no diagnosticsClient, undefined/duplicate sessionId) are tested.
+    /* istanbul ignore next */
+    if (!config) {
+      return;
+    }
+    /* istanbul ignore next */
     const sessionId = this.identifiers?.sessionId;
-    if (!diagnosticsClient || sessionId === undefined || sessionId === this.trcDiagnosticSessionId) {
+    // Once past this guard, config.diagnosticsClient is truthy, so the fields below read config
+    // directly rather than re-asserting with `?.` on every access.
+    if (!config.diagnosticsClient || sessionId === undefined || sessionId === this.trcDiagnosticSessionId) {
       return;
     }
     this.trcDiagnosticSessionId = sessionId;
     // Goes through recordDiagnosticEvent so it carries sessionId + deviceId like every other event.
     this.recordDiagnosticEvent(SrDiagnostic.decision, {
       shouldRecord,
-      captureEnabled: this.config?.captureEnabled,
-      hasTargetingConfig: !!this.config?.targetingConfig,
+      captureEnabled: config.captureEnabled,
+      hasTargetingConfig: !!config.targetingConfig,
       sessionTargetingMatch: this.sessionTargetingMatch,
-      sampleRate: this.config?.sampleRate,
+      sampleRate: config.sampleRate,
       pageUrl: this.getCurrentPageForTargeting()?.url,
       sdkVersion: VERSION,
     });

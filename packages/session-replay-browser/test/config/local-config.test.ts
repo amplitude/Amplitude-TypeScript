@@ -307,4 +307,52 @@ describe('SessionReplayLocalConfig', () => {
       expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('not a finite number'));
     });
   });
+
+  describe('standalone diagnosticsClient', () => {
+    let logger: ILogger;
+
+    beforeEach(() => {
+      logger = new Logger();
+      jest.spyOn(logger, 'warn').mockImplementation(() => {
+        /* swallow */
+      });
+    });
+
+    test('is undefined when neither diagnosticsEnabled nor diagnosticsSampleRate is opted in', () => {
+      const config = new SessionReplayLocalConfig('static_key', { loggerProvider: logger });
+      expect(config.diagnosticsClient).toBeUndefined();
+    });
+
+    test('creates a standalone client when diagnosticsSampleRate > 0', () => {
+      const config = new SessionReplayLocalConfig('static_key', {
+        loggerProvider: logger,
+        diagnosticsSampleRate: 1,
+      });
+      expect(config.diagnosticsClient).toBeDefined();
+    });
+
+    test('creates a standalone client when diagnosticsEnabled is true', () => {
+      const config = new SessionReplayLocalConfig('static_key', {
+        loggerProvider: logger,
+        diagnosticsEnabled: true,
+      });
+      expect(config.diagnosticsClient).toBeDefined();
+    });
+
+    test('prefers an explicitly provided diagnosticsClient over creating one', () => {
+      const provided = {
+        setTag: jest.fn(),
+        increment: jest.fn(),
+        recordHistogram: jest.fn(),
+        recordEvent: jest.fn(),
+        _flush: jest.fn(),
+        _setSampleRate: jest.fn(),
+      };
+      const config = new SessionReplayLocalConfig('static_key', {
+        loggerProvider: logger,
+        diagnosticsClient: provided,
+      });
+      expect(config.diagnosticsClient).toBe(provided);
+    });
+  });
 });

@@ -311,6 +311,116 @@ describe('SessionReplay', () => {
         expect(name).toMatch(/^sr\.trc\./);
       }
     });
+
+    test('records the eval duration histogram when targeting evaluation runs at init', async () => {
+      mockRemoteConfig = {
+        sr_sampling_config: samplingConfig,
+        sr_privacy_config: {},
+        sr_targeting_config: {
+          key: 'sr_targeting_config',
+          variants: { on: { key: 'on' }, off: { key: 'off' } },
+          segments: [],
+        },
+      };
+      jest.spyOn(targetingManager, 'evaluateTargetingAndStore').mockResolvedValue(true);
+      const diagnosticsClient = makeDiagnosticsClient();
+      await sessionReplay.init(apiKey, { ...mockOptions, diagnosticsClient }).promise;
+
+      expect(diagnosticsClient.recordHistogram).toHaveBeenCalledWith('sr.trc.eval.duration_ms', expect.any(Number));
+    });
+
+    test('omits srId and skips the trc decision event when sessionId is undefined', async () => {
+      const diagnosticsClient = makeDiagnosticsClient();
+      await sessionReplay.init(apiKey, { ...mockOptions, sessionId: undefined, diagnosticsClient }).promise;
+
+      // The init event still fires, but with no sessionId/srId stamped (the ternary's else branch).
+      const calls = diagnosticsClient.recordEvent.mock.calls as Array<[string, Record<string, unknown>]>;
+      const initCall = calls.find(([name]) => name === 'sr.trc.init');
+      expect(initCall).toBeDefined();
+      expect((initCall as [string, Record<string, unknown>])[1].srId).toBeUndefined();
+      // recordTrcDecisionDiagnostic guard: sessionId === undefined => no decision event recorded.
+      expect(calls.map(([name]) => name)).not.toContain('sr.trc.decision');
+    });
+
+    test('records the trc decision event with undefined pageUrl when the page url is unavailable', async () => {
+      const diagnosticsClient = makeDiagnosticsClient();
+      await sessionReplay.init(apiKey, { ...mockOptions, diagnosticsClient }).promise;
+
+      // Force getCurrentPageForTargeting() -> undefined by removing location from the global scope,
+      // then allow the once-per-session decision event to fire again by clearing the dedupe marker.
+      globalSpy.mockReturnValue({ ...mockGlobalScope, location: undefined } as unknown as typeof globalThis);
+      (sessionReplay as unknown as { trcDiagnosticSessionId?: string | number }).trcDiagnosticSessionId = undefined;
+      diagnosticsClient.recordEvent.mockClear();
+
+      sessionReplay.getShouldRecord();
+
+      const decisionCall = (diagnosticsClient.recordEvent.mock.calls as Array<[string, Record<string, unknown>]>).find(
+        ([name]) => name === 'sr.trc.decision',
+      );
+      expect(decisionCall).toBeDefined();
+      expect((decisionCall as [string, Record<string, unknown>])[1].pageUrl).toBeUndefined();
+    });
+
+    test('records the stale-discarded event when a URL-change evaluation is superseded', async () => {
+      mockRemoteConfig = {
+        sr_sampling_config: samplingConfig,
+        sr_privacy_config: {},
+        sr_targeting_config: {
+          key: 'sr_targeting_config',
+          variants: { on: { key: 'on' }, off: { key: 'off' } },
+          segments: [],
+        },
+      };
+      const diagnosticsClient = makeDiagnosticsClient();
+      await sessionReplay.init(apiKey, { ...mockOptions, diagnosticsClient }).promise;
+      const mockConfigWithTargeting = new SessionReplayLocalConfig(apiKey, mockOptions);
+      (mockConfigWithTargeting as SessionReplayJoinedConfig).targetingConfig = {
+        key: 'sr_targeting_config',
+        variants: { on: { key: 'on' }, off: { key: 'off' } },
+        segments: [],
+      };
+      // Keep the diagnostics client on the post-setSessionId config so the stale-discard event
+      // (recorded when the in-flight eval resolves) still has a client to record through.
+      (mockConfigWithTargeting as SessionReplayJoinedConfig).diagnosticsClient = diagnosticsClient;
+      jest.spyOn(sessionReplay.joinedConfigGenerator!, 'generateJoinedConfig').mockResolvedValue({
+        joinedConfig: mockConfigWithTargeting,
+        localConfig: mockConfigWithTargeting,
+        remoteConfig: undefined,
+      });
+      sessionReplay.sessionTargetingMatch = false;
+
+      // Make the first eval slow so asyncSetSessionId can bump latestUrlChangeTargetingEvaluationId
+      // first, marking the in-flight evaluation stale when it resolves.
+      let resolveStale!: (value: boolean) => void;
+      const stalePromise = new Promise<boolean>((resolve) => {
+        resolveStale = resolve;
+      });
+      jest
+        .spyOn(targetingManager, 'evaluateTargetingAndStore')
+        .mockImplementationOnce(() => stalePromise)
+        .mockResolvedValueOnce(false);
+
+      (
+        sessionReplay as unknown as { latestUrlChangeTargetingEvaluationId: number }
+      ).latestUrlChangeTargetingEvaluationId = 1;
+
+      // No page passed and no global location -> pageForTargeting resolves undefined, exercising the
+      // `pageForTargeting?.url` undefined arm in the stale-discard diagnostics event.
+      globalSpy.mockReturnValue({ ...mockGlobalScope, location: undefined } as unknown as typeof globalThis);
+
+      const staleUrlEvaluation = sessionReplay.evaluateTargetingAndCapture({}, false, false, true);
+      await (
+        sessionReplay as unknown as { asyncSetSessionId: (s: number, d: string) => Promise<void> }
+      ).asyncSetSessionId(456, '9l8m7n');
+      resolveStale(true);
+      await staleUrlEvaluation;
+
+      const staleCall = (diagnosticsClient.recordEvent.mock.calls as Array<[string, Record<string, unknown>]>).find(
+        ([name]) => name === 'sr.trc.eval.stale_discarded',
+      );
+      expect(staleCall).toBeDefined();
+      expect((staleCall as [string, Record<string, unknown>])[1].pageUrl).toBeUndefined();
+    });
   });
 
   describe('init: sessionStartTime persistence', () => {
