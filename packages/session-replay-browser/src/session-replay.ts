@@ -768,6 +768,9 @@ export class SessionReplay implements AmplitudeSessionReplay {
         // Cross-session leak is prevented in asyncSetSessionId, which drops the buffer
         // at the session transition. The page-leave path also gates independently.
         this.suppressedSendCount++;
+        // gap #1: recording but events held back by min_session_duration — another "recording yet
+        // no replay in Amplitude" cause.
+        this.incrementDiagnostic(SrDiagnostic.sendSuppressedMinDuration);
         return;
       }
       // On the first send-after-pass for the session, emit a custom rrweb event so the
@@ -1106,6 +1109,9 @@ export class SessionReplay implements AmplitudeSessionReplay {
 
     // May be undefined if cannot import rrweb-record
     if (!recordFunction) {
+      // gap #1: gate said record, but rrweb couldn't load → no replay despite shouldRecord=true.
+      this.incrementDiagnostic(SrDiagnostic.recordNoRecordFn);
+      this.recordDiagnosticEvent(SrDiagnostic.recordNoRecordFn, {});
       return;
     }
 
@@ -1140,6 +1146,11 @@ export class SessionReplay implements AmplitudeSessionReplay {
       interactionConfig?.enabled && interactionConfig.ugcFilterRules ? interactionConfig.ugcFilterRules : [];
 
     this.loggerProvider.log(`Session Replay capture beginning for ${sessionId}.`);
+    // gap #1: rrweb is actually starting. Closes the "gate said yes but no replay" blind spot,
+    // and its srId is the id the replay uploads under (compare with analytics events to catch the
+    // device-id mismatch that breaks stitching).
+    this.incrementDiagnostic(SrDiagnostic.recordStarted);
+    this.recordDiagnosticEvent(SrDiagnostic.recordStarted, {});
 
     try {
       const crossOriginIframesEnabled = !!config.crossOriginIframes?.enabled;

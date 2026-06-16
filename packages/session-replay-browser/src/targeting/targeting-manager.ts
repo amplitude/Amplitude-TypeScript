@@ -62,6 +62,21 @@ export const evaluateTargetingAndStore = async ({
     if (targetingResult && targetingResult.sr_targeting_config) {
       sessionTargetingMatch = targetingResult.sr_targeting_config.key === 'on';
     }
+    // gap #2: the raw engine verdict. variantKey 'on' => matched; 'off'/undefined => not.
+    // Pair with the eval event's pageUrl to tell "URL condition didn't match" from "URL matched
+    // but the segment bucket (capture %) didn't allocate this session".
+    try {
+      diagnosticsClient?.recordEvent(SrDiagnostic.evalResult, {
+        sessionId,
+        deviceId,
+        srId: deviceId != null && sessionId != null ? `${deviceId}/${sessionId}` : undefined,
+        pageUrl: targetingParams?.page?.url,
+        variantKey: targetingResult?.sr_targeting_config?.key ?? null,
+        matched: sessionTargetingMatch,
+      });
+    } catch {
+      // diagnostics is best-effort
+    }
 
     void targetingIDBStore.storeTargetingMatchForSession({
       loggerProvider: loggerProvider,

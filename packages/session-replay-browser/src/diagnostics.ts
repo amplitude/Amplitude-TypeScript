@@ -34,6 +34,12 @@ export const SrDiagnostic = {
   evalSkippedAlreadyMatched: `${p}.eval.skipped_already_matched`,
   evalDurationMs: `${p}.eval.duration_ms`, // histogram
   evalEvent: `${p}.eval`, // event (with ALL eval params — Q5)
+  evalResult: `${p}.eval.result`, // event: raw engine verdict (variantKey) — why match/no-match
+
+  // ── Recording execution (getShouldRecord said yes — did rrweb actually start?) ──
+  recordStarted: `${p}.record.started`, // event: capture began (carries the srId the replay uploads under)
+  recordNoRecordFn: `${p}.record.no_record_fn`, // counter + event: rrweb import returned nothing
+  sendSuppressedMinDuration: `${p}.send.suppressed_min_duration`, // counter: events held back by min_session_duration
 
   // ── Record / no-record gate (getShouldRecord) ────────────────────────────
   gateNoIdentifiers: `${p}.gate.no_identifiers`, // Q4: no config/sessionId at gate time
