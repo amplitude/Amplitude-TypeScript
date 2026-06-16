@@ -1567,6 +1567,20 @@ describe('SessionReplay', () => {
       expect((sessionReplay as any).latestUrlChangeTargetingEvaluationId).toBe(priorUrlEvaluationId);
     });
 
+    test('no-ops when sessionId unchanged and userProperties is an empty object', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+
+      const sendEventsSpy = jest.spyOn(sessionReplay, 'sendEvents');
+      const recordEventsSpy = jest.spyOn(sessionReplay, 'recordEvents');
+      const evaluateTargetingAndCaptureSpy = jest.spyOn(sessionReplay, 'evaluateTargetingAndCapture');
+
+      await (sessionReplay as any).asyncSetSessionId(123, '1a2b3c', { userProperties: {} });
+
+      expect(sendEventsSpy).not.toHaveBeenCalled();
+      expect(recordEventsSpy).not.toHaveBeenCalled();
+      expect(evaluateTargetingAndCaptureSpy).not.toHaveBeenCalled();
+    });
+
     test('still proceeds when sessionId and deviceId unchanged but userProperties provided', async () => {
       await sessionReplay.init(apiKey, mockOptions).promise;
 

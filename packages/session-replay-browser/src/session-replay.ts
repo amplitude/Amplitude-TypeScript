@@ -422,12 +422,12 @@ export class SessionReplay implements AmplitudeSessionReplay {
     // timestamps) and only need a no-op when the bucket hasn't rolled. Without this guard,
     // the rest of asyncSetSessionId still runs: sendEvents, targeting reset, config refetch,
     // and recordEvents (stop + restart rrweb). Proceed when deviceId changes or
-    // userProperties are passed so targeting can re-evaluate on Identify.
+    // non-empty userProperties are passed so targeting can re-evaluate on Identify.
     if (
       previousSessionId !== undefined &&
       previousSessionId === sessionId &&
       (deviceId === undefined || deviceId === currentDeviceId) &&
-      !options?.userProperties
+      (options?.userProperties === undefined || Object.keys(options.userProperties).length === 0)
     ) {
       return;
     }
