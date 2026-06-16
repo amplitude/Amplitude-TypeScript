@@ -623,26 +623,6 @@ describe('autocapture-plugin helpers', () => {
       expect(shouldTrackEvent('click', document as unknown as Element)).toEqual(false);
     });
 
-    test('should track any element with pointer cursor when isAlwaysCaptureCursorPointer is true', () => {
-      const element = document.createElement('div');
-      const style = document.createElement('style');
-      style.textContent = '.pointer { cursor: pointer; }';
-      document.head.appendChild(style);
-      element.className = 'pointer';
-
-      const shouldTrackEvent = createShouldTrackEvent(
-        {
-          pageUrlAllowlist: undefined,
-          shouldTrackEventResolver: undefined,
-        },
-        [],
-        true, // isAlwaysCaptureCursorPointer
-      );
-
-      expect(shouldTrackEvent('click', element)).toEqual(true);
-      document.head.removeChild(style);
-    });
-
     test('should respect pageUrlExcludelist configuration', () => {
       // Mock window.location to a test URL
       mockWindowLocationFromURL(new URL('https://www.test.com/page'));

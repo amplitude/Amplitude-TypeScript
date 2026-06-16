@@ -1,4 +1,11 @@
-import { VideoState, VideoObserver, BrowserClient, EmbeddedVideoPlayer, VideoVendor } from '@amplitude/analytics-core';
+import {
+  VideoState,
+  VideoObserver,
+  BrowserClient,
+  EmbeddedVideoPlayer,
+  VideoVendor,
+  UUID,
+} from '@amplitude/analytics-core';
 
 export class VideoCapture {
   private videoEl: HTMLVideoElement | null = null;
@@ -61,7 +68,7 @@ export class VideoCapture {
   captureVideoStarted(): VideoCapture {
     this.listeners.push((previousState, nextState) => {
       if (previousState.playbackState !== 'playing' && nextState.playbackState === 'playing') {
-        // placeholder for Heartbeat Start Event
+        // TODO: placeholder for Heartbeat Start Event
         this.amplitude.track('Video Content Started', {
           ...nextState.lastEvent,
           ...this.extraEventProperties,
@@ -136,6 +143,10 @@ export type VideoCaptureOptions = {
   extraEventProperties?: Record<string, string | number | boolean>;
 };
 
+type UntrackVideoResult = () => void;
+
+export type TrackVideoResult = UntrackVideoResult | Error;
+
 /**
  * Track video analytics events for an HTML video element or embedded video player.js instance.
  *
@@ -151,7 +162,7 @@ export function trackVideo(
   amplitude: BrowserClient,
   videoEl: HTMLVideoElement | EmbeddedVideoPlayer,
   options: VideoCaptureOptions = {},
-): () => void {
+): TrackVideoResult {
   const videoCapture = new VideoCapture(amplitude);
   if (videoEl instanceof HTMLVideoElement) {
     videoCapture.withVideoElement(videoEl);
@@ -161,11 +172,20 @@ export function trackVideo(
   if (options.vendor) {
     videoCapture.withVendor(options.vendor);
   }
-  videoCapture
-    .withExtraEventProperties(options.extraEventProperties ?? {})
-    .captureVideoStarted()
-    .captureVideoStopped()
-    .start();
+  const extraEventProperties = options.extraEventProperties ?? {};
+
+  try {
+    videoCapture
+      .withExtraEventProperties({
+        view_session_id: UUID(),
+        ...extraEventProperties,
+      })
+      .captureVideoStarted()
+      .captureVideoStopped()
+      .start();
+  } catch (error) {
+    return error as Error;
+  }
 
   return () => videoCapture.stop();
 }

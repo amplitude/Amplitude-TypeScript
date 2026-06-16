@@ -6,6 +6,7 @@ import {
   MAX_URL_LENGTH,
   MAX_KEEPALIVE_BYTES,
   RETRY_TIMEOUT_MS,
+  SEND_TIMEOUT_MS,
   WAF_PAYLOAD_TOO_LARGE_PATTERN,
 } from '../constants';
 import { MAX_RETRIES_EXCEEDED_MESSAGE, UNEXPECTED_ERROR_MESSAGE, UNEXPECTED_NETWORK_ERROR_MESSAGE } from '../messages';
@@ -29,6 +30,10 @@ interface SendContext {
   // Optional for backwards compatibility with messages from older main-thread code
   // that doesn't forward the flag; absence is treated as enabled (default true).
   enableTransportCompression?: boolean;
+  // Milliseconds before the worker aborts the in-flight fetch; <= 0 disables the abort.
+  // Optional for backwards compatibility with older main-thread code that doesn't forward
+  // it; absence falls back to SEND_TIMEOUT_MS.
+  sendTimeoutMs?: number;
 }
 
 async function doFetch(
@@ -44,6 +49,10 @@ async function doFetch(
   // undefined when the response was not a 2xx (caller should not interpret as a directive).
   skipCode?: string | null;
 }> {
+  // <= 0 disables the abort (no timer); otherwise honor the forwarded value, falling back
+  // to the default when older main-thread code doesn't send one. Declared here (not inside
+  // try) so the AbortError message in catch can reference it.
+  const sendTimeoutMs = context.sendTimeoutMs ?? SEND_TIMEOUT_MS;
   try {
     // Treat an absent flag as enabled so messages from older main-thread builds that
     // don't forward the field keep working unchanged. Only an explicit `false` opts out.
@@ -70,14 +79,29 @@ async function doFetch(
       ...(gzipped ? { 'Content-Encoding': 'gzip' } : {}),
     };
     const payloadSize = gzipped ? gzipped.byteLength : new Blob([payloadJson]).size;
-    const res = await fetch(serverUrl, {
-      method: 'POST',
-      headers,
-      body: (gzipped ?? payloadJson) as BodyInit,
-      // keepalive lets the request survive page navigation, preventing 499 (client-closed) errors.
-      // Must stay under the browser's 64 KB keepalive budget; large payloads skip it.
-      keepalive: payloadSize <= MAX_KEEPALIVE_BYTES,
-    });
+    // fetch() has no native timeout; abort a hung request so it surfaces as a retryable
+    // failure instead of silently wedging the worker (and the awaiting orchestrator).
+    const controller = new AbortController();
+    const timeout =
+      sendTimeoutMs > 0
+        ? setTimeout(() => {
+            controller.abort();
+          }, sendTimeoutMs)
+        : undefined;
+    let res: Response | null;
+    try {
+      res = await fetch(serverUrl, {
+        method: 'POST',
+        headers,
+        body: (gzipped ?? payloadJson) as BodyInit,
+        // keepalive lets the request survive page navigation, preventing 499 (client-closed) errors.
+        // Must stay under the browser's 64 KB keepalive budget; large payloads skip it.
+        keepalive: payloadSize <= MAX_KEEPALIVE_BYTES,
+        signal: controller.signal,
+      });
+    } finally {
+      if (timeout) clearTimeout(timeout);
+    }
     if (res === null) {
       return { shouldRetry: false, success: false, message: UNEXPECTED_ERROR_MESSAGE };
     }
@@ -111,6 +135,17 @@ async function doFetch(
     }
     return { shouldRetry: false, success: false, message: UNEXPECTED_NETWORK_ERROR_MESSAGE };
   } catch (e) {
+    // A timeout aborts the fetch, rejecting with an AbortError. That's transient — let
+    // sendWithRetry's budget retry it, mirroring the 5xx/408/429/499 path. Other errors
+    // stay non-retryable as before. Browsers reject with a DOMException named 'AbortError'
+    // (not an Error instance), so match on the name rather than using `instanceof Error`.
+    if (!!e && typeof e === 'object' && (e as { name?: unknown }).name === 'AbortError') {
+      return {
+        shouldRetry: true,
+        success: false,
+        message: `Session replay worker request timed out after ${sendTimeoutMs}ms`,
+      };
+    }
     return { shouldRetry: false, success: false, message: String(e) };
   }
 }

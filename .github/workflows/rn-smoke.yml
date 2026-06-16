@@ -54,16 +54,25 @@ jobs:
         run: echo "Skipping React Native smoke test — @amplitude/analytics-react-native is not in the affected set."
 
   ios-smoke:
-    name: iOS Simulator Smoke (Maestro)
+    name: iOS Simulator Smoke (Maestro, newArch=${{ matrix.new-arch }})
     needs: check-affected
     if: needs.check-affected.outputs.unaffected == 'false' || github.event_name != 'pull_request'
     runs-on: macos-14
     timeout-minutes: 45
 
+    strategy:
+      fail-fast: false
+      matrix:
+        new-arch: [false, true]
+
     env:
       APP_DIR: examples/react-native/app
       BUNDLE_ID: org.reactjs.native.example.app
       SIM_NAME: iPhone 15
+      # Baked into the generated Pods project by `pod install` (codegen + the
+      # RCT_NEW_ARCH_ENABLED compile flag), so it must be set for that step;
+      # xcodebuild only compiles what pod install produced.
+      RCT_NEW_ARCH_ENABLED: ${{ matrix.new-arch && '1' || '0' }}
       # CocoaPods 1.14.3 hits `ArgumentError - pathname contains null byte` in
       # Pathname#realdirpath on pnpm monorepos when the locale is not UTF-8
       # (see https://github.com/CocoaPods/CocoaPods/issues/12866). macos-14
@@ -103,9 +112,9 @@ jobs:
           path: |
             ${{ env.APP_DIR }}/ios/Pods
             ~/Library/Caches/CocoaPods
-          key: pods-${{ runner.os }}-${{ hashFiles(format('{0}/ios/Podfile.lock', env.APP_DIR)) }}
+          key: pods-${{ runner.os }}-newarch-${{ matrix.new-arch }}-${{ hashFiles(format('{0}/ios/Podfile.lock', env.APP_DIR)) }}
           restore-keys: |
-            pods-${{ runner.os }}-
+            pods-${{ runner.os }}-newarch-${{ matrix.new-arch }}-
 
       - name: Pod install
         working-directory: ${{ env.APP_DIR }}/ios

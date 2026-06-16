@@ -3,6 +3,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { ILogger } from '@amplitude/analytics-core';
 import { SessionReplayLocalConfig } from '../src/config/local-config';
+import { MAX_EVENT_LIST_SIZE } from '../src/constants';
 import * as SessionReplayIDB from '../src/events/events-idb-store';
 import { createEventsManager } from '../src/events/events-manager';
 import { SessionReplayTrackDestination } from '../src/track-destination';
@@ -141,6 +142,40 @@ describe('createEventsManager', () => {
       });
       await eventsManager.sendStoredEvents({ deviceId: '1a2b3c' });
       expect(mockLoggerProvider.log).toHaveBeenCalledWith('Draining 2 stored sequence(s) from previous session.');
+    });
+
+    test('coalesces the page-load backlog drain when more than one sequence is stored', async () => {
+      (mockIDBStore.getSequencesToSend as jest.Mock).mockResolvedValue([
+        { events: [mockEventString], sequenceId: 1, sessionId: 123 },
+        { events: [mockEventString], sequenceId: 2, sessionId: 123 },
+        { events: [mockEventString], sequenceId: 3, sessionId: 123 },
+      ]);
+      const eventsManager = await createEventsManager<'replay'>({
+        config,
+        type: 'replay',
+        storeType: 'idb',
+      });
+      await eventsManager.sendStoredEvents({ deviceId: '1a2b3c' });
+      const trackDestinationInstance = (SessionReplayTrackDestination as jest.Mock).mock.instances[0];
+      // The drain marks the imminent flush to coalesce, then enqueues every sequence so the
+      // backlog flushes as fewer POSTs (SR-4660) instead of one request per stored sequence.
+      expect(trackDestinationInstance.markCoalesceNextFlush).toHaveBeenCalledTimes(1);
+      expect(trackDestinationInstance.sendEventsList).toHaveBeenCalledTimes(3);
+    });
+
+    test('does not coalesce when only a single sequence is stored (nothing to merge)', async () => {
+      (mockIDBStore.getSequencesToSend as jest.Mock).mockResolvedValue([
+        { events: [mockEventString], sequenceId: 1, sessionId: 123 },
+      ]);
+      const eventsManager = await createEventsManager<'replay'>({
+        config,
+        type: 'replay',
+        storeType: 'idb',
+      });
+      await eventsManager.sendStoredEvents({ deviceId: '1a2b3c' });
+      const trackDestinationInstance = (SessionReplayTrackDestination as jest.Mock).mock.instances[0];
+      expect(trackDestinationInstance.markCoalesceNextFlush).not.toHaveBeenCalled();
+      expect(trackDestinationInstance.sendEventsList).toHaveBeenCalledTimes(1);
     });
 
     test('should not log drain message when sequences are empty', async () => {
@@ -286,6 +321,31 @@ describe('createEventsManager', () => {
         'Failed to clean up session replay events store:',
         cleanUpError,
       );
+    });
+
+    test('uses a lowered maxSingleEventSizeBytes as the pre-send drop threshold', async () => {
+      const smallCapConfig = new SessionReplayLocalConfig('static_key', {
+        loggerProvider: mockLoggerProvider,
+        sampleRate: 1,
+        maxSingleEventSizeBytes: 1_000,
+      });
+      // ~2 KB event: under the 9 MB default but over the 1 KB override.
+      const mediumEvent = 'y'.repeat(2_000);
+      (mockIDBStore.getSequencesToSend as jest.Mock).mockResolvedValue([
+        { events: [mockEventString, mediumEvent], sequenceId: 1, sessionId: 123 },
+      ]);
+      const eventsManager = await createEventsManager<'replay'>({
+        config: smallCapConfig,
+        type: 'replay',
+        storeType: 'idb',
+      });
+      await eventsManager.sendStoredEvents({ deviceId: '1a2b3c' });
+      jest.runAllTimers();
+
+      const trackDestinationInstance = (SessionReplayTrackDestination as jest.Mock).mock.instances[0];
+      const mockSendEventsList = trackDestinationInstance.sendEventsList;
+      expect(mockLoggerProvider.warn).toHaveBeenCalledWith(expect.stringContaining('oversized'));
+      expect(mockSendEventsList).toHaveBeenCalledWith(expect.objectContaining({ events: [mockEventString] }));
     });
   });
 
@@ -652,14 +712,21 @@ describe('createEventsManager', () => {
         config,
         type: 'replay',
         storeType: 'memory',
+        // Pin the split cap so the test controls the threshold rather than relying on the
+        // SDK default (now 6 MB via DEFAULT_MAX_PERSISTED_EVENTS_SIZE_BYTES).
+        maxPersistedEventsSize: MAX_EVENT_LIST_SIZE,
       });
       // Use the real memory store so shouldSplitEventsList can trigger a split.
-      // eventA must be large enough that eventA + eventB >= MAX_EVENT_LIST_SIZE (1_000_000).
-      const eventA = 'a'.repeat(999_990);
+      // eventA sits just under the cap so it doesn't split on its own; eventB then pushes the
+      // batch over MAX_EVENT_LIST_SIZE. Derived from the constant so it tracks cap changes.
+      // 10 bytes of slack exceeds getEventsArraySize's 4-byte overhead for a 1-event list
+      // (2 + 0 + 2) plus eventB's payload, so eventA stays under the cap alone but crosses
+      // it once eventB is appended.
+      const eventA = 'a'.repeat(MAX_EVENT_LIST_SIZE - 10);
       const eventB = JSON.stringify({ type: 3, timestamp: 2 });
 
       eventsManager.addEvent({ event: { type: 'replay', data: eventA }, sessionId: 123, deviceId: '1a2b3c' });
-      // Force split: eventB pushes the batch over the 1 MB limit
+      // Force split: eventB pushes the batch over the MAX_EVENT_LIST_SIZE limit
       eventsManager.addEvent({ event: { type: 'replay', data: eventB }, sessionId: 123, deviceId: '1a2b3c' });
 
       // Let the async addEventToCurrentSequence chains settle (two microtask ticks).

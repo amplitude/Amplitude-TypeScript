@@ -3,6 +3,33 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.50.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.49.0...@amplitude/analytics-core@2.50.0) (2026-06-11)
+
+
+### Features
+
+* **analytics-browser, analytics-core:** support referrerPolicy in FetchTransport ([#1805](https://github.com/amplitude/Amplitude-TypeScript/issues/1805)) ([871e432](https://github.com/amplitude/Amplitude-TypeScript/commit/871e4326debc1c90028fa305056d9bbe234e0e1e))
+
+
+
+
+
+# [2.49.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.48.2...@amplitude/analytics-core@2.49.0) (2026-06-05)
+
+
+### Bug Fixes
+
+* **analytics-react-native:** "can't find variable btoa error" message ([#1800](https://github.com/amplitude/Amplitude-TypeScript/issues/1800)) ([d1de0aa](https://github.com/amplitude/Amplitude-TypeScript/commit/d1de0aaea6a5cbcfd41ed5163ae882c9562e3d34))
+
+
+### Features
+
+* **analytics-browser:** enable fetch keepalive by default to survive page navigation ([#1781](https://github.com/amplitude/Amplitude-TypeScript/issues/1781)) ([8b51b6e](https://github.com/amplitude/Amplitude-TypeScript/commit/8b51b6e75726454c32cdeea2c01a9b3ccb5a96d7))
+
+
+
+
+
 ## [2.48.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.48.1...@amplitude/analytics-core@2.48.2) (2026-05-21)
 
 
