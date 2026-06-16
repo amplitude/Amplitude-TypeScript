@@ -1,13 +1,12 @@
-import { test, expect, Route } from '@playwright/test';
+import { test, expect } from '@playwright/test';
 import {
-  SR_API_SUCCESS,
   TEST_SESSION_ID,
   SNAPSHOT_SETTLE_MS,
   remoteConfigRecording,
   mockRemoteConfig,
   buildUrl,
   waitForReady,
-  readRouteBody,
+  captureTrackRequests,
   flushRecording,
 } from './helpers';
 
@@ -43,21 +42,14 @@ function countFullSnapshots(bodies: string[]): number {
 test.describe('setSessionId no-op (SR2-3635)', () => {
   test('redundant setSessionId does not restart rrweb capture', async ({ page }) => {
     await mockRemoteConfig(page, remoteConfigRecording);
-
-    const rawBodies: string[] = [];
-    await page.route('https://api-sr.amplitude.com/**', async (route: Route) => {
-      rawBodies.push(readRouteBody(route));
-      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(SR_API_SUCCESS) });
-    });
-
-    const requestPromise = page.waitForRequest('https://api-sr.amplitude.com/**', { timeout: 10_000 });
+    const { getBodies } = await captureTrackRequests(page);
 
     await page.goto(buildUrl('/session-replay-browser/sr-capture-test.html', { sessionId: TEST_SESSION_ID }));
     await waitForReady(page);
-    await requestPromise;
+    await flushRecording(page);
     await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
 
-    expect(countFullSnapshots(rawBodies)).toBe(1);
+    expect(countFullSnapshots(getBodies())).toBe(1);
 
     // Poll-style redundant calls (hour-bucket pattern) must not stop/restart rrweb.
     await page.evaluate(async (sessionId) => {
@@ -70,26 +62,19 @@ test.describe('setSessionId no-op (SR2-3635)', () => {
     await page.click('#test-button');
     await flushRecording(page);
 
-    expect(countFullSnapshots(rawBodies)).toBe(1);
+    expect(countFullSnapshots(getBodies())).toBe(1);
   });
 
   test('session id change still restarts recording', async ({ page }) => {
     await mockRemoteConfig(page, remoteConfigRecording);
-
-    const rawBodies: string[] = [];
-    await page.route('https://api-sr.amplitude.com/**', async (route: Route) => {
-      rawBodies.push(readRouteBody(route));
-      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(SR_API_SUCCESS) });
-    });
-
-    const requestPromise = page.waitForRequest('https://api-sr.amplitude.com/**', { timeout: 10_000 });
+    const { getBodies } = await captureTrackRequests(page);
 
     await page.goto(buildUrl('/session-replay-browser/sr-capture-test.html', { sessionId: TEST_SESSION_ID }));
     await waitForReady(page);
-    await requestPromise;
+    await flushRecording(page);
     await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
 
-    expect(countFullSnapshots(rawBodies)).toBe(1);
+    expect(countFullSnapshots(getBodies())).toBe(1);
 
     const nextSessionId = TEST_SESSION_ID + 3_600_000;
     await page.evaluate(async (sessionId) => {
@@ -100,7 +85,7 @@ test.describe('setSessionId no-op (SR2-3635)', () => {
     await flushRecording(page);
     await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
 
-    expect(countFullSnapshots(rawBodies)).toBeGreaterThanOrEqual(2);
+    expect(countFullSnapshots(getBodies())).toBeGreaterThanOrEqual(2);
     const currentSessionId = await page.evaluate((): number | string | undefined => {
       return (
         window as { sessionReplay?: { getSessionId: () => number | string | undefined } }
