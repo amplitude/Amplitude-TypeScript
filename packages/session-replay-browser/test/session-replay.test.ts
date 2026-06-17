@@ -5085,6 +5085,34 @@ describe('SessionReplay', () => {
       expect(subscribeToUrlChanges).not.toHaveBeenCalled();
     });
 
+    test('should forward enableUrlChangePolling options to subscribeToUrlChanges', () => {
+      jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue({ location: { href: 'https://example.com' } } as any);
+      const sessionReplay = new SessionReplay();
+      sessionReplay.config = {
+        targetingConfig: {},
+        enableUrlChangePolling: true,
+        urlChangePollingInterval: 1234,
+      } as any;
+      sessionReplay.identifiers = { sessionId: 123 } as any;
+      (sessionReplay as any).setupUrlChangeListener();
+      expect(subscribeToUrlChanges).toHaveBeenLastCalledWith(expect.anything(), expect.any(Function), {
+        enablePolling: true,
+        pollingInterval: 1234,
+      });
+    });
+
+    test('should default polling off when enableUrlChangePolling is not configured', () => {
+      jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue({ location: { href: 'https://example.com' } } as any);
+      const sessionReplay = new SessionReplay();
+      sessionReplay.config = { targetingConfig: {} } as any;
+      sessionReplay.identifiers = { sessionId: 123 } as any;
+      (sessionReplay as any).setupUrlChangeListener();
+      expect(subscribeToUrlChanges).toHaveBeenLastCalledWith(expect.anything(), expect.any(Function), {
+        enablePolling: false,
+        pollingInterval: undefined,
+      });
+    });
+
     test('should call evaluateTargetingAndCapture when URL change callback is invoked', async () => {
       mockRemoteConfig = {
         sr_sampling_config: {},

@@ -210,8 +210,15 @@ export class SessionReplay implements AmplitudeSessionReplay {
         this.loggerProvider.debug(`Queued URL-change targeting re-evaluation #${evaluationId} for ${href}.`);
       }
     };
-    type UrlUnsubscribe = (scope: Window | undefined, cb: (href: string) => void) => () => void;
-    const unsubscribe = (subscribeToUrlChanges as UrlUnsubscribe)(globalScope, onUrlChange);
+    // Pass the polling options so targeting re-evaluation also respects `enableUrlChangePolling`.
+    // Without this, the targeting listener only sees history.pushState/replaceState + popstate +
+    // hashchange — so SPA navigations that bypass the history API never re-evaluate TRC and
+    // recording never starts on the new URL (enableUrlChangePolling previously only affected the
+    // rrweb URL-tracking plugin, which runs only once recording is already active).
+    const unsubscribe = subscribeToUrlChanges(globalScope, onUrlChange, {
+      enablePolling: this.config?.enableUrlChangePolling ?? false,
+      pollingInterval: this.config?.urlChangePollingInterval,
+    });
 
     this.urlChangeCleanup = (): void => {
       unsubscribe();
