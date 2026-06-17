@@ -19,9 +19,10 @@ const limits = [
   },
   {
     // @amplitude/element-selector — ESM library output (size-limit gzips on the fly).
-    // The package isn't published as a standalone bundle; this entry exists to
-    // catch raw-library bloat. The integration cost into the SDK is already
-    // measured by the analytics-browser bundle entry above.
+    // Published as a standalone npm package for SDK, dashboard, and Chrome
+    // extension consumers. This entry guards against raw-library bloat; the
+    // integration cost into the SDK is also measured by the analytics-browser
+    // bundle entry above.
     //
     // Bumped from 5kb → 7kb to absorb the legacy cssPath walker and the
     // generateSelector top-level helper that moved into this package

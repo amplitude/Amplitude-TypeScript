@@ -4,6 +4,7 @@
 import { generateSelector } from '../src/generate-selector';
 import { createSelectorEngine } from '../src/engine';
 import { resolveSelectorConfig, DEFAULT_RESOLVED_CONFIG } from '../src/config/resolve-config';
+import * as legacyCssPathModule from '../src/legacy-css-path';
 import { legacyCssPath } from '../src/legacy-css-path';
 import { ResolvedSelectorConfig, SelectorEngine } from '../src/types';
 
@@ -43,6 +44,17 @@ describe('generateSelector', () => {
       const notAnElement = document.createTextNode('x') as unknown as Element;
 
       expect(generateSelector(notAnElement, null, DEFAULT_RESOLVED_CONFIG)).toBe('');
+    });
+
+    it('returns empty string when the legacy walker throws', () => {
+      const el = document.createElement('div');
+      const spy = jest.spyOn(legacyCssPathModule, 'legacyCssPath').mockImplementation(() => {
+        throw new Error('boom');
+      });
+
+      expect(generateSelector(el, null, DEFAULT_RESOLVED_CONFIG)).toBe('');
+
+      spy.mockRestore();
     });
   });
 
