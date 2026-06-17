@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Engaged Dwell POC — Page 2</title>
+    <style>
+      body { font-family: monospace; margin: 24px; color: #111; }
+      h1 { font-size: 1.2em; }
+      .nav a { margin-right: 16px; }
+      .local { background: #f3f4f6; padding: 8px 12px; border-radius: 6px; margin: 12px 0; }
+      .controls { margin: 12px 0; }
+      button { font-family: monospace; padding: 6px 10px; margin-right: 8px; cursor: pointer; }
+      .panel { display: flex; gap: 24px; flex-wrap: wrap; margin-top: 16px; }
+      .card { flex: 1; min-width: 360px; border: 1px solid #ddd; border-radius: 8px; padding: 12px; }
+      .card h2 { font-size: 1em; margin: 0 0 8px; }
+      table { width: 100%; border-collapse: collapse; font-size: 12px; }
+      th, td { text-align: left; padding: 4px 6px; border-bottom: 1px solid #eee; vertical-align: top; }
+      th { color: #555; }
+      .muted { color: #999; }
+      .tag { color: #fff; padding: 1px 6px; border-radius: 4px; font-size: 11px; }
+      .explain { max-width: 820px; border: 1px solid #e5e7eb; background: #fafafa;
+                 border-radius: 8px; padding: 4px 16px 12px; margin: 12px 0; }
+      .explain summary { cursor: pointer; font-weight: bold; padding: 8px 0; }
+      .explain h3 { font-size: 0.95em; margin: 14px 0 6px; }
+      .explain p, .explain li { line-height: 1.5; font-size: 13px; }
+      .explain p { margin: 8px 0; }
+      .explain ul { margin: 6px 0; padding-left: 20px; }
+      .explain code { background: #eef0f3; padding: 0 3px; border-radius: 3px; }
+      tr.clickable { cursor: pointer; }
+      tr.clickable:hover td { background: #f9fafb; }
+      tr.sel td { background: #fff7ed; }
+      .raw { background: #0b1021; color: #d6e2ff; padding: 12px; border-radius: 8px;
+             font-size: 12px; white-space: pre-wrap; overflow-x: auto; margin: 0; }
+    </style>
+  </head>
+  <body>
+    <h1>Engaged Dwell POC — Page 2</h1>
+    <div class="nav">
+      <a href="/engaged-dwell-poc/page1.html">← Page 1</a>
+      <a href="/engaged-dwell-poc/page2.html">Page 2</a>
+    </div>
+    <details class="explain" open>
+      <summary>How it works</summary>
+
+      <p><b>The problem.</b> Engagement (dwell) time for a page view is only known <i>after</i> the user
+      leaves it — but the moment they leave is exactly when the page is being torn down. Firing a final
+      request on <code>unload</code>/<code>pagehide</code> is unreliable across modern browsers, so the last
+      bit of engagement (and the <i>entire</i> last page view of a session) is easily lost.</p>
+
+      <p><b>The approach: a heartbeat to a delayed-events endpoint.</b> While a page is open, the SDK sends a
+      small heartbeat every <b>1s</b>. Each heartbeat carries two kinds of events:</p>
+      <ul>
+        <li><b><code>instant_events</code></b> — ingested immediately, exactly once.
+          <code>[Amplitude] Page Viewed</code> is sent here on the first heartbeat.</li>
+        <li><b><code>events</code></b> (delayed) — <i>not</i> ingested right away.
+          <code>[Amplitude] Page Viewed Completed</code>, carrying the running engaged-dwell time, is sent on
+          every heartbeat.</li>
+      </ul>
+
+      <p><b>The delayed service holds, it doesn't ingest.</b> Each heartbeat upserts a row keyed by a
+      per-page-view <code>id</code>. The row stores the latest delayed events and resets a <b>10s</b> timeout.
+      As long as heartbeats keep arriving, the row keeps getting replaced and the timeout keeps getting pushed
+      out — so nothing is ingested while the user is still on the page.</p>
+
+      <p><b>Ingestion happens on timeout.</b> When the user navigates away or closes the tab, the heartbeats
+      stop. After 10s of silence the row's timeout lapses and the delayed service flushes its last snapshot —
+      the final <code>Page Viewed Completed</code> with the total dwell time — into ingestion. No client request
+      is needed at exit, which is what makes it reliable and what lets us capture the <b>final page view</b> of
+      a session.</p>
+
+      <h3>What you're seeing in this demo</h3>
+      <ul>
+        <li><b>Network tab</b> = open DevTools → Network and filter by <code>delayed</code> to watch the 1s
+          heartbeat POSTs to <code>/httpapi/delayed</code>.</li>
+        <li><b>Delayed service</b> table = rows currently held, with their countdown to flush. Navigate
+          Page 1 → Page 2 and watch Page 1's row tick down from 10s, then disappear.</li>
+        <li><b>Ingested events pool</b> = what ingestion received, tagged by source: <code>instant</code>
+          (page views), <code>http-api</code> (regular events), <code>delayed-expired</code> (delayed events
+          flushed on timeout).</li>
+        <li><b>Raw request</b> = click any row to see the exact HTTP body it arrived in.</li>
+      </ul>
+    </details>
+
+    <div class="local" id="dwell-local">initializing…</div>
+    <div class="controls">
+      <button id="dwell-http-btn">Track event via HTTP API</button>
+      <button id="dwell-reset-btn">Reset POC state</button>
+    </div>
+
+    <div class="panel">
+      <div class="card">
+        <h2>Delayed service (held events)</h2>
+        <table id="dwell-delayed">
+          <thead><tr><th>id</th><th>timeout</th><th>events</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="card">
+        <h2>Ingested events pool</h2>
+        <table id="dwell-ingested">
+          <thead><tr><th>#</th><th>source</th><th>event</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top: 16px">
+      <h2>Raw request <span class="muted">— click any row above</span></h2>
+      <pre id="dwell-raw" class="raw">Click an event in either table to see the raw HTTP request body it arrived in.</pre>
+    </div>
+
+    <script>
+      window.DWELL_PAGE = { name: 'Page 2', path: '/engaged-dwell-poc/page2.html' };
+    </script>
+    <script type="module" src="/engaged-dwell-poc/client.js"></script>
+  </body>
+</html>

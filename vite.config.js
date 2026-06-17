@@ -4,6 +4,7 @@ import path from 'path';
 import fs from 'fs';
 import glob from 'fast-glob';
 import { createMockApi } from './test-server/mock-api.js';
+import { createDelayedEventsApi } from './test-server/engaged-dwell-poc/server.js';
 
 const packagesDir = path.resolve(__dirname, 'packages');
 const testServerDir = path.resolve(__dirname, 'test-server');
@@ -153,5 +154,6 @@ export default defineConfig({
     fileListingPlugin(),
     spaRoutingPlugin(),
     createMockApi(),
+    createDelayedEventsApi(),
   ],
 });
