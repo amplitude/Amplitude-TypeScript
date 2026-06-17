@@ -25,6 +25,7 @@ import {
   createMouseMoveObservable,
 } from './observables';
 import { DataExtractor } from './data-extractor';
+import { subscribeToElementSelectorConfig } from './element-selector-config';
 import { trackErrorClicks } from './autocapture/track-error-click';
 import { trackThrashedCursor } from './autocapture/track-thrashed-cursor';
 
@@ -234,6 +235,14 @@ export const frustrationPlugin = (options: FrustrationInteractionsOptions = {}):
 
     // Create observables for events on the window
     const allObservables = createObservables();
+
+    // Keep the data extractor's selector engine in sync with element-selector
+    // remote config so frustration events emit the same selectors as the rest
+    // of autocapture when an org enables the engine.
+    const elementSelectorConfigCleanup = subscribeToElementSelectorConfig(config, dataExtractor);
+    if (elementSelectorConfigCleanup) {
+      subscriptions.push({ unsubscribe: elementSelectorConfigCleanup });
+    }
 
     // Create subscriptions only for enabled features
     if (rageClicksEnabled) {
