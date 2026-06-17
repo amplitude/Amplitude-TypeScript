@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.47.0-sr-trc-debug-log.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.47.0-sr-trc-debug-log.0...@amplitude/session-replay-browser@1.47.0-sr-trc-debug-log.1) (2026-06-17)
+
+
+### Features
+
+* **session-replay:** add TRC diagnostics gated on Debug log level with immediate flush ([92bdf2f](https://github.com/amplitude/Amplitude-TypeScript/commit/92bdf2f92ecd749a33166626d41a92cecdfb8cd2))
+
+
+
+
+
 # [1.47.0-sr-trc-debug-log.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.46.0...@amplitude/session-replay-browser@1.47.0-sr-trc-debug-log.0) (2026-06-16)
 
 
