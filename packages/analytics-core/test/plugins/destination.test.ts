@@ -1717,7 +1717,7 @@ describe('destination', () => {
     let transportProvider: { send: jest.Mock };
 
     const createContext = (
-      event: { event_type: string; delay_id?: string },
+      event: { event_type: string; delay_id?: string; delay_timeout?: number },
       callback = jest.fn(),
       timeout = 0,
     ): Context => ({
@@ -1755,7 +1755,8 @@ describe('destination', () => {
 
     test('should send delayed events to /delayed endpoint', async () => {
       const delayId = 'delay-123';
-      const event = { event_type: 'delayed_event', delay_id: delayId };
+      const delayTimeout = 5000;
+      const event = { event_type: 'delayed_event', delay_id: delayId, delay_timeout: delayTimeout };
       const callback = jest.fn();
       await flushQueue([createContext(event, callback)]);
 
@@ -1764,7 +1765,31 @@ describe('destination', () => {
         delayedUrl,
         expect.objectContaining({
           id: delayId,
-          events: [expect.objectContaining({ event_type: 'delayed_event', delay_id: delayId })],
+          timeout: delayTimeout,
+          events: [
+            expect.objectContaining({ event_type: 'delayed_event', delay_id: delayId, delay_timeout: delayTimeout }),
+          ],
+          instant_events: [],
+        }),
+        true,
+      );
+      expectSuccess(callback, event);
+    });
+
+    test('should send instant_events to /delayed endpoint when delay_timeout is not set', async () => {
+      const delayId = 'delay-123';
+      const event = { event_type: 'instant_event', delay_id: delayId };
+      const callback = jest.fn();
+      await flushQueue([createContext(event, callback)]);
+
+      expect(transportProvider.send).toHaveBeenCalledTimes(1);
+      expect(transportProvider.send).toHaveBeenCalledWith(
+        delayedUrl,
+        expect.objectContaining({
+          id: delayId,
+          timeout: 0,
+          events: [],
+          instant_events: [expect.objectContaining({ event_type: 'instant_event', delay_id: delayId })],
         }),
         true,
       );
@@ -1773,10 +1798,14 @@ describe('destination', () => {
 
     test('should send /delayed and regular events on same flush', async () => {
       const delayId = 'delay-123';
+      const delayTimeout = 5000;
       const regularCallback = jest.fn();
       const delayedCallback = jest.fn();
       const regularContext = createContext({ event_type: 'regular_event' }, regularCallback);
-      const delayedContext = createContext({ event_type: 'delayed_event', delay_id: delayId }, delayedCallback);
+      const delayedContext = createContext(
+        { event_type: 'delayed_event', delay_id: delayId, delay_timeout: delayTimeout },
+        delayedCallback,
+      );
 
       await flushQueue([regularContext, delayedContext]);
 
@@ -1794,7 +1823,11 @@ describe('destination', () => {
         delayedUrl,
         expect.objectContaining({
           id: delayId,
-          events: [expect.objectContaining({ event_type: 'delayed_event', delay_id: delayId })],
+          timeout: delayTimeout,
+          events: [
+            expect.objectContaining({ event_type: 'delayed_event', delay_id: delayId, delay_timeout: delayTimeout }),
+          ],
+          instant_events: [],
         }),
         true,
       );
@@ -1803,10 +1836,17 @@ describe('destination', () => {
     });
 
     test('should send delayed events with different delay_ids on same flush', async () => {
+      const delayTimeout = 5000;
       const callbackA = jest.fn();
       const callbackB = jest.fn();
-      const delayedContextA = createContext({ event_type: 'delayed_event_a', delay_id: 'delay-a' }, callbackA);
-      const delayedContextB = createContext({ event_type: 'delayed_event_b', delay_id: 'delay-b' }, callbackB);
+      const delayedContextA = createContext(
+        { event_type: 'delayed_event_a', delay_id: 'delay-a', delay_timeout: delayTimeout },
+        callbackA,
+      );
+      const delayedContextB = createContext(
+        { event_type: 'delayed_event_b', delay_id: 'delay-b', delay_timeout: delayTimeout },
+        callbackB,
+      );
 
       await flushQueue([delayedContextA, delayedContextB]);
 
@@ -1816,7 +1856,15 @@ describe('destination', () => {
         delayedUrl,
         expect.objectContaining({
           id: 'delay-a',
-          events: [expect.objectContaining({ event_type: 'delayed_event_a', delay_id: 'delay-a' })],
+          timeout: delayTimeout,
+          events: [
+            expect.objectContaining({
+              event_type: 'delayed_event_a',
+              delay_id: 'delay-a',
+              delay_timeout: delayTimeout,
+            }),
+          ],
+          instant_events: [],
         }),
         true,
       );
@@ -1825,7 +1873,15 @@ describe('destination', () => {
         delayedUrl,
         expect.objectContaining({
           id: 'delay-b',
-          events: [expect.objectContaining({ event_type: 'delayed_event_b', delay_id: 'delay-b' })],
+          timeout: delayTimeout,
+          events: [
+            expect.objectContaining({
+              event_type: 'delayed_event_b',
+              delay_id: 'delay-b',
+              delay_timeout: delayTimeout,
+            }),
+          ],
+          instant_events: [],
         }),
         true,
       );

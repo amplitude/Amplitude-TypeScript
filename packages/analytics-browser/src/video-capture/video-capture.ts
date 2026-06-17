@@ -5,14 +5,20 @@ import {
   EmbeddedVideoPlayer,
   VideoVendor,
   UUID,
+  BaseEvent,
 } from '@amplitude/analytics-core';
+import Heartbeat from '@amplitude/analytics-core/src/heartbeat';
 
+//const DEFAULT_HEARTBEAT_INTERVAL = 60_000;
+const DEFAULT_HEARTBEAT_INTERVAL = 500;
+const DEFAULT_HEARTBEAT_DELAY_TIMEOUT = 3_600_000; // 1 hour
 export class VideoCapture {
   private videoEl: HTMLVideoElement | null = null;
+  private heartbeat: Heartbeat | null = null;
   private embeddedVideoPlayer: EmbeddedVideoPlayer | null = null;
   private vendor?: VideoVendor;
   private extraEventProperties: Record<string, string | number | boolean> = {};
-
+  private stopEvent: BaseEvent | null = null;
   private listeners: ((previousState: VideoState, nextState: VideoState) => void)[] = [];
   private onRemoveListeners: (() => void)[] = [];
 
@@ -68,10 +74,37 @@ export class VideoCapture {
   captureVideoStarted(): VideoCapture {
     this.listeners.push((previousState, nextState) => {
       if (previousState.playbackState !== 'playing' && nextState.playbackState === 'playing') {
-        // TODO: placeholder for Heartbeat Start Event
-        this.amplitude.track('Video Content Started', {
-          ...nextState.lastEvent,
-          ...this.extraEventProperties,
+        // Queue up a stop event to go along with the start event
+        const startEvent = {
+          event_type: 'Video Content Started',
+          event_properties: {
+            ...nextState.lastEvent,
+            ...this.extraEventProperties,
+          },
+        };
+        this.stopEvent = {
+          ...startEvent,
+          event_type: 'Video Content Stopped',
+          event_properties: {
+            ...nextState.lastEvent,
+            watch_duration: nextState.watchTime,
+            position: nextState.position,
+            percent_completed: ((nextState.position ?? 0) / (nextState.lastEvent?.duration ?? 0)) * 100,
+            ...this.extraEventProperties,
+          },
+        };
+        const start = this.heartbeat?.trackNoDelay(startEvent);
+        const stop = this.heartbeat?.track(this.stopEvent);
+
+        // if either start or stop fails, stop capturing
+        void Promise.all([start, stop]).then((results) => {
+          results.forEach((result) => {
+            if (result && (result.code < 200 || result.code >= 400)) {
+              // delayed event service is down, stop capturing
+              // TODO: add a logging event here
+              this.stop();
+            }
+          });
         });
       }
     });
@@ -84,12 +117,26 @@ export class VideoCapture {
    */
   captureVideoStopped(): VideoCapture {
     this.listeners.push((previousState, nextState) => {
-      if (previousState.playbackState === 'playing' && nextState.playbackState !== 'playing') {
-        // placeholder for Heartbeat Stop Event
-        this.amplitude.track('Video Content Stopped', {
-          ...nextState.lastEvent,
+      // update the delayed event properties to have
+      // the most up-to-date values
+      if (this.stopEvent) {
+        this.stopEvent.event_properties = {
+          ...this.stopEvent.event_properties,
           watch_duration: nextState.watchTime,
+          position: nextState.position,
+          percent_completed: ((nextState.position ?? 0) / (nextState.lastEvent?.duration ?? 0)) * 100,
           ...this.extraEventProperties,
+        };
+      }
+      if (previousState.playbackState === 'playing' && nextState.playbackState !== 'playing') {
+        void this.heartbeat?.flush().then((results) => {
+          results.forEach((result) => {
+            if (result.code < 200 || result.code >= 400) {
+              // delayed event service is down, stop capturing
+              // TODO: add a logging event here
+              this.stop();
+            }
+          });
         });
       }
     });
@@ -106,6 +153,7 @@ export class VideoCapture {
    * @throws An error if the video element is not specified.
    */
   start(): VideoCapture {
+    this.heartbeat = new Heartbeat(this.amplitude, DEFAULT_HEARTBEAT_INTERVAL, DEFAULT_HEARTBEAT_DELAY_TIMEOUT);
     const videoEl = this.videoEl ?? this.embeddedVideoPlayer;
     if (!videoEl) {
       throw new Error(

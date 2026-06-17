@@ -15,4 +15,6 @@ export interface Payload {
 
 export interface DelayedPayload extends Payload {
   id: string;
+  timeout: number;
+  instant_events?: readonly Event[];
 }

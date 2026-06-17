@@ -267,7 +267,13 @@ export class Destination implements DestinationPlugin {
       );
       if (delayId) {
         serverUrl = `${serverUrl}/delayed`;
-        (payload as DelayedPayload).id = delayId;
+        const delayedPayload = payload as DelayedPayload;
+        delayedPayload.id = delayId;
+        const instantEvents = payload.events.filter((event) => !event.delay_timeout);
+        const delayedEvents = payload.events.filter((event) => event.delay_timeout);
+        delayedPayload.events = delayedEvents;
+        delayedPayload.instant_events = instantEvents;
+        delayedPayload.timeout = delayedEvents[0]?.delay_timeout || 0;
       }
       const res = await this.config.transportProvider.send(serverUrl, payload, shouldCompressUploadBody);
       if (res === null) {

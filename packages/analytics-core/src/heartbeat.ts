@@ -7,7 +7,7 @@ export default class Heartbeat {
   private delayId: string;
   private interval: NodeJS.Timeout | null = null;
 
-  constructor(private client: CoreClient, private pulse: number) {
+  constructor(private client: CoreClient, private pulse: number, private delayTimeout: number) {
     this.events = new Map<string, BaseEvent>();
     this.delayId = UUID();
   }
@@ -29,27 +29,37 @@ export default class Heartbeat {
   }
 
   async track(event: BaseEvent) {
-    if (!event.insert_id) {
-      event.insert_id = UUID();
-    }
-    if (!event.delay_id) {
-      event.delay_id = this.delayId;
-    }
+    event.insert_id = event.insert_id || UUID();
+    event.delay_id = event.delay_id || this.delayId;
+    event.delay_timeout = event.delay_timeout || this.delayTimeout;
     this.events.set(event.insert_id, event);
 
     // emit a heartbeat and restart the interval
-    return await this.resetHeartbeat();
+    const heartbeatResult = await this.resetHeartbeat();
+
+    // return the result for the event that was just tracked
+    return heartbeatResult.find((result) => result.event.insert_id === event.insert_id);
   }
 
-  async cancel(event: BaseEvent) {
-    if (event.insert_id) {
-      this.events.delete(event.insert_id);
+  async trackNoDelay(event: BaseEvent) {
+    event.insert_id = event.insert_id || UUID();
+    event.delay_id = event.delay_id || this.delayId;
+    delete event.delay_timeout;
+    return this.client.track(event).promise;
+  }
+
+  async flush() {
+    const trackedEvents = [];
+    for (const event of this.events.values()) {
+      const { event_type, event_properties, ...eventOptions } = event;
+      eventOptions.delay_timeout = 0;
+      const eventPromise = this.client.track(event_type, event_properties, eventOptions).promise;
+      trackedEvents.push(eventPromise);
     }
-    const res = await this.resetHeartbeat();
-    if (this.events.size === 0 && this.interval) {
-      clearInterval(this.interval);
-    }
-    return res;
+    this.interval && clearInterval(this.interval);
+    this.interval = null;
+    this.events.clear();
+    return Promise.all(trackedEvents);
   }
 
   async update(event: BaseEvent) {

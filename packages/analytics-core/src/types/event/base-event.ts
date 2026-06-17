@@ -53,4 +53,5 @@ export interface EventOptions {
   extra?: { [key: string]: any };
   groups?: { [key: string]: any } | undefined;
   delay_id?: string;
+  delay_timeout?: number;
 }
