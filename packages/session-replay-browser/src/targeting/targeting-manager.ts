@@ -74,6 +74,9 @@ export const evaluateTargetingAndStore = async ({
         variantKey: targetingResult?.sr_targeting_config?.key ?? null,
         matched: sessionTargetingMatch,
       });
+      // Flush now so the verdict ships immediately (vs the client's ~5-min timer). One capture
+      // POST per event — higher volume; revisit/gate before production.
+      void diagnosticsClient?._flush?.();
     } catch {
       // diagnostics is best-effort
     }
@@ -97,6 +100,7 @@ export const evaluateTargetingAndStore = async ({
         pageUrl: targetingParams?.page?.url,
         message: knownError.message,
       });
+      void diagnosticsClient?._flush?.();
     } catch {
       // diagnostics is best-effort
     }

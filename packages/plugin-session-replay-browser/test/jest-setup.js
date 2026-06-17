@@ -3,7 +3,10 @@ const { IDBFactory } = require('fake-indexeddb');
 const structuredClone = require('@ungap/structured-clone');
 const nodeFetch = require('node-fetch');
 
-global.structuredClone = structuredClone.default;
+// Prefer Node's native structuredClone (browser-equivalent: handles deep & circular object graphs,
+// e.g. fake-indexeddb cloning diagnostics/SR records). The @ungap polyfill overflows on such
+// graphs, so only use it as a fallback when native isn't available.
+global.structuredClone = typeof global.structuredClone === 'function' ? global.structuredClone : structuredClone.default;
 global.beforeEach(() => {
   indexedDB = new IDBFactory();
 });

@@ -111,6 +111,22 @@ describe('SessionReplayPlugin', () => {
       expect(init).toHaveBeenCalledWith('static_key', expect.objectContaining({ deviceId: customDeviceId }));
     });
 
+    test('creates an SR-owned diagnostics client sampled at 100% when logLevel is Debug', async () => {
+      const sessionReplay = new SessionReplayPlugin();
+      await sessionReplay.setup?.({ ...mockConfig, logLevel: LogLevel.Debug }, mockAmplitude);
+      const opts = init.mock.calls[init.mock.calls.length - 1][1];
+      const client = opts.diagnosticsClient as unknown as { config: { sampleRate: number } } | undefined;
+      expect(client?.config.sampleRate).toBe(1);
+    });
+
+    test('SR-owned diagnostics client is sampled at 0 when logLevel is not Debug', async () => {
+      const sessionReplay = new SessionReplayPlugin();
+      await sessionReplay.setup?.(mockConfig, mockAmplitude);
+      const opts = init.mock.calls[init.mock.calls.length - 1][1];
+      const client = opts.diagnosticsClient as unknown as { config: { sampleRate: number } } | undefined;
+      expect(client?.config.sampleRate).toBe(0);
+    });
+
     test('should handle errors during init', async () => {
       const sessionReplay = new SessionReplayPlugin();
       init.mockReturnValue({

@@ -880,6 +880,10 @@ export class SessionReplay implements AmplitudeSessionReplay {
         srId: deviceId != null && sessionId != null ? `${deviceId}/${sessionId}` : undefined,
         ...properties,
       });
+      // Flush immediately so the event ships now rather than on the client's ~5-min timer (and so
+      // short sessions that never reach the timer aren't lost). NOTE: this sends one capture POST
+      // per event — higher request volume; revisit/gate before production.
+      void this.config?.diagnosticsClient?._flush?.();
     } catch {
       // swallow — diagnostics is best-effort
     }

@@ -140,6 +140,9 @@ export class SessionReplayJoinedConfigGenerator {
                 targetingSegmentCount: Array.isArray(targetingSegments) ? targetingSegments.length : undefined,
                 hasPrivacy: !!privacyConfig,
               });
+              // Flush now (vs the client's ~5-min timer). One capture POST per event — higher
+              // volume; revisit/gate before production.
+              void diagnosticsClient?._flush?.();
             } catch {
               // diagnostics is best-effort
             }
@@ -165,6 +168,7 @@ export class SessionReplayJoinedConfigGenerator {
       this.localConfig.loggerProvider.error('Failed to generate joined config: ', error);
       try {
         this.localConfig.diagnosticsClient?.increment(SrDiagnostic.configFetchFailed);
+        void this.localConfig.diagnosticsClient?._flush?.();
       } catch {
         // diagnostics is best-effort
       }

@@ -1,8 +1,10 @@
 import {
   BrowserClient,
   BrowserConfig,
+  DiagnosticsClient,
   EnrichmentPlugin,
   Event,
+  LogLevel,
   SpecialEventType,
   getGlobalScope,
 } from '@amplitude/analytics-core';
@@ -114,9 +116,19 @@ export class SessionReplayPlugin implements EnrichmentPlugin<BrowserClient, Brow
         maxPersistedEventsSizeBytes: this.options.maxPersistedEventsSizeBytes,
         maxSingleEventSizeBytes: this.options.maxSingleEventSizeBytes,
         sendTimeoutMs: this.options.sendTimeoutMs,
-        // Forward the analytics SDK's diagnostics client so SR can ship TRC/recording-decision
-        // telemetry to Amplitude's diagnostics backend even when no replay is recorded.
-        diagnosticsClient: this.config.diagnosticsClient,
+        // Create a dedicated diagnostics client for SR rather than reusing the analytics SDK's:
+        // the analytics client's sample rate is server-controlled and can suppress SR diagnostics
+        // entirely. Gated on Debug log level so there's zero diagnostics volume in production
+        // (default Warn) and full sampling only when someone is actively debugging.
+        diagnosticsClient: new DiagnosticsClient(
+          this.config.apiKey,
+          this.config.loggerProvider,
+          this.config.serverZone,
+          {
+            enabled: true,
+            sampleRate: this.config.logLevel === LogLevel.Debug ? 1 : 0,
+          },
+        ),
       };
 
       await this.sessionReplay.init(config.apiKey, this.srInitOptions).promise;
