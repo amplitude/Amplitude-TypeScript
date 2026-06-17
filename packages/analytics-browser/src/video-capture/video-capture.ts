@@ -6,23 +6,22 @@ import {
   VideoVendor,
   UUID,
   BaseEvent,
+  getHeartbeatInstance,
 } from '@amplitude/analytics-core';
-import Heartbeat from '@amplitude/analytics-core/src/heartbeat';
-
-//const DEFAULT_HEARTBEAT_INTERVAL = 60_000;
-const DEFAULT_HEARTBEAT_INTERVAL = 500;
-const DEFAULT_HEARTBEAT_DELAY_TIMEOUT = 3_600_000; // 1 hour
 export class VideoCapture {
   private videoEl: HTMLVideoElement | null = null;
-  private heartbeat: Heartbeat | null = null;
+  private heartbeat: ReturnType<typeof getHeartbeatInstance>;
   private embeddedVideoPlayer: EmbeddedVideoPlayer | null = null;
   private vendor?: VideoVendor;
   private extraEventProperties: Record<string, string | number | boolean> = {};
   private stopEvent: BaseEvent | null = null;
   private listeners: ((previousState: VideoState, nextState: VideoState) => void)[] = [];
   private onRemoveListeners: (() => void)[] = [];
+  private playId: string | null = null;
 
-  constructor(private readonly amplitude: BrowserClient) {}
+  constructor(private readonly amplitude: BrowserClient) {
+    this.heartbeat = getHeartbeatInstance(this.amplitude);
+  }
 
   /**
    * Specify a video element to capture events from
@@ -74,38 +73,29 @@ export class VideoCapture {
   captureVideoStarted(): VideoCapture {
     this.listeners.push((previousState, nextState) => {
       if (previousState.playbackState !== 'playing' && nextState.playbackState === 'playing') {
-        // Queue up a stop event to go along with the start event
-        const startEvent = {
+        this.playId = UUID();
+        const startEvent: BaseEvent = {
+          insert_id: UUID(),
           event_type: 'Video Content Started',
           event_properties: {
-            ...nextState.lastEvent,
+            ...this.parseStartEventProperties(nextState),
             ...this.extraEventProperties,
+            play_id: this.playId,
           },
         };
         this.stopEvent = {
           ...startEvent,
+          insert_id: UUID(),
           event_type: 'Video Content Stopped',
           event_properties: {
-            ...nextState.lastEvent,
-            watch_duration: nextState.watchTime,
-            position: nextState.position,
-            percent_completed: ((nextState.position ?? 0) / (nextState.lastEvent?.duration ?? 0)) * 100,
+            ...this.parseStopEventProperties(nextState),
             ...this.extraEventProperties,
+            stop_reason: 'timeout',
+            play_id: this.playId,
           },
         };
-        const start = this.heartbeat?.trackNoDelay(startEvent);
-        const stop = this.heartbeat?.track(this.stopEvent);
-
-        // if either start or stop fails, stop capturing
-        void Promise.all([start, stop]).then((results) => {
-          results.forEach((result) => {
-            if (result && (result.code < 200 || result.code >= 400)) {
-              // delayed event service is down, stop capturing
-              // TODO: add a logging event here
-              this.stop();
-            }
-          });
-        });
+        this.heartbeat.trackNoDelay(startEvent).catch(this.stop.bind(this));
+        this.heartbeat.track(this.stopEvent).catch(this.stop.bind(this));
       }
     });
     return this;
@@ -122,22 +112,20 @@ export class VideoCapture {
       if (this.stopEvent) {
         this.stopEvent.event_properties = {
           ...this.stopEvent.event_properties,
-          watch_duration: nextState.watchTime,
-          position: nextState.position,
-          percent_completed: ((nextState.position ?? 0) / (nextState.lastEvent?.duration ?? 0)) * 100,
+          ...this.parseStopEventProperties(nextState),
           ...this.extraEventProperties,
         };
       }
-      if (previousState.playbackState === 'playing' && nextState.playbackState !== 'playing') {
-        void this.heartbeat?.flush().then((results) => {
-          results.forEach((result) => {
-            if (result.code < 200 || result.code >= 400) {
-              // delayed event service is down, stop capturing
-              // TODO: add a logging event here
-              this.stop();
-            }
-          });
-        });
+      if (
+        previousState.playbackState === 'playing' &&
+        nextState.playbackState !== 'playing' &&
+        this.stopEvent
+      ) {
+        this.stopEvent.event_properties = {
+          ...this.stopEvent.event_properties,
+          stop_reason: nextState.playbackState,
+        };
+        this.heartbeat.trackNoDelay(this.stopEvent).catch(this.stop.bind(this));
       }
     });
     return this;
@@ -153,7 +141,6 @@ export class VideoCapture {
    * @throws An error if the video element is not specified.
    */
   start(): VideoCapture {
-    this.heartbeat = new Heartbeat(this.amplitude, DEFAULT_HEARTBEAT_INTERVAL, DEFAULT_HEARTBEAT_DELAY_TIMEOUT);
     const videoEl = this.videoEl ?? this.embeddedVideoPlayer;
     if (!videoEl) {
       throw new Error(
@@ -183,6 +170,23 @@ export class VideoCapture {
   stop() {
     this.onRemoveListeners.forEach((listener) => listener());
     this.onRemoveListeners = [];
+    this.heartbeat.stop();
+  }
+
+  parseStartEventProperties(nextState: VideoState): Record<string, string | number | boolean> {
+    return {
+      duration: nextState.lastEvent?.duration ?? 0,
+      start_time: nextState.lastEvent?.start_time ?? 0,
+      position: nextState.position ?? 0,
+    };
+  }
+
+  parseStopEventProperties(nextState: VideoState): Record<string, string | number | boolean> {
+    return {
+      ...this.parseStartEventProperties(nextState),
+      watch_duration: nextState.watchTime ?? 0,
+      percent_completed: ((nextState.position ?? 0) / (nextState.lastEvent?.duration ?? 0)) * 100,
+    };
   }
 }
 
