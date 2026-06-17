@@ -14,7 +14,9 @@ Pod::Spec.new do |s|
   s.platforms    = { :ios => min_ios_version_supported }
   s.source       = { :git => "https://github.com/amplitude/Amplitude-TypeScript.git", :tag => "#{s.version}" }
 
-  s.source_files = "ios/**/*.{h,m,mm,swift}"
+  s.source_files = "ios/**/*.{h,m,mm,swift}", "cpp/**/*.{h,cpp}"
+  s.public_header_files = "ios/SRMaskingPrimitive.h", "ios/NativeSessionReplay-Bridging-Header.h"
+  s.private_header_files = "ios/fabric/**/*.h", "cpp/**/*.h"
 
   s.dependency 'AmplitudeSessionReplay', '>=0.11.1'
   s.dependency 'AmplitudeCore', '>=1.4.2'
@@ -24,6 +26,12 @@ Pod::Spec.new do |s|
   # See https://github.com/facebook/react-native/blob/febf6b7f33fdb4904669f99d795eba4c0f95d7bf/scripts/cocoapods/new_architecture.rb#L79.
   if respond_to?(:install_modules_dependencies, true)
     install_modules_dependencies(s)
+    # Fabric shadow-node C++ headers break Clang module dependency scanning.
+    existing_xcconfig = s.attributes_hash["pod_target_xcconfig"] || {}
+    s.pod_target_xcconfig = existing_xcconfig.merge({
+      "DEFINES_MODULE" => "NO",
+      "CLANG_ENABLE_EXPLICIT_MODULES" => "NO",
+    })
   else
     s.dependency "React-Core"
 

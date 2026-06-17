@@ -99,3 +99,21 @@ them by doing the following
   <WebView source={{ uri: 'https://reactnative.dev/' }} style={{ flex: 1 }} />
 </AmpMaskView>
 ```
+
+## React Native New Architecture (Fabric)
+
+This package includes dual-architecture native infrastructure (Paper + Fabric). The Fabric path powers layout-transparent masking primitives used by upcoming `AmpMask` APIs.
+
+**Requirements for the Fabric path:**
+
+- React Native **>= 0.77** (validated against 0.77.2)
+- **iOS:** set `:new_arch_enabled => true` in `use_react_native!` and run `RCT_NEW_ARCH_ENABLED=1 pod install`
+- **Android:** set `newArchEnabled=true` in `gradle.properties`
+
+Paper (`AmpMaskView` / `AMPMaskComponentView`) continues to work on older architectures without changes.
+
+The internal Fabric `SRMaskView` component uses a C++ ShadowNode with `display: contents`. On RN 0.77, layout transparency also requires passing `style={{ display: 'contents' }}` from JavaScript until the public `<AmpMask>` API ships (SDKRN-33).
+
+### On-device verification
+
+A standalone example app with a layout repro screen and native canary tests lives on the `fabric-verification-example` branch (not included in this package release). Use it to validate Fabric masking layout before adopting upcoming `<AmpMask>` APIs.

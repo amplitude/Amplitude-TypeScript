@@ -31,6 +31,69 @@ def supportsNamespace() {
   return (major == 7 && minor >= 3) || major >= 8
 }
 
+def patchShadowNodesHeader() {
+  def generatedDir = file("$buildDir/generated/source/codegen/jni/react/renderer/components/SRMaskViewSpec")
+  def shadowNodesHeader = new File(generatedDir, "ShadowNodes.h")
+
+  if (!shadowNodesHeader.exists()) {
+    throw new GradleException(
+      "[SessionReplayReactNative] Expected codegen ShadowNodes.h at ${shadowNodesHeader.absolutePath}. " +
+      "Ensure newArchEnabled=true and generateCodegenArtifactsFromSchema ran successfully."
+    )
+  }
+
+  def original = shadowNodesHeader.getText("UTF-8")
+  def pattern = /(?s)using SRMaskViewShadowNode = ConcreteViewShadowNode<.*?>;/
+
+  if (!(original =~ pattern)) {
+    throw new GradleException(
+      "[SessionReplayReactNative] patchShadowNodesHeader regex did not match ShadowNodes.h. " +
+      "React Native codegen output may have changed; update the patch task before shipping."
+    )
+  }
+
+  def replacement = """class SRMaskViewShadowNode final
+    : public ConcreteViewShadowNode<
+          SRMaskViewComponentName,
+          SRMaskViewProps,
+          SRMaskViewEventEmitter> {
+ public:
+  SRMaskViewShadowNode(
+      const ShadowNodeFragment& fragment,
+      const ShadowNodeFamily::Shared& family,
+      ShadowNodeTraits traits)
+      : ConcreteViewShadowNode(fragment, family, traits) {
+    initialize();
+  }
+
+  SRMaskViewShadowNode(
+      const ShadowNode& sourceShadowNode,
+      const ShadowNodeFragment& fragment)
+      : ConcreteViewShadowNode(sourceShadowNode, fragment) {
+    initialize();
+  }
+
+ private:
+  void initialize() {
+    traits_.unset(ShadowNodeTraits::Trait::ForceFlattenView);
+    auto style = yogaNode_.style();
+    style.setDisplay(yoga::Display::Contents);
+    yogaNode_.setStyle(style);
+  }
+};"""
+
+  def patched = (original =~ pattern).replaceFirst(replacement)
+  if (!patched.contains("ShadowNodeTraits.h")) {
+    patched = patched.replace(
+      "#include <react/renderer/components/view/ConcreteViewShadowNode.h>",
+      """#include <react/renderer/components/view/ConcreteViewShadowNode.h>
+#include <react/renderer/core/ShadowNodeTraits.h>
+#include <yoga/style/Style.h>"""
+    )
+  }
+  shadowNodesHeader.write(patched, "UTF-8")
+}
+
 android {
   if (supportsNamespace()) {
     namespace "com.amplitude.sessionreplayreactnative"
@@ -47,13 +110,41 @@ android {
   defaultConfig {
     minSdkVersion getExtOrIntegerDefault("minSdkVersion")
     targetSdkVersion getExtOrIntegerDefault("targetSdkVersion")
+    buildConfigField "boolean", "IS_NEW_ARCHITECTURE_ENABLED", isNewArchitectureEnabled().toString()
+    testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
+    if (isNewArchitectureEnabled()) {
+      externalNativeBuild {
+        cmake {
+          arguments "-DANDROID_STL=c++_shared"
+        }
+      }
+    }
+  }
+
+  buildFeatures {
+    buildConfig true
+    if (isNewArchitectureEnabled()) {
+      prefab true
+    }
+  }
+
+  if (isNewArchitectureEnabled()) {
+    externalNativeBuild {
+      cmake {
+        path "CMakeLists.txt"
+      }
+    }
   }
 
   buildTypes {
     release {
       minifyEnabled false
     }
+  }
+
+  packagingOptions {
+    pickFirst "lib/**/*.so"
   }
 
   lintOptions {
@@ -82,4 +173,23 @@ dependencies {
   //noinspection GradleDynamicVersion
   implementation "com.facebook.react:react-native:+"
   implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
+
+  androidTestImplementation "androidx.test.ext:junit:1.2.1"
+  androidTestImplementation "androidx.test:runner:1.6.2"
+}
+
+if (isNewArchitectureEnabled()) {
+  react {
+    jsRootDir = file("../src/specs/")
+    libraryName = "SRMaskViewSpec"
+    codegenJavaPackageName = "com.amplitude.sessionreplayreactnative"
+  }
+
+  afterEvaluate {
+    tasks.named("generateCodegenArtifactsFromSchema").configure {
+      doLast {
+        patchShadowNodesHeader()
+      }
+    }
+  }
 }

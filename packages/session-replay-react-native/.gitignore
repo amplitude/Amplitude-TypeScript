@@ -80,3 +80,8 @@ lib/
 # React Native Codegen
 ios/generated
 android/generated
+
+# Stray tsc/jest output in test/
+test/**/*.js
+test/**/*.js.map
+test/**/*.d.ts.map
