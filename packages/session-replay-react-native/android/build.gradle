@@ -113,28 +113,10 @@ android {
     buildConfigField "boolean", "IS_NEW_ARCHITECTURE_ENABLED", isNewArchitectureEnabled().toString()
     testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
-    if (isNewArchitectureEnabled()) {
-      externalNativeBuild {
-        cmake {
-          arguments "-DANDROID_STL=c++_shared"
-        }
-      }
-    }
   }
 
   buildFeatures {
     buildConfig true
-    if (isNewArchitectureEnabled()) {
-      prefab true
-    }
-  }
-
-  if (isNewArchitectureEnabled()) {
-    externalNativeBuild {
-      cmake {
-        path "CMakeLists.txt"
-      }
-    }
   }
 
   buildTypes {

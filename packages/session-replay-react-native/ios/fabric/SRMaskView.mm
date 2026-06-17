@@ -1,10 +1,10 @@
 #import "SRMaskView.h"
 
 #import "../SRMaskingPrimitive.h"
+#import "../../cpp/SRMaskViewComponentDescriptor.h"
 
 #ifdef RCT_NEW_ARCH_ENABLED
 
-#import <react/renderer/components/SRMaskViewSpec/ComponentDescriptors.h>
 #import <react/renderer/components/SRMaskViewSpec/EventEmitters.h>
 #import <react/renderer/components/SRMaskViewSpec/Props.h>
 #import <react/renderer/components/SRMaskViewSpec/RCTComponentViewHelpers.h>
@@ -40,12 +40,11 @@ using namespace facebook::react;
 
 + (ComponentDescriptorProvider)componentDescriptorProvider
 {
-  return concreteComponentDescriptorProvider<SRMaskViewComponentDescriptor>();
+  return concreteComponentDescriptorProvider<SRMaskViewCustomComponentDescriptor>();
 }
 
 - (void)updateProps:(const Props::Shared &)props oldProps:(const Props::Shared &)oldProps
 {
-  const auto &oldViewProps = *std::static_pointer_cast<const SRMaskViewProps>(_props);
   const auto &newViewProps = *std::static_pointer_cast<const SRMaskViewProps>(props);
 
   _enabled = newViewProps.enabled;
@@ -53,6 +52,7 @@ using namespace facebook::react;
   _maskLevel = [NSString stringWithUTF8String:newViewProps.maskLevel.c_str()];
 
   [super updateProps:props oldProps:oldProps];
+  [self reapplyMaskingToAllChildren];
 }
 
 - (void)mountChildComponentView:(UIView<RCTComponentViewProtocol> *)childComponentView index:(NSInteger)index
@@ -63,13 +63,21 @@ using namespace facebook::react;
 
 - (void)unmountChildComponentView:(UIView<RCTComponentViewProtocol> *)childComponentView index:(NSInteger)index
 {
-  [SRMaskingRegistry unmaskView:childComponentView];
+  [SRMaskingRegistry clearForView:childComponentView];
   [super unmountChildComponentView:childComponentView index:index];
+}
+
+- (void)reapplyMaskingToAllChildren
+{
+  for (UIView *subview in self.subviews) {
+    [self applyMaskingToChild:subview];
+  }
 }
 
 - (void)applyMaskingToChild:(UIView *)childView
 {
   if (!_enabled) {
+    [SRMaskingRegistry clearForView:childView];
     return;
   }
 

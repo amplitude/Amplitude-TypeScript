@@ -6,15 +6,17 @@
 
 namespace facebook::react {
 
+// Named distinctly from codegen's SRMaskViewShadowNode typealias to avoid ODR
+// clashes with generated ShadowNodes.h while reusing the same component name.
 extern const char SRMaskViewComponentName[];
 
-class SRMaskViewShadowNode final
+class SRMaskViewContentsShadowNode final
     : public ConcreteViewShadowNode<
           SRMaskViewComponentName,
           SRMaskViewProps,
           SRMaskViewEventEmitter> {
  public:
-  SRMaskViewShadowNode(
+  SRMaskViewContentsShadowNode(
       const ShadowNodeFragment& fragment,
       const ShadowNodeFamily::Shared& family,
       ShadowNodeTraits traits)
@@ -22,7 +24,7 @@ class SRMaskViewShadowNode final
     initialize();
   }
 
-  SRMaskViewShadowNode(
+  SRMaskViewContentsShadowNode(
       const ShadowNode& sourceShadowNode,
       const ShadowNodeFragment& fragment)
       : ConcreteViewShadowNode(sourceShadowNode, fragment) {

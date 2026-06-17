@@ -5,9 +5,7 @@
 
 namespace facebook::react {
 
-extern const char SRMaskViewComponentName[] = "SRMaskView";
-
-void SRMaskViewShadowNode::initialize() {
+void SRMaskViewContentsShadowNode::initialize() {
   traits_.unset(ShadowNodeTraits::Trait::ForceFlattenView);
 
   auto style = yogaNode_.style();

@@ -112,7 +112,7 @@ This package includes dual-architecture native infrastructure (Paper + Fabric). 
 
 Paper (`AmpMaskView` / `AMPMaskComponentView`) continues to work on older architectures without changes.
 
-The internal Fabric `SRMaskView` component uses a C++ ShadowNode with `display: contents`. On RN 0.77, layout transparency also requires passing `style={{ display: 'contents' }}` from JavaScript until the public `<AmpMask>` API ships (SDKRN-33).
+The internal Fabric `SRMaskView` component uses a C++ ShadowNode with `display: contents` so masking wrappers do not affect Yoga layout (no JS `display` override required).
 
 ### On-device verification
 
