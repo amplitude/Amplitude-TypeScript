@@ -14,9 +14,16 @@ class SRMaskView(context: Context) : ReactViewGroup(context) {
     private set
 
   fun setMaskingProps(enabled: Boolean, unmask: Boolean, maskLevel: String) {
+    val maskingPropsChanged =
+      this.enabled != enabled || this.unmask != unmask || this.maskLevel != maskLevel
+
     this.enabled = enabled
     this.unmask = unmask
     this.maskLevel = maskLevel
+
+    if (maskingPropsChanged) {
+      applyMaskingToChildren()
+    }
   }
 
   override fun addView(child: View, index: Int) {
@@ -29,12 +36,14 @@ class SRMaskView(context: Context) : ReactViewGroup(context) {
     super.removeView(view)
   }
 
-  private fun applyMaskingToChild(child: View) {
-    if (!enabled) {
-      return
+  private fun applyMaskingToChildren() {
+    for (i in 0 until childCount) {
+      applyMaskingToChild(getChildAt(i))
     }
+  }
 
-    if (unmask) {
+  private fun applyMaskingToChild(child: View) {
+    if (!enabled || unmask) {
       SRMaskingRegistry.unmask(child)
       return
     }

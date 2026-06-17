@@ -45,14 +45,21 @@ using namespace facebook::react;
 
 - (void)updateProps:(const Props::Shared &)props oldProps:(const Props::Shared &)oldProps
 {
-  const auto &oldViewProps = *std::static_pointer_cast<const SRMaskViewProps>(_props);
   const auto &newViewProps = *std::static_pointer_cast<const SRMaskViewProps>(props);
+  NSString *newMaskLevel = [NSString stringWithUTF8String:newViewProps.maskLevel.c_str()];
+  BOOL maskingPropsChanged =
+      _enabled != newViewProps.enabled || _unmask != newViewProps.unmask ||
+      ![_maskLevel isEqualToString:newMaskLevel];
 
   _enabled = newViewProps.enabled;
   _unmask = newViewProps.unmask;
-  _maskLevel = [NSString stringWithUTF8String:newViewProps.maskLevel.c_str()];
+  _maskLevel = newMaskLevel;
 
   [super updateProps:props oldProps:oldProps];
+
+  if (maskingPropsChanged) {
+    [self applyMaskingToChildren];
+  }
 }
 
 - (void)mountChildComponentView:(UIView<RCTComponentViewProtocol> *)childComponentView index:(NSInteger)index
@@ -67,13 +74,16 @@ using namespace facebook::react;
   [super unmountChildComponentView:childComponentView index:index];
 }
 
+- (void)applyMaskingToChildren
+{
+  for (UIView *childView in self.subviews) {
+    [self applyMaskingToChild:childView];
+  }
+}
+
 - (void)applyMaskingToChild:(UIView *)childView
 {
-  if (!_enabled) {
-    return;
-  }
-
-  if (_unmask) {
+  if (!_enabled || _unmask) {
     [SRMaskingRegistry unmaskView:childView];
     return;
   }
