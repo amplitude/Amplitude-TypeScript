@@ -196,7 +196,7 @@ const WRAPS: { kind: WrapKind; label: string; frame: keyof typeof maskOutline }[
     { kind: 'view', label: '2. plain <View>', frame: 'neutral' },
     { kind: 'mask', label: '3. <AmpMaskView mask>', frame: 'masked' },
     { kind: 'unmask', label: '4. <AmpMaskView unmask>', frame: 'unmasked' },
-    { kind: 'sr', label: '5. <SRMaskView> (display: contents)', frame: 'sr' },
+    { kind: 'sr', label: '5. <SRMaskView> (native only)', frame: 'sr' },
   ];
 
 /** Applies one of the five wrappers around identical content. */
@@ -215,11 +215,9 @@ function Wrap({
     case 'unmask':
       return <AmpMaskView mask="amp-unmask">{children}</AmpMaskView>;
     case 'sr':
-      return (
-        <SRMaskView enabled style={{ display: 'contents' as 'none' }}>
-          {children}
-        </SRMaskView>
-      );
+      // No JS display override — layout transparency must come from the native
+      // SRMaskViewContentsShadowNode (display:contents), not Yoga via style.
+      return <SRMaskView enabled>{children}</SRMaskView>;
     case 'none':
     default:
       return <>{children}</>;
@@ -288,7 +286,7 @@ function Scenario({
 /**
  * Repro for the customer masking-layout report: does <AmpMaskView> introduce a
  * native layout boundary that shifts children vs no wrapper / a plain <View> /
- * the display:contents <SRMaskView>? Each scenario renders identical content
+ * the native display:contents <SRMaskView>? Each scenario renders identical content
  * under all five wrappers. onLayout values are logged under [mask-repro].
  */
 function MaskReproScreen(_props: MaskReproScreenNavigationProps) {
