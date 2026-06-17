@@ -30,7 +30,7 @@
  */
 
 import { ResolvedSelectorConfig, SelectorEngine } from './types';
-import { legacyCssPath } from './legacy-css-path';
+import { safeLegacyCssPath } from './legacy-css-path';
 
 /**
  * Generate a selector for `el`, transparently routing to the legacy
@@ -65,13 +65,14 @@ export const generateSelector = (
   }
   // Engine-null branch. We don't have a live engine to consult, so we route
   // straight to the legacy walker — the same selector the SDK would be
-  // emitting if `config.enabled === false`. `config` is accepted for symmetry
-  // with the engine signature and so future versions can extend behavior
-  // without a breaking change.
+  // emitting if `config.enabled === false`.
+  //
+  // `config` is intentionally inert here: call sites with `engine: null`
+  // (boot-time Chrome extension, inert dashboard context) have no strategy
+  // engine to run. Passing `enabled: true` cannot take effect without a live
+  // engine — legacyCssPath is the only output available. `config` is accepted
+  // for signature symmetry with the engine-present branch and so future
+  // versions can extend behavior without a breaking change.
   void config;
-  try {
-    return legacyCssPath(el);
-  } catch {
-    return '';
-  }
+  return safeLegacyCssPath(el);
 };

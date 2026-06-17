@@ -29,7 +29,7 @@
 import { ElementSelectorLogger, ResolvedSelectorConfig, SelectorEngine } from './types';
 import { runOrchestrator, OrchestratorOptions } from './orchestrator';
 import { fallbackCssPath } from './fallback-css-path';
-import { legacyCssPath } from './legacy-css-path';
+import { safeLegacyCssPath } from './legacy-css-path';
 
 export interface CreateSelectorEngineOptions {
   /** Optional document or shadow root for uniqueness checks. Defaults per-call to the target's owner document. */
@@ -78,7 +78,7 @@ export function createSelectorEngine(
       // false" a one-config-fetch revert for both the SDK and the dashboard —
       // they both go through this entry point now.
       if (!config.enabled) {
-        return safeLegacyCssPath(el);
+        return safeLegacyCssPath(el, logger);
       }
 
       // Engine path: try the strategy chain, then the hardened fallback. Both
@@ -96,7 +96,7 @@ export function createSelectorEngine(
       } catch (e) {
         const message = e instanceof Error ? e.message : String(e);
         logger?.warn(`@amplitude/element-selector: strategy chain threw — falling back to legacy cssPath: ${message}`);
-        return safeLegacyCssPath(el);
+        return safeLegacyCssPath(el, logger);
       }
     },
 
@@ -127,19 +127,4 @@ export function createSelectorEngine(
       };
     },
   };
-
-  // Local wrapper so a thrown error in the legacy walker (extremely unlikely
-  // — Element inputs only — but defensible if a host environment is missing
-  // `CSS.escape` or `Node` constants) doesn't escape `generate` and crash the
-  // caller. Returns the empty string in that pathological case; consumers
-  // already coalesce empty results to a sentinel.
-  function safeLegacyCssPath(el: Element): string {
-    try {
-      return legacyCssPath(el);
-    } catch (e) {
-      const message = e instanceof Error ? e.message : String(e);
-      logger?.warn(`@amplitude/element-selector: legacyCssPath threw — emitting empty selector: ${message}`);
-      return '';
-    }
-  }
 }
