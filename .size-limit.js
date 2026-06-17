@@ -22,9 +22,15 @@ const limits = [
     // The package isn't published as a standalone bundle; this entry exists to
     // catch raw-library bloat. The integration cost into the SDK is already
     // measured by the analytics-browser bundle entry above.
+    //
+    // Bumped from 5kb → 7kb to absorb the legacy cssPath walker and the
+    // generateSelector top-level helper that moved into this package
+    // (consolidation from plugin-autocapture-browser + session-replay-ui).
+    // Current actual: ~2.7kb gzipped. The cap still catches a 2-3x runaway
+    // without being so loose that it ignores real bloat.
     name: '@amplitude/element-selector (gzipped esm)',
     path: './packages/element-selector/lib/esm/index.js',
-    limit: '5kb',
+    limit: '7kb',
     brotli: false,
   },
 ]
