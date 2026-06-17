@@ -6,11 +6,10 @@ import {
   VideoVendor,
   UUID,
   BaseEvent,
+  Heartbeat,
 } from '@amplitude/analytics-core';
-import Heartbeat from '@amplitude/analytics-core/src/heartbeat';
 
-//const DEFAULT_HEARTBEAT_INTERVAL = 60_000;
-const DEFAULT_HEARTBEAT_INTERVAL = 500;
+const DEFAULT_HEARTBEAT_INTERVAL = 60_000;
 const DEFAULT_HEARTBEAT_DELAY_TIMEOUT = 3_600_000; // 1 hour
 export class VideoCapture {
   private videoEl: HTMLVideoElement | null = null;
@@ -183,6 +182,9 @@ export class VideoCapture {
   stop() {
     this.onRemoveListeners.forEach((listener) => listener());
     this.onRemoveListeners = [];
+    void this.heartbeat?.flush();
+    this.heartbeat = null;
+    this.stopEvent = null;
   }
 }
 
