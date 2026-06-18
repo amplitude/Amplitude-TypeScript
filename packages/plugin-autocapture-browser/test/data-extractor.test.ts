@@ -463,8 +463,7 @@ describe('data extractor', () => {
       const button = document.getElementById('test-button');
       dataExtractor.updateSelectorConfig({ enabled: true });
       const result = dataExtractor.getElementPath(button);
-      expect(typeof result).toBe('string');
-      expect(result.length).toBeGreaterThan(0);
+      expect(result).toEqual('button#test-button');
     });
 
     test('handles a null payload (falls back to dormant defaults)', () => {
