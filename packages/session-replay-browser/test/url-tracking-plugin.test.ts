@@ -250,6 +250,33 @@ describe('URL Tracking Plugin', () => {
       expect(Reflect.get(win, 'clearInterval')).toHaveBeenCalledWith(123);
     });
 
+    test('polling calls the log callback on every tick when provided', () => {
+      const cb = jest.fn();
+      const log = jest.fn();
+      const win = createMockGlobalScope() as unknown as Window;
+      subscribeToUrlChanges(win, cb, {
+        enablePolling: true,
+        pollingInterval: 1000,
+        log,
+      });
+      const setIntervalMock = Reflect.get(win, 'setInterval') as jest.Mock;
+      const tick = setIntervalMock.mock.calls[0][0] as (this: void) => void;
+
+      // Unchanged URL: log still fires (proves the loop is alive), cb does not.
+      tick.call(undefined);
+      expect(log).toHaveBeenCalledTimes(1);
+      expect(log.mock.calls[0][0]).toContain('URL polling tick');
+      expect(cb).not.toHaveBeenCalled();
+
+      // Changed URL: log fires again and cb is notified.
+      if (win.location) {
+        win.location.href = 'https://example.com/polled';
+      }
+      tick.call(undefined);
+      expect(log).toHaveBeenCalledTimes(2);
+      expect(cb).toHaveBeenCalledWith('https://example.com/polled');
+    });
+
     test('polling dedupes repeated ticks when href is unchanged', () => {
       const cb = jest.fn();
       const win = createMockGlobalScope() as unknown as Window;

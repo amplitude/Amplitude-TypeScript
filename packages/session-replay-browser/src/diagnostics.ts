@@ -22,6 +22,8 @@ export const SrDiagnostic = {
   configFetchFailed: `${p}.config.fetch_failed`,
   configReceived: `${p}.config.received`, // event (with props)
 
+  targetingTrigger: `${p}.targeting.trigger`, // event: targeting evaluation triggered
+
   // ── Targeting evaluation (evaluateTargetingAndCapture) ────────────────────
   // Q2 (did eval run?), Q3 (working/failed?), Q4 (missing value?), Q5 (all params).
   evalTrigger: (trigger: string) => `${p}.eval.${trigger}`, // init | urlchange | event
@@ -54,4 +56,9 @@ export const SrDiagnostic = {
   // ── SPA URL change (setupUrlChangeListener) ──────────────────────────────
   urlChange: `${p}.url_change`,
   urlChangeEvent: `${p}.url_change`, // event (with props); same name, logs vs metric
+  // Was the URL-change listener even wired up? (covers "the SDK never saw any navigation"
+  // because the listener was never attached — e.g. no targeting config, or no global scope.)
+  urlListenerSetup: `${p}.url_listener.setup`, // event: the needsUrlTracking decision + its inputs
+  urlListenerAttached: `${p}.url_listener.attached`, // event: subscribeToUrlChanges succeeded (with polling opts)
+  urlListenerSkipped: `${p}.url_listener.skipped`, // counter + event: listener NOT attached (with reason)
 } as const;

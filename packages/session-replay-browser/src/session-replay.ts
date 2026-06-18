@@ -177,6 +177,11 @@ export class SessionReplay implements AmplitudeSessionReplay {
 
     const globalScope = getGlobalScope() as Window | undefined;
     if (!globalScope?.location) {
+      // No window/location (SSR, worker, or pre-render) — the listener can't attach, so TRC will
+      // never re-evaluate on navigation. Surface it rather than failing silently.
+      this.incrementDiagnostic(SrDiagnostic.urlListenerSkipped);
+      this.recordDiagnosticEvent(SrDiagnostic.urlListenerSkipped, { reason: 'no_global_scope' });
+      this.loggerProvider.debug('URL-change listener not attached: no global scope/location.');
       return;
     }
 
@@ -215,10 +220,22 @@ export class SessionReplay implements AmplitudeSessionReplay {
     // hashchange — so SPA navigations that bypass the history API never re-evaluate TRC and
     // recording never starts on the new URL (enableUrlChangePolling previously only affected the
     // rrweb URL-tracking plugin, which runs only once recording is already active).
+    const enablePolling = this.config?.enableUrlChangePolling ?? false;
     const unsubscribe = subscribeToUrlChanges(globalScope, onUrlChange, {
-      enablePolling: this.config?.enableUrlChangePolling ?? false,
+      enablePolling,
+      pollingInterval: this.config?.urlChangePollingInterval,
+      // Mirror each poll tick to the console (Debug level) so we can confirm polling is firing.
+      log: this.loggerProvider.debug.bind(this.loggerProvider),
+    });
+    // Confirm the listener is actually live, and under what settings — if recording never starts on
+    // navigation, this tells us whether the listener existed and whether polling (the fallback for
+    // SPAs that bypass the History API) was on.
+    this.recordDiagnosticEvent(SrDiagnostic.urlListenerAttached, {
+      hasTargeting,
+      enablePolling,
       pollingInterval: this.config?.urlChangePollingInterval,
     });
+    this.loggerProvider.debug(`URL-change listener attached (polling: ${String(enablePolling)}).`);
 
     this.urlChangeCleanup = (): void => {
       unsubscribe();
@@ -447,6 +464,18 @@ export class SessionReplay implements AmplitudeSessionReplay {
     );
 
     const needsUrlTracking = this.config.targetingConfig || (this.config.privacyConfig?.urlMaskLevels?.length ?? 0) > 0;
+    // Record whether we even attempt to wire up the URL-change listener, and the inputs behind that
+    // decision. If `needsUrlTracking` is false the listener is never attached, so SPA navigations are
+    // invisible to TRC — this is the first thing to check when "TRC is on but never re-evaluates".
+    this.recordDiagnosticEvent(SrDiagnostic.urlListenerSetup, {
+      needsUrlTracking: !!needsUrlTracking,
+      hasTargetingConfig: !!this.config.targetingConfig,
+      urlMaskLevels: this.config.privacyConfig?.urlMaskLevels?.length ?? 0,
+      // config always defaults this to a boolean (see local-config), so no `?? false` needed here.
+      enableUrlChangePolling: this.config.enableUrlChangePolling,
+      urlChangePollingInterval: this.config.urlChangePollingInterval,
+    });
+    this.loggerProvider.debug(`URL-change listener needed: ${String(!!needsUrlTracking)}.`);
     if (needsUrlTracking) {
       this.setupUrlChangeListener();
     }
@@ -622,6 +651,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
     this.incrementDiagnostic(
       SrDiagnostic.evalTrigger(isInit ? 'init' : forceTargetingReevaluation ? 'urlchange' : 'event'),
     );
+
     if (!this.identifiers || !this.identifiers.sessionId || !this.config) {
       // Q4: eval can't run because a prerequisite is missing — record exactly which one.
       this.incrementDiagnostic(SrDiagnostic.evalMissingPrereq);
@@ -670,6 +700,18 @@ export class SessionReplay implements AmplitudeSessionReplay {
 
       const pageUrl = targetingParams.page?.url ?? getGlobalScope()?.location?.href ?? '';
       const pageForTargeting = targetingParams.page ?? (pageUrl !== '' ? { url: pageUrl } : undefined);
+
+      // Record the targeting trigger event
+      this.recordDiagnosticEvent(SrDiagnostic.targetingTrigger, {
+        sessionId: this.identifiers.sessionId,
+        deviceId: this.getDeviceId(),
+        targetingConfig: this.config.targetingConfig,
+        targetingParams: {
+          userProperties: targetingParams.userProperties,
+          event: eventForTargeting,
+          page: pageForTargeting,
+        },
+      });
 
       const evalStart = Date.now();
       const targetingMatch = await evaluateTargetingAndStore({
@@ -846,6 +888,9 @@ export class SessionReplay implements AmplitudeSessionReplay {
    */
   private incrementDiagnostic(counter: string) {
     try {
+      // Mirror to the console (Debug level) so the full set of diagnostics is visible in the
+      // browser, not only in DataDog — helps debugging when a customer can't share a repro env.
+      this.loggerProvider.debug(`[SR diagnostics] ${counter}`);
       this.config?.diagnosticsClient?.increment(counter);
     } catch {
       // swallow — diagnostics is best-effort
@@ -858,6 +903,8 @@ export class SessionReplay implements AmplitudeSessionReplay {
    */
   private recordDiagnosticHistogram(name: string, value: number) {
     try {
+      // Mirror to the console (Debug level) — see incrementDiagnostic.
+      this.loggerProvider.debug(`[SR diagnostics] ${name}=${value}`);
       // The only caller runs inside evaluateTargetingAndCapture's `this.config` guard, so the
       // `config == null` arm of this optional chain is unreachable here (kept as defensive parity
       // with recordDiagnosticEvent). The diagnosticsClient-absent arm IS exercised by no-client tests.
@@ -881,12 +928,16 @@ export class SessionReplay implements AmplitudeSessionReplay {
       // Always stamp sessionId, deviceId and srId so every diagnostics event (→ DataDog Logs) can
       // be correlated to a single session/device — and to the actual replay, since the Session
       // Replay ID is `${deviceId}/${sessionId}`. Caller props override if they pass their own.
-      this.config?.diagnosticsClient?.recordEvent(name, {
+      const enriched = {
         sessionId,
         deviceId,
         srId: deviceId != null && sessionId != null ? `${deviceId}/${sessionId}` : undefined,
         ...properties,
-      });
+      };
+      // Mirror to the console (Debug level) so the full event + props are visible in the browser,
+      // not only in DataDog — see incrementDiagnostic.
+      this.loggerProvider.debug(`[SR diagnostics] ${name} ${JSON.stringify(enriched)}`);
+      this.config?.diagnosticsClient?.recordEvent(name, enriched);
       // Flush immediately so the event ships now rather than on the client's ~5-min timer (and so
       // short sessions that never reach the timer aren't lost). NOTE: this sends one capture POST
       // per event — higher request volume; revisit/gate before production.

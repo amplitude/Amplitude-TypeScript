@@ -5098,6 +5098,7 @@ describe('SessionReplay', () => {
       expect(subscribeToUrlChanges).toHaveBeenLastCalledWith(expect.anything(), expect.any(Function), {
         enablePolling: true,
         pollingInterval: 1234,
+        log: expect.any(Function),
       });
     });
 
@@ -5110,6 +5111,32 @@ describe('SessionReplay', () => {
       expect(subscribeToUrlChanges).toHaveBeenLastCalledWith(expect.anything(), expect.any(Function), {
         enablePolling: false,
         pollingInterval: undefined,
+        log: expect.any(Function),
+      });
+    });
+
+    test('should forward enableUrlChangePolling from init config to the listener', async () => {
+      mockRemoteConfig = {
+        sr_sampling_config: {},
+        sr_privacy_config: {},
+        sr_targeting_config: {
+          key: 'sr_targeting_config',
+          variants: { on: { key: 'on' }, off: { key: 'off' } },
+          segments: [],
+        },
+      };
+      const sessionReplay = new SessionReplay();
+      const subscribeMock = subscribeToUrlChanges as jest.MockedFunction<typeof subscribeToUrlChanges>;
+      const callCountBefore = subscribeMock.mock.calls.length;
+      await sessionReplay.init(apiKey, {
+        ...mockOptions,
+        enableUrlChangePolling: true,
+        urlChangePollingInterval: 777,
+      }).promise;
+      expect(subscribeMock.mock.calls[callCountBefore]?.[2]).toEqual({
+        enablePolling: true,
+        pollingInterval: 777,
+        log: expect.any(Function),
       });
     });
 

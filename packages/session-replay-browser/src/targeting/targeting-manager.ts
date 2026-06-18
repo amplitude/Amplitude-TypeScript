@@ -58,6 +58,14 @@ export const evaluateTargetingAndStore = async ({
       apiKey: apiKey,
       loggerProvider: loggerProvider,
     };
+    diagnosticsClient?.recordEvent(SrDiagnostic.targetingTrigger, {
+      sessionId,
+      deviceId,
+      srId: deviceId != null && sessionId != null ? `${deviceId}/${sessionId}` : undefined,
+      pageUrl: targetingParams?.page?.url,
+      matched: sessionTargetingMatch,
+      targetingConfig: targetingConfig,
+    });
     const targetingResult = await evaluateTargetingPackage(params);
     if (targetingResult && targetingResult.sr_targeting_config) {
       sessionTargetingMatch = targetingResult.sr_targeting_config.key === 'on';
@@ -73,6 +81,7 @@ export const evaluateTargetingAndStore = async ({
         pageUrl: targetingParams?.page?.url,
         variantKey: targetingResult?.sr_targeting_config?.key ?? null,
         matched: sessionTargetingMatch,
+        targetingConfig: targetingConfig,
       });
       // Flush now so the verdict ships immediately (vs the client's ~5-min timer). One capture
       // POST per event — higher volume; revisit/gate before production.

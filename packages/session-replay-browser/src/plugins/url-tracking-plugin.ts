@@ -40,6 +40,12 @@ export interface SubscribeToUrlChangesOptions {
   enablePolling?: boolean;
   /** Polling interval in ms when enablePolling is true (default: 1000) */
   pollingInterval?: number;
+  /**
+   * Optional debug logger, called once per poll tick (only on the polling path). Lets the SDK
+   * confirm in the browser console that the interval is actually firing — useful when verifying
+   * that enableUrlChangePolling took effect for an SPA that bypasses the History API.
+   */
+  log?: (message: string) => void;
 }
 
 /** Patch detection marker to prevent double-patching */
@@ -81,13 +87,15 @@ export function subscribeToUrlChanges(
     };
   }
 
-  const { enablePolling = false, pollingInterval = DEFAULT_URL_CHANGE_POLLING_INTERVAL } = options;
+  const { enablePolling = false, pollingInterval = DEFAULT_URL_CHANGE_POLLING_INTERVAL, log } = options;
 
   if (enablePolling) {
     const getHref = (): string => globalScope.location.href ?? '';
     let lastHref = getHref();
     const id = globalScope.setInterval(() => {
       const href = getHref();
+      // Logged every tick (not just on change) so we can confirm the polling loop is alive.
+      log?.(`URL polling tick (href=${href}, changed=${String(href !== lastHref)}).`);
       if (href === lastHref) {
         return;
       }
