@@ -5,6 +5,7 @@
 
 #ifdef RCT_NEW_ARCH_ENABLED
 
+#import <React/RCTComponentViewFactory.h>
 #import <react/renderer/components/SRMaskViewSpec/EventEmitters.h>
 #import <react/renderer/components/SRMaskViewSpec/Props.h>
 #import <react/renderer/components/SRMaskViewSpec/RCTComponentViewHelpers.h>
@@ -22,7 +23,7 @@ using namespace facebook::react;
 
 + (void)load
 {
-  [super load];
+  [RCTComponentViewFactory.currentComponentViewFactory registerComponentViewClass:self];
 }
 
 - (instancetype)initWithFrame:(CGRect)frame
@@ -40,7 +41,7 @@ using namespace facebook::react;
 
 + (ComponentDescriptorProvider)componentDescriptorProvider
 {
-  return concreteComponentDescriptorProvider<SRMaskViewCustomComponentDescriptor>();
+  return concreteComponentDescriptorProvider<SRMaskViewComponentDescriptor>();
 }
 
 - (void)updateProps:(const Props::Shared &)props oldProps:(const Props::Shared &)oldProps
