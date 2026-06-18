@@ -1,7 +1,7 @@
 PODS:
   - amplitude-react-native (1.4.13):
     - React-Core
-  - AmplitudeCore (1.4.6)
+  - AmplitudeCore (1.4.7)
   - AmplitudeSessionReplay (0.11.1):
     - AmplitudeCore (< 2.0.0, >= 1.4.2)
   - AmplitudeSessionReplayReactNative (0.1.0):
@@ -1914,7 +1914,7 @@ EXTERNAL SOURCES:
 
 SPEC CHECKSUMS:
   amplitude-react-native: d0039a3ce502eb441ba818af1b8c8ba710ef16e7
-  AmplitudeCore: e384984131ec515b92396801ab65b53e8fd73fa7
+  AmplitudeCore: 3e063bb8b28ad164b3bd5279380190789ddc9405
   AmplitudeSessionReplay: 0fc377b9f7f029714be75f28ac79f732a76fd6d7
   AmplitudeSessionReplayReactNative: bff75475f0f9b3b6aa9e5e441e47d17cdcb34b40
   boost: 7e761d76ca2ce687f7cc98e698152abd03a18f90

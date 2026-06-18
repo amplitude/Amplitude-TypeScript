@@ -4,12 +4,12 @@
   "private": true,
   "scripts": {
     "clean": "rimraf node_modules",
-    "android": "react-native run-android",
-    "ios": "react-native run-ios",
+    "android": "COREPACK_ENABLE_STRICT=0 react-native run-android",
+    "ios": "COREPACK_ENABLE_STRICT=0 react-native run-ios",
     "lint": "eslint .",
-    "start": "react-native start",
+    "start": "COREPACK_ENABLE_STRICT=0 react-native start",
     "test": "jest",
-    "nuke": "yarn clean && yarn install"
+    "nuke": "COREPACK_ENABLE_STRICT=0 yarn clean && COREPACK_ENABLE_STRICT=0 yarn install"
   },
   "dependencies": {
     "@amplitude/analytics-react-native": "^1.4.11",

@@ -85,3 +85,9 @@ android/generated
 test/**/*.js
 test/**/*.js.map
 test/**/*.d.ts.map
+
+# Stray tsc output in src/ (breaks Metro codegen for SRMaskViewNativeComponent.ts)
+src/**/*.js
+src/**/*.js.map
+src/**/*.d.ts
+src/**/*.d.ts.map
