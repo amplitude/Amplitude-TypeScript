@@ -3,6 +3,12 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## Unreleased
+
+### Bug Fixes
+
+- **session-replay-react-native:** enforce Yoga `display: contents` via `ComponentDescriptor::adopt()` so Fabric `SRMaskView` is layout-transparent without a JS style override (SDKRN-32).
+
 # [0.1.0-beta.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-react-native@0.0.1-beta.3...@amplitude/session-replay-react-native@0.1.0-beta.0) (2026-06-06)
 
 
