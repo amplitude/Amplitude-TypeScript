@@ -55,11 +55,44 @@ def patchComponentDescriptorsHeader() {
     )
   }
 
-  def patched = original.replaceFirst(
-    typedefPattern,
-    "#include <SRMaskViewComponentDescriptor.h>"
-  )
+  def patched = original.replace(
+    "#include <react/renderer/componentregistry/ComponentDescriptorProviderRegistry.h>",
+    """#include <react/renderer/componentregistry/ComponentDescriptorProviderRegistry.h>
+#include <SRMaskViewComponentDescriptor.h>"""
+  ).replaceFirst(typedefPattern, "")
   header.write(patched, "UTF-8")
+}
+
+def patchCodegenCMakeLists() {
+  def cmakeFile = file("$buildDir/generated/source/codegen/jni/CMakeLists.txt")
+
+  if (!cmakeFile.exists()) {
+    throw new GradleException(
+      "[SessionReplayReactNative] Expected codegen CMakeLists.txt at ${cmakeFile.absolutePath}. " +
+      "Ensure newArchEnabled=true and generateCodegenArtifactsFromSchema ran successfully."
+    )
+  }
+
+  def original = cmakeFile.getText("UTF-8")
+  if (original.contains("SRMaskViewShadowNode.cpp")) {
+    return
+  }
+
+  def cppDir = file("../cpp").absolutePath.replace("\\", "/")
+  def insertion = """target_sources(react_codegen_SRMaskViewSpec PRIVATE
+  "${cppDir}/SRMaskViewShadowNode.cpp"
+)
+target_include_directories(react_codegen_SRMaskViewSpec PUBLIC "${cppDir}")
+"""
+
+  if (!original.contains("target_link_libraries(")) {
+    throw new GradleException(
+      "[SessionReplayReactNative] patchCodegenCMakeLists could not find target_link_libraries in CMakeLists.txt."
+    )
+  }
+
+  def patched = original.replace("target_link_libraries(", insertion + "target_link_libraries(")
+  cmakeFile.write(patched, "UTF-8")
 }
 
 android {
@@ -90,14 +123,6 @@ android {
   buildTypes {
     release {
       minifyEnabled false
-    }
-  }
-
-  if (isNewArchitectureEnabled()) {
-    externalNativeBuild {
-      cmake {
-        path "src/main/jni/CMakeLists.txt"
-      }
     }
   }
 
@@ -147,6 +172,7 @@ if (isNewArchitectureEnabled()) {
     tasks.named("generateCodegenArtifactsFromSchema").configure {
       doLast {
         patchComponentDescriptorsHeader()
+        patchCodegenCMakeLists()
       }
     }
 
