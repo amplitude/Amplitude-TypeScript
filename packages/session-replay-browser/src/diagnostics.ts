@@ -66,4 +66,7 @@ export const SrDiagnostic = {
   urlListenerSetup: `${p}.url_listener.setup`, // event: the needsUrlTracking decision + its inputs
   urlListenerAttached: `${p}.url_listener.attached`, // event: subscribeToUrlChanges succeeded (with polling opts)
   urlListenerSkipped: `${p}.url_listener.skipped`, // counter + event: listener NOT attached (with reason)
+  // Proof the polling loop actually FIRES (not just that it was scheduled by url_listener.attached).
+  urlPollTick: `${p}.url_poll.tick`, // counter: incremented every poll tick (aggregated metric, cheap)
+  urlPollFirstTick: `${p}.url_poll.first_tick`, // event: once per session on the first tick (carries href)
 } as const;

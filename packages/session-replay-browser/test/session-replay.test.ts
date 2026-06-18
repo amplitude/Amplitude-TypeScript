@@ -5183,6 +5183,7 @@ describe('SessionReplay', () => {
         enablePolling: true,
         pollingInterval: 1234,
         log: expect.any(Function),
+        onPoll: expect.any(Function),
       });
     });
 
@@ -5196,6 +5197,7 @@ describe('SessionReplay', () => {
         enablePolling: false,
         pollingInterval: undefined,
         log: expect.any(Function),
+        onPoll: expect.any(Function),
       });
     });
 
@@ -5221,7 +5223,50 @@ describe('SessionReplay', () => {
         enablePolling: true,
         pollingInterval: 777,
         log: expect.any(Function),
+        onPoll: expect.any(Function),
       });
+    });
+
+    test('onPoll increments the tick counter every call but emits first_tick only once', async () => {
+      mockRemoteConfig = {
+        sr_sampling_config: {},
+        sr_privacy_config: {},
+        sr_targeting_config: {
+          key: 'sr_targeting_config',
+          variants: { on: { key: 'on' }, off: { key: 'off' } },
+          segments: [],
+        },
+      };
+      const diagnosticsClient = {
+        setTag: jest.fn(),
+        increment: jest.fn(),
+        recordHistogram: jest.fn(),
+        recordEvent: jest.fn(),
+        _flush: jest.fn(),
+        _setSampleRate: jest.fn(),
+      };
+      const sessionReplay = new SessionReplay();
+      const subscribeMock = subscribeToUrlChanges as jest.MockedFunction<typeof subscribeToUrlChanges>;
+      const callCountBefore = subscribeMock.mock.calls.length;
+      await sessionReplay.init(apiKey, {
+        ...mockOptions,
+        enableUrlChangePolling: true,
+        urlChangePollingInterval: 1000,
+        diagnosticsClient,
+      }).promise;
+
+      const onPoll = subscribeMock.mock.calls[callCountBefore]?.[2]?.onPoll as (href: string, changed: boolean) => void;
+      expect(onPoll).toBeDefined();
+
+      onPoll('https://example.com/a', false);
+      onPoll('https://example.com/b', true);
+
+      const tickIncrements = diagnosticsClient.increment.mock.calls.filter(([n]) => n === 'sr.trc.url_poll.tick');
+      const firstTickEvents = (diagnosticsClient.recordEvent.mock.calls as Array<[string]>).filter(
+        ([n]) => n === 'sr.trc.url_poll.first_tick',
+      );
+      expect(tickIncrements).toHaveLength(2);
+      expect(firstTickEvents).toHaveLength(1);
     });
 
     test('should call evaluateTargetingAndCapture when URL change callback is invoked', async () => {

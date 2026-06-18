@@ -46,6 +46,13 @@ export interface SubscribeToUrlChangesOptions {
    * that enableUrlChangePolling took effect for an SPA that bypasses the History API.
    */
   log?: (message: string) => void;
+  /**
+   * Optional per-tick hook (polling path only), called every interval with the current href and
+   * whether it changed since the last tick. The SDK uses this to emit a diagnostics signal proving
+   * the polling loop actually fired (vs only being scheduled). Kept separate from `log` so the SDK
+   * can throttle/aggregate what it ships.
+   */
+  onPoll?: (href: string, changed: boolean) => void;
 }
 
 /** Patch detection marker to prevent double-patching */
@@ -87,16 +94,18 @@ export function subscribeToUrlChanges(
     };
   }
 
-  const { enablePolling = false, pollingInterval = DEFAULT_URL_CHANGE_POLLING_INTERVAL, log } = options;
+  const { enablePolling = false, pollingInterval = DEFAULT_URL_CHANGE_POLLING_INTERVAL, log, onPoll } = options;
 
   if (enablePolling) {
     const getHref = (): string => globalScope.location.href ?? '';
     let lastHref = getHref();
     const id = globalScope.setInterval(() => {
       const href = getHref();
+      const changed = href !== lastHref;
       // Logged every tick (not just on change) so we can confirm the polling loop is alive.
-      log?.(`URL polling tick (href=${href}, changed=${String(href !== lastHref)}).`);
-      if (href === lastHref) {
+      log?.(`URL polling tick (href=${href}, changed=${String(changed)}).`);
+      onPoll?.(href, changed);
+      if (!changed) {
         return;
       }
       lastHref = href;

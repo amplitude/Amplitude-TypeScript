@@ -131,6 +131,9 @@ export class SessionReplay implements AmplitudeSessionReplay {
 
   /** Cleanup for URL change listener used to re-evaluate targeting on SPA route changes */
   private urlChangeCleanup: (() => void) | null = null;
+  // Ensures the url_poll.first_tick diagnostic event is emitted at most once per listener setup
+  // (the per-tick counter still increments every tick; only the rich event is one-shot).
+  private urlPollFirstTickRecorded = false;
   private crossOriginIframeCoordinator: CrossOriginIframeCoordinator | null = null;
   private crossOriginParentSignalCleanup: (() => void) | null = null;
   /** Monotonic counter to ignore stale URL-change targeting results */
@@ -221,11 +224,23 @@ export class SessionReplay implements AmplitudeSessionReplay {
     // recording never starts on the new URL (enableUrlChangePolling previously only affected the
     // rrweb URL-tracking plugin, which runs only once recording is already active).
     const enablePolling = this.config?.enableUrlChangePolling ?? false;
+    this.urlPollFirstTickRecorded = false;
     const unsubscribe = subscribeToUrlChanges(globalScope, onUrlChange, {
       enablePolling,
       pollingInterval: this.config?.urlChangePollingInterval,
       // Mirror each poll tick to the console (Debug level) so we can confirm polling is firing.
       log: this.loggerProvider.debug.bind(this.loggerProvider),
+      // Prove in DataDog that polling actually FIRES (not just that it was scheduled). Per-tick is a
+      // cheap aggregated counter; the rich event is emitted once (with href) to avoid flooding the
+      // diagnostics endpoint with one capture POST per second.
+      onPoll: (href: string, changed: boolean): void => {
+        this.incrementDiagnostic(SrDiagnostic.urlPollTick);
+        if (!this.urlPollFirstTickRecorded) {
+          this.urlPollFirstTickRecorded = true;
+          // pollingInterval is already on url_listener.attached, so it's omitted here.
+          this.recordDiagnosticEvent(SrDiagnostic.urlPollFirstTick, { href, changed });
+        }
+      },
     });
     // Confirm the listener is actually live, and under what settings — if recording never starts on
     // navigation, this tells us whether the listener existed and whether polling (the fallback for
