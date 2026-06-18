@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.47.0-sr-trc-debug-log.4](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.47.0-sr-trc-debug-log.3...@amplitude/session-replay-browser@1.47.0-sr-trc-debug-log.4) (2026-06-18)
+
+
+### Features
+
+* **session-replay-browser:** stamp sdkVersion + version on the init diagnostic ([b67a59f](https://github.com/amplitude/Amplitude-TypeScript/commit/b67a59fec6c187cf51fdf837326849ce994a73db))
+
+
+
+
+
 # [1.47.0-sr-trc-debug-log.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.47.0-sr-trc-debug-log.2...@amplitude/session-replay-browser@1.47.0-sr-trc-debug-log.3) (2026-06-18)
 
 
