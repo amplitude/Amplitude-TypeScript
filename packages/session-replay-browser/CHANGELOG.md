@@ -3,6 +3,24 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.47.0-sr-trc-debug-log.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.47.0-sr-trc-debug-log.0...@amplitude/session-replay-browser@1.47.0-sr-trc-debug-log.2) (2026-06-18)
+
+
+### Bug Fixes
+
+* **session-replay-browser:** respect enableUrlChangePolling for TRC re-evaluation ([42f5fde](https://github.com/amplitude/Amplitude-TypeScript/commit/42f5fde2360df1e89a18f94d0ae6b3af3dcc4b89))
+
+
+### Features
+
+* **session-replay-browser:** add session-change diagnostic and navigationType ([b81b934](https://github.com/amplitude/Amplitude-TypeScript/commit/b81b934c3ccdbe1bab51e12523f6958b739fb804))
+* **session-replay-browser:** add URL-listener/polling diagnostics and console mirroring ([edff8d6](https://github.com/amplitude/Amplitude-TypeScript/commit/edff8d601c8f42415285032b99245ae47058ae25))
+* **session-replay:** add TRC diagnostics gated on Debug log level with immediate flush ([92bdf2f](https://github.com/amplitude/Amplitude-TypeScript/commit/92bdf2f92ecd749a33166626d41a92cecdfb8cd2))
+
+
+
+
+
 # [1.47.0-sr-trc-debug-log.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.46.0...@amplitude/session-replay-browser@1.47.0-sr-trc-debug-log.0) (2026-06-16)
 
 
