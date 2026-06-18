@@ -266,6 +266,26 @@ export class SessionReplay implements AmplitudeSessionReplay {
     return currentUrl != null ? { url: currentUrl } : undefined;
   }
 
+  /**
+   * Best-effort navigation type from the Navigation Timing API: 'reload' | 'navigate' |
+   * 'back_forward' | 'prerender'. Surfaced in the init diagnostic so a page refresh ('reload')
+   * is distinguishable from a fresh load ('navigate') — neither changes the session id, so this
+   * is the only way to tell them apart. Returns undefined when the API is unavailable.
+   */
+  private getNavigationType(): string | undefined {
+    try {
+      const globalScope = getGlobalScope();
+      const performance = globalScope && globalScope.performance;
+      if (!performance || typeof performance.getEntriesByType !== 'function') {
+        return undefined;
+      }
+      const navEntries = performance.getEntriesByType('navigation') as PerformanceNavigationTiming[];
+      return navEntries.length > 0 ? navEntries[0].type : undefined;
+    } catch {
+      return undefined;
+    }
+  }
+
   protected async _init(apiKey: string, options: SessionReplayOptions) {
     // Re-init should always tear down any previous URL-change subscription, even when the
     // next config has no targeting config and we don't subscribe again.
@@ -456,6 +476,10 @@ export class SessionReplay implements AmplitudeSessionReplay {
       sampleRate: this.config.sampleRate,
       optOut: this.shouldOptOut(),
       currentUrl: this.getCurrentPageForTargeting()?.url,
+      // 'reload' tells a page refresh apart from a fresh load ('navigate') or back/forward
+      // ('back_forward'). New tabs and refreshes keep the same session id, so this is the only
+      // way to distinguish a refresh from a brand-new init within a session.
+      navigationType: this.getNavigationType(),
     });
 
     await this.evaluateTargetingAndCapture(
@@ -515,6 +539,19 @@ export class SessionReplay implements AmplitudeSessionReplay {
     }
 
     const isSessionChange = previousSessionId !== sessionId;
+
+    // A real session transition (not the first set): recording stops/restarts and targeting is
+    // re-evaluated here, so session churn (timeout, multi-tab custom ids, explicit setSessionId)
+    // is a prime suspect for "sometimes records, sometimes not". recordDiagnosticEvent ships to
+    // DataDog AND mirrors to loggerProvider.debug. New tabs / refreshes keep the same id and won't
+    // hit this — use the init diagnostic's navigationType for those.
+    if (isSessionChange && previousSessionId !== undefined) {
+      this.recordDiagnosticEvent(SrDiagnostic.sessionChanged, {
+        from: previousSessionId,
+        to: sessionId,
+        deviceIdChanged: deviceId !== undefined && deviceId !== currentDeviceId,
+      });
+    }
 
     // Drop any beacon-buffered events from the previous session BEFORE installing the
     // new identifiers / start time. Otherwise the page-leave beacon path could attribute

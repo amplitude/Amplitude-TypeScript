@@ -5066,6 +5066,90 @@ describe('SessionReplay', () => {
     });
   });
 
+  describe('getNavigationType', () => {
+    test('returns the navigation entry type when available', () => {
+      jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue({
+        performance: { getEntriesByType: () => [{ type: 'reload' }] },
+      } as any);
+      const sr = new SessionReplay();
+      expect((sr as any).getNavigationType()).toBe('reload');
+    });
+
+    test('returns undefined when there are no navigation entries', () => {
+      jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue({
+        performance: { getEntriesByType: () => [] },
+      } as any);
+      const sr = new SessionReplay();
+      expect((sr as any).getNavigationType()).toBeUndefined();
+    });
+
+    test('returns undefined when getEntriesByType is not a function', () => {
+      jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue({ performance: {} } as any);
+      const sr = new SessionReplay();
+      expect((sr as any).getNavigationType()).toBeUndefined();
+    });
+
+    test('returns undefined when performance is unavailable', () => {
+      jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue({} as any);
+      const sr = new SessionReplay();
+      expect((sr as any).getNavigationType()).toBeUndefined();
+    });
+
+    test('returns undefined when there is no global scope', () => {
+      jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue(undefined as any);
+      const sr = new SessionReplay();
+      expect((sr as any).getNavigationType()).toBeUndefined();
+    });
+
+    test('returns undefined and swallows when getEntriesByType throws', () => {
+      jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue({
+        performance: {
+          getEntriesByType: () => {
+            throw new Error('boom');
+          },
+        },
+      } as any);
+      const sr = new SessionReplay();
+      expect((sr as any).getNavigationType()).toBeUndefined();
+    });
+  });
+
+  describe('session.changed diagnostic', () => {
+    const makeDiagnosticsClient = () => ({
+      setTag: jest.fn(),
+      increment: jest.fn(),
+      recordHistogram: jest.fn(),
+      recordEvent: jest.fn(),
+      _flush: jest.fn(),
+      _setSampleRate: jest.fn(),
+    });
+
+    test('records sr.trc.session.changed with from/to on a real session transition', async () => {
+      const diagnosticsClient = makeDiagnosticsClient();
+      const sessionReplay = new SessionReplay();
+      await sessionReplay.init(apiKey, { ...mockOptions, diagnosticsClient }).promise;
+
+      await sessionReplay.setSessionId(456).promise;
+
+      const changed = (diagnosticsClient.recordEvent.mock.calls as Array<[string, Record<string, unknown>]>).find(
+        ([name]) => name === 'sr.trc.session.changed',
+      );
+      expect(changed).toBeDefined();
+      expect(changed?.[1]).toEqual(
+        expect.objectContaining({ from: mockOptions.sessionId, to: 456, deviceIdChanged: false }),
+      );
+    });
+
+    test('does not record sr.trc.session.changed on the initial session set', async () => {
+      const diagnosticsClient = makeDiagnosticsClient();
+      const sessionReplay = new SessionReplay();
+      await sessionReplay.init(apiKey, { ...mockOptions, diagnosticsClient }).promise;
+
+      const names = (diagnosticsClient.recordEvent.mock.calls as Array<[string]>).map(([name]) => name);
+      expect(names).not.toContain('sr.trc.session.changed');
+    });
+  });
+
   describe('URL change listener for targeting', () => {
     test('should not call subscribeToUrlChanges when getGlobalScope has no location', () => {
       jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue({} as any);

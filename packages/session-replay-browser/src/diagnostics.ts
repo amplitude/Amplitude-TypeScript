@@ -15,6 +15,11 @@ export const SrDiagnostic = {
   // ── Init (Q1: did init even happen?) ─────────────────────────────────────
   init: `${p}.init`, // counter + event(with props): fires once per init()
 
+  // ── Session lifecycle ────────────────────────────────────────────────────
+  // SR session id changed (timeout / explicit setSessionId / custom session id). New tabs and
+  // page refreshes do NOT change the session id, so this is distinct from a fresh init.
+  sessionChanged: `${p}.session.changed`, // event (with from/to)
+
   // ── Remote config fetch (joined-config) ──────────────────────────────────
   configSource: (source: string) => `${p}.config.source.${source}`,
   configHasTargeting: `${p}.config.has_targeting`,
