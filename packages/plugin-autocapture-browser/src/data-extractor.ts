@@ -32,6 +32,23 @@ import {
   type ElementSelectorLogger,
 } from '@amplitude/element-selector';
 
+/**
+ * Module-level shared selector engine singleton. Both autocapture-plugin and
+ * frustration-plugin create separate DataExtractor instances, and each
+ * subscribes to remote config independently. By sharing a single engine across
+ * all extractors, whichever subscription fires first updates the engine for
+ * everyone, eliminating the window where one plugin could see updated config
+ * while the other still uses defaults.
+ */
+let sharedSelectorEngine: SelectorEngine | undefined;
+
+function getSharedSelectorEngine(): SelectorEngine {
+  if (!sharedSelectorEngine) {
+    sharedSelectorEngine = createSelectorEngine(resolveSelectorConfig());
+  }
+  return sharedSelectorEngine;
+}
+
 export class DataExtractor {
   private readonly additionalMaskTextPatterns: RegExp[];
   diagnosticsClient?: IDiagnosticsClient;
@@ -44,12 +61,16 @@ export class DataExtractor {
    * engine routes through the byte-identical legacy walker, so behavior is
    * unchanged until remote config flips an org onto the new algorithm via
    * {@link updateSelectorConfig}.
+   *
+   * The engine is shared across all DataExtractor instances to ensure
+   * consistent selector output when both autocapture-plugin and
+   * frustration-plugin are active.
    */
   private readonly selectorEngine: SelectorEngine;
 
   constructor(options: ElementInteractionsOptions, context?: { diagnosticsClient: IDiagnosticsClient }) {
     this.diagnosticsClient = context?.diagnosticsClient;
-    this.selectorEngine = createSelectorEngine(resolveSelectorConfig());
+    this.selectorEngine = getSharedSelectorEngine();
 
     const rawPatterns = options.maskTextRegex ?? [];
 
