@@ -495,6 +495,10 @@ export class SessionReplay implements AmplitudeSessionReplay {
       // ('back_forward'). New tabs and refreshes keep the same session id, so this is the only
       // way to distinguish a refresh from a brand-new init within a session.
       navigationType: this.getNavigationType(),
+      // sdkVersion is the session-replay-browser version; `version` carries the integration
+      // (`{ type: 'plugin'|'standalone', version }`) so DataDog shows the actual plugin version too.
+      sdkVersion: VERSION,
+      version: this.config.version,
     });
 
     await this.evaluateTargetingAndCapture(
