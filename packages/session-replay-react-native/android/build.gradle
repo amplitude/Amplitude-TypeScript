@@ -31,67 +31,35 @@ def supportsNamespace() {
   return (major == 7 && minor >= 3) || major >= 8
 }
 
-def patchShadowNodesHeader() {
-  def generatedDir = file("$buildDir/generated/source/codegen/jni/react/renderer/components/SRMaskViewSpec")
-  def shadowNodesHeader = new File(generatedDir, "ShadowNodes.h")
+def patchComponentDescriptorsHeader() {
+  def componentsDir = file("$buildDir/generated/source/codegen/jni/react/renderer/components/SRMaskViewSpec")
+  def header = new File(componentsDir, "ComponentDescriptors.h")
 
-  if (!shadowNodesHeader.exists()) {
+  if (!header.exists()) {
     throw new GradleException(
-      "[SessionReplayReactNative] Expected codegen ShadowNodes.h at ${shadowNodesHeader.absolutePath}. " +
+      "[SessionReplayReactNative] Expected codegen ComponentDescriptors.h at ${header.absolutePath}. " +
       "Ensure newArchEnabled=true and generateCodegenArtifactsFromSchema ran successfully."
     )
   }
 
-  def original = shadowNodesHeader.getText("UTF-8")
-  def pattern = /(?s)using SRMaskViewShadowNode = ConcreteViewShadowNode<.*?>;/
+  def original = header.getText("UTF-8")
+  if (original.contains("#include <SRMaskViewComponentDescriptor.h>")) {
+    return
+  }
 
-  if (!(original =~ pattern)) {
+  def typedefPattern = /using SRMaskViewComponentDescriptor = ConcreteComponentDescriptor<SRMaskViewShadowNode>;/
+  if (!(original =~ typedefPattern)) {
     throw new GradleException(
-      "[SessionReplayReactNative] patchShadowNodesHeader regex did not match ShadowNodes.h. " +
+      "[SessionReplayReactNative] patchComponentDescriptorsHeader regex did not match ComponentDescriptors.h. " +
       "React Native codegen output may have changed; update the patch task before shipping."
     )
   }
 
-  def replacement = """class SRMaskViewShadowNode final
-    : public ConcreteViewShadowNode<
-          SRMaskViewComponentName,
-          SRMaskViewProps,
-          SRMaskViewEventEmitter> {
- public:
-  SRMaskViewShadowNode(
-      const ShadowNodeFragment& fragment,
-      const ShadowNodeFamily::Shared& family,
-      ShadowNodeTraits traits)
-      : ConcreteViewShadowNode(fragment, family, traits) {
-    initialize();
-  }
-
-  SRMaskViewShadowNode(
-      const ShadowNode& sourceShadowNode,
-      const ShadowNodeFragment& fragment)
-      : ConcreteViewShadowNode(sourceShadowNode, fragment) {
-    initialize();
-  }
-
- private:
-  void initialize() {
-    traits_.unset(ShadowNodeTraits::Trait::ForceFlattenView);
-    auto style = yogaNode_.style();
-    style.setDisplay(yoga::Display::Contents);
-    yogaNode_.setStyle(style);
-  }
-};"""
-
-  def patched = (original =~ pattern).replaceFirst(replacement)
-  if (!patched.contains("ShadowNodeTraits.h")) {
-    patched = patched.replace(
-      "#include <react/renderer/components/view/ConcreteViewShadowNode.h>",
-      """#include <react/renderer/components/view/ConcreteViewShadowNode.h>
-#include <react/renderer/core/ShadowNodeTraits.h>
-#include <yoga/style/Style.h>"""
-    )
-  }
-  shadowNodesHeader.write(patched, "UTF-8")
+  def patched = original.replaceFirst(
+    typedefPattern,
+    "#include <SRMaskViewComponentDescriptor.h>"
+  )
+  header.write(patched, "UTF-8")
 }
 
 android {
@@ -122,6 +90,14 @@ android {
   buildTypes {
     release {
       minifyEnabled false
+    }
+  }
+
+  if (isNewArchitectureEnabled()) {
+    externalNativeBuild {
+      cmake {
+        path "src/main/jni/CMakeLists.txt"
+      }
     }
   }
 
@@ -170,7 +146,13 @@ if (isNewArchitectureEnabled()) {
   afterEvaluate {
     tasks.named("generateCodegenArtifactsFromSchema").configure {
       doLast {
-        patchShadowNodesHeader()
+        patchComponentDescriptorsHeader()
+      }
+    }
+
+    tasks.configureEach { task ->
+      if (task.name.contains("configureCMake")) {
+        task.dependsOn("generateCodegenArtifactsFromSchema")
       }
     }
   }

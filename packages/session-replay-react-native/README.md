@@ -112,7 +112,7 @@ This package includes dual-architecture native infrastructure (Paper + Fabric). 
 
 Paper (`AmpMaskView` / `AMPMaskComponentView`) continues to work on older architectures without changes.
 
-The internal Fabric `SRMaskView` component uses a C++ ShadowNode with `display: contents` so masking wrappers do not affect Yoga layout (no JS `display` override required).
+The internal Fabric `SRMaskView` component uses a custom C++ `ComponentDescriptor::adopt()` hook that enforces Yoga `display: contents` after every layout prop update, while keeping a native host view for masking (no JS `display` override required).
 
 ### On-device verification
 

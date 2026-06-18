@@ -5,7 +5,7 @@
 
 namespace facebook::react {
 
-void SRMaskViewContentsShadowNode::initialize() {
+void SRMaskViewContentsShadowNode::applyContentsDisplay() {
   traits_.unset(ShadowNodeTraits::Trait::ForceFlattenView);
 
   auto style = yogaNode_.style();
