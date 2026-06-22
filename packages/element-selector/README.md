@@ -141,6 +141,17 @@ Every path that catches an error accepts an optional `ElementSelectorLogger`, wh
 
 When no logger is provided, the engine stays silent — preserving fire-and-forget semantics for consumers that don't want diagnostic noise.
 
+## Interactive testbed
+
+Run the package's testbed page locally to click around the engine against the canonical scenarios, edit remote-config payloads in real time, and watch the diagnostic logger output:
+
+```bash
+pnpm --filter @amplitude/element-selector testbed
+# → builds the package, serves the testbed at http://localhost:4567
+```
+
+The testbed lives at `packages/element-selector/testbed/` and imports the real built engine from `lib/esm/index.js` — there's no parallel implementation that can drift from the package. Every scenario from `test/scenarios/` is rendered live; clicking any element shows the emitted selector, the strategy that won, and whether `querySelector` round-trips back to the clicked element.
+
 ## Testing
 
 ```bash
