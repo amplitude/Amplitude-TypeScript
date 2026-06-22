@@ -1,3 +1,4 @@
+import { ILogger } from './logger';
 import { CoreClient } from './types/client/core-client';
 import { BaseEvent, Delay } from './types/event/base-event';
 import { Result } from './types/result';
@@ -7,12 +8,19 @@ type DelayedEvent = BaseEvent & {
   delay: Delay;
 };
 
+const EVENTS_SIZE_LIMIT = 4 * 10_000; // 4KB
+
 export class Heartbeat {
   private events: Map<string, DelayedEvent>;
   private delayId: string;
   private interval: NodeJS.Timeout | null = null;
 
-  constructor(private client: CoreClient, private pulse: number, private delayTimeout: number) {
+  constructor(
+    private client: CoreClient,
+    private pulse: number,
+    private delayTimeout: number,
+    private logger: ILogger,
+  ) {
     this.events = new Map<string, DelayedEvent>();
     this.delayId = UUID();
   }
@@ -55,6 +63,15 @@ export class Heartbeat {
     return event.insert_id && !event.delay.timeout;
   }
 
+  private checkEventSizeLimit(event: BaseEvent) {
+    if (JSON.stringify([...this.events.values()]).length > EVENTS_SIZE_LIMIT) {
+      this.logger.warn(`Heartbeat: events size limit reached, rejecting event with id=${event.insert_id}'`);
+      this.events.delete(event.insert_id!);
+      return false;
+    }
+    return true;
+  }
+
   async track(event: BaseEvent): Promise<Result | Error | undefined> {
     if (!event.insert_id) {
       return new Error('insert_id is required on events tracked with heartbeat');
@@ -63,6 +80,9 @@ export class Heartbeat {
       ...event,
       delay: event.delay || { id: this.delayId, timeout: this.delayTimeout },
     });
+    if (!this.checkEventSizeLimit(event)) {
+      return;
+    }
 
     // emit a heartbeat, restart interval and return the result
     const heartbeatResult = await this.resetHeartbeat();
@@ -92,6 +112,9 @@ export class Heartbeat {
         ...event,
         delay: { id: this.delayId, timeout: this.delayTimeout },
       });
+      if (!this.checkEventSizeLimit(event)) {
+        return;
+      }
     }
   }
 
@@ -110,12 +133,12 @@ type HeartbeatMap = Map<CoreClient, Heartbeat>;
 
 const heartbeatMap: HeartbeatMap = new Map<CoreClient, Heartbeat>();
 
-export function getHeartbeatInstance(client: CoreClient): Heartbeat {
+export function getHeartbeatInstance(client: CoreClient, logger: ILogger): Heartbeat {
   if (heartbeatMap.has(client)) {
     return heartbeatMap.get(client)!;
   } else {
     // TODO: make the interval and delay timeout configurable via config options
-    const heartbeat = new Heartbeat(client, DEFAULT_HEARTBEAT_INTERVAL, DEFAULT_HEARTBEAT_DELAY_TIMEOUT);
+    const heartbeat = new Heartbeat(client, DEFAULT_HEARTBEAT_INTERVAL, DEFAULT_HEARTBEAT_DELAY_TIMEOUT, logger);
     heartbeatMap.set(client, heartbeat);
     return heartbeat;
   }

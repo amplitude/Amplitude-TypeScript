@@ -7,6 +7,15 @@ describe('heartbeat', () => {
   let trackMock: jest.Mock;
   let heartbeat: Heartbeat;
 
+  const mockLoggerProvider = {
+    error: jest.fn(),
+    log: jest.fn(),
+    disable: jest.fn(),
+    enable: jest.fn(),
+    warn: jest.fn(),
+    debug: jest.fn(),
+  };
+
   beforeEach(() => {
     jest.useFakeTimers();
     trackMock = jest.fn().mockReturnValue({
@@ -15,7 +24,7 @@ describe('heartbeat', () => {
     mockClient = {
       track: trackMock,
     } as unknown as CoreClient;
-    heartbeat = new Heartbeat(mockClient, 1000, 1000);
+    heartbeat = new Heartbeat(mockClient, 1000, 1000, mockLoggerProvider);
   });
 
   afterEach(() => {
@@ -188,6 +197,43 @@ describe('heartbeat', () => {
       expect(result).toBeInstanceOf(Error);
       expect(result?.message).toBe('insert_id is required on events tracked with heartbeat');
     });
+
+    test('should reject tracking event if it exceeds the event size limit', async () => {
+      const largeValue = 'x'.repeat(4 * 10_000 + 1);
+      const event = {
+        insert_id: '12345',
+        event_type: 'test',
+        event_properties: { data: largeValue },
+      };
+      const result = await heartbeat.track(event);
+      expect(result).toBeUndefined();
+      expect(mockLoggerProvider.warn).toHaveBeenCalledTimes(1);
+      expect(trackMock).not.toHaveBeenCalled();
+
+      jest.advanceTimersByTime(1000);
+      expect(trackMock).not.toHaveBeenCalled();
+    });
+
+    test('should reject updating event if it exceeds the event size limit', async () => {
+      const event = {
+        insert_id: '12345',
+        event_type: 'test',
+        event_properties: { test: 'small' },
+      };
+      await heartbeat.track(event);
+      jest.clearAllMocks();
+
+      const largeValue = 'x'.repeat(4 * 10_000 + 1);
+      await heartbeat.update({
+        ...event,
+        event_properties: { data: largeValue },
+      });
+      expect(mockLoggerProvider.warn).toHaveBeenCalledTimes(1);
+      expect(trackMock).not.toHaveBeenCalled();
+
+      jest.advanceTimersByTime(1000);
+      expect(trackMock).not.toHaveBeenCalled();
+    });
   });
 
   describe('stop', () => {
@@ -322,8 +368,8 @@ describe('heartbeat', () => {
 
   describe('getHeartbeatInstance', () => {
     test('should return the same instance for the same client', () => {
-      const instance1 = getHeartbeatInstance(mockClient);
-      const instance2 = getHeartbeatInstance(mockClient);
+      const instance1 = getHeartbeatInstance(mockClient, mockLoggerProvider);
+      const instance2 = getHeartbeatInstance(mockClient, mockLoggerProvider);
       expect(instance1).toBe(instance2);
     });
   });
