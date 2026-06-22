@@ -29,11 +29,23 @@ export function subscribeToElementSelectorConfig(
     return undefined;
   }
 
+  config.loggerProvider.debug(
+    `@amplitude/plugin-autocapture-browser: subscribing to element-selector remote config at "${ELEMENT_SELECTOR_REMOTE_CONFIG_KEY}"`,
+  );
+
   const subscriptionId = remoteConfigClient.subscribe(ELEMENT_SELECTOR_REMOTE_CONFIG_KEY, 'all', (remoteConfig) => {
-    dataExtractor.updateSelectorConfig(remoteConfig as ElementSelectorRemoteConfig | null, config.loggerProvider);
+    const payload = remoteConfig as ElementSelectorRemoteConfig | null;
+    config.loggerProvider.debug('@amplitude/plugin-autocapture-browser: element-selector remote config delivered', {
+      enabled: payload?.enabled ?? 'default (false)',
+      hasPayload: payload !== null && payload !== undefined,
+    });
+    dataExtractor.updateSelectorConfig(payload, config.loggerProvider);
   });
 
   return () => {
+    config.loggerProvider.debug(
+      `@amplitude/plugin-autocapture-browser: unsubscribing from element-selector remote config (subscription ${subscriptionId})`,
+    );
     remoteConfigClient.unsubscribe(subscriptionId);
   };
 }

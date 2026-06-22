@@ -462,9 +462,18 @@ describe('data extractor', () => {
 
     test('keeps generating selectors after enabling the engine via remote config', () => {
       const button = document.getElementById('test-button');
-      dataExtractor.updateSelectorConfig({ enabled: true });
+      const logger = { debug: jest.fn(), warn: jest.fn() };
+      dataExtractor.updateSelectorConfig({ enabled: true }, logger);
+      expect(logger.debug).toHaveBeenCalledWith(
+        '@amplitude/plugin-autocapture-browser: element-selector config updated',
+        expect.objectContaining({ enabled: true, toggled: true }),
+      );
       const result = dataExtractor.getElementPath(button);
       expect(result).toEqual('button#test-button');
+      expect(logger.debug).toHaveBeenCalledWith(
+        '@amplitude/plugin-autocapture-browser: element-selector engine enabled',
+        expect.objectContaining({ elementPath: 'button#test-button' }),
+      );
     });
 
     test('shares selector engine config across DataExtractor instances', () => {
