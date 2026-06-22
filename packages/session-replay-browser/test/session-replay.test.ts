@@ -1617,6 +1617,10 @@ describe('SessionReplay', () => {
       (sessionReplay as any).hasEmittedGateDecision = true;
       (sessionReplay as any).suppressedSendCount = 7;
 
+      const sendEventsSpy = jest.spyOn(sessionReplay, 'sendEvents');
+      const recordEventsSpy = jest.spyOn(sessionReplay, 'recordEvents').mockResolvedValue(undefined);
+      const evaluateTargetingAndCaptureSpy = jest.spyOn(sessionReplay, 'evaluateTargetingAndCapture');
+
       // Caller passes the current sessionId redundantly — must NOT restart the gate clock.
       await (sessionReplay as any).asyncSetSessionId(123, '1a2b3c');
 
@@ -1625,6 +1629,108 @@ describe('SessionReplay', () => {
       // Per-session gate state must also be preserved.
       expect((sessionReplay as any).hasEmittedGateDecision).toBe(true);
       expect((sessionReplay as any).suppressedSendCount).toBe(7);
+      expect(sendEventsSpy).not.toHaveBeenCalled();
+      expect(recordEventsSpy).not.toHaveBeenCalled();
+      expect(evaluateTargetingAndCaptureSpy).not.toHaveBeenCalled();
+    });
+
+    test('still proceeds when sessionId is unchanged but deviceId changes', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      const sendEventsSpy = jest.spyOn(sessionReplay, 'sendEvents');
+      const recordEventsSpy = jest.spyOn(sessionReplay, 'recordEvents').mockResolvedValue(undefined);
+
+      await (sessionReplay as any).asyncSetSessionId(123, 'new-device-id');
+
+      expect(sessionReplay.identifiers?.deviceId).toBe('new-device-id');
+      expect(sendEventsSpy).toHaveBeenCalledWith(123);
+      expect(recordEventsSpy).toHaveBeenCalled();
+    });
+
+    test('still re-evaluates targeting when same sessionId has new userProperties', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      const mockConfigWithTargeting = new SessionReplayLocalConfig(apiKey, mockOptions);
+      (mockConfigWithTargeting as SessionReplayJoinedConfig).targetingConfig = {
+        key: 'sr_targeting_config',
+        variants: { on: { key: 'on' }, off: { key: 'off' } },
+        segments: [],
+      };
+      jest.spyOn(sessionReplay.joinedConfigGenerator!, 'generateJoinedConfig').mockResolvedValue({
+        joinedConfig: mockConfigWithTargeting,
+        localConfig: mockConfigWithTargeting,
+        remoteConfig: undefined,
+      });
+      const evaluateTargetingAndCaptureSpy = jest.spyOn(sessionReplay, 'evaluateTargetingAndCapture');
+      const userProperties = { plan: 'enterprise' };
+
+      await (sessionReplay as any).asyncSetSessionId(123, '1a2b3c', { userProperties });
+
+      expect(evaluateTargetingAndCaptureSpy).toHaveBeenCalledWith(
+        { userProperties, page: { url: 'http://localhost' } },
+        false,
+        true,
+      );
+    });
+
+    test('no-ops redundant setSessionId without sendEvents, recordEvents, or targeting reset', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      if (!sessionReplay.joinedConfigGenerator) throw new Error('init');
+
+      const sendEventsSpy = jest.spyOn(sessionReplay, 'sendEvents');
+      const recordEventsSpy = jest.spyOn(sessionReplay, 'recordEvents');
+      const evaluateTargetingAndCaptureSpy = jest.spyOn(sessionReplay, 'evaluateTargetingAndCapture');
+      const generateJoinedConfigSpy = jest.spyOn(sessionReplay.joinedConfigGenerator, 'generateJoinedConfig');
+      const priorTargetingMatch = sessionReplay.sessionTargetingMatch;
+      const priorUrlEvaluationId = (sessionReplay as any).latestUrlChangeTargetingEvaluationId;
+
+      await (sessionReplay as any).asyncSetSessionId(123, '1a2b3c');
+
+      expect(sendEventsSpy).not.toHaveBeenCalled();
+      expect(recordEventsSpy).not.toHaveBeenCalled();
+      expect(evaluateTargetingAndCaptureSpy).not.toHaveBeenCalled();
+      expect(generateJoinedConfigSpy).not.toHaveBeenCalled();
+      expect(sessionReplay.sessionTargetingMatch).toBe(priorTargetingMatch);
+      expect((sessionReplay as any).latestUrlChangeTargetingEvaluationId).toBe(priorUrlEvaluationId);
+    });
+
+    test('no-ops when sessionId unchanged and userProperties is an empty object', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+
+      const sendEventsSpy = jest.spyOn(sessionReplay, 'sendEvents');
+      const recordEventsSpy = jest.spyOn(sessionReplay, 'recordEvents');
+      const evaluateTargetingAndCaptureSpy = jest.spyOn(sessionReplay, 'evaluateTargetingAndCapture');
+
+      await (sessionReplay as any).asyncSetSessionId(123, '1a2b3c', { userProperties: {} });
+
+      expect(sendEventsSpy).not.toHaveBeenCalled();
+      expect(recordEventsSpy).not.toHaveBeenCalled();
+      expect(evaluateTargetingAndCaptureSpy).not.toHaveBeenCalled();
+    });
+
+    test('still proceeds when sessionId and deviceId unchanged but userProperties provided', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+
+      const mockConfigWithTargeting = new SessionReplayLocalConfig(apiKey, mockOptions);
+      (mockConfigWithTargeting as SessionReplayJoinedConfig).targetingConfig = {
+        key: 'sr_targeting_config',
+        variants: { on: { key: 'on' }, off: { key: 'off' } },
+        segments: [],
+      };
+      jest.spyOn(sessionReplay.joinedConfigGenerator!, 'generateJoinedConfig').mockResolvedValue({
+        joinedConfig: mockConfigWithTargeting,
+        localConfig: mockConfigWithTargeting,
+        remoteConfig: undefined,
+      });
+
+      const evaluateTargetingAndCaptureSpy = jest.spyOn(sessionReplay, 'evaluateTargetingAndCapture');
+      const userProperties = { plan: 'enterprise' };
+
+      await (sessionReplay as any).asyncSetSessionId(123, '1a2b3c', { userProperties });
+
+      expect(evaluateTargetingAndCaptureSpy).toHaveBeenCalledWith(
+        { userProperties, page: { url: 'http://localhost' } },
+        false,
+        true,
+      );
     });
 
     test('drops previous-session beacon buffer ONLY on real session change', async () => {
