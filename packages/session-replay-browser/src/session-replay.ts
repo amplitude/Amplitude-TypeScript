@@ -426,12 +426,26 @@ export class SessionReplay implements AmplitudeSessionReplay {
     deviceId?: string,
     options?: { userProperties?: { [key: string]: any } },
   ) {
+    const previousSessionId = this.identifiers?.sessionId;
+    const currentDeviceId = this.getDeviceId();
+    // Standalone SDK callers may poll setSessionId with a stable bucket id (e.g. hour-aligned
+    // timestamps) and only need a no-op when the bucket hasn't rolled. Without this guard,
+    // the rest of asyncSetSessionId still runs: sendEvents, targeting reset, config refetch,
+    // and recordEvents (stop + restart rrweb). Proceed when deviceId changes or
+    // non-empty userProperties are passed so targeting can re-evaluate on Identify.
+    if (
+      previousSessionId !== undefined &&
+      previousSessionId === sessionId &&
+      (deviceId === undefined || deviceId === currentDeviceId) &&
+      (options?.userProperties === undefined || Object.keys(options.userProperties).length === 0)
+    ) {
+      return;
+    }
+
     // Invalidate any in-flight URL-change re-evaluations from the previous session.
     this.latestUrlChangeTargetingEvaluationId++;
     this.sessionTargetingMatch = false;
     this.lastShouldRecordDecision = undefined; // Reset targeting decision for new session
-
-    const previousSessionId = this.identifiers && this.identifiers.sessionId;
     if (previousSessionId) {
       this.sendEvents(previousSessionId);
     }
