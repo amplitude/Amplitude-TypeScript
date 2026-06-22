@@ -129,7 +129,9 @@ export class Destination implements DestinationPlugin {
       };
       // remove any delayed events with the same insert_id
       if (event.delay?.id) {
-        this.queue = this.queue.filter((queuedContext) => queuedContext.event.insert_id !== event.insert_id);
+        this.queue = this.queue.filter(
+          (queuedContext) => !queuedContext.event.delay?.id || queuedContext.event.insert_id !== event.insert_id,
+        );
       }
       this.queue.push(context);
       this.schedule(this.config.flushIntervalMillis);
@@ -220,18 +222,16 @@ export class Destination implements DestinationPlugin {
 
     const batches = chunk(list, this.config.flushQueueSize);
 
-    // Promise.all() doesn't guarantee resolve order.
     // Sequentially resolve to make sure backend receives events in order
-    const regularEventBatch = batches.reduce(async (promise, batch) => {
-      await promise;
-      return await this.send(batch, useRetry);
-    }, Promise.resolve());
-    const eventPromises = [regularEventBatch];
+    // and each request gets its own metadata snapshot.
+    for (const batch of batches) {
+      await this.send(batch, useRetry);
+    }
 
-    const delayedEventBatches = this.getDelayedEventsBatches(delayed, useRetry);
-    eventPromises.push(...delayedEventBatches);
-
-    await Promise.all(eventPromises);
+    const delayedEventBatches = this.getDelayedEventsBatches(delayed);
+    for (const [delay, batch] of delayedEventBatches) {
+      await this.send(batch, useRetry, delay);
+    }
 
     // Mark current flush is done
     this.flushId = null;
@@ -239,19 +239,15 @@ export class Destination implements DestinationPlugin {
     this.scheduleEvents(this.queue);
   }
 
-  getDelayedEventsBatches(delayed: Record<string, [Delay, Context[]]>, useRetry: boolean) {
-    const eventPromises = [];
-    try {
-      for (const [delay, contexts] of Object.values(delayed)) {
-        const delayedBatches = chunk(contexts, this.config.flushQueueSize);
-        const delayedEventBatch = delayedBatches.reduce(async (promise, batch) => {
-          await promise;
-          return await this.send(batch, useRetry, delay);
-        }, Promise.resolve());
-        eventPromises.push(delayedEventBatch);
-      }
-    } catch (e) {}
-    return eventPromises;
+  getDelayedEventsBatches(delayed: Record<string, [Delay, Context[]]>) {
+    const eventBatches: [Delay, Context[]][] = [];
+    for (const [delay, contexts] of Object.values(delayed)) {
+      const delayedBatches = chunk(contexts, this.config.flushQueueSize);
+      delayedBatches.forEach((batch) => {
+        eventBatches.push([delay, batch]);
+      });
+    }
+    return eventBatches;
   }
 
   translatePayloadToDelayedPayload(payload: Payload, list: Context[], delay: Delay): DelayedPayload {

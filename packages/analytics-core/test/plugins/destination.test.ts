@@ -136,6 +136,27 @@ describe('destination', () => {
       expect(destination.queue.length).toBe(1);
       expect(destination.queue[0].event).toEqual(expectedEvent);
     });
+
+    test('should keep regular events when deduplicating delayed events with the same insert_id', async () => {
+      const destination = new Destination();
+      destination.config = useDefaultConfig();
+      const regularEvent = {
+        event_type: 'regular',
+        insert_id: '123',
+      };
+      const delayedEvent = {
+        event_type: 'delayed',
+        insert_id: '123',
+        delay: { id: 'delay-123' },
+      };
+
+      void destination.execute(regularEvent);
+      void destination.execute(delayedEvent);
+
+      expect(destination.queue.length).toBe(2);
+      expect(destination.queue[0].event).toEqual(regularEvent);
+      expect(destination.queue[1].event).toEqual(delayedEvent);
+    });
   });
 
   describe('removeEventsExceedFlushMaxRetries', () => {
@@ -1727,7 +1748,7 @@ describe('destination', () => {
   });
 
   describe('delayed events', () => {
-    const successResponse = {
+    const successResponse: Response = {
       status: Status.Success,
       statusCode: 200,
       body: {
@@ -1868,6 +1889,36 @@ describe('destination', () => {
       );
       expectSuccess(regularCallback, regularContext.event);
       expectSuccess(delayedCallback, delayedContext.event);
+    });
+
+    test('should wait for regular event upload before sending delayed events', async () => {
+      const delayId = 'delay-123';
+      const regularContext = createContext({ event_type: 'regular_event' });
+      const delayedContext = createContext({ event_type: 'delayed_event', delay: { id: delayId, timeout: 5000 } });
+      let resolveFirstSend: (response: Response) => void = (_response: Response) => {
+        throw new Error('First send was not started.');
+      };
+      let firstSendResolved = false;
+      transportProvider.send.mockImplementation(() => {
+        if (transportProvider.send.mock.calls.length === 1) {
+          return new Promise<Response>((resolve) => {
+            resolveFirstSend = (response) => {
+              firstSendResolved = true;
+              resolve(response);
+            };
+          });
+        }
+        expect(firstSendResolved).toBe(true);
+        return Promise.resolve(successResponse);
+      });
+
+      const flushPromise = flushQueue([regularContext, delayedContext]);
+      await Promise.resolve();
+
+      expect(transportProvider.send).toHaveBeenCalledTimes(1);
+      resolveFirstSend(successResponse);
+      await flushPromise;
+      expect(transportProvider.send).toHaveBeenCalledTimes(2);
     });
 
     test('should send delayed events with different delay_ids on same flush', async () => {
