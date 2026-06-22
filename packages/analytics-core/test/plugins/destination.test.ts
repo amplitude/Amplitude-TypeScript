@@ -130,11 +130,16 @@ describe('destination', () => {
         insert_id: '123',
         delay: { id: 'delay-123' },
       };
-      void destination.execute(event1);
+      const result = destination.execute(event1);
       void destination.execute(event2);
 
       expect(destination.queue.length).toBe(1);
       expect(destination.queue[0].event).toEqual(expectedEvent);
+      await expect(result).resolves.toEqual({
+        event: event1,
+        code: 0,
+        message: Status.Skipped,
+      });
     });
 
     test('should deduplicate events with the same delay_id but different insert_id', async () => {
@@ -155,11 +160,16 @@ describe('destination', () => {
         insert_id: '456',
         delay: { id: 'delay-123' },
       };
-      void destination.execute(event1);
+      const result = destination.execute(event1);
       void destination.execute(event2);
 
       expect(destination.queue.length).toBe(1);
       expect(destination.queue[0].event).toEqual(expectedEvent);
+      await expect(result).resolves.toEqual({
+        event: event1,
+        code: 0,
+        message: Status.Skipped,
+      });
     });
   });
 

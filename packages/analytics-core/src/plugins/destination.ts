@@ -129,11 +129,17 @@ export class Destination implements DestinationPlugin {
       };
       // remove any delayed events with the same insert_id
       if (event.delay?.id) {
-          /* istanbul ignore next */
-        this.queue = this.queue.filter((queuedContext) => (
-          queuedContext.event.insert_id !== event.insert_id &&
-          queuedContext.event.delay?.id !== event.delay?.id
-        ));
+        const dedupedContexts = this.queue.filter(
+          (queuedContext) =>
+            queuedContext.event.insert_id === event.insert_id || queuedContext.event.delay?.id === event.delay?.id,
+        );
+        this.queue = this.queue.filter(
+          (queuedContext) =>
+            queuedContext.event.insert_id !== event.insert_id && queuedContext.event.delay?.id !== event.delay?.id,
+        );
+        dedupedContexts.forEach((queuedContext) =>
+          queuedContext.callback(buildResult(queuedContext.event, 0, Status.Skipped)),
+        );
       }
       this.queue.push(context);
       this.schedule(this.config.flushIntervalMillis);
