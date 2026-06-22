@@ -124,7 +124,7 @@ jobs:
         uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3
         with:
           fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.GH_PUBLISH_TOKEN }}
           ref: ${{ github.event.inputs.branch || github.ref_name }}
 
       - name: Build and Test
@@ -148,7 +148,7 @@ jobs:
           
           # Temporarily disable exit on error to capture output even when command fails
           set +e
-          OUTPUT=$(GH_TOKEN=${{ secrets.GITHUB_TOKEN }} pnpm deploy:version -y --no-private --create-release github 2>&1)
+          OUTPUT=$(GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} pnpm deploy:version -y --no-private --create-release github 2>&1)
           EXIT_CODE=$?
           set -e
           
@@ -174,7 +174,7 @@ jobs:
       # Publish to NPM (also uploads minified JS and source maps to S3)
       - name: Publish Release to NPM
         run: |
-          GH_TOKEN=${{ secrets.GITHUB_TOKEN }} pnpm deploy:publish
+          GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} pnpm deploy:publish
         env:
           S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
 
@@ -236,7 +236,7 @@ jobs:
         with:
           ref: ${{ steps.determine-branch.outputs.branch }}
           fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.GH_PUBLISH_TOKEN }}
 
       - name: Build and Test
         uses: ./.github/actions/build-and-test
@@ -258,18 +258,18 @@ jobs:
       - name: Dry run pre-release version
         if: ${{ github.event.inputs.releaseType == 'dry-run' }}
         run: |
-          GH_TOKEN=${{ secrets.GITHUB_TOKEN }} pnpm deploy:version:dry-run -y --preid ${{ env.PREID }}
+          GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} pnpm deploy:version:dry-run -y --preid ${{ env.PREID }}
 
       - name: Pre-release version
         if: ${{ github.event.inputs.releaseType == 'prerelease' && github.event.inputs.skipLernaVersion != 'true' }}
         run: |
-            GH_TOKEN=${{ secrets.GITHUB_TOKEN }} pnpm deploy:version -y --no-private --conventional-prerelease --preid ${{ env.PREID }} --allow-branch ${{ steps.determine-branch.outputs.branch }} --create-release github
+            GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} pnpm deploy:version -y --no-private --conventional-prerelease --preid ${{ env.PREID }} --allow-branch ${{ steps.determine-branch.outputs.branch }} --create-release github
 
       # Publish to NPM (also uploads minified JS and source maps to S3)
       - name: Publish Pre-release to NPM
         if: ${{ github.event.inputs.releaseType == 'prerelease' }}
         run: |
-          GH_TOKEN=${{ secrets.GITHUB_TOKEN }} pnpm deploy:publish --no-git-checks --ignore-scripts --tag ${{ env.PREID }}
+          GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} pnpm deploy:publish --no-git-checks --ignore-scripts --tag ${{ env.PREID }}
         env:
           S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
 
