@@ -18,4 +18,6 @@ export enum Status {
   Timeout = 'Timeout',
   /** NodeJS runtime environment error.. E.g. disconnected from network */
   SystemError = 'SystemError',
+  /** The event was overwritten by a new event with the same insert_id and delay.id. */
+  Overwritten = 'overwritten',
 }
