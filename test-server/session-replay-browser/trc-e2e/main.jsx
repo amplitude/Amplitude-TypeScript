@@ -13,6 +13,10 @@ import * as sessionReplay from '@amplitude/plugin-session-replay-browser';
 //                                       under the *-srnpm npm: aliases.
 const SR_MODE = import.meta.env.SR_MODE === 'npm' ? 'npm' : 'local';
 
+// Expose for console poking (e.g. window.amplitude.getDeviceId()).
+window.amplitude = amplitude;
+window.sessionReplay = sessionReplay;
+
 // The dedicated vite config serves this app at the server root (appType: 'spa'), so react-router
 // routes hang directly off '/'.
 const BASENAME = '/';
@@ -20,16 +24,26 @@ const BASENAME = '/';
 // In plugin mode the diagnostics client is internal to the SDK, so we can't inject a spy. Instead we
 // intercept fetch and surface the real POSTs to .../v1/capture — that's the actual diagnostics
 // payload (counters/histograms/events) the SDK ships. Install before init().
+//
+// Patch window.fetch exactly once and route to the latest sink, so a retried Start (after a failed
+// init) doesn't stack wrappers and double-count captures.
+let captureSink = null;
+let fetchPatched = false;
 function installCaptureInterceptor(onCapture) {
+  captureSink = onCapture;
+  if (fetchPatched) {
+    return;
+  }
+  fetchPatched = true;
   const orig = window.fetch.bind(window);
   window.fetch = async (input, init) => {
     const url = typeof input === 'string' ? input : input?.url ?? '';
     if (url.includes('/v1/capture')) {
       try {
         const body = typeof init?.body === 'string' ? JSON.parse(init.body) : undefined;
-        onCapture({ url, body, at: new Date().toLocaleTimeString() });
+        captureSink?.({ url, body, at: new Date().toLocaleTimeString() });
       } catch {
-        onCapture({ url, body: undefined, at: new Date().toLocaleTimeString() });
+        captureSink?.({ url, body: undefined, at: new Date().toLocaleTimeString() });
       }
     }
     return orig(input, init);
@@ -55,7 +69,7 @@ function Page({ title }) {
       </p>
       {id && <p>route param id = {id}</p>}
       <p>SPA navigation (no reload) fires URL-change targeting re-eval; tracked events also trigger eval.</p>
-      <button onClick={() => window.amplitude.track('manual_test_event', { from: title })}>
+      <button onClick={() => amplitude.track('manual_test_event', { from: title })}>
         amplitude.track(&apos;manual_test_event&apos;)
       </button>
     </div>
