@@ -96,6 +96,8 @@ export class Destination implements DestinationPlugin {
   // When flush resolves, set `flushId` to null
   flushId: ReturnType<typeof setTimeout> | null = null;
   queue: Context[] = [];
+  inFlightContexts = new WeakSet<Context>();
+  overwrittenContexts = new WeakSet<Context>();
   diagnosticsClient: IDiagnosticsClient | undefined;
 
   constructor(context?: { diagnosticsClient: IDiagnosticsClient }) {
@@ -134,7 +136,12 @@ export class Destination implements DestinationPlugin {
         /* istanbul ignore next */
         this.queue.forEach((queuedContext) => {
           if (queuedContext.event.insert_id === event.insert_id || queuedContext.event.delay?.id === event.delay?.id) {
-            duplicatedEvents.push(queuedContext);
+            this.overwrittenContexts.add(queuedContext);
+            if (this.inFlightContexts.has(queuedContext)) {
+              queue.push(queuedContext);
+            } else {
+              duplicatedEvents.push(queuedContext);
+            }
           } else {
             queue.push(queuedContext);
           }
@@ -150,6 +157,10 @@ export class Destination implements DestinationPlugin {
 
   removeEventsExceedFlushMaxRetries(list: Context[]) {
     return list.filter((context) => {
+      if (this.overwrittenContexts.has(context)) {
+        void this.fulfillRequest([context], 0, Status.Overwritten);
+        return false;
+      }
       context.attempts += 1;
       if (context.attempts < this.config.flushMaxRetries) {
         return true;
@@ -277,9 +288,16 @@ export class Destination implements DestinationPlugin {
   }
 
   async send(list: Context[], useRetry = true, delay?: Delay) {
+    list = list.filter((context) => !this.overwrittenContexts.has(context));
+    if (list.length === 0) {
+      return;
+    }
+
     if (!this.config.apiKey) {
       return this.fulfillRequest(list, 400, MISSING_API_KEY_MESSAGE);
     }
+
+    list.forEach((context) => this.inFlightContexts.add(context));
 
     let payload: Payload = {
       api_key: this.config.apiKey,
@@ -334,6 +352,8 @@ export class Destination implements DestinationPlugin {
       });
 
       this.handleResponse({ status: Status.Failed, statusCode: 0 }, list);
+    } finally {
+      list.forEach((context) => this.inFlightContexts.delete(context));
     }
   }
 
@@ -504,9 +524,8 @@ export class Destination implements DestinationPlugin {
    * This is called on response comes back for a request
    */
   removeEvents(eventsToRemove: Context[]) {
-    this.queue = this.queue.filter(
-      (queuedContext) => !eventsToRemove.some((context) => context.event.insert_id === queuedContext.event.insert_id),
-    );
+    const eventsToRemoveSet = new Set(eventsToRemove);
+    this.queue = this.queue.filter((queuedContext) => !eventsToRemoveSet.has(queuedContext));
 
     this.saveEvents();
   }

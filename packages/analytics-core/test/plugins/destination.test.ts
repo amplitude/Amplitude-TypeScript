@@ -1773,11 +1773,7 @@ describe('destination', () => {
     let destination: Destination;
     let transportProvider: { send: jest.Mock };
 
-    const createContext = (
-      event: { event_type: string; delay?: { id: string; timeout?: number } },
-      callback = jest.fn(),
-      timeout = 0,
-    ): Context => ({
+    const createContext = (event: Context['event'], callback = jest.fn(), timeout = 0): Context => ({
       attempts: 0,
       callback,
       event,
@@ -1964,6 +1960,106 @@ describe('destination', () => {
       expect(transportProvider.send).not.toHaveBeenCalled();
       expect(callback).not.toHaveBeenCalled();
       expect(destination.queue).toEqual([context]);
+    });
+
+    test('should not overwrite delayed events that are already in flight', async () => {
+      const delayId = 'delay-123';
+      const staleEvent = { event_type: 'before', insert_id: '123', delay: { id: delayId } };
+      const replacementEvent = { event_type: 'after', insert_id: '123', delay: { id: delayId } };
+      const staleCallback = jest.fn();
+      const staleContext = createContext(staleEvent, staleCallback);
+      let resolveSend: (response: typeof successResponse) => void = jest.fn();
+      transportProvider.send.mockReturnValueOnce(
+        new Promise((resolve) => {
+          resolveSend = resolve;
+        }),
+      );
+      jest.spyOn(destination, 'schedule').mockImplementation(jest.fn);
+
+      destination.queue = [staleContext];
+      const flushPromise = destination.flush(true);
+      await Promise.resolve();
+
+      void destination.execute(replacementEvent);
+
+      expect(staleCallback).not.toHaveBeenCalledWith({
+        event: staleEvent,
+        code: 0,
+        message: Status.Overwritten,
+      });
+
+      resolveSend(successResponse);
+      await flushPromise;
+
+      expectSuccess(staleCallback, staleEvent);
+      expect(destination.queue).toHaveLength(1);
+      expect(destination.queue[0].event).toEqual(replacementEvent);
+    });
+
+    test('should skip delayed batch entries overwritten before send starts', async () => {
+      const delayId = 'delay-123';
+      const delayedContextA = createContext({
+        event_type: 'delayed_event_a',
+        delay: { id: delayId },
+      });
+      const delayedContextB = createContext({
+        event_type: 'delayed_event_b',
+        delay: { id: delayId },
+      });
+      let resolveSend: (response: typeof successResponse) => void = jest.fn();
+      transportProvider.send.mockReturnValueOnce(
+        new Promise((resolve) => {
+          resolveSend = resolve;
+        }),
+      );
+      jest.spyOn(destination, 'schedule').mockImplementation(jest.fn);
+      destination.config.flushQueueSize = 1;
+
+      destination.queue = [delayedContextA, delayedContextB];
+      const flushPromise = destination.flush(true);
+      await Promise.resolve();
+
+      void destination.execute({ event_type: 'replacement', delay: { id: delayId } });
+      resolveSend(successResponse);
+      await flushPromise;
+
+      expect(transportProvider.send).toHaveBeenCalledTimes(1);
+      expect(delayedContextB.callback).toHaveBeenCalledWith({
+        event: delayedContextB.event,
+        code: 0,
+        message: Status.Overwritten,
+      });
+    });
+
+    test('should not retry in-flight delayed events that were overwritten', async () => {
+      const delayId = 'delay-123';
+      const staleEvent = { event_type: 'before', delay: { id: delayId } };
+      const replacementEvent = { event_type: 'after', delay: { id: delayId } };
+      const staleCallback = jest.fn();
+      const staleContext = createContext(staleEvent, staleCallback);
+      let resolveSend: (response: Response) => void = jest.fn();
+      transportProvider.send.mockReturnValueOnce(
+        new Promise((resolve) => {
+          resolveSend = resolve;
+        }),
+      );
+      jest.spyOn(destination, 'schedule').mockImplementation(jest.fn);
+
+      destination.queue = [staleContext];
+      const flushPromise = destination.flush(true);
+      await Promise.resolve();
+
+      void destination.execute(replacementEvent);
+      resolveSend({ status: Status.Failed, statusCode: 500 });
+      await flushPromise;
+
+      expect(staleCallback).toHaveBeenCalledWith({
+        event: staleEvent,
+        code: 0,
+        message: Status.Overwritten,
+      });
+      expect(destination.queue).toHaveLength(1);
+      expect(destination.queue[0].event).toEqual(replacementEvent);
     });
   });
 });
