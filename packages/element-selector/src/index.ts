@@ -53,9 +53,27 @@ export { runOrchestrator, DEFAULT_STRATEGIES } from './orchestrator';
 export type { OrchestratorOptions } from './orchestrator';
 export { fallbackCssPath } from './fallback-css-path';
 
+// ===== Legacy walker =====
+// Canonical home for the Chromium-DevTools-derived `cssPath` algorithm.
+// Both `plugin-autocapture-browser` and `session-replay-ui` historically
+// shipped their own copies kept in sync by comment; both will switch to
+// re-exporting from here so the two can never drift again. End consumers
+// rarely need to call this directly — `engine.generate` and
+// `generateSelector` route through it automatically — but it's exported so
+// the SDK and dashboard can drop their local copies without breaking
+// downstream imports.
+export { legacyCssPath } from './legacy-css-path';
+
 // ===== Config resolver =====
 export { resolveSelectorConfig, DEFAULT_RESOLVED_CONFIG } from './config/resolve-config';
 
 // ===== Engine factory =====
 export { createSelectorEngine } from './engine';
 export type { CreateSelectorEngineOptions } from './engine';
+
+// ===== Top-level selector entry point =====
+// Use this from React contexts / boot-time call sites where the engine may
+// not yet be available. When the engine *is* present, just call
+// `engine.generate(el)` directly — it has the same kill-switch semantics
+// baked in.
+export { generateSelector } from './generate-selector';

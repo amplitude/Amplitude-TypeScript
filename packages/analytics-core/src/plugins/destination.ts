@@ -127,9 +127,22 @@ export class Destination implements DestinationPlugin {
         callback: (result: Result) => resolve(result),
         timeout: 0,
       };
-      // remove any delayed events with the same insert_id
+      // remove delayed events with the same insert_id and the same delay.id
       if (event.delay?.id) {
-        this.queue = this.queue.filter((queuedContext) => queuedContext.event.insert_id !== event.insert_id);
+        const duplicatedEvents: Context[] = [];
+        const queue: Context[] = [];
+        /* istanbul ignore next */
+        this.queue.forEach((queuedContext) => {
+          if (queuedContext.event.insert_id === event.insert_id && queuedContext.event.delay?.id === event.delay?.id) {
+            duplicatedEvents.push(queuedContext);
+          } else {
+            queue.push(queuedContext);
+          }
+        });
+        duplicatedEvents.forEach((context) =>
+          context.callback(buildResult(context.event, 0, 'Stale event overwritten')),
+        );
+        this.queue = queue;
       }
       this.queue.push(context);
       this.schedule(this.config.flushIntervalMillis);
@@ -228,8 +241,8 @@ export class Destination implements DestinationPlugin {
     }, Promise.resolve());
     const eventPromises = [regularEventBatch];
 
-    const delayedEventBatches = this.getDelayedEventsBatches(delayed, useRetry);
-    eventPromises.push(...delayedEventBatches);
+    const delayedEventsBatches = this.getDelayedEventsBatches(delayed, useRetry);
+    eventPromises.push(...delayedEventsBatches);
 
     await Promise.all(eventPromises);
 
@@ -243,14 +256,11 @@ export class Destination implements DestinationPlugin {
     const eventPromises = [];
     try {
       for (const [delay, contexts] of Object.values(delayed)) {
-        const delayedBatches = chunk(contexts, this.config.flushQueueSize);
-        const delayedEventBatch = delayedBatches.reduce(async (promise, batch) => {
-          await promise;
-          return await this.send(batch, useRetry, delay);
-        }, Promise.resolve());
-        eventPromises.push(delayedEventBatch);
+        eventPromises.push(this.send(contexts, useRetry, delay));
       }
-    } catch (e) {}
+    } catch (e) {
+      // swallow error
+    }
     return eventPromises;
   }
 
@@ -281,9 +291,11 @@ export class Destination implements DestinationPlugin {
         min_id_length: this.config.minIdLength,
       },
       client_upload_time: new Date().toISOString(),
-      request_metadata: this.config.requestMetadata,
+      request_metadata: delay ? undefined : this.config.requestMetadata,
     };
-    this.config.requestMetadata = new RequestMetadata();
+    if (!delay) {
+      this.config.requestMetadata = new RequestMetadata();
+    }
 
     try {
       let { serverUrl } = createServerConfig(this.config.serverUrl, this.config.serverZone, this.config.useBatch);
