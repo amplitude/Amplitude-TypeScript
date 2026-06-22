@@ -237,12 +237,10 @@ export class Destination implements DestinationPlugin {
       await promise;
       return await this.send(batch, useRetry);
     }, Promise.resolve());
-    const eventPromises = [regularEventBatch];
 
+    await regularEventBatch;
     const delayedEventBatches = this.getDelayedEventsBatches(delayed, useRetry);
-    eventPromises.push(...delayedEventBatches);
-
-    await Promise.all(eventPromises);
+    await Promise.all(delayedEventBatches);
 
     // Mark current flush is done
     this.flushId = null;

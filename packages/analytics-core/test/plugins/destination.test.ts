@@ -1759,7 +1759,7 @@ describe('destination', () => {
   });
 
   describe('delayed events', () => {
-    const successResponse = {
+    const successResponse: Response = {
       status: Status.Success,
       statusCode: 200,
       body: {
@@ -1900,6 +1900,50 @@ describe('destination', () => {
       );
       expectSuccess(regularCallback, regularContext.event);
       expectSuccess(delayedCallback, delayedContext.event);
+    });
+
+    test('should wait for regular events before sending delayed events on same flush', async () => {
+      const delayId = 'delay-123';
+      const delayTimeout = 5000;
+      const regularContext = createContext({ event_type: 'regular_event' });
+      const delayedContext = createContext({
+        event_type: 'delayed_event',
+        delay: { id: delayId, timeout: delayTimeout },
+      });
+      let resolveRegularSend: (response: Response) => void = () => undefined;
+      const regularSend = new Promise<Response>((resolve) => {
+        resolveRegularSend = resolve;
+      });
+      transportProvider.send.mockImplementationOnce(() => regularSend).mockResolvedValueOnce(successResponse);
+
+      const flushPromise = flushQueue([regularContext, delayedContext]);
+      await Promise.resolve();
+
+      expect(transportProvider.send).toHaveBeenCalledTimes(1);
+      expect(transportProvider.send).toHaveBeenNthCalledWith(
+        1,
+        AMPLITUDE_SERVER_URL,
+        expect.objectContaining({
+          events: [expect.objectContaining({ event_type: 'regular_event' })],
+        }),
+        true,
+      );
+
+      resolveRegularSend(successResponse);
+      await flushPromise;
+
+      expect(transportProvider.send).toHaveBeenCalledTimes(2);
+      expect(transportProvider.send).toHaveBeenNthCalledWith(
+        2,
+        delayedUrl,
+        expect.objectContaining({
+          id: delayId,
+          timeout: delayTimeout,
+          events: [expect.objectContaining({ event_type: 'delayed_event' })],
+          instant_events: [],
+        }),
+        true,
+      );
     });
 
     test('should send delayed events with different delay_ids on same flush', async () => {
