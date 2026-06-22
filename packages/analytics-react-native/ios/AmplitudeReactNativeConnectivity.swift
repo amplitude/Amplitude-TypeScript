@@ -52,14 +52,16 @@ class AmplitudeReactNativeConnectivity: RCTEventEmitter {
 
     // MARK: Exported methods
 
-    /// Always seed connected because `NWPathMonitor` delivers the current path
-    /// as its first update once JS subscribes
+    /// Seed disconnected so startup events buffer (offline) until the monitor's
+    /// first update — delivered once JS subscribes and start() runs — reports the
+    /// real status. Seeding connected would risk sending startup events while
+    /// actually offline.
     @objc
     func getNetworkConnectivityStatus(
         _ resolve: @escaping RCTPromiseResolveBlock,
         rejecter reject: @escaping RCTPromiseRejectBlock
     ) -> Void {
-        resolve(["isConnected": true])
+        resolve(["isConnected": false])
     }
 
     // MARK: Helpers
