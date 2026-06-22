@@ -129,7 +129,11 @@ export class Destination implements DestinationPlugin {
       };
       // remove any delayed events with the same insert_id
       if (event.delay?.id) {
-        this.queue = this.queue.filter((queuedContext) => queuedContext.event.insert_id !== event.insert_id);
+          /* istanbul ignore next */
+        this.queue = this.queue.filter((queuedContext) => (
+          queuedContext.event.insert_id !== event.insert_id &&
+          queuedContext.event.delay?.id !== event.delay?.id
+        ));
       }
       this.queue.push(context);
       this.schedule(this.config.flushIntervalMillis);
@@ -281,9 +285,11 @@ export class Destination implements DestinationPlugin {
         min_id_length: this.config.minIdLength,
       },
       client_upload_time: new Date().toISOString(),
-      request_metadata: this.config.requestMetadata,
+      request_metadata: delay ? undefined : this.config.requestMetadata,
     };
-    this.config.requestMetadata = new RequestMetadata();
+    if (!delay) {
+      this.config.requestMetadata = new RequestMetadata();
+    }
 
     try {
       let { serverUrl } = createServerConfig(this.config.serverUrl, this.config.serverZone, this.config.useBatch);
