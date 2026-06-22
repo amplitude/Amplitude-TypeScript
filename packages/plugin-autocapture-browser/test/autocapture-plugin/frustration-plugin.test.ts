@@ -39,6 +39,7 @@ describe('frustrationPlugin', () => {
     log: jest.fn(),
     warn: jest.fn(),
     debug: jest.fn(),
+    error: jest.fn(),
   };
 
   const config: Partial<BrowserConfig> = {
