@@ -42,6 +42,13 @@ export interface Context {
   timeout: number;
 }
 
+type DelayedEventGroup = {
+  delay: Delay;
+  contexts: Context[];
+};
+
+type DelayedEventsById = Record<string, DelayedEventGroup>;
+
 const DEFAULT_AMPLITUDE_SERVER_URLS = new Set([
   AMPLITUDE_SERVER_URL,
   EU_AMPLITUDE_SERVER_URL,
@@ -127,14 +134,29 @@ export class Destination implements DestinationPlugin {
         callback: (result: Result) => resolve(result),
         timeout: 0,
       };
-      // remove any delayed events with the same insert_id
-      if (event.delay?.id) {
-        this.queue = this.queue.filter((queuedContext) => queuedContext.event.insert_id !== event.insert_id);
-      }
+      this.removeStaleDelayedEvents(event);
       this.queue.push(context);
       this.schedule(this.config.flushIntervalMillis);
       this.saveEvents();
     });
+  }
+
+  private removeStaleDelayedEvents(event: Event) {
+    if (!event.delay?.id) {
+      return;
+    }
+    const duplicatedEvents: Context[] = [];
+    const queue: Context[] = [];
+    /* istanbul ignore next */
+    this.queue.forEach((queuedContext) => {
+      if (queuedContext.event.insert_id === event.insert_id && queuedContext.event.delay?.id === event.delay?.id) {
+        duplicatedEvents.push(queuedContext);
+      } else {
+        queue.push(queuedContext);
+      }
+    });
+    duplicatedEvents.forEach((context) => context.callback(buildResult(context.event, 0, 'Stale event overwritten')));
+    this.queue = queue;
   }
 
   removeEventsExceedFlushMaxRetries(list: Context[]) {
@@ -204,15 +226,15 @@ export class Destination implements DestinationPlugin {
     this.resetSchedule();
 
     const list: Context[] = [];
-    const delayed: Record<string, [Delay, Context[]]> = {};
+    const delayed: DelayedEventsById = {};
     const later: Context[] = [];
     this.queue.forEach((context) => {
       if (context.timeout !== 0) {
         later.push(context);
       } else if (context.event.delay?.id) {
         const delay = context.event.delay;
-        delayed[delay.id] = delayed[delay.id] || [delay, []];
-        delayed[delay.id][1].push(context);
+        delayed[delay.id] = delayed[delay.id] || { delay, contexts: [] };
+        delayed[delay.id].contexts.push(context);
       } else {
         list.push(context);
       }
@@ -228,8 +250,14 @@ export class Destination implements DestinationPlugin {
     }, Promise.resolve());
     const eventPromises = [regularEventBatch];
 
-    const delayedEventBatches = this.getDelayedEventsBatches(delayed, useRetry);
-    eventPromises.push(...delayedEventBatches);
+    if (Object.keys(delayed).length > 0) {
+      eventPromises.push(
+        this.getDelayedEventsBatches(delayed, useRetry).reduce(async (promise, batch) => {
+          await promise;
+          return await batch;
+        }, Promise.resolve()),
+      );
+    }
 
     await Promise.all(eventPromises);
 
@@ -239,18 +267,15 @@ export class Destination implements DestinationPlugin {
     this.scheduleEvents(this.queue);
   }
 
-  getDelayedEventsBatches(delayed: Record<string, [Delay, Context[]]>, useRetry: boolean) {
+  getDelayedEventsBatches(delayed: DelayedEventsById, useRetry: boolean) {
     const eventPromises = [];
     try {
-      for (const [delay, contexts] of Object.values(delayed)) {
-        const delayedBatches = chunk(contexts, this.config.flushQueueSize);
-        const delayedEventBatch = delayedBatches.reduce(async (promise, batch) => {
-          await promise;
-          return await this.send(batch, useRetry, delay);
-        }, Promise.resolve());
-        eventPromises.push(delayedEventBatch);
+      for (const { delay, contexts } of Object.values(delayed)) {
+        eventPromises.push(this.send(contexts, useRetry, delay));
       }
-    } catch (e) {}
+    } catch (e) {
+      // swallow error
+    }
     return eventPromises;
   }
 
@@ -281,9 +306,11 @@ export class Destination implements DestinationPlugin {
         min_id_length: this.config.minIdLength,
       },
       client_upload_time: new Date().toISOString(),
-      request_metadata: this.config.requestMetadata,
+      request_metadata: delay ? undefined : this.config.requestMetadata,
     };
-    this.config.requestMetadata = new RequestMetadata();
+    if (!delay) {
+      this.config.requestMetadata = new RequestMetadata();
+    }
 
     try {
       let { serverUrl } = createServerConfig(this.config.serverUrl, this.config.serverZone, this.config.useBatch);
