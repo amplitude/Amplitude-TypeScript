@@ -130,6 +130,38 @@ describe('destination', () => {
         insert_id: '123',
         delay: { id: 'delay-123' },
       };
+      const staleResult = destination.execute(event1);
+      void destination.execute(event2);
+
+      expect(destination.queue.length).toBe(1);
+      expect(destination.queue[0].event).toEqual(expectedEvent);
+
+      await staleResult;
+      expect(staleResult).resolves.toEqual({
+        event: event1,
+        code: 0,
+        message: Status.Overwritten,
+      });
+    });
+
+    test('should deduplicate events with the same delay_id but different insert_id', async () => {
+      const destination = new Destination();
+      destination.config = useDefaultConfig();
+      const event1 = {
+        event_type: 'before',
+        insert_id: '123',
+        delay: { id: 'delay-123' },
+      };
+      const event2 = {
+        event_type: 'after',
+        insert_id: '456',
+        delay: { id: 'delay-123' },
+      };
+      const expectedEvent = {
+        event_type: 'after',
+        insert_id: '456',
+        delay: { id: 'delay-123' },
+      };
       void destination.execute(event1);
       void destination.execute(event2);
 
