@@ -20,9 +20,15 @@ const BASENAME = '/';
 // In plugin mode the diagnostics client is internal to the SDK, so we can't inject a spy. Instead we
 // intercept fetch and surface the real POSTs to .../v1/capture — that's the actual diagnostics
 // payload (counters/histograms/events) the SDK ships. Install before init().
+let restoreCaptureInterceptor;
+
 function installCaptureInterceptor(onCapture) {
-  const orig = window.fetch.bind(window);
-  window.fetch = async (input, init) => {
+  if (restoreCaptureInterceptor) {
+    return restoreCaptureInterceptor;
+  }
+
+  const orig = window.fetch;
+  const interceptedFetch = async (input, init) => {
     const url = typeof input === 'string' ? input : input?.url ?? '';
     if (url.includes('/v1/capture')) {
       try {
@@ -32,8 +38,17 @@ function installCaptureInterceptor(onCapture) {
         onCapture({ url, body: undefined, at: new Date().toLocaleTimeString() });
       }
     }
-    return orig(input, init);
+    return orig.call(window, input, init);
   };
+
+  window.fetch = interceptedFetch;
+  restoreCaptureInterceptor = () => {
+    if (window.fetch === interceptedFetch) {
+      window.fetch = orig;
+    }
+    restoreCaptureInterceptor = undefined;
+  };
+  return restoreCaptureInterceptor;
 }
 
 // Routes to exercise URL targeting. Whether each records depends on YOUR project's TRC rules.
@@ -55,7 +70,7 @@ function Page({ title }) {
       </p>
       {id && <p>route param id = {id}</p>}
       <p>SPA navigation (no reload) fires URL-change targeting re-eval; tracked events also trigger eval.</p>
-      <button onClick={() => window.amplitude.track('manual_test_event', { from: title })}>
+      <button onClick={() => amplitude.track('manual_test_event', { from: title })}>
         amplitude.track(&apos;manual_test_event&apos;)
       </button>
     </div>
@@ -251,9 +266,10 @@ function App() {
   const handleStart = async (opts) => {
     if (initedRef.current) return;
     initedRef.current = true;
+    let restoreCaptureInterceptorOnFailure;
     try {
       // Surface real /v1/capture POSTs (install before init so init-time flushes are caught).
-      installCaptureInterceptor((cap) => setCaptures((prev) => [...prev, cap]));
+      restoreCaptureInterceptorOnFailure = installCaptureInterceptor((cap) => setCaptures((prev) => [...prev, cap]));
 
       // The analytics SDK's own diagnostics default to sampleRate 0; sample them in if supported.
       // (The SR plugin creates its own Debug-gated diagnostics client regardless.)
@@ -282,6 +298,7 @@ function App() {
       );
       setStarted(true);
     } catch (err) {
+      restoreCaptureInterceptorOnFailure?.();
       initedRef.current = false;
       window.srError = err.message;
       // eslint-disable-next-line no-alert
