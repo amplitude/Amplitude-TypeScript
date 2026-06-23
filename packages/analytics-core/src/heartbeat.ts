@@ -20,7 +20,7 @@ export class Heartbeat {
     private client: CoreClient,
     private pulse: number,
     private delayTimeout: number,
-    private logger: ILogger,
+    private logger?: ILogger,
   ) {
     this.events = new Map<string, DelayedEvent>();
     this.delayId = UUID();
@@ -42,7 +42,8 @@ export class Heartbeat {
       // if the event has no timeout, then it's instant ingested and we can
       // delete it after it was ingested
       if (this.isInstantEvent(event)) {
-        eventPromise.finally(() => this.events.delete(event.insert_id!));
+        const insertId = event.insert_id;
+        void eventPromise.finally(() => this.events.delete(insertId));
       }
       trackedEvents.push(eventPromise);
     }
@@ -73,14 +74,17 @@ export class Heartbeat {
    * @param event
    * @returns
    */
-  private isInstantEvent(event: DelayedEvent) {
-    return event.insert_id && !event.delay.timeout;
+  private isInstantEvent(event: DelayedEvent): event is DelayedEvent & { insert_id: string } {
+    return Boolean(event.insert_id && !event.delay.timeout);
   }
 
   private checkEventSizeLimit(event: BaseEvent) {
     if (JSON.stringify([...this.events.values()]).length > EVENTS_SIZE_LIMIT) {
-      this.logger.warn(`Heartbeat: events size limit reached, rejecting event with id=${event.insert_id}'`);
-      this.events.delete(event.insert_id!);
+      /* istanbul ignore next */
+      this.logger?.warn(`Heartbeat: events size limit reached, rejecting event with id=${event.insert_id!}`);
+      if (event.insert_id) {
+        this.events.delete(event.insert_id);
+      }
       return false;
     }
     return true;
@@ -147,12 +151,13 @@ type HeartbeatMap = Map<CoreClient, Heartbeat>;
 
 const heartbeatMap: HeartbeatMap = new Map<CoreClient, Heartbeat>();
 
-export function getHeartbeatInstance(client: CoreClient, logger: ILogger): Heartbeat {
-  if (heartbeatMap.has(client)) {
-    return heartbeatMap.get(client)!;
-  } else {
-    const heartbeat = new Heartbeat(client, DEFAULT_HEARTBEAT_INTERVAL, DEFAULT_HEARTBEAT_DELAY_TIMEOUT, logger);
-    heartbeatMap.set(client, heartbeat);
-    return heartbeat;
+export function getHeartbeatInstance(client: CoreClient, logger?: ILogger): Heartbeat {
+  const existing = heartbeatMap.get(client);
+  if (existing) {
+    return existing;
   }
+  // TODO: make the interval and delay timeout configurable via config options
+  const heartbeat = new Heartbeat(client, DEFAULT_HEARTBEAT_INTERVAL, DEFAULT_HEARTBEAT_DELAY_TIMEOUT, logger);
+  heartbeatMap.set(client, heartbeat);
+  return heartbeat;
 }

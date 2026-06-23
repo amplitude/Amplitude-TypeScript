@@ -136,8 +136,7 @@ describe('destination', () => {
       expect(destination.queue.length).toBe(1);
       expect(destination.queue[0].event).toEqual(expectedEvent);
 
-      await staleResult;
-      expect(staleResult).resolves.toEqual({
+      await expect(staleResult).resolves.toEqual({
         event: event1,
         code: 0,
         message: 'Stale event overwritten',

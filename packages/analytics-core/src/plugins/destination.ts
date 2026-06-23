@@ -263,7 +263,9 @@ export class Destination implements DestinationPlugin {
         }, Promise.resolve());
         eventPromises.push(delayedEventBatch);
       }
-    } catch (e) {}
+    } catch (e) {
+      // swallow error
+    }
     return eventPromises;
   }
 
