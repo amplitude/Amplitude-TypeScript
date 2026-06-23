@@ -333,8 +333,16 @@ describe('heartbeat', () => {
       await jest.advanceTimersByTimeAsync(0);
       const [response1, response2] = await Promise.all([res1, res2]);
       expect(heartbeatMock).toHaveBeenCalledTimes(1);
-      expect(response1).toEqual({ event: { insert_id: '1', event_type: 'test', event_properties: { test: 'test1' } }, code: 200, message: 'success' });
-      expect(response2).toEqual({ event: { insert_id: '2', event_type: 'test', event_properties: { test: 'test2' } }, code: 200, message: 'success' });
+      expect(response1).toEqual({
+        event: { insert_id: '1', event_type: 'test', event_properties: { test: 'test1' } },
+        code: 200,
+        message: 'success',
+      });
+      expect(response2).toEqual({
+        event: { insert_id: '2', event_type: 'test', event_properties: { test: 'test2' } },
+        code: 200,
+        message: 'success',
+      });
     });
   });
 

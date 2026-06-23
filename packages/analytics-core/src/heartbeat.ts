@@ -15,7 +15,7 @@ export class Heartbeat {
   private delayId: string;
   private interval: NodeJS.Timeout | null = null;
   private resetPromise: Promise<Result[]> | null = null;
-  
+
   constructor(
     private client: CoreClient,
     private pulse: number,
@@ -53,7 +53,7 @@ export class Heartbeat {
   private async resetHeartbeat() {
     // if a reset is already in progress, return the existing promise
     if (this.resetPromise) return await this.resetPromise;
-    
+
     // reset the heartbeat interval
     if (this.interval) clearInterval(this.interval);
     this.interval = setInterval(() => void this.heartbeat(), this.pulse);
@@ -64,7 +64,7 @@ export class Heartbeat {
         resolve(this.heartbeat());
       }, 0);
     });
-    this.resetPromise.finally(() => this.resetPromise = null);
+    this.resetPromise.finally(() => (this.resetPromise = null));
 
     return await this.resetPromise;
   }

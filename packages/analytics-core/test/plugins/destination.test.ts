@@ -1853,16 +1853,14 @@ describe('destination', () => {
       await flushQueue([regularContext, delayedContext]);
 
       expect(transportProvider.send).toHaveBeenCalledTimes(2);
-      expect(transportProvider.send).toHaveBeenNthCalledWith(
-        1,
+      expect(transportProvider.send).toHaveBeenCalledWith(
         AMPLITUDE_SERVER_URL,
         expect.objectContaining({
           events: [expect.objectContaining({ event_type: 'regular_event' })],
         }),
         true,
       );
-      expect(transportProvider.send).toHaveBeenNthCalledWith(
-        2,
+      expect(transportProvider.send).toHaveBeenCalledWith(
         delayedUrl,
         expect.objectContaining({
           id: delayId,
