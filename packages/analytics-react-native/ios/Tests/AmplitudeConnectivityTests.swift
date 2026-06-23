@@ -18,23 +18,23 @@ private final class EventCapturingConnectivity: AmplitudeReactNativeConnectivity
     private var handler: ((CapturedEvent) -> Void)?
 
     var events: [CapturedEvent] {
-        lock.lock()
-        defer { lock.unlock() }
-        return capturedEvents
+        lock.withLock {
+            return capturedEvents
+        }
     }
 
     func setHandler(_ handler: ((CapturedEvent) -> Void)?) {
-        lock.lock()
-        defer { lock.unlock() }
-        self.handler = handler
+        lock.withLock {
+            self.handler = handler
+        }
     }
 
     override func sendEvent(withName name: String!, body: Any!) {
         let event = CapturedEvent(name: name ?? "", body: body)
-        lock.lock()
-        capturedEvents.append(event)
-        let handler = self.handler
-        lock.unlock()
+        let handler = lock.withLock { () -> ((CapturedEvent) -> Void)? in
+            capturedEvents.append(event)
+            return self.handler
+        }
         handler?(event)
     }
 }
