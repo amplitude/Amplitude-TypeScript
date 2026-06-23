@@ -20,6 +20,7 @@ describe('subscribeToElementSelectorConfig', () => {
 
   beforeEach(() => {
     dataExtractor = new DataExtractor({});
+    jest.clearAllMocks();
   });
 
   it('returns undefined when fetchRemoteConfig is disabled', () => {
@@ -60,10 +61,17 @@ describe('subscribeToElementSelectorConfig', () => {
       'all',
       expect.any(Function),
     );
+    expect(loggerProvider.debug).toHaveBeenCalledWith(
+      `@amplitude/plugin-autocapture-browser: subscribing to element-selector remote config at "${ELEMENT_SELECTOR_REMOTE_CONFIG_KEY}"`,
+    );
 
     // Deliver an enabled payload -> pushed into the extractor.
     deliver?.({ enabled: true });
     expect(updateSpy).toHaveBeenCalledWith({ enabled: true }, config.loggerProvider);
+    expect(loggerProvider.debug).toHaveBeenCalledWith(
+      '@amplitude/plugin-autocapture-browser: element-selector remote config delivered',
+      { enabled: true, hasPayload: true },
+    );
 
     // Deliver a null payload (no config for this key) -> still applied (defaults).
     deliver?.(null);
@@ -73,5 +81,8 @@ describe('subscribeToElementSelectorConfig', () => {
     expect(cleanup).toBeDefined();
     cleanup?.();
     expect(remoteConfigClient.unsubscribe).toHaveBeenCalledWith('es-sub-id');
+    expect(loggerProvider.debug).toHaveBeenCalledWith(
+      '@amplitude/plugin-autocapture-browser: unsubscribing from element-selector remote config (subscription es-sub-id)',
+    );
   });
 });

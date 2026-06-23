@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.46.1-element-path-v1.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.46.0...@amplitude/session-replay-browser@1.46.1-element-path-v1.0) (2026-06-23)
+
+
+### Bug Fixes
+
+* **session-replay:** no-op setSessionId when session id unchanged ([#1830](https://github.com/amplitude/Amplitude-TypeScript/issues/1830)) ([da465a4](https://github.com/amplitude/Amplitude-TypeScript/commit/da465a48bdda0a399d3976362c73d38a7851c444))
+
+
+
+
+
 # [1.46.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.45.0...@amplitude/session-replay-browser@1.46.0) (2026-06-13)
 
 

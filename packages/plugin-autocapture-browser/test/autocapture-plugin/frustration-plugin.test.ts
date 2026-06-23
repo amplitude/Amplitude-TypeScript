@@ -38,6 +38,8 @@ describe('frustrationPlugin', () => {
   const loggerProvider: Partial<ILogger> = {
     log: jest.fn(),
     warn: jest.fn(),
+    debug: jest.fn(),
+    error: jest.fn(),
   };
 
   const config: Partial<BrowserConfig> = {
@@ -128,7 +130,11 @@ describe('frustrationPlugin', () => {
         instance,
       );
 
-      expect(subscribe).toHaveBeenCalledWith('configs.analyticsSDK.elementSelector', 'all', expect.any(Function));
+      expect(subscribe).toHaveBeenCalledWith(
+        'configs.analyticsSDK.browserSDK.autocapture.elementSelector',
+        'all',
+        expect.any(Function),
+      );
 
       await plugin?.teardown?.();
       expect(unsubscribe).toHaveBeenCalledWith('es-sub');

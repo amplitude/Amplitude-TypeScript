@@ -3,6 +3,25 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.28.0-element-path-v1.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.27.4...@amplitude/plugin-autocapture-browser@1.28.0-element-path-v1.0) (2026-06-23)
+
+
+### Bug Fixes
+
+* **autocapture:** restore CI coverage after element-selector debug logs ([0d8b9ad](https://github.com/amplitude/Amplitude-TypeScript/commit/0d8b9ad7d3db9e7c6385437e924d249240103b81))
+* **autocapture:** share selector engine across DataExtractor instances ([200c5d1](https://github.com/amplitude/Amplitude-TypeScript/commit/200c5d118c408b20afd18a7225c641afa0331b66))
+* **autocapture:** use correct elementSelector remote config key ([d92f648](https://github.com/amplitude/Amplitude-TypeScript/commit/d92f6483d3975c0bbbc1190d855860185bee00dc))
+
+
+### Features
+
+* **autocapture:** add element-selector debug logs for config and Element Path ([8640942](https://github.com/amplitude/Amplitude-TypeScript/commit/86409424c0832b0ddf380552bee9c2aba88b8969))
+* **autocapture:** route Element Path through the element-selector engine ([ec973f4](https://github.com/amplitude/Amplitude-TypeScript/commit/ec973f4db3090f9cae80159051c0e26f1cd24e27))
+
+
+
+
+
 ## [1.27.4](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.27.3...@amplitude/plugin-autocapture-browser@1.27.4) (2026-06-11)
 
 **Note:** Version bump only for package @amplitude/plugin-autocapture-browser

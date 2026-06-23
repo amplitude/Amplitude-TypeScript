@@ -71,6 +71,8 @@
 
   <div class="panel">
     <h2>Selectors (most recent first)</h2>
+    <p class="hint">When autocapture is wired up, <b>event path</b> shows the
+      <code>[Amplitude] Element Path</code> from the last <code>Element Clicked</code> payload.</p>
     <div id="log"></div>
   </div>
 
@@ -79,6 +81,11 @@
     import { createSelectorEngine, resolveSelectorConfig } from '@amplitude/element-selector';
 
     window.amplitude = amplitude;
+
+    const TRACK_ENDPOINT = 'https://api2.amplitude.com/2/httpapi';
+    const ELEMENT_CLICKED = '[Amplitude] Element Clicked';
+    const ELEMENT_PATH_PROP = '[Amplitude] Element Path';
+    let lastEventPath = '';
 
     // Two local engines purely for the side-by-side display: one dormant (what
     // autocapture emits today) and one enabled (what it emits once an org opts
@@ -95,7 +102,10 @@
       row.className = 'row' + (changed ? ' changed' : '');
       row.innerHTML =
         '<div class="legacy"><b>disabled:</b> <code>' + escapeHtml(legacy) + '</code></div>' +
-        '<div class="engine"><b>enabled:</b> <code>' + escapeHtml(engine) + '</code></div>';
+        '<div class="engine"><b>enabled:</b> <code>' + escapeHtml(engine) + '</code></div>' +
+        (lastEventPath
+          ? '<div><b>event path:</b> <code>' + escapeHtml(lastEventPath) + '</code></div>'
+          : '<div class="hint">event path: (waiting for Element Clicked…)</div>');
       logEl.prepend(row);
     }
     function escapeHtml(s) {
@@ -110,9 +120,39 @@
     );
 
     const apiKey = import.meta.env.VITE_AMPLITUDE_API_KEY || 'element-selector-manual-key';
+    const simulateEnabledEngine = new URLSearchParams(window.location.search).get('engine') === 'enabled';
+
+    // Intercept track requests so we can read the emitted Element Path without
+    // needing a real API key or network round-trip.
+    const originalFetch = window.fetch.bind(window);
+    window.fetch = async (input, init) => {
+      const url = typeof input === 'string' ? input : input instanceof Request ? input.url : String(input);
+      if (url.startsWith(TRACK_ENDPOINT)) {
+        try {
+          const bodyText = typeof init?.body === 'string' ? init.body : '';
+          const payload = bodyText ? JSON.parse(bodyText) : {};
+          const events = Array.isArray(payload.events) ? payload.events : [];
+          const clicked = events.filter((e) => e.event_type === ELEMENT_CLICKED);
+          const latest = clicked[clicked.length - 1];
+          if (latest?.event_properties?.[ELEMENT_PATH_PROP]) {
+            lastEventPath = String(latest.event_properties[ELEMENT_PATH_PROP]);
+          }
+        } catch {
+          // ignore parse errors in the manual playground
+        }
+        return new Response(JSON.stringify({ code: 200, events_ingested: 1 }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+      return originalFetch(input, init);
+    };
+
     amplitude.init(apiKey, import.meta.env.VITE_AMPLITUDE_USER_ID || 'element-selector-manual-user', {
-      fetchRemoteConfig: false,
+      fetchRemoteConfig: simulateEnabledEngine,
       logLevel: 'debug',
+      flushIntervalMillis: 300,
+      flushQueueSize: 1,
       autocapture: {
         pageViews: false,
         sessions: false,
@@ -120,6 +160,16 @@
         fileDownloads: false,
         elementInteractions: true,
       },
+    }).promise.then(() => {
+      if (simulateEnabledEngine) {
+        console.info(
+          '[element-selector manual test] fetchRemoteConfig=true — enable configs.analyticsSDK.browserSDK.autocapture.elementSelector in remote config, or watch debug logs for config delivery.',
+        );
+      } else {
+        console.info(
+          '[element-selector manual test] engine dormant (default). Append ?engine=enabled to opt into remote-config delivery, or compare disabled vs enabled selectors in the panel.',
+        );
+      }
     });
   </script>
 </body>

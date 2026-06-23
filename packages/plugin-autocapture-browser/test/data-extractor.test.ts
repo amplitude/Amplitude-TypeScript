@@ -462,9 +462,42 @@ describe('data extractor', () => {
 
     test('keeps generating selectors after enabling the engine via remote config', () => {
       const button = document.getElementById('test-button');
-      dataExtractor.updateSelectorConfig({ enabled: true });
+      const logger = { debug: jest.fn(), warn: jest.fn() };
+      dataExtractor.updateSelectorConfig({ enabled: true }, logger);
+      expect(logger.debug).toHaveBeenCalledWith(
+        '@amplitude/plugin-autocapture-browser: element-selector config updated',
+        expect.objectContaining({ enabled: true, toggled: true }),
+      );
       const result = dataExtractor.getElementPath(button);
       expect(result).toEqual('button#test-button');
+      expect(logger.debug).toHaveBeenCalledWith(
+        '@amplitude/plugin-autocapture-browser: element-selector engine enabled',
+        expect.objectContaining({ elementPath: 'button#test-button', id: 'test-button' }),
+      );
+    });
+
+    test('omits id in enabled-engine debug output when the element has no id', () => {
+      document.getElementsByTagName('body')[0].innerHTML = '<button>Click me</button>';
+      const button = document.querySelector('button');
+      const logger = { debug: jest.fn(), warn: jest.fn() };
+      dataExtractor.updateSelectorConfig({ enabled: true }, logger);
+      dataExtractor.getElementPath(button);
+      expect(logger.debug).toHaveBeenCalledWith(
+        '@amplitude/plugin-autocapture-browser: element-selector engine enabled',
+        expect.objectContaining({ id: undefined }),
+      );
+    });
+
+    test('does not log enabled-engine debug output without a wired logger', () => {
+      jest.isolateModules(() => {
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        const { DataExtractor: IsolatedDataExtractor } =
+          require('../src/data-extractor') as typeof import('../src/data-extractor');
+        const isolatedExtractor = new IsolatedDataExtractor({});
+        isolatedExtractor.updateSelectorConfig({ enabled: true });
+        const button = document.getElementById('test-button');
+        expect(isolatedExtractor.getElementPath(button)).toEqual('button#test-button');
+      });
     });
 
     test('shares selector engine config across DataExtractor instances', () => {
