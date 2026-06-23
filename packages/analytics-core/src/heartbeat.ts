@@ -14,7 +14,8 @@ export class Heartbeat {
   private events: Map<string, DelayedEvent>;
   private delayId: string;
   private interval: NodeJS.Timeout | null = null;
-
+  private resetPromise: Promise<Result[]> | null = null;
+  
   constructor(
     private client: CoreClient,
     private pulse: number,
@@ -39,9 +40,9 @@ export class Heartbeat {
       const eventPromise = this.client.track(event_type, event_properties, eventOptions).promise;
 
       // if the event has no timeout, then it's instant ingested and we can
-      // delete it after it was successfully ingested
+      // delete it after it was ingested
       if (this.isInstantEvent(event)) {
-        eventPromise.then(() => this.events.delete(event.insert_id!));
+        eventPromise.finally(() => this.events.delete(event.insert_id!));
       }
       trackedEvents.push(eventPromise);
     }
@@ -49,9 +50,22 @@ export class Heartbeat {
   }
 
   private async resetHeartbeat() {
+    // if a reset is already in progress, return the existing promise
+    if (this.resetPromise) return await this.resetPromise;
+    
+    // reset the heartbeat interval
     if (this.interval) clearInterval(this.interval);
     this.interval = setInterval(() => void this.heartbeat(), this.pulse);
-    return await this.heartbeat();
+
+    // invoke heartbeat on the next macrotask tick
+    this.resetPromise = new Promise((resolve) => {
+      setTimeout(() => {
+        resolve(this.heartbeat());
+      }, 0);
+    });
+    this.resetPromise.finally(() => this.resetPromise = null);
+
+    return await this.resetPromise;
   }
 
   /**
@@ -137,7 +151,6 @@ export function getHeartbeatInstance(client: CoreClient, logger: ILogger): Heart
   if (heartbeatMap.has(client)) {
     return heartbeatMap.get(client)!;
   } else {
-    // TODO: make the interval and delay timeout configurable via config options
     const heartbeat = new Heartbeat(client, DEFAULT_HEARTBEAT_INTERVAL, DEFAULT_HEARTBEAT_DELAY_TIMEOUT, logger);
     heartbeatMap.set(client, heartbeat);
     return heartbeat;

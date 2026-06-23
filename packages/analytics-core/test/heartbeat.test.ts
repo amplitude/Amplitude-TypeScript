@@ -31,6 +31,20 @@ describe('heartbeat', () => {
     jest.useRealTimers();
   });
 
+  /** Flush resetHeartbeat's setTimeout(0) macrotask before awaiting track(). */
+  async function trackWithTimers(...args: Parameters<Heartbeat['track']>) {
+    const promise = heartbeat.track(...args);
+    await jest.advanceTimersByTimeAsync(0);
+    return promise;
+  }
+
+  /** Flush resetHeartbeat's setTimeout(0) macrotask before awaiting trackNoDelay(). */
+  async function trackNoDelayWithTimers(...args: Parameters<Heartbeat['track']>) {
+    const promise = heartbeat.trackNoDelay(...args);
+    await jest.advanceTimersByTimeAsync(0);
+    return promise;
+  }
+
   describe('track, update and trackNoDelay', () => {
     test('should track an event', async () => {
       const event = {
@@ -38,7 +52,7 @@ describe('heartbeat', () => {
         event_type: 'test',
         event_properties: { test: 'test' },
       };
-      await heartbeat.track(event);
+      await trackWithTimers(event);
       expect(trackMock).toHaveBeenCalledWith(event.event_type, event.event_properties, {
         insert_id: expect.any(String),
         delay: { id: expect.any(String), timeout: 1000 },
@@ -52,7 +66,7 @@ describe('heartbeat', () => {
         event_type: 'test',
         event_properties: { test: 'stale' },
       };
-      await heartbeat.track(event);
+      await trackWithTimers(event);
       expect(trackMock).toHaveBeenCalledWith(
         event.event_type,
         { test: 'stale' },
@@ -95,7 +109,7 @@ describe('heartbeat', () => {
         event_type: 'test',
         event_properties: { test: 'test' },
       };
-      await heartbeat.track(event);
+      await trackWithTimers(event);
       expect(trackMock).toHaveBeenCalledWith(event.event_type, event.event_properties, {
         insert_id: 'existing-id',
         delay: { id: 'existing-delay', timeout: 2000 },
@@ -110,7 +124,7 @@ describe('heartbeat', () => {
       };
       const trackResult = { event: { insert_id: 'abc', event_id: 1 }, code: 200 };
       trackMock.mockReturnValue({ promise: Promise.resolve(trackResult) });
-      const result = await heartbeat.track(event);
+      const result = await trackWithTimers(event);
       expect(result).toEqual(trackResult);
     });
 
@@ -120,7 +134,7 @@ describe('heartbeat', () => {
         event_type: 'instant',
         event_properties: { test: 'test' },
       };
-      await heartbeat.trackNoDelay(event);
+      await trackNoDelayWithTimers(event);
       expect(trackMock).toHaveBeenCalledWith(
         'instant',
         { test: 'test' },
@@ -138,7 +152,7 @@ describe('heartbeat', () => {
         event_type: 'instant',
         event_properties: { test: 'test' },
       };
-      await heartbeat.trackNoDelay(event);
+      await trackNoDelayWithTimers(event);
       expect(event.delay.timeout).toBeUndefined();
       expect(trackMock).toHaveBeenCalledWith(
         'instant',
@@ -155,7 +169,7 @@ describe('heartbeat', () => {
       trackMock.mockReturnValue({
         promise: Promise.resolve({ event: { insert_id: '1', event_id: 1 } }),
       });
-      const result = await heartbeat.trackNoDelay({
+      const result = await trackNoDelayWithTimers({
         insert_id: '1',
         event_type: 'test',
         event_properties: { test: 'test' },
@@ -177,10 +191,10 @@ describe('heartbeat', () => {
         event_type: 'test',
         event_properties: { test: 'test' },
       };
-      await heartbeat.track(event);
+      await trackWithTimers(event);
       jest.clearAllMocks();
 
-      await heartbeat.trackNoDelay(event);
+      await trackNoDelayWithTimers(event);
       await Promise.resolve();
       jest.clearAllMocks();
 
@@ -220,7 +234,7 @@ describe('heartbeat', () => {
         event_type: 'test',
         event_properties: { test: 'small' },
       };
-      await heartbeat.track(event);
+      await trackWithTimers(event);
       jest.clearAllMocks();
 
       const largeValue = 'x'.repeat(4 * 10_000 + 1);
@@ -243,7 +257,7 @@ describe('heartbeat', () => {
         event_type: 'test',
         event_properties: { test: 'test' },
       };
-      await heartbeat.track(event);
+      await trackWithTimers(event);
       expect(trackMock).toHaveBeenCalledTimes(1);
 
       heartbeat.stop();
@@ -258,7 +272,7 @@ describe('heartbeat', () => {
         event_type: 'test',
         event_properties: { test: 'test' },
       };
-      await heartbeat.track(event);
+      await trackWithTimers(event);
 
       heartbeat.stop();
       jest.clearAllMocks();
@@ -266,7 +280,7 @@ describe('heartbeat', () => {
         promise: Promise.resolve({ event: { insert_id: '1', event_id: 1 } }),
       });
 
-      const result = await heartbeat.trackNoDelay(event);
+      const result = await trackNoDelayWithTimers(event);
       expect(result).toEqual({ event: { insert_id: '1', event_id: 1 } });
       expect(trackMock).toHaveBeenCalledTimes(1);
       expect(trackMock).toHaveBeenCalledWith(
@@ -291,7 +305,7 @@ describe('heartbeat', () => {
         event_type: 'test',
         event_properties: { test: 'test' },
       };
-      await heartbeat.track(event);
+      await trackWithTimers(event);
 
       heartbeat.stop();
       expect(() => heartbeat.stop()).not.toThrow();
@@ -299,6 +313,17 @@ describe('heartbeat', () => {
       jest.clearAllMocks();
       jest.advanceTimersByTime(5000);
       expect(trackMock).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('.resetHeartbeat', () => {
+    test('should only reset the heartbeat once if called multiple times', async () => {
+      const heartbeatMock = jest.spyOn(heartbeat as any, 'heartbeat');
+      const res1 = heartbeat.trackNoDelay({ insert_id: '1', event_type: 'test', event_properties: { test: 'test' } });
+      const res2 = heartbeat.trackNoDelay({ insert_id: '2', event_type: 'test', event_properties: { test: 'test' } });
+      await jest.advanceTimersByTimeAsync(0);
+      await Promise.all([res1, res2]);
+      expect(heartbeatMock).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -310,16 +335,23 @@ describe('heartbeat', () => {
         { insert_id: '3', event_type: 'test3', event_properties: { test: 'test3' } },
       ];
       for (const event of events) {
-        await heartbeat.track(event);
+        await trackWithTimers(event);
       }
       expect(trackMock).toHaveBeenCalledTimes(events.length * 2);
       jest.clearAllMocks();
       jest.advanceTimersByTime(1000);
       expect(trackMock).toHaveBeenCalledTimes(events.length);
 
-      // update event 2
+      // update the properties on event 2
       events[1].event_properties.test = 'test2-updated';
       await heartbeat.update(events[1]);
+
+      // advance to the next heartbeat
+      jest.clearAllMocks();
+      jest.advanceTimersByTime(1000);
+
+      // check that the event was updated
+      expect(trackMock).toHaveBeenCalledTimes(events.length);
       expect(trackMock).toHaveBeenNthCalledWith(
         2,
         events[1].event_type,
@@ -332,7 +364,7 @@ describe('heartbeat', () => {
 
       // flush one event via trackNoDelay and heartbeat remaining tracked events
       jest.clearAllMocks();
-      await heartbeat.trackNoDelay(events[0]);
+      await trackNoDelayWithTimers(events[0]);
       expect(trackMock).toHaveBeenCalledTimes(3);
       expect(trackMock).toHaveBeenNthCalledWith(
         1,
