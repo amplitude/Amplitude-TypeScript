@@ -127,13 +127,13 @@ export class Destination implements DestinationPlugin {
         callback: (result: Result) => resolve(result),
         timeout: 0,
       };
-      // remove delayed events with the same insert_id and the same delay.id
+      // remove delayed events with the same delay.id
       if (event.delay?.id) {
         const duplicatedEvents: Context[] = [];
         const queue: Context[] = [];
         /* istanbul ignore next */
         this.queue.forEach((queuedContext) => {
-          if (queuedContext.event.insert_id === event.insert_id && queuedContext.event.delay?.id === event.delay?.id) {
+          if (queuedContext.event.delay?.id === event.delay?.id) {
             duplicatedEvents.push(queuedContext);
           } else {
             queue.push(queuedContext);
@@ -263,7 +263,9 @@ export class Destination implements DestinationPlugin {
         }, Promise.resolve());
         eventPromises.push(delayedEventBatch);
       }
-    } catch (e) {}
+    } catch (e) {
+      // Ignore unexpected grouping errors so regular event flushing can continue.
+    }
     return eventPromises;
   }
 
