@@ -59,11 +59,11 @@ final class AmplitudeConnectivityTests: XCTestCase {
         XCTAssertEqual(module.supportedEvents(), ["AmplitudeNetworkConnectivityChanged"])
     }
 
-    func testSeedResolvesConnected() {
+    func testSeedResolvesDisconnected() {
         let resolved = expectation(description: "promise resolved")
         module.getNetworkConnectivityStatus(
             { value in
-                XCTAssertEqual((value as? [String: Bool])?["isConnected"], true)
+                XCTAssertEqual((value as? [String: Bool])?["isConnected"], false)
                 resolved.fulfill()
             },
             rejecter: { _, _, _ in
@@ -73,10 +73,10 @@ final class AmplitudeConnectivityTests: XCTestCase {
         wait(for: [resolved], timeout: 1)
     }
 
-    /// The optimistic `{isConnected: true}` seed in
-    /// `getNetworkConnectivityStatus` relies on `NWPathMonitor` delivering
-    /// the current path as its first update once monitoring starts. CI
-    /// simulators always have network, so that update must report connected.
+    /// The disconnected seed in `getNetworkConnectivityStatus` relies on
+    /// `NWPathMonitor` delivering the current path as its first update once
+    /// monitoring starts — that update is what corrects the seed to the real
+    /// status. CI simulators always have network, so it must report connected.
     func testEmitsInitialPathUpdateAfterStartObserving() {
         let received = expectation(description: "initial connectivity event")
         received.assertForOverFulfill = false
