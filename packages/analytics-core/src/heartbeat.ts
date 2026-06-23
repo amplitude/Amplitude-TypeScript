@@ -26,7 +26,7 @@ export class Heartbeat {
     this.delayId = UUID();
   }
 
-  private async heartbeat() {
+  private async heartbeat(): Promise<Result[]> {
     // stop sending heartbeats if no events are queued
     if (this.events.size === 0) {
       this.stop();

@@ -18,9 +18,18 @@ describe('heartbeat', () => {
 
   beforeEach(() => {
     jest.useFakeTimers();
-    trackMock = jest.fn().mockReturnValue({
-      promise: Promise.resolve({ event: { event_id: 1 } }),
-    });
+    trackMock = jest.fn().mockImplementation((eventType, eventProperties, options) => ({
+      promise: Promise.resolve({
+        event: {
+          event_type: eventType,
+          event_properties: eventProperties,
+          ...options,
+          delay: undefined,
+        },
+        code: 200,
+        message: 'success',
+      }),
+    }));
     mockClient = {
       track: trackMock,
     } as unknown as CoreClient;
@@ -122,7 +131,7 @@ describe('heartbeat', () => {
         event_type: 'test',
         event_properties: { test: 'test' },
       };
-      const trackResult = { event: { insert_id: 'abc', event_id: 1 }, code: 200 };
+      const trackResult = { event: { insert_id: 'abc' }, code: 200 };
       trackMock.mockReturnValue({ promise: Promise.resolve(trackResult) });
       const result = await trackWithTimers(event);
       expect(result).toEqual(trackResult);
@@ -167,14 +176,14 @@ describe('heartbeat', () => {
 
     test('should track via trackNoDelay when no other events are tracked', async () => {
       trackMock.mockReturnValue({
-        promise: Promise.resolve({ event: { insert_id: '1', event_id: 1 } }),
+        promise: Promise.resolve({ event: { insert_id: '1' } }),
       });
       const result = await trackNoDelayWithTimers({
         insert_id: '1',
         event_type: 'test',
         event_properties: { test: 'test' },
       });
-      expect(result).toEqual({ event: { insert_id: '1', event_id: 1 } });
+      expect(result).toEqual({ event: { insert_id: '1' } });
       expect(trackMock).toHaveBeenCalledWith(
         'test',
         { test: 'test' },
@@ -277,11 +286,11 @@ describe('heartbeat', () => {
       heartbeat.stop();
       jest.clearAllMocks();
       trackMock.mockReturnValue({
-        promise: Promise.resolve({ event: { insert_id: '1', event_id: 1 } }),
+        promise: Promise.resolve({ event: { insert_id: '1' } }),
       });
 
       const result = await trackNoDelayWithTimers(event);
-      expect(result).toEqual({ event: { insert_id: '1', event_id: 1 } });
+      expect(result).toEqual({ event: { insert_id: '1' } });
       expect(trackMock).toHaveBeenCalledTimes(1);
       expect(trackMock).toHaveBeenCalledWith(
         'test',
@@ -319,11 +328,13 @@ describe('heartbeat', () => {
   describe('.resetHeartbeat', () => {
     test('should only reset the heartbeat once if called multiple times', async () => {
       const heartbeatMock = jest.spyOn(heartbeat as any, 'heartbeat');
-      const res1 = heartbeat.trackNoDelay({ insert_id: '1', event_type: 'test', event_properties: { test: 'test' } });
-      const res2 = heartbeat.trackNoDelay({ insert_id: '2', event_type: 'test', event_properties: { test: 'test' } });
+      const res1 = heartbeat.trackNoDelay({ insert_id: '1', event_type: 'test', event_properties: { test: 'test1' } });
+      const res2 = heartbeat.trackNoDelay({ insert_id: '2', event_type: 'test', event_properties: { test: 'test2' } });
       await jest.advanceTimersByTimeAsync(0);
-      await Promise.all([res1, res2]);
+      const [response1, response2] = await Promise.all([res1, res2]);
       expect(heartbeatMock).toHaveBeenCalledTimes(1);
+      expect(response1).toEqual({ event: { insert_id: '1', event_type: 'test', event_properties: { test: 'test1' } }, code: 200, message: 'success' });
+      expect(response2).toEqual({ event: { insert_id: '2', event_type: 'test', event_properties: { test: 'test2' } }, code: 200, message: 'success' });
     });
   });
 
