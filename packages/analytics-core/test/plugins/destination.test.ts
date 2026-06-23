@@ -1839,6 +1839,40 @@ describe('destination', () => {
       expectSuccess(callback, event);
     });
 
+    test('should send delayed events with the same delay_id in one request', async () => {
+      const delayId = 'delay-123';
+      const delayTimeout = 5000;
+      destination.config.flushQueueSize = 2;
+      const callbacks = [jest.fn(), jest.fn(), jest.fn()];
+      const contexts = callbacks.map((callback, index) =>
+        createContext(
+          { event_type: `delayed_event_${index}`, delay: { id: delayId, timeout: delayTimeout } },
+          callback,
+        ),
+      );
+
+      await flushQueue(contexts);
+
+      expect(transportProvider.send).toHaveBeenCalledTimes(1);
+      expect(transportProvider.send).toHaveBeenCalledWith(
+        delayedUrl,
+        expect.objectContaining({
+          id: delayId,
+          timeout: delayTimeout,
+          events: [
+            expect.objectContaining({ event_type: 'delayed_event_0' }),
+            expect.objectContaining({ event_type: 'delayed_event_1' }),
+            expect.objectContaining({ event_type: 'delayed_event_2' }),
+          ],
+          instant_events: [],
+        }),
+        true,
+      );
+      contexts.forEach((context, index) => {
+        expectSuccess(callbacks[index], context.event);
+      });
+    });
+
     test('should send /delayed and regular events on same flush', async () => {
       const delayId = 'delay-123';
       const delayTimeout = 5000;

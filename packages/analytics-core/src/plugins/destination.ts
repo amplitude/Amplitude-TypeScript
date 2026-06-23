@@ -256,12 +256,7 @@ export class Destination implements DestinationPlugin {
     const eventPromises = [];
     try {
       for (const [delay, contexts] of Object.values(delayed)) {
-        const delayedBatches = chunk(contexts, this.config.flushQueueSize);
-        const delayedEventBatch = delayedBatches.reduce(async (promise, batch) => {
-          await promise;
-          return await this.send(batch, useRetry, delay);
-        }, Promise.resolve());
-        eventPromises.push(delayedEventBatch);
+        eventPromises.push(Promise.resolve().then(() => this.send(contexts, useRetry, delay)));
       }
     } catch (e) {
       // swallow error
