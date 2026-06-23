@@ -17,7 +17,7 @@ open class AmplitudeReactNativeConnectivity: RCTEventEmitter {
 
     private let pathMonitor = NWPathMonitor()
 
-    override init() {
+    public override init() {
         super.init()
         pathMonitor.pathUpdateHandler = { [weak self] path in
             self?.emitConnectivityChange(path.status == .satisfied)
