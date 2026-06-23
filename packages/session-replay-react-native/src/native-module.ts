@@ -1,4 +1,5 @@
-import { NativeModules, Platform } from 'react-native';
+import { Platform } from 'react-native';
+import SessionReplaySpec from './specs/NativeAmpSessionReplay';
 
 const LINKING_ERROR =
   `The package '@amplitude/session-replay-react-native' doesn't seem to be linked. Make sure: \n\n` +
@@ -6,16 +7,21 @@ const LINKING_ERROR =
   '- You rebuilt the app after installing the package\n' +
   '- You are not using Expo Go\n';
 
-export const NativeSessionReplay = NativeModules.AMPNativeSessionReplay
-  ? (NativeModules.AMPNativeSessionReplay as NativeSessionReplaySpec)
-  : (new Proxy(
-      {},
-      {
-        get() {
-          throw new Error(LINKING_ERROR);
-        },
+// JS callers use the rich, hand-written types below for full type safety; the
+// codegen `Spec` is intentionally loose (`UnsafeObject`) at the native boundary.
+// The spec resolves the native module via `TurboModuleRegistry.get` (both
+// architectures). When the module isn't linked it resolves to null, so we fall
+// back to a proxy that throws a descriptive linking error on first use rather
+// than crashing app startup at import time.
+export const NativeSessionReplay = (SessionReplaySpec ??
+  new Proxy(
+    {},
+    {
+      get() {
+        throw new Error(LINKING_ERROR);
       },
-    ) as NativeSessionReplaySpec);
+    },
+  )) as unknown as NativeSessionReplaySpec;
 
 /**
  * Configuration interface for setting up the native iOS and Android session replay modules.
