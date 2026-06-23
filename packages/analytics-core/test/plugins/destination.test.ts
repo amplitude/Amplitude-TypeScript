@@ -1839,6 +1839,42 @@ describe('destination', () => {
       expectSuccess(callback, event);
     });
 
+    test('should keep delayed replacement queued when overwritten event is in flight', async () => {
+      const delayId = 'delay-123';
+      const event1 = { event_type: 'before', insert_id: '123', delay: { id: delayId } };
+      const event2 = { event_type: 'after', insert_id: '123', delay: { id: delayId } };
+      jest.spyOn(destination, 'schedule').mockImplementation(jest.fn);
+      let resolveSend!: (response: typeof successResponse) => void;
+      transportProvider.send.mockReturnValueOnce(
+        new Promise<typeof successResponse>((resolve) => {
+          resolveSend = resolve;
+        }),
+      );
+
+      const staleResult = destination.execute(event1);
+      const flushPromise = destination.flush(true);
+      const replacementResult = destination.execute(event2);
+
+      await expect(staleResult).resolves.toEqual({
+        event: event1,
+        code: 0,
+        message: 'Stale event overwritten',
+      });
+
+      const replacementContext = destination.queue[0];
+      resolveSend(successResponse);
+      await flushPromise;
+
+      expect(destination.queue).toEqual([replacementContext]);
+
+      await destination.flush(true);
+      await expect(replacementResult).resolves.toEqual({
+        event: event2,
+        code: 200,
+        message: SUCCESS_MESSAGE,
+      });
+    });
+
     test('should send /delayed and regular events on same flush', async () => {
       const delayId = 'delay-123';
       const delayTimeout = 5000;

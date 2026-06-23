@@ -503,9 +503,8 @@ export class Destination implements DestinationPlugin {
    * This is called on response comes back for a request
    */
   removeEvents(eventsToRemove: Context[]) {
-    this.queue = this.queue.filter(
-      (queuedContext) => !eventsToRemove.some((context) => context.event.insert_id === queuedContext.event.insert_id),
-    );
+    const eventsToRemoveSet = new Set(eventsToRemove);
+    this.queue = this.queue.filter((queuedContext) => !eventsToRemoveSet.has(queuedContext));
 
     this.saveEvents();
   }
