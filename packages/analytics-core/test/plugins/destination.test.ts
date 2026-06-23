@@ -1924,6 +1924,41 @@ describe('destination', () => {
       expectSuccess(callbackB, delayedContextB.event);
     });
 
+    test('should split delayed events by flushQueueSize', async () => {
+      const delayId = 'delay-123';
+      const delayTimeout = 5000;
+      destination.config.flushQueueSize = 2;
+
+      await flushQueue([
+        createContext({ event_type: 'delayed_event_a', delay: { id: delayId, timeout: delayTimeout } }),
+        createContext({ event_type: 'delayed_event_b', delay: { id: delayId, timeout: delayTimeout } }),
+        createContext({ event_type: 'delayed_event_c', delay: { id: delayId, timeout: delayTimeout } }),
+      ]);
+
+      expect(transportProvider.send).toHaveBeenCalledTimes(2);
+      expect(transportProvider.send).toHaveBeenNthCalledWith(
+        1,
+        delayedUrl,
+        expect.objectContaining({
+          id: delayId,
+          events: [
+            expect.objectContaining({ event_type: 'delayed_event_a' }),
+            expect.objectContaining({ event_type: 'delayed_event_b' }),
+          ],
+        }),
+        true,
+      );
+      expect(transportProvider.send).toHaveBeenNthCalledWith(
+        2,
+        delayedUrl,
+        expect.objectContaining({
+          id: delayId,
+          events: [expect.objectContaining({ event_type: 'delayed_event_c' })],
+        }),
+        true,
+      );
+    });
+
     test('should not send delayed events while backoff timeout is active', async () => {
       const delayId = 'delay-123';
       const event = { event_type: 'delayed_event', delay: { id: delayId } };

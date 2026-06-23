@@ -268,10 +268,12 @@ export class Destination implements DestinationPlugin {
   }
 
   getDelayedEventsBatches(delayed: DelayedEventsById, useRetry: boolean) {
-    const eventPromises = [];
+    const eventPromises: Promise<void>[] = [];
     try {
       for (const { delay, contexts } of Object.values(delayed)) {
-        eventPromises.push(this.send(contexts, useRetry, delay));
+        chunk(contexts, this.config.flushQueueSize).forEach((batch) => {
+          eventPromises.push(this.send(batch, useRetry, delay));
+        });
       }
     } catch (e) {
       // swallow error
