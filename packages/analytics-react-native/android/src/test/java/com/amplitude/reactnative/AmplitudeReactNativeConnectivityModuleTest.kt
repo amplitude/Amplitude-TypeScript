@@ -105,9 +105,11 @@ class AmplitudeReactNativeConnectivityModuleTest {
         every { connectivityManager.getNetworkCapabilities(network) } returns caps(internet = true, validated = true)
         callbackSlot.captured.onAvailable(network) // false -> true: should emit
 
-        val payloadSlot = slot<WritableMap>()
-        verify(exactly = 1) { emitter.emit("AmplitudeNetworkConnectivityChanged", capture(payloadSlot)) }
-        assertTrue(payloadSlot.captured.getBoolean("isConnected"))
+        // Two emits: start()'s seed (offline) on subscribe, then the online transition.
+        val payloads = mutableListOf<WritableMap>()
+        verify(exactly = 2) { emitter.emit("AmplitudeNetworkConnectivityChanged", capture(payloads)) }
+        assertFalse(payloads[0].getBoolean("isConnected"))
+        assertTrue(payloads[1].getBoolean("isConnected"))
     }
 
     @Test

@@ -223,7 +223,7 @@ class ConnectivityCheckerTest {
         checker.start()
         val callback = callbackSlot.captured
 
-        assertTrue(changes.isEmpty()) // start() seeds but does not emit
+        assertEquals(listOf(false), changes) // start() emits the seeded (offline) state
 
         // Each callback re-derives via currentConnectivity(), so drive transitions by
         // flipping the mocked active-network state, not by the event type.
@@ -235,7 +235,7 @@ class ConnectivityCheckerTest {
         callback.onLost(network) // true -> false
         callback.onLost(network) // false -> false: deduped
 
-        assertEquals(listOf(true, false), changes)
+        assertEquals(listOf(false, true, false), changes)
     }
 
     @Test
@@ -249,7 +249,7 @@ class ConnectivityCheckerTest {
         seedConnectedApi23Plus() // active network now INTERNET + VALIDATED
         callbackSlot.captured.onCapabilitiesChanged(network, capabilities(internet = true, validated = true))
 
-        assertEquals(listOf(true), changes)
+        assertEquals(listOf(false, true), changes) // seed emit (offline) then the validated online
         assertTrue(checker.isConnected)
     }
 
@@ -267,13 +267,13 @@ class ConnectivityCheckerTest {
         every { connectivityManager.activeNetwork } returns network
         every { connectivityManager.getNetworkCapabilities(network) } returns capabilities(internet = true, validated = false)
         callback.onAvailable(network)
-        assertTrue(changes.isEmpty())
+        assertEquals(listOf(false), changes) // only start()'s seed emit; the unvalidated network is still offline
         assertFalse(checker.isConnected)
 
         // Portal sign-in completes -> the network validates -> now emit online.
         every { connectivityManager.getNetworkCapabilities(network) } returns capabilities(internet = true, validated = true)
         callback.onCapabilitiesChanged(network, capabilities(internet = true, validated = true))
-        assertEquals(listOf(true), changes)
+        assertEquals(listOf(false, true), changes)
         assertTrue(checker.isConnected)
     }
 
@@ -288,9 +288,46 @@ class ConnectivityCheckerTest {
         every { connectivityManager.registerNetworkCallback(any<NetworkRequest>(), capture(callbackSlot)) } returns Unit
         checker.start()
         assertTrue(checker.isConnected)
+        assertEquals(listOf(true), changes) // start() emits the seeded (online) state
 
         callbackSlot.captured.onLost(mockk()) // a matching network dropped; the active network is still validated
-        assertTrue(changes.isEmpty())
+        assertEquals(listOf(true), changes) // no new emit: still online, deduped
+        assertTrue(checker.isConnected)
+    }
+
+    // endregion
+
+    // region start() — seed emit reconciles the JS seed-vs-start race
+
+    @Test
+    @Config(sdk = [Build.VERSION_CODES.N])
+    fun `start emits the post-start state so JS reconciles a seed-vs-start race`() {
+        // JS reads its seed (online) via getNetworkConnectivityStatus, then connectivity
+        // drops before it subscribes and start() registers. Android delivers no immediate
+        // callback when offline, so start() must emit the real (offline) state itself or
+        // JS stays stranded online and sends into a dead connection.
+        seedDisconnectedApi23Plus()
+        every { connectivityManager.registerDefaultNetworkCallback(any()) } returns Unit
+
+        checker.start()
+
+        assertEquals(listOf(false), changes)
+        assertFalse(checker.isConnected)
+    }
+
+    @Test
+    @Config(sdk = [Build.VERSION_CODES.N])
+    fun `start emits best-effort online when registration fails`() {
+        // Registration failure leaves us unmonitored; the seed emit (online) still pushes
+        // JS off any stale offline seed so a failed probe never pins the SDK offline.
+        seedDisconnectedApi23Plus() // would seed false, but registration throws below
+        every {
+            connectivityManager.registerDefaultNetworkCallback(any())
+        } throws RuntimeException("Too many NetworkRequests filed")
+
+        checker.start()
+
+        assertEquals(listOf(true), changes)
         assertTrue(checker.isConnected)
     }
 
@@ -354,7 +391,7 @@ class ConnectivityCheckerTest {
         callbackSlot.captured.onLost(network) // true -> false: listener called once
         callbackSlot.captured.onLost(network) // false -> false: deduped, listener NOT called again
 
-        assertEquals(listOf(false), changes)
+        assertEquals(listOf(true, false), changes) // start() seed emit (online) then the offline transition
         assertFalse(checker.isConnected)
     }
 

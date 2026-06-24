@@ -20,8 +20,10 @@ import android.os.Build
  * Connectivity is monitored with [ConnectivityManager] on API 23+; below that
  * [currentConnectivity] best-effort reports online.
  *
- * @param onConnectivityChanged invoked (off the registration thread) whenever the
- *   connectivity state actually changes — repeated same-state callbacks are deduped.
+ * @param onConnectivityChanged invoked once from [start] with the current state (to
+ *   reconcile the JS seed) and thereafter whenever the connectivity state actually
+ *   changes — repeated same-state callbacks are deduped. The consumer is expected to
+ *   dedupe the same-state seed call.
  */
 internal class ConnectivityChecker(
     private val context: Context,
@@ -92,6 +94,13 @@ internal class ConnectivityChecker(
             // pins the SDK offline.
             isConnected = true
         }
+
+        // Push the authoritative post-start state to JS. JS reads its seed via
+        // getNetworkConnectivityStatus before subscribing, so a connectivity flip in the gap
+        // before this registration would otherwise strand JS on the stale seed: Android's own
+        // immediate onAvailable is deduped against isConnected, and fires nothing at all when
+        // offline. JS dedupes a same-state value, so this is a no-op when nothing changed.
+        onConnectivityChanged(isConnected)
     }
 
     @Synchronized
