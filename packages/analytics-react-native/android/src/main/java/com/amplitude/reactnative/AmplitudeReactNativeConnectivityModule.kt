@@ -36,8 +36,6 @@ class AmplitudeReactNativeConnectivityModule(
 
     private var listenerCount = 0
 
-    // Required so `NativeEventEmitter` doesn't warn on the JS side. Registration
-    // is lazy and starts on the first listener (see [ConnectivityChecker.start]).
     @ReactMethod
     fun addListener(eventName: String) {
         if (eventName != CONNECTIVITY_EVENT_NAME) {
@@ -57,11 +55,6 @@ class AmplitudeReactNativeConnectivityModule(
         }
     }
 
-    /**
-     * Returns the current connectivity state. The network callback only fires on
-     * subsequent changes, so JS reads this once on setup to seed the initial
-     * `offline` value.
-     */
     @ReactMethod
     fun getNetworkConnectivityStatus(promise: Promise) {
         promise.resolve(Arguments.createMap().apply { putBoolean("isConnected", connectivityChecker.currentConnectivity()) })

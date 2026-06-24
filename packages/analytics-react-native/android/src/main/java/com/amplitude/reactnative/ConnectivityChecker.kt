@@ -32,7 +32,7 @@ internal class ConnectivityChecker(
 
     private var networkCallback: ConnectivityManager.NetworkCallback? = null
 
-    // Last known connectivity state, used to seed JS and to dedupe.
+    // Last known connectivity state, used to dedupe repeated same-state callbacks.
     @Volatile
     internal var isConnected = true
         private set
@@ -54,8 +54,6 @@ internal class ConnectivityChecker(
         }
         val manager = connectivityManager ?: return
 
-        // Seed the current state so we don't wait for the first change to know
-        // whether we're online.
         isConnected = currentConnectivity()
 
         // Re-derive the real state from the active network on every event rather than
