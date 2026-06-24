@@ -23,6 +23,11 @@ target 'example' do
     :app_path => "#{Pod::Config.instance.installation_root}/.."
   )
 
+  # Explicitly include the standalone session-replay-react-native native module
+  # so its iOS files (NativeSessionReplay.swift, AMPNativeSessionReplay.mm)
+  # are compiled as part of the example app build.
+  pod 'AmplitudeSessionReplayReactNative', :path => '../../../session-replay-react-native'
+
   target 'exampleTests' do
     inherit! :complete
     # Pods for testing
@@ -36,5 +41,21 @@ target 'example' do
       :mac_catalyst_enabled => false,
       # :ccache_enabled => true
     )
+    # Fix for Xcode 26: dropped swiftCompatibility56 shim. Bump all pods to iOS 16
+    # to eliminate the Swift 5.6 backward-compat shim dependency, and add Swift
+    # library search paths so the linker can resolve _swiftCompatibility56.
+    installer.pods_project.targets.each do |target|
+      target.build_configurations.each do |config|
+        config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '16.0'
+        config.build_settings['SWIFT_VERSION'] = '5.0'
+        # Swift lib search path needed for Xcode 26+
+        swift_lib_dir = '$(TOOLCHAIN_DIR)/usr/lib/swift/$(PLATFORM_NAME)'
+        existing = config.build_settings['LIBRARY_SEARCH_PATHS'] || ['$(inherited)']
+        existing = [existing] if existing.is_a?(String)
+        unless existing.include?(swift_lib_dir)
+          config.build_settings['LIBRARY_SEARCH_PATHS'] = existing + [swift_lib_dir]
+        end
+      end
+    end
   end
 end

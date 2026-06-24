@@ -124,7 +124,18 @@ class NativeSessionReplay: NSObject, RCTBridgeModule {
         sessionReplay.flush()
         resolve(nil)
     }
-    
+
+    @objc(teardown:reject:)
+    func teardown(_ resolve: RCTPromiseResolveBlock, reject: RCTPromiseRejectBlock) -> Void {
+        logger?.debug(message: "teardown")
+        // The iOS Session Replay SDK has no separate `shutdown`; `stop()` is the
+        // deepest cleanup available and matches the legacy plugin's native
+        // `teardown`. `invalidate()` additionally nils the instance on bridge
+        // teardown.
+        sessionReplay?.stop()
+        resolve(nil)
+    }
+
     @objc(invalidate)
     func invalidate() {
         print("invalidate")

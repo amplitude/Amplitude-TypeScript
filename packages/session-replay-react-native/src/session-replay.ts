@@ -232,6 +232,28 @@ export async function stop(): Promise<void> {
   await NativeSessionReplay.stop();
 }
 
+/**
+ * Fully tear down session replay, releasing native resources.
+ *
+ * Distinct from `stop()`, which only pauses recording: `teardown()` calls the
+ * native `teardown` (Android `shutdown()` — removes recording listeners; iOS
+ * `stop()`), then clears the module-level state so a later `init()`/`setup()`
+ * recreates a fresh native instance. The Android SDK requires a new instance
+ * after `shutdown()`, so the reset is mandatory for the plugin to be
+ * re-addable after teardown.
+ *
+ * @returns Promise that resolves when teardown is complete
+ */
+export async function teardown(): Promise<void> {
+  if (!isInitialized) {
+    logger.warn('SessionReplay is not initialized');
+    return;
+  }
+  await NativeSessionReplay.teardown();
+  isInitialized = false;
+  fullConfig = null;
+}
+
 function nativeConfig(config: ResolvedSessionReplayConfig): NativeSessionReplayConfig {
   // Resolve the effective mask level here — the single source of truth for the
   // default. `normalizeConfig()` already folded the deprecated top-level

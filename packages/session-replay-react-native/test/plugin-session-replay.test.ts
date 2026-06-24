@@ -95,10 +95,12 @@ describe('SessionReplayPlugin Integration', () => {
     await plugin.start();
     expect(NativeModules.AMPNativeSessionReplay.start).toHaveBeenCalled();
     await plugin.stop();
-    expect(NativeModules.AMPNativeSessionReplay.stop).toHaveBeenCalled();
+    expect(NativeModules.AMPNativeSessionReplay.stop).toHaveBeenCalledTimes(1);
     await plugin.teardown();
-    // teardown should call stop again (idempotent)
-    expect(NativeModules.AMPNativeSessionReplay.stop).toHaveBeenCalledTimes(2);
+    // teardown performs a full native shutdown (Android `shutdown()` / iOS
+    // `stop()`) via the native `teardown` method, not another `stop()`.
+    expect(NativeModules.AMPNativeSessionReplay.teardown).toHaveBeenCalledTimes(1);
+    expect(NativeModules.AMPNativeSessionReplay.stop).toHaveBeenCalledTimes(1);
   });
 
   it('should call getSessionReplayProperties', async () => {
@@ -123,5 +125,21 @@ describe('SessionReplayPlugin Integration', () => {
     const event = { event_type: 'test_event', event_properties: {} };
     const enriched = await plugin.execute(event);
     expect(enriched).toEqual(event); // Should return the same event
+  });
+
+  it('threads privacyConfig.maskLevel through to native setup', async () => {
+    const plugin = new SessionReplayPlugin({ privacyConfig: { maskLevel: 'conservative' } });
+    await plugin.setup(minimalConfig, mockReactNativeClient);
+    expect(NativeModules.AMPNativeSessionReplay.setup).toHaveBeenCalledWith(
+      expect.objectContaining({ maskLevel: 'conservative' }),
+    );
+  });
+
+  it('defaults to medium masking when privacyConfig is not provided', async () => {
+    const plugin = new SessionReplayPlugin();
+    await plugin.setup(minimalConfig, mockReactNativeClient);
+    expect(NativeModules.AMPNativeSessionReplay.setup).toHaveBeenCalledWith(
+      expect.objectContaining({ maskLevel: 'medium' }),
+    );
   });
 });

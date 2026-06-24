@@ -4,6 +4,7 @@ export const NativeModules = {
     setup: jest.fn().mockResolvedValue(undefined),
     start: jest.fn().mockResolvedValue(undefined),
     stop: jest.fn().mockResolvedValue(undefined),
+    teardown: jest.fn().mockResolvedValue(undefined),
     flush: jest.fn().mockResolvedValue(undefined),
     getSessionId: jest.fn().mockResolvedValue(12345),
     getSessionReplayProperties: jest.fn().mockResolvedValue({ replayId: 'test-id' }),

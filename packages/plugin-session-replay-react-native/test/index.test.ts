@@ -1,100 +1,142 @@
+// `react-native` is mapped to the standalone package's shared mock via the
+// plugin's jest `moduleNameMapper` (SDKRN-14), so no per-file
+// `jest.mock('react-native')` is needed. The plugin delegates to the standalone
+// package, which is the only code that talks to the native
+// `AMPNativeSessionReplay` module; the shared mock provides that surface.
+
+import type { SessionReplayConfig, SessionReplayPluginConfig, PrivacyConfig } from '../src/index';
 import { LogLevel } from '@amplitude/analytics-types';
+import type { ReactNativeConfig } from '@amplitude/analytics-types';
+import mockReactNativeClient from './utils/reactNativeClient';
 
-const nativeSetupMock = jest.fn((..._args: unknown[]) => Promise.resolve());
+type SessionReplayNativeMock = Record<string, jest.Mock>;
 
-jest.mock('../src/native-module', () => ({
-  PluginSessionReplayReactNative: {
-    setup: nativeSetupMock,
-    setSessionId: jest.fn(() => Promise.resolve()),
-    getSessionId: jest.fn(() => Promise.resolve(0)),
-    getSessionReplayProperties: jest.fn(() => Promise.resolve({})),
-    start: jest.fn(() => Promise.resolve()),
-    stop: jest.fn(() => Promise.resolve()),
-    teardown: jest.fn(() => Promise.resolve()),
-  },
-}));
+const minimalConfig: ReactNativeConfig = {
+  apiKey: 'test-api-key',
+  serverZone: 'US',
+  deviceId: 'test-device-id',
+  sessionId: 12345,
+  userId: 'test-user-id',
+  optOut: false,
+  cookieExpiration: 0,
+  cookieSameSite: 'Lax',
+  cookieSecure: false,
+  cookieStorage: undefined as never,
+  cookieUpgrade: false,
+  disableCookies: false,
+  domain: 'test.com',
+  sessionTimeout: 1800000,
+  trackingOptions: {},
+  flushIntervalMillis: 10000,
+  flushMaxRetries: 5,
+  flushQueueSize: 10,
+  logLevel: LogLevel.Warn,
+  loggerProvider: undefined as never,
+  transportProvider: undefined as never,
+  useBatch: false,
+  attribution: undefined,
+  serverUrl: undefined,
+  appVersion: undefined,
+  lastEventTime: undefined,
+  lastEventId: undefined,
+  partnerId: undefined,
+  trackingSessionEvents: undefined,
+  migrateLegacyData: undefined,
+};
 
-import { getDefaultConfig } from '../src/session-replay-config';
-import { SessionReplayPlugin } from '../src/session-replay';
-
-describe('Session Replay default config', () => {
-  it('should have autostart default to true', () => {
-    const config = getDefaultConfig();
-    expect(config.autoStart).toBe(true);
-  });
-
-  it('should not bake a maskLevel into privacyConfig (resolved at the native boundary)', () => {
-    const config = getDefaultConfig();
-    expect(config.privacyConfig?.maskLevel).toBeUndefined();
-  });
-});
-
-describe('SessionReplayPlugin.setup forwards maskLevel to native', () => {
-  const baseConfig = {
-    apiKey: 'test-api-key',
-    deviceId: 'test-device',
-    sessionId: 12345,
-    serverZone: 'US' as const,
-  };
+describe('plugin-session-replay-react-native public API', () => {
+  // The standalone's `session-replay.ts` keeps `isInitialized` in module scope,
+  // so each test resets modules and re-requires a fresh plugin paired with the
+  // fresh `react-native` mock it actually calls into.
+  let SessionReplayPlugin: typeof import('../src/index').SessionReplayPlugin;
+  let AmpMaskView: typeof import('../src/index').AmpMaskView;
+  let nativeModule: SessionReplayNativeMock;
 
   beforeEach(() => {
-    nativeSetupMock.mockClear();
+    jest.resetModules();
+    // `require` (not `import`) is required so each test re-resolves a fresh copy
+    // after `jest.resetModules()`; the result is fully typed so no unsafe access
+    // is introduced.
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const index = require('../src/index') as typeof import('../src/index');
+    SessionReplayPlugin = index.SessionReplayPlugin;
+    AmpMaskView = index.AmpMaskView;
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const reactNative = require('react-native') as {
+      NativeModules: { AMPNativeSessionReplay: SessionReplayNativeMock };
+    };
+    nativeModule = reactNative.NativeModules.AMPNativeSessionReplay;
+    jest.clearAllMocks();
+    nativeModule.getSessionReplayProperties.mockResolvedValue({ replayId: 'test-id' });
   });
 
-  const setupArgs = () => nativeSetupMock.mock.calls[0];
-
-  it('forwards Conservative as the 9th positional argument', async () => {
-    const plugin = new SessionReplayPlugin({ privacyConfig: { maskLevel: 'conservative' } });
-    await plugin.setup(baseConfig as never, {} as never);
-    expect(nativeSetupMock).toHaveBeenCalledTimes(1);
-    expect(setupArgs()[8]).toBe('conservative');
-    expect(setupArgs()[8]).toBe('conservative');
-  });
-
-  it('forwards Light as the 9th positional argument', async () => {
-    const plugin = new SessionReplayPlugin({ privacyConfig: { maskLevel: 'light' } });
-    await plugin.setup(baseConfig as never, {} as never);
-    expect(setupArgs()[8]).toBe('light');
-    expect(setupArgs()[8]).toBe('light');
-  });
-
-  it('forwards Medium as the 9th positional argument', async () => {
-    const plugin = new SessionReplayPlugin({ privacyConfig: { maskLevel: 'medium' } });
-    await plugin.setup(baseConfig as never, {} as never);
-    expect(setupArgs()[8]).toBe('medium');
-    expect(setupArgs()[8]).toBe('medium');
-  });
-
-  it('defaults to Medium when maskLevel is not provided', async () => {
-    const plugin = new SessionReplayPlugin();
-    await plugin.setup(baseConfig as never, {} as never);
-    expect(setupArgs()[8]).toBe('medium');
-  });
-
-  it('defaults to medium when privacyConfig is provided without a maskLevel', async () => {
-    const plugin = new SessionReplayPlugin({ privacyConfig: {} });
-    await plugin.setup(baseConfig as never, {} as never);
-    expect(setupArgs()[8]).toBe('medium');
-  });
-
-  it('passes prior positional arguments through unchanged', async () => {
-    const plugin = new SessionReplayPlugin({
-      sampleRate: 0.5,
-      enableRemoteConfig: false,
-      logLevel: LogLevel.Debug,
-      autoStart: false,
-      privacyConfig: { maskLevel: 'conservative' },
+  describe('re-exported surface', () => {
+    it('re-exports the standalone SessionReplayPlugin class', () => {
+      const plugin = new SessionReplayPlugin();
+      expect(plugin).toBeInstanceOf(SessionReplayPlugin);
+      expect(plugin.name).toBe('@amplitude/plugin-session-replay-react-native');
+      expect(plugin.type).toBe('enrichment');
     });
-    await plugin.setup(baseConfig as never, {} as never);
-    const args = setupArgs();
-    expect(args[0]).toBe('test-api-key');
-    expect(args[1]).toBe('test-device');
-    expect(args[2]).toBe(12345);
-    expect(args[3]).toBe('US');
-    expect(args[4]).toBe(0.5);
-    expect(args[5]).toBe(false);
-    expect(args[6]).toBe(LogLevel.Debug);
-    expect(args[7]).toBe(false);
-    expect(args[8]).toBe('conservative');
+
+    it('re-exports the standalone AmpMaskView bound to AMPMaskComponentView', () => {
+      // After consolidation the only linked RN component is the standalone's
+      // `AMPMaskComponentView` (not the old plugin-local `RCTAmpMaskView`).
+      expect(AmpMaskView).toBe('AMPMaskComponentView');
+    });
+
+    it('keeps the deprecated SessionReplayConfig alias assignable to SessionReplayPluginConfig', () => {
+      const legacy: SessionReplayConfig = { sampleRate: 0.5, privacyConfig: { maskLevel: 'light' } };
+      const current: SessionReplayPluginConfig = legacy;
+      const privacy: PrivacyConfig = { maskLevel: 'conservative' };
+      expect(current.sampleRate).toBe(0.5);
+      expect(privacy.maskLevel).toBe('conservative');
+    });
+  });
+
+  describe('SessionReplayPlugin lifecycle delegates to the standalone native module', () => {
+    it('forwards setup with API config to AMPNativeSessionReplay', async () => {
+      const plugin = new SessionReplayPlugin();
+      await plugin.setup(minimalConfig, mockReactNativeClient);
+      expect(nativeModule.setup).toHaveBeenCalledWith(
+        expect.objectContaining({ apiKey: 'test-api-key', serverZone: 'US' }),
+      );
+    });
+
+    it('threads privacyConfig.maskLevel through to native setup', async () => {
+      const plugin = new SessionReplayPlugin({ privacyConfig: { maskLevel: 'conservative' } });
+      await plugin.setup(minimalConfig, mockReactNativeClient);
+      expect(nativeModule.setup).toHaveBeenCalledWith(expect.objectContaining({ maskLevel: 'conservative' }));
+    });
+
+    it('defaults to medium masking when privacyConfig is not provided', async () => {
+      const plugin = new SessionReplayPlugin();
+      await plugin.setup(minimalConfig, mockReactNativeClient);
+      expect(nativeModule.setup).toHaveBeenCalledWith(expect.objectContaining({ maskLevel: 'medium' }));
+    });
+
+    it('delegates start and stop to native, and teardown to native teardown (full shutdown)', async () => {
+      const plugin = new SessionReplayPlugin();
+      await plugin.setup(minimalConfig, mockReactNativeClient);
+      await plugin.start();
+      expect(nativeModule.start).toHaveBeenCalled();
+      await plugin.stop();
+      expect(nativeModule.stop).toHaveBeenCalledTimes(1);
+      await plugin.teardown();
+      // teardown must release native resources via the native `teardown`
+      // (Android `shutdown()` / iOS `stop()`), NOT merely pause via `stop()`.
+      // Pausing instead would leak native recording listeners on Android when
+      // the plugin is removed at runtime (SDKRN-14 regression guard).
+      expect(nativeModule.teardown).toHaveBeenCalledTimes(1);
+      expect(nativeModule.stop).toHaveBeenCalledTimes(1);
+    });
+
+    it('enriches events with session replay properties once initialized', async () => {
+      const plugin = new SessionReplayPlugin();
+      await plugin.setup(minimalConfig, mockReactNativeClient);
+      const event = { event_type: 'test_event', session_id: 12345, event_properties: {} };
+      const enriched = await plugin.execute(event);
+      expect(nativeModule.getSessionReplayProperties).toHaveBeenCalled();
+      expect(enriched?.event_properties).toEqual(expect.objectContaining({ replayId: 'test-id' }));
+    });
   });
 });
