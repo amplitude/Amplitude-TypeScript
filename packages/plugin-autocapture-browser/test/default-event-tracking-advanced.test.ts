@@ -5,6 +5,7 @@ import { BrowserConfig, EnrichmentPlugin, ILogger, BrowserClient, IDiagnosticsCl
 import { mockWindowLocationFromURL } from './utils';
 import { VERSION } from '../src/version';
 import { createMockBrowserClient } from './mock-browser-client';
+import * as messengerLib from '../src/libs/messenger';
 
 const TESTING_DEBOUNCE_TIME = 4;
 
@@ -125,6 +126,39 @@ describe('autoTrackingPlugin', () => {
 
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       expect((messengerMock as any).setup).toHaveBeenCalledTimes(1);
+    });
+
+    test('passes elementInteractionsOptions to enableVisualTagging', async () => {
+      window.opener = true;
+      const messengerMock = {
+        setup: jest.fn(),
+        registerActionHandler: jest.fn(),
+      };
+      jest.spyOn(AnalyticsCore, 'getOrCreateWindowMessenger').mockReturnValue(messengerMock as any);
+      jest.spyOn(AnalyticsCore, 'enableBackgroundCapture').mockImplementation(jest.fn());
+      const enableVisualTaggingSpy = jest.spyOn(messengerLib, 'enableVisualTagging').mockImplementation(jest.fn());
+
+      plugin = autocapturePlugin({
+        visualTaggingOptions: { enabled: true },
+        captureCssClasses: true,
+      });
+      const loggerProvider: Partial<ILogger> = {
+        log: jest.fn(),
+        warn: jest.fn(),
+        error: jest.fn(),
+      };
+      const config: Partial<BrowserConfig> = {
+        defaultTracking: false,
+        loggerProvider: loggerProvider as ILogger,
+      };
+      const amplitude: Partial<BrowserClient> = {};
+      await plugin?.setup?.(config as BrowserConfig, amplitude as BrowserClient);
+
+      expect(enableVisualTaggingSpy).toHaveBeenCalledTimes(1);
+      const callArgs = enableVisualTaggingSpy.mock.calls[0][1] as {
+        elementInteractionsOptions?: AnalyticsCore.ElementInteractionsOptions;
+      };
+      expect(callArgs.elementInteractionsOptions?.captureCssClasses).toBe(true);
     });
 
     test('should use custom exposureDuration from deprecated flat option', async () => {

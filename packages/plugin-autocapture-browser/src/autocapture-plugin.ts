@@ -446,6 +446,7 @@ export const autocapturePlugin = (
         isElementSelectable: createShouldTrackEvent(options, [...allowlist, ...actionClickAllowlist]),
         cssSelectorAllowlist: allowlist,
         actionClickAllowlist,
+        elementInteractionsOptions: options,
       });
       enableBackgroundCapture(messenger);
       /* istanbul ignore next */

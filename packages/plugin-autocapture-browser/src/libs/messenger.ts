@@ -1,7 +1,7 @@
 /* istanbul ignore file */
 /* eslint-disable no-restricted-globals */
 import { AMPLITUDE_VISUAL_TAGGING_SELECTOR_SCRIPT_URL, AMPLITUDE_VISUAL_TAGGING_HIGHLIGHT_CLASS } from '../constants';
-import type { BaseWindowMessenger } from '@amplitude/analytics-core';
+import type { BaseWindowMessenger, ElementInteractionsOptions } from '@amplitude/analytics-core';
 import { ActionType } from '@amplitude/analytics-core';
 import { VERSION } from '../version';
 import { DataExtractor } from '../data-extractor';
@@ -83,6 +83,7 @@ export function enableVisualTagging(
     cssSelectorAllowlist?: string[];
     actionClickAllowlist?: string[];
     dataExtractor: DataExtractor;
+    elementInteractionsOptions?: ElementInteractionsOptions;
   },
 ): void {
   // Idempotency guard — works across bundle boundaries
@@ -92,7 +93,8 @@ export function enableVisualTagging(
   }
   branded[VISUAL_TAGGING_BRAND] = true;
 
-  const { dataExtractor, isElementSelectable, cssSelectorAllowlist, actionClickAllowlist } = options;
+  const { dataExtractor, isElementSelectable, cssSelectorAllowlist, actionClickAllowlist, elementInteractionsOptions } =
+    options;
 
   let amplitudeVisualTaggingSelectorInstance: any = null;
 
@@ -131,6 +133,7 @@ export function enableVisualTagging(
             actionClickAllowlist,
             extractDataFromDataSource: dataExtractor.extractDataFromDataSource,
             dataExtractor,
+            elementInteractionsOptions,
             diagnostics: {
               autocapture: {
                 version: VERSION,

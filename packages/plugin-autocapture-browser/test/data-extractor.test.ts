@@ -1126,6 +1126,119 @@ describe('data extractor', () => {
         dataExtractorWithoutDiagnostics.getHierarchy(target);
       }).not.toThrow();
     });
+
+    describe('captureCssClasses option threading', () => {
+      const HTML_FIXTURE = `
+        <div id="parent2" class="grandparent gp2">
+          <div id="parent1" class="parent">
+            <div id="inner" class="leaf leaf-two">xxx</div>
+          </div>
+        </div>
+      `;
+
+      test('default-on (option unset): hierarchy entries with classes are populated', () => {
+        const extractor = new DataExtractor({});
+        document.getElementsByTagName('body')[0].innerHTML = HTML_FIXTURE;
+
+        const hierarchy = extractor.getHierarchy(document.getElementById('inner'));
+
+        // First three entries (inner, parent1, parent2) all have class attributes.
+        expect(hierarchy[0]).toHaveProperty('classes', ['leaf', 'leaf-two']);
+        expect(hierarchy[1]).toHaveProperty('classes', ['parent']);
+        expect(hierarchy[2]).toHaveProperty('classes', ['grandparent', 'gp2']);
+      });
+
+      test('default-on (captureCssClasses: true): hierarchy entries with classes are populated', () => {
+        const extractor = new DataExtractor({ captureCssClasses: true });
+        document.getElementsByTagName('body')[0].innerHTML = HTML_FIXTURE;
+
+        const hierarchy = extractor.getHierarchy(document.getElementById('inner'));
+
+        expect(hierarchy[0]).toHaveProperty('classes', ['leaf', 'leaf-two']);
+        expect(hierarchy[1]).toHaveProperty('classes', ['parent']);
+        expect(hierarchy[2]).toHaveProperty('classes', ['grandparent', 'gp2']);
+      });
+
+      test('default-on path produces byte-equivalent JSON to today', () => {
+        const extractorDefault = new DataExtractor({});
+        const extractorExplicit = new DataExtractor({ captureCssClasses: true });
+        document.getElementsByTagName('body')[0].innerHTML = HTML_FIXTURE;
+
+        const inner = document.getElementById('inner');
+        const defaultPayload = JSON.stringify(extractorDefault.getHierarchy(inner));
+        const explicitPayload = JSON.stringify(extractorExplicit.getHierarchy(inner));
+
+        expect(defaultPayload).toEqual(explicitPayload);
+      });
+
+      test('off path: every hierarchy entry omits the `classes` field entirely', () => {
+        const extractor = new DataExtractor({ captureCssClasses: false });
+        document.getElementsByTagName('body')[0].innerHTML = HTML_FIXTURE;
+
+        const hierarchy = extractor.getHierarchy(document.getElementById('inner'));
+
+        for (const node of hierarchy) {
+          expect(node ?? {}).not.toHaveProperty('classes');
+        }
+
+        // Field must be fully absent — not present as null, not present as [].
+        const serialized = JSON.stringify(hierarchy);
+        expect(serialized).not.toContain('"classes"');
+      });
+
+      test('off path: hierarchy preserves non-class properties unchanged', () => {
+        const extractor = new DataExtractor({ captureCssClasses: false });
+        document.getElementsByTagName('body')[0].innerHTML = HTML_FIXTURE;
+
+        const hierarchy = extractor.getHierarchy(document.getElementById('inner'));
+
+        expect(hierarchy[0]).toEqual({
+          id: 'inner',
+          index: 0,
+          indexOfType: 0,
+          tag: 'div',
+        });
+        expect(hierarchy[1]).toEqual({
+          id: 'parent1',
+          index: 0,
+          indexOfType: 0,
+          tag: 'div',
+        });
+      });
+
+      test('top-level [Amplitude] Element Class property is still populated when captureCssClasses is false (AC4)', () => {
+        const extractor = new DataExtractor({ captureCssClasses: false });
+        document.getElementsByTagName('body')[0].innerHTML = `
+          <div id="parent">
+            <button id="target" class="cta primary">Click</button>
+          </div>
+        `;
+
+        const target = document.getElementById('target') as Element;
+        const properties = extractor.getEventProperties('click', target, 'data-amp-track-');
+
+        // Hierarchy must not carry `classes` anywhere.
+        const hierarchyJson = JSON.stringify(properties[constants.AMPLITUDE_EVENT_PROP_ELEMENT_HIERARCHY]);
+        expect(hierarchyJson).not.toContain('"classes"');
+
+        // The explicitly out-of-scope top-level property still carries the class string.
+        expect(properties[constants.AMPLITUDE_EVENT_PROP_ELEMENT_CLASS]).toBe('cta primary');
+      });
+
+      test('top-level [Amplitude] Element Class property is unchanged when captureCssClasses is true', () => {
+        const extractor = new DataExtractor({ captureCssClasses: true });
+        document.getElementsByTagName('body')[0].innerHTML = `
+          <div id="parent">
+            <button id="target" class="cta primary">Click</button>
+          </div>
+        `;
+
+        const target = document.getElementById('target') as Element;
+        const properties = extractor.getEventProperties('click', target, 'data-amp-track-');
+
+        expect(properties[constants.AMPLITUDE_EVENT_PROP_ELEMENT_CLASS]).toBe('cta primary');
+      });
+    });
   });
 
   describe('getEventProperties with title masking', () => {
