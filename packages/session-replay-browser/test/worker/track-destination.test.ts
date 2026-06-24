@@ -527,4 +527,133 @@ describe('worker/track-destination', () => {
       delete (global as any).CompressionStream;
     }
   });
+
+  describe('custom transport delegation (useCustomTransport)', () => {
+    // No fake timers in this suite, so a real macrotask reliably flushes the microtasks that
+    // run between the worker receiving 'send' and posting its 'fetch-request'.
+    const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
+    type Msg = { type: string; requestId?: string; url?: string; method?: string; headers?: Record<string, string> };
+    const postedOfType = (type: string): Msg[] =>
+      mockPostMessage.mock.calls.map((c) => c[0] as Msg).filter((m) => m.type === type);
+
+    test('delegates the network call to the main thread instead of fetching directly', async () => {
+      const sendPromise = invokeOnMessage({
+        type: 'send',
+        id: 'd1',
+        payload: basePayload,
+        context: baseContext,
+        useRetry: false,
+        useCustomTransport: true,
+      });
+      await flush();
+
+      // The worker posted a fetch-request rather than calling its own fetch (trap §12-2).
+      expect(mockFetch).not.toHaveBeenCalled();
+      const [request] = postedOfType('fetch-request');
+      expect(request).toBeDefined();
+      expect(request.url).toContain('device_id=device-123');
+      expect(request.method).toBe('POST');
+      expect((request.headers as Record<string, string>).Authorization).toBe('Bearer test-api-key');
+
+      // The main thread replies; the worker resolves and completes via its normal path.
+      await invokeOnMessage({ type: 'fetch-response', requestId: request.requestId, status: 200, skipHeader: null });
+      await sendPromise;
+
+      expect(mockPostMessage).toHaveBeenCalledWith({ type: 'complete', id: 'd1', skipCode: null });
+    });
+
+    test('does NOT delegate when useCustomTransport is falsy (unchanged worker path)', async () => {
+      mockFetch.mockResolvedValueOnce({ status: 200 });
+      await invokeOnMessage({ type: 'send', id: 'd2', payload: basePayload, context: baseContext, useRetry: false });
+
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+      expect(postedOfType('fetch-request')).toHaveLength(0);
+    });
+
+    test('retries delegated attempts through the worker retry loop', async () => {
+      const realSetTimeout = global.setTimeout;
+      jest
+        .spyOn(global, 'setTimeout')
+        .mockImplementation((fn) => realSetTimeout(fn, 0) as unknown as ReturnType<typeof setTimeout>);
+
+      const sendPromise = invokeOnMessage({
+        type: 'send',
+        id: 'd3',
+        payload: basePayload,
+        context: { ...baseContext, flushMaxRetries: 2 },
+        useRetry: true,
+        useCustomTransport: true,
+      });
+      await flush();
+
+      // First attempt: reply with a retryable status.
+      let requests = postedOfType('fetch-request');
+      expect(requests).toHaveLength(1);
+      await invokeOnMessage({ type: 'fetch-response', requestId: requests[0].requestId, status: 500 });
+      await flush();
+
+      // Worker should have delegated a second attempt.
+      requests = postedOfType('fetch-request');
+      expect(requests).toHaveLength(2);
+      await invokeOnMessage({
+        type: 'fetch-response',
+        requestId: requests[1].requestId,
+        status: 200,
+        skipHeader: null,
+      });
+      await sendPromise;
+
+      expect(mockPostMessage).toHaveBeenCalledWith({ type: 'complete', id: 'd3', skipCode: null });
+    });
+
+    test('a delegated 413 reads the response body and posts payload_too_large', async () => {
+      const sendPromise = invokeOnMessage({
+        type: 'send',
+        id: 'd5',
+        payload: basePayload,
+        context: { ...baseContext, flushMaxRetries: 2 },
+        useRetry: true,
+        useCustomTransport: true,
+      });
+      await flush();
+
+      const [request] = postedOfType('fetch-request');
+      // body text is consulted via the reconstructed Response-like text() for WAF detection
+      await invokeOnMessage({
+        type: 'fetch-response',
+        requestId: request.requestId,
+        status: 413,
+        body: 'WAF: request body too large',
+      });
+      await sendPromise;
+
+      expect(mockPostMessage).toHaveBeenCalledWith(expect.objectContaining({ type: 'payload_too_large', id: 'd5' }));
+    });
+
+    test('a main-thread transport error surfaces without retry', async () => {
+      const sendPromise = invokeOnMessage({
+        type: 'send',
+        id: 'd4',
+        payload: basePayload,
+        context: baseContext,
+        useRetry: true,
+        useCustomTransport: true,
+      });
+      await flush();
+
+      const [request] = postedOfType('fetch-request');
+      await invokeOnMessage({
+        type: 'fetch-response',
+        requestId: request.requestId,
+        status: 0,
+        error: true,
+        body: 'boom',
+      });
+      await sendPromise;
+
+      // A thrown/rejected transport is surfaced (no retry), matching the built-in path.
+      expect(postedOfType('fetch-request')).toHaveLength(1);
+      expect(mockPostMessage).toHaveBeenCalledWith(expect.objectContaining({ type: 'complete', id: 'd4' }));
+    });
+  });
 });

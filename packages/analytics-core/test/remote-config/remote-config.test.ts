@@ -1112,6 +1112,52 @@ describe('RemoteConfigClient', () => {
     });
   });
 
+  describe('customFetch (custom transport)', () => {
+    test('invokes the custom transport with a fully-formed request instead of fetch', async () => {
+      global.fetch = jest.fn();
+      const customFetch = jest.fn(
+        (_request: { url: string; method: string; headers: Record<string, string>; signal?: AbortSignal }) =>
+          Promise.resolve({ ok: true, json: () => Promise.resolve({ key: 'value' }) } as Response),
+      );
+      const customClient = new RemoteConfigClient(mockApiKey, mockLogger, 'US', undefined, customFetch);
+
+      const result = await customClient.fetch();
+
+      expect(global.fetch).not.toHaveBeenCalled();
+      expect(customFetch).toHaveBeenCalledTimes(1);
+      const request = customFetch.mock.calls[0][0];
+      expect(request.method).toBe('GET');
+      expect(request.url).toContain('/config/test-api-key');
+      expect(request.headers.Accept).toBe('*/*');
+      expect(request.signal).toBeInstanceOf(AbortSignal);
+      expect(result.remoteConfig).toEqual({ key: 'value' });
+    });
+
+    test('falls back to the built-in fetch when no custom transport is provided', async () => {
+      global.fetch = jest.fn(() =>
+        Promise.resolve({ ok: true, json: () => Promise.resolve({ key: 'value' }) } as Response),
+      );
+      const result = await client.fetch();
+
+      expect(global.fetch).toHaveBeenCalledTimes(1);
+      expect(result.remoteConfig).toEqual({ key: 'value' });
+    });
+
+    test('retry stays in the client around the custom transport (5xx then 200)', async () => {
+      global.fetch = jest.fn();
+      const customFetch = jest
+        .fn()
+        .mockResolvedValueOnce({ ok: false, status: 500, text: () => Promise.resolve('err') } as Response)
+        .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ key: 'value' }) } as Response);
+      const customClient = new RemoteConfigClient(mockApiKey, mockLogger, 'US', undefined, customFetch);
+
+      const result = await customClient.fetch(2);
+
+      expect(customFetch).toHaveBeenCalledTimes(2);
+      expect(result.remoteConfig).toEqual({ key: 'value' });
+    });
+  });
+
   describe('getUrlParams', () => {
     test('should generate correct US URL', () => {
       const expectedUrl = `https://sr-client-cfg.amplitude.com/config/test-api-key?config_group=browser`;
