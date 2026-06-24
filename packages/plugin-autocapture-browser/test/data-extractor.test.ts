@@ -448,6 +448,22 @@ describe('data extractor', () => {
 
       expect(result).toEqual('button#test-button');
     });
+
+    test('should return the same CSS path when CSS class capture is disabled', () => {
+      document.getElementsByTagName('body')[0].innerHTML = `
+        <div>
+          <button class="secondary-button">Other</button>
+          <button class="primary-button">Click me</button>
+        </div>
+      `;
+
+      const button = document.getElementsByClassName('primary-button')[0];
+      const defaultResult = dataExtractor.getElementPath(button);
+      const resultWithoutHierarchyClasses = new DataExtractor({ captureCssClasses: false }).getElementPath(button);
+
+      expect(resultWithoutHierarchyClasses).toEqual(defaultResult);
+      expect(resultWithoutHierarchyClasses).toContain('.primary-button');
+    });
   });
 
   describe('getEventTagProps', () => {
@@ -765,6 +781,83 @@ describe('data extractor', () => {
       expect(dataExtractor.getHierarchy(nullElement)).toEqual([]);
     });
 
+    test('should include classes by default', () => {
+      document.getElementsByTagName('body')[0].innerHTML = `
+        <div id="parent" class="parent-class">
+          <button id="target" class="target-class primary" data-test-id="save-button">
+            Save
+          </button>
+        </div>
+      `;
+
+      const target = document.getElementById('target');
+
+      expect(dataExtractor.getHierarchy(target)[0]).toEqual({
+        id: 'target',
+        index: 0,
+        indexOfType: 0,
+        tag: 'button',
+        classes: ['target-class', 'primary'],
+        attrs: {
+          'data-test-id': 'save-button',
+        },
+      });
+    });
+
+    test('should exclude classes from hierarchy when captureCssClasses is false', () => {
+      document.getElementsByTagName('body')[0].innerHTML = `
+        <div id="parent" class="parent-class">
+          <button id="target" class="target-class primary" data-test-id="save-button">
+            Save
+          </button>
+        </div>
+      `;
+
+      const extractor = new DataExtractor({ captureCssClasses: false });
+      const target = document.getElementById('target');
+
+      expect(extractor.getHierarchy(target)[0]).toEqual({
+        id: 'target',
+        index: 0,
+        indexOfType: 0,
+        tag: 'button',
+        attrs: {
+          'data-test-id': 'save-button',
+        },
+      });
+    });
+
+    test('should keep direct element class event property when captureCssClasses is false', () => {
+      document.getElementsByTagName('body')[0].innerHTML = `
+        <button id="target" class="target-class primary" data-amp-track-role="save">
+          Save
+        </button>
+      `;
+
+      const extractor = new DataExtractor({ captureCssClasses: false });
+      const target = document.getElementById('target') as HTMLElement;
+      const result = extractor.getEventProperties('click', target, 'data-amp-track-');
+
+      expect(result[constants.AMPLITUDE_EVENT_PROP_ELEMENT_CLASS]).toBe('target-class primary');
+      expect(result[constants.AMPLITUDE_EVENT_PROP_ELEMENT_HIERARCHY]).toEqual([
+        {
+          id: 'target',
+          index: 0,
+          indexOfType: 0,
+          tag: 'button',
+          attrs: {
+            'data-amp-track-role': 'save',
+          },
+        },
+        {
+          index: 1,
+          indexOfType: 0,
+          prevSib: 'head',
+          tag: 'body',
+        },
+      ]);
+    });
+
     test('should handle null elements in hierarchy when getElementProperties returns null', () => {
       // Create a valid element
       const element = document.createElement('div');
@@ -828,6 +921,37 @@ describe('data extractor', () => {
     });
 
     describe('[Amplitude] Element Hierarchy property:', () => {
+      test('should reduce class-heavy hierarchy payload while preserving stable ancestor attributes', () => {
+        const classList = Array.from({ length: 8 }, (_, index) => `very-long-generated-class-name-${index}`).join(' ');
+        document.getElementsByTagName('body')[0].innerHTML = `
+          <section class="${classList}" data-test-section="billing">
+            <div class="${classList}" data-test-panel="payment-methods">
+              <div class="${classList}" data-test-row="primary-card">
+                <button id="target" class="${classList}" data-test-action="save-card">
+                  Save card
+                </button>
+              </div>
+            </div>
+          </section>
+        `;
+
+        const target = document.getElementById('target');
+        const defaultHierarchy = dataExtractor.getHierarchy(target);
+        const hierarchyWithoutClasses = new DataExtractor({ captureCssClasses: false }).getHierarchy(target);
+
+        expect(JSON.stringify(defaultHierarchy).length).toBeGreaterThan(1024);
+        expect(JSON.stringify(hierarchyWithoutClasses).length).toBeLessThanOrEqual(1024);
+        expect(hierarchyWithoutClasses).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({ attrs: { 'data-test-action': 'save-card' } }),
+            expect.objectContaining({ attrs: { 'data-test-row': 'primary-card' } }),
+            expect.objectContaining({ attrs: { 'data-test-panel': 'payment-methods' } }),
+            expect.objectContaining({ attrs: { 'data-test-section': 'billing' } }),
+          ]),
+        );
+        expect(hierarchyWithoutClasses.every((node) => !node?.classes)).toBe(true);
+      });
+
       test('should cut off hierarchy output nodes to stay less than or equal to 1024 chars', () => {
         document.getElementsByTagName('body')[0].innerHTML = `
         <div id="parent2">

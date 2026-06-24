@@ -77,6 +77,12 @@ export interface ElementInteractionsOptions {
   dataAttributePrefix?: string;
 
   /**
+   * Whether CSS class names should be captured in the element hierarchy.
+   * Default is true.
+   */
+  captureCssClasses?: boolean;
+
+  /**
    * Options for integrating visual tagging selector.
    */
   visualTaggingOptions?: {

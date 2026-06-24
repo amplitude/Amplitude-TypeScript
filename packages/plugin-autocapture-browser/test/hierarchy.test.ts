@@ -90,6 +90,28 @@ describe('autocapture-plugin hierarchy', () => {
         classes: ['class1', 'class2'],
       });
     });
+
+    test('should not return class list when CSS class capture is disabled', () => {
+      document.getElementsByTagName('body')[0].innerHTML = `
+        <div id="container">
+          <div id="inner" class="class1 class2" data-test-id="stable-target" aria-label="Stable label">
+            xxx
+          </div>
+        </div>
+      `;
+
+      const inner = document.getElementById('inner');
+      expect(HierarchyUtil.getElementProperties(inner, new Set(), false)).toEqual({
+        id: 'inner',
+        index: 0,
+        indexOfType: 0,
+        tag: 'div',
+        attrs: {
+          'data-test-id': 'stable-target',
+          'aria-label': 'Stable label',
+        },
+      });
+    });
   });
 
   test('should not fail when parent element is null', () => {
