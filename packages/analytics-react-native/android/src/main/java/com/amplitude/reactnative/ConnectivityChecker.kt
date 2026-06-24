@@ -88,19 +88,22 @@ internal class ConnectivityChecker(
             }
             networkCallback = callback
         } catch (e: RuntimeException) {
-            // Registration can throw SecurityException (missing ACCESS_NETWORK_STATE) or
-            // RuntimeException ("Too many NetworkRequests filed" at the per-uid limit). Leave
-            // the callback unregistered and best-effort report online so a failed probe never
-            // pins the SDK offline.
+            // Registration can throw SecurityException (missing ACCESS_NETWORK_STATE). See
+            // Amplitude-Kotlin #220/#197. Leave the callback unregistered and best-effort
+            // report online so a failed probe never pins the SDK offline.
             isConnected = true
+        } catch (e: LinkageError) {
+            // OEM-forked ConnectivityManager can throw linkage errors (e.g. NoSuchMethodError);
+            // best-effort online rather than crash, matching currentConnectivity().
+            isConnected = true
+        } finally {
+            // Push the authoritative post-start state to JS. JS reads its seed via
+            // getNetworkConnectivityStatus before subscribing, so a connectivity flip in the gap
+            // before this registration would otherwise strand JS on the stale seed: Android's own
+            // immediate onAvailable is deduped against isConnected, and fires nothing at all when
+            // offline. JS dedupes a same-state value, so this is a no-op when nothing changed.
+            onConnectivityChanged(isConnected)
         }
-
-        // Push the authoritative post-start state to JS. JS reads its seed via
-        // getNetworkConnectivityStatus before subscribing, so a connectivity flip in the gap
-        // before this registration would otherwise strand JS on the stale seed: Android's own
-        // immediate onAvailable is deduped against isConnected, and fires nothing at all when
-        // offline. JS dedupes a same-state value, so this is a no-op when nothing changed.
-        onConnectivityChanged(isConnected)
     }
 
     @Synchronized
@@ -108,10 +111,17 @@ internal class ConnectivityChecker(
         val callback = networkCallback ?: return
         try {
             connectivityManager?.unregisterNetworkCallback(callback)
-        } catch (e: IllegalArgumentException) {
-            // Callback was not registered; ignore.
+        } catch (e: RuntimeException) {
+            // unregister can throw IllegalArgumentException (callback never registered),
+            // IllegalStateException, or other device ConnectivityManager RuntimeExceptions
+            // (see currentConnectivity() / Amplitude-Kotlin #220, #197).
+        } catch (e: LinkageError) {
+            // OEM-forked ConnectivityManager can throw linkage errors (e.g. NoSuchMethodError).
+        } finally {
+            // Always clear so a failed unregister can't wedge start()/stop() (a non-null
+            // callback makes start() no-op) or crash invalidate() during bridge teardown.
+            networkCallback = null
         }
-        networkCallback = null
     }
 
     private fun handleConnectivityChange(connected: Boolean) {

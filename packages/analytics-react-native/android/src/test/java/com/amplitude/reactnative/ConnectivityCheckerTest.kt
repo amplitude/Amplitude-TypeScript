@@ -210,6 +210,21 @@ class ConnectivityCheckerTest {
         verify(exactly = 0) { connectivityManager.unregisterNetworkCallback(any<ConnectivityManager.NetworkCallback>()) }
     }
 
+    @Test
+    @Config(sdk = [Build.VERSION_CODES.N])
+    fun `start swallows LinkageError from registration and best-effort reports online`() {
+        // OEM-forked ConnectivityManager can throw NoSuchMethodError etc. from registration;
+        // best-effort online rather than crash, matching currentConnectivity().
+        seedDisconnectedApi23Plus()
+        every { connectivityManager.registerDefaultNetworkCallback(any()) } throws NoSuchMethodError("OEM fork")
+
+        checker.start() // must not throw
+
+        assertTrue(checker.isConnected)
+        checker.stop()
+        verify(exactly = 0) { connectivityManager.unregisterNetworkCallback(any<ConnectivityManager.NetworkCallback>()) }
+    }
+
     // endregion
 
     // region callback -> state mapping + dedupe
@@ -361,6 +376,54 @@ class ConnectivityCheckerTest {
         checker.stop() // second call is a no-op (callback already cleared)
 
         verify(exactly = 1) { connectivityManager.unregisterNetworkCallback(any<ConnectivityManager.NetworkCallback>()) }
+    }
+
+    @Test
+    @Config(sdk = [Build.VERSION_CODES.N])
+    fun `stop swallows IllegalStateException and clears the callback`() {
+        seedDisconnectedApi23Plus()
+        checker.start()
+        every {
+            connectivityManager.unregisterNetworkCallback(any<ConnectivityManager.NetworkCallback>())
+        } throws IllegalStateException("device ConnectivityManager")
+
+        checker.stop() // must not throw
+        checker.stop() // callback already cleared -> no second unregister attempt
+
+        verify(exactly = 1) { connectivityManager.unregisterNetworkCallback(any<ConnectivityManager.NetworkCallback>()) }
+    }
+
+    @Test
+    @Config(sdk = [Build.VERSION_CODES.N])
+    fun `stop swallows a generic RuntimeException and clears the callback`() {
+        seedDisconnectedApi23Plus()
+        checker.start()
+        every {
+            connectivityManager.unregisterNetworkCallback(any<ConnectivityManager.NetworkCallback>())
+        } throws RuntimeException("binder died")
+
+        checker.stop() // must not throw
+        checker.stop()
+
+        verify(exactly = 1) { connectivityManager.unregisterNetworkCallback(any<ConnectivityManager.NetworkCallback>()) }
+    }
+
+    @Test
+    @Config(sdk = [Build.VERSION_CODES.N])
+    fun `start re-registers after a failed unregister so monitoring is not wedged`() {
+        // A throwing unregister must still clear the callback (finally), or start() would
+        // forever no-op on the stale callback and monitoring would never resume.
+        seedDisconnectedApi23Plus()
+        every { connectivityManager.registerDefaultNetworkCallback(any()) } returns Unit
+        checker.start()
+        every {
+            connectivityManager.unregisterNetworkCallback(any<ConnectivityManager.NetworkCallback>())
+        } throws RuntimeException("binder died")
+
+        checker.stop() // unregister throws, but networkCallback is cleared
+
+        checker.start() // must register again, not no-op
+        verify(exactly = 2) { connectivityManager.registerDefaultNetworkCallback(any()) }
     }
 
     @Test
