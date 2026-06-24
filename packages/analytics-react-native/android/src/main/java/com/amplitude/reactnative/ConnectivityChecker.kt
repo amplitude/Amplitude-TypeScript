@@ -34,6 +34,13 @@ internal class ConnectivityChecker(
 
     private var networkCallback: ConnectivityManager.NetworkCallback? = null
 
+    // Whether the OS is blocking this app's traffic on the active network (Data Saver,
+    // background data restriction, etc.) — a clear offline signal even when the network
+    // itself is validated. Tracked from onBlockedStatusChanged (API 29+); always false
+    // below that, where the OS never reports it.
+    @Volatile
+    private var blocked = false
+
     // Last known connectivity state, used to dedupe repeated same-state callbacks.
     @Volatile
     internal var isConnected = true
@@ -61,19 +68,27 @@ internal class ConnectivityChecker(
         // Re-derive the real state from the active network on every event rather than
         // trusting the event type: onAvailable can fire before the network is VALIDATED
         // (or for a captive portal), and the API 23 request-based callback reports onLost
-        // for a non-default network while another is still up. currentConnectivity()
-        // reflects the active, validated network in both cases.
+        // for a non-default network while another is still up. effectiveConnectivity()
+        // reflects the active, validated network — and whether we're blocked — in all cases.
         val callback = object : ConnectivityManager.NetworkCallback() {
             override fun onAvailable(network: Network) {
-                handleConnectivityChange(currentConnectivity())
+                handleConnectivityChange(effectiveConnectivity())
             }
 
             override fun onLost(network: Network) {
-                handleConnectivityChange(currentConnectivity())
+                handleConnectivityChange(effectiveConnectivity())
             }
 
             override fun onCapabilitiesChanged(network: Network, capabilities: NetworkCapabilities) {
-                handleConnectivityChange(currentConnectivity())
+                handleConnectivityChange(effectiveConnectivity())
+            }
+
+            override fun onBlockedStatusChanged(network: Network, isBlocked: Boolean) {
+                // API 29+. The network may be validated but the OS is blocking our traffic
+                // (Data Saver / background restriction) — treat that as offline so we queue
+                // instead of burning retries on sends that can only fail.
+                blocked = isBlocked
+                handleConnectivityChange(effectiveConnectivity())
             }
         }
 
@@ -121,8 +136,14 @@ internal class ConnectivityChecker(
             // Always clear so a failed unregister can't wedge start()/stop() (a non-null
             // callback makes start() no-op) or crash invalidate() during bridge teardown.
             networkCallback = null
+            // Reset so a stale block status can't leak into the next registration's seed.
+            blocked = false
         }
     }
+
+    // Effective connectivity for the live callbacks: online only when the active network is
+    // validated (currentConnectivity()) AND the OS isn't blocking our traffic.
+    private fun effectiveConnectivity(): Boolean = currentConnectivity() && !blocked
 
     private fun handleConnectivityChange(connected: Boolean) {
         // Dedupe repeated same-state callbacks (e.g. onCapabilitiesChanged firing

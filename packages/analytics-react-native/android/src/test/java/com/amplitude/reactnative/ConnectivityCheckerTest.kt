@@ -312,6 +312,60 @@ class ConnectivityCheckerTest {
 
     // endregion
 
+    // region onBlockedStatusChanged (API 29+) — blocked traffic counts as offline
+
+    @Test
+    @Config(sdk = [Build.VERSION_CODES.Q])
+    fun `onBlockedStatusChanged true flips offline even when the network is validated`() {
+        // Data Saver / background restriction: the network is validated but the OS blocks our
+        // traffic. Treat it as offline so we queue instead of burning retries on failing sends.
+        seedConnectedApi23Plus()
+        val callbackSlot = slot<ConnectivityManager.NetworkCallback>()
+        every { connectivityManager.registerDefaultNetworkCallback(capture(callbackSlot)) } returns Unit
+        checker.start()
+        assertEquals(listOf(true), changes) // start() seed: online
+
+        callbackSlot.captured.onBlockedStatusChanged(network, true)
+
+        assertEquals(listOf(true, false), changes)
+        assertFalse(checker.isConnected)
+    }
+
+    @Test
+    @Config(sdk = [Build.VERSION_CODES.Q])
+    fun `onBlockedStatusChanged false restores online when unblocked`() {
+        seedConnectedApi23Plus()
+        val callbackSlot = slot<ConnectivityManager.NetworkCallback>()
+        every { connectivityManager.registerDefaultNetworkCallback(capture(callbackSlot)) } returns Unit
+        checker.start()
+        val callback = callbackSlot.captured
+
+        callback.onBlockedStatusChanged(network, true) // online -> offline
+        callback.onBlockedStatusChanged(network, false) // unblocked -> online (still validated)
+
+        assertEquals(listOf(true, false, true), changes)
+        assertTrue(checker.isConnected)
+    }
+
+    @Test
+    @Config(sdk = [Build.VERSION_CODES.Q])
+    fun `a capabilities change while blocked stays offline (no flip-flop)`() {
+        seedConnectedApi23Plus()
+        val callbackSlot = slot<ConnectivityManager.NetworkCallback>()
+        every { connectivityManager.registerDefaultNetworkCallback(capture(callbackSlot)) } returns Unit
+        checker.start()
+        val callback = callbackSlot.captured
+
+        callback.onBlockedStatusChanged(network, true) // -> offline
+        // A validated-capabilities event must not re-derive back to online while blocked.
+        callback.onCapabilitiesChanged(network, capabilities(internet = true, validated = true))
+
+        assertEquals(listOf(true, false), changes) // no flip back to online
+        assertFalse(checker.isConnected)
+    }
+
+    // endregion
+
     // region start() — seed emit reconciles the JS seed-vs-start race
 
     @Test
