@@ -1,5 +1,5 @@
-import { getGlobalScope } from '@amplitude/analytics-core';
-import { SessionReplayJoinedConfig } from './config/types';
+import { getGlobalScope, ILogger } from '@amplitude/analytics-core';
+import { SessionReplayJoinedConfig, SessionReplaySendEventsHandler } from './config/types';
 import { SessionReplayDestinationSessionMetadata } from './typings/session-replay';
 import { getServerUrl } from './helpers';
 
@@ -27,6 +27,10 @@ export class BeaconTransport<T> {
   private readonly basePageUrl: string;
   private readonly context: Omit<SessionReplayDestinationSessionMetadata, 'deviceId'>;
   private readonly apiKey: string;
+  // Optional custom transport. When set, interaction beacons go through it (a keepalive fetch
+  // that can carry custom auth) instead of navigator.sendBeacon/XHR, which cannot set headers.
+  private readonly handleSendEvents?: SessionReplaySendEventsHandler;
+  private readonly loggerProvider?: ILogger;
 
   constructor(context: Omit<SessionReplayDestinationSessionMetadata, 'deviceId'>, config: SessionReplayJoinedConfig) {
     const globalScope = getGlobalScope();
@@ -56,10 +60,46 @@ export class BeaconTransport<T> {
     this.basePageUrl = getServerUrl(config.serverZone, config.trackServerUrl);
     this.apiKey = config.apiKey;
     this.context = context;
+    this.handleSendEvents = config.handleSendEvents;
+    this.loggerProvider = config.loggerProvider;
   }
 
   send(deviceId: string, payload: T) {
     const { sessionId, type } = this.context;
+
+    // Custom-transport path: navigator.sendBeacon/XHR cannot attach custom headers, so an
+    // interaction beacon would otherwise leave unauthenticated and be rejected by an
+    // authenticating proxy. When handleSendEvents is set, route the beacon through it instead —
+    // a keepalive fetch (survives page unload) that carries the customer's auth. Mirrors the
+    // replay page-exit path: api_key goes in the Authorization header, not the URL.
+    if (this.handleSendEvents) {
+      const params = new URLSearchParams({
+        device_id: deviceId,
+        session_id: String(sessionId),
+        type: String(type),
+      });
+      const url = `${this.basePageUrl}?${params.toString()}`;
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        Accept: '*/*',
+        Authorization: `Bearer ${this.apiKey}`,
+      };
+      try {
+        void this.handleSendEvents({
+          url,
+          method: 'POST',
+          headers,
+          body: JSON.stringify(payload),
+          keepalive: true,
+        }).catch((e) => {
+          this.loggerProvider?.warn('Custom transport failed to send session replay interaction beacon:', e);
+        });
+      } catch (e) {
+        this.loggerProvider?.warn('Custom transport threw while sending session replay interaction beacon:', e);
+      }
+      return;
+    }
+
     const urlParams = new URLSearchParams({
       device_id: deviceId,
       session_id: String(sessionId),
