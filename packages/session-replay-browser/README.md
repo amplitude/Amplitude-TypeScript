@@ -228,6 +228,10 @@ What the SDK requires from your callback:
 - **Page exit.** On unload the SDK normally uses `navigator.sendBeacon`, which can't carry custom
   headers. When `handleSendEvents` is set, the SDK instead routes the final batch through your
   callback with `keepalive: true`, so the exit batch is still authenticated.
+- **Covers all outbound traffic.** When `handleSendEvents` is set it is used for every outbound
+  Session Replay request: replay event uploads, the page-exit beacon, and interaction/scroll
+  beacons (these otherwise send via `navigator.sendBeacon` and would not carry your auth). So no
+  Session Replay request leaves the page unauthenticated.
 
 ### Implementing the proxy side
 
