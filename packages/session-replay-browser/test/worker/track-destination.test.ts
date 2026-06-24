@@ -409,7 +409,14 @@ describe('worker/track-destination', () => {
     // No fake timers in this suite, so a real macrotask reliably flushes the microtasks that
     // run between the worker receiving 'send' and posting its 'fetch-request'.
     const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
-    type Msg = { type: string; requestId?: string; url?: string; method?: string; headers?: Record<string, string> };
+    type Msg = {
+      type: string;
+      id?: string;
+      requestId?: string;
+      url?: string;
+      method?: string;
+      headers?: Record<string, string>;
+    };
     const postedOfType = (type: string): Msg[] =>
       mockPostMessage.mock.calls.map((c) => c[0] as Msg).filter((m) => m.type === type);
 
@@ -428,6 +435,7 @@ describe('worker/track-destination', () => {
       expect(mockFetch).not.toHaveBeenCalled();
       const [request] = postedOfType('fetch-request');
       expect(request).toBeDefined();
+      expect(request.id).toBe('d1');
       expect(request.url).toContain('device_id=device-123');
       expect(request.method).toBe('POST');
       expect((request.headers as Record<string, string>).Authorization).toBe('Bearer test-api-key');

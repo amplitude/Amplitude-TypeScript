@@ -83,35 +83,38 @@ const defaultRequest: DoRequest = (url, options) => fetch(url, options) as Promi
 // Posts a fetch-request to the main thread and resolves once the matching fetch-response
 // arrives. Rejects if the main-thread transport errored, so doFetch's catch surfaces it the
 // same way a thrown fetch would (no retry) — matching the non-worker custom-transport path.
-const delegateRequest: DoRequest = (url, options) => {
-  const requestId = `${++delegationCounter}`;
-  return new Promise<ResponseLike>((resolve, reject) => {
-    pendingDelegations.set(requestId, (resp) => {
-      if (resp.error) {
-        reject(new Error(resp.body));
-        return;
-      }
-      // Reconstruct just the slice of Response that doFetch consumes. get() is only ever
-      // queried for EVENT_SKIPPED_HEADER today; the name check keeps it self-documenting and
-      // safe if a future reader adds another header lookup (the other branch is unreachable now).
-      resolve({
-        status: resp.status,
-        headers: {
-          get: (name: string) => (name === EVENT_SKIPPED_HEADER ? resp.skipHeader : /* istanbul ignore next */ null),
-        },
-        text: () => Promise.resolve(resp.body),
+const createDelegateRequest = (id: string): DoRequest => {
+  return (url, options) => {
+    const requestId = `${++delegationCounter}`;
+    return new Promise<ResponseLike>((resolve, reject) => {
+      pendingDelegations.set(requestId, (resp) => {
+        if (resp.error) {
+          reject(new Error(resp.body));
+          return;
+        }
+        // Reconstruct just the slice of Response that doFetch consumes. get() is only ever
+        // queried for EVENT_SKIPPED_HEADER today; the name check keeps it self-documenting and
+        // safe if a future reader adds another header lookup (the other branch is unreachable now).
+        resolve({
+          status: resp.status,
+          headers: {
+            get: (name: string) => (name === EVENT_SKIPPED_HEADER ? resp.skipHeader : /* istanbul ignore next */ null),
+          },
+          text: () => Promise.resolve(resp.body),
+        });
+      });
+      postMessage({
+        type: 'fetch-request',
+        id,
+        requestId,
+        url,
+        method: 'POST',
+        headers: options.headers,
+        body: options.body,
+        keepalive: options.keepalive,
       });
     });
-    postMessage({
-      type: 'fetch-request',
-      requestId,
-      url,
-      method: 'POST',
-      headers: options.headers,
-      body: options.body,
-      keepalive: options.keepalive,
-    });
-  });
+  };
 };
 
 async function doFetch(
@@ -259,7 +262,7 @@ onmessage = async (e: MessageEvent) => {
     const payloadJson = JSON.stringify(payload);
     // Only enter the delegation protocol when a custom transport is configured; otherwise the
     // worker keeps doing its own fetch with no round-trip to the main thread (unchanged path).
-    const doRequest = useCustomTransport ? delegateRequest : defaultRequest;
+    const doRequest = useCustomTransport ? createDelegateRequest(id) : defaultRequest;
     await sendWithRetry(id, payloadJson, context, useRetry, doRequest);
   }
 };

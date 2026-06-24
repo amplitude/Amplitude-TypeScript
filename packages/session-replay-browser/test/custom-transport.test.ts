@@ -245,6 +245,7 @@ describe('custom transport (handleSendEvents)', () => {
     const EVENT_SKIPPED_HEADER = 'X-Session-Replay-Event-Skipped';
     const makeMsg = (over: Record<string, unknown> = {}) => ({
       type: 'fetch-request',
+      id: '1',
       requestId: 'r1',
       url: 'https://api-sr.amplitude.com/sessions/v2/track',
       method: 'POST',
@@ -372,6 +373,156 @@ describe('custom transport (handleSendEvents)', () => {
       } as MessageEvent);
 
       expect(spy).toHaveBeenCalledTimes(1);
+    });
+
+    test('cleans up a delegated send when the worker crashes before reporting completion', async () => {
+      const mockWorker = {
+        postMessage: jest.fn(),
+        terminate: jest.fn(),
+        onerror: null as ((e: ErrorEvent) => void) | null,
+        onmessage: null as ((e: MessageEvent) => void) | null,
+      };
+      global.Worker = jest.fn(() => mockWorker) as unknown as typeof Worker;
+      global.URL.createObjectURL = jest.fn().mockReturnValue('blob:mock');
+
+      let resolveTransport!: (response: Response) => void;
+      const handleSendEvents = jest.fn(
+        () =>
+          new Promise<Response>((resolve) => {
+            resolveTransport = resolve;
+          }),
+      );
+      const onComplete = jest.fn();
+      const trackDestination = new SessionReplayTrackDestination({
+        loggerProvider: mockLoggerProvider,
+        workerScript: 'self.onmessage = () => {}',
+        handleSendEvents,
+      });
+
+      const sendPromise = trackDestination.send({ ...baseContext(), onComplete }, true);
+      const sendMessage = mockWorker.postMessage.mock.calls[0][0] as { id: string };
+      mockWorker.onmessage?.({
+        data: {
+          type: 'fetch-request',
+          id: sendMessage.id,
+          requestId: 'r9',
+          url: 'u',
+          method: 'POST',
+          headers: {},
+          body: '{}',
+          keepalive: true,
+        },
+      } as MessageEvent);
+
+      mockWorker.onerror?.({
+        preventDefault: jest.fn(),
+        message: 'worker crashed',
+        filename: 'blob:mock',
+        lineno: 1,
+      } as unknown as ErrorEvent);
+      expect(onComplete).not.toHaveBeenCalled();
+
+      resolveTransport({ status: 200, headers: { get: () => null } } as unknown as Response);
+      await sendPromise;
+
+      expect(onComplete).toHaveBeenCalledTimes(1);
+      const pendingWorkerRequests = (trackDestination as unknown as { pendingWorkerRequests: Map<string, unknown> })
+        .pendingWorkerRequests;
+      expect(pendingWorkerRequests.size).toBe(0);
+    });
+
+    test('posts a delegated transport error back to a live worker', async () => {
+      const mockWorker = {
+        postMessage: jest.fn(),
+        terminate: jest.fn(),
+        onerror: null as ((e: ErrorEvent) => void) | null,
+        onmessage: null as ((e: MessageEvent) => void) | null,
+      };
+      global.Worker = jest.fn(() => mockWorker) as unknown as typeof Worker;
+      global.URL.createObjectURL = jest.fn().mockReturnValue('blob:mock');
+
+      const trackDestination = new SessionReplayTrackDestination({
+        loggerProvider: mockLoggerProvider,
+        workerScript: 'self.onmessage = () => {}',
+        handleSendEvents: jest.fn(() => Promise.reject(new Error('boom'))),
+      });
+
+      const sendPromise = trackDestination.send(baseContext(), true);
+      const sendMessage = mockWorker.postMessage.mock.calls[0][0] as { id: string };
+      mockWorker.onmessage?.({
+        data: {
+          type: 'fetch-request',
+          id: sendMessage.id,
+          requestId: 'r10',
+          url: 'u',
+          method: 'POST',
+          headers: {},
+          body: '{}',
+          keepalive: true,
+        },
+      } as MessageEvent);
+      await Promise.resolve();
+
+      expect(mockWorker.postMessage).toHaveBeenCalledWith(
+        expect.objectContaining({ type: 'fetch-response', requestId: 'r10', status: 0, error: true }),
+      );
+
+      mockWorker.onmessage?.({ data: { type: 'complete', id: sendMessage.id } } as MessageEvent);
+      await sendPromise;
+    });
+
+    test('keeps a delegated send stored when the worker crashes before a transport error', async () => {
+      const mockWorker = {
+        postMessage: jest.fn(),
+        terminate: jest.fn(),
+        onerror: null as ((e: ErrorEvent) => void) | null,
+        onmessage: null as ((e: MessageEvent) => void) | null,
+      };
+      global.Worker = jest.fn(() => mockWorker) as unknown as typeof Worker;
+      global.URL.createObjectURL = jest.fn().mockReturnValue('blob:mock');
+
+      let rejectTransport!: (error: Error) => void;
+      const handleSendEvents = jest.fn(
+        () =>
+          new Promise<Response>((_resolve, reject) => {
+            rejectTransport = reject;
+          }),
+      );
+      const onComplete = jest.fn();
+      const trackDestination = new SessionReplayTrackDestination({
+        loggerProvider: mockLoggerProvider,
+        workerScript: 'self.onmessage = () => {}',
+        handleSendEvents,
+      });
+
+      const sendPromise = trackDestination.send({ ...baseContext(), onComplete }, true);
+      const sendMessage = mockWorker.postMessage.mock.calls[0][0] as { id: string };
+      mockWorker.onmessage?.({
+        data: {
+          type: 'fetch-request',
+          id: sendMessage.id,
+          requestId: 'r11',
+          url: 'u',
+          method: 'POST',
+          headers: {},
+          body: '{}',
+          keepalive: true,
+        },
+      } as MessageEvent);
+      mockWorker.onerror?.({
+        preventDefault: jest.fn(),
+        message: 'worker crashed',
+        filename: 'blob:mock',
+        lineno: 1,
+      } as unknown as ErrorEvent);
+
+      rejectTransport(new Error('boom'));
+      await sendPromise;
+
+      expect(onComplete).not.toHaveBeenCalled();
+      const pendingWorkerRequests = (trackDestination as unknown as { pendingWorkerRequests: Map<string, unknown> })
+        .pendingWorkerRequests;
+      expect(pendingWorkerRequests.size).toBe(0);
     });
 
     test('worker.onmessage logs (does not leave an unhandled rejection) when handleDelegatedFetch rejects', async () => {

@@ -52,6 +52,7 @@ interface WorkerPayloadTooLargeMessage {
 // 'fetch-response' message posted back into the worker.
 interface WorkerFetchRequestMessage {
   type: 'fetch-request';
+  id: string;
   requestId: string;
   url: string;
   method: 'POST';
@@ -65,6 +66,14 @@ type WorkerMessage =
   | WorkerLogMessage
   | WorkerPayloadTooLargeMessage
   | WorkerFetchRequestMessage;
+
+interface PendingWorkerRequest {
+  context: SessionReplayDestinationContext;
+  resolve: () => void;
+  delegatedFetchInFlight?: boolean;
+  delegatedFetchStatus?: number;
+  delegatedFetchSkipCode: string | null;
+}
 
 export type PayloadBatcher = ({ version, events }: { version: number; events: string[] }) => {
   version: number;
@@ -89,7 +98,7 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
   queue: SessionReplayDestinationContext[] = [];
   private worker?: Worker;
   private sendIdCounter = 0;
-  private pendingWorkerRequests = new Map<string, { context: SessionReplayDestinationContext; resolve: () => void }>();
+  private pendingWorkerRequests = new Map<string, PendingWorkerRequest>();
   // Server back-pressure state, fed by the X-Session-Replay-Event-Skipped header on 200s.
   // The server uses this header (instead of 4xx) to signal a deliberate no-retry drop so SDKs
   // don't retry-storm. We honor it here by slowing or stopping our flush schedule.
@@ -141,13 +150,17 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
           worker.terminate();
           this.worker = undefined;
           // Resolve pending promises so flush() doesn't hang. Do NOT call completeRequest
-          // here — the events were never delivered, so onComplete must not fire and the
-          // IDB/memory store entries must remain intact for recovery by sendStoredEvents.
-          for (const [, pending] of this.pendingWorkerRequests) {
+          // for the worker's own fetch path — the events were never delivered, so onComplete
+          // must not fire and the IDB/memory store entries must remain intact for recovery by
+          // sendStoredEvents. Delegated custom-transport fetches can outlive the worker; when
+          // one already succeeded, finish cleanup on the main thread to avoid resending it.
+          for (const [id, pending] of this.pendingWorkerRequests) {
             loggerProvider.warn(`Session replay event send failed due to worker crash: ${e.message}`);
-            pending.resolve();
+            if (pending.delegatedFetchInFlight) {
+              continue;
+            }
+            this.resolveCrashedWorkerRequest(id, pending);
           }
-          this.pendingWorkerRequests.clear();
         };
         worker.onmessage = (e: MessageEvent<WorkerMessage>) => {
           const msg = e.data;
@@ -178,6 +191,12 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
             // Guard the fire-and-forget call: if posting the result back fails (e.g. the worker
             // was terminated mid-flight), surface it to the logger instead of leaving an
             // unhandled rejection.
+            const pending = this.pendingWorkerRequests.get(msg.id);
+            if (pending) {
+              pending.delegatedFetchInFlight = true;
+              pending.delegatedFetchStatus = undefined;
+              pending.delegatedFetchSkipCode = null;
+            }
             void this.handleDelegatedFetch(worker, msg).catch((e) => {
               loggerProvider.warn('Failed to handle delegated session replay fetch:', e);
             });
@@ -499,7 +518,7 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
   ): Promise<void> {
     const id = `${++this.sendIdCounter}`;
     return new Promise<void>((resolve) => {
-      this.pendingWorkerRequests.set(id, { context, resolve });
+      this.pendingWorkerRequests.set(id, { context, resolve, delegatedFetchSkipCode: null });
       worker.postMessage({
         type: 'send',
         id,
@@ -534,7 +553,8 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
   // 413 (for WAF detection). A thrown/rejected transport is reported as an error so the worker
   // surfaces it the same way a thrown fetch would (no retry) — matching the main-thread path.
   private async handleDelegatedFetch(worker: Worker, msg: WorkerFetchRequestMessage): Promise<void> {
-    const { requestId, url, method, headers, body, keepalive } = msg;
+    const { id, requestId, url, method, headers, body, keepalive } = msg;
+    const pending = this.pendingWorkerRequests.get(id);
     try {
       // In practice this.handleSendEvents is always set here: the worker only emits
       // 'fetch-request' when useCustomTransport (= !!this.handleSendEvents) was true. The
@@ -556,10 +576,28 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
           // best effort
         }
       }
+      if (pending) {
+        pending.delegatedFetchInFlight = false;
+        pending.delegatedFetchStatus = status;
+        pending.delegatedFetchSkipCode = skipHeader;
+      }
       this.loggerProvider.debug(`Delegated session replay fetch (request ${requestId}) returned status ${status}.`);
+      if (pending && this.worker !== worker) {
+        this.resolveCrashedWorkerRequest(id, pending);
+        return;
+      }
       worker.postMessage({ type: 'fetch-response', requestId, status, skipHeader, body: responseBody });
     } catch (e) {
       this.loggerProvider.debug(`Delegated session replay fetch (request ${requestId}) failed:`, e);
+      if (pending) {
+        pending.delegatedFetchInFlight = false;
+        pending.delegatedFetchStatus = 0;
+        pending.delegatedFetchSkipCode = null;
+      }
+      if (pending && this.worker !== worker) {
+        this.resolveCrashedWorkerRequest(id, pending);
+        return;
+      }
       worker.postMessage({
         type: 'fetch-response',
         requestId,
@@ -569,6 +607,19 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
         error: true,
       });
     }
+  }
+
+  private resolveCrashedWorkerRequest(id: string, pending: PendingWorkerRequest): void {
+    if (
+      pending.delegatedFetchStatus !== undefined &&
+      pending.delegatedFetchStatus >= 200 &&
+      pending.delegatedFetchStatus < 300
+    ) {
+      this.applyServerDirective(pending.context.sessionId, pending.delegatedFetchSkipCode);
+      this.completeRequest({ context: pending.context });
+    }
+    pending.resolve();
+    this.pendingWorkerRequests.delete(id);
   }
 
   private async sendOnMainThread(
