@@ -31,6 +31,70 @@ def supportsNamespace() {
   return (major == 7 && minor >= 3) || major >= 8
 }
 
+def patchComponentDescriptorsHeader() {
+  def componentsDir = file("$buildDir/generated/source/codegen/jni/react/renderer/components/SRMaskViewSpec")
+  def header = new File(componentsDir, "ComponentDescriptors.h")
+
+  if (!header.exists()) {
+    throw new GradleException(
+      "[SessionReplayReactNative] Expected codegen ComponentDescriptors.h at ${header.absolutePath}. " +
+      "Ensure newArchEnabled=true and generateCodegenArtifactsFromSchema ran successfully."
+    )
+  }
+
+  def original = header.getText("UTF-8")
+  if (original.contains("#include <SRMaskViewComponentDescriptor.h>")) {
+    return
+  }
+
+  def typedefPattern = /using SRMaskViewComponentDescriptor = ConcreteComponentDescriptor<SRMaskViewShadowNode>;/
+  if (!(original =~ typedefPattern)) {
+    throw new GradleException(
+      "[SessionReplayReactNative] patchComponentDescriptorsHeader regex did not match ComponentDescriptors.h. " +
+      "React Native codegen output may have changed; update the patch task before shipping."
+    )
+  }
+
+  def patched = original.replace(
+    "#include <react/renderer/componentregistry/ComponentDescriptorProviderRegistry.h>",
+    """#include <react/renderer/componentregistry/ComponentDescriptorProviderRegistry.h>
+#include <SRMaskViewComponentDescriptor.h>"""
+  ).replaceFirst(typedefPattern, "")
+  header.write(patched, "UTF-8")
+}
+
+def patchCodegenCMakeLists() {
+  def cmakeFile = file("$buildDir/generated/source/codegen/jni/CMakeLists.txt")
+
+  if (!cmakeFile.exists()) {
+    throw new GradleException(
+      "[SessionReplayReactNative] Expected codegen CMakeLists.txt at ${cmakeFile.absolutePath}. " +
+      "Ensure newArchEnabled=true and generateCodegenArtifactsFromSchema ran successfully."
+    )
+  }
+
+  def original = cmakeFile.getText("UTF-8")
+  if (original.contains("SRMaskViewShadowNode.cpp")) {
+    return
+  }
+
+  def cppDir = file("../cpp").absolutePath.replace("\\", "/")
+  def insertion = """target_sources(react_codegen_SRMaskViewSpec PRIVATE
+  "${cppDir}/SRMaskViewShadowNode.cpp"
+)
+target_include_directories(react_codegen_SRMaskViewSpec PUBLIC "${cppDir}")
+"""
+
+  if (!original.contains("target_link_libraries(")) {
+    throw new GradleException(
+      "[SessionReplayReactNative] patchCodegenCMakeLists could not find target_link_libraries in CMakeLists.txt."
+    )
+  }
+
+  def patched = original.replace("target_link_libraries(", insertion + "target_link_libraries(")
+  cmakeFile.write(patched, "UTF-8")
+}
+
 android {
   if (supportsNamespace()) {
     namespace "com.amplitude.sessionreplayreactnative"
@@ -47,13 +111,23 @@ android {
   defaultConfig {
     minSdkVersion getExtOrIntegerDefault("minSdkVersion")
     targetSdkVersion getExtOrIntegerDefault("targetSdkVersion")
+    buildConfigField "boolean", "IS_NEW_ARCHITECTURE_ENABLED", isNewArchitectureEnabled().toString()
+    testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
+  }
+
+  buildFeatures {
+    buildConfig true
   }
 
   buildTypes {
     release {
       minifyEnabled false
     }
+  }
+
+  packagingOptions {
+    pickFirst "lib/**/*.so"
   }
 
   lintOptions {
@@ -82,4 +156,30 @@ dependencies {
   //noinspection GradleDynamicVersion
   implementation "com.facebook.react:react-native:+"
   implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
+
+  androidTestImplementation "androidx.test.ext:junit:1.2.1"
+  androidTestImplementation "androidx.test:runner:1.6.2"
+}
+
+if (isNewArchitectureEnabled()) {
+  react {
+    jsRootDir = file("../src/specs/")
+    libraryName = "SRMaskViewSpec"
+    codegenJavaPackageName = "com.amplitude.sessionreplayreactnative"
+  }
+
+  afterEvaluate {
+    tasks.named("generateCodegenArtifactsFromSchema").configure {
+      doLast {
+        patchComponentDescriptorsHeader()
+        patchCodegenCMakeLists()
+      }
+    }
+
+    tasks.configureEach { task ->
+      if (task.name.contains("configureCMake")) {
+        task.dependsOn("generateCodegenArtifactsFromSchema")
+      }
+    }
+  }
 }

@@ -20,3 +20,5 @@ export const Platform = {
 };
 
 export const requireNativeComponent = jest.fn((_componentName: string) => _componentName);
+
+export const codegenNativeComponent = jest.fn((name: string) => name);

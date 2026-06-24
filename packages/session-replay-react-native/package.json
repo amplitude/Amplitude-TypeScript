@@ -78,6 +78,19 @@
     "react": "*",
     "react-native": "*"
   },
+  "codegenConfig": {
+    "name": "SRMaskViewSpec",
+    "type": "components",
+    "jsSrcsDir": "src/specs",
+    "android": {
+      "javaPackageName": "com.amplitude.sessionreplayreactnative"
+    },
+    "ios": {
+      "componentProvider": {
+        "SRMaskView": "SRMaskView"
+      }
+    }
+  },
   "react-native-builder-bob": {
     "source": "src",
     "output": "lib",
