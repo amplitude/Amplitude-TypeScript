@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Element Selector / Element Path Test</title>
+</head>
+<body>
+    <h1>Element Selector Test</h1>
+
+    <!-- Element with a stable id: legacy walker anchors directly on the id. -->
+    <button id="cta-button" type="button">Click CTA</button>
+
+    <!-- Elements without ids, in a deterministic structure: the legacy walker
+         must disambiguate the second button positionally (:nth-child) and
+         anchor on the nearest ancestor id (#container). -->
+    <div id="container">
+        <section>
+            <button class="btn" type="button">First</button>
+            <button class="btn" type="button">Second</button>
+        </section>
+    </div>
+
+    <div id="status">ready</div>
+
+    <script type="module">
+        import * as amplitude from '@amplitude/analytics-browser';
+
+        window.amplitude = amplitude;
+
+        // Self-contained: fall back to a dummy key so the test does not depend
+        // on a configured environment. Track requests are intercepted by the
+        // Playwright spec, so the key value is irrelevant to the assertions.
+        const apiKey = import.meta.env.VITE_AMPLITUDE_API_KEY || 'element-selector-e2e-key';
+
+        amplitude.init(apiKey, 'test-user', {
+            // Keep the element-selector engine on its default (dormant) config so
+            // getElementPath routes through the byte-identical legacy cssPath.
+            fetchRemoteConfig: false,
+            // Flush eagerly so clicked events reach the network quickly.
+            flushIntervalMillis: 300,
+            flushQueueSize: 1,
+            autocapture: {
+                pageViews: false,
+                sessions: false,
+                formInteractions: false,
+                fileDownloads: false,
+                elementInteractions: true,
+            },
+            logLevel: 0,
+        }).promise.then(() => {
+            document.getElementById('status').textContent = 'initialized';
+        });
+    </script>
+</body>
+</html>

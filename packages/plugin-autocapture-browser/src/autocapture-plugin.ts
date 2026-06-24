@@ -41,6 +41,7 @@ import {
   groupLabeledEventIdsByEventType,
 } from './pageActions/triggers';
 import { DataExtractor } from './data-extractor';
+import { subscribeToElementSelectorConfig } from './element-selector-config';
 import { Observable, Unsubscribable } from '@amplitude/analytics-core';
 import { trackExposure } from './autocapture/track-exposure';
 import { fireViewportContentUpdated, onExposure, ExposureTracker } from './autocapture/track-viewport-content-updated';
@@ -282,6 +283,14 @@ export const autocapturePlugin = (
           recomputePageActionsData(remoteConfig as ElementInteractionsOptions['pageActions']);
         });
       }
+    }
+
+    // Keep the data extractor's selector engine in sync with element-selector
+    // remote config. Dormant by default; flips selector output for every
+    // selector-bearing autocapture event when an org enables the engine.
+    const elementSelectorConfigCleanup = subscribeToElementSelectorConfig(config, dataExtractor);
+    if (elementSelectorConfigCleanup) {
+      subscriptions.push({ unsubscribe: elementSelectorConfigCleanup });
     }
 
     // Create should track event functions the different allowlists
