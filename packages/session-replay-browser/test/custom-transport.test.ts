@@ -332,6 +332,10 @@ describe('custom transport (handleSendEvents)', () => {
       await (trackDestination as any).handleDelegatedFetch(worker, makeMsg());
 
       expect(fetch).toHaveBeenCalledTimes(1);
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockLoggerProvider.warn).toHaveBeenCalledWith(
+        'Delegated session replay fetch (request r1) fell back to built-in fetch because handleSendEvents was missing.',
+      );
       expect(postMessage).toHaveBeenCalledWith(
         expect.objectContaining({ type: 'fetch-response', requestId: 'r1', status: 200 }),
       );

@@ -89,6 +89,7 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
   queue: SessionReplayDestinationContext[] = [];
   private worker?: Worker;
   private sendIdCounter = 0;
+  private delegatedFetchFallbackCount = 0;
   private pendingWorkerRequests = new Map<string, { context: SessionReplayDestinationContext; resolve: () => void }>();
   // Server back-pressure state, fed by the X-Session-Replay-Event-Skipped header on 200s.
   // The server uses this header (instead of 4xx) to signal a deliberate no-retry drop so SDKs
@@ -542,7 +543,7 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
       // drop a delegated send; it is not a supported "run without a transport" path.
       const res = this.handleSendEvents
         ? await this.handleSendEvents({ url, method, headers, body, keepalive })
-        : await fetch(url, { method, headers, body, keepalive });
+        : await this.fetchDelegatedRequestWithoutTransport(url, method, headers, body, keepalive, requestId);
       const status = res.status;
       let skipHeader: string | null = null;
       let responseBody = '';
@@ -569,6 +570,22 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
         error: true,
       });
     }
+  }
+
+  private async fetchDelegatedRequestWithoutTransport(
+    url: string,
+    method: 'POST',
+    headers: Record<string, string>,
+    body: string | Uint8Array,
+    keepalive: boolean,
+    requestId: string,
+  ): Promise<Response> {
+    if (this.delegatedFetchFallbackCount++ % 100 === 0) {
+      this.loggerProvider.warn(
+        `Delegated session replay fetch (request ${requestId}) fell back to built-in fetch because handleSendEvents was missing.`,
+      );
+    }
+    return fetch(url, { method, headers, body, keepalive });
   }
 
   private async sendOnMainThread(
