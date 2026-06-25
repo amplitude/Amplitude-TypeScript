@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [0.1.0-beta.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-react-native@0.1.0-beta.0...@amplitude/session-replay-react-native@0.1.0-beta.1) (2026-06-25)
+
+
+### Features
+
+* **session-replay-react-native:** add New Architecture support ([#1854](https://github.com/amplitude/Amplitude-TypeScript/issues/1854)) ([e49e8b6](https://github.com/amplitude/Amplitude-TypeScript/commit/e49e8b60f06fb99e3a5f15a361237a0f784fc756))
+
+
+
+
+
 # [0.1.0-beta.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-react-native@0.0.1-beta.3...@amplitude/session-replay-react-native@0.1.0-beta.0) (2026-06-06)
 
 
