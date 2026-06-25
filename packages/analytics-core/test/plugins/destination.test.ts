@@ -112,34 +112,77 @@ describe('destination', () => {
       expect(saveEvents).toHaveBeenCalledTimes(1);
     });
 
-    test('should deduplicate events with the same insert_id and delay_id', async () => {
-      const destination = new Destination();
-      destination.config = useDefaultConfig();
+    describe('stale delayed events', () => {
+      let destination: Destination;
+      const delayId = 'delay-123';
       const event1 = {
         event_type: 'before',
         insert_id: '123',
-        delay: { id: 'delay-123' },
+        delay: { id: delayId },
       };
       const event2 = {
         event_type: 'after',
         insert_id: '123',
-        delay: { id: 'delay-123' },
+        delay: { id: delayId },
       };
-      const expectedEvent = {
-        event_type: 'after',
-        insert_id: '123',
-        delay: { id: 'delay-123' },
-      };
-      const staleResult = destination.execute(event1);
-      void destination.execute(event2);
 
-      expect(destination.queue.length).toBe(1);
-      expect(destination.queue[0].event).toEqual(expectedEvent);
+      beforeEach(() => {
+        jest.useFakeTimers();
+        destination = new Destination();
+        destination.config = useDefaultConfig();
+      });
 
-      await expect(staleResult).resolves.toEqual({
-        event: event1,
-        code: 0,
-        message: 'Stale event overwritten',
+      afterEach(() => {
+        jest.useRealTimers();
+      });
+
+      test('should be removed from queue and resolved as "stale" if event is not in flight', async () => {
+        const staleResult = destination.execute(event1);
+        void destination.execute(event2);
+
+        expect(destination.queue.length).toBe(1);
+        expect(destination.queue[0].event).toEqual(event2);
+
+        await expect(staleResult).resolves.toEqual({
+          event: event1,
+          code: 0,
+          message: 'Stale event overwritten',
+        });
+      });
+
+      test('should not return "stale" result if the event is in flight', async () => {
+        let resolveSend!: (value: Response) => void;
+        const sendPromise = new Promise<Response>((resolve) => {
+          resolveSend = resolve;
+        });
+        destination.config = {
+          ...useDefaultConfig(),
+          transportProvider: {
+            send: jest.fn().mockReturnValue(sendPromise),
+          },
+        };
+
+        const staleResult = destination.execute(event1);
+        void destination.flush(true);
+        void destination.execute(event2);
+        // doesn't remove the event from the queue because it is in flight
+        expect(destination.queue).toHaveLength(2);
+
+        resolveSend({
+          status: Status.Success,
+          statusCode: 200,
+          body: {
+            eventsIngested: 1,
+            payloadSizeBytes: 1,
+            serverUploadTime: 1,
+          },
+        });
+
+        await expect(staleResult).resolves.toEqual({
+          event: event1,
+          code: 200,
+          message: SUCCESS_MESSAGE,
+        });
       });
     });
   });

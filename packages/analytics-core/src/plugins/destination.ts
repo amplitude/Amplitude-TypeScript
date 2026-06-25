@@ -100,6 +100,7 @@ export class Destination implements DestinationPlugin {
   flushId: ReturnType<typeof setTimeout> | null = null;
   queue: Context[] = [];
   diagnosticsClient: IDiagnosticsClient | undefined;
+  inFlightDelayedEvents: Record<string, boolean> = {};
 
   constructor(context?: { diagnosticsClient: IDiagnosticsClient }) {
     this.diagnosticsClient = context?.diagnosticsClient;
@@ -143,7 +144,12 @@ export class Destination implements DestinationPlugin {
     }
     /* istanbul ignore next */
     this.queue = this.queue.filter((context) => {
-      if (context.event.insert_id === incomingEvent.insert_id && context.event.delay?.id === incomingEvent.delay?.id) {
+      if (
+        incomingEvent.delay &&
+        context.event.delay?.id === incomingEvent.delay?.id &&
+        context.event.insert_id === incomingEvent.insert_id &&
+        !this.inFlightDelayedEvents[incomingEvent.delay.id]
+      ) {
         context.callback(buildResult(context.event, 0, 'Stale event overwritten'));
         return false;
       }
@@ -260,7 +266,14 @@ export class Destination implements DestinationPlugin {
       for (const contexts of Object.values(delayed)) {
         /* istanbul ignore next */
         const delay = contexts[0]?.event.delay;
-        eventPromises.push(this.send(contexts, useRetry, delay));
+        /* istanbul ignore next */
+        if (!delay) continue;
+        this.inFlightDelayedEvents[delay.id] = true;
+        const delayedEventsSend = this.send(contexts, useRetry, delay);
+        eventPromises.push(delayedEventsSend);
+        delayedEventsSend.finally(() => {
+          delete this.inFlightDelayedEvents[delay.id];
+        });
       }
     } catch (e) {
       // swallow error
