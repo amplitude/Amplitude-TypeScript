@@ -19,3 +19,23 @@ RCT_EXTERN_METHOD(start:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseReject
 RCT_EXTERN_METHOD(stop:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject)
 
 @end
+
+#ifdef RCT_NEW_ARCH_ENABLED
+// Bind the Swift module to the codegen TurboModule interface. A named category is
+// required because a Swift class cannot gain protocol conformance via an anonymous
+// class extension.
+#import <AmpSessionReplaySpec/AmpSessionReplaySpec.h>
+
+@interface AMPNativeSessionReplay (TurboModule) <RCTTurboModule>
+@end
+
+@implementation AMPNativeSessionReplay (TurboModule)
+
+- (std::shared_ptr<facebook::react::TurboModule>)getTurboModule:
+    (const facebook::react::ObjCTurboModule::InitParams &)params
+{
+  return std::make_shared<facebook::react::NativeAmpSessionReplaySpecJSI>(params);
+}
+
+@end
+#endif

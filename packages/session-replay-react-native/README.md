@@ -8,6 +8,19 @@ Amplitude Session Replay for React Native
 npm install @amplitude/session-replay-react-native
 ```
 
+## React Native New Architecture
+
+This SDK supports both the New Architecture (Bridgeless / TurboModules) and the
+legacy architecture. On the New Architecture the native module is exposed as a
+TurboModule; on the legacy architecture it continues to work as a standard bridge
+module. No configuration is required — the correct implementation is selected
+automatically based on how your app is built.
+
+`peerDependencies` are intentionally left unconstrained (`react-native: "*"`) so
+the SDK keeps working on older React Native versions on the legacy architecture.
+The TurboModule code path is compiled only when the New Architecture is enabled,
+which itself requires React Native 0.74 or newer.
+
 ## Usage
 
 ### Session Replay React Native Standalone SDK
