@@ -161,6 +161,26 @@ jobs:
             CODE_SIGNING_ALLOWED=NO
           test -d build/Build/Products/Release-iphonesimulator/app.app
 
+      # Compiles packages/analytics-react-native/ios/Tests via the appTests
+      # target (the example app is just the host/runner). Release so the host
+      # app uses the embedded JS bundle instead of Metro; same derivedDataPath
+      # as the build step so pod compilation is reused.
+      - name: Run native unit tests (XCTest)
+        working-directory: ${{ env.APP_DIR }}
+        env:
+          AMPLITUDE_API_KEY: ${{ secrets.AMPLITUDE_API_KEY }}
+        run: |
+          xcodebuild test \
+            -workspace ios/app.xcworkspace \
+            -scheme app \
+            -configuration Release \
+            -sdk iphonesimulator \
+            -destination "platform=iOS Simulator,name=$SIM_NAME" \
+            -derivedDataPath build \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO
+
       - name: Boot iOS simulator
         run: |
           UDID=$(xcrun simctl list devices "$SIM_NAME" available -j | node -e "
@@ -171,7 +191,6 @@ jobs:
             console.log(match.udid);
           ")
           echo "SIM_UDID=$UDID" >> $GITHUB_ENV
-          xcrun simctl boot "$UDID"
           xcrun simctl bootstatus "$UDID" -b
 
       - name: Install app on simulator

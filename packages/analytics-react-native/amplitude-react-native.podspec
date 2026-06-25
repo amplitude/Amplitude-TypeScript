@@ -19,6 +19,8 @@ Pod::Spec.new do |s|
   s.source = { :git => "https://github.com/amplitude/Amplitude-TypeScript.git", :tag => "#{s.version}" }
 
   s.source_files = "ios/**/*.{h,m,mm,swift}"
+  # XCTest sources compiled by the example app's appTests target, not consumers.
+  s.exclude_files = "ios/Tests/**"
 
   s.dependency "React-Core"
 end
