@@ -184,6 +184,62 @@ describe('destination', () => {
           message: SUCCESS_MESSAGE,
         });
       });
+
+      test('should remove queued stale event when another event with the same delay id is in flight', async () => {
+        let resolveSend!: (value: Response) => void;
+        const sendPromise = new Promise<Response>((resolve) => {
+          resolveSend = resolve;
+        });
+        destination.config = {
+          ...useDefaultConfig(),
+          transportProvider: {
+            send: jest.fn().mockReturnValue(sendPromise),
+          },
+        };
+        const inFlightEvent = {
+          event_type: 'in-flight',
+          insert_id: 'in-flight',
+          delay: { id: delayId },
+        };
+        const queuedEvent = {
+          event_type: 'queued',
+          insert_id: 'queued',
+          delay: { id: delayId },
+        };
+        const replacementEvent = {
+          event_type: 'replacement',
+          insert_id: 'queued',
+          delay: { id: delayId },
+        };
+
+        const inFlightResult = destination.execute(inFlightEvent);
+        void destination.flush(true);
+        const queuedResult = destination.execute(queuedEvent);
+        void destination.execute(replacementEvent);
+
+        expect(destination.queue.map((context) => context.event)).toEqual([inFlightEvent, replacementEvent]);
+        await expect(queuedResult).resolves.toEqual({
+          event: queuedEvent,
+          code: 0,
+          message: 'Stale event overwritten',
+        });
+
+        resolveSend({
+          status: Status.Success,
+          statusCode: 200,
+          body: {
+            eventsIngested: 1,
+            payloadSizeBytes: 1,
+            serverUploadTime: 1,
+          },
+        });
+
+        await expect(inFlightResult).resolves.toEqual({
+          event: inFlightEvent,
+          code: 200,
+          message: SUCCESS_MESSAGE,
+        });
+      });
     });
   });
 

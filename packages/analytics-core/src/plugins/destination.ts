@@ -100,7 +100,7 @@ export class Destination implements DestinationPlugin {
   flushId: ReturnType<typeof setTimeout> | null = null;
   queue: Context[] = [];
   diagnosticsClient: IDiagnosticsClient | undefined;
-  inFlightDelayedEvents: Record<string, boolean> = {};
+  inFlightDelayedEvents: Record<string, Record<string, boolean>> = {};
 
   constructor(context?: { diagnosticsClient: IDiagnosticsClient }) {
     this.diagnosticsClient = context?.diagnosticsClient;
@@ -142,13 +142,17 @@ export class Destination implements DestinationPlugin {
     if (!incomingEvent.delay?.id) {
       return;
     }
+    const incomingDelayId = incomingEvent.delay.id;
+    const incomingInsertId = incomingEvent.insert_id;
+    if (!incomingInsertId) {
+      return;
+    }
     /* istanbul ignore next */
     this.queue = this.queue.filter((context) => {
       if (
-        incomingEvent.delay &&
-        context.event.delay?.id === incomingEvent.delay?.id &&
-        context.event.insert_id === incomingEvent.insert_id &&
-        !this.inFlightDelayedEvents[incomingEvent.delay.id]
+        context.event.delay?.id === incomingDelayId &&
+        context.event.insert_id === incomingInsertId &&
+        !this.inFlightDelayedEvents[incomingDelayId]?.[incomingInsertId]
       ) {
         context.callback(buildResult(context.event, 0, 'Stale event overwritten'));
         return false;
@@ -268,11 +272,23 @@ export class Destination implements DestinationPlugin {
         const delay = contexts[0]?.event.delay;
         /* istanbul ignore next */
         if (!delay) continue;
-        this.inFlightDelayedEvents[delay.id] = true;
+        this.inFlightDelayedEvents[delay.id] = this.inFlightDelayedEvents[delay.id] || {};
+        contexts.forEach((context) => {
+          if (context.event.insert_id) {
+            this.inFlightDelayedEvents[delay.id][context.event.insert_id] = true;
+          }
+        });
         const delayedEventsSend = this.send(contexts, useRetry, delay);
         eventPromises.push(delayedEventsSend);
         delayedEventsSend.finally(() => {
-          delete this.inFlightDelayedEvents[delay.id];
+          contexts.forEach((context) => {
+            if (context.event.insert_id) {
+              delete this.inFlightDelayedEvents[delay.id]?.[context.event.insert_id];
+            }
+          });
+          if (Object.keys(this.inFlightDelayedEvents[delay.id] || {}).length === 0) {
+            delete this.inFlightDelayedEvents[delay.id];
+          }
         });
       }
     } catch (e) {
