@@ -138,6 +138,13 @@ export class Destination implements DestinationPlugin {
     });
   }
 
+  /**
+   * If a stale delayed event is sitting in the queue, and it is not in flight,
+   * remove it and resolve as "stale" with status code 0 to indicate that the
+   * event never left the client.
+   * @param incomingEvent { Event } the new event to check old events against
+   * @returns void
+   */
   private removeStaleDelayedEvents(incomingEvent: Event) {
     if (!incomingEvent.delay?.id) {
       return;
@@ -146,7 +153,8 @@ export class Destination implements DestinationPlugin {
     this.queue = this.queue.filter((context) => {
       if (
         incomingEvent.delay &&
-        context.event.delay?.id === incomingEvent.delay?.id &&
+        context.event.delay &&
+        context.event.delay.id === incomingEvent.delay.id &&
         context.event.insert_id === incomingEvent.insert_id &&
         !this.inFlightDelayedEvents[incomingEvent.delay.id]
       ) {
@@ -263,16 +271,12 @@ export class Destination implements DestinationPlugin {
   getDelayedEventsBatches(delayed: DelayedEventsById, useRetry: boolean) {
     const eventPromises = [];
     try {
-      for (const contexts of Object.values(delayed)) {
-        /* istanbul ignore next */
-        const delay = contexts[0]?.event.delay;
-        /* istanbul ignore next */
-        if (!delay) continue;
-        this.inFlightDelayedEvents[delay.id] = true;
-        const delayedEventsSend = this.send(contexts, useRetry, delay);
+      for (const [delayId, contexts] of Object.entries(delayed)) {
+        this.inFlightDelayedEvents[delayId] = true;
+        const delayedEventsSend = this.send(contexts, useRetry, true);
         eventPromises.push(delayedEventsSend);
         delayedEventsSend.finally(() => {
-          delete this.inFlightDelayedEvents[delay.id];
+          delete this.inFlightDelayedEvents[delayId];
         });
       }
     } catch (e) {
@@ -284,18 +288,23 @@ export class Destination implements DestinationPlugin {
     }, Promise.resolve());
   }
 
-  translatePayloadToDelayedPayload(payload: Payload, list: Context[], delay: Delay): DelayedPayload {
+  translatePayloadToDelayedPayload(payload: Payload, list: Context[]): DelayedPayload {
+    const delayedEvents = payload.events.filter((_event, index) => list[index].event.delay!.timeout);
+    const instantEvents = payload.events.filter((_event, index) => !list[index].event.delay!.timeout);
+    /* istanbul ignore next */
+    const timeout = list.find((context) => context.event.delay!.timeout)?.event.delay!.timeout ?? 0;
+    const delayId = list[0].event.delay!.id;
     const delayedPayload: DelayedPayload = {
       ...payload,
-      id: delay.id,
-      timeout: list.reduce((max, context) => Math.max(max, context.event.delay!.timeout || 0), 0),
-      instant_events: payload.events.filter((_event, index) => !list[index].event.delay!.timeout),
-      events: payload.events.filter((_event, index) => list[index].event.delay!.timeout),
+      id: delayId,
+      timeout,
+      instant_events: instantEvents,
+      events: delayedEvents,
     };
     return delayedPayload;
   }
 
-  async send(list: Context[], useRetry = true, delay?: Delay) {
+  async send(list: Context[], useRetry = true, delay?: boolean) {
     if (!this.config.apiKey) {
       return this.fulfillRequest(list, 400, MISSING_API_KEY_MESSAGE);
     }
@@ -325,7 +334,7 @@ export class Destination implements DestinationPlugin {
       );
       if (delay) {
         serverUrl = `${serverUrl}/delayed`;
-        payload = this.translatePayloadToDelayedPayload(payload, list, delay);
+        payload = this.translatePayloadToDelayedPayload(payload, list);
         // TODO: if /delayed can't handle compression, then turn it off here
       }
       const res = await this.config.transportProvider.send(serverUrl, payload, shouldCompressUploadBody);
