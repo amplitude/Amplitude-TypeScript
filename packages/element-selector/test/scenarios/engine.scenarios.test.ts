@@ -122,6 +122,73 @@ const SCENARIOS: Scenario[] = [
   },
 
   {
+    // Stripped-down Rooms To Go featured-products carousel. Combines the two
+    // failure modes legacy cssPath couldn't handle in one DOM:
+    //   1. A Swiper-generated wrapper id with a long random suffix —
+    //      autogen filter must drop it via the `\d{4,}` rule
+    //   2. swiper-slide-active / swiper-slide-next state classes that move
+    //      between elements as the carousel scrolls — unstable-class filter
+    //      handles those via /^swiper-slide-(active|next|...)$/
+    name: 'rooms-to-go-product-carousel',
+    exercises:
+      "Rooms To Go featured-products carousel (stripped): autogen wrapper id (swiper-wrapper-…41039) gets filtered AND swiper-slide-active/-next state classes don't pollute the descent",
+    html: `
+      <section id="featured-products">
+        <div class="swiper">
+          <div class="swiper-wrapper" id="swiper-wrapper-2e110fa710fd7e41039">
+            <div class="swiper-slide">
+              <button class="btn-cart">Add to cart</button>
+            </div>
+            <div class="swiper-slide swiper-slide-active">
+              <button class="btn-cart">Add to cart</button>
+            </div>
+            <div class="swiper-slide swiper-slide-next">
+              <button class="btn-cart">Add to cart</button>
+            </div>
+          </div>
+        </div>
+      </section>
+    `,
+    targetQuery: '.swiper-slide-next .btn-cart',
+    expectedSelector:
+      'section#featured-products > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(3) > button:nth-of-type(1)',
+  },
+
+  {
+    // Same Swiper structure after the user has scrolled the carousel — the
+    // prev/active/next state classes have shifted onto different slide
+    // elements. This is the *temporal* failure mode for legacy cssPath:
+    // legacy would have emitted
+    //   div#swiper-wrapper-{hash} > div.swiper-slide.swiper-slide-prev
+    // and that selector flips to point at a different slide every time the
+    // user scrolls. v1 emits the same positional selector regardless of
+    // which slide currently holds the state class.
+    name: 'swiper-carousel-prev-slide',
+    exercises:
+      "Swiper carousel post-scroll — prev/active/next state classes shifted onto different slides. v1 stays positionally stable; legacy's `div.swiper-slide.swiper-slide-prev` selector tracks state, not position",
+    html: `
+      <section id="featured-products">
+        <div class="swiper">
+          <div class="swiper-wrapper" id="swiper-wrapper-a9b8c7d6e5f4321b3">
+            <div class="swiper-slide swiper-slide-prev">
+              <button class="btn-cart">Slide 1</button>
+            </div>
+            <div class="swiper-slide swiper-slide-active">
+              <button class="btn-cart">Slide 2</button>
+            </div>
+            <div class="swiper-slide swiper-slide-next">
+              <button class="btn-cart">Slide 3</button>
+            </div>
+          </div>
+        </div>
+      </section>
+    `,
+    targetQuery: '.swiper-slide-prev .btn-cart',
+    expectedSelector:
+      'section#featured-products > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > button:nth-of-type(1)',
+  },
+
+  {
     name: 'mui-button-state-classes',
     exercises: 'MUI focusVisible / selected state classes do not pollute the selector',
     html: `

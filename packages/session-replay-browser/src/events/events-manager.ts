@@ -30,6 +30,7 @@ export const createEventsManager = async <Type extends EventType>({
   config,
   minInterval,
   maxInterval,
+  maxPersistedEventsSize,
   type,
   payloadBatcher,
   storeType,
@@ -40,11 +41,15 @@ export const createEventsManager = async <Type extends EventType>({
   type: Type;
   minInterval?: number;
   maxInterval?: number;
+  maxPersistedEventsSize?: number;
   payloadBatcher?: PayloadBatcher;
   storeType: StoreType;
   trackDestinationWorkerScript?: string;
   shouldSend?: () => boolean;
 }): Promise<EventsManagerWithBeacon<Type>> => {
+  // Configurable per-single-event drop cap (defaults to MAX_SINGLE_EVENT_SIZE); enforced both
+  // here as a pre-send backstop and at capture time in EventCompressor.
+  const maxSingleEventSize = config.maxSingleEventSizeBytes ?? MAX_SINGLE_EVENT_SIZE;
   const trackDestination = new SessionReplayTrackDestination({
     ...config,
     loggerProvider: config.loggerProvider,
@@ -57,6 +62,7 @@ export const createEventsManager = async <Type extends EventType>({
       loggerProvider: config.loggerProvider,
       maxInterval,
       minInterval,
+      maxPersistedEventsSize,
     });
   };
 
@@ -83,6 +89,7 @@ export const createEventsManager = async <Type extends EventType>({
       loggerProvider: config.loggerProvider,
       minInterval,
       maxInterval,
+      maxPersistedEventsSize,
       apiKey: config.apiKey,
       onPersistentFailure: () => {
         void switchToMemoryStore();
@@ -132,7 +139,7 @@ export const createEventsManager = async <Type extends EventType>({
     // storeCurrentSequence/sendStoredEvents which bypass the capture-time check).
     // Compare UTF-8 byte size, not JS char count, to match the server-side limit.
     const sizedEvents = rawEvents.map((e) => ({ event: e, bytes: new Blob([e]).size }));
-    const oversized = sizedEvents.filter((s) => s.bytes > MAX_SINGLE_EVENT_SIZE);
+    const oversized = sizedEvents.filter((s) => s.bytes > maxSingleEventSize);
     if (oversized.length > 0) {
       config.loggerProvider.warn(
         `Dropping ${oversized.length} oversized event(s) from session replay sequence before send. Sizes: ${oversized
@@ -143,9 +150,7 @@ export const createEventsManager = async <Type extends EventType>({
       );
     }
     const events =
-      oversized.length > 0
-        ? sizedEvents.filter((s) => s.bytes <= MAX_SINGLE_EVENT_SIZE).map((s) => s.event)
-        : rawEvents;
+      oversized.length > 0 ? sizedEvents.filter((s) => s.bytes <= maxSingleEventSize).map((s) => s.event) : rawEvents;
     if (events.length === 0) {
       store.cleanUpSessionEventsStore(sessionId, sequenceId).catch((e) => {
         config.loggerProvider.warn('Failed to clean up session replay events store:', e);
@@ -217,6 +222,14 @@ export const createEventsManager = async <Type extends EventType>({
       return;
     }
     config.loggerProvider.log(`Draining ${sequencesToSend.length} stored sequence(s) from previous session.`);
+    // These persisted sequences are about to be enqueued back-to-back. Without
+    // coalescing they flush as N separate POSTs — a request flood on page load. Mark the
+    // imminent flush to merge same-identity batches (the enqueues below are synchronous, so
+    // the whole backlog lands in the queue before the deferred flush consumes the flag). Skip
+    // the single-sequence case where there's nothing to merge.
+    if (sequencesToSend.length > 1) {
+      trackDestination.markCoalesceNextFlush();
+    }
     sequencesToSend.forEach((sequence) => {
       sendEventsList({
         sequenceId: sequence.sequenceId,

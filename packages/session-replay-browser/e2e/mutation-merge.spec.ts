@@ -114,7 +114,17 @@ test.describe('mutation merge', () => {
     await mockRemoteConfig(page, remoteConfigRecording);
     const { getBodies } = await captureTrackRequests(page);
 
-    await page.goto(buildUrl('/session-replay-browser/sr-capture-test.html', { sessionId: TEST_SESSION_ID }));
+    // Opt into eager send so the focus-triggered FullSnapshot (which drains/merges the
+    // pending mutations) is delivered promptly; the SDK eager default is now false (SR-4646).
+    await page.goto(
+      buildUrl('/session-replay-browser/sr-capture-test.html', {
+        sessionId: TEST_SESSION_ID,
+        eagerFullSnapshotSend: true,
+        // drainPendingMutations relies on the focus-triggered FullSnapshot to drain/merge the
+        // pending mutation queue; captureFullSnapshotOnFocus now defaults to false (SR-4646).
+        captureFullSnapshotOnFocus: true,
+      }),
+    );
     await waitForReady(page);
     await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
 
@@ -144,7 +154,14 @@ test.describe('mutation merge', () => {
     await mockRemoteConfig(page, remoteConfigRecording);
     const { getBodies } = await captureTrackRequests(page);
 
-    await page.goto(buildUrl('/session-replay-browser/sr-capture-test.html', { sessionId: TEST_SESSION_ID }));
+    await page.goto(
+      buildUrl('/session-replay-browser/sr-capture-test.html', {
+        sessionId: TEST_SESSION_ID,
+        // drainPendingMutations relies on the focus-triggered FullSnapshot; opt in since
+        // captureFullSnapshotOnFocus now defaults to false (SR-4646).
+        captureFullSnapshotOnFocus: true,
+      }),
+    );
     await waitForReady(page);
     await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
 
@@ -187,8 +204,17 @@ test.describe('mutation merge', () => {
     await mockRemoteConfig(page, remoteConfigRecording);
     const { getBodies } = await captureTrackRequests(page);
 
+    // Opt into eager send so the focus-triggered FullSnapshot is delivered promptly; the SDK
+    // eager default is now false (SR-4646).
     await page.goto(
-      buildUrl('/session-replay-browser/sr-capture-test.html', { sessionId: TEST_SESSION_ID, mergeMutations: true }),
+      buildUrl('/session-replay-browser/sr-capture-test.html', {
+        sessionId: TEST_SESSION_ID,
+        mergeMutations: true,
+        eagerFullSnapshotSend: true,
+        // drainPendingMutations relies on the focus-triggered FullSnapshot to drain/merge the
+        // pending mutation queue; captureFullSnapshotOnFocus now defaults to false (SR-4646).
+        captureFullSnapshotOnFocus: true,
+      }),
     );
     await waitForReady(page);
     await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
@@ -238,7 +264,17 @@ test.describe('mutation merge', () => {
     await mockRemoteConfig(page, remoteConfigRecording);
     const { getBodies } = await captureTrackRequests(page);
 
-    await page.goto(buildUrl('/session-replay-browser/sr-capture-test.html', { sessionId: TEST_SESSION_ID }));
+    // Opt into eager send so the focus-triggered FullSnapshot is delivered promptly; the SDK
+    // eager default is now false (SR-4646).
+    await page.goto(
+      buildUrl('/session-replay-browser/sr-capture-test.html', {
+        sessionId: TEST_SESSION_ID,
+        eagerFullSnapshotSend: true,
+        // drainPendingMutations relies on the focus-triggered FullSnapshot to drain/merge the
+        // pending mutation queue; captureFullSnapshotOnFocus now defaults to false (SR-4646).
+        captureFullSnapshotOnFocus: true,
+      }),
+    );
     await waitForReady(page);
     await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
 

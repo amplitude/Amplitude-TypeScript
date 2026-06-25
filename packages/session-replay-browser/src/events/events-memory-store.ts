@@ -72,7 +72,7 @@ export class InMemoryEventsStore extends BaseEventsStore<number> {
 
     let sequenceReturn: SendingSequencesReturn<number> | undefined;
     // shouldSplitEventsList can return true with an empty buffer when a single
-    // incoming event is larger than MAX_EVENT_LIST_SIZE (700 KB) — the size-constraint
+    // incoming event is larger than MAX_EVENT_LIST_SIZE (2 MB) — the size-constraint
     // branch fires regardless of current length. Don't finalize a zero-event sequence
     // (the SR-4284 root cause); just hold the incoming event in the buffer.
     // shouldSplitEventsList's time-elapsed branch only fires when events.length > 0
