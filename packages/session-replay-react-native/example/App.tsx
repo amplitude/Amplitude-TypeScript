@@ -89,13 +89,24 @@ function HomeScreen({ navigation }: HomeProps): React.JSX.Element {
           enableRemoteConfig: false,
           logLevel: 4,
         });
-        log('init() ok deviceId=' + verificationDeviceId);
-        log('getSessionId() -> ' + String(await getSessionId()));
-        log(
-          'getSessionReplayProperties() -> ' +
-            JSON.stringify(await getSessionReplayProperties()),
-        );
-        setOk(true);
+        const sessionId = await getSessionId();
+        const props = await getSessionReplayProperties();
+        log('init() resolved deviceId=' + verificationDeviceId);
+        log('getSessionId() -> ' + String(sessionId));
+        log('getSessionReplayProperties() -> ' + JSON.stringify(props));
+
+        // init() swallows native setup failures and resolves without throwing;
+        // verify the module is actually live before showing success.
+        if (sessionId === null || Object.keys(props).length === 0) {
+          log(
+            'ERROR: init() resolved but Session Replay is not initialized ' +
+              `(sessionId=${String(sessionId)}, props=${JSON.stringify(props)})`,
+          );
+          setOk(false);
+        } else {
+          log('init() ok');
+          setOk(true);
+        }
       } catch (e) {
         log('ERROR: ' + String(e));
         setOk(false);
