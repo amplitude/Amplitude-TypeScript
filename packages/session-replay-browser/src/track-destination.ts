@@ -688,9 +688,18 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
       // 'fetch-request' when useCustomTransport (= !!this.handleSendEvents) was true. The
       // built-in fetch is a defensive fallback for the impossible case so we never accidentally
       // drop a delegated send; it is not a supported "run without a transport" path.
-      const res = this.handleSendEvents
-        ? await this.handleSendEvents({ url, method, headers, body, keepalive })
-        : await fetch(url, { method, headers, body, keepalive });
+      let res: Response;
+      if (this.handleSendEvents) {
+        res = await this.handleSendEvents({ url, method, headers, body, keepalive });
+      } else {
+        // Defensive only: the worker emits 'fetch-request' solely when useCustomTransport is set,
+        // so this branch shouldn't be reachable. Warn so a regression that delegates without a
+        // transport is diagnosable rather than silently routing to the built-in fetch.
+        this.loggerProvider.warn(
+          'Delegated session replay fetch received without a custom transport configured; falling back to built-in fetch.',
+        );
+        res = await fetch(url, { method, headers, body, keepalive });
+      }
       const status = res.status;
       let skipHeader: string | null = null;
       let responseBody = '';

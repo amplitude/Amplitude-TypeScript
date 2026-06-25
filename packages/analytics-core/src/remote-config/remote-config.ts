@@ -386,8 +386,13 @@ export class RemoteConfigClient implements IRemoteConfigClient {
               signal: abortController.signal,
             });
 
+        // Treat a 2xx status as success even when `res.ok` is absent. A custom transport may return
+        // a Response-like object that sets `status`/`text()`/`json()` but not `ok` (e.g. an axios
+        // adapter); falling back to the status range keeps the config path consistent with the
+        // event-upload path while still honoring native fetch's `ok`.
+        const isSuccess = res.ok || (res.status >= 200 && res.status < 300);
         // Handle unsuccessful fetch
-        if (!res.ok) {
+        if (!isSuccess) {
           const body = await res.text();
           this.logger.debug(`Remote config client fetch with retry time ${retries} failed with ${res.status}: ${body}`);
 
