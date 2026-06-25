@@ -1,0 +1,446 @@
+/* @amplitude/element-selector testbed — minimal styling.
+ *
+ * Goals: legible, single-file, light + dark friendly (via prefers-color-scheme),
+ * no external dependencies, no framework. The visual style is intentionally
+ * understated so it doesn't distract from the engine output the page is built
+ * to demo.
+ */
+
+:root {
+  color-scheme: light dark;
+  --bg: #ffffff;
+  --bg-elevated: #f6f7f9;
+  --bg-sandbox: #fafbfc;
+  --text: #1a1d21;
+  --text-muted: #5b6168;
+  --border: #e1e4e8;
+  --accent: #3052ff;
+  --accent-soft: #e6edff;
+  --good: #1f8a3a;
+  --bad: #c53030;
+  --warn: #b87800;
+  --code-bg: #f1f3f5;
+  --target-outline: #ff8a3d;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f1115;
+    --bg-elevated: #1a1d22;
+    --bg-sandbox: #14171c;
+    --text: #e6e8ec;
+    --text-muted: #9ba1ab;
+    --border: #2a2f37;
+    --accent: #6b8aff;
+    --accent-soft: #1d2a4a;
+    --good: #4ade80;
+    --bad: #f87171;
+    --warn: #fbbf24;
+    --code-bg: #1a1d22;
+    --target-outline: #ff8a3d;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen-Sans, Ubuntu, Cantarell, 'Helvetica Neue', sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+code {
+  background: var(--code-bg);
+  padding: 0.1em 0.35em;
+  border-radius: 3px;
+  font-family: 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
+  font-size: 0.9em;
+}
+
+h1, h2, h3 {
+  margin: 0 0 0.5em 0;
+  font-weight: 600;
+}
+
+h1 { font-size: 1.5rem; }
+h2 { font-size: 1.15rem; margin-top: 1.5em; }
+h3 { font-size: 1rem; }
+
+.page-header {
+  padding: 1.5rem 2rem 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.page-header-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75em;
+  flex-wrap: wrap;
+  margin-bottom: 0.25em;
+}
+
+.page-header-row h1 {
+  margin: 0;
+}
+
+.subtitle {
+  margin: 0;
+  color: var(--text-muted);
+}
+
+/* ---------- Mode pill ---------- */
+
+.mode-pill {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  padding: 0.25em 0.65em;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+  cursor: help;
+}
+
+.mode-pill.mode-on {
+  color: var(--good);
+  background: color-mix(in srgb, var(--good) 10%, transparent);
+}
+
+.mode-pill.mode-off {
+  color: var(--warn);
+  background: color-mix(in srgb, var(--warn) 12%, transparent);
+}
+
+.section-spacer { margin-top: 2.5em; }
+
+.hint {
+  color: var(--text-muted);
+  margin: 0.25em 0 1em 0;
+}
+
+/* ---------- Layout ---------- */
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  gap: 1.5rem;
+  padding: 1.5rem 2rem;
+}
+
+@media (max-width: 1100px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.column {
+  min-width: 0;
+}
+
+/* ---------- Scenarios grid ---------- */
+
+.scenarios-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  gap: 1rem;
+}
+
+.scenario-card {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 1rem;
+}
+
+.scenario-card header h3 {
+  margin: 0 0 0.25em 0;
+  font-family: 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 0.9rem;
+}
+
+.scenario-card header p {
+  margin: 0 0 0.75em 0;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.sandbox {
+  background: var(--bg-sandbox);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.75em;
+  margin-bottom: 0.75em;
+  cursor: crosshair;
+  overflow: auto;
+}
+
+.sandbox * {
+  cursor: crosshair;
+}
+
+.canonical-target {
+  outline: 2px dashed var(--target-outline);
+  outline-offset: 2px;
+}
+
+.scenario-emit {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.35em 0.75em;
+  margin: 0;
+  font-size: 0.85em;
+}
+
+.scenario-emit dt {
+  color: var(--text-muted);
+  font-weight: 500;
+  padding-top: 0.15em; /* align with the code's first line */
+}
+
+.scenario-emit dd {
+  margin: 0;
+  word-break: break-all;
+}
+
+.scenario-emit code {
+  font-size: 0.85em;
+  display: inline-block;
+  padding: 0.15em 0.45em;
+  border-radius: 3px;
+}
+
+/* Visually distinguish the two emissions so the diff is obvious at a glance.
+ * The v1 row uses the accent-soft background; the legacy row uses a
+ * muted neutral so it's clearly the "other" path. */
+.scenario-emit .emit-v1 {
+  background: var(--accent-soft);
+  color: var(--text);
+}
+
+.scenario-emit .emit-legacy {
+  background: var(--code-bg);
+  color: var(--text-muted);
+}
+
+/* ---------- Cross-session aggregation ---------- */
+
+.aggregation-toolbar {
+  margin-bottom: 1rem;
+}
+
+.aggregation {
+  margin-top: 0.75em;
+  padding-top: 0.75em;
+  border-top: 1px dashed var(--border);
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.5em 0.75em;
+  align-items: start;
+}
+
+.aggregation-run {
+  grid-column: 1;
+}
+
+.aggregation-result {
+  grid-column: 2;
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.25em 0.5em;
+  margin: 0;
+  font-size: 0.85em;
+}
+
+.aggregation-result dt {
+  color: var(--text-muted);
+}
+
+.aggregation-result dd {
+  margin: 0;
+  font-family: 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 0.85em;
+}
+
+.agg-v1.ok, .agg-legacy.ok {
+  color: var(--good);
+  font-weight: 600;
+}
+
+.agg-v1.bad, .agg-legacy.bad {
+  color: var(--bad);
+  font-weight: 600;
+}
+
+/* ---------- Playground ---------- */
+
+.playground {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5em;
+}
+
+.playground textarea,
+#config-editor {
+  width: 100%;
+  font-family: 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 0.85rem;
+  background: var(--bg-sandbox);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.5em;
+  resize: vertical;
+}
+
+.playground label {
+  font-weight: 500;
+}
+
+button {
+  background: var(--accent);
+  color: white;
+  border: none;
+  padding: 0.5em 1em;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+button:hover {
+  filter: brightness(1.05);
+}
+
+button.secondary {
+  background: var(--bg-sandbox);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+/* ---------- Side panels ---------- */
+
+/* The side column is a grid cell that stretches to the full row height
+ * (the row's height is driven by the long left column). The sticky
+ * container inside lives within that cell and stays glued to the top of
+ * the viewport while the page scrolls — there's only "room" for sticky to
+ * work because the cell is much taller than the panels themselves.
+ *
+ * Critical detail: do NOT set `align-self: start` here. That makes the
+ * grid cell shrink to fit `.side-sticky`'s natural height, which removes
+ * the scroll travel sticky needs. The cell must be allowed to stretch. */
+.side-column {
+  position: relative; /* Establishes the containing block for the sticky child. */
+  height: 100%; /* Belt-and-braces — guarantees the column fills the row even if a parent ever loses its stretch default. */
+}
+
+.side-sticky {
+  position: sticky;
+  top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  max-height: calc(100vh - 2rem);
+  overflow-y: auto;
+}
+
+@media (max-width: 1100px) {
+  /* On narrow screens the columns stack vertically and sticky stops making
+   * sense — the side panel ends up below everything else. Drop the sticky
+   * behavior and let it scroll inline. */
+  .side-sticky {
+    position: static;
+    max-height: none;
+    overflow-y: visible;
+  }
+}
+
+.panel {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 1rem;
+}
+
+.panel h3 {
+  margin-top: 0;
+}
+
+.kv {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.4em 0.75em;
+  margin: 0;
+}
+
+.kv dt {
+  color: var(--text-muted);
+}
+
+.kv dd {
+  margin: 0;
+  word-break: break-all;
+}
+
+.kv dd.ok { color: var(--good); }
+.kv dd.bad { color: var(--bad); }
+
+.config-actions {
+  display: flex;
+  gap: 0.5em;
+  margin-top: 0.5em;
+}
+
+.error-line {
+  margin: 0.5em 0 0 0;
+  color: var(--bad);
+  font-size: 0.85rem;
+}
+
+/* ---------- Logger panel ---------- */
+
+.logger-stream {
+  list-style: none;
+  margin: 0 0 0.5em 0;
+  padding: 0;
+  /* The outer .side-sticky already scrolls; cap this stream short so it
+   * doesn't dominate the sticky viewport. */
+  max-height: 220px;
+  overflow-y: auto;
+  background: var(--bg-sandbox);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-family: 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 0.8rem;
+}
+
+.log-line {
+  display: grid;
+  grid-template-columns: max-content max-content 1fr;
+  gap: 0.5em;
+  padding: 0.3em 0.5em;
+  border-bottom: 1px solid var(--border);
+  word-break: break-word;
+}
+
+.log-line:last-child { border-bottom: none; }
+.log-line .log-time { color: var(--text-muted); }
+.log-line .log-level { font-weight: 600; }
+.log-warn .log-level { color: var(--warn); }
+.log-error .log-level { color: var(--bad); }
+.log-debug .log-level { color: var(--text-muted); }
+
+/* ---------- Footer ---------- */
+
+.page-footer {
+  padding: 1rem 2rem;
+  border-top: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.page-footer p { margin: 0; }

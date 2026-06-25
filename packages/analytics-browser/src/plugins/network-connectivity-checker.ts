@@ -42,6 +42,9 @@ export const networkConnectivityCheckerPlugin = (): BeforePlugin => {
     config.offline = !navigator.onLine;
 
     addNetworkListener('online', () => {
+      if (config.offline === false) {
+        return;
+      }
       config.loggerProvider.debug('Network connectivity changed to online.');
       config.offline = false;
       // Flush immediately will cause ERR_NETWORK_CHANGED

@@ -78,6 +78,14 @@
     "react": "*",
     "react-native": "*"
   },
+  "codegenConfig": {
+    "name": "AmpSessionReplaySpec",
+    "type": "modules",
+    "jsSrcsDir": "src/specs",
+    "android": {
+      "javaPackageName": "com.amplitude.sessionreplayreactnative"
+    }
+  },
   "react-native-builder-bob": {
     "source": "src",
     "output": "lib",

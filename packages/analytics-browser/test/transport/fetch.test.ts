@@ -288,5 +288,21 @@ describe('fetch transport', () => {
       delete (Blob.prototype as unknown as { stream?: () => ReadableStream }).stream;
       delete (global as { CompressionStream?: unknown }).CompressionStream;
     });
+
+    test('should pass referrerPolicy to fetch', async () => {
+      const transport = new FetchTransport({}, true, 'no-referrer');
+      const url = 'http://localhost:3000';
+      const payload = {
+        api_key: '',
+        events: [{ event_type: 'test' }],
+      };
+      const fetchSpy = jest.spyOn(window, 'fetch').mockReturnValueOnce(Promise.resolve(new Response('{}')));
+
+      await transport.send(url, payload, false);
+
+      const [, options] = fetchSpy.mock.calls[0];
+
+      expect(options?.referrerPolicy).toBe('no-referrer');
+    });
   });
 });

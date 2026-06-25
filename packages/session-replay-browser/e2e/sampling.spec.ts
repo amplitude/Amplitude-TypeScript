@@ -38,7 +38,14 @@ test.describe('sampling hash algorithm header', () => {
       { timeout: 10_000 },
     );
 
-    await page.goto(buildUrl('/session-replay-browser/sr-capture-test.html', { sessionId: SESSION_ID_IN_20_SAMPLE }));
+    // Opt into eager send so the initial snapshot POSTs promptly (SDK default is now false,
+    // SR-4646); this test asserts on the sampling header of that immediate request.
+    await page.goto(
+      buildUrl('/session-replay-browser/sr-capture-test.html', {
+        sessionId: SESSION_ID_IN_20_SAMPLE,
+        eagerFullSnapshotSend: true,
+      }),
+    );
     await waitForReady(page);
 
     const request = await requestPromise;

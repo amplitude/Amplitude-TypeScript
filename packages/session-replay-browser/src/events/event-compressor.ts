@@ -160,7 +160,7 @@ export class EventCompressor {
     // UTF-8 byte size, not JS char count: a 9 M-char string of CJK/emoji can be 18–27 MB
     // on the wire and would otherwise slip past a char-count guard.
     const eventSizeBytes = new Blob([compressedEvent]).size;
-    if (eventSizeBytes > MAX_SINGLE_EVENT_SIZE) {
+    if (eventSizeBytes > (this.config.maxSingleEventSizeBytes ?? MAX_SINGLE_EVENT_SIZE)) {
       this.config.loggerProvider.warn(
         `Session replay event dropped: serialized size ${Math.round(
           eventSizeBytes / 1024,
@@ -226,9 +226,10 @@ export class EventCompressor {
 
   // Merge consecutive mutation tasks with the same sessionId before processing,
   // reducing the number of events serialized and stored without changing replay semantics.
-  // Only runs when performanceConfig.mergeMutations is explicitly enabled.
+  // Enabled by default (validated amp-on-amp perf config, SR-4646); only skipped when
+  // performanceConfig.mergeMutations is explicitly set to false.
   private mergeMutationTasks(tasks: TaskQueue[]): TaskQueue[] {
-    if (!this.config.performanceConfig?.mergeMutations) return tasks;
+    if (this.config.performanceConfig?.mergeMutations === false) return tasks;
     if (tasks.length <= 1) return tasks;
 
     const result: TaskQueue[] = [];

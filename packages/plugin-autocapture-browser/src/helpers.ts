@@ -38,7 +38,6 @@ export const isUrlAllowed = (autocaptureOptions: ElementInteractionsOptions): bo
 export const createShouldTrackEvent = (
   autocaptureOptions: ElementInteractionsOptions,
   allowlist: string[], // this can be any type of css selector allow list
-  isAlwaysCaptureCursorPointer = false,
 ): shouldTrackEvent => {
   return (actionType: ActionType, element: Element) => {
     const { shouldTrackEventResolver } = autocaptureOptions;
@@ -69,12 +68,6 @@ export const createShouldTrackEvent = (
       }
     }
 
-    const isCursorPointer = isElementPointerCursor(element, actionType);
-
-    if (isAlwaysCaptureCursorPointer && isCursorPointer) {
-      return true;
-    }
-
     /* istanbul ignore if */
     if (allowlist) {
       const hasMatchAnyAllowedSelector = allowlist.some((selector) => !!element?.matches?.(selector));
@@ -88,14 +81,8 @@ export const createShouldTrackEvent = (
       case 'select':
       case 'textarea':
         return actionType === 'change' || actionType === 'click';
-      default: {
-        /* istanbul ignore next */
-        /* istanbul ignore next */
-        if (isCursorPointer) {
-          return true;
-        }
+      default:
         return actionType === 'click';
-      }
     }
   };
 };
