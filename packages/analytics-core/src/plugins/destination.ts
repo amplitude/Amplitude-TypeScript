@@ -41,6 +41,7 @@ export interface Context {
   callback: EventCallback;
   timeout: number;
   delay?: Delay;
+  inFlight?: boolean;
 }
 
 type DelayedEventsById = Record<string, Context[]>;
@@ -143,7 +144,11 @@ export class Destination implements DestinationPlugin {
     }
     /* istanbul ignore next */
     this.queue = this.queue.filter((context) => {
-      if (context.event.insert_id === incomingEvent.insert_id && context.event.delay?.id === incomingEvent.delay?.id) {
+      if (
+        !context.inFlight &&
+        context.event.insert_id === incomingEvent.insert_id &&
+        context.event.delay?.id === incomingEvent.delay?.id
+      ) {
         context.callback(buildResult(context.event, 0, 'Stale event overwritten'));
         return false;
       }
@@ -224,10 +229,12 @@ export class Destination implements DestinationPlugin {
       if (context.timeout !== 0) {
         later.push(context);
       } else if (context.event.delay?.id) {
+        context.inFlight = true;
         const delay = context.event.delay;
         delayed[delay.id] = delayed[delay.id] || [];
         delayed[delay.id].push(context);
       } else {
+        context.inFlight = true;
         list.push(context);
       }
     });
@@ -284,6 +291,7 @@ export class Destination implements DestinationPlugin {
 
   async send(list: Context[], useRetry = true, delay?: Delay) {
     if (!this.config.apiKey) {
+      this.markEventsCompleted(list);
       return this.fulfillRequest(list, 400, MISSING_API_KEY_MESSAGE);
     }
 
@@ -317,10 +325,12 @@ export class Destination implements DestinationPlugin {
       }
       const res = await this.config.transportProvider.send(serverUrl, payload, shouldCompressUploadBody);
       if (res === null) {
+        this.markEventsCompleted(list);
         this.fulfillRequest(list, 0, UNEXPECTED_ERROR_MESSAGE);
         return;
       }
       if (!useRetry) {
+        this.markEventsCompleted(list);
         if ('body' in res) {
           this.fulfillRequest(list, res.statusCode, `${res.status}: ${getResponseBodyString(res)}`);
         } else {
@@ -344,6 +354,8 @@ export class Destination implements DestinationPlugin {
   }
 
   handleResponse(res: Response, list: Context[]) {
+    this.markEventsCompleted(list);
+
     if (!isSuccessStatusCode(res.statusCode)) {
       this.diagnosticsClient?.recordEvent('analytics.events.unsuccessful', {
         events: list.map((context) => context.event.event_type),
@@ -473,6 +485,12 @@ export class Destination implements DestinationPlugin {
     this.scheduleEvents(tryable);
   }
 
+  private markEventsCompleted(list: Context[]) {
+    list.forEach((context) => {
+      context.inFlight = false;
+    });
+  }
+
   fulfillRequest(list: Context[], code: number, message: string) {
     // Record diagnostics for dropped events (non-success status codes)
     if (!isSuccessStatusCode(code)) {
@@ -510,9 +528,8 @@ export class Destination implements DestinationPlugin {
    * This is called on response comes back for a request
    */
   removeEvents(eventsToRemove: Context[]) {
-    this.queue = this.queue.filter(
-      (queuedContext) => !eventsToRemove.some((context) => context.event.insert_id === queuedContext.event.insert_id),
-    );
+    const eventsToRemoveSet = new Set(eventsToRemove);
+    this.queue = this.queue.filter((queuedContext) => !eventsToRemoveSet.has(queuedContext));
 
     this.saveEvents();
   }

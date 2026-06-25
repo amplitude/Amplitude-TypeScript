@@ -4,7 +4,7 @@ import { ILogger } from '../../src/logger';
 import { Payload } from '../../src/types/payload';
 import { Status } from '../../src/types/status';
 import { Response } from '../../src/types/response';
-import { API_KEY, useDefaultConfig } from '../helpers/default';
+import { API_KEY, promiseState, useDefaultConfig } from '../helpers/default';
 import {
   INVALID_API_KEY,
   MISSING_API_KEY_MESSAGE,
@@ -141,6 +141,65 @@ describe('destination', () => {
         code: 0,
         message: 'Stale event overwritten',
       });
+    });
+
+    test('should not overwrite delayed events that are already in-flight', async () => {
+      const destination = new Destination();
+      let resolveSend!: (response: Response) => void;
+      const transportProvider = {
+        send: jest.fn(
+          () =>
+            new Promise<Response>((resolve) => {
+              resolveSend = resolve;
+            }),
+        ),
+      };
+      await destination.setup({
+        ...useDefaultConfig(),
+        transportProvider,
+        apiKey: API_KEY,
+        serverUrl: AMPLITUDE_SERVER_URL,
+      });
+      jest.spyOn(destination, 'schedule').mockImplementation(jest.fn);
+
+      const event1 = {
+        event_type: 'before',
+        insert_id: '123',
+        delay: { id: 'delay-123' },
+      };
+      const event2 = {
+        event_type: 'after',
+        insert_id: '123',
+        delay: { id: 'delay-123' },
+      };
+      const successResponse: Response = {
+        status: Status.Success,
+        statusCode: 200,
+        body: {
+          eventsIngested: 1,
+          payloadSizeBytes: 1,
+          serverUploadTime: 1,
+        },
+      };
+
+      const inFlightResult = destination.execute(event1);
+      const flushPromise = destination.flush(true);
+      const replacementResult = destination.execute(event2);
+
+      expect(await promiseState(inFlightResult)).toBe('pending');
+      expect(destination.queue.map((context) => context.event)).toEqual([event1, event2]);
+
+      await Promise.resolve();
+      resolveSend(successResponse);
+      await flushPromise;
+
+      await expect(inFlightResult).resolves.toEqual({
+        event: event1,
+        code: 200,
+        message: SUCCESS_MESSAGE,
+      });
+      expect(destination.queue.map((context) => context.event)).toEqual([event2]);
+      expect(await promiseState(replacementResult)).toBe('pending');
     });
   });
 
