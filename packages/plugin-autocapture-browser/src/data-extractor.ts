@@ -24,14 +24,53 @@ import type { BaseTimestampedEvent, ElementBasedTimestampedEvent, TimestampedEve
 import { getAncestors, getElementProperties } from './hierarchy';
 import { getDataSource } from './pageActions/actions';
 import { Hierarchy } from './typings/autocapture';
-import { cssPath } from './libs/element-path';
+import {
+  createSelectorEngine,
+  resolveSelectorConfig,
+  type SelectorEngine,
+  type ElementSelectorRemoteConfig,
+  type ElementSelectorLogger,
+} from '@amplitude/element-selector';
+
+/**
+ * Module-level shared selector engine singleton. Both autocapture-plugin and
+ * frustration-plugin create separate DataExtractor instances, and each
+ * subscribes to remote config independently. By sharing a single engine across
+ * all extractors, whichever subscription fires first updates the engine for
+ * everyone, eliminating the window where one plugin could see updated config
+ * while the other still uses defaults.
+ */
+let sharedSelectorEngine: SelectorEngine | undefined;
+
+function getSharedSelectorEngine(): SelectorEngine {
+  if (!sharedSelectorEngine) {
+    sharedSelectorEngine = createSelectorEngine(resolveSelectorConfig());
+  }
+  return sharedSelectorEngine;
+}
 
 export class DataExtractor {
   private readonly additionalMaskTextPatterns: RegExp[];
   diagnosticsClient?: IDiagnosticsClient;
 
+  /**
+   * Shared element-selector engine. This is the single place autocapture turns
+   * an element into a selector string ({@link getElementPath}), so it's the
+   * seam where the legacy `cssPath` walker is swapped for the configurable
+   * engine. It ships dormant: with the default config (`enabled: false`) the
+   * engine routes through the byte-identical legacy walker, so behavior is
+   * unchanged until remote config flips an org onto the new algorithm via
+   * {@link updateSelectorConfig}.
+   *
+   * The engine is shared across all DataExtractor instances to ensure
+   * consistent selector output when both autocapture-plugin and
+   * frustration-plugin are active.
+   */
+  private readonly selectorEngine: SelectorEngine;
+
   constructor(options: ElementInteractionsOptions, context?: { diagnosticsClient: IDiagnosticsClient }) {
     this.diagnosticsClient = context?.diagnosticsClient;
+    this.selectorEngine = getSharedSelectorEngine();
 
     const rawPatterns = options.maskTextRegex ?? [];
 
@@ -134,12 +173,23 @@ export class DataExtractor {
     }
     const startTime = performance.now();
 
-    const elementPath = cssPath(element);
+    const elementPath = this.selectorEngine.generate(element);
 
     const endTime = performance.now();
     this.diagnosticsClient?.recordHistogram('autocapturePlugin.getElementPath', endTime - startTime);
 
     return elementPath;
+  };
+
+  /**
+   * Apply an element-selector remote-config payload to the engine. Called from
+   * plugin setup when remote config is delivered. Resolving an absent/empty
+   * payload yields the documented defaults (engine stays dormant on legacy
+   * `cssPath`); flipping `enabled: true` switches {@link getElementPath} onto
+   * the new strategy-based selector output.
+   */
+  updateSelectorConfig = (remote?: ElementSelectorRemoteConfig | null, logger?: ElementSelectorLogger): void => {
+    this.selectorEngine.updateConfig(resolveSelectorConfig(remote ?? undefined, logger));
   };
 
   // Returns the Amplitude event properties for the given element.

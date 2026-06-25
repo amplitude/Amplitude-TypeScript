@@ -161,6 +161,26 @@ jobs:
             CODE_SIGNING_ALLOWED=NO
           test -d build/Build/Products/Release-iphonesimulator/app.app
 
+      # Compiles packages/analytics-react-native/ios/Tests via the appTests
+      # target (the example app is just the host/runner). Release so the host
+      # app uses the embedded JS bundle instead of Metro; same derivedDataPath
+      # as the build step so pod compilation is reused.
+      - name: Run native unit tests (XCTest)
+        working-directory: ${{ env.APP_DIR }}
+        env:
+          AMPLITUDE_API_KEY: ${{ secrets.AMPLITUDE_API_KEY }}
+        run: |
+          xcodebuild test \
+            -workspace ios/app.xcworkspace \
+            -scheme app \
+            -configuration Release \
+            -sdk iphonesimulator \
+            -destination "platform=iOS Simulator,name=$SIM_NAME" \
+            -derivedDataPath build \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO
+
       - name: Boot iOS simulator
         run: |
           UDID=$(xcrun simctl list devices "$SIM_NAME" available -j | node -e "
@@ -171,7 +191,6 @@ jobs:
             console.log(match.udid);
           ")
           echo "SIM_UDID=$UDID" >> $GITHUB_ENV
-          xcrun simctl boot "$UDID"
           xcrun simctl bootstatus "$UDID" -b
 
       - name: Install app on simulator
@@ -191,3 +210,65 @@ jobs:
         if: failure()
         run: |
           xcrun simctl spawn "$SIM_UDID" log show --last 5m --predicate 'process == "app"' || true
+
+  android-unit:
+    name: Android Robolectric Unit Tests
+    needs: check-affected
+    if: needs.check-affected.outputs.unaffected == 'false' || github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    env:
+      # The library has no standalone Gradle project — it builds only as an autolinked
+      # subproject of a host app — so we run its unit tests from the bare example app.
+      APP_ANDROID_DIR: examples/react-native/app/android
+
+    steps:
+      - name: Check out git repository
+        uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3
+
+      - name: Setup JDK 17
+        uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9 # v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+
+      - name: Install project dependencies
+        # Installs the example app's RN autolinking Gradle deps (@react-native-community/cli,
+        # @react-native-community/cli-platform-android, @react-native/gradle-plugin) that
+        # android/settings.gradle resolves via its relative node_modules paths.
+        run: pnpm install --frozen-lockfile
+
+      - name: Cache Gradle
+        uses: actions/cache@d4323d4df104b026a6aa633fdb11d772146be0bf # v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ runner.os }}-${{ hashFiles('examples/react-native/app/android/**/*.gradle*', 'examples/react-native/app/android/gradle/wrapper/gradle-wrapper.properties', 'packages/analytics-react-native/android/**/*.gradle*') }}
+          restore-keys: |
+            gradle-${{ runner.os }}-
+
+      - name: Run Robolectric unit tests
+        working-directory: ${{ env.APP_ANDROID_DIR }}
+        # Relies on the Android SDK preinstalled on ubuntu-latest (ANDROID_HOME set, platform
+        # 34 + build-tools 34.0.0 present, licenses accepted). newArchEnabled=false keeps this
+        # a pure unit-test run (no codegen/NDK), so the :app native build is never required.
+        run: ./gradlew :amplitude_analytics-react-native:testDebugUnitTest -PnewArchEnabled=false --console=plain
+
+      - name: Upload test report on failure
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: android-unit-test-report
+          path: packages/analytics-react-native/android/build/reports/tests/testDebugUnitTest
+          if-no-files-found: ignore

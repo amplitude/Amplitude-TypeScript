@@ -8,6 +8,8 @@
 import React from 'react';
 import {
   Button,
+  NativeEventEmitter,
+  NativeModules,
   SafeAreaView,
   ScrollView,
   StatusBar,
@@ -26,6 +28,12 @@ import {
 } from '@amplitude/analytics-react-native';
 
 import {Colors, Header} from 'react-native/Libraries/NewAppScreen';
+
+// Mirrors CONNECTIVITY_EVENT_NAME from the SDK's network-connectivity-checker
+// plugin (not re-exported from the package root). The native
+// AmplitudeReactNativeConnectivity module emits this event with an
+// {isConnected} body whenever connectivity changes.
+const CONNECTIVITY_EVENT_NAME = 'AmplitudeNetworkConnectivityChanged';
 
 // Regression guard for SDKRN-8: this example app deliberately exercises the
 // SDK's "opt out of AsyncStorage" path. AsyncStorage is excluded from native
@@ -80,6 +88,7 @@ class InMemoryStorage<T> implements Types.Storage<T> {
 init(process.env.AMPLITUDE_API_KEY || 'YOUR_API_KEY', undefined, {
   storageProvider: new InMemoryStorage(),
   cookieStorage: new InMemoryStorage(),
+  logLevel: Types.LogLevel.Debug,
 });
 
 function App(): React.JSX.Element {
@@ -96,6 +105,29 @@ function App(): React.JSX.Element {
       text2: message,
     });
   };
+
+  // Surface native connectivity changes as a toast — a small demo of the SDK's
+  // offline detection. The native AmplitudeReactNativeConnectivity module emits
+  // CONNECTIVITY_EVENT_NAME with an {isConnected} body on every change.
+  React.useEffect(() => {
+    const nativeModule = NativeModules.AmplitudeReactNativeConnectivity;
+    if (!nativeModule) {
+      return;
+    }
+    const emitter = new NativeEventEmitter(nativeModule);
+    const subscription = emitter.addListener(
+      CONNECTIVITY_EVENT_NAME,
+      (event: {isConnected: boolean}) => {
+        Toast.show({
+          type: event.isConnected ? 'info' : 'error',
+          text1: 'Network Connectivity',
+          text2: event.isConnected ? 'Online' : 'Offline',
+          visibilityTime: 4000,
+        });
+      },
+    );
+    return () => subscription.remove();
+  }, []);
 
   // Show a toast immediately on tap so the Maestro regression guard can
   // verify the SDK call didn't crash without depending on network timing

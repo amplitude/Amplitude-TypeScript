@@ -3,6 +3,25 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.28.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.28.0...@amplitude/plugin-autocapture-browser@1.28.1) (2026-06-25)
+
+**Note:** Version bump only for package @amplitude/plugin-autocapture-browser
+
+
+
+
+
+# [1.28.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.27.4...@amplitude/plugin-autocapture-browser@1.28.0) (2026-06-24)
+
+
+### Features
+
+* **autocapture:** route Element Path through the element-selector engine ([#1842](https://github.com/amplitude/Amplitude-TypeScript/issues/1842)) ([f7b6f51](https://github.com/amplitude/Amplitude-TypeScript/commit/f7b6f51813cccb5a67228746df982b2d69ba09ab))
+
+
+
+
+
 ## [1.27.4](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.27.3...@amplitude/plugin-autocapture-browser@1.27.4) (2026-06-11)
 
 **Note:** Version bump only for package @amplitude/plugin-autocapture-browser

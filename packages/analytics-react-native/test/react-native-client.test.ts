@@ -11,6 +11,7 @@ import {
 import { isWeb } from '../src/utils/platform';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Config from '../src/config';
+import * as NetworkChecker from '../src/plugins/network-connectivity-checker';
 
 describe('react-native-client', () => {
   const API_KEY = 'API_KEY';
@@ -220,6 +221,42 @@ describe('react-native-client', () => {
       });
     });
   }
+
+  describe('network connectivity checker plugin', () => {
+    const NETWORK_CHECKER_PLUGIN_NAME = '@amplitude/plugin-network-checker-react-native';
+
+    let installSpy: jest.SpyInstance;
+    let client: AmplitudeReactNative;
+    let addSpy: jest.SpyInstance;
+
+    beforeEach(() => {
+      jest.spyOn(CookieMigration, 'parseOldCookies').mockResolvedValueOnce({ optOut: false });
+      installSpy = jest.spyOn(NetworkChecker, 'networkConnectivityCheckerPlugin');
+      client = new AmplitudeReactNative();
+      addSpy = jest.spyOn(client, 'add');
+    });
+
+    afterEach(() => {
+      installSpy.mockRestore();
+    });
+
+    test('should install the network connectivity checker by default', async () => {
+      await client.init(API_KEY, USER_ID, { ...attributionConfig }).promise;
+      expect(installSpy).toHaveBeenCalledTimes(1);
+      // Assert it actually lands in the timeline under the expected name.
+      expect(addSpy).toHaveBeenCalledWith(expect.objectContaining({ name: NETWORK_CHECKER_PLUGIN_NAME }));
+    });
+
+    test('should not install the network connectivity checker when offline is OfflineDisabled', async () => {
+      await client.init(API_KEY, USER_ID, {
+        ...attributionConfig,
+        offline: core.OfflineDisabled,
+      }).promise;
+      expect(installSpy).not.toHaveBeenCalled();
+      // And it never reaches the timeline.
+      expect(addSpy).not.toHaveBeenCalledWith(expect.objectContaining({ name: NETWORK_CHECKER_PLUGIN_NAME }));
+    });
+  });
 
   describe('getUserId', () => {
     test('should get user id', async () => {

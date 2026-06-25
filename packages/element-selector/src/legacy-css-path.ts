@@ -75,6 +75,7 @@
    coverage here only obscures the parts of the package that *do* have
    meaningful coverage. */
 
+import { ElementSelectorLogger } from './types';
 import { escapeCssIdentifier } from './helpers/escape-css-identifier';
 
 class Step {
@@ -232,3 +233,20 @@ const prefixedElementClassNames = (el: Element): string[] => {
 };
 
 const idSelector = (id: string): string => '#' + escapeCssIdentifier(id);
+
+/**
+ * Invoke `legacyCssPath` without letting a throw escape to the caller.
+ *
+ * Shared by `engine.generate` (kill switch + strategy-chain safety net) and
+ * `generateSelector` (null-engine branch) so the swallow-warn-fallback
+ * guarantee lives in one place.
+ */
+export function safeLegacyCssPath(el: Element, logger?: ElementSelectorLogger): string {
+  try {
+    return legacyCssPath(el);
+  } catch (e) {
+    const message = e instanceof Error ? e.message : String(e);
+    logger?.warn(`@amplitude/element-selector: legacyCssPath threw — emitting empty selector: ${message}`);
+    return '';
+  }
+}

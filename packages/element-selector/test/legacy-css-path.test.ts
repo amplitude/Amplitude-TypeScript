@@ -15,7 +15,8 @@
  * line-by-line coverage here would duplicate what the SDK suite already
  * exercises and bury the meaningful coverage in this package.
  */
-import { legacyCssPath } from '../src/legacy-css-path';
+import * as legacyCssPathModule from '../src/legacy-css-path';
+import { legacyCssPath, safeLegacyCssPath } from '../src/legacy-css-path';
 
 function setBody(html: string): void {
   document.body.innerHTML = html;
@@ -60,5 +61,25 @@ describe('legacyCssPath', () => {
 
     expect(selector).toContain(':nth-child');
     expect(document.querySelector(selector)).toBe(target);
+  });
+});
+
+describe('safeLegacyCssPath', () => {
+  afterEach(() => {
+    document.body.innerHTML = '';
+    jest.restoreAllMocks();
+  });
+
+  it('returns empty string and warns when legacyCssPath throws', () => {
+    const el = document.createElement('div');
+    const logger = { warn: jest.fn(), debug: jest.fn() };
+    const spy = jest.spyOn(legacyCssPathModule, 'legacyCssPath').mockImplementation(() => {
+      throw new Error('boom');
+    });
+
+    expect(safeLegacyCssPath(el, logger)).toBe('');
+    expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('boom'));
+
+    spy.mockRestore();
   });
 });
