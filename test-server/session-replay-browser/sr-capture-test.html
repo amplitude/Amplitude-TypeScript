@@ -38,6 +38,18 @@
               ...(flushMaxIntervalMs !== undefined ? { maxIntervalMs: flushMaxIntervalMs } : {}),
             }
           : undefined;
+      // Perf-config knobs (PR #1806). Each is only passed to init() when its URL param is
+      // present, so omitting a param preserves the SDK default behavior.
+      const parseBool = (raw) => (raw === null ? undefined : raw === 'true');
+      const parseByteSize = (raw) => {
+        if (raw === null) return undefined;
+        const n = Number(raw);
+        return Number.isNaN(n) ? undefined : n;
+      };
+      const eagerFullSnapshotSend = parseBool(params.get('eagerFullSnapshotSend'));
+      const captureFullSnapshotOnFocus = parseBool(params.get('captureFullSnapshotOnFocus'));
+      const maxPersistedEventsSizeBytes = parseByteSize(params.get('maxPersistedEventsSizeBytes'));
+      const maxSingleEventSizeBytes = parseByteSize(params.get('maxSingleEventSizeBytes'));
 
       void (async () => {
         try {
@@ -51,6 +63,10 @@
             performanceConfig: { enabled: true, mergeMutations },
             ...(storeType ? { storeType } : {}),
             ...(flushIntervalConfig ? { flushIntervalConfig } : {}),
+            ...(eagerFullSnapshotSend !== undefined ? { eagerFullSnapshotSend } : {}),
+            ...(captureFullSnapshotOnFocus !== undefined ? { captureFullSnapshotOnFocus } : {}),
+            ...(maxPersistedEventsSizeBytes !== undefined ? { maxPersistedEventsSizeBytes } : {}),
+            ...(maxSingleEventSizeBytes !== undefined ? { maxSingleEventSizeBytes } : {}),
           }).promise;
         } catch (err) {
           document.getElementById('status').textContent = 'error: ' + err.message;

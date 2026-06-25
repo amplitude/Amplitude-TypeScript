@@ -1,5 +1,7 @@
 import { Config, ILogger, Logger, FetchTransport, LogLevel } from '@amplitude/analytics-core';
 import {
+  DEFAULT_FLUSH_MAX_INTERVAL_MS,
+  DEFAULT_FLUSH_MIN_INTERVAL_MS,
   DEFAULT_PERFORMANCE_CONFIG,
   DEFAULT_SAMPLE_RATE,
   DEFAULT_SERVER_ZONE,
@@ -42,6 +44,7 @@ export class SessionReplayLocalConfig extends Config implements ISessionReplayLo
   performanceConfig?: SessionReplayPerformanceConfig;
   useWebWorker?: boolean;
   enableTransportCompression?: boolean;
+  sendTimeoutMs?: number;
   applyBackgroundColorToBlockedElements?: boolean;
   enableUrlChangePolling?: boolean;
   urlChangePollingInterval?: number;
@@ -50,6 +53,10 @@ export class SessionReplayLocalConfig extends Config implements ISessionReplayLo
   crossOriginIframes?: CrossOriginIframesConfig;
   fullSnapshotIntervalMs?: number;
   flushIntervalConfig?: FlushIntervalConfig;
+  eagerFullSnapshotSend?: boolean;
+  captureFullSnapshotOnFocus?: boolean;
+  maxPersistedEventsSizeBytes?: number;
+  maxSingleEventSizeBytes?: number;
 
   constructor(apiKey: string, options: SessionReplayOptions) {
     const defaultConfig = getDefaultConfig();
@@ -80,6 +87,31 @@ export class SessionReplayLocalConfig extends Config implements ISessionReplayLo
     if (options.fullSnapshotIntervalMs !== undefined) {
       this.fullSnapshotIntervalMs = options.fullSnapshotIntervalMs;
     }
+    if (options.eagerFullSnapshotSend !== undefined) {
+      this.eagerFullSnapshotSend = options.eagerFullSnapshotSend;
+    }
+    // Defaults to false per the validated amp-on-amp perf config (SR-4646): the on-focus full
+    // snapshot is off unless the consumer explicitly opts in. focusListener honors this by
+    // skipping the snapshot whenever the value is not true.
+    this.captureFullSnapshotOnFocus = options.captureFullSnapshotOnFocus ?? false;
+    if (options.maxPersistedEventsSizeBytes !== undefined) {
+      this.maxPersistedEventsSizeBytes = sanitizeByteSize(
+        options.maxPersistedEventsSizeBytes,
+        MIN_EVENT_BYTE_SIZE,
+        MAX_PERSISTED_EVENTS_SIZE_CEILING,
+        'maxPersistedEventsSizeBytes',
+        this.loggerProvider,
+      );
+    }
+    if (options.maxSingleEventSizeBytes !== undefined) {
+      this.maxSingleEventSizeBytes = sanitizeByteSize(
+        options.maxSingleEventSizeBytes,
+        MIN_EVENT_BYTE_SIZE,
+        MAX_SINGLE_EVENT_SIZE_CEILING,
+        'maxSingleEventSizeBytes',
+        this.loggerProvider,
+      );
+    }
 
     // Auto-include .amp-unmask as a default unmaskSelector entry so it works
     // symmetrically with amp-mask/amp-block without requiring explicit config (SR-2945).
@@ -98,22 +130,29 @@ export class SessionReplayLocalConfig extends Config implements ISessionReplayLo
     if (options.debugMode) {
       this.debugMode = options.debugMode;
     }
-    // Support both new useWebWorker and legacy experimental.useWebWorker for backwards compatibility
-    if (options.useWebWorker !== undefined) {
-      this.useWebWorker = options.useWebWorker;
-    } else {
-      const legacyOptions = options as { experimental?: { useWebWorker?: boolean } };
-      if (legacyOptions.experimental?.useWebWorker !== undefined) {
-        this.useWebWorker = legacyOptions.experimental.useWebWorker;
-      }
-    }
+    // Support both new useWebWorker and legacy experimental.useWebWorker for backwards
+    // compatibility. Defaults to true per the validated amp-on-amp perf config (SR-4646):
+    // compression runs off the main thread unless the consumer explicitly sets either flag
+    // to false. The top-level option wins over the legacy experimental one when both are set.
+    const legacyOptions = options as { experimental?: { useWebWorker?: boolean } };
+    this.useWebWorker = options.useWebWorker ?? legacyOptions.experimental?.useWebWorker ?? true;
     this.enableTransportCompression = options.enableTransportCompression ?? true;
+    // Pass through undefined so the track destination applies its SEND_TIMEOUT_MS default;
+    // an explicit 0 is preserved (disables the timeout).
+    this.sendTimeoutMs = options.sendTimeoutMs;
     this.captureAdoptedStyleSheets = options.captureAdoptedStyleSheets ?? true;
     if (options.crossOriginIframes) {
       this.crossOriginIframes = options.crossOriginIframes;
     }
     if (options.flushIntervalConfig) {
       this.flushIntervalConfig = sanitizeFlushIntervalConfig(options.flushIntervalConfig, this.loggerProvider);
+    } else {
+      // Default to the validated amp-on-amp perf config (SR-4646). The values are known-valid
+      // (min <= max, both above the floor), so no sanitization is required.
+      this.flushIntervalConfig = {
+        minIntervalMs: DEFAULT_FLUSH_MIN_INTERVAL_MS,
+        maxIntervalMs: DEFAULT_FLUSH_MAX_INTERVAL_MS,
+      };
     }
   }
 }
@@ -122,6 +161,41 @@ export class SessionReplayLocalConfig extends Config implements ISessionReplayLo
 // Customers wanting fewer requests should be raising the value, not lowering it; the floor
 // is just a defensive guard against typos and unsigned-int rollovers.
 const MIN_FLUSH_INTERVAL_FLOOR_MS = 100;
+
+// Shared 1 KB floor for the byte-size overrides — small enough to exercise splitting/drops
+// while debugging, large enough to avoid a 0/negative config that splits on every event.
+const MIN_EVENT_BYTE_SIZE = 1_000;
+// Batch cap ceiling: stay under the SR ingest service's 10 MB decompressed split threshold
+// (above which the server splits the batch itself) with headroom for the request wrapper.
+const MAX_PERSISTED_EVENTS_SIZE_CEILING = 8_000_000;
+// Single-event ceiling: the server rejects a single event above ~10 MB, so never allow an
+// override to exceed that.
+const MAX_SINGLE_EVENT_SIZE_CEILING = 10_000_000;
+
+// Defensive bounds for the byte-size overrides. Non-finite inputs are ignored (fall back to
+// the SDK default); out-of-range values are clamped and logged so a typo can't silently
+// disable splitting or push past the server's limits.
+function sanitizeByteSize(
+  raw: number,
+  min: number,
+  max: number,
+  name: string,
+  loggerProvider: ILogger,
+): number | undefined {
+  if (!Number.isFinite(raw)) {
+    loggerProvider.warn(`${name} value is not a finite number (got ${String(raw)}); ignoring.`);
+    return undefined;
+  }
+  if (raw < min) {
+    loggerProvider.warn(`${name} ${raw} is below floor ${min}; clamping.`);
+    return min;
+  }
+  if (raw > max) {
+    loggerProvider.warn(`${name} ${raw} exceeds ceiling ${max}; clamping.`);
+    return max;
+  }
+  return raw;
+}
 
 function sanitizeFlushIntervalConfig(raw: FlushIntervalConfig, loggerProvider: ILogger): FlushIntervalConfig {
   const sanitized: FlushIntervalConfig = {};

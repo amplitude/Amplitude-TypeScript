@@ -1,10 +1,131 @@
 import { EventType, IncrementalSource } from '@amplitude/rrweb-types';
-import type { eventWithTime, mutationData } from '@amplitude/rrweb-types';
+import type { eventWithTime, mutationData, styleOMValue } from '@amplitude/rrweb-types';
 
 function isMergeableMutation(event: eventWithTime): boolean {
   if (event.type !== EventType.IncrementalSnapshot) return false;
   const data = event.data as mutationData;
   return data.source === IncrementalSource.Mutation && !data.isAttachIframe;
+}
+
+// In this repo's rrweb, a `style` attribute value is `string | styleOMValue | null`.
+// A `string` (or `null`) is a full replacement/removal; a `styleOMValue` object is a
+// PARTIAL diff that the replayer applies cumulatively (per-property setProperty /
+// removeProperty, where a `false` value means "delete this property"). Unlisted
+// properties are never cleared by an object-form write.
+type StyleValue = string | styleOMValue | null;
+
+function isStyleObject(value: StyleValue): value is styleOMValue {
+  return typeof value === 'object' && value !== null;
+}
+
+/**
+ * Deep-merges a run of object-form (`styleOMValue`) style diffs into a single
+ * object. Later writes win on a per-property basis, exactly mirroring how the
+ * rrweb replayer applies object-form styles cumulatively. A `false` value
+ * (delete) is preserved so the merged write still removes the property.
+ */
+function mergeStyleDiffs(diffs: styleOMValue[]): styleOMValue {
+  const merged: styleOMValue = {};
+  for (const diff of diffs) {
+    for (const prop of Object.keys(diff)) {
+      merged[prop] = diff[prop];
+    }
+  }
+  return merged;
+}
+
+/**
+ * Coalesces `style` attribute mutations within a merged group in a way that is
+ * faithful to how the rrweb replayer applies them, so the merged payload stays
+ * small without dropping any property that real cumulative replay would keep.
+ *
+ * Per node id, the surviving `style` writes are computed as follows:
+ *   - A `string`/`null` style write is a FULL reset: it supersedes every earlier
+ *     style write for that node. Only the last such reset is kept.
+ *   - Object-form (`styleOMValue`) writes after the last reset are PARTIAL diffs
+ *     applied cumulatively; they are deep-merged (later property wins, `false`
+ *     deletes preserved) into a single object placed at the last write's
+ *     position. Earlier superseded object writes are dropped.
+ *   - When all of a node's style writes are object-form, they all merge into one.
+ *
+ * This means a pure burst of string-form updates collapses to last-write-wins
+ * (the common inline-style/opacity ticker case), while object-form partial diffs
+ * such as `{color:'red'}` then `{background:'blue'}` are combined into
+ * `{color:'red', background:'blue'}` rather than silently losing `color`.
+ *
+ * Only the `style` key is coalesced. Any other attribute keys on a superseded
+ * entry are preserved in place, and non-style entries are left untouched.
+ */
+function coalesceStyleAttributes(attributes: mutationData['attributes']): mutationData['attributes'] {
+  // Per node id, the array indices of attribute mutations carrying a `style` key.
+  const styleIndicesById = new Map<number, number[]>();
+  attributes.forEach((attr, i) => {
+    if (attr.attributes && 'style' in attr.attributes) {
+      const list = styleIndicesById.get(attr.id);
+      if (list) list.push(i);
+      else styleIndicesById.set(attr.id, [i]);
+    }
+  });
+
+  if (styleIndicesById.size === 0) return attributes;
+
+  const styleValueAt = (i: number): StyleValue => (attributes[i].attributes as Record<string, StyleValue>).style;
+
+  // Per attributes-array index: 'drop' removes the (superseded) style key.
+  // mergedStyleByIndex replaces the style value with a deep-merged object.
+  // Indices not present in either map keep their style value untouched.
+  const dropStyleAt = new Set<number>();
+  const mergedStyleByIndex = new Map<number, styleOMValue>();
+
+  for (const indices of styleIndicesById.values()) {
+    if (indices.length === 1) continue; // single style write — keep as-is
+
+    // Position (within `indices`) of the last full-reset string/null write.
+    let lastResetPos = -1;
+    indices.forEach((idx, pos) => {
+      if (!isStyleObject(styleValueAt(idx))) lastResetPos = pos;
+    });
+
+    // Object-form writes that survive: those after the last reset (or all of
+    // them when there is no reset). Everything before the last reset is dropped.
+    const survivingObjectIndices: number[] = [];
+    indices.forEach((idx, pos) => {
+      if (pos === lastResetPos) return; // the surviving full-reset write — keep
+      dropStyleAt.add(idx);
+      if (pos > lastResetPos) survivingObjectIndices.push(idx);
+    });
+
+    if (survivingObjectIndices.length > 0) {
+      const lastObjectIdx = survivingObjectIndices[survivingObjectIndices.length - 1];
+      const merged = mergeStyleDiffs(survivingObjectIndices.map((idx) => styleValueAt(idx) as styleOMValue));
+      dropStyleAt.delete(lastObjectIdx);
+      mergedStyleByIndex.set(lastObjectIdx, merged);
+    }
+  }
+
+  if (dropStyleAt.size === 0 && mergedStyleByIndex.size === 0) return attributes;
+
+  const result: mutationData['attributes'] = [];
+  attributes.forEach((attr, i) => {
+    const mergedStyle = mergedStyleByIndex.get(i);
+    if (mergedStyle !== undefined) {
+      result.push({ ...attr, attributes: { ...attr.attributes, style: mergedStyle } });
+      return;
+    }
+    if (!dropStyleAt.has(i)) {
+      result.push(attr);
+      return;
+    }
+    // Superseded style write: drop only the `style` key, preserving any other
+    // attribute keys. If the entry was style-only, it is dropped entirely.
+    const rest = { ...attr.attributes };
+    delete rest.style;
+    if (Object.keys(rest).length > 0) {
+      result.push({ ...attr, attributes: rest });
+    }
+  });
+
+  return result;
 }
 
 function mergeGroup(events: eventWithTime[]): eventWithTime {
@@ -135,6 +256,12 @@ function mergeGroup(events: eventWithTime[]): eventWithTime {
   const allTexts = events.flatMap((e) => (e.data as mutationData).texts);
   const allAttributes = events.flatMap((e) => (e.data as mutationData).attributes);
 
+  const mergedAttributes = needsFilter
+    ? allAttributes.filter(
+        (a) => !transientIds.has(a.id) && !preExistingTransientIds.has(a.id) && !cascadeDropAddsOnlyIds.has(a.id),
+      )
+    : allAttributes;
+
   const merged: mutationData = {
     source: IncrementalSource.Mutation,
     removes: filteredRemoves,
@@ -151,11 +278,7 @@ function mergeGroup(events: eventWithTime[]): eventWithTime {
           (t) => !transientIds.has(t.id) && !preExistingTransientIds.has(t.id) && !cascadeDropAddsOnlyIds.has(t.id),
         )
       : allTexts,
-    attributes: needsFilter
-      ? allAttributes.filter(
-          (a) => !transientIds.has(a.id) && !preExistingTransientIds.has(a.id) && !cascadeDropAddsOnlyIds.has(a.id),
-        )
-      : allAttributes,
+    attributes: coalesceStyleAttributes(mergedAttributes),
   };
   return { ...first, data: merged } as eventWithTime;
 }

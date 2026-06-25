@@ -302,7 +302,7 @@ describe('SessionReplayEventsIDBStore', () => {
     });
 
     // SR-4284: shouldSplitEventsList can return true with an empty buffer when a
-    // single incoming event is larger than MAX_EVENT_LIST_SIZE (700 KB) — the size
+    // single incoming event is larger than MAX_EVENT_LIST_SIZE (2 MB) — the size
     // branch fires regardless of current length. The split path must NOT write a
     // zero-event row to sequencesToSend; just claim the slot for the incoming event.
     test('does not write empty sequencesToSend row when split fires on empty buffer', async () => {

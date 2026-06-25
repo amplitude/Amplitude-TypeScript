@@ -167,6 +167,9 @@ async function loadPage(page: import('@playwright/test').Page, sessionId = TEST_
       sessionId,
       logLevel: LOG_LEVEL_DEBUG,
       storeType: 'idb',
+      // These tests assert the time-based split path with the historical 500ms floor; the SDK
+      // default minIntervalMs moved to 1000ms (SR-4646), so pin it back to keep the cadence.
+      flushMinIntervalMs: 500,
     }),
   );
   await waitForReady(page);

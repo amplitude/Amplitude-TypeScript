@@ -80,3 +80,11 @@ lib/
 # React Native Codegen
 ios/generated
 android/generated
+
+# Stray tsc/jest output emitted into src/ and test/ during typecheck
+src/**/*.js
+src/**/*.js.map
+test/**/*.js
+test/**/*.js.map
+test/**/*.d.ts
+test/**/*.d.ts.map

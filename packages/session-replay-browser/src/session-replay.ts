@@ -298,6 +298,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
         type: 'replay',
         minInterval: this.config.flushIntervalConfig?.minIntervalMs,
         maxInterval: this.config.flushIntervalConfig?.maxIntervalMs,
+        maxPersistedEventsSize: this.config.maxPersistedEventsSizeBytes,
         storeType,
         trackDestinationWorkerScript,
         shouldSend: () => !this.isBelowMinSessionDuration(),
@@ -317,6 +318,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
           type: 'interaction',
           minInterval: this.config.interactionConfig.trackEveryNms ?? INTERACTION_MIN_INTERVAL,
           maxInterval: INTERACTION_MAX_INTERVAL,
+          maxPersistedEventsSize: this.config.maxPersistedEventsSizeBytes,
           payloadBatcher,
           storeType,
           trackDestinationWorkerScript,
@@ -334,12 +336,20 @@ export class SessionReplay implements AmplitudeSessionReplay {
       this.eventCompressor.terminate();
     }
 
+    // Eager full-snapshot send is tunable. When `eagerFullSnapshotSend` is true, every full
+    // snapshot triggers an immediate flush so replays are playable as early as possible (the
+    // SR-3115 contract). Leaving it unset (default) keeps the snapshot compressed and buffered
+    // immediately (ordering + beacon coverage on page exit preserved) but defers the network
+    // send to the normal interval/size cadence — this avoids the focus/checkout-driven request
+    // storm that eager per-snapshot sends create when many SDK instances run on the same page.
+    // The default flipped to disabled per the validated amp-on-amp perf config (SR-4646).
+    const onFullSnapshotProcessed = this.config.eagerFullSnapshotSend === true ? () => this.sendEvents() : undefined;
     this.eventCompressor = new EventCompressor(
       this.eventsManager,
       this.config,
       this.getDeviceId(),
       compressionWorkerScript,
-      () => this.sendEvents(),
+      onFullSnapshotProcessed,
     );
 
     // Flush any events that arrived while eventCompressor was not yet ready
@@ -416,12 +426,26 @@ export class SessionReplay implements AmplitudeSessionReplay {
     deviceId?: string,
     options?: { userProperties?: { [key: string]: any } },
   ) {
+    const previousSessionId = this.identifiers?.sessionId;
+    const currentDeviceId = this.getDeviceId();
+    // Standalone SDK callers may poll setSessionId with a stable bucket id (e.g. hour-aligned
+    // timestamps) and only need a no-op when the bucket hasn't rolled. Without this guard,
+    // the rest of asyncSetSessionId still runs: sendEvents, targeting reset, config refetch,
+    // and recordEvents (stop + restart rrweb). Proceed when deviceId changes or
+    // non-empty userProperties are passed so targeting can re-evaluate on Identify.
+    if (
+      previousSessionId !== undefined &&
+      previousSessionId === sessionId &&
+      (deviceId === undefined || deviceId === currentDeviceId) &&
+      (options?.userProperties === undefined || Object.keys(options.userProperties).length === 0)
+    ) {
+      return;
+    }
+
     // Invalidate any in-flight URL-change re-evaluations from the previous session.
     this.latestUrlChangeTargetingEvaluationId++;
     this.sessionTargetingMatch = false;
     this.lastShouldRecordDecision = undefined; // Reset targeting decision for new session
-
-    const previousSessionId = this.identifiers && this.identifiers.sessionId;
     if (previousSessionId) {
       this.sendEvents(previousSessionId);
     }
@@ -521,6 +545,12 @@ export class SessionReplay implements AmplitudeSessionReplay {
 
   focusListener = () => {
     if (this.recordCancelCallback && this.recordFunction) {
+      // Recording is already active. The on-focus full snapshot is tunable: when
+      // `captureFullSnapshotOnFocus` is false we skip it entirely so high focus-churn pages
+      // don't generate a full snapshot (and, with eager send, a network request) per focus.
+      if (this.config?.captureFullSnapshotOnFocus === false) {
+        return;
+      }
       try {
         this.recordFunction.takeFullSnapshot(true);
       } catch (error) {

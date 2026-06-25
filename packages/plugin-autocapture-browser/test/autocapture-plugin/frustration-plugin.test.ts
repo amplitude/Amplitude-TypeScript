@@ -111,6 +111,29 @@ describe('frustrationPlugin', () => {
       expect(trackRageClicks).toHaveBeenCalled();
     });
 
+    it('subscribes to element-selector remote config and unsubscribes on teardown', async () => {
+      const unsubscribe = jest.fn();
+      const subscribe = jest.fn().mockReturnValue('es-sub');
+      const remoteConfigClient = { subscribe, unsubscribe, updateConfigs: jest.fn() };
+
+      // Mocked trackers return undefined by default; give them disposable
+      // subscriptions so teardown can iterate without throwing.
+      const mockSubscription = { unsubscribe: jest.fn() };
+      (trackDeadClick as jest.Mock).mockReturnValue(mockSubscription);
+      (trackRageClicks as jest.Mock).mockReturnValue(mockSubscription);
+
+      plugin = frustrationPlugin({});
+      await plugin?.setup?.(
+        { ...config, fetchRemoteConfig: true, remoteConfigClient } as unknown as BrowserConfig,
+        instance,
+      );
+
+      expect(subscribe).toHaveBeenCalledWith('configs.analyticsSDK.elementSelector', 'all', expect.any(Function));
+
+      await plugin?.teardown?.();
+      expect(unsubscribe).toHaveBeenCalledWith('es-sub');
+    });
+
     it('should be disabled when set to null', async () => {
       plugin = frustrationPlugin({
         deadClicks: null as any,

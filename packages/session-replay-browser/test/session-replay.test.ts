@@ -554,12 +554,45 @@ describe('SessionReplay', () => {
       expect(replayCall?.[0]).toEqual(expect.objectContaining({ minInterval: 2500, maxInterval: 30_000 }));
     });
 
-    test('omits flush interval values when flushIntervalConfig is not set', async () => {
+    test('forwards the default flush interval values when flushIntervalConfig is not set', async () => {
       const createEventsManagerSpy = jest.spyOn(SessionReplayEventsManager, 'createEventsManager');
       await sessionReplay.init(apiKey, mockOptions).promise;
       const replayCall = createEventsManagerSpy.mock.calls.find(([args]) => args.type === 'replay');
+      // Defaults to the validated amp-on-amp config { minIntervalMs: 1000, maxIntervalMs: 10000 }.
+      expect(replayCall?.[0].minInterval).toBe(1000);
+      expect(replayCall?.[0].maxInterval).toBe(10_000);
+    });
+
+    test('passes undefined min/max when the joined config has no flushIntervalConfig', async () => {
+      // Defensive optional-chaining branch: a joined config without flushIntervalConfig falls back
+      // to the events manager's own interval defaults instead of throwing.
+      const createEventsManagerSpy = jest.spyOn(SessionReplayEventsManager, 'createEventsManager');
+      const mockLocalConfig = new SessionReplayLocalConfig(apiKey, mockOptions);
+      const mockJoinedConfig: SessionReplayJoinedConfig = {
+        ...mockLocalConfig,
+        optOut: false,
+        captureEnabled: true,
+        flushIntervalConfig: undefined,
+      };
+      const mockGenerator = {
+        generateJoinedConfig: jest.fn().mockResolvedValue({
+          joinedConfig: mockJoinedConfig,
+          localConfig: mockLocalConfig,
+          remoteConfig: undefined,
+        }),
+      };
+      const createGeneratorSpy = jest
+        .spyOn(JoinedConfigModule, 'createSessionReplayJoinedConfigGenerator')
+        .mockResolvedValue(mockGenerator as any);
+
+      const localSessionReplay = new SessionReplay();
+      await localSessionReplay.init(apiKey, mockOptions).promise;
+
+      const replayCall = createEventsManagerSpy.mock.calls.find(([args]) => args.type === 'replay');
+      expect(replayCall).toBeDefined();
       expect(replayCall?.[0].minInterval).toBeUndefined();
       expect(replayCall?.[0].maxInterval).toBeUndefined();
+      createGeneratorSpy.mockRestore();
     });
 
     test('should invoke page leave listeners', async () => {
@@ -687,17 +720,28 @@ describe('SessionReplay', () => {
       globalSpy = originalGlobalScope;
     });
 
-    test('should not use webworker when useWebWorker is not provided (default)', async () => {
+    test('defaults useWebWorker to true when not provided', async () => {
       await sessionReplay.init(apiKey, {
         ...mockOptions,
         sampleRate: 0.5,
       }).promise;
 
-      expect(sessionReplay.config?.useWebWorker).toBeUndefined();
+      // Defaults to true per the validated amp-on-amp config (SR-4646).
+      expect(sessionReplay.config?.useWebWorker).toBe(true);
       expect(sessionReplay.config?.transportProvider).toBeDefined();
       expect(sessionReplay.config?.flushMaxRetries).toBe(1);
       expect(sessionReplay.config?.optOut).toBe(false);
       expect(sessionReplay.config?.sampleRate).toBe(1);
+    });
+
+    test('respects an explicit useWebWorker: false', async () => {
+      await sessionReplay.init(apiKey, {
+        ...mockOptions,
+        sampleRate: 0.5,
+        useWebWorker: false,
+      }).promise;
+
+      expect(sessionReplay.config?.useWebWorker).toBe(false);
     });
 
     test('should support legacy experimental.useWebWorker config for backwards compatibility', async () => {
@@ -1007,7 +1051,7 @@ describe('SessionReplay', () => {
 
     describe('focusListener', () => {
       test('calls takeFullSnapshot(true) when already recording, does not call recordEvents', async () => {
-        await sessionReplay.init(apiKey, mockOptions).promise;
+        await sessionReplay.init(apiKey, { ...mockOptions, captureFullSnapshotOnFocus: true }).promise;
         const takeFullSnapshotMock = jest.fn();
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         (sessionReplay as any).recordCancelCallback = jest.fn();
@@ -1052,7 +1096,7 @@ describe('SessionReplay', () => {
       });
 
       test('warns via loggerProvider when takeFullSnapshot throws', async () => {
-        await sessionReplay.init(apiKey, mockOptions).promise;
+        await sessionReplay.init(apiKey, { ...mockOptions, captureFullSnapshotOnFocus: true }).promise;
         const warnSpy = jest.spyOn(sessionReplay.loggerProvider, 'warn');
         const testError = new Error('rrweb snapshot failed');
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
@@ -1067,6 +1111,87 @@ describe('SessionReplay', () => {
         sessionReplay.focusListener();
 
         expect(warnSpy).toHaveBeenCalledWith('Failed to take full snapshot on focus:', testError);
+      });
+
+      test('suppresses the on-focus full snapshot by default (captureFullSnapshotOnFocus omitted)', async () => {
+        await sessionReplay.init(apiKey, mockOptions).promise;
+        const takeFullSnapshotMock = jest.fn();
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        (sessionReplay as any).recordCancelCallback = jest.fn();
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        (sessionReplay as any).recordFunction = { takeFullSnapshot: takeFullSnapshotMock };
+        const recordEventsSpy = jest.spyOn(sessionReplay, 'recordEvents');
+
+        sessionReplay.focusListener();
+
+        // Default is now false per the validated amp-on-amp config (SR-4646).
+        expect(takeFullSnapshotMock).not.toHaveBeenCalled();
+        expect(recordEventsSpy).not.toHaveBeenCalled();
+      });
+
+      test('takes the on-focus full snapshot when captureFullSnapshotOnFocus is explicitly true', async () => {
+        await sessionReplay.init(apiKey, { ...mockOptions, captureFullSnapshotOnFocus: true }).promise;
+        const takeFullSnapshotMock = jest.fn();
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        (sessionReplay as any).recordCancelCallback = jest.fn();
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        (sessionReplay as any).recordFunction = { takeFullSnapshot: takeFullSnapshotMock };
+
+        sessionReplay.focusListener();
+
+        expect(takeFullSnapshotMock).toHaveBeenCalledWith(true);
+      });
+
+      test('suppresses the on-focus full snapshot when captureFullSnapshotOnFocus is false', async () => {
+        await sessionReplay.init(apiKey, { ...mockOptions, captureFullSnapshotOnFocus: false }).promise;
+        const takeFullSnapshotMock = jest.fn();
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        (sessionReplay as any).recordCancelCallback = jest.fn();
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        (sessionReplay as any).recordFunction = { takeFullSnapshot: takeFullSnapshotMock };
+        const recordEventsSpy = jest.spyOn(sessionReplay, 'recordEvents');
+
+        sessionReplay.focusListener();
+
+        expect(takeFullSnapshotMock).not.toHaveBeenCalled();
+        expect(recordEventsSpy).not.toHaveBeenCalled();
+      });
+
+      test('still takes the on-focus full snapshot when config is not yet set', async () => {
+        await sessionReplay.init(apiKey, mockOptions).promise;
+        const takeFullSnapshotMock = jest.fn();
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        (sessionReplay as any).recordCancelCallback = jest.fn();
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        (sessionReplay as any).recordFunction = { takeFullSnapshot: takeFullSnapshotMock };
+        // Defensive nullish branch: config absent → default (take the snapshot).
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        (sessionReplay as any).config = undefined;
+
+        sessionReplay.focusListener();
+
+        expect(takeFullSnapshotMock).toHaveBeenCalledWith(true);
+      });
+    });
+
+    describe('eagerFullSnapshotSend', () => {
+      test('leaves onFullSnapshotProcessed undefined by default', async () => {
+        await sessionReplay.init(apiKey, mockOptions).promise;
+        expect(sessionReplay.eventCompressor?.onFullSnapshotProcessed).toBeUndefined();
+      });
+
+      test('wires an onFullSnapshotProcessed callback that flushes when eagerFullSnapshotSend is true', async () => {
+        await sessionReplay.init(apiKey, { ...mockOptions, eagerFullSnapshotSend: true }).promise;
+        const sendEventsSpy = jest.spyOn(sessionReplay, 'sendEvents').mockImplementation(() => undefined);
+
+        expect(sessionReplay.eventCompressor?.onFullSnapshotProcessed).toBeDefined();
+        sessionReplay.eventCompressor?.onFullSnapshotProcessed?.();
+        expect(sendEventsSpy).toHaveBeenCalledTimes(1);
+      });
+
+      test('leaves onFullSnapshotProcessed undefined when eagerFullSnapshotSend is false', async () => {
+        await sessionReplay.init(apiKey, { ...mockOptions, eagerFullSnapshotSend: false }).promise;
+        expect(sessionReplay.eventCompressor?.onFullSnapshotProcessed).toBeUndefined();
       });
     });
 
@@ -1492,6 +1617,10 @@ describe('SessionReplay', () => {
       (sessionReplay as any).hasEmittedGateDecision = true;
       (sessionReplay as any).suppressedSendCount = 7;
 
+      const sendEventsSpy = jest.spyOn(sessionReplay, 'sendEvents');
+      const recordEventsSpy = jest.spyOn(sessionReplay, 'recordEvents').mockResolvedValue(undefined);
+      const evaluateTargetingAndCaptureSpy = jest.spyOn(sessionReplay, 'evaluateTargetingAndCapture');
+
       // Caller passes the current sessionId redundantly — must NOT restart the gate clock.
       await (sessionReplay as any).asyncSetSessionId(123, '1a2b3c');
 
@@ -1500,6 +1629,108 @@ describe('SessionReplay', () => {
       // Per-session gate state must also be preserved.
       expect((sessionReplay as any).hasEmittedGateDecision).toBe(true);
       expect((sessionReplay as any).suppressedSendCount).toBe(7);
+      expect(sendEventsSpy).not.toHaveBeenCalled();
+      expect(recordEventsSpy).not.toHaveBeenCalled();
+      expect(evaluateTargetingAndCaptureSpy).not.toHaveBeenCalled();
+    });
+
+    test('still proceeds when sessionId is unchanged but deviceId changes', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      const sendEventsSpy = jest.spyOn(sessionReplay, 'sendEvents');
+      const recordEventsSpy = jest.spyOn(sessionReplay, 'recordEvents').mockResolvedValue(undefined);
+
+      await (sessionReplay as any).asyncSetSessionId(123, 'new-device-id');
+
+      expect(sessionReplay.identifiers?.deviceId).toBe('new-device-id');
+      expect(sendEventsSpy).toHaveBeenCalledWith(123);
+      expect(recordEventsSpy).toHaveBeenCalled();
+    });
+
+    test('still re-evaluates targeting when same sessionId has new userProperties', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      const mockConfigWithTargeting = new SessionReplayLocalConfig(apiKey, mockOptions);
+      (mockConfigWithTargeting as SessionReplayJoinedConfig).targetingConfig = {
+        key: 'sr_targeting_config',
+        variants: { on: { key: 'on' }, off: { key: 'off' } },
+        segments: [],
+      };
+      jest.spyOn(sessionReplay.joinedConfigGenerator!, 'generateJoinedConfig').mockResolvedValue({
+        joinedConfig: mockConfigWithTargeting,
+        localConfig: mockConfigWithTargeting,
+        remoteConfig: undefined,
+      });
+      const evaluateTargetingAndCaptureSpy = jest.spyOn(sessionReplay, 'evaluateTargetingAndCapture');
+      const userProperties = { plan: 'enterprise' };
+
+      await (sessionReplay as any).asyncSetSessionId(123, '1a2b3c', { userProperties });
+
+      expect(evaluateTargetingAndCaptureSpy).toHaveBeenCalledWith(
+        { userProperties, page: { url: 'http://localhost' } },
+        false,
+        true,
+      );
+    });
+
+    test('no-ops redundant setSessionId without sendEvents, recordEvents, or targeting reset', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      if (!sessionReplay.joinedConfigGenerator) throw new Error('init');
+
+      const sendEventsSpy = jest.spyOn(sessionReplay, 'sendEvents');
+      const recordEventsSpy = jest.spyOn(sessionReplay, 'recordEvents');
+      const evaluateTargetingAndCaptureSpy = jest.spyOn(sessionReplay, 'evaluateTargetingAndCapture');
+      const generateJoinedConfigSpy = jest.spyOn(sessionReplay.joinedConfigGenerator, 'generateJoinedConfig');
+      const priorTargetingMatch = sessionReplay.sessionTargetingMatch;
+      const priorUrlEvaluationId = (sessionReplay as any).latestUrlChangeTargetingEvaluationId;
+
+      await (sessionReplay as any).asyncSetSessionId(123, '1a2b3c');
+
+      expect(sendEventsSpy).not.toHaveBeenCalled();
+      expect(recordEventsSpy).not.toHaveBeenCalled();
+      expect(evaluateTargetingAndCaptureSpy).not.toHaveBeenCalled();
+      expect(generateJoinedConfigSpy).not.toHaveBeenCalled();
+      expect(sessionReplay.sessionTargetingMatch).toBe(priorTargetingMatch);
+      expect((sessionReplay as any).latestUrlChangeTargetingEvaluationId).toBe(priorUrlEvaluationId);
+    });
+
+    test('no-ops when sessionId unchanged and userProperties is an empty object', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+
+      const sendEventsSpy = jest.spyOn(sessionReplay, 'sendEvents');
+      const recordEventsSpy = jest.spyOn(sessionReplay, 'recordEvents');
+      const evaluateTargetingAndCaptureSpy = jest.spyOn(sessionReplay, 'evaluateTargetingAndCapture');
+
+      await (sessionReplay as any).asyncSetSessionId(123, '1a2b3c', { userProperties: {} });
+
+      expect(sendEventsSpy).not.toHaveBeenCalled();
+      expect(recordEventsSpy).not.toHaveBeenCalled();
+      expect(evaluateTargetingAndCaptureSpy).not.toHaveBeenCalled();
+    });
+
+    test('still proceeds when sessionId and deviceId unchanged but userProperties provided', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+
+      const mockConfigWithTargeting = new SessionReplayLocalConfig(apiKey, mockOptions);
+      (mockConfigWithTargeting as SessionReplayJoinedConfig).targetingConfig = {
+        key: 'sr_targeting_config',
+        variants: { on: { key: 'on' }, off: { key: 'off' } },
+        segments: [],
+      };
+      jest.spyOn(sessionReplay.joinedConfigGenerator!, 'generateJoinedConfig').mockResolvedValue({
+        joinedConfig: mockConfigWithTargeting,
+        localConfig: mockConfigWithTargeting,
+        remoteConfig: undefined,
+      });
+
+      const evaluateTargetingAndCaptureSpy = jest.spyOn(sessionReplay, 'evaluateTargetingAndCapture');
+      const userProperties = { plan: 'enterprise' };
+
+      await (sessionReplay as any).asyncSetSessionId(123, '1a2b3c', { userProperties });
+
+      expect(evaluateTargetingAndCaptureSpy).toHaveBeenCalledWith(
+        { userProperties, page: { url: 'http://localhost' } },
+        false,
+        true,
+      );
     });
 
     test('drops previous-session beacon buffer ONLY on real session change', async () => {
