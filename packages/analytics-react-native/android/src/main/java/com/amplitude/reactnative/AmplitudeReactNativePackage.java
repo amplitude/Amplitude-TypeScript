@@ -17,6 +17,7 @@ public class AmplitudeReactNativePackage implements ReactPackage {
     public List<NativeModule> createNativeModules(@NonNull ReactApplicationContext reactContext) {
         List<NativeModule> modules = new ArrayList<>();
         modules.add(new AmplitudeReactNativeModule(reactContext));
+        modules.add(new AmplitudeReactNativeConnectivityModule(reactContext));
         return modules;
     }
 
