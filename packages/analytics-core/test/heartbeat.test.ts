@@ -252,10 +252,15 @@ describe('heartbeat', () => {
         event_properties: { data: largeValue },
       });
       expect(mockLoggerProvider.warn).toHaveBeenCalledTimes(1);
-      expect(trackMock).not.toHaveBeenCalled();
-
       jest.advanceTimersByTime(1000);
-      expect(trackMock).not.toHaveBeenCalled();
+      expect(trackMock).toHaveBeenCalledWith(
+        event.event_type,
+        { test: 'small' },
+        {
+          insert_id: '12345',
+          delay: { id: expect.any(String), timeout: 1000 },
+        },
+      );
     });
   });
 

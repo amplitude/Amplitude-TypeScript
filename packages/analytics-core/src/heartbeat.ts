@@ -126,11 +126,13 @@ export class Heartbeat {
    */
   async update(event: BaseEvent) {
     if (event.insert_id && this.events.has(event.insert_id)) {
+      const backupEvent = this.events.get(event.insert_id);
       this.events.set(event.insert_id, {
         ...event,
         delay: { id: this.delayId, timeout: this.delayTimeout },
       });
-      if (!this.checkEventSizeLimit(event)) {
+      if (!this.checkEventSizeLimit(event) && backupEvent) {
+        this.events.set(event.insert_id, backupEvent);
         return;
       }
     }
@@ -143,8 +145,8 @@ export class Heartbeat {
   }
 }
 
-//const DEFAULT_HEARTBEAT_INTERVAL = 60_000;
-const DEFAULT_HEARTBEAT_INTERVAL = 2_000; // TODO: DO NOT MERGE THIS
+const DEFAULT_HEARTBEAT_INTERVAL = 60_000;
+// const DEFAULT_HEARTBEAT_INTERVAL = 2_000; // TODO: DO NOT MERGE THIS
 const DEFAULT_HEARTBEAT_DELAY_TIMEOUT = 3_600_000;
 
 type HeartbeatMap = Map<CoreClient, Heartbeat>;
