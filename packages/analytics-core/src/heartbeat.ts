@@ -90,9 +90,10 @@ export class Heartbeat {
     return true;
   }
 
-  async track(event: BaseEvent): Promise<Result | Error | undefined> {
+  async track(event: BaseEvent): Promise<Result|undefined> {
+    /* istanbul ignore if */
     if (!event.insert_id) {
-      return new Error('insert_id is required on events tracked with heartbeat');
+      throw new Error('insert_id is required on events tracked with heartbeat');
     }
     this.events.set(event.insert_id, {
       ...event,
