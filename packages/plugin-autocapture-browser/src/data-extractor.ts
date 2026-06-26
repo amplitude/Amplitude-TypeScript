@@ -27,6 +27,8 @@ import { Hierarchy } from './typings/autocapture';
 import {
   createSelectorEngine,
   resolveSelectorConfig,
+  hashSelectorConfig,
+  AMPLITUDE_EVENT_PROP_SELECTOR_ALGO_CONFIG_HASH,
   type SelectorEngine,
   type ElementSelectorRemoteConfig,
   type ElementSelectorLogger,
@@ -182,6 +184,16 @@ export class DataExtractor {
   };
 
   /**
+   * Stable fingerprint of the resolved selector-algorithm config currently
+   * driving {@link getElementPath}. Attached to zoning events alongside
+   * `[Amplitude] Element Path` so analysis can correlate selector output with
+   * the config that produced it.
+   */
+  getSelectorAlgoConfigHash = (): string => {
+    return hashSelectorConfig(this.selectorEngine.getConfig());
+  };
+
+  /**
    * Apply an element-selector remote-config payload to the engine. Called from
    * plugin setup when remote config is delivered. Resolving an absent/empty
    * payload yields the documented defaults (engine stays dormant on legacy
@@ -214,6 +226,7 @@ export class DataExtractor {
       [constants.AMPLITUDE_EVENT_PROP_ELEMENT_POSITION_TOP]: rect.top == null ? null : Math.round(rect.top),
       [constants.AMPLITUDE_EVENT_PROP_ELEMENT_ATTRIBUTES]: attributes,
       [constants.AMPLITUDE_EVENT_PROP_ELEMENT_PATH]: this.getElementPath(element),
+      [AMPLITUDE_EVENT_PROP_SELECTOR_ALGO_CONFIG_HASH]: this.getSelectorAlgoConfigHash(),
       [constants.AMPLITUDE_EVENT_PROP_ELEMENT_PARENT_LABEL]: nearestLabel,
       [constants.AMPLITUDE_EVENT_PROP_PAGE_URL]: getDecodeURI(window.location.href.split('?')[0]),
       [constants.AMPLITUDE_EVENT_PROP_PAGE_TITLE]: (

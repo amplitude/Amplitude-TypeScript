@@ -1,5 +1,5 @@
 import { BrowserConfig } from '@amplitude/analytics-core';
-import { ElementSelectorRemoteConfig } from '@amplitude/element-selector';
+import { ELEMENT_SELECTOR_REMOTE_CONFIG_KEY, ElementSelectorRemoteConfig } from '@amplitude/element-selector';
 import { DataExtractor } from './data-extractor';
 
 /**
@@ -7,7 +7,7 @@ import { DataExtractor } from './data-extractor';
  * `configs.analyticsSDK.pageActions` namespace autocapture already subscribes
  * to. The payload shape is `ElementSelectorRemoteConfig`.
  */
-export const ELEMENT_SELECTOR_REMOTE_CONFIG_KEY = 'configs.analyticsSDK.elementSelector';
+export { ELEMENT_SELECTOR_REMOTE_CONFIG_KEY };
 
 /**
  * Subscribe a plugin's {@link DataExtractor} to element-selector remote config.

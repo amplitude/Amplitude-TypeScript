@@ -16,6 +16,13 @@ import {
   resolveSelectorConfig,
   DEFAULT_RESOLVED_CONFIG,
   createSelectorEngine,
+  // Config hashing
+  hashSelectorConfig,
+  canonicalizeSelectorConfig,
+  toSelectorConfigSnapshot,
+  sha256Hex,
+  // Constants
+  AMPLITUDE_EVENT_PROP_SELECTOR_ALGO_CONFIG_HASH,
 } from '../src';
 
 describe('@amplitude/element-selector — public API surface', () => {
@@ -54,5 +61,16 @@ describe('@amplitude/element-selector — public API surface', () => {
 
   it('exports the engine factory', () => {
     expect(typeof createSelectorEngine).toBe('function');
+  });
+
+  it('exports the config-hashing primitives', () => {
+    expect(typeof hashSelectorConfig).toBe('function');
+    expect(typeof canonicalizeSelectorConfig).toBe('function');
+    expect(typeof toSelectorConfigSnapshot).toBe('function');
+    expect(typeof sha256Hex).toBe('function');
+  });
+
+  it('exports the selector-algo config hash event-property constant', () => {
+    expect(AMPLITUDE_EVENT_PROP_SELECTOR_ALGO_CONFIG_HASH).toBe('[Amplitude] Selector Algo Config Hash');
   });
 });

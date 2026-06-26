@@ -8,6 +8,9 @@ import {
   ExposureTracker,
 } from '../../src/autocapture/track-viewport-content-updated';
 import * as constants from '../../src/constants';
+import { hashSelectorConfig, resolveSelectorConfig } from '@amplitude/element-selector';
+
+const DEFAULT_SELECTOR_ALGO_CONFIG_HASH = hashSelectorConfig(resolveSelectorConfig());
 
 // Mock trackExposure to capture onExposure callback
 jest.mock('../../src/autocapture/track-exposure', () => ({
@@ -239,6 +242,7 @@ describe('fireViewportContentUpdated - exposureTracker optional chaining', () =>
         elementExposedForPage,
         exposureTracker: undefined,
         isPageEnd: true,
+        selectorAlgoConfigHash: DEFAULT_SELECTOR_ALGO_CONFIG_HASH,
         lastScroll: { maxX: 100, maxY: 200 }, // Same as scrollTracker state → triggers early return
       });
     }).not.toThrow();
@@ -260,6 +264,7 @@ describe('fireViewportContentUpdated - exposureTracker optional chaining', () =>
         elementExposedForPage,
         exposureTracker: undefined,
         isPageEnd: true,
+        selectorAlgoConfigHash: DEFAULT_SELECTOR_ALGO_CONFIG_HASH,
         lastScroll: { maxX: undefined, maxY: undefined },
       });
     }).not.toThrow();
@@ -284,6 +289,7 @@ describe('fireViewportContentUpdated - exposureTracker optional chaining', () =>
       elementExposedForPage,
       exposureTracker: mockExposureTracker,
       isPageEnd: true,
+      selectorAlgoConfigHash: DEFAULT_SELECTOR_ALGO_CONFIG_HASH,
       lastScroll: { maxX: undefined, maxY: undefined },
     });
 
@@ -307,6 +313,7 @@ describe('fireViewportContentUpdated - exposureTracker optional chaining', () =>
       elementExposedForPage,
       exposureTracker: mockExposureTracker,
       isPageEnd: false,
+      selectorAlgoConfigHash: DEFAULT_SELECTOR_ALGO_CONFIG_HASH,
       lastScroll: { maxX: undefined, maxY: undefined },
     });
 
@@ -348,6 +355,7 @@ describe('fireViewportContentUpdated - early return when no changes', () => {
       elementExposedForPage,
       exposureTracker: undefined,
       isPageEnd: false,
+      selectorAlgoConfigHash: DEFAULT_SELECTOR_ALGO_CONFIG_HASH,
       lastScroll: { maxX: 100, maxY: 200 }, // Same as scrollTracker state
     });
 
@@ -367,6 +375,7 @@ describe('fireViewportContentUpdated - early return when no changes', () => {
       elementExposedForPage,
       exposureTracker: mockExposureTracker,
       isPageEnd: true,
+      selectorAlgoConfigHash: DEFAULT_SELECTOR_ALGO_CONFIG_HASH,
       lastScroll: { maxX: 100, maxY: 200 }, // Same as scrollTracker state
     });
 
@@ -390,6 +399,7 @@ describe('fireViewportContentUpdated - early return when no changes', () => {
       elementExposedForPage,
       exposureTracker: undefined,
       isPageEnd: false,
+      selectorAlgoConfigHash: DEFAULT_SELECTOR_ALGO_CONFIG_HASH,
       lastScroll: { maxX: 100, maxY: 200 }, // Same as scrollTracker state
     });
 
@@ -413,6 +423,7 @@ describe('fireViewportContentUpdated - early return when no changes', () => {
       elementExposedForPage,
       exposureTracker: undefined,
       isPageEnd: false,
+      selectorAlgoConfigHash: DEFAULT_SELECTOR_ALGO_CONFIG_HASH,
       lastScroll: { maxX: 50, maxY: 200 }, // Different maxX
     });
 
@@ -436,6 +447,7 @@ describe('fireViewportContentUpdated - early return when no changes', () => {
       elementExposedForPage,
       exposureTracker: undefined,
       isPageEnd: false,
+      selectorAlgoConfigHash: DEFAULT_SELECTOR_ALGO_CONFIG_HASH,
       lastScroll: { maxX: 100, maxY: 150 }, // Different maxY
     });
 
@@ -471,6 +483,7 @@ describe('fireViewportContentUpdated - early return when no changes', () => {
         elementExposedForPage,
         exposureTracker: undefined,
         isPageEnd: false,
+        selectorAlgoConfigHash: DEFAULT_SELECTOR_ALGO_CONFIG_HASH,
         lastScroll: { maxX: undefined, maxY: undefined },
       });
 
@@ -516,6 +529,7 @@ describe('fireViewportContentUpdated - early return when no changes', () => {
         elementExposedForPage,
         exposureTracker: undefined,
         isPageEnd: false,
+        selectorAlgoConfigHash: DEFAULT_SELECTOR_ALGO_CONFIG_HASH,
         lastScroll: { maxX: undefined, maxY: undefined },
       });
 
@@ -558,6 +572,7 @@ describe('fireViewportContentUpdated - early return when no changes', () => {
         elementExposedForPage,
         exposureTracker: undefined,
         isPageEnd: false,
+        selectorAlgoConfigHash: DEFAULT_SELECTOR_ALGO_CONFIG_HASH,
         lastScroll: { maxX: undefined, maxY: undefined },
       });
 
@@ -587,6 +602,7 @@ describe('fireViewportContentUpdated - early return when no changes', () => {
       elementExposedForPage,
       exposureTracker: undefined,
       isPageEnd: false,
+      selectorAlgoConfigHash: DEFAULT_SELECTOR_ALGO_CONFIG_HASH,
       lastScroll: { maxX: undefined, maxY: undefined }, // First call, undefined values
     });
 
@@ -612,6 +628,7 @@ describe('fireViewportContentUpdated - early return when no changes', () => {
       elementExposedForPage,
       exposureTracker: undefined,
       isPageEnd: false,
+      selectorAlgoConfigHash: DEFAULT_SELECTOR_ALGO_CONFIG_HASH,
       lastScroll,
     });
     expect(trackSpy).toHaveBeenCalledTimes(1);
@@ -628,6 +645,7 @@ describe('fireViewportContentUpdated - early return when no changes', () => {
       elementExposedForPage,
       exposureTracker: undefined,
       isPageEnd: false,
+      selectorAlgoConfigHash: DEFAULT_SELECTOR_ALGO_CONFIG_HASH,
       lastScroll,
     });
     expect(trackSpy).toHaveBeenCalledTimes(1); // Still 1, deduplication worked
