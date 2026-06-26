@@ -5,6 +5,7 @@ export { AmplitudeContext } from './types/amplitude-context';
 export { Identify, IIdentify, ValidPropertyType } from './identify';
 export { Revenue, IRevenue, RevenueProperty } from './revenue';
 export { Destination } from './plugins/destination';
+export { getHeartbeatInstance } from './heartbeat';
 export { IdentityEventSender } from './plugins/identity';
 export { Config, RequestMetadata } from './config';
 export { IConfig } from './types/config/core-config';
