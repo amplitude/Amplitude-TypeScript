@@ -34,6 +34,7 @@ import {
   init,
   setDeviceId,
   setSessionId,
+  getSessionId,
   getSessionReplayProperties,
   start,
   stop,
@@ -45,6 +46,7 @@ jest.mock('@amplitude/session-replay-react-native', () => ({
   init: jest.fn(),
   setDeviceId: jest.fn(),
   setSessionId: jest.fn(),
+  getSessionId: jest.fn(),
   getSessionReplayProperties: jest.fn(),
   start: jest.fn(),
   stop: jest.fn(),
@@ -57,6 +59,9 @@ describe('SegmentSessionReplayPlugin', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+
+    // Default: native SDK has not yet received a real session ID (the -1 sentinel).
+    (getSessionId as jest.Mock).mockResolvedValue(-1);
 
     mockConfig = {
       apiKey: 'test-api-key',
@@ -266,9 +271,85 @@ describe('SegmentSessionReplayPlugin', () => {
   });
 
   describe('start', () => {
-    it('should call start', async () => {
+    it('should call native start immediately when a valid session ID already exists', async () => {
+      (getSessionId as jest.Mock).mockResolvedValue(1700000000000);
+
       await plugin.start();
-      expect(start).toHaveBeenCalled();
+
+      expect(start).toHaveBeenCalledTimes(1);
+    });
+
+    it('should NOT call native start when session ID is -1 (autoStart:false bug)', async () => {
+      // SR SDK still has the default -1 sentinel — no real session ID yet.
+      (getSessionId as jest.Mock).mockResolvedValue(-1);
+
+      await plugin.start();
+
+      expect(start).not.toHaveBeenCalled();
+    });
+
+    it('should NOT call native start when session ID is null', async () => {
+      (getSessionId as jest.Mock).mockResolvedValue(null);
+
+      await plugin.start();
+
+      expect(start).not.toHaveBeenCalled();
+    });
+
+    it('should flush deferred start on the first execute() with a valid session ID', async () => {
+      // Simulate autoStart:false → start() before any event
+      (getSessionId as jest.Mock).mockResolvedValue(-1);
+      await plugin.start();
+      expect(start).not.toHaveBeenCalled();
+
+      // First real event arrives carrying the actual session ID
+      const mockEvent: SegmentEvent = {
+        type: EventType.TrackEvent,
+        event: 'app_opened',
+        properties: { session_id: '1700000000000' },
+        context: { device: { id: 'device-abc' } },
+      } as any;
+      (getSessionReplayProperties as jest.Mock).mockResolvedValue({});
+
+      await plugin.execute(mockEvent);
+
+      // Native start() should now have been called exactly once with the real id.
+      expect(start).toHaveBeenCalledTimes(1);
+    });
+
+    it('should NOT flush deferred start when execute() carries sessionId -1', async () => {
+      (getSessionId as jest.Mock).mockResolvedValue(-1);
+      await plugin.start();
+
+      const mockEvent: SegmentEvent = {
+        type: EventType.TrackEvent,
+        event: 'no_session_yet',
+        properties: {},
+        context: {},
+      } as any;
+      (getSessionReplayProperties as jest.Mock).mockResolvedValue({});
+
+      await plugin.execute(mockEvent);
+
+      expect(start).not.toHaveBeenCalled();
+    });
+
+    it('should flush deferred start only once across multiple execute() calls', async () => {
+      (getSessionId as jest.Mock).mockResolvedValue(-1);
+      await plugin.start();
+
+      const eventWithSession: SegmentEvent = {
+        type: EventType.TrackEvent,
+        event: 'button_clicked',
+        properties: { session_id: '1700000000000' },
+        context: { device: { id: 'device-abc' } },
+      } as any;
+      (getSessionReplayProperties as jest.Mock).mockResolvedValue({});
+
+      await plugin.execute(eventWithSession);
+      await plugin.execute(eventWithSession);
+
+      expect(start).toHaveBeenCalledTimes(1);
     });
   });
 
