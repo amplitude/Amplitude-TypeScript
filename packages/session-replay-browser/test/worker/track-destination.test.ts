@@ -655,5 +655,31 @@ describe('worker/track-destination', () => {
       expect(postedOfType('fetch-request')).toHaveLength(1);
       expect(mockPostMessage).toHaveBeenCalledWith(expect.objectContaining({ type: 'complete', id: 'd4' }));
     });
+
+    test('send-timeout abort settles a hung delegated attempt instead of wedging the worker', async () => {
+      // Fire the armed send-timeout on the next macrotask.
+      const realSetTimeout = global.setTimeout;
+      jest
+        .spyOn(global, 'setTimeout')
+        .mockImplementation((fn) => realSetTimeout(fn, 0) as unknown as ReturnType<typeof setTimeout>);
+
+      // The main thread never replies with a fetch-response. Before the fix, delegateRequest
+      // ignored the abort signal, so sendWithRetry awaited the unanswered delegation forever and
+      // this invokeOnMessage would never resolve (the test would time out). Now the send-timeout
+      // aborts the delegation (retryable AbortError); with retries exhausted the worker settles
+      // by posting a failure complete. invokeOnMessage awaits the whole send, so its resolution
+      // is itself the proof the worker did not wedge.
+      await invokeOnMessage({
+        type: 'send',
+        id: 'd6',
+        payload: basePayload,
+        context: { ...baseContext, flushMaxRetries: 1, sendTimeoutMs: 5 },
+        useRetry: true,
+        useCustomTransport: true,
+      });
+
+      expect(postedOfType('fetch-request')).toHaveLength(1);
+      expect(mockPostMessage).toHaveBeenCalledWith(expect.objectContaining({ type: 'complete', id: 'd6' }));
+    });
   });
 });

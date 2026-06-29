@@ -91,10 +91,33 @@ const defaultRequest: DoRequest = (url, options) => fetch(url, options) as Promi
 // Posts a fetch-request to the main thread and resolves once the matching fetch-response
 // arrives. Rejects if the main-thread transport errored, so doFetch's catch surfaces it the
 // same way a thrown fetch would (no retry) — matching the non-worker custom-transport path.
+//
+// The send-timeout AbortController lives in doFetch. The built-in fetch honors its signal
+// directly; a delegated attempt runs the customer's transport on the main thread and can't
+// cancel it from here, but we still listen for the abort so a hung/never-settling transport
+// rejects this attempt as a retryable AbortError (matching the built-in path) instead of
+// leaving sendWithRetry awaiting forever and leaking the in-flight delegation. The main thread
+// may still post a late fetch-response, but its requestId is gone from pendingDelegations by
+// then, so onmessage drops it.
 const delegateRequest: DoRequest = (url, options) => {
   const requestId = `${++delegationCounter}`;
   return new Promise<ResponseLike>((resolve, reject) => {
+    const { signal } = options;
+    const abort = () => {
+      pendingDelegations.delete(requestId);
+      // Browsers reject aborted fetches with a DOMException named 'AbortError'; doFetch's catch
+      // matches on the name, so a plain Error with the same name takes the same retryable path.
+      const err = new Error('Delegated session replay fetch aborted by send timeout');
+      err.name = 'AbortError';
+      reject(err);
+    };
+    if (signal?.aborted) {
+      abort();
+      return;
+    }
+    signal?.addEventListener('abort', abort, { once: true });
     pendingDelegations.set(requestId, (resp) => {
+      signal?.removeEventListener('abort', abort);
       if (resp.error) {
         reject(new Error(resp.body));
         return;
@@ -169,7 +192,8 @@ async function doFetch(
     // fetch() has no native timeout; abort a hung request so it surfaces as a retryable
     // failure instead of silently wedging the worker (and the awaiting orchestrator). The
     // request goes through doRequest so a custom transport (delegated to the main thread) is
-    // honored; the built-in fetch path uses the abort signal, the delegated path ignores it.
+    // honored; both paths observe the abort signal — the built-in fetch cancels directly, and
+    // delegateRequest rejects the pending delegation so a hung transport still times out.
     const controller = new AbortController();
     const timeout =
       sendTimeoutMs > 0
