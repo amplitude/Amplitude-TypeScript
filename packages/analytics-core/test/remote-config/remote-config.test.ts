@@ -1156,6 +1156,32 @@ describe('RemoteConfigClient', () => {
       expect(customFetch).toHaveBeenCalledTimes(2);
       expect(result.remoteConfig).toEqual({ key: 'value' });
     });
+
+    test('aborts a hung custom transport on timeout and retries instead of blocking forever', async () => {
+      global.fetch = jest.fn();
+      // Never-settling transport that ignores the abort signal. The client-side timeout must
+      // still reject the await so the retry loop proceeds rather than hanging indefinitely.
+      const customFetch = jest.fn(() => new Promise<Response>(() => undefined));
+      const customClient = new RemoteConfigClient(mockApiKey, mockLogger, 'US', undefined, customFetch);
+
+      // Returning at all (rather than hanging the test) proves the timeout aborted each hung
+      // attempt; both retries ran and the loop gave up with a null config.
+      const result = await customClient.fetch(2, 40);
+
+      expect(customFetch).toHaveBeenCalledTimes(2);
+      expect(result.remoteConfig).toBeNull();
+    });
+
+    test('surfaces a rejected custom transport through the retry loop', async () => {
+      global.fetch = jest.fn();
+      const customFetch = jest.fn().mockRejectedValue(new Error('network down'));
+      const customClient = new RemoteConfigClient(mockApiKey, mockLogger, 'US', undefined, customFetch);
+
+      const result = await customClient.fetch(1);
+
+      expect(customFetch).toHaveBeenCalledTimes(1);
+      expect(result.remoteConfig).toBeNull();
+    });
   });
 
   describe('getUrlParams', () => {

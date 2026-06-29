@@ -42,6 +42,35 @@ export interface RemoteConfigFetchRequest {
  */
 export type RemoteConfigCustomFetch = (request: RemoteConfigFetchRequest) => Promise<Response>;
 
+/**
+ * Settles with `promise`, but rejects with an AbortError when `signal` fires. The request-timeout
+ * signal is handed to customFetch, but a transport that ignores it would block the await (and the
+ * retry loop) indefinitely; racing the abort guarantees the client-side timeout always applies.
+ * The transport's own promise keeps running — we can't cancel it — we just stop awaiting it.
+ */
+function abortableFetch(promise: Promise<Response>, signal: AbortSignal): Promise<Response> {
+  return new Promise<Response>((resolve, reject) => {
+    const onAbort = () => {
+      // Match how a native aborted fetch rejects (name 'AbortError') so fetch()'s catch logs it
+      // as a timeout; either way the loop retries since the abort doesn't clear shouldRetry.
+      const err = new Error('Remote config custom fetch aborted by timeout');
+      err.name = 'AbortError';
+      reject(err);
+    };
+    signal.addEventListener('abort', onAbort, { once: true });
+    promise.then(
+      (value) => {
+        signal.removeEventListener('abort', onAbort);
+        resolve(value);
+      },
+      (err) => {
+        signal.removeEventListener('abort', onAbort);
+        reject(err);
+      },
+    );
+  });
+}
+
 export const US_SERVER_URL = 'https://sr-client-cfg.amplitude.com/config';
 export const EU_SERVER_URL = 'https://sr-client-cfg.eu.amplitude.com/config';
 export const DEFAULT_MAX_RETRIES = 3;
@@ -378,8 +407,14 @@ export class RemoteConfigClient implements IRemoteConfigClient {
         const headers: Record<string, string> = { Accept: '*/*' };
         // When a custom transport is configured, hand it the fully-formed request and let it own
         // the network call; otherwise use the built-in fetch. Retry/response handling is identical.
+        // The built-in fetch cancels directly on the signal; the custom transport can't be
+        // cancelled, so race it against the abort (abortableFetch) to enforce the timeout even if
+        // the transport ignores the signal — otherwise a hung transport would block every retry.
         const res = this.customFetch
-          ? await this.customFetch({ url, method: 'GET', headers, signal: abortController.signal })
+          ? await abortableFetch(
+              this.customFetch({ url, method: 'GET', headers, signal: abortController.signal }),
+              abortController.signal,
+            )
           : await fetch(url, {
               method: 'GET',
               headers,
