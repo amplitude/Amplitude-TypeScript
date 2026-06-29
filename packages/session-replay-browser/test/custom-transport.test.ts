@@ -145,6 +145,29 @@ describe('custom transport (handleSendEvents)', () => {
       expect(handleSendEvents).toHaveBeenCalledTimes(1);
       expect(onComplete).toHaveBeenCalledTimes(1);
     });
+
+    test('a hung callback is aborted by the send timeout and retried instead of blocking the flush loop', async () => {
+      // Never-settling transport. Before the fix, awaiting it blocked sendOnMainThread forever
+      // (the send-timeout only aborted the built-in fetch). Now the abort rejects the awaited
+      // callback with a retryable AbortError, so the retry budget runs and the send still settles.
+      const handleSendEvents = jest.fn(() => new Promise<Response>(() => undefined));
+      const onComplete = jest.fn();
+      const trackDestination = new SessionReplayTrackDestination({
+        loggerProvider: mockLoggerProvider,
+        handleSendEvents,
+        sendTimeoutMs: 10,
+      });
+
+      const context = { ...baseContext(), onComplete };
+      const sendPromise = trackDestination.send(context, true);
+      await jest.runAllTimersAsync();
+      await sendPromise;
+
+      // Each hung attempt timed out and was retried; the send settled exactly once (no wedge).
+      expect(handleSendEvents.mock.calls.length).toBeGreaterThanOrEqual(2);
+      expect(onComplete).toHaveBeenCalledTimes(1);
+      expect(fetch).not.toHaveBeenCalled();
+    });
   });
 
   describe('page-exit (sendBeacon) path', () => {

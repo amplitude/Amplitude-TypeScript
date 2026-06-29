@@ -81,6 +81,34 @@ const MAX_KILLED_SESSIONS = 256;
 // cap only guards the pathological case of a wedged worker that never replies at all.
 const MAX_TIMED_OUT_WORKER_REQUESTS = 256;
 
+// Settles with `promise`, but rejects early with an AbortError when `signal` fires. Used to apply
+// the send timeout to a custom transport whose own promise can't be cancelled: a hung transport
+// then surfaces as a retryable timeout (matching the built-in fetch and worker delegation paths)
+// instead of blocking the serial flush loop. The transport's promise keeps running; we just stop
+// awaiting it. `signal` is always supplied with the send-timeout controller's signal.
+function abortable<T>(promise: Promise<T>, signal: AbortSignal): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const onAbort = () => {
+      // Match how browsers reject an aborted fetch (DOMException 'AbortError'); sendOnMainThread's
+      // catch keys off the name to route it through the retry budget rather than failing fatally.
+      const err = new Error('Custom session replay transport aborted by send timeout');
+      err.name = 'AbortError';
+      reject(err);
+    };
+    signal.addEventListener('abort', onAbort, { once: true });
+    promise.then(
+      (value) => {
+        signal.removeEventListener('abort', onAbort);
+        resolve(value);
+      },
+      (err) => {
+        signal.removeEventListener('abort', onAbort);
+        reject(err);
+      },
+    );
+  });
+}
+
 export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrackDestination {
   loggerProvider: ILogger;
   storageKey = '';
@@ -807,10 +835,16 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
       try {
         // When a custom transport is configured, hand it the fully-formed request and let it own
         // the network call (e.g. to attach a JWT and route through a proxy). Otherwise use the
-        // built-in fetch. Retry/response handling below is identical for both paths. The custom
-        // transport owns its own timeout; controller.signal only aborts the built-in fetch.
+        // built-in fetch. Retry/response handling below is identical for both paths. The built-in
+        // fetch cancels directly on controller.signal; the custom callback can't be cancelled, so
+        // we race it against the abort — a hung/never-settling transport then rejects with an
+        // AbortError (retryable, like the worker delegation path) instead of blocking the serial
+        // flush loop forever. The callback's own promise keeps running; we just stop awaiting it.
         res = this.handleSendEvents
-          ? await this.handleSendEvents({ url: serverUrl, method: 'POST', headers, body, keepalive })
+          ? await abortable(
+              this.handleSendEvents({ url: serverUrl, method: 'POST', headers, body, keepalive }),
+              controller.signal,
+            )
           : await fetch(serverUrl, options);
       } finally {
         // Clear on success and on error alike so a settled request never leaves an armed
