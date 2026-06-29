@@ -51,9 +51,10 @@ interface RequestOptions {
   // string | Uint8Array (not BodyInit) so it stays structured-cloneable across postMessage.
   body: string | Uint8Array;
   keepalive: boolean;
-  // Abort signal for the send timeout. The built-in fetch path honors it; the delegation path
-  // runs the request on the main thread, which has its own lifecycle, so it ignores the signal.
-  signal?: AbortSignal;
+  // Send-timeout abort signal — doFetch always supplies controller.signal. The built-in fetch
+  // path passes it straight to fetch(); the delegation path listens for it to reject a hung
+  // attempt (the request itself runs on the main thread and can't be cancelled from here).
+  signal: AbortSignal;
 }
 
 type DoRequest = (url: string, options: RequestOptions) => Promise<ResponseLike>;
@@ -111,13 +112,11 @@ const delegateRequest: DoRequest = (url, options) => {
       err.name = 'AbortError';
       reject(err);
     };
-    if (signal?.aborted) {
-      abort();
-      return;
-    }
-    signal?.addEventListener('abort', abort, { once: true });
+    // doFetch arms the timeout after this runs, so the signal is never already aborted here;
+    // listening for the event covers every real abort.
+    signal.addEventListener('abort', abort, { once: true });
     pendingDelegations.set(requestId, (resp) => {
-      signal?.removeEventListener('abort', abort);
+      signal.removeEventListener('abort', abort);
       if (resp.error) {
         reject(new Error(resp.body));
         return;
