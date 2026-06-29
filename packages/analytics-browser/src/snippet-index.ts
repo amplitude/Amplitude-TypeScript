@@ -44,12 +44,20 @@ function resolveCurrentScriptUrl(): string | undefined {
     createInstance: createNamedInstance,
   });
 
+  // Normalize proxy queues so a pre-existing global with `invoked = true` but
+  // missing `_q` / `_iq` doesn't crash either this bootstrap or downstream
+  // code (e.g. GTM wrappers that read `amplitude._iq[name]` directly).
+  GlobalScope.amplitude._q = GlobalScope.amplitude._q || [];
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-ignore
+  GlobalScope.amplitude._iq = GlobalScope.amplitude._iq || {};
+
   if (GlobalScope.amplitude.invoked) {
     const queue = GlobalScope.amplitude._q;
     GlobalScope.amplitude._q = [];
     runQueuedFunctions(amplitude, queue);
 
-    const instanceNames = Object.keys(GlobalScope.amplitude._iq) || [];
+    const instanceNames = Object.keys(GlobalScope.amplitude._iq);
     for (let i = 0; i < instanceNames.length; i++) {
       const instanceName = instanceNames[i];
       const instance = Object.assign(GlobalScope.amplitude._iq[instanceName], createNamedInstance(instanceName));
