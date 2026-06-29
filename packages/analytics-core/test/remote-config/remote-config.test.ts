@@ -1112,6 +1112,78 @@ describe('RemoteConfigClient', () => {
     });
   });
 
+  describe('customFetch (custom transport)', () => {
+    test('invokes the custom transport with a fully-formed request instead of fetch', async () => {
+      global.fetch = jest.fn();
+      const customFetch = jest.fn(
+        (_request: { url: string; method: string; headers: Record<string, string>; signal?: AbortSignal }) =>
+          Promise.resolve({ ok: true, json: () => Promise.resolve({ key: 'value' }) } as Response),
+      );
+      const customClient = new RemoteConfigClient(mockApiKey, mockLogger, 'US', undefined, customFetch);
+
+      const result = await customClient.fetch();
+
+      expect(global.fetch).not.toHaveBeenCalled();
+      expect(customFetch).toHaveBeenCalledTimes(1);
+      const request = customFetch.mock.calls[0][0];
+      expect(request.method).toBe('GET');
+      expect(request.url).toContain('/config/test-api-key');
+      expect(request.headers.Accept).toBe('*/*');
+      expect(request.signal).toBeInstanceOf(AbortSignal);
+      expect(result.remoteConfig).toEqual({ key: 'value' });
+    });
+
+    test('falls back to the built-in fetch when no custom transport is provided', async () => {
+      global.fetch = jest.fn(() =>
+        Promise.resolve({ ok: true, json: () => Promise.resolve({ key: 'value' }) } as Response),
+      );
+      const result = await client.fetch();
+
+      expect(global.fetch).toHaveBeenCalledTimes(1);
+      expect(result.remoteConfig).toEqual({ key: 'value' });
+    });
+
+    test('retry stays in the client around the custom transport (5xx then 200)', async () => {
+      global.fetch = jest.fn();
+      const customFetch = jest
+        .fn()
+        .mockResolvedValueOnce({ ok: false, status: 500, text: () => Promise.resolve('err') } as Response)
+        .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ key: 'value' }) } as Response);
+      const customClient = new RemoteConfigClient(mockApiKey, mockLogger, 'US', undefined, customFetch);
+
+      const result = await customClient.fetch(2);
+
+      expect(customFetch).toHaveBeenCalledTimes(2);
+      expect(result.remoteConfig).toEqual({ key: 'value' });
+    });
+
+    test('aborts a hung custom transport on timeout and retries instead of blocking forever', async () => {
+      global.fetch = jest.fn();
+      // Never-settling transport that ignores the abort signal. The client-side timeout must
+      // still reject the await so the retry loop proceeds rather than hanging indefinitely.
+      const customFetch = jest.fn(() => new Promise<Response>(() => undefined));
+      const customClient = new RemoteConfigClient(mockApiKey, mockLogger, 'US', undefined, customFetch);
+
+      // Returning at all (rather than hanging the test) proves the timeout aborted each hung
+      // attempt; both retries ran and the loop gave up with a null config.
+      const result = await customClient.fetch(2, 40);
+
+      expect(customFetch).toHaveBeenCalledTimes(2);
+      expect(result.remoteConfig).toBeNull();
+    });
+
+    test('surfaces a rejected custom transport through the retry loop', async () => {
+      global.fetch = jest.fn();
+      const customFetch = jest.fn().mockRejectedValue(new Error('network down'));
+      const customClient = new RemoteConfigClient(mockApiKey, mockLogger, 'US', undefined, customFetch);
+
+      const result = await customClient.fetch(1);
+
+      expect(customFetch).toHaveBeenCalledTimes(1);
+      expect(result.remoteConfig).toBeNull();
+    });
+  });
+
   describe('getUrlParams', () => {
     test('should generate correct US URL', () => {
       const expectedUrl = `https://sr-client-cfg.amplitude.com/config/test-api-key?config_group=browser`;

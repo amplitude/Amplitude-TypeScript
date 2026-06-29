@@ -42,7 +42,14 @@ export {
   MIN_GZIP_UPLOAD_BODY_SIZE_BYTES,
 } from './transports/gzip';
 
-export { RemoteConfigClient, IRemoteConfigClient, RemoteConfig, Source } from './remote-config/remote-config';
+export {
+  RemoteConfigClient,
+  IRemoteConfigClient,
+  RemoteConfig,
+  Source,
+  RemoteConfigFetchRequest,
+  RemoteConfigCustomFetch,
+} from './remote-config/remote-config';
 
 export { LogLevel } from './types/loglevel';
 export { AMPLITUDE_PREFIX, STORAGE_PREFIX } from './types/constants';
