@@ -1198,6 +1198,27 @@ describe('destination', () => {
       expect(set).toHaveBeenCalledWith('', expect.objectContaining([event1]));
     });
 
+    test('should remove fresh delayed event when it is the fulfilled context', async () => {
+      const destination = new Destination();
+      destination.config = useDefaultConfig();
+      const event = {
+        event_type: 'event',
+        insert_id: '1',
+        delay: { id: 'delay-1', isFresh: true as const },
+      };
+      const context = {
+        event,
+        attempts: 0,
+        callback: () => undefined,
+        timeout: 0,
+      };
+
+      destination.queue = [context];
+      destination.removeEvents([context]);
+
+      expect(destination.queue).toEqual([]);
+    });
+
     test('should save event to the storage provider', async () => {
       const destination = new Destination();
       destination.config = useDefaultConfig();

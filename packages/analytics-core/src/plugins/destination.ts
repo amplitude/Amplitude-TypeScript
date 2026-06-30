@@ -540,7 +540,9 @@ export class Destination implements DestinationPlugin {
     this.queue = this.queue.filter(
       (queuedContext) =>
         !eventsToRemove.some(
-          (context) => context.event.insert_id === queuedContext.event.insert_id && !queuedContext.event.delay?.isFresh,
+          (context) =>
+            context === queuedContext ||
+            (context.event.insert_id === queuedContext.event.insert_id && !queuedContext.event.delay?.isFresh),
         ),
     );
 
