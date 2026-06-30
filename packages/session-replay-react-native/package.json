@@ -29,11 +29,11 @@
     "build": "bob build",
     "clean": "rimraf node_modules lib coverage",
     "fix": "pnpm fix:eslint & pnpm fix:prettier",
-    "fix:eslint": "eslint '{src,test}/**/*.ts' --fix",
-    "fix:prettier": "prettier --write \"{src,test}/**/*.ts\"",
+    "fix:eslint": "eslint '{src,test}/**/*.{ts,tsx}' --fix",
+    "fix:prettier": "prettier --write \"{src,test}/**/*.{ts,tsx}\"",
     "lint": "pnpm lint:prettier && pnpm lint:eslint",
-    "lint:eslint": "eslint '{src,test}/**/*.ts'",
-    "lint:prettier": "prettier --check \"{src,test}/**/*.ts\"",
+    "lint:eslint": "eslint '{src,test}/**/*.{ts,tsx}'",
+    "lint:prettier": "prettier --check \"{src,test}/**/*.{ts,tsx}\"",
     "test": "jest",
     "typecheck": "tsc -p ./tsconfig.json --noEmit",
     "version": "pnpm version-file && pnpm build",
@@ -71,7 +71,7 @@
   "devDependencies": {
     "@types/react": "^18.0.26",
     "react": "18.2.0",
-    "react-native": "0.73.0",
+    "react-native": "0.77.2",
     "react-native-builder-bob": "^0.20.3"
   },
   "peerDependencies": {
@@ -79,11 +79,16 @@
     "react-native": "*"
   },
   "codegenConfig": {
-    "name": "AmpSessionReplaySpec",
-    "type": "modules",
+    "name": "SRMaskViewSpec",
+    "type": "all",
     "jsSrcsDir": "src/specs",
     "android": {
       "javaPackageName": "com.amplitude.sessionreplayreactnative"
+    },
+    "ios": {
+      "componentProvider": {
+        "SRMaskView": "SRMaskView"
+      }
     }
   },
   "react-native-builder-bob": {
