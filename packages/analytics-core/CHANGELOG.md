@@ -3,6 +3,28 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.52.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.51.0...@amplitude/analytics-core@2.52.0) (2026-06-30)
+
+
+### Features
+
+* **session-replay-browser:** custom transport hooks for authenticated proxies (SR-4497) ([#1862](https://github.com/amplitude/Amplitude-TypeScript/issues/1862)) ([5c4d1d7](https://github.com/amplitude/Amplitude-TypeScript/commit/5c4d1d7ec4adc145d0cba76af2f8adc070cdf9ce))
+
+
+
+
+
+# [2.51.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.50.0...@amplitude/analytics-core@2.51.0) (2026-06-25)
+
+
+### Features
+
+* **analytics-react-native:** offline connectivity plugin + JS wiring (SDKRN-5) [1/5] ([#1802](https://github.com/amplitude/Amplitude-TypeScript/issues/1802)) ([670111d](https://github.com/amplitude/Amplitude-TypeScript/commit/670111d013fc5c94d76a0588d9a48866e6cb8af3))
+
+
+
+
+
 # [2.50.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.49.0...@amplitude/analytics-core@2.50.0) (2026-06-11)
 
 

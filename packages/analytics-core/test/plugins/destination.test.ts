@@ -184,6 +184,51 @@ describe('destination', () => {
           message: SUCCESS_MESSAGE,
         });
       });
+
+      test('should retain replacement event after in-flight predecessor completes', async () => {
+        let resolveSend!: (value: Response) => void;
+        const sendPromise = new Promise<Response>((resolve) => {
+          resolveSend = resolve;
+        });
+        const successResponse = {
+          status: Status.Success,
+          statusCode: 200,
+          body: {
+            eventsIngested: 1,
+            payloadSizeBytes: 1,
+            serverUploadTime: 1,
+          },
+        } as Response;
+        const send = jest.fn().mockReturnValueOnce(sendPromise).mockResolvedValueOnce(successResponse);
+        destination.config = {
+          ...useDefaultConfig(),
+          transportProvider: { send },
+        };
+
+        const staleResult = destination.execute(event1);
+        const flushPromise = destination.flush(true);
+        const replacementResult = destination.execute(event2);
+
+        expect(destination.queue).toHaveLength(2);
+
+        resolveSend(successResponse);
+
+        await staleResult;
+        await flushPromise;
+
+        // removeEvents must not drop the replacement when fulfilling the in-flight send by insert_id
+        expect(destination.queue).toHaveLength(1);
+        expect(destination.queue[0].event).toEqual(event2);
+
+        await destination.flush(true);
+
+        await expect(replacementResult).resolves.toEqual({
+          event: event2,
+          code: 200,
+          message: SUCCESS_MESSAGE,
+        });
+        expect(send).toHaveBeenCalledTimes(2);
+      });
     });
   });
 

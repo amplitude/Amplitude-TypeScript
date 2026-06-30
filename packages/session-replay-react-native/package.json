@@ -1,6 +1,6 @@
 {
   "name": "@amplitude/session-replay-react-native",
-  "version": "0.1.0-beta.0",
+  "version": "0.1.0-beta.1",
   "description": "Amplitude Session Replay for React Native",
   "keywords": [
     "analytics",
@@ -35,7 +35,7 @@
     "lint:eslint": "eslint '{src,test}/**/*.ts'",
     "lint:prettier": "prettier --check \"{src,test}/**/*.ts\"",
     "test": "jest",
-    "typecheck": "tsc -p ./tsconfig.json",
+    "typecheck": "tsc -p ./tsconfig.json --noEmit",
     "version": "pnpm version-file && pnpm build",
     "version-file": "node -p \"'export const VERSION = \\'' + require('./package.json').version + '\\';'\" > src/version.ts",
     "typescript": "tsc --noEmit",
@@ -77,6 +77,14 @@
   "peerDependencies": {
     "react": "*",
     "react-native": "*"
+  },
+  "codegenConfig": {
+    "name": "AmpSessionReplaySpec",
+    "type": "modules",
+    "jsSrcsDir": "src/specs",
+    "android": {
+      "javaPackageName": "com.amplitude.sessionreplayreactnative"
+    }
   },
   "react-native-builder-bob": {
     "source": "src",

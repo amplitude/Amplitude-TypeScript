@@ -8,6 +8,7 @@ module.exports = {
   preset: 'react-native',
   testEnvironment: 'jsdom',
   modulePathIgnorePatterns: ['<rootDir>/lib/'],
+  testPathIgnorePatterns: [...(baseConfig.testPathIgnorePatterns || []), '<rootDir>/example/', '<rootDir>/lib/'],
   moduleFileExtensions: ['tsx', 'ts', 'js', 'jsx', 'json'],
   transformIgnorePatterns: [
     'node_modules/(?!(.pnpm|@react-native|react-native|@segment)/)',

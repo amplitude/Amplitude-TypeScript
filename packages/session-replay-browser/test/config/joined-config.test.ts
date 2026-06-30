@@ -854,12 +854,14 @@ describe('SessionReplayJoinedConfigGenerator', () => {
         configServerUrl,
       });
 
-      // Verify RemoteConfigClient was called with the correct parameters
+      // Verify RemoteConfigClient was called with the correct parameters (5th arg is the
+      // optional handleFetchConfig custom transport, undefined when not configured).
       expect(MockedRemoteConfigClient).toHaveBeenCalledWith(
         'static_key',
         mockLoggerProvider,
         ServerZone.EU,
         configServerUrl,
+        undefined,
       );
 
       // Verify the generator was created successfully
@@ -870,7 +872,30 @@ describe('SessionReplayJoinedConfigGenerator', () => {
       await createSessionReplayJoinedConfigGenerator('static_key', mockOptions);
 
       // Verify RemoteConfigClient was called with undefined for configServerUrl
-      expect(MockedRemoteConfigClient).toHaveBeenCalledWith('static_key', mockLoggerProvider, ServerZone.EU, undefined);
+      expect(MockedRemoteConfigClient).toHaveBeenCalledWith(
+        'static_key',
+        mockLoggerProvider,
+        ServerZone.EU,
+        undefined,
+        undefined,
+      );
+    });
+
+    test('should pass handleFetchConfig through to RemoteConfigClient as the custom transport', async () => {
+      const handleFetchConfig = jest.fn(() =>
+        Promise.resolve({ ok: true, json: () => Promise.resolve({}) } as Response),
+      );
+
+      await createSessionReplayJoinedConfigGenerator('static_key', { ...mockOptions, handleFetchConfig });
+
+      // The customer's handleFetchConfig must arrive as the 5th (customFetch) constructor arg.
+      expect(MockedRemoteConfigClient).toHaveBeenCalledWith(
+        'static_key',
+        mockLoggerProvider,
+        ServerZone.EU,
+        undefined,
+        handleFetchConfig,
+      );
     });
   });
 });
