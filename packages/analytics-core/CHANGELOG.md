@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.52.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.51.0...@amplitude/analytics-core@2.52.0) (2026-06-30)
+
+
+### Features
+
+* **session-replay-browser:** custom transport hooks for authenticated proxies (SR-4497) ([#1862](https://github.com/amplitude/Amplitude-TypeScript/issues/1862)) ([5c4d1d7](https://github.com/amplitude/Amplitude-TypeScript/commit/5c4d1d7ec4adc145d0cba76af2f8adc070cdf9ce))
+
+
+
+
+
 # [2.51.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.50.0...@amplitude/analytics-core@2.51.0) (2026-06-25)
 
 
