@@ -6,7 +6,7 @@ type HiddenOptions = 'apiKey' | 'lastEventId';
 
 export type ReactNativeOptions = Omit<Partial<ReactNativeConfig>, HiddenOptions>;
 
-export interface ReactNativeConfig extends Omit<IConfig, 'offline' | 'requestMetadata'> {
+export interface ReactNativeConfig extends Omit<IConfig, 'requestMetadata'> {
   trackingOptions: ReactNativeTrackingOptions;
   trackingSessionEvents?: boolean;
   migrateLegacyData?: boolean;

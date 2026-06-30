@@ -5,6 +5,7 @@ export { AmplitudeContext } from './types/amplitude-context';
 export { Identify, IIdentify, ValidPropertyType } from './identify';
 export { Revenue, IRevenue, RevenueProperty } from './revenue';
 export { Destination } from './plugins/destination';
+export { getHeartbeatInstance } from './heartbeat';
 export { IdentityEventSender } from './plugins/identity';
 export { Config, RequestMetadata } from './config';
 export { IConfig } from './types/config/core-config';
@@ -41,7 +42,14 @@ export {
   MIN_GZIP_UPLOAD_BODY_SIZE_BYTES,
 } from './transports/gzip';
 
-export { RemoteConfigClient, IRemoteConfigClient, RemoteConfig, Source } from './remote-config/remote-config';
+export {
+  RemoteConfigClient,
+  IRemoteConfigClient,
+  RemoteConfig,
+  Source,
+  RemoteConfigFetchRequest,
+  RemoteConfigCustomFetch,
+} from './remote-config/remote-config';
 
 export { LogLevel } from './types/loglevel';
 export { AMPLITUDE_PREFIX, STORAGE_PREFIX } from './types/constants';
@@ -102,7 +110,7 @@ export { Status } from './types/status';
 
 export { NetworkEventCallback, networkObserver } from './observers/network';
 export { NetworkRequestEvent, IRequestWrapper, JsonObject, JsonValue, JsonArray } from './network-request-event';
-export { NetworkTrackingOptions, NetworkCaptureRule } from './types/network-tracking';
+export { NetworkTrackingOptions, NetworkCaptureRule, BodyCaptureRule } from './types/network-tracking';
 export { SAFE_HEADERS, FORBIDDEN_HEADERS } from './types/constants';
 
 export { PageUrlEnrichmentOptions } from './types/page-url-enrichment';

@@ -140,8 +140,10 @@ export class Destination implements DestinationPlugin {
 
   /**
    * If a stale delayed event is sitting in the queue, and it is not in flight,
-   * remove it and resolve as "stale" with status code 0 to indicate that the
-   * event never left the client.
+   * remove it and resolve as "stale" with status code 0.
+   *
+   * If this delayed event is already in flight, mark it as fresh, so that
+   * when it completes, it won't clean-up the updated event.
    * @param incomingEvent { Event } the new event to check old events against
    * @returns void
    */
@@ -155,9 +157,12 @@ export class Destination implements DestinationPlugin {
         incomingEvent.delay &&
         context.event.delay &&
         context.event.delay.id === incomingEvent.delay.id &&
-        context.event.insert_id === incomingEvent.insert_id &&
-        !this.inFlightDelayedEvents[incomingEvent.delay.id]
+        context.event.insert_id === incomingEvent.insert_id
       ) {
+        if (this.inFlightDelayedEvents[incomingEvent.delay.id]) {
+          incomingEvent.delay.isFresh = true;
+          return true;
+        }
         context.callback(buildResult(context.event, 0, 'Stale event overwritten'));
         return false;
       }
@@ -257,7 +262,7 @@ export class Destination implements DestinationPlugin {
     const eventPromises = [regularEventBatch];
 
     if (Object.keys(delayed).length > 0) {
-      eventPromises.push(this.getDelayedEventsBatches(delayed, useRetry));
+      eventPromises.push(this.sendDelayedEvents(delayed, useRetry));
     }
 
     await Promise.all(eventPromises);
@@ -268,7 +273,7 @@ export class Destination implements DestinationPlugin {
     this.scheduleEvents(this.queue);
   }
 
-  getDelayedEventsBatches(delayed: DelayedEventsById, useRetry: boolean) {
+  sendDelayedEvents(delayed: DelayedEventsById, useRetry: boolean) {
     const eventPromises = [];
     try {
       for (const [delayId, contexts] of Object.entries(delayed)) {
@@ -533,8 +538,13 @@ export class Destination implements DestinationPlugin {
    */
   removeEvents(eventsToRemove: Context[]) {
     this.queue = this.queue.filter(
-      (queuedContext) => !eventsToRemove.some((context) => context.event.insert_id === queuedContext.event.insert_id),
+      (queuedContext) =>
+        !eventsToRemove.some(
+          (context) => context.event.insert_id === queuedContext.event.insert_id && !queuedContext.event.delay?.isFresh,
+        ),
     );
+
+    this.queue.forEach((context) => context.event.delay && delete context.event.delay.isFresh);
 
     this.saveEvents();
   }

@@ -182,10 +182,21 @@ test.describe('TRC URL rule — happy path', () => {
     expect(String(propsAfter[SR_PROPERTY_KEY])).toContain(`/${TEST_SESSION_ID}`);
 
     await page.evaluate(() => window.dispatchEvent(new Event('blur')));
-    await page.evaluate(() => (window as any).sessionReplay.flush(false) as Promise<void>);
-    await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
 
-    expect(getBodies().length).toBeGreaterThan(0);
+    // The full snapshot is captured asynchronously after targeting flips recording on, so a
+    // single flush can run before any rrweb event has been queued and deliver nothing. Poll:
+    // flush repeatedly until a batch actually reaches the track API (or time out). This removes
+    // the snapshot-vs-flush race that made this assertion flaky (it fails ~2/3 attempts even on
+    // main); flush(false) is a no-op when the queue is empty, so re-driving it is safe.
+    await expect
+      .poll(
+        async () => {
+          await page.evaluate(() => (window as any).sessionReplay.flush(false) as Promise<void>);
+          return getBodies().length;
+        },
+        { timeout: 10_000 },
+      )
+      .toBeGreaterThan(0);
   });
 });
 
