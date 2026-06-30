@@ -184,6 +184,23 @@ describe('destination', () => {
           message: SUCCESS_MESSAGE,
         });
       });
+
+      test('should not return "stale" result if the event is waiting to retry', () => {
+        const callback = jest.fn();
+        const context: Context = {
+          attempts: 1,
+          callback,
+          event: event1,
+          timeout: 1000,
+        };
+
+        destination.queue = [context];
+        void destination.execute(event2);
+
+        expect(destination.queue).toHaveLength(2);
+        expect(destination.queue[0]).toBe(context);
+        expect(callback).not.toHaveBeenCalled();
+      });
     });
   });
 

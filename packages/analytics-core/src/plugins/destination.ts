@@ -139,9 +139,9 @@ export class Destination implements DestinationPlugin {
   }
 
   /**
-   * If a stale delayed event is sitting in the queue, and it is not in flight,
-   * remove it and resolve as "stale" with status code 0 to indicate that the
-   * event never left the client.
+   * If a stale delayed event is sitting in the queue, and it has not been
+   * sent or in flight, remove it and resolve as "stale" with status code 0 to
+   * indicate that the event never left the client.
    * @param incomingEvent { Event } the new event to check old events against
    * @returns void
    */
@@ -156,6 +156,7 @@ export class Destination implements DestinationPlugin {
         context.event.delay &&
         context.event.delay.id === incomingEvent.delay.id &&
         context.event.insert_id === incomingEvent.insert_id &&
+        context.attempts === 0 &&
         !this.inFlightDelayedEvents[incomingEvent.delay.id]
       ) {
         context.callback(buildResult(context.event, 0, 'Stale event overwritten'));
