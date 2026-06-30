@@ -118,26 +118,30 @@ function App(): React.JSX.Element {
   };
 
   return (
-    <SafeAreaView style={backgroundStyle}>
-      <StatusBar
-        barStyle={isDarkMode ? 'light-content' : 'dark-content'}
-        backgroundColor={backgroundStyle.backgroundColor}
-      />
-      <ScrollView
-        contentInsetAdjustmentBehavior="automatic"
-        style={backgroundStyle}>
-        <Header />
-        <View style={styles.container}>
-          <Text style={styles.title}>Test Amplitude App</Text>
-          <Button
-            title="Track Event"
-            onPress={() => trackEventAndShowToast('test_event')}
-          />
-          <Button title="Track Identify" onPress={trackIdentifyAndShowToast} />
-        </View>
-      </ScrollView>
-      <Toast />
-    </SafeAreaView>
+    <View onTouchEnd={() => {
+      console.log('Touch end event');
+    }}>
+      <SafeAreaView style={backgroundStyle}>
+        <StatusBar
+          barStyle={isDarkMode ? 'light-content' : 'dark-content'}
+          backgroundColor={backgroundStyle.backgroundColor}
+        />
+        <ScrollView
+          contentInsetAdjustmentBehavior="automatic"
+          style={backgroundStyle}>
+          <Header />
+          <View style={styles.container}>
+            <Text style={styles.title}>Test Amplitude App</Text>
+            <Button
+              title="Track Event"
+              onPress={() => trackEventAndShowToast('test_event')}
+            />
+            <Button title="Track Identify" onPress={trackIdentifyAndShowToast} />
+          </View>
+        </ScrollView>
+        <Toast />
+      </SafeAreaView>
+    </View>
   );
 }
 

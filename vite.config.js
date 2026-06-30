@@ -126,7 +126,8 @@ export default defineConfig({
     alias: amplitudeAliases
   },
   server: {
-    host: process.env.SSH ? 'local.website.com' : undefined,
+    // Listen on all interfaces so simulators/emulators/devices can reach the mock API.
+    host: process.env.SSH ? 'local.website.com' : true,
     https: process.env.SSH ? {
       key: fs.readFileSync(path.resolve(process.env.HOME, 'certs/local-website/key.pem')),
       cert: fs.readFileSync(path.resolve(process.env.HOME, 'certs/local-website/cert.pem')),

@@ -78,7 +78,22 @@ function isCaptureRuleMatch(
   return true;
 }
 
-function parseUrl(url: string | undefined) {
+export function parseUrlFromString(href: string) {
+  const hashIndex = href.indexOf('#');
+  const fragment = hashIndex >= 0 ? href.slice(hashIndex + 1) : '';
+  const urlWithoutHash = hashIndex >= 0 ? href.slice(0, hashIndex) : href;
+
+  const queryIndex = urlWithoutHash.indexOf('?');
+  const query = queryIndex >= 0 ? urlWithoutHash.slice(queryIndex + 1) : '';
+  const hrefWithoutQueryOrHash = queryIndex >= 0 ? urlWithoutHash.slice(0, queryIndex) : urlWithoutHash;
+
+  const authorityMatch = hrefWithoutQueryOrHash.match(/^[a-z][a-z0-9+.-]*:\/\/([^/?#]+)/i);
+  const host = authorityMatch?.[1] ?? '';
+
+  return { query, fragment, href, hrefWithoutQueryOrHash, host };
+}
+
+export function parseUrl(url: string | undefined) {
   if (!url) {
     return;
   }
@@ -94,9 +109,13 @@ function parseUrl(url: string | undefined) {
     urlObj.search = '';
     const hrefWithoutQueryOrHash = urlObj.href;
     return { query, fragment, href, hrefWithoutQueryOrHash, host };
-  } catch (e) {
-    /* istanbul ignore next */
-    return;
+  } catch {
+    try {
+      return parseUrlFromString(url);
+    } catch {
+      /* istanbul ignore next */
+      return;
+    }
   }
 }
 
