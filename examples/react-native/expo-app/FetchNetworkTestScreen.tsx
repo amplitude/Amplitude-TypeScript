@@ -1,4 +1,4 @@
-import { init, Types, add } from '@amplitude/analytics-react-native';
+import { add } from '@amplitude/analytics-react-native';
 import { networkCapturePlugin } from '@amplitude/plugin-network-capture-browser';
 import {useEffect, useRef, useState} from 'react';
 import {Platform, ScrollView, StyleSheet, Text, View} from 'react-native';
@@ -237,39 +237,33 @@ export default function FetchNetworkTestScreen() {
   const hasStarted = useRef(false);
 
   useEffect(() => {
-    (async () => {
-      await init(process.env.AMPLITUDE_API_KEY || 'YOUR_API_KEY', 'network-fetch-override', {
-        logLevel: Types.LogLevel.Error,
-      }).promise;
+    // configure it to capture localhost except localhost:8081
+    add(networkCapturePlugin({
+      ignoreHosts: ['localhost:8081'],
+    }));
+    if (hasStarted.current) {
+      return;
+    }
+    hasStarted.current = true;
 
-      // configure it to capture localhost except localhost:8081
-      add(networkCapturePlugin({
-        ignoreHosts: ['localhost:8081'],
-      }));
-      if (hasStarted.current) {
-        return;
+    const timeoutId = setTimeout(async () => {
+      try {
+        const message = await runFetchNetworkTests((item) => {
+          setResults((current) => [...current, item]);
+        });
+        setIsComplete(true);
+        setIsSuccess(true);
+        setCompletionMessage(message);
+      } catch (error) {
+        const failureMessage = `Test failed: ${error instanceof Error ? error.message : String(error)}`;
+        setIsComplete(true);
+        setIsSuccess(false);
+        setCompletionMessage(failureMessage);
+        console.error(failureMessage);
       }
-      hasStarted.current = true;
-  
-      const timeoutId = setTimeout(async () => {
-        try {
-          const message = await runFetchNetworkTests((item) => {
-            setResults((current) => [...current, item]);
-          });
-          setIsComplete(true);
-          setIsSuccess(true);
-          setCompletionMessage(message);
-        } catch (error) {
-          const failureMessage = `Test failed: ${error instanceof Error ? error.message : String(error)}`;
-          setIsComplete(true);
-          setIsSuccess(false);
-          setCompletionMessage(failureMessage);
-          console.error(failureMessage);
-        }
-      }, 100);
-  
-      return () => clearTimeout(timeoutId);
-    })();
+    }, 100);
+
+    return () => clearTimeout(timeoutId);
   }, []);
 
   return (

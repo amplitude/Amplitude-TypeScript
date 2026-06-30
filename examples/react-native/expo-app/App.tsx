@@ -12,6 +12,9 @@ function AmplitudeWrapper({ children, ...props }: { children: React.ReactNode, p
   return (
     <View onTouchEnd={(e) => {
       const target = e._targetInst;
+      if (!target) {
+        return;
+      }
       const title = target.memoizedProps?.title || target.memoizedProps?.children;
       const event = {
         event_type: '[Amplitude] Touch',
