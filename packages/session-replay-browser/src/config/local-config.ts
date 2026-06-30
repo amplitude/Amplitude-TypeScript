@@ -19,6 +19,8 @@ import {
   PrivacyConfig,
   SessionReplayPerformanceConfig,
   SessionReplayVersion,
+  SessionReplaySendEventsHandler,
+  SessionReplayFetchConfigHandler,
 } from './types';
 import { SafeLoggerProvider } from '../logger';
 import { validateUGCFilterRules } from '../helpers';
@@ -57,6 +59,8 @@ export class SessionReplayLocalConfig extends Config implements ISessionReplayLo
   captureFullSnapshotOnFocus?: boolean;
   maxPersistedEventsSizeBytes?: number;
   maxSingleEventSizeBytes?: number;
+  handleSendEvents?: SessionReplaySendEventsHandler;
+  handleFetchConfig?: SessionReplayFetchConfigHandler;
 
   constructor(apiKey: string, options: SessionReplayOptions) {
     const defaultConfig = getDefaultConfig();
@@ -154,6 +158,8 @@ export class SessionReplayLocalConfig extends Config implements ISessionReplayLo
         maxIntervalMs: DEFAULT_FLUSH_MAX_INTERVAL_MS,
       };
     }
+    this.handleSendEvents = options.handleSendEvents;
+    this.handleFetchConfig = options.handleFetchConfig;
   }
 }
 

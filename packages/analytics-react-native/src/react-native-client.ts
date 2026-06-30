@@ -22,9 +22,11 @@ import {
   setConnectorUserId,
   SpecialEventType,
   AnalyticsClient,
+  OfflineDisabled,
 } from '@amplitude/analytics-core';
 import { CampaignTracker } from './campaign/campaign-tracker';
 import { Context } from './plugins/context';
+import { networkConnectivityCheckerPlugin } from './plugins/network-connectivity-checker';
 import { useReactNativeConfig, createCookieStorage } from './config';
 import { parseOldCookies } from './cookie-migration';
 import { isNative } from './utils/platform';
@@ -77,6 +79,11 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
 
     // Step 3: Install plugins
     // Do not track any events before this
+    // Install before Destination so `config.offline` is set before any flush.
+    // Skip when offline mode is disabled via the OfflineDisabled sentinel.
+    if (this.config.offline !== OfflineDisabled) {
+      await this.add(networkConnectivityCheckerPlugin()).promise;
+    }
     await this.add(new Destination()).promise;
     await this.add(new Context()).promise;
     await this.add(new IdentityEventSender()).promise;

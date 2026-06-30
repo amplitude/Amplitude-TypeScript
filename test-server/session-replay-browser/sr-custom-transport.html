@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/amplitude.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Session Replay — Custom Transport (JWT) Test</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        max-width: 720px;
+        margin: 50px auto;
+        padding: 20px;
+      }
+      h1 {
+        color: #333;
+      }
+      button {
+        background: #0066cc;
+        color: white;
+        border: none;
+        padding: 12px 24px;
+        margin: 10px 5px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 16px;
+      }
+      button:hover {
+        background: #0052a3;
+      }
+      .status {
+        padding: 10px;
+        margin: 10px 0;
+        border-radius: 4px;
+        background: #f0f0f0;
+        font-family: monospace;
+      }
+      label {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        margin: 6px 10px 6px 0;
+      }
+      input[type='text'] {
+        padding: 8px;
+        margin: 5px;
+        font-size: 14px;
+        width: 300px;
+      }
+      #log {
+        margin-top: 16px;
+        padding: 10px;
+        background: #111;
+        color: #0f0;
+        font-family: monospace;
+        font-size: 12px;
+        white-space: pre-wrap;
+        border-radius: 4px;
+        min-height: 120px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Session Replay — Custom Transport (JWT) Test</h1>
+
+    <p>
+      Initializes Session Replay with <code>handleSendEvents</code> and <code>handleFetchConfig</code> that attach an
+      <code>Authorization: Bearer &lt;jwt&gt;</code> header. Open the Network tab and confirm the outbound replay /
+      config requests carry the header. Toggle the web worker to verify both transport paths.
+    </p>
+
+    <div class="status" id="status">Status: Not initialized</div>
+
+    <input type="text" id="apiKey" placeholder="API Key (optional)" />
+    <br />
+    <label><input type="checkbox" id="useWebWorker" /> useWebWorker</label>
+    <br />
+    <button id="initBtn">Initialize with custom transport</button>
+    <button id="flushBtn" disabled>Generate events &amp; flush (triggers track POST)</button>
+
+    <div id="log"></div>
+
+    <script type="module">
+      import * as sessionReplay from '@amplitude/session-replay-browser';
+
+      window.sessionReplay = sessionReplay;
+
+      const statusEl = document.getElementById('status');
+      const apiKeyEl = document.getElementById('apiKey');
+      const initBtn = document.getElementById('initBtn');
+      const flushBtn = document.getElementById('flushBtn');
+      const workerEl = document.getElementById('useWebWorker');
+      const logEl = document.getElementById('log');
+
+      function updateStatus(message) {
+        statusEl.textContent = `Status: ${message}`;
+        console.log('[Status]', message);
+      }
+      function log(line) {
+        logEl.textContent += line + '\n';
+        console.log('[CustomTransport]', line);
+      }
+
+      // Stand-in for the customer's real token retrieval.
+      const getJwt = () => 'demo-jwt-token';
+
+      if (import.meta.env.VITE_AMPLITUDE_API_KEY) {
+        apiKeyEl.value = import.meta.env.VITE_AMPLITUDE_API_KEY;
+      }
+
+      initBtn.addEventListener('click', async () => {
+        const apiKey = apiKeyEl.value || import.meta.env.VITE_AMPLITUDE_API_KEY || 'test-api-key';
+        try {
+          updateStatus('Initializing with custom transport...');
+          logEl.textContent = '';
+
+          await sessionReplay.init(apiKey, {
+            deviceId: 'test-device',
+            // A session id is required for SR to start capturing — without it nothing records
+            // and no track POST is ever made.
+            sessionId: Date.now(),
+            sampleRate: 1.0,
+            logLevel: 'debug',
+            useWebWorker: workerEl.checked,
+            // Point both transports at the local sr-echo endpoint (mock-api.js). The server
+            // console logs the Authorization header it receives, simulating an auth proxy.
+            trackServerUrl: `${location.origin}/api/sr-echo/track`,
+            configServerUrl: `${location.origin}/api/sr-echo/config`,
+            handleSendEvents: async ({ url, method, headers, body, keepalive }) => {
+              log(`handleSendEvents → ${method} ${url} (Authorization attached, keepalive=${keepalive})`);
+              return fetch(url, {
+                method,
+                headers: { ...headers, Authorization: `Bearer ${getJwt()}` },
+                body,
+                keepalive,
+              });
+            },
+            handleFetchConfig: async ({ url, method, headers, signal }) => {
+              log(`handleFetchConfig → ${method} ${url} (Authorization attached)`);
+              return fetch(url, {
+                method,
+                headers: { ...headers, Authorization: `Bearer ${getJwt()}` },
+                signal,
+              });
+            },
+          }).promise;
+
+          const sessionId = sessionReplay.getSessionId();
+          updateStatus(`✓ Initialized (useWebWorker=${workerEl.checked})! Session ID: ${sessionId}`);
+          log('Initialized. Click "Generate events & flush" to trigger a track POST (or just interact + wait).');
+          flushBtn.disabled = false;
+        } catch (error) {
+          updateStatus(`✗ Error: ${error.message}`);
+          console.error('[Error]', error);
+        }
+      });
+
+      // Mutate the DOM so rrweb emits incremental events, then flush so the SDK sends a
+      // track POST right away (instead of waiting for the periodic flush interval).
+      flushBtn.addEventListener('click', async () => {
+        const marker = document.createElement('p');
+        marker.textContent = `event marker @ ${new Date().toISOString()}`;
+        document.body.appendChild(marker);
+        log('Generated a DOM mutation, flushing...');
+        await sessionReplay.flush(true);
+        log('flush() resolved — check the server console / Network tab for the track POST.');
+      });
+
+      updateStatus('Ready. Click "Initialize with custom transport".');
+    </script>
+  </body>
+</html>
