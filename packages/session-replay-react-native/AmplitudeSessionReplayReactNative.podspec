@@ -19,7 +19,7 @@ srmaskview_version_ge_077 = lambda do |v|
   minor = parts[1].to_i
   major > 0 || (major == 0 && minor >= 77)
 end
-fabric_enabled = new_arch_enabled && srmaskview_version_ge_077.call(rn_version)
+fabric_enabled = new_arch_enabled && (rn_version.nil? || srmaskview_version_ge_077.call(rn_version))
 if new_arch_enabled && !rn_version.nil? && !srmaskview_version_ge_077.call(rn_version)
   raise "[AmplitudeSessionReplayReactNative] The Fabric SRMaskView component requires React Native >= 0.77 with the New Architecture (found #{rn_version})."
 end
