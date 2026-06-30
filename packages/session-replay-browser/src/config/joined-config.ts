@@ -292,6 +292,9 @@ export const createSessionReplayJoinedConfigGenerator = async (apiKey: string, o
     localConfig.loggerProvider,
     localConfig.serverZone,
     options.configServerUrl,
+    // Custom transport for the config GET. SR's FetchConfigRequest is structurally compatible
+    // with RemoteConfigFetchRequest, so the customer's handleFetchConfig drops straight in.
+    options.handleFetchConfig,
   );
 
   return new SessionReplayJoinedConfigGenerator(remoteConfigClient, localConfig);

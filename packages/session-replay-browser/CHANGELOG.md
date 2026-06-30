@@ -3,6 +3,36 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.47.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.46.2...@amplitude/session-replay-browser@1.47.0) (2026-06-30)
+
+
+### Features
+
+* **session-replay-browser:** custom transport hooks for authenticated proxies (SR-4497) ([#1862](https://github.com/amplitude/Amplitude-TypeScript/issues/1862)) ([5c4d1d7](https://github.com/amplitude/Amplitude-TypeScript/commit/5c4d1d7ec4adc145d0cba76af2f8adc070cdf9ce))
+
+
+
+
+
+## [1.46.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.46.1...@amplitude/session-replay-browser@1.46.2) (2026-06-25)
+
+**Note:** Version bump only for package @amplitude/session-replay-browser
+
+
+
+
+
+## [1.46.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.46.0...@amplitude/session-replay-browser@1.46.1) (2026-06-22)
+
+
+### Bug Fixes
+
+* **session-replay:** no-op setSessionId when session id unchanged ([#1830](https://github.com/amplitude/Amplitude-TypeScript/issues/1830)) ([da465a4](https://github.com/amplitude/Amplitude-TypeScript/commit/da465a48bdda0a399d3976362c73d38a7851c444))
+
+
+
+
+
 # [1.46.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.45.0...@amplitude/session-replay-browser@1.46.0) (2026-06-13)
 
 

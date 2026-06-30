@@ -6,6 +6,13 @@ const workspaceRoot = path.resolve(projectRoot, '../../..');
 
 const defaultConfig = getDefaultConfig(projectRoot);
 
+// Force a single copy of react-native / react across the bundle.
+// Mirrors the expo-app dedup from PR #1803.
+const forcedSingletons = {
+  'react-native': path.resolve(projectRoot, 'node_modules/react-native'),
+  react: path.resolve(projectRoot, 'node_modules/react'),
+};
+
 const config = {
   watchFolders: [workspaceRoot],
   resolver: {
@@ -13,14 +20,15 @@ const config = {
       path.resolve(projectRoot, 'node_modules'),
       path.resolve(workspaceRoot, 'node_modules'),
     ],
-    // `packages/analytics-react-native` has react-native@0.70.6 as a devDep
-    // (its own dev/test target), while this example app uses 0.74.1. Without
-    // an alias, Metro's hierarchical lookup would resolve `react-native`
-    // imports inside the SDK to the SDK's local copy and bundle two RN
-    // versions. Force every `react-native`/`react` import to the app's copy.
-    extraNodeModules: {
-      'react-native': path.resolve(projectRoot, 'node_modules/react-native'),
-      react: path.resolve(projectRoot, 'node_modules/react'),
+    extraNodeModules: forcedSingletons,
+    resolveRequest: (context, moduleName, platform) => {
+      for (const [name, dir] of Object.entries(forcedSingletons)) {
+        if (moduleName === name || moduleName.startsWith(name + '/')) {
+          const target = path.join(dir, moduleName.slice(name.length));
+          return context.resolveRequest(context, target, platform);
+        }
+      }
+      return context.resolveRequest(context, moduleName, platform);
     },
   },
 };
