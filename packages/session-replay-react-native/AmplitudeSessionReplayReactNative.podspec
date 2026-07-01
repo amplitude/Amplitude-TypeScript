@@ -19,10 +19,17 @@ srmaskview_version_ge_077 = lambda do |v|
   minor = parts[1].to_i
   major > 0 || (major == 0 && minor >= 77)
 end
-fabric_enabled = new_arch_enabled && srmaskview_version_ge_077.call(rn_version)
-if new_arch_enabled && !rn_version.nil? && !srmaskview_version_ge_077.call(rn_version)
+# Only a KNOWN RN below 0.77 disqualifies Fabric. If the version can't be resolved
+# under the New Architecture, still build the Fabric sources: codegen (type:"all")
+# registers the SRMaskView component regardless of this check, so omitting the
+# native view (SRMaskView.mm / SRMaskViewCls) would break linking/runtime. A
+# genuinely too-old RN still fails fast via the raise below. (Mirrors the
+# defensive Android gate, which also proceeds when RN is unresolvable.)
+rn_known_below_077 = !rn_version.nil? && !srmaskview_version_ge_077.call(rn_version)
+if new_arch_enabled && rn_known_below_077
   raise "[AmplitudeSessionReplayReactNative] The Fabric SRMaskView component requires React Native >= 0.77 with the New Architecture (found #{rn_version})."
 end
+fabric_enabled = new_arch_enabled && !rn_known_below_077
 
 Pod::Spec.new do |s|
   s.name         = "AmplitudeSessionReplayReactNative"
