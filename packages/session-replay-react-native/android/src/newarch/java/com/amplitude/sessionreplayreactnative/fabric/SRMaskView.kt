@@ -68,6 +68,14 @@ class SRMaskView(context: Context) : ReactViewGroup(context) {
     expandBoundsToChildrenUnion()
   }
 
+  fun resetChildrenOnDrop() {
+    for (i in 0 until childCount) {
+      val child = getChildAt(i) ?: continue
+      child.removeOnLayoutChangeListener(childLayoutChangeListener)
+      SRMaskingRegistry.reset(child)
+    }
+  }
+
   // Fabric drives layout by calling the (final) View.layout(l,t,r,b) from
   // SurfaceMountingManager.updateLayout() (RN 0.77.2). For a display:contents
   // host that frame is degenerate (r==l, b==t -> 0x0). onLayout runs right
