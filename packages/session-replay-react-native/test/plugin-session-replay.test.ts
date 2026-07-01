@@ -124,4 +124,20 @@ describe('SessionReplayPlugin Integration', () => {
     const enriched = await plugin.execute(event);
     expect(enriched).toEqual(event); // Should return the same event
   });
+
+  it('threads privacyConfig.maskLevel through to native setup', async () => {
+    const plugin = new SessionReplayPlugin({ privacyConfig: { maskLevel: 'conservative' } });
+    await plugin.setup(minimalConfig, mockReactNativeClient);
+    expect(NativeModules.AMPNativeSessionReplay.setup).toHaveBeenCalledWith(
+      expect.objectContaining({ maskLevel: 'conservative' }),
+    );
+  });
+
+  it('defaults to medium masking when privacyConfig is not provided', async () => {
+    const plugin = new SessionReplayPlugin();
+    await plugin.setup(minimalConfig, mockReactNativeClient);
+    expect(NativeModules.AMPNativeSessionReplay.setup).toHaveBeenCalledWith(
+      expect.objectContaining({ maskLevel: 'medium' }),
+    );
+  });
 });
