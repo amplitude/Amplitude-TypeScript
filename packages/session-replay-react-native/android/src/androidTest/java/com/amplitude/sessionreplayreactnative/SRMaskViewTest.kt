@@ -180,9 +180,9 @@ class SRMaskViewTest {
       // Give children non-zero, disjoint frames.
       a.layout(0, 0, 100, 50)
       b.layout(120, 60, 200, 140)
-      // Simulate Fabric's display:contents 0x0 host frame. View.layout is final
-      // and invokes the overridden onLayout -> expandBoundsToChildrenUnion.
-      host.layout(0, 0, 0, 0)
+      // Simulate Fabric's display:contents 0x0 host frame at a non-zero parent
+      // offset. View.layout is final and invokes onLayout -> expand.
+      host.layout(50, 60, 50, 60)
     }
 
     assertTrue(
@@ -194,6 +194,8 @@ class SRMaskViewTest {
       host.height > 0,
     )
     // Union of (0,0,100,50) and (120,60,200,140) is (0,0,200,140).
+    assertEquals("host left should preserve parent offset", 50, host.left)
+    assertEquals("host top should preserve parent offset", 60, host.top)
     assertEquals("union width", 200, host.width)
     assertEquals("union height", 140, host.height)
   }

@@ -77,28 +77,27 @@ class SRMaskView(context: Context) : ReactViewGroup(context) {
     expandBoundsToChildrenUnion()
   }
 
-  // Widen this host's native frame to the union of its own frame and all
-  // children's frames so that width>0 && height>0 (shouldCapture passes).
+  // Widen this host's native frame from its parent-space origin to the union of
+  // its own local frame and all children's local frames so that width>0 &&
+  // height>0 (shouldCapture passes).
   private fun expandBoundsToChildrenUnion() {
     if (expanding) return
     if (childCount == 0) return
 
-    var minLeft = left
-    var minTop = top
-    var maxRight = right
-    var maxBottom = bottom
+    var maxRight = width
+    var maxBottom = height
     for (i in 0 until childCount) {
       val c = getChildAt(i) ?: continue
-      if (c.left < minLeft) minLeft = c.left
-      if (c.top < minTop) minTop = c.top
       if (c.right > maxRight) maxRight = c.right
       if (c.bottom > maxBottom) maxBottom = c.bottom
     }
 
-    if (minLeft != left || minTop != top || maxRight != right || maxBottom != bottom) {
+    val expandedRight = left + maxRight
+    val expandedBottom = top + maxBottom
+    if (expandedRight != right || expandedBottom != bottom) {
       expanding = true
       try {
-        setLeftTopRightBottom(minLeft, minTop, maxRight, maxBottom)
+        setLeftTopRightBottom(left, top, expandedRight, expandedBottom)
       } finally {
         expanding = false
       }
