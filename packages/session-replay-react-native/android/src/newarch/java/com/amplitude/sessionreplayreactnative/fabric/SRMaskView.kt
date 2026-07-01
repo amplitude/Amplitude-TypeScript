@@ -77,28 +77,41 @@ class SRMaskView(context: Context) : ReactViewGroup(context) {
     expandBoundsToChildrenUnion()
   }
 
-  // Widen this host's native frame to the union of its own frame and all
-  // children's frames so that width>0 && height>0 (shouldCapture passes).
+  // Widen this host's native frame so it encloses its children (width>0 && height>0
+  // => shouldCapture passes) WITHOUT moving the host. Coordinate spaces differ:
+  // this host's left/top/right/bottom are in its PARENT's space, whereas each
+  // child's left/top/right/bottom are in THIS host's space (a child's edges are
+  // relative to its parent, i.e. the host). So we must NOT union them directly.
+  // Children are positioned relative to the host, so moving the host (changing
+  // left/top) would shift every child in absolute/parent space and break layout
+  // neutrality (Task 0.3). Instead we keep the Fabric-assigned origin (left, top)
+  // and only grow right/bottom: the enclosing size is the max child right/bottom
+  // in host-space, translated to parent-space by adding the host origin. This is
+  // correct regardless of the host's parent offset and idempotent across layout
+  // passes. (Children laid out at negative host-space coords — above/left of the
+  // host origin — cannot be enclosed without moving the host and thus shifting
+  // siblings; normal RN layout never produces those.)
   private fun expandBoundsToChildrenUnion() {
     if (expanding) return
     if (childCount == 0) return
 
-    var minLeft = left
-    var minTop = top
-    var maxRight = right
-    var maxBottom = bottom
+    // Max child extent in this host's own coordinate space.
+    var maxChildRight = 0
+    var maxChildBottom = 0
     for (i in 0 until childCount) {
       val c = getChildAt(i) ?: continue
-      if (c.left < minLeft) minLeft = c.left
-      if (c.top < minTop) minTop = c.top
-      if (c.right > maxRight) maxRight = c.right
-      if (c.bottom > maxBottom) maxBottom = c.bottom
+      if (c.right > maxChildRight) maxChildRight = c.right
+      if (c.bottom > maxChildBottom) maxChildBottom = c.bottom
     }
 
-    if (minLeft != left || minTop != top || maxRight != right || maxBottom != bottom) {
+    // Translate to parent-space without moving the host origin (left, top fixed).
+    val newRight = left + maxChildRight
+    val newBottom = top + maxChildBottom
+
+    if (newRight != right || newBottom != bottom) {
       expanding = true
       try {
-        setLeftTopRightBottom(minLeft, minTop, maxRight, maxBottom)
+        setLeftTopRightBottom(left, top, newRight, newBottom)
       } finally {
         expanding = false
       }

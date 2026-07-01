@@ -212,6 +212,35 @@ class SRMaskViewTest {
     assertEquals("childless host height should stay 0", 0, host.height)
   }
 
+  // 4c. Regression: Fabric lays the degenerate display:contents host out at a
+  //     NON-ZERO parent offset. The host must widen to the children's size WITHOUT
+  //     moving — children are host-relative, so moving the host shifts them in
+  //     absolute space (breaks layout neutrality) and mixing the host's parent-space
+  //     frame with the children's host-space frames also miscomputes the size.
+  @Test
+  fun degenerateHostFrame_atNonZeroOffset_widensWithoutMoving() {
+    lateinit var host: SRMaskView
+    onMain {
+      host = SRMaskView(context)
+      val a = View(context)
+      val b = View(context)
+      host.addView(a)
+      host.addView(b)
+      // Children laid out in the host's OWN (host-relative) coordinate space.
+      a.layout(0, 0, 100, 50)
+      b.layout(120, 60, 200, 140)
+      // Fabric places the 0x0 display:contents host at a non-zero parent offset.
+      host.layout(300, 400, 300, 400)
+    }
+
+    // Size == children union (200x140), independent of the host's parent offset.
+    assertEquals("union width at offset", 200, host.width)
+    assertEquals("union height at offset", 140, host.height)
+    // Position preserved — the host was NOT moved (else children shift absolutely).
+    assertEquals("host left preserved", 300, host.left)
+    assertEquals("host top preserved", 400, host.top)
+  }
+
   // 5. R8 reapply: masking intent recorded with no primitive is replayed when a
   //    primitive later registers.
   @Test
