@@ -71,7 +71,7 @@
   "devDependencies": {
     "@types/react": "^18.0.26",
     "react": "18.2.0",
-    "react-native": "0.77.2",
+    "react-native": "0.73.0",
     "react-native-builder-bob": "^0.20.3"
   },
   "peerDependencies": {
