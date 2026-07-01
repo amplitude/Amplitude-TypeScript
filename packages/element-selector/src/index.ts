@@ -67,6 +67,18 @@ export { legacyCssPath } from './legacy-css-path';
 // ===== Config resolver =====
 export { resolveSelectorConfig, DEFAULT_RESOLVED_CONFIG } from './config/resolve-config';
 
+// ===== Config hashing =====
+// Stable fingerprint of the resolved config, tracked on autocapture "zoning"
+// events so analysis can correlate selector output with the algorithm config
+// that produced it. Consumed identically by the SDK plugins, the dashboard, and
+// the Chrome extension.
+export { hashSelectorConfig, canonicalizeSelectorConfig, toSelectorConfigSnapshot } from './config/hash-config';
+export type { SelectorConfigSnapshot } from './config/hash-config';
+export { sha256Hex } from './helpers/sha256';
+
+// ===== Constants =====
+export { AMPLITUDE_EVENT_PROP_SELECTOR_ALGO_CONFIG_HASH, ELEMENT_SELECTOR_REMOTE_CONFIG_KEY } from './constants';
+
 // ===== Engine factory =====
 export { createSelectorEngine } from './engine';
 export type { CreateSelectorEngineOptions } from './engine';

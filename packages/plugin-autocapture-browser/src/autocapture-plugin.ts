@@ -364,6 +364,7 @@ export const autocapturePlugin = (
         exposureTracker: trackers.exposure,
         isPageEnd,
         lastScroll,
+        selectorAlgoConfigHash: dataExtractor.getSelectorAlgoConfigHash(),
       });
     };
 

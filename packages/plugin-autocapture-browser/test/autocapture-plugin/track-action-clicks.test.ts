@@ -176,6 +176,7 @@ describe('action clicks:', () => {
         '[Amplitude] Element ID': 'addDivButton',
         '[Amplitude] Element Parent Label': 'Card Title',
         '[Amplitude] Element Path': 'div#addDivButton',
+        '[Amplitude] Selector Algo Config Hash': expect.stringMatching(/^[0-9a-f]{64}$/),
         '[Amplitude] Element Position Left': 0,
         '[Amplitude] Element Position Top': 0,
         '[Amplitude] Element Tag': 'div',

@@ -1,5 +1,6 @@
 import { DataExtractor } from '../src/data-extractor';
 import * as constants from '../src/constants';
+import { AMPLITUDE_EVENT_PROP_SELECTOR_ALGO_CONFIG_HASH } from '@amplitude/element-selector';
 import { mockWindowLocationFromURL } from './utils';
 import type { ElementBasedTimestampedEvent } from '../src/helpers';
 import { DATA_AMP_MASK_ATTRIBUTES } from '../src/constants';
@@ -427,6 +428,20 @@ describe('data extractor', () => {
 
       const result = dataExtractor.getNearestLabel(input);
       expect(result).toEqual('');
+    });
+  });
+
+  describe('getSelectorAlgoConfigHash', () => {
+    test('returns a stable 64-character hex digest for the active engine config', () => {
+      const hash = dataExtractor.getSelectorAlgoConfigHash();
+      expect(hash).toMatch(/^[0-9a-f]{64}$/);
+      expect(hash).toBe(dataExtractor.getSelectorAlgoConfigHash());
+    });
+
+    test('changes when the selector engine config changes', () => {
+      const defaultHash = dataExtractor.getSelectorAlgoConfigHash();
+      dataExtractor.updateSelectorConfig({ enabled: true });
+      expect(dataExtractor.getSelectorAlgoConfigHash()).not.toBe(defaultHash);
     });
   });
 
@@ -1210,6 +1225,22 @@ describe('data extractor', () => {
       const result = dataExtractor.getEventProperties('click', element, 'data-amp-track-');
 
       expect(result[constants.AMPLITUDE_EVENT_PROP_PAGE_TITLE]).toBe('Test Page Title');
+
+      document.body.removeChild(element);
+    });
+  });
+
+  describe('getEventProperties selector config hash', () => {
+    test('includes the selector-algo config hash alongside element path', () => {
+      const element = document.createElement('button');
+      element.id = 'test-button';
+      element.textContent = 'Click me';
+      document.body.appendChild(element);
+
+      const result = dataExtractor.getEventProperties('click', element, 'data-amp-track-');
+
+      expect(result[AMPLITUDE_EVENT_PROP_SELECTOR_ALGO_CONFIG_HASH]).toBe(dataExtractor.getSelectorAlgoConfigHash());
+      expect(result[AMPLITUDE_EVENT_PROP_SELECTOR_ALGO_CONFIG_HASH]).toMatch(/^[0-9a-f]{64}$/);
 
       document.body.removeChild(element);
     });
