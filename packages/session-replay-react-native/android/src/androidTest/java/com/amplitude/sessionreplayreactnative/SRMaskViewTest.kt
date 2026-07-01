@@ -265,6 +265,20 @@ class SRMaskViewTest {
     assertEquals("host must not re-widen after drop (listener detached)", 100, host.width)
   }
 
+  // 6. The host must disable child clipping (iOS parity: SRMaskView.mm sets
+  //    clipsToBounds=NO). Its Yoga node is display:contents, so the native host is
+  //    0x0; with default clipChildren=true the masked subtree would paint
+  //    invisibly on-screen even though its layout is correct.
+  @Test
+  fun srMaskViewDisablesChildClipping() {
+    lateinit var host: SRMaskView
+    onMain { host = SRMaskView(context) }
+    assertTrue(
+      "SRMaskView must not clip children (else masked content renders invisibly)",
+      !host.clipChildren,
+    )
+  }
+
   // 5. R8 reapply: masking intent recorded with no primitive is replayed when a
   //    primitive later registers.
   @Test

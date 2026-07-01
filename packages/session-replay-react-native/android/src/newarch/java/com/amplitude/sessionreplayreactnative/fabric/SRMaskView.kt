@@ -18,6 +18,17 @@ class SRMaskView(context: Context) : ReactViewGroup(context) {
   // onLayout.
   private var expanding = false
 
+  init {
+    // Match iOS (SRMaskView.mm sets clipsToBounds = NO). The Yoga node is
+    // display:contents, so this host's native frame is degenerate (0x0 before the
+    // onLayout widening below). With Android's default clipChildren=true a 0x0
+    // host clips its children, so the masked subtree would render invisibly even
+    // though its Yoga layout is correct. Disabling child clipping lets children
+    // paint regardless of the host's own frame.
+    clipChildren = false
+    clipToPadding = false
+  }
+
   // Task 0.4b (O3 mitigation): the Yoga node is `display:contents`, so Fabric's
   // SurfaceMountingManager.updateLayout() calls View.layout(x, y, x, y) on this
   // host -> a 0x0 native frame. The session-replay-android capture gate
