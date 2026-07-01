@@ -241,6 +241,30 @@ class SRMaskViewTest {
     assertEquals("host top preserved", 400, host.top)
   }
 
+  // 5. Dropping the host detaches each child's layout listener, so a child that is
+  //    recycled/reparented WITHOUT going through removeView no longer fires layout
+  //    callbacks against (or leaks) the dropped host.
+  @Test
+  fun onHostDropped_detachesChildLayoutListeners() {
+    lateinit var host: SRMaskView
+    lateinit var child: View
+    onMain {
+      host = SRMaskView(context)
+      child = View(context)
+      host.addView(child)
+      child.layout(0, 0, 100, 100)
+      host.layout(0, 0, 0, 0) // onLayout widens the host to enclose the child
+    }
+    assertEquals("precondition: host widened to child", 100, host.width)
+
+    onMain { host.onHostDropped() } // detaches the child's layout listener
+
+    // Grow the child WITHOUT driving host.onLayout: only a still-attached listener
+    // would re-widen the host. It must not, now that the listener is detached.
+    onMain { child.layout(0, 0, 500, 500) }
+    assertEquals("host must not re-widen after drop (listener detached)", 100, host.width)
+  }
+
   // 5. R8 reapply: masking intent recorded with no primitive is replayed when a
   //    primitive later registers.
   @Test

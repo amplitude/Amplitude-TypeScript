@@ -1,6 +1,5 @@
 package com.amplitude.sessionreplayreactnative.fabric
 
-import com.amplitude.sessionreplayreactnative.SRMaskingRegistry
 import com.facebook.react.module.annotations.ReactModule
 import com.facebook.react.uimanager.ThemedReactContext
 import com.facebook.react.uimanager.ViewGroupManager
@@ -36,10 +35,9 @@ class SRMaskViewManager :
 
   override fun onDropViewInstance(view: SRMaskView) {
     super.onDropViewInstance(view)
-    // R5: reset all children when the host view is dropped.
-    for (i in 0 until view.childCount) {
-      SRMaskingRegistry.reset(view.getChildAt(i))
-    }
+    // R5 + listener cleanup: reset children and detach their layout listeners so a
+    // recycled/reparented child can't keep firing callbacks against the old host.
+    view.onHostDropped()
   }
 
   companion object {

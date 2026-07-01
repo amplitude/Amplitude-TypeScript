@@ -118,6 +118,20 @@ class SRMaskView(context: Context) : ReactViewGroup(context) {
     }
   }
 
+  // Called by SRMaskViewManager.onDropViewInstance when Fabric drops/recycles this
+  // host. Detach each child's layout listener and reset its masking (R5). The
+  // listener closes over this host, so a child that is recycled or reparented
+  // WITHOUT first going through removeView* would otherwise keep firing layout
+  // callbacks against — and keep alive — this dropped host. Safe if the children
+  // were already removed (childCount == 0 -> no-op).
+  fun onHostDropped() {
+    for (i in 0 until childCount) {
+      val child = getChildAt(i) ?: continue
+      child.removeOnLayoutChangeListener(childLayoutChangeListener)
+      SRMaskingRegistry.reset(child)
+    }
+  }
+
   private fun reapplyMaskingToAllChildren() {
     for (i in 0 until childCount) {
       applyMaskingToChild(getChildAt(i))
