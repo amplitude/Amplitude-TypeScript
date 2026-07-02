@@ -1,3 +1,5 @@
+import groovy.json.JsonSlurper
+
 def reactNativeArchitectures() {
   def value = rootProject.getProperties().get("reactNativeArchitectures")
   return value ? value.split(",") : ["armeabi-v7a", "x86", "x86_64", "arm64-v8a"]
@@ -26,9 +28,103 @@ def supportsNamespace() {
   def parsed = com.android.Version.ANDROID_GRADLE_PLUGIN_VERSION.tokenize('.')
   def major = parsed[0].toInteger()
   def minor = parsed[1].toInteger()
-
-  // Namespace support was added in 7.3.0
   return (major == 7 && minor >= 3) || major >= 8
+}
+
+// --- RN-floor gate: the Fabric SRMaskView codegen/C++ needs RN >= 0.77 under new-arch.
+// Defensive: if RN can't be resolved, do NOT fail (don't break the happy path). ---
+def resolveReactNativeVersion() {
+  def candidates = [
+    file("${rootProject.projectDir}/../node_modules/react-native/package.json"),
+    file("${rootProject.projectDir}/node_modules/react-native/package.json"),
+    file("${projectDir}/../../../react-native/package.json"),
+  ]
+  for (c in candidates) {
+    if (c.exists()) {
+      try { return new JsonSlurper().parse(c).version } catch (ignored) {}
+    }
+  }
+  return null
+}
+
+if (isNewArchitectureEnabled()) {
+  def rnVersion = resolveReactNativeVersion()
+  if (rnVersion != null) {
+    def p = rnVersion.tokenize('.')
+    def major = p[0].toInteger()
+    def minor = p[1].toInteger()
+    def ge077 = major > 0 || (major == 0 && minor >= 77)
+    if (!ge077) {
+      throw new GradleException(
+        "[SessionReplayReactNative] The Fabric SRMaskView component requires React Native >= 0.77 " +
+        "with the New Architecture (found ${rnVersion})."
+      )
+    }
+  }
+}
+
+def patchComponentDescriptorsHeader() {
+  def componentsDir = file("$buildDir/generated/source/codegen/jni/react/renderer/components/SRMaskViewSpec")
+  def header = new File(componentsDir, "ComponentDescriptors.h")
+
+  if (!header.exists()) {
+    throw new GradleException(
+      "[SessionReplayReactNative] Expected codegen ComponentDescriptors.h at ${header.absolutePath}. " +
+      "Ensure newArchEnabled=true and generateCodegenArtifactsFromSchema ran successfully."
+    )
+  }
+
+  def original = header.getText("UTF-8")
+  if (original.contains("#include <SRMaskViewComponentDescriptor.h>")) {
+    return
+  }
+
+  def typedefPattern = /using SRMaskViewComponentDescriptor = ConcreteComponentDescriptor<SRMaskViewShadowNode>;/
+  if (!(original =~ typedefPattern)) {
+    throw new GradleException(
+      "[SessionReplayReactNative] patchComponentDescriptorsHeader regex did not match ComponentDescriptors.h. " +
+      "React Native codegen output may have changed; update the patch task before shipping."
+    )
+  }
+
+  def patched = original.replace(
+    "#include <react/renderer/componentregistry/ComponentDescriptorProviderRegistry.h>",
+    """#include <react/renderer/componentregistry/ComponentDescriptorProviderRegistry.h>
+#include <SRMaskViewComponentDescriptor.h>"""
+  ).replaceFirst(typedefPattern, "")
+  header.write(patched, "UTF-8")
+}
+
+def patchCodegenCMakeLists() {
+  def cmakeFile = file("$buildDir/generated/source/codegen/jni/CMakeLists.txt")
+
+  if (!cmakeFile.exists()) {
+    throw new GradleException(
+      "[SessionReplayReactNative] Expected codegen CMakeLists.txt at ${cmakeFile.absolutePath}. " +
+      "Ensure newArchEnabled=true and generateCodegenArtifactsFromSchema ran successfully."
+    )
+  }
+
+  def original = cmakeFile.getText("UTF-8")
+  if (original.contains("SRMaskViewShadowNode.cpp")) {
+    return
+  }
+
+  def cppDir = file("../cpp").absolutePath.replace("\\", "/")
+  def insertion = """target_sources(react_codegen_SRMaskViewSpec PRIVATE
+  "${cppDir}/SRMaskViewShadowNode.cpp"
+)
+target_include_directories(react_codegen_SRMaskViewSpec PUBLIC "${cppDir}")
+"""
+
+  if (!original.contains("target_link_libraries(")) {
+    throw new GradleException(
+      "[SessionReplayReactNative] patchCodegenCMakeLists could not find target_link_libraries in CMakeLists.txt."
+    )
+  }
+
+  def patched = original.replace("target_link_libraries(", insertion + "target_link_libraries(")
+  cmakeFile.write(patched, "UTF-8")
 }
 
 android {
@@ -42,8 +138,8 @@ android {
     }
   }
 
-  // New Arch compiles src/newarch (codegen spec + BaseReactPackage); Old Arch
-  // compiles src/oldarch (hand-written spec + plain ReactPackage).
+  // New Arch compiles src/newarch (codegen spec + BaseReactPackage + Fabric SRMaskView);
+  // Old Arch compiles src/oldarch (hand-written spec + plain ReactPackage).
   sourceSets {
     main {
       if (isNewArchitectureEnabled()) {
@@ -59,13 +155,22 @@ android {
   defaultConfig {
     minSdkVersion getExtOrIntegerDefault("minSdkVersion")
     targetSdkVersion getExtOrIntegerDefault("targetSdkVersion")
+    buildConfigField "boolean", "IS_NEW_ARCHITECTURE_ENABLED", isNewArchitectureEnabled().toString()
+    testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+  }
 
+  buildFeatures {
+    buildConfig true
   }
 
   buildTypes {
     release {
       minifyEnabled false
     }
+  }
+
+  packagingOptions {
+    pickFirst "lib/**/*.so"
   }
 
   lintOptions {
@@ -88,20 +193,33 @@ def kotlin_version = getExtOrDefault("kotlinVersion")
 dependencies {
   implementation("com.amplitude:session-replay-android:[0.24.0,0.25.0)")
   implementation("com.amplitude:analytics-android:[1.25.0,1.26.0)")
-
-  // For < 0.71, this will be from the local maven repo
-  // For > 0.71, this will be replaced by `com.facebook.react:react-android:$version` by react gradle plugin
   //noinspection GradleDynamicVersion
   implementation "com.facebook.react:react-native:+"
   implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
+
+  androidTestImplementation "androidx.test.ext:junit:1.2.1"
+  androidTestImplementation "androidx.test:runner:1.6.2"
 }
 
-// Codegen for the TurboModule spec (New Architecture only). Generates
-// NativeAmpSessionReplaySpec from src/specs/NativeAmpSessionReplay.ts.
 if (isNewArchitectureEnabled()) {
   react {
     jsRootDir = file("../src/specs/")
-    libraryName = "AmpSessionReplaySpec"
+    libraryName = "SRMaskViewSpec"
     codegenJavaPackageName = "com.amplitude.sessionreplayreactnative"
+  }
+
+  afterEvaluate {
+    tasks.named("generateCodegenArtifactsFromSchema").configure {
+      doLast {
+        patchComponentDescriptorsHeader()
+        patchCodegenCMakeLists()
+      }
+    }
+
+    tasks.configureEach { task ->
+      if (task.name.contains("configureCMake")) {
+        task.dependsOn("generateCodegenArtifactsFromSchema")
+      }
+    }
   }
 }

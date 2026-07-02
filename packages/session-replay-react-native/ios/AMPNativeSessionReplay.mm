@@ -24,7 +24,12 @@ RCT_EXTERN_METHOD(stop:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectB
 // Bind the Swift module to the codegen TurboModule interface. A named category is
 // required because a Swift class cannot gain protocol conformance via an anonymous
 // class extension.
-#import <AmpSessionReplaySpec/AmpSessionReplaySpec.h>
+//
+// The codegen spec library was renamed AmpSessionReplaySpec -> SRMaskViewSpec when
+// codegenConfig switched to type:"all" to also emit the Fabric SRMaskView component.
+// The umbrella header still declares facebook::react::NativeAmpSessionReplaySpecJSI
+// (named after the NativeAmpSessionReplay module), so only the import path changes.
+#import <SRMaskViewSpec/SRMaskViewSpec.h>
 
 @interface AMPNativeSessionReplay (TurboModule) <RCTTurboModule>
 @end

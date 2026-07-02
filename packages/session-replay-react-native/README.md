@@ -21,6 +21,20 @@ the SDK keeps working on older React Native versions on the legacy architecture.
 The TurboModule code path is compiled only when the New Architecture is enabled,
 which itself requires React Native 0.74 or newer.
 
+### Fabric foundation (internal)
+
+This release includes internal groundwork for an upcoming layout-transparent
+masking component built on Fabric. The component is currently inert: it is not
+part of the public API, exposes nothing new to call, and does not change any
+masking behavior.
+
+The Fabric/C++ sources compile only on the New Architecture with React Native
+0.77 or newer (they rely on capabilities that exist only in those versions).
+On the legacy architecture, or on the New Architecture with React Native older
+than 0.77, the Fabric sources are excluded. Enabling the New Architecture on
+React Native older than 0.77 fails the build fast with a clear error (an
+"RN-floor gate" enforced in both `android/build.gradle` and the iOS podspec).
+
 ## Usage
 
 ### Session Replay React Native Standalone SDK
