@@ -12,7 +12,7 @@ import {
 } from '@amplitude/analytics-core';
 import { AllWindowObservables, TimestampedEvent } from './network-capture-plugin';
 import { AMPLITUDE_NETWORK_REQUEST_EVENT, IS_HEADER_CAPTURE_EXPERIMENTAL } from './constants';
-import { BodyCaptureRule } from '@amplitude/analytics-core/lib/esm/types/network-tracking';
+import type { BodyCaptureRule } from '@amplitude/analytics-core';
 
 const DEFAULT_STATUS_CODE_RANGE = '500-599';
 
