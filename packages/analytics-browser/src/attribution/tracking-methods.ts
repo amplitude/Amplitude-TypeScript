@@ -10,7 +10,7 @@ const isTrackingMethod = (value: unknown): value is TrackingMethod =>
  * The default tracking methods used when no valid method is configured. Both run by default and
  * are independent.
  */
-export const DEFAULT_TRACKING_METHODS: readonly TrackingMethod[] = [
+const DEFAULT_TRACKING_METHODS: readonly TrackingMethod[] = [
   USER_PROPERTY_TRACKING_METHOD,
   EVENT_PROPERTY_TRACKING_METHOD,
 ];
