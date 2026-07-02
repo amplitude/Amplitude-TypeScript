@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@amplitude/analytics-react-native": "workspace:*",
+    "@amplitude/plugin-network-capture-browser": "workspace:*",
     "@babel/runtime": "^7.20.0",
     "@react-native-async-storage/async-storage": "~1.17.11",
     "@react-navigation/native": "^6.1.18",
