@@ -3,7 +3,12 @@ import type { ReactNode } from 'react';
 
 export type AmpMaskLevel = 'mask' | 'block';
 
-export interface MaskProps extends ViewProps {
+/**
+ * `style` is intentionally unsupported: the mask wrapper never carries a
+ * layout box (it is layout-transparent), and the Fabric implementation
+ * force-overrides `style` at runtime regardless of what is passed.
+ */
+export interface MaskProps extends Omit<ViewProps, 'style'> {
   /**
    * When false, children are rendered without masking.
    * @default true
@@ -20,6 +25,11 @@ export interface MaskProps extends ViewProps {
   children?: ReactNode;
 }
 
-export interface UnmaskProps extends ViewProps {
+/**
+ * `style` is intentionally unsupported: the mask wrapper never carries a
+ * layout box (it is layout-transparent), and the Fabric implementation
+ * force-overrides `style` at runtime regardless of what is passed.
+ */
+export interface UnmaskProps extends Omit<ViewProps, 'style'> {
   children?: ReactNode;
 }

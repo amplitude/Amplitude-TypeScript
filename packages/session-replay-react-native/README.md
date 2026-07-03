@@ -134,9 +134,19 @@ supported:
 
 - In development they throw with a clear error.
 - In production they fall back to `AmpMaskView` and log a one-time
-  `console.error`. The fallback keeps content privacy-safe (still masked), but
-  it is **not** layout-transparent — the `AmpMaskView` layout caveats above
-  apply. Use `AmpMaskView` directly on the Old Architecture.
+  `console.error`. The fallback **ignores `enabled`** — wrapped content stays
+  masked regardless (it fails toward privacy). It is also **not**
+  layout-transparent — the `AmpMaskView` layout caveats above apply. Use
+  `AmpMaskView` directly on the Old Architecture.
+
+### Caveats
+
+- `style` is not supported on `<AmpMask>`/`<AmpUnmask>` — they never occupy
+  layout, so there is no box to style. Style your children directly instead.
+- If the New Architecture is active but the native `SRMaskView` component is
+  missing (a build misconfiguration), `<AmpMask>`/`<AmpUnmask>` log a
+  one-time `console.error` and render children **unmasked**. Treat that log
+  as a build error to fix, not a warning to ignore.
 
 ### Usage
 

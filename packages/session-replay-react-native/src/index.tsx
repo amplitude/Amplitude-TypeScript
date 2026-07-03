@@ -20,6 +20,12 @@ import type { MaskProps, UnmaskProps } from './Mask.types';
 
 const g = global as unknown as { RN$Bridgeless?: boolean; nativeFabricUIManager?: unknown };
 const isNewArch = g.RN$Bridgeless === true || g.nativeFabricUIManager != null;
+/**
+ * Layout-transparent Session Replay masking (New Architecture only).
+ * `<AmpMask>` masks its children; `<AmpUnmask>` exempts children inside a masked region.
+ * On the Old Architecture: throws in dev, falls back to `<AmpMaskView>` (layout-unsafe) in prod.
+ * @experimental Subject to change while experimental.
+ */
 // eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/no-unsafe-assignment
 export const { AmpMask, AmpUnmask }: { AmpMask: ComponentType<MaskProps>; AmpUnmask: ComponentType<UnmaskProps> } =
   isNewArch ? require('./fabric/MaskFabric') : require('./paper/MaskPaper');

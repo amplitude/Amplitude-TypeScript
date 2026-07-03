@@ -7,7 +7,9 @@ let warned = false;
 function warnOnce() {
   if (!warned) {
     warned = true;
-    console.error('[AmpMask] Old Architecture detected — falling back to AmpMaskView (layout-unsafe). Use <AmpMaskView> on Old Arch.');
+    console.error(
+      '[AmpMask] Old Architecture detected — falling back to AmpMaskView (layout-unsafe). Use <AmpMaskView> on Old Arch.',
+    );
   }
 }
 export function AmpMask({ maskLevel = 'mask', children, ...vp }: MaskProps) {

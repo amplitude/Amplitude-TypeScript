@@ -4,7 +4,19 @@ import SRMaskViewNative from '../specs/SRMaskViewNativeComponent';
 import type { MaskProps, UnmaskProps } from '../Mask.types';
 
 const NATIVE_AVAILABLE = UIManager.hasViewManagerConfig?.('SRMaskView') ?? false;
-const Passthrough = ({ children }: { children?: React.ReactNode }) => <>{children}</>;
+let warned = false;
+function warnOnce() {
+  if (!warned) {
+    warned = true;
+    console.error(
+      '[AmpMask] New Architecture detected but the native SRMaskView component is unavailable — <AmpMask>/<AmpUnmask> render children UNMASKED. Verify the Fabric masking sources were built (new architecture + RN >= 0.77) and codegen ran.',
+    );
+  }
+}
+const Passthrough = ({ children }: { children?: React.ReactNode }) => {
+  warnOnce();
+  return <>{children}</>;
+};
 const contents = { display: 'contents' as unknown as 'flex' }; // zero-box hint; C++ adopt() is authoritative
 
 function MaskImpl({ enabled = true, maskLevel = 'mask', children, ...vp }: MaskProps) {

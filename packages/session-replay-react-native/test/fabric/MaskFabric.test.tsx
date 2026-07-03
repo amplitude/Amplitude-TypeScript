@@ -101,7 +101,9 @@ describe('MaskFabric', () => {
     });
 
     it('forces style to display:contents even when caller passes their own style', () => {
-      const rendered = AmpMask({ children: null, style: { flex: 1 } });
+      // `style` is a type error by design (see Mask.types.ts) but is still
+      // runtime-defended against untyped/JS callers, hence the cast here.
+      const rendered = AmpMask({ children: null, style: { flex: 1 } } as unknown as MaskProps);
       expect(rendered?.props.style).toEqual({ display: 'contents' });
     });
 
@@ -118,7 +120,9 @@ describe('MaskFabric', () => {
     });
 
     it('forces style to display:contents for AmpUnmask even when caller passes their own style', () => {
-      const rendered = AmpUnmask({ children: null, style: { flex: 1 } });
+      // `style` is a type error by design (see Mask.types.ts) but is still
+      // runtime-defended against untyped/JS callers, hence the cast here.
+      const rendered = AmpUnmask({ children: null, style: { flex: 1 } } as unknown as UnmaskProps);
       expect(rendered?.props.style).toEqual({ display: 'contents' });
     });
   });
@@ -126,10 +130,16 @@ describe('MaskFabric', () => {
   describe('when native view manager is unavailable (passthrough)', () => {
     let AmpMask: PassthroughMaskComponent;
     let AmpUnmask: PassthroughUnmaskComponent;
+    let errorSpy: jest.SpyInstance;
 
     beforeEach(() => {
       mockHasViewManagerConfig.mockReturnValue(false);
+      errorSpy = jest.spyOn(console, 'error').mockImplementation(() => undefined);
       ({ AmpMask, AmpUnmask } = loadMaskFabricModule<PassthroughMaskFabricModule>());
+    });
+
+    afterEach(() => {
+      errorSpy.mockRestore();
     });
 
     it('probes hasViewManagerConfig with SRMaskView', () => {
@@ -153,6 +163,15 @@ describe('MaskFabric', () => {
       expect(rendered?.type).not.toBe('SRMaskView');
       expect(rendered?.type).toBe(React.Fragment);
       expect(rendered?.props.children).toBe(child);
+    });
+
+    it('logs a one-time console.error warning that children render UNMASKED, across multiple renders', () => {
+      AmpMask({ children: React.createElement('Text', null, 'a') });
+      AmpMask({ children: React.createElement('Text', null, 'b') });
+      AmpUnmask({ children: React.createElement('Text', null, 'c') });
+
+      expect(errorSpy).toHaveBeenCalledTimes(1);
+      expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('UNMASKED'));
     });
   });
 });
