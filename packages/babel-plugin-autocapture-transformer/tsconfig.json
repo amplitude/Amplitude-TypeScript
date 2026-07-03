@@ -1,0 +1,12 @@
+{
+  "extends": "../../tsconfig.json",
+  "include": ["src/**/*", "test/**/*"],
+  "exclude": ["lib", "node_modules"],
+  "compilerOptions": {
+    "baseUrl": ".",
+    "esModuleInterop": true,
+    "noEmit": true,
+    "rootDir": ".",
+    "lib": ["es2021"]
+  }
+}

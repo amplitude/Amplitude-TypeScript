@@ -27,6 +27,7 @@
     "react-native-web": "0.18.10"
   },
   "devDependencies": {
+    "@amplitude/babel-plugin-autocapture-transformer": "workspace:*",
     "@babel/core": "^7.20.5",
     "babel-plugin-transform-inline-environment-variables": "^0.4.4",
     "@types/react": "~18.0.26",
