@@ -4,10 +4,13 @@ import android.content.Context
 import android.view.View
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import com.amplitude.android.sessionreplay.SessionReplay
 import com.amplitude.sessionreplayreactnative.fabric.SRMaskView
 import com.amplitude.sessionreplayreactnative.fabric.SRMaskViewManager
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -308,5 +311,71 @@ class SRMaskViewTest {
       "custom",
       masksForSomeView.single().level,
     )
+  }
+
+  // 7. Default primitive mapping (Task 2.6): [SRDefaultMaskingPrimitive] bridges
+  //    the seam to the Session Replay SDK's tag-based hooks. Each level is
+  //    compared against a control view driven through the SDK static directly,
+  //    so the tests don't depend on the SDK's internal tag constants.
+  @Test
+  fun defaultPrimitive_maskLevelMask_matchesSdkMask() {
+    val primitive = SRDefaultMaskingPrimitive()
+    lateinit var view: View
+    lateinit var control: View
+    onMain {
+      view = View(context)
+      control = View(context)
+      primitive.mask(view, "mask")
+      SessionReplay.mask(control)
+    }
+
+    assertNotNull("SDK mask should set a tag on the control view", control.tag)
+    assertEquals("mask(\"mask\") must apply the SDK's mask tag", control.tag, view.tag)
+  }
+
+  @Test
+  fun defaultPrimitive_maskLevelBlock_matchesSdkBlock() {
+    val primitive = SRDefaultMaskingPrimitive()
+    lateinit var view: View
+    lateinit var control: View
+    onMain {
+      view = View(context)
+      control = View(context)
+      primitive.mask(view, "block")
+      SessionReplay.block(control)
+    }
+
+    assertNotNull("SDK block should set a tag on the control view", control.tag)
+    assertEquals("mask(\"block\") must apply the SDK's block tag", control.tag, view.tag)
+  }
+
+  @Test
+  fun defaultPrimitive_unmask_matchesSdkUnmask() {
+    val primitive = SRDefaultMaskingPrimitive()
+    lateinit var view: View
+    lateinit var control: View
+    onMain {
+      view = View(context)
+      control = View(context)
+      primitive.unmask(view)
+      SessionReplay.unmask(control)
+    }
+
+    assertNotNull("SDK unmask should set a tag on the control view", control.tag)
+    assertEquals("unmask must apply the SDK's unmask tag", control.tag, view.tag)
+  }
+
+  @Test
+  fun defaultPrimitive_reset_clearsTag() {
+    val primitive = SRDefaultMaskingPrimitive()
+    lateinit var view: View
+    onMain {
+      view = View(context)
+      primitive.mask(view, "mask")
+    }
+    assertNotNull("precondition: mask should set a tag", view.tag)
+
+    onMain { primitive.reset(view) }
+    assertNull("reset must clear the SDK tag (return to inherit)", view.tag)
   }
 }

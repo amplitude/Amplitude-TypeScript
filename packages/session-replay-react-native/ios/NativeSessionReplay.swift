@@ -65,6 +65,16 @@ class NativeSessionReplay: NSObject, RCTBridgeModule {
         if (autoStart) {
             sessionReplay.start()
         }
+
+        // Register the default masking primitive so `SRMaskView` masking reaches
+        // the recorder. Must run on the main thread: setPrimitive replays
+        // recorded intents, which touch UIViews (setup runs on the RN
+        // native-modules queue). Re-registering on repeated setup() calls is
+        // harmless (it just replays intents again).
+        DispatchQueue.main.async {
+            SRMaskingRegistry.primitive = SRDefaultMaskingPrimitive()
+        }
+
         resolve(nil)
     }
     

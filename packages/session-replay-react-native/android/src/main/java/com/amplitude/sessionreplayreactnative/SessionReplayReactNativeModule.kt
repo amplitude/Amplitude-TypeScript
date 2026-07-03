@@ -9,6 +9,7 @@ import com.amplitude.core.ServerZone
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReactMethod
 import com.facebook.react.bridge.Promise
+import com.facebook.react.bridge.UiThreadUtil
 import com.facebook.react.bridge.WritableMap
 import com.facebook.react.bridge.WritableNativeMap
 import com.facebook.react.bridge.ReadableMap
@@ -81,7 +82,15 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
         autoStart = autoStart,
         privacyConfig = PrivacyConfig(maskLevel = maskLevel),
       )
-      
+
+      // Register the default masking primitive so `SRMaskView` masking reaches
+      // the recorder. Must run on the UI thread: setPrimitive replays recorded
+      // intents, which touch Views. Re-registering on repeated setup() calls is
+      // harmless (it just replays intents again).
+      UiThreadUtil.runOnUiThread {
+        SRMaskingRegistry.setPrimitive(SRDefaultMaskingPrimitive())
+      }
+
       promise.resolve(null)
     } catch (e: Exception) {
       promise.reject("SETUP_ERROR", e.message, e)

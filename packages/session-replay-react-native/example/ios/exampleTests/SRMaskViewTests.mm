@@ -8,6 +8,16 @@
 // React-RCTFabric header. Used as a concrete child in the per-child mask test.
 #import <React/RCTViewComponentView.h>
 
+// `UIView.amp_isBlocked` — the Session Replay SDK hook the default primitive
+// (Task 2.6) bridges to. The SDK declares it in its generated Swift interface
+// header (`AmplitudeSessionReplay-Swift.h`), which is not C++-clean (enum
+// forward references), so this `.mm` file redeclares the property instead. The
+// declaration matches the SDK's exactly; at runtime the accessors dispatch by
+// selector to the SDK's implementation (`UIView+AmplitudeSessionReplay.swift`).
+@interface UIView (AMPSessionReplayMaskingTestSupport)
+@property (nonatomic) BOOL amp_isBlocked;
+@end
+
 #pragma mark - Recording primitive
 
 /// A `<SRMaskingPrimitive>` that records every call so tests can assert on the
@@ -280,6 +290,74 @@
 #pragma clang diagnostic ignored "-Warc-performSelector-leaks"
   [registryClass performSelector:@selector(setPrimitive:) withObject:nil];
 #pragma clang diagnostic pop
+}
+
+#pragma mark Default primitive mapping (Task 2.6)
+
+/// Returns a fresh instance of the pod's default masking primitive
+/// (`SRDefaultMaskingPrimitive`, registered at SDK init). Reached via the
+/// runtime: the class is Swift-defined inside the pod with an explicit ObjC
+/// name, so no public header is needed (the runtime de-dups duplicate class
+/// copies to one, and `amp_isBlocked` dispatches by selector, so writes and
+/// reads stay consistent across the app/test bundles).
+static id<SRMaskingPrimitive> SRMakeDefaultPrimitive(void)
+{
+  Class cls = NSClassFromString(@"SRDefaultMaskingPrimitive");
+  return [[cls alloc] init];
+}
+
+/// mask (level "mask") → `amp_isBlocked == YES` (the SDK's masking hook).
+- (void)testDefaultPrimitiveMaskLevelMaskSetsAmpIsBlocked
+{
+  id<SRMaskingPrimitive> primitive = SRMakeDefaultPrimitive();
+  XCTAssertNotNil(primitive, @"SRDefaultMaskingPrimitive must be linked (registered at SDK init)");
+
+  UIView *view = [[UIView alloc] init];
+  XCTAssertFalse(view.amp_isBlocked, @"Sanity: a fresh view is not blocked");
+
+  [primitive maskView:view level:@"mask"];
+  XCTAssertTrue(view.amp_isBlocked, @"mask(\"mask\") must set amp_isBlocked");
+}
+
+/// mask (level "block") → `amp_isBlocked == YES` (iOS has a single blocking
+/// hook, so "mask" and "block" map identically).
+- (void)testDefaultPrimitiveMaskLevelBlockSetsAmpIsBlocked
+{
+  id<SRMaskingPrimitive> primitive = SRMakeDefaultPrimitive();
+  XCTAssertNotNil(primitive);
+
+  UIView *view = [[UIView alloc] init];
+  [primitive maskView:view level:@"block"];
+  XCTAssertTrue(view.amp_isBlocked, @"mask(\"block\") must set amp_isBlocked");
+}
+
+/// unmask → `amp_isBlocked == NO`, including on a previously-masked view.
+- (void)testDefaultPrimitiveUnmaskClearsAmpIsBlocked
+{
+  id<SRMaskingPrimitive> primitive = SRMakeDefaultPrimitive();
+  XCTAssertNotNil(primitive);
+
+  UIView *view = [[UIView alloc] init];
+  [primitive maskView:view level:@"mask"];
+  XCTAssertTrue(view.amp_isBlocked, @"Precondition: view is masked");
+
+  [primitive unmaskView:view];
+  XCTAssertFalse(view.amp_isBlocked, @"unmask must clear amp_isBlocked");
+}
+
+/// reset → `amp_isBlocked == NO` (approximation: the SDK has no per-view
+/// "inherit" reset today; a precise `.none` reset is a documented fast-follow).
+- (void)testDefaultPrimitiveResetClearsAmpIsBlocked
+{
+  id<SRMaskingPrimitive> primitive = SRMakeDefaultPrimitive();
+  XCTAssertNotNil(primitive);
+
+  UIView *view = [[UIView alloc] init];
+  [primitive maskView:view level:@"mask"];
+  XCTAssertTrue(view.amp_isBlocked, @"Precondition: view is masked");
+
+  [primitive resetView:view];
+  XCTAssertFalse(view.amp_isBlocked, @"reset must clear amp_isBlocked");
 }
 
 @end
