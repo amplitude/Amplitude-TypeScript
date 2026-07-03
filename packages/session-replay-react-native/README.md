@@ -145,8 +145,11 @@ supported:
   layout, so there is no box to style. Style your children directly instead.
 - If the New Architecture is active but the native `SRMaskView` component is
   missing (a build misconfiguration), `<AmpMask>`/`<AmpUnmask>` log a
-  one-time `console.error` and render children **unmasked**. Treat that log
-  as a build error to fix, not a warning to ignore.
+  one-time `console.error` and fall back to `<AmpMaskView>` — content stays
+  **masked**, but layout-transparency is lost. Treat that log as a build
+  error to fix, not a warning to ignore.
+- If the package's native code is absent entirely (so Session Replay cannot
+  record at all), `<AmpMask>`/`<AmpUnmask>` render children directly.
 
 ### Usage
 

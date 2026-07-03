@@ -29,10 +29,18 @@ interface PassthroughElementProps {
   children?: ReactNode;
 }
 
+// Shape of the props MaskFabric forwards onto the fallback AmpMaskView element.
+interface FallbackMaskElementProps {
+  mask: 'amp-mask' | 'amp-unmask' | 'amp-block';
+  children?: ReactNode;
+}
+
 type NativeMaskComponent = (props: MaskProps) => ReactElement<NativeMaskElementProps> | null;
 type NativeUnmaskComponent = (props: UnmaskProps) => ReactElement<NativeMaskElementProps> | null;
 type PassthroughMaskComponent = (props: MaskProps) => ReactElement<PassthroughElementProps> | null;
 type PassthroughUnmaskComponent = (props: UnmaskProps) => ReactElement<PassthroughElementProps> | null;
+type FallbackMaskComponent = (props: MaskProps) => ReactElement<FallbackMaskElementProps> | null;
+type FallbackUnmaskComponent = (props: UnmaskProps) => ReactElement<FallbackMaskElementProps> | null;
 
 interface NativeMaskFabricModule {
   AmpMask: NativeMaskComponent;
@@ -42,6 +50,11 @@ interface NativeMaskFabricModule {
 interface PassthroughMaskFabricModule {
   AmpMask: PassthroughMaskComponent;
   AmpUnmask: PassthroughUnmaskComponent;
+}
+
+interface FallbackMaskFabricModule {
+  AmpMask: FallbackMaskComponent;
+  AmpUnmask: FallbackUnmaskComponent;
 }
 
 function loadMaskFabricModule<T>(): T {
@@ -127,13 +140,76 @@ describe('MaskFabric', () => {
     });
   });
 
-  describe('when native view manager is unavailable (passthrough)', () => {
+  describe('when SRMaskView is unavailable but AMPMaskComponentView is available (fail-closed fallback)', () => {
+    let AmpMask: FallbackMaskComponent;
+    let AmpUnmask: FallbackUnmaskComponent;
+    let errorSpy: jest.SpyInstance;
+
+    beforeEach(() => {
+      mockHasViewManagerConfig.mockImplementation((name: string) => name === 'AMPMaskComponentView');
+      errorSpy = jest.spyOn(console, 'error').mockImplementation(() => undefined);
+      ({ AmpMask, AmpUnmask } = loadMaskFabricModule<FallbackMaskFabricModule>());
+    });
+
+    afterEach(() => {
+      errorSpy.mockRestore();
+    });
+
+    it('probes hasViewManagerConfig with SRMaskView and AMPMaskComponentView', () => {
+      expect(mockHasViewManagerConfig).toHaveBeenCalledWith('SRMaskView');
+      expect(mockHasViewManagerConfig).toHaveBeenCalledWith('AMPMaskComponentView');
+    });
+
+    it('AmpMask renders AmpMaskView with mask="amp-mask" by default', () => {
+      const child = React.createElement('Text', null, 'hello');
+      const rendered = AmpMask({ children: child });
+
+      expect(rendered?.type).toBe('AMPMaskComponentView');
+      expect(rendered?.props.mask).toBe('amp-mask');
+      expect(rendered?.props.children).toBe(child);
+    });
+
+    it('AmpMask renders AmpMaskView with mask="amp-block" when maskLevel="block"', () => {
+      const rendered = AmpMask({ maskLevel: 'block', children: null });
+
+      expect(rendered?.type).toBe('AMPMaskComponentView');
+      expect(rendered?.props.mask).toBe('amp-block');
+    });
+
+    it('AmpUnmask renders AmpMaskView with mask="amp-unmask"', () => {
+      const child = React.createElement('Text', null, 'hello');
+      const rendered = AmpUnmask({ children: child });
+
+      expect(rendered?.type).toBe('AMPMaskComponentView');
+      expect(rendered?.props.mask).toBe('amp-unmask');
+      expect(rendered?.props.children).toBe(child);
+    });
+
+    it('ignores enabled=false and still masks (fails toward privacy)', () => {
+      const rendered = AmpMask({ enabled: false, children: null });
+
+      expect(rendered?.type).toBe('AMPMaskComponentView');
+      expect(rendered?.props.mask).toBe('amp-mask');
+    });
+
+    it('logs a one-time console.error warning that content stays MASKED via AmpMaskView, across multiple renders', () => {
+      AmpMask({ children: React.createElement('Text', null, 'a') });
+      AmpMask({ children: React.createElement('Text', null, 'b') });
+      AmpUnmask({ children: React.createElement('Text', null, 'c') });
+
+      expect(errorSpy).toHaveBeenCalledTimes(1);
+      expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('MASKED'));
+      expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('AmpMaskView'));
+    });
+  });
+
+  describe('when neither SRMaskView nor AMPMaskComponentView is available (passthrough)', () => {
     let AmpMask: PassthroughMaskComponent;
     let AmpUnmask: PassthroughUnmaskComponent;
     let errorSpy: jest.SpyInstance;
 
     beforeEach(() => {
-      mockHasViewManagerConfig.mockReturnValue(false);
+      mockHasViewManagerConfig.mockImplementation(() => false);
       errorSpy = jest.spyOn(console, 'error').mockImplementation(() => undefined);
       ({ AmpMask, AmpUnmask } = loadMaskFabricModule<PassthroughMaskFabricModule>());
     });
@@ -142,8 +218,9 @@ describe('MaskFabric', () => {
       errorSpy.mockRestore();
     });
 
-    it('probes hasViewManagerConfig with SRMaskView', () => {
+    it('probes hasViewManagerConfig with SRMaskView and AMPMaskComponentView', () => {
       expect(mockHasViewManagerConfig).toHaveBeenCalledWith('SRMaskView');
+      expect(mockHasViewManagerConfig).toHaveBeenCalledWith('AMPMaskComponentView');
     });
 
     it('AmpMask renders children directly without SRMaskView in the tree', () => {
