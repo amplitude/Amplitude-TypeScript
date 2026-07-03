@@ -1,0 +1,209 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`@amplitude/babel-plugin-autocapture-transformer adds ampCapture to an existing amplitude import instead of duplicating 1`] = `
+"import { init, ampCapture } from '@amplitude/analytics-react-native';
+function HomeScreen() {
+  init('api-key');
+  return /*#__PURE__*/React.createElement(Button, {
+    title: "Go",
+    onPress: ampCapture(() => console.log('pressed'), {
+      event: "Press"
+    })
+  });
+}"
+`;
+
+exports[`@amplitude/babel-plugin-autocapture-transformer does not add import when no Button is transformed 1`] = `
+"function HomeScreen() {
+  return /*#__PURE__*/React.createElement(Text, {
+    onPress: () => console.log('pressed')
+  });
+}"
+`;
+
+exports[`@amplitude/babel-plugin-autocapture-transformer does not transform non-pressable JSX elements 1`] = `
+"function HomeScreen() {
+  return /*#__PURE__*/React.createElement(View, {
+    onPress: () => console.log('pressed')
+  });
+}"
+`;
+
+exports[`@amplitude/babel-plugin-autocapture-transformer does not transform pressable elements with non-expression onPress handlers 1`] = `
+"function HomeScreen() {
+  return /*#__PURE__*/React.createElement(Button, {
+    title: "Go",
+    onPress: "handler"
+  });
+}"
+`;
+
+exports[`@amplitude/babel-plugin-autocapture-transformer does not transform pressable elements without expression handlers 1`] = `
+"function HomeScreen() {
+  return /*#__PURE__*/React.createElement(Button, {
+    title: "Go"
+  });
+}"
+`;
+
+exports[`@amplitude/babel-plugin-autocapture-transformer ignores boolean accessibilityLabel attributes without values 1`] = `
+"import { ampCapture } from "@amplitude/analytics-react-native";
+function HomeScreen() {
+  return /*#__PURE__*/React.createElement(Button, {
+    accessibilityLabel: true,
+    onPress: ampCapture(onPress, {
+      event: "Press"
+    }),
+    title: "Go"
+  });
+}"
+`;
+
+exports[`@amplitude/babel-plugin-autocapture-transformer ignores spread attributes when collecting capture properties 1`] = `
+"function _extends() { return _extends = Object.assign ? Object.assign.bind() : function (n) { for (var e = 1; e < arguments.length; e++) { var t = arguments[e]; for (var r in t) ({}).hasOwnProperty.call(t, r) && (n[r] = t[r]); } return n; }, _extends.apply(null, arguments); }
+import { ampCapture } from "@amplitude/analytics-react-native";
+function HomeScreen({
+  buttonProps
+}) {
+  return /*#__PURE__*/React.createElement(Button, _extends({}, buttonProps, {
+    accessibilityLabel: "Label",
+    onPress: ampCapture(onPress, {
+      event: "Press",
+      accessibilityLabel: "Label"
+    }),
+    title: "Go"
+  }));
+}"
+`;
+
+exports[`@amplitude/babel-plugin-autocapture-transformer includes accessibility-label in track event properties 1`] = `
+"import { ampCapture } from "@amplitude/analytics-react-native";
+function HomeScreen() {
+  return /*#__PURE__*/React.createElement(Button, {
+    accessibilityLabel: "Online test label",
+    title: "Online test",
+    onPress: ampCapture(func, {
+      event: "Press",
+      accessibilityLabel: "Online test label",
+      testID: "12345"
+    }),
+    testID: "12345"
+  });
+}"
+`;
+
+exports[`@amplitude/babel-plugin-autocapture-transformer inserts ampCapture import after existing non-amplitude imports 1`] = `
+"import React from 'react';
+import { ampCapture } from "@amplitude/analytics-react-native";
+function HomeScreen() {
+  return /*#__PURE__*/React.createElement(Button, {
+    title: "Go",
+    onPress: ampCapture(onPress, {
+      event: "Press"
+    })
+  });
+}"
+`;
+
+exports[`@amplitude/babel-plugin-autocapture-transformer recognizes ampCapture when imported with a string literal export name 1`] = `
+"import { 'ampCapture' as capturePress } from '@amplitude/analytics-react-native';
+function HomeScreen() {
+  void capturePress;
+  return /*#__PURE__*/React.createElement(Button, {
+    title: "Go",
+    onPress: capturePress(onPress, {
+      event: "Press"
+    })
+  });
+}"
+`;
+
+exports[`@amplitude/babel-plugin-autocapture-transformer reuses an aliased ampCapture import 1`] = `
+"import { ampCapture as capturePress } from '@amplitude/analytics-react-native';
+function HomeScreen() {
+  void capturePress;
+  return /*#__PURE__*/React.createElement(Button, {
+    title: "Go",
+    onPress: capturePress(onPress, {
+      event: "Press"
+    })
+  });
+}"
+`;
+
+exports[`@amplitude/babel-plugin-autocapture-transformer reuses an existing ampCapture import 1`] = `
+"import { ampCapture } from '@amplitude/analytics-react-native';
+function HomeScreen() {
+  void ampCapture;
+  return /*#__PURE__*/React.createElement(Button, {
+    title: "Go",
+    onPress: ampCapture(onPress, {
+      event: "Press"
+    })
+  });
+}"
+`;
+
+exports[`@amplitude/babel-plugin-autocapture-transformer supports dynamic accessibilityLabel expressions 1`] = `
+"import { ampCapture } from "@amplitude/analytics-react-native";
+function HomeScreen({
+  label
+}) {
+  return /*#__PURE__*/React.createElement(Button, {
+    accessibilityLabel: label,
+    title: "Go",
+    onPress: ampCapture(onPress, {
+      event: "Press",
+      accessibilityLabel: label
+    })
+  });
+}"
+`;
+
+exports[`@amplitude/babel-plugin-autocapture-transformer transforms TouchableOpacity onPress handlers 1`] = `
+"import { ampCapture } from "@amplitude/analytics-react-native";
+function HomeScreen() {
+  return /*#__PURE__*/React.createElement(TouchableOpacity, {
+    onPress: ampCapture(handlePress, {
+      event: "Press"
+    })
+  });
+}"
+`;
+
+exports[`@amplitude/babel-plugin-autocapture-transformer wraps Button onPress handlers and adds ampCapture import 1`] = `
+"import { ampCapture } from "@amplitude/analytics-react-native";
+function HomeScreen() {
+  return /*#__PURE__*/React.createElement(Button, {
+    title: "Go",
+    onPress: ampCapture(() => console.log('pressed'), {
+      event: "Press"
+    })
+  });
+}"
+`;
+
+exports[`@amplitude/babel-plugin-autocapture-transformer wraps function reference onPress handlers 1`] = `
+"import { ampCapture } from "@amplitude/analytics-react-native";
+function HomeScreen({
+  onPress
+}) {
+  return /*#__PURE__*/React.createElement(Button, {
+    title: "Go",
+    onPress: ampCapture(onPress, {
+      event: "Press"
+    })
+  });
+}"
+`;
+
+exports[`@amplitude/babel-plugin-autocapture-transformer wraps onLongPress handlers on pressable elements 1`] = `
+"import { ampCapture } from "@amplitude/analytics-react-native";
+function HomeScreen() {
+  return /*#__PURE__*/React.createElement(Pressable, {
+    onLongPress: ampCapture(() => console.log('long press'), {
+      event: "Press"
+    })
+  });
+}"
+`;

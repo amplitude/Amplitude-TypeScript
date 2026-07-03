@@ -398,6 +398,12 @@ importers:
       '@babel/core':
         specifier: ^7.24.7
         version: 7.28.5
+      '@babel/parser':
+        specifier: ^7.24.7
+        version: 7.28.5
+      '@babel/plugin-syntax-jsx':
+        specifier: ^7.24.7
+        version: 7.27.1(@babel/core@7.28.5)
       '@babel/preset-react':
         specifier: ^7.24.7
         version: 7.28.5(@babel/core@7.28.5)
@@ -407,6 +413,9 @@ importers:
       '@types/babel__core':
         specifier: ^7.20.5
         version: 7.20.5
+      '@types/babel__traverse':
+        specifier: ^7.20.7
+        version: 7.28.0
 
   packages/element-selector:
     dependencies:
@@ -17722,7 +17731,7 @@ snapshots:
       strip-json-comments: 3.1.1
     optionalDependencies:
       '@types/node': 18.19.130
-      ts-node: 10.9.2(@types/node@18.19.130)(typescript@4.9.5)
+      ts-node: 10.9.2(@types/node@20.5.1)(typescript@4.9.5)
     transitivePeerDependencies:
       - babel-plugin-macros
       - supports-color
@@ -21275,25 +21284,6 @@ snapshots:
       '@jest/types': 29.6.3
       babel-jest: 29.7.0(@babel/core@7.28.5)
       jest-util: 29.7.0
-
-  ts-node@10.9.2(@types/node@18.19.130)(typescript@4.9.5):
-    dependencies:
-      '@cspotcode/source-map-support': 0.8.1
-      '@tsconfig/node10': 1.0.12
-      '@tsconfig/node12': 1.0.11
-      '@tsconfig/node14': 1.0.3
-      '@tsconfig/node16': 1.0.4
-      '@types/node': 18.19.130
-      acorn: 8.15.0
-      acorn-walk: 8.3.4
-      arg: 4.1.3
-      create-require: 1.1.1
-      diff: 4.0.2
-      make-error: 1.3.6
-      typescript: 4.9.5
-      v8-compile-cache-lib: 3.0.1
-      yn: 3.1.1
-    optional: true
 
   ts-node@10.9.2(@types/node@20.5.1)(typescript@4.9.5):
     dependencies:

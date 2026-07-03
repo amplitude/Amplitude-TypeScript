@@ -43,9 +43,12 @@
   },
   "devDependencies": {
     "@babel/core": "^7.24.7",
+    "@babel/parser": "^7.24.7",
+    "@babel/plugin-syntax-jsx": "^7.24.7",
     "@babel/preset-react": "^7.24.7",
     "@babel/preset-typescript": "^7.24.7",
-    "@types/babel__core": "^7.20.5"
+    "@types/babel__core": "^7.20.5",
+    "@types/babel__traverse": "^7.20.7"
   },
   "files": [
     "lib"

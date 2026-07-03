@@ -7,12 +7,28 @@ export const PLUGIN_NAME = PACKAGE_NAME;
 export type { AutocaptureTransformerOptions };
 
 const AMPLITUDE_PACKAGE = '@amplitude/analytics-react-native';
-const TRACK_IMPORT_NAME = 'track';
-const BUTTON_PRESS_EVENT = '[Amplitude] Element Clicked';
+const AMP_CAPTURE_IMPORT_NAME = 'ampCapture';
 const ACCESSIBILITY_LABEL_PROPERTY = 'accessibilityLabel';
+const TEST_ID_PROPERTY = 'testID';
+const CAPTURE_ATTRIBUTE_NAMES = [ACCESSIBILITY_LABEL_PROPERTY, TEST_ID_PROPERTY] as const;
 
-function isButtonElement(name: t.JSXIdentifier | t.JSXMemberExpression | t.JSXNamespacedName): boolean {
-  return t.isJSXIdentifier(name) && name.name === 'Button';
+const PRESSABLE_ELEMENTS = [
+  'Button',
+  'TouchableOpacity',
+  'TouchableHighlight',
+  'TouchableWithoutFeedback',
+  'Pressable',
+  'Touchable',
+  'TouchableNativeFeedback',
+  'TouchableWithoutFeedback',
+  'TouchableHighlight',
+  'Link',
+];
+
+const PRESSABLE_ATTRIBUTES = ['onPress', 'onLongPress'];
+
+function isPressableElement(name: t.JSXIdentifier | t.JSXMemberExpression | t.JSXNamespacedName): boolean {
+  return t.isJSXIdentifier(name) && PRESSABLE_ELEMENTS.includes(name.name);
 }
 
 function getJsxAttributeName(attr: t.JSXAttribute): string | null {
@@ -44,20 +60,20 @@ function ensureTrackImport(programPath: NodePath<t.Program>): string {
     }
 
     for (const specifier of stmt.node.specifiers) {
-      if (t.isImportSpecifier(specifier) && getImportedName(specifier) === TRACK_IMPORT_NAME) {
+      if (t.isImportSpecifier(specifier) && getImportedName(specifier) === AMP_CAPTURE_IMPORT_NAME) {
         return specifier.local.name;
       }
     }
 
     stmt.pushContainer(
       'specifiers',
-      t.importSpecifier(t.identifier(TRACK_IMPORT_NAME), t.identifier(TRACK_IMPORT_NAME)),
+      t.importSpecifier(t.identifier(AMP_CAPTURE_IMPORT_NAME), t.identifier(AMP_CAPTURE_IMPORT_NAME)),
     );
-    return TRACK_IMPORT_NAME;
+    return AMP_CAPTURE_IMPORT_NAME;
   }
 
   const importDeclaration = t.importDeclaration(
-    [t.importSpecifier(t.identifier(TRACK_IMPORT_NAME), t.identifier(TRACK_IMPORT_NAME))],
+    [t.importSpecifier(t.identifier(AMP_CAPTURE_IMPORT_NAME), t.identifier(AMP_CAPTURE_IMPORT_NAME))],
     t.stringLiteral(AMPLITUDE_PACKAGE),
   );
 
@@ -74,7 +90,7 @@ function ensureTrackImport(programPath: NodePath<t.Program>): string {
     programPath.unshiftContainer('body', importDeclaration);
   }
 
-  return TRACK_IMPORT_NAME;
+  return AMP_CAPTURE_IMPORT_NAME;
 }
 
 function getAccessibilityLabelValue(attr: t.JSXAttribute): t.Expression | null {
@@ -97,13 +113,13 @@ function getAccessibilityLabelValue(attr: t.JSXAttribute): t.Expression | null {
   return null;
 }
 
-function getAccessibilityLabelFromElement(node: t.JSXOpeningElement): t.Expression | null {
+function getJsxAttributeValueFromElement(node: t.JSXOpeningElement, attributeName: string): t.Expression | null {
   for (const attr of node.attributes) {
     if (!t.isJSXAttribute(attr)) {
       continue;
     }
 
-    if (getJsxAttributeName(attr) !== 'accessibilityLabel') {
+    if (getJsxAttributeName(attr) !== attributeName) {
       continue;
     }
 
@@ -113,30 +129,36 @@ function getAccessibilityLabelFromElement(node: t.JSXOpeningElement): t.Expressi
   return null;
 }
 
-function buildTrackCall(trackIdentifier: string, accessibilityLabel: t.Expression | null): t.CallExpression {
-  const args: t.Expression[] = [t.stringLiteral(BUTTON_PRESS_EVENT)];
+function getCapturePropertiesFromElement(
+  node: t.JSXOpeningElement,
+): Partial<Record<(typeof CAPTURE_ATTRIBUTE_NAMES)[number], t.Expression>> {
+  const properties: Partial<Record<(typeof CAPTURE_ATTRIBUTE_NAMES)[number], t.Expression>> = {};
 
-  if (accessibilityLabel) {
-    args.push(
-      t.objectExpression([t.objectProperty(t.stringLiteral(ACCESSIBILITY_LABEL_PROPERTY), accessibilityLabel)]),
-    );
+  for (const attributeName of CAPTURE_ATTRIBUTE_NAMES) {
+    const value = getJsxAttributeValueFromElement(node, attributeName);
+    if (value) {
+      properties[attributeName] = value;
+    }
   }
 
-  return t.callExpression(t.identifier(trackIdentifier), args);
+  return properties;
 }
 
-function wrapOnPressHandler(
+function buildAmpCaptureCall(
+  captureIdentifier: string,
   handler: t.Expression,
-  trackIdentifier: string,
-  accessibilityLabel: t.Expression | null,
-): t.ArrowFunctionExpression {
-  return t.arrowFunctionExpression(
-    [t.restElement(t.identifier('args'))],
-    t.blockStatement([
-      t.expressionStatement(buildTrackCall(trackIdentifier, accessibilityLabel)),
-      t.expressionStatement(t.callExpression(handler, [t.spreadElement(t.identifier('args'))])),
-    ]),
-  );
+  captureProperties: Partial<Record<(typeof CAPTURE_ATTRIBUTE_NAMES)[number], t.Expression>>,
+): t.CallExpression {
+  const properties: t.ObjectProperty[] = [t.objectProperty(t.identifier('event'), t.stringLiteral('Press'))];
+
+  for (const attributeName of CAPTURE_ATTRIBUTE_NAMES) {
+    const value = captureProperties[attributeName];
+    if (value) {
+      properties.push(t.objectProperty(t.identifier(attributeName), value));
+    }
+  }
+
+  return t.callExpression(t.identifier(captureIdentifier), [handler, t.objectExpression(properties)]);
 }
 
 export default function autocaptureTransformer(_options: AutocaptureTransformerOptions = {}): PluginObj<PluginPass> {
@@ -145,7 +167,7 @@ export default function autocaptureTransformer(_options: AutocaptureTransformerO
     visitor: {
       JSXOpeningElement(path) {
         const { node } = path;
-        if (!isButtonElement(node.name)) {
+        if (!isPressableElement(node.name)) {
           return;
         }
 
@@ -156,7 +178,8 @@ export default function autocaptureTransformer(_options: AutocaptureTransformerO
             continue;
           }
 
-          if (getJsxAttributeName(attr) !== 'onPress') {
+          const attrName = getJsxAttributeName(attr);
+          if (!attrName || !PRESSABLE_ATTRIBUTES.includes(attrName)) {
             continue;
           }
 
@@ -181,20 +204,21 @@ export default function autocaptureTransformer(_options: AutocaptureTransformerO
           return;
         }
 
-        let trackIdentifier = programPath.getData('autocaptureTrackIdentifier') as string | undefined;
-        if (!trackIdentifier) {
-          trackIdentifier = ensureTrackImport(programPath);
-          programPath.setData('autocaptureTrackIdentifier', trackIdentifier);
+        let captureIdentifier = programPath.getData('autocaptureCaptureIdentifier') as string | undefined;
+        if (!captureIdentifier) {
+          captureIdentifier = ensureTrackImport(programPath);
+          programPath.setData('autocaptureCaptureIdentifier', captureIdentifier);
         }
 
-        const accessibilityLabel = getAccessibilityLabelFromElement(node);
+        const captureProperties = getCapturePropertiesFromElement(node);
 
         for (const attr of node.attributes) {
           if (!t.isJSXAttribute(attr)) {
             continue;
           }
 
-          if (getJsxAttributeName(attr) !== 'onPress') {
+          const attrName = getJsxAttributeName(attr);
+          if (!attrName || !PRESSABLE_ATTRIBUTES.includes(attrName)) {
             continue;
           }
 
@@ -207,7 +231,7 @@ export default function autocaptureTransformer(_options: AutocaptureTransformerO
             continue;
           }
 
-          attr.value.expression = wrapOnPressHandler(expression, trackIdentifier, accessibilityLabel);
+          attr.value.expression = buildAmpCaptureCall(captureIdentifier, expression, captureProperties);
         }
       },
     },

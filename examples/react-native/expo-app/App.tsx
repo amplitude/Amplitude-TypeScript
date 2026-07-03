@@ -5,6 +5,7 @@ import {networkCapturePlugin} from '@amplitude/plugin-network-capture-browser';
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import FetchNetworkTestScreen from './FetchNetworkTestScreen';
+import { subscribe } from '@amplitude/analytics-react-native/src/amp-capture';
 
 
 const Stack = createNativeStackNavigator();
@@ -54,6 +55,11 @@ export default function App() {
           logLevel: Types.LogLevel.Error,
           // autocapture: { } // <-- todo
         }).promise;
+
+        // TODO: This should be replaced with the Autocapture Plugin
+        subscribe((properties) => {
+          track('[Amplitude] Element Clicked', properties);
+        });
         // Capture localhost traffic except Metro (8081) for the fetch network test screen.
         add(networkCapturePlugin({
           ignoreHosts: ['localhost:8081'],
