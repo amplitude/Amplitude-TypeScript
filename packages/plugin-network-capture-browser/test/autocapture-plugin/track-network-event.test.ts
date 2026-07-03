@@ -21,6 +21,7 @@ import {
   logNetworkAnalyticsEvent,
   NetworkAnalyticsEvent,
   parseHeaderCaptureRule,
+  parseUrlFromString,
   shouldTrackNetworkEvent,
 } from '../../src/track-network-event';
 import { BrowserEnrichmentPlugin, networkCapturePlugin } from '../../src/network-capture-plugin';
@@ -328,6 +329,91 @@ describe('track-network-event', () => {
         return call[0] === AMPLITUDE_NETWORK_REQUEST_EVENT;
       });
       expect(networkEventCall).toBeUndefined();
+    });
+  });
+
+  describe('shouldTrackNetworkEvent with React Native URL polyfill', () => {
+    const originalURL = global.URL;
+
+    afterEach(() => {
+      global.URL = originalURL;
+    });
+
+    test('parses host and query when URL.host is not implemented', () => {
+      class ReactNativeURL {
+        _url: string;
+
+        constructor(url: string) {
+          this._url = url.endsWith('/') ? url : `${url}/`;
+        }
+
+        get href() {
+          return this._url;
+        }
+
+        get host() {
+          throw new Error('URL.host is not implemented');
+        }
+
+        get searchParams() {
+          return { toString: () => '' };
+        }
+      }
+
+      global.URL = ReactNativeURL as unknown as typeof URL;
+
+      networkEvent.url = 'http://10.0.2.2:5173/api/test?foo=bar';
+      localConfig.networkTrackingOptions = {
+        captureRules: [{ hosts: ['10.0.2.2:5173'], statusCodeRange: '200-299' }],
+      };
+
+      expect(shouldTrackNetworkEvent(networkEvent, localConfig.networkTrackingOptions)).toBe(true);
+    });
+  });
+
+  describe('parseUrlFromString()', () => {
+    test('parses plain URL', () => {
+      const url = parseUrlFromString('http://10.0.2.2:5173/api/test');
+      expect(url).toEqual({
+        href: 'http://10.0.2.2:5173/api/test',
+        hrefWithoutQueryOrHash: 'http://10.0.2.2:5173/api/test',
+        host: '10.0.2.2:5173',
+        query: '',
+        fragment: '',
+      });
+    });
+
+    test('parses host and query when URL.host is not implemented', () => {
+      const url = parseUrlFromString('http://10.0.2.2:5173/api/test?foo=bar');
+      expect(url).toEqual({
+        href: 'http://10.0.2.2:5173/api/test?foo=bar',
+        hrefWithoutQueryOrHash: 'http://10.0.2.2:5173/api/test',
+        host: '10.0.2.2:5173',
+        query: 'foo=bar',
+        fragment: '',
+      });
+    });
+
+    test('parses hash fragments', () => {
+      const url = parseUrlFromString('http://10.0.2.2:5173/api/test?foo=bar#hash');
+      expect(url).toEqual({
+        href: 'http://10.0.2.2:5173/api/test?foo=bar#hash',
+        hrefWithoutQueryOrHash: 'http://10.0.2.2:5173/api/test',
+        host: '10.0.2.2:5173',
+        query: 'foo=bar',
+        fragment: 'hash',
+      });
+    });
+
+    test('parses relative URL', () => {
+      const url = parseUrlFromString('/api/test');
+      expect(url).toEqual({
+        href: '/api/test',
+        hrefWithoutQueryOrHash: '/api/test',
+        host: '',
+        query: '',
+        fragment: '',
+      });
     });
   });
 

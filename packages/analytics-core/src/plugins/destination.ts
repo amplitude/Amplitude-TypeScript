@@ -148,26 +148,31 @@ export class Destination implements DestinationPlugin {
    * @returns void
    */
   private removeStaleDelayedEvents(incomingEvent: Event) {
-    if (!incomingEvent.delay?.id) {
-      return;
-    }
-    /* istanbul ignore next */
-    this.queue = this.queue.filter((context) => {
-      if (
-        incomingEvent.delay &&
-        context.event.delay &&
-        context.event.delay.id === incomingEvent.delay.id &&
-        context.event.insert_id === incomingEvent.insert_id
-      ) {
-        if (this.inFlightDelayedEvents[incomingEvent.delay.id]) {
-          incomingEvent.delay.isFresh = true;
-          return true;
-        }
-        context.callback(buildResult(context.event, 0, 'Stale event overwritten'));
-        return false;
+    try {
+      if (!incomingEvent.delay?.id) {
+        return;
       }
-      return true;
-    });
+      /* istanbul ignore next */
+      this.queue = this.queue.filter((context) => {
+        if (
+          incomingEvent.delay &&
+          context.event.delay &&
+          context.event.delay.id === incomingEvent.delay.id &&
+          context.event.insert_id === incomingEvent.insert_id
+        ) {
+          if (this.inFlightDelayedEvents[incomingEvent.delay.id]) {
+            incomingEvent.delay.isFresh = true;
+            return true;
+          }
+          context.callback(buildResult(context.event, 0, 'Stale event overwritten'));
+          return false;
+        }
+        return true;
+      });
+      /* istanbul ignore next */
+    } catch (e) {
+      // swallow error
+    }
   }
 
   removeEventsExceedFlushMaxRetries(list: Context[]) {

@@ -14,6 +14,7 @@ config.watchFolders = [
   path.join(packagesRoot, 'analytics-react-native'),
   path.join(packagesRoot, 'analytics-core'),
   path.join(packagesRoot, 'plugin-page-view-tracking-browser'),
+  path.join(packagesRoot, 'plugin-network-capture-browser'),
 ];
 config.resolver.nodeModulesPaths = [path.resolve(projectRoot, 'node_modules')];
 

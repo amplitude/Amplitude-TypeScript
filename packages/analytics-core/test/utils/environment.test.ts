@@ -40,3 +40,35 @@ describe('isChromeExtension', () => {
     expect(analyticsCoreModule.isChromeExtension()).toBe(true);
   });
 });
+
+describe('isReactNative', () => {
+  let getGlobalScopeSpy: jest.SpyInstance;
+
+  beforeEach(() => {
+    getGlobalScopeSpy = jest.spyOn(globalScopeModule, 'getGlobalScope');
+  });
+
+  afterEach(() => {
+    getGlobalScopeSpy.mockRestore();
+  });
+
+  test('returns false when globalScope is undefined', () => {
+    getGlobalScopeSpy.mockReturnValue(undefined);
+    expect(analyticsCoreModule.isReactNative()).toBe(false);
+  });
+
+  test('returns false when navigator is undefined', () => {
+    getGlobalScopeSpy.mockReturnValue({});
+    expect(analyticsCoreModule.isReactNative()).toBe(false);
+  });
+
+  test('returns false when navigator.product is not ReactNative', () => {
+    getGlobalScopeSpy.mockReturnValue({ navigator: { product: 'NotReactNative' } });
+    expect(analyticsCoreModule.isReactNative()).toBe(false);
+  });
+
+  test('returns true when navigator.product is ReactNative', () => {
+    getGlobalScopeSpy.mockReturnValue({ navigator: { product: 'ReactNative' } });
+    expect(analyticsCoreModule.isReactNative()).toBe(true);
+  });
+});
