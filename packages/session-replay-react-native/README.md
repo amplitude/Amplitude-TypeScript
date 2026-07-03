@@ -21,12 +21,11 @@ the SDK keeps working on older React Native versions on the legacy architecture.
 The TurboModule code path is compiled only when the New Architecture is enabled,
 which itself requires React Native 0.74 or newer.
 
-### Fabric foundation (internal)
+### Fabric-based masking
 
-This release includes internal groundwork for an upcoming layout-transparent
-masking component built on Fabric. The component is currently inert: it is not
-part of the public API, exposes nothing new to call, and does not change any
-masking behavior.
+The layout-transparent masking components (`AmpMask` / `AmpUnmask`, see
+[Layout-transparent masking](#layout-transparent-masking-with-ampmask--ampunmask-experimental))
+are built on Fabric.
 
 The Fabric/C++ sources compile only on the New Architecture with React Native
 0.77 or newer (they rely on capabilities that exist only in those versions).
@@ -115,6 +114,74 @@ import { AmpMaskView } from '@amplitude/session-replay-react-native';
   </Text>
 </AmpMaskView>;
 ```
+
+## Layout-transparent masking with `AmpMask` / `AmpUnmask` (Experimental)
+
+> **@experimental** — this API is new and may change in a future release.
+
+`AmpMaskView` wraps its children in an extra native view, which introduces a
+layout boundary: children that depend on their parent for sizing (`flex: 1`,
+percentage heights, `position: 'absolute'`) can shift or collapse to zero.
+`AmpMask` and `AmpUnmask` are layout-transparent replacements: they mark their
+children as masked/unmasked in the replay without affecting layout at all —
+wrapping content in `<AmpMask>` renders pixel-identical to not wrapping it.
+
+### Requirements
+
+`AmpMask`/`AmpUnmask` require React Native **0.77 or newer** with the
+**New Architecture** enabled (Fabric). On the Old Architecture they are not
+supported:
+
+- In development they throw with a clear error.
+- In production they fall back to `AmpMaskView` and log a one-time
+  `console.error`. The fallback keeps content privacy-safe (still masked), but
+  it is **not** layout-transparent — the `AmpMaskView` layout caveats above
+  apply. Use `AmpMaskView` directly on the Old Architecture.
+
+### Usage
+
+```tsx
+import { AmpMask, AmpUnmask } from '@amplitude/session-replay-react-native';
+
+// Mask: children are masked in the replay, layout is unchanged.
+<AmpMask>
+  <View style={{ flex: 1 }}>
+    <Text>{accountNumber}</Text>
+  </View>
+</AmpMask>
+
+// Block: fully block the subtree from the replay.
+<AmpMask maskLevel="block">
+  <CreditCardForm />
+</AmpMask>
+
+// Unmask: opt content back in to the replay.
+<AmpUnmask>
+  <Text>Public banner</Text>
+</AmpUnmask>
+```
+
+`AmpMask` props:
+
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `enabled` | `boolean` | `true` | When `false`, children render without masking. |
+| `maskLevel` | `'mask' \| 'block'` | `'mask'` | Masking level applied to the children. On iOS, `mask` and `block` currently behave identically (both fully block). |
+
+`AmpUnmask` takes no masking props — it always unmasks its children.
+
+### Migrating from `AmpMaskView`
+
+| Before | After |
+| --- | --- |
+| `<AmpMaskView mask="amp-mask">` | `<AmpMask>` |
+| `<AmpMaskView mask="amp-block">` | `<AmpMask maskLevel="block">` |
+| `<AmpMaskView mask="amp-unmask">` | `<AmpUnmask>` |
+
+`AmpMaskView` remains supported on both architectures. Prefer
+`AmpMask`/`AmpUnmask` on the New Architecture, especially around children that
+are sized by their parent (`flex: 1`, percentage heights, absolute
+positioning).
 
 ## Tracking Web Views (Beta)
 
