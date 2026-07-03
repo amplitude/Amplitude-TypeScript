@@ -79,19 +79,32 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
           "EU" -> ServerZone.EU
           else -> ServerZone.US
         },
-        autoStart = autoStart,
+        // autoStart is deferred to the UI-thread block below: the SDK's
+        // bootstrap autoStart just calls start(), so this is behaviorally
+        // identical, and it lets us order registration before start().
+        autoStart = false,
         privacyConfig = PrivacyConfig(maskLevel = maskLevel),
       )
 
-      // Register the default masking primitive so `SRMaskView` masking reaches
-      // the recorder. Must run on the UI thread: setPrimitive replays recorded
-      // intents, which touch Views. Re-registering on repeated setup() calls is
-      // harmless (it just replays intents again).
+      // Register the default masking primitive, then start capture, in ONE
+      // UI-thread block. The registry is UI-thread-only (setPrimitive replays
+      // recorded masking intents, which touch Views), and registration must
+      // precede start() on the capture (UI) thread so an early capture frame
+      // can't snapshot `SRMaskView` children before their masking intents are
+      // applied. Resolving inside the block keeps the init promise from
+      // settling before registration lands. Re-registering on repeated
+      // setup() calls is harmless (it just replays intents again).
       UiThreadUtil.runOnUiThread {
-        SRMaskingRegistry.setPrimitive(SRDefaultMaskingPrimitive())
+        try {
+          SRMaskingRegistry.setPrimitive(SRDefaultMaskingPrimitive())
+          if (autoStart) {
+            sessionReplay.start()
+          }
+          promise.resolve(null)
+        } catch (e: Exception) {
+          promise.reject("SETUP_ERROR", e.message, e)
+        }
       }
-
-      promise.resolve(null)
     } catch (e: Exception) {
       promise.reject("SETUP_ERROR", e.message, e)
     }

@@ -16,7 +16,7 @@ class NativeSessionReplay: NSObject, RCTBridgeModule {
     }
     
     @objc(setup:resolve:reject:)
-    func setup(_ config: NSDictionary, resolve: RCTPromiseResolveBlock, reject: RCTPromiseRejectBlock) -> Void {
+    func setup(_ config: NSDictionary, resolve: @escaping RCTPromiseResolveBlock, reject: RCTPromiseRejectBlock) -> Void {
         guard let apiKey = config["apiKey"] as? String,
               let sessionId = config["sessionId"] as? NSNumber,
               let serverZone = config["serverZone"] as? String,
@@ -62,20 +62,22 @@ class NativeSessionReplay: NSObject, RCTBridgeModule {
             enableRemoteConfig: enableRemoteConfig
         )
         
-        if (autoStart) {
-            sessionReplay.start()
-        }
-
-        // Register the default masking primitive so `SRMaskView` masking reaches
-        // the recorder. Must run on the main thread: setPrimitive replays
-        // recorded intents, which touch UIViews (setup runs on the RN
-        // native-modules queue). Re-registering on repeated setup() calls is
-        // harmless (it just replays intents again).
+        // Register the default masking primitive, then start capture, in ONE
+        // main-thread block. The registry is main-thread-only (setting the
+        // primitive replays recorded masking intents, which touch UIViews;
+        // setup runs on the RN native-modules queue), and registration must
+        // precede start() on the capture (main) thread so an early capture
+        // frame can't snapshot `SRMaskView` children before their masking
+        // intents are applied. Resolving inside the block keeps the init
+        // promise from settling before registration lands. Re-registering on
+        // repeated setup() calls is harmless (it just replays intents again).
         DispatchQueue.main.async {
             SRMaskingRegistry.primitive = SRDefaultMaskingPrimitive()
+            if (autoStart) {
+                self.sessionReplay.start()
+            }
+            resolve(nil)
         }
-
-        resolve(nil)
     }
     
     @objc(setSessionId:resolve:reject:)
