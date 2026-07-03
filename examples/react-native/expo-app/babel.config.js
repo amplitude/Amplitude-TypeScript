@@ -7,7 +7,7 @@ module.exports = function (api) {
       // `export AMPLITUDE_API_KEY=…` before `pnpm run android` / `pnpm run ios`.
       [
         'transform-inline-environment-variables',
-        {include: ['AMPLITUDE_API_KEY']},
+        {include: ['AMPLITUDE_API_KEY', 'TEST_SERVER_HOST']},
       ],
     ],
   };
