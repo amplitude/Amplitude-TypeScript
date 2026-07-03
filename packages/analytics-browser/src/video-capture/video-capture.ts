@@ -116,11 +116,7 @@ export class VideoCapture {
           ...this.extraEventProperties,
         };
       }
-      if (
-        previousState.playbackState === 'playing' &&
-        nextState.playbackState !== 'playing' &&
-        this.stopEvent
-      ) {
+      if (previousState.playbackState === 'playing' && nextState.playbackState !== 'playing' && this.stopEvent) {
         this.stopEvent.event_properties = {
           ...this.stopEvent.event_properties,
           stop_reason: nextState.playbackState,
