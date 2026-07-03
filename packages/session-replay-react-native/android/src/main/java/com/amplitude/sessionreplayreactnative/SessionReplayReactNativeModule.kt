@@ -19,6 +19,7 @@ import com.facebook.react.bridge.ReadableMap
 class SessionReplayReactNativeModule(private val reactContext: ReactApplicationContext) :
   SessionReplayReactNativeSpec(reactContext) {
   private lateinit var sessionReplay: SessionReplay
+  @Volatile private var invalidated = false
 
   override fun getName(): String {
     return NAME
@@ -95,6 +96,10 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
       // settling before registration lands. Re-registering on repeated
       // setup() calls is harmless (it just replays intents again).
       UiThreadUtil.runOnUiThread {
+        if (invalidated) {
+          promise.reject("SETUP_ERROR", "Session Replay module was invalidated before setup completed", null)
+          return@runOnUiThread
+        }
         try {
           SRMaskingRegistry.setPrimitive(SRDefaultMaskingPrimitive())
           if (autoStart) {
@@ -199,6 +204,7 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
   }
 
   override fun invalidate() {
+    invalidated = true
     if (::sessionReplay.isInitialized) {
       sessionReplay.shutdown()
     }

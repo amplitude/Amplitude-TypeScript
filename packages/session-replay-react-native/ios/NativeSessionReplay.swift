@@ -16,7 +16,7 @@ class NativeSessionReplay: NSObject, RCTBridgeModule {
     }
     
     @objc(setup:resolve:reject:)
-    func setup(_ config: NSDictionary, resolve: @escaping RCTPromiseResolveBlock, reject: RCTPromiseRejectBlock) -> Void {
+    func setup(_ config: NSDictionary, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) -> Void {
         guard let apiKey = config["apiKey"] as? String,
               let sessionId = config["sessionId"] as? NSNumber,
               let serverZone = config["serverZone"] as? String,
@@ -72,9 +72,15 @@ class NativeSessionReplay: NSObject, RCTBridgeModule {
         // promise from settling before registration lands. Re-registering on
         // repeated setup() calls is harmless (it just replays intents again).
         DispatchQueue.main.async {
+            // Module invalidated (e.g. React Native reload) before deferred setup ran —
+            // nothing to start; settle the promise so JS init() never hangs.
+            guard let sessionReplay = self.sessionReplay else {
+                reject("SETUP_ERROR", "Session Replay module was invalidated before setup completed", nil)
+                return
+            }
             SRMaskingRegistry.primitive = SRDefaultMaskingPrimitive()
             if (autoStart) {
-                self.sessionReplay.start()
+                sessionReplay.start()
             }
             resolve(nil)
         }
