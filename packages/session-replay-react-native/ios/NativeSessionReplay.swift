@@ -145,10 +145,16 @@ class NativeSessionReplay: NSObject, RCTBridgeModule {
     
     @objc(invalidate)
     func invalidate() {
-        print("invalidate")
-        // could be nil here
-        sessionReplay?.stop()
-        sessionReplay = nil
+        // Serialize teardown with the deferred setup() block on the main queue —
+        // a mid-setup invalidate can no longer interleave; stop always runs either
+        // before the block (guard rejects) or after start() (normal teardown).
+        // Strong self capture is intentional: keep the module alive until teardown runs.
+        DispatchQueue.main.async {
+            print("invalidate")
+            // could be nil here
+            self.sessionReplay?.stop()
+            self.sessionReplay = nil
+        }
     }
 }
 

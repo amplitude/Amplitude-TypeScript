@@ -205,8 +205,14 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
 
   override fun invalidate() {
     invalidated = true
-    if (::sessionReplay.isInitialized) {
-      sessionReplay.shutdown()
+    // Serialize teardown with the deferred setup() block: both run on the UI
+    // queue, so a mid-setup invalidate can no longer interleave — shutdown
+    // always runs either before the block (flag rejects it) or after start()
+    // (normal stop).
+    UiThreadUtil.runOnUiThread {
+      if (::sessionReplay.isInitialized) {
+        sessionReplay.shutdown()
+      }
     }
   }
 
