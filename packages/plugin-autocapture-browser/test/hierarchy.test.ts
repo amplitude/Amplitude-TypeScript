@@ -224,6 +224,34 @@ describe('getAncestors', () => {
     expect(HierarchyUtil.getAncestors(nullElement)).toEqual([]);
   });
 
+  test('should stop at the shadow boundary when shadow mode is off', () => {
+    document.body.innerHTML = `<div id="app"><my-host></my-host></div>`;
+    const host = document.querySelector('my-host') as Element;
+    const root = host.attachShadow({ mode: 'open' });
+    root.innerHTML = `<button id="inner">x</button>`;
+    const inner = root.getElementById('inner') as Element;
+    expect(HierarchyUtil.getAncestors(inner)).toEqual([inner]);
+  });
+});
+
+describe('getElementProperties — shadow-root top', () => {
+  afterEach(() => {
+    document.body.innerHTML = '';
+  });
+
+  test('indexes siblings among shadow-root children when parentElement is null', () => {
+    document.body.innerHTML = `<my-host></my-host>`;
+    const root = (document.querySelector('my-host') as Element).attachShadow({ mode: 'open' });
+    root.innerHTML = `<span>decoy</span><button id="target">x</button>`;
+    const target = root.getElementById('target') as Element;
+    expect(HierarchyUtil.getElementProperties(target, new Set())).toMatchObject({
+      tag: 'button',
+      index: 1,
+      indexOfType: 0,
+      prevSib: 'span',
+    });
+  });
+
   // Note: getHierarchy has been moved to data-extractor.test.ts
   // as it is now an instance method of DataExtractor
 });

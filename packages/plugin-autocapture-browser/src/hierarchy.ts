@@ -1,4 +1,6 @@
+import { isShadowRoot, walkComposedAncestors } from '@amplitude/element-selector';
 import { isNonSensitiveElement } from './helpers';
+import { SHADOW_OFF, type ShadowMode } from './shadow-mode';
 import { DATA_AMP_MASK_ATTRIBUTES } from './constants';
 import type { HierarchyNode } from './typings/autocapture';
 import * as constants from './constants';
@@ -41,6 +43,18 @@ const SVG_TAGS = ['svg', 'path', 'g'];
 const HIGHLY_SENSITIVE_INPUT_TYPES = ['password', 'hidden'];
 export const MAX_HIERARCHY_LENGTH = 1024;
 
+/** Siblings for positional indexing — includes shadow-root children at the tree top. */
+function siblingCollection(element: Element): HTMLCollection | [] {
+  if (element.parentElement) {
+    return element.parentElement.children;
+  }
+  const root = element.getRootNode();
+  if (isShadowRoot(root)) {
+    return root.children;
+  }
+  return [];
+}
+
 export function getElementProperties(
   element: Element | null,
   userMaskedAttributeNames: Set<string>,
@@ -54,7 +68,7 @@ export function getElementProperties(
     tag: tagName,
   };
 
-  const siblings = Array.from(element.parentElement?.children ?? []);
+  const siblings = Array.from(siblingCollection(element));
   if (siblings.length) {
     properties.index = siblings.indexOf(element);
     properties.indexOfType = siblings.filter((el) => el.tagName === element.tagName).indexOf(element);
@@ -105,19 +119,33 @@ export function getElementProperties(
   return properties;
 }
 
-export function getAncestors(targetEl: Element | null): Element[] {
-  const ancestors: Element[] = [];
-
+// Top-level dispatch: light-DOM walk is the pre-shadow implementation.
+export function getAncestors(targetEl: Element | null, shadow: ShadowMode = SHADOW_OFF): Element[] {
   if (!targetEl) {
-    return ancestors;
+    return [];
   }
+  return shadow.enabled ? getAncestorsInShadow(targetEl, shadow.maxDepth) : getAncestorsLight(targetEl);
+}
 
-  // Add self to the list of ancestors
-  ancestors.push(targetEl);
-  let current = targetEl.parentElement;
-  while (current && current.tagName !== 'HTML') {
-    ancestors.push(current);
-    current = current.parentElement;
+/** Pre-shadow behavior: `parentElement` only, stops at the shadow-tree boundary. */
+function getAncestorsLight(targetEl: Element): Element[] {
+  const ancestors: Element[] = [targetEl];
+  let node: Element = targetEl;
+  while (node.parentElement && node.parentElement.tagName !== 'HTML') {
+    node = node.parentElement;
+    ancestors.push(node);
+  }
+  return ancestors;
+}
+
+/** Shadow path: composed walk, stopping before `<html>`. */
+function getAncestorsInShadow(targetEl: Element, maxDepth: number): Element[] {
+  const ancestors: Element[] = [];
+  for (const el of walkComposedAncestors(targetEl, maxDepth)) {
+    if (el.tagName === 'HTML') {
+      break;
+    }
+    ancestors.push(el);
   }
   return ancestors;
 }

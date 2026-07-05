@@ -19,6 +19,7 @@ import {
   isElementBasedEvent,
   parseAttributesToMask,
   getCurrentPageViewId,
+  resolveEventTarget,
 } from './helpers';
 import type { BaseTimestampedEvent, ElementBasedTimestampedEvent, TimestampedEvent, JSONValue } from './helpers';
 import { getAncestors, getElementProperties } from './hierarchy';
@@ -31,6 +32,12 @@ import {
   type ElementSelectorRemoteConfig,
   type ElementSelectorLogger,
 } from '@amplitude/element-selector';
+import { getSharedShadowGate, shadowModeFromConfig, type ShadowGate, type ShadowMode } from './shadow-mode';
+
+const hasMaskedAncestorLight = (element: Element): boolean => element.closest(`[${TEXT_MASK_ATTRIBUTE}]`) !== null;
+
+const hasMaskedAncestorInShadow = (element: Element, shadow: ShadowMode): boolean =>
+  getAncestors(element, shadow).some((ancestor) => ancestor.hasAttribute(TEXT_MASK_ATTRIBUTE));
 
 /**
  * Module-level shared selector engine singleton. Both autocapture-plugin and
@@ -68,9 +75,17 @@ export class DataExtractor {
    */
   private readonly selectorEngine: SelectorEngine;
 
+  /**
+   * The page-scoped shadow-DOM gate. Exposed because the plugins pass it to the
+   * observables, which both read it per callback and subscribe to its arming to
+   * run their shadow discovery scan. See `shadow-mode.ts`.
+   */
+  readonly shadowGate: ShadowGate;
+
   constructor(options: ElementInteractionsOptions, context?: { diagnosticsClient: IDiagnosticsClient }) {
     this.diagnosticsClient = context?.diagnosticsClient;
     this.selectorEngine = getSharedSelectorEngine();
+    this.shadowGate = getSharedShadowGate();
 
     const rawPatterns = options.maskTextRegex ?? [];
 
@@ -110,8 +125,11 @@ export class DataExtractor {
       return [];
     }
 
-    // Get list of ancestors including itself and get properties at each level in the hierarchy
-    const ancestors = getAncestors(element);
+    // Get list of ancestors including itself and get properties at each level in the hierarchy.
+    // When the shadow mode is enabled the ancestor walk crosses shadow
+    // boundaries into host elements, up to the mode's depth; otherwise it stays
+    // within the element's own tree.
+    const ancestors = getAncestors(element, this.getShadowMode());
 
     // Build attributes to mask map
     const elementToAttributesToMaskMap = new Map<Element, Set<string>>();
@@ -191,53 +209,81 @@ export class DataExtractor {
    * {@link getElementPath} onto the new strategy-based output; an explicit
    * `{ enabled: false }` switches it back.
    *
-   * A delivery is applied only when it explicitly carries a boolean `enabled`.
-   * Anything else — `null`/absent (failed or key-less remote fetch), an empty
-   * `{}`, or a partial payload without `enabled` — is treated as "no update"
-   * and ignored rather than reset to defaults. In `'all'` delivery mode the
-   * client delivers cache-then-remote (and both autocapture and frustration
-   * subscribe), so incomplete deliveries are common; applying them would default
-   * `enabled` to `false` via {@link resolveSelectorConfig} and silently tear down
-   * a live engine (enable, then disable) — the flip-flop this guard prevents.
+   * A delivery is applied only when it explicitly carries a boolean `enabled`
+   * and/or `shadowDomEnabled`. Anything else — `null`/absent (failed or
+   * key-less remote fetch), an empty `{}`, or a partial payload without either
+   * flag — is treated as "no update" and ignored rather than reset to defaults.
+   * In `'all'` delivery mode the client delivers cache-then-remote (and both
+   * autocapture and frustration subscribe), so incomplete deliveries are common;
+   * applying them would default `enabled` to `false` via
+   * {@link resolveSelectorConfig} and silently tear down a live engine — the
+   * flip-flop this guard prevents.
    *
-   * Off-by-default is unaffected: the engine still boots disabled, and only an
-   * explicit `enabled: true` ever turns it on. The trade-off is that disabling
-   * must be done with an explicit `enabled: false`, not by removing the config
-   * or sending a partial payload.
+   * `enabled` (which selector algorithm runs) and `shadowDomEnabled` (whether
+   * boundaries are crossed) are independent config axes and update differently:
+   * `enabled` changes only on deliveries that include a boolean `enabled`, while
+   * shadow support is held by {@link ShadowGate} from the first delivery that
+   * turns it on. The resolved shadow fields are overwritten from the gate before
+   * reaching the engine, so selector generation crosses boundaries exactly when
+   * the capture layer does.
    */
   updateSelectorConfig = (remote?: ElementSelectorRemoteConfig | null, logger?: ElementSelectorLogger): void => {
-    // No-op unless the delivery explicitly specifies a boolean `enabled`. This
-    // covers null/undefined AND non-null-but-incomplete payloads ({} or partial
-    // configs), both of which would otherwise resolve to disabled and revert a
-    // previously-enabled engine to the legacy cssPath.
-    if (remote === null || remote === undefined || typeof remote.enabled !== 'boolean') {
+    if (remote === null || remote === undefined) {
+      return;
+    }
+
+    const hasExplicitEnabled = typeof remote.enabled === 'boolean';
+    const hasExplicitShadow = typeof remote.shadowDomEnabled === 'boolean';
+
+    if (!hasExplicitEnabled && !hasExplicitShadow) {
       logger?.debug(
-        '@amplitude/element-selector: ignoring remote-config delivery without an explicit `enabled` flag — keeping current engine state.',
+        '@amplitude/element-selector: ignoring remote-config delivery without an explicit `enabled` or `shadowDomEnabled` flag — keeping current engine state.',
       );
       return;
     }
 
-    const wasEnabled = this.selectorEngine.getConfig().enabled;
     const resolved = resolveSelectorConfig(remote, logger);
-    this.selectorEngine.updateConfig(resolved);
 
-    // Log once, on the transition from the dormant legacy walker to the new
-    // strategy-based engine. Because the engine is shared across all extractors,
-    // comparing the prior config against the resolved one means this fires a
-    // single time when an org first gets flipped on — not on every remote-config
-    // re-delivery or for the second plugin sharing the same engine.
-    if (!wasEnabled && resolved.enabled) {
-      logger?.debug(
-        '@amplitude/element-selector: engine enabled — now emitting new element-selector element paths for autocapture events.',
-      );
-    } else if (wasEnabled && !resolved.enabled) {
-      // Surfaces a silent re-disable: the subscription runs in 'all' mode and can
-      // fire multiple times; a later payload without a boolean `enabled` resolves
-      // to disabled, reverting getElementPath to the legacy cssPath with no other
-      // signal. Logging it turns that invisible flip into an observable event.
-      logger?.debug('@amplitude/element-selector: engine disabled — reverting to legacy cssPath for element paths.');
+    const wasEngineEnabled = this.selectorEngine.getConfig().enabled;
+    const wasShadowEnabled = this.shadowGate.get().enabled;
+    const mode = this.shadowGate.arm(shadowModeFromConfig(resolved));
+
+    const nextConfig = hasExplicitEnabled ? resolved : { ...this.selectorEngine.getConfig() };
+    nextConfig.shadowDomEnabled = mode.enabled;
+    if (mode.enabled) {
+      nextConfig.maxShadowDomDepth = mode.maxDepth;
+    }
+    this.selectorEngine.updateConfig(nextConfig);
+
+    if (hasExplicitEnabled) {
+      if (!wasEngineEnabled && nextConfig.enabled) {
+        logger?.debug(
+          '@amplitude/element-selector: engine enabled — now emitting new element-selector element paths for autocapture events.',
+        );
+      } else if (wasEngineEnabled && !nextConfig.enabled) {
+        logger?.debug('@amplitude/element-selector: engine disabled — reverting to legacy cssPath for element paths.');
+      }
+    }
+
+    if (!wasShadowEnabled && mode.enabled) {
+      this.diagnosticsClient?.setTag('plugin.autocapture.shadowDom', `enabled:${mode.maxDepth}`);
     }
   };
+
+  /**
+   * The shadow-DOM mode for this page. Callable from anywhere and as often as
+   * needed: the gate holds one value once armed, so repeated reads within a
+   * single event resolve identically.
+   */
+  getShadowMode = (): ShadowMode => {
+    return this.shadowGate.get();
+  };
+
+  /**
+   * The element an event originated from. See {@link resolveEventTarget}.
+   */
+  resolveEventTarget = (event: Event, shadow: ShadowMode = this.getShadowMode()): EventTarget | null =>
+    resolveEventTarget(event, shadow);
 
   // Returns the Amplitude event properties for the given element.
   getEventProperties = (actionType: ActionType, element: Element, dataAttributePrefix: string) => {
@@ -316,30 +362,45 @@ export class DataExtractor {
   ): TimestampedEvent<T> | ElementBasedTimestampedEvent<T> => {
     const baseEvent = this.addTypeAndTimestamp(event, type);
 
-    if (isElementBasedEvent(baseEvent) && baseEvent.event.target !== null) {
-      if (isCapturingCursorPointer) {
-        const isCursorPointer = isElementPointerCursor(baseEvent.event.target as Element, baseEvent.type);
-        if (isCursorPointer) {
-          baseEvent.closestTrackedAncestor = baseEvent.event.target as HTMLElement;
+    // Enrichment error boundary. This runs on every captured event (in the
+    // observable `.map`), and its DOM traversal — event-target resolution,
+    // `getClosestElement`, `getEventProperties` (hierarchy + selector engine) —
+    // is the main place autocapture touches arbitrary customer DOM. A throw here
+    // must never crash the host page or tear down the capture stream, so we
+    // contain it once here rather than guarding each helper. On failure the
+    // event is emitted unenriched (and typically dropped downstream for lacking
+    // a tracked ancestor) — acceptable degradation, not a page crash.
+    try {
+      if (isElementBasedEvent(baseEvent) && baseEvent.event.target !== null) {
+        // Read once and pass into each call below, so the mode governing this
+        // event is visible in one place.
+        const shadow = this.getShadowMode();
+        const eventTarget = this.resolveEventTarget(baseEvent.event, shadow);
+        if (isCapturingCursorPointer) {
+          const isCursorPointer = isElementPointerCursor(eventTarget as Element, baseEvent.type);
+          if (isCursorPointer) {
+            baseEvent.closestTrackedAncestor = eventTarget as HTMLElement;
+            baseEvent.targetElementProperties = this.getEventProperties(
+              baseEvent.type,
+              baseEvent.closestTrackedAncestor,
+              dataAttributePrefix,
+            );
+            return baseEvent;
+          }
+        }
+        // Retrieve additional event properties from the target element
+        const closestTrackedAncestor = getClosestElement(eventTarget as HTMLElement, selectorAllowlist, shadow);
+        if (closestTrackedAncestor) {
+          baseEvent.closestTrackedAncestor = closestTrackedAncestor;
           baseEvent.targetElementProperties = this.getEventProperties(
             baseEvent.type,
-            baseEvent.closestTrackedAncestor,
+            closestTrackedAncestor,
             dataAttributePrefix,
           );
-          return baseEvent;
         }
       }
-      // Retrieve additional event properties from the target element
-      const closestTrackedAncestor = getClosestElement(baseEvent.event.target as HTMLElement, selectorAllowlist);
-      if (closestTrackedAncestor) {
-        baseEvent.closestTrackedAncestor = closestTrackedAncestor;
-        baseEvent.targetElementProperties = this.getEventProperties(
-          baseEvent.type,
-          closestTrackedAncestor,
-          dataAttributePrefix,
-        );
-      }
-      return baseEvent;
+    } catch {
+      // Best-effort enrichment: fall through and emit the base event.
     }
 
     return baseEvent;
@@ -396,9 +457,25 @@ export class DataExtractor {
     return output;
   };
 
+  /**
+   * Whether `element` or any ancestor carries the text-mask attribute.
+   *
+   * `Element.closest` stops at the top of the element's own tree, so it cannot
+   * see a mask attribute on a shadow host or on a light-DOM ancestor above one.
+   * When the mode is enabled the check uses the composed ancestor walk instead.
+   *
+   * The disabled path stays on `closest()` rather than the walk because
+   * `getAncestors` stops below `<html>`, so the walk would miss a mask attribute
+   * set on the root element.
+   */
+  private hasMaskedAncestor = (element: Element): boolean => {
+    const shadow = this.getShadowMode();
+    return shadow.enabled ? hasMaskedAncestorInShadow(element, shadow) : hasMaskedAncestorLight(element);
+  };
+
   getText = (element: Element): string => {
     // Check if element or any parent has data-amp-mask attribute
-    const hasMaskAttribute = element.closest(`[${TEXT_MASK_ATTRIBUTE}]`) !== null;
+    const hasMaskAttribute = this.hasMaskedAncestor(element);
     if (hasMaskAttribute) {
       return MASKED_TEXT_VALUE;
     }

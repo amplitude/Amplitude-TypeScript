@@ -42,6 +42,25 @@ export {
 export { getStableId } from './helpers/get-stable-id';
 export { describeRelative } from './helpers/describe-relative';
 
+// ===== Shadow DOM =====
+// `resolveSelector` is the symmetric inverse of `engine.generate` — consumers
+// (autocapture, dashboard tagging UI, Chrome extension) MUST re-resolve a
+// generated selector through this rather than `document.querySelector`, since a
+// shadow-piercing selector is delimited and `querySelector` can't cross shadow
+// boundaries. `composedParent` is exported for consumers that walk ancestors
+// (e.g. closest-tracked-ancestor logic) across shadow boundaries.
+export {
+  resolveSelector,
+  SHADOW_BOUNDARY_DELIMITER,
+  composedParent,
+  isShadowRoot,
+  walkComposedAncestors,
+  collectOpenShadowRoots,
+  MAX_SHADOW_COMPOSED_WALK_ITERATIONS,
+  MAX_SHADOW_DOM_TRAVERSAL_NODES,
+} from './helpers/shadow';
+export type { OpenShadowRootEntry } from './helpers/shadow';
+
 // ===== Strategies =====
 export { explicitTrackingAttribute } from './strategies/explicit-tracking-attribute';
 export { stableId as stableIdStrategy } from './strategies/stable-id';

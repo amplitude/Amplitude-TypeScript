@@ -65,6 +65,20 @@ export interface ResolvedSelectorConfig {
   unstableClassPatterns: RegExp[];
   /** Optional throttle on the ancestor walk. When undefined, the walk runs to <html>. */
   maxAncestorWalkDepth?: number;
+  /**
+   * Dedicated kill switch for shadow-DOM piercing. Defaults to false. When
+   * false, `generate` walks only the target's own tree (today's behavior, no
+   * boundary delimiter) even when the element lives inside a shadow root. This
+   * is independent of `enabled` so shadow support can be rolled out separately.
+   */
+  shadowDomEnabled: boolean;
+  /**
+   * Maximum number of shadow-boundary crossings the engine will traverse when
+   * `shadowDomEnabled` is true. Defaults to 1 (a single shadow level) and is
+   * clamped to the internal hard cap `MAX_SHADOW_DOM_DEPTH`. A target deeper
+   * than this produces a best-effort selector for the outermost in-budget host.
+   */
+  maxShadowDomDepth: number;
 }
 
 /**
@@ -83,6 +97,13 @@ export interface ElementSelectorRemoteConfig {
   unstableClassPatterns?: string[];
   /** Defensive throttle on the ancestor walk. Omit for unbounded walking to <html>. */
   maxAncestorWalkDepth?: number;
+  /** Kill switch for shadow-DOM piercing. When omitted, defaults to false (shadow support off). */
+  shadowDomEnabled?: boolean;
+  /**
+   * Max number of shadow-boundary crossings to traverse. When omitted, defaults
+   * to 1. Clamped at resolve time into [1, MAX_SHADOW_DOM_DEPTH] (currently 10).
+   */
+  maxShadowDomDepth?: number;
 }
 
 /**
