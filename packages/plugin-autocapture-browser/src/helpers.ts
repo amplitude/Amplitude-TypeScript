@@ -1,6 +1,8 @@
 /* eslint-disable no-restricted-globals */
 import { ElementInteractionsOptions, ActionType, isUrlMatchAllowlist, getGlobalScope } from '@amplitude/analytics-core';
+import { collectOpenShadowRoots, walkComposedAncestors } from '@amplitude/element-selector';
 import * as constants from './constants';
+import { SHADOW_OFF, type ShadowMode } from './shadow-mode';
 
 export type JSONValue = string | number | boolean | null | { [x: string]: JSONValue } | Array<JSONValue>;
 
@@ -189,8 +191,23 @@ export const querySelectUniqueElements = (root: Element | Document, selectors: s
   return [];
 };
 
-// Similar as element.closest, but works with multiple selectors
-export const getClosestElement = (element: Element | null, selectors: string[]): Element | null => {
+// Similar as element.closest, but works with multiple selectors.
+//
+// Top-level dispatch: the light-DOM path is the pre-shadow implementation;
+// shadow piercing is a separate walk.
+export const getClosestElement = (
+  element: Element | null,
+  selectors: string[],
+  shadow: ShadowMode = SHADOW_OFF,
+): Element | null => {
+  if (shadow.enabled) {
+    return getClosestElementInShadow(element, selectors, shadow.maxDepth);
+  }
+  return getClosestElementLight(element, selectors);
+};
+
+/** Pre-shadow behavior: `parentElement` only, stops at the tree boundary. */
+const getClosestElementLight = (element: Element | null, selectors: string[]): Element | null => {
   if (!element) {
     return null;
   }
@@ -199,7 +216,74 @@ export const getClosestElement = (element: Element | null, selectors: string[]):
     return element;
   }
   /* istanbul ignore next */
-  return getClosestElement(element?.parentElement, selectors);
+  return getClosestElementLight(element?.parentElement, selectors);
+};
+
+/** Shadow path: composed ancestor walk with a crossing budget. */
+const getClosestElementInShadow = (element: Element | null, selectors: string[], maxDepth: number): Element | null => {
+  if (!element) {
+    return null;
+  }
+  for (const current of walkComposedAncestors(element, maxDepth)) {
+    /* istanbul ignore next */
+    if (selectors.some((selector) => current?.matches?.(selector))) {
+      return current;
+    }
+  }
+  return null;
+};
+
+/**
+ * Like `querySelectUniqueElements` for a single joined selector, but also
+ * queries open shadow roots up to `shadow.maxDepth` crossings. With
+ * `SHADOW_OFF` this is a plain `querySelectorAll` on `root`.
+ */
+export const querySelectorAllDeep = (
+  root: Element | Document,
+  selectorString: string,
+  shadow: ShadowMode = SHADOW_OFF,
+): Element[] =>
+  shadow.enabled
+    ? querySelectorAllDeepInShadow(root, selectorString, shadow.maxDepth)
+    : querySelectorAllDeepLight(root, selectorString);
+
+const querySelectorAllDeepLight = (root: Element | Document, selectorString: string): Element[] => {
+  const out: Element[] = [];
+  if (!selectorString) {
+    return out;
+  }
+  root.querySelectorAll(selectorString).forEach((el) => out.push(el));
+  return out;
+};
+
+const querySelectorAllDeepInShadow = (
+  root: Element | Document,
+  selectorString: string,
+  maxDepth: number,
+): Element[] => {
+  const out = querySelectorAllDeepLight(root, selectorString);
+  // `document.documentElement` is typed nullable (e.g. before parsing completes).
+  // Shadow DFS needs an Element anchor; light-DOM matches were already collected above.
+  const start: Element | null = root instanceof Document ? root.documentElement : root;
+  if (!start) {
+    return out;
+  }
+  collectOpenShadowRoots(start, maxDepth).forEach(({ root: shadowRoot }) => {
+    shadowRoot.querySelectorAll(selectorString).forEach((el) => out.push(el));
+  });
+  return out;
+};
+
+/**
+ * The element an event originated from. Shadow DOM retargets `event.target` to
+ * the shadow host when piercing is on; otherwise `event.target` is returned as-is.
+ */
+export const resolveEventTarget = (event: Event, shadow: ShadowMode = SHADOW_OFF): EventTarget | null => {
+  if (!shadow.enabled) {
+    return event.target;
+  }
+  const path = event.composedPath?.();
+  return (path && path.length > 0 ? path[0] : null) ?? event.target;
 };
 
 export const asyncLoadScript = (url: string) => {

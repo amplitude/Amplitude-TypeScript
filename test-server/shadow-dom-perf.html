@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shadow DOM Autocapture Performance</title>
+</head>
+<body>
+    <h1>Shadow DOM Performance</h1>
+    <button id="light-button" type="button" class="track-me">Light</button>
+    <div id="app-shell"></div>
+    <div id="baseline-hosts"></div>
+    <div id="churn-container"></div>
+    <div id="perf-results" data-tbt="0" data-long-tasks="0" data-workload-ms="0"></div>
+    <div id="status">ready</div>
+
+    <script type="module">
+        import * as amplitude from '@amplitude/analytics-browser';
+        import { DataExtractor } from '@amplitude/plugin-autocapture-browser';
+
+        const params = new URLSearchParams(window.location.search);
+        const shadowOn = params.get('shadow') === 'on';
+        const skipAutocapture = params.get('skipAutocapture') === 'true';
+        const scenario = params.get('scenario') || 'all';
+
+        const BASELINE_HOST_COUNT = 40;
+        const CHURN_HOST_COUNT = 120;
+        const NESTED_BASELINE_COUNT = 30;
+        const NESTED_CHURN_COUNT = 80;
+        const CLICK_BURST = 80;
+
+        /** @type {PerformanceEntry[]} */
+        let longTasks = [];
+
+        const longTaskObserver = new PerformanceObserver((list) => {
+            for (const entry of list.getEntries()) {
+                longTasks.push(entry);
+            }
+        });
+        longTaskObserver.observe({ entryTypes: ['longtask'] });
+
+        function attachOpenHost(parent, id) {
+            const host = document.createElement('perf-host');
+            if (id) {
+                host.id = id;
+            }
+            parent.appendChild(host);
+            const root = host.attachShadow({ mode: 'open' });
+            root.innerHTML = '<button class="track-me" type="button">Shadow</button>';
+            return root;
+        }
+
+        /** Depth-2 tree: perf-card → perf-button → button */
+        function attachNestedHost(parent, id) {
+            const card = document.createElement('perf-card');
+            if (id) {
+                card.id = id;
+            }
+            parent.appendChild(card);
+            const cardRoot = card.attachShadow({ mode: 'open' });
+            cardRoot.innerHTML = '<perf-button></perf-button>';
+            const innerHost = cardRoot.querySelector('perf-button');
+            const innerRoot = innerHost.attachShadow({ mode: 'open' });
+            innerRoot.innerHTML = '<button class="track-me" type="button">Nested</button>';
+            return innerRoot;
+        }
+
+        function buildFlatBaseline() {
+            const container = document.getElementById('baseline-hosts');
+            for (let i = 0; i < BASELINE_HOST_COUNT; i++) {
+                attachOpenHost(container);
+            }
+            attachOpenHost(container, 'open-host').innerHTML =
+                '<button id="shadow-button" class="track-me" type="button">Shadow</button>';
+        }
+
+        function buildNestedBaseline() {
+            const container = document.getElementById('baseline-hosts');
+            for (let i = 0; i < NESTED_BASELINE_COUNT; i++) {
+                attachNestedHost(container);
+            }
+            attachNestedHost(container, 'open-host').innerHTML =
+                '<button id="shadow-button" class="track-me" type="button">Deep</button>';
+        }
+
+        function buildShellBaseline() {
+            const shell = document.getElementById('app-shell');
+            const header = document.createElement('app-header');
+            const main = document.createElement('app-main');
+            const footer = document.createElement('app-footer');
+            shell.append(header, main, footer);
+
+            const headerRoot = header.attachShadow({ mode: 'open' });
+            headerRoot.innerHTML = '<header><button class="track-me" type="button">Header</button></header>';
+
+            const mainRoot = main.attachShadow({ mode: 'open' });
+            mainRoot.innerHTML =
+                '<main><div id="main-churn-slot"></div><button id="shadow-button" class="track-me" type="button">Main</button></main>';
+
+            const footerRoot = footer.attachShadow({ mode: 'open' });
+            footerRoot.innerHTML = '<footer><button class="track-me" type="button">Footer</button></footer>';
+        }
+
+        function buildBaseline() {
+            if (scenario === 'nested') {
+                buildNestedBaseline();
+            } else if (scenario === 'shell') {
+                buildShellBaseline();
+            } else {
+                buildFlatBaseline();
+            }
+        }
+
+        function findShadowClickTarget() {
+            const primary = document.getElementById('open-host');
+            const fromPrimary =
+                primary?.shadowRoot?.querySelector('#shadow-button') ||
+                primary?.shadowRoot?.querySelector('button.track-me');
+            if (fromPrimary) {
+                return fromPrimary;
+            }
+            for (const host of document.querySelectorAll('perf-host, perf-card, app-main')) {
+                const root = host.shadowRoot;
+                const nested = root?.querySelector('perf-button')?.shadowRoot?.querySelector('button.track-me');
+                if (nested) {
+                    return nested;
+                }
+                const button = root?.querySelector('button.track-me');
+                if (button) {
+                    return button;
+                }
+            }
+            return null;
+        }
+
+        function runClickBurst() {
+            const target = findShadowClickTarget();
+            if (!target) {
+                throw new Error('shadow click target not found');
+            }
+            for (let i = 0; i < CLICK_BURST; i++) {
+                target.dispatchEvent(new MouseEvent('click', { bubbles: true, composed: true }));
+            }
+        }
+
+        function runFlatChurn() {
+            const container = document.getElementById('churn-container');
+            for (let i = 0; i < CHURN_HOST_COUNT; i++) {
+                attachOpenHost(container);
+            }
+        }
+
+        function runNestedChurn() {
+            const container = document.getElementById('churn-container');
+            for (let i = 0; i < NESTED_CHURN_COUNT; i++) {
+                attachNestedHost(container);
+            }
+        }
+
+        function runShellChurn() {
+            const slot = document.querySelector('app-main')?.shadowRoot?.getElementById('main-churn-slot');
+            if (!slot) {
+                throw new Error('app-main churn slot not found');
+            }
+            for (let i = 0; i < CHURN_HOST_COUNT; i++) {
+                attachOpenHost(slot);
+            }
+        }
+
+        function sliceTbt(fromIndex) {
+            return longTasks.slice(fromIndex).reduce((total, entry) => total + entry.duration, 0);
+        }
+
+        async function runWorkload() {
+            const startIndex = longTasks.length;
+            const start = performance.now();
+
+            switch (scenario) {
+                case 'clicks':
+                    runClickBurst();
+                    break;
+                case 'churn':
+                    runFlatChurn();
+                    break;
+                case 'nested':
+                    runClickBurst();
+                    runNestedChurn();
+                    break;
+                case 'shell':
+                    runShellChurn();
+                    break;
+                default:
+                    runClickBurst();
+                    runFlatChurn();
+                    break;
+            }
+
+            // Let MutationObserver microtasks and exposure indexing settle.
+            await new Promise((resolve) => setTimeout(resolve, 250));
+
+            const workloadMs = performance.now() - start;
+            const tbt = sliceTbt(startIndex);
+            const longTaskCount = longTasks.length - startIndex;
+
+            const results = document.getElementById('perf-results');
+            results.dataset.tbt = String(tbt);
+            results.dataset.longTasks = String(longTaskCount);
+            results.dataset.workloadMs = String(workloadMs);
+        }
+
+        async function boot() {
+            buildBaseline();
+
+            if (!skipAutocapture) {
+                if (shadowOn) {
+                    new DataExtractor({}).updateSelectorConfig({
+                        enabled: true,
+                        shadowDomEnabled: true,
+                        maxShadowDomDepth: 3,
+                    });
+                }
+
+                await amplitude.init('shadow-dom-perf-key', 'test-user', {
+                    fetchRemoteConfig: false,
+                    flushIntervalMillis: 60_000,
+                    flushQueueSize: 1000,
+                    autocapture: {
+                        pageViews: false,
+                        sessions: false,
+                        formInteractions: false,
+                        fileDownloads: false,
+                        elementInteractions: true,
+                    },
+                    logLevel: 0,
+                }).promise;
+            }
+
+            document.getElementById('status').textContent = 'perf-running';
+            await runWorkload();
+            document.getElementById('status').textContent = 'perf-done';
+        }
+
+        boot().catch((error) => {
+            document.getElementById('status').textContent = 'perf-error';
+            document.getElementById('perf-results').dataset.error = String(error?.message || error);
+        });
+    </script>
+</body>
+</html>

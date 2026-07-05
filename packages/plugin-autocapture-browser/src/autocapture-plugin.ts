@@ -204,8 +204,13 @@ export const autocapturePlugin = (
       );
     }
 
+    // Page-scoped shadow-DOM gate, shared with the frustration plugin. The
+    // observables read it per callback and subscribe to its arming to run their
+    // shadow discovery scans; see `shadow-mode.ts`.
+    const shadowGate = dataExtractor.shadowGate;
+
     const mutationObservable = multicast(
-      createMutationObservable().map((mutation) =>
+      createMutationObservable(shadowGate).map((mutation) =>
         dataExtractor.addAdditionalEventProperties(
           mutation,
           'mutation',
@@ -220,6 +225,7 @@ export const autocapturePlugin = (
     const exposureObservable = createExposureObservable(
       mutationObservable,
       (options as AutoCaptureOptionsWithDefaults).cssSelectorAllowlist,
+      shadowGate,
     );
 
     return {
@@ -264,7 +270,7 @@ export const autocapturePlugin = (
     }
   };
 
-  const setup: BrowserEnrichmentPlugin['setup'] = async (config, amplitude) => {
+  const runSetup = async (config: BrowserConfig, amplitude: BrowserClient) => {
     /* istanbul ignore if */
     if (typeof document === 'undefined') {
       return;
@@ -462,6 +468,21 @@ export const autocapturePlugin = (
         logger: config?.loggerProvider,
         ...(config?.serverZone && { endpoint: constants.AMPLITUDE_ORIGINS_MAP[config.serverZone] }),
       });
+    }
+  };
+
+  // Top-level error boundary for plugin initialization. `runSetup` wires up DOM
+  // observers, remote-config subscriptions, and event listeners against arbitrary
+  // customer DOM. `setup()` is awaited on `amplitude.init()` with no try/catch in
+  // the SDK core, so an uncaught throw here would reject `init()` (an unhandled
+  // rejection on the customer page). We contain it once: on failure autocapture
+  // is simply inactive for the page — never a crash. This single boundary is why
+  // the setup-time helpers (remote-config subscribe, etc.) can stay plain.
+  const setup: BrowserEnrichmentPlugin['setup'] = async (config, amplitude) => {
+    try {
+      await runSetup(config, amplitude);
+    } catch (e) {
+      config.loggerProvider.warn(`${name} failed to initialize; autocapture is disabled for this page: ${String(e)}`);
     }
   };
 

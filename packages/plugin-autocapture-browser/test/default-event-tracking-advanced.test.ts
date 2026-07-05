@@ -100,6 +100,30 @@ describe('autoTrackingPlugin', () => {
       expect(loggerProvider.log).toHaveBeenNthCalledWith(1, `${plugin?.name as string} has been successfully added.`);
     });
 
+    test('should warn and stay inactive when remote-config subscribe throws', async () => {
+      const loggerProvider: Partial<ILogger> = {
+        log: jest.fn(),
+        warn: jest.fn(),
+        error: jest.fn(),
+      };
+      const throwingClient = {
+        subscribe: jest.fn(() => {
+          throw new Error('subscribe boom');
+        }),
+        unsubscribe: jest.fn(),
+      };
+      const config = {
+        defaultTracking: false,
+        loggerProvider: loggerProvider as ILogger,
+        fetchRemoteConfig: true,
+        remoteConfigClient: throwingClient,
+      } as unknown as BrowserConfig;
+      const instance = createMockBrowserClient();
+
+      await expect(plugin?.setup?.(config, instance)).resolves.toBeUndefined();
+      expect(loggerProvider.warn).toHaveBeenCalledWith(expect.stringContaining('failed to initialize'));
+    });
+
     test('should setup visual tagging selector', async () => {
       window.opener = true;
       const messengerMock = {
