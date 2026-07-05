@@ -30,6 +30,7 @@ import { ElementSelectorLogger, ResolvedSelectorConfig, SelectorEngine } from '.
 import { runOrchestrator, OrchestratorOptions } from './orchestrator';
 import { fallbackCssPath } from './fallback-css-path';
 import { safeLegacyCssPath } from './legacy-css-path';
+import { segmentWalk, SHADOW_BOUNDARY_DELIMITER } from './helpers/shadow';
 
 export interface CreateSelectorEngineOptions {
   /** Optional document or shadow root for uniqueness checks. Defaults per-call to the target's owner document. */
@@ -69,8 +70,58 @@ export function createSelectorEngine(
     logger,
   };
 
+  /**
+   * Produce the selector for a single tree, scoped to `scope` (the tree's own
+   * document or shadow root). Honors the engine `enabled` kill switch — so the
+   * shadow-piercing path stays orthogonal to `enabled`: each per-tree segment
+   * is generated with whichever algorithm `enabled` selects (legacy cssPath
+   * when off, the strategy chain + fallback when on).
+   */
+  function generateForTree(target: Element, scope: ParentNode): string {
+    if (!config.enabled) {
+      return safeLegacyCssPath(target, logger);
+    }
+    const composed = runOrchestrator(target, config, { strategies: options.strategies, scope, logger });
+    if (composed !== null) {
+      return composed;
+    }
+    return fallbackCssPath(target, config, { scope });
+  }
+
+  /**
+   * Shadow-piercing entry point. Split the outward composed walk into per-tree
+   * segments (capped at `maxShadowDomDepth` boundary crossings), generate a
+   * selector for each tree scoped to its own root, and join them with the
+   * boundary delimiter. A single-tree (non-shadow) element yields exactly one
+   * segment and therefore no delimiter — identical to the non-shadow path.
+   */
+  function generateWithShadow(el: Element): string {
+    try {
+      const { segments, truncated } = segmentWalk(el, config.maxShadowDomDepth);
+      if (truncated) {
+        logger?.debug(
+          `@amplitude/element-selector: target is nested deeper than maxShadowDomDepth (${config.maxShadowDomDepth}) — emitting a best-effort selector for the outermost in-budget shadow host`,
+        );
+      }
+      return segments.map((segment) => generateForTree(segment.target, segment.root)).join(SHADOW_BOUNDARY_DELIMITER);
+    } catch (e) {
+      const message = e instanceof Error ? e.message : String(e);
+      logger?.warn(`@amplitude/element-selector: shadow walk threw — falling back to legacy cssPath: ${message}`);
+      return safeLegacyCssPath(el, logger);
+    }
+  }
+
   return {
     generate(el: Element): string {
+      // Shadow piercing changes the shape of the output (possibly multi-segment
+      // with boundary delimiters), so it owns the top-level branch. It is
+      // independent of `enabled` — `generateForTree` applies the kill switch
+      // per segment. Default-off: this branch is never entered unless the org
+      // opts in, so the paths below stay byte-identical to the pre-shadow engine.
+      if (config.shadowDomEnabled) {
+        return generateWithShadow(el);
+      }
+
       // Kill switch: when the customer's remote config has the engine
       // disabled (the default for orgs that haven't opted in), emit the same
       // Chromium-derived selector autocapture has shipped since before the

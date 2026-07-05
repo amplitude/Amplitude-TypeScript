@@ -1,0 +1,573 @@
+[
+  {
+    "url": "https://www.amazon.com/",
+    "ok": true,
+    "pageErrors": [],
+    "pageErrorDetails": [],
+    "blockedAmplitudeRequests": {
+      "count": 0
+    },
+    "audit": {
+      "totalElements": 2761,
+      "tested": 2761,
+      "capped": false,
+      "roundTripFailures": [],
+      "helperErrors": [],
+      "shadowRootsFound": 0,
+      "delimitedSelectors": 0,
+      "shadowElements": 0,
+      "injectedErrors": []
+    },
+    "harnessPageErrors": [],
+    "sitePageErrors": [],
+    "realInjectedErrors": [],
+    "engineRoundTripBugs": [],
+    "ignoredErrors": []
+  },
+  {
+    "url": "https://www.google.com/",
+    "ok": true,
+    "pageErrors": [],
+    "pageErrorDetails": [],
+    "blockedAmplitudeRequests": {
+      "count": 0
+    },
+    "audit": {
+      "totalElements": 640,
+      "tested": 640,
+      "capped": false,
+      "roundTripFailures": [],
+      "helperErrors": [],
+      "shadowRootsFound": 0,
+      "delimitedSelectors": 0,
+      "shadowElements": 0,
+      "injectedErrors": []
+    },
+    "harnessPageErrors": [],
+    "sitePageErrors": [],
+    "realInjectedErrors": [],
+    "engineRoundTripBugs": [],
+    "ignoredErrors": []
+  },
+  {
+    "url": "https://www.zoom.com/",
+    "ok": true,
+    "pageErrors": [
+      "amplitude is not defined"
+    ],
+    "pageErrorDetails": [
+      {
+        "message": "amplitude is not defined",
+        "attributedToHarness": false,
+        "stack": [
+          "ReferenceError: amplitude is not defined",
+          "    at <anonymous>:2:1",
+          "    at https://www.googletagmanager.com/gtm.js?id=GTM-5WKFT9:1057:429",
+          "    at wS (https://www.googletagmanager.com/gtm.js?id=GTM-5WKFT9:1059:31)",
+          "    at Ld.vS (https://www.googletagmanager.com/gtm.js?id=GTM-5WKFT9:1056:95)",
+          "    at Ld.<anonymous> (https://www.googletagmanager.com/gtm.js?id=GTM-5WKFT9:460:187)"
+        ]
+      }
+    ],
+    "blockedAmplitudeRequests": {
+      "count": 4
+    },
+    "audit": {
+      "totalElements": 1828,
+      "tested": 1828,
+      "capped": false,
+      "roundTripFailures": [],
+      "helperErrors": [],
+      "shadowRootsFound": 0,
+      "delimitedSelectors": 0,
+      "shadowElements": 0,
+      "injectedErrors": [
+        "Uncaught ReferenceError: amplitude is not defined"
+      ]
+    },
+    "harnessPageErrors": [],
+    "sitePageErrors": [],
+    "realInjectedErrors": [],
+    "engineRoundTripBugs": [],
+    "ignoredErrors": [
+      "amplitude is not defined",
+      "Uncaught ReferenceError: amplitude is not defined"
+    ]
+  },
+  {
+    "url": "https://www.youtube.com/results?search_query=disney",
+    "ok": true,
+    "pageErrors": [],
+    "pageErrorDetails": [],
+    "blockedAmplitudeRequests": {
+      "count": 0
+    },
+    "audit": {
+      "totalElements": 6866,
+      "tested": 6866,
+      "capped": false,
+      "roundTripFailures": [],
+      "helperErrors": [],
+      "shadowRootsFound": 0,
+      "delimitedSelectors": 0,
+      "shadowElements": 0,
+      "injectedErrors": []
+    },
+    "harnessPageErrors": [],
+    "sitePageErrors": [],
+    "realInjectedErrors": [],
+    "engineRoundTripBugs": [],
+    "ignoredErrors": []
+  },
+  {
+    "url": "https://www.google.com/maps",
+    "ok": true,
+    "pageErrors": [],
+    "pageErrorDetails": [],
+    "blockedAmplitudeRequests": {
+      "count": 0
+    },
+    "audit": {
+      "totalElements": 592,
+      "tested": 592,
+      "capped": false,
+      "roundTripFailures": [],
+      "helperErrors": [],
+      "shadowRootsFound": 0,
+      "delimitedSelectors": 0,
+      "shadowElements": 0,
+      "injectedErrors": []
+    },
+    "harnessPageErrors": [],
+    "sitePageErrors": [],
+    "realInjectedErrors": [],
+    "engineRoundTripBugs": [],
+    "ignoredErrors": []
+  },
+  {
+    "url": "https://developer.chrome.com/",
+    "ok": true,
+    "pageErrors": [],
+    "pageErrorDetails": [],
+    "blockedAmplitudeRequests": {
+      "count": 0
+    },
+    "audit": {
+      "totalElements": 945,
+      "tested": 945,
+      "capped": false,
+      "roundTripFailures": [],
+      "helperErrors": [],
+      "shadowRootsFound": 3,
+      "delimitedSelectors": 27,
+      "shadowElements": 27,
+      "injectedErrors": []
+    },
+    "harnessPageErrors": [],
+    "sitePageErrors": [],
+    "realInjectedErrors": [],
+    "engineRoundTripBugs": [],
+    "ignoredErrors": []
+  },
+  {
+    "url": "https://relation.orange.fr/intelligence-artificielle",
+    "ok": true,
+    "pageErrors": [
+      "Cannot read properties of null (reading 'addEventListener')"
+    ],
+    "pageErrorDetails": [
+      {
+        "message": "Cannot read properties of null (reading 'addEventListener')",
+        "attributedToHarness": false,
+        "stack": [
+          "Uncaught TypeError: Cannot read properties of null (reading 'addEventListener')",
+          "    at <anonymous> (https://wbo.cdn.s.woopic.com/online/relation-orange/assets/560182524980483/js/o_plugins.js:163:12)"
+        ]
+      }
+    ],
+    "blockedAmplitudeRequests": {
+      "count": 0
+    },
+    "audit": {
+      "totalElements": 1788,
+      "tested": 1788,
+      "capped": false,
+      "roundTripFailures": [],
+      "helperErrors": [],
+      "shadowRootsFound": 8,
+      "delimitedSelectors": 1534,
+      "shadowElements": 1534,
+      "injectedErrors": [
+        "Script error."
+      ]
+    },
+    "harnessPageErrors": [],
+    "sitePageErrors": [
+      {
+        "message": "Cannot read properties of null (reading 'addEventListener')",
+        "attributedToHarness": false,
+        "stack": [
+          "Uncaught TypeError: Cannot read properties of null (reading 'addEventListener')",
+          "    at <anonymous> (https://wbo.cdn.s.woopic.com/online/relation-orange/assets/560182524980483/js/o_plugins.js:163:12)"
+        ]
+      }
+    ],
+    "realInjectedErrors": [],
+    "engineRoundTripBugs": [],
+    "ignoredErrors": [
+      "Script error."
+    ]
+  },
+  {
+    "url": "https://amplitude.com/ai-analytics-platform?siteLocation=nav",
+    "ok": false,
+    "pageErrors": [],
+    "pageErrorDetails": [],
+    "blockedAmplitudeRequests": {
+      "count": 1
+    },
+    "error": "page.goto: net::ERR_FAILED at https://amplitude.com/ai-analytics-platform?siteLocation=nav\nCall log:\n\u001b[2m  - navigating to \"https://amplitude.com/ai-analytics-platform?siteLocation=nav\", waiting until \"domcontentloaded\"\u001b[22m\n"
+  },
+  {
+    "url": "https://boutique.orange.fr/tv/netflix",
+    "ok": true,
+    "pageErrors": [],
+    "pageErrorDetails": [],
+    "blockedAmplitudeRequests": {
+      "count": 0
+    },
+    "audit": {
+      "totalElements": 2169,
+      "tested": 2169,
+      "capped": false,
+      "roundTripFailures": [],
+      "helperErrors": [],
+      "shadowRootsFound": 8,
+      "delimitedSelectors": 1534,
+      "shadowElements": 1534,
+      "injectedErrors": []
+    },
+    "harnessPageErrors": [],
+    "sitePageErrors": [],
+    "realInjectedErrors": [],
+    "engineRoundTripBugs": [],
+    "ignoredErrors": []
+  },
+  {
+    "url": "https://boutique.orange.fr/internet/offres-fibre/livebox-up-fibre",
+    "ok": true,
+    "pageErrors": [],
+    "pageErrorDetails": [],
+    "blockedAmplitudeRequests": {
+      "count": 0
+    },
+    "audit": {
+      "totalElements": 3968,
+      "tested": 3968,
+      "capped": false,
+      "roundTripFailures": [],
+      "helperErrors": [],
+      "shadowRootsFound": 8,
+      "delimitedSelectors": 1534,
+      "shadowElements": 1534,
+      "injectedErrors": []
+    },
+    "harnessPageErrors": [],
+    "sitePageErrors": [],
+    "realInjectedErrors": [],
+    "engineRoundTripBugs": [],
+    "ignoredErrors": []
+  },
+  {
+    "url": "https://boutique.orange.fr/mobile/mobiles-et-smartphones?segment=bonsplans",
+    "ok": true,
+    "pageErrors": [
+      "Cannot read properties of null (reading 'appendChild')"
+    ],
+    "pageErrorDetails": [
+      {
+        "message": "Cannot read properties of null (reading 'appendChild')",
+        "attributedToHarness": false,
+        "stack": [
+          "Uncaught TypeError: Cannot read properties of null (reading 'appendChild')",
+          "    at init (https://myshop.cdn.s.woopic.com/myshop-myshop-prod-fa325714/resources/js/ob1.js?v=6.27.22-fa325714:8258:27)",
+          "    at Ob1Component (https://myshop.cdn.s.woopic.com/myshop-myshop-prod-fa325714/resources/js/ob1.js?v=6.27.22-fa325714:1228:15)",
+          "    at SearchField (https://myshop.cdn.s.woopic.com/myshop-myshop-prod-fa325714/resources/js/ob1.js?v=6.27.22-fa325714:8214:27)",
+          "    at <anonymous> (https://myshop.cdn.s.woopic.com/myshop-myshop-prod-fa325714/resources/js/ob1.js?v=6.27.22-fa325714:1267:14)",
+          "    at load (https://myshop.cdn.s.woopic.com/myshop-myshop-prod-fa325714/resources/js/ob1.js?v=6.27.22-fa325714:1258:30)"
+        ]
+      }
+    ],
+    "blockedAmplitudeRequests": {
+      "count": 0
+    },
+    "audit": {
+      "totalElements": 5677,
+      "tested": 5677,
+      "capped": false,
+      "roundTripFailures": [],
+      "helperErrors": [],
+      "shadowRootsFound": 8,
+      "delimitedSelectors": 1534,
+      "shadowElements": 1534,
+      "injectedErrors": [
+        "Script error."
+      ]
+    },
+    "harnessPageErrors": [],
+    "sitePageErrors": [
+      {
+        "message": "Cannot read properties of null (reading 'appendChild')",
+        "attributedToHarness": false,
+        "stack": [
+          "Uncaught TypeError: Cannot read properties of null (reading 'appendChild')",
+          "    at init (https://myshop.cdn.s.woopic.com/myshop-myshop-prod-fa325714/resources/js/ob1.js?v=6.27.22-fa325714:8258:27)",
+          "    at Ob1Component (https://myshop.cdn.s.woopic.com/myshop-myshop-prod-fa325714/resources/js/ob1.js?v=6.27.22-fa325714:1228:15)",
+          "    at SearchField (https://myshop.cdn.s.woopic.com/myshop-myshop-prod-fa325714/resources/js/ob1.js?v=6.27.22-fa325714:8214:27)",
+          "    at <anonymous> (https://myshop.cdn.s.woopic.com/myshop-myshop-prod-fa325714/resources/js/ob1.js?v=6.27.22-fa325714:1267:14)",
+          "    at load (https://myshop.cdn.s.woopic.com/myshop-myshop-prod-fa325714/resources/js/ob1.js?v=6.27.22-fa325714:1258:30)"
+        ]
+      }
+    ],
+    "realInjectedErrors": [],
+    "engineRoundTripBugs": [],
+    "ignoredErrors": [
+      "Script error."
+    ]
+  },
+  {
+    "url": "https://m3.material.io/",
+    "ok": true,
+    "pageErrors": [],
+    "pageErrorDetails": [],
+    "blockedAmplitudeRequests": {
+      "count": 0
+    },
+    "audit": {
+      "totalElements": 454,
+      "tested": 454,
+      "capped": false,
+      "roundTripFailures": [],
+      "helperErrors": [],
+      "shadowRootsFound": 1,
+      "delimitedSelectors": 5,
+      "shadowElements": 5,
+      "injectedErrors": []
+    },
+    "harnessPageErrors": [],
+    "sitePageErrors": [],
+    "realInjectedErrors": [],
+    "engineRoundTripBugs": [],
+    "ignoredErrors": []
+  },
+  {
+    "url": "https://ui5.github.io/webcomponents/",
+    "ok": true,
+    "pageErrors": [],
+    "pageErrorDetails": [],
+    "blockedAmplitudeRequests": {
+      "count": 0
+    },
+    "audit": {
+      "totalElements": 364,
+      "tested": 364,
+      "capped": false,
+      "roundTripFailures": [],
+      "helperErrors": [],
+      "shadowRootsFound": 0,
+      "delimitedSelectors": 0,
+      "shadowElements": 0,
+      "injectedErrors": []
+    },
+    "harnessPageErrors": [],
+    "sitePageErrors": [],
+    "realInjectedErrors": [],
+    "engineRoundTripBugs": [],
+    "ignoredErrors": []
+  },
+  {
+    "url": "https://www.bestbuy.com/",
+    "ok": false,
+    "pageErrors": [
+      "window.depProxy is not a function\nwhile loading \".\" from 442",
+      "window.depProxy is not a function\nwhile loading \".\" from 12313",
+      "'pageLoad' is not a valid analyticsQ action type",
+      "'pageLoad' is not a valid analyticsQ action type"
+    ],
+    "pageErrorDetails": [
+      {
+        "message": "window.depProxy is not a function\nwhile loading \".\" from 442",
+        "attributedToHarness": false,
+        "stack": [
+          "TypeError: window.depProxy is not a function",
+          "while loading \".\" from 442",
+          "    at 442 (https://www.bestbuy.com/~assets/bby/_com/shop/@bestbuy/bby-debug/dist/client/auto-loader-ed7b188824255f749a3e17f8c987349c.js:1:64)",
+          "    at s (https://www.bestbuy.com/~assets/bby/_com/shop/@bestbuy/bby-debug/dist/client/auto-loader-ed7b188824255f749a3e17f8c987349c.js:1:220)",
+          "    at i (https://www.bestbuy.com/~assets/bby/_com/shop/@bestbuy/bby-debug/dist/client/auto-loader-ed7b188824255f749a3e17f8c987349c.js:1:2280)",
+          "    at https://www.bestbuy.com/~assets/bby/_com/shop/@bestbuy/bby-debug/dist/client/auto-loader-ed7b188824255f749a3e17f8c987349c.js:1:2463"
+        ]
+      },
+      {
+        "message": "window.depProxy is not a function\nwhile loading \".\" from 12313",
+        "attributedToHarness": false,
+        "stack": [
+          "TypeError: window.depProxy is not a function",
+          "while loading \".\" from 12313",
+          "    at 12313 (https://www.bestbuy.com/~assets/bby/_com/@ds/unified-chat/dist/javascript/unified-chat-init-3cb44005.js:1:483)",
+          "    at n (https://www.bestbuy.com/~assets/bby/_com/@ds/unified-chat/dist/javascript/unified-chat-init-3cb44005.js:1:1102)",
+          "    at r (https://www.bestbuy.com/~assets/bby/_com/@ds/unified-chat/dist/javascript/unified-chat-init-3cb44005.js:1:10867)",
+          "    at https://www.bestbuy.com/~assets/bby/_com/@ds/unified-chat/dist/javascript/unified-chat-init-3cb44005.js:1:11048"
+        ]
+      },
+      {
+        "message": "'pageLoad' is not a valid analyticsQ action type",
+        "attributedToHarness": false,
+        "stack": [
+          "Error: 'pageLoad' is not a valid analyticsQ action type",
+          "    at pa (https://www.bestbuy.com/~assets/bby/_com/analytics-dotcom/chunks/aq-init-12d9051535ea57e553f9.js:2:32256)",
+          "    at https://www.bestbuy.com/~assets/bby/_com/analytics-dotcom/chunks/aq-init-12d9051535ea57e553f9.js:2:31275",
+          "    at https://www.bestbuy.com/~assets/bby/_com/libs/goteam/v26.22.20.js:2:9469"
+        ]
+      },
+      {
+        "message": "'pageLoad' is not a valid analyticsQ action type",
+        "attributedToHarness": false,
+        "stack": [
+          "Error: 'pageLoad' is not a valid analyticsQ action type",
+          "    at pa (https://www.bestbuy.com/~assets/bby/_com/analytics-dotcom/chunks/aq-init-12d9051535ea57e553f9.js:2:32256)",
+          "    at https://www.bestbuy.com/~assets/bby/_com/analytics-dotcom/chunks/aq-init-12d9051535ea57e553f9.js:2:31275",
+          "    at https://www.bestbuy.com/~assets/bby/_com/libs/goteam/v26.22.20.js:2:9469"
+        ]
+      }
+    ],
+    "blockedAmplitudeRequests": {
+      "count": 0
+    },
+    "audit": {
+      "totalElements": 1421,
+      "tested": 1421,
+      "capped": false,
+      "roundTripFailures": [
+        {
+          "selector": "html > body:nth-of-type(1) > div:nth-of-type(6) > div:nth-of-type(1) > div:nth-of-type(2) > div:nth-of-type(1) > div:nth-of-type(1) > span:nth-of-type(2) > span:nth-of-type(1) > csi:vars:nth-of-type(1)",
+          "tag": "csi:vars",
+          "pierced": false,
+          "matchCount": -1,
+          "resolvedIsNull": true,
+          "likelyCause": "segment-missed"
+        }
+      ],
+      "helperErrors": [],
+      "shadowRootsFound": 1,
+      "delimitedSelectors": 1,
+      "shadowElements": 1,
+      "injectedErrors": [
+        "Uncaught Error: 'pageLoad' is not a valid analyticsQ action type",
+        "Uncaught Error: 'pageLoad' is not a valid analyticsQ action type"
+      ]
+    },
+    "harnessPageErrors": [],
+    "sitePageErrors": [
+      {
+        "message": "window.depProxy is not a function\nwhile loading \".\" from 442",
+        "attributedToHarness": false,
+        "stack": [
+          "TypeError: window.depProxy is not a function",
+          "while loading \".\" from 442",
+          "    at 442 (https://www.bestbuy.com/~assets/bby/_com/shop/@bestbuy/bby-debug/dist/client/auto-loader-ed7b188824255f749a3e17f8c987349c.js:1:64)",
+          "    at s (https://www.bestbuy.com/~assets/bby/_com/shop/@bestbuy/bby-debug/dist/client/auto-loader-ed7b188824255f749a3e17f8c987349c.js:1:220)",
+          "    at i (https://www.bestbuy.com/~assets/bby/_com/shop/@bestbuy/bby-debug/dist/client/auto-loader-ed7b188824255f749a3e17f8c987349c.js:1:2280)",
+          "    at https://www.bestbuy.com/~assets/bby/_com/shop/@bestbuy/bby-debug/dist/client/auto-loader-ed7b188824255f749a3e17f8c987349c.js:1:2463"
+        ]
+      },
+      {
+        "message": "window.depProxy is not a function\nwhile loading \".\" from 12313",
+        "attributedToHarness": false,
+        "stack": [
+          "TypeError: window.depProxy is not a function",
+          "while loading \".\" from 12313",
+          "    at 12313 (https://www.bestbuy.com/~assets/bby/_com/@ds/unified-chat/dist/javascript/unified-chat-init-3cb44005.js:1:483)",
+          "    at n (https://www.bestbuy.com/~assets/bby/_com/@ds/unified-chat/dist/javascript/unified-chat-init-3cb44005.js:1:1102)",
+          "    at r (https://www.bestbuy.com/~assets/bby/_com/@ds/unified-chat/dist/javascript/unified-chat-init-3cb44005.js:1:10867)",
+          "    at https://www.bestbuy.com/~assets/bby/_com/@ds/unified-chat/dist/javascript/unified-chat-init-3cb44005.js:1:11048"
+        ]
+      },
+      {
+        "message": "'pageLoad' is not a valid analyticsQ action type",
+        "attributedToHarness": false,
+        "stack": [
+          "Error: 'pageLoad' is not a valid analyticsQ action type",
+          "    at pa (https://www.bestbuy.com/~assets/bby/_com/analytics-dotcom/chunks/aq-init-12d9051535ea57e553f9.js:2:32256)",
+          "    at https://www.bestbuy.com/~assets/bby/_com/analytics-dotcom/chunks/aq-init-12d9051535ea57e553f9.js:2:31275",
+          "    at https://www.bestbuy.com/~assets/bby/_com/libs/goteam/v26.22.20.js:2:9469"
+        ]
+      },
+      {
+        "message": "'pageLoad' is not a valid analyticsQ action type",
+        "attributedToHarness": false,
+        "stack": [
+          "Error: 'pageLoad' is not a valid analyticsQ action type",
+          "    at pa (https://www.bestbuy.com/~assets/bby/_com/analytics-dotcom/chunks/aq-init-12d9051535ea57e553f9.js:2:32256)",
+          "    at https://www.bestbuy.com/~assets/bby/_com/analytics-dotcom/chunks/aq-init-12d9051535ea57e553f9.js:2:31275",
+          "    at https://www.bestbuy.com/~assets/bby/_com/libs/goteam/v26.22.20.js:2:9469"
+        ]
+      }
+    ],
+    "realInjectedErrors": [
+      "Uncaught Error: 'pageLoad' is not a valid analyticsQ action type",
+      "Uncaught Error: 'pageLoad' is not a valid analyticsQ action type"
+    ],
+    "engineRoundTripBugs": [],
+    "ignoredErrors": []
+  },
+  {
+    "url": "https://www.target.com/",
+    "ok": true,
+    "pageErrors": [],
+    "pageErrorDetails": [],
+    "blockedAmplitudeRequests": {
+      "count": 0
+    },
+    "audit": {
+      "totalElements": 1091,
+      "tested": 1091,
+      "capped": false,
+      "roundTripFailures": [],
+      "helperErrors": [],
+      "shadowRootsFound": 0,
+      "delimitedSelectors": 0,
+      "shadowElements": 0,
+      "injectedErrors": []
+    },
+    "harnessPageErrors": [],
+    "sitePageErrors": [],
+    "realInjectedErrors": [],
+    "engineRoundTripBugs": [],
+    "ignoredErrors": []
+  },
+  {
+    "url": "https://www.walmart.com/",
+    "ok": true,
+    "pageErrors": [],
+    "pageErrorDetails": [],
+    "blockedAmplitudeRequests": {
+      "count": 0
+    },
+    "audit": {
+      "totalElements": 1310,
+      "tested": 1310,
+      "capped": false,
+      "roundTripFailures": [],
+      "helperErrors": [],
+      "shadowRootsFound": 0,
+      "delimitedSelectors": 0,
+      "shadowElements": 0,
+      "injectedErrors": []
+    },
+    "harnessPageErrors": [],
+    "sitePageErrors": [],
+    "realInjectedErrors": [],
+    "engineRoundTripBugs": [],
+    "ignoredErrors": []
+  }
+]

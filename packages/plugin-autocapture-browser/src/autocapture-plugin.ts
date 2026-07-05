@@ -204,8 +204,16 @@ export const autocapturePlugin = (
       );
     }
 
+    // Lazily-read shadow-DOM gate shared by the mutation and exposure
+    // observables. Read on each callback (not captured) so a remote-config
+    // delivery after setup takes effect; defaults keep the off path unchanged.
+    const getShadowConfig = () => ({
+      enabled: dataExtractor.isShadowDomEnabled(),
+      maxDepth: dataExtractor.getMaxShadowDomDepth(),
+    });
+
     const mutationObservable = multicast(
-      createMutationObservable().map((mutation) =>
+      createMutationObservable(getShadowConfig).map((mutation) =>
         dataExtractor.addAdditionalEventProperties(
           mutation,
           'mutation',
@@ -220,6 +228,7 @@ export const autocapturePlugin = (
     const exposureObservable = createExposureObservable(
       mutationObservable,
       (options as AutoCaptureOptionsWithDefaults).cssSelectorAllowlist,
+      getShadowConfig,
     );
 
     return {
@@ -264,7 +273,7 @@ export const autocapturePlugin = (
     }
   };
 
-  const setup: BrowserEnrichmentPlugin['setup'] = async (config, amplitude) => {
+  const runSetup = async (config: BrowserConfig, amplitude: BrowserClient) => {
     /* istanbul ignore if */
     if (typeof document === 'undefined') {
       return;
@@ -462,6 +471,21 @@ export const autocapturePlugin = (
         logger: config?.loggerProvider,
         ...(config?.serverZone && { endpoint: constants.AMPLITUDE_ORIGINS_MAP[config.serverZone] }),
       });
+    }
+  };
+
+  // Top-level error boundary for plugin initialization. `runSetup` wires up DOM
+  // observers, remote-config subscriptions, and event listeners against arbitrary
+  // customer DOM. `setup()` is awaited on `amplitude.init()` with no try/catch in
+  // the SDK core, so an uncaught throw here would reject `init()` (an unhandled
+  // rejection on the customer page). We contain it once: on failure autocapture
+  // is simply inactive for the page — never a crash. This single boundary is why
+  // the setup-time helpers (remote-config subscribe, etc.) can stay plain.
+  const setup: BrowserEnrichmentPlugin['setup'] = async (config, amplitude) => {
+    try {
+      await runSetup(config, amplitude);
+    } catch (e) {
+      config.loggerProvider.warn(`${name} failed to initialize; autocapture is disabled for this page: ${String(e)}`);
     }
   };
 

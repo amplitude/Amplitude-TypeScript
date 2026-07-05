@@ -110,8 +110,11 @@ export class DataExtractor {
       return [];
     }
 
-    // Get list of ancestors including itself and get properties at each level in the hierarchy
-    const ancestors = getAncestors(element);
+    // Get list of ancestors including itself and get properties at each level in the hierarchy.
+    // When shadow piercing is on, the ancestor walk crosses shadow boundaries
+    // (host elements) up to the configured depth; otherwise it stays within the
+    // element's own tree (unchanged behavior).
+    const ancestors = getAncestors(element, this.isShadowDomEnabled(), this.getMaxShadowDomDepth());
 
     // Build attributes to mask map
     const elementToAttributesToMaskMap = new Map<Element, Set<string>>();
@@ -192,6 +195,38 @@ export class DataExtractor {
     this.selectorEngine.updateConfig(resolveSelectorConfig(remote ?? undefined, logger));
   };
 
+  /**
+   * Whether shadow-DOM piercing is enabled in the current resolved config.
+   * Read lazily by the capture layer (event-target resolution, ancestor walks,
+   * observer fan-out) so the same remote-config delivery that flips selector
+   * generation also flips capture behavior. Defaults to false (off path).
+   */
+  isShadowDomEnabled = (): boolean => {
+    return this.selectorEngine.getConfig().shadowDomEnabled;
+  };
+
+  /** Configured max shadow-boundary crossings (clamped to [1, 10] at resolve time). */
+  getMaxShadowDomDepth = (): number => {
+    return this.selectorEngine.getConfig().maxShadowDomDepth;
+  };
+
+  /**
+   * The element an event actually originated from. Shadow DOM retargets
+   * `event.target` to the shadow host, so when piercing is enabled we read the
+   * true inner element from `composedPath()[0]` instead. When disabled (the
+   * default) this returns `event.target` — byte-identical to the prior behavior.
+   * Note: `composedPath()` only pierces OPEN shadow roots; for a closed root it
+   * yields the host, which is the same as today.
+   */
+  resolveEventTarget = (event: Event): EventTarget | null => {
+    if (!this.isShadowDomEnabled()) {
+      return event.target;
+    }
+    const path = event.composedPath?.();
+    /* istanbul ignore next */
+    return (path && path.length > 0 ? path[0] : null) ?? event.target;
+  };
+
   // Returns the Amplitude event properties for the given element.
   getEventProperties = (actionType: ActionType, element: Element, dataAttributePrefix: string) => {
     /* istanbul ignore next */
@@ -269,30 +304,52 @@ export class DataExtractor {
   ): TimestampedEvent<T> | ElementBasedTimestampedEvent<T> => {
     const baseEvent = this.addTypeAndTimestamp(event, type);
 
-    if (isElementBasedEvent(baseEvent) && baseEvent.event.target !== null) {
-      if (isCapturingCursorPointer) {
-        const isCursorPointer = isElementPointerCursor(baseEvent.event.target as Element, baseEvent.type);
-        if (isCursorPointer) {
-          baseEvent.closestTrackedAncestor = baseEvent.event.target as HTMLElement;
+    // Enrichment error boundary. This runs on every captured event (in the
+    // observable `.map`), and its DOM traversal — event-target resolution,
+    // `getClosestElement`, `getEventProperties` (hierarchy + selector engine) —
+    // is the main place autocapture touches arbitrary customer DOM. A throw here
+    // must never crash the host page or tear down the capture stream, so we
+    // contain it once here rather than guarding each helper. On failure the
+    // event is emitted unenriched (and typically dropped downstream for lacking
+    // a tracked ancestor) — acceptable degradation, not a page crash.
+    try {
+      if (isElementBasedEvent(baseEvent) && baseEvent.event.target !== null) {
+        // Resolve the true originating element. With shadow piercing on, this is
+        // `composedPath()[0]` (the inner element) rather than the retargeted
+        // host; with it off, it's `event.target` exactly as before.
+        const eventTarget = this.resolveEventTarget(baseEvent.event);
+        const crossShadow = this.isShadowDomEnabled();
+        const maxShadowDepth = this.getMaxShadowDomDepth();
+        if (isCapturingCursorPointer) {
+          const isCursorPointer = isElementPointerCursor(eventTarget as Element, baseEvent.type);
+          if (isCursorPointer) {
+            baseEvent.closestTrackedAncestor = eventTarget as HTMLElement;
+            baseEvent.targetElementProperties = this.getEventProperties(
+              baseEvent.type,
+              baseEvent.closestTrackedAncestor,
+              dataAttributePrefix,
+            );
+            return baseEvent;
+          }
+        }
+        // Retrieve additional event properties from the target element
+        const closestTrackedAncestor = getClosestElement(
+          eventTarget as HTMLElement,
+          selectorAllowlist,
+          crossShadow,
+          maxShadowDepth,
+        );
+        if (closestTrackedAncestor) {
+          baseEvent.closestTrackedAncestor = closestTrackedAncestor;
           baseEvent.targetElementProperties = this.getEventProperties(
             baseEvent.type,
-            baseEvent.closestTrackedAncestor,
+            closestTrackedAncestor,
             dataAttributePrefix,
           );
-          return baseEvent;
         }
       }
-      // Retrieve additional event properties from the target element
-      const closestTrackedAncestor = getClosestElement(baseEvent.event.target as HTMLElement, selectorAllowlist);
-      if (closestTrackedAncestor) {
-        baseEvent.closestTrackedAncestor = closestTrackedAncestor;
-        baseEvent.targetElementProperties = this.getEventProperties(
-          baseEvent.type,
-          closestTrackedAncestor,
-          dataAttributePrefix,
-        );
-      }
-      return baseEvent;
+    } catch {
+      // Best-effort enrichment: fall through and emit the base event.
     }
 
     return baseEvent;

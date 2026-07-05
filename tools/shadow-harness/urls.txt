@@ -1,0 +1,23 @@
+# Multi-site shadow-DOM harness corpus.
+# One URL per line. Blank lines and lines starting with '#' are ignored.
+#
+# Bias toward shadow-DOM-heavy sites (web components / Lit / Polymer / Stencil /
+# Salesforce Lightning / SAP UI5) to actually exercise the piercing paths — most
+# of the web has zero shadow roots and won't stress the new code.
+
+https://www.amazon.com/
+https://www.google.com/
+https://www.zoom.com/
+https://www.youtube.com/results?search_query=disney
+https://www.google.com/maps
+https://developer.chrome.com/
+https://relation.orange.fr/intelligence-artificielle
+https://amplitude.com/ai-analytics-platform?siteLocation=nav
+https://boutique.orange.fr/tv/netflix
+https://boutique.orange.fr/internet/offres-fibre/livebox-up-fibre
+https://boutique.orange.fr/mobile/mobiles-et-smartphones?segment=bonsplans
+https://m3.material.io/
+https://ui5.github.io/webcomponents/
+https://www.bestbuy.com/
+https://www.target.com/
+https://www.walmart.com/
