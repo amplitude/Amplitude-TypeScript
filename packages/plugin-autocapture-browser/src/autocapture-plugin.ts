@@ -205,8 +205,13 @@ export const autocapturePlugin = (
       );
     }
 
+    // Page-scoped shadow-DOM gate, shared with the frustration plugin. The
+    // observables read it per callback and subscribe to its arming to run their
+    // shadow discovery scans; see `shadow-mode.ts`.
+    const shadowGate = dataExtractor.shadowGate;
+
     const mutationObservable = multicast(
-      createMutationObservable().map((mutation) =>
+      createMutationObservable(shadowGate).map((mutation) =>
         dataExtractor.addAdditionalEventProperties(
           mutation,
           'mutation',
@@ -221,6 +226,7 @@ export const autocapturePlugin = (
     const exposureObservable = createExposureObservable(
       mutationObservable,
       (options as AutoCaptureOptionsWithDefaults).cssSelectorAllowlist,
+      shadowGate,
     );
 
     return {
