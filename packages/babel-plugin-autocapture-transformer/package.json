@@ -1,0 +1,52 @@
+{
+  "name": "@amplitude/babel-plugin-autocapture-transformer",
+  "version": "0.1.0",
+  "description": "Babel plugin that transforms JSX for Amplitude autocapture at compile time.",
+  "author": "Amplitude Inc",
+  "homepage": "https://github.com/amplitude/Amplitude-TypeScript",
+  "license": "MIT",
+  "main": "lib/cjs/index.js",
+  "module": "lib/esm/index.js",
+  "types": "lib/esm/index.d.ts",
+  "sideEffects": false,
+  "publishConfig": {
+    "access": "public",
+    "tag": "beta"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/amplitude/Amplitude-TypeScript.git"
+  },
+  "scripts": {
+    "build": "pnpm build:es5 & pnpm build:esm",
+    "build:es5": "tsc -p ./tsconfig.es5.json",
+    "build:esm": "tsc -p ./tsconfig.esm.json",
+    "watch": "tsc -p ./tsconfig.esm.json --watch",
+    "clean": "rimraf node_modules lib coverage",
+    "fix": "pnpm fix:eslint & pnpm fix:prettier",
+    "fix:eslint": "eslint '{src,test}/**/*.ts' --fix",
+    "fix:prettier": "prettier --write \"{src,test}/**/*.ts\"",
+    "lint": "pnpm lint:eslint & pnpm lint:prettier",
+    "lint:eslint": "eslint '{src,test}/**/*.ts'",
+    "lint:prettier": "prettier --check \"{src,test}/**/*.ts\"",
+    "test": "jest",
+    "typecheck": "tsc -p ./tsconfig.json"
+  },
+  "bugs": {
+    "url": "https://github.com/amplitude/Amplitude-TypeScript/issues"
+  },
+  "peerDependencies": {
+    "@babel/core": "^7.0.0"
+  },
+  "dependencies": {
+    "tslib": "^2.4.1"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.24.7",
+    "@babel/preset-react": "^7.24.7",
+    "@babel/preset-typescript": "^7.24.7"
+  },
+  "files": [
+    "lib"
+  ]
+}
