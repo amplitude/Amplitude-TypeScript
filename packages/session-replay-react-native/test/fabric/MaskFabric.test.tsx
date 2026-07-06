@@ -12,7 +12,7 @@ jest.mock('react-native');
 
 import React from 'react';
 import type { ReactElement, ReactNode } from 'react';
-import { NativeModules, UIManager } from 'react-native';
+import { NativeModules, TurboModuleRegistry, UIManager } from 'react-native';
 import type { MaskProps, UnmaskProps } from '../../src/Mask.types';
 
 // Shape of the props MaskFabric forwards onto the native SRMaskView element.
@@ -76,16 +76,23 @@ const mockHasViewManagerConfig = UIManager.hasViewManagerConfig as jest.Mock;
 
 // The mock's NativeModules export is a plain object (see
 // test/__mocks__/react-native.ts) with AMPNativeSessionReplay present by
-// default. Tier-3 tests need to toggle its presence to distinguish
-// "recorder truly absent" from "recorder present but unreachable" — mutate
-// and always restore so other suites still see the module.
+// default, and TurboModuleRegistry.get/getEnforcing are jest.fn mocks that
+// resolve the same module. Tier-3 tests need to toggle the recorder's
+// presence to distinguish "recorder truly absent" from "recorder present but
+// unreachable" — mutate BOTH resolution paths (NativeModules and
+// TurboModuleRegistry.get) since MaskFabric now probes the same way
+// src/native-module.ts does, and always restore so other suites still see
+// the module.
 const nativeModules = NativeModules as { AMPNativeSessionReplay?: unknown };
 const originalAmpNativeSessionReplay = nativeModules.AMPNativeSessionReplay;
+const mockTurboModuleRegistryGet = TurboModuleRegistry.get as jest.Mock;
 function removeRecorder(): void {
   delete nativeModules.AMPNativeSessionReplay;
+  mockTurboModuleRegistryGet.mockReturnValue(null);
 }
 function restoreRecorder(): void {
   nativeModules.AMPNativeSessionReplay = originalAmpNativeSessionReplay;
+  mockTurboModuleRegistryGet.mockReturnValue(originalAmpNativeSessionReplay);
 }
 
 describe('MaskFabric', () => {
@@ -359,6 +366,39 @@ describe('MaskFabric', () => {
         expect(rendered?.type).toBe(React.Fragment);
         expect(rendered?.props.children).toBe(child);
         expect(errorSpy).toHaveBeenCalledTimes(1);
+      });
+    });
+  });
+
+  describe('when the recorder is reachable ONLY via TurboModuleRegistry (NativeModules interop proxy misses it)', () => {
+    // Regression test for the Bugbot finding: the probe must resolve the
+    // native module the same way src/native-module.ts does
+    // (TurboModuleRegistry.get first), not solely via NativeModules. If the
+    // TurboModule is linked but not exposed on the NativeModules interop
+    // proxy, the old NativeModules-only probe would read false and the
+    // Passthrough tier would render children UNMASKED while the recorder can
+    // still record — exactly the scenario simulated here.
+    beforeEach(() => {
+      mockHasViewManagerConfig.mockImplementation(() => false);
+      delete nativeModules.AMPNativeSessionReplay;
+      mockTurboModuleRegistryGet.mockReturnValue(originalAmpNativeSessionReplay);
+    });
+
+    afterEach(() => {
+      restoreRecorder();
+    });
+
+    describe('in development (__DEV__ = true)', () => {
+      it('AmpMask is the UnmaskableGuard: throws a build-error message rather than silently passing through', () => {
+        const { AmpMask } = loadMaskFabricModule<PassthroughMaskFabricModule>();
+        expect(() => AmpMask({ children: null })).toThrow(/neither SRMaskView nor AMPMaskComponentView is registered/);
+      });
+
+      it('AmpUnmask is the UnmaskableGuard: throws a build-error message rather than silently passing through', () => {
+        const { AmpUnmask } = loadMaskFabricModule<PassthroughMaskFabricModule>();
+        expect(() => AmpUnmask({ children: null })).toThrow(
+          /neither SRMaskView nor AMPMaskComponentView is registered/,
+        );
       });
     });
   });

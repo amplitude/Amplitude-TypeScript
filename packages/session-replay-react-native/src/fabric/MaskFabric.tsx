@@ -1,5 +1,5 @@
 import React from 'react';
-import { NativeModules, UIManager } from 'react-native';
+import { NativeModules, TurboModuleRegistry, UIManager } from 'react-native';
 import SRMaskViewNative from '../specs/SRMaskViewNativeComponent';
 import { AmpMaskView } from '../amp-mask-view';
 import { ampMaskViewMaskProp } from '../Mask.types';
@@ -27,8 +27,14 @@ const FABRIC_AVAILABLE = UIManager.hasViewManagerConfig?.('SRMaskView') ?? false
 const PAPER_MASK_AVAILABLE = UIManager.hasViewManagerConfig?.('AMPMaskComponentView') ?? false;
 // Whether the Session Replay native module itself is linked. Used to decide
 // tier-3 behavior below — we verify the recorder's absence rather than
-// inferring it from the missing view managers alone.
-const RECORDER_PRESENT = NativeModules?.AMPNativeSessionReplay != null;
+// inferring it from the missing view managers alone. The probe must resolve
+// the module the same way src/native-module.ts does (TurboModuleRegistry.get,
+// which is what the codegen spec in src/specs/NativeAmpSessionReplay.ts uses
+// on both architectures), falling back to the legacy NativeModules interop
+// proxy, so the passthrough gate can never disagree with the recorder's
+// actual availability.
+const RECORDER_PRESENT =
+  (TurboModuleRegistry?.get?.('AMPNativeSessionReplay') ?? NativeModules?.AMPNativeSessionReplay) != null;
 
 let warned = false;
 function warnOnceUnmasked() {
