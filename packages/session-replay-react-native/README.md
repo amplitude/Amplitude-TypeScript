@@ -129,8 +129,9 @@ wrapping content in `<AmpMask>` renders pixel-identical to not wrapping it.
 ### Requirements
 
 `AmpMask`/`AmpUnmask` require React Native **0.77 or newer** with the
-**New Architecture** enabled (Fabric). On the Old Architecture they are not
-supported:
+**New Architecture** enabled (Fabric) **with bridgeless enabled** (the RN
+0.77 default). On Fabric without bridgeless (bridge mode) — as well as on
+the Old Architecture — they are not supported as a layout-transparent path:
 
 - In development they throw with a clear error.
 - In production they fall back to `AmpMaskView` and log a one-time
@@ -143,14 +144,25 @@ supported:
 
 - `style` is not supported on `<AmpMask>`/`<AmpUnmask>` — they never occupy
   layout, so there is no box to style. Style your children directly instead.
+- `enabled` is only honored on the layout-transparent Fabric path — all
+  fallback paths (Old Architecture, Fabric bridge-mode, and the
+  build-misconfiguration cases below) ignore it and keep content masked
+  regardless (they fail toward privacy).
 - If the New Architecture is active but the native `SRMaskView` component is
-  missing (a build misconfiguration), `<AmpMask>`/`<AmpUnmask>` log a
+  missing — including on Fabric without bridgeless, which cannot detect
+  `SRMaskView` on iOS and always falls back — `<AmpMask>`/`<AmpUnmask>` log a
   one-time `console.error` and fall back to `<AmpMaskView>` — content stays
   **masked**, but layout-transparency is lost. Treat that log as a build
   error to fix, not a warning to ignore.
-- If the package's native code is absent entirely (so Session Replay cannot
-  record at all), `<AmpMask>`/`<AmpUnmask>` log a one-time `console.error`
-  and render children directly.
+- On the **New Architecture**, if the package's native code is absent
+  entirely (so Session Replay cannot record at all), `<AmpMask>`/`<AmpUnmask>`
+  log a one-time `console.error` and render children directly. If instead the
+  native module is present but neither masking component is registered (an
+  unexpected build error), they throw in development and log a distinct
+  one-time `console.error` in production instead of silently passing content
+  through. On the **Old Architecture** with the native code absent, rendering
+  fails at `requireNativeComponent` like any other native component — there
+  is no silent passthrough.
 
 ### Usage
 

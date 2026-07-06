@@ -4,6 +4,8 @@
 
 jest.mock('react-native');
 
+import type { MaskProps, UnmaskProps } from '../../src/Mask.types';
+
 const MSG = '<AmpMask> requires the New Architecture. Use <AmpMaskView> on the Old Architecture.';
 
 type MaskPaperModule = typeof import('../../src/paper/MaskPaper');
@@ -76,6 +78,42 @@ describe('MaskPaper', () => {
 
       expect(errorSpy).toHaveBeenCalledTimes(1);
       expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('AmpMaskView'));
+    });
+
+    it('a caller-supplied mask prop does not override the forced value on AmpMask', () => {
+      const { AmpMask } = loadMaskPaper();
+      // Untyped/JS callers can spread a stray `mask` prop through; the
+      // forced value must win. Cast needed since `mask` isn't on MaskProps.
+      const element = AmpMask({ children: null, mask: 'amp-unmask' } as unknown as MaskProps);
+      expect(element.props.mask).toBe('amp-mask');
+    });
+
+    it('a caller-supplied mask prop does not override the forced value on AmpUnmask', () => {
+      const { AmpUnmask } = loadMaskPaper();
+      const element = AmpUnmask({ children: null, mask: 'amp-mask' } as unknown as UnmaskProps);
+      expect(element.props.mask).toBe('amp-unmask');
+    });
+
+    it('does not forward enabled or style onto the rendered AmpMaskView element (AmpMask)', () => {
+      const { AmpMask } = loadMaskPaper();
+      const element = AmpMask({
+        enabled: false,
+        children: null,
+        style: { flex: 1 },
+      } as unknown as MaskProps);
+      expect(element.props.enabled).toBeUndefined();
+      expect(element.props.style).toBeUndefined();
+    });
+
+    it('does not forward enabled or style onto the rendered AmpMaskView element (AmpUnmask)', () => {
+      const { AmpUnmask } = loadMaskPaper();
+      const element = AmpUnmask({
+        children: null,
+        enabled: false,
+        style: { flex: 1 },
+      } as unknown as UnmaskProps);
+      expect(element.props.enabled).toBeUndefined();
+      expect(element.props.style).toBeUndefined();
     });
   });
 });

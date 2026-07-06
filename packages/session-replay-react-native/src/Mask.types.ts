@@ -33,3 +33,10 @@ export interface MaskProps extends Omit<ViewProps, 'style'> {
 export interface UnmaskProps extends Omit<ViewProps, 'style'> {
   children?: ReactNode;
 }
+
+// The one runtime export in this otherwise type-only module: shared by
+// MaskPaper and MaskFabric's fallback components so the mask-level mapping
+// isn't duplicated.
+export function ampMaskViewMaskProp(level?: AmpMaskLevel): 'amp-mask' | 'amp-block' {
+  return level === 'block' ? 'amp-block' : 'amp-mask';
+}

@@ -12,7 +12,7 @@ jest.mock('react-native');
 
 import React from 'react';
 import type { ReactElement, ReactNode } from 'react';
-import { UIManager } from 'react-native';
+import { NativeModules, UIManager } from 'react-native';
 import type { MaskProps, UnmaskProps } from '../../src/Mask.types';
 
 // Shape of the props MaskFabric forwards onto the native SRMaskView element.
@@ -32,6 +32,8 @@ interface PassthroughElementProps {
 // Shape of the props MaskFabric forwards onto the fallback AmpMaskView element.
 interface FallbackMaskElementProps {
   mask: 'amp-mask' | 'amp-unmask' | 'amp-block';
+  enabled?: boolean;
+  style?: unknown;
   children?: ReactNode;
 }
 
@@ -71,6 +73,20 @@ function loadMaskFabricModule<T>(): T {
 }
 
 const mockHasViewManagerConfig = UIManager.hasViewManagerConfig as jest.Mock;
+
+// The mock's NativeModules export is a plain object (see
+// test/__mocks__/react-native.ts) with AMPNativeSessionReplay present by
+// default. Tier-3 tests need to toggle its presence to distinguish
+// "recorder truly absent" from "recorder present but unreachable" — mutate
+// and always restore so other suites still see the module.
+const nativeModules = NativeModules as { AMPNativeSessionReplay?: unknown };
+const originalAmpNativeSessionReplay = nativeModules.AMPNativeSessionReplay;
+function removeRecorder(): void {
+  delete nativeModules.AMPNativeSessionReplay;
+}
+function restoreRecorder(): void {
+  nativeModules.AMPNativeSessionReplay = originalAmpNativeSessionReplay;
+}
 
 describe('MaskFabric', () => {
   describe('when native view manager is available', () => {
@@ -201,21 +217,55 @@ describe('MaskFabric', () => {
       expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('MASKED'));
       expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('AmpMaskView'));
     });
+
+    it('a caller-supplied mask prop does not override the forced value on AmpMask', () => {
+      // Untyped/JS callers can spread a stray `mask` prop through; the
+      // forced value must win. Cast needed since `mask` isn't on MaskProps.
+      const rendered = AmpMask({ children: null, mask: 'amp-unmask' } as unknown as MaskProps);
+      expect(rendered?.props.mask).toBe('amp-mask');
+    });
+
+    it('a caller-supplied mask prop does not override the forced value on AmpUnmask', () => {
+      const rendered = AmpUnmask({ children: null, mask: 'amp-mask' } as unknown as UnmaskProps);
+      expect(rendered?.props.mask).toBe('amp-unmask');
+    });
+
+    it('does not forward enabled or style onto the rendered AmpMaskView element (AmpMask)', () => {
+      const rendered = AmpMask({
+        enabled: false,
+        children: null,
+        style: { flex: 1 },
+      } as unknown as MaskProps);
+      expect(rendered?.props.enabled).toBeUndefined();
+      expect(rendered?.props.style).toBeUndefined();
+    });
+
+    it('does not forward enabled or style onto the rendered AmpMaskView element (AmpUnmask)', () => {
+      const rendered = AmpUnmask({
+        children: null,
+        enabled: false,
+        style: { flex: 1 },
+      } as unknown as UnmaskProps);
+      expect(rendered?.props.enabled).toBeUndefined();
+      expect(rendered?.props.style).toBeUndefined();
+    });
   });
 
-  describe('when neither SRMaskView nor AMPMaskComponentView is available (passthrough)', () => {
+  describe('when neither SRMaskView nor AMPMaskComponentView is available and the recorder is absent (passthrough)', () => {
     let AmpMask: PassthroughMaskComponent;
     let AmpUnmask: PassthroughUnmaskComponent;
     let errorSpy: jest.SpyInstance;
 
     beforeEach(() => {
       mockHasViewManagerConfig.mockImplementation(() => false);
+      removeRecorder();
       errorSpy = jest.spyOn(console, 'error').mockImplementation(() => undefined);
       ({ AmpMask, AmpUnmask } = loadMaskFabricModule<PassthroughMaskFabricModule>());
     });
 
     afterEach(() => {
       errorSpy.mockRestore();
+      restoreRecorder();
     });
 
     it('probes hasViewManagerConfig with SRMaskView and AMPMaskComponentView', () => {
@@ -249,6 +299,67 @@ describe('MaskFabric', () => {
 
       expect(errorSpy).toHaveBeenCalledTimes(1);
       expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('UNMASKED'));
+    });
+  });
+
+  describe('when neither SRMaskView nor AMPMaskComponentView is available but the recorder IS present (should-be-unreachable build error)', () => {
+    beforeEach(() => {
+      mockHasViewManagerConfig.mockImplementation(() => false);
+      // Recorder present by default in the mock; be explicit for clarity.
+      restoreRecorder();
+    });
+
+    describe('in development (__DEV__ = true)', () => {
+      it('AmpMask throws a clear build-error message instead of silently passing content through', () => {
+        const { AmpMask } = loadMaskFabricModule<PassthroughMaskFabricModule>();
+        expect(() => AmpMask({ children: null })).toThrow(/neither SRMaskView nor AMPMaskComponentView is registered/);
+      });
+
+      it('AmpUnmask throws a clear build-error message instead of silently passing content through', () => {
+        const { AmpUnmask } = loadMaskFabricModule<PassthroughMaskFabricModule>();
+        expect(() => AmpUnmask({ children: null })).toThrow(
+          /neither SRMaskView nor AMPMaskComponentView is registered/,
+        );
+      });
+    });
+
+    describe('in production (__DEV__ = false)', () => {
+      const globalWithDev = global as unknown as { __DEV__: boolean };
+      let originalDev: boolean;
+      let errorSpy: jest.SpyInstance;
+
+      beforeEach(() => {
+        originalDev = globalWithDev.__DEV__;
+        globalWithDev.__DEV__ = false;
+        errorSpy = jest.spyOn(console, 'error').mockImplementation(() => undefined);
+      });
+
+      afterEach(() => {
+        globalWithDev.__DEV__ = originalDev;
+        errorSpy.mockRestore();
+      });
+
+      it('AmpMask warns once and renders children directly (Fragment)', () => {
+        const { AmpMask } = loadMaskFabricModule<PassthroughMaskFabricModule>();
+        const child = React.createElement('Text', null, 'hello');
+        const rendered = AmpMask({ children: child });
+
+        expect(rendered?.type).toBe(React.Fragment);
+        expect(rendered?.props.children).toBe(child);
+        expect(errorSpy).toHaveBeenCalledTimes(1);
+        expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('build error'));
+      });
+
+      it('AmpUnmask warns once (shared with AmpMask) and renders children directly (Fragment)', () => {
+        const { AmpMask, AmpUnmask } = loadMaskFabricModule<PassthroughMaskFabricModule>();
+        AmpMask({ children: React.createElement('Text', null, 'a') });
+        const child = React.createElement('Text', null, 'b');
+        const rendered = AmpUnmask({ children: child });
+
+        expect(rendered?.type).toBe(React.Fragment);
+        expect(rendered?.props.children).toBe(child);
+        expect(errorSpy).toHaveBeenCalledTimes(1);
+      });
     });
   });
 });
