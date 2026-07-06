@@ -33,9 +33,11 @@ const MUTATION_OBSERVER_INIT: MutationObserverInit = {
 export const createMutationObservable = (getShadowConfig?: ShadowConfigGetter): Observable<MutationRecord[]> => {
   return new Observable<MutationRecord[]>((observer) => {
     // Track observed roots to avoid double-observing, plus the shadow-boundary
-    // depth of each observed shadow root (the main document is depth 0).
+    // depth of each observed shadow root (the main document is depth 0). Both are
+    // weak so shadow roots that unmount (common on component-heavy SPAs) are
+    // reclaimable rather than pinned for the subscription's lifetime.
     const observed = new WeakSet<Node>();
-    const rootDepth = new Map<Node, number>();
+    const rootDepth = new WeakMap<Node, number>();
 
     const observeRoot = (root: Node, depth: number): void => {
       if (observed.has(root)) {

@@ -42,6 +42,9 @@ lerna-debug.log
 .nx/cache/
 .nx/workspace-data/
 
+# Shadow-DOM harness generated report
+tools/shadow-harness/report.json
+
 # Playground
 packages/analytics-browser/playground/html/amplitude.js
 packages/analytics-browser/playground/react-spa/public/amplitude.js

@@ -58,7 +58,7 @@ export const SHADOW_BOUNDARY_DELIMITER = ' >>> ';
 export const SHADOW_CHILD_CHAIN_PREFIX = ':scope > ';
 
 /** Narrowing guard that tolerates environments without a `ShadowRoot` global. */
-function isShadowRoot(node: Node): node is ShadowRoot {
+export function isShadowRoot(node: Node): node is ShadowRoot {
   return typeof ShadowRoot !== 'undefined' && node instanceof ShadowRoot;
 }
 

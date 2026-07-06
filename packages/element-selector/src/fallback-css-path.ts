@@ -40,7 +40,7 @@
 import { ResolvedSelectorConfig } from './types';
 import { getStableId } from './helpers/get-stable-id';
 import { escapeIdForCss } from './helpers/escape-id';
-import { positionalStep, SHADOW_CHILD_CHAIN_PREFIX } from './helpers/shadow';
+import { isShadowRoot, positionalStep, SHADOW_CHILD_CHAIN_PREFIX } from './helpers/shadow';
 
 export interface FallbackCssPathOptions {
   /** Document or shadow root used for uniqueness checks. Defaults to the target's owner document. */
@@ -61,7 +61,7 @@ export function fallbackCssPath(
   options: FallbackCssPathOptions = {},
 ): string {
   const scope: ParentNode = options.scope ?? el.ownerDocument ?? document;
-  const scopeIsShadowRoot = isShadowRootScope(scope);
+  const scopeIsShadowRoot = isShadowRoot(scope as Node);
   const segments: string[] = [];
   let cursor: Element | null = el;
   let depth = 0;
@@ -106,11 +106,6 @@ export function fallbackCssPath(
   }
 
   return path;
-}
-
-/** True when `scope` is a shadow root (tolerates environments without the global). */
-function isShadowRootScope(scope: ParentNode): boolean {
-  return typeof ShadowRoot !== 'undefined' && scope instanceof ShadowRoot;
 }
 
 function isUniqueMatch(scope: ParentNode, selector: string, el: Element): boolean {
