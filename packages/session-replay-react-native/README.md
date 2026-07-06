@@ -133,12 +133,17 @@ wrapping content in `<AmpMask>` renders pixel-identical to not wrapping it.
 0.77 default). On Fabric without bridgeless (bridge mode) — as well as on
 the Old Architecture — they are not supported as a layout-transparent path:
 
-- In development they throw with a clear error.
-- In production they fall back to `AmpMaskView` and log a one-time
-  `console.error`. The fallback **ignores `enabled`** — wrapped content stays
-  masked regardless (it fails toward privacy). It is also **not**
-  layout-transparent — the `AmpMaskView` layout caveats above apply. Use
-  `AmpMaskView` directly on the Old Architecture.
+- On the Old Architecture, in development they throw with a clear error;
+  in production they fall back to `AmpMaskView` and log a one-time
+  `console.error`.
+- On Fabric without bridgeless (bridge mode), they never throw — they
+  always fall back to `AmpMaskView` and log a one-time `console.error`,
+  in both development and production (bridge-mode Fabric cannot detect
+  `SRMaskView` on iOS).
+- Both fallbacks **ignore `enabled`** — wrapped content stays masked
+  regardless (it fails toward privacy). Neither is layout-transparent —
+  the `AmpMaskView` layout caveats above apply. Use `AmpMaskView`
+  directly outside the bridgeless-Fabric path.
 
 ### Caveats
 
