@@ -52,11 +52,16 @@ function processMetric(metric: Metric) {
   };
 }
 
-export const webVitalsPlugin = (): BrowserEnrichmentPlugin => {
+export type WebVitalsPlugin = BrowserEnrichmentPlugin & {
+  flushWebVitals: (() => void) | undefined;
+};
+
+export const webVitalsPlugin = (): WebVitalsPlugin => {
   let visibilityListener: ((this: Document, ev: Event) => void) | null = null;
   const globalScope = getGlobalScope();
   const doc = globalScope?.document;
   const location = globalScope?.location;
+  let flushWebVitals: (() => void) | undefined = undefined;
   const setup: BrowserEnrichmentPlugin['setup'] = async (config, amplitude) => {
     if (doc === undefined) {
       return;
@@ -90,9 +95,14 @@ export const webVitalsPlugin = (): BrowserEnrichmentPlugin => {
       webVitalsPayload['[Amplitude] TTFB'] = processMetric(metric);
     });
 
+    flushWebVitals = () => {
+      amplitude.track(WEB_VITALS_EVENT_NAME, webVitalsPayload);
+    };
+
     visibilityListener = () => {
       if (doc.visibilityState === 'hidden' && visibilityListener) {
-        amplitude.track(WEB_VITALS_EVENT_NAME, webVitalsPayload);
+        /* istanbul ignore next */
+        flushWebVitals?.();
         doc.removeEventListener('visibilitychange', visibilityListener);
         visibilityListener = null;
       }
@@ -114,6 +124,7 @@ export const webVitalsPlugin = (): BrowserEnrichmentPlugin => {
   return {
     name: PLUGIN_NAME,
     type: 'enrichment',
+    flushWebVitals,
     setup,
     execute,
     teardown,

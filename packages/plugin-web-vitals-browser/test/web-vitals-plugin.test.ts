@@ -192,4 +192,19 @@ describe('webVitalsPlugin', () => {
     const result = await plugin?.execute?.(event);
     expect(result).toBe(event);
   });
+
+  describe('flushWebVitals', () => {
+    it('should be able to flush web vitals manually', async () => {
+      const plugin = webVitalsPlugin();
+      await plugin?.setup?.(config, amplitude);
+      (plugin.flushWebVitals as () => void)();
+      expect(amplitude.track).toHaveBeenCalledWith(WEB_VITALS_EVENT_NAME, expect.any(Object));
+    });
+
+    it('should be undefined if not setup', async () => {
+      const plugin = webVitalsPlugin();
+      plugin?.flushWebVitals?.();
+      expect(plugin?.flushWebVitals).toBeUndefined();
+    });
+  });
 });
