@@ -1,0 +1,11 @@
+{
+  "extends": "./tsconfig.json",
+  "include": ["src/**/*"],
+  "exclude": ["lib", "node_modules", "testbed", "test"],
+  "compilerOptions": {
+    "module": "es6",
+    "noEmit": false,
+    "outDir": "lib/esm",
+    "rootDir": "./src"
+  }
+}

@@ -106,6 +106,209 @@ sessionReplay.shutdown()
 |`useWebWorker`|`boolean`|No|`false`|If true, the SDK will compress replay events using a web worker. This offloads compression to a separate thread, improving performance on the main thread.|
 |`crossOriginIframes.enabled`|`boolean`|No|`false`|Enables cross-origin iframe recording. Must be set to `true` on both the parent page and each child iframe page. See [Cross-Origin Iframe Recording](#cross-origin-iframe-recording).|
 |`crossOriginIframes.coordinateChildren`|`boolean`|No|`true`|When `true`, the parent SDK automatically sends start/stop signals to child iframes via `postMessage`. Set to `false` to manage child recording lifecycle yourself.|
+|`handleSendEvents`|`function`|No|`undefined`|Custom transport for replay event uploads. Lets you fully own the outbound HTTP call (e.g. to attach a JWT `Authorization` header and route through an authenticated proxy) while the SDK keeps batching, retry and serialization. See [Custom Transport](#custom-transport-authenticated-proxies--jwt).|
+|`handleFetchConfig`|`function`|No|`undefined`|Custom transport for the remote-config fetch. Same contract as `handleSendEvents`, for the config GET. See [Custom Transport](#custom-transport-authenticated-proxies--jwt).|
+
+## Custom Transport (authenticated proxies / JWT)
+
+By default the SDK sends replay events and fetches remote config with its own internal `fetch`.
+If your environment requires custom request logic on every outbound call — for example a JWT
+`Authorization` header validated by your own proxy before forwarding to Amplitude — provide the
+`handleSendEvents` and/or `handleFetchConfig` callbacks. The SDK hands each callback a
+fully-formed request and the callback's only job is to execute it and return the `Response`. The
+SDK keeps everything else: URL resolution (including `trackServerUrl` / `configServerUrl`),
+batching, retry/backoff, serialization, compression, and error handling.
+
+```ts
+import * as sessionReplay from '@amplitude/session-replay-browser';
+import type { SendEventsRequest, FetchConfigRequest } from '@amplitude/session-replay-browser';
+
+sessionReplay.init(API_KEY, {
+  deviceId,
+  sessionId,
+  // Optional: point at your proxy. The resolved URL is passed into the callbacks.
+  trackServerUrl: 'https://my-proxy.example.com/sr-events',
+  configServerUrl: 'https://my-proxy.example.com/sr-config',
+
+  handleSendEvents: async ({ url, method, headers, body, keepalive }: SendEventsRequest) => {
+    return fetch(url, {
+      method,
+      // Spread the SDK headers so you don't drop Content-Encoding etc., then add your auth.
+      headers: { ...headers, Authorization: `Bearer ${getJwt()}` },
+      body,
+      keepalive, // forward this so page-exit batches survive unload
+    });
+  },
+
+  handleFetchConfig: async ({ url, method, headers, signal }: FetchConfigRequest) => {
+    return fetch(url, {
+      method,
+      headers: { ...headers, Authorization: `Bearer ${getJwt()}` },
+      signal, // honor the SDK's fetch-timeout abort signal
+    });
+  },
+});
+```
+
+For a cookie-authenticated proxy, omit the `Authorization` header and add `credentials: 'include'`
+instead — the shape is otherwise identical.
+
+### Wiring it up for your integration
+
+The two callbacks are the same no matter how you install Session Replay — only *where you pass them
+in* changes. The example above is the **standalone** SDK. If you use the analytics plugin or the
+unified SDK, drop the same `handleSendEvents` / `handleFetchConfig` into your existing init instead:
+
+**Plugin — `@amplitude/plugin-session-replay-browser`** (alongside `@amplitude/analytics-browser`):
+
+```ts
+import * as amplitude from '@amplitude/analytics-browser';
+import { sessionReplayPlugin } from '@amplitude/plugin-session-replay-browser';
+
+amplitude.add(
+  sessionReplayPlugin({
+    sampleRate: 1,
+    trackServerUrl: 'https://my-proxy.example.com/sr-events',
+    configServerUrl: 'https://my-proxy.example.com/sr-config',
+    handleSendEvents: async ({ url, method, headers, body, keepalive }) =>
+      fetch(url, { method, headers: { ...headers, Authorization: `Bearer ${getJwt()}` }, body, keepalive }),
+    handleFetchConfig: async ({ url, method, headers, signal }) =>
+      fetch(url, { method, headers: { ...headers, Authorization: `Bearer ${getJwt()}` }, signal }),
+  }),
+);
+amplitude.init(API_KEY);
+```
+
+**Unified — `@amplitude/unified`** (the callbacks go under the `sessionReplay` block):
+
+```ts
+import { initAll } from '@amplitude/unified';
+
+initAll(API_KEY, {
+  sessionReplay: {
+    sampleRate: 1,
+    trackServerUrl: 'https://my-proxy.example.com/sr-events',
+    configServerUrl: 'https://my-proxy.example.com/sr-config',
+    handleSendEvents: async ({ url, method, headers, body, keepalive }) =>
+      fetch(url, { method, headers: { ...headers, Authorization: `Bearer ${getJwt()}` }, body, keepalive }),
+    handleFetchConfig: async ({ url, method, headers, signal }) =>
+      fetch(url, { method, headers: { ...headers, Authorization: `Bearer ${getJwt()}` }, signal }),
+  },
+});
+```
+
+Everything else in this section — the contract, the proxy-side requirements, web-worker support —
+applies identically across all three.
+
+### Contract
+
+What the SDK guarantees to your callback:
+
+- It passes a fully-formed request (resolved URL, default headers, serialized body). Your only job
+  is to execute it and return a `Response`.
+- It calls the callback **once per logical request attempt**. Retry/backoff is handled by the SDK
+  *around* the callback, so do not implement your own retry.
+- Non-2xx responses and thrown errors / rejected promises are surfaced to the SDK's existing retry
+  and logging logic, exactly as the built-in path treats them.
+
+What the SDK requires from your callback:
+
+- It MUST return a `Response` (or a Response-like object with `ok`, `status`, `text()`).
+- It MUST NOT change the semantics of the SDK-supplied body. Forward it unchanged — when transport
+  compression is active, `body` is a gzipped `Uint8Array` and `headers` already includes
+  `Content-Encoding: gzip`, so keep them together (don't drop that header while forwarding the
+  compressed body, or the payload won't decode server-side).
+
+### Notes
+
+- **You own auth, not Amplitude.** Amplitude never validates your JWT; authentication happens in
+  your proxy, which forwards the (re-authenticated) request to Amplitude.
+- **Web Worker mode is supported.** When `useWebWorker: true`, the SDK keeps compressing off the
+  main thread and delegates only the network call back to the main thread to run your callback.
+- **Page exit.** On unload the SDK normally uses `navigator.sendBeacon`, which can't carry custom
+  headers. When `handleSendEvents` is set, the SDK instead routes the final batch through your
+  callback with `keepalive: true`, so the exit batch is still authenticated.
+- **Covers all outbound traffic.** When `handleSendEvents` is set it is used for every outbound
+  Session Replay request: replay event uploads, the page-exit beacon, and interaction/scroll
+  beacons (these otherwise send via `navigator.sendBeacon` and would not carry your auth). So no
+  Session Replay request leaves the page unauthenticated.
+
+### Implementing the proxy side
+
+The callbacks above are only half the story — they get the request out of the browser with your
+auth attached. The other half is **your proxy**, which has to check that auth and then forward the
+request on to Amplitude. You build and run this proxy; Amplitude doesn't provide one, and you don't
+need us to stand up any new endpoint. Here's everything you need to get it right.
+
+#### Where to forward to
+
+Your proxy forwards to Amplitude's existing public Session Replay endpoints — the same ones the SDK
+would have hit directly. Pick the row that matches your project's data region:
+
+| What | US | EU |
+| ---- | -- | -- |
+| Replay events (the `POST` from `handleSendEvents`) | `https://api-sr.amplitude.com/sessions/v2/track` | `https://api-sr.eu.amplitude.com/sessions/v2/track` |
+| Remote config (the `GET` from `handleFetchConfig`) | `https://sr-client-cfg.amplitude.com/config` | `https://sr-client-cfg.eu.amplitude.com/config` |
+
+So the round trip is just: **browser → your proxy → Amplitude → your proxy → browser.** Your proxy
+sits in the middle, checks the JWT, and relays everything else through.
+
+#### What your proxy needs to do
+
+1. **Validate your auth, then strip it.** Read the JWT (or whatever you attached in the callback),
+   verify it however your security team wants, and reject the request if it's bad. Don't pass your
+   JWT on to Amplitude — Amplitude doesn't know what it is and doesn't need it.
+
+2. **Keep the path and query string exactly as-is.** The SDK builds URLs like
+   `…/sessions/v2/track?device_id=…&session_id=…&type=replay` and
+   `…/config/<apiKey>?config_group=browser`. Those query params matter — forward them unchanged.
+   Don't drop or rewrite them.
+
+3. **Forward the body untouched, and keep `Content-Encoding`.** The replay body is usually gzipped,
+   and the request carries a `Content-Encoding: gzip` header to say so. Pass the bytes through
+   exactly as received and keep that header on. If you decompress, re-compress, or drop the header,
+   Amplitude won't be able to read the payload.
+
+4. **Make sure Amplitude can still see your API key.** This is the one that trips people up — see
+   below.
+
+#### The API-key gotcha (read this one)
+
+Amplitude identifies your project from your **Amplitude API key**, which the SDK puts in the
+`Authorization: Bearer <amplitudeApiKey>` header. If your callback does the obvious thing and
+*overwrites* that header with your JWT, the API key is gone by the time the request leaves the
+browser — and Amplitude will reject the forwarded request because it can't tell which project it
+belongs to.
+
+Two ways to handle it. **We recommend the second one** — it's simpler and harder to get wrong:
+
+- **Option A — your proxy puts the API key back.** Your callback overwrites `Authorization` with
+  the JWT; your proxy validates the JWT and then swaps `Authorization` back to
+  `Bearer <amplitudeApiKey>` before forwarding. Works, but your proxy now has to know your Amplitude
+  API key.
+
+- **Option B (recommended) — send the JWT in a different header.** Leave the SDK's `Authorization`
+  header alone and put your JWT somewhere else, e.g. `X-Customer-Auth`. Your proxy checks that
+  header, strips it, and forwards everything else (including the untouched `Authorization`) straight
+  through. Your proxy never has to know or handle the Amplitude API key.
+
+  ```ts
+  handleSendEvents: async ({ url, method, headers, body, keepalive }) =>
+    fetch(url, {
+      method,
+      // Don't overwrite Authorization — add the JWT under your own header instead.
+      headers: { ...headers, 'X-Customer-Auth': await getJwt() },
+      body,
+      keepalive,
+    }),
+  ```
+
+#### Quick sanity check
+
+Once your proxy is up, do a quick end-to-end test: load a page with the SDK pointed at your proxy,
+interact a bit, and confirm (a) your proxy logs show the JWT arriving and getting validated, and
+(b) replays actually show up in Amplitude. If replays don't land, it's almost always one of the four
+points above — most often the API-key header (gotcha above) or a dropped `Content-Encoding`.
 
 ## Cross-Origin Iframe Recording
 

@@ -3,6 +3,80 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.44.4](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.44.3...@amplitude/analytics-browser@2.44.4) (2026-06-30)
+
+**Note:** Version bump only for package @amplitude/analytics-browser
+
+
+
+
+
+## [2.44.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.44.2...@amplitude/analytics-browser@2.44.3) (2026-06-25)
+
+**Note:** Version bump only for package @amplitude/analytics-browser
+
+
+
+
+
+## [2.44.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.44.1...@amplitude/analytics-browser@2.44.2) (2026-06-24)
+
+**Note:** Version bump only for package @amplitude/analytics-browser
+
+
+
+
+
+## [2.44.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.44.0...@amplitude/analytics-browser@2.44.1) (2026-06-11)
+
+
+### Bug Fixes
+
+* **analytics-browser:** use safe JSON stringify in remote config log messages ([#1826](https://github.com/amplitude/Amplitude-TypeScript/issues/1826)) ([477cda8](https://github.com/amplitude/Amplitude-TypeScript/commit/477cda8d05565b22d1dd5ec1febcc2cb955f8e19))
+
+
+
+
+
+# [2.44.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.43.0...@amplitude/analytics-browser@2.44.0) (2026-06-11)
+
+
+### Bug Fixes
+
+* **analytics-browser:** only flush on actual offline->online transition ([#1812](https://github.com/amplitude/Amplitude-TypeScript/issues/1812)) ([675885e](https://github.com/amplitude/Amplitude-TypeScript/commit/675885e6339f3be7c4cab26c5cb4a7f577a93c73))
+* **analytics-browser:** return trackVideo errors instead of throwing ([#1804](https://github.com/amplitude/Amplitude-TypeScript/issues/1804)) ([af76af9](https://github.com/amplitude/Amplitude-TypeScript/commit/af76af9c803fc4cf72e832a20bdd69dd4db82903))
+
+
+### Features
+
+* **analytics-browser, analytics-core:** support referrerPolicy in FetchTransport ([#1805](https://github.com/amplitude/Amplitude-TypeScript/issues/1805)) ([871e432](https://github.com/amplitude/Amplitude-TypeScript/commit/871e4326debc1c90028fa305056d9bbe234e0e1e))
+
+
+
+
+
+# [2.43.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.42.5...@amplitude/analytics-browser@2.43.0) (2026-06-05)
+
+
+### Features
+
+* **analytics-browser:** enable fetch keepalive by default to survive page navigation ([#1781](https://github.com/amplitude/Amplitude-TypeScript/issues/1781)) ([8b51b6e](https://github.com/amplitude/Amplitude-TypeScript/commit/8b51b6e75726454c32cdeea2c01a9b3ccb5a96d7))
+
+
+
+
+
+## [2.42.5](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.42.4...@amplitude/analytics-browser@2.42.5) (2026-05-28)
+
+
+### Bug Fixes
+
+* **analytics-browser:** dummy commit to force analytics-browser upgrade ([#1780](https://github.com/amplitude/Amplitude-TypeScript/issues/1780)) ([00d4ed6](https://github.com/amplitude/Amplitude-TypeScript/commit/00d4ed64563ba2ce80d1f597de0dd2c2ed319995))
+
+
+
+
+
 ## [2.42.4](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.42.3...@amplitude/analytics-browser@2.42.4) (2026-05-21)
 
 **Note:** Version bump only for package @amplitude/analytics-browser

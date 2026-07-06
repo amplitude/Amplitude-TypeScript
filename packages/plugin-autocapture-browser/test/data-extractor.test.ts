@@ -450,6 +450,42 @@ describe('data extractor', () => {
     });
   });
 
+  describe('updateSelectorConfig', () => {
+    beforeEach(() => {
+      document.getElementsByTagName('body')[0].innerHTML = `
+        <div id="container">
+          <button id="test-button">Click me</button>
+        </div>
+      `;
+      dataExtractor.updateSelectorConfig(null);
+    });
+
+    test('keeps generating selectors after enabling the engine via remote config', () => {
+      const button = document.getElementById('test-button');
+      dataExtractor.updateSelectorConfig({ enabled: true });
+      const result = dataExtractor.getElementPath(button);
+      expect(result).toEqual('button#test-button');
+    });
+
+    test('shares selector engine config across DataExtractor instances', () => {
+      const button = document.getElementById('test-button');
+      const otherExtractor = new DataExtractor({});
+      dataExtractor.updateSelectorConfig({ enabled: true });
+      expect(otherExtractor.getElementPath(button)).toEqual('button#test-button');
+    });
+
+    test('handles a null payload (falls back to dormant defaults)', () => {
+      const button = document.getElementById('test-button');
+      expect(() => dataExtractor.updateSelectorConfig(null)).not.toThrow();
+      // Defaults keep the legacy cssPath output.
+      expect(dataExtractor.getElementPath(button)).toEqual('button#test-button');
+    });
+
+    test('handles an omitted payload', () => {
+      expect(() => dataExtractor.updateSelectorConfig()).not.toThrow();
+    });
+  });
+
   describe('getEventTagProps', () => {
     beforeAll(() => {
       Object.defineProperty(window, 'location', {

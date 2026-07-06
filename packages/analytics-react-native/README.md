@@ -172,3 +172,4 @@ import { reset } from '@amplitude/analytics-react-native';
 
 reset();
 ```
+

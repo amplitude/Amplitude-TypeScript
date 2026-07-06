@@ -477,6 +477,8 @@ export const shouldFetchRemoteConfig = (options: BrowserOptions = {}): boolean =
 export const createTransport = (transport?: TransportTypeOrOptions) => {
   const type = typeof transport === 'object' ? transport.type : transport;
   const headers = typeof transport === 'object' ? transport.headers : undefined;
+  const enableKeepalive = typeof transport === 'object' ? transport.enableKeepalive : undefined;
+  const referrerPolicy = typeof transport === 'object' ? transport.referrerPolicy : undefined;
 
   if (type === 'xhr') {
     return new XHRTransport(headers);
@@ -487,7 +489,7 @@ export const createTransport = (transport?: TransportTypeOrOptions) => {
   }
   // Keep a browser-local fetch transport for gzip support.
   // TODO: Merge back to core FetchTransport after React Native supports gzip.
-  return new FetchTransport(headers);
+  return new FetchTransport(headers, enableKeepalive, referrerPolicy);
 };
 
 export const getTopLevelDomain = async (url?: string, diagnosticsClient?: IDiagnosticsClient) => {

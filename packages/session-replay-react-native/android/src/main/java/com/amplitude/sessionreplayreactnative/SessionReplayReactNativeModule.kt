@@ -7,23 +7,24 @@ import com.amplitude.common.Logger
 import com.amplitude.common.android.LogcatLogger
 import com.amplitude.core.ServerZone
 import com.facebook.react.bridge.ReactApplicationContext
-import com.facebook.react.bridge.ReactContextBaseJavaModule
 import com.facebook.react.bridge.ReactMethod
 import com.facebook.react.bridge.Promise
 import com.facebook.react.bridge.WritableMap
 import com.facebook.react.bridge.WritableNativeMap
 import com.facebook.react.bridge.ReadableMap
 
+// `@ReactMethod` is required on the legacy architecture and ignored on the new
+// one, so it stays on the overrides below.
 class SessionReplayReactNativeModule(private val reactContext: ReactApplicationContext) :
-  ReactContextBaseJavaModule(reactContext) {
+  SessionReplayReactNativeSpec(reactContext) {
   private lateinit var sessionReplay: SessionReplay
 
   override fun getName(): String {
-    return "AMPNativeSessionReplay"
+    return NAME
   }
 
   @ReactMethod
-  fun setup(config: ReadableMap, promise: Promise) {
+  override fun setup(config: ReadableMap, promise: Promise) {
     try {
       val apiKey = config.getString("apiKey") ?: throw IllegalArgumentException("apiKey is required")
       val deviceId = config.getString("deviceId")
@@ -88,7 +89,7 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
   }
 
   @ReactMethod
-  fun setSessionId(sessionId: Double, promise: Promise) {
+  override fun setSessionId(sessionId: Double, promise: Promise) {
     try {
       sessionReplay.setSessionId(sessionId.toLong())
       promise.resolve(null)
@@ -98,7 +99,7 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
   }
 
   @ReactMethod
-  fun setDeviceId(deviceId: String?, promise: Promise) {
+  override fun setDeviceId(deviceId: String?, promise: Promise) {
     try {
       sessionReplay.setDeviceId(deviceId ?: "")
       promise.resolve(null)
@@ -108,7 +109,7 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
   }
 
   @ReactMethod
-  fun getSessionId(promise: Promise) {
+  override fun getSessionId(promise: Promise) {
     try {
       promise.resolve(sessionReplay.getSessionId().toDouble())
     } catch (e: Exception) {
@@ -117,7 +118,7 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
   }
 
   @ReactMethod
-  fun getSessionReplayProperties(promise: Promise) {
+  override fun getSessionReplayProperties(promise: Promise) {
     try {
       val properties: Map<String, Any> = sessionReplay.getSessionReplayProperties()
       val map: WritableMap = WritableNativeMap()
@@ -141,7 +142,7 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
   }
   
   @ReactMethod
-  fun start(promise: Promise) {
+  override fun start(promise: Promise) {
     try {
       sessionReplay.start()
       promise.resolve(null)
@@ -151,7 +152,7 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
   }
 
   @ReactMethod
-  fun stop(promise: Promise) {
+  override fun stop(promise: Promise) {
     try {
       sessionReplay.stop()
       promise.resolve(null)
@@ -161,7 +162,7 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
   }
 
   @ReactMethod
-  fun flush(promise: Promise) {
+  override fun flush(promise: Promise) {
     try {
       sessionReplay.flush()
       promise.resolve(null)
@@ -179,5 +180,9 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
     if (::sessionReplay.isInitialized) {
       sessionReplay.shutdown()
     }
+  }
+
+  companion object {
+    const val NAME = "AMPNativeSessionReplay"
   }
 }

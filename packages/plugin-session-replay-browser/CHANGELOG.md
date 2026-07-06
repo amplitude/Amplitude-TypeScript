@@ -3,6 +3,85 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.33.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@1.32.3...@amplitude/plugin-session-replay-browser@1.33.0) (2026-06-30)
+
+
+### Features
+
+* **session-replay-browser:** custom transport hooks for authenticated proxies (SR-4497) ([#1862](https://github.com/amplitude/Amplitude-TypeScript/issues/1862)) ([5c4d1d7](https://github.com/amplitude/Amplitude-TypeScript/commit/5c4d1d7ec4adc145d0cba76af2f8adc070cdf9ce))
+
+
+
+
+
+## [1.32.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@1.32.2...@amplitude/plugin-session-replay-browser@1.32.3) (2026-06-25)
+
+**Note:** Version bump only for package @amplitude/plugin-session-replay-browser
+
+
+
+
+
+## [1.32.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@1.32.1...@amplitude/plugin-session-replay-browser@1.32.2) (2026-06-22)
+
+**Note:** Version bump only for package @amplitude/plugin-session-replay-browser
+
+
+
+
+
+## [1.32.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@1.32.0...@amplitude/plugin-session-replay-browser@1.32.1) (2026-06-13)
+
+**Note:** Version bump only for package @amplitude/plugin-session-replay-browser
+
+
+
+
+
+# [1.32.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@1.31.2...@amplitude/plugin-session-replay-browser@1.32.0) (2026-06-12)
+
+
+### Bug Fixes
+
+* **session-replay-browser:** add request timeout/AbortController to send path ([#1808](https://github.com/amplitude/Amplitude-TypeScript/issues/1808)) ([1f9311e](https://github.com/amplitude/Amplitude-TypeScript/commit/1f9311e09d79a9172e35fb00911b384e5a7ed158))
+* **session-replay-browser:** coalesce style attribute mutations when mergeMutations is enabled ([#1798](https://github.com/amplitude/Amplitude-TypeScript/issues/1798)) ([36e16e2](https://github.com/amplitude/Amplitude-TypeScript/commit/36e16e2acfd4822b476ea130ce86587c423dc611))
+
+
+### Features
+
+* **session-replay-browser:** add eagerFullSnapshotSend, captureFullSnapshotOnFocus, and max event size config options ([#1806](https://github.com/amplitude/Amplitude-TypeScript/issues/1806)) ([639f911](https://github.com/amplitude/Amplitude-TypeScript/commit/639f911ed840c0ff370b5e0af278bb79e02e3ac5))
+
+
+
+
+
+## [1.31.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@1.31.1...@amplitude/plugin-session-replay-browser@1.31.2) (2026-06-11)
+
+**Note:** Version bump only for package @amplitude/plugin-session-replay-browser
+
+
+
+
+
+## [1.31.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@1.31.0...@amplitude/plugin-session-replay-browser@1.31.1) (2026-06-05)
+
+**Note:** Version bump only for package @amplitude/plugin-session-replay-browser
+
+
+
+
+
+# [1.31.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@1.30.5...@amplitude/plugin-session-replay-browser@1.31.0) (2026-05-22)
+
+
+### Features
+
+* **plugin-session-replay-browser:** add flushIntervalConfig passthrough ([#1769](https://github.com/amplitude/Amplitude-TypeScript/issues/1769)) ([9ef2365](https://github.com/amplitude/Amplitude-TypeScript/commit/9ef2365e1f4645a675581fe1a4e98e65bb9ead38))
+
+
+
+
+
 ## [1.30.5](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@1.30.4...@amplitude/plugin-session-replay-browser@1.30.5) (2026-05-21)
 
 **Note:** Version bump only for package @amplitude/plugin-session-replay-browser

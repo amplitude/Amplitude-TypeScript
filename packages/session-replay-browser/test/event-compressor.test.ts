@@ -108,6 +108,41 @@ describe('EventCompressor', () => {
     expect(mockLoggerProvider.warn).toHaveBeenCalledWith(expect.stringContaining('exceeds maximum allowed event size'));
   });
 
+  test('enforces a lowered maxSingleEventSizeBytes at capture time', async () => {
+    const smallCapConfig = new SessionReplayLocalConfig('static_key', {
+      loggerProvider: mockLoggerProvider,
+      sampleRate: 1,
+      maxSingleEventSizeBytes: 1_000,
+    });
+    const smallCapManager = await createEventsManager<'replay'>({
+      config: smallCapConfig,
+      type: 'replay',
+      storeType: 'memory',
+    });
+    const smallCapCompressor = new EventCompressor(smallCapManager, smallCapConfig, deviceId);
+    smallCapCompressor.canUseIdleCallback = false;
+    const addEventMock = jest.spyOn(smallCapManager, 'addEvent');
+
+    // ~2 KB payload: under the 9 MB default but over the 1 KB override.
+    const event = { ...mockEvent, data: { payload: 'x'.repeat(2_000) } } as unknown as eventWithTime;
+    smallCapCompressor.enqueueEvent(event, sessionId);
+
+    expect(addEventMock).not.toHaveBeenCalled();
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    expect(mockLoggerProvider.warn).toHaveBeenCalledWith(expect.stringContaining('exceeds maximum allowed event size'));
+  });
+
+  test('keeps an event below the default cap when maxSingleEventSizeBytes is omitted', () => {
+    eventCompressor.canUseIdleCallback = false;
+    const addEventMock = jest.spyOn(eventsManager, 'addEvent');
+
+    // ~2 KB payload: well under the 9 MB default, so it should be stored, not dropped.
+    const event = { ...mockEvent, data: { payload: 'x'.repeat(2_000) } } as unknown as eventWithTime;
+    eventCompressor.enqueueEvent(event, sessionId);
+
+    expect(addEventMock).toHaveBeenCalled();
+  });
+
   test('should process events in the queue and add compressed events', () => {
     eventCompressor.taskQueue.push({ event: mockEvent, sessionId });
     eventCompressor.taskQueue.push({ event: mockEvent, sessionId });
@@ -711,6 +746,39 @@ describe('EventCompressor', () => {
 
       // sessionA: 2 → 1 merged; sessionB: 1 stays → 2 total compressed events
       expect(addEventMock).toHaveBeenCalledTimes(2);
+    });
+
+    test('merges by default when mergeMutations is not specified', () => {
+      // performanceConfig present but mergeMutations unset → merging is on by default (SR-4646).
+      eventCompressor.config.performanceConfig = { enabled: true };
+      const addEventMock = jest.spyOn(eventsManager, 'addEvent');
+      const m1 = makeMutationEvent(100);
+      const m2 = makeMutationEvent(200);
+      eventCompressor.pendingQueue.push({ event: m1, sessionId });
+      eventCompressor.pendingQueue.push({ event: m2, sessionId });
+
+      const mockIdleDeadline = { timeRemaining: () => 50, didTimeout: false } as IdleDeadline;
+      eventCompressor.processQueue(mockIdleDeadline);
+
+      // Two pending mutations → merged into one → one compressed event
+      expect(addEventMock).toHaveBeenCalledTimes(1);
+      expect(eventCompressor.pendingQueue).toHaveLength(0);
+    });
+
+    test('does not merge when mergeMutations is explicitly false', () => {
+      eventCompressor.config.performanceConfig = { enabled: true, mergeMutations: false };
+      const addEventMock = jest.spyOn(eventsManager, 'addEvent');
+      const m1 = makeMutationEvent(100);
+      const m2 = makeMutationEvent(200);
+      eventCompressor.pendingQueue.push({ event: m1, sessionId });
+      eventCompressor.pendingQueue.push({ event: m2, sessionId });
+
+      const mockIdleDeadline = { timeRemaining: () => 50, didTimeout: false } as IdleDeadline;
+      eventCompressor.processQueue(mockIdleDeadline);
+
+      // Merging disabled → each mutation stays separate → two compressed events
+      expect(addEventMock).toHaveBeenCalledTimes(2);
+      expect(eventCompressor.pendingQueue).toHaveLength(0);
     });
   });
 

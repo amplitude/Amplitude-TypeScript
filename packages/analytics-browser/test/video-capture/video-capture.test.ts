@@ -121,6 +121,7 @@ describe('VideoCapture', () => {
         duration: 10,
         hello: 'world',
         number: 123,
+        view_session_id: expect.any(String),
       });
       currentVideoObserver!.emitStateChange(
         { playbackState: 'playing', lastEvent: { duration: 10, last_position: undefined } },
@@ -131,8 +132,9 @@ describe('VideoCapture', () => {
         last_position: 5,
         hello: 'world',
         number: 123,
+        view_session_id: expect.any(String),
       });
-      stopVideoCapture();
+      typeof stopVideoCapture === 'function' && stopVideoCapture();
       currentVideoObserver!.emitStateChange(
         { playbackState: 'paused', lastEvent: { duration: 10, last_position: 5 } },
         { playbackState: 'playing', lastEvent: { duration: 10, last_position: undefined } },
@@ -153,6 +155,7 @@ describe('VideoCapture', () => {
       );
       expect(mockAmplitude.track).toHaveBeenCalledWith('Video Content Started', {
         duration: 10,
+        view_session_id: expect.any(String),
       });
       currentVideoObserver!.emitStateChange(
         { playbackState: 'playing', lastEvent: { duration: 10, last_position: undefined } },
@@ -161,8 +164,14 @@ describe('VideoCapture', () => {
       expect(mockAmplitude.track).toHaveBeenCalledWith('Video Content Stopped', {
         duration: 10,
         last_position: 5,
+        view_session_id: expect.any(String),
       });
-      stopVideoCapture();
+      typeof stopVideoCapture === 'function' && stopVideoCapture();
+    });
+
+    it('should return an error if the video element is not specified', () => {
+      const stopVideoCapture = trackVideo(mockAmplitude, null as unknown as HTMLVideoElement);
+      expect(stopVideoCapture).toBeInstanceOf(Error);
     });
   });
 });

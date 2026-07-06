@@ -146,9 +146,6 @@ importers:
       '@amplitude/analytics-react-native':
         specifier: workspace:*
         version: link:../../../packages/analytics-react-native
-      '@react-native-async-storage/async-storage':
-        specifier: ^1.23.1
-        version: 1.24.0(react-native@0.74.1(@babel/core@7.28.5)(@babel/preset-env@7.28.5(@babel/core@7.28.5))(@types/react@18.3.26)(encoding@0.1.13)(react@18.2.0))
       react:
         specifier: 18.2.0
         version: 18.2.0
@@ -168,12 +165,21 @@ importers:
       '@babel/runtime':
         specifier: ^7.20.0
         version: 7.28.4
+      '@react-native-community/cli':
+        specifier: 13.6.6
+        version: 13.6.6(encoding@0.1.13)
+      '@react-native-community/cli-platform-android':
+        specifier: 13.6.6
+        version: 13.6.6(encoding@0.1.13)
       '@react-native/babel-preset':
         specifier: 0.74.83
         version: 0.74.83(@babel/core@7.28.5)(@babel/preset-env@7.28.5(@babel/core@7.28.5))
       '@react-native/eslint-config':
         specifier: 0.74.83
         version: 0.74.83(eslint@8.57.1)(jest@29.7.0(@types/node@18.19.130)(ts-node@10.9.2(@types/node@18.19.130)(typescript@4.9.5)))(prettier@2.8.8)(typescript@4.9.5)
+      '@react-native/gradle-plugin':
+        specifier: 0.74.83
+        version: 0.74.83
       '@react-native/metro-config':
         specifier: 0.74.83
         version: 0.74.83(@babel/core@7.28.5)(@babel/preset-env@7.28.5(@babel/core@7.28.5))
@@ -189,6 +195,9 @@ importers:
       babel-jest:
         specifier: ^29.6.3
         version: 29.7.0(@babel/core@7.28.5)
+      babel-plugin-transform-inline-environment-variables:
+        specifier: ^0.4.4
+        version: 0.4.4
       eslint:
         specifier: ^8.19.0
         version: 8.57.1
@@ -379,6 +388,16 @@ importers:
 
   packages/analytics-types: {}
 
+  packages/element-selector:
+    dependencies:
+      tslib:
+        specifier: ^2.4.1
+        version: 2.8.1
+    devDependencies:
+      esbuild:
+        specifier: ^0.25.0
+        version: 0.25.12
+
   packages/gtm-snippet:
     dependencies:
       '@amplitude/analytics-browser':
@@ -430,6 +449,9 @@ importers:
       '@amplitude/analytics-core':
         specifier: workspace:*
         version: link:../analytics-core
+      '@amplitude/element-selector':
+        specifier: workspace:*
+        version: link:../element-selector
       tslib:
         specifier: ^2.4.1
         version: 2.8.1
@@ -1096,8 +1118,8 @@ importers:
         specifier: workspace:*
         version: link:../analytics-core
       '@amplitude/engagement-browser':
-        specifier: ^1.0.3
-        version: 1.0.5
+        specifier: ^1.0.10
+        version: 1.0.10
       '@amplitude/plugin-experiment-browser':
         specifier: workspace:*
         version: link:../plugin-experiment-browser
@@ -1118,9 +1140,9 @@ packages:
     resolution:
       { integrity: sha512-RiMPHBqdrJ8ktTqG+Wzj2htnN/PCG9jGZG0SXtTFnWwVvcAJYbYm55/nrP1TTyrx1OlLhvF2VG3lVUP/xGAU8w== }
 
-  '@amplitude/engagement-browser@1.0.5':
+  '@amplitude/engagement-browser@1.0.10':
     resolution:
-      { integrity: sha512-Sr+smknZFWpvylnGE2EtTn/alCZN9hp0j8q57R+Q5qGgCJddUaJbd0oouawfOEvpV1L2eXrdj4xzi9lrgvA0Gw== }
+      { integrity: sha512-sv8ei+Xy2qMs31lvW3bJCOZBg8LRuorAxlzM8fmh3FyVaRMbs5WyQGaWSfJ8y5tqmllJnLfbBS5R38Mv6G3h7w== }
 
   '@amplitude/eslint-plugin-amplitude@1.1.1':
     resolution:
@@ -5424,6 +5446,10 @@ packages:
   babel-plugin-transform-flow-enums@0.0.2:
     resolution:
       { integrity: sha512-g4aaCrDDOsWjbm0PUUeVnkcVd6AKJsVc/MbnPhEotEpkeJQP6b8nzewohQi7+QS8UyPehOhGWn0nOwjvWpmMvQ== }
+
+  babel-plugin-transform-inline-environment-variables@0.4.4:
+    resolution:
+      { integrity: sha512-bJILBtn5a11SmtR2j/3mBOjX4K3weC6cq+NNZ7hG22wCAqpc3qtj/iN7dSe9HDiS46lgp1nHsQgeYrea/RUe+g== }
 
   babel-plugin-transform-regenerator@6.26.0:
     resolution:
@@ -12088,7 +12114,7 @@ snapshots:
 
   '@amplitude/analytics-types@1.4.0': {}
 
-  '@amplitude/engagement-browser@1.0.5':
+  '@amplitude/engagement-browser@1.0.10':
     dependencies:
       '@amplitude/analytics-types': 1.4.0
 
@@ -14685,11 +14711,6 @@ snapshots:
       merge-options: 3.0.4
       react-native: 0.70.6(@babel/core@7.28.5)(@babel/preset-env@7.28.5(@babel/core@7.28.5))(encoding@0.1.13)(react@18.2.0)
 
-  '@react-native-async-storage/async-storage@1.24.0(react-native@0.74.1(@babel/core@7.28.5)(@babel/preset-env@7.28.5(@babel/core@7.28.5))(@types/react@18.3.26)(encoding@0.1.13)(react@18.2.0))':
-    dependencies:
-      merge-options: 3.0.4
-      react-native: 0.74.1(@babel/core@7.28.5)(@babel/preset-env@7.28.5(@babel/core@7.28.5))(@types/react@18.3.26)(encoding@0.1.13)(react@18.2.0)
-
   '@react-native-community/cli-clean@12.1.1(encoding@0.1.13)':
     dependencies:
       '@react-native-community/cli-tools': 12.1.1(encoding@0.1.13)
@@ -17230,6 +17251,8 @@ snapshots:
       '@babel/plugin-syntax-flow': 7.27.1(@babel/core@7.28.5)
     transitivePeerDependencies:
       - '@babel/core'
+
+  babel-plugin-transform-inline-environment-variables@0.4.4: {}
 
   babel-plugin-transform-regenerator@6.26.0:
     dependencies:

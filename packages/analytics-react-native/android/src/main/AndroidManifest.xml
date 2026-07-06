@@ -1,3 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
           package="com.amplitude.reactnative">
+    <!-- Required by AmplitudeReactNativeConnectivityModule to observe network
+         connectivity for offline mode. Auto-merges into the host app manifest. -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 </manifest>

@@ -1,6 +1,6 @@
 {
   "name": "@amplitude/targeting",
-  "version": "0.2.0",
+  "version": "0.3.2",
   "description": "",
   "author": "Amplitude Inc",
   "homepage": "https://github.com/amplitude/Amplitude-TypeScript",
@@ -16,7 +16,6 @@
     "type": "git",
     "url": "git+https://github.com/amplitude/Amplitude-TypeScript.git"
   },
-  "private": true,
   "scripts": {
     "build": "pnpm bundle && pnpm build:es5 && pnpm build:esm",
     "bundle": "rollup --config rollup.config.js",

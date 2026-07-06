@@ -50,6 +50,9 @@ jobs:
   check-size-limits:
     name: Check Size Limits
     runs-on: ubuntu-latest
+    env:
+      NX_BASE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || 'origin/main~1' }}
+      NX_HEAD: ${{ github.sha }}
     steps:
       - name: Check out git repository
         uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3
@@ -72,8 +75,6 @@ jobs:
           key: nx-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'nx.json') }}
 
       - uses: daniel-statsig/size-limit-action@710d41ebc34634c011e8a91fe165d6ff49536a74 # v1
-        # TODO: TEMPORARILY ALLOW FAILURE UNTIL size-limit is added to 'main' branch
-        continue-on-error: true
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           package_manager: pnpm

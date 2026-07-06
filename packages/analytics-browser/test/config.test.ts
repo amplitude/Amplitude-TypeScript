@@ -431,6 +431,45 @@ describe('config', () => {
       expect(transport).toBeInstanceOf(FetchTransport);
       expect(transport).not.toBeInstanceOf(CoreFetchTransport);
     });
+
+    test('should pass enableKeepalive: false through to the fetch transport', async () => {
+      const transport = createTransport({ type: 'fetch', enableKeepalive: false });
+      const fetchMock = jest.fn().mockResolvedValue({ text: () => Promise.resolve('{}') });
+      const originalFetch = global.fetch;
+      (global as { fetch?: unknown }).fetch = fetchMock;
+      try {
+        await transport.send('http://localhost:3000', { api_key: '', events: [] });
+        const [, options] = fetchMock.mock.calls[0];
+        expect(options?.keepalive).toBe(false);
+      } finally {
+        global.fetch = originalFetch;
+      }
+    });
+
+    test('should pass referrerPolicy through to the fetch transport', async () => {
+      const transport = createTransport({
+        type: 'fetch',
+        referrerPolicy: 'no-referrer',
+      });
+      const fetchMock = jest.fn().mockResolvedValue({
+        text: () => Promise.resolve('{}'),
+      });
+      const originalFetch = global.fetch;
+      (global as { fetch?: unknown }).fetch = fetchMock;
+
+      try {
+        await transport.send('http://localhost:3000', {
+          api_key: '',
+          events: [],
+        });
+
+        const [, options] = fetchMock.mock.calls[0];
+
+        expect(options?.referrerPolicy).toBe('no-referrer');
+      } finally {
+        global.fetch = originalFetch;
+      }
+    });
   });
 
   describe('getTopLevelDomain', () => {

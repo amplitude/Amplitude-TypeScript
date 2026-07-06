@@ -8,7 +8,8 @@ import type { EnrichmentPlugin, Event, ReactNativeClient, ReactNativeConfig } fr
 import { PluginSessionReplayReactNative } from './native-module';
 import { VERSION } from './version';
 import { SessionReplayConfig, getDefaultConfig } from './session-replay-config';
-import { LogLevel } from '@amplitude/analytics-types';
+
+type ResolvedSessionReplayConfig = Required<SessionReplayConfig>;
 
 export class SessionReplayPlugin implements EnrichmentPlugin<ReactNativeClient, ReactNativeConfig> {
   name = '@amplitude/plugin-session-replay-react-native';
@@ -19,7 +20,7 @@ export class SessionReplayPlugin implements EnrichmentPlugin<ReactNativeClient, 
   config: ReactNativeConfig;
   isInitialized = false;
 
-  sessionReplayConfig: SessionReplayConfig;
+  sessionReplayConfig: ResolvedSessionReplayConfig;
 
   constructor(config: SessionReplayConfig = {}) {
     this.sessionReplayConfig = {
@@ -32,15 +33,25 @@ export class SessionReplayPlugin implements EnrichmentPlugin<ReactNativeClient, 
   async setup(config: ReactNativeConfig, _: ReactNativeClient): Promise<void> {
     this.config = config;
     console.log(`Installing @amplitude/plugin-session-replay-react-native, version ${VERSION}.`);
+    // `apiKey`, `deviceId`, `sessionId`, and `serverZone` are sourced from the
+    // analytics client's `ReactNativeConfig` because the plugin runs inside an
+    // initialized Amplitude SDK and inherits identity from it.
+    // Resolve the effective mask level here — the single source of truth for
+    // the default. `privacyConfig.maskLevel` can be `undefined` when a partial
+    // `privacyConfig` (e.g. `{}`) is supplied, so fall back to `'medium'` rather
+    // than forwarding `undefined` across the native bridge.
+    const resolvedMaskLevel = this.sessionReplayConfig.privacyConfig.maskLevel ?? 'medium';
     await PluginSessionReplayReactNative.setup(
       config.apiKey,
       config.deviceId,
       config.sessionId,
       config.serverZone,
-      this.sessionReplayConfig.sampleRate ?? 1,
-      this.sessionReplayConfig.enableRemoteConfig ?? true,
-      this.sessionReplayConfig.logLevel ?? LogLevel.Warn,
-      this.sessionReplayConfig.autoStart ?? true,
+      this.sessionReplayConfig.sampleRate,
+      this.sessionReplayConfig.enableRemoteConfig,
+      this.sessionReplayConfig.logLevel,
+      this.sessionReplayConfig.autoStart,
+      // TODO(SDKRN-15): Migrate native bridge to accept the full privacyConfig object instead of a flat maskLevel string.
+      resolvedMaskLevel,
     );
     this.isInitialized = true;
   }

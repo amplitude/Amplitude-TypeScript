@@ -92,6 +92,68 @@ export type UGCFilterRule = {
   replacement: string;
 };
 
+/**
+ * The fully-formed request the SDK hands to a custom `handleSendEvents` transport when
+ * uploading recorded replay events. The callback's only job is to execute this request and
+ * return the resulting `Response`; the SDK owns batching, retry, serialization and error
+ * handling around it.
+ */
+export interface SendEventsRequest {
+  /** The resolved track URL (respects `trackServerUrl`) including query params. */
+  url: string;
+  method: 'POST';
+  /**
+   * SDK-supplied default headers. When the body was gzipped, this includes
+   * `Content-Encoding: gzip` — drop it only if you also stop forwarding the gzipped body,
+   * otherwise the payload will not decode server-side.
+   */
+  headers: Record<string, string>;
+  /**
+   * The serialized payload, ready to send. A gzipped `Uint8Array` when transport compression
+   * is active, otherwise the raw JSON string. Forward it unchanged — do not re-serialize.
+   *
+   * Typed as `string | Uint8Array` (not the broader `BodyInit`) because the body must be
+   * structured-cloneable to cross `postMessage` in web-worker mode; `Blob`/`FormData`/
+   * `ReadableStream` are not, and the SDK never produces them here.
+   */
+  body: string | Uint8Array;
+  /**
+   * Whether the built-in path would set `keepalive` on this request. `true` for page-exit
+   * sends (so the request survives unload) and for small in-session batches. Forward it to
+   * your `fetch` call — i.e. `fetch(url, { method, headers, body, keepalive })` — so exit-time
+   * batches are not dropped when the page is tearing down.
+   */
+  keepalive: boolean;
+}
+
+/**
+ * The fully-formed request the SDK hands to a custom `handleFetchConfig` transport when
+ * fetching remote configuration.
+ */
+export interface FetchConfigRequest {
+  /** The resolved config URL (respects `configServerUrl`) including query params. */
+  url: string;
+  method: 'GET';
+  /** SDK-supplied default headers. */
+  headers: Record<string, string>;
+  /** Abort signal the SDK uses to enforce the remote-config fetch timeout. Honor it in your fetch. */
+  signal?: AbortSignal;
+}
+
+/**
+ * Custom transport for replay event uploads. Invoked by the SDK in place of its internal
+ * `fetch`. Must return a `Response` (or Response-like with `ok`, `status`, `text()`). Called
+ * once per logical request attempt — retry is handled by the SDK around the callback, so do
+ * not implement your own retry. Thrown errors / rejected promises are surfaced to the SDK's
+ * existing retry logic.
+ */
+export type SessionReplaySendEventsHandler = (request: SendEventsRequest) => Promise<Response>;
+
+/**
+ * Custom transport for remote-config fetches. Same contract as {@link SessionReplaySendEventsHandler}.
+ */
+export type SessionReplayFetchConfigHandler = (request: FetchConfigRequest) => Promise<Response>;
+
 export interface CrossOriginIframesConfig {
   enabled: boolean;
   /**
@@ -172,16 +234,56 @@ export interface SessionReplayLocalConfig extends IConfig {
    * Specifies how replay events should be stored. `idb` uses IndexedDB to persist replay events
    * when all events cannot be sent during capture. `memory` stores replay events only in memory,
    * meaning events are lost when the page is closed. If IndexedDB is unavailable, the system falls back to `memory`.
+   *
+   * @defaultValue 'memory' — reflects the validated amp-on-amp perf config (SR-4646). `memory`
+   * drops cross-navigation persistence (unsent events do not survive a full page reload), which
+   * is the intended trade-off for lower IDB overhead.
    */
   storeType: StoreType;
 
   /**
    * If true, the SDK will compress replay events using a web worker.
    * This offloads compression to a separate thread, improving performance on the main thread.
+   * Set to `false` to keep compression on the main thread.
    *
-   * @defaultValue false
+   * @defaultValue true — reflects the validated amp-on-amp perf config (SR-4646). Was `false`
+   * prior to that change.
    */
   useWebWorker?: boolean;
+
+  /**
+   * Controls transport-layer gzip compression of session replay request bodies.
+   * When true (default), the SDK gzip-compresses the JSON request body via the browser's
+   * `CompressionStream` API and sets `Content-Encoding: gzip` on the POST. When false,
+   * the SDK sends the raw JSON body with no `Content-Encoding` header.
+   *
+   * Disabling is intended as a debugging / safety opt-out (e.g. for diagnosing
+   * server-side decompression issues); it increases egress bytes and is not
+   * recommended for production.
+   *
+   * Note: This is independent of `useWebWorker` / `performanceConfig`, which control
+   * per-event rrweb compression that runs before events are queued.
+   *
+   * @defaultValue true
+   */
+  enableTransportCompression?: boolean;
+
+  /**
+   * Milliseconds to wait for a send request before aborting it. `fetch()` has no native
+   * timeout, so a request stuck "pending" would block the serial flush loop indefinitely;
+   * the SDK aborts after this many ms and routes the abort as a retryable failure.
+   *
+   * Set to `0` (or a negative value) to disable the timeout entirely — note this
+   * reintroduces the head-of-line-blocking risk a wedged request can cause, so it is
+   * intended only as a diagnostic/experiment opt-out.
+   *
+   * Tuning this higher is useful when large, slow-but-succeeding uploads are being aborted
+   * at the default and counted as failures (which also triggers a retry, inflating request
+   * volume / throttle pressure).
+   *
+   * @defaultValue 10000
+   */
+  sendTimeoutMs?: number;
 
   userProperties?: { [key: string]: any };
 
@@ -245,10 +347,82 @@ export interface SessionReplayLocalConfig extends IConfig {
    * reduces request volume (and 200+`X-Session-Replay-Event-Skipped` throttling responses)
    * at the cost of slightly delayed replay availability.
    *
-   * Defaults: `{ minIntervalMs: 500, maxIntervalMs: 10_000 }`. Tune up if the server is
-   * back-pressuring the SDK on session start.
+   * Defaults to `{ minIntervalMs: 1000, maxIntervalMs: 10_000 }`, reflecting the validated
+   * amp-on-amp perf config (SR-4646); the `minIntervalMs` default was `500` prior to that
+   * change. Tune up if the server is back-pressuring the SDK on session start.
    */
   flushIntervalConfig?: FlushIntervalConfig;
+  /**
+   * When true, every rrweb full snapshot is flushed to the server immediately so replays
+   * become playable as early as possible. When false (default), full-snapshot sends are
+   * deferred to the normal interval/size flush cadence instead. The snapshot is still
+   * compressed and buffered immediately either way (ordering and page-exit beacon coverage
+   * are preserved); only the eager network send is suppressed. The default-off behavior
+   * reduces request volume for pages that produce many full snapshots (e.g. focus-driven or
+   * `fullSnapshotIntervalMs` checkouts), especially when many SDK instances run on the same
+   * page.
+   *
+   * @defaultValue false — reflects the validated amp-on-amp perf config (SR-4646). Was `true`
+   * prior to that change.
+   */
+  eagerFullSnapshotSend?: boolean;
+  /**
+   * When true, the window `focus` listener forces a fresh rrweb full snapshot
+   * (`takeFullSnapshot`) every time the page regains focus, so the replay reflects any DOM
+   * changes that happened while the tab was backgrounded. When false (default), the on-focus
+   * full snapshot is skipped entirely (recording simply continues from the existing stream).
+   *
+   * On pages with heavy focus churn (e.g. embedded iframes, inline editors that repeatedly
+   * steal and return focus) this fires constantly, and when combined with
+   * `eagerFullSnapshotSend` each focus produces an immediate network send — the primary
+   * driver of focus-driven request storms. The default-off behavior removes the snapshot (and
+   * therefore the send) at the cost of slightly staler post-focus frames.
+   *
+   * @defaultValue false — reflects the validated amp-on-amp perf config (SR-4646). Was `true`
+   * prior to that change.
+   */
+  captureFullSnapshotOnFocus?: boolean;
+  /**
+   * Raw (uncompressed) UTF-8 byte cap for a single buffered events list before the store
+   * splits it into its own request. Larger values produce fewer, larger requests (the primary
+   * steady-state lever for request volume); smaller values split sooner. Payloads are gzipped
+   * on the wire, so several hundred KB of replay JSON compresses to well under 100 KB.
+   *
+   * Advanced/debug knob — the default already balances request volume against the server's
+   * decompressed-size split threshold. Clamped to a safe range; values outside it are clamped
+   * and logged. Defaults to the SDK's internal `DEFAULT_MAX_PERSISTED_EVENTS_SIZE_BYTES`.
+   *
+   * @defaultValue 6000000 — reflects the validated amp-on-amp perf config (SR-4646). Was
+   * `MAX_EVENT_LIST_SIZE` (2000000) prior to that change.
+   */
+  maxPersistedEventsSizeBytes?: number;
+  /**
+   * Raw (uncompressed) UTF-8 byte cap for a single rrweb event. Events larger than this are
+   * dropped (with a warning) both at capture time and as a pre-send backstop, because the SR
+   * ingest service rejects a single event above ~10 MB. Lower this to exercise drop behavior
+   * for large full snapshots while debugging.
+   *
+   * Advanced/debug knob. Clamped to a safe range; values outside it are clamped and logged.
+   * Defaults to the SDK's internal `MAX_SINGLE_EVENT_SIZE`.
+   *
+   * @defaultValue 9000000
+   */
+  maxSingleEventSizeBytes?: number;
+  /**
+   * Optional custom transport for replay event uploads. When provided, the SDK invokes this
+   * callback in place of its internal `fetch` for every event-upload attempt, passing a
+   * fully-formed {@link SendEventsRequest} (resolved URL, headers, serialized body). The SDK
+   * still owns batching, retry, serialization and error handling. Use it to attach custom
+   * auth (e.g. a JWT `Authorization` header) and route through an authenticated proxy.
+   *
+   * Works alongside `trackServerUrl`: the URL passed to the callback already respects it.
+   */
+  handleSendEvents?: SessionReplaySendEventsHandler;
+  /**
+   * Optional custom transport for the remote-config fetch. Same contract as `handleSendEvents`
+   * but for the config GET. The URL passed to the callback already respects `configServerUrl`.
+   */
+  handleFetchConfig?: SessionReplayFetchConfigHandler;
 }
 
 export interface FlushIntervalConfig {
@@ -256,7 +430,8 @@ export interface FlushIntervalConfig {
    * Lower bound on the rrweb event-split interval in milliseconds. Also the increment
    * added to the interval after each split. Must be > 0; values are clamped to a 100ms floor.
    *
-   * @defaultValue 500
+   * @defaultValue 1000 — reflects the validated amp-on-amp perf config (SR-4646). Was `500`
+   * prior to that change.
    */
   minIntervalMs?: number;
   /**
@@ -323,7 +498,8 @@ export interface SessionReplayPerformanceConfig {
   /**
    * If enabled, consecutive mutation events will be merged into a single event before
    * compression, reducing stored event count without changing replay semantics.
-   * Defaults to false.
+   * Defaults to true, reflecting the validated amp-on-amp perf config (SR-4646); set to
+   * false to disable merging.
    */
   mergeMutations?: boolean;
   /**

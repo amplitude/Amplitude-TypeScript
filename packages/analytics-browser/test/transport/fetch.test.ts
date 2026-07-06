@@ -1,7 +1,8 @@
 import { ReadableStream, WritableStream } from 'stream/web';
 import { TextEncoder } from 'util';
+import * as analyticsCore from '@amplitude/analytics-core';
 import { MIN_GZIP_UPLOAD_BODY_SIZE_BYTES, Status } from '@amplitude/analytics-core';
-import { FetchTransport } from '../../src/transports/fetch';
+import { FetchTransport, KEEPALIVE_MAX_BODY_SIZE_BYTES } from '../../src/transports/fetch';
 import 'isomorphic-fetch';
 
 if (typeof global.TextEncoder === 'undefined') {
@@ -47,6 +48,7 @@ describe('fetch transport', () => {
         },
         body: JSON.stringify(payload),
         method: 'POST',
+        keepalive: true,
       });
     });
 
@@ -67,6 +69,7 @@ describe('fetch transport', () => {
         },
         body: JSON.stringify(payload),
         method: 'POST',
+        keepalive: true,
       });
       expect(mockCompressionStream).not.toHaveBeenCalled();
 
@@ -125,10 +128,109 @@ describe('fetch transport', () => {
       });
       expect(options?.body).toBeInstanceOf(ArrayBuffer);
       expect(new Uint8Array(options?.body as ArrayBuffer)).toEqual(mockCompressedBytes);
+      expect(options?.keepalive).toBe(true);
 
       (global as { Response?: unknown }).Response = OriginalResponse;
       delete (Blob.prototype as unknown as { stream?: () => ReadableStream }).stream;
       delete (global as { CompressionStream?: unknown }).CompressionStream;
+    });
+
+    test('should enable keepalive for bodies at or under the budget', async () => {
+      const transport = new FetchTransport();
+      const url = 'http://localhost:3000';
+      const payload = { api_key: '', events: [{ event_type: 'test', device_id: 'test_device_id' }] };
+
+      const fetchSpy = jest.spyOn(window, 'fetch').mockReturnValueOnce(Promise.resolve(new Response('{}')));
+      await transport.send(url, payload, false);
+
+      const [, options] = fetchSpy.mock.calls[0];
+      expect(options?.keepalive).toBe(true);
+    });
+
+    test('should disable keepalive for bodies over the budget', async () => {
+      const transport = new FetchTransport();
+      const url = 'http://localhost:3000';
+      const payload = {
+        api_key: '',
+        events: [{ event_type: 'large', event_properties: { value: 'a'.repeat(KEEPALIVE_MAX_BODY_SIZE_BYTES + 1) } }],
+      };
+
+      const fetchSpy = jest.spyOn(window, 'fetch').mockReturnValueOnce(Promise.resolve(new Response('{}')));
+      await transport.send(url, payload, false);
+
+      const [, options] = fetchSpy.mock.calls[0];
+      expect(options?.keepalive).toBe(false);
+    });
+
+    test('should enable keepalive for a body exactly at the budget', async () => {
+      const transport = new FetchTransport();
+      const url = 'http://localhost:3000';
+      // Pad the value so the serialized body length is exactly the cap (the <= boundary).
+      const overhead = JSON.stringify({
+        api_key: '',
+        events: [{ event_type: 'x', event_properties: { value: '' } }],
+      }).length;
+      const value = 'a'.repeat(KEEPALIVE_MAX_BODY_SIZE_BYTES - overhead);
+      const payload = { api_key: '', events: [{ event_type: 'x', event_properties: { value } }] };
+      expect(JSON.stringify(payload).length).toBe(KEEPALIVE_MAX_BODY_SIZE_BYTES);
+
+      const fetchSpy = jest.spyOn(window, 'fetch').mockReturnValueOnce(Promise.resolve(new Response('{}')));
+      await transport.send(url, payload, false);
+
+      const [, options] = fetchSpy.mock.calls[0];
+      expect(options?.keepalive).toBe(true);
+    });
+
+    test('should disable keepalive when enableKeepalive is false', async () => {
+      const transport = new FetchTransport({}, false);
+      const url = 'http://localhost:3000';
+      const payload = { api_key: '', events: [{ event_type: 'test', device_id: 'test_device_id' }] };
+
+      const fetchSpy = jest.spyOn(window, 'fetch').mockReturnValueOnce(Promise.resolve(new Response('{}')));
+      await transport.send(url, payload, false);
+
+      const [, options] = fetchSpy.mock.calls[0];
+      expect(options?.keepalive).toBe(false);
+    });
+
+    test('should enable keepalive when enableKeepalive is undefined or true', async () => {
+      const url = 'http://localhost:3000';
+      const payload = { api_key: '', events: [{ event_type: 'test', device_id: 'test_device_id' }] };
+
+      for (const transport of [new FetchTransport(), new FetchTransport({}, true)]) {
+        const fetchSpy = jest.spyOn(window, 'fetch').mockReturnValueOnce(Promise.resolve(new Response('{}')));
+        await transport.send(url, payload, false);
+        const [, options] = fetchSpy.mock.calls[0];
+        expect(options?.keepalive).toBe(true);
+        fetchSpy.mockRestore();
+      }
+    });
+
+    test('should disable keepalive when the compressed body exceeds the budget', async () => {
+      const oversizedCompressed = new ArrayBuffer(KEEPALIVE_MAX_BODY_SIZE_BYTES + 1);
+      const isAvailableSpy = jest.spyOn(analyticsCore, 'isCompressionStreamAvailable').mockReturnValue(true);
+      const compressSpy = jest.spyOn(analyticsCore, 'compressToGzipArrayBuffer').mockResolvedValue(oversizedCompressed);
+
+      const transport = new FetchTransport();
+      const url = 'http://localhost:3000';
+      const payload = {
+        api_key: '',
+        events: [
+          { event_type: 'large-payload', event_properties: { value: 'a'.repeat(MIN_GZIP_UPLOAD_BODY_SIZE_BYTES) } },
+        ],
+      };
+
+      const fetchSpy = jest
+        .spyOn(window, 'fetch')
+        .mockReturnValueOnce(Promise.resolve({ text: () => Promise.resolve('{}') } as Response));
+      await transport.send(url, payload, true);
+
+      const [, options] = fetchSpy.mock.calls[0];
+      expect(options?.body).toBe(oversizedCompressed);
+      expect(options?.keepalive).toBe(false);
+
+      compressSpy.mockRestore();
+      isAvailableSpy.mockRestore();
     });
 
     test('should respect Content-Encoding header when compression is enabled', async () => {
@@ -185,6 +287,22 @@ describe('fetch transport', () => {
       (global as { Response?: unknown }).Response = OriginalResponse;
       delete (Blob.prototype as unknown as { stream?: () => ReadableStream }).stream;
       delete (global as { CompressionStream?: unknown }).CompressionStream;
+    });
+
+    test('should pass referrerPolicy to fetch', async () => {
+      const transport = new FetchTransport({}, true, 'no-referrer');
+      const url = 'http://localhost:3000';
+      const payload = {
+        api_key: '',
+        events: [{ event_type: 'test' }],
+      };
+      const fetchSpy = jest.spyOn(window, 'fetch').mockReturnValueOnce(Promise.resolve(new Response('{}')));
+
+      await transport.send(url, payload, false);
+
+      const [, options] = fetchSpy.mock.calls[0];
+
+      expect(options?.referrerPolicy).toBe('no-referrer');
     });
   });
 });

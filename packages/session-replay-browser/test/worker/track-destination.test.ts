@@ -202,6 +202,117 @@ describe('worker/track-destination', () => {
     expect(mockPostMessage).toHaveBeenCalledWith({ type: 'complete', id: '5' });
   });
 
+  // A fetch that hangs until its AbortSignal fires, simulating a stuck "pending" request.
+  // The rejection mirrors real browser behavior: an Error whose name is 'AbortError'.
+  const abortError = () => {
+    const e = new Error('The operation was aborted');
+    e.name = 'AbortError';
+    return e;
+  };
+  const hangUntilAborted = () => (_url: string, options: RequestInit) =>
+    new Promise((_resolve, reject) => {
+      options.signal?.addEventListener('abort', () => reject(abortError()));
+    });
+
+  test('aborts a hung request on timeout and retries when useRetry=true', async () => {
+    // Fire all timers (the abort timeout and the retry backoff) immediately so the test is fast.
+    const realSetTimeout = global.setTimeout;
+    jest
+      .spyOn(global, 'setTimeout')
+      .mockImplementation((fn) => realSetTimeout(fn, 0) as unknown as ReturnType<typeof setTimeout>);
+
+    mockFetch.mockImplementationOnce(hangUntilAborted()).mockResolvedValueOnce({ status: 200 });
+
+    await invokeOnMessage({
+      type: 'send',
+      id: 'to1',
+      payload: basePayload,
+      context: { ...baseContext, flushMaxRetries: 2 },
+      useRetry: true,
+    });
+
+    expect(mockFetch).toHaveBeenCalledTimes(2);
+    expect(mockPostMessage).toHaveBeenCalledWith({ type: 'complete', id: 'to1', skipCode: null });
+  });
+
+  test('timeout with useRetry=false posts a timed-out warn and completes without retrying', async () => {
+    const realSetTimeout = global.setTimeout;
+    jest
+      .spyOn(global, 'setTimeout')
+      .mockImplementation((fn) => realSetTimeout(fn, 0) as unknown as ReturnType<typeof setTimeout>);
+
+    mockFetch.mockImplementationOnce(hangUntilAborted());
+
+    await invokeOnMessage({ type: 'send', id: 'to2', payload: basePayload, context: baseContext, useRetry: false });
+
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+    expect(mockPostMessage).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'warn', id: 'to2', message: expect.stringContaining('timed out') }),
+    );
+    expect(mockPostMessage).toHaveBeenCalledWith({ type: 'complete', id: 'to2' });
+  });
+
+  test('arms the abort timer at context.sendTimeoutMs when provided', async () => {
+    const setSpy = jest.spyOn(global, 'setTimeout');
+    mockFetch.mockResolvedValueOnce({ status: 200 });
+
+    await invokeOnMessage({
+      type: 'send',
+      id: 'st1',
+      payload: basePayload,
+      context: { ...baseContext, sendTimeoutMs: 25_000 },
+      useRetry: false,
+    });
+
+    expect(setSpy).toHaveBeenCalledWith(expect.any(Function), 25_000);
+  });
+
+  test('does not arm an abort timer when context.sendTimeoutMs is 0', async () => {
+    const setSpy = jest.spyOn(global, 'setTimeout');
+    mockFetch.mockResolvedValueOnce({ status: 200 });
+
+    await invokeOnMessage({
+      type: 'send',
+      id: 'st2',
+      payload: basePayload,
+      context: { ...baseContext, sendTimeoutMs: 0 },
+      useRetry: false,
+    });
+
+    // A successful single-attempt send with the abort disabled schedules no timer at all.
+    expect(setSpy).not.toHaveBeenCalled();
+    expect(mockPostMessage).toHaveBeenCalledWith({ type: 'complete', id: 'st2', skipCode: null });
+  });
+
+  test('retries a DOMException abort (not an Error instance) when useRetry=true', async () => {
+    const realSetTimeout = global.setTimeout;
+    jest
+      .spyOn(global, 'setTimeout')
+      .mockImplementation((fn) => realSetTimeout(fn, 0) as unknown as ReturnType<typeof setTimeout>);
+
+    // Browsers reject an aborted fetch with a DOMException named 'AbortError', which is NOT an
+    // Error instance. It must still be detected as a retryable timeout.
+    mockFetch
+      .mockImplementationOnce(
+        (_url: string, options: RequestInit) =>
+          new Promise((_resolve, reject) => {
+            options.signal?.addEventListener('abort', () => reject({ name: 'AbortError', message: 'aborted' }));
+          }),
+      )
+      .mockResolvedValueOnce({ status: 200 });
+
+    await invokeOnMessage({
+      type: 'send',
+      id: 'to3',
+      payload: basePayload,
+      context: { ...baseContext, flushMaxRetries: 2 },
+      useRetry: true,
+    });
+
+    expect(mockFetch).toHaveBeenCalledTimes(2);
+    expect(mockPostMessage).toHaveBeenCalledWith({ type: 'complete', id: 'to3', skipCode: null });
+  });
+
   test('posts warn and complete on fetch network error', async () => {
     mockFetch.mockRejectedValueOnce(new Error('network failure'));
     await invokeOnMessage({ type: 'send', id: '6', payload: basePayload, context: baseContext, useRetry: false });
@@ -210,6 +321,18 @@ describe('worker/track-destination', () => {
       expect.objectContaining({ type: 'warn', id: '6', message: expect.stringContaining('network failure') }),
     );
     expect(mockPostMessage).toHaveBeenCalledWith({ type: 'complete', id: '6' });
+  });
+
+  test('treats a non-Error rejection as a non-retryable failure (not a timeout)', async () => {
+    // A thrown non-Error value (e.g. a bare string) must not be mistaken for an AbortError,
+    // so it completes without retrying.
+    mockFetch.mockRejectedValueOnce('string failure');
+    await invokeOnMessage({ type: 'send', id: '6b', payload: basePayload, context: baseContext, useRetry: false });
+
+    expect(mockPostMessage).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'warn', id: '6b', message: expect.stringContaining('string failure') }),
+    );
+    expect(mockPostMessage).toHaveBeenCalledWith({ type: 'complete', id: '6b' });
   });
 
   test('uses EU server URL when serverZone is EU', async () => {
@@ -370,5 +493,193 @@ describe('worker/track-destination', () => {
     } finally {
       delete (global as any).CompressionStream;
     }
+  });
+
+  test('sends uncompressed when enableTransportCompression is false even if CompressionStream is available', async () => {
+    // Sentinel: if the opt-out gate is broken, the worker will try to construct
+    // CompressionStream and we want the test to flag it explicitly rather than just
+    // falling through to a happy path.
+    const cs = jest.fn();
+    class FailIfConstructed {
+      constructor() {
+        cs();
+        throw new Error('CompressionStream should not be constructed when opted out');
+      }
+    }
+    (global as any).CompressionStream = FailIfConstructed;
+
+    try {
+      mockFetch.mockResolvedValueOnce({ status: 200 });
+      await invokeOnMessage({
+        type: 'send',
+        id: 'opt-out-1',
+        payload: basePayload,
+        context: { ...baseContext, enableTransportCompression: false },
+        useRetry: false,
+      });
+
+      expect(cs).not.toHaveBeenCalled();
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+      const [, options] = mockFetch.mock.calls[0] as [string, RequestInit];
+      expect((options.headers as Record<string, string>)['Content-Encoding']).toBeUndefined();
+      expect(typeof options.body).toBe('string');
+    } finally {
+      delete (global as any).CompressionStream;
+    }
+  });
+
+  describe('custom transport delegation (useCustomTransport)', () => {
+    // No fake timers in this suite, so a real macrotask reliably flushes the microtasks that
+    // run between the worker receiving 'send' and posting its 'fetch-request'.
+    const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
+    type Msg = { type: string; requestId?: string; url?: string; method?: string; headers?: Record<string, string> };
+    const postedOfType = (type: string): Msg[] =>
+      mockPostMessage.mock.calls.map((c) => c[0] as Msg).filter((m) => m.type === type);
+
+    test('delegates the network call to the main thread instead of fetching directly', async () => {
+      const sendPromise = invokeOnMessage({
+        type: 'send',
+        id: 'd1',
+        payload: basePayload,
+        context: baseContext,
+        useRetry: false,
+        useCustomTransport: true,
+      });
+      await flush();
+
+      // The worker posted a fetch-request rather than calling its own fetch (trap §12-2).
+      expect(mockFetch).not.toHaveBeenCalled();
+      const [request] = postedOfType('fetch-request');
+      expect(request).toBeDefined();
+      expect(request.url).toContain('device_id=device-123');
+      expect(request.method).toBe('POST');
+      expect((request.headers as Record<string, string>).Authorization).toBe('Bearer test-api-key');
+
+      // The main thread replies; the worker resolves and completes via its normal path.
+      await invokeOnMessage({ type: 'fetch-response', requestId: request.requestId, status: 200, skipHeader: null });
+      await sendPromise;
+
+      expect(mockPostMessage).toHaveBeenCalledWith({ type: 'complete', id: 'd1', skipCode: null });
+    });
+
+    test('does NOT delegate when useCustomTransport is falsy (unchanged worker path)', async () => {
+      mockFetch.mockResolvedValueOnce({ status: 200 });
+      await invokeOnMessage({ type: 'send', id: 'd2', payload: basePayload, context: baseContext, useRetry: false });
+
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+      expect(postedOfType('fetch-request')).toHaveLength(0);
+    });
+
+    test('retries delegated attempts through the worker retry loop', async () => {
+      const realSetTimeout = global.setTimeout;
+      jest
+        .spyOn(global, 'setTimeout')
+        .mockImplementation((fn) => realSetTimeout(fn, 0) as unknown as ReturnType<typeof setTimeout>);
+
+      const sendPromise = invokeOnMessage({
+        type: 'send',
+        id: 'd3',
+        payload: basePayload,
+        context: { ...baseContext, flushMaxRetries: 2 },
+        useRetry: true,
+        useCustomTransport: true,
+      });
+      await flush();
+
+      // First attempt: reply with a retryable status.
+      let requests = postedOfType('fetch-request');
+      expect(requests).toHaveLength(1);
+      await invokeOnMessage({ type: 'fetch-response', requestId: requests[0].requestId, status: 500 });
+      await flush();
+
+      // Worker should have delegated a second attempt.
+      requests = postedOfType('fetch-request');
+      expect(requests).toHaveLength(2);
+      await invokeOnMessage({
+        type: 'fetch-response',
+        requestId: requests[1].requestId,
+        status: 200,
+        skipHeader: null,
+      });
+      await sendPromise;
+
+      expect(mockPostMessage).toHaveBeenCalledWith({ type: 'complete', id: 'd3', skipCode: null });
+    });
+
+    test('a delegated 413 reads the response body and posts payload_too_large', async () => {
+      const sendPromise = invokeOnMessage({
+        type: 'send',
+        id: 'd5',
+        payload: basePayload,
+        context: { ...baseContext, flushMaxRetries: 2 },
+        useRetry: true,
+        useCustomTransport: true,
+      });
+      await flush();
+
+      const [request] = postedOfType('fetch-request');
+      // body text is consulted via the reconstructed Response-like text() for WAF detection
+      await invokeOnMessage({
+        type: 'fetch-response',
+        requestId: request.requestId,
+        status: 413,
+        body: 'WAF: request body too large',
+      });
+      await sendPromise;
+
+      expect(mockPostMessage).toHaveBeenCalledWith(expect.objectContaining({ type: 'payload_too_large', id: 'd5' }));
+    });
+
+    test('a main-thread transport error surfaces without retry', async () => {
+      const sendPromise = invokeOnMessage({
+        type: 'send',
+        id: 'd4',
+        payload: basePayload,
+        context: baseContext,
+        useRetry: true,
+        useCustomTransport: true,
+      });
+      await flush();
+
+      const [request] = postedOfType('fetch-request');
+      await invokeOnMessage({
+        type: 'fetch-response',
+        requestId: request.requestId,
+        status: 0,
+        error: true,
+        body: 'boom',
+      });
+      await sendPromise;
+
+      // A thrown/rejected transport is surfaced (no retry), matching the built-in path.
+      expect(postedOfType('fetch-request')).toHaveLength(1);
+      expect(mockPostMessage).toHaveBeenCalledWith(expect.objectContaining({ type: 'complete', id: 'd4' }));
+    });
+
+    test('send-timeout abort settles a hung delegated attempt instead of wedging the worker', async () => {
+      // Fire the armed send-timeout on the next macrotask.
+      const realSetTimeout = global.setTimeout;
+      jest
+        .spyOn(global, 'setTimeout')
+        .mockImplementation((fn) => realSetTimeout(fn, 0) as unknown as ReturnType<typeof setTimeout>);
+
+      // The main thread never replies with a fetch-response. Before the fix, delegateRequest
+      // ignored the abort signal, so sendWithRetry awaited the unanswered delegation forever and
+      // this invokeOnMessage would never resolve (the test would time out). Now the send-timeout
+      // aborts the delegation (retryable AbortError); with retries exhausted the worker settles
+      // by posting a failure complete. invokeOnMessage awaits the whole send, so its resolution
+      // is itself the proof the worker did not wedge.
+      await invokeOnMessage({
+        type: 'send',
+        id: 'd6',
+        payload: basePayload,
+        context: { ...baseContext, flushMaxRetries: 1, sendTimeoutMs: 5 },
+        useRetry: true,
+        useCustomTransport: true,
+      });
+
+      expect(postedOfType('fetch-request')).toHaveLength(1);
+      expect(mockPostMessage).toHaveBeenCalledWith(expect.objectContaining({ type: 'complete', id: 'd6' }));
+    });
   });
 });

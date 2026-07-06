@@ -3,6 +3,54 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.6.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-react-native@1.6.0...@amplitude/analytics-react-native@1.6.1) (2026-06-30)
+
+**Note:** Version bump only for package @amplitude/analytics-react-native
+
+
+
+
+
+# [1.6.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-react-native@1.5.57...@amplitude/analytics-react-native@1.6.0) (2026-06-25)
+
+
+### Features
+
+* **analytics-react-native:** Android native connectivity module + Robolectric tests (SDKRN-5) [3/5] ([#1831](https://github.com/amplitude/Amplitude-TypeScript/issues/1831)) ([93df7dc](https://github.com/amplitude/Amplitude-TypeScript/commit/93df7dcfdeb3395a18316e7e616c61fa42b9f63a))
+* **analytics-react-native:** iOS native connectivity module (SDKRN-5) [2/5] ([#1819](https://github.com/amplitude/Amplitude-TypeScript/issues/1819)) ([e5638eb](https://github.com/amplitude/Amplitude-TypeScript/commit/e5638eb12e6b9f2644976a4b8930beffc0b878db))
+* **analytics-react-native:** offline connectivity plugin + JS wiring (SDKRN-5) [1/5] ([#1802](https://github.com/amplitude/Amplitude-TypeScript/issues/1802)) ([670111d](https://github.com/amplitude/Amplitude-TypeScript/commit/670111d013fc5c94d76a0588d9a48866e6cb8af3))
+
+
+
+
+
+## [1.5.57](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-react-native@1.5.56...@amplitude/analytics-react-native@1.5.57) (2026-06-11)
+
+**Note:** Version bump only for package @amplitude/analytics-react-native
+
+
+
+
+
+## [1.5.56](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-react-native@1.5.55...@amplitude/analytics-react-native@1.5.56) (2026-06-05)
+
+**Note:** Version bump only for package @amplitude/analytics-react-native
+
+
+
+
+
+## [1.5.55](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-react-native@1.5.54...@amplitude/analytics-react-native@1.5.55) (2026-05-28)
+
+
+### Bug Fixes
+
+* **analytics-react-native:** lazy-load AsyncStorage so customers can opt out (SDKRN-8) ([#1772](https://github.com/amplitude/Amplitude-TypeScript/issues/1772)) ([22e0b59](https://github.com/amplitude/Amplitude-TypeScript/commit/22e0b59597a4a5494c8caa55c1e0ff0eea24ca52))
+
+
+
+
+
 ## [1.5.54](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-react-native@1.5.53...@amplitude/analytics-react-native@1.5.54) (2026-05-21)
 
 

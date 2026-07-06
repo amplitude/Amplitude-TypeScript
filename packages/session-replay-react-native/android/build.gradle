@@ -42,6 +42,18 @@ android {
     }
   }
 
+  // New Arch compiles src/newarch (codegen spec + BaseReactPackage); Old Arch
+  // compiles src/oldarch (hand-written spec + plain ReactPackage).
+  sourceSets {
+    main {
+      if (isNewArchitectureEnabled()) {
+        java.srcDirs += ['src/newarch/java']
+      } else {
+        java.srcDirs += ['src/oldarch/java']
+      }
+    }
+  }
+
   compileSdkVersion getExtOrIntegerDefault("compileSdkVersion")
 
   defaultConfig {
@@ -82,4 +94,14 @@ dependencies {
   //noinspection GradleDynamicVersion
   implementation "com.facebook.react:react-native:+"
   implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
+}
+
+// Codegen for the TurboModule spec (New Architecture only). Generates
+// NativeAmpSessionReplaySpec from src/specs/NativeAmpSessionReplay.ts.
+if (isNewArchitectureEnabled()) {
+  react {
+    jsRootDir = file("../src/specs/")
+    libraryName = "AmpSessionReplaySpec"
+    codegenJavaPackageName = "com.amplitude.sessionreplayreactnative"
+  }
 }

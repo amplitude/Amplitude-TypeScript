@@ -876,6 +876,8 @@ describe('browser-client', () => {
 
     test('should listen for network change to online', async () => {
       jest.useFakeTimers();
+      // Start offline so the online event represents a real offline->online transition.
+      const onLineMock = jest.spyOn(navigator, 'onLine', 'get').mockReturnValue(false);
       const addEventListenerMock = jest.spyOn(window, 'addEventListener');
       const flush = jest.spyOn(client, 'flush').mockReturnValue({ promise: Promise.resolve() });
       const loggerProvider = {
@@ -891,6 +893,8 @@ describe('browser-client', () => {
         defaultTracking: false,
         loggerProvider: loggerProvider,
       }).promise;
+      expect(client.config.offline).toBe(true);
+
       window.dispatchEvent(new Event('online'));
 
       expect(addEventListenerMock).toHaveBeenCalledWith('online', expect.any(Function));
@@ -901,6 +905,7 @@ describe('browser-client', () => {
       expect(flush).toHaveBeenCalledTimes(1);
 
       jest.useRealTimers();
+      onLineMock.mockRestore();
       addEventListenerMock.mockRestore();
       flush.mockRestore();
     });

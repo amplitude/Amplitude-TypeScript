@@ -1,6 +1,8 @@
 import { Event } from '@amplitude/analytics-core';
 import {
   StoreType,
+  type SessionReplaySendEventsHandler,
+  type SessionReplayFetchConfigHandler,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   type SessionReplayOptions as StandaloneSessionReplayOptions, // used for documentation
 } from '@amplitude/session-replay-browser';
@@ -10,6 +12,12 @@ import {
  * Extracted from the standalone SDK's SessionReplayOptions.
  */
 export type CrossOriginIframesConfig = NonNullable<StandaloneSessionReplayOptions['crossOriginIframes']>;
+
+/**
+ * Configuration for rrweb event-split flush cadence.
+ * Extracted from the standalone SDK's SessionReplayOptions.
+ */
+export type FlushIntervalConfig = NonNullable<StandaloneSessionReplayOptions['flushIntervalConfig']>;
 
 export type MaskLevel =
   | 'light' // only mask a subset of inputs that’s deemed sensitive - password, credit card, telephone #, email. These are information we never want to capture.
@@ -50,6 +58,13 @@ export interface InteractionPerformanceConfig {
 export interface SessionReplayPerformanceConfig {
   enabled: boolean;
   timeout?: number;
+  /**
+   * If enabled, consecutive mutation events are merged into a single event before
+   * compression. This reduces the stored event count and coalesces bursts of
+   * inline `style` mutations on the same node (last-write-wins), without changing
+   * replay semantics. Defaults to false.
+   */
+  mergeMutations?: boolean;
   /**
    * Performance configuration for interaction tracking (clicks, scrolls).
    */
@@ -179,4 +194,39 @@ export interface SessionReplayOptions {
    * @see {@link StandaloneSessionReplayOptions.crossOriginIframes}
    */
   crossOriginIframes?: CrossOriginIframesConfig;
+  /**
+   * @see {@link StandaloneSessionReplayOptions.flushIntervalConfig}
+   */
+  flushIntervalConfig?: FlushIntervalConfig;
+  /**
+   * @see {@link StandaloneSessionReplayOptions.eagerFullSnapshotSend}
+   */
+  eagerFullSnapshotSend?: boolean;
+  /**
+   * @see {@link StandaloneSessionReplayOptions.captureFullSnapshotOnFocus}
+   */
+  captureFullSnapshotOnFocus?: boolean;
+  /**
+   * @see {@link StandaloneSessionReplayOptions.maxPersistedEventsSizeBytes}
+   */
+  maxPersistedEventsSizeBytes?: number;
+  /**
+   * @see {@link StandaloneSessionReplayOptions.maxSingleEventSizeBytes}
+   */
+  maxSingleEventSizeBytes?: number;
+  /**
+   * @see {@link StandaloneSessionReplayOptions.sendTimeoutMs}
+   */
+  sendTimeoutMs?: number;
+  /**
+   * Optional custom transport for replay event uploads. Use to attach custom auth (e.g. a JWT
+   * `Authorization` header) and route through an authenticated proxy.
+   * @see {@link StandaloneSessionReplayOptions.handleSendEvents}
+   */
+  handleSendEvents?: SessionReplaySendEventsHandler;
+  /**
+   * Optional custom transport for the remote-config fetch.
+   * @see {@link StandaloneSessionReplayOptions.handleFetchConfig}
+   */
+  handleFetchConfig?: SessionReplayFetchConfigHandler;
 }

@@ -60,3 +60,16 @@ NativeModules.AmplitudeReactNative = {
   getLegacyEvents: () => [],
   removeLegacyEvent: () => ({}),
 };
+
+/*
+ * Mock the connectivity-only native module bridged by
+ * `AmplitudeReactNativeConnectivity`. `getNetworkConnectivityStatus` seeds the
+ * initial offline state, while `addListener`/`removeListeners` are required by
+ * `NativeEventEmitter`. Tests emit `AmplitudeNetworkConnectivityChanged` via
+ * `DeviceEventEmitter` (which `NativeEventEmitter` delegates to under the hood).
+ */
+NativeModules.AmplitudeReactNativeConnectivity = {
+  getNetworkConnectivityStatus: jest.fn(async (): Promise<{ isConnected: boolean }> => ({ isConnected: true })),
+  addListener: jest.fn(),
+  removeListeners: jest.fn(),
+};

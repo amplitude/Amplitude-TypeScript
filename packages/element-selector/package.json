@@ -1,0 +1,49 @@
+{
+  "name": "@amplitude/element-selector",
+  "version": "0.2.0",
+  "description": "Shared element-selector algorithm consumed by autocapture, the Amplitude dashboard, and the Chrome extension visual tagger.",
+  "author": "Amplitude Inc",
+  "homepage": "https://github.com/amplitude/Amplitude-TypeScript",
+  "license": "MIT",
+  "main": "lib/cjs/index.js",
+  "module": "lib/esm/index.js",
+  "types": "lib/esm/index.d.ts",
+  "sideEffects": false,
+  "publishConfig": {
+    "access": "public",
+    "tag": "latest"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/amplitude/Amplitude-TypeScript.git"
+  },
+  "scripts": {
+    "build": "pnpm build:es5 & pnpm build:esm",
+    "build:es5": "tsc -p ./tsconfig.es5.json",
+    "build:esm": "tsc -p ./tsconfig.esm.json",
+    "watch": "tsc -p ./tsconfig.esm.json --watch",
+    "clean": "rimraf node_modules lib coverage",
+    "fix": "pnpm fix:eslint & pnpm fix:prettier",
+    "fix:eslint": "eslint '{src,test}/**/*.ts' --fix",
+    "fix:prettier": "prettier --write \"{src,test}/**/*.ts\"",
+    "lint": "pnpm lint:eslint & pnpm lint:prettier",
+    "lint:eslint": "eslint '{src,test}/**/*.ts'",
+    "lint:prettier": "prettier --check \"{src,test}/**/*.ts\"",
+    "test": "jest",
+    "testbed": "pnpm testbed:build && python3 -m http.server --directory testbed 4567",
+    "testbed:build": "pnpm build && esbuild testbed/testbed.js --bundle --format=esm --outfile=testbed/build/bundle.js",
+    "typecheck": "tsc -p ./tsconfig.json"
+  },
+  "bugs": {
+    "url": "https://github.com/amplitude/Amplitude-TypeScript/issues"
+  },
+  "dependencies": {
+    "tslib": "^2.4.1"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0"
+  },
+  "files": [
+    "lib"
+  ]
+}

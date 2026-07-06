@@ -7,6 +7,7 @@ import {
   NetworkTrackingOptions,
   NetworkCaptureRule,
   SAFE_HEADERS,
+  safeJsonStringify,
 } from '@amplitude/analytics-core';
 
 export interface AutocaptureOptionsRemoteConfig extends AutocaptureOptions {
@@ -215,7 +216,7 @@ export function updateBrowserConfigWithRemoteConfig(
   try {
     browserConfig.loggerProvider.debug(
       'Update browser config with remote configuration:',
-      JSON.stringify(remoteConfig),
+      safeJsonStringify(remoteConfig),
     );
 
     // type cast error will be thrown if remoteConfig is not a valid RemoteConfigBrowserSDK
@@ -309,7 +310,7 @@ export function updateBrowserConfigWithRemoteConfig(
       }
     }
 
-    browserConfig.loggerProvider.debug('Browser config after remote config update:', JSON.stringify(browserConfig));
+    browserConfig.loggerProvider.debug('Browser config after remote config update:', safeJsonStringify(browserConfig));
   } catch (e) {
     browserConfig.loggerProvider.error('Failed to apply remote configuration because of error: ', e);
   }
