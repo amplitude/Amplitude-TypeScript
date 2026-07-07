@@ -8,7 +8,7 @@
   integrity sha512-IpncCNTZZ6VoGe4fNwTTZtpi+ZNm3mtsocdbCHtIwmKg2wmOF2E09CAwvyF7mK5aRlMIrSAKQyR3GwraATghSw==
 
 "@amplitude/session-replay-react-native@file:..":
-  version "0.1.0-beta.0"
+  version "0.1.0-beta.1"
   dependencies:
     "@amplitude/analytics-types" "^1.3.4"
 
@@ -5626,10 +5626,10 @@ react-native-safe-area-context@^5.0.0:
   resolved "https://registry.yarnpkg.com/react-native-safe-area-context/-/react-native-safe-area-context-5.3.0.tgz#272e6786a58aafe3362fde4d3233713b66158179"
   integrity sha512-glV9bwuozTjf/JDBIBm+ITnukHNaUT3nucgdeADwjtHsfEN3RL5UO6nq99vvdWv5j/O9yCZBvFncM1BBQ+UvpQ==
 
-react-native-screens@^4.4.0:
-  version "4.9.2"
-  resolved "https://registry.yarnpkg.com/react-native-screens/-/react-native-screens-4.9.2.tgz#40bb8a405997414e1258b51175662880f8588397"
-  integrity sha512-87gR7XRIirACYxtYltEl1BbUo5r0W4AFPckUDDzATAN6LIUZ2PC3bX6UAFeoEBEqBbfaemRZTWSYHl6MCZFSgw==
+react-native-screens@4.4.0:
+  version "4.4.0"
+  resolved "https://registry.yarnpkg.com/react-native-screens/-/react-native-screens-4.4.0.tgz#3fcbcdf1bbb1be2736b10d43edc3d4e69c37b5aa"
+  integrity sha512-c7zc7Zwjty6/pGyuuvh9gK3YBYqHPOxrhXfG1lF4gHlojQSmIx2piNbNaV+Uykj+RDTmFXK0e/hA+fucw/Qozg==
   dependencies:
     react-freeze "^1.0.0"
     warn-once "^0.1.0"
