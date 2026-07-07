@@ -63,6 +63,52 @@ export function isShadowRoot(node: Node): node is ShadowRoot {
 }
 
 /**
+ * Anchor a per-tree segment so it re-resolves within a `ShadowRoot`.
+ *
+ * Both selector algorithms (the strategy-chain fallback and the legacy Chromium
+ * `cssPath`) can emit a segment that is only *positionally* specified — a chain
+ * of `tag:nth-*` / class steps with no id or attribute to pin it. In the light
+ * DOM the chain is implicitly anchored by the unique `<html>` root; inside a
+ * shadow root there is no such root element, so `querySelector` matches the
+ * chain tree-wide and can resolve to the wrong element (or none).
+ *
+ * When `segment` is such a root-anchored positional chain inside a shadow root,
+ * we prefix it with {@link SHADOW_CHILD_CHAIN_PREFIX} so `resolveSelector`
+ * descends by strict direct-child matching instead of `querySelector`. An
+ * id/attribute-anchored segment is already resolvable tree-wide and is returned
+ * untouched. `isRootAnchored` is the caller's decision (each generator knows
+ * whether its own output reached the tree top vs. short-circuited on an id), so
+ * this stays correct regardless of what the steps contain.
+ */
+export function anchorSegmentToShadowScope(segment: string, scope: ParentNode, isRootAnchored: boolean): string {
+  if (segment && isRootAnchored && isShadowRoot(scope as Node)) {
+    return `${SHADOW_CHILD_CHAIN_PREFIX}${segment}`;
+  }
+  return segment;
+}
+
+/**
+ * Whether the legacy `cssPath` output for `el` is a root-anchored positional
+ * chain rather than one anchored by an id.
+ *
+ * `legacyCssPath` short-circuits at the first element — inclusive of `el` —
+ * that carries an `id`, emitting `tag#id > …` from there. If some element in
+ * `el`'s ancestor chain has an id the emitted selector is id-anchored (a plain,
+ * tree-wide-resolvable `querySelector`); if none does, the chain spans the tree
+ * top down to `el` via positional steps and must be marked for direct-child
+ * descent inside a shadow root. This walks the same `parentElement` chain the
+ * legacy walker does, so the two stay in lockstep.
+ */
+export function legacyPathIsRootAnchored(el: Element): boolean {
+  for (let node: Element | null = el; node !== null; node = node.parentElement) {
+    if (node.getAttribute('id')) {
+      return false;
+    }
+  }
+  return true;
+}
+
+/**
  * The queryable root for `el`'s own tree: the enclosing `ShadowRoot` when `el`
  * lives inside shadow DOM, otherwise the owner document. Both support
  * `querySelectorAll`, so uniqueness checks can be scoped to the correct tree.
@@ -211,8 +257,8 @@ export function resolveSelector(root: ParentNode, selector: string): Element | n
  * marker and resolve by strict direct-child descent. The marker is set
  * explicitly by the generator, so this stays correct regardless of what the
  * steps contain (tag, `:nth-of-type`, classes, …). Every other segment —
- * id/attribute-anchored, or any document-scope segment — is a normal
- * `querySelector`, byte-identical to before.
+ * id/attribute-anchored, or any document-scope segment — resolves via a plain
+ * `querySelector`.
  */
 function resolveSegment(scope: ParentNode, segment: string): Element | null {
   if (segment.startsWith(SHADOW_CHILD_CHAIN_PREFIX)) {

@@ -118,7 +118,7 @@ export function resolveSelectorConfig(
     resolved.shadowDomEnabled = remote.shadowDomEnabled;
   }
 
-  resolved.maxShadowDomDepth = clampShadowDepth(remote.maxShadowDomDepth, logger);
+  resolved.maxShadowDomDepth = clampShadowDepth(remote.maxShadowDomDepth);
 
   return resolved;
 }
@@ -138,30 +138,17 @@ function clampDepth(depth: number | undefined): number | undefined {
 /**
  * Coerce a remote-supplied shadow depth into the runtime contract:
  *   - undefined / non-number / NaN / Infinity → default (1)
- *   - < 1 → clamped up to 1 (one shadow level), with a warn log
- *   - > MAX_SHADOW_DOM_DEPTH → clamped down to the cap, with a warn log
- *   - otherwise → floor()'d integer
+ *   - otherwise → floor()'d, then clamped into [1, MAX_SHADOW_DOM_DEPTH]
  *
  * Unlike `maxAncestorWalkDepth`, this never resolves to "no limit" — shadow
  * piercing is always bounded by the hard cap to keep traversal and selector
  * length under control.
  */
-function clampShadowDepth(depth: number | undefined, logger?: ElementSelectorLogger): number {
+function clampShadowDepth(depth: number | undefined): number {
   if (typeof depth !== 'number' || !Number.isFinite(depth)) {
     return DEFAULT_MAX_SHADOW_DOM_DEPTH;
   }
-  const floored = Math.floor(depth);
-  if (floored < 1) {
-    logger?.warn(`@amplitude/element-selector: maxShadowDomDepth ${depth} is below 1 — clamping to 1`);
-    return 1;
-  }
-  if (floored > MAX_SHADOW_DOM_DEPTH) {
-    logger?.warn(
-      `@amplitude/element-selector: maxShadowDomDepth ${depth} exceeds the hard cap ${MAX_SHADOW_DOM_DEPTH} — clamping to ${MAX_SHADOW_DOM_DEPTH}`,
-    );
-    return MAX_SHADOW_DOM_DEPTH;
-  }
-  return floored;
+  return Math.min(Math.max(Math.floor(depth), 1), MAX_SHADOW_DOM_DEPTH);
 }
 
 function cloneDefaults(): ResolvedSelectorConfig {

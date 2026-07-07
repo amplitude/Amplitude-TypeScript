@@ -256,4 +256,20 @@ describe('engine.generate — shadow gating', () => {
     expect(selector).toContain(SHADOW_BOUNDARY_DELIMITER);
     expect(resolveSelector(document, selector)).toBe(cta);
   });
+
+  it('legacy path anchors an id-less shadow segment so it round-trips (not tree-wide)', () => {
+    document.body.innerHTML = `<div id="app"><my-card></my-card></div>`;
+    const card = document.querySelector('my-card') as Element;
+    // No id on the target. A decoy button lives inside a div (root's first
+    // child); the target is the root's second child. An unanchored positional
+    // legacy chain would `querySelector` to the decoy tree-wide.
+    const root = attachOpen(card, `<div><button>decoy</button></div><button>target</button>`);
+    const target = root.querySelectorAll('button')[1] as Element;
+
+    const engine = createSelectorEngine(resolveSelectorConfig({ enabled: false, shadowDomEnabled: true }));
+    const selector = engine.generate(target);
+    // The shadow segment is marked as a root-anchored child chain.
+    expect(selector).toContain(SHADOW_CHILD_CHAIN_PREFIX);
+    expect(resolveSelector(document, selector)).toBe(target);
+  });
 });
