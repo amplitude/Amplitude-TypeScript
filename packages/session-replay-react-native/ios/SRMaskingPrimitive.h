@@ -3,8 +3,8 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
-/// Recorder-agnostic masking primitive. A concrete implementation is registered
-/// by the Session Replay SDK (Part 2). Until then the registry is inert.
+/// Recorder-agnostic masking primitive. Until a concrete implementation is
+/// registered at SDK init, the registry is inert.
 @protocol SRMaskingPrimitive <NSObject>
 - (void)maskView:(UIView *)view level:(NSString *)level;
 - (void)unmaskView:(UIView *)view;

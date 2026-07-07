@@ -4,8 +4,8 @@ import android.view.View
 import java.util.WeakHashMap
 
 /**
- * Recorder-agnostic masking primitive. A concrete implementation is registered
- * by the Session Replay SDK (Part 2). Until then [SRMaskingRegistry] is inert.
+ * Recorder-agnostic masking primitive. Until a concrete implementation is
+ * registered at SDK init, [SRMaskingRegistry] is inert.
  */
 interface SRMaskingPrimitive {
   fun mask(view: View, level: String)
@@ -25,10 +25,6 @@ interface SRMaskingPrimitive {
  */
 object SRMaskingRegistry {
 
-  /**
-   * A single view's masking intent so it can be replayed onto a primitive that
-   * registers after the view was masked/unmasked.
-   */
   private sealed interface Intent {
     data class Mask(val level: String) : Intent
     object Unmask : Intent
@@ -40,10 +36,7 @@ object SRMaskingRegistry {
 
   private var warnedUnregistered = false
 
-  /**
-   * Weak-keyed map of view -> intent. Weak keys let views GC naturally without
-   * leaking.
-   */
+  // Weak keys let views GC naturally without leaking.
   private val intents = WeakHashMap<View, Intent>()
 
   @JvmStatic
@@ -52,8 +45,6 @@ object SRMaskingRegistry {
     if (value == null) {
       return
     }
-    // Replay every recorded intent onto the newly registered primitive so views
-    // masked before registration get applied (without a JS re-render).
     for ((view, intent) in intents) {
       when (intent) {
         is Intent.Mask -> value.mask(view, intent.level)
@@ -76,7 +67,6 @@ object SRMaskingRegistry {
 
   @JvmStatic
   fun reset(view: View) {
-    // reset means "return to inherit" — no longer a tracked intent.
     intents.remove(view)
     primitive?.reset(view) ?: warnUnregisteredOnce()
   }
