@@ -1,7 +1,7 @@
 #pragma once
 
-#include <react/renderer/components/SRMaskViewSpec/EventEmitters.h>
-#include <react/renderer/components/SRMaskViewSpec/Props.h>
+#include <react/renderer/components/AmpSessionReplaySpec/EventEmitters.h>
+#include <react/renderer/components/AmpSessionReplaySpec/Props.h>
 #include <react/renderer/components/view/ConcreteViewShadowNode.h>
 
 namespace facebook::react {
