@@ -18,15 +18,13 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
- * Native masking canaries (Task 1.7 / SDKRN-32, Android).
- *
- * These instrumented tests lock the masking *model* of the Fabric `SRMaskView`
- * host and the `SRMaskingRegistry` seam so future regressions are caught:
+ * Instrumented canaries locking the masking model of the Fabric `SRMaskView`
+ * host and the `SRMaskingRegistry` seam:
  *   - per-child mask intent on add (one [SRMaskingPrimitive.mask] per direct child)
- *   - reset on child removal (R5) and on host drop ([SRMaskViewManager.onDropViewInstance])
- *   - O3 capture-bounds: a degenerate 0x0 host frame is widened to the union of
+ *   - reset on child removal and on host drop ([SRMaskViewManager.onDropViewInstance])
+ *   - capture-bounds: a degenerate 0x0 host frame is widened to the union of
  *     its children so `shouldCapture()` (width>0 && height>0) would pass
- *   - R8: masking intent recorded before a primitive registers is replayed once
+ *   - masking intent recorded before a primitive registers is replayed once
  *     a primitive registers
  *
  * The registry is process-global state. [SRMaskingRegistry.setPrimitive] is
@@ -141,7 +139,7 @@ class SRMaskViewTest {
     )
   }
 
-  // 3. Reset on onDropViewInstance (R5): dropping the host resets every child.
+  // 3. Reset on onDropViewInstance: dropping the host resets every child.
   @Test
   fun onDropViewInstance_resetsAllChildren() {
     val recording = RecordingPrimitive()
@@ -168,7 +166,7 @@ class SRMaskViewTest {
     }
   }
 
-  // 4. O3 capture-bounds: a host given a degenerate 0x0 frame widens itself to
+  // 4. Capture-bounds: a host given a degenerate 0x0 frame widens itself to
   //    the union of its laid-out children, so width>0 && height>0
   //    (shouldCapture() would pass).
   @Test
@@ -282,7 +280,7 @@ class SRMaskViewTest {
     )
   }
 
-  // 5. R8 reapply: masking intent recorded with no primitive is replayed when a
+  // 5. Replay-on-register: masking intent recorded with no primitive is replayed when a
   //    primitive later registers.
   @Test
   fun maskIntentBeforeRegistration_isReplayedOnRegister() {

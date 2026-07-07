@@ -105,9 +105,9 @@
   [super tearDown];
 }
 
-#pragma mark Registry canaries (required core — these cover R8)
+#pragma mark Registry canaries
 
-/// R8: a view masked while no primitive is registered has its masking intent
+/// Replay-on-register: a view masked while no primitive is registered has its masking intent
 /// recorded and replayed onto a primitive that registers later. This is the
 /// whole point of the seam — masking survives registration order without a JS
 /// re-render.
@@ -200,9 +200,9 @@
                  @"reset intent must not replay onto a new primitive");
 }
 
-#pragma mark Per-child mask via the view (R5)
+#pragma mark Per-child mask via the view
 
-/// R5: mounting a child onto `SRMaskView` masks that child, and recycling the
+/// Mounting a child onto `SRMaskView` masks that child, and recycling the
 /// view resets (returns-to-inherit) every child.
 ///
 /// Cross-bundle caveat: the pod (`SRMaskingRegistry`, `SRMaskView`) is linked
@@ -214,7 +214,7 @@
 /// (the runtime de-dups duplicate classes to one), and assert we landed on the
 /// view's copy. If the runtime still resolves a different copy than the view
 /// uses (no stable way to reach it), the test skips — the registry canaries
-/// above are the required core that covers R8.
+/// above are the required registry core.
 - (void)testMountChildMasksAndRecycleResetsViaView
 {
   Class maskViewClass = NSClassFromString(@"SRMaskView");
@@ -283,7 +283,7 @@
       sawReset = YES;
     }
   }
-  XCTAssertTrue(sawReset, @"prepareForRecycle should reset each child (R5)");
+  XCTAssertTrue(sawReset, @"prepareForRecycle should reset each child");
 
   // Clean up the runtime registry copy so we don't leak into other tests.
 #pragma clang diagnostic push

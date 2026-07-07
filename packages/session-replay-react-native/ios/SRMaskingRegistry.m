@@ -2,9 +2,7 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
-/// Records a single view's masking intent so it can be replayed onto a primitive
-/// that registers after the view was masked/unmasked. When `unmask == NO` the
-/// `level` describes the mask; `level` is unused when `unmask == YES`.
+/// A view's recorded masking intent; `level` is only meaningful when `unmask == NO`.
 @interface SRMaskingIntent : NSObject
 @property (nonatomic) BOOL unmask;
 @property (nonatomic, copy, nullable) NSString *level;
@@ -18,8 +16,7 @@ NS_ASSUME_NONNULL_BEGIN
 static id<SRMaskingPrimitive> _primitive = nil;
 static BOOL _warnedUnregistered = NO;
 
-/// Weak-keyed map of view -> intent. Weak keys let views dealloc naturally
-/// without leaking. Single-threaded (main/UI thread) use, so no locking.
+/// Weak keys let views dealloc naturally. Main-thread-only, so no locking.
 static NSMapTable<UIView *, SRMaskingIntent *> *_intents = nil;
 
 + (NSMapTable<UIView *, SRMaskingIntent *> *)intents
@@ -41,8 +38,6 @@ static NSMapTable<UIView *, SRMaskingIntent *> *_intents = nil;
   if (primitive == nil) {
     return;
   }
-  // Replay every recorded intent onto the newly registered primitive so views
-  // masked before registration get applied (without a JS re-render).
   for (UIView *view in [[self intents] keyEnumerator]) {
     SRMaskingIntent *intent = [[self intents] objectForKey:view];
     if (intent == nil) {
@@ -85,7 +80,6 @@ static NSMapTable<UIView *, SRMaskingIntent *> *_intents = nil;
 
 + (void)resetView:(UIView *)view
 {
-  // reset means "return to inherit" — no longer a tracked intent.
   [[self intents] removeObjectForKey:view];
 
   if (_primitive != nil) {

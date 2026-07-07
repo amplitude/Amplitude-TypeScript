@@ -64,7 +64,7 @@ if (isNewArchitectureEnabled()) {
 }
 
 def patchComponentDescriptorsHeader() {
-  def componentsDir = file("$buildDir/generated/source/codegen/jni/react/renderer/components/SRMaskViewSpec")
+  def componentsDir = file("$buildDir/generated/source/codegen/jni/react/renderer/components/AmpSessionReplaySpec")
   def header = new File(componentsDir, "ComponentDescriptors.h")
 
   if (!header.exists()) {
@@ -111,10 +111,10 @@ def patchCodegenCMakeLists() {
   }
 
   def cppDir = file("../cpp").absolutePath.replace("\\", "/")
-  def insertion = """target_sources(react_codegen_SRMaskViewSpec PRIVATE
+  def insertion = """target_sources(react_codegen_AmpSessionReplaySpec PRIVATE
   "${cppDir}/SRMaskViewShadowNode.cpp"
 )
-target_include_directories(react_codegen_SRMaskViewSpec PUBLIC "${cppDir}")
+target_include_directories(react_codegen_AmpSessionReplaySpec PUBLIC "${cppDir}")
 """
 
   if (!original.contains("target_link_libraries(")) {
@@ -204,7 +204,7 @@ dependencies {
 if (isNewArchitectureEnabled()) {
   react {
     jsRootDir = file("../src/specs/")
-    libraryName = "SRMaskViewSpec"
+    libraryName = "AmpSessionReplaySpec"
     codegenJavaPackageName = "com.amplitude.sessionreplayreactnative"
   }
 

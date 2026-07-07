@@ -6,9 +6,9 @@
 #ifdef RCT_NEW_ARCH_ENABLED
 
 #import <React/RCTComponentViewFactory.h>
-#import <react/renderer/components/SRMaskViewSpec/EventEmitters.h>
-#import <react/renderer/components/SRMaskViewSpec/Props.h>
-#import <react/renderer/components/SRMaskViewSpec/RCTComponentViewHelpers.h>
+#import <react/renderer/components/AmpSessionReplaySpec/EventEmitters.h>
+#import <react/renderer/components/AmpSessionReplaySpec/Props.h>
+#import <react/renderer/components/AmpSessionReplaySpec/RCTComponentViewHelpers.h>
 
 using namespace facebook::react;
 

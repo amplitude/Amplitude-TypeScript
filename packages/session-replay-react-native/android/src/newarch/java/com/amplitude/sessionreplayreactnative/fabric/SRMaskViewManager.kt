@@ -35,8 +35,6 @@ class SRMaskViewManager :
 
   override fun onDropViewInstance(view: SRMaskView) {
     super.onDropViewInstance(view)
-    // R5 + listener cleanup: reset children and detach their layout listeners so a
-    // recycled/reparented child can't keep firing callbacks against the old host.
     view.onHostDropped()
   }
 
