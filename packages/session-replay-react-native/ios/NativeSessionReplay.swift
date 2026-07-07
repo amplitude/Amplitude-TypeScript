@@ -62,18 +62,15 @@ class NativeSessionReplay: NSObject, RCTBridgeModule {
             enableRemoteConfig: enableRemoteConfig
         )
         
-        // Register the default masking primitive, then start capture, in ONE
-        // main-thread block. The registry is main-thread-only (setting the
-        // primitive replays recorded masking intents, which touch UIViews;
-        // setup runs on the RN native-modules queue), and registration must
-        // precede start() on the capture (main) thread so an early capture
-        // frame can't snapshot `SRMaskView` children before their masking
-        // intents are applied. Resolving inside the block keeps the init
-        // promise from settling before registration lands. Re-registering on
-        // repeated setup() calls is harmless (it just replays intents again).
+        // Register the primitive, start capture, and resolve in ONE main-thread
+        // block: the registry is main-thread-only (setup runs on the RN
+        // native-modules queue), and registration must precede start() on the
+        // capture (main) thread so an early capture frame can't snapshot
+        // SRMaskView children before their masking intents apply.
+        // Re-registering on repeated setup() calls is harmless.
         DispatchQueue.main.async {
-            // Module invalidated (e.g. React Native reload) before deferred setup ran —
-            // nothing to start; settle the promise so JS init() never hangs.
+            // Invalidated (e.g. RN reload) before deferred setup ran — settle
+            // the promise so JS init() never hangs.
             guard let sessionReplay = self.sessionReplay else {
                 reject("SETUP_ERROR", "Session Replay module was invalidated before setup completed", nil)
                 return

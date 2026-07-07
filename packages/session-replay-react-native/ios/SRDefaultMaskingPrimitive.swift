@@ -11,9 +11,9 @@ import AmplitudeSessionReplay
 ///    per-view "inherit" reset today; a precise `.none` reset is a documented
 ///    fast-follow.
 ///
-/// Registered on the main thread at SDK init (see `NativeSessionReplay.setup`);
-/// registration replays any masking intents recorded before init (R8), so
-/// mount-before-init masking still applies.
+/// Registered on the main thread at SDK init (`NativeSessionReplay.setup`);
+/// registration replays intents recorded before init, so mount-before-init
+/// masking still applies.
 ///
 /// The explicit ObjC name lets the native canaries reach this class via
 /// `NSClassFromString` without new public headers.

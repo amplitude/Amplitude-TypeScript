@@ -13,9 +13,9 @@ import com.amplitude.android.sessionreplay.SessionReplay
  *  - `reset(view)`         -> `view.tag = null` (the SDK hooks are tag-based;
  *                             clearing the tag returns the view to "inherit")
  *
- * Registered on the UI thread at SDK init (see
- * [SessionReplayReactNativeModule.setup]); registration replays any masking
- * intents recorded before init (R8), so mount-before-init masking still applies.
+ * Registered on the UI thread at SDK init
+ * ([SessionReplayReactNativeModule.setup]); registration replays intents
+ * recorded before init, so mount-before-init masking still applies.
  */
 class SRDefaultMaskingPrimitive : SRMaskingPrimitive {
   override fun mask(view: View, level: String) {

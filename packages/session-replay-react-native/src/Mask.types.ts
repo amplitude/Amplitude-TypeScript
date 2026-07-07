@@ -1,12 +1,15 @@
 import type { ViewProps } from 'react-native';
 import type { ReactNode } from 'react';
 
+/** Masking level for `<AmpMask>`. See {@link MaskProps.maskLevel}. */
 export type AmpMaskLevel = 'mask' | 'block';
 
 /**
- * `style` is intentionally unsupported: the mask wrapper never carries a
- * layout box (it is layout-transparent), and the Fabric implementation
- * force-overrides `style` at runtime regardless of what is passed.
+ * Props for `<AmpMask>`, which masks its children in Session Replay
+ * recordings without affecting their layout.
+ *
+ * `style` is not supported: the wrapper is layout-transparent and never
+ * carries a layout box of its own, so styles would have no effect.
  */
 export interface MaskProps extends Omit<ViewProps, 'style'> {
   /**
@@ -26,17 +29,17 @@ export interface MaskProps extends Omit<ViewProps, 'style'> {
 }
 
 /**
- * `style` is intentionally unsupported: the mask wrapper never carries a
- * layout box (it is layout-transparent), and the Fabric implementation
- * force-overrides `style` at runtime regardless of what is passed.
+ * Props for `<AmpUnmask>`, which exempts its children from masking inside a
+ * masked region, without affecting their layout.
+ *
+ * `style` is not supported: the wrapper is layout-transparent and never
+ * carries a layout box of its own, so styles would have no effect.
  */
 export interface UnmaskProps extends Omit<ViewProps, 'style'> {
   children?: ReactNode;
 }
 
-// The one runtime export in this otherwise type-only module: shared by
-// MaskPaper and MaskFabric's fallback components so the mask-level mapping
-// isn't duplicated.
+/** Maps the public {@link AmpMaskLevel} to the `<AmpMaskView>` `mask` prop value. */
 export function ampMaskViewMaskProp(level?: AmpMaskLevel): 'amp-mask' | 'amp-block' {
   return level === 'block' ? 'amp-block' : 'amp-mask';
 }
