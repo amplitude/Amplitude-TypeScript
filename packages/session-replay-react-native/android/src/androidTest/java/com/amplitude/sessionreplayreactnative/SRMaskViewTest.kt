@@ -213,12 +213,15 @@ class SRMaskViewTest {
     assertEquals("childless host height should stay 0", 0, host.height)
   }
 
-  // 4c. Regression: Fabric lays the degenerate display:contents host out at a
-  //     NON-ZERO parent offset. The host must widen to enclose its children
-  //     WITHOUT moving: Fabric gives the children frames in the SAME coordinate
-  //     space as the host's own frame (grandparent-relative — a display:contents
-  //     node contributes no coordinate space of its own), so the widened extent
-  //     is simply the children's max right/bottom, not host origin + extent.
+  // 4c. Regression (measured on-device, RN 0.77.2 Fabric): Fabric lays the
+  //     degenerate display:contents host out at a NON-ZERO parent offset
+  //     (flattened intermediate views accumulate into the host origin — e.g.
+  //     an AmpUnmask nested in an AmpMask through a flattened <View>, or a
+  //     mask inside a list row) and the children frames are HOST-relative
+  //     (a child renders at host.left + child.left). The host must widen to
+  //     origin + children extent WITHOUT moving; treating the child extents
+  //     as absolute (a previous revision) produced inverted frames
+  //     (bottom < top) that the capture gate dropped.
   @Test
   fun degenerateHostFrame_atNonZeroOffset_widensWithoutMoving() {
     lateinit var host: SRMaskView
@@ -228,20 +231,80 @@ class SRMaskViewTest {
       val b = View(context)
       host.addView(a)
       host.addView(b)
-      // Children laid out in the shared (grandparent-relative) coordinate
-      // space, beyond the host's offset — as Fabric emits them.
-      a.layout(300, 400, 400, 450)
-      b.layout(420, 460, 500, 540)
+      // Children laid out HOST-relative — as measured from Fabric.
+      a.layout(0, 0, 100, 50)
+      b.layout(120, 60, 200, 140)
       // Fabric places the 0x0 display:contents host at a non-zero parent offset.
       host.layout(300, 400, 300, 400)
     }
 
-    // Extent == children union max right/bottom (500, 540) → size 200x140.
+    // Extent == origin + children union max right/bottom → (300,400,500,540).
     assertEquals("union width at offset", 200, host.width)
     assertEquals("union height at offset", 140, host.height)
     // Position preserved — the host was NOT moved (else children shift absolutely).
     assertEquals("host left preserved", 300, host.left)
     assertEquals("host top preserved", 400, host.top)
+    // Never inverted: bottom/right beyond origin.
+    assertTrue("frame not inverted", host.bottom > host.top && host.right > host.left)
+  }
+
+  // 4d. A child at fully negative host-relative coordinates (e.g. the
+  //     negative-offset badge shape) cannot be enclosed without moving the
+  //     origin (forbidden). The frame must still never be degenerate or
+  //     inverted — clamp to a 1x1 minimum so shouldCapture() keeps the
+  //     subtree.
+  @Test
+  fun degenerateHostFrame_withFullyNegativeChild_clampsToOnePixel() {
+    lateinit var host: SRMaskView
+    onMain {
+      host = SRMaskView(context)
+      val a = View(context)
+      host.addView(a)
+      a.layout(-50, -60, -10, -20) // entirely above/left of the host origin
+      host.layout(74, 3018, 74, 3018)
+    }
+
+    assertEquals("clamped width", 1, host.width)
+    assertEquals("clamped height", 1, host.height)
+    assertEquals("host left preserved", 74, host.left)
+    assertEquals("host top preserved", 3018, host.top)
+  }
+
+  // 4e. Nested-mask shape (AmpUnmask host inside an AmpMask host): the inner
+  //     host sits at a non-zero offset inside the outer host with its own
+  //     host-relative children; the outer host's union must enclose the
+  //     inner host's WIDENED frame. Mirrors the measured Mask-screen nesting
+  //     (outer at (0,0,0,0); inner fabric frame (32,2016,32,2016), inner
+  //     child (0,124,1017,175)).
+  @Test
+  fun nestedHosts_outerEnclosesInnerWidenedFrame() {
+    lateinit var outer: SRMaskView
+    lateinit var inner: SRMaskView
+    onMain {
+      outer = SRMaskView(context)
+      inner = SRMaskView(context)
+      val innerChild = View(context)
+      val outerText = View(context)
+      outer.addView(outerText)
+      outer.addView(inner)
+      inner.addView(innerChild)
+      outerText.layout(32, 2047, 1049, 2098) // host-relative to outer
+      innerChild.layout(0, 124, 1017, 175) // host-relative to inner
+      inner.layout(32, 2016, 32, 2016) // Fabric's degenerate offset frame
+      outer.layout(0, 0, 0, 0)
+    }
+
+    // Inner: origin + child extent = (32,2016,1049,2191), never inverted.
+    assertEquals("inner left", 32, inner.left)
+    assertEquals("inner top", 2016, inner.top)
+    assertEquals("inner width", 1017, inner.width)
+    assertEquals("inner height", 175, inner.height)
+    // Outer: encloses max(outerText.right, inner.right)=1049 and
+    // max(outerText.bottom, inner.bottom)=2191 from its (0,0) origin.
+    assertEquals("outer width", 1049, outer.width)
+    assertEquals("outer height", 2191, outer.height)
+    assertTrue("outer capture gate", outer.width > 0 && outer.height > 0)
+    assertTrue("inner capture gate", inner.width > 0 && inner.height > 0)
   }
 
   // 5. Dropping the host detaches each child's layout listener, so a child that is

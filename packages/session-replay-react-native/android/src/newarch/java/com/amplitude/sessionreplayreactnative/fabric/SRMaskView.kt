@@ -89,17 +89,25 @@ class SRMaskView(context: Context) : ReactViewGroup(context) {
     expandBoundsToChildrenUnion()
   }
 
-  // Widen this host's native frame to enclose its children WITHOUT moving it:
-  // the origin (left, top) must stay Fabric-assigned (a display:contents host
-  // is always placed at its parent's origin), because Fabric positions the
-  // children with GRANDPARENT-relative frames — the host sitting at (0,0) is
-  // exactly what makes those frames land at the right pixels. Only
-  // right/bottom grow, and child extents must NOT be offset by the host
-  // origin: child.right/bottom are already expressed in the same coordinate
-  // space as the host's own frame. The widened frame exists purely for the
-  // session-replay capture gate (width>0 && height>0); it inevitably overlaps
-  // unrelated siblings, which is why the host is pointer-events BOX_NONE (see
-  // init) and must never be a touch target itself.
+  // Widen this host's native frame to enclose its children WITHOUT moving it.
+  //
+  // Measured coordinate model (SDKRN-33, RN 0.77.2 Fabric, on-device):
+  // children are ALWAYS host-relative — a child renders at
+  // (host.left + child.left, host.top + child.top), standard Android. The
+  // host's Fabric-assigned degenerate frame is (X,Y,X,Y) where (X,Y) is the
+  // accumulated origin of any flattened views between the host and its
+  // mounted parent: (0,0) for top-level masks (where host-relative and
+  // parent-space coincide numerically), non-zero for e.g. an AmpUnmask nested
+  // inside an AmpMask through a flattened <View>, a mask inside a list row,
+  // or a mask whose child uses negative offsets. Therefore the enclosing
+  // extent in parent space is origin + max child extent. The origin must
+  // never move (children would shift on screen), so children at negative
+  // host-relative coordinates cannot be enclosed; the extents are clamped so
+  // the frame is never degenerate or inverted while children exist — the
+  // session-replay capture gate (width>0 && height>0) is the whole point of
+  // the widening. The widened frame can overlap unrelated siblings, which is
+  // why the host is pointer-events BOX_NONE (see init) and must never be a
+  // touch target itself.
   private fun expandBoundsToChildrenUnion() {
     if (expanding) return
     if (childCount == 0) return
@@ -112,8 +120,11 @@ class SRMaskView(context: Context) : ReactViewGroup(context) {
       if (c.bottom > maxChildBottom) maxChildBottom = c.bottom
     }
 
-    val newRight = maxChildRight
-    val newBottom = maxChildBottom
+    // Children are host-relative, so parent-space extent = origin + extent.
+    // Clamp to a 1px minimum so a child at fully negative coordinates can
+    // never produce a zero/inverted frame that the capture gate would drop.
+    val newRight = left + maxOf(maxChildRight, 1)
+    val newBottom = top + maxOf(maxChildBottom, 1)
 
     if (newRight != right || newBottom != bottom) {
       expanding = true
