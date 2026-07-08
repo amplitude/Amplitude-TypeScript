@@ -5,6 +5,8 @@
   <br />
 </p>
 
+# DUMMY
+
 # Amplitude-TypeScript
 
 This is Amplitude's latest version of the JavaScript SDK, written in TypeScript.
