@@ -3,6 +3,7 @@ package com.amplitude.sessionreplayreactnative.fabric
 import android.content.Context
 import android.view.View
 import com.amplitude.sessionreplayreactnative.SRMaskingRegistry
+import com.facebook.react.uimanager.PointerEvents
 import com.facebook.react.views.view.ReactViewGroup
 
 /**
@@ -28,7 +29,21 @@ class SRMaskView(context: Context) : ReactViewGroup(context) {
   init {
     clipChildren = false
     clipToPadding = false
+    // The widened frame (see expandBoundsToChildrenUnion) necessarily spans
+    // from the host's Fabric-assigned origin to the children's far corner, so
+    // it overlaps sibling views that have nothing to do with this mask. The
+    // host must therefore never participate in touch targeting itself:
+    // BOX_NONE makes RN's TouchTargetHelper skip the host (only its children
+    // can be targets) and lets misses fall through to views underneath.
+    // Children are unaffected. This view is never created from a JS
+    // pointerEvents prop, so nothing else writes this field.
+    setPointerEvents(PointerEvents.BOX_NONE)
   }
+
+  // Belt-and-braces with the init{} setter: TouchTargetHelper consults this
+  // accessor, and it must stay BOX_NONE even if some future code path (e.g.
+  // view recycling's resetPointerEvents) rewrites the backing field.
+  override fun getPointerEvents(): PointerEvents = PointerEvents.BOX_NONE
 
   // Children can be laid out after the host's own layout pass; re-widen then.
   private val childLayoutChangeListener =
@@ -75,12 +90,16 @@ class SRMaskView(context: Context) : ReactViewGroup(context) {
   }
 
   // Widen this host's native frame to enclose its children WITHOUT moving it:
-  // the origin (left, top) must stay Fabric-assigned, because children are
-  // positioned relative to the host — moving it would shift them on screen and
-  // break layout neutrality. Only right/bottom grow. Child coordinates are in
-  // host-space, so the parent-space extent is host origin + max child extent.
-  // (Children at negative host-space coords can't be enclosed without moving
-  // the host; normal RN layout never produces those.)
+  // the origin (left, top) must stay Fabric-assigned (a display:contents host
+  // is always placed at its parent's origin), because Fabric positions the
+  // children with GRANDPARENT-relative frames — the host sitting at (0,0) is
+  // exactly what makes those frames land at the right pixels. Only
+  // right/bottom grow, and child extents must NOT be offset by the host
+  // origin: child.right/bottom are already expressed in the same coordinate
+  // space as the host's own frame. The widened frame exists purely for the
+  // session-replay capture gate (width>0 && height>0); it inevitably overlaps
+  // unrelated siblings, which is why the host is pointer-events BOX_NONE (see
+  // init) and must never be a touch target itself.
   private fun expandBoundsToChildrenUnion() {
     if (expanding) return
     if (childCount == 0) return
@@ -93,8 +112,8 @@ class SRMaskView(context: Context) : ReactViewGroup(context) {
       if (c.bottom > maxChildBottom) maxChildBottom = c.bottom
     }
 
-    val newRight = left + maxChildRight
-    val newBottom = top + maxChildBottom
+    val newRight = maxChildRight
+    val newBottom = maxChildBottom
 
     if (newRight != right || newBottom != bottom) {
       expanding = true

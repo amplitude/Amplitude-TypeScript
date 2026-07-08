@@ -214,10 +214,11 @@ class SRMaskViewTest {
   }
 
   // 4c. Regression: Fabric lays the degenerate display:contents host out at a
-  //     NON-ZERO parent offset. The host must widen to the children's size WITHOUT
-  //     moving — children are host-relative, so moving the host shifts them in
-  //     absolute space (breaks layout neutrality) and mixing the host's parent-space
-  //     frame with the children's host-space frames also miscomputes the size.
+  //     NON-ZERO parent offset. The host must widen to enclose its children
+  //     WITHOUT moving: Fabric gives the children frames in the SAME coordinate
+  //     space as the host's own frame (grandparent-relative — a display:contents
+  //     node contributes no coordinate space of its own), so the widened extent
+  //     is simply the children's max right/bottom, not host origin + extent.
   @Test
   fun degenerateHostFrame_atNonZeroOffset_widensWithoutMoving() {
     lateinit var host: SRMaskView
@@ -227,14 +228,15 @@ class SRMaskViewTest {
       val b = View(context)
       host.addView(a)
       host.addView(b)
-      // Children laid out in the host's OWN (host-relative) coordinate space.
-      a.layout(0, 0, 100, 50)
-      b.layout(120, 60, 200, 140)
+      // Children laid out in the shared (grandparent-relative) coordinate
+      // space, beyond the host's offset — as Fabric emits them.
+      a.layout(300, 400, 400, 450)
+      b.layout(420, 460, 500, 540)
       // Fabric places the 0x0 display:contents host at a non-zero parent offset.
       host.layout(300, 400, 300, 400)
     }
 
-    // Size == children union (200x140), independent of the host's parent offset.
+    // Extent == children union max right/bottom (500, 540) → size 200x140.
     assertEquals("union width at offset", 200, host.width)
     assertEquals("union height at offset", 140, host.height)
     // Position preserved — the host was NOT moved (else children shift absolutely).
