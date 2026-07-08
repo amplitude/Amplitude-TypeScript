@@ -1,4 +1,5 @@
 import { BrowserClient, getDecodeURI, getGlobalScope } from '@amplitude/analytics-core';
+import { AMPLITUDE_EVENT_PROP_SELECTOR_ALGO_CONFIG_HASH } from '@amplitude/element-selector';
 import * as constants from '../constants';
 import { getCurrentPageViewId } from '../helpers';
 
@@ -19,6 +20,7 @@ export function fireViewportContentUpdated({
   exposureTracker,
   isPageEnd,
   lastScroll,
+  selectorAlgoConfigHash,
 }: {
   amplitude: BrowserClient;
   scrollTracker: ScrollTracker;
@@ -27,6 +29,7 @@ export function fireViewportContentUpdated({
   exposureTracker: ExposureTracker | undefined;
   isPageEnd: boolean;
   lastScroll: { maxX: undefined | number; maxY: undefined | number };
+  selectorAlgoConfigHash: string;
 }): void {
   const pageScrollMaxState = scrollTracker.getState();
   const globalScope = getGlobalScope();
@@ -46,6 +49,7 @@ export function fireViewportContentUpdated({
     [constants.AMPLITUDE_EVENT_PROP_VIEWPORT_HEIGHT]: viewportHeight,
     [constants.AMPLITUDE_EVENT_PROP_VIEWPORT_WIDTH]: viewportWidth,
     '[Amplitude] Element Exposed': Array.from(currentElementExposed),
+    [AMPLITUDE_EVENT_PROP_SELECTOR_ALGO_CONFIG_HASH]: selectorAlgoConfigHash,
   };
 
   const pageViewId = getCurrentPageViewId();
