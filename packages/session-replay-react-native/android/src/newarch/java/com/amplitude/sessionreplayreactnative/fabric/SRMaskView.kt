@@ -38,13 +38,16 @@ class SRMaskView(context: Context) : ReactViewGroup(context) {
     // Children are unaffected. This view is never created from a JS
     // pointerEvents prop, so nothing else writes this field.
     //
-    // Deliberately NO accessor override as belt-and-braces: the accessor's
-    // shape is not stable across RN versions (a Java getter through RN 0.78,
-    // a Kotlin `val pointerEvents` interface property from RN 0.79), so an
-    // override cannot compile against both. Instead the setter call here is
-    // re-asserted in onLayout below, which runs before any capture/touch can
-    // observe a recycled instance whose field was reset.
-    setPointerEvents(PointerEvents.BOX_NONE)
+    // CROSS-VERSION CONSTRAINT (do not "simplify" either way): ReactViewGroup
+    // is Java with getPointerEvents()/setPointerEvents() through RN 0.80 and
+    // a Kotlin `var pointerEvents` property from RN 0.81, so neither an
+    // accessor override (`override fun` vs `override var`) nor an explicit
+    // setPointerEvents(...) call compiles against both. Property-assignment
+    // syntax is the one shape that resolves on every version: Kotlin
+    // synthesizes the property from the Java accessor pair on <= 0.80 and
+    // binds the real property on 0.81+. Re-asserted in onLayout below so a
+    // recycling reset can never be observed by capture or touch.
+    pointerEvents = PointerEvents.BOX_NONE
   }
 
   // Children can be laid out after the host's own layout pass; re-widen then.
@@ -90,7 +93,7 @@ class SRMaskView(context: Context) : ReactViewGroup(context) {
     super.onLayout(changed, left, top, right, bottom)
     // Re-assert touch transparency in case a recycling path reset the field
     // (version-agnostic replacement for an accessor override; see init).
-    setPointerEvents(PointerEvents.BOX_NONE)
+    pointerEvents = PointerEvents.BOX_NONE
     expandBoundsToChildrenUnion()
   }
 
