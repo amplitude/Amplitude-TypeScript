@@ -15,6 +15,7 @@ import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
+import com.facebook.react.uimanager.PointerEvents
 import org.junit.runner.RunWith
 
 /**
@@ -440,5 +441,19 @@ class SRMaskViewTest {
 
     onMain { primitive.reset(view) }
     assertNull("reset must clear the SDK tag (return to inherit)", view.tag)
+  }
+
+  // 7. Touch transparency: the widened host frame necessarily overlaps
+  //    unrelated siblings, so the host itself must never be a touch target —
+  //    RN touch targeting must skip it (BOX_NONE) and only consider children.
+  @Test
+  fun host_pointerEvents_isBoxNone() {
+    lateinit var host: SRMaskView
+    onMain { host = SRMaskView(context) }
+    assertEquals(
+      "SRMaskView host must be BOX_NONE so its widened frame can't swallow input",
+      PointerEvents.BOX_NONE,
+      host.pointerEvents,
+    )
   }
 }

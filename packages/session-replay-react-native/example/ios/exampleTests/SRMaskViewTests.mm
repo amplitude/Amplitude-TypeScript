@@ -292,6 +292,43 @@
 #pragma clang diagnostic pop
 }
 
+#pragma mark Frame widening + touch transparency
+
+/// The host's real frame widens to enclose its children WITHOUT moving its
+/// origin (UIKit's accessibility traversal prunes zero-sized views together
+/// with their descendants — the a11y fix), and the widened host itself stays
+/// touch-transparent: only children can be hit, misses return nil.
+- (void)testHostFrameWidensToChildrenUnionAndStaysTouchTransparent
+{
+  Class maskViewClass = NSClassFromString(@"SRMaskView");
+  if (maskViewClass == Nil) {
+    XCTSkip(@"SRMaskView not available (new arch disabled)");
+    return;
+  }
+
+  RCTViewComponentView *maskView =
+      [[maskViewClass alloc] initWithFrame:CGRectMake(12, 346, 0, 0)];
+  RCTViewComponentView *childA =
+      [[RCTViewComponentView alloc] initWithFrame:CGRectMake(0, 0, 100, 50)];
+  RCTViewComponentView *childB =
+      [[RCTViewComponentView alloc] initWithFrame:CGRectMake(120, 60, 80, 80)];
+  [maskView mountChildComponentView:childA index:0];
+  [maskView mountChildComponentView:childB index:1];
+
+  // Origin pinned; size == children max extent (childB right 200, bottom 140).
+  XCTAssertEqual(maskView.frame.origin.x, 12, @"widening must not move the origin");
+  XCTAssertEqual(maskView.frame.origin.y, 346, @"widening must not move the origin");
+  XCTAssertEqual(maskView.frame.size.width, 200, @"width == max child extent");
+  XCTAssertEqual(maskView.frame.size.height, 140, @"height == max child extent");
+
+  // Touch transparency: a point inside the widened frame but outside every
+  // child must NOT hit the host; a point inside a child resolves to the child.
+  XCTAssertNil([maskView hitTest:CGPointMake(150, 20) withEvent:nil],
+               @"widened host must never be the touch target itself");
+  XCTAssertEqualObjects([maskView hitTest:CGPointMake(50, 25) withEvent:nil], childA,
+                        @"children inside the mask must stay tappable");
+}
+
 #pragma mark Default primitive mapping (Task 2.6)
 
 /// Returns a fresh instance of the pod's default masking primitive
