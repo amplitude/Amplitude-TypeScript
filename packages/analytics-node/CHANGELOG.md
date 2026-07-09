@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.5.63](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-node@1.5.62...@amplitude/analytics-node@1.5.63) (2026-07-09)
+
+
+### Bug Fixes
+
+* **analytics-node:** export NodeClient and NodeOptions from Types namespace ([#1759](https://github.com/amplitude/Amplitude-TypeScript/issues/1759)) ([820ef6f](https://github.com/amplitude/Amplitude-TypeScript/commit/820ef6fe1ce73a08e244ffaef86c3183c69c9be6))
+
+
+
+
+
 ## [1.5.62](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-node@1.5.61...@amplitude/analytics-node@1.5.62) (2026-06-30)
 
 **Note:** Version bump only for package @amplitude/analytics-node
