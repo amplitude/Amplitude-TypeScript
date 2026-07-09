@@ -37,13 +37,15 @@ class SRMaskView(context: Context) : ReactViewGroup(context) {
     // can be targets) and lets misses fall through to views underneath.
     // Children are unaffected. This view is never created from a JS
     // pointerEvents prop, so nothing else writes this field.
+    //
+    // Deliberately NO accessor override as belt-and-braces: the accessor's
+    // shape is not stable across RN versions (a Java getter through RN 0.78,
+    // a Kotlin `val pointerEvents` interface property from RN 0.79), so an
+    // override cannot compile against both. Instead the setter call here is
+    // re-asserted in onLayout below, which runs before any capture/touch can
+    // observe a recycled instance whose field was reset.
     setPointerEvents(PointerEvents.BOX_NONE)
   }
-
-  // Belt-and-braces with the init{} setter: TouchTargetHelper consults this
-  // accessor, and it must stay BOX_NONE even if some future code path (e.g.
-  // view recycling's resetPointerEvents) rewrites the backing field.
-  override fun getPointerEvents(): PointerEvents = PointerEvents.BOX_NONE
 
   // Children can be laid out after the host's own layout pass; re-widen then.
   private val childLayoutChangeListener =
@@ -86,6 +88,9 @@ class SRMaskView(context: Context) : ReactViewGroup(context) {
   // onLayout is the hook that runs right after, where we can re-widen it.
   override fun onLayout(changed: Boolean, left: Int, top: Int, right: Int, bottom: Int) {
     super.onLayout(changed, left, top, right, bottom)
+    // Re-assert touch transparency in case a recycling path reset the field
+    // (version-agnostic replacement for an accessor override; see init).
+    setPointerEvents(PointerEvents.BOX_NONE)
     expandBoundsToChildrenUnion()
   }
 
