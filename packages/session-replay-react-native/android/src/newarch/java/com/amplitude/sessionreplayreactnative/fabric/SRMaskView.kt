@@ -3,7 +3,6 @@ package com.amplitude.sessionreplayreactnative.fabric
 import android.content.Context
 import android.view.View
 import com.amplitude.sessionreplayreactnative.SRMaskingRegistry
-import com.facebook.react.uimanager.PointerEvents
 import com.facebook.react.views.view.ReactViewGroup
 
 /**
@@ -38,16 +37,14 @@ class SRMaskView(context: Context) : ReactViewGroup(context) {
     // Children are unaffected. This view is never created from a JS
     // pointerEvents prop, so nothing else writes this field.
     //
-    // CROSS-VERSION CONSTRAINT (do not "simplify" either way): ReactViewGroup
-    // is Java with getPointerEvents()/setPointerEvents() through RN 0.80 and
-    // a Kotlin `var pointerEvents` property from RN 0.81, so neither an
-    // accessor override (`override fun` vs `override var`) nor an explicit
-    // setPointerEvents(...) call compiles against both. Property-assignment
-    // syntax is the one shape that resolves on every version: Kotlin
-    // synthesizes the property from the Java accessor pair on <= 0.80 and
-    // binds the real property on 0.81+. Re-asserted in onLayout below so a
-    // recycling reset can never be observed by capture or touch.
-    pointerEvents = PointerEvents.BOX_NONE
+    // CROSS-VERSION CONSTRAINT (do not "simplify" to a Kotlin call/assignment
+    // or an accessor override): pointerEvents has three incompatible
+    // source-level shapes across RN versions and no single Kotlin syntax
+    // compiles against all of them — see SRMaskViewPointerEvents.java, which
+    // resolves the ever-present bytecode setter instead. Re-asserted in
+    // onLayout below so a recycling reset can never be observed by capture
+    // or touch.
+    SRMaskViewPointerEvents.forceBoxNone(this)
   }
 
   // Children can be laid out after the host's own layout pass; re-widen then.
@@ -93,7 +90,7 @@ class SRMaskView(context: Context) : ReactViewGroup(context) {
     super.onLayout(changed, left, top, right, bottom)
     // Re-assert touch transparency in case a recycling path reset the field
     // (version-agnostic replacement for an accessor override; see init).
-    pointerEvents = PointerEvents.BOX_NONE
+    SRMaskViewPointerEvents.forceBoxNone(this)
     expandBoundsToChildrenUnion()
   }
 
