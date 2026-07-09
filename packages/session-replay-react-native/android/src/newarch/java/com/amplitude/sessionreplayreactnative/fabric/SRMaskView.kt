@@ -3,7 +3,6 @@ package com.amplitude.sessionreplayreactnative.fabric
 import android.content.Context
 import android.view.View
 import com.amplitude.sessionreplayreactnative.SRMaskingRegistry
-import com.facebook.react.uimanager.PointerEvents
 import com.facebook.react.views.view.ReactViewGroup
 
 /**
@@ -37,13 +36,16 @@ class SRMaskView(context: Context) : ReactViewGroup(context) {
     // can be targets) and lets misses fall through to views underneath.
     // Children are unaffected. This view is never created from a JS
     // pointerEvents prop, so nothing else writes this field.
-    setPointerEvents(PointerEvents.BOX_NONE)
+    //
+    // CROSS-VERSION CONSTRAINT (do not "simplify" to a Kotlin call/assignment
+    // or an accessor override): pointerEvents has three incompatible
+    // source-level shapes across RN versions and no single Kotlin syntax
+    // compiles against all of them — see SRMaskViewPointerEvents.java, which
+    // resolves the ever-present bytecode setter instead. Re-asserted in
+    // onLayout below so a recycling reset can never be observed by capture
+    // or touch.
+    SRMaskViewPointerEvents.forceBoxNone(this)
   }
-
-  // Belt-and-braces with the init{} setter: TouchTargetHelper consults this
-  // accessor, and it must stay BOX_NONE even if some future code path (e.g.
-  // view recycling's resetPointerEvents) rewrites the backing field.
-  override fun getPointerEvents(): PointerEvents = PointerEvents.BOX_NONE
 
   // Children can be laid out after the host's own layout pass; re-widen then.
   private val childLayoutChangeListener =
@@ -86,6 +88,9 @@ class SRMaskView(context: Context) : ReactViewGroup(context) {
   // onLayout is the hook that runs right after, where we can re-widen it.
   override fun onLayout(changed: Boolean, left: Int, top: Int, right: Int, bottom: Int) {
     super.onLayout(changed, left, top, right, bottom)
+    // Re-assert touch transparency in case a recycling path reset the field
+    // (version-agnostic replacement for an accessor override; see init).
+    SRMaskViewPointerEvents.forceBoxNone(this)
     expandBoundsToChildrenUnion()
   }
 
