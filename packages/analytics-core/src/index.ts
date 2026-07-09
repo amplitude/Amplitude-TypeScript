@@ -42,7 +42,14 @@ export {
   MIN_GZIP_UPLOAD_BODY_SIZE_BYTES,
 } from './transports/gzip';
 
-export { RemoteConfigClient, IRemoteConfigClient, RemoteConfig, Source } from './remote-config/remote-config';
+export {
+  RemoteConfigClient,
+  IRemoteConfigClient,
+  RemoteConfig,
+  Source,
+  RemoteConfigFetchRequest,
+  RemoteConfigCustomFetch,
+} from './remote-config/remote-config';
 
 export { LogLevel } from './types/loglevel';
 export { AMPLITUDE_PREFIX, STORAGE_PREFIX } from './types/constants';
@@ -103,7 +110,7 @@ export { Status } from './types/status';
 
 export { NetworkEventCallback, networkObserver } from './observers/network';
 export { NetworkRequestEvent, IRequestWrapper, JsonObject, JsonValue, JsonArray } from './network-request-event';
-export { NetworkTrackingOptions, NetworkCaptureRule } from './types/network-tracking';
+export { NetworkTrackingOptions, NetworkCaptureRule, BodyCaptureRule } from './types/network-tracking';
 export { SAFE_HEADERS, FORBIDDEN_HEADERS } from './types/constants';
 
 export { PageUrlEnrichmentOptions } from './types/page-url-enrichment';
@@ -172,4 +179,4 @@ export { ExcludeInternalReferrersOptions, EXCLUDE_INTERNAL_REFERRERS_CONDITIONS 
 
 export { VideoObserver, State as VideoState, type VideoObserverParams } from './observers/video';
 export { EmbeddedVideoPlayer, type Vendor as VideoVendor } from './video-analytics/types';
-export { isChromeExtension } from './utils/environment';
+export { isChromeExtension, isReactNative } from './utils/environment';

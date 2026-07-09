@@ -28,6 +28,7 @@ import {
   SEND_TIMEOUT_MS,
 } from './constants';
 import { gzipJson } from './utils/gzip';
+import { SessionReplaySendEventsHandler } from './config/types';
 
 interface WorkerCompleteMessage {
   type: 'complete';
@@ -47,7 +48,24 @@ interface WorkerPayloadTooLargeMessage {
   id: string;
   isWaf: boolean;
 }
-type WorkerMessage = WorkerCompleteMessage | WorkerLogMessage | WorkerPayloadTooLargeMessage;
+// Worker asks the main thread to run the custom transport for one network attempt (the
+// callback can't cross postMessage, so it lives on the main thread). Replied to with a
+// 'fetch-response' message posted back into the worker.
+interface WorkerFetchRequestMessage {
+  type: 'fetch-request';
+  requestId: string;
+  url: string;
+  method: 'POST';
+  headers: Record<string, string>;
+  // string | Uint8Array (not BodyInit) so it stays structured-cloneable across postMessage.
+  body: string | Uint8Array;
+  keepalive: boolean;
+}
+type WorkerMessage =
+  | WorkerCompleteMessage
+  | WorkerLogMessage
+  | WorkerPayloadTooLargeMessage
+  | WorkerFetchRequestMessage;
 
 export type PayloadBatcher = ({ version, events }: { version: number; events: string[] }) => {
   version: number;
@@ -62,6 +80,34 @@ const MAX_KILLED_SESSIONS = 256;
 // In normal operation each entry is removed when the worker's late message arrives; this
 // cap only guards the pathological case of a wedged worker that never replies at all.
 const MAX_TIMED_OUT_WORKER_REQUESTS = 256;
+
+// Settles with `promise`, but rejects early with an AbortError when `signal` fires. Used to apply
+// the send timeout to a custom transport whose own promise can't be cancelled: a hung transport
+// then surfaces as a retryable timeout (matching the built-in fetch and worker delegation paths)
+// instead of blocking the serial flush loop. The transport's promise keeps running; we just stop
+// awaiting it. `signal` is always supplied with the send-timeout controller's signal.
+function abortable<T>(promise: Promise<T>, signal: AbortSignal): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const onAbort = () => {
+      // Match how browsers reject an aborted fetch (DOMException 'AbortError'); sendOnMainThread's
+      // catch keys off the name to route it through the retry budget rather than failing fatally.
+      const err = new Error('Custom session replay transport aborted by send timeout');
+      err.name = 'AbortError';
+      reject(err);
+    };
+    signal.addEventListener('abort', onAbort, { once: true });
+    promise.then(
+      (value) => {
+        signal.removeEventListener('abort', onAbort);
+        resolve(value);
+      },
+      (err) => {
+        signal.removeEventListener('abort', onAbort);
+        reject(err);
+      },
+    );
+  });
+}
 
 export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrackDestination {
   loggerProvider: ILogger;
@@ -108,6 +154,10 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
   // transition-only gating — so a sustained throttle scenario doesn't spam logs every cycle.
   private mergeLogFiredThisPause = false;
   private killedSessions = new Set<string | number>();
+  // Optional customer-supplied transport. When set, it replaces the internal fetch for every
+  // event-upload attempt; retry/response handling stays where it is, so the callback sits
+  // below retry and is invoked once per attempt.
+  private handleSendEvents?: SessionReplaySendEventsHandler;
 
   constructor({
     trackServerUrl,
@@ -116,6 +166,7 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
     workerScript,
     enableTransportCompression,
     sendTimeoutMs,
+    handleSendEvents,
   }: {
     trackServerUrl?: string;
     loggerProvider: ILogger;
@@ -123,12 +174,14 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
     workerScript?: string;
     enableTransportCompression?: boolean;
     sendTimeoutMs?: number;
+    handleSendEvents?: SessionReplaySendEventsHandler;
   }) {
     this.loggerProvider = loggerProvider;
     this.payloadBatcher = payloadBatcher ? payloadBatcher : (payload) => payload;
     this.trackServerUrl = trackServerUrl;
     this.enableTransportCompression = enableTransportCompression ?? true;
     this.sendTimeoutMs = sendTimeoutMs ?? SEND_TIMEOUT_MS;
+    this.handleSendEvents = handleSendEvents;
 
     if (workerScript) {
       try {
@@ -203,6 +256,15 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
                 this.completeRequest({ context: timedOut });
               }
             }
+          } else if (msg.type === 'fetch-request') {
+            // Worker is delegating one network attempt to the custom transport (which lives on
+            // the main thread). Run it and post the result back into the worker's retry loop.
+            // Guard the fire-and-forget call: if posting the result back fails (e.g. the worker
+            // was terminated mid-flight), surface it to the logger instead of leaving an
+            // unhandled rejection.
+            void this.handleDelegatedFetch(worker, msg).catch((e) => {
+              loggerProvider.warn('Failed to handle delegated session replay fetch:', e);
+            });
           }
         };
         this.worker = worker;
@@ -283,6 +345,40 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
       );
     }
     if (trimmedEvents.length === 0) {
+      return;
+    }
+    // Custom-transport page-exit path: navigator.sendBeacon cannot carry custom headers, so a
+    // JWT customer's exit batch would go out unauthenticated and be rejected by their proxy.
+    // Instead, route it through the callback with keepalive (which survives unload AND carries
+    // headers). Mirrors the main-send request shape: Authorization header + device_id/session_id/
+    // type params (api_key is NOT placed in the URL, unlike the legacy beacon path below).
+    if (this.handleSendEvents) {
+      const exitParams = new URLSearchParams({
+        device_id: deviceId,
+        session_id: String(sessionId),
+        type: 'replay',
+      });
+      const exitUrl = `${getServerUrl(serverZone, this.trackServerUrl)}?${exitParams.toString()}`;
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        Accept: '*/*',
+        Authorization: `Bearer ${apiKey}`,
+      };
+      this.loggerProvider.debug(
+        `Routing session replay exit batch (${trimmedEvents.length} events) through custom transport for session id ${sessionId}.`,
+      );
+      try {
+        // Fire-and-forget: we cannot await during unload. The request is well under 64 KB
+        // (trimmed above) and keepalive: true is requested so it survives page teardown.
+        void this.handleSendEvents({ url: exitUrl, method: 'POST', headers, body: payload, keepalive: true }).catch(
+          (e) => {
+            // best effort on exit, but still surface the failure so it's diagnosable in logs.
+            this.loggerProvider.warn('Custom transport failed to send session replay exit batch:', e);
+          },
+        );
+      } catch (e) {
+        this.loggerProvider.warn('Custom transport threw while sending session replay exit batch:', e);
+      }
       return;
     }
     const urlParams = new URLSearchParams({
@@ -572,6 +668,10 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
         id,
         payload,
         useRetry,
+        // Tell the worker to delegate each network attempt back to the main thread, where the
+        // custom transport callback lives (functions can't cross postMessage). Absent/false
+        // keeps the worker's own internal fetch — the unchanged path for existing integrations.
+        useCustomTransport: !!this.handleSendEvents,
         context: {
           apiKey: context.apiKey,
           deviceId: context.deviceId,
@@ -601,6 +701,58 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
         this.timedOutWorkerRequests.delete(oldest);
         break;
       }
+    }
+  }
+
+  // Runs the custom transport on the main thread for a single attempt the worker delegated,
+  // then posts the result back into the worker's retry loop as a 'fetch-response'. We read only
+  // what the worker's status handling needs: the skip header on a 2xx and the body text on a
+  // 413 (for WAF detection). A thrown/rejected transport is reported as an error so the worker
+  // surfaces it the same way a thrown fetch would (no retry) — matching the main-thread path.
+  private async handleDelegatedFetch(worker: Worker, msg: WorkerFetchRequestMessage): Promise<void> {
+    const { requestId, url, method, headers, body, keepalive } = msg;
+    try {
+      // In practice this.handleSendEvents is always set here: the worker only emits
+      // 'fetch-request' when useCustomTransport (= !!this.handleSendEvents) was true. The
+      // built-in fetch is a defensive fallback for the impossible case so we never accidentally
+      // drop a delegated send; it is not a supported "run without a transport" path.
+      let res: Response;
+      if (this.handleSendEvents) {
+        res = await this.handleSendEvents({ url, method, headers, body, keepalive });
+      } else {
+        // Defensive only: the worker emits 'fetch-request' solely when useCustomTransport is set,
+        // so this branch shouldn't be reachable. Warn so a regression that delegates without a
+        // transport is diagnosable rather than silently routing to the built-in fetch.
+        this.loggerProvider.warn(
+          'Delegated session replay fetch received without a custom transport configured; falling back to built-in fetch.',
+        );
+        res = await fetch(url, { method, headers, body, keepalive });
+      }
+      const status = res.status;
+      let skipHeader: string | null = null;
+      let responseBody = '';
+      if (status >= 200 && status < 300) {
+        skipHeader = res.headers?.get?.(EVENT_SKIPPED_HEADER) ?? null;
+      }
+      if (status === 413) {
+        try {
+          responseBody = await res.text();
+        } catch {
+          // best effort
+        }
+      }
+      this.loggerProvider.debug(`Delegated session replay fetch (request ${requestId}) returned status ${status}.`);
+      worker.postMessage({ type: 'fetch-response', requestId, status, skipHeader, body: responseBody });
+    } catch (e) {
+      this.loggerProvider.debug(`Delegated session replay fetch (request ${requestId}) failed:`, e);
+      worker.postMessage({
+        type: 'fetch-response',
+        requestId,
+        status: 0,
+        skipHeader: null,
+        body: String(e),
+        error: true,
+      });
     }
   }
 
@@ -638,23 +790,26 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
       // SEND_TIMEOUT_MS. The abort surfaces as an AbortError in the catch below, where it's
       // routed as a retryable network failure when useRetry is true.
       const controller = new AbortController();
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        Accept: '*/*',
+        Authorization: `Bearer ${apiKey}`,
+        'X-Client-Version': version,
+        'X-Client-Library': sessionReplayLibrary,
+        'X-Client-Url': url.substring(0, MAX_URL_LENGTH), // limit url length to 1000 characters to avoid ELB 400 error
+        'X-Client-Sample-Rate': `${sampleRate}`,
+        'X-Sampling-Hash-Alg': 'xxhash32',
+        ...(gzipped ? { 'Content-Encoding': 'gzip' } : {}),
+      };
+      const body: string | Uint8Array = gzipped ?? payloadJson;
+      // keepalive lets the request survive page navigation, preventing 499 (client-closed) errors.
+      // Must stay under the browser's 64 KB keepalive budget; large payloads skip it.
+      const keepalive = payloadSize <= MAX_KEEPALIVE_BYTES;
       const options: RequestInit = {
-        headers: {
-          'Content-Type': 'application/json',
-          Accept: '*/*',
-          Authorization: `Bearer ${apiKey}`,
-          'X-Client-Version': version,
-          'X-Client-Library': sessionReplayLibrary,
-          'X-Client-Url': url.substring(0, MAX_URL_LENGTH), // limit url length to 1000 characters to avoid ELB 400 error
-          'X-Client-Sample-Rate': `${sampleRate}`,
-          'X-Sampling-Hash-Alg': 'xxhash32',
-          ...(gzipped ? { 'Content-Encoding': 'gzip' } : {}),
-        },
-        body: (gzipped ?? payloadJson) as BodyInit,
+        headers,
+        body,
         method: 'POST',
-        // keepalive lets the request survive page navigation, preventing 499 (client-closed) errors.
-        // Must stay under the browser's 64 KB keepalive budget; large payloads skip it.
-        keepalive: payloadSize <= MAX_KEEPALIVE_BYTES,
+        keepalive,
         signal: controller.signal,
       };
 
@@ -678,7 +833,19 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
           : undefined;
       let res: Response;
       try {
-        res = await fetch(serverUrl, options);
+        // When a custom transport is configured, hand it the fully-formed request and let it own
+        // the network call (e.g. to attach a JWT and route through a proxy). Otherwise use the
+        // built-in fetch. Retry/response handling below is identical for both paths. The built-in
+        // fetch cancels directly on controller.signal; the custom callback can't be cancelled, so
+        // we race it against the abort — a hung/never-settling transport then rejects with an
+        // AbortError (retryable, like the worker delegation path) instead of blocking the serial
+        // flush loop forever. The callback's own promise keeps running; we just stop awaiting it.
+        res = this.handleSendEvents
+          ? await abortable(
+              this.handleSendEvents({ url: serverUrl, method: 'POST', headers, body, keepalive }),
+              controller.signal,
+            )
+          : await fetch(serverUrl, options);
       } finally {
         // Clear on success and on error alike so a settled request never leaves an armed
         // timer that would abort a later reused controller or fire a stray callback.

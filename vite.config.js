@@ -14,14 +14,14 @@ const ignorePkg = (pkgName) => {
     pkgName === 'analytics-node-test';
 }
 
-function htmlEntriesPlugin(pattern = '**/*.html', { cwd }) {
+function htmlEntriesPlugin(pattern = '**/*.html', { cwd, ignore = [] }) {
   return {
     name: 'vite-html-entries',
     config: () => ({
       build: {
         rollupOptions: {
           input: Object.fromEntries(
-            require('fast-glob').sync(pattern, { cwd }).map(f => [
+            require('fast-glob').sync(pattern, { cwd, ignore }).map(f => [
               f.replace(/\.html$/, ''),              // key without ".html"
               require('path').join(cwd, f)           // absolute file path
             ])
@@ -73,7 +73,7 @@ function fileListingPlugin() {
           const files = await glob('**/*.html', {
             cwd: testServerDir,
             absolute: false,
-            ignore: ['**/dist/**']
+            ignore: ['**/dist/**', '**/trc-e2e/**']
           });
           
           const fileList = files.map(file => ({
@@ -126,7 +126,8 @@ export default defineConfig({
     alias: amplitudeAliases
   },
   server: {
-    host: process.env.SSH ? 'local.website.com' : undefined,
+    // Listen on all interfaces so simulators/emulators/devices can reach the mock API.
+    host: process.env.SSH ? 'local.website.com' : true,
     https: process.env.SSH ? {
       key: fs.readFileSync(path.resolve(process.env.HOME, 'certs/local-website/key.pem')),
       cert: fs.readFileSync(path.resolve(process.env.HOME, 'certs/local-website/cert.pem')),
@@ -148,7 +149,9 @@ export default defineConfig({
     host: true,
   },
   plugins: [
-    htmlEntriesPlugin('**/*.html', { cwd: path.resolve(__dirname, 'test-server') }),
+    // trc-e2e is a standalone React SPA with its own dedicated vite config (see `dev:trc`).
+    // It references /main.jsx and must not be swept into the shared multi-page build.
+    htmlEntriesPlugin('**/*.html', { cwd: testServerDir, ignore: ['**/trc-e2e/**'] }),
     gzipServePlugin(),
     fileListingPlugin(),
     spaRoutingPlugin(),

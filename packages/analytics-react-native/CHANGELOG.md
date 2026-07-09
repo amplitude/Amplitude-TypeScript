@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.6.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-react-native@1.6.0...@amplitude/analytics-react-native@1.6.1) (2026-06-30)
+
+**Note:** Version bump only for package @amplitude/analytics-react-native
+
+
+
+
+
 # [1.6.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-react-native@1.5.57...@amplitude/analytics-react-native@1.6.0) (2026-06-25)
 
 

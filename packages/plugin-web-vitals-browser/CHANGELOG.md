@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.1.37](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-web-vitals-browser@1.1.36...@amplitude/plugin-web-vitals-browser@1.1.37) (2026-06-30)
+
+**Note:** Version bump only for package @amplitude/plugin-web-vitals-browser
+
+
+
+
+
 ## [1.1.36](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-web-vitals-browser@1.1.35...@amplitude/plugin-web-vitals-browser@1.1.36) (2026-06-25)
 
 **Note:** Version bump only for package @amplitude/plugin-web-vitals-browser
