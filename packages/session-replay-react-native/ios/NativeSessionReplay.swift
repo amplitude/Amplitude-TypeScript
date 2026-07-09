@@ -16,7 +16,7 @@ class NativeSessionReplay: NSObject, RCTBridgeModule {
     }
     
     @objc(setup:resolve:reject:)
-    func setup(_ config: NSDictionary, resolve: RCTPromiseResolveBlock, reject: RCTPromiseRejectBlock) -> Void {
+    func setup(_ config: NSDictionary, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) -> Void {
         guard let apiKey = config["apiKey"] as? String,
               let sessionId = config["sessionId"] as? NSNumber,
               let serverZone = config["serverZone"] as? String,
@@ -62,10 +62,25 @@ class NativeSessionReplay: NSObject, RCTBridgeModule {
             enableRemoteConfig: enableRemoteConfig
         )
         
-        if (autoStart) {
-            sessionReplay.start()
+        // Register the primitive, start capture, and resolve in ONE main-thread
+        // block: the registry is main-thread-only (setup runs on the RN
+        // native-modules queue), and registration must precede start() on the
+        // capture (main) thread so an early capture frame can't snapshot
+        // SRMaskView children before their masking intents apply.
+        // Re-registering on repeated setup() calls is harmless.
+        DispatchQueue.main.async {
+            // Invalidated (e.g. RN reload) before deferred setup ran — settle
+            // the promise so JS init() never hangs.
+            guard let sessionReplay = self.sessionReplay else {
+                reject("SETUP_ERROR", "Session Replay module was invalidated before setup completed", nil)
+                return
+            }
+            SRMaskingRegistry.primitive = SRDefaultMaskingPrimitive()
+            if (autoStart) {
+                sessionReplay.start()
+            }
+            resolve(nil)
         }
-        resolve(nil)
     }
     
     @objc(setSessionId:resolve:reject:)
@@ -127,10 +142,16 @@ class NativeSessionReplay: NSObject, RCTBridgeModule {
     
     @objc(invalidate)
     func invalidate() {
-        print("invalidate")
-        // could be nil here
-        sessionReplay?.stop()
-        sessionReplay = nil
+        // Serialize teardown with the deferred setup() block on the main queue —
+        // a mid-setup invalidate can no longer interleave; stop always runs either
+        // before the block (guard rejects) or after start() (normal teardown).
+        // Strong self capture is intentional: keep the module alive until teardown runs.
+        DispatchQueue.main.async {
+            print("invalidate")
+            // could be nil here
+            self.sessionReplay?.stop()
+            self.sessionReplay = nil
+        }
     }
 }
 

@@ -9,6 +9,7 @@ import com.amplitude.core.ServerZone
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReactMethod
 import com.facebook.react.bridge.Promise
+import com.facebook.react.bridge.UiThreadUtil
 import com.facebook.react.bridge.WritableMap
 import com.facebook.react.bridge.WritableNativeMap
 import com.facebook.react.bridge.ReadableMap
@@ -18,6 +19,7 @@ import com.facebook.react.bridge.ReadableMap
 class SessionReplayReactNativeModule(private val reactContext: ReactApplicationContext) :
   SessionReplayReactNativeSpec(reactContext) {
   private lateinit var sessionReplay: SessionReplay
+  @Volatile private var invalidated = false
 
   override fun getName(): String {
     return NAME
@@ -78,11 +80,32 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
           "EU" -> ServerZone.EU
           else -> ServerZone.US
         },
-        autoStart = autoStart,
+        // Deferred to the UI-thread block below so primitive registration can
+        // be ordered before start(); behaviorally identical to SDK autoStart.
+        autoStart = false,
         privacyConfig = PrivacyConfig(maskLevel = maskLevel),
       )
-      
-      promise.resolve(null)
+
+      // Register the primitive, start capture, and resolve in ONE UI-thread
+      // block: the registry is UI-thread-only, and registration must precede
+      // start() on the capture (UI) thread so an early capture frame can't
+      // snapshot SRMaskView children before their masking intents apply.
+      // Re-registering on repeated setup() calls is harmless.
+      UiThreadUtil.runOnUiThread {
+        if (invalidated) {
+          promise.reject("SETUP_ERROR", "Session Replay module was invalidated before setup completed", null)
+          return@runOnUiThread
+        }
+        try {
+          SRMaskingRegistry.setPrimitive(SRDefaultMaskingPrimitive())
+          if (autoStart) {
+            sessionReplay.start()
+          }
+          promise.resolve(null)
+        } catch (e: Exception) {
+          promise.reject("SETUP_ERROR", e.message, e)
+        }
+      }
     } catch (e: Exception) {
       promise.reject("SETUP_ERROR", e.message, e)
     }
@@ -177,8 +200,15 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
   }
 
   override fun invalidate() {
-    if (::sessionReplay.isInitialized) {
-      sessionReplay.shutdown()
+    invalidated = true
+    // Serialize teardown with the deferred setup() block: both run on the UI
+    // queue, so a mid-setup invalidate can no longer interleave — shutdown
+    // always runs either before the block (flag rejects it) or after start()
+    // (normal stop).
+    UiThreadUtil.runOnUiThread {
+      if (::sessionReplay.isInitialized) {
+        sessionReplay.shutdown()
+      }
     }
   }
 

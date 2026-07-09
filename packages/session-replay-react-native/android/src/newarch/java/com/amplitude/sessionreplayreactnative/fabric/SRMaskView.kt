@@ -3,6 +3,7 @@ package com.amplitude.sessionreplayreactnative.fabric
 import android.content.Context
 import android.view.View
 import com.amplitude.sessionreplayreactnative.SRMaskingRegistry
+import com.facebook.react.uimanager.PointerEvents
 import com.facebook.react.views.view.ReactViewGroup
 
 /**
@@ -28,7 +29,21 @@ class SRMaskView(context: Context) : ReactViewGroup(context) {
   init {
     clipChildren = false
     clipToPadding = false
+    // The widened frame (see expandBoundsToChildrenUnion) necessarily spans
+    // from the host's Fabric-assigned origin to the children's far corner, so
+    // it overlaps sibling views that have nothing to do with this mask. The
+    // host must therefore never participate in touch targeting itself:
+    // BOX_NONE makes RN's TouchTargetHelper skip the host (only its children
+    // can be targets) and lets misses fall through to views underneath.
+    // Children are unaffected. This view is never created from a JS
+    // pointerEvents prop, so nothing else writes this field.
+    setPointerEvents(PointerEvents.BOX_NONE)
   }
+
+  // Belt-and-braces with the init{} setter: TouchTargetHelper consults this
+  // accessor, and it must stay BOX_NONE even if some future code path (e.g.
+  // view recycling's resetPointerEvents) rewrites the backing field.
+  override fun getPointerEvents(): PointerEvents = PointerEvents.BOX_NONE
 
   // Children can be laid out after the host's own layout pass; re-widen then.
   private val childLayoutChangeListener =
@@ -74,13 +89,25 @@ class SRMaskView(context: Context) : ReactViewGroup(context) {
     expandBoundsToChildrenUnion()
   }
 
-  // Widen this host's native frame to enclose its children WITHOUT moving it:
-  // the origin (left, top) must stay Fabric-assigned, because children are
-  // positioned relative to the host — moving it would shift them on screen and
-  // break layout neutrality. Only right/bottom grow. Child coordinates are in
-  // host-space, so the parent-space extent is host origin + max child extent.
-  // (Children at negative host-space coords can't be enclosed without moving
-  // the host; normal RN layout never produces those.)
+  // Widen this host's native frame to enclose its children WITHOUT moving it.
+  //
+  // Measured coordinate model (SDKRN-33, RN 0.77.2 Fabric, on-device):
+  // children are ALWAYS host-relative — a child renders at
+  // (host.left + child.left, host.top + child.top), standard Android. The
+  // host's Fabric-assigned degenerate frame is (X,Y,X,Y) where (X,Y) is the
+  // accumulated origin of any flattened views between the host and its
+  // mounted parent: (0,0) for top-level masks (where host-relative and
+  // parent-space coincide numerically), non-zero for e.g. an AmpUnmask nested
+  // inside an AmpMask through a flattened <View>, a mask inside a list row,
+  // or a mask whose child uses negative offsets. Therefore the enclosing
+  // extent in parent space is origin + max child extent. The origin must
+  // never move (children would shift on screen), so children at negative
+  // host-relative coordinates cannot be enclosed; the extents are clamped so
+  // the frame is never degenerate or inverted while children exist — the
+  // session-replay capture gate (width>0 && height>0) is the whole point of
+  // the widening. The widened frame can overlap unrelated siblings, which is
+  // why the host is pointer-events BOX_NONE (see init) and must never be a
+  // touch target itself.
   private fun expandBoundsToChildrenUnion() {
     if (expanding) return
     if (childCount == 0) return
@@ -93,8 +120,11 @@ class SRMaskView(context: Context) : ReactViewGroup(context) {
       if (c.bottom > maxChildBottom) maxChildBottom = c.bottom
     }
 
-    val newRight = left + maxChildRight
-    val newBottom = top + maxChildBottom
+    // Children are host-relative, so parent-space extent = origin + extent.
+    // Clamp to a 1px minimum so a child at fully negative coordinates can
+    // never produce a zero/inverted frame that the capture gate would drop.
+    val newRight = left + maxOf(maxChildRight, 1)
+    val newBottom = top + maxOf(maxChildBottom, 1)
 
     if (newRight != right || newBottom != bottom) {
       expanding = true
