@@ -51,7 +51,9 @@ export class AmplitudeCore implements CoreClient, PluginHost {
     this.config = config;
     this.timeline.reset(this);
     this.timeline.loggerProvider = this.config.loggerProvider;
-    await this.runQueuedFunctions('q');
+    do {
+      await this.runQueuedFunctions('q');
+    } while (this.q.length > 0);
     this.isReady = true;
   }
 
@@ -69,6 +71,7 @@ export class AmplitudeCore implements CoreClient, PluginHost {
         await val;
       }
     }
+
     // Rerun queued functions if the queue has accrued more while awaiting promises
     if (this[queueName].length) {
       await this.runQueuedFunctions(queueName);

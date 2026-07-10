@@ -253,6 +253,36 @@ describe('core-client', () => {
       expect(_setOptOut).toHaveBeenCalledWith(true);
       expect(client.config.optOut).toBe(true);
     });
+
+    test('should flush queue items added after runQueuedFunctions returns before isReady', async () => {
+      // Covers the do-while in _init: work can land on q after runQueuedFunctions
+      // returns (e.g. a microtask) but before isReady is set.
+      const client = new AmplitudeCore();
+      const setup = jest.fn().mockResolvedValue(undefined);
+      const plugin: EnrichmentPlugin = {
+        name: 'late-plugin',
+        type: 'enrichment',
+        setup,
+        execute: jest.fn(),
+      };
+
+      let flushCount = 0;
+      const originalRunQueuedFunctions = client.runQueuedFunctions.bind(client);
+      jest.spyOn(client, 'runQueuedFunctions').mockImplementation(async (queueName) => {
+        await originalRunQueuedFunctions(queueName);
+        flushCount += 1;
+        if (flushCount === 1 && queueName === 'q') {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+          (client as any).q.push(client._addPlugin.bind(client, plugin));
+        }
+      });
+
+      await (client as any)._init(useDefaultConfig());
+
+      expect(flushCount).toBeGreaterThanOrEqual(2);
+      expect(setup).toHaveBeenCalled();
+      expect(client.plugin('late-plugin')).toBeDefined();
+    });
   });
 
   describe('dispatchWithCallback', () => {

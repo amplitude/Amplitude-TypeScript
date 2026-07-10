@@ -1,6 +1,6 @@
 import { AmplitudeNode } from '../src/node-client';
 import * as core from '@amplitude/analytics-core';
-import { Status } from '@amplitude/analytics-core';
+import { EnrichmentPlugin, Event, Status } from '@amplitude/analytics-core';
 import * as Config from '../src/config';
 
 describe('node-client', () => {
@@ -30,6 +30,54 @@ describe('node-client', () => {
       await Promise.all([client.init(API_KEY), client.init(API_KEY), client.init(API_KEY)]);
       // NOTE: `useNodeConfig` is only called once despite multiple init calls
       expect(useNodeConfig).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('add', () => {
+    test('should register enrichment plugin added immediately after init without awaiting', async () => {
+      const send = jest.fn().mockResolvedValue({
+        status: Status.Success,
+        statusCode: 200,
+        body: {
+          eventsIngested: 1,
+          payloadSizeBytes: 1,
+          serverUploadTime: 1,
+        },
+      });
+      const client = new AmplitudeNode();
+      const setup = jest.fn().mockResolvedValue(undefined);
+      const execute = jest.fn().mockImplementation((event: Event) =>
+        Promise.resolve({
+          ...event,
+          event_properties: {
+            ...event.event_properties,
+            source: 'my-app',
+          },
+        }),
+      );
+      const plugin: EnrichmentPlugin = {
+        name: 'my-plugin',
+        type: 'enrichment',
+        setup,
+        execute,
+      };
+
+      // Mirrors: init('API_KEY'); add(new MyPlugin()); track('test event');
+      // add() runs in the same sync turn as init()'s return, after q is flushed but
+      // before isReady is set — so the plugin is queued and then silently dropped.
+      const initPromise = client.init(API_KEY, {
+        flushIntervalMillis: 1000,
+        transportProvider: {
+          send,
+        },
+      }).promise;
+      Promise.resolve().then(() => client.add(plugin));
+      await client.track('test event').promise;
+      await initPromise;
+
+      expect(setup).toHaveBeenCalled();
+      expect(execute).toHaveBeenCalled();
+      expect(send).toHaveBeenCalledTimes(1);
     });
   });
 
