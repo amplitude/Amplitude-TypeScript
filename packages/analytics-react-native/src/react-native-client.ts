@@ -23,6 +23,7 @@ import {
   SpecialEventType,
   AnalyticsClient,
   OfflineDisabled,
+  ReactNativeAutocaptureOptions,
 } from '@amplitude/analytics-core';
 import { CampaignTracker } from './campaign/campaign-tracker';
 import { Context } from './plugins/context';
@@ -30,6 +31,7 @@ import { networkConnectivityCheckerPlugin } from './plugins/network-connectivity
 import { useReactNativeConfig, createCookieStorage } from './config';
 import { parseOldCookies } from './cookie-migration';
 import { isNative } from './utils/platform';
+import { ReactNativeConfigAutocaptureBeta } from '@amplitude/analytics-core';
 
 const START_SESSION_EVENT = 'session_start';
 const END_SESSION_EVENT = 'session_end';
@@ -42,6 +44,7 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
   // @ts-ignore
   config: ReactNativeConfig;
   userProperties: { [key: string]: any } | undefined;
+  autocapture: boolean | ReactNativeAutocaptureOptions = false;
 
   init(apiKey = '', userId?: string, options?: ReactNativeOptions) {
     return returnWrapper(this._init({ ...options, userId, apiKey }));
@@ -67,6 +70,10 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
       userId: options.userId ?? oldCookies.userId,
     });
     await super._init(reactNativeOptions);
+
+    if ('autocapture' in this.config) {
+      this.autocapture = (this.config as ReactNativeConfigAutocaptureBeta).autocapture ?? false;
+    }
 
     // Set up the analytics connector to integrate with the experiment SDK.
     // Send events from the experiment SDK and forward identifies to the
@@ -217,7 +224,10 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
 
     this.config.sessionId = sessionId;
 
-    if (this.config.trackingSessionEvents) {
+    const trackSessionEvents = this.config.trackingSessionEvents ||
+      (typeof this.autocapture === 'object' && this.autocapture?.sessions === true) ||
+      this.autocapture === true;
+    if (trackSessionEvents) {
       this.config.loggerProvider?.log(`SESSION_END event: previousSessionId = ${previousSessionId ?? 'undefined'}`);
 
       if (previousSessionId !== undefined) {
