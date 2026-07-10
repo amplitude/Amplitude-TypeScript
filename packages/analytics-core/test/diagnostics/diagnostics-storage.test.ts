@@ -188,6 +188,47 @@ describe('DiagnosticsStorage', () => {
       // Restore the original method
       indexedDB.open = originalOpen;
     });
+
+    test('should not throw when upgradeneeded fires without a DB result', () => {
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      const originalOpen = indexedDB.open;
+      const mockRequest = {
+        onerror: null as ((event: Event) => void) | null,
+        onsuccess: null as ((event: Event) => void) | null,
+        onupgradeneeded: null as (() => void) | null,
+        result: undefined as IDBDatabase | undefined,
+      };
+
+      indexedDB.open = jest.fn().mockReturnValue(mockRequest);
+
+      const openDBPromise = storage.openDB();
+      const createTablesSpy = jest.spyOn(storage, 'createTables');
+
+      expect(() => {
+        if (mockRequest.onupgradeneeded) {
+          mockRequest.onupgradeneeded();
+        }
+      }).not.toThrow();
+
+      expect(createTablesSpy).not.toHaveBeenCalled();
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockLogger.debug).toHaveBeenCalledWith('DiagnosticsStorage: Missing DB during upgrade.');
+
+      // Resolve open so the promise does not hang
+      if (mockRequest.onsuccess) {
+        mockRequest.result = {
+          onclose: null,
+          onerror: null,
+          close: jest.fn(),
+        } as unknown as IDBDatabase;
+        mockRequest.onsuccess(new Event('success'));
+      }
+
+      return openDBPromise.finally(() => {
+        createTablesSpy.mockRestore();
+        indexedDB.open = originalOpen;
+      });
+    });
   });
 
   describe('setTags', () => {
