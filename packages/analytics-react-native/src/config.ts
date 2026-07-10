@@ -14,6 +14,8 @@ import {
   FetchTransport,
 } from '@amplitude/analytics-core';
 
+import { ReactNativeAutocaptureOptions } from '@amplitude/analytics-core';
+
 import { LocalStorage } from './storage/local-storage';
 import RemnantDataMigration from './migration/remnant-data-migration';
 
@@ -62,6 +64,7 @@ export class ReactNativeConfig extends Config implements IReactNativeConfig {
   sessionTimeout: number;
   trackingSessionEvents: boolean;
   trackingOptions: ReactNativeTrackingOptions;
+  autocapture?: ReactNativeAutocaptureOptions | boolean;
 
   // NOTE: These protected properties are used to cache values from async storage
   protected _deviceId?: string;
@@ -102,6 +105,7 @@ export class ReactNativeConfig extends Config implements IReactNativeConfig {
     this.sessionTimeout = options?.sessionTimeout ?? defaultConfig.sessionTimeout;
     this.trackingOptions = options?.trackingOptions ?? defaultConfig.trackingOptions;
     this.trackingSessionEvents = options?.trackingSessionEvents ?? defaultConfig.trackingSessionEvents;
+    this.autocapture = options?.autocapture;
   }
 
   get deviceId() {

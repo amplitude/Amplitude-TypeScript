@@ -927,4 +927,84 @@ describe('react-native-client', () => {
       });
     });
   });
+
+  describe('autocapture', () => {
+    let client: AmplitudeReactNative;
+    let trackSpy: jest.SpyInstance;
+
+    const sendResponse = {
+      status: Status.Success,
+      statusCode: 200,
+      body: {
+        eventsIngested: 1,
+        payloadSizeBytes: 1,
+        serverUploadTime: 1,
+      },
+    };
+
+    const initOptions = (autocapture: boolean | { sessions?: boolean }) => ({
+      autocapture,
+      transportProvider: {
+        send: jest.fn().mockResolvedValue(sendResponse),
+      },
+      ...attributionConfig,
+    });
+
+    describe('sessions', () => {
+      beforeEach(() => {
+        client = new AmplitudeReactNative();
+        trackSpy = jest.spyOn(client, 'track');
+      });
+
+      afterEach(() => {
+        trackSpy.mockClear();
+      });
+
+      describe('should track', () => {
+        test('when autocapture is true', async () => {
+          await client.init(API_KEY, undefined, initOptions(true)).promise;
+          expect(trackSpy).toHaveBeenCalledWith({
+            event_type: 'session_start',
+            time: expect.any(Number),
+            session_id: expect.any(Number),
+          });
+          // Force a session change; track() does not start sessions while appState is active
+          client.setSessionId(client.config.sessionId! + 1);
+          expect(trackSpy).toHaveBeenCalledWith({
+            event_type: 'session_end',
+            time: expect.any(Number),
+            session_id: expect.any(Number),
+          });
+        });
+
+        test('when autocapture is object and .sessions is true', async () => {
+          await client.init(API_KEY, undefined, initOptions({ sessions: true })).promise;
+          expect(trackSpy).toHaveBeenCalledWith({
+            event_type: 'session_start',
+            time: expect.any(Number),
+            session_id: expect.any(Number),
+          });
+          // Force a session change; track() does not start sessions while appState is active
+          client.setSessionId(client.config.sessionId! + 1);
+          expect(trackSpy).toHaveBeenCalledWith({
+            event_type: 'session_end',
+            time: expect.any(Number),
+            session_id: expect.any(Number),
+          });
+        });
+      });
+
+      describe('should not track', () => {
+        test('when autocapture is false', async () => {
+          await client.init(API_KEY, undefined, initOptions(false)).promise;
+          expect(trackSpy).not.toHaveBeenCalled();
+        });
+
+        test('when autocapture is object and .sessions is false', async () => {
+          await client.init(API_KEY, undefined, initOptions({ sessions: false })).promise;
+          expect(trackSpy).not.toHaveBeenCalled();
+        });
+      });
+    });
+  });
 });

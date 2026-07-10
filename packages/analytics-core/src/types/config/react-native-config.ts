@@ -6,6 +6,12 @@ type HiddenOptions = 'apiKey' | 'lastEventId';
 
 export type ReactNativeOptions = Omit<Partial<ReactNativeConfig>, HiddenOptions>;
 
+export interface ReactNativeAutocaptureOptions {
+  sessions?: boolean;
+  // screenViews?: boolean;
+  // elementInteractions?
+}
+
 export interface ReactNativeConfig extends Omit<IConfig, 'requestMetadata'> {
   trackingOptions: ReactNativeTrackingOptions;
   trackingSessionEvents?: boolean;
@@ -26,6 +32,11 @@ export interface ReactNativeConfig extends Omit<IConfig, 'requestMetadata'> {
   sessionId?: number;
   sessionTimeout: number;
   userId?: string;
+}
+
+// TODO: Merge this into ReactNativeConfig once autocapture is GA
+export interface ReactNativeConfigAutocaptureBeta extends ReactNativeConfig {
+  autocapture?: boolean | ReactNativeAutocaptureOptions;
 }
 
 export interface ReactNativeAttributionOptions {
