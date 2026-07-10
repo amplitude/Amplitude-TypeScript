@@ -71,6 +71,7 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
     });
     await super._init(reactNativeOptions);
 
+    // Step 2.1: parse autocapture config
     if ('autocapture' in this.config) {
       this.autocapture = (this.config as ReactNativeConfigAutocaptureBeta).autocapture ?? false;
     }
