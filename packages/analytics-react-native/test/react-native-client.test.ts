@@ -942,7 +942,7 @@ describe('react-native-client', () => {
       },
     };
 
-    const initOptions = (autocapture: boolean | { sessions?: boolean }) => ({
+    const initOptions = (autocapture: boolean | { sessions?: boolean; appLifecycles?: boolean }) => ({
       autocapture,
       transportProvider: {
         send: jest.fn().mockResolvedValue(sendResponse),
@@ -1004,6 +1004,92 @@ describe('react-native-client', () => {
           await client.init(API_KEY, undefined, initOptions({ sessions: false })).promise;
           expect(trackSpy).not.toHaveBeenCalled();
         });
+      });
+    });
+
+    describe('appLifecycles', () => {
+      beforeEach(() => {
+        client = new AmplitudeReactNative();
+        trackSpy = jest.spyOn(client, 'track');
+      });
+
+      afterEach(() => {
+        trackSpy.mockClear();
+      });
+
+      test('should track appLifecycles when it is enabled', async () => {
+        await client.init(API_KEY, undefined, initOptions({ appLifecycles: true })).promise;
+        (client as any).handleAppStateChange('background');
+        expect(trackSpy).toHaveBeenCalledWith('[Amplitude] Application Backgrounded');
+        (client as any).handleAppStateChange('active');
+        expect(trackSpy).toHaveBeenCalledWith('[Amplitude] Application Opened');
+      });
+
+      test('should track Application Opened after background → inactive → active', async () => {
+        await client.init(API_KEY, undefined, initOptions({ appLifecycles: true })).promise;
+        trackSpy.mockClear();
+        (client as any).handleAppStateChange('background');
+        (client as any).handleAppStateChange('inactive');
+        (client as any).handleAppStateChange('active');
+        expect(trackSpy).toHaveBeenCalledWith('[Amplitude] Application Backgrounded');
+        expect(trackSpy).toHaveBeenCalledWith('[Amplitude] Application Opened');
+      });
+
+      test('should not track Application Opened on inactive → active without background', async () => {
+        await client.init(API_KEY, undefined, initOptions({ appLifecycles: true })).promise;
+        // App is typically active after init; simulate iOS overlay (Control Center).
+        (client as any).appState = 'active';
+        (client as any).wasBackgrounded = false;
+        trackSpy.mockClear();
+
+        (client as any).handleAppStateChange('inactive');
+        (client as any).handleAppStateChange('active');
+
+        expect(trackSpy).not.toHaveBeenCalledWith('[Amplitude] Application Backgrounded');
+        expect(trackSpy).not.toHaveBeenCalledWith('[Amplitude] Application Opened');
+      });
+
+      test('should not track Application Opened after re-init when background happened with appLifecycles off', async () => {
+        await client.init(API_KEY, undefined, initOptions({ appLifecycles: false })).promise;
+        (client as any).handleAppStateChange('background');
+        expect(trackSpy).not.toHaveBeenCalledWith('[Amplitude] Application Backgrounded');
+
+        await client.init(API_KEY, undefined, initOptions({ appLifecycles: true })).promise;
+        trackSpy.mockClear();
+        (client as any).appState = 'background';
+        (client as any).handleAppStateChange('active');
+
+        expect(trackSpy).not.toHaveBeenCalledWith('[Amplitude] Application Opened');
+      });
+    });
+
+    describe('re-init', () => {
+      beforeEach(() => {
+        client = new AmplitudeReactNative();
+        trackSpy = jest.spyOn(client, 'track');
+      });
+
+      afterEach(() => {
+        trackSpy.mockClear();
+      });
+
+      test('should clear previous autocapture flags when re-init omits or disables autocapture', async () => {
+        await client.init(API_KEY, undefined, initOptions({ sessions: true, appLifecycles: true })).promise;
+        expect(client.autocapture).toEqual({ sessions: true, appLifecycles: true });
+
+        await client.init(API_KEY, undefined, initOptions(false)).promise;
+        expect(client.autocapture).toBeNull();
+
+        await client.init(API_KEY, undefined, initOptions({ sessions: true, appLifecycles: true })).promise;
+        expect(client.autocapture).toEqual({ sessions: true, appLifecycles: true });
+
+        await client.init(API_KEY, undefined, {
+          transportProvider: {
+            send: jest.fn().mockResolvedValue(sendResponse),
+          },
+          ...attributionConfig,
+        }).promise;
+        expect(client.autocapture).toBeNull();
       });
     });
   });

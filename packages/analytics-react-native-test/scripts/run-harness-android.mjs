@@ -38,11 +38,19 @@ const buildApk = () => {
   console.log(
     `Building Android debug APK (${arch.label}, -PnewArchEnabled=${arch.gradleFlag})...`,
   );
+  // CI emulators are x86_64; building all ABIs inflates memory/time for no gain.
+  const architectures =
+    process.env.REACT_NATIVE_ARCHITECTURES ||
+    (process.env.CI ? 'x86_64' : undefined);
+
   run(
     './gradlew',
     [
       ':app:assembleDebug',
       `-PnewArchEnabled=${arch.gradleFlag}`,
+      ...(architectures
+        ? [`-PreactNativeArchitectures=${architectures}`]
+        : []),
       '--console=plain',
     ],
     {

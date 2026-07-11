@@ -8,6 +8,7 @@ export type ReactNativeOptions = Omit<Partial<ReactNativeConfig>, HiddenOptions>
 
 export interface ReactNativeAutocaptureOptions {
   sessions?: boolean;
+  appLifecycles?: boolean;
   // screenViews?: boolean;
   // elementInteractions?
 }
