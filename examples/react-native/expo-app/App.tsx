@@ -51,8 +51,11 @@ export default function App() {
     (async () => {
         // AMPLITUDE_API_KEY is inlined at bundle time (see babel.config.js).
         await init(process.env.AMPLITUDE_API_KEY || 'YOUR_API_KEY', 'react-native-user-id', {
-          logLevel: Types.LogLevel.Error,
-          // autocapture: { } // <-- todo
+          logLevel: Types.LogLevel.Debug,
+          autocapture: {
+            sessions: true,
+            appLifecycles: true,
+          } // <-- todo
         }).promise;
         // Capture localhost traffic except Metro (8081) for the fetch network test screen.
         add(networkCapturePlugin({

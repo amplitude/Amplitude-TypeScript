@@ -12,9 +12,9 @@ import {
   getCookieName,
   getQueryParams,
   FetchTransport,
+  ReactNativeConfigAutocaptureBeta,
+  ReactNativeAutocaptureOptions,
 } from '@amplitude/analytics-core';
-
-import { ReactNativeAutocaptureOptions } from '@amplitude/analytics-core';
 
 import { LocalStorage } from './storage/local-storage';
 import RemnantDataMigration from './migration/remnant-data-migration';
@@ -105,7 +105,7 @@ export class ReactNativeConfig extends Config implements IReactNativeConfig {
     this.sessionTimeout = options?.sessionTimeout ?? defaultConfig.sessionTimeout;
     this.trackingOptions = options?.trackingOptions ?? defaultConfig.trackingOptions;
     this.trackingSessionEvents = options?.trackingSessionEvents ?? defaultConfig.trackingSessionEvents;
-    this.autocapture = options?.autocapture;
+    this.autocapture = (options as ReactNativeConfigAutocaptureBeta)?.autocapture;
   }
 
   get deviceId() {
