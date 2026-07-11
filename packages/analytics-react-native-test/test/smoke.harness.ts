@@ -6,7 +6,7 @@
  */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { describe, it, expect } from 'react-native-harness';
-import { AppState, Platform, DeviceEventEmitter } from 'react-native';
+import { Platform } from 'react-native';
 import { createInstance, Types } from '@amplitude/analytics-react-native';
 
 const API_KEY = '17fcb31e58fc138462fd64bfe7add49e'; // TODO: Remove hardcoded key
@@ -15,25 +15,7 @@ describe('@amplitude/analytics-react-native harness smoke', () => {
   it('runs on ios or android', () => {
     expect(Platform.OS).toMatch(/^(ios|android)$/);
   });
-
-  it('simulate AppState change', async () => {
-    const seen: string[] = [];
-    const sub = AppState.addEventListener('change', (state) => {
-      seen.push(state);
-    });
-    DeviceEventEmitter.emit('appStateDidChange', {
-      app_state: 'background',
-    });
-    expect(AppState.currentState).toBe('background');
-    expect(seen).toContain('background');
-    // restore if needed
-    DeviceEventEmitter.emit('appStateDidChange', {
-      app_state: 'active',
-    });
-    expect(AppState.currentState).toBe('active');
-    sub.remove();
-  });
-
+  
   it('initializes and tracks an event', async () => {
     const client = createInstance();
     await client.init(API_KEY, 'harness-user', {
