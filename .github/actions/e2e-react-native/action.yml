@@ -12,7 +12,7 @@ inputs:
   node-version:
     description: 'Node.js version to use'
     required: false
-    default: '20'
+    default: '22'
   force-rebuild:
     description: 'Force rebuild of the host app binary (true/false)'
     required: false
