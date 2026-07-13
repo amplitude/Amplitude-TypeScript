@@ -4,6 +4,7 @@ import {
   getRunTargets as getAndroidRunTargets,
 } from '@react-native-harness/platform-android';
 import { execFileSync } from 'node:child_process';
+import { mockApiPlugin } from './scripts/mock-api-plugin.mjs';
 
 /**
  * Host native binary: examples/react-native/app (built + installed via HARNESS_APP_PATH).
@@ -190,6 +191,8 @@ const config = {
   appRegistryComponentName: 'app',
   defaultRunner: runners[0].name,
   runners,
+  // Host-side mock HTTP API for network-tracking.harness.ts (/api/status/:code).
+  plugins: [mockApiPlugin()],
 };
 
 export default config;
