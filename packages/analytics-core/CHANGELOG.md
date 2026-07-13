@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.52.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.52.1...@amplitude/analytics-core@2.52.2) (2026-07-13)
+
+
+### Bug Fixes
+
+* **analytics-core:** catch uncaught errors when IndexedDB fails ([#1875](https://github.com/amplitude/Amplitude-TypeScript/issues/1875)) ([9c7e9dc](https://github.com/amplitude/Amplitude-TypeScript/commit/9c7e9dc8c4e4b35f97aff7eaa112fc314d8fcf24))
+* **analytics-core:** queued functions not being flushed when init not awaited ([#1873](https://github.com/amplitude/Amplitude-TypeScript/issues/1873)) ([e0931a1](https://github.com/amplitude/Amplitude-TypeScript/commit/e0931a132e40c9f72a9bab87fd7f578457bc6c8f))
+
+
+
+
+
 ## [2.52.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.52.0...@amplitude/analytics-core@2.52.1) (2026-07-09)
 
 

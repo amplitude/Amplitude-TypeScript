@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.5.64](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-node@1.5.63...@amplitude/analytics-node@1.5.64) (2026-07-13)
+
+
+### Bug Fixes
+
+* **analytics-core:** queued functions not being flushed when init not awaited ([#1873](https://github.com/amplitude/Amplitude-TypeScript/issues/1873)) ([e0931a1](https://github.com/amplitude/Amplitude-TypeScript/commit/e0931a132e40c9f72a9bab87fd7f578457bc6c8f))
+
+
+
+
+
 ## [1.5.63](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-node@1.5.62...@amplitude/analytics-node@1.5.63) (2026-07-09)
 
 
