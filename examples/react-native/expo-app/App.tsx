@@ -1,6 +1,6 @@
 import {Button, StyleSheet, Text, View} from 'react-native';
 import {useEffect} from 'react';
-import {identify, Identify, init, track, add, Types} from '@amplitude/analytics-react-native';
+import {identify, Identify, init, track, add, Types, trackNavigationStateChange} from '@amplitude/analytics-react-native';
 import {networkCapturePlugin} from '@amplitude/plugin-network-capture-browser';
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
@@ -66,7 +66,7 @@ export default function App() {
     })();
   }, []);
   return (
-    <NavigationContainer>
+    <NavigationContainer onStateChange={trackNavigationStateChange}>
       <Stack.Navigator>
         <Stack.Screen name="Home" component={HomeScreen} />
         <Stack.Screen name="Settings" component={SettingsScreen} />

@@ -12,6 +12,14 @@ import { isWeb } from '../src/utils/platform';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Config from '../src/config';
 import * as NetworkChecker from '../src/plugins/network-connectivity-checker';
+import {
+  DEFAULT_APPLICATION_BACKGROUNDED_EVENT,
+  DEFAULT_APPLICATION_OPENED_EVENT,
+  DEFAULT_SCREEN_VIEWED_EVENT,
+  DEFAULT_SESSION_END_EVENT,
+  DEFAULT_SESSION_START_EVENT,
+  SCREEN_NAME,
+} from '../src/constants';
 
 describe('react-native-client', () => {
   const API_KEY = 'API_KEY';
@@ -964,14 +972,14 @@ describe('react-native-client', () => {
         test('when autocapture is true', async () => {
           await client.init(API_KEY, undefined, initOptions(true)).promise;
           expect(trackSpy).toHaveBeenCalledWith({
-            event_type: 'session_start',
+            event_type: DEFAULT_SESSION_START_EVENT,
             time: expect.any(Number),
             session_id: expect.any(Number),
           });
           // Force a session change; track() does not start sessions while appState is active
           client.setSessionId(client.config.sessionId! + 1);
           expect(trackSpy).toHaveBeenCalledWith({
-            event_type: 'session_end',
+            event_type: DEFAULT_SESSION_END_EVENT,
             time: expect.any(Number),
             session_id: expect.any(Number),
           });
@@ -980,14 +988,14 @@ describe('react-native-client', () => {
         test('when autocapture is object and .sessions is true', async () => {
           await client.init(API_KEY, undefined, initOptions({ sessions: true })).promise;
           expect(trackSpy).toHaveBeenCalledWith({
-            event_type: 'session_start',
+            event_type: DEFAULT_SESSION_START_EVENT,
             time: expect.any(Number),
             session_id: expect.any(Number),
           });
           // Force a session change; track() does not start sessions while appState is active
           client.setSessionId(client.config.sessionId! + 1);
           expect(trackSpy).toHaveBeenCalledWith({
-            event_type: 'session_end',
+            event_type: DEFAULT_SESSION_END_EVENT,
             time: expect.any(Number),
             session_id: expect.any(Number),
           });
@@ -1020,9 +1028,9 @@ describe('react-native-client', () => {
       test('should track appLifecycles when it is enabled', async () => {
         await client.init(API_KEY, undefined, initOptions({ appLifecycles: true })).promise;
         (client as any).handleAppStateChange('background');
-        expect(trackSpy).toHaveBeenCalledWith('[Amplitude] Application Backgrounded');
+        expect(trackSpy).toHaveBeenCalledWith(DEFAULT_APPLICATION_BACKGROUNDED_EVENT);
         (client as any).handleAppStateChange('active');
-        expect(trackSpy).toHaveBeenCalledWith('[Amplitude] Application Opened');
+        expect(trackSpy).toHaveBeenCalledWith(DEFAULT_APPLICATION_OPENED_EVENT);
       });
 
       test('should track Application Opened after background → inactive → active', async () => {
@@ -1031,8 +1039,8 @@ describe('react-native-client', () => {
         (client as any).handleAppStateChange('background');
         (client as any).handleAppStateChange('inactive');
         (client as any).handleAppStateChange('active');
-        expect(trackSpy).toHaveBeenCalledWith('[Amplitude] Application Backgrounded');
-        expect(trackSpy).toHaveBeenCalledWith('[Amplitude] Application Opened');
+        expect(trackSpy).toHaveBeenCalledWith(DEFAULT_APPLICATION_BACKGROUNDED_EVENT);
+        expect(trackSpy).toHaveBeenCalledWith(DEFAULT_APPLICATION_OPENED_EVENT);
       });
 
       test('should not track Application Opened on inactive → active without background', async () => {
@@ -1045,21 +1053,21 @@ describe('react-native-client', () => {
         (client as any).handleAppStateChange('inactive');
         (client as any).handleAppStateChange('active');
 
-        expect(trackSpy).not.toHaveBeenCalledWith('[Amplitude] Application Backgrounded');
-        expect(trackSpy).not.toHaveBeenCalledWith('[Amplitude] Application Opened');
+        expect(trackSpy).not.toHaveBeenCalledWith(DEFAULT_APPLICATION_BACKGROUNDED_EVENT);
+        expect(trackSpy).not.toHaveBeenCalledWith(DEFAULT_APPLICATION_OPENED_EVENT);
       });
 
       test('should not track Application Opened after re-init when background happened with appLifecycles off', async () => {
         await client.init(API_KEY, undefined, initOptions({ appLifecycles: false })).promise;
         (client as any).handleAppStateChange('background');
-        expect(trackSpy).not.toHaveBeenCalledWith('[Amplitude] Application Backgrounded');
+        expect(trackSpy).not.toHaveBeenCalledWith(DEFAULT_APPLICATION_BACKGROUNDED_EVENT);
 
         await client.init(API_KEY, undefined, initOptions({ appLifecycles: true })).promise;
         trackSpy.mockClear();
         (client as any).appState = 'background';
         (client as any).handleAppStateChange('active');
 
-        expect(trackSpy).not.toHaveBeenCalledWith('[Amplitude] Application Opened');
+        expect(trackSpy).not.toHaveBeenCalledWith(DEFAULT_APPLICATION_OPENED_EVENT);
       });
     });
 
@@ -1091,6 +1099,80 @@ describe('react-native-client', () => {
         }).promise;
         expect(client.autocapture).toBeNull();
       });
+    });
+  });
+
+  describe('trackScreenView', () => {
+    test('should track screen viewed with screen name property', async () => {
+      const client = new AmplitudeReactNative();
+      const track = jest.spyOn(client, 'track');
+      client.trackScreenView('Home', { category: 'main' });
+      expect(track).toHaveBeenCalledWith(
+        DEFAULT_SCREEN_VIEWED_EVENT,
+        {
+          [SCREEN_NAME]: 'Home',
+          category: 'main',
+        },
+        undefined,
+      );
+    });
+  });
+
+  describe('trackNavigationStateChange', () => {
+    test('should track root route name for flat navigation state', async () => {
+      const client = new AmplitudeReactNative();
+      const track = jest.spyOn(client, 'track');
+      client.trackNavigationStateChange({
+        index: 0,
+        routes: [{ name: 'Home' }],
+      });
+      expect(track).toHaveBeenCalledWith(
+        DEFAULT_SCREEN_VIEWED_EVENT,
+        {
+          [SCREEN_NAME]: 'Home',
+        },
+        undefined,
+      );
+    });
+
+    test('should track focused leaf route name for nested navigation state', async () => {
+      const client = new AmplitudeReactNative();
+      const track = jest.spyOn(client, 'track');
+      client.trackNavigationStateChange({
+        index: 0,
+        routes: [
+          {
+            name: 'Main',
+            state: {
+              index: 1,
+              routes: [
+                { name: 'Home' },
+                {
+                  name: 'Profile',
+                  state: {
+                    index: 0,
+                    routes: [{ name: 'ProfileDetails' }],
+                  },
+                },
+              ],
+            },
+          },
+        ],
+      });
+      expect(track).toHaveBeenCalledWith(
+        DEFAULT_SCREEN_VIEWED_EVENT,
+        {
+          [SCREEN_NAME]: 'ProfileDetails',
+        },
+        undefined,
+      );
+    });
+
+    test('should no-op when navigation state is undefined', () => {
+      const client = new AmplitudeReactNative();
+      const track = jest.spyOn(client, 'track');
+      expect(client.trackNavigationStateChange(undefined)).toBeUndefined();
+      expect(track).not.toHaveBeenCalled();
     });
   });
 });
