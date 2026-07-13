@@ -84,7 +84,7 @@ export class CookieStorage<T> implements Storage<T> {
         str += `; SameSite=${this.options.sameSite}`;
       }
       const globalScope = getGlobalScope();
-      if (globalScope) {
+      if (globalScope?.document) {
         globalScope.document.cookie = str;
       }
     } catch (error) {
