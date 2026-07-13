@@ -1,14 +1,10 @@
-import {
-  AutocaptureOptions,
-  type ElementInteractionsOptions,
-  BrowserConfig,
-  CustomEnrichmentOptions,
-  RemoteConfig,
-  NetworkTrackingOptions,
-  NetworkCaptureRule,
-  SAFE_HEADERS,
-  safeJsonStringify,
-} from '@amplitude/analytics-core';
+import { AutocaptureOptions, BrowserConfig } from '../types/config/browser-config';
+import type { ElementInteractionsOptions } from '../types/element-interactions';
+import { CustomEnrichmentOptions } from '../types/custom-enrichment';
+import { RemoteConfig } from '../remote-config/remote-config';
+import { NetworkTrackingOptions, NetworkCaptureRule } from '../types/network-tracking';
+import { SAFE_HEADERS } from '../types/constants';
+import { safeJsonStringify } from '../utils/safe-stringify';
 
 export interface AutocaptureOptionsRemoteConfig extends AutocaptureOptions {
   elementInteractions?: boolean | ElementInteractionsOptionsRemoteConfig;
@@ -196,13 +192,13 @@ function mergeUrls(urlsExact: (string | RegExp)[], urlsRegex: string[] | undefin
 }
 
 /**
- * Updates the browser config in place by applying remote configuration settings.
- * Primarily merges autocapture settings from the remote config into the browser config.
+ * Updates the browser (or client) config in place by applying remote configuration settings.
+ * Primarily merges autocapture settings from the remote config into the browser (or client) config.
  *
  * @param remoteConfig - The remote configuration to apply, or null if none available
- * @param browserConfig - The browser config object to update (modified in place)
+ * @param browserConfig - The browser (or client) config object to update (modified in place)
  */
-export function updateBrowserConfigWithRemoteConfig(
+export function updateClientConfigWithRemoteConfig(
   remoteConfig: RemoteConfig | null,
   browserConfig: BrowserConfig,
 ): void {

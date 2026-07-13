@@ -32,6 +32,7 @@ import {
   Logger,
   safeJsonStringify,
   LogLevel,
+  updateClientConfigWithRemoteConfig,
 } from '@amplitude/analytics-core';
 import {
   getAttributionTrackingConfig,
@@ -62,7 +63,6 @@ import { fileDownloadTracking } from './plugins/file-download-tracking';
 import { DEFAULT_SESSION_END_EVENT, DEFAULT_SESSION_START_EVENT, DEFAULT_SERVER_ZONE } from './constants';
 import { detNotify } from './det-notification';
 import { networkConnectivityCheckerPlugin } from './plugins/network-connectivity-checker';
-import { updateBrowserConfigWithRemoteConfig } from './config/joined-config';
 import { autocapturePlugin, frustrationPlugin, performancePlugin } from '@amplitude/plugin-autocapture-browser';
 import { plugin as networkCapturePlugin } from '@amplitude/plugin-network-capture-browser';
 import { webVitalsPlugin } from '@amplitude/plugin-web-vitals-browser';
@@ -227,7 +227,7 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
               ),
             );
             if (remoteConfig) {
-              updateBrowserConfigWithRemoteConfig(remoteConfig, browserOptions);
+              updateClientConfigWithRemoteConfig(remoteConfig, browserOptions);
             }
             // Resolve the promise on first callback (initial config)
             resolve();

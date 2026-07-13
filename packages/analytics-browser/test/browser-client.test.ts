@@ -26,7 +26,6 @@ import * as fileDownloadTracking from '../src/plugins/file-download-tracking';
 import * as formInteractionTracking from '../src/plugins/form-interaction-tracking';
 import * as networkConnectivityChecker from '../src/plugins/network-connectivity-checker';
 import * as SnippetHelper from '../src/utils/snippet-helper';
-import * as joinedConfig from '../src/config/joined-config';
 import * as pageUrlEnrichment from '@amplitude/plugin-page-url-enrichment-browser';
 import * as customEnrichment from '@amplitude/plugin-custom-enrichment-browser';
 
@@ -193,7 +192,7 @@ describe('browser-client', () => {
       );
     });
 
-    test('should call updateBrowserConfigWithRemoteConfig when remoteConfig is not null', async () => {
+    test('should call updateClientConfigWithRemoteConfig when remoteConfig is not null', async () => {
       const mockRemoteConfig = {
         autocapture: {
           elementInteractions: true,
@@ -227,14 +226,14 @@ describe('browser-client', () => {
         configurable: true,
       });
 
-      // Spy on the updateBrowserConfigWithRemoteConfig function
-      const updateBrowserConfigSpy = jest.spyOn(joinedConfig, 'updateBrowserConfigWithRemoteConfig');
+      // Spy on the updateClientConfigWithRemoteConfig function
+      const updateBrowserConfigSpy = jest.spyOn(core, 'updateClientConfigWithRemoteConfig');
 
       await client.init(apiKey, {
         fetchRemoteConfig: true,
       }).promise;
 
-      // Verify that updateBrowserConfigWithRemoteConfig was called
+      // Verify that updateClientConfigWithRemoteConfig was called
       expect(updateBrowserConfigSpy).toHaveBeenCalledTimes(1);
       expect(updateBrowserConfigSpy).toHaveBeenCalledWith(
         mockRemoteConfig,

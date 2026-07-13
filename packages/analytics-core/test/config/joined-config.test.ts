@@ -1,4 +1,5 @@
-import { translateRemoteConfigToLocal, updateBrowserConfigWithRemoteConfig } from '../../src/config/joined-config';
+import { translateRemoteConfigToLocal } from '../../src/config/joined-config';
+import { updateClientConfigWithRemoteConfig } from '../../src/index';
 import { createConfigurationMock } from '../helpers/mock';
 import {
   AutocaptureOptions,
@@ -6,7 +7,7 @@ import {
   SAFE_HEADERS,
   type BrowserConfig,
   type ElementInteractionsOptions,
-} from '@amplitude/analytics-core';
+} from '../../src/index';
 
 function expectIsAutocaptureObjectWithElementInteractions(config: BrowserConfig): asserts config is BrowserConfig & {
   autocapture: BrowserConfig['autocapture'] & { elementInteractions: ElementInteractionsOptions };
@@ -22,10 +23,10 @@ describe('joined-config', () => {
     localConfig = { ...createConfigurationMock(), defaultTracking: false, autocapture: false };
   });
 
-  describe('updateBrowserConfigWithRemoteConfig', () => {
+  describe('updateClientConfigWithRemoteConfig', () => {
     test('should not modify local config if remote config is null', () => {
       const originalConfig = { ...localConfig };
-      updateBrowserConfigWithRemoteConfig(null, localConfig);
+      updateClientConfigWithRemoteConfig(null, localConfig);
       expect(localConfig).toEqual(originalConfig);
     });
 
@@ -53,7 +54,7 @@ describe('joined-config', () => {
         webVitals: true,
       };
 
-      updateBrowserConfigWithRemoteConfig(remoteConfig, localConfig);
+      updateClientConfigWithRemoteConfig(remoteConfig, localConfig);
       expect(localConfig.autocapture).toStrictEqual(expectedAutocapture);
       expect(localConfig.defaultTracking).toStrictEqual(expectedAutocapture);
     });
@@ -87,7 +88,7 @@ describe('joined-config', () => {
         webVitals: true,
       };
 
-      updateBrowserConfigWithRemoteConfig(remoteConfig, localConfig);
+      updateClientConfigWithRemoteConfig(remoteConfig, localConfig);
       expect(localConfig.defaultTracking).toStrictEqual(expectedAutocapture);
       expect(localConfig.autocapture).toStrictEqual(expectedAutocapture);
     });
@@ -127,7 +128,7 @@ describe('joined-config', () => {
         webVitals: false,
       };
 
-      updateBrowserConfigWithRemoteConfig(remoteConfig, localConfig);
+      updateClientConfigWithRemoteConfig(remoteConfig, localConfig);
       expect(localConfig.autocapture).toStrictEqual(expectedJoinedConfig);
       expect(localConfig.defaultTracking).toStrictEqual(expectedJoinedConfig);
     });
@@ -141,7 +142,7 @@ describe('joined-config', () => {
         },
       };
 
-      updateBrowserConfigWithRemoteConfig(remoteConfig, localConfig);
+      updateClientConfigWithRemoteConfig(remoteConfig, localConfig);
       expect(localConfig.autocapture).toStrictEqual(remoteConfig.autocapture);
       expect(localConfig.defaultTracking).toStrictEqual(remoteConfig.autocapture);
     });
@@ -155,7 +156,7 @@ describe('joined-config', () => {
           autocapture: remoteAutocapture,
         };
 
-        updateBrowserConfigWithRemoteConfig(remoteConfig, localConfig);
+        updateClientConfigWithRemoteConfig(remoteConfig, localConfig);
         expect(localConfig.autocapture).toStrictEqual(remoteAutocapture);
         expect(localConfig.defaultTracking).toStrictEqual(remoteAutocapture);
       },
@@ -176,7 +177,7 @@ describe('joined-config', () => {
         },
       };
 
-      updateBrowserConfigWithRemoteConfig(remoteConfig, localConfig);
+      updateClientConfigWithRemoteConfig(remoteConfig, localConfig);
       expect(logError).toHaveBeenCalledWith(
         'Failed to apply remote configuration because of error: ',
         expect.any(Error),
@@ -188,7 +189,7 @@ describe('joined-config', () => {
         autocapture: true,
       };
 
-      updateBrowserConfigWithRemoteConfig(remoteConfig, localConfig);
+      updateClientConfigWithRemoteConfig(remoteConfig, localConfig);
       expect(localConfig.autocapture).toBe(true);
       expect(localConfig.defaultTracking).toBe(true);
     });
@@ -205,7 +206,7 @@ describe('joined-config', () => {
         },
       };
 
-      updateBrowserConfigWithRemoteConfig(remoteConfig, localConfig);
+      updateClientConfigWithRemoteConfig(remoteConfig, localConfig);
 
       // Verify the combined pageUrlAllowlist contains both exact matches and RegExp objects
       expectIsAutocaptureObjectWithElementInteractions(localConfig);
@@ -240,7 +241,7 @@ describe('joined-config', () => {
         },
       };
 
-      updateBrowserConfigWithRemoteConfig(remoteConfig, localConfig);
+      updateClientConfigWithRemoteConfig(remoteConfig, localConfig);
 
       // Verify the pageUrlAllowlist contains only RegExp objects
       expectIsAutocaptureObjectWithElementInteractions(localConfig);
@@ -273,7 +274,7 @@ describe('joined-config', () => {
 
       const logWarn = jest.spyOn(localConfig.loggerProvider, 'warn');
 
-      updateBrowserConfigWithRemoteConfig(remoteConfig, localConfig);
+      updateClientConfigWithRemoteConfig(remoteConfig, localConfig);
 
       // Verify the pageUrlAllowlist contains only RegExp objects
       expectIsAutocaptureObjectWithElementInteractions(localConfig);
@@ -307,7 +308,7 @@ describe('joined-config', () => {
         },
       };
 
-      updateBrowserConfigWithRemoteConfig(remoteConfig, localConfig);
+      updateClientConfigWithRemoteConfig(remoteConfig, localConfig);
 
       // Assert: Verify that the original pageUrlAllowlist remains unchanged
       // Ensure the autocapture and elementInteractions objects exist in the joined config
@@ -352,7 +353,7 @@ describe('joined-config', () => {
             },
           };
 
-          updateBrowserConfigWithRemoteConfig(remoteConfig, localConfig);
+          updateClientConfigWithRemoteConfig(remoteConfig, localConfig);
 
           const autocapture = localConfig.autocapture as AutocaptureOptions;
           const networkTracking = autocapture.networkTracking as NetworkTrackingOptions;
@@ -381,7 +382,7 @@ describe('joined-config', () => {
             },
           };
 
-          updateBrowserConfigWithRemoteConfig(remoteConfig, localConfig);
+          updateClientConfigWithRemoteConfig(remoteConfig, localConfig);
 
           const autocapture = localConfig.autocapture as AutocaptureOptions;
           const networkTracking = autocapture.networkTracking as NetworkTrackingOptions;
@@ -405,7 +406,7 @@ describe('joined-config', () => {
             },
           };
 
-          updateBrowserConfigWithRemoteConfig(remoteConfig, localConfig);
+          updateClientConfigWithRemoteConfig(remoteConfig, localConfig);
 
           const autocapture = localConfig.autocapture as AutocaptureOptions;
           const networkTracking = autocapture.networkTracking as NetworkTrackingOptions;
@@ -425,7 +426,7 @@ describe('joined-config', () => {
             },
           };
 
-          updateBrowserConfigWithRemoteConfig(remoteConfig, localConfig);
+          updateClientConfigWithRemoteConfig(remoteConfig, localConfig);
 
           const autocapture = localConfig.autocapture as AutocaptureOptions;
           const networkTracking = autocapture.networkTracking as NetworkTrackingOptions;
@@ -440,7 +441,7 @@ describe('joined-config', () => {
             autocapture: { networkTracking: { captureRules: [{ responseHeaders: { allowlist: { wrong: 'type' } } }] } },
           };
 
-          updateBrowserConfigWithRemoteConfig(remoteConfig, localConfig);
+          updateClientConfigWithRemoteConfig(remoteConfig, localConfig);
 
           const autocapture = localConfig.autocapture as AutocaptureOptions;
           const networkTracking = autocapture.networkTracking as NetworkTrackingOptions;
@@ -465,7 +466,7 @@ describe('joined-config', () => {
           },
         };
 
-        updateBrowserConfigWithRemoteConfig(remoteConfig, localConfig);
+        updateClientConfigWithRemoteConfig(remoteConfig, localConfig);
 
         const autocapture = localConfig.autocapture as AutocaptureOptions;
         const networkTracking = autocapture.networkTracking as NetworkTrackingOptions;
@@ -488,7 +489,7 @@ describe('joined-config', () => {
           },
         };
 
-        updateBrowserConfigWithRemoteConfig(remoteConfig, localConfig);
+        updateClientConfigWithRemoteConfig(remoteConfig, localConfig);
 
         const autocapture = localConfig.autocapture as AutocaptureOptions;
         const networkTracking = autocapture.networkTracking as NetworkTrackingOptions;
@@ -506,7 +507,7 @@ describe('joined-config', () => {
           },
         };
 
-        updateBrowserConfigWithRemoteConfig(remoteConfig, localConfig);
+        updateClientConfigWithRemoteConfig(remoteConfig, localConfig);
 
         const autocapture = localConfig.autocapture as AutocaptureOptions;
         const networkTracking = autocapture.networkTracking as NetworkTrackingOptions;
@@ -525,7 +526,7 @@ describe('joined-config', () => {
           },
         };
 
-        updateBrowserConfigWithRemoteConfig(remoteConfig, localConfig);
+        updateClientConfigWithRemoteConfig(remoteConfig, localConfig);
 
         const autocapture = localConfig.autocapture as AutocaptureOptions;
         const networkTracking = autocapture.networkTracking as NetworkTrackingOptions;
@@ -539,7 +540,7 @@ describe('joined-config', () => {
           customEnrichment: { enabled: true, body: 'return event;' },
         };
 
-        updateBrowserConfigWithRemoteConfig(remoteConfig, localConfig);
+        updateClientConfigWithRemoteConfig(remoteConfig, localConfig);
         expect(localConfig.customEnrichment).toStrictEqual({ body: 'return event;' });
       });
 
@@ -550,7 +551,7 @@ describe('joined-config', () => {
           customEnrichment: { enabled: false, body: 'return event;' },
         };
 
-        updateBrowserConfigWithRemoteConfig(remoteConfig, localConfig);
+        updateClientConfigWithRemoteConfig(remoteConfig, localConfig);
         expect(localConfig.customEnrichment).toBe(false);
       });
 
@@ -561,7 +562,7 @@ describe('joined-config', () => {
           autocapture: true,
         };
 
-        updateBrowserConfigWithRemoteConfig(remoteConfig, localConfig);
+        updateClientConfigWithRemoteConfig(remoteConfig, localConfig);
         expect(localConfig.customEnrichment).toStrictEqual({ enabled: true, body: 'return event;' });
       });
 
@@ -570,7 +571,7 @@ describe('joined-config', () => {
           customEnrichment: { enabled: true },
         };
 
-        updateBrowserConfigWithRemoteConfig(remoteConfig, localConfig);
+        updateClientConfigWithRemoteConfig(remoteConfig, localConfig);
         expect(localConfig.customEnrichment).toBe(true);
       });
 
@@ -581,7 +582,7 @@ describe('joined-config', () => {
           customEnrichment: { enabled: true, body: 'return event;' },
         };
 
-        updateBrowserConfigWithRemoteConfig(remoteConfig, localConfig);
+        updateClientConfigWithRemoteConfig(remoteConfig, localConfig);
         expect(localConfig.customEnrichment).toBe(false);
       });
 
@@ -592,7 +593,7 @@ describe('joined-config', () => {
           customEnrichment: null,
         };
 
-        updateBrowserConfigWithRemoteConfig(remoteConfig as any, localConfig);
+        updateClientConfigWithRemoteConfig(remoteConfig as any, localConfig);
         expect(localConfig.customEnrichment).toStrictEqual({ enabled: true, body: 'return event;' });
       });
     });
