@@ -1,6 +1,7 @@
 import { IConfig } from './core-config';
 import { Storage } from '../storage';
 import { UserSession } from '../user-session';
+import { RemoteConfigOptions } from './browser-config';
 
 type HiddenOptions = 'apiKey' | 'lastEventId';
 
@@ -26,6 +27,8 @@ export interface ReactNativeConfig extends Omit<IConfig, 'requestMetadata'> {
   sessionId?: number;
   sessionTimeout: number;
   userId?: string;
+  fetchRemoteConfig?: boolean;
+  remoteConfig?: RemoteConfigOptions;
 }
 
 export interface ReactNativeAttributionOptions {
