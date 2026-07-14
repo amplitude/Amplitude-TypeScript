@@ -70,12 +70,14 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
     }
     const serverZone = options.serverZone ?? 'US';
     let remoteConfigClient: IRemoteConfigClient | undefined;
+    if (fetchRemoteConfig) {
+      remoteConfigClient = new RemoteConfigClient(options.apiKey, loggerProvider, serverZone);
+    }
 
     // Step 0.2: Fetch diagnostics config
     // let diagnosticsSampleRate: number;
     // let enableDiagnostics: boolean = false;
-    if (fetchRemoteConfig && IS_DIAGNOSTICS_CAPTURED) {
-      remoteConfigClient = new RemoteConfigClient(options.apiKey, loggerProvider, serverZone);
+    if (remoteConfigClient && IS_DIAGNOSTICS_CAPTURED) {
       await new Promise<void>((resolve) => {
         remoteConfigClient?.subscribe(
           'configs.diagnostics.browserSDK',
