@@ -3,11 +3,12 @@ import { ElementSelectorRemoteConfig } from '@amplitude/element-selector';
 import { DataExtractor } from './data-extractor';
 
 /**
- * Remote-config key for the element-selector engine payload. Mirrors the
- * `configs.analyticsSDK.pageActions` namespace autocapture already subscribes
- * to. The payload shape is `ElementSelectorRemoteConfig`.
+ * Remote-config key for the element-selector engine payload. Nested under the
+ * browser SDK autocapture namespace alongside other autocapture toggles
+ * (elementInteractions, frustrationInteractions, etc.). The payload shape is
+ * `ElementSelectorRemoteConfig`.
  */
-export const ELEMENT_SELECTOR_REMOTE_CONFIG_KEY = 'configs.analyticsSDK.elementSelector';
+export const ELEMENT_SELECTOR_REMOTE_CONFIG_KEY = 'configs.analyticsSDK.browserSDK.autocapture.elementSelector';
 
 /**
  * Subscribe a plugin's {@link DataExtractor} to element-selector remote config.
