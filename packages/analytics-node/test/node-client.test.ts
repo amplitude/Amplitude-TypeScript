@@ -71,7 +71,7 @@ describe('node-client', () => {
           send,
         },
       }).promise;
-      Promise.resolve().then(() => client.add(plugin));
+      client.add(plugin);
       await client.track('test event').promise;
       await initPromise;
 

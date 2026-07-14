@@ -51,13 +51,10 @@ export class AmplitudeCore implements CoreClient, PluginHost {
     this.config = config;
     this.timeline.reset(this);
     this.timeline.loggerProvider = this.config.loggerProvider;
-    do {
-      await this.runQueuedFunctions('q');
-    } while (this.q.length > 0);
-    this.isReady = true;
+    await this.runQueuedFunctions('q', () => (this.isReady = true));
   }
 
-  async runQueuedFunctions(queueName: 'q' | 'dispatchQ') {
+  async runQueuedFunctions(queueName: 'q' | 'dispatchQ', onQueueEmpty?: () => void) {
     const queuedFunctions = this[queueName];
     this[queueName] = [];
     for (const queuedFunction of queuedFunctions) {
@@ -74,7 +71,9 @@ export class AmplitudeCore implements CoreClient, PluginHost {
 
     // Rerun queued functions if the queue has accrued more while awaiting promises
     if (this[queueName].length) {
-      await this.runQueuedFunctions(queueName);
+      await this.runQueuedFunctions(queueName, onQueueEmpty);
+    } else {
+      onQueueEmpty?.();
     }
   }
 
