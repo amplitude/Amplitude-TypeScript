@@ -1063,6 +1063,27 @@ describe('browser-client', () => {
       );
     });
 
+    test('should add both attribution plugins by default when no tracking method is configured', async () => {
+      jest.spyOn(core.CampaignParser.prototype, 'parse').mockResolvedValue({
+        ...core.BASE_CAMPAIGN,
+        utm_source: 'amp-test',
+      });
+      const eventPropertyTrackingPlugin = jest.spyOn(eventPropertyTracking, 'eventPropertyTrackingPlugin');
+      const webAttributionInit = jest.spyOn(WebAttribution.prototype, 'init');
+
+      await client.init(apiKey, userId, {
+        fetchRemoteConfig: false,
+        defaultTracking: {
+          attribution: {},
+          pageViews: false,
+          sessions: false,
+        },
+      }).promise;
+
+      expect(webAttributionInit).toHaveBeenCalledTimes(1);
+      expect(eventPropertyTrackingPlugin).toHaveBeenCalledTimes(1);
+    });
+
     test('should enrich same-tick track calls with the latest campaign after pushState', async () => {
       jest
         .spyOn(core.CampaignParser.prototype, 'parse')
