@@ -51,6 +51,7 @@ export const getDefaultConfig = () => {
 
 export class ReactNativeConfig extends Config implements IReactNativeConfig {
   appVersion?: string;
+  autocapture?: IReactNativeConfig['autocapture'];
   cookieExpiration: number;
   cookieSameSite: string;
   cookieSecure: boolean;
@@ -92,6 +93,7 @@ export class ReactNativeConfig extends Config implements IReactNativeConfig {
     this.userId = options?.userId;
 
     this.appVersion = options?.appVersion;
+    this.autocapture = options?.autocapture;
     this.cookieExpiration = options?.cookieExpiration ?? defaultConfig.cookieExpiration;
     this.cookieSameSite = options?.cookieSameSite ?? defaultConfig.cookieSameSite;
     this.cookieSecure = options?.cookieSecure ?? defaultConfig.cookieSecure;

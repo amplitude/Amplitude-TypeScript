@@ -1,7 +1,7 @@
 import { IConfig } from './core-config';
 import { Storage } from '../storage';
 import { UserSession } from '../user-session';
-import { RemoteConfigOptions } from './browser-config';
+import { AutocaptureOptions, RemoteConfigOptions } from './browser-config';
 
 type HiddenOptions = 'apiKey' | 'lastEventId';
 
@@ -10,6 +10,7 @@ export type ReactNativeOptions = Omit<Partial<ReactNativeConfig>, HiddenOptions>
 export interface ReactNativeConfig extends Omit<IConfig, 'requestMetadata'> {
   trackingOptions: ReactNativeTrackingOptions;
   trackingSessionEvents?: boolean;
+  autocapture?: boolean | AutocaptureOptions;
   migrateLegacyData?: boolean;
   appVersion?: string;
   attribution?: ReactNativeAttributionOptions;
