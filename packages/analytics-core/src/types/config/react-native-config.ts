@@ -2,8 +2,9 @@ import { IConfig } from './core-config';
 import { Storage } from '../storage';
 import { UserSession } from '../user-session';
 import { RemoteConfigOptions } from './browser-config';
+import { IRemoteConfigClient } from '../../remote-config/remote-config';
 
-type HiddenOptions = 'apiKey' | 'lastEventId';
+type HiddenOptions = 'apiKey' | 'lastEventId' | 'remoteConfigClient';
 
 export type ReactNativeOptions = Omit<Partial<ReactNativeConfig>, HiddenOptions>;
 
@@ -29,6 +30,7 @@ export interface ReactNativeConfig extends Omit<IConfig, 'requestMetadata'> {
   userId?: string;
   fetchRemoteConfig?: boolean;
   remoteConfig?: RemoteConfigOptions;
+  remoteConfigClient?: IRemoteConfigClient;
 }
 
 export interface ReactNativeAttributionOptions {
