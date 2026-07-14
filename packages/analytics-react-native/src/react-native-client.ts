@@ -29,12 +29,12 @@ import {
   RemoteConfigClient,
   RemoteConfig,
   Source,
-  updateClientConfigWithRemoteConfig,
 } from '@amplitude/analytics-core';
 import { CampaignTracker } from './campaign/campaign-tracker';
 import { Context } from './plugins/context';
 import { networkConnectivityCheckerPlugin } from './plugins/network-connectivity-checker';
 import { useReactNativeConfig, createCookieStorage, shouldFetchRemoteConfig } from './config';
+import { updateReactNativeConfigWithRemoteConfig } from './config/joined-config';
 import { parseOldCookies } from './cookie-migration';
 import { isNative } from './utils/platform';
 
@@ -151,7 +151,7 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
               ),
             );
             if (remoteConfig) {
-              updateClientConfigWithRemoteConfig(remoteConfig, reactNativeOptions);
+              updateReactNativeConfigWithRemoteConfig(remoteConfig, reactNativeOptions);
             }
             resolve();
           },
