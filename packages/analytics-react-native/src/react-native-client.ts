@@ -75,7 +75,12 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
     // let diagnosticsSampleRate: number;
     // let enableDiagnostics: boolean = false;
     if (fetchRemoteConfig) {
-      remoteConfigClient = new RemoteConfigClient(options.apiKey, loggerProvider, serverZone);
+      remoteConfigClient = new RemoteConfigClient(
+        options.apiKey,
+        loggerProvider,
+        serverZone,
+        options.remoteConfig?.serverUrl,
+      );
       if (IS_DIAGNOSTICS_CAPTURED) {
         await new Promise<void>((resolve) => {
           remoteConfigClient?.subscribe(
@@ -119,6 +124,7 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
     // Step 2: Create react native config
     const reactNativeOptions = await useReactNativeConfig(options.apiKey, {
       ...options,
+      loggerProvider,
       deviceId: options.deviceId ?? oldCookies.deviceId,
       sessionId: oldCookies.sessionId,
       optOut: options.optOut ?? oldCookies.optOut,
