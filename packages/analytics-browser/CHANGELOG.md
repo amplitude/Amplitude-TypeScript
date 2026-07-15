@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.45.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.44.6...@amplitude/analytics-browser@2.45.0) (2026-07-14)
+
+
+### Features
+
+* **analytics-browser:** enable event property attribution by default (SDKW-27) ([#1860](https://github.com/amplitude/Amplitude-TypeScript/issues/1860)) ([dfe6124](https://github.com/amplitude/Amplitude-TypeScript/commit/dfe6124169546843bb16fc44112670dc3a6e516c))
+
+
+
+
+
 ## [2.44.6](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.44.5...@amplitude/analytics-browser@2.44.6) (2026-07-13)
 
 **Note:** Version bump only for package @amplitude/analytics-browser
