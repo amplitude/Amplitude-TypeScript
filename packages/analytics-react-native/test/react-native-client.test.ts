@@ -7,11 +7,27 @@ import {
   Event,
   getAnalyticsConnector,
   getCookieName as getStorageKey,
+  RemoteConfigClient,
 } from '@amplitude/analytics-core';
 import { isWeb } from '../src/utils/platform';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Config from '../src/config';
 import * as NetworkChecker from '../src/plugins/network-connectivity-checker';
+import * as joinedConfig from '../src/config/joined-config';
+
+const mockRemoteConfigClient = {
+  subscribe: jest
+    .fn()
+    .mockImplementation(
+      (_configKey: string, _eventType: string, callback: (remoteConfig: any, source: any, lastFetch: Date) => void) => {
+        callback(null, 'cache', new Date());
+      },
+    ),
+  unsubscribe: jest.fn(),
+  updateConfigs: jest.fn(),
+};
+let MockedRemoteConfigClient: jest.SpyInstance;
+let originalRemoteConfigClient: typeof RemoteConfigClient;
 
 describe('react-native-client', () => {
   const API_KEY = 'API_KEY';
@@ -23,13 +39,31 @@ describe('react-native-client', () => {
     },
   };
 
+  beforeEach(() => {
+    originalRemoteConfigClient = core.RemoteConfigClient;
+    MockedRemoteConfigClient = jest.fn().mockImplementation(() => mockRemoteConfigClient);
+    Object.defineProperty(core, 'RemoteConfigClient', {
+      value: MockedRemoteConfigClient,
+      writable: true,
+      configurable: true,
+    });
+  });
+
   afterEach(async () => {
+    jest.clearAllMocks();
     // clean up cookies (web-only — RN has no `document`)
     if (typeof document !== 'undefined') {
       document.cookie = 'AMP_API_KEY=null; expires=-1';
     }
     if (!isWeb()) {
       await AsyncStorage.clear();
+    }
+    if (MockedRemoteConfigClient) {
+      Object.defineProperty(core, 'RemoteConfigClient', {
+        value: originalRemoteConfigClient,
+        writable: true,
+        configurable: true,
+      });
     }
   });
 
@@ -194,6 +228,110 @@ describe('react-native-client', () => {
         },
       });
       expect(track).toHaveBeenCalledTimes(1);
+    });
+
+    test('should NOT use remote config by default (opt-in)', async () => {
+      jest.spyOn(CookieMigration, 'parseOldCookies').mockResolvedValueOnce({
+        optOut: false,
+      });
+      const client = new AmplitudeReactNative();
+      await client.init(API_KEY, USER_ID, {
+        ...attributionConfig,
+      }).promise;
+      expect(MockedRemoteConfigClient).not.toHaveBeenCalled();
+    });
+
+    test('should use remote config when remoteConfig.fetchRemoteConfig is true', async () => {
+      jest.spyOn(CookieMigration, 'parseOldCookies').mockResolvedValueOnce({
+        optOut: false,
+      });
+      const client = new AmplitudeReactNative();
+      await client.init(API_KEY, USER_ID, {
+        remoteConfig: { fetchRemoteConfig: true },
+        ...attributionConfig,
+      }).promise;
+      expect(MockedRemoteConfigClient).toHaveBeenCalled();
+      expect(mockRemoteConfigClient.subscribe).toHaveBeenCalledWith(
+        'configs.analyticsSDK.browserSDK',
+        'all',
+        expect.any(Function),
+      );
+    });
+
+    test('should NOT use remote config when remoteConfig.fetchRemoteConfig is false', async () => {
+      jest.spyOn(CookieMigration, 'parseOldCookies').mockResolvedValueOnce({
+        optOut: false,
+      });
+      const client = new AmplitudeReactNative();
+      await client.init(API_KEY, USER_ID, {
+        remoteConfig: { fetchRemoteConfig: false },
+        ...attributionConfig,
+      }).promise;
+      expect(MockedRemoteConfigClient).not.toHaveBeenCalled();
+    });
+
+    test('should pass remoteConfig.serverUrl to RemoteConfigClient when provided', async () => {
+      jest.spyOn(CookieMigration, 'parseOldCookies').mockResolvedValueOnce({
+        optOut: false,
+      });
+      const customServerUrl = 'https://my-proxy.com/remote-config';
+      const client = new AmplitudeReactNative();
+      await client.init(API_KEY, USER_ID, {
+        remoteConfig: {
+          fetchRemoteConfig: true,
+          serverUrl: customServerUrl,
+        },
+        ...attributionConfig,
+      }).promise;
+
+      expect(MockedRemoteConfigClient).toHaveBeenCalledWith(API_KEY, expect.anything(), 'US', customServerUrl);
+    });
+
+    test('should call updateReactNativeConfigWithRemoteConfig when remoteConfig is not null', async () => {
+      jest.spyOn(CookieMigration, 'parseOldCookies').mockResolvedValueOnce({
+        optOut: false,
+      });
+      const mockRemoteConfig = {
+        autocapture: {
+          sessions: true,
+        },
+      };
+
+      const mockRemoteConfigClientWithData = {
+        subscribe: jest
+          .fn()
+          .mockImplementation(
+            (
+              _configKey: string,
+              _eventType: string,
+              callback: (remoteConfig: any, source: any, lastFetch: Date) => void,
+            ) => {
+              callback(mockRemoteConfig, 'cache', new Date());
+            },
+          ),
+        unsubscribe: jest.fn(),
+        updateConfigs: jest.fn(),
+      };
+
+      MockedRemoteConfigClient = jest.fn().mockImplementation(() => mockRemoteConfigClientWithData);
+      Object.defineProperty(core, 'RemoteConfigClient', {
+        value: MockedRemoteConfigClient,
+        writable: true,
+        configurable: true,
+      });
+
+      const updateReactNativeConfigSpy = jest.spyOn(joinedConfig, 'updateReactNativeConfigWithRemoteConfig');
+
+      const client = new AmplitudeReactNative();
+      await client.init(API_KEY, USER_ID, {
+        remoteConfig: { fetchRemoteConfig: true },
+        ...attributionConfig,
+      }).promise;
+
+      expect(updateReactNativeConfigSpy).toHaveBeenCalledTimes(1);
+      expect(updateReactNativeConfigSpy).toHaveBeenCalledWith(mockRemoteConfig, expect.any(Object));
+
+      updateReactNativeConfigSpy.mockRestore();
     });
   });
 

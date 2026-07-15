@@ -1,16 +1,27 @@
 import { IConfig } from './core-config';
 import { Storage } from '../storage';
 import { UserSession } from '../user-session';
-import { AutocaptureOptions, RemoteConfigOptions } from './browser-config';
+import { RemoteConfigOptions } from './browser-config';
+import { NetworkTrackingOptions } from '../network-tracking';
+import { IRemoteConfigClient } from '../../remote-config/remote-config';
 
-type HiddenOptions = 'apiKey' | 'lastEventId';
+export type AutocaptureOptionsReactNative = {
+  sessions?: boolean;
+  screenViews?: boolean;
+  appState?: boolean;
+  elementInteractions?: boolean;
+  networkTracking?: boolean | NetworkTrackingOptions;
+};
+
+type HiddenOptions = 'apiKey' | 'lastEventId' | 'remoteConfigClient';
 
 export type ReactNativeOptions = Omit<Partial<ReactNativeConfig>, HiddenOptions>;
 
 export interface ReactNativeConfig extends Omit<IConfig, 'requestMetadata'> {
   trackingOptions: ReactNativeTrackingOptions;
+  /* @deprecated this config is deprecated in favor of config.autocapture */
   trackingSessionEvents?: boolean;
-  autocapture?: boolean | AutocaptureOptions;
+  autocapture?: boolean | AutocaptureOptionsReactNative;
   migrateLegacyData?: boolean;
   appVersion?: string;
   attribution?: ReactNativeAttributionOptions;
@@ -28,8 +39,9 @@ export interface ReactNativeConfig extends Omit<IConfig, 'requestMetadata'> {
   sessionId?: number;
   sessionTimeout: number;
   userId?: string;
-  fetchRemoteConfig?: boolean;
+  /* @experimental this config is experimental pending GA of React Native autocapture */
   remoteConfig?: RemoteConfigOptions;
+  remoteConfigClient?: IRemoteConfigClient;
 }
 
 export interface ReactNativeAttributionOptions {

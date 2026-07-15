@@ -1,4 +1,5 @@
 import * as Config from '../src/config';
+import { shouldFetchRemoteConfig } from '../src/config';
 import * as LocalStorageModule from '../src/storage/local-storage';
 import * as core from '@amplitude/analytics-core';
 import { LogLevel, Storage, UserSession, getCookieName, FetchTransport } from '@amplitude/analytics-core';
@@ -386,5 +387,23 @@ describe('config', () => {
         });
       });
     }
+  });
+
+  describe('shouldFetchRemoteConfig', () => {
+    test('should return true when remoteConfig.fetchRemoteConfig is explicitly true', () => {
+      expect(shouldFetchRemoteConfig({ remoteConfig: { fetchRemoteConfig: true } })).toBe(true);
+    });
+
+    test('should return false when remoteConfig.fetchRemoteConfig is explicitly false', () => {
+      expect(shouldFetchRemoteConfig({ remoteConfig: { fetchRemoteConfig: false } })).toBe(false);
+    });
+
+    test('should return false when remoteConfig is undefined (opt-in default for React Native)', () => {
+      expect(shouldFetchRemoteConfig({})).toBe(false);
+    });
+
+    test('should return false when options is undefined', () => {
+      expect(shouldFetchRemoteConfig()).toBe(false);
+    });
   });
 });

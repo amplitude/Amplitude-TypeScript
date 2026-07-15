@@ -1,5 +1,5 @@
 import {
-  AutocaptureOptions,
+  AutocaptureOptionsReactNative,
   RemoteConfig,
   ReactNativeConfig,
   NetworkTrackingOptionsRemoteConfig,
@@ -8,7 +8,7 @@ import {
   transformNetworkTrackingRemoteConfig,
 } from '@amplitude/analytics-core';
 
-export interface AutocaptureOptionsRemoteConfig extends AutocaptureOptions {
+export interface AutocaptureOptionsRemoteConfig extends AutocaptureOptionsReactNative {
   networkTracking?: boolean | NetworkTrackingOptionsRemoteConfig;
 }
 
@@ -75,13 +75,10 @@ export function updateReactNativeConfigWithRemoteConfig(
 
         if (typeof reactNativeConfig.autocapture === 'boolean') {
           reactNativeConfig.autocapture = {
-            attribution: reactNativeConfig.autocapture,
-            fileDownloads: reactNativeConfig.autocapture,
-            formInteractions: reactNativeConfig.autocapture,
-            pageViews: reactNativeConfig.autocapture,
+            screenViews: reactNativeConfig.autocapture,
             sessions: reactNativeConfig.autocapture,
-            webVitals: reactNativeConfig.autocapture,
-            frustrationInteractions: reactNativeConfig.autocapture,
+            appState: reactNativeConfig.autocapture,
+            elementInteractions: reactNativeConfig.autocapture,
             ...transformedAutocaptureRemoteConfig,
           };
         }

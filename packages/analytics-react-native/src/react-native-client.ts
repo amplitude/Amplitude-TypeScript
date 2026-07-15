@@ -81,6 +81,8 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
         serverZone,
         /* istanbul ignore next */ options.remoteConfig?.serverUrl,
       );
+      // Diagnostics capture is intentionally disabled for React Native until ready.
+      /* istanbul ignore if */
       if (IS_DIAGNOSTICS_CAPTURED) {
         await new Promise<void>((resolve) => {
           remoteConfigClient?.subscribe(
@@ -160,6 +162,7 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
     }
 
     await super._init(reactNativeOptions);
+    this.config.remoteConfigClient = remoteConfigClient;
 
     // Set up the analytics connector to integrate with the experiment SDK.
     // Send events from the experiment SDK and forward identifies to the

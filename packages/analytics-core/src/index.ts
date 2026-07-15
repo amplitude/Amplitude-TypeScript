@@ -145,6 +145,8 @@ export {
 } from './types/config/browser-config';
 export { BrowserClient } from './types/client/browser-client';
 
+export { AutocaptureOptionsReactNative } from './types/config/react-native-config';
+
 // Node
 export { NodeClient } from './types/client/node-client';
 export { NodeConfig, NodeOptions } from './types/config/node-config';

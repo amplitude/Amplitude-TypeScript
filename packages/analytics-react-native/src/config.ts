@@ -331,14 +331,14 @@ export const getTopLevelDomain = async (url?: string) => {
  * Extracted to allow early determination before useBrowserConfig is called.
  */
 export const shouldFetchRemoteConfig = (options: ReactNativeOptions = {}): boolean => {
-  if (options.remoteConfig?.fetchRemoteConfig === true || options.fetchRemoteConfig === true) {
-    // set to true if either are set to true explicitly
+  if (options.remoteConfig?.fetchRemoteConfig === true) {
+    // set to true if remoteConfig.fetchRemoteConfig is set to true explicitly
     return true;
-  } else if (options.remoteConfig?.fetchRemoteConfig === false || options.fetchRemoteConfig === false) {
-    // set to false if either are set to false explicitly
+  } else if (options.remoteConfig?.fetchRemoteConfig === false) {
+    // set to false if remoteConfig.fetchRemoteConfig is set to false explicitly
     return false;
   } else {
-    // default to false if both undefined (opt-in for React Native)
+    // default to false if undefined (opt-in for React Native)
     // TODO: this could be revised in the future to match behaviour of browser
     return false;
   }

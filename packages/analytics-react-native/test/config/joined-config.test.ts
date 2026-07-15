@@ -32,13 +32,10 @@ describe('joined-config', () => {
         localConfig,
       );
       expect(localConfig.autocapture).toEqual({
-        attribution: false,
-        fileDownloads: false,
-        formInteractions: false,
-        pageViews: false,
+        screenViews: false,
         sessions: true,
-        webVitals: false,
-        frustrationInteractions: false,
+        appState: false,
+        elementInteractions: false,
       });
     });
 
@@ -88,7 +85,7 @@ describe('joined-config', () => {
       );
     });
 
-    test('should merge local and remote autocapture without elementInteractions expansion', () => {
+    test('should expand boolean local autocapture and merge remote overrides', () => {
       localConfig = useDefaultConfig({
         autocapture: true,
       });
@@ -100,18 +97,14 @@ describe('joined-config', () => {
       };
 
       const expectedAutocapture = {
+        screenViews: true,
         sessions: false,
-        fileDownloads: true,
-        formInteractions: true,
-        pageViews: true,
-        attribution: true,
-        frustrationInteractions: true,
-        webVitals: true,
+        appState: true,
+        elementInteractions: true,
       };
 
       updateReactNativeConfigWithRemoteConfig(remoteConfig, localConfig);
       expect(localConfig.autocapture).toStrictEqual(expectedAutocapture);
-      expect(localConfig.autocapture).not.toHaveProperty('elementInteractions');
     });
 
     describe('networkTracking', () => {
