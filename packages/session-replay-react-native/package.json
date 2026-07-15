@@ -29,11 +29,11 @@
     "build": "bob build",
     "clean": "rimraf node_modules lib coverage",
     "fix": "pnpm fix:eslint & pnpm fix:prettier",
-    "fix:eslint": "eslint '{src,test}/**/*.{ts,tsx}' --fix",
-    "fix:prettier": "prettier --write \"{src,test}/**/*.{ts,tsx}\"",
+    "fix:eslint": "eslint '{src,test}/**/*.ts' --fix",
+    "fix:prettier": "prettier --write \"{src,test}/**/*.ts\"",
     "lint": "pnpm lint:prettier && pnpm lint:eslint",
-    "lint:eslint": "eslint '{src,test}/**/*.{ts,tsx}'",
-    "lint:prettier": "prettier --check \"{src,test}/**/*.{ts,tsx}\"",
+    "lint:eslint": "eslint '{src,test}/**/*.ts'",
+    "lint:prettier": "prettier --check \"{src,test}/**/*.ts\"",
     "test": "jest",
     "typecheck": "tsc -p ./tsconfig.json --noEmit",
     "version": "pnpm version-file && pnpm build",
@@ -80,15 +80,10 @@
   },
   "codegenConfig": {
     "name": "AmpSessionReplaySpec",
-    "type": "all",
+    "type": "modules",
     "jsSrcsDir": "src/specs",
     "android": {
       "javaPackageName": "com.amplitude.sessionreplayreactnative"
-    },
-    "ios": {
-      "componentProvider": {
-        "SRMaskView": "SRMaskView"
-      }
     }
   },
   "react-native-builder-bob": {
