@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.2.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/element-selector@0.2.0...@amplitude/element-selector@0.2.1) (2026-07-15)
+
+
+### Bug Fixes
+
+* **autocapture:** use correct elementSelector remote config key ([#1884](https://github.com/amplitude/Amplitude-TypeScript/issues/1884)) ([0132562](https://github.com/amplitude/Amplitude-TypeScript/commit/013256227756f3073ceeef61e515ceb806ea45af))
+
+
+
+
+
 # 0.2.0 (2026-06-22)
 
 

@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.28.6](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.28.5...@amplitude/plugin-autocapture-browser@1.28.6) (2026-07-15)
+
+
+### Bug Fixes
+
+* **autocapture:** use correct elementSelector remote config key ([#1884](https://github.com/amplitude/Amplitude-TypeScript/issues/1884)) ([0132562](https://github.com/amplitude/Amplitude-TypeScript/commit/013256227756f3073ceeef61e515ceb806ea45af))
+
+
+
+
+
 ## [1.28.5](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.28.4...@amplitude/plugin-autocapture-browser@1.28.5) (2026-07-14)
 
 **Note:** Version bump only for package @amplitude/plugin-autocapture-browser
