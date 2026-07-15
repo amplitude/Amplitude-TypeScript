@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.1.16](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-custom-enrichment-browser@0.1.15...@amplitude/plugin-custom-enrichment-browser@0.1.16) (2026-07-14)
+
+**Note:** Version bump only for package @amplitude/plugin-custom-enrichment-browser
+
+
+
+
+
 ## [0.1.15](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-custom-enrichment-browser@0.1.14...@amplitude/plugin-custom-enrichment-browser@0.1.15) (2026-07-13)
 
 **Note:** Version bump only for package @amplitude/plugin-custom-enrichment-browser

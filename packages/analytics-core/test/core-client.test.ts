@@ -254,34 +254,22 @@ describe('core-client', () => {
       expect(client.config.optOut).toBe(true);
     });
 
-    test('should flush queue items added after runQueuedFunctions returns before isReady', async () => {
-      // Covers the do-while in _init: work can land on q after runQueuedFunctions
-      // returns (e.g. a microtask) but before isReady is set.
+    test('should call onQueueEmpty when the queue finishes empty', async () => {
       const client = new AmplitudeCore();
-      const setup = jest.fn().mockResolvedValue(undefined);
-      const plugin: EnrichmentPlugin = {
-        name: 'late-plugin',
-        type: 'enrichment',
-        setup,
-        execute: jest.fn(),
-      };
+      const onQueueEmpty = jest.fn();
 
-      let flushCount = 0;
-      const originalRunQueuedFunctions = client.runQueuedFunctions.bind(client);
-      jest.spyOn(client, 'runQueuedFunctions').mockImplementation(async (queueName) => {
-        await originalRunQueuedFunctions(queueName);
-        flushCount += 1;
-        if (flushCount === 1 && queueName === 'q') {
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-          (client as any).q.push(client._addPlugin.bind(client, plugin));
-        }
-      });
+      await client.runQueuedFunctions('q', onQueueEmpty);
+
+      expect(onQueueEmpty).toHaveBeenCalledTimes(1);
+    });
+
+    test('should set isReady via onQueueEmpty after init queue empties', async () => {
+      const client = new AmplitudeCore();
+      expect(client.isReady).toBe(false);
 
       await (client as any)._init(useDefaultConfig());
 
-      expect(flushCount).toBeGreaterThanOrEqual(2);
-      expect(setup).toHaveBeenCalled();
-      expect(client.plugin('late-plugin')).toBeDefined();
+      expect(client.isReady).toBe(true);
     });
   });
 

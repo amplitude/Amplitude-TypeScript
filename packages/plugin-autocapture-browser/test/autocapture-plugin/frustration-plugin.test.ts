@@ -128,7 +128,11 @@ describe('frustrationPlugin', () => {
         instance,
       );
 
-      expect(subscribe).toHaveBeenCalledWith('configs.analyticsSDK.elementSelector', 'all', expect.any(Function));
+      expect(subscribe).toHaveBeenCalledWith(
+        'configs.analyticsSDK.browserSDK.autocapture.elementSelector',
+        'all',
+        expect.any(Function),
+      );
 
       await plugin?.teardown?.();
       expect(unsubscribe).toHaveBeenCalledWith('es-sub');
