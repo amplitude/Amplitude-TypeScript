@@ -284,12 +284,13 @@ function rectToString(r: LayoutRect | null): string {
     : 'pending';
 }
 
+// The two parity wrappers are stacked siblings, so y necessarily differs;
+// parity means identical x/width/height.
 function rectsEqual(a: LayoutRect | null, b: LayoutRect | null): boolean {
   return (
     a !== null &&
     b !== null &&
     Math.abs(a.x - b.x) < 0.5 &&
-    Math.abs(a.y - b.y) < 0.5 &&
     Math.abs(a.width - b.width) < 0.5 &&
     Math.abs(a.height - b.height) < 0.5
   );
