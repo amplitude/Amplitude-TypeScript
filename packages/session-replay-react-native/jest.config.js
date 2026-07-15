@@ -10,6 +10,11 @@ module.exports = {
   modulePathIgnorePatterns: ['<rootDir>/lib/'],
   testPathIgnorePatterns: [...(baseConfig.testPathIgnorePatterns || []), '<rootDir>/example/', '<rootDir>/lib/'],
   moduleFileExtensions: ['tsx', 'ts', 'js', 'jsx', 'json'],
+  moduleNameMapper: {
+    // The codegen spec imports this deep RN submodule path, which the manual
+    // __mocks__/react-native.ts mock does not cover; see the mock for details.
+    '^react-native/Libraries/Utilities/codegenNativeComponent$': '<rootDir>/test/__mocks__/codegenNativeComponent.ts',
+  },
   transformIgnorePatterns: [
     'node_modules/(?!(.pnpm|@react-native|react-native|@segment)/)',
   ],

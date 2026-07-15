@@ -13,4 +13,4 @@ export { type SessionReplayConfig, type MaskLevel, type PrivacyConfig } from './
 export { SessionReplayPlugin } from './plugin-session-replay';
 export type { SessionReplayPluginConfig } from './plugin-session-replay-config';
 
-export { AmpMaskView } from './amp-mask-view';
+export { AmpMaskView, type AmpMaskViewProps } from './amp-mask-view';

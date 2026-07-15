@@ -80,10 +80,15 @@
   },
   "codegenConfig": {
     "name": "AmpSessionReplaySpec",
-    "type": "modules",
+    "type": "all",
     "jsSrcsDir": "src/specs",
     "android": {
       "javaPackageName": "com.amplitude.sessionreplayreactnative"
+    },
+    "ios": {
+      "componentProvider": {
+        "AMPMaskComponentView": "AMPMaskComponentView"
+      }
     }
   },
   "react-native-builder-bob": {
