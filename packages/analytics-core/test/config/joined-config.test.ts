@@ -1,6 +1,99 @@
-import { translateRemoteConfigToLocal, SAFE_HEADERS } from '../../src/index';
+import {
+  translateRemoteConfigToLocal,
+  mergeUrls,
+  transformNetworkTrackingRemoteConfig,
+  SAFE_HEADERS,
+  ILogger,
+} from '../../src/index';
+
+const createMockLogger = (): { logger: ILogger; warn: jest.Mock } => {
+  const warn = jest.fn();
+  return {
+    warn,
+    logger: {
+      disable: jest.fn(),
+      enable: jest.fn(),
+      log: jest.fn(),
+      warn,
+      error: jest.fn(),
+      debug: jest.fn(),
+    },
+  };
+};
 
 describe('joined-config', () => {
+  describe('mergeUrls', () => {
+    test('should append valid regex patterns to exact urls', () => {
+      const { logger, warn } = createMockLogger();
+      const result = mergeUrls(
+        ['https://example.com/path', /path\/to/],
+        ['^https://.*\\.example\\.com$', '.*\\.amplitude\\.com$'],
+        logger,
+      );
+      expect(result).toEqual([
+        'https://example.com/path',
+        /path\/to/,
+        /^https:\/\/.*\.example\.com$/,
+        /.*\.amplitude\.com$/,
+      ]);
+      expect(warn).not.toHaveBeenCalled();
+    });
+
+    test('should skip invalid regex patterns and warn', () => {
+      const { logger, warn } = createMockLogger();
+      const result = mergeUrls([], ['^https://.*\\.example\\.com$', '***', '.*\\.amplitude\\.com$'], logger);
+      expect(result).toEqual([/^https:\/\/.*\.example\.com$/, /.*\.amplitude\.com$/]);
+      expect(warn).toHaveBeenCalledWith('Invalid regex pattern: ***', expect.anything());
+    });
+
+    test('should return exact urls when urlsRegex is undefined', () => {
+      const { logger } = createMockLogger();
+      const result = mergeUrls(['https://example.com'], undefined, logger);
+      expect(result).toEqual(['https://example.com']);
+    });
+  });
+
+  describe('transformNetworkTrackingRemoteConfig', () => {
+    test('should merge urls and urlsRegex on capture rules', () => {
+      const { logger } = createMockLogger();
+      const result = transformNetworkTrackingRemoteConfig(
+        {
+          captureRules: [
+            {
+              urls: ['https://example.com/path'],
+              urlsRegex: ['^https://.*\\.example\\.com$'],
+            },
+          ],
+        },
+        logger,
+      );
+
+      expect(result?.captureRules?.[0].urls).toEqual(['https://example.com/path', /^https:\/\/.*\.example\.com$/]);
+      expect(result?.captureRules?.[0]).not.toHaveProperty('urlsRegex');
+    });
+
+    test('should merge urlsRegex when urls is undefined', () => {
+      const { logger } = createMockLogger();
+      const result = transformNetworkTrackingRemoteConfig(
+        {
+          captureRules: [{ urlsRegex: ['^https://.*\\.example\\.com$'] }],
+        },
+        logger,
+      );
+
+      expect(result?.captureRules?.[0].urls).toEqual([/^https:\/\/.*\.example\.com$/]);
+      expect(result?.captureRules?.[0]).not.toHaveProperty('urlsRegex');
+    });
+
+    test('should return undefined when networkTracking is not an object with captureRules', () => {
+      const { logger } = createMockLogger();
+      expect(transformNetworkTrackingRemoteConfig(true, logger)).toBeUndefined();
+      expect(transformNetworkTrackingRemoteConfig(null as unknown as undefined, logger)).toBeUndefined();
+      expect(transformNetworkTrackingRemoteConfig({}, logger)).toBeUndefined();
+      expect(transformNetworkTrackingRemoteConfig(undefined, logger)).toBeUndefined();
+    });
+  });
+
   describe('translateRemoteConfigToLocal', () => {
     describe('should translate property to true when', () => {
       test('enabled is true and object has no other properties', () => {

@@ -2,53 +2,23 @@ import {
   AutocaptureOptions,
   RemoteConfig,
   ReactNativeConfig,
-  NetworkTrackingOptions,
-  NetworkCaptureRule,
+  NetworkTrackingOptionsRemoteConfig,
   safeJsonStringify,
   translateRemoteConfigToLocal,
+  transformNetworkTrackingRemoteConfig,
 } from '@amplitude/analytics-core';
 
 export interface AutocaptureOptionsRemoteConfig extends AutocaptureOptions {
   networkTracking?: boolean | NetworkTrackingOptionsRemoteConfig;
 }
 
-export interface NetworkCaptureRuleRemoteConfig extends NetworkCaptureRule {
-  /**
-   * Related to urls but holds regex strings which will be initialized and appended to urls
-   */
-  urlsRegex?: string[];
-}
-
-export interface NetworkTrackingOptionsRemoteConfig extends NetworkTrackingOptions {
-  /**
-   * Related to urls but holds regex strings which will be initialized and appended to urls
-   */
-  captureRules?: NetworkCaptureRuleRemoteConfig[];
-}
+export type { NetworkCaptureRuleRemoteConfig, NetworkTrackingOptionsRemoteConfig } from '@amplitude/analytics-core';
 
 // Remote config currently delivers browserSDK-shaped payloads to React Native.
 // Apply the same join/translations as browser, except elementInteractions.
 type RemoteConfigReactNativeSDK = {
   autocapture?: AutocaptureOptionsRemoteConfig | boolean;
 };
-
-function mergeUrls(
-  urlsExact: (string | RegExp)[],
-  urlsRegex: string[] | undefined,
-  reactNativeConfig: ReactNativeConfig,
-) {
-  // Convert string patterns to RegExp objects, warn on invalid patterns and skip them
-  const regexList = [];
-  for (const pattern of urlsRegex ?? []) {
-    try {
-      regexList.push(new RegExp(pattern));
-    } catch (regexError) {
-      reactNativeConfig.loggerProvider.warn(`Invalid regex pattern: ${pattern}`, regexError);
-    }
-  }
-
-  return urlsExact.concat(regexList);
-}
 
 /**
  * Updates the React Native config in place by applying remote configuration settings.
@@ -95,21 +65,12 @@ export function updateReactNativeConfigWithRemoteConfig(
         }
 
         // Handle Network Tracking config initialization
-        if (
-          typeof typedRemoteConfig.autocapture.networkTracking === 'object' &&
-          typedRemoteConfig.autocapture.networkTracking !== null &&
-          typedRemoteConfig.autocapture.networkTracking.captureRules?.length
-        ) {
-          transformedAutocaptureRemoteConfig.networkTracking = {
-            ...typedRemoteConfig.autocapture.networkTracking,
-          };
-          const transformedRcNetworkTracking = transformedAutocaptureRemoteConfig.networkTracking;
-          /* istanbul ignore next */
-          const captureRules = transformedRcNetworkTracking.captureRules ?? [];
-          for (const rule of captureRules) {
-            rule.urls = mergeUrls(rule.urls ?? [], rule.urlsRegex, reactNativeConfig);
-            delete rule.urlsRegex;
-          }
+        const transformedNetworkTracking = transformNetworkTrackingRemoteConfig(
+          typedRemoteConfig.autocapture.networkTracking,
+          reactNativeConfig.loggerProvider,
+        );
+        if (transformedNetworkTracking) {
+          transformedAutocaptureRemoteConfig.networkTracking = transformedNetworkTracking;
         }
 
         if (typeof reactNativeConfig.autocapture === 'boolean') {
