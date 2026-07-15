@@ -65,7 +65,11 @@ using namespace facebook::react;
 
 @end
 
-Class AMPMaskComponentViewCls(void)
+// extern "C": RN <= 0.76 generates RCTThirdPartyFabricComponentsProvider.mm
+// declaring this lookup function with C linkage; without it the app link on
+// those versions fails with "Undefined symbols: _AMPMaskComponentViewCls".
+// RN >= 0.77 resolves the class by name (NSClassFromString) and ignores this.
+extern "C" Class AMPMaskComponentViewCls(void)
 {
   return AMPMaskComponentView.class;
 }
