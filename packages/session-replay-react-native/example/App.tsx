@@ -24,7 +24,6 @@ import {
   Switch,
   Text,
   TextInput,
-  UIManager,
   View,
 } from 'react-native';
 import { WebView } from 'react-native-webview';
@@ -43,9 +42,6 @@ import {
   getSessionReplayProperties,
   setSessionId,
   setDeviceId,
-  AmpMask,
-  AmpUnmask,
-  AmpMaskView,
 } from '@amplitude/session-replay-react-native';
 
 const g = global as unknown as {
@@ -55,9 +51,6 @@ const g = global as unknown as {
 };
 const isTurboModule = g.__turboModuleProxy != null || g.RN$Bridgeless === true;
 const isFabric = g.nativeFabricUIManager != null;
-// Same New Architecture check the library uses to select the AmpMask
-// implementation (src/index.tsx) — keep the two in sync.
-const isNewArch = g.RN$Bridgeless === true || g.nativeFabricUIManager != null;
 const rnv = Platform.constants?.reactNativeVersion;
 const rnVersion = rnv ? `${rnv.major}.${rnv.minor}.${rnv.patch}` : 'unknown';
 
@@ -75,7 +68,6 @@ type RootStackParamList = {
   Form: undefined;
   Gallery: undefined;
   Web: undefined;
-  Mask: undefined;
 };
 
 type HomeProps = NativeStackScreenProps<RootStackParamList, 'Home'>;
@@ -180,7 +172,6 @@ function HomeScreen({ navigation }: HomeProps): React.JSX.Element {
           <Button title="Form" onPress={() => navigation.navigate('Form')} />
           <Button title="Gallery" onPress={() => navigation.navigate('Gallery')} />
           <Button title="Web" onPress={() => navigation.navigate('Web')} />
-          <Button title="Mask" onPress={() => navigation.navigate('Mask')} />
         </View>
 
         <Text style={styles.heading}>Log</Text>
@@ -273,123 +264,6 @@ function WebScreen(): React.JSX.Element {
   );
 }
 
-type MaskDemoWrapper = 'none' | 'ampmask' | 'ampmaskview';
-
-/**
- * One layout-neutrality row: the same flex:1 child inside a fixed-height slot,
- * under one wrapper. The child's measured onLayout frame is printed next to
- * the label so zero layout shift can be verified by eye: the <AmpMask> row
- * must measure identical to the bare row, while the legacy <AmpMaskView> row
- * collapses the child to height 0 on the New Architecture.
- */
-function MaskDemoRow({
-  label,
-  wrapper,
-}: {
-  label: string;
-  wrapper: MaskDemoWrapper;
-}): React.JSX.Element {
-  const [frame, setFrame] = useState('measuring…');
-  const child = (
-    <View
-      style={styles.maskFill}
-      onLayout={(e) => {
-        const { width, height } = e.nativeEvent.layout;
-        setFrame(
-          `${Math.round(width * 10) / 10}×${Math.round(height * 10) / 10}`,
-        );
-      }}
-    >
-      <Text style={styles.maskFillText}>flex:1 child</Text>
-    </View>
-  );
-  return (
-    <View style={styles.maskRow}>
-      <Text style={styles.maskRowLabel}>
-        {label} · <Text style={styles.maskRowFrame}>{frame}</Text>
-      </Text>
-      <View style={styles.maskSlot}>
-        {wrapper === 'none' && child}
-        {wrapper === 'ampmask' && <AmpMask>{child}</AmpMask>}
-        {wrapper === 'ampmaskview' && (
-          <AmpMaskView mask="amp-mask">{child}</AmpMaskView>
-        )}
-      </View>
-    </View>
-  );
-}
-
-function MaskScreen(): React.JSX.Element {
-  const [secret, setSecret] = useState('4242-4242-4242-4242');
-
-  if (!isNewArch) {
-    return (
-      <SafeAreaView style={styles.root}>
-        <View style={styles.bodyContent}>
-          <Text style={styles.heading}>
-            {'<AmpMask> requires the New Architecture'}
-          </Text>
-          <Text style={styles.note}>
-            This app is running on the Old Architecture (Paper). Rebuild with
-            newArchEnabled=true (Android) / RCT_NEW_ARCH_ENABLED=1 (iOS) to try
-            {' <AmpMask>/<AmpUnmask>, or use <AmpMaskView>, which supports '}
-            both architectures (but is not layout-transparent).
-          </Text>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
-  return (
-    <SafeAreaView style={styles.root}>
-      <ScrollView contentContainerStyle={styles.bodyContent}>
-        <Text style={styles.metaText}>
-          RN$Bridgeless: {String(g.RN$Bridgeless)} · Native SRMaskView:{' '}
-          {UIManager.hasViewManagerConfig?.('SRMaskView')
-            ? 'available'
-            : 'missing'}
-        </Text>
-
-        <Text style={styles.heading}>
-          Layout neutrality (flex:1 child in a fixed-height slot)
-        </Text>
-        <Text style={styles.note}>
-          All three rows render the same flex:1 child in a 96px slot.
-          {' <AmpMask> is layout-transparent, so row 2 must measure identical '}
-          to row 1. The legacy wrapper in row 3 introduces a layout boundary:
-          on the New Architecture the child collapses to height 0.
-        </Text>
-        <MaskDemoRow label="1. bare <View>" wrapper="none" />
-        <MaskDemoRow label="2. <AmpMask> wrapped" wrapper="ampmask" />
-        <MaskDemoRow label="3. <AmpMaskView> wrapped (legacy)" wrapper="ampmaskview" />
-
-        <Text style={styles.heading}>Replay masking</Text>
-        <AmpMask>
-          <Text style={styles.label}>Masked text: SECRET-1234</Text>
-          <TextInput
-            style={styles.input}
-            value={secret}
-            onChangeText={setSecret}
-          />
-        </AmpMask>
-        <AmpMask maskLevel="block">
-          <Text style={styles.label}>
-            {'Blocked text (maskLevel="block")'}
-          </Text>
-        </AmpMask>
-        <AmpUnmask>
-          <Text style={styles.label}>Unmasked text: visible in replay</Text>
-        </AmpUnmask>
-        <Text style={styles.note}>
-          Start recording on the Home screen, interact here, then check the
-          replay: the masked/blocked content above must be obscured while the
-          unmasked text stays visible.
-        </Text>
-      </ScrollView>
-    </SafeAreaView>
-  );
-}
-
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export default function App(): React.JSX.Element {
@@ -404,7 +278,6 @@ export default function App(): React.JSX.Element {
         <Stack.Screen name="Form" component={FormScreen} />
         <Stack.Screen name="Gallery" component={GalleryScreen} />
         <Stack.Screen name="Web" component={WebScreen} />
-        <Stack.Screen name="Mask" component={MaskScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
@@ -459,28 +332,4 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: Platform.select({ ios: 'Menlo', default: 'monospace' }),
   },
-  maskRow: { marginBottom: 12 },
-  maskRowLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#374151',
-    marginBottom: 4,
-  },
-  maskRowFrame: { color: '#2563eb', fontWeight: '400' },
-  maskSlot: {
-    height: 96,
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 8,
-    padding: 4,
-    backgroundColor: '#f3f4f6',
-  },
-  maskFill: {
-    flex: 1,
-    backgroundColor: '#dbeafe',
-    borderRadius: 6,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  maskFillText: { fontSize: 13, color: '#1e40af', fontWeight: '600' },
 });
