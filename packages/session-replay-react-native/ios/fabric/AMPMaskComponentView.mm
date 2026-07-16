@@ -57,8 +57,9 @@ using namespace facebook::react;
 
 - (void)prepareForRecycle
 {
-  // Fabric reuses component-view instances under new tags; without this reset
-  // a recycled view would leak the previous incarnation's mask/unmask marker.
+  // Fabric reuses component-view instances under new tags; reset to the
+  // masked (fail-closed) state so a recycled view never inherits a stale
+  // UNMASKED marker before updateProps re-applies its real mask value.
   [AmpMaskApplier resetView:self];
   [super prepareForRecycle];
 }

@@ -58,7 +58,7 @@ await add(new SessionReplayPlugin(config)).promise;
 
 ## Masking views
 
-To maks certain views, add the `AmpMaskView` tag with the mask property `amp-mask` around the section to be masked
+To mask certain views, add the `AmpMaskView` tag with the mask property `amp-mask` around the section to be masked
 
 `<AmpMaskView>` lays out exactly like a plain `<View>` and works on both React Native architectures: on the New Architecture it is a native Fabric component, on the old architecture it uses the classic view managers.
 

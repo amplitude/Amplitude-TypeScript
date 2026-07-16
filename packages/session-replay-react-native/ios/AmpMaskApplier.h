@@ -12,8 +12,9 @@ NS_ASSUME_NONNULL_BEGIN
 // safe to masking. Same mapping as the legacy AMPMaskComponentViewManager.
 + (void)applyMask:(NSString *)mask toView:(UIView *)view;
 
-// Clears masking state on a view about to be recycled so a reused native
-// instance cannot leak a previous incarnation's mask/unmask marker.
+// Resets a view about to be recycled to the masked (fail-closed) state, so a
+// reused native instance cannot inherit a previous incarnation's UNMASKED
+// marker and expose content before updateProps re-applies its real mask value.
 + (void)resetView:(UIView *)view;
 
 @end
