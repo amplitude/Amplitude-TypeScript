@@ -82,7 +82,9 @@ export interface ReactNativeClient extends Client {
    * ```
    *
    * @param navigationState The React Navigation state after a navigation change.
-   *   No-ops when `undefined` (as React Navigation may emit on first mount).
+   *   No-ops when `undefined` (as React Navigation may emit on first mount),
+   *   or when the focused leaf route name is unchanged (avoids duplicate screen views
+   *   from param/history-only state updates).
    * @param eventProperties Additional event properties to include in the event.
    * @param eventOptions Additional event options to include in the event.
    */

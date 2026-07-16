@@ -1174,5 +1174,42 @@ describe('react-native-client', () => {
       expect(client.trackNavigationStateChange(undefined)).toBeUndefined();
       expect(track).not.toHaveBeenCalled();
     });
+
+    test('should not track duplicate screen views for the same focused route', () => {
+      const client = new AmplitudeReactNative();
+      const track = jest.spyOn(client, 'track');
+      const homeState = {
+        index: 0,
+        routes: [{ name: 'Home' }],
+      };
+
+      client.trackNavigationStateChange(homeState);
+      client.trackNavigationStateChange(homeState);
+      expect(track).toHaveBeenCalledTimes(1);
+
+      client.trackNavigationStateChange({
+        index: 0,
+        routes: [{ name: 'Settings' }],
+      });
+      expect(track).toHaveBeenCalledTimes(2);
+      expect(track).toHaveBeenLastCalledWith(
+        DEFAULT_SCREEN_VIEWED_EVENT,
+        {
+          [SCREEN_NAME]: 'Settings',
+        },
+        undefined,
+      );
+
+      // Returning to a previously viewed screen should track again.
+      client.trackNavigationStateChange(homeState);
+      expect(track).toHaveBeenCalledTimes(3);
+      expect(track).toHaveBeenLastCalledWith(
+        DEFAULT_SCREEN_VIEWED_EVENT,
+        {
+          [SCREEN_NAME]: 'Home',
+        },
+        undefined,
+      );
+    });
   });
 });

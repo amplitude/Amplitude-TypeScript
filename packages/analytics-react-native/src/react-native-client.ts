@@ -84,6 +84,12 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
    * (e.g. skip iOS inactive→active from Control Center overlays).
    */
   private wasBackgrounded = false;
+  /**
+   * Last focused leaf route name emitted by `trackNavigationStateChange`.
+   * Dedupes React Navigation `onStateChange` callbacks that only change params,
+   * history shape, or fire twice for the same visible screen (common with tabs).
+   */
+  private lastNavigationScreenName: string | undefined;
   private appStateChangeHandler: NativeEventSubscription | undefined;
   explicitSessionId: number | undefined;
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -131,6 +137,8 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
     }
     // Drop any background seen before this init so Opened cannot fire unpaired.
     this.wasBackgrounded = false;
+    // Allow the first navigation screen view after re-init.
+    this.lastNavigationScreenName = undefined;
 
     // Set up the analytics connector to integrate with the experiment SDK.
     // Send events from the experiment SDK and forward identifies to the
@@ -300,9 +308,10 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
       return;
     }
     const screenName = getActiveRouteName(navigationState);
-    if (!screenName) {
+    if (!screenName || screenName === this.lastNavigationScreenName) {
       return;
     }
+    this.lastNavigationScreenName = screenName;
     return this.trackScreenView(screenName, eventProperties, eventOptions);
   }
 

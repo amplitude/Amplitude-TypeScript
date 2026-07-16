@@ -17,8 +17,10 @@ let client: Types.ReactNativeClient;
 
 describe('autocapture.networkTracking', () => {
   let capture: EventCapture;
+  let originalFetch: typeof global.fetch;
 
   beforeEach(async () => {
+    originalFetch = global.fetch;
     client = createInstance();
     capture = createEventCapture();
     client.add(capture.plugin);
@@ -32,6 +34,7 @@ describe('autocapture.networkTracking', () => {
       autocapture: {
         appLifecycles: false,
         sessions: false,
+        screenViews: false,
         networkTracking: true,
       },
     } as any).promise;
@@ -39,6 +42,10 @@ describe('autocapture.networkTracking', () => {
 
   afterEach(() => {
     capture.clear();
+  });
+
+  it('monkey-patches fetch', async () => {
+    expect(global.fetch).not.toBe(originalFetch);
   });
 
   it('tracks requests with a 500 status code', async () => {
@@ -58,5 +65,42 @@ describe('autocapture.networkTracking', () => {
     // Default network tracking only captures 500–599 when no captureRules are set.
     await new Promise((resolve) => setTimeout(resolve, 500));
     expect(capture.events.map((e) => e.event_type)).toEqual([]);
+  });
+});
+
+describe('autocapture.networkTracking=false', () => {
+  let capture: EventCapture;
+  let originalFetch: typeof global.fetch;
+  beforeEach(async () => {
+    originalFetch = global.fetch;
+    client = createInstance();
+    capture = createEventCapture();
+    client.add(capture.plugin);
+
+    await client.init(API_KEY, 'harness-user', {
+      flushQueueSize: 1,
+      logLevel: Types.LogLevel.None,
+      attribution: {
+        disabled: true,
+      },
+      autocapture: {
+        appLifecycles: false,
+        sessions: false,
+        screenViews: false,
+        networkTracking: false,
+      },
+    } as any).promise;
+  });
+
+  it('does not monkey-patch fetch', async () => {
+    expect(global.fetch).toBe(originalFetch);
+  });
+
+  it('does not track requests with a 500 status code', async () => {
+    const res = await fetch(mockApiUrl('/api/status/500'));
+    expect(res.status).toBe(500);
+
+    await capture.waitForEvents(0, 100);
+    expect(capture.events).toHaveLength(0);
   });
 });

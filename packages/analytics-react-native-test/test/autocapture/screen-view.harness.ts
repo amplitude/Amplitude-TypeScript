@@ -7,7 +7,7 @@
  * Do not await track*.promise here — that waits on the destination network flush
  * (and retries). Use the enrichment capture instead so tests stay deterministic.
  */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument */
 import { describe, it, expect, beforeEach, afterEach } from 'react-native-harness';
 import { createInstance, Types } from '@amplitude/analytics-react-native';
 import { createEventCapture, EventCapture } from '../helpers/event-capture';
@@ -75,5 +75,18 @@ describe('autocapture.screenViews', () => {
     await capture.waitForEvents(1);
     expect(capture.events[0]?.event_type).toBe('[Amplitude] Screen Viewed');
     expect(capture.events[0]?.event_properties?.[`[Amplitude] Screen Name`]).toBe('Settings');
+  });
+
+  it('does not duplicate Screen Viewed for the same focused route', async () => {
+    const homeState = {
+      routes: [{ name: 'Home' }],
+      index: 0,
+    };
+    void client.trackNavigationStateChange(homeState);
+    void client.trackNavigationStateChange(homeState);
+    await capture.waitForEvents(1);
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    expect(capture.events).toHaveLength(1);
+    expect(capture.events[0]?.event_properties?.[`[Amplitude] Screen Name`]).toBe('Home');
   });
 });
