@@ -183,13 +183,60 @@ export class DataExtractor {
 
   /**
    * Apply an element-selector remote-config payload to the engine. Called from
-   * plugin setup when remote config is delivered. Resolving an absent/empty
-   * payload yields the documented defaults (engine stays dormant on legacy
-   * `cssPath`); flipping `enabled: true` switches {@link getElementPath} onto
-   * the new strategy-based selector output.
+   * plugin setup when remote config is delivered.
+   *
+   * The engine ships dormant: it is constructed with the resolved defaults
+   * (`enabled: false`), so a client that never receives a payload stays on the
+   * legacy `cssPath`. Delivering `{ enabled: true }` switches
+   * {@link getElementPath} onto the new strategy-based output; an explicit
+   * `{ enabled: false }` switches it back.
+   *
+   * A delivery is applied only when it explicitly carries a boolean `enabled`.
+   * Anything else — `null`/absent (failed or key-less remote fetch), an empty
+   * `{}`, or a partial payload without `enabled` — is treated as "no update"
+   * and ignored rather than reset to defaults. In `'all'` delivery mode the
+   * client delivers cache-then-remote (and both autocapture and frustration
+   * subscribe), so incomplete deliveries are common; applying them would default
+   * `enabled` to `false` via {@link resolveSelectorConfig} and silently tear down
+   * a live engine (enable, then disable) — the flip-flop this guard prevents.
+   *
+   * Off-by-default is unaffected: the engine still boots disabled, and only an
+   * explicit `enabled: true` ever turns it on. The trade-off is that disabling
+   * must be done with an explicit `enabled: false`, not by removing the config
+   * or sending a partial payload.
    */
   updateSelectorConfig = (remote?: ElementSelectorRemoteConfig | null, logger?: ElementSelectorLogger): void => {
-    this.selectorEngine.updateConfig(resolveSelectorConfig(remote ?? undefined, logger));
+    // No-op unless the delivery explicitly specifies a boolean `enabled`. This
+    // covers null/undefined AND non-null-but-incomplete payloads ({} or partial
+    // configs), both of which would otherwise resolve to disabled and revert a
+    // previously-enabled engine to the legacy cssPath.
+    if (remote === null || remote === undefined || typeof remote.enabled !== 'boolean') {
+      logger?.debug?.(
+        '@amplitude/element-selector: ignoring remote-config delivery without an explicit `enabled` flag — keeping current engine state.',
+      );
+      return;
+    }
+
+    const wasEnabled = this.selectorEngine.getConfig().enabled;
+    const resolved = resolveSelectorConfig(remote, logger);
+    this.selectorEngine.updateConfig(resolved);
+
+    // Log once, on the transition from the dormant legacy walker to the new
+    // strategy-based engine. Because the engine is shared across all extractors,
+    // comparing the prior config against the resolved one means this fires a
+    // single time when an org first gets flipped on — not on every remote-config
+    // re-delivery or for the second plugin sharing the same engine.
+    if (!wasEnabled && resolved.enabled) {
+      logger?.log?.(
+        '@amplitude/element-selector: engine enabled — now emitting new element-selector element paths for autocapture events.',
+      );
+    } else if (wasEnabled && !resolved.enabled) {
+      // Surfaces a silent re-disable: the subscription runs in 'all' mode and can
+      // fire multiple times; a later payload without a boolean `enabled` resolves
+      // to disabled, reverting getElementPath to the legacy cssPath with no other
+      // signal. Logging it turns that invisible flip into an observable event.
+      logger?.log?.('@amplitude/element-selector: engine disabled — reverting to legacy cssPath for element paths.');
+    }
   };
 
   // Returns the Amplitude event properties for the given element.

@@ -47,6 +47,12 @@ export interface StrategyContext {
 export interface ElementSelectorLogger {
   warn(...args: unknown[]): void;
   debug(...args: unknown[]): void;
+  /**
+   * Optional info-level log. The SDK's `analytics-core` ILogger provides this,
+   * but it's optional here so lighter test/standalone loggers that only
+   * implement `warn`/`debug` still satisfy the type.
+   */
+  log?(...args: unknown[]): void;
 }
 
 /**
