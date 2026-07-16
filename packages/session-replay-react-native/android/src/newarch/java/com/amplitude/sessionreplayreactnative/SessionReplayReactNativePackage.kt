@@ -1,6 +1,5 @@
 package com.amplitude.sessionreplayreactnative
 
-import com.amplitude.sessionreplayreactnative.fabric.SRMaskViewManager
 import com.facebook.react.BaseReactPackage
 import com.facebook.react.bridge.NativeModule
 import com.facebook.react.bridge.ReactApplicationContext
@@ -36,6 +35,6 @@ class SessionReplayReactNativePackage : BaseReactPackage() {
   }
 
   override fun createViewManagers(reactContext: ReactApplicationContext): List<ViewManager<*, *>> {
-    return listOf(SessionReplayReactNativeViewManager(), SRMaskViewManager())
+    return listOf(SessionReplayReactNativeViewManager())
   }
 }

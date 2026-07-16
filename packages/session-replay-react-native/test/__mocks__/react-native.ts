@@ -29,7 +29,3 @@ export const Platform = {
 };
 
 export const requireNativeComponent = jest.fn((_componentName: string) => _componentName);
-
-export const UIManager = {
-  hasViewManagerConfig: jest.fn((_name: string) => true),
-};
