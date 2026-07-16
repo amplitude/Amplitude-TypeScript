@@ -5,6 +5,9 @@
 # Xcode
 #
 build/
+build-old-arch/
+build-new-arch/
+.harness-pods-arch
 *.pbxuser
 !default.pbxuser
 *.mode1v3
