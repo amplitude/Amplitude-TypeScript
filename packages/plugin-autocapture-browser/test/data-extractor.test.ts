@@ -535,14 +535,14 @@ describe('data extractor', () => {
       expect(after).not.toContain(':nth-child');
     });
 
-    test('logs the enable and disable transitions when a logger is provided', () => {
-      const logger = { log: jest.fn(), debug: jest.fn(), warn: jest.fn() };
+    test('logs the enable and disable transitions at debug when a logger is provided', () => {
+      const logger = { debug: jest.fn(), warn: jest.fn() };
       // Fresh disabled state (beforeEach), then enable -> logs "engine enabled".
       dataExtractor.updateSelectorConfig({ enabled: true }, logger);
       // Then disable -> logs "engine disabled".
       dataExtractor.updateSelectorConfig({ enabled: false }, logger);
-      expect(logger.log).toHaveBeenCalledWith(expect.stringContaining('engine enabled'));
-      expect(logger.log).toHaveBeenCalledWith(expect.stringContaining('engine disabled'));
+      expect(logger.debug).toHaveBeenCalledWith(expect.stringContaining('engine enabled'));
+      expect(logger.debug).toHaveBeenCalledWith(expect.stringContaining('engine disabled'));
     });
   });
 

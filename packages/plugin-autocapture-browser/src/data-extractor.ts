@@ -211,7 +211,7 @@ export class DataExtractor {
     // configs), both of which would otherwise resolve to disabled and revert a
     // previously-enabled engine to the legacy cssPath.
     if (remote === null || remote === undefined || typeof remote.enabled !== 'boolean') {
-      logger?.debug?.(
+      logger?.debug(
         '@amplitude/element-selector: ignoring remote-config delivery without an explicit `enabled` flag — keeping current engine state.',
       );
       return;
@@ -227,7 +227,7 @@ export class DataExtractor {
     // single time when an org first gets flipped on — not on every remote-config
     // re-delivery or for the second plugin sharing the same engine.
     if (!wasEnabled && resolved.enabled) {
-      logger?.log?.(
+      logger?.debug(
         '@amplitude/element-selector: engine enabled — now emitting new element-selector element paths for autocapture events.',
       );
     } else if (wasEnabled && !resolved.enabled) {
@@ -235,7 +235,7 @@ export class DataExtractor {
       // fire multiple times; a later payload without a boolean `enabled` resolves
       // to disabled, reverting getElementPath to the legacy cssPath with no other
       // signal. Logging it turns that invisible flip into an observable event.
-      logger?.log?.('@amplitude/element-selector: engine disabled — reverting to legacy cssPath for element paths.');
+      logger?.debug('@amplitude/element-selector: engine disabled — reverting to legacy cssPath for element paths.');
     }
   };
 
