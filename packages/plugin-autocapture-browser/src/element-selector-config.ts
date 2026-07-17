@@ -30,9 +30,22 @@ export function subscribeToElementSelectorConfig(
     return undefined;
   }
 
-  const subscriptionId = remoteConfigClient.subscribe(ELEMENT_SELECTOR_REMOTE_CONFIG_KEY, 'all', (remoteConfig) => {
-    dataExtractor.updateSelectorConfig(remoteConfig as ElementSelectorRemoteConfig | null, config.loggerProvider);
-  });
+  const subscriptionId = remoteConfigClient.subscribe(
+    ELEMENT_SELECTOR_REMOTE_CONFIG_KEY,
+    'all',
+    (remoteConfig, source) => {
+      // Diagnostic: log every delivery with its source ('cache' | 'remote') and
+      // payload. In 'all' mode the client delivers cache then remote, and any
+      // delivery whose payload is null / missing a boolean `enabled` resolves to
+      // disabled — which is how a live engine gets silently turned back off.
+      config.loggerProvider.debug(
+        `@amplitude/element-selector: remote-config delivery (source=${String(source)}) ${JSON.stringify(
+          remoteConfig,
+        )}`,
+      );
+      dataExtractor.updateSelectorConfig(remoteConfig as ElementSelectorRemoteConfig | null, config.loggerProvider);
+    },
+  );
 
   return () => {
     remoteConfigClient.unsubscribe(subscriptionId);
