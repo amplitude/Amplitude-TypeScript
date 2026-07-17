@@ -12,6 +12,8 @@ import {
   getCookieName,
   getQueryParams,
   FetchTransport,
+  ReactNativeConfigAutocaptureBeta,
+  ReactNativeAutocaptureOptions,
 } from '@amplitude/analytics-core';
 
 import { LocalStorage } from './storage/local-storage';
@@ -63,6 +65,7 @@ export class ReactNativeConfig extends Config implements IReactNativeConfig {
   sessionTimeout: number;
   trackingSessionEvents: boolean;
   trackingOptions: ReactNativeTrackingOptions;
+  autocapture?: ReactNativeAutocaptureOptions | boolean;
 
   // NOTE: These protected properties are used to cache values from async storage
   protected _deviceId?: string;
@@ -104,6 +107,7 @@ export class ReactNativeConfig extends Config implements IReactNativeConfig {
     this.sessionTimeout = options?.sessionTimeout ?? defaultConfig.sessionTimeout;
     this.trackingOptions = options?.trackingOptions ?? defaultConfig.trackingOptions;
     this.trackingSessionEvents = options?.trackingSessionEvents ?? defaultConfig.trackingSessionEvents;
+    this.autocapture = (options as ReactNativeConfigAutocaptureBeta)?.autocapture;
   }
 
   get deviceId() {

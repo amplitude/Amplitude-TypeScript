@@ -17,6 +17,14 @@ type HiddenOptions = 'apiKey' | 'lastEventId' | 'remoteConfigClient';
 
 export type ReactNativeOptions = Omit<Partial<ReactNativeConfig>, HiddenOptions>;
 
+/* @experimental this config is experimental pending GA of React Native autocapture */
+export interface ReactNativeAutocaptureOptions {
+  sessions?: boolean;
+  appLifecycles?: boolean;
+  screenViews?: boolean;
+  // elementInteractions?
+}
+
 export interface ReactNativeConfig extends Omit<IConfig, 'requestMetadata'> {
   trackingOptions: ReactNativeTrackingOptions;
   /* @deprecated this config is deprecated in favor of config.autocapture */
@@ -42,6 +50,12 @@ export interface ReactNativeConfig extends Omit<IConfig, 'requestMetadata'> {
   /* @experimental this config is experimental pending GA of React Native autocapture */
   remoteConfig?: RemoteConfigOptions;
   remoteConfigClient?: IRemoteConfigClient;
+}
+
+// TODO: Merge this into ReactNativeConfig once autocapture is GA
+export interface ReactNativeConfigAutocaptureBeta extends ReactNativeConfig {
+  /* @experimental this config is experimental pending GA of React Native autocapture */
+  autocapture?: boolean | ReactNativeAutocaptureOptions;
 }
 
 export interface ReactNativeAttributionOptions {

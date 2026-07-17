@@ -1,8 +1,8 @@
 import {Button, StyleSheet, Text, View} from 'react-native';
 import {useEffect} from 'react';
-import {identify, Identify, init, track, add, Types} from '@amplitude/analytics-react-native';
+import {identify, Identify, init, track, add, Types, trackScreenViewOnNavigationStateChange} from '@amplitude/analytics-react-native';
 import {networkCapturePlugin} from '@amplitude/plugin-network-capture-browser';
-import { NavigationContainer } from "@react-navigation/native";
+import { NavigationContainer, useNavigationContainerRef } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import FetchNetworkTestScreen from './FetchNetworkTestScreen';
 
@@ -47,12 +47,18 @@ function SettingsScreen({navigation}: {navigation: any}) {
 }
 
 export default function App() {
+  // onStateChange does not fire for the initial route; onReady covers cold-start screen views.
+  const navigationRef = useNavigationContainerRef();
+
   useEffect(() => {
     (async () => {
         // AMPLITUDE_API_KEY is inlined at bundle time (see babel.config.js).
         await init(process.env.AMPLITUDE_API_KEY || 'YOUR_API_KEY', 'react-native-user-id', {
-          logLevel: Types.LogLevel.Error,
-          // autocapture: { } // <-- todo
+          logLevel: Types.LogLevel.Debug,
+          autocapture: {
+            sessions: true,
+            appLifecycles: true,
+          } // <-- todo
         }).promise;
         // Capture localhost traffic except Metro (8081) for the fetch network test screen.
         add(networkCapturePlugin({
@@ -63,7 +69,13 @@ export default function App() {
     })();
   }, []);
   return (
-    <NavigationContainer>
+    <NavigationContainer
+      ref={navigationRef}
+      onReady={() => {
+        trackScreenViewOnNavigationStateChange(navigationRef.getRootState());
+      }}
+      onStateChange={trackScreenViewOnNavigationStateChange}
+    >
       <Stack.Navigator>
         <Stack.Screen name="Home" component={HomeScreen} />
         <Stack.Screen name="Settings" component={SettingsScreen} />

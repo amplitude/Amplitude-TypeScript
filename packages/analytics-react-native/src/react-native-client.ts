@@ -29,6 +29,9 @@ import {
   RemoteConfigClient,
   RemoteConfig,
   Source,
+  ReactNativeAutocaptureOptions,
+  ReactNativeConfigAutocaptureBeta,
+  NavigationState,
 } from '@amplitude/analytics-core';
 import { CampaignTracker } from './campaign/campaign-tracker';
 import { Context } from './plugins/context';
@@ -37,19 +40,57 @@ import { useReactNativeConfig, createCookieStorage, shouldFetchRemoteConfig } fr
 import { updateReactNativeConfigWithRemoteConfig } from './config/joined-config';
 import { parseOldCookies } from './cookie-migration';
 import { isNative } from './utils/platform';
+import {
+  DEFAULT_APPLICATION_BACKGROUNDED_EVENT,
+  DEFAULT_APPLICATION_OPENED_EVENT,
+  DEFAULT_SCREEN_VIEWED_EVENT,
+  DEFAULT_SESSION_END_EVENT,
+  DEFAULT_SESSION_START_EVENT,
+  SCREEN_NAME,
+} from './constants';
 
-const START_SESSION_EVENT = 'session_start';
-const END_SESSION_EVENT = 'session_end';
+/**
+ * Walks React Navigation state to the focused leaf route.
+ * Nested navigators (tabs, stacks) store the visible screen in child `state`.
+ */
+const getActiveRouteName = (navigationState: NavigationState): string | undefined => {
+  let state: NavigationState | undefined = navigationState;
+  let routeName: string | undefined;
+
+  while (state?.routes) {
+    const route = state.routes[state.index] as { name: string; state?: NavigationState } | undefined;
+    if (!route?.name) {
+      return undefined;
+    }
+    routeName = route.name;
+    state = route.state;
+  }
+
+  return routeName;
+};
 
 const IS_DIAGNOSTICS_CAPTURED = false; // TODO: Do not merge this, set it as false before merging
 export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeClient, AnalyticsClient {
   appState: AppStateStatus = 'background';
+  /**
+   * True after a transition into `background` until the next `active`.
+   * Used so Application Opened only pairs with Application Backgrounded
+   * (e.g. skip iOS inactive→active from Control Center overlays).
+   */
+  private wasBackgrounded = false;
+  /**
+   * Last focused leaf route name emitted by `trackScreenViewOnNavigationStateChange`.
+   * Dedupes React Navigation callbacks that only change params, history shape, or
+   * fire twice for the same visible screen (e.g. `onReady` + `onStateChange`, tabs).
+   */
+  private lastNavigationScreenName: string | undefined;
   private appStateChangeHandler: NativeEventSubscription | undefined;
   explicitSessionId: number | undefined;
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore
   config: ReactNativeConfig;
   userProperties: { [key: string]: any } | undefined;
+  autocapture: ReactNativeAutocaptureOptions | null = null;
 
   init(apiKey = '', userId?: string, options?: ReactNativeOptions) {
     return returnWrapper(this._init({ ...options, userId, apiKey }));
@@ -164,6 +205,23 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
     await super._init(reactNativeOptions);
     this.config.remoteConfigClient = remoteConfigClient;
 
+    // Step 2.1: parse autocapture config (always reset so re-init clears prior flags)
+    const autocaptureConfig = (this.config as ReactNativeConfigAutocaptureBeta).autocapture;
+    if (autocaptureConfig === true) {
+      this.autocapture = {
+        appLifecycles: true,
+        sessions: true,
+      };
+    } else if (autocaptureConfig && typeof autocaptureConfig === 'object') {
+      this.autocapture = autocaptureConfig;
+    } else {
+      this.autocapture = null;
+    }
+    // Drop any background seen before this init so Opened cannot fire unpaired.
+    this.wasBackgrounded = false;
+    // Allow the first navigation screen view after re-init.
+    this.lastNavigationScreenName = undefined;
+
     // Set up the analytics connector to integrate with the experiment SDK.
     // Send events from the experiment SDK and forward identifies to the
     // identity store.
@@ -196,7 +254,15 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
 
     this.initializing = false;
 
-    // Step 5: Track attributions
+    // Step 5: autocapture
+
+    // Step 5.1: track Application Opened when already foregrounded at init (cold start).
+    // Do not await — track().promise waits on flush/network and would block init.
+    if (this.autocapture?.appLifecycles === true && this.appState === 'active') {
+      this.track('[Amplitude] Application Opened');
+    }
+
+    // Step 5.2: run attribution strategy
     await this.runAttributionStrategy(options.attribution, isNewSession);
 
     // Step 6: Run queued functions
@@ -269,6 +335,8 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
   reset() {
     this.setUserId(undefined);
     this.setDeviceId(UUID());
+    // Allow the current focused route to emit again for the new identity.
+    this.lastNavigationScreenName = undefined;
   }
 
   getSessionId() {
@@ -305,6 +373,37 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
     this.config.lastEventTime = this.currentTimeMillis();
   }
 
+  trackScreenView(screenName: string, eventProperties?: Record<string, any>, eventOptions?: EventOptions) {
+    const isScreenViewTrackingDisabled = this.autocapture?.screenViews === false;
+    if (isScreenViewTrackingDisabled) {
+      return returnWrapper(Promise.resolve(undefined));
+    }
+    return this.track(
+      DEFAULT_SCREEN_VIEWED_EVENT,
+      {
+        [SCREEN_NAME]: screenName,
+        ...eventProperties,
+      },
+      eventOptions,
+    );
+  }
+
+  trackScreenViewOnNavigationStateChange(
+    navigationState: NavigationState | undefined,
+    eventProperties?: Record<string, any>,
+    eventOptions?: EventOptions,
+  ) {
+    if (!navigationState) {
+      return returnWrapper(Promise.resolve(undefined));
+    }
+    const screenName = getActiveRouteName(navigationState);
+    if (!screenName || screenName === this.lastNavigationScreenName) {
+      return returnWrapper(Promise.resolve(undefined));
+    }
+    this.lastNavigationScreenName = screenName;
+    return this.trackScreenView(screenName, eventProperties, eventOptions);
+  }
+
   private setSessionIdInternal(sessionId: number, eventTime: number) {
     const previousSessionId = this.config.sessionId;
     if (previousSessionId === sessionId) {
@@ -313,12 +412,12 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
 
     this.config.sessionId = sessionId;
 
-    if (this.config.trackingSessionEvents) {
+    if (this.config.trackingSessionEvents || this.autocapture?.sessions) {
       this.config.loggerProvider?.log(`SESSION_END event: previousSessionId = ${previousSessionId ?? 'undefined'}`);
 
       if (previousSessionId !== undefined) {
         const sessionEndEvent: Event = {
-          event_type: END_SESSION_EVENT,
+          event_type: DEFAULT_SESSION_END_EVENT,
           time: this.config.lastEventTime !== undefined ? this.config.lastEventTime + 1 : sessionId, // increment lastEventTime to sort events properly in UI - session_end should be the last event in a session
           session_id: previousSessionId,
         };
@@ -327,7 +426,7 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
 
       this.config.loggerProvider?.log(`SESSION_START event: sessionId = ${sessionId}`);
       const sessionStartEvent: Event = {
-        event_type: START_SESSION_EVENT,
+        event_type: DEFAULT_SESSION_START_EVENT,
         time: eventTime,
         session_id: sessionId,
       };
@@ -344,7 +443,8 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
         event = { ...event, time: eventTime };
       }
 
-      const isSessionEvent = event.event_type === START_SESSION_EVENT || event.event_type === END_SESSION_EVENT;
+      const isSessionEvent =
+        event.event_type === DEFAULT_SESSION_START_EVENT || event.event_type === DEFAULT_SESSION_END_EVENT;
       const isCustomEventSessionId =
         !isSessionEvent && event.session_id != undefined && event.session_id !== this.getSessionId();
       if (!isCustomEventSessionId) {
@@ -420,11 +520,21 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
       } else {
         this.exitForeground(timestamp);
       }
+      if (nextAppState == 'background' && this.autocapture?.appLifecycles === true) {
+        // Only remember background when we also emit Backgrounded, so Opened stays paired.
+        this.wasBackgrounded = true;
+        this.track(DEFAULT_APPLICATION_BACKGROUNDED_EVENT);
+      }
     }
   };
 
   private enterForeground(timestamp: number) {
     this.config.loggerProvider?.log('App Activated');
+    // Only emit Application Opened after a real background (not inactive→active).
+    if (this.autocapture?.appLifecycles === true && this.wasBackgrounded) {
+      this.track(DEFAULT_APPLICATION_OPENED_EVENT);
+    }
+    this.wasBackgrounded = false;
     return this.startNewSessionIfNeeded(timestamp);
   }
 
@@ -436,6 +546,19 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
 export const createInstance = (): ReactNativeClient => {
   const client = new AmplitudeReactNative();
   return {
+    ...client,
+    trackScreenView: debugWrapper(
+      client.trackScreenView.bind(client),
+      'trackScreenView',
+      getClientLogConfig(client),
+      getClientStates(client, ['config.apiKey', 'timeline.queue.length']),
+    ),
+    trackScreenViewOnNavigationStateChange: debugWrapper(
+      client.trackScreenViewOnNavigationStateChange.bind(client),
+      'trackScreenViewOnNavigationStateChange',
+      getClientLogConfig(client),
+      getClientStates(client, ['config.apiKey', 'timeline.queue.length']),
+    ),
     init: debugWrapper(
       client.init.bind(client),
       'init',
