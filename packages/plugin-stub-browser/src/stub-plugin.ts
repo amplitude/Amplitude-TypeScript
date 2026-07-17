@@ -4,7 +4,7 @@ import { PLUGIN_NAME } from './constants';
 
 export type BrowserEnrichmentPlugin = EnrichmentPlugin<BrowserClient, BrowserConfig>;
 
-export const COUNTER = 1; // increment this to test new releases
+export const COUNTER = 2; // increment this to test new releases
 
 export const stubPlugin = (): BrowserEnrichmentPlugin => {
   const setup: BrowserEnrichmentPlugin['setup'] = async (/*config, amplitude*/) => {

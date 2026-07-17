@@ -83,6 +83,14 @@ jobs:
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
           echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
+      - name: Build and Test
+        if: ${{ github.event.inputs.skipLernaVersion != 'true' }}
+        uses: ./.github/actions/build-and-test
+        with:
+          node-version: 20.x
+          configure-git: 'false'
+          configure-aws: 'false'
+
       - name: Run E2E tests
         if: ${{ github.event.inputs.skipLernaVersion != 'true' }}
         uses: ./.github/actions/e2e-test
@@ -181,10 +189,12 @@ jobs:
           token: ${{ steps.app-token.outputs.token }}
           ref: ${{ github.event.inputs.branch || github.ref_name }}
 
-      - name: Build and Test
+      - name: Build
         uses: ./.github/actions/build-and-test
         with:
           node-version: ${{ matrix.node-version }}
+          run-tests: 'false'
+          run-lint: 'false'
 
       - name: Verify ref has not advanced since e2e checkout
         if: ${{ github.event.inputs.skipLernaVersion != 'true' }}
@@ -299,10 +309,12 @@ jobs:
           fetch-depth: 0
           token: ${{ steps.app-token.outputs.token }}
 
-      - name: Build and Test
+      - name: Build
         uses: ./.github/actions/build-and-test
         with:
           node-version: ${{ matrix.node-version }}
+          run-tests: 'false'
+          run-lint: 'false'
 
       # Keep alphanumeric characters and hyphens, remove other invalid characters
       # Examples:
