@@ -160,7 +160,13 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
 
     // Step 5: autocapture
 
-    // Step 5.1: run attribution strategy
+    // Step 5.1: track Application Opened when already foregrounded at init (cold start).
+    // Do not await — track().promise waits on flush/network and would block init.
+    if (this.autocapture?.appLifecycles === true && this.appState === 'active') {
+      this.track('[Amplitude] Application Opened');
+    }
+
+    // Step 5.2: run attribution strategy
     await this.runAttributionStrategy(options.attribution, isNewSession);
 
     // Step 6: Run queued functions

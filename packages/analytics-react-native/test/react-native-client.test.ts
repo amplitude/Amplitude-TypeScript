@@ -8,6 +8,7 @@ import {
   getAnalyticsConnector,
   getCookieName as getStorageKey,
 } from '@amplitude/analytics-core';
+import { AppState } from 'react-native';
 import { isWeb } from '../src/utils/platform';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Config from '../src/config';
@@ -1016,13 +1017,28 @@ describe('react-native-client', () => {
     });
 
     describe('appLifecycles', () => {
+      const originalAppState = AppState.currentState;
+
       beforeEach(() => {
         client = new AmplitudeReactNative();
         trackSpy = jest.spyOn(client, 'track');
+        AppState.currentState = 'active';
       });
 
       afterEach(() => {
         trackSpy.mockClear();
+        AppState.currentState = originalAppState;
+      });
+
+      test('should track Application Opened on init when app is already active', async () => {
+        await client.init(API_KEY, undefined, initOptions({ appLifecycles: true })).promise;
+        expect(trackSpy).toHaveBeenCalledWith('[Amplitude] Application Opened');
+      });
+
+      test('should not track Application Opened on init when app is background', async () => {
+        AppState.currentState = 'background';
+        await client.init(API_KEY, undefined, initOptions({ appLifecycles: true })).promise;
+        expect(trackSpy).not.toHaveBeenCalledWith('[Amplitude] Application Opened');
       });
 
       test('should track appLifecycles when it is enabled', async () => {

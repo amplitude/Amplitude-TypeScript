@@ -6,6 +6,7 @@ type HiddenOptions = 'apiKey' | 'lastEventId';
 
 export type ReactNativeOptions = Omit<Partial<ReactNativeConfig>, HiddenOptions>;
 
+/* @experimental this config is experimental pending GA of React Native autocapture */
 export interface ReactNativeAutocaptureOptions {
   sessions?: boolean;
   appLifecycles?: boolean;
