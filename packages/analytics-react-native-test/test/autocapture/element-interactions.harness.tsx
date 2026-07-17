@@ -14,7 +14,6 @@ import { createInstance, Types, ampCapture } from '@amplitude/analytics-react-na
 import { createEventCapture, EventCapture } from '../helpers/event-capture';
 import { View, Button } from 'react-native';
 
-
 const API_KEY = 'dummyApiKey';
 let client: Types.ReactNativeClient;
 
@@ -31,19 +30,23 @@ function ButtonHarness() {
         testID="my-button"
         title="Press me"
         accessibilityLabel="Button accessibility label"
-        onPress={ampCapture(() => {
-          console.log('Button pressed');
-        }, {
-          testID: 'my-button',
-          component: 'ButtonHarness',
-          element: 'Button',
-          accessibilityLabel: 'Button accessibility label',
-          action: 'onPress',
-        })}
+        onPress={ampCapture(
+          () => {
+            console.log('Button pressed');
+          },
+          {
+            event: 'Press',
+            testID: 'my-button',
+            component: 'ButtonHarness',
+            element: 'Button',
+            accessibilityLabel: 'Button accessibility label',
+            action: 'onPress',
+          },
+        )}
       />
     </View>
   );
-};
+}
 
 describe('autocapture.elementInteractions', () => {
   let capture: EventCapture;
