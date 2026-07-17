@@ -4,7 +4,7 @@
  * Runs on a real device/simulator (not Jest/Node).
  * Requires react-native-harness + examples/react-native/app built and installed.
  */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument */
 import { describe, it, expect, beforeEach, afterEach } from 'react-native-harness';
 import { DeviceEventEmitter } from 'react-native';
 import { createInstance, Types } from '@amplitude/analytics-react-native';
