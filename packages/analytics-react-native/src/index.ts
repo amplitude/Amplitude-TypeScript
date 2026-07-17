@@ -22,7 +22,7 @@ export const {
   track,
   extendSession,
   trackScreenView,
-  trackNavigationStateChange,
+  trackScreenViewOnNavigationStateChange,
 } = client;
 
 export { Revenue, Identify } from '@amplitude/analytics-core';

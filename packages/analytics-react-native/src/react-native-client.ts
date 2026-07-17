@@ -71,9 +71,9 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
    */
   private wasBackgrounded = false;
   /**
-   * Last focused leaf route name emitted by `trackNavigationStateChange`.
-   * Dedupes React Navigation `onStateChange` callbacks that only change params,
-   * history shape, or fire twice for the same visible screen (common with tabs).
+   * Last focused leaf route name emitted by `trackScreenViewOnNavigationStateChange`.
+   * Dedupes React Navigation callbacks that only change params, history shape, or
+   * fire twice for the same visible screen (e.g. `onReady` + `onStateChange`, tabs).
    */
   private lastNavigationScreenName: string | undefined;
   private appStateChangeHandler: NativeEventSubscription | undefined;
@@ -239,6 +239,8 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
   reset() {
     this.setUserId(undefined);
     this.setDeviceId(UUID());
+    // Allow the current focused route to emit again for the new identity.
+    this.lastNavigationScreenName = undefined;
   }
 
   getSessionId() {
@@ -290,7 +292,7 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
     );
   }
 
-  trackNavigationStateChange(
+  trackScreenViewOnNavigationStateChange(
     navigationState: NavigationState | undefined,
     eventProperties?: Record<string, any>,
     eventOptions?: EventOptions,
@@ -455,9 +457,9 @@ export const createInstance = (): ReactNativeClient => {
       getClientLogConfig(client),
       getClientStates(client, ['config.apiKey', 'timeline.queue.length']),
     ),
-    trackNavigationStateChange: debugWrapper(
-      client.trackNavigationStateChange.bind(client),
-      'trackNavigationStateChange',
+    trackScreenViewOnNavigationStateChange: debugWrapper(
+      client.trackScreenViewOnNavigationStateChange.bind(client),
+      'trackScreenViewOnNavigationStateChange',
       getClientLogConfig(client),
       getClientStates(client, ['config.apiKey', 'timeline.queue.length']),
     ),

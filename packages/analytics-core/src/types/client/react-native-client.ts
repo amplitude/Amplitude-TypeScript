@@ -6,17 +6,17 @@ import { EventOptions } from '../event/base-event';
 import { Result } from '../result';
 
 /**
- * Minimal React Navigation state shape used by `trackNavigationStateChange`.
- * Compatible with React Navigation's `NavigationState`, including nested navigators
- * (tabs, stacks inside stacks) via optional child `state`.
+ * Minimal React Navigation state shape used by `trackScreenViewOnNavigationStateChange`.
+ * Compatible with React Navigation's `NavigationState` / `getRootState()`, including
+ * nested navigators (tabs, stacks inside stacks) via optional child `state`.
  */
-export type NavigationState = {
+export interface NavigationState {
   routes: {
     name: string;
     state?: NavigationState;
   }[];
   index: number;
-};
+}
 
 export interface ReactNativeClient extends Client {
   /**
@@ -74,21 +74,33 @@ export interface ReactNativeClient extends Client {
   ): AmplitudeReturn<Result | undefined>;
 
   /**
-   * Helper method to track a screen view from a React Navigation state change.
+   * Helper method to track a screen view from a React Navigation state.
+   *
+   * React Navigation does not invoke `onStateChange` for the initial route, so also
+   * call this from `onReady` with the root state (via a navigation ref). Deduping
+   * prevents a duplicate if both fire for the same focused screen.
    *
    * Usage:
    * ```typescript
-   * <NavigationContainer onStateChange={trackNavigationStateChange}>
+   * const navigationRef = useNavigationContainerRef();
+   *
+   * <NavigationContainer
+   *   ref={navigationRef}
+   *   onReady={() => {
+   *     trackScreenViewOnNavigationStateChange(navigationRef.getRootState());
+   *   }}
+   *   onStateChange={trackScreenViewOnNavigationStateChange}
+   * >
    * ```
    *
-   * @param navigationState The React Navigation state after a navigation change.
+   * @param navigationState The React Navigation state (initial root state or after a change).
    *   No-ops when `undefined` (as React Navigation may emit on first mount),
    *   or when the focused leaf route name is unchanged (avoids duplicate screen views
    *   from param/history-only state updates).
    * @param eventProperties Additional event properties to include in the event.
    * @param eventOptions Additional event options to include in the event.
    */
-  trackNavigationStateChange(
+  trackScreenViewOnNavigationStateChange(
     navigationState: NavigationState | undefined,
     eventProperties?: Record<string, any>,
     eventOptions?: EventOptions,

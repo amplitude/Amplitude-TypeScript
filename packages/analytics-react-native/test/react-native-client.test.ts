@@ -1134,11 +1134,11 @@ describe('react-native-client', () => {
     });
   });
 
-  describe('trackNavigationStateChange', () => {
+  describe('trackScreenViewOnNavigationStateChange', () => {
     test('should track root route name for flat navigation state', async () => {
       const client = new AmplitudeReactNative();
       const track = jest.spyOn(client, 'track');
-      client.trackNavigationStateChange({
+      client.trackScreenViewOnNavigationStateChange({
         index: 0,
         routes: [{ name: 'Home' }],
       });
@@ -1154,7 +1154,7 @@ describe('react-native-client', () => {
     test('should track focused leaf route name for nested navigation state', async () => {
       const client = new AmplitudeReactNative();
       const track = jest.spyOn(client, 'track');
-      client.trackNavigationStateChange({
+      client.trackScreenViewOnNavigationStateChange({
         index: 0,
         routes: [
           {
@@ -1187,8 +1187,32 @@ describe('react-native-client', () => {
     test('should no-op when navigation state is undefined', async () => {
       const client = new AmplitudeReactNative();
       const track = jest.spyOn(client, 'track');
-      expect(await client.trackNavigationStateChange(undefined).promise).toBe(undefined);
+      expect(await client.trackScreenViewOnNavigationStateChange(undefined).promise).toBe(undefined);
       expect(track).not.toHaveBeenCalled();
+    });
+
+    test('should track initial route from onReady and dedupe the same route on onStateChange', () => {
+      const client = new AmplitudeReactNative();
+      const track = jest.spyOn(client, 'track');
+      const homeState = {
+        index: 0,
+        routes: [{ name: 'Home' }],
+      };
+
+      // onReady: React Navigation does not invoke onStateChange for the initial route.
+      client.trackScreenViewOnNavigationStateChange(homeState);
+      expect(track).toHaveBeenCalledTimes(1);
+      expect(track).toHaveBeenCalledWith(
+        DEFAULT_SCREEN_VIEWED_EVENT,
+        {
+          [SCREEN_NAME]: 'Home',
+        },
+        undefined,
+      );
+
+      // A later onStateChange for the same focused route must not double-count.
+      client.trackScreenViewOnNavigationStateChange(homeState);
+      expect(track).toHaveBeenCalledTimes(1);
     });
 
     test('should not track duplicate screen views for the same focused route', () => {
@@ -1199,11 +1223,11 @@ describe('react-native-client', () => {
         routes: [{ name: 'Home' }],
       };
 
-      client.trackNavigationStateChange(homeState);
-      client.trackNavigationStateChange(homeState);
+      client.trackScreenViewOnNavigationStateChange(homeState);
+      client.trackScreenViewOnNavigationStateChange(homeState);
       expect(track).toHaveBeenCalledTimes(1);
 
-      client.trackNavigationStateChange({
+      client.trackScreenViewOnNavigationStateChange({
         index: 0,
         routes: [{ name: 'Settings' }],
       });
@@ -1217,8 +1241,31 @@ describe('react-native-client', () => {
       );
 
       // Returning to a previously viewed screen should track again.
-      client.trackNavigationStateChange(homeState);
+      client.trackScreenViewOnNavigationStateChange(homeState);
       expect(track).toHaveBeenCalledTimes(3);
+      expect(track).toHaveBeenLastCalledWith(
+        DEFAULT_SCREEN_VIEWED_EVENT,
+        {
+          [SCREEN_NAME]: 'Home',
+        },
+        undefined,
+      );
+    });
+
+    test('should track the same focused route again after reset', () => {
+      const client = new AmplitudeReactNative();
+      const track = jest.spyOn(client, 'track');
+      const homeState = {
+        index: 0,
+        routes: [{ name: 'Home' }],
+      };
+
+      client.trackScreenViewOnNavigationStateChange(homeState);
+      expect(track).toHaveBeenCalledTimes(1);
+
+      client.reset();
+      client.trackScreenViewOnNavigationStateChange(homeState);
+      expect(track).toHaveBeenCalledTimes(2);
       expect(track).toHaveBeenLastCalledWith(
         DEFAULT_SCREEN_VIEWED_EVENT,
         {

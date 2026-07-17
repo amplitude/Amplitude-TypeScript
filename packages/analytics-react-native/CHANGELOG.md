@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.6.5](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-react-native@1.6.4...@amplitude/analytics-react-native@1.6.5) (2026-07-17)
+
+
+### Bug Fixes
+
+* **react-native:** configure :app first to avoid Android languageVersion crash (SDKRN-6) ([#1888](https://github.com/amplitude/Amplitude-TypeScript/issues/1888)) ([c7010e0](https://github.com/amplitude/Amplitude-TypeScript/commit/c7010e0f10b7f15ec5a787809a68586e9b437dcc))
+
+
+
+
+
 ## [1.6.4](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-react-native@1.6.3...@amplitude/analytics-react-native@1.6.4) (2026-07-14)
 
 **Note:** Version bump only for package @amplitude/analytics-react-native
