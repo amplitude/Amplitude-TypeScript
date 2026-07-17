@@ -71,7 +71,7 @@ export interface ReactNativeClient extends Client {
     screenName: string,
     eventProperties?: Record<string, any>,
     eventOptions?: EventOptions,
-  ): AmplitudeReturn<Result>;
+  ): AmplitudeReturn<Result | undefined>;
 
   /**
    * Helper method to track a screen view from a React Navigation state change.
@@ -92,5 +92,5 @@ export interface ReactNativeClient extends Client {
     navigationState: NavigationState | undefined,
     eventProperties?: Record<string, any>,
     eventOptions?: EventOptions,
-  ): AmplitudeReturn<Result> | undefined;
+  ): AmplitudeReturn<Result | undefined>;
 }

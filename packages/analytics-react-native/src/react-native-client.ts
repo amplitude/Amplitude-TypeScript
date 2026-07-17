@@ -276,6 +276,10 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
   }
 
   trackScreenView(screenName: string, eventProperties?: Record<string, any>, eventOptions?: EventOptions) {
+    const isScreenViewTrackingDisabled = this.autocapture?.screenViews === false;
+    if (isScreenViewTrackingDisabled) {
+      return returnWrapper(Promise.resolve(undefined));
+    }
     return this.track(
       DEFAULT_SCREEN_VIEWED_EVENT,
       {
@@ -292,11 +296,11 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
     eventOptions?: EventOptions,
   ) {
     if (!navigationState) {
-      return;
+      return returnWrapper(Promise.resolve(undefined));
     }
     const screenName = getActiveRouteName(navigationState);
     if (!screenName || screenName === this.lastNavigationScreenName) {
-      return;
+      return returnWrapper(Promise.resolve(undefined));
     }
     this.lastNavigationScreenName = screenName;
     return this.trackScreenView(screenName, eventProperties, eventOptions);

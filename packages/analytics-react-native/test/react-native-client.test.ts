@@ -1184,10 +1184,10 @@ describe('react-native-client', () => {
       );
     });
 
-    test('should no-op when navigation state is undefined', () => {
+    test('should no-op when navigation state is undefined', async () => {
       const client = new AmplitudeReactNative();
       const track = jest.spyOn(client, 'track');
-      expect(client.trackNavigationStateChange(undefined)).toBeUndefined();
+      expect(await client.trackNavigationStateChange(undefined).promise).toBe(undefined);
       expect(track).not.toHaveBeenCalled();
     });
 
