@@ -17,10 +17,9 @@ let client: Types.ReactNativeClient;
 
 describe('autocapture.networkTracking', () => {
   let capture: EventCapture;
-  let originalFetch: typeof global.fetch;
+  let originalFetch = global.fetch;
 
   beforeEach(async () => {
-    originalFetch = global.fetch;
     client = createInstance();
     capture = createEventCapture();
     client.add(capture.plugin);

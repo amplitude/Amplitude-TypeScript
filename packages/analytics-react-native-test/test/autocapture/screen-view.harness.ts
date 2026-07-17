@@ -1,5 +1,5 @@
 /**
- * On-device harness for trackScreenView / trackNavigationStateChange.
+ * On-device harness for trackScreenView / trackScreenViewOnNavigationStateChange.
  *
  * Runs on a real device/simulator (not Jest/Node).
  * Requires react-native-harness + examples/react-native/app built and installed.
@@ -50,7 +50,7 @@ describe('autocapture.screenViews', () => {
   });
 
   it('captures Screen Viewed events from NavigationState events', async () => {
-    void client.trackNavigationStateChange({
+    void client.trackScreenViewOnNavigationStateChange({
       routes: [{ name: 'Screen abc' }],
       index: 0,
     });
@@ -60,7 +60,7 @@ describe('autocapture.screenViews', () => {
   });
 
   it('captures the focused leaf screen from nested NavigationState', async () => {
-    void client.trackNavigationStateChange({
+    void client.trackScreenViewOnNavigationStateChange({
       index: 0,
       routes: [
         {
@@ -82,11 +82,41 @@ describe('autocapture.screenViews', () => {
       routes: [{ name: 'Home' }],
       index: 0,
     };
-    void client.trackNavigationStateChange(homeState);
-    void client.trackNavigationStateChange(homeState);
+    void client.trackScreenViewOnNavigationStateChange(homeState);
+    void client.trackScreenViewOnNavigationStateChange(homeState);
     await capture.waitForEvents(1);
     await new Promise((resolve) => setTimeout(resolve, 200));
     expect(capture.events).toHaveLength(1);
     expect(capture.events[0]?.event_properties?.[`[Amplitude] Screen Name`]).toBe('Home');
+  });
+});
+
+describe('autocapture.screenViews=false', () => {
+  let capture: EventCapture;
+
+  beforeEach(async () => {
+    client = createInstance();
+    capture = createEventCapture();
+    client.add(capture.plugin);
+
+    await client.init(API_KEY, 'harness-user', {
+      flushQueueSize: 1,
+      flushIntervalMillis: 1,
+      logLevel: Types.LogLevel.None,
+      attribution: {
+        disabled: true,
+      },
+      autocapture: {
+        appLifecycles: false,
+        sessions: false,
+        screenViews: false,
+      },
+    } as any).promise;
+  });
+
+  it('does not capture Screen Viewed events', async () => {
+    void client.trackScreenView('Screen 1');
+    await capture.waitForEvents(0, 100);
+    expect(capture.events).toHaveLength(0);
   });
 });
