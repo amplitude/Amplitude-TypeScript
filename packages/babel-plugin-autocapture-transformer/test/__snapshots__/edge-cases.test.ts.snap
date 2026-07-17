@@ -13,7 +13,7 @@ exports[`@amplitude/babel-plugin-autocapture-transformer edge cases skips empty 
 "import { ampCapture } from "@amplitude/analytics-react-native";
 function Home() {
   return <Button onPress={} onLongPress={ampCapture(fn2, {
-    event: "Press"
+    event: "LongPress"
   })} accessibilityLabel={} testID=<span /> title="Go" />;
 }"
 `;

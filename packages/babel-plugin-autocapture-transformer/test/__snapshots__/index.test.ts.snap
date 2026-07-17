@@ -21,6 +21,15 @@ exports[`@amplitude/babel-plugin-autocapture-transformer does not add import whe
 }"
 `;
 
+exports[`@amplitude/babel-plugin-autocapture-transformer does not transform JSX member expression elements 1`] = `
+"function HomeScreen() {
+  return /*#__PURE__*/React.createElement(RN.Button, {
+    title: "Go",
+    onPress: onPress
+  });
+}"
+`;
+
 exports[`@amplitude/babel-plugin-autocapture-transformer does not transform non-pressable JSX elements 1`] = `
 "function HomeScreen() {
   return /*#__PURE__*/React.createElement(View, {
@@ -183,6 +192,54 @@ function HomeScreen() {
 }"
 `;
 
+exports[`@amplitude/babel-plugin-autocapture-transformer wraps Slider onValueChange handlers 1`] = `
+"import { ampCapture } from "@amplitude/analytics-react-native";
+function HomeScreen() {
+  return /*#__PURE__*/React.createElement(Slider, {
+    value: volume,
+    onValueChange: ampCapture(setVolume, {
+      event: "ValueChange"
+    })
+  });
+}"
+`;
+
+exports[`@amplitude/babel-plugin-autocapture-transformer wraps Switch onValueChange handlers 1`] = `
+"import { ampCapture } from "@amplitude/analytics-react-native";
+function HomeScreen() {
+  return /*#__PURE__*/React.createElement(Switch, {
+    value: enabled,
+    onValueChange: ampCapture(setEnabled, {
+      event: "ValueChange",
+      accessibilityLabel: "Enable notifications",
+      testID: "notifications-switch"
+    }),
+    accessibilityLabel: "Enable notifications",
+    testID: "notifications-switch"
+  });
+}"
+`;
+
+exports[`@amplitude/babel-plugin-autocapture-transformer wraps TextInput onChangeText and onSubmitEditing handlers 1`] = `
+"import { ampCapture } from "@amplitude/analytics-react-native";
+function HomeScreen() {
+  return /*#__PURE__*/React.createElement(TextInput, {
+    accessibilityLabel: "Email",
+    testID: "email-input",
+    onChangeText: ampCapture(setEmail, {
+      event: "ChangeText",
+      accessibilityLabel: "Email",
+      testID: "email-input"
+    }),
+    onSubmitEditing: ampCapture(submitEmail, {
+      event: "SubmitEditing",
+      accessibilityLabel: "Email",
+      testID: "email-input"
+    })
+  });
+}"
+`;
+
 exports[`@amplitude/babel-plugin-autocapture-transformer wraps function reference onPress handlers 1`] = `
 "import { ampCapture } from "@amplitude/analytics-react-native";
 function HomeScreen({
@@ -202,7 +259,7 @@ exports[`@amplitude/babel-plugin-autocapture-transformer wraps onLongPress handl
 function HomeScreen() {
   return /*#__PURE__*/React.createElement(Pressable, {
     onLongPress: ampCapture(() => console.log('long press'), {
-      event: "Press"
+      event: "LongPress"
     })
   });
 }"

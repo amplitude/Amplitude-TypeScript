@@ -25,10 +25,46 @@ const PRESSABLE_ELEMENTS = [
   'Link',
 ];
 
-const PRESSABLE_ATTRIBUTES = ['onPress', 'onLongPress'];
+const VALUE_CHANGE_ELEMENTS = ['Switch', 'Slider', 'Picker'];
 
-function isPressableElement(name: t.JSXIdentifier | t.JSXMemberExpression | t.JSXNamespacedName): boolean {
-  return t.isJSXIdentifier(name) && PRESSABLE_ELEMENTS.includes(name.name);
+const TEXT_CHANGE_ELEMENTS = ['TextInput'];
+
+type CapturableElementCategory = {
+  elements: readonly string[];
+  eventForAttribute: Record<string, string>;
+};
+
+const CAPTURABLE_ELEMENT_CATEGORIES: CapturableElementCategory[] = [
+  {
+    elements: PRESSABLE_ELEMENTS,
+    eventForAttribute: {
+      onPress: 'Press',
+      onLongPress: 'LongPress',
+    },
+  },
+  {
+    elements: VALUE_CHANGE_ELEMENTS,
+    eventForAttribute: {
+      onValueChange: 'ValueChange',
+    },
+  },
+  {
+    elements: TEXT_CHANGE_ELEMENTS,
+    eventForAttribute: {
+      onChangeText: 'ChangeText',
+      onSubmitEditing: 'SubmitEditing',
+    },
+  },
+];
+
+function getCapturableElementCategory(
+  name: t.JSXIdentifier | t.JSXMemberExpression | t.JSXNamespacedName,
+): CapturableElementCategory | null {
+  if (!t.isJSXIdentifier(name)) {
+    return null;
+  }
+
+  return CAPTURABLE_ELEMENT_CATEGORIES.find((category) => category.elements.includes(name.name)) ?? null;
 }
 
 function getJsxAttributeName(attr: t.JSXAttribute): string | null {
@@ -147,9 +183,10 @@ function getCapturePropertiesFromElement(
 function buildAmpCaptureCall(
   captureIdentifier: string,
   handler: t.Expression,
+  eventType: string,
   captureProperties: Partial<Record<(typeof CAPTURE_ATTRIBUTE_NAMES)[number], t.Expression>>,
 ): t.CallExpression {
-  const properties: t.ObjectProperty[] = [t.objectProperty(t.identifier('event'), t.stringLiteral('Press'))];
+  const properties: t.ObjectProperty[] = [t.objectProperty(t.identifier('event'), t.stringLiteral(eventType))];
 
   for (const attributeName of CAPTURE_ATTRIBUTE_NAMES) {
     const value = captureProperties[attributeName];
@@ -167,7 +204,8 @@ export default function autocaptureTransformer(_options: AutocaptureTransformerO
     visitor: {
       JSXOpeningElement(path) {
         const { node } = path;
-        if (!isPressableElement(node.name)) {
+        const category = getCapturableElementCategory(node.name);
+        if (!category) {
           return;
         }
 
@@ -179,7 +217,7 @@ export default function autocaptureTransformer(_options: AutocaptureTransformerO
           }
 
           const attrName = getJsxAttributeName(attr);
-          if (!attrName || !PRESSABLE_ATTRIBUTES.includes(attrName)) {
+          if (!attrName || !category.eventForAttribute[attrName]) {
             continue;
           }
 
@@ -218,7 +256,8 @@ export default function autocaptureTransformer(_options: AutocaptureTransformerO
           }
 
           const attrName = getJsxAttributeName(attr);
-          if (!attrName || !PRESSABLE_ATTRIBUTES.includes(attrName)) {
+          const eventType = attrName ? category.eventForAttribute[attrName] : undefined;
+          if (!attrName || !eventType) {
             continue;
           }
 
@@ -231,7 +270,7 @@ export default function autocaptureTransformer(_options: AutocaptureTransformerO
             continue;
           }
 
-          attr.value.expression = buildAmpCaptureCall(captureIdentifier, expression, captureProperties);
+          attr.value.expression = buildAmpCaptureCall(captureIdentifier, expression, eventType, captureProperties);
         }
       },
     },

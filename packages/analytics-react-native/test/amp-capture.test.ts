@@ -12,16 +12,6 @@ describe('amp-capture', () => {
     unsubscribers.push(subscribe(callback));
   };
 
-  describe('EVENT_TYPE_VALUES', () => {
-    test('exports supported event types', () => {
-      expect(EVENT_TYPE_VALUES).toEqual({
-        Press: 'Press',
-        LongPress: 'LongPress',
-        Change: 'Change',
-      });
-    });
-  });
-
   describe('subscribe', () => {
     test('returns an unsubscribe function', () => {
       const unsubscribe = subscribe(jest.fn());
@@ -94,6 +84,11 @@ describe('amp-capture', () => {
       wrapped();
 
       expect(order).toEqual(['subscriber', 'original']);
+    });
+
+    test('passthrough when is not a function', () => {
+      const wrapped = ampCapture(100 as any, properties);
+      expect(wrapped).toBe(100);
     });
   });
 });

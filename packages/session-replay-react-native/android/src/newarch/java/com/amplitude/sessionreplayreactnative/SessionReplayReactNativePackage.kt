@@ -1,5 +1,6 @@
 package com.amplitude.sessionreplayreactnative
 
+import com.amplitude.sessionreplayreactnative.fabric.AmpMaskViewManager
 import com.facebook.react.BaseReactPackage
 import com.facebook.react.bridge.NativeModule
 import com.facebook.react.bridge.ReactApplicationContext
@@ -35,6 +36,8 @@ class SessionReplayReactNativePackage : BaseReactPackage() {
   }
 
   override fun createViewManagers(reactContext: ReactApplicationContext): List<ViewManager<*, *>> {
-    return listOf(SessionReplayReactNativeViewManager())
+    // Fabric-native AMPMaskComponentView; the legacy Paper manager of the same
+    // name is registered only by the oldarch package.
+    return listOf(AmpMaskViewManager())
   }
 }

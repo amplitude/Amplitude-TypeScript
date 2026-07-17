@@ -174,4 +174,43 @@ function HomeScreen() {
 
     expect(transform(input)).toMatchSnapshot();
   });
+
+  it('does not transform JSX member expression elements', () => {
+    const input = `function HomeScreen() {
+  return <RN.Button title="Go" onPress={onPress} />;
+}`;
+
+    expect(transform(input)).toMatchSnapshot();
+  });
+
+  it('wraps Switch onValueChange handlers', () => {
+    const input = `function HomeScreen() {
+  return <Switch value={enabled} onValueChange={setEnabled} accessibilityLabel="Enable notifications" testID="notifications-switch" />;
+}`;
+
+    expect(transform(input)).toMatchSnapshot();
+  });
+
+  it('wraps TextInput onChangeText and onSubmitEditing handlers', () => {
+    const input = `function HomeScreen() {
+  return (
+    <TextInput
+      accessibilityLabel="Email"
+      testID="email-input"
+      onChangeText={setEmail}
+      onSubmitEditing={submitEmail}
+    />
+  );
+}`;
+
+    expect(transform(input)).toMatchSnapshot();
+  });
+
+  it('wraps Slider onValueChange handlers', () => {
+    const input = `function HomeScreen() {
+  return <Slider value={volume} onValueChange={setVolume} />;
+}`;
+
+    expect(transform(input)).toMatchSnapshot();
+  });
 });

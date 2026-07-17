@@ -253,6 +253,24 @@ describe('core-client', () => {
       expect(_setOptOut).toHaveBeenCalledWith(true);
       expect(client.config.optOut).toBe(true);
     });
+
+    test('should call onQueueEmpty when the queue finishes empty', async () => {
+      const client = new AmplitudeCore();
+      const onQueueEmpty = jest.fn();
+
+      await client.runQueuedFunctions('q', onQueueEmpty);
+
+      expect(onQueueEmpty).toHaveBeenCalledTimes(1);
+    });
+
+    test('should set isReady via onQueueEmpty after init queue empties', async () => {
+      const client = new AmplitudeCore();
+      expect(client.isReady).toBe(false);
+
+      await (client as any)._init(useDefaultConfig());
+
+      expect(client.isReady).toBe(true);
+    });
   });
 
   describe('dispatchWithCallback', () => {

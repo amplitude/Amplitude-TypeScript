@@ -1,0 +1,13 @@
+{
+  "extends": "../../tsconfig.json",
+  "include": ["test/**/*"],
+  "compilerOptions": {
+    "baseUrl": ".",
+    "esModuleInterop": true,
+    "noEmit": true,
+    "rootDir": ".",
+    "jsx": "react-native",
+    "skipLibCheck": true,
+    "moduleResolution": "node"
+  }
+}

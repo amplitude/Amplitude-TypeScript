@@ -23,6 +23,8 @@ import {
   SpecialEventType,
   AnalyticsClient,
   OfflineDisabled,
+  ReactNativeAutocaptureOptions,
+  ReactNativeConfigAutocaptureBeta,
 } from '@amplitude/analytics-core';
 import { CampaignTracker } from './campaign/campaign-tracker';
 import { Context } from './plugins/context';
@@ -30,18 +32,27 @@ import { networkConnectivityCheckerPlugin } from './plugins/network-connectivity
 import { useReactNativeConfig, createCookieStorage } from './config';
 import { parseOldCookies } from './cookie-migration';
 import { isNative } from './utils/platform';
+import * as Capture from './amp-capture';
 
 const START_SESSION_EVENT = 'session_start';
 const END_SESSION_EVENT = 'session_end';
 
 export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeClient, AnalyticsClient {
   appState: AppStateStatus = 'background';
+  /**
+   * True after a transition into `background` until the next `active`.
+   * Used so Application Opened only pairs with Application Backgrounded
+   * (e.g. skip iOS inactive→active from Control Center overlays).
+   */
+  private wasBackgrounded = false;
   private appStateChangeHandler: NativeEventSubscription | undefined;
   explicitSessionId: number | undefined;
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore
   config: ReactNativeConfig;
   userProperties: { [key: string]: any } | undefined;
+  autocapture: ReactNativeAutocaptureOptions | null = null;
+  captureUnsubscribe: (() => void) | undefined;
 
   init(apiKey = '', userId?: string, options?: ReactNativeOptions) {
     return returnWrapper(this._init({ ...options, userId, apiKey }));
@@ -67,6 +78,37 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
       userId: options.userId ?? oldCookies.userId,
     });
     await super._init(reactNativeOptions);
+
+    // Step 2.1: parse autocapture config (always reset so re-init clears prior flags)
+    const autocaptureConfig = (this.config as ReactNativeConfigAutocaptureBeta).autocapture;
+    if (autocaptureConfig === true) {
+      this.autocapture = {
+        appLifecycles: true,
+        sessions: true,
+      };
+    } else if (autocaptureConfig && typeof autocaptureConfig === 'object') {
+      this.autocapture = autocaptureConfig;
+    } else {
+      this.autocapture = null;
+    }
+    // Drop any background seen before this init so Opened cannot fire unpaired.
+    this.wasBackgrounded = false;
+
+    if (this.autocapture?.elementInteractions === true) {
+      // todo: get unsubscribe function
+      this.captureUnsubscribe = Capture.subscribe((properties) => {
+        const analyticsProps = {
+          // TODO: add Screen Name
+          '[Amplitude] Target Accessibility Label': properties.accessibilityLabel,
+          '[Amplitude] Action': properties.action,
+          '[Amplitude] Target Component': properties.component,
+          '[Amplitude] Target Element': properties.element,
+          '[Amplitude] Target Test ID': properties.testID,
+        };
+        this.track('[Amplitude] Element Pressed', analyticsProps);
+      });
+      // TODO: unsubscribe when autocapture is disabled
+    }
 
     // Set up the analytics connector to integrate with the experiment SDK.
     // Send events from the experiment SDK and forward identifies to the
@@ -100,7 +142,15 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
 
     this.initializing = false;
 
-    // Step 5: Track attributions
+    // Step 5: autocapture
+
+    // Step 5.1: track Application Opened when already foregrounded at init (cold start).
+    // Do not await — track().promise waits on flush/network and would block init.
+    if (this.autocapture?.appLifecycles === true && this.appState === 'active') {
+      this.track('[Amplitude] Application Opened');
+    }
+
+    // Step 5.2: run attribution strategy
     await this.runAttributionStrategy(options.attribution, isNewSession);
 
     // Step 6: Run queued functions
@@ -114,6 +164,7 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
 
   shutdown() {
     this.appStateChangeHandler?.remove();
+    this.captureUnsubscribe?.();
   }
 
   async runAttributionStrategy(attributionConfig?: AttributionOptions, isNewSession = false) {
@@ -217,7 +268,7 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
 
     this.config.sessionId = sessionId;
 
-    if (this.config.trackingSessionEvents) {
+    if (this.config.trackingSessionEvents || this.autocapture?.sessions) {
       this.config.loggerProvider?.log(`SESSION_END event: previousSessionId = ${previousSessionId ?? 'undefined'}`);
 
       if (previousSessionId !== undefined) {
@@ -324,11 +375,21 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
       } else {
         this.exitForeground(timestamp);
       }
+      if (nextAppState == 'background' && this.autocapture?.appLifecycles === true) {
+        // Only remember background when we also emit Backgrounded, so Opened stays paired.
+        this.wasBackgrounded = true;
+        this.track('[Amplitude] Application Backgrounded');
+      }
     }
   };
 
   private enterForeground(timestamp: number) {
     this.config.loggerProvider?.log('App Activated');
+    // Only emit Application Opened after a real background (not inactive→active).
+    if (this.autocapture?.appLifecycles === true && this.wasBackgrounded) {
+      this.track('[Amplitude] Application Opened');
+    }
+    this.wasBackgrounded = false;
     return this.startNewSessionIfNeeded(timestamp);
   }
 

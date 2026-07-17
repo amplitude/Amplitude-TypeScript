@@ -1,0 +1,43 @@
+{
+  "name": "@amplitude/analytics-react-native-test",
+  "version": "0.0.1",
+  "private": true,
+  "description": "On-device harness tests for @amplitude/analytics-react-native",
+  "author": "Amplitude Inc",
+  "homepage": "https://github.com/amplitude/Amplitude-TypeScript",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/amplitude/Amplitude-TypeScript.git"
+  },
+  "scripts": {
+    "test": "echo 'On-device harness only. Use test:harness:ios or test:harness:android.'",
+    "test:harness:ios": "node ./scripts/run-harness-ios.mjs",
+    "test:harness:ios:old-arch": "NEW_ARCH=0 node ./scripts/run-harness-ios.mjs",
+    "test:harness:ios:new-arch": "NEW_ARCH=1 node ./scripts/run-harness-ios.mjs",
+    "test:harness:android": "node ./scripts/run-harness-android.mjs",
+    "test:harness:android:old-arch": "NEW_ARCH=0 node ./scripts/run-harness-android.mjs",
+    "test:harness:android:new-arch": "NEW_ARCH=1 node ./scripts/run-harness-android.mjs"
+  },
+  "bugs": {
+    "url": "https://github.com/amplitude/Amplitude-TypeScript/issues"
+  },
+  "dependencies": {
+    "@amplitude/analytics-core": "workspace:*",
+    "@amplitude/analytics-react-native": "workspace:*"
+  },
+  "devDependencies": {
+    "@react-native-harness/platform-android": "1.3.0",
+    "@react-native-harness/platform-apple": "1.3.0",
+    "@react-native-harness/ui": "1.3.0",
+    "@react-native/babel-preset": "0.76.9",
+    "@react-native/metro-config": "0.76.9",
+    "@types/react": "^18.2.6",
+    "metro": "0.81.5",
+    "metro-cache": "0.81.5",
+    "metro-config": "0.81.5",
+    "metro-resolver": "0.81.5",
+    "react": "18.3.1",
+    "react-native": "0.76.9",
+    "react-native-harness": "1.3.0"
+  }
+}

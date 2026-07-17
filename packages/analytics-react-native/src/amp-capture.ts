@@ -1,13 +1,18 @@
 export const EVENT_TYPE_VALUES = {
   Press: 'Press',
   LongPress: 'LongPress',
-  Change: 'Change',
+  ValueChange: 'ValueChange',
+  ChangeText: 'ChangeText',
+  SubmitEditing: 'SubmitEditing',
 } as const;
 
 export type EVENT_TYPE = (typeof EVENT_TYPE_VALUES)[keyof typeof EVENT_TYPE_VALUES];
 
 export type AmpCaptureProperties = {
+  action?: string;
   accessibilityLabel?: string;
+  component?: string;
+  element?: string;
   testID?: string;
   event: EVENT_TYPE;
 };
@@ -25,6 +30,9 @@ export function ampCapture<Args extends unknown[], Return>(
   func: (...args: Args) => Return,
   properties: AmpCaptureProperties,
 ): (...args: Args) => Return {
+  if (typeof func !== 'function') {
+    return func;
+  }
   return (...args: Args) => {
     try {
       callbacks.forEach((callback) => callback(properties));

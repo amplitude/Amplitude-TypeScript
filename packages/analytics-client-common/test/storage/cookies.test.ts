@@ -122,6 +122,32 @@ describe('cookies', () => {
         jest.restoreAllMocks();
       },
     );
+
+    test('should not throw or log when global scope is defined but document is not', async () => {
+      // In a service worker the global scope (self) exists but there is no document,
+      // so accessing globalScope.document.cookie throws. get() already guards this, set() should too.
+      console.error = jest.fn();
+      jest.spyOn(GlobalScopeModule, 'getGlobalScope').mockReturnValueOnce({} as typeof globalThis);
+
+      const cookies = new CookieStorage();
+      await expect(cookies.set('hello', 'world')).resolves.toBeUndefined();
+
+      expect(console.error).not.toHaveBeenCalled();
+
+      jest.restoreAllMocks();
+    });
+
+    test('should not throw or log when global scope is not defined', async () => {
+      console.error = jest.fn();
+      jest.spyOn(GlobalScopeModule, 'getGlobalScope').mockReturnValueOnce(undefined);
+
+      const cookies = new CookieStorage();
+      await expect(cookies.set('hello', 'world')).resolves.toBeUndefined();
+
+      expect(console.error).not.toHaveBeenCalled();
+
+      jest.restoreAllMocks();
+    });
   });
 
   describe('remove', () => {
