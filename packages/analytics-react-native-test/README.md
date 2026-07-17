@@ -47,6 +47,9 @@ NEW_ARCH=1 pnpm test:harness:android
 
 Accepted `NEW_ARCH` values: `0` / `false` / `off` (legacy) and `1` / `true` / `on` (New Architecture).
 
+Element-interaction harness tests (`element-interactions.harness.tsx`) require
+`@react-native-harness/ui` and only run when `NEW_ARCH=1`.
+
 ### Cached binaries
 
 Old- and new-arch binaries are kept separate so you can switch without a full rebuild every time:

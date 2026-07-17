@@ -11,7 +11,7 @@ export interface ReactNativeAutocaptureOptions {
   sessions?: boolean;
   appLifecycles?: boolean;
   // screenViews?: boolean;
-  // elementInteractions?
+  elementInteractions?: boolean;
 }
 
 export interface ReactNativeConfig extends Omit<IConfig, 'requestMetadata'> {

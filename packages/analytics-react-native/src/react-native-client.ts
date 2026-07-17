@@ -32,6 +32,7 @@ import { networkConnectivityCheckerPlugin } from './plugins/network-connectivity
 import { useReactNativeConfig, createCookieStorage } from './config';
 import { parseOldCookies } from './cookie-migration';
 import { isNative } from './utils/platform';
+import * as Capture from './amp-capture';
 
 const START_SESSION_EVENT = 'session_start';
 const END_SESSION_EVENT = 'session_end';
@@ -51,6 +52,7 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
   config: ReactNativeConfig;
   userProperties: { [key: string]: any } | undefined;
   autocapture: ReactNativeAutocaptureOptions | null = null;
+  captureUnsubscribe: (() => void) | undefined;
 
   init(apiKey = '', userId?: string, options?: ReactNativeOptions) {
     return returnWrapper(this._init({ ...options, userId, apiKey }));
@@ -91,6 +93,22 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
     }
     // Drop any background seen before this init so Opened cannot fire unpaired.
     this.wasBackgrounded = false;
+
+    if (this.autocapture?.elementInteractions === true) {
+      // todo: get unsubscribe function
+      this.captureUnsubscribe = Capture.subscribe((properties) => {
+        const analyticsProps = {
+          // TODO: add Screen Name
+          '[Amplitude] Target Accessibility Label': properties.accessibilityLabel,
+          '[Amplitude] Action': properties.action,
+          '[Amplitude] Target Component': properties.component,
+          '[Amplitude] Target Element': properties.element,
+          '[Amplitude] Target Test ID': properties.testID,
+        };
+        this.track('[Amplitude] Element Pressed', analyticsProps);
+      });
+      // TODO: unsubscribe when autocapture is disabled
+    }
 
     // Set up the analytics connector to integrate with the experiment SDK.
     // Send events from the experiment SDK and forward identifies to the
@@ -146,6 +164,7 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
 
   shutdown() {
     this.appStateChangeHandler?.remove();
+    this.captureUnsubscribe?.();
   }
 
   async runAttributionStrategy(attributionConfig?: AttributionOptions, isNewSession = false) {
