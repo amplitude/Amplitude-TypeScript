@@ -164,6 +164,7 @@ export { Observable, asyncMap, merge, multicast, Unsubscribable } from './utils/
 
 export { InstanceProxy } from './types/proxy';
 export { safeJsonStringify } from './utils/safe-stringify';
+export { pruneJson } from './utils/json-query';
 
 // Messenger (cross-window communication)
 export type { BaseWindowMessenger, ActionHandler } from './messenger/base-window-messenger';
