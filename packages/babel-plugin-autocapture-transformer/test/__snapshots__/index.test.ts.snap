@@ -7,7 +7,9 @@ function HomeScreen() {
   return /*#__PURE__*/React.createElement(Button, {
     title: "Go",
     onPress: ampCapture(() => console.log('pressed'), {
-      event: "Press"
+      event: "Press",
+      element: "Button",
+      component: "HomeScreen"
     })
   });
 }"
@@ -55,15 +57,35 @@ exports[`@amplitude/babel-plugin-autocapture-transformer does not transform pres
 }"
 `;
 
+exports[`@amplitude/babel-plugin-autocapture-transformer does not transform unknown elements when options omit them 1`] = `
+"function HomeScreen() {
+  return /*#__PURE__*/React.createElement(CustomButton, {
+    title: "Go",
+    onPress: onPress
+  });
+}"
+`;
+
 exports[`@amplitude/babel-plugin-autocapture-transformer ignores boolean accessibilityLabel attributes without values 1`] = `
 "import { ampCapture } from "@amplitude/analytics-react-native";
 function HomeScreen() {
   return /*#__PURE__*/React.createElement(Button, {
     accessibilityLabel: true,
     onPress: ampCapture(onPress, {
-      event: "Press"
+      event: "Press",
+      element: "Button",
+      component: "HomeScreen"
     }),
     title: "Go"
+  });
+}"
+`;
+
+exports[`@amplitude/babel-plugin-autocapture-transformer ignores empty custom element option arrays 1`] = `
+"function HomeScreen() {
+  return /*#__PURE__*/React.createElement(CustomButton, {
+    title: "Go",
+    onPress: onPress
   });
 }"
 `;
@@ -78,7 +100,9 @@ function HomeScreen({
     accessibilityLabel: "Label",
     onPress: ampCapture(onPress, {
       event: "Press",
-      accessibilityLabel: "Label"
+      accessibilityLabel: "Label",
+      element: "Button",
+      component: "HomeScreen"
     }),
     title: "Go"
   }));
@@ -94,11 +118,127 @@ function HomeScreen() {
     onPress: ampCapture(func, {
       event: "Press",
       accessibilityLabel: "Online test label",
-      testID: "12345"
+      testID: "12345",
+      element: "Button",
+      component: "HomeScreen"
     }),
     testID: "12345"
   });
 }"
+`;
+
+exports[`@amplitude/babel-plugin-autocapture-transformer includes element and component for anonymous class expressions assigned to a variable 1`] = `
+"import { ampCapture } from "@amplitude/analytics-react-native";
+const HomeScreen = class extends React.Component {
+  render() {
+    return /*#__PURE__*/React.createElement(Button, {
+      title: "Go",
+      onPress: ampCapture(this.onPress, {
+        event: "Press",
+        element: "Button",
+        component: "HomeScreen"
+      })
+    });
+  }
+};"
+`;
+
+exports[`@amplitude/babel-plugin-autocapture-transformer includes element and component for arrow function components 1`] = `
+"import { ampCapture } from "@amplitude/analytics-react-native";
+const HomeScreen = () => {
+  return /*#__PURE__*/React.createElement(Button, {
+    title: "Go",
+    onPress: ampCapture(onPress, {
+      event: "Press",
+      element: "Button",
+      component: "HomeScreen"
+    })
+  });
+};"
+`;
+
+exports[`@amplitude/babel-plugin-autocapture-transformer includes element and component for class components 1`] = `
+"import { ampCapture } from "@amplitude/analytics-react-native";
+class HomeScreen extends React.Component {
+  render() {
+    return /*#__PURE__*/React.createElement(Button, {
+      title: "Go",
+      onPress: ampCapture(this.onPress, {
+        event: "Press",
+        element: "Button",
+        component: "HomeScreen"
+      })
+    });
+  }
+}"
+`;
+
+exports[`@amplitude/babel-plugin-autocapture-transformer includes element and component for named class expressions 1`] = `
+"import { ampCapture } from "@amplitude/analytics-react-native";
+const Screen = class HomeScreen extends React.Component {
+  render() {
+    return /*#__PURE__*/React.createElement(Button, {
+      title: "Go",
+      onPress: ampCapture(this.onPress, {
+        event: "Press",
+        element: "Button",
+        component: "HomeScreen"
+      })
+    });
+  }
+};"
+`;
+
+exports[`@amplitude/babel-plugin-autocapture-transformer includes element and component for named function expressions 1`] = `
+"import { ampCapture } from "@amplitude/analytics-react-native";
+(function HomeScreen() {
+  return /*#__PURE__*/React.createElement(Button, {
+    title: "Go",
+    onPress: ampCapture(onPress, {
+      event: "Press",
+      element: "Button",
+      component: "HomeScreen"
+    })
+  });
+})();"
+`;
+
+exports[`@amplitude/babel-plugin-autocapture-transformer includes element and component for object method components 1`] = `
+"import { ampCapture } from "@amplitude/analytics-react-native";
+const screens = {
+  HomeScreen() {
+    return /*#__PURE__*/React.createElement(Button, {
+      title: "Go",
+      onPress: ampCapture(onPress, {
+        event: "Press",
+        element: "Button",
+        component: "HomeScreen"
+      })
+    });
+  }
+};"
+`;
+
+exports[`@amplitude/babel-plugin-autocapture-transformer includes element and component for object property components 1`] = `
+"import { ampCapture } from "@amplitude/analytics-react-native";
+const screens = {
+  HomeScreen: () => /*#__PURE__*/React.createElement(Button, {
+    title: "Go",
+    onPress: ampCapture(onPress, {
+      event: "Press",
+      element: "Button",
+      component: "HomeScreen"
+    })
+  }),
+  'SettingsScreen': () => /*#__PURE__*/React.createElement(Button, {
+    title: "Go",
+    onPress: ampCapture(onPress, {
+      event: "Press",
+      element: "Button",
+      component: "SettingsScreen"
+    })
+  })
+};"
 `;
 
 exports[`@amplitude/babel-plugin-autocapture-transformer inserts ampCapture import after existing non-amplitude imports 1`] = `
@@ -108,10 +248,25 @@ function HomeScreen() {
   return /*#__PURE__*/React.createElement(Button, {
     title: "Go",
     onPress: ampCapture(onPress, {
-      event: "Press"
+      event: "Press",
+      element: "Button",
+      component: "HomeScreen"
     })
   });
 }"
+`;
+
+exports[`@amplitude/babel-plugin-autocapture-transformer omits component when the enclosing function is anonymous 1`] = `
+"import { ampCapture } from "@amplitude/analytics-react-native";
+export default () => {
+  return /*#__PURE__*/React.createElement(Button, {
+    title: "Go",
+    onPress: ampCapture(onPress, {
+      event: "Press",
+      element: "Button"
+    })
+  });
+};"
 `;
 
 exports[`@amplitude/babel-plugin-autocapture-transformer recognizes ampCapture when imported with a string literal export name 1`] = `
@@ -121,7 +276,9 @@ function HomeScreen() {
   return /*#__PURE__*/React.createElement(Button, {
     title: "Go",
     onPress: capturePress(onPress, {
-      event: "Press"
+      event: "Press",
+      element: "Button",
+      component: "HomeScreen"
     })
   });
 }"
@@ -134,7 +291,9 @@ function HomeScreen() {
   return /*#__PURE__*/React.createElement(Button, {
     title: "Go",
     onPress: capturePress(onPress, {
-      event: "Press"
+      event: "Press",
+      element: "Button",
+      component: "HomeScreen"
     })
   });
 }"
@@ -147,9 +306,32 @@ function HomeScreen() {
   return /*#__PURE__*/React.createElement(Button, {
     title: "Go",
     onPress: ampCapture(onPress, {
-      event: "Press"
+      event: "Press",
+      element: "Button",
+      component: "HomeScreen"
     })
   });
+}"
+`;
+
+exports[`@amplitude/babel-plugin-autocapture-transformer still transforms default elements when custom element options are provided 1`] = `
+"import { ampCapture } from "@amplitude/analytics-react-native";
+function HomeScreen() {
+  return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(Button, {
+    title: "Go",
+    onPress: ampCapture(onPress, {
+      event: "Press",
+      element: "Button",
+      component: "HomeScreen"
+    })
+  }), /*#__PURE__*/React.createElement(CustomButton, {
+    title: "Go",
+    onPress: ampCapture(onPress, {
+      event: "Press",
+      element: "CustomButton",
+      component: "HomeScreen"
+    })
+  }));
 }"
 `;
 
@@ -163,7 +345,9 @@ function HomeScreen({
     title: "Go",
     onPress: ampCapture(onPress, {
       event: "Press",
-      accessibilityLabel: label
+      accessibilityLabel: label,
+      element: "Button",
+      component: "HomeScreen"
     })
   });
 }"
@@ -174,7 +358,55 @@ exports[`@amplitude/babel-plugin-autocapture-transformer transforms TouchableOpa
 function HomeScreen() {
   return /*#__PURE__*/React.createElement(TouchableOpacity, {
     onPress: ampCapture(handlePress, {
-      event: "Press"
+      event: "Press",
+      element: "TouchableOpacity",
+      component: "HomeScreen"
+    })
+  });
+}"
+`;
+
+exports[`@amplitude/babel-plugin-autocapture-transformer transforms custom pressable elements from options 1`] = `
+"import { ampCapture } from "@amplitude/analytics-react-native";
+function HomeScreen() {
+  return /*#__PURE__*/React.createElement(CustomButton, {
+    title: "Go",
+    onPress: ampCapture(onPress, {
+      event: "Press",
+      element: "CustomButton",
+      component: "HomeScreen"
+    })
+  });
+}"
+`;
+
+exports[`@amplitude/babel-plugin-autocapture-transformer transforms custom text-change elements from options 1`] = `
+"import { ampCapture } from "@amplitude/analytics-react-native";
+function HomeScreen() {
+  return /*#__PURE__*/React.createElement(SearchField, {
+    onChangeText: ampCapture(setQuery, {
+      event: "ChangeText",
+      element: "SearchField",
+      component: "HomeScreen"
+    }),
+    onSubmitEditing: ampCapture(submitQuery, {
+      event: "SubmitEditing",
+      element: "SearchField",
+      component: "HomeScreen"
+    })
+  });
+}"
+`;
+
+exports[`@amplitude/babel-plugin-autocapture-transformer transforms custom value-change elements from options 1`] = `
+"import { ampCapture } from "@amplitude/analytics-react-native";
+function HomeScreen() {
+  return /*#__PURE__*/React.createElement(Toggle, {
+    value: enabled,
+    onValueChange: ampCapture(setEnabled, {
+      event: "ValueChange",
+      element: "Toggle",
+      component: "HomeScreen"
     })
   });
 }"
@@ -186,7 +418,9 @@ function HomeScreen() {
   return /*#__PURE__*/React.createElement(Button, {
     title: "Go",
     onPress: ampCapture(() => console.log('pressed'), {
-      event: "Press"
+      event: "Press",
+      element: "Button",
+      component: "HomeScreen"
     })
   });
 }"
@@ -198,7 +432,9 @@ function HomeScreen() {
   return /*#__PURE__*/React.createElement(Slider, {
     value: volume,
     onValueChange: ampCapture(setVolume, {
-      event: "ValueChange"
+      event: "ValueChange",
+      element: "Slider",
+      component: "HomeScreen"
     })
   });
 }"
@@ -212,7 +448,9 @@ function HomeScreen() {
     onValueChange: ampCapture(setEnabled, {
       event: "ValueChange",
       accessibilityLabel: "Enable notifications",
-      testID: "notifications-switch"
+      testID: "notifications-switch",
+      element: "Switch",
+      component: "HomeScreen"
     }),
     accessibilityLabel: "Enable notifications",
     testID: "notifications-switch"
@@ -229,12 +467,16 @@ function HomeScreen() {
     onChangeText: ampCapture(setEmail, {
       event: "ChangeText",
       accessibilityLabel: "Email",
-      testID: "email-input"
+      testID: "email-input",
+      element: "TextInput",
+      component: "HomeScreen"
     }),
     onSubmitEditing: ampCapture(submitEmail, {
       event: "SubmitEditing",
       accessibilityLabel: "Email",
-      testID: "email-input"
+      testID: "email-input",
+      element: "TextInput",
+      component: "HomeScreen"
     })
   });
 }"
@@ -248,7 +490,9 @@ function HomeScreen({
   return /*#__PURE__*/React.createElement(Button, {
     title: "Go",
     onPress: ampCapture(onPress, {
-      event: "Press"
+      event: "Press",
+      element: "Button",
+      component: "HomeScreen"
     })
   });
 }"
@@ -259,7 +503,9 @@ exports[`@amplitude/babel-plugin-autocapture-transformer wraps onLongPress handl
 function HomeScreen() {
   return /*#__PURE__*/React.createElement(Pressable, {
     onLongPress: ampCapture(() => console.log('long press'), {
-      event: "LongPress"
+      event: "LongPress",
+      element: "Pressable",
+      component: "HomeScreen"
     })
   });
 }"

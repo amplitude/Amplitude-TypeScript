@@ -4,7 +4,9 @@ exports[`@amplitude/babel-plugin-autocapture-transformer edge cases handles name
 "import { ampCapture } from "@amplitude/analytics-react-native";
 function Home() {
   return <Button xml:lang="en" onPress={ampCapture(fn, {
-    event: "Press"
+    event: "Press",
+    element: "Button",
+    component: "Home"
   })} title="Go" />;
 }"
 `;
@@ -13,7 +15,9 @@ exports[`@amplitude/babel-plugin-autocapture-transformer edge cases skips empty 
 "import { ampCapture } from "@amplitude/analytics-react-native";
 function Home() {
   return <Button onPress={} onLongPress={ampCapture(fn2, {
-    event: "LongPress"
+    event: "LongPress",
+    element: "Button",
+    component: "Home"
   })} accessibilityLabel={} testID=<span /> title="Go" />;
 }"
 `;
@@ -22,7 +26,9 @@ exports[`@amplitude/babel-plugin-autocapture-transformer edge cases skips non-ex
 "import { ampCapture } from "@amplitude/analytics-react-native";
 function Home() {
   return <Button onPress={ampCapture(onPress, {
-    event: "Press"
+    event: "Press",
+    element: "Button",
+    component: "Home"
   })} onLongPress="handler" title="Go" />;
 }"
 `;

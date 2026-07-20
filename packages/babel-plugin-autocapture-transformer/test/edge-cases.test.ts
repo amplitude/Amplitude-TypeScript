@@ -135,6 +135,48 @@ describe('@amplitude/babel-plugin-autocapture-transformer edge cases', () => {
     ).toMatchSnapshot();
   });
 
+  it('omits component when a class method has no enclosing class node', () => {
+    const ast = parse('class HomeScreen { render() { return <Button onPress={fn} title="Go" />; } }', {
+      plugins: ['jsx'],
+      sourceType: 'module',
+    });
+
+    let jsxPath: NodePath<JSXOpeningElement> | undefined;
+
+    traverse(ast, {
+      JSXOpeningElement(path) {
+        jsxPath = path;
+        const classMethodPath = path.findParent((parent) => parent.isClassMethod());
+        if (classMethodPath) {
+          classMethodPath.findParent = (() => null) as typeof classMethodPath.findParent;
+        }
+        path.stop();
+      },
+    });
+
+    expect(jsxPath).toBeDefined();
+
+    const plugin = autocaptureTransformer();
+    const visitor = plugin.visitor.JSXOpeningElement;
+    if (typeof visitor === 'function') {
+      visitor.call({} as PluginPass, jsxPath as NodePath<JSXOpeningElement>, {} as PluginPass);
+    }
+
+    const onPressAttribute = (jsxPath as NodePath<JSXOpeningElement>).node.attributes.find(
+      (attr): attr is JSXAttribute => t.isJSXAttribute(attr) && t.isJSXIdentifier(attr.name, { name: 'onPress' }),
+    );
+
+    expect(
+      onPressAttribute &&
+        t.isJSXExpressionContainer(onPressAttribute.value) &&
+        t.isCallExpression(onPressAttribute.value.expression) &&
+        t.isObjectExpression(onPressAttribute.value.expression.arguments[1]) &&
+        onPressAttribute.value.expression.arguments[1].properties.every(
+          (property) => !(t.isObjectProperty(property) && t.isIdentifier(property.key, { name: 'component' })),
+        ),
+    ).toBe(true);
+  });
+
   it('returns early when JSX is not nested under a Program node', () => {
     const ast = parse('function Home() { return <Button onPress={fn} title="Go" />; }', {
       plugins: ['jsx'],

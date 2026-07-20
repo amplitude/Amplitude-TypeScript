@@ -1,12 +1,13 @@
 import { transformSync } from '@babel/core';
 import autocaptureTransformer, { PACKAGE_NAME, PLUGIN_NAME } from '../src';
+import type { AutocaptureTransformerOptions } from '../src';
 
 describe('@amplitude/babel-plugin-autocapture-transformer', () => {
   let fileCounter = 0;
 
-  const transform = (input: string) =>
+  const transform = (input: string, options?: AutocaptureTransformerOptions) =>
     transformSync(input, {
-      plugins: [autocaptureTransformer],
+      plugins: [[autocaptureTransformer, options]],
       presets: ['@babel/preset-typescript', '@babel/preset-react'],
       filename: `App-${++fileCounter}.tsx`,
       configFile: false,
@@ -37,6 +38,79 @@ describe('@amplitude/babel-plugin-autocapture-transformer', () => {
     />
   );
 }`;
+
+    expect(transform(input)).toMatchSnapshot();
+  });
+
+  it('includes element and component for arrow function components', () => {
+    const input = `const HomeScreen = () => {
+  return <Button title="Go" onPress={onPress} />;
+};`;
+
+    expect(transform(input)).toMatchSnapshot();
+  });
+
+  it('includes element and component for named function expressions', () => {
+    const input = `(function HomeScreen() {
+  return <Button title="Go" onPress={onPress} />;
+})();`;
+
+    expect(transform(input)).toMatchSnapshot();
+  });
+
+  it('includes element and component for object property components', () => {
+    const input = `const screens = {
+  HomeScreen: () => <Button title="Go" onPress={onPress} />,
+  'SettingsScreen': () => <Button title="Go" onPress={onPress} />,
+};`;
+
+    expect(transform(input)).toMatchSnapshot();
+  });
+
+  it('includes element and component for object method components', () => {
+    const input = `const screens = {
+  HomeScreen() {
+    return <Button title="Go" onPress={onPress} />;
+  },
+};`;
+
+    expect(transform(input)).toMatchSnapshot();
+  });
+
+  it('includes element and component for class components', () => {
+    const input = `class HomeScreen extends React.Component {
+  render() {
+    return <Button title="Go" onPress={this.onPress} />;
+  }
+}`;
+
+    expect(transform(input)).toMatchSnapshot();
+  });
+
+  it('includes element and component for named class expressions', () => {
+    const input = `const Screen = class HomeScreen extends React.Component {
+  render() {
+    return <Button title="Go" onPress={this.onPress} />;
+  }
+};`;
+
+    expect(transform(input)).toMatchSnapshot();
+  });
+
+  it('includes element and component for anonymous class expressions assigned to a variable', () => {
+    const input = `const HomeScreen = class extends React.Component {
+  render() {
+    return <Button title="Go" onPress={this.onPress} />;
+  }
+};`;
+
+    expect(transform(input)).toMatchSnapshot();
+  });
+
+  it('omits component when the enclosing function is anonymous', () => {
+    const input = `export default () => {
+  return <Button title="Go" onPress={onPress} />;
+};`;
 
     expect(transform(input)).toMatchSnapshot();
   });
@@ -212,5 +286,78 @@ function HomeScreen() {
 }`;
 
     expect(transform(input)).toMatchSnapshot();
+  });
+
+  it('transforms custom pressable elements from options', () => {
+    const input = `function HomeScreen() {
+  return <CustomButton title="Go" onPress={onPress} />;
+}`;
+
+    expect(
+      transform(input, {
+        pressableElements: ['CustomButton'],
+      }),
+    ).toMatchSnapshot();
+  });
+
+  it('transforms custom value-change elements from options', () => {
+    const input = `function HomeScreen() {
+  return <Toggle value={enabled} onValueChange={setEnabled} />;
+}`;
+
+    expect(
+      transform(input, {
+        valueChangeElements: ['Toggle'],
+      }),
+    ).toMatchSnapshot();
+  });
+
+  it('transforms custom text-change elements from options', () => {
+    const input = `function HomeScreen() {
+  return <SearchField onChangeText={setQuery} onSubmitEditing={submitQuery} />;
+}`;
+
+    expect(
+      transform(input, {
+        textChangeElements: ['SearchField'],
+      }),
+    ).toMatchSnapshot();
+  });
+
+  it('still transforms default elements when custom element options are provided', () => {
+    const input = `function HomeScreen() {
+  return (
+    <>
+      <Button title="Go" onPress={onPress} />
+      <CustomButton title="Go" onPress={onPress} />
+    </>
+  );
+}`;
+
+    expect(
+      transform(input, {
+        pressableElements: ['CustomButton'],
+      }),
+    ).toMatchSnapshot();
+  });
+
+  it('does not transform unknown elements when options omit them', () => {
+    const input = `function HomeScreen() {
+  return <CustomButton title="Go" onPress={onPress} />;
+}`;
+
+    expect(transform(input)).toMatchSnapshot();
+  });
+
+  it('ignores empty custom element option arrays', () => {
+    const input = `function HomeScreen() {
+  return <CustomButton title="Go" onPress={onPress} />;
+}`;
+
+    expect(
+      transform(input, {
+        pressableElements: [],
+      }),
+    ).toMatchSnapshot();
   });
 });
