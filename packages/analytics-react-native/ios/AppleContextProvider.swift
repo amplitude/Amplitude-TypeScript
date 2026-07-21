@@ -6,6 +6,7 @@ import Foundation
 @objc public class AppleContextProvider : NSObject {
 
     public let version: String? = AppleContextProvider.getVersion()
+    public let build: String? = AppleContextProvider.getBuild()
     public let language: String? = AppleContextProvider.getLanguage()
     public let country: String? = AppleContextProvider.getCountry()
     public let platform: String = AppleContextProvider.getPlatform()
@@ -28,6 +29,10 @@ import Foundation
 
     private static func getVersion() -> String? {
         return Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String
+    }
+
+    private static func getBuild() -> String? {
+        return Bundle.main.infoDictionary?["CFBundleVersion"] as? String
     }
 
     private static func getLanguage() -> String? {
