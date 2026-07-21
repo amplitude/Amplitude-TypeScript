@@ -1,4 +1,63 @@
 import { SAFE_HEADERS } from '../types/constants';
+import { ILogger } from '../logger';
+import { NetworkCaptureRule, NetworkTrackingOptions } from '../types/network-tracking';
+
+export interface NetworkCaptureRuleRemoteConfig extends NetworkCaptureRule {
+  /**
+   * Related to urls but holds regex strings which will be initialized and appended to urls
+   */
+  urlsRegex?: string[];
+}
+
+export interface NetworkTrackingOptionsRemoteConfig extends NetworkTrackingOptions {
+  /**
+   * Related to urls but holds regex strings which will be initialized and appended to urls
+   */
+  captureRules?: NetworkCaptureRuleRemoteConfig[];
+}
+
+/**
+ * Converts regex string patterns to RegExp objects and appends them to an exact URL list.
+ * Invalid patterns are skipped and a warning is logged.
+ */
+export function mergeUrls(
+  urlsExact: (string | RegExp)[],
+  urlsRegex: string[] | undefined,
+  logger: ILogger,
+): (string | RegExp)[] {
+  const regexList: RegExp[] = [];
+  for (const pattern of urlsRegex ?? []) {
+    try {
+      regexList.push(new RegExp(pattern));
+    } catch (regexError) {
+      logger.warn(`Invalid regex pattern: ${pattern}`, regexError);
+    }
+  }
+
+  return urlsExact.concat(regexList);
+}
+
+/**
+ * Transforms networkTracking remote config by merging urlsRegex into urls on each capture rule.
+ * Returns a shallow-cloned networkTracking object when transform is needed, otherwise undefined.
+ */
+export function transformNetworkTrackingRemoteConfig(
+  networkTracking: boolean | NetworkTrackingOptionsRemoteConfig | undefined,
+  logger: ILogger,
+): NetworkTrackingOptionsRemoteConfig | undefined {
+  if (typeof networkTracking !== 'object' || networkTracking === null || !networkTracking.captureRules?.length) {
+    return undefined;
+  }
+
+  const transformed: NetworkTrackingOptionsRemoteConfig = { ...networkTracking };
+  /* istanbul ignore next */
+  const captureRules = transformed.captureRules ?? [];
+  for (const rule of captureRules) {
+    rule.urls = mergeUrls(rule.urls ?? [], rule.urlsRegex, logger);
+    delete rule.urlsRegex;
+  }
+  return transformed;
+}
 
 /**
  * Performs a deep transformation of a remote config object so that

@@ -7,7 +7,7 @@
  * Do not await track*.promise here — that waits on the destination network flush
  * (and retries). Use the enrichment capture instead so tests stay deterministic.
  */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument */
 import { describe, it, expect, beforeEach, afterEach } from 'react-native-harness';
 import { createInstance, Types } from '@amplitude/analytics-react-native';
 import { createEventCapture, EventCapture } from '../helpers/event-capture';

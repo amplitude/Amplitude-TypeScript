@@ -15,7 +15,7 @@ describe('@amplitude/analytics-react-native harness smoke', () => {
   it('runs on ios or android', () => {
     expect(Platform.OS).toMatch(/^(ios|android)$/);
   });
-  
+
   it('initializes and tracks an event', async () => {
     const client = createInstance();
     await client.init(API_KEY, 'harness-user', {

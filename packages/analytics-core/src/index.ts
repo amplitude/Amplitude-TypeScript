@@ -145,6 +145,8 @@ export {
 } from './types/config/browser-config';
 export { BrowserClient } from './types/client/browser-client';
 
+export { AutocaptureOptionsReactNative } from './types/config/react-native-config';
+
 // Node
 export { NodeClient } from './types/client/node-client';
 export { NodeConfig, NodeOptions } from './types/config/node-config';
@@ -182,4 +184,10 @@ export { ExcludeInternalReferrersOptions, EXCLUDE_INTERNAL_REFERRERS_CONDITIONS 
 export { VideoObserver, State as VideoState, type VideoObserverParams } from './observers/video';
 export { EmbeddedVideoPlayer, type Vendor as VideoVendor } from './video-analytics/types';
 export { isChromeExtension, isReactNative } from './utils/environment';
-export { translateRemoteConfigToLocal } from './config/joined-config';
+export {
+  translateRemoteConfigToLocal,
+  mergeUrls,
+  transformNetworkTrackingRemoteConfig,
+  NetworkCaptureRuleRemoteConfig,
+  NetworkTrackingOptionsRemoteConfig,
+} from './config/joined-config';

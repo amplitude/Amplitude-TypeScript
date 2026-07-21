@@ -23,6 +23,12 @@ import {
   SpecialEventType,
   AnalyticsClient,
   OfflineDisabled,
+  Logger,
+  LogLevel,
+  IRemoteConfigClient,
+  RemoteConfigClient,
+  RemoteConfig,
+  Source,
   ReactNativeAutocaptureOptions,
   ReactNativeConfigAutocaptureBeta,
   NavigationState,
@@ -30,7 +36,8 @@ import {
 import { CampaignTracker } from './campaign/campaign-tracker';
 import { Context } from './plugins/context';
 import { networkConnectivityCheckerPlugin } from './plugins/network-connectivity-checker';
-import { useReactNativeConfig, createCookieStorage } from './config';
+import { useReactNativeConfig, createCookieStorage, shouldFetchRemoteConfig } from './config';
+import { updateReactNativeConfigWithRemoteConfig } from './config/joined-config';
 import { parseOldCookies } from './cookie-migration';
 import { isNative } from './utils/platform';
 import {
@@ -62,6 +69,7 @@ const getActiveRouteName = (navigationState: NavigationState): string | undefine
   return routeName;
 };
 
+const IS_DIAGNOSTICS_CAPTURED = false; // TODO: Do not merge this, set it as false before merging
 export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeClient, AnalyticsClient {
   appState: AppStateStatus = 'background';
   /**
@@ -95,6 +103,64 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
     this.initializing = true;
     this.explicitSessionId = options.sessionId;
 
+    // Step 0.1: Get remote config dependencies ready
+    const fetchRemoteConfig = shouldFetchRemoteConfig(options);
+    const loggerProvider = options.loggerProvider ?? new Logger();
+    if (!options.loggerProvider) {
+      loggerProvider.enable(options.logLevel ?? LogLevel.Warn);
+    }
+    const serverZone = options.serverZone ?? 'US';
+    let remoteConfigClient: IRemoteConfigClient | undefined;
+
+    // Step 0.2: Fetch diagnostics config
+    // let diagnosticsSampleRate: number;
+    // let enableDiagnostics: boolean = false;
+    if (fetchRemoteConfig) {
+      remoteConfigClient = new RemoteConfigClient(
+        options.apiKey,
+        loggerProvider,
+        serverZone,
+        /* istanbul ignore next */ options.remoteConfig?.serverUrl,
+      );
+      // Diagnostics capture is intentionally disabled for React Native until ready.
+      /* istanbul ignore if */
+      if (IS_DIAGNOSTICS_CAPTURED) {
+        await new Promise<void>((resolve) => {
+          remoteConfigClient?.subscribe(
+            'configs.diagnostics.browserSDK',
+            'all',
+            (remoteConfig: RemoteConfig | null, source: Source, lastFetch: Date) => {
+              loggerProvider.debug(
+                'Diagnostics remote configuration received:',
+                JSON.stringify(
+                  {
+                    remoteConfig,
+                    source,
+                    lastFetch,
+                  },
+                  null,
+                  2,
+                ),
+              );
+              if (remoteConfig) {
+                // Validate and set sampleRate (must be a valid number)
+                // const sampleRate = remoteConfig.sampleRate as number;
+                // if (typeof sampleRate === 'number' && !isNaN(sampleRate)) {
+                //   diagnosticsSampleRate = sampleRate;
+                // }
+                // // Validate and set enabled (must be a boolean)
+                // const enabled = remoteConfig.enabled as boolean;
+                // if (typeof enabled === 'boolean') {
+                //   enableDiagnostics = enabled;
+                // }
+              }
+              resolve();
+            },
+          );
+        });
+      }
+    }
+
     // Step 1: Read cookies stored by old SDK
     const oldCookies = await parseOldCookies(options.apiKey, options);
 
@@ -107,7 +173,37 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
       lastEventTime: oldCookies.lastEventTime,
       userId: options.userId ?? oldCookies.userId,
     });
+
+    // Step 2.1: Fetch remote config
+    if (fetchRemoteConfig && remoteConfigClient) {
+      await new Promise<void>((resolve) => {
+        remoteConfigClient?.subscribe(
+          'configs.analyticsSDK.browserSDK', // TODO: change this to ReactNativeSDK when it's ready
+          'all',
+          (remoteConfig: RemoteConfig | null, source: Source, lastFetch: Date) => {
+            loggerProvider.debug(
+              'Remote configuration received:',
+              JSON.stringify(
+                {
+                  remoteConfig,
+                  source,
+                  lastFetch,
+                },
+                null,
+                2,
+              ),
+            );
+            if (remoteConfig) {
+              updateReactNativeConfigWithRemoteConfig(remoteConfig, reactNativeOptions);
+            }
+            resolve();
+          },
+        );
+      });
+    }
+
     await super._init(reactNativeOptions);
+    this.config.remoteConfigClient = remoteConfigClient;
 
     // Step 2.1: parse autocapture config (always reset so re-init clears prior flags)
     const autocaptureConfig = (this.config as ReactNativeConfigAutocaptureBeta).autocapture;
