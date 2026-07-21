@@ -18,6 +18,7 @@ export class WebAttribution {
   sessionTimeout: number;
   lastEventTime?: number;
   logger: ILogger;
+  topLevelDomain?: string;
 
   constructor(options: Options, config: BrowserConfig) {
     this.options = {
@@ -32,6 +33,7 @@ export class WebAttribution {
     this.sessionTimeout = config.sessionTimeout;
     this.lastEventTime = config.lastEventTime;
     this.logger = config.loggerProvider;
+    this.topLevelDomain = config.topLevelDomain;
     config.loggerProvider.log('Installing web attribution tracking.');
   }
 
@@ -39,7 +41,16 @@ export class WebAttribution {
     [this.currentCampaign, this.previousCampaign] = await this.fetchCampaign();
     const isEventInNewSession = !this.lastEventTime ? true : isNewSession(this.sessionTimeout, this.lastEventTime);
 
-    if (isNewCampaign(this.currentCampaign, this.previousCampaign, this.options, this.logger, isEventInNewSession)) {
+    if (
+      isNewCampaign(
+        this.currentCampaign,
+        this.previousCampaign,
+        this.options,
+        this.logger,
+        isEventInNewSession,
+        this.topLevelDomain,
+      )
+    ) {
       this.shouldTrackNewCampaign = true;
       await this.storage.set(this.storageKey, this.currentCampaign);
     }
