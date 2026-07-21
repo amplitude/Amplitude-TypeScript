@@ -23,8 +23,6 @@ export interface ReactNativeConfig extends Config {
   userId?: string;
   trackingSessionEvents?: boolean;
   migrateLegacyData?: boolean;
-  persistedAppVersion?: string;
-  persistedAppBuild?: string;
 }
 
 export interface ReactNativeTrackingOptions {
@@ -49,7 +47,7 @@ export interface ReactNativeAttributionOptions {
   trackPageViews?: boolean;
 }
 
-type HiddenOptions = 'apiKey' | 'lastEventId' | 'persistedAppVersion' | 'persistedAppBuild';
+type HiddenOptions = 'apiKey' | 'lastEventId';
 
 export interface ReactNativeOptions extends Omit<Partial<ReactNativeConfig>, HiddenOptions> {
   transport?: TransportType;

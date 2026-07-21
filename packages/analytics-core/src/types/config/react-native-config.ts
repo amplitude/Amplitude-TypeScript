@@ -21,12 +21,7 @@ export interface ReactNativeConfig extends Omit<IConfig, 'requestMetadata'> {
   trackingSessionEvents?: boolean;
   migrateLegacyData?: boolean;
   appVersion?: string;
-  /**
-   * Persisted native app version for install/update detection (UserSession.appVersion).
-   * Distinct from {@link appVersion}, the optional event-enrichment override.
-   */
   persistedAppVersion?: string;
-  /** Persisted native app build for install/update detection (UserSession.appBuild). */
   persistedAppBuild?: string;
   attribution?: ReactNativeAttributionOptions;
   deviceId?: string;

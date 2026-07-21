@@ -7,6 +7,4 @@ export interface UserSession {
   lastEventId?: number;
   pageCounter?: number;
   debugLogsEnabled?: boolean;
-  appVersion?: string;
-  appBuild?: string;
 }
