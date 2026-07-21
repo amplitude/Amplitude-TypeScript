@@ -1,4 +1,4 @@
-import { AppState, AppStateStatus, NativeEventSubscription } from 'react-native';
+import { AppState, AppStateStatus, NativeEventSubscription, NativeModules, Platform } from 'react-native';
 import {
   AmplitudeCore,
   Destination,
@@ -37,11 +37,17 @@ import { useReactNativeConfig, createCookieStorage } from './config';
 import { parseOldCookies } from './cookie-migration';
 import { isNative } from './utils/platform';
 import {
+  APP_BUILD,
+  APP_VERSION,
   DEFAULT_APPLICATION_BACKGROUNDED_EVENT,
+  DEFAULT_APPLICATION_INSTALLED_EVENT,
   DEFAULT_APPLICATION_OPENED_EVENT,
+  DEFAULT_APPLICATION_UPDATED_EVENT,
   DEFAULT_SCREEN_VIEWED_EVENT,
   DEFAULT_SESSION_END_EVENT,
   DEFAULT_SESSION_START_EVENT,
+  PREVIOUS_BUILD,
+  PREVIOUS_VERSION,
   SCREEN_NAME,
 } from './constants';
 
@@ -184,6 +190,8 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
     if (this.autocapture?.appLifecycles === true && this.appState === 'active') {
       this.track('[Amplitude] Application Opened');
     }
+
+    await this.trackAppInstallOrUpdate();
 
     // Step 5.2: run attribution strategy
     await this.runAttributionStrategy(options.attribution, isNewSession);
@@ -450,6 +458,58 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
       }
     }
   };
+
+  /**
+   * Tracks Application Installed / Updated from persisted version + build on UserSession.
+   * Only runs on iOS/Android; skips web and when the native module is unavailable.
+   */
+  private async trackAppInstallOrUpdate() {
+    if (Platform.OS !== 'ios' && Platform.OS !== 'android') {
+      return;
+    }
+
+    const nativeModule = NativeModules.AmplitudeReactNative as
+      | { getApplicationContext: (options: unknown) => Promise<Record<string, string> | undefined> }
+      | undefined;
+    if (this.autocapture?.appLifecycles !== true || !nativeModule?.getApplicationContext) {
+      return;
+    }
+
+    const nativeContext = await nativeModule.getApplicationContext(this.config.trackingOptions);
+    const version = nativeContext?.version;
+    const build = nativeContext?.build;
+    const previousVersion = this.config.persistedAppVersion;
+    const previousBuild = this.config.persistedAppBuild;
+    // iOS (Amplitude-Swift): missing previous version or build => install; either changing => update.
+    // Android (Amplitude-Kotlin): build-only — missing previous build => install; build change => update.
+    const isIOS = Platform.OS === 'ios';
+    const isInstall = isIOS
+      ? previousBuild === undefined || previousVersion === undefined
+      : previousBuild === undefined;
+    const isUpdate = isIOS
+      ? (build !== undefined && previousBuild !== build) || (version !== undefined && previousVersion !== version)
+      : build !== undefined && previousBuild !== build;
+
+    if (isInstall) {
+      this.track(DEFAULT_APPLICATION_INSTALLED_EVENT, {
+        [APP_VERSION]: version,
+        [APP_BUILD]: build,
+      });
+    } else if (isUpdate) {
+      this.track(DEFAULT_APPLICATION_UPDATED_EVENT, {
+        [APP_VERSION]: version,
+        [APP_BUILD]: build,
+        [PREVIOUS_VERSION]: previousVersion,
+        [PREVIOUS_BUILD]: previousBuild,
+      });
+    }
+    if (version !== undefined) {
+      this.config.persistedAppVersion = version;
+    }
+    if (build !== undefined) {
+      this.config.persistedAppBuild = build;
+    }
+  }
 
   private enterForeground(timestamp: number) {
     this.config.loggerProvider?.log('App Activated');

@@ -3,7 +3,7 @@ import { Storage } from '../storage';
 import { UserSession } from '../user-session';
 import { NetworkTrackingOptions } from '../network-tracking';
 
-type HiddenOptions = 'apiKey' | 'lastEventId';
+type HiddenOptions = 'apiKey' | 'lastEventId' | 'persistedAppVersion' | 'persistedAppBuild';
 
 export type ReactNativeOptions = Omit<Partial<ReactNativeConfig>, HiddenOptions>;
 
@@ -21,6 +21,13 @@ export interface ReactNativeConfig extends Omit<IConfig, 'requestMetadata'> {
   trackingSessionEvents?: boolean;
   migrateLegacyData?: boolean;
   appVersion?: string;
+  /**
+   * Persisted native app version for install/update detection (UserSession.appVersion).
+   * Distinct from {@link appVersion}, the optional event-enrichment override.
+   */
+  persistedAppVersion?: string;
+  /** Persisted native app build for install/update detection (UserSession.appBuild). */
+  persistedAppBuild?: string;
   attribution?: ReactNativeAttributionOptions;
   deviceId?: string;
   cookieExpiration: number;
