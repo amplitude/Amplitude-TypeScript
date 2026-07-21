@@ -121,6 +121,9 @@ export { PerformanceTrackingOptions, MainThreadBlockOptions } from './types/perf
 export { Campaign, UTMParameters, ReferrerParameters, ClickIdParameters, ICampaignParser } from './types/campaign';
 export { EMPTY_VALUE, BASE_CAMPAIGN, MKTG } from './types/constants';
 export { CampaignParser } from './campaign/campaign-parser';
+export { isNewCampaign } from './attribution/helpers';
+export { WebAttribution } from './attribution/web-attribution';
+
 export {
   getPageTitle,
   TEXT_MASK_ATTRIBUTE,

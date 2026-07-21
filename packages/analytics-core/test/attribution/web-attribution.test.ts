@@ -1,8 +1,10 @@
-import { Logger, UUID } from '@amplitude/analytics-core';
-import { AttributionOptions, BrowserConfig, LogLevel } from '@amplitude/analytics-types';
-import { BASE_CAMPAIGN } from '../../src/attribution/constants';
-import { CampaignParser } from '../../src/attribution/campaign-parser';
-import { WebAttribution } from '../../src/attribution/web-attribution';
+import { Logger } from '../../src/logger';
+import { UUID } from '../../src/utils/uuid';
+import { AttributionOptions, BrowserConfig } from '../../src/types/config/browser-config';
+import { LogLevel } from '../../src/types/loglevel';
+import { BASE_CAMPAIGN } from '../../src/types/constants';
+import { CampaignParser } from '../../src/campaign/campaign-parser';
+import { WebAttribution } from '../../src/index';
 import { FetchTransport } from '../../src/transports/fetch';
 import { CookieStorage } from '../../src/storage/cookie';
 

@@ -1,4 +1,4 @@
-import { WebAttribution, isNewCampaign, isNewSession } from '@amplitude/analytics-client-common';
+import { WebAttribution, isNewCampaign, isNewSession } from '@amplitude/analytics-core';
 import { BeforePlugin, BrowserClient, BrowserConfig, Event } from '@amplitude/analytics-types';
 import { CreateWebAttributionPlugin, Options } from './typings/web-attribution';
 
