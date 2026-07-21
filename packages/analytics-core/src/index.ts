@@ -122,6 +122,17 @@ export { Campaign, UTMParameters, ReferrerParameters, ClickIdParameters, ICampai
 export { EMPTY_VALUE, BASE_CAMPAIGN, MKTG } from './types/constants';
 export { CampaignParser } from './campaign/campaign-parser';
 export {
+  isNewCampaign,
+  isExcludedReferrer,
+  isSubdomainOf,
+  getDomain,
+  KNOWN_2LDS,
+  createCampaignEvent,
+  WebAttribution,
+  WebAttributionOptions,
+  getDefaultExcludedReferrers,
+} from './campaign/campaign-helpers';
+export {
   getPageTitle,
   TEXT_MASK_ATTRIBUTE,
   MASKED_TEXT_VALUE,

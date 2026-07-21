@@ -76,6 +76,10 @@ import {
   AMPLITUDE_BACKGROUND_CAPTURE_SCRIPT_URL,
   EXCLUDE_INTERNAL_REFERRERS_CONDITIONS,
   omitUndefined,
+  isNewCampaign,
+  WebAttribution,
+  createCampaignEvent,
+  getDefaultExcludedReferrers,
 } from '../src/index';
 
 describe('index', () => {
@@ -171,6 +175,10 @@ describe('index', () => {
     expect(typeof AMPLITUDE_BACKGROUND_CAPTURE_SCRIPT_URL).toBe('string');
     expect(typeof EXCLUDE_INTERNAL_REFERRERS_CONDITIONS).toBe('object');
     expect(typeof omitUndefined).toBe('function');
+    expect(typeof isNewCampaign).toBe('function');
+    expect(typeof WebAttribution).toBe('function');
+    expect(typeof createCampaignEvent).toBe('function');
+    expect(typeof getDefaultExcludedReferrers).toBe('function');
   });
 
   describe('EXCLUDE_INTERNAL_REFERRERS_CONDITIONS export', () => {

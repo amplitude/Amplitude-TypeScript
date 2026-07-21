@@ -1,4 +1,4 @@
-import { WebAttribution, isNewCampaign, isNewSession } from '@amplitude/analytics-client-common';
+import { WebAttribution, isNewCampaign, isNewSession } from '@amplitude/analytics-core';
 import { BeforePlugin, BrowserClient, BrowserConfig, Event } from '@amplitude/analytics-types';
 import { CreateWebAttributionPlugin, Options } from './typings/web-attribution';
 
@@ -7,7 +7,7 @@ import { CreateWebAttributionPlugin, Options } from './typings/web-attribution';
 /**
  * @deprecated
  * This plugin is not used by @amplitude/analytics-browser and
- * is replaced by WebAttribution in @amplitude/analytics-client-common to
+ * is replaced by WebAttribution in @amplitude/analytics-core to
  * be able to send identify events before session start.
  */
 export const webAttributionPlugin: CreateWebAttributionPlugin = function (options: Options = {}) {

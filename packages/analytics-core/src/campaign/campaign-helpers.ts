@@ -1,24 +1,19 @@
+import { getGlobalScope } from '../global-scope';
+import { Identify } from '../identify';
+import { createIdentifyEvent } from '../utils/event-builder';
+import { Campaign } from '../types/campaign';
+import { BASE_CAMPAIGN } from '../types/constants';
+import { ILogger } from '../logger';
 import {
-  createIdentifyEvent,
-  Identify,
-  ILogger,
-  Campaign,
-  BASE_CAMPAIGN,
-  getGlobalScope,
-  TrackingMethod,
-} from '@amplitude/analytics-core';
-
-import { ExcludeInternalReferrersOptions, EXCLUDE_INTERNAL_REFERRERS_CONDITIONS } from '../types';
-
-export interface Options {
-  excludeReferrers?: (string | RegExp)[];
-  excludeInternalReferrers?: true | false | ExcludeInternalReferrersOptions;
-  initialEmptyValue?: string;
-  resetSessionOnNewCampaign?: boolean;
-  trackingMethod?: TrackingMethod | TrackingMethod[];
-  fallbackAttributionEvent?: boolean;
-  optOut?: boolean;
-}
+  AttributionOptions,
+  BrowserConfig,
+  ExcludeInternalReferrersOptions,
+  EXCLUDE_INTERNAL_REFERRERS_CONDITIONS,
+} from '../types/config/browser-config';
+import { Storage } from '../types/storage';
+import { CampaignParser } from './campaign-parser';
+import { getStorageKey } from '../storage/helpers';
+import { isNewSession } from '../session';
 
 const domainWithoutSubdomain = (domain: string) => {
   const parts = domain.split('.');
@@ -43,7 +38,7 @@ const isEmptyCampaign = (campaign: Campaign) => {
 export const isNewCampaign = (
   current: Campaign,
   previous: Campaign | undefined,
-  options: Options,
+  options: Pick<AttributionOptions, 'excludeReferrers' | 'excludeInternalReferrers'>,
   logger: ILogger,
   isNewSession = true,
   topLevelDomain?: string,
@@ -110,7 +105,7 @@ export const isSubdomainOf = (subDomain: string, domain: string) => {
   return false;
 };
 
-export const createCampaignEvent = (campaign: Campaign, options: Options) => {
+export const createCampaignEvent = (campaign: Campaign, options: Pick<AttributionOptions, 'initialEmptyValue'>) => {
   const campaignParameters: Campaign = {
     // This object definition allows undefined keys to be iterated on
     // in .reduce() to build indentify object
@@ -334,3 +329,90 @@ const isInternalReferrer = (referringDomain: string, topLevelDomain?: string) =>
   const internalDomain = (topLevelDomain || '').trim() || getDomain(globalScope.location.hostname);
   return isSubdomainOf(referringDomain, internalDomain);
 };
+
+export type WebAttributionOptions = AttributionOptions & {
+  optOut?: boolean;
+};
+
+export class WebAttribution {
+  options: WebAttributionOptions;
+  storage: Storage<Campaign>;
+  storageKey: string;
+  webExpStorageKey: string;
+  previousCampaign?: Campaign;
+  currentCampaign: Campaign;
+  shouldTrackNewCampaign = false;
+  sessionTimeout: number;
+  lastEventTime?: number;
+  logger: ILogger;
+  topLevelDomain?: string;
+  constructor(options: WebAttributionOptions, config: BrowserConfig) {
+    this.options = {
+      initialEmptyValue: 'EMPTY',
+      resetSessionOnNewCampaign: false,
+      excludeReferrers: getDefaultExcludedReferrers(config.cookieOptions?.domain || config.topLevelDomain),
+      optOut: config.optOut,
+      ...options,
+    };
+    this.storage = config.cookieStorage as unknown as Storage<Campaign>;
+    this.storageKey = getStorageKey(config.apiKey, 'MKTG');
+    this.webExpStorageKey = getStorageKey(config.apiKey, 'MKTG_ORIGINAL');
+    this.currentCampaign = BASE_CAMPAIGN;
+    this.sessionTimeout = config.sessionTimeout;
+    this.lastEventTime = config.lastEventTime;
+    this.logger = config.loggerProvider;
+    this.topLevelDomain = config.topLevelDomain;
+    config.loggerProvider.log('Installing web attribution tracking.');
+  }
+
+  async init() {
+    // skip attribution if optOut is true
+    if (this.options.optOut) {
+      return;
+    }
+
+    [this.currentCampaign, this.previousCampaign] = await this.fetchCampaign();
+    const isEventInNewSession = !this.lastEventTime ? true : isNewSession(this.sessionTimeout, this.lastEventTime);
+
+    if (
+      isNewCampaign(
+        this.currentCampaign,
+        this.previousCampaign,
+        this.options,
+        this.logger,
+        isEventInNewSession,
+        this.topLevelDomain,
+      )
+    ) {
+      this.shouldTrackNewCampaign = true;
+      await this.storage.set(this.storageKey, this.currentCampaign);
+    }
+  }
+
+  async fetchCampaign() {
+    const originalCampaign = await this.storage.get(this.webExpStorageKey);
+    if (originalCampaign) {
+      await this.storage.remove(this.webExpStorageKey);
+    }
+    return await Promise.all([originalCampaign || new CampaignParser().parse(), this.storage.get(this.storageKey)]);
+  }
+
+  /**
+   * This can be called when enable web attribution and either
+   * 1. set a new session
+   * 2. has new campaign and enable resetSessionOnNewCampaign
+   */
+  generateCampaignEvent(event_id?: number) {
+    // Mark this campaign has been tracked
+    this.shouldTrackNewCampaign = false;
+    const campaignEvent = createCampaignEvent(this.currentCampaign, this.options);
+    if (event_id) {
+      campaignEvent.event_id = event_id;
+    }
+    return campaignEvent;
+  }
+
+  shouldSetSessionIdOnNewCampaign() {
+    return this.shouldTrackNewCampaign && !!this.options.resetSessionOnNewCampaign;
+  }
+}

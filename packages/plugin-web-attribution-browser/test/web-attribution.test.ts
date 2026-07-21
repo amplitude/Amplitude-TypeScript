@@ -1,8 +1,16 @@
 import { createInstance } from '@amplitude/analytics-browser';
-import { BASE_CAMPAIGN, CampaignParser, CookieStorage, FetchTransport } from '@amplitude/analytics-client-common';
+import {
+  BASE_CAMPAIGN,
+  CampaignParser,
+  CookieStorage,
+  FetchTransport,
+  BrowserConfig,
+  LogLevel,
+  Logger,
+  UUID,
+} from '@amplitude/analytics-core';
 import { webAttributionPlugin } from '../src/web-attribution';
-import * as helpers from '@amplitude/analytics-client-common';
-import { BrowserConfig, LogLevel, Logger, UUID } from '@amplitude/analytics-core';
+import * as helpers from '@amplitude/analytics-core';
 
 describe('webAttributionPlugin', () => {
   const mockConfig: BrowserConfig = {
