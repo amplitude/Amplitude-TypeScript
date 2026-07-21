@@ -76,5 +76,25 @@ describe('network-body-capture', () => {
         excludelist: [],
       });
     });
+
+    it('uses blocklist when excludelist is undefined', () => {
+      expect(getBodyMaskingLists({ allowlist: ['/id'], blocklist: ['/password'] })).toEqual({
+        allowlist: ['/id'],
+        excludelist: ['/password'],
+      });
+    });
+
+    it('prefers excludelist over blocklist', () => {
+      expect(
+        getBodyMaskingLists({
+          allowlist: ['/id'],
+          excludelist: ['/password'],
+          blocklist: ['/ignore-me'],
+        }),
+      ).toEqual({
+        allowlist: ['/id'],
+        excludelist: ['/password'],
+      });
+    });
   });
 });

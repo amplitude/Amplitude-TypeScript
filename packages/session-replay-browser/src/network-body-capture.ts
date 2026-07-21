@@ -5,6 +5,8 @@ export type BodyCaptureRuleConfig =
   | {
       enabled?: boolean;
       allowlist?: string[];
+      /** @deprecated use excludelist */
+      blocklist?: string[];
       excludelist?: string[];
     };
 
@@ -24,7 +26,7 @@ export const getBodyMaskingLists = (
   if (typeof config === 'object' && config !== null) {
     return {
       allowlist: config.allowlist ?? [],
-      excludelist: config.excludelist ?? [],
+      excludelist: config.excludelist || config.blocklist || [],
     };
   }
   return { allowlist: [], excludelist: [] };
