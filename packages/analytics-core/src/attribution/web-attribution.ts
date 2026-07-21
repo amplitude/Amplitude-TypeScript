@@ -1,9 +1,11 @@
-import { BrowserConfig, Logger } from '@amplitude/analytics-types';
-import { Campaign, Storage } from '@amplitude/analytics-types';
+import { BrowserConfig } from '../types/config/browser-config';
+import { ILogger } from '../logger';
+import { Storage } from '../types/storage';
+import { Campaign } from '../types/campaign';
 import { Options, getDefaultExcludedReferrers, createCampaignEvent, isNewCampaign } from './helpers';
 import { getStorageKey } from '../storage/helpers';
-import { CampaignParser } from './campaign-parser';
-import { BASE_CAMPAIGN } from './constants';
+import { CampaignParser } from '../campaign/campaign-parser';
+import { BASE_CAMPAIGN } from '../types/constants';
 import { isNewSession } from '../session';
 
 export class WebAttribution {
@@ -15,7 +17,7 @@ export class WebAttribution {
   shouldTrackNewCampaign = false;
   sessionTimeout: number;
   lastEventTime?: number;
-  logger: Logger;
+  logger: ILogger;
 
   constructor(options: Options, config: BrowserConfig) {
     this.options = {
