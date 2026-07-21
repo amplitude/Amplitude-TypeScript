@@ -111,6 +111,7 @@ export { Status } from './types/status';
 export { NetworkEventCallback, networkObserver } from './observers/network';
 export { NetworkRequestEvent, IRequestWrapper, JsonObject, JsonValue, JsonArray } from './network-request-event';
 export { NetworkTrackingOptions, NetworkCaptureRule, BodyCaptureRule } from './types/network-tracking';
+export { normalizeNetworkCaptureRules } from './utils/network-tracking-config';
 export { SAFE_HEADERS, FORBIDDEN_HEADERS } from './types/constants';
 
 export { PageUrlEnrichmentOptions } from './types/page-url-enrichment';

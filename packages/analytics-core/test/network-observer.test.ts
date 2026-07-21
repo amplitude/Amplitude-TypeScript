@@ -1234,6 +1234,41 @@ describe('RequestWrapperFetch', () => {
     expect(requestWrapper.body).toBe(null);
   });
 
+  test('bodySize should be undefined for null/undefined body (e.g. GET)', () => {
+    for (const body of [null, undefined]) {
+      const requestWrapper = new RequestWrapperFetch({
+        body,
+        headers: new Headers({ 'Content-Type': 'application/json' }),
+        method: 'GET',
+      } as unknown as RequestInitSafe);
+      expect(requestWrapper.bodySize).toBeUndefined();
+    }
+  });
+
+  test('bodySize should not throw when ReadableStream global is missing (React Native / Hermes)', () => {
+    const original = (globalThis as { ReadableStream?: unknown }).ReadableStream;
+    try {
+      // Simulate Hermes: `instanceof ReadableStream` throws if the binding is missing.
+      delete (globalThis as { ReadableStream?: unknown }).ReadableStream;
+
+      // null body (GET) and an unrecognized body both used to fall through to
+      // `instanceof ReadableStream` and crash when that global is absent.
+      for (const body of [null, { not: 'a known body type' }]) {
+        const requestWrapper = new RequestWrapperFetch({
+          body,
+          headers: { 'Content-Type': 'application/json' },
+          method: 'GET',
+        } as unknown as RequestInitSafe);
+        expect(() => requestWrapper.bodySize).not.toThrow();
+        expect(requestWrapper.bodySize).toBeUndefined();
+      }
+    } finally {
+      if (original !== undefined) {
+        (globalThis as { ReadableStream?: unknown }).ReadableStream = original;
+      }
+    }
+  });
+
   describe('.json()', () => {
     test('should return null if allowlist and exclude are empty', async () => {
       const requestWrapper = new RequestWrapperFetch({

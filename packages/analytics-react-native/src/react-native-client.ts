@@ -26,7 +26,10 @@ import {
   ReactNativeAutocaptureOptions,
   ReactNativeConfigAutocaptureBeta,
   NavigationState,
+  NetworkTrackingOptions,
+  normalizeNetworkCaptureRules,
 } from '@amplitude/analytics-core';
+import { plugin as networkCapturePlugin } from '@amplitude/plugin-network-capture-browser';
 import { CampaignTracker } from './campaign/campaign-tracker';
 import { Context } from './plugins/context';
 import { networkConnectivityCheckerPlugin } from './plugins/network-connectivity-checker';
@@ -60,6 +63,17 @@ const getActiveRouteName = (navigationState: NavigationState): string | undefine
   }
 
   return routeName;
+};
+
+const getNetworkTrackingConfig = (config: ReactNativeConfigAutocaptureBeta): NetworkTrackingOptions | undefined => {
+  let networkTrackingConfig;
+  if (typeof config.autocapture === 'object' && typeof config.autocapture.networkTracking === 'object') {
+    networkTrackingConfig = config.autocapture.networkTracking;
+  }
+  return {
+    ...networkTrackingConfig,
+    captureRules: normalizeNetworkCaptureRules(networkTrackingConfig?.captureRules, config.loggerProvider),
+  };
 };
 
 export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeClient, AnalyticsClient {
@@ -145,6 +159,11 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
     await this.add(new Destination()).promise;
     await this.add(new Context()).promise;
     await this.add(new IdentityEventSender()).promise;
+
+    if (this.autocapture?.networkTracking) {
+      this.config.loggerProvider.debug('Adding network tracking plugin');
+      await this.add(networkCapturePlugin(getNetworkTrackingConfig(this.config))).promise;
+    }
 
     // Step 4: Manage session
     this.appState = AppState.currentState;
