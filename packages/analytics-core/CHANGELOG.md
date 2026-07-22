@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.54.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.53.2...@amplitude/analytics-core@2.54.0) (2026-07-22)
+
+
+### Features
+
+* **session-replay-browser:** apply body masking rules in SR network logging ([#1896](https://github.com/amplitude/Amplitude-TypeScript/issues/1896)) ([66dfd6c](https://github.com/amplitude/Amplitude-TypeScript/commit/66dfd6c6de4ca97f646cb1964b262ac172f1437d))
+
+
+
+
+
 ## [2.53.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.53.1...@amplitude/analytics-core@2.53.2) (2026-07-20)
 
 **Note:** Version bump only for package @amplitude/analytics-core
