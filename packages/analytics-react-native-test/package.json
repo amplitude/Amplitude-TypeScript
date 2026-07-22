@@ -11,7 +11,7 @@
   },
   "scripts": {
     "test": "echo 'On-device harness only. Use test:harness:ios or test:harness:android.'",
-    "test:harness:ios": "node ./scripts/run-harness-ios.mjs",
+    "test:harness:ios": "NEW_ARCH=1 node ./scripts/run-harness-ios.mjs",
     "test:harness:ios:old-arch": "NEW_ARCH=0 node ./scripts/run-harness-ios.mjs",
     "test:harness:ios:new-arch": "NEW_ARCH=1 node ./scripts/run-harness-ios.mjs",
     "test:harness:android": "node ./scripts/run-harness-android.mjs",
@@ -29,6 +29,7 @@
     "@react-native-harness/platform-android": "1.3.0",
     "@react-native-harness/platform-apple": "1.3.0",
     "@react-native-harness/ui": "1.3.0",
+    "@react-native-harness/plugins": "1.3.0",
     "@react-native/babel-preset": "0.76.9",
     "@react-native/metro-config": "0.76.9",
     "@types/react": "^18.2.6",

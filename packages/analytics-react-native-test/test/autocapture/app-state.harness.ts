@@ -4,7 +4,7 @@
  * Runs on a real device/simulator (not Jest/Node).
  * Requires react-native-harness + examples/react-native/app built and installed.
  */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument */
 import { describe, it, expect, beforeEach, afterEach } from 'react-native-harness';
 import { DeviceEventEmitter } from 'react-native';
 import { createInstance, Types } from '@amplitude/analytics-react-native';
@@ -39,10 +39,10 @@ describe('autocapture.appState', () => {
       },
     } as any).promise;
 
-    // Cold start emits Application Opened when already active. Wait for it to land
-    // in the capture plugin before clearing — otherwise it races into later tests.
-    await capture.waitForEvents(1);
-    openedOnInit = capture.events[0]?.event_type;
+    // Cold start emits Application Opened + Application Installed (no prior build).
+    // Wait for both before clearing — otherwise they race into later tests.
+    await capture.waitForEvents(2);
+    openedOnInit = capture.events.find((e) => e.event_type === '[Amplitude] Application Opened')?.event_type;
     capture.clear();
   });
 

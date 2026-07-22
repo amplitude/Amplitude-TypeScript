@@ -21,6 +21,8 @@ export const {
   setUserId,
   track,
   extendSession,
+  trackScreenView,
+  trackScreenViewOnNavigationStateChange,
 } = client;
 
 export { Revenue, Identify } from '@amplitude/analytics-core';

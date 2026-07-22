@@ -1,8 +1,9 @@
 import { IConfig } from './core-config';
 import { Storage } from '../storage';
 import { UserSession } from '../user-session';
+import { NetworkTrackingOptions } from '../network-tracking';
 
-type HiddenOptions = 'apiKey' | 'lastEventId';
+type HiddenOptions = 'apiKey' | 'lastEventId' | 'persistedAppVersion' | 'persistedAppBuild';
 
 export type ReactNativeOptions = Omit<Partial<ReactNativeConfig>, HiddenOptions>;
 
@@ -10,8 +11,9 @@ export type ReactNativeOptions = Omit<Partial<ReactNativeConfig>, HiddenOptions>
 export interface ReactNativeAutocaptureOptions {
   sessions?: boolean;
   appLifecycles?: boolean;
-  // screenViews?: boolean;
   elementInteractions?: boolean;
+  networkTracking?: boolean | NetworkTrackingOptions;
+  screenViews?: boolean;
 }
 
 export interface ReactNativeConfig extends Omit<IConfig, 'requestMetadata'> {
@@ -19,6 +21,8 @@ export interface ReactNativeConfig extends Omit<IConfig, 'requestMetadata'> {
   trackingSessionEvents?: boolean;
   migrateLegacyData?: boolean;
   appVersion?: string;
+  persistedAppVersion?: string;
+  persistedAppBuild?: string;
   attribution?: ReactNativeAttributionOptions;
   deviceId?: string;
   cookieExpiration: number;

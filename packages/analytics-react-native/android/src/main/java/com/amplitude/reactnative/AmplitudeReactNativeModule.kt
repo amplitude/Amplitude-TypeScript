@@ -36,6 +36,7 @@ class AmplitudeReactNativeModule(private val reactContext: ReactApplicationConte
 
         promise.resolve(WritableNativeMap().apply {
             putString("version", androidContextProvider!!.versionName)
+            putString("build", androidContextProvider!!.versionCode)
             putString("platform", androidContextProvider!!.platform)
             putString("language", androidContextProvider!!.language)
             putString("country", androidContextProvider!!.country)

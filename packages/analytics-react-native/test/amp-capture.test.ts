@@ -1,4 +1,4 @@
-import { ampCapture, EVENT_TYPE_VALUES, subscribe, type AmpCaptureProperties } from '../src/amp-capture';
+import { ampCapture, subscribe, type AmpCaptureProperties } from '../src/amp-capture';
 
 describe('amp-capture', () => {
   const unsubscribers: Array<() => void> = [];
@@ -22,7 +22,6 @@ describe('amp-capture', () => {
 
   describe('ampCapture', () => {
     const properties: AmpCaptureProperties = {
-      event: EVENT_TYPE_VALUES.Press,
       accessibilityLabel: 'Submit',
       testID: 'submit-button',
     };
@@ -89,6 +88,18 @@ describe('amp-capture', () => {
     test('passthrough when is not a function', () => {
       const wrapped = ampCapture(100 as any, properties);
       expect(wrapped).toBe(100);
+    });
+
+    test('only captures once if nested ampCaptures', () => {
+      const callback = jest.fn();
+      addSubscriber(callback);
+
+      const inner = jest.fn();
+      const nestedCapture = ampCapture(inner, properties);
+      const wrapped = ampCapture(nestedCapture, properties);
+      wrapped();
+      expect(callback).toHaveBeenCalledTimes(1);
+      expect(inner).toHaveBeenCalledTimes(1);
     });
   });
 });

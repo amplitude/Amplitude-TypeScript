@@ -1,5 +1,6 @@
 import { AmplitudeReactNative } from '../src/react-native-client';
 import * as core from '@amplitude/analytics-core';
+import { ampCapture } from '../src/amp-capture';
 import * as CookieMigration from '../src/cookie-migration';
 import {
   Status,
@@ -13,6 +14,20 @@ import { isWeb } from '../src/utils/platform';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Config from '../src/config';
 import * as NetworkChecker from '../src/plugins/network-connectivity-checker';
+import {
+  DEFAULT_APPLICATION_BACKGROUNDED_EVENT,
+  DEFAULT_APPLICATION_OPENED_EVENT,
+  DEFAULT_ELEMENT_PRESSED_EVENT,
+  DEFAULT_SCREEN_VIEWED_EVENT,
+  DEFAULT_SESSION_END_EVENT,
+  DEFAULT_SESSION_START_EVENT,
+  SCREEN_NAME,
+  TARGET_ACCESSIBILITY_LABEL,
+  TARGET_ACTION,
+  TARGET_COMPONENT,
+  TARGET_ELEMENT,
+  TARGET_TEST_ID,
+} from '../src/constants';
 
 describe('react-native-client', () => {
   const API_KEY = 'API_KEY';
@@ -97,6 +112,19 @@ describe('react-native-client', () => {
       // NOTE: `parseOldCookies` and `useNodeConfig` are only called once despite multiple init calls
       expect(parseOldCookies).toHaveBeenCalledTimes(1);
       expect(useNodeConfig).toHaveBeenCalledTimes(1);
+    });
+
+    test('should remove previous app state listener when re-init', async () => {
+      jest.spyOn(CookieMigration, 'parseOldCookies').mockResolvedValue({ optOut: false });
+
+      const client = new AmplitudeReactNative();
+      await client.init(API_KEY, USER_ID, { ...attributionConfig }).promise;
+
+      const remove = jest.fn();
+      (client as any).appStateChangeHandler = { remove };
+
+      await client.init(API_KEY, USER_ID, { ...attributionConfig }).promise;
+      expect(remove).toHaveBeenCalledTimes(1);
     });
 
     test('should read from new cookies config', async () => {
@@ -943,7 +971,9 @@ describe('react-native-client', () => {
       },
     };
 
-    const initOptions = (autocapture: boolean | { sessions?: boolean; appLifecycles?: boolean }) => ({
+    const initOptions = (
+      autocapture: boolean | { sessions?: boolean; appLifecycles?: boolean; elementInteractions?: boolean },
+    ) => ({
       autocapture,
       transportProvider: {
         send: jest.fn().mockResolvedValue(sendResponse),
@@ -965,14 +995,14 @@ describe('react-native-client', () => {
         test('when autocapture is true', async () => {
           await client.init(API_KEY, undefined, initOptions(true)).promise;
           expect(trackSpy).toHaveBeenCalledWith({
-            event_type: 'session_start',
+            event_type: DEFAULT_SESSION_START_EVENT,
             time: expect.any(Number),
             session_id: expect.any(Number),
           });
           // Force a session change; track() does not start sessions while appState is active
           client.setSessionId(client.config.sessionId! + 1);
           expect(trackSpy).toHaveBeenCalledWith({
-            event_type: 'session_end',
+            event_type: DEFAULT_SESSION_END_EVENT,
             time: expect.any(Number),
             session_id: expect.any(Number),
           });
@@ -981,14 +1011,14 @@ describe('react-native-client', () => {
         test('when autocapture is object and .sessions is true', async () => {
           await client.init(API_KEY, undefined, initOptions({ sessions: true })).promise;
           expect(trackSpy).toHaveBeenCalledWith({
-            event_type: 'session_start',
+            event_type: DEFAULT_SESSION_START_EVENT,
             time: expect.any(Number),
             session_id: expect.any(Number),
           });
           // Force a session change; track() does not start sessions while appState is active
           client.setSessionId(client.config.sessionId! + 1);
           expect(trackSpy).toHaveBeenCalledWith({
-            event_type: 'session_end',
+            event_type: DEFAULT_SESSION_END_EVENT,
             time: expect.any(Number),
             session_id: expect.any(Number),
           });
@@ -1035,11 +1065,10 @@ describe('react-native-client', () => {
 
       test('should track appLifecycles when it is enabled', async () => {
         await client.init(API_KEY, undefined, initOptions({ appLifecycles: true })).promise;
-        trackSpy.mockClear();
         (client as any).handleAppStateChange('background');
-        expect(trackSpy).toHaveBeenCalledWith('[Amplitude] Application Backgrounded');
+        expect(trackSpy).toHaveBeenCalledWith(DEFAULT_APPLICATION_BACKGROUNDED_EVENT);
         (client as any).handleAppStateChange('active');
-        expect(trackSpy).toHaveBeenCalledWith('[Amplitude] Application Opened');
+        expect(trackSpy).toHaveBeenCalledWith(DEFAULT_APPLICATION_OPENED_EVENT);
       });
 
       test('should track Application Opened after background → inactive → active', async () => {
@@ -1048,8 +1077,8 @@ describe('react-native-client', () => {
         (client as any).handleAppStateChange('background');
         (client as any).handleAppStateChange('inactive');
         (client as any).handleAppStateChange('active');
-        expect(trackSpy).toHaveBeenCalledWith('[Amplitude] Application Backgrounded');
-        expect(trackSpy).toHaveBeenCalledWith('[Amplitude] Application Opened');
+        expect(trackSpy).toHaveBeenCalledWith(DEFAULT_APPLICATION_BACKGROUNDED_EVENT);
+        expect(trackSpy).toHaveBeenCalledWith(DEFAULT_APPLICATION_OPENED_EVENT);
       });
 
       test('should not track Application Opened on inactive → active without background', async () => {
@@ -1062,22 +1091,90 @@ describe('react-native-client', () => {
         (client as any).handleAppStateChange('inactive');
         (client as any).handleAppStateChange('active');
 
-        expect(trackSpy).not.toHaveBeenCalledWith('[Amplitude] Application Backgrounded');
-        expect(trackSpy).not.toHaveBeenCalledWith('[Amplitude] Application Opened');
+        expect(trackSpy).not.toHaveBeenCalledWith(DEFAULT_APPLICATION_BACKGROUNDED_EVENT);
+        expect(trackSpy).not.toHaveBeenCalledWith(DEFAULT_APPLICATION_OPENED_EVENT);
       });
 
       test('should not track Application Opened after re-init when background happened with appLifecycles off', async () => {
         await client.init(API_KEY, undefined, initOptions({ appLifecycles: false })).promise;
         (client as any).handleAppStateChange('background');
-        expect(trackSpy).not.toHaveBeenCalledWith('[Amplitude] Application Backgrounded');
+        expect(trackSpy).not.toHaveBeenCalledWith(DEFAULT_APPLICATION_BACKGROUNDED_EVENT);
 
-        AppState.currentState = 'background';
         await client.init(API_KEY, undefined, initOptions({ appLifecycles: true })).promise;
         trackSpy.mockClear();
         (client as any).appState = 'background';
         (client as any).handleAppStateChange('active');
 
-        expect(trackSpy).not.toHaveBeenCalledWith('[Amplitude] Application Opened');
+        expect(trackSpy).not.toHaveBeenCalledWith(DEFAULT_APPLICATION_OPENED_EVENT);
+      });
+    });
+
+    describe('elementInteractions', () => {
+      beforeEach(() => {
+        client = new AmplitudeReactNative();
+        trackSpy = jest.spyOn(client, 'track');
+      });
+
+      afterEach(() => {
+        trackSpy.mockClear();
+        jest.restoreAllMocks();
+      });
+
+      test('should not track element interactions twice when re-init with elementInteractions', async () => {
+        await client.init(API_KEY, undefined, initOptions({ elementInteractions: true })).promise;
+        await client.init(API_KEY, undefined, initOptions({ elementInteractions: true })).promise;
+        trackSpy.mockClear();
+
+        const properties = {
+          accessibilityLabel: 'Button accessibility label',
+          testID: 'my-button',
+          component: 'ButtonHarness',
+          element: 'Button',
+          action: 'onPress',
+        };
+        ampCapture(jest.fn(), properties)();
+
+        expect(trackSpy).toHaveBeenCalledTimes(1);
+        expect(trackSpy).toHaveBeenCalledWith(DEFAULT_ELEMENT_PRESSED_EVENT, {
+          [SCREEN_NAME]: undefined,
+          [TARGET_ACCESSIBILITY_LABEL]: 'Button accessibility label',
+          [TARGET_ACTION]: 'onPress',
+          [TARGET_COMPONENT]: 'ButtonHarness',
+          [TARGET_ELEMENT]: 'Button',
+          [TARGET_TEST_ID]: 'my-button',
+        });
+      });
+
+      test('should not attach stale screen name to element interactions after re-init', async () => {
+        await client.init(API_KEY, undefined, initOptions({ elementInteractions: true })).promise;
+        client.trackScreenView('Home');
+        await client.init(API_KEY, undefined, initOptions({ elementInteractions: true })).promise;
+        trackSpy.mockClear();
+
+        ampCapture(jest.fn(), { testID: 'my-button' })();
+
+        expect(trackSpy).toHaveBeenCalledWith(
+          DEFAULT_ELEMENT_PRESSED_EVENT,
+          expect.objectContaining({
+            [SCREEN_NAME]: undefined,
+          }),
+        );
+      });
+
+      test('should not attach stale screen name to element interactions after reset', async () => {
+        await client.init(API_KEY, undefined, initOptions({ elementInteractions: true })).promise;
+        client.trackScreenView('Home');
+        client.reset();
+        trackSpy.mockClear();
+
+        ampCapture(jest.fn(), { testID: 'my-button' })();
+
+        expect(trackSpy).toHaveBeenCalledWith(
+          DEFAULT_ELEMENT_PRESSED_EVENT,
+          expect.objectContaining({
+            [SCREEN_NAME]: undefined,
+          }),
+        );
       });
     });
 
@@ -1109,6 +1206,164 @@ describe('react-native-client', () => {
         }).promise;
         expect(client.autocapture).toBeNull();
       });
+    });
+  });
+
+  describe('trackScreenView', () => {
+    test('should track screen viewed with screen name property', async () => {
+      const client = new AmplitudeReactNative();
+      const track = jest.spyOn(client, 'track');
+      client.trackScreenView('Home', { category: 'main' });
+      expect(track).toHaveBeenCalledWith(
+        DEFAULT_SCREEN_VIEWED_EVENT,
+        {
+          [SCREEN_NAME]: 'Home',
+          category: 'main',
+        },
+        undefined,
+      );
+    });
+  });
+
+  describe('trackScreenViewOnNavigationStateChange', () => {
+    test('should track root route name for flat navigation state', async () => {
+      const client = new AmplitudeReactNative();
+      const track = jest.spyOn(client, 'track');
+      client.trackScreenViewOnNavigationStateChange({
+        index: 0,
+        routes: [{ name: 'Home' }],
+      });
+      expect(track).toHaveBeenCalledWith(
+        DEFAULT_SCREEN_VIEWED_EVENT,
+        {
+          [SCREEN_NAME]: 'Home',
+        },
+        undefined,
+      );
+    });
+
+    test('should track focused leaf route name for nested navigation state', async () => {
+      const client = new AmplitudeReactNative();
+      const track = jest.spyOn(client, 'track');
+      client.trackScreenViewOnNavigationStateChange({
+        index: 0,
+        routes: [
+          {
+            name: 'Main',
+            state: {
+              index: 1,
+              routes: [
+                { name: 'Home' },
+                {
+                  name: 'Profile',
+                  state: {
+                    index: 0,
+                    routes: [{ name: 'ProfileDetails' }],
+                  },
+                },
+              ],
+            },
+          },
+        ],
+      });
+      expect(track).toHaveBeenCalledWith(
+        DEFAULT_SCREEN_VIEWED_EVENT,
+        {
+          [SCREEN_NAME]: 'ProfileDetails',
+        },
+        undefined,
+      );
+    });
+
+    test('should no-op when navigation state is undefined', async () => {
+      const client = new AmplitudeReactNative();
+      const track = jest.spyOn(client, 'track');
+      expect(await client.trackScreenViewOnNavigationStateChange(undefined).promise).toBe(undefined);
+      expect(track).not.toHaveBeenCalled();
+    });
+
+    test('should track initial route from onReady and dedupe the same route on onStateChange', () => {
+      const client = new AmplitudeReactNative();
+      const track = jest.spyOn(client, 'track');
+      const homeState = {
+        index: 0,
+        routes: [{ name: 'Home' }],
+      };
+
+      // onReady: React Navigation does not invoke onStateChange for the initial route.
+      client.trackScreenViewOnNavigationStateChange(homeState);
+      expect(track).toHaveBeenCalledTimes(1);
+      expect(track).toHaveBeenCalledWith(
+        DEFAULT_SCREEN_VIEWED_EVENT,
+        {
+          [SCREEN_NAME]: 'Home',
+        },
+        undefined,
+      );
+
+      // A later onStateChange for the same focused route must not double-count.
+      client.trackScreenViewOnNavigationStateChange(homeState);
+      expect(track).toHaveBeenCalledTimes(1);
+    });
+
+    test('should not track duplicate screen views for the same focused route', () => {
+      const client = new AmplitudeReactNative();
+      const track = jest.spyOn(client, 'track');
+      const homeState = {
+        index: 0,
+        routes: [{ name: 'Home' }],
+      };
+
+      client.trackScreenViewOnNavigationStateChange(homeState);
+      client.trackScreenViewOnNavigationStateChange(homeState);
+      expect(track).toHaveBeenCalledTimes(1);
+
+      client.trackScreenViewOnNavigationStateChange({
+        index: 0,
+        routes: [{ name: 'Settings' }],
+      });
+      expect(track).toHaveBeenCalledTimes(2);
+      expect(track).toHaveBeenLastCalledWith(
+        DEFAULT_SCREEN_VIEWED_EVENT,
+        {
+          [SCREEN_NAME]: 'Settings',
+        },
+        undefined,
+      );
+
+      // Returning to a previously viewed screen should track again.
+      client.trackScreenViewOnNavigationStateChange(homeState);
+      expect(track).toHaveBeenCalledTimes(3);
+      expect(track).toHaveBeenLastCalledWith(
+        DEFAULT_SCREEN_VIEWED_EVENT,
+        {
+          [SCREEN_NAME]: 'Home',
+        },
+        undefined,
+      );
+    });
+
+    test('should track the same focused route again after reset', () => {
+      const client = new AmplitudeReactNative();
+      const track = jest.spyOn(client, 'track');
+      const homeState = {
+        index: 0,
+        routes: [{ name: 'Home' }],
+      };
+
+      client.trackScreenViewOnNavigationStateChange(homeState);
+      expect(track).toHaveBeenCalledTimes(1);
+
+      client.reset();
+      client.trackScreenViewOnNavigationStateChange(homeState);
+      expect(track).toHaveBeenCalledTimes(2);
+      expect(track).toHaveBeenLastCalledWith(
+        DEFAULT_SCREEN_VIEWED_EVENT,
+        {
+          [SCREEN_NAME]: 'Home',
+        },
+        undefined,
+      );
     });
   });
 });
