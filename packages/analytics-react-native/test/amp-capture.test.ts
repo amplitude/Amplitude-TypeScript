@@ -90,5 +90,17 @@ describe('amp-capture', () => {
       const wrapped = ampCapture(100 as any, properties);
       expect(wrapped).toBe(100);
     });
+
+    test('only captures once if nested ampCaptures', () => {
+      const callback = jest.fn();
+      addSubscriber(callback);
+
+      const inner = jest.fn();
+      const nestedCapture = ampCapture(inner, properties);
+      const wrapped = ampCapture(nestedCapture, properties);
+      wrapped();
+      expect(callback).toHaveBeenCalledTimes(1);
+      expect(inner).toHaveBeenCalledTimes(1);
+    });
   });
 });

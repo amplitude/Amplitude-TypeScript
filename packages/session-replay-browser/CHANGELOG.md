@@ -3,6 +3,25 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.48.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.47.5...@amplitude/session-replay-browser@1.48.0) (2026-07-22)
+
+
+### Features
+
+* **session-replay-browser:** apply body masking rules in SR network logging ([#1896](https://github.com/amplitude/Amplitude-TypeScript/issues/1896)) ([66dfd6c](https://github.com/amplitude/Amplitude-TypeScript/commit/66dfd6c6de4ca97f646cb1964b262ac172f1437d))
+
+
+
+
+
+## [1.47.5](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.47.4...@amplitude/session-replay-browser@1.47.5) (2026-07-20)
+
+**Note:** Version bump only for package @amplitude/session-replay-browser
+
+
+
+
+
 ## [1.47.4](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.47.3...@amplitude/session-replay-browser@1.47.4) (2026-07-17)
 
 **Note:** Version bump only for package @amplitude/session-replay-browser

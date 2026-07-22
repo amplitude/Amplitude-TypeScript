@@ -1,6 +1,6 @@
 {
   "name": "@amplitude/analytics-react-native",
-  "version": "1.6.5",
+  "version": "1.6.7",
   "description": "Official React Native SDK",
   "keywords": [
     "analytics",
@@ -59,6 +59,7 @@
   },
   "dependencies": {
     "@amplitude/analytics-core": "workspace:*",
+    "@amplitude/plugin-network-capture-browser": "workspace:*",
     "@amplitude/ua-parser-js": "^0.7.31",
     "@react-native-async-storage/async-storage": "^1.17.11",
     "tslib": "^2.4.1"

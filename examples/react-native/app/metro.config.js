@@ -56,6 +56,8 @@ const config = {
   watchFolders: [
     path.join(workspaceRoot, 'packages/analytics-react-native'),
     path.join(workspaceRoot, 'packages/analytics-core'),
+    // Pulled in via analytics-react-native autocapture.networkTracking.
+    path.join(workspaceRoot, 'packages/plugin-network-capture-browser'),
     pnpmStore,
   ],
   resolver: {

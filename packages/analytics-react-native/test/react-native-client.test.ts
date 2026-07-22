@@ -1,5 +1,7 @@
 import { AmplitudeReactNative } from '../src/react-native-client';
 import * as core from '@amplitude/analytics-core';
+import * as Capture from '../src/amp-capture';
+import { ampCapture, EVENT_TYPE_VALUES } from '../src/amp-capture';
 import * as CookieMigration from '../src/cookie-migration';
 import {
   Status,
@@ -16,10 +18,16 @@ import * as NetworkChecker from '../src/plugins/network-connectivity-checker';
 import {
   DEFAULT_APPLICATION_BACKGROUNDED_EVENT,
   DEFAULT_APPLICATION_OPENED_EVENT,
+  DEFAULT_ELEMENT_PRESSED_EVENT,
   DEFAULT_SCREEN_VIEWED_EVENT,
   DEFAULT_SESSION_END_EVENT,
   DEFAULT_SESSION_START_EVENT,
   SCREEN_NAME,
+  TARGET_ACCESSIBILITY_LABEL,
+  TARGET_ACTION,
+  TARGET_COMPONENT,
+  TARGET_ELEMENT,
+  TARGET_TEST_ID,
 } from '../src/constants';
 
 describe('react-native-client', () => {
@@ -951,7 +959,9 @@ describe('react-native-client', () => {
       },
     };
 
-    const initOptions = (autocapture: boolean | { sessions?: boolean; appLifecycles?: boolean }) => ({
+    const initOptions = (
+      autocapture: boolean | { sessions?: boolean; appLifecycles?: boolean; elementInteractions?: boolean },
+    ) => ({
       autocapture,
       transportProvider: {
         send: jest.fn().mockResolvedValue(sendResponse),
@@ -1084,6 +1094,44 @@ describe('react-native-client', () => {
         (client as any).handleAppStateChange('active');
 
         expect(trackSpy).not.toHaveBeenCalledWith(DEFAULT_APPLICATION_OPENED_EVENT);
+      });
+    });
+
+    describe('elementInteractions', () => {
+      beforeEach(() => {
+        client = new AmplitudeReactNative();
+        trackSpy = jest.spyOn(client, 'track');
+      });
+
+      afterEach(() => {
+        trackSpy.mockClear();
+        jest.restoreAllMocks();
+      });
+
+      test('should not track element interactions twice when re-init with elementInteractions', async () => {
+        await client.init(API_KEY, undefined, initOptions({ elementInteractions: true })).promise;
+        await client.init(API_KEY, undefined, initOptions({ elementInteractions: true })).promise;
+        trackSpy.mockClear();
+
+        const properties = {
+          event: EVENT_TYPE_VALUES.Press,
+          accessibilityLabel: 'Button accessibility label',
+          testID: 'my-button',
+          component: 'ButtonHarness',
+          element: 'Button',
+          action: 'onPress',
+        };
+        ampCapture(jest.fn(), properties)();
+
+        expect(trackSpy).toHaveBeenCalledTimes(1);
+        expect(trackSpy).toHaveBeenCalledWith(DEFAULT_ELEMENT_PRESSED_EVENT, {
+          [SCREEN_NAME]: undefined,
+          [TARGET_ACCESSIBILITY_LABEL]: 'Button accessibility label',
+          [TARGET_ACTION]: 'onPress',
+          [TARGET_COMPONENT]: 'ButtonHarness',
+          [TARGET_ELEMENT]: 'Button',
+          [TARGET_TEST_ID]: 'my-button',
+        });
       });
     });
 

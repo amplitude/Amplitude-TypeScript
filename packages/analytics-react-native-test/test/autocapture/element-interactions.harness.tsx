@@ -114,7 +114,7 @@ describe('autocapture.elementInteractions is undefined', () => {
     capture.clear();
   });
 
-  it('tracks onPress event on button', async () => {
+  it('onPress event is not tracked', async () => {
     render(<ButtonHarness />);
     const button = await screen.findByTestId('my-button');
     await userEvent.press(button);
