@@ -972,7 +972,7 @@ test.describe('network body masking', () => {
     const evt = getFetchEvents().find((e) => String(e.url).includes('/graphql'));
     expect(evt).toBeDefined();
     expect(evt!.requestBody).toBe(
-      '{"query":"mutation Login($input: LoginInput!) { login(input: $input) { id } }","variables":{"input":{}}}',
+      '{"query":"mutation Login($input: LoginInput!) { login(input: $input) { id } }"}',
     );
   });
 
