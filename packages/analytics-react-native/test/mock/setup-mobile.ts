@@ -42,6 +42,7 @@ NativeModules.AmplitudeReactNative = {
     // `undefined` and broke the os_name assertion.
     return {
       version: '1.0.0',
+      build: '1',
       platform: 'iOS',
       osName: 'react-native-tests',
       osVersion: 'react-native-tests',

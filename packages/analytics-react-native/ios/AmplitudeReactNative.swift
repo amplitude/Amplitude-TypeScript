@@ -22,6 +22,7 @@ class ReactNative: NSObject {
 
         var applicationContext: [String: String?] = [
             "version": appleContextProvider.version,
+            "build": appleContextProvider.build,
             "platform": appleContextProvider.platform,
             "language": appleContextProvider.language,
             "country": appleContextProvider.country,

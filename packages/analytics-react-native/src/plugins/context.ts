@@ -16,6 +16,7 @@ const IP_ADDRESS = '$remote';
 type NativeContext = {
   version: string;
   platform: string;
+  build: string;
   language: string;
   country: string;
   osName: string;
