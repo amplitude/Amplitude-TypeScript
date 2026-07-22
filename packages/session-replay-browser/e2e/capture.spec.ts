@@ -927,6 +927,55 @@ test.describe('network body masking', () => {
     expect(evt!.requestBody).toBe('{"id":1}');
   });
 
+  test('applies excludelist to nested JSON request bodies', async ({ page }) => {
+    await mockRemoteConfig(
+      page,
+      remoteConfigWithNetworkBody({
+        request: {
+          excludelist: ['/variables/input/email', '/variables/input/password'],
+        },
+        response: false,
+      }),
+    );
+    const getFetchEvents = await mockTrackApiWithCapture(page);
+    await page.route(`${TEST_FETCH_ORIGIN}/**`, (route) =>
+      route.fulfill({ status: 200, contentType: 'application/json', body: '{"ok":true}' }),
+    );
+
+    await page.goto(buildUrl('/session-replay-browser/sr-capture-test.html', { sessionId: TEST_SESSION_ID }));
+    await waitForReady(page);
+    await waitForNetworkObservers(page);
+
+    await page.evaluate(
+      (url) =>
+        fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            query: 'mutation Login($input: LoginInput!) { login(input: $input) { id } }',
+            variables: {
+              input: {
+                email: 'user@example.com',
+                password: 'secret',
+              },
+            },
+          }),
+        }),
+      `${TEST_FETCH_ORIGIN}/graphql`,
+    );
+    await page.waitForTimeout(200);
+
+    await page.evaluate(() => window.dispatchEvent(new Event('blur')));
+    await page.evaluate(() => (window as any).sessionReplay.flush(false) as Promise<void>);
+    await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
+
+    const evt = getFetchEvents().find((e) => String(e.url).includes('/graphql'));
+    expect(evt).toBeDefined();
+    expect(evt!.requestBody).toBe(
+      '{"query":"mutation Login($input: LoginInput!) { login(input: $input) { id } }","variables":{"input":{}}}',
+    );
+  });
+
   test('honors deprecated blocklist alias on response bodies', async ({ page }) => {
     await mockRemoteConfig(
       page,
