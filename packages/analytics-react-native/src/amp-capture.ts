@@ -1,20 +1,9 @@
-export const EVENT_TYPE_VALUES = {
-  Press: 'Press',
-  LongPress: 'LongPress',
-  ValueChange: 'ValueChange',
-  ChangeText: 'ChangeText',
-  SubmitEditing: 'SubmitEditing',
-} as const;
-
-export type EVENT_TYPE = (typeof EVENT_TYPE_VALUES)[keyof typeof EVENT_TYPE_VALUES];
-
 export type AmpCaptureProperties = {
   action?: string;
   accessibilityLabel?: string;
   component?: string;
   element?: string;
   testID?: string;
-  event: EVENT_TYPE;
 };
 
 const callbacks: ((properties: AmpCaptureProperties) => void)[] = [];

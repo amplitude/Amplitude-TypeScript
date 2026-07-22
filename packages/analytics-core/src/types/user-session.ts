@@ -9,4 +9,6 @@ export interface UserSession {
   pageCounter?: number;
   debugLogsEnabled?: boolean;
   cookieDomain?: string;
+  appVersion?: string;
+  appBuild?: string;
 }

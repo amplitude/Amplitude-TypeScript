@@ -39,10 +39,10 @@ describe('autocapture.appState', () => {
       },
     } as any).promise;
 
-    // Cold start emits Application Opened when already active. Wait for it to land
-    // in the capture plugin before clearing — otherwise it races into later tests.
-    await capture.waitForEvents(1);
-    openedOnInit = capture.events[0]?.event_type;
+    // Cold start emits Application Opened + Application Installed (no prior build).
+    // Wait for both before clearing — otherwise they race into later tests.
+    await capture.waitForEvents(2);
+    openedOnInit = capture.events.find((e) => e.event_type === '[Amplitude] Application Opened')?.event_type;
     capture.clear();
   });
 

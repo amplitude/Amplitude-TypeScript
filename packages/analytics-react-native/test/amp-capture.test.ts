@@ -1,4 +1,4 @@
-import { ampCapture, EVENT_TYPE_VALUES, subscribe, type AmpCaptureProperties } from '../src/amp-capture';
+import { ampCapture, subscribe, type AmpCaptureProperties } from '../src/amp-capture';
 
 describe('amp-capture', () => {
   const unsubscribers: Array<() => void> = [];
@@ -22,7 +22,6 @@ describe('amp-capture', () => {
 
   describe('ampCapture', () => {
     const properties: AmpCaptureProperties = {
-      event: EVENT_TYPE_VALUES.Press,
       accessibilityLabel: 'Submit',
       testID: 'submit-button',
     };

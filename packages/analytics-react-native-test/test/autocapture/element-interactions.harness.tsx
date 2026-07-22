@@ -35,12 +35,11 @@ function ButtonHarness() {
             console.log('Button pressed');
           },
           {
-            event: 'Press',
             testID: 'my-button',
             component: 'ButtonHarness',
             element: 'Button',
             accessibilityLabel: 'Button accessibility label',
-            action: 'onPress',
+            action: 'press',
           },
         )}
       />
@@ -87,7 +86,7 @@ describe('autocapture.elementInteractions', () => {
       '[Amplitude] Target Component': 'ButtonHarness',
       '[Amplitude] Target Element': 'Button',
       '[Amplitude] Target Test ID': 'my-button',
-      '[Amplitude] Action': 'onPress',
+      '[Amplitude] Action': 'press',
     });
   });
 });

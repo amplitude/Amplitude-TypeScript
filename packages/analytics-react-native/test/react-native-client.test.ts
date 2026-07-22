@@ -1,7 +1,6 @@
 import { AmplitudeReactNative } from '../src/react-native-client';
 import * as core from '@amplitude/analytics-core';
-import * as Capture from '../src/amp-capture';
-import { ampCapture, EVENT_TYPE_VALUES } from '../src/amp-capture';
+import { ampCapture } from '../src/amp-capture';
 import * as CookieMigration from '../src/cookie-migration';
 import {
   Status,
@@ -113,6 +112,19 @@ describe('react-native-client', () => {
       // NOTE: `parseOldCookies` and `useNodeConfig` are only called once despite multiple init calls
       expect(parseOldCookies).toHaveBeenCalledTimes(1);
       expect(useNodeConfig).toHaveBeenCalledTimes(1);
+    });
+
+    test('should remove previous app state listener when re-init', async () => {
+      jest.spyOn(CookieMigration, 'parseOldCookies').mockResolvedValue({ optOut: false });
+
+      const client = new AmplitudeReactNative();
+      await client.init(API_KEY, USER_ID, { ...attributionConfig }).promise;
+
+      const remove = jest.fn();
+      (client as any).appStateChangeHandler = { remove };
+
+      await client.init(API_KEY, USER_ID, { ...attributionConfig }).promise;
+      expect(remove).toHaveBeenCalledTimes(1);
     });
 
     test('should read from new cookies config', async () => {
@@ -1114,7 +1126,6 @@ describe('react-native-client', () => {
         trackSpy.mockClear();
 
         const properties = {
-          event: EVENT_TYPE_VALUES.Press,
           accessibilityLabel: 'Button accessibility label',
           testID: 'my-button',
           component: 'ButtonHarness',
@@ -1132,6 +1143,38 @@ describe('react-native-client', () => {
           [TARGET_ELEMENT]: 'Button',
           [TARGET_TEST_ID]: 'my-button',
         });
+      });
+
+      test('should not attach stale screen name to element interactions after re-init', async () => {
+        await client.init(API_KEY, undefined, initOptions({ elementInteractions: true })).promise;
+        client.trackScreenView('Home');
+        await client.init(API_KEY, undefined, initOptions({ elementInteractions: true })).promise;
+        trackSpy.mockClear();
+
+        ampCapture(jest.fn(), { testID: 'my-button' })();
+
+        expect(trackSpy).toHaveBeenCalledWith(
+          DEFAULT_ELEMENT_PRESSED_EVENT,
+          expect.objectContaining({
+            [SCREEN_NAME]: undefined,
+          }),
+        );
+      });
+
+      test('should not attach stale screen name to element interactions after reset', async () => {
+        await client.init(API_KEY, undefined, initOptions({ elementInteractions: true })).promise;
+        client.trackScreenView('Home');
+        client.reset();
+        trackSpy.mockClear();
+
+        ampCapture(jest.fn(), { testID: 'my-button' })();
+
+        expect(trackSpy).toHaveBeenCalledWith(
+          DEFAULT_ELEMENT_PRESSED_EVENT,
+          expect.objectContaining({
+            [SCREEN_NAME]: undefined,
+          }),
+        );
       });
     });
 
