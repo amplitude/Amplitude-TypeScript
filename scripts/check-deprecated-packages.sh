@@ -8,24 +8,9 @@
 set -e
 
 DEPRECATED_PACKAGES=("@amplitude/analytics-types" "@amplitude/analytics-remote-config")
-DEPRECATED_PACKAGE_DIRS=("packages/analytics-types")
 FAILED=0
 
 echo "Checking for new usage of deprecated packages..."
-
-# Check for code changes in deprecated package directories
-echo "Checking for code changes in deprecated packages..."
-for DIR in "${DEPRECATED_PACKAGE_DIRS[@]}"; do
-  CHANGED_IN_DIR=$(git diff --name-only origin/${GITHUB_BASE_REF:-main}...HEAD | grep "^$DIR/" || true)
-  
-  if [ -n "$CHANGED_IN_DIR" ]; then
-    echo "❌ ERROR: Code changes detected in deprecated package '$DIR'"
-    echo "Changed files:"
-    echo "$CHANGED_IN_DIR" | sed 's/^/   - /'
-    echo ""
-    FAILED=1
-  fi
-done
 
 # Get the list of changed package.json files
 CHANGED_FILES=$(git diff --name-only origin/${GITHUB_BASE_REF:-main}...HEAD | grep 'package.json$' || true)

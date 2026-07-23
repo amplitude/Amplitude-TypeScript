@@ -40,7 +40,7 @@
   },
   "dependencies": {
     "@amplitude/analytics-core": "workspace:*",
-    "@amplitude/analytics-types": "workspace:*",
+    "@amplitude/analytics-types": "2.11.1",
     "@amplitude/rrweb-plugin-console-record": "2.0.0-alpha.40",
     "@amplitude/rrweb-record": "2.0.0-alpha.40",
     "@amplitude/session-replay-browser": "workspace:*",

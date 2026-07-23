@@ -39,7 +39,7 @@
   },
   "dependencies": {
     "@amplitude/analytics-core": "workspace:*",
-    "@amplitude/analytics-types": "workspace:*",
+    "@amplitude/analytics-types": "2.11.1",
     "@amplitude/experiment-core": "0.7.2",
     "idb": "8.0.0",
     "tslib": "^2.4.1"
