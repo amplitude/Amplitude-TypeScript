@@ -1,6 +1,6 @@
 import { AmplitudeReactNative } from '../src/react-native-client';
 import * as core from '@amplitude/analytics-core';
-import { ampCapture } from '../src/amp-capture';
+import * as Capture from '../src/amp-capture';
 import * as CookieMigration from '../src/cookie-migration';
 import {
   Status,
@@ -1120,6 +1120,53 @@ describe('react-native-client', () => {
         jest.restoreAllMocks();
       });
 
+      test('should subscribe to element interactions after the destination plugin is installed', async () => {
+        const add = client.add.bind(client);
+        jest.spyOn(client, 'add').mockImplementation((plugin) => {
+          if (plugin.name === '@amplitude/plugin-network-checker-react-native') {
+            const result = add(plugin);
+            return {
+              promise: result.promise.then(
+                () =>
+                  new Promise<void>((resolve) => {
+                    setTimeout(() => {
+                      Capture.ampCapture(jest.fn(), { testID: 'during-init' })();
+                      setTimeout(resolve, 0);
+                    }, 0);
+                  }),
+              ),
+            };
+          }
+          return add(plugin);
+        });
+
+        await client.init(API_KEY, undefined, {
+          ...initOptions({ elementInteractions: true }),
+          flushQueueSize: 1,
+        }).promise;
+
+        Capture.ampCapture(jest.fn(), { testID: 'after-init' })();
+
+        const elementInteractionIndexes = trackSpy.mock.calls.reduce<number[]>(
+          (indexes, [eventType], index) =>
+            eventType === DEFAULT_ELEMENT_INTERACTED_EVENT ? [...indexes, index] : indexes,
+          [],
+        );
+        expect(elementInteractionIndexes).toHaveLength(1);
+        expect(trackSpy.mock.calls[elementInteractionIndexes[0]][1]).toEqual(
+          expect.objectContaining({
+            [TARGET_TEST_ID]: 'after-init',
+          }),
+        );
+        const elementInteractionResult = trackSpy.mock.results[elementInteractionIndexes[0]].value;
+
+        await expect(elementInteractionResult.promise).resolves.toEqual(
+          expect.objectContaining({
+            code: 200,
+          }),
+        );
+      });
+
       test('should not track element interactions twice when re-init with elementInteractions', async () => {
         await client.init(API_KEY, undefined, initOptions({ elementInteractions: true })).promise;
         await client.init(API_KEY, undefined, initOptions({ elementInteractions: true })).promise;
@@ -1132,7 +1179,7 @@ describe('react-native-client', () => {
           element: 'Button',
           action: 'onPress',
         };
-        ampCapture(jest.fn(), properties)();
+        Capture.ampCapture(jest.fn(), properties)();
 
         expect(trackSpy).toHaveBeenCalledTimes(1);
         expect(trackSpy).toHaveBeenCalledWith(DEFAULT_ELEMENT_INTERACTED_EVENT, {
@@ -1151,7 +1198,7 @@ describe('react-native-client', () => {
         await client.init(API_KEY, undefined, initOptions({ elementInteractions: true })).promise;
         trackSpy.mockClear();
 
-        ampCapture(jest.fn(), { testID: 'my-button' })();
+        Capture.ampCapture(jest.fn(), { testID: 'my-button' })();
 
         expect(trackSpy).toHaveBeenCalledWith(
           DEFAULT_ELEMENT_INTERACTED_EVENT,
@@ -1167,7 +1214,7 @@ describe('react-native-client', () => {
         client.reset();
         trackSpy.mockClear();
 
-        ampCapture(jest.fn(), { testID: 'my-button' })();
+        Capture.ampCapture(jest.fn(), { testID: 'my-button' })();
 
         expect(trackSpy).toHaveBeenCalledWith(
           DEFAULT_ELEMENT_INTERACTED_EVENT,

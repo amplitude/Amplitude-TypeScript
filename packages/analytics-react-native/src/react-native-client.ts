@@ -160,19 +160,6 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
       this.captureUnsubscribe();
       this.captureUnsubscribe = undefined;
     }
-    if (this.autocapture?.elementInteractions === true) {
-      this.captureUnsubscribe = Capture.subscribe((properties) => {
-        const analyticsProps = {
-          [SCREEN_NAME]: this.currentScreenName,
-          [TARGET_ACCESSIBILITY_LABEL]: properties.accessibilityLabel,
-          [TARGET_ACTION]: properties.action,
-          [TARGET_COMPONENT]: properties.component,
-          [TARGET_ELEMENT]: properties.element,
-          [TARGET_TEST_ID]: properties.testID,
-        };
-        this.track(DEFAULT_ELEMENT_INTERACTED_EVENT, analyticsProps);
-      });
-    }
 
     // Set up the analytics connector to integrate with the experiment SDK.
     // Send events from the experiment SDK and forward identifies to the
@@ -197,6 +184,20 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
     if (this.autocapture?.networkTracking) {
       this.config.loggerProvider.debug('Adding network tracking plugin');
       await this.add(networkCapturePlugin(getNetworkTrackingConfig(this.config))).promise;
+    }
+
+    if (this.autocapture?.elementInteractions === true) {
+      this.captureUnsubscribe = Capture.subscribe((properties) => {
+        const analyticsProps = {
+          [SCREEN_NAME]: this.currentScreenName,
+          [TARGET_ACCESSIBILITY_LABEL]: properties.accessibilityLabel,
+          [TARGET_ACTION]: properties.action,
+          [TARGET_COMPONENT]: properties.component,
+          [TARGET_ELEMENT]: properties.element,
+          [TARGET_TEST_ID]: properties.testID,
+        };
+        this.track(DEFAULT_ELEMENT_INTERACTED_EVENT, analyticsProps);
+      });
     }
 
     // Step 4: Manage session

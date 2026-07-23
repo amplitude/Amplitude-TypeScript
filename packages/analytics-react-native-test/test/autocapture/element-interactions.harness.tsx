@@ -83,7 +83,7 @@ describe('autocapture.elementInteractions', () => {
     expect(capture.events[0].event_type).toBe('[Amplitude] Element Interacted');
     expect(capture.events[0].event_properties).toEqual({
       '[Amplitude] Target Accessibility Label': 'Button accessibility label',
-      '[Amplitude] Target View Class': 'ButtonHarness',
+      '[Amplitude] Target Component': 'ButtonHarness',
       '[Amplitude] Target Element': 'Button',
       '[Amplitude] Target Test ID': 'my-button',
       '[Amplitude] Action': 'press',
