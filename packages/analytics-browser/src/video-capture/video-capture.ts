@@ -74,9 +74,11 @@ export class VideoCapture {
     this.listeners.push((previousState, nextState) => {
       if (previousState.playbackState !== 'playing' && nextState.playbackState === 'playing') {
         this.playId = UUID();
+        const now = new Date().getTime();
         const startEvent: BaseEvent = {
           insert_id: UUID(),
           event_type: 'Video Content Started',
+          time: now,
           event_properties: {
             ...this.parseStartEventProperties(nextState),
             ...this.extraEventProperties,
@@ -87,6 +89,7 @@ export class VideoCapture {
           ...startEvent,
           insert_id: UUID(),
           event_type: 'Video Content Stopped',
+          time: now,
           event_properties: {
             ...this.parseStopEventProperties(nextState),
             ...this.extraEventProperties,
@@ -115,6 +118,7 @@ export class VideoCapture {
           ...this.parseStopEventProperties(nextState),
           ...this.extraEventProperties,
         };
+        this.stopEvent.time = new Date().getTime();
       }
       if (previousState.playbackState === 'playing' && nextState.playbackState !== 'playing' && this.stopEvent) {
         this.stopEvent.event_properties = {

@@ -42,6 +42,7 @@ describe('config', () => {
         plan: undefined,
         ingestionMetadata: undefined,
         serverUrl: 'https://api2.amplitude.com/2/httpapi',
+        delayedEventsServerUrl: undefined,
         serverZone: 'US',
         sessionTimeout: 300000,
         trackingOptions: {
@@ -97,6 +98,7 @@ describe('config', () => {
         plan: undefined,
         ingestionMetadata: undefined,
         serverUrl: 'https://api2.amplitude.com/2/httpapi',
+        delayedEventsServerUrl: undefined,
         serverZone: 'US',
         sessionTimeout: 300000,
         storageProvider: new core.MemoryStorage(),
@@ -178,6 +180,7 @@ describe('config', () => {
           sourceVersion: '2.0.0',
         },
         serverUrl: 'https://api2.amplitude.com/2/httpapi',
+        delayedEventsServerUrl: undefined,
         serverZone: 'US',
         _sessionId: -1,
         sessionTimeout: 1,
