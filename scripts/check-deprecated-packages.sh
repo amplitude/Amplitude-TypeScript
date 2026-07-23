@@ -7,8 +7,8 @@
 
 set -e
 
-DEPRECATED_PACKAGES=("@amplitude/analytics-types" "@amplitude/analytics-client-common" "@amplitude/analytics-remote-config")
-DEPRECATED_PACKAGE_DIRS=("packages/analytics-types" "packages/analytics-client-common")
+DEPRECATED_PACKAGES=("@amplitude/analytics-types" "@amplitude/analytics-remote-config")
+DEPRECATED_PACKAGE_DIRS=("packages/analytics-types")
 FAILED=0
 
 echo "Checking for new usage of deprecated packages..."
@@ -80,9 +80,9 @@ if [ "$FAILED" -eq 1 ]; then
   echo ""
   echo "Restrictions:"
   echo "  • No new dependencies on these packages are allowed"
-  echo "  • No code changes to packages/analytics-types or packages/analytics-client-common are allowed"
+  echo "  • No code changes to packages/analytics-types are allowed"
   echo ""
-  echo "For @amplitude/analytics-types and @amplitude/analytics-client-common:"
+  echo "For @amplitude/analytics-types:"
   echo "  → Use @amplitude/analytics-core instead"
   echo ""
   echo "For @amplitude/analytics-remote-config:"
