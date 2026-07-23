@@ -43,7 +43,7 @@ import {
   DEFAULT_APPLICATION_BACKGROUNDED_EVENT,
   DEFAULT_APPLICATION_INSTALLED_EVENT,
   DEFAULT_APPLICATION_OPENED_EVENT,
-  DEFAULT_ELEMENT_PRESSED_EVENT,
+  DEFAULT_ELEMENT_INTERACTED_EVENT,
   DEFAULT_APPLICATION_UPDATED_EVENT,
   DEFAULT_SCREEN_VIEWED_EVENT,
   DEFAULT_SESSION_END_EVENT,
@@ -170,7 +170,7 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
           [TARGET_ELEMENT]: properties.element,
           [TARGET_TEST_ID]: properties.testID,
         };
-        this.track(DEFAULT_ELEMENT_PRESSED_EVENT, analyticsProps);
+        this.track(DEFAULT_ELEMENT_INTERACTED_EVENT, analyticsProps);
       });
     }
 

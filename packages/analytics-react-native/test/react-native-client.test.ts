@@ -17,7 +17,7 @@ import * as NetworkChecker from '../src/plugins/network-connectivity-checker';
 import {
   DEFAULT_APPLICATION_BACKGROUNDED_EVENT,
   DEFAULT_APPLICATION_OPENED_EVENT,
-  DEFAULT_ELEMENT_PRESSED_EVENT,
+  DEFAULT_ELEMENT_INTERACTED_EVENT,
   DEFAULT_SCREEN_VIEWED_EVENT,
   DEFAULT_SESSION_END_EVENT,
   DEFAULT_SESSION_START_EVENT,
@@ -1135,7 +1135,7 @@ describe('react-native-client', () => {
         ampCapture(jest.fn(), properties)();
 
         expect(trackSpy).toHaveBeenCalledTimes(1);
-        expect(trackSpy).toHaveBeenCalledWith(DEFAULT_ELEMENT_PRESSED_EVENT, {
+        expect(trackSpy).toHaveBeenCalledWith(DEFAULT_ELEMENT_INTERACTED_EVENT, {
           [SCREEN_NAME]: undefined,
           [TARGET_ACCESSIBILITY_LABEL]: 'Button accessibility label',
           [TARGET_ACTION]: 'onPress',
@@ -1154,7 +1154,7 @@ describe('react-native-client', () => {
         ampCapture(jest.fn(), { testID: 'my-button' })();
 
         expect(trackSpy).toHaveBeenCalledWith(
-          DEFAULT_ELEMENT_PRESSED_EVENT,
+          DEFAULT_ELEMENT_INTERACTED_EVENT,
           expect.objectContaining({
             [SCREEN_NAME]: undefined,
           }),
@@ -1170,7 +1170,7 @@ describe('react-native-client', () => {
         ampCapture(jest.fn(), { testID: 'my-button' })();
 
         expect(trackSpy).toHaveBeenCalledWith(
-          DEFAULT_ELEMENT_PRESSED_EVENT,
+          DEFAULT_ELEMENT_INTERACTED_EVENT,
           expect.objectContaining({
             [SCREEN_NAME]: undefined,
           }),
