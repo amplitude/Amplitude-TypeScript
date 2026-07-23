@@ -11,9 +11,9 @@ export type ReactNativeOptions = Omit<Partial<ReactNativeConfig>, HiddenOptions>
 export interface ReactNativeAutocaptureOptions {
   sessions?: boolean;
   appLifecycles?: boolean;
+  elementInteractions?: boolean;
   networkTracking?: boolean | NetworkTrackingOptions;
   screenViews?: boolean;
-  // elementInteractions?
 }
 
 export interface ReactNativeConfig extends Omit<IConfig, 'requestMetadata'> {

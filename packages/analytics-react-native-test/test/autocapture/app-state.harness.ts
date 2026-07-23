@@ -42,8 +42,7 @@ describe('autocapture.appState', () => {
     // Cold start emits Application Opened + Application Installed (no prior build).
     // Wait for both before clearing — otherwise they race into later tests.
     await capture.waitForEvents(2);
-    openedOnInit = capture.events.find((e) => e.event_type === '[Amplitude] Application Opened')
-      ?.event_type;
+    openedOnInit = capture.events.find((e) => e.event_type === '[Amplitude] Application Opened')?.event_type;
     capture.clear();
   });
 

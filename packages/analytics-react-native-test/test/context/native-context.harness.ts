@@ -78,6 +78,11 @@ describe('NativeContext', () => {
     });
 
     expect(nativeContext.version).toBe(EXPECTED_VERSION);
+    if (nativeContext.build === undefined) {
+      throw new Error(
+        'Native build is undefined. Rebuild the harness host app after native module changes: FORCE_REBUILD=1 pnpm test:harness:ios',
+      );
+    }
     expect(nativeContext.build).toBe(EXPECTED_BUILD);
   });
 

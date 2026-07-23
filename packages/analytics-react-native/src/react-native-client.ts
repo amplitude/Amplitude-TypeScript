@@ -36,12 +36,14 @@ import { networkConnectivityCheckerPlugin } from './plugins/network-connectivity
 import { useReactNativeConfig, createCookieStorage } from './config';
 import { parseOldCookies } from './cookie-migration';
 import { isNative } from './utils/platform';
+import * as Capture from './amp-capture';
 import {
   APP_BUILD,
   APP_VERSION,
   DEFAULT_APPLICATION_BACKGROUNDED_EVENT,
   DEFAULT_APPLICATION_INSTALLED_EVENT,
   DEFAULT_APPLICATION_OPENED_EVENT,
+  DEFAULT_ELEMENT_PRESSED_EVENT,
   DEFAULT_APPLICATION_UPDATED_EVENT,
   DEFAULT_SCREEN_VIEWED_EVENT,
   DEFAULT_SESSION_END_EVENT,
@@ -49,6 +51,11 @@ import {
   PREVIOUS_BUILD,
   PREVIOUS_VERSION,
   SCREEN_NAME,
+  TARGET_ACCESSIBILITY_LABEL,
+  TARGET_ACTION,
+  TARGET_COMPONENT,
+  TARGET_ELEMENT,
+  TARGET_TEST_ID,
 } from './constants';
 
 /**
@@ -97,12 +104,14 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
    */
   private lastNavigationScreenName: string | undefined;
   private appStateChangeHandler: NativeEventSubscription | undefined;
+  private currentScreenName: string | undefined;
   explicitSessionId: number | undefined;
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore
   config: ReactNativeConfig;
   userProperties: { [key: string]: any } | undefined;
   autocapture: ReactNativeAutocaptureOptions | null = null;
+  captureUnsubscribe: (() => void) | undefined;
 
   init(apiKey = '', userId?: string, options?: ReactNativeOptions) {
     return returnWrapper(this._init({ ...options, userId, apiKey }));
@@ -145,6 +154,25 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
     this.wasBackgrounded = false;
     // Allow the first navigation screen view after re-init.
     this.lastNavigationScreenName = undefined;
+    this.currentScreenName = undefined;
+
+    if (typeof this.captureUnsubscribe === 'function') {
+      this.captureUnsubscribe();
+      this.captureUnsubscribe = undefined;
+    }
+    if (this.autocapture?.elementInteractions === true) {
+      this.captureUnsubscribe = Capture.subscribe((properties) => {
+        const analyticsProps = {
+          [SCREEN_NAME]: this.currentScreenName,
+          [TARGET_ACCESSIBILITY_LABEL]: properties.accessibilityLabel,
+          [TARGET_ACTION]: properties.action,
+          [TARGET_COMPONENT]: properties.component,
+          [TARGET_ELEMENT]: properties.element,
+          [TARGET_TEST_ID]: properties.testID,
+        };
+        this.track(DEFAULT_ELEMENT_PRESSED_EVENT, analyticsProps);
+      });
+    }
 
     // Set up the analytics connector to integrate with the experiment SDK.
     // Send events from the experiment SDK and forward identifies to the
@@ -179,6 +207,9 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
         this.getSessionId() ?? 'undefined'
       }`,
     );
+    if (this.appStateChangeHandler) {
+      this.appStateChangeHandler.remove?.();
+    }
     this.appStateChangeHandler = AppState.addEventListener('change', this.handleAppStateChange);
 
     this.initializing = false;
@@ -207,6 +238,7 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
 
   shutdown() {
     this.appStateChangeHandler?.remove();
+    this.captureUnsubscribe?.();
   }
 
   async runAttributionStrategy(attributionConfig?: AttributionOptions, isNewSession = false) {
@@ -268,6 +300,7 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
     this.setDeviceId(UUID());
     // Allow the current focused route to emit again for the new identity.
     this.lastNavigationScreenName = undefined;
+    this.currentScreenName = undefined;
   }
 
   getSessionId() {
@@ -309,6 +342,7 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
     if (isScreenViewTrackingDisabled) {
       return returnWrapper(Promise.resolve(undefined));
     }
+    this.currentScreenName = screenName;
     return this.track(
       DEFAULT_SCREEN_VIEWED_EVENT,
       {

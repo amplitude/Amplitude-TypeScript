@@ -5,7 +5,7 @@
  * Requires react-native-harness + examples/react-native/app built and installed.
  * Host mock API is started by scripts/mock-api-plugin.mjs (port 9876).
  */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument */
 import { describe, it, expect, beforeEach, afterEach } from 'react-native-harness';
 import { createInstance, Types } from '@amplitude/analytics-react-native';
 import { createEventCapture, EventCapture } from '../helpers/event-capture';
@@ -17,7 +17,7 @@ let client: Types.ReactNativeClient;
 
 describe('autocapture.networkTracking', () => {
   let capture: EventCapture;
-  let originalFetch = global.fetch;
+  const originalFetch = global.fetch;
 
   beforeEach(async () => {
     client = createInstance();
