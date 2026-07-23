@@ -1888,7 +1888,7 @@ describe('destination', () => {
           events: [expect.objectContaining({ event_type: 'delayed_event' })],
           instant_events: [],
         }),
-        true,
+        false,
       );
       expectSuccess(callback, event);
     });
@@ -1922,7 +1922,7 @@ describe('destination', () => {
           events: [],
           instant_events: [expect.objectContaining({ event_type: 'instant_event' })],
         }),
-        true,
+        false,
       );
       expectSuccess(callback, event);
     });
@@ -1956,7 +1956,7 @@ describe('destination', () => {
           events: [expect.objectContaining({ event_type: 'delayed_event' })],
           instant_events: [],
         }),
-        true,
+        false,
       );
       expectSuccess(regularCallback, regularContext.event);
       expectSuccess(delayedCallback, delayedContext.event);
@@ -1991,7 +1991,7 @@ describe('destination', () => {
           ],
           instant_events: [],
         }),
-        true,
+        false,
       );
       expect(transportProvider.send).toHaveBeenNthCalledWith(
         2,
@@ -2006,7 +2006,7 @@ describe('destination', () => {
           ],
           instant_events: [],
         }),
-        true,
+        false,
       );
       expectSuccess(callbackA, delayedContextA.event);
       expectSuccess(callbackB, delayedContextB.event);

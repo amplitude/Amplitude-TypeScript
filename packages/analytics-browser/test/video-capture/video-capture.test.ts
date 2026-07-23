@@ -71,6 +71,7 @@ describe('VideoCapture', () => {
         {
           delay: { id: expect.any(String) },
           insert_id: expect.any(String),
+          time: expect.any(Number),
         },
       );
       expect(mockAmplitude.track).toHaveBeenNthCalledWith(
@@ -90,6 +91,7 @@ describe('VideoCapture', () => {
         {
           delay: { id: expect.any(String), timeout: 3_600_000 },
           insert_id: expect.any(String),
+          time: expect.any(Number),
         },
       );
 
@@ -115,6 +117,7 @@ describe('VideoCapture', () => {
         {
           delay: { id: expect.any(String) },
           insert_id: expect.any(String),
+          time: expect.any(Number),
         },
       );
       expect(mockAmplitude.track).toHaveBeenCalledTimes(3);
@@ -195,6 +198,7 @@ describe('VideoCapture', () => {
         {
           delay: { id: expect.any(String) },
           insert_id: expect.any(String),
+          time: expect.any(Number),
         },
       );
       currentVideoObserver!.emitStateChange(
@@ -220,6 +224,7 @@ describe('VideoCapture', () => {
         {
           delay: { id: expect.any(String) },
           insert_id: expect.any(String),
+          time: expect.any(Number),
         },
       );
       typeof stopVideoCapture === 'function' && stopVideoCapture();
@@ -255,6 +260,7 @@ describe('VideoCapture', () => {
         {
           delay: { id: expect.any(String) },
           insert_id: expect.any(String),
+          time: expect.any(Number),
         },
       );
       currentVideoObserver!.emitStateChange(
@@ -278,6 +284,7 @@ describe('VideoCapture', () => {
         {
           delay: { id: expect.any(String) },
           insert_id: expect.any(String),
+          time: expect.any(Number),
         },
       );
       typeof stopVideoCapture === 'function' && stopVideoCapture();
