@@ -321,21 +321,6 @@ importers:
         specifier: ^13.2.4
         version: 13.5.6
 
-  packages/analytics-client-common:
-    dependencies:
-      '@amplitude/analytics-connector':
-        specifier: ^1.4.8
-        version: 1.6.4
-      '@amplitude/analytics-core':
-        specifier: workspace:*
-        version: link:../analytics-core
-      '@amplitude/analytics-types':
-        specifier: workspace:*
-        version: link:../analytics-types
-      tslib:
-        specifier: ^2.4.1
-        version: 2.8.1
-
   packages/analytics-core:
     dependencies:
       '@amplitude/analytics-connector':
@@ -780,9 +765,6 @@ importers:
 
   packages/plugin-session-replay-browser:
     dependencies:
-      '@amplitude/analytics-client-common':
-        specifier: workspace:*
-        version: link:../analytics-client-common
       '@amplitude/analytics-core':
         specifier: workspace:*
         version: link:../analytics-core
@@ -906,9 +888,6 @@ importers:
 
   packages/plugin-web-attribution-browser:
     dependencies:
-      '@amplitude/analytics-client-common':
-        specifier: workspace:*
-        version: link:../analytics-client-common
       '@amplitude/analytics-core':
         specifier: workspace:*
         version: link:../analytics-core
@@ -1035,9 +1014,6 @@ importers:
 
   packages/session-replay-browser:
     dependencies:
-      '@amplitude/analytics-client-common':
-        specifier: workspace:*
-        version: link:../analytics-client-common
       '@amplitude/analytics-core':
         specifier: workspace:*
         version: link:../analytics-core
@@ -1139,9 +1115,6 @@ importers:
 
   packages/targeting:
     dependencies:
-      '@amplitude/analytics-client-common':
-        specifier: workspace:*
-        version: link:../analytics-client-common
       '@amplitude/analytics-core':
         specifier: workspace:*
         version: link:../analytics-core
