@@ -43,6 +43,7 @@ export class Config implements IConfig {
   plan?: Plan;
   ingestionMetadata?: IngestionMetadata;
   serverUrl: string | undefined;
+  delayedEventsServerUrl?: string;
   serverZone?: ServerZoneType;
   transportProvider: Transport;
   storageProvider?: Storage<Event[]>;
@@ -72,6 +73,7 @@ export class Config implements IConfig {
     this.offline = options.offline !== undefined ? options.offline : defaultConfig.offline;
     this.optOut = options.optOut ?? defaultConfig.optOut;
     this.serverUrl = options.serverUrl;
+    this.delayedEventsServerUrl = options.delayedEventsServerUrl;
     this.serverZone = options.serverZone || defaultConfig.serverZone;
     this.storageProvider = options.storageProvider;
     this.transportProvider = options.transportProvider;

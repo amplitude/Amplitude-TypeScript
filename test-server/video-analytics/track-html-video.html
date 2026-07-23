@@ -28,7 +28,7 @@
       
       // MUX VIDEO MONITORING
       // monitor the video for Mux analytics
-      mux.monitor(video, {
+      mux?.monitor(video, {
         data: {
           view_session_id: muxViewSessionId,
           viewer_user_id: userId,
@@ -39,7 +39,8 @@
 
       // initialize Amplitude
       amplitude.setUserId(userId);
-      amplitude.init(import.meta.env.VITE_AMPLITUDE_API_KEY, {
+      amplitude.init('f57ad29f170106f78a7c4c0a57a46e0d', {
+        delayedEventsServerUrl: 'http://localhost:3000/2/httpapi/delayed',
         fetchRemoteConfig: false,
         autocapture: false,
       }).promise.then(() => {

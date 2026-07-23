@@ -87,6 +87,7 @@ export class BrowserConfig extends Config implements IBrowserConfig {
     public partnerId?: string,
     public plan?: Plan,
     public serverUrl: string = '',
+    public delayedEventsServerUrl?: string,
     public serverZone: ServerZoneType = DEFAULT_SERVER_ZONE,
     sessionId?: number,
     deferredSessionId?: number,
@@ -398,6 +399,7 @@ export const useBrowserConfig = async (
     options.partnerId,
     options.plan,
     options.serverUrl,
+    options.delayedEventsServerUrl,
     // Use earlyConfig.serverZone to ensure consistent serverZone
     earlyConfig?.serverZone ?? options.serverZone,
     sessionId,

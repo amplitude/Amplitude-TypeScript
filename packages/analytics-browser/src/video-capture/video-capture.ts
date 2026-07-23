@@ -5,18 +5,23 @@ import {
   EmbeddedVideoPlayer,
   VideoVendor,
   UUID,
+  BaseEvent,
+  getHeartbeatInstance,
 } from '@amplitude/analytics-core';
-
 export class VideoCapture {
   private videoEl: HTMLVideoElement | null = null;
+  private heartbeat: ReturnType<typeof getHeartbeatInstance>;
   private embeddedVideoPlayer: EmbeddedVideoPlayer | null = null;
   private vendor?: VideoVendor;
   private extraEventProperties: Record<string, string | number | boolean> = {};
-
+  private stopEvent: BaseEvent | null = null;
   private listeners: ((previousState: VideoState, nextState: VideoState) => void)[] = [];
   private onRemoveListeners: (() => void)[] = [];
+  private playId: string | null = null;
 
-  constructor(private readonly amplitude: BrowserClient) {}
+  constructor(private readonly amplitude: BrowserClient) {
+    this.heartbeat = getHeartbeatInstance(this.amplitude);
+  }
 
   /**
    * Specify a video element to capture events from
@@ -68,11 +73,32 @@ export class VideoCapture {
   captureVideoStarted(): VideoCapture {
     this.listeners.push((previousState, nextState) => {
       if (previousState.playbackState !== 'playing' && nextState.playbackState === 'playing') {
-        // TODO: placeholder for Heartbeat Start Event
-        this.amplitude.track('Video Content Started', {
-          ...nextState.lastEvent,
-          ...this.extraEventProperties,
-        });
+        this.playId = UUID();
+        const now = new Date().getTime();
+        const startEvent: BaseEvent = {
+          insert_id: UUID(),
+          event_type: 'Video Content Started',
+          time: now,
+          event_properties: {
+            ...this.parseStartEventProperties(nextState),
+            ...this.extraEventProperties,
+            play_id: this.playId,
+          },
+        };
+        this.stopEvent = {
+          ...startEvent,
+          insert_id: UUID(),
+          event_type: 'Video Content Stopped',
+          time: now,
+          event_properties: {
+            ...this.parseStopEventProperties(nextState),
+            ...this.extraEventProperties,
+            stop_reason: 'timeout',
+            play_id: this.playId,
+          },
+        };
+        this.heartbeat.trackNoDelay(startEvent).catch(this.stop.bind(this));
+        this.heartbeat.track(this.stopEvent).catch(this.stop.bind(this));
       }
     });
     return this;
@@ -84,13 +110,22 @@ export class VideoCapture {
    */
   captureVideoStopped(): VideoCapture {
     this.listeners.push((previousState, nextState) => {
-      if (previousState.playbackState === 'playing' && nextState.playbackState !== 'playing') {
-        // placeholder for Heartbeat Stop Event
-        this.amplitude.track('Video Content Stopped', {
-          ...nextState.lastEvent,
-          watch_duration: nextState.watchTime,
+      // update the delayed event properties to have
+      // the most up-to-date values
+      if (this.stopEvent) {
+        this.stopEvent.event_properties = {
+          ...this.stopEvent.event_properties,
+          ...this.parseStopEventProperties(nextState),
           ...this.extraEventProperties,
-        });
+        };
+        this.stopEvent.time = new Date().getTime();
+      }
+      if (previousState.playbackState === 'playing' && nextState.playbackState !== 'playing' && this.stopEvent) {
+        this.stopEvent.event_properties = {
+          ...this.stopEvent.event_properties,
+          stop_reason: nextState.playbackState,
+        };
+        this.heartbeat.trackNoDelay(this.stopEvent).catch(this.stop.bind(this));
       }
     });
     return this;
@@ -135,6 +170,23 @@ export class VideoCapture {
   stop() {
     this.onRemoveListeners.forEach((listener) => listener());
     this.onRemoveListeners = [];
+    this.heartbeat.stop();
+  }
+
+  parseStartEventProperties(nextState: VideoState): Record<string, string | number | boolean> {
+    return {
+      duration: nextState.lastEvent?.duration ?? 0,
+      start_time: nextState.lastEvent?.start_time ?? 0,
+      position: nextState.position ?? 0,
+    };
+  }
+
+  parseStopEventProperties(nextState: VideoState): Record<string, string | number | boolean> {
+    return {
+      ...this.parseStartEventProperties(nextState),
+      watch_duration: nextState.watchTime ?? 0,
+      percent_completed: ((nextState.position ?? 0) / (nextState.lastEvent?.duration ?? 0)) * 100,
+    };
   }
 }
 

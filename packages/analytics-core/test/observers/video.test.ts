@@ -224,5 +224,40 @@ describe('VideoObserver', () => {
         );
       });
     });
+
+    describe('playing to waiting state', () => {
+      beforeEach(() => {
+        jest.useFakeTimers();
+        onStateChange.mockClear();
+      });
+
+      afterEach(() => {
+        jest.useRealTimers();
+      });
+
+      it('should transition to waiting state if the playhead is not moving for 1s', () => {
+        internalHandler.onPlay({ duration: 10, last_position: 5 });
+        jest.advanceTimersByTime(500);
+        expect(onStateChange).not.toHaveBeenCalledWith(
+          expect.objectContaining({ playbackState: 'playing', position: 5 }),
+          expect.objectContaining({ playbackState: 'waiting', position: 5 }),
+        );
+        jest.advanceTimersByTime(500);
+        expect(onStateChange).toHaveBeenCalledWith(
+          expect.objectContaining({ playbackState: 'playing', position: 5 }),
+          expect.objectContaining({ playbackState: 'waiting', position: 5 }),
+        );
+      });
+
+      it('should transition from waiting to playing if the playhead starts moving', () => {
+        internalHandler.onPlay({ duration: 10, last_position: 5 });
+        jest.advanceTimersByTime(1000);
+        internalHandler.onTimeUpdate({ position: 6, isSeeking: false });
+        expect(onStateChange).toHaveBeenCalledWith(
+          expect.objectContaining({ playbackState: 'waiting', position: 5 }),
+          expect.objectContaining({ playbackState: 'playing', position: 6 }),
+        );
+      });
+    });
   });
 });

@@ -157,8 +157,16 @@ describe('config', () => {
         },
         topLevelDomain: '.amplitude.com',
         enableRequestBodyCompression: false,
+        delayedEventsServerUrl: undefined,
       });
       expect(getTopLevelDomain).toHaveBeenCalledTimes(1);
+    });
+
+    test('should pass delayedEventsServerUrl through', async () => {
+      jest.spyOn(Config, 'getTopLevelDomain').mockResolvedValueOnce('.amplitude.com');
+      const delayedEventsServerUrl = 'https://example.com/2/httpapi/delayed';
+      const config = await Config.useBrowserConfig(apiKey, { delayedEventsServerUrl }, new AmplitudeBrowser());
+      expect(config.delayedEventsServerUrl).toBe(delayedEventsServerUrl);
     });
 
     test('should fall back to memoryStorage when storageProvider is not enabled', async () => {
@@ -285,6 +293,7 @@ describe('config', () => {
           },
           topLevelDomain: 'amplitude.com',
           enableRequestBodyCompression: false,
+          delayedEventsServerUrl: undefined,
         });
       });
     });

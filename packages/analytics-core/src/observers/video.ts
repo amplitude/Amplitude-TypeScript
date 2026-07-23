@@ -10,7 +10,7 @@ import type {
 
 export type { Vendor };
 
-type PlaybackState = 'playing' | 'paused' | 'ended' | 'error' | 'seeking';
+type PlaybackState = 'playing' | 'paused' | 'ended' | 'error' | 'seeking' | 'waiting';
 
 export type State = {
   playbackState: PlaybackState;
@@ -33,6 +33,7 @@ export class VideoObserver {
     playbackState: 'paused',
   };
 
+  private waitingInterval: ReturnType<typeof setTimeout> | null = null;
   private untrack: () => void;
   private onStateChange: (previousState: State, nextState: State) => void;
   private handler: VideoHandler = {
@@ -103,11 +104,29 @@ export class VideoObserver {
       position: event.last_position,
     };
     this.updateState(nextState);
+
+    if (playbackState === 'playing') {
+      // if it's in a playing state, but the playhead is not moving,
+      // then transition playback from 'playing' to 'waiting'
+      // (the "waiting" listener isn't reliable, so this is a fallback)
+      this.waitingInterval && clearInterval(this.waitingInterval);
+      let prevPosition: number | null | undefined = this.state.position;
+      this.waitingInterval = setInterval(() => {
+        if (typeof prevPosition === 'number' && prevPosition === this.state.position) {
+          this.updatePlaybackState('waiting', event);
+        }
+        prevPosition = this.state.position;
+      }, 1_000);
+    } else {
+      this.waitingInterval && clearInterval(this.waitingInterval);
+    }
   }
 
   private updateTime(event: TimeUpdateEvent) {
     const lastVideoEvent = this.state.lastEvent;
-    if (!lastVideoEvent || this.state.playbackState !== 'playing') {
+    const isWaiting = this.state.playbackState === 'waiting';
+    const isPlaying = this.state.playbackState === 'playing';
+    if (!lastVideoEvent || (!isPlaying && !isWaiting)) {
       return;
     }
     const isSeeking = event.isSeeking || this.state.isSeeking;
@@ -123,6 +142,7 @@ export class VideoObserver {
     const timeDelta = nextPosition - lastPosition;
     const nextState: State = {
       ...this.state,
+      playbackState: 'playing',
       position: nextPosition,
       watchTime: (this.state.watchTime ?? 0) + timeDelta,
     };

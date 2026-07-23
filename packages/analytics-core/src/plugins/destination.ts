@@ -151,6 +151,7 @@ export class Destination implements DestinationPlugin {
     if (!incomingEvent.delay?.id) {
       return;
     }
+    console.log('---queue', this.queue);
     /* istanbul ignore next */
     this.queue = this.queue.filter((context) => {
       if (
@@ -333,14 +334,14 @@ export class Destination implements DestinationPlugin {
 
     try {
       let { serverUrl } = createServerConfig(this.config.serverUrl, this.config.serverZone, this.config.useBatch);
-      const shouldCompressUploadBody = shouldCompressUploadBodyForRequest(
+      let shouldCompressUploadBody = shouldCompressUploadBodyForRequest(
         serverUrl,
         this.config.enableRequestBodyCompression,
       );
       if (delay) {
-        serverUrl = `${serverUrl}/delayed`;
+        serverUrl = this.config.delayedEventsServerUrl || `${serverUrl}/delayed`;
         payload = this.translatePayloadToDelayedPayload(payload, list);
-        // TODO: if /delayed can't handle compression, then turn it off here
+        shouldCompressUploadBody = false; // delayed events doesn't support compression
       }
       const res = await this.config.transportProvider.send(serverUrl, payload, shouldCompressUploadBody);
       if (res === null) {
