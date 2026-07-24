@@ -61,3 +61,7 @@ jobs:
       - name: Lint all packages
         run: |
           pnpm lint
+
+      - name: Check for unused dependencies
+        run: |
+          pnpm lint:deps
