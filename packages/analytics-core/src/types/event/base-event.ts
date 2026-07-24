@@ -4,6 +4,9 @@ import { IngestionMetadataEventProperty } from './ingestion-metadata';
 export interface Delay {
   id: string;
   timeout?: number;
+  // indicates that this event was updated while in flight,
+  // so do not clean-up after it was sent
+  isFresh?: true;
 }
 
 export interface BaseEvent extends EventOptions {
