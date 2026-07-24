@@ -1,0 +1,34 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`@amplitude/babel-plugin-autocapture-transformer edge cases handles namespaced JSX attribute names 1`] = `
+"import { ampCapture } from "@amplitude/analytics-react-native";
+function Home() {
+  return <Button xml:lang="en" onPress={ampCapture(fn, {
+    event: "Press",
+    element: "Button",
+    component: "Home"
+  })} title="Go" />;
+}"
+`;
+
+exports[`@amplitude/babel-plugin-autocapture-transformer edge cases skips empty press handlers while wrapping valid handlers on the same element 1`] = `
+"import { ampCapture } from "@amplitude/analytics-react-native";
+function Home() {
+  return <Button onPress={} onLongPress={ampCapture(fn2, {
+    event: "LongPress",
+    element: "Button",
+    component: "Home"
+  })} accessibilityLabel={} testID=<span /> title="Go" />;
+}"
+`;
+
+exports[`@amplitude/babel-plugin-autocapture-transformer edge cases skips non-expression press handlers during transformation 1`] = `
+"import { ampCapture } from "@amplitude/analytics-react-native";
+function Home() {
+  return <Button onPress={ampCapture(onPress, {
+    event: "Press",
+    element: "Button",
+    component: "Home"
+  })} onLongPress="handler" title="Go" />;
+}"
+`;
