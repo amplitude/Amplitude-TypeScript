@@ -25,5 +25,5 @@ These steps must pass before you submit your PR.
 ## Pull Request Requirements
 
 - PR titles must follow the [conventional commit](https://www.conventionalcommits.org/ ) format and, when possible, include the affected module name. Examples: `feat(browser): add feature` or `fix(plugin): correct bug`.
-- The CI matrix runs on Node.js `18.17.x`, `20.x`, and `22.x`. Ensure your code is compatible with these versions.
+- The CI matrix runs on Node.js `20.x`, `22.x`, and `24.x`. Ensure your code is compatible with these versions. Node 18 is no longer supported: `lerna`, which backs `pnpm build`/`test`/`lint`, requires `^20.19.0 || ^22.12.0 || >=24.0.0`.
 
