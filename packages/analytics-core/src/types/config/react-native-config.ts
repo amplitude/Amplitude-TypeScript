@@ -6,14 +6,6 @@ import { NetworkTrackingOptions } from '../network-tracking';
 import { IRemoteConfigClient } from '../../remote-config/remote-config';
 
 type HiddenOptions = 'apiKey' | 'lastEventId' | 'persistedAppVersion' | 'persistedAppBuild';
-export type AutocaptureOptionsReactNative = {
-  sessions?: boolean;
-  screenViews?: boolean;
-  appState?: boolean;
-  elementInteractions?: boolean;
-  networkTracking?: boolean | NetworkTrackingOptions;
-};
-
 
 /** @experimental This config is experimental pending GA of React Native autocapture. */
 export interface ReactNativeAutocaptureOptions {
