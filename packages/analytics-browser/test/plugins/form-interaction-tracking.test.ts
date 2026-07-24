@@ -541,4 +541,51 @@ describe('formInteractionTracking', () => {
       });
     });
   });
+
+  describe('shouldTrackAbandoned', () => {
+    beforeEach(async () => {
+      const config = createConfigurationMock({
+        defaultTracking: {
+          formInteractions: {
+            shouldTrackAbandoned: true,
+          },
+        },
+      });
+      const plugin = formInteractionTracking();
+      await plugin.setup?.(config, amplitude);
+      window.dispatchEvent(new Event('load'));
+    });
+
+    test('should track form abandoned when form started then abandoned (pagehide)', async () => {
+      document.getElementById('my-form-id')?.dispatchEvent(new Event('change'));
+      window.dispatchEvent(new Event('pagehide'));
+      expect(amplitude.track).toHaveBeenNthCalledWith(2, '[Amplitude] Form Abandoned', {
+        [FORM_ID]: 'my-form-id',
+        [FORM_NAME]: 'my-form-name',
+        [FORM_DESTINATION]: 'http://localhost/submit',
+      });
+    });
+
+    test('should track form abandoned when form started then abandoned (beforeunload)', async () => {
+      document.getElementById('my-form-id')?.dispatchEvent(new Event('change'));
+      window.dispatchEvent(new Event('beforeunload'));
+      expect(amplitude.track).toHaveBeenNthCalledWith(2, '[Amplitude] Form Abandoned', {
+        [FORM_ID]: 'my-form-id',
+        [FORM_NAME]: 'my-form-name',
+        [FORM_DESTINATION]: 'http://localhost/submit',
+      });
+    });
+
+    test('should track form abandoned when form started then abandoned (multiple times)', async () => {
+      document.getElementById('my-form-id')?.dispatchEvent(new Event('change'));
+      window.dispatchEvent(new Event('beforeunload'));
+      window.dispatchEvent(new Event('pagehide'));
+      expect(amplitude.track).toHaveBeenCalledTimes(2);
+    });
+
+    test('should not track form abandoned when form is not started', async () => {
+      window.dispatchEvent(new Event('pagehide'));
+      expect(amplitude.track).not.toHaveBeenCalled();
+    });
+  });
 });
