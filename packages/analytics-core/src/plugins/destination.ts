@@ -28,6 +28,7 @@ import { buildResult } from '../utils/result-builder';
 import { createServerConfig, RequestMetadata } from '../config';
 import { UUID } from '../utils/uuid';
 import { IConfig } from '../types/config/core-config';
+import { OfflineDisabled } from '../types/offline';
 import { EventCallback } from '../types/event-callback';
 import { IDiagnosticsClient } from '../diagnostics/diagnostics-client';
 import { isSuccessStatusCode } from '../utils/status-code';
@@ -46,6 +47,11 @@ const DEFAULT_AMPLITUDE_SERVER_URLS = new Set([
   AMPLITUDE_BATCH_SERVER_URL,
   EU_AMPLITUDE_BATCH_SERVER_URL,
 ]);
+
+// Upper bound for the offline auto-recovery backoff, in milliseconds. Mirrors the
+// mobile SDKs' MAX_RETRY_INTERVAL (60s) so a prolonged outage settles into a steady
+// one-attempt-per-minute retry rather than backing off unboundedly.
+export const MAX_OFFLINE_BACKOFF_INTERVAL = 60000;
 
 const shouldCompressUploadBodyForRequest = (serverUrl: string, enableRequestBodyCompression = false) => {
   if (DEFAULT_AMPLITUDE_SERVER_URLS.has(serverUrl)) {
@@ -95,6 +101,12 @@ export class Destination implements DestinationPlugin {
   flushId: ReturnType<typeof setTimeout> | null = null;
   queue: Context[] = [];
   diagnosticsClient: IDiagnosticsClient | undefined;
+  // Timer that brings the SDK back online after it went offline due to exhausting
+  // the retry budget against an unreachable server. Null when no recovery is pending.
+  offlineRetryTimeout: ReturnType<typeof setTimeout> | null = null;
+  // Consecutive offline auto-recovery attempts; drives the exponential backoff.
+  // Reset to 0 on the first successful upload.
+  offlineRetryAttempts = 0;
 
   constructor(context?: { diagnosticsClient: IDiagnosticsClient }) {
     this.diagnosticsClient = context?.diagnosticsClient;
@@ -131,15 +143,35 @@ export class Destination implements DestinationPlugin {
     });
   }
 
-  removeEventsExceedFlushMaxRetries(list: Context[]) {
-    return list.filter((context) => {
+  // Increment each event's attempt counter and split the list into events that
+  // still have retries left (`tryable`) and events that have exhausted the budget
+  // (`exceeded`). Callers decide what to do with the exceeded events (drop them, or
+  // retain them and go offline).
+  partitionByRetryBudget(list: Context[]): { tryable: Context[]; exceeded: Context[] } {
+    const tryable: Context[] = [];
+    const exceeded: Context[] = [];
+    list.forEach((context) => {
       context.attempts += 1;
       if (context.attempts < this.config.flushMaxRetries) {
-        return true;
+        tryable.push(context);
+      } else {
+        exceeded.push(context);
       }
-      void this.fulfillRequest([context], 500, MAX_RETRIES_EXCEEDED_MESSAGE);
-      return false;
     });
+    return { tryable, exceeded };
+  }
+
+  removeEventsExceedFlushMaxRetries(list: Context[]) {
+    const { tryable, exceeded } = this.partitionByRetryBudget(list);
+    exceeded.forEach((context) => void this.fulfillRequest([context], 500, MAX_RETRIES_EXCEEDED_MESSAGE));
+    return tryable;
+  }
+
+  // Whether the offline feature is active. When explicitly disabled (OfflineDisabled),
+  // transient failures fall back to the legacy behavior of dropping events after the
+  // retry budget is exhausted.
+  isOfflineEnabled(): boolean {
+    return this.config.offline !== OfflineDisabled;
   }
 
   scheduleEvents(list: Context[]) {
@@ -310,6 +342,9 @@ export class Destination implements DestinationPlugin {
   }
 
   handleSuccessResponse(res: SuccessResponse, list: Context[]) {
+    // A successful upload means the server is reachable again; clear any pending
+    // offline recovery and reset the backoff.
+    this.resetOfflineRetry();
     this.fulfillRequest(list, res.statusCode, SUCCESS_MESSAGE);
   }
 
@@ -396,8 +431,76 @@ export class Destination implements DestinationPlugin {
       return context;
     });
 
+    // Transient failures (5xx / network errors / timeouts) should never drop events.
+    // When the offline feature is enabled, mirror the mobile SDKs: once the retry
+    // budget is exhausted, retain the events and go offline instead of dropping them,
+    // then auto-recover on a backoff (see enterOfflineMode). When the offline feature
+    // is disabled, fall back to the legacy drop-after-max-retries behavior.
+    if (this.isOfflineEnabled()) {
+      const { tryable, exceeded } = this.partitionByRetryBudget(later);
+      if (exceeded.length > 0) {
+        this.enterOfflineMode(exceeded);
+      }
+      this.scheduleEvents(tryable);
+      return;
+    }
+
     const tryable = this.removeEventsExceedFlushMaxRetries(later);
     this.scheduleEvents(tryable);
+  }
+
+  // Called when transient failures exhaust the retry budget. Retains the events (they
+  // stay in the queue and on storage), flips the SDK offline, and schedules an
+  // automatic recovery. Unlike the connectivity checker — which only comes back online
+  // on a real `navigator`/NetInfo network transition — this recovery is time-based, so
+  // a server-only outage (where the device network never drops) does not leave the SDK
+  // stuck offline until the page reloads.
+  enterOfflineMode(retained: Context[]) {
+    // Give the retained events a fresh retry budget so the next online window can try
+    // them again rather than immediately re-exhausting the limit.
+    retained.forEach((context) => {
+      context.attempts = 0;
+      context.timeout = 0;
+    });
+    this.config.offline = true;
+    this.config.loggerProvider.warn(
+      `Upload failed after ${this.config.flushMaxRetries} retries; going offline and retaining ${retained.length} event(s) for retry.`,
+    );
+    this.scheduleOfflineRetry();
+  }
+
+  // Schedule a single recovery attempt with capped exponential backoff. On fire, the
+  // SDK comes back online and flushes the retained queue. If the server is still
+  // unreachable, handleOtherResponse re-enters offline mode with a larger backoff, so
+  // the SDK keeps retrying indefinitely (until delivery or storage exhaustion).
+  scheduleOfflineRetry() {
+    // A recovery is already pending; don't stack timers.
+    if (this.offlineRetryTimeout) {
+      return;
+    }
+    const backoff = Math.min(MAX_OFFLINE_BACKOFF_INTERVAL, this.retryTimeout * Math.pow(2, this.offlineRetryAttempts));
+    this.config.loggerProvider.debug(`Scheduling offline retry in ${backoff}ms.`);
+    this.offlineRetryTimeout = setTimeout(() => {
+      this.offlineRetryTimeout = null;
+      this.offlineRetryAttempts += 1;
+      // Don't override an explicitly-disabled offline feature.
+      if (this.config.offline !== OfflineDisabled) {
+        this.config.offline = false;
+      }
+      // Flush everything that is queued, regardless of per-event timeout.
+      this.queue.forEach((context) => (context.timeout = 0));
+      void this.flush(true);
+    }, backoff);
+  }
+
+  // Clear any pending recovery timer and reset the backoff. Called once the server is
+  // reachable again (a successful upload).
+  resetOfflineRetry() {
+    this.offlineRetryAttempts = 0;
+    if (this.offlineRetryTimeout) {
+      clearTimeout(this.offlineRetryTimeout);
+      this.offlineRetryTimeout = null;
+    }
   }
 
   fulfillRequest(list: Context[], code: number, message: string) {

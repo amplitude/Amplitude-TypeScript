@@ -1,5 +1,11 @@
-import { Destination, getResponseBodyString, Context } from '../../src/plugins/destination';
+import {
+  Destination,
+  getResponseBodyString,
+  Context,
+  MAX_OFFLINE_BACKOFF_INTERVAL,
+} from '../../src/plugins/destination';
 import { IConfig } from '../../src/types/config/core-config';
+import { OfflineDisabled } from '../../src/types/offline';
 import { ILogger } from '../../src/logger';
 import { Payload } from '../../src/types/payload';
 import { Status } from '../../src/types/status';
@@ -7,6 +13,7 @@ import { Response } from '../../src/types/response';
 import { API_KEY, useDefaultConfig } from '../helpers/default';
 import {
   INVALID_API_KEY,
+  MAX_RETRIES_EXCEEDED_MESSAGE,
   MISSING_API_KEY_MESSAGE,
   SUCCESS_MESSAGE,
   UNEXPECTED_ERROR_MESSAGE,
@@ -145,6 +152,167 @@ describe('destination', () => {
       expect(fulfillRequest).toHaveBeenCalledTimes(2);
       expect(result.length).toBe(1);
       expect(result[0].event.event_type).toBe('event_3');
+    });
+  });
+
+  describe('offline on max retries (SDKW-42)', () => {
+    beforeEach(() => {
+      jest.useFakeTimers();
+    });
+
+    afterEach(() => {
+      jest.clearAllTimers();
+      jest.useRealTimers();
+    });
+
+    test('partitionByRetryBudget increments attempts and splits by budget', () => {
+      const destination = new Destination();
+      destination.config = { ...useDefaultConfig(), flushMaxRetries: 3 };
+      const list: Context[] = [
+        { event: { event_type: 'a' }, attempts: 2, callback: () => undefined, timeout: 0 },
+        { event: { event_type: 'b' }, attempts: 0, callback: () => undefined, timeout: 0 },
+      ];
+      const { tryable, exceeded } = destination.partitionByRetryBudget(list);
+      expect(exceeded.map((c) => c.event.event_type)).toEqual(['a']);
+      expect(tryable.map((c) => c.event.event_type)).toEqual(['b']);
+      expect(list[0].attempts).toBe(3);
+      expect(list[1].attempts).toBe(1);
+    });
+
+    test('retains events and goes offline instead of dropping once retries are exhausted', () => {
+      const destination = new Destination();
+      destination.config = { ...useDefaultConfig(), flushMaxRetries: 1, offline: false };
+      const fulfillRequest = jest.spyOn(destination, 'fulfillRequest').mockImplementation(jest.fn);
+      const context: Context = { event: { event_type: 'a' }, attempts: 0, callback: () => undefined, timeout: 0 };
+      destination.queue = [context];
+
+      destination.handleOtherResponse([context]);
+
+      // Event is retained, not dropped.
+      expect(fulfillRequest).not.toHaveBeenCalled();
+      expect(destination.queue).toContain(context);
+      // SDK went offline and scheduled an auto-recovery.
+      expect(destination.config.offline).toBe(true);
+      expect(destination.offlineRetryTimeout).not.toBeNull();
+      // Retained event gets a fresh retry budget for the next online window.
+      expect(context.attempts).toBe(0);
+      expect(context.timeout).toBe(0);
+    });
+
+    test('falls back to dropping after max retries when the offline feature is disabled', () => {
+      const destination = new Destination();
+      destination.config = { ...useDefaultConfig(), flushMaxRetries: 1, offline: OfflineDisabled };
+      const fulfillRequest = jest.spyOn(destination, 'fulfillRequest').mockImplementation(jest.fn);
+      const context: Context = { event: { event_type: 'a' }, attempts: 0, callback: () => undefined, timeout: 0 };
+      destination.queue = [context];
+
+      destination.handleOtherResponse([context]);
+
+      expect(fulfillRequest).toHaveBeenCalledWith([context], 500, MAX_RETRIES_EXCEEDED_MESSAGE);
+      expect(destination.config.offline).toBe(OfflineDisabled);
+      expect(destination.offlineRetryTimeout).toBeNull();
+    });
+
+    test('recovery uses exponential backoff, comes back online, and flushes', () => {
+      const destination = new Destination();
+      destination.config = { ...useDefaultConfig(), offline: true };
+      const flush = jest.spyOn(destination, 'flush').mockResolvedValue(undefined);
+
+      // attempt 0 -> retryTimeout * 2^0 = 1000ms
+      destination.offlineRetryAttempts = 0;
+      destination.scheduleOfflineRetry();
+      expect(destination.offlineRetryTimeout).not.toBeNull();
+
+      jest.advanceTimersByTime(999);
+      expect(flush).not.toHaveBeenCalled();
+      jest.advanceTimersByTime(1);
+
+      expect(destination.config.offline).toBe(false);
+      expect(flush).toHaveBeenCalledTimes(1);
+      expect(destination.offlineRetryAttempts).toBe(1);
+      expect(destination.offlineRetryTimeout).toBeNull();
+    });
+
+    test('caps the recovery backoff at MAX_OFFLINE_BACKOFF_INTERVAL', () => {
+      const destination = new Destination();
+      destination.config = { ...useDefaultConfig(), offline: true };
+      const flush = jest.spyOn(destination, 'flush').mockResolvedValue(undefined);
+      destination.offlineRetryAttempts = 100; // 2^100 would be astronomically large
+
+      destination.scheduleOfflineRetry();
+      jest.advanceTimersByTime(MAX_OFFLINE_BACKOFF_INTERVAL - 1);
+      expect(flush).not.toHaveBeenCalled();
+      jest.advanceTimersByTime(1);
+      expect(flush).toHaveBeenCalledTimes(1);
+    });
+
+    test('does not override an explicitly disabled offline feature during recovery', () => {
+      const destination = new Destination();
+      destination.config = { ...useDefaultConfig(), offline: OfflineDisabled };
+      jest.spyOn(destination, 'flush').mockResolvedValue(undefined);
+
+      destination.scheduleOfflineRetry();
+      jest.runOnlyPendingTimers();
+
+      expect(destination.config.offline).toBe(OfflineDisabled);
+    });
+
+    test('scheduleOfflineRetry does not stack timers', () => {
+      const destination = new Destination();
+      destination.config = { ...useDefaultConfig(), offline: true };
+      jest.spyOn(destination, 'flush').mockResolvedValue(undefined);
+
+      destination.scheduleOfflineRetry();
+      const first = destination.offlineRetryTimeout;
+      destination.scheduleOfflineRetry();
+      expect(destination.offlineRetryTimeout).toBe(first);
+    });
+
+    test('resetOfflineRetry clears the pending timer and backoff', () => {
+      const destination = new Destination();
+      destination.config = { ...useDefaultConfig() };
+      destination.offlineRetryAttempts = 3;
+      destination.offlineRetryTimeout = setTimeout(() => undefined, 10000);
+
+      destination.resetOfflineRetry();
+
+      expect(destination.offlineRetryAttempts).toBe(0);
+      expect(destination.offlineRetryTimeout).toBeNull();
+    });
+
+    test('a successful upload resets the offline recovery', () => {
+      const destination = new Destination();
+      destination.config = { ...useDefaultConfig() };
+      const reset = jest.spyOn(destination, 'resetOfflineRetry');
+      jest.spyOn(destination, 'fulfillRequest').mockImplementation(jest.fn);
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      destination.handleSuccessResponse({ status: Status.Success, statusCode: 200 } as any, []);
+
+      expect(reset).toHaveBeenCalledTimes(1);
+    });
+
+    test('keeps retrying without dropping across a prolonged outage', () => {
+      const destination = new Destination();
+      destination.config = { ...useDefaultConfig(), flushMaxRetries: 1, offline: false };
+      const fulfillRequest = jest.spyOn(destination, 'fulfillRequest').mockImplementation(jest.fn);
+      jest.spyOn(destination, 'flush').mockResolvedValue(undefined);
+      const context: Context = { event: { event_type: 'a' }, attempts: 0, callback: () => undefined, timeout: 0 };
+      destination.queue = [context];
+
+      for (let i = 0; i < 10; i++) {
+        // Simulate a recovery attempt that comes back online then fails again.
+        destination.config.offline = false;
+        destination.handleOtherResponse([context]);
+        expect(destination.config.offline).toBe(true);
+        expect(destination.offlineRetryTimeout).not.toBeNull();
+        jest.runOnlyPendingTimers();
+      }
+
+      // Never dropped, always retained, backoff advanced each cycle.
+      expect(fulfillRequest).not.toHaveBeenCalled();
+      expect(destination.queue).toContain(context);
+      expect(destination.offlineRetryAttempts).toBe(10);
     });
   });
 
