@@ -1,6 +1,6 @@
 import {
-  AutocaptureOptionsReactNative,
   RemoteConfig,
+  ReactNativeAutocaptureOptions,
   ReactNativeConfig,
   NetworkTrackingOptionsRemoteConfig,
   safeJsonStringify,
@@ -8,7 +8,7 @@ import {
   transformNetworkTrackingRemoteConfig,
 } from '@amplitude/analytics-core';
 
-export interface AutocaptureOptionsRemoteConfig extends AutocaptureOptionsReactNative {
+export interface AutocaptureOptionsRemoteConfig extends ReactNativeAutocaptureOptions {
   networkTracking?: boolean | NetworkTrackingOptionsRemoteConfig;
 }
 
@@ -77,7 +77,7 @@ export function updateReactNativeConfigWithRemoteConfig(
           reactNativeConfig.autocapture = {
             screenViews: reactNativeConfig.autocapture,
             sessions: reactNativeConfig.autocapture,
-            appState: reactNativeConfig.autocapture,
+            appLifecycles: reactNativeConfig.autocapture,
             elementInteractions: reactNativeConfig.autocapture,
             ...transformedAutocaptureRemoteConfig,
           };

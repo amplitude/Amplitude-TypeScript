@@ -209,14 +209,19 @@ function getBodySize(bodyUnsafe: FetchRequestBody, maxEntries: number): number |
   if (!TextEncoder) {
     return;
   }
+  // No body (e.g. GET) — return before instanceof checks against browser globals
+  // that may be missing (ReadableStream is often absent in React Native / Hermes).
+  if (bodyUnsafe == null) {
+    return;
+  }
   let bodySafe;
   if (typeof bodyUnsafe === 'string') {
     bodySafe = bodyUnsafe;
     bodySize = new TextEncoder().encode(bodySafe).length;
-  } else if (bodyUnsafe instanceof Blob) {
+  } else if (typeof Blob !== 'undefined' && bodyUnsafe instanceof Blob) {
     bodySafe = bodyUnsafe as BlobSafe;
     bodySize = bodySafe.size;
-  } else if (bodyUnsafe instanceof URLSearchParams) {
+  } else if (typeof URLSearchParams !== 'undefined' && bodyUnsafe instanceof URLSearchParams) {
     bodySafe = bodyUnsafe as URLSearchParamsSafe;
     bodySize = new TextEncoder().encode(bodySafe.toString()).length;
   } else if (ArrayBuffer.isView(bodyUnsafe)) {
@@ -225,7 +230,7 @@ function getBodySize(bodyUnsafe: FetchRequestBody, maxEntries: number): number |
   } else if (bodyUnsafe instanceof ArrayBuffer) {
     bodySafe = bodyUnsafe as ArrayBufferSafe;
     bodySize = bodySafe.byteLength;
-  } else if (bodyUnsafe instanceof FormData) {
+  } else if (typeof FormData !== 'undefined' && bodyUnsafe instanceof FormData) {
     // Estimating only for text parts; not accurate for files
     const formData = bodyUnsafe as unknown as FormDataSafe;
 
@@ -235,7 +240,7 @@ function getBodySize(bodyUnsafe: FetchRequestBody, maxEntries: number): number |
       total += key.length;
       if (typeof value === 'string') {
         total += new TextEncoder().encode(value).length;
-      } else if (value instanceof Blob) {
+      } else if (typeof Blob !== 'undefined' && value instanceof Blob) {
         total += value.size;
       } else {
         // encountered an unknown type
@@ -249,7 +254,7 @@ function getBodySize(bodyUnsafe: FetchRequestBody, maxEntries: number): number |
       }
     }
     bodySize = total;
-  } else if (bodyUnsafe instanceof ReadableStream) {
+  } else if (typeof ReadableStream !== 'undefined' && bodyUnsafe instanceof ReadableStream) {
     // If bodyUnsafe is an instanceof ReadableStream, we can't determine the size,
     // without consuming it, so we return undefined.
     // Never ever consume ReadableStream! DO NOT DO IT!!!
