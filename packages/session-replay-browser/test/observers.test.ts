@@ -158,6 +158,29 @@ describe('NetworkObservers', () => {
       expect(events[0].requestBody).toBe('{"key":"value"}');
     });
 
+    it('should apply excludelist masking to JSON request bodies', async () => {
+      const mockResponse = {
+        status: 200,
+        headers: { forEach: jest.fn() },
+      };
+      mockFetch.mockResolvedValue(mockResponse);
+      networkObservers.start(callback, {
+        enabled: true,
+        body: {
+          request: {
+            excludelist: ['/password'],
+          },
+        },
+      });
+
+      await globalScope.fetch('https://api.example.com/data', {
+        method: 'POST',
+        body: '{"username":"alice","password":"secret"}',
+      });
+
+      expect(JSON.parse(events[0].requestBody!)).toEqual({ username: 'alice' });
+    });
+
     it('should capture URLSearchParams request body', async () => {
       const mockResponse = {
         status: 200,

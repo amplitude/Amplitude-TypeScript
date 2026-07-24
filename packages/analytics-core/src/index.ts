@@ -111,6 +111,7 @@ export { Status } from './types/status';
 export { NetworkEventCallback, networkObserver } from './observers/network';
 export { NetworkRequestEvent, IRequestWrapper, JsonObject, JsonValue, JsonArray } from './network-request-event';
 export { NetworkTrackingOptions, NetworkCaptureRule, BodyCaptureRule } from './types/network-tracking';
+export { normalizeNetworkCaptureRules } from './utils/network-tracking-config';
 export { SAFE_HEADERS, FORBIDDEN_HEADERS } from './types/constants';
 
 export { PageUrlEnrichmentOptions } from './types/page-url-enrichment';
@@ -145,8 +146,6 @@ export {
 } from './types/config/browser-config';
 export { BrowserClient } from './types/client/browser-client';
 
-export { AutocaptureOptionsReactNative } from './types/config/react-native-config';
-
 // Node
 export { NodeClient } from './types/client/node-client';
 export { NodeConfig, NodeOptions } from './types/config/node-config';
@@ -154,7 +153,6 @@ export { NodeConfig, NodeOptions } from './types/config/node-config';
 // React Native
 export {
   ReactNativeConfig,
-  ReactNativeConfigAutocaptureBeta,
   ReactNativeAutocaptureOptions,
   ReactNativeTrackingOptions,
   ReactNativeOptions,
@@ -166,6 +164,7 @@ export { Observable, asyncMap, merge, multicast, Unsubscribable } from './utils/
 
 export { InstanceProxy } from './types/proxy';
 export { safeJsonStringify } from './utils/safe-stringify';
+export { pruneJson } from './utils/json-query';
 
 // Messenger (cross-window communication)
 export type { BaseWindowMessenger, ActionHandler } from './messenger/base-window-messenger';

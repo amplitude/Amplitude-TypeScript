@@ -1,4 +1,4 @@
-import { AppState, AppStateStatus, NativeEventSubscription } from 'react-native';
+import { AppState, AppStateStatus, NativeEventSubscription, NativeModules, Platform } from 'react-native';
 import {
   AmplitudeCore,
   Destination,
@@ -30,9 +30,12 @@ import {
   RemoteConfig,
   Source,
   ReactNativeAutocaptureOptions,
-  ReactNativeConfigAutocaptureBeta,
   NavigationState,
+  NetworkTrackingOptions,
+  normalizeNetworkCaptureRules,
+  safeJsonStringify,
 } from '@amplitude/analytics-core';
+import { plugin as networkCapturePlugin } from '@amplitude/plugin-network-capture-browser';
 import { CampaignTracker } from './campaign/campaign-tracker';
 import { Context } from './plugins/context';
 import { networkConnectivityCheckerPlugin } from './plugins/network-connectivity-checker';
@@ -40,13 +43,26 @@ import { useReactNativeConfig, createCookieStorage, shouldFetchRemoteConfig } fr
 import { updateReactNativeConfigWithRemoteConfig } from './config/joined-config';
 import { parseOldCookies } from './cookie-migration';
 import { isNative } from './utils/platform';
+import * as Capture from './amp-capture';
 import {
+  APP_BUILD,
+  APP_VERSION,
   DEFAULT_APPLICATION_BACKGROUNDED_EVENT,
+  DEFAULT_APPLICATION_INSTALLED_EVENT,
   DEFAULT_APPLICATION_OPENED_EVENT,
+  DEFAULT_ELEMENT_INTERACTED_EVENT,
+  DEFAULT_APPLICATION_UPDATED_EVENT,
   DEFAULT_SCREEN_VIEWED_EVENT,
   DEFAULT_SESSION_END_EVENT,
   DEFAULT_SESSION_START_EVENT,
+  PREVIOUS_BUILD,
+  PREVIOUS_VERSION,
   SCREEN_NAME,
+  TARGET_ACCESSIBILITY_LABEL,
+  TARGET_ACTION,
+  TARGET_COMPONENT,
+  TARGET_ELEMENT,
+  TARGET_TEST_ID,
 } from './constants';
 
 /**
@@ -69,7 +85,19 @@ const getActiveRouteName = (navigationState: NavigationState): string | undefine
   return routeName;
 };
 
-const IS_DIAGNOSTICS_CAPTURED = false; // TODO: Do not merge this, set it as false before merging
+// TODO: Remove IS_DIAGNOSTICS_CAPTURED when we're ready for diagnostics capture
+const IS_DIAGNOSTICS_CAPTURED = false;
+const getNetworkTrackingConfig = (config: ReactNativeConfig): NetworkTrackingOptions | undefined => {
+  let networkTrackingConfig;
+  if (typeof config.autocapture === 'object' && typeof config.autocapture.networkTracking === 'object') {
+    networkTrackingConfig = config.autocapture.networkTracking;
+  }
+  return {
+    ...networkTrackingConfig,
+    captureRules: normalizeNetworkCaptureRules(networkTrackingConfig?.captureRules, config.loggerProvider),
+  };
+};
+
 export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeClient, AnalyticsClient {
   appState: AppStateStatus = 'background';
   /**
@@ -85,12 +113,14 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
    */
   private lastNavigationScreenName: string | undefined;
   private appStateChangeHandler: NativeEventSubscription | undefined;
+  private currentScreenName: string | undefined;
   explicitSessionId: number | undefined;
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore
   config: ReactNativeConfig;
   userProperties: { [key: string]: any } | undefined;
   autocapture: ReactNativeAutocaptureOptions | null = null;
+  captureUnsubscribe: (() => void) | undefined;
 
   init(apiKey = '', userId?: string, options?: ReactNativeOptions) {
     return returnWrapper(this._init({ ...options, userId, apiKey }));
@@ -127,12 +157,12 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
       if (IS_DIAGNOSTICS_CAPTURED) {
         await new Promise<void>((resolve) => {
           remoteConfigClient?.subscribe(
-            'configs.diagnostics.browserSDK',
+            'configs.diagnostics.reactNativeSDK',
             'all',
             (remoteConfig: RemoteConfig | null, source: Source, lastFetch: Date) => {
               loggerProvider.debug(
                 'Diagnostics remote configuration received:',
-                JSON.stringify(
+                safeJsonStringify(
                   {
                     remoteConfig,
                     source,
@@ -165,8 +195,12 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
     const oldCookies = await parseOldCookies(options.apiKey, options);
 
     // Step 2: Create react native config
+    // Pass early loggerProvider/serverZone so RemoteConfigClient and final config share the same instances
+    // (mirrors browser earlyConfig).
     const reactNativeOptions = await useReactNativeConfig(options.apiKey, {
       ...options,
+      loggerProvider,
+      serverZone,
       deviceId: options.deviceId ?? oldCookies.deviceId,
       sessionId: oldCookies.sessionId,
       optOut: options.optOut ?? oldCookies.optOut,
@@ -178,12 +212,12 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
     if (fetchRemoteConfig && remoteConfigClient) {
       await new Promise<void>((resolve) => {
         remoteConfigClient?.subscribe(
-          'configs.analyticsSDK.browserSDK', // TODO: change this to ReactNativeSDK when it's ready
+          'configs.analyticsSDK.reactNativeSDK',
           'all',
           (remoteConfig: RemoteConfig | null, source: Source, lastFetch: Date) => {
             loggerProvider.debug(
               'Remote configuration received:',
-              JSON.stringify(
+              safeJsonStringify(
                 {
                   remoteConfig,
                   source,
@@ -206,11 +240,14 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
     this.config.remoteConfigClient = remoteConfigClient;
 
     // Step 2.1: parse autocapture config (always reset so re-init clears prior flags)
-    const autocaptureConfig = (this.config as ReactNativeConfigAutocaptureBeta).autocapture;
+    const autocaptureConfig = this.config.autocapture;
     if (autocaptureConfig === true) {
       this.autocapture = {
         appLifecycles: true,
         sessions: true,
+        screenViews: true,
+        elementInteractions: true,
+        networkTracking: true,
       };
     } else if (autocaptureConfig && typeof autocaptureConfig === 'object') {
       this.autocapture = autocaptureConfig;
@@ -221,6 +258,12 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
     this.wasBackgrounded = false;
     // Allow the first navigation screen view after re-init.
     this.lastNavigationScreenName = undefined;
+    this.currentScreenName = undefined;
+
+    if (typeof this.captureUnsubscribe === 'function') {
+      this.captureUnsubscribe();
+      this.captureUnsubscribe = undefined;
+    }
 
     // Set up the analytics connector to integrate with the experiment SDK.
     // Send events from the experiment SDK and forward identifies to the
@@ -242,6 +285,25 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
     await this.add(new Context()).promise;
     await this.add(new IdentityEventSender()).promise;
 
+    if (this.autocapture?.networkTracking) {
+      this.config.loggerProvider.debug('Adding network tracking plugin');
+      await this.add(networkCapturePlugin(getNetworkTrackingConfig(this.config))).promise;
+    }
+
+    if (this.autocapture?.elementInteractions === true) {
+      this.captureUnsubscribe = Capture.subscribe((properties) => {
+        const analyticsProps = {
+          [SCREEN_NAME]: this.currentScreenName,
+          [TARGET_ACCESSIBILITY_LABEL]: properties.accessibilityLabel,
+          [TARGET_ACTION]: properties.action,
+          [TARGET_COMPONENT]: properties.component,
+          [TARGET_ELEMENT]: properties.element,
+          [TARGET_TEST_ID]: properties.testID,
+        };
+        this.track(DEFAULT_ELEMENT_INTERACTED_EVENT, analyticsProps);
+      });
+    }
+
     // Step 4: Manage session
     this.appState = AppState.currentState;
     const isNewSession = this.startNewSessionIfNeeded(this.currentTimeMillis());
@@ -250,6 +312,9 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
         this.getSessionId() ?? 'undefined'
       }`,
     );
+    if (this.appStateChangeHandler) {
+      this.appStateChangeHandler.remove?.();
+    }
     this.appStateChangeHandler = AppState.addEventListener('change', this.handleAppStateChange);
 
     this.initializing = false;
@@ -261,6 +326,8 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
     if (this.autocapture?.appLifecycles === true && this.appState === 'active') {
       this.track('[Amplitude] Application Opened');
     }
+
+    await this.trackAppInstallOrUpdate();
 
     // Step 5.2: run attribution strategy
     await this.runAttributionStrategy(options.attribution, isNewSession);
@@ -276,6 +343,7 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
 
   shutdown() {
     this.appStateChangeHandler?.remove();
+    this.captureUnsubscribe?.();
   }
 
   async runAttributionStrategy(attributionConfig?: AttributionOptions, isNewSession = false) {
@@ -337,6 +405,7 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
     this.setDeviceId(UUID());
     // Allow the current focused route to emit again for the new identity.
     this.lastNavigationScreenName = undefined;
+    this.currentScreenName = undefined;
   }
 
   getSessionId() {
@@ -378,6 +447,7 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
     if (isScreenViewTrackingDisabled) {
       return returnWrapper(Promise.resolve(undefined));
     }
+    this.currentScreenName = screenName;
     return this.track(
       DEFAULT_SCREEN_VIEWED_EVENT,
       {
@@ -527,6 +597,58 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
       }
     }
   };
+
+  /**
+   * Tracks Application Installed / Updated from persisted version + build on UserSession.
+   * Only runs on iOS/Android; skips web and when the native module is unavailable.
+   */
+  private async trackAppInstallOrUpdate() {
+    if (Platform.OS !== 'ios' && Platform.OS !== 'android') {
+      return;
+    }
+
+    const nativeModule = NativeModules.AmplitudeReactNative as
+      | { getApplicationContext: (options: unknown) => Promise<Record<string, string> | undefined> }
+      | undefined;
+    if (this.autocapture?.appLifecycles !== true || !nativeModule?.getApplicationContext) {
+      return;
+    }
+
+    const nativeContext = await nativeModule.getApplicationContext(this.config.trackingOptions);
+    const version = nativeContext?.version;
+    const build = nativeContext?.build;
+    const previousVersion = this.config.persistedAppVersion;
+    const previousBuild = this.config.persistedAppBuild;
+    // iOS (Amplitude-Swift): missing previous version or build => install; either changing => update.
+    // Android (Amplitude-Kotlin): build-only — missing previous build => install; build change => update.
+    const isIOS = Platform.OS === 'ios';
+    const isInstall = isIOS
+      ? previousBuild === undefined || previousVersion === undefined
+      : previousBuild === undefined;
+    const isUpdate = isIOS
+      ? (build !== undefined && previousBuild !== build) || (version !== undefined && previousVersion !== version)
+      : build !== undefined && previousBuild !== build;
+
+    if (isInstall) {
+      this.track(DEFAULT_APPLICATION_INSTALLED_EVENT, {
+        [APP_VERSION]: version,
+        [APP_BUILD]: build,
+      });
+    } else if (isUpdate) {
+      this.track(DEFAULT_APPLICATION_UPDATED_EVENT, {
+        [APP_VERSION]: version,
+        [APP_BUILD]: build,
+        [PREVIOUS_VERSION]: previousVersion,
+        [PREVIOUS_BUILD]: previousBuild,
+      });
+    }
+    if (version !== undefined) {
+      this.config.persistedAppVersion = version;
+    }
+    if (build !== undefined) {
+      this.config.persistedAppBuild = build;
+    }
+  }
 
   private enterForeground(timestamp: number) {
     this.config.loggerProvider?.log('App Activated');

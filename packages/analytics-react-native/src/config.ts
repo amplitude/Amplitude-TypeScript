@@ -12,8 +12,6 @@ import {
   getCookieName,
   getQueryParams,
   FetchTransport,
-  ReactNativeConfigAutocaptureBeta,
-  ReactNativeAutocaptureOptions,
 } from '@amplitude/analytics-core';
 
 import { LocalStorage } from './storage/local-storage';
@@ -53,7 +51,6 @@ export const getDefaultConfig = () => {
 
 export class ReactNativeConfig extends Config implements IReactNativeConfig {
   appVersion?: string;
-  autocapture?: IReactNativeConfig['autocapture'];
   cookieExpiration: number;
   cookieSameSite: string;
   cookieSecure: boolean;
@@ -65,7 +62,7 @@ export class ReactNativeConfig extends Config implements IReactNativeConfig {
   sessionTimeout: number;
   trackingSessionEvents: boolean;
   trackingOptions: ReactNativeTrackingOptions;
-  autocapture?: ReactNativeAutocaptureOptions | boolean;
+  autocapture?: IReactNativeConfig['autocapture'];
 
   // NOTE: These protected properties are used to cache values from async storage
   protected _deviceId?: string;
@@ -74,6 +71,10 @@ export class ReactNativeConfig extends Config implements IReactNativeConfig {
   protected _optOut = false;
   protected _sessionId?: number;
   protected _userId?: string;
+  /** Persisted native version for install/update detection (UserSession.appVersion). */
+  protected _appVersion?: string;
+  /** Persisted native build for install/update detection (UserSession.appBuild). */
+  protected _appBuild?: string;
 
   constructor(apiKey: string, options?: ReactNativeOptions) {
     const defaultConfig = getDefaultConfig();
@@ -96,7 +97,6 @@ export class ReactNativeConfig extends Config implements IReactNativeConfig {
     this.userId = options?.userId;
 
     this.appVersion = options?.appVersion;
-    this.autocapture = options?.autocapture;
     this.cookieExpiration = options?.cookieExpiration ?? defaultConfig.cookieExpiration;
     this.cookieSameSite = options?.cookieSameSite ?? defaultConfig.cookieSameSite;
     this.cookieSecure = options?.cookieSecure ?? defaultConfig.cookieSecure;
@@ -107,7 +107,7 @@ export class ReactNativeConfig extends Config implements IReactNativeConfig {
     this.sessionTimeout = options?.sessionTimeout ?? defaultConfig.sessionTimeout;
     this.trackingOptions = options?.trackingOptions ?? defaultConfig.trackingOptions;
     this.trackingSessionEvents = options?.trackingSessionEvents ?? defaultConfig.trackingSessionEvents;
-    this.autocapture = (options as ReactNativeConfigAutocaptureBeta)?.autocapture;
+    this.autocapture = options?.autocapture;
   }
 
   get deviceId() {
@@ -176,6 +176,32 @@ export class ReactNativeConfig extends Config implements IReactNativeConfig {
     }
   }
 
+  /**
+   * Persisted native app version for install/update detection.
+   * Distinct from {@link appVersion}, the optional event-enrichment override.
+   */
+  get persistedAppVersion() {
+    return this._appVersion;
+  }
+
+  set persistedAppVersion(appVersion: string | undefined) {
+    if (this._appVersion !== appVersion) {
+      this._appVersion = appVersion;
+      this.updateStorage();
+    }
+  }
+
+  get persistedAppBuild() {
+    return this._appBuild;
+  }
+
+  set persistedAppBuild(appBuild: string | undefined) {
+    if (this._appBuild !== appBuild) {
+      this._appBuild = appBuild;
+      this.updateStorage();
+    }
+  }
+
   private updateStorage() {
     const cache = {
       deviceId: this._deviceId,
@@ -184,6 +210,8 @@ export class ReactNativeConfig extends Config implements IReactNativeConfig {
       optOut: this._optOut,
       lastEventTime: this._lastEventTime,
       lastEventId: this._lastEventId,
+      appVersion: this._appVersion,
+      appBuild: this._appBuild,
     };
     void this.cookieStorage?.set(getCookieName(this.apiKey), cache);
   }
@@ -244,6 +272,8 @@ export const useReactNativeConfig = async (
   });
 
   config.lastEventId = lastEventId;
+  config.persistedAppVersion = previousCookies?.appVersion;
+  config.persistedAppBuild = previousCookies?.appBuild;
 
   config.loggerProvider?.log(
     `Init: storage=${cookieStorage.constructor.name} restoredSessionId = ${
@@ -338,12 +368,6 @@ export const shouldFetchRemoteConfig = (options: ReactNativeOptions = {}): boole
   if (options.remoteConfig?.fetchRemoteConfig === true) {
     // set to true if remoteConfig.fetchRemoteConfig is set to true explicitly
     return true;
-  } else if (options.remoteConfig?.fetchRemoteConfig === false) {
-    // set to false if remoteConfig.fetchRemoteConfig is set to false explicitly
-    return false;
-  } else {
-    // default to false if undefined (opt-in for React Native)
-    // TODO: this could be revised in the future to match behaviour of browser
-    return false;
   }
+  return !!options.remoteConfig?.fetchRemoteConfig;
 };

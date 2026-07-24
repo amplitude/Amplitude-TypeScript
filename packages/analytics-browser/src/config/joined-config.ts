@@ -22,8 +22,6 @@ export interface ElementInteractionsOptionsRemoteConfig extends ElementInteracti
   pageUrlAllowlistRegex?: string[];
 }
 
-export type { NetworkCaptureRuleRemoteConfig, NetworkTrackingOptionsRemoteConfig } from '@amplitude/analytics-core';
-
 // Type alias for the remote config structure we expect (this is what comes from the filtered browserSDK config)
 type RemoteConfigBrowserSDK = {
   autocapture?: AutocaptureOptionsRemoteConfig | boolean;

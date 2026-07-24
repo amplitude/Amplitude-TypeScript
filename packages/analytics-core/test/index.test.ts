@@ -76,6 +76,7 @@ import {
   AMPLITUDE_BACKGROUND_CAPTURE_SCRIPT_URL,
   EXCLUDE_INTERNAL_REFERRERS_CONDITIONS,
   omitUndefined,
+  pruneJson,
 } from '../src/index';
 
 describe('index', () => {
@@ -171,6 +172,7 @@ describe('index', () => {
     expect(typeof AMPLITUDE_BACKGROUND_CAPTURE_SCRIPT_URL).toBe('string');
     expect(typeof EXCLUDE_INTERNAL_REFERRERS_CONDITIONS).toBe('object');
     expect(typeof omitUndefined).toBe('function');
+    expect(typeof pruneJson).toBe('function');
   });
 
   describe('EXCLUDE_INTERNAL_REFERRERS_CONDITIONS export', () => {

@@ -139,7 +139,7 @@ You're on Ruby 2.6 (macOS system Ruby). `activesupport` 6.1.7.x has a `Logger` c
 
 ### `bundle exec pod install` fails with `cannot load such file -- kconv`
 
-You're on Ruby 4.0+. `kconv` was removed and cocoapods 1.14.3 still depends on it. Use Ruby 3.2 (see above).
+You're on Ruby 3.4+/4.0+. `kconv` was removed from the default gems and cocoapods 1.14.3 still depends on it. Prefer Ruby 3.2 (see above), or keep the `nkf` gem in the `Gemfile` (it provides `kconv`).
 
 ### `bundle exec pod install` fails with `Unicode Normalization not appropriate for ASCII-8BIT`
 

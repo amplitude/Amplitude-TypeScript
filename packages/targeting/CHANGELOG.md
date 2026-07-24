@@ -3,6 +3,22 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.3.8](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/targeting@0.3.7...@amplitude/targeting@0.3.8) (2026-07-22)
+
+**Note:** Version bump only for package @amplitude/targeting
+
+
+
+
+
+## [0.3.7](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/targeting@0.3.6...@amplitude/targeting@0.3.7) (2026-07-20)
+
+**Note:** Version bump only for package @amplitude/targeting
+
+
+
+
+
 ## [0.3.6](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/targeting@0.3.5...@amplitude/targeting@0.3.6) (2026-07-17)
 
 **Note:** Version bump only for package @amplitude/targeting

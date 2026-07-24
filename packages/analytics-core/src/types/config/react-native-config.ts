@@ -5,33 +5,25 @@ import { RemoteConfigOptions } from './browser-config';
 import { NetworkTrackingOptions } from '../network-tracking';
 import { IRemoteConfigClient } from '../../remote-config/remote-config';
 
-export type AutocaptureOptionsReactNative = {
-  sessions?: boolean;
-  screenViews?: boolean;
-  appState?: boolean;
-  elementInteractions?: boolean;
-  networkTracking?: boolean | NetworkTrackingOptions;
-};
+type HiddenOptions = 'apiKey' | 'lastEventId' | 'persistedAppVersion' | 'persistedAppBuild' | 'remoteConfigClient';
 
-type HiddenOptions = 'apiKey' | 'lastEventId' | 'remoteConfigClient';
-
-export type ReactNativeOptions = Omit<Partial<ReactNativeConfig>, HiddenOptions>;
-
-/* @experimental this config is experimental pending GA of React Native autocapture */
+/* @experimental This config is experimental pending GA of React Native autocapture. */
 export interface ReactNativeAutocaptureOptions {
   sessions?: boolean;
   appLifecycles?: boolean;
+  elementInteractions?: boolean;
+  networkTracking?: boolean | NetworkTrackingOptions;
   screenViews?: boolean;
-  // elementInteractions?
 }
 
 export interface ReactNativeConfig extends Omit<IConfig, 'requestMetadata'> {
   trackingOptions: ReactNativeTrackingOptions;
   /* @deprecated this config is deprecated in favor of config.autocapture */
   trackingSessionEvents?: boolean;
-  autocapture?: boolean | AutocaptureOptionsReactNative;
   migrateLegacyData?: boolean;
   appVersion?: string;
+  persistedAppVersion?: string;
+  persistedAppBuild?: string;
   attribution?: ReactNativeAttributionOptions;
   deviceId?: string;
   cookieExpiration: number;
@@ -50,13 +42,11 @@ export interface ReactNativeConfig extends Omit<IConfig, 'requestMetadata'> {
   /* @experimental this config is experimental pending GA of React Native autocapture */
   remoteConfig?: RemoteConfigOptions;
   remoteConfigClient?: IRemoteConfigClient;
-}
-
-// TODO: Merge this into ReactNativeConfig once autocapture is GA
-export interface ReactNativeConfigAutocaptureBeta extends ReactNativeConfig {
-  /* @experimental this config is experimental pending GA of React Native autocapture */
+  /* @experimental This config is experimental pending GA of React Native autocapture. */
   autocapture?: boolean | ReactNativeAutocaptureOptions;
 }
+
+export type ReactNativeOptions = Omit<Partial<ReactNativeConfig>, HiddenOptions>;
 
 export interface ReactNativeAttributionOptions {
   disabled?: boolean;
