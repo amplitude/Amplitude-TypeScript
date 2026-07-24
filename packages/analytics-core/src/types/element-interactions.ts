@@ -77,6 +77,20 @@ export interface ElementInteractionsOptions {
   dataAttributePrefix?: string;
 
   /**
+   * Whether CSS class names should be captured in the element hierarchy.
+   * Default is true.
+   *
+   * When set to false, each entry in the captured element-interaction
+   * hierarchy will omit the `classes` field entirely (the field is not
+   * present as `null` or an empty array). This only affects the
+   * hierarchy `classes` field — other captured properties that may
+   * contain class-like values (e.g., the top-level
+   * `[Amplitude] Element Class` event property) are not affected by
+   * this option.
+   */
+  captureCssClasses?: boolean;
+
+  /**
    * Options for integrating visual tagging selector.
    */
   visualTaggingOptions?: {
