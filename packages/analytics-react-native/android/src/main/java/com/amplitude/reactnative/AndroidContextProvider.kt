@@ -29,6 +29,7 @@ class AndroidContextProvider(private val context: Context, shouldTrackAdid: Bool
     var advertisingId: String?
     val country: String?
     val versionName: String?
+    val versionCode: String?
     val osName: String
     val platform: String
     val osVersion: String
@@ -44,6 +45,7 @@ class AndroidContextProvider(private val context: Context, shouldTrackAdid: Bool
     init {
       advertisingId = fetchAdvertisingId()
       versionName = fetchVersionName()
+      versionCode = fetchVersionCode()
       osName = OS_NAME
       platform = PLATFORM
       osVersion = fetchOsVersion()
@@ -65,6 +67,21 @@ class AndroidContextProvider(private val context: Context, shouldTrackAdid: Bool
       try {
         packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
         return packageInfo.versionName
+      } catch (e: PackageManager.NameNotFoundException) {
+      } catch (e: Exception) {
+      }
+      return null
+    }
+
+    private fun fetchVersionCode(): String? {
+      try {
+        val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+          packageInfo.longVersionCode.toString()
+        } else {
+          @Suppress("DEPRECATION")
+          packageInfo.versionCode.toString()
+        }
       } catch (e: PackageManager.NameNotFoundException) {
       } catch (e: Exception) {
       }
@@ -271,6 +288,8 @@ class AndroidContextProvider(private val context: Context, shouldTrackAdid: Bool
 
   val versionName: String?
     get() = cachedInfo!!.versionName
+  val versionCode: String?
+    get() = cachedInfo!!.versionCode
   val osName: String
     get() = cachedInfo!!.osName
   val platform: String

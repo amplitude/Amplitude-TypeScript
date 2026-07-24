@@ -34,7 +34,7 @@ describe('joined-config', () => {
       expect(localConfig.autocapture).toEqual({
         screenViews: false,
         sessions: true,
-        appState: false,
+        appLifecycles: false,
         elementInteractions: false,
       });
     });
@@ -99,7 +99,7 @@ describe('joined-config', () => {
       const expectedAutocapture = {
         screenViews: true,
         sessions: false,
-        appState: true,
+        appLifecycles: true,
         elementInteractions: true,
       };
 

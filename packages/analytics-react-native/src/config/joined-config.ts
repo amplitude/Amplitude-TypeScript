@@ -1,6 +1,6 @@
 import {
-  AutocaptureOptionsReactNative,
   RemoteConfig,
+  ReactNativeAutocaptureOptions,
   ReactNativeConfig,
   NetworkTrackingOptionsRemoteConfig,
   safeJsonStringify,
@@ -8,11 +8,9 @@ import {
   transformNetworkTrackingRemoteConfig,
 } from '@amplitude/analytics-core';
 
-export interface AutocaptureOptionsRemoteConfig extends AutocaptureOptionsReactNative {
+export interface AutocaptureOptionsRemoteConfig extends ReactNativeAutocaptureOptions {
   networkTracking?: boolean | NetworkTrackingOptionsRemoteConfig;
 }
-
-export type { NetworkCaptureRuleRemoteConfig, NetworkTrackingOptionsRemoteConfig } from '@amplitude/analytics-core';
 
 // Remote config currently delivers browserSDK-shaped payloads to React Native.
 // Apply the same join/translations as browser, except elementInteractions.
@@ -77,7 +75,7 @@ export function updateReactNativeConfigWithRemoteConfig(
           reactNativeConfig.autocapture = {
             screenViews: reactNativeConfig.autocapture,
             sessions: reactNativeConfig.autocapture,
-            appState: reactNativeConfig.autocapture,
+            appLifecycles: reactNativeConfig.autocapture,
             elementInteractions: reactNativeConfig.autocapture,
             ...transformedAutocaptureRemoteConfig,
           };
