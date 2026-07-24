@@ -123,4 +123,15 @@ describe('RemoteConfigLocalStorage', () => {
       jest.restoreAllMocks();
     });
   });
+
+  describe('constructor', () => {
+    it.each([
+      ['undefined', undefined],
+      ['null', null],
+      ['a number', 12345],
+      ['an object', { apiKey: 'oops' }],
+    ])('should not throw when apiKey is %s', (_label, badApiKey) => {
+      expect(() => new RemoteConfigLocalStorage(badApiKey as unknown as string, logger)).not.toThrow();
+    });
+  });
 });
