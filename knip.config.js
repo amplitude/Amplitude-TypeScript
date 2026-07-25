@@ -6,6 +6,9 @@
  * files/exports/types, but those are a separate concern and are not gated here.
  */
 
+const fs = require('fs');
+const path = require('path');
+
 /**
  * Used by the packages that declare them, but never through an import.
  *
@@ -27,60 +30,101 @@ const IMPLICIT_BUILD_DEPS = [
   'rollup-plugin-terser',
 ];
 
-// A workspace entry replaces the `packages/*` one rather than merging with it,
-// so the shared list has to be spread into each override explicitly.
-const pkg = (ignoreDependencies = []) => ({
-  ignoreDependencies: [...IMPLICIT_BUILD_DEPS, ...ignoreDependencies],
-});
+/** Implicit for one package each, keyed by directory name under packages/. */
+const IMPLICIT_PACKAGE_DEPS = {
+  // Types for the bare 'ua-parser-js' specifier that src/typings/ua-parser.d.ts
+  // imports inside a `declare module` block.
+  'analytics-react-native': ['@types/ua-parser-js'],
+
+  // The GTM wrapper inlines the *built* bundles of these two, read from their
+  // lib/ directories by scripts/build-snippet.js. They are declared so
+  // lerna/nx build them first, so nothing imports them.
+  'gtm-snippet': ['@amplitude/analytics-browser', '@amplitude/plugin-session-replay-browser'],
+
+  // Named as rollup manualChunks string literals to split them out of the ESM bundle.
+  'plugin-session-replay-browser': ['@amplitude/rrweb-plugin-console-record', '@amplitude/rrweb-record'],
+};
+
+/**
+ * Dependencies knip already resolves in a given package, verified by dropping
+ * the entry and confirming knip still reports nothing. Ignoring them anyway is
+ * harmless but earns a "Remove from ignoreDependencies" hint, and the point of
+ * deriving these lists is to keep the hint output at zero so a new one means
+ * something.
+ *
+ * These two packages build a web worker off an extra tsconfig, which is
+ * evidently enough for knip to tie tslib to a real compilation.
+ */
+const RESOLVED_WITHOUT_IGNORE = {
+  'plugin-session-replay-browser': ['tslib'],
+  'session-replay-browser': ['tslib'],
+};
+
+/**
+ * - examples/* vendors its own package manager releases, which a per-package
+ *   check reads as a sea of unused dependencies.
+ * - analytics-react-native-test is a private, on-device-only harness whose
+ *   metro and runner dependencies are wired through metro.config.js and
+ *   rn-harness.config.mjs by name, so a static check cannot follow them.
+ */
+const IGNORED_WORKSPACES = ['examples/**', 'packages/analytics-react-native-test'];
+
+/** Specifiers a file imports directly, via either `from '…'` or `require('…')`. */
+const importedBy = (file) => {
+  if (!fs.existsSync(file)) return new Set();
+  const source = fs.readFileSync(file, 'utf8');
+  return new Set([...source.matchAll(/(?:from|require\()\s*['"]([^'"]+)['"]/g)].map((match) => match[1]));
+};
+
+/**
+ * Narrow each package's ignore list to what that package actually needs ignored:
+ * declared, not already imported by its own rollup.config.js, and not something
+ * knip resolves unaided.
+ *
+ * Applying the full list everywhere would be ~160 no-op entries, and knip
+ * reports each as a "Remove from ignoreDependencies" hint. Deriving it keeps the
+ * reasoning in one place above while staying precise, so a real hint is never
+ * buried in noise, and a package that drops a rollup plugin — or starts
+ * importing one directly — stops ignoring it automatically.
+ */
+const packagesDir = path.join(__dirname, 'packages');
+const workspaces = {};
+
+for (const dir of fs.readdirSync(packagesDir)) {
+  if (IGNORED_WORKSPACES.includes(`packages/${dir}`)) continue;
+
+  const manifest = path.join(packagesDir, dir, 'package.json');
+  if (!fs.existsSync(manifest)) continue;
+
+  const { dependencies = {}, devDependencies = {} } = JSON.parse(fs.readFileSync(manifest, 'utf8'));
+  const declared = new Set([...Object.keys(dependencies), ...Object.keys(devDependencies)]);
+  const selfImported = importedBy(path.join(packagesDir, dir, 'rollup.config.js'));
+  const resolved = new Set(RESOLVED_WITHOUT_IGNORE[dir] || []);
+
+  const ignoreDependencies = [...IMPLICIT_BUILD_DEPS, ...(IMPLICIT_PACKAGE_DEPS[dir] || [])].filter(
+    (dep) => declared.has(dep) && !selfImported.has(dep) && !resolved.has(dep),
+  );
+
+  if (ignoreDependencies.length) {
+    workspaces[`packages/${dir}`] = { ignoreDependencies };
+  }
+}
+
+// The root workspace's dependencies are consumed by the dev/test tooling rather
+// than by any package, so those directories are its entry points. The vite,
+// playwright and size-limit configs are omitted deliberately — knip's built-in
+// plugins already detect them.
+workspaces['.'] = {
+  entry: ['scripts/**/*.js', 'test-server/**/*.{js,jsx,mjs,ts,tsx}', 'example-proxy/**/*.js'],
+
+  // test-server/session-replay-browser/trc-e2e/vite.config.mjs maps these npm:
+  // aliases by building a node_modules path string, so no import of them is
+  // ever resolvable.
+  ignoreDependencies: ['@amplitude/analytics-browser-srnpm', '@amplitude/plugin-session-replay-browser-srnpm'],
+};
 
 module.exports = {
   include: ['dependencies', 'devDependencies'],
-
-  // - The example apps vendor their own package manager releases, which a
-  //   per-package check reads as a sea of unused dependencies.
-  // - analytics-react-native-test is a private, on-device-only harness whose
-  //   metro and runner dependencies are wired through metro.config.js and
-  //   rn-harness.config.mjs by name, so a static check cannot follow them.
-  ignoreWorkspaces: ['examples/**', 'packages/analytics-react-native-test'],
-
-  workspaces: {
-    // The root workspace's dependencies are consumed by the dev/test tooling
-    // rather than by any package, so those directories are its entry points.
-    '.': {
-      entry: [
-        'scripts/**/*.js',
-        'test-server/**/*.{js,jsx,mjs,ts,tsx}',
-        'example-proxy/**/*.js',
-        'vite.config.js',
-        'playwright.config.ts',
-        '.size-limit.js',
-        'jest.setup.examples.js',
-      ],
-      // test-server/session-replay-browser/trc-e2e/vite.config.mjs maps these
-      // npm: aliases by building a node_modules path string, so no import of
-      // them is ever resolvable.
-      ignoreDependencies: ['@amplitude/analytics-browser-srnpm', '@amplitude/plugin-session-replay-browser-srnpm'],
-    },
-
-    'packages/*': pkg(),
-
-    // @types/ua-parser-js types the bare 'ua-parser-js' specifier that
-    // src/typings/ua-parser.d.ts imports inside a `declare module` block.
-    'packages/analytics-react-native': pkg(['@types/ua-parser-js']),
-
-    // The GTM wrapper inlines the *built* bundles of these two packages, read
-    // from their lib/ directories by scripts/build-snippet.js. They are
-    // declared so lerna/nx build them first, so nothing imports them.
-    'packages/gtm-snippet': pkg(['@amplitude/analytics-browser', '@amplitude/plugin-session-replay-browser']),
-
-    // Named as rollup manualChunks string literals in rollup.config.js to split
-    // them out of the ESM bundle.
-    'packages/plugin-session-replay-browser': pkg([
-      '@amplitude/rrweb-plugin-console-record',
-      '@amplitude/rrweb-record',
-    ]),
-
-    // Passed as a babel plugin name string in jest.config.js (needed for @medv/finder).
-    'packages/session-replay-browser': pkg(['@babel/plugin-transform-modules-commonjs']),
-  },
+  ignoreWorkspaces: IGNORED_WORKSPACES,
+  workspaces,
 };
