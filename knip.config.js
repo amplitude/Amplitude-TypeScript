@@ -9,17 +9,20 @@
 const fs = require('fs');
 const path = require('path');
 
+/** Injected into every package's output by "importHelpers": true in the root tsconfig.json. */
+const IMPLICIT_TS_DEPS = ['tslib'];
+
 /**
- * Used by the packages that declare them, but never through an import.
+ * Imported by the *shared* config at scripts/build/rollup.config.js, which most
+ * packages' rollup.config.js re-exports. Rollup runs with cwd set to the
+ * package, so these resolve from the package's own node_modules and have to stay
+ * declared there even though nothing in the package imports them.
  *
- * - tslib is injected by "importHelpers": true in the root tsconfig.json.
- * - The rollup plugins are imported by the *shared* config at
- *   scripts/build/rollup.config.js, which each package's rollup.config.js
- *   re-exports. Rollup runs with cwd set to the package, so they resolve from
- *   the package's own node_modules and have to stay declared there.
+ * Only applied to packages that actually import the shared config. A package
+ * with a self-contained rollup.config.js gets no free pass: declaring one of
+ * these without importing it means it really is dead.
  */
-const IMPLICIT_BUILD_DEPS = [
-  'tslib',
+const SHARED_ROLLUP_PLUGINS = [
   '@rollup/plugin-commonjs',
   '@rollup/plugin-json',
   '@rollup/plugin-node-resolve',
@@ -29,6 +32,8 @@ const IMPLICIT_BUILD_DEPS = [
   'rollup-plugin-sourcemaps',
   'rollup-plugin-terser',
 ];
+
+const SHARED_ROLLUP_CONFIG = 'scripts/build/rollup.config';
 
 /** Implicit for one package each, keyed by directory name under packages/. */
 const IMPLICIT_PACKAGE_DEPS = {
@@ -69,7 +74,16 @@ const RESOLVED_WITHOUT_IGNORE = {
  */
 const IGNORED_WORKSPACES = ['examples/**', 'packages/analytics-react-native-test'];
 
-/** Specifiers a file imports directly, via either `from '…'` or `require('…')`. */
+/**
+ * Specifiers a file imports directly, via either `from '…'` or `require('…')`.
+ *
+ * Deliberately a regex rather than a parse: the only inputs are the small,
+ * uniform rollup.config.js files in this repo. It is not exhaustive — it would
+ * miss a dynamic `await import()` and would match a commented-out import — but
+ * both directions surface loudly rather than silently. Missing an import leaves
+ * a redundant ignore, which knip reports as a configuration hint; matching a
+ * comment drops a needed ignore, which fails CI with the dependency named.
+ */
 const importedBy = (file) => {
   if (!fs.existsSync(file)) return new Set();
   const source = fs.readFileSync(file, 'utf8');
@@ -81,7 +95,7 @@ const importedBy = (file) => {
  * declared, not already imported by its own rollup.config.js, and not something
  * knip resolves unaided.
  *
- * Applying the full list everywhere would be ~160 no-op entries, and knip
+ * Applying every entry to every package would be ~160 no-op entries, and knip
  * reports each as a "Remove from ignoreDependencies" hint. Deriving it keeps the
  * reasoning in one place above while staying precise, so a real hint is never
  * buried in noise, and a package that drops a rollup plugin — or starts
@@ -101,7 +115,15 @@ for (const dir of fs.readdirSync(packagesDir)) {
   const selfImported = importedBy(path.join(packagesDir, dir, 'rollup.config.js'));
   const resolved = new Set(RESOLVED_WITHOUT_IGNORE[dir] || []);
 
-  const ignoreDependencies = [...IMPLICIT_BUILD_DEPS, ...(IMPLICIT_PACKAGE_DEPS[dir] || [])].filter(
+  const usesSharedRollupConfig = [...selfImported].some((spec) => spec.includes(SHARED_ROLLUP_CONFIG));
+
+  const candidates = [
+    ...IMPLICIT_TS_DEPS,
+    ...(usesSharedRollupConfig ? SHARED_ROLLUP_PLUGINS : []),
+    ...(IMPLICIT_PACKAGE_DEPS[dir] || []),
+  ];
+
+  const ignoreDependencies = candidates.filter(
     (dep) => declared.has(dep) && !selfImported.has(dep) && !resolved.has(dep),
   );
 
