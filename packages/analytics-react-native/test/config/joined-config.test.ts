@@ -97,10 +97,8 @@ describe('joined-config', () => {
       };
 
       const expectedAutocapture = {
-        screenViews: true,
         sessions: false,
         appLifecycles: true,
-        elementInteractions: true,
       };
 
       updateReactNativeConfigWithRemoteConfig(remoteConfig, localConfig);

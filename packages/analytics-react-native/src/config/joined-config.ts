@@ -74,13 +74,21 @@ export function updateReactNativeConfigWithRemoteConfig(
         }
 
         if (typeof reactNativeConfig.autocapture === 'boolean') {
-          reactNativeConfig.autocapture = {
-            screenViews: reactNativeConfig.autocapture,
-            sessions: reactNativeConfig.autocapture,
-            appLifecycles: reactNativeConfig.autocapture,
-            elementInteractions: reactNativeConfig.autocapture,
-            ...transformedAutocaptureRemoteConfig,
-          };
+          // Match client `autocapture: true` semantics (sessions + appLifecycles only).
+          // `false` still expands all known flags so unset remote fields stay disabled.
+          reactNativeConfig.autocapture = reactNativeConfig.autocapture
+            ? {
+                sessions: true,
+                appLifecycles: true,
+                ...transformedAutocaptureRemoteConfig,
+              }
+            : {
+                screenViews: false,
+                sessions: false,
+                appLifecycles: false,
+                elementInteractions: false,
+                ...transformedAutocaptureRemoteConfig,
+              };
         }
 
         if (typeof reactNativeConfig.autocapture === 'object') {
