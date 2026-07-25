@@ -2,17 +2,15 @@ name: 'Setup Node and pnpm'
 description: 'Set up pnpm and Node.js with a pnpm cache, and install workspace dependencies'
 
 # Callers still need their own actions/checkout step: a local action can only be
-# resolved once the repository is on disk.
+# resolved once the repository is on disk. For the same reason, a job that
+# replaces the working tree mid-run cannot use this action — its post step would
+# fail once this file is gone. See the check-size-limits job in ci-nx.yml.
 
 inputs:
   node-version:
     description: 'Node.js version to use'
     required: false
     default: '20'
-  install:
-    description: 'Whether to install workspace dependencies'
-    required: false
-    default: 'true'
 
 runs:
   using: 'composite'
@@ -27,6 +25,5 @@ runs:
         cache: 'pnpm'
 
     - name: Install project dependencies
-      if: inputs.install == 'true'
       shell: bash
       run: pnpm install --frozen-lockfile
