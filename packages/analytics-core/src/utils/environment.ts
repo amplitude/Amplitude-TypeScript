@@ -15,9 +15,6 @@ export function isBrowser(): boolean {
   return typeof globalScope?.document !== 'undefined';
 }
 
-// Client SDKs (browser or React Native) can recover from an offline state on their own —
-// via a network reconnect, a page reload, or an app relaunch. The Node (server) SDK is a
-// long-lived process with no such recovery.
 export function isClientSide(): boolean {
   return isReactNative() || isBrowser();
 }
