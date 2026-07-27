@@ -72,3 +72,57 @@ describe('isReactNative', () => {
     expect(analyticsCoreModule.isReactNative()).toBe(true);
   });
 });
+
+describe('isBrowser', () => {
+  let getGlobalScopeSpy: jest.SpyInstance;
+
+  beforeEach(() => {
+    getGlobalScopeSpy = jest.spyOn(globalScopeModule, 'getGlobalScope');
+  });
+
+  afterEach(() => {
+    getGlobalScopeSpy.mockRestore();
+  });
+
+  test('returns false when globalScope is undefined', () => {
+    getGlobalScopeSpy.mockReturnValue(undefined);
+    expect(analyticsCoreModule.isBrowser()).toBe(false);
+  });
+
+  test('returns false when document is undefined', () => {
+    getGlobalScopeSpy.mockReturnValue({} as typeof globalThis);
+    expect(analyticsCoreModule.isBrowser()).toBe(false);
+  });
+
+  test('returns true when document is defined', () => {
+    getGlobalScopeSpy.mockReturnValue({ document: {} } as unknown as typeof globalThis);
+    expect(analyticsCoreModule.isBrowser()).toBe(true);
+  });
+});
+
+describe('isClientSide', () => {
+  let getGlobalScopeSpy: jest.SpyInstance;
+
+  beforeEach(() => {
+    getGlobalScopeSpy = jest.spyOn(globalScopeModule, 'getGlobalScope');
+  });
+
+  afterEach(() => {
+    getGlobalScopeSpy.mockRestore();
+  });
+
+  test('returns true in a React Native environment', () => {
+    getGlobalScopeSpy.mockReturnValue({ navigator: { product: 'ReactNative' } } as unknown as typeof globalThis);
+    expect(analyticsCoreModule.isClientSide()).toBe(true);
+  });
+
+  test('returns true in a browser environment', () => {
+    getGlobalScopeSpy.mockReturnValue({ document: {} } as unknown as typeof globalThis);
+    expect(analyticsCoreModule.isClientSide()).toBe(true);
+  });
+
+  test('returns false in a server (Node) environment', () => {
+    getGlobalScopeSpy.mockReturnValue({} as typeof globalThis);
+    expect(analyticsCoreModule.isClientSide()).toBe(false);
+  });
+});

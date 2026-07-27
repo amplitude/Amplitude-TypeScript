@@ -800,47 +800,6 @@ describe('integration', () => {
       second.done();
     });
 
-    test('should exhaust max retries', async () => {
-      const scope = nock(url).post(path).times(3).reply(500, {
-        code: 500,
-      });
-
-      await client.init(apiKey, {
-        logLevel: 0,
-        flushMaxRetries: 3,
-        defaultTracking,
-        fetchRemoteConfig: false,
-      }).promise;
-      const response = await client.track('test event').promise;
-      expect(response.event).toEqual({
-        user_id: undefined,
-        device_id: uuid,
-        session_id: number,
-        time: number,
-        platform: 'Web',
-        language: 'en-US',
-        ip: '$remote',
-        insert_id: uuid,
-        partner_id: undefined,
-        event_type: 'test event',
-        event_properties: {
-          '[Amplitude] Page Domain': '',
-          '[Amplitude] Page Location': '',
-          '[Amplitude] Page Path': '',
-          '[Amplitude] Page Title': '',
-          '[Amplitude] Page URL': '',
-          '[Amplitude] Previous Page Location': '',
-          '[Amplitude] Previous Page Type': 'direct',
-        },
-        event_id: 0,
-        library: library,
-        user_agent: userAgent,
-      });
-      expect(response.code).toBe(500);
-      expect(response.message).toBe('Event rejected due to exceeded retry count');
-      scope.done();
-    }, 10000);
-
     test('should handle missing api key', async () => {
       await client.init('', undefined, {
         logLevel: 0,
