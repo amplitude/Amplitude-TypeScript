@@ -1,13 +1,13 @@
 import { IConfig } from './core-config';
 import { Storage } from '../storage';
 import { UserSession } from '../user-session';
+import { RemoteConfigOptions } from './browser-config';
 import { NetworkTrackingOptions } from '../network-tracking';
+import { IRemoteConfigClient } from '../../remote-config/remote-config';
 
-type HiddenOptions = 'apiKey' | 'lastEventId' | 'persistedAppVersion' | 'persistedAppBuild';
+type HiddenOptions = 'apiKey' | 'lastEventId' | 'persistedAppVersion' | 'persistedAppBuild' | 'remoteConfigClient';
 
-export type ReactNativeOptions = Omit<Partial<ReactNativeConfig>, HiddenOptions>;
-
-/* @experimental this config is experimental pending GA of React Native autocapture */
+/* @experimental This config is experimental pending GA of React Native autocapture. */
 export interface ReactNativeAutocaptureOptions {
   sessions?: boolean;
   appLifecycles?: boolean;
@@ -18,6 +18,7 @@ export interface ReactNativeAutocaptureOptions {
 
 export interface ReactNativeConfig extends Omit<IConfig, 'requestMetadata'> {
   trackingOptions: ReactNativeTrackingOptions;
+  /* @deprecated this config is deprecated in favor of config.autocapture */
   trackingSessionEvents?: boolean;
   migrateLegacyData?: boolean;
   appVersion?: string;
@@ -38,13 +39,14 @@ export interface ReactNativeConfig extends Omit<IConfig, 'requestMetadata'> {
   sessionId?: number;
   sessionTimeout: number;
   userId?: string;
-}
-
-// TODO: Merge this into ReactNativeConfig once autocapture is GA
-export interface ReactNativeConfigAutocaptureBeta extends ReactNativeConfig {
   /* @experimental this config is experimental pending GA of React Native autocapture */
+  remoteConfig?: RemoteConfigOptions;
+  remoteConfigClient?: IRemoteConfigClient;
+  /* @experimental This config is experimental pending GA of React Native autocapture. */
   autocapture?: boolean | ReactNativeAutocaptureOptions;
 }
+
+export type ReactNativeOptions = Omit<Partial<ReactNativeConfig>, HiddenOptions>;
 
 export interface ReactNativeAttributionOptions {
   disabled?: boolean;
