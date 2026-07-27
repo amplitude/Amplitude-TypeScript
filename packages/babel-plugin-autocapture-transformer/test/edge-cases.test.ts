@@ -1,6 +1,5 @@
 import { parse } from '@babel/parser';
-import { transformSync, types as t, type PluginPass } from '@babel/core';
-import traverse, { type NodePath } from '@babel/traverse';
+import { transformSync, traverse, types as t, type NodePath, type PluginPass } from '@babel/core';
 import type { JSXAttribute, JSXOpeningElement } from '@babel/types';
 import autocaptureTransformer from '../src';
 

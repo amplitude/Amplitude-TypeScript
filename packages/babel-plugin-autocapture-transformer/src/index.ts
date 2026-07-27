@@ -12,6 +12,7 @@ const ACCESSIBILITY_LABEL_PROPERTY = 'accessibilityLabel';
 const TEST_ID_PROPERTY = 'testID';
 const ELEMENT_PROPERTY = 'element';
 const COMPONENT_PROPERTY = 'component';
+const ACTION_PROPERTY = 'action';
 const CAPTURE_ATTRIBUTE_NAMES = [ACCESSIBILITY_LABEL_PROPERTY, TEST_ID_PROPERTY] as const;
 
 export const DEFAULT_PRESSABLE_ELEMENTS = [
@@ -33,7 +34,7 @@ export const DEFAULT_TEXT_CHANGE_ELEMENTS = ['TextInput'] as const;
 
 type CapturableElementCategory = {
   elements: readonly string[];
-  eventForAttribute: Record<string, string>;
+  actionForAttribute: Record<string, string>;
 };
 
 function mergeElementNames(defaults: readonly string[], extras?: string[]): string[] {
@@ -48,20 +49,20 @@ function buildCapturableElementCategories(options: TransformerOptions): Capturab
   return [
     {
       elements: mergeElementNames(DEFAULT_PRESSABLE_ELEMENTS, options.pressableElements),
-      eventForAttribute: {
+      actionForAttribute: {
         onPress: 'Press',
         onLongPress: 'LongPress',
       },
     },
     {
       elements: mergeElementNames(DEFAULT_VALUE_CHANGE_ELEMENTS, options.valueChangeElements),
-      eventForAttribute: {
+      actionForAttribute: {
         onValueChange: 'ValueChange',
       },
     },
     {
       elements: mergeElementNames(DEFAULT_TEXT_CHANGE_ELEMENTS, options.textChangeElements),
-      eventForAttribute: {
+      actionForAttribute: {
         onChangeText: 'ChangeText',
         onSubmitEditing: 'SubmitEditing',
       },
@@ -264,10 +265,10 @@ function getCapturePropertiesFromElement(path: NodePath<t.JSXOpeningElement>): C
 function buildAmpCaptureCall(
   captureIdentifier: string,
   handler: t.Expression,
-  eventType: string,
+  action: string,
   captureProperties: CaptureProperties,
 ): t.CallExpression {
-  const properties: t.ObjectProperty[] = [t.objectProperty(t.identifier('event'), t.stringLiteral(eventType))];
+  const properties: t.ObjectProperty[] = [t.objectProperty(t.identifier(ACTION_PROPERTY), t.stringLiteral(action))];
 
   for (const attributeName of CAPTURE_ATTRIBUTE_NAMES) {
     const value = captureProperties[attributeName];
@@ -312,7 +313,7 @@ export default function autocaptureTransformer(
           }
 
           const attrName = getJsxAttributeName(attr);
-          if (!attrName || !category.eventForAttribute[attrName]) {
+          if (!attrName || !category.actionForAttribute[attrName]) {
             continue;
           }
 
@@ -351,8 +352,8 @@ export default function autocaptureTransformer(
           }
 
           const attrName = getJsxAttributeName(attr);
-          const eventType = attrName ? category.eventForAttribute[attrName] : undefined;
-          if (!attrName || !eventType) {
+          const action = attrName ? category.actionForAttribute[attrName] : undefined;
+          if (!attrName || !action) {
             continue;
           }
 
@@ -365,7 +366,7 @@ export default function autocaptureTransformer(
             continue;
           }
 
-          attr.value.expression = buildAmpCaptureCall(captureIdentifier, expression, eventType, captureProperties);
+          attr.value.expression = buildAmpCaptureCall(captureIdentifier, expression, action, captureProperties);
         }
       },
     },

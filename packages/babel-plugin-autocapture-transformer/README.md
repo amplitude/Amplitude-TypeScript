@@ -39,7 +39,7 @@ function HomeScreen() {
       testID="12345"
       title="Online test"
       onPress={ampCapture(func, {
-        event: 'Press',
+        action: 'Press',
         accessibilityLabel: 'Online test label',
         testID: '12345',
         element: 'Button',
@@ -95,7 +95,7 @@ module.exports = function (api) {
 
 The plugin only rewrites known interactive JSX elements that already have an expression handler (for example `onPress={handler}`). String handlers and elements without handlers are left alone.
 
-| Category | Default elements | Attributes → event |
+| Category | Default elements | Attributes → action |
 | --- | --- | --- |
 | Pressable | `Button`, `TouchableOpacity`, `TouchableHighlight`, `TouchableWithoutFeedback`, `Pressable`, `Touchable`, `TouchableNativeFeedback`, `Link` | `onPress` → `Press`, `onLongPress` → `LongPress` |
 | Value change | `Switch`, `Slider`, `Picker` | `onValueChange` → `ValueChange` |

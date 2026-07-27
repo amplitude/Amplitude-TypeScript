@@ -7,7 +7,7 @@ function HomeScreen() {
   return /*#__PURE__*/React.createElement(Button, {
     title: "Go",
     onPress: ampCapture(() => console.log('pressed'), {
-      event: "Press",
+      action: "Press",
       element: "Button",
       component: "HomeScreen"
     })
@@ -72,7 +72,7 @@ function HomeScreen() {
   return /*#__PURE__*/React.createElement(Button, {
     accessibilityLabel: true,
     onPress: ampCapture(onPress, {
-      event: "Press",
+      action: "Press",
       element: "Button",
       component: "HomeScreen"
     }),
@@ -99,7 +99,7 @@ function HomeScreen({
   return /*#__PURE__*/React.createElement(Button, _extends({}, buttonProps, {
     accessibilityLabel: "Label",
     onPress: ampCapture(onPress, {
-      event: "Press",
+      action: "Press",
       accessibilityLabel: "Label",
       element: "Button",
       component: "HomeScreen"
@@ -116,7 +116,7 @@ function HomeScreen() {
     accessibilityLabel: "Online test label",
     title: "Online test",
     onPress: ampCapture(func, {
-      event: "Press",
+      action: "Press",
       accessibilityLabel: "Online test label",
       testID: "12345",
       element: "Button",
@@ -134,7 +134,7 @@ const HomeScreen = class extends React.Component {
     return /*#__PURE__*/React.createElement(Button, {
       title: "Go",
       onPress: ampCapture(this.onPress, {
-        event: "Press",
+        action: "Press",
         element: "Button",
         component: "HomeScreen"
       })
@@ -149,7 +149,7 @@ const HomeScreen = () => {
   return /*#__PURE__*/React.createElement(Button, {
     title: "Go",
     onPress: ampCapture(onPress, {
-      event: "Press",
+      action: "Press",
       element: "Button",
       component: "HomeScreen"
     })
@@ -164,7 +164,7 @@ class HomeScreen extends React.Component {
     return /*#__PURE__*/React.createElement(Button, {
       title: "Go",
       onPress: ampCapture(this.onPress, {
-        event: "Press",
+        action: "Press",
         element: "Button",
         component: "HomeScreen"
       })
@@ -180,7 +180,7 @@ const Screen = class HomeScreen extends React.Component {
     return /*#__PURE__*/React.createElement(Button, {
       title: "Go",
       onPress: ampCapture(this.onPress, {
-        event: "Press",
+        action: "Press",
         element: "Button",
         component: "HomeScreen"
       })
@@ -195,7 +195,7 @@ exports[`@amplitude/babel-plugin-autocapture-transformer includes element and co
   return /*#__PURE__*/React.createElement(Button, {
     title: "Go",
     onPress: ampCapture(onPress, {
-      event: "Press",
+      action: "Press",
       element: "Button",
       component: "HomeScreen"
     })
@@ -210,7 +210,7 @@ const screens = {
     return /*#__PURE__*/React.createElement(Button, {
       title: "Go",
       onPress: ampCapture(onPress, {
-        event: "Press",
+        action: "Press",
         element: "Button",
         component: "HomeScreen"
       })
@@ -225,7 +225,7 @@ const screens = {
   HomeScreen: () => /*#__PURE__*/React.createElement(Button, {
     title: "Go",
     onPress: ampCapture(onPress, {
-      event: "Press",
+      action: "Press",
       element: "Button",
       component: "HomeScreen"
     })
@@ -233,7 +233,7 @@ const screens = {
   'SettingsScreen': () => /*#__PURE__*/React.createElement(Button, {
     title: "Go",
     onPress: ampCapture(onPress, {
-      event: "Press",
+      action: "Press",
       element: "Button",
       component: "SettingsScreen"
     })
@@ -248,7 +248,7 @@ function HomeScreen() {
   return /*#__PURE__*/React.createElement(Button, {
     title: "Go",
     onPress: ampCapture(onPress, {
-      event: "Press",
+      action: "Press",
       element: "Button",
       component: "HomeScreen"
     })
@@ -262,7 +262,7 @@ export default () => {
   return /*#__PURE__*/React.createElement(Button, {
     title: "Go",
     onPress: ampCapture(onPress, {
-      event: "Press",
+      action: "Press",
       element: "Button"
     })
   });
@@ -276,7 +276,7 @@ function HomeScreen() {
   return /*#__PURE__*/React.createElement(Button, {
     title: "Go",
     onPress: capturePress(onPress, {
-      event: "Press",
+      action: "Press",
       element: "Button",
       component: "HomeScreen"
     })
@@ -291,7 +291,7 @@ function HomeScreen() {
   return /*#__PURE__*/React.createElement(Button, {
     title: "Go",
     onPress: capturePress(onPress, {
-      event: "Press",
+      action: "Press",
       element: "Button",
       component: "HomeScreen"
     })
@@ -306,7 +306,7 @@ function HomeScreen() {
   return /*#__PURE__*/React.createElement(Button, {
     title: "Go",
     onPress: ampCapture(onPress, {
-      event: "Press",
+      action: "Press",
       element: "Button",
       component: "HomeScreen"
     })
@@ -320,14 +320,14 @@ function HomeScreen() {
   return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(Button, {
     title: "Go",
     onPress: ampCapture(onPress, {
-      event: "Press",
+      action: "Press",
       element: "Button",
       component: "HomeScreen"
     })
   }), /*#__PURE__*/React.createElement(CustomButton, {
     title: "Go",
     onPress: ampCapture(onPress, {
-      event: "Press",
+      action: "Press",
       element: "CustomButton",
       component: "HomeScreen"
     })
@@ -344,7 +344,7 @@ function HomeScreen({
     accessibilityLabel: label,
     title: "Go",
     onPress: ampCapture(onPress, {
-      event: "Press",
+      action: "Press",
       accessibilityLabel: label,
       element: "Button",
       component: "HomeScreen"
@@ -358,7 +358,7 @@ exports[`@amplitude/babel-plugin-autocapture-transformer transforms TouchableOpa
 function HomeScreen() {
   return /*#__PURE__*/React.createElement(TouchableOpacity, {
     onPress: ampCapture(handlePress, {
-      event: "Press",
+      action: "Press",
       element: "TouchableOpacity",
       component: "HomeScreen"
     })
@@ -372,7 +372,7 @@ function HomeScreen() {
   return /*#__PURE__*/React.createElement(CustomButton, {
     title: "Go",
     onPress: ampCapture(onPress, {
-      event: "Press",
+      action: "Press",
       element: "CustomButton",
       component: "HomeScreen"
     })
@@ -385,12 +385,12 @@ exports[`@amplitude/babel-plugin-autocapture-transformer transforms custom text-
 function HomeScreen() {
   return /*#__PURE__*/React.createElement(SearchField, {
     onChangeText: ampCapture(setQuery, {
-      event: "ChangeText",
+      action: "ChangeText",
       element: "SearchField",
       component: "HomeScreen"
     }),
     onSubmitEditing: ampCapture(submitQuery, {
-      event: "SubmitEditing",
+      action: "SubmitEditing",
       element: "SearchField",
       component: "HomeScreen"
     })
@@ -404,7 +404,7 @@ function HomeScreen() {
   return /*#__PURE__*/React.createElement(Toggle, {
     value: enabled,
     onValueChange: ampCapture(setEnabled, {
-      event: "ValueChange",
+      action: "ValueChange",
       element: "Toggle",
       component: "HomeScreen"
     })
@@ -418,7 +418,7 @@ function HomeScreen() {
   return /*#__PURE__*/React.createElement(Button, {
     title: "Go",
     onPress: ampCapture(() => console.log('pressed'), {
-      event: "Press",
+      action: "Press",
       element: "Button",
       component: "HomeScreen"
     })
@@ -432,7 +432,7 @@ function HomeScreen() {
   return /*#__PURE__*/React.createElement(Slider, {
     value: volume,
     onValueChange: ampCapture(setVolume, {
-      event: "ValueChange",
+      action: "ValueChange",
       element: "Slider",
       component: "HomeScreen"
     })
@@ -446,7 +446,7 @@ function HomeScreen() {
   return /*#__PURE__*/React.createElement(Switch, {
     value: enabled,
     onValueChange: ampCapture(setEnabled, {
-      event: "ValueChange",
+      action: "ValueChange",
       accessibilityLabel: "Enable notifications",
       testID: "notifications-switch",
       element: "Switch",
@@ -465,14 +465,14 @@ function HomeScreen() {
     accessibilityLabel: "Email",
     testID: "email-input",
     onChangeText: ampCapture(setEmail, {
-      event: "ChangeText",
+      action: "ChangeText",
       accessibilityLabel: "Email",
       testID: "email-input",
       element: "TextInput",
       component: "HomeScreen"
     }),
     onSubmitEditing: ampCapture(submitEmail, {
-      event: "SubmitEditing",
+      action: "SubmitEditing",
       accessibilityLabel: "Email",
       testID: "email-input",
       element: "TextInput",
@@ -490,7 +490,7 @@ function HomeScreen({
   return /*#__PURE__*/React.createElement(Button, {
     title: "Go",
     onPress: ampCapture(onPress, {
-      event: "Press",
+      action: "Press",
       element: "Button",
       component: "HomeScreen"
     })
@@ -503,7 +503,7 @@ exports[`@amplitude/babel-plugin-autocapture-transformer wraps onLongPress handl
 function HomeScreen() {
   return /*#__PURE__*/React.createElement(Pressable, {
     onLongPress: ampCapture(() => console.log('long press'), {
-      event: "LongPress",
+      action: "LongPress",
       element: "Pressable",
       component: "HomeScreen"
     })

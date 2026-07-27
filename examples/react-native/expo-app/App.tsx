@@ -13,8 +13,9 @@ function HomeScreen({ navigation }) {
   return (
     <View style={styles.container}>
       <Text>Home Screen</Text>
-      <Button accessibilityLabel="Online test label" title="Online test" onPress={() => track('RN Expo Online Test')} />
-      <Button accessibilityLabel="Offline test" title="Offline test" onPress={() => track('RN Expo Offline Test')} />
+      <Button accessibilityLabel="Press me to test Autocapture" title="Press me" onPress={() => console.log('Pressed')} />
+      <Button accessibilityLabel="Online test label" title="Online test" onPress={() => console.log('Online test')} />
+      <Button accessibilityLabel="Offline test" title="Offline test" onPress={() => console.log('Offline test')} />
       <Button accessibilityLabel="Go to Settings" title="Go to Settings" onPress={() => navigation.navigate('Settings')} />
       <Button
         accessibilityLabel="Fetch Network Test"
@@ -53,17 +54,18 @@ export default function App() {
   useEffect(() => {
     (async () => {
         // AMPLITUDE_API_KEY is inlined at bundle time (see babel.config.js).
-        await init(process.env.AMPLITUDE_API_KEY || 'YOUR_API_KEY', 'react-native-user-id', {
+        await init(process.env.AMPLITUDE_API_KEY || 'YOUR_API_KEY', '351pm Demo Video', {
           logLevel: Types.LogLevel.Debug,
           autocapture: {
-            sessions: true,
+            screenViews: true,
+            elementInteractions: true,
+            networkTracking: {
+              ignoreHosts: ['http://localhost:8081'],
+            },
             appLifecycles: true,
-          } // <-- todo
+            sessions: true,
+          },
         }).promise;
-        // Capture localhost traffic except Metro (8081) for the fetch network test screen.
-        add(networkCapturePlugin({
-          ignoreHosts: ['localhost:8081'],
-        }));
         track('expo-app/react-native/test-event');
         await identify(new Identify().set('react-native-test', 'yes')).promise;
     })();
