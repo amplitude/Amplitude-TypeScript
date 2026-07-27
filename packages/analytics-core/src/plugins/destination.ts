@@ -96,10 +96,10 @@ export class Destination implements DestinationPlugin {
   flushId: ReturnType<typeof setTimeout> | null = null;
   queue: Context[] = [];
   diagnosticsClient: IDiagnosticsClient | undefined;
-  // True for client SDKs (browser / React Native), which can recover from an offline
-  // state via a network reconnect or a page reload / app relaunch. False for the Node
-  // (server) SDK — a long-lived process with no such recovery — where events past the
-  // retry budget are dropped as before.
+  // True for client SDKs (browser page or worker, Chrome extension, React Native), which can
+  // recover from an offline state via a network reconnect or a page reload / worker restart /
+  // app relaunch. False for the Node (server) SDK — a long-lived process with no such
+  // recovery — where events past the retry budget are dropped as before.
   isClientSide = isClientSide();
 
   constructor(context?: { diagnosticsClient: IDiagnosticsClient }) {
@@ -404,12 +404,12 @@ export class Destination implements DestinationPlugin {
     let tryable: Context[];
 
     if (this.isClientSide) {
-      // Client SDKs (browser / React Native): mirror the mobile SDKs. Retry with
-      // exponential backoff, and once the retry budget is exhausted, go offline and keep
-      // the events instead of dropping them — this pauses all further flushing. They stay
-      // in the queue + storage; flushing resumes when the connectivity checker sees a
-      // `navigator`/NetInfo online event, or on page reload / app relaunch (which resets
-      // config.offline and, since `attempts` is not persisted, retries from scratch).
+      // Client SDKs: mirror the mobile SDKs. Retry with exponential backoff, and once the
+      // retry budget is exhausted, go offline and keep the events instead of dropping
+      // them — this pauses all further flushing. They stay in the queue + storage; flushing
+      // resumes when the connectivity checker sees a `navigator`/NetInfo online event, or on
+      // page reload / worker restart / app relaunch (which resets config.offline and, since
+      // `attempts` is not persisted, retries from scratch).
       tryable = [];
       let isExceedingMaxRetries = false;
       list.forEach((context) => {
