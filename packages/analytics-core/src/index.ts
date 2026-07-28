@@ -153,7 +153,6 @@ export { NodeConfig, NodeOptions } from './types/config/node-config';
 // React Native
 export {
   ReactNativeConfig,
-  ReactNativeConfigAutocaptureBeta,
   ReactNativeAutocaptureOptions,
   ReactNativeTrackingOptions,
   ReactNativeOptions,
@@ -184,4 +183,10 @@ export { ExcludeInternalReferrersOptions, EXCLUDE_INTERNAL_REFERRERS_CONDITIONS 
 export { VideoObserver, State as VideoState, type VideoObserverParams } from './observers/video';
 export { EmbeddedVideoPlayer, type Vendor as VideoVendor } from './video-analytics/types';
 export { isChromeExtension, isReactNative } from './utils/environment';
-export { translateRemoteConfigToLocal } from './config/joined-config';
+export {
+  translateRemoteConfigToLocal,
+  mergeUrls,
+  transformNetworkTrackingRemoteConfig,
+  NetworkCaptureRuleRemoteConfig,
+  NetworkTrackingOptionsRemoteConfig,
+} from './config/joined-config';

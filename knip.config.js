@@ -41,6 +41,16 @@ const IMPLICIT_PACKAGE_DEPS = {
   // imports inside a `declare module` block.
   'analytics-react-native': ['@types/ua-parser-js'],
 
+  // The presets and plugin are named as string literals in the babel options the
+  // tests pass to transformSync. @types/babel__traverse types the NodePath that
+  // src/index.ts pulls in through @babel/core.
+  'babel-plugin-autocapture-transformer': [
+    '@babel/plugin-syntax-jsx',
+    '@babel/preset-react',
+    '@babel/preset-typescript',
+    '@types/babel__traverse',
+  ],
+
   // The GTM wrapper inlines the *built* bundles of these two, read from their
   // lib/ directories by scripts/build-snippet.js. They are declared so
   // lerna/nx build them first, so nothing imports them.
