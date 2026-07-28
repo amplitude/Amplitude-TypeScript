@@ -105,20 +105,28 @@ export class VideoObserver {
     };
     this.updateState(nextState);
 
-    if (playbackState === 'playing') {
-      // if it's in a playing state, but the playhead is not moving,
-      // then transition playback from 'playing' to 'waiting'
-      // (the "waiting" listener isn't reliable, so this is a fallback)
-      this.waitingInterval && clearInterval(this.waitingInterval);
-      let prevPosition: number | null | undefined = this.state.position;
-      this.waitingInterval = setInterval(() => {
-        if (typeof prevPosition === 'number' && prevPosition === this.state.position) {
-          this.updatePlaybackState('waiting', event);
-        }
-        prevPosition = this.state.position;
-      }, 1_000);
-    } else {
-      this.waitingInterval && clearInterval(this.waitingInterval);
+    this.clearWaitingInterval();
+    if (playbackState !== 'playing') {
+      return;
+    }
+    // if it's in a playing state, but the playhead is not moving,
+    // then transition playback from 'playing' to 'waiting'
+    // (the "waiting" listener isn't reliable, so this is a fallback)
+    let prevPosition: number | null | undefined = this.state.position;
+    this.waitingInterval = setInterval(() => {
+      const position = this.state.position;
+      if (this.state.playbackState === 'playing' && typeof prevPosition === 'number' && prevPosition === position) {
+        // no new player event backs this transition, so carry the current position and metadata over
+        this.updateState({ ...this.state, playbackState: 'waiting' });
+      }
+      prevPosition = position;
+    }, 1_000);
+  }
+
+  private clearWaitingInterval() {
+    if (this.waitingInterval) {
+      clearInterval(this.waitingInterval);
+      this.waitingInterval = null;
     }
   }
 
@@ -156,6 +164,7 @@ export class VideoObserver {
   }
 
   destroy() {
+    this.clearWaitingInterval();
     this.untrack();
   }
 }

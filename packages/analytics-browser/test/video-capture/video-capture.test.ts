@@ -296,6 +296,98 @@ describe('VideoCapture', () => {
     });
   });
 
+  describe('buffering (waiting state)', () => {
+    const playingState: VideoState = {
+      playbackState: 'playing',
+      lastEvent: { duration: 10, last_position: 0 },
+      position: 0,
+      watchTime: 5,
+    };
+    const waitingState: VideoState = {
+      playbackState: 'waiting',
+      lastEvent: { duration: 10, last_position: 5 },
+      position: 5,
+      watchTime: 5,
+    };
+    const pausedState: VideoState = {
+      playbackState: 'paused',
+      lastEvent: { duration: 10, last_position: 5 },
+      position: 5,
+      watchTime: 5,
+    };
+
+    it('should not split the play session across buffering', async () => {
+      new VideoCapture(mockAmplitude)
+        .withVideoElement(document.createElement('video'))
+        .captureVideoStarted()
+        .captureVideoStopped()
+        .start();
+
+      currentVideoObserver!.emitStateChange({ playbackState: 'paused', lastEvent: undefined }, playingState);
+      await flushHeartbeat();
+
+      const playId = (mockAmplitude.track as jest.Mock).mock.calls[0][1].play_id;
+
+      currentVideoObserver!.emitStateChange(playingState, waitingState);
+      await flushHeartbeat();
+      expect(mockAmplitude.track).toHaveBeenCalledTimes(2);
+
+      currentVideoObserver!.emitStateChange(waitingState, {
+        ...playingState,
+        position: 6,
+        watchTime: 6,
+      });
+      await flushHeartbeat();
+      expect(mockAmplitude.track).toHaveBeenCalledTimes(2);
+      expect((mockAmplitude.track as jest.Mock).mock.calls.every((call) => call[1].play_id === playId)).toBe(true);
+
+      currentVideoObserver!.emitStateChange({ ...playingState, position: 6, watchTime: 6 }, pausedState);
+      await flushHeartbeat();
+      expect(mockAmplitude.track).toHaveBeenCalledTimes(3);
+      expect(mockAmplitude.track).toHaveBeenNthCalledWith(
+        3,
+        'Video Content Stopped',
+        expect.objectContaining({
+          play_id: playId,
+          stop_reason: 'paused',
+        }),
+        expect.any(Object),
+      );
+    });
+
+    it('should heartbeat the delayed stop event with the latest playback progress', async () => {
+      new VideoCapture(mockAmplitude)
+        .withVideoElement(document.createElement('video'))
+        .captureVideoStarted()
+        .captureVideoStopped()
+        .start();
+
+      currentVideoObserver!.emitStateChange({ playbackState: 'paused', lastEvent: undefined }, playingState);
+      await flushHeartbeat();
+
+      currentVideoObserver!.emitStateChange(playingState, {
+        ...playingState,
+        position: 8,
+        watchTime: 8,
+      });
+      jest.clearAllMocks();
+
+      // the delayed stop event is re-sent on the next heartbeat
+      await jest.advanceTimersByTimeAsync(60_000);
+      expect(mockAmplitude.track).toHaveBeenCalledTimes(1);
+      expect(mockAmplitude.track).toHaveBeenCalledWith(
+        'Video Content Stopped',
+        expect.objectContaining({
+          position: 8,
+          watch_duration: 8,
+          percent_completed: 80,
+          stop_reason: 'timeout',
+        }),
+        expect.objectContaining({ delay: { id: expect.any(String), timeout: 3_600_000 } }),
+      );
+    });
+  });
+
   describe('stops capturing when track fails', () => {
     const playingState: VideoState = {
       playbackState: 'playing',
@@ -303,19 +395,23 @@ describe('VideoCapture', () => {
     };
     const pausedState: VideoState = { playbackState: 'paused', lastEvent: undefined };
 
-    let heartbeatStop: jest.Mock;
+    /** The "Video Content Stopped" event flushed by stop(). */
+    const untrackedStopEvent = expect.objectContaining({
+      event_type: 'Video Content Stopped',
+      event_properties: expect.objectContaining({ stop_reason: 'untracked' }),
+    });
+
     let track: jest.Mock;
     let trackNoDelay: jest.Mock;
     let capture: VideoCapture;
 
     beforeEach(() => {
-      heartbeatStop = jest.fn();
       track = jest.fn().mockResolvedValue({ code: 200, event: {} });
       trackNoDelay = jest.fn().mockResolvedValue({ code: 200, event: {} });
       mockGetHeartbeatInstance.mockReturnValue({
         track,
         trackNoDelay,
-        stop: heartbeatStop,
+        stop: jest.fn(),
         update: jest.fn(),
       });
       capture = new VideoCapture(mockAmplitude)
@@ -328,25 +424,32 @@ describe('VideoCapture', () => {
       capture.stop();
     });
 
-    it('should call stop when trackNoDelay rejects on video start', async () => {
+    it('should stop when trackNoDelay rejects on video start', async () => {
       trackNoDelay.mockRejectedValue(new Error('trackNoDelay failed'));
 
       currentVideoObserver!.emitStateChange(pausedState, playingState);
-      await Promise.resolve();
+      await jest.advanceTimersByTimeAsync(0);
 
-      expect(heartbeatStop).toHaveBeenCalled();
+      expect(trackNoDelay).toHaveBeenCalledWith(untrackedStopEvent);
+
+      // the observer is detached, so no further events are captured
+      trackNoDelay.mockClear();
+      track.mockClear();
+      currentVideoObserver!.emitStateChange(pausedState, playingState);
+      expect(trackNoDelay).not.toHaveBeenCalled();
+      expect(track).not.toHaveBeenCalled();
     });
 
-    it('should call stop when track rejects on video start', async () => {
+    it('should stop when track rejects on video start', async () => {
       track.mockRejectedValue(new Error('track failed'));
 
       currentVideoObserver!.emitStateChange(pausedState, playingState);
-      await Promise.resolve();
+      await jest.advanceTimersByTimeAsync(0);
 
-      expect(heartbeatStop).toHaveBeenCalled();
+      expect(trackNoDelay).toHaveBeenCalledWith(untrackedStopEvent);
     });
 
-    it('should call stop when trackNoDelay rejects on video stop', async () => {
+    it('should stop when trackNoDelay rejects on video stop', async () => {
       capture.stop();
       trackNoDelay
         .mockResolvedValueOnce({ code: 200, event: {} })
@@ -358,15 +461,108 @@ describe('VideoCapture', () => {
         .start();
 
       currentVideoObserver!.emitStateChange(pausedState, playingState);
-      await Promise.resolve();
+      await jest.advanceTimersByTimeAsync(0);
       currentVideoObserver!.emitStateChange(playingState, {
         playbackState: 'paused',
         lastEvent: { duration: 10, last_position: 5 },
         position: 5,
       });
-      await Promise.resolve();
+      await jest.advanceTimersByTimeAsync(0);
 
-      expect(heartbeatStop).toHaveBeenCalled();
+      // the stop event was already flushed with stop_reason "paused", so tearing down
+      // the capture must not send it a second time
+      expect(trackNoDelay).toHaveBeenCalledTimes(2);
+      expect(trackNoDelay).not.toHaveBeenCalledWith(untrackedStopEvent);
+    });
+  });
+
+  describe('stop()', () => {
+    const idleState: VideoState = { playbackState: 'paused', lastEvent: undefined };
+    const playingState: VideoState = {
+      playbackState: 'playing',
+      lastEvent: { duration: 10, last_position: 0 },
+      position: 4,
+      watchTime: 4,
+    };
+
+    function startCapture(extraEventProperties: Record<string, string> = {}) {
+      const capture = new VideoCapture(mockAmplitude)
+        .withVideoElement(document.createElement('video'))
+        .withExtraEventProperties(extraEventProperties)
+        .captureVideoStarted()
+        .captureVideoStopped()
+        .start();
+      return { capture, observer: currentVideoObserver! };
+    }
+
+    it('should flush the delayed stop event when stopped mid-play', async () => {
+      const { capture, observer } = startCapture();
+      observer.emitStateChange(idleState, playingState);
+      await flushHeartbeat();
+      jest.clearAllMocks();
+
+      capture.stop();
+      await flushHeartbeat();
+
+      expect(mockAmplitude.track).toHaveBeenCalledTimes(1);
+      expect(mockAmplitude.track).toHaveBeenCalledWith(
+        'Video Content Stopped',
+        expect.objectContaining({ stop_reason: 'untracked', position: 4, watch_duration: 4 }),
+        expect.objectContaining({ delay: { id: expect.any(String) } }),
+      );
+
+      // the flushed event is ingested, so it is no longer heartbeated
+      jest.clearAllMocks();
+      await jest.advanceTimersByTimeAsync(60_000);
+      expect(mockAmplitude.track).not.toHaveBeenCalled();
+    });
+
+    it('should not send a stop event when playback already stopped', async () => {
+      const { capture, observer } = startCapture();
+      observer.emitStateChange(idleState, playingState);
+      await flushHeartbeat();
+      observer.emitStateChange(playingState, { ...playingState, playbackState: 'paused' });
+      await flushHeartbeat();
+      jest.clearAllMocks();
+
+      capture.stop();
+      await flushHeartbeat();
+
+      expect(mockAmplitude.track).not.toHaveBeenCalled();
+    });
+
+    it('should be safe to call multiple times', async () => {
+      const { capture, observer } = startCapture();
+      observer.emitStateChange(idleState, playingState);
+      await flushHeartbeat();
+      jest.clearAllMocks();
+
+      capture.stop();
+      capture.stop();
+      await flushHeartbeat();
+
+      expect(mockAmplitude.track).toHaveBeenCalledTimes(1);
+    });
+
+    it('should keep delayed events queued by other captures on the same client', async () => {
+      const first = startCapture({ video: 'first' });
+      const second = startCapture({ video: 'second' });
+      first.observer.emitStateChange(idleState, playingState);
+      second.observer.emitStateChange(idleState, playingState);
+      await flushHeartbeat();
+
+      first.capture.stop();
+      await flushHeartbeat();
+      jest.clearAllMocks();
+
+      // the second capture's delayed stop event is still heartbeated
+      await jest.advanceTimersByTimeAsync(60_000);
+      expect(mockAmplitude.track).toHaveBeenCalledTimes(1);
+      expect(mockAmplitude.track).toHaveBeenCalledWith(
+        'Video Content Stopped',
+        expect.objectContaining({ video: 'second', stop_reason: 'timeout' }),
+        expect.objectContaining({ delay: { id: expect.any(String), timeout: 3_600_000 } }),
+      );
     });
   });
 
@@ -429,7 +625,7 @@ describe('VideoCapture', () => {
         start_time: 0,
         position: 0,
         watch_duration: 0,
-        percent_completed: NaN,
+        percent_completed: 0,
       });
     });
   });
