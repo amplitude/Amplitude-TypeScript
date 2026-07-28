@@ -298,20 +298,36 @@ export class Destination implements DestinationPlugin {
     }, Promise.resolve());
   }
 
-  translatePayloadToDelayedPayload(payload: Payload, list: Context[]): DelayedPayload {
-    const delayedEvents = payload.events.filter((_event, index) => list[index].event.delay!.timeout);
-    const instantEvents = payload.events.filter((_event, index) => !list[index].event.delay!.timeout);
+  translatePayloadToDelayedPayload(payload: Payload, list: Context[]): { payload: DelayedPayload; list: Context[] } {
+    const delayedEvents: Event[] = [];
+    const instantEvents: Event[] = [];
+    const delayedContexts: Context[] = [];
+    const instantContexts: Context[] = [];
+
+    list.forEach((context, index) => {
+      if (context.event.delay!.timeout) {
+        delayedEvents.push(payload.events[index]);
+        delayedContexts.push(context);
+      } else {
+        instantEvents.push(payload.events[index]);
+        instantContexts.push(context);
+      }
+    });
+
     /* istanbul ignore next */
-    const timeout = list.find((context) => context.event.delay!.timeout)?.event.delay!.timeout ?? 0;
+    const timeout = delayedContexts[0]?.event.delay!.timeout ?? 0;
     const delayId = list[0].event.delay!.id;
-    const delayedPayload: DelayedPayload = {
-      ...payload,
-      id: delayId,
-      timeout,
-      instant_events: instantEvents,
-      events: delayedEvents,
+    return {
+      payload: {
+        ...payload,
+        id: delayId,
+        timeout,
+        instant_events: instantEvents,
+        events: delayedEvents,
+      },
+      // Match wire order (events, then instant_events) so response indices resolve correctly.
+      list: delayedContexts.concat(instantContexts),
     };
-    return delayedPayload;
   }
 
   async send(list: Context[], useRetry = true, delay?: boolean) {
@@ -344,7 +360,7 @@ export class Destination implements DestinationPlugin {
       );
       if (delay) {
         serverUrl = `${serverUrl}/delayed`;
-        payload = this.translatePayloadToDelayedPayload(payload, list);
+        ({ payload, list } = this.translatePayloadToDelayedPayload(payload, list));
         // TODO: if /delayed can't handle compression, then turn it off here
       }
       const res = await this.config.transportProvider.send(serverUrl, payload, shouldCompressUploadBody);
