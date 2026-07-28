@@ -229,6 +229,64 @@ describe('destination', () => {
         });
         expect(send).toHaveBeenCalledTimes(2);
       });
+
+      test('should retain isFresh when a parallel regular flush completes first', async () => {
+        let resolveDelayedSend!: (value: Response) => void;
+        const delayedSendPromise = new Promise<Response>((resolve) => {
+          resolveDelayedSend = resolve;
+        });
+        const successResponse = {
+          status: Status.Success,
+          statusCode: 200,
+          body: {
+            eventsIngested: 1,
+            payloadSizeBytes: 1,
+            serverUploadTime: 1,
+          },
+        } as Response;
+        const regularEvent = { event_type: 'regular', insert_id: 'regular-1' };
+        const send = jest
+          .fn()
+          // first flush: delayed predecessor + regular event in parallel
+          .mockReturnValueOnce(delayedSendPromise)
+          .mockResolvedValueOnce(successResponse)
+          // second flush: replacement delayed event
+          .mockResolvedValueOnce(successResponse);
+        destination.config = {
+          ...useDefaultConfig(),
+          transportProvider: { send },
+        };
+
+        const predecessorResult = destination.execute(event1);
+        const regularResult = destination.execute(regularEvent);
+        const flushPromise = destination.flush(true);
+        const replacementResult = destination.execute(event2);
+
+        expect(destination.queue).toHaveLength(3);
+        expect(destination.queue[2].event.delay?.isFresh).toBe(true);
+
+        // Regular batch completes while delayed predecessor is still in flight.
+        // removeEvents must not clear isFresh on the unrelated replacement.
+        await regularResult;
+        expect(destination.queue).toHaveLength(2);
+        expect(destination.queue.find((c) => c.event === event2)?.event.delay?.isFresh).toBe(true);
+
+        resolveDelayedSend(successResponse);
+        await predecessorResult;
+        await flushPromise;
+
+        expect(destination.queue).toHaveLength(1);
+        expect(destination.queue[0].event).toEqual(event2);
+
+        await destination.flush(true);
+
+        await expect(replacementResult).resolves.toEqual({
+          event: event2,
+          code: 200,
+          message: SUCCESS_MESSAGE,
+        });
+        expect(send).toHaveBeenCalledTimes(3);
+      });
     });
   });
 
