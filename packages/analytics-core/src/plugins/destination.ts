@@ -551,14 +551,20 @@ export class Destination implements DestinationPlugin {
    * This is called on response comes back for a request
    */
   removeEvents(eventsToRemove: Context[]) {
-    this.queue = this.queue.filter(
-      (queuedContext) =>
-        !eventsToRemove.some(
-          (context) => context.event.insert_id === queuedContext.event.insert_id && !queuedContext.event.delay?.isFresh,
-        ),
-    );
-
-    this.queue.forEach((context) => context.event.delay && delete context.event.delay.isFresh);
+    this.queue = this.queue.filter((queuedContext) => {
+      const matchingRemove = eventsToRemove.some(
+        (context) => context.event.insert_id === queuedContext.event.insert_id,
+      );
+      if (!matchingRemove) {
+        return true;
+      }
+      // Keep isFresh replacements; clear the flag only for this removal batch
+      if (queuedContext.event.delay?.isFresh) {
+        delete queuedContext.event.delay.isFresh;
+        return true;
+      }
+      return false;
+    });
 
     this.saveEvents();
   }
