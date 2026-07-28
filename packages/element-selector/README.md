@@ -56,9 +56,13 @@ const engine = createSelectorEngine(resolveSelectorConfig(remote, config.loggerP
   logger: config.loggerProvider,
 });
 
-config.remoteConfigClient.subscribe('elementSelector', 'all', (next) => {
-  engine.updateConfig(resolveSelectorConfig(next, config.loggerProvider));
-});
+config.remoteConfigClient.subscribe(
+  'configs.analyticsSDK.browserSDK.autocapture.elementSelector',
+  'all',
+  (next) => {
+    engine.updateConfig(resolveSelectorConfig(next, config.loggerProvider));
+  },
+);
 ```
 
 ### Chrome extension visual tagger

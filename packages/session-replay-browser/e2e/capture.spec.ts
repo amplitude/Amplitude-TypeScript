@@ -21,7 +21,22 @@ const remoteConfigNotRecording = {
 /**
  * Remote config with network logging and opt-in body capture enabled.
  */
-function remoteConfigWithNetworkBody(opts: { request?: boolean; response?: boolean; maxBodySizeBytes?: number } = {}) {
+type BodyCaptureRemoteConfig =
+  | boolean
+  | {
+      allowlist?: string[];
+      excludelist?: string[];
+      blocklist?: string[];
+    };
+
+function remoteConfigWithNetworkBody(
+  opts: {
+    request?: BodyCaptureRemoteConfig;
+    response?: BodyCaptureRemoteConfig;
+    maxBodySizeBytes?: number;
+  } = {},
+) {
+  const { request = true, response = true, maxBodySizeBytes } = opts;
   return {
     configs: {
       sessionReplay: {
@@ -29,7 +44,11 @@ function remoteConfigWithNetworkBody(opts: { request?: boolean; response?: boole
         sr_logging_config: {
           network: {
             enabled: true,
-            body: { request: true, response: true, ...opts },
+            body: {
+              request,
+              response,
+              ...(maxBodySizeBytes !== undefined ? { maxBodySizeBytes } : {}),
+            },
           },
         },
       },
@@ -831,6 +850,118 @@ test.describe('network body capture', () => {
   });
 });
 
+// ─── Network body masking ─────────────────────────────────────────────────────
+
+test.describe('network body masking', () => {
+  test('applies excludelist to request bodies', async ({ page }) => {
+    await mockRemoteConfig(
+      page,
+      remoteConfigWithNetworkBody({
+        request: { excludelist: ['/password'] },
+        response: false,
+      }),
+    );
+    const getFetchEvents = await mockTrackApiWithCapture(page);
+    await page.route(`${TEST_FETCH_ORIGIN}/**`, (route) =>
+      route.fulfill({ status: 200, contentType: 'application/json', body: '{"ok":true}' }),
+    );
+
+    await page.goto(buildUrl('/session-replay-browser/sr-capture-test.html', { sessionId: TEST_SESSION_ID }));
+    await waitForReady(page);
+    await waitForNetworkObservers(page);
+
+    await page.evaluate(
+      (url) =>
+        fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: 'alice', password: 'secret' }),
+        }),
+      `${TEST_FETCH_ORIGIN}/login`,
+    );
+    await page.waitForTimeout(200);
+
+    await page.evaluate(() => window.dispatchEvent(new Event('blur')));
+    await page.evaluate(() => (window as any).sessionReplay.flush(false) as Promise<void>);
+    await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
+
+    const evt = getFetchEvents().find((e) => String(e.url).includes(TEST_FETCH_ORIGIN));
+    expect(evt).toBeDefined();
+    expect(evt!.requestBody).toBe('{"username":"alice"}');
+  });
+
+  test('applies allowlist to request bodies', async ({ page }) => {
+    await mockRemoteConfig(
+      page,
+      remoteConfigWithNetworkBody({
+        request: { allowlist: ['/id'] },
+        response: false,
+      }),
+    );
+    const getFetchEvents = await mockTrackApiWithCapture(page);
+    await page.route(`${TEST_FETCH_ORIGIN}/**`, (route) =>
+      route.fulfill({ status: 200, contentType: 'application/json', body: '{"ok":true}' }),
+    );
+
+    await page.goto(buildUrl('/session-replay-browser/sr-capture-test.html', { sessionId: TEST_SESSION_ID }));
+    await waitForReady(page);
+    await waitForNetworkObservers(page);
+
+    await page.evaluate(
+      (url) =>
+        fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: 1, email: 'secret@example.com' }),
+        }),
+      `${TEST_FETCH_ORIGIN}/profile`,
+    );
+    await page.waitForTimeout(200);
+
+    await page.evaluate(() => window.dispatchEvent(new Event('blur')));
+    await page.evaluate(() => (window as any).sessionReplay.flush(false) as Promise<void>);
+    await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
+
+    const evt = getFetchEvents().find((e) => String(e.url).includes(TEST_FETCH_ORIGIN));
+    expect(evt).toBeDefined();
+    expect(evt!.requestBody).toBe('{"id":1}');
+  });
+
+  test('honors deprecated blocklist alias on response bodies', async ({ page }) => {
+    await mockRemoteConfig(
+      page,
+      remoteConfigWithNetworkBody({
+        request: false,
+        response: { blocklist: ['/token'] },
+      }),
+    );
+    const getFetchEvents = await mockTrackApiWithCapture(page);
+    await page.route(`${TEST_FETCH_ORIGIN}/**`, (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ user: 'alice', token: 'secret-token' }),
+      }),
+    );
+
+    await page.goto(buildUrl('/session-replay-browser/sr-capture-test.html', { sessionId: TEST_SESSION_ID }));
+    await waitForReady(page);
+    await waitForNetworkObservers(page);
+
+    await page.evaluate((url) => fetch(url), `${TEST_FETCH_ORIGIN}/session`);
+    await page.waitForTimeout(200);
+
+    await page.evaluate(() => window.dispatchEvent(new Event('blur')));
+    await page.evaluate(() => (window as any).sessionReplay.flush(false) as Promise<void>);
+    await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
+
+    const evt = getFetchEvents().find((e) => String(e.url).includes(TEST_FETCH_ORIGIN));
+    expect(evt).toBeDefined();
+    expect(evt!.responseBody).toBe('{"user":"alice"}');
+    expect(evt!.responseBodyStatus).toBe('captured');
+  });
+});
+
 // ─── Attribute masking ────────────────────────────────────────────────────────
 
 test.describe('attribute masking', () => {
@@ -1558,18 +1689,18 @@ test.describe('retry behavior', () => {
         }
       });
 
-    // The retry path is exercised via the eager initial send; the SDK eager default is now
-    // false (SR-4646), so opt in so the first (failing) request is made.
-    await page.goto(
-      buildUrl('/session-replay-browser/sr-capture-test.html', {
-        sessionId: TEST_SESSION_ID,
-        eagerFullSnapshotSend: true,
-      }),
-    );
-    await waitForReady(page);
-    await retryPromise;
+      // The retry path is exercised via the eager initial send; the SDK eager default is now
+      // false (SR-4646), so opt in so the first (failing) request is made.
+      await page.goto(
+        buildUrl('/session-replay-browser/sr-capture-test.html', {
+          sessionId: TEST_SESSION_ID,
+          eagerFullSnapshotSend: true,
+        }),
+      );
+      await waitForReady(page);
+      await retryPromise;
 
-    expect(callCount).toBeGreaterThanOrEqual(2);
+      expect(callCount).toBeGreaterThanOrEqual(2);
       expect(receivedBodies.length).toBeGreaterThan(0);
     });
 

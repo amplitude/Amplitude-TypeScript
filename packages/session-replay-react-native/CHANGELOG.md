@@ -3,6 +3,44 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [0.1.0-beta.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-react-native@0.1.0-beta.2...@amplitude/session-replay-react-native@0.1.0-beta.3) (2026-07-17)
+
+
+### Bug Fixes
+
+* **react-native:** configure :app first to avoid Android languageVersion crash (SDKRN-6) ([#1888](https://github.com/amplitude/Amplitude-TypeScript/issues/1888)) ([c7010e0](https://github.com/amplitude/Amplitude-TypeScript/commit/c7010e0f10b7f15ec5a787809a68586e9b437dcc))
+
+
+### Features
+
+* **session-replay-react-native:** Fabric-native dual-architecture AmpMaskView ([#1886](https://github.com/amplitude/Amplitude-TypeScript/issues/1886)) ([92a9b16](https://github.com/amplitude/Amplitude-TypeScript/commit/92a9b16f0744f3ccce7380a96e6d63db6caeb2b8))
+
+
+### Reverts
+
+* **session-replay-react-native:** remove SRMaskView / AmpMask / AmpUnmask stack ([#1885](https://github.com/amplitude/Amplitude-TypeScript/issues/1885)) ([b681b43](https://github.com/amplitude/Amplitude-TypeScript/commit/b681b439923bae937983e8dec717f9a35f758f9c))
+
+
+
+
+
+# [0.1.0-beta.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-react-native@0.1.0-beta.1...@amplitude/session-replay-react-native@0.1.0-beta.2) (2026-07-09)
+
+
+### Bug Fixes
+
+* **session-replay-react-native:** SRMaskView pointerEvents compiles across RN 0.73-0.88 (SDKRN-41) ([#1874](https://github.com/amplitude/Amplitude-TypeScript/issues/1874)) ([01ec004](https://github.com/amplitude/Amplitude-TypeScript/commit/01ec00448692a43b6c25c5bd9000853efe710a24))
+
+
+### Features
+
+* **session-replay-react-native:** Fabric SRMaskView foundation (SDKRN-32) ([#1865](https://github.com/amplitude/Amplitude-TypeScript/issues/1865)) ([b4199b8](https://github.com/amplitude/Amplitude-TypeScript/commit/b4199b894d1f4527508343b24c5771489c1ae370))
+* **session-replay-react-native:** public AmpMask/AmpUnmask API (SDKRN-33) ([#1866](https://github.com/amplitude/Amplitude-TypeScript/issues/1866)) ([ecfcab6](https://github.com/amplitude/Amplitude-TypeScript/commit/ecfcab6fd539aec18244ab9136f0df803f2e0483))
+
+
+
+
+
 # [0.1.0-beta.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-react-native@0.1.0-beta.0...@amplitude/session-replay-react-native@0.1.0-beta.1) (2026-06-25)
 
 

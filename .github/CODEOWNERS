@@ -5,6 +5,9 @@
 #
 # More info: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
 
+# All packages
+* @amplitude/dx
+
 # Session Replay Packages (Browser)
 # Owned by the Session Replay SDK team
 /packages/session-replay-browser/ @amplitude/session-replay-sdk

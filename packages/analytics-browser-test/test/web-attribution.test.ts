@@ -18,7 +18,11 @@ import {
 
 describe('Web attribution', () => {
   const defaultTracking = {
-    attribution: true,
+    // These tests cover user-property (web) attribution; event-property attribution is on by
+    // default, so disable it here to keep the assertions focused on the user-property flow.
+    attribution: {
+      trackingMethod: 'userProperty' as const,
+    },
     fileDownloads: false,
     formInteractions: false,
     pageViews: true,
@@ -153,6 +157,7 @@ describe('Web attribution', () => {
           defaultTracking: {
             ...defaultTracking,
             attribution: {
+              trackingMethod: 'userProperty',
               excludeReferrers: [referrerDomain],
             },
           },
@@ -356,6 +361,7 @@ describe('Web attribution', () => {
           defaultTracking: {
             ...defaultTracking,
             attribution: {
+              trackingMethod: 'userProperty',
               resetSessionOnNewCampaign: true,
             },
           },
@@ -377,6 +383,7 @@ describe('Web attribution', () => {
             defaultTracking: {
               ...defaultTracking,
               attribution: {
+                trackingMethod: 'userProperty',
                 resetSessionOnNewCampaign: true,
               },
             },
@@ -502,6 +509,7 @@ describe('Web attribution', () => {
           defaultTracking: {
             ...defaultTracking,
             attribution: {
+              trackingMethod: 'userProperty',
               excludeReferrers: [referring_domain],
             },
             sessions: true,
@@ -634,6 +642,7 @@ describe('Web attribution', () => {
           defaultTracking: {
             ...defaultTracking,
             attribution: {
+              trackingMethod: 'userProperty',
               resetSessionOnNewCampaign: true,
             },
             sessions: true,

@@ -1,5 +1,7 @@
 import { getGlobalScope } from '@amplitude/analytics-core';
 
+import { type BodyCaptureRuleConfig, captureSerializedBody, isBodyCaptureEnabled } from './network-body-capture';
+
 export type ResponseBodyStatus = 'captured' | 'truncated' | 'skipped_binary' | 'error';
 
 export interface NetworkRequestEvent {
@@ -23,8 +25,8 @@ export interface NetworkRequestEvent {
 export type NetworkEventCallback = (event: NetworkRequestEvent) => void;
 
 export interface NetworkBodyConfig {
-  request?: boolean;
-  response?: boolean;
+  request?: BodyCaptureRuleConfig;
+  response?: BodyCaptureRuleConfig;
   maxBodySizeBytes?: number;
 }
 
@@ -122,11 +124,16 @@ export class NetworkObservers {
 
       // Capture request body if configured
       const bodyConfig = this.networkConfig?.body;
-      if (bodyConfig?.request) {
+      if (bodyConfig && isBodyCaptureEnabled(bodyConfig.request)) {
         const serialized = serializeRequestBody(init?.body);
         if (serialized !== undefined) {
           const maxBytes = bodyConfig.maxBodySizeBytes ?? DEFAULT_MAX_BODY_SIZE_BYTES;
-          requestEvent.requestBody = truncateToByteLimit(serialized, maxBytes).value;
+          requestEvent.requestBody = captureSerializedBody(
+            serialized,
+            bodyConfig.request,
+            maxBytes,
+            truncateToByteLimit,
+          ).value;
         }
       }
 
@@ -144,7 +151,7 @@ export class NetworkObservers {
         });
         requestEvent.responseHeaders = headers;
 
-        if (bodyConfig?.response) {
+        if (bodyConfig && isBodyCaptureEnabled(bodyConfig.response)) {
           const contentType = headers['content-type'] || null;
           if (isBinaryContentType(contentType)) {
             requestEvent.responseBodyStatus = 'skipped_binary';
@@ -155,7 +162,12 @@ export class NetworkObservers {
             cloned.text().then(
               (text) => {
                 const maxBytes = bodyConfig.maxBodySizeBytes ?? DEFAULT_MAX_BODY_SIZE_BYTES;
-                const { value, truncated } = truncateToByteLimit(text, maxBytes);
+                const { value, truncated } = captureSerializedBody(
+                  text,
+                  bodyConfig.response,
+                  maxBytes,
+                  truncateToByteLimit,
+                );
                 requestEvent.responseBody = value;
                 requestEvent.responseBodyStatus = truncated ? 'truncated' : 'captured';
                 this.notifyEvent(requestEvent);

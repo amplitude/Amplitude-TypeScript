@@ -2,11 +2,18 @@ def isNewArchitectureEnabled() {
   return rootProject.hasProperty("newArchEnabled") && rootProject.getProperty("newArchEnabled") == "true"
 }
 
+// Gradle configures projects alphabetically, so this project sorts before ':app'.
+// If the app doesn't apply RN's 'com.facebook.react.rootproject' plugin, the RN gradle
+// plugin's jvmToolchain(17) sweep reaches this project after AGP has already finalized
+// its Java toolchain, failing with "property 'languageVersion' is final" (issue #1510).
+// Configuring ':app' first (as rootproject would) keeps the sweep ahead of finalization.
+// When the app already applies that plugin, this block is a harmless no-op (both force ':app' first).
+if (findProject(':app') != null) {
+  evaluationDependsOn(':app')
+}
+
 apply plugin: "com.android.library"
 apply plugin: "kotlin-android"
-
-
-def appProject = rootProject.allprojects.find { it.plugins.hasPlugin('com.android.application') }
 
 if (isNewArchitectureEnabled()) {
   apply plugin: "com.facebook.react"

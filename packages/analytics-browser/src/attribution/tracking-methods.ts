@@ -7,15 +7,24 @@ const isTrackingMethod = (value: unknown): value is TrackingMethod =>
   value === USER_PROPERTY_TRACKING_METHOD || value === EVENT_PROPERTY_TRACKING_METHOD;
 
 /**
+ * The default tracking methods used when no valid method is configured. Both run by default and
+ * are independent.
+ */
+const DEFAULT_TRACKING_METHODS: readonly TrackingMethod[] = [
+  USER_PROPERTY_TRACKING_METHOD,
+  EVENT_PROPERTY_TRACKING_METHOD,
+];
+
+/**
  * Normalizes attribution tracking methods from runtime config, drops unsupported values,
- * and falls back to the legacy default when nothing valid is provided.
+ * and falls back to the default methods when nothing valid is provided.
  */
 export const normalizeTrackingMethod = (trackingMethod?: unknown): TrackingMethod[] => {
   const normalized = [
     ...new Set((Array.isArray(trackingMethod) ? trackingMethod : [trackingMethod]).filter(isTrackingMethod)),
   ];
 
-  return normalized.length > 0 ? normalized : [USER_PROPERTY_TRACKING_METHOD];
+  return normalized.length > 0 ? normalized : [...DEFAULT_TRACKING_METHODS];
 };
 
 export const hasTrackingMethod = (options: AttributionOptions, trackingMethod: TrackingMethod) =>

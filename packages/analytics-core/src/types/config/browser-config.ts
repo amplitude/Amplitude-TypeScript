@@ -271,8 +271,7 @@ export interface AttributionOptions {
    * When multiple methods are provided, each enabled method runs independently and their behaviors are combined.
    * For example, `['userProperty', 'eventProperty']` updates user properties and also attaches campaign params
    * to event properties.
-   * @experimental this feature is experimental and may not be stable
-   * @defaultValue `"userProperty"`
+   * @defaultValue `["userProperty", "eventProperty"]`
    */
   trackingMethod?: TrackingMethod | TrackingMethod[];
   /**
@@ -280,7 +279,6 @@ export interface AttributionOptions {
    * such as on page load and SPA URL changes.
    * Applies only to `eventProperty` tracking.
    * Ignored by `userProperty` tracking.
-   * @experimental this feature is experimental and may not be stable
    * @defaultValue `false`
    */
   fallbackAttributionEvent?: boolean;

@@ -25,4 +25,6 @@ export {
   Storage,
   TransportType,
   OfflineDisabled,
+  NodeClient,
+  NodeOptions,
 } from '@amplitude/analytics-core';

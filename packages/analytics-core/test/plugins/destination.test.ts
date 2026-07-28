@@ -2025,5 +2025,58 @@ describe('destination', () => {
       expect(callback).not.toHaveBeenCalled();
       expect(destination.queue).toEqual([context]);
     });
+
+    test('should map invalid response indices to wire order for mixed delayed batches', async () => {
+      const delayId = 'delay-123';
+      const delayTimeout = 5000;
+      // Instant event is queued first; after translation wire order is [delayed, instant].
+      // Index 0 in the response must drop the delayed event, not the instant one.
+      transportProvider.send
+        .mockResolvedValueOnce({
+          status: Status.Invalid,
+          statusCode: 400,
+          body: {
+            error: 'error',
+            missingField: '',
+            eventsWithInvalidFields: { a: [0] },
+            eventsWithMissingFields: {},
+            eventsWithInvalidIdLengths: {},
+            silencedEvents: [],
+          },
+        })
+        .mockResolvedValueOnce(successResponse);
+
+      destination.retryTimeout = 1;
+      destination.config.flushIntervalMillis = 1;
+
+      const results = await Promise.all([
+        destination.execute({
+          event_type: 'instant_event',
+          insert_id: 'instant-0',
+          delay: { id: delayId },
+        }),
+        destination.execute({
+          event_type: 'delayed_event',
+          insert_id: 'delayed-0',
+          delay: { id: delayId, timeout: delayTimeout },
+        }),
+      ]);
+
+      expect(transportProvider.send).toHaveBeenCalledTimes(2);
+      expect(transportProvider.send).toHaveBeenNthCalledWith(
+        1,
+        delayedUrl,
+        expect.objectContaining({
+          events: [expect.objectContaining({ event_type: 'delayed_event' })],
+          instant_events: [expect.objectContaining({ event_type: 'instant_event' })],
+        }),
+        true,
+      );
+      expect(results[0].code).toBe(200);
+      expect(results[0].event.insert_id).toBe('instant-0');
+      expect(results[1].code).toBe(400);
+      expect(results[1].event.insert_id).toBe('delayed-0');
+      expect(destination.queue.length).toBe(0);
+    });
   });
 });

@@ -4,6 +4,7 @@ export {
   BaseEvent,
   EventOptions,
   ReactNativeClient,
+  NavigationState,
   ReactNativeAttributionOptions,
   ReactNativeOptions,
   ReactNativeConfig,

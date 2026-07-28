@@ -8,8 +8,8 @@ import {
 } from '../../src/attribution/tracking-methods';
 
 describe('tracking-methods', () => {
-  test('should default to user property tracking', () => {
-    expect(normalizeTrackingMethod()).toEqual([USER_PROPERTY_TRACKING_METHOD]);
+  test('should default to both user property and event property tracking', () => {
+    expect(normalizeTrackingMethod()).toEqual([USER_PROPERTY_TRACKING_METHOD, EVENT_PROPERTY_TRACKING_METHOD]);
   });
 
   test('should normalize and dedupe tracking methods', () => {
@@ -28,9 +28,15 @@ describe('tracking-methods', () => {
     ).toEqual([USER_PROPERTY_TRACKING_METHOD, EVENT_PROPERTY_TRACKING_METHOD]);
   });
 
-  test('should fall back to user property tracking when runtime input is invalid', () => {
-    expect(normalizeTrackingMethod('event_property')).toEqual([USER_PROPERTY_TRACKING_METHOD]);
-    expect(normalizeTrackingMethod([123, false, null])).toEqual([USER_PROPERTY_TRACKING_METHOD]);
+  test('should fall back to the default tracking methods when runtime input is invalid', () => {
+    expect(normalizeTrackingMethod('event_property')).toEqual([
+      USER_PROPERTY_TRACKING_METHOD,
+      EVENT_PROPERTY_TRACKING_METHOD,
+    ]);
+    expect(normalizeTrackingMethod([123, false, null])).toEqual([
+      USER_PROPERTY_TRACKING_METHOD,
+      EVENT_PROPERTY_TRACKING_METHOD,
+    ]);
   });
 
   test('should detect enabled tracking methods', () => {
@@ -45,11 +51,12 @@ describe('tracking-methods', () => {
     expect(options.fallbackAttributionEvent).toBe(true);
   });
 
-  test('should enable user property tracking by default', () => {
+  test('should enable both user property and event property tracking by default', () => {
     const options = {};
 
     expect(hasTrackingMethod(options, USER_PROPERTY_TRACKING_METHOD)).toBe(true);
+    expect(hasTrackingMethod(options, EVENT_PROPERTY_TRACKING_METHOD)).toBe(true);
     expect(isUserPropertyAttributionEnabled(options)).toBe(true);
-    expect(isEventPropertyAttributionEnabled(options)).toBe(false);
+    expect(isEventPropertyAttributionEnabled(options)).toBe(true);
   });
 });
