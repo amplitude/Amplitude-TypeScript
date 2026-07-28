@@ -18,4 +18,8 @@ export class Logger {
   error(): void {
     return undefined;
   }
+
+  debug(): void {
+    return undefined;
+  }
 }

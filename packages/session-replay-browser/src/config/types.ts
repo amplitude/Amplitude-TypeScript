@@ -1,6 +1,7 @@
 import { IConfig, LogLevel, ILogger } from '@amplitude/analytics-core';
 import { StoreType, ConsoleLogLevel } from '../typings/session-replay';
 import { TargetingFlag } from '@amplitude/targeting';
+import type { BodyCaptureRuleConfig } from '../network-body-capture';
 
 export interface SamplingConfig {
   sample_rate: number;
@@ -26,8 +27,8 @@ export interface LoggingConfig {
   network?: {
     enabled: boolean;
     body?: {
-      request?: boolean;
-      response?: boolean;
+      request?: BodyCaptureRuleConfig;
+      response?: BodyCaptureRuleConfig;
       maxBodySizeBytes?: number;
     };
   };

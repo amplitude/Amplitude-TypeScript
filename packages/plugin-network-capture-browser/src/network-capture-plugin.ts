@@ -81,12 +81,10 @@ export const networkCapturePlugin = (options: NetworkTrackingOptions = {}): Brow
     };
   };
 
-  // TODO: remove this when ready to ship React Native network tracking
-  const BLOCK_REACT_NATIVE = true;
-
   const setup: BrowserEnrichmentPlugin['setup'] = async (config, amplitude) => {
+    // Browser needs `document`; React Native uses the global fetch/XHR observer instead.
     /* istanbul ignore next */
-    if (typeof document === 'undefined' && (!isReactNative() || BLOCK_REACT_NATIVE)) {
+    if (typeof document === 'undefined' && !isReactNative()) {
       return;
     }
 

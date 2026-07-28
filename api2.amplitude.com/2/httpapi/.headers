@@ -1,0 +1,11 @@
+[
+  {
+    "applyTo": "/delayed",
+    "headers": [
+      {
+        "name": "status",
+        "value": "200"
+      }
+    ]
+  }
+]

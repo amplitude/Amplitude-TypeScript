@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.5.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-react-native@0.5.0...@amplitude/plugin-session-replay-react-native@0.5.1) (2026-07-17)
+
+
+### Bug Fixes
+
+* **react-native:** configure :app first to avoid Android languageVersion crash (SDKRN-6) ([#1888](https://github.com/amplitude/Amplitude-TypeScript/issues/1888)) ([c7010e0](https://github.com/amplitude/Amplitude-TypeScript/commit/c7010e0f10b7f15ec5a787809a68586e9b437dcc))
+
+
+
+
+
 # [0.5.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-react-native@0.4.10...@amplitude/plugin-session-replay-react-native@0.5.0) (2026-06-05)
 
 

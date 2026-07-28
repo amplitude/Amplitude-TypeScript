@@ -1,0 +1,132 @@
+name: 'E2E React Native'
+description: 'Build the RN host app and run @amplitude/analytics-react-native-test harness'
+
+inputs:
+  platform:
+    description: 'Harness platform to run (ios or android)'
+    required: true
+  new-arch:
+    description: 'Enable React Native New Architecture (true/false)'
+    required: false
+    default: 'true'
+  node-version:
+    description: 'Node.js version to use'
+    required: false
+    default: '22'
+  force-rebuild:
+    description: 'Force rebuild of the host app binary (true/false)'
+    required: false
+    default: 'true'
+  android-api-level:
+    description: 'Android emulator API level (android only)'
+    required: false
+    default: '34'
+  android-avd-name:
+    description: 'Android AVD name created for the harness (android only)'
+    required: false
+    default: 'amplitude-rn-e2e'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup pnpm
+      uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+      with:
+        node-version: ${{ inputs.node-version }}
+        cache: 'pnpm'
+
+    - name: Setup Ruby for CocoaPods
+      if: inputs.platform == 'ios'
+      uses: ruby/setup-ruby@6aaa311d81eba98ae12eaffbcb63296ace0efcde # v1.307.0
+      with:
+        ruby-version: '3.2'
+        bundler-cache: true
+        working-directory: examples/react-native/app
+
+    - name: Setup JDK 17
+      if: inputs.platform == 'android'
+      uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9 # v4
+      with:
+        distribution: temurin
+        java-version: '17'
+
+    - name: Enable KVM
+      if: inputs.platform == 'android'
+      shell: bash
+      run: |
+        echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+        sudo udevadm control --reload-rules
+        sudo udevadm trigger --name-match=kvm
+
+    - name: Install project dependencies
+      shell: bash
+      run: pnpm install --frozen-lockfile
+
+    - name: Build SDK and workspace dependencies
+      shell: bash
+      run: pnpm --filter @amplitude/analytics-react-native... build
+
+    - name: Cache CocoaPods
+      if: inputs.platform == 'ios'
+      uses: actions/cache@d4323d4df104b026a6aa633fdb11d772146be0bf # v4
+      with:
+        path: |
+          examples/react-native/app/ios/Pods
+          ~/Library/Caches/CocoaPods
+        key: pods-e2e-rn-${{ runner.os }}-newarch-${{ inputs.new-arch }}-${{ hashFiles('examples/react-native/app/ios/Podfile.lock') }}
+        restore-keys: |
+          pods-e2e-rn-${{ runner.os }}-newarch-${{ inputs.new-arch }}-
+
+    - name: Cache Gradle
+      if: inputs.platform == 'android'
+      uses: actions/cache@d4323d4df104b026a6aa633fdb11d772146be0bf # v4
+      with:
+        path: |
+          ~/.gradle/caches
+          ~/.gradle/wrapper
+        key: gradle-e2e-rn-${{ runner.os }}-newarch-${{ inputs.new-arch }}-${{ hashFiles('examples/react-native/app/android/**/*.gradle*', 'examples/react-native/app/android/gradle/wrapper/gradle-wrapper.properties', 'packages/analytics-react-native/android/**/*.gradle*') }}
+        restore-keys: |
+          gradle-e2e-rn-${{ runner.os }}-newarch-${{ inputs.new-arch }}-
+
+    # Build the APK before booting the emulator so Gradle time doesn't burn
+    # emulator minutes. The harness run below reuses the cached APK.
+    - name: Build Android host APK
+      if: inputs.platform == 'android'
+      shell: bash
+      working-directory: packages/analytics-react-native-test
+      env:
+        NEW_ARCH: ${{ inputs.new-arch == 'true' && '1' || '0' }}
+        FORCE_REBUILD: ${{ inputs.force-rebuild == 'true' && '1' || '0' }}
+        BUILD_ONLY: '1'
+      run: node ./scripts/run-harness-android.mjs
+
+    - name: Run React Native harness (iOS)
+      if: inputs.platform == 'ios'
+      shell: bash
+      working-directory: packages/analytics-react-native-test
+      env:
+        NEW_ARCH: ${{ inputs.new-arch == 'true' && '1' || '0' }}
+        FORCE_REBUILD: ${{ inputs.force-rebuild == 'true' && '1' || '0' }}
+        # CocoaPods 1.14.x + pnpm can hit Pathname null-byte errors without UTF-8
+        # (cocoapods/cocoapods#12866). macos runners may default to C locale.
+        LANG: en_US.UTF-8
+        LC_ALL: en_US.UTF-8
+      run: node ./scripts/run-harness-ios.mjs
+
+    - name: Run React Native harness (Android)
+      if: inputs.platform == 'android'
+      uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
+      env:
+        NEW_ARCH: ${{ inputs.new-arch == 'true' && '1' || '0' }}
+        # APK already built/cached above.
+        FORCE_REBUILD: '0'
+      with:
+        api-level: ${{ inputs.android-api-level }}
+        arch: x86_64
+        avd-name: ${{ inputs.android-avd-name }}
+        disable-animations: true
+        working-directory: packages/analytics-react-native-test
+        script: node ./scripts/run-harness-android.mjs

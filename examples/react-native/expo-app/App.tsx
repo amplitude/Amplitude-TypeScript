@@ -1,8 +1,8 @@
 import {Button, StyleSheet, Text, View} from 'react-native';
 import {useEffect} from 'react';
-import {identify, Identify, init, track, add, Types} from '@amplitude/analytics-react-native';
+import {identify, Identify, init, track, add, Types, trackScreenViewOnNavigationStateChange} from '@amplitude/analytics-react-native';
 import {networkCapturePlugin} from '@amplitude/plugin-network-capture-browser';
-import { NavigationContainer } from "@react-navigation/native";
+import { NavigationContainer, useNavigationContainerRef } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import FetchNetworkTestScreen from './FetchNetworkTestScreen';
 
@@ -13,8 +13,9 @@ function HomeScreen({ navigation }) {
   return (
     <View style={styles.container}>
       <Text>Home Screen</Text>
-      <Button accessibilityLabel="Online test label" title="Online test" onPress={() => track('RN Expo Online Test')} />
-      <Button accessibilityLabel="Offline test" title="Offline test" onPress={() => track('RN Expo Offline Test')} />
+      <Button accessibilityLabel="Press me to test Autocapture" title="Press me" onPress={() => console.log('Pressed')} />
+      <Button accessibilityLabel="Online test label" title="Online test" onPress={() => console.log('Online test')} />
+      <Button accessibilityLabel="Offline test" title="Offline test" onPress={() => console.log('Offline test')} />
       <Button accessibilityLabel="Go to Settings" title="Go to Settings" onPress={() => navigation.navigate('Settings')} />
       <Button
         accessibilityLabel="Fetch Network Test"
@@ -47,23 +48,36 @@ function SettingsScreen({navigation}: {navigation: any}) {
 }
 
 export default function App() {
+  // onStateChange does not fire for the initial route; onReady covers cold-start screen views.
+  const navigationRef = useNavigationContainerRef();
+
   useEffect(() => {
     (async () => {
         // AMPLITUDE_API_KEY is inlined at bundle time (see babel.config.js).
-        await init(process.env.AMPLITUDE_API_KEY || 'YOUR_API_KEY', 'react-native-user-id', {
-          logLevel: Types.LogLevel.Error,
-          // autocapture: { } // <-- todo
+        await init(process.env.AMPLITUDE_API_KEY || 'YOUR_API_KEY', '351pm Demo Video', {
+          logLevel: Types.LogLevel.Debug,
+          autocapture: {
+            screenViews: true,
+            elementInteractions: true,
+            networkTracking: {
+              ignoreHosts: ['http://localhost:8081'],
+            },
+            appLifecycles: true,
+            sessions: true,
+          },
         }).promise;
-        // Capture localhost traffic except Metro (8081) for the fetch network test screen.
-        add(networkCapturePlugin({
-          ignoreHosts: ['localhost:8081'],
-        }));
         track('expo-app/react-native/test-event');
         await identify(new Identify().set('react-native-test', 'yes')).promise;
     })();
   }, []);
   return (
-    <NavigationContainer>
+    <NavigationContainer
+      ref={navigationRef}
+      onReady={() => {
+        trackScreenViewOnNavigationStateChange(navigationRef.getRootState());
+      }}
+      onStateChange={trackScreenViewOnNavigationStateChange}
+    >
       <Stack.Navigator>
         <Stack.Screen name="Home" component={HomeScreen} />
         <Stack.Screen name="Settings" component={SettingsScreen} />

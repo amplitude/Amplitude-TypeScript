@@ -149,8 +149,12 @@ export class DiagnosticsStorage implements IDiagnosticsStorage {
         resolve(db);
       };
 
-      request.onupgradeneeded = (event) => {
-        const db = (event.target as IDBOpenDBRequest).result;
+      request.onupgradeneeded = () => {
+        const db = request.result;
+        if (!db) {
+          this.logger.debug('DiagnosticsStorage: Missing DB during upgrade.');
+          return;
+        }
         this.createTables(db);
       };
     });

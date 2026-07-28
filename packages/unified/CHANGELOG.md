@@ -3,6 +3,70 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.1.28](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/unified@1.1.27...@amplitude/unified@1.1.28) (2026-07-28)
+
+**Note:** Version bump only for package @amplitude/unified
+
+
+
+
+
+## [1.1.27](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/unified@1.1.26...@amplitude/unified@1.1.27) (2026-07-22)
+
+**Note:** Version bump only for package @amplitude/unified
+
+
+
+
+
+## [1.1.26](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/unified@1.1.25...@amplitude/unified@1.1.26) (2026-07-20)
+
+**Note:** Version bump only for package @amplitude/unified
+
+
+
+
+
+## [1.1.25](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/unified@1.1.24...@amplitude/unified@1.1.25) (2026-07-17)
+
+**Note:** Version bump only for package @amplitude/unified
+
+
+
+
+
+## [1.1.24](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/unified@1.1.23...@amplitude/unified@1.1.24) (2026-07-15)
+
+**Note:** Version bump only for package @amplitude/unified
+
+
+
+
+
+## [1.1.23](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/unified@1.1.22...@amplitude/unified@1.1.23) (2026-07-14)
+
+**Note:** Version bump only for package @amplitude/unified
+
+
+
+
+
+## [1.1.22](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/unified@1.1.21...@amplitude/unified@1.1.22) (2026-07-13)
+
+**Note:** Version bump only for package @amplitude/unified
+
+
+
+
+
+## [1.1.21](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/unified@1.1.20...@amplitude/unified@1.1.21) (2026-07-09)
+
+**Note:** Version bump only for package @amplitude/unified
+
+
+
+
+
 ## [1.1.20](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/unified@1.1.19...@amplitude/unified@1.1.20) (2026-06-30)
 
 **Note:** Version bump only for package @amplitude/unified

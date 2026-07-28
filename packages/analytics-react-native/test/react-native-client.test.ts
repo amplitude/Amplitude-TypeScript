@@ -1,5 +1,6 @@
 import { AmplitudeReactNative } from '../src/react-native-client';
 import * as core from '@amplitude/analytics-core';
+import * as Capture from '../src/amp-capture';
 import * as CookieMigration from '../src/cookie-migration';
 import {
   Status,
@@ -7,11 +8,43 @@ import {
   Event,
   getAnalyticsConnector,
   getCookieName as getStorageKey,
+  RemoteConfigClient,
 } from '@amplitude/analytics-core';
+import { AppState } from 'react-native';
 import { isWeb } from '../src/utils/platform';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Config from '../src/config';
 import * as NetworkChecker from '../src/plugins/network-connectivity-checker';
+import * as joinedConfig from '../src/config/joined-config';
+import { useDefaultConfig } from './helpers/default';
+import {
+  DEFAULT_APPLICATION_BACKGROUNDED_EVENT,
+  DEFAULT_APPLICATION_OPENED_EVENT,
+  DEFAULT_ELEMENT_INTERACTED_EVENT,
+  DEFAULT_SCREEN_VIEWED_EVENT,
+  DEFAULT_SESSION_END_EVENT,
+  DEFAULT_SESSION_START_EVENT,
+  SCREEN_NAME,
+  TARGET_ACCESSIBILITY_LABEL,
+  TARGET_ACTION,
+  TARGET_COMPONENT,
+  TARGET_ELEMENT,
+  TARGET_TEST_ID,
+} from '../src/constants';
+
+const mockRemoteConfigClient = {
+  subscribe: jest
+    .fn()
+    .mockImplementation(
+      (_configKey: string, _eventType: string, callback: (remoteConfig: any, source: any, lastFetch: Date) => void) => {
+        callback(null, 'cache', new Date());
+      },
+    ),
+  unsubscribe: jest.fn(),
+  updateConfigs: jest.fn(),
+};
+let MockedRemoteConfigClient: jest.SpyInstance;
+let originalRemoteConfigClient: typeof RemoteConfigClient;
 
 describe('react-native-client', () => {
   const API_KEY = 'API_KEY';
@@ -23,13 +56,31 @@ describe('react-native-client', () => {
     },
   };
 
+  beforeEach(() => {
+    originalRemoteConfigClient = core.RemoteConfigClient;
+    MockedRemoteConfigClient = jest.fn().mockImplementation(() => mockRemoteConfigClient);
+    Object.defineProperty(core, 'RemoteConfigClient', {
+      value: MockedRemoteConfigClient,
+      writable: true,
+      configurable: true,
+    });
+  });
+
   afterEach(async () => {
+    jest.clearAllMocks();
     // clean up cookies (web-only — RN has no `document`)
     if (typeof document !== 'undefined') {
       document.cookie = 'AMP_API_KEY=null; expires=-1';
     }
     if (!isWeb()) {
       await AsyncStorage.clear();
+    }
+    if (MockedRemoteConfigClient) {
+      Object.defineProperty(core, 'RemoteConfigClient', {
+        value: originalRemoteConfigClient,
+        writable: true,
+        configurable: true,
+      });
     }
   });
 
@@ -96,6 +147,19 @@ describe('react-native-client', () => {
       // NOTE: `parseOldCookies` and `useNodeConfig` are only called once despite multiple init calls
       expect(parseOldCookies).toHaveBeenCalledTimes(1);
       expect(useNodeConfig).toHaveBeenCalledTimes(1);
+    });
+
+    test('should remove previous app state listener when re-init', async () => {
+      jest.spyOn(CookieMigration, 'parseOldCookies').mockResolvedValue({ optOut: false });
+
+      const client = new AmplitudeReactNative();
+      await client.init(API_KEY, USER_ID, { ...attributionConfig }).promise;
+
+      const remove = jest.fn();
+      (client as any).appStateChangeHandler = { remove };
+
+      await client.init(API_KEY, USER_ID, { ...attributionConfig }).promise;
+      expect(remove).toHaveBeenCalledTimes(1);
     });
 
     test('should read from new cookies config', async () => {
@@ -194,6 +258,123 @@ describe('react-native-client', () => {
         },
       });
       expect(track).toHaveBeenCalledTimes(1);
+    });
+
+    test('should NOT use remote config by default (opt-in)', async () => {
+      jest.spyOn(CookieMigration, 'parseOldCookies').mockResolvedValueOnce({
+        optOut: false,
+      });
+      const client = new AmplitudeReactNative();
+      await client.init(API_KEY, USER_ID, {
+        ...attributionConfig,
+      }).promise;
+      expect(MockedRemoteConfigClient).not.toHaveBeenCalled();
+    });
+
+    test('should use remote config when remoteConfig.fetchRemoteConfig is true', async () => {
+      jest.spyOn(CookieMigration, 'parseOldCookies').mockResolvedValueOnce({
+        optOut: false,
+      });
+      const client = new AmplitudeReactNative();
+      await client.init(API_KEY, USER_ID, {
+        remoteConfig: { fetchRemoteConfig: true },
+        ...attributionConfig,
+      }).promise;
+      expect(MockedRemoteConfigClient).toHaveBeenCalled();
+      expect(mockRemoteConfigClient.subscribe).toHaveBeenCalledWith(
+        'configs.analyticsSDK.reactNativeSDK',
+        'all',
+        expect.any(Function),
+      );
+    });
+
+    test('should NOT use remote config when remoteConfig.fetchRemoteConfig is false', async () => {
+      jest.spyOn(CookieMigration, 'parseOldCookies').mockResolvedValueOnce({
+        optOut: false,
+      });
+      const client = new AmplitudeReactNative();
+      await client.init(API_KEY, USER_ID, {
+        remoteConfig: { fetchRemoteConfig: false },
+        ...attributionConfig,
+      }).promise;
+      expect(MockedRemoteConfigClient).not.toHaveBeenCalled();
+    });
+
+    test('should pass remoteConfig.serverUrl to RemoteConfigClient when provided', async () => {
+      jest.spyOn(CookieMigration, 'parseOldCookies').mockResolvedValueOnce({
+        optOut: false,
+      });
+      const customServerUrl = 'https://my-proxy.com/remote-config';
+      const client = new AmplitudeReactNative();
+      await client.init(API_KEY, USER_ID, {
+        remoteConfig: {
+          fetchRemoteConfig: true,
+          serverUrl: customServerUrl,
+        },
+        ...attributionConfig,
+      }).promise;
+
+      expect(MockedRemoteConfigClient).toHaveBeenCalledWith(API_KEY, expect.anything(), 'US', customServerUrl);
+    });
+
+    test('should share the same loggerProvider between RemoteConfigClient and final config', async () => {
+      jest.spyOn(CookieMigration, 'parseOldCookies').mockResolvedValueOnce({
+        optOut: false,
+      });
+      const client = new AmplitudeReactNative();
+      await client.init(API_KEY, USER_ID, {
+        remoteConfig: { fetchRemoteConfig: true },
+        ...attributionConfig,
+      }).promise;
+
+      expect(MockedRemoteConfigClient).toHaveBeenCalledWith(API_KEY, client.config.loggerProvider, 'US', undefined);
+    });
+
+    test('should call updateReactNativeConfigWithRemoteConfig when remoteConfig is not null', async () => {
+      jest.spyOn(CookieMigration, 'parseOldCookies').mockResolvedValueOnce({
+        optOut: false,
+      });
+      const mockRemoteConfig = {
+        autocapture: {
+          sessions: true,
+        },
+      };
+
+      const mockRemoteConfigClientWithData = {
+        subscribe: jest
+          .fn()
+          .mockImplementation(
+            (
+              _configKey: string,
+              _eventType: string,
+              callback: (remoteConfig: any, source: any, lastFetch: Date) => void,
+            ) => {
+              callback(mockRemoteConfig, 'cache', new Date());
+            },
+          ),
+        unsubscribe: jest.fn(),
+        updateConfigs: jest.fn(),
+      };
+
+      MockedRemoteConfigClient = jest.fn().mockImplementation(() => mockRemoteConfigClientWithData);
+      Object.defineProperty(core, 'RemoteConfigClient', {
+        value: MockedRemoteConfigClient,
+        writable: true,
+        configurable: true,
+      });
+
+      const updateReactNativeConfigSpy = jest.spyOn(joinedConfig, 'updateReactNativeConfigWithRemoteConfig');
+
+      const client = new AmplitudeReactNative();
+      await client.init(API_KEY, USER_ID, {
+        remoteConfig: { fetchRemoteConfig: true },
+        ...attributionConfig,
+      }).promise;
+
+      expect(updateReactNativeConfigSpy).toHaveBeenCalledTimes(1);
+      expect(updateReactNativeConfigSpy).toHaveBeenCalledWith(mockRemoteConfig, expect.any(Object));
+
+      updateReactNativeConfigSpy.mockRestore();
     });
   });
 
@@ -925,6 +1106,496 @@ describe('react-native-client', () => {
         expect(events[7].session_id).toEqual(5050);
         expect(events[7].time).toEqual(2200);
       });
+    });
+  });
+
+  describe('autocapture', () => {
+    let client: AmplitudeReactNative;
+    let trackSpy: jest.SpyInstance;
+
+    const sendResponse = {
+      status: Status.Success,
+      statusCode: 200,
+      body: {
+        eventsIngested: 1,
+        payloadSizeBytes: 1,
+        serverUploadTime: 1,
+      },
+    };
+
+    const initOptions = (
+      autocapture: boolean | { sessions?: boolean; appLifecycles?: boolean; elementInteractions?: boolean },
+    ) => ({
+      autocapture,
+      transportProvider: {
+        send: jest.fn().mockResolvedValue(sendResponse),
+      },
+      ...attributionConfig,
+    });
+
+    describe('sessions', () => {
+      beforeEach(() => {
+        client = new AmplitudeReactNative();
+        trackSpy = jest.spyOn(client, 'track');
+      });
+
+      afterEach(() => {
+        trackSpy.mockClear();
+      });
+
+      describe('should track', () => {
+        test('when autocapture is true', async () => {
+          await client.init(API_KEY, undefined, initOptions(true)).promise;
+          expect(trackSpy).toHaveBeenCalledWith({
+            event_type: DEFAULT_SESSION_START_EVENT,
+            time: expect.any(Number),
+            session_id: expect.any(Number),
+          });
+          // Force a session change; track() does not start sessions while appState is active
+          client.setSessionId(client.config.sessionId! + 1);
+          expect(trackSpy).toHaveBeenCalledWith({
+            event_type: DEFAULT_SESSION_END_EVENT,
+            time: expect.any(Number),
+            session_id: expect.any(Number),
+          });
+        });
+
+        test('when autocapture is object and .sessions is true', async () => {
+          await client.init(API_KEY, undefined, initOptions({ sessions: true })).promise;
+          expect(trackSpy).toHaveBeenCalledWith({
+            event_type: DEFAULT_SESSION_START_EVENT,
+            time: expect.any(Number),
+            session_id: expect.any(Number),
+          });
+          // Force a session change; track() does not start sessions while appState is active
+          client.setSessionId(client.config.sessionId! + 1);
+          expect(trackSpy).toHaveBeenCalledWith({
+            event_type: DEFAULT_SESSION_END_EVENT,
+            time: expect.any(Number),
+            session_id: expect.any(Number),
+          });
+        });
+      });
+
+      describe('should not track', () => {
+        test('when autocapture is false', async () => {
+          await client.init(API_KEY, undefined, initOptions(false)).promise;
+          expect(trackSpy).not.toHaveBeenCalled();
+        });
+
+        test('when autocapture is object and .sessions is false', async () => {
+          await client.init(API_KEY, undefined, initOptions({ sessions: false })).promise;
+          expect(trackSpy).not.toHaveBeenCalled();
+        });
+      });
+    });
+
+    describe('appLifecycles', () => {
+      const originalAppState = AppState.currentState;
+
+      beforeEach(() => {
+        client = new AmplitudeReactNative();
+        trackSpy = jest.spyOn(client, 'track');
+        AppState.currentState = 'active';
+      });
+
+      afterEach(() => {
+        trackSpy.mockClear();
+        AppState.currentState = originalAppState;
+      });
+
+      test('should track Application Opened on init when app is already active', async () => {
+        await client.init(API_KEY, undefined, initOptions({ appLifecycles: true })).promise;
+        expect(trackSpy).toHaveBeenCalledWith('[Amplitude] Application Opened');
+      });
+
+      test('should not track Application Opened on init when app is background', async () => {
+        AppState.currentState = 'background';
+        await client.init(API_KEY, undefined, initOptions({ appLifecycles: true })).promise;
+        expect(trackSpy).not.toHaveBeenCalledWith('[Amplitude] Application Opened');
+      });
+
+      test('should track appLifecycles when it is enabled', async () => {
+        await client.init(API_KEY, undefined, initOptions({ appLifecycles: true })).promise;
+        (client as any).handleAppStateChange('background');
+        expect(trackSpy).toHaveBeenCalledWith(DEFAULT_APPLICATION_BACKGROUNDED_EVENT);
+        (client as any).handleAppStateChange('active');
+        expect(trackSpy).toHaveBeenCalledWith(DEFAULT_APPLICATION_OPENED_EVENT);
+      });
+
+      test('should track Application Opened after background → inactive → active', async () => {
+        await client.init(API_KEY, undefined, initOptions({ appLifecycles: true })).promise;
+        trackSpy.mockClear();
+        (client as any).handleAppStateChange('background');
+        (client as any).handleAppStateChange('inactive');
+        (client as any).handleAppStateChange('active');
+        expect(trackSpy).toHaveBeenCalledWith(DEFAULT_APPLICATION_BACKGROUNDED_EVENT);
+        expect(trackSpy).toHaveBeenCalledWith(DEFAULT_APPLICATION_OPENED_EVENT);
+      });
+
+      test('should not track Application Opened on inactive → active without background', async () => {
+        await client.init(API_KEY, undefined, initOptions({ appLifecycles: true })).promise;
+        // App is typically active after init; simulate iOS overlay (Control Center).
+        (client as any).appState = 'active';
+        (client as any).wasBackgrounded = false;
+        trackSpy.mockClear();
+
+        (client as any).handleAppStateChange('inactive');
+        (client as any).handleAppStateChange('active');
+
+        expect(trackSpy).not.toHaveBeenCalledWith(DEFAULT_APPLICATION_BACKGROUNDED_EVENT);
+        expect(trackSpy).not.toHaveBeenCalledWith(DEFAULT_APPLICATION_OPENED_EVENT);
+      });
+
+      test('should not track Application Opened after re-init when background happened with appLifecycles off', async () => {
+        await client.init(API_KEY, undefined, initOptions({ appLifecycles: false })).promise;
+        (client as any).handleAppStateChange('background');
+        expect(trackSpy).not.toHaveBeenCalledWith(DEFAULT_APPLICATION_BACKGROUNDED_EVENT);
+
+        await client.init(API_KEY, undefined, initOptions({ appLifecycles: true })).promise;
+        trackSpy.mockClear();
+        (client as any).appState = 'background';
+        (client as any).handleAppStateChange('active');
+
+        expect(trackSpy).not.toHaveBeenCalledWith(DEFAULT_APPLICATION_OPENED_EVENT);
+      });
+    });
+
+    describe('elementInteractions', () => {
+      beforeEach(() => {
+        client = new AmplitudeReactNative();
+        trackSpy = jest.spyOn(client, 'track');
+      });
+
+      afterEach(() => {
+        trackSpy.mockClear();
+        jest.restoreAllMocks();
+      });
+
+      test('should subscribe to element interactions after the destination plugin is installed', async () => {
+        const add = client.add.bind(client);
+        jest.spyOn(client, 'add').mockImplementation((plugin) => {
+          if (plugin.name === '@amplitude/plugin-network-checker-react-native') {
+            const result = add(plugin);
+            return {
+              promise: result.promise.then(
+                () =>
+                  new Promise<void>((resolve) => {
+                    setTimeout(() => {
+                      Capture.ampCapture(jest.fn(), { testID: 'during-init' })();
+                      setTimeout(resolve, 0);
+                    }, 0);
+                  }),
+              ),
+            };
+          }
+          return add(plugin);
+        });
+
+        await client.init(API_KEY, undefined, {
+          ...initOptions({ elementInteractions: true }),
+          flushQueueSize: 1,
+        }).promise;
+
+        Capture.ampCapture(jest.fn(), { testID: 'after-init' })();
+
+        const elementInteractionIndexes = trackSpy.mock.calls.reduce<number[]>(
+          (indexes, [eventType], index) =>
+            eventType === DEFAULT_ELEMENT_INTERACTED_EVENT ? [...indexes, index] : indexes,
+          [],
+        );
+        expect(elementInteractionIndexes).toHaveLength(1);
+        expect(trackSpy.mock.calls[elementInteractionIndexes[0]][1]).toEqual(
+          expect.objectContaining({
+            [TARGET_TEST_ID]: 'after-init',
+          }),
+        );
+        const elementInteractionResult = trackSpy.mock.results[elementInteractionIndexes[0]].value;
+
+        await expect(elementInteractionResult.promise).resolves.toEqual(
+          expect.objectContaining({
+            code: 200,
+          }),
+        );
+      });
+
+      test('should not track element interactions twice when re-init with elementInteractions', async () => {
+        await client.init(API_KEY, undefined, initOptions({ elementInteractions: true })).promise;
+        await client.init(API_KEY, undefined, initOptions({ elementInteractions: true })).promise;
+        trackSpy.mockClear();
+
+        const properties = {
+          accessibilityLabel: 'Button accessibility label',
+          testID: 'my-button',
+          component: 'ButtonHarness',
+          element: 'Button',
+          action: 'onPress',
+        };
+        Capture.ampCapture(jest.fn(), properties)();
+
+        expect(trackSpy).toHaveBeenCalledTimes(1);
+        expect(trackSpy).toHaveBeenCalledWith(DEFAULT_ELEMENT_INTERACTED_EVENT, {
+          [SCREEN_NAME]: undefined,
+          [TARGET_ACCESSIBILITY_LABEL]: 'Button accessibility label',
+          [TARGET_ACTION]: 'onPress',
+          [TARGET_COMPONENT]: 'ButtonHarness',
+          [TARGET_ELEMENT]: 'Button',
+          [TARGET_TEST_ID]: 'my-button',
+        });
+      });
+
+      test('should not attach stale screen name to element interactions after re-init', async () => {
+        await client.init(API_KEY, undefined, initOptions({ elementInteractions: true })).promise;
+        client.trackScreenView('Home');
+        await client.init(API_KEY, undefined, initOptions({ elementInteractions: true })).promise;
+        trackSpy.mockClear();
+
+        Capture.ampCapture(jest.fn(), { testID: 'my-button' })();
+
+        expect(trackSpy).toHaveBeenCalledWith(
+          DEFAULT_ELEMENT_INTERACTED_EVENT,
+          expect.objectContaining({
+            [SCREEN_NAME]: undefined,
+          }),
+        );
+      });
+
+      test('should not attach stale screen name to element interactions after reset', async () => {
+        await client.init(API_KEY, undefined, initOptions({ elementInteractions: true })).promise;
+        client.trackScreenView('Home');
+        client.reset();
+        trackSpy.mockClear();
+
+        Capture.ampCapture(jest.fn(), { testID: 'my-button' })();
+
+        expect(trackSpy).toHaveBeenCalledWith(
+          DEFAULT_ELEMENT_INTERACTED_EVENT,
+          expect.objectContaining({
+            [SCREEN_NAME]: undefined,
+          }),
+        );
+      });
+    });
+
+    describe('boolean autocapture', () => {
+      beforeEach(() => {
+        client = new AmplitudeReactNative();
+        trackSpy = jest.spyOn(client, 'track');
+      });
+
+      afterEach(() => {
+        trackSpy.mockClear();
+      });
+
+      test('should enable every capture when autocapture is true', async () => {
+        await client.init(API_KEY, undefined, initOptions(true)).promise;
+        expect(client.autocapture).toEqual({
+          sessions: true,
+          appLifecycles: true,
+          screenViews: true,
+          elementInteractions: true,
+          networkTracking: true,
+        });
+      });
+
+      test('should enable the same captures whether autocapture true is expanded by the client or by remote config', async () => {
+        await client.init(API_KEY, undefined, initOptions(true)).promise;
+        const fromClient = client.autocapture;
+
+        // Remote config returning any autocapture object expands the local boolean via the join.
+        const localConfig = useDefaultConfig({ autocapture: true });
+        joinedConfig.updateReactNativeConfigWithRemoteConfig({ autocapture: {} }, localConfig);
+
+        expect(localConfig.autocapture).toEqual(fromClient);
+      });
+    });
+
+    describe('re-init', () => {
+      beforeEach(() => {
+        client = new AmplitudeReactNative();
+        trackSpy = jest.spyOn(client, 'track');
+      });
+
+      afterEach(() => {
+        trackSpy.mockClear();
+      });
+
+      test('should clear previous autocapture flags when re-init omits or disables autocapture', async () => {
+        await client.init(API_KEY, undefined, initOptions({ sessions: true, appLifecycles: true })).promise;
+        expect(client.autocapture).toEqual({ sessions: true, appLifecycles: true });
+
+        await client.init(API_KEY, undefined, initOptions(false)).promise;
+        expect(client.autocapture).toBeNull();
+
+        await client.init(API_KEY, undefined, initOptions({ sessions: true, appLifecycles: true })).promise;
+        expect(client.autocapture).toEqual({ sessions: true, appLifecycles: true });
+
+        await client.init(API_KEY, undefined, {
+          transportProvider: {
+            send: jest.fn().mockResolvedValue(sendResponse),
+          },
+          ...attributionConfig,
+        }).promise;
+        expect(client.autocapture).toBeNull();
+      });
+    });
+  });
+
+  describe('trackScreenView', () => {
+    test('should track screen viewed with screen name property', async () => {
+      const client = new AmplitudeReactNative();
+      const track = jest.spyOn(client, 'track');
+      client.trackScreenView('Home', { category: 'main' });
+      expect(track).toHaveBeenCalledWith(
+        DEFAULT_SCREEN_VIEWED_EVENT,
+        {
+          [SCREEN_NAME]: 'Home',
+          category: 'main',
+        },
+        undefined,
+      );
+    });
+  });
+
+  describe('trackScreenViewOnNavigationStateChange', () => {
+    test('should track root route name for flat navigation state', async () => {
+      const client = new AmplitudeReactNative();
+      const track = jest.spyOn(client, 'track');
+      client.trackScreenViewOnNavigationStateChange({
+        index: 0,
+        routes: [{ name: 'Home' }],
+      });
+      expect(track).toHaveBeenCalledWith(
+        DEFAULT_SCREEN_VIEWED_EVENT,
+        {
+          [SCREEN_NAME]: 'Home',
+        },
+        undefined,
+      );
+    });
+
+    test('should track focused leaf route name for nested navigation state', async () => {
+      const client = new AmplitudeReactNative();
+      const track = jest.spyOn(client, 'track');
+      client.trackScreenViewOnNavigationStateChange({
+        index: 0,
+        routes: [
+          {
+            name: 'Main',
+            state: {
+              index: 1,
+              routes: [
+                { name: 'Home' },
+                {
+                  name: 'Profile',
+                  state: {
+                    index: 0,
+                    routes: [{ name: 'ProfileDetails' }],
+                  },
+                },
+              ],
+            },
+          },
+        ],
+      });
+      expect(track).toHaveBeenCalledWith(
+        DEFAULT_SCREEN_VIEWED_EVENT,
+        {
+          [SCREEN_NAME]: 'ProfileDetails',
+        },
+        undefined,
+      );
+    });
+
+    test('should no-op when navigation state is undefined', async () => {
+      const client = new AmplitudeReactNative();
+      const track = jest.spyOn(client, 'track');
+      expect(await client.trackScreenViewOnNavigationStateChange(undefined).promise).toBe(undefined);
+      expect(track).not.toHaveBeenCalled();
+    });
+
+    test('should track initial route from onReady and dedupe the same route on onStateChange', () => {
+      const client = new AmplitudeReactNative();
+      const track = jest.spyOn(client, 'track');
+      const homeState = {
+        index: 0,
+        routes: [{ name: 'Home' }],
+      };
+
+      // onReady: React Navigation does not invoke onStateChange for the initial route.
+      client.trackScreenViewOnNavigationStateChange(homeState);
+      expect(track).toHaveBeenCalledTimes(1);
+      expect(track).toHaveBeenCalledWith(
+        DEFAULT_SCREEN_VIEWED_EVENT,
+        {
+          [SCREEN_NAME]: 'Home',
+        },
+        undefined,
+      );
+
+      // A later onStateChange for the same focused route must not double-count.
+      client.trackScreenViewOnNavigationStateChange(homeState);
+      expect(track).toHaveBeenCalledTimes(1);
+    });
+
+    test('should not track duplicate screen views for the same focused route', () => {
+      const client = new AmplitudeReactNative();
+      const track = jest.spyOn(client, 'track');
+      const homeState = {
+        index: 0,
+        routes: [{ name: 'Home' }],
+      };
+
+      client.trackScreenViewOnNavigationStateChange(homeState);
+      client.trackScreenViewOnNavigationStateChange(homeState);
+      expect(track).toHaveBeenCalledTimes(1);
+
+      client.trackScreenViewOnNavigationStateChange({
+        index: 0,
+        routes: [{ name: 'Settings' }],
+      });
+      expect(track).toHaveBeenCalledTimes(2);
+      expect(track).toHaveBeenLastCalledWith(
+        DEFAULT_SCREEN_VIEWED_EVENT,
+        {
+          [SCREEN_NAME]: 'Settings',
+        },
+        undefined,
+      );
+
+      // Returning to a previously viewed screen should track again.
+      client.trackScreenViewOnNavigationStateChange(homeState);
+      expect(track).toHaveBeenCalledTimes(3);
+      expect(track).toHaveBeenLastCalledWith(
+        DEFAULT_SCREEN_VIEWED_EVENT,
+        {
+          [SCREEN_NAME]: 'Home',
+        },
+        undefined,
+      );
+    });
+
+    test('should track the same focused route again after reset', () => {
+      const client = new AmplitudeReactNative();
+      const track = jest.spyOn(client, 'track');
+      const homeState = {
+        index: 0,
+        routes: [{ name: 'Home' }],
+      };
+
+      client.trackScreenViewOnNavigationStateChange(homeState);
+      expect(track).toHaveBeenCalledTimes(1);
+
+      client.reset();
+      client.trackScreenViewOnNavigationStateChange(homeState);
+      expect(track).toHaveBeenCalledTimes(2);
+      expect(track).toHaveBeenLastCalledWith(
+        DEFAULT_SCREEN_VIEWED_EVENT,
+        {
+          [SCREEN_NAME]: 'Home',
+        },
+        undefined,
+      );
     });
   });
 });

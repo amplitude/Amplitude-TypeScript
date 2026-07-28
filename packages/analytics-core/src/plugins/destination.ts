@@ -148,27 +148,31 @@ export class Destination implements DestinationPlugin {
    * @returns void
    */
   private removeStaleDelayedEvents(incomingEvent: Event) {
-    if (!incomingEvent.delay?.id) {
-      return;
-    }
-    console.log('---queue', this.queue);
-    /* istanbul ignore next */
-    this.queue = this.queue.filter((context) => {
-      if (
-        incomingEvent.delay &&
-        context.event.delay &&
-        context.event.delay.id === incomingEvent.delay.id &&
-        context.event.insert_id === incomingEvent.insert_id
-      ) {
-        if (this.inFlightDelayedEvents[incomingEvent.delay.id]) {
-          incomingEvent.delay.isFresh = true;
-          return true;
-        }
-        context.callback(buildResult(context.event, 0, 'Stale event overwritten'));
-        return false;
+    try {
+      if (!incomingEvent.delay?.id) {
+        return;
       }
-      return true;
-    });
+      /* istanbul ignore next */
+      this.queue = this.queue.filter((context) => {
+        if (
+          incomingEvent.delay &&
+          context.event.delay &&
+          context.event.delay.id === incomingEvent.delay.id &&
+          context.event.insert_id === incomingEvent.insert_id
+        ) {
+          if (this.inFlightDelayedEvents[incomingEvent.delay.id]) {
+            incomingEvent.delay.isFresh = true;
+            return true;
+          }
+          context.callback(buildResult(context.event, 0, 'Stale event overwritten'));
+          return false;
+        }
+        return true;
+      });
+      /* istanbul ignore next */
+    } catch (e) {
+      // swallow error
+    }
   }
 
   removeEventsExceedFlushMaxRetries(list: Context[]) {
@@ -294,20 +298,29 @@ export class Destination implements DestinationPlugin {
     }, Promise.resolve());
   }
 
-  translatePayloadToDelayedPayload(payload: Payload, list: Context[]): DelayedPayload {
-    const delayedEvents = payload.events.filter((_event, index) => list[index].event.delay!.timeout);
-    const instantEvents = payload.events.filter((_event, index) => !list[index].event.delay!.timeout);
+  translatePayloadToDelayedPayload(payload: Payload & Partial<DelayedPayload>, list: Context[]): void {
+    const delayedEvents: Event[] = [];
+    const instantEvents: Event[] = [];
+    const delayedContexts: Context[] = [];
+    const instantContexts: Context[] = [];
+
+    list.forEach((context, index) => {
+      if (context.event.delay!.timeout) {
+        delayedEvents.push(payload.events[index]);
+        delayedContexts.push(context);
+      } else {
+        instantEvents.push(payload.events[index]);
+        instantContexts.push(context);
+      }
+    });
+
+    list.splice(0, list.length, ...delayedContexts, ...instantContexts);
+
     /* istanbul ignore next */
-    const timeout = list.find((context) => context.event.delay!.timeout)?.event.delay!.timeout ?? 0;
-    const delayId = list[0].event.delay!.id;
-    const delayedPayload: DelayedPayload = {
-      ...payload,
-      id: delayId,
-      timeout,
-      instant_events: instantEvents,
-      events: delayedEvents,
-    };
-    return delayedPayload;
+    payload.timeout = delayedContexts[0]?.event.delay!.timeout ?? 0;
+    payload.id = list[0].event.delay!.id;
+    payload.events = delayedEvents;
+    payload.instant_events = instantEvents;
   }
 
   async send(list: Context[], useRetry = true, delay?: boolean) {
@@ -315,7 +328,7 @@ export class Destination implements DestinationPlugin {
       return this.fulfillRequest(list, 400, MISSING_API_KEY_MESSAGE);
     }
 
-    let payload: Payload = {
+    const payload: Payload = {
       api_key: this.config.apiKey,
       events: list.map((context) => {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -340,7 +353,7 @@ export class Destination implements DestinationPlugin {
       );
       if (delay) {
         serverUrl = this.config.delayedEventsServerUrl || `${serverUrl}/delayed`;
-        payload = this.translatePayloadToDelayedPayload(payload, list);
+        this.translatePayloadToDelayedPayload(payload, list);
         shouldCompressUploadBody = false; // delayed events doesn't support compression
       }
       const res = await this.config.transportProvider.send(serverUrl, payload, shouldCompressUploadBody);
