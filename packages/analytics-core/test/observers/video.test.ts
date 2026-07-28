@@ -258,6 +258,77 @@ describe('VideoObserver', () => {
           expect.objectContaining({ playbackState: 'playing', position: 6 }),
         );
       });
+
+      it('should keep the current position and watch time when stalling mid-playback', () => {
+        internalHandler.onPlay({ duration: 10, last_position: 0 });
+        internalHandler.onTimeUpdate({ position: 3, isSeeking: false });
+        onStateChange.mockClear();
+
+        // the playhead is sampled every second, so a stall is detected on the second matching sample
+        jest.advanceTimersByTime(2000);
+
+        expect(onStateChange).toHaveBeenLastCalledWith(
+          expect.objectContaining({ playbackState: 'playing', position: 3, watchTime: 3 }),
+          expect.objectContaining({
+            playbackState: 'waiting',
+            position: 3,
+            watchTime: 3,
+            lastEvent: { duration: 10, last_position: 0 },
+          }),
+        );
+      });
+
+      it('should detect a second stall after the playhead resumes', () => {
+        internalHandler.onPlay({ duration: 10, last_position: 0 });
+        jest.advanceTimersByTime(1000);
+        internalHandler.onTimeUpdate({ position: 3, isSeeking: false });
+        jest.advanceTimersByTime(1000);
+        internalHandler.onTimeUpdate({ position: 6, isSeeking: false });
+        onStateChange.mockClear();
+
+        jest.advanceTimersByTime(2000);
+
+        expect(onStateChange).toHaveBeenCalledTimes(1);
+        expect(onStateChange).toHaveBeenLastCalledWith(
+          expect.objectContaining({ playbackState: 'playing', position: 6 }),
+          expect.objectContaining({ playbackState: 'waiting', position: 6 }),
+        );
+      });
+
+      it('should stop watching the playhead after a playback error', () => {
+        internalHandler.onPlay({ duration: 10, last_position: 5 });
+        internalHandler.onError('test error');
+        onStateChange.mockClear();
+
+        jest.advanceTimersByTime(5000);
+
+        expect(onStateChange).not.toHaveBeenCalled();
+        expect(jest.getTimerCount()).toBe(0);
+      });
+
+      it('should resume watching the playhead when playback restarts after an error', () => {
+        internalHandler.onPlay({ duration: 10, last_position: 5 });
+        internalHandler.onError('test error');
+        internalHandler.onPlay({ duration: 10, last_position: 5 });
+        onStateChange.mockClear();
+
+        jest.advanceTimersByTime(2000);
+
+        expect(onStateChange).toHaveBeenLastCalledWith(
+          expect.objectContaining({ playbackState: 'playing', position: 5 }),
+          expect.objectContaining({ playbackState: 'waiting', position: 5 }),
+        );
+      });
+
+      it('should stop watching the playhead once destroyed', () => {
+        internalHandler.onPlay({ duration: 10, last_position: 5 });
+        videoObserver.destroy();
+        onStateChange.mockClear();
+
+        jest.advanceTimersByTime(5000);
+
+        expect(onStateChange).not.toHaveBeenCalled();
+      });
     });
   });
 });
