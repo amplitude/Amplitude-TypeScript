@@ -551,6 +551,8 @@ export class Destination implements DestinationPlugin {
    * This is called on response comes back for a request
    */
   removeEvents(eventsToRemove: Context[]) {
+    const insertIdsBeingRemoved = new Set(eventsToRemove.map((context) => context.event.insert_id));
+
     this.queue = this.queue.filter(
       (queuedContext) =>
         !eventsToRemove.some(
@@ -558,7 +560,11 @@ export class Destination implements DestinationPlugin {
         ),
     );
 
-    this.queue.forEach((context) => context.event.delay && delete context.event.delay.isFresh);
+    this.queue.forEach((context) => {
+      if (context.event.delay?.isFresh && insertIdsBeingRemoved.has(context.event.insert_id)) {
+        delete context.event.delay.isFresh;
+      }
+    });
 
     this.saveEvents();
   }
