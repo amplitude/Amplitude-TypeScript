@@ -138,6 +138,17 @@ export class Heartbeat {
     }
   }
 
+  /**
+   * Cancel a single delayed event by insert_id without affecting other queued events.
+   */
+  cancel(insertId: string) {
+    this.events.delete(insertId);
+    if (this.events.size === 0) {
+      this.interval && clearInterval(this.interval);
+      this.interval = null;
+    }
+  }
+
   stop() {
     this.interval && clearInterval(this.interval);
     this.interval = null;

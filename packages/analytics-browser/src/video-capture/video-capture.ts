@@ -8,6 +8,11 @@ import {
   BaseEvent,
   getHeartbeatInstance,
 } from '@amplitude/analytics-core';
+
+function isActivePlayback(playbackState: VideoState['playbackState']): boolean {
+  return playbackState === 'playing' || playbackState === 'waiting';
+}
+
 export class VideoCapture {
   private videoEl: HTMLVideoElement | null = null;
   private heartbeat: ReturnType<typeof getHeartbeatInstance>;
@@ -72,7 +77,8 @@ export class VideoCapture {
    */
   captureVideoStarted(): VideoCapture {
     this.listeners.push((previousState, nextState) => {
-      if (previousState.playbackState !== 'playing' && nextState.playbackState === 'playing') {
+      // "waiting" is rebuffering within the same play session — do not start a new play_id
+      if (!isActivePlayback(previousState.playbackState) && nextState.playbackState === 'playing') {
         this.playId = UUID();
         const now = new Date().getTime();
         const startEvent: BaseEvent = {
@@ -120,12 +126,19 @@ export class VideoCapture {
         };
         this.stopEvent.time = new Date().getTime();
       }
-      if (previousState.playbackState === 'playing' && nextState.playbackState !== 'playing' && this.stopEvent) {
+      // "waiting" is rebuffering — keep the play session open and refresh the delayed stop
+      if (
+        isActivePlayback(previousState.playbackState) &&
+        !isActivePlayback(nextState.playbackState) &&
+        this.stopEvent
+      ) {
         this.stopEvent.event_properties = {
           ...this.stopEvent.event_properties,
           stop_reason: nextState.playbackState,
         };
         this.heartbeat.trackNoDelay(this.stopEvent).catch(this.stop.bind(this));
+      } else if (this.stopEvent) {
+        void this.heartbeat.update(this.stopEvent);
       }
     });
     return this;
@@ -170,7 +183,10 @@ export class VideoCapture {
   stop() {
     this.onRemoveListeners.forEach((listener) => listener());
     this.onRemoveListeners = [];
-    this.heartbeat.stop();
+    if (this.stopEvent?.insert_id) {
+      this.heartbeat.cancel(this.stopEvent.insert_id);
+    }
+    this.stopEvent = null;
   }
 
   parseStartEventProperties(nextState: VideoState): Record<string, string | number | boolean> {
@@ -182,10 +198,12 @@ export class VideoCapture {
   }
 
   parseStopEventProperties(nextState: VideoState): Record<string, string | number | boolean> {
+    const duration = nextState.lastEvent?.duration ?? 0;
+    const position = nextState.position ?? 0;
     return {
       ...this.parseStartEventProperties(nextState),
       watch_duration: nextState.watchTime ?? 0,
-      percent_completed: ((nextState.position ?? 0) / (nextState.lastEvent?.duration ?? 0)) * 100,
+      percent_completed: duration > 0 ? (position / duration) * 100 : 0,
     };
   }
 }

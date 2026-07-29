@@ -96,6 +96,32 @@ export class VideoObserver {
     this.updateState(nextState);
   }
 
+  private clearWaitingInterval() {
+    if (this.waitingInterval) {
+      clearInterval(this.waitingInterval);
+      this.waitingInterval = null;
+    }
+  }
+
+  private startWaitingDetection() {
+    // if it's in a playing state, but the playhead is not moving,
+    // then transition playback from 'playing' to 'waiting'
+    // (the "waiting" listener isn't reliable, so this is a fallback)
+    this.clearWaitingInterval();
+    let prevPosition: number | null | undefined = this.state.position;
+    this.waitingInterval = setInterval(() => {
+      if (typeof prevPosition === 'number' && prevPosition === this.state.position) {
+        this.clearWaitingInterval();
+        this.updateState({
+          ...this.state,
+          playbackState: 'waiting',
+        });
+        return;
+      }
+      prevPosition = this.state.position;
+    }, 1_000);
+  }
+
   private updatePlaybackState(playbackState: PlaybackState, event: VideoEvent) {
     const nextState: State = {
       ...this.state,
@@ -106,19 +132,9 @@ export class VideoObserver {
     this.updateState(nextState);
 
     if (playbackState === 'playing') {
-      // if it's in a playing state, but the playhead is not moving,
-      // then transition playback from 'playing' to 'waiting'
-      // (the "waiting" listener isn't reliable, so this is a fallback)
-      this.waitingInterval && clearInterval(this.waitingInterval);
-      let prevPosition: number | null | undefined = this.state.position;
-      this.waitingInterval = setInterval(() => {
-        if (typeof prevPosition === 'number' && prevPosition === this.state.position) {
-          this.updatePlaybackState('waiting', event);
-        }
-        prevPosition = this.state.position;
-      }, 1_000);
+      this.startWaitingDetection();
     } else {
-      this.waitingInterval && clearInterval(this.waitingInterval);
+      this.clearWaitingInterval();
     }
   }
 
@@ -147,6 +163,9 @@ export class VideoObserver {
       watchTime: (this.state.watchTime ?? 0) + timeDelta,
     };
     this.updateState(nextState);
+    if (isWaiting) {
+      this.startWaitingDetection();
+    }
   }
 
   private updateState(nextState: State) {
@@ -156,6 +175,7 @@ export class VideoObserver {
   }
 
   destroy() {
+    this.clearWaitingInterval();
     this.untrack();
   }
 }

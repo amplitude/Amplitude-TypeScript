@@ -303,20 +303,21 @@ describe('VideoCapture', () => {
     };
     const pausedState: VideoState = { playbackState: 'paused', lastEvent: undefined };
 
-    let heartbeatStop: jest.Mock;
+    let heartbeatCancel: jest.Mock;
     let track: jest.Mock;
     let trackNoDelay: jest.Mock;
     let capture: VideoCapture;
 
     beforeEach(() => {
-      heartbeatStop = jest.fn();
+      heartbeatCancel = jest.fn();
       track = jest.fn().mockResolvedValue({ code: 200, event: {} });
       trackNoDelay = jest.fn().mockResolvedValue({ code: 200, event: {} });
       mockGetHeartbeatInstance.mockReturnValue({
         track,
         trackNoDelay,
-        stop: heartbeatStop,
+        cancel: heartbeatCancel,
         update: jest.fn(),
+        stop: jest.fn(),
       });
       capture = new VideoCapture(mockAmplitude)
         .withVideoElement(document.createElement('video'))
@@ -328,25 +329,25 @@ describe('VideoCapture', () => {
       capture.stop();
     });
 
-    it('should call stop when trackNoDelay rejects on video start', async () => {
+    it('should cancel its delayed event when trackNoDelay rejects on video start', async () => {
       trackNoDelay.mockRejectedValue(new Error('trackNoDelay failed'));
 
       currentVideoObserver!.emitStateChange(pausedState, playingState);
       await Promise.resolve();
 
-      expect(heartbeatStop).toHaveBeenCalled();
+      expect(heartbeatCancel).toHaveBeenCalled();
     });
 
-    it('should call stop when track rejects on video start', async () => {
+    it('should cancel its delayed event when track rejects on video start', async () => {
       track.mockRejectedValue(new Error('track failed'));
 
       currentVideoObserver!.emitStateChange(pausedState, playingState);
       await Promise.resolve();
 
-      expect(heartbeatStop).toHaveBeenCalled();
+      expect(heartbeatCancel).toHaveBeenCalled();
     });
 
-    it('should call stop when trackNoDelay rejects on video stop', async () => {
+    it('should cancel its delayed event when trackNoDelay rejects on video stop', async () => {
       capture.stop();
       trackNoDelay
         .mockResolvedValueOnce({ code: 200, event: {} })
@@ -366,7 +367,7 @@ describe('VideoCapture', () => {
       });
       await Promise.resolve();
 
-      expect(heartbeatStop).toHaveBeenCalled();
+      expect(heartbeatCancel).toHaveBeenCalled();
     });
   });
 
@@ -429,7 +430,7 @@ describe('VideoCapture', () => {
         start_time: 0,
         position: 0,
         watch_duration: 0,
-        percent_completed: NaN,
+        percent_completed: 0,
       });
     });
   });

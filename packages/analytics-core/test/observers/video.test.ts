@@ -258,6 +258,38 @@ describe('VideoObserver', () => {
           expect.objectContaining({ playbackState: 'playing', position: 6 }),
         );
       });
+
+      it('should preserve position when stalling after the playhead has advanced', () => {
+        internalHandler.onPlay({ duration: 10, last_position: 0 });
+        internalHandler.onTimeUpdate({ position: 5, isSeeking: false });
+        jest.advanceTimersByTime(1000); // sync stall detector to the advanced position
+        onStateChange.mockClear();
+        jest.advanceTimersByTime(1000);
+        expect(onStateChange).toHaveBeenCalledWith(
+          expect.objectContaining({ playbackState: 'playing', position: 5 }),
+          expect.objectContaining({ playbackState: 'waiting', position: 5 }),
+        );
+      });
+
+      it('should detect a subsequent stall after recovering from waiting', () => {
+        internalHandler.onPlay({ duration: 10, last_position: 5 });
+        jest.advanceTimersByTime(1000);
+        internalHandler.onTimeUpdate({ position: 6, isSeeking: false });
+        onStateChange.mockClear();
+        jest.advanceTimersByTime(1000);
+        expect(onStateChange).toHaveBeenCalledWith(
+          expect.objectContaining({ playbackState: 'playing', position: 6 }),
+          expect.objectContaining({ playbackState: 'waiting', position: 6 }),
+        );
+      });
+
+      it('should clear the waiting interval on destroy', () => {
+        internalHandler.onPlay({ duration: 10, last_position: 5 });
+        onStateChange.mockClear();
+        videoObserver.destroy();
+        jest.advanceTimersByTime(1000);
+        expect(onStateChange).not.toHaveBeenCalled();
+      });
     });
   });
 });
