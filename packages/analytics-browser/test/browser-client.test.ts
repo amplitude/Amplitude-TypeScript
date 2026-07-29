@@ -427,6 +427,8 @@ describe('browser-client', () => {
         expect(client.config.enableDiagnostics).toBe(expectedEnabled);
         expect(client.config.diagnosticsSampleRate).toBe(expectedSampleRate);
 
+        expect(mockDiagnosticsClient.setTag).toHaveBeenCalledWith('platform', 'Web');
+
         // Clean up
         diagnosticsClientSpy.mockRestore();
       },
