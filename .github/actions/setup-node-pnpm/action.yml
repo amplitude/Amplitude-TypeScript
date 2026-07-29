@@ -1,5 +1,5 @@
 name: 'Setup Node and pnpm'
-description: 'Set up pnpm and Node.js with a pnpm cache, and install workspace dependencies'
+description: 'Set up pnpm and Node.js with a pnpm cache, optionally installing workspace dependencies'
 
 # Callers need their own actions/checkout step, since a local action is only
 # resolvable once the repository is on disk.
