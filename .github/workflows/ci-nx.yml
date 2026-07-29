@@ -65,10 +65,13 @@ jobs:
         with:
           fetch-depth: 0
 
-      # These stay inline rather than using ./.github/actions/setup-node-pnpm.
-      # size-limit-action checks out the base branch to measure baseline sizes,
-      # which replaces the working tree, and a local composite action's post
-      # step then fails because its action.yml is no longer on disk.
+      # Setup stays inline until ./.github/actions/setup-node-pnpm exists on the
+      # base branch. size-limit-action runs `git checkout -f <base>` to measure
+      # baseline sizes and never switches back, so the base branch is what's on
+      # disk when this job's post steps run, and a local composite action's post
+      # step fails if that branch doesn't carry it. Switch this job over once the
+      # action is on main — noting this workflow also runs for PRs into v1.x,
+      # which won't carry it.
       # size-limit-action installs dependencies itself, so there is no install here.
       - name: Setup pnpm
         uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4

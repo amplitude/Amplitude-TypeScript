@@ -1,10 +1,8 @@
 name: 'Setup Node and pnpm'
 description: 'Set up pnpm and Node.js with a pnpm cache, and install workspace dependencies'
 
-# Callers still need their own actions/checkout step: a local action can only be
-# resolved once the repository is on disk. For the same reason, a job that
-# replaces the working tree mid-run cannot use this action — its post step would
-# fail once this file is gone. See the check-size-limits job in ci-nx.yml.
+# Callers need their own actions/checkout step, since a local action is only
+# resolvable once the repository is on disk.
 
 inputs:
   node-version:
