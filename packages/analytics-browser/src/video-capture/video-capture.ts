@@ -206,7 +206,15 @@ export class VideoCapture {
   }
 
   parseStartEventProperties(nextState: VideoState): Record<string, string | number | boolean> {
+    const { last_position: _lastPosition, ...lastEventProperties } = nextState.lastEvent ?? {};
+    const eventProperties: Record<string, string | number | boolean> = {};
+    for (const [key, value] of Object.entries(lastEventProperties)) {
+      if (value !== null && value !== undefined) {
+        eventProperties[key] = value;
+      }
+    }
     return {
+      ...eventProperties,
       duration: nextState.lastEvent?.duration ?? 0,
       start_time: nextState.lastEvent?.start_time ?? 0,
       position: nextState.position ?? 0,
