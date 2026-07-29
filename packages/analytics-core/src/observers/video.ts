@@ -87,6 +87,7 @@ export class VideoObserver {
   }
 
   private updateStateWithError(error: string) {
+    this.clearWaitingInterval();
     const previousState = this.state;
     const nextState: State = {
       ...previousState,
