@@ -36,6 +36,13 @@ config.resolver.resolveRequest = (context, moduleName, platform) => {
       return context.resolveRequest(context, target, platform);
     }
   }
+  // Symbolication stack frames for watchFolder packages use repo-root-relative
+  // paths (e.g. ./packages/analytics-core/lib/cjs/logger). Resolve those from
+  // the monorepo root instead of the Expo project root.
+  const monorepoRelative = moduleName.replace(/^\.\//, '');
+  if (monorepoRelative.startsWith('packages/')) {
+    return context.resolveRequest(context, path.join(repoRoot, monorepoRelative), platform);
+  }
   return context.resolveRequest(context, moduleName, platform);
 };
 

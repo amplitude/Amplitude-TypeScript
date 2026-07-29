@@ -12,8 +12,6 @@ import {
   getCookieName,
   getQueryParams,
   FetchTransport,
-  ReactNativeConfigAutocaptureBeta,
-  ReactNativeAutocaptureOptions,
 } from '@amplitude/analytics-core';
 
 import { LocalStorage } from './storage/local-storage';
@@ -64,7 +62,7 @@ export class ReactNativeConfig extends Config implements IReactNativeConfig {
   sessionTimeout: number;
   trackingSessionEvents: boolean;
   trackingOptions: ReactNativeTrackingOptions;
-  autocapture?: ReactNativeAutocaptureOptions | boolean;
+  autocapture?: IReactNativeConfig['autocapture'];
 
   // NOTE: These protected properties are used to cache values from async storage
   protected _deviceId?: string;
@@ -109,7 +107,7 @@ export class ReactNativeConfig extends Config implements IReactNativeConfig {
     this.sessionTimeout = options?.sessionTimeout ?? defaultConfig.sessionTimeout;
     this.trackingOptions = options?.trackingOptions ?? defaultConfig.trackingOptions;
     this.trackingSessionEvents = options?.trackingSessionEvents ?? defaultConfig.trackingSessionEvents;
-    this.autocapture = (options as ReactNativeConfigAutocaptureBeta)?.autocapture;
+    this.autocapture = options?.autocapture;
   }
 
   get deviceId() {
@@ -360,4 +358,16 @@ export const getTopLevelDomain = async (url?: string) => {
   }
 
   return '';
+};
+
+/**
+ * Determines whether to fetch remote config based on options.
+ * Extracted to allow early determination before useBrowserConfig is called.
+ */
+export const shouldFetchRemoteConfig = (options: ReactNativeOptions = {}): boolean => {
+  if (options.remoteConfig?.fetchRemoteConfig === true) {
+    // set to true if remoteConfig.fetchRemoteConfig is set to true explicitly
+    return true;
+  }
+  return !!options.remoteConfig?.fetchRemoteConfig;
 };
