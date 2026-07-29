@@ -65,22 +65,17 @@ jobs:
         with:
           fetch-depth: 0
 
-      # Setup stays inline until ./.github/actions/setup-node-pnpm exists on the
-      # base branch. size-limit-action runs `git checkout -f <base>` to measure
-      # baseline sizes and never switches back, so the base branch is what's on
-      # disk when this job's post steps run, and a local composite action's post
-      # step fails if that branch doesn't carry it. Switch this job over once the
-      # action is on main — noting this workflow also runs for PRs into v1.x,
-      # which won't carry it.
-      # size-limit-action installs dependencies itself, so there is no install here.
-      - name: Setup pnpm
-        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
-
-      - name: Setup Node.js 24
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+      # size-limit-action installs dependencies itself, so install is skipped.
+      #
+      # This action must exist on the base branch: size-limit-action runs
+      # `git checkout -f <base>` to measure baseline sizes and never switches
+      # back, so the base branch is what's on disk when this job's post steps
+      # run. main carries it, and this workflow only exists on main.
+      - name: Setup Node and pnpm
+        uses: ./.github/actions/setup-node-pnpm
         with:
           node-version: 24
-          cache: 'pnpm'
+          install: 'false'
 
       - name: Restore Nx cache
         uses: actions/cache/restore@d4323d4df104b026a6aa633fdb11d772146be0bf # v4
