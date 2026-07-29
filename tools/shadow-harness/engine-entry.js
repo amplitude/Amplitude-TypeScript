@@ -22,6 +22,12 @@ import {
 } from '../../packages/plugin-autocapture-browser/src/helpers';
 import { getAncestors } from '../../packages/plugin-autocapture-browser/src/hierarchy';
 
+import {
+  createClickObservable,
+  createExposureObservable,
+  createMutationObservable,
+} from '../../packages/plugin-autocapture-browser/src/observables';
+
 // eslint-disable-next-line no-undef
 window.__AMP_SHADOW__ = {
   createSelectorEngine,
@@ -33,4 +39,7 @@ window.__AMP_SHADOW__ = {
   querySelectorAllDeep,
   getClosestElement,
   getAncestors,
+  createClickObservable,
+  createExposureObservable,
+  createMutationObservable,
 };

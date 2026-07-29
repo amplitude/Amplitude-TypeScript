@@ -266,11 +266,16 @@ export const collectOpenShadowRoots = (
     const shadowRoot = el.shadowRoot;
     if (shadowRoot && depth + 1 <= maxShadowDepth) {
       found.push({ root: shadowRoot, depth: depth + 1 });
-      // Shadow content sits one crossing deeper.
-      Array.from(shadowRoot.children).forEach((child) => stack.push([child, depth + 1]));
+      const shadowChildren = shadowRoot.children;
+      for (let i = 0; i < shadowChildren.length; i++) {
+        stack.push([shadowChildren[i], depth + 1]);
+      }
     }
     // Light-DOM children stay at the same crossing depth.
-    Array.from(el.children).forEach((child) => stack.push([child, depth]));
+    const children = el.children;
+    for (let i = 0; i < children.length; i++) {
+      stack.push([children[i], depth]);
+    }
   }
   return found;
 };

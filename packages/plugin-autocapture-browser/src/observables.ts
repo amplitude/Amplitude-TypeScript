@@ -26,9 +26,16 @@ const MUTATION_OBSERVER_INIT: MutationObserverInit = {
  * root: an initial recursive scan attaches to existing roots (up to the
  * configured depth), and the observer's own callback scans each mutation's
  * `addedNodes` for shadow roots that mount after load and attaches to those too
- * (the depth cap bounds the work; there is no native `attachShadow` event to
- * hook). Closed roots are invisible and skipped. With shadow support off, this
- * observes only `document.body` — identical to the prior implementation.
+ * (the depth cap bounds the work). Closed roots are invisible and skipped. With
+ * shadow support off, this observes only `document.body` — identical to the
+ * prior implementation.
+ *
+ * Known limitation: because discovery is scan-based (initial scan + `addedNodes`),
+ * a shadow root attached via `attachShadow` to an element that is ALREADY in the
+ * DOM is not observed — that call emits no mutation record and the host never
+ * reappears in `addedNodes`. Catching it would require patching
+ * `Element.prototype.attachShadow` (as rrweb does), a global side effect we
+ * deliberately avoid here.
  */
 export const createMutationObservable = (getShadowConfig?: ShadowConfigGetter): Observable<MutationRecord[]> => {
   return new Observable<MutationRecord[]>((observer) => {

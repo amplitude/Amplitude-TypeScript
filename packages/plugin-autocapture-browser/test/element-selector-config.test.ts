@@ -74,8 +74,4 @@ describe('subscribeToElementSelectorConfig', () => {
     cleanup?.();
     expect(remoteConfigClient.unsubscribe).toHaveBeenCalledWith('es-sub-id');
   });
-
-  // Note: error containment for this subscription lives in the plugin's `setup()`
-  // error boundary (see autocapture-plugin), not here — so this module stays a
-  // plain subscribe with no local try/catch.
 });
