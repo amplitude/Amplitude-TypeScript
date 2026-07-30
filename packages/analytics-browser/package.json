@@ -40,6 +40,7 @@
     "publish:s3": "node ../../scripts/publish/upload-to-s3.js",
     "publish:gtm-snippet": "cd ../gtm-snippet && pnpm build && pnpm publish:s3",
     "test": "jest",
+    "test:integration": "web-test-runner",
     "test:playwright": "playwright test",
     "typecheck": "tsc -p ./tsconfig.json",
     "version": "pnpm version-file && GENERATE_SNIPPET=true pnpm build && cp lib/scripts/amplitude-min.js playground/html/amplitude.js && cp lib/scripts/amplitude-min.js playground/react-spa/public/amplitude.js",
@@ -60,9 +61,15 @@
     "tslib": "^2.4.1"
   },
   "devDependencies": {
+    "@esm-bundle/chai": "^4.3.4",
     "@rollup/plugin-commonjs": "^23.0.4",
     "@rollup/plugin-node-resolve": "^15.0.1",
     "@rollup/plugin-typescript": "^10.0.1",
+    "@web/dev-server-esbuild": "^1.0.5",
+    "@web/dev-server-rollup": "^1.0.0",
+    "@web/test-runner": "^0.20.2",
+    "@web/test-runner-mocha": "^1.0.0",
+    "@web/test-runner-playwright": "^0.11.1",
     "http-server": "^14.1.1",
     "isomorphic-fetch": "^3.0.0",
     "rollup": "^2.79.1",
