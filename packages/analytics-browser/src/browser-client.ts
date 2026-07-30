@@ -28,7 +28,6 @@ import {
   RemoteConfig,
   Source,
   DiagnosticsClient,
-  getWebEnvironment,
   createIdentifyEvent,
   Logger,
   safeJsonStringify,
@@ -55,6 +54,7 @@ import {
   isCustomEnrichmentEnabled,
 } from './default-tracking';
 import { convertProxyObjectToRealObject, isInstanceProxy } from './utils/snippet-helper';
+import { getWebEnvironment } from './utils/environment';
 import { BROWSER_PLATFORM, Context } from './plugins/context';
 import { useBrowserConfig, createTransport, shouldFetchRemoteConfig } from './config';
 import { pageViewTrackingPlugin } from '@amplitude/plugin-page-view-tracking-browser';

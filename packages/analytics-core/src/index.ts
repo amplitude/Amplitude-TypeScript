@@ -182,7 +182,7 @@ export { ExcludeInternalReferrersOptions, EXCLUDE_INTERNAL_REFERRERS_CONDITIONS 
 
 export { VideoObserver, State as VideoState, type VideoObserverParams } from './observers/video';
 export { EmbeddedVideoPlayer, type Vendor as VideoVendor } from './video-analytics/types';
-export { isChromeExtension, isReactNative, getWebEnvironment, WebEnvironment } from './utils/environment';
+export { isChromeExtension, isReactNative } from './utils/environment';
 export {
   translateRemoteConfigToLocal,
   mergeUrls,
