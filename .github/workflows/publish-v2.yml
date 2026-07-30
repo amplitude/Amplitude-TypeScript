@@ -173,8 +173,9 @@ jobs:
 
     steps:
       - name: Validate protected branch
+        env:
+          REF: ${{ github.event.inputs.branch || github.ref_name }}
         run: |
-          REF="${{ github.event.inputs.branch || github.ref_name }}"
           case "$REF" in
             main)
               echo "✅ Branch check passed: main"
@@ -306,9 +307,15 @@ jobs:
     steps:
       - name: Determine branch to use
         id: determine-branch
+        env:
+          BRANCH: ${{ github.event.inputs.branch }}
         run: |
-          if [ -n "${{ github.event.inputs.branch }}" ]; then
-            echo "branch=${{ github.event.inputs.branch }}" >> $GITHUB_OUTPUT
+          if [ -n "$BRANCH" ]; then
+            if ! git check-ref-format --branch "$BRANCH"; then
+              echo "Invalid branch name: $BRANCH"
+              exit 1
+            fi
+            echo "branch=$BRANCH" >> "$GITHUB_OUTPUT"
           else
             echo "❌ No branch specified. Please specify a branch to create pre-release from."
             exit 1
@@ -344,28 +351,39 @@ jobs:
       #   - fix_bug_123 -> fixbug123
       #   - user@company.com -> usercompanycom
       - name: Transform feature branch name
+        env:
+          BRANCH: ${{ steps.determine-branch.outputs.branch }}
         run: |
-          echo "PREID=$(echo '${{ steps.determine-branch.outputs.branch }}' | tr -cd '[:alnum:]-')" >> $GITHUB_ENV
+          echo "PREID=$(echo "$BRANCH" | tr -cd '[:alnum:]-')" >> "$GITHUB_ENV"
 
       # Use --no-push to prevent pushing to remote
       # Version example: 1.0.0 -> 1.1.0-{preid}.0
       - name: Dry run pre-release version
         if: ${{ github.event.inputs.releaseType == 'dry-run' }}
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          PREID: ${{ env.PREID }}
         run: |
-          GH_TOKEN=${{ steps.app-token.outputs.token }} pnpm deploy:version:dry-run -y --preid ${{ env.PREID }}
+          pnpm deploy:version:dry-run -y --preid "$PREID"
 
       - name: Pre-release version
         if: ${{ github.event.inputs.releaseType == 'prerelease' && github.event.inputs.skipLernaVersion != 'true' }}
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          PREID: ${{ env.PREID }}
+          BRANCH: ${{ steps.determine-branch.outputs.branch }}
         run: |
-            GH_TOKEN=${{ steps.app-token.outputs.token }} pnpm deploy:version -y --no-private --conventional-prerelease --preid ${{ env.PREID }} --allow-branch ${{ steps.determine-branch.outputs.branch }} --create-release github
+          pnpm deploy:version -y --no-private --conventional-prerelease --preid "$PREID" --allow-branch "$BRANCH" --create-release github
 
       # Publish to NPM (also uploads minified JS and source maps to S3)
       - name: Publish Pre-release to NPM
         if: ${{ github.event.inputs.releaseType == 'prerelease' }}
-        run: |
-          GH_TOKEN=${{ steps.app-token.outputs.token }} pnpm deploy:publish --no-git-checks --ignore-scripts --tag ${{ env.PREID }}
         env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          PREID: ${{ env.PREID }}
           S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
+        run: |
+          pnpm deploy:publish --no-git-checks --ignore-scripts --tag "$PREID"
 
       - name: Dry run publish release to NPM
         if: ${{ github.event.inputs.releaseType == 'dry-run' }}
