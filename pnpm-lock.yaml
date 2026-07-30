@@ -1154,15 +1154,6 @@ importers:
         specifier: ^7.0.2
         version: 7.0.2(rollup@2.79.2)
 
-  packages/test-analytics-browser:
-    devDependencies:
-      '@esm-bundle/chai':
-        specifier: ^4.3.4
-        version: 4.3.4
-      '@web/test-runner':
-        specifier: ^0.20.2
-        version: 0.20.2
-
   packages/unified:
     dependencies:
       '@amplitude/analytics-browser':
