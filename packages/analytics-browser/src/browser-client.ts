@@ -28,6 +28,7 @@ import {
   RemoteConfig,
   Source,
   DiagnosticsClient,
+  getWebEnvironment,
   createIdentifyEvent,
   Logger,
   safeJsonStringify,
@@ -191,6 +192,7 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
     });
     diagnosticsClient.setTag('library', `${LIBPREFIX}/${VERSION}`);
     diagnosticsClient.setTag('platform', BROWSER_PLATFORM);
+    diagnosticsClient.setTag('web_environment', getWebEnvironment());
     if (typeof navigator !== 'undefined') {
       diagnosticsClient.setTag('user_agent', navigator.userAgent);
     }
