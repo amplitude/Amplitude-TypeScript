@@ -1946,7 +1946,7 @@ describe('destination', () => {
           events: [expect.objectContaining({ event_type: 'delayed_event' })],
           instant_events: [],
         }),
-        true,
+        false, // delayed endpoint does not support compression
       );
       expectSuccess(callback, event);
     });
@@ -1980,7 +1980,7 @@ describe('destination', () => {
           events: [],
           instant_events: [expect.objectContaining({ event_type: 'instant_event' })],
         }),
-        true,
+        false, // delayed endpoint does not support compression
       );
       expectSuccess(callback, event);
     });
@@ -2014,7 +2014,7 @@ describe('destination', () => {
           events: [expect.objectContaining({ event_type: 'delayed_event' })],
           instant_events: [],
         }),
-        true,
+        false, // delayed endpoint does not support compression
       );
       expectSuccess(regularCallback, regularContext.event);
       expectSuccess(delayedCallback, delayedContext.event);
@@ -2049,7 +2049,7 @@ describe('destination', () => {
           ],
           instant_events: [],
         }),
-        true,
+        false, // delayed endpoint does not support compression
       );
       expect(transportProvider.send).toHaveBeenNthCalledWith(
         2,
@@ -2064,7 +2064,7 @@ describe('destination', () => {
           ],
           instant_events: [],
         }),
-        true,
+        false, // delayed endpoint does not support compression
       );
       expectSuccess(callbackA, delayedContextA.event);
       expectSuccess(callbackB, delayedContextB.event);
@@ -2128,7 +2128,7 @@ describe('destination', () => {
           events: [expect.objectContaining({ event_type: 'delayed_event' })],
           instant_events: [expect.objectContaining({ event_type: 'instant_event' })],
         }),
-        true,
+        false, // delayed endpoint does not support compression
       );
       expect(results[0].code).toBe(200);
       expect(results[0].event.insert_id).toBe('instant-0');

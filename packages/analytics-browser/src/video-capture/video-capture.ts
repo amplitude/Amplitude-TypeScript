@@ -5,18 +5,27 @@ import {
   EmbeddedVideoPlayer,
   VideoVendor,
   UUID,
+  BaseEvent,
+  getHeartbeatInstance,
 } from '@amplitude/analytics-core';
+
+/** Playback states where a view session is still in progress (e.g. buffering). */
+const ACTIVE_PLAYBACK_STATES = new Set<VideoState['playbackState']>(['playing', 'waiting']);
 
 export class VideoCapture {
   private videoEl: HTMLVideoElement | null = null;
+  private heartbeat: ReturnType<typeof getHeartbeatInstance>;
   private embeddedVideoPlayer: EmbeddedVideoPlayer | null = null;
   private vendor?: VideoVendor;
   private extraEventProperties: Record<string, string | number | boolean> = {};
-
+  private stopEvent: BaseEvent | null = null;
   private listeners: ((previousState: VideoState, nextState: VideoState) => void)[] = [];
   private onRemoveListeners: (() => void)[] = [];
+  private playId: string | null = null;
 
-  constructor(private readonly amplitude: BrowserClient) {}
+  constructor(private readonly amplitude: BrowserClient) {
+    this.heartbeat = getHeartbeatInstance(this.amplitude);
+  }
 
   /**
    * Specify a video element to capture events from
@@ -67,12 +76,35 @@ export class VideoCapture {
    */
   captureVideoStarted(): VideoCapture {
     this.listeners.push((previousState, nextState) => {
-      if (previousState.playbackState !== 'playing' && nextState.playbackState === 'playing') {
-        // TODO: placeholder for Heartbeat Start Event
-        this.amplitude.track('Video Content Started', {
-          ...nextState.lastEvent,
-          ...this.extraEventProperties,
-        });
+      if (!ACTIVE_PLAYBACK_STATES.has(previousState.playbackState) && nextState.playbackState === 'playing') {
+        this.playId = UUID();
+        const now = new Date().getTime();
+        const startEvent: BaseEvent = {
+          insert_id: UUID(),
+          event_type: 'Video Content Started',
+          time: now,
+          event_properties: {
+            ...nextState.lastEvent,
+            ...this.parseStartEventProperties(nextState),
+            ...this.extraEventProperties,
+            play_id: this.playId,
+          },
+        };
+        this.stopEvent = {
+          ...startEvent,
+          insert_id: UUID(),
+          event_type: 'Video Content Stopped',
+          time: now + 1,
+          event_properties: {
+            ...nextState.lastEvent,
+            ...this.parseStopEventProperties(nextState),
+            ...this.extraEventProperties,
+            stop_reason: 'timeout',
+            play_id: this.playId,
+          },
+        };
+        this.heartbeat.trackNoDelay(startEvent).catch(this.stop.bind(this));
+        this.heartbeat.track(this.stopEvent).catch(this.stop.bind(this));
       }
     });
     return this;
@@ -84,16 +116,47 @@ export class VideoCapture {
    */
   captureVideoStopped(): VideoCapture {
     this.listeners.push((previousState, nextState) => {
-      if (previousState.playbackState === 'playing' && nextState.playbackState !== 'playing') {
-        // placeholder for Heartbeat Stop Event
-        this.amplitude.track('Video Content Stopped', {
-          ...nextState.lastEvent,
-          watch_duration: nextState.watchTime,
+      // update the delayed event properties to have
+      // the most up-to-date values
+      if (this.stopEvent) {
+        this.stopEvent.event_properties = {
+          ...this.stopEvent.event_properties,
+          ...this.parseStopEventProperties(nextState),
           ...this.extraEventProperties,
-        });
+        };
+        this.stopEvent.time = new Date().getTime();
+        void this.heartbeat.update(this.stopEvent);
+      }
+      if (
+        ACTIVE_PLAYBACK_STATES.has(previousState.playbackState) &&
+        !ACTIVE_PLAYBACK_STATES.has(nextState.playbackState)
+      ) {
+        this.flushStopEvent(nextState.playbackState);
       }
     });
     return this;
+  }
+
+  /**
+   * End the current play session by ingesting its queued delayed stop event immediately.
+   *
+   * The heartbeat is shared by every capture on the same Amplitude client, so the event is
+   * flushed rather than the heartbeat stopped, which would discard other captures' events.
+   * Flushing also drops the event from the heartbeat queue once ingested, so the interval
+   * winds down on its own. No-op when no play session is in progress.
+   */
+  private flushStopEvent(stopReason: string) {
+    const stopEvent = this.stopEvent;
+    if (!stopEvent) {
+      return;
+    }
+    // the next play queues a fresh delayed stop event
+    this.stopEvent = null;
+    stopEvent.event_properties = {
+      ...stopEvent.event_properties,
+      stop_reason: stopReason,
+    };
+    this.heartbeat.trackNoDelay(stopEvent).catch(this.stop.bind(this));
   }
 
   // Placeholder: may need a generic state change listener to capture unusual events or to have
@@ -132,9 +195,33 @@ export class VideoCapture {
     return this;
   }
 
+  /**
+   * Stop capturing analytics events for the video element.
+   *
+   * Observers are detached first so no playback state change can race with the final
+   * event, then any in-progress play session is closed out.
+   */
   stop() {
     this.onRemoveListeners.forEach((listener) => listener());
     this.onRemoveListeners = [];
+    this.flushStopEvent('untracked');
+  }
+
+  parseStartEventProperties(nextState: VideoState): Record<string, string | number | boolean> {
+    return {
+      duration: nextState.lastEvent?.duration ?? 0,
+      start_time: nextState.lastEvent?.start_time ?? 0,
+      position: nextState.position ?? 0,
+    };
+  }
+
+  parseStopEventProperties(nextState: VideoState): Record<string, string | number | boolean> {
+    const percentCompleted = ((nextState.position ?? 0) / (nextState.lastEvent?.duration ?? 0)) * 100;
+    return {
+      ...this.parseStartEventProperties(nextState),
+      watch_duration: nextState.watchTime ?? 0,
+      percent_completed: percentCompleted || 0,
+    };
   }
 }
 
