@@ -11,7 +11,7 @@ import {
 } from './types/event/event';
 import { IIdentify, OrderedIdentifyOperations } from './identify';
 import { IRevenue } from './revenue';
-import { CLIENT_NOT_INITIALIZED, OPT_OUT_MESSAGE } from './types/messages';
+import { CLIENT_NOT_INITIALIZED, EMPTY_EVENT_TYPE_MESSAGE, OPT_OUT_MESSAGE } from './types/messages';
 import { Timeline } from './timeline';
 import {
   createGroupEvent,
@@ -237,6 +237,14 @@ export class AmplitudeCore implements CoreClient, PluginHost {
       // skip event processing if opt out
       if (this.config.optOut) {
         return buildResult(event, 0, OPT_OUT_MESSAGE);
+      }
+
+      // The event server 400s a blank event type, which also forces the rest of its
+      // upload batch to be retried, so drop it before it ever reaches a destination.
+      const eventType: unknown = event.event_type;
+      if (typeof eventType !== 'string' || eventType.trim().length === 0) {
+        this.config.loggerProvider.warn(EMPTY_EVENT_TYPE_MESSAGE);
+        return buildResult(event, 0, EMPTY_EVENT_TYPE_MESSAGE);
       }
 
       if (event.event_type === SpecialEventType.IDENTIFY) {
