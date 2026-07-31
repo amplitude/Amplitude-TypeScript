@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.0.0-video-analytics.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-experiment-browser@1.0.0-beta.39...@amplitude/plugin-experiment-browser@1.0.0-video-analytics.0) (2026-07-31)
+
+**Note:** Version bump only for package @amplitude/plugin-experiment-browser
+
+
+
+
+
 # [1.0.0-beta.39](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-experiment-browser@1.0.0-beta.38...@amplitude/plugin-experiment-browser@1.0.0-beta.39) (2026-07-28)
 
 **Note:** Version bump only for package @amplitude/plugin-experiment-browser

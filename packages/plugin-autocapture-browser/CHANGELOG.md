@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.28.11-video-analytics.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.28.10...@amplitude/plugin-autocapture-browser@1.28.11-video-analytics.0) (2026-07-31)
+
+**Note:** Version bump only for package @amplitude/plugin-autocapture-browser
+
+
+
+
+
 ## [1.28.10](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.28.9...@amplitude/plugin-autocapture-browser@1.28.10) (2026-07-28)
 
 **Note:** Version bump only for package @amplitude/plugin-autocapture-browser
