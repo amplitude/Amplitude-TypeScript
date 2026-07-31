@@ -1,6 +1,6 @@
 import { getGlobalScope } from '@amplitude/analytics-core';
 
-export type WebEnvironment =
+export type RuntimeEnvironment =
   | 'browser'
   | 'web_worker'
   | 'service_worker'
@@ -22,7 +22,7 @@ const isChromeExtension = (scope: Scope): boolean => {
 
 // A service worker global, including an MV3 extension background worker.
 // ServiceWorkerGlobalScope inherits from WorkerGlobalScope, so isWebWorker also matches
-// here — getWebEnvironment checks this one first.
+// here — getRuntimeEnvironment checks this one first.
 const isServiceWorker = (scope: Scope): boolean => {
   const ctor = (scope as { ServiceWorkerGlobalScope?: new () => unknown }).ServiceWorkerGlobalScope;
   return typeof ctor === 'function' && scope instanceof ctor;
@@ -53,7 +53,7 @@ const isNode = (scope: Scope): boolean => {
  * - browser after the extension split: extension pages and content scripts have a `document`
  * - browser before node: jsdom exposes both `document` and `process.versions.node`
  */
-export function getWebEnvironment(): WebEnvironment {
+export function getRuntimeEnvironment(): RuntimeEnvironment {
   const scope = getGlobalScope();
   if (!scope) {
     return 'unknown';
