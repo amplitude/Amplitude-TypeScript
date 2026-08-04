@@ -490,7 +490,7 @@ describe('core-client', () => {
       ['a missing', undefined],
     ])('should drop an event with %s event type', async (_description, eventType) => {
       const client = new AmplitudeCore();
-      const loggerProvider = { ...mockLoggerProvider, warn: jest.fn() };
+      const loggerProvider = { ...mockLoggerProvider, error: jest.fn() };
       client.config = { ...mockConfig, loggerProvider } as BrowserConfig;
       const push = jest.spyOn(client.timeline, 'push');
 
@@ -499,13 +499,13 @@ describe('core-client', () => {
 
       expect(result).toEqual({ event, code: 0, message: EMPTY_EVENT_TYPE_MESSAGE });
       expect(push).toHaveBeenCalledTimes(0);
-      expect(loggerProvider.warn).toHaveBeenCalledTimes(1);
-      expect(loggerProvider.warn).toHaveBeenCalledWith(EMPTY_EVENT_TYPE_MESSAGE);
+      expect(loggerProvider.error).toHaveBeenCalledTimes(1);
+      expect(loggerProvider.error).toHaveBeenCalledWith(EMPTY_EVENT_TYPE_MESSAGE);
     });
 
     test('should not drop an event with a valid event type', async () => {
       const client = new AmplitudeCore();
-      const loggerProvider = { ...mockLoggerProvider, warn: jest.fn() };
+      const loggerProvider = { ...mockLoggerProvider, error: jest.fn() };
       client.config = { ...mockConfig, loggerProvider } as BrowserConfig;
       const push = jest.spyOn(client.timeline, 'push').mockReturnValueOnce(Promise.resolve(success));
 
@@ -513,7 +513,7 @@ describe('core-client', () => {
 
       expect(result).toBe(success);
       expect(push).toHaveBeenCalledTimes(1);
-      expect(loggerProvider.warn).toHaveBeenCalledTimes(0);
+      expect(loggerProvider.error).toHaveBeenCalledTimes(0);
     });
   });
 

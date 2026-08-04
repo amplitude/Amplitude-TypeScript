@@ -243,7 +243,7 @@ export class AmplitudeCore implements CoreClient, PluginHost {
       // upload batch to be retried, so drop it before it ever reaches a destination.
       const eventType: unknown = event.event_type;
       if (typeof eventType !== 'string' || eventType.trim().length === 0) {
-        this.config.loggerProvider.warn(EMPTY_EVENT_TYPE_MESSAGE);
+        this.config.loggerProvider.error(EMPTY_EVENT_TYPE_MESSAGE);
         return buildResult(event, 0, EMPTY_EVENT_TYPE_MESSAGE);
       }
 
