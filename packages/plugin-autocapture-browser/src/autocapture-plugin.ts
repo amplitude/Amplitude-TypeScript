@@ -29,6 +29,7 @@ import { trackActionClick } from './autocapture/track-action-click';
 import { trackScroll } from './autocapture/track-scroll';
 
 import {
+  createChangeObservable,
   createClickObservable,
   createScrollObservable,
   createExposureObservable,
@@ -141,6 +142,19 @@ export const autocapturePlugin = (
 
   const dataExtractor = new DataExtractor(options, context);
 
+  // EXPERIMENTAL (POC): local opt-in for open-shadow-DOM piercing. Applied to
+  // the shared selector engine, so it also flips capture behavior (event-target
+  // resolution, ancestor walks, observer fan-out) for every extractor on the
+  // page. A later remote-config delivery that explicitly carries
+  // `shadowDomEnabled` can still override this.
+  if (options.shadowDomSupport) {
+    const maxDepth = typeof options.shadowDomSupport === 'object' ? options.shadowDomSupport.maxDepth : undefined;
+    dataExtractor.updateSelectorConfig({
+      shadowDomEnabled: true,
+      ...(typeof maxDepth === 'number' ? { maxShadowDomDepth: maxDepth } : {}),
+    });
+  }
+
   // Page-level state shared across trackers, emitted in a single Page View End event on beforeunload
   // elementExposedForPage holds the total set of elements seen during the entire page view lifetime
   const elementExposedForPage = new Set<string>();
@@ -150,6 +164,14 @@ export const autocapturePlugin = (
   let beforeUnloadCleanup: () => void;
 
   const createObservables = (): AllWindowObservables => {
+    // Lazily-read shadow-DOM gate shared by the change, mutation, and exposure
+    // observables. Read on each callback (not captured) so a remote-config
+    // delivery after setup takes effect; defaults keep the off path unchanged.
+    const getShadowConfig = () => ({
+      enabled: dataExtractor.isShadowDomEnabled(),
+      maxDepth: dataExtractor.getMaxShadowDomDepth(),
+    });
+
     const clickObservable = multicast(
       createClickObservable().map(
         (click) =>
@@ -163,21 +185,15 @@ export const autocapturePlugin = (
     );
 
     const changeObservable = multicast(
-      new Observable<ElementBasedTimestampedEvent<Event>>((observer) => {
-        const handler = (changeEvent: Event) => {
-          const enrichedChangeEvent = dataExtractor.addAdditionalEventProperties(
+      createChangeObservable(getShadowConfig).map(
+        (changeEvent) =>
+          dataExtractor.addAdditionalEventProperties(
             changeEvent,
             'change',
             (options as AutoCaptureOptionsWithDefaults).cssSelectorAllowlist,
             dataAttributePrefix,
-          ) as ElementBasedTimestampedEvent<Event>;
-          observer.next(enrichedChangeEvent);
-        };
-        /* istanbul ignore next */
-        getGlobalScope()?.document.addEventListener('change', handler, { capture: true });
-        /* istanbul ignore next */
-        return () => getGlobalScope()?.document.removeEventListener('change', handler);
-      }),
+          ) as ElementBasedTimestampedEvent<Event>,
+      ),
     );
 
     // Create observable for URL changes
@@ -205,7 +221,7 @@ export const autocapturePlugin = (
     }
 
     const mutationObservable = multicast(
-      createMutationObservable().map((mutation) =>
+      createMutationObservable(getShadowConfig).map((mutation) =>
         dataExtractor.addAdditionalEventProperties(
           mutation,
           'mutation',
@@ -220,6 +236,7 @@ export const autocapturePlugin = (
     const exposureObservable = createExposureObservable(
       mutationObservable,
       (options as AutoCaptureOptionsWithDefaults).cssSelectorAllowlist,
+      getShadowConfig,
     );
 
     return {
@@ -264,7 +281,7 @@ export const autocapturePlugin = (
     }
   };
 
-  const setup: BrowserEnrichmentPlugin['setup'] = async (config, amplitude) => {
+  const runSetup = async (config: BrowserConfig, amplitude: BrowserClient) => {
     /* istanbul ignore if */
     if (typeof document === 'undefined') {
       return;
@@ -332,6 +349,7 @@ export const autocapturePlugin = (
       amplitude,
       shouldTrackEvent,
       shouldTrackActionClick: shouldTrackActionClick,
+      dataExtractor,
     });
     if (actionClickSubscription) {
       subscriptions.push(actionClickSubscription);
@@ -462,6 +480,21 @@ export const autocapturePlugin = (
         logger: config?.loggerProvider,
         ...(config?.serverZone && { endpoint: constants.AMPLITUDE_ORIGINS_MAP[config.serverZone] }),
       });
+    }
+  };
+
+  // Top-level error boundary for plugin initialization. `runSetup` wires up DOM
+  // observers, remote-config subscriptions, and event listeners against arbitrary
+  // customer DOM. `setup()` is awaited on `amplitude.init()` with no try/catch in
+  // the SDK core, so an uncaught throw here would reject `init()` (an unhandled
+  // rejection on the customer page). We contain it once: on failure autocapture
+  // is simply inactive for the page — never a crash. This single boundary is why
+  // the setup-time helpers (remote-config subscribe, etc.) can stay plain.
+  const setup: BrowserEnrichmentPlugin['setup'] = async (config, amplitude) => {
+    try {
+      await runSetup(config, amplitude);
+    } catch (e) {
+      config.loggerProvider.warn(`${name} failed to initialize; autocapture is disabled for this page: ${String(e)}`);
     }
   };
 

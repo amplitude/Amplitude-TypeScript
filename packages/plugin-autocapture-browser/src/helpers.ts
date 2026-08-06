@@ -1,5 +1,6 @@
 /* eslint-disable no-restricted-globals */
 import { ElementInteractionsOptions, ActionType, isUrlMatchAllowlist, getGlobalScope } from '@amplitude/analytics-core';
+import { composedParent } from '@amplitude/element-selector';
 import * as constants from './constants';
 
 export type JSONValue = string | number | boolean | null | { [x: string]: JSONValue } | Array<JSONValue>;
@@ -189,17 +190,163 @@ export const querySelectUniqueElements = (root: Element | Document, selectors: s
   return [];
 };
 
-// Similar as element.closest, but works with multiple selectors
-export const getClosestElement = (element: Element | null, selectors: string[]): Element | null => {
-  if (!element) {
+// Similar as element.closest, but works with multiple selectors.
+//
+// When `crossShadow` is true, the walk continues past the top of a shadow tree
+// into the shadow host (via `composedParent`), bounded by `maxShadowDepth`
+// boundary crossings. With the default `crossShadow = false`, behavior is
+// byte-identical to the prior `parentElement`-only recursion: the walk stops at
+// the top of the element's own tree.
+export const getClosestElement = (
+  element: Element | null,
+  selectors: string[],
+  crossShadow = false,
+  maxShadowDepth = 0,
+): Element | null => {
+  let current: Element | null = element;
+  let crossings = 0;
+  while (current) {
+    /* istanbul ignore next */
+    if (selectors.some((selector) => current?.matches?.(selector))) {
+      return current;
+    }
+    if (current.parentElement) {
+      current = current.parentElement;
+      continue;
+    }
+    // At the top of the current tree. Only cross the shadow boundary when
+    // enabled, still within budget, and the node actually supports the composed
+    // walk. With shadow piercing on, `element` is the event's
+    // `composedPath()[0]`, which can be an exotic node (e.g. `window`) lacking
+    // `getRootNode` — this guard degrades gracefully rather than throwing. Any
+    // other throw is contained by the caller's error boundary (enrichment).
+    if (crossShadow && crossings < maxShadowDepth && typeof current.getRootNode === 'function') {
+      const host = composedParent(current);
+      if (host && host !== current) {
+        crossings += 1;
+        current = host;
+        continue;
+      }
+    }
     return null;
   }
-  /* istanbul ignore next */
-  if (selectors.some((selector) => element?.matches?.(selector))) {
-    return element;
+  return null;
+};
+
+/**
+ * Like `element.closest(selector)`, but able to cross OPEN shadow boundaries:
+ * when no ancestor in the element's own tree matches, the walk hops to the
+ * shadow host and retries `closest` from there, up to `maxCrossings` boundary
+ * hops. With `maxCrossings = 0` this is exactly `element.closest` — the off
+ * path is unchanged. Used where a single-selector `closest` needs to see
+ * light-DOM ancestors of a shadow tree (labeled-event matching, text masking).
+ */
+export const closestCrossShadow = (element: Element | null, selector: string, maxCrossings = 0): Element | null => {
+  let current: Element | null = element;
+  let crossings = 0;
+  while (current) {
+    const match = current.closest?.(selector);
+    if (match) {
+      return match;
+    }
+    if (crossings >= maxCrossings || typeof current.getRootNode !== 'function') {
+      return null;
+    }
+    const host = composedParent(topOfTree(current));
+    if (!host) {
+      return null;
+    }
+    crossings += 1;
+    current = host;
   }
-  /* istanbul ignore next */
-  return getClosestElement(element?.parentElement, selectors);
+  return null;
+};
+
+/** The highest ancestor of `element` within its own tree (no boundary crossing). */
+const topOfTree = (element: Element): Element => {
+  let top = element;
+  while (top.parentElement) {
+    top = top.parentElement;
+  }
+  return top;
+};
+
+/**
+ * Cost bound on shadow-tree traversal. A composed DOM can't cycle, so this only
+ * caps a synchronous DFS (run inside a MutationObserver callback) on a
+ * pathologically large tree. Mirrors `MAX_WALK_ITERATIONS` in
+ * `element-selector/src/helpers/shadow.ts`.
+ */
+export const MAX_SHADOW_TRAVERSAL_NODES = 50000;
+
+/**
+ * Collect the OPEN shadow roots within `root`'s composed subtree (its own light
+ * children and any nested shadow trees), each paired with how many shadow
+ * boundary crossings deep it sits relative to `root` (1-based). Bounded by
+ * `maxShadowDepth` crossings and by `MAX_SHADOW_TRAVERSAL_NODES` total nodes.
+ * Closed roots are invisible (`el.shadowRoot` is null) and therefore skipped.
+ * Used to fan out MutationObservers and to pierce exposure discovery.
+ */
+export const collectOpenShadowRoots = (
+  root: Element,
+  maxShadowDepth: number,
+): Array<{ root: ShadowRoot; depth: number }> => {
+  const found: Array<{ root: ShadowRoot; depth: number }> = [];
+  if (maxShadowDepth <= 0) {
+    return found;
+  }
+  // Iterative DFS over [element, crossingsFromRoot], capped to bound cost.
+  const stack: Array<[Element, number]> = [[root, 0]];
+  let visited = 0;
+  while (stack.length && visited < MAX_SHADOW_TRAVERSAL_NODES) {
+    visited += 1;
+    const [el, depth] = stack.pop() as [Element, number];
+    const shadowRoot = el.shadowRoot;
+    if (shadowRoot && depth + 1 <= maxShadowDepth) {
+      found.push({ root: shadowRoot, depth: depth + 1 });
+      const shadowChildren = shadowRoot.children;
+      for (let i = 0; i < shadowChildren.length; i++) {
+        stack.push([shadowChildren[i], depth + 1]);
+      }
+    }
+    // Light-DOM children stay at the same crossing depth.
+    const children = el.children;
+    for (let i = 0; i < children.length; i++) {
+      stack.push([children[i], depth]);
+    }
+  }
+  return found;
+};
+
+/**
+ * Like `querySelectUniqueElements` for a single joined selector, but pierces
+ * open shadow roots up to `maxShadowDepth` crossings. With `maxShadowDepth = 0`
+ * this is a plain light-DOM `querySelectorAll`, so the off path is unchanged.
+ *
+ * `querySelectorAll` can throw a `SyntaxError` on a malformed `cssSelectorAllowlist`
+ * entry; callers run inside an error boundary (exposure observable / setup) that
+ * contains it, so this stays a plain query.
+ */
+export const querySelectorAllDeep = (
+  root: Element | Document,
+  selectorString: string,
+  maxShadowDepth = 0,
+): Element[] => {
+  const out: Element[] = [];
+  if (!selectorString) {
+    return out;
+  }
+  root.querySelectorAll(selectorString).forEach((el) => out.push(el));
+  if (maxShadowDepth > 0) {
+    const start = root instanceof Document ? root.documentElement : root;
+    /* istanbul ignore else */
+    if (start) {
+      collectOpenShadowRoots(start, maxShadowDepth).forEach(({ root: shadowRoot }) => {
+        shadowRoot.querySelectorAll(selectorString).forEach((el) => out.push(el));
+      });
+    }
+  }
+  return out;
 };
 
 export const asyncLoadScript = (url: string) => {

@@ -14,6 +14,7 @@ jest.mock('@amplitude/analytics-core', () => {
 const mockGetGlobalScope = getGlobalScope as jest.Mock;
 
 import {
+  createChangeObservable,
   createClickObservable,
   createScrollObservable,
   createMutationObservable,
@@ -32,6 +33,16 @@ describe('Observables Coverage', () => {
 
     test('createClickObservable should handle undefined global scope safely', () => {
       const observable = createClickObservable();
+      const subscription = observable.subscribe(() => {
+        return;
+      });
+      subscription.unsubscribe();
+      // Should not throw
+      expect(mockGetGlobalScope).toHaveBeenCalled();
+    });
+
+    test('createChangeObservable should handle undefined global scope safely', () => {
+      const observable = createChangeObservable();
       const subscription = observable.subscribe(() => {
         return;
       });

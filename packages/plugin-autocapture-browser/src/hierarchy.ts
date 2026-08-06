@@ -1,3 +1,4 @@
+import { composedParent } from '@amplitude/element-selector';
 import { isNonSensitiveElement } from './helpers';
 import { DATA_AMP_MASK_ATTRIBUTES } from './constants';
 import type { HierarchyNode } from './typings/autocapture';
@@ -54,7 +55,17 @@ export function getElementProperties(
     tag: tagName,
   };
 
-  const siblings = Array.from(element.parentElement?.children ?? []);
+  // A top-level element inside a shadow tree has no parentElement — its parent
+  // is the ShadowRoot itself. Mark the boundary so hierarchy consumers (visual
+  // labeling, queries) know the next entry up is the shadow HOST, and compute
+  // sibling indexes against the root's children so they aren't silently absent.
+  const parentNode = element.parentNode;
+  const isShadowTreeTop = typeof ShadowRoot !== 'undefined' && parentNode instanceof ShadowRoot;
+  if (isShadowTreeTop) {
+    properties.shadow = true;
+  }
+
+  const siblings = Array.from(element.parentElement?.children ?? (isShadowTreeTop ? parentNode.children : []));
   if (siblings.length) {
     properties.index = siblings.indexOf(element);
     properties.indexOfType = siblings.filter((el) => el.tagName === element.tagName).indexOf(element);
@@ -105,7 +116,7 @@ export function getElementProperties(
   return properties;
 }
 
-export function getAncestors(targetEl: Element | null): Element[] {
+export function getAncestors(targetEl: Element | null, crossShadow = false, maxShadowDepth = 0): Element[] {
   const ancestors: Element[] = [];
 
   if (!targetEl) {
@@ -114,10 +125,31 @@ export function getAncestors(targetEl: Element | null): Element[] {
 
   // Add self to the list of ancestors
   ancestors.push(targetEl);
-  let current = targetEl.parentElement;
-  while (current && current.tagName !== 'HTML') {
-    ancestors.push(current);
-    current = current.parentElement;
+
+  let node: Element = targetEl;
+  let crossings = 0;
+
+  // Compute the next ancestor of `node`, optionally crossing a shadow boundary
+  // into the host when we reach the top of the current tree. Crossings are
+  // bounded by `maxShadowDepth`, so with the defaults this never crosses and the
+  // walk stays identical to the prior `parentElement`-only behavior.
+  const nextAncestor = (): Element | null => {
+    if (node.parentElement) {
+      return node.parentElement;
+    }
+    if (crossShadow && crossings < maxShadowDepth) {
+      const host = composedParent(node);
+      if (host && host !== node) {
+        crossings += 1;
+        return host;
+      }
+    }
+    return null;
+  };
+
+  for (let next = nextAncestor(); next && next.tagName !== 'HTML'; next = nextAncestor()) {
+    ancestors.push(next);
+    node = next;
   }
   return ancestors;
 }

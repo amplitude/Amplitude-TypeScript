@@ -16,6 +16,7 @@ import {
   extractPrefixedAttributes,
   isElementPointerCursor,
   getClosestElement,
+  closestCrossShadow,
   isElementBasedEvent,
   parseAttributesToMask,
   getCurrentPageViewId,
@@ -41,6 +42,13 @@ import {
  * while the other still uses defaults.
  */
 let sharedSelectorEngine: SelectorEngine | undefined;
+
+/**
+ * Crossing bound for privacy (mask) ancestor walks. Effectively unbounded —
+ * far above any real shadow nesting — because a mask directive must reach at
+ * least as far as capture does, and capture depth is not budget-limited.
+ */
+const MAX_MASK_SHADOW_CROSSINGS = 1024;
 
 function getSharedSelectorEngine(): SelectorEngine {
   if (!sharedSelectorEngine) {
@@ -110,8 +118,11 @@ export class DataExtractor {
       return [];
     }
 
-    // Get list of ancestors including itself and get properties at each level in the hierarchy
-    const ancestors = getAncestors(element);
+    // Get list of ancestors including itself and get properties at each level in the hierarchy.
+    // When shadow piercing is on, the ancestor walk crosses shadow boundaries
+    // (host elements) up to the configured depth; otherwise it stays within the
+    // element's own tree (unchanged behavior).
+    const ancestors = getAncestors(element, this.isShadowDomEnabled(), this.getMaxShadowDomDepth());
 
     // Build attributes to mask map
     const elementToAttributesToMaskMap = new Map<Element, Set<string>>();
@@ -206,19 +217,38 @@ export class DataExtractor {
    * or sending a partial payload.
    */
   updateSelectorConfig = (remote?: ElementSelectorRemoteConfig | null, logger?: ElementSelectorLogger): void => {
-    // No-op unless the delivery explicitly specifies a boolean `enabled`. This
-    // covers null/undefined AND non-null-but-incomplete payloads ({} or partial
-    // configs), both of which would otherwise resolve to disabled and revert a
-    // previously-enabled engine to the legacy cssPath.
-    if (remote === null || remote === undefined || typeof remote.enabled !== 'boolean') {
+    // The config carries two independent switches: `enabled` (strategy-based
+    // selector engine) and `shadowDomEnabled` (shadow-DOM piercing). A delivery
+    // is applied only when it explicitly carries at least one of them as a
+    // boolean; anything else — null/absent, `{}`, or a partial payload with
+    // neither switch — would resolve every absent switch to its default and
+    // silently revert a live engine, so it is ignored instead.
+    const hasEnabled = remote != null && typeof remote.enabled === 'boolean';
+    const hasShadowEnabled = remote != null && typeof remote.shadowDomEnabled === 'boolean';
+    if (!hasEnabled && !hasShadowEnabled) {
       logger?.debug(
-        '@amplitude/element-selector: ignoring remote-config delivery without an explicit `enabled` flag — keeping current engine state.',
+        '@amplitude/element-selector: ignoring remote-config delivery without an explicit `enabled` or `shadowDomEnabled` flag — keeping current engine state.',
       );
       return;
     }
 
-    const wasEnabled = this.selectorEngine.getConfig().enabled;
-    const resolved = resolveSelectorConfig(remote, logger);
+    const current = this.selectorEngine.getConfig();
+    // Carry the current value of whichever switch (and its companion depth) the
+    // delivery omits, so a payload flipping one switch never resets the other to
+    // its default mid-session.
+    const effective: ElementSelectorRemoteConfig = { ...remote };
+    if (!hasEnabled) {
+      effective.enabled = current.enabled;
+    }
+    if (!hasShadowEnabled) {
+      effective.shadowDomEnabled = current.shadowDomEnabled;
+      if (typeof effective.maxShadowDomDepth !== 'number') {
+        effective.maxShadowDomDepth = current.maxShadowDomDepth;
+      }
+    }
+
+    const wasEnabled = current.enabled;
+    const resolved = resolveSelectorConfig(effective, logger);
     this.selectorEngine.updateConfig(resolved);
 
     // Log once, on the transition from the dormant legacy walker to the new
@@ -237,6 +267,38 @@ export class DataExtractor {
       // signal. Logging it turns that invisible flip into an observable event.
       logger?.debug('@amplitude/element-selector: engine disabled — reverting to legacy cssPath for element paths.');
     }
+  };
+
+  /**
+   * Whether shadow-DOM piercing is enabled in the current resolved config.
+   * Read lazily by the capture layer (event-target resolution, ancestor walks,
+   * observer fan-out) so the same remote-config delivery that flips selector
+   * generation also flips capture behavior. Defaults to false (off path).
+   */
+  isShadowDomEnabled = (): boolean => {
+    return this.selectorEngine.getConfig().shadowDomEnabled;
+  };
+
+  /** Configured max shadow-boundary crossings (clamped to [1, 10] at resolve time). */
+  getMaxShadowDomDepth = (): number => {
+    return this.selectorEngine.getConfig().maxShadowDomDepth;
+  };
+
+  /**
+   * The element an event actually originated from. Shadow DOM retargets
+   * `event.target` to the shadow host, so when piercing is enabled we read the
+   * true inner element from `composedPath()[0]` instead. When disabled (the
+   * default) this returns `event.target` — byte-identical to the prior behavior.
+   * Note: `composedPath()` only pierces OPEN shadow roots; for a closed root it
+   * yields the host, which is the same as today.
+   */
+  resolveEventTarget = (event: Event): EventTarget | null => {
+    if (!this.isShadowDomEnabled()) {
+      return event.target;
+    }
+    const path = event.composedPath?.();
+    /* istanbul ignore next */
+    return (path && path.length > 0 ? path[0] : null) ?? event.target;
   };
 
   // Returns the Amplitude event properties for the given element.
@@ -316,30 +378,52 @@ export class DataExtractor {
   ): TimestampedEvent<T> | ElementBasedTimestampedEvent<T> => {
     const baseEvent = this.addTypeAndTimestamp(event, type);
 
-    if (isElementBasedEvent(baseEvent) && baseEvent.event.target !== null) {
-      if (isCapturingCursorPointer) {
-        const isCursorPointer = isElementPointerCursor(baseEvent.event.target as Element, baseEvent.type);
-        if (isCursorPointer) {
-          baseEvent.closestTrackedAncestor = baseEvent.event.target as HTMLElement;
+    // Enrichment error boundary. This runs on every captured event (in the
+    // observable `.map`), and its DOM traversal — event-target resolution,
+    // `getClosestElement`, `getEventProperties` (hierarchy + selector engine) —
+    // is the main place autocapture touches arbitrary customer DOM. A throw here
+    // must never crash the host page or tear down the capture stream, so we
+    // contain it once here rather than guarding each helper. On failure the
+    // event is emitted unenriched (and typically dropped downstream for lacking
+    // a tracked ancestor) — acceptable degradation, not a page crash.
+    try {
+      if (isElementBasedEvent(baseEvent) && baseEvent.event.target !== null) {
+        // Resolve the true originating element. With shadow piercing on, this is
+        // `composedPath()[0]` (the inner element) rather than the retargeted
+        // host; with it off, it's `event.target` exactly as before.
+        const eventTarget = this.resolveEventTarget(baseEvent.event);
+        const crossShadow = this.isShadowDomEnabled();
+        const maxShadowDepth = this.getMaxShadowDomDepth();
+        if (isCapturingCursorPointer) {
+          const isCursorPointer = isElementPointerCursor(eventTarget as Element, baseEvent.type);
+          if (isCursorPointer) {
+            baseEvent.closestTrackedAncestor = eventTarget as HTMLElement;
+            baseEvent.targetElementProperties = this.getEventProperties(
+              baseEvent.type,
+              baseEvent.closestTrackedAncestor,
+              dataAttributePrefix,
+            );
+            return baseEvent;
+          }
+        }
+        // Retrieve additional event properties from the target element
+        const closestTrackedAncestor = getClosestElement(
+          eventTarget as HTMLElement,
+          selectorAllowlist,
+          crossShadow,
+          maxShadowDepth,
+        );
+        if (closestTrackedAncestor) {
+          baseEvent.closestTrackedAncestor = closestTrackedAncestor;
           baseEvent.targetElementProperties = this.getEventProperties(
             baseEvent.type,
-            baseEvent.closestTrackedAncestor,
+            closestTrackedAncestor,
             dataAttributePrefix,
           );
-          return baseEvent;
         }
       }
-      // Retrieve additional event properties from the target element
-      const closestTrackedAncestor = getClosestElement(baseEvent.event.target as HTMLElement, selectorAllowlist);
-      if (closestTrackedAncestor) {
-        baseEvent.closestTrackedAncestor = closestTrackedAncestor;
-        baseEvent.targetElementProperties = this.getEventProperties(
-          baseEvent.type,
-          closestTrackedAncestor,
-          dataAttributePrefix,
-        );
-      }
-      return baseEvent;
+    } catch {
+      // Best-effort enrichment: fall through and emit the base event.
     }
 
     return baseEvent;
@@ -397,8 +481,14 @@ export class DataExtractor {
   };
 
   getText = (element: Element): string => {
-    // Check if element or any parent has data-amp-mask attribute
-    const hasMaskAttribute = element.closest(`[${TEXT_MASK_ATTRIBUTE}]`) !== null;
+    // Check if element or any parent has data-amp-mask attribute. With shadow
+    // piercing on, the check crosses open shadow boundaries so a mask directive
+    // on a shadow HOST (or any light-DOM ancestor) also masks shadow internals.
+    // The mask walk is deliberately NOT bounded by maxShadowDomDepth: capture
+    // can reach elements at any depth (composedPath()[0] has no depth cap), and
+    // a privacy directive must reach at least as far as capture does.
+    const maskCrossings = this.isShadowDomEnabled() ? MAX_MASK_SHADOW_CROSSINGS : 0;
+    const hasMaskAttribute = closestCrossShadow(element, `[${TEXT_MASK_ATTRIBUTE}]`, maskCrossings) !== null;
     if (hasMaskAttribute) {
       return MASKED_TEXT_VALUE;
     }

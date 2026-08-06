@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AutoCapture — Shadow DOM POC</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 20px;
+      line-height: 1.4;
+    }
+    h1 { font-size: 1.4rem; margin-bottom: 8px; }
+    h2 { font-size: 1.1rem; margin: 0 0 8px; }
+    .hint { color: #555; font-size: 0.9rem; margin-bottom: 12px; }
+    .mode {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 0.85rem;
+      font-weight: bold;
+      margin-bottom: 12px;
+    }
+    .mode.on { background: #e0f5e6; color: #0a7d28; }
+    .mode.off { background: #fdeaea; color: #a30; }
+    .mode a { font-weight: normal; margin-left: 8px; }
+    section {
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      padding: 14px;
+      margin-bottom: 16px;
+    }
+    section.light { background: #f7faf7; }
+    section.open { background: #f5f8ff; }
+    section.closed { background: #faf7f5; }
+    section.nested { background: #f8f5fa; }
+    section.late { background: #f5faf9; }
+    .meta { font-size: 0.85rem; color: #666; margin-bottom: 10px; }
+    button, a.btn, select {
+      display: inline-block;
+      margin: 4px 4px 4px 0;
+      padding: 8px 12px;
+      cursor: pointer;
+      font: inherit;
+    }
+    a.btn {
+      background: #eee;
+      color: #222;
+      text-decoration: none;
+      border: 1px solid #bbb;
+      border-radius: 3px;
+    }
+    #status { font-size: 0.9rem; color: #0a7d28; margin-bottom: 16px; }
+    .panel {
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      padding: 12px;
+      background: #fafafa;
+      font-size: 12px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      max-height: 420px;
+      overflow: auto;
+    }
+    .panel h2 { font-family: Arial, sans-serif; }
+    .row {
+      border-bottom: 1px solid #eee;
+      padding: 8px 0;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .row:first-of-type { border-top: 1px solid #eee; }
+    .label { color: #666; }
+    .ok { color: #0a7d28; }
+    .warn { color: #b36b00; }
+    .bad { color: #a30; }
+    .path { color: #8339c9; font-weight: bold; }
+    .delim { background: #f3e5ff; border-radius: 3px; padding: 0 2px; }
+  </style>
+</head>
+<body>
+  <h1>AutoCapture — Shadow DOM POC</h1>
+  <p class="hint">
+    Demo of open-mode Shadow DOM support in AutoCapture (SDKW-51 POC). With the
+    <code>shadowDomSupport</code> option on, clicks and changes inside open shadow trees are
+    captured with the true inner element: the event target is resolved through
+    <code>composedPath()[0]</code>, the ancestor walk and Element Hierarchy cross shadow
+    boundaries into the host, Element Path becomes a piercing selector
+    (<code>host &gt;&gt;&gt; inner</code>), and observers fan out into open roots.
+    Closed shadow roots stay opaque — events retarget to the host, exactly as before.
+  </p>
+  <p id="mode-banner" class="mode">…</p>
+  <p id="status">Initializing SDK…</p>
+
+  <section class="light">
+    <h2>1. Light DOM (control)</h2>
+    <p class="meta">Baseline — element interactions track these identically with the POC on or off.</p>
+    <button id="light-btn" type="button">Light DOM button</button>
+    <a id="light-link" class="btn" href="#light">Light DOM link</a>
+    <input id="light-input" type="text" placeholder="Light DOM input" />
+  </section>
+
+  <section class="open">
+    <h2>2. Open Shadow DOM</h2>
+    <p class="meta">
+      <code>attachShadow({ mode: 'open' })</code> — interactive elements live inside
+      <code>host.shadowRoot</code>. POC on: clicks emit with the inner element and a
+      <code>&gt;&gt;&gt;</code>-delimited path; typing then blurring the input emits Element Changed
+      (change events don't cross shadow boundaries — the SDK attaches a listener inside the root,
+      discovered from the focus that precedes the change).
+    </p>
+    <div id="open-host"></div>
+  </section>
+
+  <section class="closed">
+    <h2>3. Closed Shadow DOM (out of scope — contrast)</h2>
+    <p class="meta">
+      <code>attachShadow({ mode: 'closed' })</code> — <code>host.shadowRoot</code> is
+      <code>null</code> and <code>composedPath()</code> stops at the host. Internals cannot be
+      inspected from page JS; clicks keep retargeting to the host (usually dropped by the
+      allowlist), with no errors.
+    </p>
+    <div id="closed-host"></div>
+  </section>
+
+  <section class="nested">
+    <h2>4. Nested open Shadow DOM (depth 2)</h2>
+    <p class="meta">
+      An open shadow root inside another open shadow root. With <code>maxDepth ≥ 2</code> the
+      path carries two <code>&gt;&gt;&gt;</code> delimiters and the hierarchy crosses both hosts.
+    </p>
+    <div id="nested-host"></div>
+  </section>
+
+  <section class="late">
+    <h2>5. Late-mounted component</h2>
+    <p class="meta">
+      Mounts a new host with an open shadow root <em>after</em> load. Click and change capture work
+      via the document listener + focus-driven discovery; exposure observers attach via the
+      mutation fan-out.
+    </p>
+    <button id="mount-late" type="button" data-amp-unmasked>Mount late component</button>
+    <div id="late-slot"></div>
+  </section>
+
+  <section>
+    <h2>Click debug (document capture listener)</h2>
+    <p class="meta">
+      What a document-level listener sees per click: retargeted <code>event.target</code> vs
+      <code>composedPath()[0]</code>, and which element each resolution strategy would track.
+      Newest first.
+    </p>
+    <div id="click-log" class="panel"></div>
+  </section>
+
+  <section>
+    <h2>Amplitude events (enrichment plugin)</h2>
+    <p class="meta">
+      Events that make it through AutoCapture. With the POC on, shadow clicks/changes appear here
+      with the inner element's tag/text, a piercing Element Path, and a hierarchy that crosses the
+      boundary (<code>"shadow": true</code> marks shadow-tree tops). Newest first.
+    </p>
+    <div id="amp-log" class="panel"></div>
+  </section>
+
+  <script type="module">
+    import * as amplitude from '@amplitude/analytics-browser';
+
+    window.amplitude = amplitude;
+
+    // ?shadow=off shows the pre-POC behavior for comparison. Default: ON.
+    const params = new URLSearchParams(window.location.search);
+    const shadowOn = params.get('shadow') !== 'off';
+    const MAX_DEPTH = 3;
+
+    const banner = document.getElementById('mode-banner');
+    banner.className = 'mode ' + (shadowOn ? 'on' : 'off');
+    banner.innerHTML = shadowOn
+      ? 'shadowDomSupport: ON (maxDepth ' + MAX_DEPTH + ') <a href="?shadow=off">switch off</a>'
+      : 'shadowDomSupport: OFF — legacy behavior <a href="?">switch on</a>';
+
+    const clickLog = document.getElementById('click-log');
+    const ampLog = document.getElementById('amp-log');
+    const statusEl = document.getElementById('status');
+
+    function describeNode(node) {
+      if (!node) return String(node);
+      if (node === window) return 'window';
+      if (node === document) return 'document';
+      if (node instanceof ShadowRoot) {
+        return `ShadowRoot(mode=${node.mode}, host=${describeNode(node.host)})`;
+      }
+      if (node instanceof Element) {
+        const id = node.id ? `#${node.id}` : '';
+        const cls = node.classList?.length ? `.${[...node.classList].join('.')}` : '';
+        const text = (node.textContent || '').trim().slice(0, 40);
+        return `<${node.tagName.toLowerCase()}${id}${cls}>${text ? ` "${text}"` : ''}`;
+      }
+      return node.nodeName || String(node);
+    }
+
+    function prependRow(container, html) {
+      const row = document.createElement('div');
+      row.className = 'row';
+      row.innerHTML = html;
+      container.prepend(row);
+      while (container.children.length > 40) container.lastChild.remove();
+    }
+
+    const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+    const prettyPath = (p) => esc(p).replace(/ &gt;&gt;&gt; /g, ' <span class="delim">&gt;&gt;&gt;</span> ');
+
+    // --- Build shadow trees ---
+
+    function fillShadowContent(shadow, prefix) {
+      const style = document.createElement('style');
+      style.textContent = `
+        :host { display: block; }
+        .shadow-box {
+          padding: 10px;
+          border: 1px dashed #668;
+          border-radius: 4px;
+          background: #fff;
+        }
+        button, a.btn, input, select {
+          margin: 4px 4px 4px 0;
+          padding: 8px 12px;
+          font: inherit;
+        }
+        a.btn {
+          display: inline-block;
+          background: #e8eefc;
+          color: #222;
+          text-decoration: none;
+          border: 1px solid #99a;
+          border-radius: 3px;
+        }
+        .note { font-size: 12px; color: #555; margin-top: 8px; }
+      `;
+
+      const box = document.createElement('div');
+      box.className = 'shadow-box';
+
+      const btn = document.createElement('button');
+      btn.id = `${prefix}-btn`;
+      btn.type = 'button';
+      btn.textContent = `${prefix} button`;
+
+      const link = document.createElement('a');
+      link.id = `${prefix}-link`;
+      link.className = 'btn';
+      link.href = `#${prefix}`;
+      link.textContent = `${prefix} link`;
+
+      const input = document.createElement('input');
+      input.id = `${prefix}-input`;
+      input.type = 'text';
+      input.placeholder = `${prefix} input (type + blur → Element Changed)`;
+
+      const select = document.createElement('select');
+      select.id = `${prefix}-select`;
+      for (const v of ['one', 'two', 'three']) {
+        const opt = document.createElement('option');
+        opt.value = v;
+        opt.textContent = `${prefix} ${v}`;
+        select.appendChild(opt);
+      }
+
+      const note = document.createElement('div');
+      note.className = 'note';
+      note.textContent = `Inside ${prefix} shadow root (mode=${shadow.mode})`;
+
+      box.append(btn, link, input, select, note);
+      shadow.append(style, box);
+      return { btn, link, input, select };
+    }
+
+    const openHost = document.getElementById('open-host');
+    const openShadow = openHost.attachShadow({ mode: 'open' });
+    fillShadowContent(openShadow, 'open');
+
+    // Keep a private reference — closed mode does not expose host.shadowRoot.
+    const closedHost = document.getElementById('closed-host');
+    const closedShadow = closedHost.attachShadow({ mode: 'closed' });
+    fillShadowContent(closedShadow, 'closed');
+    window.__closedShadowRef = closedShadow; // for console exploration only
+
+    const nestedHost = document.getElementById('nested-host');
+    const outerShadow = nestedHost.attachShadow({ mode: 'open' });
+    {
+      const style = document.createElement('style');
+      style.textContent = `
+        :host { display: block; }
+        .outer {
+          padding: 10px;
+          border: 1px dashed #868;
+          border-radius: 4px;
+          background: #fff;
+        }
+        button { margin: 4px 4px 4px 0; padding: 8px 12px; font: inherit; }
+      `;
+      const outer = document.createElement('div');
+      outer.className = 'outer';
+
+      const outerBtn = document.createElement('button');
+      outerBtn.id = 'nested-outer-btn';
+      outerBtn.type = 'button';
+      outerBtn.textContent = 'outer shadow button';
+
+      const innerHost = document.createElement('div');
+      innerHost.id = 'inner-host';
+      const innerShadow = innerHost.attachShadow({ mode: 'open' });
+      fillShadowContent(innerShadow, 'nested-inner');
+
+      outer.append(outerBtn, document.createElement('br'), innerHost);
+      outerShadow.append(style, outer);
+    }
+
+    // Late-mounted component (section 5).
+    let lateCount = 0;
+    document.getElementById('mount-late').addEventListener('click', () => {
+      lateCount += 1;
+      const host = document.createElement('div');
+      host.id = `late-host-${lateCount}`;
+      document.getElementById('late-slot').appendChild(host);
+      const root = host.attachShadow({ mode: 'open' });
+      fillShadowContent(root, `late-${lateCount}`);
+    });
+
+    // Expose hosts for DevTools poking.
+    window.__shadowHosts = { open: openHost, closed: closedHost, nested: nestedHost };
+
+    // Same allowlist AutoCapture uses by default (simplified).
+    const ALLOWLIST = [
+      'a',
+      'button',
+      'input',
+      'select',
+      'textarea',
+      'label',
+      'video',
+      'audio',
+      '[contenteditable="true" i]',
+      '[data-amp-default-track]',
+      '.amp-default-track',
+    ];
+
+    // Legacy resolution: walk parentElement from the retargeted event.target.
+    function getClosestElement(element, selectors) {
+      if (!element || !(element instanceof Element)) return null;
+      if (selectors.some((selector) => element.matches?.(selector))) return element;
+      return getClosestElement(element.parentElement, selectors);
+    }
+
+    // Shadow-aware resolution: composedPath()[0], then a boundary-crossing walk.
+    function getClosestCrossShadow(path, selectors) {
+      let current = path[0] instanceof Element ? path[0] : null;
+      while (current) {
+        if (selectors.some((s) => current.matches?.(s))) return current;
+        if (current.parentElement) {
+          current = current.parentElement;
+          continue;
+        }
+        const root = current.getRootNode();
+        current = root instanceof ShadowRoot ? root.host : null;
+      }
+      return null;
+    }
+
+    // --- Document-level click inspector (same place AutoCapture listens) ---
+
+    document.addEventListener(
+      'click',
+      (event) => {
+        const path = typeof event.composedPath === 'function' ? event.composedPath() : [];
+        const target = event.target;
+        const actual = path[0] ?? null;
+        const retargeted = target !== actual;
+        const pathCrossesShadow = path.some((n) => n instanceof ShadowRoot);
+
+        const legacyResolution = getClosestElement(target, ALLOWLIST);
+        const shadowResolution = getClosestCrossShadow(path, ALLOWLIST);
+
+        // Console: open DevTools → Console and click light vs shadow controls.
+        console.group(
+          `%c[Shadow DOM playground] click${retargeted ? ' (RETARGETED)' : ''}`,
+          retargeted ? 'color:#b36b00;font-weight:bold' : 'color:#0a7d28;font-weight:bold',
+        );
+        console.log('1. event.target (what AutoCapture reads today):', target);
+        console.log('2. composedPath()[0] (actual clicked node):', actual);
+        console.log('3. retargeted to shadow host?', retargeted);
+        console.log('4. path crosses a ShadowRoot?', pathCrossesShadow);
+        console.log(
+          '5. AutoCapture getClosestElement(event.target) →',
+          legacyResolution,
+          legacyResolution ? '(would emit Element Clicked for this node)' : '(null → click DROPPED)',
+        );
+        console.log(
+          '6. First allowlist match in composedPath() →',
+          shadowResolution,
+          shadowResolution
+            ? shadowOn
+              ? '(shadowDomSupport ON — this is what gets tracked)'
+              : '(this is what open-mode support could track)'
+            : '(no allowlist match in path)',
+        );
+        console.log('7. full composedPath():', path);
+        if (target instanceof Element) {
+          console.log(
+            '8. target.shadowRoot (open hosts only):',
+            target.shadowRoot,
+            target.shadowRoot
+              ? '← open mode; internals reachable'
+              : '← null means closed shadow or no shadow',
+          );
+        }
+        console.groupEnd();
+
+        prependRow(
+          clickLog,
+          [
+            `<div><span class="label">event.target (retargeted):</span> ${esc(describeNode(target))}</div>`,
+            `<div><span class="label">composedPath()[0] (true target):</span> ${esc(describeNode(actual))}</div>`,
+            `<div><span class="label">retargeted?</span> <span class="${retargeted ? 'warn' : 'ok'}">${retargeted}</span></div>`,
+            `<div><span class="label">legacy resolution (event.target walk):</span> <span class="${
+              legacyResolution ? 'ok' : 'bad'
+            }">${esc(describeNode(legacyResolution))}${legacyResolution ? '' : ' → click DROPPED'}</span></div>`,
+            `<div><span class="label">shadow-aware resolution (composedPath walk):</span> <span class="${
+              shadowResolution ? 'ok' : 'bad'
+            }">${esc(describeNode(shadowResolution))}</span></div>`,
+          ].join(''),
+        );
+      },
+      true,
+    );
+
+    // --- Amplitude ---
+
+    const eventLogger = {
+      name: 'shadow-dom-event-logger',
+      type: 'enrichment',
+      setup: async () => undefined,
+      execute: async (event) => {
+        const props = event.event_properties || {};
+        const path = props['[Amplitude] Element Path'];
+        const hierarchy = props['[Amplitude] Element Hierarchy'];
+        const crossesShadow = typeof path === 'string' && path.includes(' >>> ');
+        prependRow(
+          ampLog,
+          [
+            `<div><span class="label">event_type:</span> <b>${esc(event.event_type)}</b>${
+              crossesShadow ? ' <span class="ok">⟶ pierced shadow boundary</span>' : ''
+            }</div>`,
+            `<div><span class="label">Element Tag / Text:</span> ${esc(props['[Amplitude] Element Tag'] ?? '—')} / ${esc(
+              props['[Amplitude] Element Text'] ?? '—',
+            )}</div>`,
+            `<div><span class="label">Element Path:</span> <span class="path">${
+              path ? prettyPath(path) : '—'
+            }</span></div>`,
+            `<div><span class="label">Element Hierarchy:</span> ${
+              hierarchy ? esc(JSON.stringify(hierarchy)) : '—'
+            }</div>`,
+          ].join(''),
+        );
+        return event;
+      },
+    };
+
+    const apiKey = import.meta.env.VITE_AMPLITUDE_API_KEY || 'shadow-dom-playground-key';
+    const userId = import.meta.env.VITE_AMPLITUDE_USER_ID || 'shadow-dom-playground-user';
+
+    amplitude.add(eventLogger);
+    amplitude.init(apiKey, userId, {
+      fetchRemoteConfig: false,
+      // logLevel: 'debug',
+      autocapture: {
+        pageViews: false,
+        sessions: false,
+        formInteractions: false,
+        fileDownloads: false,
+        attribution: false,
+        elementInteractions: shadowOn
+          ? { shadowDomSupport: { maxDepth: MAX_DEPTH } }
+          : true,
+      },
+    });
+
+    statusEl.textContent = shadowOn
+      ? 'SDK ready — shadow DOM support ON. Click/type in the shadow sections and watch the panels.'
+      : 'SDK ready — shadow DOM support OFF (legacy). Shadow clicks will be dropped or misattributed.';
+    statusEl.className = 'ok';
+
+    console.log(
+      `%c[Shadow DOM playground] Ready (shadowDomSupport ${shadowOn ? 'ON' : 'OFF'}). Click light vs shadow controls and watch this Console.`,
+      'color:#0a7d28;font-weight:bold',
+    );
+    console.log(
+      'Tip: compare a Light DOM button click with an Open Shadow button click — look for RETARGETED and DROPPED.',
+    );
+  </script>
+</body>
+</html>

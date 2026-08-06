@@ -1,0 +1,1264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AutoCapture × Shadow DOM — POC</title>
+<style>
+  :root {
+    --blue: #1e61f0;
+    --blue-soft: #e8effd;
+    --green: #0a7d28;
+    --green-soft: #e3f4e8;
+    --amber: #b36b00;
+    --amber-soft: #fdf3e3;
+    --red: #c22f2f;
+    --red-soft: #fdeaea;
+    --ink: #1b2733;
+    --muted: #5b6b7b;
+    --line: #dbe2ea;
+    --bg: #f7f9fc;
+    --card: #ffffff;
+    --shadowbox: #f0f5ff;
+    --shadowline: #7d95d9;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    overflow: hidden;
+  }
+  code, .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+
+  .deck { position: relative; width: 100vw; height: 100vh; }
+  .slide {
+    position: absolute; inset: 0;
+    display: none;
+    flex-direction: column;
+    padding: 5vh 7vw 9vh;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+  .slide.current { display: flex; animation: slideIn .35s ease both; }
+  @keyframes slideIn { from { opacity: 0; transform: translateX(24px); } to { opacity: 1; transform: none; } }
+
+  .kicker {
+    font-size: clamp(12px, 1.3vw, 16px);
+    letter-spacing: .14em; text-transform: uppercase;
+    color: var(--blue); font-weight: 700; margin-bottom: 10px;
+  }
+  h1 { font-size: clamp(30px, 4.6vw, 58px); line-height: 1.12; margin: 0 0 14px; }
+  h2 { font-size: clamp(24px, 3.2vw, 42px); line-height: 1.15; margin: 0 0 8px; }
+  .sub { font-size: clamp(15px, 1.7vw, 22px); color: var(--muted); margin: 0 0 22px; max-width: 62ch; }
+  .small { font-size: clamp(12px, 1.25vw, 15px); color: var(--muted); }
+
+  .cols { display: flex; gap: 3vw; flex: 1; min-height: 0; align-items: stretch; }
+  .col { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 14px; justify-content: center; }
+
+  /* Fragments */
+  .frag { opacity: 0; transform: translateY(10px); transition: opacity .35s ease, transform .35s ease; }
+  .frag.on { opacity: 1; transform: none; }
+
+  /* Cards */
+  .card {
+    background: var(--card); border: 1px solid var(--line); border-radius: 14px;
+    padding: 16px 18px; box-shadow: 0 2px 10px rgba(27,39,51,.05);
+  }
+  .card h3 { margin: 0 0 6px; font-size: clamp(15px, 1.7vw, 21px); }
+  .card p { margin: 0; color: var(--muted); font-size: clamp(13px, 1.4vw, 17px); line-height: 1.45; }
+  .badge {
+    display: inline-block; font-size: clamp(11px, 1.1vw, 13px); font-weight: 700;
+    padding: 3px 10px; border-radius: 999px; margin-bottom: 8px;
+  }
+  .badge.problem { background: var(--red-soft); color: var(--red); }
+  .badge.solution { background: var(--green-soft); color: var(--green); }
+  .badge.note { background: var(--blue-soft); color: var(--blue); }
+
+  /* Diagram stage */
+  .stage {
+    background: var(--card); border: 1px solid var(--line); border-radius: 16px;
+    flex: 1; min-height: 0; position: relative; overflow: hidden;
+    box-shadow: 0 2px 12px rgba(27,39,51,.06);
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  /* Generic page mock */
+  .pagebox {
+    border: 2px solid var(--line); border-radius: 12px; background: #fff;
+    padding: 18px; width: min(88%, 560px);
+  }
+  .pagebox .pagetitle { font-size: 12px; color: var(--muted); letter-spacing: .1em; text-transform: uppercase; margin-bottom: 10px; }
+  .lightpiece {
+    border: 1px solid var(--line); border-radius: 8px; background: #fbfcfe;
+    padding: 10px 12px; margin-bottom: 10px; font-size: 14px; color: var(--muted);
+  }
+  .shadowbox {
+    border: 2px dashed var(--shadowline); border-radius: 10px; background: var(--shadowbox);
+    padding: 12px; position: relative;
+  }
+  .shadowbox .boxlabel {
+    position: absolute; top: -11px; left: 12px; background: var(--shadowbox);
+    padding: 0 8px; font-size: 11.5px; font-weight: 700; color: var(--shadowline);
+    border-radius: 6px; letter-spacing: .04em;
+  }
+  .paybtn {
+    display: inline-block; background: var(--blue); color: #fff; font-weight: 700;
+    border-radius: 8px; padding: 10px 22px; font-size: 15px;
+    box-shadow: 0 2px 6px rgba(30,97,240,.35); position: relative;
+  }
+
+  /* Cursor + ripple */
+  .cursor { position: absolute; font-size: 26px; z-index: 5; filter: drop-shadow(0 2px 3px rgba(0,0,0,.25)); }
+  .ripple {
+    position: absolute; width: 14px; height: 14px; border: 3px solid var(--blue);
+    border-radius: 50%; opacity: 0; z-index: 4;
+  }
+  .frag.on .ripple { animation: ripple 1.1s ease-out .2s infinite; }
+  @keyframes ripple { 0% { opacity: .9; transform: scale(.6);} 100% { opacity: 0; transform: scale(3);} }
+
+  /* Report card flip (retargeting) */
+  .report {
+    position: absolute; background: #fff; border: 1.5px solid var(--line); border-radius: 10px;
+    padding: 8px 12px; font-size: 13.5px; font-weight: 600; box-shadow: 0 3px 12px rgba(27,39,51,.14);
+    white-space: nowrap; z-index: 6;
+  }
+  .report .truth { color: var(--green); display: inline-block; }
+  .report .lie { color: var(--red); display: none; }
+  .report.swapped .truth { display: none; }
+  .report.swapped .lie { display: inline-block; }
+  .report.swapped { border-color: var(--red); }
+  .frag.on .report.travel { animation: travelUp 2.6s ease forwards; }
+  @keyframes travelUp {
+    0%   { transform: translate(0, 0); }
+    45%  { transform: translate(0, -86px); }
+    55%  { transform: translate(0, -86px) scale(1.06); }
+    100% { transform: translate(0, -168px); }
+  }
+
+  /* Itinerary list */
+  .itinerary { list-style: none; margin: 0; padding: 0; }
+  .itinerary li {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 12px; border-radius: 8px; margin-bottom: 6px;
+    background: #fbfcfe; border: 1px solid var(--line);
+    font-size: 14.5px; opacity: 0; transform: translateX(-8px);
+  }
+  .frag.on .itinerary li { animation: stepIn .3s ease forwards; }
+  .frag.on .itinerary li:nth-child(1) { animation-delay: .05s; }
+  .frag.on .itinerary li:nth-child(2) { animation-delay: .35s; }
+  .frag.on .itinerary li:nth-child(3) { animation-delay: .65s; }
+  .frag.on .itinerary li:nth-child(4) { animation-delay: .95s; }
+  .frag.on .itinerary li:nth-child(5) { animation-delay: 1.25s; }
+  .frag.on .itinerary li:nth-child(6) { animation-delay: 1.55s; }
+  @keyframes stepIn { to { opacity: 1; transform: none; } }
+  .itinerary li.first { border-color: var(--green); background: var(--green-soft); font-weight: 700; }
+  .itinerary .stepnum {
+    width: 22px; height: 22px; border-radius: 50%; background: var(--line);
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700; flex: none;
+  }
+  .itinerary li.first .stepnum { background: var(--green); color: #fff; }
+  .itinerary li.boundary { border-style: dashed; color: var(--shadowline); background: var(--shadowbox); }
+
+  /* Tree / climbing diagram */
+  .tree { display: flex; flex-direction: column; align-items: center; gap: 0; }
+  .tnode {
+    border: 1.5px solid var(--line); background: #fff; border-radius: 10px;
+    padding: 8px 18px; font-size: 14.5px; font-weight: 600; position: relative; z-index: 2;
+  }
+  .tlink { width: 2px; height: 22px; background: var(--line); z-index: 1; }
+  .twall {
+    width: 220px; border-top: 3px dashed var(--red); position: relative; margin: 10px 0;
+    transition: border-color .4s ease;
+  }
+  .twall .walltag {
+    position: absolute; right: -8px; top: -13px; transform: translateX(100%);
+    font-size: 12px; font-weight: 700; color: var(--red); white-space: nowrap;
+  }
+  .twall.open { border-top-color: var(--green); }
+  .twall.open .walltag { color: var(--green); }
+  .climber {
+    position: absolute; left: -34px; font-size: 22px; z-index: 5;
+    transition: transform .5s ease;
+  }
+  .hierchips { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .chip {
+    background: #fff; border: 1.5px solid var(--line); border-radius: 999px;
+    padding: 6px 14px; font-size: 13.5px; font-weight: 600;
+  }
+  .chip.shadowchip { border-color: var(--shadowline); background: var(--shadowbox); }
+  .chip .mini { font-size: 11px; color: var(--shadowline); font-weight: 700; margin-left: 6px; }
+
+  /* Address slide */
+  .addrline {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    font-size: clamp(15px, 1.9vw, 22px); font-weight: 700;
+  }
+  .addrpart {
+    background: #fff; border: 2px solid var(--line); border-radius: 10px; padding: 10px 16px;
+  }
+  .addrpart.building { border-color: var(--blue); color: var(--blue); }
+  .addrpart.room { border-color: var(--green); color: var(--green); }
+  .addrjoin { color: var(--shadowline); font-size: 1.2em; letter-spacing: .06em; }
+  .xmark { color: var(--red); font-weight: 800; }
+  .checkmark { color: var(--green); font-weight: 800; }
+
+  /* Mic / sound slide */
+  .soundwave { position: absolute; font-size: 20px; opacity: 0; }
+  .frag.on .soundwave { animation: waveOut 1.6s ease-out infinite; }
+  @keyframes waveOut { 0% { opacity: .95; transform: translateX(0);} 80% { opacity: 0; transform: translateX(46px);} 100% { opacity: 0; } }
+  .mic {
+    position: absolute; font-size: 24px; z-index: 6; opacity: 0; transform: translateY(-40px);
+  }
+  .frag.on .mic { animation: micDrop .6s ease forwards; }
+  @keyframes micDrop { to { opacity: 1; transform: translateY(0); } }
+
+  /* Event ticket */
+  .ticket {
+    border-left: 5px solid var(--green); background: var(--green-soft);
+    border-radius: 10px; padding: 12px 16px; font-size: 14px;
+  }
+  .ticket.bad { border-left-color: var(--red); background: var(--red-soft); }
+  .ticket .tickettitle { font-weight: 800; margin-bottom: 4px; }
+  .ticket .mono { font-size: 13px; }
+
+  /* Table */
+  table.matrix { border-collapse: collapse; width: 100%; font-size: clamp(13px, 1.5vw, 17px); }
+  .matrix th, .matrix td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--line); }
+  .matrix th { color: var(--muted); font-size: .85em; text-transform: uppercase; letter-spacing: .08em; }
+  .matrix td:last-child { font-weight: 700; }
+  .ok { color: var(--green); } .no { color: var(--red); } .warn { color: var(--amber); }
+
+  /* Problem overview grid */
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .numbig {
+    font-size: 28px; font-weight: 800; color: var(--red); line-height: 1;
+    margin-bottom: 6px;
+  }
+
+  /* Technical deep dive — click-to-expand overlay, hidden by default and
+     independent of the fragment-reveal sequence (always available on its slide). */
+  /* Anchored to the slide's bottom-left corner rather than sitting in the
+     content flow: content height varies per slide, and a flowed button can
+     drift into the centered nav controls. */
+  .deepdive-link {
+    position: absolute; left: 7vw; bottom: 22px;
+    display: inline-flex; align-items: center; gap: 7px;
+    background: #fff; border: 1.5px dashed var(--shadowline); border-radius: 999px;
+    padding: 7px 15px; cursor: pointer;
+    font-size: clamp(12px, 1.25vw, 14px); font-weight: 600; color: var(--shadowline);
+    font-family: inherit; z-index: 45;
+  }
+  .deepdive-link:hover { background: var(--shadowbox); border-style: solid; }
+  .deepdive-overlay {
+    position: fixed; inset: 0; background: rgba(17, 24, 33, .58);
+    display: none; align-items: center; justify-content: center;
+    z-index: 500; padding: 4vh 4vw;
+  }
+  .deepdive-overlay.open { display: flex; animation: overlayIn .2s ease both; }
+  @keyframes overlayIn { from { opacity: 0; } to { opacity: 1; } }
+  .deepdive-panel {
+    background: #fff; border-radius: 16px; width: min(920px, 100%);
+    max-height: 88vh; overflow-y: auto; box-shadow: 0 24px 60px rgba(15,23,32,.35);
+    animation: panelIn .25s ease both;
+  }
+  @keyframes panelIn { from { opacity: 0; transform: translateY(10px) scale(.98); } to { opacity: 1; transform: none; } }
+  .deepdive-head {
+    display: flex; align-items: flex-start; justify-content: space-between; gap: 16px;
+    padding: 22px 26px 16px; border-bottom: 1px solid var(--line);
+    position: sticky; top: 0; background: #fff; border-radius: 16px 16px 0 0;
+  }
+  .deepdive-close {
+    background: var(--bg); border: 1px solid var(--line); border-radius: 999px;
+    width: 32px; height: 32px; font-size: 15px; cursor: pointer; color: var(--muted); flex: none;
+  }
+  .deepdive-close:hover { background: var(--red-soft); color: var(--red); }
+  .deepdive-body { padding: 20px 26px 28px; }
+  .deepdive-body h4 { font-size: clamp(14px, 1.5vw, 17px); margin: 26px 0 8px; color: var(--ink); }
+  .deepdive-body h4:first-child { margin-top: 0; }
+  .deepdive-body p { color: var(--muted); font-size: clamp(13px, 1.4vw, 15.5px); line-height: 1.55; margin: 0 0 10px; }
+  .deepdive-body code { font-family: inherit; background: var(--bg); border-radius: 4px; padding: 1px 5px; font-size: .93em; }
+  .codelabel { font-size: 11.5px; color: var(--muted); margin: 14px 0 4px; letter-spacing: .02em; }
+  .codeblock {
+    background: #101a26; color: #dbe6f2; border-radius: 10px; padding: 14px 16px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 13px; line-height: 1.6; overflow-x: auto; margin: 0 0 4px; white-space: pre;
+  }
+  .codeblock .cm { color: #7d93ad; }
+  .codeblock .kw { color: #7fb0ff; }
+  .codeblock .fn { color: #f2c185; }
+  .qa { background: var(--blue-soft); border-radius: 10px; padding: 12px 14px; margin-top: 12px; }
+  .qa b { color: var(--blue); display: block; margin-bottom: 3px; font-size: 13.5px; }
+  .qa p { color: var(--ink); margin: 0; font-size: 13.5px; }
+  table.ddtable { border-collapse: collapse; width: 100%; font-size: 13.5px; margin: 6px 0 4px; }
+  .ddtable th, .ddtable td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--line); }
+  .ddtable th { color: var(--muted); font-size: 11.5px; text-transform: uppercase; letter-spacing: .06em; }
+  .ddtable td:first-child { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+  .ddtable tr.highlight td { background: var(--red-soft); font-weight: 700; }
+
+  /* Chrome (nav UI) */
+  .navhint {
+    position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%);
+    display: flex; gap: 12px; align-items: center; z-index: 50;
+  }
+  .navbtn {
+    background: #fff; border: 1px solid var(--line); border-radius: 999px;
+    width: 40px; height: 40px; font-size: 18px; cursor: pointer; color: var(--ink);
+    box-shadow: 0 2px 8px rgba(27,39,51,.10);
+  }
+  .navbtn:hover { background: var(--blue-soft); }
+  .counter { font-size: 13px; color: var(--muted); min-width: 56px; text-align: center; }
+  .progress { position: fixed; top: 0; left: 0; height: 4px; background: var(--blue); width: 0; transition: width .3s ease; z-index: 60; }
+
+  .footer-tag {
+    position: fixed; bottom: 18px; right: 22px; font-size: 12px; color: var(--muted); z-index: 40;
+    pointer-events: none;
+  }
+
+  .titlecard { justify-content: center; align-items: flex-start; }
+  .keyhint { margin-top: 30px; font-size: 14px; color: var(--muted); }
+  .keyhint kbd {
+    background: #fff; border: 1px solid var(--line); border-bottom-width: 2px;
+    border-radius: 6px; padding: 2px 8px; font-family: inherit; font-size: 13px;
+  }
+
+  ul.clean { margin: 0; padding-left: 0; list-style: none; }
+  ul.clean li { margin-bottom: 12px; display: flex; gap: 10px; align-items: flex-start; font-size: clamp(14px, 1.6vw, 19px); }
+  ul.clean .ico { flex: none; width: 26px; text-align: center; }
+</style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+<div class="deck" id="deck">
+
+  <!-- 1 · TITLE ============================================================ -->
+  <section class="slide titlecard">
+    <div class="kicker">AutoCapture · Shadow DOM POC · SDKW-51</div>
+    <h1>Teaching AutoCapture to see<br/>inside Shadow DOM</h1>
+    <p class="sub">Why clicks inside modern web components go missing today —
+      and how the proof of concept fixes each gap, step by step.</p>
+    <div class="card" style="max-width: 560px;">
+      <p><b>Status:</b> POC working end-to-end — clicks, form changes, element
+      addresses, and page-structure data all captured inside open Shadow DOM.
+      Off by default; zero change in behavior until switched on.</p>
+    </div>
+    <div class="keyhint">Navigate with <kbd>→</kbd> <kbd>←</kbd> or the arrows below · steps reveal one at a time<br/>
+      <span style="opacity:.85;">🔍 buttons open an optional technical deep dive — skip them unless someone asks</span></div>
+  </section>
+
+  <!-- 2 · WHAT IS SHADOW DOM =============================================== -->
+  <section class="slide">
+    <div class="kicker">Background · 1 minute</div>
+    <h2>Modern pages are built from sealed components</h2>
+    <p class="sub">Teams ship reusable widgets — date pickers, checkout forms, whole design systems.
+      <b>Shadow DOM</b> is the browser feature that puts each widget in its own sealed box,
+      so nothing else on the page can accidentally break it.</p>
+    <div class="cols">
+      <div class="col">
+        <div class="stage">
+          <div class="pagebox">
+            <div class="pagetitle">a typical page</div>
+            <div class="lightpiece">🔷 Header — regular page content (“light DOM”)</div>
+            <div class="lightpiece">🔷 Text, links, images … all visible to AutoCapture today</div>
+            <div class="shadowbox">
+              <div class="boxlabel">SEALED COMPONENT (Shadow DOM)</div>
+              <span class="paybtn">Pay now</span>
+              <span style="margin-left:10px; color: var(--muted); font-size: 13.5px;">← lives <i>inside</i> the box</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col" style="max-width: 420px;">
+        <div class="card frag">
+          <span class="badge note">OPEN mode</span>
+          <h3>A glass box 🪟</h3>
+          <p>Outsiders can look inside — <i>if they know the special way in</i>.
+             This is what most component frameworks use, and what this POC supports.</p>
+        </div>
+        <div class="card frag">
+          <span class="badge problem">CLOSED mode</span>
+          <h3>A vault 🔒</h3>
+          <p>The browser makes it impossible for any page script to look inside.
+             Out of scope — for us <i>and for everyone else</i>.</p>
+        </div>
+        <div class="card frag">
+          <h3>Why we care</h3>
+          <p>athenahealth’s two core business units build their UI almost entirely
+             out of these sealed components.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 · HOW AUTOCAPTURE WORKS TODAY ====================================== -->
+  <section class="slide">
+    <div class="kicker">Background · 30 seconds</div>
+    <h2>How AutoCapture normally works</h2>
+    <p class="sub">A reporter standing at the page’s front door. Every click “bubbles up” to it.</p>
+    <div class="cols">
+      <div class="col">
+        <div class="stage">
+          <div class="pagebox">
+            <div class="pagetitle">📋 AutoCapture listens at the top of the page</div>
+            <div class="lightpiece" style="text-align:center;">⬆️ &nbsp;click travels up&nbsp; ⬆️</div>
+            <div class="lightpiece" style="text-align:center;"><span class="paybtn" style="background:var(--green)">Sign up</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="col" style="max-width: 460px;">
+        <div class="card frag">
+          <h3>1 · Hear the click</h3>
+          <p>Clicks naturally travel from the element up to the top of the page — AutoCapture hears every one.</p>
+        </div>
+        <div class="card frag">
+          <h3>2 · Ask “what was clicked?”</h3>
+          <p>Is it a button, link, form field — something on the tracking list?</p>
+        </div>
+        <div class="card frag">
+          <h3>3 · Write the event</h3>
+          <p>What it was, its text, its <b>surroundings</b> (family tree), and its <b>address</b> on the page — so analysts can chart it and label it later.</p>
+        </div>
+        <div class="card frag" style="border-color: var(--green);">
+          <p class="ok" style="font-weight:700;">Works perfectly … as long as everything is in the open. ✅</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 · THE 4 PROBLEMS ==================================================== -->
+  <section class="slide">
+    <div class="kicker">The problem</div>
+    <h2>Put that button in a sealed box, and four things break</h2>
+    <p class="sub">A click <i>inside</i> a component still reaches AutoCapture — but the report is ruined on the way out.</p>
+    <div class="grid2" style="flex:1; align-content: center;">
+      <div class="card frag">
+        <div class="numbig">1</div>
+        <h3>The browser hides <i>who</i> was clicked</h3>
+        <p>Outsiders are only told “something in the box” — never the actual button. The click is dropped, or blamed on a nameless box.</p>
+      </div>
+      <div class="card frag">
+        <div class="numbig">2</div>
+        <h3>The family tree hits a wall</h3>
+        <p>We can’t see the element’s surroundings, so we can’t tell <i>which</i> “Pay” button it was.</p>
+      </div>
+      <div class="card frag">
+        <div class="numbig">3</div>
+        <h3>No address that crosses the wall</h3>
+        <p>Page addresses (CSS selectors) can’t point inside a box — so visual labeling can never find the element again.</p>
+      </div>
+      <div class="card frag">
+        <div class="numbig">4</div>
+        <h3>Deaf to what happens inside</h3>
+        <p>Form changes inside the box <b>never leave it at all</b>, and our page watchers can’t see in.</p>
+      </div>
+    </div>
+    <p class="small frag" style="margin-top:14px;">Next: each problem, and how the POC solves it. →</p>
+  </section>
+
+  <!-- 5 · PROBLEM 1 / SOLUTION 1 =========================================== -->
+  <section class="slide">
+    <div class="kicker">Problem 1 → solved</div>
+    <h2>The browser hides who was clicked</h2>
+    <div class="cols">
+      <div class="col">
+        <div class="stage" style="min-height: 46vh;">
+          <div class="pagebox" style="position: relative;">
+            <div class="pagetitle">📋 AutoCapture asks: “what was clicked?”</div>
+            <div class="lightpiece">🔷 regular page content — reported accurately</div>
+            <div class="shadowbox" style="text-align:center; padding: 20px;">
+              <div class="boxlabel">SEALED COMPONENT</div>
+              <span class="paybtn" id="payTarget" style="position:relative;">Pay now
+                <span class="frag ripple" data-auto style="left: 40%; top: 30%;"></span>
+              </span>
+            </div>
+            <!-- travelling report -->
+            <div class="frag" data-act="retarget">
+              <div class="report travel" id="retargetReport" style="bottom: 26px; left: 50%; margin-left: -110px;">
+                report: clicked <span class="truth">“Pay now” button ✅</span><span class="lie">…a box? 🤷 ❌</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <p class="small">The swap is deliberate — a browser privacy screen called <span class="mono">retargeting</span>. It protects components from outsiders… including us.</p>
+      </div>
+      <div class="col" style="max-width: 470px;">
+        <div class="card frag">
+          <span class="badge problem">TODAY</span>
+          <h3>“A box was clicked” → dropped</h3>
+          <p>A nameless box isn’t on the tracking list. The click vanishes — or worse, is logged with no text and no meaning.</p>
+        </div>
+        <div class="card frag">
+          <span class="badge solution">THE FIX</span>
+          <h3>Ask for the itinerary instead</h3>
+          <p>The browser also keeps the click’s full travel log — <span class="mono">composedPath()</span>. For glass (open) boxes, <b>stop&nbsp;1 is the real button</b>. Session Replay uses the same trick.</p>
+        </div>
+        <div class="frag">
+          <ol class="itinerary">
+            <li class="first"><span class="stepnum">1</span> “Pay now” button &nbsp;←&nbsp; <b>the truth</b></li>
+            <li><span class="stepnum">2</span> wrapper inside the box</li>
+            <li class="boundary"><span class="stepnum">🚪</span> box boundary</li>
+            <li><span class="stepnum">3</span> the component box</li>
+            <li><span class="stepnum">4</span> checkout section</li>
+            <li><span class="stepnum">5</span> the page</li>
+          </ol>
+        </div>
+        <button class="deepdive-link" data-deepdive="dd-target">🔍 Technical deep dive</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 · PROBLEM 2 / SOLUTION 2 =========================================== -->
+  <section class="slide">
+    <div class="kicker">Problem 2 → solved</div>
+    <h2>The family tree hits a wall</h2>
+    <p class="sub">Every event includes the element’s surroundings — that’s how analysts tell the checkout “Pay” from the settings “Pay”.</p>
+    <div class="cols">
+      <div class="col">
+        <div class="stage" style="min-height: 46vh;">
+          <div class="tree" style="position: relative;">
+            <div class="tnode">🌐 the page</div>
+            <div class="tlink"></div>
+            <div class="tnode">checkout section</div>
+            <div class="tlink"></div>
+            <div class="tnode" style="border-color: var(--shadowline);">component box 📦</div>
+            <div class="twall" id="wall">
+              <span class="walltag" id="walltag">⛔ wall</span>
+            </div>
+            <div class="tnode">wrapper</div>
+            <div class="tlink"></div>
+            <div class="tnode" style="border-color: var(--blue); position: relative;">
+              “Pay now” button
+              <span class="climber" id="climber">🧗</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col" style="max-width: 470px;">
+        <div class="card frag" data-act="climb-stop">
+          <span class="badge problem">TODAY</span>
+          <h3>The climb stops at the wall</h3>
+          <p>Walking up from the button, the “parent” trail simply ends at the box edge. Everything above — the component, the section, the page — is invisible.</p>
+        </div>
+        <div class="card frag" data-act="climb-through">
+          <span class="badge solution">THE FIX</span>
+          <h3>Step through the box’s door</h3>
+          <p>Every glass box knows its owner. At the wall, we step through to the owner and keep climbing — all the way to the top.</p>
+        </div>
+        <div class="frag">
+          <p class="small" style="margin: 0 0 8px; font-weight: 700;">The recorded family tree — now complete, with the doorway marked:</p>
+          <div class="hierchips">
+            <span class="chip">Pay now</span> ·
+            <span class="chip shadowchip">wrapper<span class="mini">shadow: true 🚪</span></span> ·
+            <span class="chip">component box</span> ·
+            <span class="chip">checkout section</span> ·
+            <span class="chip">page</span>
+          </div>
+          <p class="small" style="margin-top:8px;">The 🚪 marker tells our own tools (visual labeling, queries) exactly where the boundary was.</p>
+        </div>
+        <button class="deepdive-link" data-deepdive="dd-wall">🔍 Technical deep dive</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7 · PROBLEM 3 / SOLUTION 3 =========================================== -->
+  <section class="slide">
+    <div class="kicker">Problem 3 → solved</div>
+    <h2>No address that crosses the wall</h2>
+    <p class="sub">Events carry an “address” (a CSS selector) so tools like <b>visual labeling</b> can find the exact element again later. Page addresses can’t point inside a box.</p>
+    <div class="col" style="justify-content: center; gap: 22px;">
+      <div class="card frag">
+        <span class="badge problem">TODAY</span>
+        <h3>“Room 12” … in which building? <span class="xmark">✗</span></h3>
+        <div class="addrline" style="margin-top: 8px;">
+          <span class="addrpart room mono">button#open-btn</span>
+          <span class="small">→ searched on the page, finds nothing — the room is inside a box the address can’t mention.</span>
+        </div>
+      </div>
+      <div class="card frag">
+        <span class="badge solution">THE FIX</span>
+        <h3>Two-part addresses: building <b>»»»</b> room <span class="checkmark">✓</span></h3>
+        <div class="addrline" style="margin-top: 8px;">
+          <span class="addrpart building mono">div#open-host</span>
+          <span class="addrjoin mono">&gt;&gt;&gt;</span>
+          <span class="addrpart room mono">button#open-btn</span>
+        </div>
+        <p class="small" style="margin-top: 10px;">Read as: “find the building on the page, step through its door, then find the room inside.”</p>
+      </div>
+      <div class="card frag">
+        <h3>Nested boxes? Just add a part.</h3>
+        <div class="addrline" style="margin-top: 8px; font-size: clamp(13px, 1.5vw, 18px);">
+          <span class="addrpart building mono">div#nested-host</span>
+          <span class="addrjoin mono">&gt;&gt;&gt;</span>
+          <span class="addrpart building mono">div#inner-host</span>
+          <span class="addrjoin mono">&gt;&gt;&gt;</span>
+          <span class="addrpart room mono">button#inner-btn</span>
+        </div>
+        <p class="small" style="margin-top: 10px;">We also ship the <b>resolver</b> that follows these addresses — the piece visual labeling will use.</p>
+      </div>
+      <button class="deepdive-link" data-deepdive="dd-address">🔍 Technical deep dive</button>
+    </div>
+  </section>
+
+  <!-- 8 · PROBLEM 4 / SOLUTION 4 =========================================== -->
+  <section class="slide">
+    <div class="kicker">Problem 4 → solved</div>
+    <h2>Deaf to what happens inside</h2>
+    <p class="sub">Clicks escape the box (renamed). Form changes — “typed an email”, “picked an option” — <b>never leave the box at all</b>.</p>
+    <div class="cols">
+      <div class="col">
+        <div class="stage" style="min-height: 44vh;">
+          <div class="pagebox" style="position: relative;">
+            <div class="pagetitle">📋 AutoCapture at the front door … hears nothing</div>
+            <div class="shadowbox" style="padding: 22px 18px; position: relative;">
+              <div class="boxlabel">SEALED COMPONENT</div>
+              <div style="background:#fff; border:1.5px solid var(--line); border-radius:8px; padding:9px 14px; display:inline-block; font-size:14px; color:var(--muted); position: relative;">
+                email address…
+                <span class="frag soundwave" data-auto style="right:-26px; top: 6px;">🔊</span>
+                <span class="frag mic" data-act="mic" style="right:-56px; top: 2px;">🎙️</span>
+              </div>
+              <span class="small frag" data-auto style="display:block; margin-top:10px;">“changed!” …bounces off the wall <span class="xmark">✗</span></span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col" style="max-width: 480px;">
+        <div class="card frag">
+          <span class="badge problem">TODAY</span>
+          <h3>Change events are homebodies</h3>
+          <p>Unlike clicks, “changed” signals stop at the box wall — no listener outside can ever hear them. Zero <i>Element Changed</i> events from components.</p>
+        </div>
+        <div class="card frag">
+          <span class="badge solution">THE FIX · part 1</span>
+          <h3>Put a microphone <i>inside</i> the box 🎙️</h3>
+          <p>We can’t hear through the wall — so we listen inside. The moment a user first touches a component (a click or focus travels through the box and reveals it), we place a tiny listener inside. The “changed” that follows is heard.</p>
+        </div>
+        <div class="card frag">
+          <span class="badge solution">THE FIX · part 2</span>
+          <h3>Watchers fan out 👀</h3>
+          <p>The page watchers that power zoning &amp; “what’s on screen” get a twin inside every open box — including boxes that appear later.</p>
+        </div>
+        <button class="deepdive-link" data-deepdive="dd-hearing">🔍 Technical deep dive</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9 · GUARDRAILS ======================================================== -->
+  <section class="slide">
+    <div class="kicker">Built to be safe</div>
+    <h2>Guardrails</h2>
+    <div class="cols">
+      <div class="col" style="justify-content:center;">
+        <ul class="clean">
+          <li class="frag"><span class="ico">🔌</span><span><b>Off by default.</b> Nothing changes until an org is switched on — by a config flag or remotely, per customer.</span></li>
+          <li class="frag"><span class="ico">🟰</span><span><b>Switched off = identical to today.</b> Locked in by a test suite that fails if even one byte of behavior drifts (487 tests, 100% coverage).</span></li>
+          <li class="frag"><span class="ico">⛽</span><span><b>Budgets everywhere.</b> How deep we look into nested boxes is capped (default 1, max 10), so huge pages stay fast.</span></li>
+          <li class="frag"><span class="ico">🛡️</span><span><b>Can never crash a customer page.</b> Every new code path is wrapped — worst case, one event is skipped.</span></li>
+          <li class="frag"><span class="ico">🕶️</span><span><b>Privacy reaches inside.</b> A “mask this” instruction on a component now masks everything within it — at any depth, deliberately unbudgeted.</span></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- 10 · WHAT WORKS NOW =================================================== -->
+  <section class="slide">
+    <div class="kicker">Proof · live demo results</div>
+    <h2>The same click, before and after</h2>
+    <div class="cols">
+      <div class="col" style="justify-content:center; gap: 18px;">
+        <div class="ticket bad frag">
+          <div class="tickettitle">BEFORE — support off</div>
+          <div class="mono">Element Clicked · tag: div · text: (none)<br/>address: div#open-host &nbsp;← a nameless box… or nothing at all</div>
+        </div>
+        <div class="ticket frag">
+          <div class="tickettitle">AFTER — support on</div>
+          <div class="mono">Element Clicked · tag: button · text: “open button”<br/>address: div#open-host <b>&gt;&gt;&gt;</b> button#open-btn<br/>family tree: button → wrapper 🚪 → box → section → page</div>
+        </div>
+      </div>
+      <div class="col" style="max-width: 520px; justify-content:center;">
+        <div class="card frag">
+          <table class="matrix">
+            <tr><th>Scenario</th><th>POC</th></tr>
+            <tr><td>Clicks in open components</td><td class="ok">✓ captured</td></tr>
+            <tr><td>Form changes in open components</td><td class="ok">✓ captured</td></tr>
+            <tr><td>Boxes inside boxes (nested)</td><td class="ok">✓ captured</td></tr>
+            <tr><td>Components added after page load</td><td class="ok">✓ captured</td></tr>
+            <tr><td>Visual-labeling addresses</td><td class="ok">✓ emitted + resolvable</td></tr>
+            <tr><td>Closed (vault) components</td><td class="warn">safely ignored — no errors</td></tr>
+          </table>
+        </div>
+        <p class="small frag">Verified live in a browser on the interactive playground, plus 550+ automated tests across the two packages.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 11 · SCOPE ============================================================ -->
+  <section class="slide">
+    <div class="kicker">Boundaries</div>
+    <h2>What’s in, what’s out</h2>
+    <div class="cols">
+      <div class="col">
+        <div class="card frag" style="border-color: var(--green);">
+          <span class="badge solution">IN SCOPE</span>
+          <h3>Open (glass) Shadow DOM 🪟</h3>
+          <p>The standard mode used by component frameworks — and by athenahealth. Clicks, changes, addresses, family trees, zoning: covered.</p>
+        </div>
+        <div class="card frag" style="border-color: var(--red);">
+          <span class="badge problem">OUT OF SCOPE</span>
+          <h3>Closed (vault) Shadow DOM 🔒</h3>
+          <p>The browser makes the inside unreachable for <i>any</i> page script — not an Amplitude limitation. We keep today’s behavior: the box itself may be logged, never its contents, never an error.</p>
+        </div>
+        <div class="card frag" style="border-color: var(--amber);">
+          <span class="badge note">EDGE CASES · documented</span>
+          <p style="margin-top:4px;">Browser autofill into a never-touched component field · components that seal an <i>already-visible</i> element (affects zoning watchers only). Both rare, both no worse than today.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 12 · WHAT'S NEXT ====================================================== -->
+  <section class="slide">
+    <div class="kicker">From POC to product</div>
+    <h2>What’s next</h2>
+    <div class="cols">
+      <div class="col" style="justify-content:center;">
+        <ul class="clean">
+          <li class="frag"><span class="ico">🖱️</span><span><b>SDK capture side — this POC.</b> Working; needs perf validation on athenahealth-scale pages.</span></li>
+          <li class="frag"><span class="ico">🏷️</span><span><b>Visual labeling adoption.</b> The tagging UI &amp; Chrome extension switch to the new address resolver we ship.</span></li>
+          <li class="frag"><span class="ico">🗄️</span><span><b>Backend &amp; query support.</b> Charts and audiences need to understand the new two-part addresses and the 🚪 marker (NOVA sizing — Edward).</span></li>
+          <li class="frag"><span class="ico">🚦</span><span><b>Rollout decision.</b> Per-customer remote switch is already wired; who flips it, and when, for athenahealth.</span></li>
+        </ul>
+        <div class="card frag" style="margin-top: 22px; max-width: 640px;">
+          <h3>Try it yourself</h3>
+          <p class="mono" style="font-size: 14px;">pnpm dev → localhost:5173/autocapture/shadow-dom.html</p>
+          <p>Click the light vs. shadow buttons and watch the events — add <span class="mono">?shadow=off</span> to see today’s behavior.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<!-- ===== TECHNICAL DEEP DIVE · problem 1 (hidden until clicked) ============ -->
+<div class="deepdive-overlay" id="dd-target">
+  <div class="deepdive-panel">
+    <div class="deepdive-head">
+      <div>
+        <div class="kicker" style="margin-bottom:6px;">Technical deep dive · problem 1</div>
+        <h3 style="margin:0; font-size: clamp(18px, 2.2vw, 26px);">Retargeting — and reading the real target from <code>composedPath()</code></h3>
+      </div>
+      <button class="deepdive-close" data-close aria-label="Close">✕</button>
+    </div>
+    <div class="deepdive-body">
+
+      <h4>The browser rewrites <code>event.target</code> at every boundary</h4>
+      <p>Retargeting is spec'd behavior, not a quirk: as an event propagates out of a shadow tree, the
+        browser rewrites <code>target</code> to the nearest ancestor that lives in the <i>same</i> tree as
+        the listener. Our listener is on <code>document</code>, so by the time we see the event its
+        <code>target</code> has become the host element. Every listener sees a target appropriate to its
+        own tree — which is exactly the encapsulation guarantee components are sold on.</p>
+
+      <div class="codelabel">What a document-level listener actually receives</div>
+      <div class="codeblock">document.addEventListener(<span class="fn">'click'</span>, (e) =&gt; {
+  e.target                    <span class="cm">// &lt;my-widget&gt;   ← retargeted to the host</span>
+  e.composedPath()[<span class="fn">0</span>]        <span class="cm">// &lt;button&gt;Pay&lt;/button&gt;   ← the truth</span>
+  e.composedPath()            <span class="cm">// [button, div.wrapper, #shadow-root, my-widget,</span>
+                              <span class="cm">//  section.checkout, body, html, document, Window]</span>
+}, { capture: <span class="kw">true</span> });</div>
+
+      <p>Note the event reaches <code>document</code> at all only because <code>click</code> is
+        <code>composed: true</code>. Events that are not composed never leave the box — that is
+        <b>problem 4</b>, and it needs a different fix.</p>
+
+      <div class="codelabel">Before · the retargeted host is what we resolved from</div>
+      <div class="codeblock"><span class="cm">// packages/plugin-autocapture-browser/src/data-extractor.ts (before)</span>
+<span class="kw">const</span> closestTrackedAncestor = <span class="fn">getClosestElement</span>(
+  baseEvent.event.target <span class="kw">as</span> HTMLElement,   <span class="cm">// ← &lt;my-widget&gt;, a bare div</span>
+  selectorAllowlist,
+);
+<span class="cm">// &lt;my-widget&gt; matches no allowlist selector → null → the click is DROPPED</span></div>
+
+      <div class="codelabel">After · one gated indirection, used everywhere a target is read</div>
+      <div class="codeblock"><span class="cm">// data-extractor.ts — the whole fix</span>
+<span class="fn">resolveEventTarget</span> = (event: Event): EventTarget | <span class="kw">null</span> =&gt; {
+  <span class="kw">if</span> (!<span class="kw">this</span>.<span class="fn">isShadowDomEnabled</span>()) {
+    <span class="kw">return</span> event.target;                        <span class="cm">// off path: byte-identical to before</span>
+  }
+  <span class="kw">const</span> path = event.<span class="fn">composedPath</span>?.();
+  <span class="kw">return</span> (path &amp;&amp; path.length &gt; <span class="fn">0</span> ? path[<span class="fn">0</span>] : <span class="kw">null</span>) ?? event.target;
+};</div>
+
+      <p style="margin-top:12px;">Every place that previously read <code>event.target</code> now calls this
+        instead: click enrichment, change enrichment, the cursor-pointer check, and action-click
+        resolution in <code>track-action-click.ts</code>. The optional-chaining and the
+        <code>?? event.target</code> tail mean an exotic event with no <code>composedPath</code> degrades to
+        today's behavior rather than throwing.</p>
+
+      <h4>Two details worth having ready for Q&amp;A</h4>
+      <div class="qa">
+        <b>Doesn't this leak closed components?</b>
+        <p>No — the browser enforces it for us. For a <b>closed</b> root, <code>composedPath()</code>
+          omits the internals entirely and the first entry is the host. So
+          <code>resolveEventTarget</code> returns the same host we get today: no new information, no
+          error, no special-casing in our code.</p>
+      </div>
+      <div class="qa">
+        <b>Is this the same trick Session Replay uses?</b>
+        <p>Yes — rrweb resolves every interaction through a <code>getEventTarget</code> helper built on
+          <code>composedPath()[0]</code>. It lives inside the bundled rrweb dist and isn't exported, so we
+          reimplemented the five lines rather than importing a vendored internal. Same idea, independently
+          gated.</p>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ===== TECHNICAL DEEP DIVE · problem 2 (hidden until clicked) ============ -->
+<div class="deepdive-overlay" id="dd-wall">
+  <div class="deepdive-panel">
+    <div class="deepdive-head">
+      <div>
+        <div class="kicker" style="margin-bottom:6px;">Technical deep dive · problem 2</div>
+        <h3 style="margin:0; font-size: clamp(18px, 2.2vw, 26px);">Why the climb stops — and how we step through</h3>
+      </div>
+      <button class="deepdive-close" data-close aria-label="Close">✕</button>
+    </div>
+    <div class="deepdive-body">
+
+      <h4>The wall is <code>parentElement</code> returning <code>null</code></h4>
+      <p>The element at the top of a shadow tree does have a parent — but that parent is the
+        <code>ShadowRoot</code> itself, and a <code>ShadowRoot</code> is a <code>DocumentFragment</code>,
+        not an <code>Element</code>. Since <code>parentElement</code> only returns parents that are
+        Elements, it returns <code>null</code> there. Any loop written as “walk <code>parentElement</code>
+        until null” quietly ends at the boundary.</p>
+
+      <div class="codelabel">The DOM in question</div>
+      <div class="codeblock">&lt;body&gt;
+  &lt;section class="checkout"&gt;
+    &lt;my-widget&gt;                    <span class="cm">← the "host" (lives in the light DOM)</span>
+      ┌─ #shadow-root (open) ─────┐
+      │  &lt;div class="wrapper"&gt;    │
+      │    &lt;button&gt;Pay&lt;/button&gt;   │
+      └───────────────────────────┘</div>
+
+      <div class="codelabel">Walking up from the button</div>
+      <div class="codeblock">button.parentElement          <span class="cm">// &lt;div class="wrapper"&gt;   ✓ normal step</span>
+wrapper.parentElement         <span class="cm">// null  ← THE WALL</span>
+wrapper.parentNode            <span class="cm">// #shadow-root (nodeType 11, a DocumentFragment — not an Element)</span></div>
+
+      <div class="codelabel">So the old walker dead-ends after <code>wrapper</code></div>
+      <div class="codeblock"><span class="cm">// packages/plugin-autocapture-browser/src/hierarchy.ts (before)</span>
+<span class="kw">let</span> current = targetEl.parentElement;
+<span class="kw">while</span> (current &amp;&amp; current.tagName !== <span class="fn">'HTML'</span>) {
+  ancestors.push(current);
+  current = current.parentElement;   <span class="cm">// null at the shadow-tree top → loop exits</span>
+}
+<span class="cm">// result: [button, wrapper] — my-widget, section, body are invisible</span></div>
+
+      <h4>The door: every shadow tree knows its owner</h4>
+      <p>Two APIs combine into the step-through. <code>getRootNode()</code> hands back the shadow root
+        the element lives in; that root's <code>.host</code> is the element that called
+        <code>attachShadow()</code>.</p>
+
+      <div class="codeblock">wrapper.getRootNode()         <span class="cm">// the #shadow-root this element lives in</span>
+wrapper.getRootNode().host    <span class="cm">// &lt;my-widget&gt; — the element that called attachShadow()</span></div>
+
+      <div class="codelabel">Packaged as <code>composedParent</code> · packages/element-selector/src/helpers/shadow.ts</div>
+      <div class="codeblock"><span class="kw">export function</span> <span class="fn">composedParent</span>(el: Element): Element | <span class="kw">null</span> {
+  <span class="kw">if</span> (el.parentElement) {
+    <span class="kw">return</span> el.parentElement;        <span class="cm">// normal step within the same tree</span>
+  }
+  <span class="kw">const</span> root = el.getRootNode();
+  <span class="kw">if</span> (<span class="fn">isShadowRoot</span>(root)) {
+    <span class="kw">return</span> root.host;               <span class="cm">// at the tree top: step through to the host</span>
+  }
+  <span class="kw">return null</span>;                      <span class="cm">// genuinely the top (document) — stop for real</span>
+}</div>
+
+      <div class="codelabel">And the new walker uses it only at the wall, on a budget · hierarchy.ts (after)</div>
+      <div class="codeblock"><span class="kw">const</span> <span class="fn">nextAncestor</span> = (): Element | <span class="kw">null</span> =&gt; {
+  <span class="kw">if</span> (node.parentElement) {
+    <span class="kw">return</span> node.parentElement;               <span class="cm">// same-tree steps are unchanged</span>
+  }
+  <span class="kw">if</span> (crossShadow &amp;&amp; crossings &lt; maxShadowDepth) {
+    <span class="kw">const</span> host = <span class="fn">composedParent</span>(node);       <span class="cm">// the door: ShadowRoot → host</span>
+    <span class="kw">if</span> (host &amp;&amp; host !== node) {
+      crossings += 1;
+      <span class="kw">return</span> host;
+    }
+  }
+  <span class="kw">return null</span>;                               <span class="cm">// gate off / budget spent → today's behavior</span>
+};
+<span class="cm">// result: [button, wrapper, my-widget, section, body] — complete</span></div>
+
+      <p style="margin-top:12px;">So the walk becomes:
+        <code>button → wrapper → (wall: parentElement is null → getRootNode().host) → my-widget → section → body</code>.
+        <code>getClosestElement</code> in <code>helpers.ts</code> does the identical hop for allowlist
+        matching, with the same <code>crossings &lt; maxShadowDepth</code> budget.</p>
+
+      <h4>Two details worth having ready for Q&amp;A</h4>
+      <div class="qa">
+        <b>Why doesn't this break closed mode?</b>
+        <p><code>root.host</code> actually works for closed shadow roots too — if you already hold a
+          reference to an element inside. But from outside we never obtain one:
+          <code>composedPath()</code> refuses to expose closed internals, so the walk never starts
+          inside a closed tree in the first place. The gate is at entry, not at the hop.</p>
+      </div>
+      <div class="qa">
+        <b>Why the budget?</b>
+        <p>With <code>crossShadow = false</code> (the default) the hop never happens, so the off path is
+          byte-identical to main. <code>maxShadowDepth</code> caps how many boundaries one event may
+          cross (default 1, hard cap 10), keeping traversal cost predictable on deeply nested
+          component trees.</p>
+      </div>
+
+      <div class="qa" style="background: var(--shadowbox);">
+        <b style="color: var(--shadowline);">Connection back to the slide</b>
+        <p>The 🚪 <code>shadow: true</code> marker in the recorded family tree is placed on exactly the
+          node where <code>parentElement</code> was null (<code>wrapper</code>) — it tells downstream
+          consumers “the next entry up is a host; descend through <code>.shadowRoot</code>, not
+          <code>.children</code>, when re-resolving this path.”</p>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ===== TECHNICAL DEEP DIVE · problem 3 (hidden until clicked) ============ -->
+<div class="deepdive-overlay" id="dd-address">
+  <div class="deepdive-panel">
+    <div class="deepdive-head">
+      <div>
+        <div class="kicker" style="margin-bottom:6px;">Technical deep dive · problem 3</div>
+        <h3 style="margin:0; font-size: clamp(18px, 2.2vw, 26px);">Why CSS can’t pierce — and the segment walk that does</h3>
+      </div>
+      <button class="deepdive-close" data-close aria-label="Close">✕</button>
+    </div>
+    <div class="deepdive-body">
+
+      <h4>A selector is scoped to one node tree, by design</h4>
+      <p><code>document.querySelector</code> searches the document tree only. A shadow tree is a
+        <i>separate</i> node tree, so no selector string evaluated against the document can ever match an
+        element inside one. CSS briefly had piercing combinators — <code>/deep/</code> and a native
+        <code>&gt;&gt;&gt;</code> — and both were removed from the spec and from browsers precisely because
+        they defeated encapsulation. There is no replacement coming.</p>
+
+      <div class="codeblock">document.<span class="fn">querySelector</span>(<span class="fn">'button#open-btn'</span>)          <span class="cm">// null — it's in another tree</span>
+document.<span class="fn">querySelector</span>(<span class="fn">'div#open-host button'</span>)     <span class="cm">// null — descendant combinators stop too</span>
+
+document.<span class="fn">querySelector</span>(<span class="fn">'div#open-host'</span>)
+        .shadowRoot.<span class="fn">querySelector</span>(<span class="fn">'button#open-btn'</span>)  <span class="cm">// ✓ the only way in: two queries</span></div>
+
+      <p style="margin-top:12px;">“Two queries” is the whole insight. If one string can't work, the address
+        becomes a <b>sequence</b> of per-tree strings, joined by a delimiter we own.</p>
+
+      <div class="codelabel">Generating: split the outward walk into one segment per tree · element-selector/src/helpers/shadow.ts</div>
+      <div class="codeblock"><span class="kw">export function</span> <span class="fn">segmentWalk</span>(el: Element, maxShadowDepth: number) {
+  <span class="kw">const</span> innermostFirst = [];
+  <span class="kw">let</span> node = el;
+
+  <span class="kw">while</span> (node !== <span class="kw">null</span>) {
+    innermostFirst.push({ root: <span class="fn">rootOf</span>(node), target: node });
+    <span class="kw">const</span> actualRoot = node.<span class="fn">getRootNode</span>();
+    <span class="kw">if</span> (!<span class="fn">isShadowRoot</span>(actualRoot)) <span class="kw">break</span>;   <span class="cm">// reached the document</span>
+    node = actualRoot.host;                    <span class="cm">// cross the boundary outward</span>
+  }
+  <span class="cm">// …drop trees over the depth budget, then reverse to outermost-first</span>
+  <span class="kw">return</span> { segments: kept.<span class="fn">reverse</span>(), truncated };
+}</div>
+
+      <p>Each segment is then handed to the <i>existing</i> selector engine, scoped to that segment's own
+        root, and the results are joined with <code> &gt;&gt;&gt; </code>. The per-tree algorithm is
+        unchanged — we only changed how many times we run it and what scope we run it in.</p>
+
+      <div class="codelabel">Resolving: the symmetric inverse, shipped alongside</div>
+      <div class="codeblock"><span class="kw">export function</span> <span class="fn">resolveSelector</span>(root: ParentNode, selector: string) {
+  <span class="kw">const</span> segments = selector.<span class="fn">split</span>(SHADOW_BOUNDARY_DELIMITER);
+  <span class="kw">let</span> scope = root, found = <span class="kw">null</span>;
+
+  <span class="kw">for</span> (<span class="kw">let</span> i = <span class="fn">0</span>; i &lt; segments.length; i++) {
+    <span class="kw">if</span> (scope === <span class="kw">null</span>) <span class="kw">return null</span>;      <span class="cm">// previous host had no OPEN shadow root</span>
+    found = <span class="fn">resolveSegment</span>(scope, segments[i].<span class="fn">trim</span>());
+    <span class="kw">if</span> (found === <span class="kw">null</span>) <span class="kw">return null</span>;
+    <span class="kw">if</span> (i &lt; segments.length - <span class="fn">1</span>) {
+      scope = found.shadowRoot;              <span class="cm">// descend one boundary</span>
+    }
+  }
+  <span class="kw">return</span> found;
+}</div>
+
+      <h4>One wrinkle: a <code>ShadowRoot</code> is not an element</h4>
+      <p>Inside the document, a positional chain is implicitly anchored by the unique <code>&lt;html&gt;</code>
+        root. Inside a shadow root there is no root <i>element</i> — so a chain like
+        <code>div:nth-of-type(2) &gt; button</code> would match anywhere in that tree, and
+        <code>:scope</code> matches nothing because <code>:scope</code> needs an element. Root-anchored
+        segments therefore carry a <code>:scope &gt; </code> marker and are resolved by strict direct-child
+        descent instead of <code>querySelector</code>.</p>
+
+      <h4>Two details worth having ready for Q&amp;A</h4>
+      <div class="qa">
+        <b>Isn't <code>&gt;&gt;&gt;</code> confusing, given CSS once used it?</b>
+        <p>The full string is never handed to <code>querySelector</code> — it's split first, and each
+          segment on its own is ordinary, valid CSS. The delimiter is our encoding between our SDK and our
+          tools, chosen to be visually obvious and impossible to confuse with the <code>&gt;</code> child
+          combinator we emit <i>within</i> a segment.</p>
+      </div>
+      <div class="qa">
+        <b>What happens on a closed component?</b>
+        <p><code>found.shadowRoot</code> is <code>null</code>, <code>scope</code> becomes null, and the next
+          iteration returns <code>null</code> cleanly. A closed-root address can't round-trip — a documented
+          limitation, not a crash. In practice we never generate one, because capture never gets inside a
+          closed tree to begin with.</p>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ===== TECHNICAL DEEP DIVE · problem 4 (hidden until clicked) ============ -->
+<div class="deepdive-overlay" id="dd-hearing">
+  <div class="deepdive-panel">
+    <div class="deepdive-head">
+      <div>
+        <div class="kicker" style="margin-bottom:6px;">Technical deep dive · problem 4</div>
+        <h3 style="margin:0; font-size: clamp(18px, 2.2vw, 26px);">Composed events, and discovering roots we were never told about</h3>
+      </div>
+      <button class="deepdive-close" data-close aria-label="Close">✕</button>
+    </div>
+    <div class="deepdive-body">
+
+      <h4>Whether an event escapes the box is a per-event-type flag</h4>
+      <p>Each DOM event carries a <code>composed</code> boolean. <code>true</code> means it crosses shadow
+        boundaries and reaches outside listeners (retargeted — problem 1). <code>false</code> means it stops
+        at the shadow root and no outside listener will <i>ever</i> see it, no matter where it's attached.</p>
+
+      <table class="ddtable">
+        <tr><th>Event</th><th>composed</th><th>Reaches our document listener?</th></tr>
+        <tr><td>click</td><td>true</td><td>yes — retargeted to the host</td></tr>
+        <tr><td>focusin</td><td>true</td><td>yes — retargeted to the host</td></tr>
+        <tr><td>input</td><td>true</td><td>yes — retargeted to the host</td></tr>
+        <tr class="highlight"><td>change</td><td>false</td><td>never</td></tr>
+      </table>
+
+      <p style="margin-top:10px;">So <i>Element Changed</i> can only be captured by a listener placed
+        <b>inside</b> the shadow root itself. Which raises the real problem: there is no API that enumerates
+        a page's shadow roots. <code>document.querySelectorAll</code> can't see them, and nothing fires when
+        one is created. We cannot know the roots up front.</p>
+
+      <h4>Discovery rides on the composed events we already receive</h4>
+      <p>A user cannot change a control without first interacting with it — and those interactions
+        (<code>focusin</code>, <code>click</code>) <i>are</i> composed, so their
+        <code>composedPath()</code> hands us every open root on the way to the control. We attach a
+        <code>change</code> listener to each root the first time we see it.</p>
+
+      <div class="codelabel">observables.ts · the discovery pass, run on focusin and click</div>
+      <div class="codeblock"><span class="kw">const</span> path = event.<span class="fn">composedPath</span>();
+<span class="kw">const</span> roots = path.<span class="fn">filter</span>((node) =&gt; node <span class="kw">instanceof</span> ShadowRoot);
+
+<span class="cm">// composedPath is innermost-first: with N roots in the path,</span>
+<span class="cm">// roots[i] sits N - i boundary crossings below the document.</span>
+roots.<span class="fn">forEach</span>((root, i) =&gt; {
+  <span class="kw">const</span> depth = roots.length - i;
+  <span class="kw">if</span> (depth &lt;= cfg.maxDepth &amp;&amp; !shadowRootsListened.<span class="fn">has</span>(root)) {
+    shadowRootsListened.<span class="fn">add</span>(root);
+    root.<span class="fn">addEventListener</span>(<span class="fn">'change'</span>, shadowChangeHandler, { capture: <span class="kw">true</span> });
+  }
+});</div>
+
+      <p>The same pass prunes roots whose host has left the DOM (<code>!root.host.isConnected</code>), so a
+        component-heavy SPA doesn't accumulate listeners for unmounted trees.</p>
+
+      <h4>Exactly-once: who owns an event</h4>
+      <p>With listeners in several places, an event could be emitted twice. Ownership is decided by the
+        event's <i>true origin</i> — <code>composedPath()[0]</code>'s root — never by <code>target</code>,
+        which is retargeted per listener and would look local to every one of them.</p>
+
+      <div class="codeblock"><span class="cm">// per-root listener: only events born in MY tree</span>
+<span class="kw">if</span> (<span class="fn">rootOfOrigin</span>(event) === event.currentTarget) observer.<span class="fn">next</span>(event);
+
+<span class="cm">// document listener: defer ONLY if a live per-root listener owns it</span>
+<span class="kw">if</span> (originRoot <span class="kw">instanceof</span> ShadowRoot &amp;&amp; shadowRootsListened.<span class="fn">has</span>(originRoot)) <span class="kw">return</span>;
+observer.<span class="fn">next</span>(event);</div>
+
+      <p>That second condition matters more than it looks. An earlier version deferred for <i>any</i> shadow
+        origin — which silently dropped composed <code>change</code> events re-dispatched by web components
+        from roots we'd never discovered. That made the feature-on path capture <i>less</i> than
+        feature-off. Caught in adversarial review; the <code>has(originRoot)</code> check is the fix.</p>
+
+      <h4>The other half: watchers for zoning</h4>
+      <p>A <code>MutationObserver</code> with <code>subtree: true</code> also stops at each boundary. One
+        observer instance is attached to <code>document.body</code> <i>and</i> to every open root found by an
+        initial scan, with each batch's <code>addedNodes</code> re-scanned so late-mounting components get
+        covered too. Exposure seeding unions <code>querySelectorAll</code> across the same roots.</p>
+
+      <h4>Two details worth having ready for Q&amp;A</h4>
+      <div class="qa">
+        <b>Why listen on <code>click</code> too, if <code>focusin</code> precedes a change?</b>
+        <p>Because it doesn't, on WebKit. Safari (macOS and iOS) deliberately does not focus
+          <code>checkbox</code> / <code>radio</code> controls on click — <code>change</code> fires with no
+          focus event at all. Discovering on click as well closes what would otherwise be a
+          browser-shaped hole in the data.</p>
+      </div>
+      <div class="qa">
+        <b>Why not patch <code>attachShadow</code> like rrweb does?</b>
+        <p>rrweb replaces <code>Element.prototype.attachShadow</code> globally, which catches every root at
+          creation. That's a page-wide side effect on a method the customer's own framework calls; we chose
+          scan-based discovery instead. The cost is one documented gap — a root attached to an element
+          already in the DOM emits no mutation record, so <i>zoning watchers</i> can miss it (clicks and
+          changes are unaffected, since those paths discover lazily).</p>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div class="navhint">
+  <button class="navbtn" id="prevBtn" title="Previous">‹</button>
+  <div class="counter" id="counter">1 / 12</div>
+  <button class="navbtn" id="nextBtn" title="Next">›</button>
+</div>
+<div class="footer-tag">Shadow DOM POC · SDKW-51</div>
+
+<script>
+  const slides = Array.from(document.querySelectorAll('.slide'));
+  const counter = document.getElementById('counter');
+  const progress = document.getElementById('progress');
+  let idx = 0;
+
+  function fragsOf(slide) { return Array.from(slide.querySelectorAll('.frag')); }
+
+  let retargetTimer = null;
+
+  function runActs(frag) {
+    // Slide-specific choreography hooks
+    const act = frag.getAttribute('data-act');
+    if (act === 'retarget') {
+      // Swap the report's label from truth to lie as it crosses the boundary
+      // (~45% through the 2.6s travel). display can't be keyframed reliably.
+      const report = document.getElementById('retargetReport');
+      report.classList.remove('swapped');
+      clearTimeout(retargetTimer);
+      retargetTimer = setTimeout(() => report.classList.add('swapped'), 1250);
+    }
+    if (act === 'climb-stop') {
+      const climber = document.getElementById('climber');
+      // climb from the button up past the wrapper, stop at the wall
+      climber.style.transform = 'translateY(-96px)';
+      document.getElementById('walltag').textContent = '⛔ wall — climb blocked';
+    }
+    if (act === 'climb-through') {
+      const wall = document.getElementById('wall');
+      wall.classList.add('open');
+      document.getElementById('walltag').textContent = '🚪 door — through the owner';
+      document.getElementById('climber').style.transform = 'translateY(-236px)';
+    }
+  }
+
+  function resetAct(frag) {
+    const act = frag.getAttribute('data-act');
+    if (act === 'retarget') {
+      clearTimeout(retargetTimer);
+      document.getElementById('retargetReport').classList.remove('swapped');
+    }
+    if (act === 'climb-through') {
+      document.getElementById('wall').classList.remove('open');
+      document.getElementById('walltag').textContent = '⛔ wall — climb blocked';
+      document.getElementById('climber').style.transform = 'translateY(-96px)';
+    }
+    if (act === 'climb-stop') {
+      document.getElementById('climber').style.transform = 'none';
+      document.getElementById('walltag').textContent = '⛔ wall';
+    }
+  }
+
+  function show(i, revealAll) {
+    idx = Math.max(0, Math.min(slides.length - 1, i));
+    slides.forEach((s, n) => s.classList.toggle('current', n === idx));
+    const frags = fragsOf(slides[idx]);
+    frags.forEach((f) => {
+      f.classList.toggle('on', !!revealAll);
+      if (revealAll) runActs(f);
+    });
+    if (!revealAll) {
+      // Auto-reveal any fragment marked data-auto at slide entry? No — keep manual.
+      resetSlideState();
+    }
+    counter.textContent = (idx + 1) + ' / ' + slides.length;
+    progress.style.width = (100 * (idx + 1) / slides.length) + '%';
+  }
+
+  function resetSlideState() {
+    // Reset all choreography on the slide when re-entered fresh
+    fragsOf(slides[idx]).forEach(resetAct);
+    const climber = document.getElementById('climber');
+    if (slides[idx].contains(climber)) {
+      climber.style.transform = 'none';
+      document.getElementById('wall').classList.remove('open');
+      document.getElementById('walltag').textContent = '⛔ wall';
+    }
+  }
+
+  function next() {
+    const frags = fragsOf(slides[idx]);
+    const pending = frags.find((f) => !f.classList.contains('on'));
+    if (pending) {
+      pending.classList.add('on');
+      runActs(pending);
+      return;
+    }
+    if (idx < slides.length - 1) show(idx + 1, false);
+  }
+
+  function prev() {
+    const frags = fragsOf(slides[idx]).filter((f) => f.classList.contains('on'));
+    if (frags.length) {
+      const last = frags[frags.length - 1];
+      last.classList.remove('on');
+      resetAct(last);
+      return;
+    }
+    if (idx > 0) show(idx - 1, true);
+  }
+
+  // ---- Technical deep dive overlays -------------------------------------
+  // Hidden by default and outside the fragment sequence: they never appear
+  // while presenting unless someone deliberately opens one.
+  function openDeepDive(id) {
+    const overlay = document.getElementById(id);
+    if (overlay) { overlay.classList.add('open'); overlay.querySelector('.deepdive-panel').scrollTop = 0; }
+  }
+  function closeDeepDive() {
+    document.querySelectorAll('.deepdive-overlay.open').forEach((o) => o.classList.remove('open'));
+  }
+  function deepDiveOpen() { return !!document.querySelector('.deepdive-overlay.open'); }
+
+  document.querySelectorAll('[data-deepdive]').forEach((btn) => {
+    btn.addEventListener('click', () => openDeepDive(btn.getAttribute('data-deepdive')));
+  });
+  document.querySelectorAll('.deepdive-overlay').forEach((overlay) => {
+    overlay.addEventListener('click', (e) => {
+      // Click the backdrop or the ✕ to dismiss; clicks inside the panel pass through.
+      if (e.target === overlay || e.target.hasAttribute('data-close')) closeDeepDive();
+    });
+  });
+
+  document.addEventListener('keydown', (e) => {
+    // While a deep dive is open, keys belong to it: Esc closes, arrows scroll.
+    if (deepDiveOpen()) {
+      if (e.key === 'Escape') { e.preventDefault(); closeDeepDive(); }
+      return;
+    }
+    if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') { e.preventDefault(); next(); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); prev(); }
+    else if (e.key === 'Home') show(0, false);
+    else if (e.key === 'End') show(slides.length - 1, true);
+  });
+  document.getElementById('nextBtn').addEventListener('click', next);
+  document.getElementById('prevBtn').addEventListener('click', prev);
+
+  show(0, false);
+</script>
+</body>
+</html>

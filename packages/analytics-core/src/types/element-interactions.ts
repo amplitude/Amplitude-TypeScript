@@ -122,6 +122,24 @@ export interface ElementInteractionsOptions {
   exposureDuration?: number;
 
   /**
+   * EXPERIMENTAL — proof of concept, subject to change.
+   *
+   * Enables autocapture inside OPEN shadow DOM trees: event targets are
+   * resolved through `composedPath()`, ancestor walks and Element Hierarchy
+   * cross shadow boundaries, Element Path selectors become shadow-piercing
+   * (`host >>> inner`), and observers fan out into open shadow roots.
+   *
+   * Closed shadow roots remain opaque: events retarget to the host, exactly as
+   * without this option.
+   *
+   * Pass `true` to enable with the default boundary-crossing depth (1), or an
+   * object with `maxDepth` (clamped to [1, 10]) for nested shadow trees.
+   * Remote config (`shadowDomEnabled` on the element-selector key) can
+   * override this at runtime.
+   */
+  shadowDomSupport?: boolean | { maxDepth?: number };
+
+  /**
    * Options for viewport content updated tracking (zoning).
    */
   viewportContentUpdated?: {

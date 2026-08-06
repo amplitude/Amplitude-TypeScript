@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "test-server",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["vite", "dev", "--port", "5273", "--strictPort"],
+      "port": 5273
+    }
+  ]
+}

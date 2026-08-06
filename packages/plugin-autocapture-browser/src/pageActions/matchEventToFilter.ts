@@ -1,13 +1,22 @@
 import type { Filter } from '@amplitude/analytics-core/lib/esm/types/element-interactions';
-import { ElementBasedTimestampedEvent, ElementBasedEvent } from '../helpers';
+import { closestCrossShadow, ElementBasedTimestampedEvent, ElementBasedEvent } from '../helpers';
 
 /**
  * Matches an event to a single filter
  * @param event - The event to match
  * @param filter - The filter to match against
+ * @param maxShadowCrossings - How many OPEN shadow boundaries the hierarchy
+ *   match may cross toward light-DOM ancestors (0 = plain `closest`, the
+ *   default and prior behavior). A tracked element inside a shadow tree can
+ *   otherwise never match a labeled event whose selector targets an ancestor
+ *   outside its component.
  * @returns boolean indicating if the event matches the filter
  */
-export const matchEventToFilter = (event: ElementBasedTimestampedEvent<ElementBasedEvent>, filter: Filter) => {
+export const matchEventToFilter = (
+  event: ElementBasedTimestampedEvent<ElementBasedEvent>,
+  filter: Filter,
+  maxShadowCrossings = 0,
+) => {
   try {
     if (filter.subprop_key === '[Amplitude] Element Text') {
       // TODO: add support for the other operators
@@ -19,7 +28,7 @@ export const matchEventToFilter = (event: ElementBasedTimestampedEvent<ElementBa
       // Check if the element ancestory matches the CSS selector, always check this last since it is the most expensive
       return (
         filter.subprop_op === 'autotrack css match' &&
-        !!event.closestTrackedAncestor.closest(filter.subprop_value.toString())
+        !!closestCrossShadow(event.closestTrackedAncestor, filter.subprop_value.toString(), maxShadowCrossings)
       );
     }
   } catch (error) {

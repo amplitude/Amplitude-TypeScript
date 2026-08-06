@@ -8,6 +8,7 @@ import {
   TimestampedEvent,
 } from '../helpers';
 import { AMPLITUDE_ELEMENT_CLICKED_EVENT } from '../constants';
+import type { DataExtractor } from '../data-extractor';
 
 export function trackActionClick({
   amplitude,
@@ -16,6 +17,7 @@ export function trackActionClick({
   getEventProperties,
   shouldTrackEvent,
   shouldTrackActionClick,
+  dataExtractor,
 }: {
   amplitude: BrowserClient;
   allObservables: AllWindowObservables;
@@ -23,6 +25,7 @@ export function trackActionClick({
   getEventProperties: (actionType: ActionType, element: Element) => Record<string, any>;
   shouldTrackActionClick: shouldTrackEvent;
   shouldTrackEvent: shouldTrackEvent;
+  dataExtractor: DataExtractor;
 }) {
   const { clickObservable, mutationObservable, navigateObservable } = allObservables;
 
@@ -31,8 +34,15 @@ export function trackActionClick({
       return !shouldTrackEvent('click', click.closestTrackedAncestor);
     })
     .map((click) => {
-      // overwrite the closestTrackedAncestor with the closest element that is on the actionClickAllowlist
-      const closestActionClickEl = getClosestElement(click.event.target as Element, options.actionClickAllowlist);
+      // overwrite the closestTrackedAncestor with the closest element that is on
+      // the actionClickAllowlist. With shadow piercing on, start from the true
+      // (composedPath) target and let the walk cross open shadow boundaries.
+      const closestActionClickEl = getClosestElement(
+        dataExtractor.resolveEventTarget(click.event) as Element,
+        options.actionClickAllowlist,
+        dataExtractor.isShadowDomEnabled(),
+        dataExtractor.getMaxShadowDomDepth(),
+      );
       click.closestTrackedAncestor = closestActionClickEl as Element;
 
       // overwrite the targetElementProperties with the properties of the closestActionClickEl

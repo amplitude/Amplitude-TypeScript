@@ -30,6 +30,12 @@ import { ElementSelectorLogger, ResolvedSelectorConfig, SelectorEngine } from '.
 import { runOrchestrator, OrchestratorOptions } from './orchestrator';
 import { fallbackCssPath } from './fallback-css-path';
 import { safeLegacyCssPath } from './legacy-css-path';
+import {
+  anchorSegmentToShadowScope,
+  legacyPathIsRootAnchored,
+  segmentWalk,
+  SHADOW_BOUNDARY_DELIMITER,
+} from './helpers/shadow';
 
 export interface CreateSelectorEngineOptions {
   /** Optional document or shadow root for uniqueness checks. Defaults per-call to the target's owner document. */
@@ -63,11 +69,63 @@ export function createSelectorEngine(
   const subscribers = new Set<(config: ResolvedSelectorConfig) => void>();
   const logger = options.logger;
 
-  const orchestratorOptions: OrchestratorOptions = {
-    strategies: options.strategies,
-    scope: options.scope,
-    logger,
-  };
+  /**
+   * Single-tree generator for the LEGACY algorithm (the `enabled === false`
+   * kill switch). Legacy `cssPath` has no notion of scope: for a shadow-tree
+   * element with no id ancestor it emits an unanchored positional chain that
+   * `querySelector` would match tree-wide. When `scope` is a shadow root we
+   * anchor a root-anchored chain so `resolveSelector` descends by direct child —
+   * the same treatment `engineTree`'s fallback applies. For a document scope the
+   * anchor is a no-op.
+   */
+  function legacyTree(target: Element, scope: ParentNode): string {
+    const legacy = safeLegacyCssPath(target, logger);
+    return anchorSegmentToShadowScope(legacy, scope, legacyPathIsRootAnchored(target));
+  }
+
+  /**
+   * Single-tree generator for the ENGINE algorithm: the strategy chain, then the
+   * hardened fallback, both scoped to the tree's own root. `runOrchestrator`
+   * defaults an omitted scope to the owner document.
+   */
+  function engineTree(target: Element, scope: ParentNode): string {
+    const composed = runOrchestrator(target, config, { strategies: options.strategies, scope, logger });
+    if (composed !== null) {
+      return composed;
+    }
+    return fallbackCssPath(target, config, { scope });
+  }
+
+  /**
+   * Shadow-piercing wrapper around a single-tree generator.
+   *
+   * When piercing is off, runs `perTree` once against the element's own tree.
+   * When on, splits the outward walk into per-tree segments (capped at
+   * `maxShadowDomDepth` boundary crossings), runs `perTree` for each segment
+   * scoped to that tree's root, and joins the results with the boundary
+   * delimiter. `perTree` describes how to select within one tree; passing it as
+   * a callback keeps that logic in one place and lets both the legacy and engine
+   * algorithms reuse the same walk. The walk is guarded so a throw degrades to a
+   * legacy selector instead of escaping to the caller.
+   */
+  function withShadow(el: Element, perTree: (target: Element, scope: ParentNode) => string): string {
+    if (!config.shadowDomEnabled) {
+      return perTree(el, options.scope ?? el.ownerDocument ?? document);
+    }
+    try {
+      const { segments, truncated } = segmentWalk(el, config.maxShadowDomDepth);
+      if (truncated) {
+        logger?.debug(
+          `@amplitude/element-selector: target is nested deeper than maxShadowDomDepth (${config.maxShadowDomDepth}) — emitting a best-effort selector for the outermost in-budget shadow host`,
+        );
+      }
+      return segments.map(({ target, root }) => perTree(target, root)).join(SHADOW_BOUNDARY_DELIMITER);
+    } catch (e) {
+      const message = e instanceof Error ? e.message : String(e);
+      logger?.warn(`@amplitude/element-selector: shadow walk threw — falling back to legacy cssPath: ${message}`);
+      return safeLegacyCssPath(el, logger);
+    }
+  }
 
   return {
     generate(el: Element): string {
@@ -76,23 +134,19 @@ export function createSelectorEngine(
       // Chromium-derived selector autocapture has shipped since before the
       // strategy chain existed. This is what makes "flip enabled back to
       // false" a one-config-fetch revert for both the SDK and the dashboard —
-      // they both go through this entry point now.
+      // they both go through this entry point now. `withShadow` gates piercing
+      // around it.
       if (!config.enabled) {
-        return safeLegacyCssPath(el, logger);
+        return withShadow(el, legacyTree);
       }
 
-      // Engine path: try the strategy chain, then the hardened fallback. Both
-      // are wrapped so a runtime exception (malformed config slipped past the
-      // resolver, browser API quirks, a bad scope) still produces a usable
-      // selector. Without this, an autocapture click handler could throw
-      // mid-flow and the customer would silently lose the event — a worse
-      // outcome than emitting a less-stable selector.
+      // Engine path: the strategy chain, then the hardened fallback (see
+      // `engineTree`), gated by `withShadow`. The try/catch is the safety net:
+      // a runtime exception (malformed config slipped past the resolver, browser
+      // API quirks, a bad scope) still produces a usable selector rather than
+      // throwing mid-capture and silently dropping the customer's event.
       try {
-        const composed = runOrchestrator(el, config, orchestratorOptions);
-        if (composed !== null) {
-          return composed;
-        }
-        return fallbackCssPath(el, config, { scope: options.scope ?? el.ownerDocument ?? document });
+        return withShadow(el, engineTree);
       } catch (e) {
         const message = e instanceof Error ? e.message : String(e);
         logger?.warn(`@amplitude/element-selector: strategy chain threw — falling back to legacy cssPath: ${message}`);

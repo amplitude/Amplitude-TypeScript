@@ -72,12 +72,13 @@ export const createLabeledEventToTriggerMap = (triggers: Trigger[]) => {
 export const matchEventToLabeledEvents = (
   event: ElementBasedTimestampedEvent<ElementBasedEvent>,
   labeledEvents: LabeledEvent[],
+  maxShadowCrossings = 0,
 ) => {
   return labeledEvents.filter((le) => {
     return le.definition.some((def) => {
       return (
         eventTypeToBrowserEventMap[def.event_type] === event.type &&
-        def.filters.every((filter) => matchEventToFilter(event, filter))
+        def.filters.every((filter) => matchEventToFilter(event, filter, maxShadowCrossings))
       );
     });
   });
@@ -111,10 +112,13 @@ export class TriggerEvaluator {
       return event;
     }
 
-    // Find matching labeled events
+    // Find matching labeled events. When shadow piercing is on, hierarchy
+    // filters may cross open shadow boundaries toward light-DOM ancestors.
+    const maxShadowCrossings = this.dataExtractor.isShadowDomEnabled() ? this.dataExtractor.getMaxShadowDomDepth() : 0;
     const matchingLabeledEvents = matchEventToLabeledEvents(
       event,
       Array.from(this.groupedLabeledEvents[event.type]).map((id) => pageActions.labeledEvents[id]),
+      maxShadowCrossings,
     );
     // Find matching conditions
     const matchingTriggers = matchLabeledEventsToTriggers(matchingLabeledEvents, this.labeledEventToTriggerMap);
