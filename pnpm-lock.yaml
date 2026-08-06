@@ -6,6 +6,7 @@ settings:
 
 overrides:
   typescript: ^4.9.4
+  js-cookie: ^3.0.7
 
 importers:
 
@@ -37,8 +38,8 @@ importers:
         specifier: ^17.3.0
         version: 17.8.1
       '@playwright/test':
-        specifier: 1.55.0
-        version: 1.55.0
+        specifier: 1.55.1
+        version: 1.55.1
       '@size-limit/file':
         specifier: ^12.1.0
         version: 12.1.0(size-limit@12.1.0(jiti@2.7.0))
@@ -58,8 +59,8 @@ importers:
         specifier: ^4.7.0
         version: 4.7.0(vite@6.4.2(@types/node@18.19.130)(jiti@2.7.0)(terser@5.46.2)(yaml@2.9.0))
       axios:
-        specifier: ^1.6.0
-        version: 1.13.5
+        specifier: ^1.18.0
+        version: 1.19.0
       concurrently:
         specifier: ^9.1.2
         version: 9.2.1
@@ -262,13 +263,13 @@ importers:
     devDependencies:
       '@rollup/plugin-commonjs':
         specifier: ^23.0.4
-        version: 23.0.7(rollup@2.79.2)
+        version: 23.0.7(rollup@2.80.0)
       '@rollup/plugin-node-resolve':
         specifier: ^15.0.1
-        version: 15.3.1(rollup@2.79.2)
+        version: 15.3.1(rollup@2.80.0)
       '@rollup/plugin-typescript':
         specifier: ^10.0.1
-        version: 10.0.1(rollup@2.79.2)(tslib@2.8.1)(typescript@4.9.5)
+        version: 10.0.1(rollup@2.80.0)(tslib@2.8.1)(typescript@4.9.5)
       http-server:
         specifier: ^14.1.1
         version: 14.1.1
@@ -276,20 +277,20 @@ importers:
         specifier: ^3.0.0
         version: 3.0.0(encoding@0.1.13)
       rollup:
-        specifier: ^2.79.1
-        version: 2.79.2
+        specifier: ^2.80.0
+        version: 2.80.0
       rollup-plugin-execute:
         specifier: ^1.1.1
         version: 1.1.1
       rollup-plugin-gzip:
         specifier: ^3.1.0
-        version: 3.1.2(rollup@2.79.2)
+        version: 3.1.2(rollup@2.80.0)
       rollup-plugin-sourcemaps:
         specifier: ^0.6.3
-        version: 0.6.3(@types/node@24.10.1)(rollup@2.79.2)
+        version: 0.6.3(@types/node@24.10.1)(rollup@2.80.0)
       rollup-plugin-terser:
         specifier: ^7.0.2
-        version: 7.0.2(rollup@2.79.2)
+        version: 7.0.2(rollup@2.80.0)
 
   packages/analytics-browser-test:
     devDependencies:
@@ -505,19 +506,19 @@ importers:
         version: 3.932.0
       '@rollup/plugin-json':
         specifier: 5.0.0
-        version: 5.0.0(rollup@2.79.2)
+        version: 5.0.0(rollup@2.80.0)
       ejs:
         specifier: ^3.1.9
         version: 3.1.10
       rollup:
-        specifier: ^2.79.1
-        version: 2.79.2
+        specifier: ^2.80.0
+        version: 2.80.0
       rollup-plugin-gzip:
         specifier: ^3.1.0
-        version: 3.1.2(rollup@2.79.2)
+        version: 3.1.2(rollup@2.80.0)
       rollup-plugin-terser:
         specifier: ^7.0.2
-        version: 7.0.2(rollup@2.79.2)
+        version: 7.0.2(rollup@2.80.0)
 
   packages/plugin-autocapture-browser:
     dependencies:
@@ -533,31 +534,31 @@ importers:
     devDependencies:
       '@rollup/plugin-commonjs':
         specifier: ^23.0.4
-        version: 23.0.7(rollup@2.79.2)
+        version: 23.0.7(rollup@2.80.0)
       '@rollup/plugin-node-resolve':
         specifier: ^15.0.1
-        version: 15.3.1(rollup@2.79.2)
+        version: 15.3.1(rollup@2.80.0)
       '@rollup/plugin-typescript':
         specifier: ^10.0.1
-        version: 10.0.1(rollup@2.79.2)(tslib@2.8.1)(typescript@4.9.5)
+        version: 10.0.1(rollup@2.80.0)(tslib@2.8.1)(typescript@4.9.5)
       css.escape:
         specifier: ^1.5.1
         version: 1.5.1
       rollup:
-        specifier: ^2.79.1
-        version: 2.79.2
+        specifier: ^2.80.0
+        version: 2.80.0
       rollup-plugin-execute:
         specifier: ^1.1.1
         version: 1.1.1
       rollup-plugin-gzip:
         specifier: ^3.1.0
-        version: 3.1.2(rollup@2.79.2)
+        version: 3.1.2(rollup@2.80.0)
       rollup-plugin-sourcemaps:
         specifier: ^0.6.3
-        version: 0.6.3(@types/node@24.10.1)(rollup@2.79.2)
+        version: 0.6.3(@types/node@24.10.1)(rollup@2.80.0)
       rollup-plugin-terser:
         specifier: ^7.0.2
-        version: 7.0.2(rollup@2.79.2)
+        version: 7.0.2(rollup@2.80.0)
 
   packages/plugin-custom-enrichment-browser:
     dependencies:
@@ -570,25 +571,25 @@ importers:
     devDependencies:
       '@rollup/plugin-commonjs':
         specifier: ^23.0.4
-        version: 23.0.7(rollup@2.79.2)
+        version: 23.0.7(rollup@2.80.0)
       '@rollup/plugin-node-resolve':
         specifier: ^15.0.1
-        version: 15.3.1(rollup@2.79.2)
+        version: 15.3.1(rollup@2.80.0)
       '@rollup/plugin-typescript':
         specifier: ^10.0.1
-        version: 10.0.1(rollup@2.79.2)(tslib@2.8.1)(typescript@4.9.5)
+        version: 10.0.1(rollup@2.80.0)(tslib@2.8.1)(typescript@4.9.5)
       rollup:
-        specifier: ^2.79.1
-        version: 2.79.2
+        specifier: ^2.80.0
+        version: 2.80.0
       rollup-plugin-execute:
         specifier: ^1.1.1
         version: 1.1.1
       rollup-plugin-gzip:
         specifier: ^3.1.0
-        version: 3.1.2(rollup@2.79.2)
+        version: 3.1.2(rollup@2.80.0)
       rollup-plugin-terser:
         specifier: ^7.0.2
-        version: 7.0.2(rollup@2.79.2)
+        version: 7.0.2(rollup@2.80.0)
 
   packages/plugin-event-property-attribution-browser:
     dependencies:
@@ -601,25 +602,25 @@ importers:
     devDependencies:
       '@rollup/plugin-commonjs':
         specifier: ^23.0.4
-        version: 23.0.7(rollup@2.79.2)
+        version: 23.0.7(rollup@2.80.0)
       '@rollup/plugin-node-resolve':
         specifier: ^15.0.1
-        version: 15.3.1(rollup@2.79.2)
+        version: 15.3.1(rollup@2.80.0)
       '@rollup/plugin-typescript':
         specifier: ^10.0.1
-        version: 10.0.1(rollup@2.79.2)(tslib@2.8.1)(typescript@4.9.5)
+        version: 10.0.1(rollup@2.80.0)(tslib@2.8.1)(typescript@4.9.5)
       rollup:
-        specifier: ^2.79.1
-        version: 2.79.2
+        specifier: ^2.80.0
+        version: 2.80.0
       rollup-plugin-execute:
         specifier: ^1.1.1
         version: 1.1.1
       rollup-plugin-gzip:
         specifier: ^3.1.0
-        version: 3.1.2(rollup@2.79.2)
+        version: 3.1.2(rollup@2.80.0)
       rollup-plugin-terser:
         specifier: ^7.0.2
-        version: 7.0.2(rollup@2.79.2)
+        version: 7.0.2(rollup@2.80.0)
 
   packages/plugin-experiment-browser:
     dependencies:
@@ -631,8 +632,8 @@ importers:
         version: 1.20.0
     devDependencies:
       rollup:
-        specifier: ^2.79.1
-        version: 2.79.2
+        specifier: ^2.80.0
+        version: 2.80.0
 
   packages/plugin-global-user-properties:
     dependencies:
@@ -645,25 +646,25 @@ importers:
     devDependencies:
       '@rollup/plugin-commonjs':
         specifier: ^23.0.4
-        version: 23.0.7(rollup@2.79.2)
+        version: 23.0.7(rollup@2.80.0)
       '@rollup/plugin-node-resolve':
         specifier: ^15.0.1
-        version: 15.3.1(rollup@2.79.2)
+        version: 15.3.1(rollup@2.80.0)
       '@rollup/plugin-typescript':
         specifier: ^10.0.1
-        version: 10.0.1(rollup@2.79.2)(tslib@2.8.1)(typescript@4.9.5)
+        version: 10.0.1(rollup@2.80.0)(tslib@2.8.1)(typescript@4.9.5)
       rollup:
-        specifier: ^2.79.1
-        version: 2.79.2
+        specifier: ^2.80.0
+        version: 2.80.0
       rollup-plugin-execute:
         specifier: ^1.1.1
         version: 1.1.1
       rollup-plugin-gzip:
         specifier: ^3.1.0
-        version: 3.1.2(rollup@2.79.2)
+        version: 3.1.2(rollup@2.80.0)
       rollup-plugin-terser:
         specifier: ^7.0.2
-        version: 7.0.2(rollup@2.79.2)
+        version: 7.0.2(rollup@2.80.0)
 
   packages/plugin-network-capture-browser:
     dependencies:
@@ -676,31 +677,31 @@ importers:
     devDependencies:
       '@rollup/plugin-commonjs':
         specifier: ^23.0.4
-        version: 23.0.7(rollup@2.79.2)
+        version: 23.0.7(rollup@2.80.0)
       '@rollup/plugin-node-resolve':
         specifier: ^15.0.1
-        version: 15.3.1(rollup@2.79.2)
+        version: 15.3.1(rollup@2.80.0)
       '@rollup/plugin-typescript':
         specifier: ^10.0.1
-        version: 10.0.1(rollup@2.79.2)(tslib@2.8.1)(typescript@4.9.5)
+        version: 10.0.1(rollup@2.80.0)(tslib@2.8.1)(typescript@4.9.5)
       css.escape:
         specifier: ^1.5.1
         version: 1.5.1
       rollup:
-        specifier: ^2.79.1
-        version: 2.79.2
+        specifier: ^2.80.0
+        version: 2.80.0
       rollup-plugin-execute:
         specifier: ^1.1.1
         version: 1.1.1
       rollup-plugin-gzip:
         specifier: ^3.1.0
-        version: 3.1.2(rollup@2.79.2)
+        version: 3.1.2(rollup@2.80.0)
       rollup-plugin-sourcemaps:
         specifier: ^0.6.3
-        version: 0.6.3(@types/node@24.10.1)(rollup@2.79.2)
+        version: 0.6.3(@types/node@24.10.1)(rollup@2.80.0)
       rollup-plugin-terser:
         specifier: ^7.0.2
-        version: 7.0.2(rollup@2.79.2)
+        version: 7.0.2(rollup@2.80.0)
 
   packages/plugin-page-url-enrichment-browser:
     dependencies:
@@ -713,25 +714,25 @@ importers:
     devDependencies:
       '@rollup/plugin-commonjs':
         specifier: ^23.0.4
-        version: 23.0.7(rollup@2.79.2)
+        version: 23.0.7(rollup@2.80.0)
       '@rollup/plugin-node-resolve':
         specifier: ^15.0.1
-        version: 15.3.1(rollup@2.79.2)
+        version: 15.3.1(rollup@2.80.0)
       '@rollup/plugin-typescript':
         specifier: ^10.0.1
-        version: 10.0.1(rollup@2.79.2)(tslib@2.8.1)(typescript@4.9.5)
+        version: 10.0.1(rollup@2.80.0)(tslib@2.8.1)(typescript@4.9.5)
       rollup:
-        specifier: ^2.79.1
-        version: 2.79.2
+        specifier: ^2.80.0
+        version: 2.80.0
       rollup-plugin-execute:
         specifier: ^1.1.1
         version: 1.1.1
       rollup-plugin-gzip:
         specifier: ^3.1.0
-        version: 3.1.2(rollup@2.79.2)
+        version: 3.1.2(rollup@2.80.0)
       rollup-plugin-terser:
         specifier: ^7.0.2
-        version: 7.0.2(rollup@2.79.2)
+        version: 7.0.2(rollup@2.80.0)
 
   packages/plugin-page-view-tracking-browser:
     dependencies:
@@ -744,25 +745,25 @@ importers:
     devDependencies:
       '@rollup/plugin-commonjs':
         specifier: ^23.0.4
-        version: 23.0.7(rollup@2.79.2)
+        version: 23.0.7(rollup@2.80.0)
       '@rollup/plugin-node-resolve':
         specifier: ^15.0.1
-        version: 15.3.1(rollup@2.79.2)
+        version: 15.3.1(rollup@2.80.0)
       '@rollup/plugin-typescript':
         specifier: ^10.0.1
-        version: 10.0.1(rollup@2.79.2)(tslib@2.8.1)(typescript@4.9.5)
+        version: 10.0.1(rollup@2.80.0)(tslib@2.8.1)(typescript@4.9.5)
       rollup:
-        specifier: ^2.79.1
-        version: 2.79.2
+        specifier: ^2.80.0
+        version: 2.80.0
       rollup-plugin-execute:
         specifier: ^1.1.1
         version: 1.1.1
       rollup-plugin-gzip:
         specifier: ^3.1.0
-        version: 3.1.2(rollup@2.79.2)
+        version: 3.1.2(rollup@2.80.0)
       rollup-plugin-terser:
         specifier: ^7.0.2
-        version: 7.0.2(rollup@2.79.2)
+        version: 7.0.2(rollup@2.80.0)
 
   packages/plugin-session-replay-browser:
     dependencies:
@@ -793,13 +794,13 @@ importers:
         version: 3.932.0
       '@rollup/plugin-commonjs':
         specifier: ^23.0.4
-        version: 23.0.7(rollup@2.79.2)
+        version: 23.0.7(rollup@2.80.0)
       '@rollup/plugin-node-resolve':
         specifier: ^15.0.1
-        version: 15.3.1(rollup@2.79.2)
+        version: 15.3.1(rollup@2.80.0)
       '@rollup/plugin-typescript':
         specifier: ^10.0.1
-        version: 10.0.1(rollup@2.79.2)(tslib@2.8.1)(typescript@4.9.5)
+        version: 10.0.1(rollup@2.80.0)(tslib@2.8.1)(typescript@4.9.5)
       fake-indexeddb:
         specifier: 4.0.2
         version: 4.0.2
@@ -810,20 +811,20 @@ importers:
         specifier: ^3.3.2
         version: 3.3.2
       rollup:
-        specifier: ^2.79.1
-        version: 2.79.2
+        specifier: ^2.80.0
+        version: 2.80.0
       rollup-plugin-execute:
         specifier: ^1.1.1
         version: 1.1.1
       rollup-plugin-gzip:
         specifier: ^3.1.0
-        version: 3.1.2(rollup@2.79.2)
+        version: 3.1.2(rollup@2.80.0)
       rollup-plugin-sourcemaps:
         specifier: ^0.6.3
-        version: 0.6.3(@types/node@24.10.1)(rollup@2.79.2)
+        version: 0.6.3(@types/node@24.10.1)(rollup@2.80.0)
       rollup-plugin-terser:
         specifier: ^7.0.2
-        version: 7.0.2(rollup@2.79.2)
+        version: 7.0.2(rollup@2.80.0)
 
   packages/plugin-session-replay-react-native:
     dependencies:
@@ -855,28 +856,28 @@ importers:
     devDependencies:
       '@rollup/plugin-commonjs':
         specifier: ^23.0.4
-        version: 23.0.7(rollup@2.79.2)
+        version: 23.0.7(rollup@2.80.0)
       '@rollup/plugin-node-resolve':
         specifier: ^15.0.1
-        version: 15.3.1(rollup@2.79.2)
+        version: 15.3.1(rollup@2.80.0)
       '@rollup/plugin-typescript':
         specifier: ^10.0.1
-        version: 10.0.1(rollup@2.79.2)(tslib@2.8.1)(typescript@4.9.5)
+        version: 10.0.1(rollup@2.80.0)(tslib@2.8.1)(typescript@4.9.5)
       rollup:
-        specifier: ^2.79.1
-        version: 2.79.2
+        specifier: ^2.80.0
+        version: 2.80.0
       rollup-plugin-execute:
         specifier: ^1.1.1
         version: 1.1.1
       rollup-plugin-gzip:
         specifier: ^3.1.0
-        version: 3.1.2(rollup@2.79.2)
+        version: 3.1.2(rollup@2.80.0)
       rollup-plugin-sourcemaps:
         specifier: ^0.6.3
-        version: 0.6.3(@types/node@24.10.1)(rollup@2.79.2)
+        version: 0.6.3(@types/node@24.10.1)(rollup@2.80.0)
       rollup-plugin-terser:
         specifier: ^7.0.2
-        version: 7.0.2(rollup@2.79.2)
+        version: 7.0.2(rollup@2.80.0)
 
   packages/plugin-web-attribution-browser:
     dependencies:
@@ -895,25 +896,25 @@ importers:
     devDependencies:
       '@rollup/plugin-commonjs':
         specifier: ^23.0.4
-        version: 23.0.7(rollup@2.79.2)
+        version: 23.0.7(rollup@2.80.0)
       '@rollup/plugin-node-resolve':
         specifier: ^15.0.1
-        version: 15.3.1(rollup@2.79.2)
+        version: 15.3.1(rollup@2.80.0)
       '@rollup/plugin-typescript':
         specifier: ^10.0.1
-        version: 10.0.1(rollup@2.79.2)(tslib@2.8.1)(typescript@4.9.5)
+        version: 10.0.1(rollup@2.80.0)(tslib@2.8.1)(typescript@4.9.5)
       rollup:
-        specifier: ^2.79.1
-        version: 2.79.2
+        specifier: ^2.80.0
+        version: 2.80.0
       rollup-plugin-execute:
         specifier: ^1.1.1
         version: 1.1.1
       rollup-plugin-gzip:
         specifier: ^3.1.0
-        version: 3.1.2(rollup@2.79.2)
+        version: 3.1.2(rollup@2.80.0)
       rollup-plugin-terser:
         specifier: ^7.0.2
-        version: 7.0.2(rollup@2.79.2)
+        version: 7.0.2(rollup@2.80.0)
 
   packages/plugin-web-vitals-browser:
     dependencies:
@@ -929,28 +930,28 @@ importers:
     devDependencies:
       '@rollup/plugin-commonjs':
         specifier: ^23.0.4
-        version: 23.0.7(rollup@2.79.2)
+        version: 23.0.7(rollup@2.80.0)
       '@rollup/plugin-node-resolve':
         specifier: ^15.0.1
-        version: 15.3.1(rollup@2.79.2)
+        version: 15.3.1(rollup@2.80.0)
       '@rollup/plugin-typescript':
         specifier: ^10.0.1
-        version: 10.0.1(rollup@2.79.2)(tslib@2.8.1)(typescript@4.9.5)
+        version: 10.0.1(rollup@2.80.0)(tslib@2.8.1)(typescript@4.9.5)
       rollup:
-        specifier: ^2.79.1
-        version: 2.79.2
+        specifier: ^2.80.0
+        version: 2.80.0
       rollup-plugin-execute:
         specifier: ^1.1.1
         version: 1.1.1
       rollup-plugin-gzip:
         specifier: ^3.1.0
-        version: 3.1.2(rollup@2.79.2)
+        version: 3.1.2(rollup@2.80.0)
       rollup-plugin-sourcemaps:
         specifier: ^0.6.3
-        version: 0.6.3(@types/node@24.10.1)(rollup@2.79.2)
+        version: 0.6.3(@types/node@24.10.1)(rollup@2.80.0)
       rollup-plugin-terser:
         specifier: ^7.0.2
-        version: 7.0.2(rollup@2.79.2)
+        version: 7.0.2(rollup@2.80.0)
 
   packages/segment-session-replay-plugin:
     dependencies:
@@ -961,33 +962,33 @@ importers:
         specifier: ^1.81.0
         version: 1.81.1(encoding@0.1.13)
       js-cookie:
-        specifier: ^3.0.5
-        version: 3.0.5
+        specifier: ^3.0.7
+        version: 3.0.8
     devDependencies:
       '@aws-sdk/client-s3':
         specifier: ^3.229.0
         version: 3.932.0
       '@rollup/plugin-commonjs':
         specifier: ^23.0.4
-        version: 23.0.7(rollup@2.79.2)
+        version: 23.0.7(rollup@2.80.0)
       '@rollup/plugin-node-resolve':
         specifier: ^15.0.1
-        version: 15.3.1(rollup@2.79.2)
+        version: 15.3.1(rollup@2.80.0)
       '@rollup/plugin-typescript':
         specifier: ^10.0.1
-        version: 10.0.1(rollup@2.79.2)(tslib@2.8.1)(typescript@4.9.5)
+        version: 10.0.1(rollup@2.80.0)(tslib@2.8.1)(typescript@4.9.5)
       '@types/js-cookie':
         specifier: ^3.0.6
         version: 3.0.6
       rollup:
-        specifier: ^2.79.1
-        version: 2.79.2
+        specifier: ^2.80.0
+        version: 2.80.0
       rollup-plugin-gzip:
         specifier: ^3.1.0
-        version: 3.1.2(rollup@2.79.2)
+        version: 3.1.2(rollup@2.80.0)
       rollup-plugin-terser:
         specifier: ^7.0.2
-        version: 7.0.2(rollup@2.79.2)
+        version: 7.0.2(rollup@2.80.0)
 
   packages/segment-session-replay-plugin-react-native:
     devDependencies:
@@ -1039,16 +1040,16 @@ importers:
         version: 7.27.1(@babel/core@7.28.5)
       '@rollup/plugin-commonjs':
         specifier: ^23.0.4
-        version: 23.0.7(rollup@2.79.2)
+        version: 23.0.7(rollup@2.80.0)
       '@rollup/plugin-node-resolve':
         specifier: ^15.0.1
-        version: 15.3.1(rollup@2.79.2)
+        version: 15.3.1(rollup@2.80.0)
       '@rollup/plugin-replace':
         specifier: ^6.0.1
-        version: 6.0.3(rollup@2.79.2)
+        version: 6.0.3(rollup@2.80.0)
       '@rollup/plugin-typescript':
         specifier: ^10.0.1
-        version: 10.0.1(rollup@2.79.2)(tslib@2.8.1)(typescript@4.9.5)
+        version: 10.0.1(rollup@2.80.0)(tslib@2.8.1)(typescript@4.9.5)
       '@ungap/structured-clone':
         specifier: ^1.2.0
         version: 1.3.0
@@ -1059,20 +1060,20 @@ importers:
         specifier: 4.0.2
         version: 4.0.2
       rollup:
-        specifier: ^2.79.1
-        version: 2.79.2
+        specifier: ^2.80.0
+        version: 2.80.0
       rollup-plugin-execute:
         specifier: ^1.1.1
         version: 1.1.1
       rollup-plugin-gzip:
         specifier: ^3.1.0
-        version: 3.1.2(rollup@2.79.2)
+        version: 3.1.2(rollup@2.80.0)
       rollup-plugin-sourcemaps:
         specifier: ^0.6.3
-        version: 0.6.3(@types/node@24.10.1)(rollup@2.79.2)
+        version: 0.6.3(@types/node@24.10.1)(rollup@2.80.0)
       rollup-plugin-terser:
         specifier: ^7.0.2
-        version: 7.0.2(rollup@2.79.2)
+        version: 7.0.2(rollup@2.80.0)
 
   packages/session-replay-react-native:
     dependencies:
@@ -1110,31 +1111,31 @@ importers:
     devDependencies:
       '@rollup/plugin-commonjs':
         specifier: ^23.0.4
-        version: 23.0.7(rollup@2.79.2)
+        version: 23.0.7(rollup@2.80.0)
       '@rollup/plugin-node-resolve':
         specifier: ^15.0.1
-        version: 15.3.1(rollup@2.79.2)
+        version: 15.3.1(rollup@2.80.0)
       '@rollup/plugin-typescript':
         specifier: ^10.0.1
-        version: 10.0.1(rollup@2.79.2)(tslib@2.8.1)(typescript@4.9.5)
+        version: 10.0.1(rollup@2.80.0)(tslib@2.8.1)(typescript@4.9.5)
       fake-indexeddb:
         specifier: 4.0.2
         version: 4.0.2
       rollup:
-        specifier: ^2.79.1
-        version: 2.79.2
+        specifier: ^2.80.0
+        version: 2.80.0
       rollup-plugin-execute:
         specifier: ^1.1.1
         version: 1.1.1
       rollup-plugin-gzip:
         specifier: ^3.1.0
-        version: 3.1.2(rollup@2.79.2)
+        version: 3.1.2(rollup@2.80.0)
       rollup-plugin-sourcemaps:
         specifier: ^0.6.3
-        version: 0.6.3(@types/node@24.10.1)(rollup@2.79.2)
+        version: 0.6.3(@types/node@24.10.1)(rollup@2.80.0)
       rollup-plugin-terser:
         specifier: ^7.0.2
-        version: 7.0.2(rollup@2.79.2)
+        version: 7.0.2(rollup@2.80.0)
 
   packages/unified:
     dependencies:
@@ -1155,8 +1156,8 @@ importers:
         version: link:../plugin-session-replay-browser
     devDependencies:
       rollup:
-        specifier: ^2.79.1
-        version: 2.79.2
+        specifier: ^2.80.0
+        version: 2.80.0
 
 packages:
 
@@ -3455,8 +3456,8 @@ packages:
     resolution: {integrity: sha512-+1VkjdD0QBLPodGrJUeqarH8VAIvQODIbwh9XpP5Syisf7YoQgsJKPNFoqqLQlu+VQ/tVSshMR6loPMn8U+dPg==}
     engines: {node: '>=14'}
 
-  '@playwright/test@1.55.0':
-    resolution: {integrity: sha512-04IXzPwHrW69XusN/SIdDdKZBzMfOT9UNT/YiJit/xpy2VuAoB8NHc8Aplb96zsWDddLnbkPL3TsmrS04ZU2xQ==}
+  '@playwright/test@1.55.1':
+    resolution: {integrity: sha512-IVAh/nOJaw6W9g+RJVlIQJ6gSiER+ae6mKQ5CX1bERzQgbC1VSeBlwdvczT7pxb0GWiyrxH4TGKbMfDb4Sq/ig==}
     engines: {node: '>=18'}
     hasBin: true
 
@@ -5043,8 +5044,8 @@ packages:
     resolution: {integrity: sha512-wvUjBtSGN7+7SjNpq/9M2Tg350UZD3q62IFZLbRAR1bSMlCo1ZaeW+BJ+D090e4hIIZLBcTDWe4Mh4jvUDajzQ==}
     engines: {node: '>= 0.4'}
 
-  axios@1.13.5:
-    resolution: {integrity: sha512-cz4ur7Vb0xS4/KUN0tPWe44eqxrIu31me+fbang3ijiNscE129POzipJJA6zniq2C/Z6sJCjMimjS8Lc/GAs8Q==}
+  axios@1.19.0:
+    resolution: {integrity: sha512-ht/iuYZXEjFxLH/Hkezgd7m6JKlHHXEUSneaDz8uZe1Gj5QZtCnpyDsckvAiEnT89OEbCLmnte4R4sn7P0EKFw==}
 
   babel-core@7.0.0-bridge.0:
     resolution: {integrity: sha512-poPX9mZH/5CSanm50Q+1toVci6pv5KSRv/5TWCwtzQS5XEwn40BcCrgIeMFWP9CKKIniKXNxoIOnOq4VVlGXhg==}
@@ -6358,6 +6359,15 @@ packages:
       debug:
         optional: true
 
+  follow-redirects@1.16.0:
+    resolution: {integrity: sha512-y5rN/uOsadFT/JfYwhxRS5R7Qce+g3zG97+JrtFZlC9klX/W5hD7iiLzScI4nZqUS7DNUdhPgw4xI8W2LuXlUw==}
+    engines: {node: '>=4.0'}
+    peerDependencies:
+      debug: '*'
+    peerDependenciesMeta:
+      debug:
+        optional: true
+
   for-each@0.3.5:
     resolution: {integrity: sha512-dKx12eRCVIzqCxFGplyFKJMPvLEWgmNtUrpTiJIR5u97zEhRG8ySrtboPHZXx7daLxQVrl643cTzbab2tkQjxg==}
     engines: {node: '>= 0.4'}
@@ -6368,6 +6378,10 @@ packages:
 
   form-data@4.0.5:
     resolution: {integrity: sha512-8RipRLol37bNs2bhoV67fiTEvdTrbMUYcFTiy3+wuuOnUog2QBHCZWXDRijWQfAkhBj2Uf5UnVaiWwA5vdd82w==}
+    engines: {node: '>= 6'}
+
+  form-data@4.0.6:
+    resolution: {integrity: sha512-vKatAh4SlVfgbv+YtmhiRjhEMJsYpsG1Y2rMQtR+SVSbytsSD1YGzDIcrAJmdFec88u/+VoGmxnl+80gL1tRCQ==}
     engines: {node: '>= 6'}
 
   formatly@0.3.0:
@@ -6641,6 +6655,10 @@ packages:
 
   hasown@2.0.2:
     resolution: {integrity: sha512-0hJU9SCPvmMzIBdZFqNPXWa6dqh7WdH0cII9y+CyS8rG3nL48Bclra9HmKhVVUHyPWNH5Y7xDwAB7bfgSjkUMQ==}
+    engines: {node: '>= 0.4'}
+
+  hasown@2.0.4:
+    resolution: {integrity: sha512-T2UbfbBEF32wiepXIsMlTW9+dDYC6wMh/t/vYA4tuOMKqWz/n3vr1NFSxQiyP+zk2mXsoMA/i/7qV6LKut1t1A==}
     engines: {node: '>= 0.4'}
 
   he@1.2.0:
@@ -7376,13 +7394,8 @@ packages:
   js-base64@3.7.8:
     resolution: {integrity: sha512-hNngCeKxIUQiEUN3GPJOkz4wF/YvdUdbNL9hsBcMQTkKzboD7T/q3OYOuuPZLUE6dBxSGpwhk5mwuDud7JVAow==}
 
-  js-cookie@3.0.1:
-    resolution: {integrity: sha512-+0rgsUXZu4ncpPxRL+lNEptWMOWl9etvPHc/koSRp6MPwpRYAhmk0dUG00J4bxVV3r9uUzfo24wW0knS07SKSw==}
-    engines: {node: '>=12'}
-
-  js-cookie@3.0.5:
-    resolution: {integrity: sha512-cEiJEAEoIbWfCZYKWhVwFuvPX1gETRYPw6LlaTKoxD3s2AkXzkCjnp6h0V77ozyqj0jakteJ4YqDJT830+lVGw==}
-    engines: {node: '>=14'}
+  js-cookie@3.0.8:
+    resolution: {integrity: sha512-yeJd4aNAdYZQjaon2bpD/Gb0B/omw7HQOsynXXcOiWVCacbBcPlgn8S/d1X6blFSaHao7ozqtW7NZW19xpCtIw==}
 
   js-tokens@4.0.0:
     resolution: {integrity: sha512-RdJUflcE3cUzKiMqQgsCu06FPu9UdIJO0beYbPhHN4k6apgJtifcoCtT9bcxOpYBtpD2kCM6Sbzg4CausW/PKQ==}
@@ -8708,13 +8721,13 @@ packages:
     resolution: {integrity: sha512-HRDzbaKjC+AOWVXxAU/x54COGeIv9eb+6CkDSQoNTt4XyWoIJvuPsXizxu/Fr23EiekbtZwmh1IcIG/l/a10GQ==}
     engines: {node: '>=8'}
 
-  playwright-core@1.55.0:
-    resolution: {integrity: sha512-GvZs4vU3U5ro2nZpeiwyb0zuFaqb9sUiAJuyrWpcGouD8y9/HLgGbNRjIph7zU9D3hnPaisMl9zG9CgFi/biIg==}
+  playwright-core@1.55.1:
+    resolution: {integrity: sha512-Z6Mh9mkwX+zxSlHqdr5AOcJnfp+xUWLCt9uKV18fhzA8eyxUd8NUWzAjxUh55RZKSYwDGX0cfaySdhZJGMoJ+w==}
     engines: {node: '>=18'}
     hasBin: true
 
-  playwright@1.55.0:
-    resolution: {integrity: sha512-sdCWStblvV1YU909Xqx0DhOjPZE4/5lJsIS84IfN9dAZfcl/CIZ5O8l3o0j7hPMjDvqoTF8ZUcc+i/GL5erstA==}
+  playwright@1.55.1:
+    resolution: {integrity: sha512-cJW4Xd/G3v5ovXtJJ52MAOclqeac9S/aGGgRzLabuF8TnIb6xHvMzKIa6JmrRzUkeXJgfL1MhukP0NK6l39h3A==}
     engines: {node: '>=18'}
     hasBin: true
 
@@ -8821,8 +8834,9 @@ packages:
     resolution: {integrity: sha512-llQsMLSUDUPT44jdrU/O37qlnifitDP+ZwrmmZcoSKyLKvtZxpyV0n2/bD/N4tBAAZ/gJEdZU7KMraoK1+XYAg==}
     engines: {node: '>= 0.10'}
 
-  proxy-from-env@1.1.0:
-    resolution: {integrity: sha512-D+zkORCbA9f1tdWRK0RaCR3GPv50cMxcrz4X8k5LTSUD1Dkw47mKJEZQNunItRTkWwgtaUSo1RVFRIG9ZXiFYg==}
+  proxy-from-env@2.1.0:
+    resolution: {integrity: sha512-cJ+oHTW1VAEa8cJslgmUZrc+sjRKgAKl3Zyse6+PV38hZe/V6Z14TbCuXcan9F9ghlz4QrFr2c92TNF82UkYHA==}
+    engines: {node: '>=10'}
 
   psl@1.15.0:
     resolution: {integrity: sha512-JZd3gMVBAVQkSs6HdNZo9Sdo0LNcQeMNP3CozBJb3JYC/QUYZTnKxP+f8oWRX4rHP5EurWxqAHTSwUCjlNKa1w==}
@@ -9219,8 +9233,8 @@ packages:
     peerDependencies:
       rollup: ^2.0.0
 
-  rollup@2.79.2:
-    resolution: {integrity: sha512-fS6iqSPZDs3dr/y7Od6y5nha8dW1YnbgtsyotCVvoFGKbERG++CVRFv1meyGDE1SNItQA8BrnCw7ScdAhRJ3XQ==}
+  rollup@2.80.0:
+    resolution: {integrity: sha512-cIFJOD1DESzpjOBl763Kp1AH7UE/0fcdHe6rZXUdQ9c50uvgigvW97u3IcSeBwOkgqL/PXPBktBCh0KEu5L8XQ==}
     engines: {node: '>=10.0.0'}
     hasBin: true
 
@@ -13479,9 +13493,9 @@ snapshots:
   '@pkgjs/parseargs@0.11.0':
     optional: true
 
-  '@playwright/test@1.55.0':
+  '@playwright/test@1.55.1':
     dependencies:
-      playwright: 1.55.0
+      playwright: 1.55.1
 
   '@react-native-async-storage/async-storage@1.24.0(react-native@0.70.6(@babel/core@7.28.5)(@babel/preset-env@7.28.5(@babel/core@7.28.5))(encoding@0.1.13)(react@18.2.0))':
     dependencies:
@@ -14730,39 +14744,39 @@ snapshots:
 
   '@rolldown/pluginutils@1.0.0-beta.27': {}
 
-  '@rollup/plugin-commonjs@23.0.7(rollup@2.79.2)':
+  '@rollup/plugin-commonjs@23.0.7(rollup@2.80.0)':
     dependencies:
-      '@rollup/pluginutils': 5.3.0(rollup@2.79.2)
+      '@rollup/pluginutils': 5.3.0(rollup@2.80.0)
       commondir: 1.0.1
       estree-walker: 2.0.2
       glob: 8.1.0
       is-reference: 1.2.1
       magic-string: 0.27.0
     optionalDependencies:
-      rollup: 2.79.2
+      rollup: 2.80.0
 
-  '@rollup/plugin-json@5.0.0(rollup@2.79.2)':
+  '@rollup/plugin-json@5.0.0(rollup@2.80.0)':
     dependencies:
       '@rollup/pluginutils': 4.2.1
     optionalDependencies:
-      rollup: 2.79.2
+      rollup: 2.80.0
 
-  '@rollup/plugin-node-resolve@15.3.1(rollup@2.79.2)':
+  '@rollup/plugin-node-resolve@15.3.1(rollup@2.80.0)':
     dependencies:
-      '@rollup/pluginutils': 5.3.0(rollup@2.79.2)
+      '@rollup/pluginutils': 5.3.0(rollup@2.80.0)
       '@types/resolve': 1.20.2
       deepmerge: 4.3.1
       is-module: 1.0.0
       resolve: 1.22.11
     optionalDependencies:
-      rollup: 2.79.2
+      rollup: 2.80.0
 
-  '@rollup/plugin-replace@6.0.3(rollup@2.79.2)':
+  '@rollup/plugin-replace@6.0.3(rollup@2.80.0)':
     dependencies:
-      '@rollup/pluginutils': 5.3.0(rollup@2.79.2)
+      '@rollup/pluginutils': 5.3.0(rollup@2.80.0)
       magic-string: 0.30.21
     optionalDependencies:
-      rollup: 2.79.2
+      rollup: 2.80.0
 
   '@rollup/plugin-replace@6.0.3(rollup@4.60.1)':
     dependencies:
@@ -14771,34 +14785,34 @@ snapshots:
     optionalDependencies:
       rollup: 4.60.1
 
-  '@rollup/plugin-typescript@10.0.1(rollup@2.79.2)(tslib@2.8.1)(typescript@4.9.5)':
+  '@rollup/plugin-typescript@10.0.1(rollup@2.80.0)(tslib@2.8.1)(typescript@4.9.5)':
     dependencies:
-      '@rollup/pluginutils': 5.3.0(rollup@2.79.2)
+      '@rollup/pluginutils': 5.3.0(rollup@2.80.0)
       resolve: 1.22.11
       typescript: 4.9.5
     optionalDependencies:
-      rollup: 2.79.2
+      rollup: 2.80.0
       tslib: 2.8.1
 
-  '@rollup/pluginutils@3.1.0(rollup@2.79.2)':
+  '@rollup/pluginutils@3.1.0(rollup@2.80.0)':
     dependencies:
       '@types/estree': 0.0.39
       estree-walker: 1.0.1
       picomatch: 2.3.1
-      rollup: 2.79.2
+      rollup: 2.80.0
 
   '@rollup/pluginutils@4.2.1':
     dependencies:
       estree-walker: 2.0.2
       picomatch: 2.3.1
 
-  '@rollup/pluginutils@5.3.0(rollup@2.79.2)':
+  '@rollup/pluginutils@5.3.0(rollup@2.80.0)':
     dependencies:
       '@types/estree': 1.0.8
       estree-walker: 2.0.2
       picomatch: 4.0.3
     optionalDependencies:
-      rollup: 2.79.2
+      rollup: 2.80.0
 
   '@rollup/pluginutils@5.3.0(rollup@4.60.1)':
     dependencies:
@@ -14905,7 +14919,7 @@ snapshots:
       '@segment/analytics.js-video-plugins': 0.2.1
       '@segment/facade': 3.4.10
       dset: 3.1.4
-      js-cookie: 3.0.1
+      js-cookie: 3.0.8
       node-fetch: 2.7.0(encoding@0.1.13)
       tslib: 2.8.1
       unfetch: 4.2.0
@@ -16014,13 +16028,15 @@ snapshots:
     dependencies:
       possible-typed-array-names: 1.1.0
 
-  axios@1.13.5:
+  axios@1.19.0:
     dependencies:
-      follow-redirects: 1.15.11
-      form-data: 4.0.5
-      proxy-from-env: 1.1.0
+      follow-redirects: 1.16.0
+      form-data: 4.0.6
+      https-proxy-agent: 5.0.1
+      proxy-from-env: 2.1.0
     transitivePeerDependencies:
       - debug
+      - supports-color
 
   babel-core@7.0.0-bridge.0(@babel/core@7.28.5):
     dependencies:
@@ -17128,7 +17144,7 @@ snapshots:
       es-errors: 1.3.0
       get-intrinsic: 1.3.0
       has-tostringtag: 1.0.2
-      hasown: 2.0.2
+      hasown: 2.0.4
 
   es-shim-unscopables@1.1.0:
     dependencies:
@@ -17708,6 +17724,8 @@ snapshots:
 
   follow-redirects@1.15.11: {}
 
+  follow-redirects@1.16.0: {}
+
   for-each@0.3.5:
     dependencies:
       is-callable: 1.2.7
@@ -17723,6 +17741,14 @@ snapshots:
       combined-stream: 1.0.8
       es-set-tostringtag: 2.1.0
       hasown: 2.0.2
+      mime-types: 2.1.35
+
+  form-data@4.0.6:
+    dependencies:
+      asynckit: 0.4.0
+      combined-stream: 1.0.8
+      es-set-tostringtag: 2.1.0
+      hasown: 2.0.4
       mime-types: 2.1.35
 
   formatly@0.3.0:
@@ -17814,7 +17840,7 @@ snapshots:
       get-proto: 1.0.1
       gopd: 1.2.0
       has-symbols: 1.1.0
-      hasown: 2.0.2
+      hasown: 2.0.4
       math-intrinsics: 1.1.0
 
   get-package-type@0.1.0: {}
@@ -18012,6 +18038,10 @@ snapshots:
   has-unicode@2.0.1: {}
 
   hasown@2.0.2:
+    dependencies:
+      function-bind: 1.1.2
+
+  hasown@2.0.4:
     dependencies:
       function-bind: 1.1.2
 
@@ -19044,9 +19074,7 @@ snapshots:
 
   js-base64@3.7.8: {}
 
-  js-cookie@3.0.1: {}
-
-  js-cookie@3.0.5: {}
+  js-cookie@3.0.8: {}
 
   js-tokens@4.0.0: {}
 
@@ -20700,7 +20728,7 @@ snapshots:
       '@yarnpkg/lockfile': 1.1.0
       '@yarnpkg/parsers': 3.0.2
       '@zkochan/js-yaml': 0.0.7
-      axios: 1.13.5
+      axios: 1.19.0
       chalk: 4.1.2
       cli-cursor: 3.1.0
       cli-spinners: 2.6.1
@@ -20744,6 +20772,7 @@ snapshots:
       '@nx/nx-win32-x64-msvc': 21.6.8
     transitivePeerDependencies:
       - debug
+      - supports-color
 
   nx@22.0.3:
     dependencies:
@@ -20751,7 +20780,7 @@ snapshots:
       '@yarnpkg/lockfile': 1.1.0
       '@yarnpkg/parsers': 3.0.2
       '@zkochan/js-yaml': 0.0.7
-      axios: 1.13.5
+      axios: 1.19.0
       chalk: 4.1.2
       cli-cursor: 3.1.0
       cli-spinners: 2.6.1
@@ -20795,6 +20824,7 @@ snapshots:
       '@nx/nx-win32-x64-msvc': 22.0.3
     transitivePeerDependencies:
       - debug
+      - supports-color
 
   ob1@0.72.3: {}
 
@@ -21195,11 +21225,11 @@ snapshots:
     dependencies:
       find-up: 4.1.0
 
-  playwright-core@1.55.0: {}
+  playwright-core@1.55.1: {}
 
-  playwright@1.55.0:
+  playwright@1.55.1:
     dependencies:
-      playwright-core: 1.55.0
+      playwright-core: 1.55.1
     optionalDependencies:
       fsevents: 2.3.2
 
@@ -21310,7 +21340,7 @@ snapshots:
       forwarded: 0.2.0
       ipaddr.js: 1.9.1
 
-  proxy-from-env@1.1.0: {}
+  proxy-from-env@2.1.0: {}
 
   psl@1.15.0:
     dependencies:
@@ -21907,27 +21937,27 @@ snapshots:
 
   rollup-plugin-execute@1.1.1: {}
 
-  rollup-plugin-gzip@3.1.2(rollup@2.79.2):
+  rollup-plugin-gzip@3.1.2(rollup@2.80.0):
     dependencies:
-      rollup: 2.79.2
+      rollup: 2.80.0
 
-  rollup-plugin-sourcemaps@0.6.3(@types/node@24.10.1)(rollup@2.79.2):
+  rollup-plugin-sourcemaps@0.6.3(@types/node@24.10.1)(rollup@2.80.0):
     dependencies:
-      '@rollup/pluginutils': 3.1.0(rollup@2.79.2)
-      rollup: 2.79.2
+      '@rollup/pluginutils': 3.1.0(rollup@2.80.0)
+      rollup: 2.80.0
       source-map-resolve: 0.6.0
     optionalDependencies:
       '@types/node': 24.10.1
 
-  rollup-plugin-terser@7.0.2(rollup@2.79.2):
+  rollup-plugin-terser@7.0.2(rollup@2.80.0):
     dependencies:
       '@babel/code-frame': 7.27.1
       jest-worker: 26.6.2
-      rollup: 2.79.2
+      rollup: 2.80.0
       serialize-javascript: 4.0.0
       terser: 5.44.1
 
-  rollup@2.79.2:
+  rollup@2.80.0:
     optionalDependencies:
       fsevents: 2.3.3
 
