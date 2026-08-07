@@ -51,6 +51,7 @@ function getSharedSelectorEngine(): SelectorEngine {
 
 export class DataExtractor {
   private readonly additionalMaskTextPatterns: RegExp[];
+  private readonly options: ElementInteractionsOptions;
   diagnosticsClient?: IDiagnosticsClient;
 
   /**
@@ -70,6 +71,7 @@ export class DataExtractor {
 
   constructor(options: ElementInteractionsOptions, context?: { diagnosticsClient: IDiagnosticsClient }) {
     this.diagnosticsClient = context?.diagnosticsClient;
+    this.options = options;
     this.selectorEngine = getSharedSelectorEngine();
 
     const rawPatterns = options.maskTextRegex ?? [];
@@ -127,8 +129,10 @@ export class DataExtractor {
       }
     }
 
+    const captureCssClasses = this.options.captureCssClasses !== false;
+
     hierarchy = ancestors.map((el) =>
-      getElementProperties(el, elementToAttributesToMaskMap.get(el) ?? new Set<string>()),
+      getElementProperties(el, elementToAttributesToMaskMap.get(el) ?? new Set<string>(), captureCssClasses),
     );
 
     // Search for and mask any sensitive attribute values
