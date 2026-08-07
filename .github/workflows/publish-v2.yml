@@ -60,7 +60,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [authorize]
     container:
-      image: mcr.microsoft.com/playwright:v1.55.0
+      image: mcr.microsoft.com/playwright:v1.55.1
     outputs:
       head_sha: ${{ steps.head-sha.outputs.sha }}
 
