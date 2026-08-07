@@ -1,5 +1,7 @@
 import { LogLevel } from '@amplitude/analytics-types';
 
+import type { PrivacyConfig } from './session-replay-config';
+
 /**
  * Configuration for Session Replay React Native Plugin
  */
@@ -28,6 +30,14 @@ export interface SessionReplayPluginConfig {
    * @default true
    */
   autoStart?: boolean;
+
+  /**
+   * Privacy configuration for session replay, including the masking level
+   * applied to sensitive content. When `maskLevel` is omitted it resolves to
+   * `'medium'` at the native boundary.
+   * @default {}
+   */
+  privacyConfig?: PrivacyConfig;
 }
 
 export const getDefaultSessionReplayPluginConfig: () => Required<SessionReplayPluginConfig> = () => {
@@ -36,5 +46,9 @@ export const getDefaultSessionReplayPluginConfig: () => Required<SessionReplayPl
     enableRemoteConfig: true,
     logLevel: LogLevel.Warn,
     autoStart: true,
+    // Intentionally left without a `maskLevel`: the effective default
+    // (`'medium'`) is resolved once at the native boundary by `nativeConfig()`,
+    // mirroring `getDefaultConfig()` in session-replay-config.ts.
+    privacyConfig: {},
   };
 };
