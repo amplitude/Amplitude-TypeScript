@@ -54,6 +54,6 @@
     "@amplitude/plugin-session-replay-browser": "workspace:*"
   },
   "devDependencies": {
-    "rollup": "^2.79.1"
+    "rollup": "^2.80.0"
   }
 }
