@@ -1,6 +1,8 @@
 import { Http } from '../../src/transports/http';
 import http from 'http';
 import https from 'https';
+import { EventEmitter } from 'events';
+import { AddressInfo } from 'net';
 import { Status } from '@amplitude/analytics-core';
 
 describe('http transport', () => {
@@ -30,6 +32,7 @@ describe('http transport', () => {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-return
       return {
         on: jest.fn().mockImplementation((_: string, cb: (error: Error) => void) => cb(new Error())),
+        setTimeout: jest.fn(),
         end: jest.fn(),
       } as any;
     });
@@ -65,6 +68,7 @@ describe('http transport', () => {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-return
       return {
         on: jest.fn().mockImplementation((_: string, cb: (error: Error) => void) => cb(new Error())),
+        setTimeout: jest.fn(),
         end: jest.fn(),
       } as any;
     });
@@ -111,6 +115,7 @@ describe('http transport', () => {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-return
       return {
         on: jest.fn(),
+        setTimeout: jest.fn(),
         end: jest.fn(),
       } as any;
     });
@@ -148,6 +153,7 @@ describe('http transport', () => {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-return
       return {
         on: jest.fn(),
+        setTimeout: jest.fn(),
         end: jest.fn(),
       } as any;
     });
@@ -156,5 +162,101 @@ describe('http transport', () => {
     expect(response?.status).toBe(Status.Failed);
     expect(response?.statusCode).toBe(502);
     expect(request).toHaveBeenCalledTimes(1);
+  });
+});
+
+// Regression coverage for SDK-188: each of these used to leave send() pending
+// forever, wedging Destination.flushId and growing the event queue without bound.
+describe('http transport: responses that never complete', () => {
+  const payload = { api_key: '', events: [] };
+  let server: http.Server;
+  let url: string;
+
+  const listen = async (handler: http.RequestListener) => {
+    server = http.createServer(handler);
+    await new Promise<void>((resolve) => server.listen(0, resolve));
+    url = `http://localhost:${(server.address() as AddressInfo).port}/2/httpapi`;
+  };
+
+  afterEach(async () => {
+    server.closeAllConnections();
+    await new Promise((resolve) => server.close(resolve));
+  });
+
+  test('should time out when the server never responds', async () => {
+    await listen(() => {
+      // Accept the request and hold it open indefinitely.
+    });
+
+    const response = await new Http(50).send(url, payload);
+
+    expect(response?.status).toBe(Status.Timeout);
+    expect(response?.statusCode).toBe(408);
+  });
+
+  test('should fall back to the status code when the response body is empty', async () => {
+    await listen((_, res) => {
+      res.writeHead(200, { 'Content-Length': '0' });
+      res.end();
+    });
+
+    const response = await new Http().send(url, payload);
+
+    expect(response?.status).toBe(Status.Success);
+    expect(response?.statusCode).toBe(200);
+  });
+
+  test('should resolve null when the response is truncated', async () => {
+    await listen((_, res) => {
+      res.writeHead(200, { 'Content-Type': 'application/json', 'Content-Length': '200' });
+      res.write('{"code":200,"events_ingested":');
+      setTimeout(() => res.socket?.destroy(), 10);
+    });
+
+    const response = await new Http().send(url, payload);
+
+    expect(response).toBeNull();
+  });
+
+  test('should resolve null when the connection is refused', async () => {
+    await listen(() => undefined);
+    const port = (server.address() as AddressInfo).port;
+    server.closeAllConnections();
+    await new Promise((resolve) => server.close(resolve));
+    server = http.createServer();
+
+    const response = await new Http().send(`http://localhost:${port}/2/httpapi`, payload);
+
+    expect(response).toBeNull();
+  });
+
+  test('should settle only once when the response errors after ending', async () => {
+    const res = new EventEmitter() as http.IncomingMessage;
+    res.setEncoding = jest.fn();
+    res.complete = false;
+    const req = { on: jest.fn(), setTimeout: jest.fn(), end: jest.fn(), destroy: jest.fn() };
+    jest.spyOn(http, 'request').mockImplementation(((_: unknown, cb: (r: http.IncomingMessage) => void) => {
+      setImmediate(() => {
+        cb(res);
+        res.emit('end');
+        res.emit('aborted');
+        res.emit('error', new Error('ECONNRESET'));
+      });
+      return req;
+    }) as unknown as typeof http.request);
+
+    await expect(new Http().send('http://localhost:3000', payload)).resolves.toBeNull();
+  });
+
+  test('should abort the request when the timeout fires', async () => {
+    const req = { on: jest.fn(), setTimeout: jest.fn(), end: jest.fn(), destroy: jest.fn() };
+    jest.spyOn(http, 'request').mockImplementation((() => req) as unknown as typeof http.request);
+
+    const response = new Http(1234).send('http://localhost:3000', payload);
+    expect(req.setTimeout).toHaveBeenCalledWith(1234, expect.any(Function));
+
+    (req.setTimeout.mock.calls[0][1] as () => void)();
+    expect(req.destroy).toHaveBeenCalledTimes(1);
+    expect((await response)?.status).toBe(Status.Timeout);
   });
 });
