@@ -134,7 +134,8 @@ export class DataExtractor {
     // When the shadow mode is enabled the ancestor walk crosses shadow
     // boundaries into host elements, up to the mode's depth; otherwise it stays
     // within the element's own tree.
-    const ancestors = getAncestors(element, this.getShadowMode());
+    const shadow = this.getShadowMode();
+    const ancestors = getAncestors(element, shadow);
 
     // Build attributes to mask map
     const elementToAttributesToMaskMap = new Map<Element, Set<string>>();
@@ -151,7 +152,7 @@ export class DataExtractor {
     }
 
     hierarchy = ancestors.map((el) =>
-      getElementProperties(el, elementToAttributesToMaskMap.get(el) ?? new Set<string>()),
+      getElementProperties(el, elementToAttributesToMaskMap.get(el) ?? new Set<string>(), shadow),
     );
 
     // Search for and mask any sensitive attribute values

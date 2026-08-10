@@ -44,12 +44,12 @@ const HIGHLY_SENSITIVE_INPUT_TYPES = ['password', 'hidden'];
 export const MAX_HIERARCHY_LENGTH = 1024;
 
 /** Siblings for positional indexing — includes shadow-root children at the tree top. */
-function siblingCollection(element: Element): HTMLCollection | [] {
+function siblingCollection(element: Element, shadowAware: boolean): HTMLCollection | [] {
   if (element.parentElement) {
     return element.parentElement.children;
   }
   const root = element.getRootNode();
-  if (isShadowRoot(root)) {
+  if (shadowAware && isShadowRoot(root)) {
     return root.children;
   }
   return [];
@@ -58,6 +58,7 @@ function siblingCollection(element: Element): HTMLCollection | [] {
 export function getElementProperties(
   element: Element | null,
   userMaskedAttributeNames: Set<string>,
+  shadow: ShadowMode = SHADOW_OFF,
 ): HierarchyNode | null {
   if (element === null) {
     return null;
@@ -68,7 +69,7 @@ export function getElementProperties(
     tag: tagName,
   };
 
-  const siblings = Array.from(siblingCollection(element));
+  const siblings = Array.from(siblingCollection(element, shadow.enabled));
   if (siblings.length) {
     properties.index = siblings.indexOf(element);
     properties.indexOfType = siblings.filter((el) => el.tagName === element.tagName).indexOf(element);

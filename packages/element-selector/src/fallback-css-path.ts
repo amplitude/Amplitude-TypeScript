@@ -54,7 +54,12 @@ export interface FallbackCssPathOptions {
  *
  * Honors `config.maxAncestorWalkDepth` defensively — once the depth limit is
  * reached, the walker stops and returns whatever it has built so far rooted at
- * the deepest reached ancestor.
+ * the deepest reached ancestor. Exception: a shadow-root scope always walks to
+ * the tree root (see `honorDepthCap`).
+ *
+ * A depth-capped light-DOM chain is relative and may match more than one
+ * element — `resolveSelector` returns the first match, not necessarily the
+ * target. Treat capped paths as locators, not identities.
  */
 export function fallbackCssPath(
   el: Element,
@@ -68,8 +73,15 @@ export function fallbackCssPath(
   let cursor: Element | null = el;
   let depth = 0;
 
+  // The `SHADOW_CHILD_CHAIN_PREFIX` marker below is only emitted when the walk
+  // terminates naturally, and it's the only thing anchoring a positional chain
+  // inside a shadow root. Capping the walk there drops the marker, so
+  // `resolveSelector` matches the first same-shaped subtree instead of the
+  // target. The cap targets deep light DOMs; skipping it here is cheap.
+  const honorDepthCap = !(resolved.shadowDomEnabled && scopeIsShadowRoot);
+
   while (cursor !== null) {
-    if (resolved.maxAncestorWalkDepth !== undefined && depth > resolved.maxAncestorWalkDepth) {
+    if (honorDepthCap && resolved.maxAncestorWalkDepth !== undefined && depth > resolved.maxAncestorWalkDepth) {
       break;
     }
 

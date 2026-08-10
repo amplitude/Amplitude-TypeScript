@@ -1,4 +1,4 @@
-import { collectOpenShadowRoots } from '@amplitude/element-selector';
+import { collectOpenShadowRoots, isShadowRoot } from '@amplitude/element-selector';
 import { querySelectorAllDeep, TimestampedEvent } from './helpers';
 import { type ShadowGate, type ShadowMode } from './shadow-mode';
 import { Observable, consoleObserver, getGlobalScope, merge } from '@amplitude/analytics-core';
@@ -70,7 +70,7 @@ export const createMutationObservable = (shadowGate?: ShadowGate): Observable<Mu
         return;
       }
       observed.add(root);
-      if (typeof ShadowRoot !== 'undefined' && root instanceof ShadowRoot) {
+      if (isShadowRoot(root)) {
         rootDepth.set(root, depth);
       }
       mutationObserver.observe(root, MUTATION_OBSERVER_INIT);
@@ -90,7 +90,7 @@ export const createMutationObservable = (shadowGate?: ShadowGate): Observable<Mu
     // document, or the recorded depth of the enclosing shadow root.
     const depthOfTree = (node: Node): number => {
       const treeRoot = node.getRootNode();
-      if (!(treeRoot instanceof ShadowRoot)) {
+      if (!isShadowRoot(treeRoot)) {
         return 0;
       }
       const recorded = rootDepth.get(treeRoot);
