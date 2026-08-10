@@ -32,7 +32,6 @@ describe('http transport', () => {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-return
       return {
         on: jest.fn().mockImplementation((_: string, cb: (error: Error) => void) => cb(new Error())),
-        setTimeout: jest.fn(),
         end: jest.fn(),
       } as any;
     });
@@ -68,7 +67,6 @@ describe('http transport', () => {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-return
       return {
         on: jest.fn().mockImplementation((_: string, cb: (error: Error) => void) => cb(new Error())),
-        setTimeout: jest.fn(),
         end: jest.fn(),
       } as any;
     });
@@ -115,7 +113,6 @@ describe('http transport', () => {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-return
       return {
         on: jest.fn(),
-        setTimeout: jest.fn(),
         end: jest.fn(),
       } as any;
     });
@@ -153,7 +150,6 @@ describe('http transport', () => {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-return
       return {
         on: jest.fn(),
-        setTimeout: jest.fn(),
         end: jest.fn(),
       } as any;
     });
@@ -247,7 +243,7 @@ describe('http transport: responses that never complete', () => {
     const res = new EventEmitter() as http.IncomingMessage;
     res.setEncoding = jest.fn();
     res.complete = false;
-    const req = { on: jest.fn(), setTimeout: jest.fn(), end: jest.fn(), destroy: jest.fn() };
+    const req = { on: jest.fn(), end: jest.fn(), destroy: jest.fn() };
     jest.spyOn(http, 'request').mockImplementation(((_: unknown, cb: (r: http.IncomingMessage) => void) => {
       setImmediate(() => {
         cb(res);
@@ -263,15 +259,51 @@ describe('http transport: responses that never complete', () => {
     expect(response?.statusCode).toBe(0);
   });
 
-  test('should abort the request when the timeout fires', async () => {
-    const req = { on: jest.fn(), setTimeout: jest.fn(), end: jest.fn(), destroy: jest.fn() };
-    jest.spyOn(http, 'request').mockImplementation((() => req) as unknown as typeof http.request);
+  test('should abort the request when the deadline fires, even if the socket stays active', async () => {
+    // A real socket-inactivity timer (req.setTimeout()) would never fire here,
+    // since fake time never means the connection went idle. This proves the
+    // deadline is wall-clock, not activity-based.
+    jest.useFakeTimers();
+    try {
+      const req = { on: jest.fn(), end: jest.fn(), destroy: jest.fn() };
+      jest.spyOn(http, 'request').mockImplementation((() => req) as unknown as typeof http.request);
 
-    const response = new Http(1234).send('http://localhost:3000', payload);
-    expect(req.setTimeout).toHaveBeenCalledWith(1234, expect.any(Function));
+      const response = new Http(1234).send('http://localhost:3000', payload);
+      await jest.advanceTimersByTimeAsync(1234);
 
-    (req.setTimeout.mock.calls[0][1] as () => void)();
-    expect(req.destroy).toHaveBeenCalledTimes(1);
-    expect((await response)?.status).toBe(Status.Timeout);
+      expect(req.destroy).toHaveBeenCalledTimes(1);
+      const result = await response;
+      expect(result?.status).toBe(Status.Timeout);
+      expect(result?.statusCode).toBe(408);
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  test('should clear the deadline once settled, so it never fires late', async () => {
+    jest.useFakeTimers();
+    try {
+      const req = { on: jest.fn(), end: jest.fn(), destroy: jest.fn() };
+      jest.spyOn(http, 'request').mockImplementation(((_: unknown, cb: (r: http.IncomingMessage) => void) => {
+        const res = new EventEmitter() as http.IncomingMessage;
+        res.setEncoding = jest.fn();
+        res.complete = true;
+        setImmediate(() => {
+          cb(res);
+          res.emit('data', JSON.stringify({ code: 200 }));
+          res.emit('end');
+        });
+        return req;
+      }) as unknown as typeof http.request);
+
+      const responsePromise = new Http(1234).send('http://localhost:3000', payload);
+      await jest.advanceTimersByTimeAsync(0);
+      expect((await responsePromise)?.status).toBe(Status.Success);
+
+      await jest.advanceTimersByTimeAsync(1234);
+      expect(req.destroy).not.toHaveBeenCalled();
+    } finally {
+      jest.useRealTimers();
+    }
   });
 });

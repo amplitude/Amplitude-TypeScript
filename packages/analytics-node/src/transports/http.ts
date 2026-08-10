@@ -3,8 +3,8 @@ import * as http from 'http';
 import * as https from 'https';
 
 /**
- * Node's HTTP client applies no socket or request timeout of its own, so without
- * this a stalled upload hangs forever. Matches the 10s network timeout used by
+ * Node's HTTP client applies no timeout of its own, so without this a stalled or
+ * slow-trickling upload hangs forever. Matches the 10s network timeout used by
  * the Amplitude Java and Python SDKs.
  */
 export const DEFAULT_REQUEST_TIMEOUT_MILLIS = 10000;
@@ -48,11 +48,15 @@ export class Http extends BaseTransport implements Transport {
       // leaves Destination.flushId set forever, which silently no-ops all later
       // flushes while the event queue keeps growing. See SDK-188.
       let settled = false;
+      // A plain object rather than a bare variable, so `deadline` can be assigned
+      // once req exists without ESLint flagging the let as a const candidate.
+      const timer: { deadline?: ReturnType<typeof setTimeout> } = {};
       const settle = (response: Response | null) => {
         if (settled) {
           return;
         }
         settled = true;
+        clearTimeout(timer.deadline);
         resolve(response);
       };
 
@@ -91,10 +95,17 @@ export class Http extends BaseTransport implements Transport {
       // Unlike the cases above, a request that never reached the server keeps its
       // long-standing drop-on-error behavior.
       req.on('error', () => settle(null));
-      req.setTimeout(this.requestTimeoutMillis, () => {
+
+      // An absolute deadline, not req.setTimeout()'s socket-inactivity timer:
+      // that resets on every byte of traffic, so a response trickled slower than
+      // requestTimeoutMillis but never finished would keep it from firing at all.
+      // unref() so it can't keep the event loop alive on its own.
+      timer.deadline = setTimeout(() => {
         req.destroy();
         settle(this.buildResponse({ code: REQUEST_TIMEOUT_STATUS_CODE }));
-      });
+      }, this.requestTimeoutMillis);
+      timer.deadline.unref();
+
       req.end(requestPayload);
     });
   }
