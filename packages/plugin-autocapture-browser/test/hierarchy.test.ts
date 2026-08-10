@@ -259,12 +259,27 @@ describe('getElementProperties — shadow-root top', () => {
     const root = (document.querySelector('my-host') as Element).attachShadow({ mode: 'open' });
     root.innerHTML = `<span>decoy</span><button id="target">x</button>`;
     const target = root.getElementById('target') as Element;
-    expect(HierarchyUtil.getElementProperties(target, new Set())).toMatchObject({
+    const on: ShadowMode = { enabled: true, maxDepth: 1 };
+    expect(HierarchyUtil.getElementProperties(target, new Set(), on)).toMatchObject({
       tag: 'button',
       index: 1,
       indexOfType: 0,
       prevSib: 'span',
     });
+  });
+
+  test('does NOT index shadow-root siblings when shadow mode is off', () => {
+    // Pre-shadow shape: `parentElement` is null, so no positional fields.
+    // `prevSib` is unchanged — it already worked inside a shadow root.
+    document.body.innerHTML = `<my-host></my-host>`;
+    const root = (document.querySelector('my-host') as Element).attachShadow({ mode: 'open' });
+    root.innerHTML = `<span>decoy</span><button id="target">x</button>`;
+    const target = root.getElementById('target') as Element;
+
+    const props = HierarchyUtil.getElementProperties(target, new Set());
+    expect(props).not.toHaveProperty('index');
+    expect(props).not.toHaveProperty('indexOfType');
+    expect(props).toMatchObject({ tag: 'button', prevSib: 'span' });
   });
 
   // Note: getHierarchy has been moved to data-extractor.test.ts

@@ -213,6 +213,36 @@ describe('resolveSelector', () => {
     expect(resolveSelector(document, selector)).toBe(target);
   });
 
+  it('anchors a shadow chain even when maxAncestorWalkDepth would truncate the walk', () => {
+    // A depth cap used to break the walk early and drop the `:scope > ` marker,
+    // so resolution matched the decoy subtree instead of the target.
+    document.body.innerHTML = `<div id="app"><my-host></my-host></div>`;
+    const root = attachOpen(
+      document.querySelector('my-host') as Element,
+      `<div><div><div>DECOY</div></div></div><div><div><div>REAL</div></div></div>`,
+    );
+    const target = root.children[1].children[0].children[0];
+    expect(target.textContent).toBe('REAL');
+
+    const engine = createSelectorEngine(shadowConfig({ maxShadowDomDepth: 1, maxAncestorWalkDepth: 1 }));
+    const selector = engine.generate(target);
+
+    expect(selector).toContain(SHADOW_CHILD_CHAIN_PREFIX);
+    expect(resolveSelector(document, selector)).toBe(target);
+  });
+
+  it('still honors maxAncestorWalkDepth for a light-DOM target', () => {
+    // The cap is only skipped for a shadow-root scope.
+    document.body.innerHTML = `<div><section><span><button>x</button></span></section></div>`;
+    const target = document.querySelector('button') as Element;
+
+    const capped = createSelectorEngine(shadowConfig({ maxAncestorWalkDepth: 1 })).generate(target);
+    const uncapped = createSelectorEngine(shadowConfig()).generate(target);
+
+    expect(capped).not.toContain(SHADOW_CHILD_CHAIN_PREFIX);
+    expect(capped.split(' > ').length).toBeLessThan(uncapped.split(' > ').length);
+  });
+
   it('returns null when a pure-positional shadow segment matches no direct child', () => {
     document.body.innerHTML = `<div id="app"><my-host></my-host></div>`;
     const host = document.querySelector('my-host') as Element;

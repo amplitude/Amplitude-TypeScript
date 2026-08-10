@@ -1,89 +1,137 @@
 # Shadow DOM support
 
-Optional shadow-DOM autocapture and selector generation, gated by remote config.
+Autocapture can pierce **open** shadow roots when remote config enables it. Clicks inside a shadow tree produce element paths that cross boundaries (` >>> ` between per-tree segments). The selector engine resolves those paths with `resolveSelector` — plain `document.querySelector` cannot pierce shadow boundaries.
 
-| Package | Role |
-|---------|------|
-| `@amplitude/element-selector` | `pierce`, `segmentWalk`, `resolveSelector`, traversal primitives |
-| `@amplitude/plugin-autocapture-browser` | Event targets, ancestor walks, `ShadowGate`, mutation/exposure observers |
+**Default:** shadow piercing is off (`shadowDomEnabled: false`). It is independent from the selector engine kill switch (`enabled`).
 
-**Remote config:** `shadowDomEnabled` (default `false`), `maxShadowDomDepth` (default `1`, clamped `[1, 10]`). Independent from the selector engine kill switch (`enabled`).
+| Package | Responsibility |
+|---------|----------------|
+| `@amplitude/element-selector` | Traversal primitives (`pierce`, `segmentWalk`, `resolveSelector`), selector generation across boundaries |
+| `@amplitude/plugin-autocapture-browser` | Event targets, composed ancestor walks, `ShadowGate`, mutation and exposure observers |
 
-Config summary: [`packages/element-selector/README.md`](../element-selector/README.md#shadow-dom).
+**Remote config**
+
+| Field | Default | Notes |
+|-------|---------|-------|
+| `shadowDomEnabled` | `false` | Turns shadow piercing on for the page (see latch below) |
+| `maxShadowDomDepth` | `1` | How many shadow boundaries a walk may cross; clamped to `[1, 10]` |
+
+Config field details and selector syntax: [`packages/element-selector/README.md`](../element-selector/README.md#shadow-dom).
 
 ---
 
-## Architecture
+## How it works
 
-Two independent axes:
+### Two independent switches
 
-| Axis | Config | Effect |
-|------|--------|--------|
+| Switch | Config | What changes |
+|--------|--------|--------------|
 | Selector algorithm | `enabled` | Strategy-chain engine vs legacy `cssPath` |
-| Shadow piercing | `shadowDomEnabled` | Cross shadow boundaries (` >>> ` delimited selectors) vs single tree |
+| Shadow piercing | `shadowDomEnabled` | Cross-boundary selectors vs single-tree selectors |
 
-**`ShadowGate`** (`src/shadow-mode.ts`) latches on the first remote-config delivery that enables shadow support and does not revert until the next page load. **First delivery also fixes `maxShadowDomDepth` for the page.**
+### ShadowGate (latch once per page)
 
-`onArm` runs one-time discovery scans (attach `MutationObserver` to existing open shadow roots, register in-shadow elements for exposure) when config arrives after observables subscribe.
+`ShadowGate` (`src/shadow-mode.ts`) holds the effective shadow mode for the page:
 
-Per-event code reads `ShadowMode` once in `addAdditionalEventProperties` and passes it into helpers. Clicks/changes use `document` listeners + `composedPath()`; selector generation is on-demand at event time.
+1. Starts off until remote config arms it.
+2. **Latches on the first delivery that enables shadow support** — later deliveries that disable it have no effect until the next full page load.
+3. **Fixes `maxShadowDomDepth` on that first arming delivery** for the rest of the page.
 
-**MutationObserver fan-out:** one observer per discovered open shadow root (`src/observables.ts`). Discovery: `onArm` body scan + DFS (`collectOpenShadowRoots`) on each `addedNodes` `Element`.
+When the gate arms, `onArm` subscribers run a one-time discovery scan: attach `MutationObserver` instances to existing open shadow roots and register in-shadow elements for exposure tracking. This covers the case where shadow roots existed before config arrived.
+
+Per-event code reads `ShadowMode` once in `addAdditionalEventProperties` and passes it through helpers. Clicks use `document` listeners plus `composedPath()`; selector generation runs on demand at event time.
+
+### Shadow root discovery (mutations & exposure)
+
+`MutationObserver` cannot see across a shadow boundary (`subtree: true` stops at each root), so autocapture attaches **one observer per discovered open shadow root** (`src/observables.ts`).
+
+Discovery sources:
+
+| Source | When it runs |
+|--------|--------------|
+| `onArm` body scan | Remote config arms the gate (roots already in the DOM) |
+| `addedNodes` handling | New elements enter the tree after observers are live |
+
+On each mutation batch, discovery walks `addedNodes` with DFS (`collectOpenShadowRoots`) to find nested open roots within the depth budget.
+
+**When shadow is disabled:** only `document.body` is observed; mutation callbacks return immediately after `readGate()`.
 
 ---
 
-## Limitations
+## When discovery works (and when it does not)
 
-| Scenario | Supported? |
-|----------|------------|
-| Late host mount (new element + `attachShadow` in `connectedCallback`) | Yes — `addedNodes` |
-| Late remote config (roots already in DOM) | Yes — `onArm` scan |
-| Late `attachShadow` on an element already in the DOM | **No** — no mutation record; clicks/selectors still work; mutation/exposure may miss |
-| Closed shadow roots | Opaque — no piercing or round-trip |
+| Situation | Mutation / exposure observers | Clicks & on-demand selectors |
+|-----------|------------------------------|------------------------------|
+| Host mounts later (`connectedCallback` + `attachShadow`) | Yes — `addedNodes` | Yes |
+| Remote config arrives after roots are in the DOM | Yes — `onArm` scan | Yes |
+| `attachShadow` on an element **already** in the DOM | **No** — no mutation record for the attach itself | Yes |
 
-Open roots only. Disabling `shadowDomEnabled` mid-session has no effect until reload.
+The third row is an intentional gap: scan-based discovery cannot see a root attached to an existing host without a child-list mutation. Clicks and selector generation still work via `composedPath()`; mutation-driven features (dead clicks, exposure, etc.) may miss content inside that root until something else mutates the subtree.
+
+### Other rollout limits
+
+- **Open roots only.** Closed roots are opaque; `composedPath()` retargets to the host and selectors cannot round-trip through closed boundaries.
+- **Depth budget.** Targets deeper than `maxShadowDomDepth` get a best-effort selector anchored at the outermost in-budget host.
+- **Traversal caps.** `MAX_SHADOW_COMPOSED_WALK_ITERATIONS` (1024) bounds composed ancestor walks; `MAX_SHADOW_DOM_TRAVERSAL_NODES` (50k) bounds shadow-root collection DFS.
 
 ---
 
 ## Performance
 
-**Off path (`shadowDomEnabled: false`):** no meaningful overhead — pre-shadow code paths, mutation callback returns after `readGate()`.
+### Shadow disabled (`shadowDomEnabled: false`)
 
-**On path — per click:** `composedPath()`, composed ancestor walks, `segmentWalk` + generation. Low concern at typical DOM depth.
+No meaningful overhead beyond a gate read in observer callbacks. Code paths match pre-shadow behavior.
 
-**On path — steady state (main concern):** MO fan-out per shadow root; **DFS in mutation callbacks** (`collectOpenShadowRoots` + `querySelectorAllDeep` on `addedNodes`). Caps: `MAX_SHADOW_DOM_TRAVERSAL_NODES` (50k), `MAX_SHADOW_COMPOSED_WALK_ITERATIONS` (1024). Higher risk on SPAs with many shadow roots and heavy DOM churn.
+### Per click (shadow enabled)
 
-**Planned mitigations (prefer over global `attachShadow` patch):** `ShadowRootRegistry`, cheaper `addedNodes` checks (`node.shadowRoot`), batched discovery, targeted exposure indexing. A monkey patch conflicts with session replay (`@amplitude/rrweb-record`) and other frameworks that already wrap `Element.prototype.attachShadow` — treat as last resort only.
+`composedPath()`, composed ancestor walks, `segmentWalk`, and selector generation. Typical DOM depth makes this low concern.
+
+### Steady state (shadow enabled) — main cost
+
+- One `MutationObserver` per discovered open shadow root.
+- DFS in mutation callbacks (`collectOpenShadowRoots`, `querySelectorAllDeep` on `addedNodes`).
+
+Higher risk on SPAs with many shadow roots and heavy DOM churn. Traversal caps above bound worst-case synchronous work.
+
+### Improving steady-state cost (if needed)
+
+Prefer these over patching `Element.prototype.attachShadow`:
+
+- `ShadowRootRegistry` — centralize discovery outside the mutation callback hot path
+- Cheaper `addedNodes` checks (e.g. `node.shadowRoot`) before DFS
+- Batched discovery and more targeted exposure indexing
+
+**Do not patch `attachShadow` by default.** Session replay (`@amplitude/rrweb-record`) and other libraries already wrap the same API; a global monkey patch is a last resort and needs dual-plugin validation (autocapture + session replay) before consideration.
 
 ---
 
-## Follow-ups
+## Source map & tests
 
-- Scenario C regression test (document intentional gap)
-- `ShadowRootRegistry` — extract discovery from MO callback; wire exposure
-- Reduce DFS in mutation/exposure paths
-- Merge duplicate ancestor walks on the click path
-- Dual-plugin e2e (autocapture + session replay) before any `attachShadow` patch
+### Implementation
 
----
-
-## Source & tests
-
-| File | Purpose |
-|------|---------|
+| File | Role |
+|------|------|
 | `src/shadow-mode.ts` | `ShadowGate`, latch semantics |
-| `src/observables.ts` | Mutation fan-out, exposure discovery |
+| `src/observables.ts` | Observer fan-out, exposure discovery |
 | `src/helpers.ts` | `resolveEventTarget`, deep queries |
 | `src/hierarchy.ts` | Composed ancestor walks |
 | `src/data-extractor.ts` | Gate arming, per-event enrichment |
 | `../element-selector/src/helpers/shadow.ts` | Traversal, `collectOpenShadowRoots` |
 | `../element-selector/src/engine.ts` | `pierce`, dispatch |
 
+### Tests
+
 | Test | Covers |
 |------|--------|
-| `test/shadow-gate.test.ts` | Latch, `onArm`, shared gate |
+| `test/shadow-gate.test.ts` | Latch, `onArm`, shared gate, late config |
 | `test/helpers.test.ts`, `test/hierarchy.test.ts`, `test/observables.test.ts` | Capture layer |
-| `e2e/shadow-dom.spec.ts` | Real browser autocapture (CI) |
-| `e2e/shadow-dom-perf.spec.ts` | Perf differential — **manual only** (`npx playwright test packages/plugin-autocapture-browser/e2e/shadow-dom-perf.spec.ts`) |
+| `e2e/shadow-dom.spec.ts` | Real-browser autocapture (CI) |
+| `e2e/shadow-dom-perf.spec.ts` | Perf differential — **manual only** |
 | `../element-selector/test/shadow.test.ts` | Selector pierce, `resolveSelector` |
 | `../element-selector/test/scenarios/off-path-differential.test.ts` | Kill-switch / round-trip invariants |
+
+**Before enabling for an org:** run `e2e/shadow-dom.spec.ts` (CI) and locally:
+
+```bash
+npx playwright test packages/plugin-autocapture-browser/e2e/shadow-dom-perf.spec.ts
+```
