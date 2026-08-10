@@ -169,18 +169,29 @@ describe('http transport', () => {
 // forever, wedging Destination.flushId and growing the event queue without bound.
 describe('http transport: responses that never complete', () => {
   const payload = { api_key: '', events: [] };
-  let server: http.Server;
+  // Undefined for the tests that mock http.request instead of listening, so each
+  // test in this block stays runnable on its own.
+  let server: http.Server | undefined;
   let url: string;
 
   const listen = async (handler: http.RequestListener) => {
-    server = http.createServer(handler);
-    await new Promise<void>((resolve) => server.listen(0, resolve));
-    url = `http://localhost:${(server.address() as AddressInfo).port}/2/httpapi`;
+    const newServer = http.createServer(handler);
+    server = newServer;
+    await new Promise<void>((resolve) => newServer.listen(0, resolve));
+    url = `http://localhost:${(newServer.address() as AddressInfo).port}/2/httpapi`;
+  };
+
+  const close = async () => {
+    if (!server?.listening) {
+      return;
+    }
+    server.closeAllConnections();
+    await new Promise((resolve) => (server as http.Server).close(resolve));
   };
 
   afterEach(async () => {
-    server.closeAllConnections();
-    await new Promise((resolve) => server.close(resolve));
+    await close();
+    server = undefined;
   });
 
   test('should time out when the server never responds', async () => {
@@ -220,11 +231,10 @@ describe('http transport: responses that never complete', () => {
   });
 
   test('should resolve null when the connection is refused', async () => {
+    // Bind then release a port so the send() below is guaranteed to hit nothing.
     await listen(() => undefined);
-    const port = (server.address() as AddressInfo).port;
-    server.closeAllConnections();
-    await new Promise((resolve) => server.close(resolve));
-    server = http.createServer();
+    const port = ((server as http.Server).address() as AddressInfo).port;
+    await close();
 
     const response = await new Http().send(`http://localhost:${port}/2/httpapi`, payload);
 
