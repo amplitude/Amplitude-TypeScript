@@ -52,6 +52,13 @@ describe('shadowModeFromConfig', () => {
       maxDepth: 3,
     });
   });
+
+  it('defaults the budget when shadow is enabled but depth is omitted', () => {
+    expect(shadowModeFromConfig({ shadowDomEnabled: true })).toEqual({
+      enabled: true,
+      maxDepth: 1,
+    });
+  });
 });
 
 describe('ShadowGate — arm-once latch', () => {
