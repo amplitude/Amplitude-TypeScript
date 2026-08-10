@@ -23,6 +23,9 @@
 
 import type { ResolvedSelectorConfig } from '@amplitude/element-selector';
 
+/** Matches `DEFAULT_MAX_SHADOW_DOM_DEPTH` in `@amplitude/element-selector`. */
+const DEFAULT_MAX_SHADOW_DOM_DEPTH = 1;
+
 /** Shadow piercing on. `maxDepth` is the number of boundaries a walk may cross. */
 export type ShadowOn = { readonly enabled: true; readonly maxDepth: number };
 
@@ -44,10 +47,11 @@ export const SHADOW_OFF: ShadowOff = Object.freeze({ enabled: false, maxDepth: 0
 export const shadowModeFromConfig = (
   config: Pick<ResolvedSelectorConfig, 'shadowDomEnabled' | 'maxShadowDomDepth'>,
 ): ShadowMode => {
-  if (!config.shadowDomEnabled || !(config.maxShadowDomDepth > 0)) {
+  const maxDepth = config.maxShadowDomDepth ?? DEFAULT_MAX_SHADOW_DOM_DEPTH;
+  if (!config.shadowDomEnabled || maxDepth <= 0) {
     return SHADOW_OFF;
   }
-  return Object.freeze({ enabled: true as const, maxDepth: config.maxShadowDomDepth });
+  return Object.freeze({ enabled: true as const, maxDepth });
 };
 
 /** Holds the {@link ShadowMode} for a page, transitioning from off to on once. */

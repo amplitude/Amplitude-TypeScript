@@ -70,7 +70,7 @@ export const createMutationObservable = (shadowGate?: ShadowGate): Observable<Mu
         return;
       }
       observed.add(root);
-      if (root instanceof ShadowRoot) {
+      if (typeof ShadowRoot !== 'undefined' && root instanceof ShadowRoot) {
         rootDepth.set(root, depth);
       }
       mutationObserver.observe(root, MUTATION_OBSERVER_INIT);
