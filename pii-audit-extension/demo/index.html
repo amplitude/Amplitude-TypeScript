@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PII Audit Demo</title>
+    <style>
+      body {
+        font-family: system-ui, sans-serif;
+        max-width: 40rem;
+        margin: 2rem auto;
+        padding: 0 1rem;
+      }
+      button {
+        margin: 0.5rem 0.5rem 0.5rem 0;
+        padding: 0.5rem 1rem;
+      }
+      pre {
+        background: #f4f4f4;
+        padding: 1rem;
+        overflow: auto;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>PII Audit Demo</h1>
+    <p>
+      Load this page with the extension installed. Click <strong>Start PII audit</strong> from the
+      extension popup (page reloads), then interact below.
+    </p>
+
+    <button id="track-btn" type="button">Track test event</button>
+    <button id="autocapture-btn" type="button" data-amp-default-track>Autocapture button</button>
+
+    <h2>Captured events</h2>
+    <pre id="log">Waiting for interceptor messages…</pre>
+
+    <script src="https://cdn.amplitude.com/libs/analytics-browser-2.11.1-min.js.gz"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
