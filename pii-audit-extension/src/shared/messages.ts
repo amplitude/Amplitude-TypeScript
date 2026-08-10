@@ -7,7 +7,7 @@ export type Msg =
   | { type: 'AUDIT_STOP'; tabId: number }
   | { type: 'NETWORK_ITEMS'; items: AuditItem[] }
   | { type: 'DOM_ITEMS'; items: AuditItem[] }
-  | { type: 'HIGHLIGHT'; itemId: string }
+  | { type: 'HIGHLIGHT'; itemId: string; selector: string }
   | { type: 'CLEAR_HIGHLIGHT' }
   | { type: 'CAPTURE_SHOT'; rect: DOMRectInit; itemId: string };
 
