@@ -206,7 +206,7 @@ describe('http transport: responses that never complete', () => {
     expect(response?.statusCode).toBe(200);
   });
 
-  test('should resolve null when the response is truncated', async () => {
+  test('should report a truncated response as retryable', async () => {
     await listen((_, res) => {
       res.writeHead(200, { 'Content-Type': 'application/json', 'Content-Length': '200' });
       res.write('{"code":200,"events_ingested":');
@@ -215,7 +215,8 @@ describe('http transport: responses that never complete', () => {
 
     const response = await new Http().send(url, payload);
 
-    expect(response).toBeNull();
+    expect(response?.status).toBe(Status.Unknown);
+    expect(response?.statusCode).toBe(0);
   });
 
   test('should resolve null when the connection is refused', async () => {
@@ -231,6 +232,8 @@ describe('http transport: responses that never complete', () => {
   });
 
   test('should settle only once when the response errors after ending', async () => {
+    // res 'end' with complete === false wins the race; the later 'aborted' and
+    // 'error' events must not settle a second time.
     const res = new EventEmitter() as http.IncomingMessage;
     res.setEncoding = jest.fn();
     res.complete = false;
@@ -245,7 +248,9 @@ describe('http transport: responses that never complete', () => {
       return req;
     }) as unknown as typeof http.request);
 
-    await expect(new Http().send('http://localhost:3000', payload)).resolves.toBeNull();
+    const response = await new Http().send('http://localhost:3000', payload);
+    expect(response?.status).toBe(Status.Unknown);
+    expect(response?.statusCode).toBe(0);
   });
 
   test('should abort the request when the timeout fires', async () => {

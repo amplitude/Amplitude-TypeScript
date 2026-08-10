@@ -9,8 +9,11 @@ import * as https from 'https';
  */
 export const DEFAULT_REQUEST_TIMEOUT_MILLIS = 10000;
 
-// buildResponse() maps 408 to Status.Timeout, which Destination retries with backoff.
+// buildResponse() maps 408 to Status.Timeout and 0 to Status.Unknown. Destination
+// retries both with backoff, bounded by flushMaxRetries, rather than dropping the
+// batch the way it does for a null response.
 const REQUEST_TIMEOUT_STATUS_CODE = 408;
+const INCOMPLETE_RESPONSE_STATUS_CODE = 0;
 
 export class Http extends BaseTransport implements Transport {
   constructor(private readonly requestTimeoutMillis: number = DEFAULT_REQUEST_TIMEOUT_MILLIS) {
@@ -53,20 +56,25 @@ export class Http extends BaseTransport implements Transport {
         resolve(response);
       };
 
+      // A connection that drops mid-response is transient, so retry rather than
+      // discard the batch. Amplitude dedupes on insert_id, making a replay of a
+      // batch the server may already have processed safe.
+      const settleAsIncomplete = () => settle(this.buildResponse({ code: INCOMPLETE_RESPONSE_STATUS_CODE }));
+
       const req = protocol.request(options, (res) => {
         res.setEncoding('utf8');
         let responsePayload = '';
         res.on('data', (chunk: string) => {
           responsePayload += chunk;
         });
-        res.on('aborted', () => settle(null));
-        res.on('error', () => settle(null));
+        res.on('aborted', settleAsIncomplete);
+        res.on('error', settleAsIncomplete);
 
         res.on('end', () => {
           // A truncated body tells us nothing about whether the server accepted
-          // the batch, so treat it like any other connection error.
+          // the batch.
           if (!res.complete) {
-            settle(null);
+            settleAsIncomplete();
             return;
           }
           try {
@@ -80,6 +88,8 @@ export class Http extends BaseTransport implements Transport {
         });
       });
 
+      // Unlike the cases above, a request that never reached the server keeps its
+      // long-standing drop-on-error behavior.
       req.on('error', () => settle(null));
       req.setTimeout(this.requestTimeoutMillis, () => {
         req.destroy();

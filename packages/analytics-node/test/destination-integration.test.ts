@@ -13,12 +13,20 @@ describe('destination integration: upload timeout', () => {
   let serverUrl: string;
   let requestCount: number;
 
+  let uploadsPerEvent: Map<string, number>;
+
   const listen = async (handler: http.RequestListener) => {
     requestCount = 0;
+    uploadsPerEvent = new Map();
     server = http.createServer((req, res) => {
-      req.resume();
+      const chunks: Buffer[] = [];
+      req.on('data', (chunk: Buffer) => chunks.push(chunk));
       req.on('end', () => {
         requestCount += 1;
+        const body = JSON.parse(Buffer.concat(chunks).toString()) as { events: { insert_id: string }[] };
+        body.events.forEach(({ insert_id }) =>
+          uploadsPerEvent.set(insert_id, (uploadsPerEvent.get(insert_id) ?? 0) + 1),
+        );
         handler(req, res);
       });
     });
@@ -91,6 +99,34 @@ describe('destination integration: upload timeout', () => {
 
     expect(destination.queue).toHaveLength(0);
     expect(destination.flushId).toBeNull();
+  });
+
+  test('should retry rather than drop when uploads time out', async () => {
+    await listen(() => {
+      // Never respond to anything.
+    });
+    const destination = await setupDestination({ flushMaxRetries: 4 });
+
+    const results = await Promise.all(events(10).map((event) => destination.execute(event)));
+
+    // Held in memory and re-uploaded until flushMaxRetries is exhausted, rather
+    // than discarded after the first failed attempt.
+    expect([...uploadsPerEvent.values()]).toEqual(Array(10).fill(4));
+    expect(results.every((result) => result.message === 'Event rejected due to exceeded retry count')).toBe(true);
+  });
+
+  test('should retry rather than drop when the response is truncated', async () => {
+    await listen((_, res) => {
+      res.writeHead(200, { 'Content-Type': 'application/json', 'Content-Length': '200' });
+      res.write('{"code":200,"events_ing');
+      setTimeout(() => res.socket?.destroy(), 5);
+    });
+    const destination = await setupDestination({ flushMaxRetries: 3 });
+
+    const results = await Promise.all(events(10).map((event) => destination.execute(event)));
+
+    expect([...uploadsPerEvent.values()]).toEqual(Array(10).fill(3));
+    expect(results.every((result) => result.message === 'Event rejected due to exceeded retry count')).toBe(true);
   });
 
   test('should drain the queue when uploads return an empty body', async () => {
