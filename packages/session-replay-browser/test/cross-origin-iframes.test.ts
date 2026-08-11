@@ -28,8 +28,11 @@ describe('isInIframe', () => {
     const spy = jest
       .spyOn(AnalyticsCore, 'getGlobalScope')
       .mockReturnValue(sandboxedScope as unknown as typeof globalThis);
-    expect(isInIframe()).toBe(true);
-    spy.mockRestore();
+    try {
+      expect(isInIframe()).toBe(true);
+    } finally {
+      spy.mockRestore();
+    }
   });
 
   it('returns false when getGlobalScope() returns null (non-browser environment)', () => {
