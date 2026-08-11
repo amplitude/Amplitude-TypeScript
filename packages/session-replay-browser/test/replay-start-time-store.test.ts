@@ -1,3 +1,4 @@
+import * as AnalyticsCore from '@amplitude/analytics-core';
 import {
   getOrInitReplayStartTime,
   pruneStaleReplayStartTimes,
@@ -116,18 +117,19 @@ describe('replay-start-time-store', () => {
     });
 
     test('returns undefined when accessing globalThis.localStorage throws', () => {
-      const orig = Object.getOwnPropertyDescriptor(globalThis, 'localStorage');
-      Object.defineProperty(globalThis, 'localStorage', {
-        get() {
+      const blockedScope = {
+        get localStorage(): Storage {
           throw new Error('blocked');
         },
-        configurable: true,
-      });
+      };
+      const spy = jest
+        .spyOn(AnalyticsCore, 'getGlobalScope')
+        .mockReturnValue(blockedScope as unknown as typeof globalThis);
       try {
         const result = getOrInitReplayStartTime(apiKey, 'sess1', 1_700_000_000_000, logger);
         expect(result).toBeUndefined();
       } finally {
-        if (orig) Object.defineProperty(globalThis, 'localStorage', orig);
+        spy.mockRestore();
       }
     });
 
