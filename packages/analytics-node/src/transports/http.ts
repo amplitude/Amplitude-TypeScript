@@ -48,9 +48,9 @@ export class Http extends BaseTransport implements Transport {
       // leaves Destination.flushId set forever, which silently no-ops all later
       // flushes while the event queue keeps growing. See SDK-188.
       let settled = false;
-      // A plain object rather than a bare variable, so `deadline` can be assigned
-      // once req exists without ESLint flagging the let as a const candidate.
-      const timer: { deadline?: ReturnType<typeof setTimeout> } = {};
+      // `timer` is declared below, once req exists. Safe to close over here
+      // because protocol.request() never invokes its response callback
+      // synchronously, so nothing can call settle() before that runs.
       const settle = (response: Response | null) => {
         if (settled) {
           return;
@@ -100,10 +100,12 @@ export class Http extends BaseTransport implements Transport {
       // that resets on every byte of traffic, so a response trickled slower than
       // requestTimeoutMillis but never finished would keep it from firing at all.
       // unref() so it can't keep the event loop alive on its own.
-      timer.deadline = setTimeout(() => {
-        req.destroy();
-        settle(this.buildResponse({ code: REQUEST_TIMEOUT_STATUS_CODE }));
-      }, this.requestTimeoutMillis);
+      const timer = {
+        deadline: setTimeout(() => {
+          req.destroy();
+          settle(this.buildResponse({ code: REQUEST_TIMEOUT_STATUS_CODE }));
+        }, this.requestTimeoutMillis),
+      };
       timer.deadline.unref();
 
       req.end(requestPayload);

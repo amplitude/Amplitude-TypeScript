@@ -5,156 +5,75 @@ import { EventEmitter } from 'events';
 import { AddressInfo } from 'net';
 import { Status } from '@amplitude/analytics-core';
 
+const PAYLOAD = { api_key: '', events: [] };
+
+/**
+ * Stands in for http.request()/https.request(). Two details are deliberate,
+ * because the transport's correctness depends on them holding for the real API:
+ * the returned request exposes destroy(), and the response callback fires on a
+ * later tick rather than synchronously.
+ */
+const mockRequest = (responseBody: string, statusCode?: number) => {
+  const req = { on: jest.fn(), end: jest.fn(), destroy: jest.fn() };
+  const implementation = ((_: unknown, cb: (res: http.IncomingMessage) => void) => {
+    const res = new EventEmitter() as http.IncomingMessage;
+    res.setEncoding = jest.fn();
+    res.complete = true;
+    res.statusCode = statusCode;
+    setImmediate(() => {
+      cb(res);
+      res.emit('data', responseBody);
+      res.emit('end');
+    });
+    return req;
+  }) as unknown as typeof http.request;
+  return { req, implementation };
+};
+
 describe('http transport', () => {
   test('should send to http url', async () => {
-    const provider = new Http();
-    const url = 'http://localhost:3000';
-    const payload = {
-      api_key: '',
-      events: [],
-    };
+    const request = jest
+      .spyOn(http, 'request')
+      .mockImplementation(mockRequest(JSON.stringify({ code: 200 })).implementation);
 
-    const request = jest.spyOn(http, 'request').mockImplementation((_, cb) => {
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-      // @ts-ignore
-      cb({
-        complete: true,
-        on: jest.fn().mockImplementation((event: string, callback: (data?: string) => void) => {
-          if (event === 'data') {
-            callback(JSON.stringify({ code: 200 }));
-          }
-          if (event === 'end') {
-            callback();
-          }
-        }),
-        setEncoding: jest.fn(),
-      });
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-      return {
-        on: jest.fn().mockImplementation((_: string, cb: (error: Error) => void) => cb(new Error())),
-        end: jest.fn(),
-      } as any;
-    });
+    const response = await new Http().send('http://localhost:3000', PAYLOAD);
 
-    const response = await provider.send(url, payload);
     expect(response?.statusCode).toBe(200);
     expect(request).toHaveBeenCalledTimes(1);
   });
 
   test('should send to https url', async () => {
-    const provider = new Http();
-    const url = 'https://localhost:3000';
-    const payload = {
-      api_key: '',
-      events: [],
-    };
+    const request = jest
+      .spyOn(https, 'request')
+      .mockImplementation(mockRequest(JSON.stringify({ code: 200 })).implementation);
 
-    const request = jest.spyOn(https, 'request').mockImplementation((_, cb) => {
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-      // @ts-ignore
-      cb({
-        complete: true,
-        on: jest.fn().mockImplementation((event: string, callback: (data?: string) => void) => {
-          if (event === 'data') {
-            callback(JSON.stringify({ code: 200 }));
-          }
-          if (event === 'end') {
-            callback();
-          }
-        }),
-        setEncoding: jest.fn(),
-      });
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-      return {
-        on: jest.fn().mockImplementation((_: string, cb: (error: Error) => void) => cb(new Error())),
-        end: jest.fn(),
-      } as any;
-    });
+    const response = await new Http().send('https://localhost:3000', PAYLOAD);
 
-    const response = await provider.send(url, payload);
     expect(response?.statusCode).toBe(200);
     expect(request).toHaveBeenCalledTimes(1);
   });
 
   test('should throw an error if no protocal', () => {
-    const provider = new Http();
-    const url = 'localhost:3000';
-    const payload = {
-      api_key: '',
-      events: [],
-    };
-
-    expect(() => provider.send(url, payload)).toThrow('Invalid server url');
+    expect(() => new Http().send('localhost:3000', PAYLOAD)).toThrow('Invalid server url');
   });
 
   test('should handle error', async () => {
-    const provider = new Http();
-    const url = 'http://localhost:3000';
-    const payload = {
-      api_key: '',
-      events: [],
-    };
+    const request = jest
+      .spyOn(http, 'request')
+      .mockImplementation(mockRequest(JSON.stringify({ code: 400 })).implementation);
 
-    const request = jest.spyOn(http, 'request').mockImplementation((_, cb) => {
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-      // @ts-ignore
-      cb({
-        complete: true,
-        on: jest.fn().mockImplementation((event: string, callback: (data?: string) => void) => {
-          if (event === 'data') {
-            callback(JSON.stringify({ code: 400 }));
-          }
-          if (event === 'end') {
-            callback();
-          }
-        }),
-        setEncoding: jest.fn(),
-      });
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-      return {
-        on: jest.fn(),
-        end: jest.fn(),
-      } as any;
-    });
+    const response = await new Http().send('http://localhost:3000', PAYLOAD);
 
-    const response = await provider.send(url, payload);
     expect(response?.statusCode).toBe(400);
     expect(response?.status).toBe(Status.Invalid);
     expect(request).toHaveBeenCalledTimes(1);
   });
 
   test('should handle unexpected error', async () => {
-    const provider = new Http();
-    const url = 'http://localhost:3000';
-    const payload = {
-      api_key: '',
-      events: [],
-    };
+    const request = jest.spyOn(http, 'request').mockImplementation(mockRequest('<', 502).implementation);
 
-    const request = jest.spyOn(http, 'request').mockImplementation((_, cb) => {
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-      // @ts-ignore
-      cb({
-        statusCode: 502,
-        complete: true,
-        on: jest.fn().mockImplementation((event: string, callback: (data?: string) => void) => {
-          if (event === 'data') {
-            callback('<');
-          }
-          if (event === 'end') {
-            callback();
-          }
-        }),
-        setEncoding: jest.fn(),
-      });
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-      return {
-        on: jest.fn(),
-        end: jest.fn(),
-      } as any;
-    });
+    const response = await new Http().send('http://localhost:3000', PAYLOAD);
 
-    const response = await provider.send(url, payload);
     expect(response?.status).toBe(Status.Failed);
     expect(response?.statusCode).toBe(502);
     expect(request).toHaveBeenCalledTimes(1);
@@ -164,7 +83,6 @@ describe('http transport', () => {
 // Regression coverage for SDK-188: each of these used to leave send() pending
 // forever, wedging Destination.flushId and growing the event queue without bound.
 describe('http transport: responses that never complete', () => {
-  const payload = { api_key: '', events: [] };
   // Undefined for the tests that mock http.request instead of listening, so each
   // test in this block stays runnable on its own.
   let server: http.Server | undefined;
@@ -195,7 +113,7 @@ describe('http transport: responses that never complete', () => {
       // Accept the request and hold it open indefinitely.
     });
 
-    const response = await new Http(50).send(url, payload);
+    const response = await new Http(50).send(url, PAYLOAD);
 
     expect(response?.status).toBe(Status.Timeout);
     expect(response?.statusCode).toBe(408);
@@ -207,7 +125,7 @@ describe('http transport: responses that never complete', () => {
       res.end();
     });
 
-    const response = await new Http().send(url, payload);
+    const response = await new Http().send(url, PAYLOAD);
 
     expect(response?.status).toBe(Status.Success);
     expect(response?.statusCode).toBe(200);
@@ -220,7 +138,7 @@ describe('http transport: responses that never complete', () => {
       setTimeout(() => res.socket?.destroy(), 10);
     });
 
-    const response = await new Http().send(url, payload);
+    const response = await new Http().send(url, PAYLOAD);
 
     expect(response?.status).toBe(Status.Unknown);
     expect(response?.statusCode).toBe(0);
@@ -232,7 +150,7 @@ describe('http transport: responses that never complete', () => {
     const port = ((server as http.Server).address() as AddressInfo).port;
     await close();
 
-    const response = await new Http().send(`http://localhost:${port}/2/httpapi`, payload);
+    const response = await new Http().send(`http://localhost:${port}/2/httpapi`, PAYLOAD);
 
     expect(response).toBeNull();
   });
@@ -254,7 +172,7 @@ describe('http transport: responses that never complete', () => {
       return req;
     }) as unknown as typeof http.request);
 
-    const response = await new Http().send('http://localhost:3000', payload);
+    const response = await new Http().send('http://localhost:3000', PAYLOAD);
     expect(response?.status).toBe(Status.Unknown);
     expect(response?.statusCode).toBe(0);
   });
@@ -268,7 +186,7 @@ describe('http transport: responses that never complete', () => {
       const req = { on: jest.fn(), end: jest.fn(), destroy: jest.fn() };
       jest.spyOn(http, 'request').mockImplementation((() => req) as unknown as typeof http.request);
 
-      const response = new Http(1234).send('http://localhost:3000', payload);
+      const response = new Http(1234).send('http://localhost:3000', PAYLOAD);
       await jest.advanceTimersByTimeAsync(1234);
 
       expect(req.destroy).toHaveBeenCalledTimes(1);
@@ -296,7 +214,7 @@ describe('http transport: responses that never complete', () => {
         return req;
       }) as unknown as typeof http.request);
 
-      const responsePromise = new Http(1234).send('http://localhost:3000', payload);
+      const responsePromise = new Http(1234).send('http://localhost:3000', PAYLOAD);
       await jest.advanceTimersByTimeAsync(0);
       expect((await responsePromise)?.status).toBe(Status.Success);
 
