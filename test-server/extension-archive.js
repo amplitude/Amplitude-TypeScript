@@ -19,6 +19,20 @@ const ARCHIVE_NAME = 'configurator-extension.zip';
 
 const ARCHIVE_URL = `/${ARCHIVE_NAME}`;
 
+// The version this server would hand out, for the configurator to hold against the one the installed
+// extension reports. An unpacked extension is a folder Chrome loaded once and won't look at again until it
+// is reloaded, and the page it talks to is pinned to whichever copy was loaded when the page opened, so the
+// two drift apart constantly during development with nothing to say that they have. It is served rather
+// than read from the folder by the page because a hosted copy of the configurator has no folder to read.
+const VERSION_NAME = 'configurator-extension-version.json';
+
+const VERSION_URL = `/${VERSION_NAME}`;
+
+function shippedVersion(extensionDir) {
+  const manifest = JSON.parse(readFileSync(path.join(extensionDir, 'manifest.json'), 'utf8'));
+  return JSON.stringify({ version: manifest.version });
+}
+
 // The single directory every entry sits under, named after the folder in the repository so the install
 // steps read the same whether the folder came from a checkout or from here.
 const ROOT_DIRECTORY = 'configurator-extension';
@@ -157,7 +171,14 @@ function buildArchive(extensionDir) {
 
 export function createExtensionArchive(extensionDir) {
   const serve = (req, res, next) => {
-    if (!req.url || req.url.split('?')[0] !== ARCHIVE_URL) {
+    const url = req.url?.split('?')[0];
+    if (url === VERSION_URL) {
+      res.setHeader('Content-Type', 'application/json');
+      res.setHeader('Cache-Control', 'no-store');
+      res.end(shippedVersion(extensionDir));
+      return;
+    }
+    if (url !== ARCHIVE_URL) {
       next();
       return;
     }
@@ -186,6 +207,7 @@ export function createExtensionArchive(extensionDir) {
       server.middlewares.use(serve);
     },
     generateBundle() {
+      this.emitFile({ type: 'asset', fileName: VERSION_NAME, source: shippedVersion(extensionDir) });
       try {
         this.emitFile({ type: 'asset', fileName: ARCHIVE_NAME, source: buildArchive(extensionDir) });
       } catch (error) {

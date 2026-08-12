@@ -1,7 +1,7 @@
 // How to get hold of the extension "Run on URL" needs. It isn't in the Chrome Web Store, so there is no
 // install link to point at: the steps are the download this server builds, and Load unpacked. They mirror
 // test-server/configurator-extension/README.md, which is the fuller account.
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { CodeBlock, Panel } from './components.jsx';
 
 const EXTENSION_DIRECTORY = 'test-server/configurator-extension';
@@ -11,6 +11,10 @@ const REPOSITORY_URL = `https://github.com/amplitude/Amplitude-TypeScript/tree/m
 // Built by test-server/extension-archive.js, which owns this path, out of the extension directory as it
 // stands in whatever checkout is serving this page.
 const ARCHIVE_URL = '/configurator-extension.zip';
+
+// What this server's copy of the extension says its version is, served by test-server/extension-archive.js
+// alongside the archive itself.
+const VERSION_URL = '/configurator-extension-version.json';
 
 // The folder the archive holds, which is also the folder to load from a checkout, so the last two steps
 // read the same either way.
@@ -28,15 +32,49 @@ const styles = {
   steps: { margin: '0 0 10px', paddingLeft: 20, fontSize: 13, color: '#444', lineHeight: 1.6 },
   step: { marginBottom: 6 },
   commands: { margin: '8px 0 4px' },
+  stale: { color: '#a15c00', fontSize: 13, margin: '0 0 10px', fontWeight: 600 },
 };
 
+// Undefined until it has been read, and stays undefined where nothing serves it — a hosted copy built
+// before this existed, say — which the caller reads as "nothing to compare".
+function useShippedVersion() {
+  const [version, setVersion] = useState(undefined);
+
+  useEffect(() => {
+    void fetch(VERSION_URL)
+      .then((response) => (response.ok ? response.json() : null))
+      .then((body) => setVersion(body?.version))
+      .catch(() => setVersion(undefined));
+  }, []);
+
+  return version;
+}
+
 export function RunnerExtensionPanel({ version }) {
+  const shipped = useShippedVersion();
+  // Only ever true when both are known. The page can't reach the extension's folder, so this comparison is
+  // the only thing that can tell a stale copy from a current one, and a stale copy is indistinguishable
+  // from a broken one otherwise: both simply fail to answer.
+  const isStale = Boolean(version && shipped && version !== shipped);
+  const staleNote = isStale
+    ? `The installed runner is ${version}, and this server ships ${shipped}. Reload it at chrome://extensions, then` +
+      ' reload this page — in that order, since reloading the extension is what leaves this page talking to the' +
+      ' copy it replaced.'
+    : null;
+
+  let badge = 'not detected on this page';
+  if (isStale) {
+    badge = `installed · ${version} · out of date`;
+  } else if (version) {
+    badge = `installed · ${version}`;
+  }
+
   return (
     <div style={styles.wrapper}>
-      <Panel
-        title="Run on URL needs the runner extension"
-        badge={version ? `installed · ${version}` : 'not detected on this page'}
-      >
+      {/* Outside the panel rather than inside it: the panel is collapsed until someone opens it, and a stale
+          copy is exactly the thing nobody thinks to go looking for. */}
+      {staleNote ? <p style={styles.stale}>{staleNote}</p> : null}
+      <Panel title="Run on URL needs the runner extension" badge={badge} defaultOpen={isStale}>
         <p style={styles.note}>
           The extension isn&apos;t in the Chrome Web Store, so Chrome will only take it as an unpacked folder. This
           server builds that folder into an archive for you, SDK bundles included.

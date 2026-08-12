@@ -74,7 +74,13 @@ export function requestRun(payload) {
       }
     };
     const timer = setTimeout(
-      () => finish(reject, new Error('The extension did not respond. Try reloading it at chrome://extensions.')),
+      // Reloading the extension is only half of it: that orphans this page's content script, so the page
+      // has to be reloaded after to be talking to the copy that was just loaded.
+      () =>
+        finish(
+          reject,
+          new Error('The extension did not respond. Reload it at chrome://extensions, then reload this page.'),
+        ),
       RESPONSE_TIMEOUT,
     );
     window.addEventListener('message', onMessage);
