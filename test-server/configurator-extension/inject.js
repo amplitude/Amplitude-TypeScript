@@ -40,6 +40,13 @@
   const config = revive(payload.analytics);
   const replayOptions = payload.sessionReplay ? revive(payload.sessionReplay) : null;
 
+  // Read back rather than echoed from the payload, so this also reports an override that didn't take. A
+  // mocked referrer changes what attribution reports and nothing else on the page gives it away, which
+  // makes it worth a line of its own before anything reads it.
+  if (payload.mockReferrer) {
+    console.log(`[amplitude-configurator] document.referrer is mocked as ${document.referrer}`);
+  }
+
   // Every event the SDK builds, whether or not it can be uploaded. The postMessage is the seam a
   // devtools panel would read.
   const eventLogPlugin = {

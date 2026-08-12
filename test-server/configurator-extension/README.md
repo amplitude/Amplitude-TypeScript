@@ -34,6 +34,12 @@ to the "Run on URL" button, and click it. The page hands the configuration to th
 that URL in a new tab and initialises the SDK there. The note beside the button says what was installed,
 and the tab's console logs every event the SDK builds.
 
+Filling in "Mock Referrer" alongside that URL makes `document.referrer` read whatever you put there, so
+attribution can be tried without having to arrive from the referring site. "Clean Session", which is on
+unless you turn it off, deletes Amplitude's stored state for the site first, so every run starts with a new
+device ID, a new session and no prior campaign — which is what makes a referrer worth mocking in the first
+place. Untick it to pick up where the last run left off.
+
 **On the tab you're looking at.** Click the toolbar button to instrument the current tab with whatever the
 configurator sent last, or a debug-everything default if it hasn't sent anything yet. The badge reads `on`,
 and clicking again switches it off. Either way the tab reloads, since that's the only way to catch a page
@@ -95,6 +101,22 @@ page uses, and travels as JSON. Regexes have nowhere to live in JSON, so `toJson
   `base::IsStringUTF8`, which rejects Unicode non-characters, and the session replay bundle contains four
   literal U+FFFE characters. Chrome rejects the whole file with "It isn't UTF-8 encoded", which is why
   `sync-vendor.mjs` escapes them on the way in rather than a plain `cp`.
+- **Both landing options are spent on the first page of a run.** A mocked referrer and a cleared session
+  describe arriving at a site rather than being on one, so `takePayload()` hands them to the commit that
+  opens the run and takes them off the stored payload. Clearing on every commit would hand out a new device
+  ID and session on every page and no session would last more than one pageview; a referrer mocked again
+  would keep claiming the visitor came from elsewhere when they came from the previous page. Pages after
+  the first therefore report their real referrer and keep the session that was just started.
+- **A mocked referrer is only the JS view.** `handOver` shadows `document.referrer` with an own property,
+  which is what the campaign parser and the page-URL enrichment plugin read. The `Referer` header the page
+  was actually fetched with is untouched, so anything server-side still sees the truth — and modifying that
+  header wouldn't help, because Chrome derives `document.referrer` from the navigation's referrer rather
+  than from a header a `declarativeNetRequest` rule rewrote.
+- **Clearing the session takes every Amplitude key with it.** It sweeps by prefix — `AMP_` and the legacy
+  lowercase `amp_` — across cookies, `localStorage` and `sessionStorage`, so it also clears the state of the
+  site's *own* Amplitude instance if it has one, in your browser only. Nothing else the site stores is
+  touched, and IndexedDB is left alone: session replay's recorded events live there, and a new session ID
+  makes them moot anyway.
 - **Where events go.** The API key comes from the configurator, and events land in whatever project owns
   it. Use a scratch project, not a customer's production key.
 - **The page's own Amplitude.** The bundle merges itself onto an existing `window.amplitude`, which would
