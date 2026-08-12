@@ -1,6 +1,8 @@
 import React from 'react';
-// Prism's default build already registers the javascript grammar, so no component import is needed.
+// Prism's default build already registers the javascript and markup grammars, so only the shell one the
+// extension's setup commands are shown in has to be pulled in.
 import Prism from 'prismjs';
+import 'prismjs/components/prism-bash';
 import './syntax-theme.css';
 
 const styles = {
@@ -24,10 +26,15 @@ const styles = {
     resize: 'vertical',
   },
   select: { padding: '5px 8px', font: 'inherit' },
+  inlineCheckbox: { display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' },
   hint: { color: '#888', fontSize: 12 },
   subGroup: { padding: '0 0 0 16px', borderLeft: '2px solid #e2e2e2', margin: '0 0 12px 4px' },
   subGroupTitle: { fontSize: 12, color: '#666', margin: '0 0 8px', textTransform: 'uppercase', letterSpacing: 0.4 },
-  button: { font: 'inherit', fontSize: 13, padding: '4px 10px', cursor: 'pointer' },
+  // flex: none so a long note beside a button in a toolbar row can't squeeze its label onto two lines.
+  button: { font: 'inherit', fontSize: 13, padding: '4px 10px', cursor: 'pointer', flex: 'none' },
+  disabledButton: { cursor: 'not-allowed', color: '#999' },
+  // Takes the button's place as the flex item, so wrapping one changes nothing about the row.
+  buttonTooltip: { display: 'inline-flex', flex: 'none' },
   card: { border: '1px solid #ddd', borderRadius: 6, background: '#fff', padding: '10px 12px 2px', marginBottom: 10 },
   cardHeader: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
   cardTitle: { fontSize: 13, fontWeight: 600, margin: 0 },
@@ -192,6 +199,49 @@ export function CheckboxField({ id, label, checked, onChange, labelWidth, hint, 
   );
 }
 
+// Several checkboxes on one row under a single label, for a set that reads as one choice rather than as
+// unrelated switches. `role` and `aria-labelledby` stand in for a fieldset and legend, whose default
+// rendering doesn't match the label-and-control rows around it.
+export function CheckboxGroup({ id, label, labelWidth, description, options, values, onChange }) {
+  const labelStyle = {
+    ...styles.label,
+    ...(labelWidth ? { width: labelWidth, flex: 'none' } : null),
+    ...(description ? styles.documentedLabel : null),
+  };
+  return (
+    <div style={{ ...styles.field, gap: 16 }} role="group" aria-labelledby={`${id}-label`}>
+      <span id={`${id}-label`} style={labelStyle} title={description}>
+        {label}
+      </span>
+      {options.map((option) => (
+        <label
+          key={option.key}
+          htmlFor={`${id}-${option.key}`}
+          // The whole row is clickable, so the tooltip's dotted underline comes without the help cursor
+          // the labels above carry.
+          style={{
+            ...(option.description ? styles.documentedLabel : null),
+            ...styles.inlineCheckbox,
+            ...(option.required ? { cursor: 'default' } : null),
+          }}
+          title={option.description}
+        >
+          {/* A required option is part of the set whichever others are picked, so it reads as checked
+              and holds no value of its own. */}
+          <input
+            id={`${id}-${option.key}`}
+            type="checkbox"
+            checked={option.required || values[option.key]}
+            disabled={option.required}
+            onChange={(event) => onChange(option.key, event.target.checked)}
+          />
+          {option.label}
+        </label>
+      ))}
+    </div>
+  );
+}
+
 // Left uncontrolled so the browser owns the open/closed state; the panel re-renders on every
 // keystroke elsewhere on the page and a controlled `open` would fight that.
 export function Panel({ title, description, badge, defaultOpen = false, children }) {
@@ -209,11 +259,25 @@ export function Panel({ title, description, badge, defaultOpen = false, children
   );
 }
 
-export function Button({ onClick, children }) {
-  return (
-    <button type="button" onClick={onClick} style={styles.button}>
+// A disabled button raises no hover events, so a `title` on it wouldn't reliably become a tooltip. The
+// title goes on a wrapper that isn't disabled instead, which is the only reason one is rendered.
+export function Button({ onClick, children, disabled = false, title }) {
+  const button = (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      style={disabled ? { ...styles.button, ...styles.disabledButton } : styles.button}
+    >
       {children}
     </button>
+  );
+  return title ? (
+    <span title={title} style={styles.buttonTooltip}>
+      {button}
+    </span>
+  ) : (
+    button
   );
 }
 

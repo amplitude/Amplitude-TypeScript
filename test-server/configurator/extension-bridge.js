@@ -5,6 +5,8 @@
 // script sits on this page and relays messages to its service worker, which means this page needs no
 // extension ID and the extension needs no externally_connectable entry. It also means the extension can
 // announce itself, so the button can tell "not installed" from "not responding".
+import { useEffect, useState } from 'react';
+
 const REQUEST_SOURCE = 'amplitude-configurator';
 const RESPONSE_SOURCE = 'amplitude-configurator-extension';
 
@@ -15,6 +17,27 @@ const RESPONSE_TIMEOUT = 5000;
 
 export function extensionVersion() {
   return document.documentElement.dataset[MARKER];
+}
+
+// The version as something the page can render, for the parts of the UI that are there or not there
+// depending on whether the extension is. The bridge writes its marker at document_end, which is after
+// this page's own module has run, so the first render can't see it however well the extension is
+// installed; by load it is there, and nothing can add it later, since content scripts only inject as a
+// page loads.
+export function useExtensionVersion() {
+  const [version, setVersion] = useState(extensionVersion);
+
+  useEffect(() => {
+    const check = () => setVersion(extensionVersion());
+    if (document.readyState === 'complete') {
+      check();
+      return undefined;
+    }
+    window.addEventListener('load', check);
+    return () => window.removeEventListener('load', check);
+  }, []);
+
+  return version;
 }
 
 // A configuration crosses into the extension as JSON, which has nowhere to put a RegExp. The matching
