@@ -42,7 +42,14 @@ function fetchesRemoteConfig(analytics) {
 // nobody's attention if session replay is off.
 function requirementsFor({ analytics = {}, sessionReplay, engagement }) {
   const zone = ZONES[analytics.serverZone] ?? ZONES.US;
-  const events = analytics.serverUrl ? new URL(analytics.serverUrl).origin : zone.events;
+  let events = zone.events;
+  if (analytics.serverUrl) {
+    try {
+      events = new URL(analytics.serverUrl).origin;
+    } catch {
+      // Free-form configurator input; an invalid URL must not abort injection.
+    }
+  }
   const requirements = [{ directive: 'connect-src', target: events, reason: 'event uploads' }];
   if (fetchesRemoteConfig(analytics)) {
     requirements.push({ directive: 'connect-src', target: zone.remoteConfig, reason: 'remote configuration' });
@@ -73,11 +80,14 @@ const FALLBACKS = {
 
 // Tabs whose rule is in place. Rehydrated from the rules themselves, since they are the state that
 // survives the service worker being torn down between a run and the navigation it opened.
+// Await before registering onHeadersReceived so a waking navigation cannot race an empty set.
 const relaxed = new Set();
-chrome.declarativeNetRequest
-  .getSessionRules()
-  .then((rules) => rules.forEach(({ id }) => relaxed.add(id)))
-  .catch(() => undefined);
+try {
+  const rules = await chrome.declarativeNetRequest.getSessionRules();
+  rules.forEach(({ id }) => relaxed.add(id));
+} catch {
+  // Leave relaxed empty; rules can still be added via relaxCsp.
+}
 
 // Only the policy of a tab under instrumentation is worth keeping, and only until the tab goes away.
 const policies = new Map();

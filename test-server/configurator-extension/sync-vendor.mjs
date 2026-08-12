@@ -10,8 +10,9 @@
 // Run from the repository root: node test-server/configurator-extension/sync-vendor.mjs
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const HERE = path.dirname(new URL(import.meta.url).pathname);
+const HERE = path.dirname(fileURLToPath(import.meta.url));
 const PACKAGES = path.resolve(HERE, '../../packages');
 
 const BUNDLES = [
