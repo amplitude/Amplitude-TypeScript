@@ -188,7 +188,7 @@ function autocaptureEntry({ autocapture, autocaptureOptions, autocaptureSubOptio
 
 // initAll() spreads its shared options over the analytics ones, so one of these nested under
 // `analytics` would be overwritten with undefined. They have to be hoisted. This is the same set the
-// form renders above the per-SDK sections.
+// form renders above the per-blade sections.
 const UNIFIED_SHARED_KEYS = SHARED_CONFIG_OPTIONS.map((field) => field.key);
 
 function unifiedEntries(state) {

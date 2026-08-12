@@ -49,13 +49,47 @@ async function instrumentedTabs() {
   return tabs;
 }
 
+// A tab is not a thing that stays put: it can be closed, and Chrome can swap it for a prerendered one
+// mid-navigation. Every call below that names a tab id can therefore find nothing there, and tabs, action
+// and scripting all say so the same way — "No tab with id: 1234.", a message that says nothing about what
+// was being attempted and so is worth catching rather than showing.
+function isMissingTab(error) {
+  return /No tab with id/.test(error?.message ?? '');
+}
+
+// For the calls that only decorate a tab: a tab that has gone away has no badge or tooltip worth setting,
+// and failing to set one is not worth abandoning a run over.
+async function ignoreMissingTab(pending) {
+  try {
+    await pending;
+  } catch (error) {
+    if (!isMissingTab(error)) {
+      throw error;
+    }
+  }
+}
+
+// An async listener that rejects has nowhere to put the error: it becomes an uncaught rejection in the
+// service worker's console and on the extension's card at chrome://extensions, with nothing to say what was
+// being attempted. Named here so anything that does go wrong arrives with its context attached.
+function guard(name, handler) {
+  return (...args) =>
+    handler(...args).catch((error) => {
+      // The tab this was about is gone, which onRemoved has already tidied up after.
+      if (isMissingTab(error)) {
+        return;
+      }
+      console.error(`[amplitude-configurator] ${name} failed`, error);
+    });
+}
+
 // Both transitions carry the CSP rule with them, so no path can mark a tab and forget to clear the way for
 // what the SDK is about to do — or leave a tab unprotected after instrumentation stops.
 async function instrument(tabId, payload) {
   const tabs = await instrumentedTabs();
   await chrome.storage.session.set({ [TABS_KEY]: { ...tabs, [tabId]: payload } });
   await relaxCsp(tabId);
-  await chrome.action.setBadgeText({ tabId, text: 'on' });
+  await ignoreMissingTab(chrome.action.setBadgeText({ tabId, text: 'on' }));
 }
 
 async function forget(tabId) {
@@ -76,41 +110,46 @@ function handOver(payload, csp) {
   };
 }
 
-chrome.webNavigation.onCommitted.addListener(async ({ tabId, frameId, url }) => {
-  if (frameId !== 0 || !url.startsWith('http')) {
-    return;
-  }
-  const payload = (await instrumentedTabs())[tabId];
-  if (!payload) {
-    return;
-  }
-  // Read before injecting: by the time a navigation commits the response headers have arrived, which is
-  // where the policy the page was sent is still visible.
-  const csp = cspReport(tabId, payload);
-  if (csp) {
-    await chrome.action.setTitle({ tabId, title: csp.summary });
-  }
-  const target = { tabId };
-  const inject = (options) =>
-    chrome.scripting.executeScript({ target, world: 'MAIN', injectImmediately: true, ...options });
-  try {
-    await inject({ func: handOver, args: [payload, csp] });
-    await inject({ files: [SDK_BUNDLE] });
-    if (payload.sessionReplay) {
-      // Its own call: a plugin bundle that won't load shouldn't stop analytics from running, and
-      // inject.js reports the gap when the global it expects isn't there.
-      try {
-        await inject({ files: [SESSION_REPLAY_BUNDLE] });
-      } catch (error) {
-        console.warn('[amplitude-configurator] session replay bundle failed to load', error);
-      }
+chrome.webNavigation.onCommitted.addListener(
+  guard('injection', async ({ tabId, frameId, url }) => {
+    if (frameId !== 0 || !url.startsWith('http')) {
+      return;
     }
-    await inject({ files: ['inject.js'] });
-  } catch (error) {
-    console.error('[amplitude-configurator] injection failed', error);
-    await chrome.action.setBadgeText({ tabId, text: 'err' });
-  }
-});
+    const payload = (await instrumentedTabs())[tabId];
+    if (!payload) {
+      return;
+    }
+    // Read before injecting: by the time a navigation commits the response headers have arrived, which is
+    // where the policy the page was sent is still visible.
+    const csp = cspReport(tabId, payload);
+    if (csp) {
+      await ignoreMissingTab(chrome.action.setTitle({ tabId, title: csp.summary }));
+    }
+    const target = { tabId };
+    const inject = (options) =>
+      chrome.scripting.executeScript({ target, world: 'MAIN', injectImmediately: true, ...options });
+    try {
+      await inject({ func: handOver, args: [payload, csp] });
+      await inject({ files: [SDK_BUNDLE] });
+      if (payload.sessionReplay) {
+        // Its own call: a plugin bundle that won't load shouldn't stop analytics from running, and
+        // inject.js reports the gap when the global it expects isn't there.
+        try {
+          await inject({ files: [SESSION_REPLAY_BUNDLE] });
+        } catch (error) {
+          console.warn('[amplitude-configurator] session replay bundle failed to load', error);
+        }
+      }
+      await inject({ files: ['inject.js'] });
+    } catch (error) {
+      if (isMissingTab(error)) {
+        throw error;
+      }
+      console.error('[amplitude-configurator] injection failed', error);
+      await ignoreMissingTab(chrome.action.setBadgeText({ tabId, text: 'err' }));
+    }
+  }),
+);
 
 function describe(payload) {
   const parts = ['analytics'];
@@ -138,11 +177,27 @@ async function runOnUrl(payload) {
     throw new Error('Only http and https URLs can be instrumented.');
   }
   // The tab opens blank so it can be marked for instrumentation before it commits anything; navigating
-  // afterwards is what makes the ordering reliable.
-  const tab = await chrome.tabs.create({ url: 'about:blank', active: true });
-  await instrument(tab.id, payload);
-  await chrome.storage.session.set({ [LAST_PAYLOAD_KEY]: payload });
-  await chrome.tabs.update(tab.id, { url: url.toString() });
+  // afterwards is what makes the ordering reliable. It also means there is a moment where the run depends
+  // on a tab nobody is looking at yet, and anything that closes it — a click, a tab-tidying extension,
+  // Chrome swapping in a prerender — leaves the steps below with nothing to work on.
+  let tab;
+  try {
+    tab = await chrome.tabs.create({ url: 'about:blank', active: true });
+    await instrument(tab.id, payload);
+    await chrome.storage.session.set({ [LAST_PAYLOAD_KEY]: payload });
+    await chrome.tabs.update(tab.id, { url: url.toString() });
+  } catch (error) {
+    if (!isMissingTab(error)) {
+      throw error;
+    }
+    if (tab) {
+      // The mark and the CSP rule are both keyed by tab id, and Chrome reuses ids, so leaving them behind
+      // would take the policy off whichever tab inherits this one's.
+      await forget(tab.id);
+    }
+    // The id is named because it is the one thing that ties this back to what the browser did with the tab.
+    throw new Error(`Tab ${tab?.id} was opened for this run and went away before it could be navigated.`);
+  }
   return { message: describe(payload) };
 }
 
@@ -155,19 +210,35 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 });
 
 // The toolbar button instruments the tab you're looking at, with whatever the configurator sent last.
-chrome.action.onClicked.addListener(async (tab) => {
-  if (!tab.url?.startsWith('http')) {
-    return;
-  }
-  if ((await instrumentedTabs())[tab.id]) {
-    await forget(tab.id);
-    await chrome.action.setBadgeText({ tabId: tab.id, text: '' });
-  } else {
-    const { [LAST_PAYLOAD_KEY]: lastPayload } = await chrome.storage.session.get(LAST_PAYLOAD_KEY);
-    await instrument(tab.id, lastPayload ?? FALLBACK_PAYLOAD);
-  }
-  // The injection only happens on the next commit, which is also the only way to catch a page early.
-  await chrome.tabs.reload(tab.id);
-});
+chrome.action.onClicked.addListener(
+  guard('toolbar button', async (tab) => {
+    if (!tab.url?.startsWith('http')) {
+      return;
+    }
+    if ((await instrumentedTabs())[tab.id]) {
+      await forget(tab.id);
+      await ignoreMissingTab(chrome.action.setBadgeText({ tabId: tab.id, text: '' }));
+    } else {
+      const { [LAST_PAYLOAD_KEY]: lastPayload } = await chrome.storage.session.get(LAST_PAYLOAD_KEY);
+      await instrument(tab.id, lastPayload ?? FALLBACK_PAYLOAD);
+    }
+    // The injection only happens on the next commit, which is also the only way to catch a page early.
+    await chrome.tabs.reload(tab.id);
+  }),
+);
 
-chrome.tabs.onRemoved.addListener((tabId) => forget(tabId));
+chrome.tabs.onRemoved.addListener(guard('cleanup', (tabId) => forget(tabId)));
+
+// Chrome can finish a navigation in a different tab than it started in: a prerendered page arrives in a tab
+// of its own and takes the old one's place, which destroys the id everything here is keyed by. Moving the
+// mark and the CSP rule across keeps the run alive, and keeps a rule from outliving the tab it was for.
+chrome.tabs.onReplaced.addListener(
+  guard('tab replacement', async (addedTabId, removedTabId) => {
+    const payload = (await instrumentedTabs())[removedTabId];
+    if (!payload) {
+      return;
+    }
+    await forget(removedTabId);
+    await instrument(addedTabId, payload);
+  }),
+);

@@ -6,7 +6,16 @@ configurator can generate the code, but only an extension can put it on someone 
 
 ## Setting it up
 
-The SDK bundles aren't checked in. Build them once, then vendor them in:
+It isn't in the Chrome Web Store, and a `.crx` can't be dragged into Chrome any more, so either route ends
+at Load unpacked on a folder.
+
+**From the test server.** `/configurator-extension.zip` is this directory, vendored bundles and all, zipped
+on request by `test-server/extension-archive.js`. Download it from the configurator's install panel or
+directly, unzip it, and load the `configurator-extension` folder it leaves behind. Nothing to build, and
+the archive always matches the checkout that served it. `vite build` emits the same file, so a hosted copy
+of the configurator offers the same download.
+
+**From this checkout.** The SDK bundles aren't checked in. Build them once, then vendor them in:
 
 ```bash
 pnpm --dir packages/analytics-browser build
@@ -14,9 +23,9 @@ pnpm --dir packages/plugin-session-replay-browser build
 node test-server/configurator-extension/sync-vendor.mjs
 ```
 
-Load `test-server/configurator-extension` at `chrome://extensions` with developer mode on, and start the
-test server with `pnpm dev`. After editing any file here, hit the extension's reload icon — that also
-clears which tabs were being instrumented.
+Then load `test-server/configurator-extension` itself at `chrome://extensions` with developer mode on, and
+start the test server with `pnpm dev`. This is the one to use while working on the extension: after editing
+any file here, hit its reload icon — that also clears which tabs were being instrumented.
 
 ## Using it
 
@@ -34,9 +43,12 @@ from the start.
 
 `configurator-bridge.js` sits on the configurator page and relays `window.postMessage` requests to
 `background.js`. Its `matches` in the manifest cover the hosts the test server uses — `localhost` and
-`127.0.0.1` over http for `pnpm dev`, `local.website.com` over https for `pnpm dev:ssh` — and nothing
-else. Ports aren't part of a match pattern, so any port is covered, but serving the configurator from a
-host that isn't listed is why the page would report no extension. It's scoped to the configurator's own
+`127.0.0.1` over http for `pnpm dev`, `local.website.com` over https for `pnpm dev:ssh` — plus the Netlify
+site the `pnpm build:configurator` artifact is shared from, and nothing else. Ports aren't part of a match
+pattern, so any port is covered, but serving the configurator from a host that isn't listed is why the page
+would report no extension. Hosted origins are listed one at a time rather than as `https://*.netlify.app/`:
+a wildcard there would offer the relay to every site on a shared domain, and the relay leads to a service
+worker that can inject the SDK into any tab. It's scoped to the configurator's own
 path rather than a host wildcard so the relay isn't offered to every site, given how much the extension is
 allowed to do. Going through the page rather than `chrome.runtime.sendMessage` means the page needs no
 extension ID and no `externally_connectable` entry, and it lets the extension announce itself so the
