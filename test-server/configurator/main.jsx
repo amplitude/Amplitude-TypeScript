@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { Button, CheckboxField, CheckboxGroup, CodeBlock, SelectField, TextField } from './components.jsx';
+import { Button, CheckboxField, CheckboxGroup, CodeBlock, Panel, SelectField, TextField } from './components.jsx';
 import { AutocapturePanel } from './autocapture-panel.jsx';
 import { SectionPanels } from './section-panels.jsx';
 import { BLADES } from './blades.js';
@@ -31,11 +31,17 @@ const styles = {
   formSection: { borderTop: '1px solid #e5e5e5', paddingTop: 16, marginTop: 20 },
   toolbar: { display: 'flex', alignItems: 'center', gap: 10, margin: '0 0 20px' },
   toolbarNote: { color: '#888', fontSize: 12 },
-  targetInput: { width: 300, padding: '6px 8px', font: 'inherit' },
+  // Matches the width the install panel below it sits at, so the two read as one column.
+  runPanel: { maxWidth: 760 },
+  runActions: { display: 'flex', alignItems: 'center', gap: 10, margin: '0 0 12px' },
 };
 
 // Lines up the labels of the handful of fields sitting above the panels.
 const TOP_LABEL_WIDTH = 100;
+
+// Wider than the fields below, because "Mock Referrer" is longer than anything the SDK's own options are
+// called.
+const RUN_LABEL_WIDTH = 110;
 
 const DEFAULT_STATE = createDefaultState();
 
@@ -63,6 +69,8 @@ function Configurator({ initialState }) {
   const [copied, setCopied] = useState(false);
   const [blockedRunUrl, setBlockedRunUrl] = useState(null);
   const [targetUrl, setTargetUrl] = useState(initialState.targetUrl);
+  const [mockReferrer, setMockReferrer] = useState(initialState.mockReferrer);
+  const [clearSession, setClearSession] = useState(initialState.clearSession);
   const [targetNote, setTargetNote] = useState(null);
   // Running on another site is the extension's to do, so without it that button has nothing behind it.
   const runnerVersion = useExtensionVersion();
@@ -95,6 +103,8 @@ function Configurator({ initialState }) {
     apiKey,
     format,
     targetUrl,
+    mockReferrer,
+    clearSession,
     ...blades,
     configOptions,
     autocapture,
@@ -149,6 +159,10 @@ function Configurator({ initialState }) {
     try {
       const result = await requestRun({
         url: targetUrl.trim(),
+        // Left off entirely when blank, so the extension can tell "don't touch document.referrer" from
+        // "make it read empty", which is what arriving with no referrer at all looks like.
+        mockReferrer: mockReferrer.trim() || undefined,
+        clearSession,
         apiKey: key || PLACEHOLDER_API_KEY,
         analytics: toJsonSafe(analytics),
         sessionReplay: toJsonSafe(replay),
@@ -193,31 +207,63 @@ function Configurator({ initialState }) {
         )}
       </div>
 
-      <div style={styles.toolbar}>
-        <input
-          id="target-url"
-          type="url"
-          value={targetUrl}
-          onChange={(event) => setTargetUrl(event.target.value)}
-          placeholder="https://example.com"
-          autoComplete="off"
-          spellCheck={false}
-          style={styles.targetInput}
-        />
-        <Button
-          onClick={runOnUrl}
-          disabled={!runnerVersion}
-          // Named with the origin, because an extension that is installed but doesn't list this host is
-          // as common a reason for the button being dead as not having installed it at all.
-          title={
-            runnerVersion ? undefined : `No runner extension on ${window.location.origin}. See the install steps below.`
-          }
+      {/* Its own panel because none of it is configuration: every field here describes the tab the SDK is
+          injected into rather than the SDK, so none of it appears in the generated snippet. */}
+      <div style={styles.runPanel}>
+        <Panel
+          title="Run on URL"
+          badge={runnerVersion ? `runner ${runnerVersion}` : 'runner not detected'}
+          description="Runs this configuration on another site, through the runner extension. These fields set up the tab the SDK is injected into, so none of them reach the generated snippet."
+          defaultOpen
         >
-          Run on URL
-        </Button>
-        <span style={styles.toolbarNote}>
-          {targetNote ?? 'Runs this configuration on another site, through the runner extension.'}
-        </span>
+          <TextField
+            id="target-url"
+            label="Target URL"
+            labelWidth={RUN_LABEL_WIDTH}
+            type="url"
+            value={targetUrl}
+            onChange={setTargetUrl}
+            placeholder="https://example.com"
+            description="The site to open and instrument. It rides along in the link, so reopening one doesn't cost the site the configuration was last tried on."
+          />
+          <TextField
+            id="mock-referrer"
+            label="Mock Referrer"
+            labelWidth={RUN_LABEL_WIDTH}
+            type="url"
+            value={mockReferrer}
+            onChange={setMockReferrer}
+            placeholder="https://google.com"
+            hint="optional"
+            description="Makes document.referrer read this on the page the run opens with, so attribution sees it as the referring page. Pages navigated to afterwards report their real referrer, the way a second pageview would. Only the JS view moves — the request that fetched the page carried whatever Referer the browser chose."
+          />
+          <CheckboxField
+            id="clear-session"
+            label="Clean Session"
+            labelWidth={RUN_LABEL_WIDTH}
+            checked={clearSession}
+            onChange={setClearSession}
+            description="Deletes Amplitude's stored cookies and web storage for the site before the run starts, so it begins with a new device ID, a new session and no prior attribution. Once per run, not on every page."
+          />
+          <div style={styles.runActions}>
+            <Button
+              onClick={runOnUrl}
+              disabled={!runnerVersion}
+              // Named with the origin, because an extension that is installed but doesn't list this host is
+              // as common a reason for the button being dead as not having installed it at all.
+              title={
+                runnerVersion
+                  ? undefined
+                  : `No runner extension on ${window.location.origin}. See the install steps below.`
+              }
+            >
+              Run on URL
+            </Button>
+            {/* Only after a click: what this panel is for is said in its description, and repeating it here
+                would leave nowhere for the answer to appear. */}
+            {targetNote ? <span style={styles.toolbarNote}>{targetNote}</span> : null}
+          </div>
+        </Panel>
       </div>
 
       <RunnerExtensionPanel version={runnerVersion} />

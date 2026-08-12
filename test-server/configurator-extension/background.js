@@ -19,6 +19,12 @@ const SESSION_REPLAY_BUNDLE = 'vendor/plugin-session-replay-browser-min.js';
 const TABS_KEY = 'instrumentedTabs';
 const LAST_PAYLOAD_KEY = 'lastPayload';
 
+// Everything the SDKs key their storage by, from AMPLITUDE_PREFIX in analytics-core's
+// types/constants.ts: `AMP_<apiKey>` holds the device ID, session ID and user ID, `AMP_MKTG_<apiKey>` the
+// last campaign, and `AMP_unsent_`, `AMP_remote_config_`, `AMP_SR_START_`, `AMP_PAGE_VIEW` the rest. The
+// lowercase form is getOldCookieName()'s, still read by the cookie migration on init.
+const AMPLITUDE_STORAGE_PREFIXES = ['AMP_', 'amp_'];
+
 // What the configurator sends when no API key has been typed in — PLACEHOLDER_API_KEY in its snippet.js.
 const PLACEHOLDER_API_KEY = 'YOUR_API_KEY';
 
@@ -99,9 +105,45 @@ async function forget(tabId) {
   await restoreCsp(tabId);
 }
 
+// The payload this commit runs with — and, as a side effect, the payload every later commit in the tab will
+// run with.
+//
+// Two of its options describe arriving at a site rather than being on one, so they belong to the page a run
+// opens with and to no other. Clearing again would hand out a new device ID and session on every page, and
+// there would be no session left to watch. A referrer mocked again would keep insisting the visitor came
+// from somewhere else when they in fact came from the previous page of the site, which is a story no real
+// second pageview tells. Both are therefore spent here: read for this commit, then taken off what is stored.
+//
+// Session storage rather than a variable because the service worker is routinely torn down between marking a
+// tab and the navigation it opened, which would otherwise make "first commit" mean "first since the worker
+// last woke up".
+async function takePayload(tabId) {
+  const tabs = await instrumentedTabs();
+  const payload = tabs[tabId];
+  if (!payload) {
+    return undefined;
+  }
+  const { clearSession, mockReferrer, ...rest } = payload;
+  if (clearSession || mockReferrer) {
+    await chrome.storage.session.set({ [TABS_KEY]: { ...tabs, [tabId]: rest } });
+  }
+  return payload;
+}
+
 // Runs in the page before the SDK bundle: saves what the page had under window.amplitude, since the
 // bundle is about to write over it, and leaves the configuration where inject.js will look for it.
 function handOver(payload, csp) {
+  // document.referrer is a configurable accessor inherited from Document.prototype, so an own property
+  // shadows it for the page and for the SDK's campaign parser alike, and only for this document — the next
+  // page the tab commits gets a payload with no referrer in it. Only the JS view moves: the request that
+  // fetched this page carried whatever Referer the browser chose, and nothing here can change that after
+  // the fact.
+  if (payload.mockReferrer) {
+    Object.defineProperty(document, 'referrer', {
+      configurable: true,
+      get: () => payload.mockReferrer,
+    });
+  }
   window.__amplitudeConfigurator = {
     hadGlobal: 'amplitude' in window,
     properties: window.amplitude ? { ...window.amplitude } : undefined,
@@ -110,12 +152,62 @@ function handOver(payload, csp) {
   };
 }
 
+// Runs in the page before the SDK bundle, so what init() finds is an origin the SDK has never seen: no
+// device ID, no session, no stored campaign. Only Amplitude's own keys go, since the site's login and the
+// rest of its storage are what make it worth testing on.
+function clearStoredSession(prefixes) {
+  const isAmplitude = (key) => prefixes.some((prefix) => key.startsWith(prefix));
+  const removed = [];
+
+  // document.cookie yields names and values and never the domain a cookie was set on, while the SDK writes
+  // to the highest domain it can — so each name is expired against every suffix of this hostname as well as
+  // host-only. Suffixes that may not hold cookies, like a public one, are refused rather than mis-set, and
+  // path=/ is what the SDK writes.
+  const labels = location.hostname.split('.');
+  const domains = ['', ...labels.map((_, index) => `.${labels.slice(index).join('.')}`)];
+  for (const pair of document.cookie ? document.cookie.split('; ') : []) {
+    const separator = pair.indexOf('=');
+    const name = (separator === -1 ? pair : pair.slice(0, separator)).trim();
+    if (!name || !isAmplitude(name)) {
+      continue;
+    }
+    for (const domain of domains) {
+      document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:01 GMT; path=/${domain && `; domain=${domain}`}`;
+    }
+    removed.push(`cookie ${name}`);
+  }
+
+  for (const [label, store] of [
+    ['localStorage', localStorage],
+    ['sessionStorage', sessionStorage],
+  ]) {
+    // Reading either throws outright where the site's cookie policy forbids it, which says nothing about
+    // the other or about the cookies above.
+    try {
+      for (const key of Object.keys(store).filter(isAmplitude)) {
+        store.removeItem(key);
+        removed.push(`${label} ${key}`);
+      }
+    } catch (error) {
+      console.warn(`[amplitude-configurator] ${label} could not be read, so nothing was cleared from it`, error);
+    }
+  }
+
+  // Named individually: "the session was cleared" and "the session was already empty" lead to different
+  // places when a run doesn't look the way it was expected to.
+  if (removed.length) {
+    console.log(`[amplitude-configurator] cleared ${removed.length} stored Amplitude entries`, removed);
+  } else {
+    console.log('[amplitude-configurator] no stored Amplitude state to clear on this origin');
+  }
+}
+
 chrome.webNavigation.onCommitted.addListener(
   guard('injection', async ({ tabId, frameId, url }) => {
     if (frameId !== 0 || !url.startsWith('http')) {
       return;
     }
-    const payload = (await instrumentedTabs())[tabId];
+    const payload = await takePayload(tabId);
     if (!payload) {
       return;
     }
@@ -130,6 +222,9 @@ chrome.webNavigation.onCommitted.addListener(
       chrome.scripting.executeScript({ target, world: 'MAIN', injectImmediately: true, ...options });
     try {
       await inject({ func: handOver, args: [payload, csp] });
+      if (payload.clearSession) {
+        await inject({ func: clearStoredSession, args: [AMPLITUDE_STORAGE_PREFIXES] });
+      }
       await inject({ files: [SDK_BUNDLE] });
       if (payload.sessionReplay) {
         // Its own call: a plugin bundle that won't load shouldn't stop analytics from running, and
@@ -164,6 +259,14 @@ function describe(payload) {
     // Its bundle is fetched from the CDN at runtime rather than packaged here. A strict CSP no longer
     // stands in the way, so this is now only a matter of the runner learning to load it.
     message += ' Guides and Surveys was left out: the runner does not load its CDN bundle yet.';
+  }
+  if (payload.mockReferrer) {
+    message += ` document.referrer reads ${payload.mockReferrer} on that first page, and the truth after it.`;
+  }
+  if (payload.clearSession) {
+    message +=
+      " Amplitude's stored cookies and web storage are cleared first, so the run starts with a new device ID" +
+      ' and session.';
   }
   if (payload.apiKey === PLACEHOLDER_API_KEY) {
     message += ' No API key is set, so events are built but rejected.';
