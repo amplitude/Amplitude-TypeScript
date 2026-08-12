@@ -1,0 +1,4 @@
+# Standalone hackathon app — its own workspace root so the monorepo's
+# pnpm workspace settings don't apply here.
+packages:
+  - '.'

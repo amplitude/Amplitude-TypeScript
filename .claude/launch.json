@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "sdk-config-assistant",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--dir", "hackathon/sdk-config-assistant", "dev"],
+      "port": 5199
+    }
+  ]
+}
