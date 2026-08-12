@@ -2,11 +2,7 @@
 // install link to point at: the steps are the download this server builds, and Load unpacked. They mirror
 // test-server/configurator-extension/README.md, which is the fuller account.
 import React from 'react';
-import { CodeBlock, Panel } from './components.jsx';
-
-const EXTENSION_DIRECTORY = 'test-server/configurator-extension';
-
-const REPOSITORY_URL = `https://github.com/amplitude/Amplitude-TypeScript/tree/main/${EXTENSION_DIRECTORY}`;
+import { Panel } from './components.jsx';
 
 // Built by test-server/extension-archive.js, which owns this path, out of the extension directory as it
 // stands in whatever checkout is serving this page.
@@ -16,18 +12,11 @@ const ARCHIVE_URL = '/configurator-extension.zip';
 // read the same either way.
 const UNPACKED_FOLDER = 'configurator-extension';
 
-// The bundles the extension injects aren't checked in. The archive carries them already; a checkout has
-// to build them before Chrome will accept the folder.
-const SETUP_COMMANDS = `pnpm --dir packages/analytics-browser build
-pnpm --dir packages/plugin-session-replay-browser build
-node ${EXTENSION_DIRECTORY}/sync-vendor.mjs`;
-
 const styles = {
   wrapper: { maxWidth: 760, margin: '0 0 20px' },
   note: { color: '#888', fontSize: 12, margin: '0 0 10px' },
   steps: { margin: '0 0 10px', paddingLeft: 20, fontSize: 13, color: '#444', lineHeight: 1.6 },
   step: { marginBottom: 6 },
-  commands: { margin: '8px 0 4px' },
 };
 
 export function RunnerExtensionPanel({ version }) {

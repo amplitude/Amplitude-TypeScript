@@ -1,8 +1,5 @@
 import React from 'react';
-// Prism's default build already registers the javascript and markup grammars, so only the shell one the
-// extension's setup commands are shown in has to be pulled in.
 import Prism from 'prismjs';
-import 'prismjs/components/prism-bash';
 import './syntax-theme.css';
 
 const styles = {

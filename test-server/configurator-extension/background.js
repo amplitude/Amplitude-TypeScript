@@ -19,6 +19,10 @@ const SESSION_REPLAY_BUNDLE = 'vendor/plugin-session-replay-browser-min.js';
 const TABS_KEY = 'instrumentedTabs';
 const LAST_PAYLOAD_KEY = 'lastPayload';
 
+// Filled synchronously at the start of onReplaced so runOnUrl can tell a prerender swap from a close
+// after tabs.update fails on the old id. Dropped on the next turn, once that catch has had a look.
+const replacedTabs = new Map();
+
 // What the configurator sends when no API key has been typed in — PLACEHOLDER_API_KEY in its snippet.js.
 const PLACEHOLDER_API_KEY = 'YOUR_API_KEY';
 
@@ -110,44 +114,51 @@ function handOver(payload, csp) {
   };
 }
 
+async function injectInto(tabId, payload, url) {
+  if (!url?.startsWith('http')) {
+    return;
+  }
+  // Read before injecting: by the time a navigation commits the response headers have arrived, which is
+  // where the policy the page was sent is still visible.
+  const csp = cspReport(tabId, payload);
+  if (csp) {
+    await ignoreMissingTab(chrome.action.setTitle({ tabId, title: csp.summary }));
+  }
+  const target = { tabId };
+  const inject = (options) =>
+    chrome.scripting.executeScript({ target, world: 'MAIN', injectImmediately: true, ...options });
+  try {
+    await inject({ func: handOver, args: [payload, csp] });
+    await inject({ files: [SDK_BUNDLE] });
+    if (payload.sessionReplay) {
+      // Its own call: a plugin bundle that won't load shouldn't stop analytics from running, and
+      // inject.js reports the gap when the global it expects isn't there.
+      try {
+        await inject({ files: [SESSION_REPLAY_BUNDLE] });
+      } catch (error) {
+        console.warn('[amplitude-configurator] session replay bundle failed to load', error);
+      }
+    }
+    await inject({ files: ['inject.js'] });
+  } catch (error) {
+    if (isMissingTab(error)) {
+      throw error;
+    }
+    console.error('[amplitude-configurator] injection failed', error);
+    await ignoreMissingTab(chrome.action.setBadgeText({ tabId, text: 'err' }));
+  }
+}
+
 chrome.webNavigation.onCommitted.addListener(
   guard('injection', async ({ tabId, frameId, url }) => {
-    if (frameId !== 0 || !url.startsWith('http')) {
+    if (frameId !== 0) {
       return;
     }
     const payload = (await instrumentedTabs())[tabId];
     if (!payload) {
       return;
     }
-    // Read before injecting: by the time a navigation commits the response headers have arrived, which is
-    // where the policy the page was sent is still visible.
-    const csp = cspReport(tabId, payload);
-    if (csp) {
-      await ignoreMissingTab(chrome.action.setTitle({ tabId, title: csp.summary }));
-    }
-    const target = { tabId };
-    const inject = (options) =>
-      chrome.scripting.executeScript({ target, world: 'MAIN', injectImmediately: true, ...options });
-    try {
-      await inject({ func: handOver, args: [payload, csp] });
-      await inject({ files: [SDK_BUNDLE] });
-      if (payload.sessionReplay) {
-        // Its own call: a plugin bundle that won't load shouldn't stop analytics from running, and
-        // inject.js reports the gap when the global it expects isn't there.
-        try {
-          await inject({ files: [SESSION_REPLAY_BUNDLE] });
-        } catch (error) {
-          console.warn('[amplitude-configurator] session replay bundle failed to load', error);
-        }
-      }
-      await inject({ files: ['inject.js'] });
-    } catch (error) {
-      if (isMissingTab(error)) {
-        throw error;
-      }
-      console.error('[amplitude-configurator] injection failed', error);
-      await ignoreMissingTab(chrome.action.setBadgeText({ tabId, text: 'err' }));
-    }
+    await injectInto(tabId, payload, url);
   }),
 );
 
@@ -178,8 +189,9 @@ async function runOnUrl(payload) {
   }
   // The tab opens blank so it can be marked for instrumentation before it commits anything; navigating
   // afterwards is what makes the ordering reliable. It also means there is a moment where the run depends
-  // on a tab nobody is looking at yet, and anything that closes it — a click, a tab-tidying extension,
-  // Chrome swapping in a prerender — leaves the steps below with nothing to work on.
+  // on a tab nobody is looking at yet, and anything that closes it — a click, a tab-tidying extension —
+  // leaves the steps below with nothing to work on. A prerender swap is different: onReplaced moves the
+  // mark, and the catch below treats that as the run continuing rather than as a failure.
   let tab;
   try {
     tab = await chrome.tabs.create({ url: 'about:blank', active: true });
@@ -189,6 +201,11 @@ async function runOnUrl(payload) {
   } catch (error) {
     if (!isMissingTab(error)) {
       throw error;
+    }
+    // Chrome can swap the blank tab for a prerender of the destination; onReplaced records that
+    // synchronously, and has already moved the mark to the surviving id.
+    if (tab && replacedTabs.has(tab.id)) {
+      return { message: describe(payload) };
     }
     if (tab) {
       // The mark and the CSP rule are both keyed by tab id, and Chrome reuses ids, so leaving them behind
@@ -234,11 +251,21 @@ chrome.tabs.onRemoved.addListener(guard('cleanup', (tabId) => forget(tabId)));
 // mark and the CSP rule across keeps the run alive, and keeps a rule from outliving the tab it was for.
 chrome.tabs.onReplaced.addListener(
   guard('tab replacement', async (addedTabId, removedTabId) => {
+    replacedTabs.set(removedTabId, addedTabId);
+    setTimeout(() => replacedTabs.delete(removedTabId), 0);
     const payload = (await instrumentedTabs())[removedTabId];
     if (!payload) {
       return;
     }
     await forget(removedTabId);
     await instrument(addedTabId, payload);
+    // The prerendered document committed under this id before it was marked, so onCommitted will not
+    // run again for this load. Inject into whatever is already there; a document that hasn't committed
+    // yet is left for the forthcoming onCommitted.
+    const frames = await chrome.webNavigation.getAllFrames({ tabId: addedTabId });
+    const url = frames?.find((frame) => frame.frameId === 0)?.url;
+    if (url) {
+      await injectInto(addedTabId, payload, url);
+    }
   }),
 );
