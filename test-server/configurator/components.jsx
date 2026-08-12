@@ -193,10 +193,11 @@ export function CheckboxField({ id, label, checked, onChange, labelWidth, hint, 
 }
 
 // Left uncontrolled so the browser owns the open/closed state; the panel re-renders on every
-// keystroke elsewhere on the page and a controlled `open` would fight that.
+// keystroke elsewhere on the page and a controlled `open` would fight that. Only pass `open` when
+// the panel should start open — `open={false}` is still controlled and would slam shut on re-render.
 export function Panel({ title, description, badge, defaultOpen = false, children }) {
   return (
-    <details style={styles.panel} open={defaultOpen}>
+    <details style={styles.panel} {...(defaultOpen ? { open: true } : {})}>
       <summary style={styles.panelSummary}>
         {title}
         {badge ? <span style={styles.panelBadge}>{badge}</span> : null}

@@ -104,6 +104,17 @@ export function createCaptureRule() {
   };
 }
 
+// Shared links restore rules with their original ids, so bump the counter past anything already in
+// use before the next createCaptureRule() call.
+export function rememberCaptureRuleIds(rules = []) {
+  for (const rule of rules) {
+    const match = /^rule-(\d+)$/.exec(rule?.id);
+    if (match) {
+      nextRuleId = Math.max(nextRuleId, Number(match[1]));
+    }
+  }
+}
+
 const pageUrlAllowlist = {
   key: 'pageUrlAllowlist',
   label: 'Page URL allowlist',

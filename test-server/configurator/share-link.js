@@ -1,3 +1,5 @@
+import { rememberCaptureRuleIds } from './autocapture-options.js';
+
 // The form state round-trips through a single query parameter, so a bookmarked URL reopens the same
 // configuration.
 //
@@ -90,7 +92,9 @@ export async function decodeStateFromUrl(defaults, search = window.location.sear
     return defaults;
   }
   try {
-    return mergeOverDefaults(defaults, JSON.parse(await inflate(fromBase64Url(saved))));
+    const state = mergeOverDefaults(defaults, JSON.parse(await inflate(fromBase64Url(saved))));
+    rememberCaptureRuleIds(state.autocaptureSubOptions?.networkTracking?.captureRules);
+    return state;
   } catch (error) {
     // A truncated or hand-edited link shouldn't leave the page blank.
     console.warn(`Ignoring unreadable ?${STATE_PARAM} parameter`, error);
