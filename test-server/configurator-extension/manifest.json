@@ -1,0 +1,29 @@
+{
+  "manifest_version": 3,
+  "name": "Amplitude Configurator Runner (spike)",
+  "version": "0.0.3",
+  "description": "Runs a configuration built in the Amplitude configurator on any site, by injecting the Browser SDK into it.",
+  "permissions": ["declarativeNetRequestWithHostAccess", "scripting", "storage", "webNavigation", "webRequest"],
+  "host_permissions": ["*://*/*"],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "action": {
+    "default_title": "Run the Amplitude SDK on this tab"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "http://localhost/configurator.html*",
+        "https://localhost/configurator.html*",
+        "http://127.0.0.1/configurator.html*",
+        "https://127.0.0.1/configurator.html*",
+        "http://local.website.com/configurator.html*",
+        "https://local.website.com/configurator.html*"
+      ],
+      "js": ["configurator-bridge.js"],
+      "run_at": "document_end"
+    }
+  ]
+}

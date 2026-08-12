@@ -9,7 +9,9 @@ import { SESSION_REPLAY_SECTIONS, TOP_LEVEL_SESSION_REPLAY_OPTIONS } from './ses
 import { createDefaultState } from './default-state.js';
 import { OptionField } from './option-field.jsx';
 import { decodeStateFromUrl, encodeStateToUrl, hasSavedState } from './share-link.js';
-import { buildSnippet, SNIPPET_FORMATS, snippetLanguage } from './snippet.js';
+import { extensionVersion, requestRun, toJsonSafe } from './extension-bridge.js';
+import { buildRuntimeConfig } from './runtime-config.js';
+import { buildSnippet, PLACEHOLDER_API_KEY, SNIPPET_FORMATS, snippetLanguage } from './snippet.js';
 
 const styles = {
   page: { fontFamily: 'system-ui, sans-serif', maxWidth: 1400, margin: '48px auto', padding: '0 16px' },
@@ -26,6 +28,7 @@ const styles = {
   formSection: { borderTop: '1px solid #e5e5e5', paddingTop: 16, marginTop: 20 },
   toolbar: { display: 'flex', alignItems: 'center', gap: 10, margin: '0 0 20px' },
   toolbarNote: { color: '#888', fontSize: 12 },
+  targetInput: { width: 300, padding: '6px 8px', font: 'inherit' },
 };
 
 // Lines up the labels of the handful of fields sitting above the panels.
@@ -51,6 +54,8 @@ function Configurator({ initialState }) {
   const [savedState, setSavedState] = useState(null);
   const [copied, setCopied] = useState(false);
   const [blockedRunUrl, setBlockedRunUrl] = useState(null);
+  const [targetUrl, setTargetUrl] = useState('');
+  const [targetNote, setTargetNote] = useState(null);
 
   const setConfigOption = (key, value) => {
     setConfigOptions((previous) => ({ ...previous, [key]: value }));
@@ -118,6 +123,35 @@ function Configurator({ initialState }) {
     }
   };
 
+  // Running on a site this page has no access to takes the extension: it opens the tab and injects the
+  // SDK into it. The configuration is materialised here, where the schemas live, and travels as JSON.
+  const runOnUrl = async () => {
+    const version = extensionVersion();
+    if (!version) {
+      // Naming the origin matters: the usual cause is that the extension's bridge doesn't list the host
+      // this page is being served from, and the second is an extension that was edited but not reloaded.
+      setTargetNote(
+        `No runner extension detected on ${window.location.origin}. Load test-server/configurator-extension at ` +
+          'chrome://extensions, press Reload on it if it was already loaded, then reload this page.',
+      );
+      return;
+    }
+    const { apiKey: key, analytics, sessionReplay: replay, engagement: guides } = buildRuntimeConfig(state);
+    setTargetNote('Opening…');
+    try {
+      const result = await requestRun({
+        url: targetUrl.trim(),
+        apiKey: key || PLACEHOLDER_API_KEY,
+        analytics: toJsonSafe(analytics),
+        sessionReplay: toJsonSafe(replay),
+        engagement: guides,
+      });
+      setTargetNote(result.message);
+    } catch (error) {
+      setTargetNote(error.message);
+    }
+  };
+
   let linkNote =
     'Copy this configuration as a link to bookmark or share, or run it in a new tab with the SDK initialised.';
   if (isSaved) {
@@ -147,6 +181,23 @@ function Configurator({ initialState }) {
         ) : (
           <span style={styles.toolbarNote}>{linkNote}</span>
         )}
+      </div>
+
+      <div style={styles.toolbar}>
+        <input
+          id="target-url"
+          type="url"
+          value={targetUrl}
+          onChange={(event) => setTargetUrl(event.target.value)}
+          placeholder="https://example.com"
+          autoComplete="off"
+          spellCheck={false}
+          style={styles.targetInput}
+        />
+        <Button onClick={runOnUrl}>Run on URL</Button>
+        <span style={styles.toolbarNote}>
+          {targetNote ?? 'Runs this configuration on another site, through the runner extension.'}
+        </span>
       </div>
 
       <div style={styles.layout}>

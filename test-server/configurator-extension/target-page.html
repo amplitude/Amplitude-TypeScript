@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Stands in for a customer site that won't take kindly to being instrumented: no inline scripts,
+         no third-party origins. The extension's injection has to survive this. -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'" />
+    <title>Target page (extension spike)</title>
+  </head>
+  <body>
+    <h1>Target page</h1>
+    <p>
+      A stand-in for a site under test. Nothing here loads Amplitude; the extension is expected to bring it. The page's
+      CSP allows only same-origin scripts and no inline ones.
+    </p>
+    <button id="plain-button" type="button">A plain button</button>
+    <button id="fetch-button" type="button">Fetch /api/test</button>
+    <button id="navigate-button" type="button">Change the URL</button>
+    <form id="a-form">
+      <input name="something" placeholder="Type something" autocomplete="off" />
+      <button type="submit">Submit</button>
+    </form>
+    <script src="./target-page.js"></script>
+  </body>
+</html>
