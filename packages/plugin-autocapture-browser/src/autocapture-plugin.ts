@@ -18,6 +18,7 @@ import { VERSION } from './version';
 import * as constants from './constants';
 import {
   createShouldTrackEvent,
+  getPageEndEventName,
   type ElementBasedTimestampedEvent,
   type TimestampedEvent,
   type NavigateEvent,
@@ -141,7 +142,7 @@ export const autocapturePlugin = (
 
   const dataExtractor = new DataExtractor(options, context);
 
-  // Page-level state shared across trackers, emitted in a single Page View End event on beforeunload
+  // Page-level state shared across trackers, emitted in a single Page View End event on page exit
   // elementExposedForPage holds the total set of elements seen during the entire page view lifetime
   const elementExposedForPage = new Set<string>();
   // currentElementExposed only holds the set of elements that will be flushed during the next [Amplitude] Viewport Content Updated event
@@ -351,11 +352,19 @@ export const autocapturePlugin = (
       if (isPageEnd && pageViewEndFired) {
         return;
       }
-      setTimeout(() => {
-        pageViewEndFired = false;
-      }, 100);
 
-      pageViewEndFired = true;
+      // Only page-end triggers arm the short dedupe window. A single page exit can surface as
+      // several events in quick succession (visibilitychange -> pagehide, or navigate + pagehide),
+      // and this collapses them into one page-end. Mid-page flushes (isPageEnd === false) must not
+      // arm it, otherwise they would suppress the real page-end (and its state reset) that follows
+      // within the window.
+      if (isPageEnd) {
+        setTimeout(() => {
+          pageViewEndFired = false;
+        }, 100);
+        pageViewEndFired = true;
+      }
+
       fireViewportContentUpdated({
         amplitude,
         scrollTracker,
@@ -382,14 +391,47 @@ export const autocapturePlugin = (
         subscriptions.push(trackers.exposure);
       }
 
-      const beforeUnloadHandler = () => {
-        handleViewportContentUpdated(true);
+      // Fire a Viewport Content Updated event and immediately flush it. track() only schedules a
+      // flush on a timer (flushIntervalMillis), which usually does not run before the document is
+      // torn down on exit, so the event would otherwise sit unsent in the local storage queue and
+      // only be replayed (with a stale timestamp) on the next page load, if ever. Flushing here
+      // starts the request (with keepalive) while the page is still alive.
+      const fireAndFlushViewportContentUpdated = (isPageEnd: boolean) => {
+        handleViewportContentUpdated(isPageEnd);
+        void amplitude.flush();
+      };
+
+      // Page exit: prefer `pagehide` over `beforeunload`. `pagehide` also fires on mobile teardown
+      // and bfcache eviction where `beforeunload` does not, and (unlike `beforeunload`) it does not
+      // make the page ineligible for the bfcache. Fall back to `beforeunload` only when `pagehide`
+      // is unavailable.
+      const pageEndHandler = () => {
+        fireAndFlushViewportContentUpdated(true);
+      };
+      const pageEndEventName = getPageEndEventName(globalScope);
+      /* istanbul ignore next */
+      globalScope?.addEventListener(pageEndEventName, pageEndHandler);
+
+      // `visibilitychange` -> hidden is the last signal reliably delivered before a tab is
+      // backgrounded and possibly discarded without ever firing `pagehide` (common on mobile).
+      // Flush the pending batch here as a mid-page checkpoint (isPageEnd === false) so page-level
+      // state is preserved if the user returns; a real page end shortly after is collapsed by the
+      // page-end dedupe window in handleViewportContentUpdated.
+      const visibilityChangeHandler = () => {
+        /* istanbul ignore next */
+        if (globalScope?.document?.visibilityState !== 'hidden') {
+          return;
+        }
+        fireAndFlushViewportContentUpdated(false);
       };
       /* istanbul ignore next */
-      globalScope?.addEventListener('beforeunload', beforeUnloadHandler);
+      globalScope?.document?.addEventListener('visibilitychange', visibilityChangeHandler);
+
       beforeUnloadCleanup = () => {
         /* istanbul ignore next */
-        globalScope?.removeEventListener('beforeunload', beforeUnloadHandler);
+        globalScope?.removeEventListener(pageEndEventName, pageEndHandler);
+        /* istanbul ignore next */
+        globalScope?.document?.removeEventListener('visibilitychange', visibilityChangeHandler);
       };
       // Ensure cleanup on teardown as well
       subscriptions.push({ unsubscribe: () => beforeUnloadCleanup() });
