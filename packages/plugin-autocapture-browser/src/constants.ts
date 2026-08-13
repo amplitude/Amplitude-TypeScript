@@ -59,3 +59,6 @@ export const MAX_ATTRIBUTE_LENGTH = 128;
 export const PAGE_VIEW_SESSION_STORAGE_KEY = 'AMP_PAGE_VIEW';
 
 export const MAX_ELEMENT_EXPOSED_STR_LENGTH = 18_000;
+
+// Window during which a second page end (eg. a navigation followed by an unload) is ignored
+export const PAGE_VIEW_END_DEDUPE_MS = 100;

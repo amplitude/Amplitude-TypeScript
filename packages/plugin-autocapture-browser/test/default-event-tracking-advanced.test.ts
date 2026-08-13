@@ -138,6 +138,7 @@ describe('autoTrackingPlugin', () => {
         intersectionCallback = cb;
         return {
           observe: jest.fn(),
+          unobserve: jest.fn(),
           disconnect: jest.fn(),
         };
       });
@@ -208,6 +209,7 @@ describe('autoTrackingPlugin', () => {
         intersectionCallback = cb;
         return {
           observe: jest.fn(),
+          unobserve: jest.fn(),
           disconnect: jest.fn(),
         };
       });
@@ -273,6 +275,7 @@ describe('autoTrackingPlugin', () => {
         intersectionCallback = cb;
         return {
           observe: jest.fn(),
+          unobserve: jest.fn(),
           disconnect: jest.fn(),
         };
       });
@@ -333,6 +336,7 @@ describe('autoTrackingPlugin', () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (window as any).IntersectionObserver = jest.fn(() => ({
         observe: jest.fn(),
+        unobserve: jest.fn(),
         disconnect: jest.fn(),
       }));
 
@@ -1749,6 +1753,7 @@ describe('autoTrackingPlugin', () => {
         intersectionCallback = cb;
         return {
           observe: jest.fn(),
+          unobserve: jest.fn(),
           disconnect: jest.fn(),
         };
       });
@@ -1804,7 +1809,9 @@ describe('autoTrackingPlugin', () => {
       };
       await plugin?.setup?.(config as BrowserConfig, instance);
 
-      // history.pushState is proxied.
+      // history.pushState is proxied. window.location is a stub here, so the URL the browser
+      // would have updated is set by hand.
+      (window.location as any).href = 'https://www.test.com/new-page';
       history.pushState({}, 'test', '/new-page');
 
       expect(track).toHaveBeenCalledWith('[Amplitude] Viewport Content Updated', expect.any(Object));
@@ -1816,8 +1823,24 @@ describe('autoTrackingPlugin', () => {
       window.dispatchEvent(new Event('scroll'));
 
       // Verify it can fire again (pageViewEndFired should be reset to false by the proxy)
+      (window.location as any).href = 'https://www.test.com/another-page';
       history.pushState({}, 'test', '/another-page');
       expect(track).toHaveBeenCalledTimes(2);
+    });
+
+    test('should not track [Amplitude] Viewport Content Updated when a history update leaves the URL unchanged', async () => {
+      const config: Partial<BrowserConfig> = {
+        defaultTracking: false,
+        loggerProvider: loggerProvider,
+      };
+      (window.location as any).href = 'https://www.test.com/page';
+      await plugin?.setup?.(config as BrowserConfig, instance);
+
+      // SPA frameworks rewrite history state without changing the URL, eg. during hydration
+      history.pushState({}, 'test', '/page');
+      window.dispatchEvent(new Event('popstate'));
+
+      expect(track).not.toHaveBeenCalled();
     });
 
     test('should track [Amplitude] Viewport Content Updated on popstate event', async () => {
@@ -1827,10 +1850,69 @@ describe('autoTrackingPlugin', () => {
       };
       await plugin?.setup?.(config as BrowserConfig, instance);
 
-      // Simulate popstate event
+      // Simulate a back navigation to a different URL
+      (window.location as any).href = 'https://www.test.com/previous-page';
       window.dispatchEvent(new Event('popstate'));
 
       expect(track).toHaveBeenCalledWith('[Amplitude] Viewport Content Updated', expect.any(Object));
+    });
+
+    test('should use the navigate event destination to decide whether the page view ended', async () => {
+      const handlers: ((event: Event) => void)[] = [];
+      (window.navigation as any) = {
+        addEventListener: (type: string, listener: (event: Event) => void) => {
+          if (type === 'navigate') {
+            handlers.push(listener);
+          }
+        },
+        removeEventListener: jest.fn(),
+      };
+      const navigateTo = (url: string) => {
+        handlers.forEach((handler) => handler({ type: 'navigate', destination: { url } } as unknown as Event));
+      };
+
+      try {
+        const config: Partial<BrowserConfig> = {
+          defaultTracking: false,
+          loggerProvider: loggerProvider,
+        };
+        (window.location as any).href = 'https://www.test.com/page';
+        await plugin?.setup?.(config as BrowserConfig, instance);
+
+        // The Navigation API also emits navigate for history updates that keep the same URL
+        navigateTo('https://www.test.com/page');
+        expect(track).not.toHaveBeenCalled();
+
+        navigateTo('https://www.test.com/other-page');
+        expect(track).toHaveBeenCalledWith('[Amplitude] Viewport Content Updated', expect.any(Object));
+      } finally {
+        (window.navigation as any) = undefined;
+      }
+    });
+
+    test('should track [Amplitude] Viewport Content Updated on pagehide', async () => {
+      const config: Partial<BrowserConfig> = {
+        defaultTracking: false,
+        loggerProvider: loggerProvider,
+      };
+      await plugin?.setup?.(config as BrowserConfig, instance);
+
+      window.dispatchEvent(new Event('pagehide'));
+
+      expect(track).toHaveBeenCalledWith('[Amplitude] Viewport Content Updated', expect.any(Object));
+    });
+
+    test('should not track duplicate [Amplitude] Viewport Content Updated events for beforeunload and pagehide', async () => {
+      const config: Partial<BrowserConfig> = {
+        defaultTracking: false,
+        loggerProvider: loggerProvider,
+      };
+      await plugin?.setup?.(config as BrowserConfig, instance);
+
+      window.dispatchEvent(new Event('pagehide'));
+      window.dispatchEvent(new Event('beforeunload'));
+
+      expect(track).toHaveBeenCalledTimes(1);
     });
 
     test('should flush Viewport Content Updated event when exposure buffer limit is reached', async () => {
