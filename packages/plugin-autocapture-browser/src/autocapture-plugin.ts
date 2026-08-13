@@ -149,6 +149,10 @@ export const autocapturePlugin = (
 
   let beforeUnloadCleanup: () => void;
 
+  // Re-emits exposure entries for the elements currently in the viewport. Set when the exposure
+  // observable is subscribed to.
+  let reobserveElementsInViewport: (() => void) | undefined;
+
   const createObservables = (): AllWindowObservables => {
     const clickObservable = multicast(
       createClickObservable().map(
@@ -220,6 +224,9 @@ export const autocapturePlugin = (
     const exposureObservable = createExposureObservable(
       mutationObservable,
       (options as AutoCaptureOptionsWithDefaults).cssSelectorAllowlist,
+      (reobserve) => {
+        reobserveElementsInViewport = reobserve;
+      },
     );
 
     return {
@@ -377,6 +384,7 @@ export const autocapturePlugin = (
         onExposure: handleExposure,
         dataExtractor,
         exposureDuration: resolvedExposureDuration,
+        reobserve: () => reobserveElementsInViewport?.(),
       });
       if (trackers.exposure) {
         subscriptions.push(trackers.exposure);

@@ -8,11 +8,13 @@ export function trackExposure({
   onExposure,
   dataExtractor,
   exposureDuration = DEFAULT_EXPOSURE_DURATION,
+  reobserve,
 }: {
   allObservables: AllWindowObservables;
   onExposure: (elementPath: string) => void;
   dataExtractor: DataExtractor;
   exposureDuration?: number;
+  reobserve?: () => void;
 }) {
   // Track which elements have been marked as exposed (per-element state)
   const exposureMap = new Map<Element, boolean>();
@@ -65,6 +67,9 @@ export function trackExposure({
       });
       exposureTimerMap.clear();
       exposureMap.clear();
+      // Elements that stay on screen across the reset have to be reported again, otherwise
+      // nothing above the fold is ever exposed for the next page view.
+      reobserve?.();
     },
   };
 }
