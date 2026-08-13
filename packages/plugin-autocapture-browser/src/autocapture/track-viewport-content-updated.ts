@@ -53,13 +53,14 @@ export function fireViewportContentUpdated({
     eventProperties[constants.AMPLITUDE_EVENT_PROP_PAGE_VIEW_ID] = pageViewId;
   }
 
-  // Reset state for the next page view. lastScroll has to follow the scroll tracker back to
-  // zero, otherwise the next event is compared against maxima from the previous page view and
+  // Reset state for the next page view. lastScroll has to follow the scroll tracker's new
+  // baseline, otherwise the next event is compared against maxima from the previous page view and
   // an event with no exposed elements looks like a scroll change.
   const resetForNextPageView = () => {
     scrollTracker.reset();
-    lastScroll.maxX = 0;
-    lastScroll.maxY = 0;
+    const scrollBaseline = scrollTracker.getState();
+    lastScroll.maxX = scrollBaseline.maxX;
+    lastScroll.maxY = scrollBaseline.maxY;
     elementExposedForPage.clear();
     exposureTracker?.reset();
   };

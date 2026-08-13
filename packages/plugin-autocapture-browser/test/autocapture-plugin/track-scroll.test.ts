@@ -113,6 +113,19 @@ describe('trackScroll', () => {
     expect(tracker.getState().maxY).toBe(0);
   });
 
+  test('should include the current position even when no scroll event was seen', () => {
+    // The browser jumps to a URL fragment on load, before this subscription exists
+    setScroll(0, 3106);
+
+    const tracker = trackScroll({
+      amplitude,
+      allObservables,
+    });
+    unsubscribe = tracker.unsubscribe;
+
+    expect(tracker.getState().maxY).toBe(3106);
+  });
+
   test('should reset state', () => {
     const tracker = trackScroll({
       amplitude,
@@ -125,8 +138,28 @@ describe('trackScroll', () => {
     expect(tracker.getState().maxX).toBe(100);
     expect(tracker.getState().maxY).toBe(200);
 
+    // Reset drops what the previous page view reached and rebaselines on the current position
+    setScroll(0, 0);
     tracker.reset();
     expect(tracker.getState().maxX).toBe(0);
     expect(tracker.getState().maxY).toBe(0);
+  });
+
+  test('should rebaseline on the current position when reset without scrolling back to the top', () => {
+    const tracker = trackScroll({
+      amplitude,
+      allObservables,
+    });
+    unsubscribe = tracker.unsubscribe;
+
+    setScroll(0, 3000);
+    triggerScroll();
+    setScroll(0, 1000);
+    triggerScroll();
+    expect(tracker.getState().maxY).toBe(3000);
+
+    // A SPA route change that leaves the page where it was starts the next page view at 1000
+    tracker.reset();
+    expect(tracker.getState().maxY).toBe(1000);
   });
 });
