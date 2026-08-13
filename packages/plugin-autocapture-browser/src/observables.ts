@@ -9,8 +9,11 @@ export const createMutationObservable = (): Observable<MutationRecord[]> => {
     const mutationObserver = new MutationObserver((mutations) => {
       observer.next(mutations);
     });
-    if (document.body) {
-      mutationObserver.observe(document.body, {
+    // Autocapture can be initialized from the document head, before the body exists. Falling back
+    // to the document element keeps the body and everything parsed into it observed.
+    const target = document.body ?? document.documentElement;
+    if (target) {
+      mutationObserver.observe(target, {
         childList: true,
         attributes: true,
         characterData: true,
