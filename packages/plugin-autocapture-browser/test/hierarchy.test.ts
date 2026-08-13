@@ -91,6 +91,28 @@ describe('autocapture-plugin hierarchy', () => {
         classes: ['class1', 'class2'],
       });
     });
+
+    test('should capture shadow attributes when element is in a shadow root', () => {
+      document.getElementsByTagName('body')[0].innerHTML = `
+        <div id="container">
+          <div id="inner">
+            xxx
+          </div>
+        </div>
+      `;
+      const inner = document.getElementById('inner') as any;
+      Object.defineProperty(inner, 'shadowRoot', { value: document.createElement('div') });
+      expect(HierarchyUtil.getElementProperties(inner, new Set())).toEqual({
+        id: 'inner',
+        index: 0,
+        indexOfType: 0,
+        tag: 'div',
+        shadow: true,
+        attrs: {
+          'data-amp-internal-shadow': 'true',
+        },
+      });
+    });
   });
 
   test('should not fail when parent element is null', () => {

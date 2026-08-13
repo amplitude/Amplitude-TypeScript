@@ -117,6 +117,11 @@ export function getElementProperties(
     properties.attrs = attributes;
   }
 
+  if (isShadowRoot(element.getRootNode())) {
+    properties.attrs = { ...(properties.attrs || {}), 'data-amp-internal-shadow': 'true' };
+    properties.shadow = true;
+  }
+
   return properties;
 }
 

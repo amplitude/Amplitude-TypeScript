@@ -8,6 +8,10 @@
 <body>
     <h1>Shadow DOM Test</h1>
 
+    <!-- Reloads with ?shadow flipped, so both modes can be compared without
+         hand-editing the URL. Other params (e.g. ?log=on) are preserved. -->
+    <button id="toggle-shadow" type="button"></button>
+
     <!-- Light-DOM control button: captured identically regardless of the flag. -->
     <button id="light-button" type="button">Light</button>
 
@@ -39,6 +43,23 @@
         // ?log=on adds a visible on-page event logger (+ console). Gated so it
         // stays completely inert for the deterministic Playwright e2e.
         const logOn = params.get('log') === 'on';
+
+        const toggle = document.getElementById('toggle-shadow');
+        toggle.textContent = shadowOn ? 'Shadow piercing: ON — turn off' : 'Shadow piercing: OFF — turn on';
+        toggle.style.cssText =
+            'display:block;margin:8px 0;padding:6px 12px;font:13px/1.4 monospace;cursor:pointer;' +
+            'border-radius:4px;border:1px solid #888;background:' + (shadowOn ? '#0a0' : '#eee') +
+            ';color:' + (shadowOn ? '#fff' : '#333');
+        toggle.addEventListener('click', () => {
+            const next = new URLSearchParams(window.location.search);
+            if (shadowOn) {
+                next.delete('shadow');
+            } else {
+                next.set('shadow', 'on');
+            }
+            const query = next.toString();
+            window.location.href = window.location.pathname + (query ? '?' + query : '');
+        });
 
         // --- Build the shadow trees ---
         const openRoot = document.querySelector('open-host').attachShadow({ mode: 'open' });
@@ -117,7 +138,7 @@
             });
         }
 
-        amplitude.init('shadow-dom-e2e-key', 'test-user', {
+        amplitude.init(import.meta.env.VITE_AMPLITUDE_API_KEY, 'test-user', {
             fetchRemoteConfig: false,
             flushIntervalMillis: 300,
             flushQueueSize: 1,
