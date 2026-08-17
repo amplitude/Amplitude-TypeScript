@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.45.6](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.45.5...@amplitude/analytics-browser@2.45.6) (2026-08-12)
+
+
+### Bug Fixes
+
+* **deps:** remediate Semgrep supply chain findings ([#1921](https://github.com/amplitude/Amplitude-TypeScript/issues/1921)) ([e131df0](https://github.com/amplitude/Amplitude-TypeScript/commit/e131df0b414933418e4c7159f1bfbdacc633a7d9))
+
+
+
+
+
 ## [2.45.5](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.45.4...@amplitude/analytics-browser@2.45.5) (2026-07-28)
 
 **Note:** Version bump only for package @amplitude/analytics-browser

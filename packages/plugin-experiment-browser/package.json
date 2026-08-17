@@ -1,6 +1,6 @@
 {
   "name": "@amplitude/plugin-experiment-browser",
-  "version": "1.0.0-beta.39",
+  "version": "1.0.0-beta.40",
   "description": "",
   "repository": {
     "type": "git",
@@ -44,6 +44,6 @@
     "@amplitude/experiment-js-client": "^1.15.5"
   },
   "devDependencies": {
-    "rollup": "^2.79.1"
+    "rollup": "^2.80.0"
   }
 }

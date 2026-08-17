@@ -45,17 +45,26 @@ runs:
 
     - name: Create .env file
       shell: bash
+      env:
+        VITE_AMPLITUDE_API_KEY: ${{ inputs.amplitude-api-key }}
+        VITE_AMPLITUDE_USER_ID: ${{ inputs.amplitude-user-id }}
       run: |
-        echo "VITE_AMPLITUDE_API_KEY=${{ inputs.amplitude-api-key }}" > .env
-        echo "VITE_AMPLITUDE_USER_ID=${{ inputs.amplitude-user-id }}" >> .env
+        printf 'VITE_AMPLITUDE_API_KEY=%s\n' "$VITE_AMPLITUDE_API_KEY" > .env
+        printf 'VITE_AMPLITUDE_USER_ID=%s\n' "$VITE_AMPLITUDE_USER_ID" >> .env
 
     - name: Start dev server
       shell: bash
+      env:
+        SERVER_PORT: ${{ inputs.server-port }}
       run: |
+        if ! [[ "$SERVER_PORT" =~ ^[0-9]+$ ]]; then
+          echo "Invalid server port: $SERVER_PORT"
+          exit 1
+        fi
         pnpm build:vite
-        pnpm start --port ${{ inputs.server-port }} &
+        pnpm start --port "$SERVER_PORT" &
         sleep 10
-        curl -f http://localhost:${{ inputs.server-port }} || exit 1
+        curl -f "http://localhost:$SERVER_PORT" || exit 1
 
     - name: Run Playwright tests
       shell: bash

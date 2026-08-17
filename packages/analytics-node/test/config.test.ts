@@ -20,6 +20,7 @@ describe('config', () => {
         loggerProvider: logger,
         logLevel: LogLevel.Warn,
         minIdLength: undefined,
+        requestTimeoutMillis: 10000,
         offline: false,
         _optOut: false,
         plan: undefined,
@@ -30,6 +31,12 @@ describe('config', () => {
         transportProvider: new Http(),
         useBatch: false,
       });
+    });
+
+    test('should overwrite the request timeout', () => {
+      const config = new Config.NodeConfig(API_KEY, { requestTimeoutMillis: 500 });
+      expect(config.requestTimeoutMillis).toBe(500);
+      expect(config.transportProvider).toEqual(new Http(500));
     });
   });
 
@@ -47,6 +54,7 @@ describe('config', () => {
         loggerProvider: logger,
         logLevel: LogLevel.Warn,
         minIdLength: undefined,
+        requestTimeoutMillis: 10000,
         offline: false,
         _optOut: false,
         plan: undefined,
