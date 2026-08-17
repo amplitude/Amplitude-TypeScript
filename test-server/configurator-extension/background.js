@@ -55,6 +55,21 @@ async function instrumentedTabs() {
   return tabs;
 }
 
+// chrome.storage.session has no atomic update, so a get that yields and a later set of the whole map
+// would write a snapshot that no longer has every tab. instrument, forget and takePayload all do
+// that — takePayload on nearly every first commit, because clearSession defaults to true — so they
+// share a queue, and each re-reads after the previous write has landed.
+let tabsQueue = Promise.resolve();
+
+function withTabs(work) {
+  const run = tabsQueue.then(work);
+  tabsQueue = run.then(
+    () => {},
+    () => {},
+  );
+  return run;
+}
+
 // A tab is not a thing that stays put: it can be closed, and Chrome can swap it for a prerendered one
 // mid-navigation. Every call below that names a tab id can therefore find nothing there, and tabs, action
 // and scripting all say so the same way — "No tab with id: 1234.", a message that says nothing about what
@@ -92,16 +107,20 @@ function guard(name, handler) {
 // Both transitions carry the CSP rule with them, so no path can mark a tab and forget to clear the way for
 // what the SDK is about to do — or leave a tab unprotected after instrumentation stops.
 async function instrument(tabId, payload) {
-  const tabs = await instrumentedTabs();
-  await chrome.storage.session.set({ [TABS_KEY]: { ...tabs, [tabId]: payload } });
+  await withTabs(async () => {
+    const tabs = await instrumentedTabs();
+    await chrome.storage.session.set({ [TABS_KEY]: { ...tabs, [tabId]: payload } });
+  });
   await relaxCsp(tabId);
   await ignoreMissingTab(chrome.action.setBadgeText({ tabId, text: 'on' }));
 }
 
 async function forget(tabId) {
-  const tabs = await instrumentedTabs();
-  delete tabs[tabId];
-  await chrome.storage.session.set({ [TABS_KEY]: tabs });
+  await withTabs(async () => {
+    const tabs = await instrumentedTabs();
+    delete tabs[tabId];
+    await chrome.storage.session.set({ [TABS_KEY]: tabs });
+  });
   await restoreCsp(tabId);
 }
 
@@ -118,16 +137,18 @@ async function forget(tabId) {
 // tab and the navigation it opened, which would otherwise make "first commit" mean "first since the worker
 // last woke up".
 async function takePayload(tabId) {
-  const tabs = await instrumentedTabs();
-  const payload = tabs[tabId];
-  if (!payload) {
-    return undefined;
-  }
-  const { clearSession, mockReferrer, ...rest } = payload;
-  if (clearSession || mockReferrer) {
-    await chrome.storage.session.set({ [TABS_KEY]: { ...tabs, [tabId]: rest } });
-  }
-  return payload;
+  return withTabs(async () => {
+    const tabs = await instrumentedTabs();
+    const payload = tabs[tabId];
+    if (!payload) {
+      return undefined;
+    }
+    const { clearSession, mockReferrer, ...rest } = payload;
+    if (clearSession || mockReferrer) {
+      await chrome.storage.session.set({ [TABS_KEY]: { ...tabs, [tabId]: rest } });
+    }
+    return payload;
+  });
 }
 
 // Runs in the page before the SDK bundle: saves what the page had under window.amplitude, since the
