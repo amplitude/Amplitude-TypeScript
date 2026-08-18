@@ -1,7 +1,6 @@
 import {Button, StyleSheet, Text, View} from 'react-native';
 import {useEffect} from 'react';
 import {identify, Identify, init, track, add, Types, trackScreenViewOnNavigationStateChange} from '@amplitude/analytics-react-native';
-import {networkCapturePlugin} from '@amplitude/plugin-network-capture-browser';
 import { NavigationContainer, useNavigationContainerRef } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import FetchNetworkTestScreen from './FetchNetworkTestScreen';
@@ -59,9 +58,7 @@ export default function App() {
           autocapture: {
             screenViews: true,
             elementInteractions: true,
-            networkTracking: {
-              ignoreHosts: ['http://localhost:8081'],
-            },
+            networkTracking: false,
             appLifecycles: true,
             sessions: true,
           },
