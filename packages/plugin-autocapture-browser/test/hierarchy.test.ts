@@ -92,7 +92,7 @@ describe('autocapture-plugin hierarchy', () => {
       });
     });
 
-    test('should capture shadow attributes when element is in a shadow root', () => {
+    test('should capture shadow attributes when element is a shadow host', () => {
       document.getElementsByTagName('body')[0].innerHTML = `
         <div id="container">
           <div id="inner">
@@ -100,8 +100,8 @@ describe('autocapture-plugin hierarchy', () => {
           </div>
         </div>
       `;
-      const inner = document.getElementById('inner') as any;
-      Object.defineProperty(inner, 'shadowRoot', { value: document.createElement('div') });
+      const inner = document.getElementById('inner') as HTMLElement;
+      inner.attachShadow({ mode: 'open' });
       expect(HierarchyUtil.getElementProperties(inner, new Set())).toEqual({
         id: 'inner',
         index: 0,
