@@ -4,15 +4,8 @@ import { UserSession } from '../user-session';
 import { RemoteConfigOptions } from './browser-config';
 import { NetworkTrackingOptions } from '../network-tracking';
 import { IRemoteConfigClient } from '../../remote-config/remote-config';
-import { IDiagnosticsClient } from '../../diagnostics/diagnostics-client';
 
-type HiddenOptions =
-  | 'apiKey'
-  | 'lastEventId'
-  | 'persistedAppVersion'
-  | 'persistedAppBuild'
-  | 'remoteConfigClient'
-  | 'diagnosticsClient';
+type HiddenOptions = 'apiKey' | 'lastEventId' | 'persistedAppVersion' | 'persistedAppBuild' | 'remoteConfigClient';
 
 /* @experimental This config is experimental pending GA of React Native autocapture. */
 export interface ReactNativeAutocaptureOptions {
@@ -49,7 +42,6 @@ export interface ReactNativeConfig extends Omit<IConfig, 'requestMetadata'> {
   /* @experimental this config is experimental pending GA of React Native autocapture */
   remoteConfig?: RemoteConfigOptions;
   remoteConfigClient?: IRemoteConfigClient;
-  diagnosticsClient?: IDiagnosticsClient;
   /* @experimental This config is experimental pending GA of React Native autocapture. */
   autocapture?: boolean | ReactNativeAutocaptureOptions;
 }

@@ -1,4 +1,5 @@
 import { AmplitudeReactNative } from '../src/react-native-client';
+import { ReactNativeDiagnosticsStorage } from '../src/diagnostics/diagnostics-storage';
 import * as core from '@amplitude/analytics-core';
 import * as Capture from '../src/amp-capture';
 import * as CookieMigration from '../src/cookie-migration';
@@ -1600,13 +1601,20 @@ describe('react-native-client', () => {
   });
 
   describe('diagnostics', () => {
-    test('should attach a diagnostics client to config', async () => {
+    test('should give Destination a diagnostics client backed by RN storage', async () => {
       const client = new AmplitudeReactNative();
+      const addSpy = jest.spyOn(client, 'add');
+
       await client.init(API_KEY, undefined, { ...useDefaultConfig() }).promise;
 
-      const diagnosticsClient = client.config.diagnosticsClient;
+      const destination = addSpy.mock.calls
+        .map(([plugin]) => plugin as core.Destination)
+        .find((plugin) => plugin.name === 'amplitude');
+      expect(destination).toBeDefined();
+      // Without this the analytics.events.sent / .dropped counters never fire on RN.
+      const diagnosticsClient = destination?.diagnosticsClient as core.DiagnosticsClient | undefined;
       expect(diagnosticsClient).toBeDefined();
-      expect((diagnosticsClient as core.DiagnosticsClient).storage).toBeDefined();
+      expect(diagnosticsClient?.storage).toBeInstanceOf(ReactNativeDiagnosticsStorage);
     });
   });
 });

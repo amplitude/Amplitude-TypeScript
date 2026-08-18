@@ -147,10 +147,8 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
     let remoteConfigClient: IRemoteConfigClient | undefined;
 
     // Step 0.2: Fetch diagnostics config
-    // Defaults leave diagnostics inert: isTimestampInSampleTemp() is always false at rate 0, so
-    // nothing is recorded until remote config raises the sample rate.
-    let diagnosticsSampleRate = 0;
-    let enableDiagnostics = true;
+    // let diagnosticsSampleRate: number;
+    // let enableDiagnostics: boolean = false;
     if (fetchRemoteConfig) {
       remoteConfigClient = new RemoteConfigClient(
         options.apiKey,
@@ -180,15 +178,15 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
               );
               if (remoteConfig) {
                 // Validate and set sampleRate (must be a valid number)
-                const sampleRate = remoteConfig.sampleRate as number;
-                if (typeof sampleRate === 'number' && !isNaN(sampleRate)) {
-                  diagnosticsSampleRate = sampleRate;
-                }
-                // Validate and set enabled (must be a boolean)
-                const enabled = remoteConfig.enabled as boolean;
-                if (typeof enabled === 'boolean') {
-                  enableDiagnostics = enabled;
-                }
+                // const sampleRate = remoteConfig.sampleRate as number;
+                // if (typeof sampleRate === 'number' && !isNaN(sampleRate)) {
+                //   diagnosticsSampleRate = sampleRate;
+                // }
+                // // Validate and set enabled (must be a boolean)
+                // const enabled = remoteConfig.enabled as boolean;
+                // if (typeof enabled === 'boolean') {
+                //   enableDiagnostics = enabled;
+                // }
               }
               resolve();
             },
@@ -199,12 +197,13 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
 
     // Step 0.3: Initialize diagnostics client as early as possible so it can record failures
     // during config setup. Mirrors the browser SDK; storage is injected because RN has no
-    // IndexedDB.
+    // IndexedDB. Options are left at their defaults (enabled, sample rate 0), which keeps the
+    // client inert until the remote config gate above is turned on.
     const diagnosticsClient = new DiagnosticsClient(
       options.apiKey,
       loggerProvider,
       serverZone,
-      { enabled: enableDiagnostics, sampleRate: diagnosticsSampleRate },
+      undefined,
       new ReactNativeDiagnosticsStorage(options.apiKey, loggerProvider),
     );
     diagnosticsClient.setTag('library', `${LIBPREFIX}/${VERSION}`);
@@ -258,7 +257,6 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
 
     await super._init(reactNativeOptions);
     this.config.remoteConfigClient = remoteConfigClient;
-    this.config.diagnosticsClient = diagnosticsClient;
 
     // Step 2.1: parse autocapture config (always reset so re-init clears prior flags)
     const autocaptureConfig = this.config.autocapture;
