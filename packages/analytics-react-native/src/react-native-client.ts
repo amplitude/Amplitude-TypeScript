@@ -34,11 +34,15 @@ import {
   NetworkTrackingOptions,
   normalizeNetworkCaptureRules,
   safeJsonStringify,
+  DiagnosticsClient,
 } from '@amplitude/analytics-core';
 import { plugin as networkCapturePlugin } from '@amplitude/plugin-network-capture-browser';
 import { CampaignTracker } from './campaign/campaign-tracker';
 import { Context } from './plugins/context';
 import { networkConnectivityCheckerPlugin } from './plugins/network-connectivity-checker';
+import { ReactNativeDiagnosticsStorage } from './diagnostics/diagnostics-storage';
+import { LIBPREFIX } from './lib-prefix';
+import { VERSION } from './version';
 import { useReactNativeConfig, createCookieStorage, shouldFetchRemoteConfig } from './config';
 import { updateReactNativeConfigWithRemoteConfig } from './config/joined-config';
 import { parseOldCookies } from './cookie-migration';
@@ -143,8 +147,10 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
     let remoteConfigClient: IRemoteConfigClient | undefined;
 
     // Step 0.2: Fetch diagnostics config
-    // let diagnosticsSampleRate: number;
-    // let enableDiagnostics: boolean = false;
+    // Defaults leave diagnostics inert: isTimestampInSampleTemp() is always false at rate 0, so
+    // nothing is recorded until remote config raises the sample rate.
+    let diagnosticsSampleRate = 0;
+    let enableDiagnostics = true;
     if (fetchRemoteConfig) {
       remoteConfigClient = new RemoteConfigClient(
         options.apiKey,
@@ -174,15 +180,15 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
               );
               if (remoteConfig) {
                 // Validate and set sampleRate (must be a valid number)
-                // const sampleRate = remoteConfig.sampleRate as number;
-                // if (typeof sampleRate === 'number' && !isNaN(sampleRate)) {
-                //   diagnosticsSampleRate = sampleRate;
-                // }
-                // // Validate and set enabled (must be a boolean)
-                // const enabled = remoteConfig.enabled as boolean;
-                // if (typeof enabled === 'boolean') {
-                //   enableDiagnostics = enabled;
-                // }
+                const sampleRate = remoteConfig.sampleRate as number;
+                if (typeof sampleRate === 'number' && !isNaN(sampleRate)) {
+                  diagnosticsSampleRate = sampleRate;
+                }
+                // Validate and set enabled (must be a boolean)
+                const enabled = remoteConfig.enabled as boolean;
+                if (typeof enabled === 'boolean') {
+                  enableDiagnostics = enabled;
+                }
               }
               resolve();
             },
@@ -190,6 +196,20 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
         });
       }
     }
+
+    // Step 0.3: Initialize diagnostics client as early as possible so it can record failures
+    // during config setup. Mirrors the browser SDK; storage is injected because RN has no
+    // IndexedDB.
+    const diagnosticsClient = new DiagnosticsClient(
+      options.apiKey,
+      loggerProvider,
+      serverZone,
+      { enabled: enableDiagnostics, sampleRate: diagnosticsSampleRate },
+      new ReactNativeDiagnosticsStorage(options.apiKey, loggerProvider),
+    );
+    diagnosticsClient.setTag('library', `${LIBPREFIX}/${VERSION}`);
+    diagnosticsClient.setTag('platform', 'ReactNative');
+    diagnosticsClient.setTag('os', Platform.OS);
 
     // Step 1: Read cookies stored by old SDK
     const oldCookies = await parseOldCookies(options.apiKey, options);
@@ -238,6 +258,7 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
 
     await super._init(reactNativeOptions);
     this.config.remoteConfigClient = remoteConfigClient;
+    this.config.diagnosticsClient = diagnosticsClient;
 
     // Step 2.1: parse autocapture config (always reset so re-init clears prior flags)
     const autocaptureConfig = this.config.autocapture;
@@ -281,7 +302,7 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
     if (this.config.offline !== OfflineDisabled) {
       await this.add(networkConnectivityCheckerPlugin()).promise;
     }
-    await this.add(new Destination()).promise;
+    await this.add(new Destination({ diagnosticsClient })).promise;
     await this.add(new Context()).promise;
     await this.add(new IdentityEventSender()).promise;
 

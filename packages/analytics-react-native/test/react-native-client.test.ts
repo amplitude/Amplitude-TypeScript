@@ -1598,4 +1598,15 @@ describe('react-native-client', () => {
       );
     });
   });
+
+  describe('diagnostics', () => {
+    test('should attach a diagnostics client to config', async () => {
+      const client = new AmplitudeReactNative();
+      await client.init(API_KEY, undefined, { ...useDefaultConfig() }).promise;
+
+      const diagnosticsClient = client.config.diagnosticsClient;
+      expect(diagnosticsClient).toBeDefined();
+      expect((diagnosticsClient as core.DiagnosticsClient).storage).toBeDefined();
+    });
+  });
 });
