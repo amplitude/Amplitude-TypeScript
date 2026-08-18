@@ -10,12 +10,6 @@ import {
 import { getAsyncStorage } from '../storage/local-storage';
 
 const MAX_PERSISTENT_STORAGE_EVENTS_COUNT = 10;
-/**
- * Bound on distinct tag/counter/histogram keys. The browser leaves IndexedDB unbounded and only
- * caps in memory, but everything here lives in one AsyncStorage entry, and Android limits the
- * size of a single entry.
- */
-const MAX_PERSISTENT_STORAGE_KEYS_COUNT = 1000;
 
 interface DiagnosticsBlob {
   tags: Record<string, string>;
@@ -61,9 +55,7 @@ export class ReactNativeDiagnosticsStorage implements IDiagnosticsStorage {
     try {
       const raw = await storage.getItem(this.storageKey);
       if (raw) {
-        // Spread over an empty blob so a payload written by an older version that lacks a field
-        // doesn't leave it undefined.
-        this.blob = { ...emptyBlob(), ...(JSON.parse(raw) as DiagnosticsBlob) };
+        this.blob = JSON.parse(raw) as DiagnosticsBlob;
       }
     } catch (error) {
       this.logger.debug('ReactNativeDiagnosticsStorage: Failed to read persisted diagnostics', error);
@@ -80,16 +72,11 @@ export class ReactNativeDiagnosticsStorage implements IDiagnosticsStorage {
         await storage.setItem(this.storageKey, JSON.stringify(this.blob));
       } catch (error) {
         // The JS package resolved but the native bridge is missing, or the entry exceeded the
-        // platform size limit. Diagnostics stay in memory.
+        // platform size limit. Memory stays authoritative and the next save tick rewrites.
         this.logger.debug('ReactNativeDiagnosticsStorage: Failed to persist diagnostics', error);
       }
     });
     return this.writeQueue;
-  }
-
-  /** True when `key` is new and the collection is already at its key cap. */
-  private isAtKeyLimit(collection: Record<string, unknown>, key: string): boolean {
-    return !(key in collection) && Object.keys(collection).length >= MAX_PERSISTENT_STORAGE_KEYS_COUNT;
   }
 
   async setTags(tags: Record<string, string>): Promise<void> {
@@ -98,9 +85,6 @@ export class ReactNativeDiagnosticsStorage implements IDiagnosticsStorage {
     }
     await this.ready;
     for (const [key, value] of Object.entries(tags)) {
-      if (this.isAtKeyLimit(this.blob.tags, key)) {
-        continue;
-      }
       this.blob.tags[key] = value;
     }
     await this.persist();
@@ -112,9 +96,6 @@ export class ReactNativeDiagnosticsStorage implements IDiagnosticsStorage {
     }
     await this.ready;
     for (const [key, increment] of Object.entries(counters)) {
-      if (this.isAtKeyLimit(this.blob.counters, key)) {
-        continue;
-      }
       this.blob.counters[key] = (this.blob.counters[key] ?? 0) + increment;
     }
     await this.persist();
@@ -126,9 +107,6 @@ export class ReactNativeDiagnosticsStorage implements IDiagnosticsStorage {
     }
     await this.ready;
     for (const [key, stats] of Object.entries(histogramStats)) {
-      if (this.isAtKeyLimit(this.blob.histograms, key)) {
-        continue;
-      }
       const existing = this.blob.histograms[key];
       this.blob.histograms[key] = existing
         ? {

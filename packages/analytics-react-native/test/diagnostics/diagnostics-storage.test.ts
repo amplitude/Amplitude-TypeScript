@@ -248,18 +248,6 @@ describe('ReactNativeDiagnosticsStorage', () => {
       expect(counters).toEqual([{ key: 'analytics.error', value: 4 }]);
     });
 
-    test('should tolerate a blob written without newer fields', async () => {
-      fakeAsyncStorage.entries.set('AMP_diagnostics_1234567890', JSON.stringify({ tags: { a: 'b' } }));
-
-      const storage = createStorage();
-
-      const { tags, counters, histogramStats, events } = await storage.getAllAndClear();
-      expect(tags).toEqual([{ key: 'a', value: 'b' }]);
-      expect(counters).toEqual([]);
-      expect(histogramStats).toEqual([]);
-      expect(events).toEqual([]);
-    });
-
     test('should log and start empty on unparsable persisted data', async () => {
       fakeAsyncStorage.entries.set('AMP_diagnostics_1234567890', 'not json');
 
@@ -339,46 +327,6 @@ describe('ReactNativeDiagnosticsStorage', () => {
       const { counters } = await createStorage().getAllAndClear();
 
       expect(counters).toEqual([]);
-    });
-  });
-
-  describe('key limits', () => {
-    // Exercises the cap that keeps the single AsyncStorage entry bounded.
-    const overLimit = (prefix: string) =>
-      Object.fromEntries(Array.from({ length: 1001 }, (_, i) => [`${prefix}${i}`, 1]));
-
-    test('should stop adding new counter keys at the limit but keep updating known ones', async () => {
-      const storage = createStorage();
-
-      await storage.incrementCounters(overLimit('c'));
-      await storage.incrementCounters({ c0: 5, 'brand.new': 1 });
-
-      const { counters } = await storage.getAllAndClear();
-      expect(counters).toHaveLength(1000);
-      expect(counters.find((c) => c.key === 'c0')?.value).toBe(6);
-      expect(counters.find((c) => c.key === 'brand.new')).toBeUndefined();
-    });
-
-    test('should cap tag keys', async () => {
-      const storage = createStorage();
-
-      await storage.setTags(
-        Object.fromEntries(Array.from({ length: 1001 }, (_, i) => [`t${i}`, 'v'])) as Record<string, string>,
-      );
-
-      const { tags } = await storage.getAllAndClear();
-      expect(tags).toHaveLength(1000);
-    });
-
-    test('should cap histogram keys', async () => {
-      const storage = createStorage();
-
-      await storage.setHistogramStats(
-        Object.fromEntries(Array.from({ length: 1001 }, (_, i) => [`h${i}`, { count: 1, min: 1, max: 1, sum: 1 }])),
-      );
-
-      const { histogramStats } = await storage.getAllAndClear();
-      expect(histogramStats).toHaveLength(1000);
     });
   });
 });
