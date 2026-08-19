@@ -1,7 +1,6 @@
 import {Button, StyleSheet, Text, View} from 'react-native';
 import {useEffect} from 'react';
 import {identify, Identify, init, track, add, Types, trackScreenViewOnNavigationStateChange} from '@amplitude/analytics-react-native';
-import {networkCapturePlugin} from '@amplitude/plugin-network-capture-browser';
 import { NavigationContainer, useNavigationContainerRef } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import FetchNetworkTestScreen from './FetchNetworkTestScreen';
@@ -54,7 +53,7 @@ export default function App() {
   useEffect(() => {
     (async () => {
         // AMPLITUDE_API_KEY is inlined at bundle time (see babel.config.js).
-        await init(process.env.AMPLITUDE_API_KEY || 'YOUR_API_KEY', '351pm Demo Video', {
+        await init(process.env.AMPLITUDE_API_KEY || 'YOUR_API_KEY', 'React Native Test User', {
           logLevel: Types.LogLevel.Debug,
           autocapture: {
             screenViews: true,
