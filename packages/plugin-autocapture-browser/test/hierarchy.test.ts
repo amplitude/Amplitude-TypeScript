@@ -90,6 +90,81 @@ describe('autocapture-plugin hierarchy', () => {
         classes: ['class1', 'class2'],
       });
     });
+
+    describe('captureCssClasses option', () => {
+      test('should include classes when captureCssClasses defaults (omitted argument)', () => {
+        document.getElementsByTagName('body')[0].innerHTML = `
+          <div id="container">
+            <div id="inner" class="class1 class2">xxx</div>
+          </div>
+        `;
+
+        const inner = document.getElementById('inner');
+        expect(HierarchyUtil.getElementProperties(inner, new Set())).toEqual({
+          id: 'inner',
+          index: 0,
+          indexOfType: 0,
+          tag: 'div',
+          classes: ['class1', 'class2'],
+        });
+      });
+
+      test('should include classes when captureCssClasses is explicitly true', () => {
+        document.getElementsByTagName('body')[0].innerHTML = `
+          <div id="container">
+            <div id="inner" class="class1 class2">xxx</div>
+          </div>
+        `;
+
+        const inner = document.getElementById('inner');
+        expect(HierarchyUtil.getElementProperties(inner, new Set(), true)).toEqual({
+          id: 'inner',
+          index: 0,
+          indexOfType: 0,
+          tag: 'div',
+          classes: ['class1', 'class2'],
+        });
+      });
+
+      test('should omit `classes` field entirely when captureCssClasses is false', () => {
+        document.getElementsByTagName('body')[0].innerHTML = `
+          <div id="container">
+            <div id="inner" class="class1 class2">xxx</div>
+          </div>
+        `;
+
+        const inner = document.getElementById('inner');
+        const result = HierarchyUtil.getElementProperties(inner, new Set(), false);
+
+        // Field is fully absent — not null, not [].
+        expect(result).not.toBeNull();
+        expect(result).not.toHaveProperty('classes');
+        // Other fields are unchanged.
+        expect(result).toEqual({
+          id: 'inner',
+          index: 0,
+          indexOfType: 0,
+          tag: 'div',
+        });
+      });
+
+      test('should omit `classes` when captureCssClasses is false even on highly sensitive input types', () => {
+        document.getElementsByTagName('body')[0].innerHTML = `
+          <input id="target" class="test" type="password" ok-attribute="hi"></input>
+        `;
+
+        const target = document.getElementById('target');
+        const result = HierarchyUtil.getElementProperties(target, new Set(), false);
+
+        expect(result).not.toHaveProperty('classes');
+        expect(result).toEqual({
+          id: 'target',
+          index: 0,
+          indexOfType: 0,
+          tag: 'input',
+        });
+      });
+    });
   });
 
   test('should not fail when parent element is null', () => {
