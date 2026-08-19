@@ -40,6 +40,11 @@ export interface IConfig {
    */
   loggerProvider: ILogger;
   /**
+   * Called when an upload fails because the browser could not reach the endpoint
+   * or when the SDK drops the event after exhausting retries.
+   */
+  onUploadError?: (error: string) => void;
+  /**
    * The minimum length for the value of userId and deviceId properties.
    */
   minIdLength?: number;
