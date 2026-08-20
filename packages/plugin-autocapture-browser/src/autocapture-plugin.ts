@@ -11,6 +11,7 @@ import {
   IDiagnosticsClient,
   getGlobalScope,
   getOrCreateWindowMessenger,
+  getDecodeURI,
   enableBackgroundCapture,
   multicast,
 } from '@amplitude/analytics-core';
@@ -21,6 +22,8 @@ import {
   type ElementBasedTimestampedEvent,
   type TimestampedEvent,
   type NavigateEvent,
+  getNormalizedPageUrl,
+  resolveHistoryNavigationUrl,
 } from './helpers';
 import { enableVisualTagging } from './libs/messenger';
 import { trackClicks } from './autocapture/track-click';
@@ -45,6 +48,7 @@ import { subscribeToElementSelectorConfig } from './element-selector-config';
 import { Observable, Unsubscribable } from '@amplitude/analytics-core';
 import { trackExposure } from './autocapture/track-exposure';
 import { fireViewportContentUpdated, onExposure, ExposureTracker } from './autocapture/track-viewport-content-updated';
+import { createInitialExposureSnapshotScheduler } from './autocapture/schedule-initial-exposure-snapshot';
 
 type NavigationType = {
   addEventListener: (type: string, listener: EventListenerOrEventListenerObject) => void;
@@ -144,10 +148,13 @@ export const autocapturePlugin = (
   // Page-level state shared across trackers, emitted in a single Page View End event on beforeunload
   // elementExposedForPage holds the total set of elements seen during the entire page view lifetime
   const elementExposedForPage = new Set<string>();
+  // elementExposedInSentEvents holds elements already included in a flushed Viewport Content Updated event
+  const elementExposedInSentEvents = new Set<string>();
   // currentElementExposed only holds the set of elements that will be flushed during the next [Amplitude] Viewport Content Updated event
   const currentElementExposed = new Set<string>();
 
   let beforeUnloadCleanup: () => void;
+  let rescanElementsForExposure: (() => void) | undefined;
 
   const createObservables = (): AllWindowObservables => {
     const clickObservable = multicast(
@@ -220,6 +227,9 @@ export const autocapturePlugin = (
     const exposureObservable = createExposureObservable(
       mutationObservable,
       (options as AutoCaptureOptionsWithDefaults).cssSelectorAllowlist,
+      (rescan) => {
+        rescanElementsForExposure = rescan;
+      },
     );
 
     return {
@@ -347,28 +357,67 @@ export const autocapturePlugin = (
 
     const globalScope = getGlobalScope();
 
+    let initialExposureSnapshotScheduler: ReturnType<typeof createInitialExposureSnapshotScheduler> | undefined;
+
     const handleViewportContentUpdated = (isPageEnd: boolean) => {
       if (isPageEnd && pageViewEndFired) {
         return;
       }
-      setTimeout(() => {
-        pageViewEndFired = false;
-      }, 100);
+      if (isPageEnd) {
+        pageViewEndFired = true;
+        setTimeout(() => {
+          pageViewEndFired = false;
+        }, 100);
+      }
 
-      pageViewEndFired = true;
       fireViewportContentUpdated({
         amplitude,
         scrollTracker,
         currentElementExposed,
         elementExposedForPage,
+        elementExposedInSentEvents,
         exposureTracker: trackers.exposure,
         isPageEnd,
         lastScroll,
       });
+
+      if (isPageEnd) {
+        initialExposureSnapshotScheduler?.reset();
+      }
+    };
+
+    let trackedPageUrl = getNormalizedPageUrl(globalScope);
+
+    const handleSpaNavigation = () => {
+      const currentPageUrl = getNormalizedPageUrl(globalScope);
+      if (currentPageUrl === trackedPageUrl) {
+        return;
+      }
+
+      trackedPageUrl = currentPageUrl;
+      handleViewportContentUpdated(true);
+    };
+
+    const handleHistoryStateChange = (applyHistoryChange: () => void, nextUrl: string | URL | null | undefined) => {
+      const previousPageUrl = getNormalizedPageUrl(globalScope);
+      applyHistoryChange();
+      const nextPageUrl = resolveHistoryNavigationUrl(nextUrl, globalScope);
+      if (previousPageUrl === nextPageUrl) {
+        return;
+      }
+
+      trackedPageUrl = nextPageUrl;
+      handleViewportContentUpdated(true);
     };
 
     const handleExposure = (elementPath: string) => {
-      onExposure(elementPath, elementExposedForPage, currentElementExposed, handleViewportContentUpdated);
+      onExposure(
+        elementPath,
+        elementExposedForPage,
+        elementExposedInSentEvents,
+        currentElementExposed,
+        handleViewportContentUpdated,
+      );
     };
 
     if (isViewportContentUpdatedEnabled) {
@@ -381,6 +430,25 @@ export const autocapturePlugin = (
       if (trackers.exposure) {
         subscriptions.push(trackers.exposure);
       }
+
+      initialExposureSnapshotScheduler = createInitialExposureSnapshotScheduler({
+        mutationObservable: allObservables[ObservablesEnum.MutationObservable],
+        onRescan: () => {
+          config.loggerProvider.debug(
+            '@amplitude/plugin-autocapture-browser: initial exposure snapshot — rescanning DOM',
+          );
+          rescanElementsForExposure?.();
+        },
+        onFlush: () => {
+          config.loggerProvider.debug(
+            '@amplitude/plugin-autocapture-browser: initial exposure snapshot — flushing viewport content updated',
+          );
+          handleViewportContentUpdated(false);
+        },
+        exposureDuration: resolvedExposureDuration,
+      });
+      initialExposureSnapshotScheduler.start();
+      subscriptions.push({ unsubscribe: () => initialExposureSnapshotScheduler?.stop() });
 
       const beforeUnloadHandler = () => {
         handleViewportContentUpdated(true);
@@ -398,13 +466,20 @@ export const autocapturePlugin = (
       const navigateObservable = allObservables[ObservablesEnum.NavigateObservable];
       if (navigateObservable) {
         subscriptions.push(
-          navigateObservable.subscribe(() => {
+          navigateObservable.subscribe((timestampedEvent) => {
+            const navigateEvent = timestampedEvent.event;
+            const nextPageUrl = getDecodeURI(navigateEvent.destination.url.split('?')[0]);
+            if (nextPageUrl === trackedPageUrl) {
+              return;
+            }
+
+            trackedPageUrl = nextPageUrl;
             handleViewportContentUpdated(true);
           }),
         );
       } else if (globalScope) {
         const popstateHandler = () => {
-          handleViewportContentUpdated(true);
+          handleSpaNavigation();
         };
         /* istanbul ignore next */
         // Fallback for SPA tracking when Navigation API is not available
@@ -416,12 +491,25 @@ export const autocapturePlugin = (
         // https://stackoverflow.com/a/64927639
         // eslint-disable-next-line @typescript-eslint/unbound-method
         const originalPushState = globalScope.history.pushState;
+        // eslint-disable-next-line @typescript-eslint/unbound-method
+        const originalReplaceState = globalScope.history.replaceState;
         if (globalScope.history && originalPushState) {
           // eslint-disable-next-line @typescript-eslint/unbound-method
           globalScope.history.pushState = new Proxy(originalPushState, {
-            apply: (target, thisArg, [state, unused, url]) => {
-              target.apply(thisArg, [state, unused, url]);
-              handleViewportContentUpdated(true);
+            apply: (target, thisArg, args: [unknown, string, string | URL | null | undefined]) => {
+              handleHistoryStateChange(() => {
+                target.apply(thisArg, args);
+              }, args[2]);
+            },
+          });
+        }
+        if (globalScope.history && originalReplaceState) {
+          // eslint-disable-next-line @typescript-eslint/unbound-method
+          globalScope.history.replaceState = new Proxy(originalReplaceState, {
+            apply: (target, thisArg, args: [unknown, string, string | URL | null | undefined]) => {
+              handleHistoryStateChange(() => {
+                target.apply(thisArg, args);
+              }, args[2]);
             },
           });
         }
@@ -433,6 +521,10 @@ export const autocapturePlugin = (
             /* istanbul ignore next */
             if (globalScope.history && originalPushState) {
               globalScope.history.pushState = originalPushState;
+            }
+            /* istanbul ignore next */
+            if (globalScope.history && originalReplaceState) {
+              globalScope.history.replaceState = originalReplaceState;
             }
           },
         });

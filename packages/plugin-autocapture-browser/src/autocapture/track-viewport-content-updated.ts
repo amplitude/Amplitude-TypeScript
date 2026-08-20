@@ -16,6 +16,7 @@ export function fireViewportContentUpdated({
   scrollTracker,
   currentElementExposed,
   elementExposedForPage,
+  elementExposedInSentEvents,
   exposureTracker,
   isPageEnd,
   lastScroll,
@@ -24,6 +25,7 @@ export function fireViewportContentUpdated({
   scrollTracker: ScrollTracker;
   currentElementExposed: Set<string>;
   elementExposedForPage: Set<string>;
+  elementExposedInSentEvents: Set<string>;
   exposureTracker: ExposureTracker | undefined;
   isPageEnd: boolean;
   lastScroll: { maxX: undefined | number; maxY: undefined | number };
@@ -36,6 +38,10 @@ export function fireViewportContentUpdated({
   /* istanbul ignore next */
   const viewportHeight = globalScope?.innerHeight ?? 0;
 
+  const newExposures = Array.from(currentElementExposed).filter(
+    (elementPath) => !elementExposedInSentEvents.has(elementPath),
+  );
+
   const eventProperties: Record<string, unknown> = {
     [constants.AMPLITUDE_EVENT_PROP_PAGE_URL]: getDecodeURI(
       /* istanbul ignore next */
@@ -45,7 +51,7 @@ export function fireViewportContentUpdated({
     [constants.AMPLITUDE_EVENT_PROP_MAX_PAGE_Y]: pageScrollMaxState.maxY + viewportHeight,
     [constants.AMPLITUDE_EVENT_PROP_VIEWPORT_HEIGHT]: viewportHeight,
     [constants.AMPLITUDE_EVENT_PROP_VIEWPORT_WIDTH]: viewportWidth,
-    '[Amplitude] Element Exposed': Array.from(currentElementExposed),
+    '[Amplitude] Element Exposed': newExposures,
   };
 
   const pageViewId = getCurrentPageViewId();
@@ -55,13 +61,14 @@ export function fireViewportContentUpdated({
 
   // If elements exposed is empty and max scroll is same as last event, don't track
   if (
-    currentElementExposed.size === 0 &&
+    newExposures.length === 0 &&
     pageScrollMaxState.maxX === lastScroll.maxX &&
     pageScrollMaxState.maxY === lastScroll.maxY
   ) {
     if (isPageEnd) {
       scrollTracker.reset();
       elementExposedForPage.clear();
+      elementExposedInSentEvents.clear();
       exposureTracker?.reset();
     }
     return;
@@ -72,6 +79,10 @@ export function fireViewportContentUpdated({
   lastScroll.maxX = pageScrollMaxState.maxX;
   lastScroll.maxY = pageScrollMaxState.maxY;
 
+  newExposures.forEach((elementPath) => {
+    elementExposedInSentEvents.add(elementPath);
+  });
+
   // Clear current batch
   currentElementExposed.clear();
 
@@ -79,6 +90,7 @@ export function fireViewportContentUpdated({
     // Reset state for next page view
     scrollTracker.reset();
     elementExposedForPage.clear();
+    elementExposedInSentEvents.clear();
     exposureTracker?.reset();
   }
 }
@@ -86,10 +98,11 @@ export function fireViewportContentUpdated({
 export function onExposure(
   elementPath: string,
   elementExposedForPage: Set<string>,
+  elementExposedInSentEvents: Set<string>,
   currentElementExposed: Set<string>,
   fireViewportContentUpdatedCallback: (isPageEnd: boolean) => void,
 ) {
-  if (elementExposedForPage.has(elementPath)) {
+  if (elementExposedForPage.has(elementPath) || elementExposedInSentEvents.has(elementPath)) {
     return;
   }
   elementExposedForPage.add(elementPath);

@@ -1726,10 +1726,14 @@ describe('autoTrackingPlugin', () => {
     let loggerProvider: ILogger;
     // eslint-disable-next-line @typescript-eslint/unbound-method
     const originalPushState = history.pushState;
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    const originalReplaceState = history.replaceState;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let intersectionCallback: (entries: any[]) => void;
 
     beforeEach(async () => {
+      mockWindowLocationFromURL(new URL('http://localhost/'));
+
       // Ensure navigation API is not present to test fallback (pushState proxy)
       Object.defineProperty(window, 'navigation', {
         value: undefined,
@@ -1761,6 +1765,9 @@ describe('autoTrackingPlugin', () => {
     afterEach(async () => {
       if (originalPushState) {
         history.pushState = originalPushState;
+      }
+      if (originalReplaceState) {
+        history.replaceState = originalReplaceState;
       }
       (window as any).IntersectionObserver = undefined;
     });
@@ -1803,6 +1810,7 @@ describe('autoTrackingPlugin', () => {
         loggerProvider: loggerProvider,
       };
       await plugin?.setup?.(config as BrowserConfig, instance);
+      track.mockClear();
 
       // history.pushState is proxied.
       history.pushState({}, 'test', '/new-page');
@@ -1810,27 +1818,54 @@ describe('autoTrackingPlugin', () => {
       expect(track).toHaveBeenCalledWith('[Amplitude] Viewport Content Updated', expect.any(Object));
 
       jest.advanceTimersByTime(1000);
+      track.mockClear();
       //  change scroll depth to trigger a new viewport content updated event
       Object.defineProperty(window, 'scrollY', { value: 100, writable: true });
       Object.defineProperty(window, 'pageYOffset', { value: 100, writable: true });
       window.dispatchEvent(new Event('scroll'));
 
-      // Verify it can fire again (pageViewEndFired should be reset to false by the proxy)
+      // Verify it can fire again after a real URL change
       history.pushState({}, 'test', '/another-page');
-      expect(track).toHaveBeenCalledTimes(2);
+      expect(track).toHaveBeenCalledTimes(1);
     });
 
-    test('should track [Amplitude] Viewport Content Updated on popstate event', async () => {
+    test('should not track [Amplitude] Viewport Content Updated on same-URL pushState', async () => {
       const config: Partial<BrowserConfig> = {
         defaultTracking: false,
         loggerProvider: loggerProvider,
       };
       await plugin?.setup?.(config as BrowserConfig, instance);
+      track.mockClear();
 
-      // Simulate popstate event
+      history.pushState({}, 'test', window.location.pathname);
+
+      expect(track).not.toHaveBeenCalled();
+    });
+
+    test('should not track [Amplitude] Viewport Content Updated on same-URL replaceState', async () => {
+      const config: Partial<BrowserConfig> = {
+        defaultTracking: false,
+        loggerProvider: loggerProvider,
+      };
+      await plugin?.setup?.(config as BrowserConfig, instance);
+      track.mockClear();
+
+      history.replaceState({}, 'test', window.location.pathname);
+
+      expect(track).not.toHaveBeenCalled();
+    });
+
+    test('should not track [Amplitude] Viewport Content Updated on same-URL popstate', async () => {
+      const config: Partial<BrowserConfig> = {
+        defaultTracking: false,
+        loggerProvider: loggerProvider,
+      };
+      await plugin?.setup?.(config as BrowserConfig, instance);
+      track.mockClear();
+
       window.dispatchEvent(new Event('popstate'));
 
-      expect(track).toHaveBeenCalledWith('[Amplitude] Viewport Content Updated', expect.any(Object));
+      expect(track).not.toHaveBeenCalled();
     });
 
     test('should flush Viewport Content Updated event when exposure buffer limit is reached', async () => {

@@ -172,6 +172,55 @@ describe('createExposureObservable', () => {
     expect(mockIntersectionObserver.observe).toHaveBeenCalledWith(matchingChild);
   });
 
+  test('should observe elements added via DocumentFragment', () => {
+    const exposureObservable = createExposureObservable(mutationObservable, ['.track-me']);
+    exposureObservable.subscribe(() => {
+      return;
+    });
+
+    mockIntersectionObserver.observe.mockClear();
+
+    const fragment = document.createDocumentFragment();
+    const matchingChild = document.createElement('button');
+    matchingChild.className = 'track-me';
+    fragment.appendChild(matchingChild);
+
+    const mutationRecord = {
+      addedNodes: [fragment] as unknown as NodeList,
+    } as MutationRecord;
+
+    observers.forEach((cb) => {
+      cb({
+        event: [mutationRecord],
+        timestamp: Date.now(),
+        type: 'mutation',
+      });
+    });
+
+    expect(mockIntersectionObserver.observe).toHaveBeenCalledWith(matchingChild);
+  });
+
+  test('should rescan all allowlisted elements when rescan is invoked', () => {
+    let rescan: (() => void) | undefined;
+    const exposureObservable = createExposureObservable(mutationObservable, ['.track-me'], (fn) => {
+      rescan = fn;
+    });
+    exposureObservable.subscribe(() => {
+      return;
+    });
+
+    mockIntersectionObserver.observe.mockClear();
+
+    const lateElement = document.createElement('button');
+    lateElement.className = 'track-me';
+    document.body.appendChild(lateElement);
+
+    rescan?.();
+
+    expect(mockIntersectionObserver.observe).toHaveBeenCalledWith(lateElement);
+    lateElement.remove();
+  });
+
   test('should skip non-Element nodes added via mutation', () => {
     const exposureObservable = createExposureObservable(mutationObservable, ['div']);
     exposureObservable.subscribe(() => {
