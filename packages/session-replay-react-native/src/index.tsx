@@ -7,6 +7,8 @@ export {
   start,
   stop,
   setDeviceId,
+  teardown,
+  setOptOut,
 } from './session-replay';
 export { type SessionReplayConfig, type MaskLevel, type PrivacyConfig } from './session-replay-config';
 

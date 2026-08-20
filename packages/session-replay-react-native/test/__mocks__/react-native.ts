@@ -8,6 +8,8 @@ const ampNativeSessionReplay = {
   getSessionReplayProperties: jest.fn().mockResolvedValue({ replayId: 'test-id' }),
   setDeviceId: jest.fn().mockResolvedValue(undefined),
   setSessionId: jest.fn().mockResolvedValue(undefined),
+  teardown: jest.fn().mockResolvedValue(undefined),
+  setOptOut: jest.fn().mockResolvedValue(undefined),
 };
 
 // Resolve on both architectures: NativeModules (old arch) and TurboModuleRegistry

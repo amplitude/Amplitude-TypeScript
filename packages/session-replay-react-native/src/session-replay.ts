@@ -209,6 +209,10 @@ export async function start(): Promise<void> {
     logger.warn('SessionReplay is not initialized');
     return;
   }
+  if (fullConfig?.optOut) {
+    logger.debug('start skipped: opted out');
+    return;
+  }
   await NativeSessionReplay.start();
 }
 
@@ -230,6 +234,56 @@ export async function stop(): Promise<void> {
     return;
   }
   await NativeSessionReplay.stop();
+}
+
+/**
+ * Shut down the native session replay SDK and clear JavaScript state.
+ * After teardown, {@link init} may be called again.
+ *
+ * @returns Promise that resolves when teardown is complete
+ *
+ * @example
+ * ```typescript
+ * await teardown();
+ * await init({ apiKey: 'YOUR_API_KEY', deviceId, sessionId });
+ * ```
+ */
+export async function teardown(): Promise<void> {
+  if (!isInitialized) {
+    logger.warn('SessionReplay is not initialized');
+    return;
+  }
+  await NativeSessionReplay.teardown();
+  isInitialized = false;
+  fullConfig = null;
+}
+
+/**
+ * Opt in or out of session replay collection at runtime.
+ * Complements the init-time `optOut` config flag.
+ *
+ * On iOS this sets `SessionReplay.optOut`, which starts or stops capture as needed.
+ * On Android, until SDKA-78 ships a native setter, the bridge matches Flutter:
+ * `shutdown()` without `stop()` (so buffered data is not flushed), then recreate
+ * the native SDK on opt-in and `start()` only if recording was already started.
+ *
+ * @param optOut - When true, session replay collection is disabled
+ * @returns Promise that resolves when the native flag is updated
+ *
+ * @example
+ * ```typescript
+ * await setOptOut(true);
+ * ```
+ */
+export async function setOptOut(optOut: boolean): Promise<void> {
+  if (!isInitialized) {
+    logger.warn('SessionReplay is not initialized');
+    return;
+  }
+  if (fullConfig) {
+    fullConfig = { ...fullConfig, optOut };
+  }
+  await NativeSessionReplay.setOptOut(optOut);
 }
 
 function nativeConfig(config: ResolvedSessionReplayConfig): NativeSessionReplayConfig {

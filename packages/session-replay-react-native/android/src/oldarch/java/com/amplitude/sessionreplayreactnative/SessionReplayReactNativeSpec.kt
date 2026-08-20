@@ -17,4 +17,6 @@ abstract class SessionReplayReactNativeSpec(reactContext: ReactApplicationContex
   abstract fun start(promise: Promise)
   abstract fun stop(promise: Promise)
   abstract fun flush(promise: Promise)
+  abstract fun teardown(promise: Promise)
+  abstract fun setOptOut(optOut: Boolean, promise: Promise)
 }

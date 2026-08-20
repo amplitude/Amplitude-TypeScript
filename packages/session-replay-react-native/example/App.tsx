@@ -42,6 +42,8 @@ import {
   getSessionReplayProperties,
   setSessionId,
   setDeviceId,
+  teardown,
+  setOptOut,
   AmpMaskView,
 } from '@amplitude/session-replay-react-native';
 
@@ -167,6 +169,28 @@ function HomeScreen({ navigation }: HomeProps): React.JSX.Element {
           <Button
             title="getProps"
             onPress={runFn('getSessionReplayProperties', getSessionReplayProperties)}
+          />
+          <Button
+            title="setOptOut true"
+            onPress={runFn('setOptOut', () => setOptOut(true))}
+          />
+          <Button
+            title="setOptOut false"
+            onPress={runFn('setOptOut', () => setOptOut(false))}
+          />
+          <Button title="teardown" onPress={runFn('teardown', teardown)} />
+          <Button
+            title="re-init"
+            onPress={runFn('init', () =>
+              init({
+                apiKey: 'YOUR_AMPLITUDE_API_KEY',
+                deviceId: verificationDeviceId,
+                sessionId: Date.now(),
+                sampleRate: 1,
+                enableRemoteConfig: false,
+                logLevel: 4,
+              }),
+            )}
           />
         </View>
 

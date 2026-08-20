@@ -97,8 +97,8 @@ describe('SessionReplayPlugin Integration', () => {
     await plugin.stop();
     expect(NativeModules.AMPNativeSessionReplay.stop).toHaveBeenCalled();
     await plugin.teardown();
-    // teardown should call stop again (idempotent)
-    expect(NativeModules.AMPNativeSessionReplay.stop).toHaveBeenCalledTimes(2);
+    expect(NativeModules.AMPNativeSessionReplay.teardown).toHaveBeenCalledTimes(1);
+    expect(NativeModules.AMPNativeSessionReplay.stop).toHaveBeenCalledTimes(1);
   });
 
   it('should call getSessionReplayProperties', async () => {

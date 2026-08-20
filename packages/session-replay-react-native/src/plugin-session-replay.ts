@@ -6,7 +6,15 @@ import {
 } from '@amplitude/analytics-types';
 
 import { SessionReplayPluginConfig, getDefaultSessionReplayPluginConfig } from './plugin-session-replay-config';
-import { getSessionId, getSessionReplayProperties, privateInit, setSessionId, start, stop } from './session-replay';
+import {
+  getSessionId,
+  getSessionReplayProperties,
+  privateInit,
+  setSessionId,
+  start,
+  stop,
+  teardown as teardownSessionReplay,
+} from './session-replay';
 import { createSessionReplayLogger } from './logger';
 
 /**
@@ -128,7 +136,7 @@ export class SessionReplayPlugin implements EnrichmentPlugin<ReactNativeClient, 
 
   async teardown(): Promise<void> {
     if (this.isInitialized) {
-      await stop();
+      await teardownSessionReplay();
     }
 
     this.config = null;

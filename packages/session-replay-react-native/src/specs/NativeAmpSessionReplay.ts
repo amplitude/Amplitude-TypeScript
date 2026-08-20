@@ -19,6 +19,8 @@ export interface Spec extends TurboModule {
   start(): Promise<void>;
   stop(): Promise<void>;
   flush(): Promise<void>;
+  teardown(): Promise<void>;
+  setOptOut(optOut: boolean): Promise<void>;
 }
 
 // Use non-enforcing `get` (returns null when the native module isn't linked)

@@ -10,7 +10,16 @@ jest.mock('react-native');
 
 jest.mock('../src/logger', () => require('./utils/logger'));
 
-import { init, start, stop, getSessionId, getSessionReplayProperties, type SessionReplayConfig } from '../src/index';
+import {
+  init,
+  start,
+  stop,
+  getSessionId,
+  getSessionReplayProperties,
+  setOptOut,
+  teardown,
+  type SessionReplayConfig,
+} from '../src/index';
 import { NativeModules } from 'react-native';
 import { LogLevel } from '@amplitude/analytics-types';
 
@@ -53,12 +62,20 @@ describe('Session Replay Integration Tests', () => {
     await stop();
     expect(mockNativeModules.AMPNativeSessionReplay.stop).toHaveBeenCalled();
 
+    await setOptOut(true);
+    expect(mockNativeModules.AMPNativeSessionReplay.setOptOut).toHaveBeenCalledWith(true);
+
+    await teardown();
+    expect(mockNativeModules.AMPNativeSessionReplay.teardown).toHaveBeenCalled();
+
     const calls = jest.mocked(mockNativeModules.AMPNativeSessionReplay);
     expect(calls.setup).toHaveBeenCalled();
     expect(calls.start).toHaveBeenCalled();
     expect(calls.getSessionId).toHaveBeenCalled();
     expect(calls.getSessionReplayProperties).toHaveBeenCalled();
     expect(calls.stop).toHaveBeenCalled();
+    expect(calls.setOptOut).toHaveBeenCalled();
+    expect(calls.teardown).toHaveBeenCalled();
   });
 
   // These tests cover the resolution chain in `nativeConfig()` for the
