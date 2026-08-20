@@ -619,6 +619,25 @@ importers:
         specifier: ^2.80.0
         version: 2.80.0
 
+  packages/plugin-experiment-react-native:
+    dependencies:
+      '@amplitude/analytics-core':
+        specifier: workspace:*
+        version: link:../analytics-core
+      '@amplitude/experiment-react-native-client':
+        specifier: ^1.8.0
+        version: 1.8.0(react-native@0.73.0(@babel/core@7.28.5)(@babel/preset-env@7.28.5(@babel/core@7.28.5))(encoding@0.1.13)(react@18.2.0))(react@18.2.0)
+    devDependencies:
+      react:
+        specifier: 18.2.0
+        version: 18.2.0
+      react-native:
+        specifier: 0.73.0
+        version: 0.73.0(@babel/core@7.28.5)(@babel/preset-env@7.28.5(@babel/core@7.28.5))(encoding@0.1.13)(react@18.2.0)
+      react-native-builder-bob:
+        specifier: ^0.20.3
+        version: 0.20.4
+
   packages/plugin-global-user-properties:
     dependencies:
       '@amplitude/analytics-types':
@@ -1177,6 +1196,13 @@ packages:
   '@amplitude/experiment-js-client@1.20.0':
     resolution:
       { integrity: sha512-MMecqmDXJ81KH0dU2/Alshy8O3srBOO8A0CcIy958zUUFJwyB3z2zXbU2EYSF0s75xwWBAu/+F23Dp2ATmOerg== }
+
+  '@amplitude/experiment-react-native-client@1.8.0':
+    resolution:
+      { integrity: sha512-qEd1s5SmJyct81lGtOBWQbyoAWfUBjcTl2LLdKaxRrsHAnJtnu0MbwvMzh6RwnKRjMigRfxOH+2kPVu3UV/0cg== }
+    peerDependencies:
+      react: '*'
+      react-native: '*'
 
   '@amplitude/plugin-autocapture-browser@1.27.4':
     resolution:
@@ -12758,6 +12784,15 @@ snapshots:
       base64-js: 1.5.1
       unfetch: 4.1.0
 
+  '@amplitude/experiment-react-native-client@1.8.0(react-native@0.73.0(@babel/core@7.28.5)(@babel/preset-env@7.28.5(@babel/core@7.28.5))(encoding@0.1.13)(react@18.2.0))(react@18.2.0)':
+    dependencies:
+      '@amplitude/analytics-connector': 1.6.4
+      '@amplitude/experiment-core': 0.11.1
+      '@react-native-async-storage/async-storage': 1.24.0(react-native@0.73.0(@babel/core@7.28.5)(@babel/preset-env@7.28.5(@babel/core@7.28.5))(encoding@0.1.13)(react@18.2.0))
+      react: 18.2.0
+      react-native: 0.73.0(@babel/core@7.28.5)(@babel/preset-env@7.28.5(@babel/core@7.28.5))(encoding@0.1.13)(react@18.2.0)
+      unfetch: 4.2.0
+
   '@amplitude/plugin-autocapture-browser@1.27.4':
     dependencies:
       '@amplitude/analytics-core': 2.50.0
@@ -15688,6 +15723,11 @@ snapshots:
     dependencies:
       merge-options: 3.0.4
       react-native: 0.70.6(@babel/core@7.28.5)(@babel/preset-env@7.28.5(@babel/core@7.28.5))(encoding@0.1.13)(react@18.2.0)
+
+  '@react-native-async-storage/async-storage@1.24.0(react-native@0.73.0(@babel/core@7.28.5)(@babel/preset-env@7.28.5(@babel/core@7.28.5))(encoding@0.1.13)(react@18.2.0))':
+    dependencies:
+      merge-options: 3.0.4
+      react-native: 0.73.0(@babel/core@7.28.5)(@babel/preset-env@7.28.5(@babel/core@7.28.5))(encoding@0.1.13)(react@18.2.0)
 
   '@react-native-community/cli-clean@12.1.1(encoding@0.1.13)':
     dependencies:
