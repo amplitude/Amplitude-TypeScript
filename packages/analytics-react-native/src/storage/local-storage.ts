@@ -1,6 +1,6 @@
 import { Storage, getGlobalScope } from '@amplitude/analytics-core';
 
-interface AsyncStorageLike {
+export interface AsyncStorageLike {
   getItem(key: string): Promise<string | null>;
   setItem(key: string, value: string): Promise<void>;
   removeItem(key: string): Promise<void>;
@@ -25,7 +25,7 @@ interface AsyncStorageLike {
 // for the success-case caching that `require()` gives us for free.
 let asyncStorage: AsyncStorageLike | null | undefined = undefined;
 
-const getAsyncStorage = (): AsyncStorageLike | null | undefined => {
+export const getAsyncStorage = (): AsyncStorageLike | null | undefined => {
   if (asyncStorage !== undefined) {
     return asyncStorage;
   }
