@@ -275,6 +275,36 @@ describe('react-native-client', () => {
       expect(track).toHaveBeenCalledWith('experiment-event', { source: 'experiment' });
     });
 
+    test('should normalize an empty analytics connector instance name', async () => {
+      const client = new AmplitudeReactNative();
+      await client.init(API_KEY, USER_ID, {
+        deviceId: DEVICE_ID,
+        instanceName: '',
+        optOut: false,
+        ...attributionConfig,
+      }).promise;
+
+      const connector = getAnalyticsConnector();
+      expect(connector.identityStore.getIdentity()).toMatchObject({
+        deviceId: DEVICE_ID,
+        userId: USER_ID,
+      });
+
+      const track = jest.spyOn(client, 'track').mockReturnValueOnce({
+        promise: Promise.resolve({
+          code: 200,
+          message: '',
+          event: { event_type: 'experiment-event' },
+        }),
+      });
+      connector.eventBridge.logEvent({
+        eventType: 'experiment-event',
+        eventProperties: { source: 'experiment' },
+      });
+
+      expect(track).toHaveBeenCalledWith('experiment-event', { source: 'experiment' });
+    });
+
     test('should set up event bridge and track events', async () => {
       const client = new AmplitudeReactNative();
       await client.init(API_KEY, USER_ID, {
