@@ -653,6 +653,47 @@ describe('fireViewportContentUpdated - early return when no changes', () => {
     expect(trackSpy).toHaveBeenCalledTimes(1); // Still 1, deduplication worked
   });
 
+  test('should reset lastScroll on page end so the next snapshot does not look like a scroll change', () => {
+    let scrollState = { maxX: 100, maxY: 200 };
+    const statefulScrollTracker: ScrollTracker = {
+      getState: jest.fn(() => ({ ...scrollState })),
+      reset: jest.fn(() => {
+        scrollState = { maxX: 0, maxY: 0 };
+      }),
+    };
+    const lastScroll: { maxX: undefined | number; maxY: undefined | number } = { maxX: undefined, maxY: undefined };
+
+    fireViewportContentUpdated({
+      amplitude: mockAmplitude,
+      scrollTracker: statefulScrollTracker,
+      currentElementExposed: new Set<string>(['element-1']),
+      elementExposedForPage: new Set<string>(['element-1']),
+      elementExposedInSentEvents: new Set(),
+      exposureTracker: undefined,
+      isPageEnd: true,
+      lastScroll,
+    });
+
+    expect(trackSpy).toHaveBeenCalledTimes(1);
+    expect(lastScroll.maxX).toBe(0);
+    expect(lastScroll.maxY).toBe(0);
+
+    trackSpy.mockClear();
+
+    fireViewportContentUpdated({
+      amplitude: mockAmplitude,
+      scrollTracker: statefulScrollTracker,
+      currentElementExposed: new Set<string>(),
+      elementExposedForPage: new Set<string>(),
+      elementExposedInSentEvents: new Set(),
+      exposureTracker: undefined,
+      isPageEnd: false,
+      lastScroll,
+    });
+
+    expect(trackSpy).not.toHaveBeenCalled();
+  });
+
   test('should not re-send elements already included in a previous flush', () => {
     const currentElementExposed = new Set<string>(['element-1', 'element-2']);
     const elementExposedForPage = new Set<string>(['element-1', 'element-2']);
