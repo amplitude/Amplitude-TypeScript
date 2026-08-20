@@ -124,6 +124,21 @@ class NativeSessionReplay: NSObject, RCTBridgeModule {
         sessionReplay.flush()
         resolve(nil)
     }
+
+    @objc(teardown:reject:)
+    func teardown(_ resolve: RCTPromiseResolveBlock, reject: RCTPromiseRejectBlock) -> Void {
+        logger?.debug(message: "teardown")
+        sessionReplay?.stop()
+        sessionReplay = nil
+        resolve(nil)
+    }
+
+    @objc(setOptOut:resolve:reject:)
+    func setOptOut(_ optOut: Bool, resolve: RCTPromiseResolveBlock, reject: RCTPromiseRejectBlock) -> Void {
+        logger?.debug(message: "setOptOut: \(optOut)")
+        sessionReplay?.optOut = optOut
+        resolve(nil)
+    }
     
     @objc(invalidate)
     func invalidate() {

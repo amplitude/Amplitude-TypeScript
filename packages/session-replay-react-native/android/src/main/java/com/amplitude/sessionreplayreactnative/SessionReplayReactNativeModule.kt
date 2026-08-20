@@ -13,11 +13,25 @@ import com.facebook.react.bridge.WritableMap
 import com.facebook.react.bridge.WritableNativeMap
 import com.facebook.react.bridge.ReadableMap
 
+private data class StoredSessionReplayConfig(
+  val apiKey: String,
+  val deviceId: String,
+  val sessionId: Long,
+  val serverZone: String,
+  val sampleRate: Double,
+  val enableRemoteConfig: Boolean,
+  val maskLevel: MaskLevel,
+)
+
 // `@ReactMethod` is required on the legacy architecture and ignored on the new
 // one, so it stays on the overrides below.
 class SessionReplayReactNativeModule(private val reactContext: ReactApplicationContext) :
   SessionReplayReactNativeSpec(reactContext) {
-  private lateinit var sessionReplay: SessionReplay
+  private var sessionReplay: SessionReplay? = null
+  private var lastConfig: StoredSessionReplayConfig? = null
+  // Matches Flutter: preserve "was started" across opt-out so opt-in can resume.
+  private var wasStarted: Boolean = false
+  private var optedOut: Boolean = false
 
   override fun getName(): String {
     return NAME
@@ -27,7 +41,7 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
   override fun setup(config: ReadableMap, promise: Promise) {
     try {
       val apiKey = config.getString("apiKey") ?: throw IllegalArgumentException("apiKey is required")
-      val deviceId = config.getString("deviceId")
+      val deviceId = config.getString("deviceId") ?: ""
       val sessionId = config.getDouble("sessionId").toLong()
       val serverZone = config.getString("serverZone") ?: "US"
       val sampleRate = config.getDouble("sampleRate")
@@ -65,23 +79,19 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
           Opt Out: $optOut
       """.trimIndent())
 
-      sessionReplay = SessionReplay(
+      lastConfig = StoredSessionReplayConfig(
         apiKey = apiKey,
-        context = reactContext.applicationContext,
-        deviceId = deviceId ?: "",
+        deviceId = deviceId,
         sessionId = sessionId,
-        optOut = optOut,
+        serverZone = serverZone,
         sampleRate = sampleRate,
-        logger = LogcatLogger.logger,
         enableRemoteConfig = enableRemoteConfig,
-        serverZone = when (serverZone) {
-          "EU" -> ServerZone.EU
-          else -> ServerZone.US
-        },
-        autoStart = autoStart,
-        privacyConfig = PrivacyConfig(maskLevel = maskLevel),
+        maskLevel = maskLevel,
       )
-      
+      optedOut = optOut
+      wasStarted = autoStart && !optOut
+      createSessionReplay(optOut = optOut, autoStart = autoStart)
+
       promise.resolve(null)
     } catch (e: Exception) {
       promise.reject("SETUP_ERROR", e.message, e)
@@ -91,7 +101,9 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
   @ReactMethod
   override fun setSessionId(sessionId: Double, promise: Promise) {
     try {
-      sessionReplay.setSessionId(sessionId.toLong())
+      val id = sessionId.toLong()
+      lastConfig = lastConfig?.copy(sessionId = id)
+      sessionReplay?.setSessionId(id)
       promise.resolve(null)
     } catch (e: Exception) {
       promise.reject("SET_SESSION_ID_ERROR", e.message, e)
@@ -101,7 +113,9 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
   @ReactMethod
   override fun setDeviceId(deviceId: String?, promise: Promise) {
     try {
-      sessionReplay.setDeviceId(deviceId ?: "")
+      val id = deviceId ?: ""
+      lastConfig = lastConfig?.copy(deviceId = id)
+      sessionReplay?.setDeviceId(id)
       promise.resolve(null)
     } catch (e: Exception) {
       promise.reject("SET_DEVICE_ID_ERROR", e.message, e)
@@ -111,7 +125,12 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
   @ReactMethod
   override fun getSessionId(promise: Promise) {
     try {
-      promise.resolve(sessionReplay.getSessionId().toDouble())
+      val id = sessionReplay?.getSessionId() ?: lastConfig?.sessionId
+      if (id == null) {
+        promise.reject("GET_SESSION_ID_ERROR", "SessionReplay is not initialized", null)
+        return
+      }
+      promise.resolve(id.toDouble())
     } catch (e: Exception) {
       promise.reject("GET_SESSION_ID_ERROR", e.message, e)
     }
@@ -120,7 +139,11 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
   @ReactMethod
   override fun getSessionReplayProperties(promise: Promise) {
     try {
-      val properties: Map<String, Any> = sessionReplay.getSessionReplayProperties()
+      if (optedOut) {
+        promise.resolve(WritableNativeMap())
+        return
+      }
+      val properties: Map<String, Any> = sessionReplay?.getSessionReplayProperties() ?: emptyMap()
       val map: WritableMap = WritableNativeMap()
       for ((key, value) in properties) {
         if (value is String) {
@@ -140,11 +163,22 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
       promise.reject("GET_PROPERTIES_ERROR", e.message, e)
     }
   }
-  
+
   @ReactMethod
   override fun start(promise: Promise) {
     try {
-      sessionReplay.start()
+      if (optedOut) {
+        LogcatLogger.logger.debug("start skipped: opted out")
+        promise.resolve(null)
+        return
+      }
+      val replay = sessionReplay
+      if (replay == null) {
+        promise.reject("START_ERROR", "SessionReplay is not initialized", null)
+        return
+      }
+      wasStarted = true
+      replay.start()
       promise.resolve(null)
     } catch (e: Exception) {
       promise.reject("START_ERROR", e.message, e)
@@ -154,7 +188,8 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
   @ReactMethod
   override fun stop(promise: Promise) {
     try {
-      sessionReplay.stop()
+      wasStarted = false
+      sessionReplay?.stop()
       promise.resolve(null)
     } catch (e: Exception) {
       promise.reject("STOP_ERROR", e.message, e)
@@ -164,7 +199,7 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
   @ReactMethod
   override fun flush(promise: Promise) {
     try {
-      sessionReplay.flush()
+      sessionReplay?.flush()
       promise.resolve(null)
     } catch (e: Exception) {
       promise.reject("FLUSH_ERROR", e.message, e)
@@ -172,14 +207,74 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
   }
 
   @ReactMethod
-  fun teardown() {
-    sessionReplay.shutdown()
+  override fun teardown(promise: Promise) {
+    try {
+      sessionReplay?.shutdown()
+      sessionReplay = null
+      lastConfig = null
+      wasStarted = false
+      optedOut = false
+      promise.resolve(null)
+    } catch (e: Exception) {
+      promise.reject("TEARDOWN_ERROR", e.message, e)
+    }
+  }
+
+  // Until session-replay-android exposes a public runtime setter (SDKA-78),
+  // match Flutter: shutdown() without stop() so buffered data is not flushed,
+  // then recreate on opt-in. Do not use stop()/start() as a stand-in.
+  @ReactMethod
+  override fun setOptOut(optOut: Boolean, promise: Promise) {
+    try {
+      if (lastConfig == null) {
+        promise.reject("SET_OPT_OUT_ERROR", "SessionReplay is not initialized", null)
+        return
+      }
+      optedOut = optOut
+      if (optOut) {
+        LogcatLogger.logger.debug(
+          "setOptOut(true): shutting down native SessionReplay without stop()/flush (Flutter workaround until SDKA-78)",
+        )
+        sessionReplay?.shutdown()
+        sessionReplay = null
+      } else if (sessionReplay == null) {
+        LogcatLogger.logger.debug(
+          "setOptOut(false): recreating native SessionReplay; resume start=$wasStarted",
+        )
+        createSessionReplay(optOut = false, autoStart = false)
+        if (wasStarted) {
+          sessionReplay?.start()
+        }
+      }
+      promise.resolve(null)
+    } catch (e: Exception) {
+      promise.reject("SET_OPT_OUT_ERROR", e.message, e)
+    }
   }
 
   override fun invalidate() {
-    if (::sessionReplay.isInitialized) {
-      sessionReplay.shutdown()
-    }
+    sessionReplay?.shutdown()
+    sessionReplay = null
+  }
+
+  private fun createSessionReplay(optOut: Boolean, autoStart: Boolean) {
+    val config = lastConfig ?: throw IllegalStateException("SessionReplay config is missing")
+    sessionReplay = SessionReplay(
+      apiKey = config.apiKey,
+      context = reactContext.applicationContext,
+      deviceId = config.deviceId,
+      sessionId = config.sessionId,
+      optOut = optOut,
+      sampleRate = config.sampleRate,
+      logger = LogcatLogger.logger,
+      enableRemoteConfig = config.enableRemoteConfig,
+      serverZone = when (config.serverZone) {
+        "EU" -> ServerZone.EU
+        else -> ServerZone.US
+      },
+      autoStart = autoStart,
+      privacyConfig = PrivacyConfig(maskLevel = config.maskLevel),
+    )
   }
 
   companion object {

@@ -2,6 +2,9 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-require-imports */
+/* eslint-disable @typescript-eslint/no-var-requires */
 
 // Use the mock from __mocks__ directory
 jest.mock('react-native');
@@ -18,6 +21,7 @@ import {
   start,
   stop,
   setDeviceId,
+  setOptOut,
   SessionReplayPlugin,
   AmpMaskView,
   type SessionReplayConfig,
@@ -98,6 +102,33 @@ describe('Index Exports', () => {
       await init(testConfig); // Initialize first
       await setDeviceId(testDeviceId);
       expect(NativeModules.AMPNativeSessionReplay.setDeviceId).toHaveBeenCalledWith(testDeviceId);
+    });
+
+    it('should export setOptOut function that updates the runtime opt-out flag', async () => {
+      await init(testConfig);
+      await setOptOut(true);
+      expect(NativeModules.AMPNativeSessionReplay.setOptOut).toHaveBeenCalledWith(true);
+    });
+
+    it('should export teardown that shuts down native state and allows re-init', async () => {
+      let setupMock!: jest.Mock;
+      let teardownMock!: jest.Mock;
+      let pending!: Promise<void>;
+      jest.isolateModules(() => {
+        const { init: freshInit, teardown: freshTeardown } = require('../src/index') as typeof import('../src/index');
+        const { NativeModules: freshNativeModules } = require('react-native') as typeof import('react-native');
+        const native = (freshNativeModules as jest.Mocked<typeof NativeModules>).AMPNativeSessionReplay;
+        setupMock = native.setup;
+        teardownMock = native.teardown;
+        pending = (async () => {
+          await freshInit(testConfig);
+          await freshTeardown();
+          await freshInit(testConfig);
+        })();
+      });
+      await pending;
+      expect(teardownMock).toHaveBeenCalledTimes(1);
+      expect(setupMock).toHaveBeenCalledTimes(2);
     });
   });
 

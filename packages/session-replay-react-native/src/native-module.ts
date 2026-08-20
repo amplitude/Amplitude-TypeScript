@@ -116,4 +116,16 @@ export interface NativeSessionReplaySpec {
    * Ends the current recording session and processes any captured data.
    */
   stop(): Promise<void>;
+
+  /**
+   * Shuts down the native session replay SDK and releases native resources.
+   * After teardown, `setup` may be called again.
+   */
+  teardown(): Promise<void>;
+
+  /**
+   * Updates the runtime opt-out flag on the native session replay SDK.
+   * @param optOut - When true, session replay collection is disabled
+   */
+  setOptOut(optOut: boolean): Promise<void>;
 }
