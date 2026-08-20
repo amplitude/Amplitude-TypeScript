@@ -6,15 +6,17 @@
   </head>
   <body>
     <video id="video" controls width="640" preload="metadata" metadata-video-title="My Video" metadata-video-id="video-123">
-      <source src="https://stream.mux.com/iBXEG00ifc9cPSv005eKgQ01g3w42LUGdlFWlmeosVuGfU.m3u8" type="video/mp4">
       Your browser does not support the video tag.
     </video>
     <button id="stop-video">Stop Capturing</button>
     <script src="https://cdn.jsdelivr.net/npm/@mux/mux-player" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/mux-embed@latest/dist/mux.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@1/dist/hls.min.js"></script>
     <h1>Track HTML Video Test</h1>
     <script type="module">
       import * as amplitude from '@amplitude/analytics-browser';
+
+      window.amplitude = amplitude;
 
       // generate a View Session ID to be used for Mux and Amplitude
       // so that views can be linked together
@@ -25,22 +27,41 @@
       const userId = 'random-user-id';
       
       const video = document.getElementById('video');
-      
+      const src = 'https://stream.mux.com/iBXEG00ifc9cPSv005eKgQ01g3w42LUGdlFWlmeosVuGfU.m3u8';
+
+      // Safari plays HLS (.m3u8) natively; Chrome and Firefox need hls.js to feed
+      // the stream through Media Source Extensions. Chrome also reports "maybe" from
+      // canPlayType but then fails to play, so gate on ManagedMediaSource (Safari only)
+      // rather than on canPlayType alone. See https://github.com/video-dev/hls.js/issues/7827
+      const useNativeHls = video.canPlayType('application/vnd.apple.mpegurl') && 'ManagedMediaSource' in window;
+      const hls = useNativeHls ? null : new Hls();
+
       // MUX VIDEO MONITORING
       // monitor the video for Mux analytics
-      mux?.monitor(video, {
+      // (must happen before the stream is loaded so Mux sees every event)
+      mux.monitor(video, {
         data: {
           view_session_id: muxViewSessionId,
           viewer_user_id: userId,
         },
+        ...(hls && { hlsjs: hls, Hls }),
       });
 
+      if (hls) {
+        hls.loadSource(src);
+        hls.attachMedia(video);
+      } else {
+        video.src = src;
+      }
+
       // AMPLITUDE VIDEO ANALYTICS
+      const stagingUrl = 'https://api.stag2.amplitude.com/2/httpapi';
 
       // initialize Amplitude
       amplitude.setUserId(userId);
-      amplitude.init(import.meta.env.VITE_AMPLITUDE_API_KEY, {
-        delayedEventsServerUrl: `${location.origin}/2/httpapi/delayed`,
+      amplitude.init(import.meta.env.VITE_AMPLITUDE_STAGING_API_KEY, {
+        delayedEventsServerUrl: `https://delayed-events.stag2.amplitude.com/2/httpapi/delayed`,
+        serverUrl: stagingUrl,
         fetchRemoteConfig: false,
         autocapture: false,
       }).promise.then(() => {
