@@ -127,6 +127,25 @@ describe('createInitialExposureSnapshotScheduler', () => {
     expect(onFlush).not.toHaveBeenCalled();
   });
 
+  test('should ignore a second snapshot attempt after the first snapshot', () => {
+    const scheduler = createInitialExposureSnapshotScheduler({
+      mutationObservable,
+      onRescan,
+      onFlush,
+      exposureDuration: 150,
+      quietMs: 100,
+      maxWaitMs: 100,
+    });
+
+    scheduler.start();
+    jest.advanceTimersByTime(100);
+    expect(onRescan).toHaveBeenCalledTimes(1);
+    jest.advanceTimersByTime(100);
+    expect(onRescan).toHaveBeenCalledTimes(1);
+
+    scheduler.stop();
+  });
+
   test('should ignore a second start call', () => {
     const scheduler = createInitialExposureSnapshotScheduler({
       mutationObservable,
@@ -159,14 +178,45 @@ describe('createInitialExposureSnapshotScheduler', () => {
     expect(onRescan).not.toHaveBeenCalled();
     expect(addSpy).toHaveBeenCalledWith('DOMContentLoaded', expect.any(Function));
 
-    Object.defineProperty(document, 'readyState', { value: 'complete', configurable: true });
+    Object.defineProperty(document, 'readyState', { value: 'interactive', configurable: true });
     document.dispatchEvent(new Event('DOMContentLoaded'));
 
+    expect(onRescan).not.toHaveBeenCalled();
+    jest.advanceTimersByTime(constants.EXPOSURE_SNAPSHOT_QUIET_MS - 1);
+    expect(onRescan).not.toHaveBeenCalled();
+    jest.advanceTimersByTime(1);
     expect(onRescan).toHaveBeenCalledTimes(1);
     jest.advanceTimersByTime(150 + constants.EXPOSURE_SNAPSHOT_FLUSH_BUFFER_MS);
     expect(onFlush).toHaveBeenCalledTimes(1);
 
     addSpy.mockRestore();
+  });
+
+  test('should delay the snapshot for hydration mutations after DOMContentLoaded', () => {
+    Object.defineProperty(document, 'readyState', { value: 'loading', configurable: true });
+
+    const scheduler = createInitialExposureSnapshotScheduler({
+      mutationObservable,
+      onRescan,
+      onFlush,
+      exposureDuration: 150,
+      quietMs: constants.EXPOSURE_SNAPSHOT_QUIET_MS,
+      maxWaitMs: 4000,
+    });
+
+    scheduler.start();
+    jest.advanceTimersByTime(constants.EXPOSURE_SNAPSHOT_QUIET_MS);
+
+    Object.defineProperty(document, 'readyState', { value: 'interactive', configurable: true });
+    document.dispatchEvent(new Event('DOMContentLoaded'));
+    emitMutation();
+
+    jest.advanceTimersByTime(constants.EXPOSURE_SNAPSHOT_QUIET_MS - 1);
+    expect(onRescan).not.toHaveBeenCalled();
+    jest.advanceTimersByTime(1);
+    expect(onRescan).toHaveBeenCalledTimes(1);
+
+    scheduler.stop();
   });
 
   test('should not snapshot twice if DOMContentLoaded fires after a snapshot', () => {

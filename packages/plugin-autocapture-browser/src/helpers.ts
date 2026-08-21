@@ -284,10 +284,25 @@ export function isElementBasedEvent<T>(event: BaseTimestampedEvent<T>): event is
   return event.type === 'click' || event.type === 'change';
 }
 
+/** Strip search params but keep path and hash so query-only changes are not treated as a new page. */
+export function normalizePageUrl(href: string): string {
+  if (!href) {
+    return '';
+  }
+
+  try {
+    const parsed = new URL(href);
+    parsed.search = '';
+    return getDecodeURI(parsed.href);
+  } catch {
+    return getDecodeURI(href);
+  }
+}
+
 /** Normalized page URL used for viewport content and SPA navigation comparisons. */
 export function getNormalizedPageUrl(globalScope = getGlobalScope()): string {
   /* istanbul ignore next */
-  return getDecodeURI(globalScope?.location?.href?.split('?')[0] ?? '');
+  return normalizePageUrl(globalScope?.location?.href ?? '');
 }
 
 /** Resolve the post-navigation URL from a history API call. */
@@ -303,7 +318,7 @@ export function resolveHistoryNavigationUrl(
   const baseHref = globalScope?.location?.href || 'http://localhost/';
 
   try {
-    return getDecodeURI(new URL(url, baseHref).href.split('?')[0]);
+    return normalizePageUrl(new URL(url, baseHref).href);
   } catch {
     return getNormalizedPageUrl(globalScope);
   }

@@ -1843,7 +1843,12 @@ describe('autoTrackingPlugin', () => {
       // history.pushState is proxied.
       history.pushState({}, 'test', '/new-page');
 
-      expect(track).toHaveBeenCalledWith('[Amplitude] Viewport Content Updated', expect.any(Object));
+      expect(track).toHaveBeenCalledWith(
+        '[Amplitude] Viewport Content Updated',
+        expect.objectContaining({
+          '[Amplitude] Page URL': 'http://localhost/',
+        }),
+      );
 
       jest.advanceTimersByTime(1000);
       track.mockClear();
@@ -1868,6 +1873,32 @@ describe('autoTrackingPlugin', () => {
       history.pushState({}, 'test', window.location.pathname);
 
       expect(track).not.toHaveBeenCalled();
+    });
+
+    test('should re-arm the initial snapshot after a second URL change within 100ms', async () => {
+      const config: Partial<BrowserConfig> = {
+        defaultTracking: false,
+        loggerProvider: loggerProvider,
+      };
+      await plugin?.setup?.(config as BrowserConfig, instance);
+      track.mockClear();
+
+      history.pushState({}, 'test', '/page-a');
+      track.mockClear();
+
+      jest.advanceTimersByTime(50);
+      history.pushState({}, 'test', '/page-b');
+      expect(track).not.toHaveBeenCalled();
+      debug.mockClear();
+
+      jest.advanceTimersByTime(constants.EXPOSURE_SNAPSHOT_QUIET_MS - 1);
+      expect(debug).not.toHaveBeenCalledWith(
+        '@amplitude/plugin-autocapture-browser: initial exposure snapshot — rescanning DOM',
+      );
+      jest.advanceTimersByTime(1);
+      expect(debug).toHaveBeenCalledWith(
+        '@amplitude/plugin-autocapture-browser: initial exposure snapshot — rescanning DOM',
+      );
     });
 
     test('should not track [Amplitude] Viewport Content Updated on same-URL replaceState', async () => {
@@ -1968,6 +1999,39 @@ describe('autoTrackingPlugin', () => {
       handlers.forEach((handler) => {
         handler({
           destination: { url: 'http://localhost/' },
+        } as unknown as Event);
+      });
+
+      expect(track).not.toHaveBeenCalled();
+    });
+
+    test('should not treat query-only Navigation API changes on a hashed URL as a new page', async () => {
+      mockWindowLocationFromURL(new URL('http://localhost/path#section'));
+      const handlers: Array<(event: Event) => void> = [];
+      Object.defineProperty(window, 'navigation', {
+        value: {
+          addEventListener: (_type: string, listener: (event: Event) => void) => {
+            handlers.push(listener);
+          },
+          removeEventListener: jest.fn(),
+        },
+        configurable: true,
+        writable: true,
+      });
+
+      plugin = autocapturePlugin({ debounceTime: TESTING_DEBOUNCE_TIME });
+      await plugin?.setup?.(
+        {
+          defaultTracking: false,
+          loggerProvider: loggerProvider,
+        } as BrowserConfig,
+        instance,
+      );
+      track.mockClear();
+
+      handlers.forEach((handler) => {
+        handler({
+          destination: { url: 'http://localhost/path?foo=1#section' },
         } as unknown as Event);
       });
 

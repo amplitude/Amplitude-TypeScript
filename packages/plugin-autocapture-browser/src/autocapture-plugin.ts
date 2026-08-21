@@ -11,7 +11,6 @@ import {
   IDiagnosticsClient,
   getGlobalScope,
   getOrCreateWindowMessenger,
-  getDecodeURI,
   enableBackgroundCapture,
   multicast,
 } from '@amplitude/analytics-core';
@@ -23,6 +22,7 @@ import {
   type TimestampedEvent,
   type NavigateEvent,
   getNormalizedPageUrl,
+  normalizePageUrl,
   resolveHistoryNavigationUrl,
 } from './helpers';
 import { enableVisualTagging } from './libs/messenger';
@@ -360,6 +360,10 @@ export const autocapturePlugin = (
     let initialExposureSnapshotScheduler: ReturnType<typeof createInitialExposureSnapshotScheduler> | undefined;
 
     const handleViewportContentUpdated = (isPageEnd: boolean) => {
+      if (isPageEnd) {
+        /* istanbul ignore next */
+        initialExposureSnapshotScheduler?.reset();
+      }
       if (isPageEnd && pageViewEndFired) {
         return;
       }
@@ -380,11 +384,6 @@ export const autocapturePlugin = (
         isPageEnd,
         lastScroll,
       });
-
-      if (isPageEnd) {
-        /* istanbul ignore next */
-        initialExposureSnapshotScheduler?.reset();
-      }
     };
 
     let trackedPageUrl = getNormalizedPageUrl(globalScope);
@@ -404,13 +403,15 @@ export const autocapturePlugin = (
       // Resolve against the pre-navigation URL. Applying history first would make
       // relative paths like `../other` resolve against the already-updated location.
       const nextPageUrl = resolveHistoryNavigationUrl(nextUrl, globalScope);
-      applyHistoryChange();
       if (previousPageUrl === nextPageUrl) {
+        applyHistoryChange();
         return;
       }
 
       trackedPageUrl = nextPageUrl;
+      // Flush the previous page before applying history so Page URL is not the destination.
       handleViewportContentUpdated(true);
+      applyHistoryChange();
     };
 
     const handleExposure = (elementPath: string) => {
@@ -480,7 +481,7 @@ export const autocapturePlugin = (
             /* istanbul ignore next */
             const destinationUrl = timestampedEvent.event?.destination?.url;
             if (destinationUrl) {
-              const nextPageUrl = getDecodeURI(destinationUrl.split('?')[0]);
+              const nextPageUrl = normalizePageUrl(destinationUrl);
               if (nextPageUrl === trackedPageUrl) {
                 return;
               }

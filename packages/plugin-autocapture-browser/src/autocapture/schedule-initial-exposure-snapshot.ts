@@ -57,6 +57,7 @@ export function createInitialExposureSnapshotScheduler({
   };
 
   const takeSnapshot = () => {
+    /* istanbul ignore next */
     if (snapshotTaken) {
       return;
     }
@@ -65,7 +66,8 @@ export function createInitialExposureSnapshotScheduler({
       if (!domContentLoadedListener) {
         domContentLoadedListener = () => {
           domContentLoadedListener = undefined;
-          takeSnapshot();
+          // Hydration often starts at DCL; wait for a quiet window instead of snapshotting immediately.
+          scheduleQuietTimer();
         };
         document.addEventListener('DOMContentLoaded', domContentLoadedListener);
       }

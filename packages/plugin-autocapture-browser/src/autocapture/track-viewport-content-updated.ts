@@ -1,6 +1,6 @@
-import { BrowserClient, getDecodeURI, getGlobalScope } from '@amplitude/analytics-core';
+import { BrowserClient, getGlobalScope } from '@amplitude/analytics-core';
 import * as constants from '../constants';
-import { getCurrentPageViewId } from '../helpers';
+import { getCurrentPageViewId, getNormalizedPageUrl } from '../helpers';
 
 export interface ScrollTracker {
   getState: () => { maxX: number; maxY: number };
@@ -43,10 +43,7 @@ export function fireViewportContentUpdated({
   );
 
   const eventProperties: Record<string, unknown> = {
-    [constants.AMPLITUDE_EVENT_PROP_PAGE_URL]: getDecodeURI(
-      /* istanbul ignore next */
-      globalScope?.location?.href?.split('?')[0] ?? '',
-    ),
+    [constants.AMPLITUDE_EVENT_PROP_PAGE_URL]: getNormalizedPageUrl(globalScope),
     [constants.AMPLITUDE_EVENT_PROP_MAX_PAGE_X]: pageScrollMaxState.maxX + viewportWidth,
     [constants.AMPLITUDE_EVENT_PROP_MAX_PAGE_Y]: pageScrollMaxState.maxY + viewportHeight,
     [constants.AMPLITUDE_EVENT_PROP_VIEWPORT_HEIGHT]: viewportHeight,

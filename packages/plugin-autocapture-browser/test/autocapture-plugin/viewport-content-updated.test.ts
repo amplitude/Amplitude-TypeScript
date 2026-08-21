@@ -508,6 +508,48 @@ describe('fireViewportContentUpdated - early return when no changes', () => {
     }
   });
 
+  test('should keep the URL hash when stripping query parameters from Page URL', () => {
+    const originalLocation = window.location;
+    const locationMock = {
+      ...originalLocation,
+      href: 'https://www.test.com/path?foo=bar#section',
+    } as unknown as Location;
+    Object.defineProperty(window, 'location', {
+      value: locationMock,
+      writable: true,
+      configurable: true,
+    });
+
+    const currentElementExposed = new Set<string>(['element-1']);
+    const elementExposedForPage = new Set<string>(['element-1']);
+
+    try {
+      fireViewportContentUpdated({
+        amplitude: mockAmplitude,
+        scrollTracker: mockScrollTracker,
+        currentElementExposed,
+        elementExposedForPage,
+        elementExposedInSentEvents: new Set(),
+        exposureTracker: undefined,
+        isPageEnd: false,
+        lastScroll: { maxX: undefined, maxY: undefined },
+      });
+
+      expect(trackSpy).toHaveBeenCalledWith(
+        '[Amplitude] Viewport Content Updated',
+        expect.objectContaining({
+          [constants.AMPLITUDE_EVENT_PROP_PAGE_URL]: 'https://www.test.com/path#section',
+        }),
+      );
+    } finally {
+      Object.defineProperty(window, 'location', {
+        value: originalLocation,
+        writable: true,
+        configurable: true,
+      });
+    }
+  });
+
   test('should decode URI-encoded characters in Page URL property', () => {
     const originalLocation = window.location;
     const locationMock = {

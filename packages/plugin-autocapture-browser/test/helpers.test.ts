@@ -10,6 +10,7 @@ import {
   generateUniqueId,
   createShouldTrackEvent,
   getNormalizedPageUrl,
+  normalizePageUrl,
   resolveHistoryNavigationUrl,
 } from '../src/helpers';
 import { autocapturePlugin } from '../src/autocapture-plugin';
@@ -692,6 +693,27 @@ describe('autocapture-plugin helpers', () => {
       );
 
       expect(shouldTrackEvent('click', element)).toEqual(true);
+    });
+  });
+
+  describe('normalizePageUrl', () => {
+    test('should strip query parameters but keep the hash', () => {
+      expect(normalizePageUrl('https://example.com/path?foo=1#section')).toEqual('https://example.com/path#section');
+      expect(normalizePageUrl('https://example.com/path#section')).toEqual('https://example.com/path#section');
+    });
+
+    test('should treat query-only changes on a hashed URL as the same page', () => {
+      expect(normalizePageUrl('https://example.com/path?foo=1#section')).toEqual(
+        normalizePageUrl('https://example.com/path#section'),
+      );
+    });
+
+    test('should return an empty string for missing hrefs', () => {
+      expect(normalizePageUrl('')).toEqual('');
+    });
+
+    test('should fall back when the href is not a valid URL', () => {
+      expect(normalizePageUrl('http://[')).toEqual('http://[');
     });
   });
 
