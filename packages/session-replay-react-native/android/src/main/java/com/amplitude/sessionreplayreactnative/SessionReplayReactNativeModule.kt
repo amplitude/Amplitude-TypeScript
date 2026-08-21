@@ -84,7 +84,7 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
         optOut = optOut,
         maskLevel = maskLevel,
       )
-      sessionReplay = createSessionReplay(requireNotNull(nativeConfig))
+      applySessionReplay(requireNotNull(nativeConfig))
       shouldBeStarted = false
 
       promise.resolve(null)
@@ -96,8 +96,8 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
   @ReactMethod
   override fun setSessionId(sessionId: Double, promise: Promise) {
     try {
-      requireSessionReplay().setSessionId(sessionId.toLong())
       nativeConfig = requireNotNull(nativeConfig).copy(sessionId = sessionId.toLong())
+      sessionReplay?.setSessionId(sessionId.toLong())
       promise.resolve(null)
     } catch (e: Exception) {
       promise.reject("SET_SESSION_ID_ERROR", e.message, e)
@@ -107,8 +107,8 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
   @ReactMethod
   override fun setDeviceId(deviceId: String?, promise: Promise) {
     try {
-      requireSessionReplay().setDeviceId(deviceId ?: "")
       nativeConfig = requireNotNull(nativeConfig).copy(deviceId = deviceId)
+      sessionReplay?.setDeviceId(deviceId ?: "")
       promise.resolve(null)
     } catch (e: Exception) {
       promise.reject("SET_DEVICE_ID_ERROR", e.message, e)
@@ -124,14 +124,12 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
         return
       }
 
-      // session-replay-android doesn't expose a runtime opt-out setter, so
-      // rebuild the instance to apply the constructor-only option.
-      val updatedConfig = currentConfig.copy(optOut = optOut)
-      requireSessionReplay().shutdown()
-      sessionReplay = createSessionReplay(updatedConfig)
-      nativeConfig = updatedConfig
+      // session-replay-android has no public runtime opt-out setter, so keep
+      // JS config and skip constructing the native SDK while opted out.
+      nativeConfig = currentConfig.copy(optOut = optOut)
+      applySessionReplay(requireNotNull(nativeConfig))
       if (shouldBeStarted && !optOut) {
-        requireSessionReplay().start()
+        sessionReplay?.start()
       }
       promise.resolve(null)
     } catch (e: Exception) {
@@ -142,7 +140,9 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
   @ReactMethod
   override fun getSessionId(promise: Promise) {
     try {
-      promise.resolve(requireSessionReplay().getSessionId().toDouble())
+      val sessionId = sessionReplay?.getSessionId() ?: nativeConfig?.sessionId
+        ?: throw IllegalStateException("SessionReplay is not initialized")
+      promise.resolve(sessionId.toDouble())
     } catch (e: Exception) {
       promise.reject("GET_SESSION_ID_ERROR", e.message, e)
     }
@@ -152,7 +152,7 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
   override fun start(promise: Promise) {
     try {
       shouldBeStarted = true
-      requireSessionReplay().start()
+      sessionReplay?.start()
       promise.resolve(null)
     } catch (e: Exception) {
       promise.reject("START_ERROR", e.message, e)
@@ -163,7 +163,7 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
   override fun stop(promise: Promise) {
     try {
       shouldBeStarted = false
-      requireSessionReplay().stop()
+      sessionReplay?.stop()
       promise.resolve(null)
     } catch (e: Exception) {
       promise.reject("STOP_ERROR", e.message, e)
@@ -173,7 +173,7 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
   @ReactMethod
   override fun flush(promise: Promise) {
     try {
-      requireSessionReplay().flush()
+      sessionReplay?.flush()
       promise.resolve(null)
     } catch (e: Exception) {
       promise.reject("FLUSH_ERROR", e.message, e)
@@ -200,8 +200,14 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
     shouldBeStarted = false
   }
 
-  private fun requireSessionReplay(): SessionReplay {
-    return checkNotNull(sessionReplay) { "SessionReplay is not initialized" }
+  private fun applySessionReplay(config: NativeConfig) {
+    sessionReplay?.shutdown()
+    sessionReplay = if (config.optOut) {
+      LogcatLogger.logger.debug("skipping SessionReplay init because optOut=true")
+      null
+    } else {
+      createSessionReplay(config)
+    }
   }
 
   private fun createSessionReplay(config: NativeConfig): SessionReplay {
