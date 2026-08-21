@@ -9,6 +9,9 @@ import {
   asyncLoadScript,
   generateUniqueId,
   createShouldTrackEvent,
+  getNormalizedPageUrl,
+  normalizePageUrl,
+  resolveHistoryNavigationUrl,
 } from '../src/helpers';
 import { autocapturePlugin } from '../src/autocapture-plugin';
 import { mockWindowLocationFromURL } from './utils';
@@ -690,6 +693,53 @@ describe('autocapture-plugin helpers', () => {
       );
 
       expect(shouldTrackEvent('click', element)).toEqual(true);
+    });
+  });
+
+  describe('normalizePageUrl', () => {
+    test('should strip query parameters but keep the hash', () => {
+      expect(normalizePageUrl('https://example.com/path?foo=1#section')).toEqual('https://example.com/path#section');
+      expect(normalizePageUrl('https://example.com/path#section')).toEqual('https://example.com/path#section');
+    });
+
+    test('should treat query-only changes on a hashed URL as the same page', () => {
+      expect(normalizePageUrl('https://example.com/path?foo=1#section')).toEqual(
+        normalizePageUrl('https://example.com/path#section'),
+      );
+    });
+
+    test('should return an empty string for missing hrefs', () => {
+      expect(normalizePageUrl('')).toEqual('');
+    });
+
+    test('should fall back when the href is not a valid URL', () => {
+      expect(normalizePageUrl('http://[')).toEqual('http://[');
+    });
+  });
+
+  describe('resolveHistoryNavigationUrl', () => {
+    test('should use the current page URL when the history url is empty', () => {
+      mockWindowLocationFromURL(new URL('https://www.example.com/current'));
+      expect(resolveHistoryNavigationUrl('')).toEqual(getNormalizedPageUrl());
+      expect(resolveHistoryNavigationUrl(null)).toEqual(getNormalizedPageUrl());
+    });
+
+    test('should resolve relative history urls against the current location before navigation', () => {
+      expect(
+        resolveHistoryNavigationUrl('../other', { location: { href: 'https://example.com/foo/bar/' } } as never),
+      ).toEqual('https://example.com/foo/other');
+    });
+
+    test('should fall back to the current page URL when the history url is invalid', () => {
+      mockWindowLocationFromURL(new URL('https://www.example.com/current'));
+      expect(resolveHistoryNavigationUrl('http://[')).toEqual(getNormalizedPageUrl());
+    });
+
+    test('should fall back to localhost when location href is missing', () => {
+      expect(getNormalizedPageUrl({ location: {} } as never)).toEqual('');
+      expect(resolveHistoryNavigationUrl('/next', { location: { href: '' } } as never)).toMatch(
+        /http:\/\/localhost\/next/,
+      );
     });
   });
 });

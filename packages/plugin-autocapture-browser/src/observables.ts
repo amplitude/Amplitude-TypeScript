@@ -74,6 +74,7 @@ const createConsoleErrorObservable = (): Observable<BrowserErrorEvent> => {
 export const createExposureObservable = (
   mutationObservable: Observable<TimestampedEvent<MutationRecord[]>>,
   selectorAllowlist: string[],
+  registerRescan?: (rescan: (() => void) | undefined) => void,
 ): Observable<Event> => {
   return new Observable<Event>((observer) => {
     const globalScope = getGlobalScope();
@@ -97,32 +98,50 @@ export const createExposureObservable = (
       },
     );
 
-    // Observe initial elements
     const selectorString = selectorAllowlist.join(',');
-    /* istanbul ignore next */
-    const initialElements = globalScope?.document.querySelectorAll(selectorString) ?? [];
-    initialElements.forEach((element) => {
-      intersectionObserver.observe(element);
-    });
+
+    const observeMatchingElements = (root: ParentNode) => {
+      if (root instanceof Element && root.matches(selectorString)) {
+        intersectionObserver.observe(root);
+      }
+      root.querySelectorAll(selectorString).forEach((element) => {
+        intersectionObserver.observe(element);
+      });
+    };
+
+    const rescan = () => {
+      /* istanbul ignore next */
+      const elements = globalScope?.document.querySelectorAll(selectorString) ?? [];
+      elements.forEach((element) => {
+        // unobserve first so already-watched nodes get a fresh intersection callback
+        intersectionObserver.unobserve(element);
+        intersectionObserver.observe(element);
+      });
+    };
+
+    registerRescan?.(rescan);
+
+    // Observe initial elements
+    rescan();
 
     // Use mutation observable to observe new elements that match the allowlist
     const mutationSubscription = mutationObservable.subscribe(({ event }) =>
       event.forEach(({ addedNodes }) =>
         addedNodes.forEach((node) => {
+          if (node instanceof DocumentFragment) {
+            observeMatchingElements(node);
+            return;
+          }
           if (!(node instanceof Element)) {
             return;
           }
-          if (node.matches(selectorString)) {
-            intersectionObserver.observe(node);
-          }
-          node.querySelectorAll(selectorString).forEach((child) => {
-            intersectionObserver.observe(child);
-          });
+          observeMatchingElements(node);
         }),
       ),
     );
 
     return () => {
+      registerRescan?.(undefined);
       mutationSubscription.unsubscribe();
       intersectionObserver.disconnect();
     };

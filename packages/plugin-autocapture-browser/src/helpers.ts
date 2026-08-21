@@ -1,5 +1,11 @@
 /* eslint-disable no-restricted-globals */
-import { ElementInteractionsOptions, ActionType, isUrlMatchAllowlist, getGlobalScope } from '@amplitude/analytics-core';
+import {
+  ElementInteractionsOptions,
+  ActionType,
+  isUrlMatchAllowlist,
+  getGlobalScope,
+  getDecodeURI,
+} from '@amplitude/analytics-core';
 import * as constants from './constants';
 
 export type JSONValue = string | number | boolean | null | { [x: string]: JSONValue } | Array<JSONValue>;
@@ -276,6 +282,46 @@ export type TimestampedEvent<T> = BaseTimestampedEvent<T> | ElementBasedTimestam
 // Type predicate
 export function isElementBasedEvent<T>(event: BaseTimestampedEvent<T>): event is ElementBasedTimestampedEvent<T> {
   return event.type === 'click' || event.type === 'change';
+}
+
+/** Strip search params but keep path and hash so query-only changes are not treated as a new page. */
+export function normalizePageUrl(href: string): string {
+  if (!href) {
+    return '';
+  }
+
+  try {
+    const parsed = new URL(href);
+    parsed.search = '';
+    return getDecodeURI(parsed.href);
+  } catch {
+    return getDecodeURI(href);
+  }
+}
+
+/** Normalized page URL used for viewport content and SPA navigation comparisons. */
+export function getNormalizedPageUrl(globalScope = getGlobalScope()): string {
+  /* istanbul ignore next */
+  return normalizePageUrl(globalScope?.location?.href ?? '');
+}
+
+/** Resolve the post-navigation URL from a history API call. */
+export function resolveHistoryNavigationUrl(
+  url: string | URL | null | undefined,
+  globalScope = getGlobalScope(),
+): string {
+  if (url == null || url === '') {
+    return getNormalizedPageUrl(globalScope);
+  }
+
+  /* istanbul ignore next */
+  const baseHref = globalScope?.location?.href || 'http://localhost/';
+
+  try {
+    return normalizePageUrl(new URL(url, baseHref).href);
+  } catch {
+    return getNormalizedPageUrl(globalScope);
+  }
 }
 
 export interface NavigateEvent extends Event {
