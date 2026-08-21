@@ -281,7 +281,6 @@ export const autocapturePlugin = (
     }
 
     let pageViewEndFired = false;
-    const lastScroll: { maxX: undefined | number; maxY: undefined | number } = { maxX: undefined, maxY: undefined };
 
     // Fetch remote config for pageActions in a non-blocking manner
     if (config.fetchRemoteConfig) {
@@ -352,6 +351,11 @@ export const autocapturePlugin = (
       amplitude,
     });
     subscriptions.push(scrollTracker);
+
+    // Match post-navigation reset so an empty first snapshot is not treated as a scroll change.
+    const lastScroll: { maxX: undefined | number; maxY: undefined | number } = {
+      ...scrollTracker.getState(),
+    };
 
     const trackers: { exposure?: ExposureTracker & Unsubscribable } = {};
 

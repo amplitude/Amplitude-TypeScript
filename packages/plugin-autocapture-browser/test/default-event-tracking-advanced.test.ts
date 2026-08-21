@@ -1737,6 +1737,14 @@ describe('autoTrackingPlugin', () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let intersectionCallback: (entries: any[]) => void;
 
+    const simulateScroll = (x = 0, y = 100) => {
+      Object.defineProperty(window, 'scrollX', { value: x, writable: true, configurable: true });
+      Object.defineProperty(window, 'scrollY', { value: y, writable: true, configurable: true });
+      Object.defineProperty(window, 'pageXOffset', { value: x, writable: true, configurable: true });
+      Object.defineProperty(window, 'pageYOffset', { value: y, writable: true, configurable: true });
+      window.dispatchEvent(new Event('scroll'));
+    };
+
     beforeEach(async () => {
       mockWindowLocationFromURL(new URL('http://localhost/'));
 
@@ -1786,6 +1794,7 @@ describe('autoTrackingPlugin', () => {
         loggerProvider: loggerProvider,
       };
       await plugin?.setup?.(config as BrowserConfig, instance);
+      simulateScroll();
 
       window.dispatchEvent(new Event('beforeunload'));
 
@@ -1817,6 +1826,7 @@ describe('autoTrackingPlugin', () => {
       expect(debug).toHaveBeenCalledWith(
         '@amplitude/plugin-autocapture-browser: initial exposure snapshot — flushing viewport content updated',
       );
+      expect(track).not.toHaveBeenCalled();
     });
 
     test('should not track duplicate [Amplitude] Viewport Content Updated events on multiple beforeunload', async () => {
@@ -1825,6 +1835,7 @@ describe('autoTrackingPlugin', () => {
         loggerProvider: loggerProvider,
       };
       await plugin?.setup?.(config as BrowserConfig, instance);
+      simulateScroll();
 
       window.dispatchEvent(new Event('beforeunload'));
       window.dispatchEvent(new Event('beforeunload'));
@@ -1840,26 +1851,17 @@ describe('autoTrackingPlugin', () => {
       await plugin?.setup?.(config as BrowserConfig, instance);
       track.mockClear();
 
-      // history.pushState is proxied.
+      // Empty page-end flush should not send just because lastScroll used to be undefined.
       history.pushState({}, 'test', '/new-page');
-
-      expect(track).toHaveBeenCalledWith(
-        '[Amplitude] Viewport Content Updated',
-        expect.objectContaining({
-          '[Amplitude] Page URL': 'http://localhost/',
-        }),
-      );
+      expect(track).not.toHaveBeenCalled();
 
       jest.advanceTimersByTime(1000);
       track.mockClear();
-      //  change scroll depth to trigger a new viewport content updated event
-      Object.defineProperty(window, 'scrollY', { value: 100, writable: true });
-      Object.defineProperty(window, 'pageYOffset', { value: 100, writable: true });
-      window.dispatchEvent(new Event('scroll'));
+      simulateScroll(0, 100);
 
-      // Verify it can fire again after a real URL change
       history.pushState({}, 'test', '/another-page');
       expect(track).toHaveBeenCalledTimes(1);
+      expect(track).toHaveBeenCalledWith('[Amplitude] Viewport Content Updated', expect.any(Object));
     });
 
     test('should not track [Amplitude] Viewport Content Updated on same-URL pushState', async () => {
@@ -1934,6 +1936,7 @@ describe('autoTrackingPlugin', () => {
       };
       await plugin?.setup?.(config as BrowserConfig, instance);
       track.mockClear();
+      simulateScroll();
 
       mockWindowLocationFromURL(new URL('http://localhost/other-page'));
       window.dispatchEvent(new Event('popstate'));
@@ -1963,6 +1966,7 @@ describe('autoTrackingPlugin', () => {
         instance,
       );
       track.mockClear();
+      simulateScroll();
 
       handlers.forEach((handler) => {
         handler({
@@ -2060,6 +2064,7 @@ describe('autoTrackingPlugin', () => {
         instance,
       );
       track.mockClear();
+      simulateScroll();
 
       mockWindowLocationFromURL(new URL('http://localhost/fallback-page'));
       handlers.forEach((handler) => {
