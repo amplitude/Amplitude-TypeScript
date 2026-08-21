@@ -72,6 +72,23 @@ const sessionReplayTracking = sessionReplayPlugin({
 amplitude.add(sessionReplayTracking);
 ```
 
+### 4. Start and stop recording (optional)
+
+The plugin instance exposes `start()` and `stop()` so you can pause and resume capture without removing the plugin. Sampling, targeting, and opt-out still apply.
+
+```typescript
+const sessionReplayTracking = sessionReplayPlugin({
+  sampleRate: 1,
+});
+amplitude.add(sessionReplayTracking);
+
+// Pause capture, for example on a sensitive screen
+sessionReplayTracking.stop();
+
+// Resume capture
+await sessionReplayTracking.start();
+```
+
 ## Privacy
 By default, the session replay will mask all inputs, meaning the text in inputs will appear in a session replay as asterisks: `***`. You may require more specific masking controls based on your use case, so we offer the following controls:
 

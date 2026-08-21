@@ -77,8 +77,21 @@ You can optionally pass a new device id as a second argument as well:
 sessionReplay.setSessionId(UNIX_TIMESTAMP, deviceId)
 ```
 
-### 6. Shutdown (optional)
-If at any point you would like to discontinue collection of session replays, for example in a part of your application where you would not like sessions to be collected, you can use the following method to stop collection and remove collection event listeners.
+### 6. Start and stop recording (optional)
+Use `stop()` to pause capture without tearing down the SDK (session id, config, and event listeners stay in place). Call `start()` to resume. Sampling, targeting, and opt-out still apply — `start()` will not record a session that is opted out, not sampled, or excluded by targeting.
+
+```typescript
+// Pause capture, for example on a sensitive screen
+sessionReplay.stop()
+
+// Resume capture
+sessionReplay.start()
+```
+
+`stop()` flushes any events already captured. Events while recording is stopped are not tagged with session replay properties.
+
+### 7. Shutdown (optional)
+If at any point you would like to discontinue collection of session replays, for example in a part of your application where you would not like sessions to be collected, you can use the following method to stop collection and remove collection event listeners. After `shutdown()`, call `init()` again to restart — `start()` alone is not enough because listeners have been removed.
 ```typescript
 sessionReplay.shutdown()
 ```
