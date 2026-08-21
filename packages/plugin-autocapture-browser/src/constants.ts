@@ -60,8 +60,8 @@ export const PAGE_VIEW_SESSION_STORAGE_KEY = 'AMP_PAGE_VIEW';
 
 export const MAX_ELEMENT_EXPOSED_STR_LENGTH = 18_000;
 
-/** DOM must be quiet for this long before the initial exposure snapshot runs. */
-export const EXPOSURE_SNAPSHOT_QUIET_MS = 750;
+/** DOM must be quiet for this long before the initial exposure snapshot runs. Matches DEFAULT_EXPOSURE_DURATION. */
+export const EXPOSURE_SNAPSHOT_QUIET_MS = 150;
 
 /** Upper bound to wait for DOM hydration before taking the initial exposure snapshot. */
 export const EXPOSURE_SNAPSHOT_MAX_WAIT_MS = 4_000;

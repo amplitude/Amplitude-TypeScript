@@ -6,17 +6,19 @@ import { TimestampedEvent } from '../../src/helpers';
 describe('createInitialExposureSnapshotScheduler', () => {
   let mutationObservers: Array<(value: TimestampedEvent<MutationRecord[]>) => void>;
   let mutationObservable: Observable<TimestampedEvent<MutationRecord[]>>;
+  let subscribe: jest.Mock;
   let onRescan: jest.Mock;
   let onFlush: jest.Mock;
 
   beforeEach(() => {
     jest.useFakeTimers();
     mutationObservers = [];
+    subscribe = jest.fn((cb) => {
+      mutationObservers.push(cb);
+      return { unsubscribe: jest.fn(), closed: false };
+    });
     mutationObservable = {
-      subscribe: jest.fn((cb) => {
-        mutationObservers.push(cb);
-        return { unsubscribe: jest.fn(), closed: false };
-      }),
+      subscribe,
     } as unknown as Observable<TimestampedEvent<MutationRecord[]>>;
     onRescan = jest.fn();
     onFlush = jest.fn();
@@ -43,7 +45,7 @@ describe('createInitialExposureSnapshotScheduler', () => {
       onRescan,
       onFlush,
       exposureDuration: 150,
-      quietMs: 750,
+      quietMs: constants.EXPOSURE_SNAPSHOT_QUIET_MS,
       maxWaitMs: 4000,
     });
 
@@ -51,7 +53,7 @@ describe('createInitialExposureSnapshotScheduler', () => {
     emitMutation();
 
     expect(onRescan).not.toHaveBeenCalled();
-    jest.advanceTimersByTime(749);
+    jest.advanceTimersByTime(constants.EXPOSURE_SNAPSHOT_QUIET_MS - 1);
     expect(onRescan).not.toHaveBeenCalled();
 
     jest.advanceTimersByTime(1);
@@ -68,7 +70,7 @@ describe('createInitialExposureSnapshotScheduler', () => {
       onRescan,
       onFlush,
       exposureDuration: 150,
-      quietMs: 750,
+      quietMs: constants.EXPOSURE_SNAPSHOT_QUIET_MS,
       maxWaitMs: 4000,
     });
 
@@ -91,12 +93,12 @@ describe('createInitialExposureSnapshotScheduler', () => {
       onRescan,
       onFlush,
       exposureDuration: 150,
-      quietMs: 750,
+      quietMs: constants.EXPOSURE_SNAPSHOT_QUIET_MS,
       maxWaitMs: 4000,
     });
 
     scheduler.start();
-    jest.advanceTimersByTime(750);
+    jest.advanceTimersByTime(constants.EXPOSURE_SNAPSHOT_QUIET_MS);
     jest.advanceTimersByTime(150 + constants.EXPOSURE_SNAPSHOT_FLUSH_BUFFER_MS);
     expect(onFlush).toHaveBeenCalledTimes(1);
 
@@ -104,7 +106,7 @@ describe('createInitialExposureSnapshotScheduler', () => {
     onFlush.mockClear();
 
     scheduler.reset();
-    jest.advanceTimersByTime(750);
+    jest.advanceTimersByTime(constants.EXPOSURE_SNAPSHOT_QUIET_MS);
     expect(onRescan).toHaveBeenCalledTimes(1);
     jest.advanceTimersByTime(150 + constants.EXPOSURE_SNAPSHOT_FLUSH_BUFFER_MS);
     expect(onFlush).toHaveBeenCalledTimes(1);
@@ -123,5 +125,91 @@ describe('createInitialExposureSnapshotScheduler', () => {
     jest.advanceTimersByTime(5000);
     expect(onRescan).not.toHaveBeenCalled();
     expect(onFlush).not.toHaveBeenCalled();
+  });
+
+  test('should ignore a second start call', () => {
+    const scheduler = createInitialExposureSnapshotScheduler({
+      mutationObservable,
+      onRescan,
+      onFlush,
+      exposureDuration: 150,
+    });
+
+    scheduler.start();
+    scheduler.start();
+
+    expect(subscribe).toHaveBeenCalledTimes(1);
+  });
+
+  test('should wait for DOMContentLoaded when the document is still loading', () => {
+    Object.defineProperty(document, 'readyState', { value: 'loading', configurable: true });
+    const addSpy = jest.spyOn(document, 'addEventListener');
+
+    const scheduler = createInitialExposureSnapshotScheduler({
+      mutationObservable,
+      onRescan,
+      onFlush,
+      exposureDuration: 150,
+      quietMs: constants.EXPOSURE_SNAPSHOT_QUIET_MS,
+      maxWaitMs: 4000,
+    });
+
+    scheduler.start();
+    jest.advanceTimersByTime(constants.EXPOSURE_SNAPSHOT_QUIET_MS);
+    expect(onRescan).not.toHaveBeenCalled();
+    expect(addSpy).toHaveBeenCalledWith('DOMContentLoaded', expect.any(Function));
+
+    Object.defineProperty(document, 'readyState', { value: 'complete', configurable: true });
+    document.dispatchEvent(new Event('DOMContentLoaded'));
+
+    expect(onRescan).toHaveBeenCalledTimes(1);
+    jest.advanceTimersByTime(150 + constants.EXPOSURE_SNAPSHOT_FLUSH_BUFFER_MS);
+    expect(onFlush).toHaveBeenCalledTimes(1);
+
+    addSpy.mockRestore();
+  });
+
+  test('should not snapshot twice if DOMContentLoaded fires after a snapshot', () => {
+    Object.defineProperty(document, 'readyState', { value: 'loading', configurable: true });
+
+    const scheduler = createInitialExposureSnapshotScheduler({
+      mutationObservable,
+      onRescan,
+      onFlush,
+      exposureDuration: 150,
+      quietMs: constants.EXPOSURE_SNAPSHOT_QUIET_MS,
+      maxWaitMs: 4000,
+    });
+
+    scheduler.start();
+    jest.advanceTimersByTime(constants.EXPOSURE_SNAPSHOT_QUIET_MS);
+
+    Object.defineProperty(document, 'readyState', { value: 'complete', configurable: true });
+    jest.advanceTimersByTime(4000);
+    expect(onRescan).toHaveBeenCalledTimes(1);
+
+    document.dispatchEvent(new Event('DOMContentLoaded'));
+    expect(onRescan).toHaveBeenCalledTimes(1);
+
+    scheduler.stop();
+  });
+
+  test('should remove the DOMContentLoaded listener on stop', () => {
+    Object.defineProperty(document, 'readyState', { value: 'loading', configurable: true });
+    const removeSpy = jest.spyOn(document, 'removeEventListener');
+
+    const scheduler = createInitialExposureSnapshotScheduler({
+      mutationObservable,
+      onRescan,
+      onFlush,
+      exposureDuration: 150,
+    });
+
+    scheduler.start();
+    jest.advanceTimersByTime(constants.EXPOSURE_SNAPSHOT_QUIET_MS);
+    scheduler.stop();
+
+    expect(removeSpy).toHaveBeenCalledWith('DOMContentLoaded', expect.any(Function));
+    removeSpy.mockRestore();
   });
 });

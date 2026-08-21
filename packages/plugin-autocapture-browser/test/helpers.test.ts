@@ -9,6 +9,8 @@ import {
   asyncLoadScript,
   generateUniqueId,
   createShouldTrackEvent,
+  getNormalizedPageUrl,
+  resolveHistoryNavigationUrl,
 } from '../src/helpers';
 import { autocapturePlugin } from '../src/autocapture-plugin';
 import { mockWindowLocationFromURL } from './utils';
@@ -690,6 +692,31 @@ describe('autocapture-plugin helpers', () => {
       );
 
       expect(shouldTrackEvent('click', element)).toEqual(true);
+    });
+  });
+
+  describe('resolveHistoryNavigationUrl', () => {
+    test('should use the current page URL when the history url is empty', () => {
+      mockWindowLocationFromURL(new URL('https://www.example.com/current'));
+      expect(resolveHistoryNavigationUrl('')).toEqual(getNormalizedPageUrl());
+      expect(resolveHistoryNavigationUrl(null)).toEqual(getNormalizedPageUrl());
+    });
+
+    test('should resolve a relative history url against the current location', () => {
+      mockWindowLocationFromURL(new URL('https://www.example.com/current'));
+      expect(resolveHistoryNavigationUrl('/next')).toMatch(/\/next$/);
+    });
+
+    test('should fall back to the current page URL when the history url is invalid', () => {
+      mockWindowLocationFromURL(new URL('https://www.example.com/current'));
+      expect(resolveHistoryNavigationUrl('http://[')).toEqual(getNormalizedPageUrl());
+    });
+
+    test('should fall back to localhost when location href is missing', () => {
+      expect(getNormalizedPageUrl({ location: {} } as never)).toEqual('');
+      expect(resolveHistoryNavigationUrl('/next', { location: { href: '' } } as never)).toMatch(
+        /http:\/\/localhost\/next/,
+      );
     });
   });
 });

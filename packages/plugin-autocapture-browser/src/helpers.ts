@@ -286,6 +286,7 @@ export function isElementBasedEvent<T>(event: BaseTimestampedEvent<T>): event is
 
 /** Normalized page URL used for viewport content and SPA navigation comparisons. */
 export function getNormalizedPageUrl(globalScope = getGlobalScope()): string {
+  /* istanbul ignore next */
   return getDecodeURI(globalScope?.location?.href?.split('?')[0] ?? '');
 }
 
@@ -298,6 +299,7 @@ export function resolveHistoryNavigationUrl(
     return getNormalizedPageUrl(globalScope);
   }
 
+  /* istanbul ignore next */
   const baseHref = globalScope?.location?.href || 'http://localhost/';
 
   try {

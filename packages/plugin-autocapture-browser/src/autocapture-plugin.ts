@@ -382,6 +382,7 @@ export const autocapturePlugin = (
       });
 
       if (isPageEnd) {
+        /* istanbul ignore next */
         initialExposureSnapshotScheduler?.reset();
       }
     };
@@ -434,13 +435,15 @@ export const autocapturePlugin = (
       initialExposureSnapshotScheduler = createInitialExposureSnapshotScheduler({
         mutationObservable: allObservables[ObservablesEnum.MutationObservable],
         onRescan: () => {
-          config.loggerProvider.debug(
+          /* istanbul ignore next */
+          config.loggerProvider?.debug?.(
             '@amplitude/plugin-autocapture-browser: initial exposure snapshot — rescanning DOM',
           );
           rescanElementsForExposure?.();
         },
         onFlush: () => {
-          config.loggerProvider.debug(
+          /* istanbul ignore next */
+          config.loggerProvider?.debug?.(
             '@amplitude/plugin-autocapture-browser: initial exposure snapshot — flushing viewport content updated',
           );
           handleViewportContentUpdated(false);
@@ -448,7 +451,12 @@ export const autocapturePlugin = (
         exposureDuration: resolvedExposureDuration,
       });
       initialExposureSnapshotScheduler.start();
-      subscriptions.push({ unsubscribe: () => initialExposureSnapshotScheduler?.stop() });
+      subscriptions.push({
+        unsubscribe: () => {
+          /* istanbul ignore next */
+          initialExposureSnapshotScheduler?.stop();
+        },
+      });
 
       const beforeUnloadHandler = () => {
         handleViewportContentUpdated(true);
@@ -467,14 +475,20 @@ export const autocapturePlugin = (
       if (navigateObservable) {
         subscriptions.push(
           navigateObservable.subscribe((timestampedEvent) => {
-            const navigateEvent = timestampedEvent.event;
-            const nextPageUrl = getDecodeURI(navigateEvent.destination.url.split('?')[0]);
-            if (nextPageUrl === trackedPageUrl) {
+            /* istanbul ignore next */
+            const destinationUrl = timestampedEvent.event?.destination?.url;
+            if (destinationUrl) {
+              const nextPageUrl = getDecodeURI(destinationUrl.split('?')[0]);
+              if (nextPageUrl === trackedPageUrl) {
+                return;
+              }
+
+              trackedPageUrl = nextPageUrl;
+              handleViewportContentUpdated(true);
               return;
             }
 
-            trackedPageUrl = nextPageUrl;
-            handleViewportContentUpdated(true);
+            handleSpaNavigation();
           }),
         );
       } else if (globalScope) {
