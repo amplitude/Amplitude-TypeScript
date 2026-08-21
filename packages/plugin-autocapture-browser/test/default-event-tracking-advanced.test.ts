@@ -139,6 +139,7 @@ describe('autoTrackingPlugin', () => {
         intersectionCallback = cb;
         return {
           observe: jest.fn(),
+          unobserve: jest.fn(),
           disconnect: jest.fn(),
         };
       });
@@ -209,6 +210,7 @@ describe('autoTrackingPlugin', () => {
         intersectionCallback = cb;
         return {
           observe: jest.fn(),
+          unobserve: jest.fn(),
           disconnect: jest.fn(),
         };
       });
@@ -274,6 +276,7 @@ describe('autoTrackingPlugin', () => {
         intersectionCallback = cb;
         return {
           observe: jest.fn(),
+          unobserve: jest.fn(),
           disconnect: jest.fn(),
         };
       });
@@ -334,6 +337,7 @@ describe('autoTrackingPlugin', () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (window as any).IntersectionObserver = jest.fn(() => ({
         observe: jest.fn(),
+        unobserve: jest.fn(),
         disconnect: jest.fn(),
       }));
 
@@ -1756,6 +1760,7 @@ describe('autoTrackingPlugin', () => {
         intersectionCallback = cb;
         return {
           observe: jest.fn(),
+          unobserve: jest.fn(),
           disconnect: jest.fn(),
         };
       });

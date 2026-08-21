@@ -5,7 +5,7 @@ import { TimestampedEvent } from '../src/helpers';
 describe('createExposureObservable', () => {
   let mutationObservable: Observable<TimestampedEvent<MutationRecord[]>>;
   let mockMutationObserver: { subscribe: jest.Mock };
-  let mockIntersectionObserver: { observe: jest.Mock; disconnect: jest.Mock };
+  let mockIntersectionObserver: { observe: jest.Mock; unobserve: jest.Mock; disconnect: jest.Mock };
   let intersectionCallback: (entries: IntersectionObserverEntry[]) => void;
   let observers: ((value: TimestampedEvent<MutationRecord[]>) => void)[] = [];
 
@@ -23,6 +23,7 @@ describe('createExposureObservable', () => {
     // Mock IntersectionObserver
     mockIntersectionObserver = {
       observe: jest.fn(),
+      unobserve: jest.fn(),
       disconnect: jest.fn(),
     };
 
@@ -217,6 +218,7 @@ describe('createExposureObservable', () => {
 
     rescan?.();
 
+    expect(mockIntersectionObserver.unobserve).toHaveBeenCalledWith(lateElement);
     expect(mockIntersectionObserver.observe).toHaveBeenCalledWith(lateElement);
     lateElement.remove();
   });

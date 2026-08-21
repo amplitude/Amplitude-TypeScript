@@ -113,6 +113,8 @@ export const createExposureObservable = (
       /* istanbul ignore next */
       const elements = globalScope?.document.querySelectorAll(selectorString) ?? [];
       elements.forEach((element) => {
+        // unobserve first so already-watched nodes get a fresh intersection callback
+        intersectionObserver.unobserve(element);
         intersectionObserver.observe(element);
       });
     };
