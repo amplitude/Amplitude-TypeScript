@@ -10,6 +10,21 @@ import {
 } from '@amplitude/session-replay-react-native';
 import { VERSION } from './version';
 
+/**
+ * Configuration for the Segment Session Replay plugin.
+ *
+ * Extends the standalone `SessionReplayConfig` with plugin-owned options. The
+ * standalone SDK requires an explicit `start()`, so `autoStart` lives here to
+ * keep "add the plugin and record" working without the caller wiring it up.
+ */
+export interface SegmentSessionReplayPluginConfig extends SessionReplayConfig {
+  /**
+   * Whether to automatically start recording when the plugin is configured
+   * @default true
+   */
+  autoStart?: boolean;
+}
+
 function getSessionId(event: SegmentEvent): number {
   const amplitudeSessionId =
     (event.integrations?.['Actions Amplitude'] as { session_id: number })?.['session_id'] ?? null;
@@ -34,24 +49,29 @@ export class SegmentSessionReplayPlugin extends Plugin {
   version: string = VERSION;
   type: PluginType = PluginType.enrichment;
 
-  private sessionReplayConfig: SessionReplayConfig;
+  private sessionReplayConfig: SegmentSessionReplayPluginConfig;
 
   // @review: This is to ensure the plugin is initialized before the first event is processed.
   // because `configure` is not asynchronous
   private initPromise: Promise<void> | null = null;
 
-  constructor(config: SessionReplayConfig) {
+  constructor(config: SegmentSessionReplayPluginConfig) {
     super();
     this.sessionReplayConfig = config;
   }
 
   async configure(analytics: SegmentClient): Promise<void> {
     super.configure(analytics);
+    const { autoStart = true, ...sessionReplayConfig } = this.sessionReplayConfig;
     this.initPromise = init({
       deviceId: analytics.userInfo.get().anonymousId,
-      ...this.sessionReplayConfig,
+      ...sessionReplayConfig,
     });
     await this.initPromise;
+
+    if (autoStart) {
+      await start();
+    }
   }
 
   async execute(event: SegmentEvent): Promise<SegmentEvent> {
@@ -82,6 +102,6 @@ export class SegmentSessionReplayPlugin extends Plugin {
   }
 }
 
-export function createSegmentSessionReplayPlugin(config: SessionReplayConfig): Plugin {
+export function createSegmentSessionReplayPlugin(config: SegmentSessionReplayPluginConfig): Plugin {
   return new SegmentSessionReplayPlugin(config);
 }

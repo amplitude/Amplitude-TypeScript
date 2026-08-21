@@ -84,6 +84,30 @@ describe('SegmentSessionReplayPlugin', () => {
 
       expect(init).toHaveBeenCalledWith({ ...mockConfig, deviceId: 'test-anonymous-id' });
     });
+
+    it('should start recording after init by default', async () => {
+      await plugin.configure(mockAnalytics);
+
+      expect(start).toHaveBeenCalled();
+    });
+
+    it('should not start recording when autoStart is false', async () => {
+      const manualStartPlugin = new SegmentSessionReplayPlugin({ ...mockConfig, autoStart: false });
+
+      await manualStartPlugin.configure(mockAnalytics);
+
+      expect(init).toHaveBeenCalled();
+      expect(start).not.toHaveBeenCalled();
+    });
+
+    it('should not forward autoStart to the session replay SDK', async () => {
+      const manualStartPlugin = new SegmentSessionReplayPlugin({ ...mockConfig, autoStart: false });
+
+      await manualStartPlugin.configure(mockAnalytics);
+
+      const [initConfig] = (init as jest.Mock).mock.calls[0] as [Record<string, unknown>];
+      expect(Object.keys(initConfig)).not.toContain('autoStart');
+    });
   });
 
   describe('execute', () => {
