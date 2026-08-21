@@ -3652,6 +3652,17 @@ describe('SessionReplay', () => {
   });
 
   describe('start and stop', () => {
+    test('stop should invoke the cancel callback returned by rrweb record()', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      await jest.runAllTimersAsync();
+      expect(mockRecordFunction).toHaveBeenCalled();
+      const cancelFn = mockRecordFunction.mock.results[mockRecordFunction.mock.results.length - 1].value as jest.Mock;
+      cancelFn.mockClear();
+      sessionReplay.stop();
+      expect(cancelFn).toHaveBeenCalled();
+      expect(sessionReplay.recordCancelCallback).toBe(null);
+    });
+
     test('stop should halt recording, send queued events, and leave focus listeners attached', async () => {
       await sessionReplay.init(apiKey, mockOptions).promise;
       const createEventsIDBStoreInstance = await SessionReplayIDB.SessionReplayEventsIDBStore.new('replay', {
