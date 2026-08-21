@@ -401,8 +401,10 @@ export const autocapturePlugin = (
 
     const handleHistoryStateChange = (applyHistoryChange: () => void, nextUrl: string | URL | null | undefined) => {
       const previousPageUrl = getNormalizedPageUrl(globalScope);
-      applyHistoryChange();
+      // Resolve against the pre-navigation URL. Applying history first would make
+      // relative paths like `../other` resolve against the already-updated location.
       const nextPageUrl = resolveHistoryNavigationUrl(nextUrl, globalScope);
+      applyHistoryChange();
       if (previousPageUrl === nextPageUrl) {
         return;
       }

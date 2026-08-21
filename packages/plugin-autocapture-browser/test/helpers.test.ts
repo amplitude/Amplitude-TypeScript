@@ -702,9 +702,10 @@ describe('autocapture-plugin helpers', () => {
       expect(resolveHistoryNavigationUrl(null)).toEqual(getNormalizedPageUrl());
     });
 
-    test('should resolve a relative history url against the current location', () => {
-      mockWindowLocationFromURL(new URL('https://www.example.com/current'));
-      expect(resolveHistoryNavigationUrl('/next')).toMatch(/\/next$/);
+    test('should resolve relative history urls against the current location before navigation', () => {
+      expect(
+        resolveHistoryNavigationUrl('../other', { location: { href: 'https://example.com/foo/bar/' } } as never),
+      ).toEqual('https://example.com/foo/other');
     });
 
     test('should fall back to the current page URL when the history url is invalid', () => {
