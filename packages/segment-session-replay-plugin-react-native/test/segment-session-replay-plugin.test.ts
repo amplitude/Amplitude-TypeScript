@@ -30,7 +30,15 @@ jest.mock('@segment/analytics-react-native', () => ({
 
 import { PluginType, EventType, SegmentEvent, SegmentClient } from '@segment/analytics-react-native';
 import { SegmentSessionReplayPlugin, createSegmentSessionReplayPlugin } from '../src/segment-session-replay-plugin';
-import { init, setDeviceId, setSessionId, start, stop } from '@amplitude/session-replay-react-native';
+import {
+  init,
+  setDeviceId,
+  setSessionId,
+  setOptOut,
+  start,
+  stop,
+  teardown,
+} from '@amplitude/session-replay-react-native';
 import { VERSION } from '../src/version';
 
 // Mock the session replay module
@@ -38,8 +46,10 @@ jest.mock('@amplitude/session-replay-react-native', () => ({
   init: jest.fn(),
   setDeviceId: jest.fn(),
   setSessionId: jest.fn(),
+  setOptOut: jest.fn(),
   start: jest.fn(),
   stop: jest.fn(),
+  teardown: jest.fn(),
 }));
 
 describe('SegmentSessionReplayPlugin', () => {
@@ -265,9 +275,9 @@ describe('SegmentSessionReplayPlugin', () => {
   });
 
   describe('shutdown', () => {
-    it('should call stop', async () => {
+    it('should tear down session replay', async () => {
       await plugin.shutdown();
-      expect(stop).toHaveBeenCalled();
+      expect(teardown).toHaveBeenCalled();
     });
   });
 
@@ -282,6 +292,13 @@ describe('SegmentSessionReplayPlugin', () => {
     it('should call stop', async () => {
       await plugin.stop();
       expect(stop).toHaveBeenCalled();
+    });
+  });
+
+  describe('setOptOut', () => {
+    it('should update the session replay opt-out state', async () => {
+      await plugin.setOptOut(true);
+      expect(setOptOut).toHaveBeenCalledWith(true);
     });
   });
 });

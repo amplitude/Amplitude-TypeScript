@@ -199,6 +199,38 @@ export async function stop(): Promise<void> {
   await NativeSessionReplay.stop();
 }
 
+/**
+ * Update whether session replay collection is disabled for the current user.
+ *
+ * @param optOut - Whether to opt out of session replay collection
+ * @returns Promise that resolves when the opt-out state is updated
+ */
+export async function setOptOut(optOut: boolean): Promise<void> {
+  if (!isInitialized || fullConfig === null) {
+    logger.warn('SessionReplay is not initialized');
+    return;
+  }
+  await NativeSessionReplay.setOptOut(optOut);
+  fullConfig.optOut = optOut;
+}
+
+/**
+ * Shut down the native SDK and clear all JavaScript lifecycle state.
+ * Call `init()` again before using any other session replay operation.
+ *
+ * @returns Promise that resolves when teardown is complete
+ */
+export async function teardown(): Promise<void> {
+  if (!isInitialized) {
+    logger.warn('SessionReplay is not initialized');
+    return;
+  }
+  await NativeSessionReplay.teardown();
+  fullConfig = null;
+  isInitialized = false;
+  logger = createSessionReplayLogger();
+}
+
 function nativeConfig(config: ResolvedSessionReplayConfig): NativeSessionReplayConfig {
   // Resolve the effective mask level here — the single source of truth for the
   // default. `normalizeConfig()` already folded the deprecated top-level

@@ -14,10 +14,12 @@ export interface Spec extends TurboModule {
   setup(config: UnsafeObject): Promise<void>;
   setSessionId(sessionId: number): Promise<void>;
   setDeviceId(deviceId: string | null): Promise<void>;
+  setOptOut(optOut: boolean): Promise<void>;
   getSessionId(): Promise<number>;
   start(): Promise<void>;
   stop(): Promise<void>;
   flush(): Promise<void>;
+  teardown(): Promise<void>;
 }
 
 // Use non-enforcing `get` (returns null when the native module isn't linked)

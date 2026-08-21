@@ -85,6 +85,12 @@ export interface NativeSessionReplaySpec {
   setSessionId(sessionId: number): Promise<void>;
 
   /**
+   * Updates whether session replay collection is disabled for the current user.
+   * @param optOut - Whether to opt out of session replay collection
+   */
+  setOptOut(optOut: boolean): Promise<void>;
+
+  /**
    * Initializes the native session replay module with the provided configuration.
    * This method must be called before any other session replay operations.
    * @param config - Configuration object containing all necessary parameters for setup
@@ -102,4 +108,9 @@ export interface NativeSessionReplaySpec {
    * Ends the current recording session and processes any captured data.
    */
   stop(): Promise<void>;
+
+  /**
+   * Shuts down the native session replay instance and releases its resources.
+   */
+  teardown(): Promise<void>;
 }
