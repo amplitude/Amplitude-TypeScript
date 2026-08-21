@@ -117,6 +117,12 @@ export class SessionReplay implements AmplitudeSessionReplay {
   // Cache the dynamically imported record function
   private recordFunction: RecordFunction | null = null;
   private recordEventsInFlight = false;
+  /**
+   * When false, capture is paused by a customer `stop()` (or `shutdown()`) call.
+   * Focus/targeting/session-change paths still invoke `recordEvents()`, but
+   * `getShouldRecord()` will refuse to start rrweb until `start()` or a new `init()`.
+   */
+  private recordingEnabled = true;
   private pendingEmitEvents: Array<{ event: eventWithTime; sessionId: string | number }> = [];
 
   /** Current page URL, kept in sync with SPA navigations for URL-based masking */
@@ -231,6 +237,8 @@ export class SessionReplay implements AmplitudeSessionReplay {
     // Re-init should always tear down any previous URL-change subscription, even when the
     // next config has no targeting config and we don't subscribe again.
     this.urlChangeCleanup?.();
+    // A new init always allows capture again. `stop()` only pauses the current instance.
+    this.recordingEnabled = true;
 
     this.loggerProvider = new SafeLoggerProvider(options.loggerProvider || new Logger());
     Object.prototype.hasOwnProperty.call(options, 'logLevel') &&
@@ -544,6 +552,9 @@ export class SessionReplay implements AmplitudeSessionReplay {
   };
 
   focusListener = () => {
+    if (!this.recordingEnabled) {
+      return;
+    }
     if (this.recordCancelCallback && this.recordFunction) {
       // Recording is already active. The on-focus full snapshot is tunable: when
       // `captureFullSnapshotOnFocus` is false we skip it entirely so high focus-churn pages
@@ -753,6 +764,13 @@ export class SessionReplay implements AmplitudeSessionReplay {
   getShouldRecord() {
     if (!this.identifiers || !this.config || !this.identifiers.sessionId) {
       this.loggerProvider.warn(`Session is not being recorded due to lack of config, please call sessionReplay.init.`);
+      return false;
+    }
+
+    if (!this.recordingEnabled) {
+      this.loggerProvider.log(
+        `Session ${this.identifiers.sessionId} not being captured because recording was stopped.`,
+      );
       return false;
     }
 
@@ -1207,6 +1225,21 @@ export class SessionReplay implements AmplitudeSessionReplay {
     return this.identifiers?.sessionId;
   }
 
+  start() {
+    return returnWrapper(this._start());
+  }
+
+  private async _start() {
+    this.recordingEnabled = true;
+    await this.recordEvents();
+  }
+
+  stop() {
+    this.recordingEnabled = false;
+    this.stopRecordingEvents();
+    this.sendEvents();
+  }
+
   async flush(useRetry = false) {
     // Intentionally not gated on min_session_duration_ms. flush() forwards payloads
     // already queued in trackDestination, and every code path that queues into it —
@@ -1217,6 +1250,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
   }
 
   shutdown() {
+    this.recordingEnabled = false;
     this.urlChangeCleanup?.();
     this.crossOriginParentSignalCleanup?.();
     this.crossOriginParentSignalCleanup = null;

@@ -20,8 +20,16 @@ type MockedLogger = jest.Mocked<ILogger>;
 type MockedBrowserClient = jest.Mocked<BrowserClient>;
 
 describe('SessionReplayPlugin', () => {
-  const { init, setSessionId, getSessionReplayProperties, shutdown, getSessionId, evaluateTargetingAndCapture } =
-    sessionReplayBrowser as MockedSessionReplayBrowser;
+  const {
+    init,
+    setSessionId,
+    getSessionReplayProperties,
+    start,
+    stop,
+    shutdown,
+    getSessionId,
+    evaluateTargetingAndCapture,
+  } = sessionReplayBrowser as MockedSessionReplayBrowser;
   const mockLoggerProviderDebug = jest.fn();
   const mockLoggerProvider: MockedLogger = {
     error: jest.fn(),
@@ -69,6 +77,9 @@ describe('SessionReplayPlugin', () => {
       promise: Promise.resolve(),
     });
     setSessionId.mockReturnValue({
+      promise: Promise.resolve(),
+    });
+    start.mockReturnValue({
       promise: Promise.resolve(),
     });
     getSessionReplayProperties.mockImplementation(() => {
@@ -818,6 +829,22 @@ describe('SessionReplayPlugin', () => {
       expect(mockLoggerProvider['error'].mock.calls[0][0]).toBe(
         'Session Replay: teardown failed due to Mock shutdown error',
       );
+    });
+  });
+
+  describe('start and stop', () => {
+    test('should call session replay start', async () => {
+      const sessionReplay = sessionReplayPlugin();
+      await sessionReplay.setup?.(mockConfig, mockAmplitude);
+      await sessionReplay.start();
+      expect(start).toHaveBeenCalled();
+    });
+
+    test('should call session replay stop', async () => {
+      const sessionReplay = sessionReplayPlugin();
+      await sessionReplay.setup?.(mockConfig, mockAmplitude);
+      sessionReplay.stop();
+      expect(stop).toHaveBeenCalled();
     });
   });
 
