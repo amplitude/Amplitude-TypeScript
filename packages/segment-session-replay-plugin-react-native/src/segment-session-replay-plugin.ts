@@ -2,7 +2,6 @@ import { Plugin, PluginType, type SegmentEvent, EventType, SegmentClient } from 
 
 import {
   type SessionReplayConfig,
-  getSessionReplayProperties,
   init,
   setDeviceId,
   setSessionId,
@@ -63,11 +62,6 @@ export class SegmentSessionReplayPlugin extends Plugin {
 
     await setSessionId(sessionId);
     await setDeviceId(deviceId);
-
-    if (event.type === EventType.TrackEvent || event.type === EventType.ScreenEvent) {
-      const properties = await getSessionReplayProperties();
-      event.properties = { ...event.properties, ...properties };
-    }
 
     return event;
   }

@@ -32,7 +32,7 @@ let isInitialized = false;
 let logger = createSessionReplayLogger();
 
 /**
- * Configure the SDK and begin collecting replays.
+ * Configure the SDK. Call `start()` explicitly to begin collecting replays.
  * This function must be called before any other session replay operations.
  *
  * @param config - Configuration object containing API key, device ID, session ID, and other options
@@ -140,38 +140,6 @@ export async function getSessionId(): Promise<number | null> {
 }
 
 /**
- * Interface for session replay properties that should be attached to Amplitude events.
- * These properties help correlate events with session recordings.
- */
-export interface SessionReplayProperties {
-  [key: string]: string | boolean | null;
-}
-
-/**
- * When you send events to Amplitude, call this function to get the most up-to-date session replay properties for the event.
- * Collect Session Replay properties to send with other event properties.
- *
- * @returns Promise that resolves to an object containing session replay metadata
- *
- * @example
- * ```typescript
- * const sessionReplayProperties = await getSessionReplayProperties();
- * analytics.track('Button Clicked', {
- *   buttonName: 'submit',
- *   ...sessionReplayProperties // Merge session replay properties
- * });
- * ```
- */
-export async function getSessionReplayProperties(): Promise<SessionReplayProperties> {
-  if (!isInitialized) {
-    logger.warn('SessionReplay is not initialized');
-    return {};
-  }
-  const properties = await NativeSessionReplay.getSessionReplayProperties();
-  return properties as SessionReplayProperties;
-}
-
-/**
  * Flush any pending session replay data to the server.
  * Forces immediate upload of recorded session data that may be buffered locally.
  *
@@ -194,13 +162,12 @@ export async function flush(): Promise<void> {
 /**
  * Start session replay recording.
  * Begins capturing user interactions and screen content for replay.
- * If autoStart is enabled in the configuration, this is called automatically during initialization.
  *
  * @returns Promise that resolves when recording starts
  *
  * @example
  * ```typescript
- * // Start recording manually if autoStart is false
+ * // Recording starts only after this explicit call.
  * await start();
  * ```
  */

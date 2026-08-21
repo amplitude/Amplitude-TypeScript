@@ -73,6 +73,10 @@ describe('SessionReplayPlugin Integration', () => {
     expect(NativeModules.AMPNativeSessionReplay.setup).toHaveBeenCalledWith(
       expect.objectContaining({ apiKey: 'test-api-key', serverZone: 'US' }),
     );
+    expect(NativeModules.AMPNativeSessionReplay.setup).toHaveBeenCalledWith(
+      expect.not.objectContaining({ autoStart: expect.anything() }),
+    );
+    expect(NativeModules.AMPNativeSessionReplay.start).toHaveBeenCalledTimes(1);
   });
 
   it('should instantiate and setup with custom config', async () => {
@@ -87,6 +91,10 @@ describe('SessionReplayPlugin Integration', () => {
     expect(NativeModules.AMPNativeSessionReplay.setup).toHaveBeenCalledWith(
       expect.objectContaining({ apiKey: 'test-api-key', serverZone: 'EU' }),
     );
+    expect(NativeModules.AMPNativeSessionReplay.setup).toHaveBeenCalledWith(
+      expect.not.objectContaining({ autoStart: expect.anything() }),
+    );
+    expect(NativeModules.AMPNativeSessionReplay.start).not.toHaveBeenCalled();
   });
 
   it('should call start, stop, and teardown', async () => {
@@ -101,20 +109,12 @@ describe('SessionReplayPlugin Integration', () => {
     expect(NativeModules.AMPNativeSessionReplay.stop).toHaveBeenCalledTimes(2);
   });
 
-  it('should call getSessionReplayProperties', async () => {
+  it('should not stamp session replay properties on events', async () => {
     const plugin = new SessionReplayPlugin();
     await plugin.setup(minimalConfig, mockReactNativeClient);
-    const props = await plugin.getSessionReplayProperties();
-    expect(NativeModules.AMPNativeSessionReplay.getSessionReplayProperties).toHaveBeenCalled();
-    expect(props).toEqual({ replayId: 'test-id' });
-  });
-
-  it('should execute and enrich event if initialized', async () => {
-    const plugin = new SessionReplayPlugin();
-    await plugin.setup(minimalConfig, mockReactNativeClient);
-    const event = { event_type: 'test_event', event_properties: {} };
+    const event = { event_type: 'test_event', session_id: minimalConfig.sessionId, event_properties: {} };
     const enriched = await plugin.execute(event);
-    expect(enriched).toEqual(event); // Should return the same event (enrichment is a no-op in mock)
+    expect(enriched).toEqual(event);
   });
 
   it('should not enrich event if not initialized', async () => {

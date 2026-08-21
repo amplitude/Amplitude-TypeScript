@@ -9,11 +9,11 @@ jest.mock('react-native');
 // Explicitly mock the logger module using the imported mock
 jest.mock('../src/logger', (): any => require('./utils/logger'));
 
+import * as sessionReplay from '../src/index';
 import {
   init,
   setSessionId,
   getSessionId,
-  getSessionReplayProperties,
   flush,
   start,
   stop,
@@ -26,9 +26,6 @@ import {
 } from '../src/index';
 import { NativeModules } from 'react-native';
 import { LogLevel } from '@amplitude/analytics-types';
-
-// Mock the getSessionReplayProperties return value for our tests
-NativeModules.AMPNativeSessionReplay.getSessionReplayProperties.mockResolvedValue({ replayId: 'test-id' });
 
 describe('Index Exports', () => {
   const testConfig: SessionReplayConfig = {
@@ -52,6 +49,9 @@ describe('Index Exports', () => {
           logLevel: LogLevel.Warn,
         }),
       );
+      expect(NativeModules.AMPNativeSessionReplay.setup).toHaveBeenCalledWith(
+        expect.not.objectContaining({ autoStart: expect.anything() }),
+      );
     });
 
     it('should export setSessionId function that updates session ID', async () => {
@@ -68,11 +68,8 @@ describe('Index Exports', () => {
       expect(sessionId).toBe(12345);
     });
 
-    it('should export getSessionReplayProperties function', async () => {
-      await init(testConfig); // Initialize first
-      const properties = await getSessionReplayProperties();
-      expect(NativeModules.AMPNativeSessionReplay.getSessionReplayProperties).toHaveBeenCalled();
-      expect(properties).toEqual({ replayId: 'test-id' });
+    it('should not export getSessionReplayProperties', () => {
+      expect(sessionReplay).not.toHaveProperty('getSessionReplayProperties');
     });
 
     it('should export flush function that flushes session data', async () => {
@@ -121,7 +118,6 @@ describe('Index Exports', () => {
         serverZone: 'US',
         logLevel: LogLevel.Warn,
         maskLevel: 'medium',
-        autoStart: true,
         deviceId: 'test-device',
         enableRemoteConfig: true,
         optOut: false,

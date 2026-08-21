@@ -39,7 +39,6 @@ import {
   stop,
   flush,
   getSessionId,
-  getSessionReplayProperties,
   setSessionId,
   setDeviceId,
   AmpMaskView,
@@ -92,18 +91,18 @@ function HomeScreen({ navigation }: HomeProps): React.JSX.Element {
           enableRemoteConfig: false,
           logLevel: 4,
         });
+        await start();
         const sessionId = await getSessionId();
-        const props = await getSessionReplayProperties();
         log('init() resolved deviceId=' + verificationDeviceId);
+        log('start() resolved');
         log('getSessionId() -> ' + String(sessionId));
-        log('getSessionReplayProperties() -> ' + JSON.stringify(props));
 
         // init() swallows native setup failures and resolves without throwing;
         // verify the module is actually live before showing success.
-        if (sessionId === null || Object.keys(props).length === 0) {
+        if (sessionId === null) {
           log(
             'ERROR: init() resolved but Session Replay is not initialized ' +
-              `(sessionId=${String(sessionId)}, props=${JSON.stringify(props)})`,
+              `(sessionId=${String(sessionId)})`,
           );
           setOk(false);
         } else {
@@ -163,10 +162,6 @@ function HomeScreen({ navigation }: HomeProps): React.JSX.Element {
           <Button
             title="getSessionId"
             onPress={runFn('getSessionId', getSessionId)}
-          />
-          <Button
-            title="getProps"
-            onPress={runFn('getSessionReplayProperties', getSessionReplayProperties)}
           />
         </View>
 

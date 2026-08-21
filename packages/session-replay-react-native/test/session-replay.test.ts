@@ -10,12 +10,11 @@ jest.mock('react-native');
 
 jest.mock('../src/logger', () => require('./utils/logger'));
 
-import { init, start, stop, getSessionId, getSessionReplayProperties, type SessionReplayConfig } from '../src/index';
+import { init, start, stop, getSessionId, type SessionReplayConfig } from '../src/index';
 import { NativeModules } from 'react-native';
 import { LogLevel } from '@amplitude/analytics-types';
 
 const mockNativeModules = NativeModules as jest.Mocked<typeof NativeModules>;
-mockNativeModules.AMPNativeSessionReplay.getSessionReplayProperties.mockResolvedValue({ replayId: 'test-id' });
 
 describe('Session Replay Integration Tests', () => {
   beforeEach(() => {
@@ -38,6 +37,9 @@ describe('Session Replay Integration Tests', () => {
         logLevel: LogLevel.Warn,
       }),
     );
+    expect(mockNativeModules.AMPNativeSessionReplay.setup).toHaveBeenCalledWith(
+      expect.not.objectContaining({ autoStart: expect.anything() }),
+    );
 
     await start();
     expect(mockNativeModules.AMPNativeSessionReplay.start).toHaveBeenCalled();
@@ -46,10 +48,6 @@ describe('Session Replay Integration Tests', () => {
     expect(sessionId).toBe(12345);
     expect(mockNativeModules.AMPNativeSessionReplay.getSessionId).toHaveBeenCalled();
 
-    const properties = await getSessionReplayProperties();
-    expect(properties).toEqual({ replayId: 'test-id' });
-    expect(mockNativeModules.AMPNativeSessionReplay.getSessionReplayProperties).toHaveBeenCalled();
-
     await stop();
     expect(mockNativeModules.AMPNativeSessionReplay.stop).toHaveBeenCalled();
 
@@ -57,7 +55,6 @@ describe('Session Replay Integration Tests', () => {
     expect(calls.setup).toHaveBeenCalled();
     expect(calls.start).toHaveBeenCalled();
     expect(calls.getSessionId).toHaveBeenCalled();
-    expect(calls.getSessionReplayProperties).toHaveBeenCalled();
     expect(calls.stop).toHaveBeenCalled();
   });
 

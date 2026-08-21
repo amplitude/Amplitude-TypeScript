@@ -23,7 +23,6 @@ class NativeSessionReplay: NSObject, RCTBridgeModule {
               let sampleRate = config["sampleRate"] as? NSNumber,
               let enableRemoteConfig = config["enableRemoteConfig"] as? Bool,
               let logLevel = config["logLevel"] as? Int,
-              let autoStart = config["autoStart"] as? Bool,
               let maskLevel = config["maskLevel"] as? String,
               let optOut = config["optOut"] as? Bool else {
             reject("INVALID_CONFIG", "Invalid configuration parameters", nil)
@@ -44,7 +43,6 @@ class NativeSessionReplay: NSObject, RCTBridgeModule {
             Sample Rate: \(sampleRate)
             Enable Remote Config: \(enableRemoteConfig)
             Log Level: \(logLevel)
-            Auto Start: \(autoStart)
             Mask Level: \(maskLevel)
             Opt Out: \(optOut)
             """
@@ -62,9 +60,6 @@ class NativeSessionReplay: NSObject, RCTBridgeModule {
             enableRemoteConfig: enableRemoteConfig
         )
         
-        if (autoStart) {
-            sessionReplay.start()
-        }
         resolve(nil)
     }
     
@@ -89,15 +84,6 @@ class NativeSessionReplay: NSObject, RCTBridgeModule {
     ) {
         logger.debug(message: "getSessionId")
         resolve(NSNumber(value:sessionReplay.sessionId))
-    }
-    
-    @objc(getSessionReplayProperties:reject:)
-    func getSessionReplayProperties(
-        _ resolve: RCTPromiseResolveBlock,
-        reject: RCTPromiseRejectBlock
-    ) {
-        logger.debug(message: "getSessionReplayProperties")
-        resolve(sessionReplay.additionalEventProperties)
     }
     
     @objc(start:reject:)

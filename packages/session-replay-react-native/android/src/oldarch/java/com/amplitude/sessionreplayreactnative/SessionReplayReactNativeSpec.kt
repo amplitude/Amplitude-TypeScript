@@ -13,7 +13,6 @@ abstract class SessionReplayReactNativeSpec(reactContext: ReactApplicationContex
   abstract fun setSessionId(sessionId: Double, promise: Promise)
   abstract fun setDeviceId(deviceId: String?, promise: Promise)
   abstract fun getSessionId(promise: Promise)
-  abstract fun getSessionReplayProperties(promise: Promise)
   abstract fun start(promise: Promise)
   abstract fun stop(promise: Promise)
   abstract fun flush(promise: Promise)
