@@ -205,13 +205,14 @@ describe('SegmentSessionReplayPlugin', () => {
         traits: {},
       } as any;
 
-      await plugin.execute(mockEvent);
+      const result = await plugin.execute(mockEvent);
 
-      expect(mockEvent).toEqual({
+      expect(result).toEqual({
         type: EventType.IdentifyEvent,
         userId: 'user-123',
         traits: {},
       });
+      expect(mockEvent).toEqual(result);
     });
 
     it('should handle null device ID gracefully', async () => {

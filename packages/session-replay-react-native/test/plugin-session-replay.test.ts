@@ -73,9 +73,8 @@ describe('SessionReplayPlugin Integration', () => {
     expect(NativeModules.AMPNativeSessionReplay.setup).toHaveBeenCalledWith(
       expect.objectContaining({ apiKey: 'test-api-key', serverZone: 'US' }),
     );
-    expect(NativeModules.AMPNativeSessionReplay.setup).toHaveBeenCalledWith(
-      expect.not.objectContaining({ autoStart: expect.anything() }),
-    );
+    const [defaultSetupConfig] = NativeModules.AMPNativeSessionReplay.setup.mock.calls[0] as [Record<string, unknown>];
+    expect(Object.keys(defaultSetupConfig)).not.toContain('autoStart');
     expect(NativeModules.AMPNativeSessionReplay.start).toHaveBeenCalledTimes(1);
   });
 
@@ -91,9 +90,8 @@ describe('SessionReplayPlugin Integration', () => {
     expect(NativeModules.AMPNativeSessionReplay.setup).toHaveBeenCalledWith(
       expect.objectContaining({ apiKey: 'test-api-key', serverZone: 'EU' }),
     );
-    expect(NativeModules.AMPNativeSessionReplay.setup).toHaveBeenCalledWith(
-      expect.not.objectContaining({ autoStart: expect.anything() }),
-    );
+    const [customSetupConfig] = NativeModules.AMPNativeSessionReplay.setup.mock.calls[0] as [Record<string, unknown>];
+    expect(Object.keys(customSetupConfig)).not.toContain('autoStart');
     expect(NativeModules.AMPNativeSessionReplay.start).not.toHaveBeenCalled();
   });
 
@@ -119,9 +117,9 @@ describe('SessionReplayPlugin Integration', () => {
 
   it('should not enrich event if not initialized', async () => {
     const plugin = new SessionReplayPlugin();
-    await plugin.setup(minimalConfig, mockReactNativeClient);
     const event = { event_type: 'test_event', event_properties: {} };
     const enriched = await plugin.execute(event);
-    expect(enriched).toEqual(event); // Should return the same event
+    expect(enriched).toEqual(event);
+    expect(NativeModules.AMPNativeSessionReplay.setup).not.toHaveBeenCalled();
   });
 });

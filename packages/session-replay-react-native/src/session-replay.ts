@@ -36,8 +36,8 @@ let logger = createSessionReplayLogger();
  * This function must be called before any other session replay operations.
  *
  * @param config - Configuration object containing API key, device ID, session ID, and other options
- * @returns Promise that resolves when initialization is complete
- * @throws Error if initialization fails
+ * @returns Promise that resolves when initialization is complete. Native setup
+ * failures are logged and do not reject the promise.
  *
  * @example
  * ```typescript

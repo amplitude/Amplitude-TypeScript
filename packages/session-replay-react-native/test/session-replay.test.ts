@@ -37,9 +37,10 @@ describe('Session Replay Integration Tests', () => {
         logLevel: LogLevel.Warn,
       }),
     );
-    expect(mockNativeModules.AMPNativeSessionReplay.setup).toHaveBeenCalledWith(
-      expect.not.objectContaining({ autoStart: expect.anything() }),
-    );
+    const [setupConfig] = jest.mocked(mockNativeModules.AMPNativeSessionReplay.setup).mock.calls[0] as [
+      Record<string, unknown>,
+    ];
+    expect(Object.keys(setupConfig)).not.toContain('autoStart');
 
     await start();
     expect(mockNativeModules.AMPNativeSessionReplay.start).toHaveBeenCalled();
