@@ -1,5 +1,6 @@
 // vite.config.js
 import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
 import path from 'path';
 import fs from 'fs';
 import glob from 'fast-glob';
@@ -152,6 +153,9 @@ export default defineConfig({
     // trc-e2e is a standalone React SPA with its own dedicated vite config (see `dev:trc`).
     // It references /main.jsx and must not be swept into the shared multi-page build.
     htmlEntriesPlugin('**/*.html', { cwd: testServerDir, ignore: ['**/trc-e2e/**'] }),
+    // Scoped to configurator/ so the babel + react-refresh transform stays off the other test pages
+    // and the packages/* builds they pull in.
+    react({ include: [/\/configurator\/.*\.[jt]sx?$/] }),
     gzipServePlugin(),
     fileListingPlugin(),
     spaRoutingPlugin(),
