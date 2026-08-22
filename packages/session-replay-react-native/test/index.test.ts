@@ -49,9 +49,8 @@ describe('Index Exports', () => {
           logLevel: LogLevel.Warn,
         }),
       );
-      expect(NativeModules.AMPNativeSessionReplay.setup).toHaveBeenCalledWith(
-        expect.not.objectContaining({ autoStart: expect.anything() }),
-      );
+      const [setupConfig] = NativeModules.AMPNativeSessionReplay.setup.mock.calls[0] as [Record<string, unknown>];
+      expect(Object.keys(setupConfig)).not.toContain('autoStart');
     });
 
     it('should export setSessionId function that updates session ID', async () => {
