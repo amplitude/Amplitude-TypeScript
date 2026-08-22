@@ -18,7 +18,6 @@
   "types": "lib/typescript/index.d.ts",
   "react-native": "src/index.ts",
   "source": "src/index.ts",
-  "private": true,
   "publishConfig": {
     "access": "public",
     "tag": "latest"
