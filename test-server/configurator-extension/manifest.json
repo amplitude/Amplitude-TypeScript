@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Amplitude Configurator Runner (spike)",
-  "version": "0.0.3",
+  "version": "0.0.9",
   "description": "Runs a configuration built in the Amplitude configurator on any site, by injecting the Browser SDK into it.",
   "permissions": ["declarativeNetRequestWithHostAccess", "scripting", "storage", "webNavigation", "webRequest"],
   "host_permissions": ["*://*/*"],
@@ -12,6 +12,12 @@
   "action": {
     "default_title": "Run the Amplitude SDK on this tab"
   },
+  "web_accessible_resources": [
+    {
+      "resources": ["vendor/*.map"],
+      "matches": ["<all_urls>"]
+    }
+  ],
   "content_scripts": [
     {
       "matches": [
@@ -20,7 +26,8 @@
         "http://127.0.0.1/configurator.html*",
         "https://127.0.0.1/configurator.html*",
         "http://local.website.com/configurator.html*",
-        "https://local.website.com/configurator.html*"
+        "https://local.website.com/configurator.html*",
+        "https://bespoke-melomakarona-ec9cbf.netlify.app/configurator.html*"
       ],
       "js": ["configurator-bridge.js"],
       "run_at": "document_end"

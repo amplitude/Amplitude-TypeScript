@@ -1,2 +1,2 @@
-# Copied in from packages/analytics-browser/lib/scripts after a build; see README.md.
+# Bundles and their .map files, copied in by sync-vendor.mjs after a build; see README.md.
 vendor/
