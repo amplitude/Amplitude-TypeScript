@@ -9,8 +9,11 @@ export const createMutationObservable = (): Observable<MutationRecord[]> => {
     const mutationObserver = new MutationObserver((mutations) => {
       observer.next(mutations);
     });
-    if (document.body) {
-      mutationObserver.observe(document.body, {
+    // Autocapture can be initialized from the document head, before the body exists. Falling back
+    // to the document element keeps the body and everything parsed into it observed.
+    const target = document.body ?? document.documentElement;
+    if (target) {
+      mutationObserver.observe(target, {
         childList: true,
         attributes: true,
         characterData: true,
@@ -74,6 +77,9 @@ const createConsoleErrorObservable = (): Observable<BrowserErrorEvent> => {
 export const createExposureObservable = (
   mutationObservable: Observable<TimestampedEvent<MutationRecord[]>>,
   selectorAllowlist: string[],
+  // Receives a function that re-emits entries for the elements currently in the viewport, or
+  // undefined once the observable is torn down.
+  registerReobserve?: (reobserve: (() => void) | undefined) => void,
 ): Observable<Event> => {
   return new Observable<Event>((observer) => {
     const globalScope = getGlobalScope();
@@ -84,9 +90,16 @@ export const createExposureObservable = (
       };
     }
 
+    const elementsInViewport = new Set<Element>();
+
     const intersectionObserver = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            elementsInViewport.add(entry.target);
+          } else {
+            elementsInViewport.delete(entry.target);
+          }
           observer.next(entry as unknown as Event);
         });
       },
@@ -122,7 +135,23 @@ export const createExposureObservable = (
       ),
     );
 
+    // An IntersectionObserver only reports threshold crossings, so elements that are already in
+    // the viewport are never reported again. Whoever resets the exposure state (eg. at the end of
+    // a page view) needs the elements on screen to be reported once more for the new page view,
+    // which re-observing does.
+    registerReobserve?.(() => {
+      const elements = Array.from(elementsInViewport);
+      elementsInViewport.clear();
+      elements.forEach((element) => {
+        intersectionObserver.unobserve(element);
+        if (element.isConnected) {
+          intersectionObserver.observe(element);
+        }
+      });
+    });
+
     return () => {
+      registerReobserve?.(undefined);
       mutationSubscription.unsubscribe();
       intersectionObserver.disconnect();
     };

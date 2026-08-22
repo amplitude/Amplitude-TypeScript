@@ -5,7 +5,7 @@ import { TimestampedEvent } from '../src/helpers';
 describe('createExposureObservable', () => {
   let mutationObservable: Observable<TimestampedEvent<MutationRecord[]>>;
   let mockMutationObserver: { subscribe: jest.Mock };
-  let mockIntersectionObserver: { observe: jest.Mock; disconnect: jest.Mock };
+  let mockIntersectionObserver: { observe: jest.Mock; unobserve: jest.Mock; disconnect: jest.Mock };
   let intersectionCallback: (entries: IntersectionObserverEntry[]) => void;
   let observers: ((value: TimestampedEvent<MutationRecord[]>) => void)[] = [];
 
@@ -23,6 +23,7 @@ describe('createExposureObservable', () => {
     // Mock IntersectionObserver
     mockIntersectionObserver = {
       observe: jest.fn(),
+      unobserve: jest.fn(),
       disconnect: jest.fn(),
     };
 
@@ -205,6 +206,78 @@ describe('createExposureObservable', () => {
     subscription.unsubscribe();
 
     expect(mockIntersectionObserver.disconnect).toHaveBeenCalled();
+  });
+
+  test('should re-observe elements in the viewport when asked to reobserve', () => {
+    const inViewport = document.createElement('div');
+    const outOfViewport = document.createElement('div');
+    document.body.appendChild(inViewport);
+    document.body.appendChild(outOfViewport);
+
+    let reobserve: (() => void) | undefined;
+    const exposureObservable = createExposureObservable(mutationObservable, ['div'], (fn) => {
+      reobserve = fn;
+    });
+    exposureObservable.subscribe(() => {
+      return;
+    });
+
+    intersectionCallback([
+      { isIntersecting: true, intersectionRatio: 1.0, target: inViewport } as unknown as IntersectionObserverEntry,
+      { isIntersecting: false, intersectionRatio: 0.5, target: outOfViewport } as unknown as IntersectionObserverEntry,
+    ]);
+
+    mockIntersectionObserver.observe.mockClear();
+    expect(reobserve).toBeDefined();
+    reobserve?.();
+
+    // Only the element in the viewport needs to be reported again
+    expect(mockIntersectionObserver.unobserve).toHaveBeenCalledTimes(1);
+    expect(mockIntersectionObserver.unobserve).toHaveBeenCalledWith(inViewport);
+    expect(mockIntersectionObserver.observe).toHaveBeenCalledTimes(1);
+    expect(mockIntersectionObserver.observe).toHaveBeenCalledWith(inViewport);
+
+    // Reobserving again is a no-op until the observer reports the element as visible again
+    mockIntersectionObserver.observe.mockClear();
+    reobserve?.();
+    expect(mockIntersectionObserver.observe).not.toHaveBeenCalled();
+  });
+
+  test('should not re-observe elements in the viewport that left the DOM', () => {
+    const removed = document.createElement('div');
+    document.body.appendChild(removed);
+
+    let reobserve: (() => void) | undefined;
+    const exposureObservable = createExposureObservable(mutationObservable, ['div'], (fn) => {
+      reobserve = fn;
+    });
+    exposureObservable.subscribe(() => {
+      return;
+    });
+
+    intersectionCallback([
+      { isIntersecting: true, intersectionRatio: 1.0, target: removed } as unknown as IntersectionObserverEntry,
+    ]);
+
+    removed.remove();
+    mockIntersectionObserver.observe.mockClear();
+    reobserve?.();
+
+    expect(mockIntersectionObserver.unobserve).toHaveBeenCalledWith(removed);
+    expect(mockIntersectionObserver.observe).not.toHaveBeenCalled();
+  });
+
+  test('should clear the reobserve function on unsubscribe', () => {
+    const registerReobserve = jest.fn();
+    const exposureObservable = createExposureObservable(mutationObservable, ['div'], registerReobserve);
+    const subscription = exposureObservable.subscribe(() => {
+      return;
+    });
+
+    expect(registerReobserve).toHaveBeenCalledWith(expect.any(Function));
+
+    subscription.unsubscribe();
+    expect(registerReobserve).toHaveBeenLastCalledWith(undefined);
   });
 
   test('should handle missing IntersectionObserver support gracefully', () => {

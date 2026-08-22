@@ -149,6 +149,10 @@ export const autocapturePlugin = (
 
   let beforeUnloadCleanup: () => void;
 
+  // Re-emits exposure entries for the elements currently in the viewport. Set when the exposure
+  // observable is subscribed to.
+  let reobserveElementsInViewport: (() => void) | undefined;
+
   const createObservables = (): AllWindowObservables => {
     const clickObservable = multicast(
       createClickObservable().map(
@@ -220,6 +224,9 @@ export const autocapturePlugin = (
     const exposureObservable = createExposureObservable(
       mutationObservable,
       (options as AutoCaptureOptionsWithDefaults).cssSelectorAllowlist,
+      (reobserve) => {
+        reobserveElementsInViewport = reobserve;
+      },
     );
 
     return {
@@ -348,14 +355,16 @@ export const autocapturePlugin = (
     const globalScope = getGlobalScope();
 
     const handleViewportContentUpdated = (isPageEnd: boolean) => {
-      if (isPageEnd && pageViewEndFired) {
-        return;
+      if (isPageEnd) {
+        if (pageViewEndFired) {
+          return;
+        }
+        pageViewEndFired = true;
+        setTimeout(() => {
+          pageViewEndFired = false;
+        }, constants.PAGE_VIEW_END_DEDUPE_MS);
       }
-      setTimeout(() => {
-        pageViewEndFired = false;
-      }, 100);
 
-      pageViewEndFired = true;
       fireViewportContentUpdated({
         amplitude,
         scrollTracker,
@@ -371,25 +380,46 @@ export const autocapturePlugin = (
       onExposure(elementPath, elementExposedForPage, currentElementExposed, handleViewportContentUpdated);
     };
 
+    let currentUrl = window.location.href;
+
+    // Same-document history updates that leave the URL unchanged are not a new page view. SPA
+    // frameworks emit them routinely (eg. rewriting history state during hydration), and treating
+    // them as a page end would flush a premature event and reset the exposure state.
+    const handleNavigation = (destinationUrl?: string) => {
+      const nextUrl = destinationUrl ?? window.location.href;
+      if (nextUrl === currentUrl) {
+        return;
+      }
+      currentUrl = nextUrl;
+      handleViewportContentUpdated(true);
+    };
+
     if (isViewportContentUpdatedEnabled) {
       trackers.exposure = trackExposure({
         allObservables,
         onExposure: handleExposure,
         dataExtractor,
         exposureDuration: resolvedExposureDuration,
+        reobserve: () => reobserveElementsInViewport?.(),
       });
       if (trackers.exposure) {
         subscriptions.push(trackers.exposure);
       }
 
-      const beforeUnloadHandler = () => {
+      const pageEndHandler = () => {
         handleViewportContentUpdated(true);
       };
+      // pagehide covers the cases where beforeunload is unreliable, most notably mobile browsers
+      // and pages entering the back/forward cache. Both firing is deduplicated by pageViewEndFired.
       /* istanbul ignore next */
-      globalScope?.addEventListener('beforeunload', beforeUnloadHandler);
+      globalScope?.addEventListener('beforeunload', pageEndHandler);
+      /* istanbul ignore next */
+      globalScope?.addEventListener('pagehide', pageEndHandler);
       beforeUnloadCleanup = () => {
         /* istanbul ignore next */
-        globalScope?.removeEventListener('beforeunload', beforeUnloadHandler);
+        globalScope?.removeEventListener('beforeunload', pageEndHandler);
+        /* istanbul ignore next */
+        globalScope?.removeEventListener('pagehide', pageEndHandler);
       };
       // Ensure cleanup on teardown as well
       subscriptions.push({ unsubscribe: () => beforeUnloadCleanup() });
@@ -398,13 +428,14 @@ export const autocapturePlugin = (
       const navigateObservable = allObservables[ObservablesEnum.NavigateObservable];
       if (navigateObservable) {
         subscriptions.push(
-          navigateObservable.subscribe(() => {
-            handleViewportContentUpdated(true);
+          navigateObservable.subscribe((navigateEvent) => {
+            /* istanbul ignore next */
+            handleNavigation(navigateEvent?.event?.destination?.url);
           }),
         );
       } else if (globalScope) {
         const popstateHandler = () => {
-          handleViewportContentUpdated(true);
+          handleNavigation();
         };
         /* istanbul ignore next */
         // Fallback for SPA tracking when Navigation API is not available
@@ -421,7 +452,7 @@ export const autocapturePlugin = (
           globalScope.history.pushState = new Proxy(originalPushState, {
             apply: (target, thisArg, [state, unused, url]) => {
               target.apply(thisArg, [state, unused, url]);
-              handleViewportContentUpdated(true);
+              handleNavigation();
             },
           });
         }
