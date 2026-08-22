@@ -76,6 +76,13 @@ class NativeSessionReplay: NSObject, RCTBridgeModule {
         sessionReplay.deviceId = deviceId as String?
         resolve(nil)
     }
+
+    @objc(setOptOut:resolve:reject:)
+    func setOptOut(_ optOut: Bool, resolve: RCTPromiseResolveBlock, reject: RCTPromiseRejectBlock) -> Void {
+        logger.debug(message: "setOptOut: \(optOut)")
+        sessionReplay.optOut = optOut
+        resolve(nil)
+    }
     
     @objc(getSessionId:reject:)
     func getSessionId(
@@ -110,13 +117,24 @@ class NativeSessionReplay: NSObject, RCTBridgeModule {
         sessionReplay.flush()
         resolve(nil)
     }
+
+    @objc(teardown:reject:)
+    func teardown(_ resolve: RCTPromiseResolveBlock, reject: RCTPromiseRejectBlock) -> Void {
+        logger?.debug(message: "teardown")
+        tearDownSessionReplay()
+        resolve(nil)
+    }
     
     @objc(invalidate)
     func invalidate() {
         print("invalidate")
-        // could be nil here
+        tearDownSessionReplay()
+    }
+
+    private func tearDownSessionReplay() {
         sessionReplay?.stop()
         sessionReplay = nil
+        logger = nil
     }
 }
 

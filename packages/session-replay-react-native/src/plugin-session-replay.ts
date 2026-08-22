@@ -6,7 +6,7 @@ import {
 } from '@amplitude/analytics-types';
 
 import { SessionReplayPluginConfig, getDefaultSessionReplayPluginConfig } from './plugin-session-replay-config';
-import { getSessionId, privateInit, setSessionId, start, stop } from './session-replay';
+import { getSessionId, privateInit, setOptOut, setSessionId, start, stop, teardown } from './session-replay';
 import { createSessionReplayLogger } from './logger';
 
 /**
@@ -119,9 +119,21 @@ export class SessionReplayPlugin implements EnrichmentPlugin<ReactNativeClient, 
     }
   }
 
+  /**
+   * Update whether session replay collection is disabled for the current user.
+   *
+   * @param optOut - Whether to opt out of session replay collection
+   * @returns Promise that resolves when the opt-out state is updated
+   */
+  async setOptOut(optOut: boolean): Promise<void> {
+    if (this.isInitialized) {
+      await setOptOut(optOut);
+    }
+  }
+
   async teardown(): Promise<void> {
     if (this.isInitialized) {
-      await stop();
+      await teardown();
     }
 
     this.config = null;
