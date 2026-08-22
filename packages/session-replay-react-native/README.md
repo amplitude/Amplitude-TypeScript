@@ -8,6 +8,16 @@ Amplitude Session Replay for React Native
 npm install @amplitude/session-replay-react-native
 ```
 
+### iOS
+
+React Native 0.75 or newer is required. The native Amplitude Session Replay
+dependency is installed with Swift Package Manager through React Native's
+`spm_dependency` integration.
+
+React Native's SPM integration requires dynamically linked frameworks. Set
+`USE_FRAMEWORKS=dynamic` when installing pods, or configure the equivalent
+`use_frameworks! :linkage => :dynamic` setting in your Podfile.
+
 ## React Native New Architecture
 
 This SDK supports both the New Architecture (Bridgeless / TurboModules) and the
@@ -16,10 +26,11 @@ TurboModule; on the legacy architecture it continues to work as a standard bridg
 module. No configuration is required — the correct implementation is selected
 automatically based on how your app is built.
 
-`peerDependencies` are intentionally left unconstrained (`react-native: "*"`) so
-the SDK keeps working on older React Native versions on the legacy architecture.
-The TurboModule code path is compiled only when the New Architecture is enabled,
-which itself requires React Native 0.74 or newer.
+`peerDependencies` remain unconstrained because the React Native 0.75 floor
+applies only to iOS; other platforms can continue using older React Native
+versions.
+
+The TurboModule code path is compiled only when the New Architecture is enabled.
 
 ### Fabric-based masking
 

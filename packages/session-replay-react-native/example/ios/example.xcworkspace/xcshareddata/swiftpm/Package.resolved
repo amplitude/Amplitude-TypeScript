@@ -1,0 +1,69 @@
+{
+  "originHash" : "edc8e7889682432e73ee0bb1520b044b2bb6a26caa0fc6239d8b37ea33d0b8cc",
+  "pins" : [
+    {
+      "identity" : "amplitude-ios",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/amplitude/Amplitude-iOS.git",
+      "state" : {
+        "revision" : "7ec0f8971b68c1cb859028655fbff1bcde8170dd",
+        "version" : "8.22.2"
+      }
+    },
+    {
+      "identity" : "amplitudecore-swift",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/amplitude/AmplitudeCore-Swift.git",
+      "state" : {
+        "revision" : "bbad108b92f332fdaa76b67bce3f3ae88015ad0b",
+        "version" : "1.4.10"
+      }
+    },
+    {
+      "identity" : "amplitudesessionreplay-ios",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/amplitude/AmplitudeSessionReplay-iOS.git",
+      "state" : {
+        "revision" : "33bfc2acd504b4482ad5c4199c84c0fe92cc9ccb",
+        "version" : "0.12.6"
+      }
+    },
+    {
+      "identity" : "analytics-connector-ios",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/amplitude/analytics-connector-ios.git",
+      "state" : {
+        "revision" : "982b4c787285d213653bd2a504d6a86b52227cea",
+        "version" : "1.3.2"
+      }
+    },
+    {
+      "identity" : "analytics-swift",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/segmentio/analytics-swift",
+      "state" : {
+        "revision" : "5658b7ff5768083683b83162121bad8b4a4b267f",
+        "version" : "1.10.0"
+      }
+    },
+    {
+      "identity" : "jsonsafeencoding-swift",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/segmentio/jsonsafeencoding-swift.git",
+      "state" : {
+        "revision" : "af6a8b360984085e36c6341b21ecb35c12f47ebd",
+        "version" : "2.0.0"
+      }
+    },
+    {
+      "identity" : "sovran-swift",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/segmentio/sovran-swift.git",
+      "state" : {
+        "revision" : "24867f3e4ac62027db9827112135e6531b6f4051",
+        "version" : "1.1.2"
+      }
+    }
+  ],
+  "version" : 3
+}

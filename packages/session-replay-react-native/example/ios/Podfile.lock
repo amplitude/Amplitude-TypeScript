@@ -1,10 +1,5 @@
 PODS:
-  - AmplitudeCore (1.4.7)
-  - AmplitudeSessionReplay (0.11.1):
-    - AmplitudeCore (< 2.0.0, >= 1.4.2)
   - AmplitudeSessionReplayReactNative (0.1.0):
-    - AmplitudeCore (>= 1.4.2)
-    - AmplitudeSessionReplay (>= 0.11.1)
     - DoubleConversion
     - glog
     - hermes-engine
@@ -1758,8 +1753,6 @@ DEPENDENCIES:
 
 SPEC REPOS:
   trunk:
-    - AmplitudeCore
-    - AmplitudeSessionReplay
     - SocketRocket
 
 EXTERNAL SOURCES:
@@ -1908,9 +1901,7 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native/ReactCommon/yoga"
 
 SPEC CHECKSUMS:
-  AmplitudeCore: 3e063bb8b28ad164b3bd5279380190789ddc9405
-  AmplitudeSessionReplay: 0fc377b9f7f029714be75f28ac79f732a76fd6d7
-  AmplitudeSessionReplayReactNative: bff75475f0f9b3b6aa9e5e441e47d17cdcb34b40
+  AmplitudeSessionReplayReactNative: 230fa3ff87644f6afdf335fc2b373db6d8464be0
   boost: 7e761d76ca2ce687f7cc98e698152abd03a18f90
   DoubleConversion: cb417026b2400c8f53ae97020b2be961b59470cb
   fast_float: 06eeec4fe712a76acc9376682e4808b05ce978b6

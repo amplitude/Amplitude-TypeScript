@@ -49,8 +49,28 @@ Pod::Spec.new do |s|
     s.source_files = "ios/*.{h,m,mm,swift}"
   end
 
-  s.dependency 'AmplitudeSessionReplay', '>=0.11.1'
-  s.dependency 'AmplitudeCore', '>=1.4.2'
+  unless defined?(spm_dependency)
+    raise "[AmplitudeSessionReplayReactNative] Swift Package Manager dependencies require React Native >= 0.75."
+  end
+
+  spm_dependency(
+    s,
+    url: "https://github.com/amplitude/AmplitudeSessionReplay-iOS.git",
+    requirement: {
+      kind: "upToNextMajorVersion",
+      minimumVersion: "0.11.1",
+    },
+    products: ["AmplitudeSessionReplay"],
+  )
+  spm_dependency(
+    s,
+    url: "https://github.com/amplitude/AmplitudeCore-Swift.git",
+    requirement: {
+      kind: "upToNextMajorVersion",
+      minimumVersion: "1.4.2",
+    },
+    products: ["AmplitudeCoreFramework"],
+  )
 
   # This code is to support RN prior to 0.71.0. Should be removed when we drop support for RN < 0.71.0.
   # Use install_modules_dependencies helper to install the dependencies if React Native version >=0.71.0.
@@ -60,10 +80,13 @@ Pod::Spec.new do |s|
     if fabric_enabled
       # Fabric shadow-node C++ headers break Clang module dependency scanning.
       existing_xcconfig = s.attributes_hash["pod_target_xcconfig"] || {}
-      s.pod_target_xcconfig = existing_xcconfig.merge({
-        "DEFINES_MODULE" => "NO",
+      fabric_xcconfig = {
         "CLANG_ENABLE_EXPLICIT_MODULES" => "NO",
-      })
+      }
+      # SPM dependencies require a dynamic framework, whose Swift sources need
+      # the pod's module to expose its Objective-C headers.
+      fabric_xcconfig["DEFINES_MODULE"] = "NO" unless ENV["USE_FRAMEWORKS"] == "dynamic"
+      s.pod_target_xcconfig = existing_xcconfig.merge(fabric_xcconfig)
     end
   else
     s.dependency "React-Core"
