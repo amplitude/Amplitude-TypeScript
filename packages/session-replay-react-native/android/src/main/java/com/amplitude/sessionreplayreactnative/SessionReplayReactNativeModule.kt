@@ -28,7 +28,7 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
 
   private var sessionReplay: SessionReplay? = null
   private var nativeConfig: NativeConfig? = null
-  private var shouldBeStarted = false
+  private var shouldStart = false
 
   override fun getName(): String {
     return NAME
@@ -84,8 +84,8 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
         optOut = optOut,
         maskLevel = maskLevel,
       )
-      applySessionReplay(requireNotNull(nativeConfig))
-      shouldBeStarted = false
+      rebootSessionReplay(requireNotNull(nativeConfig))
+      shouldStart = false
 
       promise.resolve(null)
     } catch (e: Exception) {
@@ -124,11 +124,11 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
         return
       }
 
-      // session-replay-android has no public runtime opt-out setter, so keep
-      // JS config and skip constructing the native SDK while opted out.
+      // session-replay-android has no public runtime opt-out setter, so retain
+      // the bridge config and skip constructing the native SDK while opted out.
       nativeConfig = currentConfig.copy(optOut = optOut)
-      applySessionReplay(requireNotNull(nativeConfig))
-      if (shouldBeStarted && !optOut) {
+      rebootSessionReplay(requireNotNull(nativeConfig))
+      if (shouldStart && !optOut) {
         sessionReplay?.start()
       }
       promise.resolve(null)
@@ -151,7 +151,7 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
   @ReactMethod
   override fun start(promise: Promise) {
     try {
-      shouldBeStarted = true
+      shouldStart = true
       sessionReplay?.start()
       promise.resolve(null)
     } catch (e: Exception) {
@@ -162,7 +162,7 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
   @ReactMethod
   override fun stop(promise: Promise) {
     try {
-      shouldBeStarted = false
+      shouldStart = false
       sessionReplay?.stop()
       promise.resolve(null)
     } catch (e: Exception) {
@@ -186,7 +186,7 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
       sessionReplay?.shutdown()
       sessionReplay = null
       nativeConfig = null
-      shouldBeStarted = false
+      shouldStart = false
       promise.resolve(null)
     } catch (e: Exception) {
       promise.reject("TEARDOWN_ERROR", e.message, e)
@@ -197,10 +197,10 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
     sessionReplay?.shutdown()
     sessionReplay = null
     nativeConfig = null
-    shouldBeStarted = false
+    shouldStart = false
   }
 
-  private fun applySessionReplay(config: NativeConfig) {
+  private fun rebootSessionReplay(config: NativeConfig) {
     sessionReplay?.shutdown()
     sessionReplay = if (config.optOut) {
       LogcatLogger.logger.debug("skipping SessionReplay init because optOut=true")
