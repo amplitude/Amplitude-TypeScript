@@ -30,14 +30,7 @@ jest.mock('@segment/analytics-react-native', () => ({
 
 import { PluginType, EventType, SegmentEvent, SegmentClient } from '@segment/analytics-react-native';
 import { SegmentSessionReplayPlugin, createSegmentSessionReplayPlugin } from '../src/segment-session-replay-plugin';
-import {
-  init,
-  setDeviceId,
-  setSessionId,
-  getSessionReplayProperties,
-  start,
-  stop,
-} from '@amplitude/session-replay-react-native';
+import { init, setDeviceId, setSessionId, start, stop } from '@amplitude/session-replay-react-native';
 import { VERSION } from '../src/version';
 
 // Mock the session replay module
@@ -45,7 +38,6 @@ jest.mock('@amplitude/session-replay-react-native', () => ({
   init: jest.fn(),
   setDeviceId: jest.fn(),
   setSessionId: jest.fn(),
-  getSessionReplayProperties: jest.fn(),
   start: jest.fn(),
   stop: jest.fn(),
 }));
@@ -92,6 +84,30 @@ describe('SegmentSessionReplayPlugin', () => {
 
       expect(init).toHaveBeenCalledWith({ ...mockConfig, deviceId: 'test-anonymous-id' });
     });
+
+    it('should start recording after init by default', async () => {
+      await plugin.configure(mockAnalytics);
+
+      expect(start).toHaveBeenCalled();
+    });
+
+    it('should not start recording when autoStart is false', async () => {
+      const manualStartPlugin = new SegmentSessionReplayPlugin({ ...mockConfig, autoStart: false });
+
+      await manualStartPlugin.configure(mockAnalytics);
+
+      expect(init).toHaveBeenCalled();
+      expect(start).not.toHaveBeenCalled();
+    });
+
+    it('should not forward autoStart to the session replay SDK', async () => {
+      const manualStartPlugin = new SegmentSessionReplayPlugin({ ...mockConfig, autoStart: false });
+
+      await manualStartPlugin.configure(mockAnalytics);
+
+      const [initConfig] = (init as jest.Mock).mock.calls[0] as [Record<string, unknown>];
+      expect(Object.keys(initConfig)).not.toContain('autoStart');
+    });
   });
 
   describe('execute', () => {
@@ -105,17 +121,12 @@ describe('SegmentSessionReplayPlugin', () => {
         },
       } as SegmentEvent;
 
-      const mockProperties = { replay_session_id: 'replay-123' };
-      (getSessionReplayProperties as jest.Mock).mockResolvedValue(mockProperties);
-
       const result = await plugin.execute(mockEvent);
 
       expect(setSessionId).toHaveBeenCalledWith(123);
       expect(setDeviceId).toHaveBeenCalledWith('device-123');
-      expect(getSessionReplayProperties).toHaveBeenCalled();
       expect((result as any).properties).toEqual({
         session_id: '123',
-        replay_session_id: 'replay-123',
       });
     });
 
@@ -129,17 +140,12 @@ describe('SegmentSessionReplayPlugin', () => {
         },
       } as SegmentEvent;
 
-      const mockProperties = { replay_session_id: 'replay-456' };
-      (getSessionReplayProperties as jest.Mock).mockResolvedValue(mockProperties);
-
       const result = await plugin.execute(mockEvent);
 
       expect(setSessionId).toHaveBeenCalledWith(456);
       expect(setDeviceId).toHaveBeenCalledWith('device-456');
-      expect(getSessionReplayProperties).toHaveBeenCalled();
       expect((result as any).properties).toEqual({
         session_id: '456',
-        replay_session_id: 'replay-456',
       });
     });
 
@@ -192,16 +198,21 @@ describe('SegmentSessionReplayPlugin', () => {
       expect(setSessionId).toHaveBeenCalledWith(789);
     });
 
-    it('should not call getSessionReplayProperties for non-track/screen events', async () => {
+    it('should preserve non-track/screen events', async () => {
       const mockEvent: SegmentEvent = {
         type: EventType.IdentifyEvent,
         userId: 'user-123',
         traits: {},
       } as any;
 
-      await plugin.execute(mockEvent);
+      const result = await plugin.execute(mockEvent);
 
-      expect(getSessionReplayProperties).not.toHaveBeenCalled();
+      expect(result).toEqual({
+        type: EventType.IdentifyEvent,
+        userId: 'user-123',
+        traits: {},
+      });
+      expect(mockEvent).toEqual(result);
     });
 
     it('should handle null device ID gracefully', async () => {
@@ -232,7 +243,7 @@ describe('SegmentSessionReplayPlugin', () => {
       expect(setSessionId).toHaveBeenCalledWith(-1);
     });
 
-    it('should preserve existing properties when adding session replay properties', async () => {
+    it('should preserve existing properties without adding session replay properties', async () => {
       const mockEvent = {
         type: EventType.TrackEvent,
         event: 'test_event',
@@ -245,15 +256,11 @@ describe('SegmentSessionReplayPlugin', () => {
         },
       } as SegmentEvent;
 
-      const mockProperties = { replay_session_id: 'replay-123' };
-      (getSessionReplayProperties as jest.Mock).mockResolvedValue(mockProperties);
-
       const result = await plugin.execute(mockEvent);
 
       expect((result as any).properties).toEqual({
         existing_prop: 'value',
         session_id: '123',
-        replay_session_id: 'replay-123',
       });
     });
   });

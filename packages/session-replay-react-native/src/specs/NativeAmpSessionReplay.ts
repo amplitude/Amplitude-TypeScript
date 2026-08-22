@@ -15,7 +15,6 @@ export interface Spec extends TurboModule {
   setSessionId(sessionId: number): Promise<void>;
   setDeviceId(deviceId: string | null): Promise<void>;
   getSessionId(): Promise<number>;
-  getSessionReplayProperties(): Promise<UnsafeObject>;
   start(): Promise<void>;
   stop(): Promise<void>;
   flush(): Promise<void>;

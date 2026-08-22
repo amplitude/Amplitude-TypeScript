@@ -28,12 +28,6 @@ export interface SessionReplayConfig {
   apiKey: string;
 
   /**
-   * Whether to automatically start recording when the SDK is initialized
-   * @default true
-   */
-  autoStart?: boolean;
-
-  /**
    * Device identifier that matches the device ID sent with Amplitude events
    * Must match the Device ID passed as event properties to Amplitude
    * @default null
@@ -107,7 +101,6 @@ export type SessionReplayConfigInternal = Omit<SessionReplayConfig, 'maskLevel'>
 
 export const getDefaultConfig: () => Required<Omit<SessionReplayConfigInternal, 'apiKey'>> = () => {
   return {
-    autoStart: true,
     deviceId: null,
     enableRemoteConfig: true,
     logLevel: LogLevel.Warn,

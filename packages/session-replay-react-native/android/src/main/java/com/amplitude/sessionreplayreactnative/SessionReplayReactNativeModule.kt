@@ -9,8 +9,6 @@ import com.amplitude.core.ServerZone
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReactMethod
 import com.facebook.react.bridge.Promise
-import com.facebook.react.bridge.WritableMap
-import com.facebook.react.bridge.WritableNativeMap
 import com.facebook.react.bridge.ReadableMap
 
 // `@ReactMethod` is required on the legacy architecture and ignored on the new
@@ -33,7 +31,6 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
       val sampleRate = config.getDouble("sampleRate")
       val enableRemoteConfig = config.getBoolean("enableRemoteConfig")
       val logLevel = config.getInt("logLevel")
-      val autoStart = config.getBoolean("autoStart")
       val optOut = config.getBoolean("optOut")
       val maskLevel = when ((config.getString("maskLevel") ?: "medium").lowercase()) {
         "light" -> MaskLevel.LIGHT
@@ -60,7 +57,6 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
           Sample Rate: $sampleRate
           Enable Remote Config: $enableRemoteConfig
           Log Level: $logLevel
-          Auto Start: $autoStart
           Mask Level: $maskLevel
           Opt Out: $optOut
       """.trimIndent())
@@ -78,7 +74,7 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
           "EU" -> ServerZone.EU
           else -> ServerZone.US
         },
-        autoStart = autoStart,
+        autoStart = false,
         privacyConfig = PrivacyConfig(maskLevel = maskLevel),
       )
       
@@ -117,30 +113,6 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
     }
   }
 
-  @ReactMethod
-  override fun getSessionReplayProperties(promise: Promise) {
-    try {
-      val properties: Map<String, Any> = sessionReplay.getSessionReplayProperties()
-      val map: WritableMap = WritableNativeMap()
-      for ((key, value) in properties) {
-        if (value is String) {
-          map.putString(key, value)
-        } else if (value is Int) {
-          map.putInt(key, value)
-        } else if (value is Long) {
-          map.putDouble(key, value.toDouble())
-        } else if (value is Double) {
-          map.putDouble(key, value)
-        } else if (value is Boolean) {
-          map.putBoolean(key, value)
-        }
-      }
-      promise.resolve(map)
-    } catch (e: Exception) {
-      promise.reject("GET_PROPERTIES_ERROR", e.message, e)
-    }
-  }
-  
   @ReactMethod
   override fun start(promise: Promise) {
     try {
