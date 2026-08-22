@@ -115,8 +115,8 @@ describe('autocapturePlugin - Viewport Content Updated (Exposure)', () => {
     // Should not trigger again immediately
     expect(fireViewportContentUpdatedMock).not.toHaveBeenCalled();
 
-    // But if we trigger page view end (e.g. via beforeunload), it should flush the new batch
-    window.dispatchEvent(new Event('beforeunload'));
+    // But if we trigger page view end (e.g. via pagehide), it should flush the new batch
+    window.dispatchEvent(new Event('pagehide'));
 
     expect(fireViewportContentUpdatedMock).toHaveBeenCalledTimes(1);
     expect(track).toHaveBeenCalledWith(
@@ -134,8 +134,8 @@ describe('autocapturePlugin - Viewport Content Updated (Exposure)', () => {
     // 2. Add the same element again
     onExposureCallback('element-1');
 
-    // 3. Force flush via beforeunload
-    window.dispatchEvent(new Event('beforeunload'));
+    // 3. Force flush via pagehide
+    window.dispatchEvent(new Event('pagehide'));
 
     // Should only be in the array once
     expect(track).toHaveBeenCalledWith(
@@ -153,7 +153,7 @@ describe('autocapturePlugin - Viewport Content Updated (Exposure)', () => {
     );
 
     onExposureCallback('element-1');
-    window.dispatchEvent(new Event('beforeunload'));
+    window.dispatchEvent(new Event('pagehide'));
 
     expect(track).toHaveBeenCalledWith(
       '[Amplitude] Viewport Content Updated',
@@ -168,7 +168,7 @@ describe('autocapturePlugin - Viewport Content Updated (Exposure)', () => {
     window.sessionStorage.setItem(constants.PAGE_VIEW_SESSION_STORAGE_KEY, 'invalid-json{not-valid');
 
     onExposureCallback('element-1');
-    window.dispatchEvent(new Event('beforeunload'));
+    window.dispatchEvent(new Event('pagehide'));
 
     expect(track).toHaveBeenCalledWith(
       '[Amplitude] Viewport Content Updated',
@@ -182,9 +182,9 @@ describe('autocapturePlugin - Viewport Content Updated (Exposure)', () => {
     expect(trackCall[1]).not.toHaveProperty('[Amplitude] Page View ID');
   });
 
-  test('should call handleViewportContentUpdated with isPageEnd=true on beforeunload', async () => {
+  test('should call handleViewportContentUpdated with isPageEnd=true on pagehide', async () => {
     onExposureCallback('element-1');
-    window.dispatchEvent(new Event('beforeunload'));
+    window.dispatchEvent(new Event('pagehide'));
 
     expect(fireViewportContentUpdatedMock).toHaveBeenCalledTimes(1);
     expect(fireViewportContentUpdatedMock).toHaveBeenCalledWith(

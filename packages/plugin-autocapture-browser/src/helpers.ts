@@ -8,6 +8,16 @@ const SENSITIVE_TAGS = ['input', 'select', 'textarea'];
 
 export type shouldTrackEvent = (actionType: ActionType, element: Element) => boolean;
 
+/**
+ * Resolves the event to listen to for page-exit flushing. Prefers `pagehide`, which (unlike
+ * `beforeunload`) also fires on mobile teardown and bfcache eviction and does not make the page
+ * ineligible for the bfcache. Falls back to `beforeunload` only when `pagehide` is unavailable.
+ */
+export const getPageEndEventName = (scope: typeof globalThis | undefined): 'pagehide' | 'beforeunload' => {
+  const scopeSelf = scope?.self;
+  return scopeSelf && 'onpagehide' in scopeSelf ? 'pagehide' : 'beforeunload';
+};
+
 export const isElementPointerCursor = (element: Element, actionType: ActionType): boolean => {
   /* istanbul ignore next */
   const computedStyle = window?.getComputedStyle?.(element);
