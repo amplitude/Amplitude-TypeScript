@@ -82,7 +82,17 @@ bundle install
 bundle exec pod install
 ```
 
-Replace `YOUR_API_KEY` and `YOUR_DEPLOYMENT_KEY` in [`App.tsx`](./App.tsx), then run the app from its directory:
+Copy the repository's [`.env.example`](../../../.env.example) to `.env` at the repository root and set `VITE_AMPLITUDE_API_KEY`:
+
+```sh
+cp .env.example .env
+```
+
+The example's [`babel.config.js`](./babel.config.js) loads the root `.env` and inlines `VITE_AMPLITUDE_API_KEY` into the JavaScript bundle. Experiment uses the same key by default, so a separate deployment key is not required when Analytics and Experiment use the same Amplitude project.
+
+Environment variables embedded in a React Native bundle are visible to anyone who can inspect the application. Use `.env` to keep local configuration out of source control, not to store a client-side secret.
+
+Then run the app from its directory:
 
 ```sh
 pnpm start

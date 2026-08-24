@@ -18,8 +18,7 @@ import {
   track,
 } from '@amplitude/unified-react-native';
 
-const API_KEY = 'YOUR_API_KEY';
-const DEPLOYMENT_KEY = 'YOUR_DEPLOYMENT_KEY';
+const API_KEY = process.env.VITE_AMPLITUDE_API_KEY || 'YOUR_API_KEY';
 
 function App(): React.JSX.Element {
   const isDarkMode = useColorScheme() === 'dark';
@@ -29,7 +28,6 @@ function App(): React.JSX.Element {
     initAll(API_KEY, {
       logLevel: LogLevel.Debug,
       analytics: {userId: 'unified-example-user'},
-      experiment: {deploymentKey: DEPLOYMENT_KEY},
       sessionReplay: {sampleRate: 1},
     })
       .then(() =>
