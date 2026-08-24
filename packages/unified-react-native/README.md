@@ -30,6 +30,8 @@ module.exports = {
 
 The preset lets React Native autolink the native blade modules installed transitively by the unified SDK. No blade package needs to be installed directly by the application.
 
+Guides and Surveys uses React Native's typed native event emitters, so enable the React Native New Architecture before rebuilding. For Android, set `newArchEnabled=true` in `android/gradle.properties`; use your React Native version's corresponding New Architecture setup for iOS.
+
 Install iOS pods after adding the package:
 
 ```sh
@@ -68,11 +70,12 @@ await initAll('YOUR_API_KEY', {
   },
 });
 
+// Set the Engagement user before Analytics events are forwarded to it.
+engagement.boot('user-id');
 track('App Opened');
 await experiment()?.start();
 const variant = experiment()?.variant('experiment-key');
 await sessionReplay()?.start();
-await engagement.boot('user-id');
 ```
 
 Options in `analytics`, `experiment`, `sessionReplay`, and `engagement` override the corresponding shared defaults.
