@@ -26,9 +26,8 @@ TurboModule; on the legacy architecture it continues to work as a standard bridg
 module. No configuration is required — the correct implementation is selected
 automatically based on how your app is built.
 
-`peerDependencies` remain unconstrained because the React Native 0.75 floor
-applies only to iOS; other platforms can continue using older React Native
-versions.
+`peerDependencies` require `react-native` `>=0.75.0`. That floor is required
+for iOS SPM integration and is the minimum supported version of this SDK.
 
 The TurboModule code path is compiled only when the New Architecture is enabled.
 
