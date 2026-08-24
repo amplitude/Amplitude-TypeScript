@@ -1,6 +1,6 @@
 import { createInstance as createAnalyticsInstance } from '@amplitude/analytics-react-native';
 import { LogLevel, ReactNativeOptions } from '@amplitude/analytics-core';
-import { getPlugin } from '@amplitude/plugin-engagement-react-native';
+import { boot as bootEngagement, getPlugin } from '@amplitude/plugin-engagement-react-native';
 import { experimentPlugin } from '@amplitude/plugin-experiment-react-native';
 import type { ExperimentPlugin, ExperimentPluginConfig } from '@amplitude/plugin-experiment-react-native';
 import { SessionReplayConfig, SessionReplayPlugin } from '@amplitude/plugin-session-replay-react-native';
@@ -50,14 +50,14 @@ export const createInstance = (): UnifiedClient => {
   let activeSessionReplay: SessionReplayPlugin | undefined;
   let activeEngagement: ReturnType<typeof getPlugin> | undefined;
   let hasInitialized = false;
-  let initAllPromise: Promise<void> | undefined;
+  let initPromise: Promise<void> | undefined;
 
-  const initAll = async (apiKey: string, unifiedOptions?: UnifiedOptions): Promise<void> => {
-    if (initAllPromise) {
-      return initAllPromise;
+  const init = async (apiKey: string, unifiedOptions?: UnifiedOptions): Promise<void> => {
+    if (initPromise) {
+      return initPromise;
     }
 
-    initAllPromise = (async () => {
+    initPromise = (async () => {
       const analyticsOptions: ReactNativeOptions = {
         ...getSharedAnalyticsOptions(unifiedOptions),
         ...unifiedOptions?.analytics,
@@ -81,6 +81,11 @@ export const createInstance = (): UnifiedClient => {
           ...unifiedOptions?.experiment,
         });
       await analyticsClient.add(experiment).promise;
+      const experimentClient = experiment.experiment;
+      if (!experimentClient) {
+        throw new Error('Experiment plugin failed to initialize.');
+      }
+      await experimentClient.start();
       activeExperiment = experiment;
 
       const sessionReplay =
@@ -90,6 +95,9 @@ export const createInstance = (): UnifiedClient => {
           ...unifiedOptions?.sessionReplay,
         });
       await analyticsClient.add(sessionReplay).promise;
+      if (sessionReplay.sessionReplayConfig.autoStart) {
+        await sessionReplay.start();
+      }
       activeSessionReplay = sessionReplay;
 
       const engagement =
@@ -99,17 +107,19 @@ export const createInstance = (): UnifiedClient => {
           ...unifiedOptions?.engagement,
         });
       await analyticsClient.add(engagement).promise;
+      await bootEngagement(analyticsClient.getUserId(), analyticsClient.getDeviceId());
       activeEngagement = engagement;
     })().finally(() => {
-      initAllPromise = undefined;
+      initPromise = undefined;
     });
 
-    return initAllPromise;
+    return initPromise;
   };
 
   return {
     ...analyticsClient,
-    initAll,
+    init,
+    initAll: init,
     experiment: () => activeExperiment?.experiment,
     sessionReplay: () => activeSessionReplay,
     engagement: () => activeEngagement,

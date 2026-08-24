@@ -31,16 +31,19 @@ export type UnifiedOptions = UnifiedSharedOptions & {
   engagement?: EngagementOptions;
 };
 
-export interface UnifiedClient extends ReactNativeClient {
+export interface UnifiedClient extends Omit<ReactNativeClient, 'init'> {
   /** Initialize Analytics, Experiment, Session Replay, and Guides and Surveys. */
+  init(apiKey: string, unifiedOptions?: UnifiedOptions): Promise<void>;
+
+  /** @deprecated Use init() to initialize every blade instead. */
   initAll(apiKey: string, unifiedOptions?: UnifiedOptions): Promise<void>;
 
-  /** Return the Experiment client after initAll() has installed its plugin. */
+  /** Return the Experiment client after init() has installed its plugin. */
   experiment(): IExperimentClient | undefined;
 
-  /** Return the Session Replay plugin after initAll() has installed it. */
+  /** Return the Session Replay plugin after init() has installed it. */
   sessionReplay(): SessionReplayPlugin | undefined;
 
-  /** Return the Guides and Surveys plugin after initAll() has installed it. */
+  /** Return the Guides and Surveys plugin after init() has installed it. */
   engagement(): EngagementPlugin | undefined;
 }
