@@ -126,8 +126,11 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
 
       // session-replay-android has no public runtime opt-out setter, so retain
       // the bridge config and skip constructing the native SDK while opted out.
-      nativeConfig = currentConfig.copy(optOut = optOut)
-      rebootSessionReplay(requireNotNull(nativeConfig))
+      // Create the next instance before shutting the current one down so a
+      // constructor failure leaves native state unchanged (and retryable).
+      val updatedConfig = currentConfig.copy(optOut = optOut)
+      rebootSessionReplay(updatedConfig)
+      nativeConfig = updatedConfig
       if (shouldStart && !optOut) {
         sessionReplay?.start()
       }
@@ -201,13 +204,14 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
   }
 
   private fun rebootSessionReplay(config: NativeConfig) {
-    sessionReplay?.shutdown()
-    sessionReplay = if (config.optOut) {
+    val nextSessionReplay = if (config.optOut) {
       LogcatLogger.logger.debug("skipping SessionReplay init because optOut=true")
       null
     } else {
       createSessionReplay(config)
     }
+    sessionReplay?.shutdown()
+    sessionReplay = nextSessionReplay
   }
 
   private fun createSessionReplay(config: NativeConfig): SessionReplay {
