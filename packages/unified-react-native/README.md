@@ -5,16 +5,30 @@ Official Amplitude SDK wrapper for React Native Analytics, Experiment, Session R
 ## Installation
 
 ```sh
-npm install \
-  @amplitude/unified-react-native \
-  @amplitude/analytics-react-native \
-  @amplitude/plugin-experiment-react-native \
-  @amplitude/plugin-session-replay-react-native \
-  @amplitude/plugin-engagement-react-native \
-  @react-native-async-storage/async-storage
+npm install @amplitude/unified-react-native
 ```
 
-React Native autolinking discovers native modules declared directly by the application, so install the blade packages and AsyncStorage as direct application dependencies even though the unified wrapper also depends on them.
+For a bare React Native application, load the package's autolinking preset from your application-level `react-native.config.js`:
+
+```javascript
+module.exports = require('@amplitude/unified-react-native/react-native.config');
+```
+
+If your application already has a React Native configuration, merge the preset's `dependencies` with your existing configuration:
+
+```javascript
+const amplitude = require('@amplitude/unified-react-native/react-native.config');
+
+module.exports = {
+  // Your existing configuration
+  dependencies: {
+    ...amplitude.dependencies,
+    // Your existing dependency overrides
+  },
+};
+```
+
+The preset lets React Native autolink the native blade modules installed transitively by the unified SDK. No blade package needs to be installed directly by the application.
 
 Install iOS pods after adding the package:
 

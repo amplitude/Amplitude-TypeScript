@@ -1,0 +1,11 @@
+appId: org.reactjs.native.example.app
+---
+- launchApp
+- extendedWaitUntil:
+    visible:
+      text: "Unified React Native SDK"
+    timeout: 15000
+- assertVisible: "Track event"
+- assertVisible: "Start Experiment"
+- assertVisible: "Start Session Replay"
+- assertVisible: "Boot Guides and Surveys"

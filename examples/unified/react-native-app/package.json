@@ -1,0 +1,37 @@
+{
+  "name": "@amplitude/unified-react-native-example",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "android": "react-native run-android",
+    "check:autolinking": "react-native config",
+    "ios": "react-native run-ios",
+    "lint": "eslint App.tsx index.js babel.config.js metro.config.js react-native.config.js",
+    "start": "react-native start"
+  },
+  "dependencies": {
+    "@amplitude/unified-react-native": "workspace:*",
+    "react": "18.3.1",
+    "react-native": "0.76.9"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.20.0",
+    "@babel/preset-env": "^7.20.0",
+    "@babel/runtime": "^7.20.0",
+    "@react-native-community/cli": "13.6.6",
+    "@react-native-community/cli-platform-android": "13.6.6",
+    "@react-native/babel-preset": "0.76.9",
+    "@react-native/codegen": "0.76.9",
+    "@react-native/eslint-config": "0.74.83",
+    "@react-native/gradle-plugin": "0.76.9",
+    "@react-native/metro-config": "0.76.9",
+    "@react-native/typescript-config": "0.74.83",
+    "@types/react": "^18.2.6",
+    "eslint": "^8.19.0",
+    "prettier": "2.8.8",
+    "typescript": "5.0.4"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
