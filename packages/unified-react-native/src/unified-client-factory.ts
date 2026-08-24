@@ -1,5 +1,5 @@
 import { createInstance as createAnalyticsInstance } from '@amplitude/analytics-react-native';
-import { LogLevel, ReactNativeOptions } from '@amplitude/analytics-core';
+import { Logger, LogLevel, ReactNativeOptions } from '@amplitude/analytics-core';
 import { boot as bootEngagement, getPlugin } from '@amplitude/plugin-engagement-react-native';
 import { experimentPlugin } from '@amplitude/plugin-experiment-react-native';
 import type { ExperimentPlugin, ExperimentPluginConfig } from '@amplitude/plugin-experiment-react-native';
@@ -46,9 +46,9 @@ const getSharedEngagementOptions = (options?: UnifiedOptions): EngagementOptions
 
 export const createInstance = (): UnifiedClient => {
   const analyticsClient = createAnalyticsInstance();
-  let activeExperiment: ExperimentPlugin | undefined;
-  let activeSessionReplay: SessionReplayPlugin | undefined;
-  let activeEngagement: ReturnType<typeof getPlugin> | undefined;
+  let experiment: ExperimentPlugin | undefined;
+  let sessionReplay: SessionReplayPlugin | undefined;
+  let engagement: ReturnType<typeof getPlugin> | undefined;
   let hasInitialized = false;
   let initPromise: Promise<void> | undefined;
 
@@ -62,6 +62,11 @@ export const createInstance = (): UnifiedClient => {
         ...getSharedAnalyticsOptions(unifiedOptions),
         ...unifiedOptions?.analytics,
       };
+      const loggerProvider = analyticsOptions.loggerProvider ?? new Logger();
+      if (analyticsOptions.loggerProvider === undefined) {
+        loggerProvider.enable(analyticsOptions.logLevel ?? LogLevel.Warn);
+      }
+      analyticsOptions.loggerProvider = loggerProvider;
 
       if (!hasInitialized) {
         analyticsClient.add(libraryPlugin());
@@ -74,41 +79,33 @@ export const createInstance = (): UnifiedClient => {
       }
       hasInitialized = true;
 
-      const experiment =
-        activeExperiment ??
-        experimentPlugin({
-          ...getSharedExperimentOptions(unifiedOptions),
-          ...unifiedOptions?.experiment,
-        });
+      experiment ??= experimentPlugin({
+        ...getSharedExperimentOptions(unifiedOptions),
+        ...unifiedOptions?.experiment,
+      });
       await analyticsClient.add(experiment).promise;
       const experimentClient = experiment.experiment;
-      if (!experimentClient) {
-        throw new Error('Experiment plugin failed to initialize.');
+      if (experimentClient === undefined) {
+        loggerProvider.debug(`${experiment.name} plugin is not initialized.`);
+      } else {
+        await experimentClient.start();
       }
-      await experimentClient.start();
-      activeExperiment = experiment;
 
-      const sessionReplay =
-        activeSessionReplay ??
-        new SessionReplayPlugin({
-          ...getSharedSessionReplayOptions(unifiedOptions),
-          ...unifiedOptions?.sessionReplay,
-        });
+      sessionReplay ??= new SessionReplayPlugin({
+        ...getSharedSessionReplayOptions(unifiedOptions),
+        ...unifiedOptions?.sessionReplay,
+      });
       await analyticsClient.add(sessionReplay).promise;
       if (sessionReplay.sessionReplayConfig.autoStart) {
         await sessionReplay.start();
       }
-      activeSessionReplay = sessionReplay;
 
-      const engagement =
-        activeEngagement ??
-        getPlugin({
-          ...getSharedEngagementOptions(unifiedOptions),
-          ...unifiedOptions?.engagement,
-        });
+      engagement ??= getPlugin({
+        ...getSharedEngagementOptions(unifiedOptions),
+        ...unifiedOptions?.engagement,
+      });
       await analyticsClient.add(engagement).promise;
       await bootEngagement(analyticsClient.getUserId(), analyticsClient.getDeviceId());
-      activeEngagement = engagement;
     })().finally(() => {
       initPromise = undefined;
     });
@@ -119,9 +116,8 @@ export const createInstance = (): UnifiedClient => {
   return {
     ...analyticsClient,
     init,
-    initAll: init,
-    experiment: () => activeExperiment?.experiment,
-    sessionReplay: () => activeSessionReplay,
-    engagement: () => activeEngagement,
+    experiment: () => experiment?.experiment,
+    sessionReplay: () => sessionReplay,
+    engagement: () => engagement,
   };
 };

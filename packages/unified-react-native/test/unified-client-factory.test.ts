@@ -132,11 +132,22 @@ describe('createInstance', () => {
     expect(sessionReplayStart).not.toHaveBeenCalled();
   });
 
-  test('rejects when the Experiment plugin does not expose a client', async () => {
+  test('logs when the Experiment plugin does not expose a client', async () => {
     mockExperimentPlugin.mockReturnValueOnce({ name: 'experiment' } as ReturnType<typeof experimentPlugin>);
+    const loggerProvider = {
+      debug: jest.fn(),
+      disable: jest.fn(),
+      enable: jest.fn(),
+      error: jest.fn(),
+      log: jest.fn(),
+      warn: jest.fn(),
+    };
     const client = createInstance();
 
-    await expect(client.init('api-key')).rejects.toThrow('Experiment plugin failed to initialize.');
+    await client.init('api-key', { analytics: { loggerProvider } });
+
+    expect(loggerProvider.debug).toHaveBeenCalledWith('experiment plugin is not initialized.');
+    expect(client.experiment()).toBeUndefined();
   });
 
   test.each([
@@ -158,7 +169,11 @@ describe('createInstance', () => {
 
     await client.init('api-key');
 
-    expect(analyticsInit).toHaveBeenCalledWith('api-key', undefined, {});
+    expect(analyticsInit).toHaveBeenCalledWith(
+      'api-key',
+      undefined,
+      expect.objectContaining({ loggerProvider: expect.anything() }),
+    );
     expect(mockExperimentPlugin).toHaveBeenCalledWith({});
     expect(MockSessionReplayPlugin).toHaveBeenCalledWith({});
     expect(mockGetPlugin).toHaveBeenCalledWith({});
@@ -192,7 +207,7 @@ describe('createInstance', () => {
     const client = createInstance();
 
     const first = client.init('api-key');
-    const second = client.initAll('api-key');
+    const second = client.init('api-key');
     await Promise.resolve();
 
     expect(analyticsInit).toHaveBeenCalledTimes(1);

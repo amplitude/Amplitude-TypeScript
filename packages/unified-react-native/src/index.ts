@@ -19,7 +19,6 @@ export const {
   groupIdentify,
   identify,
   init,
-  initAll,
   logEvent,
   remove,
   reset,

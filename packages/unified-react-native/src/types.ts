@@ -35,9 +35,6 @@ export interface UnifiedClient extends Omit<ReactNativeClient, 'init'> {
   /** Initialize Analytics, Experiment, Session Replay, and Guides and Surveys. */
   init(apiKey: string, unifiedOptions?: UnifiedOptions): Promise<void>;
 
-  /** @deprecated Use init() to initialize every blade instead. */
-  initAll(apiKey: string, unifiedOptions?: UnifiedOptions): Promise<void>;
-
   /** Return the Experiment client after init() has installed its plugin. */
   experiment(): IExperimentClient | undefined;
 
