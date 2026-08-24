@@ -79,7 +79,8 @@ export const createInstance = (): UnifiedClient => {
       }
       hasInitialized = true;
 
-      experiment ??= experimentPlugin({
+      await experiment?.teardown?.();
+      experiment = experimentPlugin({
         ...getSharedExperimentOptions(unifiedOptions),
         ...unifiedOptions?.experiment,
       });
@@ -91,16 +92,14 @@ export const createInstance = (): UnifiedClient => {
         await experimentClient.start();
       }
 
-      sessionReplay ??= new SessionReplayPlugin({
+      await sessionReplay?.teardown?.();
+      sessionReplay = new SessionReplayPlugin({
         ...getSharedSessionReplayOptions(unifiedOptions),
         ...unifiedOptions?.sessionReplay,
       });
       await analyticsClient.add(sessionReplay).promise;
-      if (sessionReplay.sessionReplayConfig.autoStart) {
-        await sessionReplay.start();
-      }
 
-      engagement ??= getPlugin({
+      engagement = getPlugin({
         ...getSharedEngagementOptions(unifiedOptions),
         ...unifiedOptions?.engagement,
       });

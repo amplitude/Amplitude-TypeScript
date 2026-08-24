@@ -16,19 +16,27 @@ jest.mock('@amplitude/plugin-session-replay-react-native', () => ({
     config,
     sessionReplayConfig: { autoStart: config?.autoStart ?? true },
     start: jest.fn(() => Promise.resolve()),
+    teardown: jest.fn(() => Promise.resolve()),
   })),
 }));
 
-jest.mock('@amplitude/plugin-engagement-react-native', () => ({
-  boot: jest.fn(() => Promise.resolve()),
-  getPlugin: jest.fn().mockImplementation((config) => ({ name: 'engagement', config })),
-}));
+jest.mock('@amplitude/plugin-engagement-react-native', () => {
+  let plugin: { name: string; config: unknown } | undefined;
+  return {
+    boot: jest.fn(() => Promise.resolve()),
+    getPlugin: jest.fn().mockImplementation((config) => {
+      plugin ??= { name: 'engagement', config };
+      return plugin;
+    }),
+  };
+});
 
 jest.mock('@amplitude/plugin-experiment-react-native', () => ({
   experimentPlugin: jest.fn().mockImplementation((config) => ({
     name: 'experiment',
     config,
     experiment: { start: jest.fn(), variant: jest.fn() },
+    teardown: jest.fn(() => Promise.resolve()),
   })),
 }));
 
@@ -88,8 +96,6 @@ describe('createInstance', () => {
       deploymentKey: 'deployment-key',
     });
     expect(MockSessionReplayPlugin).toHaveBeenCalledWith({ logLevel: LogLevel.Debug, sampleRate: 0.5 });
-    const sessionReplayStart = (client.sessionReplay() as unknown as { start: jest.Mock }).start;
-    expect(sessionReplayStart).toHaveBeenCalledTimes(1);
     expect(mockGetPlugin).toHaveBeenCalledWith({ serverZone: 'EU', logLevel: 'debug', locale: 'fr-FR' });
     expect(mockBoot).toHaveBeenCalledWith('user-id', 'device-id');
     const experimentStart = (client.experiment() as unknown as { start: jest.Mock }).start;
@@ -179,7 +185,7 @@ describe('createInstance', () => {
     expect(mockGetPlugin).toHaveBeenCalledWith({});
   });
 
-  test('reuses blade instances on sequential initialization', async () => {
+  test('creates fresh blade instances on sequential initialization', async () => {
     const client = createInstance();
 
     await client.init('first-api-key');
@@ -189,11 +195,11 @@ describe('createInstance', () => {
     await client.init('second-api-key');
 
     expect(analyticsInit).toHaveBeenCalledTimes(2);
-    expect(mockExperimentPlugin).toHaveBeenCalledTimes(1);
-    expect(MockSessionReplayPlugin).toHaveBeenCalledTimes(1);
-    expect(mockGetPlugin).toHaveBeenCalledTimes(1);
-    expect(client.sessionReplay()).toBe(sessionReplay);
-    expect(client.experiment()).toBe(experiment);
+    expect(mockExperimentPlugin).toHaveBeenCalledTimes(2);
+    expect(MockSessionReplayPlugin).toHaveBeenCalledTimes(2);
+    expect(mockGetPlugin).toHaveBeenCalledTimes(2);
+    expect(client.sessionReplay()).not.toBe(sessionReplay);
+    expect(client.experiment()).not.toBe(experiment);
     expect(client.engagement()).toBe(engagement);
   });
 
