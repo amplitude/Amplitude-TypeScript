@@ -73,5 +73,6 @@ const variant = experiment()?.variant('experiment-key');
 ```
 
 Options in `analytics`, `experiment`, `sessionReplay`, and `engagement` override the corresponding shared defaults.
+Initialization is idempotent: subsequent `init()` calls return the first initialization promise and do not reconfigure the SDKs.
 
 The package also re-exports the React Native Analytics API, Experiment client types, `AmpMaskView` for Session Replay masking, and the Guides and Surveys API under the `engagement` namespace.

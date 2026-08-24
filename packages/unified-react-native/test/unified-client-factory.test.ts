@@ -89,7 +89,7 @@ describe('createInstance', () => {
     });
     expect(MockSessionReplayPlugin).toHaveBeenCalledWith({ logLevel: LogLevel.Debug, sampleRate: 0.5 });
     const sessionReplayStart = (client.sessionReplay() as unknown as { start: jest.Mock }).start;
-    expect(sessionReplayStart).toHaveBeenCalledTimes(1);
+    expect(sessionReplayStart).not.toHaveBeenCalled();
     expect(mockGetPlugin).toHaveBeenCalledWith({ serverZone: 'EU', logLevel: 'debug', locale: 'fr-FR' });
     expect(mockBoot).toHaveBeenCalledWith('user-id', 'device-id');
     const experimentStart = (client.experiment() as unknown as { start: jest.Mock }).start;
@@ -121,15 +121,6 @@ describe('createInstance', () => {
     expect(mockExperimentPlugin).toHaveBeenCalledWith({ serverZone: 'EU', instanceName: 'experiment-instance' });
     expect(MockSessionReplayPlugin).toHaveBeenCalledWith({ logLevel: LogLevel.Warn });
     expect(mockGetPlugin).toHaveBeenCalledWith({ serverZone: 'EU', logLevel: 'verbose' });
-  });
-
-  test('does not start Session Replay when autoStart is disabled', async () => {
-    const client = createInstance();
-
-    await client.init('api-key', { sessionReplay: { autoStart: false } });
-
-    const sessionReplayStart = (client.sessionReplay() as unknown as { start: jest.Mock }).start;
-    expect(sessionReplayStart).not.toHaveBeenCalled();
   });
 
   test('logs when the Experiment plugin does not expose a client', async () => {
@@ -179,18 +170,19 @@ describe('createInstance', () => {
     expect(mockGetPlugin).toHaveBeenCalledWith({});
   });
 
-  test('reuses blade instances on sequential initialization', async () => {
+  test('does not reinitialize SDKs on sequential initialization', async () => {
     const client = createInstance();
 
     await client.init('first-api-key');
     const sessionReplay = client.sessionReplay();
     const experiment = client.experiment();
     const engagement = client.engagement();
-    await client.init('second-api-key');
+    await client.init('second-api-key', { sessionReplay: { sampleRate: 0 } });
 
-    expect(analyticsInit).toHaveBeenCalledTimes(2);
+    expect(analyticsInit).toHaveBeenCalledTimes(1);
     expect(mockExperimentPlugin).toHaveBeenCalledTimes(1);
     expect(MockSessionReplayPlugin).toHaveBeenCalledTimes(1);
+    expect(MockSessionReplayPlugin).toHaveBeenCalledWith({});
     expect(mockGetPlugin).toHaveBeenCalledTimes(1);
     expect(client.sessionReplay()).toBe(sessionReplay);
     expect(client.experiment()).toBe(experiment);

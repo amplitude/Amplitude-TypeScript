@@ -49,10 +49,9 @@ export const createInstance = (): UnifiedClient => {
   let experiment: ExperimentPlugin | undefined;
   let sessionReplay: SessionReplayPlugin | undefined;
   let engagement: ReturnType<typeof getPlugin> | undefined;
-  let hasInitialized = false;
   let initPromise: Promise<void> | undefined;
 
-  const init = async (apiKey: string, unifiedOptions?: UnifiedOptions): Promise<void> => {
+  const init = (apiKey: string, unifiedOptions?: UnifiedOptions): Promise<void> => {
     if (initPromise) {
       return initPromise;
     }
@@ -68,18 +67,11 @@ export const createInstance = (): UnifiedClient => {
       }
       analyticsOptions.loggerProvider = loggerProvider;
 
-      if (!hasInitialized) {
-        analyticsClient.add(libraryPlugin());
-      }
+      analyticsClient.add(libraryPlugin());
 
       await analyticsClient.init(apiKey, analyticsOptions.userId, analyticsOptions).promise;
 
-      if (hasInitialized) {
-        await analyticsClient.add(libraryPlugin()).promise;
-      }
-      hasInitialized = true;
-
-      experiment ??= experimentPlugin({
+      experiment = experimentPlugin({
         ...getSharedExperimentOptions(unifiedOptions),
         ...unifiedOptions?.experiment,
       });
@@ -91,24 +83,19 @@ export const createInstance = (): UnifiedClient => {
         await experimentClient.start();
       }
 
-      sessionReplay ??= new SessionReplayPlugin({
+      sessionReplay = new SessionReplayPlugin({
         ...getSharedSessionReplayOptions(unifiedOptions),
         ...unifiedOptions?.sessionReplay,
       });
       await analyticsClient.add(sessionReplay).promise;
-      if (sessionReplay.sessionReplayConfig.autoStart) {
-        await sessionReplay.start();
-      }
 
-      engagement ??= getPlugin({
+      engagement = getPlugin({
         ...getSharedEngagementOptions(unifiedOptions),
         ...unifiedOptions?.engagement,
       });
       await analyticsClient.add(engagement).promise;
       await bootEngagement(analyticsClient.getUserId(), analyticsClient.getDeviceId());
-    })().finally(() => {
-      initPromise = undefined;
-    });
+    })();
 
     return initPromise;
   };
