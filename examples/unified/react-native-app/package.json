@@ -27,6 +27,8 @@
     "@react-native/metro-config": "0.76.9",
     "@react-native/typescript-config": "0.74.83",
     "@types/react": "^18.2.6",
+    "babel-plugin-transform-inline-environment-variables": "^0.4.4",
+    "dotenv": "^16.4.7",
     "eslint": "^8.19.0",
     "prettier": "2.8.8",
     "typescript": "5.0.4"
