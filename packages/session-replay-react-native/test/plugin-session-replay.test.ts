@@ -95,6 +95,19 @@ describe('SessionReplayPlugin Integration', () => {
     expect(NativeModules.AMPNativeSessionReplay.start).not.toHaveBeenCalled();
   });
 
+  it('forwards Amplitude config.optOut into native setup', async () => {
+    const plugin = new SessionReplayPlugin({ autoStart: false });
+    await plugin.setup({ ...minimalConfig, optOut: true }, mockReactNativeClient);
+    expect(NativeModules.AMPNativeSessionReplay.setup).toHaveBeenCalledWith(expect.objectContaining({ optOut: true }));
+  });
+
+  it('applies Amplitude client opt-out through onOptOutChanged', async () => {
+    const plugin = new SessionReplayPlugin({ autoStart: false });
+    await plugin.setup(minimalConfig, mockReactNativeClient);
+    await plugin.onOptOutChanged(true);
+    expect(NativeModules.AMPNativeSessionReplay.setOptOut).toHaveBeenCalledWith(true);
+  });
+
   it('should call start, stop, setOptOut, and teardown', async () => {
     const plugin = new SessionReplayPlugin();
     await plugin.setup(minimalConfig, mockReactNativeClient);

@@ -79,8 +79,8 @@ class NativeSessionReplay: NSObject, RCTBridgeModule {
 
     @objc(setOptOut:resolve:reject:)
     func setOptOut(_ optOut: Bool, resolve: RCTPromiseResolveBlock, reject: RCTPromiseRejectBlock) -> Void {
-        logger.debug(message: "setOptOut: \(optOut)")
-        sessionReplay.optOut = optOut
+        logger?.debug(message: "setOptOut: \(optOut)")
+        sessionReplay?.optOut = optOut
         resolve(nil)
     }
     

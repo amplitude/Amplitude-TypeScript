@@ -72,6 +72,7 @@ export class SessionReplayPlugin implements EnrichmentPlugin<ReactNativeClient, 
         sampleRate: this.sessionReplayConfig.sampleRate,
         enableRemoteConfig: this.sessionReplayConfig.enableRemoteConfig,
         logLevel: this.sessionReplayConfig.logLevel,
+        optOut: config.optOut,
       },
       this.logger,
     );
@@ -129,6 +130,13 @@ export class SessionReplayPlugin implements EnrichmentPlugin<ReactNativeClient, 
     if (this.isInitialized) {
       await setOptOut(optOut);
     }
+  }
+
+  /**
+   * Amplitude SDK hook. `client.setOptOut()` fans this out through the plugin timeline.
+   */
+  async onOptOutChanged(optOut: boolean): Promise<void> {
+    await this.setOptOut(optOut);
   }
 
   async teardown(): Promise<void> {
