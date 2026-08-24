@@ -42,15 +42,13 @@ cd ios && pod install
 
 ```typescript
 import {
-  engagement,
   experiment,
-  initAll,
+  init,
   LogLevel,
-  sessionReplay,
   track,
 } from '@amplitude/unified-react-native';
 
-await initAll('YOUR_API_KEY', {
+await init('YOUR_API_KEY', {
   // Shared defaults for every blade SDK
   serverZone: 'US',
   instanceName: 'app',
@@ -70,12 +68,8 @@ await initAll('YOUR_API_KEY', {
   },
 });
 
-// Set the Engagement user before Analytics events are forwarded to it.
-engagement.boot('user-id');
 track('App Opened');
-await experiment()?.start();
 const variant = experiment()?.variant('experiment-key');
-await sessionReplay()?.start();
 ```
 
 Options in `analytics`, `experiment`, `sessionReplay`, and `engagement` override the corresponding shared defaults.

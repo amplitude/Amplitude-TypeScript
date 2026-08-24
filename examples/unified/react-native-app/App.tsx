@@ -9,14 +9,7 @@ import {
   useColorScheme,
   View,
 } from 'react-native';
-import {
-  engagement,
-  experiment,
-  initAll,
-  LogLevel,
-  sessionReplay,
-  track,
-} from '@amplitude/unified-react-native';
+import {init, LogLevel} from '@amplitude/unified-react-native';
 
 const getApiKey = (): string => {
   const apiKey = process.env.VITE_AMPLITUDE_API_KEY;
@@ -32,56 +25,32 @@ const API_KEY = getApiKey();
 
 function App(): React.JSX.Element {
   const isDarkMode = useColorScheme() === 'dark';
-  const [status, setStatus] = React.useState('Initializing all SDK blades…');
+  const [status, setStatus] = React.useState(
+    'Attach Android Studio Network Inspector, then initialize all SDK blades.',
+  );
+  const [isInitializing, setIsInitializing] = React.useState(false);
+  const [isInitialized, setIsInitialized] = React.useState(false);
 
-  React.useEffect(() => {
-    initAll(API_KEY, {
-      logLevel: LogLevel.Warn,
-      analytics: {userId: 'unified-example-user'},
-      sessionReplay: {sampleRate: 1},
-    })
-      .then(() => {
-        engagement.boot('unified-example-user');
-        setStatus(
-          'Analytics, Experiment, Session Replay, and Engagement are ready.',
-        );
-      })
-      .catch((error: unknown) =>
-        setStatus(`Initialization failed: ${String(error)}`),
-      );
-  }, []);
-
-  const run = (label: string, action: () => void | Promise<unknown>) => {
-    setStatus(`${label}…`);
-    Promise.resolve()
-      .then(action)
-      .then(() => setStatus(`${label} succeeded.`))
-      .catch((error: unknown) =>
-        setStatus(`${label} failed: ${String(error)}`),
-      );
-  };
-
-  const trackAnalyticsEvent = async () => {
-    const result = await track('Unified Example Event').promise;
-    if (result.code !== 200) {
-      throw new Error(`Analytics returned ${result.code}: ${result.message}`);
+  const initializeAll = async () => {
+    setIsInitializing(true);
+    setStatus('Initializing all SDK blades…');
+    try {
+      await init(API_KEY, {
+        logLevel: LogLevel.Warn,
+        analytics: {userId: 'unified-example-user'},
+        sessionReplay: {
+          enableRemoteConfig: false,
+          logLevel: LogLevel.Debug,
+          sampleRate: 1,
+        },
+      });
+      setIsInitialized(true);
+      setStatus('All SDK blades initialized successfully.');
+    } catch (error) {
+      setStatus(`Initialization failed: ${String(error)}`);
+    } finally {
+      setIsInitializing(false);
     }
-  };
-
-  const startExperiment = async () => {
-    const client = experiment();
-    if (!client) {
-      throw new Error('Experiment is not initialized.');
-    }
-    await client.start();
-  };
-
-  const startSessionReplay = async () => {
-    const plugin = sessionReplay();
-    if (!plugin) {
-      throw new Error('Session Replay is not initialized.');
-    }
-    await plugin.start();
   };
 
   const colors = isDarkMode
@@ -114,24 +83,11 @@ function App(): React.JSX.Element {
 
         <View style={[styles.card, {backgroundColor: colors.card}]}>
           <Button
-            title="Track event"
-            onPress={() => run('Track event', trackAnalyticsEvent)}
-          />
-          <Button
-            title="Start Experiment"
-            onPress={() => run('Start Experiment', startExperiment)}
-          />
-          <Button
-            title="Start Session Replay"
-            onPress={() => run('Start Session Replay', startSessionReplay)}
-          />
-          <Button
-            title="Boot Guides and Surveys"
-            onPress={() =>
-              run('Boot Guides and Surveys', () =>
-                engagement.boot('unified-example-user'),
-              )
+            title={
+              isInitialized ? 'All SDKs initialized' : 'Initialize all SDKs'
             }
+            disabled={isInitializing || isInitialized}
+            onPress={initializeAll}
           />
         </View>
 

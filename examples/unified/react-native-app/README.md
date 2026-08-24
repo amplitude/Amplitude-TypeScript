@@ -96,6 +96,8 @@ Restart Metro after creating or changing `.env`. The example's `pnpm start` comm
 
 Environment variables embedded in a React Native bundle are visible to anyone who can inspect the application. Use `.env` to keep local configuration out of source control, not to store a client-side secret.
 
+The app does not initialize any blade on launch. To inspect the complete initialization sequence, start the app, attach Android Studio's Network Inspector, and then press **Initialize all SDKs**. That single button calls the unified SDK's `init()` method, which initializes Analytics, starts Experiment, starts Session Replay, and boots Guides and Surveys. The example disables Session Replay remote configuration and fixes its local sample rate at `1` so the emulator is always captured; look for `track?device_id=...` requests after initialization.
+
 Then run the app from its directory:
 
 ```sh
