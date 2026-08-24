@@ -7,7 +7,7 @@
     "check:autolinking": "react-native config",
     "ios": "react-native run-ios",
     "lint": "eslint App.tsx index.js babel.config.js metro.config.js react-native.config.js",
-    "start": "react-native start"
+    "start": "react-native start --reset-cache"
   },
   "dependencies": {
     "@amplitude/unified-react-native": "workspace:*",

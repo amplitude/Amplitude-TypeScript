@@ -18,7 +18,17 @@ import {
   track,
 } from '@amplitude/unified-react-native';
 
-const API_KEY = process.env.VITE_AMPLITUDE_API_KEY || 'YOUR_API_KEY';
+const getApiKey = (): string => {
+  const apiKey = process.env.VITE_AMPLITUDE_API_KEY;
+  if (!apiKey || apiKey.startsWith('<')) {
+    throw new Error(
+      'Set VITE_AMPLITUDE_API_KEY in the repository-root .env file, then restart Metro.',
+    );
+  }
+  return apiKey;
+};
+
+const API_KEY = getApiKey();
 
 function App(): React.JSX.Element {
   const isDarkMode = useColorScheme() === 'dark';
@@ -26,15 +36,16 @@ function App(): React.JSX.Element {
 
   React.useEffect(() => {
     initAll(API_KEY, {
-      logLevel: LogLevel.Debug,
+      logLevel: LogLevel.Warn,
       analytics: {userId: 'unified-example-user'},
       sessionReplay: {sampleRate: 1},
     })
-      .then(() =>
+      .then(() => {
+        engagement.boot('unified-example-user');
         setStatus(
           'Analytics, Experiment, Session Replay, and Engagement are ready.',
-        ),
-      )
+        );
+      })
       .catch((error: unknown) =>
         setStatus(`Initialization failed: ${String(error)}`),
       );
@@ -42,11 +53,35 @@ function App(): React.JSX.Element {
 
   const run = (label: string, action: () => void | Promise<unknown>) => {
     setStatus(`${label}…`);
-    Promise.resolve(action())
+    Promise.resolve()
+      .then(action)
       .then(() => setStatus(`${label} succeeded.`))
       .catch((error: unknown) =>
         setStatus(`${label} failed: ${String(error)}`),
       );
+  };
+
+  const trackAnalyticsEvent = async () => {
+    const result = await track('Unified Example Event').promise;
+    if (result.code !== 200) {
+      throw new Error(`Analytics returned ${result.code}: ${result.message}`);
+    }
+  };
+
+  const startExperiment = async () => {
+    const client = experiment();
+    if (!client) {
+      throw new Error('Experiment is not initialized.');
+    }
+    await client.start();
+  };
+
+  const startSessionReplay = async () => {
+    const plugin = sessionReplay();
+    if (!plugin) {
+      throw new Error('Session Replay is not initialized.');
+    }
+    await plugin.start();
   };
 
   const colors = isDarkMode
@@ -80,19 +115,15 @@ function App(): React.JSX.Element {
         <View style={[styles.card, {backgroundColor: colors.card}]}>
           <Button
             title="Track event"
-            onPress={() =>
-              run('Track event', () => track('Unified Example Event').promise)
-            }
+            onPress={() => run('Track event', trackAnalyticsEvent)}
           />
           <Button
             title="Start Experiment"
-            onPress={() => run('Start Experiment', () => experiment()?.start())}
+            onPress={() => run('Start Experiment', startExperiment)}
           />
           <Button
             title="Start Session Replay"
-            onPress={() =>
-              run('Start Session Replay', () => sessionReplay()?.start())
-            }
+            onPress={() => run('Start Session Replay', startSessionReplay)}
           />
           <Button
             title="Boot Guides and Surveys"

@@ -42,6 +42,8 @@ npx pod-install
 
 Then rebuild the native application. No additional JavaScript packages need to be installed.
 
+Guides and Surveys uses React Native's typed native event emitters, so enable the React Native New Architecture before rebuilding. For Android, set `newArchEnabled=true` in `android/gradle.properties`; use your React Native version's corresponding New Architecture setup for iOS. This example already enables it for Android.
+
 ## How the autolinking preset works
 
 React Native CLI normally discovers native modules by inspecting the dependencies declared directly in the application's `package.json`. The blade SDKs are dependencies of the unified SDK instead, so the CLI would not discover every blade from the application's dependency list alone.
@@ -89,6 +91,8 @@ cp .env.example .env
 ```
 
 The example's [`babel.config.js`](./babel.config.js) loads the root `.env` and inlines `VITE_AMPLITUDE_API_KEY` into the JavaScript bundle. Experiment uses the same key by default, so a separate deployment key is not required when Analytics and Experiment use the same Amplitude project.
+
+Restart Metro after creating or changing `.env`. The example's `pnpm start` command resets Metro's transform cache so a previously bundled placeholder cannot be reused.
 
 Environment variables embedded in a React Native bundle are visible to anyone who can inspect the application. Use `.env` to keep local configuration out of source control, not to store a client-side secret.
 
