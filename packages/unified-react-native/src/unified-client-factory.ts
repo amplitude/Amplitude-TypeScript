@@ -44,6 +44,12 @@ const getSharedEngagementOptions = (options?: UnifiedOptions): EngagementOptions
   ...(options?.logLevel === undefined ? {} : { logLevel: toEngagementLogLevel(options.logLevel) }),
 });
 
+/**
+ * Creates a unified client.
+ *
+ * Multiple unified clients are not isolated because the React Native Engagement plugin is a process-wide singleton.
+ * All clients share the first initialized Engagement plugin and its configuration.
+ */
 export const createInstance = (): UnifiedClient => {
   const analyticsClient = createAnalyticsInstance();
   let experiment: ExperimentPlugin | undefined;
@@ -106,6 +112,7 @@ export const createInstance = (): UnifiedClient => {
       });
       await analyticsClient.add(sessionReplay).promise;
 
+      // Engagement intentionally returns a process-wide singleton. Independent unified client instances are unsupported.
       engagement = getPlugin({
         ...getSharedEngagementOptions(unifiedOptions),
         ...unifiedOptions?.engagement,
@@ -125,6 +132,5 @@ export const createInstance = (): UnifiedClient => {
     init,
     experiment: () => experiment?.experiment,
     sessionReplay: () => sessionReplay,
-    engagement: () => engagement,
   };
 };

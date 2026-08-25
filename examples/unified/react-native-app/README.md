@@ -40,7 +40,7 @@ For iOS, run the application's normal pod installation step after installing the
 npx pod-install
 ```
 
-Then rebuild the native application. No additional JavaScript packages need to be installed.
+Then rebuild the native application. No additional JavaScript packages need to be installed. The unified SDK requires React Native 0.76 or newer.
 
 Guides and Surveys uses React Native's typed native event emitters, so enable the React Native New Architecture before rebuilding. For Android, set `newArchEnabled=true` in `android/gradle.properties`; use your React Native version's corresponding New Architecture setup for iOS. This example already enables it for Android.
 
