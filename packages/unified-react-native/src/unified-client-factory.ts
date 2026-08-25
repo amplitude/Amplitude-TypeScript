@@ -56,6 +56,7 @@ export const createInstance = (): UnifiedClient => {
   let sessionReplay: SessionReplayPlugin | undefined;
   let engagement: ReturnType<typeof getPlugin> | undefined;
   let hasInitializedAnalytics = false;
+  let hasAttemptedAnalyticsInit = false;
   let initPromise: Promise<void> | undefined;
 
   const init = (apiKey: string, unifiedOptions?: UnifiedOptions): Promise<void> => {
@@ -74,6 +75,8 @@ export const createInstance = (): UnifiedClient => {
       }
       analyticsOptions.loggerProvider = loggerProvider;
 
+      const shouldAddLibraryPluginAfterInit = hasInitializedAnalytics || hasAttemptedAnalyticsInit;
+
       if (hasInitializedAnalytics) {
         for (const blade of [experiment, sessionReplay, engagement]) {
           if (blade !== undefined) {
@@ -83,13 +86,14 @@ export const createInstance = (): UnifiedClient => {
         experiment = undefined;
         sessionReplay = undefined;
         engagement = undefined;
-      } else {
+      } else if (!shouldAddLibraryPluginAfterInit) {
         analyticsClient.add(libraryPlugin());
       }
 
+      hasAttemptedAnalyticsInit = true;
       await analyticsClient.init(apiKey, analyticsOptions.userId, analyticsOptions).promise;
 
-      if (hasInitializedAnalytics) {
+      if (shouldAddLibraryPluginAfterInit) {
         await analyticsClient.add(libraryPlugin()).promise;
       }
       hasInitializedAnalytics = true;
