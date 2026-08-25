@@ -56,7 +56,7 @@ export const createInstance = (): UnifiedClient => {
       return initPromise;
     }
 
-    initPromise = (async () => {
+    const promise = (async () => {
       const analyticsOptions: ReactNativeOptions = {
         ...getSharedAnalyticsOptions(unifiedOptions),
         ...unifiedOptions?.analytics,
@@ -96,6 +96,11 @@ export const createInstance = (): UnifiedClient => {
       await analyticsClient.add(engagement).promise;
       await bootEngagement(analyticsClient.getUserId(), analyticsClient.getDeviceId());
     })();
+
+    initPromise = promise.catch((error) => {
+      initPromise = undefined;
+      throw error;
+    });
 
     return initPromise;
   };
