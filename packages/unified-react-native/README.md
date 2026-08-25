@@ -30,7 +30,7 @@ module.exports = {
 
 The preset lets React Native autolink the native blade modules installed transitively by the unified SDK. No blade package needs to be installed directly by the application.
 
-Guides and Surveys uses React Native's typed native event emitters, so enable the React Native New Architecture before rebuilding. For Android, set `newArchEnabled=true` in `android/gradle.properties`; use your React Native version's corresponding New Architecture setup for iOS.
+The unified SDK requires React Native 0.76 or newer. Guides and Surveys uses React Native's typed native event emitters, so enable the React Native New Architecture before rebuilding. For Android, set `newArchEnabled=true` in `android/gradle.properties`; use your React Native version's corresponding New Architecture setup for iOS.
 
 Install iOS pods after adding the package:
 
@@ -44,15 +44,15 @@ cd ios && pod install
 import {
   experiment,
   init,
-  LogLevel,
   track,
+  Types,
 } from '@amplitude/unified-react-native';
 
 await init('YOUR_API_KEY', {
   // Shared defaults for every blade SDK
   serverZone: 'US',
   instanceName: 'app',
-  logLevel: LogLevel.Warn,
+  logLevel: Types.LogLevel.Warn,
 
   analytics: {
     userId: 'user-id',
@@ -76,4 +76,10 @@ Options in `analytics`, `experiment`, `sessionReplay`, and `engagement` override
 Initialization is idempotent: subsequent `init()` calls return the first initialization promise and do not reconfigure the SDKs.
 If initialization rejects, calling `init()` again removes any partially registered blades and retries their setup.
 
-The package also re-exports the React Native Analytics API, Experiment client types, `AmpMaskView` for Session Replay masking, and the Guides and Surveys API under the `engagement` namespace.
+### Multiple instances
+
+The unified React Native SDK does not support isolated multiple instances. The React Native Engagement plugin is a process-wide singleton, so every unified client created with `createInstance()` shares the same Engagement plugin and native Engagement instance. The first initialization supplies its API key and Engagement configuration; later clients cannot configure an independent Engagement instance and may update the same shared identity through subsequent boot operations.
+
+Use the package-level `init()`, `track()`, and other singleton exports for normal applications. If you create clients explicitly, treat their Engagement state as shared rather than independent.
+
+The package also exports the React Native Analytics helpers `Identify`, `Revenue`, and `Types`, plus `AmpMaskView` for Session Replay masking.

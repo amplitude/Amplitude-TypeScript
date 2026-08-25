@@ -9,7 +9,7 @@ import {
   useColorScheme,
   View,
 } from 'react-native';
-import {init, LogLevel} from '@amplitude/unified-react-native';
+import {init, Types} from '@amplitude/unified-react-native';
 
 const getApiKey = (): string => {
   const apiKey = process.env.VITE_AMPLITUDE_API_KEY;
@@ -36,11 +36,11 @@ function App(): React.JSX.Element {
     setStatus('Initializing all SDK blades…');
     try {
       await init(API_KEY, {
-        logLevel: LogLevel.Warn,
+        logLevel: Types.LogLevel.Warn,
         analytics: {userId: 'unified-example-user'},
         sessionReplay: {
           enableRemoteConfig: false,
-          logLevel: LogLevel.Debug,
+          logLevel: Types.LogLevel.Debug,
           sampleRate: 1,
         },
       });

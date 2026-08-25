@@ -1233,10 +1233,10 @@ importers:
         version: link:../analytics-react-native
       '@amplitude/experiment-react-native-client':
         specifier: ^1.8.0
-        version: 1.8.0(react-native@0.73.0(@babel/core@7.28.5)(@babel/preset-env@7.28.5(@babel/core@7.28.5))(encoding@0.1.13)(react@18.2.0))(react@18.2.0)
+        version: 1.8.0(react-native@0.76.9(@babel/core@7.28.5)(@babel/preset-env@7.28.5(@babel/core@7.28.5))(@react-native-community/cli@13.6.6(encoding@0.1.13))(@types/react@18.3.26)(encoding@0.1.13)(react@18.3.1))(react@18.3.1)
       '@amplitude/plugin-engagement-react-native':
         specifier: ^3.11.0
-        version: 3.12.1(@react-native-async-storage/async-storage@2.2.0(react-native@0.73.0(@babel/core@7.28.5)(@babel/preset-env@7.28.5(@babel/core@7.28.5))(encoding@0.1.13)(react@18.2.0)))(react-native@0.73.0(@babel/core@7.28.5)(@babel/preset-env@7.28.5(@babel/core@7.28.5))(encoding@0.1.13)(react@18.2.0))(react@18.2.0)
+        version: 3.12.1(@react-native-async-storage/async-storage@2.2.0(react-native@0.76.9(@babel/core@7.28.5)(@babel/preset-env@7.28.5(@babel/core@7.28.5))(@react-native-community/cli@13.6.6(encoding@0.1.13))(@types/react@18.3.26)(encoding@0.1.13)(react@18.3.1)))(react-native@0.76.9(@babel/core@7.28.5)(@babel/preset-env@7.28.5(@babel/core@7.28.5))(@react-native-community/cli@13.6.6(encoding@0.1.13))(@types/react@18.3.26)(encoding@0.1.13)(react@18.3.1))(react@18.3.1)
       '@amplitude/plugin-experiment-react-native':
         specifier: workspace:*
         version: link:../plugin-experiment-react-native
@@ -1245,17 +1245,17 @@ importers:
         version: link:../plugin-session-replay-react-native
       '@react-native-async-storage/async-storage':
         specifier: ^2.1.2
-        version: 2.2.0(react-native@0.73.0(@babel/core@7.28.5)(@babel/preset-env@7.28.5(@babel/core@7.28.5))(encoding@0.1.13)(react@18.2.0))
+        version: 2.2.0(react-native@0.76.9(@babel/core@7.28.5)(@babel/preset-env@7.28.5(@babel/core@7.28.5))(@react-native-community/cli@13.6.6(encoding@0.1.13))(@types/react@18.3.26)(encoding@0.1.13)(react@18.3.1))
       tslib:
         specifier: ^2.4.1
         version: 2.8.1
     devDependencies:
       react:
-        specifier: 18.2.0
-        version: 18.2.0
+        specifier: 18.3.1
+        version: 18.3.1
       react-native:
-        specifier: 0.73.0
-        version: 0.73.0(@babel/core@7.28.5)(@babel/preset-env@7.28.5(@babel/core@7.28.5))(encoding@0.1.13)(react@18.2.0)
+        specifier: 0.76.9
+        version: 0.76.9(@babel/core@7.28.5)(@babel/preset-env@7.28.5(@babel/core@7.28.5))(@react-native-community/cli@13.6.6(encoding@0.1.13))(@types/react@18.3.26)(encoding@0.1.13)(react@18.3.1)
       react-native-builder-bob:
         specifier: ^0.20.3
         version: 0.20.4
@@ -12908,6 +12908,15 @@ snapshots:
       react-native: 0.73.0(@babel/core@7.28.5)(@babel/preset-env@7.28.5(@babel/core@7.28.5))(encoding@0.1.13)(react@18.2.0)
       unfetch: 4.2.0
 
+  '@amplitude/experiment-react-native-client@1.8.0(react-native@0.76.9(@babel/core@7.28.5)(@babel/preset-env@7.28.5(@babel/core@7.28.5))(@react-native-community/cli@13.6.6(encoding@0.1.13))(@types/react@18.3.26)(encoding@0.1.13)(react@18.3.1))(react@18.3.1)':
+    dependencies:
+      '@amplitude/analytics-connector': 1.6.4
+      '@amplitude/experiment-core': 0.11.1
+      '@react-native-async-storage/async-storage': 1.24.0(react-native@0.76.9(@babel/core@7.28.5)(@babel/preset-env@7.28.5(@babel/core@7.28.5))(@react-native-community/cli@13.6.6(encoding@0.1.13))(@types/react@18.3.26)(encoding@0.1.13)(react@18.3.1))
+      react: 18.3.1
+      react-native: 0.76.9(@babel/core@7.28.5)(@babel/preset-env@7.28.5(@babel/core@7.28.5))(@react-native-community/cli@13.6.6(encoding@0.1.13))(@types/react@18.3.26)(encoding@0.1.13)(react@18.3.1)
+      unfetch: 4.2.0
+
   '@amplitude/plugin-autocapture-browser@1.27.4':
     dependencies:
       '@amplitude/analytics-core': 2.50.0
@@ -12918,12 +12927,12 @@ snapshots:
       '@amplitude/analytics-core': 2.50.0
       tslib: 2.8.1
 
-  '@amplitude/plugin-engagement-react-native@3.12.1(@react-native-async-storage/async-storage@2.2.0(react-native@0.73.0(@babel/core@7.28.5)(@babel/preset-env@7.28.5(@babel/core@7.28.5))(encoding@0.1.13)(react@18.2.0)))(react-native@0.73.0(@babel/core@7.28.5)(@babel/preset-env@7.28.5(@babel/core@7.28.5))(encoding@0.1.13)(react@18.2.0))(react@18.2.0)':
+  '@amplitude/plugin-engagement-react-native@3.12.1(@react-native-async-storage/async-storage@2.2.0(react-native@0.76.9(@babel/core@7.28.5)(@babel/preset-env@7.28.5(@babel/core@7.28.5))(@react-native-community/cli@13.6.6(encoding@0.1.13))(@types/react@18.3.26)(encoding@0.1.13)(react@18.3.1)))(react-native@0.76.9(@babel/core@7.28.5)(@babel/preset-env@7.28.5(@babel/core@7.28.5))(@react-native-community/cli@13.6.6(encoding@0.1.13))(@types/react@18.3.26)(encoding@0.1.13)(react@18.3.1))(react@18.3.1)':
     dependencies:
       '@amplitude/analytics-core': 2.50.0
-      '@react-native-async-storage/async-storage': 2.2.0(react-native@0.73.0(@babel/core@7.28.5)(@babel/preset-env@7.28.5(@babel/core@7.28.5))(encoding@0.1.13)(react@18.2.0))
-      react: 18.2.0
-      react-native: 0.73.0(@babel/core@7.28.5)(@babel/preset-env@7.28.5(@babel/core@7.28.5))(encoding@0.1.13)(react@18.2.0)
+      '@react-native-async-storage/async-storage': 2.2.0(react-native@0.76.9(@babel/core@7.28.5)(@babel/preset-env@7.28.5(@babel/core@7.28.5))(@react-native-community/cli@13.6.6(encoding@0.1.13))(@types/react@18.3.26)(encoding@0.1.13)(react@18.3.1))
+      react: 18.3.1
+      react-native: 0.76.9(@babel/core@7.28.5)(@babel/preset-env@7.28.5(@babel/core@7.28.5))(@react-native-community/cli@13.6.6(encoding@0.1.13))(@types/react@18.3.26)(encoding@0.1.13)(react@18.3.1)
 
   '@amplitude/plugin-event-property-attribution-browser@0.2.3':
     dependencies:
@@ -15856,10 +15865,10 @@ snapshots:
       merge-options: 3.0.4
       react-native: 0.76.9(@babel/core@7.28.5)(@babel/preset-env@7.28.5(@babel/core@7.28.5))(@react-native-community/cli@13.6.6(encoding@0.1.13))(@types/react@18.3.26)(encoding@0.1.13)(react@18.3.1)
 
-  '@react-native-async-storage/async-storage@2.2.0(react-native@0.73.0(@babel/core@7.28.5)(@babel/preset-env@7.28.5(@babel/core@7.28.5))(encoding@0.1.13)(react@18.2.0))':
+  '@react-native-async-storage/async-storage@2.2.0(react-native@0.76.9(@babel/core@7.28.5)(@babel/preset-env@7.28.5(@babel/core@7.28.5))(@react-native-community/cli@13.6.6(encoding@0.1.13))(@types/react@18.3.26)(encoding@0.1.13)(react@18.3.1))':
     dependencies:
       merge-options: 3.0.4
-      react-native: 0.73.0(@babel/core@7.28.5)(@babel/preset-env@7.28.5(@babel/core@7.28.5))(encoding@0.1.13)(react@18.2.0)
+      react-native: 0.76.9(@babel/core@7.28.5)(@babel/preset-env@7.28.5(@babel/core@7.28.5))(@react-native-community/cli@13.6.6(encoding@0.1.13))(@types/react@18.3.26)(encoding@0.1.13)(react@18.3.1)
 
   '@react-native-community/cli-clean@12.1.1(encoding@0.1.13)':
     dependencies:

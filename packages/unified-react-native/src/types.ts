@@ -3,8 +3,8 @@ import type { getPlugin } from '@amplitude/plugin-engagement-react-native';
 import type { ExperimentPluginConfig, IExperimentClient } from '@amplitude/plugin-experiment-react-native';
 import type { SessionReplayConfig, SessionReplayPlugin } from '@amplitude/plugin-session-replay-react-native';
 
+/** @internal */
 export type EngagementOptions = NonNullable<Parameters<typeof getPlugin>[0]>;
-export type EngagementPlugin = ReturnType<typeof getPlugin>;
 
 export interface UnifiedSharedOptions {
   /** Data residency zone used by every blade SDK. */
@@ -44,7 +44,4 @@ export interface UnifiedClient extends Omit<ReactNativeClient, 'init'> {
 
   /** Return the Session Replay plugin after init() has installed it. */
   sessionReplay(): SessionReplayPlugin | undefined;
-
-  /** Return the Guides and Surveys plugin after init() has installed it. */
-  engagement(): EngagementPlugin | undefined;
 }

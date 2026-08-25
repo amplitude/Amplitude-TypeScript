@@ -62,7 +62,6 @@ describe('createInstance', () => {
 
     expect(client.experiment()).toBeUndefined();
     expect(client.sessionReplay()).toBeUndefined();
-    expect(client.engagement()).toBeUndefined();
 
     await client.init('api-key', {
       serverZone: 'EU',
@@ -99,7 +98,6 @@ describe('createInstance', () => {
     expect(add).toHaveBeenCalledTimes(4);
     expect(client.experiment()).toBeDefined();
     expect(client.sessionReplay()).toBeDefined();
-    expect(client.engagement()).toBeDefined();
   });
 
   test('lets blade options override shared defaults', async () => {
@@ -178,7 +176,6 @@ describe('createInstance', () => {
     await client.init('first-api-key');
     const sessionReplay = client.sessionReplay();
     const experiment = client.experiment();
-    const engagement = client.engagement();
     await client.init('second-api-key', { sessionReplay: { sampleRate: 0 } });
 
     expect(analyticsInit).toHaveBeenCalledTimes(1);
@@ -188,7 +185,6 @@ describe('createInstance', () => {
     expect(mockGetPlugin).toHaveBeenCalledTimes(1);
     expect(client.sessionReplay()).toBe(sessionReplay);
     expect(client.experiment()).toBe(experiment);
-    expect(client.engagement()).toBe(engagement);
   });
 
   test('allows initialization to retry after a blade fails', async () => {
