@@ -1,3 +1,7 @@
 packages:
   - '.'
   - '../../../packages/*'
+
+# allow @amplitude/babel-plugin-autocapture-transformer to be installed without 3 day delay
+minimumReleaseAgeExclude:
+  - '@amplitude/*'

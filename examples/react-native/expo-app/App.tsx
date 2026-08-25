@@ -58,9 +58,7 @@ export default function App() {
           autocapture: {
             screenViews: true,
             elementInteractions: true,
-            networkTracking: {
-              ignoreHosts: ['http://localhost:8081'],
-            },
+            networkTracking: false,
             appLifecycles: true,
             sessions: true,
           },
