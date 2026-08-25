@@ -35,6 +35,7 @@ export interface UnifiedClient extends Omit<ReactNativeClient, 'init'> {
   /**
    * Initialize Analytics, Experiment, Session Replay, and Guides and Surveys.
    * Subsequent calls return the first initialization promise without reconfiguring the SDKs.
+   * A rejected initialization can be retried.
    */
   init(apiKey: string, unifiedOptions?: UnifiedOptions): Promise<void>;
 

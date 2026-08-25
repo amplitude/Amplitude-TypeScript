@@ -49,6 +49,7 @@ export const createInstance = (): UnifiedClient => {
   let experiment: ExperimentPlugin | undefined;
   let sessionReplay: SessionReplayPlugin | undefined;
   let engagement: ReturnType<typeof getPlugin> | undefined;
+  let hasInitializedAnalytics = false;
   let initPromise: Promise<void> | undefined;
 
   const init = (apiKey: string, unifiedOptions?: UnifiedOptions): Promise<void> => {
@@ -67,9 +68,25 @@ export const createInstance = (): UnifiedClient => {
       }
       analyticsOptions.loggerProvider = loggerProvider;
 
-      analyticsClient.add(libraryPlugin());
+      if (hasInitializedAnalytics) {
+        for (const blade of [experiment, sessionReplay, engagement]) {
+          if (blade !== undefined) {
+            await analyticsClient.remove(blade.name).promise;
+          }
+        }
+        experiment = undefined;
+        sessionReplay = undefined;
+        engagement = undefined;
+      } else {
+        analyticsClient.add(libraryPlugin());
+      }
 
       await analyticsClient.init(apiKey, analyticsOptions.userId, analyticsOptions).promise;
+
+      if (hasInitializedAnalytics) {
+        await analyticsClient.add(libraryPlugin()).promise;
+      }
+      hasInitializedAnalytics = true;
 
       experiment = experimentPlugin({
         ...getSharedExperimentOptions(unifiedOptions),
@@ -95,7 +112,10 @@ export const createInstance = (): UnifiedClient => {
       });
       await analyticsClient.add(engagement).promise;
       await bootEngagement(analyticsClient.getUserId(), analyticsClient.getDeviceId());
-    })();
+    })().catch((error: unknown) => {
+      initPromise = undefined;
+      throw error;
+    });
 
     return initPromise;
   };
