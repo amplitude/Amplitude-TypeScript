@@ -599,6 +599,83 @@ describe('fireViewportContentUpdated - early return when no changes', () => {
     );
   });
 
+  test('should reset lastScroll with the scroll tracker on page end so the next empty flush is deduplicated', () => {
+    const currentElementExposed = new Set<string>(['element-1']);
+    const elementExposedForPage = new Set<string>(['element-1']);
+    const lastScroll: { maxX: undefined | number; maxY: undefined | number } = { maxX: undefined, maxY: undefined };
+    // The scroll tracker rebaselines on page end, here on a page that scrolled back to the top
+    const scrollState = { maxX: 100, maxY: 200 };
+    const scrollTracker: ScrollTracker = {
+      getState: () => scrollState,
+      reset: jest.fn(() => {
+        scrollState.maxX = 0;
+        scrollState.maxY = 0;
+      }),
+    };
+
+    fireViewportContentUpdated({
+      amplitude: mockAmplitude,
+      scrollTracker,
+      currentElementExposed,
+      elementExposedForPage,
+      exposureTracker: undefined,
+      isPageEnd: true,
+      lastScroll,
+    });
+    expect(trackSpy).toHaveBeenCalledTimes(1);
+    expect(lastScroll).toEqual({ maxX: 0, maxY: 0 });
+
+    // Next page view has nothing exposed and no scroll: nothing new to report
+    fireViewportContentUpdated({
+      amplitude: mockAmplitude,
+      scrollTracker,
+      currentElementExposed,
+      elementExposedForPage,
+      exposureTracker: undefined,
+      isPageEnd: true,
+      lastScroll,
+    });
+    expect(trackSpy).toHaveBeenCalledTimes(1);
+  });
+
+  test('should take lastScroll from the scroll baseline the tracker keeps after a page end', () => {
+    const currentElementExposed = new Set<string>(['element-1']);
+    const elementExposedForPage = new Set<string>(['element-1']);
+    const lastScroll: { maxX: undefined | number; maxY: undefined | number } = { maxX: undefined, maxY: undefined };
+    // A page view that ends without scrolling back to the top: the next one starts at 1000
+    const scrollState = { maxX: 0, maxY: 3000 };
+    const scrollTracker: ScrollTracker = {
+      getState: () => scrollState,
+      reset: jest.fn(() => {
+        scrollState.maxY = 1000;
+      }),
+    };
+
+    fireViewportContentUpdated({
+      amplitude: mockAmplitude,
+      scrollTracker,
+      currentElementExposed,
+      elementExposedForPage,
+      exposureTracker: undefined,
+      isPageEnd: true,
+      lastScroll,
+    });
+
+    expect(lastScroll).toEqual({ maxX: 0, maxY: 1000 });
+
+    // Still sitting at 1000 with nothing exposed: nothing new to report
+    fireViewportContentUpdated({
+      amplitude: mockAmplitude,
+      scrollTracker,
+      currentElementExposed,
+      elementExposedForPage,
+      exposureTracker: undefined,
+      isPageEnd: true,
+      lastScroll,
+    });
+    expect(trackSpy).toHaveBeenCalledTimes(1);
+  });
+
   test('should mutate lastScroll so consecutive calls deduplicate correctly', () => {
     const currentElementExposed = new Set<string>();
     const elementExposedForPage = new Set<string>();

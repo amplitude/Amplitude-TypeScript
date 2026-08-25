@@ -65,26 +65,50 @@ describe('Observables Coverage', () => {
   });
 
   describe('createMutationObservable', () => {
-    test('should handle missing document.body safely', () => {
-      // Save original body
+    const withoutBody = (run: () => void) => {
       const originalBody = document.body;
-      // Delete body
       Object.defineProperty(document, 'body', { value: null, configurable: true });
+      try {
+        run();
+      } finally {
+        Object.defineProperty(document, 'body', { value: originalBody, configurable: true });
+      }
+    };
 
+    test('should observe the document element when document.body does not exist yet', () => {
+      const observeSpy = jest.spyOn(MutationObserver.prototype, 'observe');
       mockGetGlobalScope.mockReturnValue(window); // Ensure global scope is present
 
-      const observable = createMutationObservable();
-      const subscription = observable.subscribe(() => {
-        return;
+      withoutBody(() => {
+        const subscription = createMutationObservable().subscribe(() => {
+          return;
+        });
+        subscription.unsubscribe();
       });
 
-      subscription.unsubscribe();
+      expect(observeSpy).toHaveBeenCalledWith(document.documentElement, expect.objectContaining({ subtree: true }));
+    });
 
-      // Restore body
-      Object.defineProperty(document, 'body', { value: originalBody, configurable: true });
+    test('should handle a document with neither body nor document element safely', () => {
+      const observeSpy = jest.spyOn(MutationObserver.prototype, 'observe');
+      const originalDocumentElement = document.documentElement;
+      Object.defineProperty(document, 'documentElement', { value: null, configurable: true });
 
-      // Verify it didn't throw and executed safely
-      expect(true).toBe(true);
+      try {
+        withoutBody(() => {
+          const subscription = createMutationObservable().subscribe(() => {
+            return;
+          });
+          subscription.unsubscribe();
+        });
+      } finally {
+        Object.defineProperty(document, 'documentElement', {
+          value: originalDocumentElement,
+          configurable: true,
+        });
+      }
+
+      expect(observeSpy).not.toHaveBeenCalled();
     });
   });
 });

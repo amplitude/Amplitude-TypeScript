@@ -53,6 +53,18 @@ export function fireViewportContentUpdated({
     eventProperties[constants.AMPLITUDE_EVENT_PROP_PAGE_VIEW_ID] = pageViewId;
   }
 
+  // Reset state for the next page view. lastScroll has to follow the scroll tracker's new
+  // baseline, otherwise the next event is compared against maxima from the previous page view and
+  // an event with no exposed elements looks like a scroll change.
+  const resetForNextPageView = () => {
+    scrollTracker.reset();
+    const scrollBaseline = scrollTracker.getState();
+    lastScroll.maxX = scrollBaseline.maxX;
+    lastScroll.maxY = scrollBaseline.maxY;
+    elementExposedForPage.clear();
+    exposureTracker?.reset();
+  };
+
   // If elements exposed is empty and max scroll is same as last event, don't track
   if (
     currentElementExposed.size === 0 &&
@@ -60,9 +72,7 @@ export function fireViewportContentUpdated({
     pageScrollMaxState.maxY === lastScroll.maxY
   ) {
     if (isPageEnd) {
-      scrollTracker.reset();
-      elementExposedForPage.clear();
-      exposureTracker?.reset();
+      resetForNextPageView();
     }
     return;
   }
@@ -76,10 +86,7 @@ export function fireViewportContentUpdated({
   currentElementExposed.clear();
 
   if (isPageEnd) {
-    // Reset state for next page view
-    scrollTracker.reset();
-    elementExposedForPage.clear();
-    exposureTracker?.reset();
+    resetForNextPageView();
   }
 }
 

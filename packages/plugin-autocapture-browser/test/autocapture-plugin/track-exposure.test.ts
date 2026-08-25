@@ -231,4 +231,19 @@ describe('trackExposure', () => {
     jest.advanceTimersByTime(DEFAULT_EXPOSURE_DURATION * 1.5);
     expect(onExposure).toHaveBeenCalledWith('div#reset-div-2');
   });
+
+  test('should ask for elements in the viewport to be reported again on reset', () => {
+    const reobserve = jest.fn();
+    const tracker = trackExposure({
+      allObservables,
+      onExposure,
+      dataExtractor: new DataExtractor({}),
+      reobserve,
+    });
+
+    tracker.reset();
+    expect(reobserve).toHaveBeenCalledTimes(1);
+
+    tracker.unsubscribe();
+  });
 });
