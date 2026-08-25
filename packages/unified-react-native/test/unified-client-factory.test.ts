@@ -42,10 +42,12 @@ const returnValue = <T>(value?: T) => ({ promise: Promise.resolve(value) });
 
 describe('createInstance', () => {
   const add = jest.fn(() => returnValue());
+  const remove = jest.fn(() => returnValue());
   const analyticsInit = jest.fn(() => returnValue());
   const analyticsClient = {
     add,
     init: analyticsInit,
+    remove,
     getUserId: jest.fn(() => 'user-id'),
     getDeviceId: jest.fn(() => 'device-id'),
   } as unknown as ReactNativeClient;
@@ -187,6 +189,25 @@ describe('createInstance', () => {
     expect(client.sessionReplay()).toBe(sessionReplay);
     expect(client.experiment()).toBe(experiment);
     expect(client.engagement()).toBe(engagement);
+  });
+
+  test('allows initialization to retry after a blade fails', async () => {
+    add
+      .mockImplementationOnce(() => returnValue())
+      .mockImplementationOnce(() => ({
+        promise: Promise.reject(new Error('Experiment setup failed.')),
+      }));
+    const client = createInstance();
+
+    await expect(client.init('api-key')).rejects.toThrow('Experiment setup failed.');
+    await client.init('api-key');
+
+    expect(analyticsInit).toHaveBeenCalledTimes(2);
+    expect(remove).toHaveBeenCalledTimes(1);
+    expect(remove).toHaveBeenCalledWith('experiment');
+    expect(mockExperimentPlugin).toHaveBeenCalledTimes(2);
+    expect(MockSessionReplayPlugin).toHaveBeenCalledTimes(1);
+    expect(mockGetPlugin).toHaveBeenCalledTimes(1);
   });
 
   test('shares one initialization with concurrent callers', async () => {
