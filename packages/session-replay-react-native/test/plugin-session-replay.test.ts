@@ -95,16 +95,30 @@ describe('SessionReplayPlugin Integration', () => {
     expect(NativeModules.AMPNativeSessionReplay.start).not.toHaveBeenCalled();
   });
 
-  it('should call start, stop, and teardown', async () => {
+  it('forwards Amplitude config.optOut into native setup', async () => {
+    const plugin = new SessionReplayPlugin({ autoStart: false });
+    await plugin.setup({ ...minimalConfig, optOut: true }, mockReactNativeClient);
+    expect(NativeModules.AMPNativeSessionReplay.setup).toHaveBeenCalledWith(expect.objectContaining({ optOut: true }));
+  });
+
+  it('applies Amplitude client opt-out through onOptOutChanged', async () => {
+    const plugin = new SessionReplayPlugin({ autoStart: false });
+    await plugin.setup(minimalConfig, mockReactNativeClient);
+    await plugin.onOptOutChanged(true);
+    expect(NativeModules.AMPNativeSessionReplay.setOptOut).toHaveBeenCalledWith(true);
+  });
+
+  it('should call start, stop, setOptOut, and teardown', async () => {
     const plugin = new SessionReplayPlugin();
     await plugin.setup(minimalConfig, mockReactNativeClient);
     await plugin.start();
     expect(NativeModules.AMPNativeSessionReplay.start).toHaveBeenCalled();
     await plugin.stop();
     expect(NativeModules.AMPNativeSessionReplay.stop).toHaveBeenCalled();
+    await plugin.setOptOut(true);
+    expect(NativeModules.AMPNativeSessionReplay.setOptOut).toHaveBeenCalledWith(true);
     await plugin.teardown();
-    // teardown should call stop again (idempotent)
-    expect(NativeModules.AMPNativeSessionReplay.stop).toHaveBeenCalledTimes(2);
+    expect(NativeModules.AMPNativeSessionReplay.teardown).toHaveBeenCalled();
   });
 
   it('should not stamp session replay properties on events', async () => {

@@ -27,7 +27,6 @@ function normalizeConfig(config: SessionReplayConfig): SessionReplayConfigIntern
   return rest;
 }
 
-let fullConfig: ResolvedSessionReplayConfig | null = null;
 let isInitialized = false;
 let logger = createSessionReplayLogger();
 
@@ -59,16 +58,16 @@ export async function init(config: SessionReplayConfig): Promise<void> {
   // the default object wholesale. That's fine while `PrivacyConfig` only
   // carries `maskLevel`, but if it ever grows more fields a deeper merge will
   // be needed so partial user configs don't drop defaults.
-  fullConfig = {
+  const resolvedConfig: ResolvedSessionReplayConfig = {
     ...getDefaultConfig(),
     ...normalizeConfig(config),
   };
 
-  logger.setLogLevel(fullConfig.logLevel);
-  logger.log(`initializing @amplitude/session-replay-react-native version: ${VERSION} with config: `, fullConfig);
+  logger.setLogLevel(resolvedConfig.logLevel);
+  logger.log(`initializing @amplitude/session-replay-react-native version: ${VERSION} with config: `, resolvedConfig);
 
   try {
-    await NativeSessionReplay.setup(nativeConfig(fullConfig));
+    await NativeSessionReplay.setup(nativeConfig(resolvedConfig));
     logger.log('SessionReplay initialized');
     isInitialized = true;
   } catch (error) {
@@ -197,6 +196,36 @@ export async function stop(): Promise<void> {
     return;
   }
   await NativeSessionReplay.stop();
+}
+
+/**
+ * Update whether session replay collection is disabled for the current user.
+ *
+ * @param optOut - Whether to opt out of session replay collection
+ * @returns Promise that resolves when the opt-out state is updated
+ */
+export async function setOptOut(optOut: boolean): Promise<void> {
+  if (!isInitialized) {
+    logger.warn('SessionReplay is not initialized');
+    return;
+  }
+  await NativeSessionReplay.setOptOut(optOut);
+}
+
+/**
+ * Shut down the native SDK and clear all JavaScript lifecycle state.
+ * Call `init()` again before using any other session replay operation.
+ *
+ * @returns Promise that resolves when teardown is complete
+ */
+export async function teardown(): Promise<void> {
+  if (!isInitialized) {
+    logger.warn('SessionReplay is not initialized');
+    return;
+  }
+  await NativeSessionReplay.teardown();
+  isInitialized = false;
+  logger = createSessionReplayLogger();
 }
 
 function nativeConfig(config: ResolvedSessionReplayConfig): NativeSessionReplayConfig {

@@ -41,6 +41,8 @@ import {
   getSessionId,
   setSessionId,
   setDeviceId,
+  setOptOut,
+  teardown,
   AmpMaskView,
 } from '@amplitude/session-replay-react-native';
 
@@ -163,6 +165,15 @@ function HomeScreen({ navigation }: HomeProps): React.JSX.Element {
             title="getSessionId"
             onPress={runFn('getSessionId', getSessionId)}
           />
+          <Button
+            title="optOut true"
+            onPress={runFn('setOptOut(true)', () => setOptOut(true))}
+          />
+          <Button
+            title="optOut false"
+            onPress={runFn('setOptOut(false)', () => setOptOut(false))}
+          />
+          <Button title="teardown" onPress={runFn('teardown', teardown)} />
         </View>
 
         <Text style={styles.heading}>Navigate</Text>

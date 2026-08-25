@@ -4,9 +4,11 @@ import {
   type SessionReplayConfig,
   init,
   setDeviceId,
+  setOptOut,
   setSessionId,
   start,
   stop,
+  teardown,
 } from '@amplitude/session-replay-react-native';
 import { VERSION } from './version';
 
@@ -88,7 +90,8 @@ export class SegmentSessionReplayPlugin extends Plugin {
 
   async shutdown(): Promise<void> {
     await this.initPromise;
-    await stop();
+    await teardown();
+    this.initPromise = null;
   }
 
   async start(): Promise<void> {
@@ -99,6 +102,11 @@ export class SegmentSessionReplayPlugin extends Plugin {
   async stop(): Promise<void> {
     await this.initPromise;
     await stop();
+  }
+
+  async setOptOut(optOut: boolean): Promise<void> {
+    await this.initPromise;
+    await setOptOut(optOut);
   }
 }
 
