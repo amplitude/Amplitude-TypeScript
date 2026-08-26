@@ -11,6 +11,7 @@ import {
   asyncLoadScript,
   generateUniqueId,
   createShouldTrackEvent,
+  getPageEndEventName,
 } from '../src/helpers';
 import { autocapturePlugin } from '../src/autocapture-plugin';
 import { mockWindowLocationFromURL } from './utils';
@@ -854,6 +855,22 @@ describe('autocapture-plugin helpers', () => {
       );
 
       expect(shouldTrackEvent('click', element)).toEqual(true);
+    });
+  });
+
+  describe('getPageEndEventName', () => {
+    test('should return pagehide when the scope supports it', () => {
+      const scope = { self: { onpagehide: null } } as unknown as typeof globalThis;
+      expect(getPageEndEventName(scope)).toEqual('pagehide');
+    });
+
+    test('should fall back to beforeunload when pagehide is unsupported', () => {
+      const scope = { self: {} } as unknown as typeof globalThis;
+      expect(getPageEndEventName(scope)).toEqual('beforeunload');
+    });
+
+    test('should fall back to beforeunload when the scope is undefined', () => {
+      expect(getPageEndEventName(undefined)).toEqual('beforeunload');
     });
   });
 });

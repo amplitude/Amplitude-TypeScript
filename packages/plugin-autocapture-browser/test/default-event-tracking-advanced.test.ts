@@ -183,7 +183,7 @@ describe('autoTrackingPlugin', () => {
       jest.advanceTimersByTime(100);
 
       // Trigger page end to flush the exposure
-      window.dispatchEvent(new Event('beforeunload'));
+      window.dispatchEvent(new Event('pagehide'));
 
       expect(track).toHaveBeenCalledWith(
         '[Amplitude] Viewport Content Updated',
@@ -248,7 +248,7 @@ describe('autoTrackingPlugin', () => {
 
       jest.advanceTimersByTime(100);
 
-      window.dispatchEvent(new Event('beforeunload'));
+      window.dispatchEvent(new Event('pagehide'));
 
       expect(track).toHaveBeenCalledWith(
         '[Amplitude] Viewport Content Updated',
@@ -315,7 +315,7 @@ describe('autoTrackingPlugin', () => {
 
       // Should fire after nestedDuration (not flatDuration)
       jest.advanceTimersByTime(100);
-      window.dispatchEvent(new Event('beforeunload'));
+      window.dispatchEvent(new Event('pagehide'));
 
       expect(track).toHaveBeenCalledWith(
         '[Amplitude] Viewport Content Updated',
@@ -354,7 +354,7 @@ describe('autoTrackingPlugin', () => {
 
       await plugin?.setup?.(config as BrowserConfig, amplitude);
 
-      window.dispatchEvent(new Event('beforeunload'));
+      window.dispatchEvent(new Event('pagehide'));
 
       expect(track).not.toHaveBeenCalledWith('[Amplitude] Viewport Content Updated', expect.anything());
 
@@ -1765,14 +1765,15 @@ describe('autoTrackingPlugin', () => {
       (window as any).IntersectionObserver = undefined;
     });
 
-    test('should track [Amplitude] Viewport Content Updated on beforeunload', async () => {
+    test('should track and flush [Amplitude] Viewport Content Updated on pagehide', async () => {
       const config: Partial<BrowserConfig> = {
         defaultTracking: false,
         loggerProvider: loggerProvider,
       };
+      const flush = jest.spyOn(instance, 'flush').mockImplementation(jest.fn());
       await plugin?.setup?.(config as BrowserConfig, instance);
 
-      window.dispatchEvent(new Event('beforeunload'));
+      window.dispatchEvent(new Event('pagehide'));
 
       expect(track).toHaveBeenCalledWith(
         '[Amplitude] Viewport Content Updated',
@@ -1782,19 +1783,55 @@ describe('autoTrackingPlugin', () => {
           '[Amplitude] Viewport Width': expect.any(Number),
         }),
       );
+      // The event must be flushed synchronously on exit; the interval flush would not run
+      // before the document is torn down.
+      expect(flush).toHaveBeenCalled();
     });
 
-    test('should not track duplicate [Amplitude] Viewport Content Updated events on multiple beforeunload', async () => {
+    test('should not track duplicate [Amplitude] Viewport Content Updated events on multiple pagehide', async () => {
       const config: Partial<BrowserConfig> = {
         defaultTracking: false,
         loggerProvider: loggerProvider,
       };
       await plugin?.setup?.(config as BrowserConfig, instance);
 
-      window.dispatchEvent(new Event('beforeunload'));
-      window.dispatchEvent(new Event('beforeunload'));
+      window.dispatchEvent(new Event('pagehide'));
+      window.dispatchEvent(new Event('pagehide'));
 
       expect(track).toHaveBeenCalledTimes(1);
+    });
+
+    test('should track and flush [Amplitude] Viewport Content Updated on visibilitychange to hidden', async () => {
+      const config: Partial<BrowserConfig> = {
+        defaultTracking: false,
+        loggerProvider: loggerProvider,
+      };
+      const flush = jest.spyOn(instance, 'flush').mockImplementation(jest.fn());
+      await plugin?.setup?.(config as BrowserConfig, instance);
+
+      // Change scroll depth so there is new content to report on the visibility checkpoint.
+      Object.defineProperty(window, 'scrollY', { value: 50, writable: true });
+      Object.defineProperty(window, 'pageYOffset', { value: 50, writable: true });
+      window.dispatchEvent(new Event('scroll'));
+
+      Object.defineProperty(document, 'visibilityState', { value: 'hidden', writable: true, configurable: true });
+      document.dispatchEvent(new Event('visibilitychange'));
+
+      expect(track).toHaveBeenCalledWith('[Amplitude] Viewport Content Updated', expect.any(Object));
+      expect(flush).toHaveBeenCalled();
+    });
+
+    test('should not track [Amplitude] Viewport Content Updated on visibilitychange to visible', async () => {
+      const config: Partial<BrowserConfig> = {
+        defaultTracking: false,
+        loggerProvider: loggerProvider,
+      };
+      await plugin?.setup?.(config as BrowserConfig, instance);
+
+      Object.defineProperty(document, 'visibilityState', { value: 'visible', writable: true, configurable: true });
+      document.dispatchEvent(new Event('visibilitychange'));
+
+      expect(track).not.toHaveBeenCalled();
     });
 
     test('should track [Amplitude] Viewport Content Updated on history.pushState and reset state', async () => {
@@ -1915,7 +1952,7 @@ describe('autoTrackingPlugin', () => {
       window.dispatchEvent(new Event('scroll'));
 
       // Trigger page view end
-      window.dispatchEvent(new Event('beforeunload'));
+      window.dispatchEvent(new Event('pagehide'));
 
       expect(track).toHaveBeenCalledWith(
         '[Amplitude] Viewport Content Updated',
