@@ -92,25 +92,47 @@ describe('autocapture-plugin hierarchy', () => {
       });
     });
 
-    test('should capture shadow attributes when element is in a shadow root', () => {
+    test('should capture shadow attributes on the host of an open shadow root', () => {
+      document.getElementsByTagName('body')[0].innerHTML = `<div id="app"><open-host></open-host></div>`;
+      const host = document.querySelector('open-host') as Element;
+      host.attachShadow({ mode: 'open' });
+
+      expect(HierarchyUtil.getElementProperties(host, new Set())).toEqual({
+        index: 0,
+        indexOfType: 0,
+        tag: 'open-host',
+        shadow: true,
+        attrs: {
+          'data-amp-internal-shadow': 'true',
+        },
+      });
+    });
+
+    test('should not capture shadow attributes on an element inside a shadow root', () => {
+      document.getElementsByTagName('body')[0].innerHTML = `<div id="app"><open-host></open-host></div>`;
+      const host = document.querySelector('open-host') as Element;
+      const root = host.attachShadow({ mode: 'open' });
+      root.innerHTML = `<button id="shadow-button" type="button">Shadow</button>`;
+      const button = root.getElementById('shadow-button') as Element;
+
+      const props = HierarchyUtil.getElementProperties(button, new Set());
+      expect(props).not.toHaveProperty('shadow');
+      expect(props?.attrs).not.toHaveProperty('data-amp-internal-shadow');
+    });
+
+    test('should not let a page-authored shadow marker through', () => {
       document.getElementsByTagName('body')[0].innerHTML = `
         <div id="container">
-          <div id="inner">
-            xxx
-          </div>
+          <div id="inner" data-amp-internal-shadow="true"></div>
         </div>
       `;
-      const inner = document.getElementById('inner') as any;
-      Object.defineProperty(inner, 'shadowRoot', { value: document.createElement('div') });
+
+      const inner = document.getElementById('inner');
       expect(HierarchyUtil.getElementProperties(inner, new Set())).toEqual({
         id: 'inner',
         index: 0,
         indexOfType: 0,
         tag: 'div',
-        shadow: true,
-        attrs: {
-          'data-amp-internal-shadow': 'true',
-        },
       });
     });
   });

@@ -3,6 +3,25 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.1.30](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/unified@1.1.29...@amplitude/unified@1.1.30) (2026-08-24)
+
+**Note:** Version bump only for package @amplitude/unified
+
+
+
+
+
+## [1.1.29](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/unified@1.1.28...@amplitude/unified@1.1.29) (2026-08-12)
+
+
+### Bug Fixes
+
+* **deps:** remediate Semgrep supply chain findings ([#1921](https://github.com/amplitude/Amplitude-TypeScript/issues/1921)) ([e131df0](https://github.com/amplitude/Amplitude-TypeScript/commit/e131df0b414933418e4c7159f1bfbdacc633a7d9))
+
+
+
+
+
 ## [1.1.28](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/unified@1.1.27...@amplitude/unified@1.1.28) (2026-07-28)
 
 **Note:** Version bump only for package @amplitude/unified

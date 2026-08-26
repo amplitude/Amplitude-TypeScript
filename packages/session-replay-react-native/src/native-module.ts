@@ -30,8 +30,6 @@ export const NativeSessionReplay = (SessionReplaySpec ??
 export interface NativeSessionReplayConfig {
   /** Your Amplitude API key for authentication and data routing */
   apiKey: string;
-  /** Whether to automatically start recording when the module is initialized */
-  autoStart: boolean;
   /** Device identifier that matches the device ID sent with Amplitude events */
   deviceId: string | null;
   /** Whether to enable remote configuration for dynamic settings updates */
@@ -48,10 +46,6 @@ export interface NativeSessionReplayConfig {
   serverZone: 'US' | 'EU';
   /** Current session identifier for correlating events with recordings */
   sessionId: number;
-}
-
-export interface NativeSessionReplayProperties {
-  [key: string]: string | number | boolean;
 }
 
 /**
@@ -77,14 +71,6 @@ export interface NativeSessionReplaySpec {
   getSessionId(): Promise<number>;
 
   /**
-   * Retrieves session replay properties that should be attached to Amplitude events.
-   * These properties help correlate events with session recordings.
-   * @returns Promise resolving to an object containing session replay metadata
-   * @note OLD ARCH: ideally we want to cache that on JS side to avoid bridge overhead
-   */
-  getSessionReplayProperties(): Promise<NativeSessionReplayProperties>;
-
-  /**
    * Updates the device identifier used for session replay tracking.
    * @param deviceId - The device identifier string, or null to clear the device ID
    * @note OLD ARCH: combine those into one method to avoid bridge overhead
@@ -97,6 +83,12 @@ export interface NativeSessionReplaySpec {
    * @note OLD ARCH: combine those into one method to avoid bridge overhead
    */
   setSessionId(sessionId: number): Promise<void>;
+
+  /**
+   * Updates whether session replay collection is disabled for the current user.
+   * @param optOut - Whether to opt out of session replay collection
+   */
+  setOptOut(optOut: boolean): Promise<void>;
 
   /**
    * Initializes the native session replay module with the provided configuration.
@@ -116,4 +108,9 @@ export interface NativeSessionReplaySpec {
    * Ends the current recording session and processes any captured data.
    */
   stop(): Promise<void>;
+
+  /**
+   * Shuts down the native session replay instance and releases its resources.
+   */
+  teardown(): Promise<void>;
 }

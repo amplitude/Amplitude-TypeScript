@@ -31,6 +31,7 @@ import { trackThrashedCursor } from './autocapture/track-thrashed-cursor';
 
 export interface AllWindowObservables {
   [ObservablesEnum.ClickObservable]: Observable<ElementBasedTimestampedEvent<MouseEvent>>;
+  [ObservablesEnum.PointerDownObservable]: Observable<ElementBasedTimestampedEvent<MouseEvent>>;
   [ObservablesEnum.MutationObservable]: Observable<TimestampedEvent<MutationRecord[]>>;
   [ObservablesEnum.BrowserErrorObservable]: Observable<TimestampedEvent<BrowserErrorEvent>>;
   [ObservablesEnum.NavigateObservable]?: Observable<TimestampedEvent<NavigateEvent>>;
@@ -123,17 +124,24 @@ export const frustrationPlugin = (options: FrustrationInteractionsOptions = {}):
 
   // Create observables on events on the window
   const createObservables = (): AllWindowObservables => {
-    const clickObservable = multicast(
-      createClickObservable('pointerdown').map((click) => {
-        return dataExtractor.addAdditionalEventProperties(
-          click,
-          'click',
-          combinedCssSelectors,
-          dataAttributePrefix,
-          true, // capture when cursor is pointer
-        );
-      }),
-    );
+    const createEnrichedClickObservable = (clickType: 'click' | 'pointerdown') =>
+      multicast(
+        createClickObservable(clickType).map((click) => {
+          return dataExtractor.addAdditionalEventProperties(
+            click,
+            'click',
+            combinedCssSelectors,
+            dataAttributePrefix,
+            true, // capture when cursor is pointer
+          );
+        }),
+      );
+
+    // A native click represents a completed activation, so scroll gestures do not
+    // become dead-click candidates. Rage and error clicks continue to use
+    // pointerdown so their existing mobile behavior remains unchanged.
+    const clickObservable = createEnrichedClickObservable('click');
+    const pointerDownObservable = createEnrichedClickObservable('pointerdown');
 
     const browserErrorObservables = multicast(
       createErrorObservable().map((error) => {
@@ -219,6 +227,9 @@ export const frustrationPlugin = (options: FrustrationInteractionsOptions = {}):
 
     return {
       [ObservablesEnum.ClickObservable]: clickObservable as Observable<ElementBasedTimestampedEvent<MouseEvent>>,
+      [ObservablesEnum.PointerDownObservable]: pointerDownObservable as Observable<
+        ElementBasedTimestampedEvent<MouseEvent>
+      >,
       [ObservablesEnum.MutationObservable]: enrichedMutationObservable,
       [ObservablesEnum.NavigateObservable]: enrichedNavigateObservable,
       [ObservablesEnum.BrowserErrorObservable]: browserErrorObservables,

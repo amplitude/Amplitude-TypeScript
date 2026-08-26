@@ -3,6 +3,29 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.55.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.54.2...@amplitude/analytics-core@2.55.0) (2026-08-24)
+
+
+### Features
+
+* **analytics-react-native:** add diagnostics client ([#1939](https://github.com/amplitude/Amplitude-TypeScript/issues/1939)) ([8d150ce](https://github.com/amplitude/Amplitude-TypeScript/commit/8d150ce6611b628e9e10a59ea96da07ec71e9fcf))
+
+
+
+
+
+## [2.54.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.54.1...@amplitude/analytics-core@2.54.2) (2026-08-12)
+
+
+### Bug Fixes
+
+* **analytics-core:** drop events with an empty event type before upload ([#1920](https://github.com/amplitude/Amplitude-TypeScript/issues/1920)) ([87486e9](https://github.com/amplitude/Amplitude-TypeScript/commit/87486e9a9e75a977eeb27b128f94c204ff6400a8))
+* **analytics-node:** add a request timeout to the HTTP transport ([#1923](https://github.com/amplitude/Amplitude-TypeScript/issues/1923)) ([fa799ea](https://github.com/amplitude/Amplitude-TypeScript/commit/fa799eac3ebbce8ca64e9773bcc644f5fb3bbdf0))
+
+
+
+
+
 ## [2.54.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.54.0...@amplitude/analytics-core@2.54.1) (2026-07-28)
 
 **Note:** Version bump only for package @amplitude/analytics-core

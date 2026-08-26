@@ -8,6 +8,7 @@ import {
 } from '@amplitude/analytics-core';
 import UAParser from '@amplitude/ua-parser-js';
 import { VERSION } from '../version';
+import { LIBPREFIX } from '../lib-prefix';
 import { NativeModules } from 'react-native';
 
 const BROWSER_PLATFORM = 'Web';
@@ -46,7 +47,7 @@ export class Context implements BeforePlugin {
   nativeModule: AmplitudeReactNative | undefined = NativeModules.AmplitudeReactNative as
     | AmplitudeReactNative
     | undefined;
-  library = `amplitude-react-native-ts/${VERSION}`;
+  library = `${LIBPREFIX}/${VERSION}`;
 
   constructor() {
     let agent: string | undefined;
