@@ -34,23 +34,20 @@ function App(): React.JSX.Element {
   const initializeAll = async () => {
     setIsInitializing(true);
     setStatus('Initializing all SDK blades…');
-    try {
-      await init(API_KEY, {
-        logLevel: Types.LogLevel.Warn,
-        analytics: {userId: 'unified-example-user'},
-        sessionReplay: {
-          enableRemoteConfig: false,
-          logLevel: Types.LogLevel.Debug,
-          sampleRate: 1,
-        },
-      });
-      setIsInitialized(true);
-      setStatus('All SDK blades initialized successfully.');
-    } catch (error) {
-      setStatus(`Initialization failed: ${String(error)}`);
-    } finally {
-      setIsInitializing(false);
-    }
+    await init(API_KEY, {
+      logLevel: Types.LogLevel.Warn,
+      analytics: {userId: 'unified-example-user'},
+      sessionReplay: {
+        enableRemoteConfig: false,
+        logLevel: Types.LogLevel.Debug,
+        sampleRate: 1,
+      },
+    });
+    setIsInitialized(true);
+    setIsInitializing(false);
+    setStatus(
+      'Initialization completed. Check Metro or Logcat for any blade errors.',
+    );
   };
 
   const colors = isDarkMode
@@ -84,7 +81,9 @@ function App(): React.JSX.Element {
         <View style={[styles.card, {backgroundColor: colors.card}]}>
           <Button
             title={
-              isInitialized ? 'All SDKs initialized' : 'Initialize all SDKs'
+              isInitialized
+                ? 'SDK initialization completed'
+                : 'Initialize all SDKs'
             }
             disabled={isInitializing || isInitialized}
             onPress={initializeAll}

@@ -73,8 +73,7 @@ const variant = experiment()?.variant('experiment-key');
 ```
 
 Options in `analytics`, `experiment`, `sessionReplay`, and `engagement` override the corresponding shared defaults.
-Initialization is idempotent: subsequent `init()` calls return the first initialization promise and do not reconfigure the SDKs.
-If initialization rejects, calling `init()` again removes any partially registered blades and retries their setup.
+Initialization is one-shot and idempotent: subsequent `init()` calls return the first initialization promise and do not reconfigure or retry the SDKs. Public SDK APIs do not throw initialization errors. Each error is reported through the Analytics `loggerProvider`; when Analytics is available, a blade failure does not prevent the remaining blades from initializing. After correcting the underlying configuration or native setup, restart the application before initializing again.
 
 ### Multiple instances
 

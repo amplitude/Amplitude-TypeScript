@@ -39,6 +39,14 @@ const mockExperimentPlugin = experimentPlugin as jest.MockedFunction<typeof expe
 const MockSessionReplayPlugin = SessionReplayPlugin as jest.MockedClass<typeof SessionReplayPlugin>;
 
 const returnValue = <T>(value?: T) => ({ promise: Promise.resolve(value) });
+const createLoggerProvider = () => ({
+  debug: jest.fn(),
+  disable: jest.fn(),
+  enable: jest.fn(),
+  error: jest.fn(),
+  log: jest.fn(),
+  warn: jest.fn(),
+});
 
 describe('createInstance', () => {
   const add = jest.fn(() => returnValue());
@@ -125,14 +133,7 @@ describe('createInstance', () => {
 
   test('logs when the Experiment plugin does not expose a client', async () => {
     mockExperimentPlugin.mockReturnValueOnce({ name: 'experiment' } as ReturnType<typeof experimentPlugin>);
-    const loggerProvider = {
-      debug: jest.fn(),
-      disable: jest.fn(),
-      enable: jest.fn(),
-      error: jest.fn(),
-      log: jest.fn(),
-      warn: jest.fn(),
-    };
+    const loggerProvider = createLoggerProvider();
     const client = createInstance();
 
     await client.init('api-key', { analytics: { loggerProvider } });
@@ -187,23 +188,86 @@ describe('createInstance', () => {
     expect(client.experiment()).toBe(experiment);
   });
 
-  test('allows initialization to retry after a blade fails', async () => {
+  test('logs an Experiment failure, continues the remaining blades, and does not retry', async () => {
+    const error = new Error('Experiment setup failed.');
     add
       .mockImplementationOnce(() => returnValue())
       .mockImplementationOnce(() => ({
-        promise: Promise.reject(new Error('Experiment setup failed.')),
+        promise: Promise.reject(error),
       }));
+    const loggerProvider = createLoggerProvider();
     const client = createInstance();
 
-    await expect(client.init('api-key')).rejects.toThrow('Experiment setup failed.');
-    await client.init('api-key');
+    const first = client.init('api-key', { analytics: { loggerProvider } });
+    await expect(first).resolves.toBeUndefined();
+    const second = client.init('another-api-key');
 
-    expect(analyticsInit).toHaveBeenCalledTimes(2);
-    expect(remove).toHaveBeenCalledTimes(1);
-    expect(remove).toHaveBeenCalledWith('experiment');
-    expect(mockExperimentPlugin).toHaveBeenCalledTimes(2);
+    expect(second).toBe(first);
+    await expect(second).resolves.toBeUndefined();
+    expect(loggerProvider.error).toHaveBeenCalledWith('Failed to initialize Experiment.', error);
+    expect(analyticsInit).toHaveBeenCalledTimes(1);
+    expect(remove).not.toHaveBeenCalled();
+    expect(mockExperimentPlugin).toHaveBeenCalledTimes(1);
     expect(MockSessionReplayPlugin).toHaveBeenCalledTimes(1);
     expect(mockGetPlugin).toHaveBeenCalledTimes(1);
+    expect(client.experiment()).toBeUndefined();
+    expect(client.sessionReplay()).toBeDefined();
+  });
+
+  test('logs an Analytics failure without initializing dependent blades or rejecting', async () => {
+    const error = new Error('Analytics setup failed.');
+    analyticsInit.mockReturnValueOnce({ promise: Promise.reject(error) });
+    const loggerProvider = createLoggerProvider();
+    const client = createInstance();
+
+    await expect(client.init('api-key', { analytics: { loggerProvider } })).resolves.toBeUndefined();
+
+    expect(loggerProvider.error).toHaveBeenCalledWith('Failed to initialize Analytics.', error);
+    expect(mockExperimentPlugin).not.toHaveBeenCalled();
+    expect(MockSessionReplayPlugin).not.toHaveBeenCalled();
+    expect(mockGetPlugin).not.toHaveBeenCalled();
+  });
+
+  test('logs a Session Replay failure and continues Guides and Surveys without rejecting', async () => {
+    const error = new Error('Session Replay setup failed.');
+    add
+      .mockImplementationOnce(() => returnValue())
+      .mockImplementationOnce(() => returnValue())
+      .mockImplementationOnce(() => ({ promise: Promise.reject(error) }));
+    const loggerProvider = createLoggerProvider();
+    const client = createInstance();
+
+    await expect(client.init('api-key', { analytics: { loggerProvider } })).resolves.toBeUndefined();
+
+    expect(loggerProvider.error).toHaveBeenCalledWith('Failed to initialize Session Replay.', error);
+    expect(client.experiment()).toBeDefined();
+    expect(client.sessionReplay()).toBeUndefined();
+    expect(mockGetPlugin).toHaveBeenCalledTimes(1);
+    expect(mockBoot).toHaveBeenCalledTimes(1);
+  });
+
+  test('logs a Guides and Surveys failure without rejecting', async () => {
+    const error = new Error('Guides and Surveys boot failed.');
+    mockBoot.mockRejectedValueOnce(error);
+    const loggerProvider = createLoggerProvider();
+    const client = createInstance();
+
+    await expect(client.init('api-key', { analytics: { loggerProvider } })).resolves.toBeUndefined();
+
+    expect(loggerProvider.error).toHaveBeenCalledWith('Failed to initialize Guides and Surveys.', error);
+    expect(client.experiment()).toBeDefined();
+    expect(client.sessionReplay()).toBeDefined();
+  });
+
+  test('does not reject when a customer logger throws while reporting an initialization error', async () => {
+    analyticsInit.mockReturnValueOnce({ promise: Promise.reject(new Error('Analytics setup failed.')) });
+    const loggerProvider = createLoggerProvider();
+    loggerProvider.error.mockImplementationOnce(() => {
+      throw new Error('Logger failed.');
+    });
+    const client = createInstance();
+
+    await expect(client.init('api-key', { analytics: { loggerProvider } })).resolves.toBeUndefined();
   });
 
   test('shares one initialization with concurrent callers', async () => {

@@ -1,5 +1,5 @@
 import { createInstance as createAnalyticsInstance } from '@amplitude/analytics-react-native';
-import { Logger, LogLevel, ReactNativeOptions } from '@amplitude/analytics-core';
+import { ILogger, Logger, LogLevel, ReactNativeOptions } from '@amplitude/analytics-core';
 import { boot as bootEngagement, getPlugin } from '@amplitude/plugin-engagement-react-native';
 import { experimentPlugin } from '@amplitude/plugin-experiment-react-native';
 import type { ExperimentPlugin, ExperimentPluginConfig } from '@amplitude/plugin-experiment-react-native';
@@ -44,6 +44,14 @@ const getSharedEngagementOptions = (options?: UnifiedOptions): EngagementOptions
   ...(options?.logLevel === undefined ? {} : { logLevel: toEngagementLogLevel(options.logLevel) }),
 });
 
+const logInitializationError = (loggerProvider: ILogger, blade: string, error: unknown): void => {
+  try {
+    loggerProvider.error(`Failed to initialize ${blade}.`, error);
+  } catch {
+    // A customer-provided logger must not make a public SDK API throw.
+  }
+};
+
 /**
  * Creates a unified client.
  *
@@ -54,8 +62,6 @@ export const createInstance = (): UnifiedClient => {
   const analyticsClient = createAnalyticsInstance();
   let experiment: ExperimentPlugin | undefined;
   let sessionReplay: SessionReplayPlugin | undefined;
-  let engagement: ReturnType<typeof getPlugin> | undefined;
-  let hasInitializedAnalytics = false;
   let initPromise: Promise<void> | undefined;
 
   const init = (apiKey: string, unifiedOptions?: UnifiedOptions): Promise<void> => {
@@ -64,65 +70,67 @@ export const createInstance = (): UnifiedClient => {
     }
 
     initPromise = (async () => {
-      const analyticsOptions: ReactNativeOptions = {
-        ...getSharedAnalyticsOptions(unifiedOptions),
-        ...unifiedOptions?.analytics,
-      };
-      const loggerProvider = analyticsOptions.loggerProvider ?? new Logger();
-      if (analyticsOptions.loggerProvider === undefined) {
-        loggerProvider.enable(analyticsOptions.logLevel ?? LogLevel.Warn);
-      }
-      analyticsOptions.loggerProvider = loggerProvider;
+      let loggerProvider: ILogger = new Logger();
 
-      if (hasInitializedAnalytics) {
-        for (const blade of [experiment, sessionReplay, engagement]) {
-          if (blade !== undefined) {
-            await analyticsClient.remove(blade.name).promise;
-          }
+      try {
+        const analyticsOptions: ReactNativeOptions = {
+          ...getSharedAnalyticsOptions(unifiedOptions),
+          ...unifiedOptions?.analytics,
+        };
+        loggerProvider = analyticsOptions.loggerProvider ?? loggerProvider;
+        if (analyticsOptions.loggerProvider === undefined) {
+          loggerProvider.enable(analyticsOptions.logLevel ?? LogLevel.Warn);
         }
-        experiment = undefined;
-        sessionReplay = undefined;
-        engagement = undefined;
-      } else {
+        analyticsOptions.loggerProvider = loggerProvider;
+
         analyticsClient.add(libraryPlugin());
+        await analyticsClient.init(apiKey, analyticsOptions.userId, analyticsOptions).promise;
+      } catch (error) {
+        logInitializationError(loggerProvider, 'Analytics', error);
+        return;
       }
 
-      await analyticsClient.init(apiKey, analyticsOptions.userId, analyticsOptions).promise;
+      try {
+        const initializedExperiment = experimentPlugin({
+          ...getSharedExperimentOptions(unifiedOptions),
+          ...unifiedOptions?.experiment,
+        });
+        await analyticsClient.add(initializedExperiment).promise;
+        experiment = initializedExperiment;
 
-      if (hasInitializedAnalytics) {
-        await analyticsClient.add(libraryPlugin()).promise;
+        const experimentClient = initializedExperiment.experiment;
+        if (experimentClient === undefined) {
+          loggerProvider.debug(`${initializedExperiment.name} plugin is not initialized.`);
+        } else {
+          await experimentClient.start();
+        }
+      } catch (error) {
+        logInitializationError(loggerProvider, 'Experiment', error);
       }
-      hasInitializedAnalytics = true;
 
-      experiment = experimentPlugin({
-        ...getSharedExperimentOptions(unifiedOptions),
-        ...unifiedOptions?.experiment,
-      });
-      await analyticsClient.add(experiment).promise;
-      const experimentClient = experiment.experiment;
-      if (experimentClient === undefined) {
-        loggerProvider.debug(`${experiment.name} plugin is not initialized.`);
-      } else {
-        await experimentClient.start();
+      try {
+        const initializedSessionReplay = new SessionReplayPlugin({
+          ...getSharedSessionReplayOptions(unifiedOptions),
+          ...unifiedOptions?.sessionReplay,
+        });
+        await analyticsClient.add(initializedSessionReplay).promise;
+        sessionReplay = initializedSessionReplay;
+      } catch (error) {
+        logInitializationError(loggerProvider, 'Session Replay', error);
       }
 
-      sessionReplay = new SessionReplayPlugin({
-        ...getSharedSessionReplayOptions(unifiedOptions),
-        ...unifiedOptions?.sessionReplay,
-      });
-      await analyticsClient.add(sessionReplay).promise;
-
-      // Engagement intentionally returns a process-wide singleton. Independent unified client instances are unsupported.
-      engagement = getPlugin({
-        ...getSharedEngagementOptions(unifiedOptions),
-        ...unifiedOptions?.engagement,
-      });
-      await analyticsClient.add(engagement).promise;
-      await bootEngagement(analyticsClient.getUserId(), analyticsClient.getDeviceId());
-    })().catch((error: unknown) => {
-      initPromise = undefined;
-      throw error;
-    });
+      try {
+        // Engagement intentionally returns a process-wide singleton. Independent unified client instances are unsupported.
+        const engagement = getPlugin({
+          ...getSharedEngagementOptions(unifiedOptions),
+          ...unifiedOptions?.engagement,
+        });
+        await analyticsClient.add(engagement).promise;
+        await bootEngagement(analyticsClient.getUserId(), analyticsClient.getDeviceId());
+      } catch (error) {
+        logInitializationError(loggerProvider, 'Guides and Surveys', error);
+      }
+    })();
 
     return initPromise;
   };

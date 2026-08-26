@@ -34,8 +34,8 @@ export type UnifiedOptions = UnifiedSharedOptions & {
 export interface UnifiedClient extends Omit<ReactNativeClient, 'init'> {
   /**
    * Initialize Analytics, Experiment, Session Replay, and Guides and Surveys.
-   * Subsequent calls return the first initialization promise without reconfiguring the SDKs.
-   * A rejected initialization can be retried.
+   * Initialization errors are logged and are not thrown. Subsequent calls return the first initialization promise
+   * without reconfiguring or retrying the SDKs.
    */
   init(apiKey: string, unifiedOptions?: UnifiedOptions): Promise<void>;
 
