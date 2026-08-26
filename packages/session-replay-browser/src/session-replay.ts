@@ -123,6 +123,11 @@ export class SessionReplay implements AmplitudeSessionReplay {
    * `getShouldRecord()` will refuse to start rrweb until `start()` or a new `init()`.
    */
   private recordingEnabled = true;
+  /**
+   * Bumped by `stop()` / `shutdown()` so an in-flight `_recordEvents()` that already
+   * passed `getShouldRecord()` cannot start rrweb after capture was paused.
+   */
+  private recordingGeneration = 0;
   private pendingEmitEvents: Array<{ event: eventWithTime; sessionId: string | number }> = [];
 
   /** Current page URL, kept in sync with SPA navigations for URL-based masking */
@@ -949,6 +954,10 @@ export class SessionReplay implements AmplitudeSessionReplay {
     }
   }
 
+  private shouldAbandonRecordStart(generation: number): boolean {
+    return !this.recordingEnabled || generation !== this.recordingGeneration;
+  }
+
   private async _recordEvents(shouldLogMetadata = true) {
     const config = this.config;
     const shouldRecord = this.getShouldRecord();
@@ -957,15 +966,19 @@ export class SessionReplay implements AmplitudeSessionReplay {
       return;
     }
     this.stopRecordingEvents();
+    const generation = this.recordingGeneration;
 
     const recordFunction = await this.getRecordFunction();
 
     // May be undefined if cannot import rrweb-record
-    if (!recordFunction) {
+    if (!recordFunction || this.shouldAbandonRecordStart(generation)) {
       return;
     }
 
     await this.initializeNetworkObservers();
+    if (this.shouldAbandonRecordStart(generation)) {
+      return;
+    }
 
     const networkLoggingConfig = config.loggingConfig?.network;
     const trackUrl = getServerUrl(config.serverZone, config.trackServerUrl);
@@ -1003,10 +1016,18 @@ export class SessionReplay implements AmplitudeSessionReplay {
       const childMode = crossOriginIframesEnabled && isInIframe();
 
       if (childMode && coordinateChildren) {
+        if (this.shouldAbandonRecordStart(generation)) {
+          return;
+        }
         // Child mode: don't self-start; wait for a start signal from the parent.
         // (The previous listener, if any, was already removed by stopRecordingEvents above.)
         this.crossOriginParentSignalCleanup = listenForParentSignals({
-          onStart: () => this._recordEventsInChildMode(recordFunction, sessionId, config, hooks),
+          onStart: () => {
+            if (!this.recordingEnabled) {
+              return;
+            }
+            this._recordEventsInChildMode(recordFunction, sessionId, config, hooks);
+          },
           onStop: () => {
             try {
               // Only cancel the rrweb recording — do NOT call stopRecordingEvents() here,
@@ -1025,13 +1046,22 @@ export class SessionReplay implements AmplitudeSessionReplay {
         return;
       }
 
+      const plugins = await this.getRecordingPlugins(loggingConfig);
+      if (this.shouldAbandonRecordStart(generation)) {
+        return;
+      }
+
       this.recordCancelCallback = recordFunction({
         ...this.buildRRWebRecordOptions(
           config,
           hooks,
           (event: eventWithTime) => {
-            if (this.shouldOptOut()) {
-              this.loggerProvider.log(`Opting session ${sessionId} out of recording due to optOut config.`);
+            if (this.shouldOptOut() || !this.recordingEnabled) {
+              this.loggerProvider.log(
+                this.shouldOptOut()
+                  ? `Opting session ${sessionId} out of recording due to optOut config.`
+                  : `Session Replay capture stopping for ${sessionId}.`,
+              );
               this.stopRecordingEvents();
               this.sendEvents();
               return;
@@ -1052,7 +1082,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
           },
           'Error while capturing replay: ',
         ),
-        plugins: await this.getRecordingPlugins(loggingConfig),
+        plugins,
         recordCrossOriginIframes: crossOriginIframesEnabled,
       });
 
@@ -1236,6 +1266,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
 
   stop() {
     this.recordingEnabled = false;
+    this.recordingGeneration++;
     this.stopRecordingEvents();
     this.sendEvents();
   }
@@ -1251,6 +1282,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
 
   shutdown() {
     this.recordingEnabled = false;
+    this.recordingGeneration++;
     this.urlChangeCleanup?.();
     this.crossOriginParentSignalCleanup?.();
     this.crossOriginParentSignalCleanup = null;

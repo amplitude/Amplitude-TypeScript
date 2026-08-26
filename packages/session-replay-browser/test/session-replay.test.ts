@@ -3684,6 +3684,26 @@ describe('SessionReplay', () => {
       expect(removeEventListenerMock).not.toHaveBeenCalled();
     });
 
+    test('stop during in-flight recordEvents should not start rrweb afterward', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      await jest.runAllTimersAsync();
+      mockRecordFunction.mockClear();
+
+      let resolveObservers: (() => void) | undefined;
+      const observersStarted = new Promise<void>((resolve) => {
+        resolveObservers = resolve;
+      });
+      jest.spyOn(sessionReplay as any, 'initializeNetworkObservers').mockImplementation(() => observersStarted);
+
+      const recordPromise = sessionReplay.recordEvents();
+      sessionReplay.stop();
+      resolveObservers?.();
+      await recordPromise;
+
+      expect(mockRecordFunction).not.toHaveBeenCalled();
+      expect(sessionReplay.recordCancelCallback).toBe(null);
+    });
+
     test('stop should prevent recordEvents from starting capture', async () => {
       await sessionReplay.init(apiKey, mockOptions).promise;
       await jest.runAllTimersAsync();
