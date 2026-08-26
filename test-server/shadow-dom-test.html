@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shadow DOM Autocapture Test</title>
+</head>
+<body>
+    <h1>Shadow DOM Test</h1>
+
+    <!-- Light-DOM control button: captured identically regardless of the flag. -->
+    <button id="light-button" type="button">Light</button>
+
+    <!-- Open shadow root (depth 1) mounted at load. -->
+    <div id="app"><open-host></open-host></div>
+
+    <!-- Nested open shadow roots (depth 2). -->
+    <nested-card></nested-card>
+
+    <!-- Closed shadow root: invisible to piercing; must never break capture. -->
+    <closed-host></closed-host>
+
+    <!-- Late-mounting host: its shadow root is attached AFTER load. -->
+    <div id="late-slot"></div>
+
+    <div id="status">ready</div>
+
+    <script type="module">
+        import * as amplitude from '@amplitude/analytics-browser';
+        import { DataExtractor } from '@amplitude/plugin-autocapture-browser';
+
+        window.amplitude = amplitude;
+
+        // ?shadow=on flips the shared selector engine into shadow-piercing mode
+        // via a config override (matches the "config override for now" rollout
+        // decision). Absent/off → the default dormant, non-piercing engine.
+        const params = new URLSearchParams(window.location.search);
+        const shadowOn = params.get('shadow') === 'on';
+        // ?log=on adds a visible on-page event logger (+ console). Gated so it
+        // stays completely inert for the deterministic Playwright e2e.
+        const logOn = params.get('log') === 'on';
+
+        // --- Build the shadow trees ---
+        const openRoot = document.querySelector('open-host').attachShadow({ mode: 'open' });
+        openRoot.innerHTML = '<button id="shadow-button" type="button">Shadow</button>';
+
+        const cardRoot = document.querySelector('nested-card').attachShadow({ mode: 'open' });
+        cardRoot.innerHTML = '<nested-button></nested-button>';
+        const nestedRoot = cardRoot.querySelector('nested-button').attachShadow({ mode: 'open' });
+        nestedRoot.innerHTML = '<button id="deep-button" type="button">Deep</button>';
+
+        const closedRoot = document.querySelector('closed-host').attachShadow({ mode: 'closed' });
+        closedRoot.innerHTML = '<button id="closed-button" type="button">Closed</button>';
+
+        // Late-mounted component: attaches its shadow root ~300ms after load.
+        setTimeout(() => {
+            const lateHost = document.createElement('late-host');
+            document.getElementById('late-slot').appendChild(lateHost);
+            const lateRoot = lateHost.attachShadow({ mode: 'open' });
+            lateRoot.innerHTML = '<button id="late-button" type="button">Late</button>';
+            document.getElementById('status').setAttribute('data-late', 'mounted');
+        }, 300);
+
+        // Visible event logger: a no-op enrichment plugin that renders every
+        // captured `[Amplitude] …` event (and its Element Path) to an on-page
+        // panel + the console. Nothing is sent anywhere. Only active with ?log=on.
+        function installEventLogger() {
+            const panel = document.createElement('div');
+            panel.id = 'event-log';
+            panel.style.cssText =
+                'position:fixed;top:8px;right:8px;width:520px;max-height:90vh;overflow:auto;' +
+                'font:12px/1.4 monospace;background:#111;color:#0f0;padding:10px;border-radius:6px;' +
+                'z-index:2147483647;box-shadow:0 4px 16px rgba(0,0,0,.4)';
+            panel.innerHTML =
+                '<div style="color:#fff;margin-bottom:6px">📋 Amplitude events ' +
+                '<span style="color:#888">(shadow ' + (shadowOn ? 'ON' : 'OFF') + ') — click the buttons</span></div>';
+            document.body.appendChild(panel);
+
+            const fireBtn = document.createElement('button');
+            fireBtn.textContent = 'Fire exposure event (Viewport Content Updated)';
+            fireBtn.style.cssText = 'display:block;margin:10px 0';
+            // Exposure fires on nav/unload; dispatch beforeunload to flush it.
+            fireBtn.addEventListener('click', () => window.dispatchEvent(new Event('beforeunload')));
+            document.body.insertBefore(fireBtn, document.getElementById('status'));
+
+            return {
+                name: 'harness-event-logger',
+                type: 'enrichment',
+                setup: async () => undefined,
+                execute: async (event) => {
+                    if (event.event_type && event.event_type.startsWith('[Amplitude]')) {
+                        const path = event.event_properties && event.event_properties['[Amplitude] Element Path'];
+                        // eslint-disable-next-line no-console
+                        console.log('%c' + event.event_type, 'color:#0a0', path || '', event.event_properties);
+                        const row = document.createElement('div');
+                        row.style.marginTop = '4px';
+                        row.innerHTML =
+                            '<span style="color:#6cf">' + event.event_type + '</span>' +
+                            (path ? '<br><span style="color:#fd6">' + path.replace(/</g, '&lt;') + '</span>' : '');
+                        panel.appendChild(row);
+                    }
+                    return event;
+                },
+            };
+        }
+
+        if (shadowOn) {
+            // Flip the shared engine (singleton) into piercing mode BEFORE init,
+            // so the plugin's setup-time work — including the exposure
+            // observable's initial element discovery — already sees shadow mode.
+            // (Clicks read the config lazily, so they'd work either way.) Because
+            // fetchRemoteConfig is false, nothing later overrides this.
+            new DataExtractor({}).updateSelectorConfig({
+                enabled: true,
+                shadowDomEnabled: true,
+                maxShadowDomDepth: 3,
+            });
+        }
+
+        amplitude.init('shadow-dom-e2e-key', 'test-user', {
+            fetchRemoteConfig: false,
+            flushIntervalMillis: 300,
+            flushQueueSize: 1,
+            autocapture: {
+                pageViews: false,
+                sessions: false,
+                formInteractions: false,
+                fileDownloads: false,
+                elementInteractions: true,
+            },
+            logLevel: 0,
+        }).promise.then(() => {
+            if (logOn) {
+                amplitude.add(installEventLogger());
+            }
+            document.getElementById('status').textContent = shadowOn ? 'initialized-shadow' : 'initialized';
+        });
+    </script>
+</body>
+</html>
