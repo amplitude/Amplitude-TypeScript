@@ -21,6 +21,9 @@ import {
   type ElementBasedTimestampedEvent,
   type TimestampedEvent,
   type NavigateEvent,
+  getNormalizedPageUrl,
+  normalizePageUrl,
+  resolveHistoryNavigationUrl,
 } from './helpers';
 import { enableVisualTagging } from './libs/messenger';
 import { trackClicks } from './autocapture/track-click';
@@ -45,6 +48,7 @@ import { subscribeToElementSelectorConfig } from './element-selector-config';
 import { Observable, Unsubscribable } from '@amplitude/analytics-core';
 import { trackExposure } from './autocapture/track-exposure';
 import { fireViewportContentUpdated, onExposure, ExposureTracker } from './autocapture/track-viewport-content-updated';
+import { createInitialExposureSnapshotScheduler } from './autocapture/schedule-initial-exposure-snapshot';
 
 type NavigationType = {
   addEventListener: (type: string, listener: EventListenerOrEventListenerObject) => void;
@@ -145,10 +149,13 @@ export const autocapturePlugin = (
   // Page-level state shared across trackers, emitted in a single Page View End event on beforeunload
   // elementExposedForPage holds the total set of elements seen during the entire page view lifetime
   const elementExposedForPage = new Set<string>();
+  // elementExposedInSentEvents holds elements already included in a flushed Viewport Content Updated event
+  const elementExposedInSentEvents = new Set<string>();
   // currentElementExposed only holds the set of elements that will be flushed during the next [Amplitude] Viewport Content Updated event
   const currentElementExposed = new Set<string>();
 
   let beforeUnloadCleanup: () => void;
+  let rescanElementsForExposure: (() => void) | undefined;
 
   const createObservables = (): AllWindowObservables => {
     const clickObservable = multicast(
@@ -205,8 +212,13 @@ export const autocapturePlugin = (
       );
     }
 
+    // Page-scoped shadow-DOM gate, shared with the frustration plugin. The
+    // observables read it per callback and subscribe to its arming to run their
+    // shadow discovery scans; see `shadow-mode.ts`.
+    const shadowGate = dataExtractor.shadowGate;
+
     const mutationObservable = multicast(
-      createMutationObservable().map((mutation) =>
+      createMutationObservable(shadowGate).map((mutation) =>
         dataExtractor.addAdditionalEventProperties(
           mutation,
           'mutation',
@@ -221,6 +233,10 @@ export const autocapturePlugin = (
     const exposureObservable = createExposureObservable(
       mutationObservable,
       (options as AutoCaptureOptionsWithDefaults).cssSelectorAllowlist,
+      (rescan) => {
+        rescanElementsForExposure = rescan;
+      },
+      shadowGate,
     );
 
     return {
@@ -272,7 +288,6 @@ export const autocapturePlugin = (
     }
 
     let pageViewEndFired = false;
-    const lastScroll: { maxX: undefined | number; maxY: undefined | number } = { maxX: undefined, maxY: undefined };
 
     // Fetch remote config for pageActions in a non-blocking manner
     if (config.fetchRemoteConfig) {
@@ -344,32 +359,80 @@ export const autocapturePlugin = (
     });
     subscriptions.push(scrollTracker);
 
+    // Match post-navigation reset so an empty first snapshot is not treated as a scroll change.
+    const lastScroll: { maxX: undefined | number; maxY: undefined | number } = {
+      ...scrollTracker.getState(),
+    };
+
     const trackers: { exposure?: ExposureTracker & Unsubscribable } = {};
 
     const globalScope = getGlobalScope();
 
+    let initialExposureSnapshotScheduler: ReturnType<typeof createInitialExposureSnapshotScheduler> | undefined;
+
     const handleViewportContentUpdated = (isPageEnd: boolean) => {
+      if (isPageEnd) {
+        /* istanbul ignore next */
+        initialExposureSnapshotScheduler?.reset();
+      }
       if (isPageEnd && pageViewEndFired) {
         return;
       }
-      setTimeout(() => {
-        pageViewEndFired = false;
-      }, 100);
+      if (isPageEnd) {
+        pageViewEndFired = true;
+        setTimeout(() => {
+          pageViewEndFired = false;
+        }, 100);
+      }
 
-      pageViewEndFired = true;
       fireViewportContentUpdated({
         amplitude,
         scrollTracker,
         currentElementExposed,
         elementExposedForPage,
+        elementExposedInSentEvents,
         exposureTracker: trackers.exposure,
         isPageEnd,
         lastScroll,
       });
     };
 
+    let trackedPageUrl = getNormalizedPageUrl(globalScope);
+
+    const handleSpaNavigation = () => {
+      const currentPageUrl = getNormalizedPageUrl(globalScope);
+      if (currentPageUrl === trackedPageUrl) {
+        return;
+      }
+
+      trackedPageUrl = currentPageUrl;
+      handleViewportContentUpdated(true);
+    };
+
+    const handleHistoryStateChange = (applyHistoryChange: () => void, nextUrl: string | URL | null | undefined) => {
+      const previousPageUrl = getNormalizedPageUrl(globalScope);
+      // Resolve against the pre-navigation URL. Applying history first would make
+      // relative paths like `../other` resolve against the already-updated location.
+      const nextPageUrl = resolveHistoryNavigationUrl(nextUrl, globalScope);
+      if (previousPageUrl === nextPageUrl) {
+        applyHistoryChange();
+        return;
+      }
+
+      trackedPageUrl = nextPageUrl;
+      // Flush the previous page before applying history so Page URL is not the destination.
+      handleViewportContentUpdated(true);
+      applyHistoryChange();
+    };
+
     const handleExposure = (elementPath: string) => {
-      onExposure(elementPath, elementExposedForPage, currentElementExposed, handleViewportContentUpdated);
+      onExposure(
+        elementPath,
+        elementExposedForPage,
+        elementExposedInSentEvents,
+        currentElementExposed,
+        handleViewportContentUpdated,
+      );
     };
 
     if (isViewportContentUpdatedEnabled) {
@@ -382,6 +445,32 @@ export const autocapturePlugin = (
       if (trackers.exposure) {
         subscriptions.push(trackers.exposure);
       }
+
+      initialExposureSnapshotScheduler = createInitialExposureSnapshotScheduler({
+        mutationObservable: allObservables[ObservablesEnum.MutationObservable],
+        onRescan: () => {
+          /* istanbul ignore next */
+          config.loggerProvider?.debug?.(
+            '@amplitude/plugin-autocapture-browser: initial exposure snapshot — rescanning DOM',
+          );
+          rescanElementsForExposure?.();
+        },
+        onFlush: () => {
+          /* istanbul ignore next */
+          config.loggerProvider?.debug?.(
+            '@amplitude/plugin-autocapture-browser: initial exposure snapshot — flushing viewport content updated',
+          );
+          handleViewportContentUpdated(false);
+        },
+        exposureDuration: resolvedExposureDuration,
+      });
+      initialExposureSnapshotScheduler.start();
+      subscriptions.push({
+        unsubscribe: () => {
+          /* istanbul ignore next */
+          initialExposureSnapshotScheduler?.stop();
+        },
+      });
 
       const beforeUnloadHandler = () => {
         handleViewportContentUpdated(true);
@@ -399,13 +488,26 @@ export const autocapturePlugin = (
       const navigateObservable = allObservables[ObservablesEnum.NavigateObservable];
       if (navigateObservable) {
         subscriptions.push(
-          navigateObservable.subscribe(() => {
-            handleViewportContentUpdated(true);
+          navigateObservable.subscribe((timestampedEvent) => {
+            /* istanbul ignore next */
+            const destinationUrl = timestampedEvent.event?.destination?.url;
+            if (destinationUrl) {
+              const nextPageUrl = normalizePageUrl(destinationUrl);
+              if (nextPageUrl === trackedPageUrl) {
+                return;
+              }
+
+              trackedPageUrl = nextPageUrl;
+              handleViewportContentUpdated(true);
+              return;
+            }
+
+            handleSpaNavigation();
           }),
         );
       } else if (globalScope) {
         const popstateHandler = () => {
-          handleViewportContentUpdated(true);
+          handleSpaNavigation();
         };
         /* istanbul ignore next */
         // Fallback for SPA tracking when Navigation API is not available
@@ -417,12 +519,25 @@ export const autocapturePlugin = (
         // https://stackoverflow.com/a/64927639
         // eslint-disable-next-line @typescript-eslint/unbound-method
         const originalPushState = globalScope.history.pushState;
+        // eslint-disable-next-line @typescript-eslint/unbound-method
+        const originalReplaceState = globalScope.history.replaceState;
         if (globalScope.history && originalPushState) {
           // eslint-disable-next-line @typescript-eslint/unbound-method
           globalScope.history.pushState = new Proxy(originalPushState, {
-            apply: (target, thisArg, [state, unused, url]) => {
-              target.apply(thisArg, [state, unused, url]);
-              handleViewportContentUpdated(true);
+            apply: (target, thisArg, args: [unknown, string, string | URL | null | undefined]) => {
+              handleHistoryStateChange(() => {
+                target.apply(thisArg, args);
+              }, args[2]);
+            },
+          });
+        }
+        if (globalScope.history && originalReplaceState) {
+          // eslint-disable-next-line @typescript-eslint/unbound-method
+          globalScope.history.replaceState = new Proxy(originalReplaceState, {
+            apply: (target, thisArg, args: [unknown, string, string | URL | null | undefined]) => {
+              handleHistoryStateChange(() => {
+                target.apply(thisArg, args);
+              }, args[2]);
             },
           });
         }
@@ -434,6 +549,10 @@ export const autocapturePlugin = (
             /* istanbul ignore next */
             if (globalScope.history && originalPushState) {
               globalScope.history.pushState = originalPushState;
+            }
+            /* istanbul ignore next */
+            if (globalScope.history && originalReplaceState) {
+              globalScope.history.replaceState = originalReplaceState;
             }
           },
         });

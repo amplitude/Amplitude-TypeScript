@@ -1,5 +1,6 @@
 import * as HierarchyUtil from '../src/hierarchy';
 import { DATA_AMP_MASK_ATTRIBUTES } from '../src/constants';
+import type { ShadowMode } from '../src/shadow-mode';
 
 describe('autocapture-plugin hierarchy', () => {
   afterEach(() => {
@@ -222,6 +223,63 @@ describe('getAncestors', () => {
   test('should not fail when element is null', () => {
     const nullElement = null;
     expect(HierarchyUtil.getAncestors(nullElement)).toEqual([]);
+  });
+
+  test('should stop at the shadow boundary when shadow mode is off', () => {
+    document.body.innerHTML = `<div id="app"><my-host></my-host></div>`;
+    const host = document.querySelector('my-host') as Element;
+    const root = host.attachShadow({ mode: 'open' });
+    root.innerHTML = `<button id="inner">x</button>`;
+    const inner = root.getElementById('inner') as Element;
+    expect(HierarchyUtil.getAncestors(inner)).toEqual([inner]);
+  });
+
+  test('should walk through the host into the light DOM when shadow is enabled', () => {
+    document.body.innerHTML = `<div id="app"><my-host></my-host></div>`;
+    const host = document.querySelector('my-host') as Element;
+    const root = host.attachShadow({ mode: 'open' });
+    root.innerHTML = `<span id="inner">x</span>`;
+    const inner = root.getElementById('inner') as Element;
+    const on = (maxDepth: number): ShadowMode => ({ enabled: true, maxDepth });
+
+    const ancestors = HierarchyUtil.getAncestors(inner, on(1));
+    expect(ancestors).toContain(inner);
+    expect(ancestors).toContain(host);
+    expect(ancestors).toContain(document.getElementById('app'));
+  });
+});
+
+describe('getElementProperties — shadow-root top', () => {
+  afterEach(() => {
+    document.body.innerHTML = '';
+  });
+
+  test('indexes siblings among shadow-root children when parentElement is null', () => {
+    document.body.innerHTML = `<my-host></my-host>`;
+    const root = (document.querySelector('my-host') as Element).attachShadow({ mode: 'open' });
+    root.innerHTML = `<span>decoy</span><button id="target">x</button>`;
+    const target = root.getElementById('target') as Element;
+    const on: ShadowMode = { enabled: true, maxDepth: 1 };
+    expect(HierarchyUtil.getElementProperties(target, new Set(), on)).toMatchObject({
+      tag: 'button',
+      index: 1,
+      indexOfType: 0,
+      prevSib: 'span',
+    });
+  });
+
+  test('does NOT index shadow-root siblings when shadow mode is off', () => {
+    // Pre-shadow shape: `parentElement` is null, so no positional fields.
+    // `prevSib` is unchanged — it already worked inside a shadow root.
+    document.body.innerHTML = `<my-host></my-host>`;
+    const root = (document.querySelector('my-host') as Element).attachShadow({ mode: 'open' });
+    root.innerHTML = `<span>decoy</span><button id="target">x</button>`;
+    const target = root.getElementById('target') as Element;
+
+    const props = HierarchyUtil.getElementProperties(target, new Set());
+    expect(props).not.toHaveProperty('index');
+    expect(props).not.toHaveProperty('indexOfType');
+    expect(props).toMatchObject({ tag: 'button', prevSib: 'span' });
   });
 
   // Note: getHierarchy has been moved to data-extractor.test.ts

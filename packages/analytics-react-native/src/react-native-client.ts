@@ -287,7 +287,7 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
     // Set up the analytics connector to integrate with the experiment SDK.
     // Send events from the experiment SDK and forward identifies to the
     // identity store.
-    const connector = getAnalyticsConnector();
+    const connector = getAnalyticsConnector(this.config.instanceName);
     connector.identityStore.setIdentity({
       userId: this.config.userId,
       deviceId: this.config.deviceId,
@@ -393,7 +393,7 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
       return;
     }
     this.config.userId = userId;
-    setConnectorUserId(userId);
+    setConnectorUserId(userId, this.config.instanceName);
   }
 
   getDeviceId() {
@@ -406,7 +406,7 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
       return;
     }
     this.config.deviceId = deviceId;
-    setConnectorDeviceId(deviceId);
+    setConnectorDeviceId(deviceId, this.config.instanceName);
   }
 
   identify(identify: IIdentify, eventOptions?: EventOptions) {
