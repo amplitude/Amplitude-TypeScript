@@ -128,6 +128,11 @@ export class SessionReplay implements AmplitudeSessionReplay {
    * passed `getShouldRecord()` cannot start rrweb after capture was paused.
    */
   private recordingGeneration = 0;
+  /**
+   * Set by customer `start()` so coordinated child iframes self-start instead of
+   * waiting for a parent signal that may never be resent.
+   */
+  private startChildRecordingOnSetup = false;
   private pendingEmitEvents: Array<{ event: eventWithTime; sessionId: string | number }> = [];
 
   /** Current page URL, kept in sync with SPA navigations for URL-based masking */
@@ -962,6 +967,8 @@ export class SessionReplay implements AmplitudeSessionReplay {
     const config = this.config;
     const shouldRecord = this.getShouldRecord();
     const sessionId = this.identifiers?.sessionId;
+    const selfStartChild = this.startChildRecordingOnSetup;
+    this.startChildRecordingOnSetup = false;
     if (!shouldRecord || !sessionId || !config) {
       return;
     }
@@ -1040,6 +1047,11 @@ export class SessionReplay implements AmplitudeSessionReplay {
             }
           },
         });
+        // Customer start() must not wait for a parent signal: the parent may already
+        // be recording and will not send another start. Init still waits.
+        if (selfStartChild) {
+          this._recordEventsInChildMode(recordFunction, sessionId, config, hooks);
+        }
         return;
       }
 
@@ -1258,6 +1270,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
 
   private async _start() {
     this.recordingEnabled = true;
+    this.startChildRecordingOnSetup = true;
     await this.recordEvents();
   }
 

@@ -5494,6 +5494,21 @@ describe('SessionReplay', () => {
         expect(mockRecordFunction).not.toHaveBeenCalled();
       });
 
+      test('start() after stop() self-starts child recording without a parent signal', async () => {
+        await sessionReplay.init(apiKey, crossOriginOptions).promise;
+        await sessionReplay.recordEvents();
+        await jest.runAllTimersAsync();
+
+        sessionReplay.stop();
+        mockRecordFunction.mockClear();
+        (mockListenForParentSignals as jest.Mock).mockClear();
+
+        await sessionReplay.start().promise;
+
+        expect(mockListenForParentSignals).toHaveBeenCalled();
+        expect(mockRecordFunction).toHaveBeenCalledWith(expect.objectContaining({ recordCrossOriginIframes: true }));
+      });
+
       test('stops recording when onStop callback is invoked', async () => {
         await sessionReplay.init(apiKey, crossOriginOptions).promise;
         await sessionReplay.recordEvents();
