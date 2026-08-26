@@ -11,6 +11,9 @@ importers:
       '@amplitude/analytics-react-native':
         specifier: workspace:*
         version: link:../../../packages/analytics-react-native
+      '@amplitude/plugin-experiment-react-native':
+        specifier: workspace:*
+        version: link:../../../packages/plugin-experiment-react-native
       '@amplitude/plugin-network-capture-browser':
         specifier: workspace:*
         version: link:../../../packages/plugin-network-capture-browser
@@ -19,13 +22,13 @@ importers:
         version: 7.28.6
       '@react-native-async-storage/async-storage':
         specifier: ~1.17.11
-        version: 1.17.12(react-native@0.71.14(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.2.0))
+        version: 1.17.12(react-native@0.71.15(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.2.0))
       '@react-navigation/native':
         specifier: ^6.1.18
-        version: 6.1.18(react-native@0.71.14(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.2.0))(react@18.2.0)
+        version: 6.1.18(react-native@0.71.15(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.2.0))(react@18.2.0)
       '@react-navigation/native-stack':
         specifier: ^6.11.0
-        version: 6.11.0(@react-navigation/native@6.1.18(react-native@0.71.14(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.2.0))(react@18.2.0))(react-native-safe-area-context@4.5.0(react-native@0.71.14(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.2.0))(react@18.2.0))(react-native-screens@3.20.0(react-native@0.71.14(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.2.0))(react@18.2.0))(react-native@0.71.14(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.2.0))(react@18.2.0)
+        version: 6.11.0(@react-navigation/native@6.1.18(react-native@0.71.15(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.2.0))(react@18.2.0))(react-native-safe-area-context@4.5.0(react-native@0.71.15(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.2.0))(react@18.2.0))(react-native-screens@3.20.0(react-native@0.71.15(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.2.0))(react@18.2.0))(react-native@0.71.15(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.2.0))(react@18.2.0)
       expo:
         specifier: ~48.0.0
         version: 48.0.21(@babel/core@7.28.6)
@@ -45,14 +48,14 @@ importers:
         specifier: 18.2.0
         version: 18.2.0(react@18.2.0)
       react-native:
-        specifier: 0.71.14
-        version: 0.71.14(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.2.0)
+        specifier: 0.71.15
+        version: 0.71.15(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.2.0)
       react-native-safe-area-context:
         specifier: 4.5.0
-        version: 4.5.0(react-native@0.71.14(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.2.0))(react@18.2.0)
+        version: 4.5.0(react-native@0.71.15(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.2.0))(react@18.2.0)
       react-native-screens:
         specifier: ~3.20.0
-        version: 3.20.0(react-native@0.71.14(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.2.0))(react@18.2.0)
+        version: 3.20.0(react-native@0.71.15(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.2.0))(react@18.2.0)
       react-native-web:
         specifier: 0.18.10
         version: 0.18.10(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
@@ -125,7 +128,7 @@ importers:
         specifier: ^3.0.0
         version: 3.0.0
       rollup:
-        specifier: ^2.79.1
+        specifier: ^2.80.0
         version: 2.80.0
       rollup-plugin-execute:
         specifier: ^1.1.1
@@ -241,6 +244,9 @@ importers:
       '@amplitude/analytics-react-native':
         specifier: workspace:*
         version: link:../analytics-react-native
+      '@react-native-async-storage/async-storage':
+        specifier: ^1.24.0
+        version: 1.24.0(react-native@0.76.9(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(@react-native-community/cli@12.1.1)(@types/react@18.3.31)(react@18.3.1))
     devDependencies:
       '@react-native-harness/platform-android':
         specifier: 1.3.0
@@ -344,7 +350,7 @@ importers:
         specifier: ^3.1.9
         version: 3.1.10
       rollup:
-        specifier: ^2.79.1
+        specifier: ^2.80.0
         version: 2.80.0
       rollup-plugin-gzip:
         specifier: ^3.1.0
@@ -378,7 +384,7 @@ importers:
         specifier: ^1.5.1
         version: 1.5.1
       rollup:
-        specifier: ^2.79.1
+        specifier: ^2.80.0
         version: 2.80.0
       rollup-plugin-execute:
         specifier: ^1.1.1
@@ -412,7 +418,7 @@ importers:
         specifier: ^10.0.1
         version: 10.0.1(rollup@2.80.0)(tslib@2.8.1)(typescript@4.9.5)
       rollup:
-        specifier: ^2.79.1
+        specifier: ^2.80.0
         version: 2.80.0
       rollup-plugin-execute:
         specifier: ^1.1.1
@@ -443,7 +449,7 @@ importers:
         specifier: ^10.0.1
         version: 10.0.1(rollup@2.80.0)(tslib@2.8.1)(typescript@4.9.5)
       rollup:
-        specifier: ^2.79.1
+        specifier: ^2.80.0
         version: 2.80.0
       rollup-plugin-execute:
         specifier: ^1.1.1
@@ -465,8 +471,27 @@ importers:
         version: 1.21.1
     devDependencies:
       rollup:
-        specifier: ^2.79.1
+        specifier: ^2.80.0
         version: 2.80.0
+
+  ../../../packages/plugin-experiment-react-native:
+    dependencies:
+      '@amplitude/analytics-core':
+        specifier: workspace:*
+        version: link:../analytics-core
+      '@amplitude/experiment-react-native-client':
+        specifier: ^1.8.0
+        version: 1.8.0(react-native@0.73.0(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.2.0))(react@18.2.0)
+    devDependencies:
+      react:
+        specifier: 18.2.0
+        version: 18.2.0
+      react-native:
+        specifier: 0.73.0
+        version: 0.73.0(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.2.0)
+      react-native-builder-bob:
+        specifier: ^0.20.3
+        version: 0.20.4
 
   ../../../packages/plugin-global-user-properties:
     dependencies:
@@ -487,7 +512,7 @@ importers:
         specifier: ^10.0.1
         version: 10.0.1(rollup@2.80.0)(tslib@2.8.1)(typescript@4.9.5)
       rollup:
-        specifier: ^2.79.1
+        specifier: ^2.80.0
         version: 2.80.0
       rollup-plugin-execute:
         specifier: ^1.1.1
@@ -521,7 +546,7 @@ importers:
         specifier: ^1.5.1
         version: 1.5.1
       rollup:
-        specifier: ^2.79.1
+        specifier: ^2.80.0
         version: 2.80.0
       rollup-plugin-execute:
         specifier: ^1.1.1
@@ -555,7 +580,7 @@ importers:
         specifier: ^10.0.1
         version: 10.0.1(rollup@2.80.0)(tslib@2.8.1)(typescript@4.9.5)
       rollup:
-        specifier: ^2.79.1
+        specifier: ^2.80.0
         version: 2.80.0
       rollup-plugin-execute:
         specifier: ^1.1.1
@@ -586,7 +611,7 @@ importers:
         specifier: ^10.0.1
         version: 10.0.1(rollup@2.80.0)(tslib@2.8.1)(typescript@4.9.5)
       rollup:
-        specifier: ^2.79.1
+        specifier: ^2.80.0
         version: 2.80.0
       rollup-plugin-execute:
         specifier: ^1.1.1
@@ -641,7 +666,7 @@ importers:
         specifier: ^3.3.2
         version: 3.3.2
       rollup:
-        specifier: ^2.79.1
+        specifier: ^2.80.0
         version: 2.80.0
       rollup-plugin-execute:
         specifier: ^1.1.1
@@ -694,7 +719,7 @@ importers:
         specifier: ^10.0.1
         version: 10.0.1(rollup@2.80.0)(tslib@2.8.1)(typescript@4.9.5)
       rollup:
-        specifier: ^2.79.1
+        specifier: ^2.80.0
         version: 2.80.0
       rollup-plugin-execute:
         specifier: ^1.1.1
@@ -731,7 +756,7 @@ importers:
         specifier: ^10.0.1
         version: 10.0.1(rollup@2.80.0)(tslib@2.8.1)(typescript@4.9.5)
       rollup:
-        specifier: ^2.79.1
+        specifier: ^2.80.0
         version: 2.80.0
       rollup-plugin-execute:
         specifier: ^1.1.1
@@ -765,7 +790,7 @@ importers:
         specifier: ^10.0.1
         version: 10.0.1(rollup@2.80.0)(tslib@2.8.1)(typescript@4.9.5)
       rollup:
-        specifier: ^2.79.1
+        specifier: ^2.80.0
         version: 2.80.0
       rollup-plugin-execute:
         specifier: ^1.1.1
@@ -789,7 +814,7 @@ importers:
         specifier: ^1.81.0
         version: 1.84.0
       js-cookie:
-        specifier: ^3.0.5
+        specifier: ^3.0.7
         version: 3.0.7
     devDependencies:
       '@aws-sdk/client-s3':
@@ -808,7 +833,7 @@ importers:
         specifier: ^3.0.6
         version: 3.0.6
       rollup:
-        specifier: ^2.79.1
+        specifier: ^2.80.0
         version: 2.80.0
       rollup-plugin-gzip:
         specifier: ^3.1.0
@@ -824,7 +849,7 @@ importers:
         version: link:../session-replay-react-native
       '@segment/analytics-react-native':
         specifier: 2.15.0
-        version: 2.15.0(@react-native-async-storage/async-storage@1.17.12(react-native@0.71.14(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.2.0)))(react-native-get-random-values@1.11.0(react-native@0.71.14(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.2.0)))(react-native@0.71.14(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.2.0))(react@18.2.0)
+        version: 2.15.0(@react-native-async-storage/async-storage@1.17.12(react-native@0.71.15(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.2.0)))(react-native-get-random-values@1.11.0(react-native@0.71.15(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.2.0)))(react-native@0.71.15(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.2.0))(react@18.2.0)
       react-native-builder-bob:
         specifier: ^0.20.3
         version: 0.20.4
@@ -887,7 +912,7 @@ importers:
         specifier: 4.0.2
         version: 4.0.2
       rollup:
-        specifier: ^2.79.1
+        specifier: ^2.80.0
         version: 2.80.0
       rollup-plugin-execute:
         specifier: ^1.1.1
@@ -949,7 +974,7 @@ importers:
         specifier: 4.0.2
         version: 4.0.2
       rollup:
-        specifier: ^2.79.1
+        specifier: ^2.80.0
         version: 2.80.0
       rollup-plugin-execute:
         specifier: ^1.1.1
@@ -983,7 +1008,7 @@ importers:
         version: link:../plugin-session-replay-browser
     devDependencies:
       rollup:
-        specifier: ^2.79.1
+        specifier: ^2.80.0
         version: 2.80.0
 
 packages:
@@ -997,6 +1022,9 @@ packages:
   '@amplitude/engagement-browser@1.0.10':
     resolution: {integrity: sha512-sv8ei+Xy2qMs31lvW3bJCOZBg8LRuorAxlzM8fmh3FyVaRMbs5WyQGaWSfJ8y5tqmllJnLfbBS5R38Mv6G3h7w==}
 
+  '@amplitude/experiment-core@0.11.1':
+    resolution: {integrity: sha512-fHVJazCwwgjUcj49N+yFSLMSroyY0eHImrsmd1ipIjIT1Cez8mh+TvwJQ0LGSdyYvL2NAZM2J5vpXrR1nHgdzg==}
+
   '@amplitude/experiment-core@0.13.1':
     resolution: {integrity: sha512-ZHvR0dxTltasp8MiMcQ6qKsY20mWnODoy3oebGad6qaRR1ywpUi8IuLf5AwLTM35ZwgzEUTn9TEIWKLHpDwHMw==}
 
@@ -1005,6 +1033,12 @@ packages:
 
   '@amplitude/experiment-js-client@1.21.1':
     resolution: {integrity: sha512-chE/4qQG/5Cgl93Wqj1NEdgOL5LkqySLlfk1EN0f+7bJa52HpkGFALA2FeCNYf31Z5CglEeKX6dUMgL7y33SIw==}
+
+  '@amplitude/experiment-react-native-client@1.8.0':
+    resolution: {integrity: sha512-qEd1s5SmJyct81lGtOBWQbyoAWfUBjcTl2LLdKaxRrsHAnJtnu0MbwvMzh6RwnKRjMigRfxOH+2kPVu3UV/0cg==}
+    peerDependencies:
+      react: '*'
+      react-native: '*'
 
   '@amplitude/rrdom@2.1.0':
     resolution: {integrity: sha512-2dAtxXL02usBV2CSOnScLd3WoVqWaeiGpxN8LuXJ0r/NpLJkW1k876v2tRKAz5NrxPwSdjihsMmwCIXHpJhHfA==}
@@ -2632,6 +2666,11 @@ packages:
     peerDependencies:
       react-native: ^0.0.0-0 || 0.60 - 0.71 || 1000.0.0
 
+  '@react-native-async-storage/async-storage@1.24.0':
+    resolution: {integrity: sha512-W4/vbwUOYOjco0x3toB8QCr7EjIP6nE9G7o8PMguvvjYT5Awg09lyV4enACRx4s++PPulBiBSjL0KTFx2u0Z/g==}
+    peerDependencies:
+      react-native: ^0.0.0-0 || >=0.60 <1.0
+
   '@react-native-community/cli-clean@10.1.1':
     resolution: {integrity: sha512-iNsrjzjIRv9yb5y309SWJ8NDHdwYtnCpmxZouQDyOljUdC9MwdZ4ChbtA4rwQyAwgOVfS9F/j56ML3Cslmvrxg==}
 
@@ -2692,9 +2731,6 @@ packages:
   '@react-native-community/cli-platform-android@9.3.4':
     resolution: {integrity: sha512-BTKmTMYFuWtMqimFQJfhRyhIWw1m+5N5svR1S5+DqPcyFuSXrpNYDWNSFR8E105xUbFANmsCZZQh6n1WlwMpOA==}
 
-  '@react-native-community/cli-platform-ios@10.2.4':
-    resolution: {integrity: sha512-/6K+jeRhcGojFIJMWMXV2eY5n/In+YUzBr/DKWQOeHBOHkESRNheG310xSAIjgB46YniSSUKhSyeuhalTbm9OQ==}
-
   '@react-native-community/cli-platform-ios@10.2.5':
     resolution: {integrity: sha512-hq+FZZuSBK9z82GLQfzdNDl8vbFx5UlwCLFCuTtNCROgBoapFtVZQKRP2QBftYNrQZ0dLAb01gkwxagHsQCFyg==}
 
@@ -2746,8 +2782,8 @@ packages:
   '@react-native-community/cli-types@9.1.0':
     resolution: {integrity: sha512-KDybF9XHvafLEILsbiKwz5Iobd+gxRaPyn4zSaAerBxedug4er5VUWa8Szy+2GeYKZzMh/gsb1o9lCToUwdT/g==}
 
-  '@react-native-community/cli@10.2.4':
-    resolution: {integrity: sha512-E9BUDHfLEsnjkjeJqECuCjl4E/1Ox9Nl6hkQBhEqjZm4AaQxgU7M6AyFfOgaXn5v3am16/R4ZOUTrJnGJWS3GA==}
+  '@react-native-community/cli@10.2.6':
+    resolution: {integrity: sha512-RiOogGmrMnL2a1ICOBM/XvG4s46AzJoZt4B/aydrpp3xCiuPFBUVWpYtWWcdPmQqilk37c6qfNu9/38g9dW9Bw==}
     engines: {node: '>=14'}
     hasBin: true
 
@@ -3095,79 +3131,66 @@ packages:
     resolution: {integrity: sha512-n1GJHPOvpIfhi3TmrCeh6S6URt9BFCt0KQE3qvexyGCTAKpR4Lg+eWvNZEqu7epxwus/8ElT3hacYEucm49SZg==}
     cpu: [arm]
     os: [linux]
-    libc: [glibc]
 
   '@rollup/rollup-linux-arm-musleabihf@4.62.2':
     resolution: {integrity: sha512-JqgflS8wEB+UXV/vS1RpRbifGBeN4D5lz8D8oOFbFZw4vedvdOgCFAjfBmIMdW3yL10XpQQ0Ambepw6MXrhOnA==}
     cpu: [arm]
     os: [linux]
-    libc: [musl]
 
   '@rollup/rollup-linux-arm64-gnu@4.62.2':
     resolution: {integrity: sha512-wnFJkogWvN4jm/hQRF2UBaeUmk20j5+DmHvoyWii2b8HJDyvz1MF2OU/6ynXt2KR63rbZLWkFpoytpdc/yBuSA==}
     cpu: [arm64]
     os: [linux]
-    libc: [glibc]
 
   '@rollup/rollup-linux-arm64-musl@4.62.2':
     resolution: {integrity: sha512-HVu2bp0zhvJ8xHEV9+UUs7S90VadmBSY3LcIMvozbPo4AuMGDWlz3ymHLHZPX4hR67TKTt8Qp5PJ5RBg/i+RMQ==}
     cpu: [arm64]
     os: [linux]
-    libc: [musl]
 
   '@rollup/rollup-linux-loong64-gnu@4.62.2':
     resolution: {integrity: sha512-mQqqAV8QaoSgr9I2fKDLY2BAVvmKjWoGiu/cSYQonsLvtqwEn1E4QYfnCOcp5zoEqNhsDYin1s6jx/VJmrxlZg==}
     cpu: [loong64]
     os: [linux]
-    libc: [glibc]
 
   '@rollup/rollup-linux-loong64-musl@4.62.2':
     resolution: {integrity: sha512-IxKLoxCQ2IWi6bT2akyDUBGsOImDKB+sPp4EsTmwFQ/fMwpCKm8uLSSgP/Kx/QYUgKis6SEZ5/Nlhup0DIA0PQ==}
     cpu: [loong64]
     os: [linux]
-    libc: [musl]
 
   '@rollup/rollup-linux-ppc64-gnu@4.62.2':
     resolution: {integrity: sha512-Mk5ha2RQSgyFfmYYLkBpPnUk8D8FriBxesO1u9O75X0mHgXL1UQcH5Itl2lurWL2tj0RxV9b9tJgipac0hRY9A==}
     cpu: [ppc64]
     os: [linux]
-    libc: [glibc]
 
   '@rollup/rollup-linux-ppc64-musl@4.62.2':
     resolution: {integrity: sha512-CjvEnqJL/0/TQ3TXX3OPIJ/kmBellrWd4heXUmHeJlTnmwjKpSJzoehLaL6Xk0ZnMHBu9dZuFADNOrtjF4v+2w==}
     cpu: [ppc64]
     os: [linux]
-    libc: [musl]
 
   '@rollup/rollup-linux-riscv64-gnu@4.62.2':
     resolution: {integrity: sha512-1SiZbzwdkaDURsew/tSOrooKiYy7EQGT6m8ufavAi9NEyQb/6VuIxFXAL1fqa4iZe3g4NbNk4P7J32z2tw5Mgg==}
     cpu: [riscv64]
     os: [linux]
-    libc: [glibc]
 
   '@rollup/rollup-linux-riscv64-musl@4.62.2':
     resolution: {integrity: sha512-nQts12zJ3NQRoE6uYljOH89v7szzLDvG2JD/vsX+vGXU8w/At1GowTZ5/7qeFQ8m7L55rpR8Okugnuo5bgjy2Q==}
     cpu: [riscv64]
     os: [linux]
-    libc: [musl]
 
   '@rollup/rollup-linux-s390x-gnu@4.62.2':
     resolution: {integrity: sha512-E9/ll019jhPIJgpzfZoIkBGhcz+kKNgVWYRY0zr9srBdPPFVpvOKW8VaJKUbeK+eZXyQF9ltME+Kk6affeaPgg==}
     cpu: [s390x]
     os: [linux]
-    libc: [glibc]
 
   '@rollup/rollup-linux-x64-gnu@4.62.2':
     resolution: {integrity: sha512-5BqxR/pshjey51iliyzTD5Xi3EN0aLmQ2lZ3lvefVV9c82BvrLo2/6OT55iifpWBufs6kdwWbuOKS841DrmK9A==}
     cpu: [x64]
     os: [linux]
-    libc: [glibc]
 
   '@rollup/rollup-linux-x64-musl@4.62.2':
     resolution: {integrity: sha512-uNN83XxQrRAh/w0/pmAfibcwyb6YWt4gP+dpnQKPVJshAloQ785ii8CT8ZCIxkGg9opVsvAlGhFitSm6D1Jjpg==}
     cpu: [x64]
     os: [linux]
-    libc: [musl]
 
   '@rollup/rollup-openbsd-x64@4.62.2':
     resolution: {integrity: sha512-srjEIxSH3LRnJN6THczDHWQplqEMFiAJrTab0msUryh9kwNpkICf3Ea6q6MN/2cZwRFUNx5w+h6Hpi4QuHS6Zg==}
@@ -3455,61 +3478,51 @@ packages:
     resolution: {integrity: sha512-zJc0H99FEPoFfSrNpa91HYfxzfAJCr502oxNK1cfdC9hlaFI43RT+JFCann9JUgZmLzzntChHyn13Sgn9ljHNg==}
     cpu: [arm64]
     os: [linux]
-    libc: [glibc]
 
   '@unrs/resolver-binding-linux-arm64-musl@1.12.2':
     resolution: {integrity: sha512-KQ3Lki6l+Pz1k/eBipN41ES+YUK30beLGb9YqcB1O542cyLCNE6GaxrfcY3T6EezmGGk84wb5XyO9loTM9tkcA==}
     cpu: [arm64]
     os: [linux]
-    libc: [musl]
 
   '@unrs/resolver-binding-linux-loong64-gnu@1.12.2':
     resolution: {integrity: sha512-3SJGEh1DborhG6pyxvhPzCT4bbSIVihsvgJc13P1bHG7KLdNDaF9T3gsTwFc7Jw/5Y5/iWOjkEx7Zy0NvCGX3Q==}
     cpu: [loong64]
     os: [linux]
-    libc: [glibc]
 
   '@unrs/resolver-binding-linux-loong64-musl@1.12.2':
     resolution: {integrity: sha512-jiuG/Obbel7uw1PwHNFfrkiKhLAF6mnyZ6aWlOAVN9WqKm8v0OFGnciJIHu8+CMvXLQ8AD51LPzAoUfT21D5Ew==}
     cpu: [loong64]
     os: [linux]
-    libc: [musl]
 
   '@unrs/resolver-binding-linux-ppc64-gnu@1.12.2':
     resolution: {integrity: sha512-q7xRvVpmcfeL+LlZg8Pbbo6QaTZwDU5BaGZbwfhkEsXJn3Was8xYfE0RBH266xZt0rM6B7i8xAYIvjthuUIWHg==}
     cpu: [ppc64]
     os: [linux]
-    libc: [glibc]
 
   '@unrs/resolver-binding-linux-riscv64-gnu@1.12.2':
     resolution: {integrity: sha512-0CVdx6lcnT3Q9inOH8tsMIOJ6ImndllMjqJHg8RLVdB7Vq4SfkEXl9mCSsVNuNA4MCYycRicCUxPCabVHJRr6A==}
     cpu: [riscv64]
     os: [linux]
-    libc: [glibc]
 
   '@unrs/resolver-binding-linux-riscv64-musl@1.12.2':
     resolution: {integrity: sha512-iOwlRo9vnp6R6ohHQS11n0NnfdXx/omhkocmIfaPRpQhKZ+3BDMkkdRVh53qjkFkpPddf+FETA28NwGN7l5l+w==}
     cpu: [riscv64]
     os: [linux]
-    libc: [musl]
 
   '@unrs/resolver-binding-linux-s390x-gnu@1.12.2':
     resolution: {integrity: sha512-HYJtLfXq94q8iZNFT1lknx258wlkkWhZeUXJRqzKBBUJ00CvZ+N33zgbCqimLjsyw5Va6uUxhVa12mI+kaveEw==}
     cpu: [s390x]
     os: [linux]
-    libc: [glibc]
 
   '@unrs/resolver-binding-linux-x64-gnu@1.12.2':
     resolution: {integrity: sha512-mPsUhunKKDih5O96Y6enDQyHc1SqBPlY1E/SfMWDM3EdJ95Z9CArPeCVwCCqbP45ljvivdEk8Fxn+SIb1rDAJQ==}
     cpu: [x64]
     os: [linux]
-    libc: [glibc]
 
   '@unrs/resolver-binding-linux-x64-musl@1.12.2':
     resolution: {integrity: sha512-azrt6+5ydLd8Vt210AAFis/lZevSfPw93EJRIJG+xPu4WCJ8K0kppCTpMyLPcKT7H15M4Jnt2tMp5bOvCkRC6A==}
     cpu: [x64]
     os: [linux]
-    libc: [musl]
 
   '@unrs/resolver-binding-openharmony-arm64@1.12.2':
     resolution: {integrity: sha512-YZ9hP4O0X9PQb8eO980qmLNGH4zT3I9+SZTdt0Pr0YyuGQhYKoOZkV02VzrzyOZJ5xIJ3UFIenKkUkGg8GjgWQ==}
@@ -6663,8 +6676,8 @@ packages:
     peerDependencies:
       react: 18.1.0
 
-  react-native@0.71.14:
-    resolution: {integrity: sha512-7uhzas8aKpU2EARhlONt7yiclh+7PXEOJk469ewpQyId8Owq5WNtZvQm/z3k4mHUriMeQ37vgSGkOInSKcCazw==}
+  react-native@0.71.15:
+    resolution: {integrity: sha512-CFEoqc0hkINRWvBe86B3EK2fyVjK0//SoqI2jkRAz4NZm9R05+rHIFyT6wGQCLM3ea++KDkC0pqRVasMbqJc0Q==}
     engines: {node: '>=14'}
     hasBin: true
     peerDependencies:
@@ -7870,6 +7883,10 @@ snapshots:
     dependencies:
       '@amplitude/analytics-types': 1.4.0
 
+  '@amplitude/experiment-core@0.11.1':
+    dependencies:
+      js-base64: 3.7.8
+
   '@amplitude/experiment-core@0.13.1':
     dependencies:
       js-base64: 3.7.8
@@ -7885,6 +7902,15 @@ snapshots:
       '@amplitude/ua-parser-js': 0.7.33
       base64-js: 1.5.1
       unfetch: 4.1.0
+
+  '@amplitude/experiment-react-native-client@1.8.0(react-native@0.73.0(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.2.0))(react@18.2.0)':
+    dependencies:
+      '@amplitude/analytics-connector': 1.6.4
+      '@amplitude/experiment-core': 0.11.1
+      '@react-native-async-storage/async-storage': 1.17.12(react-native@0.73.0(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.2.0))
+      react: 18.2.0
+      react-native: 0.73.0(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.2.0)
+      unfetch: 4.2.0
 
   '@amplitude/rrdom@2.1.0':
     dependencies:
@@ -10057,10 +10083,20 @@ snapshots:
       merge-options: 3.0.4
       react-native: 0.70.6(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.2.0)
 
-  '@react-native-async-storage/async-storage@1.17.12(react-native@0.71.14(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.2.0))':
+  '@react-native-async-storage/async-storage@1.17.12(react-native@0.71.15(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.2.0))':
     dependencies:
       merge-options: 3.0.4
-      react-native: 0.71.14(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.2.0)
+      react-native: 0.71.15(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.2.0)
+
+  '@react-native-async-storage/async-storage@1.17.12(react-native@0.73.0(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.2.0))':
+    dependencies:
+      merge-options: 3.0.4
+      react-native: 0.73.0(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.2.0)
+
+  '@react-native-async-storage/async-storage@1.24.0(react-native@0.76.9(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(@react-native-community/cli@12.1.1)(@types/react@18.3.31)(react@18.3.1))':
+    dependencies:
+      merge-options: 3.0.4
+      react-native: 0.76.9(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(@react-native-community/cli@12.1.1)(@types/react@18.3.31)(react@18.3.1)
 
   '@react-native-community/cli-clean@10.1.1':
     dependencies:
@@ -10281,17 +10317,6 @@ snapshots:
     transitivePeerDependencies:
       - encoding
 
-  '@react-native-community/cli-platform-ios@10.2.4':
-    dependencies:
-      '@react-native-community/cli-tools': 10.1.1
-      chalk: 4.1.2
-      execa: 1.0.0
-      fast-xml-parser: 4.5.6
-      glob: 7.2.3
-      ora: 5.4.1
-    transitivePeerDependencies:
-      - encoding
-
   '@react-native-community/cli-platform-ios@10.2.5':
     dependencies:
       '@react-native-community/cli-tools': 10.1.1
@@ -10503,7 +10528,7 @@ snapshots:
     dependencies:
       joi: 17.13.3
 
-  '@react-native-community/cli@10.2.4(@babel/core@7.28.6)':
+  '@react-native-community/cli@10.2.6(@babel/core@7.28.6)':
     dependencies:
       '@react-native-community/cli-clean': 10.1.1
       '@react-native-community/cli-config': 10.1.1
@@ -11089,31 +11114,31 @@ snapshots:
       react-is: 16.13.1
       use-latest-callback: 0.2.6(react@18.2.0)
 
-  '@react-navigation/elements@1.3.31(@react-navigation/native@6.1.18(react-native@0.71.14(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.2.0))(react@18.2.0))(react-native-safe-area-context@4.5.0(react-native@0.71.14(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.2.0))(react@18.2.0))(react-native@0.71.14(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.2.0))(react@18.2.0)':
+  '@react-navigation/elements@1.3.31(@react-navigation/native@6.1.18(react-native@0.71.15(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.2.0))(react@18.2.0))(react-native-safe-area-context@4.5.0(react-native@0.71.15(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.2.0))(react@18.2.0))(react-native@0.71.15(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.2.0))(react@18.2.0)':
     dependencies:
-      '@react-navigation/native': 6.1.18(react-native@0.71.14(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.2.0))(react@18.2.0)
+      '@react-navigation/native': 6.1.18(react-native@0.71.15(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.2.0))(react@18.2.0)
       react: 18.2.0
-      react-native: 0.71.14(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.2.0)
-      react-native-safe-area-context: 4.5.0(react-native@0.71.14(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.2.0))(react@18.2.0)
+      react-native: 0.71.15(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.2.0)
+      react-native-safe-area-context: 4.5.0(react-native@0.71.15(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.2.0))(react@18.2.0)
 
-  '@react-navigation/native-stack@6.11.0(@react-navigation/native@6.1.18(react-native@0.71.14(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.2.0))(react@18.2.0))(react-native-safe-area-context@4.5.0(react-native@0.71.14(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.2.0))(react@18.2.0))(react-native-screens@3.20.0(react-native@0.71.14(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.2.0))(react@18.2.0))(react-native@0.71.14(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.2.0))(react@18.2.0)':
+  '@react-navigation/native-stack@6.11.0(@react-navigation/native@6.1.18(react-native@0.71.15(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.2.0))(react@18.2.0))(react-native-safe-area-context@4.5.0(react-native@0.71.15(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.2.0))(react@18.2.0))(react-native-screens@3.20.0(react-native@0.71.15(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.2.0))(react@18.2.0))(react-native@0.71.15(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.2.0))(react@18.2.0)':
     dependencies:
-      '@react-navigation/elements': 1.3.31(@react-navigation/native@6.1.18(react-native@0.71.14(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.2.0))(react@18.2.0))(react-native-safe-area-context@4.5.0(react-native@0.71.14(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.2.0))(react@18.2.0))(react-native@0.71.14(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.2.0))(react@18.2.0)
-      '@react-navigation/native': 6.1.18(react-native@0.71.14(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.2.0))(react@18.2.0)
+      '@react-navigation/elements': 1.3.31(@react-navigation/native@6.1.18(react-native@0.71.15(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.2.0))(react@18.2.0))(react-native-safe-area-context@4.5.0(react-native@0.71.15(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.2.0))(react@18.2.0))(react-native@0.71.15(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.2.0))(react@18.2.0)
+      '@react-navigation/native': 6.1.18(react-native@0.71.15(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.2.0))(react@18.2.0)
       react: 18.2.0
-      react-native: 0.71.14(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.2.0)
-      react-native-safe-area-context: 4.5.0(react-native@0.71.14(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.2.0))(react@18.2.0)
-      react-native-screens: 3.20.0(react-native@0.71.14(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.2.0))(react@18.2.0)
+      react-native: 0.71.15(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.2.0)
+      react-native-safe-area-context: 4.5.0(react-native@0.71.15(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.2.0))(react@18.2.0)
+      react-native-screens: 3.20.0(react-native@0.71.15(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.2.0))(react@18.2.0)
       warn-once: 0.1.1
 
-  '@react-navigation/native@6.1.18(react-native@0.71.14(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.2.0))(react@18.2.0)':
+  '@react-navigation/native@6.1.18(react-native@0.71.15(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.2.0))(react@18.2.0)':
     dependencies:
       '@react-navigation/core': 6.4.17(react@18.2.0)
       escape-string-regexp: 4.0.0
       fast-deep-equal: 3.1.3
       nanoid: 3.3.12
       react: 18.2.0
-      react-native: 0.71.14(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.2.0)
+      react-native: 0.71.15(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.2.0)
 
   '@react-navigation/routers@6.1.9':
     dependencies:
@@ -11288,17 +11313,17 @@ snapshots:
     dependencies:
       tslib: 2.8.1
 
-  '@segment/analytics-react-native@2.15.0(@react-native-async-storage/async-storage@1.17.12(react-native@0.71.14(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.2.0)))(react-native-get-random-values@1.11.0(react-native@0.71.14(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.2.0)))(react-native@0.71.14(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.2.0))(react@18.2.0)':
+  '@segment/analytics-react-native@2.15.0(@react-native-async-storage/async-storage@1.17.12(react-native@0.71.15(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.2.0)))(react-native-get-random-values@1.11.0(react-native@0.71.15(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.2.0)))(react-native@0.71.15(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.2.0))(react@18.2.0)':
     dependencies:
-      '@segment/sovran-react-native': 1.1.3(@react-native-async-storage/async-storage@1.17.12(react-native@0.71.14(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.2.0)))(react-native@0.71.14(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.2.0))(react@18.2.0)
+      '@segment/sovran-react-native': 1.1.3(@react-native-async-storage/async-storage@1.17.12(react-native@0.71.15(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.2.0)))(react-native@0.71.15(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.2.0))(react@18.2.0)
       deepmerge: 4.3.1
       js-base64: 3.7.8
       react: 18.2.0
-      react-native: 0.71.14(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.2.0)
-      react-native-get-random-values: 1.11.0(react-native@0.71.14(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.2.0))
+      react-native: 0.71.15(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.2.0)
+      react-native-get-random-values: 1.11.0(react-native@0.71.15(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.2.0))
       uuid: 9.0.1
     optionalDependencies:
-      '@react-native-async-storage/async-storage': 1.17.12(react-native@0.71.14(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.2.0))
+      '@react-native-async-storage/async-storage': 1.17.12(react-native@0.71.15(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.2.0))
 
   '@segment/analytics.js-video-plugins@0.2.1':
     dependencies:
@@ -11322,17 +11347,17 @@ snapshots:
       component-type: 1.2.2
       join-component: 1.1.0
 
-  '@segment/sovran-react-native@1.1.3(@react-native-async-storage/async-storage@1.17.12(react-native@0.71.14(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.2.0)))(react-native@0.71.14(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.2.0))(react@18.2.0)':
+  '@segment/sovran-react-native@1.1.3(@react-native-async-storage/async-storage@1.17.12(react-native@0.71.15(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.2.0)))(react-native@0.71.15(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.2.0))(react@18.2.0)':
     dependencies:
       ansi-regex: 5.0.1
       deepmerge: 4.3.1
       react: 18.2.0
-      react-native: 0.71.14(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.2.0)
-      react-native-get-random-values: 1.11.0(react-native@0.71.14(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.2.0))
+      react-native: 0.71.15(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.2.0)
+      react-native-get-random-values: 1.11.0(react-native@0.71.15(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.2.0))
       shell-quote: 1.8.0
       uuid: 9.0.1
     optionalDependencies:
-      '@react-native-async-storage/async-storage': 1.17.12(react-native@0.71.14(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.2.0))
+      '@react-native-async-storage/async-storage': 1.17.12(react-native@0.71.15(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.2.0))
 
   '@sideway/address@4.1.5':
     dependencies:
@@ -15896,10 +15921,10 @@ snapshots:
       - '@babel/preset-env'
       - supports-color
 
-  react-native-get-random-values@1.11.0(react-native@0.71.14(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.2.0)):
+  react-native-get-random-values@1.11.0(react-native@0.71.15(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.2.0)):
     dependencies:
       fast-base64-decode: 1.0.0
-      react-native: 0.71.14(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.2.0)
+      react-native: 0.71.15(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.2.0)
 
   react-native-gradle-plugin@0.70.3: {}
 
@@ -15930,16 +15955,16 @@ snapshots:
       - supports-color
       - utf-8-validate
 
-  react-native-safe-area-context@4.5.0(react-native@0.71.14(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.2.0))(react@18.2.0):
+  react-native-safe-area-context@4.5.0(react-native@0.71.15(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.2.0))(react@18.2.0):
     dependencies:
       react: 18.2.0
-      react-native: 0.71.14(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.2.0)
+      react-native: 0.71.15(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.2.0)
 
-  react-native-screens@3.20.0(react-native@0.71.14(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.2.0))(react@18.2.0):
+  react-native-screens@3.20.0(react-native@0.71.15(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.2.0))(react@18.2.0):
     dependencies:
       react: 18.2.0
       react-freeze: 1.0.4(react@18.2.0)
-      react-native: 0.71.14(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.2.0)
+      react-native: 0.71.15(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.2.0)
       warn-once: 0.1.1
 
   react-native-url-polyfill@3.0.0(react-native@0.76.9(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(@react-native-community/cli@12.1.1)(@types/react@18.3.31)(react@18.3.1)):
@@ -16004,12 +16029,12 @@ snapshots:
       - supports-color
       - utf-8-validate
 
-  react-native@0.71.14(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.2.0):
+  react-native@0.71.15(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(react@18.2.0):
     dependencies:
       '@jest/create-cache-key-function': 29.7.0
-      '@react-native-community/cli': 10.2.4(@babel/core@7.28.6)
+      '@react-native-community/cli': 10.2.6(@babel/core@7.28.6)
       '@react-native-community/cli-platform-android': 10.2.0
-      '@react-native-community/cli-platform-ios': 10.2.4
+      '@react-native-community/cli-platform-ios': 10.2.5
       '@react-native/assets': 1.0.0
       '@react-native/normalize-color': 2.1.0
       '@react-native/polyfills': 2.0.0

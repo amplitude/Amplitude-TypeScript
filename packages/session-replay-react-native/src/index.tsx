@@ -2,11 +2,12 @@ export {
   init,
   setSessionId,
   getSessionId,
-  getSessionReplayProperties,
   flush,
   start,
   stop,
   setDeviceId,
+  setOptOut,
+  teardown,
 } from './session-replay';
 export { type SessionReplayConfig, type MaskLevel, type PrivacyConfig } from './session-replay-config';
 

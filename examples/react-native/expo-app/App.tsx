@@ -1,17 +1,56 @@
 import {Button, StyleSheet, Text, View} from 'react-native';
 import {useEffect} from 'react';
-import {identify, Identify, init, track, add, Types, trackScreenViewOnNavigationStateChange} from '@amplitude/analytics-react-native';
+import {
+  add,
+  flush,
+  identify,
+  Identify,
+  init,
+  track,
+  Types,
+  trackScreenViewOnNavigationStateChange,
+} from '@amplitude/analytics-react-native';
+import {experimentPlugin} from '@amplitude/plugin-experiment-react-native';
 import { NavigationContainer, useNavigationContainerRef } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import FetchNetworkTestScreen from './FetchNetworkTestScreen';
 
+const experiment = experimentPlugin({
+  // deploymentKey: 'DEPLOYMENT_KEY', // Optional when Experiment and Analytics use the same project key.
+  debug: true,
+});
+const EXPERIMENT_FLAG_KEY = 'experiment-key'; // Replace with a deployed flag key to generate an exposure event.
 
 const Stack = createNativeStackNavigator();
+
+const startExperiment = async () => {
+  const experimentClient = experiment.experiment;
+  if (!experimentClient) {
+    console.warn('Experiment is not ready. Wait for Analytics initialization and try again.');
+    return;
+  }
+
+  try {
+    // Restart so every button press produces fresh flags and variant requests.
+    experimentClient.stop();
+    await experimentClient.start();
+    const variant = experimentClient.variant(EXPERIMENT_FLAG_KEY);
+    console.log('Experiment variant:', variant);
+    await flush().promise;
+  } catch (error) {
+    console.error('Experiment request failed:', error);
+  }
+};
 
 function HomeScreen({ navigation }) {
   return (
     <View style={styles.container}>
       <Text>Home Screen</Text>
+      <Button
+        accessibilityLabel="Start Experiment"
+        title="Start Experiment"
+        onPress={() => void startExperiment()}
+      />
       <Button accessibilityLabel="Press me to test Autocapture" title="Press me" onPress={() => console.log('Pressed')} />
       <Button accessibilityLabel="Online test label" title="Online test" onPress={() => console.log('Online test')} />
       <Button accessibilityLabel="Offline test" title="Offline test" onPress={() => console.log('Offline test')} />
@@ -52,6 +91,7 @@ export default function App() {
 
   useEffect(() => {
     (async () => {
+        await add(experiment).promise;
         // AMPLITUDE_API_KEY is inlined at bundle time (see babel.config.js).
         await init(process.env.AMPLITUDE_API_KEY || 'YOUR_API_KEY', 'React Native Test User', {
           logLevel: Types.LogLevel.Debug,

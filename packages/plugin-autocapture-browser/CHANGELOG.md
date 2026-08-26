@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.28.12](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.28.11...@amplitude/plugin-autocapture-browser@1.28.12) (2026-08-24)
+
+
+### Bug Fixes
+
+* **autocapture:** prevent scroll gestures from triggering dead clicks ([#1941](https://github.com/amplitude/Amplitude-TypeScript/issues/1941)) ([0807d88](https://github.com/amplitude/Amplitude-TypeScript/commit/0807d88cc3218b75d15fdec1a3a3d88104b4ccfa))
+
+
+
+
+
 ## [1.28.11](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.28.10...@amplitude/plugin-autocapture-browser@1.28.11) (2026-08-12)
 
 

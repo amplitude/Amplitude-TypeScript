@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.55.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.54.2...@amplitude/analytics-core@2.55.0) (2026-08-24)
+
+
+### Features
+
+* **analytics-react-native:** add diagnostics client ([#1939](https://github.com/amplitude/Amplitude-TypeScript/issues/1939)) ([8d150ce](https://github.com/amplitude/Amplitude-TypeScript/commit/8d150ce6611b628e9e10a59ea96da07ec71e9fcf))
+
+
+
+
+
 ## [2.54.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.54.1...@amplitude/analytics-core@2.54.2) (2026-08-12)
 
 

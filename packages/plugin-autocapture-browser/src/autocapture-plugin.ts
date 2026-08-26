@@ -70,6 +70,7 @@ export type AutoCaptureOptionsWithDefaults = Required<
 
 export enum ObservablesEnum {
   ClickObservable = 'clickObservable',
+  PointerDownObservable = 'pointerDownObservable',
   ChangeObservable = 'changeObservable',
   NavigateObservable = 'navigateObservable',
   MutationObservable = 'mutationObservable',
