@@ -34,11 +34,15 @@ import {
   NetworkTrackingOptions,
   normalizeNetworkCaptureRules,
   safeJsonStringify,
+  DiagnosticsClient,
 } from '@amplitude/analytics-core';
 import { plugin as networkCapturePlugin } from '@amplitude/plugin-network-capture-browser';
 import { CampaignTracker } from './campaign/campaign-tracker';
 import { Context } from './plugins/context';
 import { networkConnectivityCheckerPlugin } from './plugins/network-connectivity-checker';
+import { ReactNativeDiagnosticsStorage } from './diagnostics/diagnostics-storage';
+import { LIBPREFIX } from './lib-prefix';
+import { VERSION } from './version';
 import { useReactNativeConfig, createCookieStorage, shouldFetchRemoteConfig } from './config';
 import { updateReactNativeConfigWithRemoteConfig } from './config/joined-config';
 import { parseOldCookies } from './cookie-migration';
@@ -191,6 +195,21 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
       }
     }
 
+    // Step 0.3: Initialize diagnostics client as early as possible so it can record failures
+    // during config setup. Mirrors the browser SDK; storage is injected because RN has no
+    // IndexedDB. Options are left at their defaults (enabled, sample rate 0), which keeps the
+    // client inert until the remote config gate above is turned on.
+    const diagnosticsClient = new DiagnosticsClient(
+      options.apiKey,
+      loggerProvider,
+      serverZone,
+      undefined,
+      new ReactNativeDiagnosticsStorage(options.apiKey, loggerProvider),
+    );
+    diagnosticsClient.setTag('library', `${LIBPREFIX}/${VERSION}`);
+    diagnosticsClient.setTag('platform', 'ReactNative');
+    diagnosticsClient.setTag('os', Platform.OS);
+
     // Step 1: Read cookies stored by old SDK
     const oldCookies = await parseOldCookies(options.apiKey, options);
 
@@ -268,7 +287,7 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
     // Set up the analytics connector to integrate with the experiment SDK.
     // Send events from the experiment SDK and forward identifies to the
     // identity store.
-    const connector = getAnalyticsConnector();
+    const connector = getAnalyticsConnector(this.config.instanceName);
     connector.identityStore.setIdentity({
       userId: this.config.userId,
       deviceId: this.config.deviceId,
@@ -281,7 +300,7 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
     if (this.config.offline !== OfflineDisabled) {
       await this.add(networkConnectivityCheckerPlugin()).promise;
     }
-    await this.add(new Destination()).promise;
+    await this.add(new Destination({ diagnosticsClient })).promise;
     await this.add(new Context()).promise;
     await this.add(new IdentityEventSender()).promise;
 
@@ -374,7 +393,7 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
       return;
     }
     this.config.userId = userId;
-    setConnectorUserId(userId);
+    setConnectorUserId(userId, this.config.instanceName);
   }
 
   getDeviceId() {
@@ -387,7 +406,7 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
       return;
     }
     this.config.deviceId = deviceId;
-    setConnectorDeviceId(deviceId);
+    setConnectorDeviceId(deviceId, this.config.instanceName);
   }
 
   identify(identify: IIdentify, eventOptions?: EventOptions) {

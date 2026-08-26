@@ -3,9 +3,20 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
-## [2.11.13-video-analytics.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-page-view-tracking-browser@2.11.12...@amplitude/plugin-page-view-tracking-browser@2.11.13-video-analytics.0) (2026-07-31)
+## [2.11.14](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-page-view-tracking-browser@2.11.13...@amplitude/plugin-page-view-tracking-browser@2.11.14) (2026-08-24)
 
 **Note:** Version bump only for package @amplitude/plugin-page-view-tracking-browser
+
+
+
+
+
+## [2.11.13](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-page-view-tracking-browser@2.11.12...@amplitude/plugin-page-view-tracking-browser@2.11.13) (2026-08-12)
+
+
+### Bug Fixes
+
+* **deps:** remediate Semgrep supply chain findings ([#1921](https://github.com/amplitude/Amplitude-TypeScript/issues/1921)) ([e131df0](https://github.com/amplitude/Amplitude-TypeScript/commit/e131df0b414933418e4c7159f1bfbdacc633a7d9))
 
 
 

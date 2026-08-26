@@ -38,8 +38,10 @@
  */
 
 import { ResolvedSelectorConfig } from './types';
+import { normalizeResolvedConfig } from './config/resolve-config';
 import { getStableId } from './helpers/get-stable-id';
 import { escapeIdForCss } from './helpers/escape-id';
+import { isShadowRoot, positionalStep, SHADOW_CHILD_CHAIN_PREFIX } from './helpers/shadow';
 
 export interface FallbackCssPathOptions {
   /** Document or shadow root used for uniqueness checks. Defaults to the target's owner document. */
@@ -52,24 +54,38 @@ export interface FallbackCssPathOptions {
  *
  * Honors `config.maxAncestorWalkDepth` defensively — once the depth limit is
  * reached, the walker stops and returns whatever it has built so far rooted at
- * the deepest reached ancestor.
+ * the deepest reached ancestor. Exception: a shadow-root scope always walks to
+ * the tree root (see `honorDepthCap`).
+ *
+ * A depth-capped light-DOM chain is relative and may match more than one
+ * element — `resolveSelector` returns the first match, not necessarily the
+ * target. Treat capped paths as locators, not identities.
  */
 export function fallbackCssPath(
   el: Element,
   config: ResolvedSelectorConfig,
   options: FallbackCssPathOptions = {},
 ): string {
+  const resolved = normalizeResolvedConfig(config);
   const scope: ParentNode = options.scope ?? el.ownerDocument ?? document;
+  const scopeIsShadowRoot = isShadowRoot(scope as Node);
   const segments: string[] = [];
   let cursor: Element | null = el;
   let depth = 0;
 
+  // The `SHADOW_CHILD_CHAIN_PREFIX` marker below is only emitted when the walk
+  // terminates naturally, and it's the only thing anchoring a positional chain
+  // inside a shadow root. Capping the walk there drops the marker, so
+  // `resolveSelector` matches the first same-shaped subtree instead of the
+  // target. The cap targets deep light DOMs; skipping it here is cheap.
+  const honorDepthCap = !(resolved.shadowDomEnabled && scopeIsShadowRoot);
+
   while (cursor !== null) {
-    if (config.maxAncestorWalkDepth !== undefined && depth > config.maxAncestorWalkDepth) {
+    if (honorDepthCap && resolved.maxAncestorWalkDepth !== undefined && depth > resolved.maxAncestorWalkDepth) {
       break;
     }
 
-    const id = getStableId(cursor, config);
+    const id = getStableId(cursor, resolved);
     if (id !== null) {
       // Anchor format mirrors the stableId strategy: `tag#id` with the id
       // CSS-escaped. Only terminate if the composed selector uniquely resolves
@@ -81,45 +97,32 @@ export function fallbackCssPath(
       }
     }
 
-    segments.unshift(stepFor(cursor));
+    // `positionalStep` emits `tag:nth-of-type(n)` for an element with a parent
+    // and the bare `tag` for the document root. `config.shadowDomEnabled` also
+    // lets it index a shadow-root-top element against its `ShadowRoot` siblings —
+    // its `parentElement` is null, but it can have same-tag peers.
+    segments.unshift(positionalStep(cursor, resolved.shadowDomEnabled));
     cursor = cursor.parentElement;
     depth += 1;
   }
 
-  // Walked all the way to the document root without finding an id. The first
-  // segment is whatever `<html>` produced (which is just `html` since it has
-  // no parent and no same-tag siblings).
-  return segments.join(' > ');
-}
+  const path = segments.join(' > ');
 
-/**
- * Build a single step. For an element with a parent: `tag:nth-of-type(n)`.
- * For a root element (no parent — i.e. <html>): just `tag`.
- *
- * Class-based disambiguation is intentionally not emitted in v1 — see the
- * design doc, "Why we don't use classes for sibling disambiguation". The
- * `filterClasses` helper is imported in the package for future iterations.
- */
-function stepFor(el: Element): string {
-  const tag = el.tagName.toLowerCase();
-  const parent = el.parentElement;
-  if (parent === null) {
-    return tag;
+  // In the light DOM the chain's first segment is `<html>` (unique), which
+  // anchors it. Inside a shadow root there is no anchoring root element, so a
+  // bare positional chain would match tree-wide. When we reached the top of the
+  // tree naturally (`cursor === null`, not a depth-limit break), the chain spans
+  // root → target via direct children — mark it so `resolveSelector` resolves it
+  // by direct-child descent. The marker is explicit (not inferred from the step
+  // syntax), so it stays correct even if steps later include classes.
+  //
+  // Requires `shadowDomEnabled`: the marker is only meaningful to a resolver that
+  // is descending shadow roots, so a `ShadowRoot` scope alone doesn't produce it.
+  if (resolved.shadowDomEnabled && scopeIsShadowRoot && cursor === null) {
+    return `${SHADOW_CHILD_CHAIN_PREFIX}${path}`;
   }
-  const index = sameTypeIndex(el, parent);
-  return `${tag}:nth-of-type(${index})`;
-}
 
-function sameTypeIndex(el: Element, parent: Element): number {
-  let count = 0;
-  for (let i = 0; i < parent.children.length; i++) {
-    const sibling = parent.children[i];
-    if (sibling.tagName === el.tagName) {
-      count += 1;
-      if (sibling === el) return count;
-    }
-  }
-  return 1;
+  return path;
 }
 
 function isUniqueMatch(scope: ParentNode, selector: string, el: Element): boolean {

@@ -31,7 +31,14 @@ export { getStorageKey } from './storage/helpers';
 
 export { BrowserStorage } from './storage/browser-storage';
 
-export { DiagnosticsClient, IDiagnosticsClient } from './diagnostics/diagnostics-client';
+export { DiagnosticsClient, IDiagnosticsClient, HistogramStats } from './diagnostics/diagnostics-client';
+export {
+  IDiagnosticsStorage,
+  TagRecord,
+  CounterRecord,
+  HistogramRecord,
+  EventRecord,
+} from './diagnostics/diagnostics-storage';
 export { registerSdkLoaderMetadata } from './diagnostics/uncaught-sdk-errors';
 
 export { BaseTransport } from './transports/base';

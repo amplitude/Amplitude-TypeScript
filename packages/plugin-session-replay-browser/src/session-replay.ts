@@ -5,6 +5,7 @@ import {
   Event,
   SpecialEventType,
   getGlobalScope,
+  getAnalyticsConnector,
 } from '@amplitude/analytics-core';
 import {
   init,
@@ -17,7 +18,6 @@ import {
   AmplitudeSessionReplay,
   SessionReplayOptions as SessionReplayBrowserOptions,
 } from '@amplitude/session-replay-browser';
-import { getAnalyticsConnector } from '@amplitude/analytics-client-common';
 import { parseUserProperties } from './helpers';
 import { SessionReplayOptions } from './typings/session-replay';
 import { VERSION } from './version';

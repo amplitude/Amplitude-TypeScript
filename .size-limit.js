@@ -1,8 +1,10 @@
 const limits = [
   {
     // analytics-browser bundle
+    // Bumped 65kb → 66kb for shadow DOM support in plugin-autocapture-browser
+    // (SR-4788). Current actual: ~65.0kb gzipped.
     path: './packages/analytics-browser/lib/scripts/amplitude-min.js.gz',
-    limit: '65kb',
+    limit: '66kb',
     brotli: false,
   },
   {

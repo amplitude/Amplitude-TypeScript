@@ -427,6 +427,10 @@ describe('browser-client', () => {
         expect(client.config.enableDiagnostics).toBe(expectedEnabled);
         expect(client.config.diagnosticsSampleRate).toBe(expectedSampleRate);
 
+        expect(mockDiagnosticsClient.setTag).toHaveBeenCalledWith('platform', 'Web');
+        // jsdom: document present, no chrome.runtime
+        expect(mockDiagnosticsClient.setTag).toHaveBeenCalledWith('web_environment', 'browser');
+
         // Clean up
         diagnosticsClientSpy.mockRestore();
       },

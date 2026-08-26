@@ -1,6 +1,6 @@
 {
   "name": "@amplitude/unified",
-  "version": "1.1.29-video-analytics.0",
+  "version": "1.1.30",
   "description": "Official Amplitude SDK for Web analytics, experiment, session replay, and more.",
   "keywords": [
     "amplitude",
@@ -54,6 +54,6 @@
     "@amplitude/plugin-session-replay-browser": "workspace:*"
   },
   "devDependencies": {
-    "rollup": "^2.79.1"
+    "rollup": "^2.80.0"
   }
 }

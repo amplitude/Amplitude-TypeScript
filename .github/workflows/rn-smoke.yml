@@ -198,9 +198,23 @@ jobs:
         run: xcrun simctl install "$SIM_UDID" build/Build/Products/Release-iphonesimulator/app.app
 
       - name: Install Maestro
+        env:
+          MAESTRO_VERSION: '2.7.0'
+          MAESTRO_SHA256: 'a4ccab6b604617e7aef6db4f885666056eabe5cfa32befaa3bc994041b8fcbb5'
         run: |
-          curl -fsSL "https://get.maestro.mobile.dev" | bash
-          echo "$HOME/.maestro/bin" >> $GITHUB_PATH
+          MAESTRO_DIR="$HOME/.maestro"
+          MAESTRO_TMP="$MAESTRO_DIR/tmp"
+          MAESTRO_ZIP="$MAESTRO_TMP/maestro.zip"
+          DOWNLOAD_URL="https://github.com/mobile-dev-inc/maestro/releases/download/cli-${MAESTRO_VERSION}/maestro.zip"
+          mkdir -p "$MAESTRO_TMP"
+          curl -fsSL "$DOWNLOAD_URL" -o "$MAESTRO_ZIP"
+          echo "$MAESTRO_SHA256  $MAESTRO_ZIP" | shasum -a 256 -c -
+          unzip -qo "$MAESTRO_ZIP" -d "$MAESTRO_TMP"
+          rm -rf "${MAESTRO_DIR}/lib" "${MAESTRO_DIR}/bin"
+          mkdir -p "$MAESTRO_DIR"
+          cp -rf "$MAESTRO_TMP/maestro/"* "$MAESTRO_DIR"
+          rm -rf "$MAESTRO_TMP/maestro" "$MAESTRO_ZIP"
+          echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
 
       - name: Run Maestro smoke flow
         working-directory: ${{ env.APP_DIR }}

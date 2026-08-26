@@ -4,7 +4,7 @@ import { Event, IdentifyEvent, SpecialEventType, UserProperties } from '../src/t
 import { Plugin, EnrichmentPlugin } from '../src/types/plugin';
 import { Status } from '../src/types/status';
 import { AmplitudeCore, Identify, Revenue } from '../src/index';
-import { CLIENT_NOT_INITIALIZED, OPT_OUT_MESSAGE } from '../src/types/messages';
+import { CLIENT_NOT_INITIALIZED, EMPTY_EVENT_TYPE_MESSAGE, OPT_OUT_MESSAGE } from '../src/types/messages';
 import { useDefaultConfig } from './helpers/default';
 import { IdentifyOperation } from '../src/identify';
 import { UNSET_VALUE } from '../src/types/constants';
@@ -482,6 +482,38 @@ describe('core-client', () => {
 
       expect(onIdentityChanged).toHaveBeenCalledTimes(1);
       expect(onIdentityChanged).toHaveBeenCalledWith({ userProperties: undefined });
+    });
+
+    test.each([
+      ['an empty', ''],
+      ['a whitespace-only', '   '],
+      ['a missing', undefined],
+    ])('should drop an event with %s event type', async (_description, eventType) => {
+      const client = new AmplitudeCore();
+      const loggerProvider = { ...mockLoggerProvider, error: jest.fn() };
+      client.config = { ...mockConfig, loggerProvider } as BrowserConfig;
+      const push = jest.spyOn(client.timeline, 'push');
+
+      const event = { event_type: eventType } as Event;
+      const result = await client.process(event);
+
+      expect(result).toEqual({ event, code: 0, message: EMPTY_EVENT_TYPE_MESSAGE });
+      expect(push).toHaveBeenCalledTimes(0);
+      expect(loggerProvider.error).toHaveBeenCalledTimes(1);
+      expect(loggerProvider.error).toHaveBeenCalledWith(EMPTY_EVENT_TYPE_MESSAGE);
+    });
+
+    test('should not drop an event with a valid event type', async () => {
+      const client = new AmplitudeCore();
+      const loggerProvider = { ...mockLoggerProvider, error: jest.fn() };
+      client.config = { ...mockConfig, loggerProvider } as BrowserConfig;
+      const push = jest.spyOn(client.timeline, 'push').mockReturnValueOnce(Promise.resolve(success));
+
+      const result = await client.process({ event_type: 'event_type' });
+
+      expect(result).toBe(success);
+      expect(push).toHaveBeenCalledTimes(1);
+      expect(loggerProvider.error).toHaveBeenCalledTimes(0);
     });
   });
 

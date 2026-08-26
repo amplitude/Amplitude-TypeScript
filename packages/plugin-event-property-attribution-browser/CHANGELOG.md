@@ -3,9 +3,20 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
-## [0.2.13-video-analytics.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-event-property-attribution-browser@0.2.12...@amplitude/plugin-event-property-attribution-browser@0.2.13-video-analytics.0) (2026-07-31)
+## [0.2.14](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-event-property-attribution-browser@0.2.13...@amplitude/plugin-event-property-attribution-browser@0.2.14) (2026-08-24)
 
 **Note:** Version bump only for package @amplitude/plugin-event-property-attribution-browser
+
+
+
+
+
+## [0.2.13](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-event-property-attribution-browser@0.2.12...@amplitude/plugin-event-property-attribution-browser@0.2.13) (2026-08-12)
+
+
+### Bug Fixes
+
+* **deps:** remediate Semgrep supply chain findings ([#1921](https://github.com/amplitude/Amplitude-TypeScript/issues/1921)) ([e131df0](https://github.com/amplitude/Amplitude-TypeScript/commit/e131df0b414933418e4c7159f1bfbdacc633a7d9))
 
 
 

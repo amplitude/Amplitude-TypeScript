@@ -1,4 +1,5 @@
 import { AmplitudeReactNative } from '../src/react-native-client';
+import { ReactNativeDiagnosticsStorage } from '../src/diagnostics/diagnostics-storage';
 import * as core from '@amplitude/analytics-core';
 import * as Capture from '../src/amp-capture';
 import * as CookieMigration from '../src/cookie-migration';
@@ -234,6 +235,74 @@ describe('react-native-client', () => {
       const identity = getAnalyticsConnector().identityStore.getIdentity();
       expect(identity.deviceId).toBe(DEVICE_ID);
       expect(identity.userId).toBe(USER_ID);
+    });
+
+    test('should use the configured analytics connector instance for identity and events', async () => {
+      const instanceName = 'custom-instance';
+      const client = new AmplitudeReactNative();
+      await client.init(API_KEY, USER_ID, {
+        deviceId: DEVICE_ID,
+        instanceName,
+        optOut: false,
+        ...attributionConfig,
+      }).promise;
+
+      const connector = getAnalyticsConnector(instanceName);
+      expect(connector.identityStore.getIdentity()).toMatchObject({
+        deviceId: DEVICE_ID,
+        userId: USER_ID,
+      });
+
+      client.setUserId('updated-user-id');
+      client.setDeviceId('updated-device-id');
+      expect(connector.identityStore.getIdentity()).toMatchObject({
+        deviceId: 'updated-device-id',
+        userId: 'updated-user-id',
+      });
+
+      const track = jest.spyOn(client, 'track').mockReturnValueOnce({
+        promise: Promise.resolve({
+          code: 200,
+          message: '',
+          event: { event_type: 'experiment-event' },
+        }),
+      });
+      connector.eventBridge.logEvent({
+        eventType: 'experiment-event',
+        eventProperties: { source: 'experiment' },
+      });
+
+      expect(track).toHaveBeenCalledWith('experiment-event', { source: 'experiment' });
+    });
+
+    test('should normalize an empty analytics connector instance name', async () => {
+      const client = new AmplitudeReactNative();
+      await client.init(API_KEY, USER_ID, {
+        deviceId: DEVICE_ID,
+        instanceName: '',
+        optOut: false,
+        ...attributionConfig,
+      }).promise;
+
+      const connector = getAnalyticsConnector();
+      expect(connector.identityStore.getIdentity()).toMatchObject({
+        deviceId: DEVICE_ID,
+        userId: USER_ID,
+      });
+
+      const track = jest.spyOn(client, 'track').mockReturnValueOnce({
+        promise: Promise.resolve({
+          code: 200,
+          message: '',
+          event: { event_type: 'experiment-event' },
+        }),
+      });
+      connector.eventBridge.logEvent({
+        eventType: 'experiment-event',
+        eventProperties: { source: 'experiment' },
+      });
+
+      expect(track).toHaveBeenCalledWith('experiment-event', { source: 'experiment' });
     });
 
     test('should set up event bridge and track events', async () => {
@@ -1596,6 +1665,24 @@ describe('react-native-client', () => {
         },
         undefined,
       );
+    });
+  });
+
+  describe('diagnostics', () => {
+    test('should give Destination a diagnostics client backed by RN storage', async () => {
+      const client = new AmplitudeReactNative();
+      const addSpy = jest.spyOn(client, 'add');
+
+      await client.init(API_KEY, undefined, { ...useDefaultConfig() }).promise;
+
+      const destination = addSpy.mock.calls
+        .map(([plugin]) => plugin as core.Destination)
+        .find((plugin) => plugin.name === 'amplitude');
+      expect(destination).toBeDefined();
+      // Without this the analytics.events.sent / .dropped counters never fire on RN.
+      const diagnosticsClient = destination?.diagnosticsClient as core.DiagnosticsClient | undefined;
+      expect(diagnosticsClient).toBeDefined();
+      expect(diagnosticsClient?.storage).toBeInstanceOf(ReactNativeDiagnosticsStorage);
     });
   });
 });

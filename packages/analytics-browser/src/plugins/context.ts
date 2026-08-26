@@ -2,7 +2,7 @@ import { UUID, getLanguage, Event, BeforePlugin, BrowserConfig } from '@amplitud
 import { VERSION } from '../version';
 import { LIBPREFIX } from '../lib-prefix';
 
-const BROWSER_PLATFORM = 'Web';
+export const BROWSER_PLATFORM = 'Web';
 const IP_ADDRESS = '$remote';
 export class Context implements BeforePlugin {
   name = '@amplitude/plugin-context-browser';

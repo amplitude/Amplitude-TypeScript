@@ -1,6 +1,6 @@
 {
   "name": "@amplitude/targeting",
-  "version": "0.3.10-video-analytics.0",
+  "version": "0.3.10",
   "description": "",
   "author": "Amplitude Inc",
   "homepage": "https://github.com/amplitude/Amplitude-TypeScript",
@@ -38,21 +38,17 @@
     "url": "https://github.com/amplitude/Amplitude-TypeScript/issues"
   },
   "dependencies": {
-    "@amplitude/analytics-client-common": "workspace:*",
-    "@amplitude/analytics-core": "workspace:*",
     "@amplitude/analytics-types": "workspace:*",
     "@amplitude/experiment-core": "0.7.2",
     "idb": "8.0.0",
     "tslib": "^2.4.1"
   },
   "devDependencies": {
-    "@aws-sdk/client-s3": "^3.229.0",
     "@rollup/plugin-commonjs": "^23.0.4",
     "@rollup/plugin-node-resolve": "^15.0.1",
     "@rollup/plugin-typescript": "^10.0.1",
-    "@types/core-js": "^2.5.8",
     "fake-indexeddb": "4.0.2",
-    "rollup": "^2.79.1",
+    "rollup": "^2.80.0",
     "rollup-plugin-execute": "^1.1.1",
     "rollup-plugin-gzip": "^3.1.0",
     "rollup-plugin-sourcemaps": "^0.6.3",

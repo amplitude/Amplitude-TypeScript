@@ -54,7 +54,8 @@ import {
   isCustomEnrichmentEnabled,
 } from './default-tracking';
 import { convertProxyObjectToRealObject, isInstanceProxy } from './utils/snippet-helper';
-import { Context } from './plugins/context';
+import { getRuntimeEnvironment } from './utils/environment';
+import { BROWSER_PLATFORM, Context } from './plugins/context';
 import { useBrowserConfig, createTransport, shouldFetchRemoteConfig } from './config';
 import { pageViewTrackingPlugin } from '@amplitude/plugin-page-view-tracking-browser';
 import { formInteractionTracking } from './plugins/form-interaction-tracking';
@@ -190,6 +191,8 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
       sampleRate: diagnosticsSampleRate,
     });
     diagnosticsClient.setTag('library', `${LIBPREFIX}/${VERSION}`);
+    diagnosticsClient.setTag('platform', BROWSER_PLATFORM);
+    diagnosticsClient.setTag('web_environment', getRuntimeEnvironment());
     if (typeof navigator !== 'undefined') {
       diagnosticsClient.setTag('user_agent', navigator.userAgent);
     }

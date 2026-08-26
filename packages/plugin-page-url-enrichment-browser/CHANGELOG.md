@@ -3,9 +3,20 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
-## [0.7.23-video-analytics.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-page-url-enrichment-browser@0.7.22...@amplitude/plugin-page-url-enrichment-browser@0.7.23-video-analytics.0) (2026-07-31)
+## [0.7.24](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-page-url-enrichment-browser@0.7.23...@amplitude/plugin-page-url-enrichment-browser@0.7.24) (2026-08-24)
 
 **Note:** Version bump only for package @amplitude/plugin-page-url-enrichment-browser
+
+
+
+
+
+## [0.7.23](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-page-url-enrichment-browser@0.7.22...@amplitude/plugin-page-url-enrichment-browser@0.7.23) (2026-08-12)
+
+
+### Bug Fixes
+
+* **deps:** remediate Semgrep supply chain findings ([#1921](https://github.com/amplitude/Amplitude-TypeScript/issues/1921)) ([e131df0](https://github.com/amplitude/Amplitude-TypeScript/commit/e131df0b414933418e4c7159f1bfbdacc633a7d9))
 
 
 

@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [0.1.0-beta.4](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-react-native@0.1.0-beta.3...@amplitude/session-replay-react-native@0.1.0-beta.4) (2026-08-24)
+
+
+### Features
+
+* **session-replay-react-native:** remove deprecated APIs ([#1950](https://github.com/amplitude/Amplitude-TypeScript/issues/1950)) ([6deb062](https://github.com/amplitude/Amplitude-TypeScript/commit/6deb0623b3d413b87ef158bc60cc9775f1df017e))
+
+
+
+
+
 # [0.1.0-beta.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-react-native@0.1.0-beta.2...@amplitude/session-replay-react-native@0.1.0-beta.3) (2026-07-17)
 
 

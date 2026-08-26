@@ -54,6 +54,18 @@ $ pnpm test
 
 When writing commit message, follow [PR Commit Title Conventions](#PR-Commit-Title-Conventions) for the format. A git hook will also run to verify that the format is followed.
 
+#### Unused Dependencies
+
+Dependencies that are declared in a `package.json` but never used by that package are reported by [knip](https://knip.dev):
+
+```
+$ pnpm lint:deps
+```
+
+This runs on every PR as the "Check Unused Dependencies" job. If it fails, either drop the dependency from the `package.json` it names, or — if the dependency really is used in a way a static check cannot see — add it to `knip.config.js` with a comment explaining why.
+
+That escape hatch exists because a few dependencies in this repo are genuinely used without being imported: `tslib` is injected by `"importHelpers": true`, the rollup plugins are imported by the shared config in `scripts/build/` but must resolve from each package's own `node_modules`, and a handful are named as string literals in build configs. Prefer removing a dependency over ignoring it.
+
 #### Deprecated Packages
 
 The following packages are deprecated and **should not be added as dependencies** in new code:
