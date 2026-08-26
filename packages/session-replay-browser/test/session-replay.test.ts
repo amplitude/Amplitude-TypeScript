@@ -2724,6 +2724,16 @@ describe('SessionReplay', () => {
       expect(allEvents).toEqual([mockEventString]); // exactly the one pre-existing event
     });
 
+    test('should stop recording if emit fires after stop()', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      await sessionReplay.recordEvents();
+      const recordArg = mockRecordFunction.mock.calls[0][0] as { emit?: (event: unknown) => void };
+      sessionReplay.stop();
+      mockRecordFunction.mockClear();
+      recordArg?.emit && recordArg.emit(mockEvent);
+      expect(sessionReplay.recordCancelCallback).toBe(null);
+    });
+
     test('should add an error handler', async () => {
       await sessionReplay.init(apiKey, mockOptions).promise;
       await sessionReplay.recordEvents();
@@ -3687,6 +3697,7 @@ describe('SessionReplay', () => {
     test('stop during in-flight recordEvents should not start rrweb afterward', async () => {
       await sessionReplay.init(apiKey, mockOptions).promise;
       await jest.runAllTimersAsync();
+      await sessionReplay.recordEvents();
       mockRecordFunction.mockClear();
 
       let resolveObservers: (() => void) | undefined;
@@ -3696,6 +3707,8 @@ describe('SessionReplay', () => {
       jest.spyOn(sessionReplay as any, 'initializeNetworkObservers').mockImplementation(() => observersStarted);
 
       const recordPromise = sessionReplay.recordEvents();
+      // Flush the getRecordFunction() microtask so we block on initializeNetworkObservers.
+      await Promise.resolve();
       sessionReplay.stop();
       resolveObservers?.();
       await recordPromise;
@@ -5464,6 +5477,21 @@ describe('SessionReplay', () => {
         onStart();
 
         expect(mockRecordFunction).toHaveBeenCalledWith(expect.objectContaining({ recordCrossOriginIframes: true }));
+      });
+
+      test('onStart after stop does not start child recording', async () => {
+        await sessionReplay.init(apiKey, crossOriginOptions).promise;
+        await sessionReplay.recordEvents();
+        await jest.runAllTimersAsync();
+
+        const { onStart } = (mockListenForParentSignals as jest.Mock).mock.calls[0][0] as {
+          onStart: () => void;
+        };
+        sessionReplay.stop();
+        mockRecordFunction.mockClear();
+        onStart();
+
+        expect(mockRecordFunction).not.toHaveBeenCalled();
       });
 
       test('stops recording when onStop callback is invoked', async () => {

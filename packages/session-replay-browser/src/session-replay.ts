@@ -1016,9 +1016,6 @@ export class SessionReplay implements AmplitudeSessionReplay {
       const childMode = crossOriginIframesEnabled && isInIframe();
 
       if (childMode && coordinateChildren) {
-        if (this.shouldAbandonRecordStart(generation)) {
-          return;
-        }
         // Child mode: don't self-start; wait for a start signal from the parent.
         // (The previous listener, if any, was already removed by stopRecordingEvents above.)
         this.crossOriginParentSignalCleanup = listenForParentSignals({
