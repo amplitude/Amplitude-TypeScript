@@ -164,10 +164,10 @@ describe('createMutationObservable — shadow fan-out', () => {
 });
 
 describe('createExposureObservable — shadow mutation path', () => {
-  let mockIntersectionObserver: { observe: jest.Mock; disconnect: jest.Mock };
+  let mockIntersectionObserver: { observe: jest.Mock; unobserve: jest.Mock; disconnect: jest.Mock };
 
   beforeEach(() => {
-    mockIntersectionObserver = { observe: jest.fn(), disconnect: jest.fn() };
+    mockIntersectionObserver = { observe: jest.fn(), unobserve: jest.fn(), disconnect: jest.fn() };
     (global as any).IntersectionObserver = jest.fn(() => mockIntersectionObserver);
     document.body.innerHTML = '';
   });

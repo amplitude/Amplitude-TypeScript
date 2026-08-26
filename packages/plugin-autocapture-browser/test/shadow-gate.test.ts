@@ -219,13 +219,13 @@ describe('late remote config — mutation observer picks up pre-existing shadow 
 
 describe('late remote config — exposure discovery picks up pre-existing shadow elements', () => {
   let mutationObservable: Observable<TimestampedEvent<MutationRecord[]>>;
-  let mockIntersectionObserver: { observe: jest.Mock; disconnect: jest.Mock };
+  let mockIntersectionObserver: { observe: jest.Mock; unobserve: jest.Mock; disconnect: jest.Mock };
 
   beforeEach(() => {
     mutationObservable = { subscribe: jest.fn(() => ({ unsubscribe: jest.fn() })) } as unknown as Observable<
       TimestampedEvent<MutationRecord[]>
     >;
-    mockIntersectionObserver = { observe: jest.fn(), disconnect: jest.fn() };
+    mockIntersectionObserver = { observe: jest.fn(), unobserve: jest.fn(), disconnect: jest.fn() };
     (global as any).IntersectionObserver = jest.fn(() => mockIntersectionObserver);
   });
 

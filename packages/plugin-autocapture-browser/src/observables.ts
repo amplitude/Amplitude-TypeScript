@@ -199,8 +199,12 @@ const createConsoleErrorObservable = (): Observable<BrowserErrorEvent> => {
 export const createExposureObservable = (
   mutationObservable: Observable<TimestampedEvent<MutationRecord[]>>,
   selectorAllowlist: string[],
-  shadowGate?: ShadowGate,
+  registerRescanOrShadowGate?: ((rescan: (() => void) | undefined) => void) | ShadowGate,
+  maybeShadowGate?: ShadowGate,
 ): Observable<Event> => {
+  const registerRescan = typeof registerRescanOrShadowGate === 'function' ? registerRescanOrShadowGate : undefined;
+  const shadowGate = typeof registerRescanOrShadowGate === 'function' ? maybeShadowGate : registerRescanOrShadowGate;
+
   return new Observable<Event>((observer) => {
     const globalScope = getGlobalScope();
 
@@ -225,43 +229,20 @@ export const createExposureObservable = (
 
     const selectorString = selectorAllowlist.join(',');
 
-    if (!shadowGate) {
-      // Observe initial elements
-      /* istanbul ignore next */
-      const initialElements = globalScope?.document.querySelectorAll(selectorString) ?? [];
-      initialElements.forEach((element) => {
+    const observeMatchingElementsLight = (root: ParentNode) => {
+      if (root instanceof Element && root.matches(selectorString)) {
+        intersectionObserver.observe(root);
+      }
+      root.querySelectorAll(selectorString).forEach((element) => {
         intersectionObserver.observe(element);
       });
+    };
 
-      // Use mutation observable to observe new elements that match the allowlist
-      const mutationSubscription = mutationObservable.subscribe(({ event }) =>
-        event.forEach(({ addedNodes }) =>
-          addedNodes.forEach((node) => {
-            if (!(node instanceof Element)) {
-              return;
-            }
-            if (node.matches(selectorString)) {
-              intersectionObserver.observe(node);
-            }
-            node.querySelectorAll(selectorString).forEach((child) => {
-              intersectionObserver.observe(child);
-            });
-          }),
-        ),
-      );
-
-      return () => {
-        mutationSubscription.unsubscribe();
-        intersectionObserver.disconnect();
-      };
-    }
-
-    // `querySelectorAll` runs against arbitrary customer DOM and throws
-    // `SyntaxError` on a malformed `cssSelectorAllowlist` entry. This runs from
-    // setup and from a native observer callback, neither of which has an SDK
-    // boundary above it, so the throw is contained here: the remaining roots are
-    // still scanned, and unmatched elements are simply not tracked.
     const observeMatchesInShadow = (root: Element | Document) => {
+      /* istanbul ignore if */
+      if (!shadowGate) {
+        return;
+      }
       try {
         querySelectorAllDeep(root, selectorString, readGate(shadowGate)).forEach((element) => {
           intersectionObserver.observe(element);
@@ -271,50 +252,54 @@ export const createExposureObservable = (
       }
     };
 
-    const observeMatches = (root: Element | Document) => {
-      const shadow = readGate(shadowGate);
-      if (!shadow.enabled) {
-        root.querySelectorAll(selectorString).forEach((element) => {
-          intersectionObserver.observe(element);
-        });
+    const rescan = () => {
+      /* istanbul ignore next */
+      const doc = globalScope?.document;
+      /* istanbul ignore if */
+      if (!doc) {
         return;
       }
-      observeMatchesInShadow(root);
+
+      let elements: ArrayLike<Element> = [];
+      try {
+        if (shadowGate && readGate(shadowGate).enabled) {
+          elements = querySelectorAllDeep(doc, selectorString, readGate(shadowGate));
+        } else {
+          elements = doc.querySelectorAll(selectorString);
+        }
+      } catch {
+        return;
+      }
+
+      Array.from(elements).forEach((element) => {
+        // unobserve first so already-watched nodes get a fresh intersection callback
+        intersectionObserver.unobserve(element);
+        intersectionObserver.observe(element);
+      });
     };
 
-    // Elements present at subscription. Covers the light DOM only while the gate
-    // is off, which is its state until remote config arms it.
-    /* istanbul ignore next */
-    if (globalScope?.document) {
-      observeMatches(globalScope.document);
-    }
+    registerRescan?.(rescan);
+    rescan();
 
-    // Repeats the scan once the gate arms, which is what picks up elements
-    // already inside shadow roots. `IntersectionObserver.observe` ignores a
-    // target it is already observing, so re-walking the light DOM costs a
-    // traversal and changes nothing.
-    const cancelArmListener = shadowGate.onArm(() => {
+    const cancelArmListener = shadowGate?.onArm(() => {
       /* istanbul ignore next */
       if (globalScope?.document) {
-        observeMatches(globalScope.document);
+        observeMatchesInShadow(globalScope.document);
       }
     });
 
-    // Use mutation observable to observe new elements that match the allowlist.
     const mutationSubscription = mutationObservable.subscribe(({ event }) =>
       event.forEach(({ addedNodes }) =>
         addedNodes.forEach((node) => {
+          if (node instanceof DocumentFragment) {
+            observeMatchingElementsLight(node);
+            return;
+          }
           if (!(node instanceof Element)) {
             return;
           }
-          const shadow = readGate(shadowGate);
-          if (!shadow.enabled) {
-            if (node.matches(selectorString)) {
-              intersectionObserver.observe(node);
-            }
-            node.querySelectorAll(selectorString).forEach((child) => {
-              intersectionObserver.observe(child);
-            });
+          if (!shadowGate || !readGate(shadowGate).enabled) {
+            observeMatchingElementsLight(node);
             return;
           }
           try {
@@ -330,7 +315,8 @@ export const createExposureObservable = (
     );
 
     return () => {
-      cancelArmListener();
+      registerRescan?.(undefined);
+      cancelArmListener?.();
       mutationSubscription.unsubscribe();
       intersectionObserver.disconnect();
     };
