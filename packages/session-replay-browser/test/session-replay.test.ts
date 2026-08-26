@@ -5509,6 +5509,40 @@ describe('SessionReplay', () => {
         expect(mockRecordFunction).toHaveBeenCalledWith(expect.objectContaining({ recordCrossOriginIframes: true }));
       });
 
+      test('start() while capture is gated still self-starts after the gate later passes', async () => {
+        await sessionReplay.init(apiKey, crossOriginOptions).promise;
+        await sessionReplay.recordEvents();
+        await jest.runAllTimersAsync();
+
+        sessionReplay.stop();
+        mockRecordFunction.mockClear();
+        (mockListenForParentSignals as jest.Mock).mockClear();
+
+        sessionReplay.config!.captureEnabled = false;
+        await sessionReplay.start().promise;
+        expect(mockRecordFunction).not.toHaveBeenCalled();
+
+        sessionReplay.config!.captureEnabled = true;
+        await sessionReplay.recordEvents();
+        await jest.runAllTimersAsync();
+
+        expect(mockListenForParentSignals).toHaveBeenCalled();
+        expect(mockRecordFunction).toHaveBeenCalledWith(expect.objectContaining({ recordCrossOriginIframes: true }));
+      });
+
+      test('stop() after a gated start() drops the pending child self-start', async () => {
+        await sessionReplay.init(apiKey, crossOriginOptions).promise;
+        await sessionReplay.recordEvents();
+        await jest.runAllTimersAsync();
+
+        sessionReplay.config!.captureEnabled = false;
+        await sessionReplay.start().promise;
+        expect((sessionReplay as any).startChildRecordingOnSetup).toBe(true);
+
+        sessionReplay.stop();
+        expect((sessionReplay as any).startChildRecordingOnSetup).toBe(false);
+      });
+
       test('stops recording when onStop callback is invoked', async () => {
         await sessionReplay.init(apiKey, crossOriginOptions).promise;
         await sessionReplay.recordEvents();

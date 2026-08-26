@@ -130,7 +130,9 @@ export class SessionReplay implements AmplitudeSessionReplay {
   private recordingGeneration = 0;
   /**
    * Set by customer `start()` so coordinated child iframes self-start instead of
-   * waiting for a parent signal that may never be resent.
+   * waiting for a parent signal that may never be resent. Kept until recording
+   * actually starts so a gated `start()` (targeting, sampling, remote capture)
+   * still self-starts when those gates later pass.
    */
   private startChildRecordingOnSetup = false;
   private pendingEmitEvents: Array<{ event: eventWithTime; sessionId: string | number }> = [];
@@ -249,6 +251,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
     this.urlChangeCleanup?.();
     // A new init always allows capture again. `stop()` only pauses the current instance.
     this.recordingEnabled = true;
+    this.startChildRecordingOnSetup = false;
 
     this.loggerProvider = new SafeLoggerProvider(options.loggerProvider || new Logger());
     Object.prototype.hasOwnProperty.call(options, 'logLevel') &&
@@ -967,8 +970,6 @@ export class SessionReplay implements AmplitudeSessionReplay {
     const config = this.config;
     const shouldRecord = this.getShouldRecord();
     const sessionId = this.identifiers?.sessionId;
-    const selfStartChild = this.startChildRecordingOnSetup;
-    this.startChildRecordingOnSetup = false;
     if (!shouldRecord || !sessionId || !config) {
       return;
     }
@@ -1049,11 +1050,14 @@ export class SessionReplay implements AmplitudeSessionReplay {
         });
         // Customer start() must not wait for a parent signal: the parent may already
         // be recording and will not send another start. Init still waits.
-        if (selfStartChild) {
+        if (this.startChildRecordingOnSetup) {
+          this.startChildRecordingOnSetup = false;
           this._recordEventsInChildMode(recordFunction, sessionId, config, hooks);
         }
         return;
       }
+
+      this.startChildRecordingOnSetup = false;
 
       const plugins = await this.getRecordingPlugins(loggingConfig);
       if (this.shouldAbandonRecordStart(generation)) {
@@ -1276,6 +1280,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
 
   stop() {
     this.recordingEnabled = false;
+    this.startChildRecordingOnSetup = false;
     this.recordingGeneration++;
     this.stopRecordingEvents();
     this.sendEvents();
@@ -1292,6 +1297,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
 
   shutdown() {
     this.recordingEnabled = false;
+    this.startChildRecordingOnSetup = false;
     this.recordingGeneration++;
     this.urlChangeCleanup?.();
     this.crossOriginParentSignalCleanup?.();
