@@ -304,7 +304,7 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
     // Set up the analytics connector to integrate with the experiment SDK.
     // Send events from the experiment SDK and forward identifies to the
     // identity store.
-    const connector = getAnalyticsConnector(options.instanceName);
+    const connector = getAnalyticsConnector(this.config.instanceName);
     connector.identityStore.setIdentity({
       userId: this.config.userId,
       deviceId: this.config.deviceId,

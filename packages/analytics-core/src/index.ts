@@ -12,6 +12,7 @@ export { IConfig } from './types/config/core-config';
 export { Logger, ILogger, LogConfig } from './logger';
 export { getGlobalScope } from './global-scope';
 export { getAnalyticsConnector, setConnectorDeviceId, setConnectorUserId } from './analytics-connector';
+export { normalizeInstanceName } from './utils/instance-name';
 export { isNewSession } from './session';
 export { getCookieName, getOldCookieName } from './cookie-name';
 export { getLanguage } from './language';
