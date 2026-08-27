@@ -161,7 +161,8 @@ export class Destination implements DestinationPlugin {
           context.event.insert_id === incomingEvent.insert_id
         ) {
           if (this.inFlightDelayedEvents[incomingEvent.delay.id]) {
-            incomingEvent.delay.isFresh = true;
+            // Clone so isFresh is not set on a delay object shared with the in-flight event.
+            incomingEvent.delay = { ...incomingEvent.delay, isFresh: true };
             return true;
           }
           context.callback(buildResult(context.event, 0, 'Stale event overwritten'));
@@ -352,7 +353,15 @@ export class Destination implements DestinationPlugin {
         this.config.enableRequestBodyCompression,
       );
       if (delay) {
-        serverUrl = this.config.delayedEventsServerUrl || `${serverUrl}/delayed`;
+        // Delayed ingest is HTTP V2 only; the Batch API has no /delayed route.
+        const { serverUrl: delayedBaseUrl } = createServerConfig(
+          this.config.serverUrl && !DEFAULT_AMPLITUDE_SERVER_URLS.has(this.config.serverUrl)
+            ? this.config.serverUrl
+            : '',
+          this.config.serverZone,
+          false,
+        );
+        serverUrl = this.config.delayedEventsServerUrl || `${delayedBaseUrl}/delayed`;
         this.translatePayloadToDelayedPayload(payload, list);
         shouldCompressUploadBody = false; // delayed events doesn't support compression
       }

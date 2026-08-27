@@ -14,7 +14,7 @@ import {
 import { uuidPattern } from '../helpers/util';
 import { DiagnosticsClient, RequestMetadata } from '../../src';
 import { TrackEvent } from '../../src/types/event/event';
-import { AMPLITUDE_SERVER_URL } from '../../src/types/constants';
+import { AMPLITUDE_BATCH_SERVER_URL, AMPLITUDE_SERVER_URL } from '../../src/types/constants';
 
 const jsons = (obj: any) => JSON.stringify(obj, null, 2);
 
@@ -286,6 +286,61 @@ describe('destination', () => {
           message: SUCCESS_MESSAGE,
         });
         expect(send).toHaveBeenCalledTimes(3);
+      });
+
+      test('should drop in-flight predecessor when replacement shares the same delay object', async () => {
+        const sharedDelay = { id: delayId };
+        const predecessor = {
+          event_type: 'before',
+          insert_id: '123',
+          delay: sharedDelay,
+        };
+        const replacement = {
+          event_type: 'after',
+          insert_id: '123',
+          delay: sharedDelay,
+        };
+        let resolveSend!: (value: Response) => void;
+        const sendPromise = new Promise<Response>((resolve) => {
+          resolveSend = resolve;
+        });
+        const successResponse = {
+          status: Status.Success,
+          statusCode: 200,
+          body: {
+            eventsIngested: 1,
+            payloadSizeBytes: 1,
+            serverUploadTime: 1,
+          },
+        } as Response;
+        const send = jest.fn().mockReturnValueOnce(sendPromise).mockResolvedValueOnce(successResponse);
+        destination.config = {
+          ...useDefaultConfig(),
+          transportProvider: { send },
+        };
+
+        const staleResult = destination.execute(predecessor);
+        const flushPromise = destination.flush(true);
+        const replacementResult = destination.execute(replacement);
+
+        expect(destination.queue).toHaveLength(2);
+
+        resolveSend(successResponse);
+
+        await staleResult;
+        await flushPromise;
+
+        expect(destination.queue).toHaveLength(1);
+        expect(destination.queue[0].event).toEqual(replacement);
+
+        await destination.flush(true);
+
+        await expect(replacementResult).resolves.toEqual({
+          event: replacement,
+          code: 200,
+          message: SUCCESS_MESSAGE,
+        });
+        expect(send).toHaveBeenCalledTimes(2);
       });
     });
   });
@@ -1928,6 +1983,79 @@ describe('destination', () => {
         apiKey: API_KEY,
         serverUrl: AMPLITUDE_SERVER_URL,
       });
+    });
+
+    test('should send delayed events to default HTTP V2 /delayed when serverUrl is empty', async () => {
+      const emptyUrlDestination = new Destination();
+      const emptyUrlTransport = {
+        send: jest.fn().mockResolvedValue(successResponse),
+      };
+      await emptyUrlDestination.setup({
+        ...useDefaultConfig(),
+        transportProvider: emptyUrlTransport,
+        apiKey: API_KEY,
+        serverUrl: '',
+        serverZone: 'US',
+      });
+      const delayId = 'delay-123';
+      const event = { event_type: 'delayed_event', delay: { id: delayId, timeout: 5000 } };
+      emptyUrlDestination.queue = [createContext(event)];
+      await emptyUrlDestination.flush(true);
+
+      expect(emptyUrlTransport.send).toHaveBeenCalledWith(delayedUrl, expect.objectContaining({ id: delayId }), false);
+    });
+
+    test('should append /delayed to a custom server URL', async () => {
+      const customDestination = new Destination();
+      const customTransport = {
+        send: jest.fn().mockResolvedValue(successResponse),
+      };
+      const customServerUrl = 'https://proxy.example.com/2/httpapi';
+      await customDestination.setup({
+        ...useDefaultConfig(),
+        transportProvider: customTransport,
+        apiKey: API_KEY,
+        serverUrl: customServerUrl,
+      });
+      const delayId = 'delay-123';
+      const event = { event_type: 'delayed_event', delay: { id: delayId, timeout: 5000 } };
+      customDestination.queue = [createContext(event)];
+      await customDestination.flush(true);
+
+      expect(customTransport.send).toHaveBeenCalledWith(
+        `${customServerUrl}/delayed`,
+        expect.objectContaining({ id: delayId }),
+        false,
+      );
+    });
+
+    test('should send delayed events to HTTP V2 /delayed when useBatch is true', async () => {
+      const batchDestination = new Destination();
+      const batchTransport = {
+        send: jest.fn().mockResolvedValue(successResponse),
+      };
+      await batchDestination.setup({
+        ...useDefaultConfig(),
+        transportProvider: batchTransport,
+        apiKey: API_KEY,
+        useBatch: true,
+        serverUrl: AMPLITUDE_BATCH_SERVER_URL,
+      });
+      const delayId = 'delay-123';
+      const delayTimeout = 5000;
+      const event = { event_type: 'delayed_event', delay: { id: delayId, timeout: delayTimeout } };
+      batchDestination.queue = [createContext(event)];
+      await batchDestination.flush(true);
+
+      expect(batchTransport.send).toHaveBeenCalledTimes(1);
+      expect(batchTransport.send).toHaveBeenCalledWith(
+        delayedUrl,
+        expect.objectContaining({
+          id: delayId,
+          timeout: delayTimeout,
+        }),
+        false,
+      );
     });
 
     test('should send delayed events to /delayed endpoint', async () => {

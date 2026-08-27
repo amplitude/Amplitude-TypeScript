@@ -216,11 +216,16 @@ export class VideoCapture {
   }
 
   parseStopEventProperties(nextState: VideoState): Record<string, string | number | boolean> {
-    const percentCompleted = ((nextState.position ?? 0) / (nextState.lastEvent?.duration ?? 0)) * 100;
+    const position = nextState.position ?? 0;
+    const duration = nextState.lastEvent?.duration ?? 0;
+    let percentCompleted = 0;
+    if (Number.isFinite(position) && Number.isFinite(duration) && duration > 0) {
+      percentCompleted = Math.min(100, Math.max(0, (position / duration) * 100));
+    }
     return {
       ...this.parseStartEventProperties(nextState),
       watch_duration: nextState.watchTime ?? 0,
-      percent_completed: percentCompleted || 0,
+      percent_completed: percentCompleted,
     };
   }
 }

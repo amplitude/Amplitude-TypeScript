@@ -628,5 +628,61 @@ describe('VideoCapture', () => {
         percent_completed: 0,
       });
     });
+
+    it('should return 0 percent_completed when duration is 0', () => {
+      const capture = new VideoCapture(mockAmplitude);
+      expect(
+        capture.parseStopEventProperties({
+          playbackState: 'paused',
+          lastEvent: { duration: 0, start_time: 0, last_position: 5 },
+          position: 5,
+          watchTime: 5,
+        }),
+      ).toEqual({
+        duration: 0,
+        start_time: 0,
+        position: 5,
+        watch_duration: 5,
+        percent_completed: 0,
+      });
+    });
+
+    it('should clamp percent_completed when position exceeds duration', () => {
+      const capture = new VideoCapture(mockAmplitude);
+      expect(
+        capture.parseStopEventProperties({
+          playbackState: 'ended',
+          lastEvent: { duration: 10, start_time: 0, last_position: 12 },
+          position: 12,
+          watchTime: 12,
+        }),
+      ).toEqual({
+        duration: 10,
+        start_time: 0,
+        position: 12,
+        watch_duration: 12,
+        percent_completed: 100,
+      });
+    });
+
+    it('should return 0 percent_completed for non-finite duration or position', () => {
+      const capture = new VideoCapture(mockAmplitude);
+      expect(
+        capture.parseStopEventProperties({
+          playbackState: 'paused',
+          lastEvent: { duration: Infinity, start_time: 0, last_position: 5 },
+          position: 5,
+          watchTime: 5,
+        }).percent_completed,
+      ).toBe(0);
+      expect(
+        capture.parseStopEventProperties({
+          playbackState: 'paused',
+          lastEvent: { duration: 10, start_time: 0, last_position: 0 },
+          position: NaN,
+          watchTime: 0,
+        }).percent_completed,
+      ).toBe(0);
+    });
   });
 });
