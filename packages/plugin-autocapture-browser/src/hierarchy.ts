@@ -1,7 +1,7 @@
 import { isShadowRoot, walkComposedAncestors } from '@amplitude/element-selector';
 import { isNonSensitiveElement } from './helpers';
 import { SHADOW_OFF, type ShadowMode } from './shadow-mode';
-import { DATA_AMP_MASK_ATTRIBUTES } from './constants';
+import { DATA_AMP_INTERNAL_SHADOW, DATA_AMP_MASK_ATTRIBUTES } from './constants';
 import type { HierarchyNode } from './typings/autocapture';
 import * as constants from './constants';
 import { MASKED_TEXT_VALUE, TEXT_MASK_ATTRIBUTE } from '@amplitude/analytics-core';
@@ -36,6 +36,9 @@ const BLOCKED_ATTRIBUTES = new Set([
   // Amplitude specific - used for redaction but should not be included in getElementProperties
   DATA_AMP_MASK_ATTRIBUTES,
   TEXT_MASK_ATTRIBUTE,
+
+  // Amplitude specific - synthesized below, so a page-authored copy must not leak through
+  DATA_AMP_INTERNAL_SHADOW,
 ]);
 const SENSITIVE_ELEMENT_ATTRIBUTE_ALLOWLIST = ['type'];
 
@@ -115,6 +118,11 @@ export function getElementProperties(
 
   if (Object.keys(attributes).length) {
     properties.attrs = attributes;
+  }
+
+  if (element.shadowRoot) {
+    properties.attrs = { ...(properties.attrs || {}), [DATA_AMP_INTERNAL_SHADOW]: 'true' };
+    properties.shadow = true;
   }
 
   return properties;
