@@ -235,7 +235,7 @@ describe('SegmentSessionReplayPlugin', () => {
 
       await plugin.execute(mockEvent);
 
-      expect(setDeviceId).toHaveBeenCalledWith(null);
+      expect(setDeviceId).not.toHaveBeenCalled();
     });
 
     it('should handle invalid session_id string gracefully', async () => {

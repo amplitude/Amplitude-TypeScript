@@ -29,6 +29,7 @@ yarn-error.log*
 *.p12
 *.pfx
 secrets.*
+sdk59.local.ts
 
 lerna-debug.log
 

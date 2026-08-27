@@ -72,10 +72,10 @@ export interface NativeSessionReplaySpec {
 
   /**
    * Updates the device identifier used for session replay tracking.
-   * @param deviceId - The device identifier string, or null to clear the device ID
+   * @param deviceId - The device identifier string
    * @note OLD ARCH: combine those into one method to avoid bridge overhead
    */
-  setDeviceId(deviceId: string | null): Promise<void>;
+  setDeviceId(deviceId: string): Promise<void>;
 
   /**
    * Updates the session identifier used for session replay tracking.

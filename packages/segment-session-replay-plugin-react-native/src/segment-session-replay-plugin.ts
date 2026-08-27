@@ -83,7 +83,9 @@ export class SegmentSessionReplayPlugin extends Plugin {
     const deviceId = getDeviceId(event);
 
     await setSessionId(sessionId);
-    await setDeviceId(deviceId);
+    if (deviceId !== null) {
+      await setDeviceId(deviceId);
+    }
 
     return event;
   }

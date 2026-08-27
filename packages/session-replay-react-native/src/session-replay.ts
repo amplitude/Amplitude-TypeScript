@@ -99,17 +99,15 @@ export async function setSessionId(sessionId: number): Promise<void> {
  * Update the device ID used for session replay tracking.
  * The Device ID you pass to the SDK must match the Device ID sent as event properties to Amplitude.
  *
- * @param deviceId - The device identifier string, or null to clear the device ID
+ * @param deviceId - The device identifier string
  * @returns Promise that resolves when the device ID is updated
  *
  * @example
  * ```typescript
  * await setDeviceId('user-device-id');
- * // or clear device ID
- * await setDeviceId(null);
  * ```
  */
-export async function setDeviceId(deviceId: string | null): Promise<void> {
+export async function setDeviceId(deviceId: string): Promise<void> {
   if (!isInitialized) {
     logger.warn('SessionReplay is not initialized');
     return;
