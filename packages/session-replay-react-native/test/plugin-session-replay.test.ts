@@ -11,7 +11,7 @@ jest.mock('react-native');
 // Explicitly mock the logger module using the imported mock
 jest.mock('../src/logger', () => require('./utils/logger'));
 
-import type { SessionReplayPluginConfig } from '../src/index';
+import type { SessionReplayPluginConfig } from '../src/plugin-session-replay-config';
 import { LogLevel } from '@amplitude/analytics-types';
 import type { ReactNativeConfig } from '@amplitude/analytics-types';
 import mockReactNativeClient from './utils/reactNativeClient';
