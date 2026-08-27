@@ -95,6 +95,35 @@ describe('trackExposure', () => {
     expect(onExposure).not.toHaveBeenCalled();
   });
 
+  test('should replace a pending exposure timer on a second intersecting callback', () => {
+    const element = document.createElement('div');
+    element.id = 'test-div-reobserve';
+    const clearTimeoutSpy = jest.spyOn(global, 'clearTimeout');
+
+    triggerExposure({
+      isIntersecting: true,
+      target: element,
+      intersectionRatio: 1.0,
+    });
+    jest.advanceTimersByTime(DEFAULT_EXPOSURE_DURATION / 2);
+
+    // A rescan unobserve/observe delivers another intersecting callback while the
+    // first timer is still pending. The old timer must not fire after reset/nav.
+    triggerExposure({
+      isIntersecting: true,
+      target: element,
+      intersectionRatio: 1.0,
+    });
+    expect(clearTimeoutSpy).toHaveBeenCalled();
+
+    jest.advanceTimersByTime(DEFAULT_EXPOSURE_DURATION / 2);
+    expect(onExposure).not.toHaveBeenCalled();
+
+    jest.advanceTimersByTime(DEFAULT_EXPOSURE_DURATION / 2);
+    expect(onExposure).toHaveBeenCalledTimes(1);
+    expect(onExposure).toHaveBeenCalledWith('div#test-div-reobserve');
+  });
+
   test('should not re-expose already exposed element', () => {
     const element = document.createElement('div');
     element.id = 'test-div-repeat';
