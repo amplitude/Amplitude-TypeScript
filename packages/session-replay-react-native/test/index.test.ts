@@ -18,10 +18,8 @@ import {
   start,
   stop,
   setDeviceId,
-  SessionReplayPlugin,
   AmpMaskView,
   type SessionReplayConfig,
-  type SessionReplayPluginConfig,
   type MaskLevel,
 } from '../src/index';
 import { NativeModules } from 'react-native';
@@ -98,11 +96,8 @@ describe('Index Exports', () => {
   });
 
   describe('Class Exports', () => {
-    it('should export SessionReplayPlugin class', () => {
-      const plugin = new SessionReplayPlugin();
-      expect(plugin).toBeInstanceOf(SessionReplayPlugin);
-      expect(plugin.name).toBe('@amplitude/plugin-session-replay-react-native');
-      expect(plugin.type).toBe('enrichment');
+    it('should not export SessionReplayPlugin', () => {
+      expect(sessionReplay).not.toHaveProperty('SessionReplayPlugin');
     });
 
     it('should export AmpMaskView component', () => {
@@ -122,17 +117,6 @@ describe('Index Exports', () => {
         optOut: false,
         sampleRate: 1,
         sessionId: 12345,
-      };
-      // TypeScript compilation is the test - if it compiles, the interface is correct
-      expect(config).toBeTruthy();
-    });
-
-    it('should export SessionReplayPluginConfig interface', () => {
-      const config: SessionReplayPluginConfig = {
-        sampleRate: 1,
-        enableRemoteConfig: true,
-        logLevel: LogLevel.Warn,
-        autoStart: true,
       };
       // TypeScript compilation is the test - if it compiles, the interface is correct
       expect(config).toBeTruthy();
