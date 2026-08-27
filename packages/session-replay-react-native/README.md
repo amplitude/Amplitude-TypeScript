@@ -38,7 +38,7 @@ const config: SessionReplayConfig = {
 await init(config);
 ```
 
-To attach Session Replay to the Amplitude React Native SDK, use [`@amplitude/plugin-session-replay-react-native`](https://www.npmjs.com/package/@amplitude/plugin-session-replay-react-native) instead of importing a plugin from this package.
+To use Amplitude Session Replay with Amplitude Analytics, use the [`@amplitude/plugin-session-replay-react-native`](https://www.npmjs.com/package/@amplitude/plugin-session-replay-react-native) plugin package.
 
 ## Masking views
 
