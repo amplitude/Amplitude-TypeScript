@@ -2078,6 +2078,14 @@ describe('SessionReplay', () => {
       const shouldRecord = sessionReplay.getShouldRecord();
       expect(shouldRecord).toBe(false);
     });
+    test('should return false after stop() until start() is called', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      expect(sessionReplay.getShouldRecord()).toBe(true);
+      sessionReplay.stop();
+      expect(sessionReplay.getShouldRecord()).toBe(false);
+      await sessionReplay.start().promise;
+      expect(sessionReplay.getShouldRecord()).toBe(true);
+    });
     test('should return false if captureEnabled is false', async () => {
       mockRemoteConfig = {
         sr_sampling_config: {
@@ -2714,6 +2722,16 @@ describe('SessionReplay', () => {
         ...sequencesToSend.flatMap((s) => s.events),
       ];
       expect(allEvents).toEqual([mockEventString]); // exactly the one pre-existing event
+    });
+
+    test('should stop recording if emit fires after stop()', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      await sessionReplay.recordEvents();
+      const recordArg = mockRecordFunction.mock.calls[0][0] as { emit?: (event: unknown) => void };
+      sessionReplay.stop();
+      mockRecordFunction.mockClear();
+      recordArg?.emit && recordArg.emit(mockEvent);
+      expect(sessionReplay.recordCancelCallback).toBe(null);
     });
 
     test('should add an error handler', async () => {
@@ -3640,6 +3658,109 @@ describe('SessionReplay', () => {
         sessionId: 123,
         deviceId: '1a2b3c',
       });
+    });
+  });
+
+  describe('start and stop', () => {
+    test('stop should invoke the cancel callback returned by rrweb record()', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      await jest.runAllTimersAsync();
+      expect(mockRecordFunction).toHaveBeenCalled();
+      const cancelFn = mockRecordFunction.mock.results[mockRecordFunction.mock.results.length - 1].value as jest.Mock;
+      cancelFn.mockClear();
+      sessionReplay.stop();
+      expect(cancelFn).toHaveBeenCalled();
+      expect(sessionReplay.recordCancelCallback).toBe(null);
+    });
+
+    test('stop should halt recording, send queued events, and leave focus listeners attached', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      const createEventsIDBStoreInstance = await SessionReplayIDB.SessionReplayEventsIDBStore.new('replay', {
+        loggerProvider: mockLoggerProvider,
+        apiKey,
+      });
+      const stopRecordingMock = jest.fn();
+      sessionReplay.recordCancelCallback = stopRecordingMock;
+      if (!sessionReplay.eventsManager) {
+        throw new Error('Did not call init');
+      }
+      await createEventsIDBStoreInstance?.addEventToCurrentSequence(123, mockEventString);
+      const sendEventsMock = jest.spyOn(sessionReplay.eventsManager, 'sendCurrentSequenceEvents');
+      removeEventListenerMock.mockReset();
+      sessionReplay.stop();
+      expect(stopRecordingMock).toHaveBeenCalled();
+      expect(sessionReplay.recordCancelCallback).toBe(null);
+      expect(sendEventsMock).toHaveBeenCalled();
+      expect(removeEventListenerMock).not.toHaveBeenCalled();
+    });
+
+    test('stop during in-flight recordEvents should not start rrweb afterward', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      await jest.runAllTimersAsync();
+      await sessionReplay.recordEvents();
+      mockRecordFunction.mockClear();
+
+      let resolveObservers: (() => void) | undefined;
+      const observersStarted = new Promise<void>((resolve) => {
+        resolveObservers = resolve;
+      });
+      jest.spyOn(sessionReplay as any, 'initializeNetworkObservers').mockImplementation(() => observersStarted);
+
+      const recordPromise = sessionReplay.recordEvents();
+      // Flush the getRecordFunction() microtask so we block on initializeNetworkObservers.
+      await Promise.resolve();
+      sessionReplay.stop();
+      resolveObservers?.();
+      await recordPromise;
+
+      expect(mockRecordFunction).not.toHaveBeenCalled();
+      expect(sessionReplay.recordCancelCallback).toBe(null);
+    });
+
+    test('stop should prevent recordEvents from starting capture', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      await jest.runAllTimersAsync();
+      mockRecordFunction.mockClear();
+      sessionReplay.stop();
+      await sessionReplay.recordEvents();
+      expect(mockRecordFunction).not.toHaveBeenCalled();
+    });
+
+    test('start should resume capture after stop', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      await jest.runAllTimersAsync();
+      sessionReplay.stop();
+      mockRecordFunction.mockClear();
+      await sessionReplay.start().promise;
+      expect(mockRecordFunction).toHaveBeenCalled();
+    });
+
+    test('start should not record when the session is opted out', async () => {
+      await sessionReplay.init(apiKey, { ...mockOptions, optOut: true }).promise;
+      mockRecordFunction.mockClear();
+      await sessionReplay.start().promise;
+      expect(mockRecordFunction).not.toHaveBeenCalled();
+    });
+
+    test('focusListener should not restart recording after stop', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      sessionReplay.stop();
+      sessionReplay.recordCancelCallback = null;
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      (sessionReplay as any).recordEventsInFlight = false;
+      const recordEventsSpy = jest.spyOn(sessionReplay, 'recordEvents');
+
+      sessionReplay.focusListener();
+
+      expect(recordEventsSpy).not.toHaveBeenCalled();
+    });
+
+    test('init after stop should allow recording again', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      sessionReplay.stop();
+      expect(sessionReplay.getShouldRecord()).toBe(false);
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      expect(sessionReplay.getShouldRecord()).toBe(true);
     });
   });
 
@@ -5356,6 +5477,70 @@ describe('SessionReplay', () => {
         onStart();
 
         expect(mockRecordFunction).toHaveBeenCalledWith(expect.objectContaining({ recordCrossOriginIframes: true }));
+      });
+
+      test('onStart after stop does not start child recording', async () => {
+        await sessionReplay.init(apiKey, crossOriginOptions).promise;
+        await sessionReplay.recordEvents();
+        await jest.runAllTimersAsync();
+
+        const { onStart } = (mockListenForParentSignals as jest.Mock).mock.calls[0][0] as {
+          onStart: () => void;
+        };
+        sessionReplay.stop();
+        mockRecordFunction.mockClear();
+        onStart();
+
+        expect(mockRecordFunction).not.toHaveBeenCalled();
+      });
+
+      test('start() after stop() self-starts child recording without a parent signal', async () => {
+        await sessionReplay.init(apiKey, crossOriginOptions).promise;
+        await sessionReplay.recordEvents();
+        await jest.runAllTimersAsync();
+
+        sessionReplay.stop();
+        mockRecordFunction.mockClear();
+        (mockListenForParentSignals as jest.Mock).mockClear();
+
+        await sessionReplay.start().promise;
+
+        expect(mockListenForParentSignals).toHaveBeenCalled();
+        expect(mockRecordFunction).toHaveBeenCalledWith(expect.objectContaining({ recordCrossOriginIframes: true }));
+      });
+
+      test('start() while capture is gated still self-starts after the gate later passes', async () => {
+        await sessionReplay.init(apiKey, crossOriginOptions).promise;
+        await sessionReplay.recordEvents();
+        await jest.runAllTimersAsync();
+
+        sessionReplay.stop();
+        mockRecordFunction.mockClear();
+        (mockListenForParentSignals as jest.Mock).mockClear();
+
+        sessionReplay.config!.captureEnabled = false;
+        await sessionReplay.start().promise;
+        expect(mockRecordFunction).not.toHaveBeenCalled();
+
+        sessionReplay.config!.captureEnabled = true;
+        await sessionReplay.recordEvents();
+        await jest.runAllTimersAsync();
+
+        expect(mockListenForParentSignals).toHaveBeenCalled();
+        expect(mockRecordFunction).toHaveBeenCalledWith(expect.objectContaining({ recordCrossOriginIframes: true }));
+      });
+
+      test('stop() after a gated start() drops the pending child self-start', async () => {
+        await sessionReplay.init(apiKey, crossOriginOptions).promise;
+        await sessionReplay.recordEvents();
+        await jest.runAllTimersAsync();
+
+        sessionReplay.config!.captureEnabled = false;
+        await sessionReplay.start().promise;
+        expect((sessionReplay as any).startChildRecordingOnSetup).toBe(true);
+
+        sessionReplay.stop();
+        expect((sessionReplay as any).startChildRecordingOnSetup).toBe(false);
       });
 
       test('stops recording when onStop callback is invoked', async () => {
