@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.8.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-react-native@1.7.0...@amplitude/analytics-react-native@1.8.0) (2026-08-27)
+
+
+### Features
+
+* **plugin-experiment-react-native:** add React Native Experiment plugin ([#1944](https://github.com/amplitude/Amplitude-TypeScript/issues/1944)) ([826e038](https://github.com/amplitude/Amplitude-TypeScript/commit/826e038aefec91a88ba5522acc5469bb3fd7b544))
+
+
+
+
+
 # [1.7.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-react-native@1.6.9...@amplitude/analytics-react-native@1.7.0) (2026-08-24)
 
 

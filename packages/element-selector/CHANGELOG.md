@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [0.3.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/element-selector@0.2.1...@amplitude/element-selector@0.3.0) (2026-08-27)
+
+
+### Features
+
+* **zoning:** add support for shadow dom ([#1922](https://github.com/amplitude/Amplitude-TypeScript/issues/1922)) ([6c2d5c2](https://github.com/amplitude/Amplitude-TypeScript/commit/6c2d5c20f515554a10c55c18ef23432e9c66bc5c))
+
+
+
+
+
 ## [0.2.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/element-selector@0.2.0...@amplitude/element-selector@0.2.1) (2026-07-15)
 
 
