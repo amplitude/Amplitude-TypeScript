@@ -150,7 +150,7 @@ export const frustrationPlugin = (options: FrustrationInteractionsOptions = {}):
     );
 
     const enrichedMutationObservable = multicast<TimestampedEvent<MutationRecord[]>>(
-      createMutationObservable().map((mutation) =>
+      createMutationObservable(dataExtractor.shadowGate).map((mutation) =>
         dataExtractor.addAdditionalEventProperties(mutation, 'mutation', combinedCssSelectors, dataAttributePrefix),
       ),
     );

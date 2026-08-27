@@ -21,9 +21,9 @@ import {
   AmpMaskView,
   type SessionReplayConfig,
   type MaskLevel,
+  LogLevel,
 } from '../src/index';
 import { NativeModules } from 'react-native';
-import { LogLevel } from '@amplitude/analytics-types';
 
 describe('Index Exports', () => {
   const testConfig: SessionReplayConfig = {
@@ -125,6 +125,16 @@ describe('Index Exports', () => {
     it('should export MaskLevel type', () => {
       const level: MaskLevel = 'conservative';
       expect(level).toBe('conservative');
+    });
+  });
+
+  describe('Enum Exports', () => {
+    it('should export LogLevel as a runtime enum from the package entry', () => {
+      expect(LogLevel.Warn).toBe(2);
+      expect(LogLevel.None).toBe(0);
+      expect(LogLevel.Error).toBe(1);
+      expect(LogLevel.Verbose).toBe(3);
+      expect(LogLevel.Debug).toBe(4);
     });
   });
 });

@@ -29,6 +29,10 @@ export function trackExposure({
     if (entry.isIntersecting) {
       // Element became visible - start exposure timer if not already exposed
       if (!exposureMap.get(element)) {
+        const existingTimer = exposureTimerMap.get(element);
+        if (existingTimer) {
+          clearTimeout(existingTimer);
+        }
         const timer = setTimeout(() => {
           // Element has been visible for exposureDuration - mark as exposed
           exposureMap.set(element, true);
