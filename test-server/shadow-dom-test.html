@@ -117,7 +117,7 @@
             });
         }
 
-        amplitude.init('shadow-dom-e2e-key', 'test-user', {
+        amplitude.init(import.meta.env.VITE_AMPLITUDE_API_KEY, 'test-user', {
             fetchRemoteConfig: false,
             flushIntervalMillis: 300,
             flushQueueSize: 1,
