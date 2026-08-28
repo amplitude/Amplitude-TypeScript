@@ -3,6 +3,23 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [0.1.0-beta.5](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-react-native@0.1.0-beta.4...@amplitude/session-replay-react-native@0.1.0-beta.5) (2026-08-27)
+
+
+### Bug Fixes
+
+* **session-replay-react-native:** export LogLevel from package entry ([#1959](https://github.com/amplitude/Amplitude-TypeScript/issues/1959)) ([83cae0c](https://github.com/amplitude/Amplitude-TypeScript/commit/83cae0cc45f3253987d4c8f8dac0106a308a32aa))
+
+
+### Features
+
+* **session-replay-react-native:** add teardown and runtime opt-out ([#1951](https://github.com/amplitude/Amplitude-TypeScript/issues/1951)) ([f831aba](https://github.com/amplitude/Amplitude-TypeScript/commit/f831aba44bf8259d105ee7c632e48ac553bf3a64))
+* **session-replay-react-native:** drop SessionReplayPlugin from public exports ([#1960](https://github.com/amplitude/Amplitude-TypeScript/issues/1960)) ([3c74096](https://github.com/amplitude/Amplitude-TypeScript/commit/3c74096d2c185a91280503dd71f7f4cf2426e689))
+
+
+
+
+
 # [0.1.0-beta.4](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-react-native@0.1.0-beta.3...@amplitude/session-replay-react-native@0.1.0-beta.4) (2026-08-24)
 
 
