@@ -1125,6 +1125,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
     return {
       emit,
       inlineStylesheet: config.shouldInlineStylesheet,
+      inlineImages: config.inlineImages,
       hooks,
       maskAllInputs: true,
       maskTextClass: MASK_TEXT_CLASS,

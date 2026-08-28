@@ -2776,6 +2776,34 @@ describe('SessionReplay', () => {
       expect(recordArg?.checkoutEveryNms).toBeUndefined();
     });
 
+    test.each([
+      {
+        description: 'should pass inlineImages=true to rrweb when option is true',
+        options: { inlineImages: true },
+        expectedValue: true,
+      },
+      {
+        description: 'should pass inlineImages=false to rrweb when option is false',
+        options: { inlineImages: false },
+        expectedValue: false,
+      },
+      {
+        description: 'should not pass inlineImages to rrweb when option is not provided',
+        options: {},
+        expectedValue: undefined,
+      },
+    ])('$description', async ({ options, expectedValue }) => {
+      const sessionReplay = new SessionReplay();
+      await sessionReplay.init(apiKey, {
+        ...mockOptions,
+        ...options,
+      }).promise;
+      await sessionReplay.recordEvents();
+
+      const recordArg = mockRecordFunction.mock.calls[0][0];
+      expect(recordArg?.inlineImages).toBe(expectedValue);
+    });
+
     test('should rethrow CSSStylesheet errors', async () => {
       const sessionReplay = new SessionReplay();
       await sessionReplay.init(apiKey, mockOptions).promise;
