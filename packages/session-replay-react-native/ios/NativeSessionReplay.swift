@@ -71,7 +71,7 @@ class NativeSessionReplay: NSObject, RCTBridgeModule {
     }
     
     @objc(setDeviceId:resolve:reject:)
-    func setDeviceId(_ deviceId: NSString, resolve: RCTPromiseResolveBlock, reject: RCTPromiseRejectBlock) -> Void {
+    func setDeviceId(_ deviceId: NSString?, resolve: RCTPromiseResolveBlock, reject: RCTPromiseRejectBlock) -> Void {
         logger?.debug(message: "setDeviceId: \(deviceId)")
         sessionReplay?.deviceId = deviceId as String?
         resolve(nil)
