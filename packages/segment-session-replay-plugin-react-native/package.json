@@ -1,6 +1,6 @@
 {
   "name": "@amplitude/segment-session-replay-plugin-react-native",
-  "version": "0.1.0-beta.0",
+  "version": "0.1.0-beta.1",
   "description": "Amplitude Segment Session Replay Plugin for React Native",
   "keywords": [
     "analytics",
