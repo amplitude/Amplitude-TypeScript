@@ -472,11 +472,13 @@ describe('data extractor', () => {
       // the parent. Walking up then picks the first ancestor that contains any
       // heading — e.g. a page title — instead of a sibling label.
       const container = document.createElement('div');
+      const header = document.createElement('header');
       const heading = document.createElement('h1');
       heading.innerText = 'My App';
       const form = document.createElement('form');
       const input = document.createElement('input');
-      container.appendChild(heading);
+      header.appendChild(heading);
+      container.appendChild(header);
       form.appendChild(input);
       container.appendChild(form);
 
