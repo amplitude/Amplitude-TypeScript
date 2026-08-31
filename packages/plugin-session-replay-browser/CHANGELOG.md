@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.35.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@1.34.0...@amplitude/plugin-session-replay-browser@1.35.0) (2026-08-31)
+
+
+### Features
+
+* inline images config ([#1963](https://github.com/amplitude/Amplitude-TypeScript/issues/1963)) ([aaa53ae](https://github.com/amplitude/Amplitude-TypeScript/commit/aaa53ae6ff89b5cb3b4c6a1cd255aa784076b7fc))
+
+
+
+
+
 # [1.34.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@1.33.9...@amplitude/plugin-session-replay-browser@1.34.0) (2026-08-27)
 
 
