@@ -467,6 +467,23 @@ describe('data extractor', () => {
       expect(result).toEqual('nearest label');
     });
 
+    test('should not return a deeply nested label of the element (regression test)', () => {
+      // `:scope>span,h1,...` only scopes span; headings match any descendant of
+      // the parent. Walking up then picks the first ancestor that contains any
+      // heading — e.g. a page title — instead of a sibling label.
+      const container = document.createElement('div');
+      const heading = document.createElement('h1');
+      heading.innerText = 'My App';
+      const form = document.createElement('form');
+      const input = document.createElement('input');
+      container.appendChild(heading);
+      form.appendChild(input);
+      container.appendChild(form);
+
+      const result = dataExtractor.getNearestLabel(input);
+      expect(result).toEqual('');
+    });
+
     test('should return masked nearest label when content is sensitive', () => {
       const div = document.createElement('div');
       const span = document.createElement('span');
