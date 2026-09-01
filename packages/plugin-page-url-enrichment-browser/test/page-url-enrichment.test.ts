@@ -698,6 +698,16 @@ describe('pageUrlEnrichmentPlugin', () => {
 
       expect(excludedEvent?.event_properties).toStrictEqual(undefined);
     });
+
+    test('should not enrich session_end events with page properties', async () => {
+      await plugin.setup?.(mockConfig, mockAmplitude);
+
+      const sessionEndEvent = await plugin.execute?.({
+        event_type: 'session_end',
+      });
+
+      expect(sessionEndEvent?.event_properties).toStrictEqual(undefined);
+    });
   });
 
   describe('teardown', () => {
