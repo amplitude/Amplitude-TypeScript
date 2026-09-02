@@ -161,6 +161,12 @@ export class Destination implements DestinationPlugin {
           context.event.insert_id === incomingEvent.insert_id
         ) {
           if (this.inFlightDelayedEvents[incomingEvent.delay.id]) {
+            // Keep the in-flight event, but drop any prior replacement so
+            // only the latest update remains after the send completes.
+            if (context.event.delay.isFresh) {
+              context.callback(buildResult(context.event, 0, 'Stale event overwritten'));
+              return false;
+            }
             incomingEvent.delay.isFresh = true;
             return true;
           }

@@ -230,6 +230,64 @@ describe('destination', () => {
         expect(send).toHaveBeenCalledTimes(2);
       });
 
+      test('should keep only the latest replacement while predecessor is in flight', async () => {
+        let resolveSend!: (value: Response) => void;
+        const sendPromise = new Promise<Response>((resolve) => {
+          resolveSend = resolve;
+        });
+        const successResponse = {
+          status: Status.Success,
+          statusCode: 200,
+          body: {
+            eventsIngested: 1,
+            payloadSizeBytes: 1,
+            serverUploadTime: 1,
+          },
+        } as Response;
+        const send = jest.fn().mockReturnValueOnce(sendPromise).mockResolvedValueOnce(successResponse);
+        destination.config = {
+          ...useDefaultConfig(),
+          transportProvider: { send },
+        };
+        const event3 = {
+          event_type: 'after-after',
+          insert_id: '123',
+          delay: { id: delayId },
+        };
+
+        const staleResult = destination.execute(event1);
+        const flushPromise = destination.flush(true);
+        const firstReplacementResult = destination.execute(event2);
+        const secondReplacementResult = destination.execute(event3);
+
+        expect(destination.queue).toHaveLength(2);
+        expect(destination.queue[0].event).toEqual(event1);
+        expect(destination.queue[1].event).toEqual(event3);
+
+        await expect(firstReplacementResult).resolves.toEqual({
+          event: event2,
+          code: 0,
+          message: 'Stale event overwritten',
+        });
+
+        resolveSend(successResponse);
+
+        await staleResult;
+        await flushPromise;
+
+        expect(destination.queue).toHaveLength(1);
+        expect(destination.queue[0].event).toEqual(event3);
+
+        await destination.flush(true);
+
+        await expect(secondReplacementResult).resolves.toEqual({
+          event: event3,
+          code: 200,
+          message: SUCCESS_MESSAGE,
+        });
+        expect(send).toHaveBeenCalledTimes(2);
+      });
+
       test('should retain isFresh when a parallel regular flush completes first', async () => {
         let resolveDelayedSend!: (value: Response) => void;
         const delayedSendPromise = new Promise<Response>((resolve) => {
