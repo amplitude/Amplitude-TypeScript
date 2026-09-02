@@ -876,6 +876,18 @@ describe('browser-client', () => {
         },
       }).promise;
       expect(webVitalsPlugin).toHaveBeenCalledTimes(1);
+      expect(webVitalsPlugin).toHaveBeenCalledWith(undefined);
+    });
+
+    test('should pass web vitals options to the plugin when autocapture.webVitals is an object', async () => {
+      const webVitalsPlugin = jest.spyOn(webVitals, 'webVitalsPlugin');
+      await client.init(apiKey, userId, {
+        autocapture: {
+          webVitals: { reportSoftNav: true },
+        },
+      }).promise;
+      expect(webVitalsPlugin).toHaveBeenCalledTimes(1);
+      expect(webVitalsPlugin).toHaveBeenCalledWith({ reportSoftNav: true });
     });
 
     test('should listen for network change to online', async () => {

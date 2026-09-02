@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/amplitude.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script type="module" src="/helpers/tough-cookie"></script>
+    <title>Web Vitals - Soft Navigations</title>
+  </head>
+  <body>
+    <h1>Web Vitals for soft navigations</h1>
+    <p>
+      Requires a browser that supports the
+      <a href="https://github.com/WICG/soft-navigations">Soft Navigations API</a> (Chromium 151+). A soft navigation is
+      only detected when a user interaction is followed by a history change and a paint, so use the button below rather
+      than the address bar.
+    </p>
+    <p>
+      Each click pushes a new URL and paints new content, which should produce one
+      <code>[Amplitude] Web Vitals</code> event per navigation, each with the page properties of its own URL.
+    </p>
+
+    <button id="soft-nav">Go to the next page</button>
+    <button id="block-main-thread">Block the main thread for 300ms (to register an INP)</button>
+
+    <h2 id="page-heading">Page 1</h2>
+    <div id="content"></div>
+
+    <script type="module">
+      import * as amplitude from '@amplitude/analytics-browser';
+      window.amplitude = amplitude;
+      amplitude.init(
+        import.meta.env.VITE_AMPLITUDE_API_KEY,
+        import.meta.env.VITE_AMPLITUDE_USER_ID || 'amplitude-typescript test user',
+        {
+          autocapture: {
+            webVitals: { reportSoftNav: true },
+          },
+        },
+      );
+    </script>
+
+    <script>
+      let pageNumber = 1;
+
+      document.querySelector('#soft-nav').addEventListener('click', () => {
+        pageNumber += 1;
+        history.pushState({ pageNumber }, '', `?page=${pageNumber}`);
+        document.title = `Web Vitals - Soft Navigations - Page ${pageNumber}`;
+        document.querySelector('#page-heading').textContent = `Page ${pageNumber}`;
+
+        // Paint new content so the browser recognizes this as a soft navigation, and so there is a
+        // contentful paint and a layout shift to measure for it.
+        const content = document.querySelector('#content');
+        content.innerHTML = '';
+        for (let i = 0; i < 20; i++) {
+          const paragraph = document.createElement('p');
+          paragraph.textContent = `Page ${pageNumber} content, paragraph ${i + 1}`;
+          content.appendChild(paragraph);
+        }
+      });
+
+      document.querySelector('#block-main-thread').addEventListener('click', () => {
+        const start = performance.now();
+        while (performance.now() - start < 300) {
+          // Busy-wait to register a poor interaction.
+        }
+      });
+    </script>
+  </body>
+</html>
