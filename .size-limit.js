@@ -2,9 +2,10 @@ const limits = [
   {
     // analytics-browser bundle
     // Bumped 65kb → 66kb for shadow DOM support in plugin-autocapture-browser
-    // (SR-4788). Current actual: ~65.0kb gzipped.
+    // (SR-4788), then 66kb → 68kb for soft navigation support in
+    // plugin-web-vitals-browser (web-vitals v6). Current actual: ~65.7kb gzipped.
     path: './packages/analytics-browser/lib/scripts/amplitude-min.js.gz',
-    limit: '66kb',
+    limit: '68kb',
     brotli: false,
   },
   {
@@ -15,8 +16,10 @@ const limits = [
   },
   {
     // unified SDK bundle
+    // Bumped 225kb → 228kb for soft navigation support in
+    // plugin-web-vitals-browser (web-vitals v6). Current actual: ~220.1kb gzipped.
     path: './packages/unified/lib/scripts/amplitude-min.umd.js.gz',
-    limit: '225kb',
+    limit: '228kb',
     brotli: false,
   },
   {

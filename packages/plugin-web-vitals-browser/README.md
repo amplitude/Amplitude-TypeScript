@@ -47,9 +47,8 @@ Single page applications update the URL and history without a full page navigati
 Core Web Vitals are only measured once, for the initial page load. With `reportSoftNav` enabled,
 LCP, FCP, INP, CLS and TTFB are also measured per
 [soft navigation](https://github.com/WICG/soft-navigations), and one `[Amplitude] Web Vitals` event
-is sent per navigation, with the page properties of the URL the metrics belong to and a
-`navigationId` on each metric. Metrics measured for a soft navigation have a `navigationType` of
-`soft-navigation`.
+is sent per navigation, with the page properties of the URL the metrics belong to. Metrics measured
+for a soft navigation have a `navigationType` of `soft-navigation`.
 
 ```typescript
 const plugin = webVitalsPlugin({ reportSoftNav: true });

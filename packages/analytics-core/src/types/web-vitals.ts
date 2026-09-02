@@ -16,7 +16,6 @@ export interface WebVitalsOptions {
    * See {@link https://github.com/WICG/soft-navigations}.
    *
    * @defaultValue `false`
-   * @experimental This feature is experimental and may not be stable
    */
   reportSoftNav?: boolean;
 }
