@@ -203,9 +203,6 @@ describe('webVitalsPlugin', () => {
     expect(eventObject['[Amplitude] CLS']).toMatchObject(expectedMetric);
     expect(eventObject['[Amplitude] TTFB']).toMatchObject(expectedMetric);
 
-    // navigationId is only reported when soft navigation reporting is enabled
-    expect(eventObject['[Amplitude] LCP']).not.toHaveProperty('navigationId');
-
     expect(eventObject).toMatchObject({
       '[Amplitude] Page Domain': 'www.example.com',
       '[Amplitude] Page Location': 'https://www.example.com/path/to?query=value#hash',
@@ -281,7 +278,7 @@ describe('webVitalsPlugin', () => {
       }
     });
 
-    it('should include the navigation id and navigation start of the reported navigation', async () => {
+    it('should include the navigation start of the reported navigation', async () => {
       const plugin = webVitalsPlugin({ reportSoftNav: true });
       await plugin?.setup?.(config, amplitude);
 
@@ -298,7 +295,6 @@ describe('webVitalsPlugin', () => {
       const [, eventObject] = (amplitude.track as jest.Mock).mock.calls[0];
       expect(eventObject['[Amplitude] LCP']).toMatchObject({
         navigationType: 'soft-navigation',
-        navigationId: 4,
         // performance.timeOrigin (1000) + navigationStartTime (500)
         navigationStart: 1500,
       });

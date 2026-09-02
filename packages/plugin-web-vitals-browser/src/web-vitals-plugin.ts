@@ -21,7 +21,6 @@ type WebVitalsMetricPayload = {
   id: string;
   timestamp: number;
   navigationStart: number;
-  navigationId?: number;
 };
 
 type WebVitalsMetricProperty =
@@ -61,8 +60,8 @@ function getMetricStartTime(metric: Metric) {
   return performance.timeOrigin + startTime;
 }
 
-function processMetric(metric: Metric, includeNavigationId: boolean): WebVitalsMetricPayload {
-  const payload: WebVitalsMetricPayload = {
+function processMetric(metric: Metric): WebVitalsMetricPayload {
+  return {
     value: metric.value,
     rating: metric.rating,
     delta: metric.delta,
@@ -73,12 +72,6 @@ function processMetric(metric: Metric, includeNavigationId: boolean): WebVitalsM
     // the document's time origin. `navigationStartTime` is 0 for the initial page load.
     navigationStart: Math.floor(performance.timeOrigin + /* istanbul ignore next */ (metric.navigationStartTime || 0)),
   };
-
-  if (includeNavigationId) {
-    payload.navigationId = metric.navigationId;
-  }
-
-  return payload;
 }
 
 /**
