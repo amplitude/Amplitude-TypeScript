@@ -21,6 +21,7 @@ type WebVitalsMetricPayload = {
   id: string;
   timestamp: number;
   navigationStart: number;
+  navigationId?: Metric['navigationId'];
 };
 
 type WebVitalsMetricProperty =
@@ -60,7 +61,7 @@ function getMetricStartTime(metric: Metric) {
   return performance.timeOrigin + startTime;
 }
 
-function processMetric(metric: Metric): WebVitalsMetricPayload {
+function processMetric(metric: Metric, reportSoftNavs: boolean): WebVitalsMetricPayload {
   return {
     value: metric.value,
     rating: metric.rating,
@@ -71,6 +72,8 @@ function processMetric(metric: Metric): WebVitalsMetricPayload {
     // A soft navigation's metrics are measured from the start of that navigation rather than from
     // the document's time origin. `navigationStartTime` is 0 for the initial page load.
     navigationStart: Math.floor(performance.timeOrigin + /* istanbul ignore next */ (metric.navigationStartTime || 0)),
+    // Only included when reporting soft navigations so the default event stays byte-identical.
+    ...(reportSoftNavs && { navigationId: metric.navigationId }),
   };
 }
 

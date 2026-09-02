@@ -202,6 +202,7 @@ describe('webVitalsPlugin', () => {
     expect(eventObject['[Amplitude] INP']).toMatchObject(expectedMetric);
     expect(eventObject['[Amplitude] CLS']).toMatchObject(expectedMetric);
     expect(eventObject['[Amplitude] TTFB']).toMatchObject(expectedMetric);
+    expect(eventObject['[Amplitude] LCP']).not.toHaveProperty('navigationId');
 
     expect(eventObject).toMatchObject({
       '[Amplitude] Page Domain': 'www.example.com',
@@ -297,6 +298,7 @@ describe('webVitalsPlugin', () => {
         navigationType: 'soft-navigation',
         // performance.timeOrigin (1000) + navigationStartTime (500)
         navigationStart: 1500,
+        navigationId: 4,
       });
     });
 
