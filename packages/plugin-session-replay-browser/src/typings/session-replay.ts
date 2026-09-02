@@ -125,6 +125,10 @@ export interface SessionReplayOptions {
    */
   shouldInlineStylesheet?: boolean;
   /**
+   * @see {@link StandaloneSessionReplayOptions.inlineImages}
+   */
+  inlineImages?: boolean;
+  /**
    * @see {@link StandaloneSessionReplayOptions.performanceConfig}
    */
   performanceConfig?: SessionReplayPerformanceConfig;

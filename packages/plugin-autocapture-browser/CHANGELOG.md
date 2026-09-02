@@ -3,6 +3,23 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.29.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.28.12...@amplitude/plugin-autocapture-browser@1.29.0) (2026-08-27)
+
+
+### Bug Fixes
+
+* **autocapture:** exposure snapshot ([#1948](https://github.com/amplitude/Amplitude-TypeScript/issues/1948)) ([e0fa402](https://github.com/amplitude/Amplitude-TypeScript/commit/e0fa4024d41b8a2386f7f27fdc18289c61ef965b))
+
+
+### Features
+
+* **plugin-autocapture-browser:** add shadow to hierarchy ([#1937](https://github.com/amplitude/Amplitude-TypeScript/issues/1937)) ([6fa34e9](https://github.com/amplitude/Amplitude-TypeScript/commit/6fa34e9737136599c80fc249077fbf32417e4eb8))
+* **zoning:** add support for shadow dom ([#1922](https://github.com/amplitude/Amplitude-TypeScript/issues/1922)) ([6c2d5c2](https://github.com/amplitude/Amplitude-TypeScript/commit/6c2d5c20f515554a10c55c18ef23432e9c66bc5c))
+
+
+
+
+
 ## [1.28.12](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.28.11...@amplitude/plugin-autocapture-browser@1.28.12) (2026-08-24)
 
 

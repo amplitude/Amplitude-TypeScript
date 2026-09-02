@@ -1,6 +1,6 @@
 {
   "name": "@amplitude/plugin-experiment-react-native",
-  "version": "1.0.0-beta.0",
+  "version": "1.0.0-beta.1",
   "description": "Amplitude Experiment plugin for React Native Analytics",
   "keywords": [
     "analytics",

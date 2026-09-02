@@ -51,6 +51,8 @@ export const AMPLITUDE_VISUAL_TAGGING_HIGHLIGHT_CLASS = 'amp-visual-tagging-sele
 // Data attribute for specifying which attributes should be redacted from autocapture
 export const DATA_AMP_MASK_ATTRIBUTES = 'data-amp-mask-attributes';
 
+export const DATA_AMP_INTERNAL_SHADOW = 'data-amp-internal-shadow';
+
 export const MAX_MASK_TEXT_PATTERNS = 25;
 
 export const MAX_ATTRIBUTE_LENGTH = 128;

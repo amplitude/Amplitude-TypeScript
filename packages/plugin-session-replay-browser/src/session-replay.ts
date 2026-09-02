@@ -13,6 +13,8 @@ import {
   getSessionId,
   getSessionReplayProperties,
   flush,
+  start,
+  stop,
   shutdown,
   evaluateTargetingAndCapture,
   AmplitudeSessionReplay,
@@ -40,6 +42,8 @@ export class SessionReplayPlugin implements EnrichmentPlugin<BrowserClient, Brow
     getSessionReplayProperties: getSessionReplayProperties,
     init: init,
     setSessionId: setSessionId,
+    start: start,
+    stop: stop,
     shutdown: shutdown,
     evaluateTargetingAndCapture: evaluateTargetingAndCapture,
   };
@@ -96,6 +100,7 @@ export class SessionReplayPlugin implements EnrichmentPlugin<BrowserClient, Brow
         },
         debugMode: this.options.debugMode,
         shouldInlineStylesheet: this.options.shouldInlineStylesheet,
+        inlineImages: this.options.inlineImages,
         version: { type: 'plugin', version: VERSION },
         performanceConfig: this.options.performanceConfig,
         storeType: this.options.storeType,
@@ -223,9 +228,25 @@ export class SessionReplayPlugin implements EnrichmentPlugin<BrowserClient, Brow
   getSessionReplayProperties() {
     return this.sessionReplay.getSessionReplayProperties();
   }
+
+  /**
+   * Start or resume session replay recording.
+   * Recording still respects sample rate, targeting, opt-out, and remote capture flags.
+   */
+  async start() {
+    await this.sessionReplay.start().promise;
+  }
+
+  /**
+   * Stop session replay recording without removing the plugin.
+   * Call {@link SessionReplayPlugin.start} to resume. Plugin teardown still uses shutdown.
+   */
+  stop() {
+    this.sessionReplay.stop();
+  }
 }
 
-export const sessionReplayPlugin: (options?: SessionReplayOptions) => EnrichmentPlugin = (
+export const sessionReplayPlugin: (options?: SessionReplayOptions) => SessionReplayPlugin = (
   options?: SessionReplayOptions,
 ) => {
   return new SessionReplayPlugin(options);

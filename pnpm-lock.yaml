@@ -1201,7 +1201,8 @@ packages:
       { integrity: sha512-MMecqmDXJ81KH0dU2/Alshy8O3srBOO8A0CcIy958zUUFJwyB3z2zXbU2EYSF0s75xwWBAu/+F23Dp2ATmOerg== }
 
   '@amplitude/experiment-react-native-client@1.8.0':
-    resolution: {integrity: sha512-qEd1s5SmJyct81lGtOBWQbyoAWfUBjcTl2LLdKaxRrsHAnJtnu0MbwvMzh6RwnKRjMigRfxOH+2kPVu3UV/0cg==}
+    resolution:
+      { integrity: sha512-qEd1s5SmJyct81lGtOBWQbyoAWfUBjcTl2LLdKaxRrsHAnJtnu0MbwvMzh6RwnKRjMigRfxOH+2kPVu3UV/0cg== }
     peerDependencies:
       react: '*'
       react-native: '*'

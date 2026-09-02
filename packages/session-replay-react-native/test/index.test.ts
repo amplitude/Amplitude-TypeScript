@@ -18,14 +18,12 @@ import {
   start,
   stop,
   setDeviceId,
-  SessionReplayPlugin,
   AmpMaskView,
   type SessionReplayConfig,
-  type SessionReplayPluginConfig,
   type MaskLevel,
+  LogLevel,
 } from '../src/index';
 import { NativeModules } from 'react-native';
-import { LogLevel } from '@amplitude/analytics-types';
 
 describe('Index Exports', () => {
   const testConfig: SessionReplayConfig = {
@@ -98,11 +96,8 @@ describe('Index Exports', () => {
   });
 
   describe('Class Exports', () => {
-    it('should export SessionReplayPlugin class', () => {
-      const plugin = new SessionReplayPlugin();
-      expect(plugin).toBeInstanceOf(SessionReplayPlugin);
-      expect(plugin.name).toBe('@amplitude/plugin-session-replay-react-native');
-      expect(plugin.type).toBe('enrichment');
+    it('should not export SessionReplayPlugin', () => {
+      expect(sessionReplay).not.toHaveProperty('SessionReplayPlugin');
     });
 
     it('should export AmpMaskView component', () => {
@@ -127,20 +122,19 @@ describe('Index Exports', () => {
       expect(config).toBeTruthy();
     });
 
-    it('should export SessionReplayPluginConfig interface', () => {
-      const config: SessionReplayPluginConfig = {
-        sampleRate: 1,
-        enableRemoteConfig: true,
-        logLevel: LogLevel.Warn,
-        autoStart: true,
-      };
-      // TypeScript compilation is the test - if it compiles, the interface is correct
-      expect(config).toBeTruthy();
-    });
-
     it('should export MaskLevel type', () => {
       const level: MaskLevel = 'conservative';
       expect(level).toBe('conservative');
+    });
+  });
+
+  describe('Enum Exports', () => {
+    it('should export LogLevel as a runtime enum from the package entry', () => {
+      expect(LogLevel.Warn).toBe(2);
+      expect(LogLevel.None).toBe(0);
+      expect(LogLevel.Error).toBe(1);
+      expect(LogLevel.Verbose).toBe(3);
+      expect(LogLevel.Debug).toBe(4);
     });
   });
 });
