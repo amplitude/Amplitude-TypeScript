@@ -152,9 +152,9 @@ export class Timeline {
       const e = await plugin.execute({ ...event });
       if (e === null) {
         this.loggerProvider.log(
-          `Timeline.apply: Event filtered out by enrichment plugin '${String(
-            plugin.name,
-          )}', event: ${safeJsonStringify(event)}`,
+          `Timeline.apply: Event filtered out by enrichment plugin '${String(plugin.name)}', event: ${safeJsonStringify(
+            event,
+          )}`,
         );
         resolve({ event, code: 0, message: '' });
         return;
