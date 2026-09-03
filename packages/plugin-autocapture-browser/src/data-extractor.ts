@@ -179,7 +179,7 @@ export class DataExtractor {
     }
     let labelElement: Element | null;
     try {
-      labelElement = parent.querySelector(':scope>span,h1,h2,h3,h4,h5,h6');
+      labelElement = parent.querySelector(':scope>span,:scope>h1,:scope>h2,:scope>h3,:scope>h4,:scope>h5,:scope>h6');
     } catch {
       /* istanbul ignore next */
       labelElement = null;
