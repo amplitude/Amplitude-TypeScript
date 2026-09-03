@@ -25,16 +25,12 @@ yarn add @amplitude/unified
 
 The Unified SDK provides a single entry point for all Amplitude features, including Analytics, Experiment, and Session Replay. It simplifies the integration process by handling the initialization and configuration of all components.
 
-### 1. Import Amplitude Unified SDK
+### 1. Initialize Amplitude Unified SDK
 
 ```typescript
-import { initAll } from '@amplitude/unified';
-```
+import { Identify, experiment, identify, initAll, sessionReplay, track } from '@amplitude/unified';
 
-### 2. Initialize the SDK
-
-```typescript
-initAll('YOUR_API_KEY', {
+await initAll('YOUR_API_KEY', {
   // Shared options for all SDKs (optional)
   serverZone: 'US', // or 'EU'
   instanceName: 'my-instance',
@@ -61,18 +57,11 @@ initAll('YOUR_API_KEY', {
 });
 ```
 
-### 3. Access SDK Features
+### 2. Access SDK Features
 
 The Unified SDK provides access to all Amplitude features through a single interface:
 
 ```typescript
-import {
-  track,
-  identify,
-  experiment,
-  sessionReplay
-} from '@amplitude/unified';
-
 // Track events
 track('Button Clicked', { buttonName: 'Sign Up' });
 
@@ -80,13 +69,17 @@ track('Button Clicked', { buttonName: 'Sign Up' });
 identify(new Identify().set('userType', 'premium'));
 
 // Access Experiment features
-const variant = await experiment.fetch('experiment-key');
+const experimentClient = experiment();
+if (experimentClient) {
+  await experimentClient.fetch();
+  const variant = experimentClient.variant('experiment-key');
+}
 
 // Access Session Replay features
-sessionReplay.flush();
+await sessionReplay()?.flush(false);
 
 // Access Guides and Surveys features via engagement global
-const activeGuidesAndSurveys = await engagement.gs.list();
+const activeGuidesAndSurveys = window.engagement.gs.list();
 ```
 
 ## Configuration Options
@@ -112,7 +105,7 @@ All options from `@amplitude/plugin-experiment-browser` are supported. See the [
 
 ### Guides and Surveys Options
 
-All options from `@amplitude/engagement-browser` are supported. See the [Guides and Surveys documentation](hhttps://amplitude.com/docs/guides-and-surveys/sdk) for details.
+All options from `@amplitude/engagement-browser` are supported. See the [Guides and Surveys documentation](https://amplitude.com/docs/guides-and-surveys/sdk) for details.
 
 ## Learn More
 

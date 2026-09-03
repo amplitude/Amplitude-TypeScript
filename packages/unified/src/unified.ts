@@ -21,6 +21,10 @@ export interface UnifiedSharedOptions {
 }
 
 export type UnifiedOptions = UnifiedSharedOptions & {
+  /**
+   * Analytics Browser SDK configuration options.
+   * See {@link https://amplitude.com/docs/sdks/analytics/browser/browser-sdk-2#configure-the-sdk | Configure the SDK}.
+   */
   analytics?: BrowserOptions;
   sessionReplay?: Omit<SessionReplayOptions, keyof UnifiedSharedOptions>;
   experiment?: Omit<ExperimentPluginConfig, keyof UnifiedSharedOptions>;
@@ -29,17 +33,19 @@ export type UnifiedOptions = UnifiedSharedOptions & {
 
 export interface UnifiedClient extends BrowserClient {
   initAll(apiKey: string, unifiedOptions?: UnifiedOptions): Promise<void>;
-  sessionReplay(): AmplitudeSessionReplay;
+  sessionReplay(): AmplitudeSessionReplay | undefined;
   experiment(): IExperimentClient | undefined;
 }
 
 export class AmplitudeUnified extends AmplitudeBrowser implements UnifiedClient {
-  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-  // @ts-ignore
-  private _sessionReplay: AmplitudeSessionReplay;
+  private _sessionReplay?: AmplitudeSessionReplay;
   private _initAllPromise?: Promise<void>;
 
-  sessionReplay(): AmplitudeSessionReplay {
+  /**
+   * Returns the Session Replay client after initAll() has completed, or undefined before initialization or when the
+   * Session Replay plugin is unavailable.
+   */
+  sessionReplay(): AmplitudeSessionReplay | undefined {
     return this._sessionReplay;
   }
 
@@ -65,8 +71,8 @@ export class AmplitudeUnified extends AmplitudeBrowser implements UnifiedClient 
    * Initialize SDKs with configuration options.
    *
    * @param apiKey Amplitude API key.
-   * @param analyticsOptions Analytics configuration options. Refer to {@link https://amplitude.com/docs/sdks/analytics/browser/browser-sdk-2#configure-the-sdk here} for more info.
-   * @param unifiedOptions Shared configuration for all SDKs and for blade SDKs.
+   * @param unifiedOptions Shared and SDK-specific configuration options. `unifiedOptions.analytics` configures the
+   * Analytics Browser SDK.
    */
   async initAll(apiKey: string, unifiedOptions?: UnifiedOptions) {
     if (this._initAllPromise) {
