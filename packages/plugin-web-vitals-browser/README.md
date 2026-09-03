@@ -35,6 +35,42 @@ import { webVitalsPlugin } from '@amplitude/plugin-web-vitals-browser';
 const plugin = webVitalsPlugin();
 ```
 
+#### Options
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| `reportSoftNav` | `boolean` | `false` | Also report web vitals for soft navigations, not only for the initial page load. |
+
+##### `reportSoftNav`
+
+Single page applications update the URL and history without a full page navigation, so by default
+Core Web Vitals are only measured once, for the initial page load. With `reportSoftNav` enabled,
+LCP, FCP, INP, CLS and TTFB are also measured per
+[soft navigation](https://github.com/WICG/soft-navigations), and one `[Amplitude] Web Vitals` event
+is sent per navigation, with the page properties of the URL the metrics belong to. Metrics measured
+for a soft navigation have a `navigationType` of `soft-navigation`.
+
+```typescript
+const plugin = webVitalsPlugin({ reportSoftNav: true });
+```
+
+This requires browser support for the Soft Navigations API (Chromium 151+). In browsers without it,
+reporting is unchanged from the default behavior.
+
+Note that enabling this also changes how the initial page load is measured: its metrics are
+finalized once the first soft navigation occurs, rather than when the page is hidden.
+
+When using the Browser SDK's autocapture, the same option can be set through
+`autocapture.webVitals`:
+
+```typescript
+amplitude.init('API_KEY', {
+  autocapture: {
+    webVitals: { reportSoftNav: true },
+  },
+});
+```
+
 ### 3. Install plugin to Amplitude SDK
 
 ```typescript

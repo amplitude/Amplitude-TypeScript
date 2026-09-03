@@ -124,6 +124,7 @@ export { SAFE_HEADERS, FORBIDDEN_HEADERS } from './types/constants';
 export { PageUrlEnrichmentOptions } from './types/page-url-enrichment';
 export { CustomEnrichmentOptions } from './types/custom-enrichment';
 export { PerformanceTrackingOptions, MainThreadBlockOptions } from './types/performance-tracking';
+export { WebVitalsOptions } from './types/web-vitals';
 
 // Campaign
 export { Campaign, UTMParameters, ReferrerParameters, ClickIdParameters, ICampaignParser } from './types/campaign';
