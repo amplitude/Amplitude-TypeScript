@@ -108,7 +108,7 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
   override fun setDeviceId(deviceId: String?, promise: Promise) {
     try {
       nativeConfig = requireNotNull(nativeConfig).copy(deviceId = deviceId)
-      sessionReplay?.setDeviceId(deviceId ?: "")
+      sessionReplay?.setDeviceId(deviceId)
       promise.resolve(null)
     } catch (e: Exception) {
       promise.reject("SET_DEVICE_ID_ERROR", e.message, e)
@@ -218,7 +218,7 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
     return SessionReplay(
       apiKey = config.apiKey,
       context = reactContext.applicationContext,
-      deviceId = config.deviceId ?: "",
+      deviceId = config.deviceId,
       sessionId = config.sessionId,
       optOut = config.optOut,
       sampleRate = config.sampleRate,
