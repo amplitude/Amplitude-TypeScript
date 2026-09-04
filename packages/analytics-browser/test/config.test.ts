@@ -179,9 +179,9 @@ describe('config', () => {
 
     test('should derive delayedEventsServerUrl from custom serverUrl', async () => {
       jest.spyOn(Config, 'getTopLevelDomain').mockResolvedValueOnce('.amplitude.com');
-      const serverUrl = 'https://proxy.example.com';
+      const serverUrl = 'https://proxy.example.com/2/httpapi';
       const config = await Config.useBrowserConfig(apiKey, { serverUrl }, new AmplitudeBrowser());
-      expect(config.delayedEventsServerUrl).toBe(`${serverUrl}/2/httpapi/delayed`);
+      expect(config.delayedEventsServerUrl).toBe(`${serverUrl}/delayed`);
     });
 
     test('should prefer custom serverUrl over delayedEventsServerUrl', async () => {
@@ -192,7 +192,7 @@ describe('config', () => {
         { serverUrl, delayedEventsServerUrl: 'https://example.com/2/httpapi/delayed' },
         new AmplitudeBrowser(),
       );
-      expect(config.delayedEventsServerUrl).toBe(`${serverUrl}/2/httpapi/delayed`);
+      expect(config.delayedEventsServerUrl).toBe(`${serverUrl}/delayed`);
     });
 
     test('should fall back to memoryStorage when storageProvider is not enabled', async () => {
@@ -416,6 +416,12 @@ describe('config', () => {
     test('should default unknown server zones to the US delayed events endpoint', () => {
       expect(Config.getDelayedEventsServerUrl(undefined, undefined, 'STAGING' as never)).toBe(
         'https://delayed-events.prod.us-west-2.amplitude.com/2/httpapi/delayed',
+      );
+    });
+
+    test('should append /delayed onto a serverUrl that already includes /2/httpapi', () => {
+      expect(Config.getDelayedEventsServerUrl('https://proxy.example.com/2/httpapi', undefined)).toBe(
+        'https://proxy.example.com/2/httpapi/delayed',
       );
     });
   });
