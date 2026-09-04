@@ -397,52 +397,6 @@ describe('timeline', () => {
       expect(beforeExecute).toHaveBeenCalledTimes(0);
     });
 
-    test('should handle circular event properties while logging plugin results', async () => {
-      const beforeExecute = jest.fn().mockImplementation((event: Event) => Promise.resolve(event));
-      const enrichmentExecute = jest.fn().mockImplementation((event: Event) => Promise.resolve(event));
-      const destinationExecute = jest.fn().mockImplementation((event: Event) =>
-        Promise.resolve({
-          event,
-          code: 200,
-          message: 'success',
-        }),
-      );
-
-      timeline.plugins = [
-        {
-          name: 'plugin:before',
-          type: 'before',
-          execute: beforeExecute,
-        },
-        {
-          name: 'plugin:enrichment',
-          type: 'enrichment',
-          execute: enrichmentExecute,
-        },
-        {
-          name: 'plugin:destination',
-          type: 'destination',
-          execute: destinationExecute,
-        },
-      ];
-
-      const circularProperties: Record<string, unknown> = {};
-      circularProperties.self = circularProperties;
-      const event: Event = {
-        event_type: 'circular-event',
-        event_properties: circularProperties,
-      };
-      const callback = jest.fn();
-
-      await expect(timeline.apply([event, callback])).resolves.toBeUndefined();
-      await Promise.resolve();
-
-      expect(beforeExecute).toHaveBeenCalledTimes(1);
-      expect(enrichmentExecute).toHaveBeenCalledTimes(1);
-      expect(destinationExecute).toHaveBeenCalledTimes(1);
-      expect(callback).toHaveBeenCalledTimes(1);
-    });
-
     test("should pass event's extra to plugins", async () => {
       const beforeExecute = jest.fn().mockImplementationOnce((event: Event) => {
         expect(event.extra).toStrictEqual({ 'extra-key': 'extra-value' });

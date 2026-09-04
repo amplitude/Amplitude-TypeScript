@@ -7,7 +7,6 @@ import { Event } from './types/event/event';
 import { Result } from './types/result';
 import { buildResult } from './utils/result-builder';
 import { UUID } from './utils/uuid';
-import { safeJsonStringify } from './utils/safe-stringify';
 
 type PluginStatus = 'locked' | 'installed';
 
@@ -125,7 +124,7 @@ export class Timeline {
       const e = await plugin.execute({ ...event });
       if (e === null) {
         this.loggerProvider.log(
-          `Timeline.apply: Event filtered out by before plugin '${String(plugin.name)}', event: ${safeJsonStringify(
+          `Timeline.apply: Event filtered out by before plugin '${String(plugin.name)}', event: ${JSON.stringify(
             event,
           )}`,
         );
@@ -134,7 +133,7 @@ export class Timeline {
       } else {
         event = e;
         this.loggerProvider.log(
-          `Timeline.apply: Event after before plugin '${String(plugin.name)}', event: ${safeJsonStringify(event)}`,
+          `Timeline.apply: Event after before plugin '${String(plugin.name)}', event: ${JSON.stringify(event)}`,
         );
       }
     }
@@ -152,7 +151,7 @@ export class Timeline {
       const e = await plugin.execute({ ...event });
       if (e === null) {
         this.loggerProvider.log(
-          `Timeline.apply: Event filtered out by enrichment plugin '${String(plugin.name)}', event: ${safeJsonStringify(
+          `Timeline.apply: Event filtered out by enrichment plugin '${String(plugin.name)}', event: ${JSON.stringify(
             event,
           )}`,
         );
@@ -161,7 +160,7 @@ export class Timeline {
       } else {
         event = e;
         this.loggerProvider.log(
-          `Timeline.apply: Event after enrichment plugin '${String(plugin.name)}', event: ${safeJsonStringify(event)}`,
+          `Timeline.apply: Event after enrichment plugin '${String(plugin.name)}', event: ${JSON.stringify(event)}`,
         );
       }
     }
@@ -171,7 +170,7 @@ export class Timeline {
     );
 
     // Log final event before sending to destinations
-    this.loggerProvider.log(`Timeline.apply: Final event before destinations, event: ${safeJsonStringify(event)}`);
+    this.loggerProvider.log(`Timeline.apply: Final event before destinations, event: ${JSON.stringify(event)}`);
 
     const executeDestinations = destination.map((plugin) => {
       const eventClone = { ...event };
