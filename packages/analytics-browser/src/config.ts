@@ -108,7 +108,7 @@ export class BrowserConfig extends Config implements IBrowserConfig {
     public partnerId?: string,
     public plan?: Plan,
     public serverUrl: string = '',
-    public delayedEventsServerUrl?: string,
+    delayedEventsServerUrl?: string,
     public serverZone: ServerZoneType = DEFAULT_SERVER_ZONE,
     sessionId?: number,
     deferredSessionId?: number,
@@ -135,7 +135,13 @@ export class BrowserConfig extends Config implements IBrowserConfig {
     public enableRequestBodyCompression: boolean = false,
     public customEnrichment?: boolean | CustomEnrichmentOptions,
   ) {
-    super({ apiKey, storageProvider, transportProvider: createTransport(transport) });
+    super({
+      apiKey,
+      storageProvider,
+      transportProvider: createTransport(transport),
+      delayedEventsServerUrl,
+      serverZone,
+    });
     this._cookieStorage = cookieStorage;
     this.deviceId = deviceId;
     this.lastEventId = lastEventId;

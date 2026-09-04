@@ -3,6 +3,7 @@ import { CoreClient } from './types/client/core-client';
 import { BaseEvent, Delay } from './types/event/base-event';
 import { Result } from './types/result';
 import { UUID } from './utils/uuid';
+import { getGlobalScope } from './global-scope';
 
 type DelayedEvent = BaseEvent & {
   delay: Delay;
@@ -15,7 +16,7 @@ export class Heartbeat {
   private delayId: string;
   private interval: NodeJS.Timeout | null = null;
   private resetPromise: Promise<Result[]> | null = null;
-
+  private global: ReturnType<typeof getGlobalScope> | undefined;
   constructor(
     private client: CoreClient,
     private pulse: number,
@@ -24,6 +25,15 @@ export class Heartbeat {
   ) {
     this.events = new Map<string, DelayedEvent>();
     this.delayId = UUID();
+    this.global = getGlobalScope();
+    if (typeof Window !== 'undefined' && this.global instanceof Window) {
+      const win = this.global;
+      win.addEventListener('visibilitychange', () => {
+        if (win.document.visibilityState === 'hidden') {
+          void this.resetHeartbeat();
+        }
+      });
+    }
   }
 
   private async heartbeat(): Promise<Result[]> {
@@ -146,7 +156,6 @@ export class Heartbeat {
 }
 
 const DEFAULT_HEARTBEAT_INTERVAL = 60_000;
-// const DEFAULT_HEARTBEAT_INTERVAL = 2_000; // TODO: DO NOT MERGE THIS
 const DEFAULT_HEARTBEAT_DELAY_TIMEOUT = 3_600_000;
 
 type HeartbeatMap = Map<CoreClient, Heartbeat>;

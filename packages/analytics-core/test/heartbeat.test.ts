@@ -1,6 +1,7 @@
 import { Heartbeat } from '../src/heartbeat';
 import { getHeartbeatInstance } from '../src/';
 import { CoreClient } from '../src/types/client/core-client';
+import * as GlobalScopeModule from '../src/global-scope';
 
 describe('heartbeat', () => {
   let mockClient: CoreClient;
@@ -326,6 +327,75 @@ describe('heartbeat', () => {
 
       jest.clearAllMocks();
       jest.advanceTimersByTime(5000);
+      expect(trackMock).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('page visibility', () => {
+    class FakeWindow {
+      document = { visibilityState: 'visible' };
+      private listeners: Array<() => void> = [];
+      addEventListener = jest.fn((event: string, handler: () => void) => {
+        if (event === 'visibilitychange') {
+          this.listeners.push(handler);
+        }
+      });
+      dispatchVisibility(state: string) {
+        this.document.visibilityState = state;
+        this.listeners.forEach((handler) => handler());
+      }
+    }
+
+    let fakeWindow: FakeWindow;
+    let originalWindow: unknown;
+
+    beforeEach(() => {
+      fakeWindow = new FakeWindow();
+      originalWindow = (globalThis as { Window?: unknown }).Window;
+      (globalThis as { Window: unknown }).Window = FakeWindow;
+      jest.spyOn(GlobalScopeModule, 'getGlobalScope').mockReturnValue(fakeWindow as unknown as typeof globalThis);
+      heartbeat = new Heartbeat(mockClient, 1000, 1000, mockLoggerProvider);
+    });
+
+    afterEach(() => {
+      jest.spyOn(GlobalScopeModule, 'getGlobalScope').mockRestore();
+      if (originalWindow === undefined) {
+        delete (globalThis as { Window?: unknown }).Window;
+      } else {
+        (globalThis as { Window: unknown }).Window = originalWindow;
+      }
+    });
+
+    test('should subscribe to visibilitychange on Window', () => {
+      expect(fakeWindow.addEventListener).toHaveBeenCalledWith('visibilitychange', expect.any(Function));
+    });
+
+    test('should reset heartbeat when the page becomes hidden', async () => {
+      await trackWithTimers({
+        insert_id: '1',
+        event_type: 'test',
+        event_properties: { test: 'test' },
+      });
+      expect(trackMock).toHaveBeenCalledTimes(1);
+      jest.clearAllMocks();
+
+      fakeWindow.dispatchVisibility('hidden');
+      await jest.advanceTimersByTimeAsync(0);
+
+      expect(trackMock).toHaveBeenCalledTimes(1);
+    });
+
+    test('should not reset heartbeat when visibility changes to visible', async () => {
+      await trackWithTimers({
+        insert_id: '1',
+        event_type: 'test',
+        event_properties: { test: 'test' },
+      });
+      jest.clearAllMocks();
+
+      fakeWindow.dispatchVisibility('visible');
+      await jest.advanceTimersByTimeAsync(0);
+
       expect(trackMock).not.toHaveBeenCalled();
     });
   });
