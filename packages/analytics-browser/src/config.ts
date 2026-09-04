@@ -50,7 +50,7 @@ export const getDelayedEventsServerUrl = (
   serverZone: ServerZoneType = DEFAULT_SERVER_ZONE,
 ) => {
   if (serverUrl) {
-    return `${serverUrl}/2/httpapi/delayed`;
+    return `${serverUrl}/delayed`;
   }
   if (delayedEventsServerUrl) {
     return delayedEventsServerUrl;
