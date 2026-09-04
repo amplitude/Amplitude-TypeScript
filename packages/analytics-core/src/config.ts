@@ -16,6 +16,7 @@ import {
 import { Logger, ILogger } from './logger';
 import { LogLevel } from './types/loglevel';
 import { ConfigOptions, IRequestMetadata, IHistogramOptions, HistogramKey, IConfig } from './types/config/core-config';
+import { normalizeInstanceName } from './utils/instance-name';
 
 export const getDefaultConfig = () => ({
   flushMaxRetries: 12,
@@ -63,7 +64,7 @@ export class Config implements IConfig {
     this.flushIntervalMillis = options.flushIntervalMillis ?? defaultConfig.flushIntervalMillis;
     this.flushMaxRetries = options.flushMaxRetries || defaultConfig.flushMaxRetries;
     this.flushQueueSize = options.flushQueueSize || defaultConfig.flushQueueSize;
-    this.instanceName = options.instanceName || defaultConfig.instanceName;
+    this.instanceName = normalizeInstanceName(options.instanceName);
     this.loggerProvider = options.loggerProvider || defaultConfig.loggerProvider;
     this.logLevel = options.logLevel ?? defaultConfig.logLevel;
     this.minIdLength = options.minIdLength;
