@@ -55,29 +55,29 @@ describe('config', () => {
     expect(config.delayedEventsServerUrl).toBe(delayedEventsServerUrl);
   });
 
+  test('should prefer delayedEventsServerUrl over custom serverUrl', () => {
+    const defaultConfig = useDefaultConfig();
+    const delayedEventsServerUrl = 'https://example.com/2/httpapi/delayed';
+    const config = new Config({
+      apiKey: API_KEY,
+      serverUrl: 'https://proxy.example.com/2/httpapi',
+      delayedEventsServerUrl,
+      storageProvider: defaultConfig.storageProvider,
+      transportProvider: defaultConfig.transportProvider,
+    });
+    expect(config.delayedEventsServerUrl).toBe(delayedEventsServerUrl);
+  });
+
   test('should derive delayedEventsServerUrl from custom serverUrl', () => {
     const defaultConfig = useDefaultConfig();
     const serverUrl = 'https://proxy.example.com/2/httpapi';
     const config = new Config({
       apiKey: API_KEY,
       serverUrl,
-      delayedEventsServerUrl: 'https://example.com/2/httpapi/delayed',
       storageProvider: defaultConfig.storageProvider,
       transportProvider: defaultConfig.transportProvider,
     });
-    expect(config.delayedEventsServerUrl).toBe(`${serverUrl}/2/httpapi/delayed`);
-  });
-
-  test('should derive delayedEventsServerUrl from custom serverUrl', () => {
-    const defaultConfig = useDefaultConfig();
-    const serverUrl = 'https://proxy.example.com';
-    const config = new Config({
-      apiKey: API_KEY,
-      serverUrl,
-      storageProvider: defaultConfig.storageProvider,
-      transportProvider: defaultConfig.transportProvider,
-    });
-    expect(config.delayedEventsServerUrl).toBe('https://proxy.example.com/2/httpapi/delayed');
+    expect(config.delayedEventsServerUrl).toBe(`${serverUrl}/delayed`);
   });
 
   test('should default delayedEventsServerUrl for EU', () => {

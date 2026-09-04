@@ -169,6 +169,13 @@ describe('config', () => {
       expect(config.delayedEventsServerUrl).toBe(delayedEventsServerUrl);
     });
 
+    test('should derive delayedEventsServerUrl from custom serverUrl', async () => {
+      jest.spyOn(Config, 'getTopLevelDomain').mockResolvedValueOnce('.amplitude.com');
+      const serverUrl = 'https://proxy.example.com/2/httpapi';
+      const config = await Config.useBrowserConfig(apiKey, { serverUrl }, new AmplitudeBrowser());
+      expect(config.delayedEventsServerUrl).toBe(`${serverUrl}/delayed`);
+    });
+
     test('should default delayedEventsServerUrl for EU', async () => {
       jest.spyOn(Config, 'getTopLevelDomain').mockResolvedValueOnce('.amplitude.com');
       const config = await Config.useBrowserConfig(apiKey, { serverZone: 'EU' }, new AmplitudeBrowser());

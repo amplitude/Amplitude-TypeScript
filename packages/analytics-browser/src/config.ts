@@ -119,6 +119,7 @@ export class BrowserConfig extends Config implements IBrowserConfig {
       storageProvider,
       transportProvider: createTransport(transport),
       delayedEventsServerUrl,
+      serverUrl,
       serverZone,
     });
     this._cookieStorage = cookieStorage;
