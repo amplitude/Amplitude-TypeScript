@@ -14,11 +14,20 @@ window.addEventListener('message', (event) => {
     return;
   }
   const { id, action, payload } = event.data;
-  chrome.runtime.sendMessage({ action, payload }, (response) => {
-    const error = chrome.runtime.lastError?.message ?? response?.error;
+  const respond = (error, response) =>
     window.postMessage(
       { source: RESPONSE_SOURCE, id, error, result: error ? undefined : response },
       window.location.origin,
     );
-  });
+  try {
+    chrome.runtime.sendMessage({ action, payload }, (response) => {
+      respond(chrome.runtime.lastError?.message ?? response?.error, response);
+    });
+  } catch {
+    // Reloading the extension orphans the content scripts already sitting on open pages: this one keeps
+    // running, but its chrome.runtime is gone and sendMessage throws rather than reaching anything. Saying
+    // so beats letting the page wait out its timeout and conclude the extension is broken, which is the
+    // opposite of what happened — it's this copy of the page that's stale.
+    respond('This page predates the last extension reload and can no longer reach it. Reload this page.');
+  }
 });
