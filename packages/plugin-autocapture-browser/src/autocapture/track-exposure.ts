@@ -5,31 +5,14 @@ import { EXPOSURE_INTERSECTION_THRESHOLD } from '../constants';
 import { DataExtractor } from '../data-extractor';
 
 // Sub-pixel rounding can report a ratio a hair below the threshold on the very callback that
-// crossed it, which would strand an element that stops scrolling right at the boundary.
+// crossed it, which would otherwise strand an element that stops scrolling right at the boundary.
 const INTERSECTION_RATIO_TOLERANCE = 0.001;
 const MIN_INTERSECTION_RATIO = EXPOSURE_INTERSECTION_THRESHOLD - INTERSECTION_RATIO_TOLERANCE;
 
-// An element larger than the viewport can never reach EXPOSURE_INTERSECTION_THRESHOLD of its own
-// area, so it instead counts as seen once its visible part fills that fraction of the viewport.
-const fillsViewport = (entry: IntersectionObserverEntry): boolean => {
-  const rootBounds = entry.rootBounds;
-  if (!rootBounds) {
-    return false;
-  }
-  const rootArea = rootBounds.width * rootBounds.height;
-  if (rootArea <= 0) {
-    return false;
-  }
-  const visibleArea = entry.intersectionRect.width * entry.intersectionRect.height;
-  return visibleArea / rootArea >= MIN_INTERSECTION_RATIO;
-};
-
-const isSeen = (entry: IntersectionObserverEntry): boolean => {
-  if (!entry.isIntersecting) {
-    return false;
-  }
-  return entry.intersectionRatio >= MIN_INTERSECTION_RATIO || fillsViewport(entry);
-};
+// `isIntersecting` alone is not enough: the spec defines it as any overlap with the root, so the
+// ratio is what actually holds the element to EXPOSURE_INTERSECTION_THRESHOLD.
+const isSeen = (entry: IntersectionObserverEntry): boolean =>
+  entry.isIntersecting && entry.intersectionRatio >= MIN_INTERSECTION_RATIO;
 
 export function trackExposure({
   allObservables,
