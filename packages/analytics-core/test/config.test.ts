@@ -68,6 +68,21 @@ describe('config', () => {
     );
   });
 
+  test('should default delayedEventsServerUrl for EU when custom serverUrl is set', () => {
+    const defaultConfig = useDefaultConfig();
+    const config = new Config({
+      apiKey: API_KEY,
+      serverZone: 'EU',
+      serverUrl: 'https://proxy.example.com/2/httpapi',
+      storageProvider: defaultConfig.storageProvider,
+      transportProvider: defaultConfig.transportProvider,
+    });
+    expect(config.serverZone).toBeUndefined();
+    expect(config.delayedEventsServerUrl).toBe(
+      'https://delayed-events.prod.eu-central-1.amplitude.com/2/httpapi/delayed',
+    );
+  });
+
   test('should overwrite default config', () => {
     const defaultConfig = useDefaultConfig();
     const config = new Config({

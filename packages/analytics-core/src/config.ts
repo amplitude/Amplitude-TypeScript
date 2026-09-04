@@ -82,7 +82,7 @@ export class Config implements IConfig {
     const serverConfig = createServerConfig(options.serverUrl, options.serverZone, options.useBatch);
     this.serverZone = serverConfig.serverZone;
     this.serverUrl = serverConfig.serverUrl;
-    this.delayedEventsServerUrl = getDelayedEventsServerUrl(options.delayedEventsServerUrl, this.serverZone);
+    this.delayedEventsServerUrl = getDelayedEventsServerUrl(options.delayedEventsServerUrl, options.serverZone);
   }
 }
 
