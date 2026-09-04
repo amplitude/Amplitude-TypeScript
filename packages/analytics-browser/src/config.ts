@@ -44,6 +44,27 @@ import { AmplitudeBrowser } from './browser-client';
 import { VERSION } from './version';
 import { getDomain, KNOWN_2LDS } from './attribution/helpers';
 
+export const getDelayedEventsServerUrl = (
+  serverUrl: string | undefined,
+  delayedEventsServerUrl: string | undefined,
+  serverZone: ServerZoneType = DEFAULT_SERVER_ZONE,
+) => {
+  if (serverUrl) {
+    // serverUrl already includes /2/httpapi; Destination uses the same `${serverUrl}/delayed` fallback.
+    return `${serverUrl}/delayed`;
+  }
+  if (delayedEventsServerUrl) {
+    return delayedEventsServerUrl;
+  }
+  switch (serverZone) {
+    case 'EU':
+      return 'https://delayed-events.prod.eu-central-1.amplitude.com/2/httpapi/delayed';
+    case 'US':
+    default:
+      return 'https://delayed-events.prod.us-west-2.amplitude.com/2/httpapi/delayed';
+  }
+};
+
 // Exported for testing purposes only. Do not expose to public interface.
 export class BrowserConfig extends Config implements IBrowserConfig {
   public readonly version = VERSION;
@@ -148,6 +169,7 @@ export class BrowserConfig extends Config implements IBrowserConfig {
     this.fetchRemoteConfig = _fetchRemoteConfig;
 
     this.topLevelDomain = topLevelDomain || getDomain();
+    this.delayedEventsServerUrl = getDelayedEventsServerUrl(serverUrl, delayedEventsServerUrl, serverZone);
   }
 
   get cookieStorage() {
