@@ -1,4 +1,5 @@
 import { collectOpenShadowRoots, isShadowRoot } from '@amplitude/element-selector';
+import { EXPOSURE_INTERSECTION_THRESHOLD } from './constants';
 import { querySelectorAllDeep, TimestampedEvent } from './helpers';
 import { type ShadowGate, type ShadowMode } from './shadow-mode';
 import { Observable, consoleObserver, getGlobalScope, merge } from '@amplitude/analytics-core';
@@ -223,7 +224,7 @@ export const createExposureObservable = (
       {
         root: null, // viewport
         rootMargin: '0px', // start exactly at the viewport edge
-        threshold: 1.0, // trigger when 100% of the element is visible
+        threshold: EXPOSURE_INTERSECTION_THRESHOLD, // trigger when half of the element is visible
       },
     );
 

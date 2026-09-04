@@ -208,10 +208,61 @@ describe('trackExposure', () => {
     triggerExposure({
       isIntersecting: false,
       target: element,
-      intersectionRatio: 0.5, // < 1.0
+      intersectionRatio: 0,
     });
 
     expect(clearTimeoutSpy).toHaveBeenCalled();
+
+    jest.advanceTimersByTime(DEFAULT_EXPOSURE_DURATION * 1.5);
+    expect(onExposure).not.toHaveBeenCalled();
+  });
+
+  test('should expose an element that is half visible', () => {
+    const element = document.createElement('div');
+    element.id = 'half-visible';
+
+    triggerExposure({
+      isIntersecting: true,
+      target: element,
+      intersectionRatio: 0.5,
+    });
+
+    jest.advanceTimersByTime(DEFAULT_EXPOSURE_DURATION * 1.5);
+    expect(onExposure).toHaveBeenCalledWith('div#half-visible');
+  });
+
+  test('should not expose an element that is visible by less than half', () => {
+    const element = document.createElement('div');
+    element.id = 'barely-visible';
+
+    triggerExposure({
+      isIntersecting: true,
+      target: element,
+      intersectionRatio: 0.3,
+    });
+
+    jest.advanceTimersByTime(DEFAULT_EXPOSURE_DURATION * 1.5);
+    expect(onExposure).not.toHaveBeenCalled();
+  });
+
+  test('should cancel a pending exposure when the element scrolls below half visible', () => {
+    const element = document.createElement('div');
+    element.id = 'scrolled-away';
+
+    triggerExposure({
+      isIntersecting: true,
+      target: element,
+      intersectionRatio: 0.6,
+    });
+
+    jest.advanceTimersByTime(DEFAULT_EXPOSURE_DURATION / 2);
+
+    // Still touching the viewport, but no longer visible enough to count.
+    triggerExposure({
+      isIntersecting: true,
+      target: element,
+      intersectionRatio: 0.4,
+    });
 
     jest.advanceTimersByTime(DEFAULT_EXPOSURE_DURATION * 1.5);
     expect(onExposure).not.toHaveBeenCalled();
