@@ -22,7 +22,7 @@ export type State = {
 };
 
 export type VideoObserverParams = {
-  videoEl: HTMLVideoElement | EmbeddedVideoPlayer | MuxElement;
+  videoEl: HTMLMediaElement | EmbeddedVideoPlayer | MuxElement;
   onStateChange: (previousState: State, nextState: State) => void;
   vendor?: Vendor;
   isEmbedded?: boolean;
@@ -74,7 +74,7 @@ export class VideoObserver {
     if (isEmbedded) {
       this.untrack = trackEmbeddedVideo(videoEl as EmbeddedVideoPlayer, this.handler, vendor);
     } else {
-      this.untrack = trackHtmlVideo(videoEl as HTMLVideoElement, this.handler, vendor);
+      this.untrack = trackHtmlVideo(videoEl as HTMLMediaElement, this.handler, vendor);
     }
   }
 

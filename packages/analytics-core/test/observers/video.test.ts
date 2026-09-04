@@ -26,6 +26,15 @@ describe('VideoObserver', () => {
       expect(trackHtmlVideo).toHaveBeenCalledTimes(1);
     });
 
+    it('should call trackHtmlVideo for an HTML audio element', () => {
+      const audio = document.createElement('audio');
+      new VideoObserver({
+        videoEl: audio,
+        onStateChange: jest.fn(),
+      });
+      expect(trackHtmlVideo).toHaveBeenCalledTimes(1);
+    });
+
     it('should call trackEmbeddedVideo when isEmbedded is true and vendor is mux', () => {
       const player = null;
       new VideoObserver({
