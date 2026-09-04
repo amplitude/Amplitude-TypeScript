@@ -52,6 +52,8 @@ describe('trackExposure', () => {
     observers.forEach((observer) => observer(entry));
   };
 
+  const rect = (width: number, height: number) => ({ width, height } as DOMRectReadOnly);
+
   test('should mark element as exposed after 2 seconds of visibility', () => {
     const element = document.createElement('div');
     element.id = 'test-div';
@@ -208,13 +210,100 @@ describe('trackExposure', () => {
     triggerExposure({
       isIntersecting: false,
       target: element,
-      intersectionRatio: 0.5, // < 1.0
+      intersectionRatio: 0,
     });
 
     expect(clearTimeoutSpy).toHaveBeenCalled();
 
     jest.advanceTimersByTime(DEFAULT_EXPOSURE_DURATION * 1.5);
     expect(onExposure).not.toHaveBeenCalled();
+  });
+
+  test('should expose an element that is half visible', () => {
+    const element = document.createElement('div');
+    element.id = 'half-visible';
+
+    triggerExposure({
+      isIntersecting: true,
+      target: element,
+      intersectionRatio: 0.5,
+    });
+
+    jest.advanceTimersByTime(DEFAULT_EXPOSURE_DURATION * 1.5);
+    expect(onExposure).toHaveBeenCalledWith('div#half-visible');
+  });
+
+  test('should not expose an element that is visible by less than half', () => {
+    const element = document.createElement('div');
+    element.id = 'barely-visible';
+
+    triggerExposure({
+      isIntersecting: true,
+      target: element,
+      intersectionRatio: 0.3,
+      rootBounds: null,
+    });
+
+    jest.advanceTimersByTime(DEFAULT_EXPOSURE_DURATION * 1.5);
+    expect(onExposure).not.toHaveBeenCalled();
+  });
+
+  test('should not expose a partially visible element when the viewport has no area', () => {
+    const element = document.createElement('div');
+    element.id = 'zero-area-viewport';
+
+    triggerExposure({
+      isIntersecting: true,
+      target: element,
+      intersectionRatio: 0.3,
+      rootBounds: rect(0, 0),
+      intersectionRect: rect(0, 0),
+    });
+
+    jest.advanceTimersByTime(DEFAULT_EXPOSURE_DURATION * 1.5);
+    expect(onExposure).not.toHaveBeenCalled();
+  });
+
+  test('should cancel a pending exposure when the element scrolls below half visible', () => {
+    const element = document.createElement('div');
+    element.id = 'scrolled-away';
+
+    triggerExposure({
+      isIntersecting: true,
+      target: element,
+      intersectionRatio: 0.6,
+    });
+
+    jest.advanceTimersByTime(DEFAULT_EXPOSURE_DURATION / 2);
+
+    // Still touching the viewport, but no longer visible enough to count.
+    triggerExposure({
+      isIntersecting: true,
+      target: element,
+      intersectionRatio: 0.4,
+      rootBounds: rect(1024, 768),
+      intersectionRect: rect(1024, 100),
+    });
+
+    jest.advanceTimersByTime(DEFAULT_EXPOSURE_DURATION * 1.5);
+    expect(onExposure).not.toHaveBeenCalled();
+  });
+
+  test('should expose an element taller than the viewport once it fills half the viewport', () => {
+    const element = document.createElement('div');
+    element.id = 'taller-than-viewport';
+
+    // A 2560px tall element can only ever reach a ratio of 0.3 in a 768px viewport.
+    triggerExposure({
+      isIntersecting: true,
+      target: element,
+      intersectionRatio: 0.3,
+      rootBounds: rect(1024, 768),
+      intersectionRect: rect(1024, 768),
+    });
+
+    jest.advanceTimersByTime(DEFAULT_EXPOSURE_DURATION * 1.5);
+    expect(onExposure).toHaveBeenCalledWith('div#taller-than-viewport');
   });
 
   test('should clear all timers and exposure map on reset', () => {

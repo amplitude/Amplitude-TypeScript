@@ -1,7 +1,35 @@
 /* eslint-disable no-restricted-globals */
 import { DEFAULT_EXPOSURE_DURATION } from '@amplitude/analytics-core';
 import { AllWindowObservables } from '../autocapture-plugin';
+import { EXPOSURE_INTERSECTION_THRESHOLD } from '../constants';
 import { DataExtractor } from '../data-extractor';
+
+// Sub-pixel rounding can report a ratio a hair below the threshold on the very callback that
+// crossed it, which would strand an element that stops scrolling right at the boundary.
+const INTERSECTION_RATIO_TOLERANCE = 0.001;
+const MIN_INTERSECTION_RATIO = EXPOSURE_INTERSECTION_THRESHOLD - INTERSECTION_RATIO_TOLERANCE;
+
+// An element larger than the viewport can never reach EXPOSURE_INTERSECTION_THRESHOLD of its own
+// area, so it instead counts as seen once its visible part fills that fraction of the viewport.
+const fillsViewport = (entry: IntersectionObserverEntry): boolean => {
+  const rootBounds = entry.rootBounds;
+  if (!rootBounds) {
+    return false;
+  }
+  const rootArea = rootBounds.width * rootBounds.height;
+  if (rootArea <= 0) {
+    return false;
+  }
+  const visibleArea = entry.intersectionRect.width * entry.intersectionRect.height;
+  return visibleArea / rootArea >= MIN_INTERSECTION_RATIO;
+};
+
+const isSeen = (entry: IntersectionObserverEntry): boolean => {
+  if (!entry.isIntersecting) {
+    return false;
+  }
+  return entry.intersectionRatio >= MIN_INTERSECTION_RATIO || fillsViewport(entry);
+};
 
 export function trackExposure({
   allObservables,
@@ -26,8 +54,8 @@ export function trackExposure({
     const entry = event as unknown as IntersectionObserverEntry;
     const element = entry.target;
 
-    if (entry.isIntersecting) {
-      // Element became visible - start exposure timer if not already exposed
+    if (isSeen(entry)) {
+      // Element became visible enough - start exposure timer if not already exposed
       if (!exposureMap.get(element)) {
         const existingTimer = exposureTimerMap.get(element);
         if (existingTimer) {
@@ -47,8 +75,8 @@ export function trackExposure({
 
         exposureTimerMap.set(element, timer);
       }
-    } else if (!entry.isIntersecting && entry.intersectionRatio < 1.0) {
-      // Element left viewport - cancel exposure timer if one exists
+    } else {
+      // Element left the viewport or dropped below the threshold - cancel exposure timer if one exists
       const timer = exposureTimerMap.get(element);
       if (timer) {
         clearTimeout(timer);

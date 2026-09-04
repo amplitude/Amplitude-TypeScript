@@ -62,6 +62,9 @@ export const PAGE_VIEW_SESSION_STORAGE_KEY = 'AMP_PAGE_VIEW';
 
 export const MAX_ELEMENT_EXPOSED_STR_LENGTH = 18_000;
 
+/** Fraction of an element that must be inside the viewport for it to count as seen. */
+export const EXPOSURE_INTERSECTION_THRESHOLD = 0.5;
+
 /** DOM must be quiet for this long before the initial exposure snapshot runs. Matches DEFAULT_EXPOSURE_DURATION. */
 export const EXPOSURE_SNAPSHOT_QUIET_MS = 150;
 
