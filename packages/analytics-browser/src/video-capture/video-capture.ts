@@ -13,7 +13,7 @@ import {
 const ACTIVE_PLAYBACK_STATES = new Set<VideoState['playbackState']>(['playing', 'waiting']);
 
 export class VideoCapture {
-  private videoEl: HTMLVideoElement | null = null;
+  private videoEl: HTMLMediaElement | null = null;
   private heartbeat: ReturnType<typeof getHeartbeatInstance>;
   private embeddedVideoPlayer: EmbeddedVideoPlayer | null = null;
   private vendor?: VideoVendor;
@@ -28,12 +28,12 @@ export class VideoCapture {
   }
 
   /**
-   * Specify a video element to capture events from
+   * Specify a video or audio element to capture events from
    *
-   * @param videoEl - The HTML video element to capture events from.
+   * @param videoEl - The HTML video or audio element to capture events from.
    * @returns The VideoCapture instance.
    */
-  withVideoElement(videoEl: HTMLVideoElement): VideoCapture {
+  withVideoElement(videoEl: HTMLMediaElement): VideoCapture {
     this.videoEl = videoEl;
     return this;
   }
@@ -71,7 +71,7 @@ export class VideoCapture {
   }
 
   /**
-   * Track a "Video Content Started" event every time the video starts playing
+   * Track a "[Amplitude] Content Started" event every time the video starts playing
    * @returns The VideoCapture instance.
    */
   captureVideoStarted(): VideoCapture {
@@ -81,7 +81,7 @@ export class VideoCapture {
         const now = new Date().getTime();
         const startEvent: BaseEvent = {
           insert_id: UUID(),
-          event_type: 'Video Content Started',
+          event_type: '[Amplitude] Content Started',
           time: now,
           event_properties: {
             ...nextState.lastEvent,
@@ -93,7 +93,7 @@ export class VideoCapture {
         this.stopEvent = {
           ...startEvent,
           insert_id: UUID(),
-          event_type: 'Video Content Stopped',
+          event_type: '[Amplitude] Content Stopped',
           time: now + 1,
           event_properties: {
             ...nextState.lastEvent,
@@ -111,7 +111,7 @@ export class VideoCapture {
   }
 
   /**
-   * Track a "Video Content Stopped" event every time the video stops playing
+   * Track a "[Amplitude] Content Stopped" event every time the video stops playing
    * @returns The VideoCapture instance.
    */
   captureVideoStopped(): VideoCapture {
@@ -212,7 +212,12 @@ export class VideoCapture {
       duration: nextState.lastEvent?.duration ?? 0,
       start_time: nextState.lastEvent?.start_time ?? 0,
       position: nextState.position ?? 0,
+      delivery_mode: this.getDeliveryMode(),
     };
+  }
+
+  private getDeliveryMode(): 'video' | 'audio' {
+    return this.videoEl instanceof HTMLAudioElement ? 'audio' : 'video';
   }
 
   parseStopEventProperties(nextState: VideoState): Record<string, string | number | boolean> {
@@ -235,23 +240,23 @@ type UntrackVideoResult = () => void;
 export type TrackVideoResult = UntrackVideoResult | Error;
 
 /**
- * Track video analytics events for an HTML video element or embedded video player.js instance.
+ * Track video analytics events for an HTML video or audio element or embedded video player.js instance.
  *
- * Captures Video Started and Video Stopped events.
+ * Captures [Amplitude] Content Started and [Amplitude] Content Stopped events.
  *
  * @experimental This function is experimental and may not be stable.
  * @param amplitude - The Amplitude client instance.
- * @param videoEl - The HTML video element or embedded video player.js instance to capture events from.
+ * @param videoEl - The HTML video or audio element or embedded video player.js instance to capture events from.
  * @param options - The options for the video capture.
  * @returns A function to stop the video capture.
  */
 export function trackVideo(
   amplitude: BrowserClient,
-  videoEl: HTMLVideoElement | EmbeddedVideoPlayer,
+  videoEl: HTMLMediaElement | EmbeddedVideoPlayer,
   options: VideoCaptureOptions = {},
 ): TrackVideoResult {
   const videoCapture = new VideoCapture(amplitude);
-  if (videoEl instanceof HTMLVideoElement) {
+  if (videoEl instanceof HTMLMediaElement) {
     videoCapture.withVideoElement(videoEl);
   } else {
     videoCapture.withEmbeddedPlayer(videoEl);

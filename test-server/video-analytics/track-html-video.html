@@ -6,12 +6,12 @@
   </head>
   <body>
     <video id="video" controls width="640" preload="metadata" metadata-video-title="My Video" metadata-video-id="video-123">
-      <source src="https://stream.mux.com/iBXEG00ifc9cPSv005eKgQ01g3w42LUGdlFWlmeosVuGfU.m3u8" type="video/mp4">
       Your browser does not support the video tag.
     </video>
     <button id="stop-video">Stop Capturing</button>
     <script src="https://cdn.jsdelivr.net/npm/@mux/mux-player" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/mux-embed@latest/dist/mux.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@1"></script>
     <h1>Track HTML Video Test</h1>
     <script type="module">
       import * as amplitude from '@amplitude/analytics-browser';
@@ -25,10 +25,26 @@
       const userId = 'random-user-id';
       
       const video = document.getElementById('video');
-      
+
+      // hls.js is preferred wherever MSE exists, which includes Chrome. Native
+      // playback is only a fallback for iOS Safari. Do not gate this on
+      // canPlayType(): Chrome returns a truthy "maybe" for HLS MIME types
+      // despite being unable to play a manifest.
+      const videoSrc = 'https://stream.mux.com/iBXEG00ifc9cPSv005eKgQ01g3w42LUGdlFWlmeosVuGfU.m3u8';
+      let hls = null;
+      if (Hls.isSupported()) {
+        hls = new Hls();
+        hls.loadSource(videoSrc);
+        hls.attachMedia(video);
+      } else {
+        video.src = videoSrc;
+      }
+
       // MUX VIDEO MONITORING
       // monitor the video for Mux analytics
       mux?.monitor(video, {
+        // handing Mux the hls.js instance lets it report manifest and segment level metrics
+        ...(hls ? { hlsjs: hls, Hls } : {}),
         data: {
           view_session_id: muxViewSessionId,
           viewer_user_id: userId,
