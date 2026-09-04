@@ -10,7 +10,7 @@ import type {
 
 export type { Vendor };
 
-type PlaybackState = 'playing' | 'paused' | 'ended' | 'error' | 'seeking';
+type PlaybackState = 'playing' | 'paused' | 'ended' | 'error' | 'seeking' | 'waiting';
 
 export type State = {
   playbackState: PlaybackState;
@@ -33,6 +33,7 @@ export class VideoObserver {
     playbackState: 'paused',
   };
 
+  private waitingInterval: ReturnType<typeof setTimeout> | null = null;
   private untrack: () => void;
   private onStateChange: (previousState: State, nextState: State) => void;
   private handler: VideoHandler = {
@@ -86,6 +87,7 @@ export class VideoObserver {
   }
 
   private updateStateWithError(error: string) {
+    this.clearWaitingInterval();
     const previousState = this.state;
     const nextState: State = {
       ...previousState,
@@ -103,11 +105,37 @@ export class VideoObserver {
       position: event.last_position,
     };
     this.updateState(nextState);
+
+    this.clearWaitingInterval();
+    if (playbackState !== 'playing') {
+      return;
+    }
+    // if it's in a playing state, but the playhead is not moving,
+    // then transition playback from 'playing' to 'waiting'
+    // (the "waiting" listener isn't reliable, so this is a fallback)
+    let prevPosition: number | null | undefined = this.state.position;
+    this.waitingInterval = setInterval(() => {
+      const position = this.state.position;
+      if (this.state.playbackState === 'playing' && typeof prevPosition === 'number' && prevPosition === position) {
+        // no new player event backs this transition, so carry the current position and metadata over
+        this.updateState({ ...this.state, playbackState: 'waiting' });
+      }
+      prevPosition = position;
+    }, 1_000);
+  }
+
+  private clearWaitingInterval() {
+    if (this.waitingInterval) {
+      clearInterval(this.waitingInterval);
+      this.waitingInterval = null;
+    }
   }
 
   private updateTime(event: TimeUpdateEvent) {
     const lastVideoEvent = this.state.lastEvent;
-    if (!lastVideoEvent || this.state.playbackState !== 'playing') {
+    const isWaiting = this.state.playbackState === 'waiting';
+    const isPlaying = this.state.playbackState === 'playing';
+    if (!lastVideoEvent || (!isPlaying && !isWaiting)) {
       return;
     }
     const isSeeking = event.isSeeking || this.state.isSeeking;
@@ -123,6 +151,7 @@ export class VideoObserver {
     const timeDelta = nextPosition - lastPosition;
     const nextState: State = {
       ...this.state,
+      playbackState: 'playing',
       position: nextPosition,
       watchTime: (this.state.watchTime ?? 0) + timeDelta,
     };
@@ -136,6 +165,7 @@ export class VideoObserver {
   }
 
   destroy() {
+    this.clearWaitingInterval();
     this.untrack();
   }
 }

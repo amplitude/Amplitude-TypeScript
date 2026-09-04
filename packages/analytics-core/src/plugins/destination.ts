@@ -1,5 +1,6 @@
 import { DestinationPlugin } from '../types/plugin';
 import { Event } from '../types/event/event';
+import { Delay } from '../types/event/base-event';
 import { Result } from '../types/result';
 import { Status } from '../types/status';
 import {
@@ -32,13 +33,17 @@ import { EventCallback } from '../types/event-callback';
 import { IDiagnosticsClient } from '../diagnostics/diagnostics-client';
 import { isSuccessStatusCode } from '../utils/status-code';
 import { getStacktrace } from '../utils/debug';
+import { DelayedPayload, Payload } from '../types/payload';
 
 export interface Context {
   event: Event;
   attempts: number;
   callback: EventCallback;
   timeout: number;
+  delay?: Delay;
 }
+
+type DelayedEventsById = Record<string, Context[]>;
 
 const DEFAULT_AMPLITUDE_SERVER_URLS = new Set([
   AMPLITUDE_SERVER_URL,
@@ -95,6 +100,7 @@ export class Destination implements DestinationPlugin {
   flushId: ReturnType<typeof setTimeout> | null = null;
   queue: Context[] = [];
   diagnosticsClient: IDiagnosticsClient | undefined;
+  inFlightDelayedEvents: Record<string, boolean> = {};
 
   constructor(context?: { diagnosticsClient: IDiagnosticsClient }) {
     this.diagnosticsClient = context?.diagnosticsClient;
@@ -125,10 +131,48 @@ export class Destination implements DestinationPlugin {
         callback: (result: Result) => resolve(result),
         timeout: 0,
       };
+      this.removeStaleDelayedEvents(event);
       this.queue.push(context);
       this.schedule(this.config.flushIntervalMillis);
       this.saveEvents();
     });
+  }
+
+  /**
+   * If a stale delayed event is sitting in the queue, and it is not in flight,
+   * remove it and resolve as "stale" with status code 0.
+   *
+   * If this delayed event is already in flight, mark it as fresh, so that
+   * when it completes, it won't clean-up the updated event.
+   * @param incomingEvent { Event } the new event to check old events against
+   * @returns void
+   */
+  private removeStaleDelayedEvents(incomingEvent: Event) {
+    try {
+      if (!incomingEvent.delay?.id) {
+        return;
+      }
+      /* istanbul ignore next */
+      this.queue = this.queue.filter((context) => {
+        if (
+          incomingEvent.delay &&
+          context.event.delay &&
+          context.event.delay.id === incomingEvent.delay.id &&
+          context.event.insert_id === incomingEvent.insert_id
+        ) {
+          if (this.inFlightDelayedEvents[incomingEvent.delay.id]) {
+            incomingEvent.delay.isFresh = true;
+            return true;
+          }
+          context.callback(buildResult(context.event, 0, 'Stale event overwritten'));
+          return false;
+        }
+        return true;
+      });
+      /* istanbul ignore next */
+    } catch (e) {
+      // swallow error
+    }
   }
 
   removeEventsExceedFlushMaxRetries(list: Context[]) {
@@ -198,17 +242,35 @@ export class Destination implements DestinationPlugin {
     this.resetSchedule();
 
     const list: Context[] = [];
+    const delayed: DelayedEventsById = {};
     const later: Context[] = [];
-    this.queue.forEach((context) => (context.timeout === 0 ? list.push(context) : later.push(context)));
+    this.queue.forEach((context) => {
+      if (context.timeout !== 0) {
+        later.push(context);
+      } else if (context.event.delay?.id) {
+        const delay = context.event.delay;
+        delayed[delay.id] = delayed[delay.id] || [];
+        delayed[delay.id].push(context);
+      } else {
+        list.push(context);
+      }
+    });
 
     const batches = chunk(list, this.config.flushQueueSize);
 
     // Promise.all() doesn't guarantee resolve order.
     // Sequentially resolve to make sure backend receives events in order
-    await batches.reduce(async (promise, batch) => {
+    const regularEventBatch = batches.reduce(async (promise, batch) => {
       await promise;
       return await this.send(batch, useRetry);
     }, Promise.resolve());
+    const eventPromises = [regularEventBatch];
+
+    if (Object.keys(delayed).length > 0) {
+      eventPromises.push(this.sendDelayedEvents(delayed, useRetry));
+    }
+
+    await Promise.all(eventPromises);
 
     // Mark current flush is done
     this.flushId = null;
@@ -216,32 +278,84 @@ export class Destination implements DestinationPlugin {
     this.scheduleEvents(this.queue);
   }
 
-  async send(list: Context[], useRetry = true) {
+  sendDelayedEvents(delayed: DelayedEventsById, useRetry: boolean) {
+    const eventPromises = [];
+    try {
+      for (const [delayId, contexts] of Object.entries(delayed)) {
+        this.inFlightDelayedEvents[delayId] = true;
+        const delayedEventsSend = this.send(contexts, useRetry, true);
+        eventPromises.push(delayedEventsSend);
+        delayedEventsSend.finally(() => {
+          delete this.inFlightDelayedEvents[delayId];
+        });
+      }
+    } catch (e) {
+      // swallow error
+    }
+    return eventPromises.reduce(async (promise, batch) => {
+      await promise;
+      return await batch;
+    }, Promise.resolve());
+  }
+
+  translatePayloadToDelayedPayload(payload: Payload & Partial<DelayedPayload>, list: Context[]): void {
+    const delayedEvents: Event[] = [];
+    const instantEvents: Event[] = [];
+    const delayedContexts: Context[] = [];
+    const instantContexts: Context[] = [];
+
+    list.forEach((context, index) => {
+      if (context.event.delay!.timeout) {
+        delayedEvents.push(payload.events[index]);
+        delayedContexts.push(context);
+      } else {
+        instantEvents.push(payload.events[index]);
+        instantContexts.push(context);
+      }
+    });
+
+    list.splice(0, list.length, ...delayedContexts, ...instantContexts);
+
+    /* istanbul ignore next */
+    payload.timeout = delayedContexts[0]?.event.delay!.timeout ?? 0;
+    payload.id = list[0].event.delay!.id;
+    payload.events = delayedEvents;
+    payload.instant_events = instantEvents;
+  }
+
+  async send(list: Context[], useRetry = true, delay?: boolean) {
     if (!this.config.apiKey) {
       return this.fulfillRequest(list, 400, MISSING_API_KEY_MESSAGE);
     }
 
-    const payload = {
+    const payload: Payload = {
       api_key: this.config.apiKey,
       events: list.map((context) => {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { extra, ...eventWithoutExtra } = context.event;
+        const { extra, delay, ...eventWithoutExtra } = context.event;
         return eventWithoutExtra;
       }),
       options: {
         min_id_length: this.config.minIdLength,
       },
       client_upload_time: new Date().toISOString(),
-      request_metadata: this.config.requestMetadata,
+      request_metadata: delay ? undefined : this.config.requestMetadata,
     };
-    this.config.requestMetadata = new RequestMetadata();
+    if (!delay) {
+      this.config.requestMetadata = new RequestMetadata();
+    }
 
     try {
-      const { serverUrl } = createServerConfig(this.config.serverUrl, this.config.serverZone, this.config.useBatch);
-      const shouldCompressUploadBody = shouldCompressUploadBodyForRequest(
+      let { serverUrl } = createServerConfig(this.config.serverUrl, this.config.serverZone, this.config.useBatch);
+      let shouldCompressUploadBody = shouldCompressUploadBodyForRequest(
         serverUrl,
         this.config.enableRequestBodyCompression,
       );
+      if (delay) {
+        serverUrl = this.config.delayedEventsServerUrl || `${serverUrl}/delayed`;
+        this.translatePayloadToDelayedPayload(payload, list);
+        shouldCompressUploadBody = false; // delayed events doesn't support compression
+      }
       const res = await this.config.transportProvider.send(serverUrl, payload, shouldCompressUploadBody);
       if (res === null) {
         this.fulfillRequest(list, 0, UNEXPECTED_ERROR_MESSAGE);
@@ -437,9 +551,20 @@ export class Destination implements DestinationPlugin {
    * This is called on response comes back for a request
    */
   removeEvents(eventsToRemove: Context[]) {
+    const insertIdsBeingRemoved = new Set(eventsToRemove.map((context) => context.event.insert_id));
+
     this.queue = this.queue.filter(
-      (queuedContext) => !eventsToRemove.some((context) => context.event.insert_id === queuedContext.event.insert_id),
+      (queuedContext) =>
+        !eventsToRemove.some(
+          (context) => context.event.insert_id === queuedContext.event.insert_id && !queuedContext.event.delay?.isFresh,
+        ),
     );
+
+    this.queue.forEach((context) => {
+      if (context.event.delay?.isFresh && insertIdsBeingRemoved.has(context.event.insert_id)) {
+        delete context.event.delay.isFresh;
+      }
+    });
 
     this.saveEvents();
   }

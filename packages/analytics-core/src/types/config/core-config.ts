@@ -77,6 +77,11 @@ export interface IConfig {
    */
   serverUrl?: string;
   /**
+   * The URL where delayed events are uploaded to.
+   * @experimental this is experimental and subject to change.
+   */
+  delayedEventsServerUrl?: string;
+  /**
    * The Amplitude server zone.
    * Set this to EU for Amplitude projects created in EU data center.
    */
