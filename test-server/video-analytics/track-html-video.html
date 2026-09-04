@@ -56,7 +56,6 @@
       // initialize Amplitude
       amplitude.setUserId(userId);
       amplitude.init(import.meta.env.VITE_AMPLITUDE_API_KEY, {
-        delayedEventsServerUrl: `${location.origin}/2/httpapi/delayed`,
         fetchRemoteConfig: false,
         autocapture: false,
       }).promise.then(() => {

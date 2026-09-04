@@ -8,6 +8,7 @@ import {
   BaseEvent,
   getHeartbeatInstance,
 } from '@amplitude/analytics-core';
+import { DEFAULT_CONTENT_STARTED_EVENT, DEFAULT_CONTENT_STOPPED_EVENT } from '../constants';
 
 /** Playback states where a view session is still in progress (e.g. buffering). */
 const ACTIVE_PLAYBACK_STATES = new Set<VideoState['playbackState']>(['playing', 'waiting']);
@@ -81,7 +82,7 @@ export class VideoCapture {
         const now = new Date().getTime();
         const startEvent: BaseEvent = {
           insert_id: UUID(),
-          event_type: '[Amplitude] Content Started',
+          event_type: DEFAULT_CONTENT_STARTED_EVENT,
           time: now,
           event_properties: {
             ...nextState.lastEvent,
@@ -93,7 +94,7 @@ export class VideoCapture {
         this.stopEvent = {
           ...startEvent,
           insert_id: UUID(),
-          event_type: '[Amplitude] Content Stopped',
+          event_type: DEFAULT_CONTENT_STOPPED_EVENT,
           time: now + 1,
           event_properties: {
             ...nextState.lastEvent,
