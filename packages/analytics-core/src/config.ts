@@ -73,7 +73,6 @@ export class Config implements IConfig {
     this.offline = options.offline !== undefined ? options.offline : defaultConfig.offline;
     this.optOut = options.optOut ?? defaultConfig.optOut;
     this.serverUrl = options.serverUrl;
-    this.delayedEventsServerUrl = options.delayedEventsServerUrl;
     this.serverZone = options.serverZone || defaultConfig.serverZone;
     this.storageProvider = options.storageProvider;
     this.transportProvider = options.transportProvider;
@@ -83,6 +82,7 @@ export class Config implements IConfig {
     const serverConfig = createServerConfig(options.serverUrl, options.serverZone, options.useBatch);
     this.serverZone = serverConfig.serverZone;
     this.serverUrl = serverConfig.serverUrl;
+    this.delayedEventsServerUrl = getDelayedEventsServerUrl(options.serverUrl, options.delayedEventsServerUrl, this.serverZone);
   }
 }
 
@@ -106,6 +106,26 @@ export const createServerConfig = (
     serverZone: _serverZone,
     serverUrl: getServerUrl(_serverZone, useBatch),
   };
+};
+
+export const getDelayedEventsServerUrl = (
+  serverUrl: string | undefined,
+  delayedEventsServerUrl: string | undefined,
+  serverZone: ServerZoneType = getDefaultConfig().serverZone,
+) => {
+  if (serverUrl) {
+    return `${serverUrl}/2/httpapi/delayed`;
+  }
+  if (delayedEventsServerUrl) {
+    return delayedEventsServerUrl;
+  }
+  switch (serverZone) {
+    case 'EU':
+      return 'https://delayed-events.prod.eu-central-1.amplitude.com/2/httpapi/delayed';
+    case 'US':
+    default:
+      return 'https://delayed-events.prod.us-west-2.amplitude.com/2/httpapi/delayed';
+  }
 };
 
 export class RequestMetadata implements IRequestMetadata {

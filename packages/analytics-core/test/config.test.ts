@@ -33,7 +33,7 @@ describe('config', () => {
       plan: undefined,
       ingestionMetadata: undefined,
       serverUrl: 'https://api2.amplitude.com/2/httpapi',
-      delayedEventsServerUrl: undefined,
+      delayedEventsServerUrl: 'https://delayed-events.prod.us-west-2.amplitude.com/2/httpapi/delayed',
       serverZone: 'US',
       storageProvider: defaultConfig.storageProvider,
       transportProvider: defaultConfig.transportProvider,
@@ -53,6 +53,44 @@ describe('config', () => {
       transportProvider: defaultConfig.transportProvider,
     });
     expect(config.delayedEventsServerUrl).toBe(delayedEventsServerUrl);
+  });
+
+  test('should derive delayedEventsServerUrl from custom serverUrl', () => {
+    const defaultConfig = useDefaultConfig();
+    const serverUrl = 'https://proxy.example.com/2/httpapi';
+    const config = new Config({
+      apiKey: API_KEY,
+      serverUrl,
+      delayedEventsServerUrl: 'https://example.com/2/httpapi/delayed',
+      storageProvider: defaultConfig.storageProvider,
+      transportProvider: defaultConfig.transportProvider,
+    });
+    expect(config.delayedEventsServerUrl).toBe(`${serverUrl}/2/httpapi/delayed`);
+  });
+
+  test('should derive delayedEventsServerUrl from custom serverUrl', () => {
+    const defaultConfig = useDefaultConfig();
+    const serverUrl = 'https://proxy.example.com';
+    const config = new Config({
+      apiKey: API_KEY,
+      serverUrl,
+      storageProvider: defaultConfig.storageProvider,
+      transportProvider: defaultConfig.transportProvider,
+    });
+    expect(config.delayedEventsServerUrl).toBe('https://proxy.example.com/2/httpapi/delayed');
+  });
+
+  test('should default delayedEventsServerUrl for EU', () => {
+    const defaultConfig = useDefaultConfig();
+    const config = new Config({
+      apiKey: API_KEY,
+      serverZone: 'EU',
+      storageProvider: defaultConfig.storageProvider,
+      transportProvider: defaultConfig.transportProvider,
+    });
+    expect(config.delayedEventsServerUrl).toBe(
+      'https://delayed-events.prod.eu-central-1.amplitude.com/2/httpapi/delayed',
+    );
   });
 
   test('should overwrite default config', () => {
@@ -90,7 +128,7 @@ describe('config', () => {
         sourceVersion: '2.0.0',
       },
       serverUrl: 'https://api2.amplitude.com/batch',
-      delayedEventsServerUrl: undefined,
+      delayedEventsServerUrl: 'https://delayed-events.prod.us-west-2.amplitude.com/2/httpapi/delayed',
       serverZone: 'US',
       storageProvider: defaultConfig.storageProvider,
       transportProvider: defaultConfig.transportProvider,

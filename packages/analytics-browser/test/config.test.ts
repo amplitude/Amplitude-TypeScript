@@ -157,7 +157,7 @@ describe('config', () => {
         },
         topLevelDomain: '.amplitude.com',
         enableRequestBodyCompression: false,
-        delayedEventsServerUrl: undefined,
+        delayedEventsServerUrl: 'https://delayed-events.prod.us-west-2.amplitude.com/2/httpapi/delayed',
       });
       expect(getTopLevelDomain).toHaveBeenCalledTimes(1);
     });
@@ -167,6 +167,14 @@ describe('config', () => {
       const delayedEventsServerUrl = 'https://example.com/2/httpapi/delayed';
       const config = await Config.useBrowserConfig(apiKey, { delayedEventsServerUrl }, new AmplitudeBrowser());
       expect(config.delayedEventsServerUrl).toBe(delayedEventsServerUrl);
+    });
+
+    test('should default delayedEventsServerUrl for EU', async () => {
+      jest.spyOn(Config, 'getTopLevelDomain').mockResolvedValueOnce('.amplitude.com');
+      const config = await Config.useBrowserConfig(apiKey, { serverZone: 'EU' }, new AmplitudeBrowser());
+      expect(config.delayedEventsServerUrl).toBe(
+        'https://delayed-events.prod.eu-central-1.amplitude.com/2/httpapi/delayed',
+      );
     });
 
     test('should fall back to memoryStorage when storageProvider is not enabled', async () => {
@@ -293,7 +301,7 @@ describe('config', () => {
           },
           topLevelDomain: 'amplitude.com',
           enableRequestBodyCompression: false,
-          delayedEventsServerUrl: undefined,
+          delayedEventsServerUrl: 'https://delayed-events.prod.us-west-2.amplitude.com/2/httpapi/delayed',
         });
       });
     });
