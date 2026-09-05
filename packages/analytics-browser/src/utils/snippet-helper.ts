@@ -17,7 +17,7 @@ interface InstanceProxy {
  * Applies the proxied functions on the proxied amplitude snippet to an instance of the real object.
  * @ignore
  */
-export const runQueuedFunctions = (instance: object, queue: QueueProxy) => {
+export const runQueuedFunctions = (instance: object, queue: QueueProxy | undefined) => {
   convertProxyObjectToRealObject(instance, queue);
 };
 
@@ -25,7 +25,10 @@ export const runQueuedFunctions = (instance: object, queue: QueueProxy) => {
  * Applies the proxied functions on the proxied object to an instance of the real object.
  * Used to convert proxied Identify and Revenue objects.
  */
-export const convertProxyObjectToRealObject = <T>(instance: T, queue: QueueProxy): T => {
+export const convertProxyObjectToRealObject = <T>(instance: T, queue: QueueProxy | undefined): T => {
+  if (!queue) {
+    return instance;
+  }
   for (let i = 0; i < queue.length; i++) {
     const { name, args, resolve } = queue[i];
     const fn = instance && instance[name as keyof T];
