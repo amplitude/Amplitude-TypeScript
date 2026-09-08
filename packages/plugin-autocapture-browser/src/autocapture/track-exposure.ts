@@ -128,7 +128,12 @@ export function trackExposure({
     intersectingElements.forEach(updateExposure);
   });
 
-  const clearExposureState = () => {
+  // Page-view scoped: which zones were already reported, plus any dwell in
+  // progress. The intersecting set is deliberately left alone — it tracks live
+  // viewport geometry, and IntersectionObserver does not re-notify an element
+  // that is already intersecting, so dropping it here would silently stop the
+  // scroll checks for everything currently on screen.
+  const clearPageViewState = () => {
     exposureTimerMap.forEach((timer) => {
       if (timer) {
         clearTimeout(timer);
@@ -136,15 +141,20 @@ export function trackExposure({
     });
     exposureTimerMap.clear();
     exposureMap.clear();
-    intersectingElements.clear();
   };
 
   return {
     unsubscribe: () => {
       exposureSubscription.unsubscribe();
       scrollSubscription.unsubscribe();
-      clearExposureState();
+      clearPageViewState();
+      intersectingElements.clear();
     },
-    reset: clearExposureState,
+    reset: () => {
+      clearPageViewState();
+      // A new page view starts fresh, so anything already sitting at its midpoint
+      // begins its dwell again rather than waiting for the next scroll.
+      intersectingElements.forEach(updateExposure);
+    },
   };
 }

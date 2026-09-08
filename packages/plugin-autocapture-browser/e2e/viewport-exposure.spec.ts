@@ -22,7 +22,7 @@ interface AmplitudeEvent {
 declare global {
   interface Window {
     __exposureHarness: {
-      scrollElementTo: (fraction: number, element?: Element) => number;
+      scrollElementTo: (fraction: number, element?: Element) => Promise<number>;
       visibleFraction: (element: Element) => number;
       viewedDepth: (element: Element) => number;
       isMidHeightLineVisible: (element: Element) => boolean;
@@ -81,8 +81,8 @@ test.describe('autocapture viewport exposure (mid-height line)', () => {
     });
   });
 
-  async function openHarness(page: Page): Promise<void> {
-    await page.goto('/autocapture/viewport-exposure.html');
+  async function openHarness(page: Page, query = ''): Promise<void> {
+    await page.goto(`/autocapture/viewport-exposure.html${query}`);
     await expect(page.locator('#status')).toHaveText('initialized');
     // The page auto-flushes so a human sees exposures while scrolling. That resets
     // exposure state on a timer, so drive flushes by hand inside the tests.
@@ -187,11 +187,13 @@ test.describe('autocapture viewport exposure (mid-height line)', () => {
   });
 
   test('does not expose an element that scrolls back below half before the exposure duration', async ({ page }) => {
-    await openHarness(page);
+    // A 150ms dwell would leave this racing the runner: the scroll away has to land
+    // inside it, and a loaded machine can overshoot. A long dwell makes the visit
+    // unambiguously too short while testing the same rule.
+    await openHarness(page, '?exposureDuration=5000');
 
-    // Cross the threshold, then leave again faster than the 150ms exposure duration.
+    // Cross the midpoint, then leave again far inside the 5s dwell.
     await page.evaluate(() => window.__exposureHarness.scrollElementTo(0.6));
-    await page.waitForTimeout(50);
     await page.evaluate(() => window.__exposureHarness.scrollElementTo(0.2));
 
     await page.waitForTimeout(EXPOSURE_SETTLE_MS);
@@ -246,9 +248,9 @@ test.describe('autocapture viewport exposure (mid-height line)', () => {
   test('exposes an oversized zone when its midpoint is viewed', async ({ page }) => {
     await openHarness(page);
 
-    const geometry = await page.evaluate(() => {
+    const geometry = await page.evaluate(async () => {
       const element = document.getElementById('oversized-target')!;
-      const depth = window.__exposureHarness.scrollElementTo(0.5, element);
+      const depth = await window.__exposureHarness.scrollElementTo(0.5, element);
       return {
         depth,
         visibleFraction: window.__exposureHarness.visibleFraction(element),

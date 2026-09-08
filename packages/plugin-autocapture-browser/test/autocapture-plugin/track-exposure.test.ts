@@ -433,6 +433,55 @@ describe('trackExposure', () => {
     expect(onExposure).not.toHaveBeenCalled();
   });
 
+  test('should keep evaluating still-intersecting elements on scroll after a reset', () => {
+    const element = document.createElement('div');
+    element.id = 'reset-then-scroll';
+    // Below its midpoint, so nothing is exposed before the reset.
+    setRect(element, { top: 740 });
+    triggerExposure({ isIntersecting: true, target: element });
+    jest.advanceTimersByTime(DEFAULT_EXPOSURE_DURATION);
+    expect(onExposure).not.toHaveBeenCalled();
+
+    // A page-view end resets state. IntersectionObserver will not fire again for
+    // an element that never stopped intersecting, so scroll must still drive it.
+    reset();
+
+    setRect(element, { top: 700 });
+    triggerScroll();
+    jest.advanceTimersByTime(DEFAULT_EXPOSURE_DURATION);
+    expect(onExposure).toHaveBeenCalledWith('div#reset-then-scroll');
+  });
+
+  test('should restart the dwell on reset for an element already at its midpoint', () => {
+    const element = document.createElement('div');
+    element.id = 'reset-at-midpoint';
+    setRect(element, { top: 700 });
+    triggerExposure({ isIntersecting: true, target: element });
+    jest.advanceTimersByTime(DEFAULT_EXPOSURE_DURATION);
+    expect(onExposure).toHaveBeenCalledTimes(1);
+    onExposure.mockClear();
+
+    // New page view: the zone is still on screen at its midpoint, so it should be
+    // reported again without requiring another scroll or intersection change.
+    reset();
+    jest.advanceTimersByTime(DEFAULT_EXPOSURE_DURATION);
+    expect(onExposure).toHaveBeenCalledWith('div#reset-at-midpoint');
+  });
+
+  test('should stop evaluating elements after unsubscribe', () => {
+    const element = document.createElement('div');
+    element.id = 'after-unsubscribe';
+    setRect(element, { top: 700 });
+    triggerExposure({ isIntersecting: true, target: element });
+    jest.advanceTimersByTime(DEFAULT_EXPOSURE_DURATION);
+    onExposure.mockClear();
+
+    unsubscribe();
+    triggerScroll();
+    jest.advanceTimersByTime(DEFAULT_EXPOSURE_DURATION);
+    expect(onExposure).not.toHaveBeenCalled();
+  });
+
   test('should clear all timers and exposure map on reset', () => {
     const element1 = document.createElement('div');
     element1.id = 'reset-div-1';
@@ -456,24 +505,23 @@ describe('trackExposure', () => {
       target: element1,
       intersectionRatio: 1.0,
     });
+    jest.advanceTimersByTime(DEFAULT_EXPOSURE_DURATION * 0.6);
 
     // Call reset
     reset();
 
-    // Expect pending timer for element 1 to be cleared
+    // Expect the part-elapsed timer for element 1 to be cleared
     expect(clearTimeoutSpy).toHaveBeenCalled();
 
-    // Fast forward to see if pending timer fires (should not)
-    jest.advanceTimersByTime(DEFAULT_EXPOSURE_DURATION * 1.5);
+    // The partially elapsed dwell must not carry into the new page view: element 1
+    // is still at its midpoint, so it re-exposes only after a full fresh duration.
+    jest.advanceTimersByTime(DEFAULT_EXPOSURE_DURATION * 0.6);
     expect(onExposure).not.toHaveBeenCalledWith('div#reset-div-1');
 
-    // Re-expose element 2 (should work again because map was cleared)
-    triggerExposure({
-      isIntersecting: true,
-      target: element2,
-      intersectionRatio: 1.0,
-    });
-    jest.advanceTimersByTime(DEFAULT_EXPOSURE_DURATION * 1.5);
+    // Both zones remain at their midpoints, so the new page view reports both again
+    // because the exposure map was cleared.
+    jest.advanceTimersByTime(DEFAULT_EXPOSURE_DURATION * 0.6);
+    expect(onExposure).toHaveBeenCalledWith('div#reset-div-1');
     expect(onExposure).toHaveBeenCalledWith('div#reset-div-2');
   });
 });

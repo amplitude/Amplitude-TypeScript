@@ -5,7 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Viewport Exposure (mid-height line) Test</title>
     <style>
-        body { margin: 0; font: 14px/1.5 system-ui, sans-serif; }
+        /* This page's whole purpose is precise scroll positions, and the HUD rewrites
+           itself on every scroll. Scroll anchoring reacts to those updates by nudging
+           the page a line's worth, which silently moves the zone under test. */
+        body { margin: 0; font: 14px/1.5 system-ui, sans-serif; overflow-anchor: none; }
 
         #hud {
             position: fixed; top: 0; left: 0; right: 0; z-index: 2147483647;
@@ -117,6 +120,7 @@
             <button id="scroll-oversized" type="button">#oversized-target 50%</button>
         </div>
         <div id="summary">exposed 0 of 0 zones</div>
+        <div class="hint" id="duration-note"></div>
         <div id="zone-table"></div>
         <div id="status">ready</div>
     </div>
@@ -202,9 +206,12 @@
 
         window.amplitude = amplitude;
 
-        // Matches the plugin default; stated explicitly so the harness and the
-        // Playwright spec can size their waits off the same number.
-        const EXPOSURE_DURATION = 150;
+        // Defaults to the plugin's 150ms, stated explicitly so the harness and the
+        // Playwright spec size their waits off the same number. `?exposureDuration=`
+        // stretches the dwell, which makes it observable by hand and lets timing
+        // assertions keep a wide margin on a loaded CI runner.
+        const EXPOSURE_DURATION =
+            Number(new URLSearchParams(location.search).get('exposureDuration')) || 150;
         const AUTO_FLUSH_MS = 500;
 
         const zones = Array.from(document.querySelectorAll('.zone'));
@@ -237,7 +244,12 @@
             element.parentElement ??
             (element.getRootNode() instanceof ShadowRoot ? element.getRootNode().host : null);
 
-        const isMidHeightLineVisible = (element) => {
+        /**
+         * Returns what is hiding the element's mid-height line: the string 'viewport',
+         * the clipping ancestor element, or null when the line is visible. Naming the
+         * blocker lets the HUD explain *why* a zone has not been exposed.
+         */
+        const midHeightLineBlocker = (element) => {
             const rect = element.getBoundingClientRect();
             const midHeightLine = rect.top + rect.height * 0.5;
             let visibleLeft = Math.max(rect.left, 0);
@@ -247,7 +259,7 @@
                 midHeightLine > viewportHeight() + MID_HEIGHT_LINE_TOLERANCE_PX ||
                 visibleLeft >= visibleRight
             ) {
-                return false;
+                return 'viewport';
             }
 
             let ancestor = getVisualParent(element);
@@ -259,28 +271,63 @@
                     (midHeightLine < ancestorRect.top - MID_HEIGHT_LINE_TOLERANCE_PX ||
                         midHeightLine > ancestorRect.bottom + MID_HEIGHT_LINE_TOLERANCE_PX)
                 ) {
-                    return false;
+                    return ancestor;
                 }
                 if (CLIPPING_OVERFLOW_VALUES.has(style.overflowX)) {
                     visibleLeft = Math.max(visibleLeft, ancestorRect.left);
                     visibleRight = Math.min(visibleRight, ancestorRect.right);
-                    if (visibleLeft >= visibleRight) return false;
+                    if (visibleLeft >= visibleRight) return ancestor;
                 }
                 ancestor = getVisualParent(ancestor);
             }
-            return true;
+            return null;
+        };
+
+        const isMidHeightLineVisible = (element) => midHeightLineBlocker(element) === null;
+
+        // Window scrolling alone can never expose a zone parked inside a scrollable
+        // panel, so that panel is the actionable hint rather than scroll speed.
+        const scrollableClippingAncestor = (element) => {
+            let ancestor = getVisualParent(element);
+            while (ancestor) {
+                const overflowY = getComputedStyle(ancestor).overflowY;
+                if (
+                    CLIPPING_OVERFLOW_VALUES.has(overflowY) &&
+                    ancestor.scrollHeight > ancestor.clientHeight + MID_HEIGHT_LINE_TOLERANCE_PX
+                ) {
+                    return ancestor;
+                }
+                ancestor = getVisualParent(ancestor);
+            }
+            return null;
         };
 
         /**
          * Scroll the viewport's bottom edge to `fraction` of the element's vertical
          * depth and return the depth actually reached (clamped by the scroll range).
+         *
+         * Converges with relative scrolls off freshly measured geometry rather than
+         * computing one absolute offset: the layout viewport can change as scrollbars
+         * appear, which silently threw off an absolute target by ~20px.
          */
-        const scrollElementTo = (fraction, element = document.getElementById('exposure-target')) => {
-            const rect = element.getBoundingClientRect();
-            const documentTop = rect.top + window.scrollY;
-            const maxScroll = document.documentElement.scrollHeight - viewportHeight();
-            const scrollY = documentTop + fraction * rect.height - viewportHeight();
-            window.scrollTo(0, Math.max(0, Math.min(scrollY, maxScroll)));
+        const nextFrame = () => new Promise((resolve) => requestAnimationFrame(() => resolve()));
+
+        const scrollElementTo = async (fraction, element = document.getElementById('exposure-target')) => {
+            for (let attempt = 0; attempt < 5; attempt++) {
+                const rect = element.getBoundingClientRect();
+                const delta = rect.top - (viewportHeight() - fraction * rect.height);
+                if (Math.abs(delta) < 0.5) break;
+                const before = window.scrollY;
+                window.scrollBy(0, delta);
+                // Let the scroll settle before re-measuring; the position can still
+                // shift by a line's worth after the synchronous call returns.
+                await nextFrame();
+                // Hit the top or bottom of the document; no further correction possible.
+                if (window.scrollY === before) break;
+            }
+            // Report what actually happened rather than what was requested, so the
+            // Playwright guard on the achieved depth is meaningful.
+            await nextFrame();
             return viewedDepth(element);
         };
 
@@ -306,6 +353,7 @@
             visibleFraction,
             viewedDepth,
             isMidHeightLineVisible,
+            midHeightLineBlocker,
             flush,
             setAutoFlush,
             exposedPaths,
@@ -345,11 +393,13 @@
         const render = () => {
             const rows = [];
 
+            const unexposed = [];
+
             zones.forEach((zone) => {
                 const state = zoneState.get(zone);
-                const midpointInView = isMidHeightLineVisible(zone);
-                const depthFraction = viewedDepth(zone);
-                state.maxDepth = Math.max(state.maxDepth, depthFraction);
+                const blocker = midHeightLineBlocker(zone);
+                const midpointInView = blocker === null;
+                state.maxDepth = Math.max(state.maxDepth, viewedDepth(zone));
 
                 // The SDK must never report a zone whose 50% line was never reached.
                 const impossible = state.exposed && state.maxDepth < 0.5;
@@ -361,7 +411,9 @@
                     ? 'viewed'
                     : 'pending';
 
-                const depth = Math.round(depthFraction * 100);
+                // Max depth, not the instantaneous value: an exposed zone you have
+                // since scrolled past should not read "depth 0%".
+                const depth = Math.round(state.maxDepth * 100);
                 const visible = Math.round(visibleFraction(zone) * 100);
 
                 // Derived from measured geometry so the labels cannot drift from the CSS.
@@ -372,31 +424,42 @@
                     (zone.dataset.note ? ` · ${zone.dataset.note}` : '');
                 // Reaching the line is not enough: scrolling straight past it without
                 // dwelling 150ms is excluded, which is the point of the duration.
-                const passedWithoutDwell = !state.exposed && !midpointInView && state.maxDepth >= 0.5;
+                const panel = scrollableClippingAncestor(zone);
+                const clipper = blocker instanceof Element ? blocker : panel;
+                const reason = clipper
+                    ? `50% line clipped by #${clipper.id || clipper.tagName.toLowerCase()} — scroll inside it`
+                    : state.maxDepth >= 0.5
+                    ? `50% line passed without dwelling ${EXPOSURE_DURATION}ms — scroll it slower`
+                    : '50% line not reached yet — keep scrolling';
                 const note = impossible
                     ? 'EXPOSED WITHOUT REACHING ITS 50% LINE'
                     : state.exposed
                     ? 'exposed'
                     : midpointInView
                     ? `50% line in view, waiting ${EXPOSURE_DURATION}ms`
-                    : passedWithoutDwell
-                    ? `50% line passed without dwelling ${EXPOSURE_DURATION}ms`
-                    : '50% line not reached yet';
+                    : reason;
+                if (!state.exposed && !impossible) {
+                    unexposed.push(`#${zone.id} (${midpointInView ? 'waiting' : reason.split(' — ')[0]})`);
+                }
+
                 zone.querySelector('.zone-state').textContent = impossible
-                    ? `EXPOSED WITHOUT REACHING ITS 50% LINE (depth ${depth}%)`
+                    ? `EXPOSED WITHOUT REACHING ITS 50% LINE (max depth ${depth}%)`
                     : state.exposed
-                    ? `exposed ✓ (depth viewed ${depth}%, ${visible}% on screen now)`
-                    : `${note} (depth ${depth}%)`;
+                    ? `exposed ✓ (max depth ${depth}%, ${visible}% on screen now)`
+                    : `${note} (max depth ${depth}%)`;
                 rows.push(
                     `<div class="${zone.dataset.state}">` +
-                        `#${zone.id.padEnd(17)} depth ${String(depth).padStart(3)}%   ` +
+                        `#${zone.id.padEnd(20)} max depth ${String(depth).padStart(3)}%   ` +
                         `on screen ${String(visible).padStart(3)}%   ${note}</div>`,
                 );
             });
 
             document.getElementById('zone-table').innerHTML = rows.join('');
-            const exposedCount = zones.filter((zone) => zoneState.get(zone).exposed).length;
-            document.getElementById('summary').textContent = `exposed ${exposedCount} of ${zones.length} zones`;
+            const exposedCount = zones.length - unexposed.length;
+            // Say why the count is short, so a partial tally is self-explanatory.
+            document.getElementById('summary').textContent =
+                `exposed ${exposedCount} of ${zones.length} zones` +
+                (unexposed.length ? ` · still waiting on ${unexposed.join(', ')}` : '');
         };
 
         // Reads the exposed element paths off each captured
@@ -442,13 +505,13 @@
             setAutoFlush(event.target.checked),
         );
         document.getElementById('flush').addEventListener('click', flush);
-        document.getElementById('scroll-30').addEventListener('click', () => scrollElementTo(0.3));
-        document.getElementById('scroll-49').addEventListener('click', () => scrollElementTo(0.49));
-        document.getElementById('scroll-50').addEventListener('click', () => scrollElementTo(0.5));
-        document.getElementById('scroll-60').addEventListener('click', () => scrollElementTo(0.6));
-        document.getElementById('scroll-100').addEventListener('click', () => scrollElementTo(1));
+        document.getElementById('scroll-30').addEventListener('click', () => void scrollElementTo(0.3));
+        document.getElementById('scroll-49').addEventListener('click', () => void scrollElementTo(0.49));
+        document.getElementById('scroll-50').addEventListener('click', () => void scrollElementTo(0.5));
+        document.getElementById('scroll-60').addEventListener('click', () => void scrollElementTo(0.6));
+        document.getElementById('scroll-100').addEventListener('click', () => void scrollElementTo(1));
         document.getElementById('scroll-oversized').addEventListener('click', () =>
-            scrollElementTo(0.5, document.getElementById('oversized-target')),
+            void scrollElementTo(0.5, document.getElementById('oversized-target')),
         );
 
         // Self-contained: fall back to a dummy key so the page works without a
@@ -474,6 +537,8 @@
         }).promise.then(() => {
             amplitude.add(exposureLogger);
             setAutoFlush(true);
+            document.getElementById('duration-note').textContent =
+                `dwell required: ${EXPOSURE_DURATION}ms (override with ?exposureDuration=)`;
             render();
             renderPayloads();
             document.getElementById('status').textContent = 'initialized';
