@@ -579,6 +579,58 @@ describe('browser-client', () => {
       expect(identity.userId).toBe(userId);
     });
 
+    test('should use the default connector for an empty instance name', async () => {
+      await client.init(apiKey, userId, {
+        optOut: true,
+        defaultTracking,
+        deviceId,
+        identityStorage: 'none',
+        instanceName: '',
+      }).promise;
+
+      const connector = getAnalyticsConnector();
+      expect(client.config.instanceName).toBe('$default_instance');
+      expect(getAnalyticsConnector('')).toBe(connector);
+      expect(connector.identityStore.getIdentity()).toMatchObject({ userId, deviceId });
+
+      const nextUserId = core.UUID();
+      const nextDeviceId = core.UUID();
+      client.setUserId(nextUserId);
+      client.setDeviceId(nextDeviceId);
+      expect(connector.identityStore.getIdentity()).toMatchObject({ userId: nextUserId, deviceId: nextDeviceId });
+
+      const track = jest.spyOn(client, 'track').mockReturnValueOnce({
+        promise: Promise.resolve({
+          code: 200,
+          message: '',
+          event: { event_type: 'experiment-exposure' },
+        }),
+      });
+      connector.eventBridge.logEvent({ eventType: 'experiment-exposure' });
+      expect(track).toHaveBeenCalledWith('experiment-exposure', {}, undefined);
+    });
+
+    test('should isolate a custom instance from the default connector', async () => {
+      const instanceName = `custom-${core.UUID()}`;
+      const defaultConnector = getAnalyticsConnector();
+      defaultConnector.identityStore.setIdentity({ userId: 'default-user', deviceId: 'default-device' });
+
+      await client.init(apiKey, userId, {
+        optOut: true,
+        defaultTracking,
+        deviceId,
+        identityStorage: 'none',
+        instanceName,
+      }).promise;
+
+      expect(client.config.instanceName).toBe(instanceName);
+      expect(getAnalyticsConnector(instanceName).identityStore.getIdentity()).toMatchObject({ userId, deviceId });
+      expect(defaultConnector.identityStore.getIdentity()).toMatchObject({
+        userId: 'default-user',
+        deviceId: 'default-device',
+      });
+    });
+
     test('should set up event bridge and track events', async () => {
       await client.init(apiKey, userId, {
         optOut: false,

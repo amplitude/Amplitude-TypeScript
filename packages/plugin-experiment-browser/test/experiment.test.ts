@@ -48,6 +48,7 @@ describe('ExperimentPlugin', () => {
       language: true,
       platform: true,
     },
+    instanceName: '$default_instance',
   } as unknown as BrowserConfig;
   const mockAmplitude: MockedBrowserClient = {
     add: jest.fn(),
@@ -86,7 +87,10 @@ describe('ExperimentPlugin', () => {
       (initializeWithAmplitudeAnalytics as jest.Mock).mockReturnValue(mockExperimentClient);
       const plugin = new ExperimentPlugin(experimentConfig);
       await plugin.setup(mockConfig, mockAmplitude);
-      expect(initializeWithAmplitudeAnalytics).toHaveBeenCalledWith(mockConfig.apiKey, experimentConfig);
+      expect(initializeWithAmplitudeAnalytics).toHaveBeenCalledWith(mockConfig.apiKey, {
+        ...(experimentConfig ?? {}),
+        instanceName: mockConfig.instanceName,
+      });
       expect(plugin.experiment).toBe(mockExperimentClient);
     });
 
@@ -99,9 +103,33 @@ describe('ExperimentPlugin', () => {
       (initializeWithAmplitudeAnalytics as jest.Mock).mockReturnValue(mockExperimentClient);
       const plugin = new ExperimentPlugin(experimentConfig);
       await plugin.setup(mockConfig, mockAmplitude);
-      expect(initializeWithAmplitudeAnalytics).toHaveBeenCalledWith(experimentConfig.deploymentKey, experimentConfig);
+      expect(initializeWithAmplitudeAnalytics).toHaveBeenCalledWith(experimentConfig.deploymentKey, {
+        ...experimentConfig,
+        instanceName: mockConfig.instanceName,
+      });
       expect(plugin.experiment).toBe(mockExperimentClient);
     });
+
+    test('should inherit a custom analytics instance name', async () => {
+      const plugin = new ExperimentPlugin({ debug: true });
+      await plugin.setup({ ...mockConfig, instanceName: 'analytics-instance' }, mockAmplitude);
+
+      expect(initializeWithAmplitudeAnalytics).toHaveBeenCalledWith(mockConfig.apiKey, {
+        debug: true,
+        instanceName: 'analytics-instance',
+      });
+    });
+
+    test.each(['experiment-instance', ''])(
+      'should preserve an explicit experiment instance name %p',
+      async (instanceName) => {
+        const experimentConfig: ExperimentPluginConfig = { instanceName };
+        const plugin = new ExperimentPlugin(experimentConfig);
+        await plugin.setup({ ...mockConfig, instanceName: 'analytics-instance' }, mockAmplitude);
+
+        expect(initializeWithAmplitudeAnalytics).toHaveBeenCalledWith(mockConfig.apiKey, experimentConfig);
+      },
+    );
   });
 
   describe('experimentPlugin', () => {

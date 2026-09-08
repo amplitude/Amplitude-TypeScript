@@ -18,6 +18,7 @@ import {
   RequestMetadata,
   getGlobalScope,
   getAnalyticsConnector,
+  normalizeInstanceName,
   setConnectorDeviceId,
   setConnectorUserId,
   isNewSession,
@@ -112,6 +113,7 @@ describe('index', () => {
     expect(typeof getStorageKey).toBe('function');
     expect(typeof getGlobalScope).toBe('function');
     expect(typeof getAnalyticsConnector).toBe('function');
+    expect(typeof normalizeInstanceName).toBe('function');
     expect(typeof setConnectorDeviceId).toBe('function');
     expect(typeof setConnectorUserId).toBe('function');
     expect(typeof isNewSession).toBe('function');

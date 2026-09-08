@@ -1,5 +1,6 @@
 import { AnalyticsConnector } from '@amplitude/analytics-connector';
 import { getAnalyticsConnector, setConnectorDeviceId, setConnectorUserId } from '../src/analytics-connector';
+import { DEFAULT_INSTANCE_NAME } from '../src/types/constants';
 
 describe('analytics-connector', () => {
   describe('getAnalyticsConnector', () => {
@@ -8,6 +9,19 @@ describe('analytics-connector', () => {
       const getInstance = jest.spyOn(AnalyticsConnector, 'getInstance').mockReturnValueOnce(instance);
       expect(getAnalyticsConnector()).toBe(instance);
       expect(getInstance).toHaveBeenCalledTimes(1);
+    });
+
+    test.each([
+      [undefined, DEFAULT_INSTANCE_NAME],
+      ['', DEFAULT_INSTANCE_NAME],
+      ['custom-instance', 'custom-instance'],
+      [' ', ' '],
+    ])('should normalize instance name %p to %p', (instanceName, expected) => {
+      const instance = new AnalyticsConnector();
+      const getInstance = jest.spyOn(AnalyticsConnector, 'getInstance').mockReturnValueOnce(instance);
+
+      expect(getAnalyticsConnector(instanceName)).toBe(instance);
+      expect(getInstance).toHaveBeenCalledWith(expected);
     });
   });
 
