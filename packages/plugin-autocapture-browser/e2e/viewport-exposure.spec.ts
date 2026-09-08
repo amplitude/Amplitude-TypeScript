@@ -49,8 +49,9 @@ function parseRequestBody(request: Request): Record<string, unknown> | undefined
  * `createExposureObservable` together with actual scroll geometry.
  *
  * The same page doubles as a manual harness — it has a scroll/flush control bar
- * and a live visibility readout:
- *   pnpm build:vite && pnpm start   # then open /autocapture/viewport-exposure.html
+ * and a live visibility readout. From the repo root, after `pnpm build`:
+ *   npx vite dev   # then open http://localhost:5173/autocapture/viewport-exposure.html
+ * `pnpm start` serves the same pages, but only after `pnpm build:vite`.
  */
 test.describe('autocapture viewport exposure (50% visibility)', () => {
   let events: AmplitudeEvent[] = [];
