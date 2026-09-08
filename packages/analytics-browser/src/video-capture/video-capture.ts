@@ -120,9 +120,11 @@ export class VideoCapture {
       // update the delayed event properties to have
       // the most up-to-date values
       if (this.stopEvent) {
+        // lastEvent.start_time is the playhead on pause/ended/error; keep the session start
+        const { start_time: _startTime, ...stopProperties } = this.parseStopEventProperties(nextState);
         this.stopEvent.event_properties = {
           ...this.stopEvent.event_properties,
-          ...this.parseStopEventProperties(nextState),
+          ...stopProperties,
           ...this.extraEventProperties,
         };
         this.stopEvent.time = new Date().getTime();

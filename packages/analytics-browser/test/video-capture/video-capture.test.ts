@@ -136,6 +136,37 @@ describe('VideoCapture', () => {
       // assert that the track method was not called again
       expect(mockAmplitude.track).toHaveBeenCalledTimes(3);
     });
+
+    it('should preserve the original start_time on the flushed stop event', async () => {
+      new VideoCapture(mockAmplitude)
+        .withVideoElement(document.createElement('video'))
+        .captureVideoStarted()
+        .captureVideoStopped()
+        .start();
+
+      currentVideoObserver!.emitStateChange(
+        { playbackState: 'paused', lastEvent: undefined },
+        { playbackState: 'playing', lastEvent: { duration: 10, start_time: 3, last_position: 3 }, position: 3 },
+      );
+      await flushHeartbeat();
+
+      currentVideoObserver!.emitStateChange(
+        { playbackState: 'playing', lastEvent: { duration: 10, start_time: 3, last_position: 3 }, position: 3 },
+        { playbackState: 'paused', lastEvent: { duration: 10, start_time: 8, last_position: 8 }, position: 8 },
+      );
+      await flushHeartbeat();
+
+      expect(mockAmplitude.track).toHaveBeenNthCalledWith(
+        3,
+        '[Amplitude] Content Stopped',
+        expect.objectContaining({
+          start_time: 3,
+          position: 8,
+          stop_reason: 'paused',
+        }),
+        expect.any(Object),
+      );
+    });
   });
 
   describe('withEmbeddedPlayer()', () => {
