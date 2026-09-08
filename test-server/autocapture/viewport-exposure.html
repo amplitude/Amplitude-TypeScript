@@ -28,8 +28,22 @@
         #zone-table .exposed { color: #34d399; }
         #zone-table .mismatch { color: #f87171; font-weight: 700; }
 
-        /* Clears the fixed HUD so the first zone does not start underneath it. */
-        main { padding-top: 320px; }
+        /* Clears the fixed HUD so the first zone does not start underneath it, and
+           the payload panel so zones are never hidden behind it. */
+        main { padding-top: 320px; padding-right: 440px; }
+
+        #payload-panel {
+            position: fixed; top: 328px; right: 8px; width: 400px; max-height: 60vh; overflow: auto;
+            z-index: 2147483647; padding: 8px 10px; background: #111; color: #eee; border-radius: 6px;
+            font: 11px/1.45 monospace; box-shadow: 0 4px 16px rgba(0, 0, 0, .4);
+        }
+        #payload-panel h2 { font-size: 12px; margin: 0 0 2px; }
+        #payload-panel .panel-hint { color: #999; font-size: 11px; }
+        #payload-panel .payload { margin-top: 8px; border-top: 1px solid #333; padding-top: 6px; }
+        #payload-panel .payload-meta { color: #6cf; }
+        #payload-panel .payload.empty .payload-meta { color: #777; }
+        #payload-panel pre { margin: 2px 0 0; white-space: pre-wrap; word-break: break-word; }
+        #payload-panel .payload.empty pre { color: #777; }
         .lead, .tail { height: 60vh; display: flex; align-items: center; justify-content: center; color: #bbb; }
 
         .zone {
@@ -71,7 +85,8 @@
             Just scroll down. Each zone turns amber while its dashed 50% line is inside the viewport and
             green once the SDK reports it as exposed. This matches Contentsquare Zoning: what counts is
             scrolling <em>through</em> a zone's mid-height line, not fitting half its area on screen — so
-            zones taller than the viewport still expose.
+            zones taller than the viewport still expose. The panel on the right shows the actual event
+            payloads the SDK sends.
         </div>
         <div class="controls">
             <label>
@@ -97,47 +112,58 @@
         <div id="status">ready</div>
     </div>
 
+    <div id="payload-panel">
+        <h2>Events sent to Amplitude</h2>
+        <div class="panel-hint">
+            Newest first. This is the actual <code>[Amplitude] Viewport Content Updated</code> payload,
+            read off an enrichment plugin, so it is exactly what the SDK uploads.
+            <code>[Amplitude] Element Exposed</code> carries the newly exposed element paths, and is
+            empty when a flush only reports new scroll depth.
+        </div>
+        <div id="payloads"></div>
+    </div>
+
     <main>
         <div class="lead">scroll down</div>
 
         <button class="zone" id="zone-1" type="button">
-            <span class="zone-label">#zone-1 — 40vh</span>
+            <span class="zone-label"></span>
             <span class="mid-line"></span>
             <span class="zone-state">not viewed</span>
         </button>
 
         <button class="zone" id="zone-2" type="button">
-            <span class="zone-label">#zone-2 — 25vh</span>
+            <span class="zone-label"></span>
             <span class="mid-line"></span>
             <span class="zone-state">not viewed</span>
         </button>
 
         <button class="zone" id="zone-3" type="button">
-            <span class="zone-label">#zone-3 — 70vh</span>
+            <span class="zone-label"></span>
             <span class="mid-line"></span>
             <span class="zone-state">not viewed</span>
         </button>
 
         <button class="zone" id="zone-4" type="button">
-            <span class="zone-label">#zone-4 — 130vh, taller than the viewport</span>
+            <span class="zone-label"></span>
             <span class="mid-line"></span>
             <span class="zone-state">not viewed</span>
         </button>
 
         <button class="zone" id="zone-5" type="button">
-            <span class="zone-label">#zone-5 — 35vh</span>
+            <span class="zone-label"></span>
             <span class="mid-line"></span>
             <span class="zone-state">not viewed</span>
         </button>
 
-        <button class="zone" id="exposure-target" type="button">
-            <span class="zone-label">#exposure-target — 240px, used by the jump buttons</span>
+        <button class="zone" id="exposure-target" type="button" data-note="target of the jump buttons">
+            <span class="zone-label"></span>
             <span class="mid-line"></span>
             <span class="zone-state">not viewed</span>
         </button>
 
-        <button class="zone" id="oversized-target" type="button">
-            <span class="zone-label">#oversized-target — 250vh, less than half can ever be on screen</span>
+        <button class="zone" id="oversized-target" type="button" data-note="less than half of it can ever be on screen">
+            <span class="zone-label"></span>
             <span class="mid-line"></span>
             <span class="zone-state">not viewed</span>
         </button>
@@ -208,6 +234,10 @@
         const flush = () => window.dispatchEvent(new Event('beforeunload'));
 
         const exposedPaths = [];
+        // Full event objects the SDK sent, newest first, so the page can show the
+        // real payload shape rather than just the element paths pulled out of it.
+        const payloads = [];
+        const MAX_PAYLOADS_SHOWN = 6;
 
         let autoFlushTimer;
         const setAutoFlush = (enabled) => {
@@ -224,7 +254,37 @@
             flush,
             setAutoFlush,
             exposedPaths,
+            payloads,
             EXPOSURE_DURATION,
+        };
+
+        const renderPayloads = () => {
+            const container = document.getElementById('payloads');
+            container.textContent = '';
+
+            if (!payloads.length) {
+                const placeholder = document.createElement('div');
+                placeholder.className = 'payload empty';
+                placeholder.textContent = 'no events sent yet — scroll to expose a zone';
+                container.appendChild(placeholder);
+                return;
+            }
+
+            payloads.slice(0, MAX_PAYLOADS_SHOWN).forEach(({ at, event }) => {
+                const exposed = event.event_properties?.['[Amplitude] Element Exposed'] ?? [];
+                const entry = document.createElement('div');
+                entry.className = exposed.length ? 'payload' : 'payload empty';
+
+                const meta = document.createElement('div');
+                meta.className = 'payload-meta';
+                meta.textContent = `${at} · ${event.event_type} · ${exposed.length} newly exposed`;
+
+                const body = document.createElement('pre');
+                body.textContent = JSON.stringify(event, null, 2);
+
+                entry.append(meta, body);
+                container.appendChild(entry);
+            });
         };
 
         const render = () => {
@@ -248,6 +308,13 @@
 
                 const depth = Math.round(depthFraction * 100);
                 const visible = Math.round(visibleFraction(zone) * 100);
+
+                // Derived from measured geometry so the labels cannot drift from the CSS.
+                const height = Math.round(zone.getBoundingClientRect().height);
+                const ofViewport = Math.round((height / viewportHeight()) * 100);
+                zone.querySelector('.zone-label').textContent =
+                    `#${zone.id} — ${height}px, ${ofViewport}% of the viewport` +
+                    (zone.dataset.note ? ` · ${zone.dataset.note}` : '');
                 // Reaching the line is not enough: scrolling straight past it without
                 // dwelling 150ms is excluded, which is the point of the duration.
                 const passedWithoutDwell = !state.exposed && !midpointInView && state.maxDepth >= 0.5;
@@ -288,14 +355,19 @@
                 if (event.event_type === '[Amplitude] Viewport Content Updated') {
                     const paths = event.event_properties?.['[Amplitude] Element Exposed'] ?? [];
                     exposedPaths.push(...paths);
+                    payloads.unshift({
+                        at: new Date().toISOString().slice(11, 23),
+                        event: { event_type: event.event_type, event_properties: event.event_properties },
+                    });
                     // eslint-disable-next-line no-console
-                    console.log('%c[Amplitude] Viewport Content Updated', 'color:#0a0', paths);
+                    console.log('%c[Amplitude] Viewport Content Updated', 'color:#0a0', event.event_properties);
                     zones.forEach((zone) => {
                         if (paths.includes(`button#${zone.id}`)) {
                             zoneState.get(zone).exposed = true;
                         }
                     });
                     render();
+                    renderPayloads();
                 }
                 return event;
             },
@@ -348,6 +420,7 @@
             amplitude.add(exposureLogger);
             setAutoFlush(true);
             render();
+            renderPayloads();
             document.getElementById('status').textContent = 'initialized';
         });
     </script>

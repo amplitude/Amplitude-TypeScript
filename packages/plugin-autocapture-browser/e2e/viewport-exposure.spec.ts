@@ -28,6 +28,7 @@ declare global {
       flush: () => void;
       setAutoFlush: (enabled: boolean) => void;
       exposedPaths: string[];
+      payloads: { at: string; event: AmplitudeEvent }[];
       EXPOSURE_DURATION: number;
     };
   }
@@ -125,6 +126,35 @@ test.describe('autocapture viewport exposure (mid-height line)', () => {
     const paths = await exposedPathsAfterScrollingTo(page, 0.5);
 
     expect(paths, `expected ${TARGET_PATH} in ${JSON.stringify(paths)}`).toContain(TARGET_PATH);
+    expect(pageErrors).toEqual([]);
+  });
+
+  test('reports the exposed element inside the Viewport Content Updated payload', async ({ page }) => {
+    await openHarness(page);
+    await exposedPathsAfterScrollingTo(page, 0.6);
+
+    const payload = events.find(
+      (e) =>
+        e.event_type === VIEWPORT_CONTENT_UPDATED &&
+        ((e.event_properties?.[ELEMENT_EXPOSED_PROP] as string[] | undefined) ?? []).includes(TARGET_PATH),
+    );
+
+    expect(payload, `no payload carried ${TARGET_PATH}: ${JSON.stringify(events)}`).toBeDefined();
+    expect(payload?.event_properties?.[ELEMENT_EXPOSED_PROP]).toEqual(expect.arrayContaining([TARGET_PATH]));
+    expect(payload?.event_properties).toMatchObject({
+      '[Amplitude] Page URL': expect.stringContaining('/autocapture/viewport-exposure.html'),
+      '[Amplitude] Viewport Height': expect.any(Number),
+      '[Amplitude] Viewport Width': expect.any(Number),
+      '[Amplitude] Max Page X': expect.any(Number),
+      '[Amplitude] Max Page Y': expect.any(Number),
+    });
+
+    // The harness panel shows the same object, so what a human reads is what was sent.
+    const shown = await page.evaluate(() => window.__exposureHarness.payloads.map((entry) => entry.event));
+    expect(shown).toEqual(expect.arrayContaining([expect.objectContaining({ event_type: VIEWPORT_CONTENT_UPDATED })]));
+    expect(
+      shown.flatMap((event) => (event.event_properties?.[ELEMENT_EXPOSED_PROP] as string[] | undefined) ?? []),
+    ).toContain(TARGET_PATH);
     expect(pageErrors).toEqual([]);
   });
 
