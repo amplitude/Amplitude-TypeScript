@@ -1842,6 +1842,65 @@ describe('SessionReplay', () => {
       });
     });
 
+    test('self-heal: resumes recording when session should record but no ongoing recording (no targeting config)', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      // Simulate an external re-init/teardown having stopped recording.
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      (sessionReplay as any).recordCancelCallback = null;
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      (sessionReplay as any).recordEventsInFlight = false;
+      sessionReplay.getShouldRecord = () => true;
+      // No targeting config on this config — self-heal must not depend on one.
+      if (sessionReplay.config) {
+        sessionReplay.config.targetingConfig = undefined;
+      }
+      const recordEventsSpy = jest.spyOn(sessionReplay, 'recordEvents').mockResolvedValue(undefined);
+
+      sessionReplay.getSessionReplayProperties();
+
+      expect(recordEventsSpy).toHaveBeenCalledTimes(1);
+    });
+
+    test('self-heal: does not resume recording when recording is already active', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      (sessionReplay as any).recordCancelCallback = jest.fn();
+      sessionReplay.getShouldRecord = () => true;
+      const recordEventsSpy = jest.spyOn(sessionReplay, 'recordEvents').mockResolvedValue(undefined);
+
+      sessionReplay.getSessionReplayProperties();
+
+      expect(recordEventsSpy).not.toHaveBeenCalled();
+    });
+
+    test('self-heal: does not resume recording when a start is already in flight', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      (sessionReplay as any).recordCancelCallback = null;
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      (sessionReplay as any).recordEventsInFlight = true;
+      sessionReplay.getShouldRecord = () => true;
+      const recordEventsSpy = jest.spyOn(sessionReplay, 'recordEvents').mockResolvedValue(undefined);
+
+      sessionReplay.getSessionReplayProperties();
+
+      expect(recordEventsSpy).not.toHaveBeenCalled();
+    });
+
+    test('self-heal: does not resume recording when session should not record', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      (sessionReplay as any).recordCancelCallback = null;
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      (sessionReplay as any).recordEventsInFlight = false;
+      sessionReplay.getShouldRecord = () => false;
+      const recordEventsSpy = jest.spyOn(sessionReplay, 'recordEvents').mockResolvedValue(undefined);
+
+      sessionReplay.getSessionReplayProperties();
+
+      expect(recordEventsSpy).not.toHaveBeenCalled();
+    });
+
     test('should ignore focus handler when debug mode is on.', async () => {
       jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue({
         ...mockGlobalScope,
