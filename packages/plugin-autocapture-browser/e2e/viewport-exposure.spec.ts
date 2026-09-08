@@ -5,6 +5,7 @@ const TRACK_ENDPOINT = 'https://api2.amplitude.com/2/httpapi';
 const VIEWPORT_CONTENT_UPDATED = '[Amplitude] Viewport Content Updated';
 const ELEMENT_EXPOSED_PROP = '[Amplitude] Element Exposed';
 const TARGET_PATH = 'button#exposure-target';
+const OVERSIZED_TARGET_PATH = 'button#oversized-target';
 
 // The harness configures exposureDuration: 150. Wait comfortably longer so a slow
 // runner cannot mistake "not exposed yet" for "not exposed at all".
@@ -22,6 +23,8 @@ declare global {
     __exposureHarness: {
       scrollElementTo: (fraction: number, element?: Element) => number;
       visibleFraction: (element: Element) => number;
+      viewedDepth: (element: Element) => number;
+      isMidHeightLineVisible: (element: Element) => boolean;
       flush: () => void;
       exposedPaths: string[];
       EXPOSURE_DURATION: number;
@@ -42,7 +45,7 @@ function parseRequestBody(request: Request): Record<string, unknown> | undefined
 }
 
 /**
- * Real-browser coverage for the 50% exposure threshold behind
+ * Real-browser coverage for Contentsquare-style midpoint exposure behind
  * `[Amplitude] Viewport Content Updated`. jsdom has no layout and no
  * IntersectionObserver, so the unit tests can only feed synthetic entries to
  * `trackExposure`; only a real browser exercises the observer options in
@@ -53,7 +56,7 @@ function parseRequestBody(request: Request): Record<string, unknown> | undefined
  *   npx vite dev   # then open http://localhost:5173/autocapture/viewport-exposure.html
  * `pnpm start` serves the same pages, but only after `pnpm build:vite`.
  */
-test.describe('autocapture viewport exposure (50% visibility)', () => {
+test.describe('autocapture viewport exposure (mid-height line)', () => {
   let events: AmplitudeEvent[] = [];
   let pageErrors: string[] = [];
 
@@ -85,10 +88,10 @@ test.describe('autocapture viewport exposure (50% visibility)', () => {
     events = [];
   }
 
-  /** Scroll the target to `fraction` visibility, then flush and collect exposed paths. */
+  /** Scroll to `fraction` of the target's depth, then flush and collect exposed paths. */
   async function exposedPathsAfterScrollingTo(page: Page, fraction: number): Promise<string[]> {
     const achieved = await page.evaluate((f) => window.__exposureHarness.scrollElementTo(f), fraction);
-    // Guard the geometry itself: a mis-sized viewport would make the assertions meaningless.
+    // Guard the scroll depth itself: a mis-sized page would make the assertions meaningless.
     expect(achieved).toBeCloseTo(fraction, 2);
 
     await page.waitForTimeout(EXPOSURE_SETTLE_MS);
@@ -103,7 +106,7 @@ test.describe('autocapture viewport exposure (50% visibility)', () => {
       .flatMap((e) => (e.event_properties?.[ELEMENT_EXPOSED_PROP] as string[] | undefined) ?? []);
   }
 
-  test('exposes an element that is 60% visible', async ({ page }) => {
+  test('exposes an element after its 60% depth has been viewed', async ({ page }) => {
     await openHarness(page);
 
     const paths = await exposedPathsAfterScrollingTo(page, 0.6);
@@ -112,7 +115,16 @@ test.describe('autocapture viewport exposure (50% visibility)', () => {
     expect(pageErrors).toEqual([]);
   });
 
-  test('does not expose an element that is only 30% visible', async ({ page }) => {
+  test('exposes an element when its mid-height line is reached', async ({ page }) => {
+    await openHarness(page);
+
+    const paths = await exposedPathsAfterScrollingTo(page, 0.5);
+
+    expect(paths, `expected ${TARGET_PATH} in ${JSON.stringify(paths)}`).toContain(TARGET_PATH);
+    expect(pageErrors).toEqual([]);
+  });
+
+  test('does not expose an element when only its first 30% has been viewed', async ({ page }) => {
     await openHarness(page);
 
     const paths = await exposedPathsAfterScrollingTo(page, 0.3);
@@ -121,7 +133,16 @@ test.describe('autocapture viewport exposure (50% visibility)', () => {
     expect(pageErrors).toEqual([]);
   });
 
-  test('still exposes an element scrolled fully into view', async ({ page }) => {
+  test('does not expose an element before its mid-height line is reached', async ({ page }) => {
+    await openHarness(page);
+
+    const paths = await exposedPathsAfterScrollingTo(page, 0.49);
+
+    expect(paths).not.toContain(TARGET_PATH);
+    expect(pageErrors).toEqual([]);
+  });
+
+  test('still exposes an element after its full depth has been viewed', async ({ page }) => {
     await openHarness(page);
 
     const paths = await exposedPathsAfterScrollingTo(page, 1);
@@ -134,11 +155,9 @@ test.describe('autocapture viewport exposure (50% visibility)', () => {
     await openHarness(page);
 
     // Cross the threshold, then leave again faster than the 150ms exposure duration.
-    await page.evaluate(() => {
-      const harness = window.__exposureHarness;
-      harness.scrollElementTo(0.6);
-      harness.scrollElementTo(0.2);
-    });
+    await page.evaluate(() => window.__exposureHarness.scrollElementTo(0.6));
+    await page.waitForTimeout(50);
+    await page.evaluate(() => window.__exposureHarness.scrollElementTo(0.2));
 
     await page.waitForTimeout(EXPOSURE_SETTLE_MS);
     await page.evaluate(() => window.__exposureHarness.flush());
@@ -148,6 +167,36 @@ test.describe('autocapture viewport exposure (50% visibility)', () => {
       .filter((e) => e.event_type === VIEWPORT_CONTENT_UPDATED)
       .flatMap((e) => (e.event_properties?.[ELEMENT_EXPOSED_PROP] as string[] | undefined) ?? []);
     expect(paths).not.toContain(TARGET_PATH);
+    expect(pageErrors).toEqual([]);
+  });
+
+  test('exposes an oversized zone when its midpoint is viewed', async ({ page }) => {
+    await openHarness(page);
+
+    const geometry = await page.evaluate(() => {
+      const element = document.getElementById('oversized-target')!;
+      const depth = window.__exposureHarness.scrollElementTo(0.5, element);
+      return {
+        depth,
+        visibleFraction: window.__exposureHarness.visibleFraction(element),
+        midpointVisible: window.__exposureHarness.isMidHeightLineVisible(element),
+      };
+    });
+    expect(geometry.depth).toBeCloseTo(0.5, 2);
+    expect(geometry.visibleFraction).toBeLessThan(0.5);
+    expect(geometry.midpointVisible).toBe(true);
+
+    await page.waitForTimeout(EXPOSURE_SETTLE_MS);
+    await page.evaluate(() => window.__exposureHarness.flush());
+    await expect
+      .poll(
+        () =>
+          events
+            .filter((e) => e.event_type === VIEWPORT_CONTENT_UPDATED)
+            .flatMap((e) => (e.event_properties?.[ELEMENT_EXPOSED_PROP] as string[] | undefined) ?? []),
+        { timeout: 10_000 },
+      )
+      .toContain(OVERSIZED_TARGET_PATH);
     expect(pageErrors).toEqual([]);
   });
 });

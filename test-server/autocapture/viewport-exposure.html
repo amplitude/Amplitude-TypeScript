@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Viewport Exposure (50% visibility) Test</title>
+    <title>Viewport Exposure (mid-height line) Test</title>
     <style>
         body { margin: 0; font: 14px/1.5 system-ui, sans-serif; }
 
@@ -30,7 +30,7 @@
             font-size: 18px; background: #d9ecff; border: 2px solid #3b82f6;
         }
 
-        /* Taller than any viewport, so it can never reach 50% of its own area. */
+        /* Taller than the viewport: validates depth viewed rather than visible area. */
         #oversized-target {
             display: block; width: 60%; height: 250vh; margin: 0 auto;
             font-size: 18px; background: #ffeaea; border: 2px solid #ef4444;
@@ -39,12 +39,12 @@
 </head>
 <body>
     <div id="hud">
-        <h1>Viewport Exposure Test — exposure fires at 50% visibility</h1>
+        <h1>Viewport Exposure Test — exposure fires when the mid-height line is viewed</h1>
         <div class="hint">
-            Scroll <code>#exposure-target</code> partly into view, wait a moment, then flush: below 50%
-            visibility it must not be exposed, at 50% or more it must be. The verdict line compares the
-            two. These control buttons are autocaptured elements too, so they show up in the exposed
-            list as well.
+            Scroll to a percentage of <code>#exposure-target</code>'s vertical depth, wait a moment, then
+            flush. Before its 50% line enters the viewport it must not be exposed; once that line has
+            been displayed for 150ms it must be. This matches Contentsquare Zoning and is not the same
+            as requiring half of the element's area on screen at once.
         </div>
         <div>
             <button id="scroll-30" type="button">Scroll target to 30%</button>
@@ -52,10 +52,10 @@
             <button id="scroll-50" type="button">50%</button>
             <button id="scroll-60" type="button">60%</button>
             <button id="scroll-100" type="button">100%</button>
-            <button id="scroll-oversized" type="button">Fill viewport with oversized element</button>
+            <button id="scroll-oversized" type="button">View 50% line of oversized element</button>
             <button id="flush" type="button">Flush exposures</button>
         </div>
-        <div id="readout">target visibility: —</div>
+        <div id="readout">target depth viewed: —</div>
         <div id="verdict">last flush: (nothing flushed yet)</div>
         <div id="exposed">exposed in last flush: (none)</div>
         <div id="status">ready</div>
@@ -68,8 +68,8 @@
     <div class="spacer gap">keep scrolling</div>
 
     <button id="oversized-target" type="button">
-        Oversized target — taller than the viewport, so it never reaches 50% of its own area and is
-        expected to stay unexposed
+        Oversized target — taller than the viewport. It should expose when its mid-height line is viewed,
+        even though less than half of its area can fit on screen.
     </button>
 
     <div class="spacer tail">end of page</div>
@@ -84,6 +84,7 @@
         const EXPOSURE_DURATION = 150;
 
         const target = () => document.getElementById('exposure-target');
+        let selectedTarget = target();
 
         // IntersectionObserver clips against the layout viewport, so the ratio the
         // observer sees is measured against clientHeight, not innerHeight.
@@ -95,10 +96,21 @@
             return Math.max(0, Math.min(visible, rect.height)) / rect.height;
         };
 
+        const viewedDepth = (element) => {
+            const rect = element.getBoundingClientRect();
+            return Math.max(0, Math.min(1, (viewportHeight() - rect.top) / rect.height));
+        };
+
+        const isMidHeightLineVisible = (element) => {
+            const rect = element.getBoundingClientRect();
+            const midHeightLine = rect.top + rect.height * 0.5;
+            return midHeightLine >= 0 && midHeightLine <= viewportHeight() && rect.right > 0 && rect.left < innerWidth;
+        };
+
         /**
-         * Scroll so that `fraction` of `element` sits inside the viewport, entering
-         * from the bottom edge, and return the fraction actually achieved (clamped
-         * by the document's scroll range).
+         * Scroll the viewport's bottom edge to `fraction` of the element's vertical
+         * depth and return the depth actually reached. Unlike visible area, this
+         * works for elements taller than the viewport.
          */
         const scrollElementTo = (fraction, element = target()) => {
             const rect = element.getBoundingClientRect();
@@ -106,7 +118,7 @@
             const maxScroll = document.documentElement.scrollHeight - viewportHeight();
             const scrollY = documentTop + fraction * rect.height - viewportHeight();
             window.scrollTo(0, Math.max(0, Math.min(scrollY, maxScroll)));
-            return visibleFraction(element);
+            return viewedDepth(element);
         };
 
         const exposedPaths = [];
@@ -122,16 +134,25 @@
             window.dispatchEvent(new Event('beforeunload'));
         };
 
-        window.__exposureHarness = { scrollElementTo, visibleFraction, flush, exposedPaths, EXPOSURE_DURATION };
+        window.__exposureHarness = {
+            scrollElementTo,
+            visibleFraction,
+            viewedDepth,
+            isMidHeightLineVisible,
+            flush,
+            exposedPaths,
+            EXPOSURE_DURATION,
+        };
 
         const renderFlushResult = () => {
-            const exposed = pathsSinceFlush.includes('button#exposure-target');
-            const shouldExpose = visibleFraction(target()) >= 0.5;
+            const selectedPath = `button#${selectedTarget.id}`;
+            const exposed = pathsSinceFlush.includes(selectedPath);
+            const shouldExpose = isMidHeightLineVisible(selectedTarget);
             const agrees = exposed === shouldExpose;
             const verdict = document.getElementById('verdict');
             verdict.textContent =
-                `last flush: #exposure-target ${exposed ? 'exposed' : 'not exposed'} — ` +
-                (agrees ? 'as expected' : 'DOES NOT MATCH the visibility above');
+                `last flush: #${selectedTarget.id} ${exposed ? 'exposed' : 'not exposed'} — ` +
+                (agrees ? 'as expected' : 'DOES NOT MATCH the depth above');
             verdict.style.color = agrees ? '#7bd88f' : '#ff6b6b';
             document.getElementById('exposed').textContent =
                 'exposed in last flush: ' + (pathsSinceFlush.length ? pathsSinceFlush.join(', ') : '(none)');
@@ -158,10 +179,13 @@
         };
 
         const renderReadout = () => {
-            const fraction = visibleFraction(target());
-            const percent = Math.round(fraction * 100);
+            const depth = viewedDepth(selectedTarget);
+            const visible = visibleFraction(selectedTarget);
+            const percent = Math.round(depth * 100);
             document.getElementById('readout').textContent =
-                `target visibility: ${percent}% → ${fraction >= 0.5 ? 'should expose' : 'should NOT expose'}`;
+                `#${selectedTarget.id} depth viewed: ${percent}% ` +
+                `(${Math.round(visible * 100)}% currently visible) → ` +
+                (isMidHeightLineVisible(selectedTarget) ? 'should expose' : 'should NOT expose');
         };
 
         let readoutQueued = false;
@@ -174,13 +198,18 @@
             });
         });
 
-        document.getElementById('scroll-30').addEventListener('click', () => scrollElementTo(0.3));
-        document.getElementById('scroll-49').addEventListener('click', () => scrollElementTo(0.49));
-        document.getElementById('scroll-50').addEventListener('click', () => scrollElementTo(0.5));
-        document.getElementById('scroll-60').addEventListener('click', () => scrollElementTo(0.6));
-        document.getElementById('scroll-100').addEventListener('click', () => scrollElementTo(1));
+        const selectAndScroll = (fraction, element = target()) => {
+            selectedTarget = element;
+            scrollElementTo(fraction, element);
+        };
+
+        document.getElementById('scroll-30').addEventListener('click', () => selectAndScroll(0.3));
+        document.getElementById('scroll-49').addEventListener('click', () => selectAndScroll(0.49));
+        document.getElementById('scroll-50').addEventListener('click', () => selectAndScroll(0.5));
+        document.getElementById('scroll-60').addEventListener('click', () => selectAndScroll(0.6));
+        document.getElementById('scroll-100').addEventListener('click', () => selectAndScroll(1));
         document.getElementById('scroll-oversized').addEventListener('click', () =>
-            scrollElementTo(0.5, document.getElementById('oversized-target')),
+            selectAndScroll(0.5, document.getElementById('oversized-target')),
         );
         document.getElementById('flush').addEventListener('click', flush);
 

@@ -1,5 +1,4 @@
 import { collectOpenShadowRoots, isShadowRoot } from '@amplitude/element-selector';
-import { EXPOSURE_INTERSECTION_THRESHOLD } from './constants';
 import { querySelectorAllDeep, TimestampedEvent } from './helpers';
 import { type ShadowGate, type ShadowMode } from './shadow-mode';
 import { Observable, consoleObserver, getGlobalScope, merge } from '@amplitude/analytics-core';
@@ -224,7 +223,9 @@ export const createExposureObservable = (
       {
         root: null, // viewport
         rootMargin: '0px', // start exactly at the viewport edge
-        threshold: EXPOSURE_INTERSECTION_THRESHOLD, // trigger when half of the element is visible
+        // Keep intersecting elements as a small candidate set. Their mid-height
+        // line is evaluated on scroll by trackExposure.
+        threshold: 0,
       },
     );
 

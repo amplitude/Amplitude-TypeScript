@@ -9,6 +9,17 @@ import * as constants from '../src/constants';
 
 const TESTING_DEBOUNCE_TIME = 4;
 
+const setMidHeightLineVisible = (element: Element) => {
+  jest.spyOn(element, 'getBoundingClientRect').mockReturnValue({
+    top: 0,
+    bottom: 100,
+    left: 0,
+    right: 100,
+    width: 100,
+    height: 100,
+  } as DOMRect);
+};
+
 describe('autoTrackingPlugin', () => {
   let plugin: EnrichmentPlugin | undefined;
 
@@ -166,6 +177,7 @@ describe('autoTrackingPlugin', () => {
       const element = document.createElement('button');
       element.id = 'exposure-test-button';
       document.body.appendChild(element);
+      setMidHeightLineVisible(element);
 
       // Trigger intersection (element becomes visible)
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -236,6 +248,7 @@ describe('autoTrackingPlugin', () => {
       const element = document.createElement('button');
       element.id = 'exposure-test-button';
       document.body.appendChild(element);
+      setMidHeightLineVisible(element);
 
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       intersectionCallback!([
@@ -303,6 +316,7 @@ describe('autoTrackingPlugin', () => {
       const element = document.createElement('button');
       element.id = 'precedence-test-button';
       document.body.appendChild(element);
+      setMidHeightLineVisible(element);
 
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       intersectionCallback!([
@@ -2102,6 +2116,7 @@ describe('autoTrackingPlugin', () => {
         const el = document.createElement('div');
         el.id = `${longIdPrefix}-${i}`;
         document.body.appendChild(el);
+        setMidHeightLineVisible(el);
         elements.push(el);
 
         entries.push({

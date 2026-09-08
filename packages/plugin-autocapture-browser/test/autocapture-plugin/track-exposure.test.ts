@@ -5,19 +5,29 @@ import { DEFAULT_EXPOSURE_DURATION } from '@amplitude/analytics-core';
 
 describe('trackExposure', () => {
   let exposureObservable: any;
+  let scrollObservable: any;
   let allObservables: AllWindowObservables;
   let onExposure: jest.Mock;
   let unsubscribe: () => void;
   let reset: () => void;
-  let observers: Array<(val: any) => void> = [];
+  let exposureObservers: Array<(val: any) => void> = [];
+  let scrollObservers: Array<(val: any) => void> = [];
 
   beforeEach(() => {
     jest.useFakeTimers();
     onExposure = jest.fn();
-    observers = [];
+    exposureObservers = [];
+    scrollObservers = [];
+    jest.spyOn(Element.prototype, 'getBoundingClientRect').mockReturnValue({
+      top: 700,
+      bottom: 800,
+      left: 0,
+      right: 100,
+      width: 100,
+      height: 100,
+    } as DOMRect);
 
-    // Mock Observable implementation
-    exposureObservable = {
+    const observable = (observers: Array<(val: any) => void>) => ({
       subscribe: (fn: (val: any) => void) => {
         observers.push(fn);
         return {
@@ -26,10 +36,13 @@ describe('trackExposure', () => {
           },
         };
       },
-    };
+    });
+    exposureObservable = observable(exposureObservers);
+    scrollObservable = observable(scrollObservers);
 
     allObservables = {
       [ObservablesEnum.ExposureObservable]: exposureObservable,
+      [ObservablesEnum.ScrollObservable]: scrollObservable,
     } as any;
 
     const dataExtractor = new DataExtractor({});
@@ -49,24 +62,44 @@ describe('trackExposure', () => {
   });
 
   const triggerExposure = (entry: Partial<IntersectionObserverEntry>) => {
-    observers.forEach((observer) => observer(entry));
+    exposureObservers.forEach((observer) => observer(entry));
   };
 
-  test('should mark element as exposed after 2 seconds of visibility', () => {
+  const triggerScroll = () => {
+    scrollObservers.forEach((observer) => observer(new Event('scroll')));
+  };
+
+  const setRect = (
+    element: Element,
+    { top, height = 100, left = 0, width = 100 }: { top: number; height?: number; left?: number; width?: number },
+  ) => {
+    element.getBoundingClientRect = jest.fn(
+      () =>
+        ({
+          top,
+          bottom: top + height,
+          left,
+          right: left + width,
+          width,
+          height,
+        } as DOMRect),
+    );
+  };
+
+  test('should mark element as exposed after its mid-height line is visible for the exposure duration', () => {
     const element = document.createElement('div');
     element.id = 'test-div';
+    setRect(element, { top: 700 });
 
     triggerExposure({
       isIntersecting: true,
       target: element,
-      intersectionRatio: 1.0,
     });
 
     // Should not be exposed yet
     expect(onExposure).not.toHaveBeenCalled();
 
-    // Fast forward 2 seconds
-    jest.advanceTimersByTime(2000);
+    jest.advanceTimersByTime(DEFAULT_EXPOSURE_DURATION);
 
     expect(onExposure).toHaveBeenCalledWith('div#test-div');
   });
@@ -95,7 +128,7 @@ describe('trackExposure', () => {
     expect(onExposure).not.toHaveBeenCalled();
   });
 
-  test('should replace a pending exposure timer on a second intersecting callback', () => {
+  test('should preserve a pending exposure timer across repeated intersecting callbacks', () => {
     const element = document.createElement('div');
     element.id = 'test-div-reobserve';
     const clearTimeoutSpy = jest.spyOn(global, 'clearTimeout');
@@ -107,17 +140,14 @@ describe('trackExposure', () => {
     });
     jest.advanceTimersByTime(DEFAULT_EXPOSURE_DURATION / 2);
 
-    // A rescan unobserve/observe delivers another intersecting callback while the
-    // first timer is still pending. The old timer must not fire after reset/nav.
+    // A rescan or scroll can evaluate an element again while its midpoint remains
+    // visible. That must not restart the timer or slow scrolling would never expose.
     triggerExposure({
       isIntersecting: true,
       target: element,
       intersectionRatio: 1.0,
     });
-    expect(clearTimeoutSpy).toHaveBeenCalled();
-
-    jest.advanceTimersByTime(DEFAULT_EXPOSURE_DURATION / 2);
-    expect(onExposure).not.toHaveBeenCalled();
+    expect(clearTimeoutSpy).not.toHaveBeenCalled();
 
     jest.advanceTimersByTime(DEFAULT_EXPOSURE_DURATION / 2);
     expect(onExposure).toHaveBeenCalledTimes(1);
@@ -217,23 +247,25 @@ describe('trackExposure', () => {
     expect(onExposure).not.toHaveBeenCalled();
   });
 
-  test('should expose an element that is half visible', () => {
+  test('should expose an element once its mid-height line enters the viewport', () => {
     const element = document.createElement('div');
     element.id = 'half-visible';
+    setRect(element, { top: 718 });
 
     triggerExposure({
       isIntersecting: true,
       target: element,
-      intersectionRatio: 0.5,
+      intersectionRatio: 0.1,
     });
 
     jest.advanceTimersByTime(DEFAULT_EXPOSURE_DURATION * 1.5);
     expect(onExposure).toHaveBeenCalledWith('div#half-visible');
   });
 
-  test('should not expose an element that is visible by less than half', () => {
+  test('should not expose an element before its mid-height line enters the viewport', () => {
     const element = document.createElement('div');
     element.id = 'barely-visible';
+    setRect(element, { top: 740 });
 
     triggerExposure({
       isIntersecting: true,
@@ -245,9 +277,45 @@ describe('trackExposure', () => {
     expect(onExposure).not.toHaveBeenCalled();
   });
 
-  test('should cancel a pending exposure when the element scrolls below half visible', () => {
+  test('should expose a zone taller than the viewport when its mid-height line is viewed', () => {
+    const element = document.createElement('div');
+    element.id = 'oversized';
+    setRect(element, { top: -900, height: 2000 });
+
+    triggerExposure({
+      isIntersecting: true,
+      target: element,
+      // Less than half its area can ever be visible at once.
+      intersectionRatio: 0.384,
+    });
+
+    jest.advanceTimersByTime(DEFAULT_EXPOSURE_DURATION);
+    expect(onExposure).toHaveBeenCalledWith('div#oversized');
+  });
+
+  test('should start exposure on scroll when an intersecting zone reaches its mid-height line', () => {
+    const element = document.createElement('div');
+    element.id = 'scrolled-to-midpoint';
+    setRect(element, { top: 740 });
+
+    triggerExposure({
+      isIntersecting: true,
+      target: element,
+      intersectionRatio: 0.28,
+    });
+    jest.advanceTimersByTime(DEFAULT_EXPOSURE_DURATION);
+    expect(onExposure).not.toHaveBeenCalled();
+
+    setRect(element, { top: 700 });
+    triggerScroll();
+    jest.advanceTimersByTime(DEFAULT_EXPOSURE_DURATION);
+    expect(onExposure).toHaveBeenCalledWith('div#scrolled-to-midpoint');
+  });
+
+  test('should cancel a pending exposure when the mid-height line leaves the viewport', () => {
     const element = document.createElement('div');
     element.id = 'scrolled-away';
+    setRect(element, { top: 700 });
 
     triggerExposure({
       isIntersecting: true,
@@ -257,12 +325,9 @@ describe('trackExposure', () => {
 
     jest.advanceTimersByTime(DEFAULT_EXPOSURE_DURATION / 2);
 
-    // Still touching the viewport, but no longer visible enough to count.
-    triggerExposure({
-      isIntersecting: true,
-      target: element,
-      intersectionRatio: 0.4,
-    });
+    // Still touching the viewport, but its midpoint is now below it.
+    setRect(element, { top: 740 });
+    triggerScroll();
 
     jest.advanceTimersByTime(DEFAULT_EXPOSURE_DURATION * 1.5);
     expect(onExposure).not.toHaveBeenCalled();

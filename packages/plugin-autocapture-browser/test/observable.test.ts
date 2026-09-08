@@ -51,6 +51,11 @@ describe('createExposureObservable', () => {
     });
 
     expect(mockIntersectionObserver.observe).toHaveBeenCalledWith(div);
+    expect(global.IntersectionObserver).toHaveBeenCalledWith(expect.any(Function), {
+      root: null,
+      rootMargin: '0px',
+      threshold: 0,
+    });
   });
 
   test('should emit event when element intersects (visible)', () => {
