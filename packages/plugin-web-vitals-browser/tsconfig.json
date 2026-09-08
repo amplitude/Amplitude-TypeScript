@@ -6,6 +6,9 @@
     "esModuleInterop": true,
     "lib": ["dom"],
     "noEmit": true,
+    // web-vitals@6 declares Soft Navigations API types that reference DOM types not present in the
+    // TypeScript 4.9 DOM lib (e.g. `NavigationType`).
+    "skipLibCheck": true,
     "rootDir": "."
   }
 }

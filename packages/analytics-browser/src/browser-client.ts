@@ -46,6 +46,7 @@ import {
   isPageViewTrackingEnabled,
   isNetworkTrackingEnabled,
   isWebVitalsEnabled,
+  getWebVitalsConfig,
   isFrustrationInteractionsEnabled,
   getFrustrationInteractionsConfig,
   isPerformanceTrackingEnabled,
@@ -374,7 +375,7 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
 
     if (isWebVitalsEnabled(this.config.autocapture)) {
       this.config.loggerProvider.debug('Adding web vitals plugin');
-      await this.add(webVitalsPlugin()).promise;
+      await this.add(webVitalsPlugin(getWebVitalsConfig(this.config))).promise;
     }
 
     if (isPerformanceTrackingEnabled(this.config.autocapture)) {
