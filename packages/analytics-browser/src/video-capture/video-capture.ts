@@ -8,7 +8,15 @@ import {
   BaseEvent,
   getHeartbeatInstance,
 } from '@amplitude/analytics-core';
-import { DEFAULT_CONTENT_STARTED_EVENT, DEFAULT_CONTENT_STOPPED_EVENT } from '../constants';
+import {
+  DEFAULT_CONTENT_STARTED_EVENT,
+  DEFAULT_CONTENT_STOPPED_EVENT,
+  DELIVERY_MODE,
+  PERCENT_COMPLETED,
+  PLAY_ID,
+  STOP_REASON,
+  WATCH_DURATION,
+} from '../constants';
 
 /** Playback states where a view session is still in progress (e.g. buffering). */
 const ACTIVE_PLAYBACK_STATES = new Set<VideoState['playbackState']>(['playing', 'waiting']);
@@ -88,7 +96,7 @@ export class VideoCapture {
             ...nextState.lastEvent,
             ...this.parseStartEventProperties(nextState),
             ...this.extraEventProperties,
-            play_id: this.playId,
+            [PLAY_ID]: this.playId,
           },
         };
         this.stopEvent = {
@@ -100,8 +108,8 @@ export class VideoCapture {
             ...nextState.lastEvent,
             ...this.parseStopEventProperties(nextState),
             ...this.extraEventProperties,
-            stop_reason: 'timeout',
-            play_id: this.playId,
+            [STOP_REASON]: 'timeout',
+            [PLAY_ID]: this.playId,
           },
         };
         this.heartbeat.trackNoDelay(startEvent).catch(this.stop.bind(this));
@@ -155,7 +163,7 @@ export class VideoCapture {
     this.stopEvent = null;
     stopEvent.event_properties = {
       ...stopEvent.event_properties,
-      stop_reason: stopReason,
+      [STOP_REASON]: stopReason,
     };
     this.heartbeat.trackNoDelay(stopEvent).catch(this.stop.bind(this));
   }
@@ -213,7 +221,7 @@ export class VideoCapture {
       duration: nextState.lastEvent?.duration ?? 0,
       start_time: nextState.lastEvent?.start_time ?? 0,
       position: nextState.position ?? 0,
-      delivery_mode: this.getDeliveryMode(),
+      [DELIVERY_MODE]: this.getDeliveryMode(),
     };
   }
 
@@ -225,8 +233,8 @@ export class VideoCapture {
     const percentCompleted = ((nextState.position ?? 0) / (nextState.lastEvent?.duration ?? 0)) * 100;
     return {
       ...this.parseStartEventProperties(nextState),
-      watch_duration: nextState.watchTime ?? 0,
-      percent_completed: percentCompleted || 0,
+      [WATCH_DURATION]: nextState.watchTime ?? 0,
+      [PERCENT_COMPLETED]: percentCompleted || 0,
     };
   }
 }

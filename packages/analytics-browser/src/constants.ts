@@ -11,6 +11,12 @@ export const DEFAULT_CONTENT_STOPPED_EVENT = `${DEFAULT_EVENT_PREFIX} Content St
 export const DEFAULT_SESSION_START_EVENT = 'session_start';
 export const DEFAULT_SESSION_END_EVENT = 'session_end';
 
+export const DELIVERY_MODE = 'delivery_mode';
+export const PLAY_ID = 'play_id';
+export const STOP_REASON = 'stop_reason';
+export const WATCH_DURATION = 'watch_duration';
+export const PERCENT_COMPLETED = 'percent_completed';
+
 export const FILE_EXTENSION = `${DEFAULT_EVENT_PREFIX} File Extension`;
 export const FILE_NAME = `${DEFAULT_EVENT_PREFIX} File Name`;
 export const LINK_ID = `${DEFAULT_EVENT_PREFIX} Link ID`;
