@@ -16,18 +16,8 @@ import { DataExtractor } from '../data-extractor';
 // A sub-pixel difference should not decide whether a zone was viewed.
 const MID_HEIGHT_LINE_TOLERANCE_PX = 1;
 
-const CLIPPING_OVERFLOW_VALUES = new Set(['auto', 'clip', 'hidden', 'overlay', 'scroll']);
-const clipsAxis = (overflow: string): boolean => CLIPPING_OVERFLOW_VALUES.has(overflow);
-
 const getVisualParent = (element: Element): Element | null => {
-  if (element.assignedSlot) {
-    return element.assignedSlot;
-  }
-  if (element.parentElement) {
-    return element.parentElement;
-  }
-  const root = element.getRootNode();
-  return root instanceof ShadowRoot ? root.host : null;
+  return element.assignedSlot || element.parentElement || (element.parentNode as ShadowRoot | null)?.host || null;
 };
 
 const isMidHeightLineVisible = (element: Element): boolean => {
@@ -38,13 +28,12 @@ const isMidHeightLineVisible = (element: Element): boolean => {
   const viewportWidth = globalScope?.innerWidth ?? 0;
   const rect = element.getBoundingClientRect();
   const midHeightLine = rect.top + rect.height * EXPOSURE_VIEWED_THRESHOLD;
-  let visibleLeft = Math.max(rect.left, 0);
-  let visibleRight = Math.min(rect.right, viewportWidth);
 
   if (
     midHeightLine < -MID_HEIGHT_LINE_TOLERANCE_PX ||
     midHeightLine > viewportHeight + MID_HEIGHT_LINE_TOLERANCE_PX ||
-    visibleLeft >= visibleRight ||
+    rect.right <= 0 ||
+    rect.left >= viewportWidth ||
     rect.width <= 0
   ) {
     return false;
@@ -52,23 +41,16 @@ const isMidHeightLineVisible = (element: Element): boolean => {
 
   let ancestor = getVisualParent(element);
   while (ancestor) {
-    /* istanbul ignore next -- getComputedStyle exists whenever trackExposure is installed */
-    const style = globalScope?.getComputedStyle(ancestor);
-    if (style) {
+    /* istanbul ignore next -- trackExposure is only installed in a browser */
+    const overflow = globalScope!.getComputedStyle(ancestor).overflowY;
+    // Browsers return "visible" by default; jsdom returns an empty string.
+    if (overflow && overflow !== 'visible') {
       const ancestorRect = ancestor.getBoundingClientRect();
       if (
-        clipsAxis(style.overflowY) &&
-        (midHeightLine < ancestorRect.top - MID_HEIGHT_LINE_TOLERANCE_PX ||
-          midHeightLine > ancestorRect.bottom + MID_HEIGHT_LINE_TOLERANCE_PX)
+        midHeightLine < ancestorRect.top - MID_HEIGHT_LINE_TOLERANCE_PX ||
+        midHeightLine > ancestorRect.bottom + MID_HEIGHT_LINE_TOLERANCE_PX
       ) {
         return false;
-      }
-      if (clipsAxis(style.overflowX)) {
-        visibleLeft = Math.max(visibleLeft, ancestorRect.left);
-        visibleRight = Math.min(visibleRight, ancestorRect.right);
-        if (visibleLeft >= visibleRight) {
-          return false;
-        }
       }
     }
     ancestor = getVisualParent(ancestor);

@@ -382,16 +382,11 @@ describe('trackExposure', () => {
     expect(onExposure).toHaveBeenCalledTimes(1);
   });
 
-  test('should not expose a midpoint whose entire line is horizontally clipped', () => {
-    const scroller = document.createElement('div');
-    scroller.style.overflowX = 'hidden';
+  test('should not expose a midpoint whose entire line is outside the viewport horizontally', () => {
     const element = document.createElement('div');
-    element.id = 'horizontally-clipped';
-    scroller.appendChild(element);
-    document.body.appendChild(scroller);
+    element.id = 'horizontally-outside';
 
-    setRect(scroller, { top: 0, height: 300, left: 200, width: 100 });
-    setRect(element, { top: 100, height: 100, left: 100, width: 100 });
+    setRect(element, { top: 100, height: 100, left: -100, width: 100 });
     triggerExposure({ isIntersecting: true, target: element });
 
     jest.advanceTimersByTime(DEFAULT_EXPOSURE_DURATION);
