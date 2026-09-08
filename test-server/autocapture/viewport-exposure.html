@@ -41,9 +41,10 @@
     <div id="hud">
         <h1>Viewport Exposure Test — exposure fires at 50% visibility</h1>
         <div class="hint">
-            Scroll <code>#exposure-target</code> partly into view, then flush. Below 50% it must not be
-            exposed; at 50% or more it must be. Control buttons are autocaptured elements too, so they
-            also show up in the exposed list.
+            Scroll <code>#exposure-target</code> partly into view, wait a moment, then flush: below 50%
+            visibility it must not be exposed, at 50% or more it must be. The verdict line compares the
+            two. These control buttons are autocaptured elements too, so they show up in the exposed
+            list as well.
         </div>
         <div>
             <button id="scroll-30" type="button">Scroll target to 30%</button>
@@ -55,7 +56,8 @@
             <button id="flush" type="button">Flush exposures</button>
         </div>
         <div id="readout">target visibility: —</div>
-        <div id="exposed">exposed so far: (none)</div>
+        <div id="verdict">last flush: (nothing flushed yet)</div>
+        <div id="exposed">exposed in last flush: (none)</div>
         <div id="status">ready</div>
     </div>
 
@@ -107,17 +109,37 @@
             return visibleFraction(element);
         };
 
+        const exposedPaths = [];
+        // Flushing resets the plugin's page-view state, which re-arms the exposure
+        // snapshot — so one flush can produce more than one event. Collect per flush
+        // rather than per event, and report the union.
+        let pathsSinceFlush = [];
+
         // Exposure is reported on navigation/unload, so dispatch beforeunload to
         // flush whatever has been exposed since the last flush.
-        const flush = () => window.dispatchEvent(new Event('beforeunload'));
-
-        const exposedPaths = [];
+        const flush = () => {
+            pathsSinceFlush = [];
+            window.dispatchEvent(new Event('beforeunload'));
+        };
 
         window.__exposureHarness = { scrollElementTo, visibleFraction, flush, exposedPaths, EXPOSURE_DURATION };
 
-        // Renders every exposed element path from the captured
-        // `[Amplitude] Viewport Content Updated` events. Enrichment plugin, so
-        // nothing is swallowed and the payload still goes out to the network.
+        const renderFlushResult = () => {
+            const exposed = pathsSinceFlush.includes('button#exposure-target');
+            const shouldExpose = visibleFraction(target()) >= 0.5;
+            const agrees = exposed === shouldExpose;
+            const verdict = document.getElementById('verdict');
+            verdict.textContent =
+                `last flush: #exposure-target ${exposed ? 'exposed' : 'not exposed'} — ` +
+                (agrees ? 'as expected' : 'DOES NOT MATCH the visibility above');
+            verdict.style.color = agrees ? '#7bd88f' : '#ff6b6b';
+            document.getElementById('exposed').textContent =
+                'exposed in last flush: ' + (pathsSinceFlush.length ? pathsSinceFlush.join(', ') : '(none)');
+        };
+
+        // Reads the exposed element paths off each captured
+        // `[Amplitude] Viewport Content Updated`. Enrichment plugin, so nothing is
+        // swallowed and the payload still goes out to the network.
         const exposureLogger = {
             name: 'harness-exposure-logger',
             type: 'enrichment',
@@ -126,10 +148,10 @@
                 if (event.event_type === '[Amplitude] Viewport Content Updated') {
                     const paths = event.event_properties?.['[Amplitude] Element Exposed'] ?? [];
                     exposedPaths.push(...paths);
+                    pathsSinceFlush.push(...paths.filter((path) => !pathsSinceFlush.includes(path)));
                     // eslint-disable-next-line no-console
                     console.log('%c[Amplitude] Viewport Content Updated', 'color:#0a0', paths);
-                    document.getElementById('exposed').textContent =
-                        'exposed so far: ' + (exposedPaths.length ? exposedPaths.join(', ') : '(none)');
+                    renderFlushResult();
                 }
                 return event;
             },
