@@ -262,6 +262,22 @@ describe('trackExposure', () => {
     expect(onExposure).toHaveBeenCalledWith('div#half-visible');
   });
 
+  test('should expose when the mid-height line lands a sub-pixel below the viewport edge', () => {
+    const element = document.createElement('div');
+    element.id = 'sub-pixel-boundary';
+    // jsdom reports innerHeight 768; engines disagree by well under a pixel on where
+    // the line sits after an identical scroll, so this must not flip the outcome.
+    setRect(element, { top: 718.6 });
+
+    triggerExposure({
+      isIntersecting: true,
+      target: element,
+    });
+
+    jest.advanceTimersByTime(DEFAULT_EXPOSURE_DURATION);
+    expect(onExposure).toHaveBeenCalledWith('div#sub-pixel-boundary');
+  });
+
   test('should not expose an element before its mid-height line enters the viewport', () => {
     const element = document.createElement('div');
     element.id = 'barely-visible';

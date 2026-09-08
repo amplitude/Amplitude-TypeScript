@@ -11,6 +11,11 @@ import { DataExtractor } from '../data-extractor';
  * its midpoint as the visitor scrolls through it.
  * https://support.contentsquare.com/hc/en-us/articles/37271856122001-Exposure-Rate
  */
+// Engines round fractional scroll offsets differently, so after the same scroll the
+// mid-height line can land a fraction of a pixel either side of the viewport edge.
+// A sub-pixel difference should not decide whether a zone was viewed.
+const MID_HEIGHT_LINE_TOLERANCE_PX = 1;
+
 const isMidHeightLineVisible = (element: Element): boolean => {
   const globalScope = getGlobalScope();
   /* istanbul ignore next -- trackExposure is only installed in a browser */
@@ -21,8 +26,8 @@ const isMidHeightLineVisible = (element: Element): boolean => {
   const midHeightLine = rect.top + rect.height * EXPOSURE_VIEWED_THRESHOLD;
 
   return (
-    midHeightLine >= 0 &&
-    midHeightLine <= viewportHeight &&
+    midHeightLine >= -MID_HEIGHT_LINE_TOLERANCE_PX &&
+    midHeightLine <= viewportHeight + MID_HEIGHT_LINE_TOLERANCE_PX &&
     rect.right > 0 &&
     rect.left < viewportWidth &&
     rect.width > 0

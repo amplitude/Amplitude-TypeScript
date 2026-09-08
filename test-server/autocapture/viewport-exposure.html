@@ -13,66 +13,137 @@
             box-shadow: 0 2px 8px rgba(0, 0, 0, .4);
         }
         #hud h1 { font-size: 14px; margin: 0 0 4px; }
-        #hud .hint { color: #999; font-size: 12px; }
-        #hud button { margin: 4px 4px 0 0; }
-        #readout { margin-top: 6px; font-family: monospace; }
-        #exposed { margin-top: 4px; font-family: monospace; color: #6cf; max-height: 20vh; overflow: auto; }
-        #status { margin-top: 4px; font-family: monospace; color: #888; }
+        #hud .hint { color: #999; font-size: 12px; max-width: 70ch; }
+        #hud .controls { margin-top: 6px; font-size: 12px; }
+        #hud button { margin-right: 4px; }
+        #summary { margin-top: 6px; font-family: monospace; }
+        #status { margin-top: 2px; font-family: monospace; color: #888; }
 
-        .spacer { display: flex; align-items: center; justify-content: center; color: #bbb; background: #f6f6f6; }
-        .spacer.lead { height: 150vh; }
-        .spacer.gap { height: 150vh; }
-        .spacer.tail { height: 150vh; }
+        /* Live state for every zone, so it stays readable even when a zone is
+           taller than the viewport and its own labels are scrolled off screen. */
+        #zone-table { margin-top: 4px; font: 12px/1.45 monospace; }
+        #zone-table div { white-space: pre; }
+        #zone-table .pending { color: #94a3b8; }
+        #zone-table .viewed { color: #fbbf24; }
+        #zone-table .exposed { color: #34d399; }
+        #zone-table .mismatch { color: #f87171; font-weight: 700; }
 
-        /* Fixed height keeps the 30% / 50% / 100% arithmetic easy to eyeball. */
-        #exposure-target {
-            display: block; width: 60%; height: 240px; margin: 0 auto;
-            font-size: 18px; background: #d9ecff; border: 2px solid #3b82f6;
+        /* Clears the fixed HUD so the first zone does not start underneath it. */
+        main { padding-top: 320px; }
+        .lead, .tail { height: 60vh; display: flex; align-items: center; justify-content: center; color: #bbb; }
+
+        .zone {
+            position: relative; display: block; width: 70%; margin: 24px auto; padding: 0;
+            font: inherit; text-align: left; background: #f4f7fb; border: 2px solid #94a3b8;
+        }
+        .zone .zone-label { position: absolute; top: 8px; left: 12px; font-weight: 600; }
+        .zone .zone-state { position: absolute; bottom: 8px; left: 12px; font-family: monospace; }
+
+        /* The rule this page demonstrates: exposure keys off this line, not off area. */
+        .zone .mid-line {
+            position: absolute; top: 50%; left: 0; right: 0;
+            border-top: 2px dashed #ef4444;
+        }
+        .zone .mid-line::after {
+            content: '50% line'; position: absolute; top: 2px; right: 8px;
+            font-size: 11px; color: #ef4444;
         }
 
-        /* Taller than the viewport: validates depth viewed rather than visible area. */
-        #oversized-target {
-            display: block; width: 60%; height: 250vh; margin: 0 auto;
-            font-size: 18px; background: #ffeaea; border: 2px solid #ef4444;
-        }
+        .zone[data-state='viewed'] { background: #fff7ed; border-color: #f59e0b; }
+        .zone[data-state='exposed'] { background: #ecfdf5; border-color: #10b981; }
+        .zone[data-state='mismatch'] { background: #fef2f2; border-color: #dc2626; }
+
+        #zone-1 { height: 30vh; }
+        #zone-2 { height: 18vh; }
+        #zone-3 { height: 45vh; }
+        /* Taller than the viewport: its midpoint still gets viewed while scrolling. */
+        #zone-4 { height: 120vh; }
+        #zone-5 { height: 25vh; }
+        /* Fixed height keeps the 30 / 49 / 50 / 60 / 100% jump arithmetic easy to eyeball. */
+        #exposure-target { height: 240px; }
+        #oversized-target { height: 250vh; }
     </style>
 </head>
 <body>
     <div id="hud">
-        <h1>Viewport Exposure Test — exposure fires when the mid-height line is viewed</h1>
+        <h1>Viewport Exposure Test — a zone exposes once its 50% line has been in view for 150ms</h1>
         <div class="hint">
-            Scroll to a percentage of <code>#exposure-target</code>'s vertical depth, wait a moment, then
-            flush. Before its 50% line enters the viewport it must not be exposed; once that line has
-            been displayed for 150ms it must be. This matches Contentsquare Zoning and is not the same
-            as requiring half of the element's area on screen at once.
+            Just scroll down. Each zone turns amber while its dashed 50% line is inside the viewport and
+            green once the SDK reports it as exposed. This matches Contentsquare Zoning: what counts is
+            scrolling <em>through</em> a zone's mid-height line, not fitting half its area on screen — so
+            zones taller than the viewport still expose.
         </div>
-        <div>
-            <button id="scroll-30" type="button">Scroll target to 30%</button>
+        <div class="controls">
+            <label>
+                <input type="checkbox" id="auto-flush" checked>
+                Auto-flush every 500ms so exposures appear while scrolling
+            </label>
+            <button id="flush" type="button">Flush now</button>
+            <span class="hint">
+                (the SDK batches exposures and reports them on navigation/unload, not per scroll)
+            </span>
+        </div>
+        <div class="controls">
+            Jump <code>#exposure-target</code> to depth:
+            <button id="scroll-30" type="button">30%</button>
             <button id="scroll-49" type="button">49%</button>
             <button id="scroll-50" type="button">50%</button>
             <button id="scroll-60" type="button">60%</button>
             <button id="scroll-100" type="button">100%</button>
-            <button id="scroll-oversized" type="button">View 50% line of oversized element</button>
-            <button id="flush" type="button">Flush exposures</button>
+            <button id="scroll-oversized" type="button">#oversized-target 50%</button>
         </div>
-        <div id="readout">target depth viewed: —</div>
-        <div id="verdict">last flush: (nothing flushed yet)</div>
-        <div id="exposed">exposed in last flush: (none)</div>
+        <div id="summary">exposed 0 of 0 zones</div>
+        <div id="zone-table"></div>
         <div id="status">ready</div>
     </div>
 
-    <div class="spacer lead">scroll down</div>
+    <main>
+        <div class="lead">scroll down</div>
 
-    <button id="exposure-target" type="button">Exposure target (240px tall)</button>
+        <button class="zone" id="zone-1" type="button">
+            <span class="zone-label">#zone-1 — 40vh</span>
+            <span class="mid-line"></span>
+            <span class="zone-state">not viewed</span>
+        </button>
 
-    <div class="spacer gap">keep scrolling</div>
+        <button class="zone" id="zone-2" type="button">
+            <span class="zone-label">#zone-2 — 25vh</span>
+            <span class="mid-line"></span>
+            <span class="zone-state">not viewed</span>
+        </button>
 
-    <button id="oversized-target" type="button">
-        Oversized target — taller than the viewport. It should expose when its mid-height line is viewed,
-        even though less than half of its area can fit on screen.
-    </button>
+        <button class="zone" id="zone-3" type="button">
+            <span class="zone-label">#zone-3 — 70vh</span>
+            <span class="mid-line"></span>
+            <span class="zone-state">not viewed</span>
+        </button>
 
-    <div class="spacer tail">end of page</div>
+        <button class="zone" id="zone-4" type="button">
+            <span class="zone-label">#zone-4 — 130vh, taller than the viewport</span>
+            <span class="mid-line"></span>
+            <span class="zone-state">not viewed</span>
+        </button>
+
+        <button class="zone" id="zone-5" type="button">
+            <span class="zone-label">#zone-5 — 35vh</span>
+            <span class="mid-line"></span>
+            <span class="zone-state">not viewed</span>
+        </button>
+
+        <button class="zone" id="exposure-target" type="button">
+            <span class="zone-label">#exposure-target — 240px, used by the jump buttons</span>
+            <span class="mid-line"></span>
+            <span class="zone-state">not viewed</span>
+        </button>
+
+        <button class="zone" id="oversized-target" type="button">
+            <span class="zone-label">#oversized-target — 250vh, less than half can ever be on screen</span>
+            <span class="mid-line"></span>
+            <span class="zone-state">not viewed</span>
+        </button>
+
+        <div class="tail">end of page</div>
+    </main>
 
     <script type="module">
         import * as amplitude from '@amplitude/analytics-browser';
@@ -82,12 +153,13 @@
         // Matches the plugin default; stated explicitly so the harness and the
         // Playwright spec can size their waits off the same number.
         const EXPOSURE_DURATION = 150;
+        const AUTO_FLUSH_MS = 500;
 
-        const target = () => document.getElementById('exposure-target');
-        let selectedTarget = target();
+        const zones = Array.from(document.querySelectorAll('.zone'));
+        const zoneState = new Map(zones.map((zone) => [zone, { exposed: false, maxDepth: 0 }]));
 
-        // IntersectionObserver clips against the layout viewport, so the ratio the
-        // observer sees is measured against clientHeight, not innerHeight.
+        // IntersectionObserver clips against the layout viewport, so the geometry the
+        // plugin sees is measured against clientHeight, not innerHeight.
         const viewportHeight = () => document.documentElement.clientHeight;
 
         const visibleFraction = (element) => {
@@ -96,23 +168,33 @@
             return Math.max(0, Math.min(visible, rect.height)) / rect.height;
         };
 
+        // How far down the element the viewport's bottom edge has travelled. Unlike
+        // visible area, this keeps rising for elements taller than the viewport.
         const viewedDepth = (element) => {
             const rect = element.getBoundingClientRect();
             return Math.max(0, Math.min(1, (viewportHeight() - rect.top) / rect.height));
         };
 
+        // Mirrors the plugin, including its sub-pixel tolerance, so the page's own
+        // expectation cannot disagree with the SDK over a fraction of a pixel.
+        const MID_HEIGHT_LINE_TOLERANCE_PX = 1;
+
         const isMidHeightLineVisible = (element) => {
             const rect = element.getBoundingClientRect();
             const midHeightLine = rect.top + rect.height * 0.5;
-            return midHeightLine >= 0 && midHeightLine <= viewportHeight() && rect.right > 0 && rect.left < innerWidth;
+            return (
+                midHeightLine >= -MID_HEIGHT_LINE_TOLERANCE_PX &&
+                midHeightLine <= viewportHeight() + MID_HEIGHT_LINE_TOLERANCE_PX &&
+                rect.right > 0 &&
+                rect.left < innerWidth
+            );
         };
 
         /**
          * Scroll the viewport's bottom edge to `fraction` of the element's vertical
-         * depth and return the depth actually reached. Unlike visible area, this
-         * works for elements taller than the viewport.
+         * depth and return the depth actually reached (clamped by the scroll range).
          */
-        const scrollElementTo = (fraction, element = target()) => {
+        const scrollElementTo = (fraction, element = document.getElementById('exposure-target')) => {
             const rect = element.getBoundingClientRect();
             const documentTop = rect.top + window.scrollY;
             const maxScroll = document.documentElement.scrollHeight - viewportHeight();
@@ -121,17 +203,17 @@
             return viewedDepth(element);
         };
 
-        const exposedPaths = [];
-        // Flushing resets the plugin's page-view state, which re-arms the exposure
-        // snapshot — so one flush can produce more than one event. Collect per flush
-        // rather than per event, and report the union.
-        let pathsSinceFlush = [];
-
         // Exposure is reported on navigation/unload, so dispatch beforeunload to
         // flush whatever has been exposed since the last flush.
-        const flush = () => {
-            pathsSinceFlush = [];
-            window.dispatchEvent(new Event('beforeunload'));
+        const flush = () => window.dispatchEvent(new Event('beforeunload'));
+
+        const exposedPaths = [];
+
+        let autoFlushTimer;
+        const setAutoFlush = (enabled) => {
+            document.getElementById('auto-flush').checked = enabled;
+            clearInterval(autoFlushTimer);
+            autoFlushTimer = enabled ? setInterval(flush, AUTO_FLUSH_MS) : undefined;
         };
 
         window.__exposureHarness = {
@@ -140,22 +222,59 @@
             viewedDepth,
             isMidHeightLineVisible,
             flush,
+            setAutoFlush,
             exposedPaths,
             EXPOSURE_DURATION,
         };
 
-        const renderFlushResult = () => {
-            const selectedPath = `button#${selectedTarget.id}`;
-            const exposed = pathsSinceFlush.includes(selectedPath);
-            const shouldExpose = isMidHeightLineVisible(selectedTarget);
-            const agrees = exposed === shouldExpose;
-            const verdict = document.getElementById('verdict');
-            verdict.textContent =
-                `last flush: #${selectedTarget.id} ${exposed ? 'exposed' : 'not exposed'} — ` +
-                (agrees ? 'as expected' : 'DOES NOT MATCH the depth above');
-            verdict.style.color = agrees ? '#7bd88f' : '#ff6b6b';
-            document.getElementById('exposed').textContent =
-                'exposed in last flush: ' + (pathsSinceFlush.length ? pathsSinceFlush.join(', ') : '(none)');
+        const render = () => {
+            const rows = [];
+
+            zones.forEach((zone) => {
+                const state = zoneState.get(zone);
+                const midpointInView = isMidHeightLineVisible(zone);
+                const depthFraction = viewedDepth(zone);
+                state.maxDepth = Math.max(state.maxDepth, depthFraction);
+
+                // The SDK must never report a zone whose 50% line was never reached.
+                const impossible = state.exposed && state.maxDepth < 0.5;
+                zone.dataset.state = impossible
+                    ? 'mismatch'
+                    : state.exposed
+                    ? 'exposed'
+                    : midpointInView
+                    ? 'viewed'
+                    : 'pending';
+
+                const depth = Math.round(depthFraction * 100);
+                const visible = Math.round(visibleFraction(zone) * 100);
+                // Reaching the line is not enough: scrolling straight past it without
+                // dwelling 150ms is excluded, which is the point of the duration.
+                const passedWithoutDwell = !state.exposed && !midpointInView && state.maxDepth >= 0.5;
+                const note = impossible
+                    ? 'EXPOSED WITHOUT REACHING ITS 50% LINE'
+                    : state.exposed
+                    ? 'exposed'
+                    : midpointInView
+                    ? `50% line in view, waiting ${EXPOSURE_DURATION}ms`
+                    : passedWithoutDwell
+                    ? `50% line passed without dwelling ${EXPOSURE_DURATION}ms`
+                    : '50% line not reached yet';
+                zone.querySelector('.zone-state').textContent = impossible
+                    ? `EXPOSED WITHOUT REACHING ITS 50% LINE (depth ${depth}%)`
+                    : state.exposed
+                    ? `exposed ✓ (depth viewed ${depth}%, ${visible}% on screen now)`
+                    : `${note} (depth ${depth}%)`;
+                rows.push(
+                    `<div class="${zone.dataset.state}">` +
+                        `#${zone.id.padEnd(17)} depth ${String(depth).padStart(3)}%   ` +
+                        `on screen ${String(visible).padStart(3)}%   ${note}</div>`,
+                );
+            });
+
+            document.getElementById('zone-table').innerHTML = rows.join('');
+            const exposedCount = zones.filter((zone) => zoneState.get(zone).exposed).length;
+            document.getElementById('summary').textContent = `exposed ${exposedCount} of ${zones.length} zones`;
         };
 
         // Reads the exposed element paths off each captured
@@ -169,49 +288,41 @@
                 if (event.event_type === '[Amplitude] Viewport Content Updated') {
                     const paths = event.event_properties?.['[Amplitude] Element Exposed'] ?? [];
                     exposedPaths.push(...paths);
-                    pathsSinceFlush.push(...paths.filter((path) => !pathsSinceFlush.includes(path)));
                     // eslint-disable-next-line no-console
                     console.log('%c[Amplitude] Viewport Content Updated', 'color:#0a0', paths);
-                    renderFlushResult();
+                    zones.forEach((zone) => {
+                        if (paths.includes(`button#${zone.id}`)) {
+                            zoneState.get(zone).exposed = true;
+                        }
+                    });
+                    render();
                 }
                 return event;
             },
         };
 
-        const renderReadout = () => {
-            const depth = viewedDepth(selectedTarget);
-            const visible = visibleFraction(selectedTarget);
-            const percent = Math.round(depth * 100);
-            document.getElementById('readout').textContent =
-                `#${selectedTarget.id} depth viewed: ${percent}% ` +
-                `(${Math.round(visible * 100)}% currently visible) → ` +
-                (isMidHeightLineVisible(selectedTarget) ? 'should expose' : 'should NOT expose');
-        };
-
-        let readoutQueued = false;
+        let renderQueued = false;
         window.addEventListener('scroll', () => {
-            if (readoutQueued) return;
-            readoutQueued = true;
+            if (renderQueued) return;
+            renderQueued = true;
             requestAnimationFrame(() => {
-                readoutQueued = false;
-                renderReadout();
+                renderQueued = false;
+                render();
             });
         });
 
-        const selectAndScroll = (fraction, element = target()) => {
-            selectedTarget = element;
-            scrollElementTo(fraction, element);
-        };
-
-        document.getElementById('scroll-30').addEventListener('click', () => selectAndScroll(0.3));
-        document.getElementById('scroll-49').addEventListener('click', () => selectAndScroll(0.49));
-        document.getElementById('scroll-50').addEventListener('click', () => selectAndScroll(0.5));
-        document.getElementById('scroll-60').addEventListener('click', () => selectAndScroll(0.6));
-        document.getElementById('scroll-100').addEventListener('click', () => selectAndScroll(1));
-        document.getElementById('scroll-oversized').addEventListener('click', () =>
-            selectAndScroll(0.5, document.getElementById('oversized-target')),
+        document.getElementById('auto-flush').addEventListener('change', (event) =>
+            setAutoFlush(event.target.checked),
         );
         document.getElementById('flush').addEventListener('click', flush);
+        document.getElementById('scroll-30').addEventListener('click', () => scrollElementTo(0.3));
+        document.getElementById('scroll-49').addEventListener('click', () => scrollElementTo(0.49));
+        document.getElementById('scroll-50').addEventListener('click', () => scrollElementTo(0.5));
+        document.getElementById('scroll-60').addEventListener('click', () => scrollElementTo(0.6));
+        document.getElementById('scroll-100').addEventListener('click', () => scrollElementTo(1));
+        document.getElementById('scroll-oversized').addEventListener('click', () =>
+            scrollElementTo(0.5, document.getElementById('oversized-target')),
+        );
 
         // Self-contained: fall back to a dummy key so the page works without a
         // configured environment. The Playwright spec intercepts track requests,
@@ -235,7 +346,8 @@
             logLevel: 0,
         }).promise.then(() => {
             amplitude.add(exposureLogger);
-            renderReadout();
+            setAutoFlush(true);
+            render();
             document.getElementById('status').textContent = 'initialized';
         });
     </script>

@@ -26,6 +26,7 @@ declare global {
       viewedDepth: (element: Element) => number;
       isMidHeightLineVisible: (element: Element) => boolean;
       flush: () => void;
+      setAutoFlush: (enabled: boolean) => void;
       exposedPaths: string[];
       EXPOSURE_DURATION: number;
     };
@@ -81,6 +82,9 @@ test.describe('autocapture viewport exposure (mid-height line)', () => {
   async function openHarness(page: Page): Promise<void> {
     await page.goto('/autocapture/viewport-exposure.html');
     await expect(page.locator('#status')).toHaveText('initialized');
+    // The page auto-flushes so a human sees exposures while scrolling. That resets
+    // exposure state on a timer, so drive flushes by hand inside the tests.
+    await page.evaluate(() => window.__exposureHarness.setAutoFlush(false));
     // The initial snapshot reports whatever is already on screen; drop it so each
     // test only sees exposures caused by its own scrolling.
     await page.waitForTimeout(EXPOSURE_SETTLE_MS);
