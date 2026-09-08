@@ -1,4 +1,4 @@
-import { createExposureObservable } from '../src/observables';
+import { createExposureObservable, createScrollObservable } from '../src/observables';
 import { Observable } from '@amplitude/analytics-core';
 import { TimestampedEvent } from '../src/helpers';
 
@@ -274,5 +274,23 @@ describe('createExposureObservable', () => {
 
     subscription.unsubscribe();
     (global as any).IntersectionObserver = originalIntersectionObserver;
+  });
+});
+
+describe('createScrollObservable', () => {
+  test('captures non-bubbling scroll events from overflow elements', () => {
+    const scroller = document.createElement('div');
+    document.body.appendChild(scroller);
+    const listener = jest.fn();
+    const subscription = createScrollObservable().subscribe(listener);
+
+    scroller.dispatchEvent(new Event('scroll', { bubbles: false }));
+
+    expect(listener).toHaveBeenCalledWith(expect.objectContaining({ target: scroller }));
+
+    subscription.unsubscribe();
+    listener.mockClear();
+    scroller.dispatchEvent(new Event('scroll', { bubbles: false }));
+    expect(listener).not.toHaveBeenCalled();
   });
 });

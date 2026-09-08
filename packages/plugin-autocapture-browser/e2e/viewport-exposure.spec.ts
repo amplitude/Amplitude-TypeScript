@@ -6,6 +6,7 @@ const VIEWPORT_CONTENT_UPDATED = '[Amplitude] Viewport Content Updated';
 const ELEMENT_EXPOSED_PROP = '[Amplitude] Element Exposed';
 const TARGET_PATH = 'button#exposure-target';
 const OVERSIZED_TARGET_PATH = 'button#oversized-target';
+const NESTED_SCROLL_TARGET_PATH = 'button#nested-scroll-target';
 
 // The harness configures exposureDuration: 150. Wait comfortably longer so a slow
 // runner cannot mistake "not exposed yet" for "not exposed at all".
@@ -201,6 +202,44 @@ test.describe('autocapture viewport exposure (mid-height line)', () => {
       .filter((e) => e.event_type === VIEWPORT_CONTENT_UPDATED)
       .flatMap((e) => (e.event_properties?.[ELEMENT_EXPOSED_PROP] as string[] | undefined) ?? []);
     expect(paths).not.toContain(TARGET_PATH);
+    expect(pageErrors).toEqual([]);
+  });
+
+  test('tracks midpoint exposure inside an overflow container without counting clipped content', async ({ page }) => {
+    await openHarness(page);
+
+    const scroller = page.locator('#overflow-container');
+    await scroller.scrollIntoViewIfNeeded();
+    await page.evaluate(() => {
+      document.getElementById('overflow-container')!.scrollTop = 0;
+    });
+    await page.waitForTimeout(EXPOSURE_SETTLE_MS);
+    await page.evaluate(() => window.__exposureHarness.flush());
+    await page.waitForTimeout(EXPOSURE_SETTLE_MS);
+
+    const before = events
+      .filter((e) => e.event_type === VIEWPORT_CONTENT_UPDATED)
+      .flatMap((e) => (e.event_properties?.[ELEMENT_EXPOSED_PROP] as string[] | undefined) ?? []);
+    expect(before).not.toContain(NESTED_SCROLL_TARGET_PATH);
+
+    events = [];
+    await page.evaluate(() => {
+      // The target begins with 50px visible in a 300px scroller, but its midpoint
+      // is below the clip edge. Scrolling 60px brings that midpoint into the panel.
+      document.getElementById('overflow-container')!.scrollTop = 60;
+    });
+    await page.waitForTimeout(EXPOSURE_SETTLE_MS);
+    await page.evaluate(() => window.__exposureHarness.flush());
+
+    await expect
+      .poll(
+        () =>
+          events
+            .filter((e) => e.event_type === VIEWPORT_CONTENT_UPDATED)
+            .flatMap((e) => (e.event_properties?.[ELEMENT_EXPOSED_PROP] as string[] | undefined) ?? []),
+        { timeout: 10_000 },
+      )
+      .toContain(NESTED_SCROLL_TARGET_PATH);
     expect(pageErrors).toEqual([]);
   });
 

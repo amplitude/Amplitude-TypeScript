@@ -171,9 +171,12 @@ export const createScrollObservable = (): Observable<Event> => {
       observer.next(event);
     };
 
-    getGlobalScope()?.addEventListener('scroll', handler);
+    // Element scroll events do not bubble, but they do travel through the capture
+    // phase. Capture at window so overflow containers and document scrolling share
+    // one observable.
+    getGlobalScope()?.addEventListener('scroll', handler, { capture: true, passive: true });
     return () => {
-      getGlobalScope()?.removeEventListener('scroll', handler);
+      getGlobalScope()?.removeEventListener('scroll', handler, { capture: true });
     };
   });
 };

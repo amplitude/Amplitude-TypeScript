@@ -16,6 +16,20 @@ import { DataExtractor } from '../data-extractor';
 // A sub-pixel difference should not decide whether a zone was viewed.
 const MID_HEIGHT_LINE_TOLERANCE_PX = 1;
 
+const CLIPPING_OVERFLOW_VALUES = new Set(['auto', 'clip', 'hidden', 'overlay', 'scroll']);
+const clipsAxis = (overflow: string): boolean => CLIPPING_OVERFLOW_VALUES.has(overflow);
+
+const getVisualParent = (element: Element): Element | null => {
+  if (element.assignedSlot) {
+    return element.assignedSlot;
+  }
+  if (element.parentElement) {
+    return element.parentElement;
+  }
+  const root = element.getRootNode();
+  return root instanceof ShadowRoot ? root.host : null;
+};
+
 const isMidHeightLineVisible = (element: Element): boolean => {
   const globalScope = getGlobalScope();
   /* istanbul ignore next -- trackExposure is only installed in a browser */
@@ -24,14 +38,43 @@ const isMidHeightLineVisible = (element: Element): boolean => {
   const viewportWidth = globalScope?.innerWidth ?? 0;
   const rect = element.getBoundingClientRect();
   const midHeightLine = rect.top + rect.height * EXPOSURE_VIEWED_THRESHOLD;
+  let visibleLeft = Math.max(rect.left, 0);
+  let visibleRight = Math.min(rect.right, viewportWidth);
 
-  return (
-    midHeightLine >= -MID_HEIGHT_LINE_TOLERANCE_PX &&
-    midHeightLine <= viewportHeight + MID_HEIGHT_LINE_TOLERANCE_PX &&
-    rect.right > 0 &&
-    rect.left < viewportWidth &&
-    rect.width > 0
-  );
+  if (
+    midHeightLine < -MID_HEIGHT_LINE_TOLERANCE_PX ||
+    midHeightLine > viewportHeight + MID_HEIGHT_LINE_TOLERANCE_PX ||
+    visibleLeft >= visibleRight ||
+    rect.width <= 0
+  ) {
+    return false;
+  }
+
+  let ancestor = getVisualParent(element);
+  while (ancestor) {
+    /* istanbul ignore next -- getComputedStyle exists whenever trackExposure is installed */
+    const style = globalScope?.getComputedStyle(ancestor);
+    if (style) {
+      const ancestorRect = ancestor.getBoundingClientRect();
+      if (
+        clipsAxis(style.overflowY) &&
+        (midHeightLine < ancestorRect.top - MID_HEIGHT_LINE_TOLERANCE_PX ||
+          midHeightLine > ancestorRect.bottom + MID_HEIGHT_LINE_TOLERANCE_PX)
+      ) {
+        return false;
+      }
+      if (clipsAxis(style.overflowX)) {
+        visibleLeft = Math.max(visibleLeft, ancestorRect.left);
+        visibleRight = Math.min(visibleRight, ancestorRect.right);
+        if (visibleLeft >= visibleRight) {
+          return false;
+        }
+      }
+    }
+    ancestor = getVisualParent(ancestor);
+  }
+
+  return true;
 };
 
 export function trackExposure({

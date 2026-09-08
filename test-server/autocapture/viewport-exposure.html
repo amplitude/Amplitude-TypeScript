@@ -76,6 +76,15 @@
         /* Fixed height keeps the 30 / 49 / 50 / 60 / 100% jump arithmetic easy to eyeball. */
         #exposure-target { height: 240px; }
         #oversized-target { height: 250vh; }
+
+        #overflow-container {
+            width: 70%; height: 300px; margin: 24px auto; overflow: auto;
+            border: 3px solid #7c3aed; background: #faf5ff;
+        }
+        #overflow-container .scroll-spacer {
+            height: 250px; padding: 8px; box-sizing: border-box; color: #7c3aed;
+        }
+        #nested-scroll-target { width: 80%; height: 200px; margin: 0 auto 250px; }
     </style>
 </head>
 <body>
@@ -137,6 +146,23 @@
             <span class="mid-line"></span>
             <span class="zone-state">not viewed</span>
         </button>
+
+        <div id="overflow-container">
+            <div class="scroll-spacer">
+                Nested overflow container — scroll inside this purple panel. The target below begins
+                partially intersecting but its 50% line is clipped by the panel.
+            </div>
+            <button
+                class="zone"
+                id="nested-scroll-target"
+                type="button"
+                data-note="inside an overflow container"
+            >
+                <span class="zone-label"></span>
+                <span class="mid-line"></span>
+                <span class="zone-state">not viewed</span>
+            </button>
+        </div>
 
         <button class="zone" id="zone-3" type="button">
             <span class="zone-label"></span>
@@ -204,16 +230,45 @@
         // Mirrors the plugin, including its sub-pixel tolerance, so the page's own
         // expectation cannot disagree with the SDK over a fraction of a pixel.
         const MID_HEIGHT_LINE_TOLERANCE_PX = 1;
+        const CLIPPING_OVERFLOW_VALUES = new Set(['auto', 'clip', 'hidden', 'overlay', 'scroll']);
+
+        const getVisualParent = (element) =>
+            element.assignedSlot ??
+            element.parentElement ??
+            (element.getRootNode() instanceof ShadowRoot ? element.getRootNode().host : null);
 
         const isMidHeightLineVisible = (element) => {
             const rect = element.getBoundingClientRect();
             const midHeightLine = rect.top + rect.height * 0.5;
-            return (
-                midHeightLine >= -MID_HEIGHT_LINE_TOLERANCE_PX &&
-                midHeightLine <= viewportHeight() + MID_HEIGHT_LINE_TOLERANCE_PX &&
-                rect.right > 0 &&
-                rect.left < innerWidth
-            );
+            let visibleLeft = Math.max(rect.left, 0);
+            let visibleRight = Math.min(rect.right, innerWidth);
+            if (
+                midHeightLine < -MID_HEIGHT_LINE_TOLERANCE_PX ||
+                midHeightLine > viewportHeight() + MID_HEIGHT_LINE_TOLERANCE_PX ||
+                visibleLeft >= visibleRight
+            ) {
+                return false;
+            }
+
+            let ancestor = getVisualParent(element);
+            while (ancestor) {
+                const style = getComputedStyle(ancestor);
+                const ancestorRect = ancestor.getBoundingClientRect();
+                if (
+                    CLIPPING_OVERFLOW_VALUES.has(style.overflowY) &&
+                    (midHeightLine < ancestorRect.top - MID_HEIGHT_LINE_TOLERANCE_PX ||
+                        midHeightLine > ancestorRect.bottom + MID_HEIGHT_LINE_TOLERANCE_PX)
+                ) {
+                    return false;
+                }
+                if (CLIPPING_OVERFLOW_VALUES.has(style.overflowX)) {
+                    visibleLeft = Math.max(visibleLeft, ancestorRect.left);
+                    visibleRight = Math.min(visibleRight, ancestorRect.right);
+                    if (visibleLeft >= visibleRight) return false;
+                }
+                ancestor = getVisualParent(ancestor);
+            }
+            return true;
         };
 
         /**

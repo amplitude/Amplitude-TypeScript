@@ -309,6 +309,95 @@ describe('trackExposure', () => {
     expect(onExposure).toHaveBeenCalledWith('div#oversized');
   });
 
+  test('should not expose a midpoint clipped by an overflow ancestor', () => {
+    const scroller = document.createElement('div');
+    scroller.style.overflowY = 'hidden';
+    const element = document.createElement('div');
+    element.id = 'vertically-clipped';
+    scroller.appendChild(element);
+    document.body.appendChild(scroller);
+
+    setRect(scroller, { top: 200, height: 100 });
+    setRect(element, { top: 100, height: 100 });
+    triggerExposure({ isIntersecting: true, target: element });
+
+    jest.advanceTimersByTime(DEFAULT_EXPOSURE_DURATION);
+    expect(onExposure).not.toHaveBeenCalled();
+  });
+
+  test('should not expose a midpoint below an overflow ancestor', () => {
+    const scroller = document.createElement('div');
+    scroller.style.overflowY = 'auto';
+    const element = document.createElement('div');
+    element.id = 'clipped-below';
+    scroller.appendChild(element);
+    document.body.appendChild(scroller);
+
+    setRect(scroller, { top: 0, height: 100 });
+    setRect(element, { top: 100, height: 100 });
+    triggerExposure({ isIntersecting: true, target: element });
+
+    jest.advanceTimersByTime(DEFAULT_EXPOSURE_DURATION);
+    expect(onExposure).not.toHaveBeenCalled();
+  });
+
+  test('should expose through non-clipping ancestors and open shadow roots', () => {
+    const host = document.createElement('div');
+    const root = host.attachShadow({ mode: 'open' });
+    const wrapper = document.createElement('div');
+    const element = document.createElement('button');
+    element.id = 'shadow-midpoint';
+    wrapper.appendChild(element);
+    root.appendChild(wrapper);
+    document.body.appendChild(host);
+
+    setRect(host, { top: 0, height: 300 });
+    setRect(wrapper, { top: 0, height: 300 });
+    setRect(element, { top: 100, height: 100 });
+    triggerExposure({ isIntersecting: true, target: element });
+
+    jest.advanceTimersByTime(DEFAULT_EXPOSURE_DURATION);
+    expect(onExposure).toHaveBeenCalledTimes(1);
+  });
+
+  test('should follow assigned slots when checking clipping ancestors', () => {
+    const host = document.createElement('div');
+    const root = host.attachShadow({ mode: 'open' });
+    const slot = document.createElement('slot');
+    slot.name = 'content';
+    root.appendChild(slot);
+    const element = document.createElement('button');
+    element.slot = 'content';
+    element.id = 'slotted-midpoint';
+    host.appendChild(element);
+    document.body.appendChild(host);
+
+    expect(element.assignedSlot).toBe(slot);
+    setRect(host, { top: 0, height: 300 });
+    setRect(slot, { top: 0, height: 300 });
+    setRect(element, { top: 100, height: 100 });
+    triggerExposure({ isIntersecting: true, target: element });
+
+    jest.advanceTimersByTime(DEFAULT_EXPOSURE_DURATION);
+    expect(onExposure).toHaveBeenCalledTimes(1);
+  });
+
+  test('should not expose a midpoint whose entire line is horizontally clipped', () => {
+    const scroller = document.createElement('div');
+    scroller.style.overflowX = 'hidden';
+    const element = document.createElement('div');
+    element.id = 'horizontally-clipped';
+    scroller.appendChild(element);
+    document.body.appendChild(scroller);
+
+    setRect(scroller, { top: 0, height: 300, left: 200, width: 100 });
+    setRect(element, { top: 100, height: 100, left: 100, width: 100 });
+    triggerExposure({ isIntersecting: true, target: element });
+
+    jest.advanceTimersByTime(DEFAULT_EXPOSURE_DURATION);
+    expect(onExposure).not.toHaveBeenCalled();
+  });
+
   test('should start exposure on scroll when an intersecting zone reaches its mid-height line', () => {
     const element = document.createElement('div');
     element.id = 'scrolled-to-midpoint';
