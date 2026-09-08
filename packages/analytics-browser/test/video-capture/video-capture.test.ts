@@ -59,7 +59,7 @@ describe('VideoCapture', () => {
       await flushHeartbeat();
       expect(mockAmplitude.track).toHaveBeenNthCalledWith(
         1,
-        'Video Content Started',
+        '[Amplitude] Content Started',
         {
           duration: 10,
           hello: 'world',
@@ -67,6 +67,7 @@ describe('VideoCapture', () => {
           play_id: expect.any(String),
           position: 0,
           start_time: 0,
+          delivery_mode: 'video',
         },
         {
           delay: { id: expect.any(String) },
@@ -76,7 +77,7 @@ describe('VideoCapture', () => {
       );
       expect(mockAmplitude.track).toHaveBeenNthCalledWith(
         2,
-        'Video Content Stopped',
+        '[Amplitude] Content Stopped',
         {
           duration: 10,
           hello: 'world',
@@ -87,6 +88,7 @@ describe('VideoCapture', () => {
           watch_duration: 0,
           percent_completed: 0,
           stop_reason: 'timeout',
+          delivery_mode: 'video',
         },
         {
           delay: { id: expect.any(String), timeout: 3_600_000 },
@@ -102,7 +104,7 @@ describe('VideoCapture', () => {
       await flushHeartbeat();
       expect(mockAmplitude.track).toHaveBeenNthCalledWith(
         3,
-        'Video Content Stopped',
+        '[Amplitude] Content Stopped',
         {
           duration: 10,
           hello: 'world',
@@ -113,6 +115,7 @@ describe('VideoCapture', () => {
           watch_duration: 0,
           percent_completed: 50,
           stop_reason: 'paused',
+          delivery_mode: 'video',
         },
         {
           delay: { id: expect.any(String) },
@@ -185,7 +188,7 @@ describe('VideoCapture', () => {
       await flushHeartbeat();
       expect(mockAmplitude.track).toHaveBeenNthCalledWith(
         1,
-        'Video Content Started',
+        '[Amplitude] Content Started',
         {
           duration: 10,
           hello: 'world',
@@ -194,6 +197,7 @@ describe('VideoCapture', () => {
           position: 0,
           start_time: 0,
           view_session_id: expect.any(String),
+          delivery_mode: 'video',
         },
         {
           delay: { id: expect.any(String) },
@@ -208,7 +212,7 @@ describe('VideoCapture', () => {
       await flushHeartbeat();
       expect(mockAmplitude.track).toHaveBeenNthCalledWith(
         3,
-        'Video Content Stopped',
+        '[Amplitude] Content Stopped',
         {
           duration: 10,
           hello: 'world',
@@ -220,6 +224,7 @@ describe('VideoCapture', () => {
           percent_completed: 50,
           stop_reason: 'paused',
           view_session_id: expect.any(String),
+          delivery_mode: 'video',
         },
         {
           delay: { id: expect.any(String) },
@@ -249,13 +254,14 @@ describe('VideoCapture', () => {
       await flushHeartbeat();
       expect(mockAmplitude.track).toHaveBeenNthCalledWith(
         1,
-        'Video Content Started',
+        '[Amplitude] Content Started',
         {
           duration: 10,
           play_id: expect.any(String),
           position: 0,
           start_time: 0,
           view_session_id: expect.any(String),
+          delivery_mode: 'video',
         },
         {
           delay: { id: expect.any(String) },
@@ -270,7 +276,7 @@ describe('VideoCapture', () => {
       await flushHeartbeat();
       expect(mockAmplitude.track).toHaveBeenNthCalledWith(
         3,
-        'Video Content Stopped',
+        '[Amplitude] Content Stopped',
         {
           duration: 10,
           play_id: expect.any(String),
@@ -280,6 +286,7 @@ describe('VideoCapture', () => {
           percent_completed: 50,
           stop_reason: 'paused',
           view_session_id: expect.any(String),
+          delivery_mode: 'video',
         },
         {
           delay: { id: expect.any(String) },
@@ -293,6 +300,22 @@ describe('VideoCapture', () => {
     it('should return an error if the video element is not specified', () => {
       const stopVideoCapture = trackVideo(mockAmplitude, null as unknown as HTMLVideoElement);
       expect(stopVideoCapture).toBeInstanceOf(Error);
+    });
+
+    it('should set delivery_mode to audio for an HTML audio element', async () => {
+      const stopVideoCapture = trackVideo(mockAmplitude, document.createElement('audio'));
+      currentVideoObserver!.emitStateChange(
+        { playbackState: 'paused', lastEvent: undefined },
+        { playbackState: 'playing', lastEvent: { duration: 10, last_position: undefined } },
+      );
+      await flushHeartbeat();
+      expect(mockAmplitude.track).toHaveBeenNthCalledWith(
+        1,
+        '[Amplitude] Content Started',
+        expect.objectContaining({ delivery_mode: 'audio' }),
+        expect.any(Object),
+      );
+      typeof stopVideoCapture === 'function' && stopVideoCapture();
     });
   });
 
@@ -346,7 +369,7 @@ describe('VideoCapture', () => {
       expect(mockAmplitude.track).toHaveBeenCalledTimes(3);
       expect(mockAmplitude.track).toHaveBeenNthCalledWith(
         3,
-        'Video Content Stopped',
+        '[Amplitude] Content Stopped',
         expect.objectContaining({
           play_id: playId,
           stop_reason: 'paused',
@@ -376,7 +399,7 @@ describe('VideoCapture', () => {
       await jest.advanceTimersByTimeAsync(60_000);
       expect(mockAmplitude.track).toHaveBeenCalledTimes(1);
       expect(mockAmplitude.track).toHaveBeenCalledWith(
-        'Video Content Stopped',
+        '[Amplitude] Content Stopped',
         expect.objectContaining({
           position: 8,
           watch_duration: 8,
@@ -395,9 +418,9 @@ describe('VideoCapture', () => {
     };
     const pausedState: VideoState = { playbackState: 'paused', lastEvent: undefined };
 
-    /** The "Video Content Stopped" event flushed by stop(). */
+    /** The "[Amplitude] Content Stopped" event flushed by stop(). */
     const untrackedStopEvent = expect.objectContaining({
-      event_type: 'Video Content Stopped',
+      event_type: '[Amplitude] Content Stopped',
       event_properties: expect.objectContaining({ stop_reason: 'untracked' }),
     });
 
@@ -506,7 +529,7 @@ describe('VideoCapture', () => {
 
       expect(mockAmplitude.track).toHaveBeenCalledTimes(1);
       expect(mockAmplitude.track).toHaveBeenCalledWith(
-        'Video Content Stopped',
+        '[Amplitude] Content Stopped',
         expect.objectContaining({ stop_reason: 'untracked', position: 4, watch_duration: 4 }),
         expect.objectContaining({ delay: { id: expect.any(String) } }),
       );
@@ -559,7 +582,7 @@ describe('VideoCapture', () => {
       await jest.advanceTimersByTimeAsync(60_000);
       expect(mockAmplitude.track).toHaveBeenCalledTimes(1);
       expect(mockAmplitude.track).toHaveBeenCalledWith(
-        'Video Content Stopped',
+        '[Amplitude] Content Stopped',
         expect.objectContaining({ video: 'second', stop_reason: 'timeout' }),
         expect.objectContaining({ delay: { id: expect.any(String), timeout: 3_600_000 } }),
       );
@@ -579,6 +602,7 @@ describe('VideoCapture', () => {
         duration: 10,
         start_time: 2,
         position: 5,
+        delivery_mode: 'video',
       });
     });
 
@@ -592,6 +616,21 @@ describe('VideoCapture', () => {
         duration: 0,
         start_time: 0,
         position: 0,
+        delivery_mode: 'video',
+      });
+    });
+
+    it('should set delivery_mode to audio for an audio element', () => {
+      const capture = new VideoCapture(mockAmplitude).withVideoElement(document.createElement('audio'));
+      expect(
+        capture.parseStartEventProperties({
+          playbackState: 'playing',
+        }),
+      ).toEqual({
+        duration: 0,
+        start_time: 0,
+        position: 0,
+        delivery_mode: 'audio',
       });
     });
   });
@@ -612,6 +651,7 @@ describe('VideoCapture', () => {
         position: 5,
         watch_duration: 30,
         percent_completed: 50,
+        delivery_mode: 'video',
       });
     });
 
@@ -626,6 +666,7 @@ describe('VideoCapture', () => {
         position: 0,
         watch_duration: 0,
         percent_completed: 0,
+        delivery_mode: 'video',
       });
     });
   });

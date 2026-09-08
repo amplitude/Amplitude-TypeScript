@@ -6,6 +6,8 @@ export const DEFAULT_PAGE_VIEW_EVENT = `${DEFAULT_EVENT_PREFIX} Page Viewed`;
 export const DEFAULT_FORM_START_EVENT = `${DEFAULT_EVENT_PREFIX} Form Started`;
 export const DEFAULT_FORM_SUBMIT_EVENT = `${DEFAULT_EVENT_PREFIX} Form Submitted`;
 export const DEFAULT_FILE_DOWNLOAD_EVENT = `${DEFAULT_EVENT_PREFIX} File Downloaded`;
+export const DEFAULT_CONTENT_STARTED_EVENT = `${DEFAULT_EVENT_PREFIX} Content Started`;
+export const DEFAULT_CONTENT_STOPPED_EVENT = `${DEFAULT_EVENT_PREFIX} Content Stopped`;
 export const DEFAULT_SESSION_START_EVENT = 'session_start';
 export const DEFAULT_SESSION_END_EVENT = 'session_end';
 
