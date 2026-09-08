@@ -177,22 +177,30 @@ describe('config', () => {
       );
     });
 
-    test('should derive delayedEventsServerUrl from custom serverUrl', async () => {
+    test('should derive delayedEventsServerUrl from a custom serverUrl', async () => {
       jest.spyOn(Config, 'getTopLevelDomain').mockResolvedValueOnce('.amplitude.com');
       const serverUrl = 'https://proxy.example.com/2/httpapi';
       const config = await Config.useBrowserConfig(apiKey, { serverUrl }, new AmplitudeBrowser());
       expect(config.delayedEventsServerUrl).toBe(`${serverUrl}/delayed`);
     });
 
-    test('should prefer custom serverUrl over delayedEventsServerUrl', async () => {
+    test('should keep the delayed events endpoint when useBatch is enabled', async () => {
       jest.spyOn(Config, 'getTopLevelDomain').mockResolvedValueOnce('.amplitude.com');
-      const serverUrl = 'https://proxy.example.com/2/httpapi';
+      const config = await Config.useBrowserConfig(apiKey, { useBatch: true }, new AmplitudeBrowser());
+      expect(config.delayedEventsServerUrl).toBe(
+        'https://delayed-events.prod.us-west-2.amplitude.com/2/httpapi/delayed',
+      );
+    });
+
+    test('should prefer delayedEventsServerUrl over a custom serverUrl', async () => {
+      jest.spyOn(Config, 'getTopLevelDomain').mockResolvedValueOnce('.amplitude.com');
+      const delayedEventsServerUrl = 'https://example.com/2/httpapi/delayed';
       const config = await Config.useBrowserConfig(
         apiKey,
-        { serverUrl, delayedEventsServerUrl: 'https://example.com/2/httpapi/delayed' },
+        { serverUrl: 'https://proxy.example.com/2/httpapi', delayedEventsServerUrl },
         new AmplitudeBrowser(),
       );
-      expect(config.delayedEventsServerUrl).toBe(`${serverUrl}/delayed`);
+      expect(config.delayedEventsServerUrl).toBe(delayedEventsServerUrl);
     });
 
     test('should fall back to memoryStorage when storageProvider is not enabled', async () => {
@@ -416,6 +424,12 @@ describe('config', () => {
     test('should default unknown server zones to the US delayed events endpoint', () => {
       expect(Config.getDelayedEventsServerUrl(undefined, undefined, 'STAGING' as never)).toBe(
         'https://delayed-events.prod.us-west-2.amplitude.com/2/httpapi/delayed',
+      );
+    });
+
+    test('should use the EU delayed events endpoint for the EU server zone', () => {
+      expect(Config.getDelayedEventsServerUrl(undefined, undefined, 'EU')).toBe(
+        'https://delayed-events.prod.eu-central-1.amplitude.com/2/httpapi/delayed',
       );
     });
 

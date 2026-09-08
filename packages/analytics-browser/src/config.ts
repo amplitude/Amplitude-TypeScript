@@ -44,17 +44,22 @@ import { AmplitudeBrowser } from './browser-client';
 import { VERSION } from './version';
 import { getDomain, KNOWN_2LDS } from './attribution/helpers';
 
+/**
+ * Delayed (heartbeat) events go to the dedicated delayed events endpoint, which is where the
+ * `/delayed` route is served. A customer-provided `serverUrl` still wins so all traffic stays
+ * on their domain; `useBatch` is not consulted because the Batch API has no `/delayed` route.
+ */
 export const getDelayedEventsServerUrl = (
   serverUrl: string | undefined,
   delayedEventsServerUrl: string | undefined,
   serverZone: ServerZoneType = DEFAULT_SERVER_ZONE,
 ) => {
-  if (serverUrl) {
-    // serverUrl already includes /2/httpapi; Destination uses the same `${serverUrl}/delayed` fallback.
-    return `${serverUrl}/delayed`;
-  }
   if (delayedEventsServerUrl) {
     return delayedEventsServerUrl;
+  }
+  if (serverUrl) {
+    // serverUrl already includes /2/httpapi
+    return `${serverUrl}/delayed`;
   }
   switch (serverZone) {
     case 'EU':
