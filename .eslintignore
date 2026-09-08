@@ -1,3 +1,4 @@
 **/*.js
 examples/
 playwright.config.ts
+pii-audit-extension/
