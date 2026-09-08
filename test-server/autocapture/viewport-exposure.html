@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Viewport Exposure (50% visibility) Test</title>
+    <style>
+        body { margin: 0; font: 14px/1.5 system-ui, sans-serif; }
+
+        #hud {
+            position: fixed; top: 0; left: 0; right: 0; z-index: 2147483647;
+            padding: 8px 12px; background: #111; color: #eee;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, .4);
+        }
+        #hud h1 { font-size: 14px; margin: 0 0 4px; }
+        #hud .hint { color: #999; font-size: 12px; }
+        #hud button { margin: 4px 4px 0 0; }
+        #readout { margin-top: 6px; font-family: monospace; }
+        #exposed { margin-top: 4px; font-family: monospace; color: #6cf; max-height: 20vh; overflow: auto; }
+        #status { margin-top: 4px; font-family: monospace; color: #888; }
+
+        .spacer { display: flex; align-items: center; justify-content: center; color: #bbb; background: #f6f6f6; }
+        .spacer.lead { height: 150vh; }
+        .spacer.gap { height: 150vh; }
+        .spacer.tail { height: 150vh; }
+
+        /* Fixed height keeps the 30% / 50% / 100% arithmetic easy to eyeball. */
+        #exposure-target {
+            display: block; width: 60%; height: 240px; margin: 0 auto;
+            font-size: 18px; background: #d9ecff; border: 2px solid #3b82f6;
+        }
+
+        /* Taller than any viewport, so it can never reach 50% of its own area. */
+        #oversized-target {
+            display: block; width: 60%; height: 250vh; margin: 0 auto;
+            font-size: 18px; background: #ffeaea; border: 2px solid #ef4444;
+        }
+    </style>
+</head>
+<body>
+    <div id="hud">
+        <h1>Viewport Exposure Test — exposure fires at 50% visibility</h1>
+        <div class="hint">
+            Scroll <code>#exposure-target</code> partly into view, then flush. Below 50% it must not be
+            exposed; at 50% or more it must be. Control buttons are autocaptured elements too, so they
+            also show up in the exposed list.
+        </div>
+        <div>
+            <button id="scroll-30" type="button">Scroll target to 30%</button>
+            <button id="scroll-49" type="button">49%</button>
+            <button id="scroll-50" type="button">50%</button>
+            <button id="scroll-60" type="button">60%</button>
+            <button id="scroll-100" type="button">100%</button>
+            <button id="scroll-oversized" type="button">Fill viewport with oversized element</button>
+            <button id="flush" type="button">Flush exposures</button>
+        </div>
+        <div id="readout">target visibility: —</div>
+        <div id="exposed">exposed so far: (none)</div>
+        <div id="status">ready</div>
+    </div>
+
+    <div class="spacer lead">scroll down</div>
+
+    <button id="exposure-target" type="button">Exposure target (240px tall)</button>
+
+    <div class="spacer gap">keep scrolling</div>
+
+    <button id="oversized-target" type="button">
+        Oversized target — taller than the viewport, so it never reaches 50% of its own area and is
+        expected to stay unexposed
+    </button>
+
+    <div class="spacer tail">end of page</div>
+
+    <script type="module">
+        import * as amplitude from '@amplitude/analytics-browser';
+
+        window.amplitude = amplitude;
+
+        // Matches the plugin default; stated explicitly so the harness and the
+        // Playwright spec can size their waits off the same number.
+        const EXPOSURE_DURATION = 150;
+
+        const target = () => document.getElementById('exposure-target');
+
+        // IntersectionObserver clips against the layout viewport, so the ratio the
+        // observer sees is measured against clientHeight, not innerHeight.
+        const viewportHeight = () => document.documentElement.clientHeight;
+
+        const visibleFraction = (element) => {
+            const rect = element.getBoundingClientRect();
+            const visible = Math.min(rect.bottom, viewportHeight()) - Math.max(rect.top, 0);
+            return Math.max(0, Math.min(visible, rect.height)) / rect.height;
+        };
+
+        /**
+         * Scroll so that `fraction` of `element` sits inside the viewport, entering
+         * from the bottom edge, and return the fraction actually achieved (clamped
+         * by the document's scroll range).
+         */
+        const scrollElementTo = (fraction, element = target()) => {
+            const rect = element.getBoundingClientRect();
+            const documentTop = rect.top + window.scrollY;
+            const maxScroll = document.documentElement.scrollHeight - viewportHeight();
+            const scrollY = documentTop + fraction * rect.height - viewportHeight();
+            window.scrollTo(0, Math.max(0, Math.min(scrollY, maxScroll)));
+            return visibleFraction(element);
+        };
+
+        // Exposure is reported on navigation/unload, so dispatch beforeunload to
+        // flush whatever has been exposed since the last flush.
+        const flush = () => window.dispatchEvent(new Event('beforeunload'));
+
+        const exposedPaths = [];
+
+        window.__exposureHarness = { scrollElementTo, visibleFraction, flush, exposedPaths, EXPOSURE_DURATION };
+
+        // Renders every exposed element path from the captured
+        // `[Amplitude] Viewport Content Updated` events. Enrichment plugin, so
+        // nothing is swallowed and the payload still goes out to the network.
+        const exposureLogger = {
+            name: 'harness-exposure-logger',
+            type: 'enrichment',
+            setup: async () => undefined,
+            execute: async (event) => {
+                if (event.event_type === '[Amplitude] Viewport Content Updated') {
+                    const paths = event.event_properties?.['[Amplitude] Element Exposed'] ?? [];
+                    exposedPaths.push(...paths);
+                    // eslint-disable-next-line no-console
+                    console.log('%c[Amplitude] Viewport Content Updated', 'color:#0a0', paths);
+                    document.getElementById('exposed').textContent =
+                        'exposed so far: ' + (exposedPaths.length ? exposedPaths.join(', ') : '(none)');
+                }
+                return event;
+            },
+        };
+
+        const renderReadout = () => {
+            const fraction = visibleFraction(target());
+            const percent = Math.round(fraction * 100);
+            document.getElementById('readout').textContent =
+                `target visibility: ${percent}% → ${fraction >= 0.5 ? 'should expose' : 'should NOT expose'}`;
+        };
+
+        let readoutQueued = false;
+        window.addEventListener('scroll', () => {
+            if (readoutQueued) return;
+            readoutQueued = true;
+            requestAnimationFrame(() => {
+                readoutQueued = false;
+                renderReadout();
+            });
+        });
+
+        document.getElementById('scroll-30').addEventListener('click', () => scrollElementTo(0.3));
+        document.getElementById('scroll-49').addEventListener('click', () => scrollElementTo(0.49));
+        document.getElementById('scroll-50').addEventListener('click', () => scrollElementTo(0.5));
+        document.getElementById('scroll-60').addEventListener('click', () => scrollElementTo(0.6));
+        document.getElementById('scroll-100').addEventListener('click', () => scrollElementTo(1));
+        document.getElementById('scroll-oversized').addEventListener('click', () =>
+            scrollElementTo(0.5, document.getElementById('oversized-target')),
+        );
+        document.getElementById('flush').addEventListener('click', flush);
+
+        // Self-contained: fall back to a dummy key so the page works without a
+        // configured environment. The Playwright spec intercepts track requests,
+        // so the key value is irrelevant to the assertions.
+        const apiKey = import.meta.env.VITE_AMPLITUDE_API_KEY || 'viewport-exposure-e2e-key';
+
+        amplitude.init(apiKey, 'test-user', {
+            fetchRemoteConfig: false,
+            // Flush eagerly so exposure events reach the network quickly.
+            flushIntervalMillis: 300,
+            flushQueueSize: 1,
+            autocapture: {
+                pageViews: false,
+                sessions: false,
+                formInteractions: false,
+                fileDownloads: false,
+                elementInteractions: {
+                    viewportContentUpdated: { enabled: true, exposureDuration: EXPOSURE_DURATION },
+                },
+            },
+            logLevel: 0,
+        }).promise.then(() => {
+            amplitude.add(exposureLogger);
+            renderReadout();
+            document.getElementById('status').textContent = 'initialized';
+        });
+    </script>
+</body>
+</html>
