@@ -90,46 +90,54 @@ export const createInstance = (): UnifiedClient => {
         return;
       }
 
-      try {
-        const initializedExperiment = experimentPlugin({
-          ...getSharedExperimentOptions(unifiedOptions),
-          ...unifiedOptions?.experiment,
-        });
-        await analyticsClient.add(initializedExperiment).promise;
-        experiment = initializedExperiment;
+      const initExperiment = async (): Promise<void> => {
+        try {
+          const initializedExperiment = experimentPlugin({
+            ...getSharedExperimentOptions(unifiedOptions),
+            ...unifiedOptions?.experiment,
+          });
+          await analyticsClient.add(initializedExperiment).promise;
+          experiment = initializedExperiment;
 
-        const experimentClient = initializedExperiment.experiment;
-        if (experimentClient === undefined) {
-          loggerProvider.debug(`${initializedExperiment.name} plugin is not initialized.`);
-        } else {
-          await experimentClient.start();
+          const experimentClient = initializedExperiment.experiment;
+          if (experimentClient === undefined) {
+            loggerProvider.debug(`${initializedExperiment.name} plugin is not initialized.`);
+          } else {
+            await experimentClient.start();
+          }
+        } catch (error) {
+          logInitializationError(loggerProvider, 'Experiment', error);
         }
-      } catch (error) {
-        logInitializationError(loggerProvider, 'Experiment', error);
-      }
+      };
 
-      try {
-        const initializedSessionReplay = new SessionReplayPlugin({
-          ...getSharedSessionReplayOptions(unifiedOptions),
-          ...unifiedOptions?.sessionReplay,
-        });
-        await analyticsClient.add(initializedSessionReplay).promise;
-        sessionReplay = initializedSessionReplay;
-      } catch (error) {
-        logInitializationError(loggerProvider, 'Session Replay', error);
-      }
+      const initSessionReplay = async (): Promise<void> => {
+        try {
+          const initializedSessionReplay = new SessionReplayPlugin({
+            ...getSharedSessionReplayOptions(unifiedOptions),
+            ...unifiedOptions?.sessionReplay,
+          });
+          await analyticsClient.add(initializedSessionReplay).promise;
+          sessionReplay = initializedSessionReplay;
+        } catch (error) {
+          logInitializationError(loggerProvider, 'Session Replay', error);
+        }
+      };
 
-      try {
-        // Engagement intentionally returns a process-wide singleton. Independent unified client instances are unsupported.
-        const engagement = getPlugin({
-          ...getSharedEngagementOptions(unifiedOptions),
-          ...unifiedOptions?.engagement,
-        });
-        await analyticsClient.add(engagement).promise;
-        await bootEngagement(analyticsClient.getUserId(), analyticsClient.getDeviceId());
-      } catch (error) {
-        logInitializationError(loggerProvider, 'Guides and Surveys', error);
-      }
+      const initEngagement = async (): Promise<void> => {
+        try {
+          // Engagement intentionally returns a process-wide singleton. Independent unified client instances are unsupported.
+          const engagement = getPlugin({
+            ...getSharedEngagementOptions(unifiedOptions),
+            ...unifiedOptions?.engagement,
+          });
+          await analyticsClient.add(engagement).promise;
+          await bootEngagement(analyticsClient.getUserId(), analyticsClient.getDeviceId());
+        } catch (error) {
+          logInitializationError(loggerProvider, 'Guides and Surveys', error);
+        }
+      };
+
+      await Promise.all([initExperiment(), initSessionReplay(), initEngagement()]);
     })();
 
     return initPromise;

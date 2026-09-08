@@ -188,6 +188,43 @@ describe('createInstance', () => {
     expect(client.experiment()).toBe(experiment);
   });
 
+  test('initializes blade plugins concurrently after Analytics is ready', async () => {
+    let finishAnalyticsSetup: (() => void) | undefined;
+    let finishExperimentSetup: (() => void) | undefined;
+    analyticsInit.mockReturnValueOnce({
+      promise: new Promise<void>((resolve) => {
+        finishAnalyticsSetup = resolve;
+      }),
+    });
+    add
+      .mockImplementationOnce(() => returnValue())
+      .mockImplementationOnce(() => ({
+        promise: new Promise<void>((resolve) => {
+          finishExperimentSetup = resolve;
+        }),
+      }));
+    const client = createInstance();
+
+    const initialization = client.init('api-key');
+    await Promise.resolve();
+
+    expect(add).toHaveBeenCalledTimes(1);
+    expect(mockExperimentPlugin).not.toHaveBeenCalled();
+    expect(MockSessionReplayPlugin).not.toHaveBeenCalled();
+    expect(mockGetPlugin).not.toHaveBeenCalled();
+
+    finishAnalyticsSetup?.();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(add).toHaveBeenCalledTimes(4);
+    expect(MockSessionReplayPlugin).toHaveBeenCalledTimes(1);
+    expect(mockGetPlugin).toHaveBeenCalledTimes(1);
+
+    finishExperimentSetup?.();
+    await initialization;
+  });
+
   test('logs an Experiment failure, continues the remaining blades, and does not retry', async () => {
     const error = new Error('Experiment setup failed.');
     add
