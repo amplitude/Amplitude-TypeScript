@@ -669,5 +669,38 @@ describe('VideoCapture', () => {
         delivery_mode: 'video',
       });
     });
+
+    it('should report 0 percent_completed when duration is 0', () => {
+      const capture = new VideoCapture(mockAmplitude);
+      expect(
+        capture.parseStopEventProperties({
+          playbackState: 'paused',
+          lastEvent: { duration: 0, last_position: 0 },
+          position: 5,
+        }).percent_completed,
+      ).toBe(0);
+    });
+
+    it('should report 0 percent_completed when duration is Infinity (live)', () => {
+      const capture = new VideoCapture(mockAmplitude);
+      expect(
+        capture.parseStopEventProperties({
+          playbackState: 'paused',
+          lastEvent: { duration: Infinity, last_position: 30 },
+          position: 30,
+        }).percent_completed,
+      ).toBe(0);
+    });
+
+    it('should clamp percent_completed to 100 when position exceeds duration', () => {
+      const capture = new VideoCapture(mockAmplitude);
+      expect(
+        capture.parseStopEventProperties({
+          playbackState: 'ended',
+          lastEvent: { duration: 10, last_position: 12 },
+          position: 12,
+        }).percent_completed,
+      ).toBe(100);
+    });
   });
 });

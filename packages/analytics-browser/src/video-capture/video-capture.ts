@@ -222,13 +222,19 @@ export class VideoCapture {
   }
 
   parseStopEventProperties(nextState: VideoState): Record<string, string | number | boolean> {
-    const percentCompleted = ((nextState.position ?? 0) / (nextState.lastEvent?.duration ?? 0)) * 100;
     return {
       ...this.parseStartEventProperties(nextState),
       watch_duration: nextState.watchTime ?? 0,
-      percent_completed: percentCompleted || 0,
+      percent_completed: calculatePercentCompleted(nextState.position ?? 0, nextState.lastEvent?.duration ?? 0),
     };
   }
+}
+
+function calculatePercentCompleted(currentTime: number, duration: number) {
+  if (!Number.isFinite(currentTime) || !Number.isFinite(duration) || duration <= 0) {
+    return 0;
+  }
+  return Math.min(100, Math.max(0, (currentTime / duration) * 100));
 }
 
 export type VideoCaptureOptions = {
