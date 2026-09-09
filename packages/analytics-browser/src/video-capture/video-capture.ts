@@ -24,6 +24,7 @@ export class VideoCapture {
   private onRemoveListeners: (() => void)[] = [];
   private playId: string | null = null;
   private playStartTime: number | null = null;
+  private playStartWatchTime: number | null = null;
 
   constructor(private readonly amplitude: BrowserClient) {
     this.heartbeat = getHeartbeatInstance(this.amplitude);
@@ -82,6 +83,7 @@ export class VideoCapture {
         this.playId = UUID();
         /* istanbul ignore next */
         this.playStartTime = nextState.lastEvent?.start_time ?? 0;
+        this.playStartWatchTime = nextState.watchTime ?? 0;
         const now = new Date().getTime();
         const startEvent: BaseEvent = {
           insert_id: UUID(),
@@ -157,6 +159,7 @@ export class VideoCapture {
     // the next play queues a fresh delayed stop event
     this.stopEvent = null;
     this.playStartTime = null;
+    this.playStartWatchTime = null;
     stopEvent.event_properties = {
       ...stopEvent.event_properties,
       stop_reason: stopReason,
@@ -231,7 +234,10 @@ export class VideoCapture {
       // lastEvent.start_time is the playhead at the time of the event, which for a stop event is
       // where playback ended, so the position captured when the play session began is preferred.
       start_time: this.playStartTime ?? nextState.lastEvent?.start_time ?? 0,
-      watch_duration: nextState.watchTime ?? 0,
+      // watchTime is cumulative across play sessions on the same element; subtract the
+      // baseline captured when this play_id session began so the metric is per-session.
+      watch_duration: (nextState.watchTime ?? 0) - (this.playStartWatchTime ?? 0),
+      last_position: nextState.position ?? nextState.lastEvent?.last_position ?? 0,
       percent_completed: calculatePercentCompleted(nextState.position ?? 0, nextState.lastEvent?.duration ?? 0),
     };
   }

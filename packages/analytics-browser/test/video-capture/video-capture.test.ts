@@ -84,6 +84,7 @@ describe('VideoCapture', () => {
           number: 123,
           play_id: expect.any(String),
           position: 0,
+          last_position: 0,
           start_time: 0,
           watch_duration: 0,
           percent_completed: 0,
@@ -111,6 +112,7 @@ describe('VideoCapture', () => {
           number: 123,
           play_id: expect.any(String),
           position: 5,
+          last_position: 5,
           start_time: 0,
           watch_duration: 0,
           percent_completed: 50,
@@ -219,6 +221,7 @@ describe('VideoCapture', () => {
           number: 123,
           play_id: expect.any(String),
           position: 5,
+          last_position: 5,
           start_time: 0,
           watch_duration: 0,
           percent_completed: 50,
@@ -281,6 +284,7 @@ describe('VideoCapture', () => {
           duration: 10,
           play_id: expect.any(String),
           position: 5,
+          last_position: 5,
           start_time: 0,
           watch_duration: 0,
           percent_completed: 50,
@@ -385,14 +389,23 @@ describe('VideoCapture', () => {
         .captureVideoStopped()
         .start();
 
-      currentVideoObserver!.emitStateChange({ playbackState: 'paused', lastEvent: undefined }, playingState);
+      currentVideoObserver!.emitStateChange(
+        { playbackState: 'paused', lastEvent: undefined },
+        {
+          ...playingState,
+          watchTime: 0,
+        },
+      );
       await flushHeartbeat();
 
-      currentVideoObserver!.emitStateChange(playingState, {
-        ...playingState,
-        position: 8,
-        watchTime: 8,
-      });
+      currentVideoObserver!.emitStateChange(
+        { ...playingState, watchTime: 0 },
+        {
+          ...playingState,
+          position: 8,
+          watchTime: 8,
+        },
+      );
       jest.clearAllMocks();
 
       // the delayed stop event is re-sent on the next heartbeat
@@ -402,6 +415,7 @@ describe('VideoCapture', () => {
         '[Amplitude] Content Stopped',
         expect.objectContaining({
           position: 8,
+          last_position: 8,
           watch_duration: 8,
           percent_completed: 80,
           stop_reason: 'timeout',
@@ -447,7 +461,7 @@ describe('VideoCapture', () => {
       expect(mockAmplitude.track).toHaveBeenNthCalledWith(
         3,
         '[Amplitude] Content Stopped',
-        expect.objectContaining({ start_time: 2, position: 7, stop_reason: 'paused' }),
+        expect.objectContaining({ start_time: 2, position: 7, last_position: 7, stop_reason: 'paused' }),
         expect.any(Object),
       );
     });
@@ -469,7 +483,7 @@ describe('VideoCapture', () => {
       await jest.advanceTimersByTimeAsync(60_000);
       expect(mockAmplitude.track).toHaveBeenCalledWith(
         '[Amplitude] Content Stopped',
-        expect.objectContaining({ start_time: 2, position: 5, stop_reason: 'timeout' }),
+        expect.objectContaining({ start_time: 2, position: 5, last_position: 5, stop_reason: 'timeout' }),
         expect.objectContaining({ delay: { id: expect.any(String), timeout: 3_600_000 } }),
       );
     });
@@ -500,7 +514,13 @@ describe('VideoCapture', () => {
 
       expect(mockAmplitude.track).toHaveBeenLastCalledWith(
         '[Amplitude] Content Stopped',
-        expect.objectContaining({ start_time: 7, position: 10, stop_reason: 'ended' }),
+        expect.objectContaining({
+          start_time: 7,
+          position: 10,
+          last_position: 10,
+          watch_duration: 3,
+          stop_reason: 'ended',
+        }),
         expect.any(Object),
       );
     });
@@ -615,7 +635,9 @@ describe('VideoCapture', () => {
 
     it('should flush the delayed stop event when stopped mid-play', async () => {
       const { capture, observer } = startCapture();
-      observer.emitStateChange(idleState, playingState);
+      const playStartState: VideoState = { ...playingState, position: 0, watchTime: 0 };
+      observer.emitStateChange(idleState, playStartState);
+      observer.emitStateChange(playStartState, playingState);
       await flushHeartbeat();
       jest.clearAllMocks();
 
@@ -625,7 +647,7 @@ describe('VideoCapture', () => {
       expect(mockAmplitude.track).toHaveBeenCalledTimes(1);
       expect(mockAmplitude.track).toHaveBeenCalledWith(
         '[Amplitude] Content Stopped',
-        expect.objectContaining({ stop_reason: 'untracked', position: 4, watch_duration: 4 }),
+        expect.objectContaining({ stop_reason: 'untracked', position: 4, last_position: 4, watch_duration: 4 }),
         expect.objectContaining({ delay: { id: expect.any(String) } }),
       );
 
@@ -744,10 +766,21 @@ describe('VideoCapture', () => {
         duration: 10,
         start_time: 2,
         position: 5,
+        last_position: 5,
         watch_duration: 30,
         percent_completed: 50,
         delivery_mode: 'video',
       });
+    });
+
+    it('should take last_position from lastEvent when position is missing', () => {
+      const capture = new VideoCapture(mockAmplitude);
+      expect(
+        capture.parseStopEventProperties({
+          playbackState: 'paused',
+          lastEvent: { duration: 10, last_position: 7 },
+        }).last_position,
+      ).toBe(7);
     });
 
     it('should parse stop event properties with empty lastEvent', () => {
@@ -759,6 +792,7 @@ describe('VideoCapture', () => {
         duration: 0,
         start_time: 0,
         position: 0,
+        last_position: 0,
         watch_duration: 0,
         percent_completed: 0,
         delivery_mode: 'video',
