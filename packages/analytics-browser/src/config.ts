@@ -113,7 +113,6 @@ export class BrowserConfig extends Config implements IBrowserConfig {
     public partnerId?: string,
     public plan?: Plan,
     public serverUrl: string = '',
-    public delayedEventsServerUrl?: string,
     public serverZone: ServerZoneType = DEFAULT_SERVER_ZONE,
     sessionId?: number,
     deferredSessionId?: number,
@@ -139,6 +138,7 @@ export class BrowserConfig extends Config implements IBrowserConfig {
     public topLevelDomain?: string,
     public enableRequestBodyCompression: boolean = false,
     public customEnrichment?: boolean | CustomEnrichmentOptions,
+    public delayedEventsServerUrl?: string,
   ) {
     super({ apiKey, storageProvider, transportProvider: createTransport(transport) });
     this._cookieStorage = cookieStorage;
@@ -426,7 +426,6 @@ export const useBrowserConfig = async (
     options.partnerId,
     options.plan,
     options.serverUrl,
-    options.delayedEventsServerUrl,
     // Use earlyConfig.serverZone to ensure consistent serverZone
     earlyConfig?.serverZone ?? options.serverZone,
     sessionId,
@@ -450,6 +449,7 @@ export const useBrowserConfig = async (
     defaultCookieDomain,
     options.enableRequestBodyCompression,
     options.customEnrichment,
+    options.delayedEventsServerUrl,
   );
 
   if (!(await browserConfig.storageProvider.isEnabled())) {
