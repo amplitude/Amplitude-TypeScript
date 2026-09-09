@@ -162,7 +162,6 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
     }
     const serverZone = options.serverZone ?? 'US';
     let remoteConfigClient: IRemoteConfigClient | undefined;
-    const diagnosticsClientRef: { current?: DiagnosticsClient } = {};
     let diagnosticsSampleRate = 0;
 
     // Step 0.2: Fetch diagnostics config
@@ -197,7 +196,6 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
               const sampleRate = remoteConfig.sampleRate as number;
               if (typeof sampleRate === 'number' && !isNaN(sampleRate)) {
                 diagnosticsSampleRate = sampleRate;
-                diagnosticsClientRef.current?._setSampleRate(sampleRate);
               }
             }
             resolve();
@@ -217,7 +215,6 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
       { sampleRate: diagnosticsSampleRate },
       new ReactNativeDiagnosticsStorage(options.apiKey, loggerProvider),
     );
-    diagnosticsClientRef.current = diagnosticsClient;
     diagnosticsClient.setTag('library', `${LIBPREFIX}/${VERSION}`);
     diagnosticsClient.setTag('platform', 'ReactNative');
     diagnosticsClient.setTag('os', Platform.OS);
