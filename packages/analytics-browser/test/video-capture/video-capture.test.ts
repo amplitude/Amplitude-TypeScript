@@ -411,6 +411,101 @@ describe('VideoCapture', () => {
     });
   });
 
+  describe('session start_time', () => {
+    // getVideoData reports start_time as the playhead at the time of the event, so a pause
+    // partway through playback reports the stop position rather than where playback began
+    const playingState: VideoState = {
+      playbackState: 'playing',
+      lastEvent: { duration: 10, start_time: 2, last_position: 2 },
+      position: 2,
+      watchTime: 0,
+    };
+    const pausedState: VideoState = {
+      playbackState: 'paused',
+      lastEvent: { duration: 10, start_time: 7, last_position: 7 },
+      position: 7,
+      watchTime: 5,
+    };
+
+    function startCapture() {
+      new VideoCapture(mockAmplitude)
+        .withVideoElement(document.createElement('video'))
+        .captureVideoStarted()
+        .captureVideoStopped()
+        .start();
+      return currentVideoObserver!;
+    }
+
+    it('should report where playback began on the flushed stop event', async () => {
+      const observer = startCapture();
+      observer.emitStateChange({ playbackState: 'paused', lastEvent: undefined }, playingState);
+      await flushHeartbeat();
+
+      observer.emitStateChange(playingState, pausedState);
+      await flushHeartbeat();
+
+      expect(mockAmplitude.track).toHaveBeenNthCalledWith(
+        3,
+        '[Amplitude] Content Stopped',
+        expect.objectContaining({ start_time: 2, position: 7, stop_reason: 'paused' }),
+        expect.any(Object),
+      );
+    });
+
+    it('should report where playback began on the heartbeated stop event', async () => {
+      const observer = startCapture();
+      observer.emitStateChange({ playbackState: 'paused', lastEvent: undefined }, playingState);
+      await flushHeartbeat();
+
+      // buffering keeps the session open but moves the playhead
+      observer.emitStateChange(playingState, {
+        playbackState: 'waiting',
+        lastEvent: { duration: 10, start_time: 5, last_position: 5 },
+        position: 5,
+        watchTime: 3,
+      });
+      jest.clearAllMocks();
+
+      await jest.advanceTimersByTimeAsync(60_000);
+      expect(mockAmplitude.track).toHaveBeenCalledWith(
+        '[Amplitude] Content Stopped',
+        expect.objectContaining({ start_time: 2, position: 5, stop_reason: 'timeout' }),
+        expect.objectContaining({ delay: { id: expect.any(String), timeout: 3_600_000 } }),
+      );
+    });
+
+    it('should report the new start_time after playback restarts', async () => {
+      const observer = startCapture();
+      observer.emitStateChange({ playbackState: 'paused', lastEvent: undefined }, playingState);
+      await flushHeartbeat();
+      observer.emitStateChange(playingState, pausedState);
+      await flushHeartbeat();
+      jest.clearAllMocks();
+
+      const replayState: VideoState = {
+        playbackState: 'playing',
+        lastEvent: { duration: 10, start_time: 7, last_position: 7 },
+        position: 7,
+        watchTime: 5,
+      };
+      observer.emitStateChange(pausedState, replayState);
+      await flushHeartbeat();
+      observer.emitStateChange(replayState, {
+        playbackState: 'ended',
+        lastEvent: { duration: 10, start_time: 10, last_position: 10 },
+        position: 10,
+        watchTime: 8,
+      });
+      await flushHeartbeat();
+
+      expect(mockAmplitude.track).toHaveBeenLastCalledWith(
+        '[Amplitude] Content Stopped',
+        expect.objectContaining({ start_time: 7, position: 10, stop_reason: 'ended' }),
+        expect.any(Object),
+      );
+    });
+  });
+
   describe('stops capturing when track fails', () => {
     const playingState: VideoState = {
       playbackState: 'playing',
