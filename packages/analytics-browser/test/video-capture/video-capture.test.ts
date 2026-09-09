@@ -378,6 +378,44 @@ describe('VideoCapture', () => {
       );
     });
 
+    it('should end a stalled play session when the media element errors', async () => {
+      new VideoCapture(mockAmplitude)
+        .withVideoElement(document.createElement('video'))
+        .captureVideoStarted()
+        .captureVideoStopped()
+        .start();
+
+      currentVideoObserver!.emitStateChange({ playbackState: 'paused', lastEvent: undefined }, playingState);
+      await flushHeartbeat();
+      currentVideoObserver!.emitStateChange(playingState, waitingState);
+      await flushHeartbeat();
+      jest.clearAllMocks();
+
+      currentVideoObserver!.emitStateChange(waitingState, {
+        ...waitingState,
+        playbackState: 'error',
+        errorMessage: 'Media element error (code 2): network',
+      });
+      await flushHeartbeat();
+
+      expect(mockAmplitude.track).toHaveBeenCalledTimes(1);
+      expect(mockAmplitude.track).toHaveBeenCalledWith(
+        '[Amplitude] Content Stopped',
+        expect.objectContaining({
+          stop_reason: 'error',
+          error_message: 'Media element error (code 2): network',
+          position: 5,
+          watch_duration: 5,
+        }),
+        expect.objectContaining({ delay: { id: expect.any(String) } }),
+      );
+
+      // the session is closed out, so the 1-hour delayed stop event no longer heartbeats
+      jest.clearAllMocks();
+      await jest.advanceTimersByTimeAsync(60_000);
+      expect(mockAmplitude.track).not.toHaveBeenCalled();
+    });
+
     it('should heartbeat the delayed stop event with the latest playback progress', async () => {
       new VideoCapture(mockAmplitude)
         .withVideoElement(document.createElement('video'))

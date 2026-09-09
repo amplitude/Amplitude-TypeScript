@@ -9,6 +9,7 @@
       Your browser does not support the video tag.
     </video>
     <button id="stop-video">Stop Capturing</button>
+    <button id="force-error">Force Error</button>
     <script src="https://cdn.jsdelivr.net/npm/@mux/mux-player" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/mux-embed@latest/dist/mux.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/hls.js@1"></script>
@@ -75,6 +76,10 @@
 
       document.getElementById('stop-video').addEventListener('click', () => {
         stopVideoCapture();
+      });
+
+      document.getElementById('force-error').addEventListener('click', () => {
+        video.dispatchEvent(new Event('error'));
       });
     </script>
   </body>
