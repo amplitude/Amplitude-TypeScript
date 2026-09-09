@@ -1,5 +1,5 @@
 import { DestinationPlugin } from '../types/plugin';
-import { Event } from '../types/event/event';
+import { DelayedEvent, Event } from '../types/event/event';
 import { Delay } from '../types/event/base-event';
 import { Result } from '../types/result';
 import { Status } from '../types/status';
@@ -63,6 +63,10 @@ const shouldCompressUploadBodyForRequest = (serverUrl: string, enableRequestBody
 function getErrorMessage(error: unknown) {
   if (error instanceof Error) return error.message;
   return String(error);
+}
+
+function isDelayedEvent(event: Event) {
+  return event.delay !== undefined && event.delay !== null;
 }
 
 export function getResponseBodyString(res: Response) {
@@ -131,7 +135,9 @@ export class Destination implements DestinationPlugin {
         callback: (result: Result) => resolve(result),
         timeout: 0,
       };
-      this.removeStaleDelayedEvents(event);
+      if (isDelayedEvent(event)) {
+        this.removeStaleDelayedEvents(event as DelayedEvent);
+      }
       this.queue.push(context);
       this.schedule(this.config.flushIntervalMillis);
       this.saveEvents();
@@ -149,33 +155,27 @@ export class Destination implements DestinationPlugin {
    * @param incomingEvent { Event } the new event to check old events against
    * @returns void
    */
-  private removeStaleDelayedEvents(incomingEvent: Event) {
+  private removeStaleDelayedEvents(incomingEvent: DelayedEvent) {
     try {
-      if (!incomingEvent.delay) {
-        return;
-      }
       /* istanbul ignore next */
       this.queue = this.queue.filter((context) => {
-        /* istanbul ignore next */
-        if (!incomingEvent.delay) {
-          // this just keeps the compiler happy
+        const targetEvent = context.event;
+
+        if (!isDelayedEvent(targetEvent)) {
           return true;
         }
-        const targetEvent = context.event;
 
         // target event matches the incoming event if it has the same insert_id and delay id
         // as the incoming event (the incoming event takes precedence)
         const isMatchingEvent =
-          targetEvent.delay &&
-          targetEvent.delay.id === incomingEvent.delay.id &&
-          targetEvent.insert_id === incomingEvent.insert_id;
+          targetEvent.delay!.id === incomingEvent.delay.id && targetEvent.insert_id === incomingEvent.insert_id;
 
         // do not filter out non matching events
         if (!isMatchingEvent) {
           return true;
         }
 
-        // are the delayed events for this delay id currently in flight?
+        // are there delayed events for this delay id currently in flight?
         const areDelayedEventsInFlight = this.inFlightDelayedEvents[incomingEvent.delay.id];
 
         // if they are, then protect the target event from being removed from the queue
