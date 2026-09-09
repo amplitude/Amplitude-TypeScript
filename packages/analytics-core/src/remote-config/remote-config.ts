@@ -180,6 +180,7 @@ export class RemoteConfigClient implements IRemoteConfigClient {
   // Optional custom transport. When provided, it replaces the internal fetch for the config GET
   // (e.g. to attach auth and route through a proxy). Retry stays in the client around it.
   readonly customFetch?: RemoteConfigCustomFetch;
+  readonly configGroup: string;
 
   constructor(
     apiKey: string,
@@ -187,12 +188,14 @@ export class RemoteConfigClient implements IRemoteConfigClient {
     serverZone: ServerZoneType = 'US',
     serverUrl?: string,
     customFetch?: RemoteConfigCustomFetch,
+    configGroup: string = RemoteConfigClient.CONFIG_GROUP,
   ) {
     this.apiKey = apiKey;
     this.serverUrl = serverUrl || (serverZone === 'US' ? US_SERVER_URL : EU_SERVER_URL);
     this.logger = logger;
     this.storage = new RemoteConfigLocalStorage(apiKey, logger);
     this.customFetch = customFetch;
+    this.configGroup = configGroup;
   }
 
   subscribe(key: string | undefined, deliveryMode: DeliveryMode, callback: RemoteConfigCallback): string {
@@ -487,7 +490,7 @@ export class RemoteConfigClient implements IRemoteConfigClient {
     const encodedApiKey = encodeURIComponent(this.apiKey);
 
     const urlParams = new URLSearchParams();
-    urlParams.append('config_group', RemoteConfigClient.CONFIG_GROUP);
+    urlParams.append('config_group', this.configGroup);
 
     return `${this.serverUrl}/${encodedApiKey}?${urlParams.toString()}`;
   }
