@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.6.0-video-analytics-2.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-node@1.5.71...@amplitude/analytics-node@1.6.0-video-analytics-2.0) (2026-09-09)
+
+
+### Features
+
+* **analytics-browser:** add heartbeat service to video tracker ([#1839](https://github.com/amplitude/Amplitude-TypeScript/issues/1839)) ([cecda1b](https://github.com/amplitude/Amplitude-TypeScript/commit/cecda1ba78e17ddb615e7a88d2b2e0fbc18ac03b))
+
+
+
+
+
 ## [1.5.71](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-node@1.5.70...@amplitude/analytics-node@1.5.71) (2026-08-24)
 
 **Note:** Version bump only for package @amplitude/analytics-node

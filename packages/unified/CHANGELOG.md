@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.1.33-video-analytics-2.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/unified@1.1.32...@amplitude/unified@1.1.33-video-analytics-2.0) (2026-09-09)
+
+
+### Bug Fixes
+
+* **unified:** correct public types and README examples ([#1970](https://github.com/amplitude/Amplitude-TypeScript/issues/1970)) ([a273f20](https://github.com/amplitude/Amplitude-TypeScript/commit/a273f20cb6c0dd2a7c53f67421545998fdb37d27))
+
+
+
+
+
 ## [1.1.32](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/unified@1.1.31...@amplitude/unified@1.1.32) (2026-08-31)
 
 **Note:** Version bump only for package @amplitude/unified

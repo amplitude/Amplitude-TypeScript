@@ -1,6 +1,6 @@
 {
   "name": "@amplitude/plugin-page-url-enrichment-browser",
-  "version": "0.7.24",
+  "version": "0.7.25-video-analytics-2.0",
   "description": "",
   "author": "Amplitude Inc",
   "homepage": "https://github.com/amplitude/Amplitude-TypeScript",

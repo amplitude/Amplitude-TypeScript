@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.0.44-video-analytics-2.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/segment-session-replay-plugin@0.0.43...@amplitude/segment-session-replay-plugin@0.0.44-video-analytics-2.0) (2026-09-09)
+
+**Note:** Version bump only for package @amplitude/segment-session-replay-plugin
+
+
+
+
+
 ## [0.0.43](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/segment-session-replay-plugin@0.0.42...@amplitude/segment-session-replay-plugin@0.0.43) (2026-08-31)
 
 **Note:** Version bump only for package @amplitude/segment-session-replay-plugin

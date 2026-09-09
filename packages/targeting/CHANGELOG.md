@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.3.11-video-analytics-2.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/targeting@0.3.10...@amplitude/targeting@0.3.11-video-analytics-2.0) (2026-09-09)
+
+**Note:** Version bump only for package @amplitude/targeting
+
+
+
+
+
 ## [0.3.10](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/targeting@0.3.9...@amplitude/targeting@0.3.10) (2026-08-12)
 
 

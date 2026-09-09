@@ -3,6 +3,24 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.56.0-video-analytics-2.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.55.0...@amplitude/analytics-core@2.56.0-video-analytics-2.0) (2026-09-09)
+
+
+### Bug Fixes
+
+* **analytics-browser:** rename Video events to align with new standards ([#1971](https://github.com/amplitude/Amplitude-TypeScript/issues/1971)) ([5728a20](https://github.com/amplitude/Amplitude-TypeScript/commit/5728a2024068b3aaab486475a50cf996e046dc8a))
+* **analytics-core:** safely stringify timeline events ([#1967](https://github.com/amplitude/Amplitude-TypeScript/issues/1967)) ([a0d72dd](https://github.com/amplitude/Amplitude-TypeScript/commit/a0d72ddb4ece1fb887d2cb571a96c119c79fc4e6))
+* fixes delayed events cleanup logic ([#1977](https://github.com/amplitude/Amplitude-TypeScript/issues/1977)) ([486e7b5](https://github.com/amplitude/Amplitude-TypeScript/commit/486e7b5549171e7399965aa3e91dee8836e4821c))
+
+
+### Features
+
+* **analytics-browser:** add heartbeat service to video tracker ([#1839](https://github.com/amplitude/Amplitude-TypeScript/issues/1839)) ([cecda1b](https://github.com/amplitude/Amplitude-TypeScript/commit/cecda1ba78e17ddb615e7a88d2b2e0fbc18ac03b))
+
+
+
+
+
 # [2.55.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.54.2...@amplitude/analytics-core@2.55.0) (2026-08-24)
 
 
