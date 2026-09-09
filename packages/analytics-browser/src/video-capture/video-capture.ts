@@ -23,6 +23,7 @@ export class VideoCapture {
   private listeners: ((previousState: VideoState, nextState: VideoState) => void)[] = [];
   private onRemoveListeners: (() => void)[] = [];
   private playId: string | null = null;
+  private playStartTime: number | null = null;
 
   constructor(private readonly amplitude: BrowserClient) {
     this.heartbeat = getHeartbeatInstance(this.amplitude);
@@ -79,6 +80,8 @@ export class VideoCapture {
     this.listeners.push((previousState, nextState) => {
       if (!ACTIVE_PLAYBACK_STATES.has(previousState.playbackState) && nextState.playbackState === 'playing') {
         this.playId = UUID();
+        /* istanbul ignore next */
+        this.playStartTime = nextState.lastEvent?.start_time ?? 0;
         const now = new Date().getTime();
         const startEvent: BaseEvent = {
           insert_id: UUID(),
@@ -153,6 +156,7 @@ export class VideoCapture {
     }
     // the next play queues a fresh delayed stop event
     this.stopEvent = null;
+    this.playStartTime = null;
     stopEvent.event_properties = {
       ...stopEvent.event_properties,
       stop_reason: stopReason,
@@ -224,6 +228,9 @@ export class VideoCapture {
   parseStopEventProperties(nextState: VideoState): Record<string, string | number | boolean> {
     return {
       ...this.parseStartEventProperties(nextState),
+      // lastEvent.start_time is the playhead at the time of the event, which for a stop event is
+      // where playback ended, so the position captured when the play session began is preferred.
+      start_time: this.playStartTime ?? nextState.lastEvent?.start_time ?? 0,
       watch_duration: nextState.watchTime ?? 0,
       percent_completed: calculatePercentCompleted(nextState.position ?? 0, nextState.lastEvent?.duration ?? 0),
     };
