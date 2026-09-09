@@ -142,31 +142,55 @@ export class Destination implements DestinationPlugin {
    * If a stale delayed event is sitting in the queue, and it is not in flight,
    * remove it and resolve as "stale" with status code 0.
    *
-   * If this delayed event is already in flight, mark it as fresh, so that
-   * when it completes, it won't clean-up the updated event.
+   * If a matching delayed event is already in flight, clone `delay` onto the
+   * incoming event and set skipRemoval so the in-flight send does not drop the
+   * replacement. Earlier replacements waiting on the same send are discarded
+   * as stale so only the latest copy remains.
    * @param incomingEvent { Event } the new event to check old events against
    * @returns void
    */
   private removeStaleDelayedEvents(incomingEvent: Event) {
     try {
-      if (!incomingEvent.delay?.id) {
+      if (!incomingEvent.delay) {
         return;
       }
       /* istanbul ignore next */
       this.queue = this.queue.filter((context) => {
-        if (
-          incomingEvent.delay &&
-          context.event.delay &&
-          context.event.delay.id === incomingEvent.delay.id &&
-          context.event.insert_id === incomingEvent.insert_id
-        ) {
-          if (this.inFlightDelayedEvents[incomingEvent.delay.id]) {
-            incomingEvent.delay.isFresh = true;
-            return true;
-          }
-          context.callback(buildResult(context.event, 0, 'Stale event overwritten'));
+        /* istanbul ignore next */
+        if (!incomingEvent.delay) {
+          // this just keeps the compiler happy
+          return true;
+        }
+        const targetEvent = context.event;
+
+        // target event matches the incoming event if it has the same insert_id and delay id
+        // as the incoming event (the incoming event takes precedence)
+        const isMatchingEvent =
+          targetEvent.delay &&
+          targetEvent.delay.id === incomingEvent.delay.id &&
+          targetEvent.insert_id === incomingEvent.insert_id;
+
+        // do not filter out non matching events
+        if (!isMatchingEvent) {
+          return true;
+        }
+
+        // are the delayed events for this delay id currently in flight?
+        const areDelayedEventsInFlight = this.inFlightDelayedEvents[incomingEvent.delay.id];
+
+        // if they are, then protect the target event from being removed from the queue
+        // after the in-flight send completes by setting skipRemoval on the incoming event
+        if (areDelayedEventsInFlight) {
+          incomingEvent.delay = { ...incomingEvent.delay, skipRemoval: true };
+        }
+
+        // if events are not in flight, or if the target event is marked to skipRemoval,
+        // then the incoming event supersedes the target event, and target event should be dropped
+        if (!areDelayedEventsInFlight || targetEvent.delay?.skipRemoval) {
+          context.callback(buildResult(targetEvent, 0, 'Stale event overwritten'));
           return false;
         }
+
         return true;
       });
       /* istanbul ignore next */
@@ -556,13 +580,14 @@ export class Destination implements DestinationPlugin {
     this.queue = this.queue.filter(
       (queuedContext) =>
         !eventsToRemove.some(
-          (context) => context.event.insert_id === queuedContext.event.insert_id && !queuedContext.event.delay?.isFresh,
+          (context) =>
+            context.event.insert_id === queuedContext.event.insert_id && !queuedContext.event.delay?.skipRemoval,
         ),
     );
 
     this.queue.forEach((context) => {
-      if (context.event.delay?.isFresh && insertIdsBeingRemoved.has(context.event.insert_id)) {
-        delete context.event.delay.isFresh;
+      if (context.event.delay?.skipRemoval && insertIdsBeingRemoved.has(context.event.insert_id)) {
+        delete context.event.delay.skipRemoval;
       }
     });
 
