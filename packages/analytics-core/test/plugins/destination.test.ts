@@ -14,6 +14,7 @@ import {
 import { uuidPattern } from '../helpers/util';
 import { DiagnosticsClient, RequestMetadata } from '../../src';
 import { TrackEvent } from '../../src/types/event/event';
+import { Delay } from '../../src/types/event/base-event';
 import { AMPLITUDE_SERVER_URL } from '../../src/types/constants';
 
 const jsons = (obj: any) => JSON.stringify(obj, null, 2);
@@ -230,7 +231,121 @@ describe('destination', () => {
         expect(send).toHaveBeenCalledTimes(2);
       });
 
-      test('should retain isFresh when a parallel regular flush completes first', async () => {
+      test('should not mark a shared in-flight delay object with skipRemoval', async () => {
+        const delay: Delay = { id: delayId };
+        const predecessor = {
+          event_type: 'before',
+          insert_id: '123',
+          delay,
+        };
+        const replacement = {
+          event_type: 'after',
+          insert_id: '123',
+          delay,
+        };
+        let resolveSend!: (value: Response) => void;
+        const sendPromise = new Promise<Response>((resolve) => {
+          resolveSend = resolve;
+        });
+        const successResponse = {
+          status: Status.Success,
+          statusCode: 200,
+          body: {
+            eventsIngested: 1,
+            payloadSizeBytes: 1,
+            serverUploadTime: 1,
+          },
+        } as Response;
+        const send = jest.fn().mockReturnValueOnce(sendPromise).mockResolvedValueOnce(successResponse);
+        destination.config = {
+          ...useDefaultConfig(),
+          transportProvider: { send },
+        };
+
+        const predecessorResult = destination.execute(predecessor);
+        const flushPromise = destination.flush(true);
+        const replacementResult = destination.execute(replacement);
+
+        expect(destination.queue).toHaveLength(2);
+        expect(predecessor.delay.skipRemoval).toBeUndefined();
+        expect(replacement.delay).not.toBe(delay);
+        expect(replacement.delay.skipRemoval).toBe(true);
+
+        resolveSend(successResponse);
+        await predecessorResult;
+        await flushPromise;
+
+        expect(destination.queue).toHaveLength(1);
+        expect(destination.queue[0].event).toBe(replacement);
+
+        await destination.flush(true);
+
+        await expect(replacementResult).resolves.toEqual({
+          event: replacement,
+          code: 200,
+          message: SUCCESS_MESSAGE,
+        });
+        expect(send).toHaveBeenCalledTimes(2);
+        expect(send.mock.calls[1][1].instant_events).toHaveLength(1);
+      });
+
+      test('should keep only the latest replacement while a predecessor is in flight', async () => {
+        const event3 = {
+          event_type: 'after-after',
+          insert_id: '123',
+          delay: { id: delayId },
+        };
+        let resolveSend!: (value: Response) => void;
+        const sendPromise = new Promise<Response>((resolve) => {
+          resolveSend = resolve;
+        });
+        const successResponse = {
+          status: Status.Success,
+          statusCode: 200,
+          body: {
+            eventsIngested: 1,
+            payloadSizeBytes: 1,
+            serverUploadTime: 1,
+          },
+        } as Response;
+        const send = jest.fn().mockReturnValueOnce(sendPromise).mockResolvedValueOnce(successResponse);
+        destination.config = {
+          ...useDefaultConfig(),
+          transportProvider: { send },
+        };
+
+        const predecessorResult = destination.execute(event1);
+        const flushPromise = destination.flush(true);
+        const firstReplacementResult = destination.execute(event2);
+        const secondReplacementResult = destination.execute(event3);
+
+        expect(destination.queue).toHaveLength(2);
+        expect(destination.queue.map((context) => context.event)).toEqual([event1, event3]);
+        await expect(firstReplacementResult).resolves.toEqual({
+          event: event2,
+          code: 0,
+          message: 'Stale event overwritten',
+        });
+
+        resolveSend(successResponse);
+        await predecessorResult;
+        await flushPromise;
+
+        expect(destination.queue).toHaveLength(1);
+        expect(destination.queue[0].event).toEqual(event3);
+
+        await destination.flush(true);
+
+        await expect(secondReplacementResult).resolves.toEqual({
+          event: event3,
+          code: 200,
+          message: SUCCESS_MESSAGE,
+        });
+        expect(send).toHaveBeenCalledTimes(2);
+        expect(send.mock.calls[1][1].instant_events).toHaveLength(1);
+      });
+
+      test('should retain skipRemoval when a parallel regular flush completes first', async () => {
         let resolveDelayedSend!: (value: Response) => void;
         const delayedSendPromise = new Promise<Response>((resolve) => {
           resolveDelayedSend = resolve;
@@ -263,13 +378,13 @@ describe('destination', () => {
         const replacementResult = destination.execute(event2);
 
         expect(destination.queue).toHaveLength(3);
-        expect(destination.queue[2].event.delay?.isFresh).toBe(true);
+        expect(destination.queue[2].event.delay?.skipRemoval).toBe(true);
 
         // Regular batch completes while delayed predecessor is still in flight.
-        // removeEvents must not clear isFresh on the unrelated replacement.
+        // removeEvents must not clear skipRemoval on the unrelated replacement.
         await regularResult;
         expect(destination.queue).toHaveLength(2);
-        expect(destination.queue.find((c) => c.event === event2)?.event.delay?.isFresh).toBe(true);
+        expect(destination.queue.find((c) => c.event === event2)?.event.delay?.skipRemoval).toBe(true);
 
         resolveDelayedSend(successResponse);
         await predecessorResult;

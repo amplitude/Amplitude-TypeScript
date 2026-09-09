@@ -1,4 +1,4 @@
-import { BaseEvent } from './base-event';
+import { BaseEvent, Delay } from './base-event';
 import { RevenueEventProperties } from '../../revenue';
 
 export enum IdentifyOperation {
@@ -122,6 +122,10 @@ export interface RevenueEvent extends BaseEvent {
     | {
         [key: string]: any;
       };
+}
+
+export interface DelayedEvent extends BaseEvent {
+  delay: Delay;
 }
 
 export type Event = TrackEvent | IdentifyEvent | GroupIdentifyEvent | RevenueEvent;
