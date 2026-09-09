@@ -29,6 +29,13 @@ function getVideoData(videoEl: HTMLMediaElement | MuxElement, stopReason?: Video
   };
 }
 
+function getMediaErrorMessage(error: MediaError | null | undefined) {
+  if (!error) {
+    return 'Media element error';
+  }
+  return `Media element error (code ${error.code})${error.message ? `: ${error.message}` : ''}`;
+}
+
 function getMuxMetadata(videoEl: MuxElement) {
   return {
     mux_playback_id: videoEl.getAttribute('playback-id'),
@@ -90,6 +97,11 @@ export function trackHtmlVideo(videoEl: HTMLMediaElement | MuxElement, handlers:
   };
   videoEl.addEventListener('seeked', seekedHandler);
 
+  const errorHandler = () => {
+    handlers.onError(getMediaErrorMessage((videoEl as HTMLMediaElement).error));
+  };
+  videoEl.addEventListener('error', errorHandler);
+
   const timeupdateHandler = () => {
     const media = videoEl as HTMLMediaElement;
     const timeupdateEvent: TimeUpdateEvent = {
@@ -106,6 +118,7 @@ export function trackHtmlVideo(videoEl: HTMLMediaElement | MuxElement, handlers:
     videoEl.removeEventListener('ended', endedHandler);
     videoEl.removeEventListener('seeking', seekingHandler);
     videoEl.removeEventListener('seeked', seekedHandler);
+    videoEl.removeEventListener('error', errorHandler);
     videoEl.removeEventListener('timeupdate', timeupdateHandler);
   };
 }

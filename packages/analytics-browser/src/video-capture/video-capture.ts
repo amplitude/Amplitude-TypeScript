@@ -233,6 +233,7 @@ export class VideoCapture {
       start_time: this.playStartTime ?? nextState.lastEvent?.start_time ?? 0,
       watch_duration: nextState.watchTime ?? 0,
       percent_completed: calculatePercentCompleted(nextState.position ?? 0, nextState.lastEvent?.duration ?? 0),
+      ...(nextState.errorMessage ? { error_message: nextState.errorMessage } : {}),
     };
   }
 }

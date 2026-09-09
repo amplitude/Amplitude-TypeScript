@@ -101,6 +101,7 @@ export class VideoObserver {
     const nextState: State = {
       ...this.state,
       playbackState,
+      errorMessage: undefined,
       lastEvent: event,
       position: event.last_position,
     };
