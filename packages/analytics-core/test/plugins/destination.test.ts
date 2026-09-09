@@ -7,6 +7,7 @@ import { Response } from '../../src/types/response';
 import { API_KEY, useDefaultConfig } from '../helpers/default';
 import {
   INVALID_API_KEY,
+  MAX_RETRIES_EXCEEDED_MESSAGE,
   MISSING_API_KEY_MESSAGE,
   SUCCESS_MESSAGE,
   UNEXPECTED_ERROR_MESSAGE,
@@ -145,6 +146,103 @@ describe('destination', () => {
       expect(fulfillRequest).toHaveBeenCalledTimes(2);
       expect(result.length).toBe(1);
       expect(result[0].event.event_type).toBe('event_3');
+    });
+  });
+
+  describe('offline on max retries (SDKW-42)', () => {
+    test('getRetryBackoff grows exponentially (bounded by flushMaxRetries, no interval cap)', () => {
+      const destination = new Destination();
+      destination.retryTimeout = 1000;
+      expect(destination.getRetryBackoff(1)).toBe(1000); // 1000 * 2^0
+      expect(destination.getRetryBackoff(2)).toBe(2000); // 1000 * 2^1
+      expect(destination.getRetryBackoff(3)).toBe(4000); // 1000 * 2^2
+      expect(destination.getRetryBackoff(5)).toBe(16000); // 1000 * 2^4 (last retry at default flushMaxRetries=5)
+    });
+
+    test('transient failures below the retry limit use exponential backoff and stay online', () => {
+      const destination = new Destination();
+      destination.config = { ...useDefaultConfig(), flushMaxRetries: 20, offline: false };
+      destination.isClientSide = true; // client SDK (browser / RN)
+      destination.retryTimeout = 1000;
+      const schedule = jest.spyOn(destination, 'schedule').mockImplementation(jest.fn);
+      const context: Context = { event: { event_type: 'a' }, attempts: 0, callback: () => undefined, timeout: 0 };
+
+      destination.handleOtherResponse([context]); // attempts -> 1
+      expect(context.timeout).toBe(1000);
+      destination.handleOtherResponse([context]); // attempts -> 2
+      expect(context.timeout).toBe(2000);
+      destination.handleOtherResponse([context]); // attempts -> 3
+      expect(context.timeout).toBe(4000);
+
+      expect(destination.config.offline).toBe(false);
+      expect(schedule).toHaveBeenCalled();
+    });
+
+    test('goes offline and retains events instead of dropping once the retry limit is hit', () => {
+      const diagnosticsClient = new DiagnosticsClient(API_KEY, getMockLogger());
+      const increment = jest.spyOn(diagnosticsClient, 'increment').mockImplementation(jest.fn);
+      const destination = new Destination({ diagnosticsClient });
+      destination.config = { ...useDefaultConfig(), flushMaxRetries: 1, offline: false };
+      destination.isClientSide = true; // client SDK (browser / RN)
+      const fulfillRequest = jest.spyOn(destination, 'fulfillRequest').mockImplementation(jest.fn);
+      jest.spyOn(destination, 'schedule').mockImplementation(jest.fn);
+      const context: Context = { event: { event_type: 'a' }, attempts: 0, callback: () => undefined, timeout: 0 };
+      destination.queue = [context];
+
+      destination.handleOtherResponse([context]); // attempts 0 -> 1, 1 < 1 is false -> offline
+
+      // Event is retained, not dropped.
+      expect(fulfillRequest).not.toHaveBeenCalled();
+      expect(destination.queue).toContain(context);
+      // SDK went offline (mirrors mobile); attempts is left as-is (reset happens on reload
+      // because attempts is not persisted to storage).
+      expect(destination.config.offline).toBe(true);
+      expect(context.attempts).toBe(1);
+      // Diagnostics counter for going offline due to max retries.
+      expect(increment).toHaveBeenCalledWith('offline.by.max.retries');
+    });
+
+    test('does not poll the server — offline stays set until reconnect or reload', () => {
+      jest.useFakeTimers();
+      try {
+        const destination = new Destination();
+        destination.config = { ...useDefaultConfig(), flushMaxRetries: 1, offline: false };
+        destination.isClientSide = true; // client SDK (browser / RN)
+        jest.spyOn(destination, 'fulfillRequest').mockImplementation(jest.fn);
+        jest.spyOn(destination, 'schedule').mockImplementation(jest.fn);
+        const context: Context = { event: { event_type: 'a' }, attempts: 0, callback: () => undefined, timeout: 0 };
+        destination.queue = [context];
+
+        destination.handleOtherResponse([context]);
+        expect(destination.config.offline).toBe(true);
+
+        // No self-recovery timer: advancing time does not bring the SDK back online.
+        jest.advanceTimersByTime(10 * 60 * 1000);
+        expect(destination.config.offline).toBe(true);
+      } finally {
+        jest.clearAllTimers();
+        jest.useRealTimers();
+      }
+    });
+
+    test('Node (server) SDK drops after max retries instead of going offline', () => {
+      const destination = new Destination();
+      destination.config = { ...useDefaultConfig(), flushMaxRetries: 1, offline: false };
+      destination.isClientSide = false; // server SDK (Node): no reconnect/reload
+      const fulfillRequest = jest.spyOn(destination, 'fulfillRequest').mockImplementation(jest.fn);
+      jest.spyOn(destination, 'schedule').mockImplementation(jest.fn);
+      const context: Context = { event: { event_type: 'a' }, attempts: 0, callback: () => undefined, timeout: 0 };
+
+      destination.handleOtherResponse([context]); // attempts 0 -> 1, 1 < 1 is false -> drop
+
+      // Legacy behavior: event is dropped, SDK stays online.
+      expect(fulfillRequest).toHaveBeenCalledWith([context], 500, MAX_RETRIES_EXCEEDED_MESSAGE);
+      expect(destination.config.offline).toBe(false);
+    });
+
+    test('detects a server (Node/jest) environment as non-recovering on construction', () => {
+      // jest runs analytics-core in a node testEnvironment -> not a client SDK.
+      expect(new Destination().isClientSide).toBe(false);
     });
   });
 
