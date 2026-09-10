@@ -53,6 +53,32 @@ describe('trackHtmlVideo', () => {
     expect(handler.onPlay).not.toHaveBeenCalled();
   });
 
+  test('should report the pause that precedes the end of the media as an ended event', () => {
+    trackHtmlVideo(video, handler);
+
+    video.play();
+    Object.defineProperty(video, 'ended', { configurable: true, value: true });
+    Object.defineProperty(video, 'currentTime', { configurable: true, value: 10 });
+    video.dispatchEvent(new Event('pause'));
+    video.dispatchEvent(new Event('ended'));
+
+    expect(handler.onPause).not.toHaveBeenCalled();
+    expect(handler.onEnded).toHaveBeenCalledTimes(1);
+    expect(handler.onEnded).toHaveBeenCalledWith({
+      duration: 10,
+      start_time: 10,
+      last_position: 10,
+      percent_completed: 100,
+      stop_reason: 'ended',
+    });
+
+    // replaying restores normal pause reporting
+    video.play();
+    Object.defineProperty(video, 'ended', { configurable: true, value: false });
+    video.pause();
+    expect(handler.onPause).toHaveBeenCalledTimes(1);
+  });
+
   test('should track seeking events', () => {
     const untrack = trackHtmlVideo(video, handler);
 
