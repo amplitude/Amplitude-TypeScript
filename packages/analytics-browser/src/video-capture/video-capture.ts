@@ -13,6 +13,28 @@ import { DEFAULT_CONTENT_STARTED_EVENT, DEFAULT_CONTENT_STOPPED_EVENT } from '..
 /** Playback states where a view session is still in progress (e.g. buffering). */
 const ACTIVE_PLAYBACK_STATES = new Set<VideoState['playbackState']>(['playing', 'waiting']);
 
+/**
+ * Observer fields that never reach event properties: `last_position` is an observer internal,
+ * and `percent_completed`/`stop_reason` describe the player event rather than the play session,
+ * which tracks its own values.
+ */
+const OMITTED_VIDEO_EVENT_PROPERTIES = new Set(['last_position', 'percent_completed', 'stop_reason']);
+
+/**
+ * Copy remaining player-event fields (vendor metadata such as `mux_playback_id`, ids, titles)
+ * onto the Amplitude event, dropping empty values so absent metadata is omitted.
+ */
+function parseVideoEventProperties(lastEvent: VideoState['lastEvent']): Record<string, string | number | boolean> {
+  const properties: Record<string, string | number | boolean> = {};
+  for (const [key, value] of Object.entries(lastEvent ?? {})) {
+    if (OMITTED_VIDEO_EVENT_PROPERTIES.has(key) || value === null || value === undefined) {
+      continue;
+    }
+    properties[key] = value as string | number | boolean;
+  }
+  return properties;
+}
+
 export class VideoCapture {
   private videoEl: HTMLMediaElement | null = null;
   private heartbeat: ReturnType<typeof getHeartbeatInstance>;
@@ -88,7 +110,6 @@ export class VideoCapture {
           event_type: DEFAULT_CONTENT_STARTED_EVENT,
           time: now,
           event_properties: {
-            ...nextState.lastEvent,
             ...this.parseStartEventProperties(nextState),
             ...this.extraEventProperties,
             play_id: this.playId,
@@ -100,7 +121,6 @@ export class VideoCapture {
           event_type: DEFAULT_CONTENT_STOPPED_EVENT,
           time: now + 1,
           event_properties: {
-            ...nextState.lastEvent,
             ...this.parseStopEventProperties(nextState),
             ...this.extraEventProperties,
             stop_reason: 'timeout',
@@ -214,6 +234,7 @@ export class VideoCapture {
 
   parseStartEventProperties(nextState: VideoState): Record<string, string | number | boolean> {
     return {
+      ...parseVideoEventProperties(nextState.lastEvent),
       duration: nextState.lastEvent?.duration ?? 0,
       start_time: nextState.lastEvent?.start_time ?? 0,
       position: nextState.position ?? 0,
