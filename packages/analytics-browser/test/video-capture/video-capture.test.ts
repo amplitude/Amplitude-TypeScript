@@ -151,9 +151,63 @@ describe('VideoCapture', () => {
   });
 
   describe('withVendor()', () => {
-    it('should capture start and stop events', () => {
+    it('should capture start and stop events', async () => {
       const videoCapture = new VideoCapture(mockAmplitude).withVendor('mux');
       expect((videoCapture as unknown as { vendor: string }).vendor).toBe('mux');
+    });
+    it('should capture start and stop events with mux properties', async () => {
+      const capture = new VideoCapture(mockAmplitude)
+        .withVideoElement(document.createElement('video'))
+        .withVendor('mux')
+        .captureVideoStarted()
+        .captureVideoStopped()
+        .start();
+
+      const muxLastEvent = {
+        duration: 10,
+        last_position: 0,
+        mux_playback_id: 'playback-id',
+        mux_video_id: 'video-id',
+        mux_video_title: 'video-title',
+      };
+      currentVideoObserver!.emitStateChange(
+        { playbackState: 'paused', lastEvent: undefined },
+        { playbackState: 'playing', lastEvent: muxLastEvent, position: 0 },
+      );
+      await flushHeartbeat();
+      expect(mockAmplitude.track).toHaveBeenNthCalledWith(
+        1,
+        '[Amplitude] Content Started',
+        expect.objectContaining({
+          mux_playback_id: 'playback-id',
+          mux_video_id: 'video-id',
+          mux_video_title: 'video-title',
+        }),
+        expect.any(Object),
+      );
+
+      currentVideoObserver!.emitStateChange(
+        { playbackState: 'playing', lastEvent: muxLastEvent, position: 0 },
+        {
+          playbackState: 'paused',
+          lastEvent: { ...muxLastEvent, last_position: 5, percent_completed: 20, stop_reason: 'paused' },
+          position: 5,
+        },
+      );
+      await flushHeartbeat();
+      expect(mockAmplitude.track).toHaveBeenNthCalledWith(
+        3,
+        '[Amplitude] Content Stopped',
+        expect.objectContaining({
+          mux_playback_id: 'playback-id',
+          mux_video_id: 'video-id',
+          mux_video_title: 'video-title',
+          stop_reason: 'paused',
+          percent_completed: 50,
+        }),
+        expect.any(Object),
+      );
+      capture.stop();
     });
   });
 
@@ -715,6 +769,36 @@ describe('VideoCapture', () => {
       });
     });
 
+    it('should keep vendor metadata and drop empty or recomputed fields', () => {
+      const capture = new VideoCapture(mockAmplitude);
+      expect(
+        capture.parseStartEventProperties({
+          playbackState: 'playing',
+          lastEvent: {
+            duration: 10,
+            start_time: 2,
+            last_position: 5,
+            percent_completed: 50,
+            stop_reason: 'paused',
+            mux_playback_id: 'playback-id',
+            mux_video_id: 'video-id',
+            mux_video_title: 'video-title',
+            mux_session_id: null,
+            video_id: undefined,
+          },
+          position: 5,
+        }),
+      ).toEqual({
+        duration: 10,
+        start_time: 2,
+        position: 5,
+        delivery_mode: 'video',
+        mux_playback_id: 'playback-id',
+        mux_video_id: 'video-id',
+        mux_video_title: 'video-title',
+      });
+    });
+
     it('should set delivery_mode to audio for an audio element', () => {
       const capture = new VideoCapture(mockAmplitude).withVideoElement(document.createElement('audio'));
       expect(
@@ -762,6 +846,33 @@ describe('VideoCapture', () => {
         watch_duration: 0,
         percent_completed: 0,
         delivery_mode: 'video',
+      });
+    });
+
+    it('should keep vendor metadata without inheriting the player event percent_completed or stop_reason', () => {
+      const capture = new VideoCapture(mockAmplitude);
+      expect(
+        capture.parseStopEventProperties({
+          playbackState: 'paused',
+          lastEvent: {
+            duration: 10,
+            start_time: 2,
+            last_position: 5,
+            percent_completed: 20,
+            stop_reason: 'paused',
+            mux_playback_id: 'playback-id',
+          },
+          position: 5,
+          watchTime: 30,
+        }),
+      ).toEqual({
+        duration: 10,
+        start_time: 2,
+        position: 5,
+        watch_duration: 30,
+        percent_completed: 50,
+        delivery_mode: 'video',
+        mux_playback_id: 'playback-id',
       });
     });
 
