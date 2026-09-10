@@ -20,6 +20,19 @@ const getVisualParent = (element: Element): Element | null => {
   return element.assignedSlot || element.parentElement || (element.parentNode as ShadowRoot | null)?.host || null;
 };
 
+/**
+ * The next ancestor whose overflow can clip `element`. Absolute and fixed elements
+ * are only clipped from their containing block upwards, which browsers expose as
+ * `offsetParent` — so static wrappers they paint outside of are skipped, and a
+ * transform/filter/contain ancestor that does establish a containing block still
+ * clips. `null` means the containing block is the viewport.
+ */
+const getClippingParent = (element: Element, position: string): Element | null => {
+  return (position === 'fixed' || position === 'absolute') && element instanceof HTMLElement
+    ? element.offsetParent
+    : getVisualParent(element);
+};
+
 const isMidHeightLineVisible = (element: Element): boolean => {
   const globalScope = getGlobalScope();
   /* istanbul ignore next -- trackExposure is only installed in a browser */
@@ -28,40 +41,44 @@ const isMidHeightLineVisible = (element: Element): boolean => {
   const viewportWidth = globalScope!.document.documentElement.clientWidth || globalScope!.innerWidth;
   const rect = element.getBoundingClientRect();
   const midHeightLine = rect.top + rect.height * EXPOSURE_VIEWED_THRESHOLD;
+  // Track the still-visible span of the mid-height line as ancestors clip it.
+  let visibleLeft = Math.max(rect.left, 0);
+  let visibleRight = Math.min(rect.right, viewportWidth);
 
   if (
     midHeightLine < -MID_HEIGHT_LINE_TOLERANCE_PX ||
     midHeightLine > viewportHeight + MID_HEIGHT_LINE_TOLERANCE_PX ||
-    rect.right <= 0 ||
-    rect.left >= viewportWidth ||
+    visibleLeft >= visibleRight ||
     rect.width <= 0
   ) {
     return false;
   }
 
-  const elementStyle = globalScope!.getComputedStyle(element);
-  // A fixed element whose containing block is the viewport escapes ancestor
-  // overflow clipping. If transform/filter/contain establishes an ancestor
-  // containing block, browsers expose that element as offsetParent; clipping
-  // resumes there without us having to duplicate the CSS containing-block rules.
-  let ancestor =
-    elementStyle.position === 'fixed' && element instanceof HTMLElement
-      ? element.offsetParent
-      : getVisualParent(element);
+  let ancestor = getClippingParent(element, globalScope!.getComputedStyle(element).position);
   while (ancestor) {
     /* istanbul ignore next -- trackExposure is only installed in a browser */
-    const overflow = globalScope!.getComputedStyle(ancestor).overflowY;
+    const style = globalScope!.getComputedStyle(ancestor);
     // Browsers return "visible" by default; jsdom returns an empty string.
-    if (overflow && overflow !== 'visible') {
+    const clipsY = style.overflowY && style.overflowY !== 'visible';
+    const clipsX = style.overflowX && style.overflowX !== 'visible';
+    if (clipsY || clipsX) {
       const ancestorRect = ancestor.getBoundingClientRect();
       if (
-        midHeightLine < ancestorRect.top - MID_HEIGHT_LINE_TOLERANCE_PX ||
-        midHeightLine > ancestorRect.bottom + MID_HEIGHT_LINE_TOLERANCE_PX
+        clipsY &&
+        (midHeightLine < ancestorRect.top - MID_HEIGHT_LINE_TOLERANCE_PX ||
+          midHeightLine > ancestorRect.bottom + MID_HEIGHT_LINE_TOLERANCE_PX)
       ) {
         return false;
       }
+      if (clipsX) {
+        visibleLeft = Math.max(visibleLeft, ancestorRect.left);
+        visibleRight = Math.min(visibleRight, ancestorRect.right);
+        if (visibleLeft >= visibleRight) {
+          return false;
+        }
+      }
     }
-    ancestor = getVisualParent(ancestor);
+    ancestor = getClippingParent(ancestor, style.position);
   }
 
   return true;

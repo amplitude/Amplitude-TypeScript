@@ -274,6 +274,37 @@ test.describe('autocapture viewport exposure (mid-height line)', () => {
     expect(pageErrors).toEqual([]);
   });
 
+  test('exposes an absolute element that paints outside a static overflow ancestor', async ({ page }) => {
+    await openHarness(page);
+
+    await page.evaluate(() => {
+      // `overflow: hidden` on a static wrapper does not clip an absolute child, so
+      // this button really is on screen below the wrapper.
+      const wrapper = document.createElement('div');
+      wrapper.style.cssText = 'position:static;width:200px;height:20px;overflow:hidden';
+      const element = document.createElement('button');
+      element.id = 'escaping-absolute-target';
+      element.style.cssText = 'position:absolute;top:200px;left:20px;width:120px;height:100px';
+      element.textContent = 'escaping target';
+      wrapper.appendChild(element);
+      document.body.appendChild(wrapper);
+    });
+
+    await page.waitForTimeout(EXPOSURE_SETTLE_MS);
+    await page.evaluate(() => window.__exposureHarness.flush());
+
+    await expect
+      .poll(
+        () =>
+          events
+            .filter((e) => e.event_type === VIEWPORT_CONTENT_UPDATED)
+            .flatMap((e) => (e.event_properties?.[ELEMENT_EXPOSED_PROP] as string[] | undefined) ?? []),
+        { timeout: 10_000 },
+      )
+      .toContain('button#escaping-absolute-target');
+    expect(pageErrors).toEqual([]);
+  });
+
   test('rechecks midpoint exposure when the viewport is resized', async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 600 });
     await openHarness(page);

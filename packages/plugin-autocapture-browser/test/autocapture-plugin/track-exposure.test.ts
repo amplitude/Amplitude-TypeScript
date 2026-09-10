@@ -418,6 +418,60 @@ describe('trackExposure', () => {
     expect(onExposure).toHaveBeenCalledTimes(1);
   });
 
+  test('should not expose a midpoint whose line is fully clipped by a horizontal overflow ancestor', () => {
+    const scroller = document.createElement('div');
+    scroller.style.overflowX = 'hidden';
+    const element = document.createElement('div');
+    element.id = 'horizontally-clipped';
+    scroller.appendChild(element);
+    document.body.appendChild(scroller);
+
+    // The line sits to the right of the scroller's window onto its content.
+    setRect(scroller, { top: 0, height: 300, left: 0, width: 200 });
+    setRect(element, { top: 100, height: 100, left: 300, width: 120 });
+    triggerExposure({ isIntersecting: true, target: element });
+
+    jest.advanceTimersByTime(DEFAULT_EXPOSURE_DURATION);
+    expect(onExposure).not.toHaveBeenCalled();
+  });
+
+  test('should expose a sliver of the line that survives horizontal clipping', () => {
+    const scroller = document.createElement('div');
+    scroller.style.overflowX = 'hidden';
+    const element = document.createElement('div');
+    element.id = 'horizontally-slivered';
+    scroller.appendChild(element);
+    document.body.appendChild(scroller);
+
+    setRect(scroller, { top: 0, height: 300, left: 0, width: 200 });
+    setRect(element, { top: 100, height: 100, left: 190, width: 120 });
+    triggerExposure({ isIntersecting: true, target: element });
+
+    jest.advanceTimersByTime(DEFAULT_EXPOSURE_DURATION);
+    expect(onExposure).toHaveBeenCalledWith('div#horizontally-slivered');
+  });
+
+  test('should expose an absolute element that paints outside a static overflow ancestor', () => {
+    // CSS only clips an absolute element from its containing block upwards, so a
+    // static `overflow: hidden` wrapper does not hide it — and the browser reports
+    // the containing block via offsetParent.
+    const staticClipper = document.createElement('div');
+    staticClipper.style.overflow = 'hidden';
+    const element = document.createElement('button');
+    element.style.position = 'absolute';
+    element.id = 'escaping-absolute';
+    staticClipper.appendChild(element);
+    document.body.appendChild(staticClipper);
+    Object.defineProperty(element, 'offsetParent', { configurable: true, value: document.body });
+
+    setRect(staticClipper, { top: 0, height: 20 });
+    setRect(element, { top: 300, height: 80 });
+    triggerExposure({ isIntersecting: true, target: element });
+
+    jest.advanceTimersByTime(DEFAULT_EXPOSURE_DURATION);
+    expect(onExposure).toHaveBeenCalledWith('button#escaping-absolute');
+  });
+
   test('should not expose a midpoint whose entire line is outside the viewport horizontally', () => {
     const element = document.createElement('div');
     element.id = 'horizontally-outside';
