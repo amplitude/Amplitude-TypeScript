@@ -17,7 +17,7 @@ function calculatePercentCompleted(currentTime: number, duration: number) {
   return percentCompleted;
 }
 
-function getVideoData(videoEl: HTMLVideoElement | MuxElement, stopReason?: VideoStopReason) {
+function getVideoData(videoEl: HTMLMediaElement | MuxElement, stopReason?: VideoStopReason) {
   const currentTime = videoEl.currentTime;
   const duration = videoEl.duration;
   return {
@@ -27,6 +27,13 @@ function getVideoData(videoEl: HTMLVideoElement | MuxElement, stopReason?: Video
     percent_completed: calculatePercentCompleted(currentTime, duration),
     ...(stopReason !== undefined ? { stop_reason: stopReason } : {}),
   };
+}
+
+function getMediaErrorMessage(error: MediaError | null | undefined) {
+  if (!error) {
+    return 'Media element error';
+  }
+  return `Media element error (code ${error.code})${error.message ? `: ${error.message}` : ''}`;
 }
 
 function getMuxMetadata(videoEl: MuxElement) {
@@ -44,7 +51,7 @@ function getMuxMetadata(videoEl: MuxElement) {
  * @param handlers - The video handlers to call when on video lifecycle events.
  * @returns A function to untrack the video.
  */
-export function trackHtmlVideo(videoEl: HTMLVideoElement | MuxElement, handlers: VideoHandler, vendor?: Vendor) {
+export function trackHtmlVideo(videoEl: HTMLMediaElement | MuxElement, handlers: VideoHandler, vendor?: Vendor) {
   const playHandler = () => {
     const startEvent: VideoEvent = {
       ...getVideoData(videoEl),
@@ -90,8 +97,13 @@ export function trackHtmlVideo(videoEl: HTMLVideoElement | MuxElement, handlers:
   };
   videoEl.addEventListener('seeked', seekedHandler);
 
+  const errorHandler = () => {
+    handlers.onError(getMediaErrorMessage((videoEl as HTMLMediaElement).error));
+  };
+  videoEl.addEventListener('error', errorHandler);
+
   const timeupdateHandler = () => {
-    const media = videoEl as HTMLVideoElement;
+    const media = videoEl as HTMLMediaElement;
     const timeupdateEvent: TimeUpdateEvent = {
       position: videoEl.currentTime,
       isSeeking: !!media.seeking,
@@ -106,6 +118,7 @@ export function trackHtmlVideo(videoEl: HTMLVideoElement | MuxElement, handlers:
     videoEl.removeEventListener('ended', endedHandler);
     videoEl.removeEventListener('seeking', seekingHandler);
     videoEl.removeEventListener('seeked', seekedHandler);
+    videoEl.removeEventListener('error', errorHandler);
     videoEl.removeEventListener('timeupdate', timeupdateHandler);
   };
 }

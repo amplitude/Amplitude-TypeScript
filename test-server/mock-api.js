@@ -18,6 +18,14 @@ export function createMockApi() {
 
 // Function to configure mock API middleware that can be used by both dev and preview servers
 export function configureMockApiMiddleware(middlewares) {
+  // Mock delayed-events endpoint.
+  middlewares.use('/2/httpapi/delayed', (_req, res) => {
+    res.statusCode = 200;
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.end(JSON.stringify({ code: 200 }));
+  });
+
   // Status code endpoint - responds with the status code specified in the URL
   middlewares.use((req, res, next) => {
     const statusMatch = req.url.match(/^\/api\/status\/(\d+)/);

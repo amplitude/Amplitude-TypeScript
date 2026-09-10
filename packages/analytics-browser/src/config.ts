@@ -44,6 +44,32 @@ import { AmplitudeBrowser } from './browser-client';
 import { VERSION } from './version';
 import { getDomain, KNOWN_2LDS } from './attribution/helpers';
 
+/**
+ * Delayed (heartbeat) events go to the dedicated delayed events endpoint, which is where the
+ * `/delayed` route is served. A customer-provided `serverUrl` still wins so all traffic stays
+ * on their domain; `useBatch` is not consulted because the Batch API has no `/delayed` route.
+ */
+export const getDelayedEventsServerUrl = (
+  serverUrl: string | undefined,
+  delayedEventsServerUrl: string | undefined,
+  serverZone: ServerZoneType = DEFAULT_SERVER_ZONE,
+) => {
+  if (delayedEventsServerUrl) {
+    return delayedEventsServerUrl;
+  }
+  if (serverUrl) {
+    // serverUrl already includes /2/httpapi
+    return `${serverUrl}/delayed`;
+  }
+  switch (serverZone) {
+    case 'EU':
+      return 'https://delayed-events.prod.eu-central-1.amplitude.com/2/httpapi/delayed';
+    case 'US':
+    default:
+      return 'https://delayed-events.prod.us-west-2.amplitude.com/2/httpapi/delayed';
+  }
+};
+
 // Exported for testing purposes only. Do not expose to public interface.
 export class BrowserConfig extends Config implements IBrowserConfig {
   public readonly version = VERSION;
@@ -112,6 +138,7 @@ export class BrowserConfig extends Config implements IBrowserConfig {
     public topLevelDomain?: string,
     public enableRequestBodyCompression: boolean = false,
     public customEnrichment?: boolean | CustomEnrichmentOptions,
+    public delayedEventsServerUrl?: string,
   ) {
     super({ apiKey, instanceName, storageProvider, transportProvider: createTransport(transport) });
     this._cookieStorage = cookieStorage;
@@ -141,6 +168,7 @@ export class BrowserConfig extends Config implements IBrowserConfig {
     this.fetchRemoteConfig = _fetchRemoteConfig;
 
     this.topLevelDomain = topLevelDomain || getDomain();
+    this.delayedEventsServerUrl = getDelayedEventsServerUrl(serverUrl, delayedEventsServerUrl, serverZone);
   }
 
   get cookieStorage() {
@@ -421,6 +449,7 @@ export const useBrowserConfig = async (
     defaultCookieDomain,
     options.enableRequestBodyCompression,
     options.customEnrichment,
+    options.delayedEventsServerUrl,
   );
 
   if (!(await browserConfig.storageProvider.isEnabled())) {

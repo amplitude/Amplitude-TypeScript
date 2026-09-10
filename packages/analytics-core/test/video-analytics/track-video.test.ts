@@ -91,6 +91,25 @@ describe('trackHtmlVideo', () => {
     expect(handler.onSeeked).not.toHaveBeenCalled();
   });
 
+  test('should track error events', () => {
+    const untrack = trackHtmlVideo(video, handler);
+
+    video.play();
+    (video as any).simulateError({ code: 2, message: 'network' });
+    expect(handler.onError).toHaveBeenCalledWith('Media element error (code 2): network');
+
+    (video as any).simulateError({ code: 4, message: '' });
+    expect(handler.onError).toHaveBeenLastCalledWith('Media element error (code 4)');
+
+    (video as any).simulateError(null);
+    expect(handler.onError).toHaveBeenLastCalledWith('Media element error');
+
+    untrack();
+    handler.onError = jest.fn();
+    (video as any).simulateError();
+    expect(handler.onError).not.toHaveBeenCalled();
+  });
+
   test('should track timeupdate events', () => {
     const untrack = trackHtmlVideo(video, handler);
 

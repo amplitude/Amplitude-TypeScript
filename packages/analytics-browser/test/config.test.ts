@@ -184,8 +184,50 @@ describe('config', () => {
         },
         topLevelDomain: '.amplitude.com',
         enableRequestBodyCompression: false,
+        delayedEventsServerUrl: 'https://delayed-events.prod.us-west-2.amplitude.com/2/httpapi/delayed',
       });
       expect(getTopLevelDomain).toHaveBeenCalledTimes(1);
+    });
+
+    test('should pass delayedEventsServerUrl through', async () => {
+      jest.spyOn(Config, 'getTopLevelDomain').mockResolvedValueOnce('.amplitude.com');
+      const delayedEventsServerUrl = 'https://example.com/2/httpapi/delayed';
+      const config = await Config.useBrowserConfig(apiKey, { delayedEventsServerUrl }, new AmplitudeBrowser());
+      expect(config.delayedEventsServerUrl).toBe(delayedEventsServerUrl);
+    });
+
+    test('should default delayedEventsServerUrl for EU', async () => {
+      jest.spyOn(Config, 'getTopLevelDomain').mockResolvedValueOnce('.amplitude.com');
+      const config = await Config.useBrowserConfig(apiKey, { serverZone: 'EU' }, new AmplitudeBrowser());
+      expect(config.delayedEventsServerUrl).toBe(
+        'https://delayed-events.prod.eu-central-1.amplitude.com/2/httpapi/delayed',
+      );
+    });
+
+    test('should derive delayedEventsServerUrl from a custom serverUrl', async () => {
+      jest.spyOn(Config, 'getTopLevelDomain').mockResolvedValueOnce('.amplitude.com');
+      const serverUrl = 'https://proxy.example.com/2/httpapi';
+      const config = await Config.useBrowserConfig(apiKey, { serverUrl }, new AmplitudeBrowser());
+      expect(config.delayedEventsServerUrl).toBe(`${serverUrl}/delayed`);
+    });
+
+    test('should keep the delayed events endpoint when useBatch is enabled', async () => {
+      jest.spyOn(Config, 'getTopLevelDomain').mockResolvedValueOnce('.amplitude.com');
+      const config = await Config.useBrowserConfig(apiKey, { useBatch: true }, new AmplitudeBrowser());
+      expect(config.delayedEventsServerUrl).toBe(
+        'https://delayed-events.prod.us-west-2.amplitude.com/2/httpapi/delayed',
+      );
+    });
+
+    test('should prefer delayedEventsServerUrl over a custom serverUrl', async () => {
+      jest.spyOn(Config, 'getTopLevelDomain').mockResolvedValueOnce('.amplitude.com');
+      const delayedEventsServerUrl = 'https://example.com/2/httpapi/delayed';
+      const config = await Config.useBrowserConfig(
+        apiKey,
+        { serverUrl: 'https://proxy.example.com/2/httpapi', delayedEventsServerUrl },
+        new AmplitudeBrowser(),
+      );
+      expect(config.delayedEventsServerUrl).toBe(delayedEventsServerUrl);
     });
 
     test('should fall back to memoryStorage when storageProvider is not enabled', async () => {
@@ -313,6 +355,7 @@ describe('config', () => {
           },
           topLevelDomain: 'amplitude.com',
           enableRequestBodyCompression: false,
+          delayedEventsServerUrl: 'https://delayed-events.prod.us-west-2.amplitude.com/2/httpapi/delayed',
         });
       });
     });
@@ -396,6 +439,32 @@ describe('config', () => {
       expect(config.trackingOptions.ipAddress).toEqual(expected);
       expect(config.trackingOptions.language).toEqual(expected);
       expect(config.trackingOptions.platform).toEqual(expected);
+    });
+  });
+
+  describe('getDelayedEventsServerUrl', () => {
+    test('should default to the US delayed events endpoint', () => {
+      expect(Config.getDelayedEventsServerUrl(undefined, undefined)).toBe(
+        'https://delayed-events.prod.us-west-2.amplitude.com/2/httpapi/delayed',
+      );
+    });
+
+    test('should default unknown server zones to the US delayed events endpoint', () => {
+      expect(Config.getDelayedEventsServerUrl(undefined, undefined, 'STAGING' as never)).toBe(
+        'https://delayed-events.prod.us-west-2.amplitude.com/2/httpapi/delayed',
+      );
+    });
+
+    test('should use the EU delayed events endpoint for the EU server zone', () => {
+      expect(Config.getDelayedEventsServerUrl(undefined, undefined, 'EU')).toBe(
+        'https://delayed-events.prod.eu-central-1.amplitude.com/2/httpapi/delayed',
+      );
+    });
+
+    test('should append /delayed onto a serverUrl that already includes /2/httpapi', () => {
+      expect(Config.getDelayedEventsServerUrl('https://proxy.example.com/2/httpapi', undefined)).toBe(
+        'https://proxy.example.com/2/httpapi/delayed',
+      );
     });
   });
 
