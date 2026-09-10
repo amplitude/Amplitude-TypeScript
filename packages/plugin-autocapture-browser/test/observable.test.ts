@@ -278,7 +278,7 @@ describe('createExposureObservable', () => {
 });
 
 describe('createScrollObservable', () => {
-  test('captures non-bubbling scroll events from overflow elements', () => {
+  test('captures overflow scrolls and viewport resizes', () => {
     const scroller = document.createElement('div');
     document.body.appendChild(scroller);
     const listener = jest.fn();
@@ -287,10 +287,13 @@ describe('createScrollObservable', () => {
     scroller.dispatchEvent(new Event('scroll', { bubbles: false }));
 
     expect(listener).toHaveBeenCalledWith(expect.objectContaining({ target: scroller }));
+    window.dispatchEvent(new Event('resize'));
+    expect(listener).toHaveBeenCalledWith(expect.objectContaining({ type: 'resize' }));
 
     subscription.unsubscribe();
     listener.mockClear();
     scroller.dispatchEvent(new Event('scroll', { bubbles: false }));
+    window.dispatchEvent(new Event('resize'));
     expect(listener).not.toHaveBeenCalled();
   });
 });

@@ -245,6 +245,70 @@ test.describe('autocapture viewport exposure (mid-height line)', () => {
     expect(pageErrors).toEqual([]);
   });
 
+  test('does not clip a viewport-fixed element against an overflow ancestor', async ({ page }) => {
+    await openHarness(page);
+
+    await page.evaluate(() => {
+      const clipper = document.createElement('div');
+      clipper.style.cssText = 'position:absolute;top:400px;height:20px;overflow:hidden';
+      const element = document.createElement('button');
+      element.id = 'fixed-exposure-target';
+      element.style.cssText = 'position:fixed;top:100px;left:20px;width:100px;height:100px';
+      element.textContent = 'fixed target';
+      clipper.appendChild(element);
+      document.body.appendChild(clipper);
+    });
+
+    await page.waitForTimeout(EXPOSURE_SETTLE_MS);
+    await page.evaluate(() => window.__exposureHarness.flush());
+
+    await expect
+      .poll(
+        () =>
+          events
+            .filter((e) => e.event_type === VIEWPORT_CONTENT_UPDATED)
+            .flatMap((e) => (e.event_properties?.[ELEMENT_EXPOSED_PROP] as string[] | undefined) ?? []),
+        { timeout: 10_000 },
+      )
+      .toContain('button#fixed-exposure-target');
+    expect(pageErrors).toEqual([]);
+  });
+
+  test('rechecks midpoint exposure when the viewport is resized', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 600 });
+    await openHarness(page);
+
+    await page.evaluate(() => {
+      const element = document.createElement('button');
+      element.id = 'resize-exposure-target';
+      // Partly visible, but its midpoint starts 50px below the viewport.
+      element.style.cssText = 'position:fixed;top:550px;left:20px;width:100px;height:200px';
+      element.textContent = 'resize target';
+      document.body.appendChild(element);
+    });
+    await page.waitForTimeout(EXPOSURE_SETTLE_MS);
+    await page.evaluate(() => window.__exposureHarness.flush());
+    expect(
+      events.flatMap((e) => (e.event_properties?.[ELEMENT_EXPOSED_PROP] as string[] | undefined) ?? []),
+    ).not.toContain('button#resize-exposure-target');
+
+    events = [];
+    await page.setViewportSize({ width: 1280, height: 700 });
+    await page.waitForTimeout(EXPOSURE_SETTLE_MS);
+    await page.evaluate(() => window.__exposureHarness.flush());
+
+    await expect
+      .poll(
+        () =>
+          events
+            .filter((e) => e.event_type === VIEWPORT_CONTENT_UPDATED)
+            .flatMap((e) => (e.event_properties?.[ELEMENT_EXPOSED_PROP] as string[] | undefined) ?? []),
+        { timeout: 10_000 },
+      )
+      .toContain('button#resize-exposure-target');
+    expect(pageErrors).toEqual([]);
+  });
+
   test('exposes an oversized zone when its midpoint is viewed', async ({ page }) => {
     await openHarness(page);
 

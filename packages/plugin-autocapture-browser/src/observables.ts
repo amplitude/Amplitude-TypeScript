@@ -175,8 +175,12 @@ export const createScrollObservable = (): Observable<Event> => {
     // phase. Capture at window so overflow containers and document scrolling share
     // one observable.
     getGlobalScope()?.addEventListener('scroll', handler, { capture: true, passive: true });
+    // IntersectionObserver with threshold 0 does not necessarily emit when a
+    // resize keeps an element intersecting but moves its midpoint into view.
+    getGlobalScope()?.addEventListener('resize', handler, { passive: true });
     return () => {
       getGlobalScope()?.removeEventListener('scroll', handler, { capture: true });
+      getGlobalScope()?.removeEventListener('resize', handler);
     };
   });
 };

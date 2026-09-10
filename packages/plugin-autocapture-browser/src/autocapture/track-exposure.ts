@@ -23,9 +23,9 @@ const getVisualParent = (element: Element): Element | null => {
 const isMidHeightLineVisible = (element: Element): boolean => {
   const globalScope = getGlobalScope();
   /* istanbul ignore next -- trackExposure is only installed in a browser */
-  const viewportHeight = globalScope?.innerHeight ?? 0;
+  const viewportHeight = globalScope!.document.documentElement.clientHeight || globalScope!.innerHeight;
   /* istanbul ignore next -- trackExposure is only installed in a browser */
-  const viewportWidth = globalScope?.innerWidth ?? 0;
+  const viewportWidth = globalScope!.document.documentElement.clientWidth || globalScope!.innerWidth;
   const rect = element.getBoundingClientRect();
   const midHeightLine = rect.top + rect.height * EXPOSURE_VIEWED_THRESHOLD;
 
@@ -39,7 +39,15 @@ const isMidHeightLineVisible = (element: Element): boolean => {
     return false;
   }
 
-  let ancestor = getVisualParent(element);
+  const elementStyle = globalScope!.getComputedStyle(element);
+  // A fixed element whose containing block is the viewport escapes ancestor
+  // overflow clipping. If transform/filter/contain establishes an ancestor
+  // containing block, browsers expose that element as offsetParent; clipping
+  // resumes there without us having to duplicate the CSS containing-block rules.
+  let ancestor =
+    elementStyle.position === 'fixed' && element instanceof HTMLElement
+      ? element.offsetParent
+      : getVisualParent(element);
   while (ancestor) {
     /* istanbul ignore next -- trackExposure is only installed in a browser */
     const overflow = globalScope!.getComputedStyle(ancestor).overflowY;

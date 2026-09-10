@@ -341,6 +341,42 @@ describe('trackExposure', () => {
     expect(onExposure).not.toHaveBeenCalled();
   });
 
+  test('should ignore overflow ancestors for a viewport-fixed element', () => {
+    const clipper = document.createElement('div');
+    clipper.style.overflowY = 'hidden';
+    const element = document.createElement('button');
+    element.style.position = 'fixed';
+    element.id = 'viewport-fixed';
+    clipper.appendChild(element);
+    document.body.appendChild(clipper);
+
+    setRect(clipper, { top: 200, height: 100 });
+    setRect(element, { top: 100, height: 100 });
+    expect(element.offsetParent).toBeNull();
+    triggerExposure({ isIntersecting: true, target: element });
+
+    jest.advanceTimersByTime(DEFAULT_EXPOSURE_DURATION);
+    expect(onExposure).toHaveBeenCalledWith('button#viewport-fixed');
+  });
+
+  test('should clip a fixed element when an ancestor establishes its containing block', () => {
+    const clipper = document.createElement('div');
+    clipper.style.overflowY = 'hidden';
+    const element = document.createElement('button');
+    element.style.position = 'fixed';
+    element.id = 'ancestor-fixed';
+    clipper.appendChild(element);
+    document.body.appendChild(clipper);
+    Object.defineProperty(element, 'offsetParent', { configurable: true, value: clipper });
+
+    setRect(clipper, { top: 200, height: 100 });
+    setRect(element, { top: 100, height: 100 });
+    triggerExposure({ isIntersecting: true, target: element });
+
+    jest.advanceTimersByTime(DEFAULT_EXPOSURE_DURATION);
+    expect(onExposure).not.toHaveBeenCalled();
+  });
+
   test('should expose through non-clipping ancestors and open shadow roots', () => {
     const host = document.createElement('div');
     const root = host.attachShadow({ mode: 'open' });
