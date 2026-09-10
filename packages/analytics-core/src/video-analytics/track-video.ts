@@ -62,6 +62,12 @@ export function trackHtmlVideo(videoEl: HTMLMediaElement | MuxElement, handlers:
   videoEl.addEventListener('play', playHandler);
 
   const pauseHandler = () => {
+    // Native media fires `pause` before `ended`, and can pause before `error`.
+    // Those follow-up events own the stop reason, so skip this intermediate pause.
+    const media = videoEl as HTMLMediaElement;
+    if (media.ended === true || media.error != null) {
+      return;
+    }
     const pauseEvent: VideoEvent = {
       ...getVideoData(videoEl, 'paused'),
       ...(vendor === 'mux' ? getMuxMetadata(videoEl) : {}),

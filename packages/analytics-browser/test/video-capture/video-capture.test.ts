@@ -432,6 +432,85 @@ describe('VideoCapture', () => {
       );
     });
 
+    it('should record completed playback as ended when pause precedes ended', async () => {
+      const video = document.createElement('video');
+      new VideoCapture(mockAmplitude).withVideoElement(video).captureVideoStarted().captureVideoStopped().start();
+
+      currentVideoObserver!.emitStateChange({ playbackState: 'paused', lastEvent: undefined }, playingState);
+      await flushHeartbeat();
+      jest.clearAllMocks();
+
+      Object.defineProperty(video, 'ended', { configurable: true, value: true });
+      currentVideoObserver!.emitStateChange(playingState, pausedState);
+      await flushHeartbeat();
+
+      expect(mockAmplitude.track).toHaveBeenCalledTimes(1);
+      expect(mockAmplitude.track).toHaveBeenCalledWith(
+        '[Amplitude] Content Stopped',
+        expect.objectContaining({
+          stop_reason: 'ended',
+          position: 5,
+          watch_duration: 5,
+        }),
+        expect.objectContaining({ delay: { id: expect.any(String) } }),
+      );
+    });
+
+    it('should record an error when pause precedes the error state', async () => {
+      const video = document.createElement('video');
+      new VideoCapture(mockAmplitude).withVideoElement(video).captureVideoStarted().captureVideoStopped().start();
+
+      currentVideoObserver!.emitStateChange({ playbackState: 'paused', lastEvent: undefined }, playingState);
+      await flushHeartbeat();
+      currentVideoObserver!.emitStateChange(playingState, waitingState);
+      await flushHeartbeat();
+      jest.clearAllMocks();
+
+      Object.defineProperty(video, 'error', {
+        configurable: true,
+        value: { code: 2, message: 'network' },
+      });
+      currentVideoObserver!.emitStateChange(waitingState, pausedState);
+      await flushHeartbeat();
+
+      expect(mockAmplitude.track).toHaveBeenCalledTimes(1);
+      expect(mockAmplitude.track).toHaveBeenCalledWith(
+        '[Amplitude] Content Stopped',
+        expect.objectContaining({
+          stop_reason: 'error',
+          error_message: 'Media element error (code 2): network',
+          position: 5,
+          watch_duration: 5,
+        }),
+        expect.objectContaining({ delay: { id: expect.any(String) } }),
+      );
+    });
+
+    it('should record a media error without a message when pause precedes the error state', async () => {
+      const video = document.createElement('video');
+      new VideoCapture(mockAmplitude).withVideoElement(video).captureVideoStarted().captureVideoStopped().start();
+
+      currentVideoObserver!.emitStateChange({ playbackState: 'paused', lastEvent: undefined }, playingState);
+      await flushHeartbeat();
+      jest.clearAllMocks();
+
+      Object.defineProperty(video, 'error', {
+        configurable: true,
+        value: { code: 4, message: '' },
+      });
+      currentVideoObserver!.emitStateChange(playingState, pausedState);
+      await flushHeartbeat();
+
+      expect(mockAmplitude.track).toHaveBeenCalledWith(
+        '[Amplitude] Content Stopped',
+        expect.objectContaining({
+          stop_reason: 'error',
+          error_message: 'Media element error (code 4)',
+        }),
+        expect.any(Object),
+      );
+    });
+
     it('should end a stalled play session when the media element errors', async () => {
       new VideoCapture(mockAmplitude)
         .withVideoElement(document.createElement('video'))

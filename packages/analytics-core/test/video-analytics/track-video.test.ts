@@ -91,6 +91,42 @@ describe('trackHtmlVideo', () => {
     expect(handler.onSeeked).not.toHaveBeenCalled();
   });
 
+  test('should not forward pause when native playback has already ended', () => {
+    const untrack = trackHtmlVideo(video, handler);
+
+    video.play();
+    Object.defineProperty(video, 'ended', { configurable: true, value: true });
+    Object.defineProperty(video, 'currentTime', { configurable: true, value: 10 });
+    Object.defineProperty(video, 'duration', { configurable: true, value: 10 });
+    video.dispatchEvent(new Event('pause'));
+    video.dispatchEvent(new Event('ended'));
+
+    expect(handler.onPause).not.toHaveBeenCalled();
+    expect(handler.onEnded).toHaveBeenCalledWith({
+      last_position: 10,
+      start_time: 10,
+      percent_completed: 100,
+      duration: 10,
+      stop_reason: 'ended',
+    });
+
+    untrack();
+  });
+
+  test('should not forward pause when a media error is already set', () => {
+    const untrack = trackHtmlVideo(video, handler);
+
+    video.play();
+    Object.defineProperty(video, 'error', { configurable: true, value: { code: 2, message: 'network' } });
+    video.dispatchEvent(new Event('pause'));
+    video.dispatchEvent(new Event('error'));
+
+    expect(handler.onPause).not.toHaveBeenCalled();
+    expect(handler.onError).toHaveBeenCalledWith('Media element error (code 2): network');
+
+    untrack();
+  });
+
   test('should track error events', () => {
     const untrack = trackHtmlVideo(video, handler);
 

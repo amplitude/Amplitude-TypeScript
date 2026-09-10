@@ -155,10 +155,33 @@ export class VideoCapture {
         ACTIVE_PLAYBACK_STATES.has(previousState.playbackState) &&
         !ACTIVE_PLAYBACK_STATES.has(nextState.playbackState)
       ) {
-        this.flushStopEvent(nextState.playbackState);
+        this.flushStopEvent(this.resolveStopReason(nextState));
       }
     });
     return this;
+  }
+
+  /**
+   * HTML media fires `pause` before `ended` (and can pause before `error`). When that
+   * happens the element already reflects the terminal state, so use that stop reason.
+   */
+  private resolveStopReason(nextState: VideoState): string {
+    if (nextState.playbackState === 'paused') {
+      const media = this.videoEl;
+      if (media?.ended === true) {
+        return 'ended';
+      }
+      if (media?.error != null) {
+        if (this.stopEvent) {
+          this.stopEvent.event_properties = {
+            ...this.stopEvent.event_properties,
+            error_message: mediaErrorMessage(media.error),
+          };
+        }
+        return 'error';
+      }
+    }
+    return nextState.playbackState;
   }
 
   /**
@@ -257,6 +280,10 @@ export class VideoCapture {
       ...(nextState.errorMessage ? { error_message: nextState.errorMessage } : {}),
     };
   }
+}
+
+function mediaErrorMessage(error: MediaError) {
+  return `Media element error (code ${error.code})${error.message ? `: ${error.message}` : ''}`;
 }
 
 function calculatePercentCompleted(currentTime: number, duration: number) {
