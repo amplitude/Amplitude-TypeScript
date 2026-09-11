@@ -3,18 +3,16 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Shadow Cursed Lands</title>
+    <title>Shadow DOM Autocapture Stress Test</title>
     <style>
       :root {
-        --bg: #0b100e;
-        --bg-panel: #131a17;
-        --moss: #3d5c4a;
-        --glow: #7dff9a;
-        --gold: #c4a574;
-        --ash: #9aa89f;
-        --danger: #e07a5f;
-        --line: #2a3831;
-        --ink: #e8efe9;
+        --bg: #ffffff;
+        --bg-panel: #f7f7f7;
+        --border: #d8d8d8;
+        --text: #1a1a1a;
+        --muted: #666666;
+        --accent: #1a56db;
+        --danger: #b42318;
       }
 
       * {
@@ -24,30 +22,26 @@
       body {
         margin: 0;
         min-height: 100vh;
-        font-family: Georgia, 'Times New Roman', serif;
-        background:
-          radial-gradient(ellipse at top, #1a2a22 0%, var(--bg) 55%),
-          repeating-linear-gradient(0deg, transparent, transparent 24px, rgba(125, 255, 154, 0.02) 25px);
-        color: var(--ink);
+        font-family: system-ui, -apple-system, sans-serif;
+        font-size: 14px;
+        background: var(--bg);
+        color: var(--text);
       }
 
       header.banner {
-        padding: 28px 28px 12px;
-        border-bottom: 1px solid var(--line);
+        padding: 20px 24px 12px;
+        border-bottom: 1px solid var(--border);
       }
 
       header.banner h1 {
         margin: 0 0 6px;
-        font-size: 2.1rem;
-        letter-spacing: 0.04em;
-        color: var(--gold);
-        text-shadow: 0 0 18px rgba(196, 165, 116, 0.25);
+        font-size: 1.5rem;
       }
 
       header.banner p {
         margin: 0;
-        max-width: 72ch;
-        color: var(--ash);
+        max-width: 80ch;
+        color: var(--muted);
         line-height: 1.45;
       }
 
@@ -56,26 +50,25 @@
         flex-wrap: wrap;
         gap: 10px 16px;
         align-items: center;
-        padding: 14px 28px;
-        background: rgba(19, 26, 23, 0.85);
-        border-bottom: 1px solid var(--line);
+        padding: 12px 24px;
+        background: var(--bg-panel);
+        border-bottom: 1px solid var(--border);
         position: sticky;
         top: 0;
         z-index: 20;
-        font-family: ui-sans-serif, system-ui, sans-serif;
         font-size: 13px;
       }
 
       .toolbar label {
-        color: var(--ash);
+        color: var(--muted);
       }
 
       .toolbar select,
       .toolbar button,
       .toolbar a {
         background: var(--bg);
-        color: var(--ink);
-        border: 1px solid var(--moss);
+        color: var(--text);
+        border: 1px solid var(--border);
         border-radius: 4px;
         padding: 6px 10px;
         font: inherit;
@@ -84,18 +77,18 @@
       }
 
       .toolbar button.primary {
-        border-color: var(--glow);
-        color: var(--glow);
+        border-color: var(--accent);
+        color: var(--accent);
       }
 
       .pill {
         display: inline-block;
         padding: 3px 8px;
         border-radius: 999px;
-        border: 1px solid var(--glow);
-        color: var(--glow);
+        border: 1px solid var(--accent);
+        color: var(--accent);
         font-size: 11px;
-        letter-spacing: 0.06em;
+        letter-spacing: 0.04em;
         text-transform: uppercase;
       }
 
@@ -105,8 +98,8 @@
       }
 
       .pill.loaf {
-        border-color: var(--gold);
-        color: var(--gold);
+        border-color: var(--muted);
+        color: var(--muted);
       }
 
       .pill.loaf.hot {
@@ -121,30 +114,28 @@
         align-items: start;
       }
 
-      .map {
-        padding: 20px 28px 80px;
+      .scenarios {
+        padding: 20px 24px 80px;
         display: grid;
         gap: 16px;
       }
 
-      article.region {
-        background: var(--bg-panel);
-        border: 1px solid var(--line);
-        border-left: 3px solid var(--moss);
+      article.scenario {
+        background: var(--bg);
+        border: 1px solid var(--border);
         border-radius: 6px;
-        padding: 16px 18px 18px;
+        padding: 14px 16px 16px;
       }
 
-      article.region h2 {
+      article.scenario h2 {
         margin: 0 0 4px;
-        font-size: 1.15rem;
-        color: var(--gold);
+        font-size: 1rem;
       }
 
-      article.region .why {
+      article.scenario .why {
         margin: 0 0 12px;
-        color: var(--ash);
-        font-size: 0.92rem;
+        color: var(--muted);
+        font-size: 0.9rem;
         line-height: 1.4;
       }
 
@@ -155,39 +146,38 @@
         align-items: center;
       }
 
-      button.cursed,
+      button.action,
       .row a {
-        font-family: ui-sans-serif, system-ui, sans-serif;
-        font-size: 13px;
-        background: #1c2922;
-        color: var(--ink);
-        border: 1px solid var(--moss);
+        font: 13px system-ui, sans-serif;
+        background: var(--bg-panel);
+        color: var(--text);
+        border: 1px solid var(--border);
         border-radius: 4px;
         padding: 7px 12px;
         cursor: pointer;
+        text-decoration: none;
       }
 
-      button.cursed:hover,
+      button.action:hover,
       .row a:hover {
-        border-color: var(--glow);
-        color: var(--glow);
+        border-color: var(--accent);
+        color: var(--accent);
       }
 
       #event-log {
         position: sticky;
-        top: 58px;
-        height: calc(100vh - 58px);
+        top: 50px;
+        height: calc(100vh - 50px);
         overflow: auto;
-        background: #0a0e0c;
-        border-left: 1px solid var(--line);
+        background: var(--bg-panel);
+        border-left: 1px solid var(--border);
         padding: 12px 14px;
         font: 11px/1.45 ui-monospace, SFMono-Regular, Menlo, monospace;
       }
 
       #event-log h3 {
         margin: 0;
-        font: 13px/1.3 ui-sans-serif, system-ui, sans-serif;
-        color: var(--gold);
+        font: 13px/1.3 system-ui, sans-serif;
       }
 
       #event-log .log-header {
@@ -199,41 +189,41 @@
       }
 
       #event-log .log-header button {
-        font: 12px ui-sans-serif, system-ui, sans-serif;
+        font: 12px system-ui, sans-serif;
         background: var(--bg);
-        color: var(--ink);
-        border: 1px solid var(--moss);
+        color: var(--text);
+        border: 1px solid var(--border);
         border-radius: 4px;
         padding: 4px 8px;
         cursor: pointer;
       }
 
       #event-log .hint {
-        color: #6d7a72;
+        color: var(--muted);
         margin-bottom: 10px;
       }
 
       .log-row {
         margin: 0 0 10px;
         padding-bottom: 8px;
-        border-bottom: 1px solid #1c2621;
+        border-bottom: 1px solid var(--border);
       }
 
       .log-type {
-        color: #6cf;
+        color: var(--accent);
       }
 
       .log-path {
-        color: #fd6;
+        color: #0b6b3a;
         word-break: break-all;
       }
 
       .log-meta {
-        color: #8a9;
+        color: var(--muted);
       }
 
       .log-row.loaf {
-        border-left: 2px solid var(--gold);
+        border-left: 2px solid var(--muted);
         padding-left: 6px;
       }
 
@@ -242,7 +232,7 @@
       }
 
       .log-loaf-type {
-        color: var(--gold);
+        color: var(--muted);
       }
 
       .log-row.loaf.hot .log-loaf-type {
@@ -250,21 +240,20 @@
       }
 
       #status {
-        color: var(--ash);
-        font-family: ui-sans-serif, system-ui, sans-serif;
+        color: var(--muted);
         font-size: 12px;
       }
 
-      .vast-slot {
+      .large-tree-slot {
         margin-top: 10px;
         max-height: 140px;
         overflow: auto;
-        border: 1px dashed var(--line);
+        border: 1px dashed var(--border);
         border-radius: 4px;
         padding: 8px;
       }
 
-      .vast-slot .filler {
+      .large-tree-slot .filler {
         display: none;
       }
 
@@ -277,18 +266,18 @@
           top: 0;
           height: 40vh;
           border-left: 0;
-          border-top: 1px solid var(--line);
+          border-top: 1px solid var(--border);
         }
       }
     </style>
   </head>
   <body>
     <header class="banner">
-      <h1>Shadow Cursed Lands</h1>
+      <h1>Shadow DOM Autocapture Stress Test</h1>
       <p>
-        A map of open, nested, closed, slotted, late-mounted, and churning shadow trees for stressing Amplitude
-        autocapture. Click anything cursed. Paths that pierce a boundary should contain
-        <code> &gt;&gt;&gt; </code> when piercing is on.
+        Open, nested, closed, slotted, late-mounted, and churning shadow trees for stressing Amplitude autocapture.
+        Click any control. Paths that cross a shadow boundary should contain <code> &gt;&gt;&gt; </code> when piercing
+        is on.
       </p>
     </header>
 
@@ -312,95 +301,92 @@
     </div>
 
     <main>
-      <div class="map">
-        <article class="region" id="outskirts">
-          <h2>Moonrise Outskirts</h2>
+      <div class="scenarios">
+        <article class="scenario" id="light-dom">
+          <h2>Light DOM</h2>
           <p class="why">Light-DOM controls. Paths should never contain a shadow delimiter, flag on or off.</p>
           <div class="row">
-            <button id="light-button" class="cursed" type="button">Light button</button>
-            <a id="light-link" href="#outskirts">Light link</a>
-            <button id="light-role" class="cursed" type="button" role="button">Light role=button</button>
+            <button id="light-button" class="action" type="button">Light button</button>
+            <a id="light-link" href="#light-dom">Light link</a>
+            <button id="light-role" class="action" type="button" role="button">Light role=button</button>
           </div>
         </article>
 
-        <article class="region">
-          <h2>The Shadow-Cursed Grove</h2>
+        <article class="scenario">
+          <h2>Open shadow root, depth 1</h2>
           <p class="why">
-            Open shadow root, depth 1. Interactive mix: button, link, labeled input, pointer-cursor div. Expect one
-            <code>&gt;&gt;&gt;</code> when piercing is on.
+            Interactive mix: button, link, labeled input, pointer-cursor div. Expect one <code>&gt;&gt;&gt;</code> when
+            piercing is on.
           </p>
-          <grove-host id="grove-host"></grove-host>
+          <depth1-host id="depth1-host"></depth1-host>
         </article>
 
-        <article class="region">
-          <h2>The Deep Hollow</h2>
-          <p class="why">
-            Nested open roots at depths 2 and 3. With depth budget 3, the deepest click should emit three delimiters.
-          </p>
-          <hollow-host id="hollow-host"></hollow-host>
+        <article class="scenario">
+          <h2>Nested shadow roots, depth 2 and 3</h2>
+          <p class="why">With depth budget 3, the deepest click should emit three delimiters.</p>
+          <nested-host id="nested-host"></nested-host>
         </article>
 
-        <article class="region">
-          <h2>The Abyss</h2>
+        <article class="scenario">
+          <h2>Over-budget nesting</h2>
           <p class="why">
             Eight nested open roots — past a typical <code>maxShadowDomDepth</code>. Over-budget clicks should resolve
             to the outermost in-budget host, not crash.
           </p>
-          <abyss-host id="abyss-host"></abyss-host>
+          <deep-nest-host id="deep-nest-host"></deep-nest-host>
         </article>
 
-        <article class="region">
-          <h2>The Closed Gate</h2>
+        <article class="scenario">
+          <h2>Closed shadow root</h2>
           <p class="why">
-            Closed shadow root. Autocapture cannot pierce it; <code>composedPath</code> retargets to the host. Must not
-            throw.
+            Autocapture cannot pierce a closed root; <code>composedPath</code> retargets to the host. Must not throw.
           </p>
-          <closed-gate id="closed-gate"></closed-gate>
+          <closed-host id="closed-host"></closed-host>
         </article>
 
-        <article class="region">
-          <h2>The Twin Trees</h2>
+        <article class="scenario">
+          <h2>Duplicate id across the boundary</h2>
           <p class="why">
             The same <code>id="cta"</code> exists in the light DOM and inside an open shadow tree. The shadow click must
             not steal the light-DOM path (and vice versa).
           </p>
           <div class="row">
-            <button id="cta" class="cursed" type="button">Light #cta</button>
-            <twin-host id="twin-host"></twin-host>
+            <button id="cta" class="action" type="button">Light #cta</button>
+            <duplicate-id-host id="duplicate-id-host"></duplicate-id-host>
           </div>
         </article>
 
-        <article class="region">
-          <h2>The Root Brood</h2>
+        <article class="scenario">
+          <h2>Id-less sibling children of a shadow root</h2>
           <p class="why">
             Id-less same-tag siblings as direct children of a shadow root. Selectors must use a
-            <code>:scope &gt;</code> child chain so they round-trip (the orange.fr case).
+            <code>:scope &gt;</code> child chain so they round-trip.
           </p>
-          <brood-host id="brood-host"></brood-host>
+          <sibling-host id="sibling-host"></sibling-host>
         </article>
 
-        <article class="region">
-          <h2>The Slotted Path</h2>
+        <article class="scenario">
+          <h2>Slotted light-DOM content</h2>
           <p class="why">
             Light-DOM children projected through <code>&lt;slot&gt;</code>. A click on slotted content originates in the
             light tree — the path should stay undelimited. A click on an in-shadow sibling should pierce.
           </p>
           <slotted-host id="slotted-host">
-            <button id="slotted-button" class="cursed" type="button" slot="action">Slotted (light) button</button>
+            <button id="slotted-button" class="action" type="button" slot="action">Slotted (light) button</button>
           </slotted-host>
         </article>
 
-        <article class="region">
-          <h2>The Host that Bites</h2>
+        <article class="scenario">
+          <h2>Clickable host wrapping a shadow button</h2>
           <p class="why">
             The host itself is clickable (cursor:pointer) and also wraps an inner shadow button. Click the host chrome
             vs the inner button.
           </p>
-          <biting-host id="biting-host"></biting-host>
+          <clickable-host id="clickable-host"></clickable-host>
         </article>
 
-        <article class="region">
-          <h2>The Cursed Form</h2>
+        <article class="scenario">
+          <h2>Form controls in a shadow root</h2>
           <p class="why">
             Form, select, textarea, password, and hidden inputs inside a shadow tree. Password/hidden should stay
             untracked; the rest should capture.
@@ -408,14 +394,14 @@
           <form-host id="form-host"></form-host>
         </article>
 
-        <article class="region">
-          <h2>The Forgotten Glyph</h2>
+        <article class="scenario">
+          <h2>SVG in a shadow root</h2>
           <p class="why">SVG (and a clickable path) inside an open shadow root.</p>
-          <glyph-host id="glyph-host"></glyph-host>
+          <svg-host id="svg-host"></svg-host>
         </article>
 
-        <article class="region">
-          <h2>The Late Bloom</h2>
+        <article class="scenario">
+          <h2>Late-mounted host</h2>
           <p class="why">
             Host is inserted ~400ms after init. Mutation observers should discover the new open root when piercing is
             on.
@@ -423,63 +409,63 @@
           <div id="late-slot"></div>
         </article>
 
-        <article class="region">
-          <h2>The Silent Attach</h2>
+        <article class="scenario">
+          <h2>Deferred attachShadow</h2>
           <p class="why">
             Host is already in the DOM; <code>attachShadow</code> runs later with no child-list mutation. Documented
             observer gap — clicks should still work via <code>composedPath</code>.
           </p>
-          <silent-host id="silent-host"></silent-host>
+          <deferred-attach-host id="deferred-attach-host"></deferred-attach-host>
           <div class="row" style="margin-top: 8px">
-            <button id="attach-silent" class="cursed" type="button">Attach shadow to existing host</button>
+            <button id="attach-shadow-now" class="action" type="button">Attach shadow to existing host</button>
           </div>
         </article>
 
-        <article class="region">
-          <h2>The Swarm</h2>
+        <article class="scenario">
+          <h2>Many sibling hosts</h2>
           <p class="why">
             Many sibling open roots. Stresses one MutationObserver per discovered root plus deep
             <code>querySelectorAll</code>.
           </p>
-          <div id="swarm" class="swarm"></div>
+          <div id="many-hosts"></div>
         </article>
 
-        <article class="region">
-          <h2>The Churning Bog</h2>
+        <article class="scenario">
+          <h2>Mount/unmount churn</h2>
           <p class="why">Mount and unmount open hosts in a burst. Observers should attach and not leak errors.</p>
           <div class="row">
-            <button id="churn-add" class="cursed" type="button">Spawn 20 hosts</button>
-            <button id="churn-clear" class="cursed" type="button">Drain the bog</button>
+            <button id="churn-add" class="action" type="button">Add 20 hosts</button>
+            <button id="churn-clear" class="action" type="button">Remove all hosts</button>
           </div>
-          <div id="bog" class="swarm" style="margin-top: 10px"></div>
+          <div id="churn-container" style="margin-top: 10px"></div>
         </article>
 
-        <article class="region">
-          <h2>The Vast Forest</h2>
+        <article class="scenario">
+          <h2>Large subtree inserted in one mutation</h2>
           <p class="why">
             Builds a large light-DOM tree off-document (thousands of nodes, shadow host attached first), then inserts it
             in one mutation. Discovery must DFS that <code>addedNodes</code> batch and still find the buried open root —
             click the in-shadow button and expect a delimited path.
           </p>
           <div class="row">
-            <button id="vast-mount" class="cursed" type="button">Plant the vast forest</button>
-            <button id="vast-click" class="cursed" type="button">Click buried shadow button</button>
-            <button id="vast-clear" class="cursed" type="button">Clear-cut</button>
+            <button id="large-tree-mount" class="action" type="button">Mount large tree</button>
+            <button id="large-tree-click" class="action" type="button">Click buried shadow button</button>
+            <button id="large-tree-clear" class="action" type="button">Clear tree</button>
           </div>
-          <p id="vast-status" class="why" style="margin: 8px 0 0">Not planted.</p>
-          <div id="vast-slot" class="vast-slot"></div>
+          <p id="large-tree-status" class="why" style="margin: 8px 0 0">Not mounted.</p>
+          <div id="large-tree-slot" class="large-tree-slot"></div>
         </article>
 
-        <article class="region">
-          <h2>The Weave Stutters</h2>
+        <article class="scenario">
+          <h2>Main-thread blocking</h2>
           <p class="why">
             Deterministic main-thread blocks, to confirm the LoAF readout works and to compare frame cost with piercing
-            on vs off. Long Animation Frames appear as ⚡ rows in the log; the toolbar pill counts them.
+            on vs off. Long Animation Frames appear as LoAF rows in the log; the toolbar pill counts them.
           </p>
           <div class="row">
-            <button id="block-short" class="cursed" type="button">Block 30ms (usually no LoAF)</button>
-            <button id="block-long" class="cursed" type="button">Block 250ms</button>
-            <button id="block-click-handler" class="cursed" type="button">Slow click handler (150ms)</button>
+            <button id="block-short" class="action" type="button">Block 30ms (usually no LoAF)</button>
+            <button id="block-long" class="action" type="button">Block 250ms</button>
+            <button id="block-click-handler" class="action" type="button">Slow click handler (150ms)</button>
           </div>
         </article>
       </div>
@@ -602,11 +588,7 @@
         row.className = hot ? 'log-row loaf hot' : 'log-row loaf';
         const label = entryType === 'long-animation-frame' ? 'Long Animation Frame' : 'Long Task';
         row.innerHTML =
-          '<span class="log-loaf-type">⚡ ' +
-          label +
-          '</span><div class="log-meta">' +
-          parts.join(' · ') +
-          '</div>';
+          '<span class="log-loaf-type">' + label + '</span><div class="log-meta">' + parts.join(' · ') + '</div>';
         appendLogRow(row);
       }
 
@@ -641,6 +623,20 @@
       document.getElementById('clear-log').addEventListener('click', clearLog);
       document.getElementById('clear-log-panel').addEventListener('click', clearLog);
 
+      /** Plain control styling, injected into each shadow tree that renders controls. */
+      const shadowStyles = `
+        <style>
+          :host { display: block; }
+          .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+          button, a, label, .pointer, select, textarea, input { font: 13px/1.2 system-ui, sans-serif; }
+          button, a, .pointer {
+            background: #f7f7f7; color: #1a1a1a; border: 1px solid #d8d8d8;
+            border-radius: 4px; padding: 7px 12px; cursor: pointer; text-decoration: none;
+          }
+          input[type='text'], input[type='password'] { padding: 6px 8px; border: 1px solid #d8d8d8; border-radius: 4px; }
+        </style>
+      `;
+
       function attachOpen(host, html) {
         const root = host.attachShadow({ mode: 'open' });
         root.innerHTML = html;
@@ -656,7 +652,7 @@
           if (i === levels - 1) {
             root.innerHTML = innermostHtml;
           } else {
-            const next = document.createElement('abyss-layer');
+            const next = document.createElement('nest-layer');
             root.appendChild(next);
             current = next;
           }
@@ -664,64 +660,51 @@
         return root;
       }
 
-      // --- Grove: mixed interactive types, depth 1 ---
+      // --- Depth 1: mixed interactive types ---
       attachOpen(
-        document.getElementById('grove-host'),
+        document.getElementById('depth1-host'),
         `
-          <style>
-            :host { display: block; }
-            .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-            button, a, label, .pointer {
-              font: 13px/1.2 ui-sans-serif, system-ui, sans-serif;
-              background: #1c2922; color: #e8efe9; border: 1px solid #3d5c4a;
-              border-radius: 4px; padding: 7px 12px; cursor: pointer; text-decoration: none;
-            }
-            input { margin-left: 6px; }
-            .pointer { cursor: pointer; }
-          </style>
+          ${shadowStyles}
           <div class="row">
-            <button id="grove-button" type="button">Grove button</button>
-            <a id="grove-link" href="#outskirts">Grove link</a>
-            <label>Name <input id="grove-input" type="text" /></label>
-            <div id="grove-pointer" class="pointer" role="button">Pointer div</div>
+            <button id="depth1-button" type="button">Shadow button</button>
+            <a id="depth1-link" href="#light-dom">Shadow link</a>
+            <label>Name <input id="depth1-input" type="text" /></label>
+            <div id="depth1-pointer" class="pointer" role="button">Pointer div</div>
           </div>
         `,
       );
 
-      // --- Hollow: depth 2 and 3 ---
-      const hollowRoot = attachOpen(
-        document.getElementById('hollow-host'),
+      // --- Nested: depth 2 and 3 ---
+      const nestedRoot = attachOpen(
+        document.getElementById('nested-host'),
         '<mid-host></mid-host><deep-host></deep-host>',
       );
-      attachOpen(hollowRoot.querySelector('mid-host'), '<button id="depth-2-button" type="button">Depth 2</button>');
-      const deepRoot = attachOpen(hollowRoot.querySelector('deep-host'), '<deeper-host></deeper-host>');
+      attachOpen(nestedRoot.querySelector('mid-host'), '<button id="depth-2-button" type="button">Depth 2</button>');
+      const deepRoot = attachOpen(nestedRoot.querySelector('deep-host'), '<deeper-host></deeper-host>');
       attachOpen(deepRoot.querySelector('deeper-host'), '<button id="depth-3-button" type="button">Depth 3</button>');
 
-      // --- Abyss: 8 nested open roots ---
+      // --- Over-budget: 8 nested open roots ---
       nestDepth(
-        document.getElementById('abyss-host'),
+        document.getElementById('deep-nest-host'),
         8,
-        '<button id="abyss-button" type="button">Click from the abyss</button>',
+        '<button id="deep-nest-button" type="button">Depth 8</button>',
       );
 
       // --- Closed ---
-      const closedRoot = document.getElementById('closed-gate').attachShadow({ mode: 'closed' });
+      const closedRoot = document.getElementById('closed-host').attachShadow({ mode: 'closed' });
       closedRoot.innerHTML = '<button id="closed-button" type="button">Closed (should retarget)</button>';
 
-      // --- Twin IDs ---
-      attachOpen(document.getElementById('twin-host'), '<button id="cta" type="button">Shadow #cta</button>');
+      // --- Duplicate ids ---
+      attachOpen(document.getElementById('duplicate-id-host'), '<button id="cta" type="button">Shadow #cta</button>');
 
-      // --- Brood: positional siblings at shadow-root top ---
+      // --- Positional siblings at shadow-root top ---
       attachOpen(
-        document.getElementById('brood-host'),
+        document.getElementById('sibling-host'),
         `
-          <style>
-            button { font: 13px ui-sans-serif, system-ui, sans-serif; margin: 0 4px 4px 0;
-              background:#1c2922;color:#e8efe9;border:1px solid #3d5c4a;border-radius:4px;padding:7px 12px;cursor:pointer; }
-          </style>
+          ${shadowStyles}
           <div><div>nested a</div><div>nested b</div></div>
-          <div><button type="button" data-brood="second">Second root-child (no id)</button></div>
-          <div><button type="button" data-brood="third">Third root-child (no id)</button></div>
+          <div><button type="button" data-sibling="second">Second root-child (no id)</button></div>
+          <div><button type="button" data-sibling="third">Third root-child (no id)</button></div>
         `,
       );
 
@@ -729,167 +712,156 @@
       attachOpen(
         document.getElementById('slotted-host'),
         `
-          <style>
-            :host { display: block; }
-            .shell { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
-            button { font: 13px ui-sans-serif, system-ui, sans-serif;
-              background:#1c2922;color:#e8efe9;border:1px solid #3d5c4a;border-radius:4px;padding:7px 12px;cursor:pointer; }
-          </style>
-          <div class="shell">
+          ${shadowStyles}
+          <div class="row">
             <slot name="action"></slot>
             <button id="in-shadow-slot-sib" type="button">In-shadow sibling</button>
           </div>
         `,
       );
 
-      // --- Biting host ---
-      const biting = document.getElementById('biting-host');
-      biting.style.cssText =
-        'display:inline-block;cursor:pointer;padding:10px;border:1px dashed #3d5c4a;border-radius:4px;';
-      biting.setAttribute('role', 'button');
-      attachOpen(biting, '<button id="biting-inner" type="button">Inner bite</button>');
+      // --- Clickable host ---
+      const clickableHost = document.getElementById('clickable-host');
+      clickableHost.style.cssText =
+        'display:inline-block;cursor:pointer;padding:10px;border:1px dashed #d8d8d8;border-radius:4px;';
+      clickableHost.setAttribute('role', 'button');
+      attachOpen(clickableHost, '<button id="clickable-host-inner" type="button">Inner button</button>');
 
       // --- Form ---
       const formRoot = attachOpen(
         document.getElementById('form-host'),
         `
-          <style>
-            form { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-            button, select, textarea, input { font: 13px ui-sans-serif, system-ui, sans-serif; }
-            button { background:#1c2922;color:#e8efe9;border:1px solid #3d5c4a;border-radius:4px;padding:7px 12px;cursor:pointer; }
-          </style>
-          <form id="cursed-form">
+          ${shadowStyles}
+          <form id="shadow-form" class="row">
             <input name="visible" type="text" placeholder="visible text" />
             <input name="secret" type="password" placeholder="password" />
-            <input name="hidden" type="hidden" value="nope" />
-            <select name="patron">
-              <option>Shar</option>
-              <option>Selûne</option>
+            <input name="hidden" type="hidden" value="hidden value" />
+            <select name="choice">
+              <option>Option A</option>
+              <option>Option B</option>
             </select>
-            <textarea name="oath" rows="1" cols="16">swear</textarea>
-            <button type="submit">Submit oath</button>
+            <textarea name="notes" rows="1" cols="16">notes</textarea>
+            <button type="submit">Submit</button>
           </form>
         `,
       );
-      formRoot.getElementById('cursed-form').addEventListener('submit', (e) => {
+      formRoot.getElementById('shadow-form').addEventListener('submit', (e) => {
         e.preventDefault();
       });
 
       // --- SVG ---
       attachOpen(
-        document.getElementById('glyph-host'),
+        document.getElementById('svg-host'),
         `
-          <svg id="glyph" width="64" height="64" viewBox="0 0 64 64" role="img" aria-label="cursed glyph">
-            <circle cx="32" cy="32" r="28" fill="#1c2922" stroke="#7dff9a" stroke-width="2"></circle>
-            <path id="glyph-path" d="M20 40 L32 16 L44 40 Z" fill="#c4a574" style="cursor:pointer"></path>
+          <svg id="svg-icon" width="64" height="64" viewBox="0 0 64 64" role="img" aria-label="test icon">
+            <circle cx="32" cy="32" r="28" fill="#f7f7f7" stroke="#1a56db" stroke-width="2"></circle>
+            <path id="svg-path" d="M20 40 L32 16 L44 40 Z" fill="#1a56db" style="cursor:pointer"></path>
           </svg>
         `,
       );
 
-      // --- Swarm ---
-      const swarm = document.getElementById('swarm');
+      // --- Many sibling hosts ---
+      const manyHosts = document.getElementById('many-hosts');
       for (let i = 0; i < 24; i++) {
-        const host = document.createElement('swarm-host');
-        host.id = `swarm-${i}`;
-        swarm.appendChild(host);
-        attachOpen(host, `<button type="button">Wisp ${i + 1}</button>`);
+        const host = document.createElement('sibling-list-host');
+        host.id = `sibling-list-host-${i}`;
+        manyHosts.appendChild(host);
+        attachOpen(host, `<button type="button">Host ${i + 1}</button>`);
       }
 
-      // --- Late bloom ---
+      // --- Late mount ---
       setTimeout(() => {
         const late = document.createElement('late-host');
         late.id = 'late-host';
         document.getElementById('late-slot').appendChild(late);
-        attachOpen(late, '<button id="late-button" type="button">Late-mounted bloom</button>');
+        attachOpen(late, '<button id="late-button" type="button">Late-mounted button</button>');
         document.getElementById('status').setAttribute('data-late', 'mounted');
       }, 400);
 
-      // --- Silent attach (host already in DOM) ---
-      document.getElementById('attach-silent').addEventListener('click', () => {
-        const host = document.getElementById('silent-host');
+      // --- Deferred attach (host already in DOM) ---
+      document.getElementById('attach-shadow-now').addEventListener('click', () => {
+        const host = document.getElementById('deferred-attach-host');
         if (host.shadowRoot) {
           return;
         }
-        attachOpen(host, '<button id="silent-button" type="button">Attached in place</button>');
+        attachOpen(host, '<button id="deferred-attach-button" type="button">Attached in place</button>');
       });
 
       // --- Churn ---
       document.getElementById('churn-add').addEventListener('click', () => {
-        const bog = document.getElementById('bog');
+        const container = document.getElementById('churn-container');
         for (let i = 0; i < 20; i++) {
-          const host = document.createElement('bog-host');
-          bog.appendChild(host);
-          attachOpen(host, `<button type="button">Spawn ${bog.children.length}</button>`);
+          const host = document.createElement('churn-host');
+          container.appendChild(host);
+          attachOpen(host, `<button type="button">Churn ${container.children.length}</button>`);
         }
       });
       document.getElementById('churn-clear').addEventListener('click', () => {
-        document.getElementById('bog').innerHTML = '';
+        document.getElementById('churn-container').innerHTML = '';
       });
 
-      // --- Vast forest: one mutation inserting a huge subtree with a buried open root ---
+      // --- Large tree: one mutation inserting a huge subtree with a buried open root ---
       // Host + shadow are assembled off-document so `attachShadow` itself is not a
       // mutation. The document observer sees a single `addedNodes` entry and must
       // DFS (capped at 50k nodes) to discover the open root and capture its button.
-      const VAST_DEPTH = 40;
-      const VAST_FILLERS = 4000;
+      const LARGE_TREE_DEPTH = 40;
+      const LARGE_TREE_FILLERS = 4000;
 
-      function findVastButton() {
-        const host = document.getElementById('vast-host');
-        return host?.shadowRoot?.getElementById('vast-button') || null;
+      function findLargeTreeButton() {
+        const host = document.getElementById('large-tree-host');
+        return host?.shadowRoot?.getElementById('large-tree-button') || null;
       }
 
-      document.getElementById('vast-mount').addEventListener('click', () => {
-        const slot = document.getElementById('vast-slot');
+      document.getElementById('large-tree-mount').addEventListener('click', () => {
+        const slot = document.getElementById('large-tree-slot');
         slot.replaceChildren();
 
-        const forest = document.createElement('vast-forest');
-        forest.id = 'vast-forest';
-        let nest = forest;
-        for (let i = 0; i < VAST_DEPTH; i++) {
-          const layer = document.createElement('vast-layer');
+        const tree = document.createElement('large-tree-root');
+        tree.id = 'large-tree-root';
+        let nest = tree;
+        for (let i = 0; i < LARGE_TREE_DEPTH; i++) {
+          const layer = document.createElement('large-tree-layer');
           nest.appendChild(layer);
           nest = layer;
         }
 
-        const host = document.createElement('vast-host');
-        host.id = 'vast-host';
+        const host = document.createElement('large-tree-host');
+        host.id = 'large-tree-host';
         // First child of the deepest layer: LIFO DFS visits later siblings first,
-        // so the host is found only after walking the filler forest.
+        // so the host is found only after walking the filler nodes.
         nest.appendChild(host);
-        attachOpen(
-          host,
-          '<button id="vast-button" type="button">Buried in the vast forest</button>',
-        );
+        attachOpen(host, '<button id="large-tree-button" type="button">Buried shadow button</button>');
 
         const fillerFrag = document.createDocumentFragment();
-        for (let i = 0; i < VAST_FILLERS; i++) {
+        for (let i = 0; i < LARGE_TREE_FILLERS; i++) {
           const filler = document.createElement('div');
           filler.className = 'filler';
           fillerFrag.appendChild(filler);
         }
         nest.appendChild(fillerFrag);
 
-        const nodes = 1 + VAST_DEPTH + 1 + VAST_FILLERS;
+        const nodes = 1 + LARGE_TREE_DEPTH + 1 + LARGE_TREE_FILLERS;
         const t0 = performance.now();
-        slot.appendChild(forest);
+        slot.appendChild(tree);
         const insertMs = Math.round(performance.now() - t0);
-        document.getElementById('vast-status').textContent =
-          `${nodes.toLocaleString()} light-DOM nodes · ${VAST_DEPTH} layers · shadow host first among ${VAST_FILLERS.toLocaleString()} siblings · inserted in ${insertMs}ms`;
+        document.getElementById(
+          'large-tree-status',
+        ).textContent = `${nodes.toLocaleString()} light-DOM nodes · ${LARGE_TREE_DEPTH} layers · shadow host first among ${LARGE_TREE_FILLERS.toLocaleString()} siblings · inserted in ${insertMs}ms`;
       });
 
-      document.getElementById('vast-click').addEventListener('click', () => {
-        const button = findVastButton();
-        const status = document.getElementById('vast-status');
+      document.getElementById('large-tree-click').addEventListener('click', () => {
+        const button = findLargeTreeButton();
+        const status = document.getElementById('large-tree-status');
         if (!button) {
-          status.textContent = 'Forest not planted — plant it first, then click the buried button.';
+          status.textContent = 'Tree not mounted — mount it first, then click the buried button.';
           return;
         }
         button.click();
       });
 
-      document.getElementById('vast-clear').addEventListener('click', () => {
-        document.getElementById('vast-slot').replaceChildren();
-        document.getElementById('vast-status').textContent = 'Not planted.';
+      document.getElementById('large-tree-clear').addEventListener('click', () => {
+        document.getElementById('large-tree-slot').replaceChildren();
+        document.getElementById('large-tree-status').textContent = 'Not mounted.';
       });
 
       // --- Deterministic main-thread blocks ---
@@ -907,7 +879,9 @@
       });
 
       function installEventLogger() {
-        logHint.textContent = `shadow ${shadowOn ? 'ON' : 'OFF'} · depth ${depth} · click the map · ⚡ rows are Long Animation Frames`;
+        logHint.textContent = `shadow ${
+          shadowOn ? 'ON' : 'OFF'
+        } · depth ${depth} · click a control · Long Animation Frames are logged too`;
         return {
           name: 'harness-event-logger',
           type: 'enrichment',
@@ -949,10 +923,10 @@
         });
       }
 
-      const apiKey = import.meta.env.VITE_AMPLITUDE_API_KEY || 'shadow-cursed-lands-key';
+      const apiKey = import.meta.env.VITE_AMPLITUDE_API_KEY || 'shadow-dom-stress-key';
 
       amplitude
-        .init(apiKey, 'shadow-cursed-traveler', {
+        .init(apiKey, 'test-user', {
           fetchRemoteConfig: false,
           flushIntervalMillis: 300,
           flushQueueSize: 1,
