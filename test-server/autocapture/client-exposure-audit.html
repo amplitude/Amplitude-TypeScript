@@ -15,10 +15,7 @@
       import * as audit from '@amplitude/plugin-autocapture-browser/e2e/client-exposure-audit.browser';
 
       window.AmplitudeExposureAudit = audit;
-      audit.install({
-        allowlist: ['button'],
-        exposureDuration: 25,
-      });
+      audit.install();
       document.getElementById('status').textContent = 'ready';
     </script>
   </body>

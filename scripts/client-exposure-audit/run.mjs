@@ -131,6 +131,11 @@ try {
   await fs.mkdir(path.dirname(outputPath), { recursive: true });
   await fs.writeFile(outputPath, `${JSON.stringify(report, null, 2)}\n`);
 
+  // A settings-only sibling file, small enough to read end to end and diff
+  // against a customer's current remote config without wading through scenarios.
+  const settingsPath = outputPath.replace(/(\.json)?$/, '.settings.json');
+  await fs.writeFile(settingsPath, `${JSON.stringify(report.settings, null, 2)}\n`);
+
   if (argv.screenshot) {
     const screenshotPath = path.resolve(argv.screenshot);
     await fs.mkdir(path.dirname(screenshotPath), { recursive: true });
@@ -140,6 +145,7 @@ try {
   const { summary } = report;
   console.log(`Exposure audit: ${report.title || report.url}`);
   console.log(`Report: ${outputPath}`);
+  console.log(`Settings: ${settingsPath}`);
   console.log(
     [
       `${summary.exposed} exposed`,
@@ -163,6 +169,25 @@ try {
       console.log(`- ${suggestion.kind}: ${suggestion.pattern} — ${suggestion.evidence.join(', ')}`);
     });
   }
+
+  const changed = report.settings.changes.filter((change) => change.changed);
+  console.log('\nSDK default vs recommended:');
+  if (!changed.length) {
+    console.log('- no changes recommended, the defaults already cover this page');
+  }
+  changed.forEach((change) => {
+    if (change.kind === 'list') {
+      console.log(
+        `- ${change.field}: ${change.entryCount.sdkDefault} -> ${change.entryCount.recommended} entries`,
+      );
+      change.added.forEach((value) => console.log(`    + ${value}`));
+      change.removed.forEach((value) => console.log(`    - ${value}`));
+    } else {
+      console.log(`- ${change.field}: ${change.sdkDefault} -> ${change.recommended}`);
+    }
+    console.log(`    ${change.reason}`);
+  });
+  report.settings.notes.forEach((note) => console.log(`\nNote: ${note}`));
 } finally {
   await browser.close();
   await fs.rm(tempDir, { recursive: true, force: true });
