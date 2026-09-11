@@ -89,8 +89,25 @@ const getActiveRouteName = (navigationState: NavigationState): string | undefine
   return routeName;
 };
 
-// TODO: Remove IS_DIAGNOSTICS_CAPTURED when we're ready for diagnostics capture
-const IS_DIAGNOSTICS_CAPTURED = false;
+const getRemoteConfigPlatform = () => {
+  switch (Platform.OS) {
+    case 'ios':
+      return {
+        configGroup: 'ios',
+        diagnosticsKey: 'configs.diagnostics.iosSDK',
+      };
+    case 'android':
+      return {
+        configGroup: 'android',
+        diagnosticsKey: 'configs.diagnostics.androidSDK',
+      };
+    default:
+      return {
+        configGroup: 'browser',
+        diagnosticsKey: 'configs.diagnostics.browserSDK',
+      };
+  }
+};
 const getNetworkTrackingConfig = (config: ReactNativeConfig): NetworkTrackingOptions | undefined => {
   let networkTrackingConfig;
   if (typeof config.autocapture === 'object' && typeof config.autocapture.networkTracking === 'object') {
@@ -145,65 +162,57 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
     }
     const serverZone = options.serverZone ?? 'US';
     let remoteConfigClient: IRemoteConfigClient | undefined;
+    let diagnosticsSampleRate = 0;
 
     // Step 0.2: Fetch diagnostics config
-    // let diagnosticsSampleRate: number;
-    // let enableDiagnostics: boolean = false;
     if (fetchRemoteConfig) {
+      const remoteConfigPlatform = getRemoteConfigPlatform();
       remoteConfigClient = new RemoteConfigClient(
         options.apiKey,
         loggerProvider,
         serverZone,
         /* istanbul ignore next */ options.remoteConfig?.serverUrl,
+        undefined,
+        remoteConfigPlatform.configGroup,
       );
-      // Diagnostics capture is intentionally disabled for React Native until ready.
-      /* istanbul ignore if */
-      if (IS_DIAGNOSTICS_CAPTURED) {
-        await new Promise<void>((resolve) => {
-          remoteConfigClient?.subscribe(
-            'configs.diagnostics.reactNativeSDK',
-            'all',
-            (remoteConfig: RemoteConfig | null, source: Source, lastFetch: Date) => {
-              loggerProvider.debug(
-                'Diagnostics remote configuration received:',
-                safeJsonStringify(
-                  {
-                    remoteConfig,
-                    source,
-                    lastFetch,
-                  },
-                  null,
-                  2,
-                ),
-              );
-              if (remoteConfig) {
-                // Validate and set sampleRate (must be a valid number)
-                // const sampleRate = remoteConfig.sampleRate as number;
-                // if (typeof sampleRate === 'number' && !isNaN(sampleRate)) {
-                //   diagnosticsSampleRate = sampleRate;
-                // }
-                // // Validate and set enabled (must be a boolean)
-                // const enabled = remoteConfig.enabled as boolean;
-                // if (typeof enabled === 'boolean') {
-                //   enableDiagnostics = enabled;
-                // }
+      await new Promise<void>((resolve) => {
+        remoteConfigClient?.subscribe(
+          remoteConfigPlatform.diagnosticsKey,
+          'all',
+          (remoteConfig: RemoteConfig | null, source: Source, lastFetch: Date) => {
+            loggerProvider.debug(
+              'Diagnostics remote configuration received:',
+              safeJsonStringify(
+                {
+                  remoteConfig,
+                  source,
+                  lastFetch,
+                },
+                null,
+                2,
+              ),
+            );
+            if (remoteConfig) {
+              const sampleRate = remoteConfig.sampleRate as number;
+              if (typeof sampleRate === 'number' && !isNaN(sampleRate)) {
+                diagnosticsSampleRate = sampleRate;
               }
-              resolve();
-            },
-          );
-        });
-      }
+            }
+            resolve();
+          },
+        );
+      });
     }
 
     // Step 0.3: Initialize diagnostics client as early as possible so it can record failures
     // during config setup. Mirrors the browser SDK; storage is injected because RN has no
-    // IndexedDB. Options are left at their defaults (enabled, sample rate 0), which keeps the
-    // client inert until the remote config gate above is turned on.
+    // IndexedDB. The platform-specific remote config sample rate keeps the client inert when
+    // diagnostics are not configured, since the default sample rate is 0.
     const diagnosticsClient = new DiagnosticsClient(
       options.apiKey,
       loggerProvider,
       serverZone,
-      undefined,
+      { sampleRate: diagnosticsSampleRate },
       new ReactNativeDiagnosticsStorage(options.apiKey, loggerProvider),
     );
     diagnosticsClient.setTag('library', `${LIBPREFIX}/${VERSION}`);
