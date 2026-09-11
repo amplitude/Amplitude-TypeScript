@@ -80,6 +80,7 @@ describe('joined-config', () => {
         fileDownloads: false,
         formInteractions: false,
         pageViews: false,
+        screenViews: false,
         attribution: false,
         sessions: false,
         elementInteractions: true,

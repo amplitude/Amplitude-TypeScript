@@ -54,6 +54,7 @@ export {
   RemoteConfigClient,
   IRemoteConfigClient,
   RemoteConfig,
+  RemoteConfigGroup,
   Source,
   RemoteConfigFetchRequest,
   RemoteConfigCustomFetch,
