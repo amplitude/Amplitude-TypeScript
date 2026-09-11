@@ -78,3 +78,7 @@ class-aware consumers and future selector strategies.
 The harness never clicks controls, submits forms, or writes analytics. It does
 scroll the document and up to ten visible overflow containers, which can trigger
 normal lazy-loading behavior on the page.
+
+Reports include page URLs, element text, IDs, and classes. Treat reports from
+client pages as customer data: keep them in approved storage and redact them
+before sharing outside the investigation.
