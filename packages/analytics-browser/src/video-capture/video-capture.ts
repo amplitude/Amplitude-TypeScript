@@ -8,7 +8,19 @@ import {
   BaseEvent,
   getHeartbeatInstance,
 } from '@amplitude/analytics-core';
-import { DEFAULT_CONTENT_STARTED_EVENT, DEFAULT_CONTENT_STOPPED_EVENT } from '../constants';
+import {
+  DEFAULT_CONTENT_STARTED_EVENT,
+  DEFAULT_CONTENT_STOPPED_EVENT,
+  DELIVERY_MODE,
+  DURATION,
+  ERROR_MESSAGE,
+  PERCENT_COMPLETED,
+  PLAY_ID,
+  POSITION,
+  START_TIME,
+  STOP_REASON,
+  WATCH_DURATION,
+} from '../constants';
 
 /** Playback states where a view session is still in progress (e.g. buffering). */
 const ACTIVE_PLAYBACK_STATES = new Set<VideoState['playbackState']>(['playing', 'waiting']);
@@ -18,7 +30,7 @@ const ACTIVE_PLAYBACK_STATES = new Set<VideoState['playbackState']>(['playing', 
  * and `percent_completed`/`stop_reason` describe the player event rather than the play session,
  * which tracks its own values.
  */
-const OMITTED_VIDEO_EVENT_PROPERTIES = new Set(['last_position', 'percent_completed', 'stop_reason']);
+const OMITTED_VIDEO_EVENT_PROPERTIES = new Set(['last_position', PERCENT_COMPLETED, STOP_REASON]);
 
 /**
  * Copy remaining player-event fields (vendor metadata such as `mux_playback_id`, ids, titles)
@@ -112,7 +124,7 @@ export class VideoCapture {
           event_properties: {
             ...this.parseStartEventProperties(nextState),
             ...this.extraEventProperties,
-            play_id: this.playId,
+            [PLAY_ID]: this.playId,
           },
         };
         this.stopEvent = {
@@ -123,8 +135,8 @@ export class VideoCapture {
           event_properties: {
             ...this.parseStopEventProperties(nextState),
             ...this.extraEventProperties,
-            stop_reason: 'timeout',
-            play_id: this.playId,
+            [STOP_REASON]: 'timeout',
+            [PLAY_ID]: this.playId,
           },
         };
         this.heartbeat.trackNoDelay(startEvent).catch(this.stop.bind(this));
@@ -179,7 +191,7 @@ export class VideoCapture {
     this.playStartTime = null;
     stopEvent.event_properties = {
       ...stopEvent.event_properties,
-      stop_reason: stopReason,
+      [STOP_REASON]: stopReason,
     };
     this.heartbeat.trackNoDelay(stopEvent).catch(this.stop.bind(this));
   }
@@ -235,10 +247,10 @@ export class VideoCapture {
   parseStartEventProperties(nextState: VideoState): Record<string, string | number | boolean> {
     return {
       ...parseVideoEventProperties(nextState.lastEvent),
-      duration: nextState.lastEvent?.duration ?? 0,
-      start_time: nextState.lastEvent?.start_time ?? 0,
-      position: nextState.position ?? 0,
-      delivery_mode: this.getDeliveryMode(),
+      [DURATION]: nextState.lastEvent?.duration ?? 0,
+      [START_TIME]: nextState.lastEvent?.start_time ?? 0,
+      [POSITION]: nextState.position ?? 0,
+      [DELIVERY_MODE]: this.getDeliveryMode(),
     };
   }
 
@@ -251,10 +263,10 @@ export class VideoCapture {
       ...this.parseStartEventProperties(nextState),
       // lastEvent.start_time is the playhead at the time of the event, which for a stop event is
       // where playback ended, so the position captured when the play session began is preferred.
-      start_time: this.playStartTime ?? nextState.lastEvent?.start_time ?? 0,
-      watch_duration: nextState.watchTime ?? 0,
-      percent_completed: calculatePercentCompleted(nextState.position ?? 0, nextState.lastEvent?.duration ?? 0),
-      ...(nextState.errorMessage ? { error_message: nextState.errorMessage } : {}),
+      [START_TIME]: this.playStartTime ?? nextState.lastEvent?.start_time ?? 0,
+      [WATCH_DURATION]: nextState.watchTime ?? 0,
+      [PERCENT_COMPLETED]: calculatePercentCompleted(nextState.position ?? 0, nextState.lastEvent?.duration ?? 0),
+      ...(nextState.errorMessage ? { [ERROR_MESSAGE]: nextState.errorMessage } : {}),
     };
   }
 }
