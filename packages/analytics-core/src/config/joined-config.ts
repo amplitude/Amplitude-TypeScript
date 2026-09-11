@@ -153,6 +153,13 @@ export function translateRemoteConfigToLocal(config?: Record<string, any>) {
     // surprise exception, so don't translate it
   }
 
+  // alias browser `pageViews` onto React Native `screenViews`. Remote config
+  // currently delivers browserSDK-shaped payloads; keep `pageViews` so the
+  // browser SDK still receives it.
+  if (config.autocapture?.pageViews !== undefined) {
+    config.autocapture.screenViews = config.autocapture.pageViews;
+  }
+
   // translate frustrationInteractions pluralization
   const frustrationInteractions = config.autocapture?.frustrationInteractions;
   if (frustrationInteractions) {

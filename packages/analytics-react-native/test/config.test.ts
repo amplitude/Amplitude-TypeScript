@@ -398,12 +398,12 @@ describe('config', () => {
       expect(shouldFetchRemoteConfig({ remoteConfig: { fetchRemoteConfig: false } })).toBe(false);
     });
 
-    test('should return false when remoteConfig is undefined (opt-in default for React Native)', () => {
-      expect(shouldFetchRemoteConfig({})).toBe(false);
+    test('should return true when remoteConfig is undefined', () => {
+      expect(shouldFetchRemoteConfig({})).toBe(true);
     });
 
-    test('should return false when options is undefined', () => {
-      expect(shouldFetchRemoteConfig()).toBe(false);
+    test('should return true when options is undefined', () => {
+      expect(shouldFetchRemoteConfig()).toBe(true);
     });
   });
 });

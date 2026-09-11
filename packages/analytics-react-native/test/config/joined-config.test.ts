@@ -17,12 +17,36 @@ describe('joined-config', () => {
       expect(localConfig.autocapture).toBe(originalAutocapture);
     });
 
+    test.each([false, undefined])(
+      'should not merge remote autocapture when local autocapture is %s',
+      (localAutocapture) => {
+        localConfig = useDefaultConfig({ autocapture: localAutocapture });
+        const originalAutocapture = localConfig.autocapture;
+
+        updateReactNativeConfigWithRemoteConfig({ autocapture: true }, localConfig);
+        expect(localConfig.autocapture).toBe(originalAutocapture);
+
+        updateReactNativeConfigWithRemoteConfig({ autocapture: { sessions: true } }, localConfig);
+        expect(localConfig.autocapture).toBe(originalAutocapture);
+      },
+    );
+
     test('should set autocapture from boolean remote autocapture', () => {
+      localConfig = useDefaultConfig({ autocapture: { sessions: true } });
       updateReactNativeConfigWithRemoteConfig({ autocapture: true }, localConfig);
       expect(localConfig.autocapture).toBe(true);
     });
 
     test('should merge autocapture.sessions from remote config', () => {
+      localConfig = useDefaultConfig({
+        autocapture: {
+          screenViews: false,
+          sessions: false,
+          appLifecycles: false,
+          elementInteractions: false,
+          networkTracking: false,
+        },
+      });
       updateReactNativeConfigWithRemoteConfig(
         {
           autocapture: {
@@ -40,24 +64,10 @@ describe('joined-config', () => {
       });
     });
 
-    test('should use remote autocapture if local autocapture is undefined', () => {
-      localConfig = useDefaultConfig({});
-
-      const remoteConfig = {
-        autocapture: {
-          sessions: false,
-          networkTracking: true,
-        },
-      };
-
-      updateReactNativeConfigWithRemoteConfig(remoteConfig, localConfig);
-      expect(localConfig.autocapture).toStrictEqual(remoteConfig.autocapture);
-    });
-
     test.each([true, false])(
       'should overwrite local autocapture if remote autocapture is boolean',
       (remoteAutocapture) => {
-        localConfig = useDefaultConfig({});
+        localConfig = useDefaultConfig({ autocapture: true });
 
         const remoteConfig = {
           autocapture: remoteAutocapture,
@@ -69,6 +79,7 @@ describe('joined-config', () => {
     );
 
     test('should handle errors gracefully', () => {
+      localConfig = useDefaultConfig({ autocapture: true });
       const logError = jest.spyOn(localConfig.loggerProvider, 'error');
 
       const remoteConfig = {
@@ -112,7 +123,7 @@ describe('joined-config', () => {
     describe('networkTracking', () => {
       describe('headers', () => {
         test('should translate responseHeaders and requestHeaders to local responseHeaders and requestHeaders', () => {
-          localConfig = useDefaultConfig({});
+          localConfig = useDefaultConfig({ autocapture: true });
 
           const remoteConfig = {
             autocapture: {
@@ -150,7 +161,7 @@ describe('joined-config', () => {
         });
 
         test('should not fail if headers are malformed', () => {
-          localConfig = useDefaultConfig({});
+          localConfig = useDefaultConfig({ autocapture: true });
 
           const remoteConfig = {
             autocapture: {
@@ -168,7 +179,7 @@ describe('joined-config', () => {
       });
 
       test('should merge urls and urlsRegex', () => {
-        localConfig = useDefaultConfig({});
+        localConfig = useDefaultConfig({ autocapture: true });
 
         const remoteConfig = {
           autocapture: {
@@ -196,7 +207,7 @@ describe('joined-config', () => {
       });
 
       test('should merge urls if urls is undefined and urlsRegex is provided', () => {
-        localConfig = useDefaultConfig({});
+        localConfig = useDefaultConfig({ autocapture: true });
 
         const remoteConfig = {
           autocapture: {
@@ -217,7 +228,7 @@ describe('joined-config', () => {
       });
 
       test('should skip and warn on invalid regex patterns', () => {
-        localConfig = useDefaultConfig({});
+        localConfig = useDefaultConfig({ autocapture: true });
 
         const remoteConfig = {
           autocapture: {
@@ -245,7 +256,7 @@ describe('joined-config', () => {
       });
 
       test('should not have urls if captureRules is undefined', () => {
-        localConfig = useDefaultConfig({});
+        localConfig = useDefaultConfig({ autocapture: true });
 
         const remoteConfig = {
           autocapture: {

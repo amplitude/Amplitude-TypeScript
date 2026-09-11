@@ -91,6 +91,9 @@ const getActiveRouteName = (navigationState: NavigationState): string | undefine
 
 // TODO: Remove IS_DIAGNOSTICS_CAPTURED when we're ready for diagnostics capture
 const IS_DIAGNOSTICS_CAPTURED = false;
+const getRemoteConfigGroup = () => (Platform.OS === 'android' ? 'android' : 'ios');
+const getRemoteConfigSdkKey = () =>
+  Platform.OS === 'android' ? 'configs.analyticsSDK.androidSDK' : 'configs.analyticsSDK.iosSDK';
 const getNetworkTrackingConfig = (config: ReactNativeConfig): NetworkTrackingOptions | undefined => {
   let networkTrackingConfig;
   if (typeof config.autocapture === 'object' && typeof config.autocapture.networkTracking === 'object') {
@@ -144,6 +147,7 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
       loggerProvider.enable(options.logLevel ?? LogLevel.Warn);
     }
     const serverZone = options.serverZone ?? 'US';
+    const remoteConfigGroup = getRemoteConfigGroup();
     let remoteConfigClient: IRemoteConfigClient | undefined;
 
     // Step 0.2: Fetch diagnostics config
@@ -155,6 +159,8 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
         loggerProvider,
         serverZone,
         /* istanbul ignore next */ options.remoteConfig?.serverUrl,
+        undefined,
+        remoteConfigGroup,
       );
       // Diagnostics capture is intentionally disabled for React Native until ready.
       /* istanbul ignore if */
@@ -231,7 +237,7 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
     if (fetchRemoteConfig && remoteConfigClient) {
       await new Promise<void>((resolve) => {
         remoteConfigClient?.subscribe(
-          'configs.analyticsSDK.reactNativeSDK',
+          getRemoteConfigSdkKey(),
           'all',
           (remoteConfig: RemoteConfig | null, source: Source, lastFetch: Date) => {
             loggerProvider.debug(

@@ -5,8 +5,9 @@ export class RemoteConfigLocalStorage implements RemoteConfigStorage {
   private readonly key: string;
   private readonly logger: ILogger;
 
-  constructor(apiKey: string, logger: ILogger) {
-    this.key = `AMP_remote_config_${apiKey.substring(0, 10)}`;
+  constructor(apiKey: string, logger: ILogger, configGroup = 'browser') {
+    const groupSuffix = configGroup === 'browser' ? '' : `_${configGroup}`;
+    this.key = `AMP_remote_config_${apiKey.substring(0, 10)}${groupSuffix}`;
     this.logger = logger;
   }
 
