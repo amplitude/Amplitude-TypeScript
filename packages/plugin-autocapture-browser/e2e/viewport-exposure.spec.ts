@@ -7,6 +7,7 @@ const ELEMENT_EXPOSED_PROP = '[Amplitude] Element Exposed';
 const TARGET_PATH = 'button#exposure-target';
 const OVERSIZED_TARGET_PATH = 'button#oversized-target';
 const NESTED_SCROLL_TARGET_PATH = 'button#nested-scroll-target';
+const SITE_HEADER_PATH = 'button#site-header';
 
 // The harness configures exposureDuration: 150. Wait comfortably longer so a slow
 // runner cannot mistake "not exposed yet" for "not exposed at all".
@@ -48,7 +49,7 @@ function parseRequestBody(request: Request): Record<string, unknown> | undefined
 }
 
 /**
- * Real-browser coverage for Contentsquare-style midpoint exposure behind
+ * Real-browser coverage for midpoint exposure behind
  * `[Amplitude] Viewport Content Updated`. jsdom has no layout and no
  * IntersectionObserver, so the unit tests can only feed synthetic entries to
  * `trackExposure`; only a real browser exercises the observer options in
@@ -111,6 +112,37 @@ test.describe('autocapture viewport exposure (mid-height line)', () => {
       .filter((e) => e.event_type === VIEWPORT_CONTENT_UPDATED)
       .flatMap((e) => (e.event_properties?.[ELEMENT_EXPOSED_PROP] as string[] | undefined) ?? []);
   }
+
+  test('exposes a sticky site header on the first event and keeps it in view after scroll', async ({ page }) => {
+    await page.goto('/autocapture/viewport-exposure.html');
+    await expect(page.locator('#status')).toHaveText('initialized');
+    await page.evaluate(() => window.__exposureHarness.setAutoFlush(false));
+    await page.waitForTimeout(EXPOSURE_SETTLE_MS);
+    await page.evaluate(() => window.__exposureHarness.flush());
+
+    await expect
+      .poll(
+        () =>
+          events
+            .filter((e) => e.event_type === VIEWPORT_CONTENT_UPDATED)
+            .flatMap((e) => (e.event_properties?.[ELEMENT_EXPOSED_PROP] as string[] | undefined) ?? []),
+        { timeout: 10_000 },
+      )
+      .toContain(SITE_HEADER_PATH);
+
+    await page.evaluate(() => window.scrollTo(0, 2500));
+    await expect
+      .poll(
+        () =>
+          page.evaluate(() => window.__exposureHarness.isMidHeightLineVisible(document.getElementById('site-header')!)),
+        { timeout: 10_000 },
+      )
+      .toBe(true);
+
+    const cumulative = await page.evaluate(() => window.__exposureHarness.exposedPaths);
+    expect(cumulative).toContain(SITE_HEADER_PATH);
+    expect(pageErrors).toEqual([]);
+  });
 
   test('exposes an element after its 60% depth has been viewed', async ({ page }) => {
     await openHarness(page);

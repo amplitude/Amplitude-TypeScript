@@ -10,8 +10,28 @@
            the page a line's worth, which silently moves the zone under test. */
         body { margin: 0; font: 14px/1.5 system-ui, sans-serif; overflow-anchor: none; }
 
+        /* Sticky site header sits at the top of the viewport, like a storefront
+           nav that remains on screen while the page scrolls. The HUD is offset
+           below it so both stay readable. */
+        #site-header.zone {
+            position: sticky; top: 0; z-index: 2147483646;
+            display: flex; align-items: center; justify-content: space-between;
+            width: 100%; height: 52px; margin: 0; padding: 0 20px; box-sizing: border-box;
+            background: #fff; border: 0; border-bottom: 3px solid #1d4ed8; border-radius: 0;
+            font: 13px/1 system-ui, sans-serif;
+        }
+        #site-header .site-header-nav,
+        #site-header .site-header-actions { display: flex; gap: 18px; color: #111; }
+        #site-header .site-header-logo { font-weight: 700; letter-spacing: 0.12em; color: #1d4ed8; }
+        #site-header .zone-label,
+        #site-header .zone-state { display: none; }
+        #site-header .mid-line { border-top-color: #93c5fd; }
+        #site-header .mid-line::after { content: none; }
+        #site-header[data-state='viewed'] { background: #fff7ed; }
+        #site-header[data-state='exposed'] { background: #ecfdf5; }
+
         #hud {
-            position: fixed; top: 0; left: 0; right: 0; z-index: 2147483647;
+            position: fixed; top: 52px; left: 0; right: 0; z-index: 2147483647;
             padding: 8px 12px; background: #111; color: #eee;
             box-shadow: 0 2px 8px rgba(0, 0, 0, .4);
         }
@@ -33,10 +53,10 @@
 
         /* Clears the fixed HUD so the first zone does not start underneath it, and
            the payload panel so zones are never hidden behind it. */
-        main { padding-top: 320px; padding-right: 440px; }
+        main { padding-top: 372px; padding-right: 440px; }
 
         #payload-panel {
-            position: fixed; top: 328px; right: 8px; width: 400px; max-height: 60vh; overflow: auto;
+            position: fixed; top: 380px; right: 8px; width: 400px; max-height: 60vh; overflow: auto;
             z-index: 2147483647; padding: 8px 10px; background: #111; color: #eee; border-radius: 6px;
             font: 11px/1.45 monospace; box-shadow: 0 4px 16px rgba(0, 0, 0, .4);
         }
@@ -91,14 +111,38 @@
     </style>
 </head>
 <body>
+    <button
+        class="zone"
+        id="site-header"
+        type="button"
+        data-note="sticky site header — stays on screen while you scroll"
+    >
+        <span class="site-header-nav">
+            <span>All Sports</span>
+            <span>Men</span>
+            <span>Women</span>
+            <span>Kids</span>
+        </span>
+        <span class="site-header-logo">DECATHLON</span>
+        <span class="site-header-actions" aria-hidden="true">
+            <span>Search</span>
+            <span>Account</span>
+            <span>Cart</span>
+        </span>
+        <span class="zone-label"></span>
+        <span class="mid-line"></span>
+        <span class="zone-state">not viewed</span>
+    </button>
+
     <div id="hud">
         <h1>Viewport Exposure Test — a zone exposes once its 50% line has been in view for 150ms</h1>
         <div class="hint">
             Just scroll down. Each zone turns amber while its dashed 50% line is inside the viewport and
-            green once the SDK reports it as exposed. This matches Contentsquare Zoning: what counts is
-            scrolling <em>through</em> a zone's mid-height line, not fitting half its area on screen — so
-            zones taller than the viewport still expose. The panel on the right shows the actual event
-            payloads the SDK sends.
+            green once the SDK reports it as exposed. What counts is scrolling <em>through</em> a zone's
+            mid-height line, not fitting half its area on screen — so zones taller than the viewport still
+            expose. The top bar is a sticky site header: it stays in the viewport, so it should appear in
+            an exposed event on load and remain counted as you scroll. The panel on the right shows the
+            actual event payloads the SDK sends.
         </div>
         <div class="controls">
             <label>

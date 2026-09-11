@@ -5,11 +5,9 @@ import { EXPOSURE_VIEWED_THRESHOLD } from '../constants';
 import { DataExtractor } from '../data-extractor';
 
 /**
- * Contentsquare's Zoning exposure metric considers a zone viewed when its
- * mid-height pixel line is inside the viewport. This is intentionally not an
- * intersection-area check: a zone taller than the viewport can still expose
- * its midpoint as the visitor scrolls through it.
- * https://support.contentsquare.com/hc/en-us/articles/37271856122001-Exposure-Rate
+ * A zone is viewed when its mid-height pixel line is inside the viewport.
+ * This is intentionally not an intersection-area check: a zone taller than
+ * the viewport can still expose its midpoint as the visitor scrolls through it.
  */
 // Engines round fractional scroll offsets differently, so after the same scroll the
 // mid-height line can land a fraction of a pixel either side of the viewport edge.
