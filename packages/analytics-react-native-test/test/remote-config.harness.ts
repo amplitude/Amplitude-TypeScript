@@ -8,12 +8,14 @@
  * `transportProvider` so those do not pollute the remote-config assertions.
  */
 import { describe, it, expect } from 'react-native-harness';
+import { Platform } from 'react-native';
 import { Types } from '@amplitude/analytics-react-native';
 import { AmplitudeReactNative } from '@amplitude/analytics-react-native/src/react-native-client';
 import { Status, type Payload, type Response as AmplitudeResponse, type Transport } from '@amplitude/analytics-core';
 
 const API_KEY = 'remoteConfigHarnessApiKey';
 const REMOTE_CONFIG_SERVER_URL = 'https://remote-config.harness.test/config';
+const REMOTE_CONFIG_GROUP = Platform.OS === 'android' ? 'android' : 'ios';
 
 const noopTransport: Transport = {
   send: async (_serverUrl: string, payload: Payload): Promise<AmplitudeResponse> => ({
@@ -34,7 +36,14 @@ describe('remote config', () => {
     const remoteConfig = {
       configs: {
         analyticsSDK: {
-          reactNativeSDK: {
+          androidSDK: {
+            autocapture: {
+              appLifecycles: false,
+              sessions: { enabled: true },
+              networkTracking: { enabled: true, urls: ['a', 'b', 'c'] },
+            },
+          },
+          iosSDK: {
             autocapture: {
               appLifecycles: false,
               sessions: { enabled: true },
@@ -79,7 +88,7 @@ describe('remote config', () => {
 
       expect(requests.length).toBe(1);
       expect(String(requests[0]?.input)).toBe(
-        `${REMOTE_CONFIG_SERVER_URL}/${encodeURIComponent(API_KEY)}?config_group=browser`,
+        `${REMOTE_CONFIG_SERVER_URL}/${encodeURIComponent(API_KEY)}?config_group=${REMOTE_CONFIG_GROUP}`,
       );
       expect(requests[0]?.init?.method).toBe('GET');
       expect(client.getUserId()).toBe('remote-config-user');
@@ -136,6 +145,31 @@ describe('remote config', () => {
       expect(client.autocapture?.networkTracking).toBe(true);
       expect(client.autocapture?.screenViews).toBe(true);
       expect(client.autocapture?.elementInteractions).toBe(false);
+    } finally {
+      global.fetch = originalFetch;
+    }
+  });
+
+  it('does not join remote autocapture config with local autocapture config if local autocapture is false(y)', async () => {
+    const originalFetch = global.fetch;
+    const requests: Array<{ input: RequestInfo | URL; init?: RequestInit }> = [];
+    global.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+      requests.push({ input, init });
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({}),
+        text: async () => '{}',
+      } as Response;
+    }) as typeof global.fetch;
+
+    try {
+      const client = new AmplitudeReactNative();
+      await client.init(API_KEY, 'remote-config-user', {
+        autocapture: false,
+      }).promise;
+
+      expect(client.autocapture).toBe(null);
     } finally {
       global.fetch = originalFetch;
     }

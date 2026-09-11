@@ -11,7 +11,7 @@ import {
   getCookieName as getStorageKey,
   RemoteConfigClient,
 } from '@amplitude/analytics-core';
-import { AppState } from 'react-native';
+import { AppState, Platform } from 'react-native';
 import { isWeb } from '../src/utils/platform';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Config from '../src/config';
@@ -329,7 +329,7 @@ describe('react-native-client', () => {
       expect(track).toHaveBeenCalledTimes(1);
     });
 
-    test('should NOT use remote config by default (opt-in)', async () => {
+    test('should use remote config by default', async () => {
       jest.spyOn(CookieMigration, 'parseOldCookies').mockResolvedValueOnce({
         optOut: false,
       });
@@ -337,7 +337,7 @@ describe('react-native-client', () => {
       await client.init(API_KEY, USER_ID, {
         ...attributionConfig,
       }).promise;
-      expect(MockedRemoteConfigClient).not.toHaveBeenCalled();
+      expect(MockedRemoteConfigClient).toHaveBeenCalled();
     });
 
     test('should use remote config when remoteConfig.fetchRemoteConfig is true', async () => {
@@ -351,7 +351,7 @@ describe('react-native-client', () => {
       }).promise;
       expect(MockedRemoteConfigClient).toHaveBeenCalled();
       expect(mockRemoteConfigClient.subscribe).toHaveBeenCalledWith(
-        'configs.analyticsSDK.reactNativeSDK',
+        'configs.analyticsSDK.iosSDK',
         'all',
         expect.any(Function),
       );
@@ -383,7 +383,14 @@ describe('react-native-client', () => {
         ...attributionConfig,
       }).promise;
 
-      expect(MockedRemoteConfigClient).toHaveBeenCalledWith(API_KEY, expect.anything(), 'US', customServerUrl);
+      expect(MockedRemoteConfigClient).toHaveBeenCalledWith(
+        API_KEY,
+        expect.anything(),
+        'US',
+        customServerUrl,
+        undefined,
+        'ios',
+      );
     });
 
     test('should share the same loggerProvider between RemoteConfigClient and final config', async () => {
@@ -396,8 +403,100 @@ describe('react-native-client', () => {
         ...attributionConfig,
       }).promise;
 
-      expect(MockedRemoteConfigClient).toHaveBeenCalledWith(API_KEY, client.config.loggerProvider, 'US', undefined);
+      expect(MockedRemoteConfigClient).toHaveBeenCalledWith(
+        API_KEY,
+        client.config.loggerProvider,
+        'US',
+        undefined,
+        undefined,
+        'ios',
+      );
     });
+
+    test('should request the android remote config group on android', async () => {
+      jest.spyOn(CookieMigration, 'parseOldCookies').mockResolvedValueOnce({
+        optOut: false,
+      });
+      const originalPlatformOS = Platform.OS;
+      Platform.OS = 'android';
+
+      try {
+        const client = new AmplitudeReactNative();
+        await client.init(API_KEY, USER_ID, {
+          remoteConfig: { fetchRemoteConfig: true },
+          ...attributionConfig,
+        }).promise;
+
+        expect(MockedRemoteConfigClient).toHaveBeenCalledWith(
+          API_KEY,
+          expect.anything(),
+          'US',
+          undefined,
+          undefined,
+          'android',
+        );
+        expect(mockRemoteConfigClient.subscribe).toHaveBeenCalledWith(
+          'configs.analyticsSDK.androidSDK',
+          'all',
+          expect.any(Function),
+        );
+      } finally {
+        Platform.OS = originalPlatformOS;
+      }
+    });
+
+    test.each([
+      { platformOS: 'ios', expectedGroup: 'ios' },
+      { platformOS: 'android', expectedGroup: 'android' },
+    ] as const)(
+      'should fetch remote config with config_group=$expectedGroup when Platform.OS is $platformOS',
+      async ({ platformOS, expectedGroup }) => {
+        Object.defineProperty(core, 'RemoteConfigClient', {
+          value: originalRemoteConfigClient,
+          writable: true,
+          configurable: true,
+        });
+        jest.spyOn(CookieMigration, 'parseOldCookies').mockResolvedValueOnce({
+          optOut: false,
+        });
+
+        const originalPlatformOS = Platform.OS;
+        Platform.OS = platformOS;
+        const originalFetch = global.fetch;
+        const fetchMock = jest.fn().mockResolvedValue({
+          ok: true,
+          status: 200,
+          json: async () => ({ configs: {} }),
+          text: async () => '{}',
+        });
+        global.fetch = fetchMock as typeof fetch;
+
+        const customServerUrl = 'https://remote-config.test/config';
+        const client = new AmplitudeReactNative();
+        try {
+          await client.init(API_KEY, USER_ID, {
+            remoteConfig: {
+              fetchRemoteConfig: true,
+              serverUrl: customServerUrl,
+            },
+            ...attributionConfig,
+          }).promise;
+
+          expect(fetchMock).toHaveBeenCalled();
+          const requestedUrl = String(fetchMock.mock.calls[0]?.[0]);
+          expect(requestedUrl).toBe(`${customServerUrl}/${encodeURIComponent(API_KEY)}?config_group=${expectedGroup}`);
+          expect(fetchMock.mock.calls[0]?.[1]).toEqual(
+            expect.objectContaining({
+              method: 'GET',
+            }),
+          );
+        } finally {
+          client.shutdown();
+          Platform.OS = originalPlatformOS;
+          global.fetch = originalFetch;
+        }
+      },
+    );
 
     test('should call updateReactNativeConfigWithRemoteConfig when remoteConfig is not null', async () => {
       jest.spyOn(CookieMigration, 'parseOldCookies').mockResolvedValueOnce({

@@ -23,6 +23,10 @@ type RemoteConfigReactNativeSDK = {
  * Primarily merges autocapture settings from the remote config into the React Native config.
  * Mirrors browser remote-config joining, except elementInteractions translations.
  *
+ * Unlike browser, remote autocapture is applied only when local autocapture is already
+ * truthy (`true` or an options object). A falsey local value (`false`, `undefined`, `null`)
+ * is treated as an explicit opt-out and is not overridden by remote config.
+ *
  * @param remoteConfig - The remote configuration to apply, or null if none available
  * @param reactNativeConfig - The React Native config object to update (modified in place)
  */
@@ -50,17 +54,13 @@ export function updateReactNativeConfigWithRemoteConfig(
     // merge remoteConfig.autocapture and reactNativeConfig.autocapture
     // if a field is in remoteConfig.autocapture, use that value
     // if a field is not in remoteConfig.autocapture, use the value from reactNativeConfig.autocapture
-    if (typedRemoteConfig && 'autocapture' in typedRemoteConfig) {
+    if (typedRemoteConfig && 'autocapture' in typedRemoteConfig && reactNativeConfig.autocapture) {
       if (typeof typedRemoteConfig.autocapture === 'boolean') {
         reactNativeConfig.autocapture = typedRemoteConfig.autocapture;
       }
 
       if (typeof typedRemoteConfig.autocapture === 'object' && typedRemoteConfig.autocapture !== null) {
         const transformedAutocaptureRemoteConfig = { ...typedRemoteConfig.autocapture };
-
-        if (reactNativeConfig.autocapture === undefined) {
-          reactNativeConfig.autocapture = typedRemoteConfig.autocapture;
-        }
 
         // Handle Network Tracking config initialization
         const transformedNetworkTracking = transformNetworkTrackingRemoteConfig(

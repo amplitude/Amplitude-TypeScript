@@ -123,4 +123,29 @@ describe('RemoteConfigLocalStorage', () => {
       jest.restoreAllMocks();
     });
   });
+
+  describe('constructor', () => {
+    it('should preserve the legacy browser storage key', async () => {
+      const info: RemoteConfigInfo = {
+        remoteConfig: { key1: 'value1' },
+        lastFetch: new Date(),
+      };
+
+      await new RemoteConfigLocalStorage(apiKey, logger, 'browser').setConfig(info);
+
+      expect(localStorage.getItem(storageKey)).toEqual(JSON.stringify(info));
+    });
+
+    it('should include non-browser config groups in the storage key', async () => {
+      const info: RemoteConfigInfo = {
+        remoteConfig: { key1: 'value1' },
+        lastFetch: new Date(),
+      };
+
+      await new RemoteConfigLocalStorage(apiKey, logger, 'ios').setConfig(info);
+
+      expect(localStorage.getItem(`${storageKey}_ios`)).toEqual(JSON.stringify(info));
+      expect(localStorage.getItem(storageKey)).toBeNull();
+    });
+  });
 });
