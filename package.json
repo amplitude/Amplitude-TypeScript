@@ -48,6 +48,7 @@
     "test:playwright:debug": "playwright test --debug",
     "test:playwright:ci": "playwright test",
     "graph": "nx graph",
+    "harness:exposure": "node scripts/client-exposure-audit/run.mjs",
     "version": "git add -A"
   },
   "devDependencies": {

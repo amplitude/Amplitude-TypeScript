@@ -37,6 +37,7 @@ lerna-debug.log
 **/playwright-report/
 **/playwright/.cache/
 **/playwright/.auth/
+/artifacts/client-exposure-audit/
 
 # Nx
 .nx/cache/
