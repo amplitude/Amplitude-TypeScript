@@ -345,6 +345,60 @@ describe('destination', () => {
         expect(send.mock.calls[1][1].instant_events).toHaveLength(1);
       });
 
+      test('should drop predecessor after failed in-flight send when a replacement exists', async () => {
+        let resolveSend!: (value: Response) => void;
+        const sendPromise = new Promise<Response>((resolve) => {
+          resolveSend = resolve;
+        });
+        const successResponse = {
+          status: Status.Success,
+          statusCode: 200,
+          body: {
+            eventsIngested: 1,
+            payloadSizeBytes: 1,
+            serverUploadTime: 1,
+          },
+        } as Response;
+        const send = jest.fn().mockReturnValueOnce(sendPromise).mockResolvedValueOnce(successResponse);
+        destination.config = {
+          ...useDefaultConfig(),
+          transportProvider: { send },
+        };
+
+        const predecessorResult = destination.execute(event1);
+        const flushPromise = destination.flush(true);
+        const replacementResult = destination.execute(event2);
+
+        expect(destination.queue).toHaveLength(2);
+
+        resolveSend({
+          status: Status.Failed,
+          statusCode: 500,
+        });
+
+        await flushPromise;
+        await expect(predecessorResult).resolves.toEqual({
+          event: event1,
+          code: 0,
+          message: 'Stale event overwritten',
+        });
+
+        expect(destination.queue).toHaveLength(1);
+        expect(destination.queue[0].event).toEqual(event2);
+        expect(destination.queue[0].event.delay?.skipRemoval).toBeUndefined();
+
+        await destination.flush(true);
+
+        await expect(replacementResult).resolves.toEqual({
+          event: event2,
+          code: 200,
+          message: SUCCESS_MESSAGE,
+        });
+        expect(send).toHaveBeenCalledTimes(2);
+        expect(send.mock.calls[1][1].instant_events).toHaveLength(1);
+        expect(send.mock.calls[1][1].instant_events[0].event_type).toBe('after');
+      });
+
       test('should retain skipRemoval when a parallel regular flush completes first', async () => {
         let resolveDelayedSend!: (value: Response) => void;
         const delayedSendPromise = new Promise<Response>((resolve) => {

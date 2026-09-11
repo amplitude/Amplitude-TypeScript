@@ -311,6 +311,7 @@ export class Destination implements DestinationPlugin {
         eventPromises.push(delayedEventsSend);
         delayedEventsSend.finally(() => {
           delete this.inFlightDelayedEvents[delayId];
+          this.dropSupersededDelayedEvents(delayId);
         });
       }
     } catch (e) {
@@ -320,6 +321,38 @@ export class Destination implements DestinationPlugin {
       await promise;
       return await batch;
     }, Promise.resolve());
+  }
+
+  /**
+   * After a delayed send is no longer in flight, drop any predecessor that a
+   * skipRemoval replacement superseded. Success already removed the predecessor
+   * via removeEvents; failure would otherwise retry both copies of the same
+   * insert_id. Also clear skipRemoval now that the in-flight send has settled.
+   */
+  private dropSupersededDelayedEvents(delayId: string) {
+    const replacementInsertIds = new Set(
+      this.queue
+        .filter((context) => context.event.delay?.id === delayId && context.event.delay.skipRemoval)
+        .map((context) => context.event.insert_id),
+    );
+
+    if (replacementInsertIds.size === 0) {
+      return;
+    }
+
+    this.queue = this.queue.filter((context) => {
+      const event = context.event;
+      if (event.delay?.id === delayId && replacementInsertIds.has(event.insert_id) && !event.delay.skipRemoval) {
+        context.callback(buildResult(event, 0, 'Stale event overwritten'));
+        return false;
+      }
+      if (event.delay?.id === delayId && event.delay.skipRemoval) {
+        delete event.delay.skipRemoval;
+      }
+      return true;
+    });
+
+    this.saveEvents();
   }
 
   translatePayloadToDelayedPayload(payload: Payload & Partial<DelayedPayload>, list: Context[]): void {
