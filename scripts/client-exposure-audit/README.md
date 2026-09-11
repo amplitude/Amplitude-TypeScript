@@ -8,6 +8,7 @@ Build the repository first, then run:
 
 ```bash
 pnpm build
+pnpm exec playwright install chromium
 pnpm harness:exposure -- --url https://example.com/products
 ```
 

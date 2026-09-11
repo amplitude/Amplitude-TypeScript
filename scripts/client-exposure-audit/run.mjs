@@ -7,7 +7,10 @@ import os from 'node:os';
 import path from 'node:path';
 import process from 'node:process';
 
-const argv = await yargs(hideBin(process.argv))
+const cliArgs = hideBin(process.argv);
+if (cliArgs[0] === '--') cliArgs.shift();
+
+const argv = await yargs(cliArgs)
   .scriptName('pnpm harness:exposure')
   .usage('$0 --url <client-page> [options]')
   .option('url', { type: 'string', demandOption: true, describe: 'Client page to audit' })

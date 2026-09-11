@@ -53,6 +53,7 @@ type AuditOptions = {
 };
 
 type ElementRecord = {
+  instanceId: number;
   key: string;
   tag: string;
   text: string;
@@ -130,6 +131,17 @@ type Harness = {
 };
 
 let harness: Harness | undefined;
+let nextElementInstanceId = 1;
+let elementInstanceIds = new WeakMap<Element, number>();
+
+const instanceIdOf = (element: Element): number => {
+  const existing = elementInstanceIds.get(element);
+  if (existing) return existing;
+  const next = nextElementInstanceId;
+  nextElementInstanceId += 1;
+  elementInstanceIds.set(element, next);
+  return next;
+};
 
 const textOf = (element: Element): string =>
   (element.getAttribute('aria-label') || element.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 120);
@@ -203,6 +215,7 @@ const describe = (element: Element, activeHarness: Harness): ElementRecord => {
   const selector = activeHarness.engine.generate(element);
   const resolved = resolveSelector(document, selector);
   return {
+    instanceId: instanceIdOf(element),
     key: elementKey(element),
     tag: element.tagName.toLowerCase(),
     text: textOf(element),
@@ -232,8 +245,18 @@ const escapeRegex = (value: string): string => value.replace(/[.*+?^${}()|[\]\\]
 
 const looksGenerated = (value: string): boolean =>
   /[a-f0-9]{8}-[a-f0-9-]{20,}/i.test(value) ||
-  /(?:^|[-_])[a-z0-9]{10,}$/i.test(value) ||
-  /[A-Za-z0-9_-]{20,}/.test(value);
+  /(?:^|[-_])[a-f0-9]{8,}(?:[-_]|$)/i.test(value) ||
+  /(?:^|[-_])(?=[a-z0-9]{10,}(?:[-_]|$))(?=[a-z0-9]*[a-z])(?=[a-z0-9]*\d)[a-z0-9]+(?:[-_]|$)/i.test(value) ||
+  /__[A-Za-z0-9_]+__[A-Za-z0-9]{5,}$/.test(value);
+
+const generatedPrefix = (value: string): string => {
+  const token = value.match(
+    /(?:^|[-_])(?:[a-f0-9]{8,}|(?=[a-z0-9]{10,}(?:[-_]|$))(?=[a-z0-9]*[a-z])(?=[a-z0-9]*\d)[a-z0-9]+)(?=[-_]|$)/i,
+  );
+  if (!token || token.index === undefined) return '';
+  const delimiterLength = token[0].startsWith('-') || token[0].startsWith('_') ? 1 : 0;
+  return value.slice(0, token.index + delimiterLength);
+};
 
 const patternSuggestions = (scenarios: ScenarioRecord[], config: ReturnType<typeof resolveSelectorConfig>) => {
   const suggestions: PatternSuggestion[] = [];
@@ -247,7 +270,7 @@ const patternSuggestions = (scenarios: ScenarioRecord[], config: ReturnType<type
 
   const idGroups = new Map<string, string[]>();
   uncoveredIds.forEach((id) => {
-    const prefix = id.match(/^[A-Za-z_-]{3,}/)?.[0] ?? '';
+    const prefix = generatedPrefix(id);
     if (!prefix) return;
     idGroups.set(prefix, [...(idGroups.get(prefix) ?? []), id]);
   });
@@ -261,9 +284,11 @@ const patternSuggestions = (scenarios: ScenarioRecord[], config: ReturnType<type
     });
   });
 
-  const recordsByKey = new Map<string, ElementRecord[]>();
-  all.forEach((record) => recordsByKey.set(record.key, [...(recordsByKey.get(record.key) ?? []), record]));
-  recordsByKey.forEach((records) => {
+  const recordsByInstance = new Map<number, ElementRecord[]>();
+  all.forEach((record) =>
+    recordsByInstance.set(record.instanceId, [...(recordsByInstance.get(record.instanceId) ?? []), record]),
+  );
+  recordsByInstance.forEach((records) => {
     const variants = Array.from(
       new Set(records.map((record) => record.id).filter((id): id is string => typeof id === 'string' && id.length > 0)),
     );
@@ -284,7 +309,7 @@ const patternSuggestions = (scenarios: ScenarioRecord[], config: ReturnType<type
   });
 
   const classesByKey = new Map<string, string[]>();
-  recordsByKey.forEach((records, key) => {
+  recordsByInstance.forEach((records) => {
     const classSets = Array.from(new Set(records.map((record) => [...record.classes].sort().join(' '))));
     if (classSets.length < 2) return;
     const occurrenceCount = new Map<string, number>();
@@ -296,7 +321,7 @@ const patternSuggestions = (scenarios: ScenarioRecord[], config: ReturnType<type
     const changingClasses = Array.from(occurrenceCount)
       .filter(([, count]) => count < records.length)
       .map(([className]) => className);
-    if (changingClasses.length) classesByKey.set(key, changingClasses);
+    if (changingClasses.length) classesByKey.set(records[0].key, changingClasses);
   });
   classesByKey.forEach((classes) => {
     const uncovered = classes.filter(
@@ -324,6 +349,8 @@ const patternSuggestions = (scenarios: ScenarioRecord[], config: ReturnType<type
 
 export const install = (options: AuditOptions = {}): void => {
   harness?.exposureTracker.unsubscribe();
+  elementInstanceIds = new WeakMap<Element, number>();
+  nextElementInstanceId = 1;
 
   const allowlist = options.allowlist?.length ? options.allowlist : [...DEFAULT_CSS_SELECTOR_ALLOWLIST];
   const elementSelector: ElementSelectorRemoteConfig = {
@@ -406,15 +433,15 @@ export const report = (): AuditReport => {
   const records = Array.from(latestBySelector.values());
   const missingFromAllowlist = records.filter((record) => record.likelyInteractive && !record.allowlisted);
   const selectorProblems = records.filter((record) => record.matchCount !== 1 || !record.resolvesToTarget);
-  const selectorsByKey = new Map<string, Set<string>>();
+  const selectorsByInstance = new Map<number, { key: string; selectors: Set<string> }>();
   all.forEach((record) => {
-    const selectors = selectorsByKey.get(record.key) ?? new Set<string>();
-    selectors.add(record.selector);
-    selectorsByKey.set(record.key, selectors);
+    const group = selectorsByInstance.get(record.instanceId) ?? { key: record.key, selectors: new Set<string>() };
+    group.selectors.add(record.selector);
+    selectorsByInstance.set(record.instanceId, group);
   });
-  const unstableSelectorGroups = Array.from(selectorsByKey)
-    .filter(([, selectors]) => selectors.size > 1)
-    .map(([key, selectors]) => ({ key, selectors: Array.from(selectors) }));
+  const unstableSelectorGroups = Array.from(selectorsByInstance.values())
+    .filter(({ selectors }) => selectors.size > 1)
+    .map(({ key, selectors }) => ({ key, selectors: Array.from(selectors) }));
   const selectorConfig = resolveSelectorConfig(harness.options.elementSelector);
   const suggestions = patternSuggestions(harness.scenarios, selectorConfig);
   const likelyInteractive = records.filter((record) => record.likelyInteractive);
