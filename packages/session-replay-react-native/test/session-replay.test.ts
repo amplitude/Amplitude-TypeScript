@@ -13,6 +13,8 @@ jest.mock('../src/logger', () => require('./utils/logger'));
 import { init, start, stop, getSessionId, teardown, setOptOut, type SessionReplayConfig } from '../src/index';
 import { NativeModules } from 'react-native';
 import { LogLevel } from '@amplitude/analytics-types';
+import { readFileSync } from 'fs';
+import { join } from 'path';
 
 const mockNativeModules = NativeModules as jest.Mocked<typeof NativeModules>;
 
@@ -108,6 +110,65 @@ describe('Session Replay Integration Tests', () => {
     await pending;
     expect(nativeModule.setOptOut).not.toHaveBeenCalled();
     expect(nativeModule.teardown).not.toHaveBeenCalled();
+  });
+
+  describe('nullable device ID contract', () => {
+    it('forwards a null device ID during initialization', async () => {
+      let pending!: Promise<void>;
+      let setupMock!: jest.Mock;
+      jest.isolateModules(() => {
+        const { init: freshInit } = require('../src/index') as typeof import('../src/index');
+        const { NativeModules: freshNativeModules } = require('react-native') as typeof import('react-native');
+        setupMock = (freshNativeModules as jest.Mocked<typeof NativeModules>).AMPNativeSessionReplay.setup;
+        pending = freshInit({ apiKey: 'test-api-key', deviceId: null });
+      });
+
+      await pending;
+      expect(setupMock).toHaveBeenCalledWith(expect.objectContaining({ deviceId: null }));
+      expect(setupMock).not.toHaveBeenCalledWith(expect.objectContaining({ deviceId: '' }));
+    });
+
+    it('forwards null when clearing the device ID', async () => {
+      let pending!: Promise<void>;
+      let setDeviceIdMock!: jest.Mock;
+      jest.isolateModules(() => {
+        const { init: freshInit, setDeviceId: freshSetDeviceId } =
+          require('../src/index') as typeof import('../src/index');
+        const { NativeModules: freshNativeModules } = require('react-native') as typeof import('react-native');
+        setDeviceIdMock = (freshNativeModules as jest.Mocked<typeof NativeModules>).AMPNativeSessionReplay.setDeviceId;
+        pending = (async () => {
+          await freshInit({ apiKey: 'test-api-key' });
+          await freshSetDeviceId(null);
+        })();
+      });
+
+      await pending;
+      expect(setDeviceIdMock).toHaveBeenCalledWith(null);
+      expect(setDeviceIdMock).not.toHaveBeenCalledWith('');
+    });
+
+    it('keeps the Android bridge nullable without empty-string coercion', () => {
+      const source = readFileSync(
+        join(
+          __dirname,
+          '../android/src/main/java/com/amplitude/sessionreplayreactnative/SessionReplayReactNativeModule.kt',
+        ),
+        'utf8',
+      );
+
+      expect(source).toContain('sessionReplay?.setDeviceId(deviceId)');
+      expect(source).toContain('deviceId = config.deviceId,');
+      expect(source).not.toContain('deviceId ?: ""');
+      expect(source).not.toContain('config.deviceId ?: ""');
+    });
+
+    it('declares the iOS setDeviceId bridge parameter nullable', () => {
+      const swiftSource = readFileSync(join(__dirname, '../ios/NativeSessionReplay.swift'), 'utf8');
+      const objcSource = readFileSync(join(__dirname, '../ios/AMPNativeSessionReplay.mm'), 'utf8');
+
+      expect(swiftSource).toContain('func setDeviceId(_ deviceId: NSString?');
+      expect(objcSource).toContain('setDeviceId:(nullable NSString *)deviceId');
+    });
   });
 
   // These tests cover the resolution chain in `nativeConfig()` for the
