@@ -8,6 +8,7 @@ apply plugin: "com.facebook.react"
  */
 react {
     /* Folders */
+    debuggableVariants = []
     //   The root of your project, i.e. where "package.json" lives. Default is '../..'
     // root = file("../../")
     //   The folder where the react-native NPM package is. Default is ../../node_modules/react-native
