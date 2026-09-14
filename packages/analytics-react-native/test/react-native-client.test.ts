@@ -352,52 +352,17 @@ describe('react-native-client', () => {
         ...attributionConfig,
       }).promise;
       expect(MockedRemoteConfigClient).toHaveBeenCalled();
-      expect(mockRemoteConfigClient.subscribe).toHaveBeenCalledWith(undefined, { timeout: 1000 }, expect.any(Function));
-    });
-
-    test('should fetch diagnostics and analytics config with one network request', async () => {
-      Object.defineProperty(core, 'RemoteConfigClient', {
-        value: originalRemoteConfigClient,
-        writable: true,
-        configurable: true,
-      });
-      const remoteConfig = {
-        configs: {
-          diagnostics: {
-            androidSDK: { sampleRate: 0.1 },
-            browserSDK: { sampleRate: 0.1 },
-            iosSDK: { sampleRate: 0.1 },
-          },
-          analyticsSDK: {
-            reactNativeSDK: {
-              autocapture: { sessions: true },
-            },
-          },
-        },
-      };
-      const originalFetch = global.fetch;
-      const fetchMock = jest.fn().mockResolvedValue({
-        ok: true,
-        status: 200,
-        json: async () => remoteConfig,
-        text: async () => JSON.stringify(remoteConfig),
-      } as Response);
-      global.fetch = fetchMock as typeof fetch;
-
-      try {
-        const client = new AmplitudeReactNative();
-        await client.init(API_KEY, USER_ID, {
-          ...useDefaultConfig(),
-          remoteConfig: {
-            fetchRemoteConfig: true,
-            serverUrl: 'https://remote-config.test/config',
-          },
-        }).promise;
-
-        expect(fetchMock).toHaveBeenCalledTimes(1);
-      } finally {
-        global.fetch = originalFetch;
-      }
+      const diagnosticsKey = `configs.diagnostics.${expectedRemoteConfigGroup()}SDK`;
+      expect(mockRemoteConfigClient.subscribe).toHaveBeenCalledWith(
+        diagnosticsKey,
+        { timeout: 1000 },
+        expect.any(Function),
+      );
+      expect(mockRemoteConfigClient.subscribe).toHaveBeenCalledWith(
+        'configs.analyticsSDK.reactNativeSDK',
+        'all',
+        expect.any(Function),
+      );
     });
 
     test('should NOT use remote config when remoteConfig.fetchRemoteConfig is false', async () => {
@@ -426,6 +391,7 @@ describe('react-native-client', () => {
         ...attributionConfig,
       }).promise;
 
+      expect(MockedRemoteConfigClient).toHaveBeenCalledWith(API_KEY, expect.anything(), 'US', customServerUrl);
       expect(MockedRemoteConfigClient).toHaveBeenCalledWith(
         API_KEY,
         expect.anything(),
@@ -446,6 +412,7 @@ describe('react-native-client', () => {
         ...attributionConfig,
       }).promise;
 
+      expect(MockedRemoteConfigClient).toHaveBeenCalledWith(API_KEY, client.config.loggerProvider, 'US', undefined);
       expect(MockedRemoteConfigClient).toHaveBeenCalledWith(
         API_KEY,
         client.config.loggerProvider,
@@ -465,24 +432,20 @@ describe('react-native-client', () => {
           sessions: true,
         },
       };
-      const mockRemoteConfig = {
-        configs: {
-          analyticsSDK: {
-            reactNativeSDK: mockAnalyticsRemoteConfig,
-          },
-        },
-      };
-
       const mockRemoteConfigClientWithData = {
         subscribe: jest
           .fn()
           .mockImplementation(
             (
-              _configKey: string,
+              configKey: string,
               _eventType: string,
               callback: (remoteConfig: any, source: any, lastFetch: Date) => void,
             ) => {
-              callback(mockRemoteConfig, 'cache', new Date());
+              callback(
+                configKey === 'configs.analyticsSDK.reactNativeSDK' ? mockAnalyticsRemoteConfig : null,
+                'cache',
+                new Date(),
+              );
             },
           ),
         unsubscribe: jest.fn(),
@@ -1753,18 +1716,12 @@ describe('react-native-client', () => {
       const platformRemoteConfigClient = {
         subscribe: jest.fn(
           (
-            _configKey: string | undefined,
+            configKey: string | undefined,
             _deliveryMode: { timeout: number },
             callback: (remoteConfig: any, source: any, date: Date) => void,
           ) => {
             callback(
-              {
-                configs: {
-                  diagnostics: {
-                    [testCase.diagnosticsKey]: testCase.diagnosticsConfig,
-                  },
-                },
-              },
+              configKey === `configs.diagnostics.${testCase.diagnosticsKey}` ? testCase.diagnosticsConfig : null,
               'remote',
               new Date(),
             );
@@ -1784,6 +1741,7 @@ describe('react-native-client', () => {
           remoteConfig: { fetchRemoteConfig: true },
         }).promise;
 
+        expect(MockedRemoteConfigClient).toHaveBeenCalledWith(API_KEY, expect.anything(), 'US', undefined);
         expect(MockedRemoteConfigClient).toHaveBeenCalledWith(
           API_KEY,
           expect.anything(),
@@ -1793,11 +1751,15 @@ describe('react-native-client', () => {
           testCase.platform,
         );
         expect(platformRemoteConfigClient.subscribe).toHaveBeenCalledWith(
-          undefined,
+          `configs.diagnostics.${testCase.diagnosticsKey}`,
           { timeout: 1000 },
           expect.any(Function),
         );
-        expect(platformRemoteConfigClient.subscribe).toHaveBeenCalledTimes(1);
+        expect(platformRemoteConfigClient.subscribe).toHaveBeenCalledWith(
+          'configs.analyticsSDK.reactNativeSDK',
+          'all',
+          expect.any(Function),
+        );
         const destination = addSpy.mock.calls
           .map(([plugin]) => plugin as core.Destination)
           .find((plugin) => plugin.name === 'amplitude');
@@ -1815,21 +1777,11 @@ describe('react-native-client', () => {
         const invalidRemoteConfigClient = {
           subscribe: jest.fn(
             (
-              _configKey: string | undefined,
+              configKey: string | undefined,
               _deliveryMode: { timeout: number },
               callback: (config: any, source: any, date: Date) => void,
             ) => {
-              callback(
-                {
-                  configs: {
-                    diagnostics: {
-                      iosSDK: remoteConfig,
-                    },
-                  },
-                },
-                'remote',
-                new Date(),
-              );
+              callback(configKey === 'configs.diagnostics.iosSDK' ? remoteConfig : null, 'remote', new Date());
             },
           ),
           unsubscribe: jest.fn(),
