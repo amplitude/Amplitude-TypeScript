@@ -29,18 +29,14 @@ const noopTransport: Transport = {
 };
 
 describe('remote config', () => {
-  it('fetches and applies remote autocapture config during init', async () => {
+  it('fetches platform diagnostics config during init', async () => {
     const originalFetch = global.fetch;
     const requests: Array<{ input: RequestInfo | URL; init?: RequestInit }> = [];
     const remoteConfig = {
       configs: {
-        analyticsSDK: {
-          reactNativeSDK: {
-            autocapture: {
-              appLifecycles: false,
-              sessions: { enabled: true },
-              networkTracking: { enabled: true, urls: ['a', 'b', 'c'] },
-            },
+        diagnostics: {
+          [`${Platform.OS}SDK`]: {
+            sampleRate: 1,
           },
         },
       },
@@ -85,11 +81,9 @@ describe('remote config', () => {
       expect(requests[0]?.init?.method).toBe('GET');
       expect(client.getUserId()).toBe('remote-config-user');
 
-      // autocapture params set from remote config
-      expect(client.autocapture?.sessions).toBe(true);
-      expect(client.autocapture?.networkTracking).toEqual({ urls: ['a', 'b', 'c'] });
-
-      // default autocapture params
+      // Local autocapture options are unchanged by this diagnostics-only response.
+      expect(client.autocapture?.sessions).toBe(false);
+      expect(client.autocapture?.networkTracking).toBe(true);
       expect(client.autocapture?.screenViews).toBe(true);
       expect(client.autocapture?.elementInteractions).toBe(false);
     } finally {

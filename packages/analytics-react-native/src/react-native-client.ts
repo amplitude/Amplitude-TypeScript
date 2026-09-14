@@ -169,14 +169,8 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
 
     // Step 0.2: Fetch only the platform-specific diagnostics config.
     if (fetchRemoteConfig) {
-      remoteConfigClient = new RemoteConfigClient(
-        options.apiKey,
-        loggerProvider,
-        serverZone,
-        /* istanbul ignore next */ options.remoteConfig?.serverUrl,
-      );
       const remoteConfigPlatform = getRemoteConfigPlatform();
-      const diagnosticsRemoteConfigClient = new RemoteConfigClient(
+      remoteConfigClient = new RemoteConfigClient(
         options.apiKey,
         loggerProvider,
         serverZone,
@@ -185,7 +179,7 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
         remoteConfigPlatform.configGroup,
       );
       await new Promise<void>((resolve) => {
-        diagnosticsRemoteConfigClient.subscribe(
+        remoteConfigClient?.subscribe(
           remoteConfigPlatform.diagnosticsKey,
           { timeout: REMOTE_CONFIG_DELIVERY_TIMEOUT_MILLIS },
           (remoteConfig: RemoteConfig | null, source: Source, lastFetch: Date) => {

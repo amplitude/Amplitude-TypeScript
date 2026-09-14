@@ -351,7 +351,7 @@ describe('react-native-client', () => {
         remoteConfig: { fetchRemoteConfig: true },
         ...attributionConfig,
       }).promise;
-      expect(MockedRemoteConfigClient).toHaveBeenCalled();
+      expect(MockedRemoteConfigClient).toHaveBeenCalledTimes(1);
       const diagnosticsKey = `configs.diagnostics.${expectedRemoteConfigGroup()}SDK`;
       expect(mockRemoteConfigClient.subscribe).toHaveBeenCalledWith(
         diagnosticsKey,
@@ -391,7 +391,6 @@ describe('react-native-client', () => {
         ...attributionConfig,
       }).promise;
 
-      expect(MockedRemoteConfigClient).toHaveBeenCalledWith(API_KEY, expect.anything(), 'US', customServerUrl);
       expect(MockedRemoteConfigClient).toHaveBeenCalledWith(
         API_KEY,
         expect.anything(),
@@ -412,7 +411,6 @@ describe('react-native-client', () => {
         ...attributionConfig,
       }).promise;
 
-      expect(MockedRemoteConfigClient).toHaveBeenCalledWith(API_KEY, client.config.loggerProvider, 'US', undefined);
       expect(MockedRemoteConfigClient).toHaveBeenCalledWith(
         API_KEY,
         client.config.loggerProvider,
@@ -1741,7 +1739,7 @@ describe('react-native-client', () => {
           remoteConfig: { fetchRemoteConfig: true },
         }).promise;
 
-        expect(MockedRemoteConfigClient).toHaveBeenCalledWith(API_KEY, expect.anything(), 'US', undefined);
+        expect(MockedRemoteConfigClient).toHaveBeenCalledTimes(1);
         expect(MockedRemoteConfigClient).toHaveBeenCalledWith(
           API_KEY,
           expect.anything(),
