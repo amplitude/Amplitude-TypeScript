@@ -62,12 +62,18 @@ android {
 
   // New Arch compiles src/newarch (codegen spec + BaseReactPackage); Old Arch
   // compiles src/oldarch (hand-written spec + plain ReactPackage).
+  // Both directories hold .kt files, and AGP's built-in Kotlin does not read
+  // java.srcDirs for Kotlin sources, so each directory is mirrored into
+  // kotlin.srcDirs as well. Without that the sources are silently dropped and
+  // the build fails with "Unresolved reference".
   sourceSets {
     main {
       if (isNewArchitectureEnabled()) {
         java.srcDirs += ['src/newarch/java']
+        kotlin.srcDirs += ['src/newarch/java']
       } else {
         java.srcDirs += ['src/oldarch/java']
+        kotlin.srcDirs += ['src/oldarch/java']
       }
     }
   }
