@@ -25,7 +25,6 @@ import {
   OfflineDisabled,
   Logger,
   LogLevel,
-  IRemoteConfigClient,
   RemoteConfigClient,
   RemoteConfig,
   Source,
@@ -173,26 +172,23 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
       loggerProvider.enable(options.logLevel ?? LogLevel.Warn);
     }
     const serverZone = options.serverZone ?? 'US';
-    let remoteConfigClient: IRemoteConfigClient | undefined;
-    let diagnosticsSampleRate = 0;
-    const remoteConfigState: {
-      latestAnalyticsConfig: RemoteConfig | null;
-      reactNativeOptions?: ReactNativeConfig;
-    } = { latestAnalyticsConfig: null };
+    const remoteConfigPlatform = getRemoteConfigPlatform();
+    const remoteConfigClient = fetchRemoteConfig
+      ? new RemoteConfigClient(
+          options.apiKey,
+          loggerProvider,
+          serverZone,
+          /* istanbul ignore next */ options.remoteConfig?.serverUrl,
+          undefined,
+          remoteConfigPlatform.configGroup,
+        )
+      : undefined;
+    let remoteConfig: RemoteConfig | null = null;
 
     // Step 0.2: Fetch the platform config once, preferring remote within a bounded timeout.
-    if (fetchRemoteConfig) {
-      const remoteConfigPlatform = getRemoteConfigPlatform();
-      remoteConfigClient = new RemoteConfigClient(
-        options.apiKey,
-        loggerProvider,
-        serverZone,
-        /* istanbul ignore next */ options.remoteConfig?.serverUrl,
-        undefined,
-        remoteConfigPlatform.configGroup,
-      );
-      await new Promise<void>((resolve) => {
-        remoteConfigClient?.subscribe(
+    if (remoteConfigClient) {
+      remoteConfig = await new Promise<RemoteConfig | null>((resolve) => {
+        remoteConfigClient.subscribe(
           undefined,
           { timeout: REMOTE_CONFIG_DELIVERY_TIMEOUT_MILLIS },
           (remoteConfig: RemoteConfig | null, source: Source, lastFetch: Date) => {
@@ -208,28 +204,14 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
                 2,
               ),
             );
-            const diagnosticsRemoteConfig = getRemoteConfigByKey(remoteConfig, remoteConfigPlatform.diagnosticsKey);
-            if (diagnosticsRemoteConfig) {
-              const sampleRate = diagnosticsRemoteConfig.sampleRate as number;
-              if (typeof sampleRate === 'number' && !isNaN(sampleRate)) {
-                diagnosticsSampleRate = sampleRate;
-              }
-            }
-            remoteConfigState.latestAnalyticsConfig = getRemoteConfigByKey(
-              remoteConfig,
-              'configs.analyticsSDK.reactNativeSDK',
-            );
-            if (remoteConfigState.latestAnalyticsConfig && remoteConfigState.reactNativeOptions) {
-              updateReactNativeConfigWithRemoteConfig(
-                remoteConfigState.latestAnalyticsConfig,
-                remoteConfigState.reactNativeOptions,
-              );
-            }
-            resolve();
+            resolve(remoteConfig);
           },
         );
       });
     }
+
+    const sampleRate = getRemoteConfigByKey(remoteConfig, remoteConfigPlatform.diagnosticsKey)?.sampleRate as unknown;
+    const diagnosticsSampleRate = typeof sampleRate === 'number' && !isNaN(sampleRate) ? sampleRate : 0;
 
     // Step 0.3: Initialize diagnostics client as early as possible so it can record failures
     // during config setup. Mirrors the browser SDK; storage is injected because RN has no
@@ -262,11 +244,11 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
       lastEventTime: oldCookies.lastEventTime,
       userId: options.userId ?? oldCookies.userId,
     });
-    remoteConfigState.reactNativeOptions = reactNativeOptions;
 
     // Step 2.1: Apply analytics settings captured by the initial full-config response.
-    if (remoteConfigState.latestAnalyticsConfig) {
-      updateReactNativeConfigWithRemoteConfig(remoteConfigState.latestAnalyticsConfig, reactNativeOptions);
+    const analyticsRemoteConfig = getRemoteConfigByKey(remoteConfig, 'configs.analyticsSDK.reactNativeSDK');
+    if (analyticsRemoteConfig) {
+      updateReactNativeConfigWithRemoteConfig(analyticsRemoteConfig, reactNativeOptions);
     }
 
     await super._init(reactNativeOptions);
