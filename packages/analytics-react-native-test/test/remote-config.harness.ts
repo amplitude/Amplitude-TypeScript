@@ -8,6 +8,7 @@
  * `transportProvider` so those do not pollute the remote-config assertions.
  */
 import { describe, it, expect } from 'react-native-harness';
+import { Platform } from 'react-native';
 import { Types } from '@amplitude/analytics-react-native';
 import { AmplitudeReactNative } from '@amplitude/analytics-react-native/src/react-native-client';
 import { Status, type Payload, type Response as AmplitudeResponse, type Transport } from '@amplitude/analytics-core';
@@ -79,7 +80,7 @@ describe('remote config', () => {
 
       expect(requests.length).toBe(1);
       expect(String(requests[0]?.input)).toBe(
-        `${REMOTE_CONFIG_SERVER_URL}/${encodeURIComponent(API_KEY)}?config_group=browser`,
+        `${REMOTE_CONFIG_SERVER_URL}/${encodeURIComponent(API_KEY)}?config_group=${Platform.OS}`,
       );
       expect(requests[0]?.init?.method).toBe('GET');
       expect(client.getUserId()).toBe('remote-config-user');
