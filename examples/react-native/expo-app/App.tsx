@@ -14,6 +14,7 @@ import {experimentPlugin} from '@amplitude/plugin-experiment-react-native';
 import { NavigationContainer, useNavigationContainerRef } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import FetchNetworkTestScreen from './FetchNetworkTestScreen';
+import AutocaptureConfigScreen, {autocaptureConfigDebugPlugin} from './AutocaptureConfigScreen';
 
 const experiment = experimentPlugin({
   // deploymentKey: 'DEPLOYMENT_KEY', // Optional when Experiment and Analytics use the same project key.
@@ -60,6 +61,11 @@ function HomeScreen({ navigation }) {
         title="Fetch Network Test"
         onPress={() => navigation.navigate('FetchNetworkTest')}
       />
+      <Button
+        accessibilityLabel="Autocapture Config"
+        title="Autocapture Config"
+        onPress={() => navigation.navigate('AutocaptureConfig')}
+      />
       <Button accessibilityLabel="Make Network Request" title="Make Network Request" onPress={() => {
         track('Making Network Request');
         fetch('https://api.amplitude.com/2/asdf', {
@@ -92,6 +98,7 @@ export default function App() {
   useEffect(() => {
     (async () => {
         await add(experiment).promise;
+        await add(autocaptureConfigDebugPlugin).promise;
         // AMPLITUDE_API_KEY is inlined at bundle time (see babel.config.js).
         await init(process.env.AMPLITUDE_API_KEY || 'YOUR_API_KEY', 'React Native Test User', {
           logLevel: Types.LogLevel.Debug,
@@ -121,6 +128,7 @@ export default function App() {
         <Stack.Screen name="Home" component={HomeScreen} />
         <Stack.Screen name="Settings" component={SettingsScreen} />
         <Stack.Screen name="FetchNetworkTest" component={FetchNetworkTestScreen} options={{title: 'Fetch Network Test'}} />
+        <Stack.Screen name="AutocaptureConfig" component={AutocaptureConfigScreen} options={{title: 'Autocapture Config'}} />
       </Stack.Navigator>
     </NavigationContainer>
   );
