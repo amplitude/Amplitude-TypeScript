@@ -1207,7 +1207,14 @@ describe('RemoteConfigClient', () => {
       expect(url).toBe(expectedUrl);
     });
 
-    test('should generate URL with custom config group', () => {
+    test('should generate URL with a custom config group', () => {
+      client = new RemoteConfigClient(mockApiKey, mockLogger, 'US', undefined, undefined, 'android');
+      const expectedUrl = `https://sr-client-cfg.amplitude.com/config/test-api-key?config_group=android`;
+      const url = client.getUrlParams();
+      expect(url).toBe(expectedUrl);
+    });
+
+    test('should generate URL with the ios config group', () => {
       client = new RemoteConfigClient(mockApiKey, mockLogger, 'US', undefined, undefined, 'ios');
       const expectedUrl = `https://sr-client-cfg.amplitude.com/config/test-api-key?config_group=ios`;
       const url = client.getUrlParams();

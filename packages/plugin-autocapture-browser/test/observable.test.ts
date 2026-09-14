@@ -1,4 +1,4 @@
-import { createExposureObservable } from '../src/observables';
+import { createExposureObservable, createScrollObservable } from '../src/observables';
 import { Observable } from '@amplitude/analytics-core';
 import { TimestampedEvent } from '../src/helpers';
 
@@ -51,6 +51,11 @@ describe('createExposureObservable', () => {
     });
 
     expect(mockIntersectionObserver.observe).toHaveBeenCalledWith(div);
+    expect(global.IntersectionObserver).toHaveBeenCalledWith(expect.any(Function), {
+      root: null,
+      rootMargin: '0px',
+      threshold: 0,
+    });
   });
 
   test('should emit event when element intersects (visible)', () => {
@@ -269,5 +274,26 @@ describe('createExposureObservable', () => {
 
     subscription.unsubscribe();
     (global as any).IntersectionObserver = originalIntersectionObserver;
+  });
+});
+
+describe('createScrollObservable', () => {
+  test('captures overflow scrolls and viewport resizes', () => {
+    const scroller = document.createElement('div');
+    document.body.appendChild(scroller);
+    const listener = jest.fn();
+    const subscription = createScrollObservable().subscribe(listener);
+
+    scroller.dispatchEvent(new Event('scroll', { bubbles: false }));
+
+    expect(listener).toHaveBeenCalledWith(expect.objectContaining({ target: scroller }));
+    window.dispatchEvent(new Event('resize'));
+    expect(listener).toHaveBeenCalledWith(expect.objectContaining({ type: 'resize' }));
+
+    subscription.unsubscribe();
+    listener.mockClear();
+    scroller.dispatchEvent(new Event('scroll', { bubbles: false }));
+    window.dispatchEvent(new Event('resize'));
+    expect(listener).not.toHaveBeenCalled();
   });
 });

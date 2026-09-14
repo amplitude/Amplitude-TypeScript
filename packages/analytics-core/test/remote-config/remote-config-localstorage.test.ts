@@ -124,6 +124,71 @@ describe('RemoteConfigLocalStorage', () => {
     });
   });
 
+  describe('when localStorage is unavailable', () => {
+    const localStorageDescriptor = Object.getOwnPropertyDescriptor(globalThis, 'localStorage');
+
+    beforeEach(() => {
+      Object.defineProperty(globalThis, 'localStorage', { value: undefined, configurable: true });
+    });
+
+    afterEach(() => {
+      if (localStorageDescriptor) {
+        Object.defineProperty(globalThis, 'localStorage', localStorageDescriptor);
+      }
+    });
+
+    it('should return remote config info null from fetchConfig', async () => {
+      const result = await new RemoteConfigLocalStorage(apiKey, logger).fetchConfig();
+
+      expect(result.remoteConfig).toBeNull();
+      expect(result.lastFetch).toEqual(mockDate);
+    });
+
+    it('should return false from setConfig', async () => {
+      const info: RemoteConfigInfo = {
+        remoteConfig: { key1: 'value1' },
+        lastFetch: new Date(),
+      };
+
+      expect(await new RemoteConfigLocalStorage(apiKey, logger).setConfig(info)).toBe(false);
+    });
+  });
+
+  describe('when accessing localStorage throws', () => {
+    // Node 26 ignores getters defined directly on the jsdom global, so the own `localStorage`
+    // property is removed and the throwing getter is installed on the prototype instead, where
+    // ordinary prototype chain lookup reaches it on every Node version.
+    const globalObject = globalThis as unknown as Record<string, unknown>;
+    const windowPrototype = Object.getPrototypeOf(globalThis) as Record<string, unknown>;
+    const realLocalStorage = localStorage;
+
+    beforeEach(() => {
+      delete globalObject.localStorage;
+      Object.defineProperty(windowPrototype, 'localStorage', {
+        configurable: true,
+        get() {
+          throw new Error(
+            `Failed to read the 'localStorage' property from 'Window': Access is denied for this document`,
+          );
+        },
+      });
+    });
+
+    afterEach(() => {
+      delete windowPrototype.localStorage;
+      Object.defineProperty(globalThis, 'localStorage', {
+        value: realLocalStorage,
+        configurable: true,
+        writable: true,
+      });
+    });
+
+    it('should not throw when constructing', () => {
+      expect(() => new RemoteConfigLocalStorage(apiKey, logger)).not.toThrow();
+      expect(loggerDebug).toHaveBeenCalledWith('Remote config localstorage failed to access: ', expect.any(Error));
+    });
+  });
+
   describe('constructor', () => {
     it('should preserve the legacy browser storage key', async () => {
       const info: RemoteConfigInfo = {
@@ -131,21 +196,9 @@ describe('RemoteConfigLocalStorage', () => {
         lastFetch: new Date(),
       };
 
-      await new RemoteConfigLocalStorage(apiKey, logger, 'browser').setConfig(info);
+      await new RemoteConfigLocalStorage(apiKey, logger).setConfig(info);
 
       expect(localStorage.getItem(storageKey)).toEqual(JSON.stringify(info));
-    });
-
-    it('should include non-browser config groups in the storage key', async () => {
-      const info: RemoteConfigInfo = {
-        remoteConfig: { key1: 'value1' },
-        lastFetch: new Date(),
-      };
-
-      await new RemoteConfigLocalStorage(apiKey, logger, 'ios').setConfig(info);
-
-      expect(localStorage.getItem(`${storageKey}_ios`)).toEqual(JSON.stringify(info));
-      expect(localStorage.getItem(storageKey)).toBeNull();
     });
   });
 });

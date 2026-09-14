@@ -196,7 +196,7 @@ export class RemoteConfigClient implements IRemoteConfigClient {
     this.configGroup = configGroup;
     this.serverUrl = serverUrl || (serverZone === 'US' ? US_SERVER_URL : EU_SERVER_URL);
     this.logger = logger;
-    this.storage = new RemoteConfigLocalStorage(apiKey, logger, configGroup);
+    this.storage = new RemoteConfigLocalStorage(apiKey, logger);
     this.customFetch = customFetch;
   }
 
