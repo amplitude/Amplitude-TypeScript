@@ -108,6 +108,18 @@ const getRemoteConfigPlatform = () => {
       };
   }
 };
+
+const REMOTE_CONFIG_DELIVERY_TIMEOUT_MILLIS = 1000;
+
+const getRemoteConfigByKey = (remoteConfig: RemoteConfig | null, key: string): RemoteConfig | null => {
+  return key.split('.').reduce((config, keyPart) => {
+    if (config === null) {
+      return null;
+    }
+    return keyPart in config ? (config[keyPart] as RemoteConfig) : null;
+  }, remoteConfig);
+};
+
 const getNetworkTrackingConfig = (config: ReactNativeConfig): NetworkTrackingOptions | undefined => {
   let networkTrackingConfig;
   if (typeof config.autocapture === 'object' && typeof config.autocapture.networkTracking === 'object') {
@@ -163,8 +175,12 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
     const serverZone = options.serverZone ?? 'US';
     let remoteConfigClient: IRemoteConfigClient | undefined;
     let diagnosticsSampleRate = 0;
+    const remoteConfigState: {
+      latestAnalyticsConfig: RemoteConfig | null;
+      reactNativeOptions?: ReactNativeConfig;
+    } = { latestAnalyticsConfig: null };
 
-    // Step 0.2: Fetch diagnostics config
+    // Step 0.2: Fetch the platform config once, preferring remote within a bounded timeout.
     if (fetchRemoteConfig) {
       const remoteConfigPlatform = getRemoteConfigPlatform();
       remoteConfigClient = new RemoteConfigClient(
@@ -177,11 +193,11 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
       );
       await new Promise<void>((resolve) => {
         remoteConfigClient?.subscribe(
-          remoteConfigPlatform.diagnosticsKey,
-          'all',
+          undefined,
+          { timeout: REMOTE_CONFIG_DELIVERY_TIMEOUT_MILLIS },
           (remoteConfig: RemoteConfig | null, source: Source, lastFetch: Date) => {
             loggerProvider.debug(
-              'Diagnostics remote configuration received:',
+              'Remote configuration received:',
               safeJsonStringify(
                 {
                   remoteConfig,
@@ -192,11 +208,22 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
                 2,
               ),
             );
-            if (remoteConfig) {
-              const sampleRate = remoteConfig.sampleRate as number;
+            const diagnosticsRemoteConfig = getRemoteConfigByKey(remoteConfig, remoteConfigPlatform.diagnosticsKey);
+            if (diagnosticsRemoteConfig) {
+              const sampleRate = diagnosticsRemoteConfig.sampleRate as number;
               if (typeof sampleRate === 'number' && !isNaN(sampleRate)) {
                 diagnosticsSampleRate = sampleRate;
               }
+            }
+            remoteConfigState.latestAnalyticsConfig = getRemoteConfigByKey(
+              remoteConfig,
+              'configs.analyticsSDK.reactNativeSDK',
+            );
+            if (remoteConfigState.latestAnalyticsConfig && remoteConfigState.reactNativeOptions) {
+              updateReactNativeConfigWithRemoteConfig(
+                remoteConfigState.latestAnalyticsConfig,
+                remoteConfigState.reactNativeOptions,
+              );
             }
             resolve();
           },
@@ -235,33 +262,11 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
       lastEventTime: oldCookies.lastEventTime,
       userId: options.userId ?? oldCookies.userId,
     });
+    remoteConfigState.reactNativeOptions = reactNativeOptions;
 
-    // Step 2.1: Fetch remote config
-    if (fetchRemoteConfig && remoteConfigClient) {
-      await new Promise<void>((resolve) => {
-        remoteConfigClient?.subscribe(
-          'configs.analyticsSDK.reactNativeSDK',
-          'all',
-          (remoteConfig: RemoteConfig | null, source: Source, lastFetch: Date) => {
-            loggerProvider.debug(
-              'Remote configuration received:',
-              safeJsonStringify(
-                {
-                  remoteConfig,
-                  source,
-                  lastFetch,
-                },
-                null,
-                2,
-              ),
-            );
-            if (remoteConfig) {
-              updateReactNativeConfigWithRemoteConfig(remoteConfig, reactNativeOptions);
-            }
-            resolve();
-          },
-        );
-      });
+    // Step 2.1: Apply analytics settings captured by the initial full-config response.
+    if (remoteConfigState.latestAnalyticsConfig) {
+      updateReactNativeConfigWithRemoteConfig(remoteConfigState.latestAnalyticsConfig, reactNativeOptions);
     }
 
     await super._init(reactNativeOptions);
