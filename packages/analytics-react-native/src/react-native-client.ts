@@ -165,6 +165,7 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
     }
     const serverZone = options.serverZone ?? 'US';
     let remoteConfigClient: IRemoteConfigClient | undefined;
+    let analyticsRemoteConfigPromise: Promise<RemoteConfig | null> | undefined;
     let diagnosticsSampleRate = 0;
 
     // Step 0.2: Fetch only the platform-specific diagnostics config.
@@ -178,7 +179,7 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
         undefined,
         remoteConfigPlatform.configGroup,
       );
-      await new Promise<void>((resolve) => {
+      const diagnosticsRemoteConfigPromise = new Promise<void>((resolve) => {
         remoteConfigClient?.subscribe(
           remoteConfigPlatform.diagnosticsKey,
           { timeout: REMOTE_CONFIG_DELIVERY_TIMEOUT_MILLIS },
@@ -203,6 +204,28 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
           },
         );
       });
+      analyticsRemoteConfigPromise = new Promise<RemoteConfig | null>((resolve) => {
+        remoteConfigClient?.subscribe(
+          'configs.analyticsSDK.reactNativeSDK',
+          'all',
+          (remoteConfig: RemoteConfig | null, source: Source, lastFetch: Date) => {
+            loggerProvider.debug(
+              'Remote configuration received:',
+              safeJsonStringify(
+                {
+                  remoteConfig,
+                  source,
+                  lastFetch,
+                },
+                null,
+                2,
+              ),
+            );
+            resolve(remoteConfig);
+          },
+        );
+      });
+      await diagnosticsRemoteConfigPromise;
     }
 
     // Step 0.3: Initialize diagnostics client as early as possible so it can record failures
@@ -238,31 +261,11 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
     });
 
     // Step 2.1: Fetch remote config
-    if (fetchRemoteConfig && remoteConfigClient) {
-      await new Promise<void>((resolve) => {
-        remoteConfigClient?.subscribe(
-          'configs.analyticsSDK.reactNativeSDK',
-          'all',
-          (remoteConfig: RemoteConfig | null, source: Source, lastFetch: Date) => {
-            loggerProvider.debug(
-              'Remote configuration received:',
-              safeJsonStringify(
-                {
-                  remoteConfig,
-                  source,
-                  lastFetch,
-                },
-                null,
-                2,
-              ),
-            );
-            if (remoteConfig) {
-              updateReactNativeConfigWithRemoteConfig(remoteConfig, reactNativeOptions);
-            }
-            resolve();
-          },
-        );
-      });
+    if (analyticsRemoteConfigPromise) {
+      const analyticsRemoteConfig = await analyticsRemoteConfigPromise;
+      if (analyticsRemoteConfig) {
+        updateReactNativeConfigWithRemoteConfig(analyticsRemoteConfig, reactNativeOptions);
+      }
     }
 
     await super._init(reactNativeOptions);
