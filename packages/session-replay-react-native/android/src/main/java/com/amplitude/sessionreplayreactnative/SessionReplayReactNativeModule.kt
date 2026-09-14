@@ -19,6 +19,7 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
     val apiKey: String,
     val deviceId: String?,
     val sessionId: Long,
+    val customSessionId: String?,
     val serverZone: String,
     val sampleRate: Double,
     val enableRemoteConfig: Boolean,
@@ -40,6 +41,11 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
       val apiKey = config.getString("apiKey") ?: throw IllegalArgumentException("apiKey is required")
       val deviceId = config.getString("deviceId")
       val sessionId = config.getDouble("sessionId").toLong()
+      val customSessionId = if (config.hasKey("customSessionId") && !config.isNull("customSessionId")) {
+        config.getString("customSessionId")
+      } else {
+        null
+      }
       val serverZone = config.getString("serverZone") ?: "US"
       val sampleRate = config.getDouble("sampleRate")
       val enableRemoteConfig = config.getBoolean("enableRemoteConfig")
@@ -78,6 +84,7 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
         apiKey = apiKey,
         deviceId = deviceId,
         sessionId = sessionId,
+        customSessionId = customSessionId,
         serverZone = serverZone,
         sampleRate = sampleRate,
         enableRemoteConfig = enableRemoteConfig,
@@ -96,11 +103,34 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
   @ReactMethod
   override fun setSessionId(sessionId: Double, promise: Promise) {
     try {
-      nativeConfig = requireNotNull(nativeConfig).copy(sessionId = sessionId.toLong())
+      nativeConfig = requireNotNull(nativeConfig).copy(sessionId = sessionId.toLong(), customSessionId = null)
       sessionReplay?.setSessionId(sessionId.toLong())
       promise.resolve(null)
     } catch (e: Exception) {
       promise.reject("SET_SESSION_ID_ERROR", e.message, e)
+    }
+  }
+
+  @ReactMethod
+  override fun setCustomSessionId(customSessionId: String, promise: Promise) {
+    try {
+      nativeConfig = requireNotNull(nativeConfig).copy(customSessionId = customSessionId)
+      sessionReplay?.setCustomSessionId(customSessionId)
+      promise.resolve(null)
+    } catch (e: Exception) {
+      promise.reject("SET_CUSTOM_SESSION_ID_ERROR", e.message, e)
+    }
+  }
+
+  @ReactMethod
+  override fun getCustomSessionId(promise: Promise) {
+    try {
+      val customSessionId = sessionReplay?.getCustomSessionId()
+        ?: nativeConfig?.customSessionId
+        ?: throw IllegalStateException("SessionReplay is not initialized")
+      promise.resolve(customSessionId)
+    } catch (e: Exception) {
+      promise.reject("GET_CUSTOM_SESSION_ID_ERROR", e.message, e)
     }
   }
 
@@ -215,7 +245,7 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
   }
 
   private fun createSessionReplay(config: NativeConfig): SessionReplay {
-    return SessionReplay(
+    val sessionReplay = SessionReplay(
       apiKey = config.apiKey,
       context = reactContext.applicationContext,
       deviceId = config.deviceId ?: "",
@@ -231,6 +261,8 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
       autoStart = false,
       privacyConfig = PrivacyConfig(maskLevel = config.maskLevel),
     )
+    config.customSessionId?.takeIf { it.isNotEmpty() }?.let { sessionReplay.setCustomSessionId(it) }
+    return sessionReplay
   }
 
   companion object {

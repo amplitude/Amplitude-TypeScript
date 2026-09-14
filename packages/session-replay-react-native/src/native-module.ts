@@ -46,6 +46,8 @@ export interface NativeSessionReplayConfig {
   serverZone: 'US' | 'EU';
   /** Current session identifier for correlating events with recordings */
   sessionId: number;
+  /** Alphanumeric session identifier; when set at init it takes precedence over `sessionId` */
+  customSessionId?: string | null;
 }
 
 /**
@@ -83,6 +85,18 @@ export interface NativeSessionReplaySpec {
    * @note OLD ARCH: combine those into one method to avoid bridge overhead
    */
   setSessionId(sessionId: number): Promise<void>;
+
+  /**
+   * Updates the alphanumeric session identifier used for session replay tracking.
+   * @param customSessionId - The custom session identifier string
+   */
+  setCustomSessionId(customSessionId: string): Promise<void>;
+
+  /**
+   * Retrieves the current alphanumeric session identifier from the native module.
+   * @returns Promise resolving to the active custom session ID, or null when none is set
+   */
+  getCustomSessionId(): Promise<string | null>;
 
   /**
    * Updates whether session replay collection is disabled for the current user.

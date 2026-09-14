@@ -39,7 +39,9 @@ import {
   stop,
   flush,
   getSessionId,
+  getCustomSessionId,
   setSessionId,
+  setCustomSessionId,
   setDeviceId,
   setOptOut,
   teardown,
@@ -156,6 +158,16 @@ function HomeScreen({ navigation }: HomeProps): React.JSX.Element {
           <Button
             title="setSessionId"
             onPress={runFn('setSessionId', () => setSessionId(Date.now()))}
+          />
+          <Button
+            title="setCustomSessionId"
+            onPress={runFn('setCustomSessionId', () =>
+              setCustomSessionId('550e8400-e29b-41d4-a716-446655440000'),
+            )}
+          />
+          <Button
+            title="getCustomSessionId"
+            onPress={runFn('getCustomSessionId', getCustomSessionId)}
           />
           <Button
             title="setDeviceId"

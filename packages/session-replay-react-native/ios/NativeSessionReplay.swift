@@ -59,6 +59,10 @@ class NativeSessionReplay: NSObject, RCTBridgeModule {
             maskLevel: .fromString(maskLevel),
             enableRemoteConfig: enableRemoteConfig
         )
+
+        if let customSessionId = config["customSessionId"] as? String, !customSessionId.isEmpty {
+            sessionReplay?.customSessionId = customSessionId
+        }
         
         resolve(nil)
     }
@@ -68,6 +72,26 @@ class NativeSessionReplay: NSObject, RCTBridgeModule {
         logger?.debug(message: "setSessionId: \(sessionId)")
         sessionReplay?.sessionId = sessionId.int64Value
         resolve(nil)
+    }
+
+    @objc(setCustomSessionId:resolve:reject:)
+    func setCustomSessionId(_ customSessionId: NSString, resolve: RCTPromiseResolveBlock, reject: RCTPromiseRejectBlock) -> Void {
+        logger?.debug(message: "setCustomSessionId: \(customSessionId)")
+        sessionReplay?.customSessionId = customSessionId as String
+        resolve(nil)
+    }
+
+    @objc(getCustomSessionId:reject:)
+    func getCustomSessionId(
+        _ resolve: RCTPromiseResolveBlock,
+        reject: RCTPromiseRejectBlock
+    ) {
+        logger?.debug(message: "getCustomSessionId")
+        if let customSessionId = sessionReplay?.customSessionId {
+            resolve(customSessionId)
+        } else {
+            resolve(nil)
+        }
     }
     
     @objc(setDeviceId:resolve:reject:)

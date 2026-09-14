@@ -38,6 +38,23 @@ const config: SessionReplayConfig = {
 await init(config);
 ```
 
+Use `customSessionId` when your Amplitude session identifier is alphanumeric (for example a UUID). It must match the Session ID on analytics events. When a custom session ID is active, `getSessionId()` returns `-1`; use `getCustomSessionId()` for the exact string.
+
+```js
+import { init, setCustomSessionId, getCustomSessionId, setSessionId } from '@amplitude/session-replay-react-native';
+
+await init({
+  apiKey: 'YOUR_API_KEY',
+  deviceId: 'YOUR_DEVICE_ID',
+  customSessionId: '550e8400-e29b-41d4-a716-446655440000',
+});
+
+// Runtime rotation: custom wins until you call setSessionId (numeric).
+await setCustomSessionId('next-session-uuid');
+await setSessionId(Date.now());
+const customId = await getCustomSessionId();
+```
+
 To use Amplitude Session Replay with Amplitude Analytics, use the [`@amplitude/plugin-session-replay-react-native`](https://www.npmjs.com/package/@amplitude/plugin-session-replay-react-native) plugin package.
 
 ## Masking views

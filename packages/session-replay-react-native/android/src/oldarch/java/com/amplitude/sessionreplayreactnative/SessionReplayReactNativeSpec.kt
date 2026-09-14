@@ -11,6 +11,8 @@ abstract class SessionReplayReactNativeSpec(reactContext: ReactApplicationContex
   ReactContextBaseJavaModule(reactContext) {
   abstract fun setup(config: ReadableMap, promise: Promise)
   abstract fun setSessionId(sessionId: Double, promise: Promise)
+  abstract fun setCustomSessionId(customSessionId: String, promise: Promise)
+  abstract fun getCustomSessionId(promise: Promise)
   abstract fun setDeviceId(deviceId: String?, promise: Promise)
   abstract fun setOptOut(optOut: Boolean, promise: Promise)
   abstract fun getSessionId(promise: Promise)

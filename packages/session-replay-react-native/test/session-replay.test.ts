@@ -183,4 +183,116 @@ describe('Session Replay Integration Tests', () => {
       expect(setupMock).toHaveBeenCalledWith(expect.not.objectContaining({ privacyConfig: expect.anything() }));
     });
   });
+
+  describe('custom session ID', () => {
+    const CUSTOM_ID = '550e8400-e29b-41d4-a716-446655440000';
+
+    const runInIsolatedModule = async (
+      fn: (api: typeof import('../src/index')) => Promise<void>,
+    ): Promise<jest.Mocked<(typeof NativeModules)['AMPNativeSessionReplay']>> => {
+      let nativeModule!: jest.Mocked<(typeof NativeModules)['AMPNativeSessionReplay']>;
+      let pending!: Promise<void>;
+      jest.isolateModules(() => {
+        const api = require('../src/index') as typeof import('../src/index');
+        const { NativeModules: freshNativeModules } = require('react-native') as typeof import('react-native');
+        nativeModule = (freshNativeModules as jest.Mocked<typeof NativeModules>).AMPNativeSessionReplay;
+        pending = fn(api);
+      });
+      await pending;
+      return nativeModule;
+    };
+
+    it('forwards customSessionId at init without coercing the string', async () => {
+      const nativeModule = await runInIsolatedModule(async ({ init: freshInit }) => {
+        await freshInit({
+          apiKey: 'test-api-key',
+          sessionId: 42,
+          customSessionId: CUSTOM_ID,
+        });
+      });
+
+      expect(nativeModule.setup).toHaveBeenCalledWith(
+        expect.objectContaining({
+          sessionId: 42,
+          customSessionId: CUSTOM_ID,
+        }),
+      );
+    });
+
+    it('omits customSessionId from native setup when not provided', async () => {
+      const nativeModule = await runInIsolatedModule(async ({ init: freshInit }) => {
+        await freshInit({ apiKey: 'test-api-key', sessionId: 99 });
+      });
+
+      const [setupConfig] = jest.mocked(nativeModule.setup).mock.calls[0] as [Record<string, unknown>];
+      expect(setupConfig).not.toHaveProperty('customSessionId');
+    });
+
+    it('forwards setCustomSessionId and getCustomSessionId after init', async () => {
+      const nativeModule = await runInIsolatedModule(
+        async ({ init: freshInit, setCustomSessionId: setCustom, getCustomSessionId: getCustom }) => {
+          await freshInit({ apiKey: 'test-api-key' });
+          await setCustom(CUSTOM_ID);
+          const id = await getCustom();
+          expect(id).toBe(CUSTOM_ID);
+        },
+      );
+
+      expect(nativeModule.setCustomSessionId).toHaveBeenCalledWith(CUSTOM_ID);
+      expect(nativeModule.getCustomSessionId).toHaveBeenCalled();
+    });
+
+    it('routes runtime setSessionId through the numeric native setter', async () => {
+      const nativeModule = await runInIsolatedModule(
+        async ({ init: freshInit, setCustomSessionId: setCustom, setSessionId: setNumeric }) => {
+          await freshInit({ apiKey: 'test-api-key' });
+          await setCustom(CUSTOM_ID);
+          await setNumeric(1234567890);
+        },
+      );
+
+      expect(nativeModule.setSessionId).toHaveBeenCalledWith(1234567890);
+    });
+
+    it('does not call custom session native methods before initialization', async () => {
+      const nativeModule = await runInIsolatedModule(
+        async ({ setCustomSessionId: setCustom, getCustomSessionId: getCustom }) => {
+          await setCustom(CUSTOM_ID);
+          const id = await getCustom();
+          expect(id).toBeNull();
+        },
+      );
+
+      expect(nativeModule.setCustomSessionId).not.toHaveBeenCalled();
+      expect(nativeModule.getCustomSessionId).not.toHaveBeenCalled();
+    });
+
+    it('preserves custom session ID forwarding across opt-out toggle', async () => {
+      const nativeModule = await runInIsolatedModule(async ({ init: freshInit, setOptOut: freshSetOptOut }) => {
+        await freshInit({
+          apiKey: 'test-api-key',
+          customSessionId: CUSTOM_ID,
+        });
+        await freshSetOptOut(true);
+        await freshSetOptOut(false);
+      });
+
+      expect(nativeModule.setup).toHaveBeenCalledWith(expect.objectContaining({ customSessionId: CUSTOM_ID }));
+      expect(nativeModule.setOptOut).toHaveBeenCalledTimes(2);
+    });
+
+    it('allows re-init after teardown with a new custom session ID', async () => {
+      const nativeModule = await runInIsolatedModule(async ({ init: freshInit, teardown: freshTeardown }) => {
+        await freshInit({ apiKey: 'test-api-key', customSessionId: CUSTOM_ID });
+        await freshTeardown();
+        await freshInit({ apiKey: 'test-api-key', customSessionId: 'second-custom-id' });
+      });
+
+      expect(nativeModule.setup).toHaveBeenCalledTimes(2);
+      expect(nativeModule.setup).toHaveBeenLastCalledWith(
+        expect.objectContaining({ customSessionId: 'second-custom-id' }),
+      );
+      expect(nativeModule.teardown).toHaveBeenCalled();
+    });
+  });
 });

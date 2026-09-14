@@ -13,6 +13,8 @@ import type { UnsafeObject } from 'react-native/Libraries/Types/CodegenTypes';
 export interface Spec extends TurboModule {
   setup(config: UnsafeObject): Promise<void>;
   setSessionId(sessionId: number): Promise<void>;
+  setCustomSessionId(customSessionId: string): Promise<void>;
+  getCustomSessionId(): Promise<string | null>;
   setDeviceId(deviceId: string | null): Promise<void>;
   setOptOut(optOut: boolean): Promise<void>;
   getSessionId(): Promise<number>;

@@ -96,8 +96,8 @@ repositories {
 def kotlin_version = getExtOrDefault("kotlinVersion")
 
 dependencies {
-  implementation("com.amplitude:session-replay-android:[0.24.0,0.25.0)")
-  implementation("com.amplitude:analytics-android:[1.25.0,1.26.0)")
+  implementation("com.amplitude:session-replay-android:[0.29.0,0.30.0)")
+  implementation("com.amplitude:analytics-android:[1.30.1,1.31.0)")
 
   // For < 0.71, this will be from the local maven repo
   // For > 0.71, this will be replaced by `com.facebook.react:react-android:$version` by react gradle plugin

@@ -5,7 +5,8 @@ import { getDefaultConfig, SessionReplayConfig, SessionReplayConfigInternal } fr
 import { createSessionReplayLogger } from './logger';
 import { VERSION } from './version';
 
-type ResolvedSessionReplayConfig = Required<SessionReplayConfigInternal>;
+type ResolvedSessionReplayConfig = Required<Omit<SessionReplayConfigInternal, 'customSessionId'>> &
+  Pick<SessionReplayConfigInternal, 'customSessionId'>;
 
 /**
  * Translates the public `SessionReplayConfig` into the internal shape by
@@ -93,6 +94,34 @@ export async function setSessionId(sessionId: number): Promise<void> {
     return;
   }
   await NativeSessionReplay.setSessionId(sessionId);
+}
+
+/**
+ * Call whenever the alphanumeric session ID changes.
+ * The value must match the Session ID sent as event properties to Amplitude.
+ * While a custom session ID is active, `getSessionId()` returns `-1`.
+ *
+ * @param customSessionId - The new alphanumeric session identifier
+ */
+export async function setCustomSessionId(customSessionId: string): Promise<void> {
+  if (!isInitialized) {
+    logger.warn('SessionReplay is not initialized');
+    return;
+  }
+  await NativeSessionReplay.setCustomSessionId(customSessionId);
+}
+
+/**
+ * Get the current alphanumeric session identifier from the session replay SDK.
+ *
+ * @returns Promise that resolves to the active custom session ID, or null if not initialized
+ */
+export async function getCustomSessionId(): Promise<string | null> {
+  if (!isInitialized) {
+    logger.warn('SessionReplay is not initialized');
+    return null;
+  }
+  return await NativeSessionReplay.getCustomSessionId();
 }
 
 /**
@@ -235,14 +264,18 @@ function nativeConfig(config: ResolvedSessionReplayConfig): NativeSessionReplayC
   // `undefined` (no user value and no baked-in default), so fall back to
   // `'medium'`. Strip `privacyConfig` from the spread because the native bridge
   // only takes a flat `maskLevel` string.
-  const { privacyConfig, ...rest } = config;
+  const { privacyConfig, customSessionId, ...rest } = config;
   const resolvedMaskLevel: NativeSessionReplayConfig['maskLevel'] = privacyConfig.maskLevel ?? 'medium';
-  return {
+  const native: NativeSessionReplayConfig = {
     ...rest,
     logLevel: rest.logLevel as NativeSessionReplayConfig['logLevel'],
     // TODO(SDKRN-15): Migrate native bridge to accept the full privacyConfig object instead of a flat maskLevel string.
     maskLevel: resolvedMaskLevel,
   };
+  if (customSessionId !== undefined) {
+    native.customSessionId = customSessionId;
+  }
+  return native;
 }
 
 export async function privateInit(
