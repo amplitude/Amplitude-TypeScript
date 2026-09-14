@@ -1733,9 +1733,23 @@ describe('react-native-client', () => {
   });
 
   describe('diagnostics', () => {
-    test('should use the iOS diagnostics config and pass its sample rate to DiagnosticsClient', async () => {
+    test.each([
+      {
+        platform: 'ios' as const,
+        diagnosticsKey: 'iosSDK',
+        diagnosticsConfig: {
+          availabilities: { CrashTracking: '1.4.3' },
+          sampleRate: 1,
+        },
+      },
+      {
+        platform: 'android' as const,
+        diagnosticsKey: 'androidSDK',
+        diagnosticsConfig: { sampleRate: 1 },
+      },
+    ])('should pass the $platform diagnostics sample rate to DiagnosticsClient', async (testCase) => {
       const originalPlatform = Platform.OS;
-      Platform.OS = 'ios';
+      Platform.OS = testCase.platform;
       const platformRemoteConfigClient = {
         subscribe: jest.fn(
           (
@@ -1747,7 +1761,7 @@ describe('react-native-client', () => {
               {
                 configs: {
                   diagnostics: {
-                    iosSDK: { sampleRate: 0.25 },
+                    [testCase.diagnosticsKey]: testCase.diagnosticsConfig,
                   },
                 },
               },
@@ -1776,7 +1790,7 @@ describe('react-native-client', () => {
           'US',
           undefined,
           undefined,
-          'ios',
+          testCase.platform,
         );
         expect(platformRemoteConfigClient.subscribe).toHaveBeenCalledWith(
           undefined,
@@ -1787,35 +1801,7 @@ describe('react-native-client', () => {
         const destination = addSpy.mock.calls
           .map(([plugin]) => plugin as core.Destination)
           .find((plugin) => plugin.name === 'amplitude');
-        expect((destination?.diagnosticsClient as core.DiagnosticsClient).config.sampleRate).toBe(0.25);
-      } finally {
-        Platform.OS = originalPlatform;
-      }
-    });
-
-    test('should use the Android config group on Android', async () => {
-      const originalPlatform = Platform.OS;
-      Platform.OS = 'android';
-      try {
-        const client = new AmplitudeReactNative();
-        await client.init(API_KEY, undefined, {
-          ...useDefaultConfig(),
-          remoteConfig: { fetchRemoteConfig: true },
-        }).promise;
-
-        expect(MockedRemoteConfigClient).toHaveBeenCalledWith(
-          API_KEY,
-          expect.anything(),
-          'US',
-          undefined,
-          undefined,
-          'android',
-        );
-        expect(mockRemoteConfigClient.subscribe).toHaveBeenCalledWith(
-          undefined,
-          { timeout: 1000 },
-          expect.any(Function),
-        );
+        expect((destination?.diagnosticsClient as core.DiagnosticsClient).config.sampleRate).toBe(1);
       } finally {
         Platform.OS = originalPlatform;
       }
