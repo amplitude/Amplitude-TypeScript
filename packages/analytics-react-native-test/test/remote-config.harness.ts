@@ -15,7 +15,10 @@ import { Status, type Payload, type Response as AmplitudeResponse, type Transpor
 
 const API_KEY = 'remoteConfigHarnessApiKey';
 const REMOTE_CONFIG_SERVER_URL = 'https://remote-config.harness.test/config';
-const REMOTE_CONFIG_GROUP = Platform.OS === 'android' ? 'android' : 'ios';
+const expectedRemoteConfigQuery = () =>
+  Platform.OS === 'ios'
+    ? 'config_keys=analyticsSDK.iosSDK&config_keys=diagnostics.iosSDK&config_keys=sessionReplay'
+    : `config_group=${Platform.OS}`;
 
 const noopTransport: Transport = {
   send: async (_serverUrl: string, payload: Payload): Promise<AmplitudeResponse> => ({
@@ -88,7 +91,7 @@ describe('remote config', () => {
 
       expect(requests.length).toBe(1);
       expect(String(requests[0]?.input)).toBe(
-        `${REMOTE_CONFIG_SERVER_URL}/${encodeURIComponent(API_KEY)}?config_group=${REMOTE_CONFIG_GROUP}`,
+        `${REMOTE_CONFIG_SERVER_URL}/${encodeURIComponent(API_KEY)}?${expectedRemoteConfigQuery()}`,
       );
       expect(requests[0]?.init?.method).toBe('GET');
       expect(client.getUserId()).toBe('remote-config-user');
@@ -100,6 +103,56 @@ describe('remote config', () => {
       // default autocapture params
       expect(client.autocapture?.screenViews).toBe(true);
       expect(client.autocapture?.elementInteractions).toBe(false);
+    } finally {
+      global.fetch = originalFetch;
+    }
+  });
+
+  it('fetches platform diagnostics config during init', async () => {
+    const originalFetch = global.fetch;
+    const requests: Array<{ input: RequestInfo | URL; init?: RequestInit }> = [];
+    const remoteConfig = {
+      configs: {
+        diagnostics: {
+          [`${Platform.OS}SDK`]: {
+            sampleRate: 1,
+          },
+        },
+      },
+    };
+
+    global.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+      requests.push({ input, init });
+      return {
+        ok: true,
+        status: 200,
+        json: async () => remoteConfig,
+        text: async () => JSON.stringify(remoteConfig),
+      } as Response;
+    }) as typeof global.fetch;
+
+    try {
+      const client = new AmplitudeReactNative();
+
+      await client.init(API_KEY, 'remote-config-user', {
+        attribution: {
+          disabled: true,
+        },
+        flushQueueSize: 100,
+        logLevel: Types.LogLevel.None,
+        transportProvider: noopTransport,
+        remoteConfig: {
+          fetchRemoteConfig: true,
+          serverUrl: REMOTE_CONFIG_SERVER_URL,
+        },
+      }).promise;
+
+      expect(requests.length).toBe(1);
+      expect(String(requests[0]?.input)).toBe(
+        `${REMOTE_CONFIG_SERVER_URL}/${encodeURIComponent(API_KEY)}?${expectedRemoteConfigQuery()}`,
+      );
+      expect(requests[0]?.init?.method).toBe('GET');
+      expect(client.getUserId()).toBe('remote-config-user');
     } finally {
       global.fetch = originalFetch;
     }
