@@ -36,7 +36,7 @@ target 'example' do
       # :ccache_enabled => true
     )
 
-    swift_compat = '-Wl,-force_load,$(TOOLCHAIN_DIR)/usr/lib/swift/$(PLATFORM_NAME)/libswiftCompatibility56.a'
+    swift_compat = '-Wl,-force_load,$(DEVELOPER_DIR)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/$(PLATFORM_NAME)/libswiftCompatibility56.a'
     installer.pods_project.targets.each do |target|
       target.build_configurations.each do |cfg|
         cfg.build_settings['OTHER_LDFLAGS'] ||= ['$(inherited)']
@@ -44,6 +44,18 @@ target 'example' do
           cfg.build_settings['OTHER_LDFLAGS'] << swift_compat
         end
       end
+    end
+
+    installer.aggregate_targets.each do |aggregate_target|
+      aggregate_target.user_project.native_targets.each do |target|
+        target.build_configurations.each do |cfg|
+          cfg.build_settings['OTHER_LDFLAGS'] ||= ['$(inherited)']
+          unless cfg.build_settings['OTHER_LDFLAGS'].include?(swift_compat)
+            cfg.build_settings['OTHER_LDFLAGS'] << swift_compat
+          end
+        end
+      end
+      aggregate_target.user_project.save
     end
   end
 end
