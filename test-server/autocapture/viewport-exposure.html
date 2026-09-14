@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Viewport Exposure (mid-height line) Test</title>
+    <style>
+        /* This page's whole purpose is precise scroll positions, and the HUD rewrites
+           itself on every scroll. Scroll anchoring reacts to those updates by nudging
+           the page a line's worth, which silently moves the zone under test. */
+        body { margin: 0; font: 14px/1.5 system-ui, sans-serif; overflow-anchor: none; }
+
+        /* Sticky site header sits at the top of the viewport, like a storefront
+           nav that remains on screen while the page scrolls. The HUD is offset
+           below it so both stay readable. */
+        #site-header.zone {
+            position: sticky; top: 0; z-index: 2147483646;
+            display: flex; align-items: center; justify-content: space-between;
+            width: 100%; height: 52px; margin: 0; padding: 0 20px; box-sizing: border-box;
+            background: #fff; border: 0; border-bottom: 3px solid #1d4ed8; border-radius: 0;
+            font: 13px/1 system-ui, sans-serif;
+        }
+        #site-header .site-header-nav,
+        #site-header .site-header-actions { display: flex; gap: 18px; color: #111; }
+        #site-header .site-header-logo { font-weight: 700; letter-spacing: 0.12em; color: #1d4ed8; }
+        #site-header .zone-label,
+        #site-header .zone-state { display: none; }
+        #site-header .mid-line { border-top-color: #93c5fd; }
+        #site-header .mid-line::after { content: none; }
+        #site-header[data-state='viewed'] { background: #fff7ed; }
+        #site-header[data-state='exposed'] { background: #ecfdf5; }
+
+        #hud {
+            position: fixed; top: 52px; left: 0; right: 0; z-index: 2147483647;
+            padding: 8px 12px; background: #111; color: #eee;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, .4);
+        }
+        #hud h1 { font-size: 14px; margin: 0 0 4px; }
+        #hud .hint { color: #999; font-size: 12px; max-width: 70ch; }
+        #hud .controls { margin-top: 6px; font-size: 12px; }
+        #hud button { margin-right: 4px; }
+        #summary { margin-top: 6px; font-family: monospace; }
+        #status { margin-top: 2px; font-family: monospace; color: #888; }
+
+        /* Live state for every zone, so it stays readable even when a zone is
+           taller than the viewport and its own labels are scrolled off screen. */
+        #zone-table { margin-top: 4px; font: 12px/1.45 monospace; }
+        #zone-table div { white-space: pre; }
+        #zone-table .pending { color: #94a3b8; }
+        #zone-table .viewed { color: #fbbf24; }
+        #zone-table .exposed { color: #34d399; }
+        #zone-table .mismatch { color: #f87171; font-weight: 700; }
+
+        /* Clears the fixed HUD so the first zone does not start underneath it, and
+           the payload panel so zones are never hidden behind it. */
+        main { padding-top: 372px; padding-right: 440px; }
+
+        #payload-panel {
+            position: fixed; top: 380px; right: 8px; width: 400px; max-height: 60vh; overflow: auto;
+            z-index: 2147483647; padding: 8px 10px; background: #111; color: #eee; border-radius: 6px;
+            font: 11px/1.45 monospace; box-shadow: 0 4px 16px rgba(0, 0, 0, .4);
+        }
+        #payload-panel h2 { font-size: 12px; margin: 0 0 2px; }
+        #payload-panel .panel-hint { color: #999; font-size: 11px; }
+        #payload-panel .payload { margin-top: 8px; border-top: 1px solid #333; padding-top: 6px; }
+        #payload-panel .payload-meta { color: #6cf; }
+        #payload-panel .payload.empty .payload-meta { color: #777; }
+        #payload-panel pre { margin: 2px 0 0; white-space: pre-wrap; word-break: break-word; }
+        #payload-panel .payload.empty pre { color: #777; }
+        .lead, .tail { height: 60vh; display: flex; align-items: center; justify-content: center; color: #bbb; }
+
+        .zone {
+            position: relative; display: block; width: 70%; margin: 24px auto; padding: 0;
+            font: inherit; text-align: left; background: #f4f7fb; border: 2px solid #94a3b8;
+        }
+        .zone .zone-label { position: absolute; top: 8px; left: 12px; font-weight: 600; }
+        .zone .zone-state { position: absolute; bottom: 8px; left: 12px; font-family: monospace; }
+
+        /* The rule this page demonstrates: exposure keys off this line, not off area. */
+        .zone .mid-line {
+            position: absolute; top: 50%; left: 0; right: 0;
+            border-top: 2px dashed #ef4444;
+        }
+        .zone .mid-line::after {
+            content: '50% line'; position: absolute; top: 2px; right: 8px;
+            font-size: 11px; color: #ef4444;
+        }
+
+        .zone[data-state='viewed'] { background: #fff7ed; border-color: #f59e0b; }
+        .zone[data-state='exposed'] { background: #ecfdf5; border-color: #10b981; }
+        .zone[data-state='mismatch'] { background: #fef2f2; border-color: #dc2626; }
+
+        #zone-1 { height: 30vh; }
+        #zone-2 { height: 18vh; }
+        #zone-3 { height: 45vh; }
+        /* Taller than the viewport: its midpoint still gets viewed while scrolling. */
+        #zone-4 { height: 120vh; }
+        #zone-5 { height: 25vh; }
+        /* Fixed height keeps the 30 / 49 / 50 / 60 / 100% jump arithmetic easy to eyeball. */
+        #exposure-target { height: 240px; }
+        #oversized-target { height: 250vh; }
+
+        #overflow-container {
+            width: 70%; height: 300px; margin: 24px auto; overflow: auto;
+            border: 3px solid #7c3aed; background: #faf5ff;
+        }
+        #overflow-container .scroll-spacer {
+            height: 250px; padding: 8px; box-sizing: border-box; color: #7c3aed;
+        }
+        #nested-scroll-target { width: 80%; height: 200px; margin: 0 auto 250px; }
+    </style>
+</head>
+<body>
+    <button
+        class="zone"
+        id="site-header"
+        type="button"
+        data-note="sticky site header — stays on screen while you scroll"
+    >
+        <span class="site-header-nav">
+            <span>Home</span>
+            <span>Shop</span>
+            <span>About</span>
+            <span>Help</span>
+        </span>
+        <span class="site-header-logo">LOGO</span>
+        <span class="site-header-actions" aria-hidden="true">
+            <span>Search</span>
+            <span>Account</span>
+            <span>Cart</span>
+        </span>
+        <span class="zone-label"></span>
+        <span class="mid-line"></span>
+        <span class="zone-state">not viewed</span>
+    </button>
+
+    <div id="hud">
+        <h1>Viewport Exposure Test — a zone exposes once its 50% line has been in view for 150ms</h1>
+        <div class="hint">
+            Just scroll down. Each zone turns amber while its dashed 50% line is inside the viewport and
+            green once the SDK reports it as exposed. What counts is scrolling <em>through</em> a zone's
+            mid-height line, not fitting half its area on screen — so zones taller than the viewport still
+            expose. The top bar is a sticky site header: it stays in the viewport, so it should appear in
+            an exposed event on load and remain counted as you scroll. The panel on the right shows the
+            actual event payloads the SDK sends.
+        </div>
+        <div class="controls">
+            <label>
+                <input type="checkbox" id="auto-flush" checked>
+                Auto-flush every 500ms so exposures appear while scrolling
+            </label>
+            <button id="flush" type="button">Flush now</button>
+            <span class="hint">
+                (the SDK batches exposures and reports them on navigation/unload, not per scroll)
+            </span>
+        </div>
+        <div class="controls">
+            Jump <code>#exposure-target</code> to depth:
+            <button id="scroll-30" type="button">30%</button>
+            <button id="scroll-49" type="button">49%</button>
+            <button id="scroll-50" type="button">50%</button>
+            <button id="scroll-60" type="button">60%</button>
+            <button id="scroll-100" type="button">100%</button>
+            <button id="scroll-oversized" type="button">#oversized-target 50%</button>
+        </div>
+        <div id="summary">exposed 0 of 0 zones</div>
+        <div class="hint" id="duration-note"></div>
+        <div id="zone-table"></div>
+        <div id="status">ready</div>
+    </div>
+
+    <div id="payload-panel">
+        <h2>Events sent to Amplitude</h2>
+        <div class="panel-hint">
+            Newest first. This is the actual <code>[Amplitude] Viewport Content Updated</code> payload,
+            read off an enrichment plugin, so it is exactly what the SDK uploads.
+            <code>[Amplitude] Element Exposed</code> carries the newly exposed element paths, and is
+            empty when a flush only reports new scroll depth.
+        </div>
+        <div id="payloads"></div>
+    </div>
+
+    <main>
+        <div class="lead">scroll down</div>
+
+        <button class="zone" id="zone-1" type="button">
+            <span class="zone-label"></span>
+            <span class="mid-line"></span>
+            <span class="zone-state">not viewed</span>
+        </button>
+
+        <button class="zone" id="zone-2" type="button">
+            <span class="zone-label"></span>
+            <span class="mid-line"></span>
+            <span class="zone-state">not viewed</span>
+        </button>
+
+        <div id="overflow-container">
+            <div class="scroll-spacer">
+                Nested overflow container — scroll inside this purple panel. The target below begins
+                partially intersecting but its 50% line is clipped by the panel.
+            </div>
+            <button
+                class="zone"
+                id="nested-scroll-target"
+                type="button"
+                data-note="inside an overflow container"
+            >
+                <span class="zone-label"></span>
+                <span class="mid-line"></span>
+                <span class="zone-state">not viewed</span>
+            </button>
+        </div>
+
+        <button class="zone" id="zone-3" type="button">
+            <span class="zone-label"></span>
+            <span class="mid-line"></span>
+            <span class="zone-state">not viewed</span>
+        </button>
+
+        <button class="zone" id="zone-4" type="button">
+            <span class="zone-label"></span>
+            <span class="mid-line"></span>
+            <span class="zone-state">not viewed</span>
+        </button>
+
+        <button class="zone" id="zone-5" type="button">
+            <span class="zone-label"></span>
+            <span class="mid-line"></span>
+            <span class="zone-state">not viewed</span>
+        </button>
+
+        <button class="zone" id="exposure-target" type="button" data-note="target of the jump buttons">
+            <span class="zone-label"></span>
+            <span class="mid-line"></span>
+            <span class="zone-state">not viewed</span>
+        </button>
+
+        <button class="zone" id="oversized-target" type="button" data-note="less than half of it can ever be on screen">
+            <span class="zone-label"></span>
+            <span class="mid-line"></span>
+            <span class="zone-state">not viewed</span>
+        </button>
+
+        <div class="tail">end of page</div>
+    </main>
+
+    <script type="module">
+        import * as amplitude from '@amplitude/analytics-browser';
+
+        window.amplitude = amplitude;
+
+        // Defaults to the plugin's 150ms, stated explicitly so the harness and the
+        // Playwright spec size their waits off the same number. `?exposureDuration=`
+        // stretches the dwell, which makes it observable by hand and lets timing
+        // assertions keep a wide margin on a loaded CI runner.
+        const EXPOSURE_DURATION =
+            Number(new URLSearchParams(location.search).get('exposureDuration')) || 150;
+        const AUTO_FLUSH_MS = 500;
+
+        const zones = Array.from(document.querySelectorAll('.zone'));
+        const zoneState = new Map(zones.map((zone) => [zone, { exposed: false, maxDepth: 0 }]));
+
+        // IntersectionObserver clips against the layout viewport, so the geometry the
+        // plugin sees is measured against clientHeight, not innerHeight.
+        const viewportHeight = () => document.documentElement.clientHeight;
+
+        const visibleFraction = (element) => {
+            const rect = element.getBoundingClientRect();
+            const visible = Math.min(rect.bottom, viewportHeight()) - Math.max(rect.top, 0);
+            return Math.max(0, Math.min(visible, rect.height)) / rect.height;
+        };
+
+        // How far down the element the viewport's bottom edge has travelled. Unlike
+        // visible area, this keeps rising for elements taller than the viewport.
+        const viewedDepth = (element) => {
+            const rect = element.getBoundingClientRect();
+            return Math.max(0, Math.min(1, (viewportHeight() - rect.top) / rect.height));
+        };
+
+        // Mirrors the plugin, including its sub-pixel tolerance, so the page's own
+        // expectation cannot disagree with the SDK over a fraction of a pixel.
+        const MID_HEIGHT_LINE_TOLERANCE_PX = 1;
+        const CLIPPING_OVERFLOW_VALUES = new Set(['auto', 'clip', 'hidden', 'overlay', 'scroll']);
+
+        const getVisualParent = (element) =>
+            element.assignedSlot ??
+            element.parentElement ??
+            (element.getRootNode() instanceof ShadowRoot ? element.getRootNode().host : null);
+
+        /**
+         * Returns what is hiding the element's mid-height line: the string 'viewport',
+         * the clipping ancestor element, or null when the line is visible. Naming the
+         * blocker lets the HUD explain *why* a zone has not been exposed.
+         */
+        const midHeightLineBlocker = (element) => {
+            const rect = element.getBoundingClientRect();
+            const midHeightLine = rect.top + rect.height * 0.5;
+            let visibleLeft = Math.max(rect.left, 0);
+            let visibleRight = Math.min(rect.right, innerWidth);
+            if (
+                midHeightLine < -MID_HEIGHT_LINE_TOLERANCE_PX ||
+                midHeightLine > viewportHeight() + MID_HEIGHT_LINE_TOLERANCE_PX ||
+                visibleLeft >= visibleRight
+            ) {
+                return 'viewport';
+            }
+
+            let ancestor = getVisualParent(element);
+            while (ancestor) {
+                const style = getComputedStyle(ancestor);
+                const ancestorRect = ancestor.getBoundingClientRect();
+                if (
+                    CLIPPING_OVERFLOW_VALUES.has(style.overflowY) &&
+                    (midHeightLine < ancestorRect.top - MID_HEIGHT_LINE_TOLERANCE_PX ||
+                        midHeightLine > ancestorRect.bottom + MID_HEIGHT_LINE_TOLERANCE_PX)
+                ) {
+                    return ancestor;
+                }
+                if (CLIPPING_OVERFLOW_VALUES.has(style.overflowX)) {
+                    visibleLeft = Math.max(visibleLeft, ancestorRect.left);
+                    visibleRight = Math.min(visibleRight, ancestorRect.right);
+                    if (visibleLeft >= visibleRight) return ancestor;
+                }
+                ancestor = getVisualParent(ancestor);
+            }
+            return null;
+        };
+
+        const isMidHeightLineVisible = (element) => midHeightLineBlocker(element) === null;
+
+        // Window scrolling alone can never expose a zone parked inside a scrollable
+        // panel, so that panel is the actionable hint rather than scroll speed.
+        const scrollableClippingAncestor = (element) => {
+            let ancestor = getVisualParent(element);
+            while (ancestor) {
+                const overflowY = getComputedStyle(ancestor).overflowY;
+                if (
+                    CLIPPING_OVERFLOW_VALUES.has(overflowY) &&
+                    ancestor.scrollHeight > ancestor.clientHeight + MID_HEIGHT_LINE_TOLERANCE_PX
+                ) {
+                    return ancestor;
+                }
+                ancestor = getVisualParent(ancestor);
+            }
+            return null;
+        };
+
+        /**
+         * Scroll the viewport's bottom edge to `fraction` of the element's vertical
+         * depth and return the depth actually reached (clamped by the scroll range).
+         *
+         * Converges with relative scrolls off freshly measured geometry rather than
+         * computing one absolute offset: the layout viewport can change as scrollbars
+         * appear, which silently threw off an absolute target by ~20px.
+         */
+        const nextFrame = () => new Promise((resolve) => requestAnimationFrame(() => resolve()));
+
+        const scrollElementTo = async (fraction, element = document.getElementById('exposure-target')) => {
+            for (let attempt = 0; attempt < 5; attempt++) {
+                const rect = element.getBoundingClientRect();
+                const delta = rect.top - (viewportHeight() - fraction * rect.height);
+                if (Math.abs(delta) < 0.5) break;
+                const before = window.scrollY;
+                window.scrollBy(0, delta);
+                // Let the scroll settle before re-measuring; the position can still
+                // shift by a line's worth after the synchronous call returns.
+                await nextFrame();
+                // Hit the top or bottom of the document; no further correction possible.
+                if (window.scrollY === before) break;
+            }
+            // Report what actually happened rather than what was requested, so the
+            // Playwright guard on the achieved depth is meaningful.
+            await nextFrame();
+            return viewedDepth(element);
+        };
+
+        // Exposure is reported on navigation/unload, so dispatch beforeunload to
+        // flush whatever has been exposed since the last flush.
+        const flush = () => window.dispatchEvent(new Event('beforeunload'));
+
+        const exposedPaths = [];
+        // Full event objects the SDK sent, newest first, so the page can show the
+        // real payload shape rather than just the element paths pulled out of it.
+        const payloads = [];
+        const MAX_PAYLOADS_SHOWN = 6;
+
+        let autoFlushTimer;
+        const setAutoFlush = (enabled) => {
+            document.getElementById('auto-flush').checked = enabled;
+            clearInterval(autoFlushTimer);
+            autoFlushTimer = enabled ? setInterval(flush, AUTO_FLUSH_MS) : undefined;
+        };
+
+        window.__exposureHarness = {
+            scrollElementTo,
+            visibleFraction,
+            viewedDepth,
+            isMidHeightLineVisible,
+            midHeightLineBlocker,
+            flush,
+            setAutoFlush,
+            exposedPaths,
+            payloads,
+            EXPOSURE_DURATION,
+        };
+
+        const renderPayloads = () => {
+            const container = document.getElementById('payloads');
+            container.textContent = '';
+
+            if (!payloads.length) {
+                const placeholder = document.createElement('div');
+                placeholder.className = 'payload empty';
+                placeholder.textContent = 'no events sent yet — scroll to expose a zone';
+                container.appendChild(placeholder);
+                return;
+            }
+
+            payloads.slice(0, MAX_PAYLOADS_SHOWN).forEach(({ at, event }) => {
+                const exposed = event.event_properties?.['[Amplitude] Element Exposed'] ?? [];
+                const entry = document.createElement('div');
+                entry.className = exposed.length ? 'payload' : 'payload empty';
+
+                const meta = document.createElement('div');
+                meta.className = 'payload-meta';
+                meta.textContent = `${at} · ${event.event_type} · ${exposed.length} newly exposed`;
+
+                const body = document.createElement('pre');
+                body.textContent = JSON.stringify(event, null, 2);
+
+                entry.append(meta, body);
+                container.appendChild(entry);
+            });
+        };
+
+        const render = () => {
+            const rows = [];
+
+            const unexposed = [];
+
+            zones.forEach((zone) => {
+                const state = zoneState.get(zone);
+                const blocker = midHeightLineBlocker(zone);
+                const midpointInView = blocker === null;
+                state.maxDepth = Math.max(state.maxDepth, viewedDepth(zone));
+
+                // The SDK must never report a zone whose 50% line was never reached.
+                const impossible = state.exposed && state.maxDepth < 0.5;
+                zone.dataset.state = impossible
+                    ? 'mismatch'
+                    : state.exposed
+                    ? 'exposed'
+                    : midpointInView
+                    ? 'viewed'
+                    : 'pending';
+
+                // Max depth, not the instantaneous value: an exposed zone you have
+                // since scrolled past should not read "depth 0%".
+                const depth = Math.round(state.maxDepth * 100);
+                const visible = Math.round(visibleFraction(zone) * 100);
+
+                // Derived from measured geometry so the labels cannot drift from the CSS.
+                const height = Math.round(zone.getBoundingClientRect().height);
+                const ofViewport = Math.round((height / viewportHeight()) * 100);
+                zone.querySelector('.zone-label').textContent =
+                    `#${zone.id} — ${height}px, ${ofViewport}% of the viewport` +
+                    (zone.dataset.note ? ` · ${zone.dataset.note}` : '');
+                // Reaching the line is not enough: scrolling straight past it without
+                // dwelling 150ms is excluded, which is the point of the duration.
+                const panel = scrollableClippingAncestor(zone);
+                const clipper = blocker instanceof Element ? blocker : panel;
+                const reason = clipper
+                    ? `50% line clipped by #${clipper.id || clipper.tagName.toLowerCase()} — scroll inside it`
+                    : state.maxDepth >= 0.5
+                    ? `50% line passed without dwelling ${EXPOSURE_DURATION}ms — scroll it slower`
+                    : '50% line not reached yet — keep scrolling';
+                const note = impossible
+                    ? 'EXPOSED WITHOUT REACHING ITS 50% LINE'
+                    : state.exposed
+                    ? 'exposed'
+                    : midpointInView
+                    ? `50% line in view, waiting ${EXPOSURE_DURATION}ms`
+                    : reason;
+                if (!state.exposed && !impossible) {
+                    unexposed.push(`#${zone.id} (${midpointInView ? 'waiting' : reason.split(' — ')[0]})`);
+                }
+
+                zone.querySelector('.zone-state').textContent = impossible
+                    ? `EXPOSED WITHOUT REACHING ITS 50% LINE (max depth ${depth}%)`
+                    : state.exposed
+                    ? `exposed ✓ (max depth ${depth}%, ${visible}% on screen now)`
+                    : `${note} (max depth ${depth}%)`;
+                rows.push(
+                    `<div class="${zone.dataset.state}">` +
+                        `#${zone.id.padEnd(20)} max depth ${String(depth).padStart(3)}%   ` +
+                        `on screen ${String(visible).padStart(3)}%   ${note}</div>`,
+                );
+            });
+
+            document.getElementById('zone-table').innerHTML = rows.join('');
+            const exposedCount = zones.length - unexposed.length;
+            // Say why the count is short, so a partial tally is self-explanatory.
+            document.getElementById('summary').textContent =
+                `exposed ${exposedCount} of ${zones.length} zones` +
+                (unexposed.length ? ` · still waiting on ${unexposed.join(', ')}` : '');
+        };
+
+        // Reads the exposed element paths off each captured
+        // `[Amplitude] Viewport Content Updated`. Enrichment plugin, so nothing is
+        // swallowed and the payload still goes out to the network.
+        const exposureLogger = {
+            name: 'harness-exposure-logger',
+            type: 'enrichment',
+            setup: async () => undefined,
+            execute: async (event) => {
+                if (event.event_type === '[Amplitude] Viewport Content Updated') {
+                    const paths = event.event_properties?.['[Amplitude] Element Exposed'] ?? [];
+                    exposedPaths.push(...paths);
+                    payloads.unshift({
+                        at: new Date().toISOString().slice(11, 23),
+                        event: { event_type: event.event_type, event_properties: event.event_properties },
+                    });
+                    // eslint-disable-next-line no-console
+                    console.log('%c[Amplitude] Viewport Content Updated', 'color:#0a0', event.event_properties);
+                    zones.forEach((zone) => {
+                        if (paths.includes(`button#${zone.id}`)) {
+                            zoneState.get(zone).exposed = true;
+                        }
+                    });
+                    render();
+                    renderPayloads();
+                }
+                return event;
+            },
+        };
+
+        let renderQueued = false;
+        window.addEventListener('scroll', () => {
+            if (renderQueued) return;
+            renderQueued = true;
+            requestAnimationFrame(() => {
+                renderQueued = false;
+                render();
+            });
+        });
+
+        document.getElementById('auto-flush').addEventListener('change', (event) =>
+            setAutoFlush(event.target.checked),
+        );
+        document.getElementById('flush').addEventListener('click', flush);
+        document.getElementById('scroll-30').addEventListener('click', () => void scrollElementTo(0.3));
+        document.getElementById('scroll-49').addEventListener('click', () => void scrollElementTo(0.49));
+        document.getElementById('scroll-50').addEventListener('click', () => void scrollElementTo(0.5));
+        document.getElementById('scroll-60').addEventListener('click', () => void scrollElementTo(0.6));
+        document.getElementById('scroll-100').addEventListener('click', () => void scrollElementTo(1));
+        document.getElementById('scroll-oversized').addEventListener('click', () =>
+            void scrollElementTo(0.5, document.getElementById('oversized-target')),
+        );
+
+        // Self-contained: fall back to a dummy key so the page works without a
+        // configured environment. The Playwright spec intercepts track requests,
+        // so the key value is irrelevant to the assertions.
+        const apiKey = import.meta.env.VITE_AMPLITUDE_API_KEY || 'viewport-exposure-e2e-key';
+
+        amplitude.init(apiKey, 'test-user', {
+            fetchRemoteConfig: false,
+            // Flush eagerly so exposure events reach the network quickly.
+            flushIntervalMillis: 300,
+            flushQueueSize: 1,
+            autocapture: {
+                pageViews: false,
+                sessions: false,
+                formInteractions: false,
+                fileDownloads: false,
+                elementInteractions: {
+                    viewportContentUpdated: { enabled: true, exposureDuration: EXPOSURE_DURATION },
+                },
+            },
+            logLevel: 0,
+        }).promise.then(() => {
+            amplitude.add(exposureLogger);
+            setAutoFlush(true);
+            document.getElementById('duration-note').textContent =
+                `dwell required: ${EXPOSURE_DURATION}ms (override with ?exposureDuration=)`;
+            render();
+            renderPayloads();
+            document.getElementById('status').textContent = 'initialized';
+        });
+    </script>
+</body>
+</html>
