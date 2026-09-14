@@ -27,33 +27,34 @@ function resolveNativeSessionReplay(): Spec {
     return linkingErrorProxy as Spec;
   }
 
-  if (turboModule != null && legacyModule != null) {
-    const legacy = legacyModule;
-    return new Proxy(turboModule, {
-      get(target, prop, receiver): unknown {
-        if (typeof prop !== 'string') {
-          return Reflect.get(target, prop, receiver);
-        }
-        const turboRecord = target as unknown as Record<string, unknown>;
-        const legacyRecord = legacy as unknown as Record<string, unknown>;
-        const fromTurbo = turboRecord[prop];
-        if (typeof fromTurbo === 'function') {
-          return fromTurbo.bind(target);
-        }
-        const fromLegacy = legacyRecord[prop];
-        if (typeof fromLegacy === 'function') {
-          return fromLegacy.bind(legacy);
-        }
+  // On Android New Architecture the JSI host object can omit methods that were
+  // added after the initial TurboModule codegen snapshot, while the
+  // NativeModules interop entry still exposes the full @ReactMethod surface.
+  const primary = legacyModule ?? turboModule;
+  const secondary = legacyModule != null && turboModule != null ? turboModule : null;
+
+  if (secondary == null) {
+    return primary as Spec;
+  }
+
+  return new Proxy(primary as object, {
+    get(target, prop, receiver): unknown {
+      if (typeof prop !== 'string') {
         return Reflect.get(target, prop, receiver);
-      },
-    });
-  }
-
-  if (turboModule != null) {
-    return turboModule;
-  }
-
-  return legacyModule as Spec;
+      }
+      const primaryRecord = target as Record<string, unknown>;
+      const fromPrimary = primaryRecord[prop];
+      if (typeof fromPrimary === 'function') {
+        return fromPrimary.bind(target);
+      }
+      const secondaryRecord = secondary as unknown as Record<string, unknown>;
+      const fromSecondary = secondaryRecord[prop];
+      if (typeof fromSecondary === 'function') {
+        return fromSecondary.bind(secondary);
+      }
+      return Reflect.get(target, prop, receiver);
+    },
+  }) as Spec;
 }
 
 // JS callers use the rich, hand-written types below for full type safety; the
