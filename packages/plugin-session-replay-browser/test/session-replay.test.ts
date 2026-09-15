@@ -218,6 +218,31 @@ describe('SessionReplayPlugin', () => {
       );
     });
 
+    test('should pass handleSendEvents and enableTransportCompression through to session replay', async () => {
+      const handleSendEvents = jest.fn(async (request) => {
+        return fetch(request.url, {
+          method: request.method,
+          headers: request.headers,
+          body: request.body,
+          keepalive: request.keepalive,
+        });
+      });
+      const sessionReplay = new SessionReplayPlugin({
+        enableTransportCompression: false,
+        handleSendEvents,
+      });
+
+      await sessionReplay.setup?.(mockConfig, mockAmplitude);
+
+      expect(init).toHaveBeenCalledWith(
+        'static_key',
+        expect.objectContaining({
+          enableTransportCompression: false,
+          handleSendEvents,
+        }),
+      );
+    });
+
     describe('defaultTracking', () => {
       test('should not change defaultTracking when forceSessionTracking is not defined', async () => {
         const sessionReplay = new SessionReplayPlugin();
@@ -850,7 +875,7 @@ describe('SessionReplayPlugin', () => {
 
   describe('getSessionReplayProperties', () => {
     test('should return session replay properties', async () => {
-      const sessionReplay = sessionReplayPlugin() as SessionReplayPlugin;
+      const sessionReplay = sessionReplayPlugin();
       await sessionReplay.setup?.(mockConfig, mockAmplitude);
       getSessionReplayProperties.mockReturnValueOnce({
         '[Amplitude] Session Recorded': true,
