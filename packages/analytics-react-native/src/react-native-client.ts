@@ -90,8 +90,6 @@ const getActiveRouteName = (navigationState: NavigationState): string | undefine
   return routeName;
 };
 
-const getRemoteConfigSdkKey = () =>
-  Platform.OS === 'android' ? 'configs.analyticsSDK.androidSDK' : 'configs.analyticsSDK.iosSDK';
 const getRemoteConfigPlatform = (): { configGroup: RemoteConfigGroup; diagnosticsKey: string } => {
   switch (Platform.OS) {
     case 'ios':
@@ -111,6 +109,8 @@ const getRemoteConfigPlatform = (): { configGroup: RemoteConfigGroup; diagnostic
       };
   }
 };
+
+const getRemoteConfigSdkKey = () => `configs.analyticsSDK.${getRemoteConfigPlatform().configGroup}SDK`;
 
 const REMOTE_CONFIG_DELIVERY_TIMEOUT_MILLIS = 1000;
 
