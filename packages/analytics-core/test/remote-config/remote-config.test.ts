@@ -1214,11 +1214,9 @@ describe('RemoteConfigClient', () => {
       expect(url).toBe(expectedUrl);
     });
 
-    test('should request config keys instead of a config group on ios', () => {
+    test('should generate URL with an ios config group', () => {
       client = new RemoteConfigClient(mockApiKey, mockLogger, 'US', undefined, undefined, 'ios');
-      const expectedUrl =
-        `https://sr-client-cfg.amplitude.com/config/test-api-key?` +
-        `config_keys=analyticsSDK.iosSDK&config_keys=diagnostics.iosSDK&config_keys=sessionReplay`;
+      const expectedUrl = `https://sr-client-cfg.amplitude.com/config/test-api-key?config_group=ios`;
       const url = client.getUrlParams();
       expect(url).toBe(expectedUrl);
     });

@@ -492,13 +492,7 @@ export class RemoteConfigClient implements IRemoteConfigClient {
     const encodedApiKey = encodeURIComponent(this.apiKey);
 
     const urlParams = new URLSearchParams();
-    if (this.configGroup === 'ios') {
-      urlParams.append('config_keys', 'analyticsSDK.iosSDK');
-      urlParams.append('config_keys', 'diagnostics.iosSDK');
-      urlParams.append('config_keys', 'sessionReplay');
-    } else {
-      urlParams.append('config_group', this.configGroup);
-    }
+    urlParams.append('config_group', this.configGroup);
 
     return `${this.serverUrl}/${encodedApiKey}?${urlParams.toString()}`;
   }
