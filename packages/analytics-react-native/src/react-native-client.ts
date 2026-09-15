@@ -27,6 +27,7 @@ import {
   LogLevel,
   IRemoteConfigClient,
   RemoteConfigClient,
+  RemoteConfigGroup,
   RemoteConfig,
   Source,
   ReactNativeAutocaptureOptions,
@@ -89,7 +90,9 @@ const getActiveRouteName = (navigationState: NavigationState): string | undefine
   return routeName;
 };
 
-const getRemoteConfigPlatform = () => {
+const getRemoteConfigSdkKey = () =>
+  Platform.OS === 'android' ? 'configs.analyticsSDK.androidSDK' : 'configs.analyticsSDK.iosSDK';
+const getRemoteConfigPlatform = (): { configGroup: RemoteConfigGroup; diagnosticsKey: string } => {
   switch (Platform.OS) {
     case 'ios':
       return {
@@ -206,7 +209,7 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
       });
       analyticsRemoteConfigPromise = new Promise<RemoteConfig | null>((resolve) => {
         remoteConfigClient?.subscribe(
-          'configs.analyticsSDK.reactNativeSDK',
+          getRemoteConfigSdkKey(),
           'all',
           (remoteConfig: RemoteConfig | null, source: Source, lastFetch: Date) => {
             loggerProvider.debug(
