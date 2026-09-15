@@ -29,7 +29,6 @@ report answers:
 
 ```text
 --headed                     Show the browser
---storage-state auth.json    Use a saved Playwright login
 --viewport 390x844           Audit a device-sized viewport
 --config audit-config.json   Override the allowlist or selector settings
 --output report.json         Choose the report path
@@ -75,9 +74,11 @@ be read side by side:
 - `audited`: what this run actually used.
 - `recommended`: what the evidence from this page supports.
 
-`changes` lists one entry per setting with the reason behind it. Scalar entries
-carry the three values directly; list entries carry `added` / `removed` against
-the SDK default plus entry counts, since the full lists are already above.
+`changes` lists one entry per setting with the reason behind it, while
+`requiredChanges` contains only the settings that need to change. Scalar
+entries carry the three values directly; list entries carry `added` / `removed`
+against the SDK default plus entry counts, since the full lists are already
+above.
 
 `enabled`, `shadowDomEnabled`, and `maxShadowDomDepth` are marked
 `harnessControlled`. The harness forces them on to have something to audit, so
@@ -85,13 +86,24 @@ their `audited` values describe the harness rather than the customer. The
 recommendation for shadow piercing is derived from whether selectors on the
 page actually crossed a shadow boundary, not from what the harness ran with.
 
+`elementSelectorDecision` explicitly says whether the element-selector engine
+should be enabled. It recommends enabling only when the page shows a benefit
+(generated ID patterns, shadow-boundary crossings, or legacy selector
+problems) and every selector produced with the proposed settings uniquely
+resolves. When it recommends enabling,
+`elementSelectorDecision.additionalRegex` lists only the extra regex values to
+add, while `apply.remoteConfigPayload` contains the complete replacement arrays
+required by remote config. When it recommends leaving the engine disabled, the
+payload is `null`.
+
 `auditedCustomizations` names the settings where this run departed from stock
 SDK defaults, ignoring the harness-controlled fields. When it is empty, the
 `sdkDefaults` and `recommended` columns are a clean before-and-after.
 
-`apply` is the paste-ready form: `remoteConfigPayload` under `remoteConfigKey`
-for the element-selector settings, and `sdkOptions` for the allowlist and
-exposure duration, which are SDK init options rather than remote config.
+`apply` is the paste-ready form: a non-null `remoteConfigPayload` under
+`remoteConfigKey` for the element-selector settings, and `sdkOptions` for the
+allowlist and exposure duration, which are SDK init options rather than remote
+config.
 
 Nothing here is applied automatically. Read the diff, confirm the evidence in
 `allowlistAdditions` and `patternSuggestions`, then change remote config by hand.
