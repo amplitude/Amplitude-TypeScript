@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.45.10](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.45.9...@amplitude/analytics-browser@2.45.10) (2026-09-16)
+
+
+### Bug Fixes
+
+* pin custom enrichment plugin ([#1995](https://github.com/amplitude/Amplitude-TypeScript/issues/1995)) ([4cfc431](https://github.com/amplitude/Amplitude-TypeScript/commit/4cfc431e2f397dce2f8f9413956e578389e6b65b))
+
+
+
+
+
 ## [2.45.9](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.45.8...@amplitude/analytics-browser@2.45.9) (2026-09-16)
 
 
