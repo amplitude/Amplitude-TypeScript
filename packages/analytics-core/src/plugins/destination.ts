@@ -32,6 +32,7 @@ import { EventCallback } from '../types/event-callback';
 import { IDiagnosticsClient } from '../diagnostics/diagnostics-client';
 import { isSuccessStatusCode } from '../utils/status-code';
 import { getStacktrace } from '../utils/debug';
+import { isClientSide } from '../utils/environment';
 
 export interface Context {
   event: Event;
@@ -95,6 +96,11 @@ export class Destination implements DestinationPlugin {
   flushId: ReturnType<typeof setTimeout> | null = null;
   queue: Context[] = [];
   diagnosticsClient: IDiagnosticsClient | undefined;
+  // True for client SDKs (browser page or worker, Chrome extension, React Native), which can
+  // recover from an offline state via a network reconnect or a page reload / worker restart /
+  // app relaunch. False for the Node (server) SDK — a long-lived process with no such
+  // recovery — where events past the retry budget are dropped as before.
+  isClientSide = isClientSide();
 
   constructor(context?: { diagnosticsClient: IDiagnosticsClient }) {
     this.diagnosticsClient = context?.diagnosticsClient;
@@ -390,13 +396,49 @@ export class Destination implements DestinationPlugin {
     this.scheduleEvents(tryable);
   }
 
-  handleOtherResponse(list: Context[]) {
-    const later = list.map((context) => {
-      context.timeout = context.attempts * this.retryTimeout;
-      return context;
-    });
+  getRetryBackoff(attempts: number): number {
+    return this.retryTimeout * Math.pow(2, Math.max(0, attempts - 1));
+  }
 
-    const tryable = this.removeEventsExceedFlushMaxRetries(later);
+  handleOtherResponse(list: Context[]) {
+    let tryable: Context[];
+
+    if (this.isClientSide) {
+      // Client SDKs: mirror the mobile SDKs. Retry with exponential backoff, and once the
+      // retry budget is exhausted, go offline and keep the events instead of dropping
+      // them — this pauses all further flushing. They stay in the queue + storage; flushing
+      // resumes when the connectivity checker sees a `navigator`/NetInfo online event, or on
+      // page reload / worker restart / app relaunch (which resets config.offline and, since
+      // `attempts` is not persisted, retries from scratch).
+      tryable = [];
+      let isExceedingMaxRetries = false;
+      list.forEach((context) => {
+        context.attempts += 1;
+        if (context.attempts < this.config.flushMaxRetries) {
+          context.timeout = this.getRetryBackoff(context.attempts);
+          tryable.push(context);
+        } else {
+          isExceedingMaxRetries = true;
+        }
+      });
+      if (isExceedingMaxRetries) {
+        this.config.offline = true;
+        this.config.loggerProvider.debug(
+          `Upload failed after ${this.config.flushMaxRetries} retries; going offline and pausing flush until the SDK reconnects or the page reloads.`,
+        );
+        this.diagnosticsClient?.increment('offline.by.max.retries');
+      }
+    } else {
+      // Server (Node) SDK: a long-lived process with no reconnect/reload to recover from
+      // offline, so keep the legacy behavior — linear backoff and drop events past the
+      // retry budget.
+      const later = list.map((context) => {
+        context.timeout = context.attempts * this.retryTimeout;
+        return context;
+      });
+      tryable = this.removeEventsExceedFlushMaxRetries(later);
+    }
+
     this.scheduleEvents(tryable);
   }
 
