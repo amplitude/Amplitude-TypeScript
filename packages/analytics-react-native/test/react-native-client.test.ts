@@ -58,8 +58,7 @@ describe('react-native-client', () => {
   };
   const expectedRemoteConfigGroup = () =>
     Platform.OS === 'ios' || Platform.OS === 'android' ? Platform.OS : 'browser';
-  const expectedRemoteConfigSdkKey = () =>
-    Platform.OS === 'android' ? 'configs.analyticsSDK.androidSDK' : 'configs.analyticsSDK.iosSDK';
+  const expectedRemoteConfigSdkKey = () => `configs.analyticsSDK.${expectedRemoteConfigGroup()}SDK`;
 
   beforeEach(() => {
     originalRemoteConfigClient = core.RemoteConfigClient;
@@ -361,7 +360,7 @@ describe('react-native-client', () => {
         expect.any(Function),
       );
       expect(mockRemoteConfigClient.subscribe).toHaveBeenCalledWith(
-        'configs.analyticsSDK.iosSDK',
+        expectedRemoteConfigSdkKey(),
         'all',
         expect.any(Function),
       );
