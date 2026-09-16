@@ -1,6 +1,6 @@
 {
   "name": "@amplitude/unified-react-native",
-  "version": "1.0.0-beta.0",
+  "version": "1.0.0-beta.1",
   "description": "Official Amplitude SDK for React Native analytics, Experiment, session replay, Guides and Surveys, and more.",
   "keywords": [
     "amplitude",
