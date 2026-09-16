@@ -1,6 +1,6 @@
 {
   "name": "@amplitude/plugin-session-replay-react-native",
-  "version": "0.5.1",
+  "version": "0.5.2-hotfixmigrate-lerna-to-nx-2.0",
   "description": "Amplitude Session Replay plugin for React Native",
   "keywords": [
     "analytics",

@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.29.1-hotfixmigrate-lerna-to-nx-2.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.29.0...@amplitude/plugin-autocapture-browser@1.29.1-hotfixmigrate-lerna-to-nx-2.0) (2026-09-16)
+
+
+### Bug Fixes
+
+* **autocapture:** expose zones when the mid-height line is viewed ([#1972](https://github.com/amplitude/Amplitude-TypeScript/issues/1972)) ([5c09973](https://github.com/amplitude/Amplitude-TypeScript/commit/5c099733e456618d81976282e1187c2330e9383d))
+
+
+
+
+
 # [1.29.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.28.12...@amplitude/plugin-autocapture-browser@1.29.0) (2026-08-27)
 
 

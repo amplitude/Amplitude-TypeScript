@@ -1317,7 +1317,8 @@ packages:
       { integrity: sha512-T4jyad4BBfpU/x21Vf2U6JeHA9n14bil4+46CI1tK4OijZX4ZpKfPaw+T2gzG0BreX87o7kUVs1O5kM6Z6K3ZA== }
 
   '@amplitude/plugin-engagement-react-native@3.12.1':
-    resolution: {integrity: sha512-RYDMDMNQfIv7zWwkFp8uDCaUp65SH782EJA8B0na9JldUISYrM4s2bZfNTN+8cllutB1aHjwl/gqjrJNnHzaYw==}
+    resolution:
+      { integrity: sha512-RYDMDMNQfIv7zWwkFp8uDCaUp65SH782EJA8B0na9JldUISYrM4s2bZfNTN+8cllutB1aHjwl/gqjrJNnHzaYw== }
     peerDependencies:
       '@react-native-async-storage/async-storage': ^2.1.2
       react: '*'
@@ -4057,7 +4058,8 @@ packages:
       react-native: ^0.0.0-0 || >=0.60 <1.0
 
   '@react-native-async-storage/async-storage@2.2.0':
-    resolution: {integrity: sha512-gvRvjR5JAaUZF8tv2Kcq/Gbt3JHwbKFYfmb445rhOj6NUMx3qPLixmDx5pZAyb9at1bYvJ4/eTUipU5aki45xw==}
+    resolution:
+      { integrity: sha512-gvRvjR5JAaUZF8tv2Kcq/Gbt3JHwbKFYfmb445rhOj6NUMx3qPLixmDx5pZAyb9at1bYvJ4/eTUipU5aki45xw== }
     peerDependencies:
       react-native: ^0.0.0-0 || >=0.65 <1.0
 

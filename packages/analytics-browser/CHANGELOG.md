@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.45.9-hotfixmigrate-lerna-to-nx-2.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.45.8...@amplitude/analytics-browser@2.45.9-hotfixmigrate-lerna-to-nx-2.0) (2026-09-16)
+
+
+### Bug Fixes
+
+* **browser:** normalize empty instance names ([#1956](https://github.com/amplitude/Amplitude-TypeScript/issues/1956)) ([942c8bc](https://github.com/amplitude/Amplitude-TypeScript/commit/942c8bc3a1ac341988c02a5ea42db1813bb61519))
+
+
+
+
+
 ## [2.45.8](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.45.7...@amplitude/analytics-browser@2.45.8) (2026-08-27)
 
 **Note:** Version bump only for package @amplitude/analytics-browser
