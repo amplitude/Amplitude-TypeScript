@@ -1,4 +1,5 @@
 {
+  "useNx": true,
   "packages": ["packages/*"],
   "version": "independent",
   "npmClient": "pnpm",
@@ -8,7 +9,7 @@
       "conventionalCommits": true,
       "message": "chore(release): publish",
       "preid": "beta",
-      "exact": true,
+      "exact": true
     }
   },
   "$schema": "node_modules/lerna/schemas/lerna-schema.json"
