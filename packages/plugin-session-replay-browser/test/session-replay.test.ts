@@ -850,7 +850,7 @@ describe('SessionReplayPlugin', () => {
 
   describe('getSessionReplayProperties', () => {
     test('should return session replay properties', async () => {
-      const sessionReplay = sessionReplayPlugin() as SessionReplayPlugin;
+      const sessionReplay = sessionReplayPlugin() ;
       await sessionReplay.setup?.(mockConfig, mockAmplitude);
       getSessionReplayProperties.mockReturnValueOnce({
         '[Amplitude] Session Recorded': true,
