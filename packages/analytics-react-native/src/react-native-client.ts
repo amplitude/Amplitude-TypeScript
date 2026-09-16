@@ -219,7 +219,7 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
       analyticsRemoteConfigPromise = new Promise<RemoteConfig | null>((resolve) => {
         remoteConfigClient?.subscribe(
           getRemoteConfigSdkKey(),
-          'all',
+          { timeout: REMOTE_CONFIG_DELIVERY_TIMEOUT_MILLIS },
           (remoteConfig: RemoteConfig | null, source: Source, lastFetch: Date) => {
             loggerProvider.debug(
               'Remote configuration received:',

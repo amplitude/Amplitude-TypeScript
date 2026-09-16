@@ -361,7 +361,7 @@ describe('react-native-client', () => {
       );
       expect(mockRemoteConfigClient.subscribe).toHaveBeenCalledWith(
         expectedRemoteConfigSdkKey(),
-        'all',
+        { timeout: 1000 },
         expect.any(Function),
       );
     });
@@ -446,7 +446,7 @@ describe('react-native-client', () => {
         );
         expect(mockRemoteConfigClient.subscribe).toHaveBeenCalledWith(
           'configs.analyticsSDK.androidSDK',
-          'all',
+          { timeout: 1000 },
           expect.any(Function),
         );
       } finally {
@@ -1847,7 +1847,7 @@ describe('react-native-client', () => {
         );
         expect(platformRemoteConfigClient.subscribe).toHaveBeenCalledWith(
           `configs.analyticsSDK.${testCase.diagnosticsKey}`,
-          'all',
+          { timeout: 1000 },
           expect.any(Function),
         );
         const destination = addSpy.mock.calls
