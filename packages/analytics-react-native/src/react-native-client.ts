@@ -90,8 +90,17 @@ const getActiveRouteName = (navigationState: NavigationState): string | undefine
   return routeName;
 };
 
-const getRemoteConfigSdkKey = () =>
-  Platform.OS === 'android' ? 'configs.analyticsSDK.androidSDK' : 'configs.analyticsSDK.iosSDK';
+const getRemoteConfigSdkKey = () => {
+  if (Platform.OS === 'ios') {
+    return 'configs.analyticsSDK.iosSDK';
+  }
+  if (Platform.OS === 'android') {
+    return 'configs.analyticsSDK.androidSDK';
+  }
+  // unexpected React Native platform, just use Browser SDK.
+  return 'configs.analyticsSDK.browserSDK';
+};
+
 const getRemoteConfigPlatform = (): { configGroup: RemoteConfigGroup; diagnosticsKey: string } => {
   switch (Platform.OS) {
     case 'ios':

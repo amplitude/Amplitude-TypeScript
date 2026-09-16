@@ -58,8 +58,7 @@ describe('react-native-client', () => {
   };
   const expectedRemoteConfigGroup = () =>
     Platform.OS === 'ios' || Platform.OS === 'android' ? Platform.OS : 'browser';
-  const expectedRemoteConfigSdkKey = () =>
-    Platform.OS === 'android' ? 'configs.analyticsSDK.androidSDK' : 'configs.analyticsSDK.iosSDK';
+  const expectedRemoteConfigSdkKey = () => `configs.analyticsSDK.${expectedRemoteConfigGroup()}SDK`;
 
   beforeEach(() => {
     originalRemoteConfigClient = core.RemoteConfigClient;
@@ -333,7 +332,7 @@ describe('react-native-client', () => {
       expect(track).toHaveBeenCalledTimes(1);
     });
 
-    test('should use remote config by default', async () => {
+    test('should not use remote config by default', async () => {
       jest.spyOn(CookieMigration, 'parseOldCookies').mockResolvedValueOnce({
         optOut: false,
       });
@@ -341,7 +340,7 @@ describe('react-native-client', () => {
       await client.init(API_KEY, USER_ID, {
         ...attributionConfig,
       }).promise;
-      expect(MockedRemoteConfigClient).toHaveBeenCalled();
+      expect(MockedRemoteConfigClient).not.toHaveBeenCalled();
     });
 
     test('should use remote config when remoteConfig.fetchRemoteConfig is true', async () => {
@@ -361,7 +360,7 @@ describe('react-native-client', () => {
         expect.any(Function),
       );
       expect(mockRemoteConfigClient.subscribe).toHaveBeenCalledWith(
-        'configs.analyticsSDK.iosSDK',
+        expectedRemoteConfigSdkKey(),
         'all',
         expect.any(Function),
       );
