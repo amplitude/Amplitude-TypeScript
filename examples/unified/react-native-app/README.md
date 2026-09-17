@@ -161,6 +161,7 @@ survey. This is intentionally not part of the Maestro flow because the response
 should be checked in the Amplitude product:
 
 - [Multiple Step Nudge survey](https://app.amplitude.com/guides-surveys/gs-mobile-sdk-test/surveys/706964/102062/105265/build)
+- [Survey used for manual product verification](https://app.amplitude.com/guides-surveys/gs-mobile-sdk-test/surveys/706964/103853/107121/info)
 - [Example of a response in the Responses tab](https://share.amplitude.com/mBH0M17w)
 
 The upstream survey is targeted to all users and appears after Analytics tracks
