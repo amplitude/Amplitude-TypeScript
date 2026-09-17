@@ -1083,6 +1083,9 @@ importers:
       '@amplitude/rrweb-types':
         specifier: 2.0.0-alpha.40
         version: 2.0.0-alpha.40
+      '@amplitude/session-replay-dom-privacy':
+        specifier: workspace:*
+        version: link:../session-replay-dom-privacy
       '@amplitude/targeting':
         specifier: workspace:*
         version: link:../targeting
@@ -1138,6 +1141,12 @@ importers:
       rollup-plugin-terser:
         specifier: ^7.0.2
         version: 7.0.2(rollup@2.80.0)
+
+  packages/session-replay-dom-privacy:
+    dependencies:
+      tslib:
+        specifier: ^2.4.1
+        version: 2.8.1
 
   packages/session-replay-react-native:
     dependencies:
