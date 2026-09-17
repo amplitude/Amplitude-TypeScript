@@ -1,4 +1,4 @@
-import { IConfig } from './core-config';
+import { IConfig, StorageData } from './core-config';
 import { Storage } from '../storage';
 import { UserSession } from '../user-session';
 import { RemoteConfigOptions } from './browser-config';
@@ -44,6 +44,7 @@ export interface ReactNativeConfig extends Omit<IConfig, 'requestMetadata'> {
   remoteConfigClient?: IRemoteConfigClient;
   /* @experimental This config is experimental pending GA of React Native autocapture. */
   autocapture?: boolean | ReactNativeAutocaptureOptions;
+  storageProvider?: StorageData;
 }
 
 export type ReactNativeOptions = Omit<Partial<ReactNativeConfig>, HiddenOptions>;

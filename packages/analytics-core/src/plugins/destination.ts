@@ -105,7 +105,7 @@ export class Destination implements DestinationPlugin {
 
     this.storageKey = `${STORAGE_PREFIX}_${this.config.apiKey.substring(0, 10)}`;
     const unsent = await this.config.storageProvider?.get(this.storageKey);
-    if (unsent && unsent.length > 0) {
+    if (unsent && Array.isArray(unsent) && unsent.length > 0) {
       void Promise.all(unsent.map((event: Event) => this.execute(event))).catch();
     }
 

@@ -9,6 +9,12 @@ import { Storage } from '../storage';
 import { Event } from '../event/event';
 import { IIdentify } from '../../identify';
 
+export type StoragePayload = {
+  [key: string]: any;
+};
+
+export type StorageData = Storage<Event[]> | Storage<Event[] & StoragePayload>;
+
 export interface IConfig {
   /**
    * Your Amplitude Project API key.
@@ -84,7 +90,7 @@ export interface IConfig {
   /**
    *  The storage provider to persist unsent events.
    */
-  storageProvider?: Storage<Event[]>;
+  storageProvider?: StorageData;
   /**
    * A customer Transport Class for sending data to a server.
    */
