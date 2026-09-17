@@ -9,7 +9,7 @@ import {
   useColorScheme,
   View,
 } from 'react-native';
-import {init, Types} from '@amplitude/unified-react-native';
+import {init, track, Types} from '@amplitude/unified-react-native';
 
 const getApiKey = (): string => {
   const apiKey = process.env.VITE_AMPLITUDE_API_KEY;
@@ -53,6 +53,16 @@ function App(): React.JSX.Element {
     );
   };
 
+  const triggerSurvey = async () => {
+    setStatus('Tracking the Guides and Surveys trigger event…');
+    await track('Country Selected', {
+      countrySelected: 'vietnam',
+    }).promise;
+    setStatus(
+      'Survey trigger sent. Complete the survey, then verify the response in Amplitude.',
+    );
+  };
+
   const colors = isDarkMode
     ? {
         background: '#111827',
@@ -91,6 +101,12 @@ function App(): React.JSX.Element {
             }
             disabled={isInitializing || isInitialized}
             onPress={initializeAll}
+          />
+          <Button
+            testID="trigger-gs-survey"
+            title="Trigger G&S survey"
+            disabled={!isInitialized}
+            onPress={triggerSurvey}
           />
         </View>
 
