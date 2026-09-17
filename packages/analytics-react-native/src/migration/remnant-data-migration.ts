@@ -1,5 +1,5 @@
 import { NativeModules } from 'react-native';
-import { Event, ILogger, Storage, UserSession, STORAGE_PREFIX } from '@amplitude/analytics-core';
+import { Event, ILogger, ReactNativeConfig, UserSession, STORAGE_PREFIX } from '@amplitude/analytics-core';
 
 type LegacyEventKind = 'event' | 'identify' | 'interceptedIdentify';
 
@@ -16,7 +16,7 @@ export default class RemnantDataMigration {
   constructor(
     private apiKey: string,
     private instanceName: string | undefined,
-    private storage: Storage<Event[]> | undefined,
+    private storage: ReactNativeConfig['storageProvider'],
     private firstRunSinceUpgrade: boolean,
     private logger: ILogger | undefined,
   ) {
@@ -77,7 +77,8 @@ export default class RemnantDataMigration {
       return;
     }
 
-    const events = (await this.storage.get(this.eventsStorageKey)) ?? [];
+    const stored = await this.storage.get(this.eventsStorageKey);
+    const events = Array.isArray(stored) ? stored : [];
     const eventIds: number[] = [];
 
     legacyJsonEvents.forEach((jsonEvent) => {

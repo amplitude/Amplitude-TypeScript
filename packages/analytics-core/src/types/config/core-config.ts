@@ -13,7 +13,7 @@ export type StoragePayload = {
   [key: string]: any;
 };
 
-export type StorageData = Storage<Event[]> | Storage<Event[] & StoragePayload>;
+export type StorageData = Storage<Event[] | StoragePayload>;
 
 export interface IConfig {
   /**

@@ -312,7 +312,9 @@ const createFlexibleStorage = async <T>(options: ReactNativeOptions): Promise<St
   return storage;
 };
 
-export const createEventsStorage = async (overrides?: ReactNativeOptions): Promise<Storage<Event[]> | undefined> => {
+export const createEventsStorage = async (
+  overrides?: ReactNativeOptions,
+): Promise<IReactNativeConfig['storageProvider']> => {
   const hasStorageProviderProperty = overrides && Object.prototype.hasOwnProperty.call(overrides, 'storageProvider');
   // If storageProperty is explicitly undefined like `{ storageProperty: undefined }`
   // then storageProvider is undefined
