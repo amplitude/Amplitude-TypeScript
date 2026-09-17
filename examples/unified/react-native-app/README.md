@@ -133,13 +133,7 @@ key. Install [Maestro](https://maestro.mobile.dev/) once:
 curl -fsSL "https://get.maestro.mobile.dev" | bash
 ```
 
-Start Metro from this directory in one terminal:
-
-```sh
-pnpm start
-```
-
-In another terminal, build and install the app on a booted simulator:
+Build and install the app on a booted simulator:
 
 ```sh
 pnpm ios
@@ -150,6 +144,11 @@ Then run the smoke test from this directory:
 ```sh
 pnpm e2e:ios
 ```
+
+The test command reuses Metro when this example already has a healthy server on
+port 8081, or starts and stops Metro itself when no server is running. It also
+builds the iOS JavaScript bundle before launching Maestro so Metro failures are
+reported directly instead of surfacing as a missing-element assertion.
 
 The flow clears the app's local state and allows up to 60 seconds for G&S
 configuration and decision requests to finish before checking the guide.

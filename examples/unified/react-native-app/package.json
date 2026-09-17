@@ -6,9 +6,9 @@
     "android": "react-native run-android",
     "check:autolinking": "react-native config",
     "codegen:ios": "node node_modules/react-native/scripts/generate-codegen-artifacts.js -p . -o ios -t ios",
-    "e2e:ios": "maestro test .maestro/guides-and-surveys.yaml",
+    "e2e:ios": "node scripts/run-e2e-ios.js",
     "ios": "react-native run-ios",
-    "lint": "eslint App.tsx index.js babel.config.js metro.config.js react-native.config.js",
+    "lint": "eslint App.tsx index.js babel.config.js metro.config.js react-native.config.js scripts/*.js",
     "preios": "pnpm codegen:ios",
     "start": "react-native start --reset-cache"
   },
