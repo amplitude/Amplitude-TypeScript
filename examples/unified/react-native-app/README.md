@@ -106,6 +106,10 @@ pnpm ios
 # or: pnpm android
 ```
 
+The `pnpm ios` command regenerates React Native's iOS New Architecture codegen
+artifacts before building. This keeps CocoaPods' Fabric header links valid after
+`pnpm install` refreshes `node_modules`.
+
 ## Run the Guides and Surveys smoke test
 
 The example includes a Maestro smoke test based on the Guides and Surveys
