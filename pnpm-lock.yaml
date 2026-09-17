@@ -303,8 +303,8 @@ importers:
         specifier: workspace:*
         version: link:../plugin-autocapture-browser
       '@amplitude/plugin-custom-enrichment-browser':
-        specifier: workspace:*
-        version: link:../plugin-custom-enrichment-browser
+        specifier: 0.1.22
+        version: 0.1.22
       '@amplitude/plugin-event-property-attribution-browser':
         specifier: workspace:*
         version: link:../plugin-event-property-attribution-browser
@@ -1277,6 +1277,10 @@ packages:
     resolution:
       { integrity: sha512-d8/U5aAHAs6XcpvQYpStxBxMxSwjDajZ0f6wMSwPCfxDGEWqcFaYuRKauh+vrn89D6gWcKi1VZ/tKCyhVby9sg== }
 
+  '@amplitude/analytics-core@2.55.0':
+    resolution:
+      { integrity: sha512-fzjXEWX2o5I58Tl5jYaw2G5Tp5ejfcDkayWMogEThCl/fd6AqRKkrl/dVVqGV3h/GS3HZws7J4baIWkaq92jkQ== }
+
   '@amplitude/analytics-types@1.4.0':
     resolution:
       { integrity: sha512-RiMPHBqdrJ8ktTqG+Wzj2htnN/PCG9jGZG0SXtTFnWwVvcAJYbYm55/nrP1TTyrx1OlLhvF2VG3lVUP/xGAU8w== }
@@ -1315,6 +1319,10 @@ packages:
   '@amplitude/plugin-custom-enrichment-browser@0.1.11':
     resolution:
       { integrity: sha512-T4jyad4BBfpU/x21Vf2U6JeHA9n14bil4+46CI1tK4OijZX4ZpKfPaw+T2gzG0BreX87o7kUVs1O5kM6Z6K3ZA== }
+
+  '@amplitude/plugin-custom-enrichment-browser@0.1.22':
+    resolution:
+      { integrity: sha512-KDTVCOmivrLzp1Q9EJuU61Yzw0Mip9DU/VnMnfROD37rCv0QX78O7RuYVzN+R6sprgUw+tkmS512PmkbVLOFsA== }
 
   '@amplitude/plugin-engagement-react-native@3.12.1':
     resolution:
@@ -12878,6 +12886,14 @@ snapshots:
       tslib: 2.8.1
       zen-observable: 0.10.0
 
+  '@amplitude/analytics-core@2.55.0':
+    dependencies:
+      '@amplitude/analytics-connector': 1.6.4
+      '@types/zen-observable': 0.8.3
+      safe-json-stringify: 1.2.0
+      tslib: 2.8.1
+      zen-observable: 0.10.0
+
   '@amplitude/analytics-types@1.4.0': {}
 
   '@amplitude/analytics-types@2.11.1': {}
@@ -12928,6 +12944,11 @@ snapshots:
   '@amplitude/plugin-custom-enrichment-browser@0.1.11':
     dependencies:
       '@amplitude/analytics-core': 2.50.0
+      tslib: 2.8.1
+
+  '@amplitude/plugin-custom-enrichment-browser@0.1.22':
+    dependencies:
+      '@amplitude/analytics-core': 2.55.0
       tslib: 2.8.1
 
   '@amplitude/plugin-engagement-react-native@3.12.1(@react-native-async-storage/async-storage@2.2.0(react-native@0.76.9(@babel/core@7.28.5)(@babel/preset-env@7.28.5(@babel/core@7.28.5))(@react-native-community/cli@13.6.6(encoding@0.1.13))(@types/react@18.3.26)(encoding@0.1.13)(react@18.3.1)))(react-native@0.76.9(@babel/core@7.28.5)(@babel/preset-env@7.28.5(@babel/core@7.28.5))(@react-native-community/cli@13.6.6(encoding@0.1.13))(@types/react@18.3.26)(encoding@0.1.13)(react@18.3.1))(react@18.3.1)':

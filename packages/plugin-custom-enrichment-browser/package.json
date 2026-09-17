@@ -1,4 +1,5 @@
 {
+  "private": true,
   "name": "@amplitude/plugin-custom-enrichment-browser",
   "version": "0.1.23",
   "description": "",

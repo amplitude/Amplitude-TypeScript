@@ -111,6 +111,9 @@ export default function App() {
             appLifecycles: true,
             sessions: true,
           },
+          remoteConfig: {
+            fetchRemoteConfig: true,
+          },
         }).promise;
         track('expo-app/react-native/test-event');
         await identify(new Identify().set('react-native-test', 'yes')).promise;
