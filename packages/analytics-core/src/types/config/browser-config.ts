@@ -11,6 +11,7 @@ import { PerformanceTrackingOptions } from '../performance-tracking';
 import { IDiagnosticsClient } from '../../diagnostics/diagnostics-client';
 import { IRemoteConfigClient } from '../../remote-config/remote-config';
 import { CustomEnrichmentOptions } from '../custom-enrichment';
+import { Event } from '../event/event';
 
 export interface BrowserConfig extends ExternalBrowserConfig, InternalBrowserConfig {}
 
@@ -110,6 +111,10 @@ export interface ExternalBrowserConfig extends IConfig {
    * @defaultValue `true`
    */
   enableDiagnostics?: boolean;
+  /**
+   * Storage for unsent events.
+   */
+  storageProvider?: Storage<Event[]>;
 }
 
 interface InternalBrowserConfig {

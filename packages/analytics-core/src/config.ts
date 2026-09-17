@@ -1,10 +1,8 @@
 import { OfflineDisabled } from './types/offline';
 import { ServerZoneType } from './types/server-zone';
 import { Transport } from './types/transport';
-import { Event } from './types/event/event';
 import { Plan } from './types/event/plan';
 import { IngestionMetadata } from './types/event/ingestion-metadata';
-import { Storage } from './types/storage';
 import {
   AMPLITUDE_SERVER_URL,
   AMPLITUDE_BATCH_SERVER_URL,
@@ -15,7 +13,7 @@ import {
 
 import { Logger, ILogger } from './logger';
 import { LogLevel } from './types/loglevel';
-import { ConfigOptions, IRequestMetadata, IHistogramOptions, HistogramKey, IConfig } from './types/config/core-config';
+import { ConfigOptions, IRequestMetadata, IHistogramOptions, HistogramKey, IConfig, StorageData } from './types/config/core-config';
 import { normalizeInstanceName } from './utils/instance-name';
 
 export const getDefaultConfig = () => ({
@@ -46,7 +44,7 @@ export class Config implements IConfig {
   serverUrl: string | undefined;
   serverZone?: ServerZoneType;
   transportProvider: Transport;
-  storageProvider?: Storage<Event[]>;
+  storageProvider?: StorageData;
   useBatch: boolean;
   requestMetadata?: RequestMetadata;
 

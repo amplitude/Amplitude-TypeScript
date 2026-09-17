@@ -1,4 +1,6 @@
 import { IConfig } from './core-config';
+import { Storage } from '../storage';
+import { Event } from '../event/event';
 
 export interface NodeConfig extends IConfig {
   /**
@@ -6,6 +8,7 @@ export interface NodeConfig extends IConfig {
    * aborted and retried. Guards against uploads that never complete.
    */
   requestTimeoutMillis: number;
+  storageProvider?: Storage<Event[]>;
 }
 
 export type NodeOptions = Omit<Partial<NodeConfig>, 'apiKey'>;
