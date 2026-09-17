@@ -49,6 +49,12 @@ export const getDefaultConfig = () => {
   };
 };
 
+export type StoragePayload = {
+  [key: string]: any;
+};
+
+export type StorageData = Storage<Event[] | StoragePayload>;
+
 export class ReactNativeConfig extends Config implements IReactNativeConfig {
   appVersion?: string;
   cookieExpiration: number;
@@ -63,6 +69,7 @@ export class ReactNativeConfig extends Config implements IReactNativeConfig {
   trackingSessionEvents: boolean;
   trackingOptions: ReactNativeTrackingOptions;
   autocapture?: IReactNativeConfig['autocapture'];
+  storage?: StorageData;
 
   // NOTE: These protected properties are used to cache values from async storage
   protected _deviceId?: string;
@@ -108,6 +115,7 @@ export class ReactNativeConfig extends Config implements IReactNativeConfig {
     this.trackingOptions = options?.trackingOptions ?? defaultConfig.trackingOptions;
     this.trackingSessionEvents = options?.trackingSessionEvents ?? defaultConfig.trackingSessionEvents;
     this.autocapture = options?.autocapture;
+    this.storage = options?.storageProvider ?? defaultConfig.storageProvider;
   }
 
   get deviceId() {
