@@ -105,3 +105,47 @@ pnpm start
 pnpm ios
 # or: pnpm android
 ```
+
+## Run the Guides and Surveys smoke test
+
+The example includes a Maestro smoke test based on the Guides and Surveys
+mobile SDK's own React Native E2E scenario. It initializes the unified SDK with
+the stable test identity `rn-test-user-1` / `test-device-1`, then verifies that
+the published `Tap Element Nudge` guide is rendered by the native Guides and
+Surveys plugin.
+
+The upstream guide definition is in the `gs-mobile-sdk-test` Amplitude project:
+
+- [Tap Element Nudge guide](https://app.amplitude.com/guides-surveys/gs-mobile-sdk-test/guides/706964/102882/106125/build)
+
+Keep that guide published and eligible for the test identity above. If the
+asserted content or targeting changes upstream, update the smoke test to match
+the linked definition.
+
+Set the repository-root `VITE_AMPLITUDE_API_KEY` in `.env` to that project's API
+key. Install [Maestro](https://maestro.mobile.dev/) once:
+
+```sh
+curl -fsSL "https://get.maestro.mobile.dev" | bash
+```
+
+Start Metro from this directory in one terminal:
+
+```sh
+pnpm start
+```
+
+In another terminal, build and install the app on a booted simulator:
+
+```sh
+pnpm ios
+```
+
+Then run the smoke test from this directory:
+
+```sh
+pnpm e2e:ios
+```
+
+The flow clears the app's local state and allows up to 60 seconds for G&S
+configuration and decision requests to finish before checking the guide.
