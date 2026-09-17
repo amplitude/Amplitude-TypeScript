@@ -18,7 +18,6 @@ class NativeSessionReplay: NSObject, RCTBridgeModule {
     @objc(setup:resolve:reject:)
     func setup(_ config: NSDictionary, resolve: RCTPromiseResolveBlock, reject: RCTPromiseRejectBlock) -> Void {
         guard let apiKey = config["apiKey"] as? String,
-              let sessionId = config["sessionId"] as? NSNumber,
               let serverZone = config["serverZone"] as? String,
               let sampleRate = config["sampleRate"] as? NSNumber,
               let enableRemoteConfig = config["enableRemoteConfig"] as? Bool,
@@ -38,7 +37,7 @@ class NativeSessionReplay: NSObject, RCTBridgeModule {
             setup:
             API Key: \(apiKey)
             Device ID: \(deviceId ?? "null")
-            Session ID: \(sessionId)
+            Custom Session ID: \(config["customSessionId"] as? String ?? "null")
             Server Zone: \(serverZone)
             Sample Rate: \(sampleRate)
             Enable Remote Config: \(enableRemoteConfig)
@@ -51,7 +50,10 @@ class NativeSessionReplay: NSObject, RCTBridgeModule {
         sessionReplay = SessionReplay(
             apiKey: apiKey,
             deviceId: deviceId,
-            sessionId: sessionId.int64Value,
+            // Session identity is driven purely by customSessionId (set below).
+            // Pass the -1 "unset" sentinel for the numeric session id the SDK
+            // initializer still requires.
+            sessionId: -1,
             optOut: optOut,
             sampleRate: Float(truncating: sampleRate),
             logger: createdLogger,
@@ -59,15 +61,32 @@ class NativeSessionReplay: NSObject, RCTBridgeModule {
             maskLevel: .fromString(maskLevel),
             enableRemoteConfig: enableRemoteConfig
         )
+
+        if let customSessionId = config["customSessionId"] as? String, !customSessionId.isEmpty {
+            sessionReplay?.customSessionId = customSessionId
+        }
         
         resolve(nil)
     }
     
-    @objc(setSessionId:resolve:reject:)
-    func setSessionId(_ sessionId: NSNumber, resolve: RCTPromiseResolveBlock, reject: RCTPromiseRejectBlock) -> Void {
-        logger?.debug(message: "setSessionId: \(sessionId)")
-        sessionReplay?.sessionId = sessionId.int64Value
+    @objc(setCustomSessionId:resolve:reject:)
+    func setCustomSessionId(_ customSessionId: NSString, resolve: RCTPromiseResolveBlock, reject: RCTPromiseRejectBlock) -> Void {
+        logger?.debug(message: "setCustomSessionId: \(customSessionId)")
+        sessionReplay?.customSessionId = customSessionId as String
         resolve(nil)
+    }
+
+    @objc(getCustomSessionId:reject:)
+    func getCustomSessionId(
+        _ resolve: RCTPromiseResolveBlock,
+        reject: RCTPromiseRejectBlock
+    ) {
+        logger?.debug(message: "getCustomSessionId")
+        if let customSessionId = sessionReplay?.customSessionId {
+            resolve(customSessionId)
+        } else {
+            resolve(nil)
+        }
     }
     
     @objc(setDeviceId:resolve:reject:)
@@ -82,19 +101,6 @@ class NativeSessionReplay: NSObject, RCTBridgeModule {
         logger?.debug(message: "setOptOut: \(optOut)")
         sessionReplay?.optOut = optOut
         resolve(nil)
-    }
-    
-    @objc(getSessionId:reject:)
-    func getSessionId(
-        _ resolve: RCTPromiseResolveBlock,
-        reject: RCTPromiseRejectBlock
-    ) {
-        logger?.debug(message: "getSessionId")
-        if let sessionId = sessionReplay?.sessionId {
-            resolve(NSNumber(value: sessionId))
-        } else {
-            resolve(nil)
-        }
     }
     
     @objc(start:reject:)

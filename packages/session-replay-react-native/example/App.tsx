@@ -39,7 +39,9 @@ import {
   stop,
   flush,
   getSessionId,
+  getCustomSessionId,
   setSessionId,
+  setCustomSessionId,
   setDeviceId,
   setOptOut,
   teardown,
@@ -60,6 +62,11 @@ const rnVersion = rnv ? `${rnv.major}.${rnv.minor}.${rnv.patch}` : 'unknown';
 // platform + architecture combination under test (e.g. "ios-newarch").
 const archMode = isTurboModule ? 'newarch' : 'oldarch';
 const verificationDeviceId = `${Platform.OS}-${archMode}`;
+
+// Alphanumeric session ID demo. When set at init it takes precedence over the
+// numeric sessionId; getSessionId() then returns -1 and getCustomSessionId()
+// returns this string until setSessionId() (numeric) rotates it back.
+const DEMO_CUSTOM_SESSION_ID = '550e8400-e29b-41d4-a716-446655440000';
 
 // 1x1-ish red PNG used to put bitmap content into replay frames offline.
 const SAMPLE_IMG =
@@ -89,15 +96,18 @@ function HomeScreen({ navigation }: HomeProps): React.JSX.Element {
           apiKey: 'YOUR_AMPLITUDE_API_KEY',
           deviceId: verificationDeviceId,
           sessionId: Date.now(),
+          customSessionId: DEMO_CUSTOM_SESSION_ID,
           sampleRate: 1,
           enableRemoteConfig: false,
           logLevel: 4,
         });
         await start();
         const sessionId = await getSessionId();
+        const customSessionId = await getCustomSessionId();
         log('init() resolved deviceId=' + verificationDeviceId);
         log('start() resolved');
         log('getSessionId() -> ' + String(sessionId));
+        log('getCustomSessionId() -> ' + String(customSessionId));
 
         // init() swallows native setup failures and resolves without throwing;
         // verify the module is actually live before showing success.
@@ -156,6 +166,16 @@ function HomeScreen({ navigation }: HomeProps): React.JSX.Element {
           <Button
             title="setSessionId"
             onPress={runFn('setSessionId', () => setSessionId(Date.now()))}
+          />
+          <Button
+            title="setCustomSessionId"
+            onPress={runFn('setCustomSessionId', () =>
+              setCustomSessionId(DEMO_CUSTOM_SESSION_ID),
+            )}
+          />
+          <Button
+            title="getCustomSessionId"
+            onPress={runFn('getCustomSessionId', getCustomSessionId)}
           />
           <Button
             title="setDeviceId"

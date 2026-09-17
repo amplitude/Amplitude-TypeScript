@@ -1,5 +1,5 @@
-import { Platform } from 'react-native';
-import SessionReplaySpec from './specs/NativeAmpSessionReplay';
+import { NativeModules, Platform, TurboModuleRegistry } from 'react-native';
+import type { Spec } from './specs/NativeAmpSessionReplay';
 
 const LINKING_ERROR =
   `The package '@amplitude/session-replay-react-native' doesn't seem to be linked. Make sure: \n\n` +
@@ -7,21 +7,59 @@ const LINKING_ERROR =
   '- You rebuilt the app after installing the package\n' +
   '- You are not using Expo Go\n';
 
+const linkingErrorProxy = new Proxy(
+  {},
+  {
+    get() {
+      throw new Error(LINKING_ERROR);
+    },
+  },
+);
+
+function resolveNativeSessionReplay(): Spec {
+  const turboModule = TurboModuleRegistry.get<Spec>('AMPNativeSessionReplay');
+  const legacyModule = NativeModules.AMPNativeSessionReplay as Spec | undefined;
+
+  if (turboModule == null && legacyModule == null) {
+    return linkingErrorProxy as Spec;
+  }
+
+  // On the New Architecture the module is reachable both as a JSI host object
+  // (TurboModule) and as a legacy NativeModules interop entry. The JSI host
+  // object can omit @ReactMethods added after the codegen snapshot the app was
+  // built against, whereas the NativeModules entry still reflects the full
+  // native surface — so prefer the legacy entry and fall back per-method to the
+  // TurboModule for any method it lacks.
+  const primary = legacyModule ?? turboModule;
+  const secondary = legacyModule != null && turboModule != null ? turboModule : null;
+
+  if (secondary == null) {
+    return primary as Spec;
+  }
+
+  return new Proxy(primary as object, {
+    get(target, prop, receiver): unknown {
+      if (typeof prop !== 'string') {
+        return Reflect.get(target, prop, receiver);
+      }
+      const primaryRecord = target as Record<string, unknown>;
+      const fromPrimary = primaryRecord[prop];
+      if (typeof fromPrimary === 'function') {
+        return fromPrimary.bind(target);
+      }
+      const secondaryRecord = secondary as unknown as Record<string, unknown>;
+      const fromSecondary = secondaryRecord[prop];
+      if (typeof fromSecondary === 'function') {
+        return fromSecondary.bind(secondary);
+      }
+      return Reflect.get(target, prop, receiver);
+    },
+  }) as Spec;
+}
+
 // JS callers use the rich, hand-written types below for full type safety; the
 // codegen `Spec` is intentionally loose (`UnsafeObject`) at the native boundary.
-// The spec resolves the native module via `TurboModuleRegistry.get` (both
-// architectures). When the module isn't linked it resolves to null, so we fall
-// back to a proxy that throws a descriptive linking error on first use rather
-// than crashing app startup at import time.
-export const NativeSessionReplay = (SessionReplaySpec ??
-  new Proxy(
-    {},
-    {
-      get() {
-        throw new Error(LINKING_ERROR);
-      },
-    },
-  )) as unknown as NativeSessionReplaySpec;
+export const NativeSessionReplay = resolveNativeSessionReplay() as unknown as NativeSessionReplaySpec;
 
 /**
  * Configuration interface for setting up the native iOS and Android session replay modules.
@@ -44,8 +82,12 @@ export interface NativeSessionReplayConfig {
   sampleRate: number;
   /** Amplitude server zone for data routing ('US' or 'EU') */
   serverZone: 'US' | 'EU';
-  /** Current session identifier for correlating events with recordings */
-  sessionId: number;
+  /**
+   * Alphanumeric session identifier — the only session id the native layer
+   * tracks. The public numeric `sessionId` is mapped onto this (as a string) by
+   * the JS layer before crossing the bridge.
+   */
+  customSessionId?: string | null;
 }
 
 /**
@@ -64,13 +106,6 @@ export interface NativeSessionReplaySpec {
   flush(): Promise<void>;
 
   /**
-   * Retrieves the current session identifier from the native module.
-   * @returns Promise resolving to the current session ID number
-   * @note OLD ARCH: ideally we want to cache that on JS side to avoid bridge overhead
-   */
-  getSessionId(): Promise<number>;
-
-  /**
    * Updates the device identifier used for session replay tracking.
    * @param deviceId - The device identifier string, or null to clear the device ID
    * @note OLD ARCH: combine those into one method to avoid bridge overhead
@@ -78,11 +113,18 @@ export interface NativeSessionReplaySpec {
   setDeviceId(deviceId: string | null): Promise<void>;
 
   /**
-   * Updates the session identifier used for session replay tracking.
-   * @param sessionId - The session identifier number
-   * @note OLD ARCH: combine those into one method to avoid bridge overhead
+   * Updates the alphanumeric session identifier used for session replay tracking.
+   * This is the only native session-id setter; the public numeric `setSessionId`
+   * maps onto it (as a string) in the JS layer.
+   * @param customSessionId - The custom session identifier string
    */
-  setSessionId(sessionId: number): Promise<void>;
+  setCustomSessionId(customSessionId: string): Promise<void>;
+
+  /**
+   * Retrieves the current alphanumeric session identifier from the native module.
+   * @returns Promise resolving to the active custom session ID, or null when none is set
+   */
+  getCustomSessionId(): Promise<string | null>;
 
   /**
    * Updates whether session replay collection is disabled for the current user.
