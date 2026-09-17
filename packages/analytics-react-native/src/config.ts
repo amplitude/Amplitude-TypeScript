@@ -55,6 +55,7 @@ export class ReactNativeConfig extends Config implements IReactNativeConfig {
   cookieSameSite: string;
   cookieSecure: boolean;
   cookieStorage: Storage<UserSession>;
+  storageProvider?: Storage<Event[]>;
   cookieUpgrade: boolean;
   disableCookies: boolean;
   domain: string;

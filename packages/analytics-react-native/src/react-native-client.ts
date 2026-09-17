@@ -35,6 +35,7 @@ import {
   normalizeNetworkCaptureRules,
   safeJsonStringify,
   DiagnosticsClient,
+  IConfig,
 } from '@amplitude/analytics-core';
 import { plugin as networkCapturePlugin } from '@amplitude/plugin-network-capture-browser';
 import { CampaignTracker } from './campaign/campaign-tracker';
@@ -149,7 +150,8 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
   init(apiKey = '', userId?: string, options?: ReactNativeOptions) {
     return returnWrapper(this._init({ ...options, userId, apiKey }));
   }
-  protected async _init(options: ReactNativeOptions & { apiKey: string }) {
+  protected async _init(configOrOptions: IConfig | (ReactNativeOptions & { apiKey: string })) {
+    const options = configOrOptions as ReactNativeOptions & { apiKey: string };
     // Step 0: Block concurrent initialization
     if (this.initializing) {
       return;
