@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.7.26-video-analytics-4.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-page-url-enrichment-browser@0.7.25...@amplitude/plugin-page-url-enrichment-browser@0.7.26-video-analytics-4.0) (2026-09-17)
+
+**Note:** Version bump only for package @amplitude/plugin-page-url-enrichment-browser
+
+
+
+
+
 ## [0.7.25](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-page-url-enrichment-browser@0.7.24...@amplitude/plugin-page-url-enrichment-browser@0.7.25) (2026-09-16)
 
 **Note:** Version bump only for package @amplitude/plugin-page-url-enrichment-browser

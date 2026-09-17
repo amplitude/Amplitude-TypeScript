@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.2.16-video-analytics-4.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-event-property-attribution-browser@0.2.15...@amplitude/plugin-event-property-attribution-browser@0.2.16-video-analytics-4.0) (2026-09-17)
+
+**Note:** Version bump only for package @amplitude/plugin-event-property-attribution-browser
+
+
+
+
+
 ## [0.2.15](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-event-property-attribution-browser@0.2.14...@amplitude/plugin-event-property-attribution-browser@0.2.15) (2026-09-16)
 
 **Note:** Version bump only for package @amplitude/plugin-event-property-attribution-browser
