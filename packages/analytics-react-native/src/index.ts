@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 import client from './react-native-client';
 export { createInstance } from './react-native-client';
+export { appLifecyclePlugin } from './plugins/app-lifecycles';
 export const {
   add,
   flush,
