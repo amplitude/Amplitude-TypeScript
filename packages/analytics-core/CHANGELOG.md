@@ -3,6 +3,23 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.56.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.55.0...@amplitude/analytics-core@2.56.0) (2026-09-16)
+
+
+### Bug Fixes
+
+* **analytics-core:** safely stringify timeline events ([#1967](https://github.com/amplitude/Amplitude-TypeScript/issues/1967)) ([a0d72dd](https://github.com/amplitude/Amplitude-TypeScript/commit/a0d72ddb4ece1fb887d2cb571a96c119c79fc4e6))
+* **browser:** normalize empty instance names ([#1956](https://github.com/amplitude/Amplitude-TypeScript/issues/1956)) ([942c8bc](https://github.com/amplitude/Amplitude-TypeScript/commit/942c8bc3a1ac341988c02a5ea42db1813bb61519))
+
+
+### Features
+
+* **react-native:** apply diagnostics sample rate from remote config ([#1983](https://github.com/amplitude/Amplitude-TypeScript/issues/1983)) ([0b4a09a](https://github.com/amplitude/Amplitude-TypeScript/commit/0b4a09ab6ad24a7ee2c78daadfc6ee0b70391e47))
+
+
+
+
+
 # [2.55.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.54.2...@amplitude/analytics-core@2.55.0) (2026-08-24)
 
 

@@ -11,7 +11,7 @@ import {
   getCookieName as getStorageKey,
   RemoteConfigClient,
 } from '@amplitude/analytics-core';
-import { AppState } from 'react-native';
+import { AppState, Platform } from 'react-native';
 import { isWeb } from '../src/utils/platform';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Config from '../src/config';
@@ -56,6 +56,8 @@ describe('react-native-client', () => {
       disabled: true,
     },
   };
+  const expectedRemoteConfigGroup = () =>
+    Platform.OS === 'ios' || Platform.OS === 'android' ? Platform.OS : 'browser';
 
   beforeEach(() => {
     originalRemoteConfigClient = core.RemoteConfigClient;
@@ -349,7 +351,13 @@ describe('react-native-client', () => {
         remoteConfig: { fetchRemoteConfig: true },
         ...attributionConfig,
       }).promise;
-      expect(MockedRemoteConfigClient).toHaveBeenCalled();
+      expect(MockedRemoteConfigClient).toHaveBeenCalledTimes(1);
+      const diagnosticsKey = `configs.diagnostics.${expectedRemoteConfigGroup()}SDK`;
+      expect(mockRemoteConfigClient.subscribe).toHaveBeenCalledWith(
+        diagnosticsKey,
+        { timeout: 1000 },
+        expect.any(Function),
+      );
       expect(mockRemoteConfigClient.subscribe).toHaveBeenCalledWith(
         'configs.analyticsSDK.reactNativeSDK',
         'all',
@@ -383,7 +391,14 @@ describe('react-native-client', () => {
         ...attributionConfig,
       }).promise;
 
-      expect(MockedRemoteConfigClient).toHaveBeenCalledWith(API_KEY, expect.anything(), 'US', customServerUrl);
+      expect(MockedRemoteConfigClient).toHaveBeenCalledWith(
+        API_KEY,
+        expect.anything(),
+        'US',
+        customServerUrl,
+        undefined,
+        expectedRemoteConfigGroup(),
+      );
     });
 
     test('should share the same loggerProvider between RemoteConfigClient and final config', async () => {
@@ -396,29 +411,39 @@ describe('react-native-client', () => {
         ...attributionConfig,
       }).promise;
 
-      expect(MockedRemoteConfigClient).toHaveBeenCalledWith(API_KEY, client.config.loggerProvider, 'US', undefined);
+      expect(MockedRemoteConfigClient).toHaveBeenCalledWith(
+        API_KEY,
+        client.config.loggerProvider,
+        'US',
+        undefined,
+        undefined,
+        expectedRemoteConfigGroup(),
+      );
     });
 
     test('should call updateReactNativeConfigWithRemoteConfig when remoteConfig is not null', async () => {
       jest.spyOn(CookieMigration, 'parseOldCookies').mockResolvedValueOnce({
         optOut: false,
       });
-      const mockRemoteConfig = {
+      const mockAnalyticsRemoteConfig = {
         autocapture: {
           sessions: true,
         },
       };
-
       const mockRemoteConfigClientWithData = {
         subscribe: jest
           .fn()
           .mockImplementation(
             (
-              _configKey: string,
+              configKey: string,
               _eventType: string,
               callback: (remoteConfig: any, source: any, lastFetch: Date) => void,
             ) => {
-              callback(mockRemoteConfig, 'cache', new Date());
+              callback(
+                configKey === 'configs.analyticsSDK.reactNativeSDK' ? mockAnalyticsRemoteConfig : null,
+                'cache',
+                new Date(),
+              );
             },
           ),
         unsubscribe: jest.fn(),
@@ -441,7 +466,7 @@ describe('react-native-client', () => {
       }).promise;
 
       expect(updateReactNativeConfigSpy).toHaveBeenCalledTimes(1);
-      expect(updateReactNativeConfigSpy).toHaveBeenCalledWith(mockRemoteConfig, expect.any(Object));
+      expect(updateReactNativeConfigSpy).toHaveBeenCalledWith(mockAnalyticsRemoteConfig, expect.any(Object));
 
       updateReactNativeConfigSpy.mockRestore();
     });
@@ -1669,6 +1694,118 @@ describe('react-native-client', () => {
   });
 
   describe('diagnostics', () => {
+    test.each([
+      {
+        platform: 'ios' as const,
+        diagnosticsKey: 'iosSDK',
+        diagnosticsConfig: {
+          availabilities: { CrashTracking: '1.4.3' },
+          sampleRate: 1,
+        },
+      },
+      {
+        platform: 'android' as const,
+        diagnosticsKey: 'androidSDK',
+        diagnosticsConfig: { sampleRate: 1 },
+      },
+    ])('should pass the $platform diagnostics sample rate to DiagnosticsClient', async (testCase) => {
+      const originalPlatform = Platform.OS;
+      Platform.OS = testCase.platform;
+      const platformRemoteConfigClient = {
+        subscribe: jest.fn(
+          (
+            configKey: string | undefined,
+            _deliveryMode: { timeout: number },
+            callback: (remoteConfig: any, source: any, date: Date) => void,
+          ) => {
+            callback(
+              configKey === `configs.diagnostics.${testCase.diagnosticsKey}` ? testCase.diagnosticsConfig : null,
+              'remote',
+              new Date(),
+            );
+          },
+        ),
+        unsubscribe: jest.fn(),
+        updateConfigs: jest.fn(),
+      };
+      MockedRemoteConfigClient = jest.fn(() => platformRemoteConfigClient);
+      Object.defineProperty(core, 'RemoteConfigClient', { value: MockedRemoteConfigClient });
+      const client = new AmplitudeReactNative();
+      const addSpy = jest.spyOn(client, 'add');
+
+      try {
+        await client.init(API_KEY, undefined, {
+          ...useDefaultConfig(),
+          remoteConfig: { fetchRemoteConfig: true },
+        }).promise;
+
+        expect(MockedRemoteConfigClient).toHaveBeenCalledTimes(1);
+        expect(MockedRemoteConfigClient).toHaveBeenCalledWith(
+          API_KEY,
+          expect.anything(),
+          'US',
+          undefined,
+          undefined,
+          testCase.platform,
+        );
+        expect(platformRemoteConfigClient.subscribe).toHaveBeenCalledWith(
+          `configs.diagnostics.${testCase.diagnosticsKey}`,
+          { timeout: 1000 },
+          expect.any(Function),
+        );
+        expect(platformRemoteConfigClient.subscribe).toHaveBeenCalledWith(
+          'configs.analyticsSDK.reactNativeSDK',
+          'all',
+          expect.any(Function),
+        );
+        const destination = addSpy.mock.calls
+          .map(([plugin]) => plugin as core.Destination)
+          .find((plugin) => plugin.name === 'amplitude');
+        expect((destination?.diagnosticsClient as core.DiagnosticsClient).config.sampleRate).toBe(1);
+      } finally {
+        Platform.OS = originalPlatform;
+      }
+    });
+
+    test.each([{ sampleRate: '0.5' }, { sampleRate: Number.NaN }, {}])(
+      'should keep the default diagnostics sample rate for invalid remote config %#',
+      async (remoteConfig) => {
+        const originalPlatform = Platform.OS;
+        Platform.OS = 'ios';
+        const invalidRemoteConfigClient = {
+          subscribe: jest.fn(
+            (
+              configKey: string | undefined,
+              _deliveryMode: { timeout: number },
+              callback: (config: any, source: any, date: Date) => void,
+            ) => {
+              callback(configKey === 'configs.diagnostics.iosSDK' ? remoteConfig : null, 'remote', new Date());
+            },
+          ),
+          unsubscribe: jest.fn(),
+          updateConfigs: jest.fn(),
+        };
+        MockedRemoteConfigClient = jest.fn(() => invalidRemoteConfigClient);
+        Object.defineProperty(core, 'RemoteConfigClient', { value: MockedRemoteConfigClient });
+        const client = new AmplitudeReactNative();
+        const addSpy = jest.spyOn(client, 'add');
+
+        try {
+          await client.init(API_KEY, undefined, {
+            ...useDefaultConfig(),
+            remoteConfig: { fetchRemoteConfig: true },
+          }).promise;
+
+          const destination = addSpy.mock.calls
+            .map(([plugin]) => plugin as core.Destination)
+            .find((plugin) => plugin.name === 'amplitude');
+          expect((destination?.diagnosticsClient as core.DiagnosticsClient).config.sampleRate).toBe(0);
+        } finally {
+          Platform.OS = originalPlatform;
+        }
+      },
+    );
+
     test('should give Destination a diagnostics client backed by RN storage', async () => {
       const client = new AmplitudeReactNative();
       const addSpy = jest.spyOn(client, 'add');
