@@ -36,7 +36,10 @@ function App(): React.JSX.Element {
     setStatus('Initializing all SDK blades…');
     await init(API_KEY, {
       logLevel: Types.LogLevel.Warn,
-      analytics: {userId: 'unified-example-user'},
+      analytics: {
+        userId: 'rn-test-user-1',
+        deviceId: 'test-device-1',
+      },
       sessionReplay: {
         enableRemoteConfig: false,
         logLevel: Types.LogLevel.Debug,
@@ -80,6 +83,7 @@ function App(): React.JSX.Element {
 
         <View style={[styles.card, {backgroundColor: colors.card}]}>
           <Button
+            testID="initialize-all-sdks"
             title={
               isInitialized
                 ? 'SDK initialization completed'
