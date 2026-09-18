@@ -348,6 +348,12 @@ export const createEventsStorage = async (overrides?: ReactNativeOptions): Promi
   return undefined;
 };
 
+export const createStorageProvider = async (
+  overrides?: ReactNativeOptions,
+): Promise<Storage<ReactNativeStorageData> | undefined> => {
+  return overrides?.storageProvider ?? createGeneralStorageAdapter(await createEventsStorage(overrides));
+};
+
 export const getTopLevelDomain = async (url?: string) => {
   if (
     !(await new CookieStorage<number>().isEnabled()) ||
