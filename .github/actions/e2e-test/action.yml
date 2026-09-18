@@ -36,6 +36,10 @@ runs:
         VITE_AMPLITUDE_API_KEY: ${{ inputs.amplitude-api-key }}
         VITE_AMPLITUDE_USER_ID: ${{ inputs.amplitude-user-id }}
       run: |
+        # Fork pull_request workflows cannot read repository secrets. The
+        # Playwright tests intercept analytics uploads, so they only require a
+        # non-empty, valid-shaped key rather than access to a real project.
+        VITE_AMPLITUDE_API_KEY="${VITE_AMPLITUDE_API_KEY:-00000000000000000000000000000000}"
         printf 'VITE_AMPLITUDE_API_KEY=%s\n' "$VITE_AMPLITUDE_API_KEY" > .env
         printf 'VITE_AMPLITUDE_USER_ID=%s\n' "$VITE_AMPLITUDE_USER_ID" >> .env
 
