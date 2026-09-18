@@ -6,7 +6,13 @@ import { NetworkTrackingOptions } from '../network-tracking';
 import { IRemoteConfigClient } from '../../remote-config/remote-config';
 import { Event } from '../event/event';
 
-type HiddenOptions = 'apiKey' | 'lastEventId' | 'persistedAppVersion' | 'persistedAppBuild' | 'remoteConfigClient';
+type HiddenOptions =
+  | 'apiKey'
+  | 'lastEventId'
+  | 'persistedAppVersion'
+  | 'persistedAppBuild'
+  | 'remoteConfigClient'
+  | 'storage';
 export type ReactNativeStorageData = Event[] | StorageData;
 
 /* @experimental This config is experimental pending GA of React Native autocapture. */
@@ -49,7 +55,7 @@ export interface ReactNativeConfig extends Omit<IConfig, 'requestMetadata'> {
   storage?: Storage<ReactNativeStorageData>;
 }
 
-export type ReactNativeOptions = Omit<Partial<ReactNativeConfig>, HiddenOptions | 'storageProvider' | 'storage'> & {
+export type ReactNativeOptions = Omit<Partial<ReactNativeConfig>, HiddenOptions | 'storageProvider'> & {
   storageProvider?: Storage<ReactNativeStorageData>;
 };
 

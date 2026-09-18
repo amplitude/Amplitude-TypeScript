@@ -1,5 +1,6 @@
 import { RemoteConfigStorage, RemoteConfigInfo } from './remote-config';
 import { ILogger } from '../logger';
+import { safeJsonStringify } from '../utils/safe-stringify';
 
 export class RemoteConfigLocalStorage implements RemoteConfigStorage {
   private readonly key: string;
@@ -31,7 +32,7 @@ export class RemoteConfigLocalStorage implements RemoteConfigStorage {
 
     try {
       const remoteConfigInfo: RemoteConfigInfo = JSON.parse(result) as RemoteConfigInfo;
-      this.logger.debug(`Remote config localstorage parsed successfully: ${JSON.stringify(remoteConfigInfo)}`);
+      this.logger.debug(`Remote config localstorage parsed successfully: ${safeJsonStringify(remoteConfigInfo)}`);
       return Promise.resolve({
         remoteConfig: remoteConfigInfo.remoteConfig,
         lastFetch: new Date(remoteConfigInfo.lastFetch),
