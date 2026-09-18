@@ -399,6 +399,7 @@ describe('react-native-client', () => {
         customServerUrl,
         undefined,
         expectedRemoteConfigGroup(),
+        undefined,
       );
     });
 
@@ -419,6 +420,7 @@ describe('react-native-client', () => {
         undefined,
         undefined,
         expectedRemoteConfigGroup(),
+        undefined,
       );
     });
 
@@ -443,6 +445,7 @@ describe('react-native-client', () => {
           undefined,
           undefined,
           'android',
+          undefined,
         );
         expect(mockRemoteConfigClient.subscribe).toHaveBeenCalledWith(
           'configs.analyticsSDK.androidSDK',
@@ -561,6 +564,109 @@ describe('react-native-client', () => {
       expect(updateReactNativeConfigSpy).toHaveBeenCalledWith(mockAnalyticsRemoteConfig, expect.any(Object));
 
       updateReactNativeConfigSpy.mockRestore();
+    });
+
+    test('should pass custom remote config storage when storageProvider is provided', async () => {
+      jest.spyOn(CookieMigration, 'parseOldCookies').mockResolvedValueOnce({
+        optOut: false,
+      });
+      const storageProvider = {
+        isEnabled: async () => true,
+        get: async () => undefined,
+        set: async () => undefined,
+        remove: async () => undefined,
+        reset: async () => undefined,
+        getRaw: async () => undefined,
+      };
+      const client = new AmplitudeReactNative();
+      await client.init(API_KEY, USER_ID, {
+        remoteConfig: { fetchRemoteConfig: true },
+        storageProvider,
+        ...attributionConfig,
+      }).promise;
+
+      expect(MockedRemoteConfigClient).toHaveBeenCalledWith(
+        API_KEY,
+        expect.anything(),
+        'US',
+        undefined,
+        undefined,
+        expectedRemoteConfigGroup(),
+        expect.objectContaining({
+          fetchConfig: expect.any(Function),
+          setConfig: expect.any(Function),
+        }),
+      );
+    });
+
+    test('should fetch and persist remote config through storageProvider', async () => {
+      jest.spyOn(CookieMigration, 'parseOldCookies').mockResolvedValueOnce({
+        optOut: false,
+      });
+      let stored: unknown = undefined;
+      const storageProvider = {
+        isEnabled: async () => true,
+        get: jest.fn(async () => stored as core.StorageData | Event[] | undefined),
+        set: jest.fn(async (_key: string, value: core.StorageData | Event[]) => {
+          stored = value;
+        }),
+        remove: async () => undefined,
+        reset: async () => undefined,
+        getRaw: async () => undefined,
+      };
+      const client = new AmplitudeReactNative();
+      await client.init(API_KEY, USER_ID, {
+        remoteConfig: { fetchRemoteConfig: true },
+        storageProvider,
+        ...attributionConfig,
+      }).promise;
+
+      const remoteConfigStorage = MockedRemoteConfigClient.mock.calls[0][6] as {
+        fetchConfig: () => Promise<{ remoteConfig: unknown; lastFetch: Date }>;
+        setConfig: (config: { remoteConfig: unknown; lastFetch: Date }) => Promise<boolean>;
+      };
+
+      stored = undefined;
+      const emptyResult = await remoteConfigStorage.fetchConfig();
+      expect(emptyResult.remoteConfig).toBeNull();
+      expect(emptyResult.lastFetch).toBeInstanceOf(Date);
+
+      stored = [{ event_type: 'queued' } as Event];
+      const arrayResult = await remoteConfigStorage.fetchConfig();
+      expect(arrayResult.remoteConfig).toBeNull();
+
+      stored = 'not-an-object';
+      const invalidResult = await remoteConfigStorage.fetchConfig();
+      expect(invalidResult.remoteConfig).toBeNull();
+
+      stored = {};
+      const missingFieldsResult = await remoteConfigStorage.fetchConfig();
+      expect(missingFieldsResult.remoteConfig).toBeNull();
+      expect(missingFieldsResult.lastFetch).toBeInstanceOf(Date);
+
+      const lastFetch = new Date('2024-01-02T03:04:05.000Z');
+      const remoteConfig = {
+        configs: {
+          analyticsSDK: {
+            reactNativeSDK: {
+              autocapture: { sessions: true },
+            },
+          },
+        },
+      };
+      stored = { remoteConfig, lastFetch };
+      const cachedResult = await remoteConfigStorage.fetchConfig();
+      expect(cachedResult.remoteConfig).toEqual(remoteConfig);
+      expect(cachedResult.lastFetch).toEqual(lastFetch);
+
+      stored = { remoteConfig, lastFetch: lastFetch.toISOString() };
+      const stringDateResult = await remoteConfigStorage.fetchConfig();
+      expect(stringDateResult.lastFetch).toEqual(lastFetch);
+
+      const nextConfig = { remoteConfig, lastFetch };
+      await expect(remoteConfigStorage.setConfig(nextConfig)).resolves.toBe(true);
+      expect(storageProvider.set).toHaveBeenCalledWith(`AMP_remote_config_${API_KEY.substring(0, 10)}`, nextConfig);
+      expect(stored).toEqual(nextConfig);
     });
   });
 
@@ -1338,7 +1444,8 @@ describe('react-native-client', () => {
             session_id: expect.any(Number),
           });
           // Force a session change; track() does not start sessions while appState is active
-          client.setSessionId(client.config.sessionId! + 1);
+          const nextSessionId = (client.config.sessionId ?? 0) + 1;
+          client.setSessionId(nextSessionId);
           expect(trackSpy).toHaveBeenCalledWith({
             event_type: DEFAULT_SESSION_END_EVENT,
             time: expect.any(Number),
@@ -1354,7 +1461,8 @@ describe('react-native-client', () => {
             session_id: expect.any(Number),
           });
           // Force a session change; track() does not start sessions while appState is active
-          client.setSessionId(client.config.sessionId! + 1);
+          const nextSessionId = (client.config.sessionId ?? 0) + 1;
+          client.setSessionId(nextSessionId);
           expect(trackSpy).toHaveBeenCalledWith({
             event_type: DEFAULT_SESSION_END_EVENT,
             time: expect.any(Number),
@@ -1839,6 +1947,10 @@ describe('react-native-client', () => {
           undefined,
           undefined,
           testCase.platform,
+          expect.objectContaining({
+            fetchConfig: expect.any(Function),
+            setConfig: expect.any(Function),
+          }),
         );
         expect(platformRemoteConfigClient.subscribe).toHaveBeenCalledWith(
           `configs.diagnostics.${testCase.diagnosticsKey}`,

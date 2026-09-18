@@ -48,6 +48,7 @@ import { useReactNativeConfig, createCookieStorage, shouldFetchRemoteConfig } fr
 import { updateReactNativeConfigWithRemoteConfig } from './config/joined-config';
 import { parseOldCookies } from './cookie-migration';
 import { isNative } from './utils/platform';
+import { RemoteConfigCustomStorage } from './remote-config/remote-config-customstorage';
 import * as Capture from './amp-capture';
 import {
   APP_BUILD,
@@ -181,7 +182,11 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
     let diagnosticsSampleRate = 0;
 
     // Step 0.2: Fetch only the platform-specific diagnostics config.
+    let remoteConfigStorage: RemoteConfigCustomStorage | undefined;
     if (fetchRemoteConfig) {
+      if (options.storageProvider) {
+        remoteConfigStorage = new RemoteConfigCustomStorage(options.apiKey, loggerProvider, options.storageProvider);
+      }
       const remoteConfigPlatform = getRemoteConfigPlatform();
       remoteConfigClient = new RemoteConfigClient(
         options.apiKey,
@@ -190,6 +195,7 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
         /* istanbul ignore next */ options.remoteConfig?.serverUrl,
         undefined,
         remoteConfigPlatform.configGroup,
+        remoteConfigStorage,
       );
       const diagnosticsRemoteConfigPromise = new Promise<void>((resolve) => {
         remoteConfigClient?.subscribe(
