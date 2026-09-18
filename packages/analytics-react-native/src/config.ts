@@ -6,6 +6,7 @@ import {
   ReactNativeTrackingOptions,
   Event,
   ReactNativeOptions,
+  ReactNativeStorageData,
   Storage,
   UserSession,
   CookieStorage,
@@ -49,6 +50,18 @@ export const getDefaultConfig = () => {
   };
 };
 
+const createEventsStorageAdapter = (
+  storageProvider?: Storage<ReactNativeStorageData>,
+): Storage<Event[]> | undefined => {
+  return storageProvider as Storage<Event[]> | undefined;
+};
+
+const createGeneralStorageAdapter = (
+  storageProvider?: Storage<ReactNativeStorageData>,
+): Storage<ReactNativeStorageData> | undefined => {
+  return storageProvider;
+};
+
 export class ReactNativeConfig extends Config implements IReactNativeConfig {
   appVersion?: string;
   cookieExpiration: number;
@@ -63,6 +76,7 @@ export class ReactNativeConfig extends Config implements IReactNativeConfig {
   trackingSessionEvents: boolean;
   trackingOptions: ReactNativeTrackingOptions;
   autocapture?: IReactNativeConfig['autocapture'];
+  storage?: Storage<ReactNativeStorageData>;
 
   // NOTE: These protected properties are used to cache values from async storage
   protected _deviceId?: string;
@@ -78,14 +92,17 @@ export class ReactNativeConfig extends Config implements IReactNativeConfig {
 
   constructor(apiKey: string, options?: ReactNativeOptions) {
     const defaultConfig = getDefaultConfig();
+    const storageProvider = createEventsStorageAdapter(options?.storageProvider);
     super({
       flushIntervalMillis: 1000,
       flushMaxRetries: 5,
       flushQueueSize: 30,
       transportProvider: defaultConfig.transportProvider,
       ...options,
+      storageProvider,
       apiKey,
     });
+    this.storage = createGeneralStorageAdapter(options?.storageProvider);
 
     // NOTE: Define `cookieStorage` first to persist user session
     // user session properties expect `cookieStorage` to be defined
@@ -237,7 +254,9 @@ export const useReactNativeConfig = async (
   let userId = options?.userId ?? previousCookies?.userId;
   let lastEventId = previousCookies?.lastEventId;
 
-  const storageProvider = options?.storageProvider ?? (await createEventsStorage(options));
+  const storageProvider = options?.storageProvider
+    ? createEventsStorageAdapter(options.storageProvider)
+    : await createEventsStorage(options);
 
   if (options?.migrateLegacyData !== false) {
     const legacySessionData = await new RemnantDataMigration(
@@ -322,7 +341,7 @@ export const createEventsStorage = async (overrides?: ReactNativeOptions): Promi
   if (!hasStorageProviderProperty || overrides.storageProvider) {
     for (const storage of [overrides?.storageProvider, new LocalStorage<Event[]>()]) {
       if (storage && (await storage.isEnabled())) {
-        return storage;
+        return createEventsStorageAdapter(storage);
       }
     }
   }

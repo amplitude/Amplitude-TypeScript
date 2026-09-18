@@ -62,7 +62,7 @@ export {
 
 export { LogLevel } from './types/loglevel';
 export { AMPLITUDE_PREFIX, STORAGE_PREFIX } from './types/constants';
-export { Storage, IdentityStorageType, CookieStorageConfig } from './types/storage';
+export { Storage, StorageData, IdentityStorageType, CookieStorageConfig } from './types/storage';
 export { consoleObserver } from './observers/console';
 export {
   Event,
@@ -166,6 +166,7 @@ export {
   ReactNativeTrackingOptions,
   ReactNativeOptions,
   ReactNativeAttributionOptions,
+  ReactNativeStorageData,
 } from './types/config/react-native-config';
 export { ReactNativeClient, NavigationState } from './types/client/react-native-client';
 
