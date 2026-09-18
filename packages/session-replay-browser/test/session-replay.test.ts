@@ -3813,18 +3813,18 @@ describe('SessionReplay', () => {
   describe('getMaskTextSelectors', () => {
     test('null config', () => {
       sessionReplay.config = undefined;
-      expect(sessionReplay.getMaskTextSelectors()).not.toBeDefined();
+      expect(sessionReplay.getMaskTextSelectors()).toBe('[data-amp-mask]');
     });
     test('null privacy config', async () => {
       await sessionReplay.init(apiKey, mockOptions).promise;
       if (sessionReplay.config) {
         sessionReplay.config.privacyConfig = undefined;
       }
-      expect(sessionReplay.getMaskTextSelectors()).not.toBeDefined();
+      expect(sessionReplay.getMaskTextSelectors()).toBe('[data-amp-mask]');
     });
     test('returns mask text selectors', async () => {
       await sessionReplay.init(apiKey, mockOptions).promise;
-      expect(sessionReplay.getMaskTextSelectors()).toEqual(['.className1', '.className2']);
+      expect(sessionReplay.getMaskTextSelectors()).toEqual('.className1,.className2,[data-amp-mask]');
     });
 
     test('should track all text elements when level is conservative', async () => {
@@ -3861,7 +3861,7 @@ describe('SessionReplay', () => {
         },
       }).promise;
       // No conservative rule → falls through to maskSelector logic (no selectors configured)
-      expect(sessionReplay.getMaskTextSelectors()).toBeUndefined();
+      expect(sessionReplay.getMaskTextSelectors()).toBe('[data-amp-mask]');
     });
 
     test('should return * when defaultMaskLevel is conservative and urlMaskLevels are present', async () => {
@@ -3972,18 +3972,18 @@ describe('SessionReplay', () => {
   describe('getBlockSelectors', () => {
     test('null config', () => {
       sessionReplay.config = undefined;
-      expect(sessionReplay.getBlockSelectors()).not.toBeDefined();
+      expect(sessionReplay.getBlockSelectors()).toBe('[data-amp-block]');
     });
     test('null privacy config', async () => {
       await sessionReplay.init(apiKey, mockOptions).promise;
       if (sessionReplay.config) {
         sessionReplay.config.privacyConfig = undefined;
       }
-      expect(sessionReplay.getBlockSelectors()).not.toBeDefined();
+      expect(sessionReplay.getBlockSelectors()).toBe('[data-amp-block]');
     });
     test('returns block selectors', async () => {
       await sessionReplay.init(apiKey, mockOptions).promise;
-      expect(sessionReplay.getBlockSelectors()).toStrictEqual(['.className']);
+      expect(sessionReplay.getBlockSelectors()).toBe('.className,[data-amp-block]');
     });
   });
 

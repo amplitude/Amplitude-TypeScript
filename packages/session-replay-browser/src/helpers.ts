@@ -1,130 +1,15 @@
 import { getGlobalScope } from '@amplitude/analytics-core';
-import { DEFAULT_MASK_LEVEL, MaskLevel, PrivacyConfig, SessionReplayJoinedConfig, UGCFilterRule } from './config/types';
-import { KB_SIZE, MASK_TEXT_CLASS, UNMASK_TEXT_CLASS } from './constants';
+import { SessionReplayJoinedConfig, UGCFilterRule } from './config/types';
+import { KB_SIZE } from './constants';
 import { StorageData } from './typings/session-replay';
-import { getInputType } from './utils/get-input-type';
+import { globToRegex } from '@amplitude/session-replay-dom-privacy';
+export { getEffectiveMaskLevel, isMasked, maskFn, maskAttributeFn } from '@amplitude/session-replay-dom-privacy';
 export { getServerUrl } from './utils/server-url';
 
 type ChromeStorageEstimate = {
   quota?: number;
   usage?: number;
   usageDetails?: { [key: string]: number };
-};
-
-/**
- * Light: Subset of inputs (sensitive types only — password, hidden, email, tel, cc-*)
- * Medium: All inputs (form fields), text is NOT masked
- * Conservative: All inputs and all texts
- */
-const isMaskedForLevel = (elementType: 'input' | 'text', level: MaskLevel, element: HTMLElement | null): boolean => {
-  switch (level) {
-    case 'light': {
-      if (elementType !== 'input') {
-        return false;
-      }
-
-      const inputType = element ? getInputType(element) : '';
-      /* istanbul ignore if */ // TODO(lew): For some reason it's impossible to test this.
-      if (!inputType) {
-        return false;
-      }
-
-      if (['password', 'hidden', 'email', 'tel'].includes(inputType)) {
-        return true;
-      }
-
-      if ((element as HTMLInputElement).autocomplete.startsWith('cc-')) {
-        return true;
-      }
-
-      return false;
-    }
-    case 'medium':
-      return elementType === 'input';
-    case 'conservative':
-      return true;
-    default:
-      return isMaskedForLevel(elementType, DEFAULT_MASK_LEVEL, element);
-  }
-};
-
-/**
- * Returns the effective mask level for a given URL by checking `urlMaskLevels`
- * (first match wins) and falling back to `defaultMaskLevel`.
- */
-export const getEffectiveMaskLevel = (url: string | undefined, config: PrivacyConfig): MaskLevel => {
-  if (url && config.urlMaskLevels) {
-    for (const rule of config.urlMaskLevels) {
-      if (globToRegex(rule.match).test(url)) {
-        return rule.maskLevel;
-      }
-    }
-  }
-  return config.defaultMaskLevel ?? DEFAULT_MASK_LEVEL;
-};
-
-/**
- * Checks if the given element set to be masked by rrweb
- *
- * Priority is:
- *  1. [In code] Element/class based masking/unmasking <> [Config based] Selector based masking/unmasking
- *  2. Use app defaults
- */
-export const isMasked = (
-  elementType: 'input' | 'text',
-  config: PrivacyConfig = { defaultMaskLevel: DEFAULT_MASK_LEVEL },
-  element: HTMLElement | null,
-  currentUrl?: string,
-): boolean => {
-  if (element) {
-    // Element or parent is explicitly instrumented in code to mask
-    if (element.closest('.' + MASK_TEXT_CLASS)) {
-      return true;
-    }
-
-    // Config has override for mask
-    const shouldMask = (config.maskSelector ?? []).some((selector) => element.closest(selector));
-    if (shouldMask) {
-      return true;
-    }
-
-    // Code or config has override to unmask
-    if (element.closest('.' + UNMASK_TEXT_CLASS)) {
-      return false;
-    }
-
-    // Here we are probably sent an element, but we want to match if they have a
-    // parent with an unmask selector.
-    const shouldUnmask = (config.unmaskSelector ?? []).some((selector) => element.closest(selector));
-    if (shouldUnmask) {
-      return false;
-    }
-  }
-
-  return isMaskedForLevel(elementType, getEffectiveMaskLevel(currentUrl, config), element);
-};
-
-export const maskFn =
-  (elementType: 'text' | 'input', config?: PrivacyConfig, getCurrentUrl?: () => string) =>
-  (text: string, element: HTMLElement | null): string => {
-    return isMasked(elementType, config, element, getCurrentUrl?.()) ? text.replace(/[^\s]/g, '*') : text;
-  };
-
-export const maskAttributeFn = (config?: PrivacyConfig, getCurrentUrl?: () => string) => {
-  return (key: string, value: string, element: HTMLElement): string => {
-    // Never mask style — rrweb has a separate styleDiff path for attribute mutations
-    // that reads directly from the DOM, bypassing maskAttributeFn.
-    if (key === 'style') return value;
-
-    // Short-circuit: only proceed if this attribute is in the allowlist.
-    if (!(config?.maskAttributes ?? []).includes(key)) return value;
-
-    // Use 'input' for form elements so that `medium` (which masks inputs but not text)
-    // still masks attributes on inputs/selects/textareas. For non-form elements, use
-    // 'text' so medium leaves them visible.
-    const elementType = ['INPUT', 'SELECT', 'TEXTAREA'].includes(element.tagName) ? 'input' : 'text';
-    return isMasked(elementType, config, element, getCurrentUrl?.()) ? value.replace(/[^\s]/g, '*') : value;
-  };
 };
 
 export const getCurrentUrl = () => {
@@ -141,52 +26,6 @@ const isValidGlobUrl = (globUrl: string): boolean => {
   const urlPattern = /^\/|^https?:\/\/[^\s]+$/;
   if (!urlPattern.test(globUrl)) return false;
   return true;
-};
-
-const globRegexCache = new Map<string, RegExp>();
-
-const globToRegex = (glob: string): RegExp => {
-  const cached = globRegexCache.get(glob);
-  if (cached) return cached;
-
-  // Glob → regex conversion. Glob substitution must happen BEFORE regex escaping so that
-  // the escaper does not corrupt the glob characters (e.g. turning `/**` into `/\*\*`).
-  // Placeholder tokens use null bytes, which are illegal in HTTP URLs and therefore can
-  // never collide with real pattern content.
-  //
-  // Substitution order (most-specific first):
-  //   trailing /**   → (/.*)?          — path with or without a trailing slash/subpath
-  //   middle  /**/   → /(.*\/)?        — zero-or-more path segments (including zero)
-  //   bare    **     → .*              — graceful fallback for ** not adjacent to /
-  //   single  *      → .*              — any characters (preserves existing behaviour)
-  //   ?              → .               — single character wildcard
-  const T_TRAILING = '\x00TRAIL\x00';
-  const T_MIDDLE = '\x00MID\x00';
-  const T_DSTAR = '\x00DS\x00';
-  const T_STAR = '\x00ST\x00';
-  const T_QUEST = '\x00QU\x00';
-
-  let s = glob;
-  s = s.replace(/\/\*\*$/, T_TRAILING); // trailing /**
-  s = s.replace(/\/\*\*\//g, T_MIDDLE); // /**/ in the middle
-  s = s.replace(/\*\*/g, T_DSTAR); // bare ** (e.g. **.example.com)
-  s = s.replace(/\*/g, T_STAR); // single *
-  s = s.replace(/\?/g, T_QUEST); // ?
-
-  // Escape all remaining regex special characters.
-  s = s.replace(/[.+^${}()|[\]\\]/g, '\\$&');
-
-  // Expand tokens into their regex equivalents.
-  // Use split/join (not regex) to avoid the no-control-regex lint rule on the token strings.
-  s = s.split(T_TRAILING).join('(/.*)?'); // /** → optional /anything
-  s = s.split(T_MIDDLE).join('/(.*\\/)?'); // /**/ → /zero-or-more-segments/
-  s = s.split(T_DSTAR).join('.*'); // bare ** → .*
-  s = s.split(T_STAR).join('.*'); // * → .*
-  s = s.split(T_QUEST).join('.'); // ? → .
-
-  const regex = new RegExp(`^${s}$`);
-  globRegexCache.set(glob, regex);
-  return regex;
 };
 
 export const validateUGCFilterRules = (ugcFilterRules: UGCFilterRule[]) => {
