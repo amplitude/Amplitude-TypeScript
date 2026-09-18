@@ -17,7 +17,7 @@ function calculatePercentCompleted(currentTime: number, duration: number) {
   return percentCompleted;
 }
 
-function getVideoData(videoEl: HTMLVideoElement | MuxElement, stopReason?: VideoStopReason) {
+function getVideoData(videoEl: HTMLMediaElement | MuxElement, stopReason?: VideoStopReason) {
   const currentTime = videoEl.currentTime;
   const duration = videoEl.duration;
   return {
@@ -27,6 +27,13 @@ function getVideoData(videoEl: HTMLVideoElement | MuxElement, stopReason?: Video
     percent_completed: calculatePercentCompleted(currentTime, duration),
     ...(stopReason !== undefined ? { stop_reason: stopReason } : {}),
   };
+}
+
+function getMediaErrorMessage(error: MediaError | null | undefined) {
+  if (!error) {
+    return 'Media element error';
+  }
+  return `Media element error (code ${error.code})${error.message ? `: ${error.message}` : ''}`;
 }
 
 function getMuxMetadata(videoEl: MuxElement) {
@@ -44,8 +51,13 @@ function getMuxMetadata(videoEl: MuxElement) {
  * @param handlers - The video handlers to call when on video lifecycle events.
  * @returns A function to untrack the video.
  */
-export function trackHtmlVideo(videoEl: HTMLVideoElement | MuxElement, handlers: VideoHandler, vendor?: Vendor) {
+export function trackHtmlVideo(videoEl: HTMLMediaElement | MuxElement, handlers: VideoHandler, vendor?: Vendor) {
+  // reaching the end of the media fires `pause` right before `ended`, so end of media is
+  // reported once, as `ended`
+  let hasReportedEnded = false;
+
   const playHandler = () => {
+    hasReportedEnded = false;
     const startEvent: VideoEvent = {
       ...getVideoData(videoEl),
       ...(vendor === 'mux' ? getMuxMetadata(videoEl) : {}),
@@ -54,16 +66,11 @@ export function trackHtmlVideo(videoEl: HTMLVideoElement | MuxElement, handlers:
   };
   videoEl.addEventListener('play', playHandler);
 
-  const pauseHandler = () => {
-    const pauseEvent: VideoEvent = {
-      ...getVideoData(videoEl, 'paused'),
-      ...(vendor === 'mux' ? getMuxMetadata(videoEl) : {}),
-    };
-    handlers.onPause(pauseEvent);
-  };
-  videoEl.addEventListener('pause', pauseHandler);
-
   const endedHandler = () => {
+    if (hasReportedEnded) {
+      return;
+    }
+    hasReportedEnded = true;
     const endedEvent: VideoEvent = {
       ...getVideoData(videoEl, 'ended'),
       ...(vendor === 'mux' ? getMuxMetadata(videoEl) : {}),
@@ -71,6 +78,19 @@ export function trackHtmlVideo(videoEl: HTMLVideoElement | MuxElement, handlers:
     handlers.onEnded(endedEvent);
   };
   videoEl.addEventListener('ended', endedHandler);
+
+  const pauseHandler = () => {
+    if ((videoEl as HTMLMediaElement).ended === true) {
+      endedHandler();
+      return;
+    }
+    const pauseEvent: VideoEvent = {
+      ...getVideoData(videoEl, 'paused'),
+      ...(vendor === 'mux' ? getMuxMetadata(videoEl) : {}),
+    };
+    handlers.onPause(pauseEvent);
+  };
+  videoEl.addEventListener('pause', pauseHandler);
 
   const seekingHandler = () => {
     const seekingEvent: VideoEvent = {
@@ -90,8 +110,13 @@ export function trackHtmlVideo(videoEl: HTMLVideoElement | MuxElement, handlers:
   };
   videoEl.addEventListener('seeked', seekedHandler);
 
+  const errorHandler = () => {
+    handlers.onError(getMediaErrorMessage((videoEl as HTMLMediaElement).error));
+  };
+  videoEl.addEventListener('error', errorHandler);
+
   const timeupdateHandler = () => {
-    const media = videoEl as HTMLVideoElement;
+    const media = videoEl as HTMLMediaElement;
     const timeupdateEvent: TimeUpdateEvent = {
       position: videoEl.currentTime,
       isSeeking: !!media.seeking,
@@ -102,10 +127,11 @@ export function trackHtmlVideo(videoEl: HTMLVideoElement | MuxElement, handlers:
 
   return () => {
     videoEl.removeEventListener('play', playHandler);
-    videoEl.removeEventListener('pause', pauseHandler);
     videoEl.removeEventListener('ended', endedHandler);
+    videoEl.removeEventListener('pause', pauseHandler);
     videoEl.removeEventListener('seeking', seekingHandler);
     videoEl.removeEventListener('seeked', seekedHandler);
+    videoEl.removeEventListener('error', errorHandler);
     videoEl.removeEventListener('timeupdate', timeupdateHandler);
   };
 }
@@ -166,18 +192,6 @@ export function trackEmbeddedVideo(player: EmbeddedVideoPlayer, handlers: VideoH
     player.on('play', playHandler);
     onUnsubscribe.push(() => player.off('play', playHandler));
 
-    const pauseHandler = () => {
-      getIframeMetadata(player, elem, vendor, 'paused')
-        .then((playerState) => {
-          handlers.onPause(playerState);
-        })
-        .catch((error) => {
-          handlers.onError(`Error getting iframe metadata from 'pause' handler: ${error as string}`);
-        });
-    };
-    player.on('pause', pauseHandler);
-    onUnsubscribe.push(() => player.off('pause', pauseHandler));
-
     const endedHandler = () => {
       getIframeMetadata(player, elem, vendor, 'ended')
         .then((playerState) => {
@@ -189,6 +203,18 @@ export function trackEmbeddedVideo(player: EmbeddedVideoPlayer, handlers: VideoH
     };
     player.on('ended', endedHandler);
     onUnsubscribe.push(() => player.off('ended', endedHandler));
+
+    const pauseHandler = () => {
+      getIframeMetadata(player, elem, vendor, 'paused')
+        .then((playerState) => {
+          handlers.onPause(playerState);
+        })
+        .catch((error) => {
+          handlers.onError(`Error getting iframe metadata from 'pause' handler: ${error as string}`);
+        });
+    };
+    player.on('pause', pauseHandler);
+    onUnsubscribe.push(() => player.off('pause', pauseHandler));
 
     const seekingHandler = () => {
       isSeeking = true;

@@ -53,6 +53,32 @@ describe('trackHtmlVideo', () => {
     expect(handler.onPlay).not.toHaveBeenCalled();
   });
 
+  test('should report the pause that precedes the end of the media as an ended event', () => {
+    trackHtmlVideo(video, handler);
+
+    video.play();
+    Object.defineProperty(video, 'ended', { configurable: true, value: true });
+    Object.defineProperty(video, 'currentTime', { configurable: true, value: 10 });
+    video.dispatchEvent(new Event('pause'));
+    video.dispatchEvent(new Event('ended'));
+
+    expect(handler.onPause).not.toHaveBeenCalled();
+    expect(handler.onEnded).toHaveBeenCalledTimes(1);
+    expect(handler.onEnded).toHaveBeenCalledWith({
+      duration: 10,
+      start_time: 10,
+      last_position: 10,
+      percent_completed: 100,
+      stop_reason: 'ended',
+    });
+
+    // replaying restores normal pause reporting
+    video.play();
+    Object.defineProperty(video, 'ended', { configurable: true, value: false });
+    video.pause();
+    expect(handler.onPause).toHaveBeenCalledTimes(1);
+  });
+
   test('should track seeking events', () => {
     const untrack = trackHtmlVideo(video, handler);
 
@@ -89,6 +115,25 @@ describe('trackHtmlVideo', () => {
     handler.onSeeked = jest.fn();
     (video as any).seeked(2);
     expect(handler.onSeeked).not.toHaveBeenCalled();
+  });
+
+  test('should track error events', () => {
+    const untrack = trackHtmlVideo(video, handler);
+
+    video.play();
+    (video as any).simulateError({ code: 2, message: 'network' });
+    expect(handler.onError).toHaveBeenCalledWith('Media element error (code 2): network');
+
+    (video as any).simulateError({ code: 4, message: '' });
+    expect(handler.onError).toHaveBeenLastCalledWith('Media element error (code 4)');
+
+    (video as any).simulateError(null);
+    expect(handler.onError).toHaveBeenLastCalledWith('Media element error');
+
+    untrack();
+    handler.onError = jest.fn();
+    (video as any).simulateError();
+    expect(handler.onError).not.toHaveBeenCalled();
   });
 
   test('should track timeupdate events', () => {
