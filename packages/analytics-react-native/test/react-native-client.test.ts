@@ -1806,11 +1806,12 @@ describe('react-native-client', () => {
       },
     );
 
-    test('should give Destination a diagnostics client backed by RN storage', async () => {
+    test('should give Destination a diagnostics client backed by the configured RN storage provider', async () => {
       const client = new AmplitudeReactNative();
       const addSpy = jest.spyOn(client, 'add');
+      const storageProvider = new core.MemoryStorage<core.ReactNativeStorageData>();
 
-      await client.init(API_KEY, undefined, { ...useDefaultConfig() }).promise;
+      await client.init(API_KEY, undefined, { ...useDefaultConfig(), storageProvider }).promise;
 
       const destination = addSpy.mock.calls
         .map(([plugin]) => plugin as core.Destination)
@@ -1820,6 +1821,10 @@ describe('react-native-client', () => {
       const diagnosticsClient = destination?.diagnosticsClient as core.DiagnosticsClient | undefined;
       expect(diagnosticsClient).toBeDefined();
       expect(diagnosticsClient?.storage).toBeInstanceOf(ReactNativeDiagnosticsStorage);
+      await diagnosticsClient?.storage?.setTags({ test: 'value' });
+      expect(await storageProvider.get(`AMP_diagnostics_${API_KEY.substring(0, 10)}`)).toEqual(
+        expect.objectContaining({ tags: { test: 'value' } }),
+      );
     });
   });
 });
