@@ -1,5 +1,6 @@
 import { ILogger, ReactNativeStorageData, Storage } from '@amplitude/analytics-core';
 import { RemoteConfigInfo, RemoteConfigStorage } from '@amplitude/analytics-core/lib/esm/remote-config/remote-config';
+import { safeJsonStringify } from '@amplitude/analytics-core';
 
 /**
  * Remote config storage backed by a caller-provided `Storage` implementation.
@@ -39,7 +40,7 @@ export class RemoteConfigCustomStorage implements RemoteConfigStorage {
     }
 
     const remoteConfigInfo = result as RemoteConfigInfo;
-    this.logger.debug(`Remote config customstorage parsed successfully: ${JSON.stringify(remoteConfigInfo)}`);
+    this.logger.debug(`Remote config customstorage parsed successfully: ${safeJsonStringify(remoteConfigInfo)}`);
     return {
       remoteConfig: remoteConfigInfo.remoteConfig ?? null,
       lastFetch: remoteConfigInfo.lastFetch ? new Date(remoteConfigInfo.lastFetch) : new Date(),
