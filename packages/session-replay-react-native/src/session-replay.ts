@@ -5,7 +5,8 @@ import { getDefaultConfig, SessionReplayConfig, SessionReplayConfigInternal } fr
 import { createSessionReplayLogger } from './logger';
 import { VERSION } from './version';
 
-type ResolvedSessionReplayConfig = Required<SessionReplayConfigInternal>;
+type ResolvedSessionReplayConfig = Required<Omit<SessionReplayConfigInternal, 'customSessionId'>> &
+  Pick<SessionReplayConfigInternal, 'customSessionId'>;
 
 /**
  * Translates the public `SessionReplayConfig` into the internal shape by
@@ -29,6 +30,13 @@ function normalizeConfig(config: SessionReplayConfig): SessionReplayConfigIntern
 
 let isInitialized = false;
 let logger = createSessionReplayLogger();
+
+// The RN SDK drives the native layer exclusively through the customSessionId
+// path, so the native side no longer stores a numeric session id. Track it here
+// to preserve the public `getSessionId()` contract: it returns the numeric the
+// consumer set, or `-1` while a string custom session id is active.
+let numericSessionId = -1;
+let customSessionIdActive = false;
 
 /**
  * Configure the SDK. Call `start()` explicitly to begin collecting replays.
@@ -69,6 +77,10 @@ export async function init(config: SessionReplayConfig): Promise<void> {
   try {
     await NativeSessionReplay.setup(nativeConfig(resolvedConfig));
     logger.log('SessionReplay initialized');
+    // Seed the tracked numeric session id from config. When a string custom id
+    // is supplied it takes precedence and `getSessionId()` reports `-1`.
+    numericSessionId = resolvedConfig.sessionId;
+    customSessionIdActive = resolvedConfig.customSessionId != null && resolvedConfig.customSessionId !== '';
     isInitialized = true;
   } catch (error) {
     logger.error('Error initializing SessionReplay', error);
@@ -78,6 +90,10 @@ export async function init(config: SessionReplayConfig): Promise<void> {
 /**
  * Call whenever the session ID changes.
  * The Session ID you pass to the SDK must match the Session ID sent as event properties to Amplitude.
+ *
+ * Under the hood the numeric session id is mapped onto the native custom session
+ * id (as its string form) — the RN SDK never drives the native numeric session
+ * id. `getSessionId()` still returns the numeric value you passed here.
  *
  * @param sessionId - The new session identifier number
  * @returns Promise that resolves when the session ID is updated
@@ -92,7 +108,38 @@ export async function setSessionId(sessionId: number): Promise<void> {
     logger.warn('SessionReplay is not initialized');
     return;
   }
-  await NativeSessionReplay.setSessionId(sessionId);
+  await NativeSessionReplay.setCustomSessionId(String(sessionId));
+  numericSessionId = sessionId;
+  customSessionIdActive = false;
+}
+
+/**
+ * Call whenever the alphanumeric session ID changes.
+ * The value must match the Session ID sent as event properties to Amplitude.
+ * While a custom session ID is active, `getSessionId()` returns `-1`.
+ *
+ * @param customSessionId - The new alphanumeric session identifier
+ */
+export async function setCustomSessionId(customSessionId: string): Promise<void> {
+  if (!isInitialized) {
+    logger.warn('SessionReplay is not initialized');
+    return;
+  }
+  await NativeSessionReplay.setCustomSessionId(customSessionId);
+  customSessionIdActive = true;
+}
+
+/**
+ * Get the current alphanumeric session identifier from the session replay SDK.
+ *
+ * @returns Promise that resolves to the active custom session ID, or null if not initialized
+ */
+export async function getCustomSessionId(): Promise<string | null> {
+  if (!isInitialized) {
+    logger.warn('SessionReplay is not initialized');
+    return null;
+  }
+  return await NativeSessionReplay.getCustomSessionId();
 }
 
 /**
@@ -135,7 +182,10 @@ export async function getSessionId(): Promise<number | null> {
     logger.warn('SessionReplay is not initialized');
     return null;
   }
-  return await NativeSessionReplay.getSessionId();
+  // The native layer only tracks the custom session id now, so derive the
+  // numeric contract from JS state: the numeric the consumer set, or `-1` while
+  // a string custom session id is active.
+  return customSessionIdActive ? -1 : numericSessionId;
 }
 
 /**
@@ -225,6 +275,8 @@ export async function teardown(): Promise<void> {
   }
   await NativeSessionReplay.teardown();
   isInitialized = false;
+  numericSessionId = -1;
+  customSessionIdActive = false;
   logger = createSessionReplayLogger();
 }
 
@@ -235,14 +287,28 @@ function nativeConfig(config: ResolvedSessionReplayConfig): NativeSessionReplayC
   // `undefined` (no user value and no baked-in default), so fall back to
   // `'medium'`. Strip `privacyConfig` from the spread because the native bridge
   // only takes a flat `maskLevel` string.
-  const { privacyConfig, ...rest } = config;
+  const { privacyConfig, customSessionId, sessionId, ...rest } = config;
   const resolvedMaskLevel: NativeSessionReplayConfig['maskLevel'] = privacyConfig.maskLevel ?? 'medium';
-  return {
+  const native: NativeSessionReplayConfig = {
     ...rest,
     logLevel: rest.logLevel as NativeSessionReplayConfig['logLevel'],
     // TODO(SDKRN-15): Migrate native bridge to accept the full privacyConfig object instead of a flat maskLevel string.
     maskLevel: resolvedMaskLevel,
   };
+  // Native session identity is driven only through customSessionId. A string
+  // custom id wins; otherwise the numeric session id is mapped to its string
+  // form. The `-1` sentinel (no session set) maps to no custom id so the
+  // "no active session" default is preserved.
+  const effectiveCustomSessionId =
+    customSessionId != null && customSessionId !== ''
+      ? customSessionId
+      : sessionId !== -1
+      ? String(sessionId)
+      : undefined;
+  if (effectiveCustomSessionId !== undefined) {
+    native.customSessionId = effectiveCustomSessionId;
+  }
+  return native;
 }
 
 export async function privateInit(

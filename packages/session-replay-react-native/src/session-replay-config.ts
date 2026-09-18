@@ -81,11 +81,20 @@ export interface SessionReplayConfig {
   serverZone?: 'EU' | 'US';
 
   /**
-   * Session identifier that matches the session ID sent with Amplitude events
-   * Must match the Session ID passed as event properties to Amplitude
+   * Session identifier that matches the session ID sent with Amplitude events.
+   * Must match the Session ID passed as event properties to Amplitude.
+   * Under the hood this is mapped onto the native custom session id (as its
+   * string form); `getSessionId()` still returns this numeric value.
    * @default -1
    */
   sessionId?: number;
+
+  /**
+   * Alphanumeric session identifier that matches the session ID sent with Amplitude events.
+   * When set (including at init), takes precedence over `sessionId`. While active,
+   * `getSessionId()` returns `-1`; use `getCustomSessionId()` for the exact string.
+   */
+  customSessionId?: string;
 }
 
 /**
@@ -99,7 +108,7 @@ export interface SessionReplayConfig {
  */
 export type SessionReplayConfigInternal = Omit<SessionReplayConfig, 'maskLevel'>;
 
-export const getDefaultConfig: () => Required<Omit<SessionReplayConfigInternal, 'apiKey'>> = () => {
+export const getDefaultConfig: () => Required<Omit<SessionReplayConfigInternal, 'apiKey' | 'customSessionId'>> = () => {
   return {
     deviceId: null,
     enableRemoteConfig: true,

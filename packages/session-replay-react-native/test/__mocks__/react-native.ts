@@ -8,6 +8,8 @@ const ampNativeSessionReplay = {
   getSessionId: jest.fn().mockResolvedValue(12345),
   setDeviceId: jest.fn().mockResolvedValue(undefined),
   setSessionId: jest.fn().mockResolvedValue(undefined),
+  setCustomSessionId: jest.fn().mockResolvedValue(undefined),
+  getCustomSessionId: jest.fn().mockResolvedValue('550e8400-e29b-41d4-a716-446655440000'),
   setOptOut: jest.fn().mockResolvedValue(undefined),
 };
 
