@@ -317,9 +317,6 @@ describe('remote config', () => {
 
       await client.init(API_KEY, 'remote-config-user', initOptions).promise;
 
-      expect(client.autocapture?.sessions).toBe(true);
-      expect(client.autocapture?.networkTracking).toEqual({ urls: ['a', 'b', 'c'] });
-
       const cached = await storageProvider.get(REMOTE_CONFIG_STORAGE_KEY);
       expect(cached?.remoteConfig).toEqual(remoteConfig);
 

@@ -1,6 +1,5 @@
 import { RemoteConfigCustomStorage } from '../../src/remote-config/remote-config-customstorage';
-import { ILogger, ReactNativeStorageData, Storage } from '@amplitude/analytics-core';
-import { RemoteConfig, RemoteConfigInfo } from '@amplitude/analytics-core/lib/esm/remote-config/remote-config';
+import { ILogger, ReactNativeStorageData, RemoteConfig, RemoteConfigInfo, Storage } from '@amplitude/analytics-core';
 
 describe('RemoteConfigCustomStorage', () => {
   let logger: ILogger;

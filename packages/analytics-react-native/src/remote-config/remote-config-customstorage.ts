@@ -1,5 +1,11 @@
-import { ILogger, ReactNativeStorageData, Storage, safeJsonStringify } from '@amplitude/analytics-core';
-import { RemoteConfigInfo, RemoteConfigStorage } from '@amplitude/analytics-core/lib/esm/remote-config/remote-config';
+import {
+  ILogger,
+  ReactNativeStorageData,
+  RemoteConfigInfo,
+  RemoteConfigStorage,
+  Storage,
+  safeJsonStringify,
+} from '@amplitude/analytics-core';
 
 /**
  * Remote config storage backed by a caller-provided `Storage` implementation.
