@@ -4,7 +4,8 @@ import { ILogger, ReactNativeStorageData, RemoteConfig, RemoteConfigInfo, Storag
 describe('RemoteConfigCustomStorage', () => {
   let logger: ILogger;
   let loggerDebug: jest.SpyInstance;
-  let customStorage: Storage<ReactNativeStorageData>;
+  let get: jest.MockedFunction<Storage<ReactNativeStorageData>['get']>;
+  let set: jest.MockedFunction<Storage<ReactNativeStorageData>['set']>;
   let storage: RemoteConfigCustomStorage;
   const apiKey = '12345678901234567890';
   const storageKey = `AMP_remote_config_${apiKey.substring(0, 10)}`;
@@ -20,26 +21,27 @@ describe('RemoteConfigCustomStorage', () => {
     };
     loggerDebug = jest.spyOn(logger, 'debug');
 
-    customStorage = {
+    get = jest.fn().mockResolvedValue(undefined);
+    set = jest.fn().mockResolvedValue(undefined);
+    storage = new RemoteConfigCustomStorage(apiKey, logger, {
       isEnabled: jest.fn().mockResolvedValue(true),
-      get: jest.fn().mockResolvedValue(undefined),
+      get,
       getRaw: jest.fn().mockResolvedValue(undefined),
-      set: jest.fn().mockResolvedValue(undefined),
+      set,
       remove: jest.fn().mockResolvedValue(undefined),
       reset: jest.fn().mockResolvedValue(undefined),
-    };
-    storage = new RemoteConfigCustomStorage(apiKey, logger, customStorage);
+    });
   });
 
   describe('fetchConfig', () => {
     it('should return remote config info', async () => {
       const lastFetch = new Date('2025-03-20T12:00:00Z');
       const remoteConfig: RemoteConfig = { key1: 'value1' };
-      jest.mocked(customStorage.get).mockResolvedValueOnce({ remoteConfig, lastFetch });
+      get.mockResolvedValueOnce({ remoteConfig, lastFetch });
 
       const result = await storage.fetchConfig();
 
-      expect(customStorage.get).toHaveBeenCalledWith(storageKey);
+      expect(get).toHaveBeenCalledWith(storageKey);
       expect(result.remoteConfig).toEqual(remoteConfig);
       expect(result.lastFetch).toEqual(lastFetch);
       expect(loggerDebug).toHaveBeenCalledWith(
@@ -49,7 +51,7 @@ describe('RemoteConfigCustomStorage', () => {
 
     it('should revive a serialized lastFetch', async () => {
       const lastFetch = new Date('2025-03-20T12:00:00Z');
-      jest.mocked(customStorage.get).mockResolvedValueOnce({
+      get.mockResolvedValueOnce({
         remoteConfig: { key1: 'value1' },
         lastFetch: lastFetch.toISOString(),
       });
@@ -60,7 +62,7 @@ describe('RemoteConfigCustomStorage', () => {
     });
 
     it('should default missing fields', async () => {
-      jest.mocked(customStorage.get).mockResolvedValueOnce({});
+      get.mockResolvedValueOnce({});
 
       const result = await storage.fetchConfig();
 
@@ -77,7 +79,7 @@ describe('RemoteConfigCustomStorage', () => {
     });
 
     it('should return remote config info null if the stored value is not a config object', async () => {
-      jest.mocked(customStorage.get).mockResolvedValueOnce([{ event_type: 'queued' }]);
+      get.mockResolvedValueOnce([{ event_type: 'queued' }]);
 
       const result = await storage.fetchConfig();
 
@@ -86,7 +88,7 @@ describe('RemoteConfigCustomStorage', () => {
     });
 
     it('should return remote config info null if the storage throws an error', async () => {
-      jest.mocked(customStorage.get).mockRejectedValueOnce(new Error('storage is unavailable'));
+      get.mockRejectedValueOnce(new Error('storage is unavailable'));
 
       const result = await storage.fetchConfig();
 
@@ -106,12 +108,12 @@ describe('RemoteConfigCustomStorage', () => {
       const result = await storage.setConfig(info);
 
       expect(result).toBe(true);
-      expect(customStorage.set).toHaveBeenCalledWith(storageKey, info);
+      expect(set).toHaveBeenCalledWith(storageKey, info);
       expect(loggerDebug).toHaveBeenCalledWith('Remote config customstorage set successfully.');
     });
 
     it('should return false and log an error if storing the config fails', async () => {
-      jest.mocked(customStorage.set).mockRejectedValueOnce(new Error('storage quota exceeded'));
+      set.mockRejectedValueOnce(new Error('storage quota exceeded'));
       const info: RemoteConfigInfo = {
         remoteConfig: { key1: 'value1' },
         lastFetch: new Date(),

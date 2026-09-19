@@ -58,6 +58,7 @@ describe('react-native-client', () => {
   };
   const expectedRemoteConfigGroup = () =>
     Platform.OS === 'ios' || Platform.OS === 'android' ? Platform.OS : 'browser';
+  const expectedRemoteConfigSdkKey = () => `configs.analyticsSDK.${expectedRemoteConfigGroup()}SDK`;
 
   beforeEach(() => {
     originalRemoteConfigClient = core.RemoteConfigClient;
@@ -331,7 +332,7 @@ describe('react-native-client', () => {
       expect(track).toHaveBeenCalledTimes(1);
     });
 
-    test('should NOT use remote config by default (opt-in)', async () => {
+    test('should not use remote config by default', async () => {
       jest.spyOn(CookieMigration, 'parseOldCookies').mockResolvedValueOnce({
         optOut: false,
       });
@@ -359,7 +360,7 @@ describe('react-native-client', () => {
         expect.any(Function),
       );
       expect(mockRemoteConfigClient.subscribe).toHaveBeenCalledWith(
-        'configs.analyticsSDK.reactNativeSDK',
+        expectedRemoteConfigSdkKey(),
         'all',
         expect.any(Function),
       );
@@ -423,6 +424,98 @@ describe('react-native-client', () => {
       );
     });
 
+    test('should request the android remote config group on android', async () => {
+      jest.spyOn(CookieMigration, 'parseOldCookies').mockResolvedValueOnce({
+        optOut: false,
+      });
+      const originalPlatformOS = Platform.OS;
+      Platform.OS = 'android';
+
+      try {
+        const client = new AmplitudeReactNative();
+        await client.init(API_KEY, USER_ID, {
+          remoteConfig: { fetchRemoteConfig: true },
+          ...attributionConfig,
+        }).promise;
+
+        expect(MockedRemoteConfigClient).toHaveBeenCalledWith(
+          API_KEY,
+          expect.anything(),
+          'US',
+          undefined,
+          undefined,
+          'android',
+          undefined,
+        );
+        expect(mockRemoteConfigClient.subscribe).toHaveBeenCalledWith(
+          'configs.analyticsSDK.androidSDK',
+          'all',
+          expect.any(Function),
+        );
+      } finally {
+        Platform.OS = originalPlatformOS;
+      }
+    });
+
+    test.each([
+      {
+        platformOS: 'ios',
+        expectedQuery: 'config_group=ios',
+      },
+      {
+        platformOS: 'android',
+        expectedQuery: 'config_group=android',
+      },
+    ] as const)(
+      'should fetch remote config with $expectedQuery when Platform.OS is $platformOS',
+      async ({ platformOS, expectedQuery }) => {
+        Object.defineProperty(core, 'RemoteConfigClient', {
+          value: originalRemoteConfigClient,
+          writable: true,
+          configurable: true,
+        });
+        jest.spyOn(CookieMigration, 'parseOldCookies').mockResolvedValueOnce({
+          optOut: false,
+        });
+
+        const originalPlatformOS = Platform.OS;
+        Platform.OS = platformOS;
+        const originalFetch = global.fetch;
+        const fetchMock = jest.fn().mockResolvedValue({
+          ok: true,
+          status: 200,
+          json: async () => ({ configs: {} }),
+          text: async () => '{}',
+        });
+        global.fetch = fetchMock as typeof fetch;
+
+        const customServerUrl = 'https://remote-config.test/config';
+        const client = new AmplitudeReactNative();
+        try {
+          await client.init(API_KEY, USER_ID, {
+            remoteConfig: {
+              fetchRemoteConfig: true,
+              serverUrl: customServerUrl,
+            },
+            ...attributionConfig,
+          }).promise;
+
+          expect(fetchMock).toHaveBeenCalled();
+          const requestedUrl = String(fetchMock.mock.calls[0]?.[0]);
+          expect(requestedUrl).toBe(`${customServerUrl}/${encodeURIComponent(API_KEY)}?${expectedQuery}`);
+          expect(fetchMock.mock.calls[0]?.[1]).toEqual(
+            expect.objectContaining({
+              method: 'GET',
+            }),
+          );
+        } finally {
+          client.shutdown();
+          Platform.OS = originalPlatformOS;
+          global.fetch = originalFetch;
+        }
+      },
+    );
+
     test('should call updateReactNativeConfigWithRemoteConfig when remoteConfig is not null', async () => {
       jest.spyOn(CookieMigration, 'parseOldCookies').mockResolvedValueOnce({
         optOut: false,
@@ -442,7 +535,7 @@ describe('react-native-client', () => {
               callback: (remoteConfig: any, source: any, lastFetch: Date) => void,
             ) => {
               callback(
-                configKey === 'configs.analyticsSDK.reactNativeSDK' ? mockAnalyticsRemoteConfig : null,
+                configKey === expectedRemoteConfigSdkKey() ? mockAnalyticsRemoteConfig : null,
                 'cache',
                 new Date(),
               );
@@ -1351,7 +1444,8 @@ describe('react-native-client', () => {
             session_id: expect.any(Number),
           });
           // Force a session change; track() does not start sessions while appState is active
-          client.setSessionId(client.config.sessionId! + 1);
+          const nextSessionId = (client.config.sessionId ?? 0) + 1;
+          client.setSessionId(nextSessionId);
           expect(trackSpy).toHaveBeenCalledWith({
             event_type: DEFAULT_SESSION_END_EVENT,
             time: expect.any(Number),
@@ -1367,7 +1461,8 @@ describe('react-native-client', () => {
             session_id: expect.any(Number),
           });
           // Force a session change; track() does not start sessions while appState is active
-          client.setSessionId(client.config.sessionId! + 1);
+          const nextSessionId = (client.config.sessionId ?? 0) + 1;
+          client.setSessionId(nextSessionId);
           expect(trackSpy).toHaveBeenCalledWith({
             event_type: DEFAULT_SESSION_END_EVENT,
             time: expect.any(Number),
@@ -1863,7 +1958,7 @@ describe('react-native-client', () => {
           expect.any(Function),
         );
         expect(platformRemoteConfigClient.subscribe).toHaveBeenCalledWith(
-          'configs.analyticsSDK.reactNativeSDK',
+          `configs.analyticsSDK.${testCase.diagnosticsKey}`,
           'all',
           expect.any(Function),
         );

@@ -73,6 +73,8 @@ describe('react-native-session', () => {
     sessionTimeout: 100,
     sessionId,
     trackingSessionEvents,
+    // session assertions depend on exact event ordering, so keep init offline
+    remoteConfig: { fetchRemoteConfig: false },
     ...attributionConfig,
   });
 

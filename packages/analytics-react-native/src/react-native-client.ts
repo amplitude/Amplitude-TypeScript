@@ -28,6 +28,7 @@ import {
   IRemoteConfigClient,
   RemoteConfigClient,
   RemoteConfig,
+  RemoteConfigGroup,
   Source,
   ReactNativeAutocaptureOptions,
   NavigationState,
@@ -90,7 +91,18 @@ const getActiveRouteName = (navigationState: NavigationState): string | undefine
   return routeName;
 };
 
-const getRemoteConfigPlatform = () => {
+const getRemoteConfigSdkKey = () => {
+  if (Platform.OS === 'ios') {
+    return 'configs.analyticsSDK.iosSDK';
+  }
+  if (Platform.OS === 'android') {
+    return 'configs.analyticsSDK.androidSDK';
+  }
+  // unexpected React Native platform, just use Browser SDK.
+  return 'configs.analyticsSDK.browserSDK';
+};
+
+const getRemoteConfigPlatform = (): { configGroup: RemoteConfigGroup; diagnosticsKey: string } => {
   switch (Platform.OS) {
     case 'ios':
       return {
@@ -212,7 +224,7 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
       });
       analyticsRemoteConfigPromise = new Promise<RemoteConfig | null>((resolve) => {
         remoteConfigClient?.subscribe(
-          'configs.analyticsSDK.reactNativeSDK',
+          getRemoteConfigSdkKey(),
           'all',
           (remoteConfig: RemoteConfig | null, source: Source, lastFetch: Date) => {
             loggerProvider.debug(
